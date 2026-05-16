@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useReframeStore } from '@/stores/useReframeStore';
 import { useRecastStore } from '@/stores/useRecastStore';
@@ -15,8 +15,26 @@ import { generateProjectBrief } from '@/lib/project-brief';
 import { OutputSelector } from '@/components/ui/OutputSelector';
 import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import Link from 'next/link';
-import { Layers, Map, Users, FileText, RefreshCw, Check, Circle, ArrowRight, Download, Sparkles } from 'lucide-react';
+import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+
+const STEP_LABELS_KO = ['재정의', '설계', '검증', '종합'] as const;
+const STEP_LABELS_EN = ['Reframe', 'Recast', 'Rehearse', 'Synth'] as const;
+
+type ToolStatus = 'done' | 'in-progress' | 'not-started';
+type StatusFilter = 'all' | 'active' | 'done' | 'new';
+
+function relativeDate(dateStr: string | undefined, locale: 'ko' | 'en'): string {
+  if (!dateStr) return '';
+  const then = new Date(dateStr).getTime();
+  if (Number.isNaN(then)) return '';
+  const diff = (Date.now() - then) / 1000;
+  if (diff < 60) return locale === 'ko' ? '방금' : 'just now';
+  if (diff < 3600) return locale === 'ko' ? `${Math.floor(diff / 60)}분 전` : `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return locale === 'ko' ? `${Math.floor(diff / 3600)}시간 전` : `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 7 * 86400) return locale === 'ko' ? `${Math.floor(diff / 86400)}일 전` : `${Math.floor(diff / 86400)}d ago`;
+  return new Date(dateStr).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US');
+}
 
 interface StepStatus {
   tool: string;
@@ -38,6 +56,8 @@ export default function ProjectPage() {
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
   const { feedbackHistory, loadData: loadPersona } = usePersonaStore();
   const { judgments, loadJudgments, getUserPatterns } = useJudgmentStore();
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   useEffect(() => {
     loadProjects();
@@ -49,6 +69,143 @@ export default function ProjectPage() {
   }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadJudgments]);
 
   const currentProject = currentProjectId ? projects.find((p) => p.id === currentProjectId) : null;
+
+  /* ─── Per-project rich metrics (used in list view) ─── */
+  interface ProjectMetrics {
+    statuses: ToolStatus[];
+    completedSteps: number;
+    hasProgress: boolean;
+    isDone: boolean;
+    questionExcerpt: string | null;
+    stepCount: number;
+    aiRatio: number | null;
+    humanRatio: number | null;
+    reviewerCount: number;
+    riskCount: number;
+    lastActivityStepIdx: number;
+    lastActivityAt: string;
+  }
+
+  const projectMetricsMap = useMemo(() => {
+    const map = new Map<string, ProjectMetrics>();
+    for (const p of projects) {
+      const r = reframeItems.filter((d) => d.project_id === p.id);
+      const rc = recastItems.filter((o) => o.project_id === p.id);
+      const sy = synthesizeItems.filter((s) => s.project_id === p.id);
+      const fb = feedbackHistory.filter((f) => f.project_id === p.id);
+      const lastR = r[r.length - 1];
+      const lastRc = rc[rc.length - 1];
+      const lastF = fb[fb.length - 1];
+      const lastS = sy[sy.length - 1];
+
+      const statuses: ToolStatus[] = [
+        lastR?.status === 'done' ? 'done' : lastR ? 'in-progress' : 'not-started',
+        lastRc?.status === 'done' ? 'done' : lastRc ? 'in-progress' : 'not-started',
+        lastF ? 'done' : 'not-started',
+        sy.length > 0 ? 'done' : 'not-started',
+      ];
+      const completedSteps = statuses.filter((s) => s === 'done').length;
+      const isDone = completedSteps === 4;
+      const hasProgress = completedSteps > 0 || statuses.some((s) => s === 'in-progress');
+
+      // Content excerpt — what the user is actually working on
+      const questionExcerpt =
+        lastR?.selected_question || lastR?.analysis?.surface_task || null;
+
+      // Workflow shape
+      const stepCount = lastRc?.steps?.length || 0;
+      const aiRatio =
+        typeof lastRc?.analysis?.ai_ratio === 'number' ? Math.round(lastRc.analysis.ai_ratio * 100) : null;
+      const humanRatio =
+        typeof lastRc?.analysis?.human_ratio === 'number' ? Math.round(lastRc.analysis.human_ratio * 100) : null;
+
+      // Reviewer count — unique persona ids across all feedback runs
+      const reviewerSet = new Set<string>();
+      for (const f of fb) for (const pid of f.persona_ids || []) reviewerSet.add(pid);
+      const reviewerCount = reviewerSet.size;
+
+      // Risk count — critical risks from rehearsal + high-severity findings from recast review
+      let riskCount = 0;
+      for (const result of lastF?.results || []) {
+        for (const rr of result.classified_risks || []) {
+          if (rr.category === 'critical') riskCount++;
+        }
+      }
+      const reviews = lastRc?.analysis?.reviews || [];
+      for (const rv of reviews) {
+        for (const f of rv.findings || []) {
+          if (f.severity === 'high' && (f.type === 'gap' || f.type === 'risk')) riskCount++;
+        }
+      }
+
+      // Last activity — find the most-recently-touched tool
+      const candidates: Array<{ idx: number; at: string }> = [];
+      if (lastR?.updated_at || lastR?.created_at) candidates.push({ idx: 0, at: lastR.updated_at || lastR.created_at });
+      if (lastRc?.updated_at || lastRc?.created_at) candidates.push({ idx: 1, at: lastRc.updated_at || lastRc.created_at });
+      if (lastF?.created_at) candidates.push({ idx: 2, at: lastF.created_at });
+      if (lastS?.created_at) candidates.push({ idx: 3, at: lastS.created_at });
+      candidates.sort((a, b) => b.at.localeCompare(a.at));
+      const lastActivityStepIdx = candidates[0]?.idx ?? -1;
+      const lastActivityAt = candidates[0]?.at || p.updated_at || p.created_at || '';
+
+      map.set(p.id, {
+        statuses,
+        completedSteps,
+        hasProgress,
+        isDone,
+        questionExcerpt,
+        stepCount,
+        aiRatio,
+        humanRatio,
+        reviewerCount,
+        riskCount,
+        lastActivityStepIdx,
+        lastActivityAt,
+      });
+    }
+    return map;
+  }, [projects, reframeItems, recastItems, synthesizeItems, feedbackHistory]);
+
+  const stats = useMemo(() => {
+    let inProgress = 0;
+    let done = 0;
+    let untouched = 0;
+    for (const p of projects) {
+      const m = projectMetricsMap.get(p.id);
+      if (!m) continue;
+      if (m.isDone) done++;
+      else if (m.hasProgress) inProgress++;
+      else untouched++;
+    }
+    return { total: projects.length, inProgress, done, untouched };
+  }, [projects, projectMetricsMap]);
+
+  const sortedProjects = useMemo(() => {
+    return [...projects].sort((a, b) => {
+      const am = projectMetricsMap.get(a.id);
+      const bm = projectMetricsMap.get(b.id);
+      const at = am?.lastActivityAt || a.updated_at || a.created_at || '';
+      const bt = bm?.lastActivityAt || b.updated_at || b.created_at || '';
+      return bt.localeCompare(at);
+    });
+  }, [projects, projectMetricsMap]);
+
+  const filteredProjects = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list = sortedProjects;
+    if (statusFilter !== 'all') {
+      list = list.filter((p) => {
+        const m = projectMetricsMap.get(p.id);
+        if (!m) return false;
+        if (statusFilter === 'active') return m.hasProgress && !m.isDone;
+        if (statusFilter === 'done') return m.isDone;
+        if (statusFilter === 'new') return !m.hasProgress;
+        return true;
+      });
+    }
+    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
+    return list;
+  }, [sortedProjects, query, statusFilter, projectMetricsMap]);
 
   // Get items for current project
   const projectReframes = reframeItems.filter((d) => d.project_id === currentProjectId);
@@ -75,7 +232,7 @@ export default function ProjectPage() {
       {
         tool: 'recast',
         label: L('실행 설계', 'Recast'),
-        icon: <Map size={18} />,
+        icon: <MapIcon size={18} />,
         href: '/workspace?step=recast',
         status: latestRecast?.status === 'done' ? 'done' : latestRecast ? 'in-progress' : 'not-started',
         summary: latestRecast?.analysis
@@ -117,16 +274,40 @@ export default function ProjectPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('프로젝트 오버뷰', 'Project Overview')}</h1>
-        <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-          {L('사고 프로세스의 전체 여정을 한눈에 확인합니다.', 'See your full thinking journey at a glance.')}
-        </p>
-      </div>
+      {/* Page header — title row with primary action */}
+      {!currentProject && (
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight">{L('프로젝트', 'Projects')}</h1>
+            <p className="text-[13px] text-[var(--text-secondary)] mt-1">
+              {L('사고 프로세스의 전체 여정을 한눈에 확인합니다.', 'See your full thinking journey at a glance.')}
+            </p>
+          </div>
+          {projects.length > 0 && (
+            <Link
+              href="/workspace"
+              onClick={() => setCurrentProjectId(null)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[var(--bg)] text-[12.5px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer self-start sm:self-auto"
+              style={{ background: 'var(--gradient-gold)' }}
+            >
+              <Plus size={13} /> {L('새 프로젝트', 'New project')}
+            </Link>
+          )}
+        </div>
+      )}
+
+      {currentProject && (
+        <div>
+          <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('프로젝트 오버뷰', 'Project Overview')}</h1>
+          <p className="text-[13px] text-[var(--text-secondary)] mt-1">
+            {L('사고 프로세스의 전체 여정을 한눈에 확인합니다.', 'See your full thinking journey at a glance.')}
+          </p>
+        </div>
+      )}
 
       {/* Project selector */}
       {!currentProject && (
-        <div className="space-y-3">
+        <div className="space-y-5">
           {projects.length === 0 ? (
             <Card className="text-center py-12">
               <FileText size={24} className="mx-auto text-[var(--text-secondary)] mb-3" />
@@ -147,28 +328,189 @@ export default function ProjectPage() {
             </Card>
           ) : (
             <>
-              <p className="text-[13px] font-semibold text-[var(--text-secondary)]">{L('프로젝트 선택', 'Select a project')}</p>
-              {projects.map((project) => {
-                const itemCount = project.refs.length;
-                const dateStr = new Date(project.updated_at).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US');
-                return (
-                  <Card
-                    key={project.id}
-                    hoverable
-                    onClick={() => setCurrentProjectId(project.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-[15px] font-bold text-[var(--text-primary)]">{project.name}</h3>
-                        <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
-                          {L(`${itemCount}개 항목`, `${itemCount} item${itemCount === 1 ? '' : 's'}`)} · {dateStr}
-                        </p>
-                      </div>
-                      <ArrowRight size={16} className="text-[var(--text-secondary)]" />
-                    </div>
-                  </Card>
-                );
-              })}
+              {/* Filter chips + search */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {([
+                    { key: 'all', label: L('전체', 'All'), count: stats.total },
+                    { key: 'active', label: L('진행 중', 'Active'), count: stats.inProgress },
+                    { key: 'done', label: L('완료', 'Done'), count: stats.done },
+                    { key: 'new', label: L('시작 전', 'New'), count: stats.untouched },
+                  ] as const).map((f) => {
+                    const active = statusFilter === f.key;
+                    return (
+                      <button
+                        key={f.key}
+                        onClick={() => setStatusFilter(f.key)}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-medium transition-all cursor-pointer ${
+                          active
+                            ? 'bg-[var(--text-primary)] text-[var(--bg)]'
+                            : 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/30'
+                        }`}
+                      >
+                        <span>{f.label}</span>
+                        <span className={`tabular-nums text-[10.5px] ${active ? 'opacity-70' : 'text-[var(--text-tertiary)]'}`}>
+                          {f.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="relative">
+                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={L('프로젝트 검색', 'Search projects')}
+                    className="pl-7 pr-3 py-1.5 text-[12px] rounded-lg bg-[var(--bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/20 w-full sm:w-52 placeholder:text-[var(--text-tertiary)] transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Project grid — rich cards */}
+              {filteredProjects.length === 0 ? (
+                <div className="text-center py-10 text-[13px] text-[var(--text-tertiary)]">
+                  {L('일치하는 프로젝트가 없습니다.', 'No matching projects.')}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredProjects.map((project) => {
+                    const m = projectMetricsMap.get(project.id);
+                    if (!m) return null;
+                    const labels = locale === 'ko' ? STEP_LABELS_KO : STEP_LABELS_EN;
+                    const lastStepLabel = m.lastActivityStepIdx >= 0 ? labels[m.lastActivityStepIdx] : null;
+                    const hasMetrics =
+                      m.stepCount > 0 || m.aiRatio !== null || m.reviewerCount > 0 || m.riskCount > 0;
+
+                    return (
+                      <button
+                        key={project.id}
+                        onClick={() => setCurrentProjectId(project.id)}
+                        className={`group text-left bg-[var(--surface)] border rounded-xl p-4 hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col gap-3 ${
+                          m.isDone
+                            ? 'border-[var(--success)]/30 hover:border-[var(--success)]/60 hover:shadow-[var(--shadow-md)]'
+                            : m.hasProgress
+                            ? 'border-[var(--accent)]/25 hover:border-[var(--accent)]/55 hover:shadow-[var(--shadow-md)]'
+                            : 'border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/30 hover:shadow-[var(--shadow-sm)]'
+                        }`}
+                      >
+                        {/* Header: status pill + last-activity time */}
+                        <div className="flex items-center justify-between gap-2 text-[10.5px] uppercase tracking-wide font-bold">
+                          {m.isDone ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--collab)] text-[var(--success)]">
+                              <Check size={9} strokeWidth={3} /> {L('완료', 'Done')}
+                            </span>
+                          ) : m.hasProgress ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--accent)]/10 text-[var(--accent)]">
+                              <span className="w-1 h-1 rounded-full bg-[var(--accent)] animate-pulse" /> {L('진행', 'Active')}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-[var(--bg)] text-[var(--text-tertiary)] font-medium">
+                              {L('시작 전', 'New')}
+                            </span>
+                          )}
+                          <span className="text-[var(--text-tertiary)] normal-case tracking-normal font-normal tabular-nums">
+                            {relativeDate(m.lastActivityAt || project.updated_at, locale)}
+                            {lastStepLabel && m.hasProgress && !m.isDone ? (
+                              <span className="text-[var(--text-tertiary)]/70"> · {lastStepLabel}</span>
+                            ) : null}
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-[1.35] line-clamp-2 group-hover:text-[var(--accent)] transition-colors">
+                          {project.name}
+                        </h3>
+
+                        {/* Content excerpt — what they're actually working on */}
+                        {m.questionExcerpt ? (
+                          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] line-clamp-2 border-l-2 border-[var(--accent)]/30 pl-2.5">
+                            {m.questionExcerpt}
+                          </p>
+                        ) : !m.hasProgress ? (
+                          <p className="text-[12px] text-[var(--text-tertiary)] italic leading-[1.55]">
+                            {L('아직 재정의 전 — 작업을 시작해 보세요.', 'Not yet reframed — start when ready.')}
+                          </p>
+                        ) : null}
+
+                        {/* Metrics strip — only when meaningful */}
+                        {hasMetrics && (
+                          <div className="flex flex-wrap gap-x-3.5 gap-y-1.5 text-[11.5px] text-[var(--text-secondary)]">
+                            {m.stepCount > 0 && (
+                              <span className="inline-flex items-center gap-1 tabular-nums">
+                                <GitBranch size={11} className="text-[var(--text-tertiary)]" strokeWidth={2.25} />
+                                {locale === 'ko' ? `${m.stepCount}단계` : `${m.stepCount} step${m.stepCount === 1 ? '' : 's'}`}
+                              </span>
+                            )}
+                            {m.aiRatio !== null && m.humanRatio !== null && (
+                              <span className="inline-flex items-center gap-1 tabular-nums">
+                                <Scale size={11} className="text-[var(--text-tertiary)]" strokeWidth={2.25} />
+                                {locale === 'ko'
+                                  ? `AI ${m.aiRatio}·사람 ${m.humanRatio}`
+                                  : `AI ${m.aiRatio}/Hum ${m.humanRatio}`}
+                              </span>
+                            )}
+                            {m.reviewerCount > 0 && (
+                              <span className="inline-flex items-center gap-1 tabular-nums">
+                                <MessageSquare size={11} className="text-[var(--text-tertiary)]" strokeWidth={2.25} />
+                                {locale === 'ko' ? `${m.reviewerCount}명 리뷰` : `${m.reviewerCount} reviewer${m.reviewerCount === 1 ? '' : 's'}`}
+                              </span>
+                            )}
+                            {m.riskCount > 0 && (
+                              <span className="inline-flex items-center gap-1 tabular-nums text-amber-700">
+                                <AlertTriangle size={11} strokeWidth={2.25} />
+                                {locale === 'ko' ? `리스크 ${m.riskCount}` : `${m.riskCount} risk${m.riskCount === 1 ? '' : 's'}`}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 4-step progress with current-step emphasis */}
+                        <div className="space-y-1.5 mt-auto pt-1">
+                          <div className="flex items-center gap-1">
+                            {m.statuses.map((s, i) => (
+                              <div
+                                key={i}
+                                className={`flex-1 h-[3px] rounded-full transition-colors ${
+                                  s === 'done'
+                                    ? m.isDone
+                                      ? 'bg-[var(--success)]'
+                                      : 'bg-[var(--accent)]'
+                                    : s === 'in-progress'
+                                    ? 'bg-[var(--accent)]/45'
+                                    : 'bg-[var(--border)]'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <div className="flex items-center justify-between text-[10px]">
+                            {labels.map((label, i) => {
+                              const isLast = i === m.lastActivityStepIdx && !m.isDone;
+                              return (
+                                <span
+                                  key={label}
+                                  className={`${
+                                    m.statuses[i] === 'done'
+                                      ? m.isDone
+                                        ? 'text-[var(--success)] font-semibold'
+                                        : 'text-[var(--accent)] font-semibold'
+                                      : m.statuses[i] === 'in-progress' || isLast
+                                      ? 'text-[var(--text-primary)] font-semibold'
+                                      : 'text-[var(--text-tertiary)]'
+                                  }`}
+                                >
+                                  {label}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
         </div>
