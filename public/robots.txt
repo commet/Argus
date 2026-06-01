@@ -9,4 +9,4 @@ Disallow: /project
 Disallow: /agents
 Disallow: /boss
 
-Sitemap: https://argus.so/sitemap.xml
+Sitemap: https://argus.voyage/sitemap.xml

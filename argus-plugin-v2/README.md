@@ -177,5 +177,5 @@ Per-repo. Commits with your code. Sessions in `.argus/sessions/` ship with the r
 - JSON schemas — `data/schemas/*.json` (analysis-snapshot, minimal-scaffold, final-scaffold, draft, session, etc.)
 - Version tree mechanics — `lib/session/version-numbering.md`
 - Build status, decision log, fix history — `BUILD_STATUS.md`
-- **Webapp** — [argus.so](https://argus.so) (Next.js with richer UI). Plugin shares agent identities + MBTI archetypes + draft tree model. Plugin diverges on output shape (scaffold vs markdown), agent role (workers vs reviewers), environment (code-native vs prose), and persistence (filesystem vs Supabase).
+- **Webapp** — [argus.voyage](https://argus.voyage) (Next.js with richer UI). Plugin shares agent identities + MBTI archetypes + draft tree model. Plugin diverges on output shape (scaffold vs markdown), agent role (workers vs reviewers), environment (code-native vs prose), and persistence (filesystem vs Supabase).
 - **License** — MIT

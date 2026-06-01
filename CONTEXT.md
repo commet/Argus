@@ -9,8 +9,8 @@
 
 **Argus** — "Think before you recast"
 
-Argus는 그리스 신화의 백 개의 눈을 가진 파수꾼. 결코 전부 잠들지 않는 시선.
-AI 에이전트가 실행하기 전에, 무엇을 왜 어떤 순서로 할지를 보고 판단하는 도구.
+Argus는 오디세우스가 20년 만에 변장하고 돌아왔을 때, 누더기 아래 진짜 주인을 단번에 알아본 개의 이름.
+AI 에이전트가 실행하기 전에, 표면이 아니라 진짜를 — 무엇을 왜 어떤 순서로 할지를 — 알아보고 판단하는 도구.
 오디세우스가 세이렌의 섬을 지나려 돛대에 스스로를 묶었듯 — Argus는 AI에게 일을 맡기기 전 **판단의 하네스**를 채운다.
 
 **핵심 테제**: "실행 비용이 0에 가까워질수록, 실행 이전의 판단의 가치는 올라간다."
@@ -92,7 +92,7 @@ AI 에이전트가 실행하기 전에, 무엇을 왜 어떤 순서로 할지를
 - **State**: Zustand (localStorage + Supabase 이중 저장)
 - **LLM**: Anthropic Claude Sonnet 4 (`claude-sonnet-4-20250514`)
 - **DB**: Supabase (RLS 적용, 최근 연동 완료)
-- **배포**: Vercel (https://argus-zeta.vercel.app)
+- **배포**: Vercel · https://argus.voyage (정본 도메인)
 - **Repo**: github.com/commet/Argus
 
 ### LLM 비용 구조

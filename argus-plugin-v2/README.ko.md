@@ -177,5 +177,5 @@ repo별. 코드와 함께 commit. `.argus/sessions/`도 repo와 같이 ship하�
 - JSON 스키마 — `data/schemas/*.json` (analysis-snapshot, minimal-scaffold, final-scaffold, draft, session 등)
 - 버전 트리 메커니즘 — `lib/session/version-numbering.md`
 - Build status, 결정 log, fix history — `BUILD_STATUS.md`
-- **Webapp** — [argus.so](https://argus.so) (Next.js, 더 풍부한 UI). 에이전트 정체성 + MBTI 아키타입 + draft 트리 모델 공유. plugin은 출력 모양(스캐폴드 vs 마크다운), 에이전트 역할(worker vs reviewer), 환경(코드 native vs 산문), 영속화(filesystem vs Supabase)에서 분기.
+- **Webapp** — [argus.voyage](https://argus.voyage) (Next.js, 더 풍부한 UI). 에이전트 정체성 + MBTI 아키타입 + draft 트리 모델 공유. plugin은 출력 모양(스캐폴드 vs 마크다운), 에이전트 역할(worker vs reviewer), 환경(코드 native vs 산문), 영속화(filesystem vs Supabase)에서 분기.
 - **라이선스** — MIT
