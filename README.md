@@ -7,6 +7,11 @@ AI에게 일을 시키는 건 쉬워졌습니다.
 
 Argus는 AI에게 일을 시키기 전에 거쳐야 할 **판단의 구조**를 만들어주는 도구입니다.
 
+**웹에서 바로 사용 → [argus.voyage](https://argus.voyage)**
+
+> *Argus*는 오디세우스가 10년 만에 변장하고 돌아왔을 때, 누더기 아래 진짜 주인을 알아본 개의 이름입니다.
+> 매끄러운 표면이 아니라 그 아래의 진짜를 보는 눈 — Argus가 하는 일이 그것입니다.
+
 ---
 
 ## 왜 필요한가
@@ -129,11 +134,28 @@ AI가 7단계 워크플로우를 자동 설계합니다. AI 트랙과 사람 트
 
 ## 시작하기
 
-### 온라인
-<!-- TODO: 배포 URL 확정 후 추가 -->
-배포 URL은 준비 중입니다. 아래 로컬 실행으로 먼저 사용할 수 있습니다.
+### 웹 (바로 사용)
 
-### 로컬 실행
+설치 없이 브라우저에서 — **[argus.voyage](https://argus.voyage)**
+
+### Claude Code 플러그인
+
+실제 코드베이스 안에서 결정을 구조화합니다. AI 팀이 워커로 배치되어 코드·PR·파일 위에서 **결정 스캐폴드**를 만듭니다 (코드 생성이 아니라 판단).
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
+```
+
+Claude Code 재시작 후, 아무 repo에서:
+
+```
+/argus:sail "결정해야 할 질문"
+```
+
+명령: `/argus:sail` (30초 판단) · `/argus:team` (에이전트 팀 배치) · `/argus:boss` (보스 시뮬레이션) · `/argus:clarify` · `/argus:chart`
+자세히 → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
+
+### 로컬 개발
 
 ```bash
 git clone https://github.com/commet/Argus.git
@@ -146,11 +168,7 @@ npm run dev
 
 ### API 키 설정 (선택)
 
-기본적으로 서버 프록시를 통해 작동합니다. 사용량 제한 없이 사용하려면:
-
-1. 설정 페이지에서 "직접 API 키" 모드 선택
-2. Anthropic API Key 입력
-3. 키는 브라우저 localStorage에만 저장되며 서버로 전송되지 않습니다
+기본적으로 서버 프록시를 통해 작동합니다. 사용량 제한 없이 쓰려면 설정 페이지에서 "직접 API 키" 모드를 선택해 Anthropic API Key를 입력하세요. 키는 브라우저 localStorage에만 저장되며 서버로 전송되지 않습니다.
 
 ---
 
@@ -181,16 +199,6 @@ src/
 ├── stores/              # Zustand 스토어 (12개)
 └── lib/                 # LLM 호출, 산출물 생성, 유사도 엔진, 맥락 빌더, 오디오
 ```
-
----
-
-## 디자인 철학: 동틀 녘의 항구
-
-- 따뜻한 아이보리 배경 (`#f8f7f5`)
-- 관대한 여백 — 빽빽하게 채우지 않습니다
-- 절제된 모션 — spring 기반, 200ms 이하, 의미 있는 전환에만
-- 색상 사용은 절제하되 의미 있게: 리스크 색상(🔴🟡🟣)은 정보를 전달할 때만
-- 타이포 위계: 13px 헤더 bold → 13px 본문 → 12px 보조 → 11px 뱃지
 
 ---
 
