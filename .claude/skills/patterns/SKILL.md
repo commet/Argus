@@ -1,17 +1,17 @@
 ---
-name: overture-patterns
-description: "Analyze your decision-making patterns from the Overture journal. Shows strengths, recurring blind spots, DQ score trends, and personalized growth insights. Use after 3+ runs to get meaningful patterns."
+name: argus-patterns
+description: "Analyze your decision-making patterns from the Argus journal. Shows strengths, recurring blind spots, DQ score trends, and personalized growth insights. Use after 3+ runs to get meaningful patterns."
 allowed-tools: Read
 ---
 
 ## When to use
 
-- ✓ After 3+ Overture runs — enough data for meaningful patterns
+- ✓ After 3+ Argus runs — enough data for meaningful patterns
 - ✓ Want to understand your thinking strengths and blind spots
 - ✓ Before an important decision — review what you tend to miss
 - ✓ Periodic self-review of decision quality
-- ✗ First time using Overture (no data yet)
-- ✗ Looking for help with a specific decision (use /reframe or /overture)
+- ✗ First time using Argus (no data yet)
+- ✗ Looking for help with a specific decision (use /reframe or /argus)
 
 **Always respond in the same language the user uses.**
 
@@ -21,15 +21,15 @@ allowed-tools: Read
 
 ### Step 0: Read journal
 
-Read `.overture/journal.md` from the project root.
+Read `.argus/journal.md` from the project root.
 
 **If journal doesn't exist or has < 3 entries:**
 
-**📊 Overture · Patterns**
+**📊 Argus · Patterns**
 
 Not enough data yet. You have [N] run(s).
 
-Run `/overture` or `/reframe` at least 3 times to start seeing patterns.
+Run `/argus` or `/reframe` at least 3 times to start seeing patterns.
 
 Current history:
 [list entries if any]
@@ -44,7 +44,7 @@ Extract from each entry:
 - Interview signals (nature, goal, stakes)
 - Assumption patterns (confirmed/mixed/mostly_doubtful)
 - Reframing strategies used
-- DQ scores (if /overture entries)
+- DQ scores (if /argus entries)
 - DQ element scores (F/A/I/P/R/Act)
 - Persona counts and critical/unspoken risk counts
 - Convergence data
@@ -95,7 +95,7 @@ Specific, earned observations. Not "you're good at framing" but "You consistentl
 Patterns where you consistently miss something. E.g., "You haven't explored timing assumptions in any of your 8 runs. Consider: is the *when* as important as the *what*?"
 
 **3. DQ trajectory**
-If multiple /overture runs exist, show the score trend with attribution. What's improving and why.
+If multiple /argus runs exist, show the score trend with attribution. What's improving and why.
 
 **4. Thinking profile**
 A one-paragraph characterization of their decision-making style based on signal patterns, assumption ratings, and strategy preferences. E.g., "You're an analytical thinker who prefers structured approaches (nature=needs_analysis in 70% of runs). You tend to be cautious with assumptions (60% rated uncertain) which gives you thorough analysis but may slow decision speed."
@@ -105,7 +105,7 @@ One specific, actionable suggestion for their next run. Not generic advice but t
 
 ## Output
 
-**📊 Overture · Patterns** — [N] runs · [date range]
+**📊 Argus · Patterns** — [N] runs · [date range]
 
 ---
 
@@ -156,7 +156,7 @@ Worst: [element] — [why]
 - /recast — [N] runs
 - /rehearse — [N] runs
 - /refine — [N] runs
-- /overture — [N] runs
+- /argus — [N] runs
 
 **Assumption tendency:**
 - ✓ Confident — [N]%
@@ -183,7 +183,7 @@ Scale ALL claims to sample size. Never overstate:
 When journal exceeds 50 entries (or `max_entries_before_archive_hint` in config):
 
 1. **Notify:** "저널이 [N]개 항목입니다. 아카이브할까요?"
-2. **If yes:** Move all except last 15 entries to `.overture/journal-archive-[date].md`
+2. **If yes:** Move all except last 15 entries to `.argus/journal-archive-[date].md`
 3. **Preserve:** Archive header with date range, total entries, summary stats
 4. **Pattern continuity:** When analyzing, read BOTH current journal AND archive headers (not full archive content)
 
@@ -191,7 +191,7 @@ Archive header format:
 ```
 # Journal Archive — [start_date] to [end_date]
 - Entries: [N]
-- Skills: /reframe [N], /recast [N], /rehearse [N], /refine [N], /overture [N]
+- Skills: /reframe [N], /recast [N], /rehearse [N], /refine [N], /argus [N]
 - DQ range: [min]-[max] (avg [avg])
 - Top blind spot: [pattern]
 - Top strength: [pattern]

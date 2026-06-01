@@ -1,15 +1,15 @@
 {
-  "name": "overture",
+  "name": "argus",
   "version": "2.0.0",
   "description": "Judgment harness for AI. Structure a decision inside your actual codebase — AI team deploys as workers on real code/PRs/files, preserving contradictions and hidden assumptions. Output is a DECISION SCAFFOLD (not a solution). Built on Claude Code's subagent + Task tool. Complement to Cursor (code generation) and Copilot Review (critique).",
   "author": {
-    "name": "Overture",
+    "name": "Argus",
     "email": "yclee913@gmail.com",
     "url": "https://github.com/commet"
   },
-  "homepage": "https://github.com/commet/Overture",
+  "homepage": "https://github.com/commet/Argus",
   "license": "MIT",
-  "repository": "https://github.com/commet/Overture",
+  "repository": "https://github.com/commet/Argus",
   "commands": [
     "./skills/sail/SKILL.md",
     "./skills/clarify/SKILL.md",
@@ -63,7 +63,7 @@
     "code-native",
     "decision-scaffold",
     "version-tree",
-    "overture",
+    "argus",
     "anti-sycophancy"
   ]
 }

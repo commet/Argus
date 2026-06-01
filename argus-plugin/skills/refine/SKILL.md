@@ -20,7 +20,7 @@ allowed-tools: Read, Write, Agent, AskUserQuestion
 
 ## Context extraction
 
-Read `.overture/rehearse.md`, `.overture/recast.md`, `.overture/reframe.md` for contracts.
+Read `.argus/rehearse.md`, `.argus/recast.md`, `.argus/reframe.md` for contracts.
 
 **Immutable constraints (from /recast):**
 - `governing_idea` → revised plan MUST still serve this. If contradicted, flag.
@@ -57,7 +57,7 @@ Present issues with clear tracking:
 
 ---
 
-**Overture · Refine** — 수정 대상
+**Argus · Refine** — 수정 대상
 
 | # | 이슈 | 출처 | 심각도 | 대상 단계 | 수정 방향 |
 |---|------|------|--------|----------|----------|
@@ -171,7 +171,7 @@ Recommendations, not blockers.
 
 ---
 
-**Overture · Refine** — 수정 반영 · Round [N]
+**Argus · Refine** — 수정 반영 · Round [N]
 
 **변경 사항**
 
@@ -238,7 +238,7 @@ Root question check: [✓ 여전히 답하고 있음 / ⚠ 드리프트 감지]
 
 ## Auto-save
 
-Save to `.overture/refine.md`:
+Save to `.argus/refine.md`:
 - Top: changes, re-test results, approval tracking, final plan
 - Bottom: Context Contract (converged, rounds, critical_remaining, changes[], approval_conditions[], convergence_metrics, root_question_check)
 

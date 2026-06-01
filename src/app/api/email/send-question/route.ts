@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const replyToken = generateId();
   const safeQuestion = question.slice(0, 2000);
   const safeContext = (context || '').slice(0, 5000);
-  const safeName = (senderName || 'Overture User').slice(0, 100);
+  const safeName = (senderName || 'Argus User').slice(0, 100);
   const safeSubject = (subject || `${safeName}님의 질문`).slice(0, 200);
 
   // Build email HTML — all user inputs HTML-escaped to prevent XSS
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="border-bottom: 2px solid #D97706; padding-bottom: 16px; margin-bottom: 24px;">
-        <span style="font-size: 14px; font-weight: 700; color: #D97706;">Overture</span>
+        <span style="font-size: 14px; font-weight: 700; color: #D97706;">Argus</span>
         <span style="font-size: 12px; color: #9CA3AF; margin-left: 8px;">질문 요청</span>
       </div>
 
@@ -95,18 +95,18 @@ export async function POST(req: NextRequest) {
       </p>
 
       <p style="font-size: 11px; color: #9CA3AF; margin-top: 32px;">
-        Powered by <a href="https://overture.app" style="color: #D97706; text-decoration: none;">Overture</a>
+        Powered by <a href="https://argus.voyage" style="color: #D97706; text-decoration: none;">Argus</a>
       </p>
     </div>
   `;
 
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const fromDomain = process.env.EMAIL_FROM_DOMAIN || 'overture.app';
+    const fromDomain = process.env.EMAIL_FROM_DOMAIN || 'argus.voyage';
     const fromAddress = `reply+${replyToken}@${fromDomain}`;
 
     await resend.emails.send({
-      from: `${safeName} via Overture <${fromAddress}>`,
+      from: `${safeName} via Argus <${fromAddress}>`,
       to,
       subject: safeSubject,
       html,

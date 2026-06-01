@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Overture uses a **client-first architecture** with Supabase as the backend:
+Argus uses a **client-first architecture** with Supabase as the backend:
 
 - **Authentication**: Google OAuth + Email/Password via Supabase Auth
 - **Authorization**: Row Level Security (RLS) on all 9 tables — `auth.uid() = user_id`

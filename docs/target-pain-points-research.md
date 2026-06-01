@@ -546,7 +546,7 @@ Andrej Karpathy가 2025년 2월 명명. 2025년 말 조사: **84%의 개발자**
 - AI 기능은 있으나 "기술 → 비즈니스 번역"이 아닌 "어조 교정" 수준
 - 2026년 대부분 AI writing assistant 내장했지만, 도메인 맥락 이해 없음
 
-### 4.3 아직 채워지지 않은 니즈 (= Overture 기회)
+### 4.3 아직 채워지지 않은 니즈 (= Argus 기회)
 
 #### Gap 1: "기술적 맥락에서 비즈니스 문서를 생성하는" 도구가 없다
 - 모든 기존 도구는 **비즈니스 → 비즈니스** (경영인이 경영 문서를 쓰는 것) 전제
@@ -556,17 +556,17 @@ Andrej Karpathy가 2025년 2월 명명. 2025년 말 조사: **84%의 개발자**
 #### Gap 2: "어디서부터 시작해야 하는지" 구조를 잡아주는 도구가 없다
 - ChatGPT에 "기획서 써줘"라고 하면 generic template 출력
 - **문제 정의 → 가정 발견 → 구조화 → 비즈니스 프레이밍** 순서를 안내하는 도구 부재
-- Overture의 4R(Reframe → Recast → Rehearse → Refine) 파이프라인이 정확히 이 갭
+- Argus의 4R(Reframe → Recast → Rehearse → Refine) 파이프라인이 정확히 이 갭
 
 #### Gap 3: "내가 쓴 것이 괜찮은지" 검증해주는 도구가 없다
 - AI 도구들은 문서를 생성하지만 **비판적 검토를 하지 않음**
 - 경영진/투자자 관점에서 "이게 설득력 있는가"를 사전 검증하는 기능 부재
-- Overture의 Rehearse(페르소나 사전 검증) + Refine(수렴 루프)이 이 갭
+- Argus의 Rehearse(페르소나 사전 검증) + Refine(수렴 루프)이 이 갭
 
 #### Gap 4: "반복 사용할수록 나아지는" 도구가 없다
 - 모든 기존 도구는 stateless (매번 처음부터)
 - 이전 판단의 패턴, 자주 놓치는 가정, 성공/실패 이력을 학습하는 도구 = 0개
-- Overture의 judgment data flywheel 개념
+- Argus의 judgment data flywheel 개념
 
 #### Gap 5: 한국 시장 특수 도구 부재
 - 한국어 기획서 작성에 특화된 AI 도구가 사실상 없음
@@ -576,7 +576,7 @@ Andrej Karpathy가 2025년 2월 명명. 2025년 말 조사: **84%의 개발자**
 
 #### Gap 6: "AI 피드백 받기 전에 사고를 구조화하는" 도구가 없다
 - Microsoft Research CHI 2025 "Tools for Thought": ExtendAI 프로토타입 — 사용자가 AI 피드백 받기 **전에** 자기 추론을 먼저 명확히 하도록 유도. "AI as an assistant is about speed. AI as a tool for thought is about depth."
-- **Overture의 4R 파이프라인과 거의 동일한 구조**이지만, 이것은 학술 연구이지 제품이 아님
+- **Argus의 4R 파이프라인과 거의 동일한 구조**이지만, 이것은 학술 연구이지 제품이 아님
 - 같은 연구: "Higher confidence in GenAI = less critical thinking" — AI 의존도가 높을수록 비판적 사고 감소
 > — https://www.microsoft.com/en-us/research/blog/the-future-of-ai-in-knowledge-work-tools-for-thought-at-chi-2025/
 
@@ -622,10 +622,10 @@ Andrej Karpathy가 2025년 2월 명명. 2025년 말 조사: **84%의 개발자**
 5. **경영진의 "왜 이렇게 오래 걸려?"와 개발자의 "당신이 뭘 원하는지 말을 안 해줬잖아"**
    - 양측 모두 좌절하는 구조적 소통 실패.
 
-### Overture가 해결할 수 있는 구체적 시나리오
+### Argus가 해결할 수 있는 구체적 시나리오
 
 **시나리오 1: "대표님이 기획서 한번 써보라고 했다"**
-- 개발자가 Overture에 기술적 프로젝트를 입력
+- 개발자가 Argus에 기술적 프로젝트를 입력
 - Reframe: 숨겨진 비즈니스 가정 발견 ("이 기능을 만드는 진짜 이유가 뭐지?")
 - Recast: AI/인간 역할 분배 ("이 부분은 AI가 초안, 이 부분은 네가 판단")
 - Rehearse: 경영진 관점 페르소나가 사전 비평 ("투자자가 이걸 보면 뭐라고 할까?")
@@ -634,7 +634,7 @@ Andrej Karpathy가 2025년 2월 명명. 2025년 말 조사: **84%의 개발자**
 
 **시나리오 2: "혼자서 사업계획서를 써야 하는 기술 창업자"**
 - 기술적 해결책은 있지만 "왜 이것이 돈이 되는지" 프레이밍 불능
-- Overture가 "why it matters" 번역 + 투자자 관점 사전 검증
+- Argus가 "why it matters" 번역 + 투자자 관점 사전 검증
 
 **시나리오 3: "프리랜서 개발자의 프로젝트 제안서"**
 - 견적과 스코프를 비즈니스 가치로 번역
@@ -655,7 +655,7 @@ Andrej Karpathy가 2025년 2월 명명. 2025년 말 조사: **84%의 개발자**
 
 **시나리오 7: "AI 도구를 쓰는데 generic한 결과만 나와서 좌절"**
 - ChatGPT에 "기획서 써줘"→ 맥락 없는 템플릿 출력
-- Overture: 질문부터 시작 (Reframe) → 맥락을 만든 후 → 그 맥락으로 결과 생성
+- Argus: 질문부터 시작 (Reframe) → 맥락을 만든 후 → 그 맥락으로 결과 생성
 
 ---
 

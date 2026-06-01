@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
 const META = {
-  ko: { title: '종합 — Overture', description: '다중 관점을 통합하여 최종 판단을 내립니다.' },
-  en: { title: 'Synthesize — Overture', description: 'Integrate multiple perspectives into a final call.' },
+  ko: { title: '종합 — Argus', description: '다중 관점을 통합하여 최종 판단을 내립니다.' },
+  en: { title: 'Synthesize — Argus', description: 'Integrate multiple perspectives into a final call.' },
 } as const;
 
 export async function generateMetadata(): Promise<Metadata> {

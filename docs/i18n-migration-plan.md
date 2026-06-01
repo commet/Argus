@@ -1,4 +1,4 @@
-# Overture i18n Migration Plan — 영어 기본, 한국어 번역
+# Argus i18n Migration Plan — 영어 기본, 한국어 번역
 
 ## 배경
 

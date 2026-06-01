@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "overture:dm-feedback",
+  "$id": "argus:dm-feedback",
   "title": "DMFeedbackResult",
-  "description": "Output of /overture:boss. Stakeholder review with concerns, severity, fix suggestions. Ported from webapp's DMFeedbackResult + unified ReviewFeedback (src/stores/types.ts:849, 870).",
+  "description": "Output of /argus:boss. Stakeholder review with concerns, severity, fix suggestions. Ported from webapp's DMFeedbackResult + unified ReviewFeedback (src/stores/types.ts:849, 870).",
   "type": "object",
   "required": ["persona_name", "first_reaction", "good_parts", "concerns", "approval_condition"],
   "properties": {

@@ -1,6 +1,6 @@
 ---
 name: devils-advocate
-description: "Evaluator agent that deliberately challenges plans. Finds the weakest assumptions, most likely failure modes, and things nobody will say out loud. Used during /rehearse and /overture, or invoke directly with /devils-advocate."
+description: "Evaluator agent that deliberately challenges plans. Finds the weakest assumptions, most likely failure modes, and things nobody will say out loud. Used during /rehearse and /argus, or invoke directly with /devils-advocate."
 context: fork
 ---
 

@@ -162,7 +162,7 @@ const MAILTO_BODY_LIMIT = 1800;
 
 export function composeMailtoLink(subject: string, body: string): string {
   const trimmed = body.length > MAILTO_BODY_LIMIT
-    ? body.slice(0, MAILTO_BODY_LIMIT) + '\n\n[...전체 내용은 Overture에서 확인]'
+    ? body.slice(0, MAILTO_BODY_LIMIT) + '\n\n[...전체 내용은 Argus에서 확인]'
     : body;
   return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(trimmed)}`;
 }

@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "overture:session",
+  "$id": "argus:session",
   "title": "Session",
-  "description": "A plugin session — one problem being worked through /overture:clarify → :team → :boss → :revise. Stored as .overture/sessions/{id}/session.json. Mirrors webapp's ProgressiveSession (src/stores/types.ts:924) but scoped for plugin (no Supabase, no React state).",
+  "description": "A plugin session — one problem being worked through /argus:clarify → :team → :boss → :revise. Stored as .argus/sessions/{id}/session.json. Mirrors webapp's ProgressiveSession (src/stores/types.ts:924) but scoped for plugin (no Supabase, no React state).",
   "type": "object",
   "required": ["id", "problem_text", "phase", "created_at", "updated_at"],
   "properties": {
@@ -24,7 +24,7 @@
     },
     "invoking_context": {
       "type": "object",
-      "description": "What the user was working on when they invoked overture.",
+      "description": "What the user was working on when they invoked argus.",
       "properties": {
         "target_type": { "enum": ["task", "pr", "file", "branch", "design_doc", "ad_hoc"] },
         "target_ref": { "type": "string", "description": "PR#, file path, branch name, etc." }
@@ -32,7 +32,7 @@
     },
     "boss_agent": {
       "type": "object",
-      "description": "Configured Boss for this session. Pulled from .overture/config.yaml.",
+      "description": "Configured Boss for this session. Pulled from .argus/config.yaml.",
       "properties": {
         "mbti_code": { "type": "string" },
         "name": { "type": "string" },
@@ -56,7 +56,7 @@
     "snapshots": {
       "type": "array",
       "items": { "$ref": "./analysis-snapshot.json" },
-      "description": "All snapshots from /overture:clarify rounds. Latest is authoritative."
+      "description": "All snapshots from /argus:clarify rounds. Latest is authoritative."
     },
     "questions_and_answers": {
       "type": "array",
@@ -70,7 +70,7 @@
     },
     "classification": {
       "type": "object",
-      "description": "Output of /overture:team classification step. May be partially populated by /overture:sail Step 6b (user-confirmed stakes) before team runs.",
+      "description": "Output of /argus:team classification step. May be partially populated by /argus:sail Step 6b (user-confirmed stakes) before team runs.",
       "properties": {
         "stakes": { "enum": ["routine", "important", "critical"] },
         "stakes_confidence": {
@@ -81,7 +81,7 @@
         },
         "stakes_user_confirmed": {
           "type": "boolean",
-          "description": "True when sail Step 6b ran and the user explicitly chose the stakes level. When true, /overture:team Step 2 must NOT re-classify stakes — only fill steps_classified."
+          "description": "True when sail Step 6b ran and the user explicitly chose the stakes level. When true, /argus:team Step 2 must NOT re-classify stakes — only fill steps_classified."
         },
         "decision_type": { "enum": ["known_path", "needs_analysis", "no_answer", "on_fire"] },
         "agent_count": { "type": "integer" },

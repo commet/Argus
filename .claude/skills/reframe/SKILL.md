@@ -14,7 +14,7 @@ allowed-tools: Read, Write, AskUserQuestion
 - ✗ Tactical questions with obvious answers (just do them)
 - ✗ When you already know the real question and just need execution (use /recast)
 
-**Always respond in the same language the user uses.** UI chrome (Overture · Reframe, skill names, symbols) stays English.
+**Always respond in the same language the user uses.** UI chrome (Argus · Reframe, skill names, symbols) stays English.
 
 ## Step 0: Get the problem
 
@@ -49,7 +49,7 @@ Analyze the input and produce a first draft:
 
 ---
 
-**Overture · Reframe** — 문제 재정의
+**Argus · Reframe** — 문제 재정의
 
 **상황 정리**: [1-2줄, 사용자가 처한 상황]
 
@@ -192,7 +192,7 @@ Two things determine the approach: **evaluation pattern** + **interview signals*
 
 ---
 
-**Overture · Reframe** — 문제 재정의
+**Argus · Reframe** — 문제 재정의
 
 **물어본 것:** "[original]"
 
@@ -251,7 +251,7 @@ Two things determine the approach: **evaluation pattern** + **interview signals*
 
 ## Auto-save
 
-Save to `.overture/reframe.md`:
+Save to `.argus/reframe.md`:
 
 ```markdown
 # Reframe
@@ -287,7 +287,7 @@ ai_limitations:
 
 ## Journal
 
-Append to `.overture/journal.md`:
+Append to `.argus/journal.md`:
 
 ```
 ## [date] /reframe — [topic, ≤5 words]
@@ -305,7 +305,7 @@ Append to `.overture/journal.md`:
 
 ## Returning users
 
-Check `.overture/journal.md` at start. If exists, read last 10 entries.
+Check `.argus/journal.md` at start. If exists, read last 10 entries.
 
 **Recurring blind spot** (same area 2+ times): Force-add one assumption about that area.
 **Strategy repetition** (same 3+ times): Note it. Not a blocker.

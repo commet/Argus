@@ -1,6 +1,6 @@
-# Overture 논문 → 구현 매핑
+# Argus 논문 → 구현 매핑
 
-> 40편의 학술 연구가 Overture의 각 메커니즘에 어떻게 반영되었는지 정리한 문서.
+> 40편의 학술 연구가 Argus의 각 메커니즘에 어떻게 반영되었는지 정리한 문서.
 > 작성일: 2026-03-25
 
 ---
@@ -17,7 +17,7 @@
 | Cheng et al. (2025) | LLM이 인간보다 45%p 더 높은 비율로 사용자 입장 보호 |
 | Kaur et al. (EMNLP 2025) | 사용자 주장이 강할수록 아첨 강화 — 강한 반론이 필요 |
 
-### Overture 반영
+### Argus 반영
 
 - **리허설(페르소나 피드백)**: 단일 LLM 대화의 아첨을 제품 구조로 우회. 이해관계자 관점을 강제하여 반론 생성
 - **Eval: `unspoken_risks_surfaced`**: "모두 알지만 아무도 안 꺼내는" 리스크 측정. 아첨하는 AI는 이걸 못 찾음
@@ -45,7 +45,7 @@
 | Chan et al. (2023) ChatEval | 서로 다른 평가자 페르소나 토론 → 인간 평가 상관 대폭 향상 |
 | Wu et al. (Microsoft, 2023) AutoGen | 정의된 역할 + 턴테이킹 → 단일 에이전트 대비 우수 |
 
-### Overture 반영
+### Argus 반영
 
 - **페르소나 기반 리허설**: 2-3명 이해관계자가 각자 관점에서 동시 피드백 = 디지털 멀티에이전트 토론
 - **Eval: `persona_views_diverse`**: 페르소나들이 실제로 다른 관점을 냈는지 측정 (리스크 중복률 < 60%)
@@ -72,7 +72,7 @@
 | Kahneman (2011) | System 1(직관) vs System 2(분석). 자유 대화 = System 1, 구조화 = System 2 |
 | Kahneman et al. (2021) Noise | 판단을 독립적 하위 평가로 분해 → 편향 + 노이즈 모두 감소 |
 
-### Overture 반영
+### Argus 반영
 
 - **4단계 워크플로우**: 악보 해석 → 편곡 → 리허설 → 합주 연습. 사고를 강제 구조화
 - **16개 binary eval**: 4단계 각각의 품질을 독립적으로 측정 (Kahneman의 "판단 분해")
@@ -97,7 +97,7 @@
 | Mitchell et al. (1989) | 확실성 프레이밍 → 다른 인지 검색 프로세스 활성화 (원조 연구) |
 | Tetlock & Gardner (2015) | 구조화된 반증 탐색이 예측 정확도 극적 향상 |
 
-### Overture 반영
+### Argus 반영
 
 - **페르소나 피드백의 `failure_scenario`**: 각 이해관계자가 "이 계획이 실패하는 시나리오"를 필수 작성 = 디지털 프리모템
 - **리스크 3분류** (critical/manageable/unspoken): 단순 나열이 아닌 행동 가능한 분류 체계
@@ -119,7 +119,7 @@
 | Helmer & Dalkey (RAND, 1950s) | 독립 예측 → 공유 → 수정 → 반복이 비구조적 토론보다 정확. 앵커링/집단사고 제거 |
 | Wang et al. (ICLR 2023) | 여러 추론 경로 + 다수결 → 단일 경로 대비 +17.9% |
 
-### Overture 반영
+### Argus 반영
 
 - **합주 연습(Refinement Loop)**: 페르소나 피드백 → 수정 → 재피드백 → 수렴까지 반복 = 디지털 델파이
 - **수렴 기준**: critical_risks == 0 AND 80% 승인 조건 충족
@@ -140,7 +140,7 @@
 | Horton (NBER 2023) | GPT가 경제 에이전트 역할 수행, 행동경제학 실험 결과 재현 |
 | Chiang et al. (ACM IUI 2024) | 상호작용형 악마의 대변인이 가장 효과적, 인지 부하 거의 없음 |
 
-### Overture 반영
+### Argus 반영
 
 - **Auto-persona**: 프로젝트 맥락에서 이해관계자 자동 추출 (role, influence, decision_style, risk_tolerance, success_metric)
 - **Persona accuracy tracking**: 피드백 정확도를 사용자가 평가, aspect 단위로 강점/약점 분석
@@ -165,9 +165,9 @@
 | Kahneman et al. (2021) Noise | "의사결정 위생" — 구조화된 프로토콜 준수가 편향 + 노이즈 감소 |
 | Howard (Stanford, 1960s-2000s) | 의사결정 품질은 결과가 아닌 프로세스로 측정 |
 
-### Overture 반영
+### Argus 반영
 
-- **`computeDecisionQuality()`**: 6요소를 Overture 데이터에서 자동 계산
+- **`computeDecisionQuality()`**: 6요소를 Argus 데이터에서 자동 계산
   - appropriate_frame: 리프레이밍이 원래 질문과 다른가
   - creative_alternatives: 대안 질문이 몇 개 생성됐는가
   - relevant_information: 핵심 가정이 검증됐는가
@@ -179,7 +179,7 @@
 
 ---
 
-## 고유한 연구 기여 — Overture만의 질문
+## 고유한 연구 기여 — Argus만의 질문
 
 기존 연구들은 각각 **하나의 메커니즘**만 검증:
 - CoT → 추론 구조화만
@@ -188,7 +188,7 @@
 - Devil's Advocate → 반론만
 - Delphi → 반복 수렴만
 
-**Overture가 답할 수 있는 고유한 질문:**
+**Argus가 답할 수 있는 고유한 질문:**
 
 > "이 모든 기법을 하나의 워크플로우로 통합했을 때 시너지가 있는가?"
 

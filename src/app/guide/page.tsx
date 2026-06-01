@@ -1,208 +1,101 @@
 'use client';
 
 import { Card } from '@/components/ui/Card';
-import { Layers, Map, Users, RefreshCw, ArrowRight, Link2, Zap, Bot, Sparkles, MessageSquare } from 'lucide-react';
+import {
+  ArrowRight,
+  Zap,
+  Bot,
+  MessageSquare,
+  Search,
+  MessageCircle,
+  Users,
+  Layers,
+  Eye,
+  Edit3,
+  Check,
+  Workflow,
+  Settings2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useLocale } from '@/hooks/useLocale';
+import {
+  CHAIN_UNLOCK_THRESHOLDS,
+  CONCERTMASTER_UNLOCK_THRESHOLD,
+  CONCERTMASTER_SESSION_THRESHOLD,
+  AGENT_LEVELS,
+} from '@/stores/agent-types';
 
 type Locale = 'ko' | 'en';
 
-interface Tool {
-  icon: typeof Layers;
-  number: string;
-  title: string;
-  subtitle: string;
-  color: string;
-  bg: string;
-  href: string;
-  why: string;
-  flow: string[];
-  tip: string;
+interface FlowStep {
+  icon: typeof Search;
+  label: string;
+  desc: string;
+  tone: 'ai' | 'you' | 'done';
 }
 
-function getTools(locale: Locale): Tool[] {
+function getFlowSteps(locale: Locale): FlowStep[] {
   if (locale === 'ko') {
     return [
-      {
-        icon: Layers, number: '01', title: '악보 해석', subtitle: '문제 재정의',
-        color: '#2d4a7c', bg: 'var(--ai)', href: '/workspace?step=reframe',
-        why: '과제를 받으면 바로 실행하고 싶지만, 전제가 틀리면 보고서 전체가 무의미합니다. 이 단계에서 과제 뒤에 숨은 전제를 점검하고, 진짜 물어야 할 질문을 재정의합니다.',
-        flow: [
-          '과제의 맥락을 입력합니다 (출처, 성공 기준, 이해관계자)',
-          '과제의 숨겨진 전제를 함께 도출합니다',
-          '각 전제를 직접 평가합니다 — 맞을 가능성 높음 / 확실하지 않음 / 의심됨',
-          '당신의 평가에 따라 질문이 재정의됩니다',
-          '여러 방향 중 하나를 선택하거나 직접 작성합니다',
-        ],
-        tip: '전제 평가가 핵심입니다. "의심됨"으로 표시한 전제가 많을수록 재정의 방향이 근본적으로 바뀝니다.',
-      },
-      {
-        icon: Map, number: '02', title: '편곡', subtitle: '실행 설계',
-        color: '#8b6914', bg: 'var(--human)', href: '/workspace?step=recast',
-        why: 'AI에게 전부 맡기면 방향이 틀어집니다. 이 단계에서 AI와 사람이 각각 무엇을 맡을지 정하고, 사람이 판단해야 할 곳에서 실제로 결정을 내립니다.',
-        flow: [
-          '결과물 유형, 팀 규모, 기간을 선택하고 목표를 입력합니다',
-          '워크플로우가 설계됩니다 (핵심 방향, 스토리라인, 단계별 역할)',
-          '각 단계를 클릭하여 AI에게 가이드를 주거나, 사람의 판단이 필요한 곳에 결정을 입력합니다',
-          '역할 배분(AI/사람/협업)과 체크포인트를 조정합니다',
-          '전제 조건과 크리티컬 패스를 확인한 뒤 확정합니다',
-        ],
-        tip: '사람/협업 단계에서 선택지 칩을 클릭하면 빠르게 결정할 수 있습니다. AI 단계에는 집중할 방향이나 제약조건을 입력하세요.',
-      },
-      {
-        icon: Users, number: '03', title: '리허설', subtitle: '사전 검증',
-        color: '#6b4c9a', bg: '#f5f0fa', href: '/workspace?step=rehearse',
-        why: '같은 보고서도 CEO에게 보여줄 때와 실무진에게 보여줄 때 프레이밍이 달라야 합니다. 보내기 전에 주요 이해관계자의 반응을 시뮬레이션하면 약점을 미리 보완할 수 있습니다.',
-        flow: [
-          '이해관계자 페르소나를 설정합니다 (프리셋 선택 또는 직접 입력)',
-          '검토할 자료를 입력합니다 (이전 단계에서 전달 가능)',
-          '해당 페르소나의 관점에서 피드백을 시뮬레이션합니다',
-          '실패 시나리오와 3분류 리스크를 확인합니다 — 핵심 위협, 관리 가능, 침묵의 리스크',
-          '승인 조건을 확인하고 보완 방향을 결정합니다',
-        ],
-        tip: '"침묵의 리스크"에 주목하세요. 모두 알지만 아무도 꺼내지 않는 문제가 종종 가장 위험합니다.',
-      },
-      {
-        icon: RefreshCw, number: '04', title: '합주 연습', subtitle: '피드백 반영',
-        color: '#2d6b2d', bg: 'var(--collab)', href: '/workspace?step=refine',
-        why: '한 번의 분석으로 완벽한 결과가 나오지 않습니다. 이해관계자의 지적을 반영하여 반복하면, 매 반복마다 맥락이 누적되면서 결과가 정교해집니다.',
-        flow: [
-          '리허설에서 받은 피드백을 입력합니다',
-          '피드백이 반영되어 분석이 개선됩니다',
-          '수렴률을 확인합니다 — 충분히 수렴하면 실행 준비 완료',
-          '필요하면 추가 반복합니다 (맥락이 누적됩니다)',
-        ],
-        tip: '핵심은 "반복" 자체가 아니라 맥락 누적입니다. 각 반복에서 발견한 사실이 다음 반복의 제약조건이 됩니다.',
-      },
-      {
-        icon: Sparkles, number: '05', title: '종합', subtitle: '다중 관점 통합',
-        color: '#9b5de5', bg: '#f3ecff', href: '/workspace?step=synthesize',
-        why: '여러 분석 결과나 의견이 있을 때, 단순히 합치면 핵심이 묻힙니다. 이 단계에서 합의점과 쟁점을 구조화하고, 쟁점별로 직접 판단을 내려 최종 결론을 완성합니다.',
-        flow: [
-          '비교할 소스(AI 분석 결과, 전문가 의견 등)를 입력합니다',
-          '각 소스의 핵심 주장을 추출하고 정리합니다',
-          '합의점과 충돌 쟁점을 자동으로 분류합니다',
-          '각 쟁점에서 어느 쪽을 취할지 직접 결정합니다',
-          '최종 종합 문서가 생성됩니다',
-        ],
-        tip: '이전 단계(합주 연습)에서 넘어오면 맥락이 자동으로 연결됩니다. 독립적으로 사용할 때는 소스를 직접 붙여넣으세요.',
-      },
+      { icon: Search, label: '분석', desc: '숨은 가정과 진짜 질문을 찾아냅니다.', tone: 'ai' },
+      { icon: MessageCircle, label: '대화', desc: '질문 2~3개에 답하면 맥락이 정교해지고 팀이 배정됩니다.', tone: 'you' },
+      { icon: Users, label: '팀 작업', desc: '배정된 에이전트들이 병렬로 분석·조사·작성을 진행합니다.', tone: 'ai' },
+      { icon: Layers, label: '합주', desc: '리드 에이전트와 악장(Concertmaster)이 결과를 하나의 초안으로 통합합니다.', tone: 'ai' },
+      { icon: Eye, label: '검증', desc: '의사결정자(상사·고객 등) 관점에서 약점을 시뮬레이션합니다.', tone: 'ai' },
+      { icon: Edit3, label: '수정', desc: '피드백을 반영해 초안을 다듬습니다. 직접 손봐도 되고 자동 반영도 가능합니다.', tone: 'you' },
+      { icon: Check, label: '완성', desc: '제출 가능한 문서 — 복사·다운로드·팀장 시뮬레이터로 바로 연결됩니다.', tone: 'done' },
     ];
   }
   return [
-    {
-      icon: Layers, number: '01', title: 'Score Reading', subtitle: 'Reframe',
-      color: '#2d4a7c', bg: 'var(--ai)', href: '/workspace?step=reframe',
-      why: "When you get a task, you want to jump straight into execution — but if the premise is wrong, the whole report is wasted. Here you inspect the hidden assumptions behind the task and redefine the real question you should be answering.",
-      flow: [
-        "Enter the task's context (origin, success criteria, stakeholders)",
-        'Surface the hidden premises together',
-        'Evaluate each premise yourself — likely true / uncertain / doubtful',
-        'The question gets redefined based on your evaluation',
-        'Pick one of several directions or write your own',
-      ],
-      tip: 'Evaluating premises is the crux. The more you mark as "doubtful," the more fundamentally the reframing shifts direction.',
-    },
-    {
-      icon: Map, number: '02', title: 'Arrangement', subtitle: 'Recast',
-      color: '#8b6914', bg: 'var(--human)', href: '/workspace?step=recast',
-      why: "If you delegate everything to AI, the direction drifts. Here you decide what AI handles and what humans own — and you actually make the calls that need human judgment.",
-      flow: [
-        'Pick the output type, team size, timeline, and enter the goal',
-        'The workflow is designed (governing idea, storyline, step-by-step roles)',
-        'Click each step to guide AI, or enter decisions where human judgment is needed',
-        'Adjust role assignment (AI / human / collab) and checkpoints',
-        'Verify the premises and critical path, then confirm',
-      ],
-      tip: "On human/collab steps, click the option chips to decide quickly. On AI steps, enter the direction or constraints you want AI to focus on.",
-    },
-    {
-      icon: Users, number: '03', title: 'Rehearsal', subtitle: 'Pre-validation',
-      color: '#6b4c9a', bg: '#f5f0fa', href: '/workspace?step=rehearse',
-      why: 'The same report needs different framing for the CEO vs. the working team. Simulating key stakeholder reactions before sending lets you shore up weak spots in advance.',
-      flow: [
-        'Set up stakeholder personas (from presets or custom)',
-        'Enter the material for review (can carry over from the previous step)',
-        'Simulate feedback from that persona\'s perspective',
-        'Review failure scenarios and the 3 risk categories — core threat, manageable, unspoken risk',
-        'Check approval conditions and decide how to address weak spots',
-      ],
-      tip: 'Watch for "unspoken risks." The problems everyone sees but no one raises are often the most dangerous.',
-    },
-    {
-      icon: RefreshCw, number: '04', title: 'Ensemble Practice', subtitle: 'Refine',
-      color: '#2d6b2d', bg: 'var(--collab)', href: '/workspace?step=refine',
-      why: "A single pass won't produce a perfect result. Iterate with stakeholder feedback — each loop accumulates context and sharpens the output.",
-      flow: [
-        'Enter the feedback from rehearsal',
-        'Feedback is applied and the analysis improves',
-        'Check the convergence rate — once converged enough, you\'re ready to execute',
-        'Iterate further if needed (context compounds)',
-      ],
-      tip: 'The point isn\'t "iteration" itself — it\'s context accumulation. What you discover in each iteration becomes a constraint for the next.',
-    },
-    {
-      icon: Sparkles, number: '05', title: 'Synthesis', subtitle: 'Integrate perspectives',
-      color: '#9b5de5', bg: '#f3ecff', href: '/workspace?step=synthesize',
-      why: "When you have multiple analyses or opinions, simply combining them buries what matters. Here you structure agreements and conflicts, then decide on each conflict yourself to land the final conclusion.",
-      flow: [
-        'Enter the sources to compare (AI analyses, expert opinions, etc.)',
-        'Each source\'s core claims are extracted and organized',
-        'Agreements and conflicts are auto-categorized',
-        'Decide yourself which side to take on each conflict',
-        'The final synthesis document is generated',
-      ],
-      tip: 'Coming from the previous step (Refine), context carries over automatically. When used standalone, paste the sources yourself.',
-    },
+    { icon: Search, label: 'Analyze', desc: 'Surface hidden assumptions and the real question behind your problem.', tone: 'ai' },
+    { icon: MessageCircle, label: 'Converse', desc: 'Answer 2–3 questions — context sharpens and the team auto-assembles.', tone: 'you' },
+    { icon: Users, label: 'Team work', desc: 'The assigned agents analyze, research, and write in parallel.', tone: 'ai' },
+    { icon: Layers, label: 'Mix', desc: 'The lead agent and Concertmaster merge results into a single draft.', tone: 'ai' },
+    { icon: Eye, label: 'Review', desc: "Simulate how a decision-maker (boss, customer, etc.) would react and surface weak spots.", tone: 'ai' },
+    { icon: Edit3, label: 'Refine', desc: 'Apply feedback — manually or automatically — to tighten the draft.', tone: 'you' },
+    { icon: Check, label: 'Done', desc: 'A ready-to-send document — copy, download, or jump into Boss Simulator.', tone: 'done' },
   ];
 }
 
 export default function GuidePage() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const tools = getTools(locale);
+  const flowSteps = getFlowSteps(locale);
 
   const quickStartSteps = locale === 'ko'
     ? [
-        '고민 입력 → 30초 안에 분석 뼈대',
-        '질문 2~3개 응답 → 에이전트 팀 자동 배정',
-        '팀이 병렬 작업 → 결과 승인/거부',
-        '초안 조합 + 의사결정자 시뮬레이션',
+        '고민을 그대로 입력 → 30초 안에 진짜 질문·숨은 가정·초안 골격',
+        '질문 2~3개에 답변 → 에이전트 팀 자동 배정',
+        '팀이 병렬 작업 → 결과 승인하거나 수정 요청',
+        '의사결정자 시뮬레이션으로 약점 점검 → 완성',
       ]
     : [
-        'Enter your problem → analysis skeleton in 30 seconds',
-        'Answer 2-3 questions → agent team auto-assembles',
-        'Team works in parallel → approve/reject results',
-        'Draft assembly + decision-maker simulation',
+        'Drop your problem → real question, hidden assumptions, and skeleton in 30 seconds',
+        'Answer 2–3 questions → the agent team auto-assembles',
+        'Team works in parallel → approve or request changes',
+        'Simulate decision-maker reactions → finalize',
       ];
 
-  const bossSteps = locale === 'ko'
-    ? [
-        '팀장의 MBTI 4축 + 생년월일 입력',
-        '상황 설명 (보고, 제안, 갈등 등)',
-        '대화 시작 — 팀장 mood가 실시간 반응',
-        '설득에 성공하거나 결론이 나면 종료',
-      ]
-    : [
-        "Enter the boss's MBTI + date of birth",
-        'Describe the situation (report, proposal, conflict, etc.)',
-        "Start the conversation — the boss's mood reacts live",
-        'Ends when you succeed at persuading or reach a conclusion',
-      ];
+  const lv2Xp = AGENT_LEVELS.find(l => l.level === 2)?.xp ?? 100;
+  const lv3Xp = AGENT_LEVELS.find(l => l.level === 3)?.xp ?? 300;
+  const lv5Xp = AGENT_LEVELS.find(l => l.level === 5)?.xp ?? 1000;
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div>
-        <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('사용 가이드', 'Guide')}</h1>
+        <h1 className="text-[24px] font-bold text-[var(--text-primary)] tracking-tight">
+          {L('사용 가이드', 'Guide')}
+        </h1>
         <p className="text-[14px] text-[var(--text-secondary)] mt-2 leading-relaxed max-w-2xl">
           {L(
-            '고민을 입력하면 에이전트 팀이 분석·조사·작성을 수행하고, 제출 가능한 문서를 만들어줍니다.',
-            'Drop in your problem and an agent team analyzes, researches, and writes — producing a document you can actually submit.'
+            '고민 하나 던지면, 에이전트 팀이 분석·조사·작성·검증까지 자동으로 진행하고 제출 가능한 초안을 만들어줍니다. 처음이라면 아래 빠른 시작만 봐도 충분해요.',
+            "Drop in a problem and the agent team analyzes, researches, drafts, and reviews — producing a document you can actually send. If you're new here, the Quick Start below is all you need.",
           )}
         </p>
       </div>
 
-      {/* Quick start */}
+      {/* ── 1. Quick Start ── */}
       <Card>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--gradient-gold)' }}>
@@ -212,24 +105,113 @@ export default function GuidePage() {
         </div>
         <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-4">
           {L(
-            '워크스페이스에서 고민을 입력하면 바로 시작됩니다. 질문 몇 개에 답하면 에이전트 팀이 병렬로 작업하고, 초안이 완성됩니다.',
-            'Enter your problem in the workspace and you\'re off. Answer a few questions and the agent team works in parallel to finish a draft.'
+            '워크스페이스에 고민을 입력하는 순간 자동으로 흐릅니다. 중간에 멈추고 손볼 수 있고, 결정이 필요한 곳에서는 알아서 잠깐 멈춰줍니다.',
+            "It runs automatically the moment you drop in a problem. You can stop and edit anytime, and it pauses on its own where a human decision is needed.",
           )}
         </p>
-        <div className="space-y-2 mb-4">
+        <div className="space-y-2.5 mb-5">
           {quickStartSteps.map((step, i) => (
-            <div key={i} className="flex items-start gap-2.5">
-              <span className="text-[12px] font-bold tabular-nums leading-none pt-1 shrink-0 select-none" style={{ color: 'var(--accent)' }}>{i + 1}</span>
-              <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{step}</p>
+            <div key={i} className="flex items-start gap-3">
+              <span
+                className="text-[11px] font-bold tabular-nums leading-none pt-1 shrink-0 select-none w-5 h-5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center"
+              >
+                {i + 1}
+              </span>
+              <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.6] flex-1">{step}</p>
             </div>
           ))}
         </div>
-        <Link href="/workspace" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline">
+        <Link
+          href="/workspace"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
+          style={{ background: 'var(--gradient-gold)' }}
+        >
           {L('워크스페이스로 가기', 'Go to workspace')} <ArrowRight size={14} />
         </Link>
       </Card>
 
-      {/* Agent team */}
+      {/* ── 2. Flow walkthrough ── */}
+      <Card>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--accent)]/10">
+            <Workflow size={18} className="text-[var(--accent)]" />
+          </div>
+          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{L('흐름 한눈에', 'How it flows')}</h2>
+        </div>
+        <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-5">
+          {L(
+            '워크스페이스 한 세션 안에서 차례로 진행됩니다. 옆의 색은 단계의 성격입니다 — AI가 일하는 단계, 당신이 결정하는 단계, 완료 상태.',
+            'All of this runs inside one workspace session. The colored dot tells you who acts: AI working, your turn, or done.',
+          )}
+        </p>
+
+        {/* Tone legend */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5 text-[11px] text-[var(--text-secondary)]">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[var(--accent)]" /> {L('AI 작업', 'AI working')}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ background: 'var(--gradient-gold)' }} /> {L('당신 차례', 'Your turn')}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[var(--success)]" /> {L('완료', 'Done')}
+          </span>
+        </div>
+
+        {/* Phase timeline */}
+        <ol className="relative">
+          {flowSteps.map((step, i) => {
+            const Icon = step.icon;
+            const isLast = i === flowSteps.length - 1;
+            const dotColor =
+              step.tone === 'you'
+                ? 'var(--gradient-gold)'
+                : step.tone === 'done'
+                ? 'var(--success)'
+                : 'var(--accent)';
+            return (
+              <li key={step.label} className="flex gap-3.5 pb-4 last:pb-0 relative">
+                {/* Connector line */}
+                {!isLast && (
+                  <span
+                    aria-hidden
+                    className="absolute left-[15px] top-[28px] bottom-0 w-px bg-[var(--border)]"
+                  />
+                )}
+                {/* Dot */}
+                <span
+                  className="relative z-10 mt-1 w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-[3px] border-[var(--surface)]"
+                  style={{
+                    background:
+                      step.tone === 'done'
+                        ? 'var(--collab)'
+                        : step.tone === 'you'
+                        ? 'var(--checkpoint)'
+                        : 'var(--ai)',
+                  }}
+                >
+                  <span
+                    className="absolute inset-1 rounded-full"
+                    style={{ background: dotColor }}
+                  />
+                  <Icon size={11} className="relative text-white" strokeWidth={2.5} />
+                </span>
+                {/* Content */}
+                <div className="flex-1 min-w-0 pt-1">
+                  <h3 className="text-[14px] font-bold text-[var(--text-primary)] leading-tight">
+                    {step.label}
+                  </h3>
+                  <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6] mt-1">
+                    {step.desc}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </Card>
+
+      {/* ── 3. Agent Team ── */}
       <Card>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--surface)] border border-[var(--border)]">
@@ -237,71 +219,76 @@ export default function GuidePage() {
           </div>
           <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{L('에이전트 팀', 'Agent Team')}</h2>
         </div>
-        <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-3">
+        <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-4">
           {L(
-            '17명의 전문 에이전트가 각자의 방법론으로 작업합니다. 사용할수록 레벨업하고, 당신의 선호를 학습합니다.',
-            '17 specialized agents, each with their own methodology. They level up and learn your preferences as you use them.'
+            '17명의 전문 에이전트가 각자의 방법론으로 일합니다. 사용할수록 레벨업하고, 당신의 패턴을 학습해서 결과가 점점 달라집니다.',
+            '17 specialists, each with their own methodology. They level up and learn your patterns the more you use them — outputs shift over time.',
           )}
         </p>
-        <div className="grid grid-cols-2 gap-2 text-[12px] text-[var(--text-primary)] mb-4">
-          <div>
-            <span className="text-[var(--text-tertiary)]">{L('리서치', 'Research')}:</span>{' '}
-            {locale === 'ko' ? '하윤 → 다은 → 도윤' : 'Hayoon → Daeun → Doyoon'}
+
+        {/* Chains */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+          <ChainRow tone="ai" label={L('리서치', 'Research')} agents={locale === 'ko' ? '하윤 → 다은 → 도윤' : 'Hayoon → Daeun → Doyoon'} />
+          <ChainRow tone="strategy" label={L('전략', 'Strategy')} agents={locale === 'ko' ? '정민 → 현우 → 승현' : 'Jungmin → Hyunwoo → Seunghyun'} />
+          <ChainRow tone="execution" label={L('실행', 'Execution')} agents={locale === 'ko' ? '서연 · 규민 · 혜연 · 수진 · 민서 · 준서 · 예린' : 'Seoyeon · Gyumin · Hyeyeon · Sujin · Minseo · Junseo · Yerin'} />
+          <ChainRow tone="validation" label={L('검증', 'Validation')} agents={locale === 'ko' ? '동혁 · 지은 · 윤석' : 'Donghyuk · Jieun · Yunseok'} />
+        </div>
+
+        {/* Unlock & level — two compact panels */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-xl px-4 py-3.5 bg-[var(--bg)] border border-[var(--border-subtle)]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] mb-2">
+              {L('해금 조건', 'Unlocks')}
+            </p>
+            <ul className="space-y-1.5 text-[12.5px] text-[var(--text-primary)] leading-[1.55]">
+              <li>
+                <strong>{L('두 번째 에이전트', 'Second agent')}</strong>{' '}
+                <span className="text-[var(--text-secondary)]">— {L(`체인 작업 ${CHAIN_UNLOCK_THRESHOLDS.senior}회`, `${CHAIN_UNLOCK_THRESHOLDS.senior} chain tasks`)}</span>
+              </li>
+              <li>
+                <strong>{L('세 번째 에이전트', 'Third agent')}</strong>{' '}
+                <span className="text-[var(--text-secondary)]">— {L(`체인 작업 ${CHAIN_UNLOCK_THRESHOLDS.master}회`, `${CHAIN_UNLOCK_THRESHOLDS.master} chain tasks`)}</span>
+              </li>
+              <li>
+                <strong>{L('악장 (Concertmaster)', 'Concertmaster')}</strong>{' '}
+                <span className="text-[var(--text-secondary)]">— {L(
+                  `전체 작업 ${CONCERTMASTER_UNLOCK_THRESHOLD}회 또는 세션 ${CONCERTMASTER_SESSION_THRESHOLD}회 완료`,
+                  `${CONCERTMASTER_UNLOCK_THRESHOLD} total tasks or ${CONCERTMASTER_SESSION_THRESHOLD} sessions`,
+                )}</span>
+              </li>
+            </ul>
           </div>
-          <div>
-            <span className="text-[var(--text-tertiary)]">{L('전략', 'Strategy')}:</span>{' '}
-            {locale === 'ko' ? '정민 → 현우 → 승현' : 'Jungmin → Hyunwoo → Seunghyun'}
-          </div>
-          <div>
-            <span className="text-[var(--text-tertiary)]">{L('실행', 'Execution')}:</span>{' '}
-            {locale === 'ko' ? '서연 · 규민 · 혜연 · 수진 · 민서 · 준서 · 예린' : 'Seoyeon · Gyumin · Hyeyeon · Sujin · Minseo · Junseo · Yerin'}
-          </div>
-          <div>
-            <span className="text-[var(--text-tertiary)]">{L('검증', 'Validation')}:</span>{' '}
-            {locale === 'ko' ? '동혁 · 지은 · 윤석' : 'Donghyuk · Jieun · Yunseok'}
+          <div className="rounded-xl px-4 py-3.5 bg-[var(--bg)] border border-[var(--border-subtle)]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] mb-2">
+              {L('레벨', 'Levels')}
+            </p>
+            <ul className="space-y-1.5 text-[12.5px] text-[var(--text-primary)] leading-[1.55]">
+              <li>
+                <strong>Lv.1</strong>{' '}
+                <span className="text-[var(--text-secondary)]">— {L('시작 시 모든 에이전트에 부여', 'all agents start here')}</span>
+              </li>
+              <li>
+                <strong>Lv.2</strong> <span className="text-[var(--text-tertiary)] tabular-nums">({lv2Xp} XP)</span>{' '}
+                <span className="text-[var(--text-secondary)]">— {L('당신의 관찰 3개를 프롬프트에 주입', "injects 3 of your observations into the prompt")}</span>
+              </li>
+              <li>
+                <strong>Lv.3</strong> <span className="text-[var(--text-tertiary)] tabular-nums">({lv3Xp} XP)</span>{' '}
+                <span className="text-[var(--text-secondary)]">— {L('관찰 5개 + 크로스 컨텍스트', '5 observations + cross-context')}</span>
+              </li>
+              <li>
+                <strong>Lv.5</strong> <span className="text-[var(--text-tertiary)] tabular-nums">({lv5Xp} XP)</span>{' '}
+                <span className="text-[var(--text-secondary)]">— {L('자기개선 제안까지', 'self-improvement suggestions')}</span>
+              </li>
+            </ul>
           </div>
         </div>
-        <div className="rounded-lg px-4 py-3 bg-[var(--bg)] space-y-2">
-          <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-            <strong>Tip:</strong> {L(
-              '에이전트 결과를 승인/거부하면 XP가 쌓이고 레벨업합니다. Lv.2부터 당신의 패턴을 학습해서 결과가 달라집니다.',
-              'Approving/rejecting agent output earns XP and levels them up. From Lv.2 they learn your patterns and outputs start to shift.'
-            )}
-          </p>
-          <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-            <strong>{L('해금', 'Unlocks')}:</strong> {L(
-              '일부 에이전트(도윤, 승현 등)는 체인 내 다른 에이전트의 작업 횟수가 일정 수에 도달하면 자동으로 해금됩니다.',
-              'Some agents (like Doyoon, Seunghyun) unlock automatically once earlier agents in the chain hit a task threshold.'
-            )}
-          </p>
-        </div>
+
         <Link href="/agents" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline mt-4">
           {L('에이전트 허브', 'Agent hub')} <ArrowRight size={14} />
         </Link>
       </Card>
 
-      {/* Detailed tools */}
-      <div>
-        <h2 className="text-[16px] font-bold text-[var(--text-primary)] mb-1">{L('상세 도구', 'Detailed Tools')}</h2>
-        <p className="text-[13px] text-[var(--text-secondary)] mb-4">
-          {L(
-            '빠른 시작 외에, 각 단계를 독립적으로 사용할 수도 있습니다. 순서대로 진행하면 맥락이 이어집니다.',
-            'Outside of Quick Start, each stage can be used standalone. When run in order, context carries through.'
-          )}
-        </p>
-        <div className="flex items-start gap-2.5 bg-[var(--ai)] rounded-xl px-4 py-3 text-[13px] text-[#2d4a7c] mb-6">
-          <Link2 size={14} className="shrink-0 mt-0.5" />
-          <p>
-            <strong>{L('맥락 체인', 'Context chain')}:</strong>{' '}
-            {L(
-              '악보 해석(문제 분석) → 편곡(실행 설계) → 리허설(사전 검증) → 합주(피드백 반영) → 종합(관점 통합)으로 맥락이 이어집니다.',
-              'Score Reading (problem analysis) → Arrangement (execution design) → Rehearsal (pre-validation) → Ensemble (feedback) → Synthesis (integration). Context flows through.'
-            )}
-          </p>
-        </div>
-      </div>
-
-      {/* Boss simulator */}
+      {/* ── 4. Boss Simulator ── */}
       <Card>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-red-50 border border-red-100">
@@ -309,81 +296,106 @@ export default function GuidePage() {
           </div>
           <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{L('팀장 시뮬레이터', 'Boss Simulator')}</h2>
         </div>
-        <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-3">
+        <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-4">
           {L(
-            'MBTI + 사주 기반으로 실제 팀장의 성격을 설정하고, 보고 연습을 할 수 있습니다. 팀장의 기분이 실시간으로 변하며, 입력창 힌트로 코칭을 받습니다.',
-            "Set up a real-life boss's personality using MBTI + birth chart, and practice reporting to them. The boss's mood shifts in real time, and input hints coach you along."
+            '실제 팀장의 성격을 설정하고 보고 연습을 해볼 수 있습니다. 팀장의 기분이 실시간으로 변하고, 입력창 힌트가 즉석에서 코칭해줍니다.',
+            "Configure a real-life boss's personality and rehearse a report. The boss's mood shifts live, and input hints coach you on the fly.",
           )}
         </p>
-        <div className="space-y-2 mb-4">
-          {bossSteps.map((step, i) => (
-            <div key={i} className="flex items-start gap-2.5">
-              <span className="text-[12px] font-bold tabular-nums leading-none pt-1 shrink-0 select-none text-red-400">{i + 1}</span>
-              <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{step}</p>
-            </div>
-          ))}
+
+        <div className="rounded-xl px-4 py-3.5 bg-[var(--bg)] border border-[var(--border-subtle)] mb-4">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] mb-2">
+            {L('성격 설정 방식', 'Personality input')}
+          </p>
+          <ul className="space-y-1.5 text-[12.5px] text-[var(--text-primary)] leading-[1.55]">
+            <li>
+              <strong>{L('🤔 쉽게 (기본)', '🤔 Easy (default)')}</strong>{' '}
+              <span className="text-[var(--text-secondary)]">— {L('직장 상황 퀴즈로 4축 설정. MBTI 몰라도 됩니다.', 'A workplace-situation quiz fills the 4 axes. No MBTI knowledge needed.')}</span>
+            </li>
+            <li>
+              <strong>{L('🎯 MBTI', '🎯 MBTI')}</strong>{' '}
+              <span className="text-[var(--text-secondary)]">— {L('이미 알고 있다면 바로 4축을 골라서 입력.', 'Already know it? Pick the 4 axes directly.')}</span>
+            </li>
+            <li>
+              <strong>{L('생년월일 (선택)', 'Birth date (optional)')}</strong>{' '}
+              <span className="text-[var(--text-secondary)]">— {L('사주 기반의 기본 무드와 daily mood가 더해집니다.', 'Adds saju-based baseline mood and daily mood shifts.')}</span>
+            </li>
+          </ul>
         </div>
+
         <Link href="/boss" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline">
-          {L('팀장 시뮬레이터', 'Boss Simulator')} <ArrowRight size={14} />
+          {L('팀장 시뮬레이터 열기', 'Open Boss Simulator')} <ArrowRight size={14} />
         </Link>
       </Card>
 
-      {tools.map((tool) => {
-        const Icon = tool.icon;
-        return (
-          <Card key={tool.number}>
-            <div className="flex items-center gap-3 mb-5">
-              <span className="text-[24px] font-extrabold leading-none select-none" style={{ color: `${tool.color}25` }}>
-                {tool.number}
+      {/* ── 5. Advanced ── */}
+      <details className="group rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] open:shadow-[var(--shadow-sm)] transition-shadow">
+        <summary className="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer list-none">
+          <span className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--bg)] border border-[var(--border-subtle)]">
+              <Settings2 size={15} className="text-[var(--text-secondary)]" />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-[15px] font-bold text-[var(--text-primary)]">
+                {L('고급 — 단계별로 직접 사용', 'Advanced — use stages standalone')}
               </span>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: tool.bg }}>
-                <Icon size={18} style={{ color: tool.color }} />
-              </div>
-              <div>
-                <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{tool.title} <span className="text-[14px] font-normal text-[var(--text-secondary)]">| {tool.subtitle}</span></h2>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {/* Why */}
-              <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed">{tool.why}</p>
-
-              {/* Flow */}
-              <div>
-                <p className="text-[13px] font-bold text-[var(--text-primary)] mb-2">{L('사용 흐름', 'How to use')}</p>
-                <div className="space-y-1.5">
-                  {tool.flow.map((step, j) => (
-                    <div key={j} className="flex items-start gap-2.5">
-                      <span
-                        className="text-[12px] font-bold tabular-nums leading-none pt-1 shrink-0 select-none"
-                        style={{ color: `${tool.color}50` }}
-                      >
-                        {j + 1}
-                      </span>
-                      <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{step}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tip */}
-              <div className="rounded-lg px-4 py-3" style={{ backgroundColor: `${tool.bg}` }}>
-                <p className="text-[13px] leading-relaxed" style={{ color: tool.color }}>
-                  <strong>Tip:</strong> {tool.tip}
-                </p>
-              </div>
-
-              {/* CTA */}
-              <Link
-                href={tool.href}
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline"
-              >
-                {L('시작하기', 'Start')} <ArrowRight size={14} />
-              </Link>
-            </div>
-          </Card>
-        );
-      })}
+              <span className="text-[12px] text-[var(--text-tertiary)] mt-0.5">
+                {L('대부분은 빠른 시작만으로 충분합니다.', "Most users won't need this — Quick Start covers it.")}
+              </span>
+            </span>
+          </span>
+          <ArrowRight size={14} className="text-[var(--text-tertiary)] transition-transform group-open:rotate-90 shrink-0" />
+        </summary>
+        <div className="px-5 pb-5 pt-1 space-y-3">
+          <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+            {L(
+              '워크스페이스 URL에 ?step=… 을 붙이면 4탭 레거시 인터페이스로 진입합니다. 분석을 따로 돌려서 다른 도구에 붙여넣고 싶을 때 유용합니다.',
+              'Append ?step=… to the workspace URL to enter the legacy 4-tab interface. Useful when you want to run a single stage and paste the result elsewhere.',
+            )}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <LegacyChip href="/workspace?step=reframe" label={L('문제 재정의', 'Reframe')} />
+            <LegacyChip href="/workspace?step=recast" label={L('실행 설계', 'Recast')} />
+            <LegacyChip href="/workspace?step=rehearse" label={L('사전 검증', 'Rehearse')} />
+            <LegacyChip href="/workspace?step=refine" label={L('수정 반영', 'Refine')} />
+            <LegacyChip href="/workspace?step=synthesize" label={L('종합', 'Synthesize')} />
+          </div>
+        </div>
+      </details>
     </div>
+  );
+}
+
+/* ─── Helpers ─── */
+
+function ChainRow({ tone, label, agents }: { tone: 'ai' | 'strategy' | 'execution' | 'validation'; label: string; agents: string }) {
+  const dotColor =
+    tone === 'ai'
+      ? 'bg-[#2d4a7c]'
+      : tone === 'strategy'
+      ? 'bg-[#8b6914]'
+      : tone === 'execution'
+      ? 'bg-[#2d6b2d]'
+      : 'bg-[#9b5de5]';
+  return (
+    <div className="flex items-start gap-2.5 text-[12.5px] text-[var(--text-primary)] leading-[1.55]">
+      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${dotColor}`} />
+      <div className="min-w-0">
+        <span className="text-[var(--text-tertiary)] font-medium">{label}</span>
+        <span className="ml-1.5">{agents}</span>
+      </div>
+    </div>
+  );
+}
+
+function LegacyChip({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-sm)] transition-all text-[12.5px] text-[var(--text-primary)] font-medium group/chip"
+    >
+      <span className="truncate">{label}</span>
+      <ArrowRight size={11} className="text-[var(--text-tertiary)] group-hover/chip:text-[var(--accent)] transition-colors shrink-0" />
+    </Link>
   );
 }

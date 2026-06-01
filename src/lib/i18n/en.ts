@@ -168,7 +168,7 @@ export const en: Record<TranslationKey, string> = {
   'errorDisplay.retry': 'Retry',
   'errorDisplay.login': 'Log in',
 
-  'meta.title': 'Overture — For work outside your expertise',
+  'meta.title': 'Argus — For work outside your expertise',
   'meta.description': 'Drop a question, get a draft proposal skeleton in 30 seconds. It sharpens as you fill it in. Built on cognitive science and strategic planning practice.',
   'meta.descriptionShort': 'Drop a question, get a draft proposal skeleton in 30 seconds. It sharpens as you fill it in.',
   'meta.descriptionTwitter': 'Drop a question, get a draft proposal skeleton in 30 seconds.',

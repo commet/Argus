@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
 const META = {
-  ko: { title: '사전 검증 — Overture', description: '이해관계자 반응을 시뮬레이션합니다.' },
-  en: { title: 'Rehearse — Overture', description: 'Simulate how stakeholders will react.' },
+  ko: { title: '사전 검증 — Argus', description: '이해관계자 반응을 시뮬레이션합니다.' },
+  en: { title: 'Rehearse — Argus', description: 'Simulate how stakeholders will react.' },
 } as const;
 
 export async function generateMetadata(): Promise<Metadata> {

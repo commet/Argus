@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "overture:worker-result",
+  "$id": "argus:worker-result",
   "title": "WorkerResult",
-  "description": "Output of a single agent worker during /overture:team. Trimmed from webapp's WorkerTask (src/stores/types.ts:749). Plugin scope drops the streaming/approval UI fields, keeps the artifact + metadata.",
+  "description": "Output of a single agent worker during /argus:team. Trimmed from webapp's WorkerTask (src/stores/types.ts:749). Plugin scope drops the streaming/approval UI fields, keeps the artifact + metadata.",
   "type": "object",
   "required": ["id", "agent_id", "task", "expected_output", "status"],
   "properties": {

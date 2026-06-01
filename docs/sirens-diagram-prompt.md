@@ -39,13 +39,13 @@ LinkedIn 게시글에 첨부할 모식도를 그려줘. 오디세우스/세이�
 - 레이블: "MetaGPT"
 - 작은 텍스트: "항해 기록 — 기록을 읽는다"
 
-배 4: Overture(또는 "Adaptive") — "역할별 적응"
+배 4: Argus(또는 "Adaptive") — "역할별 적응"
 - 선원 4명이 각각 다른 색상:
   - 정찰병(Research): 빨간색 — "minimal"
   - 항해사(Data): 노란색 — "structured" 
   - 망보기(Critic): 초록색(하지만 동료 결과만) — "focused"
   - 기록관(Writer): 초록색 — "full"
-- 레이블: "Adaptive (Overture)"
+- 레이블: "Adaptive (Argus)"
 - 작은 텍스트: "역할별 적응 — 각자 다르게 듣는다"
 
 이 네 번째 배만 약간 강조 — 테두리를 밝게 하거나 살짝 크게.

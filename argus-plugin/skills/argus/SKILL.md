@@ -1,5 +1,5 @@
 ---
-name: overture
+name: argus
 description: "Structured thinking tool for decisions and plans. Input a problem, get an instant first draft. Answer a few questions, it gets sharper. Simulate your boss's reaction. Get a final deliverable. Progressive — each step adds value, stop anytime."
 argument-hint: "[problem, decision, or task you need to figure out]"
 effort: high
@@ -76,7 +76,7 @@ Direct, specific — no academic tone.
 
 ---
 
-**Overture** · {context label}
+**Argus** · {context label}
 
 **Situation**
 [2-3 lines. Clearly articulate what the user is facing.]
@@ -224,12 +224,12 @@ When the user answers the decision maker question, they may add free-form detail
    💬 "전직 컨설턴트고 숫자 없으면 안 넘어가"
    → 리허설 단계에서 이 사람으로 시뮬레이션합니다
    ```
-3. Save to `.overture/personas.json` — carries through to /rehearse
+3. Save to `.argus/personas.json` — carries through to /rehearse
 4. User can add more details at any point (see below)
 
 ### Persona description detection (throughout Q&A)
 
-**Not just at the decision maker question.** At ANY point during /overture Q&A, if the user adds persona info:
+**Not just at the decision maker question.** At ANY point during /argus Q&A, if the user adds persona info:
 
 **Examples:**
 - Q&A 답변 중: "대표님이 결정하는데, 이 사람 숫자 좋아해" → persona seeding
@@ -323,11 +323,11 @@ If user says "that's enough" / "next" → transition immediately.
 
 ## Step 2.5: Agent Deployment (when execution plan has 2+ AI tasks)
 
-**This is where Overture becomes a multi-agent system.** Deploy the agent team in parallel for complex problems.
+**This is where Argus becomes a multi-agent system.** Deploy the agent team in parallel for complex problems.
 
 ### 0. Load agent state
 
-Read `.overture/agents.json`. If it doesn't exist, create it with all default-unlocked agents active.
+Read `.argus/agents.json`. If it doesn't exist, create it with all default-unlocked agents active.
 
 ```json
 {
@@ -409,7 +409,7 @@ For each 🤖 or ⚡ step in the execution plan:
 **Chain depth selection rule:**
 - In the research chain: use the HIGHEST unlocked agent (하윤 → 다은 → 도윤)
 - In the strategy chain: use the HIGHEST unlocked agent (정민 → 현우 → 승현)
-- This means as users use Overture more, they automatically get deeper analysis
+- This means as users use Argus more, they automatically get deeper analysis
 
 ### 2. Deployment preview (AskUserQuestion with preview)
 
@@ -488,7 +488,7 @@ After all agents complete:
    - strategy chain ≥ 15 tasks → unlock `chief_strategist` (승현)
    - total tasks ≥ 10 → unlock `concertmaster` (악장)
 5. **Notify on unlock:** "🔓 **[Name]** 해금! [role] — 다음 세션부터 팀에 합류합니다."
-6. **Save** updated state to `.overture/agents.json`
+6. **Save** updated state to `.argus/agents.json`
 
 ### 6. Lead synthesis / Concertmaster
 
@@ -541,7 +541,7 @@ Either way, this is NOT an outline — it's a send-ready first draft.
 
 ---
 
-**Overture · Draft complete**
+**Argus · Draft complete**
 
 **[Specific title — reflects the situation]**
 
@@ -579,7 +579,7 @@ Either way, this is NOT an outline — it's a send-ready first draft.
 - **Send-as-is quality**: The user could send this as-is. No "[fill in here]" placeholders.
 - **Substantial**: Not an outline — shows depth of thinking.
 - **4-6 sections**, each 3-5 sentences. **Section content is flowing text.** **Key terms/figures bold.**
-- **"⚠️ Risks & Mitigation" MANDATORY**: 2-3 risks + specific mitigations. This is what makes Overture better than asking ChatGPT.
+- **"⚠️ Risks & Mitigation" MANDATORY**: 2-3 risks + specific mitigations. This is what makes Argus better than asking ChatGPT.
 - **Next steps = offline 🧑 actions**: time/owner/specific output. No "discuss" or "review" without specifics.
 - **Assumptions**: explicitly state uncertain items.
 
@@ -697,7 +697,7 @@ If no fixes (user said "it's fine as is"):
 
 ---
 
-**Overture · Final**
+**Argus · Final**
 
 **Changes applied:**
 
@@ -787,7 +787,7 @@ At the very end:
 
 ## Before starting (returning users)
 
-Check `.overture/journal.md`. If exists:
+Check `.argus/journal.md`. If exists:
 
 **2-4 entries:** Surface one improvement + one watch area:
 > ▸ Since last time: [specific]
@@ -801,10 +801,10 @@ Check `.overture/journal.md`. If exists:
 
 ## Journal
 
-Append to `.overture/journal.md`:
+Append to `.argus/journal.md`:
 
 ```
-## [date] /overture — [topic, ≤5 words]
+## [date] /argus — [topic, ≤5 words]
 - Context: [build|decide]
 - Judge: [CEO|team lead|investor|unknown]
 - Problem: "[original]"
@@ -822,7 +822,7 @@ Append to `.overture/journal.md`:
 
 ## Auto-save
 
-Save to `.overture/last-run.md`:
+Save to `.argus/last-run.md`:
 - Top: final deliverable + thinking summary (human-readable)
 - Bottom after `---`: Context Contract (yaml)
 
@@ -874,5 +874,5 @@ dq_score: [N]
 - **OK condition in blockquote** (`> **OK condition:**`) — core approval, visually separated.
 - **Risk section with `⚠️` prefix** — differentiated weight from other sections.
 - **Skeleton items as bold numbers** (`1. **Item**:`) — use diff blocks only when items change.
-- **Stage transitions with `---` + bold header** — `**Overture · [stage]**` to clearly start new stage.
+- **Stage transitions with `---` + bold header** — `**Argus · [stage]**` to clearly start new stage.
 - **Framing confidence as blockquote** — `> Framing confidence: [N]/100`

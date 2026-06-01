@@ -1,17 +1,17 @@
 ---
-name: overture-setup
-description: "Set up Overture — validate installation, detect platform, verify all skills and agents are in place. Use when first installing Overture, after updates, or when something isn't working."
+name: argus-setup
+description: "Set up Argus — validate installation, detect platform, verify all skills and agents are in place. Use when first installing Argus, after updates, or when something isn't working."
 allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 ---
 
 ## When to use
 
-- ✓ First time installing Overture
-- ✓ After updating Overture to a new version
+- ✓ First time installing Argus
+- ✓ After updating Argus to a new version
 - ✓ When a skill isn't being recognized
 - ✓ When you want to verify everything is properly installed
-- ✗ When you want to change settings (use /overture:configure)
-- ✗ When diagnosing a specific issue (use /overture:doctor)
+- ✗ When you want to change settings (use /argus:configure)
+- ✗ When diagnosing a specific issue (use /argus:doctor)
 
 **Always respond in the same language the user uses.**
 
@@ -31,7 +31,7 @@ Claude Code version: [from conversation context]
 
 ### Step 1: Check for ghost installations
 
-Look for Overture files in multiple possible locations:
+Look for Argus files in multiple possible locations:
 
 1. `~/.claude/skills/` — standard install location (global)
 2. `~/.claude/agents/` — agent location (global)
@@ -40,7 +40,7 @@ Look for Overture files in multiple possible locations:
 
 If ghost installations found:
 
-> ⚠ Found Overture installed in multiple locations:
+> ⚠ Found Argus installed in multiple locations:
 > - ~/.claude/skills/ (global)
 > - ./.claude/skills/ (project)
 >
@@ -50,7 +50,7 @@ If ghost installations found:
 
 Check each required skill file exists and is readable:
 
-**Overture · Setup**
+**Argus · Setup**
 
 Checking installation...
 
@@ -59,12 +59,12 @@ Checking installation...
 - ✓ /recast — `~/.claude/skills/recast/SKILL.md`
 - ✓ /rehearse — `~/.claude/skills/rehearse/SKILL.md`
 - ✓ /refine — `~/.claude/skills/refine/SKILL.md`
-- ✓ /overture — `~/.claude/skills/overture/SKILL.md`
-- ✓ /overture-help — `~/.claude/skills/help/SKILL.md`
-- ✓ /overture:setup — `~/.claude/skills/setup/SKILL.md`
-- ✓ /overture:doctor — `~/.claude/skills/doctor/SKILL.md`
-- ✓ /overture:configure — `~/.claude/skills/configure/SKILL.md`
-- ✓ /overture:patterns — `~/.claude/skills/patterns/SKILL.md`
+- ✓ /argus — `~/.claude/skills/argus/SKILL.md`
+- ✓ /argus-help — `~/.claude/skills/help/SKILL.md`
+- ✓ /argus:setup — `~/.claude/skills/setup/SKILL.md`
+- ✓ /argus:doctor — `~/.claude/skills/doctor/SKILL.md`
+- ✓ /argus:configure — `~/.claude/skills/configure/SKILL.md`
+- ✓ /argus:patterns — `~/.claude/skills/patterns/SKILL.md`
 
 **Agents (18):**
 
@@ -105,17 +105,17 @@ Checking installation...
 - ✓ decision-quality.md
 
 **Data:**
-- [✓/✗] .overture/ directory
-- [✓/✗] .overture/journal.md
+- [✓/✗] .argus/ directory
+- [✓/✗] .argus/journal.md
 
 Use `✓` for found, `✗` for missing, `⚠` for found but possibly outdated.
 
 ### Step 3: Create data directory
 
-If `.overture/` doesn't exist in the project root, create it:
+If `.argus/` doesn't exist in the project root, create it:
 
 ```bash
-mkdir -p .overture
+mkdir -p .argus
 ```
 
 ### Step 4: Verify write permissions
@@ -123,7 +123,7 @@ mkdir -p .overture
 Test that the journal and output files can be written:
 
 ```bash
-touch .overture/.setup-test && rm .overture/.setup-test
+touch .argus/.setup-test && rm .argus/.setup-test
 ```
 
 If this fails, report the permission issue.
@@ -145,20 +145,20 @@ For installation, use the same method as `install.sh`:
 
 Read the installed `plugin.json` version and compare with the repo version. If outdated:
 
-> ⚠ Overture v0.4.0 installed, v0.5.0 available.
-> Run the install script to update, then run /overture:setup again.
+> ⚠ Argus v0.4.0 installed, v0.5.0 available.
+> Run the install script to update, then run /argus:setup again.
 
 ### Step 7: Summary
 
-**✓ Overture v0.5.0 · Ready**
+**✓ Argus v0.5.0 · Ready**
 
 10 skills · 18 agents · 6 references · journal ready
 
 **Quick start:**
 - `/reframe "your problem"` — sharpen your question
-- `/overture "your problem"` — full pipeline
-- `/overture:configure` — set preferences
-- `/overture-help` — all commands
+- `/argus "your problem"` — full pipeline
+- `/argus:configure` — set preferences
+- `/argus-help` — all commands
 
 **What's new in v0.5:**
 - Framing confidence (0-100) tracks question quality
@@ -177,7 +177,7 @@ If any step fails, don't stop — continue checking and collect all issues. Pres
 Setup completed with warnings:
 
 ✓ 8/10 skills installed
-✗ Missing: /overture:configure, /overture:patterns
-✗ Cannot write to .overture/ — check permissions
+✗ Missing: /argus:configure, /argus:patterns
+✗ Cannot write to .argus/ — check permissions
 
-Run /overture:doctor for detailed diagnostics.
+Run /argus:doctor for detailed diagnostics.

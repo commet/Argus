@@ -128,7 +128,7 @@ export default async function Image() {
             O
           </div>
           <span style={{ color: '#e8d8c0', fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em' }}>
-            Overture
+            Argus
           </span>
           <span style={{ color: '#5d5044', fontSize: 18, marginLeft: 8 }}>·</span>
           <span style={{ color: '#8a7e6e', fontSize: 18, fontWeight: 600 }}>{copy.brandSubtitle}</span>

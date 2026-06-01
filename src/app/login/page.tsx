@@ -127,7 +127,7 @@ function LoginContent() {
             <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shadow-[var(--shadow-sm)]" style={{ background: 'var(--gradient-gold)' }}>
               <span className="text-white font-black text-[15px]">O</span>
             </div>
-            <span className="text-[22px] font-extrabold text-[var(--text-primary)] tracking-tight">Overture</span>
+            <span className="text-[22px] font-extrabold text-[var(--text-primary)] tracking-tight">Argus</span>
           </div>
           <p className="text-[14px] text-[var(--text-secondary)]">
             {L('과제를 해석하고, 실행을 설계하세요', 'Reframe the problem. Design the execution.')}

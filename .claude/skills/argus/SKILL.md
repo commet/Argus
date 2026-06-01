@@ -1,5 +1,5 @@
 ---
-name: overture
+name: argus
 description: "내 전문 분야가 아닌 걸 해야 할 때 — 생각을 문서 언어로 번역한다. 문제 던지면 30초 안에 초안. 질문 몇 개에 답하면 제출 가능한 문서 완성. Progressive — 어디서 멈춰도 쓸 수 있다."
 argument-hint: "[problem, decision, or task you need to figure out]"
 effort: high
@@ -180,7 +180,7 @@ Record as `doc_type: [type]`. **Build context는 doc_type = 스펙/PRD 또는 �
 
 ---
 
-**Overture** · {context label} · {doc_type}
+**Argus** · {context label} · {doc_type}
 
 **당신의 관점** (user_role이 파악된 경우에만. 미파악 시 이 섹션 생략.)
 [1줄. 사용자의 전문성을 인정하면서 번역 방향을 명시.]
@@ -400,7 +400,7 @@ Read `references/doc-templates.md` to get the standard sections for the detected
 
 ---
 
-**Overture · 초안 완성** · {doc_type}
+**Argus · 초안 완성** · {doc_type}
 
 **[구체적 제목 — 상황 반영]**
 
@@ -540,7 +540,7 @@ Apply all fixes from DM simulation to the Mix document. Output the COMPLETE fina
 
 ---
 
-**Overture · 최종** · {doc_type}
+**Argus · 최종** · {doc_type}
 
 [Complete document: title, executive summary, all sections (doc_type standard structure), confidence markers, assumptions, next steps.
 Fixes integrated seamlessly. Vocabulary bridges preserved.]
@@ -612,7 +612,7 @@ At the very end:
 
 ## Before starting (returning users)
 
-Check `.overture/journal.md`. If exists:
+Check `.argus/journal.md`. If exists:
 
 **2-4 entries:** Surface one improvement + one watch area:
 > ▸ 지난번보다: [specific]
@@ -623,10 +623,10 @@ Check `.overture/journal.md`. If exists:
 
 ## Journal
 
-Append to `.overture/journal.md`:
+Append to `.argus/journal.md`:
 
 ```
-## [date] /overture — [topic, ≤5 words]
+## [date] /argus — [topic, ≤5 words]
 - Context: [build|decide]
 - Doc type: [기획안|전략 제안서|피치덱|비즈니스 케이스|보고서|스펙]
 - User role: [개발자|디자이너|PM|etc]
@@ -649,7 +649,7 @@ Append to `.overture/journal.md`:
 
 ## Auto-save
 
-Save to `.overture/last-run.md`:
+Save to `.argus/last-run.md`:
 - Top: final deliverable + thinking summary (human-readable)
 - Bottom after `---`: Context Contract (yaml)
 
@@ -693,7 +693,7 @@ role_distribution:
 - **OK 조건은 blockquote** (`> **OK 조건:**`) — 시각적 분리.
 - **리스크 섹션은 `⚠️` 접두사**.
 - **뼈대 항목은 bold 번호** (`1. **항목**:`). 변경 시에만 diff 블럭.
-- **단계 전환은 `---` + bold 헤더** — `**Overture · [단계명]**`.
+- **단계 전환은 `---` + bold 헤더** — `**Argus · [단계명]**`.
 - **신뢰도:** 🟢 높음 / 🟡 중간 / 🔴 확인 필요. 테이블 형태.
 - **어휘 브릿지:** 인라인 볼드 + 괄호. "**용어** (풀이)". 섹션당 최대 2개.
 - **진행 상태:** blockquote + ✅. 단계 전환 시에만.

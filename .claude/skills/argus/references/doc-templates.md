@@ -1,6 +1,6 @@
 # Document Type Templates
 
-문서 유형별 표준 구조. `/overture` Mix 단계에서 참조.
+문서 유형별 표준 구조. `/argus` Mix 단계에서 참조.
 
 ---
 

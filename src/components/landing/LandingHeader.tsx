@@ -45,7 +45,7 @@ export function LandingHeader() {
                 letterSpacing: '-0.01em',
               }}
             >
-              Overture
+              Argus
             </span>
             <span
               className="hidden md:inline bp-mono"

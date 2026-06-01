@@ -1,7 +1,7 @@
 # Persona Pack: 스타트업 창업자
 
 > `/rehearse`에서 사용할 수 있는 사전 정의 페르소나 세트.
-> `.overture/config.json`의 `persona_pack`에 이 파일 경로를 지정하면 자동 로드.
+> `.argus/config.json`의 `persona_pack`에 이 파일 경로를 지정하면 자동 로드.
 
 ## Personas
 

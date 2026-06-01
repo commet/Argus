@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Supabase OAuth takes a full-page redirect, so sessionStorage survives the round-trip.
     // auth/callback consumes + clears the key.
     if (redirectAfter && redirectAfter.startsWith('/') && !redirectAfter.startsWith('//')) {
-      sessionStorage.setItem('overture:postAuthRedirect', redirectAfter);
+      sessionStorage.setItem('argus:postAuthRedirect', redirectAfter);
     }
     await supabase.auth.signInWithOAuth({
       provider: 'google',

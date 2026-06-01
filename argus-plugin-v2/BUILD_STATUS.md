@@ -5,7 +5,7 @@ Comprehensive self-audit of the plugin-v2 build, meta-check gate evaluation, and
 ## Files produced
 
 ```
-overture-plugin-v2/
+argus-plugin-v2/
 ├── .claude-plugin/plugin.json                    [1 file]
 ├── agents/*.md                                   [17 files — full team]
 ├── data/
@@ -25,7 +25,7 @@ overture-plugin-v2/
 │   ├── version-numbering.md                      [algorithm ported from webapp]
 │   └── session-layout.md                         [directory structure spec]
 ├── skills/
-│   ├── sail/SKILL.md                             [top-level orchestrator (`/overture:sail`)]
+│   ├── sail/SKILL.md                             [top-level orchestrator (`/argus:sail`)]
 │   ├── clarify/SKILL.md                          [analyzing + Q&A loop]
 │   ├── team/SKILL.md                             [team deployment + synthesis]
 │   ├── boss/SKILL.md                             [MBTI stakeholder review]
@@ -36,7 +36,7 @@ overture-plugin-v2/
 └── README.md                                     [new narrative — decision scaffold positioning]
 ```
 
-**40 files written.** Zero files modified outside `overture-plugin-v2/`. Webapp untouched per Q5 decision.
+**40 files written.** Zero files modified outside `argus-plugin-v2/`. Webapp untouched per Q5 decision.
 
 ## Meta-check gate evaluation
 
@@ -46,10 +46,10 @@ overture-plugin-v2/
 | **M2** Personality preservation | ✓ | 17 agent .md files each have voice_markers + worker-mode example dialogues; 16 MBTI types have example_dialogue. Trait-list-only agents would fail; all current files show rhythm/tone examples. |
 | **M3** Contradiction preservation | ✓ | team SKILL.md has explicit debate step for critical stakes; FinalScaffold.team_contradictions[] preserves disagreement; team SKILL.md forbids "consensus bullet". |
 | **M4** Decision scaffold | ✓ | FinalScaffold schema has key_trade_offs[], hidden_assumptions[], human_required_checkpoints[], next_actions[] as REQUIRED fields. Plugin output is NOT a markdown document. |
-| **M5** Analysis primacy | ✓ | /overture:clarify is mandatory first step; orchestrator refuses to run :team without it; clarify has self-check that surface != real_question. |
+| **M5** Analysis primacy | ✓ | /argus:clarify is mandatory first step; orchestrator refuses to run :team without it; clarify has self-check that surface != real_question. |
 | **M6** Stakes-driven agent selection | ✓ | classification.yaml has stakes → agent_count_max (2/3/4); team SKILL.md includes capability scoring formula + critic mandate for critical stakes. |
 | **M7** Commodity bot test | ✓ | Output is decision scaffold (not review doc); preserves contradictions (Cursor/Copilot average away); named MBTI boss (generic tools don't have); workers ON real artifacts. |
-| **M8** Archive growth | ✓ | .overture/sessions/ structure; /overture:chart renders tree; git-committable for team sharing. |
+| **M8** Archive growth | ✓ | .argus/sessions/ structure; /argus:chart renders tree; git-committable for team sharing. |
 | **M9** Worker not critic | ✓ | Every agent .md has explicit "You are a worker, NOT a critic"; team SKILL.md forbids workers critiquing each other; donghyuk.md has special clarification about risk analysis being WORK. |
 | **M10** Versioning-ready | ✓ | Every artifact written under versions/{label}/; Draft schema has parent_draft_id + version_label; version-numbering algorithm ported to lib/session/. |
 
@@ -60,7 +60,7 @@ overture-plugin-v2/
 | Risk category | Mitigation |
 |---|---|
 | Structural oversight of 4R | ✓ Skill names use new vocabulary (clarify/team/boss/status + orchestrator). NO /reframe /recast /rehearse /refine in plugin-v2. Old paths only in BUILD_STATUS.md as reference. |
-| Formal oversight (procedural style, generic personas) | ✓ SKILL.md files use Overture-specific vocabulary. Agent .md files use worker-mode examples (not generic "you are a reviewer"). |
+| Formal oversight (procedural style, generic personas) | ✓ SKILL.md files use Argus-specific vocabulary. Agent .md files use worker-mode examples (not generic "you are a reviewer"). |
 | Content oversight (shallow 4R definitions) | ✓ Did NOT read old SKILL.md files. Skills rewritten zero-from-scratch using webapp's current reality (ProgressiveFlow phases, AnalysisSnapshot, MixResult etc.). |
 
 ## Alignment with webapp (2026-04-24 state)
@@ -103,7 +103,7 @@ Simulation revealed 3 critical/high-priority bugs; all patched:
 
 3. **Bug #3 (high) — config.yaml schema missing** ✓ fixed:
    - New `data/schemas/config.json` — formal schema with required locale field, optional boss/team/archive
-   - New `lib/config.example.yaml` — commented template user can copy to `.overture/config.yaml`
+   - New `lib/config.example.yaml` — commented template user can copy to `.argus/config.yaml`
    - Orchestrator Step 0 offers to create from template
 
 ## Post-patch gate status (re-audit)
@@ -202,17 +202,17 @@ Remaining 8% unverifiable by simulation:
 
 ### Must do before plugin swap
 
-4. **/overture:configure skill** — interactive UI for setting Boss MBTI + locale. Currently users edit `lib/config.example.yaml` → copy manually. Template pointer works for MVP but not great UX.
-5. **/overture:revise skill** — concertmaster revision worker for post-complete draft bumping. Without it, branching is read-only after initial completion. Medium impact.
-6. **Schema path resolution** — SKILL.md files reference `data/schemas/*.json` by relative path. When installed to `~/.claude/`, data goes to `~/.claude/overture-data/`. Skills need to handle both paths (plugin dev mode vs installed mode).
+4. **/argus:configure skill** — interactive UI for setting Boss MBTI + locale. Currently users edit `lib/config.example.yaml` → copy manually. Template pointer works for MVP but not great UX.
+5. **/argus:revise skill** — concertmaster revision worker for post-complete draft bumping. Without it, branching is read-only after initial completion. Medium impact.
+6. **Schema path resolution** — SKILL.md files reference `data/schemas/*.json` by relative path. When installed to `~/.claude/`, data goes to `~/.claude/argus-data/`. Skills need to handle both paths (plugin dev mode vs installed mode).
 7. **Agent .md → Claude Code Task tool binding** — when team skill spawns via Task tool with `subagent_type: sujin`, Claude Code must find `sujin.md` in agents directory. install.sh copies them to `~/.claude/agents/` which should work, but untested.
 8. **scripts/extract-from-webapp.ts** — placeholder directory exists but extraction script not implemented. Currently data files are hand-authored from source reading.
 
 ### Must do before swap with old plugin
 
-6. **End-to-end test** on real repo. Run `/overture:sail "some real decision"` → verify full pipeline produces valid artifacts conforming to schemas. Without this, gate 7 isn't passed.
+6. **End-to-end test** on real repo. Run `/argus:sail "some real decision"` → verify full pipeline produces valid artifacts conforming to schemas. Without this, gate 7 isn't passed.
 7. **devils-advocate attack** on produced artifacts. Does the output truly preserve contradictions? Does it read like a commodity review?
-8. **Swap coordination** — rename `overture-plugin/` → `overture-plugin-legacy/` (or delete), rename `overture-plugin-v2/` → `overture-plugin/`. Update repo docs pointing at old path.
+8. **Swap coordination** — rename `argus-plugin/` → `argus-plugin-legacy/` (or delete), rename `argus-plugin-v2/` → `argus-plugin/`. Update repo docs pointing at old path.
 
 ### Deferred to post-MVP
 
@@ -233,14 +233,14 @@ When you return, please check:
 
 4. **team SKILL.md orchestration steps** — read `skills/team/SKILL.md`. The 11-step execution is dense. Is any step mis-specified? Particular attention: Step 4 (parallel spawn) and Step 9 (FinalScaffold construction).
 
-5. **version numbering behavior** — read `lib/session/version-numbering.md` + the /overture:chart tree rendering. Does the "해도" navigation feel right?
+5. **version numbering behavior** — read `lib/session/version-numbering.md` + the /argus:chart tree rendering. Does the "해도" navigation feel right?
 
 ## Confidence assessment
 
 Build confidence: **85%**. The 15% uncertainty:
 - Haven't tested agent .md with actual Task tool spawn — Claude Code's subagent naming conventions may need adjustment.
 - Schema `$ref` cross-references (draft.json → final-scaffold.json) may not resolve in all contexts; may need inlining or separate validation.
-- Plugin install path ambiguity (data/ vs ~/.claude/overture-data/) — skills may fail at path resolution in installed mode.
+- Plugin install path ambiguity (data/ vs ~/.claude/argus-data/) — skills may fail at path resolution in installed mode.
 
 Quality confidence of individual artifacts: **90%+**. Voice preservation, scaffold structure, contradiction handling all look solid per self-audit. The uncertainty is at integration boundaries, not at artifact quality.
 
@@ -259,7 +259,7 @@ Per user's directive on 2026-04-24: "진행하다가 너가 놓쳤던 정보가 
 
 ## Trigger
 
-Reality test on 2026-04-28 (`TEST_PLAN.md`, results in `.overture/test-observations.md`) ran 4 TCs through `/overture:sail` and produced PASS/FAIL evidence per critique. Two failure modes surfaced:
+Reality test on 2026-04-28 (`TEST_PLAN.md`, results in `.argus/test-observations.md`) ran 4 TCs through `/argus:sail` and produced PASS/FAIL evidence per critique. Two failure modes surfaced:
 
 1. **TC1 over-engineering** (#5 commodity FAIL) — quick mode routed correctly for a tab-rename decision but still emitted a 5-section FinalScaffold. The scaffold schema architecturally precluded a 1-line answer.
 2. **TC-meta self-audit ceiling** (#7 PARTIAL) — agents recommended trimming MBTI/persona edges but stayed away from questioning core architecture (4R + plugin v2 + 7 schema all survived stage-1 consensus).
@@ -293,7 +293,7 @@ Two PASS-confirmed strengths preserved (no changes touch these paths):
 
 **Live runtime verification (incomplete — gated by Claude Code session caching):**
 - Discovery: Claude Code caches SKILL.md body at session start. In-session edits to plugin files DO NOT affect the running session's behavior.
-- This session's `/overture:sail` invocation received the OLD (pre-c023c32) sail SKILL body.
+- This session's `/argus:sail` invocation received the OLD (pre-c023c32) sail SKILL body.
 - Live verify of new behavior REQUIRES Claude Code restart in a fresh session.
 
 **Real-user verification (Phase 4-original — pending):**
@@ -304,15 +304,15 @@ Two PASS-confirmed strengths preserved (no changes touch these paths):
 
 | Path | Predicted output | Verify against |
 |---|---|---|
-| `/overture:sail "<reversible 1-action question>"` (e.g., README first line tweak) | clarify Step 5a 3-5 line minimal card. No team. No boss. | TC1's 30+ line over-engineered output |
-| `/overture:sail "<typical product decision>"` (high stakes_confidence) | "✓ Clarify · 팀 배치 중..." → "✓ Team · Boss 검토 중..." → "✓ Boss · 결정 카드 ↓" → ~15 line consolidated card. **No** "어떻게 진행할까요?" dialog. | TC2's 3-section output split across team + boss runs |
-| `/overture:sail "<borderline stakes>"` (clarify confidence 60-79) | One AskUserQuestion: "이 결정이 X로 보이는데(N/100) 맞나요?" → user picks → auto-proceed. | (no prior baseline — new behavior) |
+| `/argus:sail "<reversible 1-action question>"` (e.g., README first line tweak) | clarify Step 5a 3-5 line minimal card. No team. No boss. | TC1's 30+ line over-engineered output |
+| `/argus:sail "<typical product decision>"` (high stakes_confidence) | "✓ Clarify · 팀 배치 중..." → "✓ Team · Boss 검토 중..." → "✓ Boss · 결정 카드 ↓" → ~15 line consolidated card. **No** "어떻게 진행할까요?" dialog. | TC2's 3-section output split across team + boss runs |
+| `/argus:sail "<borderline stakes>"` (clarify confidence 60-79) | One AskUserQuestion: "이 결정이 X로 보이는데(N/100) 맞나요?" → user picks → auto-proceed. | (no prior baseline — new behavior) |
 
 ## Open issues / next priorities
 
 1. **Live verification post-restart** — predictions above need to be validated. If reality diverges, spec revisions needed.
 2. **Real-user round** — only check that AI-judging-AI loop is broken (donghyuk's TC-meta meta-warning).
-3. **`/overture:revise` skill** — referenced in chart spec but not yet implemented (post-MVP per original BUILD_STATUS).
+3. **`/argus:revise` skill** — referenced in chart spec but not yet implemented (post-MVP per original BUILD_STATUS).
 4. **Self-audit hard-gate** (Phase 3-original from convenience plan, deferred) — heuristic detection of self-references + force external-review checkpoint.
 5. **Plugin reload UX** — discovered cache-at-session-start behavior. Worth surfacing in install.sh post-install message.
 

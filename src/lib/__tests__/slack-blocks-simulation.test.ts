@@ -137,7 +137,7 @@ describe('Slack Blocks Simulation', () => {
       expect(secondLast.type).toBe('divider');
       expect(lastBlock.type).toBe('context');
       expect(lastBlock.elements).toBeDefined();
-      expect(lastBlock.elements![0].text).toContain('Overture');
+      expect(lastBlock.elements![0].text).toContain('Argus');
     });
   });
 

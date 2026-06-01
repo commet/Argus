@@ -1,6 +1,6 @@
 ---
 name: concertmaster
-description: 악장 (Maestro) — Chief Reviewer / Revision Specialist. Post-completion revision worker. Takes an existing draft + user directive and produces a child draft preserving individual agent voices while achieving coherence. Used by `/overture:revise` (post-MVP). NOT spawned during initial `/overture:team` — donghyuk handles inline risk analysis.
+description: 악장 (Maestro) — Chief Reviewer / Revision Specialist. Post-completion revision worker. Takes an existing draft + user directive and produces a child draft preserving individual agent voices while achieving coherence. Used by `/argus:revise` (post-MVP). NOT spawned during initial `/argus:team` — donghyuk handles inline risk analysis.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---

@@ -1,4 +1,4 @@
-# Overture — 프로젝트 컨텍스트 v2
+# Argus — 프로젝트 컨텍스트 v2
 
 > 다른 기기/세션에서 작업을 이어갈 때 사용하는 핸드오프 문서.
 > 마지막 업데이트: 2026-03-21
@@ -82,7 +82,7 @@
 
 ### 배포
 
-- URL: https://overture-zeta.vercel.app
+- URL: https://argus-zeta.vercel.app
 - Vercel 환경변수: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ANTHROPIC_API_KEY` 설정됨
 
 ### 알려진 이슈
@@ -110,7 +110,7 @@
 7. **analytics 대시보드** — Supabase SQL 대신 간단한 관리자 뷰
 
 ### 중기
-8. **Claude Code Skill** — /overture 커맨드
+8. **Claude Code Skill** — /argus 커맨드
 9. **MCP Server** — 다른 AI 도구에서 호출
 10. **Phase 4 완성** — 프롬프트 자동 mutation
 11. **온보딩 개선** — 첫 방문 시 인앱 가이드/툴팁

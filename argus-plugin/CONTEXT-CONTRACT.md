@@ -1,7 +1,7 @@
 # Context Contract Schema
 
-> Overture 스킬 간 데이터 흐름의 공식 스키마.
-> 각 스킬은 `.overture/{skill}.md` 하단에 Context Contract를 YAML로 저장한다.
+> Argus 스킬 간 데이터 흐름의 공식 스키마.
+> 각 스킬은 `.argus/{skill}.md` 하단에 Context Contract를 YAML로 저장한다.
 > 다음 스킬은 이전 스킬의 컨트랙트를 자동으로 읽어 컨텍스트를 이어간다.
 
 ---
@@ -9,24 +9,24 @@
 ## Data Flow
 
 ```
-/reframe → .overture/reframe.md
+/reframe → .argus/reframe.md
     ↓ reads
-/recast  → .overture/recast.md
+/recast  → .argus/recast.md
     ↓ reads reframe + recast
-/rehearse → .overture/rehearse.md
+/rehearse → .argus/rehearse.md
     ↓ reads all above
-/refine   → .overture/refine.md
+/refine   → .argus/refine.md
 
-/overture → .overture/last-run.md (all-in-one, includes all contracts)
+/argus → .argus/last-run.md (all-in-one, includes all contracts)
 ```
 
 ---
 
 ## 1. Reframe Contract
 
-**File:** `.overture/reframe.md`
+**File:** `.argus/reframe.md`
 **Producer:** `/reframe`
-**Consumers:** `/recast`, `/rehearse`, `/overture`
+**Consumers:** `/recast`, `/rehearse`, `/argus`
 
 ```yaml
 context: build | decide                    # REQUIRED — determines downstream behavior
@@ -72,7 +72,7 @@ blind_spot: string                         # 핵심 블라인드 스팟 (1문장
 
 ## 2. Recast Contract
 
-**File:** `.overture/recast.md`
+**File:** `.argus/recast.md`
 **Producer:** `/recast`
 **Consumers:** `/rehearse`, `/refine`
 
@@ -126,7 +126,7 @@ personas:                                  # auto-generated for /rehearse
 ```
 
 ### Consumer rules:
-- `/rehearse` reads `.overture/personas.json` FIRST — confirmed/user_refined personas take priority
+- `/rehearse` reads `.argus/personas.json` FIRST — confirmed/user_refined personas take priority
 - `/rehearse` uses `personas` from recast for remaining slots (do not regenerate what user already defined)
 - `/rehearse` reads `steps` to ground risk assessment in specific plan elements
 - `/rehearse` reads `key_assumptions` as attack surface for stress testing
@@ -137,7 +137,7 @@ personas:                                  # auto-generated for /rehearse
 
 ## 3. Rehearse Contract
 
-**File:** `.overture/rehearse.md`
+**File:** `.argus/rehearse.md`
 **Producer:** `/rehearse`
 **Consumers:** `/refine`
 
@@ -196,9 +196,9 @@ pipeline: "reframe ✓ → recast ✓ → rehearse ✓ → refine ·"
 
 ## 4. Refine Contract
 
-**File:** `.overture/refine.md`
+**File:** `.argus/refine.md`
 **Producer:** `/refine`
-**Consumers:** (terminal — or next /overture run)
+**Consumers:** (terminal — or next /argus run)
 
 ```yaml
 converged: boolean
@@ -224,10 +224,10 @@ pipeline: "reframe ✓ → recast ✓ → rehearse ✓ → refine ✓"
 
 ---
 
-## 5. Overture Contract (All-in-One)
+## 5. Argus Contract (All-in-One)
 
-**File:** `.overture/last-run.md`
-**Producer:** `/overture`
+**File:** `.argus/last-run.md`
+**Producer:** `/argus`
 **Consumers:** `/recast` (for role redesign), next session
 
 ```yaml
@@ -280,7 +280,7 @@ These fields MUST NOT change once set, regardless of which skill is running:
 
 ## Reading Rules
 
-1. **Auto-read:** Each skill checks `.overture/` for prior contracts on startup
+1. **Auto-read:** Each skill checks `.argus/` for prior contracts on startup
 2. **Offer to user:** "이전에 만든 [X]가 있습니다. 이걸로 이어갈까요?"
 3. **Merge, don't replace:** New insights ADD to prior data; don't discard upstream work
 4. **Mark inheritance:** `[from reframe]`, `[from recast]` markers on inherited data
@@ -292,7 +292,7 @@ These fields MUST NOT change once set, regardless of which skill is running:
 
 ## File Format
 
-Each `.overture/{skill}.md` file has two sections:
+Each `.argus/{skill}.md` file has two sections:
 
 ```markdown
 [Human-readable output — the actual deliverable]
@@ -310,7 +310,7 @@ The bottom section is what the next skill reads and builds on.
 
 ## Convergence Metrics (Cross-Skill)
 
-`/overture`의 progressive flow에서 사용하는 수렴 지표:
+`/argus`의 progressive flow에서 사용하는 수렴 지표:
 
 ```yaml
 convergence:

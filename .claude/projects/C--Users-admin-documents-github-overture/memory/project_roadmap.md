@@ -1,10 +1,10 @@
 ---
-name: Overture Technical Roadmap
-description: 6-phase roadmap transforming Overture from prompt wrapper to adaptive strategic thinking engine. Priorities context chain typing, judgment learning loop, multi-lens recasting.
+name: Argus Technical Roadmap
+description: 6-phase roadmap transforming Argus from prompt wrapper to adaptive strategic thinking engine. Priorities context chain typing, judgment learning loop, multi-lens recasting.
 type: project
 ---
 
-Overture ROADMAP.md created 2026-03-20 with 6 phases.
+Argus ROADMAP.md created 2026-03-20 with 6 phases.
 
 **Why:** User identified the risk of being "just an LLM wrapper with musical metaphors" and decided to build genuine technical depth.
 

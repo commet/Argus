@@ -22,7 +22,7 @@ export function ChatMessage({ role, content, isStreaming, bossType }: ChatMessag
 
   const handleCopyQuote = async () => {
     const bossLabel = L('팀장', 'Boss');
-    const text = `${bossType?.emoji || '👔'} ${bossType?.code || ''} ${bossLabel}:\n"${content}"\n\n▸ overture.so/boss`;
+    const text = `${bossType?.emoji || '👔'} ${bossType?.code || ''} ${bossLabel}:\n"${content}"\n\n▸ argus.voyage/boss`;
     try {
       await navigator.clipboard.writeText(text);
     } catch {

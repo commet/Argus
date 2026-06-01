@@ -22,8 +22,8 @@ export default function TermsPage() {
         <section>
           <h2 className="text-[16px] font-bold mb-2">{L('제1조 (목적)', 'Article 1 (Purpose)')}</h2>
           <p>{L(
-            '이 약관은 SAYU(이하 "회사")가 운영하는 Overture(이하 "서비스")와 이를 이용하는 회원(이하 "이용자") 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.',
-            'These Terms set out the rights, obligations, and responsibilities between SAYU (hereinafter "the Company"), which operates Overture (hereinafter "the Service"), and members who use it (hereinafter "Users").',
+            '이 약관은 SAYU(이하 "회사")가 운영하는 Argus(이하 "서비스")와 이를 이용하는 회원(이하 "이용자") 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.',
+            'These Terms set out the rights, obligations, and responsibilities between SAYU (hereinafter "the Company"), which operates Argus (hereinafter "the Service"), and members who use it (hereinafter "Users").',
           )}</p>
         </section>
 

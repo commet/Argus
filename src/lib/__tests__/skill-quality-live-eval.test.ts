@@ -1,5 +1,5 @@
 /**
- * Live Skill Quality Eval v2 — .overture/ 실제 출력물 채점
+ * Live Skill Quality Eval v2 — .argus/ 실제 출력물 채점
  */
 
 import { existsSync, readFileSync } from 'fs';
@@ -12,10 +12,10 @@ import {
   type SkillName,
 } from '@/lib/skill-quality-eval';
 
-const OVERTURE_DIR = join(process.cwd(), '.overture');
+const ARGUS_DIR = join(process.cwd(), '.argus');
 
 function readIfExists(filename: string): string | undefined {
-  const filepath = join(OVERTURE_DIR, filename);
+  const filepath = join(ARGUS_DIR, filename);
   return existsSync(filepath) ? readFileSync(filepath, 'utf-8') : undefined;
 }
 

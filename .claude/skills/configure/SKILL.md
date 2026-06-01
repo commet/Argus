@@ -1,16 +1,16 @@
 ---
-name: overture-configure
-description: "Set up Overture preferences — language, output format, journal settings, and presets. Interactive configuration with presets for quick onboarding. Saves to .overture/config.json."
+name: argus-configure
+description: "Set up Argus preferences — language, output format, journal settings, and presets. Interactive configuration with presets for quick onboarding. Saves to .argus/config.json."
 allowed-tools: Read, Write, AskUserQuestion
 ---
 
 ## When to use
 
-- ✓ First time using Overture and want to set preferences
+- ✓ First time using Argus and want to set preferences
 - ✓ Want to change language, output format, or journal settings
 - ✓ Switching between Quick/Standard/Learning modes
-- ✗ First installation (use /overture:setup first)
-- ✗ Diagnosing issues (use /overture:doctor)
+- ✗ First installation (use /argus:setup first)
+- ✗ Diagnosing issues (use /argus:doctor)
 
 **Always respond in the same language the user uses.**
 
@@ -20,7 +20,7 @@ allowed-tools: Read, Write, AskUserQuestion
 
 ### Step 0: Detect existing configuration
 
-Check if `.overture/config.json` exists.
+Check if `.argus/config.json` exists.
 
 **New user (no config):** Run the full setup flow (5 questions).
 **Returning user (config exists):** Show current settings and ask what to change.
@@ -29,7 +29,7 @@ Check if `.overture/config.json` exists.
 
 Show the header:
 
-**⚙ Overture · Configure**
+**⚙ Argus · Configure**
 
 Let's set up your preferences. 5 quick questions.
 
@@ -38,7 +38,7 @@ Let's set up your preferences. 5 quick questions.
 ```
   ■ Preset                           1 / 5
 
-  How do you want to use Overture?
+  How do you want to use Argus?
 
     1 · Quick — /reframe only, minimal output
         Best for: fast thinkers who want one sharp reframe
@@ -80,7 +80,7 @@ Preset mappings:
 
   Where to save results?
 
-    1 · .overture/ in project root (default)
+    1 · .argus/ in project root (default)
     2 · Custom path (type it)
     3 · Don't save files
 
@@ -96,7 +96,7 @@ Only shown if preset is Standard or Learning:
 
   Track your decision patterns over time?
 
-    1 · Yes — append to .overture/journal.md (recommended)
+    1 · Yes — append to .argus/journal.md (recommended)
     2 · No — skip journaling
 
   ▸
@@ -120,12 +120,12 @@ Only shown if preset is Standard or Learning:
 
 ### For returning users: Quick update
 
-**⚙ Overture · Configure**
+**⚙ Argus · Configure**
 
 **Current settings:**
 - Preset: [Learning]
 - Language: [auto-detect]
-- Output: [.overture/]
+- Output: [.argus/]
 - Journal: [enabled]
 - Personas: [3]
 
@@ -147,18 +147,18 @@ Allow multiple changes before saving.
 
 ### Save configuration
 
-Save to `.overture/config.json`:
+Save to `.argus/config.json`:
 
 ```json
 {
   "version": "0.3.0",
   "preset": "learning",
   "language": "auto-detect",
-  "output_path": ".overture/",
+  "output_path": ".argus/",
   "auto_save": true,
   "journal": {
     "enabled": true,
-    "path": ".overture/journal.md",
+    "path": ".argus/journal.md",
     "max_entries_before_archive_hint": 50
   },
   "rehearse": {
@@ -175,24 +175,24 @@ Save to `.overture/config.json`:
 
 ### Confirmation
 
-**✓ Overture · Configured**
+**✓ Argus · Configured**
 
 - Preset: [Learning]
 - Language: [auto-detect]
-- Output: [.overture/]
+- Output: [.argus/]
 - Journal: [enabled]
 - Personas: [3]
 
-Saved to `.overture/config.json`
+Saved to `.argus/config.json`
 
-> Try: `/reframe "your problem"` or `/overture "important decision"`
+> Try: `/reframe "your problem"` or `/argus "important decision"`
 
 ## How other skills read the config
 
-All Overture skills should check for `.overture/config.json` at startup:
+All Argus skills should check for `.argus/config.json` at startup:
 
 1. If config exists → use settings (language preference, persona count, etc.)
-2. If config doesn't exist → use defaults (auto-detect language, 3 personas, save to .overture/)
-3. Config is OPTIONAL — Overture works fine without it
+2. If config doesn't exist → use defaults (auto-detect language, 3 personas, save to .argus/)
+3. Config is OPTIONAL — Argus works fine without it
 
 Skills should NEVER require configuration to run. Config is a convenience layer.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Overture v2 Status Line for Claude Code
+ * Argus v2 Status Line for Claude Code
  *
  * Design principle (unchanged from v0.5): show what changes behavior, not what decorates the screen.
  * Every line must contain information the user CANNOT see in the conversation.
@@ -12,7 +12,7 @@
  * Zero dependencies — pure Node.js (CommonJS).
  *
  * Divergence from v0.5: no 4R references (reframe/recast/rehearse/refine), no journal.md parsing.
- * Reads from .overture/sessions/*/session.json instead.
+ * Reads from .argus/sessions/*/session.json instead.
  */
 
 const { readFileSync, existsSync, statSync, readdirSync, openSync, readSync, closeSync } = require("fs");
@@ -53,7 +53,7 @@ function readStdin() {
 let sessionCache = { mtime: 0, data: null };
 
 function parseActiveSession(cwd) {
-  const sessionsDir = join(cwd, ".overture", "sessions");
+  const sessionsDir = join(cwd, ".argus", "sessions");
   if (!existsSync(sessionsDir)) return null;
 
   try {
@@ -164,7 +164,7 @@ function phaseColor(phase) {
 
 function main() {
   const stdin = readStdin();
-  if (!stdin) { process.stdout.write("Overture"); return; }
+  if (!stdin) { process.stdout.write("Argus"); return; }
 
   const out = [];
   const cwd = stdin.cwd || stdin.workspace?.current_dir || ".";

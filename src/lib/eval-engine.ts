@@ -24,10 +24,10 @@ import { extractInterviewSignals as extractSignals } from '@/lib/context-chain';
 import { recordSignal } from '@/lib/signal-recorder';
 import { buildStageFingerprint } from '@/lib/judgment-vitality';
 
-const EVAL_STORAGE_KEY = 'overture_eval_results';
-const RECAST_EVAL_KEY = 'overture_eval_recast';
-const REHEARSAL_EVAL_KEY = 'overture_eval_rehearsal';
-const REFINE_EVAL_KEY = 'overture_eval_refine';
+const EVAL_STORAGE_KEY = 'argus_eval_results';
+const RECAST_EVAL_KEY = 'argus_eval_recast';
+const REHEARSAL_EVAL_KEY = 'argus_eval_rehearsal';
+const REFINE_EVAL_KEY = 'argus_eval_refine';
 
 export type EvalTool = 'reframe' | 'recast' | 'rehearse' | 'refine';
 

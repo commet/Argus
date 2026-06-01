@@ -1,6 +1,6 @@
 
 const fs = require('fs');
-const p = 'C:/Users/admin/documents/github/overture/.claude/skills/refine/SKILL.md';
+const p = 'C:/Users/admin/documents/github/argus/.claude/skills/refine/SKILL.md';
 let c = fs.readFileSync(p, 'utf8');
 
 // Normalize line endings to LF for processing

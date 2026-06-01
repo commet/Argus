@@ -19,7 +19,7 @@ allowed-tools: Read, Write, AskUserQuestion
 
 ---
 
-**Overture · [스킬명]**
+**Argus · [스킬명]**
 
 [첫 결과물 — 사용자가 바로 쓸 수 있는 수준]
 
@@ -46,12 +46,12 @@ AskUserQuestion으로 추가 정보를 수집하고 결과를 개선한다.
 
 이전 스킬의 결과를 읽으려면:
 ```
-Read `.overture/reframe.md` or `.overture/last-run.md`
+Read `.argus/reframe.md` or `.argus/last-run.md`
 ```
 
 결과를 다음 스킬에 전달하려면:
 ```
-Save to `.overture/my-skill.md`:
+Save to `.argus/my-skill.md`:
 - Top: human-readable output
 - Bottom after `---`: Context Contract (yaml)
 ```

@@ -1,14 +1,14 @@
-# Claude Code 소스 분석 기반 Overture 개선 기록
+# Claude Code 소스 분석 기반 Argus 개선 기록
 
 > **날짜**: 2026-04-01
 > **참조 소스**: [nirholas/claude-code](https://github.com/nirholas/claude-code) (519K LOC, 2026-03-31 유출)
-> **대상**: Overture 웹앱 (46K LOC)
+> **대상**: Argus 웹앱 (46K LOC)
 
 ---
 
 ## 1. 배경
 
-Claude Code CLI 전체 소스(1,940파일, 519K LOC)를 6개 병렬 에이전트로 분석 후, Overture에 적용 가능한 아키텍처 패턴을 식별하여 구현.
+Claude Code CLI 전체 소스(1,940파일, 519K LOC)를 6개 병렬 에이전트로 분석 후, Argus에 적용 가능한 아키텍처 패턴을 식별하여 구현.
 
 **분석 영역**: 코어 엔진(QueryEngine, query.ts), 도구 시스템(42 tools), 권한 시스템(5-way race), 서비스 레이어(API, MCP, Compact), UI(React+Ink), Bridge, Coordinator
 
@@ -81,12 +81,12 @@ Claude Code CLI 전체 소스(1,940파일, 519K LOC)를 6개 병렬 에이전트
 | 패턴 | 이유 |
 |---|---|
 | React Compiler `_c()` 자동 메모이제이션 | Next.js + Bun이 아닌 환경. React 19에서 별도 설정 필요 |
-| Feature flag dead code elimination (`bun:bundle`) | Bun 전용 기능, Overture는 Next.js |
+| Feature flag dead code elimination (`bun:bundle`) | Bun 전용 기능, Argus는 Next.js |
 | Ratchet 패턴 (높이 축소 방지) | 터미널 UI 전용, 웹앱에선 CSS overflow로 해결 |
 | OffscreenFreeze (스크롤백 프리즈) | 터미널 virtual scroll 전용 |
 | 5-way 권한 레이스 | CLI 권한 모델, 웹앱에선 불필요 |
 | Bridge 시스템 (IDE 통합) | CLI↔IDE 전용, 웹앱 해당 없음 |
-| MCP 프로토콜 | 도구 통합 프로토콜, 현재 Overture 범위 밖 |
+| MCP 프로토콜 | 도구 통합 프로토콜, 현재 Argus 범위 밖 |
 | 풀 멀티에이전트 (Coordinator/Swarm) | 비용 3배 증가, 50초 대기 — 스마트 하이브리드(C안) 추후 구현 예정 |
 
 ---

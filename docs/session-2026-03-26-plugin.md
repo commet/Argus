@@ -1,4 +1,4 @@
-# 2026-03-26 세션 정리 — Overture Plugin 개발
+# 2026-03-26 세션 정리 — Argus Plugin 개발
 
 ## 시작점
 
@@ -22,8 +22,8 @@
 
 ### 3. 포지셔닝
 - Manyfast = "문서 생성기" (What to build)
-- Overture = "판단 설계 도구" (Should we? Why?)
-- Overture가 상위 레이어 — 판단 후 Manyfast/Cursor로 넘어가는 체인
+- Argus = "판단 설계 도구" (Should we? Why?)
+- Argus가 상위 레이어 — 판단 후 Manyfast/Cursor로 넘어가는 체인
 
 ### 4. Anthropic 하네스 디자인 아티클 적용
 - Generator-Evaluator 분리 → Devil's Advocate 서브에이전트
@@ -60,7 +60,7 @@
 ### 구조 (16개 파일)
 
 ```
-overture-plugin/
+argus-plugin/
 ├── .claude-plugin/plugin.json
 ├── LICENSE (MIT)
 ├── README.md
@@ -68,12 +68,12 @@ overture-plugin/
 ├── agents/
 │   └── devils-advocate.md (context: fork)
 └── skills/
-    ├── help/SKILL.md (/overture-help)
+    ├── help/SKILL.md (/argus-help)
     ├── reframe/SKILL.md + references/reframing-strategies.md
     ├── recast/SKILL.md + references/execution-design.md
     ├── rehearse/SKILL.md + references/persona-design.md, risk-classification.md
     ├── refine/SKILL.md + references/convergence.md
-    └── overture/SKILL.md + references/decision-quality.md
+    └── argus/SKILL.md + references/decision-quality.md
 ```
 
 ### 스킬 설명
@@ -84,14 +84,14 @@ overture-plugin/
 | `/recast` | 실행 설계 — Governing Idea, Storyline, AI/Human 역할 분리, 체크포인트 | 디자인 시스템 적용됨. 스텝 박스(┌┐└┘) 포함 |
 | `/rehearse` | 페르소나 사전 검증 — 2-3명 독립 리뷰 + Devil's Advocate + 종합 | Bottom line first 패턴. Devil's Advocate 에이전트 참조 |
 | `/refine` | 수렴 루프 — 이슈 추출 → 수정 → 재리뷰 → 수렴 판정 (최대 3회) | 수렴 상태 표시 포함 |
-| `/overture` | 전체 파이프라인 — 각 스킬 순서대로 실행 + DQ 스코어 + 3 deliverables | 각 스킬의 디자인을 그대로 사용하도록 위임 |
-| `/overture-help` | 사용법 안내 | 기본 완성 |
+| `/argus` | 전체 파이프라인 — 각 스킬 순서대로 실행 + DQ 스코어 + 3 deliverables | 각 스킬의 디자인을 그대로 사용하도록 위임 |
+| `/argus-help` | 사용법 안내 | 기본 완성 |
 
 ### CLI 디자인 시스템
 
 ```
 헤더:     ╭──────────────────────────────────────────╮
-          │  Overture · [Skill]                      │
+          │  Argus · [Skill]                      │
           │  ● [phase]  ○ [phase]  ○ [phase]         │
           ╰──────────────────────────────────────────╯
 
@@ -113,12 +113,12 @@ overture-plugin/
 - 불편해야 함 (동의만 하면 실패)
 - "You were thinking about X, but the real issue is Y" 형태
 
-**학습 저널** (`.overture/journal.md`): 매 실행 후 자동 기록. 재사용 시 패턴 참고.
+**학습 저널** (`.argus/journal.md`): 매 실행 후 자동 기록. 재사용 시 패턴 참고.
 
 ### 설치 방법
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/commet/Overture/main/overture-plugin/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin/install.sh | bash
 ```
 
 설치 시 Bold Block ASCII 아트 로고 출력.
@@ -138,14 +138,14 @@ curl -fsSL https://raw.githubusercontent.com/commet/Overture/main/overture-plugi
 ## 못 한 것 / 문제점
 
 1. **실제 end-to-end 테스트 미완료**: /reframe 인터뷰 Q1까지만 테스트함. Q2~Q3 → 전제 평가 → 리프레이밍 → 출력까지 전체 플로우 미확인
-2. **다른 스킬 테스트 0회**: /recast, /rehearse, /refine, /overture 전부 실사용 테스트 안 함
+2. **다른 스킬 테스트 0회**: /recast, /rehearse, /refine, /argus 전부 실사용 테스트 안 함
 3. **인터뷰 신호 → 전제 도출 연결 품질 미확인**: 인터뷰 답변이 실제로 전제에 영향을 주는지 검증 안 됨
 4. **Devil's Advocate 에이전트 동작 미확인**: `context: fork`가 실제로 작동하는지 테스트 안 함
-5. **학습 저널 동작 미확인**: .overture/journal.md 실제 생성/읽기 테스트 안 함
+5. **학습 저널 동작 미확인**: .argus/journal.md 실제 생성/읽기 테스트 안 함
 6. **Slack/Discord 출력 호환 미확인**: 코드블록이 실제 메시징 앱에서 어떻게 렌더링되는지 미확인
 7. **다른 스킬들의 디자인 시스템 실제 렌더링 미확인**: /recast의 스텝 박스, /rehearse의 bottom line 등이 Claude Code에서 잘 보이는지 확인 안 함
 8. **한글 렌더링 정렬**: 한글 문자가 모노스페이스에서 2칸 차지해서 정렬이 밀릴 수 있음 — 미확인
-9. **/overture 전체 파이프라인**: 5-10분 연속 실행 시 context window 소진 여부 미확인
+9. **/argus 전체 파이프라인**: 5-10분 연속 실행 시 context window 소진 여부 미확인
 
 ## 다음에 해야 할 것
 
@@ -154,20 +154,20 @@ curl -fsSL https://raw.githubusercontent.com/commet/Overture/main/overture-plugi
 - [ ] `/recast` 실사용 테스트
 - [ ] `/rehearse` 실사용 테스트 (Devil's Advocate 포함)
 - [ ] `/refine` 실사용 테스트 (수렴 루프)
-- [ ] `/overture` 전체 파이프라인 테스트
+- [ ] `/argus` 전체 파이프라인 테스트
 - [ ] 학습 저널 생성/읽기 테스트
 - [ ] 한글 모노스페이스 정렬 확인 및 수정
 - [ ] 발견되는 UX 이슈 즉시 수정
 
 ### 단기
 - [ ] 다른 주제로 /reframe 테스트 (개인 결정, 기술 결정, 짧은 입력 등 edge case)
-- [ ] /overture context window 소진 테스트
+- [ ] /argus context window 소진 테스트
 - [ ] GitHub repo README에 플러그인 안내 추가
 - [ ] 공식 마켓플레이스 PR 준비 (anthropics/claude-plugins-official)
 
 ### 중기
 - [ ] 웹앱 프롬프트 추출 (React 컴포넌트 → lib 파일) — 플러그인과 웹앱 일관성
-- [ ] 사용자 커스터마이징 (.overture/config.md — 페르소나 수, 산업 맥락 등)
+- [ ] 사용자 커스터마이징 (.argus/config.md — 페르소나 수, 산업 맥락 등)
 - [ ] Blind Spot Profile (5회 이상 사용 후 패턴 분석)
 - [ ] 웹앱과 플러그인 간 데이터 동기화 방안
 
@@ -180,13 +180,13 @@ fa40111 fix: ask for problem FIRST, then show overview + interview
 201ae54 Revert "fix: interview signals MUST shape assumption discovery"
 0e9d958 fix: separator length adjusted
 0fba272 feat: unified design system + "What you didn't see" signature
-eeea505 fix: /overture now delegates to each skill's own design system
+eeea505 fix: /argus now delegates to each skill's own design system
 cddab97 feat: complete reframe redesign — web app flow + CLI design system
 0cb4a16 ux: default-and-override assumption evaluation
 8b76e50 feat: support no-argument invocation for all skills
 92910fa feat: friendly first-use onboarding
 586cbf3 feat: add install.sh — one-line installer
-0c9f191 feat: Overture Claude Code plugin + web app improvements
+0c9f191 feat: Argus Claude Code plugin + web app improvements
 ```
 
 ---
@@ -194,17 +194,17 @@ cddab97 feat: complete reframe redesign — web app flow + CLI design system
 ## 기술 참고
 
 ### 파일 위치
-- 플러그인 소스: `overture-plugin/`
+- 플러그인 소스: `argus-plugin/`
 - 프로젝트 스킬: `.claude/skills/` (git tracked)
 - 글로벌 스킬: `~/.claude/skills/` (로컬만)
-- 학습 저널: `.overture/journal.md`
+- 학습 저널: `.argus/journal.md`
 
 ### 스킬 싱크 명령어
 플러그인 수정 후 로컬에 반영:
 ```bash
-cp -r overture-plugin/skills/* ~/.claude/skills/
-cp -r overture-plugin/agents/* ~/.claude/agents/
-cp -r overture-plugin/skills/* .claude/skills/
+cp -r argus-plugin/skills/* ~/.claude/skills/
+cp -r argus-plugin/agents/* ~/.claude/agents/
+cp -r argus-plugin/skills/* .claude/skills/
 ```
 
 ### Vercel 빌드 참고

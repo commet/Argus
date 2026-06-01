@@ -64,7 +64,7 @@ ${signatureLine}
 ${t('boss.shareVerdict', { emoji: VERDICT_EMOJI[verdict.verdict], label: verdictLabel })}
 
 ${t('boss.shareInvite')}
-▸ overture.so/boss`;
+▸ argus.voyage/boss`;
 
   const handleCopy = async () => {
     try {

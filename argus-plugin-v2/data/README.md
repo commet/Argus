@@ -1,4 +1,4 @@
-# Overture Plugin Data
+# Argus Plugin Data
 
 This directory is the **reference data** consumed by plugin skills at runtime. It is generated from the webapp's source of truth and should be regenerated when the webapp changes.
 
@@ -17,7 +17,7 @@ When `src/lib/agent-registry.ts` or related files change:
 
 ```bash
 # From the monorepo root
-cd overture-plugin-v2
+cd argus-plugin-v2
 # (Currently manual — port updates by diffing webapp source against yaml entries.)
 # Future: scripts/extract-from-webapp.ts will automate this.
 ```

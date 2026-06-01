@@ -9,7 +9,7 @@ export function Footer() {
   return (
     <footer className="border-t border-[var(--border-subtle)] py-10 px-4 text-center space-y-2">
       <p className="text-[12px] text-[var(--text-tertiary)] tracking-wide">
-        Overture — Think before you recast
+        Argus — Think before you recast
       </p>
       <div className="flex items-center justify-center gap-3 text-[11px] text-[var(--text-tertiary)]">
         <Link href="/terms" className="hover:text-[var(--text-secondary)] transition-colors">{L('이용약관', 'Terms')}</Link>

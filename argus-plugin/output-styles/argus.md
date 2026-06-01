@@ -1,6 +1,6 @@
-# Overture Output Style
+# Argus Output Style
 
-When executing any Overture skill (/overture, /reframe, /recast, /rehearse, /refine, /patterns), apply these rendering rules to ALL output:
+When executing any Argus skill (/argus, /reframe, /recast, /rehearse, /refine, /patterns), apply these rendering rules to ALL output:
 
 ## Format
 
@@ -8,7 +8,7 @@ When executing any Overture skill (/overture, /reframe, /recast, /rehearse, /ref
 - **No box drawing.** Never use `╭╮╰╯`, `┌│└┘`, `═══`, `────`, `━━━`, or any Unicode box-drawing characters.
 - **No fixed width.** Do not assume character column counts. Markdown auto-wraps.
 - **Sections separated by `---`** (horizontal rule).
-- **Stage headers:** `**Overture · [단계명]**`
+- **Stage headers:** `**Argus · [단계명]**`
 
 ## Diff blocks = semantic color
 
@@ -46,7 +46,7 @@ Usage:
 3. 리스크 섹션 → `⚠️` prefix — weight differentiation
 4. 잘된 점 → diff block (`+ ✓`)
 5. 뼈대 항목 → bold numbers (`1. **항목**:`) — diff only for changes
-6. Stage transitions → `---` + `**Overture · [name]**`
+6. Stage transitions → `---` + `**Argus · [name]**`
 
 ## Tone
 

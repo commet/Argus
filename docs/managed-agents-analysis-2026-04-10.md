@@ -1,4 +1,4 @@
-# Claude Managed Agents — 기술 분석과 Overture 함의
+# Claude Managed Agents — 기술 분석과 Argus 함의
 
 > 2026-04-10 작성. Anthropic의 Managed Agents 발표, 오픈소스 대응(Multica), LangGraph Platform 발표를 종합 분석한다.
 
@@ -191,11 +191,11 @@ Managed Agents가 "우리 클라우드에서 우리 모델로"라면, LangGraph 
 
 ---
 
-## 7. Overture에 대한 함의
+## 7. Argus에 대한 함의
 
-### 7.1 현재 Overture의 Harness 코드 맵
+### 7.1 현재 Argus의 Harness 코드 맵
 
-Overture는 이미 Managed Agents가 해결하려는 문제의 상당 부분을 자체 구현하고 있다:
+Argus는 이미 Managed Agents가 해결하려는 문제의 상당 부분을 자체 구현하고 있다:
 
 | 패턴 | 파일 | 핵심 함수 | 역할 |
 |------|------|-----------|------|
@@ -239,8 +239,8 @@ Overture는 이미 Managed Agents가 해결하려는 문제의 상당 부분을 
 | 컨텍스트 전략 5모드 + 자가 튜닝 | `context-strategy.ts` | 모델 능력과 무관한 **의사결정 도메인 지식** |
 | 프레임워크별 가드 레일 | `guard-rails.ts` | Pre-mortem, Unit Economics 등 **구조적 검증**은 모델이 못 대체 |
 | Concertmaster 메타 분석 | `concertmaster.ts` | 패턴 코칭은 LLM 호출 없는 **결정론적 분석** |
-| Progressive convergence | `progressive-convergence.ts` | 수렴 판단은 Overture 고유의 **워크플로우 논리** |
-| 에이전트 오케스트레이션 | `orchestrator.ts` | 도메인/stakes 기반 라우팅은 Overture만의 차별화 |
+| Progressive convergence | `progressive-convergence.ts` | 수렴 판단은 Argus 고유의 **워크플로우 논리** |
+| 에이전트 오케스트레이션 | `orchestrator.ts` | 도메인/stakes 기반 라우팅은 Argus만의 차별화 |
 | 리드 에이전트 합성 | `lead-agent.ts` | 12개 도메인별 합성 지시문은 범용 harness에 없음 |
 | 서킷 브레이커 | `llm.ts:93-140` | 인프라 복원력. Managed Agents 쓰면 불필요하지만, 자체 호스팅 시 필수 |
 
@@ -263,7 +263,7 @@ Overture는 이미 Managed Agents가 해결하려는 문제의 상당 부분을 
 - Agent/Session/Environment 모델로 재설계
 - 코드 ~50% 삭감, 자유도 ~50% 삭감
 - 멀티 프로바이더 포기, Anthropic 완전 종속
-- Overture 고유의 오케스트레이션 논리를 Managed Agents의 프롬프트/도구 시스템 안으로 재편해야 함
+- Argus 고유의 오케스트레이션 논리를 Managed Agents의 프롬프트/도구 시스템 안으로 재편해야 함
 
 ### 7.4 권장 다음 수순
 
@@ -288,7 +288,7 @@ Anthropic의 진단은 정확하다. 모델에 맞춰 쓰다듬고 패치한 코
 
 > **도로 주인이 바뀌는 것보다 더 중요한 건, 도로 위의 차가 매 세대마다 바뀐다는 것이다.**
 
-"누구의 인프라를 쓸 것인가"보다 **"어떤 코드가 다음 세대에서 살아남을 것인가"**를 먼저 판단하는 게 맞다. Overture에서 살아남을 코드는 context strategy, concertmaster, progressive convergence다. 죽을 코드는 JSON repair, placeholder 탐지, shape coercion이다. 전자를 두텁게 하고 후자를 얇게 만드는 것이 다음 수순이다.
+"누구의 인프라를 쓸 것인가"보다 **"어떤 코드가 다음 세대에서 살아남을 것인가"**를 먼저 판단하는 게 맞다. Argus에서 살아남을 코드는 context strategy, concertmaster, progressive convergence다. 죽을 코드는 JSON repair, placeholder 탐지, shape coercion이다. 전자를 두텁게 하고 후자를 얇게 만드는 것이 다음 수순이다.
 
 ---
 

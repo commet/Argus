@@ -1,5 +1,5 @@
 /**
- * Lightweight event tracking for Overture.
+ * Lightweight event tracking for Argus.
  *
  * - Fire-and-forget: never blocks UI
  * - Works for anonymous + logged-in users

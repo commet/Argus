@@ -79,7 +79,7 @@ export function markdownToSlackBlocks(title: string, markdown: string): SlackBlo
   blocks.push({ type: 'divider' });
   blocks.push({
     type: 'context',
-    elements: [{ type: 'mrkdwn', text: 'Shared from *Overture* — Decision Harness for AI' }],
+    elements: [{ type: 'mrkdwn', text: 'Shared from *Argus* — Decision Harness for AI' }],
   });
 
   return blocks.slice(0, 50);

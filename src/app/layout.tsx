@@ -7,20 +7,20 @@ import { Providers } from '@/components/layout/Providers';
 import { Analytics } from '@/components/layout/Analytics';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 
-const SITE_URL = 'https://overture-zeta.vercel.app';
+const SITE_URL = 'https://argus.voyage';
 
 type Lang = 'ko' | 'en';
 
 const META_STRINGS: Record<Lang, { title: string; description: string; descriptionShort: string; descriptionTwitter: string; ogLocale: string }> = {
   ko: {
-    title: 'Overture — 내 전문 분야가 아닌 걸 해야 할 때',
+    title: 'Argus — 내 전문 분야가 아닌 걸 해야 할 때',
     description: '질문 하나 던지면, 30초 안에 기획안 뼈대가 나옵니다. 채울수록 날카로워집니다. 인지과학 + 전략기획 실무 기반.',
     descriptionShort: '질문 하나 던지면, 30초 안에 기획안 뼈대가 나옵니다. 채울수록 날카로워집니다.',
     descriptionTwitter: '질문 하나 던지면, 30초 안에 기획안 뼈대가 나옵니다.',
     ogLocale: 'ko_KR',
   },
   en: {
-    title: 'Overture — For work outside your expertise',
+    title: 'Argus — For work outside your expertise',
     description: 'Drop a question, get a draft proposal skeleton in 30 seconds. It sharpens as you fill it in. Built on cognitive science and strategic planning practice.',
     descriptionShort: 'Drop a question, get a draft proposal skeleton in 30 seconds. It sharpens as you fill it in.',
     descriptionTwitter: 'Drop a question, get a draft proposal skeleton in 30 seconds.',
@@ -54,7 +54,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: m.title,
       description: m.descriptionShort,
       url: SITE_URL,
-      siteName: 'Overture',
+      siteName: 'Argus',
       locale: m.ogLocale,
       type: 'website',
     },
@@ -95,7 +95,7 @@ export default async function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
         />
-        <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('overture-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.setAttribute('data-theme','dark')}}catch(e){}})()` }} />
+        <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('argus-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.setAttribute('data-theme','dark')}}catch(e){}})()` }} />
       </head>
       <body>
         <Providers>

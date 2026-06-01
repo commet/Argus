@@ -33,7 +33,7 @@
 
 - Anthropic 공식 스킬 (`commit-push-pr`, `triage-issue`, `doc-coauthoring` 등) → task 지시만, output 포맷 지시 없음
 - 인기 커뮤니티 스킬 (`badlogic/claude-commands`, `wshobson/commands` 57개, `EveryInc/claude_commands`) → 동일
-- Overture처럼 비주얼 시스템을 설계한 스킬은 **사실상 없음**
+- Argus처럼 비주얼 시스템을 설계한 스킬은 **사실상 없음**
 - 대부분 Claude의 기본 마크다운 출력에 맡김
 
 ### 비주얼이 필요한 스킬은 브라우저로 탈출
@@ -124,7 +124,7 @@
 **Before (현재):**
 ```
 ╭──────────────────────────────────────────╮
-│  🎯 Overture · Reframe                  │
+│  🎯 Argus · Reframe                  │
 │  ● Interview  ○ Assumptions  ○ Reframe  │
 ╰──────────────────────────────────────────╯
 
@@ -303,7 +303,7 @@ P2   온보딩 가속기      새 팀원 첫 10개 PR에 가이드 자동 첨부
 
 ---
 
-### /overture (풀 파이프라인)
+### /argus (풀 파이프라인)
 
 각 단계별로 위 포맷을 순차 적용. 추가 요소:
 
@@ -420,7 +420,7 @@ P2   온보딩 가속기      새 팀원 첫 10개 PR에 가이드 자동 첨부
 - [ ] 미해결: 일반 리스트
 - [ ] 수렴 지표: 간소화
 
-### /overture (SKILL.md)
+### /argus (SKILL.md)
 
 - [ ] 각 단계별 output 포맷을 위 개별 스킬과 동기화
 - [ ] 파이프라인 진행: diff 블럭
@@ -448,8 +448,8 @@ P2   온보딩 가속기      새 팀원 첫 10개 PR에 가이드 자동 첨부
 - 또는 `**🎯 Reframe**` 형태의 emoji + bold 조합
 
 ### 웹앱 연동 (장기)
-- 현재 Overture 웹앱과 연결 시 HTML 카드 렌더링 가능
-- 스킬이 `.overture/*.md`에 저장하는 Context Contract는 그대로 유지
+- 현재 Argus 웹앱과 연결 시 HTML 카드 렌더링 가능
+- 스킬이 `.argus/*.md`에 저장하는 Context Contract는 그대로 유지
 - 웹앱이 Contract를 파싱해서 리치 UI로 렌더링하는 구조 가능
 - 터미널 output과 웹 UI를 이원화: 터미널=요약, 웹=풀 카드
 
@@ -462,5 +462,5 @@ P2   온보딩 가속기      새 팀원 첫 10개 PR에 가이드 자동 첨부
 3. `/recast` 수정
 4. `/rehearse` 수정
 5. `/refine` 수정
-6. `/overture` 수정 (개별 스킬 포맷 확정 후)
+6. `/argus` 수정 (개별 스킬 포맷 확정 후)
 7. 나머지 유틸리티 스킬 (`/configure`, `/patterns`, `/doctor`, `/setup`) → 이들은 현재도 심플해서 우선순위 낮음

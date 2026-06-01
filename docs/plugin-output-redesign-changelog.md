@@ -30,11 +30,11 @@
 - No box drawing / No fixed width / diff blocks = color tool 규칙 추가
 
 **Overview + Q1 템플릿** (구 144-172행)
-- `╭──Overture · Reframe──╮` 박스 → `**Overture · Reframe** — ● Interview · ○ Assumptions · ○ Reframe`
+- `╭──Argus · Reframe──╮` 박스 → `**Argus · Reframe** — ● Interview · ○ Assumptions · ○ Reframe`
 - 인터뷰 질문만 code block 유지, 헤더/진행 표시는 마크다운
 
 **Phase 2 가정 템플릿** (구 324-341행)
-- `╭──╮` 박스 헤더 → `**Overture · Reframe** — ✓ Interview · ● Assumptions · ○ Reframe`
+- `╭──╮` 박스 헤더 → `**Argus · Reframe** — ✓ Interview · ● Assumptions · ○ Reframe`
 - 가정 질문은 code block 유지 (선택지 정렬)
 
 **Phase 3 최종 카드** (구 414-481행) — 전면 교체
@@ -56,7 +56,7 @@
 - "ONE code block" → 마크다운 섹션 + 동일 3개 규칙 추가
 
 **헤더** (구 53-57행)
-- `╭──📋 Overture · Recast──╮` → `**📋 Overture · Recast**`
+- `╭──📋 Argus · Recast──╮` → `**📋 Argus · Recast**`
 
 **Reflection block** — code block → `> blockquote`
 
@@ -88,7 +88,7 @@
 - "ONE code block" → 마크다운 섹션 + 3개 규칙 추가
 
 **헤더** (구 53-59행)
-- `╭──👥 Overture · Rehearse──╮` → `**👥 Overture · Rehearse**`
+- `╭──👥 Argus · Rehearse──╮` → `**👥 Argus · Rehearse**`
 
 **Topic linking / Reflection block** — code block → `> blockquote`
 
@@ -113,7 +113,7 @@
 - "ONE code block" → 마크다운 섹션 + 3개 규칙 추가
 
 **헤더** (구 43-49행)
-- `╭──🔧 Overture · Refine──╮` → `**🔧 Overture · Refine**`
+- `╭──🔧 Argus · Refine──╮` → `**🔧 Argus · Refine**`
 
 **Topic linking / Reflection block** — code block → blockquote
 
@@ -128,10 +128,10 @@
 
 ---
 
-### 5. /overture (`/.claude/skills/overture/SKILL.md`)
+### 5. /argus (`/.claude/skills/argus/SKILL.md`)
 
 **파이프라인 헤더** (구 87-92행)
-- `╭──Overture · 4R Pipeline──╮` → `**Overture · 4R Pipeline** — reframe → recast → rehearse → refine`
+- `╭──Argus · 4R Pipeline──╮` → `**Argus · 4R Pipeline** — reframe → recast → rehearse → refine`
 
 **DQ 스코어카드** (구 347-360행)
 - `━━━` 구분선 + 고정폭 텍스트 → 마크다운 테이블

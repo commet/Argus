@@ -36,7 +36,7 @@ const PATHS = [
   { value: '/agents', label: '에이전트 (/agents)' },
 ];
 
-const BASE_URL = 'https://overture-beta.vercel.app';
+const BASE_URL = 'https://argus.voyage';
 const HISTORY_KEY = 'ov_utm_history';
 const MAX_HISTORY = 8;
 

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "overture:draft",
+  "$id": "argus:draft",
   "title": "Draft",
   "description": "A node in the session's draft tree. Ported from webapp's Draft (src/stores/types.ts:1003). Version labels follow v0.1 / v0.1.1 / v1.0 scheme from lib/version-numbering.ts.",
   "type": "object",

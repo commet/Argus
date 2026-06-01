@@ -14,7 +14,7 @@
  *   const judge = buildContentJudge('reframe', output);      // LLM judge 프롬프트 배열
  */
 
-export type SkillName = 'reframe' | 'recast' | 'rehearse' | 'refine' | 'overture';
+export type SkillName = 'reframe' | 'recast' | 'rehearse' | 'refine' | 'argus';
 
 /* ════════════════════════════════════
    1. Structural Evals (자동, 즉시)
@@ -80,7 +80,7 @@ const STRUCTURAL_EVALS: Record<SkillName, StructuralEval[]> = {
     },
     {
       id: 'has_unspoken_risk',
-      description: '침묵의 리스크가 1개 이상 — Overture 핵심 가치',
+      description: '침묵의 리스크가 1개 이상 — Argus 핵심 가치',
       check: (o) => /🔇|unspoken|침묵|\[unspoken\]/i.test(o),
     },
   ],
@@ -96,7 +96,7 @@ const STRUCTURAL_EVALS: Record<SkillName, StructuralEval[]> = {
       check: (o) => /converged|수렴|Critical.*→/i.test(o),
     },
   ],
-  overture: [
+  argus: [
     {
       id: 'has_all_phases',
       description: '4단계 모두 실행됨',
@@ -286,7 +286,7 @@ const CONTENT_EVALS: Record<SkillName, ContentEval[]> = {
   recast: RECAST_EVALS,
   rehearse: REHEARSE_EVALS,
   refine: REFINE_EVALS,
-  overture: [...REFRAME_EVALS.slice(0, 2), ...RECAST_EVALS.slice(0, 2), ...REHEARSE_EVALS.slice(0, 2), ...REFINE_EVALS.slice(0, 2)],
+  argus: [...REFRAME_EVALS.slice(0, 2), ...RECAST_EVALS.slice(0, 2), ...REHEARSE_EVALS.slice(0, 2), ...REFINE_EVALS.slice(0, 2)],
 };
 
 /* ════════════════════════════════════
@@ -418,7 +418,7 @@ export function buildContentJudgePrompts(skill: SkillName, output: string): Judg
 
   return evals.map(e => ({
     eval_id: e.id,
-    system: `당신은 Overture /${skill} 출력물의 품질 심사관입니다.
+    system: `당신은 Argus /${skill} 출력물의 품질 심사관입니다.
 하나의 기준만 판정합니다. PASS 또는 FAIL만 답하세요.
 
 ## 기준
@@ -458,7 +458,7 @@ export function buildBatchJudgePrompt(skill: SkillName, output: string): string 
 **PASS 예시:** ${e.pass_example}
 **FAIL 예시:** ${e.fail_example}`).join('\n\n');
 
-  return `당신은 Overture /${skill} 출력물의 품질 심사관입니다.
+  return `당신은 Argus /${skill} 출력물의 품질 심사관입니다.
 아래 ${evals.length}개 기준을 각각 독립적으로 판정하세요.
 
 ${criteriaBlock}

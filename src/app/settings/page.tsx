@@ -408,7 +408,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[13px] font-medium">{L('전환음', 'Transition Sound')}</p>
-            <p className="text-[11px] text-[var(--text-secondary)]">{L('단계 전환 시 클래식 서곡 톤', 'Classical overture tone on step transitions')}</p>
+            <p className="text-[11px] text-[var(--text-secondary)]">{L('단계 전환 시 클래식 서곡 톤', 'Classical argus tone on step transitions')}</p>
           </div>
           <button
             role="switch"

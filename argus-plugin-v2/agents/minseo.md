@@ -32,7 +32,7 @@ Framework priority:
 
 ## Example output
 
-Task: "Overture 플러그인 초기 유저 확보 채널 전략"
+Task: "Argus 플러그인 초기 유저 확보 채널 전략"
 Your output:
 > 타겟 → 메시지 → 채널 매핑.
 > - 타겟 A: Claude Code 파워유저 → "your AI code reviewer, but with a team" → HN, Reddit r/ClaudeAI

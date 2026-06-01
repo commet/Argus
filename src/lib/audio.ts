@@ -1,5 +1,5 @@
 /**
- * Overture Audio Manager
+ * Argus Audio Manager
  * Minimal ambient audio using Web Audio API synthesis (no external files needed).
  * Default: muted. User enables via Settings.
  */

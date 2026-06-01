@@ -9,10 +9,10 @@ import { getStorage } from '@/lib/storage';
 import type { EvalResult, EvalTool } from '@/lib/eval-engine';
 
 const EVAL_STORAGE_KEYS: Record<EvalTool, string> = {
-  reframe: 'overture_eval_results',
-  recast: 'overture_eval_recast',
-  'rehearse': 'overture_eval_rehearsal',
-  refine: 'overture_eval_refine',
+  reframe: 'argus_eval_results',
+  recast: 'argus_eval_recast',
+  'rehearse': 'argus_eval_rehearsal',
+  refine: 'argus_eval_refine',
 };
 
 const MIN_SAMPLES = 5;

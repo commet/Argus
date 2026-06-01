@@ -5,8 +5,8 @@
 # from MVP (require birthdate input + stateful daily mood tracking incompatible
 # with stateless plugin invocations).
 #
-# Usage: /overture:boss skill reads this file + the user's configured MBTI type
-# (from .overture/config.yaml) → injects the personality block into the boss
+# Usage: /argus:boss skill reads this file + the user's configured MBTI type
+# (from .argus/config.yaml) → injects the personality block into the boss
 # system prompt (mirroring webapp's buildBossSystemPrompt).
 #
 # Each type includes:
@@ -386,7 +386,7 @@ types:
       나: 없으면 지금 만들어. 5분 줄게. 방향 세 가지 — 인력 추가, 범위 축소, 일정 재협상. 각각 장단점 한 줄씩.
 
 # ═══════════════════ Runtime Injection Template ═══════════════════
-# /overture:boss reads config.yaml for user's chosen MBTI type, looks up above,
+# /argus:boss reads config.yaml for user's chosen MBTI type, looks up above,
 # injects via this template into the boss system prompt.
 
 runtime_template: |

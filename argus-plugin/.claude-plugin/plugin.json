@@ -1,17 +1,17 @@
 {
-  "name": "overture",
+  "name": "argus",
   "version": "0.5.0",
   "description": "Structured thinking for decisions and plans. Input a problem → instant draft → sharpen with questions → stress-test with your boss's perspective → final deliverable. Progressive — each step adds value, stop anytime.",
   "author": {
-    "name": "Overture",
+    "name": "Argus",
     "email": "yclee913@gmail.com",
     "url": "https://github.com/commet"
   },
-  "homepage": "https://github.com/commet/Overture",
+  "homepage": "https://github.com/commet/Argus",
   "license": "MIT",
-  "repository": "https://github.com/commet/Overture",
+  "repository": "https://github.com/commet/Argus",
   "commands": [
-    "./skills/overture/SKILL.md",
+    "./skills/argus/SKILL.md",
     "./skills/reframe/SKILL.md",
     "./skills/recast/SKILL.md",
     "./skills/rehearse/SKILL.md",
@@ -43,7 +43,7 @@
     "./agents/devils-advocate.md"
   ],
   "outputStylesPaths": [
-    "./output-styles/overture.md"
+    "./output-styles/argus.md"
   ],
   "references": [
     "./CONTEXT-CONTRACT.md",

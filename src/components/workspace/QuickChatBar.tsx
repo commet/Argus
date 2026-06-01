@@ -20,7 +20,7 @@ interface ChatAction {
   message: string;
 }
 
-const SYSTEM_PROMPT_KO = `당신은 Overture 워크스페이스의 어시스턴트입니다. 사용자가 자연어로 요청하면 적절한 액션을 JSON으로 응답하세요.
+const SYSTEM_PROMPT_KO = `당신은 Argus 워크스페이스의 어시스턴트입니다. 사용자가 자연어로 요청하면 적절한 액션을 JSON으로 응답하세요.
 
 현재 단계: {step}
 
@@ -37,7 +37,7 @@ const SYSTEM_PROMPT_KO = `당신은 Overture 워크스페이스의 어시스턴�
 반드시 JSON만 응답하세요. message 필드는 반드시 한국어로 작성하세요:
 { "action": "...", "params": {...}, "message": "사용자에게 보여줄 확인 메시지" }`;
 
-const SYSTEM_PROMPT_EN = `You are the assistant for the Overture workspace. When the user asks in natural language, respond with the appropriate action as JSON.
+const SYSTEM_PROMPT_EN = `You are the assistant for the Argus workspace. When the user asks in natural language, respond with the appropriate action as JSON.
 
 Current step: {step}
 

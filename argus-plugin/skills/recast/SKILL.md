@@ -8,9 +8,9 @@ allowed-tools: Read, Write, AskUserQuestion
 ## When to use
 
 - ✓ 이미 만든 계획/기획안의 AI/사람 역할을 명확히 하고 싶을 때
-- ✓ /overture 결과물의 실행 계획을 더 세밀하게 다듬고 싶을 때
+- ✓ /argus 결과물의 실행 계획을 더 세밀하게 다듬고 싶을 때
 - ✓ 팀 프로젝트에서 "이건 누가 해?" 질문에 구조적으로 답하고 싶을 때
-- ✗ 아직 계획이 없음 → /overture 먼저
+- ✗ 아직 계획이 없음 → /argus 먼저
 - ✗ 판단자 피드백을 받고 싶음 → /rehearse
 
 **핵심 철학: AI가 빨라지는 시대에, "사람이 반드시 판단해야 하는 지점"을 설계하는 것이 실행의 품질을 결정한다.**
@@ -22,7 +22,7 @@ allowed-tools: Read, Write, AskUserQuestion
 **3가지 경로** 중 하나:
 
 1. **인자로 받음** — `/recast "시장 조사 → 프로토타입 → 고객 검증 → 런칭"` 형태
-2. **이전 결과 읽기** — `.overture/last-run.md` 또는 `.overture/recast.md`가 있으면 자동으로 읽어서 제안:
+2. **이전 결과 읽기** — `.argus/last-run.md` 또는 `.argus/recast.md`가 있으면 자동으로 읽어서 제안:
 
 > 이전에 만든 계획이 있습니다. 이걸로 역할 설계를 할까요?
 
@@ -32,7 +32,7 @@ allowed-tools: Read, Write, AskUserQuestion
 
 ## Context injection from /reframe
 
-If `.overture/reframe.md` exists, read its contract and inject context:
+If `.argus/reframe.md` exists, read its contract and inject context:
 
 ### 1. Design north star
 Read `reframed_question` → this is the question the plan must ultimately answer.
@@ -96,7 +96,7 @@ Read `ai_limitations` → 해당 영역은 반드시 🧑 또는 ⚡ 배정. "�
 
 ---
 
-**Overture · Recast** — 역할 재설계
+**Argus · Recast** — 역할 재설계
 
 **Storyline:**
 - **Situation:** [현재 상황 — 1-2문장]
@@ -184,7 +184,7 @@ Read `ai_limitations` → 해당 영역은 반드시 🧑 또는 ⚡ 배정. "�
 
 ---
 
-**Overture · Recast** — 역할 재설계 완료
+**Argus · Recast** — 역할 재설계 완료
 
 **Governing Idea:** [계획의 핵심 논지 — 1-2문장]
 
@@ -302,7 +302,7 @@ Each persona includes: name, role, organization, influence, decision_style, risk
 
 ## Auto-save
 
-Save to `.overture/recast.md`:
+Save to `.argus/recast.md`:
 - Top: Storyline + 재설계된 실행 계획 (human-readable)
 - Bottom after `---`: Context Contract (all fields for /rehearse — governing_idea, storyline, steps with all metadata, key_assumptions, critical_path, personas)
 
@@ -310,7 +310,7 @@ Save to `.overture/recast.md`:
 
 ```
 ## [date] /recast — [topic, ≤5 words]
-- Input: [새 계획 | 기존 계획 재설계 | /overture 후속]
+- Input: [새 계획 | 기존 계획 재설계 | /argus 후속]
 - Storyline: S:[situation] C:[complication] R:[resolution]
 - Steps: [N] | 🤖 [M] · 🧑 [K] · ⚡ [L] · 🧑→🤖 [X] · 🤖→🧑 [Y]
 - Critical path: steps [N, M, K]

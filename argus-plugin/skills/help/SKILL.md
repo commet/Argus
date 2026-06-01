@@ -1,6 +1,6 @@
 ---
-name: overture-help
-description: "Show available Overture skills and how to use them. Use when the user asks about Overture, asks for help, or seems unsure which skill to use."
+name: argus-help
+description: "Show available Argus skills and how to use them. Use when the user asks about Argus, asks for help, or seems unsure which skill to use."
 allowed-tools: Read
 ---
 
@@ -8,7 +8,7 @@ allowed-tools: Read
 
 ---
 
-**Overture — Structured thinking for when you're out of your depth**
+**Argus — Structured thinking for when you're out of your depth**
 
 Input a problem, get an instant skeleton in 30 seconds.
 Answer a few questions, it gets sharper. Simulate your boss's reaction.
@@ -20,7 +20,7 @@ Walk away with a send-ready document.
 
 | Situation | Recommendation | Why |
 |-----------|---------------|-----|
-| Need to write a plan/proposal and feel stuck | `/overture` | 30-sec skeleton → 2-3 questions → full draft |
+| Need to write a plan/proposal and feel stuck | `/argus` | 30-sec skeleton → 2-3 questions → full draft |
 | Have a plan but roles are unclear | `/recast` | AI/human role redesign specialist |
 | Have a plan but worried about weak spots | `/rehearse` | Stakeholder simulation + risk discovery |
 | AI keeps giving predictable answers | `/reframe` | Reframe the question itself |
@@ -31,7 +31,7 @@ Walk away with a send-ready document.
 ## Quick Start
 
 ```
-/overture "I'm a dev but my boss asked me to write a business plan"
+/argus "I'm a dev but my boss asked me to write a business plan"
 ```
 
 → **30 sec:** Situation + real question + plan skeleton + hidden assumptions
@@ -49,7 +49,7 @@ Send-ready document + Sharpened Prompt + Thinking Summary + DQ Score.
 
 | Skill | One-liner | Time |
 |-------|-----------|------|
-| **`/overture`** | **Full pipeline** — input→draft→deepening→simulation→final | ~5 min |
+| **`/argus`** | **Full pipeline** — input→draft→deepening→simulation→final | ~5 min |
 | `/reframe` | Problem reframing — find hidden assumptions, discover the real question | ~2 min |
 | `/recast` | Role redesign — clearly separate AI vs human roles in your plan | ~3 min |
 | `/rehearse` | Stress test — stakeholder reaction simulation + Devil's Advocate | ~3 min |
@@ -59,25 +59,25 @@ Send-ready document + Sharpened Prompt + Thinking Summary + DQ Score.
 
 | Skill | Description |
 |-------|------------|
-| `/overture:setup` | Installation check — verify skills/agents/data |
-| `/overture:doctor` | Diagnostics — 7 checks, recovery guidance |
-| `/overture:configure` | Settings — language, presets (Quick/Standard/Learning), journal |
-| `/overture:patterns` | Thinking pattern analysis — strengths/blind spots after 3+ runs |
+| `/argus:setup` | Installation check — verify skills/agents/data |
+| `/argus:doctor` | Diagnostics — 7 checks, recovery guidance |
+| `/argus:configure` | Settings — language, presets (Quick/Standard/Learning), journal |
+| `/argus:patterns` | Thinking pattern analysis — strengths/blind spots after 3+ runs |
 
 ---
 
 ## Skill Chain: Using them together
 
-`/overture` runs the full pipeline at once, but you can also chain individual skills:
+`/argus` runs the full pipeline at once, but you can also chain individual skills:
 
 ```
-/reframe → .overture/reframe.md (saves)
+/reframe → .argus/reframe.md (saves)
     ↓ auto-reads
-/recast  → .overture/recast.md (saves)
+/recast  → .argus/recast.md (saves)
     ↓
-/rehearse → .overture/rehearse.md (saves)
+/rehearse → .argus/rehearse.md (saves)
     ↓
-/refine   → .overture/refine.md (saves)
+/refine   → .argus/refine.md (saves)
 ```
 
 Each skill automatically reads previous results and continues from there.
@@ -96,7 +96,7 @@ Each skill automatically reads previous results and continues from there.
 
 ## Agent Team
 
-`/overture` deploys a team of specialized agents in parallel for complex problems:
+`/argus` deploys a team of specialized agents in parallel for complex problems:
 
 | Agent | Name | What they do |
 |-------|------|-------------|
@@ -140,8 +140,8 @@ When your problem needs 2+ AI tasks, agents run **simultaneously** and their res
 
 ## Learn more
 
-- `/overture:setup` — Check installation status
-- `/overture:doctor` — When something's wrong
-- `/overture:configure` — Language/preset settings
-- `.overture/journal.md` — Run history (auto-saved)
-- `.overture/last-run.md` — Last run result
+- `/argus:setup` — Check installation status
+- `/argus:doctor` — When something's wrong
+- `/argus:configure` — Language/preset settings
+- `.argus/journal.md` — Run history (auto-saved)
+- `.argus/last-run.md` — Last run result

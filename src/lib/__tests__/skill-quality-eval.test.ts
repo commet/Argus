@@ -16,7 +16,7 @@ import {
 
 describe('evaluateSkillOutput', () => {
   it('returns structural + content evals for each skill', () => {
-    const skills: SkillName[] = ['reframe', 'recast', 'rehearse', 'refine', 'overture'];
+    const skills: SkillName[] = ['reframe', 'recast', 'rehearse', 'refine', 'argus'];
     for (const skill of skills) {
       const result = evaluateSkillOutput(skill, '');
       expect(result.skill).toBe(skill);

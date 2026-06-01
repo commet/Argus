@@ -1,4 +1,4 @@
-# Overture Technical Roadmap
+# Argus Technical Roadmap
 
 > "실행 비용이 0에 가까워질수록, 실행 이전의 판단의 가치는 올라간다."
 > 이 로드맵은 이 테제를 기술적으로 실현하기 위한 설계도입니다.
@@ -7,18 +7,18 @@
 
 ## 0. Strategic Positioning
 
-### Overture가 아닌 것
+### Argus가 아닌 것
 - LLM 프롬프트 래퍼가 아님
 - 음악 메타포가 붙은 기획 도구가 아님
 - ChatGPT에 좋은 프롬프트를 넣어주는 것이 아님
 
-### Overture인 것
+### Argus인 것
 **모든 실행 도구의 앞단에 위치하는 판단 엔진.**
 
 ```
 [사용자의 과제]
     ↓
-  Overture  ← 여기. 다른 도구가 없는 지점.
+  Argus  ← 여기. 다른 도구가 없는 지점.
     ↓
 [RIPER, LangGraph, CrewAI, Cursor, 사람 실행]
 ```
@@ -28,7 +28,7 @@
 - BMAD-METHOD → 가장 가까움. 하지만 개발 역할 페르소나이지 전략적 판단이 아님
 - autoresearch → 목표가 확정된 후의 최적화. 목표 자체를 의심하지 않음
 
-**Overture만이 묻는 질문: "이게 풀어야 할 진짜 문제인가?"**
+**Argus만이 묻는 질문: "이게 풀어야 할 진짜 문제인가?"**
 
 ### 기술적 해자 3가지
 
@@ -320,18 +320,18 @@ interface PersonaBehaviorModel {
 |------|------|------|
 | Dynamic reviewer selection | BMAD | 과제 도메인에 따라 페르소나의 관심사 자동 조정 |
 | Structured JSON output | BMAD | 피드백 결과를 구조화하여 자동 분석 가능 |
-| Accuracy tracking | Overture 자체 (이미 구현) | 강화: 문자열 → 구조적 aspect별 점수 |
+| Accuracy tracking | Argus 자체 (이미 구현) | 강화: 문자열 → 구조적 aspect별 점수 |
 
 ---
 
 ### Phase 4: Self-Improving System (자가 개선)
 
-**목표**: Overture의 시스템 프롬프트가 사용 데이터를 기반으로 자동 개선.
+**목표**: Argus의 시스템 프롬프트가 사용 데이터를 기반으로 자동 개선.
 
-**autoresearch → Overture 번역:**
+**autoresearch → Argus 번역:**
 
 ```
-autoresearch                  →  Overture
+autoresearch                  →  Argus
 ─────────────────────────────────────────────
 train.py (mutable)            →  SYSTEM_PROMPT (mutable)
 val_bpb (metric)              →  binary eval pass rate
@@ -566,6 +566,6 @@ Phase 구현과 병행하여 해결해야 할 기술 부채:
 
 ## 6. The One-Line Summary
 
-**Overture는 "LLM에 좋은 프롬프트를 넣어주는 도구"가 아니라, "사용자의 판단 패턴을 학습하여 점점 더 정확한 리프레이밍을 제공하는 지능형 전략 엔진"이 되어야 한다.**
+**Argus는 "LLM에 좋은 프롬프트를 넣어주는 도구"가 아니라, "사용자의 판단 패턴을 학습하여 점점 더 정확한 리프레이밍을 제공하는 지능형 전략 엔진"이 되어야 한다.**
 
 기술적 해자는 축적에서 나온다. 프롬프트는 복사할 수 있지만, 1000명의 사용자가 1000번의 판단을 내린 결과로 조정된 시스템은 복사할 수 없다.

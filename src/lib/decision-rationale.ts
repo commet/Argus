@@ -254,8 +254,8 @@ export function generateDecisionRationale(project: Project | null): string {
 
   s.push('---');
   s.push(L(
-    '*Overture 판단 근거서 — 각 단계의 판단 이유와 맥락을 기록합니다.*',
-    '*Overture Decision Rationale — records the reasoning and context behind each stage.*',
+    '*Argus 판단 근거서 — 각 단계의 판단 이유와 맥락을 기록합니다.*',
+    '*Argus Decision Rationale — records the reasoning and context behind each stage.*',
   ));
 
   return s.join('\n');

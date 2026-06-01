@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'Overture — 내 전문 분야가 아닌 걸 해야 할 때';
+export const alt = 'Argus — 내 전문 분야가 아닌 걸 해야 할 때';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -71,7 +71,7 @@ export default async function Image() {
               textTransform: 'uppercase' as const,
             }}
           >
-            OVERTURE
+            ARGUS
           </div>
 
           {/* Main title */}

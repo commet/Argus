@@ -14,7 +14,7 @@ blind spot).
 
 ```bash
 # From repo root
-./overture-plugin-v2/install.sh --link
+./argus-plugin-v2/install.sh --link
 ```
 
 Restart Claude Code. Verify:
@@ -22,20 +22,20 @@ Restart Claude Code. Verify:
 ```bash
 ls ~/.claude/skills/sail/SKILL.md       # → file exists
 ls ~/.claude/agents/donghyuk.md          # → file exists
-ls ~/.claude/overture-data/schemas/      # → 8 .json files
+ls ~/.claude/argus-data/schemas/      # → 8 .json files
 ```
 
 ---
 
 ## How to use this plan
 
-**Mode A (manual)** — read each TC, run `/overture:sail` in CC, watch output, fill
+**Mode A (manual)** — read each TC, run `/argus:sail` in CC, watch output, fill
 in the rubric below by hand.
 
 **Mode B (assistant-driven)** — open a fresh CC session in this repo, paste:
-> Read `overture-plugin-v2/TEST_PLAN.md` and execute it. Run all 4 test cases
-> via `/overture:sail`, then write your findings to
-> `.overture/test-observations.md` using the format at the bottom of this file.
+> Read `argus-plugin-v2/TEST_PLAN.md` and execute it. Run all 4 test cases
+> via `/argus:sail`, then write your findings to
+> `.argus/test-observations.md` using the format at the bottom of this file.
 > Be honest — if a critique manifests, mark FAIL. Do not soften.
 
 Mode B is faster but make sure the session running this plan does NOT also have
@@ -45,12 +45,12 @@ the plugin-build context loaded, or its judgment will be polluted.
 
 ## Test cases
 
-Each TC is one `/overture:sail` invocation. Run them in order.
+Each TC is one `/argus:sail` invocation. Run them in order.
 
 ### TC1 — Low stakes (routine label)
 
 ```
-/overture:sail "워크스페이스 탭 이름을 '워크스페이스'에서 '작업실'로 바꿀까?"
+/argus:sail "워크스페이스 탭 이름을 '워크스페이스'에서 '작업실'로 바꿀까?"
 ```
 
 **Why**: routine UX label decision. plugin should NOT mobilize debate or critical
@@ -64,7 +64,7 @@ output tells you what to do or hedges with abstract trade-offs.
 ### TC2 — Important (typical product decision)
 
 ```
-/overture:sail "webapp Boss feature를 그대로 둘까, plugin v2가 흡수할까?"
+/argus:sail "webapp Boss feature를 그대로 둘까, plugin v2가 흡수할까?"
 ```
 
 **Why**: typical product call, the sweet-spot stakes plugin claims to serve.
@@ -79,7 +79,7 @@ or genuinely useful.
 ### TC3 — Critical (debate trigger)
 
 ```
-/overture:sail "plugin v2를 폐기하고 judgment-harness positioning을 버리는 게 옳은가?"
+/argus:sail "plugin v2를 폐기하고 judgment-harness positioning을 버리는 게 옳은가?"
 ```
 
 **Why**: high-stakes question about the plugin itself. Tests whether
@@ -95,7 +95,7 @@ disagreement or quietly resolve it?
 ### TC-meta — Plugin judging plugin
 
 ```
-/overture:sail "기능이 너무 많은가? 4R + plugin v2 + 17 agents + 16 MBTI boss + 7 schema"
+/argus:sail "기능이 너무 많은가? 4R + plugin v2 + 17 agents + 16 MBTI boss + 7 schema"
 ```
 
 **Why**: the most honest stress test. If plugin can't honestly judge its own
@@ -149,13 +149,13 @@ Would you actually use the output to act on the decision?
 
 ## Output format
 
-Write results to `.overture/test-observations.md`:
+Write results to `.argus/test-observations.md`:
 
 ```markdown
 # Plugin v2 Test Observations — YYYY-MM-DD
 
 ## TC1 (low stakes — workspace rename)
-**Invocation**: `/overture:sail "..."`
+**Invocation**: `/argus:sail "..."`
 **Final scaffold output (full)**: [paste]
 
 ### Critique findings

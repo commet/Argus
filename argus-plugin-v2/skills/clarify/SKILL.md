@@ -1,30 +1,30 @@
 ---
 name: clarify
-description: Sharpen a problem before deploying a team to work on it. Surfaces hidden assumptions, reframes the surface question into the real question, and produces a skeleton + execution plan. Entry point of the Overture pipeline (charting the waters before sailing). Use when the user has a problem to work through — a technical decision, a PR to review, a design choice, a fuzzy goal. Output is an AnalysisSnapshot written to `.overture/sessions/{id}/versions/v0.1/analysis.json` that `/overture:team` will consume. NEVER skip this step to save time — the analysis IS the value. Invoked as `/overture:clarify`.
+description: Sharpen a problem before deploying a team to work on it. Surfaces hidden assumptions, reframes the surface question into the real question, and produces a skeleton + execution plan. Entry point of the Argus pipeline (charting the waters before sailing). Use when the user has a problem to work through — a technical decision, a PR to review, a design choice, a fuzzy goal. Output is an AnalysisSnapshot written to `.argus/sessions/{id}/versions/v0.1/analysis.json` that `/argus:team` will consume. NEVER skip this step to save time — the analysis IS the value. Invoked as `/argus:clarify`.
 ---
 
-# /overture:clarify
+# /argus:clarify
 
-**What this skill does:** Takes a user problem and produces a structured understanding before any team deployment. This is Phase 0 of the Overture judgment harness: **reframe the question before answering it**.
+**What this skill does:** Takes a user problem and produces a structured understanding before any team deployment. This is Phase 0 of the Argus judgment harness: **reframe the question before answering it**.
 
-**Why this matters (M5 — Analysis Primacy):** Every other skill in this plugin assumes the question has been sharpened. If a user invokes `/overture:team` directly on a surface question, output quality collapses. This skill IS the differentiator vs commodity "multi-agent code review" tools.
+**Why this matters (M5 — Analysis Primacy):** Every other skill in this plugin assumes the question has been sharpened. If a user invokes `/argus:team` directly on a surface question, output quality collapses. This skill IS the differentiator vs commodity "multi-agent code review" tools.
 
 ---
 
 ## When to run
 
 Invoke automatically when:
-- `/overture:sail` is called without prior session state in `.overture/sessions/`
-- User passes a problem via `/overture:clarify "<problem text>"`
-- User passes a target via `/overture:clarify @PR#123` / `@<file-path>` / `@<branch>`
-- After `/overture:clarify --revise <session-id>` — re-clarifies with new input
+- `/argus:sail` is called without prior session state in `.argus/sessions/`
+- User passes a problem via `/argus:clarify "<problem text>"`
+- User passes a target via `/argus:clarify @PR#123` / `@<file-path>` / `@<branch>`
+- After `/argus:clarify --revise <session-id>` — re-clarifies with new input
 
 Do NOT run when:
 - A session with phase >= `conversing` already exists and user hasn't asked to restart
 - User explicitly skips with `--skip-clarify` flag (not recommended)
 
 **Flags clarify accepts:**
-- `--no-minimal` — force Step 5b (regular scaffold) even when `decision_density == "low"`. Sail passes this when invoked with `--quick` or `--full`. Direct `/overture:clarify "<problem>"` invocations honor minimal mode automatically.
+- `--no-minimal` — force Step 5b (regular scaffold) even when `decision_density == "low"`. Sail passes this when invoked with `--quick` or `--full`. Direct `/argus:clarify "<problem>"` invocations honor minimal mode automatically.
 - `--continue` — Q&A deepening round on an existing session.
 - `--revise <session-id>` — re-clarify with new input (post-MVP).
 
@@ -55,10 +55,10 @@ If multiple candidates, use **AskUserQuestion** to disambiguate: "Which of these
 
 ### Step 1 — Session bootstrap
 
-1. **Read config**: Load `.overture/config.yaml` (schema: `~/.claude/overture-data/schemas/config.json`). If clarify is invoked via `/overture:sail`, the config is already loaded and present (sail Step 0 silent-creates it). If clarify is invoked DIRECTLY by the user with no config, silent-create from `~/.claude/overture-lib/config.example.yaml` (same logic as sail Step 0) — print one line "ℹ config 자동 생성 (ISTJ 기본)" and proceed. No AskUserQuestion. All user-facing text in this skill uses `config.locale`.
+1. **Read config**: Load `.argus/config.yaml` (schema: `~/.claude/argus-data/schemas/config.json`). If clarify is invoked via `/argus:sail`, the config is already loaded and present (sail Step 0 silent-creates it). If clarify is invoked DIRECTLY by the user with no config, silent-create from `~/.claude/argus-lib/config.example.yaml` (same logic as sail Step 0) — print one line "ℹ config 자동 생성 (ISTJ 기본)" and proceed. No AskUserQuestion. All user-facing text in this skill uses `config.locale`.
 2. Compute session ID: `YYYY-MM-DD-<kebab-of-first-N-words-of-problem>`. Collision-safe by appending `-2`, `-3`.
-3. Create `.overture/sessions/{id}/` directory.
-4. Create `session.json` at the root with schema from `~/.claude/overture-data/schemas/session.json`. Fields:
+3. Create `.argus/sessions/{id}/` directory.
+4. Create `session.json` at the root with schema from `~/.claude/argus-data/schemas/session.json`. Fields:
    - `id`, `problem_text`, `repo_path` (from `pwd`), `repo_branch` (from `git branch --show-current`)
    - `invoking_context`: `{target_type, target_ref}` from the input expansion
    - `boss_agent`: from `config.boss` if present
@@ -82,7 +82,7 @@ If multiple candidates, use **AskUserQuestion** to disambiguate: "Which of these
 > </user-data>
 > {{endif}}
 >
-> Produce JSON conforming to `~/.claude/overture-data/schemas/analysis-snapshot.json`:
+> Produce JSON conforming to `~/.claude/argus-data/schemas/analysis-snapshot.json`:
 >
 > - `real_question`: what the user is ACTUALLY deciding. Often different from surface.
 > - `hidden_assumptions`: 3-5 assumptions the user is making without stating.
@@ -111,7 +111,7 @@ If multiple candidates, use **AskUserQuestion** to disambiguate: "Which of these
 >
 >    When in doubt between low/medium, choose medium. False-low is more harmful than false-medium because false-low gives a directive the user might act on without verification.
 
-**Note on `execution_plan`**: At version 0 (initial analysis), `execution_plan` is usually `null` or absent. It emerges in later rounds (deepening) once the real_question is locked AND enough specificity has been extracted. Do NOT force-fill execution_plan on round 0. The `/overture:team` skill is blocked from running until execution_plan with ≥2 steps exists.
+**Note on `execution_plan`**: At version 0 (initial analysis), `execution_plan` is usually `null` or absent. It emerges in later rounds (deepening) once the real_question is locked AND enough specificity has been extracted. Do NOT force-fill execution_plan on round 0. The `/argus:team` skill is blocked from running until execution_plan with ≥2 steps exists.
 
 Write result to `versions/v0.1/analysis.json`.
 
@@ -175,7 +175,7 @@ If `--no-minimal` was passed (typically via sail --quick/--full): skip directly 
 
 This is the one place clarify produces a directive. The full scaffold pipeline is bypassed because the routing math (rule 4 in Step 2) said it would over-engineer the answer.
 
-1. Construct `MinimalScaffold` (schema: `~/.claude/overture-data/schemas/minimal-scaffold.json`):
+1. Construct `MinimalScaffold` (schema: `~/.claude/argus-data/schemas/minimal-scaffold.json`):
    - `recommendation`: single-sentence imperative. "그냥 작업실로 바꿔. 신호 0이면 손해 0." Not "consider X if Y" — a directive.
    - `one_check`: one thing the user verifies in <5 minutes that would flip the recommendation. If none exists, density was set wrong — go back to Step 2.
    - `caveat_if_signal_appears`: optional. Only when there's a real downstream signal worth watching post-action.
@@ -186,7 +186,7 @@ This is the one place clarify produces a directive. The full scaffold pipeline i
 
    **locale: ko**
    ```
-   ## Overture · Minimal · v0.1
+   ## Argus · Minimal · v0.1
 
    **권장:** {{recommendation}}
 
@@ -196,12 +196,12 @@ This is the one place clarify produces a directive. The full scaffold pipeline i
 
    ─────
    _density: low ({{decision_density_reasoning}}) · 팀 배치 / Boss 검토 생략_
-   _재실행하려면: `/overture:sail --full "{{problem_text}}"` (강제 풀파이프)_
+   _재실행하려면: `/argus:sail --full "{{problem_text}}"` (강제 풀파이프)_
    ```
 
    **locale: en**
    ```
-   ## Overture · Minimal · v0.1
+   ## Argus · Minimal · v0.1
 
    **Recommendation:** {{recommendation}}
 
@@ -211,7 +211,7 @@ This is the one place clarify produces a directive. The full scaffold pipeline i
 
    ─────
    _density: low ({{decision_density_reasoning}}) · team & boss skipped_
-   _Force full pipeline: `/overture:sail --full "{{problem_text}}"`_
+   _Force full pipeline: `/argus:sail --full "{{problem_text}}"`_
    ```
 
 5. Skip to Step 6 (session.json update). Do NOT emit a regular skeleton — the user got their answer.
@@ -221,7 +221,7 @@ This is the one place clarify produces a directive. The full scaffold pipeline i
 Print to user:
 
 ```
-## Overture · Clarify · v0.1
+## Argus · Clarify · v0.1
 
 **Real question:** {{real_question}}
 
@@ -240,12 +240,12 @@ Print to user:
 
 {{if execution_plan ready}}
 **Execution plan** ({{N}} steps) — team is ready to deploy.
-Run `/overture:team` to deploy the agents.
+Run `/argus:team` to deploy the agents.
 {{else}}
-**Not yet ready for team deployment.** Run `/overture:clarify --continue` to add another round, or invoke `/overture:team --force` to proceed on current snapshot.
+**Not yet ready for team deployment.** Run `/argus:clarify --continue` to add another round, or invoke `/argus:team --force` to proceed on current snapshot.
 {{endif}}
 
-**Session:** `.overture/sessions/{{id}}/`
+**Session:** `.argus/sessions/{{id}}/`
 ```
 
 ### Step 6 — Update session.json
@@ -256,13 +256,13 @@ Set `phase: "conversing"` (if not ready for team) or stay on `"conversing"` (if 
 
 ## Output files
 
-Written to `.overture/sessions/{id}/`:
+Written to `.argus/sessions/{id}/`:
 
-- `session.json` — top-level session record (schema: `~/.claude/overture-data/schemas/session.json`)
-- `versions/v0.1/analysis.json` — the AnalysisSnapshot (schema: `~/.claude/overture-data/schemas/analysis-snapshot.json`)
+- `session.json` — top-level session record (schema: `~/.claude/argus-data/schemas/session.json`)
+- `versions/v0.1/analysis.json` — the AnalysisSnapshot (schema: `~/.claude/argus-data/schemas/analysis-snapshot.json`)
 - `versions/v0.1/questions_and_answers.json` — the Q&A history
 - `versions/v0.1/meta.json` — `{triggering_skill: "clarify", timestamp, framing_locked, user_accepted_framing}`
-- `versions/v0.1/minimal_scaffold.json` — **only when `decision_density == "low"`** (Step 5a). MinimalScaffold (schema: `~/.claude/overture-data/schemas/minimal-scaffold.json`). When this file exists, downstream `/overture:sail` MUST set phase=complete and skip team/boss.
+- `versions/v0.1/minimal_scaffold.json` — **only when `decision_density == "low"`** (Step 5a). MinimalScaffold (schema: `~/.claude/argus-data/schemas/minimal-scaffold.json`). When this file exists, downstream `/argus:sail` MUST set phase=complete and skip team/boss.
 
 ---
 
@@ -272,7 +272,7 @@ Before finalizing, verify:
 
 - **M5 (Analysis primacy)**: Did you reframe? Is `real_question` different from the surface request? If same → fail, retry Step 2 with stricter instruction.
 - **M4 (Decision scaffold shape)**: Does the snapshot contain `hidden_assumptions` and `skeleton` as actual arrays, not flat recommendation? If LLM returned a solution-like narrative → fail, retry. **Exception: when `decision_density == "low"`, `skeleton` may be empty array (the minimal scaffold replaces it).**
-- **M9 (Worker mode, not critic)**: clarify doesn't invoke workers. NA. But DO NOT include agent voices or critique in the analysis output — that's /overture:team and /overture:boss territory.
+- **M9 (Worker mode, not critic)**: clarify doesn't invoke workers. NA. But DO NOT include agent voices or critique in the analysis output — that's /argus:team and /argus:boss territory.
 - **M-density (Minimal-mode integrity)**: If `decision_density == "low"`:
   - `reversibility` MUST be `"reversible"` AND `framing_confidence >= 80`. If either is missing, downgrade density to `medium` and revise.
   - `recommendation` in MinimalScaffold MUST be a single imperative sentence. Strings starting with "consider" / "depends" / "it may be" → fail, downgrade to medium.
@@ -286,8 +286,8 @@ If any gate fails, revise before emitting files.
 
 ## Error modes
 
-- **No `.overture/` directory**: create it. First-time use.
-- **`.overture/config.yaml` missing**: silent-create from `~/.claude/overture-lib/config.example.yaml`. Print one ack line. No prompts. (Legacy behavior of "proceed without boss" is removed — first-run users would never realize they could fix it.)
+- **No `.argus/` directory**: create it. First-time use.
+- **`.argus/config.yaml` missing**: silent-create from `~/.claude/argus-lib/config.example.yaml`. Print one ack line. No prompts. (Legacy behavior of "proceed without boss" is removed — first-run users would never realize they could fix it.)
 - **User provides no problem text and git state is clean**: prompt for problem text via AskUserQuestion.
 - **PR/issue reference fails** (gh not installed, unauthorized): degrade gracefully — ask user to paste the text, note fallback in meta.json.
 - **LLM returns malformed JSON**: retry once with stricter schema emphasis. If still fails, write what you got to `versions/v0.1/raw_analysis.txt` and explain the issue to user.

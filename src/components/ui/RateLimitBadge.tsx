@@ -7,7 +7,7 @@ import { DAILY_LIMIT } from '@/lib/quota-config';
 
 /**
  * Displays remaining rate limit count for proxy mode.
- * Listens to 'overture:ratelimit' custom events dispatched by the LLM stream handler.
+ * Listens to 'argus:ratelimit' custom events dispatched by the LLM stream handler.
  */
 export function RateLimitBadge() {
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -20,8 +20,8 @@ export function RateLimitBadge() {
       }
     };
 
-    window.addEventListener('overture:ratelimit', handler);
-    return () => window.removeEventListener('overture:ratelimit', handler);
+    window.addEventListener('argus:ratelimit', handler);
+    return () => window.removeEventListener('argus:ratelimit', handler);
   }, []);
 
   if (remaining === null) return null;

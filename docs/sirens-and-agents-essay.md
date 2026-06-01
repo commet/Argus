@@ -129,7 +129,7 @@ CrewAI는 모든 워커에게 같은 방식으로 이전 output만 전달한다.
 
 이 학습이 에이전트별로, 태스크 유형별로 누적된다. 고정된 전략이 아니라, 반복을 통해 **각 선원에게 맞는 방식을 찾아가는 것**이다.
 
-우리가 만들고 있는 Overture라는 시스템에서는 이걸 실제로 구현하고 있다. 각 에이전트가 어떤 context 전략에서 더 좋은 결과를 내는지를 추적하고, 다음 프로젝트에 반영한다. 에이전트에게 레벨과 이력(biography)이 있고, 사용자의 승인/거부 패턴이 관찰로 누적된다. 첫 프로젝트에서는 모든 에이전트에게 같은 맥락을 주지만, 열 번째 프로젝트에서는 각자에게 맞는 전략이 자동으로 적용된다.
+우리가 만들고 있는 Argus라는 시스템에서는 이걸 실제로 구현하고 있다. 각 에이전트가 어떤 context 전략에서 더 좋은 결과를 내는지를 추적하고, 다음 프로젝트에 반영한다. 에이전트에게 레벨과 이력(biography)이 있고, 사용자의 승인/거부 패턴이 관찰로 누적된다. 첫 프로젝트에서는 모든 에이전트에게 같은 맥락을 주지만, 열 번째 프로젝트에서는 각자에게 맞는 전략이 자동으로 적용된다.
 
 이것은 단순한 최적화가 아니다. CrewAI의 "전원 밀랍"과 AutoGen의 "전원 개방" 사이에서, **항해를 거듭하며 각 선원에게 맞는 균형을 찾아가는 것**이다.
 
@@ -166,3 +166,7 @@ CrewAI는 모든 워커에게 같은 방식으로 이전 output만 전달한다.
 AI는 정말로 노래를 잘 한다. 문제는 거기에 있지 않다.
 
 문제는, 이타카가 어디인지 기억하는 것이다.
+
+
+
+https://vercel.com/oauth/authorize?response_type=code&client_id=cl_WbdtcToDrMR4ZHvXLGAmbfoYCsQjMeS8&code_challenge=-wODOsd60-pjIYRKMFyvYY54QIeu7b5hiltJVCaM-SQ&code_challenge_method=S256&redirect_uri=http%3A%2F%2Flocalhost%3A64754%2Fcallback&state=5STgEaD27FkanLMibFW6FVsPlA8vnReiJue7elzPF2I&scope=openid+offline_access&prompt=consent&resource=https%3A%2F%2Fmcp.vercel.com%2F

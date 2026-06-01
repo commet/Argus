@@ -86,7 +86,7 @@ Measured separately from DQ score:
 
 - Standalone `/reframe` without further stages: expect 25-45
 - Partial chain (reframe + rehearse): expect 45-65
-- Full `/overture` pipeline: expect 65-85
+- Full `/argus` pipeline: expect 65-85
 - Above 85 requires genuine surprises — a reframe the user didn't expect, risks they hadn't considered
 
 The full pipeline structurally guarantees a floor (~60) because it covers all dimensions. The value is in the **per-element breakdown** (which dimension is weak?) and the **anti-sycophancy indicators** (was there real pushback?), not the aggregate number.

@@ -875,7 +875,7 @@ describe('Scenario Q: 가정 evaluation 조합별 recast 코칭', () => {
 //
 //   THIN DATA CONSERVATISM — 과잉 해석 방지 검증 14건
 //
-//   Overture는 사용자가 직접 입력하는 정보가 적다.
+//   Argus는 사용자가 직접 입력하는 정보가 적다.
 //   대부분 클릭, 체류, 수용/거부 같은 암묵적 시그널이다.
 //   따라서 데이터가 적을 때 과잉 해석하면 신뢰를 잃는다.
 //

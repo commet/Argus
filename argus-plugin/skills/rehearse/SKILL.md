@@ -10,7 +10,7 @@ allowed-tools: Read, Write, Agent, AskUserQuestion
 - ✓ After /recast — see how stakeholders would react
 - ✓ Before presenting to leadership or stakeholders
 - ✓ When you suspect blind spots but can't find them
-- ✓ Triggered as "XX은 뭐라고 할까?" from /overture
+- ✓ Triggered as "XX은 뭐라고 할까?" from /argus
 - ✗ When the plan is still too vague (run /recast first)
 - ✗ Quick, low-stakes decisions
 
@@ -26,7 +26,7 @@ If no `/recast` result and no argument:
 
 ## Context extraction
 
-Read `.overture/recast.md` and `.overture/reframe.md` for contracts.
+Read `.argus/recast.md` and `.argus/reframe.md` for contracts.
 
 **From /recast:** governing_idea, storyline, steps (with actor/checkpoint/critical_path), key_assumptions (attack surface), personas (use exactly), design_rationale
 **From /reframe:** assumptions.doubtful (probe FIRST and HARDEST), reframed_question, framing_confidence, ai_limitations
@@ -40,14 +40,14 @@ Read `.overture/recast.md` and `.overture/reframe.md` for contracts.
 
 ### Who reviews:
 - If `/recast` provided personas → use exactly
-- If `/overture` set a `judge` → create persona matching that judge + 1-2 additional
+- If `/argus` set a `judge` → create persona matching that judge + 1-2 additional
 - Otherwise → auto-generate based on context (see below)
 
 ## Step 1: Load or generate personas
 
 ### Saved persona check (highest priority)
 
-Read `.overture/personas.json`. If it exists and has confirmed/user_refined personas:
+Read `.argus/personas.json`. If it exists and has confirmed/user_refined personas:
 1. Load those personas first
 2. Show: "저장된 리뷰어 [N]명 로드됨" with completeness indicators
 3. Supplement with auto-generated personas if needed for diversity (don't duplicate roles)
@@ -55,7 +55,7 @@ Read `.overture/personas.json`. If it exists and has confirmed/user_refined pers
 
 ### Persona pack check (second priority)
 
-Read `.overture/config.json`. If `persona_pack` field exists:
+Read `.argus/config.json`. If `persona_pack` field exists:
 1. Read the file at that path (e.g., `templates/persona-packs/startup-founders.md`)
 2. Parse the YAML persona definitions
 3. Use those personas exactly — skip auto-generation
@@ -254,7 +254,7 @@ User: "아 그리고 우리 CFO도 봐야 하는데, 이 사람은 무조건 비
 
 If user says "이 사람 맞아" / "비슷해" / "맞아" / confirms persona accuracy:
 1. Save persona with `confirmed: true, source: "confirmed"`
-2. Save to `.overture/personas.json`
+2. Save to `.argus/personas.json`
 3. Future rehearsals auto-load this persona
 4. Show:
    ```
@@ -338,7 +338,7 @@ User: "실제로는 더 직설적이고, 돌려 말하는 거 싫어해"
 
 ### Persona persistence
 
-Save to `.overture/personas.json`:
+Save to `.argus/personas.json`:
 
 ```json
 {
@@ -366,7 +366,7 @@ Save to `.overture/personas.json`:
 ```
 
 **Load priority on next `/rehearse` run:**
-1. `.overture/personas.json` → `accuracy_calibrated` 먼저
+1. `.argus/personas.json` → `accuracy_calibrated` 먼저
 2. → `confirmed` 다음
 3. → `user_refined` 다음
 4. → `/recast` 제공 personas로 부족분 보충
@@ -580,7 +580,7 @@ These are recommendations, not blockers.
 
 ---
 
-**Overture · Rehearse** — 사전 검증
+**Argus · Rehearse** — 사전 검증
 
 **바꿔야 할 것**
 1. [action — specific, with plan element reference]
@@ -667,7 +667,7 @@ Severity-based actions:
 
 ---
 
-**Overture · Rehearse** — 사전 검증
+**Argus · Rehearse** — 사전 검증
 
 **바꿔야 할 것**
 1. [action]
@@ -740,11 +740,11 @@ If user picks `2d` (refine persona) → ask which persona to refine, then accept
 
 ## Auto-save
 
-Save to `.overture/rehearse.md`:
+Save to `.argus/rehearse.md`:
 - Top: actions + persona summaries + DA + synthesis
 - Bottom: Context Contract (full schema — risks by category, approval_conditions with translated_approvals, persona_profiles with ALL fields for /refine, synthesis with agreements/conflicts/priority_actions, devils_advocate)
 
-Save/update `.overture/personas.json`:
+Save/update `.argus/personas.json`:
 - All personas used in this rehearsal (auto-generated + user-refined)
 - Include completeness score, user_description, source (auto/user_refined/confirmed)
 - Existing confirmed personas are preserved (never overwritten by auto-generation)

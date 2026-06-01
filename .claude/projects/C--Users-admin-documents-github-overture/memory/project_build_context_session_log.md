@@ -8,9 +8,9 @@ type: project
 
 바이브 코딩 커뮤니티 대화에서 페인 포인트 발견:
 - "기획을 대충하고 코드멍" — 실행 도구는 있는데 설계 도구가 없음
-- "아이디어를 구체화해서 AI가 잘 알아듣게" — Overture의 정확한 밸류프롭
+- "아이디어를 구체화해서 AI가 잘 알아듣게" — Argus의 정확한 밸류프롭
 
-**문제:** 현재 Overture는 전략 의사결정에 최적화 → 바이브 코더에게 타겟 미스매치
+**문제:** 현재 Argus는 전략 의사결정에 최적화 → 바이브 코더에게 타겟 미스매치
 
 ## 결정 과정
 
@@ -22,7 +22,7 @@ type: project
 ## 완료한 작업
 
 ### 1. /build 스킬 (아카이브)
-- `overture-plugin/skills/build/SKILL.md` — 소스 남아있음 (참고용)
+- `argus-plugin/skills/build/SKILL.md` — 소스 남아있음 (참고용)
 - `.claude/skills/build/` — 삭제됨 (스킬 목록에서 제거)
 
 ### 2. /reframe 수정 ✅
@@ -65,7 +65,7 @@ type: project
 - 스펙/피처 수정 포커스
 - Implementation Prompt 업데이트 포함
 
-### 6. /overture 수정 ✅
+### 6. /argus 수정 ✅
 - Context-adaptive pipeline 섹션 추가
 - Build 감지 시 자동 경량화 (~5분)
 - **산출물 분기**: Implementation Prompt / Product Brief / Agent Harness
@@ -112,14 +112,14 @@ type: project
 
 | 파일 | 설명 |
 |------|------|
-| `overture-plugin/skills/reframe/SKILL.md` | Context detection + build 인터뷰/가정/전략 |
-| `overture-plugin/skills/recast/SKILL.md` | Build 피처 스펙 + Implementation Prompt + 개선 카드 |
-| `overture-plugin/skills/rehearse/SKILL.md` | Build 유저 페르소나 + 개선 카드 |
-| `overture-plugin/skills/refine/SKILL.md` | Build max 1 round |
-| `overture-plugin/skills/overture/SKILL.md` | Context-adaptive pipeline + 산출물 분기 |
-| `overture-plugin/skills/help/SKILL.md` | 업데이트된 도움말 |
-| `overture-plugin/skills/build/SKILL.md` | 아카이브 (참고용, 미설치) |
-| `.overture/reframe.md` | 테스트 결과 — 프리랜서 PM 앱 reframe |
-| `.overture/recast.md` | 테스트 결과 — 프로덕트 스펙 (구 포맷) |
-| `.overture/rehearse.md` | 테스트 결과 — 페르소나 리뷰 (구 포맷) |
-| `.overture/journal.md` | 저널 — 기존 4개 + 오늘 3개 엔트리 |
+| `argus-plugin/skills/reframe/SKILL.md` | Context detection + build 인터뷰/가정/전략 |
+| `argus-plugin/skills/recast/SKILL.md` | Build 피처 스펙 + Implementation Prompt + 개선 카드 |
+| `argus-plugin/skills/rehearse/SKILL.md` | Build 유저 페르소나 + 개선 카드 |
+| `argus-plugin/skills/refine/SKILL.md` | Build max 1 round |
+| `argus-plugin/skills/argus/SKILL.md` | Context-adaptive pipeline + 산출물 분기 |
+| `argus-plugin/skills/help/SKILL.md` | 업데이트된 도움말 |
+| `argus-plugin/skills/build/SKILL.md` | 아카이브 (참고용, 미설치) |
+| `.argus/reframe.md` | 테스트 결과 — 프리랜서 PM 앱 reframe |
+| `.argus/recast.md` | 테스트 결과 — 프로덕트 스펙 (구 포맷) |
+| `.argus/rehearse.md` | 테스트 결과 — 페르소나 리뷰 (구 포맷) |
+| `.argus/journal.md` | 저널 — 기존 4개 + 오늘 3개 엔트리 |

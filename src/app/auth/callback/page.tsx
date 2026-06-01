@@ -27,8 +27,8 @@ export default function AuthCallbackPage() {
         }
       }
 
-      const stashed = sessionStorage.getItem('overture:postAuthRedirect');
-      if (stashed) sessionStorage.removeItem('overture:postAuthRedirect');
+      const stashed = sessionStorage.getItem('argus:postAuthRedirect');
+      if (stashed) sessionStorage.removeItem('argus:postAuthRedirect');
       const safeRedirect = stashed && stashed.startsWith('/') && !stashed.startsWith('//')
         ? stashed
         : '/workspace';

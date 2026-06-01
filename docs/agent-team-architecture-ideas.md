@@ -8,7 +8,7 @@
 ## 1. 핵심 테제: 보이지 않는 구조
 
 BMAD는 사용자가 12단계를 밟는다 (보이는 구조). ChatGPT는 구조 없이 LLM 판단에 의존한다.
-Overture의 자리: **에이전트 팀이 구조를 실행하고, 사용자는 결과만 받는다.**
+Argus의 자리: **에이전트 팀이 구조를 실행하고, 사용자는 결과만 받는다.**
 
 ```
 사용자: "이 계획 봐줘" (30초)
@@ -94,7 +94,7 @@ LLM은 모든 도메인의 데이터를 동시에 학습했기 때문에, "이 �
 ### 3-2. Register Translation (언어 레지스터 변환)
 같은 내용을 기술→경영, 학술→일상, 한국어→영어로 재구성하는 능력이 매우 강함. 훈련 데이터에 번역, 요약, 편집 사례가 대량.
 
-**활용:** 이미 /overture의 vocabulary bridge가 이걸 쓰고 있음. 서연(Copywriter)의 핵심 역할로 강화 가능. "개발자가 쓴 스펙을 대표님이 읽을 수 있는 1페이지로."
+**활용:** 이미 /argus의 vocabulary bridge가 이걸 쓰고 있음. 서연(Copywriter)의 핵심 역할로 강화 가능. "개발자가 쓴 스펙을 대표님이 읽을 수 있는 1페이지로."
 
 ### 3-3. Adversarial Critique (적대적 비평)
 LLM은 토론, 법정 변론, 논문 peer review, 코드 리뷰 데이터를 대량 학습함. "이 주장의 약점을 찾아라"에 매우 강함.
@@ -319,7 +319,7 @@ Observation이 없는 초기에는:
 
 ---
 
-## 8. /blindspot, /rehearse, /overture 연결
+## 8. /blindspot, /rehearse, /argus 연결
 
 ### /blindspot + Agent Team
 
@@ -337,7 +337,7 @@ Observation이 없는 초기에는:
      + 동혁이 Boss의 반응을 "이건 진짜 이렇게 나올까?" 검증
 ```
 
-### /overture + Agent Team
+### /argus + Agent Team
 
 ```
 현재: 단일 세션에서 질문 → 초안 → 시뮬레이션

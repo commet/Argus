@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
 const META = {
-  ko: { title: '문제 재정의 — Overture', description: '숨겨진 전제를 발견하고 문제를 재정의합니다.' },
-  en: { title: 'Reframe — Overture', description: 'Surface hidden assumptions and redefine the question.' },
+  ko: { title: '문제 재정의 — Argus', description: '숨겨진 전제를 발견하고 문제를 재정의합니다.' },
+  en: { title: 'Reframe — Argus', description: 'Surface hidden assumptions and redefine the question.' },
 } as const;
 
 export async function generateMetadata(): Promise<Metadata> {

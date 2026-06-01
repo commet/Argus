@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
 const META = {
-  ko: { title: '프로젝트 — Overture' },
-  en: { title: 'Project — Overture' },
+  ko: { title: '프로젝트 — Argus' },
+  en: { title: 'Project — Argus' },
 } as const;
 
 export async function generateMetadata(): Promise<Metadata> {

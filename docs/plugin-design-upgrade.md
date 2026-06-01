@@ -58,7 +58,7 @@
 **현재:** 전체가 하나의 코드블록
 ```
   ╭──────────────────────────────╮
-  │  Overture · Reframe          │
+  │  Argus · Reframe          │
   ╰──────────────────────────────╯
   ■ Analysis
     [you asked:]
@@ -70,7 +70,7 @@
 **개선:** 구조 데이터는 코드블록, 해설은 마크다운
 ```
   ╭──────────────────────────────╮
-  │  Overture · Reframe          │
+  │  Argus · Reframe          │
   │  ● Interview  ● Assumptions  │
   ╰──────────────────────────────╯
 ```
@@ -274,7 +274,7 @@ risks:
 + Status: Converged after 2 rounds ✓
 ```
 
-### /overture (풀 파이프라인)
+### /argus (풀 파이프라인)
 
 | 현재 | 개선 |
 |------|------|
@@ -326,7 +326,7 @@ risks:
 7. /refine — before/after diff, convergence 시각화
 
 ### Phase 3: 파이프라인 통합
-8. /overture — breadcrumb diff, deliverable별 최적 렌더링
+8. /argus — breadcrumb diff, deliverable별 최적 렌더링
 9. /help — 하이브리드 렌더링
 
 ### Phase 4: 검증
@@ -338,13 +338,13 @@ risks:
 ## 변경 대상 파일
 
 ```
-overture-plugin/skills/reframe/SKILL.md        ← Output 섹션 전면 개편
-overture-plugin/skills/recast/SKILL.md         ← Step 박스 분화, yaml 하네스
-overture-plugin/skills/rehearse/SKILL.md       ← Risk diff, 페르소나 분화
-overture-plugin/skills/refine/SKILL.md         ← diff before/after, convergence
-overture-plugin/skills/overture/SKILL.md       ← deliverable 렌더링, breadcrumb
-overture-plugin/skills/help/SKILL.md           ← 하이브리드 렌더링
-overture-plugin/agents/devils-advocate.md       ← 비주얼 대폭 강화
+argus-plugin/skills/reframe/SKILL.md        ← Output 섹션 전면 개편
+argus-plugin/skills/recast/SKILL.md         ← Step 박스 분화, yaml 하네스
+argus-plugin/skills/rehearse/SKILL.md       ← Risk diff, 페르소나 분화
+argus-plugin/skills/refine/SKILL.md         ← diff before/after, convergence
+argus-plugin/skills/argus/SKILL.md       ← deliverable 렌더링, breadcrumb
+argus-plugin/skills/help/SKILL.md           ← 하이브리드 렌더링
+argus-plugin/agents/devils-advocate.md       ← 비주얼 대폭 강화
 
 .claude/skills/ 하위 동일 파일들                  ← 위와 동기화
 ```

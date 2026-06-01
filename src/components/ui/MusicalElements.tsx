@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Musical visual elements for the Overture design system.
+ * Musical visual elements for the Argus design system.
  * These translate orchestral score language into UI components.
  */
 

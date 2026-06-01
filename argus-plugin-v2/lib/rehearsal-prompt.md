@@ -1,6 +1,6 @@
-# Overture v2 Self-Rehearsal Runbook
+# Argus v2 Self-Rehearsal Runbook
 
-You are auditing Overture plugin v2 via **dry-run simulation**. This file is your runbook — read it once, then execute the protocol below.
+You are auditing Argus plugin v2 via **dry-run simulation**. This file is your runbook — read it once, then execute the protocol below.
 
 > **Use ultrathink throughout.** This is a thorough self-audit, not a quick scan. Reasoning depth determines bug-find rate.
 
@@ -16,7 +16,7 @@ You are auditing Overture plugin v2 via **dry-run simulation**. This file is you
 
 ## Hard rules — read carefully
 
-**🚫 DO NOT invoke real plugin commands.** No `/overture:sail`, `/overture:clarify`, `/overture:team`, `/overture:boss`, `/overture:chart`. These would actually execute SKILL.md procedures, create real `.overture/sessions/` directories, spawn real Task tool subagents, and hit real LLM calls. **Simulation ≠ execution.**
+**🚫 DO NOT invoke real plugin commands.** No `/argus:sail`, `/argus:clarify`, `/argus:team`, `/argus:boss`, `/argus:chart`. These would actually execute SKILL.md procedures, create real `.argus/sessions/` directories, spawn real Task tool subagents, and hit real LLM calls. **Simulation ≠ execution.**
 
 **🚫 DO NOT spawn Task tool subagents to "test" individual agents.** That's also real execution.
 
@@ -62,7 +62,7 @@ Read in this order. Internalize structure, not memorize content. ~10 minutes.
 **If user provided a test case in their prompt**, use it.
 
 **Otherwise default**: 
-> "Should I add automated tests to `overture-plugin-v2/` before swapping it with the v0.5 plugin currently at `~/.claude/plugins/overture-v0.5-backup`?"
+> "Should I add automated tests to `argus-plugin-v2/` before swapping it with the v0.5 plugin currently at `~/.claude/plugins/argus-v0.5-backup`?"
 
 This default is intentional — it:
 - Lives in the actual repo (tests `repo_scan` or `explicit_target` mode)
@@ -77,7 +77,7 @@ If you change the default, explain why in your final report.
 
 ## M-gate definitions
 
-These are the 10 gates Overture v2 must pass. Apply each at the relevant phase during simulation.
+These are the 10 gates Argus v2 must pass. Apply each at the relevant phase during simulation.
 
 ### M1 — Code-native
 The pipeline operates on real artifacts (files, PR, diff), not abstract prose. **Test**: in `team` simulation, do agents cite specific file paths + line numbers when `repo_context.mode != hypothetical`? If outputs are "if your code looks like X..." style despite repo access, M1 fails.
@@ -92,7 +92,7 @@ When agents genuinely disagree on a canonical decision axis (see team SKILL.md S
 Output shape preserves `key_trade_offs[]`, `hidden_assumptions[]`, `human_required_checkpoints[]`, `next_actions[]`, optionally `team_contradictions[]`, `boss_concerns_*`, `boss_questions_pending[]`. Required fields exist (empty arrays OK). **Test**: simulated FinalScaffold conforms to `final-scaffold.json` schema?
 
 ### M5 — Analysis primacy
-`/overture:clarify` is mandatory first step. Reframing requires `surface_request != real_question`. **Test**: in clarify simulation, is real_question genuinely different (deeper) than the surface phrasing of the test case?
+`/argus:clarify` is mandatory first step. Reframing requires `surface_request != real_question`. **Test**: in clarify simulation, is real_question genuinely different (deeper) than the surface phrasing of the test case?
 
 ### M6 — Stakes-driven agent selection
 Agent count limited per stakes (routine: 2, important: 3, critical: 4). Reconciliation flow (Step 3.5) deterministic when steps > budget. **Test**: in team simulation, walk through Step 3.5 (a)→(b)→(c)→(d) explicitly. Verify exit condition.
@@ -101,7 +101,7 @@ Agent count limited per stakes (routine: 2, important: 3, critical: 4). Reconcil
 If the simulated final output could come from Cursor / Copilot Review / a generic multi-agent framework, the plugin failed differentiation. **Test**: would a commodity tool produce this? If yes, the scaffold-shape isn't carrying weight.
 
 ### M8 — Archive growth
-Each run enriches `.overture/sessions/` meaningfully. Versions accumulate via Draft tree. **Test**: simulated session produces meaningfully different `versions/v0.1/` content than what would exist before.
+Each run enriches `.argus/sessions/` meaningfully. Versions accumulate via Draft tree. **Test**: simulated session produces meaningfully different `versions/v0.1/` content than what would exist before.
 
 ### M9 — Worker, not critic
 Stage-1 agents PRODUCE artifacts in their domain (research, numbers, UX, legal, tech). Critique is donghyuk's WORK, not meta-review of other agents. **Test**: do simulated stage-1 outputs read as "here's the research / numbers / UX analysis" or as "I reviewed X and found issues"? Latter = critic mode = fail.
@@ -116,9 +116,9 @@ Every artifact has `version_id + parent_version_id + timestamp + triggering_skil
 ### Phase 0 — Setup
 
 Walk through `skills/sail/SKILL.md`:
-- Step 0: assume `.overture/config.yaml` state. Choose: present (with `boss: {mbti_code: <pick a type>}`) OR absent (test fallback path).
+- Step 0: assume `.argus/config.yaml` state. Choose: present (with `boss: {mbti_code: <pick a type>}`) OR absent (test fallback path).
 - Step 1: parse args. Test case is bare prose → `target_type: ad_hoc`.
-- Step 2: scan `.overture/sessions/` → none exist (new test).
+- Step 2: scan `.argus/sessions/` → none exist (new test).
 - Step 3-6: route to `clarify`.
 
 **Note any uncertainty** about Step 0 behavior when config absent. Spec gap → bug.
@@ -186,7 +186,7 @@ Apply: **M8, M10**.
 
 ### Phase 5 — Re-run simulation (optional, tests #11/#12 patches)
 
-Imagine user re-runs `/overture:team` after applying boss feedback:
+Imagine user re-runs `/argus:team` after applying boss feedback:
 - Does Step 1.4 detect existing `workers.json` correctly?
 - Does it bump label to v0.2 via `nextChildLabel`?
 
@@ -277,7 +277,7 @@ Reasoning: <why this number>
 <one of: "ship — real Claude Code test", "another self-rehearsal round (stop hit), "hold — needs user decision on bug X", ...>
 ```
 
-Save this report to `.overture/rehearsals/YYYY-MM-DD-rehearsal-<n>.md` (create dir if absent).
+Save this report to `.argus/rehearsals/YYYY-MM-DD-rehearsal-<n>.md` (create dir if absent).
 
 ---
 
@@ -297,10 +297,10 @@ Save this report to `.overture/rehearsals/YYYY-MM-DD-rehearsal-<n>.md` (create d
 If user wants to stress-test specific code paths, use these alternate test cases:
 
 - **Tests `explicit_target` mode + critical stakes + debate**: 
-  > `/overture:sail @PR#42` where PR is a database migration adding NOT NULL to a 50M-row column.
+  > `/argus:sail @PR#42` where PR is a database migration adding NOT NULL to a 50M-row column.
 
 - **Tests Step 3.5 reconciliation (5+ steps)**: 
-  > "Boss simulator를 Overture에서 분리해 독립 제품으로 만들까?"
+  > "Boss simulator를 Argus에서 분리해 독립 제품으로 만들까?"
 
 - **Tests boss demands routing (Bug #20 patch)**:
   > Anything where ESTJ/INTJ boss likely demands new investigation. e.g., "팀 전체를 Linear에서 Height로 마이그레이션할까?" — likely demands "팀 분위기 어때?" question (boss_questions_pending).

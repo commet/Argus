@@ -148,7 +148,7 @@ const scenarios: Scenario[] = [
 
 console.log('');
 console.log('╔═══════════════════════════════════════════════════════════════╗');
-console.log('║          OVERTURE AGENT SYSTEM — SIMULATION v2               ║');
+console.log('║          ARGUS AGENT SYSTEM — SIMULATION v2               ║');
 console.log('║          35 scenarios across 6 groups                        ║');
 console.log('╚═══════════════════════════════════════════════════════════════╝');
 console.log('');

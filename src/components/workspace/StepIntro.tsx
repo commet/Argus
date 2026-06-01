@@ -80,7 +80,7 @@ function getCopy(stepKey: StepKey, ko: boolean): Copy {
   }
 }
 
-const STORAGE_KEY = 'overture:step-intro-dismissed';
+const STORAGE_KEY = 'argus:step-intro-dismissed';
 
 function getDismissed(): Record<string, boolean> {
   if (typeof window === 'undefined') return {};

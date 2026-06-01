@@ -14,7 +14,7 @@ export function generateAgentSpec(project: Project | null): string {
 
   const lines: string[] = [];
 
-  lines.push(`# Overture Agent Spec`);
+  lines.push(`# Argus Agent Spec`);
   lines.push(`# Generated: ${new Date().toISOString().split('T')[0]}`);
   lines.push('');
   lines.push(`project:`);

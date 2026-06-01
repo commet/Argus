@@ -1,4 +1,4 @@
-# Overture (Plugin v2)
+# Argus (Plugin v2)
 
 [**English**](./README.md) · [한국어](./README.ko.md)
 
@@ -8,10 +8,10 @@
 
 ## What you get in one screen
 
-Most decisions are reversible and don't need a 30-minute team review. Type `/overture:sail "your question"` and get this:
+Most decisions are reversible and don't need a 30-minute team review. Type `/argus:sail "your question"` and get this:
 
 ```
-## Overture · Minimal · v0.1
+## Argus · Minimal · v0.1
 
 Recommendation: Just rename it to '작업실'. Zero user signal = zero downside.
 One check (<5 min): Any support tickets mentioning the old label? 0 = ship it.
@@ -19,7 +19,7 @@ Watch out: If users say "feels off" within 1 week of release, roll back.
 
 ─────
 density: low (reversible UI label) · team & boss skipped
-Force full pipeline: /overture:sail --full "..."
+Force full pipeline: /argus:sail --full "..."
 ```
 
 That's the entire output for a routine reversible call. **No team. No JSON. ~30 seconds.**
@@ -45,7 +45,7 @@ Final card shows:
 - **Tie-breaking condition**: *"if external EU GDPR advisor says '70% shippable', Victor wins"*
 - **3 user-required checkpoints**: contact advisor · measure EU DAU · verify competitor timeline
 
-User contacts the advisor. Comes back the next week, runs `/overture:sail --resume <session>`. v0.2 produced reflecting the new info. Ship goes ahead — but now with documented kill criteria and a kept record of who-said-what for the team to read later in `git`.
+User contacts the advisor. Comes back the next week, runs `/argus:sail --resume <session>`. v0.2 produced reflecting the new info. Ship goes ahead — but now with documented kill criteria and a kept record of who-said-what for the team to read later in `git`.
 
 This is what `team_contradictions[]` + `human_required_checkpoints[]` look like in practice. Not a verdict — a structure you can act on.
 
@@ -63,23 +63,23 @@ This is what `team_contradictions[]` + `human_required_checkpoints[]` look like 
 - "What's the syntax for X?" — Cursor or docs are faster
 - "Write me boilerplate for Y" — code generation, not judgment
 - Anything you'd commit before lunch with no team consultation
-- Decisions where you already know the answer and want validation — Overture preserves disagreement; that's not what you want here
+- Decisions where you already know the answer and want validation — Argus preserves disagreement; that's not what you want here
 
 ---
 
 ## Install (30 seconds)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/commet/Overture/main/overture-plugin-v2/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
 ```
 
 Restart Claude Code. Then in any repo:
 
 ```
-/overture:sail "Your decision question here"
+/argus:sail "Your decision question here"
 ```
 
-No setup needed. `.overture/config.yaml` auto-creates with sensible defaults (ISTJ stakeholder boss, locale auto-detected from `$LANG`). Edit later if you want a different boss persona.
+No setup needed. `.argus/config.yaml` auto-creates with sensible defaults (ISTJ stakeholder boss, locale auto-detected from `$LANG`). Edit later if you want a different boss persona.
 
 ---
 
@@ -88,7 +88,7 @@ No setup needed. `.overture/config.yaml` auto-creates with sensible defaults (IS
 When clarify decides your question is genuinely meaty (important/critical stakes, multiple frames in tension), sail auto-chains: clarify → 3-4 agents in parallel → boss review → consolidated card. You see brief progress lines between steps, then this:
 
 ```
-## Overture · 2026-04-29-boss-absorption · v0.1
+## Argus · 2026-04-29-boss-absorption · v0.1
 
 Question: Are the two surfaces' user bases separate enough to justify
           maintaining duplicate Boss code?
@@ -106,17 +106,17 @@ Top action this week: Pull DAU split by surface · 4hr migration spike
 
 👤 Human-required (3): Confirm DAU ratio (only you can see it)
 
-📁 .overture/sessions/2026-04-29-boss-absorption/versions/v0.1/
-🗺  Full tree: /overture:chart
+📁 .argus/sessions/2026-04-29-boss-absorption/versions/v0.1/
+🗺  Full tree: /argus:chart
 ```
 
-Behind it: 5 JSON files preserving every agent's voice + the debate that surfaced. Open them via `/overture:chart` when you want depth.
+Behind it: 5 JSON files preserving every agent's voice + the debate that surfaced. Open them via `/argus:chart` when you want depth.
 
 ---
 
 ## How sail routes
 
-`/overture:sail "..."` doesn't always run the full pipeline. It auto-routes by `decision_density` and `stakes_confidence` — both produced by clarify in seconds:
+`/argus:sail "..."` doesn't always run the full pipeline. It auto-routes by `decision_density` and `stakes_confidence` — both produced by clarify in seconds:
 
 | Your question shape | Output | Why |
 |---|---|---|
@@ -126,16 +126,16 @@ Behind it: 5 JSON files preserving every agent's voice + the debate that surface
 | Anything else | Standard 4-option dialog (full / team-only / quick / pause). | Last-resort fallback. |
 
 **Override paths**
-- `/overture:sail --full "..."` — force full pipeline regardless of density
-- `/overture:sail --quick "..."` — clarify only, regular scaffold (no MinimalScaffold collapse)
-- `/overture:sail --no-boss "..."` — skip boss review at the end
-- `/overture:sail --resume <session-id>` — continue a paused session
+- `/argus:sail --full "..."` — force full pipeline regardless of density
+- `/argus:sail --quick "..."` — clarify only, regular scaffold (no MinimalScaffold collapse)
+- `/argus:sail --no-boss "..."` — skip boss review at the end
+- `/argus:sail --resume <session-id>` — continue a paused session
 
 ---
 
 ## Configuration
 
-First run: zero setup. `.overture/config.yaml` auto-created on first `/overture:sail`. Sensible defaults (ISTJ default boss). Edit only if you want different MBTI / locale / role label:
+First run: zero setup. `.argus/config.yaml` auto-created on first `/argus:sail`. Sensible defaults (ISTJ default boss). Edit only if you want different MBTI / locale / role label:
 
 ```yaml
 boss:
@@ -147,7 +147,7 @@ boss:
 locale: en               # en | ko
 ```
 
-Per-repo. Commits with your code. Sessions in `.overture/sessions/` ship with the repo, so teams share decision history via git.
+Per-repo. Commits with your code. Sessions in `.argus/sessions/` ship with the repo, so teams share decision history via git.
 
 **Dev mode** (symlink install via `--link`): edit skill `.md` files → restart Claude Code to apply. Skill bodies cache at session start; symlinked file changes don't take effect mid-session.
 
@@ -155,11 +155,11 @@ Per-repo. Commits with your code. Sessions in `.overture/sessions/` ship with th
 
 ## What's behind the scenes
 
-`/overture:sail` orchestrates four sub-skills:
-- `/overture:clarify` — sharpen the question (often emits the answer for low-density)
-- `/overture:team` — deploy 2–4 agents as workers on the actual artifact
-- `/overture:boss` — your stakeholder reviews (one of 16 MBTI personas)
-- `/overture:chart` — version tree view + draft management
+`/argus:sail` orchestrates four sub-skills:
+- `/argus:clarify` — sharpen the question (often emits the answer for low-density)
+- `/argus:team` — deploy 2–4 agents as workers on the actual artifact
+- `/argus:boss` — your stakeholder reviews (one of 16 MBTI personas)
+- `/argus:chart` — version tree view + draft management
 
 **The 17-agent team** auto-selects 2–4 per session based on task type. Each agent has a distinct voice (research / strategy / numbers / UX / legal / risk / etc.). Critical-stakes decisions add a mandatory risk reviewer (Blake) for stage-2 critique.
 
@@ -177,5 +177,5 @@ Per-repo. Commits with your code. Sessions in `.overture/sessions/` ship with th
 - JSON schemas — `data/schemas/*.json` (analysis-snapshot, minimal-scaffold, final-scaffold, draft, session, etc.)
 - Version tree mechanics — `lib/session/version-numbering.md`
 - Build status, decision log, fix history — `BUILD_STATUS.md`
-- **Webapp** — [overture.so](https://overture.so) (Next.js with richer UI). Plugin shares agent identities + MBTI archetypes + draft tree model. Plugin diverges on output shape (scaffold vs markdown), agent role (workers vs reviewers), environment (code-native vs prose), and persistence (filesystem vs Supabase).
+- **Webapp** — [argus.so](https://argus.so) (Next.js with richer UI). Plugin shares agent identities + MBTI archetypes + draft tree model. Plugin diverges on output shape (scaffold vs markdown), agent role (workers vs reviewers), environment (code-native vs prose), and persistence (filesystem vs Supabase).
 - **License** — MIT

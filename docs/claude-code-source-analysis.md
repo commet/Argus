@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-01  
 **Source**: https://github.com/anthropics/claude-code (anthropics/claude-code)  
-**Purpose**: Extract architecture patterns applicable to Overture's skill/plugin system
+**Purpose**: Extract architecture patterns applicable to Argus's skill/plugin system
 
 ---
 
@@ -105,7 +105,7 @@ Based on the above changes:
 | `argument-hint` | Document args | `[pr-number] [priority]` |
 | `disable-model-invocation` | Manual-only | `true` |
 
-**Applicability to Overture**: This pattern maps directly to our skill system. Each Overture skill could be a `.md` file with frontmatter defining metadata and the body containing the LLM instructions.
+**Applicability to Argus**: This pattern maps directly to our skill system. Each Argus skill could be a `.md` file with frontmatter defining metadata and the body containing the LLM instructions.
 
 ---
 
@@ -165,7 +165,7 @@ Phase 7 (Summary)      → Documentation of outcomes
 - **Progressive disclosure**: Each phase builds on previous output
 - **Confidence scoring**: code-reviewer uses 0-100 confidence, only reports >= 80
 
-**Applicability to Overture**: This maps directly to our Recast → Persona Feedback → Refinement pipeline. Each step could be an agent with explicit handoff points.
+**Applicability to Argus**: This maps directly to our Recast → Persona Feedback → Refinement pipeline. Each step could be an agent with explicit handoff points.
 
 ---
 
@@ -239,7 +239,7 @@ skill-name/
     └── validate.sh
 ```
 
-**Applicability to Overture**: This progressive disclosure pattern solves our context window management problem. Overture skills should use the same 3-level loading:
+**Applicability to Argus**: This progressive disclosure pattern solves our context window management problem. Argus skills should use the same 3-level loading:
 - L1: Always show skill name + description in system prompt
 - L2: Load full skill instructions only when activated
 - L3: Load reference files only when the skill explicitly calls for them
@@ -319,7 +319,7 @@ The security hook monitors Write/Edit/MultiEdit operations for dangerous pattern
 
 Uses session-scoped deduplication (JSON files in `~/.claude/`) to avoid warning fatigue.
 
-**Applicability to Overture**: This hook system maps to our quality signals and refinement triggers. We could implement:
+**Applicability to Argus**: This hook system maps to our quality signals and refinement triggers. We could implement:
 - `PreAnalysis` hooks for input validation
 - `PostPersonaFeedback` hooks for quality scoring
 - `PreOutput` hooks for formatting consistency
@@ -395,7 +395,7 @@ Before the context window is compacted, hooks can inject critical information th
 }
 ```
 
-**Applicability to Overture**: This is directly relevant to our context chain (decompose → recast → persona-feedback → refinement). We need a similar mechanism to ensure critical analysis results survive context compaction.
+**Applicability to Argus**: This is directly relevant to our context chain (decompose → recast → persona-feedback → refinement). We need a similar mechanism to ensure critical analysis results survive context compaction.
 
 ---
 
@@ -428,7 +428,7 @@ The `ralph-wiggum` plugin implements an autonomous iteration loop:
 
 **Key constraint**: "The completion promise may ONLY be output when the statement is completely and unequivocally TRUE"
 
-**Applicability to Overture**: This maps to our refinement loop. The persona feedback → revision cycle could use a similar stop-hook pattern where the loop continues until quality criteria are met.
+**Applicability to Argus**: This maps to our refinement loop. The persona feedback → revision cycle could use a similar stop-hook pattern where the loop continues until quality criteria are met.
 
 ---
 
@@ -473,7 +473,7 @@ Agents follow structured output patterns:
 
 ---
 
-## 11. Key Patterns Summary for Overture Plugin System
+## 11. Key Patterns Summary for Argus Plugin System
 
 ### Pattern 1: Markdown-as-Code
 Everything is a `.md` file. Commands, agents, skills — all markdown with YAML frontmatter. No compilation, no registry. Drop file → auto-discovered.
@@ -507,11 +507,11 @@ Stop hook intercepts completion → re-feeds prompt → loop continues until cri
 
 ---
 
-## 12. Recommended Application to Overture
+## 12. Recommended Application to Argus
 
 ### Immediate Applicability
 
-1. **Skill files as markdown**: Each Overture skill (reframe, recast, rehearse, refine) could be a SKILL.md with the same 3-level progressive disclosure
+1. **Skill files as markdown**: Each Argus skill (reframe, recast, rehearse, refine) could be a SKILL.md with the same 3-level progressive disclosure
 2. **Command frontmatter**: Adopt the YAML frontmatter pattern for skill metadata, tool permissions, and model selection
 3. **Agent orchestration**: The feature-dev 7-phase pattern maps to our decompose → recast → persona → refinement pipeline
 4. **Confidence scoring**: Apply to persona feedback quality — only surface insights above threshold
@@ -519,11 +519,11 @@ Stop hook intercepts completion → re-feeds prompt → loop continues until cri
 
 ### Architecture Decisions
 
-| Claude Code Pattern | Overture Application |
+| Claude Code Pattern | Argus Application |
 |---------------------|---------------------|
-| `commands/*.md` auto-discovery | `skills/*.md` auto-discovery in Overture |
-| YAML frontmatter + markdown body | Same for Overture skill definitions |
-| `${CLAUDE_PLUGIN_ROOT}` | `${OVERTURE_SKILL_ROOT}` for portable paths |
+| `commands/*.md` auto-discovery | `skills/*.md` auto-discovery in Argus |
+| YAML frontmatter + markdown body | Same for Argus skill definitions |
+| `${CLAUDE_PLUGIN_ROOT}` | `${ARGUS_SKILL_ROOT}` for portable paths |
 | 3-level progressive disclosure | L1: skill list, L2: skill body, L3: references |
 | Hook lifecycle events | Analysis lifecycle: PreAnalysis, PostPersona, PreOutput |
 | Parallel agent dispatch | Parallel persona simulation |
@@ -533,9 +533,9 @@ Stop hook intercepts completion → re-feeds prompt → loop continues until cri
 
 ### Gaps to Fill
 
-Claude Code patterns that Overture needs but must build differently:
+Claude Code patterns that Argus needs but must build differently:
 
-1. **State persistence between skills**: Claude Code uses files/git. Overture needs handoff store or context chain.
-2. **User pattern learning**: Claude Code has no adaptive learning. Overture needs signal-recorder integration.
-3. **Non-code output**: Claude Code optimizes for code. Overture must handle strategic analysis, presentation decks, etc.
-4. **Quality measurement**: Claude Code uses binary pass/fail confidence. Overture needs multi-dimensional DQ scoring.
+1. **State persistence between skills**: Claude Code uses files/git. Argus needs handoff store or context chain.
+2. **User pattern learning**: Claude Code has no adaptive learning. Argus needs signal-recorder integration.
+3. **Non-code output**: Claude Code optimizes for code. Argus must handle strategic analysis, presentation decks, etc.
+4. **Quality measurement**: Claude Code uses binary pass/fail confidence. Argus needs multi-dimensional DQ scoring.

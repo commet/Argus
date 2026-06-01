@@ -1,6 +1,6 @@
 # Locale Conventions
 
-Every skill honors `config.locale` from `.overture/config.yaml`. Default is `ko` when config is missing or locale field absent.
+Every skill honors `config.locale` from `.argus/config.yaml`. Default is `ko` when config is missing or locale field absent.
 
 ## Affected surfaces
 
@@ -39,4 +39,4 @@ The webapp takes the same approach: `personality-types.ts` has `PERSONALITY_TYPE
 
 If user input is in English but locale is `ko`, plugin responds in Korean (respecting config) but can include the English phrases inline in `<user-data>` tags. Vice versa.
 
-If users want ad-hoc locale override without editing config, `/overture:sail --locale en "..."` flag support is **post-MVP**.
+If users want ad-hoc locale override without editing config, `/argus:sail --locale en "..."` flag support is **post-MVP**.

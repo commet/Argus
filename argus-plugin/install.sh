@@ -1,11 +1,11 @@
 #!/bin/bash
-# Overture installer — installs skills, agents, and statusline to Claude Code
+# Argus installer — installs skills, agents, and statusline to Claude Code
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/commet/Overture/main/overture-plugin/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin/install.sh | bash
 #
 # Developer mode (symlinks — edit once, reflected everywhere):
-#   cd /path/to/Overture && ./overture-plugin/install.sh --link
+#   cd /path/to/Argus && ./argus-plugin/install.sh --link
 
 set -e
 
@@ -41,7 +41,7 @@ if [ ! -d "$CLAUDE_DIR" ]; then
 fi
 
 echo ""
-echo -e "${BOLD}  Overture${NC} — structured thinking for decisions and plans"
+echo -e "${BOLD}  Argus${NC} — structured thinking for decisions and plans"
 echo ""
 
 # ── Determine source ──
@@ -50,8 +50,8 @@ if [ "$LINK_MODE" = true ]; then
   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
   SOURCE_DIR="$SCRIPT_DIR"
 
-  if [ ! -f "$SOURCE_DIR/skills/overture/SKILL.md" ]; then
-    fail "Run from repo root: ./overture-plugin/install.sh --link"
+  if [ ! -f "$SOURCE_DIR/skills/argus/SKILL.md" ]; then
+    fail "Run from repo root: ./argus-plugin/install.sh --link"
     exit 1
   fi
 
@@ -59,7 +59,7 @@ if [ "$LINK_MODE" = true ]; then
 else
   # User mode: clone to temp
   TEMP_DIR=$(mktemp -d)
-  REPO="https://github.com/commet/Overture.git"
+  REPO="https://github.com/commet/Argus.git"
 
   info "Downloading latest version..."
   if ! git clone --depth 1 --quiet "$REPO" "$TEMP_DIR" 2>/dev/null; then
@@ -68,9 +68,9 @@ else
     exit 1
   fi
 
-  SOURCE_DIR="$TEMP_DIR/overture-plugin"
+  SOURCE_DIR="$TEMP_DIR/argus-plugin"
 
-  if [ ! -f "$SOURCE_DIR/skills/overture/SKILL.md" ]; then
+  if [ ! -f "$SOURCE_DIR/skills/argus/SKILL.md" ]; then
     fail "Downloaded package is incomplete. Try again."
     rm -rf "$TEMP_DIR"
     exit 1
@@ -148,16 +148,16 @@ fi
 if [ -f "$SOURCE_DIR/statusline/index.js" ]; then
   mkdir -p "$CLAUDE_DIR/statusline"
   if [ "$LINK_MODE" = true ]; then
-    ln -sf "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/overture.js"
+    ln -sf "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/argus.js"
   else
-    cp "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/overture.js"
+    cp "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/argus.js"
   fi
   ok "Statusline installed"
 fi
 
 # ── Create data directory ──
-mkdir -p .overture
-ok "Data directory ready (.overture/)"
+mkdir -p .argus
+ok "Data directory ready (.argus/)"
 
 # ── Cleanup (user mode only) ──
 if [ "$LINK_MODE" = false ] && [ -n "$TEMP_DIR" ]; then
@@ -166,7 +166,7 @@ fi
 
 # ── Verify ──
 ERRORS=0
-for required in overture reframe recast rehearse refine; do
+for required in argus reframe recast rehearse refine; do
   if [ ! -f "$CLAUDE_DIR/skills/$required/SKILL.md" ] && [ ! -L "$CLAUDE_DIR/skills/$required" ]; then
     fail "Missing: $required"
     ERRORS=$((ERRORS + 1))
@@ -178,19 +178,19 @@ echo ""
 if [ $ERRORS -eq 0 ]; then
   echo -e "${GREEN}${BOLD}  Installed successfully (v0.4.0)${NC}"
   if [ "$LINK_MODE" = true ]; then
-    echo -e "  ${DIM}Mode: symlink (edit overture-plugin/ → changes reflect immediately)${NC}"
+    echo -e "  ${DIM}Mode: symlink (edit argus-plugin/ → changes reflect immediately)${NC}"
   fi
   echo ""
   echo "  Restart Claude Code, then try:"
   echo ""
-  echo -e "    ${BOLD}/overture${NC} \"기획안 써야 하는데 막막해\""
+  echo -e "    ${BOLD}/argus${NC} \"기획안 써야 하는데 막막해\""
   echo ""
   echo -e "  ${DIM}30초 안에 초안이 나옵니다.${NC}"
   echo -e "  ${DIM}질문 2-3개에 답하면 바로 제출 가능한 문서가 완성됩니다.${NC}"
   echo ""
-  echo -e "  ${DIM}더 알아보기: /overture:help${NC}"
+  echo -e "  ${DIM}더 알아보기: /argus:help${NC}"
 else
-  fail "Installation incomplete. Run /overture:doctor for diagnostics."
+  fail "Installation incomplete. Run /argus:doctor for diagnostics."
 fi
 
 echo ""

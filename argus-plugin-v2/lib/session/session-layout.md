@@ -1,26 +1,26 @@
 # Session Directory Layout
 
-Every Overture session lives in `.overture/sessions/{session-id}/` relative to the repo root.
+Every Argus session lives in `.argus/sessions/{session-id}/` relative to the repo root.
 
 ## Layout
 
 ```
-.overture/
+.argus/
 ├── config.yaml                  # User's plugin config (boss MBTI, locale)
 ├── sessions/
 │   └── {session-id}/
-│       ├── session.json         # Top-level session record (schema: ~/.claude/overture-data/schemas/session.json)
+│       ├── session.json         # Top-level session record (schema: ~/.claude/argus-data/schemas/session.json)
 │       ├── versions/
 │       │   ├── v0.1/
-│       │   │   ├── analysis.json       # AnalysisSnapshot from /overture:clarify
+│       │   │   ├── analysis.json       # AnalysisSnapshot from /argus:clarify
 │       │   │   ├── questions_and_answers.json
 │       │   │   ├── meta.json           # {triggering_skill, timestamp, notes}
-│       │   │   ├── classification.json  # From /overture:team
+│       │   │   ├── classification.json  # From /argus:team
 │       │   │   ├── team_plan.json       # Agent assignments + stages
 │       │   │   ├── workers.json         # All WorkerResults
 │       │   │   ├── debate.json          # (critical stakes only)
 │       │   │   ├── mix.json             # Aggregated MixResult
-│       │   │   ├── boss_feedback.json   # From /overture:boss
+│       │   │   ├── boss_feedback.json   # From /argus:boss
 │       │   │   └── scaffold.json        # FinalScaffold (plugin-native output)
 │       │   ├── v0.2/
 │       │   │   └── ...
@@ -41,7 +41,7 @@ Collision-safe via `-N` suffix (2, 3, ...). Example:
 
 ## File naming conventions
 
-- JSON for machine-readable artifacts (conform to schemas in `~/.claude/overture-data/schemas/`).
+- JSON for machine-readable artifacts (conform to schemas in `~/.claude/argus-data/schemas/`).
 - `.log` for append-only text logs.
 - `meta.json` in each version dir holds non-artifact metadata (timestamp, triggering skill, user notes).
 
@@ -55,16 +55,16 @@ Collision-safe via `-N` suffix (2, 3, ...). Example:
 **Version-level** (in `versions/{label}/*.json`):
 - The ARTIFACTS produced during that version's lifecycle.
 - Immutable once complete (except `meta.json` for annotations).
-- A version starts when `/overture:clarify` / `:team` / `:boss` begins a new draft chain.
+- A version starts when `/argus:clarify` / `:team` / `:boss` begins a new draft chain.
 
 ## Git commitment
 
-The `.overture/` directory is designed to be **committed to the user's repo**. This is the plugin's unique moat vs the webapp: decision history travels with the code, shareable via `git`.
+The `.argus/` directory is designed to be **committed to the user's repo**. This is the plugin's unique moat vs the webapp: decision history travels with the code, shareable via `git`.
 
 Recommended `.gitignore`:
 ```
-.overture/errors.log
-.overture/sessions/*/versions/**/*.stream.partial
+.argus/errors.log
+.argus/sessions/*/versions/**/*.stream.partial
 ```
 
 Everything else should be committed.
@@ -74,9 +74,9 @@ Everything else should be committed.
 - `drafts[0]` is the root (`parent_draft_id: null`).
 - Each subsequent draft has `parent_draft_id` pointing to its parent.
 - `active_draft_id` = currently-focused draft (default: latest by `created_at`).
-- `released_draft_id` = draft marked as v{major}.0 via `/overture:chart --promote`.
+- `released_draft_id` = draft marked as v{major}.0 via `/argus:chart --promote`.
 
-When `active_draft_id` changes (`/overture:chart --checkout`), the session's
+When `active_draft_id` changes (`/argus:chart --checkout`), the session's
 surface view (`final_scaffold` at session root) reflects the active draft's scaffold.
 This is the "해도" affordance — navigating branches updates what's "current."
 
@@ -84,14 +84,14 @@ This is the "해도" affordance — navigating branches updates what's "current.
 
 | Skill | Files written |
 |---|---|
-| `/overture:clarify` | `analysis.json`, `questions_and_answers.json`, `meta.json` |
-| `/overture:team` | `classification.json`, `team_plan.json`, `workers.json`, (optional) `debate.json`, `mix.json`, `scaffold.json` |
-| `/overture:boss` | `boss_feedback.json`, updated `scaffold.json` (with applied/rejected concerns) |
-| `/overture:revise` | New version dir. Copies forward what's unchanged; writes `revise_directive.txt` + new `mix.json` (if revised). |
+| `/argus:clarify` | `analysis.json`, `questions_and_answers.json`, `meta.json` |
+| `/argus:team` | `classification.json`, `team_plan.json`, `workers.json`, (optional) `debate.json`, `mix.json`, `scaffold.json` |
+| `/argus:boss` | `boss_feedback.json`, updated `scaffold.json` (with applied/rejected concerns) |
+| `/argus:revise` | New version dir. Copies forward what's unchanged; writes `revise_directive.txt` + new `mix.json` (if revised). |
 
 ## Migration from old plugin (v0.5 → v2)
 
-Existing `.overture/journal.md` files from v0.5 are **not migrated**. Plugin-v2 treats them as legacy:
+Existing `.argus/journal.md` files from v0.5 are **not migrated**. Plugin-v2 treats them as legacy:
 - Statusline still reads them (for DQ trend display).
 - No active skill reads/writes them.
 - User can delete them when comfortable.

@@ -1,14 +1,14 @@
-# Overture plugin config template.
-# Copy to `.overture/config.yaml` in your repo and customize.
-# Schema: ~/.claude/overture-data/schemas/config.json
+# Argus plugin config template.
+# Copy to `.argus/config.yaml` in your repo and customize.
+# Schema: ~/.claude/argus-data/schemas/config.json
 #
-# On first `/overture:sail` invocation, if .overture/config.yaml is missing, the
+# On first `/argus:sail` invocation, if .argus/config.yaml is missing, the
 # skill offers to create one from this template via AskUserQuestion.
 
 locale: ko  # or "en"
 
 boss:
-  mbti_code: ISTJ  # Must match an entry in ~/.claude/overture-data/boss-types.yaml. See choices:
+  mbti_code: ISTJ  # Must match an entry in ~/.claude/argus-data/boss-types.yaml. See choices:
                    # ISTJ, ISFJ, INFJ, INTJ, ISTP, ISFP, INFP, INTP,
                    # ESTP, ESFP, ENFP, ENTP, ESTJ, ESFJ, ENFJ, ENTJ
   name: "박 팀장"
@@ -21,4 +21,4 @@ team:
   # preferred_agents: [donghyuk, jieun]
 
 archive:
-  commit_sessions: false  # If true, /overture:chart suggests git commit at phase=complete
+  commit_sessions: false  # If true, /argus:chart suggests git commit at phase=complete

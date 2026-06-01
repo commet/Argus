@@ -1,4 +1,4 @@
-# Overture 종합 세션 정리 — 2026-03-25 ~ 2026-03-28
+# Argus 종합 세션 정리 — 2026-03-25 ~ 2026-03-28
 
 > 4일, 51개 커밋, 226개 파일, +32,293줄 / -1,559줄
 > 전략 수립 → 학술 기반 설계 → 웹앱 구현 → 플러그인 패키징 → 테스트 인프라 → 자기 비평 → 개선 설계
@@ -56,7 +56,7 @@
 
 ### 핵심 테제
 
-> AI가 더 자율적으로 일할수록, 시작점의 판단이 더 중요해진다. Overture는 그 시작점을 설계하는 메타 레이어다.
+> AI가 더 자율적으로 일할수록, 시작점의 판단이 더 중요해진다. Argus는 그 시작점을 설계하는 메타 레이어다.
 
 - 인간 개입 "최소화"가 아니라 인간 판단의 "밀도"를 높이는 도구
 - 4단계(Reframe → Recast → Rehearse → Refine)는 줄이지 않되, 데이터 축적으로 속도와 마찰을 줄이는 방향
@@ -65,7 +65,7 @@
 
 - "구조화된 다관점 AI 의사결정 제품" = **0개**
 - "AI 악마의 대변인 제품" = **0개**
-- Manyfast = "문서 생성기" (What to build), Overture = "판단 설계 도구" (Should we? Why?)
+- Manyfast = "문서 생성기" (What to build), Argus = "판단 설계 도구" (Should we? Why?)
 - McKinsey/BCG는 내부 도구만. GIC, Audax PE가 자체 개발해야 했을 정도로 공백
 
 ### 배포 전략
@@ -77,7 +77,7 @@
 ### Anthropic 관점
 
 - Anthropic이 못 풀고 있는 sycophancy 문제(58% 상황)를 제품 레이어에서 우회 → 보완적 가치
-- 가장 현실적 경로: 리서치 가치 — "Overture가 효과가 있다"는 데이터
+- 가장 현실적 경로: 리서치 가치 — "Argus가 효과가 있다"는 데이터
 - Anthropic 하네스 디자인 아티클 적용: Generator-Evaluator 분리, 주관적 품질의 정량화, Sprint Contract
 
 ### 3가지 Deliverable
@@ -94,7 +94,7 @@
 
 ### 핵심 발견
 
-| 출처 | 발견 | Overture 연결 |
+| 출처 | 발견 | Argus 연결 |
 |------|------|-------------|
 | Dell'Acqua/Harvard-BCG (758명) | 구조화 AI가 자유대화 대비 12% 우수 | 4R 파이프라인 존재 이유 |
 | Du/MIT | 멀티에이전트 토론 → 추론 정확도 8%p ↑ | 페르소나 다관점 토론 |
@@ -104,7 +104,7 @@
 | Mandel 2024 | ACH는 판단 품질 향상에 효과 미미 | "프로세스 준수 ≠ 사고 품질" 경고 |
 | CHI 2025 | AI 신뢰도 ↑ → 비판적 사고 ↓ | Vitality Engine 경직 감지 |
 
-### Overture 고유 연구 질문
+### Argus 고유 연구 질문
 
 > "개별 기법(CoT, 멀티에이전트, 프리모템, 악마의 대변인)을 하나의 워크플로우로 통합했을 때 시너지가 있는가?"
 
@@ -141,18 +141,18 @@
 ### 구조 (16개 파일)
 
 ```
-overture-plugin/
+argus-plugin/
 ├── .claude-plugin/plugin.json
 ├── install.sh (원라인 설치 + ASCII 로고)
 ├── agents/
 │   └── devils-advocate.md (context: fork)
 └── skills/
-    ├── help/        (/overture-help)
+    ├── help/        (/argus-help)
     ├── reframe/     + references/reframing-strategies.md
     ├── recast/      + references/execution-design.md
     ├── rehearse/    + references/persona-design.md, risk-classification.md
     ├── refine/      + references/convergence.md
-    └── overture/    + references/decision-quality.md
+    └── argus/    + references/decision-quality.md
 ```
 
 ### CLI 디자인 시스템
@@ -165,7 +165,7 @@ overture-plugin/
 ### 시그니처 요소
 
 - **"What you didn't see"** — 매 실행 끝에 불편한 사각지대 한 문장
-- **학습 저널** (`.overture/journal.md`) — 매 실행 후 자동 기록, 재사용 시 패턴 참고
+- **학습 저널** (`.argus/journal.md`) — 매 실행 후 자동 기록, 재사용 시 패턴 참고
 
 ---
 
@@ -311,7 +311,7 @@ SKILL.md 5개 전면 개편. 3개 파이프라인 실행으로 검증.
 /recast   → context 상속              ← governing_idea vs product thesis
 /rehearse → context 상속              ← 페르소나 선택에 반영
 /refine   → context 상속              ← 수렴 기준 동일
-/overture → context 자동 감지         ← 딜리버블이 분기
+/argus → context 자동 감지         ← 딜리버블이 분기
 ```
 
 ---
@@ -347,7 +347,7 @@ SKILL.md 5개 전면 개편. 3개 파이프라인 실행으로 검증.
     ↓ Contract: evidence, crux (상속), spec, personas
 /rehearse → Evidence-grounded personas + Crux 집중 공격
     ↓ Contract: risks, critiques, crux_attack_result
-/refine + /overture → Validation Checklist + Conviction Delta + Epistemic Status
+/refine + /argus → Validation Checklist + Conviction Delta + Epistemic Status
 ```
 
 ### 해자 가능성
@@ -402,7 +402,7 @@ SKILL.md 5개 전면 개편. 3개 파이프라인 실행으로 검증.
 
 ```
 .claude/skills/
-├── overture/         풀 파이프라인 오케스트레이터
+├── argus/         풀 파이프라인 오케스트레이터
 ├── reframe/          Phase 1 + references/reframing-strategies.md
 ├── recast/           Phase 2 + references/execution-design.md
 ├── rehearse/         Phase 3 + references/persona-design.md, risk-classification.md
@@ -411,8 +411,8 @@ SKILL.md 5개 전면 개편. 3개 파이프라인 실행으로 검증.
 ├── output-skill/ redesign-skill/ soft-skill/ taste-skill/
 └── (기타 유틸리티 스킬)
 
-overture-plugin/skills/  ← CLI와 동일 구조
-overture-plugin/agents/
+argus-plugin/skills/  ← CLI와 동일 구조
+argus-plugin/agents/
 └── devils-advocate.md
 ```
 
@@ -426,13 +426,13 @@ overture-plugin/agents/
 2. Crux Identification → /reframe에 crux 질문 + Contract `crux:` 필드
 3. Epistemic Status → /reframe 카드에 근거 수준 2줄
 4. Crux 집중 공격 → /rehearse에 Contract crux 최우선 공격
-5. Validation Checklist → /refine, /overture에 crux 기반 행동 목록
-6. Epistemic Status (누적) → /overture 최종 deliverable
+5. Validation Checklist → /refine, /argus에 crux 기반 행동 목록
+6. Epistemic Status (누적) → /argus 최종 deliverable
 
 ### Phase 2 — 구조 변경
 
 7. MVT 제안 — crux 성격별 검증 방법 매핑
-8. Conviction Delta — /overture 시작/끝 확신도 기록
+8. Conviction Delta — /argus 시작/끝 확신도 기록
 9. Outcome Hook — 저널에 outcome_check 필드 + Before starting rule
 
 ### Phase 3 — WebSearch + Embedding
@@ -446,10 +446,10 @@ overture-plugin/agents/
 ### 미완성 테스트
 
 - /reframe 전체 플로우 end-to-end (Q1까지만 테스트)
-- /recast, /rehearse, /refine, /overture 실사용 테스트 0회
+- /recast, /rehearse, /refine, /argus 실사용 테스트 0회
 - Devil's Advocate 에이전트 동작 미확인
 - 학습 저널 생성/읽기 미확인
-- /overture context window 소진 여부 미확인
+- /argus context window 소진 여부 미확인
 - 한글 모노스페이스 정렬 미확인
 
 ### 열린 질문
@@ -472,7 +472,7 @@ overture-plugin/agents/
 ### 03-26
 | 커밋 | 내용 |
 |------|------|
-| `0c9f191` | feat: Overture Claude Code plugin + web app improvements |
+| `0c9f191` | feat: Argus Claude Code plugin + web app improvements |
 | `586cbf3` | feat: add install.sh — one-line installer |
 | `cddab97` | feat: complete reframe redesign — web app flow + CLI design system |
 | `5186c60` | feat: plugin output redesign — single-card format |

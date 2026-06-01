@@ -20,7 +20,7 @@ allowed-tools: Read, Write, Agent, AskUserQuestion
 
 ## Context extraction
 
-Read `.overture/rehearse.md`, `.overture/recast.md`, `.overture/reframe.md` for contracts.
+Read `.argus/rehearse.md`, `.argus/recast.md`, `.argus/reframe.md` for contracts.
 
 **Immutable constraints (from /recast):**
 - `governing_idea` → revised plan MUST still serve this. If contradicted, flag.
@@ -93,7 +93,7 @@ Recommendations, not blockers.
 
 ---
 
-**Overture · Refine** — 수정 반영 · Round [N]
+**Argus · Refine** — 수정 반영 · Round [N]
 
 **변경 사항**
 
@@ -149,7 +149,7 @@ Recommendations, not blockers.
 
 ## Auto-save
 
-Save to `.overture/refine.md`:
+Save to `.argus/refine.md`:
 - Top: changes, results, final plan
 - Bottom: Context Contract (converged, rounds, critical_remaining, key_changes)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Overture Status Line for Claude Code
+ * Argus Status Line for Claude Code
  *
  * Design principle: show what changes behavior, not what decorates the screen.
  * Every line must contain information the user CANNOT see in the conversation.
@@ -50,7 +50,7 @@ function readStdin() {
 let journalCache = { mtime: 0, data: null };
 
 function parseJournal(cwd) {
-  const jpath = join(cwd, ".overture", "journal.md");
+  const jpath = join(cwd, ".argus", "journal.md");
   if (!existsSync(jpath)) return null;
 
   try {
@@ -77,7 +77,7 @@ function parseJournal(cwd) {
     const dqScores = [];
     const blindSpots = [];
     const growthEdges = [];
-    const skills = { reframe: 0, recast: 0, rehearse: 0, refine: 0, overture: 0 };
+    const skills = { reframe: 0, recast: 0, rehearse: 0, refine: 0, argus: 0 };
     let assumptionStats = { confident: 0, uncertain: 0, doubtful: 0 };
 
     for (const e of entries) {
@@ -231,10 +231,10 @@ function parseTranscriptQuality(transcriptPath) {
     if (!entry.message?.content) continue;
 
     for (const block of entry.message.content) {
-      // Detect Overture pipeline
+      // Detect Argus pipeline
       if (block.type === "tool_use" && block.name === "Skill" && block.input?.skill) {
         const sk = block.input.skill.toLowerCase();
-        if (sk.includes("overture")) result.pipelineActive = true;
+        if (sk.includes("argus")) result.pipelineActive = true;
         for (const s of ["reframe", "recast", "rehearse", "refine"]) {
           if (sk.includes(s)) result.currentStage = s;
         }
@@ -244,7 +244,7 @@ function parseTranscriptQuality(transcriptPath) {
       const t = block.text;
 
       // Detect stage from card headers
-      const hm = t.match(/Overture\s*·\s*(Reframe|Recast|Rehearse|Refine)/i);
+      const hm = t.match(/Argus\s*·\s*(Reframe|Recast|Rehearse|Refine)/i);
       if (hm) result.currentStage = hm[1].toLowerCase();
 
       // Extract decision maker (DM / 판단자)
@@ -265,7 +265,7 @@ function parseTranscriptQuality(transcriptPath) {
         const pnm =
           t.match(/프로젝트\s*[:：]\s*([^\n·|]{2,40})/i) ||
           t.match(/Project\s*[:：]\s*([^\n·|]{2,40})/i) ||
-          t.match(/\*\*([^*\n]{3,40})\*\*\s*\n.*(?:Overture|Reframe|판단)/i);
+          t.match(/\*\*([^*\n]{3,40})\*\*\s*\n.*(?:Argus|Reframe|판단)/i);
         if (pnm) {
           const raw = pnm[1].trim().split(/[\n·|]/)[0].trim();
           if (raw.length >= 2) result.projectName = truncate(raw, 35);
@@ -398,7 +398,7 @@ function estimateExchangesLeft(stdin) {
 
 function main() {
   const stdin = readStdin();
-  if (!stdin) { process.stdout.write("Overture"); return; }
+  if (!stdin) { process.stdout.write("Argus"); return; }
 
   const out = [];
   const cwd = stdin.cwd || stdin.workspace?.current_dir || ".";

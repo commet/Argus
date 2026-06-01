@@ -10,7 +10,7 @@ allowed-tools: Read, Write, Agent, AskUserQuestion
 - ✓ After /recast — see how stakeholders would react
 - ✓ Before presenting to leadership or stakeholders
 - ✓ When you suspect blind spots but can't find them
-- ✓ Triggered as "XX은 뭐라고 할까?" from /overture
+- ✓ Triggered as "XX은 뭐라고 할까?" from /argus
 - ✗ When the plan is still too vague (run /recast first)
 - ✗ Quick, low-stakes decisions
 
@@ -26,14 +26,14 @@ If no `/recast` result and no argument:
 
 ## Context extraction
 
-Read `.overture/recast.md` and `.overture/reframe.md` for contracts.
+Read `.argus/recast.md` and `.argus/reframe.md` for contracts.
 
 **From /recast:** governing_idea, steps, key_assumptions (attack surface), personas (use exactly)
 **From /reframe:** assumptions_doubtful (probe FIRST and HARDEST), reframed_question
 
 ### Who reviews:
 - If `/recast` provided personas → use exactly
-- If `/overture` set a `judge` → create persona matching that judge + 1-2 additional
+- If `/argus` set a `judge` → create persona matching that judge + 1-2 additional
 - Otherwise → auto-generate based on context (see below)
 
 ## Step 1: Auto-generate personas (no setup needed)
@@ -134,7 +134,7 @@ These are recommendations, not blockers.
 
 ---
 
-**Overture · Rehearse** — 사전 검증
+**Argus · Rehearse** — 사전 검증
 
 **바꿔야 할 것**
 1. [action — specific]
@@ -194,7 +194,7 @@ Severity-based actions:
 
 ---
 
-**Overture · Rehearse** — 사전 검증
+**Argus · Rehearse** — 사전 검증
 
 **바꿔야 할 것**
 1. [action]
@@ -254,7 +254,7 @@ Severity-based actions:
 
 ## Auto-save
 
-Save to `.overture/rehearse.md`:
+Save to `.argus/rehearse.md`:
 - Top: actions + persona summaries + DA
 - Bottom: Context Contract (risks by category, approval_conditions, persona_profiles with ALL fields for /refine)
 

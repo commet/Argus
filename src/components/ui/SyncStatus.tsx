@@ -36,14 +36,14 @@ export function SyncStatus() {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    window.addEventListener('overture:sync', handleSyncEvent);
+    window.addEventListener('argus:sync', handleSyncEvent);
 
     if (!navigator.onLine) setState('offline');
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('overture:sync', handleSyncEvent);
+      window.removeEventListener('argus:sync', handleSyncEvent);
     };
   }, [handleSyncEvent]);
 

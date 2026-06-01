@@ -1,4 +1,4 @@
-# Overture Agent System — 구현 현황 및 잔여 과제
+# Argus Agent System — 구현 현황 및 잔여 과제
 
 > 2026-04-03 기준. 이 문서는 에이전트 시스템의 중심 문서입니다.
 

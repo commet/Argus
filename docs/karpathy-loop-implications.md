@@ -1,9 +1,9 @@
-# Karpathy Loop과 Overture: 자동화 루프의 한계가 판단 하네스의 시장이다
+# Karpathy Loop과 Argus: 자동화 루프의 한계가 판단 하네스의 시장이다
 
-> 2026-03-29 | Overture 전략 문서
+> 2026-03-29 | Argus 전략 문서
 >
 > 배경: 2026년 3월 Andrej Karpathy의 `autoresearch` 공개 이후 "Karpathy Loop"이 급속히 확산.
-> 이 문서는 해당 현상이 Overture의 비전과 어떻게 교차하는지 정리한다.
+> 이 문서는 해당 현상이 Argus의 비전과 어떻게 교차하는지 정리한다.
 
 ---
 
@@ -134,34 +134,34 @@ Karpathy의 주장이자 Shopify의 결과가 뒷받침하는 것:
 
 ---
 
-## 6. Overture에 대한 함의
+## 6. Argus에 대한 함의
 
-### 6-1. Karpathy Loop의 한계 = Overture의 영역
+### 6-1. Karpathy Loop의 한계 = Argus의 영역
 
 Karpathy Loop이 작동하는 영역: 숫자로 측정 → 자동 반복 → 최적화.
 Karpathy Loop이 작동하지 않는 영역: **판단이 필요한 곳.**
 
-Overture의 4R 하네스(Reframe → Recast → Rehearse → Refine)는 정확히 이 "스칼라 메트릭 불가 영역"을 위한 구조화된 판단 프로세스다.
+Argus의 4R 하네스(Reframe → Recast → Rehearse → Refine)는 정확히 이 "스칼라 메트릭 불가 영역"을 위한 구조화된 판단 프로세스다.
 
 ```
 Karpathy Loop:  코드 수정 → 실행 → 숫자 평가 → 반복
-Overture 4R:    전제 재정의 → 실행 설계 → 다관점 검증 → 수렴 루프
+Argus 4R:    전제 재정의 → 실행 설계 → 다관점 검증 → 수렴 루프
 ```
 
 둘 다 반복 개선 구조이지만, **평가 레이어가 근본적으로 다르다:**
 - Karpathy: 스칼라 메트릭 (val_bpb, accuracy, latency)
-- Overture: 다관점 정성 평가 (페르소나 피드백, 가정 검증, 리스크 식별)
+- Argus: 다관점 정성 평가 (페르소나 피드백, 가정 검증, 리스크 식별)
 
-### 6-2. program.md ≈ Overture의 구조적 동형
+### 6-2. program.md ≈ Argus의 구조적 동형
 
 Karpathy의 `program.md`가 하는 것:
 > 방향(지시) + 제약 + 종료조건을 구조화된 산문으로 담아 에이전트에게 전달.
 
-Overture가 하는 것:
-> 4R 파이프라인의 각 단계 산출물을 `.overture/{skill}.md`에 저장하고,
+Argus가 하는 것:
+> 4R 파이프라인의 각 단계 산출물을 `.argus/{skill}.md`에 저장하고,
 > Context Contract로 체이닝하여 다음 단계 에이전트에게 전달.
 
-Overture의 최종 산출물인 **Agent Harness(CLAUDE.md 형태의 실행 지시서)**는
+Argus의 최종 산출물인 **Agent Harness(CLAUDE.md 형태의 실행 지시서)**는
 `program.md`의 확장판이다 — 단순히 "무엇을 실험하라"가 아니라
 "이 판단의 맥락, 검증된 가정, 식별된 리스크, 실행 우선순위"를 포함하는 고밀도 방향 설정 문서.
 
@@ -172,8 +172,8 @@ Overture의 최종 산출물인 **Agent Harness(CLAUDE.md 형태의 실행 지�
 - Interloom (뮌헨 스타트업): 운영 기록에서 암묵지를 추출하는 "컨텍스트 그래프" 구축. $16.5M 투자 유치.
 - 조직 내 운영 의사결정의 약 70%가 문서화된 적 없다는 전제.
 
-**Overture와의 관계:**
-| | Interloom | Overture |
+**Argus와의 관계:**
+| | Interloom | Argus |
 |-|-----------|----------|
 | 접근 | 과거 운영 기록에서 암묵지 **추출** | 의사결정 과정 자체를 **구조화**하여 암묵지가 자연스럽게 형식화 |
 | 시점 | 사후(retrospective) | 사전(prospective) |
@@ -181,11 +181,11 @@ Overture의 최종 산출물인 **Agent Harness(CLAUDE.md 형태의 실행 지�
 | 대상 | 조직 운영 패턴 | 개인/팀의 전략적 판단 |
 
 경쟁이 아니라 보완. 하지만 "암묵지의 형식지 전환"이라는 거대 트렌드 안에서
-Overture도 명확한 포지션을 가지고 있다는 점이 중요하다.
+Argus도 명확한 포지션을 가지고 있다는 점이 중요하다.
 
 ### 6-4. 판단 가치 상승 테제의 외부 검증
 
-Overture의 핵심 테제:
+Argus의 핵심 테제:
 > *"실행 비용이 0에 가까워질수록, 실행 이전의 판단의 가치는 올라간다."*
 
 Karpathy Loop은 이 테제의 실행 비용 쪽을 극적으로 증명한다.
@@ -200,23 +200,23 @@ Karpathy 자신이 `program.md`를 가장 중요한 파일로 지목한 것이 �
 
 1. **암묵지 → 형식지 전환이 AI 시대의 핵심 경쟁력으로 부상하고 있다.**
    CMR 논문, Interloom 투자, Karpathy Loop의 확산 — 모두 같은 방향을 가리킨다.
-   Overture의 judgment vitality 개념과 signal-recorder가 이 흐름 위에 있다.
+   Argus의 judgment vitality 개념과 signal-recorder가 이 흐름 위에 있다.
 
 2. **"구조화된 산문"이 코드보다 중요한 인간-에이전트 인터페이스가 되고 있다.**
-   `program.md`, `CLAUDE.md`, Overture의 `.overture/*.md` — 에이전트에게 방향을 설정하는 문서의 중요성이 코드 자체를 넘어서는 추세. Overture의 Agent Harness 산출물이 이 트렌드의 정중앙에 있다.
+   `program.md`, `CLAUDE.md`, Argus의 `.argus/*.md` — 에이전트에게 방향을 설정하는 문서의 중요성이 코드 자체를 넘어서는 추세. Argus의 Agent Harness 산출물이 이 트렌드의 정중앙에 있다.
 
 3. **스칼라 메트릭으로 환원 불가능한 영역(alignment, interpretability, 전략적 판단)이 인간 고유의 마지막 독점 영역으로 남는지 지켜봐야 한다.**
-   이 영역이 축소되지 않는 한, 그것이 Overture의 시장이다.
-   이 영역마저 자동화되기 시작하면, Overture의 Goodhart's Law 방지 메커니즘(다관점 검증, anti-sycophancy)이 더욱 중요해진다.
+   이 영역이 축소되지 않는 한, 그것이 Argus의 시장이다.
+   이 영역마저 자동화되기 시작하면, Argus의 Goodhart's Law 방지 메커니즘(다관점 검증, anti-sycophancy)이 더욱 중요해진다.
 
 ---
 
 ## 8. 한 줄 결론
 
-**Karpathy Loop은 Overture의 경쟁자가 아니라, Overture가 왜 필요한지를 증명하는 현상이다.**
+**Karpathy Loop은 Argus의 경쟁자가 아니라, Argus가 왜 필요한지를 증명하는 현상이다.**
 
 자동화 루프가 커버 못 하는 영역이 곧 judgment harness의 시장이고,
-"구조화된 산문으로 방향을 설정한다"는 패러다임 자체가 Overture의 설계 철학과 같은 뿌리다.
+"구조화된 산문으로 방향을 설정한다"는 패러다임 자체가 Argus의 설계 철학과 같은 뿌리다.
 
 ---
 

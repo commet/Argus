@@ -1,14 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "overture:final-scaffold",
+  "$id": "argus:final-scaffold",
   "title": "FinalScaffold",
-  "description": "Plugin-native final output. NOT a markdown document (that's the webapp's model). A DECISION SCAFFOLD preserving contradictions, hidden assumptions, trade-offs, and human-required checkpoints. This is the anti-commodity differentiator: Overture plugin outputs decision structure, not solutions.",
+  "description": "Plugin-native final output. NOT a markdown document (that's the webapp's model). A DECISION SCAFFOLD preserving contradictions, hidden assumptions, trade-offs, and human-required checkpoints. This is the anti-commodity differentiator: Argus plugin outputs decision structure, not solutions.",
   "type": "object",
   "required": ["reframed_question", "key_trade_offs", "hidden_assumptions", "human_required_checkpoints", "next_actions"],
   "properties": {
     "reframed_question": {
       "type": "string",
-      "description": "The real question, as surfaced by /overture:clarify. Must not be the user's surface request."
+      "description": "The real question, as surfaced by /argus:clarify. Must not be the user's surface request."
     },
     "key_trade_offs": {
       "type": "array",
@@ -75,7 +75,7 @@
     },
     "boss_concerns_applied": {
       "type": "array",
-      "description": "Concerns from /overture:boss that were applied to this scaffold.",
+      "description": "Concerns from /argus:boss that were applied to this scaffold.",
       "items": { "type": "string" }
     },
     "boss_concerns_rejected": {

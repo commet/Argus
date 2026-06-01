@@ -1,13 +1,13 @@
 # Rendering Rules
 
-> Overture 전 스킬 공유 디자인 언어.
+> Argus 전 스킬 공유 디자인 언어.
 > 모든 스킬은 이 규칙을 따른다. 예외 없음.
 
 ---
 
 ## Core Principle: Markdown First
 
-Overture 출력은 **마크다운**이다. 터미널, Slack, Notion, 이메일 어디서든 읽힌다.
+Argus 출력은 **마크다운**이다. 터미널, Slack, Notion, 이메일 어디서든 읽힌다.
 고정폭 박스 드로잉은 사용하지 않는다.
 
 ---
@@ -16,7 +16,7 @@ Overture 출력은 **마크다운**이다. 터미널, Slack, Notion, 이메일 �
 
 | Element | Format | Example |
 |---------|--------|---------|
-| Stage header | `**Overture · [단계명]**` | `**Overture · 초안 완성**` |
+| Stage header | `**Argus · [단계명]**` | `**Argus · 초안 완성**` |
 | Section title | `**[제목]**` | `**숨겨진 전제**` |
 | Stage separator | `---` | (horizontal rule) |
 | Emphasis | `**bold**` | `**리스크 1: 시장 타이밍.**` |
@@ -124,7 +124,7 @@ Use pipe tables for structured data. No alignment characters beyond `|`.
 3. **리스크 섹션** → `⚠️` 접두사 — 다른 섹션과 무게 차별
 4. **잘된 점** → diff block (`+ ✓`) — 우려와 대비
 5. **뼈대 항목** → bold 번호 (`1. **항목**:`) — 변경 시에만 diff
-6. **단계 전환** → `---` + `**Overture · [단계명]**`
+6. **단계 전환** → `---` + `**Argus · [단계명]**`
 7. **수렴 상태** → convergence indicator + score
 
 ---
@@ -157,7 +157,7 @@ Use for:
 ```markdown
 ---
 
-**Overture · [단계명]**
+**Argus · [단계명]**
 
 [content]
 

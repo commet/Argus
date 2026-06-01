@@ -1,4 +1,4 @@
-# Overture Plugin — Critique & Improvement Roadmap
+# Argus Plugin — Critique & Improvement Roadmap
 
 > 2026-03-28 | 내부 리뷰 결과 정리 (v2)
 > 현재 상태의 가혹한 평가 + 구조적 개선 방향
@@ -28,7 +28,7 @@
 
 #### 2. Decision Theater — 검증을 대체하는 착각
 
-사용자가 `/overture` → 페르소나 비판 → refine → DQ 81점을 받고, "충분히 검증했다"고 느끼지만:
+사용자가 `/argus` → 페르소나 비판 → refine → DQ 81점을 받고, "충분히 검증했다"고 느끼지만:
 - 실제 고객 인터뷰 0건
 - 경쟁사 제품 직접 사용 0회
 - 시장 데이터 확인 0건
@@ -62,7 +62,7 @@ LLM 페르소나는 "그럴듯한 비판"은 만들지만 "예상 못 한 비판
 
 - Recurring blind spot: 같은 영역 2회+ 필요
 - Strategy repetition: 같은 전략 3회+ 필요
-- DQ trend: 3회+ /overture 사용 필요
+- DQ trend: 3회+ /argus 사용 필요
 
 대부분의 사용자는 1-3번 써보고 판단. **가장 강력한 차별 기능이 발동조차 하지 않음.**
 
@@ -105,8 +105,8 @@ v1에서는 evidence grounding을 /rehearse에 배치했다. 재검토: spec을 
 **Anti-theater는 면책 조항이 아니라 행동 목록이다.**
 "우리는 이걸 안 했습니다" 대신 "다음에 이걸 하세요" — crux 기반의 구체적 검증 행동을 제시.
 
-**Conviction Arc는 /overture 전용이다.**
-개별 스킬에 매번 확신도를 물으면 friction만 늘어남. /overture에서만, 시작과 끝 2번만. 가치는 delta에 있다.
+**Conviction Arc는 /argus 전용이다.**
+개별 스킬에 매번 확신도를 물으면 friction만 늘어남. /argus에서만, 시작과 끝 2번만. 가치는 delta에 있다.
 
 ### v1에서 보류로 변경한 것
 
@@ -115,7 +115,7 @@ v1에서는 evidence grounding을 /rehearse에 배치했다. 재검토: spec을 
 | Inverse Persona | 가짜 유사 아이디어 생성 = LLM self-play 반복. Friction vs 가치 불확실 | 사용자 테스트에서 blind spot 품질이 여전히 낮을 때 |
 | 정밀 Reference Class (base rate 수치) | WebSearch base rate의 신뢰도 낮음 (블로그 숫자) | 신뢰할 수 있는 데이터 소스가 확보될 때 |
 | 실시간 Behavioral Signals | 스킬 아키텍처에서 response time 등 추적 불가 | hooks나 persistent agent 기능이 추가될 때 |
-| Conviction Arc (개별 스킬) | 단일 스킬에서 1번만 물어보면 "arc"가 아님. Friction만 증가 | /overture delta가 유의미한 패턴을 보일 때 |
+| Conviction Arc (개별 스킬) | 단일 스킬에서 1번만 물어보면 "arc"가 아님. Friction만 증가 | /argus delta가 유의미한 패턴을 보일 때 |
 
 ---
 
@@ -288,15 +288,15 @@ WebSearch 추가: "why [similar product] failed", "[domain] post-mortem"
 
 ---
 
-### /refine + /overture 마무리
+### /refine + /argus 마무리
 
 #### F1. Validation Checklist — "다음?" 대신 행동 목록
 
-**위치:** /refine 최종 카드, /overture 최종 deliverable
+**위치:** /refine 최종 카드, /argus 최종 deliverable
 **v1과의 차이:** "이 분석에서 하지 않은 것" 면책 조항 → crux 기반 행동 목록. 면책은 cookie consent처럼 무시됨.
 
 ```
-  ■ 다음 행동 (Overture 밖에서)
+  ■ 다음 행동 (Argus 밖에서)
 
   1. ★ [crux 가정] 검증
      → [구체적 행동]: [30분 내 가능한 것]
@@ -309,9 +309,9 @@ WebSearch 추가: "why [similar product] failed", "[domain] post-mortem"
 
 Crux 기반이라 모든 사용자에게 다른 체크리스트. Passive outcome hook과 연결.
 
-#### F2. Conviction Delta — /overture 전용
+#### F2. Conviction Delta — /argus 전용
 
-**위치:** /overture Stage 1 시작 시 + Stage 5 종료 시
+**위치:** /argus Stage 1 시작 시 + Stage 5 종료 시
 
 ```
 Stage 1 시작:
@@ -332,7 +332,7 @@ Stage 5 종료 (DQ 카드 후):
 
 #### F3. Epistemic Status — 최종 누적
 
-**위치:** /overture Stage 5 deliverables, /refine 최종 카드
+**위치:** /argus Stage 5 deliverables, /refine 최종 카드
 
 ```
   Epistemic Status (전체 파이프라인):
@@ -401,9 +401,9 @@ skip 시 다음 실행에서 1번만 더 물어보고, 이후 묻지 않음.
        │
        ↓ Contract: risks, critiques, crux_attack_result
 
-/refine + /overture
+/refine + /argus
   ├─ F1. Validation Checklist (crux 기반 행동 목록)
-  ├─ F2. Conviction Delta (/overture만)
+  ├─ F2. Conviction Delta (/argus만)
   └─ F3. Epistemic Status (누적)
 
 Cross-cutting:
@@ -423,8 +423,8 @@ Cross-cutting:
 | R2 | Crux Identification | /reframe | Phase 2 후 crux 질문 + Contract에 `crux:` 필드 |
 | R3 | Epistemic Status (단계) | /reframe | 카드에 근거 수준 2줄 추가 |
 | H2 | Crux 집중 공격 | /rehearse | Contract에서 crux 읽고 최우선 공격 지시 |
-| F1 | Validation Checklist | /refine, /overture | "다음?" 대신 crux 기반 행동 목록 |
-| F3 | Epistemic Status (누적) | /overture | 최종 deliverable에 전체 epistemic 표시 |
+| F1 | Validation Checklist | /refine, /argus | "다음?" 대신 crux 기반 행동 목록 |
+| F3 | Epistemic Status (누적) | /argus | 최종 deliverable에 전체 epistemic 표시 |
 
 **이 6개가 서로 연결됨:**
 R1(빈 영역) → R2(crux 선택의 재료) → H2(crux 공격) → F1(crux 검증 행동) + R3/F3(정직성)
@@ -434,7 +434,7 @@ R1(빈 영역) → R2(crux 선택의 재료) → H2(crux 공격) → F1(crux 검
 | # | 개선 | 대상 | 필요한 것 |
 |---|---|---|---|
 | R4 | MVT 제안 | /reframe | crux 성격별 검증 방법 매핑 |
-| F2 | Conviction Delta | /overture | 시작/끝 기록 + 저널 포맷 변경 |
+| F2 | Conviction Delta | /argus | 시작/끝 기록 + 저널 포맷 변경 |
 | C2 | Outcome Hook | /recast + 전체 | 저널에 outcome_check 필드 + Before starting rule |
 
 ### Phase 3 — 도구 추가 (WebSearch)

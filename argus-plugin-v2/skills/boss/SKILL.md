@@ -1,26 +1,26 @@
 ---
 name: boss
-description: Stakeholder review of the team's work in the voice of a configured MBTI personality (the harbor master inspecting before docking). Produces structured concerns (critical / important / minor) each paired with a fix suggestion, plus an approval condition. Unlike `/overture:team` where agents are workers, the Boss is the ONE critic — reacting to the scaffold as if approving it for real. Invoke after `/overture:team` has produced a FinalScaffold. User configures their Boss via `.overture/config.yaml`. Output written to `versions/{label}/boss_feedback.json` and merged into the FinalScaffold's applied/rejected concerns. Invoked as `/overture:boss`.
+description: Stakeholder review of the team's work in the voice of a configured MBTI personality (the harbor master inspecting before docking). Produces structured concerns (critical / important / minor) each paired with a fix suggestion, plus an approval condition. Unlike `/argus:team` where agents are workers, the Boss is the ONE critic — reacting to the scaffold as if approving it for real. Invoke after `/argus:team` has produced a FinalScaffold. User configures their Boss via `.argus/config.yaml`. Output written to `versions/{label}/boss_feedback.json` and merged into the FinalScaffold's applied/rejected concerns. Invoked as `/argus:boss`.
 ---
 
-# /overture:boss
+# /argus:boss
 
 **What this skill does:** Simulates how a specific stakeholder would react to the team's work. One voice, one review, one set of concerns with severity + fix suggestions.
 
 **Why this matters (M2 — Personality preservation):** Generic "boss persona" is useless. What makes this skill different is the personality drives the review: an ISTJ focuses on process + precedent; an ENTJ demands alternatives + decisiveness; an INFP reads the emotional undertone first. This difference is the product.
 
-**Why this is separated from `/overture:team`:** Team does the work. Boss critiques the work. Mixing those roles (webapp's old pattern) muddies both. Keep them separate.
+**Why this is separated from `/argus:team`:** Team does the work. Boss critiques the work. Mixing those roles (webapp's old pattern) muddies both. Keep them separate.
 
 ---
 
 ## When to run
 
 Invoke after:
-- `/overture:team` has completed and written `versions/{label}/scaffold.json`
+- `/argus:team` has completed and written `versions/{label}/scaffold.json`
 - User explicitly wants stakeholder review
 
 Refuse when:
-- No boss configured in `.overture/config.yaml` → direct to `/overture:configure` first, or offer to skip to generic DM review (uses no personality).
+- No boss configured in `.argus/config.yaml` → direct to `/argus:configure` first, or offer to skip to generic DM review (uses no personality).
 
 ---
 
@@ -40,13 +40,13 @@ Refuse when:
 1. Find session + latest version label from session.json.
 2. Read `versions/{label}/scaffold.json` (the FinalScaffold). If missing, halt — team hasn't run.
 3. Read `versions/{label}/mix.json` (for full document context).
-4. Read `.overture/config.yaml` (schema: `~/.claude/overture-data/schemas/config.json`) → get `locale`, `boss.mbti_code`, `boss.name`, `boss.gender`, `boss.role`.
+4. Read `.argus/config.yaml` (schema: `~/.claude/argus-data/schemas/config.json`) → get `locale`, `boss.mbti_code`, `boss.name`, `boss.gender`, `boss.role`.
 5. If `config` missing entirely or `boss` block absent, fall through to fallback path in "Error modes" section (offer generic DM review).
 6. The locale from config drives the entire review prompt — use the correct section below (Korean or English prompt template).
 
 ### Step 2 — Load personality
 
-1. Read `~/.claude/overture-data/boss-types.yaml`.
+1. Read `~/.claude/argus-data/boss-types.yaml`.
 2. Look up type by `code`. If not found, halt with error.
 3. Extract: `name`, `communication_style`, `feedback_style`, `triggers`, `speech_patterns[]`, `boss_vibe`, `speech_level`, `example_dialogue`.
 
@@ -159,7 +159,7 @@ Run the prompt (invoke yourself or spawn a sub-agent with `subagent_type: genera
 
 ### Step 5 — Validate output shape
 
-Against `~/.claude/overture-data/schemas/dm-feedback.json`:
+Against `~/.claude/argus-data/schemas/dm-feedback.json`:
 - `first_reaction`, `good_parts`, `concerns`, `approval_condition` required.
 - Each concern must have `text`, `severity`, `fix_suggestion`.
 - If mode is `deep`: `would_ask`, `failure_scenario`, `untested_assumptions` required.
@@ -184,7 +184,7 @@ For MVP, present critical as pre-selected, others as optional.
 
 ### Step 7 — Write output
 
-Save to `versions/{label}/boss_feedback.json`. Schema: `~/.claude/overture-data/schemas/dm-feedback.json`.
+Save to `versions/{label}/boss_feedback.json`. Schema: `~/.claude/argus-data/schemas/dm-feedback.json`.
 
 Include MBTI metadata:
 ```json
@@ -221,7 +221,7 @@ If boss output contains explicit new requirements that don't fit any of these th
 ### Step 9 — Update session
 
 - Set `session.dm_feedback` to the review
-- Set `phase: "refining"` (next natural step is applying concerns, which happens either manually by user or via `/overture:revise`)
+- Set `phase: "refining"` (next natural step is applying concerns, which happens either manually by user or via `/argus:revise`)
 - Update `updated_at`
 
 ### Step 10 — Report to user
@@ -240,10 +240,10 @@ Full JSON in `versions/{label}/boss_feedback.json` for sail to read.
 
 #### Step 10b — Direct invocation → full narrated report
 
-User typed `/overture:boss` directly. Render the boss's voice in full:
+User typed `/argus:boss` directly. Render the boss's voice in full:
 
 ```
-## Overture · Boss · {{mbti_code}} {{emoji}}
+## Argus · Boss · {{mbti_code}} {{emoji}}
 
 **{{boss.name}}** ({{mbti.name}}):
 > {{first_reaction}}
@@ -275,7 +275,7 @@ User typed `/overture:boss` directly. Render the boss's voice in full:
 {{endfor}}
 {{endif}}
 
-다음: 우려를 반영하려면 `/overture:revise`. 현재 초안으로 확정하려면 `/overture:chart --promote`.
+다음: 우려를 반영하려면 `/argus:revise`. 현재 초안으로 확정하려면 `/argus:chart --promote`.
 ```
 
 ---
@@ -293,7 +293,7 @@ User typed `/overture:boss` directly. Render the boss's voice in full:
 
 - **No boss configured**: before halting, offer fallback: "No boss set. Use generic DM review? (yes/no)". If yes, use a minimal prompt without MBTI personality (returns to webapp's `runDMFeedback` behavior).
 - **Invalid MBTI code**: list valid codes, halt.
-- **Mix/scaffold missing**: direct user to run `/overture:team` first.
+- **Mix/scaffold missing**: direct user to run `/argus:team` first.
 - **LLM hallucinates fields not in schema**: strip them, keep the core fields.
 
 ---
@@ -304,4 +304,4 @@ User typed `/overture:boss` directly. Render the boss's voice in full:
 - Aggregating concerns into one "overall concern." Each concern is a separate actionable item.
 - Applying all concerns automatically. Only `critical` auto-applies; user decides others.
 - Running without a loaded scaffold. Boss is always reactive to team output.
-- Re-running `/overture:team` to "improve" before showing to boss. Boss sees the actual scaffold — that's the point.
+- Re-running `/argus:team` to "improve" before showing to boss. Boss sees the actual scaffold — that's the point.

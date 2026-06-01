@@ -1,11 +1,11 @@
 #!/bin/bash
-# Overture plugin-v2 installer — installs skills, agents, data, and statusline.
+# Argus plugin-v2 installer — installs skills, agents, data, and statusline.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/commet/Overture/main/overture-plugin-v2/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
 #
 # Developer mode (symlinks — edit once, reflected everywhere):
-#   cd /path/to/Overture && ./overture-plugin-v2/install.sh --link
+#   cd /path/to/Argus && ./argus-plugin-v2/install.sh --link
 
 set -e
 
@@ -41,7 +41,7 @@ if [ ! -d "$CLAUDE_DIR" ]; then
 fi
 
 echo ""
-echo -e "${BOLD}  Overture v2${NC} — judgment harness for AI. Decide inside your codebase."
+echo -e "${BOLD}  Argus v2${NC} — judgment harness for AI. Decide inside your codebase."
 echo ""
 
 # ── Determine source ──
@@ -50,14 +50,14 @@ if [ "$LINK_MODE" = true ]; then
   SOURCE_DIR="$SCRIPT_DIR"
 
   if [ ! -f "$SOURCE_DIR/skills/sail/SKILL.md" ]; then
-    fail "Run from repo root: ./overture-plugin-v2/install.sh --link"
+    fail "Run from repo root: ./argus-plugin-v2/install.sh --link"
     exit 1
   fi
 
   info "Developer mode — creating symlinks to local repo"
 else
   TEMP_DIR=$(mktemp -d)
-  REPO="https://github.com/commet/Overture.git"
+  REPO="https://github.com/commet/Argus.git"
 
   info "Downloading latest version..."
   if ! git clone --depth 1 --quiet "$REPO" "$TEMP_DIR" 2>/dev/null; then
@@ -66,7 +66,7 @@ else
     exit 1
   fi
 
-  SOURCE_DIR="$TEMP_DIR/overture-plugin-v2"
+  SOURCE_DIR="$TEMP_DIR/argus-plugin-v2"
 
   if [ ! -f "$SOURCE_DIR/skills/sail/SKILL.md" ]; then
     fail "Downloaded package is incomplete. Try again."
@@ -128,21 +128,21 @@ fi
 # when installed to ~/.claude, the data/ lives alongside skills/ for relative resolution.
 if [ -d "$SOURCE_DIR/data" ]; then
   if [ "$LINK_MODE" = true ]; then
-    ln -sfn "$SOURCE_DIR/data" "$CLAUDE_DIR/overture-data"
+    ln -sfn "$SOURCE_DIR/data" "$CLAUDE_DIR/argus-data"
   else
-    rm -rf "$CLAUDE_DIR/overture-data"
-    cp -r "$SOURCE_DIR/data" "$CLAUDE_DIR/overture-data"
+    rm -rf "$CLAUDE_DIR/argus-data"
+    cp -r "$SOURCE_DIR/data" "$CLAUDE_DIR/argus-data"
   fi
-  ok "Data (agents, boss-types, schemas) installed to ~/.claude/overture-data"
+  ok "Data (agents, boss-types, schemas) installed to ~/.claude/argus-data"
 fi
 
 # ── Install lib (session docs) ──
 if [ -d "$SOURCE_DIR/lib" ]; then
   if [ "$LINK_MODE" = true ]; then
-    ln -sfn "$SOURCE_DIR/lib" "$CLAUDE_DIR/overture-lib"
+    ln -sfn "$SOURCE_DIR/lib" "$CLAUDE_DIR/argus-lib"
   else
-    rm -rf "$CLAUDE_DIR/overture-lib"
-    cp -r "$SOURCE_DIR/lib" "$CLAUDE_DIR/overture-lib"
+    rm -rf "$CLAUDE_DIR/argus-lib"
+    cp -r "$SOURCE_DIR/lib" "$CLAUDE_DIR/argus-lib"
   fi
   ok "Lib (session layout, version numbering) installed"
 fi
@@ -151,16 +151,16 @@ fi
 if [ -f "$SOURCE_DIR/statusline/index.js" ]; then
   mkdir -p "$CLAUDE_DIR/statusline"
   if [ "$LINK_MODE" = true ]; then
-    ln -sf "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/overture.js"
+    ln -sf "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/argus.js"
   else
-    cp "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/overture.js"
+    cp "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/argus.js"
   fi
   ok "Statusline installed"
 fi
 
 # ── Create data directory in cwd ──
-mkdir -p .overture
-ok "Data directory ready (.overture/)"
+mkdir -p .argus
+ok "Data directory ready (.argus/)"
 
 # ── Cleanup (user mode only) ──
 if [ "$LINK_MODE" = false ] && [ -n "$TEMP_DIR" ]; then
@@ -186,12 +186,12 @@ if [ $ERRORS -eq 0 ]; then
   echo ""
   echo -e "  ${BOLD}Restart Claude Code${NC}, then try:"
   echo ""
-  echo -e "    ${BOLD}/overture:sail${NC} \"A technical decision I'm stuck on\""
-  echo -e "    ${BOLD}/overture:sail${NC} @PR#123     ${DIM}# Work through a specific PR${NC}"
-  echo -e "    ${BOLD}/overture:sail${NC} @src/auth.ts  ${DIM}# Think about a file${NC}"
+  echo -e "    ${BOLD}/argus:sail${NC} \"A technical decision I'm stuck on\""
+  echo -e "    ${BOLD}/argus:sail${NC} @PR#123     ${DIM}# Work through a specific PR${NC}"
+  echo -e "    ${BOLD}/argus:sail${NC} @src/auth.ts  ${DIM}# Think about a file${NC}"
   echo ""
-  echo -e "  ${DIM}First run auto-creates .overture/config.yaml (ISTJ default boss). No setup dialog.${NC}"
-  echo -e "  ${DIM}Each session writes to .overture/sessions/ in your repo. Commit it to share with team.${NC}"
+  echo -e "  ${DIM}First run auto-creates .argus/config.yaml (ISTJ default boss). No setup dialog.${NC}"
+  echo -e "  ${DIM}Each session writes to .argus/sessions/ in your repo. Commit it to share with team.${NC}"
   if [ "$LINK_MODE" = true ]; then
     echo ""
     echo -e "  ${YELLOW}Dev note:${NC} ${DIM}If you edit skill .md files mid-session, restart Claude Code to apply.${NC}"

@@ -719,7 +719,7 @@ export async function callLLMStream(
             callbacks.onToken(fullText);
           }
           if (parsed.rateLimit !== undefined && typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('overture:ratelimit', {
+            window.dispatchEvent(new CustomEvent('argus:ratelimit', {
               detail: { remaining: parsed.rateLimit },
             }));
           }

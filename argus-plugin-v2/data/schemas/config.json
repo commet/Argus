@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "overture:config",
+  "$id": "argus:config",
   "title": "PluginConfig",
-  "description": "User's plugin configuration, stored at .overture/config.yaml in the repo. Read by every skill at invocation. Plugin-v2 MVP fields only. If file missing, skills use defaults + prompt user to create.",
+  "description": "User's plugin configuration, stored at .argus/config.yaml in the repo. Read by every skill at invocation. Plugin-v2 MVP fields only. If file missing, skills use defaults + prompt user to create.",
   "type": "object",
   "required": ["locale"],
   "properties": {
@@ -13,7 +13,7 @@
     },
     "boss": {
       "type": "object",
-      "description": "Configured Boss (stakeholder) for /overture:boss. Optional — skill offers generic fallback if absent.",
+      "description": "Configured Boss (stakeholder) for /argus:boss. Optional — skill offers generic fallback if absent.",
       "required": ["mbti_code"],
       "properties": {
         "mbti_code": {
@@ -60,7 +60,7 @@
         "commit_sessions": {
           "type": "boolean",
           "default": false,
-          "description": "If true, status skill suggests committing .overture/sessions/ changes at phase=complete."
+          "description": "If true, status skill suggests committing .argus/sessions/ changes at phase=complete."
         }
       }
     }

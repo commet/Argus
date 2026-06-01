@@ -139,7 +139,7 @@ export function OutputSelector({ project }: OutputSelectorProps) {
   return (
     <div className="space-y-3">
       <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{L('공연 — 산출물 선택', 'Performance — Choose output')}</h3>
-      <p className="text-[12px] text-[var(--text-secondary)]">{L('같은 서곡에서 무대 위 목적에 맞는 형식으로 내보냅니다.', 'From the same overture, export in the format that fits your stage.')}</p>
+      <p className="text-[12px] text-[var(--text-secondary)]">{L('같은 서곡에서 무대 위 목적에 맞는 형식으로 내보냅니다.', 'From the same argus, export in the format that fits your stage.')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {formats.map((format) => (

@@ -81,7 +81,7 @@ function classifySource(initialReferrer: string | null | undefined, utmSource: s
   if (host.includes('google') || host.includes('bing') || host.includes('duckduckgo')) return 'Search';
   if (host.includes('accounts.google')) return 'Google OAuth';
   if (host.includes('vercel')) return 'Vercel';
-  if (host.includes('overture') || host.includes('localhost')) return 'Internal';
+  if (host.includes('argus') || host.includes('localhost')) return 'Internal';
   return host;
 }
 
@@ -356,7 +356,7 @@ export async function GET(req: Request) {
   <!-- ════════ HERO ════════ -->
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: ${C.primary}; border-radius: 16px; margin-bottom: 20px; overflow: hidden;">
     <tr><td style="padding: 28px 24px;">
-      <p style="color: rgba(255,255,255,0.6); font-size: 11px; margin: 0 0 2px; letter-spacing: 0.1em; text-transform: uppercase;">Overture Daily · ${kstDate} KST</p>
+      <p style="color: rgba(255,255,255,0.6); font-size: 11px; margin: 0 0 2px; letter-spacing: 0.1em; text-transform: uppercase;">Argus Daily · ${kstDate} KST</p>
       <div style="display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-top: 8px;">
         <div>
           <p style="color: #fff; font-size: 40px; font-weight: 800; margin: 0; letter-spacing: -0.02em; line-height: 1;">${usersY.size}<span style="color: rgba(255,255,255,0.5); font-size: 20px; font-weight: 600;"> 유저</span></p>
@@ -528,7 +528,7 @@ export async function GET(req: Request) {
   </table>` : ''}
 
   <p style="font-size: 10px; color: ${C.faint}; text-align: center; margin: 20px 0 8px;">
-    Overture Daily · KST 09:00 · 본인 세션 자동 제외
+    Argus Daily · KST 09:00 · 본인 세션 자동 제외
   </p>
 </body>
 </html>
@@ -536,9 +536,9 @@ export async function GET(req: Request) {
 
   try {
     await resend.emails.send({
-      from: 'Overture <onboarding@resend.dev>',
+      from: 'Argus <onboarding@resend.dev>',
       to: REPORT_EMAIL,
-      subject: `[Overture] ${kstDate} — 유저 ${usersY.size} · 신규 ${signupDetails.length} · 누적 완주 ${cumulativeCompletions}`,
+      subject: `[Argus] ${kstDate} — 유저 ${usersY.size} · 신규 ${signupDetails.length} · 누적 완주 ${cumulativeCompletions}`,
       html,
     });
     return NextResponse.json({

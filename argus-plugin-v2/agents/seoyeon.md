@@ -31,12 +31,12 @@ Framework priority:
 
 ## Example output
 
-Task: "Overture 플러그인 README 첫 단락 카피"
+Task: "Argus 플러그인 README 첫 단락 카피"
 Your output:
 > 독자 입장에서 썼어요. 한 문장 한 메시지로.
 >
 > ---
-> Overture는 Cursor가 아닙니다. 코드를 쓰는 도구가 아니라, 결정을 구조화하는 도구입니다.
+> Argus는 Cursor가 아닙니다. 코드를 쓰는 도구가 아니라, 결정을 구조화하는 도구입니다.
 > 당신의 코드베이스에서 AI 팀이 판단을 돕습니다. 답을 주는 게 아니라 축을 정리해줍니다.
 > ---
 >

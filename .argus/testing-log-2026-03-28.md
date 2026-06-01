@@ -66,22 +66,22 @@ concertmaster-simulation.test.ts 패턴을 전체 핵심 lib으로 확장.
 | Plugin/CLI /refine 불일치 | **동일** |
 | 참조 파일 4개 미존재 | **전부 존재** (reframing-strategies.md, execution-design.md, persona-design.md, risk-classification.md) |
 | /build Plugin에만 존재 | 맞음 — untracked 파일, 커밋된 적 없음. `/reframe` context:build로 통합됨 |
-| autoplay vs overture 차이 | 맞음 — autoplay=구버전, overture=신버전(superset) |
+| autoplay vs argus 차이 | 맞음 — autoplay=구버전, argus=신버전(superset) |
 
 ### 수행한 정리 작업
 
 | 작업 | 이유 |
 |------|------|
-| `.claude/skills/autoplay/` 삭제 | `overture`가 상위 호환. CLI와 Plugin 모두 `overture`로 통일됨 |
-| `overture-plugin/skills/build/` 삭제 | 커밋된 적 없는 아카이브 파일. `/reframe` context:build로 기능 통합됨 |
-| `overture-plugin/statusline/index.js`에서 `autoplay` 참조 제거 | Clean Removal 원칙 — 삭제한 스킬의 참조 정리 |
+| `.claude/skills/autoplay/` 삭제 | `argus`가 상위 호환. CLI와 Plugin 모두 `argus`로 통일됨 |
+| `argus-plugin/skills/build/` 삭제 | 커밋된 적 없는 아카이브 파일. `/reframe` context:build로 기능 통합됨 |
+| `argus-plugin/statusline/index.js`에서 `autoplay` 참조 제거 | Clean Removal 원칙 — 삭제한 스킬의 참조 정리 |
 | `execution-design.md` 완성 (CLI + Plugin 동기화) | step 설계 패턴, 병렬 실행, 시간 추정, critical path, AI/Human 스코프 가이드 추가 |
 
 ### 현재 스킬 구조 (정리 후)
 
 ```
 .claude/skills/
-├── overture/         ← 풀 파이프라인 오케스트레이터
+├── argus/         ← 풀 파이프라인 오케스트레이터
 ├── reframe/          ← Phase 1: 문제 재정의
 │   └── references/reframing-strategies.md
 ├── recast/           ← Phase 2: 실행 설계
@@ -101,8 +101,8 @@ concertmaster-simulation.test.ts 패턴을 전체 핵심 lib으로 확장.
 ├── taste-skill/
 └── (기타 디자인/UI 유틸리티 스킬)
 
-overture-plugin/skills/
-├── overture/         ← CLI overture와 동일
+argus-plugin/skills/
+├── argus/         ← CLI argus와 동일
 ├── reframe/          ← CLI와 동일
 ├── recast/           ← CLI와 동일 (references/ 포함)
 ├── rehearse/         ← CLI와 동일 (references/ 포함)
@@ -113,7 +113,7 @@ overture-plugin/skills/
 ├── setup/
 └── patterns/
 
-overture-plugin/agents/
+argus-plugin/agents/
 └── devils-advocate.md  ← 완성됨, /rehearse에서 사용
 ```
 
@@ -124,7 +124,7 @@ overture-plugin/agents/
 /recast   → context 상속              ← governing_idea vs product thesis
 /rehearse → context 상속              ← 페르소나 선택에 반영
 /refine   → context 상속              ← 수렴 기준 동일
-/overture → context 자동 감지         ← 딜리버블이 분기 (Sharpened Prompt vs Implementation Prompt)
+/argus → context 자동 감지         ← 딜리버블이 분기 (Sharpened Prompt vs Implementation Prompt)
 ```
 
 ---
@@ -280,7 +280,7 @@ makeReframe, makeRecast, makeStep, makePersona, makeFeedbackRecord, makeLoop, ma
 
 ### 풀 파이프라인 QA 리포트: "AI 코드 리뷰 어시스턴트"
 
-4개 .overture/ 파일(reframe, recast, rehearse, refine)을 SKILL.md 사양 대비 대조.
+4개 .argus/ 파일(reframe, recast, rehearse, refine)을 SKILL.md 사양 대비 대조.
 
 **발견:**
 1. **HIGH** — 저널 엔트리 전 단계 누락

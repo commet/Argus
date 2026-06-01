@@ -1,17 +1,17 @@
 ---
-name: overture-doctor
-description: "Diagnose Overture installation issues. Checks skills, agents, data directories, journal integrity, and configuration. Use when something isn't working or after /overture:setup reports warnings."
+name: argus-doctor
+description: "Diagnose Argus installation issues. Checks skills, agents, data directories, journal integrity, and configuration. Use when something isn't working or after /argus:setup reports warnings."
 allowed-tools: Read, Bash, Glob, Grep
 ---
 
 ## When to use
 
 - ✓ A skill isn't being recognized or producing errors
-- ✓ After /overture:setup reports warnings
+- ✓ After /argus:setup reports warnings
 - ✓ Journal data seems corrupted or missing
 - ✓ Output files aren't being saved properly
-- ✗ First installation (use /overture:setup)
-- ✗ Changing preferences (use /overture:configure)
+- ✗ First installation (use /argus:setup)
+- ✗ Changing preferences (use /argus:configure)
 
 **Always respond in the same language the user uses.**
 
@@ -29,7 +29,7 @@ For each expected skill, verify:
 3. Frontmatter contains required fields: `name`, `description`
 
 Expected skills (10):
-- `reframe`, `recast`, `rehearse`, `refine`, `overture`, `help` (core)
+- `reframe`, `recast`, `rehearse`, `refine`, `argus`, `help` (core)
 - `setup`, `doctor`, `configure`, `patterns` (utility)
 
 Search in BOTH locations:
@@ -55,15 +55,15 @@ Each file must have valid YAML frontmatter with `name`, `description`, `context`
 
 ### Check 3: Data directory
 
-Check `.overture/` in project root:
+Check `.argus/` in project root:
 1. Directory exists and is writable
 2. `journal.md` — exists, parse entry count, check last entry date
 3. `reframe.md` — exists (from last /reframe run)
 4. `recast.md` — exists (from last /recast run)
 5. `rehearse.md` — exists (from last /rehearse run)
 6. `refine.md` — exists (from last /refine run)
-7. `last-run.md` — exists (from last /overture run)
-8. `config.json` — exists (from /overture:configure)
+7. `last-run.md` — exists (from last /argus run)
+8. `config.json` — exists (from /argus:configure)
 
 ### Check 4: Journal integrity
 
@@ -72,12 +72,12 @@ If `journal.md` exists:
 2. Check for malformed entries (missing required fields)
 3. Report date range (oldest → newest)
 4. Check for duplicate dates
-5. Report entry breakdown: reframe/recast/rehearse/refine/overture
+5. Report entry breakdown: reframe/recast/rehearse/refine/argus
 6. Check for new v0.5 fields (Confidence, stakes, convergence) — warn if old format
 
 ### Check 5: Configuration
 
-If `config.json` exists in `.overture/`:
+If `config.json` exists in `.argus/`:
 1. Parse JSON — report any syntax errors
 2. Validate known fields have valid values
 3. Check version — warn if <0.5.0 (needs update)
@@ -102,21 +102,21 @@ Check if reference/support files exist in the skill directories:
 - `rehearse/references/persona-design.md`
 - `rehearse/references/risk-classification.md`
 - `refine/references/convergence.md`
-- `overture/references/decision-quality.md`
+- `argus/references/decision-quality.md`
 
 ## Output
 
 Present a unified diagnostic report:
 
-**🔍 Overture · Doctor**
+**🔍 Argus · Doctor**
 
 | Check | Status | Detail |
 |-------|--------|--------|
 | Skills | 10/10 ✓ | |
 | Agents | 18/18 ✓ | |
-| Data dir | ✓ | .overture/ |
+| Data dir | ✓ | .argus/ |
 | Journal | ✓ | [N] entries ([date] → [date]) |
-| Config | [✓/✗] | .overture/config.json v[version] |
+| Config | [✓/✗] | .argus/config.json v[version] |
 | Contract chain | [✓/⚠/✗] | [status] |
 | References | [N]/6 | [✓/⚠] |
 
@@ -127,7 +127,7 @@ Present a unified diagnostic report:
 - /recast — [N] runs
 - /rehearse — [N] runs
 - /refine — [N] runs
-- /overture — [N] runs
+- /argus — [N] runs
 
 ---
 
@@ -142,17 +142,17 @@ For each issue, provide:
 
 **Issues:**
 
-✗ Missing: /overture:patterns skill
+✗ Missing: /argus:patterns skill
 — Impact: Cannot analyze journal patterns
-— Fix: Run /overture:setup to reinstall
+— Fix: Run /argus:setup to reinstall
 
 ⚠ Journal has 52 entries (recommended: archive after 50)
 — Impact: Slower startup reads
-— Fix: Run /overture:patterns and accept archive prompt
+— Fix: Run /argus:patterns and accept archive prompt
 
 ⚠ Config version 0.3.0 (current: 0.5.0)
 — Impact: Missing new settings
-— Fix: Run /overture:configure to update
+— Fix: Run /argus:configure to update
 
 ✗ Contract chain broken: rehearse.md missing framing_confidence from reframe
 — Impact: /refine won't have full context
@@ -160,9 +160,9 @@ For each issue, provide:
 
 ### If all clear:
 
-✓ All systems healthy. Overture v0.5.0 is ready.
+✓ All systems healthy. Argus v0.5.0 is ready.
 
 Last activity: [date] /[skill]
 Total runs: [N]
 
-Tip: Run /overture:patterns to see your thinking patterns.
+Tip: Run /argus:patterns to see your thinking patterns.

@@ -40,14 +40,14 @@ export function Header() {
 
   // Theme initialization + cross-tab sync
   useEffect(() => {
-    const saved = localStorage.getItem('overture-theme');
+    const saved = localStorage.getItem('argus-theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const isDark = saved === 'dark' || (!saved && prefersDark);
     setDarkMode(isDark);
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key !== 'overture-theme' || e.newValue == null) return;
+      if (e.key !== 'argus-theme' || e.newValue == null) return;
       const nextDark = e.newValue === 'dark';
       setDarkMode(nextDark);
       document.documentElement.setAttribute('data-theme', nextDark ? 'dark' : 'light');
@@ -60,7 +60,7 @@ export function Header() {
     const next = !darkMode;
     setDarkMode(next);
     document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
-    localStorage.setItem('overture-theme', next ? 'dark' : 'light');
+    localStorage.setItem('argus-theme', next ? 'dark' : 'light');
   };
 
   // Close user menu on outside click
@@ -94,7 +94,7 @@ export function Header() {
             <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shadow-[var(--shadow-sm)] group-hover:shadow-[var(--glow-gold)] transition-all duration-300" style={{ background: 'var(--gradient-gold)' }}>
               <span className="text-white text-[13px] font-black tracking-tight">O</span>
             </div>
-            <span className="text-[var(--primary)] font-extrabold text-[18px] tracking-tight">Overture</span>
+            <span className="text-[var(--primary)] font-extrabold text-[18px] tracking-tight">Argus</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-3">

@@ -1,5 +1,5 @@
 /**
- * Progressive Flow Prompts — Overture's core brain
+ * Progressive Flow Prompts — Argus's core brain
  *
  * Design principles:
  * 1. Questions feel like an insider asking — empathetic yet sharp

@@ -1,4 +1,4 @@
-## 2026-03-15 /overture — full pipeline
+## 2026-03-15 /argus — full pipeline
 - Problem: "Should we expand to SEA?"
 - Reframed: "Which single market validates our assumptions fastest?"
 - Score: DQ 72
@@ -12,7 +12,7 @@
 - Assumptions: 1 confident, 2 uncertain, 1 doubtful
 - Growth edge: timing assumptions not explored
 
-## 2026-03-22 /overture — full pipeline
+## 2026-03-22 /argus — full pipeline
 - Problem: "AI feature prioritization"
 - Reframed: "Which AI capability creates switching costs?"
 - Score: DQ 78
@@ -20,7 +20,7 @@
 - Growth edge: competitive response timing
 - Blind spots: team capacity during migration
 
-## 2026-03-25 /overture — full pipeline
+## 2026-03-25 /argus — full pipeline
 - Problem: "Hiring plan for Q2"
 - Reframed: "Build vs buy decision masked as hiring question"
 - Score: DQ 81
@@ -124,7 +124,7 @@
 - Sharpest critique resolved: "CodeRabbit+ESLint+Prettier면 90% 잡힌다" → 포지셔닝을 linter 영역에서 "리뷰어 판단 학습"으로 이동, 비교 축 자체를 전환
 - Pipeline: reframe ✓ → recast ✓ → rehearse ✓ → refine ✓
 
-## 2026-04-01 /overture — 신사업 기획안 2주
+## 2026-04-01 /argus — 신사업 기획안 2주
 - Context: decide
 - Judge: 대표님/CEO
 - Problem: "백엔드 개발자인데 대표님이 2주 안에 신사업 기획안을 써오라고 했어"
@@ -140,7 +140,7 @@
 - Strength: Go/No-Go 기준을 수치로 정의하고 "하지 않는다"도 옵션에 포함
 - Growth edge: "왜 우리인가"의 구체성 — 추상적 강점이 아니라 기술 자산 레벨로 내려가야 설득됨
 
-## 2026-04-01 /overture — Overture 타겟 피벗
+## 2026-04-01 /argus — Argus 타겟 피벗
 - Context: decide
 - Judge: self (1인 프로젝트)
 - Problem: "사업 방향 전환 — 제품 라인 피벗, 사용자 반응이 미지근"
