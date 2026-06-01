@@ -1,5 +1,5 @@
 /**
- * Concertmaster Content Simulation — 코칭의 "내용적" 정확성 검증
+ * Navigator Content Simulation — 코칭의 "내용적" 정확성 검증
  *
  * 구조적 검증(코칭이 나오는가?)을 넘어,
  * 실제 의사결정 시나리오에서 코칭 메시지가 정말 맞는 말인지 검증한다.
@@ -22,9 +22,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   getStepCoaching,
-  buildConcertmasterProfile,
+  buildNavigatorProfile,
   buildLearningCurve,
-} from '@/lib/concertmaster';
+} from '@/lib/navigator';
 import { recommendBlindSpotPersona } from '@/lib/auto-persona';
 import { buildEnhancedSystemPrompt } from '@/lib/context-builder';
 
@@ -84,7 +84,7 @@ vi.mock('@/lib/i18n', () => ({
       'axis.feasibility': '실현 가능성',
       'axis.business': '비즈니스',
       'axis.orgCapacity': '조직 역량',
-      'concertmaster.defaultProject': '프로젝트',
+      'navigator.defaultProject': '프로젝트',
       'coaching.refine.biggestGain': '가장 큰 개선: {element}',
       'coaching.refine.biggestDrop': '하락 원인: {element}',
       'coaching.refine.dqImproving': '판단 품질이 개선되고 있습니다 ({prev} → {current}).',
@@ -296,7 +296,7 @@ describe('Scenario E: DQ 하락 사용자', () => {
   });
 
   it('refine 코칭: 하락을 경고하고 원인을 짚어야 한다', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('refine', profile);
     const warnMsg = coaching.find(c => c.message.includes('판단 품질이 하락'));
     expect(warnMsg).toBeDefined();
@@ -304,7 +304,7 @@ describe('Scenario E: DQ 하락 사용자', () => {
   });
 
   it('refine 코칭: 하락 원인(프레이밍)이 detail에 있어야 한다', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('refine', profile);
     const warnMsg = coaching.find(c => c.message.includes('판단 품질이 하락'));
     expect(warnMsg?.detail).toContain('프레이밍');
@@ -342,7 +342,7 @@ describe('Scenario F: 전략 전환 사용자', () => {
       total_sessions: 8, avg_pass_rate: 0.65, best_strategy: 'narrow_scope', worst_eval: null,
     });
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     expect(profile.dominantStrategy).toBe('narrow_scope');
 
     const coaching = getStepCoaching('reframe', profile);
@@ -369,7 +369,7 @@ describe('Scenario G: 가정 미평가 사용자', () => {
   });
 
   it('reframe 코칭: 가정 평가를 독려하는 메시지가 나와야 한다', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('reframe', profile);
     const engageMsg = coaching.find(c => c.message.includes('coaching.reframe.assumptionEngage'));
     expect(engageMsg).toBeDefined();
@@ -395,14 +395,14 @@ describe('Scenario H: 데모에서 AI 올인', () => {
   });
 
   it('recast 코칭: AI 과위임을 challenge해야 한다', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('recast', profile);
     expect(coaching[0].tone).toBe('challenge');
     expect(coaching[0].message).toContain('coaching.recast.demoAiHeavy');
   });
 
   it('recast 코칭: 체크포인트 detail이 있어야 한다', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('recast', profile);
     expect(coaching[0].detail).toContain('coaching.recast.demoAiHeavyDetail');
   });
@@ -431,7 +431,7 @@ describe('Scenario I: 페르소나 정확도 개선', () => {
   });
 
   it('rehearse 코칭: 페르소나 정확도 향상을 positive로 알려야 한다', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('rehearse', profile);
     const accuracyMsg = coaching.find(c => c.message.includes('coaching.rehearse.accuracyImproving'));
     expect(accuracyMsg).toBeDefined();
@@ -439,7 +439,7 @@ describe('Scenario I: 페르소나 정확도 개선', () => {
   });
 
   it('rehearse 코칭: 정확도 수치가 포함되어야 한다', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('rehearse', profile);
     // mock t() returns "coaching.rehearse.accuracyImproving from=2.0 to=3.8" with numeric params
     const accuracyMsg = coaching.find(c => c.message.includes('coaching.rehearse.accuracyImproving'));
@@ -448,11 +448,11 @@ describe('Scenario I: 페르소나 정확도 개선', () => {
 });
 
 // ══════════════════════════════════════
-// Scenario J: 불확실한 가정이 많은 상태에서 편곡 진입
+// Scenario J: 불확실한 가정이 많은 상태에서 선원 배치 진입
 // reframe → recast 체인 연결 검증
 // ══════════════════════════════════════
 
-describe('Scenario J: 불확실한 가정 → 편곡 체인', () => {
+describe('Scenario J: 불확실한 가정 → 선원 배치 체인', () => {
   beforeEach(() => {
     setupScenario({ sessions: 3, projects: 1 });
     mockStorage.mockImplementation((key: string) => {
@@ -480,7 +480,7 @@ describe('Scenario J: 불확실한 가정 → 편곡 체인', () => {
   });
 
   it('recast 코칭: 불확실한 가정 수와 내용을 알려줘야 한다', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('recast', profile);
     // 3개 가정 중 2개가 doubtful, 1개 uncertain = 3건 불확실
     const assumptionMsg = coaching.find(c => c.message.includes('uncertainAssumptions'));
@@ -489,7 +489,7 @@ describe('Scenario J: 불확실한 가정 → 편곡 체인', () => {
   });
 
   it('recast 코칭: detail에 실제 가정 텍스트가 포함되어야 한다', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('recast', profile);
     const assumptionMsg = coaching.find(c => c.message.includes('uncertainAssumptions'));
     expect(assumptionMsg?.detail).toBeDefined();
@@ -510,7 +510,7 @@ describe('Cross-scenario: 코칭 품질 규칙', () => {
       id: 's1', tool: 'reframe', signal_type: 'demo_seed', created_at: '',
       signal_data: { doubted_count: 0, total_premises: 3, ai_only_steps: 4, human_only_steps: 0, total_steps: 4, completed: true },
     }]);
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
 
     // reframe challenge
     const reframeCoaching = getStepCoaching('reframe', profile);
@@ -528,7 +528,7 @@ describe('Cross-scenario: 코칭 품질 규칙', () => {
       id: 's1', tool: 'reframe', signal_type: 'demo_seed', created_at: '',
       signal_data: { doubted_count: 3, total_premises: 3, ai_only_steps: 1, human_only_steps: 1, total_steps: 4, completed: true },
     }]);
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
 
     const coaching = getStepCoaching('reframe', profile);
     const positiveMsg = coaching.find(c => c.tone === 'positive');
@@ -540,7 +540,7 @@ describe('Cross-scenario: 코칭 품질 규칙', () => {
 
   it('counterfactual 코칭의 detail은 유효한 i18n Detail 키여야 한다', () => {
     setupScenario({ sessions: 0, projects: 0 });
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
 
     const steps: Array<'reframe' | 'recast' | 'rehearse' | 'refine'> = ['reframe', 'recast', 'rehearse', 'refine'];
     for (const step of steps) {
@@ -611,7 +611,7 @@ describe('Scenario L: 침묵의 원칙 (anti-sycophancy in coaching)', () => {
   });
 
   it('reframe: 특별한 코칭 없이 빈 배열이거나 최소한의 메시지만', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('reframe', profile);
     // avgPassRate 0.65 < 0.75 → high pass rate 칭찬 안 나옴
     // 나쁜 eval 없음 → 개선 제안 없음
@@ -621,7 +621,7 @@ describe('Scenario L: 침묵의 원칙 (anti-sycophancy in coaching)', () => {
   });
 
   it('reframe: 나오더라도 범용 칭찬("잘하고 있습니다")이 아니어야 한다', () => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('reframe', profile);
     for (const c of coaching) {
       // "잘하고 계십니다", "훌륭합니다", "뛰어납니다" 같은 범용 칭찬 금지
@@ -743,7 +743,7 @@ describe('Scenario O: 코칭 i18n 키 품질', () => {
 
     for (const s of scenarios) {
       setupScenario({ sessions: s.sessions, projects: s.projects, reframeItems: [] });
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const steps: Array<'reframe' | 'recast' | 'rehearse' | 'refine'> = ['reframe', 'recast', 'rehearse', 'refine'];
 
       for (const step of steps) {
@@ -758,7 +758,7 @@ describe('Scenario O: 코칭 i18n 키 품질', () => {
 
   it('코칭 메시지에 내부 코드 변수명이 직접 노출되면 안 된다', () => {
     setupScenario({ sessions: 0, projects: 0 });
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const steps: Array<'reframe' | 'recast' | 'rehearse' | 'refine'> = ['reframe', 'recast', 'rehearse', 'refine'];
 
     for (const step of steps) {
@@ -798,7 +798,7 @@ describe('Scenario P: DQ 하락 후 회복', () => {
       return [];
     });
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('refine', profile);
     const recoveryMsg = coaching.find(c => c.message.includes('판단 품질이 개선'));
     expect(recoveryMsg).toBeDefined();
@@ -833,7 +833,7 @@ describe('Scenario Q: 가정 evaluation 조합별 recast 코칭', () => {
       return [];
     });
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('recast', profile);
     const uncertainMsg = coaching.find(c => c.message.includes('불확실'));
     expect(uncertainMsg).toBeUndefined(); // 불확실한 가정이 없으므로
@@ -861,7 +861,7 @@ describe('Scenario Q: 가정 evaluation 조합별 recast 코칭', () => {
       return [];
     });
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('recast', profile);
     const uncertainMsg = coaching.find(c => c.message.includes('uncertainAssumptions'));
     expect(uncertainMsg).toBeDefined();
@@ -898,7 +898,7 @@ describe('Thin Data Conservatism: 과잉 해석 방지', () => {
       return [];
     });
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('reframe', profile);
     // 2건에서 2→3은 "증가 패턴"이라 부를 수 없다
     const growthMsg = coaching.find(c => c.message.includes('증가'));
@@ -931,7 +931,7 @@ describe('Thin Data Conservatism: 과잉 해석 방지', () => {
       { strategy: 'narrow_scope', sample_count: 2, avg_pass_rate: 0.7, per_eval_pass_rates: {} },
     ]);
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('reframe', profile);
     const strategyMsg = coaching.find(c => c.message.includes('자주 사용'));
     // insights에서 pattern이 안 나왔으므로 전략 반복 코칭도 안 나와야
@@ -950,7 +950,7 @@ describe('Thin Data Conservatism: 과잉 해석 방지', () => {
       return [];
     });
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     // recast에서 totalJudgments < 3이면 override 코칭을 건너뛴다
     const coaching = getStepCoaching('recast', profile);
     const overrideMsg = coaching.find(c => c.message.includes('coaching.recast.overrideHigh'));
@@ -989,7 +989,7 @@ describe('Thin Data Conservatism: 과잉 해석 방지', () => {
       return [];
     });
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('rehearse', profile);
     // "향상" 메시지는 4건 이상에서만 비교 가능
     const trendMsg = coaching.find(c => c.message.includes('coaching.rehearse.accuracyImproving'));
@@ -1004,7 +1004,7 @@ describe('Thin Data Conservatism: 과잉 해석 방지', () => {
       signal_data: { doubted_count: 1, total_premises: 3, ai_only_steps: 1, human_only_steps: 1, total_steps: 4, completed: true },
     }]);
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('reframe', profile);
     // "모두 수락" (challenge)이면 안 됨
     expect(coaching[0].message).not.toContain('coaching.reframe.demoAllAccepted');
@@ -1034,7 +1034,7 @@ describe('Thin Data Conservatism: 과잉 해석 방지', () => {
       return [];
     });
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('recast', profile);
     // 1건이라도 불확실 가정이 있으면 코칭은 나올 수 있지만
     // "항상", "일관되게" 같은 패턴 주장은 없어야 한다
@@ -1054,7 +1054,7 @@ describe('Thin Data Conservatism: 과잉 해석 방지', () => {
       return [];
     });
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('recast', profile);
     // 1건으로는 "선호하시는 경향" 같은 말 금지
     const prefMsg = coaching.find(c => c.message.includes('경향') || c.message.includes('선호'));
@@ -1167,7 +1167,7 @@ describe('Thin Data Conservatism: 과잉 해석 방지', () => {
       if (key === 'sot_projects') return [{ id: 'p0' }, { id: 'p1' }, { id: 'p2' }];
       return [];
     });
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('refine', profile);
     const dqMsg = coaching.find(c => c.message.includes('coaching.refine.dqImproving') || c.message.includes('coaching.refine.dqDeclining'));
     expect(dqMsg).toBeUndefined();

@@ -9,7 +9,7 @@ import {
   buildDeepeningPrompt,
   buildMixPrompt,
   buildFinalDeliverablePrompt,
-  buildConcertmasterReviewPrompt,
+  buildNavigatorReviewPrompt,
   buildStrategicForkPrompt,
   buildWeaknessCheckPrompt,
   type TypedQuestionContext,
@@ -1003,39 +1003,39 @@ function formatMixAsMarkdown(mix: MixResult, changes?: string[], locale: 'ko' | 
   return lines.join('\n');
 }
 
-// ─── Concertmaster 메타 리뷰 ───
+// ─── Navigator 메타 리뷰 ───
 
-export interface ConcertmasterReview {
+export interface NavigatorReview {
   overall: string;
   contradictions: string[];
   blind_spots: string[];
   verdict: string;
 }
 
-export async function runConcertmasterReview(
+export async function runNavigatorReview(
   problemText: string,
   workerResults: Array<{ agentName: string; agentRole: string; task: string; result: string }>,
   signal?: AbortSignal,
-): Promise<ConcertmasterReview | null> {
-  const concertmaster = useAgentStore.getState().getAgent('concertmaster');
-  if (!concertmaster?.unlocked) return null;
+): Promise<NavigatorReview | null> {
+  const navigator = useAgentStore.getState().getAgent('navigator');
+  if (!navigator?.unlocked) return null;
 
   const locale = getCurrentLanguage();
-  const { system, user } = buildConcertmasterReviewPrompt(problemText, workerResults, locale);
+  const { system, user } = buildNavigatorReviewPrompt(problemText, workerResults, locale);
 
   try {
-    const result = await callLLMJson<ConcertmasterReview>(
+    const result = await callLLMJson<NavigatorReview>(
       [{ role: 'user', content: user }],
       { system, maxTokens: 500, signal, shape: { overall: 'string', contradictions: 'array', blind_spots: 'array', verdict: 'string' } },
     );
 
-    // 악장 XP 적립
-    useAgentStore.getState().recordActivity('concertmaster', 'review_given', problemText.slice(0, 100));
+    // 항해장 XP 적립
+    useAgentStore.getState().recordActivity('navigator', 'review_given', problemText.slice(0, 100));
 
     return result;
   } catch (err) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[concertmaster-review] failed:', err instanceof Error ? err.message : err);
+      console.warn('[navigator-review] failed:', err instanceof Error ? err.message : err);
     }
     return null;
   }
@@ -1047,7 +1047,7 @@ export type { DebateResult };
 
 /**
  * Critical stakes에서 Stage 1 결과에 대해 Critic이 반론을 생성.
- * runConcertmasterReview 이후에 호출. LLM 1회.
+ * runNavigatorReview 이후에 호출. LLM 1회.
  */
 export async function runDebate(
   problemText: string,
@@ -1070,16 +1070,16 @@ export async function runDebate(
   });
 }
 
-/* ─── Concertmaster Revision (Post-finalize iteration) ───────────────── */
+/* ─── Navigator Revision (Post-finalize iteration) ───────────────── */
 
-export interface ConcertmasterRevisionResult {
+export interface NavigatorRevisionResult {
   revised_text: string;
   change_summary: string;
 }
 
 /**
  * Post-finalize revision loop. User has a complete draft in hand and wants
- * the 악장(Concertmaster) to edit it per a natural-language directive.
+ * the 항해장(Navigator) to edit it per a natural-language directive.
  *
  * Unlike runFinalDeliverable (which synthesizes a fresh final from mix +
  * concerns), this function is a minimal-invasive text-level edit: it assumes
@@ -1087,14 +1087,14 @@ export interface ConcertmasterRevisionResult {
  *
  * Pure function — caller records the result via `useProgressiveStore.addDraft`.
  */
-export async function runConcertmasterRevision(params: {
+export async function runNavigatorRevision(params: {
   currentFinalText: string;
   directive: string;
   problemContext: string;
   currentVersionLabel: string;
   priorDrafts?: Array<{ version_label: string; change_summary: string }>;
   signal?: AbortSignal;
-}): Promise<ConcertmasterRevisionResult> {
+}): Promise<NavigatorRevisionResult> {
   const {
     currentFinalText,
     directive,
@@ -1106,7 +1106,7 @@ export async function runConcertmasterRevision(params: {
 
   const locale = getCurrentLanguage();
 
-  const systemKo = `당신은 오케스트라의 악장(Concertmaster)입니다. 다른 전문가 에이전트들의 분석을 종합해 이미 완성된 기획안을, 사용자의 수정 요청에 따라 최소 침습 원칙으로 편집합니다.
+  const systemKo = `당신은 선원들의 분석을 종합하는 항해장(Navigator)입니다. 이미 완성된 기획안을, 사용자의 수정 요청에 따라 최소 침습 원칙으로 편집합니다.
 
 ## 원칙
 1. **원본 구조 유지** — 섹션 제목, 순서, 전체 톤을 보존합니다. directive가 명시적으로 구조 변경을 요구할 때만 변경합니다.
@@ -1122,7 +1122,7 @@ export async function runConcertmasterRevision(params: {
   "change_summary": "한 줄 요약 (40자 이내)"
 }`;
 
-  const systemEn = `You are the Concertmaster of an orchestra of expert agents. A complete document already exists; your job is to edit it per the user's directive with minimum-invasive edits.
+  const systemEn = `You are the Navigator of an orchestra of expert agents. A complete document already exists; your job is to edit it per the user's directive with minimum-invasive edits.
 
 ## Principles
 1. **Preserve original structure** — section headings, order, tone. Change them only if the directive explicitly requires it.
@@ -1162,7 +1162,7 @@ ${currentFinalText}
 ## Revision request
 ${directive}${priorBlock}`;
 
-  const result = await callLLMJson<ConcertmasterRevisionResult>(
+  const result = await callLLMJson<NavigatorRevisionResult>(
     [{ role: 'user', content: locale === 'ko' ? userKo : userEn }],
     {
       system: locale === 'ko' ? systemKo : systemEn,
@@ -1172,11 +1172,11 @@ ${directive}${priorBlock}`;
     },
   );
 
-  // Record activity if 악장 agent exists (even if not fully unlocked — this
+  // Record activity if 항해장 agent exists (even if not fully unlocked — this
   // is a meta-capability separate from task-based unlock progression).
   try {
     useAgentStore.getState().recordActivity(
-      'concertmaster',
+      'navigator',
       'review_given',
       `revision:${directive.slice(0, 60)}`,
     );

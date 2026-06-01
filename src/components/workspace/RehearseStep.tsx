@@ -26,7 +26,7 @@ import { useRecastStore } from '@/stores/useRecastStore';
 import { LoadingSteps } from '@/components/ui/LoadingSteps';
 import { playSuccessTone, resumeAudioContext } from '@/lib/audio';
 import { ContextChainBlock } from './ContextChainBlock';
-import { ConcertmasterInline } from '@/components/workspace/ConcertmasterInline';
+import { NavigatorInline } from '@/components/workspace/NavigatorInline';
 import { buildReframeContext, buildRecastContext } from '@/lib/context-chain';
 // Dynamic imports for heavy modules (loaded on-demand, not at initial render)
 const lazyEvalEngine = () => import('@/lib/eval-engine');
@@ -138,7 +138,7 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
   useEffect(() => {
     if (handoff) {
       setHandoffContent(handoff.content || '');
-      setHandoffTitle(`${handoff.from === 'reframe' ? L('악보 해석', 'Reframe') : handoff.from === 'recast' ? L('편곡', 'Recast') : L('리허설', 'Rehearse')} ${L('결과물', 'result')}`);
+      setHandoffTitle(`${handoff.from === 'reframe' ? L('항로 재설정', 'Reframe') : handoff.from === 'recast' ? L('선원 배치', 'Recast') : L('리허설', 'Rehearse')} ${L('결과물', 'result')}`);
       setPendingProjectId(handoff.projectId);
       if (handoff.autoPersonaIds && handoff.autoPersonaIds.length > 0) {
         setAutoPersonaIds(handoff.autoPersonaIds);
@@ -415,7 +415,7 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
           {L('보내기 전에, 보고 대상의 시점에서 미리 피드백을 받습니다.', 'Get feedback in advance from your audience\'s perspective before sending.')}
         </p>
         <div className="mt-2">
-          <ConcertmasterInline step="rehearse" />
+          <NavigatorInline step="rehearse" />
         </div>
       </div>
 
@@ -487,7 +487,7 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
           {autoPersonaIds.length > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--ai)]">
               <Check size={14} className="text-[var(--accent)]" />
-              <span className="text-[12px] font-medium text-[#2d4a7c]">{L(`편곡에서 찾은 이해관계자 ${autoPersonaIds.length}명이 선택되었습니다`, `${autoPersonaIds.length} stakeholder${autoPersonaIds.length === 1 ? '' : 's'} from Recast selected`)}</span>
+              <span className="text-[12px] font-medium text-[#2d4a7c]">{L(`선원 배치에서 찾은 이해관계자 ${autoPersonaIds.length}명이 선택되었습니다`, `${autoPersonaIds.length} stakeholder${autoPersonaIds.length === 1 ? '' : 's'} from Recast selected`)}</span>
             </div>
           )}
 
@@ -623,14 +623,14 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
             }
             if (recast?.analysis?.key_assumptions && recast.analysis.key_assumptions.length > 0) {
               items.push({
-                label: L('편곡의 핵심 가정', 'Key assumptions from Recast'),
+                label: L('선원 배치의 핵심 가정', 'Key assumptions from Recast'),
                 count: recast.analysis.key_assumptions.length,
                 details: recast.analysis.key_assumptions.map(ka => ka.assumption),
               });
             }
             const summary = reframe?.analysis
-              ? L(`악보 해석에서 발견한 핵심 질문: ${reframe.selected_question || reframe.analysis.surface_task}`, `Key question found in Reframe: ${reframe.selected_question || reframe.analysis.surface_task}`)
-              : L(`편곡의 핵심 가정 ${recast?.analysis?.key_assumptions?.length || 0}건을 이 리허설에서 검증합니다.`, `Validating ${recast?.analysis?.key_assumptions?.length || 0} key assumption${(recast?.analysis?.key_assumptions?.length || 0) === 1 ? '' : 's'} from Recast in this rehearsal.`);
+              ? L(`항로 재설정에서 발견한 핵심 질문: ${reframe.selected_question || reframe.analysis.surface_task}`, `Key question found in Reframe: ${reframe.selected_question || reframe.analysis.surface_task}`)
+              : L(`선원 배치의 핵심 가정 ${recast?.analysis?.key_assumptions?.length || 0}건을 이 리허설에서 검증합니다.`, `Validating ${recast?.analysis?.key_assumptions?.length || 0} key assumption${(recast?.analysis?.key_assumptions?.length || 0) === 1 ? '' : 's'} from Recast in this rehearsal.`);
             return <ContextChainBlock summary={summary} items={items} />;
           })()}
 

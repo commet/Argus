@@ -45,7 +45,7 @@ export const AGENT_REGISTRY: AgentIdentity[] = [
   { agentId: 'jieun',              personaId: 'ux',                  frameworkKey: 'ux',                  name: '지은',  nameEn: 'Maya' },
   { agentId: 'taejun',             personaId: 'legal',               frameworkKey: 'legal',               name: '윤석',  nameEn: 'Arthur' },
   // Special
-  { agentId: 'concertmaster',      personaId: 'concertmaster',       frameworkKey: 'concertmaster',       name: '악장',  nameEn: 'Maestro' },
+  { agentId: 'navigator',      personaId: 'navigator',       frameworkKey: 'navigator',       name: '항해장',  nameEn: 'Navigator' },
 ];
 
 // ─── Lookup Maps (lazy-init) ───

@@ -162,7 +162,7 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
 
   // ━━━ Special ━━━
   {
-    agentId: 'concertmaster',
+    agentId: 'navigator',
     taskTypes: ['synthesis', 'critique', 'analysis'],
     domains: ['product', 'market', 'ops'],
     outputTypes: ['report', 'document', 'risk_assessment'],

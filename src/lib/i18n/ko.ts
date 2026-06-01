@@ -10,18 +10,18 @@ export const ko = {
   'common.newStart': '새로 시작',
 
   // Tools
-  'tool.reframe': '악보 해석',
+  'tool.reframe': '항로 재설정',
   'tool.reframe.subtitle': '문제 재정의',
-  'tool.recast': '편곡',
+  'tool.recast': '선원 배치',
   'tool.recast.subtitle': '실행 설계',
   'tool.rehearsal': '리허설',
   'tool.rehearsal.subtitle': '페르소나 피드백',
-  'tool.ensemble': '합주',
+  'tool.ensemble': '종합',
   'tool.ensemble.subtitle': '수렴 연습',
 
   // Reframe
   'reframe.placeholder': '해결하고 싶은 과제를 입력하세요',
-  'reframe.analyzing': '악보를 읽고 있습니다...',
+  'reframe.analyzing': '항로를 그리고 있습니다...',
   'reframe.direction': '어떤 방향으로 접근하시겠습니까?',
   'reframe.reframe': '질문 재정의',
   'reframe.reframing': '질문을 재정의하고 있습니다...',
@@ -30,7 +30,7 @@ export const ko = {
 
   // Recast
   'recast.placeholder': '맥락을 선택하고 목표를 입력하세요',
-  'recast.analyzing': '편곡하고 있습니다...',
+  'recast.analyzing': '선원을 배치하고 있습니다...',
   'recast.governingIdea': '핵심 방향',
   // recast.review removed (multi-lens review replaced by auto-persona + rehearsal)
 
@@ -54,17 +54,17 @@ export const ko = {
   'error.llm': 'LLM 호출 중 오류가 발생했습니다',
   'error.unexpected': '예기치 않은 오류가 발생했습니다',
 
-  // Concertmaster
-  'concertmaster.title': '악장',
-  'concertmaster.open': '악장 열기',
-  'concertmaster.close': '닫기',
-  'concertmaster.noInsights': '새로운 인사이트가 없습니다.',
-  'concertmaster.firstSession': '첫 분석을 시작하면 인사이트가 쌓입니다.',
-  'concertmaster.sessions': '{count}회 분석',
-  'concertmaster.projects': '{count}개 프로젝트',
-  'concertmaster.preferredStrategy': '선호 전략: {strategy}',
-  'concertmaster.overrideRate': 'AI 수정률: {rate}%',
-  'concertmaster.avgPassRate': '평균 활용률: {rate}%',
+  // Navigator
+  'navigator.title': '항해장',
+  'navigator.open': '항해장 열기',
+  'navigator.close': '닫기',
+  'navigator.noInsights': '새로운 인사이트가 없습니다.',
+  'navigator.firstSession': '첫 분석을 시작하면 인사이트가 쌓입니다.',
+  'navigator.sessions': '{count}회 분석',
+  'navigator.projects': '{count}개 프로젝트',
+  'navigator.preferredStrategy': '선호 전략: {strategy}',
+  'navigator.overrideRate': 'AI 수정률: {rate}%',
+  'navigator.avgPassRate': '평균 활용률: {rate}%',
 
   // Coaching — Reframe
   'coaching.reframe.firstUse': '첫 분석입니다. 과제를 입력하면 숨은 가정을 찾아드립니다.',
@@ -94,14 +94,14 @@ export const ko = {
   'coaching.recast.overrideHigh': 'AI 제안을 자주 수정하고 있습니다 ({pct}%). 이 패턴이 반영됩니다.',
   'coaching.recast.prefersHuman': '사람이 직접 하는 것을 선호하는 패턴입니다.',
   'coaching.recast.prefersAi': 'AI에 많이 위임하는 편입니다. 체크포인트를 충분히 두세요.',
-  'coaching.recast.uncertainAssumptions': '악보 해석에서 불확실한 가정 {count}건 — 실행 설계에 검증 단계를 포함하세요.',
+  'coaching.recast.uncertainAssumptions': '항로 재설정에서 불확실한 가정 {count}건 — 실행 설계에 검증 단계를 포함하세요.',
 
   // Coaching — Rehearse
   'coaching.rehearse.firstUse': '페르소나가 당신의 계획을 검증합니다.',
   'coaching.rehearse.firstUseDetail': '만약 리허설 전에 "가장 불편한 질문이 뭘까?"를 먼저 떠올려보면, 페르소나의 피드백을 더 깊이 받아들일 수 있습니다.',
   'coaching.rehearse.accuracyImproving': '페르소나 정확도가 향상되고 있습니다 ({from} → {to}).',
   'coaching.rehearse.accuracyImprovingDetail': '페르소나의 피드백을 반영한 결과, 시뮬레이션 품질이 올라가고 있습니다.',
-  'coaching.rehearse.keyAssumptions': '편곡에서 중요도 높은 가정 {count}건 — 페르소나에게 검증 요청하세요.',
+  'coaching.rehearse.keyAssumptions': '선원 배치에서 중요도 높은 가정 {count}건 — 페르소나에게 검증 요청하세요.',
   'coaching.rehearse.personaAccuracy': '페르소나 정확도 {score}/5 ({count}회 평가)',
 
   // Coaching — Refine
@@ -116,7 +116,7 @@ export const ko = {
   // Coaching — Synthesize
   'coaching.synthesize.firstUse': '쟁점을 발견하면 성급하게 절충하지 마세요. 각 입장이 어떤 가정 위에 서 있는지 먼저 파악하세요.',
   'coaching.synthesize.firstUseDetail': '합의는 "중간값"이 아니라 "더 나은 질문"에서 나옵니다.',
-  'coaching.synthesize.overrideHigh': '당신은 AI 제안의 절반 이상을 수정합니다. 조율에서도 그 판단력이 핵심입니다.',
+  'coaching.synthesize.overrideHigh': '당신은 AI 제안의 절반 이상을 수정합니다. 항로 수정에서도 그 판단력이 핵심입니다.',
   'coaching.synthesize.overrideLow': '소스 간 충돌에서 한쪽을 선택하는 건 판단입니다. 두 소스 모두 틀릴 수도 있습니다.',
 
   // Persona aspect accuracy
@@ -137,15 +137,15 @@ export const ko = {
   'axis.business': '비즈니스',
   'axis.orgCapacity': '조직 역량',
 
-  // Concertmaster misc
-  'concertmaster.defaultProject': '프로젝트',
-  'concertmaster.evalSummary': '{count}회 분석, 평균 활용률 {pct}%',
-  'concertmaster.evalLow': '{name}이 {pct}%로 낮습니다',
-  'concertmaster.overrideHighMessage': 'AI 제안 수정률 {pct}% — 자기 판단이 강한 패턴입니다.',
-  'concertmaster.overrideHighDetail': '이 패턴이 향후 AI 제안에 반영됩니다.',
-  'concertmaster.overrideLowMessage': 'AI 제안을 거의 그대로 수용하고 있습니다 (수정률 {pct}%).',
-  'concertmaster.overrideLowDetail': 'AI 제안을 비판적으로 검토하면 더 나은 결과를 얻을 수 있습니다.',
-  'concertmaster.strategyBest': '"{name}" 전략의 활용률이 {pct}%로 가장 높습니다',
+  // Navigator misc
+  'navigator.defaultProject': '프로젝트',
+  'navigator.evalSummary': '{count}회 분석, 평균 활용률 {pct}%',
+  'navigator.evalLow': '{name}이 {pct}%로 낮습니다',
+  'navigator.overrideHighMessage': 'AI 제안 수정률 {pct}% — 자기 판단이 강한 패턴입니다.',
+  'navigator.overrideHighDetail': '이 패턴이 향후 AI 제안에 반영됩니다.',
+  'navigator.overrideLowMessage': 'AI 제안을 거의 그대로 수용하고 있습니다 (수정률 {pct}%).',
+  'navigator.overrideLowDetail': 'AI 제안을 비판적으로 검토하면 더 나은 결과를 얻을 수 있습니다.',
+  'navigator.strategyBest': '"{name}" 전략의 활용률이 {pct}%로 가장 높습니다',
 
   // Learning Curve
   'learning.trendImproving': '향상',
@@ -210,14 +210,14 @@ export const ko = {
   'ui.nextStep': '다음 단계',
 
   // NextStepGuide
-  'nextStep.toRecast.label': '편곡으로',
-  'nextStep.toRecast.reason': '숨겨진 질문을 찾았습니다. 이제 이 질문에 답하는 실행 계획을 설계하세요. 발견한 전제와 가설이 편곡의 기초가 됩니다.',
+  'nextStep.toRecast.label': '선원 배치로',
+  'nextStep.toRecast.reason': '숨겨진 질문을 찾았습니다. 이제 이 질문에 답하는 실행 계획을 설계하세요. 발견한 전제와 가설이 선원 배치의 기초가 됩니다.',
   'nextStep.toRehearse.label': '리허설로',
-  'nextStep.toRehearse.reason': '실행 설계가 완성되었습니다. 이제 이해관계자 앞에서 연주해보세요. 핵심 가정이 맞는지, 놓친 리스크가 없는지 검증합니다.',
-  'nextStep.toRefine.label': '합주 연습으로',
-  'nextStep.toRefine.reason': '이해관계자의 반응을 확인했습니다. 지적 사항을 제약조건으로 변환하여, 하모니가 맞을 때까지 반복 개선하세요.',
-  'nextStep.toPerform.label': '공연 — 무대에 올리기',
-  'nextStep.toPerform.reason': '하모니가 맞았습니다. 사고의 궤적이 담긴 산출물을 생성하세요.',
+  'nextStep.toRehearse.reason': '실행 설계가 완성되었습니다. 이제 선원 회의를 열어 검증하세요. 핵심 가정이 맞는지, 놓친 리스크가 없는지 검증합니다.',
+  'nextStep.toRefine.label': '항로 수정으로',
+  'nextStep.toRefine.reason': '이해관계자의 반응을 확인했습니다. 지적 사항을 제약조건으로 변환하여, 항로가 잡힐 때까지 반복해 다듬으세요.',
+  'nextStep.toPerform.label': '출항 — 이타카로',
+  'nextStep.toPerform.reason': '항로가 잡혔습니다. 사고의 궤적이 담긴 산출물을 생성하세요.',
   'nextStep.rehearseAgain.label': '리허설 다시',
   'nextStep.rehearseAgain.reason': '수정한 내용이 이해관계자의 우려를 해소했는지 다시 검증합니다.',
   'nextStep.overview.label': '프로젝트 오버뷰',
@@ -262,16 +262,16 @@ export const ko = {
   'exec.criticalCount': '핵심 {n}건',
   'exec.noThreat': '위협 없음',
   'exec.empty': '—',
-  'exec.action.analyzeReframe': '악보 해석에서 과제를 분석하세요',
+  'exec.action.analyzeReframe': '항로 재설정에서 과제를 분석하세요',
   'exec.action.pickQuestion': '질문을 선택하고 확정하세요',
-  'exec.action.runReframe': '악보 해석을 먼저 실행하세요',
-  'exec.action.designRecast': '편곡에서 워크플로우를 설계하세요',
+  'exec.action.runReframe': '항로 재설정을 먼저 실행하세요',
+  'exec.action.designRecast': '선원 배치에서 워크플로우를 설계하세요',
   'exec.action.addPersona': '리허설에서 페르소나를 등록하고 피드백을 받으세요',
   'exec.action.addOneMorePersona': '이해관계자 1명 추가를 권장합니다',
 
-  // Concertmaster (additional)
-  'concertmaster.dqScore': '판단 품질',
-  'concertmaster.avgSuffix': '평균 {n}',
+  // Navigator (additional)
+  'navigator.dqScore': '판단 품질',
+  'navigator.avgSuffix': '평균 {n}',
   'strategy.challengeExistence': '존재 의심',
   'strategy.narrowScope': '범위 집중',
   'strategy.diagnoseRoot': '원인 진단',

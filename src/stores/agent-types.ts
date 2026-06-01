@@ -221,5 +221,5 @@ export const CHAIN_UNLOCK_THRESHOLDS = {
   master: 15,   // 체인 작업 15회 → 세 번째 에이전트 해금
 } as const;
 
-export const CONCERTMASTER_UNLOCK_THRESHOLD = 10; // 전체 작업 10회 → 악장 해금
-export const CONCERTMASTER_SESSION_THRESHOLD = 3; // 또는 3세션 완료 → 악장 해금
+export const NAVIGATOR_UNLOCK_THRESHOLD = 10; // 전체 작업 10회 → 항해장 해금
+export const NAVIGATOR_SESSION_THRESHOLD = 3; // 또는 3세션 완료 → 항해장 해금

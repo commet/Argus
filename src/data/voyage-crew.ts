@@ -7,11 +7,11 @@
  *   Five stages of work move the ship from brief → Ithaca.
  *
  * `stationOrder` controls the visual order of divisions in the Cutaway —
- * forward-of-ship first (Scouts at the bow), aft-of-ship last (Concertmaster
+ * forward-of-ship first (Scouts at the bow), aft-of-ship last (Navigator
  * at the helm). Watch sits up in the crow's nest above all decks.
  */
 
-export type DivisionId = 'scouts' | 'cartographers' | 'artisans' | 'watch' | 'concertmaster';
+export type DivisionId = 'scouts' | 'cartographers' | 'artisans' | 'watch' | 'navigator';
 
 export type CrewDivision = {
   id: DivisionId;
@@ -86,7 +86,7 @@ export const CREW_DIVISIONS: CrewDivision[] = [
     ],
   },
   {
-    id: 'concertmaster',
+    id: 'navigator',
     label: { ko: '일등 항해사', en: 'First Mate' },
     role: {
       ko: '모든 선원의 목소리를 하나로 묶어 선장에게 전한다',

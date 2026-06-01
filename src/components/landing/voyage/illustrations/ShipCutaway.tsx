@@ -788,23 +788,23 @@ export function ShipCutaway({
       {/* STATION 01 · FIRST MATE — helm wheel as dominant object         */}
       {/* ──────────────────────────────────────────────────────────── */}
       <g
-        data-station="concertmaster"
-        {...stationHandlers('concertmaster')}
-        style={stationGroupStyle('concertmaster')}
+        data-station="navigator"
+        {...stationHandlers('navigator')}
+        style={stationGroupStyle('navigator')}
       >
-        <ZoneBackdrop x={138} y={186} w={144} h={208} id="concertmaster" />
+        <ZoneBackdrop x={138} y={186} w={144} h={208} id="navigator" />
 
         {/* Ship's bell */}
         <ShipBell cx={156} cy={232} />
 
         {/* Helm wheel */}
-        <HelmWheel cx={HELM.cx} cy={HELM.cy} r={HELM.r} active={isActive('concertmaster')} />
+        <HelmWheel cx={HELM.cx} cy={HELM.cy} r={HELM.r} active={isActive('navigator')} />
 
         {/* Compass binnacle (small pedestal forward of helm) */}
         <Binnacle cx={258} cy={290} />
 
         {/* First Mate figure (beside the wheel, slightly forward) */}
-        <Figure cx={232} cy={252} active={isActive('concertmaster')} size={1.15} facing={-20} />
+        <Figure cx={232} cy={252} active={isActive('navigator')} size={1.15} facing={-20} />
         {/* signaling arm reaching toward bow */}
         <line x1={240} y1={250} x2={258} y2={244} stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
         <circle cx={258} cy={244} r={1.6} fill="currentColor" />

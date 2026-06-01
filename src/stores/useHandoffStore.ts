@@ -9,8 +9,8 @@ interface HandoffState {
 }
 
 const STEP_MAP: Record<string, string> = {
-  'reframe': 'Score Reading',
-  'recast': 'Arrangement',
+  'reframe': 'Set the Heading',
+  'recast': 'Crew Assignment',
   'rehearse': 'Rehearsal',
   'refine': 'Ensemble Practice',
   'synthesize': 'Synthesis',

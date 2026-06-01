@@ -26,8 +26,8 @@ import {
   calculateLevel,
   XP_REWARDS,
   CHAIN_UNLOCK_THRESHOLDS,
-  CONCERTMASTER_UNLOCK_THRESHOLD,
-  CONCERTMASTER_SESSION_THRESHOLD,
+  NAVIGATOR_UNLOCK_THRESHOLD,
+  NAVIGATOR_SESSION_THRESHOLD,
 } from '@/stores/agent-types';
 
 // ─── Builtin Agent Definitions ───
@@ -233,12 +233,12 @@ const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_a
     is_builtin: true, archived: false,
   },
 
-  // ── 특수: 악장 ──
+  // ── 특수: 항해장 ──
   {
-    id: 'concertmaster', name: '악장', nameEn: 'Maestro', role: 'Concertmaster', roleEn: 'Concertmaster', emoji: '🎻', color: '#D97706',
+    id: 'navigator', name: '항해장', nameEn: 'Navigator', role: 'Navigator', roleEn: 'Navigator', emoji: '🧭', color: '#D97706',
     origin: 'builtin', capabilities: ['review'],
     group: 'special', chain_id: null,
-    unlock_condition: { type: 'total_tasks', required: CONCERTMASTER_UNLOCK_THRESHOLD }, unlocked: false,
+    unlock_condition: { type: 'total_tasks', required: NAVIGATOR_UNLOCK_THRESHOLD }, unlocked: false,
     expertise: '메타 관찰, 품질 체크, 팀 간 모순 발견, 사용자 성장 미션 제안.',
     tone: '관조적이고 때로 보수적. 놓치고 있는 관점을 짚어줍니다.',
     keywords: [],
@@ -362,10 +362,10 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       return;
     }
 
-    // 기존 데이터 마이그레이션: 악장 해금 조건 30 → 10
+    // 기존 데이터 마이그레이션: 항해장 해금 조건 30 → 10
     const migratedAgents = agents.map(a => {
-      if (a.id === 'concertmaster' && a.unlock_condition.type === 'total_tasks' && a.unlock_condition.required > CONCERTMASTER_UNLOCK_THRESHOLD) {
-        return { ...a, unlock_condition: { ...a.unlock_condition, required: CONCERTMASTER_UNLOCK_THRESHOLD } };
+      if (a.id === 'navigator' && a.unlock_condition.type === 'total_tasks' && a.unlock_condition.required > NAVIGATOR_UNLOCK_THRESHOLD) {
+        return { ...a, unlock_condition: { ...a.unlock_condition, required: NAVIGATOR_UNLOCK_THRESHOLD } };
       }
       return a;
     });
@@ -705,10 +705,10 @@ export const useAgentStore = create<AgentState>((set, get) => ({
           break;
         }
         case 'total_tasks': {
-          // 태스크 수 OR 세션 수 (악장 조기 해금)
+          // 태스크 수 OR 세션 수 (항해장 조기 해금)
           const sessionCount = getStorage<unknown[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []).length;
           shouldUnlock = totalTasks >= agent.unlock_condition.required
-            || sessionCount >= CONCERTMASTER_SESSION_THRESHOLD;
+            || sessionCount >= NAVIGATOR_SESSION_THRESHOLD;
           break;
         }
         case 'sessions': {

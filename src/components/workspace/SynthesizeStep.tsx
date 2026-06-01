@@ -20,7 +20,7 @@ import { useHandoffStore } from '@/stores/useHandoffStore';
 import { useJudgmentStore } from '@/stores/useJudgmentStore';
 import { buildEnhancedSystemPrompt } from '@/lib/context-builder';
 import { NextStepGuide } from '@/components/ui/NextStepGuide';
-import { ConcertmasterInline } from '@/components/workspace/ConcertmasterInline';
+import { NavigatorInline } from '@/components/workspace/NavigatorInline';
 import { Sparkles, Loader2, FileText, Trash2, Check, PlusCircle, X, AlertTriangle, ArrowRight, RotateCcw, Bot, Scale, Send } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 
@@ -255,7 +255,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
         <ModeToggle mode={mode} onChange={setMode} />
       </div>
 
-      <ConcertmasterInline step="synthesize" />
+      <NavigatorInline step="synthesize" />
 
       {/* History */}
       {items.length > 0 && (

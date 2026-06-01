@@ -14,12 +14,12 @@ interface AgentCardProps {
 export function AgentCard({ agent, onClick }: AgentCardProps) {
   const locale = useLocale();
   const { progress } = getLevelProgress(agent.xp);
-  const isConcertmaster = agent.id === 'concertmaster';
+  const isNavigator = agent.id === 'navigator';
   const displayName = locale === 'en' && agent.nameEn ? agent.nameEn : agent.name;
   const displayRole = locale === 'en' && agent.roleEn ? agent.roleEn : agent.role;
 
   if (!agent.unlocked) {
-    return <LockedAgentCard agent={agent} isConcertmaster={isConcertmaster} locale={locale} displayName={displayName} displayRole={displayRole} />;
+    return <LockedAgentCard agent={agent} isNavigator={isNavigator} locale={locale} displayName={displayName} displayRole={displayRole} />;
   }
 
   const obsCount = agent.observations.length;
@@ -29,7 +29,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
 
   return (
     <div
-      className={`agent-card ${isConcertmaster ? 'agent-card-concertmaster' : ''}`}
+      className={`agent-card ${isNavigator ? 'agent-card-navigator' : ''}`}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -61,9 +61,9 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
   );
 }
 
-function LockedAgentCard({ agent, isConcertmaster, locale, displayName, displayRole }: {
+function LockedAgentCard({ agent, isNavigator, locale, displayName, displayRole }: {
   agent: Agent;
-  isConcertmaster: boolean;
+  isNavigator: boolean;
   locale: Locale;
   displayName: string;
   displayRole: string;
@@ -71,7 +71,7 @@ function LockedAgentCard({ agent, isConcertmaster, locale, displayName, displayR
   const conditionText = getUnlockText(agent, locale);
 
   return (
-    <div className={`agent-card agent-card-locked ${isConcertmaster ? 'agent-card-concertmaster' : ''}`}>
+    <div className={`agent-card agent-card-locked ${isNavigator ? 'agent-card-navigator' : ''}`}>
       <div className="agent-lock">
         <div className="agent-lock-icon">🔒</div>
         <div className="agent-card-name" style={{ opacity: 0.4 }}>{displayName}</div>

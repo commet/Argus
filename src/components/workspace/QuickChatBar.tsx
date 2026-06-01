@@ -26,10 +26,10 @@ const SYSTEM_PROMPT_KO = `당신은 Argus 워크스페이스의 어시스턴트�
 
 사용 가능한 액션:
 - navigate: 다른 단계로 이동. params: { step: "reframe" | "recast" | "rehearse" }
-- update_actor: 편곡에서 특정 스텝의 담당자 변경. params: { stepIndex: number, actor: "ai" | "human" | "both" }
-- add_step: 편곡에 새 단계 추가. params: { task: string }
-- remove_step: 편곡에서 단계 제거. params: { stepIndex: number }
-- select_question: 악보 해석에서 질문 선택. params: { questionIndex: number }
+- update_actor: 선원 배치에서 특정 스텝의 담당자 변경. params: { stepIndex: number, actor: "ai" | "human" | "both" }
+- add_step: 선원 배치에 새 단계 추가. params: { task: string }
+- remove_step: 선원 배치에서 단계 제거. params: { stepIndex: number }
+- select_question: 항로 재설정에서 질문 선택. params: { questionIndex: number }
 - confirm: 현재 단계 확정. params: {}
 - reanalyze: 현재 단계 재분석. params: {}
 - message: 단순 응답 (액션 없음). params: {}
@@ -43,10 +43,10 @@ Current step: {step}
 
 Available actions:
 - navigate: Go to another step. params: { step: "reframe" | "recast" | "rehearse" }
-- update_actor: Change the owner of a step in Arrangement. params: { stepIndex: number, actor: "ai" | "human" | "both" }
-- add_step: Add a new step in Arrangement. params: { task: string }
-- remove_step: Remove a step in Arrangement. params: { stepIndex: number }
-- select_question: Select a question in Score Reading. params: { questionIndex: number }
+- update_actor: Change the owner of a step in Crew Assignment. params: { stepIndex: number, actor: "ai" | "human" | "both" }
+- add_step: Add a new step in Crew Assignment. params: { task: string }
+- remove_step: Remove a step in Crew Assignment. params: { stepIndex: number }
+- select_question: Select a question in Set the Heading. params: { questionIndex: number }
 - confirm: Confirm the current step. params: {}
 - reanalyze: Re-analyze the current step. params: {}
 - message: Plain reply (no action). params: {}

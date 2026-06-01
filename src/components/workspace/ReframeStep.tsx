@@ -23,14 +23,14 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { playSuccessTone, resumeAudioContext } from '@/lib/audio';
 import { NextStepGuide } from '@/components/ui/NextStepGuide';
 import { FileText, Trash2, Check, Pencil, Brain, AlertTriangle, ArrowRight, RotateCcw, Send, Loader2 } from 'lucide-react';
-import { StaffLines, BarLine } from '@/components/ui/MusicalElements';
+import { Graticule, ChartEdge } from '@/components/ui/VoyageElements';
 import { buildReframeContext, extractInterviewSignals } from '@/lib/context-chain';
 import { selectReframingStrategy, applyReframingStrategy, STRATEGY_LABELS, type ReframingStrategy } from '@/lib/reframing-strategy';
 import type { InterviewSignals } from '@/stores/types';
 import type { EntryStep } from '@/components/ui/StepEntry';
 const lazyEvalEngine = () => import('@/lib/eval-engine');
 import { applyPromptMutations } from '@/lib/prompt-mutation';
-import { ConcertmasterInline } from '@/components/workspace/ConcertmasterInline';
+import { NavigatorInline } from '@/components/workspace/NavigatorInline';
 import { t } from '@/lib/i18n';
 import { recordSignal } from '@/lib/signal-recorder';
 import { useLocale } from '@/hooks/useLocale';
@@ -545,7 +545,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
       if (isAuthError(err)) {
         setError('LOGIN_REQUIRED');
       } else {
-        setError(de.message || L('악보를 읽을 수 없었습니다. 다시 시도하거나 더 구체적으로 입력해보세요.', 'Could not read the score. Try again or be more specific.'));
+        setError(de.message || L('항로를 그릴 수 없었습니다. 다시 시도하거나 더 구체적으로 입력해보세요.', 'Could not set the heading. Try again or be more specific.'));
       }
       updateItem(id, { status: 'input' });
     }
@@ -759,7 +759,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
       if (isAuthError(err)) {
         setError('LOGIN_REQUIRED');
       } else {
-        setError(de.message || L('악보를 다시 읽을 수 없었습니다. 다시 시도해보세요.', 'Could not re-read the score. Try again.'));
+        setError(de.message || L('항로를 다시 그릴 수 없었습니다. 다시 시도해보세요.', 'Could not re-chart the heading. Try again.'));
       }
       updateItem(currentId, { status: 'review' });
     }
@@ -845,9 +845,9 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
         </div>
       )}
 
-      {/* ─── Concertmaster inline coaching ─── */}
+      {/* ─── Navigator inline coaching ─── */}
       {(!current || current.status === 'input') && !currentId && (
-        <ConcertmasterInline step="reframe" />
+        <NavigatorInline step="reframe" />
       )}
 
       {/* ═══════════════════════════════════════
@@ -992,7 +992,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
       )}
 
       {/* ═══════════════════════════════════════
-          STEP 3: Review — The Score Reading
+          STEP 3: Review — The Set the Heading
          ═══════════════════════════════════════ */}
       {current?.status === 'review' && current.analysis && (() => {
         const analysis = normalizeAnalysis(current.analysis!);
@@ -1159,7 +1159,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                     {/* 재정의된 질문 — 메인 */}
                     <div className="bg-[var(--primary)] text-[var(--bg)] px-5 py-5 md:px-6 md:py-6">
                       <p className="text-[11px] font-semibold text-white/50 mb-2">{questionLabel}</p>
-                      <p className="text-[18px] md:text-[20px] font-bold leading-snug animate-crescendo" style={{ fontFamily: 'var(--font-display)' }}>
+                      <p className="text-[18px] md:text-[20px] font-bold leading-snug animate-rise" style={{ fontFamily: 'var(--font-display)' }}>
                         {analysis.reframed_question}
                       </p>
                     </div>
@@ -1285,7 +1285,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                   <RotateCcw size={14} /> {L('가정 다시 평가', 'Re-evaluate assumptions')}
                 </Button>
                 <div className="flex gap-2">
-                  <ShareBar getText={() => reframeToMarkdown(current)} getTitle={() => L('악보 해석 | ', 'Reframe | ') + (current.analysis?.surface_task || '')} />
+                  <ShareBar getText={() => reframeToMarkdown(current)} getTitle={() => L('항로 재설정 | ', 'Reframe | ') + (current.analysis?.surface_task || '')} />
                   <Button onClick={handleConfirm} disabled={!current.selected_question}>
                     <Check size={14} /> {t('common.confirm')}
                   </Button>
@@ -1297,19 +1297,19 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
       })()}
 
       {/* ═══════════════════════════════════════
-          STEP 4: Done — Score Reading Complete
+          STEP 4: Done — Set the Heading Complete
          ═══════════════════════════════════════ */}
       {current?.status === 'done' && current.analysis && (() => {
         const analysis = normalizeAnalysis(current.analysis!);
         return (
           <div className="space-y-4 animate-fade-in">
             <div className="relative rounded-[20px] bg-[var(--surface)] border-2 border-[var(--success)] shadow-sm overflow-hidden">
-              <StaffLines opacity={0.04} spacing={11} />
+              <Graticule opacity={0.04} spacing={22} />
               <div className="relative z-10 p-6">
                 <div className="flex items-center gap-2 text-[var(--success)] text-[13px] font-bold mb-5">
                   <Check size={14} />
-                  <span>{L('악보 해석 완료', 'Reframe complete')}</span>
-                  <BarLine type="final" height={16} className="ml-2" />
+                  <span>{L('항로 재설정 완료', 'Reframe complete')}</span>
+                  <ChartEdge height={16} className="ml-2" />
                   <span className="text-[var(--text-tertiary)] font-normal ml-1">{L('핵심 질문이 정의되었습니다', 'Core question defined')}</span>
                 </div>
 
@@ -1356,7 +1356,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
 
             <div className="flex items-center justify-between">
               <Button variant="secondary" size="sm" onClick={() => { setCurrentId(null); setInputText(''); }}>
-                <ArrowRight size={14} /> {L('새 악보 해석', 'New reframe')}
+                <ArrowRight size={14} /> {L('새 항로 재설정', 'New reframe')}
               </Button>
               <div className="flex gap-2">
                 <Button
@@ -1373,9 +1373,9 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                     onNavigate('recast');
                   }}
                 >
-                  <Send size={14} /> {L('편곡으로 보내기', 'Send to Recast')}
+                  <Send size={14} /> {L('선원 배치로 보내기', 'Send to Recast')}
                 </Button>
-                <ShareBar getText={() => reframeToMarkdown(current)} getTitle={() => L('악보 해석 | ', 'Reframe | ') + (current.analysis?.surface_task || '')} />
+                <ShareBar getText={() => reframeToMarkdown(current)} getTitle={() => L('항로 재설정 | ', 'Reframe | ') + (current.analysis?.surface_task || '')} />
               </div>
             </div>
 

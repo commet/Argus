@@ -298,7 +298,7 @@ describe('Document Generators Simulation', () => {
       };
       const result = generateProjectBrief(makeProject());
       expect(result).toContain('## 사고의 궤적');
-      expect(result).toContain('## 1. 악보 해석 | 문제 재정의');
+      expect(result).toContain('## 1. 항로 재설정 | 문제 재정의');
       expect(result).toContain('표면 과제');
       expect(result).toContain('질문1');
       expect(result).toContain('한계1');
@@ -312,7 +312,7 @@ describe('Document Generators Simulation', () => {
         sot_synthesize_list: [],
       };
       const result = generateProjectBrief(makeProject());
-      expect(result).toContain('## 2. 편곡 | 실행 설계');
+      expect(result).toContain('## 2. 선원 배치 | 실행 설계');
       expect(result).toContain('목표 요약');
       expect(result).toContain('데이터 수집');
     });
@@ -340,7 +340,7 @@ describe('Document Generators Simulation', () => {
       };
       const result = generateProjectBrief(makeProject());
       // 섹션 헤더는 출력되지만 analysis 하위 내용은 없음
-      expect(result).toContain('## 1. 악보 해석');
+      expect(result).toContain('## 1. 항로 재설정');
       expect(result).not.toContain('### 표면 과제');
       expect(result).not.toContain('### 전제 점검 결과');
     });

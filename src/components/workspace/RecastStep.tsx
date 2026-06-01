@@ -25,7 +25,7 @@ import { playSuccessTone, resumeAudioContext } from '@/lib/audio';
 import { buildReframeContext, injectReframeContext, mergeAssumptionsIntoKeyAssumptions } from '@/lib/context-chain';
 import type { ReframeContext } from '@/stores/types';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
-import { ConcertmasterInline } from '@/components/workspace/ConcertmasterInline';
+import { NavigatorInline } from '@/components/workspace/NavigatorInline';
 import { t } from '@/lib/i18n';
 import { recordSignal, getSignals } from '@/lib/signal-recorder';
 import { autoPersonaToFull } from '@/lib/auto-persona';
@@ -391,7 +391,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
       if (isAuthError(err)) {
         setError('LOGIN_REQUIRED');
       } else {
-        setError(de.message || L('악보를 편곡할 수 없었습니다. 다시 시도하거나 더 구체적으로 입력해보세요.', 'Could not recast. Try again or be more specific.'));
+        setError(de.message || L('항로를 잡을 수 없었습니다. 다시 시도하거나 더 구체적으로 입력해보세요.', 'Could not assign the crew. Try again or be more specific.'));
       }
       updateItem(id, { status: 'input' });
     }
@@ -471,12 +471,12 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
             const signals = getSignals({ tool: 'recast' });
             return signals.length > 0 ? (
               <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
-                {L(`이전 ${signals.length}건의 편곡 이력이 학습에 반영되고 있습니다`, `${signals.length} prior recast sessions are informing the analysis`)}
+                {L(`이전 ${signals.length}건의 선원 배치 이력이 학습에 반영되고 있습니다`, `${signals.length} prior recast sessions are informing the analysis`)}
               </p>
             ) : null;
           })()}
           <div className="mt-2">
-            <ConcertmasterInline step="recast" />
+            <NavigatorInline step="recast" />
           </div>
         </div>
       </div>
@@ -509,7 +509,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
         <Card>
           {reframeCtx && (
             <div className="flex items-center gap-1.5 text-[11px] text-[var(--accent)] mb-3">
-              <Check size={12} /> {L('악보 해석 맥락이 반영되고 있습니다', 'Reframe context is being applied')}
+              <Check size={12} /> {L('항로 재설정 맥락이 반영되고 있습니다', 'Reframe context is being applied')}
             </div>
           )}
           <StepEntry
@@ -528,7 +528,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
             initialText={inputText}
             contextPanel={reframeCtx ? (
               <div className="rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)] px-4 py-3">
-                <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">{L('악보 해석에서 도출된 맥락', 'Context from reframe')}</p>
+                <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">{L('항로 재설정에서 도출된 맥락', 'Context from reframe')}</p>
                 <p className="text-[14px] font-semibold text-[var(--text-primary)] leading-snug">
                   {reframeCtx.reframed_question || reframeCtx.surface_task}
                 </p>
@@ -597,10 +597,10 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
           {/* Strategic context — clean, compact */}
           {current.analysis && (
             <div className="space-y-3">
-              {/* 재정의된 질문 (from 악보 해석) — compact reference */}
+              {/* 재정의된 질문 (from 항로 재설정) — compact reference */}
               {relatedReframe?.analysis && (
                 <div className="rounded-xl bg-[var(--bg)] px-4 py-3">
-                  <p className="text-[11px] font-medium text-[var(--text-secondary)] mb-1">{L('악보 해석에서 재정의된 질문', 'Reframed question from Reframe')}</p>
+                  <p className="text-[11px] font-medium text-[var(--text-secondary)] mb-1">{L('항로 재설정에서 재정의된 질문', 'Reframed question from Reframe')}</p>
                   <p className="text-[14px] font-bold text-[var(--text-primary)] leading-snug">
                     {relatedReframe.selected_question || relatedReframe.analysis.reframed_question || relatedReframe.analysis.surface_task}
                   </p>
@@ -674,7 +674,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
                   <RotateCcw size={14} /> {t('common.newStart')}
                 </Button>
                 <div className="flex gap-2">
-                  <ShareBar getText={() => recastToMarkdown(current)} getTitle={() => L('편곡 | ', 'Recast | ') + (current.analysis?.goal_summary || '')} />
+                  <ShareBar getText={() => recastToMarkdown(current)} getTitle={() => L('선원 배치 | ', 'Recast | ') + (current.analysis?.goal_summary || '')} />
                   <Button onClick={handleConfirm}>
                     <Check size={14} /> {t('common.confirm')}
                   </Button>
@@ -702,7 +702,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
                   >
                     <Send size={14} /> {L('리허설 받기', 'Run rehearsal')}
                   </Button>
-                  <ShareBar getText={() => recastToMarkdown(current)} getTitle={() => L('편곡 | ', 'Recast | ') + (current.analysis?.goal_summary || '')} />
+                  <ShareBar getText={() => recastToMarkdown(current)} getTitle={() => L('선원 배치 | ', 'Recast | ') + (current.analysis?.goal_summary || '')} />
                 </div>
               </>
             )}

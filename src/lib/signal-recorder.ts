@@ -1,5 +1,5 @@
 /**
- * Signal Recorder — Concertmaster's Journal
+ * Signal Recorder — Navigator's Journal
  *
  * Fire-and-forget quality signal recording.
  * Captures implicit user behavior signals for learning loops.

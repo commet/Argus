@@ -23,9 +23,9 @@ function getCopy(stepKey: StepKey, ko: boolean): Copy {
   switch (stepKey) {
     case 'reframe':
       return {
-        emoji: '🎼',
+        emoji: '🧭',
         Icon: Compass,
-        title: L('악보 해석 — Reframe', 'Reframe — Score Reading'),
+        title: L('항로 재설정 — Reframe', 'Reframe — Set the Heading'),
         purpose: L(
           '주어진 과제 뒤에 숨은 진짜 질문을 찾고, 검증되지 않은 전제를 짚어냅니다.',
           'Find the real question behind the brief and surface the assumptions no one has checked.',
@@ -37,9 +37,9 @@ function getCopy(stepKey: StepKey, ko: boolean): Copy {
       };
     case 'recast':
       return {
-        emoji: '🎻',
+        emoji: '🚣',
         Icon: Layers,
-        title: L('편곡 — Recast', 'Recast — Arrangement'),
+        title: L('선원 배치 — Recast', 'Recast — Crew Assignment'),
         purpose: L(
           '결정된 질문을 실행 가능한 단계로 풀어내고, AI/사람/협업으로 누가 무엇을 할지 배정합니다.',
           'Decompose the decided question into executable steps and assign each to AI / human / both.',
@@ -51,7 +51,7 @@ function getCopy(stepKey: StepKey, ko: boolean): Copy {
       };
     case 'rehearse':
       return {
-        emoji: '🎭',
+        emoji: '🔭',
         Icon: MessageSquare,
         title: L('리허설 — Rehearse', 'Rehearse — Stakeholder Validation'),
         purpose: L(
@@ -67,7 +67,7 @@ function getCopy(stepKey: StepKey, ko: boolean): Copy {
       return {
         emoji: '🪶',
         Icon: Sparkles,
-        title: L('조율 — Synthesize', 'Synthesize — Final Judgment'),
+        title: L('이타카 — Synthesize', 'Synthesize — Final Judgment'),
         purpose: L(
           '여러 페르소나의 의견 충돌을 정리하고, 최종 판단을 직접 내려서 문서로 만듭니다.',
           'Resolve conflicting persona feedback, render your own judgment, and assemble it into a final document.',

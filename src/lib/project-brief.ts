@@ -69,7 +69,7 @@ export function generateProjectBrief(project: Project | null): string {
   // 1. Problem Definition (from decompose)
   if (decompositions.length > 0) {
     const latest = decompositions[decompositions.length - 1];
-    sections.push(L('## 1. 악보 해석 | 문제 재정의', '## 1. Score Reading | Problem Reframe'));
+    sections.push(L('## 1. 항로 재설정 | 문제 재정의', '## 1. Set the Heading | Problem Reframe'));
     if (latest.analysis) {
       sections.push(L('### 표면 과제', '### Surface task'));
       sections.push(latest.analysis.surface_task);
@@ -110,7 +110,7 @@ export function generateProjectBrief(project: Project | null): string {
   // 2. Workflow Design (from recast)
   if (recasts.length > 0) {
     const latest = recasts[recasts.length - 1];
-    sections.push(L('## 2. 편곡 | 실행 설계', '## 2. Arrangement | Execution Design'));
+    sections.push(L('## 2. 선원 배치 | 실행 설계', '## 2. Crew Assignment | Execution Design'));
     if (latest.analysis) {
       sections.push(L(`**목표**: ${latest.analysis.goal_summary}`, `**Goal**: ${latest.analysis.goal_summary}`));
       sections.push(L(`**예상 소요시간**: ${latest.analysis.total_estimated_time}`, `**Estimated time**: ${latest.analysis.total_estimated_time}`));

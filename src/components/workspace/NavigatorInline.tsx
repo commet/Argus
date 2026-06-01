@@ -2,10 +2,10 @@
 
 import { useMemo } from 'react';
 import { Music2 } from 'lucide-react';
-import { getStepCoaching, buildConcertmasterProfile } from '@/lib/concertmaster';
-import type { CoachingStep, StepCoaching } from '@/lib/concertmaster';
+import { getStepCoaching, buildNavigatorProfile } from '@/lib/navigator';
+import type { CoachingStep, StepCoaching } from '@/lib/navigator';
 
-interface ConcertmasterInlineProps {
+interface NavigatorInlineProps {
   step: CoachingStep;
 }
 
@@ -43,9 +43,9 @@ function CoachingItem({ coaching }: { coaching: StepCoaching }) {
   );
 }
 
-export function ConcertmasterInline({ step }: ConcertmasterInlineProps) {
+export function NavigatorInline({ step }: NavigatorInlineProps) {
   const coachingItems = useMemo(() => {
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     return getStepCoaching(step, profile);
   }, [step]);
 

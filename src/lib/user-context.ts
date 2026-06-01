@@ -3,14 +3,14 @@
  *
  * 두 가지 원천을 통합:
  * 1. Explicit (설정 > 내 프로필): 이름, 역할, 경력, 자유 소개
- * 2. Observed (악장/Concertmaster): 세션 수, 지배 전략, override율, DQ 추세, 티어
+ * 2. Observed (항해장/Navigator): 세션 수, 지배 전략, override율, DQ 추세, 티어
  *
  * 프롬프트 빌더들은 이 모듈 하나만 호출하면 됨.
  */
 
 import { sanitizeForPrompt } from './persona-prompt';
 import type { Settings } from '@/stores/types';
-import type { ConcertmasterProfile } from './concertmaster';
+import type { NavigatorProfile } from './navigator';
 
 // ── Types ──
 
@@ -59,11 +59,11 @@ export function getUserProfile(): UserProfile {
  */
 export function getUserObservations(): UserObservations {
   try {
-    // Dynamic require: concertmaster chain이 무겁고 SSR에서 문제될 수 있어서 lazy load
-    const { buildConcertmasterProfile } = require('./concertmaster') as { buildConcertmasterProfile: () => ConcertmasterProfile };
+    // Dynamic require: navigator chain이 무겁고 SSR에서 문제될 수 있어서 lazy load
+    const { buildNavigatorProfile } = require('./navigator') as { buildNavigatorProfile: () => NavigatorProfile };
     const { analyzeDQTrend } = require('./decision-quality') as { analyzeDQTrend: () => { trend: string } };
 
-    const profile = buildConcertmasterProfile();
+    const profile = buildNavigatorProfile();
     const dq = analyzeDQTrend();
 
     return {

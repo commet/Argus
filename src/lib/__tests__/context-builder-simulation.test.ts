@@ -587,7 +587,7 @@ describe('Context Builder Simulation', () => {
       expect(buildProjectItemsContext('proj-A')).toBe('');
     });
 
-    it('reframe done → 악보 해석 섹션', () => {
+    it('reframe done → 항로 재설정 섹션', () => {
       setupStorage({
         sot_reframe_list: [{
           id: 'rf-1', project_id: 'proj-A', status: 'done',
@@ -597,7 +597,7 @@ describe('Context Builder Simulation', () => {
         }],
       });
       const result = buildProjectItemsContext('proj-A');
-      expect(result).toContain('[악보 해석]');
+      expect(result).toContain('[항로 재설정]');
       expect(result).toContain('핵심 질문?');
     });
 
@@ -614,7 +614,7 @@ describe('Context Builder Simulation', () => {
       expect(result).toContain('원래 과제');
     });
 
-    it('recast done → 편곡 섹션', () => {
+    it('recast done → 선원 배치 섹션', () => {
       setupStorage({
         sot_recast_list: [{
           id: 'rc-1', project_id: 'proj-A', status: 'done',
@@ -624,7 +624,7 @@ describe('Context Builder Simulation', () => {
         }],
       });
       const result = buildProjectItemsContext('proj-A');
-      expect(result).toContain('[편곡]');
+      expect(result).toContain('[선원 배치]');
       expect(result).toContain('3단계');
       expect(result).toContain('AI 0.4%');
     });

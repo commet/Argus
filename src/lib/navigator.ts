@@ -1,5 +1,5 @@
 /**
- * Concertmaster (악장) — 읽기 전용 코칭 레이어
+ * Navigator (항해장) — 읽기 전용 코칭 레이어
  *
  * 기존 분석 인프라(eval-engine, context-builder, judgmentStore, prompt-mutation)의
  * 출력을 통합하여 사용자에게 메타적 인사이트와 단계별 코칭을 제공한다.
@@ -25,7 +25,7 @@ import type { ReframingStrategy } from '@/lib/reframing-strategy';
    Types
    ──────────────────────────────────── */
 
-export interface ConcertmasterInsight {
+export interface NavigatorInsight {
   id: string;
   category: 'pattern' | 'coaching' | 'growth' | 'warning';
   message: string;
@@ -43,7 +43,7 @@ export interface DemoSeedData {
   completed: boolean;
 }
 
-export interface ConcertmasterProfile {
+export interface NavigatorProfile {
   sessionCount: number;
   projectCount: number;
   totalJudgments: number;
@@ -89,10 +89,10 @@ function getEvalDisplay(): Record<string, string> {
 }
 
 /* ────────────────────────────────────
-   1. buildConcertmasterProfile
+   1. buildNavigatorProfile
    ──────────────────────────────────── */
 
-export function buildConcertmasterProfile(): ConcertmasterProfile {
+export function buildNavigatorProfile(): NavigatorProfile {
   const evalSummary = getEvalSummary();
   const judgments = data.judgments();
   const projects = data.projects();
@@ -147,11 +147,11 @@ export function buildConcertmasterProfile(): ConcertmasterProfile {
 }
 
 /* ────────────────────────────────────
-   2. buildConcertmasterInsights
+   2. buildNavigatorInsights
    ──────────────────────────────────── */
 
-export function buildConcertmasterInsights(profile: ConcertmasterProfile): ConcertmasterInsight[] {
-  const insights: ConcertmasterInsight[] = [];
+export function buildNavigatorInsights(profile: NavigatorProfile): NavigatorInsight[] {
+  const insights: NavigatorInsight[] = [];
   let priority = 0;
 
   // ── Tier 1+: Session insights (last strategy + pattern) ──
@@ -195,7 +195,7 @@ export function buildConcertmasterInsights(profile: ConcertmasterProfile): Conce
       insights.push({
         id: 'eval_summary',
         category: 'growth',
-        message: t('concertmaster.evalSummary', { count: evalSummary.total_sessions, pct }),
+        message: t('navigator.evalSummary', { count: evalSummary.total_sessions, pct }),
         tier: 2,
         priority: priority++,
       });
@@ -209,7 +209,7 @@ export function buildConcertmasterInsights(profile: ConcertmasterProfile): Conce
       insights.push({
         id: `coaching_${mutation.evalId}`,
         category: 'coaching',
-        message: t('concertmaster.evalLow', { name: evalName, pct }),
+        message: t('navigator.evalLow', { name: evalName, pct }),
         detail: mutation.instruction,
         tier: 2,
         priority: priority++,
@@ -223,8 +223,8 @@ export function buildConcertmasterInsights(profile: ConcertmasterProfile): Conce
         insights.push({
           id: 'override_rate_high',
           category: 'pattern',
-          message: t('concertmaster.overrideHighMessage', { pct }),
-          detail: t('concertmaster.overrideHighDetail'),
+          message: t('navigator.overrideHighMessage', { pct }),
+          detail: t('navigator.overrideHighDetail'),
           tier: 2,
           priority: priority++,
         });
@@ -232,8 +232,8 @@ export function buildConcertmasterInsights(profile: ConcertmasterProfile): Conce
         insights.push({
           id: 'override_rate_low',
           category: 'coaching',
-          message: t('concertmaster.overrideLowMessage', { pct }),
-          detail: t('concertmaster.overrideLowDetail'),
+          message: t('navigator.overrideLowMessage', { pct }),
+          detail: t('navigator.overrideLowDetail'),
           tier: 2,
           priority: priority++,
         });
@@ -270,7 +270,7 @@ export function buildConcertmasterInsights(profile: ConcertmasterProfile): Conce
       insights.push({
         id: 'strategy_best',
         category: 'growth',
-        message: t('concertmaster.strategyBest', { name: bestName, pct: bestPct }),
+        message: t('navigator.strategyBest', { name: bestName, pct: bestPct }),
         tier: 3,
         priority: priority++,
       });
@@ -323,7 +323,7 @@ export function buildConcertmasterInsights(profile: ConcertmasterProfile): Conce
  * Returns up to 2 coaching messages per step, prioritized by comfort ratio.
  * Phase 1: returns array instead of single item, enabling multi-tone coaching.
  */
-export function getStepCoaching(step: CoachingStep, profile: ConcertmasterProfile): StepCoaching[] {
+export function getStepCoaching(step: CoachingStep, profile: NavigatorProfile): StepCoaching[] {
   let candidates: StepCoaching[];
   switch (step) {
     case 'reframe':
@@ -362,7 +362,7 @@ export function getStepCoaching(step: CoachingStep, profile: ConcertmasterProfil
   return candidates.slice(0, 2);
 }
 
-function getReframeCoaching(profile: ConcertmasterProfile): StepCoaching[] {
+function getReframeCoaching(profile: NavigatorProfile): StepCoaching[] {
   const results: StepCoaching[] = [];
 
   // Tier 1: First use — demo seed personalization or generic counterfactual
@@ -459,7 +459,7 @@ function getReframeCoaching(profile: ConcertmasterProfile): StepCoaching[] {
   return results;
 }
 
-function getRecastCoaching(profile: ConcertmasterProfile): StepCoaching[] {
+function getRecastCoaching(profile: NavigatorProfile): StepCoaching[] {
   const results: StepCoaching[] = [];
 
   // First use — demo seed personalization or generic counterfactual
@@ -544,7 +544,7 @@ function getRecastCoaching(profile: ConcertmasterProfile): StepCoaching[] {
   return results;
 }
 
-function getPersonaFeedbackCoaching(profile: ConcertmasterProfile): StepCoaching[] {
+function getPersonaFeedbackCoaching(profile: NavigatorProfile): StepCoaching[] {
   const results: StepCoaching[] = [];
 
   // First use — counterfactual
@@ -637,7 +637,7 @@ function getPersonaFeedbackCoaching(profile: ConcertmasterProfile): StepCoaching
   return results;
 }
 
-function getRefineCoaching(profile: ConcertmasterProfile): StepCoaching[] {
+function getRefineCoaching(profile: NavigatorProfile): StepCoaching[] {
   const results: StepCoaching[] = [];
 
   // First use — counterfactual
@@ -698,7 +698,7 @@ function getRefineCoaching(profile: ConcertmasterProfile): StepCoaching[] {
   return results;
 }
 
-function getSynthesizeCoaching(profile: ConcertmasterProfile): StepCoaching[] {
+function getSynthesizeCoaching(profile: NavigatorProfile): StepCoaching[] {
   const results: StepCoaching[] = [];
 
   if (profile.sessionCount === 0) {
@@ -796,7 +796,7 @@ export function buildLearningCurve(): LearningCurve {
 
   // ── DQ points with project names ──
   const projectNameMap = new Map(projects.map(p => [p.id, p.name]));
-  const defaultProject = t('concertmaster.defaultProject');
+  const defaultProject = t('navigator.defaultProject');
   const dq_points: LearningCurvePoint[] = sorted.map(s => ({
     project_id: s.project_id,
     project_name: projectNameMap.get(s.project_id) || defaultProject,
@@ -835,7 +835,7 @@ export function buildLearningCurve(): LearningCurve {
   const dqTrend = analyzeDQTrend(sorted);
 
   // ── Tier progress ──
-  const profile = buildConcertmasterProfile();
+  const profile = buildNavigatorProfile();
   let tier_progress = 0;
   if (profile.tier === 1) {
     tier_progress = Math.min(100, Math.round((profile.sessionCount / 2) * 100));

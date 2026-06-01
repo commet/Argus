@@ -10,11 +10,11 @@ import {
   runDMFeedback,
   runBossDMFeedback,
   runFinalDeliverable,
-  runConcertmasterReview,
-  runConcertmasterRevision,
+  runNavigatorReview,
+  runNavigatorRevision,
   runDebate,
   runLeadSynthesis,
-  type ConcertmasterReview,
+  type NavigatorReview,
   type DebateResult,
 } from '@/lib/progressive-engine';
 import { VersionHistoryDrawer, type VersionTreeItem } from '@/components/workspace/VersionHistoryDrawer';
@@ -425,7 +425,7 @@ function SentenceStream({ section, sectionIndex, workers }: {
 }
 
 /* ═══ Mix Preview ═══ */
-function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult }: { mix: MixResult; dm: string | null; onDM: () => void; onSkip: () => void; busy: boolean; cmReview?: ConcertmasterReview | null; debateResult?: DebateResult | null }) {
+function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult }: { mix: MixResult; dm: string | null; onDM: () => void; onSkip: () => void; busy: boolean; cmReview?: NavigatorReview | null; debateResult?: DebateResult | null }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   return (
@@ -455,8 +455,8 @@ function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult }: { m
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.6 }}
                 className="pt-5 border-t border-dashed border-[var(--accent)]/20">
                 <div className="flex items-center gap-2 mb-3">
-                  <span style={{ fontSize: 18 }}>🎻</span>
-                  <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em]">{L('악장의 한마디', 'Concertmaster Note')}</p>
+                  <span style={{ fontSize: 18 }}>🧭</span>
+                  <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em]">{L('항해장의 한마디', 'Navigator Note')}</p>
                 </div>
                 <p className="text-[13px] text-[var(--text-primary)] leading-relaxed mb-2">{cmReview.overall}</p>
                 {cmReview.contradictions.length > 0 && (
@@ -1783,7 +1783,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // PhaseStatusBar's substage so the user sees "gathering → debate → drafting"
   // instead of 30s of "Drafting the document".
   const [substage, setSubstage] = useState<string | null>(null);
-  const [cmReview, setCmReview] = useState<ConcertmasterReview | null>(null);
+  const [cmReview, setCmReview] = useState<NavigatorReview | null>(null);
   const debateResult = session?.debate_result as DebateResult | null ?? null;
   // ── Post-complete draft tree UI state ──
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -2272,7 +2272,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         taskGroupId: w.taskGroupId,
       }));
 
-      // 악장 메타 리뷰 + debate (해금 시만, 비차단)
+      // 항해장 메타 리뷰 + debate (해금 시만, 비차단)
       if (workerResults.length > 0) {
         const cmWorkers = session!.workers
           .filter(w => w.approved !== false && w.result)
@@ -2281,10 +2281,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             agentRole: personaRole(w.persona, locale),
             task: w.task,
             result: w.result || '',
-            // Same-task multi-persona signal for the Concertmaster prompt.
+            // Same-task multi-persona signal for the Navigator prompt.
             taskGroupId: w.task_group_id || w.id,
           }));
-        runConcertmasterReview(session!.problem_text, cmWorkers)
+        runNavigatorReview(session!.problem_text, cmWorkers)
           .then(r => { if (r && mountedRef.current) setCmReview(r); })
           .catch(() => {});
 
@@ -2549,7 +2549,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
   // ─── Post-complete iteration handlers ─────────────────────────────
 
-  /** User submitted a revision directive → call 악장 → append a new draft. */
+  /** User submitted a revision directive → call 항해장 → append a new draft. */
   const onRequestRevision = async () => {
     // Hard guard against double-submission (double click, keyboard re-entry,
     // React-18 batched click → state-lag). The `disabled` prop on the button
@@ -2567,7 +2567,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     // makes tab-close-mid-revision recover cleanly.
 
     try {
-      const { revised_text, change_summary } = await runConcertmasterRevision({
+      const { revised_text, change_summary } = await runNavigatorRevision({
         currentFinalText: activeDraft.final_text,
         directive,
         problemContext: session.problem_text,
@@ -2584,7 +2584,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         change_summary: change_summary || L('수정 반영', 'Revised'),
         final_text: revised_text,
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
 
       setIterationDirective('');
@@ -3136,7 +3136,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   style={{ background: 'var(--gradient-gold)' }}>{L('새 프로젝트 시작', 'Start New Project')} <ArrowRight size={12} /></button>
                 <button onClick={() => { setIterationOpen(true); setIterationDirective(''); }}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] border border-[var(--accent)]/30 bg-[var(--gold-muted)]/30 hover:bg-[var(--gold-muted)]/50 cursor-pointer transition-colors">
-                  <Wand2 size={13} className="text-[var(--accent)]" /> {L('악장에게 수정 요청', 'Ask Concertmaster to revise')}
+                  <Wand2 size={13} className="text-[var(--accent)]" /> {L('항해장에게 수정 요청', 'Ask Navigator to revise')}
                 </button>
                 <button onClick={() => { if (mix) { store.setFinalDeliverable(null as unknown as string); store.setDMFeedback(null as unknown as import('@/stores/types').DMFeedbackResult); store.setMix(null as unknown as MixResult); setShowMix(true); } }}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[13px] font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 cursor-pointer transition-colors">
@@ -3287,7 +3287,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 <Wand2 className="w-4 h-4 text-[var(--accent)]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
-                    {L('악장에게 수정 요청', 'Ask Concertmaster to revise')}
+                    {L('항해장에게 수정 요청', 'Ask Navigator to revise')}
                   </h3>
                   <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
                     {L('현재 버전', 'Current version')}: <span className="font-semibold">{activeDraft.version_label}</span>
@@ -3324,7 +3324,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               {isIterating && (
                 <div className="mt-3 flex items-center gap-2 text-[12px] text-[var(--accent)]">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>{L('악장이 편집 중입니다...', 'Concertmaster is editing...')}</span>
+                  <span>{L('항해장이 편집 중입니다...', 'Navigator is editing...')}</span>
                 </div>
               )}
               {!isIterating && error && (

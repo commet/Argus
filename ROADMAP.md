@@ -67,7 +67,7 @@ interface ContextChain {
   };
   rehearsal: {
     classified_risks: ClassifiedRisk[];
-    untested_assumptions: string[];    // 편곡의 가정 중 공격받은 것
+    untested_assumptions: string[];    // 선원 배치의 가정 중 공격받은 것
     approval_conditions: Record<string, string[]>;  // 페르소나별 승인 조건
     failure_scenarios: string[];
   };
@@ -131,7 +131,7 @@ interface ContextChain {
 
 ---
 
-### Phase 1: Adaptive Decompose (지능형 악보 해석)
+### Phase 1: Adaptive Decompose (지능형 항로 재설정)
 
 **목표**: 같은 과제를 넣어도 사용자 유형과 맥락에 따라 다른 리프레이밍 전략을 선택.
 
@@ -166,7 +166,7 @@ interface ContextChain {
 const DECOMPOSE_EVALS = [
   { id: 'question_accepted', question: '사용자가 제안된 질문을 수정 없이 선택했는가?' },
   { id: 'assumptions_useful', question: '전제 중 "확인됨"으로 마킹되지 않은 것이 1개 이상인가?' },
-  { id: 'proceeded_to_recast', question: '사용자가 편곡 단계로 진행했는가?' },
+  { id: 'proceeded_to_recast', question: '사용자가 선원 배치 단계로 진행했는가?' },
   { id: 'no_immediate_reanalyze', question: '사용자가 즉시 재분석을 요청하지 않았는가?' },
 ];
 
@@ -204,7 +204,7 @@ function adaptStrategySelection(evalHistory: EvalResult[]): StrategyWeights {
 
 ---
 
-### Phase 2: Multi-Lens Recasting (다관점 편곡)
+### Phase 2: Multi-Lens Recasting (다관점 선원 배치)
 
 **목표**: 워크플로우 설계를 단일 LLM 호출이 아닌 다관점 검증 시스템으로.
 
@@ -357,10 +357,10 @@ const EVALS: BinaryEval[] = [
     question: '사용자가 AI 제안 질문을 수정 없이 채택했는가?',
     measure: (item) => item.selected_question === item.analysis?.hidden_questions?.[0]?.question },
   { id: 'd_useful_assumptions', phase: 'decompose',
-    question: '전제 중 하나 이상이 미확인 상태로 편곡에 전달되었는가?',
+    question: '전제 중 하나 이상이 미확인 상태로 선원 배치에 전달되었는가?',
     measure: (item) => item.analysis?.hidden_assumptions?.some(a => !a.verified) },
   { id: 'd_proceeded', phase: 'decompose',
-    question: '편곡으로 진행했는가?',
+    question: '선원 배치으로 진행했는가?',
     measure: (item) => hasLinkedItem(item, 'recast') },
 
   // Recast
@@ -436,7 +436,7 @@ interface PromptChangelog {
    - 미확인 전제: '동남아가 최우선 시장이다' (아직 검증 안 됨)
    - 이해관계자 우려: CFO가 ROI 근거를 요구할 것 (승인 조건: 3년 NPV 분석)
 
-   이 프롬프트의 결과물은 편곡 Step 2의 입력이 됩니다.
+   이 프롬프트의 결과물은 선원 배치 Step 2의 입력이 됩니다.
    다음 프롬프트로 넘어가기 전에 [체크포인트]를 확인하세요."
 ```
 
@@ -549,7 +549,7 @@ Phase 구현과 병행하여 해결해야 할 기술 부채:
 
 ### 단기 (Phase 0-2 완료 시점)
 - 리프레이밍 채택률 (수정 없이 AI 제안 선택) > 60%
-- 편곡까지 진행률 > 70%
+- 선원 배치까지 진행률 > 70%
 - 평균 전제 "확인됨" 마킹 수 > 0.5개/세션 (사용자가 전제에 관여하는 증거)
 
 ### 중기 (Phase 3-5 완료 시점)

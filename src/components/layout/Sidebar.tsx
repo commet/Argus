@@ -13,10 +13,10 @@ export function Sidebar() {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
 
   const processSteps = [
-    { step: 'reframe', label: L('악보 해석', 'Interpret'), subtitle: L('문제 재정의', 'Reframe'), icon: Layers, color: '#2d4a7c' },
-    { step: 'recast', label: L('편곡', 'Arrange'), subtitle: L('실행 설계', 'Recast'), icon: Map, color: '#8b6914' },
+    { step: 'reframe', label: L('항로 재설정', 'Interpret'), subtitle: L('문제 재정의', 'Reframe'), icon: Layers, color: '#2d4a7c' },
+    { step: 'recast', label: L('선원 배치', 'Arrange'), subtitle: L('실행 설계', 'Recast'), icon: Map, color: '#8b6914' },
     { step: 'rehearse', label: L('리허설', 'Rehearse'), subtitle: L('사전 검증', 'Pre-validate'), icon: Users, color: '#6b4c9a' },
-    { step: 'refine', label: L('합주 연습', 'Ensemble'), subtitle: L('피드백 반영', 'Refine'), icon: RefreshCw, color: '#2d6b2d' },
+    { step: 'refine', label: L('종합 연습', 'Ensemble'), subtitle: L('피드백 반영', 'Refine'), icon: RefreshCw, color: '#2d6b2d' },
     { step: 'synthesize', label: L('종합', 'Synthesize'), subtitle: L('다중 관점 통합', 'Multi-perspective'), icon: Sparkles, color: '#9b5de5' },
   ];
 

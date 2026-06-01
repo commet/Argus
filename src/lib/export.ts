@@ -25,7 +25,7 @@ export function reframeToMarkdown(item: ReframeItem): string {
       }).join('\n')
     : '';
 
-  let md = `## 악보 해석 | 문제 재정의\n\n`;
+  let md = `## 항로 재설정 | 문제 재정의\n\n`;
   md += `### 표면 과제\n${analysis.surface_task}\n\n`;
   md += `### 재정의된 진짜 질문\n${selectedQ}\n\n`;
 
@@ -88,7 +88,7 @@ export function recastToMarkdown(item: RecastItem): string {
 
   const goal = item.analysis?.goal_summary || item.input_text;
 
-  let md = `## 편곡 | 실행 설계\n\n`;
+  let md = `## 선원 배치 | 실행 설계\n\n`;
 
   // Governing idea
   if (item.analysis?.governing_idea) {
@@ -135,7 +135,7 @@ export function recastToMarkdown(item: RecastItem): string {
   // Judgment points
   const judgmentSteps = steps.filter(s => s.checkpoint || (s.judgment && s.judgment.trim()));
   if (judgmentSteps.length > 0) {
-    md += `### 지휘자의 판단 포인트\n`;
+    md += `### 선장의 판단 포인트\n`;
     for (const step of steps) {
       if (step.checkpoint) {
         md += `- ⚑ ${step.task}: ${step.checkpoint_reason}\n`;

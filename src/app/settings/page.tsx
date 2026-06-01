@@ -408,7 +408,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[13px] font-medium">{L('전환음', 'Transition Sound')}</p>
-            <p className="text-[11px] text-[var(--text-secondary)]">{L('단계 전환 시 클래식 서곡 톤', 'Classical argus tone on step transitions')}</p>
+            <p className="text-[11px] text-[var(--text-secondary)]">{L('단계 전환 시 잔잔한 항해 톤', 'A gentle voyage tone on step transitions')}</p>
           </div>
           <button
             role="switch"
@@ -448,7 +448,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
               <div>
                 <p className="text-[13px] font-medium">{L('앰비언트 드론', 'Ambient Drone')}</p>
-                <p className="text-[11px] text-[var(--text-secondary)]">{L('공연 전 콘서트홀의 따뜻한 울림', 'The warm resonance of a concert hall before the performance')}</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">{L('출항 전 항구의 따뜻한 잔향', 'The warm hum of the harbor before setting sail')}</p>
               </div>
               <button
                 onClick={() => {
@@ -567,7 +567,7 @@ export default function SettingsPage() {
 
       <Modal open={resetModal} onClose={() => setResetModal(false)} title={L('데이터 초기화', 'Reset Data')}>
         <p className="text-[14px] text-[var(--text-primary)] mb-2">
-          {L('모든 악보 해석, 편곡, 리허설, 조율 이력이 영구 삭제됩니다.', 'All Reframe, Recast, Rehearse, and Synthesize records will be permanently deleted.')}
+          {L('모든 항로 재설정, 선원 배치, 리허설, 조율 이력이 영구 삭제됩니다.', 'All Reframe, Recast, Rehearse, and Synthesize records will be permanently deleted.')}
         </p>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
           {L('저장한 팀장과 에이전트도 함께 사라집니다. 되돌릴 수 없어요.', 'Saved bosses and agents will be cleared too. This cannot be undone.')}

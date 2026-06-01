@@ -217,10 +217,10 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
     color: '#6D28D9',
   },
   {
-    id: 'concertmaster',
-    name: '악장', nameEn: 'Concertmaster',
+    id: 'navigator',
+    name: '항해장', nameEn: 'Navigator',
     role: '종합 검토자', roleEn: 'Chief Reviewer',
-    emoji: '🎼',
+    emoji: '🧭',
     expertise: '팀 전체 결과물을 통합 검토하고, 톤과 논리의 일관성을 맞춥니다.',
     expertiseEn: 'Integrates the team\'s outputs and aligns tone and logical consistency across the work.',
     tone: '개별 의견을 존중하되, 전체가 한 목소리로 읽히도록 편집합니다.',
@@ -399,7 +399,7 @@ const COMPLETION_NOTES: Record<string, { ko: string[]; en: string[] }> = {
     ko: ['시나리오별로 정리했습니다.', '의사결정 구조 잡았어요.', '권장 경로 제시합니다.'],
     en: ["Organized by scenario.", "Decision structure is laid out.", "Here's the recommended path."],
   },
-  concertmaster: {
+  navigator: {
     ko: ['전체적으로 한번 봤습니다.', '팀 결과물 검토 완료.'],
     en: ["Reviewed the whole thing end to end.", "Team output reviewed."],
   },

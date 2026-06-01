@@ -20,8 +20,8 @@ import Link from 'next/link';
 import { useLocale } from '@/hooks/useLocale';
 import {
   CHAIN_UNLOCK_THRESHOLDS,
-  CONCERTMASTER_UNLOCK_THRESHOLD,
-  CONCERTMASTER_SESSION_THRESHOLD,
+  NAVIGATOR_UNLOCK_THRESHOLD,
+  NAVIGATOR_SESSION_THRESHOLD,
   AGENT_LEVELS,
 } from '@/stores/agent-types';
 
@@ -40,7 +40,7 @@ function getFlowSteps(locale: Locale): FlowStep[] {
       { icon: Search, label: '분석', desc: '숨은 가정과 진짜 질문을 찾아냅니다.', tone: 'ai' },
       { icon: MessageCircle, label: '대화', desc: '질문 2~3개에 답하면 맥락이 정교해지고 팀이 배정됩니다.', tone: 'you' },
       { icon: Users, label: '팀 작업', desc: '배정된 에이전트들이 병렬로 분석·조사·작성을 진행합니다.', tone: 'ai' },
-      { icon: Layers, label: '합주', desc: '리드 에이전트와 악장(Concertmaster)이 결과를 하나의 초안으로 통합합니다.', tone: 'ai' },
+      { icon: Layers, label: '종합', desc: '리드 에이전트와 항해장(Navigator)이 결과를 하나의 초안으로 통합합니다.', tone: 'ai' },
       { icon: Eye, label: '검증', desc: '의사결정자(상사·고객 등) 관점에서 약점을 시뮬레이션합니다.', tone: 'ai' },
       { icon: Edit3, label: '수정', desc: '피드백을 반영해 초안을 다듬습니다. 직접 손봐도 되고 자동 반영도 가능합니다.', tone: 'you' },
       { icon: Check, label: '완성', desc: '제출 가능한 문서 — 복사·다운로드·팀장 시뮬레이터로 바로 연결됩니다.', tone: 'done' },
@@ -50,7 +50,7 @@ function getFlowSteps(locale: Locale): FlowStep[] {
     { icon: Search, label: 'Analyze', desc: 'Surface hidden assumptions and the real question behind your problem.', tone: 'ai' },
     { icon: MessageCircle, label: 'Converse', desc: 'Answer 2–3 questions — context sharpens and the team auto-assembles.', tone: 'you' },
     { icon: Users, label: 'Team work', desc: 'The assigned agents analyze, research, and write in parallel.', tone: 'ai' },
-    { icon: Layers, label: 'Mix', desc: 'The lead agent and Concertmaster merge results into a single draft.', tone: 'ai' },
+    { icon: Layers, label: 'Mix', desc: 'The lead agent and Navigator merge results into a single draft.', tone: 'ai' },
     { icon: Eye, label: 'Review', desc: "Simulate how a decision-maker (boss, customer, etc.) would react and surface weak spots.", tone: 'ai' },
     { icon: Edit3, label: 'Refine', desc: 'Apply feedback — manually or automatically — to tighten the draft.', tone: 'you' },
     { icon: Check, label: 'Done', desc: 'A ready-to-send document — copy, download, or jump into Boss Simulator.', tone: 'done' },
@@ -250,10 +250,10 @@ export default function GuidePage() {
                 <span className="text-[var(--text-secondary)]">— {L(`체인 작업 ${CHAIN_UNLOCK_THRESHOLDS.master}회`, `${CHAIN_UNLOCK_THRESHOLDS.master} chain tasks`)}</span>
               </li>
               <li>
-                <strong>{L('악장 (Concertmaster)', 'Concertmaster')}</strong>{' '}
+                <strong>{L('항해장 (Navigator)', 'Navigator')}</strong>{' '}
                 <span className="text-[var(--text-secondary)]">— {L(
-                  `전체 작업 ${CONCERTMASTER_UNLOCK_THRESHOLD}회 또는 세션 ${CONCERTMASTER_SESSION_THRESHOLD}회 완료`,
-                  `${CONCERTMASTER_UNLOCK_THRESHOLD} total tasks or ${CONCERTMASTER_SESSION_THRESHOLD} sessions`,
+                  `전체 작업 ${NAVIGATOR_UNLOCK_THRESHOLD}회 또는 세션 ${NAVIGATOR_SESSION_THRESHOLD}회 완료`,
+                  `${NAVIGATOR_UNLOCK_THRESHOLD} total tasks or ${NAVIGATOR_SESSION_THRESHOLD} sessions`,
                 )}</span>
               </li>
             </ul>

@@ -979,9 +979,9 @@ export const AGENT_SKILLS: AgentSkillSet[] = [
     },
   },
 
-  // ━━━ 14. CONCERTMASTER — Meta review ━━━
+  // ━━━ 14. NAVIGATOR — Meta review ━━━
   {
-    personaId: 'concertmaster',
+    personaId: 'navigator',
     frameworks: [
       'Dialectical Synthesis: State the strongest version of Position A (thesis) → State the strongest version of its contradiction Position B (antithesis) → Generate Position C that TRANSCENDS both (not a compromise or average, but a new idea that contains the truth of both). Key: the synthesis must be SUPERIOR to either original position.',
       'Integrative Thinking (Roger Martin): When facing either/or choices, refuse to choose. Instead: "What are the causal relationships?" + "What are the hidden trade-offs?" + "What constraint makes the contradiction seem inevitable?" → Remove/reframe the constraint → Generate a creative resolution better than either option.',
@@ -1026,7 +1026,7 @@ export const AGENT_SKILLS: AgentSkillSet[] = [
 - Meta-Pattern: "The agents disagree most about ___. This means the real uncertainty is ___"
 - Murder Board: pose the 3 hardest questions this analysis must survive`,
 
-      guru: `Listen to the whole orchestra's harmony. Conduct the synthesis.
+      guru: `Read the whole crew's reports. Chart the synthesis.
 - Dialectical Synthesis: when agents contradict, don't average — find the higher truth that transcends both
 - Integrative Thinking: "The agents present this as either/or. But if we reframe the constraint ___, we can have both."
 - 6-Point Bias Audit: full execution. Name the specific biases detected and their likely impact on conclusions.

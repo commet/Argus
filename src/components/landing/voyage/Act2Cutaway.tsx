@@ -17,8 +17,8 @@ import { StationCard } from './ui/StationCard';
 import { ShipCutaway } from './illustrations/ShipCutaway';
 
 // Display order in the row of cards: matches the cutaway numbering 01..05
-// (Watch, Scouts, Cartographers, Artisans, Concertmaster).
-const CARD_ORDER: DivisionId[] = ['watch', 'scouts', 'cartographers', 'artisans', 'concertmaster'];
+// (Watch, Scouts, Cartographers, Artisans, Navigator).
+const CARD_ORDER: DivisionId[] = ['watch', 'scouts', 'cartographers', 'artisans', 'navigator'];
 
 export function Act2Cutaway() {
   const locale = useLocale();

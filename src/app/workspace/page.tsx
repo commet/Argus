@@ -15,7 +15,7 @@ import { WorkerDrawer, useWorkers } from '@/components/workspace/progressive/Wor
 import { AgentSidebar } from '@/components/workspace/progressive/AgentSidebar';
 import { VoyageChart } from '@/components/workspace/progressive/VoyageChart';
 import { QuickChatBar } from '@/components/workspace/QuickChatBar';
-import { ConcertmasterStrip } from '@/components/workspace/ConcertmasterStrip';
+import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLocale } from '@/hooks/useLocale';
 import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
@@ -24,7 +24,7 @@ import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, F
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
-import { StaffLines } from '@/components/ui/MusicalElements';
+import { Graticule } from '@/components/ui/VoyageElements';
 import { EASE } from '@/components/workspace/progressive/shared/constants';
 import { getPersonaPool } from '@/lib/worker-personas';
 import { WorkerAvatar, AvatarRow } from '@/components/workspace/progressive/WorkerAvatar';
@@ -63,7 +63,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   return (
     <div className="relative min-h-[calc(100vh-56px)] overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
-      <StaffLines opacity={0.02} spacing={18} />
+      <Graticule opacity={0.02} spacing={18} />
 
       <div className="relative pt-8 md:pt-12 pb-16">
         {/* Project header */}
@@ -235,7 +235,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     return (
       <div className="relative min-h-[calc(100vh-56px)] overflow-hidden">
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
-        <StaffLines opacity={0.02} spacing={18} />
+        <Graticule opacity={0.02} spacing={18} />
         <div className="relative h-[calc(100vh-56px)]">
           <InteractiveDemo
             scenario={demoScenario}
@@ -266,7 +266,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     <div className="relative min-h-[calc(100vh-56px)] overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-warm-vignette)' }} />
-      <StaffLines opacity={0.03} spacing={14} />
+      <Graticule opacity={0.03} spacing={14} />
 
       <div className="relative max-w-2xl mx-auto px-5 md:px-6 pt-8 md:pt-16 pb-16">
         <AnimatePresence mode="wait">
@@ -754,7 +754,7 @@ function WorkspaceContent() {
       <div className="flex-1 overflow-y-auto relative">
         {/* Concert hall ambient */}
         <div className="absolute inset-x-0 top-0 h-64 pointer-events-none" style={{ background: 'var(--gradient-stage-light)' }} />
-        <StaffLines opacity={0.02} spacing={18} />
+        <Graticule opacity={0.02} spacing={18} />
 
         {/* Anonymous trial banner */}
         {!user && (
@@ -784,8 +784,8 @@ function WorkspaceContent() {
       {/* Quick chat bar */}
       <QuickChatBar activeStep={activeStep} onNavigate={handleNavigate} />
 
-      {/* Concertmaster strip */}
-      <ConcertmasterStrip />
+      {/* Navigator strip */}
+      <NavigatorStrip />
 
       {/* Mobile bottom nav */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--surface)] border-t border-[var(--border)] z-40">

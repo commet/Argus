@@ -104,8 +104,8 @@ export function playCheckpointTone(volume: number = 0.15): void {
 let ambientNodes: { oscs: OscillatorNode[]; gain: GainNode } | null = null;
 
 /**
- * Start a soft ambient drone — warm orchestral pad using additive synthesis.
- * No external files needed. Evokes a concert hall warming up before performance.
+ * Start a soft ambient drone — a warm harbor pad using additive synthesis.
+ * No external files needed. Evokes a quiet harbor before setting sail.
  */
 export function startAmbient(volume: number = 0.15): void {
   if (volume <= 0 || ambientNodes) return;

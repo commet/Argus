@@ -827,12 +827,12 @@ agents:
 
   # ═══════════════════ Special ═══════════════════
 
-  - id: concertmaster
-    persona_id: concertmaster
-    framework_key: concertmaster
-    name: { ko: "악장", en: "Maestro" }
+  - id: navigator
+    persona_id: navigator
+    framework_key: navigator
+    name: { ko: "항해장", en: "Navigator" }
     role: { ko: "종합 검토자", en: "Chief Reviewer" }
-    emoji: "🎼"
+    emoji: "🧭"
     color: "#0F172A"
     chain: special
     chain_position: 1

@@ -66,7 +66,7 @@ argus-plugin-v2/
 ## Alignment with webapp (2026-04-24 state)
 
 Mirrored:
-- 17 canonical agents + concertmaster (agent-registry.ts)
+- 17 canonical agents + navigator (agent-registry.ts)
 - Capability profiles (agent-capabilities.ts)
 - Framework priorities per decision type (orchestrator-framework.ts)
 - 16 MBTI types (personality-types.ts)
@@ -203,7 +203,7 @@ Remaining 8% unverifiable by simulation:
 ### Must do before plugin swap
 
 4. **/argus:configure skill** — interactive UI for setting Boss MBTI + locale. Currently users edit `lib/config.example.yaml` → copy manually. Template pointer works for MVP but not great UX.
-5. **/argus:revise skill** — concertmaster revision worker for post-complete draft bumping. Without it, branching is read-only after initial completion. Medium impact.
+5. **/argus:revise skill** — navigator revision worker for post-complete draft bumping. Without it, branching is read-only after initial completion. Medium impact.
 6. **Schema path resolution** — SKILL.md files reference `data/schemas/*.json` by relative path. When installed to `~/.claude/`, data goes to `~/.claude/argus-data/`. Skills need to handle both paths (plugin dev mode vs installed mode).
 7. **Agent .md → Claude Code Task tool binding** — when team skill spawns via Task tool with `subagent_type: sujin`, Claude Code must find `sujin.md` in agents directory. install.sh copies them to `~/.claude/agents/` which should work, but untested.
 8. **scripts/extract-from-webapp.ts** — placeholder directory exists but extraction script not implemented. Currently data files are hand-authored from source reading.

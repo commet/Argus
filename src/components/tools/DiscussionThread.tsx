@@ -2,7 +2,7 @@
 
 import type { DiscussionMessage, Persona } from '@/stores/types';
 import { PersonaAvatar } from './FeedbackMessage';
-import { StaffLines } from '@/components/ui/MusicalElements';
+import { Graticule } from '@/components/ui/VoyageElements';
 import { Handshake, GitBranch, Lightbulb, HelpCircle } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 
@@ -26,7 +26,7 @@ export function DiscussionThread({ messages, personas, keyTakeaway }: Discussion
 
   return (
     <div className="space-y-1 relative">
-      <StaffLines opacity={0.04} spacing={12} />
+      <Graticule opacity={0.04} spacing={24} />
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <div className="flex -space-x-2">

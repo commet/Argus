@@ -6,8 +6,8 @@
  *
  * 하나의 질문: "이 판단 과정은 살아있는가, 죽어있는가?"
  *
- * Read-only layer — concertmaster 패턴을 따름.
- * 기존 store/signal에서 읽고, recordSignal()로 쓰고, concertmaster coaching으로 전달.
+ * Read-only layer — navigator 패턴을 따름.
+ * 기존 store/signal에서 읽고, recordSignal()로 쓰고, navigator coaching으로 전달.
  */
 
 import type {
@@ -618,7 +618,7 @@ export function analyzeVitalityTrend(
 
 
 // ═══════════════════════════════════════════════════════════════
-// Phase 4: RESPONSE — 티어별 개입 + concertmaster 통합
+// Phase 4: RESPONSE — 티어별 개입 + navigator 통합
 // ═══════════════════════════════════════════════════════════════
 
 export interface VitalityIntervention {
@@ -725,7 +725,7 @@ export function generateInterventions(
 }
 
 /**
- * Get vitality-specific step coaching for concertmaster integration.
+ * Get vitality-specific step coaching for navigator integration.
  * Returns at most 1 coaching message to avoid overwhelming.
  */
 export function getVitalityCoaching(

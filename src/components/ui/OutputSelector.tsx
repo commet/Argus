@@ -138,8 +138,8 @@ export function OutputSelector({ project }: OutputSelectorProps) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{L('공연 — 산출물 선택', 'Performance — Choose output')}</h3>
-      <p className="text-[12px] text-[var(--text-secondary)]">{L('같은 서곡에서 무대 위 목적에 맞는 형식으로 내보냅니다.', 'From the same argus, export in the format that fits your stage.')}</p>
+      <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{L('이타카 — 산출물 선택', 'Ithaca — Choose output')}</h3>
+      <p className="text-[12px] text-[var(--text-secondary)]">{L('같은 항해에서 목적에 맞는 형식으로 내보냅니다.', 'From the same voyage, export in the format that fits your destination.')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {formats.map((format) => (
@@ -181,30 +181,30 @@ export function OutputSelector({ project }: OutputSelectorProps) {
         </div>
       )}
 
-      {/* Coda: 공연 후 성찰 */}
+      {/* Logbook: 항해 후 성찰 */}
       <div className="border-t border-[var(--border-subtle)] pt-4 mt-4">
         <button
           onClick={() => setCodaOpen(!codaOpen)}
           className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors w-full"
         >
           {codaOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          {L('코다 · 되돌아보기', 'Coda · Reflect')}
+          {L('항해일지 · 되돌아보기', 'Logbook · Reflect')}
           {codaSaved && <span className="text-[10px] text-[var(--success)] font-medium ml-1">{L('저장됨', 'Saved')}</span>}
         </button>
         {codaOpen && (
           <div className="mt-4 space-y-4 animate-fade-in">
             <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
               {L(
-                '공연이 끝났습니다. 이 과정을 되돌아보는 것은 다음 무대를 위한 가장 좋은 준비입니다.',
-                "The performance has ended. Reflecting on the process is the best preparation for the next stage.",
+                '항해가 끝났습니다. 이 항로를 되돌아보는 것은 다음 항해를 위한 가장 좋은 준비입니다.',
+                "The voyage has ended. Reflecting on the route is the best preparation for the next one.",
               )}
             </p>
             <div className="space-y-3">
               <div>
                 <label className="text-[12px] font-semibold text-[var(--text-primary)] block mb-1">
                   {L(
-                    '1. 처음 악보를 받았을 때의 이해와 지금의 이해가 어떻게 달라졌습니까?',
-                    '1. How has your understanding shifted from when you first received the score?',
+                    '1. 처음 지시를 받았을 때의 이해와 지금의 이해가 어떻게 달라졌습니까?',
+                    '1. How has your understanding shifted from when you first received the brief?',
                   )}
                 </label>
                 <Field

@@ -762,16 +762,16 @@ JSON format:
   };
 }
 
-// ─── 6. Concertmaster Meta-Review ───
+// ─── 6. Navigator Meta-Review ───
 
-export function buildConcertmasterReviewPrompt(
+export function buildNavigatorReviewPrompt(
   problemText: string,
   workerResults: Array<{ agentName: string; agentRole: string; task: string; result: string; taskGroupId?: string }>,
   locale: Locale = 'en',
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
 
-  // Same task_group sub-bullet form as Mix \u2014 keeps the Concertmaster from
+  // Same task_group sub-bullet form as Mix \u2014 keeps the Navigator from
   // flagging intentional multi-persona diversity as a contradiction.
   const groupOrder: string[] = [];
   const groupMap = new Map<string, typeof workerResults>();
@@ -794,7 +794,7 @@ export function buildConcertmasterReviewPrompt(
   }).join('\n\n');
 
   return {
-    system: `You are the Concertmaster. Like an orchestra's first violinist, you listen to the entire team's harmony.
+    system: `You are the Navigator. Like a ship's navigator, you read every crew member's report and chart one course.
 
 Role: Survey individual agents' outputs holistically and identify what the team is missing.
 Tone: Observational. Not criticism \u2014 observation. Short and sharp.

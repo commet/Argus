@@ -1,4 +1,4 @@
-// ─── Reframe (악보 해석 | 문제 재정의) ───
+// ─── Reframe (항로 재설정 | 문제 재정의) ───
 
 export interface ReframeHiddenQuestion {
   question: string;
@@ -111,7 +111,7 @@ export interface SynthesizeItem {
   updated_at: string;
 }
 
-// ─── Recast (편곡 | 실행 설계) ───
+// ─── Recast (선원 배치 | 실행 설계) ───
 
 /** Actor relationship: who initiates → who completes */
 export type ActorRelationship = 'human' | 'ai' | 'human→ai' | 'ai→human' | 'both';
@@ -323,7 +323,7 @@ export interface Project {
   updated_at: string;
 }
 
-// ─── Coda: 공연 후 성찰 ───
+// ─── Logbook (Coda): 항해 후 성찰 ───
 
 export interface MetaReflection {
   understanding_change?: string;
@@ -407,7 +407,7 @@ export interface PersonaAccuracyRating {
   created_at: string;
 }
 
-// ─── Quality Signals (Concertmaster's Journal) ───
+// ─── Quality Signals (Navigator's Journal) ───
 
 export interface QualitySignal {
   id: string;
@@ -655,7 +655,7 @@ export type ProgressivePhase =
   | 'dm_feedback'     // 판단자 피드백 생성/표시
   | 'refining'        // 이슈 반영 선택
   | 'complete'        // 최종 산출물 완성
-  | 'iterating';      // Post-complete: 악장에게 수정 요청 진행 중
+  | 'iterating';      // Post-complete: 항해장에게 수정 요청 진행 중
 
 export interface FlowQuestion {
   id: string;
@@ -1044,7 +1044,7 @@ export interface ProgressiveSession {
   /**
    * Versioned drafts of the final deliverable. drafts[0] is auto-created when
    * the session first reaches `complete`. Subsequent drafts are appended when
-   * the user either re-runs DM review or asks 악장(Concertmaster) to revise.
+   * the user either re-runs DM review or asks 항해장(Navigator) to revise.
    * Forms a tree via `parent_draft_id`; branching/promotion supported.
    * Optional + backward-compat: legacy sessions without drafts are migrated
    * on load via `migrateSessionDrafts`.
@@ -1094,7 +1094,7 @@ export interface ProgressiveSession {
  * A versioned snapshot of the final deliverable. Each Draft is a node in the
  * iteration tree: drafts[0] is the root (parent=null, produced by the normal
  * ProgressiveFlow pipeline), subsequent drafts are children produced by either
- * (a) the 악장 revision loop with a user directive, or
+ * (a) the 항해장 revision loop with a user directive, or
  * (b) a re-run of the DM stakeholder review ("이해관계자 검증 다시 하기").
  *
  * The tree shape allows users to return to an older draft and branch from it.
@@ -1111,7 +1111,7 @@ export interface Draft {
   /**
    * Which agent produced this draft:
    * - null          → initial draft from the ProgressiveFlow pipeline
-   * - 'concertmaster' → directive-driven 악장 revision
+   * - 'navigator' → directive-driven 항해장 revision
    * - 'dm_reroll'   → re-run of DM stakeholder review (legacy button)
    */
   reviewing_agent_id: string | null;

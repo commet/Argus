@@ -1,7 +1,7 @@
 /**
- * Concertmaster Simulation — 다양한 사용자 아키타입 시뮬레이션
+ * Navigator Simulation — 다양한 사용자 아키타입 시뮬레이션
  *
- * Autoresearch 패턴을 악장 시스템 자체에 적용:
+ * Autoresearch 패턴을 항해장 시스템 자체에 적용:
  * 다양한 사용자 여정 mock → 코칭/적응 출력 검증 → 문제 발견 → 로직 수정
  *
  * 아키타입:
@@ -19,11 +19,11 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  buildConcertmasterProfile,
+  buildNavigatorProfile,
   getStepCoaching,
   buildLearningCurve,
-} from '@/lib/concertmaster';
-import type { ConcertmasterProfile, StepCoaching, DemoSeedData } from '@/lib/concertmaster';
+} from '@/lib/navigator';
+import type { NavigatorProfile, StepCoaching, DemoSeedData } from '@/lib/navigator';
 import { recommendBlindSpotPersona } from '@/lib/auto-persona';
 
 // ── Mock setup ──
@@ -91,7 +91,7 @@ vi.mock('@/lib/i18n', () => ({
       'axis.feasibility': '실현 가능성',
       'axis.business': '비즈니스',
       'axis.orgCapacity': '조직 역량',
-      'concertmaster.defaultProject': '프로젝트',
+      'navigator.defaultProject': '프로젝트',
       'coaching.refine.biggestGain': '가장 큰 개선: {element}',
       'coaching.refine.biggestDrop': '하락 원인: {element}',
       'coaching.refine.dqImproving': '판단 품질이 개선되고 있습니다 ({prev} → {current}).',
@@ -190,7 +190,7 @@ function setupProfile(sessions: number, projects: number, judgments: number, ove
 
 // ── Simulation Tests ──
 
-describe('Concertmaster Simulation', () => {
+describe('Navigator Simulation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -202,7 +202,7 @@ describe('Concertmaster Simulation', () => {
     beforeEach(() => setupProfile(0, 0, 0, 0));
 
     it('reframe: counterfactual 코칭이 나와야 한다 (generic)', () => {
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       expect(profile.tier).toBe(1);
       expect(profile.demoSeedData).toBeUndefined();
 
@@ -213,21 +213,21 @@ describe('Concertmaster Simulation', () => {
     });
 
     it('recast: counterfactual 코칭', () => {
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const coaching = getStepCoaching('recast', profile);
       expect(coaching.length).toBe(1);
       expect(coaching[0].tone).toBe('counterfactual');
     });
 
     it('rehearse: counterfactual 코칭', () => {
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const coaching = getStepCoaching('rehearse', profile);
       expect(coaching.length).toBe(1);
       expect(coaching[0].tone).toBe('counterfactual');
     });
 
     it('refine: counterfactual 코칭', () => {
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const coaching = getStepCoaching('refine', profile);
       expect(coaching.length).toBe(1);
       expect(coaching[0].tone).toBe('counterfactual');
@@ -252,7 +252,7 @@ describe('Concertmaster Simulation', () => {
         signal_data: { doubted_count: 0, total_premises: 3, ai_only_steps: 2, human_only_steps: 0, total_steps: 4, completed: true },
       }]);
 
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       expect(profile.demoSeedData).toBeDefined();
       expect(profile.demoSeedData!.doubted_count).toBe(0);
 
@@ -274,7 +274,7 @@ describe('Concertmaster Simulation', () => {
         signal_data: { doubted_count: 3, total_premises: 3, ai_only_steps: 0, human_only_steps: 2, total_steps: 4, completed: true },
       }]);
 
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const coaching = getStepCoaching('reframe', profile);
       expect(coaching[0].tone).toBe('positive');
       expect(coaching[0].message).toContain('coaching.reframe.demoAllDoubted');
@@ -286,7 +286,7 @@ describe('Concertmaster Simulation', () => {
         signal_data: { doubted_count: 3, total_premises: 3, ai_only_steps: 0, human_only_steps: 3, total_steps: 4, completed: true },
       }]);
 
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const coaching = getStepCoaching('recast', profile);
       expect(coaching[0].tone).toBe('positive');
       expect(coaching[0].message).toContain('coaching.recast.demoHumanHeavy');
@@ -305,7 +305,7 @@ describe('Concertmaster Simulation', () => {
     });
 
     it('reframe: 가정 다양성 부족 코칭이 나와야 한다', () => {
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       expect(profile.tier).toBe(2);
 
       const coaching = getStepCoaching('reframe', profile);
@@ -414,7 +414,7 @@ describe('Concertmaster Simulation', () => {
     });
 
     it('tier 3에 도달해야 한다', () => {
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       expect(profile.tier).toBe(3);
     });
 
@@ -441,7 +441,7 @@ describe('Concertmaster Simulation', () => {
     it('recast: challenge 코칭이 아닌 다른 형태의 코칭이 나와야 한다', () => {
       // override율 5%이지만 totalJudgments 20이면 profile.overrideRate = 0.05
       // overrideRate < 0.1 이면 insights에서 "AI 제안을 거의 그대로 수용" 경고
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       expect(profile.overrideRate).toBe(0.05);
     });
   });
@@ -482,7 +482,7 @@ describe('Concertmaster Simulation', () => {
       // 현재 getReframeCoaching에서는 수락률을 직접 체크하지 않지만
       // buildAdaptiveContext()가 LLM 프롬프트에 주입한다
       // 여기서는 기존 코칭 로직이 무언가를 반환하는지 확인
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const coaching = getStepCoaching('reframe', profile);
       // Tier 2인데 sessionCount >= 3, avgPassRate 0.7 → 뭔가 나올 수 있음
       expect(coaching.length).toBeLessThanOrEqual(2);
@@ -496,7 +496,7 @@ describe('Concertmaster Simulation', () => {
     beforeEach(() => setupProfile(6, 2, 15, 0.6));
 
     it('recast: "AI 제안을 자주 수정" positive 코칭', () => {
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       expect(profile.overrideRate).toBe(0.6);
 
       const coaching = getStepCoaching('recast', profile);
@@ -561,7 +561,7 @@ describe('Concertmaster Simulation', () => {
     });
 
     it('refine: DQ 상승 코칭이 나와야 한다', () => {
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const coaching = getStepCoaching('refine', profile);
       const dqMsg = coaching.find(c => c.message.includes('판단 품질이 개선'));
       expect(dqMsg).toBeDefined();
@@ -569,7 +569,7 @@ describe('Concertmaster Simulation', () => {
     });
 
     it('refine: 가장 큰 개선 요소가 detail에 있어야 한다', () => {
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const coaching = getStepCoaching('refine', profile);
       const dqMsg = coaching.find(c => c.message.includes('판단 품질이 개선'));
       // detail is from t('coaching.refine.biggestGain', { element }) which contains the element param
@@ -594,7 +594,7 @@ describe('Concertmaster Simulation', () => {
 
       for (const arch of archetypes) {
         setupProfile(arch.sessions, arch.projects, arch.judgments, arch.rate);
-        const profile = buildConcertmasterProfile();
+        const profile = buildNavigatorProfile();
         for (const step of steps) {
           const coaching = getStepCoaching(step, profile);
           expect(coaching.length).toBeLessThanOrEqual(2);
@@ -604,7 +604,7 @@ describe('Concertmaster Simulation', () => {
 
     it('첫 사용(session 0)은 모든 스텝에서 코칭이 있어야 한다', () => {
       setupProfile(0, 0, 0, 0);
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const steps: Array<'reframe' | 'recast' | 'rehearse' | 'refine'> = ['reframe', 'recast', 'rehearse', 'refine'];
 
       for (const step of steps) {
@@ -615,7 +615,7 @@ describe('Concertmaster Simulation', () => {
 
     it('tier 2+ 사용자의 코칭에는 challenge나 neutral이 포함될 수 있다', () => {
       setupProfile(5, 2, 10, 0.5);
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       const coaching = getStepCoaching('recast', profile);
       // Override rate 50% → positive coaching about patterns
       if (coaching.length > 0) {
@@ -636,7 +636,7 @@ describe('Concertmaster Simulation', () => {
         signal_data: { doubted_count: 1, total_premises: 3, ai_only_steps: 0, human_only_steps: 0, total_steps: 4, completed: false },
       }]);
 
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       // completed: false → demoSeedData exists but completed is false
       const coaching = getStepCoaching('reframe', profile);
       expect(coaching[0].tone).toBe('counterfactual');

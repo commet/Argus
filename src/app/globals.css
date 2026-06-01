@@ -37,7 +37,7 @@
   --gold: #b8963e;
   --gold-light: #d4b968;
   --gold-muted: rgba(184, 150, 62, 0.10);
-  --staff-line: rgba(181, 166, 140, 0.15);
+  --chart-line: rgba(181, 166, 140, 0.15);
 
   /* Gradients — Concert Hall Palette */
   --gradient-gold: linear-gradient(135deg, #b8963e 0%, #d4b968 50%, #96782e 100%);
@@ -72,7 +72,7 @@
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
   --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-musical: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-wave: cubic-bezier(0.32, 0.72, 0, 1);
 
   /* Radius scale */
   --radius-sm: 8px;
@@ -116,7 +116,7 @@
   --gold: #d4b968;
   --gold-light: #e8d48b;
   --gold-muted: rgba(212, 185, 104, 0.08);
-  --staff-line: rgba(212, 185, 104, 0.10);
+  --chart-line: rgba(212, 185, 104, 0.10);
 
   --gradient-gold: linear-gradient(135deg, #d4b968 0%, #e8d48b 50%, #b8963e 100%);
   --gradient-gold-subtle: linear-gradient(135deg, rgba(212, 185, 104, 0.10) 0%, rgba(232, 212, 139, 0.04) 100%);
@@ -292,35 +292,6 @@ body {
   animation: border-glow 2s ease-in-out infinite;
 }
 
-/* ── Conductor baton wave for loading ── */
-@keyframes baton-wave {
-  0% { transform: rotate(-15deg) translateY(0); }
-  25% { transform: rotate(5deg) translateY(-4px); }
-  50% { transform: rotate(-5deg) translateY(0); }
-  75% { transform: rotate(10deg) translateY(-2px); }
-  100% { transform: rotate(-15deg) translateY(0); }
-}
-.animate-baton {
-  animation: baton-wave 2s var(--ease-musical) infinite;
-  transform-origin: bottom center;
-}
-
-/* ── Sound wave ripple for SoundWave component ── */
-@keyframes wave-ripple {
-  0% { transform: scaleY(0.95); opacity: 0.5; }
-  50% { transform: scaleY(1); opacity: 1; }
-  100% { transform: scaleY(0.95); opacity: 0.5; }
-}
-
-/* ── Note float for ambient decoration ── */
-@keyframes note-float {
-  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
-  50% { transform: translateY(-8px) rotate(5deg); opacity: 0.6; }
-}
-.animate-note-float {
-  animation: note-float 4s ease-in-out infinite;
-}
-
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {
   width: 5px;
@@ -337,7 +308,7 @@ body {
   background: var(--text-secondary);
 }
 
-/* ── Musical phrase entrance — staggered arpeggio ── */
+/* ── Staggered text entrance ── */
 @keyframes phrase-enter {
   0% { opacity: 0; transform: translateY(16px); filter: blur(2px); }
   50% { opacity: 1; filter: blur(0); }
@@ -345,7 +316,7 @@ body {
 }
 .phrase-entrance > * {
   opacity: 0;
-  animation: phrase-enter 0.7s var(--ease-musical) forwards;
+  animation: phrase-enter 0.7s var(--ease-wave) forwards;
 }
 .phrase-entrance > *:nth-child(1) { animation-delay: 0ms; }
 .phrase-entrance > *:nth-child(2) { animation-delay: 100ms; }
@@ -353,14 +324,14 @@ body {
 .phrase-entrance > *:nth-child(4) { animation-delay: 250ms; }
 .phrase-entrance > *:nth-child(5) { animation-delay: 310ms; }
 
-/* ── Crescendo reveal — builds from quiet to full ── */
-@keyframes crescendo-reveal {
+/* ── Rise reveal — eases up into place ── */
+@keyframes rise-reveal {
   0% { opacity: 0; transform: scale(0.97) translateY(6px); }
   60% { opacity: 1; }
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
-.animate-crescendo {
-  animation: crescendo-reveal 0.8s var(--ease-musical) forwards;
+.animate-rise {
+  animation: rise-reveal 0.8s var(--ease-wave) forwards;
 }
 
 /* ── Orchestration assembly loader ── */
@@ -380,7 +351,7 @@ body {
   animation: draw-line 1s var(--ease-spring) forwards;
 }
 
-/* ── Concertmaster subtle pulse ── */
+/* ── Navigator subtle pulse ── */
 @keyframes subtle-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
@@ -389,16 +360,11 @@ body {
   animation: subtle-pulse 2s ease-in-out infinite;
 }
 
-/* ── Manuscript paper — 5-line staff pattern ── */
-.manuscript-bg {
+/* ── Chart paper — graticule grid ── */
+.chart-bg {
   background-image:
-    repeating-linear-gradient(
-      0deg,
-      var(--staff-line),
-      var(--staff-line) 1px,
-      transparent 1px,
-      transparent 24px
-    );
+    repeating-linear-gradient(0deg, var(--chart-line), var(--chart-line) 1px, transparent 1px, transparent 24px),
+    repeating-linear-gradient(90deg, var(--chart-line), var(--chart-line) 1px, transparent 1px, transparent 24px);
 }
 
 /* ── Scroll reveal ── */
@@ -409,7 +375,7 @@ body {
 .scroll-visible {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.7s var(--ease-musical), transform 0.7s var(--ease-musical);
+  transition: opacity 0.7s var(--ease-wave), transform 0.7s var(--ease-wave);
 }
 .scroll-hidden-x {
   opacity: 0;
@@ -418,7 +384,7 @@ body {
 .scroll-visible-x {
   opacity: 1;
   transform: translateX(0);
-  transition: opacity 0.6s var(--ease-musical), transform 0.6s var(--ease-musical);
+  transition: opacity 0.6s var(--ease-wave), transform 0.6s var(--ease-wave);
 }
 
 /* ── Reward card stagger entrance ── */
@@ -428,7 +394,7 @@ body {
 }
 .reward-entrance > * {
   opacity: 0;
-  animation: reward-reveal 0.5s var(--ease-musical) forwards;
+  animation: reward-reveal 0.5s var(--ease-wave) forwards;
 }
 .reward-entrance > *:nth-child(1) { animation-delay: 0ms; }
 .reward-entrance > *:nth-child(2) { animation-delay: 120ms; }
@@ -496,13 +462,11 @@ body {
   .animate-slide-down,
   .animate-slide-in-right,
   .animate-slide-in-left,
-  .animate-crescendo,
+  .animate-rise,
   .animate-bar-grow,
   .animate-score-pop,
   .animate-gold-shimmer,
-  .animate-border-glow,
-  .animate-baton,
-  .animate-note-float {
+  .animate-border-glow {
     animation: none;
   }
   .reward-entrance > * {
@@ -2406,15 +2370,15 @@ button, a, input, textarea {
   gap: 10px;
 }
 
-/* ── Concertmaster special card ── */
+/* ── Navigator special card ── */
 
-.agent-card-concertmaster {
+.agent-card-navigator {
   border-style: dashed;
   border-color: var(--accent);
   border-width: 1.5px;
   background: linear-gradient(180deg, var(--surface) 0%, rgba(184,150,62,0.03) 100%);
 }
-.agent-card-concertmaster.agent-card-locked {
+.agent-card-navigator.agent-card-locked {
   border-color: var(--border);
   background: var(--bg);
 }
@@ -2628,7 +2592,7 @@ button, a, input, textarea {
   border-radius: 0;
   cursor: pointer;
   position: relative;
-  transition: background 200ms var(--ease-musical), color 200ms var(--ease-musical);
+  transition: background 200ms var(--ease-wave), color 200ms var(--ease-wave);
 }
 .bp-btn-primary::before {
   content: '';
@@ -2636,7 +2600,7 @@ button, a, input, textarea {
   inset: -4px;
   border: 1px solid var(--bp-gold);
   opacity: 0;
-  transition: opacity 200ms var(--ease-musical);
+  transition: opacity 200ms var(--ease-wave);
   pointer-events: none;
 }
 .bp-btn-primary:hover::before { opacity: 1; }
@@ -2664,7 +2628,7 @@ button, a, input, textarea {
   border: 1px solid var(--bp-ink-faint);
   border-radius: 0;
   cursor: pointer;
-  transition: border-color 200ms var(--ease-musical), color 200ms var(--ease-musical);
+  transition: border-color 200ms var(--ease-wave), color 200ms var(--ease-wave);
 }
 .bp-btn-secondary:hover {
   border-color: var(--bp-ink);
@@ -2679,7 +2643,7 @@ button, a, input, textarea {
 .bp-input-frame {
   border: 1px solid var(--bp-ink-faint);
   background: var(--bp-paper);
-  transition: border-color 200ms var(--ease-musical);
+  transition: border-color 200ms var(--ease-wave);
 }
 .bp-input-frame:focus-within {
   border-color: var(--bp-ink);
@@ -2701,7 +2665,7 @@ button, a, input, textarea {
   border: 1px solid var(--bp-ink-faint);
   background: var(--bp-paper);
   padding: 14px 16px;
-  transition: border-color 200ms var(--ease-musical);
+  transition: border-color 200ms var(--ease-wave);
 }
 .bp-station:hover {
   border-color: var(--bp-ink);

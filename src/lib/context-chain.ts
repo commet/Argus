@@ -22,7 +22,7 @@ import { getCurrentLanguage } from '@/lib/i18n';
 function getContextLabels() {
   const ko = getCurrentLanguage() === 'ko';
   return ko ? {
-    reframeHeader: '## 악보 해석에서 도출된 맥락',
+    reframeHeader: '## 항로 재설정에서 도출된 맥락',
     originalTask: '원래 과제', reframedQuestion: '재정의된 질문',
     reframingReason: '리프레이밍 이유',
     doubtedTitle: '### 의심된 전제 (key_assumptions 최우선 — 검증 단계 필수)',
@@ -53,14 +53,14 @@ function getContextLabels() {
     successUnclear: '성공 기준이 불명확합니다. goal_summary를 특히 구체적으로 작성해주세요.',
     contextSignalsTitle: '### 사용자 맥락 신호',
     aiLimitTitle: '### AI 한계 (이 부분은 사람에게 배정하세요)',
-    recastHeader: '## 편곡에서 설계된 실행 계획',
+    recastHeader: '## 선원 배치에서 설계된 실행 계획',
     governingIdea: '핵심 방향', situation: '상황', complication: '문제', resolution: '해결',
     designRationale: '설계 근거',
     executionFlowTitle: '### 실행 흐름 (⚑=체크포인트, ★=크리티컬패스)',
     actorAi: 'AI', actorHuman: '사람', actorBoth: '협업',
     keyAssumptionsTitle: '### 핵심 가정 (공격 대상)',
     userDoubtedTitle: '### 사용자가 의심한 전제 (우선 검증 대상)',
-    reframeUnverifiedTitle: '### 악보 해석에서 미확인된 전제',
+    reframeUnverifiedTitle: '### 항로 재설정에서 미확인된 전제',
     aiLimitPersonaTitle: '### AI 한계 (이 영역은 사람이 판단해야 함)',
     originalDesignHeader: '## 원래 설계 맥락 (수정 시 위반하지 마세요)',
     criticalPath: '크리티컬 패스', rootQuestion: '근본 질문', aiLimitShort: 'AI 한계',

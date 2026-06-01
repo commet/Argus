@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  buildConcertmasterProfile,
-  buildConcertmasterInsights,
+  buildNavigatorProfile,
+  buildNavigatorInsights,
   getStepCoaching,
   buildLearningCurve,
-} from '@/lib/concertmaster';
-import type { ConcertmasterProfile } from '@/lib/concertmaster';
+} from '@/lib/navigator';
+import type { NavigatorProfile } from '@/lib/navigator';
 
 // Mock dependencies
 vi.mock('@/lib/eval-engine', () => ({
@@ -56,7 +56,7 @@ vi.mock('@/lib/i18n', () => ({
       'axis.feasibility': '실현 가능성',
       'axis.business': '비즈니스',
       'axis.orgCapacity': '조직 역량',
-      'concertmaster.defaultProject': '프로젝트',
+      'navigator.defaultProject': '프로젝트',
     };
     let text = map[key] ?? key;
     if (params) {
@@ -98,12 +98,12 @@ const mockGetDQScores = vi.mocked(getDQScores);
 const mockAnalyzeDQTrend = vi.mocked(analyzeDQTrend);
 const mockGetStorage = vi.mocked(getStorage);
 
-describe('concertmaster', () => {
+describe('navigator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('buildConcertmasterProfile', () => {
+  describe('buildNavigatorProfile', () => {
     it('returns tier 1 for new users', () => {
       mockGetEvalSummary.mockReturnValue({
         total_sessions: 0,
@@ -114,7 +114,7 @@ describe('concertmaster', () => {
       mockGetStorage.mockReturnValue([]);
       mockAnalyzeStrategyPerformance.mockReturnValue([]);
 
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       expect(profile.tier).toBe(1);
       expect(profile.sessionCount).toBe(0);
       expect(profile.totalJudgments).toBe(0);
@@ -139,7 +139,7 @@ describe('concertmaster', () => {
         { strategy: 'redirect_angle', sample_count: 4, avg_pass_rate: 0.8, per_eval_pass_rates: {} },
       ]);
 
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       expect(profile.tier).toBe(2);
       expect(profile.sessionCount).toBe(5);
       expect(profile.dominantStrategy).toBe('redirect_angle');
@@ -162,23 +162,23 @@ describe('concertmaster', () => {
         { strategy: 'diagnose_root', sample_count: 8, avg_pass_rate: 0.85, per_eval_pass_rates: {} },
       ]);
 
-      const profile = buildConcertmasterProfile();
+      const profile = buildNavigatorProfile();
       expect(profile.tier).toBe(3);
     });
   });
 
-  describe('buildConcertmasterInsights', () => {
+  describe('buildNavigatorInsights', () => {
     it('returns empty for tier 1 with no history', () => {
       mockGetSessionInsights.mockReturnValue([]);
       mockGetStorage.mockReturnValue([]);
       mockGetWorstPerformingEvals.mockReturnValue([]);
 
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 0, projectCount: 0, totalJudgments: 0,
         overrideRate: 0, dominantStrategy: null, avgPassRate: 0, tier: 1,
       };
 
-      const insights = buildConcertmasterInsights(profile);
+      const insights = buildNavigatorInsights(profile);
       expect(insights).toHaveLength(0);
     });
 
@@ -189,12 +189,12 @@ describe('concertmaster', () => {
       mockGetStorage.mockReturnValue([]);
       mockGetWorstPerformingEvals.mockReturnValue([]);
 
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 1, projectCount: 1, totalJudgments: 0,
         overrideRate: 0, dominantStrategy: null, avgPassRate: 0.5, tier: 1,
       };
 
-      const insights = buildConcertmasterInsights(profile);
+      const insights = buildNavigatorInsights(profile);
       expect(insights.length).toBeGreaterThanOrEqual(1);
       expect(insights[0].category).toBe('pattern');
     });
@@ -209,12 +209,12 @@ describe('concertmaster', () => {
       ]);
       mockGetStorage.mockReturnValue([]);
 
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 5, projectCount: 1, totalJudgments: 5,
         overrideRate: 0.2, dominantStrategy: null, avgPassRate: 0.6, tier: 2,
       };
 
-      const insights = buildConcertmasterInsights(profile);
+      const insights = buildNavigatorInsights(profile);
       const coaching = insights.filter((i) => i.category === 'coaching');
       expect(coaching.length).toBeGreaterThanOrEqual(1);
     });
@@ -236,12 +236,12 @@ describe('concertmaster', () => {
         return [];
       });
 
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 12, projectCount: 3, totalJudgments: 10,
         overrideRate: 0.3, dominantStrategy: 'redirect_angle', avgPassRate: 0.8, tier: 3,
       };
 
-      const insights = buildConcertmasterInsights(profile);
+      const insights = buildNavigatorInsights(profile);
       const growth = insights.filter((i) => i.category === 'growth');
       expect(growth.length).toBeGreaterThanOrEqual(1);
     });
@@ -252,7 +252,7 @@ describe('concertmaster', () => {
       mockGetSessionInsights.mockReturnValue([]);
       mockGetWorstPerformingEvals.mockReturnValue([]);
 
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 0, projectCount: 0, totalJudgments: 0,
         overrideRate: 0, dominantStrategy: null, avgPassRate: 0, tier: 1,
       };
@@ -265,7 +265,7 @@ describe('concertmaster', () => {
     });
 
     it('returns personalized coaching for reframe when demo seed exists (all doubted)', () => {
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 0, projectCount: 0, totalJudgments: 0,
         overrideRate: 0, dominantStrategy: null, avgPassRate: 0, tier: 1,
         demoSeedData: { doubted_count: 3, total_premises: 3, ai_only_steps: 1, human_only_steps: 1, total_steps: 4, completed: true },
@@ -277,7 +277,7 @@ describe('concertmaster', () => {
     });
 
     it('returns challenge coaching for reframe when demo seed shows zero doubts', () => {
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 0, projectCount: 0, totalJudgments: 0,
         overrideRate: 0, dominantStrategy: null, avgPassRate: 0, tier: 1,
         demoSeedData: { doubted_count: 0, total_premises: 3, ai_only_steps: 0, human_only_steps: 0, total_steps: 4, completed: true },
@@ -290,7 +290,7 @@ describe('concertmaster', () => {
 
     it('returns personalized recast coaching when demo seed shows heavy AI delegation', () => {
       mockGetStorage.mockReturnValue([]);
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 0, projectCount: 0, totalJudgments: 0,
         overrideRate: 0, dominantStrategy: null, avgPassRate: 0, tier: 1,
         demoSeedData: { doubted_count: 1, total_premises: 3, ai_only_steps: 3, human_only_steps: 0, total_steps: 4, completed: true },
@@ -308,7 +308,7 @@ describe('concertmaster', () => {
         { id: '3', type: 'actor_override', user_changed: true, decision: 'ai', tool: 'recast', context: '', original_ai_suggestion: '', created_at: '' },
       ]);
 
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 5, projectCount: 1, totalJudgments: 5,
         overrideRate: 0.5, dominantStrategy: null, avgPassRate: 0.6, tier: 2,
       };
@@ -321,7 +321,7 @@ describe('concertmaster', () => {
     it('returns empty array for recast with few judgments and no cross-stage data', () => {
       mockGetStorage.mockReturnValue([]);
 
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 1, projectCount: 1, totalJudgments: 1,
         overrideRate: 0, dominantStrategy: null, avgPassRate: 0, tier: 1,
       };
@@ -349,7 +349,7 @@ describe('concertmaster', () => {
         return [];
       });
 
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 5, projectCount: 1, totalJudgments: 5,
         overrideRate: 0.2, dominantStrategy: null, avgPassRate: 0.7, tier: 2,
       };
@@ -370,7 +370,7 @@ describe('concertmaster', () => {
       ]);
       mockGetStorage.mockReturnValue([]);
 
-      const profile: ConcertmasterProfile = {
+      const profile: NavigatorProfile = {
         sessionCount: 8, projectCount: 1, totalJudgments: 10,
         overrideRate: 0.2, dominantStrategy: 'redirect_angle', avgPassRate: 0.8, tier: 2,
       };

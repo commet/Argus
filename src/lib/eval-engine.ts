@@ -171,7 +171,7 @@ export function recordReframeEval(
 }
 
 /* ────────────────────────────────────
-   Recast Evals (편곡 품질 측정)
+   Recast Evals (선원 배치 품질 측정)
    ──────────────────────────────────── */
 
 export interface RecastEvalInput {

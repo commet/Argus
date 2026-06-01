@@ -1,7 +1,7 @@
 /**
  * Auto-Persona Extraction — 맥락 기반 자동 페르소나 생성
  *
- * 악보 해석 + 편곡에서 축적된 데이터를 분석하여
+ * 항로 재설정 + 선원 배치에서 축적된 데이터를 분석하여
  * 리허설에 필요한 이해관계자 2-3명을 자동 식별합니다.
  */
 
@@ -62,7 +62,7 @@ export async function extractPersonasFromContext(
     contextParts.push(`[핵심 가정]\n${assumptions}`);
   }
 
-  contextParts.push(`[편곡 입력 맥락]\n${s(recast.input_text)}`);
+  contextParts.push(`[선원 배치 입력 맥락]\n${s(recast.input_text)}`);
 
   const context = contextParts.join('\n\n');
 

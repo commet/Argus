@@ -1,5 +1,10 @@
 # Argus — Product Philosophy & Musical DNA (v2)
 
+> ⚠️ **재작성 대기 (오케스트라 → Voyage).** 오케스트라 컨셉은 폐기됨. 이 문서는 오케스트라가
+> *비유가 아니라 골격*이라 기계 치환이 불가능하다 — 바닥부터 항해(voyage) 산문으로 재집필 예정.
+> 섹션별 대응·골격은 `docs/philosophy-voyage-rewrite-guide.md` 참조. 어휘 기준은 `docs/branding-voyage.md`.
+> (코드·README·CONTEXT 등 나머지는 이미 voyage로 통일 완료.)
+
 > *"실행 비용이 0에 가까워질수록, 실행 이전의 판단의 가치는 올라간다."*
 
 ---

@@ -81,7 +81,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
     if (relatedRecast && !initialContent && !useCustomDoc) {
       const md = recastToMarkdown(relatedRecast);
       setDocumentText(md);
-      setDocumentTitle(L('편곡 결과물', 'Arrangement output'));
+      setDocumentTitle(L('선원 배치 결과물', 'Crew Assignment output'));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [relatedRecastId, initialContent, useCustomDoc]);
@@ -136,7 +136,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
               onClick={() => { setUseCustomDoc(false); setDocumentText(recastToMarkdown(relatedRecast)); }}
               className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
             >
-              {L('편곡 결과 사용', 'Use Arrangement output')}
+              {L('선원 배치 결과 사용', 'Use Crew Assignment output')}
             </button>
           )}
         </div>
@@ -148,7 +148,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
             <div className="px-4 py-3 bg-[var(--ai)]">
               <div className="flex items-center gap-2 mb-1">
                 <Check size={12} className="text-[var(--accent)]" />
-                <span className="text-[12px] font-semibold text-[var(--accent)]">{L('편곡 결과가 연결되었습니다', 'Arrangement output connected')}</span>
+                <span className="text-[12px] font-semibold text-[var(--accent)]">{L('선원 배치 결과가 연결되었습니다', 'Crew Assignment output connected')}</span>
               </div>
               <p className="text-[14px] font-bold text-[var(--text-primary)] mt-1">
                 {relatedRecast.analysis.governing_idea}

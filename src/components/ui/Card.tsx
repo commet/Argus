@@ -42,7 +42,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
         )}
         {variant === 'musical' && (
-          <div className="absolute inset-0 pointer-events-none manuscript-bg opacity-40" />
+          <div className="absolute inset-0 pointer-events-none chart-bg opacity-40" />
         )}
         {children}
       </div>

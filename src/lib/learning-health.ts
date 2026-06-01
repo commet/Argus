@@ -1,5 +1,5 @@
 /**
- * Learning Health Assessment — Concertmaster's Journal
+ * Learning Health Assessment — Navigator's Journal
  *
  * Meta-assessment: "Is the learning system itself working?"
  * Tracks whether override rates decrease, convergence speeds improve, etc.
@@ -76,7 +76,7 @@ export function assessLearningHealth(): LearningHealth {
     recommendations.push('프로젝트를 더 진행하면 학습 데이터가 축적됩니다.');
   }
   if (eval_coverage < 50 && reframeItems.length >= 3) {
-    recommendations.push('악보 해석에서 전제를 평가하면 전략 학습이 활성화됩니다.');
+    recommendations.push('항로 재설정에서 전제를 평가하면 전략 학습이 활성화됩니다.');
   }
   if (ratings.length < 2) {
     recommendations.push('리허설 정확도를 평가하면 페르소나 캘리브레이션이 시작됩니다.');

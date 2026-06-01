@@ -107,10 +107,10 @@ const FRAMEWORK_PRIORITY: Record<string, string[]> = {
   'chief_strategist:no_answer':      ['Wardley', 'Real Options', 'Cynefin'],
   'chief_strategist:*':              ['Scenario Planning', 'Wardley', 'Kill Criteria'],
 
-  // ─── Concertmaster (악장) ───
-  'concertmaster:needs_analysis': ['Dialectical Synthesis', 'Assumption Audit', 'Murder Board'],
-  'concertmaster:on_fire':        ['6-Point Cognitive Bias', 'Meta-Pattern'],
-  'concertmaster:*':              ['Dialectical Synthesis', '6-Point Cognitive Bias', 'Assumption Audit'],
+  // ─── Navigator (항해장) ───
+  'navigator:needs_analysis': ['Dialectical Synthesis', 'Assumption Audit', 'Murder Board'],
+  'navigator:on_fire':        ['6-Point Cognitive Bias', 'Meta-Pattern'],
+  'navigator:*':              ['Dialectical Synthesis', '6-Point Cognitive Bias', 'Assumption Audit'],
 };
 
 /* ─── Main ─── */

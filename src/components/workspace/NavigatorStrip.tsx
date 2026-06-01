@@ -3,8 +3,8 @@
 import { useState, useMemo } from 'react';
 import { Music2, X, Lightbulb, BarChart3, TrendingUp, AlertTriangle, Target, Eye } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
-import { buildConcertmasterProfile, buildConcertmasterInsights, buildLearningCurve } from '@/lib/concertmaster';
-import type { ConcertmasterInsight, LearningCurve } from '@/lib/concertmaster';
+import { buildNavigatorProfile, buildNavigatorInsights, buildLearningCurve } from '@/lib/navigator';
+import type { NavigatorInsight, LearningCurve } from '@/lib/navigator';
 import { t } from '@/lib/i18n';
 
 const STRATEGY_KEYS: Record<string, Parameters<typeof t>[0]> = {
@@ -14,7 +14,7 @@ const STRATEGY_KEYS: Record<string, Parameters<typeof t>[0]> = {
   redirect_angle: 'strategy.redirectAngle',
 };
 
-const CATEGORY_ICON: Record<ConcertmasterInsight['category'], typeof Lightbulb> = {
+const CATEGORY_ICON: Record<NavigatorInsight['category'], typeof Lightbulb> = {
   pattern: BarChart3,
   coaching: Lightbulb,
   growth: TrendingUp,
@@ -191,12 +191,12 @@ function TierProgress({ tier, progress }: { tier: 1 | 2 | 3; progress: number })
    Main Component
    ──────────────────────────────────── */
 
-export function ConcertmasterStrip() {
-  const { concertmasterOpen, toggleConcertmaster } = useWorkspaceStore();
+export function NavigatorStrip() {
+  const { navigatorOpen, toggleNavigator } = useWorkspaceStore();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
-  const profile = useMemo(() => buildConcertmasterProfile(), []);
-  const allInsights = useMemo(() => buildConcertmasterInsights(profile), [profile]);
+  const profile = useMemo(() => buildNavigatorProfile(), []);
+  const allInsights = useMemo(() => buildNavigatorInsights(profile), [profile]);
   const learningCurve = useMemo(() => buildLearningCurve(), []);
   const insights = useMemo(
     () => allInsights.filter((i) => !dismissed.has(i.id)),
@@ -206,14 +206,14 @@ export function ConcertmasterStrip() {
   const hasNewInsights = insights.length > 0;
 
   // Collapsed state (48px)
-  if (!concertmasterOpen) {
+  if (!navigatorOpen) {
     return (
       <button
-        onClick={toggleConcertmaster}
+        onClick={toggleNavigator}
         className={`hidden lg:flex shrink-0 w-12 flex-col items-center justify-start pt-4 gap-2 border-l border-[var(--border)] bg-[var(--surface)] cursor-pointer hover:bg-[var(--ai)] transition-colors relative ${
           hasNewInsights ? 'animate-subtle-pulse' : ''
         }`}
-        title={t('concertmaster.open')}
+        title={t('navigator.open')}
       >
         <div className="absolute inset-y-0 left-0 w-[2px]" style={{ background: 'var(--gradient-gold)' }} />
         <Music2 size={18} className="text-[var(--gold)]" />
@@ -233,10 +233,10 @@ export function ConcertmasterStrip() {
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
         <div className="flex items-center gap-2">
           <Music2 size={16} className="text-[var(--gold)]" />
-          <span className="text-[14px] font-bold text-[var(--text-primary)]">{t('concertmaster.title')}</span>
+          <span className="text-[14px] font-bold text-[var(--text-primary)]">{t('navigator.title')}</span>
         </div>
         <button
-          onClick={toggleConcertmaster}
+          onClick={toggleNavigator}
           className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
         >
           <X size={16} />
@@ -246,17 +246,17 @@ export function ConcertmasterStrip() {
       {/* Profile summary */}
       <div className="px-4 py-3 border-b border-[var(--border-subtle)] space-y-1">
         <p className="text-[13px] text-[var(--text-primary)]">
-          {t('concertmaster.sessions', { count: profile.sessionCount })}
-          {profile.projectCount > 0 && ` · ${t('concertmaster.projects', { count: profile.projectCount })}`}
+          {t('navigator.sessions', { count: profile.sessionCount })}
+          {profile.projectCount > 0 && ` · ${t('navigator.projects', { count: profile.projectCount })}`}
         </p>
         {profile.dominantStrategy && (
           <p className="text-[12px] text-[var(--text-secondary)]">
-            {t('concertmaster.preferredStrategy', { strategy: STRATEGY_KEYS[profile.dominantStrategy] ? t(STRATEGY_KEYS[profile.dominantStrategy]) : profile.dominantStrategy })}
+            {t('navigator.preferredStrategy', { strategy: STRATEGY_KEYS[profile.dominantStrategy] ? t(STRATEGY_KEYS[profile.dominantStrategy]) : profile.dominantStrategy })}
           </p>
         )}
         {profile.totalJudgments >= 3 && (
           <p className="text-[12px] text-[var(--text-secondary)]">
-            {t('concertmaster.overrideRate', { rate: Math.round(profile.overrideRate * 100) })}
+            {t('navigator.overrideRate', { rate: Math.round(profile.overrideRate * 100) })}
           </p>
         )}
         {/* Tier progress */}
@@ -279,7 +279,7 @@ export function ConcertmasterStrip() {
             <div className="flex items-center justify-between">
               <span className={`text-[11px] ${TREND_COLOR[learningCurve.trend]}`}>
                 {t(TREND_KEY[learningCurve.trend])}
-                {learningCurve.avg_dq > 0 && ` · ${t('concertmaster.avgSuffix', { n: learningCurve.avg_dq })}`}
+                {learningCurve.avg_dq > 0 && ` · ${t('navigator.avgSuffix', { n: learningCurve.avg_dq })}`}
               </span>
               {learningCurve.most_improved_element && learningCurve.improvement_delta > 0 && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px]">
@@ -295,7 +295,7 @@ export function ConcertmasterStrip() {
         {learningCurve.has_data && learningCurve.dq_points.length === 1 && (
           <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-[var(--text-secondary)]">{t('concertmaster.dqScore')}</span>
+              <span className="text-[11px] text-[var(--text-secondary)]">{t('navigator.dqScore')}</span>
               <span className="text-[14px] font-bold text-[var(--gold)]">
                 {learningCurve.dq_points[0].overall_dq}
                 <span className="text-[10px] font-normal text-[var(--text-tertiary)]">/100</span>
@@ -325,8 +325,8 @@ export function ConcertmasterStrip() {
           {insights.length === 0 && !learningCurve.has_data && (
             <p className="text-[12px] text-[var(--text-secondary)] text-center py-4">
               {profile.sessionCount === 0
-                ? t('concertmaster.firstSession')
-                : t('concertmaster.noInsights')}
+                ? t('navigator.firstSession')
+                : t('navigator.noInsights')}
             </p>
           )}
           {insights.map((insight) => {
@@ -351,7 +351,7 @@ export function ConcertmasterStrip() {
                   <button
                     onClick={() => setDismissed((prev) => new Set(prev).add(insight.id))}
                     className="opacity-0 group-hover:opacity-100 p-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-opacity"
-                    title={t('concertmaster.close')}
+                    title={t('navigator.close')}
                   >
                     <X size={12} />
                   </button>

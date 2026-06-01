@@ -19,7 +19,7 @@ function getGroupMeta(locale: Locale): Record<string, { label: string; emoji: st
       production: { label: '실행', emoji: '⚡' },
       validation: { label: '검증', emoji: '🛡️' },
       people: { label: '사람들', emoji: '👥' },
-      special: { label: '총괄', emoji: '🎻' },
+      special: { label: '총괄', emoji: '🧭' },
     };
   }
   return {
@@ -28,7 +28,7 @@ function getGroupMeta(locale: Locale): Record<string, { label: string; emoji: st
     production: { label: 'Execution', emoji: '⚡' },
     validation: { label: 'Validation', emoji: '🛡️' },
     people: { label: 'People', emoji: '👥' },
-    special: { label: 'Lead', emoji: '🎻' },
+    special: { label: 'Lead', emoji: '🧭' },
   };
 }
 
@@ -84,8 +84,8 @@ export function AgentHub() {
   // 사람들 (Boss, Stakeholder)
   const peopleAgents = agents.filter(a => a.group === 'people' && !a.archived);
 
-  // 악장
-  const concertmaster = agents.find(a => a.id === 'concertmaster');
+  // 항해장
+  const navigator = agents.find(a => a.id === 'navigator');
 
   return (
     <div className="agent-hub">
@@ -150,12 +150,12 @@ export function AgentHub() {
         </div>
       </section>
 
-      {/* 악장 */}
-      {concertmaster && (
+      {/* 항해장 */}
+      {navigator && (
         <section className="agent-section">
           <SectionHeader meta={GROUP_META.special} />
           <div className="agent-grid">
-            <AgentCard agent={concertmaster} onClick={() => concertmaster.unlocked && setSelectedAgent(concertmaster)} />
+            <AgentCard agent={navigator} onClick={() => navigator.unlocked && setSelectedAgent(navigator)} />
           </div>
         </section>
       )}

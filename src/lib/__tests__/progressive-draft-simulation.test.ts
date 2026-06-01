@@ -5,7 +5,7 @@
  * Validates:
  * - Initial draft auto-creation on setFinalDeliverable(markdown)
  * - Null-text path does NOT create a draft (reset flow)
- * - addDraft with concertmaster lineage appends with correct parent + label
+ * - addDraft with navigator lineage appends with correct parent + label
  * - addDraft label computation for main line vs branch
  * - setActiveDraft updates the surface final_deliverable
  * - getActiveDraftPath walks the tree correctly
@@ -203,7 +203,7 @@ describe('ProgressiveStore Draft Tree', () => {
   });
 
   // ────────────────────────────────────────────
-  // addDraft (Concertmaster revision flow)
+  // addDraft (Navigator revision flow)
   // ────────────────────────────────────────────
 
   describe('addDraft', () => {
@@ -218,7 +218,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: '재무 섹션 보수화',
         final_text: 'root + tighter finances',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
 
       const session = useProgressiveStore.getState().sessions.find(s => s.id === sid)!;
@@ -226,7 +226,7 @@ describe('ProgressiveStore Draft Tree', () => {
       const child = session.drafts![1];
       expect(child.parent_draft_id).toBe(root.id);
       expect(child.version_label).toBe('v0.2');
-      expect(child.reviewing_agent_id).toBe('concertmaster');
+      expect(child.reviewing_agent_id).toBe('navigator');
       expect(child.directive).toBe('tighten the financial section');
       expect(session.active_draft_id).toBe(child.id);
       // final_deliverable is updated so FinalCard renders the new draft
@@ -245,7 +245,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: 's1',
         final_text: 'v0.2 body',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
 
       // User branches back to root
@@ -258,7 +258,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: 's2',
         final_text: 'v0.1.1 body',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
 
       const session = currentSession(sid);
@@ -299,7 +299,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: 'x',
         final_text: 'v0.2 content',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
 
       // Now on v0.2. Switch back to root.
@@ -328,7 +328,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: 'x',
         final_text: 'v2',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
       const v02 = currentSession(sid).drafts![1];
       expect(v02.version_label).toBe('v0.2');
@@ -351,7 +351,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: 'x',
         final_text: 'v2',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
       const v02 = currentSession(sid).drafts![1];
 
@@ -364,7 +364,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: 'y',
         final_text: 'v11',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
       const child = currentSession(sid).drafts![2];
       expect(child.version_label).toBe('v1.1');
@@ -387,7 +387,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: 'x',
         final_text: 'v2',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
       const v02 = currentSession(sid).drafts![1];
       api().addDraft({
@@ -396,7 +396,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: 'y',
         final_text: 'v3',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
 
       const path = api().getActiveDraftPath();
@@ -413,7 +413,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: 'x',
         final_text: 'v2',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
       api().setActiveDraft(root.id);
 
@@ -534,7 +534,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: 'ROI 상세화',
         final_text: '# draft v2',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
       expect(currentSession(sid).drafts![1].version_label).toBe('v0.2');
 
@@ -546,7 +546,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: '톤 조정',
         final_text: '# draft v3',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
       expect(currentSession(sid).drafts![2].version_label).toBe('v0.3');
 
@@ -560,7 +560,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: '대안 각도',
         final_text: '# draft alt',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
       expect(currentSession(sid).drafts![3].version_label).toBe('v0.1.1');
 
@@ -577,7 +577,7 @@ describe('ProgressiveStore Draft Tree', () => {
         change_summary: '확장',
         final_text: '# draft v1.1',
         final_mix: null,
-        reviewing_agent_id: 'concertmaster',
+        reviewing_agent_id: 'navigator',
       });
       expect(currentSession(sid).drafts![4].version_label).toBe('v1.1');
 
