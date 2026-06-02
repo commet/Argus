@@ -13,7 +13,7 @@ import { SynthesizeStep } from '@/components/workspace/SynthesizeStep';
 import { ProgressiveFlow } from '@/components/workspace/progressive/ProgressiveFlow';
 import { WorkerDrawer, useWorkers } from '@/components/workspace/progressive/WorkerPanel';
 import { AgentSidebar } from '@/components/workspace/progressive/AgentSidebar';
-import { Logbook } from '@/components/workspace/progressive/Logbook';
+import { Logbook, LogbookDrawer } from '@/components/workspace/progressive/Logbook';
 import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -86,9 +86,11 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
           </button>
         </div>
 
-        {/* Desktop: flex layout with agent sidebar on right */}
+        {/* Desktop: flex layout with agent sidebar on right.
+            Mobile bottom padding clears the stacked fixed bars: log bar (~56px)
+            + worker bar (~56px) when both are present. */}
         <div className="flex">
-          <div className={`flex-1 px-4 md:px-6 ${hasWorkers ? 'pb-[60px] lg:pb-0' : ''}`}>
+          <div className={`flex-1 px-4 md:px-6 lg:pb-0 ${hasWorkers ? 'pb-[120px]' : showRail ? 'pb-[64px]' : ''}`}>
             <ErrorBoundary fallback={<StepErrorFallback />}>
               <ProgressiveFlow projectId={projectId} />
             </ErrorBoundary>
@@ -104,7 +106,9 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
           )}
         </div>
 
-        {/* Mobile: bottom drawer */}
+        {/* Mobile: ship's-log bottom drawer (sits above the worker bar), then
+            the worker drawer. Both hidden on lg where the right rail shows. */}
+        <div className="lg:hidden"><LogbookDrawer offset={hasWorkers} /></div>
         {hasWorkers && <WorkerDrawer className="lg:hidden" />}
       </div>
     </div>

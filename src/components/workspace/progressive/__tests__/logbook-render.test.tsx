@@ -20,9 +20,13 @@ const emptyState = (): VoyageCheckpointState => ({
   workers: [], worker_deploy_phase: 'none', mix: null, dm_feedback: null,
   final_deliverable: null, final_mix: null, user_notes: null, decision_maker: null, lead_synthesis: null,
 });
+const c2State = (): VoyageCheckpointState => ({
+  ...emptyState(),
+  snapshots: [{ version: 1, real_question: '이탈의 진짜 원인은?', hidden_assumptions: ['이탈은 가격 때문이다', '챗봇이 이탈을 막는다'], skeleton: [] }],
+});
 const checkpoints: VoyageCheckpoint[] = [
   { id: 'c1', parent_id: null, stage: 'origin', label: 'o', created_at: '2026-01-01T00:00:01.000Z', state_snapshot: emptyState() },
-  { id: 'c2', parent_id: 'c1', stage: 'briefing', label: 'b', created_at: '2026-01-01T00:00:02.000Z', state_snapshot: emptyState() },
+  { id: 'c2', parent_id: 'c1', stage: 'briefing', label: 'b', created_at: '2026-01-01T00:00:02.000Z', state_snapshot: c2State() },
 ];
 const branches: VoyageBranch[] = [
   { id: 'b-main', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'x' },
@@ -57,7 +61,7 @@ vi.mock('@/stores/useProgressiveStore', () => ({
 vi.mock('@/hooks/useLocale', () => ({ useLocale: () => 'ko' }));
 vi.mock('@/components/workspace/progressive/VoyageChart', () => ({ VoyageChart: () => null }));
 
-import { Logbook } from '@/components/workspace/progressive/Logbook';
+import { Logbook, LogbookDrawer } from '@/components/workspace/progressive/Logbook';
 
 describe('Logbook render', () => {
   const html = renderToStaticMarkup(createElement(Logbook));
@@ -91,5 +95,18 @@ describe('Logbook render', () => {
   it('renders the handed trigger on the open waypoint', () => {
     expect(html).toContain('계기');
     expect(html).toContain('CFO');
+  });
+
+  it('renders the drill-down assumptions for the checkpoint of the open waypoint', () => {
+    expect(html).toContain('이 시점의 가정');
+    expect(html).toContain('챗봇이 이탈을 막는다');
+  });
+});
+
+describe('LogbookDrawer (mobile)', () => {
+  it('renders a collapsed bar with the waypoint count', () => {
+    const html = renderToStaticMarkup(createElement(LogbookDrawer, { offset: false }));
+    expect(html).toContain('항해일지');
+    expect(html).toContain('>2<'); // waypoint count badge
   });
 });

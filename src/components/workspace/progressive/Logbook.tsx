@@ -18,7 +18,8 @@
 
 import { useMemo, useState } from 'react';
 import {
-  Sailboat, Milestone, AlertTriangle, Eye, Wind, Anchor, ChevronDown, Map as MapIcon, Flag, GitBranch,
+  Sailboat, Milestone, AlertTriangle, Eye, Wind, Anchor, ChevronDown, ChevronUp,
+  Map as MapIcon, Flag, GitBranch, Compass, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -52,8 +53,9 @@ export function Logbook() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [chartOpen, setChartOpen] = useState(false);
 
-  const { waypoints, branches, activeBranch, parentOf } = useMemo(() => {
-    if (!session) return { waypoints: [], branches: [], activeBranch: null, parentOf: new Map<string, string | null>() };
+  const { waypoints, branches, activeBranch, parentOf, assumptionsByCp } = useMemo(() => {
+    const empty = { waypoints: [], branches: [], activeBranch: null, parentOf: new Map<string, string | null>(), assumptionsByCp: new Map<string, string[]>() };
+    if (!session) return empty;
     const branches = session.branches || [];
     const active = branches.find(b => b.id === session.active_branch_id) ?? null;
     const headId = active?.head_checkpoint_id ?? session.active_checkpoint_id ?? null;
@@ -64,20 +66,30 @@ export function Logbook() {
       .filter(w => order.has(w.checkpoint_id))
       .sort((a, b) => (order.get(a.checkpoint_id)! - order.get(b.checkpoint_id)!));
     const parentOf = new Map(checkpoints.map(c => [c.id, c.parent_id]));
-    return { waypoints: list, branches, activeBranch: active, parentOf };
+    // Drill-down material: the hidden assumptions captured at each checkpoint.
+    const assumptionsByCp = new Map(
+      checkpoints.map(c => [c.id, c.state_snapshot.snapshots.slice(-1)[0]?.hidden_assumptions || []]),
+    );
+    return { waypoints: list, branches, activeBranch: active, parentOf, assumptionsByCp };
   }, [session]);
 
   const lastId = waypoints[waypoints.length - 1]?.id ?? null;
   const openEntry = openId !== null ? openId : lastId;
   const toggle = (id: string) => setOpenId(openEntry === id ? '' : id);
 
-  const busy = session ? WORKING_PHASES.includes(session.phase) : false;
+  // Hold branch mutations while the engine streams *or* workers are in flight —
+  // switching/forking out from under either would strand the running work.
+  const phaseBusy = session ? WORKING_PHASES.includes(session.phase) : false;
+  const workersBusy = !!session
+    && session.worker_deploy_phase === 'deployed'
+    && (session.workers || []).some(w => w.status === 'running' || w.status === 'ai_preparing' || w.status === 'pending');
+  const locked = phaseBusy || workersBusy;
   const multiBranch = branches.length > 1;
 
   // "Take the road not taken" — fork from the checkpoint *before* the turn so
   // the user re-decides at that fork. Falls back to the turn checkpoint itself.
   const takeRoad = (waypointCheckpointId: string, label: string) => {
-    if (busy) return;
+    if (locked) return;
     const forkPoint = parentOf.get(waypointCheckpointId) ?? waypointCheckpointId;
     forkBranch(forkPoint, label);
     setChartOpen(false);
@@ -109,14 +121,14 @@ export function Logbook() {
               return (
                 <button
                   key={b.id}
-                  onClick={() => !isActive && !busy && switchBranch(b.id)}
-                  disabled={busy && !isActive}
+                  onClick={() => !isActive && !locked && switchBranch(b.id)}
+                  disabled={locked && !isActive}
                   title={b.name}
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10.5px] font-medium max-w-[120px] transition-all cursor-pointer ${
                     isActive
                       ? 'text-white shadow-[var(--shadow-xs)]'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg)] border border-[var(--border-subtle)]'
-                  } ${busy && !isActive ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  } ${locked && !isActive ? 'opacity-40 cursor-not-allowed' : ''}`}
                   style={isActive ? { background: b.color } : undefined}
                 >
                   {b.status === 'anchored' ? <Flag size={9} className="shrink-0" /> : <GitBranch size={9} className="shrink-0" />}
@@ -127,9 +139,9 @@ export function Logbook() {
           </div>
           {activeBranch && activeBranch.status !== 'anchored' && (
             <button
-              onClick={() => !busy && anchorBranch(activeBranch.id)}
-              disabled={busy}
-              className={`inline-flex items-center gap-1 text-[10.5px] font-medium text-[var(--accent)] hover:underline cursor-pointer ${busy ? 'opacity-40 cursor-not-allowed' : ''}`}
+              onClick={() => !locked && anchorBranch(activeBranch.id)}
+              disabled={locked}
+              className={`inline-flex items-center gap-1 text-[10.5px] font-medium text-[var(--accent)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
               <Anchor size={10} /> {L('이 항로로 확정', 'Anchor this course')}
             </button>
@@ -146,6 +158,7 @@ export function Logbook() {
           const isLast = i === waypoints.length - 1;
           const emphasize = w.type === 'course_change';
           const notTaken = (w.alternatives || []).filter(a => !a.taken);
+          const assumptions = assumptionsByCp.get(w.checkpoint_id) || [];
 
           return (
             <li key={w.id} className="relative pl-7 pb-3 last:pb-0">
@@ -211,13 +224,29 @@ export function Logbook() {
                       </div>
                       <button
                         onClick={() => takeRoad(w.checkpoint_id, alt.label)}
-                        disabled={busy}
-                        className={`mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent)] hover:underline cursor-pointer ${busy ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        disabled={locked}
+                        className={`mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
                         <GitBranch size={9} /> {L('이 길 가보기', 'Sail this path')}
                       </button>
                     </div>
                   ))}
+                  {/* Drill-down — the hidden assumptions in play at this turn. */}
+                  {assumptions.length > 0 && (
+                    <details className="group/d">
+                      <summary className="text-[10px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--accent)] list-none flex items-center gap-1">
+                        <ChevronDown size={9} className="transition-transform group-open/d:rotate-180" />
+                        {L(`이 시점의 가정 ${assumptions.length}`, `${assumptions.length} assumptions in play`)}
+                      </summary>
+                      <ul className="mt-1 space-y-0.5 pl-2">
+                        {assumptions.map((a, k) => (
+                          <li key={k} className="text-[10px] leading-[1.45] text-[var(--text-tertiary)] flex gap-1">
+                            <span className="opacity-50 shrink-0">·</span><span>{a}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </div>
               )}
             </li>
@@ -230,5 +259,57 @@ export function Logbook() {
         <VoyageChart />
       </Modal>
     </aside>
+  );
+}
+
+/**
+ * LogbookDrawer — mobile access to the ship's log. A collapsed bottom bar that
+ * expands into a bottom sheet wrapping the same <Logbook/>. Sits above the
+ * worker drawer (when present) so the two don't collide. Wrap the caller in
+ * `lg:hidden`; the desktop rail uses <Logbook/> directly.
+ */
+export function LogbookDrawer({ offset }: { offset?: boolean }) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [open, setOpen] = useState(false);
+  const count = useProgressiveStore(s => {
+    const sess = s.sessions.find(ss => ss.id === s.currentSessionId);
+    return sess?.waypoints?.length ?? 0;
+  });
+  if (count === 0) return null;
+
+  return (
+    <>
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className={`fixed inset-x-0 z-40 flex items-center justify-between px-4 py-3 bg-[var(--surface)] border-t border-[var(--border-subtle)] min-h-[52px] cursor-pointer ${offset ? 'bottom-[56px]' : 'bottom-0'}`}
+        >
+          <span className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
+            <Compass size={15} className="text-[var(--accent)]" />
+            {L('항해일지', "Ship's log")}
+            <span className="text-[11px] font-normal text-[var(--text-tertiary)] tabular-nums">{count}</span>
+          </span>
+          <ChevronUp size={16} className="text-[var(--text-tertiary)]" />
+        </button>
+      )}
+      {open && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setOpen(false)} aria-hidden />
+          <div className="fixed bottom-0 inset-x-0 z-50 max-h-[82vh] rounded-t-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-y-auto">
+            <div className="sticky top-0 z-10 flex items-center justify-end px-2 py-1.5 bg-[var(--surface)] border-b border-[var(--border-subtle)]">
+              <button
+                onClick={() => setOpen(false)}
+                aria-label={L('닫기', 'Close')}
+                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-tertiary)] cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <Logbook />
+          </div>
+        </>
+      )}
+    </>
   );
 }
