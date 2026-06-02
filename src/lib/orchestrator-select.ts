@@ -41,6 +41,9 @@ export interface SelectionTrace {
   taskClassification: TaskClassification;
   selectedAgent: string;
   scores: Array<{ agentId: string; baseScore: number; experienceBoost: number; total: number }>;
+  /** True when the agent was force-added (e.g. the critical-stakes Critic),
+   *  not chosen by capability score — drives a distinct rationale string. */
+  forced?: boolean;
 }
 
 /* ─── Layer 3: Experience Adjustment ─── */
@@ -105,6 +108,10 @@ export function selectAgents(
   unlockedAgents: Agent[],
   observations: AgentObservation[],
   problemText?: string,
+  /** Optional sink for selection traces (why-this-agent + score breakdown).
+   *  When provided, filled with one trace per assigned step. Leaving it out
+   *  preserves the original signature — callers/tests are unaffected. */
+  outTraces?: SelectionTrace[],
 ): Map<number, Agent> {
   const result = new Map<number, Agent>();
   const usedAgentIds = new Set<string>();
@@ -202,16 +209,34 @@ export function selectAgents(
       }
     }
 
-    if (bestCritiqueStep >= 0) {
-      result.set(bestCritiqueStep, criticAgent);
-    } else {
-      // 빈 step 없으면 마지막 step에 배정
-      const lastStep = steps.length - 1;
-      if (lastStep >= 0) {
-        result.set(lastStep, criticAgent);
+    // Either an empty critique-affine step, or fall back to the last step
+    // (overwriting whatever was there — the Critic guarantee wins on critical
+    // stakes).
+    const targetStep = bestCritiqueStep >= 0 ? bestCritiqueStep : steps.length - 1;
+    if (targetStep >= 0) {
+      result.set(targetStep, criticAgent);
+      usedAgentIds.add(criticAgent.id);
+      // Record the rationale so the why-this-agent line shows for the Critic —
+      // and REPLACE any stale trace if we overwrote an already-assigned step
+      // (otherwise the line would describe the agent we just displaced).
+      const tc = taskClassifications[targetStep];
+      if (tc) {
+        const criticTrace: SelectionTrace = {
+          stepIndex: targetStep,
+          taskClassification: tc,
+          selectedAgent: criticAgent.id,
+          scores: [{ agentId: criticAgent.id, baseScore: 0, experienceBoost: 0, total: 0 }],
+          forced: true,
+        };
+        const existing = traces.findIndex(t => t.stepIndex === targetStep);
+        if (existing >= 0) traces[existing] = criticTrace;
+        else traces.push(criticTrace);
       }
     }
   }
+
+  // Surface the why-this-agent traces (computed above, previously discarded).
+  if (outTraces) outTraces.push(...traces);
 
   return result;
 }

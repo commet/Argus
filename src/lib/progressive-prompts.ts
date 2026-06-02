@@ -147,7 +147,8 @@ export function buildDeepeningPrompt(
   // Conductor: provide unlocked agent list for team composition awareness
   const teamBlock = (round >= 1 && availableAgents && availableAgents.length > 0)
     ? `\nAvailable team members:\n${availableAgents.map(a => `- ${a.name}(${a.role}): ${a.specialty}`).join('\n')}
-Design each step's task to match team members' expertise. Research for researchers, number crunching for number specialists.`
+Design each step's task to match team members' expertise. Research for researchers, number crunching for number specialists.
+CRITICAL: Never write a team member's name INSIDE task/ai_scope/self_scope text. The actual assignment is decided separately, so a name in the prose will mismatch the assigned member. Describe the ACTION only ("글로벌 소싱 전문가들의 LinkedIn 프로필을 조사하고 정리", NOT "하윤이 ...를 조사"). Put the suggested member's name ONLY in agent_hint.`
     : '';
 
   return {
@@ -176,8 +177,8 @@ Your job each round:
    Use natural sequence connectors (${locale === 'ko' ? '먼저, 그다음, 그리고 등 — vary naturally' : 'First, Then, Next, etc. — vary naturally'}).
 ${round >= 1 ? `5. Build execution_plan — assign tasks to your team. 3-5 steps max. For each step:
    - agent_type: "ai" (AI executes: research, analysis, drafting) | "self" (user decides: strategy, budget, priorities) | "human" (ask someone else: tech validation, customer feedback, internal approval)
-   - ai_scope: what AI does (required for ai/self types; for human, AI prepares the question + context)
-   - self_scope: what the user judges/validates (required for ai/self types; empty for human)
+   - ai_scope: what AI does — describe the ACTION, never name a person (required for ai/self types; for human, AI prepares the question + context)
+   - self_scope: what the user judges/validates — action only, no person names (required for ai/self types; empty for human)
    - decision: if self_scope involves a choice, write "질문: Option A vs Option B vs Option C" so UI renders selectable chips. Empty string if no explicit choice.
    - For "human" steps: add question_to_human (the question to send) and human_contact_hint (role like "CTO" or "고객")
    Rule: EVERY "ai" step must have self_scope — explain what the user should review about the AI result.

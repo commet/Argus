@@ -19,7 +19,7 @@
 import { useMemo, useState } from 'react';
 import {
   Sailboat, Milestone, AlertTriangle, Eye, Wind, Anchor, ChevronDown, ChevronUp,
-  Map as MapIcon, Flag, GitBranch, Compass, X,
+  Map as MapIcon, Flag, GitBranch, Compass, X, Hand,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -35,6 +35,7 @@ const WP_META: Record<WaypointType, { Icon: LucideIcon; color: string; ko: strin
   reef:          { Icon: AlertTriangle, color: '#b4541e',               ko: '암초',      en: 'Reef' },
   sighting:      { Icon: Eye,           color: '#2d6b8a',               ko: '관측',      en: 'Sighting' },
   headwind:      { Icon: Wind,          color: '#6b4c9a',               ko: '역풍',      en: 'Headwind' },
+  helm:          { Icon: Hand,          color: '#8a6d2d',               ko: '선장의 키',  en: 'Helm' },
   anchorage:     { Icon: Anchor,        color: '#2d6b2d',               ko: '정박',      en: 'Anchorage' },
 };
 
@@ -65,7 +66,7 @@ export function Logbook() {
     const parentOf = new Map(checkpoints.map(c => [c.id, c.parent_id]));
     // Drill-down material: the hidden assumptions captured at each checkpoint.
     const assumptionsByCp = new Map(
-      checkpoints.map(c => [c.id, c.state_snapshot.snapshots.slice(-1)[0]?.hidden_assumptions || []]),
+      checkpoints.map(c => [c.id, c.state_snapshot?.snapshots?.slice(-1)?.[0]?.hidden_assumptions || []]),
     );
     return { waypoints: list, branches, activeBranch: active, parentOf, assumptionsByCp };
   }, [session]);
@@ -218,20 +219,20 @@ export function Logbook() {
                     <p className="text-[11px] leading-[1.5] text-[var(--text-secondary)]">{w.significance}</p>
                   )}
                   {w.trigger && (
-                    <p className="text-[10.5px] leading-[1.5] text-[var(--text-tertiary)]">
+                    <p className="text-[11px] leading-[1.5] text-[var(--text-secondary)]">
                       <span className="font-semibold">{L('계기', 'Trigger')}:</span> {w.trigger}
                     </p>
                   )}
                   {notTaken.map((alt, j) => (
                     <div
                       key={j}
-                      className="text-[10.5px] leading-[1.45] text-[var(--text-tertiary)] pl-2 border-l border-dashed"
-                      style={{ borderColor: 'var(--text-tertiary)' }}
+                      className="text-[11px] leading-[1.5] text-[var(--text-secondary)] pl-2 border-l border-dashed"
+                      style={{ borderColor: 'var(--border)' }}
                     >
                       <div>
-                        <span className="opacity-70">↘ {L('가지 않은 길', 'Road not taken')}:</span>{' '}
+                        <span className="font-medium text-[var(--text-tertiary)]">↘ {L('가지 않은 길', 'Road not taken')}:</span>{' '}
                         <span className="italic">{alt.label}</span>
-                        {alt.why_abandoned && <span className="opacity-70"> — {alt.why_abandoned}</span>}
+                        {alt.why_abandoned && <span className="text-[var(--text-tertiary)]"> — {alt.why_abandoned}</span>}
                       </div>
                       <button
                         onClick={() => takeRoad(w.checkpoint_id, alt.label)}
@@ -251,8 +252,8 @@ export function Logbook() {
                       </summary>
                       <ul className="mt-1 space-y-0.5 pl-2">
                         {assumptions.map((a, k) => (
-                          <li key={k} className="text-[10px] leading-[1.45] text-[var(--text-tertiary)] flex gap-1">
-                            <span className="opacity-50 shrink-0">·</span><span>{a}</span>
+                          <li key={k} className="text-[10.5px] leading-[1.5] text-[var(--text-secondary)] flex gap-1">
+                            <span className="text-[var(--text-tertiary)] shrink-0">·</span><span>{a}</span>
                           </li>
                         ))}
                       </ul>

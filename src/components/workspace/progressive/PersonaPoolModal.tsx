@@ -41,17 +41,37 @@ export interface PoolModalGroupInfo {
   personaIds: string[];
 }
 
+/** Info for mode='replace' — swap one worker's persona for another. */
+export interface PoolModalReplaceInfo {
+  task: string;
+  aiScope?: string | null;
+  expectedOutput?: string | null;
+  /** The persona currently in this worker — shown as "현재 담당", not pickable. */
+  currentPersonaId?: string;
+  /** Personas held by OTHER members of the same task group — shown as
+   *  "이미 추가됨" so a swap can't create a duplicate within the group. */
+  siblingPersonaIds?: string[];
+}
+
+// Sentinel matchedGroupId for replace-mode picks (no group is targeted —
+// the parent closes over the worker id and calls replaceWorkerPersona).
+const REPLACE_SENTINEL = '__replace__';
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  mode: 'task' | 'free';
+  mode: 'task' | 'free' | 'replace';
   /** Required for mode='task'. Identifies which group the modal targets. */
   targetGroupId?: string;
+  /** Required for mode='replace'. The worker being swapped. */
+  replaceInfo?: PoolModalReplaceInfo;
   /** All current task groups (used for matching in free-mode and as the
    *  source of truth for the target group's task text in task-mode). */
   groups: PoolModalGroupInfo[];
   /** Maximum personas allowed per group. */
   maxPerGroup: number;
+  /** In task/free mode, matchedGroupId is the group the persona lands in.
+   *  In replace mode it is REPLACE_SENTINEL — the parent ignores it. */
   onSelect: (persona: WorkerPersona, matchedGroupId: string) => void;
 }
 
@@ -96,9 +116,31 @@ function computePlacements(
   sources: PersonaSource[],
   groups: PoolModalGroupInfo[],
   maxPerGroup: number,
-  mode: 'task' | 'free',
+  mode: 'task' | 'free' | 'replace',
   targetGroupId: string | undefined,
+  replaceInfo: PoolModalReplaceInfo | undefined,
 ): PersonaPlacement[] {
+  if (mode === 'replace') {
+    if (!replaceInfo) return [];
+    // Pickable = anyone except the current persona or a persona already held
+    // by another member of the same group (would duplicate). No room logic —
+    // we're swapping a single slot, not adding to a group.
+    const siblings = new Set(replaceInfo.siblingPersonaIds || []);
+    return sources.map(s => {
+      const isCurrent = !!replaceInfo.currentPersonaId && s.persona.id === replaceInfo.currentPersonaId;
+      const isSibling = siblings.has(s.persona.id);
+      const blocked = isCurrent || isSibling;
+      const score = scorePersonaForTask(s.persona, replaceInfo.task, `${replaceInfo.aiScope || ''} ${replaceInfo.expectedOutput || ''}`);
+      return {
+        persona: s.persona,
+        agent: s.agent,
+        matchedGroupId: blocked ? null : REPLACE_SENTINEL,
+        matchedTask: replaceInfo.task,
+        reason: blocked ? 'already-in' : 'addable',
+        score,
+      };
+    });
+  }
   if (mode === 'task') {
     const target = groups.find(g => g.groupId === targetGroupId);
     if (!target) return [];
@@ -155,7 +197,7 @@ function computePlacements(
 }
 
 export function PersonaPoolModal({
-  isOpen, onClose, mode, targetGroupId, groups, maxPerGroup, onSelect,
+  isOpen, onClose, mode, targetGroupId, replaceInfo, groups, maxPerGroup, onSelect,
 }: Props) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
@@ -201,8 +243,8 @@ export function PersonaPoolModal({
   }, [locale, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const placements = useMemo(
-    () => computePlacements(personaSources, groups, maxPerGroup, mode, targetGroupId),
-    [personaSources, groups, maxPerGroup, mode, targetGroupId],
+    () => computePlacements(personaSources, groups, maxPerGroup, mode, targetGroupId, replaceInfo),
+    [personaSources, groups, maxPerGroup, mode, targetGroupId, replaceInfo],
   );
 
   // Detect global "no room anywhere" so we can show a top-of-modal banner
@@ -256,7 +298,10 @@ export function PersonaPoolModal({
   const renderCard = (p: PersonaPlacement) => {
     const disabled = p.reason !== 'addable';
     const reasonLabel =
-      p.reason === 'already-in' ? L('이미 추가됨', 'Already in')
+      p.reason === 'already-in'
+        ? (mode === 'replace' && replaceInfo?.currentPersonaId === p.persona.id
+            ? L('현재 담당', 'Current')
+            : L('이미 추가됨', 'Already in'))
       : p.reason === 'all-full' ? L('빈 자리 없음', 'No room')
       : null;
     // Pull live growth stats only when this persona is a real Agent.
@@ -332,13 +377,19 @@ export function PersonaPoolModal({
   // Header content varies by mode
   const headerEyebrow = mode === 'task'
     ? L('이 task에 추가할 팀원', 'Add to this task')
-    : L('새 팀원 추가', 'Add a team member');
+    : mode === 'replace'
+      ? L('이 팀원과 교체', 'Replace this member')
+      : L('새 팀원 추가', 'Add a team member');
   const headerTitle = mode === 'task'
     ? (targetGroup?.task || L('task', 'task'))
-    : L('어떤 분을 모실지 골라주세요. 어울리는 task에 자동으로 배정됩니다.', "Pick someone — we'll match them to the most fitting task automatically.");
+    : mode === 'replace'
+      ? (replaceInfo?.task || L('task', 'task'))
+      : L('어떤 분을 모실지 골라주세요. 어울리는 task에 자동으로 배정됩니다.', "Pick someone — we'll match them to the most fitting task automatically.");
   const headerSub = mode === 'task'
     ? targetGroup?.aiScope || null
-    : null;
+    : mode === 'replace'
+      ? replaceInfo?.aiScope || null
+      : null;
 
   return (
     <AnimatePresence>
@@ -358,7 +409,7 @@ export function PersonaPoolModal({
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label={mode === 'task' ? L('팀원 추가', 'Add a team member') : L('새 팀원 추가', 'Add a team member')}
+            aria-label={mode === 'replace' ? L('팀원 교체', 'Replace member') : L('팀원 추가', 'Add a team member')}
             initial={{ opacity: 0, y: 24, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
@@ -439,7 +490,7 @@ export function PersonaPoolModal({
                         <div className="flex items-center gap-1.5 px-2 mb-2">
                           <Sparkles size={11} className="text-[var(--accent)]" />
                           <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
-                            {mode === 'task'
+                            {mode === 'task' || mode === 'replace'
                               ? L('이 task에 잘 맞는 팀원', 'Recommended for this task')
                               : L('지금 팀에 잘 어울릴 팀원', 'Recommended for your team')}
                           </span>

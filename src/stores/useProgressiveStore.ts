@@ -6,6 +6,7 @@ import { track } from '@/lib/analytics';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { agentToWorkerPersona } from '@/lib/agent-adapters';
 import { XP_REWARDS } from '@/stores/agent-types';
+import type { Agent } from '@/stores/agent-types';
 import { numericLevelToAgentLevel } from '@/lib/agent-skills';
 import { onTaskApproved, onTaskRejected } from '@/lib/observation-engine';
 import { planWorkers } from '@/lib/orchestrator';
@@ -217,6 +218,14 @@ interface ProgressiveState {
   approveWorker: (workerId: string) => void;
   rejectWorker: (workerId: string) => void;
   allWorkersDone: () => boolean;
+  /** Workers that finished with a result but the captain hasn't decided on yet
+   *  (approved === null). These would otherwise flow into the final draft
+   *  unverified — the verification gate surfaces them before mixing. */
+  unreviewedWorkers: () => WorkerTask[];
+  /** Accept all still-unreviewed workers in one go (approved = true). Used by
+   *  the gate's explicit "proceed without checking" override so the final
+   *  state honestly records that the captain accepted them. */
+  approveAllPending: () => void;
   /** Manual team assignment — clone a peer in the same task group, replacing
    *  the persona only. Returns the new worker id (or null if validation
    *  fails: group not found, max-5 reached, or persona already in group). */
@@ -230,6 +239,12 @@ interface ProgressiveState {
    *  task_group_id receive the same updated task string. Empty/whitespace-only
    *  input is ignored. */
   updateGroupTask: (taskGroupId: string, newText: string) => void;
+  /** Switch an entire task group between tracks: 'ai' (an AI teammate),
+   *  'self' (the captain decides), or 'human' (ask a real person). Surfaces
+   *  the human-collaboration tracks that were previously fixed by the planner.
+   *  Only single-member groups can leave the AI track (one task → one person);
+   *  returns true when applied, false on no-op/guard. */
+  setGroupTrack: (taskGroupId: string, track: 'ai' | 'self' | 'human') => boolean;
 
   // ─── Voyage chart (decision checkpoints) ───
   /** Record a checkpoint at the current state. Called automatically at
@@ -866,14 +881,19 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const latestSnapshot = get().currentSession()?.snapshots?.slice(-1)[0];
     const snapshotVersion = latestSnapshot?.version ?? 0;
 
+    // Track every agent assigned across this plan so the fallback path doesn't
+    // hand the SAME agent to two workers (the old `new Set()` ignored prior
+    // picks → duplicate personas when there are more AI steps than agents).
+    const assignedAgentIds = new Set<string>();
     const workers: WorkerTask[] = planned.map((pw) => {
       const si = pw.stepIndex; // Use stepIndex, not loop index — buildStages may reorder workers
       // ai 타입만 에이전트 배정. self/human은 persona 없음
       const needsAgent = pw.agentType === 'ai';
       const agent = needsAgent && pw.agentId ? agentStore.getAgent(pw.agentId) : null;
       const fallbackAgent = needsAgent
-        ? (agent || agentStore.assignAgentToTask(steps[si].task, steps[si].output, new Set()))
+        ? (agent || agentStore.assignAgentToTask(steps[si].task, steps[si].output, assignedAgentIds))
         : null;
+      if (fallbackAgent) assignedAgentIds.add(fallbackAgent.id);
 
       // legacy who 역산: agent_type → who (하위호환)
       const who: 'ai' | 'human' | 'both' = pw.agentType === 'ai' && pw.selfScope ? 'both'
@@ -900,6 +920,10 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
         framework: pw.framework || undefined,
         stage_id: pw.stageId || undefined,
         task_type: pw.taskType || undefined,
+        // Why-this-agent rationale — only when the *planned* agent was used.
+        // If we fell back to assignAgentToTask, the trace describes a
+        // different pick, so we drop it rather than mislabel.
+        assignment_reason: agent ? pw.assignmentReason : undefined,
         stream_text: '',
         result: null,
         human_input: null,
@@ -1116,6 +1140,10 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       // so the "수정됨" cue still works correctly in the new worker's view.
       added_manually: true,
       original_task: seed.original_task ?? seed.task,
+      // Manual additions carry the "직접 추가" badge instead of an auto
+      // rationale — clear the seed's reason/marker so neither is inherited.
+      assignment_reason: undefined,
+      user_assigned: undefined,
       // Reset execution state so the new persona starts fresh.
       status: 'pending',
       stream_text: '',
@@ -1174,13 +1202,36 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
   replaceWorkerPersona: (workerId, persona) => {
     const { currentSessionId } = get();
     if (!currentSessionId) return;
+    // Dedup guard: swapping in a persona that another member of the same group
+    // already holds would create a duplicate. The modal disables these rows,
+    // but guard here too (defense in depth) — no-op rather than duplicate.
+    const session = get().currentSession();
+    const target = session?.workers.find(w => w.id === workerId);
+    if (target) {
+      const gid = target.task_group_id || target.id;
+      const dup = session!.workers.some(
+        w => w.id !== workerId && (w.task_group_id || w.id) === gid && w.persona?.id === persona.id,
+      );
+      if (dup) return;
+    }
+    // Preserve the XP/level wiring when the picked persona IS a real Agent
+    // (same fix as addWorkerToGroup). Previously this always cleared agent_id,
+    // silently severing the swapped-in worker from growth tracking.
+    const matchedAgent = useAgentStore.getState().getAgent(persona.id);
+    const ko = getCurrentLanguage() === 'ko';
     const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
       workers: s.workers.map(w => {
         if (w.id !== workerId) return w;
         return {
           ...w,
           persona,
-          agent_id: undefined,
+          agent_id: matchedAgent?.id,
+          level: matchedAgent ? numericLevelToAgentLevel(matchedAgent.level) : 'junior',
+          // User chose this member — replace the auto rationale with an
+          // explicit "직접 지정" note so the captain's-seat reads correctly,
+          // and flag it so the ship's-log 'helm' waypoint records the swap.
+          assignment_reason: ko ? '직접 지정한 팀원' : 'You chose this member',
+          user_assigned: true,
           // Reset execution state — new persona, fresh run.
           status: 'pending',
           stream_text: '',
@@ -1200,6 +1251,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     }));
     persist(sessions);
     set({ sessions });
+    track('worker_reassigned', { matched_agent: !!matchedAgent });
   },
 
   updateGroupTask: (taskGroupId, newText) => {
@@ -1209,11 +1261,90 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     if (!currentSessionId) return;
     const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
       workers: s.workers.map(w =>
-        (w.task_group_id || w.id) === taskGroupId ? { ...w, task: trimmed } : w,
+        // Editing the task invalidates the auto rationale (it described the
+        // old task's classification). Drop it rather than show a stale claim —
+        // the "수정됨" cue already signals the change.
+        (w.task_group_id || w.id) === taskGroupId ? { ...w, task: trimmed, assignment_reason: undefined } : w,
       ),
     }));
     persist(sessions);
     set({ sessions });
+  },
+
+  setGroupTrack: (taskGroupId, nextTrack) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return false;
+    const session = get().currentSession();
+    if (!session) return false;
+    const members = session.workers.filter(w => (w.task_group_id || w.id) === taskGroupId);
+    if (members.length === 0) return false;
+    const seed = members[0];
+    const current = seed.agent_type || (seed.who === 'both' ? 'ai' : seed.who === 'human' ? 'self' : 'ai');
+    if (current === nextTrack) return false;
+    // Leaving the AI track with multiple lenses would orphan the extras —
+    // one task can't go to several people. Block it; the UI explains.
+    if (current === 'ai' && nextTrack !== 'ai' && members.length > 1) return false;
+
+    // Only resolve a fresh agent when entering the AI track. Exclude agents
+    // already working other groups so we don't duplicate one across the crew.
+    let aiAgent: Agent | null = null;
+    if (nextTrack === 'ai') {
+      const usedIds = new Set(
+        session.workers
+          .filter(w => (w.task_group_id || w.id) !== taskGroupId && w.agent_id)
+          .map(w => w.agent_id as string),
+      );
+      aiAgent = useAgentStore.getState().assignAgentToTask(seed.task, seed.expected_output, usedIds);
+    }
+
+    const convert = (w: WorkerTask): WorkerTask => {
+      // Track change at the captain's seat = fresh start (nothing has run).
+      // Clear the scope/decision fields too: they were authored for the old
+      // track's framing. Critically, a leftover ai_scope would make
+      // deployWorkers() run an AI pre-pass ('ai_preparing') even after the
+      // captain chose to handle the task themselves — contradicting the choice.
+      // Each branch below sets only the fields its track needs.
+      const base: WorkerTask = {
+        ...w,
+        status: 'pending', stream_text: '', result: null, human_input: null,
+        error: null, approved: null, completion_note: null, started_at: null,
+        completed_at: null, ai_preliminary: null, assignment_reason: undefined,
+        user_assigned: undefined,
+        ai_scope: undefined, self_scope: undefined, decision: undefined,
+        validation_score: undefined, validation_feedback: undefined,
+        validation_passed: undefined, retry_count: undefined,
+      };
+      if (nextTrack === 'ai') {
+        return {
+          ...base, agent_type: 'ai', who: 'ai',
+          persona: aiAgent ? agentToWorkerPersona(aiAgent) : w.persona,
+          agent_id: aiAgent?.id,
+          level: aiAgent ? numericLevelToAgentLevel(aiAgent.level) : 'junior',
+          contact: undefined, question_to_human: undefined, sent_at: undefined, response_at: undefined,
+        };
+      }
+      if (nextTrack === 'self') {
+        return {
+          ...base, agent_type: 'self', who: 'human',
+          persona: null, agent_id: undefined, level: 'junior',
+          contact: undefined, question_to_human: undefined, sent_at: undefined, response_at: undefined,
+        };
+      }
+      // human — seed the question from the task; the row's contact input fills the rest.
+      return {
+        ...base, agent_type: 'human', who: 'human',
+        persona: null, agent_id: undefined, level: 'junior',
+        question_to_human: w.question_to_human || w.task,
+      };
+    };
+
+    const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
+      workers: s.workers.map(w => (w.task_group_id || w.id) === taskGroupId ? convert(w) : w),
+    }));
+    persist(sessions);
+    set({ sessions });
+    track('worker_track_changed', { from: current, to: nextTrack });
+    return true;
   },
 
   // ─── Voyage chart ───
@@ -1542,6 +1673,24 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       (w.agent_type === 'self' && w.status === 'waiting_input') ||  // self 입력 대기 (ai_scope 유무 무관)
       (w.agent_type === 'human' && w.status === 'waiting_input')    // human Phase 1 수동 입력 대기
     );
+  },
+
+  unreviewedWorkers: () => {
+    const session = get().currentSession();
+    if (!session) return [];
+    // Done with a real result, but the captain hasn't accepted or excluded it.
+    // (self/human submissions auto-set approved=true, so this is mostly AI work.)
+    return session.workers.filter(w => w.status === 'done' && !!w.result && w.approved == null);
+  },
+
+  approveAllPending: () => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    const pending = get().unreviewedWorkers();
+    if (pending.length === 0) return;
+    // Reuse approveWorker so XP/observation side-effects fire per worker,
+    // exactly as if the captain had clicked 반영 on each.
+    for (const w of pending) get().approveWorker(w.id);
   },
 
   /** @deprecated Use mixableWorkerResults instead */

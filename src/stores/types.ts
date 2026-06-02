@@ -804,6 +804,18 @@ export interface WorkerTask {
   stage_id?: string;                // 소속 스테이지 ID
   task_type?: string;               // task-classifier의 TaskType (context 전략 결정)
   depends_on?: string[];            // 의존하는 WorkerTask.id[] (선택적 peerResults 주입)
+  /**
+   * "왜 이 에이전트가 배치됐는지" 한 줄 — 라우터의 SelectionTrace에서 도출.
+   * ai 타입 자동 배정에만 존재. 사용자가 직접 교체하면 비워진다(직접 지정으로
+   * 표시). 출항 전 선원 배치(TeamDeployBanner)에서 소환 근거로 노출.
+   */
+  assignment_reason?: string;
+  /**
+   * True when the captain hand-picked this agent via swap (replaceWorkerPersona)
+   * rather than accepting the auto-cast. Locale-independent marker that lets the
+   * ship's-log 'helm' waypoint record the captain's hand on the crew.
+   */
+  user_assigned?: boolean;
 
   // Quality gate (Weakness E fix)
   validation_score?: number;        // 0-100: 결과물 품질
@@ -963,6 +975,7 @@ export type WaypointType =
   | 'reef'          // ⚠ 암초 — a hidden assumption surfaced (confirmed or killed)
   | 'sighting'      // 👁 관측 — a worker/finding surfaced material intelligence
   | 'headwind'      // 🜨 역풍 — a stakeholder concern / risk forced an adjustment
+  | 'helm'          // 🖐 선장의 키 — the captain took the helm (hand-built crew / human-handled work)
   | 'anchorage';    // ⚑ 정박 — convergence / final commitment
 
 /**

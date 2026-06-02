@@ -49,21 +49,28 @@ export function assessConvergence(snapshots: AnalysisSnapshot[]): ConvergenceMet
   }
 
   // ── 1. 질문 안정성 (0-40점) ──
+  // 질문이 라운드마다 더 구체화되는 건 설계상 의도된 GOOD 신호다(프롬프트가
+  // 매 라운드 "NOTICEABLY more specific" 하라고 지시한다). 그래서 "바뀔 때마다
+  // 누적 감점"하던 옛 방식은 답을 더 할수록 명확도가 단조 하락하는 비상식적
+  // 결과를 낳았다. 대신 "최근으로 올수록 변화가 잦아드는가"를 본다 — 최근
+  // 전환일수록 가중치를 크게 둔 유사도 평균. 질문이 안정돼 갈수록 점수가
+  // 오르고, 초기 탐색기의 큰 변화는 점수를 영구히 끌어내리지 않는다.
   const questions = snapshots.map(s => s.real_question);
   let stabilityScore = 40;
   let lastSimilarity = 1;
-  for (let i = 1; i < questions.length; i++) {
-    const similarity = wordOverlap(questions[i - 1], questions[i]);
-    if (similarity < 0.5) {
-      // 질문이 크게 바뀜 → 아직 수렴 안 됨
-      stabilityScore -= 15;
-    } else if (similarity < 0.75) {
-      // 약간 바뀜 → 조정 중
-      stabilityScore -= 5;
+  if (questions.length >= 2) {
+    let weightedSim = 0;
+    let weightSum = 0;
+    for (let i = 1; i < questions.length; i++) {
+      const similarity = wordOverlap(questions[i - 1], questions[i]);
+      const weight = i; // 최근 전환일수록 더 무겁게 (1, 2, 3, …)
+      weightedSim += similarity * weight;
+      weightSum += weight;
+      lastSimilarity = similarity;
     }
-    lastSimilarity = similarity;
+    const avgSimilarity = weightSum > 0 ? weightedSim / weightSum : 1;
+    stabilityScore = Math.max(0, Math.round(40 * avgSimilarity));
   }
-  stabilityScore = Math.max(0, stabilityScore);
 
   // ── 2. 가정 감소 추세 (0-30점) ──
   const assumptionCounts = snapshots.map(s => s.hidden_assumptions.length);
