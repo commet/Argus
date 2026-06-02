@@ -283,6 +283,43 @@ describe('Voyage branch layer', () => {
     });
   });
 
+  describe('deleteBranch', () => {
+    it('removes a non-active branch, pruning its exclusive checkpoints but keeping shared ancestry', () => {
+      const sid = startSession();
+      const c1 = api().recordCheckpoint('origin')!;
+      const c2 = api().recordCheckpoint('briefing')!;     // main head
+      const mainId = session(sid).active_branch_id!;
+      api().forkBranch(c1.id);                              // active = fork (head c1)
+      const c3 = api().recordCheckpoint('briefing')!;       // fork sails → head c3 (parent c1)
+      const forkId = session(sid).active_branch_id!;
+      api().switchBranch(mainId);                           // leave the fork
+
+      api().deleteBranch(forkId);
+      const s = session(sid);
+      expect(s.branches).toHaveLength(1);
+      expect(s.branches![0].id).toBe(mainId);
+      expect(s.checkpoints!.find(c => c.id === c3.id)).toBeUndefined(); // exclusive → pruned
+      expect(s.checkpoints!.find(c => c.id === c1.id)).toBeDefined();   // shared → kept
+      expect(s.checkpoints!.find(c => c.id === c2.id)).toBeDefined();   // main's own → kept
+    });
+
+    it('refuses to delete the active branch or the last remaining branch', () => {
+      const sid = startSession();
+      const c1 = api().recordCheckpoint('origin')!;
+      api().forkBranch(c1.id);
+      const activeId = session(sid).active_branch_id!;
+      api().deleteBranch(activeId);                         // active → no-op
+      expect(session(sid).branches!.some(b => b.id === activeId)).toBe(true);
+
+      // collapse to a single branch, then try to delete it
+      const other = session(sid).branches!.find(b => b.id !== activeId)!.id;
+      api().deleteBranch(other);
+      expect(session(sid).branches).toHaveLength(1);
+      api().deleteBranch(session(sid).branches![0].id);     // last → no-op
+      expect(session(sid).branches).toHaveLength(1);
+    });
+  });
+
   describe('navigateToCheckpoint (chart node resolution)', () => {
     it('switches to the branch that owns a checkpoint off the active course', () => {
       const sid = startSession();

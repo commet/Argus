@@ -129,9 +129,24 @@ describe('deriveWaypoint — Chronicler salience gate', () => {
     expect(wp).toBeNull();
   });
 
-  it('process stages (crew_set, crew_done, mix) → suppressed', () => {
-    for (const stage of ['crew_set', 'crew_done', 'mix'] as VoyageStage[]) {
+  it('pure process stages (crew_set, mix) → suppressed', () => {
+    for (const stage of ['crew_set', 'mix'] as VoyageStage[]) {
       expect(deriveWaypoint({ newCheckpoint: cp(stage, baseState({})), prevState: baseState({}), problemText: 'x' })).toBeNull();
     }
+  });
+
+  it('crew_done with reported worker results → sighting', () => {
+    const workers = [
+      { status: 'done', result: '시장 데이터', task: '시장 조사' },
+      { status: 'done', result: '리뷰 분석', task: '고객 리뷰' },
+      { status: 'pending', result: '', task: '미완' },
+    ] as unknown as VoyageCheckpointState['workers'];
+    const wp = deriveWaypoint({ newCheckpoint: cp('crew_done', baseState({ workers })), prevState: baseState({}), problemText: 'x' });
+    expect(wp?.type).toBe('sighting');
+    expect(wp?.headline).toContain('2'); // only the two with results count
+  });
+
+  it('crew_done with no results → suppressed', () => {
+    expect(deriveWaypoint({ newCheckpoint: cp('crew_done', baseState({})), prevState: baseState({}), problemText: 'x' })).toBeNull();
   });
 });

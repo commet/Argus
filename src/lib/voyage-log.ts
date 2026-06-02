@@ -136,6 +136,18 @@ export function deriveWaypoint(args: DeriveWaypointArgs): Waypoint | null {
       return null;
     }
 
+    case 'crew_done': {
+      // sighting: the team returned with material intelligence. Fills the
+      // execution beat between a course change and the anchorage (otherwise the
+      // log would jump straight from the turn to arrival).
+      const reported = state.workers.filter(w => w.status === 'done' && w.result);
+      if (reported.length === 0) return null;
+      const head = ko
+        ? `팀이 ${reported.length}개 영역을 조사해 보고했다`
+        : `The team reported on ${reported.length} area${reported.length > 1 ? 's' : ''}`;
+      return make('sighting', head);
+    }
+
     case 'review': {
       // headwind: a high-severity stakeholder concern that forces a rethink.
       // Conservative — only 'critical' qualifies, so routine reviews stay quiet.
@@ -150,8 +162,7 @@ export function deriveWaypoint(args: DeriveWaypointArgs): Waypoint | null {
       return null;
     }
 
-    // crew_set, crew_done, mix → process steps, not turns. sighting is deferred
-    // to the Phase 5 LLM pass (it cannot be detected reliably without judgment).
+    // crew_set, mix → process steps, not turns (no waypoint).
     default:
       return null;
   }

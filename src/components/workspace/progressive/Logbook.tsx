@@ -49,6 +49,7 @@ export function Logbook() {
   const switchBranch = useProgressiveStore(s => s.switchBranch);
   const anchorBranch = useProgressiveStore(s => s.anchorBranch);
   const forkBranch = useProgressiveStore(s => s.forkBranch);
+  const deleteBranch = useProgressiveStore(s => s.deleteBranch);
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [chartOpen, setChartOpen] = useState(false);
@@ -119,21 +120,35 @@ export function Logbook() {
             {branches.map(b => {
               const isActive = b.id === activeBranch?.id;
               return (
-                <button
+                <span
                   key={b.id}
-                  onClick={() => !isActive && !locked && switchBranch(b.id)}
-                  disabled={locked && !isActive}
-                  title={b.name}
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10.5px] font-medium max-w-[120px] transition-all cursor-pointer ${
+                  className={`inline-flex items-center rounded-full text-[10.5px] font-medium max-w-[150px] transition-all ${
                     isActive
                       ? 'text-white shadow-[var(--shadow-xs)]'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg)] border border-[var(--border-subtle)]'
-                  } ${locked && !isActive ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      : 'text-[var(--text-secondary)] bg-[var(--bg)] border border-[var(--border-subtle)]'
+                  }`}
                   style={isActive ? { background: b.color } : undefined}
                 >
-                  {b.status === 'anchored' ? <Flag size={9} className="shrink-0" /> : <GitBranch size={9} className="shrink-0" />}
-                  <span className="truncate">{b.name}</span>
-                </button>
+                  <button
+                    onClick={() => !isActive && !locked && switchBranch(b.id)}
+                    disabled={locked && !isActive}
+                    title={b.name}
+                    className={`inline-flex items-center gap-1 pl-2 ${isActive ? 'pr-2' : 'pr-1'} py-1 min-w-0 cursor-pointer ${locked && !isActive ? 'opacity-40 cursor-not-allowed' : ''} ${isActive ? '' : 'hover:text-[var(--text-primary)]'}`}
+                  >
+                    {b.status === 'anchored' ? <Flag size={9} className="shrink-0" /> : <GitBranch size={9} className="shrink-0" />}
+                    <span className="truncate">{b.name}</span>
+                  </button>
+                  {!isActive && (
+                    <button
+                      onClick={() => !locked && deleteBranch(b.id)}
+                      disabled={locked}
+                      aria-label={L('분기 삭제', 'Delete branch')}
+                      className={`pr-1.5 pl-0.5 py-1 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    >
+                      <X size={9} />
+                    </button>
+                  )}
+                </span>
               );
             })}
           </div>

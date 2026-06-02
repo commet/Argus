@@ -222,6 +222,10 @@ interface ProgressiveState {
    *  branch that owns it, else fork a new course from it. Keeps the chart in
    *  sync with the branch model (no silent reassignment). */
   navigateToCheckpoint: (checkpointId: string) => void;
+  /** Remove a non-active branch and prune the checkpoints/waypoints exclusive
+   *  to it (ancestry shared with surviving branches is kept). No-op on the
+   *  active branch or the last remaining one. */
+  deleteBranch: (branchId: string) => void;
   /** Merge Chronicler narration (significance / why_abandoned) into a waypoint.
    *  Best-effort enrichment from the async LLM pass; no-op if not found. */
   enrichWaypoint: (waypointId: string, patch: Partial<Waypoint>) => void;
@@ -1409,6 +1413,39 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     if (owning) { get().switchBranch(owning.id); return; }
     // Unowned point → fork.
     get().forkBranch(checkpointId);
+  },
+
+  deleteBranch: (branchId) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    const session = get().currentSession();
+    if (!session?.branches) return;
+    const branches = session.branches;
+    if (branches.length <= 1) return;                  // keep at least one course
+    if (branchId === session.active_branch_id) return;  // can't delete the active one
+    const target = branches.find(b => b.id === branchId);
+    if (!target) return;
+
+    const checkpoints = session.checkpoints || [];
+    const survivors = branches.filter(b => b.id !== branchId);
+    // Checkpoints exclusive to the doomed branch (not on any survivor's path).
+    const survivorIds = new Set(
+      survivors.flatMap(b => getActivePathGeneric(checkpoints, b.head_checkpoint_id).map(c => c.id)),
+    );
+    const remove = new Set(
+      getActivePathGeneric(checkpoints, target.head_checkpoint_id)
+        .map(c => c.id)
+        .filter(id => !survivorIds.has(id)),
+    );
+
+    const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
+      branches: (s.branches || []).filter(b => b.id !== branchId),
+      checkpoints: (s.checkpoints || []).filter(c => !remove.has(c.id)),
+      waypoints: (s.waypoints || []).filter(w => !remove.has(w.checkpoint_id)),
+    }));
+    persist(sessions);
+    set({ sessions });
+    track('voyage_delete_branch', {});
   },
 
   enrichWaypoint: (waypointId, patch) => {
