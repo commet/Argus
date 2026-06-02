@@ -20,7 +20,10 @@ const checkpoints: VoyageCheckpoint[] = [
 ];
 const session: Partial<ProgressiveSession> = {
   id: 's1', checkpoints, active_checkpoint_id: 'c2',
-  branches: [{ id: 'b-main', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'x' }],
+  branches: [
+    { id: 'b-main', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'x' },
+    { id: 'b-fork', name: '챗봇 분기', head_checkpoint_id: 'c1', forked_from_checkpoint_id: 'c1', status: 'sailing', color: '#8b6914', created_at: 'y' },
+  ],
   active_branch_id: 'b-main',
 };
 
@@ -39,5 +42,11 @@ describe('VoyageChart render', () => {
     expect(html.length).toBeGreaterThan(100);
     expect(html).toContain('출발');     // origin stage label
     expect(html).toContain('항해 준비'); // briefing stage label
+  });
+
+  it('shows the active-course summary when multiple branches exist', () => {
+    const html = renderToStaticMarkup(createElement(VoyageChart));
+    expect(html).toContain('본 항로');      // active branch name
+    expect(html).toContain('항로 2개');     // course count
   });
 });

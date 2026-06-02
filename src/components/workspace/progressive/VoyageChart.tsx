@@ -119,6 +119,8 @@ export function VoyageChart() {
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
   const activeId = session?.active_checkpoint_id ?? null;
   const activePath = useMemo(() => getActivePath(checkpoints, activeId), [checkpoints, activeId]);
+  const branches = session?.branches ?? [];
+  const activeBranch = branches.find(b => b.id === session?.active_branch_id) ?? null;
 
   const reachedStages = useMemo(() => new Set(activePath.map(c => c.stage)), [activePath]);
   const lastIdx = activePath.length > 0
@@ -187,6 +189,16 @@ export function VoyageChart() {
           )}
         </span>
       </div>
+
+      {/* Active course summary — shown once the voyage has more than one course */}
+      {branches.length > 1 && activeBranch && (
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[var(--border-subtle)]/40 text-[10px]">
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: activeBranch.color }} />
+          <span className="font-semibold text-[var(--text-primary)] truncate max-w-[130px]">{activeBranch.name}</span>
+          {activeBranch.status === 'anchored' && <Flag size={9} className="text-[var(--accent)] shrink-0" />}
+          <span className="ml-auto text-[var(--text-tertiary)]">{L(`항로 ${branches.length}개`, `${branches.length} courses`)}</span>
+        </div>
+      )}
 
       {/* Chart body */}
       <div className="relative px-2 py-3">
