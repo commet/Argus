@@ -553,7 +553,9 @@ export function ShipCutaway({
   });
 
   // Faint zone backdrop only on hover — soft focus without a permanent box.
-  const ZoneBackdrop = ({
+  // A plain render helper (not a nested component) so it can close over
+  // `isActive` without tripping react/no-unstable-nested-components.
+  const zoneBackdrop = ({
     x,
     y,
     w,
@@ -792,7 +794,7 @@ export function ShipCutaway({
         {...stationHandlers('navigator')}
         style={stationGroupStyle('navigator')}
       >
-        <ZoneBackdrop x={138} y={186} w={144} h={208} id="navigator" />
+        {zoneBackdrop({ x: 138, y: 186, w: 144, h: 208, id: 'navigator' })}
 
         {/* Ship's bell */}
         <ShipBell cx={156} cy={232} />
@@ -820,7 +822,7 @@ export function ShipCutaway({
         {...stationHandlers('cartographers')}
         style={stationGroupStyle('cartographers')}
       >
-        <ZoneBackdrop x={326} y={186} w={216} h={208} id="cartographers" />
+        {zoneBackdrop({ x: 326, y: 186, w: 216, h: 208, id: 'cartographers' })}
 
         {/* Lantern beside table (top corner) */}
         <Lantern cx={356} cy={228} />
@@ -856,7 +858,7 @@ export function ShipCutaway({
         {...stationHandlers('artisans')}
         style={stationGroupStyle('artisans')}
       >
-        <ZoneBackdrop x={606} y={186} w={252} h={208} id="artisans" />
+        {zoneBackdrop({ x: 606, y: 186, w: 252, h: 208, id: 'artisans' })}
 
         {/* Top row of workbenches */}
         <Workbench x={620} y={222} w={42} h={20} />
@@ -902,7 +904,7 @@ export function ShipCutaway({
         {...stationHandlers('watch')}
         style={stationGroupStyle('watch')}
       >
-        <ZoneBackdrop x={886} y={186} w={102} h={208} id="watch" />
+        {zoneBackdrop({ x: 886, y: 186, w: 102, h: 208, id: 'watch' })}
 
         {/* Crow's nest indicator — concentric dashed ring around foremast */}
         <circle
@@ -946,7 +948,7 @@ export function ShipCutaway({
         {...stationHandlers('scouts')}
         style={stationGroupStyle('scouts')}
       >
-        <ZoneBackdrop x={1006} y={186} w={140} h={208} id="scouts" />
+        {zoneBackdrop({ x: 1006, y: 186, w: 140, h: 208, id: 'scouts' })}
 
         {/* Forward railing arc (curve following the bow) */}
         <path

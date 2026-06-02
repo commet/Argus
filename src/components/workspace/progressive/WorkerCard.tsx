@@ -165,6 +165,8 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
     // AI task with draft (legacy both or new ai+self_scope): pre-fill with draft
     (worker.who === 'both' || (aTypeInit === 'ai' && worker.self_scope)) && worker.result ? worker.result : ''
   );
+  // Must precede the status-based early returns below — hooks run unconditionally.
+  const [expanded, setExpanded] = useState(false);
   const persona = worker.persona ? localizePersona(worker.persona, locale) : null;
 
   const statusLabel: string = ({
@@ -422,7 +424,6 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
   const isApproved = worker.approved === true;
   const previewText = (worker.result || '').slice(0, 300);
   const hasMore = (worker.result || '').length > 300;
-  const [expanded, setExpanded] = useState(false);
   const agentLevel = worker.agent_id
     ? useAgentStore.getState().getAgent(worker.agent_id)?.level
     : undefined;
