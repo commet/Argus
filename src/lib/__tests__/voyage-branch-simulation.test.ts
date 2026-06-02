@@ -283,6 +283,36 @@ describe('Voyage branch layer', () => {
     });
   });
 
+  describe('robustness', () => {
+    it('fork preserves in-flight worker progress via a safety checkpoint', () => {
+      const sid = startSession();
+      const c1 = api().recordCheckpoint('origin')!;
+      const mainId = session(sid).active_branch_id!;
+      // worker results land AFTER the checkpoint — no phase/round/snapshot change,
+      // which the old scalar check missed (data loss on fork).
+      const worker = { id: 'w1', status: 'done', result: '시장 데이터', task: 't' } as unknown as WorkerTask;
+      useProgressiveStore.setState(stt => ({
+        sessions: stt.sessions.map(s => s.id === sid ? { ...s, workers: [worker], worker_deploy_phase: 'deployed' } : s),
+      }));
+
+      api().forkBranch(c1.id); // must safety-checkpoint the worker onto main first
+      const s = session(sid);
+      const main = s.branches!.find(b => b.id === mainId)!;
+      const mainHead = s.checkpoints!.find(c => c.id === main.head_checkpoint_id)!;
+      expect(mainHead.state_snapshot.workers.some(w => w.id === 'w1' && !!w.result)).toBe(true);
+    });
+
+    it('recordCheckpoint advances some branch even if active_branch_id is corrupted', () => {
+      const sid = startSession();
+      api().recordCheckpoint('origin');
+      useProgressiveStore.setState(stt => ({
+        sessions: stt.sessions.map(s => s.id === sid ? { ...s, active_branch_id: 'bogus' } : s),
+      }));
+      const cp = api().recordCheckpoint('briefing')!;
+      expect(session(sid).branches!.some(b => b.head_checkpoint_id === cp.id)).toBe(true);
+    });
+  });
+
   describe('deleteBranch', () => {
     it('removes a non-active branch, pruning its exclusive checkpoints but keeping shared ancestry', () => {
       const sid = startSession();

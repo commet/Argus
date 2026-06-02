@@ -84,16 +84,45 @@ function restoreFields(snap: VoyageCheckpointState): Partial<ProgressiveSession>
   };
 }
 
-/** True when the live state has advanced past the active checkpoint's snapshot
- *  (cheap scalar comparison). Used to decide whether a fork/switch must first
- *  preserve in-progress work as a safety checkpoint — no data loss. */
+/** Compact signature of the meaningful, restorable progress in a state. Two
+ *  states with the same signature restore to the same working point, so a
+ *  fork/switch between them loses nothing. Covers every field a worker could
+ *  advance (workers + results, mix, dm feedback, final, Q&A) — not just the
+ *  phase/round/snapshot scalars, which miss in-flight team work. */
+function progressSignature(s: {
+  phase: ProgressivePhase;
+  round: number;
+  questions: FlowQuestion[];
+  answers: FlowAnswer[];
+  snapshots: AnalysisSnapshot[];
+  workers: WorkerTask[];
+  worker_deploy_phase: WorkerDeployPhase;
+  mix: MixResult | null;
+  dm_feedback: DMFeedbackResult | null;
+  final_deliverable: string | null;
+}): string {
+  return [
+    s.phase,
+    s.round,
+    (s.questions || []).length,
+    (s.answers || []).length,
+    (s.snapshots || []).length,
+    (s.workers || []).length,
+    (s.workers || []).filter(w => w.result).length,
+    s.worker_deploy_phase,
+    s.mix ? 1 : 0,
+    s.dm_feedback ? 1 : 0,
+    s.final_deliverable ? 1 : 0,
+  ].join('|');
+}
+
+/** True when the live state has advanced past the active checkpoint's snapshot.
+ *  Used to decide whether a fork/switch must first preserve in-progress work as
+ *  a safety checkpoint — no data loss. */
 function progressAheadOfHead(session: ProgressiveSession): boolean {
   const head = (session.checkpoints || []).find(c => c.id === session.active_checkpoint_id);
   if (!head) return false;
-  const s = head.state_snapshot;
-  return s.phase !== session.phase
-    || s.round !== session.round
-    || s.snapshots.length !== session.snapshots.length;
+  return progressSignature(head.state_snapshot) !== progressSignature(session);
 }
 
 /** Auto-generated label per stage. Locale-aware fallback when callers
@@ -1260,9 +1289,11 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       } else {
         // Advance the active branch head to the new checkpoint. Defensive: if
         // active_branch_id is stale, fall back to the branch whose head was the
-        // previous active checkpoint, then re-anchor active_branch_id to it.
+        // previous active checkpoint; if still unresolved (corruption), advance
+        // the first branch rather than silently leaving every head stale.
         let idx = branches.findIndex(b => b.id === active_branch_id);
         if (idx < 0) idx = branches.findIndex(b => b.head_checkpoint_id === s.active_checkpoint_id);
+        if (idx < 0) idx = 0;
         if (idx >= 0) {
           branches[idx] = { ...branches[idx], head_checkpoint_id: checkpoint.id };
           active_branch_id = branches[idx].id;
