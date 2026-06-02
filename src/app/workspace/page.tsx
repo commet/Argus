@@ -13,7 +13,7 @@ import { SynthesizeStep } from '@/components/workspace/SynthesizeStep';
 import { ProgressiveFlow } from '@/components/workspace/progressive/ProgressiveFlow';
 import { WorkerDrawer, useWorkers } from '@/components/workspace/progressive/WorkerPanel';
 import { AgentSidebar } from '@/components/workspace/progressive/AgentSidebar';
-import { VoyageChart } from '@/components/workspace/progressive/VoyageChart';
+import { Logbook } from '@/components/workspace/progressive/Logbook';
 import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -59,6 +59,13 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const workers = useWorkers();
   const hasWorkers = workers.length > 0;
+  // Ship's log accompanies the whole voyage — show the right rail as soon as
+  // there are waypoints, even before any worker is deployed.
+  const hasWaypoints = useProgressiveStore(s => {
+    const sess = s.sessions.find(x => x.id === s.currentSessionId);
+    return (sess?.waypoints?.length ?? 0) > 0;
+  });
+  const showRail = hasWorkers || hasWaypoints;
 
   return (
     <div className="relative min-h-[calc(100vh-56px)] overflow-hidden">
@@ -86,16 +93,13 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
               <ProgressiveFlow projectId={projectId} />
             </ErrorBoundary>
           </div>
-          {hasWorkers && (
+          {showRail && (
             <div className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-14 h-[calc(100vh-120px)] overflow-y-auto border-l border-[var(--border-subtle)]/50">
-              <AgentSidebar />
-              {/* Voyage chart — sits beneath the agent sidebar so it's
-                  always within reach but doesn't displace the live worker
-                  view. Hidden on mobile in v1; will get a drawer tab in
-                  a follow-up. */}
-              <div className="px-4 pb-6 mt-4">
-                <VoyageChart />
-              </div>
+              {/* Ship's log — the live decision narrative, the primary voyage
+                  companion. Owns the "전체 해도" (full chart) modal and branch
+                  controls. Renders null until the first waypoint. */}
+              <Logbook />
+              {hasWorkers && <AgentSidebar />}
             </div>
           )}
         </div>

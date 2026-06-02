@@ -39,6 +39,7 @@ import type { StrategicForkEffect, WeaknessCheckEffect } from '@/lib/question-ty
 import { WorkerReportBlock } from './WorkerCard';
 import { PersonaPoolModal } from './PersonaPoolModal';
 import { WorkerAvatar, AvatarRow } from './WorkerAvatar';
+import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext, useWorkers } from './WorkerPanel';
 import { useStaggeredReveal } from '@/hooks/useStaggeredReveal';
@@ -1766,6 +1767,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // Global click-outside: clears sticky attribution hover state when user taps blank space
   useAttributionClickOutside();
   const [busy, setBusy] = useState(false);
+  // Chronicler — enriches log waypoints with narration once the stream settles.
+  useChronicler(session, !busy);
   const [error, setError] = useState<string | null>(null);
   const [showMix, setShowMix] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);

@@ -24,7 +24,9 @@
  *     mode
  *
  * Backend wiring: reads `session.checkpoints` + `session.active_checkpoint_id`
- * from useProgressiveStore and calls `restoreCheckpoint(id)` on rewind.
+ * from useProgressiveStore and calls `navigateToCheckpoint(id)` on a node pick —
+ * which resolves to switching to the branch that owns the checkpoint, or forking
+ * a new course from it (keeping the chart consistent with the branch model).
  */
 
 import { useMemo, useState } from 'react';
@@ -121,7 +123,7 @@ export function VoyageChart() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
-  const restoreCheckpoint = useProgressiveStore(s => s.restoreCheckpoint);
+  const navigateToCheckpoint = useProgressiveStore(s => s.navigateToCheckpoint);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [overflowParentId, setOverflowParentId] = useState<string | null>(null);
@@ -178,7 +180,7 @@ export function VoyageChart() {
     setOverflowParentId(null);
   };
   const handleConfirm = () => {
-    if (confirmId) restoreCheckpoint(confirmId);
+    if (confirmId) navigateToCheckpoint(confirmId);
     setConfirmId(null);
   };
 
@@ -535,7 +537,7 @@ export function VoyageChart() {
                   className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[11px] font-semibold text-[var(--accent)] border border-[var(--accent)]/35 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer min-h-[36px]"
                 >
                   <RotateCcw size={11} />
-                  {L('이 분기로 돌아가기', 'Rewind here')}
+                  {L('이 지점에서 항해', 'Sail from here')}
                   <ChevronRight size={10} />
                 </button>
               </div>

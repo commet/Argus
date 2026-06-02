@@ -921,6 +921,78 @@ export interface VoyageCheckpoint {
   state_snapshot: VoyageCheckpointState;
 }
 
+// ─── Voyage branches (first-class course-lines over the checkpoint tree) ───
+
+/** Lifecycle of a branch (course-line) within a voyage. */
+export type BranchStatus =
+  | 'sailing'    // open — active, or paused-but-resumable
+  | 'anchored'   // chosen as the final course
+  | 'abandoned'; // a road not taken / superseded — preserved, never deleted
+
+/**
+ * A named, first-class course-line layered over the checkpoint tree.
+ *
+ * A branch is *metadata only*: its actual lineage (the root→head path of
+ * checkpoints) is derived on demand via `getActivePath(checkpoints,
+ * head_checkpoint_id)` from the shape-agnostic helpers in `lib/version-tree.ts`.
+ * We deliberately do NOT stamp a `branch_id` onto checkpoints — checkpoints
+ * before a fork are shared by multiple branches' lineages, so a single owner id
+ * would be a lie and a future consistency bug. Lineage is computed, not stored.
+ */
+export interface VoyageBranch {
+  id: string;
+  name: string;                              // "본 항로" | "분기: 챗봇 직접 제작" ...
+  head_checkpoint_id: string;                // leaf of this branch's lineage
+  forked_from_checkpoint_id: string | null;  // null only for the main branch
+  status: BranchStatus;
+  color: string;                             // course-line color on the chart
+  created_at: string;
+}
+
+// ─── Ship's log (항해일지) — narrated waypoints over the voyage ───
+
+/**
+ * The six waypoint types the Chronicler may record. A closed set by design: it
+ * bounds the narrator (it classifies into one of these, never freeform) and
+ * keeps the log legible. Every type is a *turn* in the thinking, never a raw
+ * step — that is what makes the log a higher layer than the transcript.
+ */
+export type WaypointType =
+  | 'departure'     // ⚓ 출항 — the original ask, as given
+  | 'course_change' // ↻ 침로 변경 — the real question / framing turned
+  | 'reef'          // ⚠ 암초 — a hidden assumption surfaced (confirmed or killed)
+  | 'sighting'      // 👁 관측 — a worker/finding surfaced material intelligence
+  | 'headwind'      // 🜨 역풍 — a stakeholder concern / risk forced an adjustment
+  | 'anchorage';    // ⚑ 정박 — convergence / final commitment
+
+/**
+ * An alternative weighed but not taken at a course-change — the "road not
+ * taken". Captured at the fork so the chart can offer it as a ghost branch the
+ * user can later sail. `taken=true` marks the single path actually pursued.
+ */
+export interface WaypointAlternative {
+  label: string;          // short name of the path
+  why_abandoned: string;  // the captured reason it was set aside
+  taken: boolean;         // the branch actually sailed
+}
+
+/**
+ * One entry in the ship's log. Anchored to the checkpoint whose transition it
+ * narrates. Branch membership is *derived* (a waypoint belongs to a branch when
+ * its checkpoint is on that branch's path), never stored — same rationale as
+ * VoyageBranch not stamping checkpoints.
+ */
+export interface Waypoint {
+  id: string;
+  checkpoint_id: string;                 // the checkpoint this waypoint narrates
+  type: WaypointType;
+  headline: string;                      // high-altitude one-liner (always present)
+  significance?: string;                 // "why it mattered" — Chronicler narration
+  trigger?: string;                      // the handed cause — never guessed/fabricated
+  alternatives?: WaypointAlternative[];  // course_change only: roads not taken
+  created_at: string;
+}
+
 // ── Unified Review types (shared by web app + plugin) ──
 
 export interface ReviewConcern {
@@ -1070,6 +1142,25 @@ export interface ProgressiveSession {
    *  ancestor — subsequent recordCheckpoint calls naturally produce a
    *  new branch off that point. */
   active_checkpoint_id?: string | null;
+
+  // ─── Voyage branches + ship's log (built over the checkpoint tree) ───
+  /**
+   * First-class named course-lines over the checkpoint tree. Optional +
+   * backward-compat: synthesized on load for sessions that have checkpoints
+   * but no branches (see `migrateBranches`), and created lazily at the origin
+   * checkpoint for fresh sessions. The active branch's head is kept in sync
+   * with `active_checkpoint_id` (single-active model).
+   */
+  branches?: VoyageBranch[];
+  /** The branch whose working state currently occupies the live session
+   *  fields. Exactly one branch is active at a time. */
+  active_branch_id?: string | null;
+  /**
+   * Ship's log — narrated waypoints recorded by the Chronicler at salient
+   * transitions. Keyed by `checkpoint_id`; the per-branch view is derived via
+   * the active path. Optional + backward-compat (legacy = empty/undefined).
+   */
+  waypoints?: Waypoint[];
 
   // Boss/Reviewer 연결
   reviewer_agent_id?: string;   // Boss agent가 DM 리뷰어로 연결

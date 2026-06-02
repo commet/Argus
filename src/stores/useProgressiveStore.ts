@@ -13,7 +13,8 @@ import { selectLeadAgent } from '@/lib/lead-agent';
 import { computeQualityXP } from '@/lib/agent-quality';
 import { nextChildLabel, promoteToMajor, ROOT_LABEL } from '@/lib/version-numbering';
 import { getCurrentLanguage } from '@/lib/i18n';
-import { getActivePath as getActivePathGeneric } from '@/lib/version-tree';
+import { getActivePath as getActivePathGeneric, overallLatest } from '@/lib/version-tree';
+import { deriveWaypoint } from '@/lib/voyage-log';
 import type {
   ProgressiveSession,
   ProgressivePhase,
@@ -33,7 +34,67 @@ import type {
   VoyageCheckpoint,
   VoyageStage,
   VoyageCheckpointState,
+  VoyageBranch,
+  Waypoint,
 } from '@/stores/types';
+
+/** Course-line colors, cycled as new branches fork off the tree. */
+const BRANCH_COLORS = ['#2d4a7c', '#8b6914', '#6b4c9a', '#2d6b2d', '#9b5de5', '#b5651d'];
+
+/** Hard cap on branches per session — guards localStorage (each branch's
+ *  checkpoints are full-state copies) and keeps the chart legible. */
+const MAX_BRANCHES = 8;
+
+/** Locale-aware name for the auto-created trunk branch. */
+function defaultMainBranchName(): string {
+  return getCurrentLanguage() === 'ko' ? '본 항로' : 'Main course';
+}
+
+/** Map the live flow phase to the nearest voyage stage — used when recording a
+ *  safety checkpoint of in-progress state before a fork/switch. */
+function phaseToStage(phase: ProgressivePhase): VoyageStage {
+  switch (phase) {
+    case 'input': case 'analyzing': case 'conversing': return 'briefing';
+    case 'lead_synthesizing': case 'mixing': return 'mix';
+    case 'dm_feedback': case 'refining': return 'review';
+    case 'complete': case 'iterating': return 'anchor';
+    default: return 'briefing';
+  }
+}
+
+/** The live session fields restored from a checkpoint's state snapshot. Shared
+ *  by restoreCheckpoint and switchBranch/forkBranch so the field list lives in
+ *  exactly one place (adding a field to VoyageCheckpointState updates all). */
+function restoreFields(snap: VoyageCheckpointState): Partial<ProgressiveSession> {
+  return {
+    phase: snap.phase,
+    round: snap.round,
+    questions: snap.questions,
+    answers: snap.answers,
+    snapshots: snap.snapshots,
+    workers: snap.workers,
+    worker_deploy_phase: snap.worker_deploy_phase,
+    mix: snap.mix,
+    dm_feedback: snap.dm_feedback,
+    final_deliverable: snap.final_deliverable,
+    final_mix: snap.final_mix,
+    user_notes: snap.user_notes,
+    decision_maker: snap.decision_maker,
+    lead_synthesis: snap.lead_synthesis,
+  };
+}
+
+/** True when the live state has advanced past the active checkpoint's snapshot
+ *  (cheap scalar comparison). Used to decide whether a fork/switch must first
+ *  preserve in-progress work as a safety checkpoint — no data loss. */
+function progressAheadOfHead(session: ProgressiveSession): boolean {
+  const head = (session.checkpoints || []).find(c => c.id === session.active_checkpoint_id);
+  if (!head) return false;
+  const s = head.state_snapshot;
+  return s.phase !== session.phase
+    || s.round !== session.round
+    || s.snapshots.length !== session.snapshots.length;
+}
 
 /** Auto-generated label per stage. Locale-aware fallback when callers
  *  don't provide their own. */
@@ -70,6 +131,8 @@ interface ProgressiveState {
 
   // Derived
   currentSession: () => ProgressiveSession | null;
+  /** The active branch (course-line) of the current session, or null. */
+  currentBranch: () => VoyageBranch | null;
 
   // Actions
   loadSessions: () => void;
@@ -145,6 +208,23 @@ interface ProgressiveState {
    *  recordCheckpoint() call will then attach to it as parent — producing
    *  a fresh branch automatically. */
   restoreCheckpoint: (checkpointId: string) => void;
+  /** Fork a new course-line from a checkpoint: restores live state to that
+   *  point, creates a sibling branch, and makes it active. Preserves any
+   *  in-progress work on the current branch first. Returns the new branch id. */
+  forkBranch: (fromCheckpointId: string, label?: string) => string | null;
+  /** Switch the live session to another branch's head (single-active model).
+   *  Preserves the current branch's in-progress work before leaving. */
+  switchBranch: (branchId: string) => void;
+  /** Mark a branch as the chosen final course; all others become 'abandoned'
+   *  (preserved in the tree, never deleted). */
+  anchorBranch: (branchId: string) => void;
+  /** Resolve a chart checkpoint click to the right branch verb: switch to the
+   *  branch that owns it, else fork a new course from it. Keeps the chart in
+   *  sync with the branch model (no silent reassignment). */
+  navigateToCheckpoint: (checkpointId: string) => void;
+  /** Merge Chronicler narration (significance / why_abandoned) into a waypoint.
+   *  Best-effort enrichment from the async LLM pass; no-op if not found. */
+  enrichWaypoint: (waypointId: string, patch: Partial<Waypoint>) => void;
   /** @deprecated Use mixableWorkerResults instead */
   approvedWorkerResults: () => Array<{ task: string; result: string; type?: string; persona: string | null; agentName: string | null; agentRole: string | null }>;
   mixableWorkerResults: () => Array<{ workerId: string; task: string; result: string; type: 'final' | 'preliminary' | 'pending_human'; persona: string | null; agentName: string | null; agentRole: string | null; taskGroupId: string }>;
@@ -243,6 +323,37 @@ function migrateSessionDrafts(sessions: ProgressiveSession[]): ProgressiveSessio
   });
 }
 
+/**
+ * Synthesize a single "main course" branch for sessions that already carry
+ * checkpoints but no `branches[]` (pre-branching sessions). The branch is
+ * metadata only — its lineage is derived from the checkpoint tree at read time
+ * (see `lib/version-tree.ts`), so we never stamp checkpoints.
+ *
+ * Idempotent: sessions that already have `branches` are returned untouched.
+ * Sessions with no checkpoints are left as-is — their main branch is created
+ * lazily when the first (origin) checkpoint is recorded. Deterministic id
+ * (`main-<sessionId>`) keeps the record stable across reloads.
+ */
+function migrateBranches(sessions: ProgressiveSession[]): ProgressiveSession[] {
+  return sessions.map((s) => {
+    if (s.branches && s.branches.length > 0) return s;
+    const checkpoints = s.checkpoints || [];
+    if (checkpoints.length === 0) return s;
+    const headId = s.active_checkpoint_id || overallLatest(checkpoints)?.id;
+    if (!headId) return s;
+    const main: VoyageBranch = {
+      id: `main-${s.id}`,
+      name: defaultMainBranchName(),
+      head_checkpoint_id: headId,
+      forked_from_checkpoint_id: null,
+      status: 'sailing',
+      color: BRANCH_COLORS[0],
+      created_at: s.created_at || new Date().toISOString(),
+    };
+    return { ...s, branches: [main], active_branch_id: main.id };
+  });
+}
+
 function updateSession(
   sessions: ProgressiveSession[],
   id: string,
@@ -262,9 +373,15 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     return sessions.find(s => s.id === currentSessionId) || null;
   },
 
+  currentBranch: () => {
+    const session = get().currentSession();
+    if (!session?.branches) return null;
+    return session.branches.find(b => b.id === session.active_branch_id) ?? null;
+  },
+
   loadSessions: () => {
     const local = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []);
-    const migrated = migrateSessionDrafts(migrateWorkers(local));
+    const migrated = migrateSessionDrafts(migrateBranches(migrateWorkers(local)));
     set({ sessions: migrated });
 
     // Async: merge with Supabase remote sessions (cross-device sync)
@@ -303,7 +420,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
             }
 
             if (changed) {
-              const merged = migrateSessionDrafts(migrateWorkers(Array.from(localMap.values())));
+              const merged = migrateSessionDrafts(migrateBranches(migrateWorkers(Array.from(localMap.values()))));
               setStorage(STORAGE_KEYS.PROGRESSIVE_SESSIONS, merged);
               set({ sessions: merged });
             }
@@ -1068,7 +1185,11 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       questions: session.questions.slice(),
       answers: session.answers.slice(),
       snapshots: session.snapshots.slice(),
-      workers: session.workers.slice(),
+      // Drop transient streaming text from the snapshot — it's reset to '' on
+      // load anyway (migrateWorkers), so storing it per checkpoint is pure waste
+      // and the biggest avoidable contributor to localStorage growth as branches
+      // multiply checkpoints.
+      workers: session.workers.map(w => (w.stream_text ? { ...w, stream_text: '' } : w)),
       worker_deploy_phase: session.worker_deploy_phase,
       mix: session.mix,
       dm_feedback: session.dm_feedback,
@@ -1088,10 +1209,57 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       state_snapshot,
     };
 
-    const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
-      checkpoints: [...(s.checkpoints || []), checkpoint],
-      active_checkpoint_id: checkpoint.id,
-    }));
+    // Chronicler — derive a ship's-log waypoint from this transition. The
+    // parent checkpoint's state is the "before"; deriveWaypoint judges salience
+    // deterministically and returns null for non-turns (the common case).
+    const parentCp = session.active_checkpoint_id
+      ? (session.checkpoints || []).find(c => c.id === session.active_checkpoint_id)
+      : null;
+    const waypoint = deriveWaypoint({
+      newCheckpoint: checkpoint,
+      prevState: parentCp?.state_snapshot ?? null,
+      problemText: session.problem_text,
+    });
+
+    const sessions = updateSession(get().sessions, currentSessionId, (s) => {
+      // Maintain the branch layer atomically with the checkpoint write so the
+      // active branch head never drifts from active_checkpoint_id.
+      const branches = s.branches ? [...s.branches] : [];
+      let active_branch_id = s.active_branch_id ?? null;
+
+      if (branches.length === 0) {
+        // Origin checkpoint → birth of the trunk course-line.
+        const main: VoyageBranch = {
+          id: `main-${s.id}`,
+          name: defaultMainBranchName(),
+          head_checkpoint_id: checkpoint.id,
+          forked_from_checkpoint_id: null,
+          status: 'sailing',
+          color: BRANCH_COLORS[0],
+          created_at: checkpoint.created_at,
+        };
+        branches.push(main);
+        active_branch_id = main.id;
+      } else {
+        // Advance the active branch head to the new checkpoint. Defensive: if
+        // active_branch_id is stale, fall back to the branch whose head was the
+        // previous active checkpoint, then re-anchor active_branch_id to it.
+        let idx = branches.findIndex(b => b.id === active_branch_id);
+        if (idx < 0) idx = branches.findIndex(b => b.head_checkpoint_id === s.active_checkpoint_id);
+        if (idx >= 0) {
+          branches[idx] = { ...branches[idx], head_checkpoint_id: checkpoint.id };
+          active_branch_id = branches[idx].id;
+        }
+      }
+
+      return {
+        checkpoints: [...(s.checkpoints || []), checkpoint],
+        active_checkpoint_id: checkpoint.id,
+        branches,
+        active_branch_id,
+        ...(waypoint ? { waypoints: [...(s.waypoints || []), waypoint] } : {}),
+      };
+    });
     persist(sessions);
     set({ sessions });
     return checkpoint;
@@ -1107,23 +1275,144 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // Replace live fields with the snapshot. The checkpoint itself stays
     // intact in the array — the previous branch is preserved as siblings
     // of any future checkpoint that gets recorded after the fork.
-    const snap = target.state_snapshot;
     const sessions = updateSession(get().sessions, currentSessionId, () => ({
-      phase: snap.phase,
-      round: snap.round,
-      questions: snap.questions,
-      answers: snap.answers,
-      snapshots: snap.snapshots,
-      workers: snap.workers,
-      worker_deploy_phase: snap.worker_deploy_phase,
-      mix: snap.mix,
-      dm_feedback: snap.dm_feedback,
-      final_deliverable: snap.final_deliverable,
-      final_mix: snap.final_mix,
-      user_notes: snap.user_notes,
-      decision_maker: snap.decision_maker,
-      lead_synthesis: snap.lead_synthesis,
+      ...restoreFields(target.state_snapshot),
       active_checkpoint_id: checkpointId,
+    }));
+    persist(sessions);
+    set({ sessions });
+  },
+
+  forkBranch: (fromCheckpointId, label) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return null;
+    let session = get().currentSession();
+    if (!session) return null;
+    const fromCp = (session.checkpoints || []).find(c => c.id === fromCheckpointId);
+    if (!fromCp) return null;
+
+    // Cap branch count — refuse to fork past the limit (callers treat null as a
+    // no-op). Checked before any side effect (safety checkpoint) below.
+    if ((session.branches || []).length >= MAX_BRANCHES) {
+      track('voyage_fork_blocked', { reason: 'max_branches' });
+      return null;
+    }
+
+    // Preserve in-progress work on the current branch before leaving it. The
+    // safety checkpoint advances the *current* branch head (active_branch_id is
+    // still the source branch at this point), so nothing is lost.
+    if (progressAheadOfHead(session)) {
+      get().recordCheckpoint(phaseToStage(session.phase));
+      session = get().currentSession();
+      if (!session) return null;
+    }
+
+    const branches = session.branches || [];
+    const newBranchId = generateId();
+    const ko = getCurrentLanguage() === 'ko';
+    const newBranch: VoyageBranch = {
+      id: newBranchId,
+      name: label || (ko ? `분기 ${branches.length}` : `Branch ${branches.length}`),
+      head_checkpoint_id: fromCheckpointId,
+      forked_from_checkpoint_id: fromCheckpointId,
+      status: 'sailing',
+      color: BRANCH_COLORS[branches.length % BRANCH_COLORS.length],
+      created_at: new Date().toISOString(),
+    };
+
+    // Atomic: restore live state to the fork point AND register + activate the
+    // new branch in a single update. Subsequent recordCheckpoint calls parent
+    // off fromCheckpointId, producing a real sibling lineage.
+    const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
+      ...restoreFields(fromCp.state_snapshot),
+      active_checkpoint_id: fromCheckpointId,
+      branches: [...(s.branches || []), newBranch],
+      active_branch_id: newBranchId,
+    }));
+    persist(sessions);
+    set({ sessions });
+    track('voyage_fork_branch', { from_stage: fromCp.stage });
+    return newBranchId;
+  },
+
+  switchBranch: (branchId) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    let session = get().currentSession();
+    if (!session) return;
+    const target = (session.branches || []).find(b => b.id === branchId);
+    if (!target || branchId === session.active_branch_id) return;
+
+    // Preserve in-progress work on the current branch first (no data loss).
+    if (progressAheadOfHead(session)) {
+      get().recordCheckpoint(phaseToStage(session.phase));
+      session = get().currentSession();
+      if (!session) return;
+    }
+
+    const targetCp = (session.checkpoints || []).find(c => c.id === target.head_checkpoint_id);
+    if (!targetCp) return;
+
+    // Atomic: restore the target branch's live state AND flip active_branch_id
+    // in one update so the two never momentarily disagree (stale-closure guard).
+    const sessions = updateSession(get().sessions, currentSessionId, () => ({
+      ...restoreFields(targetCp.state_snapshot),
+      active_checkpoint_id: target.head_checkpoint_id,
+      active_branch_id: branchId,
+    }));
+    persist(sessions);
+    set({ sessions });
+    track('voyage_switch_branch', {});
+  },
+
+  anchorBranch: (branchId) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    const session = get().currentSession();
+    if (!session?.branches) return;
+    if (!session.branches.some(b => b.id === branchId)) return;
+    // Chosen branch → anchored; every other course-line → abandoned (kept in
+    // the tree, still switchable, just visually retired).
+    const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
+      branches: (s.branches || []).map(b =>
+        b.id === branchId
+          ? { ...b, status: 'anchored' as const }
+          : { ...b, status: 'abandoned' as const },
+      ),
+    }));
+    persist(sessions);
+    set({ sessions });
+    track('voyage_anchor_branch', {});
+  },
+
+  navigateToCheckpoint: (checkpointId) => {
+    const session = get().currentSession();
+    if (!session) return;
+    if (checkpointId === session.active_checkpoint_id) return; // already here
+    const checkpoints = session.checkpoints || [];
+    const branches = session.branches || [];
+    const active = branches.find(b => b.id === session.active_branch_id) ?? null;
+    const activeIds = active
+      ? new Set(getActivePathGeneric(checkpoints, active.head_checkpoint_id).map(c => c.id))
+      : new Set<string>();
+    // On the current course (including shared ancestry) → fork to diverge here.
+    if (activeIds.has(checkpointId)) { get().forkBranch(checkpointId); return; }
+    // Belongs to another existing course → switch to that branch.
+    const owning = branches.find(b =>
+      b.id !== session.active_branch_id &&
+      getActivePathGeneric(checkpoints, b.head_checkpoint_id).some(c => c.id === checkpointId));
+    if (owning) { get().switchBranch(owning.id); return; }
+    // Unowned point → fork.
+    get().forkBranch(checkpointId);
+  },
+
+  enrichWaypoint: (waypointId, patch) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    const session = get().currentSession();
+    if (!session?.waypoints?.some(w => w.id === waypointId)) return;
+    const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
+      waypoints: (s.waypoints || []).map(w => w.id === waypointId ? { ...w, ...patch } : w),
     }));
     persist(sessions);
     set({ sessions });
