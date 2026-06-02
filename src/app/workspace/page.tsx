@@ -13,7 +13,7 @@ import { SynthesizeStep } from '@/components/workspace/SynthesizeStep';
 import { ProgressiveFlow } from '@/components/workspace/progressive/ProgressiveFlow';
 import { WorkerDrawer, useWorkers } from '@/components/workspace/progressive/WorkerPanel';
 import { AgentSidebar } from '@/components/workspace/progressive/AgentSidebar';
-import { VoyageChart } from '@/components/workspace/progressive/VoyageChart';
+import { Logbook, LogbookDrawer } from '@/components/workspace/progressive/Logbook';
 import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -59,6 +59,22 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const workers = useWorkers();
   const hasWorkers = workers.length > 0;
+  // Ship's log accompanies the whole voyage — show the right rail as soon as
+  // there are waypoints, even before any worker is deployed.
+  const hasWaypoints = useProgressiveStore(s => {
+    const sess = s.sessions.find(x => x.id === s.currentSessionId);
+    return (sess?.waypoints?.length ?? 0) > 0;
+  });
+  const showRail = hasWorkers || hasWaypoints;
+  // Which course are we on? Shown in the header once more than one exists, so a
+  // fork/switch (which jumps the conversation) doesn't feel disorienting.
+  const branchInfo = useProgressiveStore(s => {
+    const sess = s.sessions.find(x => x.id === s.currentSessionId);
+    const branches = sess?.branches || [];
+    if (branches.length <= 1) return null;
+    const active = branches.find(b => b.id === sess?.active_branch_id);
+    return active ? { name: active.name, color: active.color, count: branches.length, anchored: active.status === 'anchored' } : null;
+  });
 
   return (
     <div className="relative min-h-[calc(100vh-56px)] overflow-hidden">
@@ -68,39 +84,50 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
       <div className="relative pt-8 md:pt-12 pb-16">
         {/* Project header */}
         <div className="max-w-2xl mx-auto mb-6 flex items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-2">
-            <FolderOpen size={14} className="text-[var(--accent)]" />
-            <span className="text-[13px] font-semibold text-[var(--text-secondary)] truncate max-w-[200px]">
+          <div className="flex items-center gap-2 min-w-0">
+            <FolderOpen size={14} className="text-[var(--accent)] shrink-0" />
+            <span className="text-[13px] font-semibold text-[var(--text-secondary)] truncate max-w-[160px] shrink-0">
               {projectName}
             </span>
+            {branchInfo && (
+              <span
+                className="flex items-center gap-1 text-[12px] text-[var(--text-secondary)] min-w-0 pl-2 ml-0.5 border-l border-[var(--border-subtle)]"
+                title={L(`현재 항로 · 총 ${branchInfo.count}개`, `Current course · ${branchInfo.count} total`)}
+              >
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: branchInfo.color }} />
+                <span className="truncate max-w-[140px]">{branchInfo.name}</span>
+                {branchInfo.anchored && <span className="text-[var(--accent)] shrink-0">⚑</span>}
+              </span>
+            )}
           </div>
           <button onClick={onReset} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[44px] px-2 -mr-2 flex items-center">
             {L('새 프로젝트', 'New Project')}
           </button>
         </div>
 
-        {/* Desktop: flex layout with agent sidebar on right */}
+        {/* Desktop: flex layout with agent sidebar on right.
+            Mobile bottom padding clears the stacked fixed bars: log bar (~56px)
+            + worker bar (~56px) when both are present. */}
         <div className="flex">
-          <div className={`flex-1 px-4 md:px-6 ${hasWorkers ? 'pb-[60px] lg:pb-0' : ''}`}>
+          <div className={`flex-1 px-4 md:px-6 lg:pb-0 ${hasWorkers ? 'pb-[120px]' : showRail ? 'pb-[64px]' : ''}`}>
             <ErrorBoundary fallback={<StepErrorFallback />}>
               <ProgressiveFlow projectId={projectId} />
             </ErrorBoundary>
           </div>
-          {hasWorkers && (
+          {showRail && (
             <div className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-14 h-[calc(100vh-120px)] overflow-y-auto border-l border-[var(--border-subtle)]/50">
-              <AgentSidebar />
-              {/* Voyage chart — sits beneath the agent sidebar so it's
-                  always within reach but doesn't displace the live worker
-                  view. Hidden on mobile in v1; will get a drawer tab in
-                  a follow-up. */}
-              <div className="px-4 pb-6 mt-4">
-                <VoyageChart />
-              </div>
+              {/* Ship's log — the live decision narrative, the primary voyage
+                  companion. Owns the "전체 해도" (full chart) modal and branch
+                  controls. Renders null until the first waypoint. */}
+              <Logbook />
+              {hasWorkers && <AgentSidebar />}
             </div>
           )}
         </div>
 
-        {/* Mobile: bottom drawer */}
+        {/* Mobile: ship's-log bottom drawer (sits above the worker bar), then
+            the worker drawer. Both hidden on lg where the right rail shows. */}
+        <div className="lg:hidden"><LogbookDrawer offset={hasWorkers} /></div>
         {hasWorkers && <WorkerDrawer className="lg:hidden" />}
       </div>
     </div>

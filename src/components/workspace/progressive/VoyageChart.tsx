@@ -24,150 +24,51 @@
  *     mode
  *
  * Backend wiring: reads `session.checkpoints` + `session.active_checkpoint_id`
- * from useProgressiveStore and calls `restoreCheckpoint(id)` on rewind.
+ * from useProgressiveStore and calls `navigateToCheckpoint(id)` on a node pick —
+ * which resolves to switching to the branch that owns the checkpoint, or forking
+ * a new course from it (keeping the chart consistent with the branch model).
  */
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Compass, Anchor, X as XIcon, RotateCcw, ChevronRight,
-  Circle, Users, Sailboat, FileText, Eye, Flag,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Compass, Anchor, X as XIcon, RotateCcw, ChevronRight, Flag, Pencil, GitCompare, Check } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
-import type { VoyageCheckpoint, VoyageStage } from '@/stores/types';
+import type { VoyageStage } from '@/stores/types';
+import { getActivePath } from '@/lib/version-tree';
+import { branchHeadSummary } from '@/lib/branch-summary';
+import { BranchMap } from './BranchMap';
 import { EASE } from './shared/constants';
 
-// ─── Layout constants ────────────────────────────────────────────────
-// Tuned to fit the agent sidebar width (~256-288px after padding).
-const VIEW_W = 240;
-const MAIN_X = 26;          // main route x-position
-const BRANCH_X = 180;        // sibling branch x-position (was 152)
-const ROW_H = 48;            // vertical spacing per waypoint (was 56)
-const NODE_R = 8;            // visible main node radius
-const HIT_R = 14;            // invisible click hit-area radius
-const BRANCH_NODE_R = 5;     // visible branch node radius (was 4.5)
-const BRANCH_HIT_R = 11;     // hit-area for branch node
-const LABEL_X = MAIN_X + 14; // label column start
-const LABEL_W = BRANCH_X - LABEL_X - 18; // label column width (~122)
-const LABEL_H = 26;          // label box height (allows two lines @ 11px)
-const TOP_PAD = 24;
-const MAX_VISIBLE_SIBLINGS = 2;
-
+// Stage order — denominator for the header's "reached / total" waypoint count.
 const STAGE_ORDER: VoyageStage[] = [
   'origin', 'briefing', 'crew_set', 'crew_done', 'mix', 'review', 'anchor',
 ];
-
-// Lucide icons per stage — consistent with the rest of the app and
-// color-controllable (unlike emoji glyphs).
-const STAGE_ICON: Record<VoyageStage, LucideIcon> = {
-  origin: Circle,
-  briefing: Compass,
-  crew_set: Users,
-  crew_done: Sailboat,
-  mix: FileText,
-  review: Eye,
-  anchor: Anchor,
-};
-
-function stageLabel(stage: VoyageStage, locale: 'ko' | 'en'): string {
-  if (locale === 'ko') {
-    return ({
-      origin: '출발', briefing: '항해 준비', crew_set: '선원 배정',
-      crew_done: '항해 완료', mix: '항해 보고서', review: '검토', anchor: '정박',
-    } as Record<VoyageStage, string>)[stage];
-  }
-  return ({
-    origin: 'Origin', briefing: 'Briefing', crew_set: 'Crew',
-    crew_done: 'Voyage done', mix: 'Report', review: 'Review', anchor: 'Anchor',
-  } as Record<VoyageStage, string>)[stage];
-}
-
-function computeActivePath(
-  checkpoints: VoyageCheckpoint[],
-  activeId: string | null,
-): VoyageCheckpoint[] {
-  if (!activeId) return [];
-  const byId = new Map(checkpoints.map(c => [c.id, c]));
-  const path: VoyageCheckpoint[] = [];
-  let cur: VoyageCheckpoint | undefined = byId.get(activeId);
-  let guard = 0;
-  while (cur && guard < 200) {
-    path.unshift(cur);
-    cur = cur.parent_id ? byId.get(cur.parent_id) : undefined;
-    guard += 1;
-  }
-  return path;
-}
-
-// Render a Lucide icon centered at (cx, cy) with the given size and class.
-// Inlined as a foreignObject so the icon stays color-controllable and
-// crisp even inside the SVG canvas.
-function NodeIcon({
-  Icon, cx, cy, size, className,
-}: { Icon: LucideIcon; cx: number; cy: number; size: number; className?: string }) {
-  const half = size / 2;
-  return (
-    <foreignObject x={cx - half} y={cy - half} width={size} height={size}>
-      <div className="w-full h-full flex items-center justify-center pointer-events-none">
-        <Icon size={size} className={className} />
-      </div>
-    </foreignObject>
-  );
-}
 
 export function VoyageChart() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
-  const restoreCheckpoint = useProgressiveStore(s => s.restoreCheckpoint);
+  const navigateToCheckpoint = useProgressiveStore(s => s.navigateToCheckpoint);
+  const switchBranch = useProgressiveStore(s => s.switchBranch);
+  const anchorBranch = useProgressiveStore(s => s.anchorBranch);
+  const deleteBranch = useProgressiveStore(s => s.deleteBranch);
+  const renameBranch = useProgressiveStore(s => s.renameBranch);
+  const locked = useProgressiveStore(s => s.isBranchingLocked());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [overflowParentId, setOverflowParentId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState('');
+  const [compareId, setCompareId] = useState<string | null>(null);
 
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
   const activeId = session?.active_checkpoint_id ?? null;
-  const activePath = useMemo(() => computeActivePath(checkpoints, activeId), [checkpoints, activeId]);
-
-  const reachedStages = useMemo(() => new Set(activePath.map(c => c.stage)), [activePath]);
-  const lastIdx = activePath.length > 0
-    ? STAGE_ORDER.indexOf(activePath[activePath.length - 1].stage)
-    : -1;
-  const futureStages = useMemo(
-    () => STAGE_ORDER.slice(lastIdx + 1).filter(s => !reachedStages.has(s)),
-    [lastIdx, reachedStages],
-  );
-
-  // Siblings of each active-path node (alternative branches the user
-  // could have taken from the same parent). Capped at MAX_VISIBLE_SIBLINGS
-  // to avoid overlap with the next active node — overflow surfaces in a
-  // popover.
-  const siblingsByActiveId = useMemo(() => {
-    const map = new Map<string, VoyageCheckpoint[]>();
-    const activeIds = new Set(activePath.map(c => c.id));
-    for (const cp of activePath) {
-      if (!cp.parent_id) continue;
-      const siblings = checkpoints.filter(
-        c => c.parent_id === cp.parent_id && c.id !== cp.id && !activeIds.has(c.id),
-      );
-      if (siblings.length > 0) map.set(cp.id, siblings);
-    }
-    return map;
-  }, [activePath, checkpoints]);
-
-  const totalBranchCount = useMemo(
-    () => Array.from(siblingsByActiveId.values()).reduce((sum, list) => sum + list.length, 0),
-    [siblingsByActiveId],
-  );
+  const activePath = useMemo(() => getActivePath(checkpoints, activeId), [checkpoints, activeId]);
+  const branches = session?.branches ?? [];
+  const activeBranch = branches.find(b => b.id === session?.active_branch_id) ?? null;
+  const waypoints = useMemo(() => session?.waypoints ?? [], [session?.waypoints]);
 
   if (!session || checkpoints.length === 0) return null;
-
-  const totalRows = activePath.length + futureStages.length;
-  const chartHeight = totalRows * ROW_H + TOP_PAD + 8;
-
-  const yForActiveIdx = (i: number) => i * ROW_H + TOP_PAD;
-  const yForFutureIdx = (i: number) => (activePath.length + i) * ROW_H + TOP_PAD;
 
   const handleNodeClick = (id: string) => {
     setSelectedId(prev => prev === id ? null : id);
@@ -175,10 +76,9 @@ export function VoyageChart() {
   const handleRestoreRequest = (id: string) => {
     setConfirmId(id);
     setSelectedId(null);
-    setOverflowParentId(null);
   };
   const handleConfirm = () => {
-    if (confirmId) restoreCheckpoint(confirmId);
+    if (confirmId) navigateToCheckpoint(confirmId);
     setConfirmId(null);
   };
 
@@ -198,304 +98,183 @@ export function VoyageChart() {
         </span>
       </div>
 
+      {/* Active course summary — shown once the voyage has more than one course */}
+      {branches.length > 1 && activeBranch && (
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[var(--border-subtle)]/40 text-[10px]">
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: activeBranch.color }} />
+          <span className="font-semibold text-[var(--text-primary)] truncate max-w-[130px]">{activeBranch.name}</span>
+          {activeBranch.status === 'anchored' && <Flag size={9} className="text-[var(--accent)] shrink-0" />}
+          <span className="ml-auto text-[var(--text-tertiary)]">{L(`항로 ${branches.length}개`, `${branches.length} courses`)}</span>
+        </div>
+      )}
+
       {/* Chart body */}
       <div className="relative px-2 py-3">
-        <svg
-          width="100%"
-          viewBox={`0 0 ${VIEW_W} ${chartHeight}`}
-          className="overflow-visible"
-          preserveAspectRatio="xMinYMin meet"
-        >
-          <defs>
-            <pattern id="voyage-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" stroke="currentColor" strokeWidth="0.4" fill="none" />
-            </pattern>
-          </defs>
-          {/* Graticule — slightly more present than v1 (0.13 → 0.18) */}
-          <rect
-            x="0" y="0" width={VIEW_W} height={chartHeight}
-            fill="url(#voyage-grid)"
-            className="text-[var(--text-tertiary)]"
-            opacity="0.18"
+        <div className="max-h-[340px] overflow-y-auto">
+          <BranchMap
+            checkpoints={checkpoints}
+            branches={branches}
+            waypoints={session?.waypoints || []}
+            activeBranchId={activeBranch?.id ?? null}
+            activeCheckpointId={activeId}
+            onPick={handleNodeClick}
           />
-
-          {/* Main route — dashed line through active-path nodes */}
-          {activePath.length > 1 && (
-            <line
-              x1={MAIN_X}
-              y1={yForActiveIdx(0)}
-              x2={MAIN_X}
-              y2={yForActiveIdx(activePath.length - 1)}
-              stroke="currentColor"
-              className="text-[var(--accent)]"
-              strokeWidth="1.4"
-              strokeDasharray="3 3"
-              strokeLinecap="round"
-            />
-          )}
-          {/* Ghost line current → destination */}
-          {futureStages.length > 0 && activePath.length > 0 && (
-            <line
-              x1={MAIN_X}
-              y1={yForActiveIdx(activePath.length - 1)}
-              x2={MAIN_X}
-              y2={yForFutureIdx(futureStages.length - 1)}
-              stroke="currentColor"
-              className="text-[var(--text-tertiary)]"
-              strokeWidth="1"
-              strokeDasharray="2 5"
-              strokeLinecap="round"
-              opacity="0.55"
-            />
-          )}
-
-          {/* Sibling branches (curved spurs) — capped at MAX_VISIBLE_SIBLINGS */}
-          {activePath.map((cp, i) => {
-            const sibs = siblingsByActiveId.get(cp.id) || [];
-            if (sibs.length === 0) return null;
-            const visible = sibs.slice(0, MAX_VISIBLE_SIBLINGS);
-            const overflow = Math.max(0, sibs.length - MAX_VISIBLE_SIBLINGS);
-
-            // Spur originates near the parent (the node above on main path)
-            const parentY = i > 0 ? yForActiveIdx(i - 1) : yForActiveIdx(i) - 18;
-            const cx = (MAIN_X + BRANCH_X) / 2;
-
-            return (
-              <g key={`sibs-${cp.id}`}>
-                {visible.map((sib, j) => {
-                  const sibY = parentY + (j + 1) * 16;
-                  return (
-                    <g key={sib.id}>
-                      <path
-                        d={`M ${MAIN_X + 4},${parentY + 5} Q ${cx},${sibY} ${BRANCH_X - BRANCH_NODE_R - 1},${sibY}`}
-                        stroke="currentColor"
-                        className="text-[var(--text-tertiary)]"
-                        strokeWidth="0.9"
-                        strokeDasharray="2 3"
-                        fill="none"
-                        opacity="0.7"
-                      />
-                      {/* Visible branch node */}
-                      <circle
-                        cx={BRANCH_X}
-                        cy={sibY}
-                        r={BRANCH_NODE_R}
-                        className="fill-[var(--bg)] stroke-[var(--text-tertiary)]"
-                        strokeWidth="1.3"
-                      />
-                      {/* Invisible larger hit area */}
-                      <circle
-                        cx={BRANCH_X}
-                        cy={sibY}
-                        r={BRANCH_HIT_R}
-                        fill="transparent"
-                        className="cursor-pointer"
-                        onClick={() => handleRestoreRequest(sib.id)}
-                      >
-                        <title>{sib.label}</title>
-                      </circle>
-                      {/* Inline mini-label below the branch node — no more
-                          hover-only tooltip. Truncates if very long. */}
-                      <foreignObject
-                        x={BRANCH_X - 28}
-                        y={sibY + BRANCH_NODE_R + 1}
-                        width="56"
-                        height="14"
-                      >
-                        <div
-                          className="text-[9px] text-[var(--text-tertiary)] leading-none truncate text-center pointer-events-none"
-                          title={sib.label}
-                        >
-                          {sib.label.length > 10 ? `${sib.label.slice(0, 9)}…` : sib.label}
-                        </div>
-                      </foreignObject>
-                    </g>
-                  );
-                })}
-                {/* Overflow indicator */}
-                {overflow > 0 && (() => {
-                  const overflowY = parentY + (visible.length + 1) * 16;
-                  return (
-                    <g>
-                      <path
-                        d={`M ${MAIN_X + 4},${parentY + 5} Q ${cx},${overflowY} ${BRANCH_X - BRANCH_NODE_R - 1},${overflowY}`}
-                        stroke="currentColor"
-                        className="text-[var(--text-tertiary)]"
-                        strokeWidth="0.7"
-                        strokeDasharray="1.5 3"
-                        fill="none"
-                        opacity="0.5"
-                      />
-                      <circle
-                        cx={BRANCH_X}
-                        cy={overflowY}
-                        r={BRANCH_HIT_R}
-                        fill="transparent"
-                        className="cursor-pointer"
-                        onClick={() => setOverflowParentId(overflowParentId === cp.id ? null : cp.id)}
-                      />
-                      <foreignObject
-                        x={BRANCH_X - 14}
-                        y={overflowY - 7}
-                        width="28"
-                        height="14"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setOverflowParentId(overflowParentId === cp.id ? null : cp.id)}
-                          className="w-full text-[9px] font-semibold text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
-                        >
-                          +{overflow}
-                        </button>
-                      </foreignObject>
-                    </g>
-                  );
-                })()}
-              </g>
-            );
-          })}
-
-          {/* Active-path nodes (drawn after lines so they sit on top) */}
-          {activePath.map((cp, i) => {
-            const isActive = cp.id === activeId;
-            const cy = yForActiveIdx(i);
-            const Icon = STAGE_ICON[cp.stage];
-            return (
-              <g key={cp.id}>
-                {/* Active pulse */}
-                {isActive && (
-                  <motion.circle
-                    cx={MAIN_X}
-                    cy={cy}
-                    r={NODE_R}
-                    className="fill-[var(--accent)]"
-                    initial={{ opacity: 0.55 }}
-                    animate={{ scale: [1, 1.7, 1], opacity: [0.55, 0, 0.55] }}
-                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
-                    style={{ transformOrigin: `${MAIN_X}px ${cy}px` }}
-                  />
-                )}
-                {/* Visible node */}
-                <circle
-                  cx={MAIN_X}
-                  cy={cy}
-                  r={NODE_R}
-                  className={`transition-colors ${
-                    isActive
-                      ? 'fill-[var(--accent)]'
-                      : 'fill-[var(--accent)]/82 stroke-[var(--surface)]'
-                  }`}
-                  strokeWidth={isActive ? 0 : 2}
-                  pointerEvents="none"
-                />
-                {/* Lucide icon, white on filled accent */}
-                <NodeIcon Icon={Icon} cx={MAIN_X} cy={cy} size={10} className="text-white" />
-                {/* Invisible hit area */}
-                <circle
-                  cx={MAIN_X}
-                  cy={cy}
-                  r={HIT_R}
-                  fill="transparent"
-                  className="cursor-pointer"
-                  onClick={() => handleNodeClick(cp.id)}
-                />
-              </g>
-            );
-          })}
-
-          {/* Future ghost nodes */}
-          {futureStages.map((stage, i) => {
-            const isDestination = stage === 'anchor';
-            const cy = yForFutureIdx(i);
-            const Icon = STAGE_ICON[stage];
-            return (
-              <g key={`future-${stage}`}>
-                <circle
-                  cx={MAIN_X}
-                  cy={cy}
-                  r={NODE_R}
-                  className={
-                    isDestination
-                      ? 'fill-[var(--accent)]/8 stroke-[var(--accent)]'
-                      : 'fill-transparent stroke-[var(--text-tertiary)]'
-                  }
-                  strokeWidth="1.2"
-                  strokeDasharray="2 2"
-                  pointerEvents="none"
-                />
-                <NodeIcon
-                  Icon={Icon}
-                  cx={MAIN_X}
-                  cy={cy}
-                  size={10}
-                  className={isDestination ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'}
-                />
-              </g>
-            );
-          })}
-
-          {/* Labels — multi-line wrapping (line-clamp-2) instead of truncate
-              so longer Korean labels don't get chopped to ellipsis */}
-          {activePath.map((cp, i) => {
-            const isActive = cp.id === activeId;
-            return (
-              <foreignObject
-                key={`label-${cp.id}`}
-                x={LABEL_X}
-                y={yForActiveIdx(i) - LABEL_H / 2}
-                width={LABEL_W}
-                height={LABEL_H}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleNodeClick(cp.id)}
-                  className={`text-[11px] font-medium leading-[1.2] cursor-pointer transition-colors text-left w-full h-full flex items-center line-clamp-2 ${
-                    isActive
-                      ? 'text-[var(--text-primary)]'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {cp.label}
-                </button>
-              </foreignObject>
-            );
-          })}
-          {futureStages.map((stage, i) => {
-            const isDestination = stage === 'anchor';
-            return (
-              <foreignObject
-                key={`label-future-${stage}`}
-                x={LABEL_X}
-                y={yForFutureIdx(i) - LABEL_H / 2}
-                width={LABEL_W}
-                height={LABEL_H}
-              >
-                <div className={`text-[11px] leading-[1.2] flex items-center h-full ${
-                  isDestination
-                    ? 'text-[var(--accent)] font-semibold'
-                    : 'text-[var(--text-tertiary)]'
-                }`}>
-                  <span className="line-clamp-2">
-                    {stageLabel(stage, locale === 'ko' ? 'ko' : 'en')}
-                    {isDestination && (
-                      <span className="ml-1.5 text-[9.5px] font-normal text-[var(--accent)]/70">
-                        {L('· 도착지', '· dest.')}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </foreignObject>
-            );
-          })}
-        </svg>
+        </div>
 
         {/* Footer hint — adapts to whether the user has any branches yet.
             First-timers get a "try forking" nudge; veterans get a how-to. */}
         <div className="text-[10px] text-[var(--text-tertiary)] mt-2 px-1 leading-tight">
-          {totalBranchCount === 0
-            ? L('아직 한 항로예요. 기점을 클릭해서 다른 길로 분기해 볼 수 있어요.', 'Single course so far. Click a waypoint to fork a new one.')
-            : L('기점이나 다른 항로를 클릭해서 그 시점으로 돌아갈 수 있어요.', 'Click a waypoint or alt route to rewind there.')}
+          {branches.length <= 1
+            ? L('아직 한 항로예요. 기점을 클릭해 다른 항로를 내볼 수 있어요.', 'Single course so far. Click a waypoint to start a new course.')
+            : L('기점이나 항로를 클릭해 그 시점으로 돌아가거나 새 항로를 낼 수 있어요.', 'Click a waypoint or course to revisit or start a new course there.')}
         </div>
+
+        {/* Course legend — every branch (incl. freshly-forked ones with no
+            divergent checkpoint yet, which the SVG tree can't show). Full
+            management: switch / anchor / delete. */}
+        {branches.length > 1 && (
+          <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]/40 space-y-0.5">
+            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-1">
+              {L('항로 목록', 'Courses')}
+            </div>
+            {branches.map(b => {
+              const isActive = b.id === activeBranch?.id;
+              const count = getActivePath(checkpoints, b.head_checkpoint_id).length;
+              const abandoned = b.status === 'abandoned';
+              return (
+                <div
+                  key={b.id}
+                  className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''} ${abandoned ? 'opacity-50' : ''}`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: b.color }} />
+                  {editingId === b.id ? (
+                    <input
+                      autoFocus
+                      value={draftName}
+                      maxLength={60}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { renameBranch(b.id, draftName); setEditingId(null); }
+                        else if (e.key === 'Escape') setEditingId(null);
+                      }}
+                      onBlur={() => { renameBranch(b.id, draftName); setEditingId(null); }}
+                      className="text-[11px] flex-1 min-w-0 bg-[var(--bg)] border border-[var(--accent)]/40 rounded px-1 py-0.5 text-[var(--text-primary)] focus:outline-none"
+                    />
+                  ) : (
+                    <>
+                      <span className="text-[11px] text-[var(--text-primary)] truncate flex-1 min-w-0" title={b.name}>{b.name}</span>
+                      <button
+                        onClick={() => { setEditingId(b.id); setDraftName(b.name); }}
+                        title={L('이름 변경', 'Rename')}
+                        className="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 cursor-pointer"
+                      >
+                        <Pencil size={10} />
+                      </button>
+                    </>
+                  )}
+                  {b.status === 'anchored' && <Flag size={9} className="text-[var(--accent)] shrink-0" />}
+                  <span className="text-[9px] text-[var(--text-tertiary)] tabular-nums shrink-0">{count}</span>
+                  {isActive ? (
+                    <span className="text-[9px] text-[var(--accent)] font-semibold shrink-0 ml-0.5">{L('활성', 'active')}</span>
+                  ) : (
+                    <button
+                      onClick={() => !locked && switchBranch(b.id)}
+                      disabled={locked}
+                      title={L('이 항로로 전환', 'Switch to this course')}
+                      className={`text-[9px] font-medium text-[var(--accent)] hover:underline shrink-0 ml-0.5 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    >
+                      {L('전환', 'Switch')}
+                    </button>
+                  )}
+                  {b.status !== 'anchored' && (
+                    <button
+                      onClick={() => !locked && anchorBranch(b.id)}
+                      disabled={locked}
+                      title={L('이 항로로 확정', 'Anchor this course')}
+                      className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    >
+                      <Anchor size={11} />
+                    </button>
+                  )}
+                  {!isActive && activeBranch && (
+                    <button
+                      onClick={() => setCompareId(prev => (prev === b.id ? null : b.id))}
+                      title={L('활성 항로와 비교', 'Compare with active course')}
+                      className={`p-0.5 shrink-0 cursor-pointer ${compareId === b.id ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--accent)]'}`}
+                    >
+                      <GitCompare size={11} />
+                    </button>
+                  )}
+                  {!isActive && (
+                    <button
+                      onClick={() => !locked && deleteBranch(b.id)}
+                      disabled={locked}
+                      title={L('항로 삭제', 'Delete course')}
+                      className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    >
+                      <XIcon size={11} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Course comparison — weigh the active course against another before
+            anchoring, so the choice isn't blind. */}
+        {compareId && activeBranch && (() => {
+          const other = branches.find(b => b.id === compareId);
+          if (!other) return null;
+          const cols = [
+            branchHeadSummary(checkpoints, waypoints, activeBranch),
+            branchHeadSummary(checkpoints, waypoints, other),
+          ];
+          return (
+            <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]/40">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)] flex items-center gap-1">
+                  <GitCompare size={10} /> {L('항로 비교', 'Compare courses')}
+                </span>
+                <button onClick={() => setCompareId(null)} aria-label={L('닫기', 'Close')} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer">
+                  <XIcon size={11} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {cols.map((s, i) => (
+                  <div key={s.id} className="rounded-lg border border-[var(--border-subtle)] p-2 space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+                      <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{s.name}</span>
+                      {i === 0 && <span className="text-[8px] text-[var(--accent)] font-bold shrink-0">{L('활성', 'active')}</span>}
+                    </div>
+                    <div>
+                      <div className="text-[8px] uppercase tracking-wide text-[var(--text-tertiary)]">{L('진짜 질문', 'Real question')}</div>
+                      <div className="text-[10px] text-[var(--text-primary)] leading-snug">{s.realQuestion || '—'}</div>
+                    </div>
+                    {s.assumptions.length > 0 && (
+                      <div>
+                        <div className="text-[8px] uppercase tracking-wide text-[var(--text-tertiary)]">{L('남은 가정', 'Open assumptions')}</div>
+                        <ul className="space-y-0.5">
+                          {s.assumptions.map((a, k) => (
+                            <li key={k} className="text-[9.5px] text-[var(--text-secondary)] leading-snug flex gap-1">
+                              <span className="opacity-50 shrink-0">·</span><span className="min-w-0">{a}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-[9px] text-[var(--text-tertiary)] pt-0.5">
+                      <span>{L(`변곡점 ${s.turns}`, `${s.turns} turns`)}</span>
+                      {s.hasFinal && <span className="inline-flex items-center gap-0.5 text-[var(--accent)]"><Check size={8} />{L('산출물', 'draft')}</span>}
+                      {s.status === 'anchored' && <span className="text-[var(--accent)]">⚑</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Selection popover (slides in below the chart for the picked
@@ -535,7 +314,7 @@ export function VoyageChart() {
                   className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[11px] font-semibold text-[var(--accent)] border border-[var(--accent)]/35 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer min-h-[36px]"
                 >
                   <RotateCcw size={11} />
-                  {L('이 분기로 돌아가기', 'Rewind here')}
+                  {L('이 지점에서 항해', 'Sail from here')}
                   <ChevronRight size={10} />
                 </button>
               </div>
@@ -544,55 +323,6 @@ export function VoyageChart() {
         })()}
       </AnimatePresence>
 
-      {/* Overflow popover — siblings beyond MAX_VISIBLE_SIBLINGS */}
-      <AnimatePresence>
-        {overflowParentId && (() => {
-          const sibs = siblingsByActiveId.get(overflowParentId) || [];
-          if (sibs.length <= MAX_VISIBLE_SIBLINGS) return null;
-          const overflow = sibs.slice(MAX_VISIBLE_SIBLINGS);
-          return (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.22, ease: EASE }}
-              className="overflow-hidden border-t border-[var(--text-tertiary)]/20 bg-[var(--bg)]/40"
-            >
-              <div className="px-4 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
-                    {L(`다른 항로 ${overflow.length}개`, `${overflow.length} more alt routes`)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setOverflowParentId(null)}
-                    className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer min-w-[20px] min-h-[20px] flex items-center justify-center"
-                    aria-label={L('닫기', 'Close')}
-                  >
-                    <XIcon size={11} />
-                  </button>
-                </div>
-                <div className="space-y-1">
-                  {overflow.map(sib => (
-                    <button
-                      key={sib.id}
-                      type="button"
-                      onClick={() => handleRestoreRequest(sib.id)}
-                      className="w-full text-left flex items-center gap-2 px-2 py-2 rounded hover:bg-[var(--accent)]/8 transition-colors cursor-pointer group min-h-[32px]"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-tertiary)]/50 group-hover:bg-[var(--accent)] shrink-0 transition-colors" />
-                      <span className="text-[11px] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate flex-1">
-                        {sib.label}
-                      </span>
-                      <RotateCcw size={10} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--accent)] shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          );
-        })()}
-      </AnimatePresence>
 
       {/* Confirm modal */}
       <AnimatePresence>
@@ -626,8 +356,8 @@ export function VoyageChart() {
                       </h3>
                       <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
                         {L(
-                          `'${target.label}' 시점으로 돌아갑니다. 현재 진행한 작업은 다른 분기로 보존돼요.`,
-                          `Rewinds to '${target.label}'. Your current course is preserved as a sibling branch.`,
+                          `'${target.label}' 시점으로 돌아갑니다. 현재 진행한 작업은 다른 항로로 보존돼요.`,
+                          `Rewinds to '${target.label}'. Your current work is preserved as a separate course.`,
                         )}
                       </p>
                     </div>

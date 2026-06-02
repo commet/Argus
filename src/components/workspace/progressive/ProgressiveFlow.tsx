@@ -39,6 +39,8 @@ import type { StrategicForkEffect, WeaknessCheckEffect } from '@/lib/question-ty
 import { WorkerReportBlock } from './WorkerCard';
 import { PersonaPoolModal } from './PersonaPoolModal';
 import { WorkerAvatar, AvatarRow } from './WorkerAvatar';
+import { useChronicler } from './useChronicler';
+import { voyageLogToMarkdown } from '@/lib/export';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext, useWorkers } from './WorkerPanel';
 import { useStaggeredReveal } from '@/hooks/useStaggeredReveal';
@@ -690,7 +692,12 @@ function FinalCard({
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const copyTarget = releasedContent && releasedContent.length > 0 ? releasedContent : content;
+  const logSession = useProgressiveStore(s => (sessionId ? s.sessions.find(ss => ss.id === sessionId) : null) ?? null);
+  const baseTarget = releasedContent && releasedContent.length > 0 ? releasedContent : content;
+  // Append the decision trail so the exported document carries the *process*,
+  // not just the conclusion ("the process is the deliverable").
+  const voyageLog = voyageLogToMarkdown(logSession, locale as 'ko' | 'en');
+  const copyTarget = voyageLog ? `${baseTarget}\n\n---\n\n${voyageLog}\n` : baseTarget;
   const copyLabel = releasedContent && releasedContent !== content && releasedLabel
     ? L(`${releasedLabel} 복사`, `Copy ${releasedLabel}`)
     : L('복사', 'Copy');
@@ -1766,6 +1773,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // Global click-outside: clears sticky attribution hover state when user taps blank space
   useAttributionClickOutside();
   const [busy, setBusy] = useState(false);
+  // Chronicler — enriches log waypoints with narration once the stream settles.
+  useChronicler(session, !busy);
   const [error, setError] = useState<string | null>(null);
   const [showMix, setShowMix] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
@@ -3039,7 +3048,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     <div>
                       {L('현재', 'Currently on')}{' '}
                       <span className="font-semibold">{activeDraft.version_label}</span>
-                      {L('에서 분기 작업 중', ' (branch)')}
+                      {L('에서 수정 중', ' (revision)')}
                     </div>
                     {justReactivatedFromBranch && (
                       <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
@@ -3264,7 +3273,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-[var(--accent)] hover:opacity-90 transition-opacity"
                   onClick={() => handleBranchToDraft(previewDraft.id)}
                 >
-                  <GitBranch className="w-3 h-3" /> {L('여기서 분기', 'Branch from here')}
+                  <GitBranch className="w-3 h-3" /> {L('이 버전에서 수정', 'Revise from here')}
                 </button>
               )}
             </footer>

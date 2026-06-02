@@ -135,7 +135,7 @@ export function VersionHistoryDrawer({
                 className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
                 onClick={() => onBranch(nodeId)}
               >
-                <GitBranch className="w-3 h-3" /> {L('여기서 분기', 'Branch here')}
+                <GitBranch className="w-3 h-3" /> {L('이 버전에서 수정', 'Revise here')}
               </button>
             )}
             {canPromote && (
@@ -169,7 +169,7 @@ export function VersionHistoryDrawer({
           <div>
             <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{L('버전 히스토리', 'Version History')}</h3>
             <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-              {L('클릭으로 돌아가거나 새 분기를 시작하세요', 'Click to go back or start a new branch')}
+              {L('클릭으로 돌아가거나 새 수정본을 시작하세요', 'Click to revisit or start a new revision')}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} aria-label={L('닫기', 'Close')}>

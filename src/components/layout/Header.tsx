@@ -92,7 +92,7 @@ export function Header() {
         <div className="h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shadow-[var(--shadow-sm)] group-hover:shadow-[var(--glow-gold)] transition-all duration-300" style={{ background: 'var(--gradient-gold)' }}>
-              <span className="text-white text-[13px] font-black tracking-tight">O</span>
+              <span className="text-white text-[13px] font-black tracking-tight">A</span>
             </div>
             <span className="text-[var(--primary)] font-extrabold text-[18px] tracking-tight">Argus</span>
           </Link>
