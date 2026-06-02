@@ -66,6 +66,15 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
     return (sess?.waypoints?.length ?? 0) > 0;
   });
   const showRail = hasWorkers || hasWaypoints;
+  // Which course are we on? Shown in the header once more than one exists, so a
+  // fork/switch (which jumps the conversation) doesn't feel disorienting.
+  const branchInfo = useProgressiveStore(s => {
+    const sess = s.sessions.find(x => x.id === s.currentSessionId);
+    const branches = sess?.branches || [];
+    if (branches.length <= 1) return null;
+    const active = branches.find(b => b.id === sess?.active_branch_id);
+    return active ? { name: active.name, color: active.color, count: branches.length, anchored: active.status === 'anchored' } : null;
+  });
 
   return (
     <div className="relative min-h-[calc(100vh-56px)] overflow-hidden">
@@ -75,11 +84,21 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
       <div className="relative pt-8 md:pt-12 pb-16">
         {/* Project header */}
         <div className="max-w-2xl mx-auto mb-6 flex items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-2">
-            <FolderOpen size={14} className="text-[var(--accent)]" />
-            <span className="text-[13px] font-semibold text-[var(--text-secondary)] truncate max-w-[200px]">
+          <div className="flex items-center gap-2 min-w-0">
+            <FolderOpen size={14} className="text-[var(--accent)] shrink-0" />
+            <span className="text-[13px] font-semibold text-[var(--text-secondary)] truncate max-w-[160px] shrink-0">
               {projectName}
             </span>
+            {branchInfo && (
+              <span
+                className="flex items-center gap-1 text-[12px] text-[var(--text-secondary)] min-w-0 pl-2 ml-0.5 border-l border-[var(--border-subtle)]"
+                title={L(`현재 항로 · 총 ${branchInfo.count}개`, `Current course · ${branchInfo.count} total`)}
+              >
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: branchInfo.color }} />
+                <span className="truncate max-w-[140px]">{branchInfo.name}</span>
+                {branchInfo.anchored && <span className="text-[var(--accent)] shrink-0">⚑</span>}
+              </span>
+            )}
           </div>
           <button onClick={onReset} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[44px] px-2 -mr-2 flex items-center">
             {L('새 프로젝트', 'New Project')}
