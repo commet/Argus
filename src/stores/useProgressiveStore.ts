@@ -259,6 +259,8 @@ interface ProgressiveState {
    *  to it (ancestry shared with surviving branches is kept). No-op on the
    *  active branch or the last remaining one. */
   deleteBranch: (branchId: string) => void;
+  /** Rename a course-line. Trims, ignores empty, caps length. */
+  renameBranch: (branchId: string, name: string) => void;
   /** Merge Chronicler narration (significance / why_abandoned) into a waypoint.
    *  Best-effort enrichment from the async LLM pass; no-op if not found. */
   enrichWaypoint: (waypointId: string, patch: Partial<Waypoint>) => void;
@@ -1490,6 +1492,20 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     persist(sessions);
     set({ sessions });
     track('voyage_delete_branch', {});
+  },
+
+  renameBranch: (branchId, name) => {
+    const trimmed = name.trim().slice(0, 60);
+    if (!trimmed) return;
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    const session = get().currentSession();
+    if (!session?.branches?.some(b => b.id === branchId)) return;
+    const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
+      branches: (s.branches || []).map(b => b.id === branchId ? { ...b, name: trimmed } : b),
+    }));
+    persist(sessions);
+    set({ sessions });
   },
 
   enrichWaypoint: (waypointId, patch) => {

@@ -350,6 +350,24 @@ describe('Voyage branch layer', () => {
     });
   });
 
+  describe('renameBranch', () => {
+    it('renames a course, trims, ignores empty, and caps length', () => {
+      const sid = startSession();
+      api().recordCheckpoint('origin');
+      const id = session(sid).active_branch_id!;
+      const name = () => session(sid).branches!.find(b => b.id === id)!.name;
+
+      api().renameBranch(id, '  챗봇 직접 제작  ');
+      expect(name()).toBe('챗봇 직접 제작'); // trimmed
+
+      api().renameBranch(id, '   ');
+      expect(name()).toBe('챗봇 직접 제작'); // empty ignored — keeps previous
+
+      api().renameBranch(id, 'x'.repeat(80));
+      expect(name().length).toBe(60); // capped
+    });
+  });
+
   describe('navigateToCheckpoint (chart node resolution)', () => {
     it('switches to the branch that owns a checkpoint off the active course', () => {
       const sid = startSession();

@@ -31,7 +31,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, Anchor, X as XIcon, RotateCcw, ChevronRight, Flag } from 'lucide-react';
+import { Compass, Anchor, X as XIcon, RotateCcw, ChevronRight, Flag, Pencil } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
 import type { VoyageStage } from '@/stores/types';
@@ -52,9 +52,12 @@ export function VoyageChart() {
   const switchBranch = useProgressiveStore(s => s.switchBranch);
   const anchorBranch = useProgressiveStore(s => s.anchorBranch);
   const deleteBranch = useProgressiveStore(s => s.deleteBranch);
+  const renameBranch = useProgressiveStore(s => s.renameBranch);
   const locked = useProgressiveStore(s => s.isBranchingLocked());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState('');
 
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
   const activeId = session?.active_checkpoint_id ?? null;
@@ -139,7 +142,31 @@ export function VoyageChart() {
                   className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''} ${abandoned ? 'opacity-50' : ''}`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: b.color }} />
-                  <span className="text-[11px] text-[var(--text-primary)] truncate flex-1 min-w-0" title={b.name}>{b.name}</span>
+                  {editingId === b.id ? (
+                    <input
+                      autoFocus
+                      value={draftName}
+                      maxLength={60}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { renameBranch(b.id, draftName); setEditingId(null); }
+                        else if (e.key === 'Escape') setEditingId(null);
+                      }}
+                      onBlur={() => { renameBranch(b.id, draftName); setEditingId(null); }}
+                      className="text-[11px] flex-1 min-w-0 bg-[var(--bg)] border border-[var(--accent)]/40 rounded px-1 py-0.5 text-[var(--text-primary)] focus:outline-none"
+                    />
+                  ) : (
+                    <>
+                      <span className="text-[11px] text-[var(--text-primary)] truncate flex-1 min-w-0" title={b.name}>{b.name}</span>
+                      <button
+                        onClick={() => { setEditingId(b.id); setDraftName(b.name); }}
+                        title={L('이름 변경', 'Rename')}
+                        className="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 cursor-pointer"
+                      >
+                        <Pencil size={10} />
+                      </button>
+                    </>
+                  )}
                   {b.status === 'anchored' && <Flag size={9} className="text-[var(--accent)] shrink-0" />}
                   <span className="text-[9px] text-[var(--text-tertiary)] tabular-nums shrink-0">{count}</span>
                   {isActive ? (
