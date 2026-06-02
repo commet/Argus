@@ -43,7 +43,7 @@ export default async function AppleIcon() {
             lineHeight: 1,
           }}
         >
-          O
+          A
         </div>
         {/* Bottom accent */}
         <div
