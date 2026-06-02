@@ -31,11 +31,12 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, Anchor, X as XIcon, RotateCcw, ChevronRight, Flag, Pencil } from 'lucide-react';
+import { Compass, Anchor, X as XIcon, RotateCcw, ChevronRight, Flag, Pencil, GitCompare, Check } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
 import type { VoyageStage } from '@/stores/types';
 import { getActivePath } from '@/lib/version-tree';
+import { branchHeadSummary } from '@/lib/branch-summary';
 import { BranchMap } from './BranchMap';
 import { EASE } from './shared/constants';
 
@@ -58,12 +59,14 @@ export function VoyageChart() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
+  const [compareId, setCompareId] = useState<string | null>(null);
 
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
   const activeId = session?.active_checkpoint_id ?? null;
   const activePath = useMemo(() => getActivePath(checkpoints, activeId), [checkpoints, activeId]);
   const branches = session?.branches ?? [];
   const activeBranch = branches.find(b => b.id === session?.active_branch_id) ?? null;
+  const waypoints = useMemo(() => session?.waypoints ?? [], [session?.waypoints]);
 
   if (!session || checkpoints.length === 0) return null;
 
@@ -191,6 +194,15 @@ export function VoyageChart() {
                       <Anchor size={11} />
                     </button>
                   )}
+                  {!isActive && activeBranch && (
+                    <button
+                      onClick={() => setCompareId(prev => (prev === b.id ? null : b.id))}
+                      title={L('활성 항로와 비교', 'Compare with active course')}
+                      className={`p-0.5 shrink-0 cursor-pointer ${compareId === b.id ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--accent)]'}`}
+                    >
+                      <GitCompare size={11} />
+                    </button>
+                  )}
                   {!isActive && (
                     <button
                       onClick={() => !locked && deleteBranch(b.id)}
@@ -206,6 +218,61 @@ export function VoyageChart() {
             })}
           </div>
         )}
+
+        {/* Course comparison — weigh the active course against another before
+            anchoring, so the choice isn't blind. */}
+        {compareId && activeBranch && (() => {
+          const other = branches.find(b => b.id === compareId);
+          if (!other) return null;
+          const cols = [
+            branchHeadSummary(checkpoints, waypoints, activeBranch),
+            branchHeadSummary(checkpoints, waypoints, other),
+          ];
+          return (
+            <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]/40">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)] flex items-center gap-1">
+                  <GitCompare size={10} /> {L('항로 비교', 'Compare courses')}
+                </span>
+                <button onClick={() => setCompareId(null)} aria-label={L('닫기', 'Close')} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer">
+                  <XIcon size={11} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {cols.map((s, i) => (
+                  <div key={s.id} className="rounded-lg border border-[var(--border-subtle)] p-2 space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+                      <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{s.name}</span>
+                      {i === 0 && <span className="text-[8px] text-[var(--accent)] font-bold shrink-0">{L('활성', 'active')}</span>}
+                    </div>
+                    <div>
+                      <div className="text-[8px] uppercase tracking-wide text-[var(--text-tertiary)]">{L('진짜 질문', 'Real question')}</div>
+                      <div className="text-[10px] text-[var(--text-primary)] leading-snug">{s.realQuestion || '—'}</div>
+                    </div>
+                    {s.assumptions.length > 0 && (
+                      <div>
+                        <div className="text-[8px] uppercase tracking-wide text-[var(--text-tertiary)]">{L('남은 가정', 'Open assumptions')}</div>
+                        <ul className="space-y-0.5">
+                          {s.assumptions.map((a, k) => (
+                            <li key={k} className="text-[9.5px] text-[var(--text-secondary)] leading-snug flex gap-1">
+                              <span className="opacity-50 shrink-0">·</span><span className="min-w-0">{a}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-[9px] text-[var(--text-tertiary)] pt-0.5">
+                      <span>{L(`변곡점 ${s.turns}`, `${s.turns} turns`)}</span>
+                      {s.hasFinal && <span className="inline-flex items-center gap-0.5 text-[var(--accent)]"><Check size={8} />{L('산출물', 'draft')}</span>}
+                      {s.status === 'anchored' && <span className="text-[var(--accent)]">⚑</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Selection popover (slides in below the chart for the picked

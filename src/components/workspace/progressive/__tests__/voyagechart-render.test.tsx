@@ -61,5 +61,6 @@ describe('VoyageChart render', () => {
     expect(html).toContain('활성');          // active marker on main
     expect(html).toContain('전환');          // switch control on the fork
     expect(html).toContain('이름 변경');      // rename affordance on each course
+    expect(html).toContain('활성 항로와 비교'); // compare affordance on non-active course
   });
 });
