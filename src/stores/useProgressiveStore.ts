@@ -235,7 +235,7 @@ interface ProgressiveState {
   /** Record a checkpoint at the current state. Called automatically at
    *  each stage transition. Returns the new checkpoint, or null if no
    *  active session. */
-  recordCheckpoint: (stage: VoyageStage, label?: string) => VoyageCheckpoint | null;
+  recordCheckpoint: (stage: VoyageStage, label?: string, silent?: boolean) => VoyageCheckpoint | null;
   /** Rewind to a checkpoint: replaces the live session fields with that
    *  waypoint's snapshot and moves active_checkpoint_id to it. The next
    *  recordCheckpoint() call will then attach to it as parent — producing
@@ -1218,7 +1218,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
 
   // ─── Voyage chart ───
 
-  recordCheckpoint: (stage, label) => {
+  recordCheckpoint: (stage, label, silent) => {
     const { currentSessionId } = get();
     if (!currentSessionId) return null;
     const session = get().currentSession();
@@ -1260,10 +1260,13 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // Chronicler — derive a ship's-log waypoint from this transition. The
     // parent checkpoint's state is the "before"; deriveWaypoint judges salience
     // deterministically and returns null for non-turns (the common case).
+    // `silent` checkpoints (the safety snapshots fork/switch take to preserve
+    // in-progress work) are system events, not decision turns — they never
+    // narrate, so they don't pollute the log with spurious waypoints.
     const parentCp = session.active_checkpoint_id
       ? (session.checkpoints || []).find(c => c.id === session.active_checkpoint_id)
       : null;
-    const waypoint = deriveWaypoint({
+    const waypoint = silent ? null : deriveWaypoint({
       newCheckpoint: checkpoint,
       prevState: parentCp?.state_snapshot ?? null,
       problemText: session.problem_text,
@@ -1352,7 +1355,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // safety checkpoint advances the *current* branch head (active_branch_id is
     // still the source branch at this point), so nothing is lost.
     if (progressAheadOfHead(session)) {
-      get().recordCheckpoint(phaseToStage(session.phase));
+      get().recordCheckpoint(phaseToStage(session.phase), undefined, true);
       session = get().currentSession();
       if (!session) return null;
     }
@@ -1360,9 +1363,17 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const branches = session.branches || [];
     const newBranchId = generateId();
     const ko = getCurrentLanguage() === 'ko';
+    // De-duplicate the name: forking the same road-not-taken twice (or any name
+    // collision) would otherwise produce two identical chips — confusing.
+    let name = label || (ko ? `항로 ${branches.length}` : `Course ${branches.length}`);
+    if (branches.some(b => b.name === name)) {
+      let n = 2;
+      while (branches.some(b => b.name === `${name} ${n}`)) n++;
+      name = `${name} ${n}`;
+    }
     const newBranch: VoyageBranch = {
       id: newBranchId,
-      name: label || (ko ? `항로 ${branches.length}` : `Course ${branches.length}`),
+      name,
       head_checkpoint_id: fromCheckpointId,
       forked_from_checkpoint_id: fromCheckpointId,
       status: 'sailing',
@@ -1395,7 +1406,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
 
     // Preserve in-progress work on the current branch first (no data loss).
     if (progressAheadOfHead(session)) {
-      get().recordCheckpoint(phaseToStage(session.phase));
+      get().recordCheckpoint(phaseToStage(session.phase), undefined, true);
       session = get().currentSession();
       if (!session) return;
     }

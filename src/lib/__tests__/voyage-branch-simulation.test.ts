@@ -187,6 +187,16 @@ describe('Voyage branch layer', () => {
       expect(main.head_checkpoint_id).toBe(c2.id);
     });
 
+    it('de-dupes branch names on collision (no two identical chips)', () => {
+      const sid = startSession();
+      const c1 = api().recordCheckpoint('origin')!;
+      api().forkBranch(c1.id, '챗봇 직접 제작');
+      api().forkBranch(c1.id, '챗봇 직접 제작'); // same road again
+      const names = session(sid).branches!.map(b => b.name);
+      expect(names).toContain('챗봇 직접 제작');
+      expect(names).toContain('챗봇 직접 제작 2');
+    });
+
     it('sailing a fork attaches new checkpoints as siblings (real divergence)', () => {
       const sid = startSession();
       const c1 = api().recordCheckpoint('origin')!;
@@ -300,6 +310,20 @@ describe('Voyage branch layer', () => {
       const main = s.branches!.find(b => b.id === mainId)!;
       const mainHead = s.checkpoints!.find(c => c.id === main.head_checkpoint_id)!;
       expect(mainHead.state_snapshot.workers.some(w => w.id === 'w1' && !!w.result)).toBe(true);
+    });
+
+    it('safety checkpoint on fork is silent — no spurious narrative waypoint', () => {
+      const sid = startSession();
+      const c1 = api().recordCheckpoint('origin')!;       // departure waypoint
+      const before = session(sid).waypoints?.length ?? 0;
+      // Make live state advance past the head WITHOUT a checkpoint, at the
+      // 'complete' phase (maps to the 'anchor' stage).
+      useProgressiveStore.setState(stt => ({
+        sessions: stt.sessions.map(s => (s.id === sid ? { ...s, phase: 'complete' as const, final_deliverable: 'doc' } : s)),
+      }));
+      api().forkBranch(c1.id); // fires a silent safety checkpoint (progress ahead)
+      // The safety snapshot must NOT emit an anchorage waypoint.
+      expect(session(sid).waypoints?.length ?? 0).toBe(before);
     });
 
     it('recordCheckpoint advances some branch even if active_branch_id is corrupted', () => {
