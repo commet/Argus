@@ -17,12 +17,13 @@ const emptyState = (): VoyageCheckpointState => ({
 const checkpoints: VoyageCheckpoint[] = [
   { id: 'c1', parent_id: null, stage: 'origin', label: '출발', created_at: '2026-01-01T00:00:01.000Z', state_snapshot: emptyState() },
   { id: 'c2', parent_id: 'c1', stage: 'briefing', label: '항해 준비 1', created_at: '2026-01-01T00:00:02.000Z', state_snapshot: emptyState() },
+  { id: 'c3', parent_id: 'c1', stage: 'briefing', label: '분기 항로', created_at: '2026-01-01T00:00:03.000Z', state_snapshot: emptyState() },
 ];
 const session: Partial<ProgressiveSession> = {
   id: 's1', checkpoints, active_checkpoint_id: 'c2',
   branches: [
     { id: 'b-main', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'x' },
-    { id: 'b-fork', name: '챗봇 분기', head_checkpoint_id: 'c1', forked_from_checkpoint_id: 'c1', status: 'sailing', color: '#8b6914', created_at: 'y' },
+    { id: 'b-fork', name: '챗봇 분기', head_checkpoint_id: 'c3', forked_from_checkpoint_id: 'c1', status: 'sailing', color: '#8b6914', created_at: 'y' },
   ],
   active_branch_id: 'b-main',
 };
@@ -38,11 +39,13 @@ vi.mock('@/hooks/useLocale', () => ({ useLocale: () => 'ko' }));
 import { VoyageChart } from '@/components/workspace/progressive/VoyageChart';
 
 describe('VoyageChart render', () => {
-  it('renders the chart with seeded checkpoints without throwing', () => {
+  it('renders the branch map SVG with color-coded course-lines', () => {
     const html = renderToStaticMarkup(createElement(VoyageChart));
     expect(html.length).toBeGreaterThan(100);
-    expect(html).toContain('출발');     // origin stage label
-    expect(html).toContain('항해 준비'); // briefing stage label
+    expect(html).toContain('branchmap-grid'); // BranchMap SVG present
+    expect(html).toContain('<circle');         // checkpoint nodes
+    expect(html).toContain('#2d4a7c');         // main course color
+    expect(html).toContain('#8b6914');         // fork course color (lane 1 edge)
   });
 
   it('shows the active-course summary when multiple branches exist', () => {
