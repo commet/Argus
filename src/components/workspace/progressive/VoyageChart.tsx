@@ -110,14 +110,16 @@ export function VoyageChart() {
 
       {/* Chart body */}
       <div className="relative px-2 py-3">
-        <BranchMap
-          checkpoints={checkpoints}
-          branches={branches}
-          waypoints={session?.waypoints || []}
-          activeBranchId={activeBranch?.id ?? null}
-          activeCheckpointId={activeId}
-          onPick={handleNodeClick}
-        />
+        <div className="max-h-[340px] overflow-y-auto">
+          <BranchMap
+            checkpoints={checkpoints}
+            branches={branches}
+            waypoints={session?.waypoints || []}
+            activeBranchId={activeBranch?.id ?? null}
+            activeCheckpointId={activeId}
+            onPick={handleNodeClick}
+          />
+        </div>
 
         {/* Footer hint — adapts to whether the user has any branches yet.
             First-timers get a "try forking" nudge; veterans get a how-to. */}

@@ -50,11 +50,14 @@ export function BranchMap({
 
   const dim = (branchId: string | null) =>
     branchId && statusByBranch.get(branchId) === 'abandoned' ? 0.4 : 1;
+  // Floor the viewBox width so a 1–2 lane voyage doesn't get upscaled into
+  // giant nodes when the SVG stretches to the container.
+  const vbW = Math.max(width, BM.MIN_VIEW_W);
 
   return (
     <svg
       width="100%"
-      viewBox={`0 0 ${width} ${height}`}
+      viewBox={`0 0 ${vbW} ${height}`}
       className="overflow-visible"
       preserveAspectRatio="xMinYMin meet"
       role="img"
@@ -65,7 +68,7 @@ export function BranchMap({
           <path d="M 20 0 L 0 0 0 20" stroke="currentColor" strokeWidth="0.4" fill="none" />
         </pattern>
       </defs>
-      <rect x="0" y="0" width={width} height={height} fill="url(#branchmap-grid)" className="text-[var(--text-tertiary)]" opacity="0.16" />
+      <rect x="0" y="0" width={vbW} height={height} fill="url(#branchmap-grid)" className="text-[var(--text-tertiary)]" opacity="0.16" />
 
       {/* Edges — colored by the branch the segment leads into */}
       {nodes.map((n) => {
@@ -79,7 +82,7 @@ export function BranchMap({
             d={edgePath(p.x, p.y, n.x, n.y)}
             fill="none"
             stroke={n.color}
-            strokeWidth={isActiveBranch ? 2 : 1.3}
+            strokeWidth={isActiveBranch ? 1.6 : 1.1}
             strokeLinecap="round"
             opacity={dim(n.branchId) * (isActiveBranch ? 1 : 0.75)}
           />
@@ -105,7 +108,7 @@ export function BranchMap({
               r={r}
               fill={hasWaypoint ? n.color : 'var(--surface)'}
               stroke={n.color}
-              strokeWidth={isActiveBranch ? 2 : 1.4}
+              strokeWidth={isActiveBranch ? 1.6 : 1.2}
             />
             {anchored && (
               <foreignObject x={n.x + r + 1} y={n.y - 6} width={12} height={12}>

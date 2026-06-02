@@ -17,13 +17,16 @@ import { getActivePath } from '@/lib/version-tree';
 import type { VoyageBranch, VoyageCheckpoint, VoyageStage } from '@/stores/types';
 
 export const BM = {
-  LANE_W: 28,   // horizontal gap between lanes
-  ROW_H: 40,    // vertical gap between checkpoints
-  LEFT: 22,     // left margin (lane 0 x)
-  TOP: 20,      // top margin (row 0 y)
-  NODE_R: 6,    // node radius
-  RIGHT_PAD: 18,
-  BOTTOM: 20,
+  LANE_W: 30,   // horizontal gap between lanes
+  ROW_H: 34,    // vertical gap between checkpoints
+  LEFT: 16,     // left margin (lane 0 x)
+  TOP: 16,      // top margin (row 0 y)
+  NODE_R: 5,    // node radius (in viewBox units)
+  RIGHT_PAD: 16,
+  BOTTOM: 16,
+  /** Minimum viewBox width so a 1–2 lane voyage isn't upscaled into giant
+   *  blurry nodes when the SVG stretches to the container width. */
+  MIN_VIEW_W: 240,
 } as const;
 
 export interface BranchMapNode {
