@@ -242,6 +242,20 @@ describe('Voyage branch layer', () => {
       expect(s.branches!.find(b => b.id === mainId)!.status).toBe('abandoned');
       expect(s.branches).toHaveLength(2); // nothing deleted
     });
+
+    it('anchoring a non-active branch switches to it (output = anchored course)', () => {
+      const sid = startSession();
+      const c1 = api().recordCheckpoint('origin')!;
+      api().recordCheckpoint('briefing');         // main → c2
+      const mainId = session(sid).active_branch_id!;
+      const forkId = api().forkBranch(c1.id)!;     // active = fork
+      api().switchBranch(mainId);                  // active = main
+      api().anchorBranch(forkId);                  // anchor the non-active fork
+      const s = session(sid);
+      expect(s.active_branch_id).toBe(forkId);     // switched to the anchored course
+      expect(s.branches!.find(b => b.id === forkId)!.status).toBe('anchored');
+      expect(s.branches!.find(b => b.id === mainId)!.status).toBe('abandoned');
+    });
   });
 
   describe('quota guards (Phase 6)', () => {

@@ -137,7 +137,11 @@ export function Logbook() {
               );
             })}
           </div>
-          {activeBranch && activeBranch.status !== 'anchored' && (
+          {activeBranch?.status === 'anchored' ? (
+            <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--accent)]">
+              <Flag size={10} /> {L(`최종 항로 · ${branches.length}개 중 선택`, `Anchored · chosen from ${branches.length}`)}
+            </span>
+          ) : activeBranch && (
             <button
               onClick={() => !locked && anchorBranch(activeBranch.id)}
               disabled={locked}

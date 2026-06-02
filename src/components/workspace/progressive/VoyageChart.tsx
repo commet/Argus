@@ -39,6 +39,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
 import type { VoyageCheckpoint, VoyageStage } from '@/stores/types';
+import { getActivePath } from '@/lib/version-tree';
 import { EASE } from './shared/constants';
 
 // ─── Layout constants ────────────────────────────────────────────────
@@ -86,22 +87,9 @@ function stageLabel(stage: VoyageStage, locale: 'ko' | 'en'): string {
   } as Record<VoyageStage, string>)[stage];
 }
 
-function computeActivePath(
-  checkpoints: VoyageCheckpoint[],
-  activeId: string | null,
-): VoyageCheckpoint[] {
-  if (!activeId) return [];
-  const byId = new Map(checkpoints.map(c => [c.id, c]));
-  const path: VoyageCheckpoint[] = [];
-  let cur: VoyageCheckpoint | undefined = byId.get(activeId);
-  let guard = 0;
-  while (cur && guard < 200) {
-    path.unshift(cur);
-    cur = cur.parent_id ? byId.get(cur.parent_id) : undefined;
-    guard += 1;
-  }
-  return path;
-}
+// Active-path walking lives in the shared, cycle-guarded `getActivePath`
+// (lib/version-tree) — VoyageCheckpoint satisfies its {id, parent_id, created_at}
+// shape, so the chart and the store derive lineage the same way.
 
 // Render a Lucide icon centered at (cx, cy) with the given size and class.
 // Inlined as a foreignObject so the icon stays color-controllable and
@@ -130,7 +118,7 @@ export function VoyageChart() {
 
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
   const activeId = session?.active_checkpoint_id ?? null;
-  const activePath = useMemo(() => computeActivePath(checkpoints, activeId), [checkpoints, activeId]);
+  const activePath = useMemo(() => getActivePath(checkpoints, activeId), [checkpoints, activeId]);
 
   const reachedStages = useMemo(() => new Set(activePath.map(c => c.stage)), [activePath]);
   const lastIdx = activePath.length > 0

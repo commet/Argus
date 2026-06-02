@@ -1371,6 +1371,11 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const session = get().currentSession();
     if (!session?.branches) return;
     if (!session.branches.some(b => b.id === branchId)) return;
+    // Make the chosen course canonical first: switch to it so the live session
+    // fields (and therefore the final deliverable / export) ARE this branch's
+    // state. Without this, anchoring a non-active branch would leave the output
+    // pointing at a different course.
+    if (session.active_branch_id !== branchId) get().switchBranch(branchId);
     // Chosen branch → anchored; every other course-line → abandoned (kept in
     // the tree, still switchable, just visually retired).
     const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
