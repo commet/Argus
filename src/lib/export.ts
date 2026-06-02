@@ -1,10 +1,51 @@
-import type { ReframeItem, SynthesizeItem, RecastItem, HiddenAssumption } from '@/stores/types';
+import type { ReframeItem, SynthesizeItem, RecastItem, HiddenAssumption, ProgressiveSession, WaypointType } from '@/stores/types';
+import { getActivePath } from '@/lib/version-tree';
 
 const actorLabels: Record<string, string> = {
   ai: '🤖 AI',
   human: '🧠 사람',
   both: '🤝 협업',
 };
+
+/**
+ * Render the active branch's ship's log as a markdown section, appended to the
+ * exported deliverable so the *decision trail* ships with the document — the
+ * product's "the process is the deliverable" promise. Returns '' when empty.
+ */
+const WP_EXPORT: Record<WaypointType, { ko: string; en: string; glyph: string }> = {
+  departure:     { ko: '출항',      en: 'Departure',     glyph: '⚓' },
+  course_change: { ko: '침로 변경',  en: 'Course change', glyph: '↻' },
+  reef:          { ko: '암초',      en: 'Reef',          glyph: '⚠' },
+  sighting:      { ko: '관측',      en: 'Sighting',      glyph: '👁' },
+  headwind:      { ko: '역풍',      en: 'Headwind',      glyph: '🜨' },
+  anchorage:     { ko: '정박',      en: 'Anchorage',     glyph: '⚑' },
+};
+
+export function voyageLogToMarkdown(session: ProgressiveSession | null | undefined, locale: 'ko' | 'en'): string {
+  if (!session) return '';
+  const branches = session.branches || [];
+  const active = branches.find(b => b.id === session.active_branch_id);
+  const headId = active?.head_checkpoint_id ?? session.active_checkpoint_id ?? null;
+  const path = getActivePath(session.checkpoints || [], headId);
+  const order = new Map(path.map((c, i) => [c.id, i]));
+  const wps = (session.waypoints || [])
+    .filter(w => order.has(w.checkpoint_id))
+    .sort((a, b) => (order.get(a.checkpoint_id)! - order.get(b.checkpoint_id)!));
+  if (wps.length === 0) return '';
+
+  const ko = locale === 'ko';
+  const out: string[] = [ko ? '## 항해일지 — 사고의 궤적' : "## Ship's log — the decision trail", ''];
+  wps.forEach((w, i) => {
+    const m = WP_EXPORT[w.type];
+    out.push(`${i + 1}. ${m.glyph} **${ko ? m.ko : m.en}** — ${w.headline}`);
+    if (w.trigger) out.push(`   - ${ko ? '계기' : 'Trigger'}: ${w.trigger}`);
+    if (w.significance) out.push(`   - ${ko ? '의미' : 'Why it matters'}: ${w.significance}`);
+    (w.alternatives || []).filter(a => !a.taken).forEach(a => {
+      out.push(`   - ${ko ? '가지 않은 길' : 'Road not taken'}: ${a.label}${a.why_abandoned ? ` — ${a.why_abandoned}` : ''}`);
+    });
+  });
+  return out.join('\n');
+}
 
 export function reframeToMarkdown(item: ReframeItem): string {
   const analysis = item.analysis;

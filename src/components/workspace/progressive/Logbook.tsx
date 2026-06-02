@@ -258,6 +258,19 @@ export function Logbook() {
                       </ul>
                     </details>
                   )}
+                  {/* Generic re-entry — fork a new course from this exact point.
+                      Makes the core "go back & choose differently" reachable at
+                      every turn (course-changes use their road-not-taken above;
+                      the anchorage is the end, nothing to fork forward). */}
+                  {w.type !== 'anchorage' && notTaken.length === 0 && (
+                    <button
+                      onClick={() => { if (!locked) { forkBranch(w.checkpoint_id); setChartOpen(false); } }}
+                      disabled={locked}
+                      className={`inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    >
+                      <GitBranch size={9} /> {L('이 시점에서 다른 길로', 'Fork a new course here')}
+                    </button>
+                  )}
                 </div>
               )}
             </li>

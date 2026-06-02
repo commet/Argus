@@ -40,6 +40,7 @@ import { WorkerReportBlock } from './WorkerCard';
 import { PersonaPoolModal } from './PersonaPoolModal';
 import { WorkerAvatar, AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
+import { voyageLogToMarkdown } from '@/lib/export';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext, useWorkers } from './WorkerPanel';
 import { useStaggeredReveal } from '@/hooks/useStaggeredReveal';
@@ -691,7 +692,12 @@ function FinalCard({
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const copyTarget = releasedContent && releasedContent.length > 0 ? releasedContent : content;
+  const logSession = useProgressiveStore(s => (sessionId ? s.sessions.find(ss => ss.id === sessionId) : null) ?? null);
+  const baseTarget = releasedContent && releasedContent.length > 0 ? releasedContent : content;
+  // Append the decision trail so the exported document carries the *process*,
+  // not just the conclusion ("the process is the deliverable").
+  const voyageLog = voyageLogToMarkdown(logSession, locale as 'ko' | 'en');
+  const copyTarget = voyageLog ? `${baseTarget}\n\n---\n\n${voyageLog}\n` : baseTarget;
   const copyLabel = releasedContent && releasedContent !== content && releasedLabel
     ? L(`${releasedLabel} 복사`, `Copy ${releasedLabel}`)
     : L('복사', 'Copy');
