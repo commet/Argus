@@ -30,6 +30,7 @@ const session: Partial<ProgressiveSession> = {
 vi.mock('@/stores/useProgressiveStore', () => ({
   useProgressiveStore: (selector: (s: unknown) => unknown) => selector({
     sessions: [session], currentSessionId: 's1', navigateToCheckpoint: () => {},
+    switchBranch: () => {}, anchorBranch: () => {}, deleteBranch: () => {}, isBranchingLocked: () => false,
   }),
 }));
 vi.mock('@/hooks/useLocale', () => ({ useLocale: () => 'ko' }));
@@ -48,5 +49,13 @@ describe('VoyageChart render', () => {
     const html = renderToStaticMarkup(createElement(VoyageChart));
     expect(html).toContain('본 항로');      // active branch name
     expect(html).toContain('항로 2개');     // course count
+  });
+
+  it('renders the course legend with all branches and their controls', () => {
+    const html = renderToStaticMarkup(createElement(VoyageChart));
+    expect(html).toContain('항로 목록');     // legend header
+    expect(html).toContain('챗봇 분기');     // the non-active fork branch
+    expect(html).toContain('활성');          // active marker on main
+    expect(html).toContain('전환');          // switch control on the fork
   });
 });

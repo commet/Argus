@@ -56,6 +56,7 @@ vi.mock('@/stores/useProgressiveStore', () => ({
   useProgressiveStore: (selector: (s: unknown) => unknown) => selector({
     sessions: [session], currentSessionId: 's1',
     switchBranch: () => {}, anchorBranch: () => {}, forkBranch: () => null,
+    deleteBranch: () => {}, isBranchingLocked: () => false,
   }),
 }));
 vi.mock('@/hooks/useLocale', () => ({ useLocale: () => 'ko' }));

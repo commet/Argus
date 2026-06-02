@@ -133,6 +133,10 @@ interface ProgressiveState {
   currentSession: () => ProgressiveSession | null;
   /** The active branch (course-line) of the current session, or null. */
   currentBranch: () => VoyageBranch | null;
+  /** True while the engine is streaming or workers are in flight — branch
+   *  mutations (fork/switch/anchor/delete) must hold until it settles so the
+   *  running work isn't stranded. Single source of truth for the UI lock. */
+  isBranchingLocked: () => boolean;
 
   // Actions
   loadSessions: () => void;
@@ -381,6 +385,15 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const session = get().currentSession();
     if (!session?.branches) return null;
     return session.branches.find(b => b.id === session.active_branch_id) ?? null;
+  },
+
+  isBranchingLocked: () => {
+    const s = get().currentSession();
+    if (!s) return false;
+    const phaseBusy = s.phase === 'analyzing' || s.phase === 'mixing' || s.phase === 'lead_synthesizing';
+    const workersBusy = s.worker_deploy_phase === 'deployed'
+      && (s.workers || []).some(w => w.status === 'running' || w.status === 'ai_preparing' || w.status === 'pending');
+    return phaseBusy || workersBusy;
   },
 
   loadSessions: () => {

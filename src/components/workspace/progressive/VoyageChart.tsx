@@ -112,6 +112,10 @@ export function VoyageChart() {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
   const navigateToCheckpoint = useProgressiveStore(s => s.navigateToCheckpoint);
+  const switchBranch = useProgressiveStore(s => s.switchBranch);
+  const anchorBranch = useProgressiveStore(s => s.anchorBranch);
+  const deleteBranch = useProgressiveStore(s => s.deleteBranch);
+  const locked = useProgressiveStore(s => s.isBranchingLocked());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [overflowParentId, setOverflowParentId] = useState<string | null>(null);
@@ -498,6 +502,65 @@ export function VoyageChart() {
             ? L('아직 한 항로예요. 기점을 클릭해서 다른 길로 분기해 볼 수 있어요.', 'Single course so far. Click a waypoint to fork a new one.')
             : L('기점이나 다른 항로를 클릭해서 그 시점으로 돌아갈 수 있어요.', 'Click a waypoint or alt route to rewind there.')}
         </div>
+
+        {/* Course legend — every branch (incl. freshly-forked ones with no
+            divergent checkpoint yet, which the SVG tree can't show). Full
+            management: switch / anchor / delete. */}
+        {branches.length > 1 && (
+          <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]/40 space-y-0.5">
+            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-1">
+              {L('항로 목록', 'Courses')}
+            </div>
+            {branches.map(b => {
+              const isActive = b.id === activeBranch?.id;
+              const count = getActivePath(checkpoints, b.head_checkpoint_id).length;
+              const abandoned = b.status === 'abandoned';
+              return (
+                <div
+                  key={b.id}
+                  className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''} ${abandoned ? 'opacity-50' : ''}`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: b.color }} />
+                  <span className="text-[11px] text-[var(--text-primary)] truncate flex-1 min-w-0" title={b.name}>{b.name}</span>
+                  {b.status === 'anchored' && <Flag size={9} className="text-[var(--accent)] shrink-0" />}
+                  <span className="text-[9px] text-[var(--text-tertiary)] tabular-nums shrink-0">{count}</span>
+                  {isActive ? (
+                    <span className="text-[9px] text-[var(--accent)] font-semibold shrink-0 ml-0.5">{L('활성', 'active')}</span>
+                  ) : (
+                    <button
+                      onClick={() => !locked && switchBranch(b.id)}
+                      disabled={locked}
+                      title={L('이 항로로 전환', 'Switch to this course')}
+                      className={`text-[9px] font-medium text-[var(--accent)] hover:underline shrink-0 ml-0.5 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    >
+                      {L('전환', 'Switch')}
+                    </button>
+                  )}
+                  {b.status !== 'anchored' && (
+                    <button
+                      onClick={() => !locked && anchorBranch(b.id)}
+                      disabled={locked}
+                      title={L('이 항로로 확정', 'Anchor this course')}
+                      className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    >
+                      <Anchor size={11} />
+                    </button>
+                  )}
+                  {!isActive && (
+                    <button
+                      onClick={() => !locked && deleteBranch(b.id)}
+                      disabled={locked}
+                      title={L('분기 삭제', 'Delete branch')}
+                      className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    >
+                      <XIcon size={11} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Selection popover (slides in below the chart for the picked

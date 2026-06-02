@@ -27,7 +27,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { getActivePath } from '@/lib/version-tree';
 import { Modal } from '@/components/ui/Modal';
 import { VoyageChart } from '@/components/workspace/progressive/VoyageChart';
-import type { ProgressivePhase, WaypointType } from '@/stores/types';
+import type { WaypointType } from '@/stores/types';
 
 const WP_META: Record<WaypointType, { Icon: LucideIcon; color: string; ko: string; en: string }> = {
   departure:     { Icon: Sailboat,      color: 'var(--text-secondary)', ko: '출항',      en: 'Departure' },
@@ -37,10 +37,6 @@ const WP_META: Record<WaypointType, { Icon: LucideIcon; color: string; ko: strin
   headwind:      { Icon: Wind,          color: '#6b4c9a',               ko: '역풍',      en: 'Headwind' },
   anchorage:     { Icon: Anchor,        color: '#2d6b2d',               ko: '정박',      en: 'Anchorage' },
 };
-
-/** While the engine is mid-stream we hold branch mutations — switching or
- *  forking out from under a running analysis would strand it. */
-const WORKING_PHASES: ProgressivePhase[] = ['analyzing', 'mixing', 'lead_synthesizing'];
 
 export function Logbook() {
   const locale = useLocale();
@@ -78,13 +74,9 @@ export function Logbook() {
   const openEntry = openId !== null ? openId : lastId;
   const toggle = (id: string) => setOpenId(openEntry === id ? '' : id);
 
-  // Hold branch mutations while the engine streams *or* workers are in flight —
-  // switching/forking out from under either would strand the running work.
-  const phaseBusy = session ? WORKING_PHASES.includes(session.phase) : false;
-  const workersBusy = !!session
-    && session.worker_deploy_phase === 'deployed'
-    && (session.workers || []).some(w => w.status === 'running' || w.status === 'ai_preparing' || w.status === 'pending');
-  const locked = phaseBusy || workersBusy;
+  // Hold branch mutations while the engine streams or workers are in flight
+  // (shared lock — same rule the chart uses).
+  const locked = useProgressiveStore(s => s.isBranchingLocked());
   const multiBranch = branches.length > 1;
 
   // "Take the road not taken" — fork from the checkpoint *before* the turn so
