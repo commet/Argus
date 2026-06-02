@@ -129,10 +129,45 @@ describe('deriveWaypoint — Chronicler salience gate', () => {
     expect(wp).toBeNull();
   });
 
-  it('pure process stages (crew_set, mix) → suppressed', () => {
+  it('mix, and a fully-auto AI crew_set → suppressed (no human mark)', () => {
     for (const stage of ['crew_set', 'mix'] as VoyageStage[]) {
       expect(deriveWaypoint({ newCheckpoint: cp(stage, baseState({})), prevState: baseState({}), problemText: 'x' })).toBeNull();
     }
+  });
+
+  it('crew_set with hand-added members → helm (captain hand-built the crew)', () => {
+    const workers = [
+      { status: 'pending', task: 'a', agent_type: 'ai', added_manually: false },
+      { status: 'pending', task: 'b', agent_type: 'ai', added_manually: true },
+    ] as unknown as VoyageCheckpointState['workers'];
+    const wp = deriveWaypoint({ newCheckpoint: cp('crew_set', baseState({ workers })), prevState: baseState({}), problemText: 'x' });
+    expect(wp?.type).toBe('helm');
+    expect(wp?.headline).toContain('hand-built');
+    expect(wp?.significance).toContain('1 hand-picked');
+  });
+
+  it('crew_set with a re-cast (swapped) member → helm (captain hand-built)', () => {
+    const workers = [
+      { status: 'pending', task: 'a', agent_type: 'ai', added_manually: false, user_assigned: true },
+      { status: 'pending', task: 'b', agent_type: 'ai', added_manually: false },
+    ] as unknown as VoyageCheckpointState['workers'];
+    const wp = deriveWaypoint({ newCheckpoint: cp('crew_set', baseState({ workers })), prevState: baseState({}), problemText: 'x' });
+    expect(wp?.type).toBe('helm');
+    expect(wp?.headline).toContain('hand-built');
+    expect(wp?.significance).toContain('1 re-cast');
+  });
+
+  it('crew_set with human-handled tasks (no adds) → helm (people handle parts)', () => {
+    const workers = [
+      { status: 'pending', task: 'a', agent_type: 'ai', added_manually: false },
+      { status: 'pending', task: 'b', agent_type: 'self', added_manually: false },
+      { status: 'pending', task: 'c', agent_type: 'human', added_manually: false },
+    ] as unknown as VoyageCheckpointState['workers'];
+    const wp = deriveWaypoint({ newCheckpoint: cp('crew_set', baseState({ workers })), prevState: baseState({}), problemText: 'x' });
+    expect(wp?.type).toBe('helm');
+    expect(wp?.headline).toContain('handled by people');
+    expect(wp?.significance).toContain('1 my call');
+    expect(wp?.significance).toContain('1 to people');
   });
 
   it('crew_done with reported worker results → sighting', () => {

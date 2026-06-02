@@ -1,6 +1,7 @@
 'use client';
 
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -13,18 +14,31 @@ interface ModalProps {
 const FOCUSABLE_SELECTOR =
   'a[href], area[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), iframe, object, embed, [tabindex]:not([tabindex="-1"]), [contenteditable]:not([contenteditable="false"])';
 
+// Ref-counted body scroll-lock so stacked modals don't clobber each other:
+// the page only unlocks once the LAST open modal closes.
+let scrollLockCount = 0;
+function lockScroll() {
+  if (scrollLockCount++ === 0) document.body.style.overflow = 'hidden';
+}
+function unlockScroll() {
+  scrollLockCount = Math.max(0, scrollLockCount - 1);
+  if (scrollLockCount === 0) document.body.style.overflow = '';
+}
+
 export function Modal({ open, onClose, title, children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  // Portal target only exists in the browser — gate on mount to avoid an
+  // SSR/hydration mismatch.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    if (!open) {
-      document.body.style.overflow = '';
-      return;
-    }
+    // Wait for portal mount so focus targets the real (portaled) dialog node.
+    if (!open || !mounted) return;
 
-    document.body.style.overflow = 'hidden';
+    lockScroll();
     previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
 
     // Move focus into the dialog (first focusable, else the close button) on next paint
@@ -70,15 +84,18 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     return () => {
       cancelAnimationFrame(focusFrame);
       document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = '';
+      unlockScroll();
       // Return focus to the trigger that opened the dialog
       previouslyFocusedRef.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open, mounted, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  // Portal to <body> so the fixed overlay is positioned against the viewport,
+  // not a transformed ancestor (framer-motion parents create a containing
+  // block that would otherwise mis-place the modal and clip the backdrop).
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div
         className="absolute inset-0 backdrop-blur-md"
@@ -104,6 +121,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
         </div>
         <div className="p-6 overflow-y-auto max-h-[calc(85vh-60px)]">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

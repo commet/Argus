@@ -43,8 +43,7 @@ import { useChronicler } from './useChronicler';
 import { voyageLogToMarkdown } from '@/lib/export';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext, useWorkers } from './WorkerPanel';
-import { useStaggeredReveal } from '@/hooks/useStaggeredReveal';
-import { ChevronRight, ChevronDown, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Plus, Brain, Pencil, Compass, Navigation } from 'lucide-react';
+import { ChevronRight, ChevronDown, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Plus, Brain, Pencil, Compass, Navigation, Repeat, RotateCw } from 'lucide-react';
 import { getAgentStats, getSessionDeltas } from '@/lib/agent-stats';
 import { useLocale } from '@/hooks/useLocale';
 import { t } from '@/lib/i18n';
@@ -59,6 +58,7 @@ import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
 import { renderInline, renderMd } from './shared/renderMd';
+import { extractKeyFinding } from '@/lib/extract-key-finding';
 import { AnalysisCard } from './shared/AnalysisCard';
 import { UpdateSummaryChip } from './shared/UpdateSummaryChip';
 import { QuestionCard } from './shared/QuestionCard';
@@ -1115,11 +1115,125 @@ function PhaseDivider({ done, next, yourTurn }: { done: string; next: string; yo
   );
 }
 
+/* ═══ Verification Gate — 출항 전 검증 ═══ */
+/**
+ * The captain-stays-in-the-loop junction. Surfaces every worker that finished
+ * but hasn't been accepted/excluded, so unverified analysis can't slip into the
+ * final draft unnoticed. Deliberately a *soft* gate: an explicit "확인 없이
+ * 출항" override always exists — we make verification conscious, not coerced.
+ */
+export function VerificationGate({ workers, anyRunning, onApprove, onReject, onRetry, onSail, onOverride, onClose }: {
+  workers: WorkerTask[];
+  /** True while any worker is mid-run (e.g. a "Redo" in flight). Sailing must
+   *  wait for it — otherwise a re-running worker (no longer 'done', so absent
+   *  from the unreviewed list) could let the mix proceed without its result. */
+  anyRunning?: boolean;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onRetry?: (id: string) => void;
+  onSail: () => void;
+  onOverride: () => void;
+  onClose: () => void;
+}) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const remaining = workers.length;
+  const allClear = remaining === 0 && !anyRunning;
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }}
+        transition={{ duration: 0.3, ease: EASE }}
+        className="relative w-full sm:max-w-lg max-h-[85vh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-[var(--border-subtle)] shrink-0">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center shrink-0">
+              <UserCheck size={18} className="text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-semibold text-[var(--text-primary)]">
+                {allClear ? L('모두 확인했어요', 'All reviewed') : L('확인하지 않은 분석이 있어요', 'Some analyses are unreviewed')}
+              </p>
+              <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">
+                {allClear
+                  ? L('이제 출항할 수 있어요.', 'Ready to set sail.')
+                  : L(`${remaining}개가 확인 없이 최종 문서에 들어갑니다. 선장이 직접 검증하세요.`, `${remaining} will enter the final draft unverified. The captain should check them.`)}
+              </p>
+            </div>
+            <button onClick={onClose} className="shrink-0 p-2 rounded-lg hover:bg-[var(--bg)] cursor-pointer" aria-label={L('닫기', 'Close')}>
+              <XIcon size={16} className="text-[var(--text-tertiary)]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Unreviewed list */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+          {workers.map(w => {
+            const finding = extractKeyFinding(w.result) || (w.result || '').slice(0, 120);
+            return (
+              <div key={w.id} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)]/50 p-3">
+                <div className="flex items-center gap-2">
+                  <WorkerAvatar persona={w.persona} size="sm" />
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] truncate">{personaName(w.persona, locale) || 'AI'}</span>
+                  <span className="text-[11px] text-[var(--text-tertiary)] truncate">· {w.task}</span>
+                </div>
+                {finding && <p className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-[1.55] line-clamp-3">{finding}</p>}
+                <div className="flex items-center gap-2 mt-2.5">
+                  <button onClick={() => onApprove(w.id)}
+                    className="px-3 py-1.5 text-[12px] font-semibold text-white rounded-lg cursor-pointer shadow-[var(--shadow-sm)]"
+                    style={{ background: 'var(--gradient-gold)' }}>
+                    {L('반영', 'Apply')}
+                  </button>
+                  <button onClick={() => onReject(w.id)}
+                    className="px-3 py-1.5 text-[12px] text-red-600 hover:bg-red-50 rounded-lg border border-red-200 cursor-pointer transition-colors">
+                    {L('제외', 'Exclude')}
+                  </button>
+                  {onRetry && (
+                    <button onClick={() => onRetry(w.id)}
+                      className="ml-auto inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] rounded-lg cursor-pointer transition-colors"
+                      title={L('이 분석을 다시 실행', 'Re-run this analysis')}>
+                      <RotateCw size={11} /> {L('다시', 'Redo')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-[var(--border-subtle)] shrink-0 flex flex-col gap-2">
+          <button onClick={onSail} disabled={!allClear}
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: 'var(--gradient-gold)' }}>
+            {allClear
+              ? L('출항', 'Set sail')
+              : remaining > 0
+                ? L(`${remaining}개 남음`, `${remaining} left`)
+                : L('실행 중…', 'Running…')} <ChevronRight size={14} />
+          </button>
+          {/* Override only when there's genuinely unreviewed work to accept —
+              not while a re-run is still in flight (nothing to override yet). */}
+          {remaining > 0 && (
+            <button onClick={onOverride}
+              className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer transition-colors">
+              {L('확인 없이 모두 반영하고 출항', 'Accept all unchecked and sail')}
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ═══ Team Deploy Banner — 팀 구성 확인 ═══ */
 const MAX_PERSONAS_PER_GROUP = 5;
 
-function TeamDeployBanner({
-  workers, onDeploy, onUpdateWorker, onOpenPool, onRemoveWorker, onUpdateTask, onOpenFreePool,
+export function TeamDeployBanner({
+  workers, onDeploy, onUpdateWorker, onOpenPool, onRemoveWorker, onUpdateTask, onOpenFreePool, onReplaceWorker, onSetGroupTrack,
 }: {
   workers: WorkerTask[];
   onDeploy: () => void;
@@ -1132,6 +1246,10 @@ function TeamDeployBanner({
   onUpdateTask?: (taskGroupId: string, newText: string) => void;
   /** Open the persona-pool modal in *free mode* — no specific target. */
   onOpenFreePool?: () => void;
+  /** Open the persona-pool modal in *replace mode* for one AI worker. */
+  onReplaceWorker?: (workerId: string) => void;
+  /** Switch a group's track: AI teammate / my own call / ask a person. */
+  onSetGroupTrack?: (taskGroupId: string, track: 'ai' | 'self' | 'human') => void;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
@@ -1182,7 +1300,9 @@ function TeamDeployBanner({
         ? L('세션 중 직접 답변', 'Answered in session')
         : personaRole(w.persona, locale);
 
+    const isAI = (w.agent_type || 'ai') === 'ai';
     const canRemove = !!onRemoveWorker && groupSize > 1;
+    const canReplace = !!onReplaceWorker && isAI;
     return (
       <motion.div key={w.id}
         initial={{ opacity: 0, y: 6 }}
@@ -1247,6 +1367,15 @@ function TeamDeployBanner({
               })()}
             </div>
           )}
+          {/* Why-this-agent — one quiet line surfacing the router's rationale
+              (or "직접 지정" after a manual swap). The richest part of the
+              engine, finally shown to the captain. AI workers only. */}
+          {isAI && w.assignment_reason && (
+            <div className="flex items-start gap-1 text-[11px] text-[var(--text-tertiary)] mt-1 leading-snug">
+              <Compass size={10} className="shrink-0 mt-[2px] text-[var(--accent)]/55" />
+              <span className="min-w-0">{w.assignment_reason}</span>
+            </div>
+          )}
           {/* Scope preview — neutral tone, no color pills */}
           {(w.ai_scope || w.self_scope) && (
             <div className="mt-1.5 space-y-0.5 text-[11px] leading-[1.55]">
@@ -1286,17 +1415,32 @@ function TeamDeployBanner({
             </div>
           )}
         </div>
-        {/* Remove button — only when there's another worker in the same group.
-            Visible by default on touch (always), revealed on hover for desktop. */}
-        {canRemove && (
-          <button
-            onClick={() => onRemoveWorker!(w.id)}
-            className="shrink-0 mt-0.5 w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer opacity-60 group-hover/row:opacity-100"
-            aria-label={L('이 팀원 빼기', 'Remove this member')}
-            title={L('이 팀원 빼기', 'Remove this member')}
-          >
-            <XIcon size={13} />
-          </button>
+        {/* Row controls — swap (AI only) + remove. Revealed on hover for
+            desktop, always visible on touch. Swap lets the captain override
+            the auto-cast even on a sole-member task (where remove is blocked). */}
+        {(canReplace || canRemove) && (
+          <div className="shrink-0 mt-0.5 flex items-center gap-0.5">
+            {canReplace && (
+              <button
+                onClick={() => onReplaceWorker!(w.id)}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/[0.08] transition-colors cursor-pointer opacity-60 group-hover/row:opacity-100"
+                aria-label={L('이 팀원 교체', 'Replace this member')}
+                title={L('이 팀원 교체', 'Replace this member')}
+              >
+                <Repeat size={13} />
+              </button>
+            )}
+            {canRemove && (
+              <button
+                onClick={() => onRemoveWorker!(w.id)}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer opacity-60 group-hover/row:opacity-100"
+                aria-label={L('이 팀원 빼기', 'Remove this member')}
+                title={L('이 팀원 빼기', 'Remove this member')}
+              >
+                <XIcon size={13} />
+              </button>
+            )}
+          </div>
         )}
       </motion.div>
     );
@@ -1324,7 +1468,12 @@ function TeamDeployBanner({
       <div className="space-y-3">
         {groups.map((g, gi) => {
           const groupSize = g.members.length;
-          const canAdd = !!onOpenPool && groupSize < MAX_PERSONAS_PER_GROUP;
+          const seedTrack = (g.seed.agent_type || 'ai') as 'ai' | 'self' | 'human';
+          // Adding extra "lenses" only makes sense on an AI task.
+          const canAdd = !!onOpenPool && groupSize < MAX_PERSONAS_PER_GROUP && seedTrack === 'ai';
+          // Leaving the AI track is blocked while multiple lenses share the task
+          // (one task can't route to several people).
+          const canLeaveAI = groupSize <= 1;
           const baseIndex = gi * 3; // approximate stagger across groups
           // Origin signals — drive the group's visual accent + heading badge.
           const hasManual = g.members.some(m => m.added_manually);
@@ -1420,6 +1569,48 @@ function TeamDeployBanner({
               <div className="divide-y divide-[var(--border-subtle)]/40 border-t border-[var(--border-subtle)]/40 pt-1">
                 {g.members.map((w, mi) => renderRow(w, baseIndex + mi, groupSize))}
               </div>
+
+              {/* Track control — who handles this task. Surfaces the human
+                  collaboration tracks (내가 직접 / 사람에게) that were otherwise
+                  fixed by the planner. AI is the default; switching to a person
+                  reveals the contact / self-input flow downstream. */}
+              {onSetGroupTrack && (() => {
+                const opts: { key: 'ai' | 'self' | 'human'; label: string; icon: typeof Sparkles }[] = [
+                  { key: 'ai', label: L('AI 팀원', 'AI teammate'), icon: Sparkles },
+                  { key: 'self', label: L('내가 직접', 'I decide'), icon: Brain },
+                  { key: 'human', label: L('사람에게', 'Ask a person'), icon: UserCheck },
+                ];
+                return (
+                  <div className="mt-3 pt-2.5 border-t border-[var(--border-subtle)]/40 flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{L('누가 맡을까요?', 'Who handles this?')}</span>
+                    <div className="inline-flex rounded-lg border border-[var(--border-subtle)] overflow-hidden">
+                      {opts.map(o => {
+                        const active = seedTrack === o.key;
+                        // Leaving AI is blocked when multiple lenses share the task.
+                        const blocked = seedTrack === 'ai' && o.key !== 'ai' && !canLeaveAI;
+                        const Icon = o.icon;
+                        return (
+                          <button
+                            key={o.key}
+                            onClick={() => { if (!active && !blocked) onSetGroupTrack(g.groupId, o.key); }}
+                            disabled={active || blocked}
+                            title={blocked ? L('여러 명일 땐 한 명만 남기고 바꿔주세요', 'Reduce to one member first') : undefined}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                              active
+                                ? 'bg-[var(--accent)]/[0.12] text-[var(--accent)] cursor-default'
+                                : blocked
+                                  ? 'text-[var(--text-tertiary)] opacity-50 cursor-not-allowed'
+                                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg)] cursor-pointer'
+                            }`}
+                          >
+                            <Icon size={11} /> {o.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           );
         })}
@@ -1571,7 +1762,7 @@ function VoyagePrepSummary({
           {/* Bearing micro-coordinate — small detail nodding to nautical
               charts. Pure flavor; no functional meaning. */}
           <div className="absolute top-4 right-4 md:top-6 md:right-7 text-[9px] tracking-[0.18em] uppercase text-[var(--accent)]/55 font-mono pointer-events-none select-none">
-            N · 새 항로
+            N · {L('새 항로', 'New course')}
           </div>
 
           <div className="relative p-6 md:p-8">
@@ -1778,11 +1969,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [showMix, setShowMix] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
+  // Verification gate — open when the captain tries to sail with unreviewed work.
+  const [verifyGateOpen, setVerifyGateOpen] = useState(false);
   // Manual team-assignment modal — kept on the parent so children can open
   // it with a single callback while we own the data shape it needs. Two
   // modes: `task` (add to a specific group) and `free` (auto-match a
   // persona to the best-fitting open group).
-  type PoolModalState = { mode: 'task'; targetGroupId: string } | { mode: 'free' } | null;
+  type PoolModalState = { mode: 'task'; targetGroupId: string } | { mode: 'free' } | { mode: 'replace'; workerId: string; rerun?: boolean } | null;
   const [poolModal, setPoolModal] = useState<PoolModalState>(null);
   // Which response shape the current stream represents. Handlers set this
   // because phase alone isn't enough — e.g. onFinalize streams while
@@ -1814,6 +2007,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const finalRef = useRef<HTMLDivElement>(null);
   const answeredPillsRef = useRef<HTMLDivElement>(null);
   const analysisCardRef = useRef<HTMLDivElement>(null);
+  const teamDeployRef = useRef<HTMLDivElement>(null);
+  // Report step is a one-at-a-time stepper (not a long scroll of all drafts).
+  const [reviewCursor, setReviewCursor] = useState(0);
 
   // Double rAF: frame 1 lets React commit pending state, frame 2 ensures the
   // new element is laid out before we scroll to it. Previous 200/250ms timers
@@ -1832,6 +2028,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       }
     }));
   }, []);
+
+  // Reset the report stepper when the active session changes — otherwise a
+  // cursor left at e.g. 5 carries into a new session with fewer workers and
+  // clamps to its LAST worker, silently skipping the others and showing a
+  // false "all reviewed" count.
+  useEffect(() => { setReviewCursor(0); }, [session?.id]);
 
   // Cleanup: abort all in-flight requests on unmount
   useEffect(() => {
@@ -1922,7 +2124,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const final_ = session?.final_deliverable ?? null;
   const finalMix = session?.final_mix ?? null;
   const round = session?.round ?? 0;
-  const maxR = session?.max_rounds ?? 3;
+  const maxR = session?.max_rounds ?? 5; // match createSession default (legacy sessions lacking the field)
 
   // Elapsed timer for PhaseStatusBar — tracks seconds rather than formatting
   // inline so the same value can derive isLongWait (30s threshold) for the
@@ -1992,12 +2194,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const workerContext = useWorkerContext();
   const workerActions = useWorkerActions(workerContext);
 
-  // Workers that have completed (for inline display in flow)
-  const completedWorkers = workers.filter(w => w.status === 'done' || w.status === 'waiting_input' || w.status === 'error');
-  // Staggered reveal — completed workers appear with cascade delay
-  const revealedIds = useStaggeredReveal(workers, session?.id ?? null);
-  const revealedWorkers = completedWorkers.filter(w => revealedIds.has(w.id));
-
   // Ping the user when every deployed worker reaches a terminal state so they
   // notice the transition — especially on mobile where the worker drawer is
   // closed by default. We only ping if we've actually *seen* workers in a
@@ -2012,7 +2208,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       return;
     }
     const isTerminal = (s: WorkerTask['status']) =>
-      s === 'done' || s === 'error' || s === 'waiting_input';
+      // 'validation_failed' is user-actionable (retry / use-anyway), not
+      // auto-working — count it as settled so the "team done" ping isn't
+      // blocked forever.
+      s === 'done' || s === 'error' || s === 'waiting_input' || s === 'validation_failed';
     const stillWorking = workers.some(w => !isTerminal(w.status));
     if (stillWorking) {
       sawWorkingRef.current = true;
@@ -2066,7 +2265,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         }
         scroll();
       },
-      onError: (id: string, error: string) => store.updateWorker(id, { status: 'error', error, stream_text: '' }),
+      onError: (id: string, error: string) => {
+        // For SELF/HUMAN workers the AI step is only an optional preliminary —
+        // if it fails, still drop to 'waiting_input' so the user can enter their
+        // own decision. Only pure-AI workers become a hard 'error'.
+        const w = store.currentSession()?.workers.find(ww => ww.id === id);
+        const isAiPrep = (w?.agent_type === 'self' || w?.agent_type === 'human') && w?.ai_scope;
+        if (isAiPrep) {
+          store.updateWorker(id, { status: 'waiting_input', stream_text: '', error });
+        } else {
+          store.updateWorker(id, { status: 'error', error, stream_text: '' });
+        }
+      },
     };
 
     // Transcript wrapping — 한 번만, 최외곽에서
@@ -2236,7 +2446,17 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         scroll();
       } else {
         store.addQuestion(r.question); store.setPhase('conversing');
-        scrollToRef(questionRef);
+        // If the team is already assembled, the follow-up question is an
+        // OPTIONAL refinement — the user can deploy right now. Keep the 출항
+        // CTA in view (scroll to the team) instead of pulling focus down to
+        // the new question, which used to strand the deploy button above.
+        const teamReady = (r.snapshot.execution_plan?.steps?.length ?? 0) > 0 || currentDeployPhase === 'ready';
+        // Don't guard on teamDeployRef.current here — on the turn the team first
+        // appears it isn't mounted yet (React hasn't re-rendered). scrollToRef
+        // re-checks the ref inside its rAF, by which point it's mounted; the
+        // 'top' fallback covers the rare miss.
+        if (teamReady) scrollToRef(teamDeployRef, 'top');
+        else scrollToRef(questionRef);
       }
       // Voyage chart checkpoint — captures the post-answer state. Recorded
       // after addSnapshot/addQuestion so the snapshot reflects the user's
@@ -2246,7 +2466,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     finally { setBusy(false); abortRef.current = null; }
   };
 
-  const onMix = async () => {
+  const runMixCore = async () => {
     setBusy(true); setError(null); store.setPhase('mixing'); scrollToRef(statusBarRef);
     setSubstage(L('팀 결과 모으는 중', 'Gathering team results'));
     abortRef.current = new AbortController();
@@ -2421,6 +2641,16 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       }
     } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('초안 생성 실패', 'Draft creation failed')); store.setPhase('conversing'); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
+  };
+
+  // Verification gate — the captain stays in the loop. If any worker finished
+  // but hasn't been accepted/excluded, intercept the sail and surface them
+  // (the central "사람이 반드시 검증" promise, made real as a junction — not a
+  // hard block; an explicit override always exists).
+  const onMix = () => {
+    const pending = store.unreviewedWorkers().length;
+    if (pending > 0) { track('verify_gate_shown', { pending }); setVerifyGateOpen(true); return; }
+    runMixCore();
   };
 
   const onDM = async () => {
@@ -2672,21 +2902,67 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             if (!target) return null;
           }
 
+          // Replace mode targets a single worker, not a group.
+          const replaceWorker = poolModal.mode === 'replace'
+            ? workers.find(w => w.id === poolModal.workerId)
+            : undefined;
+          if (poolModal.mode === 'replace' && !replaceWorker) return null;
+
           return (
             <PersonaPoolModal
               isOpen
               mode={poolModal.mode}
               targetGroupId={poolModal.mode === 'task' ? poolModal.targetGroupId : undefined}
+              replaceInfo={replaceWorker ? {
+                task: replaceWorker.task,
+                aiScope: replaceWorker.ai_scope ?? null,
+                expectedOutput: replaceWorker.expected_output ?? null,
+                currentPersonaId: replaceWorker.persona?.id,
+                siblingPersonaIds: workers
+                  .filter(w => w.id !== replaceWorker.id
+                    && (w.task_group_id || w.id) === (replaceWorker.task_group_id || replaceWorker.id))
+                  .map(w => w.persona?.id)
+                  .filter((x): x is string => !!x),
+              } : undefined}
               groups={groupInfos}
               maxPerGroup={5}
               onClose={() => setPoolModal(null)}
               onSelect={(persona, matchedGroupId) => {
+                if (poolModal.mode === 'replace') {
+                  const { workerId, rerun } = poolModal;
+                  store.replaceWorkerPersona(workerId, persona);
+                  // Report-stage re-assignment: the swap resets the worker to
+                  // 'pending', but nothing auto-runs post-deploy — kick off the
+                  // fresh take immediately so the captain sees a new result.
+                  if (rerun) workerActions.handleRetry(workerId);
+                  setPoolModal(null);
+                  return;
+                }
                 const newId = store.addWorkerToGroup(matchedGroupId, persona);
                 if (newId) setPoolModal(null);
               }}
             />
           );
         })()}
+
+        {/* Verification gate — opens when the captain tries to sail with
+            unreviewed work. Reads the unreviewed set fresh each render so it
+            shrinks as items are accepted/excluded inside the gate. */}
+        <AnimatePresence>
+          {verifyGateOpen && (
+            <VerificationGate
+              key="verify-gate"
+              workers={store.unreviewedWorkers()}
+              anyRunning={workers.some(w => w.status === 'running' || w.status === 'ai_preparing')}
+              onApprove={workerActions.handleApprove}
+              onReject={workerActions.handleReject}
+              onRetry={workerActions.handleRetry}
+              onSail={() => { setVerifyGateOpen(false); runMixCore(); }}
+              onOverride={() => { track('verify_gate_override', { count: store.unreviewedWorkers().length }); store.approveAllPending(); setVerifyGateOpen(false); runMixCore(); }}
+              onClose={() => setVerifyGateOpen(false)}
+            />
+          )}
+        </AnimatePresence>
         <ProgressLine phase={phase} round={round} hasMix={!!mix} />
 
         {/* PhaseStatusBar + StreamSnippet — sticky wrapper so progress info
@@ -2739,6 +3015,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
           {/* Team deploy banner — 사용자 확인 후 worker 실행 */}
           {deployPhase === 'ready' && workers.length > 0 && (
+            <div ref={teamDeployRef}>
             <TeamDeployBanner
               workers={workers}
               onDeploy={onDeployWorkers}
@@ -2746,8 +3023,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               onOpenPool={(groupId) => setPoolModal({ mode: 'task', targetGroupId: groupId })}
               onOpenFreePool={() => setPoolModal({ mode: 'free' })}
               onRemoveWorker={(id) => store.removeWorker(id)}
+              onReplaceWorker={(id) => setPoolModal({ mode: 'replace', workerId: id })}
               onUpdateTask={(groupId, text) => store.updateGroupTask(groupId, text)}
+              onSetGroupTrack={(groupId, track) => store.setGroupTrack(groupId, track)}
             />
+            </div>
           )}
 
           {/* Resume banner — 크래시/새로고침 후 미완료 작업 재개 */}
@@ -2802,40 +3082,97 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 </p>
               </motion.div>
             )}
+            {/* Once the team is assembled, further questions are OPTIONAL
+                refinements — make that explicit so the user doesn't feel
+                they must answer before deploying. The 출항 CTA sits above. */}
+            {curQ && !busy && phase === 'conversing' && deployPhase === 'ready' && workers.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: EASE }}
+                className="flex items-center gap-2 px-3.5 py-2.5 mb-3 rounded-xl bg-[var(--bg)] border border-dashed border-[var(--border)]"
+              >
+                <span className="text-[13px] shrink-0 leading-none">✓</span>
+                <p className="text-[12px] text-[var(--text-secondary)] leading-[1.5]">
+                  {locale === 'ko'
+                    ? <>팀은 이미 준비됐어요. <strong className="text-[var(--text-primary)]">위에서 바로 출항</strong>해도 되고, 아래 질문으로 더 다듬어도 돼요 <span className="text-[var(--text-tertiary)]">(선택)</span>.</>
+                    : <>Your crew is ready. <strong className="text-[var(--text-primary)]">Deploy now from above</strong>, or refine further with the question below <span className="text-[var(--text-tertiary)]">(optional)</span>.</>}
+                </p>
+              </motion.div>
+            )}
             {curQ && !busy && phase === 'conversing' && <QuestionCard key={curQ.id} question={curQ} onAnswer={onAnswer} disabled={busy} locale={locale} />}
           </div>
 
-          {/* Inline worker reports — staggered reveal for polished feel.
-              (PhaseStatusBar already surfaces "team working" state.) */}
-          {deployPhase === 'deployed' && !final_ && (
-            <div ref={workerSectionRef} className="space-y-4">
-              {/* Running workers — minimal: avatar + task + spinner (no streaming text) */}
-              {workers.filter(w => w.status === 'running').map(w => (
-                <motion.div key={w.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--bg)]/40">
-                  <WorkerAvatar persona={w.persona} size="sm" pulse />
-                  <span className="text-[13px] text-[var(--text-secondary)] flex-1 truncate">{personaName(w.persona, locale) || 'AI'} — {w.task}</span>
-                  <Loader2 size={14} className="animate-spin text-[var(--accent)] shrink-0" />
-                </motion.div>
-              ))}
-              {/* Revealed workers — polished report blocks with fade+slide entrance */}
-              {(() => {
-                const firstWaitingId = revealedWorkers.find(w => w.status === 'waiting_input')?.id;
-                return revealedWorkers.map(w => (
-                  <motion.div key={w.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
+          {/* Inline worker reports — ONE-AT-A-TIME stepper. Reviewing 3 long
+              drafts in a single scroll was a huge burden; instead the user
+              handles one agent at a time with a finding-first card and the full
+              draft one tap away. */}
+          {deployPhase === 'deployed' && !final_ && (() => {
+            const ordered = [...workers].sort((a, b) => a.step_index - b.step_index);
+            if (ordered.length === 0) return null;
+            const total = ordered.length;
+            const cursor = Math.min(reviewCursor, total - 1);
+            const current = ordered[cursor];
+            // A worker counts as "handled" once the user has acted: AI approve/
+            // exclude sets `approved`, SELF submit also sets approved:true, errors
+            // are terminal.
+            const handled = (w: WorkerTask) => w.approved != null || w.status === 'error';
+            const advance = () => setReviewCursor(c => Math.min(c + 1, total - 1));
+            return (
+              <div ref={workerSectionRef} className="space-y-3">
+                {/* Progress — clickable dots + N/total */}
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[12px] font-semibold text-[var(--text-secondary)]">{L('에이전트 검토', 'Review agents')}</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-1.5">
+                      {ordered.map((w, i) => (
+                        <button key={w.id} onClick={() => setReviewCursor(i)}
+                          aria-label={`${i + 1}/${total}`} aria-current={i === cursor}
+                          className={`rounded-full transition-all cursor-pointer ${
+                            i === cursor ? 'w-5 h-2 bg-[var(--accent)]'
+                              : handled(w) ? 'w-2 h-2 bg-[var(--accent)]/45'
+                                : 'w-2 h-2 bg-[var(--border)]'
+                          }`} />
+                      ))}
+                    </div>
+                    <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]">{cursor + 1}/{total}</span>
+                  </div>
+                </div>
+                {/* Current worker card — slides on step change */}
+                <AnimatePresence mode="wait">
+                  <motion.div key={current.id}
+                    initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}
+                    transition={{ duration: 0.26, ease: EASE }}>
                     <WorkerReportBlock
-                      worker={w}
-                      onSubmitInput={w.status === 'waiting_input' ? workerActions.handleSubmit : undefined}
-                      onRetry={w.status === 'error' ? workerActions.handleRetry : undefined}
-                      onApprove={w.status === 'done' ? workerActions.handleApprove : undefined}
-                      onReject={w.status === 'done' ? workerActions.handleReject : undefined}
-                      isFirstWaiting={w.id === firstWaitingId}
+                      worker={current}
+                      onSubmitInput={current.status === 'waiting_input' ? workerActions.handleSubmit : undefined}
+                      onRetry={(current.status === 'error' || current.status === 'done') ? workerActions.handleRetry : undefined}
+                      onApprove={current.status === 'done' ? workerActions.handleApprove : undefined}
+                      onReject={current.status === 'done' ? workerActions.handleReject : undefined}
+                      onReassign={current.status === 'done' && current.agent_type !== 'human' && current.agent_type !== 'self'
+                        ? (id) => setPoolModal({ mode: 'replace', workerId: id, rerun: true })
+                        : undefined}
+                      onAdvance={cursor < total - 1 ? advance : undefined}
                     />
                   </motion.div>
-                ));
-              })()}
-            </div>
-          )}
+                </AnimatePresence>
+                {/* Step navigation — go back to revisit, or skip ahead */}
+                <div className="flex items-center justify-between px-1 pt-0.5">
+                  <button onClick={() => setReviewCursor(c => Math.max(0, c - 1))}
+                    disabled={cursor === 0}
+                    className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-30 cursor-pointer disabled:cursor-default transition-colors">
+                    ← {L('이전', 'Prev')}
+                  </button>
+                  {cursor < total - 1 && (
+                    <button onClick={advance}
+                      className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors">
+                      {L('나중에 보기', 'Later')} →
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Worker status summary before mix — with persona names */}
           {shouldMix && !busy && phase === 'conversing' && !curQ && workers.length > 0 && (() => {

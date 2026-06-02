@@ -148,6 +148,33 @@ export function deriveWaypoint(args: DeriveWaypointArgs): Waypoint | null {
       return make('sighting', head);
     }
 
+    case 'crew_set': {
+      // helm: the captain left their mark on the crew — hand-added members or
+      // tasks routed to people (self / human) instead of pure AI auto-pilot.
+      // A fully auto AI crew is just a process step (no waypoint).
+      const ws = state.workers || [];
+      if (ws.length === 0) return null;
+      const added = ws.filter((w) => w.added_manually).length;
+      const swapped = ws.filter((w) => w.user_assigned).length;
+      const selfCount = ws.filter((w) => w.agent_type === 'self').length;
+      const askCount = ws.filter((w) => w.agent_type === 'human').length;
+      if (added === 0 && swapped === 0 && selfCount === 0 && askCount === 0) return null;
+
+      const parts: string[] = [];
+      if (added > 0) parts.push(ko ? `직접 추가 ${added}` : `${added} hand-picked`);
+      if (swapped > 0) parts.push(ko ? `직접 지정 ${swapped}` : `${swapped} re-cast`);
+      if (selfCount > 0) parts.push(ko ? `내 판단 ${selfCount}` : `${selfCount} my call`);
+      if (askCount > 0) parts.push(ko ? `사람에게 ${askCount}` : `${askCount} to people`);
+
+      // Hand-built = the captain shaped the AI crew (added or re-cast); otherwise
+      // the mark is purely that people carry some of the work.
+      const handBuilt = added > 0 || swapped > 0;
+      const headline = handBuilt
+        ? (ko ? '선장이 팀을 직접 짰다' : 'The captain hand-built the crew')
+        : (ko ? '사람이 직접 맡은 부분이 있다' : 'Some parts are handled by people');
+      return make('helm', headline, { significance: parts.join(' · ') });
+    }
+
     case 'review': {
       // headwind: a high-severity stakeholder concern that forces a rethink.
       // Conservative — only 'critical' qualifies, so routine reviews stay quiet.
@@ -162,7 +189,7 @@ export function deriveWaypoint(args: DeriveWaypointArgs): Waypoint | null {
       return null;
     }
 
-    // crew_set, mix → process steps, not turns (no waypoint).
+    // mix → a process step, not a turn (no waypoint).
     default:
       return null;
   }

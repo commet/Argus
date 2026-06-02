@@ -18,6 +18,7 @@ const WP_EXPORT: Record<WaypointType, { ko: string; en: string; glyph: string }>
   reef:          { ko: '암초',      en: 'Reef',          glyph: '⚠' },
   sighting:      { ko: '관측',      en: 'Sighting',      glyph: '👁' },
   headwind:      { ko: '역풍',      en: 'Headwind',      glyph: '🜨' },
+  helm:          { ko: '선장의 키',  en: 'Helm',          glyph: '🖐' },
   anchorage:     { ko: '정박',      en: 'Anchorage',     glyph: '⚑' },
 };
 

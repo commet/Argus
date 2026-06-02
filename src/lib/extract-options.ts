@@ -10,9 +10,20 @@
 /** Strip Korean particles from end of option text */
 export function stripParticles(text: string): string {
   return text
-    .replace(/\s*(중에서|사이에서|으로|를|을|에서|로|이|가|은|는|와|과|도|만)\s*.*$/, '')
-    .replace(/\s*(결정|선택|판단|비교|검토).*$/, '')
+    // Trailing josa attach to the END of a word, so only strip a particle that
+    // has a non-space char before it. Without the lookbehind, a word whose FIRST
+    // syllable is a particle-homograph (이직, 가격, 은행, 도시, 만남 …) was wiped
+    // to "" and silently dropped.
+    .replace(/(?<=\S)\s*(중에서|사이에서|으로|에서|를|을|이|가|은|는|와|과|도|만|로)\s*.*$/, '')
+    // Trailing decision verb only (preceded by whitespace) — so an option that
+    // *starts* with 비교/검토/… (e.g. "비교 우위 전략") isn't wiped to empty.
+    .replace(/\s+(결정|선택|판단|비교|검토).*$/, '')
     .trim();
+}
+
+/** Drop duplicate options while preserving order. */
+function dedupe(opts: string[]): string[] {
+  return Array.from(new Set(opts));
 }
 
 /** Extract selectable options from judgment/decision text */
@@ -25,10 +36,10 @@ export function extractOptions(text?: string): string[] {
     for (const sentence of sentences) {
       if (!sentence.includes(' vs ')) continue;
       const cleaned = sentence.replace(/^[^:]*:\s*/, '');
-      const opts = cleaned
+      const opts = dedupe(cleaned
         .split(/\s+vs\.?\s+/)
         .map(o => stripParticles(o))
-        .filter(o => o.length >= 2 && o.length <= 40);
+        .filter(o => o.length >= 2 && o.length <= 40));
       if (opts.length >= 2) return opts;
     }
   }
@@ -38,7 +49,7 @@ export function extractOptions(text?: string): string[] {
     const clauses = text.split(/[,.]\s*/);
     for (const clause of clauses) {
       if (!clause.includes('/')) continue;
-      const opts = clause.split('/').map(o => o.trim()).filter(o => o.length >= 2 && o.length <= 40);
+      const opts = dedupe(clause.split('/').map(o => o.trim()).filter(o => o.length >= 2 && o.length <= 40));
       if (opts.length >= 2 && opts.length <= 5) return opts;
     }
   }
@@ -58,7 +69,8 @@ export function extractOptions(text?: string): string[] {
   // Strategy 5: numbered list "1) A 2) B" or "1. A 2. B"
   const numbered = text.match(/[1-5][.)]\s*([^1-5]{2,30})/g);
   if (numbered && numbered.length >= 2) {
-    return numbered.map(n => n.replace(/^[1-5][.)]\s*/, '').trim()).filter(o => o.length >= 2);
+    const opts = dedupe(numbered.map(n => n.replace(/^[1-5][.)]\s*/, '').trim()).filter(o => o.length >= 2));
+    if (opts.length >= 2) return opts;
   }
 
   return [];

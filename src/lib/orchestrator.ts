@@ -10,8 +10,10 @@ import type { Agent, AgentObservation } from '@/stores/agent-types';
 import { classifyInput } from './orchestrator-classify';
 import type { InputClassification } from './orchestrator-classify';
 import { selectAgents } from './orchestrator-select';
+import type { SelectionTrace } from './orchestrator-select';
 import { assignFramework } from './orchestrator-framework';
 import { classifySteps } from './task-classifier';
+import { buildAssignmentReason } from './assignment-reason';
 
 /* ─── Types ─── */
 
@@ -31,6 +33,7 @@ export interface PlannedWorker {
   stageId: string;
   taskType: string | null;     // task-classifier의 TaskType (context 전략 결정)
   dependsOn?: number[];        // 의존하는 워커의 stepIndex[] (runPipeline에서 선택적 peerResults 주입)
+  assignmentReason?: string;   // "왜 이 에이전트인지" — SelectionTrace에서 도출한 한 줄 (ai 타입만)
 }
 
 export interface OrchestratorResult {
@@ -125,6 +128,7 @@ export function planWorkers(
     .map((s, i) => ({ ...s, originalIndex: i }))
     .filter(s => s.agentType === 'ai');
 
+  const traces: SelectionTrace[] = [];
   const agentMap = aiSteps.length > 0
     ? selectAgents(
         aiSteps.map(s => ({ task: s.task, output: s.output, agent_hint: s.agent_hint })),
@@ -132,6 +136,7 @@ export function planWorkers(
         unlockedAgents,
         observations,
         problemText,
+        traces,
       )
     : new Map<number, Agent>();
 
@@ -141,6 +146,17 @@ export function planWorkers(
     const agent = agentMap.get(mappedIdx);
     if (agent) originalAgentMap.set(s.originalIndex, agent);
   });
+
+  // Derive the why-this-agent rationale per original step index, from the
+  // traces the router just produced. trace.stepIndex is the index *within*
+  // aiSteps, so map it back through aiSteps[].originalIndex.
+  const agentsById = new Map(unlockedAgents.map(a => [a.id, a]));
+  const reasonByOriginalIndex = new Map<number, string>();
+  for (const tr of traces) {
+    const aiStep = aiSteps[tr.stepIndex];
+    if (!aiStep) continue;
+    reasonByOriginalIndex.set(aiStep.originalIndex, buildAssignmentReason(tr, agentsById));
+  }
 
   // 3. Task 분류 (context 전략 결정용)
   const taskClassifications = classifySteps(
@@ -170,6 +186,7 @@ export function planWorkers(
       stepIndex: i,
       stageId: 'stage_1',
       taskType: tc?.taskType || null,
+      assignmentReason: reasonByOriginalIndex.get(i),
     };
   });
 

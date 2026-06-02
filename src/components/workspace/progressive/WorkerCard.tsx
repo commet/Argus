@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, AlertTriangle, ChevronDown, RotateCw, Loader2, ExternalLink, X } from 'lucide-react';
+import { Check, RotateCw, Loader2, ExternalLink, X, Repeat } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import type { WorkerTask } from '@/stores/types';
 import { resolveAgentType } from '@/stores/types';
@@ -15,6 +15,8 @@ import { recordHitReaction } from '@/lib/hit-rate';
 import { recordStrategyOutcome } from '@/lib/context-strategy';
 import { selectContextStrategy } from '@/lib/context-strategy';
 import { extractOptions } from '@/lib/extract-options';
+import { extractKeyFinding } from '@/lib/extract-key-finding';
+import { renderMd } from './shared/renderMd';
 import { EASE } from './shared/constants';
 
 /* ═══ Hit Reaction Bar — 자기개선 데이터 수집 ═══ */
@@ -61,15 +63,18 @@ function HitReactionBar({ workerId, agentId, taskType }: { workerId: string; age
   );
 }
 
-/* ═══ Result Detail Modal ═══ */
-function ResultModal({ worker, onClose, onApprove, onReject }: {
+/* ═══ Result Detail Modal — comfortable full-text reading surface ═══ */
+function ResultModal({ worker, content, onClose, onApprove, onReject }: {
   worker: WorkerTask;
+  /** Body to render (markdown). Defaults to worker.result; SELF tasks pass their AI reference. */
+  content?: string;
   onClose: () => void;
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const body = content ?? worker.result ?? '';
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -106,8 +111,8 @@ function ResultModal({ worker, onClose, onApprove, onReject }: {
               &ldquo;{worker.completion_note.replace(/^[^:]+:\s*/, '')}&rdquo;
             </p>
           )}
-          <div className="text-[14px] text-[var(--text-primary)] leading-[1.85] whitespace-pre-wrap break-words">
-            {worker.result}
+          <div className="text-[14px] text-[var(--text-primary)] break-words">
+            {renderMd(body)}
           </div>
         </div>
 
@@ -147,14 +152,23 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
   onRetry,
   onApprove,
   onReject,
+  onReassign,
   isFirstWaiting,
+  onAdvance,
 }: {
   worker: WorkerTask;
   onSubmitInput?: (id: string, input: string) => void;
   onRetry?: (id: string) => void;
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
+  /** Re-assign this task to a different agent (opens the persona pool in
+   *  replace mode, then re-runs). Lets a rejected result get a fresh take from
+   *  someone else — the real "거부 후 재배정" loop. */
+  onReassign?: (id: string) => void;
   isFirstWaiting?: boolean;
+  /** Stepper mode — when provided, terminal actions ("반영"/"확인") advance to
+   *  the next worker and relabel the primary button "… → 다음". */
+  onAdvance?: () => void;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
@@ -165,8 +179,6 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
     // AI task with draft (legacy both or new ai+self_scope): pre-fill with draft
     (worker.who === 'both' || (aTypeInit === 'ai' && worker.self_scope)) && worker.result ? worker.result : ''
   );
-  // Must precede the status-based early returns below — hooks run unconditionally.
-  const [expanded, setExpanded] = useState(false);
   const persona = worker.persona ? localizePersona(worker.persona, locale) : null;
 
   const statusLabel: string = ({
@@ -290,6 +302,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
     const hasDraft = (worker.who === 'both' || (aType === 'ai' && worker.self_scope)) && !!worker.result;
 
     return (
+      <>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
         {isFirstWaiting && (
           <div className="flex items-center gap-1.5 mb-2 ml-4">
@@ -348,19 +361,33 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
               </div>
             )}
 
-            {/* AI 보조 분석 결과 (self/human task) */}
-            {hasPreliminary && (
-              <div className="mt-2 text-[12px] text-[var(--text-secondary)] bg-blue-50/40 rounded-xl p-3 leading-[1.7]">
-                <p className="text-[10px] font-medium text-blue-500 mb-1">{L('참고 (AI 정리)', 'Reference (AI)')}</p>
-                <p className="whitespace-pre-wrap line-clamp-6">{worker.ai_preliminary}</p>
-              </div>
-            )}
+            {/* Key finding — surface the AI reference's takeaway up front so the
+                user gets the gist without reading the whole thing. Full text is
+                one tap away below. */}
+            {(() => {
+              const source = worker.ai_preliminary || (hasDraft ? worker.result : null);
+              const finding = extractKeyFinding(source);
+              if (!finding) return null;
+              return (
+                <div className="mt-2.5 rounded-xl bg-[var(--bg)]/70 border border-[var(--border-subtle)] px-3.5 py-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--accent)] mb-1">
+                    {L('AI 핵심 정리', 'AI key point')}
+                  </p>
+                  <p className="text-[13px] text-[var(--text-primary)] leading-[1.55]">{finding}</p>
+                </div>
+              );
+            })()}
 
-            {/* AI 초안 (기존 both 워커) */}
-            {hasDraft && (
-              <div className="mt-2 text-[12px] text-[var(--text-secondary)] bg-[var(--bg)]/60 rounded-xl p-3 leading-[1.7]">
-                <p className="text-[10px] font-medium text-[var(--text-tertiary)] mb-1">{L('초안 작성함', 'Draft written')}</p>
-                <p className="whitespace-pre-wrap line-clamp-4">{worker.result}</p>
+            {/* Full reference / draft — collapsed by default, rendered as proper
+                markdown in a height-capped scroll box so it never floods the
+                step. (Fixes the old line-clamp dead-end.) */}
+            {(hasPreliminary || hasDraft) && (
+              <div className="mt-2">
+                <button onClick={() => setShowModal(true)}
+                  className="flex items-center gap-1 text-[11px] text-[var(--accent)] hover:underline cursor-pointer">
+                  <ExternalLink size={10} />
+                  {hasDraft ? L('전체 초안 보기', 'View full draft') : L('참고 자료 전체 보기', 'View full reference')}
+                </button>
               </div>
             )}
 
@@ -394,36 +421,47 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                 aria-label={`${persona?.name || 'AI'} ${L('작업 입력', 'task input')}`} />
               <div className="flex justify-end gap-2 mt-2">
                 {isHumanAgent && (
-                  <button onClick={() => onSubmitInput(worker.id, '[skip]')}
+                  <button onClick={() => { onSubmitInput(worker.id, '[skip]'); onAdvance?.(); }}
                     className="px-3.5 py-2.5 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] rounded-xl border border-[var(--border-subtle)] cursor-pointer min-h-[44px]">
                     {L('이 사람 없이 진행', 'Skip this person')}
                   </button>
                 )}
                 {hasDraft && (
-                  <button onClick={() => onSubmitInput(worker.id, worker.result!)}
+                  <button onClick={() => { onSubmitInput(worker.id, worker.result!); onAdvance?.(); }}
                     className="px-3.5 py-2.5 text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl border border-[var(--border-subtle)] cursor-pointer min-h-[44px]">
                     {L('초안 그대로', 'Keep draft')}
                   </button>
                 )}
-                <button onClick={() => { if (inputVal.trim()) onSubmitInput(worker.id, inputVal.trim()); }}
+                <button onClick={() => { if (inputVal.trim()) { onSubmitInput(worker.id, inputVal.trim()); onAdvance?.(); } }}
                   disabled={!inputVal.trim()}
                   className="px-3.5 py-2 text-[12px] text-white font-semibold rounded-xl disabled:opacity-30 cursor-pointer"
                   style={{ background: 'var(--gradient-gold)' }}>
-                  {L('확인', 'Confirm')}
+                  {onAdvance ? L('확인 → 다음', 'Confirm → Next') : L('확인', 'Confirm')}
                 </button>
               </div>
             </div>
           </div>
         </div>
       </motion.div>
+      {/* Full reference / draft modal for SELF & human tasks */}
+      <AnimatePresence>
+        {showModal && (
+          <ResultModal
+            worker={worker}
+            content={worker.ai_preliminary || worker.result || ''}
+            onClose={() => setShowModal(false)}
+          />
+        )}
+      </AnimatePresence>
+      </>
     );
   }
 
   // Done state — the main report block
   const isRejected = worker.approved === false;
   const isApproved = worker.approved === true;
-  const previewText = (worker.result || '').slice(0, 300);
-  const hasMore = (worker.result || '').length > 300;
+  const keyFinding = extractKeyFinding(worker.result);
+  const hasMore = (worker.result || '').length > 160;
   const agentLevel = worker.agent_id
     ? useAgentStore.getState().getAgent(worker.agent_id)?.level
     : undefined;
@@ -474,30 +512,40 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
               </p>
             )}
 
-            {/* Result preview — inline expandable */}
-            <div className={`mt-2.5 text-[13px] leading-[1.75] rounded-xl p-3.5 sm:p-4 break-words ${
-              isRejected
-                ? 'bg-[var(--bg)]/30 text-[var(--text-tertiary)] line-through'
-                : 'bg-[var(--bg)]/60 text-[var(--text-primary)]'
-            }`}>
-              <AnimatePresence initial={false}>
-                <motion.div
-                  key={expanded ? 'full' : 'preview'}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <p className="whitespace-pre-wrap">{expanded ? worker.result : previewText}{!expanded && hasMore ? '...' : ''}</p>
-                </motion.div>
-              </AnimatePresence>
-              {hasMore && (
-                <button onClick={() => setExpanded(!expanded)}
-                  className="flex items-center gap-1 mt-2 text-[11px] text-[var(--accent)] hover:underline cursor-pointer">
-                  <ChevronDown size={10} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
-                  {expanded ? L('접기', 'Collapse') : L('전체 보기', 'Show all')}
-                </button>
-              )}
-            </div>
+            {/* Key finding first — the one-line takeaway, so the user grasps the
+                result without reading the whole report. Full draft is one tap
+                away ("전체 초안 보기"). */}
+            {keyFinding && (
+              <div className={`mt-2.5 rounded-xl px-3.5 py-3 ${
+                isRejected
+                  ? 'bg-[var(--bg)]/30 text-[var(--text-tertiary)] line-through'
+                  : 'bg-[var(--bg)]/70 border border-[var(--border-subtle)] text-[var(--text-primary)]'
+              }`}>
+                <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--accent)] mb-1">
+                  {L('핵심 발견', 'Key finding')}
+                </p>
+                <p className="text-[13.5px] leading-[1.6]">{keyFinding}</p>
+              </div>
+            )}
+
+            {/* Full draft — opens the comfortable reading modal (markdown-rendered,
+                scrollable) instead of dumping thousands of chars inline. */}
+            {hasMore && (
+              <button onClick={() => setShowModal(true)}
+                className="flex items-center gap-1 mt-2 text-[11px] text-[var(--accent)] hover:underline cursor-pointer">
+                <ExternalLink size={10} />
+                {L('전체 초안 보기', 'View full draft')}
+              </button>
+            )}
+            {/* No key finding extracted — show the text inline (capped), so the
+                card is never empty even when extraction yields nothing. */}
+            {!keyFinding && worker.result && (
+              <div className={`mt-2.5 text-[13px] leading-[1.75] rounded-xl p-3.5 break-words ${
+                isRejected ? 'bg-[var(--bg)]/30 text-[var(--text-tertiary)] line-through' : 'bg-[var(--bg)]/60 text-[var(--text-primary)]'
+              }`}>
+                <p className="whitespace-pre-wrap">{worker.result.slice(0, 300)}{worker.result.length > 300 ? '…' : ''}</p>
+              </div>
+            )}
 
             {/* Simulation vs Reality comparison (human workers with matching persona) */}
             {aTypeInit === 'human' && worker.status === 'done' && worker.result && worker.contact?.name && (() => {
@@ -538,17 +586,17 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                   </p>
                 )}
                 <div className="flex items-center gap-2.5">
-                  {onApprove && !isApproved && (
-                    <button onClick={() => onApprove(worker.id)}
-                      className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white rounded-xl cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow"
-                      style={{ background: 'var(--gradient-gold)' }}>
-                      <Check size={12} /> {L('반영', 'Apply')}
-                    </button>
-                  )}
                   {onReject && !isRejected && (
-                    <button onClick={() => onReject(worker.id)}
+                    <button onClick={() => { onReject(worker.id); onAdvance?.(); }}
                       className="flex items-center gap-1.5 px-4 py-2 text-[12px] text-red-600 hover:bg-red-50 rounded-xl border border-red-200 hover:border-red-400 cursor-pointer transition-colors">
                       {L('제외', 'Exclude')}
+                    </button>
+                  )}
+                  {onApprove && !isApproved && (
+                    <button onClick={() => { onApprove(worker.id); onAdvance?.(); }}
+                      className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white rounded-xl cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow"
+                      style={{ background: 'var(--gradient-gold)' }}>
+                      <Check size={12} /> {onAdvance ? L('반영 → 다음', 'Apply → Next') : L('반영', 'Apply')}
                     </button>
                   )}
                   {(isApproved || isRejected) && (
@@ -557,6 +605,22 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                         className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
                         {L('변경', 'Change')}
                       </button>
+                      {/* Rejected work isn't a dead-end — let the captain demand a
+                          fresh attempt (same agent) or hand it to someone else. */}
+                      {isRejected && onRetry && (
+                        <button
+                          onClick={() => { store.updateWorker(worker.id, { approved: null }); onRetry(worker.id); }}
+                          className="inline-flex items-center gap-1 text-[11px] text-[var(--accent)] hover:underline cursor-pointer transition-colors">
+                          <RotateCw size={10} /> {L('다시 시도', 'Try again')}
+                        </button>
+                      )}
+                      {isRejected && onReassign && (
+                        <button
+                          onClick={() => onReassign(worker.id)}
+                          className="inline-flex items-center gap-1 text-[11px] text-[var(--accent)] hover:underline cursor-pointer transition-colors">
+                          <Repeat size={10} /> {L('다른 에이전트로', 'Different agent')}
+                        </button>
+                      )}
                       <span className="text-[10px] text-[var(--text-tertiary)]">
                         {isApproved ? L('최종 문서에 포함됩니다', 'Included in final document') : L('최종 문서에서 제외됩니다', 'Excluded from final document')}
                       </span>
@@ -572,10 +636,15 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
         </div>
       </motion.div>
 
-      {/* Full result modal */}
+      {/* Full result modal — read-only reading surface (approve/exclude stays on
+          the card so it flows through the stepper). */}
       <AnimatePresence>
         {showModal && (
-          <ResultModal worker={worker} onClose={() => setShowModal(false)} onApprove={onApprove} onReject={onReject} />
+          <ResultModal
+            worker={worker}
+            content={worker.status === 'waiting_input' ? (worker.ai_preliminary || worker.result || '') : (worker.result || '')}
+            onClose={() => setShowModal(false)}
+          />
         )}
       </AnimatePresence>
     </>
@@ -589,7 +658,11 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
     && prev.onSubmitInput === next.onSubmitInput
     && prev.onRetry === next.onRetry
     && prev.onApprove === next.onApprove
-    && prev.onReject === next.onReject;
+    && prev.onReject === next.onReject
+    && prev.onReassign === next.onReassign
+    // Without this, switching to/from the last worker (where onAdvance flips
+    // undefined↔defined) keeps a stale value and the "→ 다음" label desyncs.
+    && prev.onAdvance === next.onAdvance;
 });
 
 /* ═══ Legacy export for WorkerPanel sidebar (compact) ═══ */
