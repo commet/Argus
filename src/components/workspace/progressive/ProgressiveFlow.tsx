@@ -132,7 +132,7 @@ function getParticle(name: string): string {
 // concept. Keeps the labels short so the stepper stays compact while
 // reinforcing the "set sail → voyage → report → anchor" mental model.
 const PHASES_KO = ['항해 준비', '항해', '보고', '정박'] as const;
-const PHASES_EN = ['Briefing', 'Voyage', 'Review', 'Anchor'] as const;
+const PHASES_EN = ['Briefing', 'Voyage', 'Review', 'Delivered'] as const;
 
 function phaseIdx(phase: string, round: number, hasMix: boolean): number {
   if (phase === 'complete') return 4;
@@ -520,7 +520,7 @@ function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult }: { m
                 </motion.button>
               </div>
               <button onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
-                style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>{L('건너뛰고 이대로 완성', 'Skip and finalize as is')}</button>
+                style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>{L('검토 건너뛰고 이대로 완성', 'Skip the review & finalize')}</button>
             </div>
           </div>
         </div>
@@ -585,7 +585,26 @@ function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: import('
 
             {/* Concerns — "이것만 고치면" */}
             {fb.concerns.length > 0 && <div>
-              <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-3">{L('이것만 고치면', 'Fix These')}</p>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em]">{L('이것만 고치면', 'Fix These')}</p>
+                {fb.concerns.length > 1 && (
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <button
+                      onClick={() => { if (!busy) fb.concerns.forEach((c, i) => { if (!c.applied) onToggle(i); }); }}
+                      disabled={busy || fb.concerns.every(c => c.applied)}
+                      className="text-[11px] font-medium text-[var(--accent)] hover:underline cursor-pointer disabled:opacity-30 disabled:cursor-default disabled:no-underline">
+                      {L('모두 반영', 'Apply all')}
+                    </button>
+                    <span className="text-[var(--border)]">·</span>
+                    <button
+                      onClick={() => { if (!busy) fb.concerns.forEach((c, i) => { if (c.applied) onToggle(i); }); }}
+                      disabled={busy || fb.concerns.every(c => !c.applied)}
+                      className="text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-30 disabled:cursor-default">
+                      {L('모두 해제', 'Skip all')}
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-3">
                 {fb.concerns.map((c: DMConcern, i: number) => (
                   <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.08, duration: 0.4, ease: EASE }}
@@ -694,10 +713,13 @@ function FinalCard({
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const logSession = useProgressiveStore(s => (sessionId ? s.sessions.find(ss => ss.id === sessionId) : null) ?? null);
   const baseTarget = releasedContent && releasedContent.length > 0 ? releasedContent : content;
-  // Append the decision trail so the exported document carries the *process*,
-  // not just the conclusion ("the process is the deliverable").
+  // The decision trail ("the process is the deliverable") is available, but
+  // OPT-IN: most users expect Copy to give a clean document, not 2–3× the
+  // length with the full history. Default to the clean doc; the toggle below
+  // lets power users append the ship's log.
   const voyageLog = voyageLogToMarkdown(logSession, locale as 'ko' | 'en');
-  const copyTarget = voyageLog ? `${baseTarget}\n\n---\n\n${voyageLog}\n` : baseTarget;
+  const [withLog, setWithLog] = useState(false);
+  const copyTarget = withLog && voyageLog ? `${baseTarget}\n\n---\n\n${voyageLog}\n` : baseTarget;
   const copyLabel = releasedContent && releasedContent !== content && releasedLabel
     ? L(`${releasedLabel} 복사`, `Copy ${releasedLabel}`)
     : L('복사', 'Copy');
@@ -726,6 +748,15 @@ function FinalCard({
               copyLabel={copyLabel}
             />
           </div>
+          {voyageLog && (
+            <div className="px-5 md:px-7 py-2 border-b border-[var(--border-subtle)] flex items-center justify-end">
+              <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--text-secondary)] transition-colors">
+                <input type="checkbox" checked={withLog} onChange={(e) => setWithLog(e.target.checked)}
+                  className="accent-[var(--accent)] cursor-pointer" />
+                {L('복사·공유에 항해일지(결정 과정)도 포함', 'Also include the decision log when copying/sharing')}
+              </label>
+            </div>
+          )}
           {hasStructured ? (
             <div className="p-5 md:p-8 space-y-5">
               <h2 className="text-[22px] md:text-[26px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
@@ -1139,8 +1170,18 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const remaining = workers.length;
   const allClear = remaining === 0 && !anyRunning;
+  // ESC closes (matches PersonaPoolModal). Body-scroll lock keeps the page
+  // from scrolling behind the sheet.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  }, [onClose]);
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      role="dialog" aria-modal="true" aria-label={L('출항 전 검증', 'Pre-sail verification')}
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <motion.div
@@ -1160,7 +1201,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
               <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">
                 {allClear
                   ? L('이제 출항할 수 있어요.', 'Ready to set sail.')
-                  : L(`${remaining}개가 확인 없이 최종 문서에 들어갑니다. 선장이 직접 검증하세요.`, `${remaining} will enter the final draft unverified. The captain should check them.`)}
+                  : L(`팀원 ${remaining}명의 결과를 아직 안 봤어요. 반영할지 빼고 갈지 한 번씩만 정해주세요 — 그대로 다 반영하고 가도 돼요.`, `You haven't looked at ${remaining} result${remaining > 1 ? 's' : ''} yet. Mark each as keep or skip — or just include them all and go.`)}
               </p>
             </div>
             <button onClick={onClose} className="shrink-0 p-2 rounded-lg hover:bg-[var(--bg)] cursor-pointer" aria-label={L('닫기', 'Close')}>
@@ -1461,6 +1502,9 @@ export function TeamDeployBanner({
           <p className="text-[14px] text-[var(--text-secondary)]">
             {L(`${total}명이 함께 출항할 준비가 됐어요`, `${total} crew ready to sail`)}
           </p>
+          <p className="text-[12px] text-[var(--text-tertiary)] mt-1 leading-relaxed">
+            {L('그대로 출항해도 되고, 누가 어느 일을 맡을지 바꾼 뒤 출항해도 돼요.', 'Set sail as-is, or tweak who handles what first.')}
+          </p>
         </div>
       </div>
 
@@ -1498,7 +1542,7 @@ export function TeamDeployBanner({
                     <span>{L(`Task ${gi + 1}`, `Task ${gi + 1}`)}</span>
                     {groupSize > 1 && (
                       <span className="text-[var(--accent)] normal-case tracking-normal">
-                        · {groupSize}{L('명', '×')}
+                        · {groupSize}{L('명', groupSize > 1 ? ' members' : ' member')}
                       </span>
                     )}
                     {taskEdited && (
@@ -3100,7 +3144,24 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 </p>
               </motion.div>
             )}
-            {curQ && !busy && phase === 'conversing' && <QuestionCard key={curQ.id} question={curQ} onAnswer={onAnswer} disabled={busy} locale={locale} />}
+            {curQ && !busy && phase === 'conversing' && (() => {
+              const teamReady = deployPhase === 'ready' && workers.length > 0;
+              const meta = teamReady
+                ? L(`${answers.length + 1}번째 질문 · 선택`, `Question ${answers.length + 1} · optional`)
+                : L(`${answers.length + 1}번째 질문`, `Question ${answers.length + 1}`);
+              return (
+                <QuestionCard
+                  key={curQ.id}
+                  question={curQ}
+                  onAnswer={onAnswer}
+                  disabled={busy}
+                  locale={locale}
+                  meta={meta}
+                  onSkip={teamReady ? onDeployWorkers : undefined}
+                  skipLabel={teamReady ? L('건너뛰고 출항', 'Skip & set sail') : undefined}
+                />
+              );
+            })()}
           </div>
 
           {/* Inline worker reports — ONE-AT-A-TIME stepper. Reviewing 3 long
@@ -3117,12 +3178,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             // exclude sets `approved`, SELF submit also sets approved:true, errors
             // are terminal.
             const handled = (w: WorkerTask) => w.approved != null || w.status === 'error';
+            const remainingToReview = ordered.filter(w => !handled(w) && w.status === 'done').length;
             const advance = () => setReviewCursor(c => Math.min(c + 1, total - 1));
             return (
               <div ref={workerSectionRef} className="space-y-3">
                 {/* Progress — clickable dots + N/total */}
                 <div className="flex items-center justify-between px-1">
-                  <span className="text-[12px] font-semibold text-[var(--text-secondary)]">{L('에이전트 검토', 'Review agents')}</span>
+                  <span className="text-[12px] font-semibold text-[var(--text-secondary)]">
+                    {L('에이전트 검토', 'Review agents')}
+                    {remainingToReview > 0 && (
+                      <span className="font-normal text-[var(--text-tertiary)] ml-1.5">· {L(`${remainingToReview}명 남음`, `${remainingToReview} left`)}</span>
+                    )}
+                  </span>
                   <div className="flex items-center gap-2.5">
                     <div className="flex items-center gap-1.5">
                       {ordered.map((w, i) => (
@@ -3475,7 +3542,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             )}
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-8 pb-16">
-              <p className="text-[13px] text-[var(--text-tertiary)] text-center mb-6">{L('복사해서 바로 사용하세요.', 'Copy and use it right away.')}</p>
+              <p className="text-[13px] text-[var(--text-tertiary)] text-center mb-1.5">{L('복사해서 바로 사용하세요.', 'Copy and use it right away.')}</p>
+              <p className="text-[11px] text-[var(--text-tertiary)]/80 text-center mb-6">{L('새 프로젝트를 시작해도 이 결과는 저장돼요 — 언제든 다시 열 수 있어요.', 'Starting a new project keeps this one saved — you can reopen it anytime.')}</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
                 <button onClick={() => { useProgressiveStore.setState({ currentSessionId: null }); window.location.reload(); }}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white text-[13px] font-semibold cursor-pointer"
@@ -3574,6 +3642,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           onClick={() => setPreviewDraftId(null)}
         >
           <div
+            role="dialog" aria-modal="true" aria-label={L('버전 미리보기', 'Version preview')}
             className="relative w-full max-w-2xl max-h-[85vh] bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
@@ -3625,6 +3694,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           onClick={() => { if (!isIterating) { setIterationOpen(false); setIterationDirective(''); } }}
         >
           <div
+            role="dialog" aria-modal="true" aria-label={L('수정 요청', 'Revise request')}
             className="relative w-full max-w-xl bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >

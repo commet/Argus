@@ -344,9 +344,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   immediately actionable. Marketing copy lives below or
                   is reserved for first-time users (no projects yet). */}
               <div className="mb-3">
-                <label className="block text-[13px] font-semibold text-[var(--text-primary)] mb-2.5">
+                <label className="block text-[13px] font-semibold text-[var(--text-primary)] mb-1">
                   {L('어떤 상황인가요?', "What's the situation?")}
                 </label>
+                <p className="text-[12px] text-[var(--text-tertiary)] mb-2.5 leading-relaxed">
+                  {L('분야·형식 상관없어요. 떠오르는 대로 편하게 적어주세요 — 나머지는 팀이 정리해요.', 'Any field or format — just describe it however it comes to mind. The team handles the rest.')}
+                </p>
                 <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden focus-within:border-[var(--accent)]/40 transition-colors">
                   {justFromDemo && (
                     <div className="px-4 md:px-5 py-2.5 bg-[var(--accent)]/8 border-b border-[var(--accent)]/15 text-[12px] text-[var(--accent)] flex items-center gap-2">
@@ -364,11 +367,15 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                       rows={3} maxLength={5000}
                       className="w-full px-3 py-2.5 bg-transparent text-base md:text-[15px] text-[var(--text-primary)] leading-[1.65] resize-none focus:outline-none placeholder:text-[var(--text-tertiary)]" />
                     <div className="flex items-center justify-between gap-3 mt-2 px-1">
-                      {/* Desktop-only keyboard hint — irrelevant on mobile */}
-                      <span className="hidden md:inline text-[11px] text-[var(--text-tertiary)]">
-                        {L('Enter로 시작 · Shift+Enter로 줄바꿈', 'Enter to start · Shift+Enter for newline')}
-                      </span>
-                      <span className="md:hidden" />
+                      {/* When empty: a gentle nudge (why is Start dimmed?) — shown on
+                          all sizes. When typed: the desktop keyboard hint. */}
+                      {problemInput.trim()
+                        ? <span className="hidden md:inline text-[11px] text-[var(--text-tertiary)]">
+                            {L('Enter로 시작 · Shift+Enter로 줄바꿈', 'Enter to start · Shift+Enter for newline')}
+                          </span>
+                        : <span className="text-[11px] text-[var(--text-tertiary)]">
+                            {L('한 줄만 적어도 시작할 수 있어요', 'A sentence is enough to begin')}
+                          </span>}
                       <button onClick={() => { setJustFromDemo(false); handleSubmit(); }} disabled={!problemInput.trim()}
                         className={`shrink-0 inline-flex items-center gap-1.5 px-5 py-3 md:py-2.5 text-white rounded-xl text-[13px] font-semibold disabled:opacity-30 cursor-pointer min-h-[44px] md:min-h-[40px] transition-shadow hover:shadow-[var(--shadow-md)] ${justFromDemo ? 'animate-pulse' : ''}`}
                         style={{ background: 'var(--gradient-gold)' }}>
@@ -495,12 +502,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   <p className="text-[13px] text-[var(--text-secondary)] truncate flex-1">{problemInput}</p>
                 </div>
 
-                {/* 현재 단계 표시 */}
+                {/* 현재 단계 표시 + 소요 시간 안내 (멈춘 게 아니라는 신호) */}
                 <div className="flex items-center gap-2 mb-4 px-1">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
                     <Sparkles size={14} className="text-[var(--accent)]" />
                   </motion.div>
                   <span className="text-[12px] font-medium text-[var(--accent)]">{stageLabel}</span>
+                  <span className="text-[11px] text-[var(--text-tertiary)] ml-auto">{L('보통 20~40초', 'usually 20–40s')}</span>
                 </div>
 
                 {/* ─── Field 1: 진짜 질문 ─── */}

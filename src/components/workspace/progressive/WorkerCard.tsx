@@ -277,14 +277,14 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
               {persona?.name || 'AI'}
               <span className="text-[var(--text-tertiary)] font-normal ml-1.5 text-[11px]">{persona?.role}</span>
             </p>
-            <div className="mt-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
-              <p className="text-[11px] font-semibold text-amber-900 mb-1">{L('품질 확인이 필요합니다', 'Quality check needed')}</p>
-              {worker.validation_feedback && <p className="text-[10px] text-amber-700 mb-2">{worker.validation_feedback}</p>}
+            <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <p className="text-[12px] font-semibold text-amber-900 mb-1">{L('품질 확인이 필요합니다', 'Quality check needed')}</p>
+              {worker.validation_feedback && <p className="text-[12px] text-amber-800 mb-2.5 leading-relaxed">{worker.validation_feedback}</p>}
               <div className="flex gap-2">
                 {onRetry && <button onClick={() => onRetry(worker.id)}
-                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white border border-amber-200 text-amber-800 cursor-pointer hover:bg-amber-50">{L('다시 생성', 'Regenerate')}</button>}
+                  className="text-[11px] px-3 py-1.5 min-h-[36px] rounded-lg bg-white border border-amber-200 text-amber-800 cursor-pointer hover:bg-amber-50">{L('다시 생성', 'Regenerate')}</button>}
                 <button onClick={() => store.updateWorker(worker.id, { status: 'done', completed_at: new Date().toISOString() })}
-                  className="text-[10px] px-2.5 py-1 rounded-lg text-amber-600 cursor-pointer hover:text-amber-800">{L('그냥 사용', 'Use anyway')}</button>
+                  className="text-[11px] px-3 py-1.5 min-h-[36px] rounded-lg text-amber-700 cursor-pointer hover:text-amber-900">{L('그냥 사용', 'Use anyway')}</button>
               </div>
             </div>
           </div>
@@ -393,7 +393,9 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
 
             {/* Decision chips */}
             {decisionOptions.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="mt-2">
+                <p className="text-[10px] text-[var(--text-tertiary)] mb-1.5">{L('하나 고르거나, 아래에 직접 적어도 돼요', 'Pick one, or type your own below')}</p>
+              <div className="flex flex-wrap gap-1.5">
                 {decisionOptions.map((opt, j) => (
                   <button key={j}
                     onClick={() => setInputVal(opt)}
@@ -405,6 +407,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                     {opt}
                   </button>
                 ))}
+              </div>
               </div>
             )}
 

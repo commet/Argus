@@ -11,6 +11,12 @@ interface QuestionCardProps {
   disabled?: boolean;
   allowFreeText?: boolean;
   locale?: 'ko' | 'en';
+  /** Small label above the question (e.g. "2번째 질문 · 선택") — gives the user
+   *  a sense of progress so the Q&A doesn't feel open-ended. */
+  meta?: string;
+  /** When provided, renders a tertiary skip action with `skipLabel`. */
+  onSkip?: () => void;
+  skipLabel?: string;
 }
 
 export function QuestionCard({
@@ -19,6 +25,9 @@ export function QuestionCard({
   disabled = false,
   allowFreeText = true,
   locale = 'ko',
+  meta,
+  onSkip,
+  skipLabel,
 }: QuestionCardProps) {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const [input, setInput] = useState('');
@@ -53,6 +62,9 @@ export function QuestionCard({
           <ArrowRight size={11} className="text-[var(--accent)]" />
         </div>
         <div>
+          {meta && (
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]/70 mb-1">{meta}</p>
+          )}
           <p className="text-[16px] md:text-[17px] font-bold text-[var(--text-primary)] leading-snug tracking-tight">
             {question.text}
           </p>
@@ -133,6 +145,20 @@ export function QuestionCard({
             style={{ background: 'var(--gradient-gold)' }}>
             {L('확인', 'OK')}
           </motion.button>
+        </div>
+      )}
+
+      {/* Optional skip — only when the parent says this question isn't required
+          (e.g. the crew is already assembled). Gives a concrete way out so the
+          user never feels trapped answering. */}
+      {onSkip && !submitted && (
+        <div className="pl-8.5 mt-3">
+          <button
+            onClick={() => { if (!disabled) { setSubmitted(true); onSkip(); } }}
+            disabled={disabled}
+            className="inline-flex items-center gap-1 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors disabled:opacity-40">
+            {skipLabel || L('건너뛰기', 'Skip')} <ArrowRight size={11} />
+          </button>
         </div>
       )}
     </motion.div>
