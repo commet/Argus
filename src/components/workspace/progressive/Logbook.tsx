@@ -134,7 +134,7 @@ export function Logbook() {
                     <button
                       onClick={() => !locked && deleteBranch(b.id)}
                       disabled={locked}
-                      aria-label={L('분기 삭제', 'Delete branch')}
+                      aria-label={L('항로 삭제', 'Delete course')}
                       className={`pr-1.5 pl-0.5 py-1 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       <X size={9} />

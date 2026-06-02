@@ -3048,7 +3048,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     <div>
                       {L('현재', 'Currently on')}{' '}
                       <span className="font-semibold">{activeDraft.version_label}</span>
-                      {L('에서 분기 작업 중', ' (branch)')}
+                      {L('에서 수정 중', ' (revision)')}
                     </div>
                     {justReactivatedFromBranch && (
                       <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
@@ -3273,7 +3273,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-[var(--accent)] hover:opacity-90 transition-opacity"
                   onClick={() => handleBranchToDraft(previewDraft.id)}
                 >
-                  <GitBranch className="w-3 h-3" /> {L('여기서 분기', 'Branch from here')}
+                  <GitBranch className="w-3 h-3" /> {L('이 버전에서 수정', 'Revise from here')}
                 </button>
               )}
             </footer>

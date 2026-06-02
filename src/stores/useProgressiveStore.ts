@@ -1360,7 +1360,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const ko = getCurrentLanguage() === 'ko';
     const newBranch: VoyageBranch = {
       id: newBranchId,
-      name: label || (ko ? `분기 ${branches.length}` : `Branch ${branches.length}`),
+      name: label || (ko ? `항로 ${branches.length}` : `Course ${branches.length}`),
       head_checkpoint_id: fromCheckpointId,
       forked_from_checkpoint_id: fromCheckpointId,
       status: 'sailing',

@@ -117,8 +117,8 @@ export function VoyageChart() {
             First-timers get a "try forking" nudge; veterans get a how-to. */}
         <div className="text-[10px] text-[var(--text-tertiary)] mt-2 px-1 leading-tight">
           {branches.length <= 1
-            ? L('아직 한 항로예요. 기점을 클릭해서 다른 길로 분기해 볼 수 있어요.', 'Single course so far. Click a waypoint to fork a new one.')
-            : L('기점이나 항로를 클릭해서 그 시점으로 돌아가거나 분기할 수 있어요.', 'Click a waypoint or course to rewind or fork there.')}
+            ? L('아직 한 항로예요. 기점을 클릭해 다른 항로를 내볼 수 있어요.', 'Single course so far. Click a waypoint to start a new course.')
+            : L('기점이나 항로를 클릭해 그 시점으로 돌아가거나 새 항로를 낼 수 있어요.', 'Click a waypoint or course to revisit or start a new course there.')}
         </div>
 
         {/* Course legend — every branch (incl. freshly-forked ones with no
@@ -168,7 +168,7 @@ export function VoyageChart() {
                     <button
                       onClick={() => !locked && deleteBranch(b.id)}
                       disabled={locked}
-                      title={L('분기 삭제', 'Delete branch')}
+                      title={L('항로 삭제', 'Delete course')}
                       className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       <XIcon size={11} />
@@ -260,8 +260,8 @@ export function VoyageChart() {
                       </h3>
                       <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
                         {L(
-                          `'${target.label}' 시점으로 돌아갑니다. 현재 진행한 작업은 다른 분기로 보존돼요.`,
-                          `Rewinds to '${target.label}'. Your current course is preserved as a sibling branch.`,
+                          `'${target.label}' 시점으로 돌아갑니다. 현재 진행한 작업은 다른 항로로 보존돼요.`,
+                          `Rewinds to '${target.label}'. Your current work is preserved as a separate course.`,
                         )}
                       </p>
                     </div>

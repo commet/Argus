@@ -58,7 +58,7 @@ export function BranchMap({
       className="overflow-visible"
       preserveAspectRatio="xMinYMin meet"
       role="img"
-      aria-label="Branch chart"
+      aria-label="Voyage course chart"
     >
       <defs>
         <pattern id="branchmap-grid" width="20" height="20" patternUnits="userSpaceOnUse">
