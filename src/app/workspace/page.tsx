@@ -109,7 +109,9 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
             Mobile bottom padding clears the stacked fixed bars: log bar (~56px)
             + worker bar (~56px) when both are present. */}
         <div className="flex">
-          <div className={`flex-1 px-4 md:px-6 lg:pb-0 ${hasWorkers ? 'pb-[120px]' : showRail ? 'pb-[64px]' : ''}`}>
+          {/* Bottom padding clears the stacked fixed mobile bars AND the iOS
+              home-indicator safe area (otherwise the last line hides behind it). */}
+          <div className={`flex-1 px-4 md:px-6 lg:pb-0 ${hasWorkers ? 'pb-[calc(120px+env(safe-area-inset-bottom))]' : showRail ? 'pb-[calc(64px+env(safe-area-inset-bottom))]' : ''}`}>
             <ErrorBoundary fallback={<StepErrorFallback />}>
               <ProgressiveFlow projectId={projectId} />
             </ErrorBoundary>
@@ -394,23 +396,41 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     </Link>
                   </div>
                 )}
-                {error && !error.startsWith('LOGIN_REQUIRED') && (
-                  <div className="mt-3 px-3 py-2.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--accent)]/15 text-[13px] text-[var(--text-primary)] flex items-start gap-2">
-                    <AlertTriangle size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />
-                    <div>
-                      <span>
-                        {error.includes('한도') || error.includes('rate') || error.includes('limit')
-                          ? L('무료 체험 한도에 도달했습니다. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.', 'Free trial limit reached. Register your own API key in Settings for unlimited use.')
-                          : error}
-                      </span>
-                      {(error.includes('API 키') || error.includes('API key') || error.includes('한도') || error.includes('rate')) && (
-                        <a href="/settings" className="block mt-1.5 text-[12px] text-[var(--accent)] font-medium hover:underline">
-                          {L('Settings에서 API 키 등록하기 →', 'Register your API key in Settings →')}
-                        </a>
-                      )}
+                {error && !error.startsWith('LOGIN_REQUIRED') && (() => {
+                  // Categorize so the user knows what to DO, not just that it failed.
+                  const e = error.toLowerCase();
+                  const isQuota = e.includes('한도') || e.includes('rate') || e.includes('limit') || e.includes('429') || e.includes('api 키') || e.includes('api key');
+                  const isNetwork = e.includes('network') || e.includes('failed to fetch') || e.includes('fetch') || e.includes('네트워크') || e.includes('offline');
+                  const isTimeout = e.includes('timeout') || e.includes('timed out') || e.includes('시간 초과') || e.includes('aborted');
+                  const msg = isQuota
+                    ? L('무료 체험 한도에 도달했습니다. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.', 'Free trial limit reached. Register your own API key in Settings for unlimited use.')
+                    : isNetwork
+                      ? L('네트워크 연결이 불안정해요. 연결을 확인하고 다시 시도해주세요.', 'Network looks unstable. Check your connection and try again.')
+                      : isTimeout
+                        ? L('응답이 평소보다 오래 걸렸어요. 다시 시도하면 대개 해결돼요.', 'That took longer than usual. Trying again usually fixes it.')
+                        : L('분석에 실패했어요. 잠시 후 다시 시도해주세요.', 'Analysis failed. Please try again in a moment.');
+                  return (
+                    <div className="mt-3 px-3 py-2.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--accent)]/15 text-[13px] text-[var(--text-primary)] flex items-start gap-2">
+                      <AlertTriangle size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <span>{msg}</span>
+                        <div className="mt-1.5 flex items-center gap-3">
+                          {/* Quota → settings; everything else → an explicit retry. */}
+                          {isQuota ? (
+                            <a href="/settings" className="text-[12px] text-[var(--accent)] font-medium hover:underline">
+                              {L('Settings에서 API 키 등록하기 →', 'Register your API key in Settings →')}
+                            </a>
+                          ) : (
+                            <button onClick={() => handleSubmit()}
+                              className="inline-flex items-center gap-1 text-[12px] text-[var(--accent)] font-semibold hover:underline cursor-pointer">
+                              <RefreshCw size={11} /> {L('다시 시도', 'Try again')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* SECONDARY: Demo scenarios — compact, framed as "둘러보기".
