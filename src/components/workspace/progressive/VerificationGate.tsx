@@ -1,0 +1,135 @@
+'use client';
+
+import { useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { UserCheck, X as XIcon, ChevronRight, RotateCw } from 'lucide-react';
+import { useLocale } from '@/hooks/useLocale';
+import { extractKeyFinding } from '@/lib/extract-key-finding';
+import type { WorkerTask } from '@/stores/types';
+import { WorkerAvatar } from './WorkerAvatar';
+import { personaName } from './shared/persona-format';
+import { EASE } from './shared/constants';
+
+/* ═══ Verification Gate — 출항 전 검증 ═══ */
+/**
+ * The captain-stays-in-the-loop junction. Surfaces every worker that finished
+ * but hasn't been accepted/excluded, so unverified analysis can't slip into the
+ * final draft unnoticed. Deliberately a *soft* gate: an explicit "확인 없이
+ * 출항" override always exists — we make verification conscious, not coerced.
+ */
+export function VerificationGate({ workers, anyRunning, onApprove, onReject, onRetry, onSail, onOverride, onClose }: {
+  workers: WorkerTask[];
+  /** True while any worker is mid-run (e.g. a "Redo" in flight). Sailing must
+   *  wait for it — otherwise a re-running worker (no longer 'done', so absent
+   *  from the unreviewed list) could let the mix proceed without its result. */
+  anyRunning?: boolean;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onRetry?: (id: string) => void;
+  onSail: () => void;
+  onOverride: () => void;
+  onClose: () => void;
+}) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const remaining = workers.length;
+  const allClear = remaining === 0 && !anyRunning;
+  // ESC closes (matches PersonaPoolModal). Body-scroll lock keeps the page
+  // from scrolling behind the sheet.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  }, [onClose]);
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      role="dialog" aria-modal="true" aria-label={L('출항 전 검증', 'Pre-sail verification')}
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }}
+        transition={{ duration: 0.3, ease: EASE }}
+        className="relative w-full sm:max-w-lg max-h-[85vh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-[var(--border-subtle)] shrink-0">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center shrink-0">
+              <UserCheck size={18} className="text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-semibold text-[var(--text-primary)]">
+                {allClear ? L('모두 확인했어요', 'All reviewed') : L('확인하지 않은 분석이 있어요', 'Some analyses are unreviewed')}
+              </p>
+              <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">
+                {allClear
+                  ? L('이제 출항할 수 있어요.', 'Ready to set sail.')
+                  : L(`팀원 ${remaining}명의 결과를 아직 안 봤어요. 반영할지 빼고 갈지 한 번씩만 정해주세요 — 그대로 다 반영하고 가도 돼요.`, `You haven't looked at ${remaining} result${remaining > 1 ? 's' : ''} yet. Mark each as keep or skip — or just include them all and go.`)}
+              </p>
+            </div>
+            <button onClick={onClose} className="shrink-0 p-2 rounded-lg hover:bg-[var(--bg)] cursor-pointer" aria-label={L('닫기', 'Close')}>
+              <XIcon size={16} className="text-[var(--text-tertiary)]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Unreviewed list */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+          {workers.map(w => {
+            const finding = extractKeyFinding(w.result) || (w.result || '').slice(0, 120);
+            return (
+              <div key={w.id} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)]/50 p-3">
+                <div className="flex items-center gap-2">
+                  <WorkerAvatar persona={w.persona} size="sm" />
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] truncate">{personaName(w.persona, locale) || 'AI'}</span>
+                  <span className="text-[11px] text-[var(--text-tertiary)] truncate">· {w.task}</span>
+                </div>
+                {finding && <p className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-[1.55] line-clamp-3">{finding}</p>}
+                <div className="flex items-center gap-2 mt-2.5">
+                  <button onClick={() => onApprove(w.id)}
+                    className="px-3 py-1.5 text-[12px] font-semibold text-white rounded-lg cursor-pointer shadow-[var(--shadow-sm)]"
+                    style={{ background: 'var(--gradient-gold)' }}>
+                    {L('반영', 'Apply')}
+                  </button>
+                  <button onClick={() => onReject(w.id)}
+                    className="px-3 py-1.5 text-[12px] text-red-600 hover:bg-red-50 rounded-lg border border-red-200 cursor-pointer transition-colors">
+                    {L('제외', 'Exclude')}
+                  </button>
+                  {onRetry && (
+                    <button onClick={() => onRetry(w.id)}
+                      className="ml-auto inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] rounded-lg cursor-pointer transition-colors"
+                      title={L('이 분석을 다시 실행', 'Re-run this analysis')}>
+                      <RotateCw size={11} /> {L('다시', 'Redo')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-[var(--border-subtle)] shrink-0 flex flex-col gap-2">
+          <button onClick={onSail} disabled={!allClear}
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: 'var(--gradient-gold)' }}>
+            {allClear
+              ? L('출항', 'Set sail')
+              : remaining > 0
+                ? L(`${remaining}개 남음`, `${remaining} left`)
+                : L('실행 중…', 'Running…')} <ChevronRight size={14} />
+          </button>
+          {/* Override only when there's genuinely unreviewed work to accept —
+              not while a re-run is still in flight (nothing to override yet). */}
+          {remaining > 0 && (
+            <button onClick={onOverride}
+              className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer transition-colors">
+              {L('확인 없이 모두 반영하고 출항', 'Accept all unchecked and sail')}
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
