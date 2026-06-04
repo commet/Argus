@@ -74,11 +74,19 @@ export function FinalCard({
             />
           </div>
           {voyageLog && (
-            <div className="px-5 md:px-7 py-2 border-b border-[var(--border-subtle)] flex items-center justify-end">
-              <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--text-secondary)] transition-colors">
+            <div className="px-5 md:px-7 py-3 border-b border-[var(--border-subtle)] bg-[var(--accent)]/[0.04]">
+              <label className="flex items-start gap-2.5 cursor-pointer group">
                 <input type="checkbox" checked={withLog} onChange={(e) => setWithLog(e.target.checked)}
-                  className="accent-[var(--accent)] cursor-pointer" />
-                {L('복사·공유에 항해일지(결정 과정)도 포함', 'Also include the decision log when copying/sharing')}
+                  className="accent-[var(--accent)] cursor-pointer mt-0.5" />
+                <span className="flex-1">
+                  <span className="block text-[12.5px] font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
+                    {L('항해일지(결정 과정)도 함께 담기', 'Include the decision log (your reasoning trail)')}
+                  </span>
+                  <span className="block text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-snug">
+                    {L('“왜 이렇게 결정했는지”의 기록 — 결과 문서만으로는 남지 않는, 당신만의 판단 흔적이에요.',
+                       'The record of WHY you decided this — the reasoning a finished document alone leaves behind.')}
+                  </span>
+                </span>
               </label>
             </div>
           )}
