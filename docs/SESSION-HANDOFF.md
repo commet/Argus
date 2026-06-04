@@ -32,12 +32,23 @@ Local-only files NOT pushed (intentional): `package-lock.json` had a stray pre-e
 - **FinalCard decision-log** (`98875d7`): promoted from a tiny checkbox to a labeled differentiator with a value line.
 - **Docs/cleanup**: plan + protocol (`eff518e`), UX live/legacy triage (`03d57fa`), concurrent-session legacy `?step=` nav removal preserved (`9823f4e`).
 
-## What's NEXT (LIVE worklist, in order)
-1. **Worker stage** — `AgentVisuals.tsx:9-36` fake activity tickers (show specific lines only when a real `streamSnippet` exists); two competing "team" surfaces (sidebar vs stepper, `ProgressiveFlow.tsx` ~stepper) → make one the single do-this-now surface.
-2. **FinalCard** — gate the XP/Lv. gamification (`FinalCard.tsx:122-148`) behind a tooltip (P2); add the "arrival — N outputs" footer band + "see outputs →" CTA (the link target OutputSelector is secondary).
-3. **Logbook** empty-state placeholder (`Logbook.tsx:92 return null`); surface the Navigator/reflection layer in the default flow (currently legacy-branch-only).
-4. **BranchMap/VoyageChart** legend; **branch delete** confirm + fork-cap toast (`useProgressiveStore.ts:1480`).
-5. Then the remaining §UX P2/P3 LIVE items.
+## Session 2 (continued) — DONE (branch `fix/l0-stop-the-bleeding`, all 1004 green, tsc+eslint clean)
+Line numbers in the worklist had drifted; everything below was re-verified against current source before editing (per VERIFICATION-PROTOCOL).
+- **`83fb242` Worker tickers honesty (#1a)** — `AgentSidebar` AgentRow no longer rotates fabricated per-persona activity ("analyzing competitor cases") when there's no real stream; falls back to the genuine assigned task + neutral "working" lines. (The fake tickers live in `progressive/shared/AgentVisuals.tsx`, used live only via `AgentSidebar:105`; `InteractiveDemo` is a labeled demo, left as-is.)
+- **`b81c80b` FinalCard XP/Lv gating (#2a)** — extracted `AgentGrowthFooter`; the XP/Lv chips are now a muted one-liner with the detail behind a tap-to-reveal disclosure, so gamification doesn't cheapen the final document.
+- **`aaebc29` Logbook empty-state (#3a)** — `Logbook.tsx` renders a dashed placeholder ("your decision trail collects here") instead of `return null` when a voyage exists but has no waypoints yet. Mobile `LogbookDrawer` intentionally still null-on-empty.
+- **`571136d` Branch-delete confirm (#4b)** — two-step inline confirm before `deleteBranch` in both Logbook chips and the VoyageChart course list (no native confirm).
+- **`23e8796` Fork-cap toast (#4a)** — `forkBranch` at `MAX_BRANCHES` now dispatches `argus:fork-blocked` (window CustomEvent, SSR-guarded); new global `ForkLimitToast` (mounted in Header) explains the cap + recovery.
+- **`75c90cc` BranchMap legend (#4c)** — compact visual legend under the VoyageChart (filled=logged point, hollow=checkpoint, ring=current, ⚑=anchored, dimmed=abandoned-when-present).
+- **`f9b1f7e` Review-nit polish** — from an adversarial diff review: disarm stale delete-confirm on active-switch/remove/lock; FinalCard disclosure `aria-controls`; memoize VoyageChart `branches`.
+
+## NEEDS YOUR DECISION (deferred — not a safe overnight change)
+1. **Two competing "team" surfaces (#1b).** The live worker stage shows BOTH the right-rail `AgentSidebar` (ambient "Analysis Team" status) AND the in-column `ProgressiveFlow.tsx:2082` "에이전트 검토 / Review agents" one-at-a-time review stepper. They sit in different screen regions and play different roles (status vs sequential approve/reject) and are already labeled distinctly — the original finding predates the current code (line numbers had drifted heavily). Collapsing to "one do-this-now surface" is an information-architecture decision with real UX trade-offs; it needs you + a visual pass, not an unattended rewrite of a 2,400-line file. **Recommendation:** decide whether the sidebar should be demoted to pure ambient status (e.g. hide its "Summary/Reflected below" roll-up during the review phase) or kept. Low risk once decided.
+2. **Surface the Navigator/reflection layer in the default flow (#3b).** `NavigatorStrip` renders only on the legacy `?step=` path (`workspace/page.tsx:905`), not in `ProgressiveLayout`. Wiring it into the default voyage is genuine **net-new** work (NavigatorStrip doesn't yet read `getUserPatterns`/`getPersonaAccuracySummary`), and **MASTER-DIRECTION-v4 §SEQ-3 explicitly DEMOTED the reflection tab to a "run-3+ payoff, not the run-1 first win"** (it's tier-2-gated, near-empty on runs 1–2). So deferring is plan-aligned, not a punt — build it only when you choose to invest in run-3+ retention.
+
+## Remaining LIVE worklist (when you pick back up)
+- §UX P2/P3 LIVE items not yet touched (see UX-LIVE-TRIAGE §2 "PRIMARY-LIVE"): anon→auth quota narrative disambiguation, team-theater honesty copy (HeroFlow "assembling" vs single LLM call), signal read-path local-only note.
+- The two decisions above, once you've made them.
 
 ## Deferred (do NOT spend time here until decided)
 - Legacy 4-step tools (ReframeStep/RecastStep/RehearseStep, `/tools/*`), `OutputSelector` (`/project`), `RefinementLoopStep` (dead — deletion candidate).
