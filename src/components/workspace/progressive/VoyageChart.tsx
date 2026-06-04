@@ -123,6 +123,33 @@ export function VoyageChart() {
           />
         </div>
 
+        {/* Visual legend — the SVG marks can't explain themselves, so spell
+            out the encoding (filled vs hollow node, ring, ⚑, dimmed). */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 px-1 text-[9px] text-[var(--text-tertiary)]">
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--accent)' }} />
+            {L('기록된 기점', 'Logged point')}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full border shrink-0" style={{ borderColor: 'var(--accent)', background: 'var(--surface)' }} />
+            {L('기점', 'Checkpoint')}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--accent)', outline: '1px solid var(--accent)', outlineOffset: '1.5px' }} />
+            {L('현재 위치', 'Current')}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Flag size={9} className="text-[var(--accent)] shrink-0" />
+            {L('확정 항로', 'Anchored')}
+          </span>
+          {branches.some(b => b.status === 'abandoned') && (
+            <span className="inline-flex items-center gap-1 opacity-50">
+              <span className="w-2 h-2 rounded-full border shrink-0" style={{ borderColor: 'var(--text-tertiary)' }} />
+              {L('포기한 항로', 'Abandoned')}
+            </span>
+          )}
+        </div>
+
         {/* Footer hint — adapts to whether the user has any branches yet.
             First-timers get a "try forking" nudge; veterans get a how-to. */}
         <div className="text-[10px] text-[var(--text-tertiary)] mt-2 px-1 leading-tight">
