@@ -40,10 +40,15 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             {cmReview && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.6 }}
                 className="pt-5 border-t border-dashed border-[var(--accent)]/20">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-1">
                   <span style={{ fontSize: 18 }}>🧭</span>
                   <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em]">{L('항해장의 한마디', 'Navigator Note')}</p>
                 </div>
+                {/* One-line intro — the navigator shows up only here/at revision,
+                    so say who they are the first time the user meets them. */}
+                <p className="text-[11px] text-[var(--text-tertiary)] mb-3 leading-snug">
+                  {L('항해장은 팀 전체의 결과를 통합해 검토하는 에이전트예요.', 'The navigator is the agent who reviews the whole team’s work.')}
+                </p>
                 <p className="text-[13px] text-[var(--text-primary)] leading-relaxed mb-2">{cmReview.overall}</p>
                 {cmReview.contradictions.length > 0 && (
                   <div className="mb-2">

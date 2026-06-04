@@ -237,13 +237,13 @@ export function TeamDeployBanner({
       <div className="flex items-baseline justify-between mb-4 gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.14em] mb-1">
-            {L('출항 팀', 'Voyage Crew')}
+            {L('투입할 팀', 'Your team')}
           </div>
           <p className="text-[14px] text-[var(--text-secondary)]">
-            {L(`${total}명이 함께 출항할 준비가 됐어요`, `${total} crew ready to sail`)}
+            {L(`${total}명이 분석할 준비가 됐어요`, `${total} teammates ready to work`)}
           </p>
           <p className="text-[12px] text-[var(--text-tertiary)] mt-1 leading-relaxed">
-            {L('그대로 출항해도 되고, 누가 어느 일을 맡을지 바꾼 뒤 출항해도 돼요.', 'Set sail as-is, or tweak who handles what first.')}
+            {L('그대로 시작해도 되고, 누가 어느 일을 맡을지 바꾼 뒤 시작해도 돼요.', 'Start as-is, or change who handles what first.')}
           </p>
         </div>
       </div>
@@ -426,14 +426,15 @@ export function TeamDeployBanner({
         );
       })()}
 
-      {/* Start button — primary CTA. "출항" carries the voyage metaphor. */}
+      {/* Start button — primary CTA. Starts the team working (was "출항"; the
+          set-sail wording is reserved for nautical companion features now). */}
       <motion.button onClick={onDeploy} whileTap={{ scale: 0.98 }}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 + groups.length * staggerDelay, duration: 0.4, ease: EASE }}
         className="mt-5 w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white rounded-xl text-[14px] font-semibold cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] transition-shadow"
         style={{ background: 'var(--gradient-gold)' }}>
-        {L('출항', 'Set sail')} <ChevronRight size={14} />
+        {L('팀 투입', 'Start')} <ChevronRight size={14} />
       </motion.button>
     </motion.div>
   );

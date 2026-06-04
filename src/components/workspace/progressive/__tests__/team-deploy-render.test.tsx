@@ -70,9 +70,9 @@ describe("captain's-seat render (TeamDeployBanner)", () => {
     expect(html).toContain('이 팀원 교체');
   });
 
-  it('still renders the self-judgment track and the set-sail CTA', () => {
+  it('still renders the self-judgment track and the start CTA', () => {
     expect(html).toContain('내 판단');
-    expect(html).toContain('출항');
+    expect(html).toContain('팀 투입');
   });
 
   it('surfaces the per-group track selector (discoverable human collaboration)', () => {
@@ -105,8 +105,8 @@ describe('axis ②: VerificationGate render', () => {
     expect(html).toContain('소피');
     expect(html).toContain('반영');
     expect(html).toContain('제외');
-    expect(html).toContain('1개 남음');                       // sail disabled, shows remaining
-    expect(html).toContain('확인 없이 모두 반영하고 출항');     // soft-gate override always present
+    expect(html).toContain('1개 남음');                       // draft disabled, shows remaining
+    expect(html).toContain('확인 없이 모두 반영하고 초안 만들기'); // soft-gate override always present
   });
 
   it('with nothing left, shows all-clear and an enabled sail', () => {
@@ -116,8 +116,8 @@ describe('axis ②: VerificationGate render', () => {
       onSail: () => {}, onOverride: () => {}, onClose: () => {},
     }));
     expect(html).toContain('모두 확인했어요');
-    expect(html).toContain('출항');
-    expect(html).not.toContain('확인 없이 모두 반영하고 출항'); // override hidden when clear
+    expect(html).toContain('초안 만들기');
+    expect(html).not.toContain('확인 없이 모두 반영하고 초안 만들기'); // override hidden when clear
   });
 
   it('waits for an in-flight re-run (nothing unreviewed but a worker is running)', () => {
@@ -126,7 +126,7 @@ describe('axis ②: VerificationGate render', () => {
       onApprove: () => {}, onReject: () => {},
       onSail: () => {}, onOverride: () => {}, onClose: () => {},
     }));
-    expect(html).toContain('실행 중…');                        // sail shows running, disabled
-    expect(html).not.toContain('확인 없이 모두 반영하고 출항'); // no bypass while running
+    expect(html).toContain('실행 중…');                        // draft shows running, disabled
+    expect(html).not.toContain('확인 없이 모두 반영하고 초안 만들기'); // no bypass while running
   });
 });
