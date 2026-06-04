@@ -50,6 +50,9 @@ export function Logbook() {
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [chartOpen, setChartOpen] = useState(false);
+  // Two-step delete confirm — deleting a course is destructive (the explored
+  // path is gone), so the X arms a confirm rather than deleting on first click.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { waypoints, branches, activeBranch, parentOf, assumptionsByCp } = useMemo(() => {
     const empty = { waypoints: [], branches: [], activeBranch: null, parentOf: new Map<string, string | null>(), assumptionsByCp: new Map<string, string[]>() };
@@ -156,14 +159,33 @@ export function Logbook() {
                     <span className="truncate">{b.name}</span>
                   </button>
                   {!isActive && (
-                    <button
-                      onClick={() => !locked && deleteBranch(b.id)}
-                      disabled={locked}
-                      aria-label={L('항로 삭제', 'Delete course')}
-                      className={`pr-1.5 pl-0.5 py-1 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    >
-                      <X size={9} />
-                    </button>
+                    confirmDeleteId === b.id ? (
+                      <span className="inline-flex items-center gap-1 pr-1.5 pl-1">
+                        <button
+                          onClick={() => { setConfirmDeleteId(null); if (!locked) deleteBranch(b.id); }}
+                          disabled={locked}
+                          className={`text-[9.5px] font-semibold text-[var(--danger)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                          {L('삭제', 'Delete')}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          aria-label={L('취소', 'Cancel')}
+                          className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer"
+                        >
+                          <X size={9} />
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(b.id)}
+                        disabled={locked}
+                        aria-label={L('항로 삭제', 'Delete course')}
+                        className={`pr-1.5 pl-0.5 py-1 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      >
+                        <X size={9} />
+                      </button>
+                    )
                   )}
                 </span>
               );

@@ -60,6 +60,8 @@ export function VoyageChart() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [compareId, setCompareId] = useState<string | null>(null);
+  // Two-step delete confirm — a course delete is destructive; arm before acting.
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
   const activeId = session?.active_checkpoint_id ?? null;
@@ -206,14 +208,33 @@ export function VoyageChart() {
                     </button>
                   )}
                   {!isActive && (
-                    <button
-                      onClick={() => !locked && deleteBranch(b.id)}
-                      disabled={locked}
-                      title={L('항로 삭제', 'Delete course')}
-                      className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    >
-                      <XIcon size={11} />
-                    </button>
+                    deleteConfirmId === b.id ? (
+                      <span className="inline-flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => { setDeleteConfirmId(null); if (!locked) deleteBranch(b.id); }}
+                          disabled={locked}
+                          className={`text-[9px] font-semibold text-[var(--danger)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                          {L('삭제', 'Delete')}
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(null)}
+                          aria-label={L('취소', 'Cancel')}
+                          className="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer"
+                        >
+                          <XIcon size={11} />
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirmId(b.id)}
+                        disabled={locked}
+                        title={L('항로 삭제', 'Delete course')}
+                        className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      >
+                        <XIcon size={11} />
+                      </button>
+                    )
                   )}
                 </div>
               );
