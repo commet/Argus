@@ -372,6 +372,29 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 </div>
               )}
 
+              {/* Orientation — a short headline + the 3 steps, so first-timers know
+                  what happens and "팀" isn't referenced cold in the input helper below. */}
+              <div className="mb-4">
+                <h2 className="text-[16px] md:text-[18px] font-semibold text-[var(--text-primary)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+                  {L('무엇을 AI에게 시킬지, 같이 다듬어요', "Let's sharpen what to ask AI — together")}
+                </h2>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-[var(--text-tertiary)]">
+                  {[
+                    L('상황을 적으면', 'Describe the situation'),
+                    L('AI 팀이 분석하고 되물어요', 'an AI team analyzes & asks back'),
+                    L('기획안이 완성돼요', 'you get a finished plan'),
+                  ].map((step, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-[var(--accent)]/12 text-[var(--accent)] flex items-center justify-center font-semibold text-[9px]">{i + 1}</span>
+                        {step}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+
               {/* PRIMARY: Direct input — the workspace's hero. Big, prominent,
                   immediately actionable. Marketing copy lives below or
                   is reserved for first-time users (no projects yet). */}
