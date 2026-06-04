@@ -89,7 +89,31 @@ export function Logbook() {
     setChartOpen(false);
   };
 
-  if (waypoints.length === 0) return null;
+  // Empty state — the rail can be visible (e.g. workers running) before the
+  // first waypoint is logged. Give the log an identity instead of a void so
+  // the user knows the decision trail collects here. Only when a voyage exists.
+  if (waypoints.length === 0) {
+    if (!session) return null;
+    return (
+      <aside className="px-4 py-4" aria-label={L('항해일지', "Ship's log")}>
+        <h3 className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight mb-2.5">
+          {L('항해일지', "Ship's log")}
+        </h3>
+        <div className="rounded-xl border border-dashed border-[var(--border-subtle)] px-3 py-4 space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <Compass size={13} className="text-[var(--accent)]/60 shrink-0" />
+            <span className="text-[11.5px] font-medium text-[var(--text-secondary)]">
+              {L('아직 항해 기록이 없어요', 'No log entries yet')}
+            </span>
+          </div>
+          <p className="text-[10.5px] leading-[1.5] text-[var(--text-tertiary)]">
+            {L('분석이 진행되면 결정의 흐름 — 침로를 바꾼 순간들 — 이 여기 차곡차곡 쌓여요.',
+               'As the analysis unfolds, your decision trail — the moments you changed course — collects here.')}
+          </p>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="px-4 py-4" aria-label={L('항해일지', "Ship's log")}>
