@@ -29,7 +29,7 @@
  * a new course from it (keeping the chart consistent with the branch model).
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Compass, Anchor, X as XIcon, RotateCcw, ChevronRight, Flag, Pencil, GitCompare, Check } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -66,9 +66,17 @@ export function VoyageChart() {
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
   const activeId = session?.active_checkpoint_id ?? null;
   const activePath = useMemo(() => getActivePath(checkpoints, activeId), [checkpoints, activeId]);
-  const branches = session?.branches ?? [];
+  const branches = useMemo(() => session?.branches ?? [], [session?.branches]);
   const activeBranch = branches.find(b => b.id === session?.active_branch_id) ?? null;
   const waypoints = useMemo(() => session?.waypoints ?? [], [session?.waypoints]);
+
+  // Disarm a pending delete-confirm if its target is no longer a deletable,
+  // non-active course or while branching is locked (mirrors Logbook).
+  useEffect(() => {
+    if (!deleteConfirmId) return;
+    const stillDeletable = branches.some(b => b.id === deleteConfirmId && b.id !== activeBranch?.id);
+    if (!stillDeletable || locked) setDeleteConfirmId(null);
+  }, [deleteConfirmId, branches, activeBranch?.id, locked]);
 
   if (!session || checkpoints.length === 0) return null;
 

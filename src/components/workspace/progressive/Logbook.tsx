@@ -16,7 +16,7 @@
  * avoid forking/switching out from under a running analysis.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Sailboat, Milestone, AlertTriangle, Eye, Wind, Anchor, ChevronDown, ChevronUp,
   Map as MapIcon, Flag, GitBranch, Compass, X, Hand,
@@ -81,6 +81,15 @@ export function Logbook() {
   // Hold branch mutations while the engine streams or workers are in flight
   // (shared lock — same rule the chart uses).
   const locked = useProgressiveStore(s => s.isBranchingLocked());
+
+  // Disarm a pending delete-confirm if its target is no longer a deletable,
+  // non-active course (switched-to-active / removed) or while branching is
+  // locked — otherwise a stale confirm could re-surface armed.
+  useEffect(() => {
+    if (!confirmDeleteId) return;
+    const stillDeletable = branches.some(b => b.id === confirmDeleteId && b.id !== activeBranch?.id);
+    if (!stillDeletable || locked) setConfirmDeleteId(null);
+  }, [confirmDeleteId, branches, activeBranch?.id, locked]);
   const multiBranch = branches.length > 1;
 
   // "Take the road not taken" — fork from the checkpoint *before* the turn so

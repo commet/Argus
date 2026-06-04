@@ -147,6 +147,7 @@ function AgentGrowthFooter({ sessionId, locale }: { sessionId: string; locale: s
         type="button"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
+        aria-controls="agent-growth-detail"
         className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
       >
         <Sparkles size={10} className="opacity-60 text-[var(--accent)]" />
@@ -160,6 +161,7 @@ function AgentGrowthFooter({ sessionId, locale }: { sessionId: string; locale: s
       <AnimatePresence>
         {open && (
           <motion.div
+            id="agent-growth-detail"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
