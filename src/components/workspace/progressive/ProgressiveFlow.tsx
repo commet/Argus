@@ -42,7 +42,7 @@ import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
-import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation } from 'lucide-react';
+import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { t } from '@/lib/i18n';
 import { personaName, personaRole } from './shared/persona-format';
@@ -834,17 +834,45 @@ function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
   const barColor = metrics.score >= 75 ? 'bg-emerald-400' :
     metrics.score >= 50 ? 'bg-amber-400' : 'bg-red-400';
 
+  // Trend — answers "is this getting clearer?"
+  const trend = metrics.trend === 'improving'
+    ? { icon: <TrendingUp size={11} className="text-emerald-500" />, label: L('좋아지는 중', 'improving') }
+    : metrics.trend === 'declining'
+      ? { icon: <TrendingDown size={11} className="text-red-500" />, label: L('흔들리는 중', 'unsettled') }
+      : metrics.trend === 'stable'
+        ? { icon: <Minus size={11} className="text-[var(--text-tertiary)]" />, label: L('안정적', 'stable') }
+        : null;
+
+  // "When do I stop?" — rounds left / ready
+  const roundsLabel = metrics.is_converged
+    ? L('준비됨 — 다음 단계로 넘어가도 좋아요', 'Ready — good to move on')
+    : metrics.estimated_rounds_left <= 1
+      ? L('약 한 라운드 더', '~1 more round')
+      : L(`약 ${metrics.estimated_rounds_left}라운드 더`, `~${metrics.estimated_rounds_left} more rounds`);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: EASE }}
       className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[var(--bg)]/60 border border-[var(--border-subtle)]">
       <div className="flex-1">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-medium text-[var(--text-tertiary)]">{L('명확도', 'Clarity')}</span>
+          <span className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--text-tertiary)]">
+            {L('명확도', 'Clarity')}
+            {trend && <span className="flex items-center gap-0.5">{trend.icon}<span className="text-[9px]">{trend.label}</span></span>}
+          </span>
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colorClass}`}>{metrics.score}%</span>
         </div>
-        <div className="h-1 rounded-full bg-[var(--border-subtle)] overflow-hidden">
-          <motion.div className={`h-full rounded-full ${barColor}`}
-            initial={{ width: 0 }} animate={{ width: `${metrics.score}%` }} transition={{ duration: 0.8, ease: EASE }} />
+        {/* progress bar with a 75% "ready to move on" threshold marker */}
+        <div className="relative h-1.5 rounded-full bg-[var(--border-subtle)]">
+          <div className="absolute inset-0 rounded-full overflow-hidden">
+            <motion.div className={`h-full rounded-full ${barColor}`}
+              initial={{ width: 0 }} animate={{ width: `${metrics.score}%` }} transition={{ duration: 0.8, ease: EASE }} />
+          </div>
+          <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-[7px] rounded-full bg-[var(--text-tertiary)]/55"
+            style={{ left: '75%' }} title={L('75%면 다음 단계로 넘어가도 좋아요', 'At 75% you can move on')} />
+        </div>
+        <div className="mt-1 flex items-center gap-1">
+          {metrics.is_converged && <Check size={10} className="shrink-0 text-emerald-500" />}
+          <span className={`text-[9px] font-medium ${metrics.is_converged ? 'text-emerald-600' : 'text-[var(--text-tertiary)]'}`}>{roundsLabel}</span>
         </div>
       </div>
       <p className="text-[10px] text-[var(--text-tertiary)] max-w-[160px] leading-tight">{metrics.guidance}</p>
