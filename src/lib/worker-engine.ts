@@ -262,24 +262,32 @@ export async function runAllAIWorkers(
             continue;
           }
 
-          // 최대 재시도 도달 → 콜백으로 사용자 선택 요청 (30초 타임아웃)
+          // 최대 재시도 도달 → 검증 미통과 결과를 절대 '무음 수용'하지 않는다.
           if (callbacks.onValidationFailed) {
             const action = await Promise.race([
               callbacks.onValidationFailed(worker.id, result.validation),
-              new Promise<'accept'>(r => setTimeout(() => r('accept'), 30_000)),
+              // 무응답 시 자동 수용 금지 — 생각 없이 통과시키지 않고 SKIP 처리한다.
+              new Promise<'skip'>(r => setTimeout(() => r('skip'), 30_000)),
             ]);
             if (action === 'retry') {
               attempt++;
               continue;
             } else if (action === 'accept') {
-              finalResult = result;
+              finalResult = result; // 사용자가 명시적으로 채택
               break;
             } else {
-              // skip
+              // skip(또는 무응답): 검증 미통과 결과를 채택하지 않는다. 워커를 'running'에
+              // 방치하면 또 다른 무한 스피너가 되므로, 종료 상태로 명확히 표시한다.
+              callbacks.onError(
+                worker.id,
+                `검증 미통과로 결과를 채택하지 않았습니다 (점수 ${result.validation.score}/100)`,
+              );
               break;
             }
           } else {
-            // 콜백 없으면 그냥 수용
+            // 콜백 없는 경로(현재 프로덕션): 물어볼 사용자가 없으므로 결과 텍스트는 잃지 않도록
+            // 전달하되 '깨끗한 완료'로 위장하지 않는다 — validation.passed=false가 그대로 흘러가
+            // WorkerCard/AgentSidebar에 점수+피드백과 함께 '검증 미통과'로 표시된다.
             finalResult = result;
             break;
           }

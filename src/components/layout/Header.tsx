@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { RateLimitBadge } from '@/components/ui/RateLimitBadge';
 import { SyncStatus } from '@/components/ui/SyncStatus';
+import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 
 export function Header() {
@@ -162,6 +163,8 @@ export function Header() {
                   <RateLimitBadge />
                 </>
               )}
+              {/* Ungated: storage write failures (e.g. quota) affect anonymous users too */}
+              <StorageErrorToast />
             </div>
 
             {/* User area */}

@@ -127,10 +127,10 @@ export function generateProjectBrief(project: Project | null): string {
         '| # | Owner | Task | Time | Checkpoint |',
       ));
       sections.push('|---|------|-------|------|-----------|');
-      const steps = latest.steps.length > 0 ? latest.steps : latest.analysis.steps;
+      const steps = (latest.steps?.length ? latest.steps : latest.analysis.steps) ?? [];
       steps.forEach((s, i) => {
         const cp = s.checkpoint ? `⚑ ${s.checkpoint_reason}` : '-';
-        sections.push(`| ${i + 1} | ${actorLabels[s.actor]} | ${s.task} | ${s.estimated_time || '-'} | ${cp} |`);
+        sections.push(`| ${i + 1} | ${actorLabels[s.actor] ?? s.actor} | ${s.task} | ${s.estimated_time || '-'} | ${cp} |`);
       });
       sections.push('');
     }

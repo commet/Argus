@@ -41,6 +41,12 @@ export function setStorage<T>(key: string, value: T): void {
   } catch (e) {
     // Use console directly to avoid circular dependency with logger
     if (typeof console !== 'undefined') console.error('[storage] localStorage write failed:', e);
+    // Surface to the user — a swallowed write means lost work (esp. QuotaExceededError).
+    // A window CustomEvent (no store/logger import) avoids the same circular-dependency risk noted above.
+    if (typeof window !== 'undefined') {
+      const quota = e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED');
+      window.dispatchEvent(new CustomEvent('argus:storage-error', { detail: { key, quota } }));
+    }
   }
 }
 

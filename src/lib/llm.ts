@@ -693,55 +693,94 @@ export async function callLLMStream(
     let fullText = '';
     let buffer = ''; // Buffer for incomplete SSE lines
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    // ── Inactivity watchdog ──────────────────────────────────────────────
+    // A zombie connection (socket open, no final chunk) otherwise hangs the UI
+    // forever — the only recovery is a page reload. Abort if no chunk arrives
+    // for IDLE_MS, or the whole stream exceeds HARD_CAP_MS. We cancel the reader
+    // (which resolves the pending read as `done`) and raise a DISTINCT timeout
+    // LLMError below — NOT an AbortError, which the ProgressiveFlow handler
+    // suppresses (so the spinner would never clear). User cancellation via
+    // options.signal is unaffected and still surfaces as the existing AbortError.
+    const IDLE_MS = 30_000;
+    const HARD_CAP_MS = 180_000;
+    let timedOut: 'idle' | 'cap' | null = null;
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    const triggerTimeout = (kind: 'idle' | 'cap') => {
+      if (!timedOut) timedOut = kind;
+      reader.cancel().catch(() => {});
+    };
+    const armIdle = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => triggerTimeout('idle'), IDLE_MS);
+    };
+    const capTimer = setTimeout(() => triggerTimeout('cap'), HARD_CAP_MS);
+    armIdle();
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      // Keep the last incomplete line in the buffer
-      buffer = lines.pop() || '';
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        armIdle(); // reset idle timer on every chunk
 
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (data === '[DONE]') continue;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        // Keep the last incomplete line in the buffer
+        buffer = lines.pop() || '';
 
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.error) {
-            // 서버가 스트림 내부에서 보낸 에러 이벤트
-            recordFailure(provider);
-            throw new LLMError(typeof parsed.error === 'string' ? parsed.error : 'Stream error', { category: 'unknown' });
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.error) {
+              // 서버가 스트림 내부에서 보낸 에러 이벤트
+              recordFailure(provider);
+              throw new LLMError(typeof parsed.error === 'string' ? parsed.error : 'Stream error', { category: 'unknown' });
+            }
+            if (parsed.text) {
+              fullText += parsed.text;
+              callbacks.onToken(fullText);
+            }
+            if (parsed.rateLimit !== undefined && typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('argus:ratelimit', {
+                detail: { remaining: parsed.rateLimit },
+              }));
+            }
+          } catch (e) {
+            if (e instanceof LLMError) throw e;
+            // Skip malformed chunks
           }
-          if (parsed.text) {
-            fullText += parsed.text;
-            callbacks.onToken(fullText);
-          }
-          if (parsed.rateLimit !== undefined && typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('argus:ratelimit', {
-              detail: { remaining: parsed.rateLimit },
-            }));
-          }
-        } catch (e) {
-          if (e instanceof LLMError) throw e;
-          // Skip malformed chunks
         }
       }
+
+      // Process any remaining buffer
+      if (buffer.startsWith('data: ')) {
+        const data = buffer.slice(6).trim();
+        if (data && data !== '[DONE]') {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.text) {
+              fullText += parsed.text;
+              callbacks.onToken(fullText);
+            }
+          } catch { /* skip */ }
+        }
+      }
+    } finally {
+      if (idleTimer) clearTimeout(idleTimer);
+      clearTimeout(capTimer);
     }
 
-    // Process any remaining buffer
-    if (buffer.startsWith('data: ')) {
-      const data = buffer.slice(6).trim();
-      if (data && data !== '[DONE]') {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.text) {
-            fullText += parsed.text;
-            callbacks.onToken(fullText);
-          }
-        } catch { /* skip */ }
-      }
+    if (timedOut) {
+      recordFailure(provider);
+      throw new LLMError(
+        timedOut === 'idle'
+          ? '응답이 지연되어 요청을 중단했습니다. 다시 시도해 주세요.'
+          : '응답이 너무 오래 걸려 요청을 중단했습니다. 다시 시도해 주세요.',
+        { category: 'network' },
+      );
     }
 
     callbacks.onComplete(fullText);
