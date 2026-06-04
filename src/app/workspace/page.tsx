@@ -164,6 +164,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   const progressiveStore = useProgressiveStore();
   const phaseRef = React.useRef<HeroPhase>('idle');
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const analyzeAbortRef = React.useRef<AbortController | null>(null);
+  const elapsedTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const autoStartedRef = React.useRef(false);
   const searchParams = useSearchParams();
 
@@ -172,7 +175,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
 
   // Cleanup timer on unmount
   React.useEffect(() => {
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+      analyzeAbortRef.current?.abort();
+    };
   }, []);
 
   // Auto-select demo scenario from ?demo= query param
@@ -209,6 +216,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     setPreviewPersonas(pool.slice(0, 4));
     track('workspace_problem_submit', { text_length: text.length, source: 'hero_flow' });
 
+    // Elapsed counter + cancellation so the user is never stuck on a slow/hung run.
+    const controller = new AbortController();
+    analyzeAbortRef.current = controller;
+    setElapsed(0);
+    if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+    elapsedTimerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+
     // 2. assembling → analyzing (타이머 또는 첫 토큰)
     timerRef.current = setTimeout(() => {
       if (phaseRef.current === 'assembling') setPhase('analyzing');
@@ -225,7 +239,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
           setPhase('analyzing');
           track('first_analysis_start', { text_length: text.length, anonymous: !user });
         }
-      });
+      }, controller.signal);
 
       // ADD-4: 스트림은 정상 종료됐지만 파싱 결과가 비어있는 경우(첫 상호작용의 malformed JSON 등).
       // skeleton·hidden_assumptions가 모두 비면 분석이 사실상 실패한 것 — 빈 "분석 중..." placeholder로
@@ -235,6 +249,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       }
 
       // 4. 분석 성공 — 이제 프로젝트 + 세션 생성 후 결과 주입
+      if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
       const pid = createProject(text.slice(0, 40));
       progressiveStore.createSession(pid, text, reviewerAgentId);
       progressiveStore.addSnapshot(result.snapshot);
@@ -247,6 +262,14 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       onReady(pid);
     } catch (err) {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+      // 사용자가 직접 취소한 경우 → 에러 배너 없이 조용히 idle로 복귀
+      if (controller.signal.aborted) {
+        setPhase('idle');
+        setStreamingText('');
+        track('workspace_analysis_cancelled', { anonymous: !user });
+        return;
+      }
       const errMsg = err instanceof Error ? err.message : String(err);
       // LLM layer가 던지는 분류 신호:
       //   - "LOGIN_REQUIRED:..." prefix → 익명 무료 체험 소진 (categorizeError at 429+needsLogin)
@@ -535,7 +558,16 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     <Sparkles size={14} className="text-[var(--accent)]" />
                   </motion.div>
                   <span className="text-[12px] font-medium text-[var(--accent)]">{stageLabel}</span>
-                  <span className="text-[11px] text-[var(--text-tertiary)] ml-auto">{L('보통 20~40초', 'usually 20–40s')}</span>
+                  <span className="text-[11px] text-[var(--text-tertiary)] ml-auto tabular-nums">
+                    {elapsed >= 3 ? L(`${elapsed}초 경과`, `${elapsed}s elapsed`) : L('보통 20~40초', 'usually 20–40s')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => analyzeAbortRef.current?.abort()}
+                    className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                  >
+                    {L('취소', 'Cancel')}
+                  </button>
                 </div>
 
                 {/* ─── Field 1: 진짜 질문 ─── */}
