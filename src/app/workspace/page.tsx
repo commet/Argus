@@ -545,7 +545,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 ))}
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.4 }}
                   className="text-[11px] text-[var(--text-tertiary)] pt-1">
-                  {L('팀이 구성되었습니다. 상황을 분석합니다...', 'Team assembled. Analyzing the situation...')}
+                  {/* Honest framing: the initial pass is a single read that finds the real
+                      question; this crew does its individual work later, at the worker stage. */}
+                  {L('팀이 모였어요 — 먼저 상황을 읽고 진짜 질문을 찾습니다...', 'Your crew is here — first, reading the situation to find the real question...')}
                 </motion.p>
               </div>
             </motion.div>
