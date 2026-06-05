@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, X } from 'lucide-react';
 import { getPersonalityType } from '@/lib/boss/personality-types';
 import { useBossStore } from '@/stores/useBossStore';
 import { useLocale } from '@/hooks/useLocale';
@@ -93,8 +93,25 @@ ${t('boss.shareInvite')}
         overflow: 'hidden',
         border: '1px solid var(--border-subtle)',
         background: 'var(--surface)',
+        position: 'relative',
       }}
     >
+      {/* Close / back — onClose was passed but never wired, so entering share
+          mode used to be a dead end (the post-verdict actions were hidden). */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label={locale === 'ko' ? '닫기' : 'Close'}
+        title={locale === 'ko' ? '닫기' : 'Close'}
+        style={{
+          position: 'absolute', top: 8, right: 8, width: 28, height: 28,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          borderRadius: 8, background: 'transparent', border: 'none',
+          color: 'var(--text-tertiary)', cursor: 'pointer', zIndex: 5,
+        }}
+      >
+        <X size={16} />
+      </button>
       {/* Quote-first card */}
       <div style={{ padding: '20px 20px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>

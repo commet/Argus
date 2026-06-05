@@ -61,6 +61,11 @@ export function CollectionProgress() {
 
   return (
     <div style={{ marginTop: 4 }}>
+      {/* Name the purpose — the dots alone don't say WHY you'd collect types.
+          The point is comparing how different boss types react to you. */}
+      <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.05em', textTransform: 'uppercase', margin: '0 0 6px' }}>
+        {locale === 'ko' ? '유형별 팀장 반응 모으기' : 'Boss reactions, by type'}
+      </p>
       <button
         onClick={() => setExpanded(!expanded)}
         style={{

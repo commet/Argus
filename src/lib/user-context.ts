@@ -108,13 +108,6 @@ const SENIORITY_EN: Record<string, string> = {
   lead: 'Team Lead',
 };
 
-const STRATEGY_KO: Record<string, string> = {
-  challenge_existence: '존재 의심',
-  narrow_scope: '범위 집중',
-  diagnose_root: '원인 진단',
-  redirect_angle: '관점 전환',
-};
-
 /**
  * 리뷰 프롬프트용: 명시적 프로필만.
  * 관찰 데이터는 넣지 않음 — 시뮬레이션 리뷰어가 시스템 메트릭을 아는 건 부자연스러움.
@@ -161,19 +154,32 @@ export function buildUserContextForReview(locale: 'ko' | 'en'): string {
 }
 
 /**
- * Boss 시뮬레이터용: 명시적 프로필만 (팀장은 시스템 메타 정보를 모름)
+ * Boss 시뮬레이터용: 명시적 프로필만 (팀장은 시스템 메타 정보를 모름).
+ * All free-text fields are sanitized before embedding (prompt-injection guard,
+ * per CLAUDE.md), and the block is localized so an English boss never receives
+ * a Korean instruction block.
  */
-export function buildUserContextForBoss(): string {
+export function buildUserContextForBoss(locale: 'ko' | 'en' = 'ko'): string {
   const profile = getUserProfile();
   if (!profile.name && !profile.role && !profile.seniority && !profile.context) return '';
 
+  const s = sanitizeForPrompt;
+  const seniorityMap = locale === 'ko' ? SENIORITY_KO : SENIORITY_EN;
   const parts: string[] = [];
-  if (profile.name) parts.push(`이름: ${profile.name}`);
-  if (profile.role) parts.push(`역할: ${profile.role}`);
-  if (profile.seniority) parts.push(`경력: ${SENIORITY_KO[profile.seniority] || profile.seniority}`);
-  if (profile.context) parts.push(`특이사항: ${profile.context}`);
 
-  return `\n\n## 이 부하직원 정보\n${parts.map(p => `- ${p}`).join('\n')}\n이 사람의 경력과 역할에 맞게 대화 수준을 맞추세요.`;
+  if (locale === 'ko') {
+    if (profile.name) parts.push(`이름: ${s(profile.name)}`);
+    if (profile.role) parts.push(`역할: ${s(profile.role)}`);
+    if (profile.seniority) parts.push(`경력: ${seniorityMap[profile.seniority] || profile.seniority}`);
+    if (profile.context) parts.push(`특이사항: ${s(profile.context)}`);
+    return `\n\n## 이 부하직원 정보\n${parts.map(p => `- ${p}`).join('\n')}\n이 사람의 경력과 역할에 맞게 대화 수준을 맞추세요.`;
+  }
+
+  if (profile.name) parts.push(`Name: ${s(profile.name)}`);
+  if (profile.role) parts.push(`Role: ${s(profile.role)}`);
+  if (profile.seniority) parts.push(`Seniority: ${seniorityMap[profile.seniority] || profile.seniority}`);
+  if (profile.context) parts.push(`Notes: ${s(profile.context)}`);
+  return `\n\n## About this direct report\n${parts.map(p => `- ${p}`).join('\n')}\nMatch the conversation level to their role and seniority.`;
 }
 
 /**
