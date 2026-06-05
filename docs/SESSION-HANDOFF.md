@@ -3,6 +3,28 @@
 > Branch: **`fix/l0-stop-the-bleeding`** · pushed to `origin` (commet/Argus).
 > Everything below is committed and green. Pick up from "What's next".
 
+## ⚡ ACTIVE THREAD — Worker-stage redesign (RESUME HERE FIRST)
+
+**Where we stopped:** designing the worker (agent) stage — how the right-rail agent status and the in-body one-at-a-time review connect.
+
+**Ground truth established (verified in code):** the right-rail `AgentSidebar` and the in-body review stepper ALREADY read the same `session.workers` — they're connected in data, but the connection is INVISIBLE in the UI (no shared focus; `reviewCursor` is local to ProgressiveFlow; pending/assigned agents are hidden at `AgentSidebar.tsx:433`). Agents are ASSIGNED during Q&A (`initWorkers`) but only DO their work AFTER the "팀 투입" deploy gate (`runAllAIWorkers`).
+
+**Agreed design decisions (owner):** Q1 add a LIGHT pre-scout during Q&A (full work after deploy); Q2 KEEP the deploy gate (the "set sail" moment); Q3 sidebar carries rich status + show the sidebar↔body connection professionally; Q4 keep the one-at-a-time finding-first review (already in place — verified).
+
+**A design workflow ran → spec at `docs/WORKER-STAGE-REDESIGN.md`** (chosen direction "Voyage Register": a `focusedWorkerId` channel syncs sidebar↔stepper bidirectionally; a gold spine + one-shot SVG thread shows the link; pre-scout uses a NEW `scout_angle` field — NOT `ai_preliminary`, which is occupied; deploy CTA stays "팀 투입"). Critique verdict: **SHIP_WITH_FIXES** (5 small fixes listed in the result JSON / critique).
+
+**🚨 OPEN DECISION — the blocker to resolve FIRST (the spec MISSED this):**
+The right rail already stacks **`<Logbook/>` (top) above `<AgentSidebar/>`** (`workspace/page.tsx:120-126`). **Logbook is ALREADY a vertical route/map** — a dashed course-line of decision waypoints + the "전체 해도 / full chart" (VoyageChart) modal + branch controls. The chosen redesign makes the agent sidebar ALSO a vertical gold route-line → **two route/map metaphors stacked = visual clash/redundancy.** The spec only handled the *technical* stacking (can a connecting line cross containers), NOT this metaphor clash. The owner caught this.
+- **Option A (RECOMMENDED): differentiate.** Logbook keeps "the route/map" (it owns it); make the agent sidebar a DISTINCT "live crew roster / status" visual — NOT a second route-line. Keep the connection mechanic (click agent → jump + visual link), pre-scout, and show-all-assigned-agents. (The roster/console concepts scored 4.17–4.50; with this constraint they likely beat the route winner.)
+- **Option B: integrate** the agents onto Logbook's single route ("this decision point, this crew working") — more ambitious, touches Logbook.
+- **Option C: re-run a short design pass** with the hard constraint "Logbook owns the route metaphor."
+
+**Next session, START by:** owner picks A/B/C (lean A). Then: fold the critique's 5 fixes into the spec → build incrementally (each tsc+lint+1004 green): (1) add `focusedWorkerId`+`setFocusedWorker` to `useAgentAttentionStore` (~6 lines), (2) remove the pending filter at `AgentSidebar.tsx:433` (show all assigned crew — safe alone), (3) bidirectional focus sync. Keep the deploy gate + one-at-a-time review throughout.
+
+Files: `docs/WORKER-STAGE-REDESIGN.md` (full spec), `docs/argus-worker-redesign-result.json` (all 5 concepts + judgments + critique), `scripts/argus-worker-stage-redesign-workflow.js` (the workflow).
+
+---
+
 ## Resume on another device
 ```bash
 git fetch origin
