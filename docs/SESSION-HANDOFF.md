@@ -42,13 +42,17 @@ Line numbers in the worklist had drifted; everything below was re-verified again
 - **`75c90cc` BranchMap legend (#4c)** — compact visual legend under the VoyageChart (filled=logged point, hollow=checkpoint, ring=current, ⚑=anchored, dimmed=abandoned-when-present).
 - **`f9b1f7e` Review-nit polish** — from an adversarial diff review: disarm stale delete-confirm on active-switch/remove/lock; FinalCard disclosure `aria-controls`; memoize VoyageChart `branches`.
 
+## Session 3 (continued, this device) — DONE (all 1004 green, tsc+eslint clean, pushed)
+- **`143897f` Team-theater honesty (P2)** — the "assembling" screen said "Team assembled. Analyzing the situation" while animating 4 persona avatars, but the initial pass is a single LLM call (the crew does individual work later, at the worker stage). Reframed to "Your crew is here — first, reading the situation to find the real question" (blindspot S3).
+- **`81d3df5` Quota narrative disambiguation (P2)** — the non-LOGIN_REQUIRED quota error always said "Free trial limit reached", but it also fires for a signed-in user who hit their daily allowance. Now branches on `user`: signed-in users see "today's free allowance (N/day)", anon keeps the trial framing.
+
 ## NEEDS YOUR DECISION (deferred — not a safe overnight change)
 1. **Two competing "team" surfaces (#1b).** The live worker stage shows BOTH the right-rail `AgentSidebar` (ambient "Analysis Team" status) AND the in-column `ProgressiveFlow.tsx:2082` "에이전트 검토 / Review agents" one-at-a-time review stepper. They sit in different screen regions and play different roles (status vs sequential approve/reject) and are already labeled distinctly — the original finding predates the current code (line numbers had drifted heavily). Collapsing to "one do-this-now surface" is an information-architecture decision with real UX trade-offs; it needs you + a visual pass, not an unattended rewrite of a 2,400-line file. **Recommendation:** decide whether the sidebar should be demoted to pure ambient status (e.g. hide its "Summary/Reflected below" roll-up during the review phase) or kept. Low risk once decided.
 2. **Surface the Navigator/reflection layer in the default flow (#3b).** `NavigatorStrip` renders only on the legacy `?step=` path (`workspace/page.tsx:905`), not in `ProgressiveLayout`. Wiring it into the default voyage is genuine **net-new** work (NavigatorStrip doesn't yet read `getUserPatterns`/`getPersonaAccuracySummary`), and **MASTER-DIRECTION-v4 §SEQ-3 explicitly DEMOTED the reflection tab to a "run-3+ payoff, not the run-1 first win"** (it's tier-2-gated, near-empty on runs 1–2). So deferring is plan-aligned, not a punt — build it only when you choose to invest in run-3+ retention.
 
 ## Remaining LIVE worklist (when you pick back up)
-- §UX P2/P3 LIVE items not yet touched (see UX-LIVE-TRIAGE §2 "PRIMARY-LIVE"): anon→auth quota narrative disambiguation, team-theater honesty copy (HeroFlow "assembling" vs single LLM call), signal read-path local-only note.
-- The two decisions above, once you've made them.
+- The two **NEEDS YOUR DECISION** items above — these are the main open thread now.
+- Only marginal §UX P3 left: a code-comment note that the signal read-path is local-only (internal, not user-facing — low value). The user-facing P2 items (quota narrative, team-theater) are now done.
 
 ## Deferred (do NOT spend time here until decided)
 - Legacy 4-step tools (ReframeStep/RecastStep/RehearseStep, `/tools/*`), `OutputSelector` (`/project`), `RefinementLoopStep` (dead — deletion candidate).
