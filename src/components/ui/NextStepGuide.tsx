@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Card } from './Card';
-import { ArrowRight, Map, Users, RefreshCw, FileText } from 'lucide-react';
+import { ArrowRight, Map, Users, FileText } from 'lucide-react';
 import { t } from '@/lib/i18n';
 
 interface NextStepOption {
@@ -14,7 +14,7 @@ interface NextStepOption {
 }
 
 interface NextStepGuideProps {
-  currentTool: 'reframe' | 'recast' | 'rehearse' | 'refine';
+  currentTool: 'reframe' | 'recast' | 'rehearse';
   projectId?: string;
   onSendTo?: (tool: string) => void;
 }
@@ -47,16 +47,9 @@ export function NextStepGuide({
   }
 
   if (currentTool === 'rehearse') {
-    options.push({
-      href: '/tools/refine',
-      icon: <RefreshCw size={16} />,
-      label: t('nextStep.toRefine.label'),
-      reason: t('nextStep.toRefine.reason'),
-      primary: true,
-    });
-  }
-
-  if (currentTool === 'refine') {
+    // Rehearse is the final analysis leg. The legacy 'refine' tool route was
+    // removed (revisions now happen via the conductor after ProgressiveFlow),
+    // so the next step is to act on the result, not a dead /tools/refine page.
     options.push({
       href: '/project',
       icon: <FileText size={16} />,
@@ -64,15 +57,9 @@ export function NextStepGuide({
       reason: t('nextStep.toPerform.reason'),
       primary: true,
     });
-    options.push({
-      href: '/tools/rehearse',
-      icon: <Users size={16} />,
-      label: t('nextStep.rehearseAgain.label'),
-      reason: t('nextStep.rehearseAgain.reason'),
-    });
   }
 
-  if (projectId && currentTool !== 'refine') {
+  if (projectId) {
     options.push({
       href: '/project',
       icon: <FileText size={16} />,
