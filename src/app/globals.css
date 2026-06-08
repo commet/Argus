@@ -21,6 +21,17 @@
   --success: #1d7d3f;
   --danger: #dc3545;
 
+  /* Workflow role colors — text/ring drawn on the --ai/--human/--collab/--checkpoint
+     surfaces. Light values match the legacy hardcodes; dark variants are added in
+     [data-theme="dark"] so badges stay legible when those surfaces darken. */
+  --wf-ai: #2d4a7c;
+  --wf-human: #8b6914;
+  --wf-collab: #2d6b2d;
+  --wf-checkpoint: #8b7114;
+
+  /* Skeleton shimmer highlight — sits lighter than --border in both themes. */
+  --skeleton-sheen: #eeeae5;
+
   /* Risk classification (Philosophy v2 §6.1) */
   --risk-critical: #E24B4A;
   --risk-manageable: #EF9F27;
@@ -102,6 +113,14 @@
   --checkpoint: #2a2518;
   --success: #4ade80;
   --danger: #f87171;
+
+  /* Workflow role colors — lightened so they read on the darkened role surfaces. */
+  --wf-ai: #8fb4f0;
+  --wf-human: #d9b86a;
+  --wf-collab: #6cc16c;
+  --wf-checkpoint: #d4b257;
+
+  --skeleton-sheen: #4d4843;
 
   --risk-critical: #f87171;
   --risk-manageable: #fbbf24;
@@ -291,7 +310,7 @@ body {
 }
 .animate-skeleton {
   animation: pulse-skeleton 1.5s ease-in-out infinite;
-  background: linear-gradient(90deg, var(--border) 25%, #eeeae5 50%, var(--border) 75%);
+  background: linear-gradient(90deg, var(--border) 25%, var(--skeleton-sheen) 50%, var(--border) 75%);
   background-size: 200% 100%;
 }
 

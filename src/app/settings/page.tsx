@@ -282,6 +282,7 @@ export default function SettingsPage() {
               />
               <button
                 onClick={() => setShowKey(!showKey)}
+                aria-label={showKey ? L('API 키 숨기기', 'Hide API key') : L('API 키 보기', 'Show API key')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] cursor-pointer"
               >
                 {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -308,6 +309,7 @@ export default function SettingsPage() {
               />
               <button
                 onClick={() => setShowKey(!showKey)}
+                aria-label={showKey ? L('API 키 숨기기', 'Hide API key') : L('API 키 보기', 'Show API key')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] cursor-pointer"
               >
                 {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -349,6 +351,7 @@ export default function SettingsPage() {
               />
               <button
                 onClick={() => setShowKey(!showKey)}
+                aria-label={showKey ? L('API 키 숨기기', 'Hide API key') : L('API 키 보기', 'Show API key')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] cursor-pointer"
               >
                 {showKey ? <EyeOff size={16} /> : <Eye size={16} />}

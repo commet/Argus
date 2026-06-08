@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useLocale } from '@/hooks/useLocale';
 
 interface ModalProps {
   open: boolean;
@@ -26,6 +27,7 @@ function unlockScroll() {
 }
 
 export function Modal({ open, onClose, title, children }: ModalProps) {
+  const locale = useLocale();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -113,7 +115,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
           <button
             ref={closeBtnRef}
             onClick={onClose}
-            aria-label="Close"
+            aria-label={locale === 'ko' ? '닫기' : 'Close'}
             className="p-1.5 hover:bg-[var(--bg)] rounded-lg transition-colors cursor-pointer"
           >
             <X size={16} strokeWidth={1.5} />

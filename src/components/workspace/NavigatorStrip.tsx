@@ -213,6 +213,7 @@ export function NavigatorStrip() {
         className={`hidden lg:flex shrink-0 w-12 flex-col items-center justify-start pt-4 gap-2 border-l border-[var(--border)] bg-[var(--surface)] cursor-pointer hover:bg-[var(--ai)] transition-colors relative ${
           hasNewInsights ? 'animate-subtle-pulse' : ''
         }`}
+        aria-label={t('navigator.open')}
         title={t('navigator.open')}
       >
         <div className="absolute inset-y-0 left-0 w-[2px]" style={{ background: 'var(--gradient-gold)' }} />
@@ -238,6 +239,7 @@ export function NavigatorStrip() {
         <button
           onClick={toggleNavigator}
           className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+          aria-label={t('navigator.close')}
         >
           <X size={16} />
         </button>
@@ -350,7 +352,8 @@ export function NavigatorStrip() {
                   </div>
                   <button
                     onClick={() => setDismissed((prev) => new Set(prev).add(insight.id))}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-1.5 -m-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-opacity shrink-0"
+                    aria-label={t('navigator.close')}
                     title={t('navigator.close')}
                   >
                     <X size={12} />

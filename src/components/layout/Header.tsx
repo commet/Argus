@@ -154,7 +154,8 @@ export function Header() {
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
-                title={darkMode ? 'Light mode' : 'Dark mode'}
+                aria-label={darkMode ? L('라이트 모드로 전환', 'Switch to light mode') : L('다크 모드로 전환', 'Switch to dark mode')}
+                title={darkMode ? L('라이트 모드', 'Light mode') : L('다크 모드', 'Dark mode')}
               >
                 {darkMode ? <Sun size={16} /> : <Moon size={16} />}
               </button>
@@ -177,6 +178,9 @@ export function Header() {
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                     className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-[var(--surface)] transition-colors cursor-pointer"
+                    aria-label={L('사용자 메뉴', 'User menu')}
+                    aria-haspopup="menu"
+                    aria-expanded={userMenuOpen}
                   >
                     {avatarUrl ? (
                       <img
@@ -224,6 +228,8 @@ export function Header() {
           <button
             className="md:hidden p-2.5 hover:bg-[var(--surface)] rounded-lg cursor-pointer transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? L('메뉴 닫기', 'Close menu') : L('메뉴 열기', 'Open menu')}
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>

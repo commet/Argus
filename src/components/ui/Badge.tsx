@@ -6,10 +6,10 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  ai: 'bg-[var(--ai)] text-[#2d4a7c] ring-1 ring-[#2d4a7c]/10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
-  human: 'bg-[var(--human)] text-[#8b6914] ring-1 ring-[#8b6914]/10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
-  both: 'bg-[var(--collab)] text-[#2d6b2d] ring-1 ring-[#2d6b2d]/10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
-  checkpoint: 'bg-[var(--checkpoint)] text-[#8b7114] ring-1 ring-[#8b7114]/10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
+  ai: 'bg-[var(--ai)] text-[var(--wf-ai)] ring-1 ring-[var(--wf-ai)]/10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
+  human: 'bg-[var(--human)] text-[var(--wf-human)] ring-1 ring-[var(--wf-human)]/10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
+  both: 'bg-[var(--collab)] text-[var(--wf-collab)] ring-1 ring-[var(--wf-collab)]/10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
+  checkpoint: 'bg-[var(--checkpoint)] text-[var(--wf-checkpoint)] ring-1 ring-[var(--wf-checkpoint)]/10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
   default: 'bg-[var(--bg)] text-[var(--text-secondary)] ring-1 ring-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
   gold: 'bg-[var(--gold-muted)] text-[var(--accent)] ring-1 ring-[var(--accent)]/20 shadow-[0_1px_3px_rgba(184,150,62,0.12)]',
   'risk-critical': 'bg-red-50 text-[var(--risk-critical)] ring-1 ring-[var(--risk-critical)]/20 shadow-[0_1px_3px_rgba(226,75,74,0.10)]',
