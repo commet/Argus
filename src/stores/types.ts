@@ -324,6 +324,9 @@ export interface Project {
     note?: string;
     recorded_at: string;
   };
+  /** The falsifiable closed loop (§0 KICK). Generated at voyage end; graded on
+   *  return. Embedded here so it rides project sync and deletes cleanly. */
+  decision_contract?: DecisionContract;
   team_id?: string;
   deleted_at?: string | null;
   created_at: string;
@@ -517,6 +520,57 @@ export interface OutcomeRecord {
   key_learnings: string;
   what_would_change: string;
   created_at: string;
+}
+
+// ─── Decision Contract — the falsifiable closed loop (§0 KICK) ───
+//
+// A voyage doesn't end in dead markdown — it ends in 3–6 SPECIFIC,
+// falsifiable predictions the user made, each with a STABLE id so a grade
+// later can join to the exact prediction (never free text). The user picks a
+// check-in date; on that day the project resurfaces "예측 N개 채점 대기".
+// Graded predicates are how Argus learns whether its judgment was right.
+//
+// Stored embedded on Project (rides existing project sync), reversibly: drop
+// `Project.decision_contract` and the feature is gone with no orphaned rows.
+
+/** Where a predicate was derived from. */
+export type PredicateSource = 'risk' | 'actor' | 'governing_idea';
+
+/** The user's later verdict on whether the prediction held.
+ *  `unknown` = "결과를 아직 모름" — resolves the predicate (so the contract can
+ *  complete and the nudge clears) but is NOT scored as a hit or miss. Without
+ *  it, a decision whose outcome isn't yet knowable would trap the contract
+ *  open forever. `pending` = not yet answered. */
+export type PredicateVerdict = 'happened' | 'avoided' | 'partial' | 'unknown' | 'pending';
+
+export interface Predicate {
+  /** Deterministic, stable across re-generation (hash of source+text). The grade join key. */
+  id: string;
+  /** The falsifiable statement, e.g. "CFO가 가격 단계에서 비용에 반대한다". */
+  text: string;
+  source: PredicateSource;
+  /** For risk-sourced predicates. */
+  category?: ClassifiedRisk['category'];
+  /** The persona the prediction is about, when known (risk source) — drives specificity. */
+  persona_id?: string;
+  /** User's later grade. Absent/`pending` until they return to score it. */
+  verdict?: PredicateVerdict;
+  graded_at?: string;
+}
+
+export type CheckInInterval = '1w' | '2w' | '1m';
+
+export interface DecisionContract {
+  id: string;
+  project_id: string;
+  predicates: Predicate[];
+  created_at: string;
+  /** Self-commitment: when the user promised to return and grade. */
+  check_in_interval?: CheckInInterval;
+  /** ISO timestamp derived from check_in_interval at commit time. */
+  check_in_at?: string;
+  /** Set once every predicate carries a non-pending verdict. */
+  graded_at?: string;
 }
 
 // ─── Retrospective Answers (Phase 2) ───

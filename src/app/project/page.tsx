@@ -19,6 +19,8 @@ import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, S
 import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
+import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
+import { contractStatus } from '@/lib/decision-contract';
 
 const STEP_LABELS_KO = ['재정의', '설계', '검증', '종합'] as const;
 const STEP_LABELS_EN = ['Reframe', 'Recast', 'Rehearse', 'Synth'] as const;
@@ -450,6 +452,21 @@ export default function ProjectPage() {
                           </span>
                         </div>
 
+                        {/* Decision Contract check-in nudge — the return hook */}
+                        {(() => {
+                          if (!project.decision_contract) return null;
+                          const cs = contractStatus(project.decision_contract, Date.now());
+                          if (!cs.checkInDue) return null;
+                          return (
+                            <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-[var(--ai)] text-[var(--accent)] normal-case tracking-normal">
+                              <Sparkles size={10} />
+                              {locale === 'ko'
+                                ? `예측 ${cs.pending}개 채점 대기`
+                                : `${cs.pending} prediction${cs.pending === 1 ? '' : 's'} to grade`}
+                            </span>
+                          );
+                        })()}
+
                         {/* Title */}
                         <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-[1.35] line-clamp-2 group-hover:text-[var(--accent)] transition-colors">
                           {project.name}
@@ -586,6 +603,10 @@ export default function ProjectPage() {
               <span className="text-[12px] font-semibold text-[var(--accent)]">{completedSteps}/{steps.length}</span>
             </div>
           </Card>
+
+          {/* Decision Contract — falsifiable closed loop (§0 KICK).
+              Seal only offered once the voyage is finished (all legs done). */}
+          <DecisionContractCard project={currentProject} sealable={completedSteps === steps.length} />
 
           {/* Steps journey */}
           <div className="space-y-0">
