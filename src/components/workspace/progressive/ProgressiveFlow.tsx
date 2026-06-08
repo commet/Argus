@@ -42,7 +42,7 @@ import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
-import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation } from 'lucide-react';
+import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { t } from '@/lib/i18n';
 import { personaName, personaRole } from './shared/persona-format';
@@ -123,34 +123,33 @@ function getParticle(name: string): string {
  *   1. Where am I? (big stage label + N/4)
  *   2. What happens next? (one-line guide that updates per phase/state)
  */
-// Voyage metaphor labels — micro injection of the new 'Argus' / 항해
-// concept. Keeps the labels short so the stepper stays compact while
-// reinforcing the "set sail → voyage → report → anchor" mental model.
-const PHASES_KO = ['항해 준비', '항해', '보고', '정박'] as const;
-const PHASES_EN = ['Briefing', 'Voyage', 'Review', 'Delivered'] as const;
+// Single top stepper — unified to plain functional stage names so it speaks
+// the same language as the rest of the flow (the old voyage labels
+// "항해 준비/항해/보고/정박" diverged from the bottom milestone row, which
+// already used these words). One source of truth for stage order + labels.
+const STAGE_PHASES = ['analyzing', 'conversing', 'mixing', 'dm_feedback', 'complete'] as const;
+const STAGES_KO = ['분석', '질문', '팀 작업', '검토', '완성'] as const;
+const STAGES_EN = ['Analysis', 'Questions', 'Team work', 'Review', 'Done'] as const;
 
-function phaseIdx(phase: string, round: number, hasMix: boolean): number {
-  if (phase === 'complete') return 4;
-  if (phase === 'dm_feedback' || phase === 'refining') return 3;
-  if (phase === 'mixing' || phase === 'lead_synthesizing' || (phase === 'conversing' && hasMix)) return 2;
-  if (round >= 2 || (phase === 'analyzing' && round >= 2)) return 1;
-  return 0;
+function stageIdx(phase: string): number {
+  // refining belongs to the review stage; lead_synthesizing to team work —
+  // neither is in STAGE_PHASES, so map them explicitly before the lookup.
+  if (phase === 'refining') return 3;
+  if (phase === 'lead_synthesizing') return 2;
+  const i = STAGE_PHASES.indexOf(phase as typeof STAGE_PHASES[number]);
+  return i < 0 ? 0 : i;
 }
 
-function ProgressLine({
-  phase, round, hasMix,
-}: {
-  phase: string; round: number; hasMix: boolean;
-}) {
+function ProgressLine({ phase }: { phase: string }) {
   const locale = useLocale();
-  const PHASES = locale === 'ko' ? PHASES_KO : PHASES_EN;
-  const rawIdx = phaseIdx(phase, round, hasMix);
-  const idx = Math.min(rawIdx, 3);
+  const STAGES = locale === 'ko' ? STAGES_KO : STAGES_EN;
+  const N = STAGES.length;
+  const idx = stageIdx(phase);
   const isComplete = phase === 'complete';
-  const pct = Math.min((rawIdx / 4) * 100, 100);
-  const currentLabel = PHASES[isComplete ? 3 : idx];
+  const pct = (idx / (N - 1)) * 100;
+  const currentLabel = STAGES[idx];
 
-  // Compact stepper with a tiny "N/4 · stage" eyebrow up top — keeps the
+  // Compact stepper with a tiny "N/5 · stage" eyebrow up top — keeps the
   // user oriented ("어디에 와있지?") without the heavy hero card the
   // first iteration had.
   return (
@@ -162,7 +161,7 @@ function ProgressLine({
     >
       <div className="flex items-baseline justify-between mb-2 px-0.5">
         <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] tabular-nums">
-          {Math.min(rawIdx + 1, 4)}/4
+          {idx + 1}/{N}
           <span className="ml-1.5 text-[var(--text-primary)] normal-case tracking-normal">
             {currentLabel}
           </span>
@@ -175,9 +174,9 @@ function ProgressLine({
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.9, ease: EASE }}
         />
-        {[0, 1, 2, 3].map(i => {
-          const left = (i / 3) * 100;
-          const done = i < idx || (isComplete && i <= 3);
+        {STAGES.map((_, i) => {
+          const left = (i / (N - 1)) * 100;
+          const done = i < idx || (isComplete && i <= N - 1);
           const active = !isComplete && i === idx;
           return (
             <div
@@ -202,15 +201,15 @@ function ProgressLine({
           );
         })}
       </div>
-      <div className="grid grid-cols-4">
-        {PHASES.map((label, i) => {
-          const done = i < idx || (isComplete && i <= 3);
+      <div className="grid grid-cols-5">
+        {STAGES.map((label, i) => {
+          const done = i < idx || (isComplete && i <= N - 1);
           const active = !isComplete && i === idx;
           return (
             <span
               key={label}
               className={`text-[11px] truncate transition-colors duration-500 ${
-                i === 0 ? 'text-left' : i === PHASES.length - 1 ? 'text-right' : 'text-center'
+                i === 0 ? 'text-left' : i === N - 1 ? 'text-right' : 'text-center'
               } ${
                 done
                   ? 'text-[var(--accent)]/80 font-medium'
@@ -669,8 +668,8 @@ function VoyagePrepSummary({
         <div className="w-2 h-2 rounded-full bg-[var(--accent)]/45 shrink-0" />
         <div className="flex-1 border-t border-dashed border-[var(--accent)]/30" />
         <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent)] flex items-center gap-1.5 shrink-0">
-          <span>⚓</span>
-          {L('항해 준비 완료', 'Ready to sail')}
+          <span>✓</span>
+          {L('초안 준비 완료', 'Ready to draft')}
         </div>
         <div className="flex-1 border-t border-dashed border-[var(--accent)]/30" />
         <Navigation size={11} className="text-[var(--accent)]/65 shrink-0 -rotate-12" />
@@ -688,13 +687,13 @@ function VoyagePrepSummary({
           {/* Bearing micro-coordinate — small detail nodding to nautical
               charts. Pure flavor; no functional meaning. */}
           <div className="absolute top-4 right-4 md:top-6 md:right-7 text-[9px] tracking-[0.18em] uppercase text-[var(--accent)]/55 font-mono pointer-events-none select-none">
-            N · {L('새 항로', 'New course')}
+            N · {L('새 방향', 'New direction')}
           </div>
 
           <div className="relative p-6 md:p-8">
             <h2 className="text-[20px] md:text-[24px] font-bold text-[var(--text-primary)] leading-[1.3] tracking-tight mb-5 pr-20"
               style={{ fontFamily: 'var(--font-display)' }}>
-              {L('이 방향으로 출항해도 될까요?', 'Set sail in this direction?')}
+              {L('이 방향으로 초안을 만들까요?', 'Draft in this direction?')}
             </h2>
 
             {/* Course summary — focal sentence framed with a Compass icon
@@ -703,7 +702,7 @@ function VoyagePrepSummary({
             <div className="mb-5 pl-4 border-l-[2px] border-[var(--accent)]/45">
               <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5">
                 <Compass size={11} className="shrink-0" />
-                {L('잡은 항로', 'Course plotted')}
+                {L('정한 방향', 'Direction set')}
               </div>
               <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-relaxed font-medium">
                 {snapshot.real_question}
@@ -732,7 +731,7 @@ function VoyagePrepSummary({
                 ? <><Loader2 size={16} className="animate-spin" /> {L('조합 중...', 'Combining...')}</>
                 : (
                   <>
-                    {L('이 방향으로 출항', 'Set sail this way')}
+                    {L('이 방향으로 초안 만들기', 'Create the draft')}
                     <Navigation
                       size={15}
                       className="-rotate-12 transition-transform duration-500 ease-out group-hover/sail:rotate-0 group-hover/sail:translate-x-0.5"
@@ -834,17 +833,45 @@ function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
   const barColor = metrics.score >= 75 ? 'bg-emerald-400' :
     metrics.score >= 50 ? 'bg-amber-400' : 'bg-red-400';
 
+  // Trend — answers "is this getting clearer?"
+  const trend = metrics.trend === 'improving'
+    ? { icon: <TrendingUp size={11} className="text-emerald-500" />, label: L('좋아지는 중', 'improving') }
+    : metrics.trend === 'declining'
+      ? { icon: <TrendingDown size={11} className="text-red-500" />, label: L('흔들리는 중', 'unsettled') }
+      : metrics.trend === 'stable'
+        ? { icon: <Minus size={11} className="text-[var(--text-tertiary)]" />, label: L('안정적', 'stable') }
+        : null;
+
+  // "When do I stop?" — rounds left / ready
+  const roundsLabel = metrics.is_converged
+    ? L('준비됨 — 다음 단계로 넘어가도 좋아요', 'Ready — good to move on')
+    : metrics.estimated_rounds_left <= 1
+      ? L('약 한 라운드 더', '~1 more round')
+      : L(`약 ${metrics.estimated_rounds_left}라운드 더`, `~${metrics.estimated_rounds_left} more rounds`);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: EASE }}
       className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[var(--bg)]/60 border border-[var(--border-subtle)]">
       <div className="flex-1">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-medium text-[var(--text-tertiary)]">{L('명확도', 'Clarity')}</span>
+          <span className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--text-tertiary)]">
+            {L('명확도', 'Clarity')}
+            {trend && <span className="flex items-center gap-0.5">{trend.icon}<span className="text-[9px]">{trend.label}</span></span>}
+          </span>
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colorClass}`}>{metrics.score}%</span>
         </div>
-        <div className="h-1 rounded-full bg-[var(--border-subtle)] overflow-hidden">
-          <motion.div className={`h-full rounded-full ${barColor}`}
-            initial={{ width: 0 }} animate={{ width: `${metrics.score}%` }} transition={{ duration: 0.8, ease: EASE }} />
+        {/* progress bar with a 75% "ready to move on" threshold marker */}
+        <div className="relative h-1.5 rounded-full bg-[var(--border-subtle)]">
+          <div className="absolute inset-0 rounded-full overflow-hidden">
+            <motion.div className={`h-full rounded-full ${barColor}`}
+              initial={{ width: 0 }} animate={{ width: `${metrics.score}%` }} transition={{ duration: 0.8, ease: EASE }} />
+          </div>
+          <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-[7px] rounded-full bg-[var(--text-tertiary)]/55"
+            style={{ left: '75%' }} title={L('75%면 다음 단계로 넘어가도 좋아요', 'At 75% you can move on')} />
+        </div>
+        <div className="mt-1 flex items-center gap-1">
+          {metrics.is_converged && <Check size={10} className="shrink-0 text-emerald-500" />}
+          <span className={`text-[9px] font-medium ${metrics.is_converged ? 'text-emerald-600' : 'text-[var(--text-tertiary)]'}`}>{roundsLabel}</span>
         </div>
       </div>
       <p className="text-[10px] text-[var(--text-tertiary)] max-w-[160px] leading-tight">{metrics.guidance}</p>
@@ -1895,7 +1922,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             />
           )}
         </AnimatePresence>
-        <ProgressLine phase={phase} round={round} hasMix={!!mix} />
+        <ProgressLine phase={phase} />
 
         {/* PhaseStatusBar + StreamSnippet — sticky wrapper so progress info
             stays glued to the top while the user scrolls through the long
@@ -2006,11 +2033,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 transition={{ duration: 0.45, ease: EASE, delay: 0.15 }}
                 className="flex items-start gap-2.5 px-4 py-3 mb-4 rounded-xl bg-[var(--accent)]/[0.05] border border-[var(--accent)]/20"
               >
-                <span className="text-[15px] shrink-0 leading-none mt-0.5">⚓</span>
+                <span className="text-[15px] shrink-0 leading-none mt-0.5">💬</span>
                 <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
                   {locale === 'ko'
-                    ? <>항해 준비예요. 질문 <strong className="text-[var(--text-primary)]">두세 개</strong>만 짚어주시면, 어울리는 <strong className="text-[var(--text-primary)]">팀을 꾸려서</strong> 출항해요.</>
-                    : <>Getting ready to sail. Just <strong className="text-[var(--text-primary)]">a couple of questions</strong> and we&apos;ll <strong className="text-[var(--text-primary)]">assemble your crew</strong> for the voyage.</>}
+                    ? <>질문 <strong className="text-[var(--text-primary)]">두세 개</strong>만 답해주시면, 어울리는 <strong className="text-[var(--text-primary)]">팀을 꾸려서</strong> 분석을 시작해요.</>
+                    : <>Just <strong className="text-[var(--text-primary)]">a couple of questions</strong> and we&apos;ll <strong className="text-[var(--text-primary)]">assemble the right team</strong> to start.</>}
                 </p>
               </motion.div>
             )}
@@ -2027,8 +2054,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 <span className="text-[13px] shrink-0 leading-none">✓</span>
                 <p className="text-[12px] text-[var(--text-secondary)] leading-[1.5]">
                   {locale === 'ko'
-                    ? <>팀은 이미 준비됐어요. <strong className="text-[var(--text-primary)]">위에서 바로 출항</strong>해도 되고, 아래 질문으로 더 다듬어도 돼요 <span className="text-[var(--text-tertiary)]">(선택)</span>.</>
-                    : <>Your crew is ready. <strong className="text-[var(--text-primary)]">Deploy now from above</strong>, or refine further with the question below <span className="text-[var(--text-tertiary)]">(optional)</span>.</>}
+                    ? <>팀은 이미 준비됐어요. <strong className="text-[var(--text-primary)]">위에서 바로 시작</strong>해도 되고, 아래 질문으로 더 다듬어도 돼요 <span className="text-[var(--text-tertiary)]">(선택)</span>.</>
+                    : <>Your team is ready. <strong className="text-[var(--text-primary)]">Start now from above</strong>, or refine further with the question below <span className="text-[var(--text-tertiary)]">(optional)</span>.</>}
                 </p>
               </motion.div>
             )}
@@ -2046,7 +2073,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   locale={locale}
                   meta={meta}
                   onSkip={teamReady ? onDeployWorkers : undefined}
-                  skipLabel={teamReady ? L('건너뛰고 출항', 'Skip & set sail') : undefined}
+                  skipLabel={teamReady ? L('건너뛰고 팀 투입', 'Skip & start') : undefined}
                 />
               );
             })()}
@@ -2470,33 +2497,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </motion.div>}
           </AnimatePresence>
 
-          {/* Phase progress dots — bottom milestone indicator */}
-          <div className="pt-8 pb-4">
-            <div className="flex items-center justify-center gap-2">
-              {(locale === 'ko'
-                ? ['상황 파악', '질문', '팀 작업', '피드백', '완성']
-                : ['Analysis', 'Questions', 'Team Work', 'Feedback', 'Done']
-              ).map((label, i) => {
-                const milestonePhases = ['analyzing', 'conversing', 'mixing', 'dm_feedback', 'complete'];
-                const milestoneIdx = milestonePhases.indexOf(phase);
-                const reached = i <= milestoneIdx;
-                const current = i === milestoneIdx;
-                return (
-                  <div key={i} className="flex items-center gap-2">
-                    {i > 0 && <div className={`w-5 h-[1.5px] transition-colors duration-500 ${reached ? 'bg-[var(--accent)]/50' : 'bg-[var(--border-subtle)]'}`} />}
-                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full transition-all duration-300 ${
-                      current ? 'bg-[var(--accent)]/10' : ''
-                    } ${current ? 'opacity-100' : reached ? 'opacity-70' : 'opacity-35'}`}>
-                      <div className={`relative w-2 h-2 rounded-full transition-colors duration-500 ${reached ? 'bg-[var(--accent)]' : 'bg-[var(--text-tertiary)]'}`}>
-                        {current && <div className="absolute inset-0 rounded-full bg-[var(--accent)] animate-ping opacity-40" />}
-                      </div>
-                      <span className={`text-[12px] ${current ? 'text-[var(--accent)] font-semibold' : reached ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'}`}>{label}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* The bottom milestone row used to duplicate the top stepper with a
+              different vocabulary; the top ProgressLine is now the single,
+              sticky progress indicator, so the redundant row was removed. */}
         </div>
       </motion.div>
 
@@ -2594,7 +2597,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     {L('항해장에게 수정 요청', 'Ask Navigator to revise')}
                   </h3>
                   <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-                    {L('현재 버전', 'Current version')}: <span className="font-semibold">{activeDraft.version_label}</span>
+                    {L('항해장은 팀 결과를 통합한 에이전트예요', 'The navigator integrates the whole team’s work')} · {L('현재 버전', 'Current version')} <span className="font-semibold">{activeDraft.version_label}</span>
                   </p>
                 </div>
               </div>

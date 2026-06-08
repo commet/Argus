@@ -547,10 +547,9 @@ export const PERSONALITY_TYPES: Record<string, PersonalityType> = {
 
 // ━━━ 영어 병렬 데이터 (globalized locale) ━━━
 // Korean PERSONALITY_TYPES는 untouched. 영어 로케일에서는 getLocalizedPersonalityType()
-// 을 통해 아래 데이터가 오버레이된다. exampleDialogues / innerMonologueExample은
-// 한국어 톤을 정밀하게 모델링한 content이므로 영어 버전 제공하지 않음 — 영어
-// 프롬프트는 structural attributes만 사용하고 LLM이 영어 workplace tone으로 자연
-// 표현하도록 맡김.
+// 을 통해 아래 데이터가 오버레이된다. exampleDialogues / innerMonologueExample도
+// 영어로 정밀 리라이트되어 있으며, 영어 boss/이면 프롬프트에 few-shot으로 주입된다
+// (boss-prompt.ts). 톤·리듬 모델링이 EN 출력 품질의 핵심이므로 KO와 동일하게 제공.
 
 interface PersonalityTypeEn {
   name: string;
@@ -1195,7 +1194,7 @@ export type Locale = 'ko' | 'en';
 
 /**
  * 로케일별 성격유형 데이터 반환. 영어 로케일은 PERSONALITY_TYPES_EN의 필드로
- * 오버레이하되, exampleDialogues/innerMonologueExample은 한국어 전용이므로 제외.
+ * 오버레이한다 (exampleDialogues/innerMonologueExample 포함 — 영어 리라이트본).
  */
 export function getLocalizedPersonalityType(code: string, locale: Locale): PersonalityType | undefined {
   const base = PERSONALITY_TYPES[code.toUpperCase()];

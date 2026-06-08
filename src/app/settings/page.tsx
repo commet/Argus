@@ -567,7 +567,7 @@ export default function SettingsPage() {
 
       <Modal open={resetModal} onClose={() => setResetModal(false)} title={L('데이터 초기화', 'Reset Data')}>
         <p className="text-[14px] text-[var(--text-primary)] mb-2">
-          {L('모든 항로 재설정, 선원 배치, 리허설, 조율 이력이 영구 삭제됩니다.', 'All Reframe, Recast, Rehearse, and Synthesize records will be permanently deleted.')}
+          {L('모든 프로젝트의 분석, 초안, 검토 이력이 영구 삭제됩니다.', 'All analyses, drafts, and review history across your projects will be permanently deleted.')}
         </p>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
           {L('저장한 팀장과 에이전트도 함께 사라집니다. 되돌릴 수 없어요.', 'Saved bosses and agents will be cleared too. This cannot be undone.')}

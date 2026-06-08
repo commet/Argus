@@ -2,6 +2,7 @@ import { supabase, getCurrentUserId } from './supabase';
 import { getStorage, setStorage } from './storage';
 import { handleError } from './error-handler';
 import { log } from './logger';
+import { reportSyncFailure } from './sync-health';
 
 /**
  * Database abstraction layer.
@@ -116,7 +117,7 @@ export async function loadAndMerge<T extends Timestamped>(
       await supabase
         .from(table)
         .upsert(localOnly.map(item => ({ ...sanitizeItem(item), user_id: userId })), { onConflict: 'id' })
-        .then(({ error }) => { if (error) log.error(`push local-only to ${table}: ${error.message}`, { context: 'db' }); });
+        .then(({ error }) => { if (error) { log.error(`push local-only to ${table}: ${error.message}`, { context: 'db' }); reportSyncFailure(`push:${table}`, { message: error.message }); } });
     }
 
     return merged;
@@ -283,8 +284,10 @@ export async function insertToSupabase(table: TableName, item: any): Promise<voi
 
     if (error) {
       log.error(`insert to ${table} failed: ${error.message}`, { context: 'db' });
+      reportSyncFailure(`insert:${table}`, { message: error.message });
     }
   } catch (err) {
     handleError(err, `db.insert:${table}`);
+    reportSyncFailure(`insert:${table}`);
   }
 }

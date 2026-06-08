@@ -73,6 +73,7 @@
  */
 
 import { supabase } from './supabase';
+import { reportSyncFailure } from './sync-health';
 
 let _sessionId: string | null = null;
 
@@ -173,7 +174,11 @@ export function track(event: string, properties?: Record<string, unknown>) {
       user_id: _userId,
       page_path: window.location.pathname + window.location.search,
       referrer: document.referrer || null,
-    }).then(() => { /* fire and forget */ });
+    }).then(({ error }) => {
+      // Telemetry is non-critical: count the failure as a canary but do NOT flip
+      // the sync badge (anon-key inserts can fail for benign reasons).
+      if (error) reportSyncFailure('analytics', { surface: false });
+    });
   } catch {
     // silently fail — analytics should never break the app
   }

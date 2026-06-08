@@ -1479,6 +1479,12 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // no-op). Checked before any side effect (safety checkpoint) below.
     if ((session.branches || []).length >= MAX_BRANCHES) {
       track('voyage_fork_blocked', { reason: 'max_branches' });
+      // Surface the cap — a silent null here meant "fork a new course" did
+      // nothing visible. A window CustomEvent (no component import from the
+      // store) drives a global toast, mirroring the storage-error pattern.
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('argus:fork-blocked', { detail: { max: MAX_BRANCHES } }));
+      }
       return null;
     }
 

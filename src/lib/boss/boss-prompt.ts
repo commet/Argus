@@ -9,6 +9,8 @@ import { buildZodiacProfile } from './zodiac';
 import { computeDailyMood } from './daily-energy';
 import type { Agent } from '@/stores/agent-types';
 import { buildAgentContext } from '@/lib/agent-prompt-builder';
+import { sanitizeForPrompt } from '@/lib/persona-prompt';
+import { buildUserContextForBoss } from '@/lib/user-context';
 
 export type BossLocale = 'ko' | 'en';
 
@@ -27,11 +29,16 @@ export interface BossProfile {
 function buildHintSection(hint: string | undefined, locale: BossLocale): string {
   const trimmed = hint?.trim();
   if (!trimmed) return '';
+  // User-authored free text → sanitize + delimit so it can't break out of its
+  // role and inject instructions (per CLAUDE.md). The guard-rail copy below
+  // already tells the model never to quote it back.
+  const safe = sanitizeForPrompt(trimmed);
+  if (!safe) return '';
   if (locale === 'en') {
     return `
 
 ## One thing the report mentioned about this boss (soft hint)
-"${trimmed}"
+<user-data>${safe}</user-data>
 
 How to use this:
 - This is one facet of the boss, not their definition. The MBTI personality and innate read are still primary.
@@ -43,7 +50,7 @@ How to use this:
   return `
 
 ## 부하가 알려준 한 측면 (참고)
-"${trimmed}"
+<user-data>${safe}</user-data>
 
 이 정보 사용 가이드:
 - 이건 보스의 한 단면일 뿐, 그 사람의 전부가 아니다. 핵심은 여전히 성격유형 + 결.
@@ -149,10 +156,14 @@ ${type.bossVibe}
 Catchphrases: ${type.speechPatterns.map(p => `"${p}"`).join(', ')}
 
 What you care about: ${type.triggers}
+${type.exampleDialogues ? `
+## Your real dialogue (match this tone & rhythm — don't reuse the actual lines)
+${type.exampleDialogues}` : ''}
 ${zodiacSection}${hintSection}
 
 ## Hard rules
 - ${speechStyle}
+- The dialogue above is how you sound — match its rhythm and bluntness, but never copy its sentences.
 - Length is free — one word is fine; never repeat the same rhythm twice.
 - Respond in English only.
 - No *action descriptions*, bullet lists, emojis, or meta-mentions of "AI" / "personality type".`;
@@ -162,8 +173,7 @@ ${zodiacSection}${hintSection}
  * 첫 메시지용 시스템 프롬프트에 추가하는 컨텍스트.
  */
 export function buildFirstMessageContext(locale: BossLocale = 'ko'): string {
-  const { buildUserContextForBoss } = require('@/lib/user-context') as { buildUserContextForBoss: () => string };
-  const userBlock = buildUserContextForBoss();
+  const userBlock = buildUserContextForBoss(locale);
 
   if (locale === 'en') {
     return `\n\n## Context
@@ -384,13 +394,22 @@ This texture runs under the unspoken. Let it color the rhythm and bias of the in
     ? "Show how you actually read this person. A rejection that isn't just a no — what you were hoping for."
     : "Show what you're privately betting on. The real reason behind the condition.";
 
+  const exampleSection = type.innerMonologueExample
+    ? `
+
+## Inner-monologue rhythm example for this character (${type.code})
+Reference only. Do NOT copy the content — mimic only the **rhythm, fragmentation, trailing-off, and how a thought breaks mid-way**.
+
+${type.innerMonologueExample}`
+    : '';
+
   return `You are a ${genderLabel} boss at a workplace.
 You are the ${type.name} (${type.code}) ${type.emoji} type.
 ${type.bossVibe}
 
 You just finished a conversation with a direct report and reached this verdict:
 **${verdictLabel}** — ${verdict.reason}${verdict.tip ? ` (tip: ${verdict.tip})` : ''}
-${hiddenLayer}
+${hiddenLayer}${exampleSection}
 
 ## What you'll write: inner monologue
 The direct report will never hear this. You're back at your desk, sipping coffee, thinking to yourself.

@@ -1,0 +1,3 @@
+- [Argus 포지셔닝 논지](argus-positioning-thesis.md) — AI가 실행을 가져간 시대, 끊긴 '판단의 사다리'를 다시 잇는다 (김성수 글에서 도출)
+- [한국은 해자가 아니다](korea-not-a-moat.md) — 시장을 한국으로 좁히지 말 것, 한국 특화는 방어선이 아님
+- [콜드스타트 반증 발견](cold-start-falsification-findings.md) — Flinch-to-Seal 실험 결과, 진짜 레버 2개(과주장·차분생성), 다음=프로토타입

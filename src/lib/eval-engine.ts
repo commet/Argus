@@ -180,8 +180,8 @@ export interface RecastEvalInput {
 }
 
 export const RECAST_EVALS: Array<{ id: string; question: string; measure: (input: RecastEvalInput) => boolean }> = [
-  { id: 'steps_accepted', question: 'AI의 워크플로우 구조를 대체로 유지했는가?', measure: ({ item }) => { if (!item.analysis) return false; return Math.abs(item.analysis.steps.length - item.steps.length) <= 2; } },
-  { id: 'actor_overrides_low', question: '역할 배정을 대부분 수용했는가?', measure: ({ item, actorOverrideCount }) => { if (!item.analysis) return true; const t = item.analysis.steps.length; return t === 0 || actorOverrideCount / t < 0.3; } },
+  { id: 'steps_accepted', question: 'AI의 워크플로우 구조를 대체로 유지했는가?', measure: ({ item }) => { if (!item.analysis) return false; return Math.abs((item.analysis.steps?.length ?? 0) - (item.steps?.length ?? 0)) <= 2; } },
+  { id: 'actor_overrides_low', question: '역할 배정을 대부분 수용했는가?', measure: ({ item, actorOverrideCount }) => { if (!item.analysis) return true; const t = item.analysis.steps?.length ?? 0; return t === 0 || actorOverrideCount / t < 0.3; } },
   { id: 'has_key_assumptions', question: 'AI가 핵심 가정을 2개 이상 도출했는가?', measure: ({ item }) => (item.analysis?.key_assumptions?.length || 0) >= 2 },
   { id: 'has_design_rationale', question: 'AI가 설계 근거를 제시했는가?', measure: ({ item }) => !!item.analysis?.design_rationale && item.analysis.design_rationale.length > 20 },
 ];

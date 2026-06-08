@@ -191,9 +191,42 @@ function getFollowUps(mood: BossMood): string[] {
   return getCurrentLanguage() === 'ko' ? FOLLOW_UP_NEUTRAL_KO : FOLLOW_UP_NEUTRAL_EN;
 }
 
+// Extract the trailing verdict JSON the boss appends. The old single regex
+// (`{[^{}]*"verdict"...}`) failed silently whenever `reason` contained a brace
+// or the JSON was slightly malformed — leaving the user with no verdict. This
+// grabs the final {...} block, then falls back to field-level regexes if
+// JSON.parse fails, and returns the message text with that block removed.
+function extractVerdict(
+  raw: string,
+): { verdict: { verdict: string; reason: string; tip?: string }; clean: string } | null {
+  if (!raw.includes('"verdict"')) return null;
+  const end = raw.lastIndexOf('}');
+  if (end === -1) return null;
+  const start = raw.lastIndexOf('{', end);
+  if (start === -1) return null;
+  const block = raw.slice(start, end + 1);
+  const vm = block.match(/"verdict"\s*:\s*"(approved|rejected|conditional)"/);
+  if (!vm) return null;
+
+  let verdict: string = vm[1];
+  let reason = '';
+  let tip: string | undefined;
+  try {
+    const parsed = JSON.parse(block);
+    verdict = parsed.verdict || vm[1];
+    reason = parsed.reason || '';
+    tip = parsed.tip || undefined;
+  } catch {
+    reason = block.match(/"reason"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] ?? '';
+    tip = block.match(/"tip"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1] || undefined;
+  }
+  const clean = (raw.slice(0, start) + raw.slice(end + 1)).trim();
+  return { verdict: { verdict, reason, tip }, clean };
+}
+
 export function BossChat() {
   const {
-    axes, gender, birthYear, sajuProfile, yearMonthProfile,
+    axes, gender, birthYear, sajuProfile, yearMonthProfile, zodiacProfile,
     messages, isStreaming, streamingText,
     setStreaming, updateStreamingText, commitAssistantMessage,
     addUserMessage, getPersonalityType, reset,
@@ -211,6 +244,9 @@ export function BossChat() {
   const [calibrationStep, setCalibrationStep] = useState<'none' | 'similarity' | 'detail' | 'done'>('none');
   const [bossMood, setBossMood] = useState<BossMood>('neutral');
   const [shareMode, setShareMode] = useState(false);
+  // Two-tap reset guard — a single click used to wipe the whole conversation
+  // with no confirmation. First tap arms (3s), second tap actually resets.
+  const [resetArmed, setResetArmed] = useState(false);
   const [verdict, setVerdict] = useState<{ verdict: string; reason: string; tip?: string } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const postVerdictRef = useRef<HTMLDivElement>(null);
@@ -343,32 +379,28 @@ export function BossChat() {
       {
         onToken: (text) => updateStreamingText(text),
         onComplete: () => {
-          // Verdict JSON 추출 (응답 끝에 있을 수 있음)
+          // Verdict JSON 추출 (응답 끝에 있을 수 있음) — tolerant parse so a
+          // verdict never silently vanishes on a brace/quote in the reason.
           const raw = useBossStore.getState().streamingText;
-          const jsonMatch = raw.match(/\{[^{}]*"verdict"\s*:\s*"(approved|rejected|conditional)"[^{}]*\}/);
-          if (jsonMatch) {
-            try {
-              const parsed = JSON.parse(jsonMatch[0]);
-              setVerdict({ verdict: parsed.verdict, reason: parsed.reason || '', tip: parsed.tip });
-              // Record to collection
-              const tc = `${useBossStore.getState().axes.ei}${useBossStore.getState().axes.sn}${useBossStore.getState().axes.tf}${useBossStore.getState().axes.jp}`;
-              const tp = getType(tc);
-              recordCollection({
-                typeCode: tc,
-                verdict: parsed.verdict,
-                situation: useBossStore.getState().lastSituation,
-                completedAt: new Date().toISOString(),
-                emoji: tp?.emoji || '👔',
-              });
-              track('boss_verdict_received', {
-                verdict: parsed.verdict,
-                mbti: tc,
-                turns: useBossStore.getState().messages.length,
-                triggered_by: consumeForceVerdict ? 'force' : (round >= 7 ? 'auto' : 'natural'),
-              });
-            } catch { /* JSON 파싱 실패 시 무시 */ }
-            const clean = raw.replace(jsonMatch[0], '').trim();
-            useBossStore.getState().updateStreamingText(clean);
+          const ext = extractVerdict(raw);
+          if (ext) {
+            setVerdict(ext.verdict);
+            const tc = `${useBossStore.getState().axes.ei}${useBossStore.getState().axes.sn}${useBossStore.getState().axes.tf}${useBossStore.getState().axes.jp}`;
+            const tp = getType(tc);
+            recordCollection({
+              typeCode: tc,
+              verdict: ext.verdict.verdict as 'approved' | 'rejected' | 'conditional',
+              situation: useBossStore.getState().lastSituation,
+              completedAt: new Date().toISOString(),
+              emoji: tp?.emoji || '👔',
+            });
+            track('boss_verdict_received', {
+              verdict: ext.verdict.verdict,
+              mbti: tc,
+              turns: useBossStore.getState().messages.length,
+              triggered_by: consumeForceVerdict ? 'force' : (round >= 7 ? 'auto' : 'natural'),
+            });
+            useBossStore.getState().updateStreamingText(ext.clean);
           }
           // Per-turn metric — count + length of the assistant message just committed.
           const turnIdx = useBossStore.getState().messages.length; // 0-based count BEFORE commit
@@ -496,10 +528,20 @@ export function BossChat() {
                 : bossMood === 'rejected' ? t('boss.mood.rejected')
                 : typeData?.bossVibe}
             </span>
-            {ymp && (
+            {/* Zodiac flavor line — Korean saju animal for KO; the English
+                zodiac (Chinese + Western, from zodiacProfile) for EN so the
+                line never shows Korean text to English readers. */}
+            {locale === 'ko' && ymp && (
               <span className="bc-element" style={{ color: ymp.yearElement.color }}>
                 {ymp.animal.emoji} {ymp.animal.animal}{t('boss.zodiacSuffix')}
                 {ymp.zodiacSign ? ` · ${ymp.zodiacSign.emoji} ${ymp.zodiacSign.sign}` : ''}
+              </span>
+            )}
+            {locale !== 'ko' && zodiacProfile && (zodiacProfile.chinese || zodiacProfile.western) && (
+              <span className="bc-element" style={{ color: ymp?.yearElement.color || 'var(--text-tertiary)' }}>
+                {zodiacProfile.chinese ? `${zodiacProfile.chinese.emoji} ${zodiacProfile.chinese.labelEn}` : ''}
+                {zodiacProfile.chinese && zodiacProfile.western ? ' · ' : ''}
+                {zodiacProfile.western ? `${zodiacProfile.western.emoji} ${zodiacProfile.western.labelEn}` : ''}
               </span>
             )}
             {observationCount > 0 && (
@@ -560,8 +602,28 @@ export function BossChat() {
               </Link>
             </div>
           )}
-          <button type="button" onClick={handleReset} className="bc-reset" title={L('다시', 'Restart')}>
+          <button
+            type="button"
+            onClick={() => {
+              if (resetArmed) { handleReset(); return; }
+              setResetArmed(true);
+              setTimeout(() => setResetArmed(false), 3000);
+            }}
+            className="bc-reset"
+            title={resetArmed
+              ? L('한 번 더 누르면 대화가 초기화돼요', 'Tap again to reset the chat')
+              : L('대화 초기화', 'Restart chat')}
+            style={resetArmed
+              ? { color: 'var(--danger)', width: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0 8px' }
+              : undefined}
+          >
             <RotateCcw size={14} />
+            {/* Color alone isn't enough on touch (no hover tooltip) — say it. */}
+            {resetArmed && (
+              <span style={{ fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                {L('초기화?', 'Reset?')}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -638,7 +700,11 @@ export function BossChat() {
             </div>
             <div className="bc-verdict-body">
               <p className="bc-verdict-label">
-                {verdict.verdict === 'approved' ? '승인' : verdict.verdict === 'conditional' ? '조건부 승인' : '반려'}
+                {verdict.verdict === 'approved'
+                  ? t('boss.verdict.approved')
+                  : verdict.verdict === 'conditional'
+                    ? t('boss.verdict.conditional')
+                    : t('boss.verdict.rejected')}
               </p>
               <p className="bc-verdict-reason">{verdict.reason}</p>
               {verdict.tip && (
@@ -844,7 +910,7 @@ export function BossChat() {
             className="bc-textarea"
             rows={1}
             maxLength={500}
-            disabled={isStreaming || calibrationStep !== 'none'}
+            disabled={isStreaming}
           />
           <AnimatedPlaceholder
             texts={getFollowUps(bossMood)}
@@ -855,7 +921,7 @@ export function BossChat() {
           <button
             type="button"
             onClick={handleSend}
-            disabled={!input.trim() || isStreaming || calibrationStep !== 'none'}
+            disabled={!input.trim() || isStreaming}
             className="bc-send"
           >
             <Send size={15} />

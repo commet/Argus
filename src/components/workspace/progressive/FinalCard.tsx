@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Check, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, Sparkles, ChevronDown } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { voyageLogToMarkdown } from '@/lib/export';
@@ -74,11 +74,19 @@ export function FinalCard({
             />
           </div>
           {voyageLog && (
-            <div className="px-5 md:px-7 py-2 border-b border-[var(--border-subtle)] flex items-center justify-end">
-              <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--text-secondary)] transition-colors">
+            <div className="px-5 md:px-7 py-3 border-b border-[var(--border-subtle)] bg-[var(--accent)]/[0.04]">
+              <label className="flex items-start gap-2.5 cursor-pointer group">
                 <input type="checkbox" checked={withLog} onChange={(e) => setWithLog(e.target.checked)}
-                  className="accent-[var(--accent)] cursor-pointer" />
-                {L('복사·공유에 항해일지(결정 과정)도 포함', 'Also include the decision log when copying/sharing')}
+                  className="accent-[var(--accent)] cursor-pointer mt-0.5" />
+                <span className="flex-1">
+                  <span className="block text-[12.5px] font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
+                    {L('항해일지(결정 과정)도 함께 담기', 'Include the decision log (your reasoning trail)')}
+                  </span>
+                  <span className="block text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-snug">
+                    {L('“왜 이렇게 결정했는지”의 기록 — 결과 문서만으로는 남지 않는, 당신만의 판단 흔적이에요.',
+                       'The record of WHY you decided this — the reasoning a finished document alone leaves behind.')}
+                  </span>
+                </span>
               </label>
             </div>
           )}
@@ -108,48 +116,79 @@ export function FinalCard({
           ) : (
             <div className="p-5 md:p-8 space-y-1">{renderMd(content)}</div>
           )}
-          {/* Agent-growth footer — surfaces XP/level changes from this
-              session so the user sees their team becoming more theirs. Only
-              renders when at least one agent earned XP in this session. */}
-          {sessionId && (() => {
-            const deltas = getSessionDeltas(sessionId);
-            if (deltas.length === 0) return null;
-            // Surface up to 4 agents to avoid clutter; the rest summed.
-            const top = deltas.slice(0, 4);
-            const rest = deltas.slice(4);
-            const restXp = rest.reduce((acc, d) => acc + d.xpGained, 0);
-            const anyLevelUp = deltas.some(d => d.leveledUp);
-            return (
-              <div className="px-5 md:px-7 py-4 border-t border-[var(--border-subtle)]/60 bg-[var(--accent)]/[0.02]">
-                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-2 flex items-center gap-1.5">
-                  <Sparkles size={11} />
-                  {anyLevelUp
-                    ? L('이번 분석으로 팀이 한 단계 성장했어요', 'Your team leveled up from this run')
-                    : L('이번 분석으로 팀이 더 똑똑해졌어요', 'Your team grew from this run')}
-                </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[12px] text-[var(--text-secondary)]">
-                  {top.map(d => (
-                    <span key={d.agentId} className="inline-flex items-baseline gap-1">
-                      <span className="text-[var(--text-primary)] font-medium">{d.name}</span>
-                      <span className="text-[var(--accent)] tabular-nums">+{d.xpGained}XP</span>
-                      {d.leveledUp && (
-                        <span className="text-[10px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 py-0.5 rounded">
-                          Lv.{d.fromLevel}→{d.toLevel}
-                        </span>
-                      )}
-                    </span>
-                  ))}
-                  {rest.length > 0 && (
-                    <span className="text-[var(--text-tertiary)] tabular-nums">
-                      {L(`외 ${rest.length}명 +${restXp}XP`, `+${rest.length} more (+${restXp}XP)`)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
+          {/* Agent-growth footer — the team's XP/level changes from this run.
+              Deliberately understated: the deliverable is the triumphant
+              moment, not the gamification. A muted one-liner carries the
+              signal; the XP/Lv detail is tucked behind a tap-to-reveal so it
+              never competes with the final document. */}
+          {sessionId && <AgentGrowthFooter sessionId={sessionId} locale={locale} />}
         </div>
       </div>
     </motion.div>
+  );
+}
+
+/* Agent-growth footer — muted by default, XP/Lv detail behind a tap-to-reveal.
+   Gating the gamification keeps the final document the hero of the screen. */
+function AgentGrowthFooter({ sessionId, locale }: { sessionId: string; locale: string }) {
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [open, setOpen] = useState(false);
+  const deltas = getSessionDeltas(sessionId);
+  if (deltas.length === 0) return null;
+  // Surface up to 4 agents to avoid clutter; the rest summed.
+  const top = deltas.slice(0, 4);
+  const rest = deltas.slice(4);
+  const restXp = rest.reduce((acc, d) => acc + d.xpGained, 0);
+  const anyLevelUp = deltas.some(d => d.leveledUp);
+
+  return (
+    <div className="px-5 md:px-7 py-2.5 border-t border-[var(--border-subtle)]/60">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        aria-controls="agent-growth-detail"
+        className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+      >
+        <Sparkles size={10} className="opacity-60 text-[var(--accent)]" />
+        <span>
+          {anyLevelUp
+            ? L('팀이 이번 분석으로 한 단계 성장했어요', 'Your team leveled up from this run')
+            : L('팀이 이번 분석으로 조금 더 똑똑해졌어요', 'Your team grew a little from this run')}
+        </span>
+        <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            id="agent-growth-detail"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: EASE }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[12px] text-[var(--text-secondary)] pt-2">
+              {top.map(d => (
+                <span key={d.agentId} className="inline-flex items-baseline gap-1">
+                  <span className="text-[var(--text-primary)] font-medium">{d.name}</span>
+                  <span className="text-[var(--accent)] tabular-nums">+{d.xpGained}XP</span>
+                  {d.leveledUp && (
+                    <span className="text-[10px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 py-0.5 rounded">
+                      Lv.{d.fromLevel}→{d.toLevel}
+                    </span>
+                  )}
+                </span>
+              ))}
+              {rest.length > 0 && (
+                <span className="text-[var(--text-tertiary)] tabular-nums">
+                  {L(`외 ${rest.length}명 +${restXp}XP`, `+${rest.length} more (+${restXp}XP)`)}
+                </span>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

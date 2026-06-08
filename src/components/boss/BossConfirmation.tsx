@@ -18,7 +18,10 @@ interface BossConfirmationProps {
   onContinue: () => void;
 }
 
-const AUTO_ADVANCE_MS = 1800;
+// Long enough to actually read the boss identity + saju + the situation echo
+// before it auto-advances (1.8s was "blink and you miss it"). Users who want
+// to move faster can click "대화 시작" to skip the wait.
+const AUTO_ADVANCE_MS = 3800;
 
 export function BossConfirmation({
   typeData,
@@ -96,6 +99,11 @@ export function BossConfirmation({
                 fontStyle: 'italic', lineHeight: 1.5, maxWidth: 380, marginLeft: 'auto', marginRight: 'auto',
               }}>
                 {kyeol.line}
+                {/* Keep the playful framing consistent with the setup screen —
+                    this is flavor, not a real personality claim. */}
+                <span style={{ fontStyle: 'normal', color: 'var(--text-tertiary)', marginLeft: 6 }}>
+                  · {L('재미로', 'just for fun')}
+                </span>
               </p>
             )}
             {sajuLoading && (

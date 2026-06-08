@@ -93,6 +93,7 @@ export function BossSetup() {
   const demoConsumedRef = useRef(false);
 
   const typeCode = `${axes.ei}${axes.sn}${axes.tf}${axes.jp}`;
+  const answeredCount = (['ei', 'sn', 'tf', 'jp'] as const).filter((k) => answeredAxes[k]).length;
   const typeData = getLocalizedPersonalityType(typeCode, locale);
   const examples = locale === 'ko' ? EXAMPLE_SITUATIONS_KO : EXAMPLE_SITUATIONS_EN;
   const hintExamples = locale === 'ko' ? HINT_EXAMPLES_KO : HINT_EXAMPLES_EN;
@@ -258,6 +259,16 @@ export function BossSetup() {
                   <span className="bs-persona-vibe">{typeData.bossVibe}</span>
                 </div>
               </div>
+              {/* The card always shows a fully-formed boss (defaults to ESTJ),
+                  which reads as "already set" even at 0/4. Say it's a default
+                  so the user knows answering the quiz changes it. */}
+              {axisMode === 'easy' && answeredCount === 0 && (
+                <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 8px', lineHeight: 1.4 }}>
+                  {locale === 'ko'
+                    ? '기본값이에요 — 위 질문에 답하면 이 팀장이 바뀌어요'
+                    : "This is the default — answer above to shape this boss"}
+                </p>
+              )}
               <div className="bs-persona-speech">&ldquo;{typeData.speechPatterns[0]}&rdquo;</div>
               <div className="bs-persona-traits">
                 <span className="bs-persona-trait">{typeData.shortDesc}</span>
@@ -310,23 +321,6 @@ export function BossSetup() {
                       aria-label={t('boss.monthLabel')}
                     />
                     <span className="bs-num-suffix">{t('boss.monthSuffix')}</span>
-                    {locale === 'en' && (
-                      <>
-                        <span className="bs-dot">·</span>
-                        <input
-                          type="number"
-                          placeholder="15"
-                          value={birthDay || ''}
-                          onChange={(e) => setBirth(birthYear, birthMonth, Number(e.target.value))}
-                          className="bs-num bs-num-m"
-                          min={1}
-                          max={31}
-                          disabled={!birthMonthValid}
-                          aria-label="Birth day"
-                        />
-                        <span className="bs-num-suffix">day</span>
-                      </>
-                    )}
                   </div>
                 </div>
                 {birthYear > 0 && !birthYearValid && (
@@ -341,8 +335,15 @@ export function BossSetup() {
 
       {/* ── Input + CTA (one block, always visible) ── */}
       <motion.div className="bs-input-block" variants={fadeUp}>
+        <label
+          htmlFor="bs-situation"
+          style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}
+        >
+          {locale === 'ko' ? '어떤 상황이에요?' : "What's the situation?"}
+        </label>
         <div className="bs-input-wrap">
           <textarea
+            id="bs-situation"
             value={situation}
             onChange={(e) => setSituation(e.target.value)}
             onKeyDown={handleKeyDown}

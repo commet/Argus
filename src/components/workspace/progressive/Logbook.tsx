@@ -16,7 +16,7 @@
  * avoid forking/switching out from under a running analysis.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Sailboat, Milestone, AlertTriangle, Eye, Wind, Anchor, ChevronDown, ChevronUp,
   Map as MapIcon, Flag, GitBranch, Compass, X, Hand,
@@ -50,6 +50,9 @@ export function Logbook() {
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [chartOpen, setChartOpen] = useState(false);
+  // Two-step delete confirm — deleting a course is destructive (the explored
+  // path is gone), so the X arms a confirm rather than deleting on first click.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { waypoints, branches, activeBranch, parentOf, assumptionsByCp } = useMemo(() => {
     const empty = { waypoints: [], branches: [], activeBranch: null, parentOf: new Map<string, string | null>(), assumptionsByCp: new Map<string, string[]>() };
@@ -78,6 +81,15 @@ export function Logbook() {
   // Hold branch mutations while the engine streams or workers are in flight
   // (shared lock — same rule the chart uses).
   const locked = useProgressiveStore(s => s.isBranchingLocked());
+
+  // Disarm a pending delete-confirm if its target is no longer a deletable,
+  // non-active course (switched-to-active / removed) or while branching is
+  // locked — otherwise a stale confirm could re-surface armed.
+  useEffect(() => {
+    if (!confirmDeleteId) return;
+    const stillDeletable = branches.some(b => b.id === confirmDeleteId && b.id !== activeBranch?.id);
+    if (!stillDeletable || locked) setConfirmDeleteId(null);
+  }, [confirmDeleteId, branches, activeBranch?.id, locked]);
   const multiBranch = branches.length > 1;
 
   // "Take the road not taken" — fork from the checkpoint *before* the turn so
@@ -89,7 +101,31 @@ export function Logbook() {
     setChartOpen(false);
   };
 
-  if (waypoints.length === 0) return null;
+  // Empty state — the rail can be visible (e.g. workers running) before the
+  // first waypoint is logged. Give the log an identity instead of a void so
+  // the user knows the decision trail collects here. Only when a voyage exists.
+  if (waypoints.length === 0) {
+    if (!session) return null;
+    return (
+      <aside className="px-4 py-4" aria-label={L('항해일지', "Ship's log")}>
+        <h3 className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight mb-2.5">
+          {L('항해일지', "Ship's log")}
+        </h3>
+        <div className="rounded-xl border border-dashed border-[var(--border-subtle)] px-3 py-4 space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <Compass size={13} className="text-[var(--accent)]/60 shrink-0" />
+            <span className="text-[11.5px] font-medium text-[var(--text-secondary)]">
+              {L('아직 항해 기록이 없어요', 'No log entries yet')}
+            </span>
+          </div>
+          <p className="text-[10.5px] leading-[1.5] text-[var(--text-tertiary)]">
+            {L('분석이 진행되면 결정의 흐름 — 침로를 바꾼 순간들 — 이 여기 차곡차곡 쌓여요.',
+               'As the analysis unfolds, your decision trail — the moments you changed course — collects here.')}
+          </p>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="px-4 py-4" aria-label={L('항해일지', "Ship's log")}>
@@ -132,14 +168,33 @@ export function Logbook() {
                     <span className="truncate">{b.name}</span>
                   </button>
                   {!isActive && (
-                    <button
-                      onClick={() => !locked && deleteBranch(b.id)}
-                      disabled={locked}
-                      aria-label={L('항로 삭제', 'Delete course')}
-                      className={`pr-1.5 pl-0.5 py-1 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    >
-                      <X size={9} />
-                    </button>
+                    confirmDeleteId === b.id ? (
+                      <span className="inline-flex items-center gap-1 pr-1.5 pl-1">
+                        <button
+                          onClick={() => { setConfirmDeleteId(null); if (!locked) deleteBranch(b.id); }}
+                          disabled={locked}
+                          className={`text-[9.5px] font-semibold text-[var(--danger)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                          {L('삭제', 'Delete')}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          aria-label={L('취소', 'Cancel')}
+                          className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer"
+                        >
+                          <X size={9} />
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(b.id)}
+                        disabled={locked}
+                        aria-label={L('항로 삭제', 'Delete course')}
+                        className={`pr-1.5 pl-0.5 py-1 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      >
+                        <X size={9} />
+                      </button>
+                    )
                   )}
                 </span>
               );

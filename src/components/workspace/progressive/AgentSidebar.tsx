@@ -102,7 +102,11 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
   const isDimmed = hovered != null && !isHighlighted;
 
   // ── Live activity ticker (fallback when no stream_text)
-  const tickers = tickersFor(worker.persona?.id, worker.task);
+  // Honesty: only a REAL stream snippet earns specific lines. Without one we
+  // must not fabricate persona-specific actions ("analyzing competitor cases",
+  // "modeling costs") that may not be happening — that's theater that misleads.
+  // Fall back to the worker's genuine assigned task + neutral "working" lines.
+  const tickers = tickersFor(undefined, worker.task);
   const [tickerIdx, setTickerIdx] = useState(0);
   useEffect(() => {
     if (!isWorking) return;

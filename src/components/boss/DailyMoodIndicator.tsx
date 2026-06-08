@@ -40,6 +40,16 @@ const MOOD_COLOR: Record<DailyMood, { bg: string; fg: string; border: string }> 
   },
 };
 
+// The underlying mood labels in daily-energy.ts are Korean-only (Saju copy).
+// Map the mood key to a short English label so EN locale never shows Korean.
+const MOOD_LABEL_EN: Record<DailyMood, string> = {
+  radiant: 'Lifted',
+  light: 'Easy',
+  neutral: 'Steady',
+  heavy: 'Heavy',
+  stormy: 'Stormy',
+};
+
 /**
  * 오늘의 팀장 기운 pill.
  * profile이 없으면 아무것도 안 그림 (생년 미입력).
@@ -52,11 +62,12 @@ export function DailyMoodIndicator({ profile, variant = 'pill', showCopy = false
   // legacy bosses (profile exists) — swap the chrome to English but keep the
   // Korean mood label since the underlying computation is Saju-specific.
   const ko = locale === 'ko';
+  const label = ko ? result.label : MOOD_LABEL_EN[result.mood];
 
   const color = MOOD_COLOR[result.mood];
   const title = ko
     ? `재미로 보는 오늘 기운 — ${result.copy}\n${result.breakdown.today.name}일 · ${result.breakdown.stemRelation.label} · ${result.breakdown.branchRelation.label}`
-    : `Just for fun — today's mood. ${result.copy}`;
+    : "Just for fun — today's mood";
 
   if (variant === 'inline') {
     return (
@@ -66,7 +77,7 @@ export function DailyMoodIndicator({ profile, variant = 'pill', showCopy = false
         title={title}
       >
         <span className="text-[11px] leading-none">{result.emoji}</span>
-        <span className="font-medium">{result.label}</span>
+        <span className="font-medium">{label}</span>
         <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>· {ko ? '재미로' : 'just for fun'}</span>
       </span>
     );
@@ -97,7 +108,7 @@ export function DailyMoodIndicator({ profile, variant = 'pill', showCopy = false
         {result.emoji}
       </motion.span>
       <span className="text-[10px] font-bold tracking-wide" style={{ color: color.fg }}>
-        {ko ? '오늘' : 'Today'} {result.label}
+        {ko ? '오늘' : 'Today'} {label}
       </span>
       {showCopy && (
         <span className="text-[10px]" style={{ color: color.fg, opacity: 0.75 }}>

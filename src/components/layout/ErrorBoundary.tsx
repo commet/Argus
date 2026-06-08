@@ -53,12 +53,22 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                 ? '예기치 않은 오류가 발생했습니다. 새로고침 후 다시 시도해주세요.'
                 : 'An unexpected error occurred. Please refresh and try again.'}
             </p>
-            <button
-              onClick={this.handleRetry}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-[var(--bg)] hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all"
-            >
-              {ko ? '다시 시도' : 'Try again'}
-            </button>
+            <div className="flex flex-col items-center gap-2.5">
+              <button
+                onClick={this.handleRetry}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-[var(--bg)] hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all"
+              >
+                {ko ? '다시 시도' : 'Try again'}
+              </button>
+              {/* Always-safe escape: if retry keeps re-throwing the same broken
+                  subtree, a full nav to /workspace remounts the app cleanly. */}
+              <a
+                href="/workspace"
+                className="text-xs text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors"
+              >
+                {ko ? '워크스페이스로 돌아가기' : 'Back to workspace'}
+              </a>
+            </div>
           </div>
         </div>
       );

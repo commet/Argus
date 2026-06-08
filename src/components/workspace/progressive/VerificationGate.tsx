@@ -45,7 +45,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
   }, [onClose]);
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      role="dialog" aria-modal="true" aria-label={L('출항 전 검증', 'Pre-sail verification')}
+      role="dialog" aria-modal="true" aria-label={L('초안 작성 전 점검', 'Pre-draft check')}
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <motion.div
@@ -64,7 +64,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
               </p>
               <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">
                 {allClear
-                  ? L('이제 출항할 수 있어요.', 'Ready to set sail.')
+                  ? L('이제 초안을 만들 수 있어요.', 'Ready to create the draft.')
                   : L(`팀원 ${remaining}명의 결과를 아직 안 봤어요. 반영할지 빼고 갈지 한 번씩만 정해주세요 — 그대로 다 반영하고 가도 돼요.`, `You haven't looked at ${remaining} result${remaining > 1 ? 's' : ''} yet. Mark each as keep or skip — or just include them all and go.`)}
               </p>
             </div>
@@ -115,7 +115,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
             className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: 'var(--gradient-gold)' }}>
             {allClear
-              ? L('출항', 'Set sail')
+              ? L('초안 만들기', 'Create draft')
               : remaining > 0
                 ? L(`${remaining}개 남음`, `${remaining} left`)
                 : L('실행 중…', 'Running…')} <ChevronRight size={14} />
@@ -125,7 +125,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
           {remaining > 0 && (
             <button onClick={onOverride}
               className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer transition-colors">
-              {L('확인 없이 모두 반영하고 출항', 'Accept all unchecked and sail')}
+              {L('확인 없이 모두 반영하고 초안 만들기', 'Accept all unchecked & create draft')}
             </button>
           )}
         </div>

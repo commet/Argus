@@ -33,6 +33,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/jsdom": "^28.0.1",
     "@types/node": "^20",
@@ -42,6 +43,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "jsdom": "^29.0.1",
+    "playwright": "^1.60.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "5.9.3",

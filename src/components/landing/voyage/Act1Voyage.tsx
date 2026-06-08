@@ -113,10 +113,43 @@ export function Act1Voyage() {
             )}
           </p>
 
+          {/* Plain-language value prop — so a first-timer knows WHAT this is, not just the metaphor */}
+          <p
+            className={`bp-fade-up mt-6 max-w-2xl mx-auto ${locale === 'ko' ? 'break-keep' : ''}`}
+            style={{
+              color: 'var(--bp-ink)',
+              fontSize: 'clamp(14px, 1.1vw, 17px)',
+              lineHeight: 1.6,
+              fontWeight: 500,
+              animationDelay: '690ms',
+            }}
+          >
+            {L(
+              'Argus는 AI에게 일을 맡기기 전에 “무엇을 시킬지”를 함께 다듬는 도구입니다 — 더 나은 질문이 더 나은 결과를 만듭니다.',
+              'Argus helps you sharpen WHAT to ask AI before you hand off the work — better questions make better results.',
+            )}
+          </p>
+
           <div
-            className="bp-fade-up mt-8 md:mt-10 inline-flex items-center gap-3"
+            className="bp-fade-up mt-8 md:mt-10 inline-flex flex-wrap items-center justify-center gap-3"
             style={{ animationDelay: '760ms' }}
           >
+            <a
+              href="/workspace"
+              className="bp-mono inline-flex items-center justify-center"
+              style={{
+                background: 'var(--bp-ink)',
+                color: 'var(--bp-paper, #faf7f0)',
+                fontSize: 12.5,
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                padding: '12px 24px',
+                minHeight: 44,
+                borderRadius: 8,
+              }}
+            >
+              {L('무료로 시작하기', 'Start free')}
+            </a>
             <a
               href="#orchestration"
               className="bp-mono inline-flex items-center"

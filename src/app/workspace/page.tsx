@@ -164,6 +164,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   const progressiveStore = useProgressiveStore();
   const phaseRef = React.useRef<HeroPhase>('idle');
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const analyzeAbortRef = React.useRef<AbortController | null>(null);
+  const elapsedTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const autoStartedRef = React.useRef(false);
   const searchParams = useSearchParams();
 
@@ -172,7 +175,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
 
   // Cleanup timer on unmount
   React.useEffect(() => {
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+      analyzeAbortRef.current?.abort();
+    };
   }, []);
 
   // Auto-select demo scenario from ?demo= query param
@@ -209,6 +216,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     setPreviewPersonas(pool.slice(0, 4));
     track('workspace_problem_submit', { text_length: text.length, source: 'hero_flow' });
 
+    // Elapsed counter + cancellation so the user is never stuck on a slow/hung run.
+    const controller = new AbortController();
+    analyzeAbortRef.current = controller;
+    setElapsed(0);
+    if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+    elapsedTimerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+
     // 2. assembling → analyzing (타이머 또는 첫 토큰)
     timerRef.current = setTimeout(() => {
       if (phaseRef.current === 'assembling') setPhase('analyzing');
@@ -225,9 +239,17 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
           setPhase('analyzing');
           track('first_analysis_start', { text_length: text.length, anonymous: !user });
         }
-      });
+      }, controller.signal);
+
+      // ADD-4: 스트림은 정상 종료됐지만 파싱 결과가 비어있는 경우(첫 상호작용의 malformed JSON 등).
+      // skeleton·hidden_assumptions가 모두 비면 분석이 사실상 실패한 것 — 빈 "분석 중..." placeholder로
+      // 프로젝트를 만들어 막다른 길에 가두지 말고, 재시도 가능한 에러로 표면화한다(아래 catch가 처리).
+      if (result.snapshot.skeleton.length === 0 && result.snapshot.hidden_assumptions.length === 0) {
+        throw new Error(L('분석 결과를 받지 못했어요. 잠시 후 다시 시도해 주세요.', "Couldn't read the analysis result. Please try again."));
+      }
 
       // 4. 분석 성공 — 이제 프로젝트 + 세션 생성 후 결과 주입
+      if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
       const pid = createProject(text.slice(0, 40));
       progressiveStore.createSession(pid, text, reviewerAgentId);
       progressiveStore.addSnapshot(result.snapshot);
@@ -240,6 +262,14 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       onReady(pid);
     } catch (err) {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+      // 사용자가 직접 취소한 경우 → 에러 배너 없이 조용히 idle로 복귀
+      if (controller.signal.aborted) {
+        setPhase('idle');
+        setStreamingText('');
+        track('workspace_analysis_cancelled', { anonymous: !user });
+        return;
+      }
       const errMsg = err instanceof Error ? err.message : String(err);
       // LLM layer가 던지는 분류 신호:
       //   - "LOGIN_REQUIRED:..." prefix → 익명 무료 체험 소진 (categorizeError at 429+needsLogin)
@@ -342,6 +372,29 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 </div>
               )}
 
+              {/* Orientation — a short headline + the 3 steps, so first-timers know
+                  what happens and "팀" isn't referenced cold in the input helper below. */}
+              <div className="mb-4">
+                <h2 className="text-[16px] md:text-[18px] font-semibold text-[var(--text-primary)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+                  {L('무엇을 AI에게 시킬지, 같이 다듬어요', "Let's sharpen what to ask AI — together")}
+                </h2>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-[var(--text-tertiary)]">
+                  {[
+                    L('상황을 적으면', 'Describe the situation'),
+                    L('AI 팀이 분석하고 되물어요', 'an AI team analyzes & asks back'),
+                    L('기획안이 완성돼요', 'you get a finished plan'),
+                  ].map((step, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-[var(--accent)]/12 text-[var(--accent)] flex items-center justify-center font-semibold text-[9px]">{i + 1}</span>
+                        {step}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+
               {/* PRIMARY: Direct input — the workspace's hero. Big, prominent,
                   immediately actionable. Marketing copy lives below or
                   is reserved for first-time users (no projects yet). */}
@@ -403,7 +456,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   const isNetwork = e.includes('network') || e.includes('failed to fetch') || e.includes('fetch') || e.includes('네트워크') || e.includes('offline');
                   const isTimeout = e.includes('timeout') || e.includes('timed out') || e.includes('시간 초과') || e.includes('aborted');
                   const msg = isQuota
-                    ? L('무료 체험 한도에 도달했습니다. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.', 'Free trial limit reached. Register your own API key in Settings for unlimited use.')
+                    // Disambiguate anon "trial" from a logged-in user's daily quota —
+                    // a signed-in user hasn't hit a "trial", they've used today's allowance.
+                    ? (user
+                        ? L(`오늘의 무료 사용 한도(하루 ${DAILY_LIMIT}회)를 다 썼어요. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.`, `You've used today's free allowance (${DAILY_LIMIT}/day). Register your own API key in Settings for unlimited use.`)
+                        : L('무료 체험 한도에 도달했어요. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.', 'Free trial limit reached. Register your own API key in Settings for unlimited use.'))
                     : isNetwork
                       ? L('네트워크 연결이 불안정해요. 연결을 확인하고 다시 시도해주세요.', 'Network looks unstable. Check your connection and try again.')
                       : isTimeout
@@ -492,7 +549,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 ))}
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.4 }}
                   className="text-[11px] text-[var(--text-tertiary)] pt-1">
-                  {L('팀이 구성되었습니다. 상황을 분석합니다...', 'Team assembled. Analyzing the situation...')}
+                  {/* Honest framing: the initial pass is a single read that finds the real
+                      question; this crew does its individual work later, at the worker stage. */}
+                  {L('팀이 모였어요 — 먼저 상황을 읽고 진짜 질문을 찾습니다...', 'Your crew is here — first, reading the situation to find the real question...')}
                 </motion.p>
               </div>
             </motion.div>
@@ -528,7 +587,16 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     <Sparkles size={14} className="text-[var(--accent)]" />
                   </motion.div>
                   <span className="text-[12px] font-medium text-[var(--accent)]">{stageLabel}</span>
-                  <span className="text-[11px] text-[var(--text-tertiary)] ml-auto">{L('보통 20~40초', 'usually 20–40s')}</span>
+                  <span className="text-[11px] text-[var(--text-tertiary)] ml-auto tabular-nums">
+                    {elapsed >= 3 ? L(`${elapsed}초 경과`, `${elapsed}s elapsed`) : L('보통 20~40초', 'usually 20–40s')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => analyzeAbortRef.current?.abort()}
+                    className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                  >
+                    {L('취소', 'Cancel')}
+                  </button>
                 </div>
 
                 {/* ─── Field 1: 진짜 질문 ─── */}

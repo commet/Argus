@@ -47,6 +47,18 @@ export function SyncStatus() {
     };
   }, [handleSyncEvent]);
 
+  // Auto-recover from a transient sync-write failure so the badge never sticks red.
+  // (For a localStorage-first app a failed cloud write isn't fatal — data is local —
+  // so the error is a transient signal, not a permanent state.)
+  useEffect(() => {
+    if (state !== 'error') return;
+    const t = setTimeout(() => {
+      setState(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'synced');
+      setLastError(null);
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [state, lastError]);
+
   const config = {
     synced: {
       icon: <Cloud size={12} />,

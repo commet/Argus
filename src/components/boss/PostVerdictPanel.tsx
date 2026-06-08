@@ -18,14 +18,8 @@ interface PostVerdictPanelProps {
 export function PostVerdictPanel({ verdict, onShare }: PostVerdictPanelProps) {
   const { lastSituation, resetForNewType, resetForNewSituation, addUserMessage, startChat } = useBossStore();
   const axes = useBossStore(s => s.axes);
-  const innerMonologue = useBossStore(s => s.innerMonologue);
-  const innerLoading = useBossStore(s => s.innerLoading);
   const typeCode = `${axes.ei}${axes.sn}${axes.tf}${axes.jp}`;
   const [showScenarios, setShowScenarios] = useState(false);
-
-  // 이면 공개 후에야 secondary actions 노출
-  const innerUnlocked = !!innerMonologue;
-  const innerActive = innerLoading || innerUnlocked;
 
   // 다른 유형 이름 미리보기
   const allCodes = Object.keys(PERSONALITY_TYPES);
@@ -57,16 +51,14 @@ export function PostVerdictPanel({ verdict, onShare }: PostVerdictPanelProps) {
       {/* ── Hero: 이면 공개 (판정 직후 감정의 피크) ── */}
       <InnerMonologueCard verdict={verdict} />
 
-      {/* ── Secondary actions: 이면 공개/스트리밍 이후에만 노출 ── */}
-      <AnimatePresence>
-        {innerActive && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ delay: innerUnlocked ? 0.4 : 0, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            style={{ overflow: 'hidden' }}
-          >
+      {/* ── Secondary actions: shown right after the verdict, no longer gated
+          behind the optional inner-monologue reveal (a user who just wants to
+          share or try another type could previously never reach these). ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      >
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <button
                 onClick={handleNewType}
@@ -135,9 +127,7 @@ export function PostVerdictPanel({ verdict, onShare }: PostVerdictPanelProps) {
             <div style={{ marginTop: 10 }}>
               <CollectionProgress />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </motion.div>
     </motion.div>
   );
 }

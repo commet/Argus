@@ -29,7 +29,7 @@
  * a new course from it (keeping the chart consistent with the branch model).
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Compass, Anchor, X as XIcon, RotateCcw, ChevronRight, Flag, Pencil, GitCompare, Check } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -60,13 +60,23 @@ export function VoyageChart() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [compareId, setCompareId] = useState<string | null>(null);
+  // Two-step delete confirm — a course delete is destructive; arm before acting.
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
   const activeId = session?.active_checkpoint_id ?? null;
   const activePath = useMemo(() => getActivePath(checkpoints, activeId), [checkpoints, activeId]);
-  const branches = session?.branches ?? [];
+  const branches = useMemo(() => session?.branches ?? [], [session?.branches]);
   const activeBranch = branches.find(b => b.id === session?.active_branch_id) ?? null;
   const waypoints = useMemo(() => session?.waypoints ?? [], [session?.waypoints]);
+
+  // Disarm a pending delete-confirm if its target is no longer a deletable,
+  // non-active course or while branching is locked (mirrors Logbook).
+  useEffect(() => {
+    if (!deleteConfirmId) return;
+    const stillDeletable = branches.some(b => b.id === deleteConfirmId && b.id !== activeBranch?.id);
+    if (!stillDeletable || locked) setDeleteConfirmId(null);
+  }, [deleteConfirmId, branches, activeBranch?.id, locked]);
 
   if (!session || checkpoints.length === 0) return null;
 
@@ -119,6 +129,33 @@ export function VoyageChart() {
             activeCheckpointId={activeId}
             onPick={handleNodeClick}
           />
+        </div>
+
+        {/* Visual legend — the SVG marks can't explain themselves, so spell
+            out the encoding (filled vs hollow node, ring, ⚑, dimmed). */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 px-1 text-[9px] text-[var(--text-tertiary)]">
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--accent)' }} />
+            {L('기록된 기점', 'Logged point')}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full border shrink-0" style={{ borderColor: 'var(--accent)', background: 'var(--surface)' }} />
+            {L('기점', 'Checkpoint')}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--accent)', outline: '1px solid var(--accent)', outlineOffset: '1.5px' }} />
+            {L('현재 위치', 'Current')}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Flag size={9} className="text-[var(--accent)] shrink-0" />
+            {L('확정 항로', 'Anchored')}
+          </span>
+          {branches.some(b => b.status === 'abandoned') && (
+            <span className="inline-flex items-center gap-1 opacity-50">
+              <span className="w-2 h-2 rounded-full border shrink-0" style={{ borderColor: 'var(--text-tertiary)' }} />
+              {L('포기한 항로', 'Abandoned')}
+            </span>
+          )}
         </div>
 
         {/* Footer hint — adapts to whether the user has any branches yet.
@@ -206,14 +243,33 @@ export function VoyageChart() {
                     </button>
                   )}
                   {!isActive && (
-                    <button
-                      onClick={() => !locked && deleteBranch(b.id)}
-                      disabled={locked}
-                      title={L('항로 삭제', 'Delete course')}
-                      className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    >
-                      <XIcon size={11} />
-                    </button>
+                    deleteConfirmId === b.id ? (
+                      <span className="inline-flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => { setDeleteConfirmId(null); if (!locked) deleteBranch(b.id); }}
+                          disabled={locked}
+                          className={`text-[9px] font-semibold text-[var(--danger)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                          {L('삭제', 'Delete')}
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(null)}
+                          aria-label={L('취소', 'Cancel')}
+                          className="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer"
+                        >
+                          <XIcon size={11} />
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirmId(b.id)}
+                        disabled={locked}
+                        title={L('항로 삭제', 'Delete course')}
+                        className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      >
+                        <XIcon size={11} />
+                      </button>
+                    )
                   )}
                 </div>
               );

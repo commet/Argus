@@ -7,6 +7,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { RateLimitBadge } from '@/components/ui/RateLimitBadge';
 import { SyncStatus } from '@/components/ui/SyncStatus';
+import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
+import { ForkLimitToast } from '@/components/ui/ForkLimitToast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 
 export function Header() {
@@ -162,6 +164,10 @@ export function Header() {
                   <RateLimitBadge />
                 </>
               )}
+              {/* Ungated: storage write failures (e.g. quota) affect anonymous users too */}
+              <StorageErrorToast />
+              {/* Ungated: the branch-cap toast applies to any voyage */}
+              <ForkLimitToast />
             </div>
 
             {/* User area */}
