@@ -179,9 +179,9 @@ This is the one place clarify produces a directive. The full scaffold pipeline i
    - `recommendation`: single-sentence imperative. "그냥 작업실로 바꿔. 신호 0이면 손해 0." Not "consider X if Y" — a directive.
    - `one_check`: one thing the user verifies in <5 minutes that would flip the recommendation. If none exists, density was set wrong — go back to Step 2.
    - `caveat_if_signal_appears`: optional. Only when there's a real downstream signal worth watching post-action.
-   - `_meta.mode = "minimal"`, `_meta.decision_density = "low"`, `_meta.framing_confidence`, `_meta.reversibility`, `_meta.skipped = ["team", "boss", "debate"]`.
+   - `_meta.mode = "minimal"`, `_meta.decision_density = "low"`, `_meta.framing_confidence`, `_meta.reversibility`, `_meta.skipped = ["team", "verify", "boss", "debate"]`.
 2. Write to `versions/{label}/minimal_scaffold.json`.
-3. Set `session.phase = "complete"` (no team/boss to follow).
+3. Set `session.phase = "complete"` (no team/verify/boss to follow).
 4. Print to user (locale-aware):
 
    **locale: ko**
@@ -210,7 +210,7 @@ This is the one place clarify produces a directive. The full scaffold pipeline i
    {{if caveat_if_signal_appears}}**Watch out:** {{caveat_if_signal_appears}}{{endif}}
 
    ─────
-   _density: low ({{decision_density_reasoning}}) · team & boss skipped_
+   _density: low ({{decision_density_reasoning}}) · team, verify & boss skipped_
    _Force full pipeline: `/argus:sail --full "{{problem_text}}"`_
    ```
 
@@ -262,7 +262,7 @@ Written to `.argus/sessions/{id}/`:
 - `versions/v0.1/analysis.json` — the AnalysisSnapshot (schema: `~/.claude/argus-data/schemas/analysis-snapshot.json`)
 - `versions/v0.1/questions_and_answers.json` — the Q&A history
 - `versions/v0.1/meta.json` — `{triggering_skill: "clarify", timestamp, framing_locked, user_accepted_framing}`
-- `versions/v0.1/minimal_scaffold.json` — **only when `decision_density == "low"`** (Step 5a). MinimalScaffold (schema: `~/.claude/argus-data/schemas/minimal-scaffold.json`). When this file exists, downstream `/argus:sail` MUST set phase=complete and skip team/boss.
+- `versions/v0.1/minimal_scaffold.json` — **only when `decision_density == "low"`** (Step 5a). MinimalScaffold (schema: `~/.claude/argus-data/schemas/minimal-scaffold.json`). When this file exists, downstream `/argus:sail` MUST set phase=complete and skip team/verify/boss.
 
 ---
 

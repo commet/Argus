@@ -1,22 +1,23 @@
 ---
 name: boss
-description: Stakeholder review of the team's work in the voice of a configured MBTI personality (the harbor master inspecting before docking). Produces structured concerns (critical / important / minor) each paired with a fix suggestion, plus an approval condition. Unlike `/argus:team` where agents are workers, the Boss is the ONE critic — reacting to the scaffold as if approving it for real. Invoke after `/argus:team` has produced a FinalScaffold. User configures their Boss via `.argus/config.yaml`. Output written to `versions/{label}/boss_feedback.json` and merged into the FinalScaffold's applied/rejected concerns. Invoked as `/argus:boss`.
+description: Stakeholder review of a verified Argus scaffold in the voice of a configured MBTI personality. Produces structured concerns (critical / important / minor) each paired with a fix suggestion, plus an approval condition. Boss is not the verification gate; `/argus:verify` runs first and boss reacts to that verified/mixed scaffold as if approving it for real. User configures their Boss via `.argus/config.yaml`. Output written to `versions/{label}/boss_feedback.json` and merged into the FinalScaffold's applied/rejected concerns. Invoked as `/argus:boss`.
 ---
 
 # /argus:boss
 
-**What this skill does:** Simulates how a specific stakeholder would react to the team's work. One voice, one review, one set of concerns with severity + fix suggestions.
+**What this skill does:** Simulates how a specific stakeholder would react to the verified scaffold. One voice, one review, one set of concerns with severity + fix suggestions.
 
 **Why this matters (M2 — Personality preservation):** Generic "boss persona" is useless. What makes this skill different is the personality drives the review: an ISTJ focuses on process + precedent; an ENTJ demands alternatives + decisiveness; an INFP reads the emotional undertone first. This difference is the product.
 
-**Why this is separated from `/argus:team`:** Team does the work. Boss critiques the work. Mixing those roles (webapp's old pattern) muddies both. Keep them separate.
+**Why this is separated from `/argus:verify`:** Verify checks evidence and false-confidence risk. Boss checks how a real stakeholder would receive the scaffold. Mixing those roles turns quality control into roleplay.
 
 ---
 
 ## When to run
 
 Invoke after:
-- `/argus:team` has completed and written `versions/{label}/scaffold.json`
+- `/argus:verify` has completed and written `versions/{label}/verification.json`
+- `verification.routing_decision == "proceed_to_boss"` OR the user explicitly chose to proceed with verified parts
 - User explicitly wants stakeholder review
 
 Refuse when:
@@ -40,9 +41,15 @@ Refuse when:
 1. Find session + latest version label from session.json.
 2. Read `versions/{label}/scaffold.json` (the FinalScaffold). If missing, halt — team hasn't run.
 3. Read `versions/{label}/mix.json` (for full document context).
-4. Read `.argus/config.yaml` (schema: `~/.claude/argus-data/schemas/config.json`) → get `locale`, `boss.mbti_code`, `boss.name`, `boss.gender`, `boss.role`.
-5. If `config` missing entirely or `boss` block absent, fall through to fallback path in "Error modes" section (offer generic DM review).
-6. The locale from config drives the entire review prompt — use the correct section below (Korean or English prompt template).
+4. Read `versions/{label}/verification.json`. If missing, halt and direct user to `/argus:verify`.
+5. If `verification.overall_status == "blocked"` OR `routing_decision == "stop_for_human_check"`, do not run boss by default. AskUserQuestion only if the user explicitly invoked boss:
+   - ko title: `검증 보류 상태`
+   - ko question: `사람 확인이 필요한 항목이 있어 Boss 리뷰가 왜곡될 수 있습니다. 그래도 진행할까요?`
+   - options: `멈추고 확인 항목 보기`, `그래도 Boss 리뷰 진행`
+   If user chooses stop, print human checks from verification and exit.
+6. Read `.argus/config.yaml` (schema: `~/.claude/argus-data/schemas/config.json`) → get `locale`, `boss.mbti_code`, `boss.name`, `boss.gender`, `boss.role`.
+7. If `config` missing entirely or `boss` block absent, fall through to fallback path in "Error modes" section (offer generic DM review).
+8. The locale from config drives the entire review prompt — use the correct section below (Korean or English prompt template).
 
 ### Step 2 — Load personality
 
@@ -144,6 +151,24 @@ JSON만 응답하세요:
 ## Team disagreements (unresolved)
 {{for each scaffold.team_contradictions}}
 - {{topic}}
+{{endfor}}
+
+## Verification state
+Status: {{verification.overall_status}} ({{verification.confidence}}/100)
+
+Supported claims:
+{{for each verification.supported_claims first 5}}
+- {{claim}} — {{support}}
+{{endfor}}
+
+Challenged claims:
+{{for each verification.challenged_claims first 5}}
+- [{{severity}}] {{claim}} — {{challenge}}
+{{endfor}}
+
+Human checks:
+{{for each verification.human_required_checks first 5}}
+- {{check}} — {{why_ai_cannot_verify}}
 {{endfor}}
 
 ## Next steps
@@ -284,6 +309,7 @@ User typed `/argus:boss` directly. Render the boss's voice in full:
 
 - **M2 (Personality preservation)**: Is the boss's voice distinct from generic reviewer tone? Test: does the `first_reaction` contain a speech_pattern phrase or match the `example_dialogue` rhythm? If output reads like "Overall, the plan has merit but has concerns..." — that's generic. Reject.
 - **M4 (Decision scaffold preservation)**: Concerns MUST include `fix_suggestion`. Bare criticism is forbidden. If any concern lacks a fix_suggestion, retry.
+- **M-Verify separation**: Boss must not claim a challenged item is resolved unless verification or the user has explicitly routed it forward. If the boss ignores `verification.challenged_claims[]`, retry with stricter instruction.
 - **Security**: User content wrapped in `<user-data>` tags, no raw concat.
 - **M7 (Commodity bot)**: The MBTI-based review is literally the differentiator. If output could come from any generic "senior reviewer agent," the skill failed.
 
@@ -294,6 +320,7 @@ User typed `/argus:boss` directly. Render the boss's voice in full:
 - **No boss configured**: before halting, offer fallback: "No boss set. Use generic DM review? (yes/no)". If yes, use a minimal prompt without MBTI personality (returns to webapp's `runDMFeedback` behavior).
 - **Invalid MBTI code**: list valid codes, halt.
 - **Mix/scaffold missing**: direct user to run `/argus:team` first.
+- **Verification missing**: direct user to run `/argus:verify` first. Boss is not the quality gate.
 - **LLM hallucinates fields not in schema**: strip them, keep the core fields.
 
 ---
@@ -304,4 +331,5 @@ User typed `/argus:boss` directly. Render the boss's voice in full:
 - Aggregating concerns into one "overall concern." Each concern is a separate actionable item.
 - Applying all concerns automatically. Only `critical` auto-applies; user decides others.
 - Running without a loaded scaffold. Boss is always reactive to team output.
+- Running without verification unless the user explicitly overrides a blocked/missing verification state.
 - Re-running `/argus:team` to "improve" before showing to boss. Boss sees the actual scaffold — that's the point.

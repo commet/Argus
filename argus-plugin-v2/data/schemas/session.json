@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "argus:session",
   "title": "Session",
-  "description": "A plugin session — one problem being worked through /argus:clarify → :team → :boss → :revise. Stored as .argus/sessions/{id}/session.json. Mirrors webapp's ProgressiveSession (src/stores/types.ts:924) but scoped for plugin (no Supabase, no React state).",
+  "description": "A plugin session — one problem being worked through /argus:clarify → :team → :verify → :boss → :revise. Stored as .argus/sessions/{id}/session.json. Scoped for plugin-native filesystem persistence.",
   "type": "object",
   "required": ["id", "problem_text", "phase", "created_at", "updated_at"],
   "properties": {
@@ -41,8 +41,8 @@
       }
     },
     "phase": {
-      "enum": ["input", "analyzing", "conversing", "team_deploying", "team_working", "mixing", "dm_feedback", "refining", "complete"],
-      "description": "Plugin phase. Simplified from webapp (no lead_synthesizing, no iterating — revisions append drafts without separate phase)."
+      "enum": ["input", "analyzing", "conversing", "team_deploying", "team_working", "mixing", "verifying", "dm_feedback", "refining", "complete"],
+      "description": "Plugin phase. Verification is first-class: team output becomes a candidate until /argus:verify marks what is supported, challenged, or blocked."
     },
     "round": {
       "type": "integer",
@@ -109,6 +109,9 @@
     },
     "dm_feedback": {
       "oneOf": [{ "$ref": "./dm-feedback.json" }, { "type": "null" }]
+    },
+    "verification": {
+      "oneOf": [{ "$ref": "./verification-ledger.json" }, { "type": "null" }]
     },
     "final_scaffold": {
       "oneOf": [{ "$ref": "./final-scaffold.json" }, { "type": "null" }]

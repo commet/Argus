@@ -1,7 +1,7 @@
 {
   "name": "argus",
-  "version": "2.0.0",
-  "description": "Judgment harness for AI. Structure a decision inside your actual codebase — AI team deploys as workers on real code/PRs/files, preserving contradictions and hidden assumptions. Output is a DECISION SCAFFOLD (not a solution). Built on Claude Code's subagent + Task tool. Complement to Cursor (code generation) and Copilot Review (critique).",
+  "version": "2.1.0",
+  "description": "Verification-first judgment harness for Claude Code. Argus clarifies the real question, deploys an agent team as workers on real code/PRs/files, then verifies their output into supported, challenged, unresolved, and human-required claims before a decision scaffold is shown. Built on Claude Code subagents, Task orchestration, and AskUserQuestion human choice gates.",
   "author": {
     "name": "Argus",
     "email": "yclee913@gmail.com",
@@ -14,6 +14,7 @@
     "./skills/sail/SKILL.md",
     "./skills/clarify/SKILL.md",
     "./skills/team/SKILL.md",
+    "./skills/verify/SKILL.md",
     "./skills/boss/SKILL.md",
     "./skills/chart/SKILL.md"
   ],
@@ -34,7 +35,7 @@
     "./agents/donghyuk.md",
     "./agents/jieun.md",
     "./agents/taejun.md",
-    "./agents/concertmaster.md"
+    "./agents/navigator.md"
   ],
   "references": [
     "./data/agents.yaml",
@@ -42,6 +43,7 @@
     "./data/classification.yaml",
     "./data/schemas/analysis-snapshot.json",
     "./data/schemas/worker-result.json",
+    "./data/schemas/verification-ledger.json",
     "./data/schemas/mix-result.json",
     "./data/schemas/dm-feedback.json",
     "./data/schemas/final-scaffold.json",
@@ -60,6 +62,8 @@
     "structured-thinking",
     "judgment-harness",
     "agent-team",
+    "verification-ledger",
+    "positive-negative-validation",
     "code-native",
     "decision-scaffold",
     "version-tree",

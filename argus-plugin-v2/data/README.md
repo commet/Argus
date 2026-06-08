@@ -10,6 +10,7 @@ This directory is the **reference data** consumed by plugin skills at runtime. I
 | `boss-types.yaml` | 16 MBTI boss personality types | `src/lib/boss/personality-types.ts` |
 | `classification.yaml` | Task/domain/output vocab + stakes rules | `src/lib/task-classifier.ts`, `orchestrator-classify.ts` |
 | `schemas/*.json` | JSON Schema contracts for plugin artifacts | `src/stores/types.ts` |
+| `schemas/verification-ledger.json` | Plugin-native positive/negative validation ledger | Plugin v2.1, aligned with webapp worker validation direction |
 
 ## Regenerate from webapp
 
@@ -31,6 +32,7 @@ The plugin holds **data copies**, not live references. Webapp can change indepen
 3. **Worker-mode dialogues** — agents' `worker_mode_examples[]` are NEW (written for plugin). Webapp has critic-mode persona prompts; plugin dialogues show agents PRODUCING artifacts in their voice. This is the M9 differentiator.
 4. **Stakes classification at runtime** — plugin skills classify via LLM using `classification.yaml` as vocabulary reference, NOT via deterministic regex. Webapp uses regex + LLM hybrid.
 5. **FinalScaffold** — plugin emits decision scaffold, NOT the markdown `final_deliverable` webapp produces. `data/schemas/final-scaffold.json` is plugin-only.
+6. **VerificationLedger** — plugin has a first-class `/argus:verify` artifact that splits team output into supported claims, challenged claims, unresolved tensions, and human-required checks before boss review. This is intentionally plugin-native because terminal users benefit from a compact pre-signoff quality gate more than a rich web UI.
 
 ## What's EXACTLY mirrored from webapp
 
@@ -49,3 +51,8 @@ When regenerating, diff against:
 - `src/lib/boss/personality-types.ts:PERSONALITY_TYPES` vs `boss-types.yaml`
 
 If webapp adds a new agent, adds a capability type, or changes framework preferences, regenerate this data before the next plugin release.
+
+For v2.1+, also diff webapp worker validation concepts (`src/lib/worker-quality.ts`, `src/lib/guard-rails.ts`, `src/lib/progressive-convergence.ts`) against:
+- `schemas/verification-ledger.json`
+- `schemas/final-scaffold.json.properties.verification`
+- `skills/verify/SKILL.md`

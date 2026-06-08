@@ -1,16 +1,14 @@
-# Plugin v2 Reality Check — Test Plan
+# Plugin v2.1 Reality Check - Test Plan
 
-**Why this exists.** Build did 4 simulation rounds (85%→92% confidence) where the
-model audited itself. Devils-advocate identified that all "validation" was
-AI-imagining-AI. Real users haven't seen any output. This plan replaces simulation
-with **actual runs** + structured observation, targeting the 5 critiques that
-matter most: #1 (worker/critic fiction), #2 (contradiction preservation),
-#3 (agent voice differentiation), #5 (commodity perception), #7 (self-audit
-blind spot).
+**Why this exists.** Earlier plugin validation relied too much on simulated
+self-audit. v2.1 adds a first-class verification step, but that must be tested
+with actual Claude Code runs. The goal is to confirm that Argus does not merely
+produce a polished markdown review, but separates supported claims, challenged
+claims, unresolved tensions, and human-required checks before final output.
 
 ---
 
-## Setup (one-time)
+## Setup
 
 ```bash
 # From repo root
@@ -20,170 +18,172 @@ blind spot).
 Restart Claude Code. Verify:
 
 ```bash
-ls ~/.claude/skills/sail/SKILL.md       # → file exists
-ls ~/.claude/agents/donghyuk.md          # → file exists
-ls ~/.claude/argus-data/schemas/      # → 8 .json files
+ls ~/.claude/skills/sail/SKILL.md
+ls ~/.claude/skills/verify/SKILL.md
+ls ~/.claude/agents/donghyuk.md
+ls ~/.claude/argus-data/schemas/verification-ledger.json
 ```
 
 ---
 
-## How to use this plan
+## How To Use This Plan
 
-**Mode A (manual)** — read each TC, run `/argus:sail` in CC, watch output, fill
-in the rubric below by hand.
+Mode A, manual: run each test case in Claude Code, inspect output, and fill the
+rubric below.
 
-**Mode B (assistant-driven)** — open a fresh CC session in this repo, paste:
-> Read `argus-plugin-v2/TEST_PLAN.md` and execute it. Run all 4 test cases
-> via `/argus:sail`, then write your findings to
-> `.argus/test-observations.md` using the format at the bottom of this file.
-> Be honest — if a critique manifests, mark FAIL. Do not soften.
+Mode B, assistant-driven: open a fresh Claude Code session in this repo and
+paste:
 
-Mode B is faster but make sure the session running this plan does NOT also have
-the plugin-build context loaded, or its judgment will be polluted.
+```text
+Read argus-plugin-v2/TEST_PLAN.md and execute it. Run all test cases via
+/argus:sail, then write findings to .argus/test-observations.md using the
+format at the bottom of this file. Be honest. If a critique manifests, mark FAIL.
+```
+
+Use a fresh session so the model is not biased by this build context.
 
 ---
 
-## Test cases
+## Test Cases
 
-Each TC is one `/argus:sail` invocation. Run them in order.
+### TC1 - Low Stakes
 
-### TC1 — Low stakes (routine label)
-
-```
-/argus:sail "워크스페이스 탭 이름을 '워크스페이스'에서 '작업실'로 바꿀까?"
+```text
+/argus:sail "Should we rename Workspace to Project?"
 ```
 
-**Why**: routine UX label decision. plugin should NOT mobilize debate or critical
-machinery. Should produce a useful answer in <30 sec read-time.
+Expected: minimal scaffold only. No team, no verify, no boss.
 
-**Watch for**: clarify ceremoniousness, agent count (should be ≤2), whether
-output tells you what to do or hedges with abstract trade-offs.
+Watch for: unnecessary ceremony, hedging, or hidden full-pipeline behavior.
+
+### TC2 - Important Product Decision
+
+```text
+/argus:sail "Should the webapp Boss feature stay in the webapp, or should plugin v2 absorb it?"
+```
+
+Expected: `team -> verify -> boss`. `verification.json` must exist.
+
+Watch for: worker voice differentiation, real challenged claims, and whether
+the final card clearly includes verification status.
+
+### TC3 - Critical Debate Trigger
+
+```text
+/argus:sail "Should we abandon plugin v2 and drop the judgment-harness positioning?"
+```
+
+Expected: critical stakes, debate or contradiction preservation, verification
+ledger with unresolved tensions.
+
+Watch for: self-serving defense of the plugin, manufactured disagreement, or
+quietly resolved tensions.
+
+### TC4 - Verification Blocker
+
+```text
+/argus:sail "Should we launch the enterprise plan next week? Assume security review is 60% done and legal has not signed off."
+```
+
+Expected: `verification.routing_decision` should not blindly proceed if legal or
+security claims are unsupported. Human-required checks should be explicit.
+
+Watch for: whether `AskUserQuestion` offers a meaningful terminal choice when
+AI cannot verify the blocker.
+
+### TC5 - Plugin Judging Plugin
+
+```text
+/argus:sail "Does Argus plugin v2.1 have too many moving parts: clarify, team, verify, boss, chart, 17 agents, 16 MBTI boss types, and many schemas?"
+```
+
+Expected: at least one agent or verification challenge should be willing to cut
+scope if justified.
+
+Watch for: self-protective rationalization.
 
 ---
 
-### TC2 — Important (typical product decision)
+## Observation Rubric
 
-```
-/argus:sail "webapp Boss feature를 그대로 둘까, plugin v2가 흡수할까?"
-```
-
-**Why**: typical product call, the sweet-spot stakes plugin claims to serve.
-
-**Watch for**: agent voice differentiation (TC2 deploys multiple agents — paste
-3 of their outputs blind, can you tell who is who?); whether stage-2 outputs
-read as worker-mode or critic-mode; whether `team_contradictions[]` is empty
-or genuinely useful.
-
----
-
-### TC3 — Critical (debate trigger)
-
-```
-/argus:sail "plugin v2를 폐기하고 judgment-harness positioning을 버리는 게 옳은가?"
-```
-
-**Why**: high-stakes question about the plugin itself. Tests whether
-`debate.json` fires (it should — `stakes: critical` triggers Step 7) and
-whether contradictions are preserved or papered over.
-
-**Watch for**: does `debate.json` exist in `versions/v0.1/`? Read it — are the
-opposing positions genuine or manufactured? Does the FinalScaffold preserve the
-disagreement or quietly resolve it?
-
----
-
-### TC-meta — Plugin judging plugin
-
-```
-/argus:sail "기능이 너무 많은가? 4R + plugin v2 + 17 agents + 16 MBTI boss + 7 schema"
-```
-
-**Why**: the most honest stress test. If plugin can't honestly judge its own
-bloat, it can't honestly judge anything else. Watch whether the output is
-self-serving or willing to recommend cuts.
-
-**Watch for**: does any agent recommend killing parts of the plugin? Or does
-the team rationalize all features as load-bearing? Self-serving output is the
-clearest sign #7 (self-audit blind spot) is real.
-
----
-
-## Observation rubric
-
-For each TC, mark each critique as **PASS / PARTIAL / FAIL** with one-line
+For each test case, mark each item as PASS, PARTIAL, or FAIL with one-line
 evidence.
 
-### #1 Worker / critic separation
-- PASS: each agent's stage-2 output reads as own work that builds on what's
-  visible. No "I disagree with X" or "X's analysis missed Y" phrasing.
-- FAIL: agents review or critique each other's output. Stage 2 reads like
-  panel-of-personas, not workers.
+### #1 Worker / Critic Separation
 
-### #2 Contradiction preservation
-- PASS: `team_contradictions[]` non-empty when relevant; entries are genuine
-  disagreements you'd actually use to decide.
-- PARTIAL: empty when it should be empty (low stakes), populated when it
-  should be (high stakes).
-- FAIL: empty in TC3 critical-stakes case, OR full of manufactured tension
-  to fill the field.
+PASS: workers produce domain work on the real problem. Negative validation is
+isolated in `/argus:verify`.
 
-### #3 Agent voice differentiation
-Blind test: copy 3 agent outputs from any TC into a scratch buffer with names
-removed. Can you guess which agent is which?
-- PASS: ≥2 of 3 correct from voice/rhythm alone.
-- FAIL: indistinguishable. Voices are theatrical decoration, not differentiation.
+FAIL: the team reads like a panel of reviewers critiquing each other.
 
-### #5 Commodity perception (first-impression test)
-Show the rendered FinalScaffold to yourself with fresh eyes. First reaction in
-≤3 seconds:
-- PASS: "this is structured differently from a Cursor review."
-- FAIL: "this is a markdown review doc with extra fields."
+### #2 Contradiction Preservation
 
-### #7 Use intent
-Would you actually use the output to act on the decision?
-- PASS: yes, you'd commit to next_actions[] or act on a checkpoint.
-- FAIL: feels patronizing / over-engineered / you'd ignore it and ask ChatGPT
-  for a one-paragraph recommendation.
+PASS: real disagreements are stored in `team_contradictions[]` or
+`verification.unresolved_tensions[]`.
+
+FAIL: critical cases average away disagreement or manufacture fake conflict.
+
+### #3 Verification Reality
+
+PASS: `verification.json` separates supported, challenged, unresolved, and
+human-required items with concrete reasons.
+
+FAIL: verification only restates the team's conclusion or gives generic praise.
+
+### #4 Human Choice Gate
+
+PASS: blocker cases use `AskUserQuestion` with real choices such as proceed with
+verified subset, revise team, or stop for human check.
+
+FAIL: the plugin proceeds despite unverifiable blocker claims.
+
+### #5 Commodity Perception
+
+PASS: output feels structurally different from a generic Cursor or ChatGPT
+review because it includes checked claims and preserved tension.
+
+FAIL: it reads like a normal markdown review with extra fields.
+
+### #6 Use Intent
+
+PASS: you would act on the next action or human checkpoint.
+
+FAIL: you would ignore it and ask for a shorter recommendation elsewhere.
 
 ---
 
-## Output format
+## Output Format
 
 Write results to `.argus/test-observations.md`:
 
 ```markdown
-# Plugin v2 Test Observations — YYYY-MM-DD
+# Plugin v2.1 Test Observations - YYYY-MM-DD
 
-## TC1 (low stakes — workspace rename)
+## TC1
 **Invocation**: `/argus:sail "..."`
-**Final scaffold output (full)**: [paste]
+**Final output**: [paste]
+**Artifacts checked**: [list files]
 
-### Critique findings
-- #1 worker/critic: PASS — [one-line evidence]
-- #2 contradiction: PARTIAL — empty as expected for low stakes
-- #3 voice: PASS — [evidence]
-- #5 commodity: FAIL — [evidence]
-- #7 use intent: PARTIAL — would skim, not act
+### Rubric
+- #1 worker/critic: PASS - [evidence]
+- #2 contradiction: PASS - [evidence]
+- #3 verification: N/A - minimal route skipped verification as expected
+- #4 human gate: N/A
+- #5 commodity: PASS - [evidence]
+- #6 use intent: PASS - [evidence]
 
 ## TC2 ...
-## TC3 ...
-## TC-meta ...
 
 ## Summary
-- Critiques manifested: #5, #7 (clear)
-- Critiques refuted: #1 (clean separation in practice)
-- Critiques uncertain: #2, #3 (need more runs)
+- Critiques manifested:
+- Critiques refuted:
+- Next fix priority:
 ```
 
 ---
 
-## What to bring back
+## What To Bring Back
 
-When done, the building session needs:
-
-1. The full observations file (don't summarize — paste raw outputs).
-2. Your honest one-liner: "the plugin **actually** [solves / fakes / partially
-   solves] the judgment-harness claim."
-
-Whichever critiques manifest with FAIL evidence become the next fix priority.
-The rest stay as backlog.
+1. The full observations file. Do not summarize raw outputs away.
+2. One honest sentence: "The plugin actually [solves / fakes / partially
+   solves] the verification-first judgment-harness claim."

@@ -1,15 +1,14 @@
-#!/bin/bash
-# Argus plugin-v2 installer — installs skills, agents, data, and statusline.
+#!/usr/bin/env bash
+# Argus plugin-v2 installer. Installs skills, agents, data, lib, and statusline.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
 #
-# Developer mode (symlinks — edit once, reflected everywhere):
+# Developer mode:
 #   cd /path/to/Argus && ./argus-plugin-v2/install.sh --link
 
-set -e
+set -euo pipefail
 
-# ── Colors ──
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -17,21 +16,19 @@ DIM='\033[0;90m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-info()  { echo -e "${DIM}  $1${NC}"; }
-ok()    { echo -e "${GREEN}  ✓${NC} $1"; }
-warn()  { echo -e "${YELLOW}  !${NC} $1"; }
-fail()  { echo -e "${RED}  ✗${NC} $1"; }
+info() { echo -e "${DIM}  $1${NC}"; }
+ok() { echo -e "${GREEN}  OK${NC} $1"; }
+warn() { echo -e "${YELLOW}  !${NC} $1"; }
+fail() { echo -e "${RED}  X${NC} $1"; }
 
-# ── Mode detection ──
 LINK_MODE=false
-if [ "$1" = "--link" ] || [ "$1" = "--dev" ]; then
+if [ "${1:-}" = "--link" ] || [ "${1:-}" = "--dev" ]; then
   LINK_MODE=true
 fi
 
-# ── Platform detection ──
-CLAUDE_DIR="$HOME/.claude"
+CLAUDE_DIR="${HOME:-}/.claude"
 if [ ! -d "$CLAUDE_DIR" ]; then
-  if [ -d "$USERPROFILE/.claude" ]; then
+  if [ -n "${USERPROFILE:-}" ] && [ -d "$USERPROFILE/.claude" ]; then
     CLAUDE_DIR="$USERPROFILE/.claude"
   else
     fail "Claude Code directory not found."
@@ -41,12 +38,12 @@ if [ ! -d "$CLAUDE_DIR" ]; then
 fi
 
 echo ""
-echo -e "${BOLD}  Argus v2${NC} — judgment harness for AI. Decide inside your codebase."
+echo -e "${BOLD}  Argus v2.1${NC} - verification-first judgment harness for AI."
 echo ""
 
-# ── Determine source ──
+TEMP_DIR=""
 if [ "$LINK_MODE" = true ]; then
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   SOURCE_DIR="$SCRIPT_DIR"
 
   if [ ! -f "$SOURCE_DIR/skills/sail/SKILL.md" ]; then
@@ -54,9 +51,9 @@ if [ "$LINK_MODE" = true ]; then
     exit 1
   fi
 
-  info "Developer mode — creating symlinks to local repo"
+  info "Developer mode - linking to local repo"
 else
-  TEMP_DIR=$(mktemp -d)
+  TEMP_DIR="$(mktemp -d)"
   REPO="https://github.com/commet/Argus.git"
 
   info "Downloading latest version..."
@@ -67,7 +64,6 @@ else
   fi
 
   SOURCE_DIR="$TEMP_DIR/argus-plugin-v2"
-
   if [ ! -f "$SOURCE_DIR/skills/sail/SKILL.md" ]; then
     fail "Downloaded package is incomplete. Try again."
     rm -rf "$TEMP_DIR"
@@ -75,25 +71,57 @@ else
   fi
 fi
 
-# ── Install skills ──
 mkdir -p "$CLAUDE_DIR/skills" "$CLAUDE_DIR/agents"
+
+link_dir_or_copy() {
+  local source="$1"
+  local target="$2"
+  rm -rf "$target"
+
+  if ln -sfn "$source" "$target" 2>/dev/null; then
+    return 0
+  fi
+
+  if command -v powershell.exe >/dev/null 2>&1 && command -v cygpath >/dev/null 2>&1; then
+    local source_win target_win
+    source_win="$(cygpath -w "$source" 2>/dev/null || true)"
+    target_win="$(cygpath -w "$target" 2>/dev/null || true)"
+    if [ -n "$source_win" ] && [ -n "$target_win" ]; then
+      if powershell.exe -NoProfile -Command "New-Item -ItemType Junction -Path '$target_win' -Target '$source_win' | Out-Null" >/dev/null 2>&1; then
+        return 0
+      fi
+    fi
+  fi
+
+  warn "Could not create link for $target; copying instead."
+  cp -r "$source" "$target"
+}
+
+link_file_or_copy() {
+  local source="$1"
+  local target="$2"
+  rm -f "$target"
+
+  if ln -sf "$source" "$target" 2>/dev/null; then
+    return 0
+  fi
+
+  warn "Could not create link for $target; copying instead."
+  cp "$source" "$target"
+}
 
 SKILL_COUNT=0
 for skill_dir in "$SOURCE_DIR/skills/"*/; do
-  skill_name=$(basename "$skill_dir")
-  rm -rf "$CLAUDE_DIR/skills/$skill_name"
+  [ -d "$skill_dir" ] || continue
+  skill_name="$(basename "$skill_dir")"
 
   if [ "$LINK_MODE" = true ]; then
-    if command -v powershell.exe &>/dev/null; then
-      SKILL_WIN=$(cygpath -w "$skill_dir" 2>/dev/null || echo "$skill_dir")
-      LINK_WIN=$(cygpath -w "$CLAUDE_DIR/skills/$skill_name" 2>/dev/null || echo "$CLAUDE_DIR/skills/$skill_name")
-      powershell.exe -Command "New-Item -ItemType Junction -Path '$LINK_WIN' -Target '$SKILL_WIN'" >/dev/null 2>&1
-    else
-      ln -sfn "$skill_dir" "$CLAUDE_DIR/skills/$skill_name"
-    fi
+    link_dir_or_copy "$skill_dir" "$CLAUDE_DIR/skills/$skill_name"
   else
+    rm -rf "$CLAUDE_DIR/skills/$skill_name"
     cp -r "$skill_dir" "$CLAUDE_DIR/skills/$skill_name"
   fi
+
   SKILL_COUNT=$((SKILL_COUNT + 1))
 done
 
@@ -103,17 +131,17 @@ else
   ok "$SKILL_COUNT skills installed"
 fi
 
-# ── Install agents ──
 AGENT_COUNT=0
 for agent_file in "$SOURCE_DIR/agents/"*.md; do
   [ -f "$agent_file" ] || continue
-  agent_name=$(basename "$agent_file")
+  agent_name="$(basename "$agent_file")"
 
   if [ "$LINK_MODE" = true ]; then
-    ln -sf "$agent_file" "$CLAUDE_DIR/agents/$agent_name"
+    link_file_or_copy "$agent_file" "$CLAUDE_DIR/agents/$agent_name"
   else
     cp "$agent_file" "$CLAUDE_DIR/agents/"
   fi
+
   AGENT_COUNT=$((AGENT_COUNT + 1))
 done
 
@@ -123,82 +151,72 @@ else
   ok "$AGENT_COUNT agents installed"
 fi
 
-# ── Install data (read-only reference) ──
-# Skills reference data via relative paths within the plugin directory, but
-# when installed to ~/.claude, the data/ lives alongside skills/ for relative resolution.
 if [ -d "$SOURCE_DIR/data" ]; then
   if [ "$LINK_MODE" = true ]; then
-    ln -sfn "$SOURCE_DIR/data" "$CLAUDE_DIR/argus-data"
+    link_dir_or_copy "$SOURCE_DIR/data" "$CLAUDE_DIR/argus-data"
   else
     rm -rf "$CLAUDE_DIR/argus-data"
     cp -r "$SOURCE_DIR/data" "$CLAUDE_DIR/argus-data"
   fi
-  ok "Data (agents, boss-types, schemas) installed to ~/.claude/argus-data"
+  ok "Data installed to ~/.claude/argus-data"
 fi
 
-# ── Install lib (session docs) ──
 if [ -d "$SOURCE_DIR/lib" ]; then
   if [ "$LINK_MODE" = true ]; then
-    ln -sfn "$SOURCE_DIR/lib" "$CLAUDE_DIR/argus-lib"
+    link_dir_or_copy "$SOURCE_DIR/lib" "$CLAUDE_DIR/argus-lib"
   else
     rm -rf "$CLAUDE_DIR/argus-lib"
     cp -r "$SOURCE_DIR/lib" "$CLAUDE_DIR/argus-lib"
   fi
-  ok "Lib (session layout, version numbering) installed"
+  ok "Lib installed to ~/.claude/argus-lib"
 fi
 
-# ── Install statusline (optional) ──
 if [ -f "$SOURCE_DIR/statusline/index.js" ]; then
   mkdir -p "$CLAUDE_DIR/statusline"
   if [ "$LINK_MODE" = true ]; then
-    ln -sf "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/argus.js"
+    link_file_or_copy "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/argus.js"
   else
     cp "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/argus.js"
   fi
   ok "Statusline installed"
 fi
 
-# ── Create data directory in cwd ──
 mkdir -p .argus
 ok "Data directory ready (.argus/)"
 
-# ── Cleanup (user mode only) ──
 if [ "$LINK_MODE" = false ] && [ -n "$TEMP_DIR" ]; then
   rm -rf "$TEMP_DIR"
 fi
 
-# ── Verify ──
 ERRORS=0
-for required in sail clarify team boss chart; do
-  if [ ! -f "$CLAUDE_DIR/skills/$required/SKILL.md" ] && [ ! -L "$CLAUDE_DIR/skills/$required" ]; then
+for required in sail clarify team verify boss chart; do
+  if [ ! -f "$CLAUDE_DIR/skills/$required/SKILL.md" ]; then
     fail "Missing: $required"
     ERRORS=$((ERRORS + 1))
   fi
 done
 
+if [ ! -f "$CLAUDE_DIR/argus-data/schemas/verification-ledger.json" ]; then
+  fail "Missing: verification-ledger.json"
+  ERRORS=$((ERRORS + 1))
+fi
+
 echo ""
 
-if [ $ERRORS -eq 0 ]; then
-  echo -e "${GREEN}${BOLD}  Installed successfully (v2.0.0)${NC}"
+if [ "$ERRORS" -eq 0 ]; then
+  echo -e "${GREEN}${BOLD}  Installed successfully (v2.1.0)${NC}"
   if [ "$LINK_MODE" = true ]; then
-    echo -e "  ${DIM}Mode: symlink — file edits reflect on next Claude Code restart (skill bodies cache at session start)${NC}"
+    echo -e "  ${DIM}Mode: linked to local repo. Restart Claude Code after editing skills.${NC}"
   fi
   echo ""
   echo -e "  ${BOLD}Restart Claude Code${NC}, then try:"
   echo ""
   echo -e "    ${BOLD}/argus:sail${NC} \"A technical decision I'm stuck on\""
-  echo -e "    ${BOLD}/argus:sail${NC} @PR#123     ${DIM}# Work through a specific PR${NC}"
-  echo -e "    ${BOLD}/argus:sail${NC} @src/auth.ts  ${DIM}# Think about a file${NC}"
+  echo -e "    ${BOLD}/argus:sail${NC} @PR#123"
   echo ""
-  echo -e "  ${DIM}First run auto-creates .argus/config.yaml (ISTJ default boss). No setup dialog.${NC}"
-  echo -e "  ${DIM}Each session writes to .argus/sessions/ in your repo. Commit it to share with team.${NC}"
-  if [ "$LINK_MODE" = true ]; then
-    echo ""
-    echo -e "  ${YELLOW}Dev note:${NC} ${DIM}If you edit skill .md files mid-session, restart Claude Code to apply.${NC}"
-    echo -e "  ${DIM}Symlinks update files instantly, but Claude caches skill bodies on session start.${NC}"
-  fi
+  echo -e "  ${DIM}Medium/high decisions run clarify -> team -> verify -> boss.${NC}"
+  echo -e "  ${DIM}Verification is saved in .argus/sessions/.${NC}"
 else
   fail "Installation incomplete."
+  exit 1
 fi
-
-echo ""

@@ -321,3 +321,71 @@ Two PASS-confirmed strengths preserved (no changes touch these paths):
 - **Spec (file-system) confidence: 95%.** Schema and skill text reviewed, internally consistent post-aaaac73 cleanup. 5% uncertainty on edge cases not yet exercised (e.g., framing_confidence between 79-81, density vs stakes mismatch).
 - **Runtime confidence: untested.** Cannot self-verify in this session due to caching.
 - **Real-user confidence: untested.** Phase 4-original gate.
+
+---
+
+# 2026-06-09 - v2.1 verification-first plugin pass
+
+## Trigger
+
+The webapp direction moved away from "humans will later grade the result" and
+toward agent-team orchestration with positive and negative validation of the
+actual output. Plugin v2 was still closer to the older `team -> boss` model, so
+this pass re-centered the plugin around a terminal-native verification gate.
+
+## Product decision
+
+Plugin and webapp do not need identical UX. The plugin should lean into what
+Claude Code is good at:
+
+- code/repo/file context as the working surface,
+- subagents as domain workers,
+- compact terminal output,
+- `AskUserQuestion` for real human routing choices,
+- filesystem artifacts that can be committed with the repo.
+
+The plugin identity is now: **clarify the decision, make agents work, verify the
+claims, then let a stakeholder persona react.** Boss is no longer the quality
+gate.
+
+## Files changed
+
+- Added `/argus:verify` skill.
+- Added `data/schemas/verification-ledger.json`.
+- Updated `session.json`, `worker-result.json`, `final-scaffold.json`, and
+  `minimal-scaffold.json` for verification state.
+- Updated `/argus:sail`, `/argus:team`, `/argus:boss`, and `/argus:chart` so
+  medium/high routes run `clarify -> team -> verify -> boss`.
+- Updated statusline to show verification status, challenged claim count, and
+  human check count.
+- Updated install script and plugin manifest to include the new command/schema.
+- Rewrote README and TEST_PLAN around verification-first positioning.
+- Fixed manifest agent reference from missing `concertmaster.md` to existing
+  `navigator.md`.
+
+## New gate
+
+`verification.json` is the new anti-false-confidence artifact. It separates:
+
+- `supported_claims[]`
+- `challenged_claims[]`
+- `unresolved_tensions[]`
+- `human_required_checks[]`
+- `routing_decision`
+
+`/argus:sail` must not treat medium/high team output as final unless
+verification is visible. `/argus:boss` must not run by default when verification
+is missing or blocked.
+
+## Verification status
+
+File-system validation should check:
+
+- all JSON files parse,
+- every plugin manifest command/agent/reference path exists,
+- install script includes `verify`,
+- README/TEST_PLAN mention `team -> verify -> boss`,
+- no medium/high sail path skips `/argus:verify`.
+
+Runtime validation still requires a fresh Claude Code session because skill
+bodies are cached at session start.

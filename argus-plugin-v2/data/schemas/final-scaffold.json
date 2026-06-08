@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "argus:final-scaffold",
   "title": "FinalScaffold",
-  "description": "Plugin-native final output. NOT a markdown document (that's the webapp's model). A DECISION SCAFFOLD preserving contradictions, hidden assumptions, trade-offs, and human-required checkpoints. This is the anti-commodity differentiator: Argus plugin outputs decision structure, not solutions.",
+  "description": "Plugin-native final output. NOT a markdown document (that's the webapp's model). A DECISION SCAFFOLD preserving contradictions, hidden assumptions, trade-offs, verification state, and human-required checkpoints. This is the anti-commodity differentiator: Argus plugin outputs verified decision structure, not polished solutions.",
   "type": "object",
   "required": ["reframed_question", "key_trade_offs", "hidden_assumptions", "human_required_checkpoints", "next_actions"],
   "properties": {
@@ -71,6 +71,19 @@
           "checkpoint": { "type": "string", "description": "What the human must do/decide." },
           "why": { "type": "string", "description": "Why AI cannot substitute here." }
         }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "description": "Summary of versions/{label}/verification.json. The full ledger remains separate; this object prevents unverified output from looking final.",
+      "required": ["overall_status", "supported_count", "challenged_count", "human_check_count", "routing_decision"],
+      "properties": {
+        "overall_status": { "enum": ["unverified", "verified", "mixed", "needs_revision", "blocked"] },
+        "supported_count": { "type": "integer", "minimum": 0 },
+        "challenged_count": { "type": "integer", "minimum": 0 },
+        "human_check_count": { "type": "integer", "minimum": 0 },
+        "routing_decision": { "enum": ["proceed_to_boss", "ask_user", "revise_team", "stop_for_human_check", "not_run"] },
+        "top_challenge": { "type": "string" }
       }
     },
     "boss_concerns_applied": {

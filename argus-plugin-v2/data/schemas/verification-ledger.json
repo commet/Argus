@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "argus:verification-ledger",
+  "title": "VerificationLedger",
+  "description": "Plugin-native verification output. Separates what the agent team produced into supported claims, challenged claims, unresolved tensions, and human-required checks. This is the core anti-sycophancy object: Argus does not promote a scaffold until the verification state is visible.",
+  "type": "object",
+  "required": [
+    "overall_status",
+    "confidence",
+    "supported_claims",
+    "challenged_claims",
+    "unresolved_tensions",
+    "human_required_checks",
+    "routing_decision",
+    "generated_at"
+  ],
+  "properties": {
+    "overall_status": {
+      "enum": ["verified", "mixed", "needs_revision", "blocked"],
+      "description": "verified = no critical blockers; mixed = usable with caveats; needs_revision = agent team should revise before boss/user signoff; blocked = requires human/external evidence first."
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Confidence in the verification result, not in the business decision."
+    },
+    "supported_claims": {
+      "type": "array",
+      "description": "Positive validation: claims that are supported by worker evidence, code citations, source references, or cross-agent agreement.",
+      "items": {
+        "type": "object",
+        "required": ["claim", "support", "evidence_refs"],
+        "properties": {
+          "claim": { "type": "string" },
+          "support": { "type": "string" },
+          "strength": { "enum": ["strong", "moderate", "weak"] },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["source"],
+              "properties": {
+                "source": { "type": "string", "description": "worker_id, file path, PR ref, or external source label." },
+                "detail": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "challenged_claims": {
+      "type": "array",
+      "description": "Negative validation: claims that are unsupported, too generic, contradicted, risky, or likely to produce false confidence.",
+      "items": {
+        "type": "object",
+        "required": ["claim", "challenge", "severity", "suggested_fix"],
+        "properties": {
+          "claim": { "type": "string" },
+          "challenge": { "type": "string" },
+          "severity": { "enum": ["critical", "important", "minor"] },
+          "suggested_fix": { "type": "string" },
+          "owner_agent_id": { "type": "string" }
+        }
+      }
+    },
+    "unresolved_tensions": {
+      "type": "array",
+      "description": "Real disagreements that should remain visible to the user instead of being averaged away.",
+      "items": {
+        "type": "object",
+        "required": ["topic", "positions", "tie_breaking_condition"],
+        "properties": {
+          "topic": { "type": "string" },
+          "positions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["agent_id", "stance"],
+              "properties": {
+                "agent_id": { "type": "string" },
+                "stance": { "type": "string" }
+              }
+            }
+          },
+          "tie_breaking_condition": { "type": "string" }
+        }
+      }
+    },
+    "human_required_checks": {
+      "type": "array",
+      "description": "Things AI cannot verify from the available repo/session context. These are immediate user/external checks, not long-term outcome grading.",
+      "items": {
+        "type": "object",
+        "required": ["check", "why_ai_cannot_verify", "blocks"],
+        "properties": {
+          "check": { "type": "string" },
+          "why_ai_cannot_verify": { "type": "string" },
+          "blocks": { "enum": ["none", "boss_review", "final_signoff", "execution"] },
+          "estimated_effort": { "type": "string" }
+        }
+      }
+    },
+    "claim_tests": {
+      "type": "array",
+      "description": "Positive/negative tests the verifier applied. Useful for debugging why a claim was supported or challenged.",
+      "items": {
+        "type": "object",
+        "required": ["test", "result"],
+        "properties": {
+          "test": { "type": "string" },
+          "result": { "enum": ["pass", "fail", "unknown"] },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "routing_decision": {
+      "enum": ["proceed_to_boss", "ask_user", "revise_team", "stop_for_human_check"],
+      "description": "Next routing selected by /argus:verify. sail respects this unless the user explicitly overrides."
+    },
+    "user_choice": {
+      "type": ["object", "null"],
+      "description": "Recorded AskUserQuestion result when the verifier had to ask the user how to handle challenged or blocked claims.",
+      "properties": {
+        "choice": { "type": "string" },
+        "rationale": { "type": "string" },
+        "chosen_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "generated_at": { "type": "string", "format": "date-time" }
+  }
+}

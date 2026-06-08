@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "argus:worker-result",
   "title": "WorkerResult",
-  "description": "Output of a single agent worker during /argus:team. Trimmed from webapp's WorkerTask (src/stores/types.ts:749). Plugin scope drops the streaming/approval UI fields, keeps the artifact + metadata.",
+  "description": "Output of a single agent worker during /argus:team. Plugin scope keeps the artifact, metadata, and verification fields so failed or weak output never looks like a clean completion.",
   "type": "object",
   "required": ["id", "agent_id", "task", "expected_output", "status"],
   "properties": {
@@ -45,7 +45,7 @@
       "description": "Thinking framework assigned. e.g., 'Analysis of Competing Hypotheses'."
     },
     "status": {
-      "enum": ["pending", "running", "done", "error", "skipped"]
+      "enum": ["pending", "running", "done", "error", "skipped", "verification_failed"]
     },
     "result": {
       "type": ["string", "null"],
@@ -59,6 +59,25 @@
     "stage_id": {
       "type": "string",
       "description": "Pipeline stage this worker belongs to. Single-stage problems: all workers share one stage."
+    },
+    "verification_score": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Per-worker quality/verification score when available. <70 means the result must be surfaced as challenged, not silently promoted."
+    },
+    "verification_passed": {
+      "type": ["boolean", "null"],
+      "description": "Whether this worker output passed the plugin quality gate."
+    },
+    "verification_feedback": {
+      "type": ["string", "null"],
+      "description": "Concise issues from quality gate, framework guard-rail, or verifier."
+    },
+    "claim_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Claims in verification-ledger.json that cite this worker."
     },
     "error": {
       "type": ["string", "null"]

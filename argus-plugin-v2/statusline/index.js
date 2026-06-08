@@ -6,13 +6,13 @@
  * Every line must contain information the user CANNOT see in the conversation.
  *
  * Line 1: Model + Context forecast + Duration + branch
- * Line 2: Active session — phase, active draft label, agents deployed, open concerns
+ * Line 2: Active session — phase, active draft label, agents deployed, verification, open concerns
  * Line 3: Decision tree summary — total drafts, released version, branches
  *
  * Zero dependencies — pure Node.js (CommonJS).
  *
  * Divergence from v0.5: no 4R references (reframe/recast/rehearse/refine), no journal.md parsing.
- * Reads from .argus/sessions/*/session.json instead.
+ * Reads session.json files under .argus/sessions/ instead.
  */
 
 const { readFileSync, existsSync, statSync, readdirSync, openSync, readSync, closeSync } = require("fs");
@@ -97,6 +97,8 @@ function parseActiveSession(cwd) {
       criticalConcerns = session.dm_feedback.concerns.filter(c => c.severity === "critical").length;
     }
 
+    const verification = session.verification || activeDraft?.final_scaffold?.verification || session.final_scaffold?.verification || null;
+
     const data = {
       id: session.id,
       phase: session.phase,
@@ -111,6 +113,9 @@ function parseActiveSession(cwd) {
       branchCount: branches,
       criticalConcerns,
       stakes: session.classification?.stakes || null,
+      verificationStatus: verification?.overall_status || null,
+      challengedCount: verification?.challenged_claims?.length ?? verification?.challenged_count ?? null,
+      humanCheckCount: verification?.human_required_checks?.length ?? verification?.human_check_count ?? null,
     };
 
     sessionCache = { mtime: latestMtime, data };
@@ -154,6 +159,7 @@ function formatDuration(ms) {
 function phaseColor(phase) {
   if (!phase) return C.d;
   if (phase === "complete") return C.g;
+  if (phase === "verifying") return C.y;
   if (phase === "dm_feedback" || phase === "refining") return C.m;
   if (phase === "team_working" || phase === "mixing") return C.c;
   if (phase === "analyzing" || phase === "conversing") return C.b;
@@ -210,6 +216,17 @@ function main() {
     // Agents deployed
     if (session.agentsDeployed > 0) {
       parts.push(`${C.d}agents${R} ${C.c}${session.agentsDeployed}${R}`);
+    }
+
+    // Verification
+    if (session.verificationStatus) {
+      const vc = session.verificationStatus === "verified" ? C.g
+        : session.verificationStatus === "blocked" || session.verificationStatus === "needs_revision" ? C.r
+          : C.y;
+      const details = [];
+      if (session.challengedCount != null) details.push(`${session.challengedCount} challenged`);
+      if (session.humanCheckCount != null && session.humanCheckCount > 0) details.push(`${session.humanCheckCount} human`);
+      parts.push(`${C.d}verify${R} ${vc}${session.verificationStatus}${R}${details.length ? `${C.d}(${details.join(", ")})${R}` : ""}`);
     }
 
     // Boss

@@ -1,15 +1,15 @@
 ---
 name: team
-description: Deploy a team of specialized agents as WORKERS on a clarified problem (the crew sets out from port). Each agent does their domain work — research, numbers, critique, UX, legal, etc. — in their own voice on the actual artifact (code, PR, file, design doc). Agents are not critics here; they're producers. Output is a MixResult aggregating their work with sentence-level attribution preserved. Invoke after `/argus:clarify` has produced an AnalysisSnapshot with an `execution_plan`. This is where Argus's differentiator lives: agents act on REAL artifacts with distinct voices, and contradictions between them are preserved, not averaged. Invoked as `/argus:team`.
+description: Deploy a team of specialized agents as WORKERS on a clarified problem (the crew sets out from port). Each agent does their domain work — research, numbers, UX, legal, risk, etc. — in their own voice on the actual artifact (code, PR, file, design doc). Agents are not a panel of generic critics; they're producers whose claims will be verified by `/argus:verify`. Output is a MixResult plus a candidate FinalScaffold with attribution preserved. Invoke after `/argus:clarify` has produced an AnalysisSnapshot with an `execution_plan`. Invoked as `/argus:team`.
 ---
 
 # /argus:team
 
-**What this skill does:** Takes a clarified problem + execution plan, classifies it, selects the right 2–4 agents, deploys them in parallel as WORKERS (not critics), and aggregates their work.
+**What this skill does:** Takes a clarified problem + execution plan, classifies it, selects the right 2–4 agents, deploys them in parallel as WORKERS (not a review panel), and aggregates their work into a candidate scaffold.
 
-**Why this matters (M9 — Workers not critics):** The legacy 4R plugin had agents as "persona reviewers." This skill rejects that model. Agents here PRODUCE artifacts — research notes, ROI tables, UX critiques, compliance checklists. Critique is a separate downstream step (`/argus:boss`). This is the shift from web app's reality, not the old plugin's.
+**Why this matters (M9 — Workers not critics):** The legacy 4R plugin had agents as "persona reviewers." This skill rejects that model. Agents here PRODUCE artifacts — research notes, ROI tables, UX checks, compliance checklists. Verification is a separate downstream quality gate (`/argus:verify`), and stakeholder/personality review is a later optional layer (`/argus:boss`).
 
-**Why this matters (M3 — Contradiction preservation):** For `stakes: critical` problems, this skill runs a two-stage pipeline with an explicit debate step. Agent disagreements are stored in `team_contradictions[]`, not aggregated away. M4 final scaffold requires this field populated when debate ran.
+**Why this matters (M3 — Contradiction preservation):** For `stakes: critical` problems, this skill runs a two-stage pipeline with an explicit debate step. Agent disagreements are stored in `team_contradictions[]`, not aggregated away. `/argus:verify` later classifies those tensions as supported, challenged, or still unresolved.
 
 ---
 
@@ -278,12 +278,12 @@ Each Task returns a result. For each:
 1. Append to `workers` array in `versions/{label}/workers.json` with `status: "done"`, `result: <agent output>`, timestamps.
 2. If any worker errored, log to `errors.log` in the version directory. Don't halt — other workers continue.
 
-### Step 6 — Deploy stage 2 (only if `stakes: critical`)
+### Step 6 — Deploy stage 2 negative validation worker (only if `stakes: critical`)
 
 Stage-2 workers (typically donghyuk) get **stage-1 results as context**:
 
 ```
-You are {{agent.name}} doing critical review of the team's work.
+You are {{agent.name}} doing negative validation of the team's work.
 Your task: {{worker.task}}
 
 Team results from stage 1:
@@ -294,10 +294,12 @@ Team results from stage 1:
 
 Framework: {{worker.framework}}
 
-Your job: find the ONE most important risk or weakness in the team's combined output. Follow M9 — you are doing the WORK of risk analysis, not "reviewing" each agent in turn.
+Your job: find the ONE most important risk, unsupported claim, or false-positive trap in the team's combined output. Follow M9 — you are doing the WORK of risk analysis, not "reviewing" each agent in turn.
 
 Return a risk_assessment in ~500 words.
 ```
+
+Stage-2 output is still a worker result, not the final verifier. `/argus:verify` reads it as negative-validation evidence.
 
 ### Step 7 — Debate (critical stakes only)
 
@@ -372,16 +374,17 @@ Prompt yourself:
 
 Write result to `versions/{label}/mix.json`.
 
-### Step 9 — Build FinalScaffold (plugin-native output)
+### Step 9 — Build Candidate FinalScaffold (plugin-native output)
 
 This is the PLUGIN-SPECIFIC divergence from webapp. Webapp produces a markdown document; plugin produces a decision scaffold.
 
-Construct `FinalScaffold` (schema: `~/.claude/argus-data/schemas/final-scaffold.json`):
+Construct a candidate `FinalScaffold` (schema: `~/.claude/argus-data/schemas/final-scaffold.json`). Candidate means it is not yet trusted; `/argus:verify` owns final verification state.
 - `reframed_question`: from snapshot
 - `key_trade_offs[]`: extract from team outputs + debate. Each trade-off = axis + side_a + side_b.
 - `hidden_assumptions[]`: from mix.key_assumptions, with `evaluation` (likely_true / uncertain / doubtful) based on team's validation
 - `team_contradictions[]`: populated from debate.json if ran; else empty array
 - `human_required_checkpoints[]`: extract from worker outputs where agents flagged "AI cannot decide this" or "human judgment needed". **Also append**: every entry from `classification.json:dropped_steps[]` (from Step 3.5(c)) as a checkpoint with `checkpoint: "<original task>", why: "dropped from automated pipeline — over_agent_budget. Manual coverage needed."`. This is mandatory per M4 transparency.
+- `verification`: set to `{ "overall_status": "unverified", "supported_count": 0, "challenged_count": 0, "human_check_count": human_required_checkpoints.length, "routing_decision": "not_run" }`. This prevents a freshly mixed scaffold from looking final.
 - `next_actions[]`: from mix.next_steps, annotated with `actor` = ai_executable or user
 
 Write to `versions/{label}/scaffold.json`.
@@ -393,7 +396,7 @@ Write to `versions/{label}/scaffold.json`.
 - Set `session.mix` to the MixResult
 - Set `session.final_scaffold` to the FinalScaffold
 - Update `session.classification`
-- Set `phase: "dm_feedback"` (ready for boss) OR `phase: "complete"` if user opted to skip boss
+- Set `phase: "verifying"` (ready for `/argus:verify`) OR `phase: "complete"` only when the user explicitly asked for team output without verification
 - Update `updated_at`
 
 ### Step 11 — Report to user
@@ -405,7 +408,7 @@ Write to `versions/{label}/scaffold.json`.
 Sail's Step 7 will render the consolidated decision card. Team only emits a transition line so the user sees that team is done:
 
 ```
-✓ Team done — {{N}} agents · {{stakes}} · {{contradictions_count}} contradictions preserved
+✓ Team done — {{N}} agents · {{stakes}} · {{contradictions_count}} contradictions preserved · verification next
 ```
 
 That's it. No print of contradictions/assumptions/checkpoints (sail Step 7 surfaces them). JSON files in `versions/{label}/` are still written — sail reads them.
@@ -444,7 +447,7 @@ User typed `/argus:team` directly without going through sail. Render the full bl
 - {{checkpoint}} — {{why AI cannot}}
 {{endfor}}
 
-**Next step:** `/argus:boss` for stakeholder review, or `/argus:chart` to see the version tree.
+**Next step:** `/argus:verify` to split supported/challenged claims. Then `/argus:boss` if the verified scaffold should face stakeholder review.
 ```
 
 ---
@@ -455,6 +458,7 @@ User typed `/argus:team` directly without going through sail. Render the full bl
 - **M9 (Worker not critic)**: Did each stage-1 worker PRODUCE an artifact in their domain? If any output reads as "I reviewed X and found issues" instead of "here's the X analysis," that's critic mode — reject and re-spawn.
 - **M3 (Contradiction preservation)**: **Only applies when debate ran.** If stakes is critical AND debate ran AND debate found disagreement, `scaffold.team_contradictions[]` MUST contain the debate entry. If debate ran and found no genuine disagreement, empty `team_contradictions[]` is correct and M3 passes. Do NOT fabricate contradiction to fill the array.
 - **M4 (Decision scaffold)**: Does scaffold have `key_trade_offs[]`, `hidden_assumptions[]`, `human_required_checkpoints[]` all populated (empty arrays are valid — the fields must EXIST)?
+- **M-Verify handoff**: Does scaffold.verification exist with `overall_status: "unverified"`? If absent, the team step is overstating certainty.
 - **M6 (Agent relationship / stakes-driven)**: Did agent count match stakes budget? If critical stakes with only 2 agents, you under-budgeted.
 - **M7 (Commodity bot check)**: If the output reads as "here's a code review" or "here's a summary," you've lost the judgment-scaffold shape. Output must preserve decision structure, not be a flat review.
 
@@ -477,3 +481,4 @@ User typed `/argus:team` directly without going through sail. Render the full bl
 - Letting stage-1 workers critique each other. They don't see each other's work until stage 2 (critical stakes only).
 - Using `devils-advocate` as a default agent. It's not in agents.yaml for a reason — critique is in-stage via donghyuk.
 - Writing a "final deliverable markdown document" à la webapp. Plugin emits FinalScaffold. The mix is internal.
+- Marking team output as verified. Only `/argus:verify` can do that.

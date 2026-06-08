@@ -1,6 +1,6 @@
 ---
 name: chart
-description: Display the chart of the current Argus session — its version tree, phase, agents deployed, open concerns, and any active drafts. The 해도 view of your decision voyage. Read-only utility. Use to navigate the draft branch history, promote a draft to v1.0, switch active draft, or delete stale sessions. No LLM work here — pure file reading + terminal rendering. Invoked as `/argus:chart`.
+description: Display the chart of the current Argus session — its version tree, phase, agents deployed, verification status, open concerns, and any active drafts. The 해도 view of your decision voyage. Read-only utility. Use to navigate the draft branch history, promote a draft to v1.0, switch active draft, or delete stale sessions. No LLM work here — pure file reading + terminal rendering. Invoked as `/argus:chart`.
 ---
 
 # /argus:chart
@@ -53,12 +53,15 @@ description: Display the chart of the current Argus session — its version tree
 ## Current (active_draft_id: {{active_id}})
 - Reframed question: {{latest scaffold.reframed_question}}
 - Team deployed: {{N}} agents
+- Verification: {{overall_status or "not run"}} · supported {{N}} · challenged {{N}} · human checks {{N}}
 - Boss reviewed: {{yes/no, mbti_code}}
 - Critical concerns open: {{count}}
 - Hidden assumptions: {{count}} ({{N doubtful}})
 - Human checkpoints: {{count}}
 
 ## Next
+- If verification is missing: run `/argus:verify`
+- If verification is blocked: complete human checks, then `/argus:sail --resume {{session.id}}`
 - Applied concerns not yet finalized: use `/argus:revise` to apply them
 - Promote this draft to v1.0: `/argus:chart --promote {{active_label}}`
 - Start new branch from older draft: `/argus:chart --checkout <label>` then `/argus:revise`

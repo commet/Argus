@@ -1,13 +1,13 @@
 ---
 name: sail
-description: Top-level Argus orchestrator — set sail on a decision. Structures the journey by running clarify → team → boss in sequence, adapting based on user intent. Use when the user has a problem to work through in their current codebase/repo — a technical decision, PR to review, design doc, fuzzy goal. Unlike Cursor or Copilot Review (which generate or critique code), Argus produces a DECISION SCAFFOLD preserving trade-offs, hidden assumptions, team contradictions, and human-required checkpoints. The output is thinking structure, not a solution. This is the entry point most users will invoke. Invoked as `/argus:sail`.
+description: Top-level Argus orchestrator — set sail on a decision. Structures the journey by running clarify → team → verify → boss in sequence, adapting based on user intent. Use when the user has a problem to work through in their current codebase/repo — a technical decision, PR to review, design doc, fuzzy goal. Unlike Cursor or Copilot Review (which generate or critique code), Argus produces a VERIFIED DECISION SCAFFOLD preserving trade-offs, hidden assumptions, supported/challenged claims, contradictions, and human-required checkpoints. This is the entry point most users will invoke. Invoked as `/argus:sail`.
 ---
 
 # /argus:sail
 
 **What this skill does:** Routes a user's problem through the Argus pipeline. Detects intent from args + repo state, then chains appropriate sub-skills.
 
-**Why this skill exists:** Users shouldn't need to memorize `/argus:clarify` → `/argus:team` → `/argus:boss`. This command does the right thing for their input.
+**Why this skill exists:** Users shouldn't need to memorize `/argus:clarify` → `/argus:team` → `/argus:verify` → `/argus:boss`. This command does the right thing for their input.
 
 ---
 
@@ -18,7 +18,7 @@ The default entry point. User typed:
 - `/argus:sail @PR#123` — work through this PR
 - `/argus:sail @<file>` — think about this file
 - `/argus:sail` (bare) — continue latest session, or prompt for input
-- `/argus:sail --full "<problem>"` — force full pipeline (clarify → team → boss → final card)
+- `/argus:sail --full "<problem>"` — force full pipeline (clarify → team → verify → boss → final card)
 - `/argus:sail --quick "<problem>"` — clarify only (regular scaffold, no team)
 - `/argus:sail --no-boss "<problem>"` — skip boss review at end of full pipeline (combines with default or --full)
 - `/argus:sail --resume <session-id>` — continue a prior session
@@ -82,6 +82,7 @@ Decision table:
 | `analyzing` or `conversing` (not ready for mix) | `/argus:clarify --continue` |
 | `conversing` (execution_plan ready) | `/argus:team` |
 | `team_working` or `mixing` | wait / show progress via status |
+| `verifying` or team complete with no `verification.json` | `/argus:verify` |
 | `dm_feedback` pending | `/argus:boss` |
 | `refining` or `complete` | show scaffold via `/argus:chart`, offer `/argus:revise` |
 
@@ -90,14 +91,16 @@ Decision table:
 Run sequentially:
 1. `/argus:clarify --no-minimal` (until ready for mix, or max rounds). The `--no-minimal` flag suppresses Step 6a auto-collapse — `--full` is an explicit user override.
 2. `/argus:team --invoked-via-sail` (on the snapshot's execution_plan). The `--invoked-via-sail` flag tells team to suppress its own verbose Step 11 print block; sail's Step 7 will render the consolidated card.
-3. `/argus:boss --invoked-via-sail` (unless `--no-boss`). Same flag — suppresses boss's verbose narration; sail Step 7 surfaces approval_condition + top critical concern only.
-4. **Step 7 — final decision card** (see below).
+3. `/argus:verify --invoked-via-sail` (on the team output). This is the core gate: supported/challenged/human-check claims become visible before any stakeholder review.
+4. `/argus:boss --invoked-via-sail` (unless `--no-boss` OR verify routed to `revise_team` / `stop_for_human_check`). Same flag — suppresses boss's verbose narration; sail Step 7 surfaces approval_condition + top critical concern only.
+5. **Step 7 — final decision card** (see below).
 
 Clarify still computes `decision_density` (for telemetry/logging in meta.json) but Step 5 emits the regular scaffold instead of MinimalScaffold.
 
 Between skills, report ONE-line transition to user (terse — verbose narration was the legacy boss-of-friction problem):
 > "✓ Clarify · 팀 배치 중..."
-> "✓ Team ({{N}} agents) · Boss({{mbti}}) 검토 중..."
+> "✓ Team ({{N}} agents) · 검증 중..."
+> "✓ Verify · Boss({{mbti}}) 검토 중..." (only when verify routes forward and boss is enabled)
 > "✓ Boss · 결정 카드 ↓"
 
 ### Step 5 — `--quick` mode
@@ -152,34 +155,34 @@ Decision matrix:
 
 | stakes (locked) | stakes_confidence | density | Auto-action | User asked? |
 |---|---|---|---|---|
-| `critical` | ≥ 80 | medium/high | run team → boss → final card | No (just one-line "auto-proceeding" notice) |
-| `important` | ≥ 80 | medium/high | run team → boss → final card | No (one-line notice) |
+| `critical` | ≥ 80 | medium/high | run team → verify → boss → final card | No (just one-line "auto-proceeding" notice) |
+| `important` | ≥ 80 | medium/high | run team → verify → boss → final card | No (one-line notice) |
 | `routine` | ≥ 80 | medium (non-low) | run quick scaffold (clarify --no-minimal already done in Step 6 path; emit final card on snapshot only) | No |
 | any | 75–79 | medium/high | ask once: 3 options below | Yes |
 | any | < 75 | any | should have been caught by Step 6b | n/a |
 
 **Auto-action notice (when skipping the prompt):** print one line in config.locale before chaining.
-- ko: "자동 진행 — `{{stakes}}` ({{confidence}}/100). 팀 배치 후 boss 검토 + 최종 카드까지 이어갑니다. (멈추려면 Ctrl-C)"
-- en: "Auto-proceeding — `{{stakes}}` ({{confidence}}/100). Chaining team → boss → final card. (Ctrl-C to halt)"
+- ko: "자동 진행 — `{{stakes}}` ({{confidence}}/100). 팀 배치 → 검증 → boss 검토 → 최종 카드까지 이어갑니다. (멈추려면 Ctrl-C)"
+- en: "Auto-proceeding — `{{stakes}}` ({{confidence}}/100). Chaining team → verify → boss → final card. (Ctrl-C to halt)"
 
 **When asking is necessary (75–79 borderline):**
 
 Use AskUserQuestion:
 - Title: "다음 단계"
 - Question: "stakes={{stakes}} (confidence {{confidence}}/100) — 어떻게 진행할까요?"
-- Options: "전부 자동 진행 (team → boss → 최종)", "팀까지만, boss 생략", "빠른 스캐폴드만 (에이전트 없이)", "일단 멈추자 — 더 생각해볼게"
+- Options: "전부 자동 진행 (team → verify → boss → 최종)", "검증까지만, boss 생략", "빠른 스캐폴드만 (에이전트 없이)", "일단 멈추자 — 더 생각해볼게"
 
-Why these 4 options (not the legacy 3): "전부 자동 진행" is the new default. "boss 생략" is a one-shot equivalent of `--no-boss`. The other two are unchanged.
+Why these 4 options (not the legacy 3): "전부 자동 진행" is the new default. "검증까지만" keeps the plugin-native quality gate without stakeholder theater. The other two are unchanged.
 
 **After Step 6c picks a path (auto or asked):**
-- "전부 자동 진행" → invoke `/argus:team --invoked-via-sail`, then (unless `--no-boss` or boss-skip selected) `/argus:boss --invoked-via-sail`, then **Step 7 final card**.
-- "팀까지만" → `/argus:team --invoked-via-sail` only, then Step 7.
+- "전부 자동 진행" → invoke `/argus:team --invoked-via-sail`, then `/argus:verify --invoked-via-sail`; if verification routes forward, then (unless `--no-boss` or boss-skip selected) `/argus:boss --invoked-via-sail`, then **Step 7 final card**.
+- "검증까지만" → `/argus:team --invoked-via-sail`, then `/argus:verify --invoked-via-sail`, then Step 7. Boss is skipped.
 - "빠른 스캐폴드만" → clarify Step 5b output is already the user-facing view (skeleton + hidden_assumptions). **No Step 7** (no scaffold.json to render). Exit.
 - "일단 멈추자" → write a stub `versions/{label}/meta.json` `{phase_at_pause: "conversing"}`. Print "/argus:sail --resume {{session.id}} 으로 이어가세요." Exit.
 
 ### Step 7 — Final decision card (consolidated one-screen output)
 
-**Invoked only after team or boss ran (Step 4 --full path or Step 6c team-running path).** Step 6a (minimal mode) does NOT invoke Step 7 — clarify already rendered.
+**Invoked only after team/verify or boss ran (Step 4 --full path or Step 6c team-running path).** Step 6a (minimal mode) does NOT invoke Step 7 — clarify already rendered.
 
 Step 7 emits ONE consolidated view. The user should NOT have to read JSON files in `versions/{label}/` to know what was decided. Per locale.
 
@@ -188,6 +191,7 @@ Step 7 emits ONE consolidated view. The user should NOT have to read JSON files 
 Read the latest `versions/{label}/`:
 - `analysis.json` → `reframed_question`, `framing_confidence`
 - `scaffold.json` (FinalScaffold) → `key_trade_offs[0]`, `team_contradictions[]`, `hidden_assumptions[]` (filter doubtful), `human_required_checkpoints[]`, `next_actions[0..1]`
+- `verification.json` (if verify ran) → `overall_status`, `supported_claims[]`, `challenged_claims[]`, `human_required_checks[]`, `routing_decision`
 - `boss_feedback.json` (if boss ran) → `approval_condition`, top critical concern (if any)
 
 #### Render
@@ -204,6 +208,13 @@ Read the latest `versions/{label}/`:
 {{endif}}
 
 **우선 행동 (이번 주):** {{next_actions[0].action}}{{if next_actions[1]}} · {{next_actions[1].action}}{{endif}}
+
+{{if verification exists}}
+**검증:** {{overall_status}} · 지지 {{supported_claims.length}} · 반박 {{challenged_claims.length}} · 사람 확인 {{human_required_checks.length}}
+{{if challenged_claims length > 0}}
+**⚠ 최상위 반박:** [{{challenged_claims[0].severity}}] {{challenged_claims[0].claim}}
+{{endif}}
+{{endif}}
 
 {{if team_contradictions length > 0}}
 **⚠ 미해결 갈등 ({{team_contradictions.length}}건):** {{team_contradictions[0].topic}} {{if team_contradictions.length > 1}}외 {{team_contradictions.length - 1}}건{{endif}}
@@ -229,6 +240,10 @@ Target length: 12–18 lines. The user should be able to read it in one screen.
 
 The full JSON files remain in `versions/{label}/` for chart and revise to consume. The card is the SUMMARY — anyone wanting more depth opens the files. This is the "한 화면 결정 카드" the user actually consumes.
 
+**Verification routing override:** If `verification.routing_decision` is `revise_team` or `stop_for_human_check`, Step 7 still renders the card but MUST label it as **not ready for boss/signoff**. Do not imply completion. The next line should be:
+- ko: `다음: {{routing_decision == "revise_team" ? "/argus:team --force 로 보완 후 /argus:verify 재실행" : "사람 확인 항목을 처리한 뒤 /argus:sail --resume " + session.id}}`
+- en: `Next: {{routing_decision == "revise_team" ? "repair via /argus:team --force, then rerun /argus:verify" : "complete human checks, then /argus:sail --resume " + session.id}}`
+
 ---
 
 ### Boss skip handling
@@ -245,7 +260,7 @@ Sail has three terminal user-facing outputs depending on the path taken:
 |---|---|---|
 | Step 6a (low density) | clarify Step 5a minimal card (recommendation + 1 check + optional caveat) | clarify |
 | Step 5 / Step 6c "빠른 스캐폴드만" (--quick or quick option) | clarify Step 5b regular scaffold (skeleton + hidden_assumptions) | clarify |
-| Step 4 (--full) / Step 6c team-running paths | Step 7 consolidated decision card (~12-18 lines) | sail |
+| Step 4 (--full) / Step 6c team-running paths | Step 7 consolidated verified decision card (~14-20 lines) | sail |
 
 No JSON dumps, no path-only summaries. The card or scaffold is the consumable artifact; the JSON files in `versions/{label}/` are inspectable by `/argus:chart` when the user wants depth.
 
@@ -255,6 +270,7 @@ No JSON dumps, no path-only summaries. The card or scaffold is the consumable ar
 
 - **M5 (Analysis primacy)**: Clarify must always run first — even in `--quick` mode. No path to team without clarify.
 - **M7 (Commodity test)**: Would Cursor or Copilot Review produce this output? If yes, the orchestrator is not surfacing the judgment-scaffold shape.
+- **M-Verify (No false completion)**: If verification produced challenged or blocked claims, the final card must expose them. Never let a polished scaffold look more certain than the verification ledger.
 - **Never bypass AskUserQuestion for mode choice** when intent is ambiguous. Argus is about preserving user agency.
 
 ---
@@ -271,6 +287,7 @@ No JSON dumps, no path-only summaries. The card or scaffold is the consumable ar
 
 - Running `/argus:team` before `/argus:clarify`. The whole pipeline is invalidated.
 - Skipping `/argus:boss` silently when user didn't pass `--no-boss` AND boss is configured. Boss is default unless explicitly skipped or unconfigured.
+- Skipping `/argus:verify` on any medium/high team path. Team output is candidate material until verified.
 - Collapsing the pipeline into a single monolithic prompt "to save time." The pipeline IS the product.
 - Renaming sessions or modifying existing versions — orchestrator only creates new sessions or advances phases.
 - **Asking the user "어떻게 진행할까요?" when stakes_confidence ≥ 80** — this is the friction that made the plugin feel ceremonious. Auto-proceed and inform with one line. (Step 6c table is the spec — follow it.)

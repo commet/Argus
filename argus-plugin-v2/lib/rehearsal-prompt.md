@@ -16,7 +16,7 @@ You are auditing Argus plugin v2 via **dry-run simulation**. This file is your r
 
 ## Hard rules — read carefully
 
-**🚫 DO NOT invoke real plugin commands.** No `/argus:sail`, `/argus:clarify`, `/argus:team`, `/argus:boss`, `/argus:chart`. These would actually execute SKILL.md procedures, create real `.argus/sessions/` directories, spawn real Task tool subagents, and hit real LLM calls. **Simulation ≠ execution.**
+**🚫 DO NOT invoke real plugin commands.** No `/argus:sail`, `/argus:clarify`, `/argus:team`, `/argus:verify`, `/argus:boss`, `/argus:chart`. These would actually execute SKILL.md procedures, create real `.argus/sessions/` directories, spawn real Task tool subagents, and hit real LLM calls. **Simulation ≠ execution.**
 
 **🚫 DO NOT spawn Task tool subagents to "test" individual agents.** That's also real execution.
 
@@ -89,7 +89,10 @@ Agents speak in distinct voices. **Test**: substitute agent names with "Reviewer
 When agents genuinely disagree on a canonical decision axis (see team SKILL.md Step 7 axis table), `team_contradictions[]` is populated; aggregation forbidden. **Test**: in team simulation, did debate trigger when warranted? Or did the LLM aggregate into "consensus"?
 
 ### M4 — Decision scaffold
-Output shape preserves `key_trade_offs[]`, `hidden_assumptions[]`, `human_required_checkpoints[]`, `next_actions[]`, optionally `team_contradictions[]`, `boss_concerns_*`, `boss_questions_pending[]`. Required fields exist (empty arrays OK). **Test**: simulated FinalScaffold conforms to `final-scaffold.json` schema?
+Output shape preserves `key_trade_offs[]`, `hidden_assumptions[]`, `human_required_checkpoints[]`, `next_actions[]`, `verification`, optionally `team_contradictions[]`, `boss_concerns_*`, `boss_questions_pending[]`. Required fields exist (empty arrays OK). **Test**: simulated FinalScaffold conforms to `final-scaffold.json` schema and does not look final when `verification.overall_status` is `unverified`, `mixed`, `needs_revision`, or `blocked`?
+
+### M4.5 - Verification before boss
+Medium/high paths produce `verification.json` before boss review. **Test**: simulated `/argus:sail` route includes `/argus:verify` between `/argus:team` and `/argus:boss`; `verification.json` separates supported claims, challenged claims, unresolved tensions, and human-required checks. If boss runs with no verification ledger, M4.5 fails.
 
 ### M5 — Analysis primacy
 `/argus:clarify` is mandatory first step. Reframing requires `surface_request != real_question`. **Test**: in clarify simulation, is real_question genuinely different (deeper) than the surface phrasing of the test case?

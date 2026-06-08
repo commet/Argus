@@ -1,73 +1,95 @@
-# Argus (Plugin v2)
+# Argus (Plugin v2.1)
 
-[**English**](./README.md) · [한국어](./README.ko.md)
+[**English**](./README.md) | [Korean](./README.ko.md)
 
-**Judgment harness for Claude Code.** A team of agents helps you structure decisions inside your actual codebase — not generate code, not review PRs, **decide**.
+**Verification-first judgment harness for Claude Code.** Argus does not exist to
+generate code or praise a plan. It clarifies the real decision, deploys an agent
+team as workers, then verifies their output into supported, challenged,
+unresolved, and human-required claims before a decision scaffold is shown.
 
 ---
 
-## What you get in one screen
+## What You Get
 
-Most decisions are reversible and don't need a 30-minute team review. Type `/argus:sail "your question"` and get this:
+Most decisions are reversible and do not need a 30-minute team review. Type:
 
+```text
+/argus:sail "Should we rename Workspace to Project?"
 ```
-## Argus · Minimal · v0.1
 
-Recommendation: Just rename it to '작업실'. Zero user signal = zero downside.
-One check (<5 min): Any support tickets mentioning the old label? 0 = ship it.
-Watch out: If users say "feels off" within 1 week of release, roll back.
+For low-density decisions, Argus returns a minimal scaffold:
 
-─────
-density: low (reversible UI label) · team & boss skipped
+```text
+## Argus - Minimal - v0.1
+
+Recommendation: Rename it to "Project". Zero user signal means low downside.
+One check (<5 min): Any support tickets mentioning the old label? If 0, ship it.
+Watch out: If users say "feels off" within 1 week, roll back.
+
+density: low - team, verification, and boss skipped
 Force full pipeline: /argus:sail --full "..."
 ```
 
-That's the entire output for a routine reversible call. **No team. No JSON. ~30 seconds.**
+For important or critical decisions, Argus runs the full chain:
 
-When the question is meatier, you get a 15-line decision card preserving the trade-offs and disagreements that came up. (See § "The other shape" below.)
+```text
+clarify -> team -> verify -> boss -> final decision card
+```
+
+The important change in v2.1 is `verify`: agent output is no longer promoted
+straight to a final card. Argus first checks what is actually supported, what is
+weak or contradicted, what remains unresolved, and what a human must verify.
 
 ---
 
-## A real decision flow (case study)
+## Case Study
 
-> **Question:** *"Should we ship to EU this quarter or wait one quarter? GDPR 70% ready."*
+> **Question:** "Should we ship to EU this quarter or wait one quarter? GDPR is
+> 70% ready."
 
-```
-→ clarify: critical stakes, framing confidence 76 → asks user to confirm
-→ team deploys 4: Sophie (research) · Victor (scenario) · Arthur (legal) · Blake (risk)
-→ stage-1 surfaces a ship-or-halt conflict between Arthur ↔ Victor → debate.json written
-→ Boss (ISTJ) reviews: "1 unresolved tension + 2 critical concerns —
-                        can't approve without external advisor"
+```text
+clarify: critical stakes, framing confidence 76 - asks user to confirm
+team: deploys 4 workers - research, scenario, legal, risk
+verify: 5 supported claims, 2 challenged claims, 3 human-required checks
+boss: cannot approve until external GDPR advisor checkpoint is cleared
 ```
 
 Final card shows:
-- **Unresolved tension preserved**: *"Victor: kill criteria reached. Arthur: GDPR fine risk."*
-- **Tie-breaking condition**: *"if external EU GDPR advisor says '70% shippable', Victor wins"*
-- **3 user-required checkpoints**: contact advisor · measure EU DAU · verify competitor timeline
 
-User contacts the advisor. Comes back the next week, runs `/argus:sail --resume <session>`. v0.2 produced reflecting the new info. Ship goes ahead — but now with documented kill criteria and a kept record of who-said-what for the team to read later in `git`.
+- **Supported claim:** EU demand exists, but only from partial pipeline signals.
+- **Challenged claim:** "70% GDPR ready is shippable" is not supported without
+  external counsel.
+- **Unresolved tension:** launch timing advantage vs compliance blast radius.
+- **Human-required checkpoint:** ask EU GDPR advisor whether the current gap is
+  launch-blocking.
+- **Tie-break condition:** if counsel says "not launch-blocking", ship with kill
+  criteria; otherwise wait one quarter.
 
-This is what `team_contradictions[]` + `human_required_checkpoints[]` look like in practice. Not a verdict — a structure you can act on.
-
----
-
-## When to use vs not use
-
-**Good fits**
-- "Should we migrate from Firestore to Supabase?" — multi-stakeholder, hard to undo, you want trade-offs surfaced
-- "Review my PR #42" — code-native, real artifact for agents to work on
-- "Is our auth middleware design wrong?" — needs technical + risk + UX angles together
-- "Boss feature: leave in webapp or absorb into plugin?" — product strategy with frame conflict
-
-**Bad fits (use ChatGPT or just decide)**
-- "What's the syntax for X?" — Cursor or docs are faster
-- "Write me boilerplate for Y" — code generation, not judgment
-- Anything you'd commit before lunch with no team consultation
-- Decisions where you already know the answer and want validation — Argus preserves disagreement; that's not what you want here
+This is the product identity: Argus does not replace the human decision. It
+reduces the chance that an AI team confidently hands you an unverified answer.
 
 ---
 
-## Install (30 seconds)
+## When To Use
+
+Good fits:
+
+- "Should we migrate from Firestore to Supabase?"
+- "Review PR #42 as a product, risk, and implementation decision."
+- "Is our auth middleware design wrong?"
+- "Should this feature live in the webapp or be absorbed into the plugin?"
+
+Bad fits:
+
+- Syntax lookup or documentation search.
+- Boilerplate code generation.
+- Decisions you would comfortably make before lunch.
+- Cases where you already know the answer and only want validation. Argus is
+  built to preserve disagreement.
+
+---
+
+## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
@@ -75,107 +97,119 @@ curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/i
 
 Restart Claude Code. Then in any repo:
 
-```
+```text
 /argus:sail "Your decision question here"
 ```
 
-No setup needed. `.argus/config.yaml` auto-creates with sensible defaults (ISTJ stakeholder boss, locale auto-detected from `$LANG`). Edit later if you want a different boss persona.
+No setup is required. `.argus/config.yaml` auto-creates with sensible defaults
+and `.argus/sessions/` stores decision history in the repo so it can travel with
+git.
+
+For local development:
+
+```bash
+./argus-plugin-v2/install.sh --link
+```
+
+Restart Claude Code after editing skill files. Skill bodies are cached at
+session start.
 
 ---
 
-## The other shape: full decision card
+## Full Decision Card
 
-When clarify decides your question is genuinely meaty (important/critical stakes, multiple frames in tension), sail auto-chains: clarify → 3-4 agents in parallel → boss review → consolidated card. You see brief progress lines between steps, then this:
+When `clarify` decides the question is important or critical, `sail`
+auto-chains the full pipeline and prints a compact card:
 
-```
-## Argus · 2026-04-29-boss-absorption · v0.1
+```text
+## Argus - 2026-04-29-boss-absorption - v0.1
 
 Question: Are the two surfaces' user bases separate enough to justify
           maintaining duplicate Boss code?
 
-Boss (ISTJ Park): Approve once you (1) spike 4hr migration sizing
-                  and (2) define rollback kill criteria.
+Verification: mixed - 4 supported, 2 challenged, 1 human check
+Top challenge: Plugin Boss can match webapp depth within 6 months is unproven.
 
-Top action this week: Pull DAU split by surface · 4hr migration spike
+Boss (ISTJ Park): Proceed only after a 4-hour migration spike and rollback
+                  kill criteria are defined.
 
-⚠ Doubtful assumption: Plugin Boss can match webapp depth (16 MBTI,
-  deep mode, mass consultation) within 6 months.
+Top action this week: Pull DAU split by surface - run 4-hour migration spike.
 
-⚠ Unresolved tension (1): Cost saving ($1,520/6mo) is small —
-  positioning argument vs raw $ argument.
+Doubtful assumption: Plugin users and webapp users have the same Boss needs.
 
-👤 Human-required (3): Confirm DAU ratio (only you can see it)
+Unresolved tension: Cost saving is small, but product positioning may justify
+                    consolidation.
 
-📁 .argus/sessions/2026-04-29-boss-absorption/versions/v0.1/
-🗺  Full tree: /argus:chart
+Human-required: Confirm DAU ratio. Only you can see this data.
+
+.argus/sessions/2026-04-29-boss-absorption/versions/v0.1/
+Full tree: /argus:chart
 ```
 
-Behind it: 5 JSON files preserving every agent's voice + the debate that surfaced. Open them via `/argus:chart` when you want depth.
+Behind it are JSON artifacts preserving the work: clarify snapshot, worker
+results, mix result, verification ledger, boss feedback, final scaffold, draft,
+and session metadata.
 
 ---
 
-## How sail routes
+## Routing
 
-`/argus:sail "..."` doesn't always run the full pipeline. It auto-routes by `decision_density` and `stakes_confidence` — both produced by clarify in seconds:
+`/argus:sail "..."` routes by `decision_density` and `stakes_confidence`:
 
-| Your question shape | Output | Why |
+| Question shape | Output | Why |
 |---|---|---|
-| Reversible single-action (rename, label, toggle) with high framing confidence | **MinimalScaffold** — 3 lines: recommendation + 1 quick check + optional caveat. No team, no boss. | A 5-section scaffold for a tab-rename is over-engineering. |
-| Important/critical question with confident stakes (≥80) | Auto-chains team → boss → ~15-line consolidated card. One-line progress notices between steps. | Asking "what should I run?" when stakes are obvious wastes your first input. |
-| Borderline stakes (clarify confidence 60–79) | One AskUserQuestion: "I read this as X stakes (N/100) — right?" → auto-proceeds. | User agency where it matters; not where it doesn't. |
-| Anything else | Standard 4-option dialog (full / team-only / quick / pause). | Last-resort fallback. |
+| Reversible single action with high framing confidence | MinimalScaffold, no team | A full team would be over-engineering. |
+| Important or critical with confident stakes | `team -> verify -> boss` | The first answer should include checked disagreement, not raw agent output. |
+| Borderline stakes | One `AskUserQuestion` gate | Human choice matters at the routing boundary. |
+| Verification finds blockers | Human choice or team revision | The plugin refuses to hide unsupported claims inside a polished card. |
 
-**Override paths**
-- `/argus:sail --full "..."` — force full pipeline regardless of density
-- `/argus:sail --quick "..."` — clarify only, regular scaffold (no MinimalScaffold collapse)
-- `/argus:sail --no-boss "..."` — skip boss review at the end
-- `/argus:sail --resume <session-id>` — continue a paused session
+Overrides:
 
----
-
-## Configuration
-
-First run: zero setup. `.argus/config.yaml` auto-created on first `/argus:sail`. Sensible defaults (ISTJ default boss). Edit only if you want different MBTI / locale / role label:
-
-```yaml
-boss:
-  mbti_code: ISTJ        # ISTJ ISFJ INFJ INTJ ISTP ISFP INFP INTP
-                         # ESTP ESFP ENFP ENTP ESTJ ESFJ ENFJ ENTJ
-  name: "Park"
-  gender: male           # male | female (EN) or 남 | 여 (KR)
-  role: "Team Lead"
-locale: en               # en | ko
-```
-
-Per-repo. Commits with your code. Sessions in `.argus/sessions/` ship with the repo, so teams share decision history via git.
-
-**Dev mode** (symlink install via `--link`): edit skill `.md` files → restart Claude Code to apply. Skill bodies cache at session start; symlinked file changes don't take effect mid-session.
+- `/argus:sail --full "..."` forces full pipeline.
+- `/argus:sail --quick "..."` runs clarify only.
+- `/argus:sail --no-boss "..."` keeps verification but skips stakeholder review.
+- `/argus:sail --resume <session-id>` continues a paused session.
 
 ---
 
-## What's behind the scenes
+## Commands
 
-`/argus:sail` orchestrates four sub-skills:
-- `/argus:clarify` — sharpen the question (often emits the answer for low-density)
-- `/argus:team` — deploy 2–4 agents as workers on the actual artifact
-- `/argus:boss` — your stakeholder reviews (one of 16 MBTI personas)
-- `/argus:chart` — version tree view + draft management
+`/argus:sail` orchestrates the full flow.
 
-**The 17-agent team** auto-selects 2–4 per session based on task type. Each agent has a distinct voice (research / strategy / numbers / UX / legal / risk / etc.). Critical-stakes decisions add a mandatory risk reviewer (Blake) for stage-2 critique.
+`/argus:clarify` sharpens the question and decides density/stakes.
 
-**Three properties make this different from Cursor / Copilot Review / ChatGPT:**
-1. **Workers, not critics.** Agents produce domain artifacts (research notes, ROI tables, UX critiques) on the real problem. Critique is one separate step (boss review), not the whole interaction.
-2. **Contradictions preserved.** When agents disagree on critical-stakes decisions, the disagreement is stored in the scaffold's `team_contradictions[]`, never averaged away. You see the tension; you resolve it.
-3. **Decision scaffold, not solution.** Output shape: `reframed_question` + `key_trade_offs[]` + `hidden_assumptions[]` + `human_required_checkpoints[]`. The plugin refuses to tell you what to do; it tells you what you're deciding.
+`/argus:team` deploys 2-4 worker agents on the actual artifact or decision.
+
+`/argus:verify` performs positive and negative validation of team output.
+
+`/argus:boss` runs stakeholder review after verification.
+
+`/argus:chart` shows the version tree and session artifacts.
+
+---
+
+## What Makes It Different
+
+1. **Workers, not panel critics.** Agents produce domain work on the real
+   problem. Critique is not the whole interaction.
+2. **Verification before polish.** Supported claims, challenged claims, unresolved
+   tensions, and human-required checks are separated before the final card.
+3. **Contradictions are preserved.** Agent disagreement is not averaged away.
+4. **Human choice gates are explicit.** When AI cannot verify something, Argus
+   uses Claude Code's terminal-native `AskUserQuestion` flow instead of hiding
+   uncertainty.
+5. **Decision scaffold, not solution theater.** The output tells you what you
+   are deciding, what is known, what is weak, and what must happen next.
 
 ---
 
 ## Reference
 
-- Full agent roster — `data/agents.yaml`
-- Boss MBTI personalities — `data/boss-types.yaml`
-- JSON schemas — `data/schemas/*.json` (analysis-snapshot, minimal-scaffold, final-scaffold, draft, session, etc.)
-- Version tree mechanics — `lib/session/version-numbering.md`
-- Build status, decision log, fix history — `BUILD_STATUS.md`
-- **Webapp** — [argus.voyage](https://argus.voyage) (Next.js with richer UI). Plugin shares agent identities + MBTI archetypes + draft tree model. Plugin diverges on output shape (scaffold vs markdown), agent role (workers vs reviewers), environment (code-native vs prose), and persistence (filesystem vs Supabase).
-- **License** — MIT
+- Agent roster: `data/agents.yaml`
+- Boss MBTI personalities: `data/boss-types.yaml`
+- Verification ledger schema: `data/schemas/verification-ledger.json`
+- JSON schemas: `data/schemas/*.json`
+- Version tree mechanics: `lib/session/version-numbering.md`
+- Build status and decision log: `BUILD_STATUS.md`
+- Webapp: [argus.voyage](https://argus.voyage)
+- License: MIT

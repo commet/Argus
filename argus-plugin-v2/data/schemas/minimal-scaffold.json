@@ -33,7 +33,7 @@
         "reversibility": { "enum": ["reversible", "partial", "irreversible"] },
         "skipped": {
           "type": "array",
-          "description": "What was deliberately skipped vs FinalScaffold (team, boss, debate). Transparency for the user.",
+          "description": "What was deliberately skipped vs FinalScaffold (team, verification, boss, debate). Transparency for the user.",
           "items": { "type": "string" }
         },
         "generated_at": { "type": "string", "format": "date-time" }
