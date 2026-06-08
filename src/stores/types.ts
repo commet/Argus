@@ -317,6 +317,13 @@ export interface Project {
   meta_reflection?: MetaReflection;
   /** Validation Chain: 완료 시 확신도 (1-5). outcome과 비교하여 보정 곡선 생성. */
   confidence_at_completion?: number;
+  /** 사후 정산: 결정의 실제 결과. confidence_at_completion과 비교해 판단 보정도 산출.
+   *  기록되면 항해가 '입항' → '검증된 항해'로 전환된다. (see lib/voyage-state.ts) */
+  outcome?: {
+    verdict: 'right' | 'wrong' | 'mixed' | 'pending';
+    note?: string;
+    recorded_at: string;
+  };
   team_id?: string;
   deleted_at?: string | null;
   created_at: string;

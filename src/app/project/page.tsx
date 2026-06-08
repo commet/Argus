@@ -17,9 +17,24 @@ import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import Link from 'next/link';
 import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
+import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 
 const STEP_LABELS_KO = ['재정의', '설계', '검증', '종합'] as const;
 const STEP_LABELS_EN = ['Reframe', 'Recast', 'Rehearse', 'Synth'] as const;
+
+// Project-page step index → voyage leg (page order: reframe, recast, rehearse, synthesize)
+const STEP_IDX_TO_LEG: ReadonlyArray<VoyageLeg> = ['reframe', 'recast', 'rehearse', 'synthesize'];
+
+// Voyage state tone → pill styling (keeps the label color in sync with the ship)
+const VOYAGE_TONE_CLS: Record<string, string> = {
+  neutral: 'bg-[var(--bg)] text-[var(--text-tertiary)]',
+  active: 'bg-[var(--accent)]/10 text-[var(--accent)]',
+  warning: 'bg-amber-50 text-amber-700',
+  danger: 'bg-red-50 text-[var(--danger)]',
+  arrived: 'bg-[var(--collab)] text-[var(--success)]',
+  gold: 'text-[var(--accent)]',
+};
 
 type ToolStatus = 'done' | 'in-progress' | 'not-started';
 type StatusFilter = 'all' | 'active' | 'done' | 'new';
@@ -383,6 +398,17 @@ export default function ProjectPage() {
                     const hasMetrics =
                       m.stepCount > 0 || m.aiRatio !== null || m.reviewerCount > 0 || m.riskCount > 0;
 
+                    // ── Voyage state (single source of truth: lib/voyage-state) ──
+                    const voyageState = getVoyageState({
+                      started: m.hasProgress,
+                      completedAllLegs: m.isDone,
+                      lastActivityAt: m.lastActivityAt || project.updated_at || project.created_at || '',
+                      hasCoda: !!project.meta_reflection,
+                      lastLeg: m.lastActivityStepIdx >= 0 ? STEP_IDX_TO_LEG[m.lastActivityStepIdx] : null,
+                      outcomeVerdict: project.outcome?.verdict,
+                    }, Date.now());
+                    const vMeta = VOYAGE_STATE_META[voyageState];
+
                     return (
                       <button
                         key={project.id}
@@ -395,21 +421,27 @@ export default function ProjectPage() {
                             : 'border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/30 hover:shadow-[var(--shadow-sm)]'
                         }`}
                       >
+                        {/* Chart vignette — the project as a ship on the sea chart */}
+                        <div className="relative -mx-4 -mt-4 mb-1 h-[92px] overflow-hidden rounded-t-xl border-b border-[var(--border-subtle)] bg-[var(--bp-paper)] flex items-end justify-center">
+                          <Graticule opacity={0.09} spacing={24} />
+                          <VoyageShip
+                            state={voyageState}
+                            size={84}
+                            title={L(vMeta.ko, vMeta.en)}
+                            className="relative z-[1] mb-0.5 transition-transform duration-300 group-hover:scale-[1.04]"
+                          />
+                        </div>
+
                         {/* Header: status pill + last-activity time */}
                         <div className="flex items-center justify-between gap-2 text-[10.5px] uppercase tracking-wide font-bold">
-                          {m.isDone ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--collab)] text-[var(--success)]">
-                              <Check size={9} strokeWidth={3} /> {L('완료', 'Done')}
-                            </span>
-                          ) : m.hasProgress ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--accent)]/10 text-[var(--accent)]">
-                              <span className="w-1 h-1 rounded-full bg-[var(--accent)] animate-pulse" /> {L('진행', 'Active')}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-[var(--bg)] text-[var(--text-tertiary)] font-medium">
-                              {L('시작 전', 'New')}
-                            </span>
-                          )}
+                          <span
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${VOYAGE_TONE_CLS[vMeta.tone]}`}
+                            style={vMeta.tone === 'gold' ? { background: 'var(--gradient-gold-subtle)' } : undefined}
+                          >
+                            {voyageState === 'sailing' && <span className="w-1 h-1 rounded-full bg-[var(--accent)] animate-pulse" />}
+                            {voyageState === 'verified' && <Check size={9} strokeWidth={3} />}
+                            {L(vMeta.ko, vMeta.en)}
+                          </span>
                           <span className="text-[var(--text-tertiary)] normal-case tracking-normal font-normal tabular-nums">
                             {relativeDate(m.lastActivityAt || project.updated_at, locale)}
                             {lastStepLabel && m.hasProgress && !m.isDone ? (
