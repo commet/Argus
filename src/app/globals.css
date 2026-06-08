@@ -3,7 +3,7 @@
 :root {
   --primary: #1a1a1a;
   --primary-light: #2e2e2e;
-  --accent: #96782e;         /* Gold — contrast-safe on white (4.5:1+) */
+  --accent: #96782e;         /* Gold — ~3.9:1 on --bg; NOT AA for body text (needs >=4.5). Borders/icons only. See MASTER-DIRECTION-v4.md §5 */
   --accent-light: #b8963e;   /* Brighter gold for backgrounds/borders */
   --bg: #f8f7f5;
   --surface: #ffffff;

@@ -9,6 +9,7 @@
  */
 
 import { useLocale } from '@/hooks/useLocale';
+import { track } from '@/lib/analytics';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { PlateLabel } from './ui/PlateLabel';
 import { SailingShip } from './illustrations/SailingShip';
@@ -136,6 +137,7 @@ export function Act1Voyage() {
           >
             <a
               href="/workspace"
+              onClick={() => track('landing_hero_submit', { cta: 'hero_start' })}
               className="bp-mono inline-flex items-center justify-center"
               style={{
                 background: 'var(--bp-ink)',
