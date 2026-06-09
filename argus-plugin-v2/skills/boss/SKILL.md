@@ -59,7 +59,7 @@ Refuse when:
 
 ### Step 3 — Build review prompt
 
-**If `locale: en`**: mirror this same structure but translate rules + attitude + tone sections to English. The MBTI personality block uses whatever English personality fields exist (or falls back to Korean with a note). Reference: webapp's `src/lib/review-prompt.ts:buildEn` for structural parity. Example dialogues stay in the type's original language (Korean archetype dialogues ARE the rhythm model).
+**If `locale: en`**: mirror this same structure but translate rules + attitude + tone sections to English. The MBTI personality block uses English `example_dialogue_en`/`speech_patterns_en` if present in boss-types.yaml; if only Korean exists, **treat the Korean example_dialogue as a behavioral-rhythm reference only** — extract the BEHAVIOR (blunt-and-fast / detail-first / warm-then-firm) and render it in natural English. Do NOT mirror Korean speech-level markers (반말/해요체, 결론부터) literally — an English-speaking stakeholder voiced with Korean-corporate cadence reads as foreign and breaks the persona. The MBTI BEHAVIOR is the portable differentiator; the Korean surface form is not. Reference: webapp's `src/lib/review-prompt.ts:buildEn` for structural parity.
 
 **If `locale: ko`** (default): use the Korean template below.
 

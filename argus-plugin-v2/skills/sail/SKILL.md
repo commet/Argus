@@ -1,6 +1,6 @@
 ---
 name: sail
-description: Top-level Argus orchestrator — set sail on a decision. Structures the journey by running clarify → team → verify → boss in sequence, adapting based on user intent. Use when the user has a problem to work through in their current codebase/repo — a technical decision, PR to review, design doc, fuzzy goal. Unlike Cursor or Copilot Review (which generate or critique code), Argus produces a VERIFIED DECISION SCAFFOLD preserving trade-offs, hidden assumptions, supported/challenged claims, contradictions, and human-required checkpoints. This is the entry point most users will invoke. Invoked as `/argus:sail`.
+description: Top-level Argus orchestrator — set sail on a decision. Structures the journey by running clarify → team → verify → boss in sequence, adapting based on user intent. Use when the user has a decision to work through — a technical one in their codebase (PR, design doc, architecture) OR a non-code one (market entry, hiring, vendor, pricing, career); code-aware when run in a repo, document/strategy mode otherwise. Unlike Cursor or Copilot Review (which generate or critique code), Argus produces a VERIFIED DECISION SCAFFOLD preserving trade-offs, hidden assumptions, supported/challenged claims, contradictions, and human-required checkpoints. This is the entry point most users will invoke. Invoked as `/argus:sail`.
 ---
 
 # /argus:sail

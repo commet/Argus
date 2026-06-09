@@ -41,6 +41,8 @@ One of:
    - `@<file>` → Read file contents + `git log -5 --oneline <file>` for recent churn
    - `@<branch>` → `git log main..<branch>` + `git diff main...<branch> --stat`
    - `@<issue-N>` → `gh issue view N`
+   - `@doc:<path>` → Read a local document (`.md`/`.txt`/`.pdf`/etc.) into `target_context` (`kind: "document"`). This is the non-code intake path: a strategy deck, contract, memo, or spec the decision is about. Downstream team runs in document mode on it — no repo needed.
+   - You can also accept pasted context inline (the user drops the relevant facts in the problem text); set `target_context.kind: "pasted"`.
 3. **Autodetect from git state** (no args):
    - Current branch name (not `main`/`master`)
    - Last 1-3 commit messages

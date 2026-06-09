@@ -75,15 +75,19 @@ Refuse to run when:
 - Assemble a **repo_sketch** block: `{languages, frameworks, recent_commits, directory_tree_sample}`.
 - Workers receive this sketch and can Grep/Glob for specific files as they work.
 
-**(C) No git repo / no files** (edge case — user in empty directory):
-- Skip repo gathering.
-- Set `repo_context: null` and flag in session.json that workers will operate in hypothetical mode.
-- User-facing warning at end of Step 11: "⚠ No codebase detected. Workers returned hypothetical-mode outputs (marked `[hypothetical]`). For code-native results, run Argus from within a project repo."
+**(C) No git repo — document / strategy mode** (a first-class path, NOT an error — many decisions are not about code: market entry, hiring, vendor choice, career, pricing):
+- Skip repo gathering. Set `repo_context.mode = "document"`.
+- If `meta.json.target_context` exists (the user referenced a doc via `@doc:<path>` in clarify, or pasted context), pass that artifact to workers as the thing they reason ON — same role the diff plays in code mode.
+- Otherwise workers reason from the problem text + their domain expertise. This is legitimate, not degraded.
+- Do NOT print a "you're using it wrong / run from a repo" warning. Only suggest a repo when the question is clearly code-related yet no repo was found (e.g. it mentions files/PRs/functions). For a market-entry or hiring question, a repo is irrelevant — saying "run from a project repo" is the #1 abandonment trigger for non-code users.
+- Workers must NOT force code framing: a strategy question gets strategy structure, not "IF the code looks like X". See the worker prompt's document-mode block.
 
 **Write** the gathered context to `versions/{label}/repo_context.json`:
 ```json
 {
-  "mode": "explicit_target" | "repo_scan" | "hypothetical",
+  "mode": "explicit_target" | "repo_scan" | "document" | "hypothetical",
+  // "document" = no repo, non-code decision (reason from problem text / a referenced doc) — a normal path.
+  // "hypothetical" = a code question was asked but no codebase is reachable — degraded; warn.
   "target_type": "pr" | "file" | "branch" | "issue" | "design_doc" | "ad_hoc" | null,
   "target_ref": "...",
   "target_content": "...",        // when mode is explicit_target
@@ -261,8 +265,16 @@ For each worker in stage-1, use the **Task / Agent tool** to spawn a sub-agent.
   You have Read/Grep/Glob tools. **Use them** to find and read the files relevant to YOUR task before producing output. Do not rely on the sketch alone — it's a starting map, not the answer. Cite specific file paths + line numbers in your output when relevant.
   {{endif}}
   
+  {{if mode == "document"}}
+  This is a non-code decision (strategy, hiring, vendor, pricing, market, career, etc.). {{if target_content}}Work ON this referenced document:
+  <user-data context="document" ref="{{target_ref}}">
+  {{target_content}}
+  </user-data>{{else}}Reason from the problem statement and your domain expertise.{{endif}}
+  Structure your output for THIS domain — do NOT use code analogies or "IF the code looks like X". Apply your real-world expertise (numbers, risk, people, market, legal — whatever your role is) in plain domain language. No `[hypothetical]` prefix; this is a legitimate decision, not a degraded fallback.
+  {{endif}}
+  
   {{if mode == "hypothetical"}}
-  ⚠ HYPOTHETICAL MODE: No codebase is accessible. Prefix your output with `[hypothetical absent code]` and structure answer as "IF the code looks like X, THEN Y". Be explicit about what you're assuming.
+  ⚠ HYPOTHETICAL MODE: a code-related question was asked but no codebase is reachable. Prefix your output with `[hypothetical — code not accessible]` and structure as "IF the code looks like X, THEN Y", explicit about assumptions. (This prefix is metadata for the synthesis step — Step 9 strips it from the final scaffold so it never leaks into the user's decision card.)
   {{endif}}
   
   ── Framework ──
@@ -275,6 +287,7 @@ For each worker in stage-1, use the **Task / Agent tool** to spawn a sub-agent.
   - Do NOT critique other workers; they run in parallel and you don't see their work.
   - Do NOT summarize the whole problem; you handle YOUR task.
   - Cite specific files/lines when working from `explicit_target` or `repo_scan`.
+  - **Speak this problem's domain.** Your persona examples are software-flavored, but your expertise is general — if this is a market/hiring/finance/legal decision, use that domain's vocabulary, not code analogies. Frame risk as that domain's risk, not DB-lock time.
   - {{locale-specific concluding line: ko="~이내로 간결하게 작성하세요." en="Keep under {{word_budget}} words."}}
   
   Return a {{worker.output_type}} in ~{{word_budget}} words.
@@ -404,6 +417,8 @@ Construct a candidate `FinalScaffold` (schema: `~/.claude/argus-data/schemas/fin
 - `verification`: set to `{ "overall_status": "unverified", "supported_count": 0, "challenged_count": 0, "human_check_count": human_required_checkpoints.length, "routing_decision": "not_run" }`. This prevents a freshly mixed scaffold from looking final.
 - `next_actions[]`: from mix.next_steps, annotated with `actor` = ai_executable or user
 
+**Strip worker-mode artifacts.** Any `[hypothetical …]` prefix or "IF the code looks like X" scaffolding from hypothetical-mode workers is internal metadata — remove it from every scaffold field (reframed_question, trade-offs, assumptions, actions). It may remain in `workers.json` for provenance, but it must NEVER appear in the user-facing card. (A literal `[hypothetical absent code]` leaking into an action item was a real defect.)
+
 Write to `versions/{label}/scaffold.json`.
 
 ### Step 10 — Update session.json
@@ -481,7 +496,7 @@ User typed `/argus:team` directly without going through sail. Render the full bl
 
 ## Meta-check gates (self-verify before returning)
 
-- **M1 (Code-native)**: Did `repo_context.mode` match the invocation? If `mode == hypothetical` but the user provided a `@target`, something broke. If `mode == repo_scan` but no worker cites a file path in its output, agents didn't actually use repo access — the output is de-facto hypothetical. Flag this in the final report so user knows.
+- **M1 (Code-native)**: Did `repo_context.mode` match the invocation? If `mode == hypothetical` but the user provided a `@target`, something broke. If `mode == repo_scan` but no worker cites a file path in its output, agents didn't actually use repo access — the output is de-facto hypothetical; flag it. **Do NOT flag `mode == document` as a failure** — a non-code decision with no repo is a legitimate, first-class path, not an M1 violation. M1 only governs questions that ARE about code.
 - **M9 (Worker not critic)**: Did each stage-1 worker PRODUCE an artifact in their domain? If any output reads as "I reviewed X and found issues" instead of "here's the X analysis," that's critic mode — reject and re-spawn.
 - **M3 (Contradiction preservation)**: **Only applies when debate ran.** If stakes is critical AND debate ran AND debate found disagreement, `scaffold.team_contradictions[]` MUST contain the debate entry. If debate ran and found no genuine disagreement, empty `team_contradictions[]` is correct and M3 passes. Do NOT fabricate contradiction to fill the array.
 - **M4 (Decision scaffold)**: Does scaffold have `key_trade_offs[]`, `hidden_assumptions[]`, `human_required_checkpoints[]` all populated (empty arrays are valid — the fields must EXIST)?
