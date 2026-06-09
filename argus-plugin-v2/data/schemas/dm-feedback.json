@@ -23,6 +23,8 @@
     },
     "concerns": {
       "type": "array",
+      "minItems": 1,
+      "description": "At least one concern is required — a zero-concern rubber-stamp is forbidden. A real stakeholder always has at least one reservation; if the scaffold is genuinely strong, raise the weakest point or a condition under which it fails.",
       "items": {
         "type": "object",
         "required": ["text", "severity", "fix_suggestion"],

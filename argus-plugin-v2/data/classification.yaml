@@ -152,6 +152,7 @@ stakes:
     pipeline: single_stage
     signals_from_signals: [important, unknown_stakes]
     default: true  # If signals absent, assume important
+    mandates: [adversarial_check]  # Even at single_stage, the strongest recommendation must be challenged once (see runtime rule 2). 'important' is the DEFAULT stakes, so without this most decisions would get zero adversarial review — defeating the anti-sycophancy claim.
 
   critical:
     description: "Irreversible or high-impact. Cannot redo cheaply."
@@ -207,8 +208,14 @@ runtime_instructions: |
   1. Stakes default to 'important' if unclear. Only 'critical' when irreversible
      (legal commitment, public announcement, major spend). 'routine' when explicitly
      experimental.
-  2. If stakes is 'critical', plan a final step with task_type='critique' to
-     ensure donghyuk reviews.
+  2. Adversarial review is mandatory unless stakes is 'routine':
+     - 'critical' → plan a dedicated final step with task_type='critique' (donghyuk),
+       within the 4-agent budget. This is a full second stage.
+     - 'important' (the default) → the strongest recommendation MUST be challenged once.
+       If the 3-agent plan already contains a critique/risk step, that satisfies it;
+       otherwise make the last step task_type='critique' (donghyuk) within the 3-agent
+       budget. A lightweight single pass, not a full debate — but never zero.
+     - 'routine' → no mandated critique (single_stage parallel is fine).
   3. Pick primary_task_type by matching the task's intent to signals — NOT by
      surface keyword count. "write a PR description" is writing; "summarize 3
      research docs" is synthesis (it's consolidating other work), not writing.

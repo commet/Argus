@@ -38,7 +38,7 @@ if [ ! -d "$CLAUDE_DIR" ]; then
 fi
 
 echo ""
-echo -e "${BOLD}  Argus v2.1${NC} - verification-first judgment harness for AI."
+echo -e "${BOLD}  Argus v2.1${NC} - verification-first judgment harness for Claude Code."
 echo ""
 
 TEMP_DIR=""

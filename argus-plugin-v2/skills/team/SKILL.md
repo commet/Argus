@@ -30,6 +30,7 @@ Refuse to run when:
 
 - **Session ID** (optional): from `--session <id>`. Defaults to most recently modified session in `.argus/sessions/`.
 - **Force flag** (optional): `--force` skips the analysis_readiness check.
+- **Revise flag** (optional): `--revise` — this run is a verify-driven repair (verify set `routing_decision: "revise_team"`, `phase: "team_deploying"`). Before deploying, read the latest `versions/{label}/verification.json` and inject its `challenged_claims[]` (each has `claim`, `challenge`, `suggested_fix`, `owner_agent_id`) into the relevant worker prompts: each `owner_agent_id` worker is told exactly which claim was challenged and the suggested fix to address. Without this, a "revision" is just an identical re-roll that never sees what verify challenged — the dead-end the verify gate was meant to close. Compute a new child version label for the repaired draft (Step 1.4).
 - **Override agents** (optional): `--agents sujin,donghyuk,jieun` — bypass automatic selection. Use sparingly; classification is usually better.
 - **Sail-invocation flag** (optional): `--invoked-via-sail` — suppress Step 11 verbose print block. JSON files are still written; sail's Step 7 will compose the consolidated decision card from them. Use this to avoid double-rendering when sail orchestrates the chain.
 
@@ -44,7 +45,8 @@ Refuse to run when:
 3. Assert `execution_plan.steps` has ≥ 2 entries. If not, halt with direction to run more clarify rounds.
 4. Compute next version label using rules from `~/.claude/argus-lib/session/version-numbering.md`:
    - v0.1 directory exists already (created by `/argus:clarify`).
-   - **Marker-file detection for re-run**: a version is considered "team-completed" when `versions/{label}/workers.json` exists. If the latest version's `workers.json` exists, this invocation is a re-run → compute next label via `nextChildLabel(latest_label, existing_siblings_under_same_parent)` from version-numbering.md. Typically produces `v0.2` (main-line) or `v0.1.1` (branch from v0.1 when v0.2 already exists).
+   - **Marker-file detection for re-run**: a version is considered "team-completed" when `versions/{label}/workers.json` exists. If the latest version's `workers.json` exists, this invocation is a re-run → compute the next label via `nextChildLabel(parent_label, existing_siblings_under_same_parent)` from version-numbering.md.
+   - **Branch from the checked-out draft, not the newest.** `parent_label` is the `version_label` of `session.active_draft_id` (set by `/argus:chart --checkout` or the last run), NOT simply the newest label on disk. On a `--revise` or post-checkout run this is what makes the new draft a proper child/branch (e.g. revising `v0.1` while `v0.2` exists yields `v0.1.1`, not a `v0.3` main-line). Only when `active_draft_id` is unset/points to the latest does this reduce to "main-line continuation" (`v0.2`).
    - If `workers.json` does NOT exist in the latest version dir, this is the first team run for that version → use the existing label (do NOT create a new version dir). The team populates the same dir clarify already opened.
 5. Create `versions/{label}/` directory only if a new version was computed; otherwise reuse existing.
 6. Read locale from `.argus/config.yaml` (default `ko`). All user-facing text in this skill (AskUserQuestion options, report strings, worker instructions) uses this locale.
@@ -56,10 +58,14 @@ Refuse to run when:
 **Three paths:**
 
 **(A) Explicit target** — `session.invoking_context.target_type` in `{pr, file, branch, issue, design_doc}`:
-- `pr` → already expanded by `/argus:clarify` at session start. Re-read `versions/v0.1/meta.json` for `pr_context.diff`, `pr_context.description`, `pr_context.files_changed`. Pass forward.
-- `file` → re-read the file contents. Include `git log -5 <file>` for recent context.
-- `branch` → re-run `git diff main...<branch>` + `git log main..<branch>`.
-- `issue` → re-fetch via `gh issue view <N>`.
+- **Primary source:** read `versions/v0.1/meta.json` → `target_context` (written by `/argus:clarify` when it expanded the target — see clarify Inputs). This is the single source of truth for the diff/contents/body the team must work ON. Use `target_context.diff` / `.contents` / `.body` / `.files_changed` directly.
+- **If `target_context` is absent or has an `error` field** (clarify ran before this field existed, or `gh` failed): re-fetch live as a fallback —
+  - `pr` → `gh pr view <N> --json title,body,files,state` + `gh pr diff <N>`
+  - `file` → re-read the file contents + `git log -5 <file>`
+  - `branch` → `git diff main...<branch>` + `git log main..<branch>`
+  - `issue` → `gh issue view <N>`
+  - If the live fetch also fails, fall to path (C) hypothetical mode and say so — never silently analyze nothing while claiming a target.
+- **Never** proceed in explicit-target mode with empty target content; that is the silent M1 failure (workers analyze the repo generically instead of the actual changeset).
 
 **(B) Bare prose invocation** (`target_type: ad_hoc`, the most common case):
 - Run `git ls-files | head -100` to sample repo structure.
@@ -126,7 +132,10 @@ Prompt yourself:
 >
 > Rules (from classification.yaml):
 > - Default stakes = `important`. Use `critical` only when irreversible (legal commitment, public shipment, major spend). Use `routine` only when explicitly experimental/prototype.
-> - If stakes is `critical`, include a final step with `primary_task_type: "critique"` so donghyuk reviews. If the plan doesn't have one, APPEND it.
+> - Adversarial review is mandatory unless stakes is `routine` (classification.yaml `mandates`). If the plan has no step with `primary_task_type: "critique"`, APPEND one (donghyuk):
+>   - `critical` → a full dedicated critique stage within the 4-agent budget.
+>   - `important` (the default) → a single lightweight critique pass within the 3-agent budget. Never zero — `important` is the default stakes, so skipping it means most decisions get no adversarial check.
+>   - `routine` → no critique needed.
 > - **`stakes_confidence`**: if user-confirmed upstream → 100. If your classification matches clarify's stakes_guess → average your confidence with clarify's. If your classification *diverges* from clarify's — confidence MUST be ≤70 (a divergence is itself a low-confidence signal). Sail Step 6b uses `<75` as the AskUserQuestion trigger, so this naturally surfaces disagreements to the user before locking the routing.
 
 Write classification to `versions/{label}/classification.json`. Persist `stakes_confidence` AND mark `stakes_user_confirmed: false` (unless upstream confirmed) so the field is explicit.
@@ -204,8 +213,10 @@ Produce `versions/{label}/team_plan.json`:
 - **Not consumed by sail Step 7** — the final decision card draws from `scaffold.json` + `boss_feedback.json`. team_plan is intentionally *upstream* of the user-facing artifact: it's how the team was planned, not what the team produced.
 
 Stage rules:
-- `stakes: routine | important` → single stage (all workers parallel).
-- `stakes: critical` → two stages: stage-1 = all non-critique workers; stage-2 = critique worker(s), depends on stage-1 results.
+- `stakes: routine` → single stage (all workers parallel; no critique).
+- `stakes: important` → stage-1 = domain workers in parallel; stage-2 = the single lightweight critique worker (donghyuk), depends on stage-1. A bounded second stage, not a full debate. (This is the change that makes the default-stakes path actually adversarial.)
+- `stakes: critical` → two stages: stage-1 = all non-critique workers; stage-2 = critique worker(s) + debate, depends on stage-1 results.
+- General rule: **any plan containing a `critique` step runs that step in stage-2** (it needs stage-1 results as input), regardless of stakes label.
 
 ### Step 4 — Deploy stage 1 workers in parallel
 
@@ -276,9 +287,9 @@ All stage-1 workers spawn in a **single message with multiple Task tool calls in
 
 Each Task returns a result. For each:
 1. Append to `workers` array in `versions/{label}/workers.json` with `status: "done"`, `result: <agent output>`, timestamps.
-2. If any worker errored, log to `errors.log` in the version directory. Don't halt — other workers continue.
+2. If any worker errored, log to `.argus/sessions/{id}/errors.log` (the canonical per-session log — same path sail and session-layout.md use; do NOT write a separate `versions/{label}/errors.log`). Don't halt — other workers continue.
 
-### Step 6 — Deploy stage 2 negative validation worker (only if `stakes: critical`)
+### Step 6 — Deploy stage 2 negative validation worker (whenever a critique/stage-2 worker exists — i.e. `important` or `critical`)
 
 Stage-2 workers (typically donghyuk) get **stage-1 results as context**:
 
@@ -294,7 +305,9 @@ Team results from stage 1:
 
 Framework: {{worker.framework}}
 
-Your job: find the ONE most important risk, unsupported claim, or false-positive trap in the team's combined output. Follow M9 — you are doing the WORK of risk analysis, not "reviewing" each agent in turn.
+Your job: identify the 2-3 most important ranked risks (unsupported claims, false-positive traps, foundational evidence gaps) in the team's combined output, PLUS one risk nobody on the team named (the unspoken one). For each, give a one-line mitigation or the specific evidence that would resolve it. This matches your agent spec (2-3 + one unspoken) — do NOT collapse to a single easily-absorbed criticism. Follow M9 — you are doing the WORK of risk analysis, not "reviewing" each agent in turn.
+
+If a risk is a foundational evidence gap (the decision's premise is unverified — e.g. "we assume X is legal/true" with no source), flag it explicitly as `foundational: true` so `/argus:verify` can route it to a human-required check rather than waving it through.
 
 Return a risk_assessment in ~500 words.
 ```
@@ -396,6 +409,15 @@ Write to `versions/{label}/scaffold.json`.
 - Set `session.mix` to the MixResult
 - Set `session.final_scaffold` to the FinalScaffold
 - Update `session.classification`
+- **Append a Draft to `session.drafts[]`** (schema: `~/.claude/argus-data/schemas/draft.json`) and set `session.active_draft_id` to it. Without this the chart version tree is permanently empty and `--checkout` / `--promote` / branching cannot work. Shape:
+  - `id`: stable draft id (e.g. `draft-{label}`)
+  - `parent_draft_id`: the draft this one descends from — on a `--revise`/branch run, the draft whose `version_label` matches the checked-out `session.active_draft_id`; on the first team run, `null` (root)
+  - `version_label`: the version label this run wrote (e.g. `v0.1`, `v0.2`, `v0.1.1`)
+  - `revision_directive`: on `--revise`, a short note of which challenged claims were addressed; else `null`
+  - `reviewing_agent_id`: `null` (set by boss/revise later)
+  - `final_scaffold`: `$ref` to the scaffold just written (or null — `versions/{label}/scaffold.json` is authoritative)
+  - `change_summary`: one line for the chart tree annotation (e.g. "초기 팀 배치" / "ISTJ 우려 반영")
+  - `created_at`
 - Set `phase: "verifying"` (ready for `/argus:verify`) OR `phase: "complete"` only when the user explicitly asked for team output without verification
 - Update `updated_at`
 

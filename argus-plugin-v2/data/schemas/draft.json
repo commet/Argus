@@ -27,7 +27,7 @@
     },
     "reviewing_agent_id": {
       "type": ["string", "null"],
-      "enum": [null, "navigator", "dm_reroll"],
+      "enum": [null, "navigator"],
       "description": "Which agent produced this revision. null = initial draft from pipeline."
     },
     "final_scaffold": {

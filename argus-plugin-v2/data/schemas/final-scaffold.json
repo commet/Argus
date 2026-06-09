@@ -30,11 +30,11 @@
       "description": "Assumptions the scaffold rests on. If any prove false, scaffold collapses.",
       "items": {
         "type": "object",
-        "required": ["assumption", "risk_if_false"],
+        "required": ["assumption", "risk_if_false", "evaluation"],
         "properties": {
           "assumption": { "type": "string" },
           "risk_if_false": { "type": "string" },
-          "evaluation": { "enum": ["likely_true", "uncertain", "doubtful"] }
+          "evaluation": { "enum": ["likely_true", "uncertain", "doubtful"], "description": "REQUIRED — never omit. Default to 'uncertain' when not actively validated; only 'likely_true' with evidence. sail Step 7 surfaces 'doubtful' AND 'uncertain' as risk warnings, so an omitted/optimistic value silently hides false-confidence." }
         }
       }
     },

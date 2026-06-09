@@ -32,7 +32,8 @@ Default mode (no flag) auto-routes based on `decision_density` and `stakes_confi
 When this skill (or any sub-skill it invokes) refers to `data/...` or `lib/...`,
 these resolve to:
 - `~/.claude/argus-data/` — schemas, agents.yaml, boss-types.yaml, classification.yaml, README.md
-- `~/.claude/argus-lib/` — session-layout.md, version-numbering.md, locale-conventions.md, config.example.yaml, rehearsal-prompt.md
+- `~/.claude/argus-lib/` — locale-conventions.md, config.example.yaml, rehearsal-prompt.md (flat)
+- `~/.claude/argus-lib/session/` — session-layout.md, version-numbering.md (install.sh `cp -r` preserves the `session/` subdir; do NOT look for these flat under `argus-lib/`)
 
 `install.sh` (both `--link` developer mode and copy mode) places them there.
 User's session artifacts live in `<cwd>/.argus/sessions/`.
@@ -43,13 +44,23 @@ User's session artifacts live in `<cwd>/.argus/sessions/`.
 
 Read `.argus/config.yaml` (schema: `~/.claude/argus-data/schemas/config.json`).
 
-**If missing, silently create from `~/.claude/argus-lib/config.example.yaml`** (no AskUserQuestion — first-run friction was the discoverability killer). Print ONE line in detected locale:
+**If missing, silently create from `~/.claude/argus-lib/config.example.yaml`** (no AskUserQuestion — first-run friction was the discoverability killer). First ensure the target dir exists: `mkdir -p .argus` (on a true first run in a fresh repo `.argus/` does not exist yet, so writing the config straight away would fail).
+
+**Substitute the detected locale into the written config — do not leave the template's `locale: ko`.** The template defaults to Korean; if you write it verbatim, every downstream output is Korean regardless of the user. After detecting locale (below):
+- Set `locale:` in the written config to the detected value.
+- If detected locale is `en`, also replace the Korean boss persona with English defaults: `name: "Manager"`, `gender: male`, `role: "Manager"` (keep `mbti_code: ISTJ`). If `ko`, keep the template's `박 팀장`.
+
+Print ONE line in the detected locale:
 - ko: "ℹ `.argus/config.yaml` 자동 생성 (ISTJ 박 팀장 기본). 다른 boss 원하면 그 파일 편집."
 - en: "ℹ `.argus/config.yaml` auto-created (ISTJ default boss). Edit it if you want a different stakeholder."
 
-Locale detection when no config exists yet:
-- If `LANG` env starts with `ko` OR system locale is Korean → ko
+Locale detection when no config exists yet (first match wins):
+- If `LANG` / `LC_ALL` env starts with `ko` → ko
+- On Windows (no `LANG`): if `Get-Culture` / system UI culture is Korean (`ko-*`) → ko
+- Else if the user's `problem_text` is predominantly Korean (Hangul) → ko
 - Else → en
+
+(This default — en when nothing indicates Korean — is the one the rest of the plugin assumes; keep `lib/locale-conventions.md` consistent with it.)
 
 All downstream skills inherit `locale` from the (now-existing) config.
 
@@ -76,15 +87,18 @@ Emit an early message in config.locale confirming detection: e.g., "PR #42를 �
 
 Decision table:
 
+**`conversing` tiebreaker (two rows below would both match):** read `versions/{label}/analysis.json`. If `execution_plan.steps.length >= 2` → treat as "ready" (route to team). Otherwise → "not ready" (route to clarify --continue). Decide by the execution_plan, never guess.
+
 | Current phase | Next skill |
 |---|---|
 | new / no session | `/argus:clarify` |
-| `analyzing` or `conversing` (not ready for mix) | `/argus:clarify --continue` |
-| `conversing` (execution_plan ready) | `/argus:team` |
+| `analyzing` or `conversing` (execution_plan < 2 steps) | `/argus:clarify --continue` |
+| `conversing` (execution_plan ready, ≥ 2 steps) | `/argus:team` |
+| `team_deploying` (verify routed `revise_team`) | `/argus:team --revise` — re-run team with `verification.json` challenged_claims fed into the worker prompts |
 | `team_working` or `mixing` | wait / show progress via status |
 | `verifying` or team complete with no `verification.json` | `/argus:verify` |
 | `dm_feedback` pending | `/argus:boss` |
-| `refining` or `complete` | show scaffold via `/argus:chart`, offer `/argus:revise` |
+| `refining` or `complete` | show scaffold via `/argus:chart` (apply boss concerns by editing scaffold.json + re-running `/argus:boss`; dedicated `/argus:revise` is post-MVP) |
 
 ### Step 4 — Chain skills (if `--full`)
 
@@ -92,16 +106,24 @@ Run sequentially:
 1. `/argus:clarify --no-minimal` (until ready for mix, or max rounds). The `--no-minimal` flag suppresses Step 6a auto-collapse — `--full` is an explicit user override.
 2. `/argus:team --invoked-via-sail` (on the snapshot's execution_plan). The `--invoked-via-sail` flag tells team to suppress its own verbose Step 11 print block; sail's Step 7 will render the consolidated card.
 3. `/argus:verify --invoked-via-sail` (on the team output). This is the core gate: supported/challenged/human-check claims become visible before any stakeholder review.
-4. `/argus:boss --invoked-via-sail` (unless `--no-boss` OR verify routed to `revise_team` / `stop_for_human_check`). Same flag — suppresses boss's verbose narration; sail Step 7 surfaces approval_condition + top critical concern only.
+4. `/argus:boss --invoked-via-sail` (unless `--no-boss` OR verify's `routing_decision` is `revise_team` / `stop_for_human_check` / **`ask_user`**). `ask_user` means verify could not resolve the route (e.g. a `critical` challenged claim under `--no-prompt`); boss must NOT run on an unresolved critical challenge. Same flag otherwise — suppresses boss's verbose narration; sail Step 7 surfaces approval_condition + top critical concern only.
 5. **Step 7 — final decision card** (see below).
 
 Clarify still computes `decision_density` (for telemetry/logging in meta.json) but Step 5 emits the regular scaffold instead of MinimalScaffold.
 
-Between skills, report ONE-line transition to user (terse — verbose narration was the legacy boss-of-friction problem):
+Between skills, report ONE-line transition to user in `config.locale` (terse — verbose narration was the legacy source-of-friction problem):
+
+**ko**
 > "✓ Clarify · 팀 배치 중..."
 > "✓ Team ({{N}} agents) · 검증 중..."
 > "✓ Verify · Boss({{mbti}}) 검토 중..." (only when verify routes forward and boss is enabled)
 > "✓ Boss · 결정 카드 ↓"
+
+**en**
+> "✓ Clarify · deploying team..."
+> "✓ Team ({{N}} agents) · verifying..."
+> "✓ Verify · Boss({{mbti}}) reviewing..." (only when verify routes forward and boss is enabled)
+> "✓ Boss · decision card ↓"
 
 ### Step 5 — `--quick` mode
 
@@ -143,7 +165,7 @@ Use AskUserQuestion:
   - "더 가볍게 봐도 돼" / "Lighter than that" — downgrade one level
   - "더 무겁게 봐야 해" / "Heavier than that" — upgrade one level
 
-Persist the user-confirmed stakes to `session.classification.stakes` and `session.classification.stakes_user_confirmed = true`. Then continue to Step 6c with the locked stakes.
+Persist the user-confirmed stakes to `session.classification.stakes` and `session.classification.stakes_user_confirmed = true`, and set `session.classification.stakes_confidence = 100` (the user just confirmed it — it is no longer uncertain). Without this reset, Step 6c's matrix sees confidence still `< 75` and falls into the `n/a` row, stalling with no action. Then continue to Step 6c with the locked stakes.
 
 If `stakes_confidence >= 75`: skip directly to Step 6c without asking — clarify is sure enough that the friction of asking outweighs the routing risk.
 
@@ -157,9 +179,11 @@ Decision matrix:
 |---|---|---|---|---|
 | `critical` | ≥ 80 | medium/high | run team → verify → boss → final card | No (just one-line "auto-proceeding" notice) |
 | `important` | ≥ 80 | medium/high | run team → verify → boss → final card | No (one-line notice) |
-| `routine` | ≥ 80 | medium (non-low) | run quick scaffold (clarify --no-minimal already done in Step 6 path; emit final card on snapshot only) | No |
+| `routine` | ≥ 80 | medium (non-low) | clarify Step 5b scaffold is the terminal output for this row — emit a one-line ack and exit; do NOT invoke Step 7 (no scaffold.json is produced without team) | No |
 | any | 75–79 | medium/high | ask once: 3 options below | Yes |
-| any | < 75 | any | should have been caught by Step 6b | n/a |
+| any | < 75 | any | only reachable if `stakes_user_confirmed != true`; treat a confirmed-stakes session as confidence 100 (Step 6b sets this). If genuinely still `< 75` and unconfirmed, loop back to Step 6b once. | n/a |
+
+> Note: Step 6b sets `stakes_confidence = 100` after the user confirms, so a confirmed borderline decision lands in the `≥ 80` rows here, not the `< 75` row.
 
 **Auto-action notice (when skipping the prompt):** print one line in config.locale before chaining.
 - ko: "자동 진행 — `{{stakes}}` ({{confidence}}/100). 팀 배치 → 검증 → boss 검토 → 최종 카드까지 이어갑니다. (멈추려면 Ctrl-C)"
@@ -189,60 +213,68 @@ Step 7 emits ONE consolidated view. The user should NOT have to read JSON files 
 #### Source data
 
 Read the latest `versions/{label}/`:
-- `analysis.json` → `reframed_question`, `framing_confidence`
-- `scaffold.json` (FinalScaffold) → `key_trade_offs[0]`, `team_contradictions[]`, `hidden_assumptions[]` (filter doubtful), `human_required_checkpoints[]`, `next_actions[0..1]`
+- `analysis.json` → `real_question` (the surfaced question; NOTE: analysis.json has `real_question`, not `reframed_question`), `framing_confidence`
+- `scaffold.json` (FinalScaffold) → `reframed_question` (this is the field the card's question line uses), `key_trade_offs[0]`, `team_contradictions[]`, `hidden_assumptions[]` (filter `evaluation` in {`doubtful`, `uncertain`} — both are unvalidated and must be surfaced), `human_required_checkpoints[]`, `next_actions[0..1]`
 - `verification.json` (if verify ran) → `overall_status`, `supported_claims[]`, `challenged_claims[]`, `human_required_checks[]`, `routing_decision`
 - `boss_feedback.json` (if boss ran) → `approval_condition`, top critical concern (if any)
 
 #### Render
 
+**Branch the entire card on `config.locale`.** Both templates carry the same data; only the labels differ. `next_actions[0]` appears exactly once (in the "우선 행동 / Do first" line) — do NOT also print it as a separate "팀 권장 / Team recommends" line, that was a duplicate.
+
+**locale: ko**
 ```
 ## Argus · {{session_id}} · {{label}}
 
 **질문:** {{reframed_question}}
 
-{{if boss_feedback exists}}
-**Boss({{boss.mbti}}) 결론:** {{boss_feedback.approval_condition}}
-{{else}}
-**팀 권장:** {{next_actions[0].action}}
-{{endif}}
+{{if boss_feedback exists}}**Boss({{boss.mbti}}) 결론:** {{boss_feedback.approval_condition}}{{endif}}
 
 **우선 행동 (이번 주):** {{next_actions[0].action}}{{if next_actions[1]}} · {{next_actions[1].action}}{{endif}}
 
-{{if verification exists}}
-**검증:** {{overall_status}} · 지지 {{supported_claims.length}} · 반박 {{challenged_claims.length}} · 사람 확인 {{human_required_checks.length}}
-{{if challenged_claims length > 0}}
-**⚠ 최상위 반박:** [{{challenged_claims[0].severity}}] {{challenged_claims[0].claim}}
-{{endif}}
-{{endif}}
-
-{{if team_contradictions length > 0}}
-**⚠ 미해결 갈등 ({{team_contradictions.length}}건):** {{team_contradictions[0].topic}} {{if team_contradictions.length > 1}}외 {{team_contradictions.length - 1}}건{{endif}}
-{{endif}}
-
-{{if hidden_assumptions filter doubtful length > 0}}
-**⚠ 의심 가정 ({{N}}건):** {{first.assumption}}{{if N > 1}} 외 {{N-1}}건{{endif}}
-{{endif}}
-
-{{if human_required_checkpoints length > 0}}
-**👤 사용자 작업 ({{N}}건):** {{first.checkpoint}}
-{{endif}}
-
-{{if boss_feedback critical concerns}}
-**🛑 Boss critical 우려:** {{first critical concern}}
-{{endif}}
+{{if verification exists}}**검증:** {{overall_status}} · 지지 {{supported_claims.length}} · 반박 {{challenged_claims.length}} · 사람 확인 {{human_required_checks.length}}{{endif}}
+{{if challenged_claims length > 0}}**⚠ 최상위 반박:** [{{challenged_claims[0].severity}}] {{challenged_claims[0].claim}}{{endif}}
+{{if team_contradictions length > 0}}**⚠ 미해결 갈등 ({{team_contradictions.length}}건):** {{team_contradictions[0].topic}}{{if team_contradictions.length > 1}} 외 {{team_contradictions.length - 1}}건{{endif}}{{endif}}
+{{if unvalidated_assumptions length > 0}}**⚠ 미검증 가정 ({{N}}건):** {{first.assumption}}{{if N > 1}} 외 {{N-1}}건{{endif}}{{endif}}
+{{if human_required_checkpoints length > 0}}**👤 사용자 작업 ({{N}}건):** {{first.checkpoint}}{{endif}}
+{{if boss_feedback critical concerns}}**🛑 Boss critical 우려:** {{first critical concern}}{{endif}}
 
 📁 `.argus/sessions/{{session_id}}/versions/{{label}}/`
 🗺  전체 트리: `/argus:chart`
 ```
+
+**locale: en**
+```
+## Argus · {{session_id}} · {{label}}
+
+**Question:** {{reframed_question}}
+
+{{if boss_feedback exists}}**Boss({{boss.mbti}}) verdict:** {{boss_feedback.approval_condition}}{{endif}}
+
+**Do first (this week):** {{next_actions[0].action}}{{if next_actions[1]}} · {{next_actions[1].action}}{{endif}}
+
+{{if verification exists}}**Verification:** {{overall_status}} · supported {{supported_claims.length}} · challenged {{challenged_claims.length}} · human checks {{human_required_checks.length}}{{endif}}
+{{if challenged_claims length > 0}}**⚠ Top challenge:** [{{challenged_claims[0].severity}}] {{challenged_claims[0].claim}}{{endif}}
+{{if team_contradictions length > 0}}**⚠ Unresolved tensions ({{team_contradictions.length}}):** {{team_contradictions[0].topic}}{{if team_contradictions.length > 1}} +{{team_contradictions.length - 1}} more{{endif}}{{endif}}
+{{if unvalidated_assumptions length > 0}}**⚠ Unvalidated assumptions ({{N}}):** {{first.assumption}}{{if N > 1}} +{{N-1}} more{{endif}}{{endif}}
+{{if human_required_checkpoints length > 0}}**👤 Your action ({{N}}):** {{first.checkpoint}}{{endif}}
+{{if boss_feedback critical concerns}}**🛑 Boss critical concern:** {{first critical concern}}{{endif}}
+
+📁 `.argus/sessions/{{session_id}}/versions/{{label}}/`
+🗺  Full tree: `/argus:chart`
+```
+
+`unvalidated_assumptions` = `hidden_assumptions[]` filtered to `evaluation` in {`doubtful`, `uncertain`}.
 
 Target length: 12–18 lines. The user should be able to read it in one screen.
 
 The full JSON files remain in `versions/{label}/` for chart and revise to consume. The card is the SUMMARY — anyone wanting more depth opens the files. This is the "한 화면 결정 카드" the user actually consumes.
 
 **Verification routing override:** If `verification.routing_decision` is `revise_team` or `stop_for_human_check`, Step 7 still renders the card but MUST label it as **not ready for boss/signoff**. Do not imply completion. The next line should be:
-- ko: `다음: {{routing_decision == "revise_team" ? "/argus:team --force 로 보완 후 /argus:verify 재실행" : "사람 확인 항목을 처리한 뒤 /argus:sail --resume " + session.id}}`
-- en: `Next: {{routing_decision == "revise_team" ? "repair via /argus:team --force, then rerun /argus:verify" : "complete human checks, then /argus:sail --resume " + session.id}}`
+- ko: `다음: {{routing_decision == "revise_team" ? "/argus:sail --resume " + session.id + " (팀이 반박 항목을 반영해 재작업 후 재검증)" : "사람 확인 항목을 처리한 뒤 /argus:sail --resume " + session.id}}`
+- en: `Next: {{routing_decision == "revise_team" ? "/argus:sail --resume " + session.id + " (team reworks the challenged claims, then re-verifies)" : "complete human checks, then /argus:sail --resume " + session.id}}`
+
+(On `revise_team`, verify has set `phase = team_deploying`; resuming routes to `/argus:team --revise`, which re-runs the team with `verification.json`'s challenged_claims injected — see Step 3.)
 
 ---
 
@@ -279,7 +311,7 @@ No JSON dumps, no path-only summaries. The card or scaffold is the consumable ar
 
 - **No args + no git state**: prompt for input via AskUserQuestion.
 - **Session exists in intermediate phase**: resume is default; offer restart only if user asks.
-- **Sub-skill fails**: log to `.argus/errors.log`, report to user, don't proceed to next skill.
+- **Sub-skill fails**: log to `.argus/sessions/{id}/errors.log` (the canonical per-session log — keep this consistent across sail, team, and session-layout.md; gitignore `.argus/sessions/*/errors.log`), report to user, don't proceed to next skill.
 
 ---
 

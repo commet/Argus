@@ -25,6 +25,7 @@ Do NOT run when:
 
 **Flags clarify accepts:**
 - `--no-minimal` — force Step 5b (regular scaffold) even when `decision_density == "low"`. Sail passes this when invoked with `--quick` or `--full`. Direct `/argus:clarify "<problem>"` invocations honor minimal mode automatically.
+- `--invoked-via-sail` — clarify is running as a step inside `/argus:sail`, not standalone. When set, Step 5b writes its files but emits only a one-line ack instead of the full scaffold print, and does NOT tell the user to run `/argus:team` (sail is already chaining it). Prevents the double-render where the user sees clarify's scaffold AND sail's final card. Minimal mode (Step 5a) still prints, since on the minimal path sail exits silently and clarify's output IS the answer.
 - `--continue` — Q&A deepening round on an existing session.
 - `--revise <session-id>` — re-clarify with new input (post-MVP).
 
@@ -49,6 +50,13 @@ One of:
 
 If multiple candidates, use **AskUserQuestion** to disambiguate: "Which of these are you working on?"
 
+**Persist the expanded target context.** Whenever a target reference is expanded (PR diff, file contents, branch diff, issue body), write the result to `versions/v0.1/meta.json` under `target_context` so `/argus:team` can consume it directly without re-fetching — `gh` may be unauthorized or offline by the time team runs, and re-fetching duplicates work. Shape:
+- `pr` → `target_context: {kind: "pr", ref, title, description, state, files_changed: [...], diff}`
+- `issue` → `target_context: {kind: "issue", ref, title, body, state}`
+- `branch` → `target_context: {kind: "branch", ref, commits, diff_stat}`
+- `file` → `target_context: {kind: "file", ref, contents, recent_churn}`
+This is the single source of truth for the artifact the team works ON (M1 code-native). If expansion failed (gh missing / not a repo), write `target_context: {kind, ref, error: "<reason>", fallback_text: "<user-pasted text if any>"}` so team can degrade to hypothetical mode knowingly instead of silently analyzing nothing.
+
 ---
 
 ## Execution steps
@@ -59,7 +67,7 @@ If multiple candidates, use **AskUserQuestion** to disambiguate: "Which of these
 2. Compute session ID: `YYYY-MM-DD-<kebab-of-first-N-words-of-problem>`. Collision-safe by appending `-2`, `-3`.
 3. Create `.argus/sessions/{id}/` directory.
 4. Create `session.json` at the root with schema from `~/.claude/argus-data/schemas/session.json`. Fields:
-   - `id`, `problem_text`, `repo_path` (from `pwd`), `repo_branch` (from `git branch --show-current`)
+   - `id`, `problem_text`, `repo_path` (from `pwd`), `repo_branch` (from `git branch --show-current`; if the command errors because this is not a git repo, set `repo_branch: null` and `invoking_context.git_available: false` — do NOT halt or write garbage. Team Step 1.5 path C (hypothetical mode) keys off `git_available: false`.)
    - `invoking_context`: `{target_type, target_ref}` from the input expansion
    - `boss_agent`: from `config.boss` if present
    - `phase: "analyzing"`, `round: 0`, `max_rounds: 3`
@@ -218,7 +226,11 @@ This is the one place clarify produces a directive. The full scaffold pipeline i
 
 #### Step 5b — `decision_density in {"medium", "high"}` (or absent for legacy) → regular scaffold
 
-Print to user:
+**If `--invoked-via-sail` is set:** do NOT print the scaffold block below. Write all files (analysis.json, meta.json, etc.) as normal, then emit a single ack line in `config.locale` and return — sail Step 7 renders the consolidated card.
+- ko: `✓ Clarify — 진짜 질문 파악 완료, 팀 배치 중…`
+- en: `✓ Clarify — real question framed, deploying team…`
+
+**Otherwise (direct invocation)**, print to user:
 
 ```
 ## Argus · Clarify · v0.1
@@ -261,7 +273,7 @@ Written to `.argus/sessions/{id}/`:
 - `session.json` — top-level session record (schema: `~/.claude/argus-data/schemas/session.json`)
 - `versions/v0.1/analysis.json` — the AnalysisSnapshot (schema: `~/.claude/argus-data/schemas/analysis-snapshot.json`)
 - `versions/v0.1/questions_and_answers.json` — the Q&A history
-- `versions/v0.1/meta.json` — `{triggering_skill: "clarify", timestamp, framing_locked, user_accepted_framing}`
+- `versions/v0.1/meta.json` — `{triggering_skill: "clarify", timestamp, framing_locked, user_accepted_framing, target_context?, density_was?}`. `target_context` is present whenever a target reference was expanded (see Inputs) and is what `/argus:team` reads to work on the real artifact.
 - `versions/v0.1/minimal_scaffold.json` — **only when `decision_density == "low"`** (Step 5a). MinimalScaffold (schema: `~/.claude/argus-data/schemas/minimal-scaffold.json`). When this file exists, downstream `/argus:sail` MUST set phase=complete and skip team/verify/boss.
 
 ---

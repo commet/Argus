@@ -15,9 +15,11 @@ root.
 │       │   ├── v0.1/
 │       │   │   ├── analysis.json       # From /argus:clarify
 │       │   │   ├── questions_and_answers.json
-│       │   │   ├── meta.json
+│       │   │   ├── meta.json            # incl. target_context (expanded PR/file/issue)
+│       │   │   ├── minimal_scaffold.json # clarify, only when decision_density == low
 │       │   │   ├── classification.json # From /argus:team
 │       │   │   ├── team_plan.json
+│       │   │   ├── repo_context.json    # M1 code-native context for workers
 │       │   │   ├── workers.json
 │       │   │   ├── debate.json         # Critical stakes only
 │       │   │   ├── mix.json
@@ -61,7 +63,11 @@ Session-level fields in `session.json`:
 Version-level files in `versions/{label}/*.json`:
 
 - Artifacts produced during that version's lifecycle.
-- Immutable once complete, except `meta.json` annotations.
+- Immutable once complete, with two documented exceptions: `meta.json` annotations,
+  and `scaffold.json` — which `/argus:verify` updates (verification summary) and
+  `/argus:boss` updates (applied/rejected concerns + boss-issued actions). Consumers
+  must treat `scaffold.json` as the authoritative latest, not assume it is frozen
+  after `/argus:team`.
 - A version starts when `/argus:clarify`, `/argus:team`, `/argus:verify`, or
   `/argus:boss` begins a new draft chain.
 
@@ -74,9 +80,11 @@ and is shareable via git.
 Recommended `.gitignore`:
 
 ```text
-.argus/errors.log
+.argus/sessions/*/errors.log
 .argus/sessions/*/versions/**/*.stream.partial
 ```
+
+(The canonical error log is `.argus/sessions/{id}/errors.log` — sail, team, and this layout all write there. Do not write a per-version `errors.log`.)
 
 Everything else should be committed.
 
@@ -96,8 +104,8 @@ surface view reflects the active draft's scaffold.
 
 | Skill | Files written |
 |---|---|
-| `/argus:clarify` | `analysis.json`, `questions_and_answers.json`, `meta.json` |
-| `/argus:team` | `classification.json`, `team_plan.json`, `workers.json`, optional `debate.json`, `mix.json`, candidate `scaffold.json` |
+| `/argus:clarify` | `analysis.json`, `questions_and_answers.json`, `meta.json` (incl. `target_context` when a target was expanded), `minimal_scaffold.json` (only when `decision_density == "low"`) |
+| `/argus:team` | `classification.json`, `team_plan.json`, `repo_context.json` (M1 code-native context), `workers.json`, optional `debate.json`, `mix.json`, candidate `scaffold.json`; appends a Draft to `session.drafts[]` and sets `active_draft_id` |
 | `/argus:verify` | `verification.json`, updated `scaffold.json` verification summary, updated `session.json` verification state |
-| `/argus:boss` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns |
-| `/argus:revise` | New version dir. Copies forward unchanged artifacts and writes `revise_directive.txt` plus new `mix.json` if revised. |
+| `/argus:boss` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns, re-synced `session.final_scaffold` |
+| `/argus:revise` | **post-MVP** — not yet implemented. Planned: new child version dir, injects verify `challenged_claims[]` into a targeted team re-run, appends a child Draft. Until it ships, "revise" = edit `scaffold.json` + re-run `/argus:boss`. |

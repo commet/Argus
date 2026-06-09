@@ -34,11 +34,19 @@ description: Display the chart of the current Argus session — its version tree
 
 ## Execution steps
 
+### Step 0 — Load config & guard for empty state
+
+1. Read `.argus/config.yaml` (silent-create from `~/.claude/argus-lib/config.example.yaml` if missing, same as other skills). All user-facing text in this skill uses `config.locale`.
+2. **Zero-sessions guard:** if `.argus/sessions/` does not exist or contains no session directory, do NOT error. Print and stop:
+   - ko: `아직 Argus 항해 기록이 없습니다. \`/argus:sail "<결정>"\` 로 시작하세요.`
+   - en: `No Argus voyages yet. Start one with \`/argus:sail "<your decision>"\`.`
+3. **Legacy guard:** if only pre-v2 (`v0.5`-era) files exist with no `session.json`, note that legacy sessions aren't rendered by this version and point to the newest v2 session if any.
+
 ### Default (no flags) — show current session
 
-1. Find latest session. Read `session.json`.
-2. Read all `versions/*/` metadata.
-3. Parse draft tree from `session.drafts[]`.
+1. Find the latest session: the session directory whose `session.json` has the newest `updated_at`; if `updated_at` is missing or tied, fall back to directory mtime. Read its `session.json`.
+2. Read these per-version files for the active draft: `versions/{label}/scaffold.json` (Current block — reframed_question, assumptions, checkpoints), `workers.json` (agent count), `verification.json` (verification line), `boss_feedback.json` (boss status + concern count). Treat any missing file as "not run" rather than failing.
+3. Parse draft tree from `session.drafts[]`. If `drafts[]` is empty (session predates draft persistence, or only clarify ran), render a single-node tree from the version directories present instead of a blank tree.
 4. Render as ASCII tree:
 
 ```
@@ -62,10 +70,10 @@ description: Display the chart of the current Argus session — its version tree
 ## Next
 - If verification is missing: run `/argus:verify`
 - If verification is blocked: complete human checks, then `/argus:sail --resume {{session.id}}`
-- Applied concerns not yet finalized: use `/argus:revise` to apply them
+- Apply boss concerns (revise — post-MVP): edit `versions/{{active_label}}/scaffold.json` directly, then re-run `/argus:boss` to re-review. (A dedicated `/argus:revise` that forks a new draft is planned.)
 - Promote this draft to v1.0: `/argus:chart --promote {{active_label}}`
-- Start new branch from older draft: `/argus:chart --checkout <label>` then `/argus:revise`
 ```
+(Branch-from-older-draft via `/argus:chart --checkout <label>` is available, but creating a revised child draft from it needs `/argus:revise`, which is post-MVP — see note above.)
 
 ### Tree rendering
 
@@ -94,12 +102,12 @@ v0.1 ──┬── v0.2 (인력 추가 반영) ──── v0.2.1 (ISTJ 우�
 
 1. Verify label exists in `session.drafts[]`.
 2. Update `session.active_draft_id` to that draft's id.
-3. Copy that draft's `final_scaffold` content to `versions/{label}/` if switching branches changes the "latest" view.
+3. Sync the "current" view: set `session.final_scaffold` to the contents of `versions/{label}/scaffold.json` (that file is authoritative for the draft; do NOT copy a draft's possibly-null `final_scaffold` over the existing scaffold.json). This makes the Current block and any downstream reader reflect the checked-out draft.
 4. Report: "Switched active draft to {{label}}. Run `/argus:chart` to see tree."
 
 ### Flag: `--promote <label>`
 
-1. Verify label is pre-release (matches `v0\.\d+`).
+1. Verify label is pre-release via `isPreRelease()` logic — major tier is `0` (e.g. `v0.3`, `v0.2.1`) OR it is not a `vN.0` release for `N >= 1`. Do NOT use a `v0\.\d+` regex: it wrongly rejects valid branch labels like `v0.1.1` and post-v1 labels like `v1.2` that `promoteToMajor` supports.
 2. Compute new label via promoteToMajor algorithm:
    - `v0.3` → `v1.0`
    - `v0.3.1` → `v1.0`
@@ -111,12 +119,11 @@ v0.1 ──┬── v0.2 (인력 추가 반영) ──── v0.2.1 (ISTJ 우�
 
 ### Flag: `--delete <session-id>`
 
-1. AskUserQuestion:
-   - Title: "정말 삭제?"
-   - Question: "세션 {{id}} — {{problem_text_snippet}}. 복구 불가능합니다."
-   - Options: "네, 삭제", "아니오, 취소"
-2. If confirmed: `rm -rf .argus/sessions/{{id}}/`.
-3. Report: "Deleted {{id}}."
+1. AskUserQuestion (locale-aware):
+   - **ko** — Title: "정말 삭제?" · Question: "세션 {{id}} — {{problem_text_snippet}}. 복구 불가능합니다." · Options: "네, 삭제", "아니오, 취소"
+   - **en** — Title: "Delete session?" · Question: "Session {{id}} — {{problem_text_snippet}}. This cannot be undone." · Options: "Yes, delete", "No, cancel"
+2. If confirmed, remove the directory cross-platform (this skill runs on Windows too): use the Claude Code file tools, or `rm -rf .argus/sessions/{{id}}/` on Unix / `Remove-Item -Recurse -Force .argus/sessions/{{id}}/` on Windows. Do NOT assume `rm -rf` exists — on win32/PowerShell it fails and the user is wrongly told the session was deleted.
+3. Report (locale-aware): ko "{{id}} 삭제됨." / en "Deleted {{id}}."
 
 ### Flag: `--tree`
 

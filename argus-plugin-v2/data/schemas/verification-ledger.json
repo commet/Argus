@@ -69,7 +69,7 @@
       "description": "Real disagreements that should remain visible to the user instead of being averaged away.",
       "items": {
         "type": "object",
-        "required": ["topic", "positions", "tie_breaking_condition"],
+        "required": ["topic", "positions"],
         "properties": {
           "topic": { "type": "string" },
           "positions": {

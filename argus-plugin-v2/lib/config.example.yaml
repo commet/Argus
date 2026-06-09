@@ -2,10 +2,12 @@
 # Copy to `.argus/config.yaml` in your repo and customize.
 # Schema: ~/.claude/argus-data/schemas/config.json
 #
-# On first `/argus:sail` invocation, if .argus/config.yaml is missing, the
-# skill offers to create one from this template via AskUserQuestion.
+# On first `/argus:sail` invocation, if .argus/config.yaml is missing, it is
+# silently auto-created from this template (NO setup dialog) and sail substitutes
+# the detected locale (and an English boss persona when locale resolves to "en").
+# Edit this file afterward to customize. There is intentionally no first-run prompt.
 
-locale: ko  # or "en"
+locale: ko  # or "en" — sail Step 0 overwrites this with the detected locale on auto-create
 
 boss:
   mbti_code: ISTJ  # Must match an entry in ~/.claude/argus-data/boss-types.yaml. See choices:

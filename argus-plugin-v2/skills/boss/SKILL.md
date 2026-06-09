@@ -21,7 +21,7 @@ Invoke after:
 - User explicitly wants stakeholder review
 
 Refuse when:
-- No boss configured in `.argus/config.yaml` → direct to `/argus:configure` first, or offer to skip to generic DM review (uses no personality).
+- No boss configured in `.argus/config.yaml` → there is no `/argus:configure` skill in this plugin. Instead, inline-offer the generic DM review (no personality) OR tell the user to set a boss by editing `.argus/config.yaml` (`boss.mbti_code`/`name`/`role`) or passing `--mbti <CODE>` for this run. See Error modes.
 
 ---
 
@@ -42,7 +42,7 @@ Refuse when:
 2. Read `versions/{label}/scaffold.json` (the FinalScaffold). If missing, halt — team hasn't run.
 3. Read `versions/{label}/mix.json` (for full document context).
 4. Read `versions/{label}/verification.json`. If missing, halt and direct user to `/argus:verify`.
-5. If `verification.overall_status == "blocked"` OR `routing_decision == "stop_for_human_check"`, do not run boss by default. AskUserQuestion only if the user explicitly invoked boss:
+5. If `verification.overall_status == "blocked"` OR `routing_decision` in {`stop_for_human_check`, `ask_user`}, do not run boss by default. (`ask_user` means verify could not resolve the route — e.g. a `critical` challenged claim under `--no-prompt`; reviewing an unresolved critical challenge as a stakeholder would launder false confidence.) AskUserQuestion only if the user explicitly invoked boss:
    - ko title: `검증 보류 상태`
    - ko question: `사람 확인이 필요한 항목이 있어 Boss 리뷰가 왜곡될 수 있습니다. 그래도 진행할까요?`
    - options: `멈추고 확인 항목 보기`, `그래도 Boss 리뷰 진행`
@@ -197,13 +197,12 @@ For each concern in output:
 - If `severity == "critical"`: default `applied = true` (will be applied unless user rejects).
 - Else: default `applied = false`.
 
-User can toggle these via an AskUserQuestion UI:
+**If `--invoked-via-sail` is set: do NOT AskUserQuestion here.** Auto-apply all `critical` concerns (`applied = true`), leave others `applied = false`, and let sail Step 7 surface them so the user can revisit via `/argus:chart` later. Firing a concern-selection dialog mid-chain breaks sail's "auto-proceeding, Ctrl-C to halt" contract and hangs an unattended run — this was a confirmed regression. Proceed straight to Step 7.
 
-```
-Title: "어느 우려를 반영할까요?"
-For each concern:
-  - "{{severity}} — {{text}} [{{applied ? "✓" : "○"}}]"
-```
+**Only on direct invocation** (no `--invoked-via-sail`), let the user toggle via AskUserQuestion (locale-aware):
+- ko Title: `어느 우려를 반영할까요?`
+- en Title: `Which concerns should I apply?`
+- For each concern: `"[{{severity}}] {{text}} [{{applied ? "✓" : "○"}}]"`
 
 For MVP, present critical as pre-selected, others as optional.
 
@@ -246,7 +245,9 @@ If boss output contains explicit new requirements that don't fit any of these th
 ### Step 9 — Update session
 
 - Set `session.dm_feedback` to the review
-- Set `phase: "refining"` (next natural step is applying concerns, which happens either manually by user or via `/argus:revise`)
+- **Re-sync `session.final_scaffold`** to the Step 8-updated `versions/{label}/scaffold.json` (boss just added `boss_concerns_applied/rejected` and possibly new `next_actions`/`human_required_checkpoints`). Team set `session.final_scaffold` before boss ran; if you don't re-sync, `/argus:chart`'s Current view shows the pre-boss snapshot (0 concerns applied). Alternatively, treat `versions/{label}/scaffold.json` as the single authoritative source everywhere and drop `session.final_scaffold` — but do NOT leave the two silently divergent.
+- **Update the active draft** in `session.drafts[]` (the one matching `session.active_draft_id`): set `reviewing_agent_id` to the boss/mbti marker and attach the boss feedback reference, so the chart tree shows this draft was reviewed.
+- Set `phase: "refining"` (next natural step is applying concerns — edit `scaffold.json` + re-run `/argus:boss`; a dedicated `/argus:revise` that forks a child draft is post-MVP)
 - Update `updated_at`
 
 ### Step 10 — Report to user
@@ -300,14 +301,16 @@ User typed `/argus:boss` directly. Render the boss's voice in full:
 {{endfor}}
 {{endif}}
 
-다음: 우려를 반영하려면 `/argus:revise`. 현재 초안으로 확정하려면 `/argus:chart --promote`.
+{{locale-aware footer}}
+- ko: `다음: 우려를 반영하려면 \`versions/{{label}}/scaffold.json\` 편집 후 \`/argus:boss\` 재실행. 현재 초안으로 확정하려면 \`/argus:chart --promote\`. (자식 초안을 포크하는 \`/argus:revise\`는 post-MVP)`
+- en: `Next: to apply concerns, edit \`versions/{{label}}/scaffold.json\` then re-run \`/argus:boss\`. To finalize this draft, \`/argus:chart --promote\`. (A \`/argus:revise\` that forks a child draft is post-MVP.)`
 ```
 
 ---
 
 ## Meta-check gates
 
-- **M2 (Personality preservation)**: Is the boss's voice distinct from generic reviewer tone? Test: does the `first_reaction` contain a speech_pattern phrase or match the `example_dialogue` rhythm? If output reads like "Overall, the plan has merit but has concerns..." — that's generic. Reject.
+- **M2 (Personality preservation)**: Deterministic test, not a vibe check — `first_reaction` MUST contain at least one exact phrase (or a close inflection) from this type's `speech_patterns[]` in boss-types.yaml. If none is present, the voice has collapsed to a generic reviewer ("Overall, the plan has merit but has concerns…") — retry the prompt once with the explicit instruction to open in the boss's own speech pattern. Self-judging "does this feel distinct?" passes whenever the model is agreeable, so it cannot be the only gate.
 - **M4 (Decision scaffold preservation)**: Concerns MUST include `fix_suggestion`. Bare criticism is forbidden. If any concern lacks a fix_suggestion, retry.
 - **M-Verify separation**: Boss must not claim a challenged item is resolved unless verification or the user has explicitly routed it forward. If the boss ignores `verification.challenged_claims[]`, retry with stricter instruction.
 - **Security**: User content wrapped in `<user-data>` tags, no raw concat.
