@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import {
@@ -39,6 +39,7 @@ import { PersonaPoolModal } from './PersonaPoolModal';
 import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useDraftManagement } from './hooks/useDraftManagement';
+import { useScrollManagement } from './hooks/useScrollManagement';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
 import { ChevronRight, Loader2, Check, AlertTriangle, ArrowRight, History, GitBranch, X as XIcon, Wand2 } from 'lucide-react';
@@ -100,16 +101,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const mountedRef = useRef(true);
   const workerAbortRef = useRef<AbortController | null>(null);
   const workersRef = useRef<Promise<void> | null>(null);
-  // Scroll refs for targeted navigation
-  const statusBarRef = useRef<HTMLDivElement>(null);
-  const questionRef = useRef<HTMLDivElement>(null);
-  const workerSectionRef = useRef<HTMLDivElement>(null);
-  const mixPreviewRef = useRef<HTMLDivElement>(null);
-  const dmFeedbackRef = useRef<HTMLDivElement>(null);
-  const finalRef = useRef<HTMLDivElement>(null);
-  const answeredPillsRef = useRef<HTMLDivElement>(null);
-  const analysisCardRef = useRef<HTMLDivElement>(null);
-  const teamDeployRef = useRef<HTMLDivElement>(null);
+  // Scroll refs + helpers — extracted to useScrollManagement. Pure DOM
+  // navigation, decoupled from worker runtime and the phase machine.
+  const {
+    statusBarRef, questionRef, workerSectionRef, mixPreviewRef, dmFeedbackRef,
+    finalRef, answeredPillsRef, analysisCardRef, teamDeployRef,
+    scroll, scrollToRef,
+  } = useScrollManagement();
   // Report step is a one-at-a-time stepper (not a long scroll of all drafts).
   // The cursor is a projection of the shared `focusedWorkerId` channel, so the
   // body card and the rail roster row stay one selection: clicking a rail station
@@ -118,23 +116,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const focusedWorkerId = useAgentAttentionStore(s => s.focusedWorkerId);
   const setFocusedWorker = useAgentAttentionStore(s => s.setFocusedWorker);
 
-  // Double rAF: frame 1 lets React commit pending state, frame 2 ensures the
-  // new element is laid out before we scroll to it. Previous 200/250ms timers
-  // lost races when the user was scrolling themselves.
-  const scroll = useCallback((mode: 'bottom' | 'top' = 'bottom') => {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      window.scrollTo({ top: mode === 'top' ? 0 : document.body.scrollHeight, behavior: 'smooth' });
-    }));
-  }, []);
-  const scrollToRef = useCallback((ref: React.RefObject<HTMLElement | null>, fallback: 'top' | 'bottom' = 'bottom') => {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (ref.current) {
-        ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        window.scrollTo({ top: fallback === 'top' ? 0 : document.body.scrollHeight, behavior: 'smooth' });
-      }
-    }));
-  }, []);
 
   // Reset the report stepper when the active session changes — otherwise a focus
   // left on a worker id from the previous session would resolve to "not found"
