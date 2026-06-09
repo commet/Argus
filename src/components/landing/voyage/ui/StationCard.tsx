@@ -97,6 +97,22 @@ export function StationCard({
           {division.role[locale]}
         </p>
 
+        {/* Function label — literal job, plain words. Removes the metaphor decode-tax. */}
+        <p
+          className="bp-mono"
+          style={{
+            color: 'var(--bp-ink-soft)',
+            fontSize: 11,
+            letterSpacing: '0.02em',
+            lineHeight: 1.45,
+            marginTop: 8,
+            marginBottom: 0,
+            wordBreak: 'keep-all',
+          }}
+        >
+          {division.functionLabel[locale]}
+        </p>
+
         {/* Station label — italic mono, like a plate annotation */}
         <p
           className="bp-mono"

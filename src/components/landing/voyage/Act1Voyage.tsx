@@ -51,6 +51,24 @@ export function Act1Voyage() {
 
         {/* Title block */}
         <div className="text-center max-w-4xl mx-auto mt-4 md:mt-6">
+          {/* Category eyebrow — plain product class above the poetic H1, for the skeptical first-timer */}
+          <p
+            className={`bp-fade-up ${locale === 'ko' ? 'break-keep' : ''}`}
+            style={{
+              color: 'var(--bp-ink-soft)',
+              fontSize: 'clamp(12px, 1vw, 14px)',
+              letterSpacing: '0.04em',
+              fontWeight: 600,
+              marginBottom: 14,
+              animationDelay: '260ms',
+            }}
+          >
+            {L(
+              '막막한 판단을 검증하는 AI 사고 파트너',
+              'An AI thinking partner that pressure-tests your hardest calls',
+            )}
+          </p>
+
           <h1
             id="voyage-heading"
             className={`bp-fade-up ${locale === 'ko' ? 'break-keep' : ''}`}
@@ -97,36 +115,22 @@ export function Act1Voyage() {
             )}
           </p>
 
-          {/* Sub-2: the promise — multi-perspective companionship */}
+          {/* Plain-language spine — A2 positioning: a multi-perspective crew pressure-tests
+              your call and hands back a sendable conclusion. Absorbs the old helm line
+              ("키는 당신이 잡습니다") so we say one thing, not two. */}
           <p
             className={`bp-fade-up mt-5 md:mt-7 max-w-2xl mx-auto ${locale === 'ko' ? 'break-keep' : ''}`}
             style={{
-              color: 'var(--bp-ink-soft)',
+              color: 'var(--bp-ink)',
               fontSize: 'clamp(15px, 1.2vw, 18px)',
               lineHeight: 1.6,
+              fontWeight: 500,
               animationDelay: '600ms',
             }}
           >
             {L(
-              '옆에서 같이 보고, 같이 묻고, 같이 갑니다. 키는 당신이 잡습니다.',
-              'They watch with you, ask with you, sail with you. You hold the helm.',
-            )}
-          </p>
-
-          {/* Plain-language value prop — so a first-timer knows WHAT this is, not just the metaphor */}
-          <p
-            className={`bp-fade-up mt-6 max-w-2xl mx-auto ${locale === 'ko' ? 'break-keep' : ''}`}
-            style={{
-              color: 'var(--bp-ink)',
-              fontSize: 'clamp(14px, 1.1vw, 17px)',
-              lineHeight: 1.6,
-              fontWeight: 500,
-              animationDelay: '690ms',
-            }}
-          >
-            {L(
-              'Argus는 AI에게 일을 맡기기 전에 “무엇을 시킬지”를 함께 다듬는 도구입니다 — 더 나은 질문이 더 나은 결과를 만듭니다.',
-              'Argus helps you sharpen WHAT to ask AI before you hand off the work — better questions make better results.',
+              '문제 하나를 던지면, 직무가 다른 AI 전문가 팀이 각자의 눈으로 분석하고 약점을 짚어 — 바로 보낼 수 있는 결론으로. 무엇을 채택할지, 키는 당신이 잡습니다.',
+              'Bring one hard problem. A team of AI specialists analyzes it — each from their own discipline — and flags the weak spots, handing you a conclusion you can actually send. You decide what makes the cut.',
             )}
           </p>
 
