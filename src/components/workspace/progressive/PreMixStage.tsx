@@ -79,6 +79,7 @@ export function PreMixStage({
               <textarea
                 value={session?.user_notes || ''}
                 onChange={(e) => store.setUserNotes(e.target.value || null)}
+                aria-label={L('내 생각 추가', 'Add my thoughts')}
                 placeholder={L('팀 분석에 빠진 것, 강조할 점, 방향 수정 등', 'What the team missed, what to emphasize, direction changes...')}
                 rows={3} maxLength={500}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)] text-base md:text-[13px] text-[var(--text-primary)] leading-relaxed resize-none focus:outline-none focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-tertiary)]"

@@ -167,6 +167,7 @@ export function DraftModals({
               <textarea
                 value={iterationDirective}
                 onChange={(e) => setIterationDirective(e.target.value)}
+                aria-label={L('수정 지시', 'Revision directive')}
                 placeholder={L('예: 재무 섹션의 가정을 더 보수적으로. 낙관/기본/비관 3가지 시나리오 추가.', 'e.g. Make financial assumptions more conservative. Add 3 scenarios.')}
                 className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] resize-none leading-relaxed"
                 rows={5}

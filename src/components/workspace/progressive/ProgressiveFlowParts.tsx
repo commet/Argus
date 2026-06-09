@@ -759,7 +759,8 @@ export function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
         </div>
       ) : (
         <div className="pl-9 space-y-2">
-          <input value={reason} onChange={e => setReason(e.target.value)} placeholder={L('어떤 방향이 더 맞나요? (예: 이건 투자용이 아니라 내부 보고용이야)', 'What direction fits better? (e.g., This is for internal reporting, not investors)')}
+          <input value={reason} onChange={e => setReason(e.target.value)} aria-label={L('재정의 방향', 'Redefinition direction')}
+          placeholder={L('어떤 방향이 더 맞나요? (예: 이건 투자용이 아니라 내부 보고용이야)', 'What direction fits better? (e.g., This is for internal reporting, not investors)')}
             className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
             onKeyDown={e => { if (e.key === 'Enter' && reason.trim()) { e.preventDefault(); onReject(reason.trim()); } }} autoFocus />
           <div className="flex gap-2">
