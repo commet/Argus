@@ -1107,6 +1107,34 @@ export interface DMFeedbackResult {
   approval_condition: string;
 }
 
+// ── Falsification / Overreach ("시험한다") ──
+// The app deliberately over-inflates the plan into escalating success-claims and
+// asks the user to stop where they stop believing. The flinch point reveals the
+// load-bearing assumption they were unconsciously betting on. The surfaced bet
+// feeds the Decision Contract (NOT a second sealing mechanism).
+
+export interface LoadBearingClaim {
+  id: string;
+  /** One escalating overclaim chip (or, when `highest_load`, the riskiest assumption). */
+  text: string;
+  /** True for the inflated overclaim chips; the no-flinch pick is not an overclaim. */
+  overreached: boolean;
+  /** Marks the single riskiest assumption surfaced on the no-flinch path. */
+  highest_load?: boolean;
+}
+
+export interface Falsification {
+  claims: LoadBearingClaim[];
+  /** Id of the chip the user flinched at; null until a flinch / no-flinch is resolved. */
+  flinched_id: string | null;
+  /** The load-bearing assumption isolated at the flinch point. */
+  surfaced_constraint?: string;
+  /** The user's own re-statement of the real bet (active write). */
+  real_bet?: string;
+  /** True when the constraint was surfaced via the highest-load pick, not a flinch. */
+  no_flinch_fallback?: boolean;
+}
+
 export interface MixResult {
   title: string;
   executive_summary: string;
@@ -1175,6 +1203,9 @@ export interface ProgressiveSession {
   debate_result?: { challenge: string; targetAgent: string; weakestClaim: string; alternativeView: string; severity: string } | null;
   mix: MixResult | null;
   dm_feedback: DMFeedbackResult | null;
+  /** The overreach/flinch step's result. New field — never replaces dm_feedback.
+   *  Optional + backward-compat: legacy sessions read undefined. */
+  falsification?: Falsification | null;
 
   // Final
   final_deliverable: string | null;
