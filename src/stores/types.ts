@@ -715,6 +715,7 @@ export type ProgressivePhase =
   | 'mixing'          // 최종 초안 조합 중
   | 'dm_feedback'     // 판단자 피드백 생성/표시
   | 'refining'        // 이슈 반영 선택
+  | 'testing'         // 시험한다 — 과주장→멈칫→진짜 베팅 (overreach/flinch)
   | 'complete'        // 최종 산출물 완성
   | 'iterating';      // Post-complete: 항해장에게 수정 요청 진행 중
 

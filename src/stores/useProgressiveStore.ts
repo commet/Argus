@@ -24,6 +24,7 @@ import type {
   AnalysisSnapshot,
   MixResult,
   DMFeedbackResult,
+  Falsification,
   DMConcern,
   InterviewSignals,
   PipelineStage,
@@ -57,7 +58,7 @@ function phaseToStage(phase: ProgressivePhase): VoyageStage {
   switch (phase) {
     case 'input': case 'analyzing': case 'conversing': return 'briefing';
     case 'lead_synthesizing': case 'mixing': return 'mix';
-    case 'dm_feedback': case 'refining': return 'review';
+    case 'dm_feedback': case 'refining': case 'testing': return 'review';
     case 'complete': case 'iterating': return 'anchor';
     default: return 'briefing';
   }
@@ -197,6 +198,10 @@ interface ProgressiveState {
   setMix: (mix: MixResult) => void;
   setDMFeedback: (feedback: DMFeedbackResult) => void;
   toggleFix: (concernIndex: number) => void;
+  /** Persist the committed overreach/flinch result. Additive — never touches
+   *  dm_feedback or the phase (the handler owns phase: 'testing' on entry,
+   *  onFinalize on commit). The Decision Contract reads this. */
+  setFalsification: (falsification: Falsification) => void;
 
   // Final
   setFinalDeliverable: (text: string, finalMix?: MixResult | null) => void;
@@ -660,6 +665,16 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const sessions = updateSession(get().sessions, currentSessionId, () => ({
       dm_feedback: feedback,
       phase: 'refining' as ProgressivePhase,
+    }));
+    persist(sessions);
+    set({ sessions });
+  },
+
+  setFalsification: (falsification) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    const sessions = updateSession(get().sessions, currentSessionId, () => ({
+      falsification,
     }));
     persist(sessions);
     set({ sessions });
