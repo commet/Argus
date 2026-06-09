@@ -25,6 +25,9 @@ import type {
   PredicateVerdict,
   DecisionContract,
   CheckInInterval,
+  MixResult,
+  DMFeedbackResult,
+  DMConcern,
 } from '@/stores/types';
 import { generateId } from './uuid';
 
@@ -32,6 +35,8 @@ const DAY_MS = 86_400_000;
 const MAX_PREDICATES = 6;
 const MAX_RISKS = 3;
 const MAX_ACTORS = 2;
+/** Live path: cap governing bets so concerns still fit within MAX_PREDICATES. */
+const MAX_LIVE_GOVERNING = 2;
 
 export const CHECK_IN_MS: Record<CheckInInterval, number> = {
   '1w': 7 * DAY_MS,
@@ -142,6 +147,120 @@ export function generateDecisionContract(
   now: number,
 ): DecisionContract | null {
   const predicates = extractPredicates(src);
+  if (predicates.length === 0) return null;
+  return {
+    id: generateId(),
+    project_id: projectId,
+    predicates,
+    created_at: new Date(now).toISOString(),
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// Live (progressive) path
+//
+// The default voyage (/workspace → ProgressiveFlow → FinalCard) never produces
+// the legacy RecastItem/FeedbackRecord that `extractPredicates` reads — it
+// produces a MixResult + a single DM review + an optional team debate. These
+// map onto the SAME three predicate sources (so the card's per-source labels
+// and honest scoring carry over unchanged), with one exception: the live flow
+// has no human/AI role-assignment data, so we DON'T fabricate `actor`
+// predicates — that would mislabel a "did this need human judgment?" question
+// onto data that never answered it. Live contracts are governing bets + risks.
+// ════════════════════════════════════════════════════════════════════════
+
+const SEVERITY_TO_CATEGORY: Record<DMConcern['severity'], ClassifiedRisk['category']> = {
+  critical: 'critical',
+  important: 'manageable',
+  minor: 'unspoken',
+};
+
+const DEBATE_SEVERITY_TO_CATEGORY: Record<string, ClassifiedRisk['category']> = {
+  critical: 'critical',
+  important: 'manageable',
+  minor: 'unspoken',
+};
+
+/** The subset of a ProgressiveSession that carries falsifiable material. */
+export interface SessionPredicateInput {
+  mix?: MixResult | null;
+  /** Structured final pass; preferred over `mix` when present. */
+  final_mix?: MixResult | null;
+  dm_feedback?: DMFeedbackResult | null;
+  debate_result?: {
+    challenge: string;
+    targetAgent: string;
+    weakestClaim: string;
+    alternativeView: string;
+    severity: string;
+  } | null;
+}
+
+/**
+ * Derive a prioritized, deduped, capped set of predicates from a finished
+ * progressive session. Mirrors `extractPredicates`'s shape (same stable ids,
+ * same dedup, same MAX_PREDICATES cap) so a re-generation never orphans a grade.
+ *
+ *   - mix.key_assumptions (the load-bearing bets)  → source 'governing_idea'
+ *   - dm_feedback.concerns (critical first)        → source 'risk'
+ *   - debate weakestClaim (the team's own dissent) → source 'risk'
+ */
+export function extractPredicatesFromSession(s: SessionPredicateInput): Predicate[] {
+  const byId = new Map<string, Predicate>();
+  const add = (p: Omit<Predicate, 'id'>): Predicate | null => {
+    const text = p.text.trim();
+    if (!text) return null;
+    const id = stablePredicateId(p.source, text);
+    if (byId.has(id)) return null;
+    const pred: Predicate = { id, ...p, text };
+    byId.set(id, pred);
+    return pred;
+  };
+
+  // ── 1. Governing bets — the assumptions the recommendation rests on. ──
+  const finalMix = s.final_mix ?? s.mix ?? null;
+  const governing: Predicate[] = [];
+  for (const a of finalMix?.key_assumptions ?? []) {
+    if (governing.length >= MAX_LIVE_GOVERNING) break;
+    const p = add({ text: a, source: 'governing_idea' });
+    if (p) governing.push(p);
+  }
+
+  // ── 2. Risks — the DM's concerns (severity-ordered) + the team's dissent. ──
+  const concerns = [...(s.dm_feedback?.concerns ?? [])].sort(
+    (a, b) =>
+      SEVERITY_ORDER[SEVERITY_TO_CATEGORY[a.severity]] -
+      SEVERITY_ORDER[SEVERITY_TO_CATEGORY[b.severity]],
+  );
+  const risks: Predicate[] = [];
+  for (const c of concerns) {
+    const p = add({ text: c.text, source: 'risk', category: SEVERITY_TO_CATEGORY[c.severity] });
+    if (p) risks.push(p);
+  }
+  const weakest = s.debate_result?.weakestClaim;
+  if (weakest) {
+    const p = add({
+      text: weakest,
+      source: 'risk',
+      category: DEBATE_SEVERITY_TO_CATEGORY[s.debate_result?.severity ?? ''] ?? 'manageable',
+    });
+    if (p) risks.push(p);
+  }
+
+  // ── Compose: governing bets first, then fill with risks, cap at MAX. ──
+  const out: Predicate[] = [...governing, ...risks];
+  return out.slice(0, MAX_PREDICATES);
+}
+
+/**
+ * Build a contract directly from precomputed predicates (live path). Returns
+ * null when there's nothing falsifiable — we never seal an empty contract.
+ */
+export function contractFromPredicates(
+  projectId: string,
+  predicates: Predicate[],
+  now: number,
+): DecisionContract | null {
   if (predicates.length === 0) return null;
   return {
     id: generateId(),
