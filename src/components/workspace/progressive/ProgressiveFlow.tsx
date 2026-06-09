@@ -944,6 +944,17 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // The overreach/flinch step's in-flight ladder (strength + escalating claims).
   // Local + ephemeral: only the committed result persists (session.falsification).
   const [overreach, setOverreach] = useState<{ strength: string; claims: LoadBearingClaim[] } | null>(null);
+  // Reload-recovery: `overreach` (the claim ladder) is ephemeral local state, but
+  // session.phase 'testing' persists. If the tab reloaded mid-test, the ladder is
+  // gone — fall back to the review step so the user re-enters it rather than
+  // staring at an empty screen. (Not triggered in the normal flow: onTest sets the
+  // ladder and the phase together; finalize keeps the ladder until the doc lands.)
+  // Referenced via `session` fields so this hook precedes any early return.
+  useEffect(() => {
+    if (session?.phase === 'testing' && !overreach && !busy && !session?.final_deliverable && session?.dm_feedback) {
+      store.setPhase('refining');
+    }
+  }, [session?.phase, overreach, busy, session?.final_deliverable, session?.dm_feedback, store]);
   // Chronicler — enriches log waypoints with narration once the stream settles.
   useChronicler(session, !busy);
   const [error, setError] = useState<string | null>(null);
@@ -1763,6 +1774,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       const { markdown, finalMix } = await runFinalDeliverable(mix, dmFb, abortRef.current.signal, workerSources, (text) => setStreamingText(text));
       setStreamingText(null);
       store.setFinalDeliverable(markdown, finalMix);
+      setOverreach(null); // doc landed — release the (now consumed) flinch ladder
       store.recordCheckpoint('anchor');
       useAgentAttentionStore.getState().ping('final_done');
       scrollToRef(finalRef, 'top');
@@ -1797,10 +1809,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     setBusy(false); setSubstage(null); abortRef.current = null;
   };
 
-  /** Commit the flinch result → persist it → run the real finalize. */
+  /** Commit the flinch result → persist it → run the real finalize. We do NOT
+   *  clear `overreach` here: if finalize fails, the card must reappear so the
+   *  user can retry (the success path clears it once the doc lands). */
   const onTestResolve = (f: FalsificationResult) => {
     store.setFalsification(f);
-    setOverreach(null);
     track('overreach_resolved', { project_id: projectId, no_flinch: !!f.no_flinch_fallback });
     onFinalize();
   };
@@ -2428,8 +2441,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
           {/* Overreach / Flinch ("시험한다") — replaces the review card while the
               user stress-tests the plan. Renders only with a real claim ladder;
-              onTest skips straight to finalize otherwise. */}
-          {phase === 'testing' && overreach && !final_ && (
+              onTest skips straight to finalize otherwise. Hidden during the
+              finalize stream (busy) — and it reappears if finalize fails so the
+              user can retry rather than hitting an empty screen. */}
+          {phase === 'testing' && overreach && !final_ && !busy && (
             <Falsification
               strength={overreach.strength}
               claims={overreach.claims}
