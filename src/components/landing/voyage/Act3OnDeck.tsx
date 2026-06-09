@@ -115,7 +115,7 @@ export function Act3OnDeck() {
               textTransform: 'uppercase',
             }}
           >
-            {L('로그인 없이 무료 · 30초 안에 첫 해도', 'Free, no login · first chart in 30 seconds')}
+            {L('로그인 없이 무료 · 30초 안에 첫 분석', 'Free, no login · first read in 30 seconds')}
           </p>
         </div>
       </div>

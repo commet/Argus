@@ -64,8 +64,8 @@ export function Act1Voyage() {
             }}
           >
             {L(
-              '막막한 판단을 검증하는 AI 사고 파트너',
-              'An AI thinking partner that pressure-tests your hardest calls',
+              'Decision Voyage — 결정 하나를, 항해처럼',
+              'Decision Voyage — navigate one decision',
             )}
           </p>
 
@@ -115,9 +115,8 @@ export function Act1Voyage() {
             )}
           </p>
 
-          {/* Plain-language spine — A2 positioning: a multi-perspective crew pressure-tests
-              your call and hands back a sendable conclusion. Absorbs the old helm line
-              ("키는 당신이 잡습니다") so we say one thing, not two. */}
+          {/* Plain-language spine — Decision Voyage. The product turns a hard judgment into a
+              *navigable* state and keeps the trail of WHY. Machinery stays below decks. */}
           <p
             className={`bp-fade-up mt-5 md:mt-7 max-w-2xl mx-auto ${locale === 'ko' ? 'break-keep' : ''}`}
             style={{
@@ -129,8 +128,8 @@ export function Act1Voyage() {
             }}
           >
             {L(
-              '문제 하나를 던지면, 직무가 다른 AI 전문가 팀이 각자의 눈으로 분석하고 약점을 짚어 — 바로 보낼 수 있는 결론으로. 무엇을 채택할지, 키는 당신이 잡습니다.',
-              'Bring one hard problem. A team of AI specialists analyzes it — each from their own discipline — and flags the weak spots, handing you a conclusion you can actually send. You decide what makes the cut.',
+              'Argus는 중요한 결정을 항해하게 합니다. 지금 어디 있고, 무엇을 봤고, 무엇을 확인해야 하며, 왜 방향을 바꿨는지 — 그 “왜”를 잃지 않도록.',
+              'Argus makes a hard decision navigable — where you are, what you’ve seen, what to check, and why you changed course. Without losing the trail of why.',
             )}
           </p>
 
@@ -155,7 +154,7 @@ export function Act1Voyage() {
               {L('무료로 시작하기', 'Start free')}
             </a>
             <a
-              href="#orchestration"
+              href="#navigate"
               className="bp-mono inline-flex items-center"
               style={{
                 color: 'var(--bp-ink)',
@@ -168,7 +167,7 @@ export function Act1Voyage() {
                 minHeight: 44,
               }}
             >
-              {L('배 안을 보기', 'See the vessel inside')}
+              {L('어떻게 항해하는지', 'See it navigate')}
             </a>
             <span
               className="bp-mono"
