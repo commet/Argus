@@ -28,6 +28,7 @@ import type {
   MixResult,
   DMFeedbackResult,
   DMConcern,
+  Falsification,
 } from '@/stores/types';
 import { generateId } from './uuid';
 
@@ -194,6 +195,16 @@ export interface SessionPredicateInput {
     alternativeView: string;
     severity: string;
   } | null;
+  /** The overreach/flinch result — its surfaced bet becomes the TOP prediction. */
+  falsification?: Falsification | null;
+}
+
+/** The single bet the overreach/flinch step surfaced, if any. The user's own
+ *  re-statement wins, then the isolated constraint, then the highest-load pick. */
+function falsificationBetText(f?: Falsification | null): string {
+  if (!f) return '';
+  const fromClaim = f.claims?.find((c) => c.highest_load)?.text;
+  return (f.real_bet || f.surfaced_constraint || fromClaim || '').trim();
 }
 
 /**
@@ -201,6 +212,7 @@ export interface SessionPredicateInput {
  * progressive session. Mirrors `extractPredicates`'s shape (same stable ids,
  * same dedup, same MAX_PREDICATES cap) so a re-generation never orphans a grade.
  *
+ *   - falsification bet (flinch-surfaced, leads)   → source 'governing_idea'
  *   - mix.key_assumptions (the load-bearing bets)  → source 'governing_idea'
  *   - dm_feedback.concerns (critical first)        → source 'risk'
  *   - debate weakestClaim (the team's own dissent) → source 'risk'
@@ -218,8 +230,16 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
   };
 
   // ── 1. Governing bets — the assumptions the recommendation rests on. ──
+  //    The flinch-surfaced bet leads (the user's own load-bearing belief),
+  //    then the draft's key assumptions fill the remaining governing slots.
+  //    Prepended + governing is composed first, so it is NEVER dropped at cap.
   const finalMix = s.final_mix ?? s.mix ?? null;
   const governing: Predicate[] = [];
+  const betText = falsificationBetText(s.falsification);
+  if (betText) {
+    const p = add({ text: betText, source: 'governing_idea' });
+    if (p) governing.push(p);
+  }
   for (const a of finalMix?.key_assumptions ?? []) {
     if (governing.length >= MAX_LIVE_GOVERNING) break;
     const p = add({ text: a, source: 'governing_idea' });

@@ -17,7 +17,7 @@ import {
   stablePredicateId,
   type SessionPredicateInput,
 } from '../decision-contract';
-import type { MixResult, DMFeedbackResult, DMConcern } from '@/stores/types';
+import type { MixResult, DMFeedbackResult, DMConcern, Falsification } from '@/stores/types';
 
 const T0 = new Date('2026-06-01T00:00:00Z').getTime();
 
@@ -184,5 +184,80 @@ describe('contractFromPredicates', () => {
     expect(c!.project_id).toBe('p1');
     expect(c!.predicates).toEqual(preds);
     expect(c!.created_at).toBe(new Date(T0).toISOString());
+  });
+});
+
+function falsification(partial: Partial<Falsification>): Falsification {
+  return { claims: [], flinched_id: null, ...partial };
+}
+
+describe('extractPredicatesFromSession — falsification bet', () => {
+  it('puts the user-restated bet FIRST as a governing predicate', () => {
+    const preds = extractPredicatesFromSession({
+      mix: mix({ key_assumptions: ['a generic assumption'] }),
+      dm_feedback: dm([concern('a risk', 'critical')]),
+      falsification: falsification({ real_bet: 'Users will refer unprompted', flinched_id: 'c2' }),
+    });
+    expect(preds[0]).toMatchObject({ source: 'governing_idea', text: 'Users will refer unprompted' });
+  });
+
+  it('prefers real_bet, then surfaced_constraint, then the highest_load claim', () => {
+    const constraintOnly = extractPredicatesFromSession({
+      falsification: falsification({ surfaced_constraint: 'The constraint' }),
+    });
+    expect(constraintOnly[0].text).toBe('The constraint');
+
+    const claimOnly = extractPredicatesFromSession({
+      falsification: falsification({
+        no_flinch_fallback: true,
+        claims: [{ id: 'h', text: 'The riskiest bet', overreached: false, highest_load: true }],
+      }),
+    });
+    expect(claimOnly[0].text).toBe('The riskiest bet');
+  });
+
+  it('uses the SAME stable id as a governing predicate (grade survives across runs)', () => {
+    const preds = extractPredicatesFromSession({ falsification: falsification({ real_bet: 'The bet' }) });
+    expect(preds[0].id).toBe(stablePredicateId('governing_idea', 'The bet'));
+  });
+
+  it('counts toward the governing cap — the bet + at most one key assumption', () => {
+    const preds = extractPredicatesFromSession({
+      mix: mix({ key_assumptions: ['k1', 'k2', 'k3'] }),
+      falsification: falsification({ real_bet: 'The bet' }),
+    });
+    const governing = preds.filter((p) => p.source === 'governing_idea');
+    expect(governing).toHaveLength(2);
+    expect(governing[0].text).toBe('The bet');
+  });
+
+  it('is never dropped even when risks would overflow the cap', () => {
+    const preds = extractPredicatesFromSession({
+      mix: mix({ key_assumptions: ['k1'] }),
+      dm_feedback: dm([
+        concern('r1', 'critical'), concern('r2', 'critical'), concern('r3', 'important'),
+        concern('r4', 'important'), concern('r5', 'minor'), concern('r6', 'minor'),
+      ]),
+      falsification: falsification({ real_bet: 'The load-bearing bet' }),
+    });
+    expect(preds).toHaveLength(6);
+    expect(preds[0].text).toBe('The load-bearing bet');
+  });
+
+  it('adds nothing when the falsification has no usable bet text', () => {
+    const preds = extractPredicatesFromSession({
+      mix: mix({ key_assumptions: ['k1'] }),
+      falsification: falsification({ real_bet: '   ', surfaced_constraint: '' }),
+    });
+    expect(preds.every((p) => p.text !== '')).toBe(true);
+    expect(preds[0].text).toBe('k1');
+  });
+
+  it('dedups when the bet equals a key assumption (no double governing)', () => {
+    const preds = extractPredicatesFromSession({
+      mix: mix({ key_assumptions: ['Same belief'] }),
+      falsification: falsification({ real_bet: 'Same belief' }),
+    });
+    expect(preds.filter((p) => p.source === 'governing_idea')).toHaveLength(1);
   });
 });
