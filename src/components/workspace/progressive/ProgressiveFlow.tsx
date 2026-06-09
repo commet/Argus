@@ -925,17 +925,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // grade is written. The voyage always has a project (createProject precedes
   // createSession), so this resolves once the session exists.
   const contractProject = useProjectStore((s) => s.projects.find((p) => p.id === projectId));
-  // Falsifiable predictions derived from this voyage's own artifacts (key
-  // assumptions + DM concerns + team dissent) — the material for the Decision
-  // Contract sealed below the final document.
+  // Falsifiable predictions derived from this voyage's own artifacts — the
+  // flinch-surfaced bet (leads) + key assumptions + DM concerns + team dissent —
+  // the material for the Decision Contract sealed below the final document.
   const contractPredicates = useMemo(
     () => extractPredicatesFromSession({
       mix: session?.mix,
       final_mix: session?.final_mix,
       dm_feedback: session?.dm_feedback,
       debate_result: session?.debate_result,
+      falsification: session?.falsification,
     }),
-    [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result],
+    [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification],
   );
   // Global click-outside: clears sticky attribution hover state when user taps blank space
   useAttributionClickOutside();
