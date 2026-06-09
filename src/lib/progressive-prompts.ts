@@ -598,6 +598,100 @@ JSON format:
   };
 }
 
+// ─── 4c. Overreach / Flinch ("시험한다") ───
+//
+// Deliberately over-inflate the plan into escalating success-claims so the user
+// stops where they stop believing. The flinch point isolates the load-bearing
+// assumption. The claims MUST escalate along the single riskiest assumption —
+// each step assuming more of it holds — so the flinch is meaningful, not random.
+
+function mixDocText(mix: {
+  title: string;
+  executive_summary: string;
+  sections: { heading: string; content: string }[];
+  key_assumptions: string[];
+  next_steps: string[];
+}): string {
+  return [
+    `Title: ${mix.title}`,
+    `Summary: ${mix.executive_summary}`,
+    ...mix.sections.map((s) => `[${s.heading}]\n${s.content}`),
+    `Assumptions: ${mix.key_assumptions.join(', ')}`,
+    `Next steps: ${mix.next_steps.join(', ')}`,
+  ].join('\n\n');
+}
+
+export function buildOverreachPrompt(
+  snapshot: { real_question?: string; hidden_assumptions?: string[]; decision_line?: string; weakest_assumption?: { assumption: string; explanation: string } },
+  mix: { title: string; executive_summary: string; sections: { heading: string; content: string }[]; key_assumptions: string[]; next_steps: string[] },
+  locale: Locale = 'en',
+): { system: string; user: string } {
+  const lang = locale === 'ko' ? 'Korean' : 'English';
+  const hints = [
+    snapshot.real_question ? `Real question: ${snapshot.real_question}` : '',
+    snapshot.weakest_assumption ? `Weakest assumption (anchor your escalation here): ${snapshot.weakest_assumption.assumption} — ${snapshot.weakest_assumption.explanation}` : '',
+    (snapshot.hidden_assumptions || []).length ? `Hidden assumptions: ${(snapshot.hidden_assumptions || []).join(' | ')}` : '',
+  ].filter(Boolean).join('\n');
+
+  return {
+    system: `You run Argus's "stress test." You DELIBERATELY over-inflate the user's plan into escalating predictions of success — then the user stops you at the point they stop believing. That flinch point is the prize: it isolates the single assumption their whole plan secretly rests on.
+
+Always respond in ${lang}. ${locale === 'ko' ? 'Use 해요체 — warm, polite, like a senior colleague. Confident and knowingly over-the-top (we WANT them to flinch), never sarcastic.' : 'Warm, confident, knowingly over-the-top tone (we WANT them to flinch) — never sarcastic or mocking.'}
+
+Produce TWO things:
+
+1. STRENGTH — ONE genuine, SPECIFIC strength of their plan. Real, not flattery. This earns the right to push. (1 sentence.)
+
+2. CLAIMS — 3 to 5 escalating predictions of success, each a single confident sentence.
+   THE CRITICAL RULE: the claims escalate along the plan's MOST LOAD-BEARING assumption (anchor on the weakest_assumption hint when given). Each claim must require STRICTLY MORE of that assumption being true than the one before it.
+   - Claim 1: plausible — most reasonable people would accept it.
+   - Middle claims: progressively bolder, each demanding more of the same load-bearing belief.
+   - Final claim: grandiose — only true if the assumption holds completely and nothing goes wrong.
+   The user reading top-to-bottom should feel increasing resistance and stop at a specific line. That line minus one = what they still believe; the line itself = the belief that breaks. So the GAP between claims must be about the SAME underlying assumption, not different topics.
+   Self-check: if two claims are equally believable, or escalate on different assumptions, rewrite them. Distinct rungs on ONE ladder, not a list.
+
+No paragraphs. Each claim one sentence. Respond in JSON.`,
+
+    user: `My situation: <user-data>${snapshot.real_question ? sanitize(snapshot.real_question) : ''}</user-data>
+
+${hints ? `Signals:\n${hints}\n\n` : ''}My plan (the draft to stress-test):
+${mixDocText(mix)}
+
+Inflate this into an escalating ladder of success-claims along my most load-bearing assumption, and name one real strength first.
+
+JSON format:
+{
+  "strength": "One genuine, specific strength (1 sentence)",
+  "claims": ["Plausible claim", "Bolder claim", "Bolder still", "Grandiose claim"]
+}`,
+  };
+}
+
+export function buildHighestLoadPrompt(
+  claims: string[],
+  snapshot: { real_question?: string; weakest_assumption?: { assumption: string; explanation: string } },
+  locale: Locale = 'en',
+): { system: string; user: string } {
+  const lang = locale === 'ko' ? 'Korean' : 'English';
+  return {
+    system: `The user believed EVERY escalating success-claim without flinching — which usually means they're standing too close to their own plan to see its load-bearing assumption.
+
+Always respond in ${lang}. ${locale === 'ko' ? 'Use 해요체 — warm and direct.' : 'Warm and direct tone.'}
+
+Name the SINGLE riskiest assumption — the one belief that, if it turned out false, would break the most of their plan. Frame it as a concrete, checkable statement they were implicitly betting on (not a question, not vague advice). Anchor on the weakest_assumption hint when provided. 1 sentence. Respond in JSON.`,
+
+    user: `My question: <user-data>${snapshot.real_question ? sanitize(snapshot.real_question) : ''}</user-data>
+${snapshot.weakest_assumption ? `Weakest assumption hint: ${snapshot.weakest_assumption.assumption} — ${snapshot.weakest_assumption.explanation}\n` : ''}
+The claims I accepted without flinching:
+${claims.map((c, i) => `${i + 1}. ${c}`).join('\n')}
+
+Name the one assumption I'm most dangerously betting on.
+
+JSON format:
+{ "text": "The single riskiest assumption, as a checkable statement (1 sentence)" }`,
+  };
+}
+
 // ─── 4b. Boss personality-based DM Feedback (DEPRECATED — use review-prompt.ts) ───
 
 /** @deprecated Use buildReviewPrompt from review-prompt.ts instead */
