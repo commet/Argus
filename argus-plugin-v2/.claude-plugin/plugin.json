@@ -16,6 +16,7 @@
     "./skills/team/SKILL.md",
     "./skills/verify/SKILL.md",
     "./skills/boss/SKILL.md",
+    "./skills/revise/SKILL.md",
     "./skills/chart/SKILL.md"
   ],
   "agents": [

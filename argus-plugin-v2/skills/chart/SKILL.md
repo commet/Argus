@@ -70,10 +70,10 @@ description: Display the chart of the current Argus session — its version tree
 ## Next
 - If verification is missing: run `/argus:verify`
 - If verification is blocked: complete human checks, then `/argus:sail --resume {{session.id}}`
-- Apply boss concerns (revise — post-MVP): edit `versions/{{active_label}}/scaffold.json` directly, then re-run `/argus:boss` to re-review. (A dedicated `/argus:revise` that forks a new draft is planned.)
+- Apply boss concerns / verify challenges: `/argus:revise` (forks a child draft with the fixes + re-verifies)
 - Promote this draft to v1.0: `/argus:chart --promote {{active_label}}`
+- Branch from an older draft: `/argus:chart --checkout <label>` then `/argus:revise --from <label>`
 ```
-(Branch-from-older-draft via `/argus:chart --checkout <label>` is available, but creating a revised child draft from it needs `/argus:revise`, which is post-MVP — see note above.)
 
 ### Tree rendering
 

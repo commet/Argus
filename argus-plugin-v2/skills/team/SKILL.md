@@ -30,7 +30,10 @@ Refuse to run when:
 
 - **Session ID** (optional): from `--session <id>`. Defaults to most recently modified session in `.argus/sessions/`.
 - **Force flag** (optional): `--force` skips the analysis_readiness check.
-- **Revise flag** (optional): `--revise` — this run is a verify-driven repair (verify set `routing_decision: "revise_team"`, `phase: "team_deploying"`). Before deploying, read the latest `versions/{label}/verification.json` and inject its `challenged_claims[]` (each has `claim`, `challenge`, `suggested_fix`, `owner_agent_id`) into the relevant worker prompts: each `owner_agent_id` worker is told exactly which claim was challenged and the suggested fix to address. Without this, a "revision" is just an identical re-roll that never sees what verify challenged — the dead-end the verify gate was meant to close. Compute a new child version label for the repaired draft (Step 1.4).
+- **Revise flag** (optional): `--revise` — this run is a feedback-driven repair (from `/argus:revise`, or verify's `routing_decision: "revise_team"`). Read the revision items and inject them into the owning workers; without this a "revision" is just an identical re-roll that never sees the feedback.
+  - **Primary source:** `.argus/sessions/{id}/pending_revision.json` (written by `/argus:revise`) — it aggregates the selected boss concerns AND verify challenges as `items[]`, each with `text`, `suggested_fix`, `owner_agent_id`, `severity`, plus a `directive_text`. For each item, inject into its `owner_agent_id` worker: "Your prior output was challenged on «text»; suggested fix: «suggested_fix» — produce a revised analysis that addresses it." Workers with no targeted item carry their prior output forward where possible.
+  - **Fallback** (no pending_revision.json): read the latest `versions/{parent_label}/verification.json` and inject its `challenged_claims[]` the same way.
+  - Compute a new **child** version label (Step 1.4 branches from `session.active_draft_id`). Append the child Draft with `directive = directive_text`, `reviewing_agent_id = "navigator"`. **Delete `pending_revision.json`** when done (it's a consumed hand-off).
 - **Override agents** (optional): `--agents sujin,donghyuk,jieun` — bypass automatic selection. Use sparingly; classification is usually better.
 - **Sail-invocation flag** (optional): `--invoked-via-sail` — suppress Step 11 verbose print block. JSON files are still written; sail's Step 7 will compose the consolidated decision card from them. Use this to avoid double-rendering when sail orchestrates the chain.
 
@@ -429,11 +432,12 @@ Write to `versions/{label}/scaffold.json`.
   - `id`: stable draft id (e.g. `draft-{label}`)
   - `parent_draft_id`: the draft this one descends from — on a `--revise`/branch run, the draft whose `version_label` matches the checked-out `session.active_draft_id`; on the first team run, `null` (root)
   - `version_label`: the version label this run wrote (e.g. `v0.1`, `v0.2`, `v0.1.1`)
-  - `revision_directive`: on `--revise`, a short note of which challenged claims were addressed; else `null`
-  - `reviewing_agent_id`: `null` (set by boss/revise later)
-  - `final_scaffold`: `$ref` to the scaffold just written (or null — `versions/{label}/scaffold.json` is authoritative)
-  - `change_summary`: one line for the chart tree annotation (e.g. "초기 팀 배치" / "ISTJ 우려 반영")
+  - `directive`: on `--revise`, a short note of what was asked to change; else `null`
+  - `reviewing_agent_id`: `navigator` on a `--revise` child draft; else `null`
+  - `boss_reviewed`: `false` (boss hasn't run on this fresh draft yet)
+  - `change_summary`: one line (≤60 chars) for the chart tree annotation (e.g. "초기 팀 배치" / "ISTJ 우려 반영")
   - `created_at`
+  - (Do NOT embed the scaffold/mix/feedback in the draft node — they live in `versions/{label}/`; the draft is a pointer.)
 - Set `phase: "verifying"` (ready for `/argus:verify`) OR `phase: "complete"` only when the user explicitly asked for team output without verification
 - Update `updated_at`
 

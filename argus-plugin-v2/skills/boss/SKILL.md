@@ -245,8 +245,8 @@ If boss output contains explicit new requirements that don't fit any of these th
 ### Step 9 — Update session
 
 - The review lives write-once at `versions/{label}/boss_feedback.json` and the applied/rejected concerns were merged into `versions/{label}/scaffold.json` (Step 8) — that scaffold.json is the single authoritative source everywhere (chart, sail Step 7 all read it). Do NOT copy the feedback or scaffold into session.json.
-- **Update the active draft** in `session.drafts[]` (the one matching `session.active_draft_id`): set `reviewing_agent_id` to the boss/mbti marker (a small pointer, not the full feedback) so the chart tree shows this draft was reviewed.
-- Set `phase: "refining"` (next natural step is applying concerns — edit `scaffold.json` + re-run `/argus:boss`; a dedicated `/argus:revise` that forks a child draft is post-MVP)
+- **Update the active draft** in `session.drafts[]` (the one matching `session.active_draft_id`): set `boss_reviewed: true` (a small flag — the full feedback stays in `versions/{label}/boss_feedback.json`) so the chart tree shows this draft was reviewed. Do NOT set `reviewing_agent_id` (that field marks who PRODUCED the draft — `navigator` for a revise child — not who reviewed it).
+- Set `phase: "refining"` (next natural step is `/argus:revise` — it applies the selected concerns to a new child draft and re-verifies)
 - Update `updated_at`
 
 ### Step 10 — Report to user
@@ -301,8 +301,8 @@ User typed `/argus:boss` directly. Render the boss's voice in full:
 {{endif}}
 
 {{locale-aware footer}}
-- ko: `다음: 우려를 반영하려면 \`versions/{{label}}/scaffold.json\` 편집 후 \`/argus:boss\` 재실행. 현재 초안으로 확정하려면 \`/argus:chart --promote\`. (자식 초안을 포크하는 \`/argus:revise\`는 post-MVP)`
-- en: `Next: to apply concerns, edit \`versions/{{label}}/scaffold.json\` then re-run \`/argus:boss\`. To finalize this draft, \`/argus:chart --promote\`. (A \`/argus:revise\` that forks a child draft is post-MVP.)`
+- ko: `다음: 우려를 반영하려면 \`/argus:revise\` (선택한 우려로 자식 초안 생성 + 재검증). 현재 초안으로 확정하려면 \`/argus:chart --promote\`.`
+- en: `Next: \`/argus:revise\` to apply the concerns (forks a child draft + re-verifies). Or \`/argus:chart --promote\` to finalize this draft.`
 ```
 
 ---

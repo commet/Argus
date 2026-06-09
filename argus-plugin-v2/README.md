@@ -215,6 +215,8 @@ Overrides:
 
 `/argus:boss` runs stakeholder review after verification.
 
+`/argus:revise` applies boss concerns / verify challenges to a new child draft and re-verifies — the iteration loop.
+
 `/argus:chart` shows the version tree and session artifacts.
 
 ---

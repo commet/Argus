@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "argus:draft",
   "title": "Draft",
-  "description": "A node in the session's draft tree. Ported from webapp's Draft (src/stores/types.ts:1003). Version labels follow v0.1 / v0.1.1 / v1.0 scheme from lib/version-numbering.ts.",
+  "description": "A node in the session's draft tree — a lightweight POINTER, not a data store. Lives in session.json's drafts[]. The actual scaffold/mix/verification/boss artifacts for this draft live write-once in versions/{version_label}/*.json; a draft node only carries tree metadata (parent, label, what-changed) so the skeleton stays small and team-commit-safe. Version labels follow v0.1 / v0.1.1 / v1.0 scheme from lib/version-numbering.ts.",
   "type": "object",
   "required": ["id", "parent_draft_id", "version_label", "change_summary", "created_at"],
   "properties": {
@@ -23,24 +23,16 @@
     },
     "directive": {
       "type": ["string", "null"],
-      "description": "User's revision directive. null for root draft."
+      "description": "The revision directive that produced this draft (what was asked to change). null for the root draft. Set by /argus:revise."
     },
     "reviewing_agent_id": {
       "type": ["string", "null"],
       "enum": [null, "navigator"],
-      "description": "Which agent produced this revision. null = initial draft from pipeline."
+      "description": "The agent that produced this revision: 'navigator' for an /argus:revise child draft, null for an initial pipeline draft. (Boss review is NOT recorded here — a draft is 'reviewed' iff versions/{version_label}/boss_feedback.json exists.)"
     },
-    "final_scaffold": {
-      "description": "The FinalScaffold produced for this draft. See final-scaffold.json schema.",
-      "$ref": "./final-scaffold.json"
-    },
-    "final_mix": {
-      "description": "The MixResult used (preserved for attribution).",
-      "$ref": "./mix-result.json"
-    },
-    "dm_feedback": {
-      "description": "Boss feedback applied to this draft (if any).",
-      "$ref": "./dm-feedback.json"
+    "boss_reviewed": {
+      "type": "boolean",
+      "description": "True if /argus:boss has run on this draft (i.e. versions/{version_label}/boss_feedback.json exists). A small flag for the chart tree — the full feedback stays in the version dir."
     },
     "created_at": {
       "type": "string",

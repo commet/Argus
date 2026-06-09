@@ -107,7 +107,8 @@ Decision table:
 | `team_working` or `mixing` | wait / show progress via status |
 | `verifying` or team complete with no `verification.json` | `/argus:verify` |
 | `dm_feedback` pending | `/argus:boss` |
-| `refining` or `complete` | show scaffold via `/argus:chart` (apply boss concerns by editing scaffold.json + re-running `/argus:boss`; dedicated `/argus:revise` is post-MVP) |
+| `refining` | `/argus:revise` (apply boss concerns / verify challenges → child draft + re-verify) |
+| `complete` | show scaffold via `/argus:chart`; `/argus:revise` to iterate or `--promote` to finalize |
 
 ### Step 4 — Chain skills (if `--full`)
 
