@@ -10,6 +10,8 @@ import {
   runDMFeedback,
   runBossDMFeedback,
   runFinalDeliverable,
+  runOverreach,
+  runHighestLoad,
   runNavigatorReview,
   runNavigatorRevision,
   runDebate,
@@ -33,7 +35,7 @@ import { runAllAIWorkers, runPipeline, type WorkerContext } from '@/lib/worker-e
 import { withTranscript } from '@/lib/execution-transcript';
 import { getCompletionNote } from '@/lib/worker-personas';
 import { track } from '@/lib/analytics';
-import type { FlowQuestion, FlowAnswer, AnalysisSnapshot, DMConcern, MixResult, ConvergenceMetrics, WorkerTask, LeadSynthesisResult, Draft } from '@/stores/types';
+import type { FlowQuestion, FlowAnswer, AnalysisSnapshot, DMConcern, MixResult, ConvergenceMetrics, WorkerTask, LeadSynthesisResult, Draft, LoadBearingClaim, Falsification as FalsificationResult } from '@/stores/types';
 import { findEffectForAnswer, applySnapshotPatch } from '@/lib/question-types';
 import type { StrategicForkEffect, WeaknessCheckEffect } from '@/lib/question-types';
 import { WorkerReportBlock } from './WorkerCard';
@@ -54,6 +56,7 @@ import { FinalCard } from './FinalCard';
 export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-compat re-exports (were defined here)
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
+import { Falsification } from './Falsification';
 import { extractPredicatesFromSession } from '@/lib/decision-contract';
 import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
@@ -107,7 +110,7 @@ function ReviewerBadge({ reviewerId }: { reviewerId: string | null }) {
 function PhaseAmbient({ phase }: { phase: string }) {
   const bg = phase === 'complete'
     ? 'radial-gradient(ellipse 80% 50% at 50% 20%, rgba(184,150,62,0.08) 0%, transparent 70%)'
-    : phase === 'dm_feedback' || phase === 'refining' || phase === 'mixing' || phase === 'lead_synthesizing'
+    : phase === 'dm_feedback' || phase === 'refining' || phase === 'testing' || phase === 'mixing' || phase === 'lead_synthesizing'
       ? 'radial-gradient(ellipse 80% 50% at 50% 20%, rgba(184,150,62,0.04) 0%, transparent 70%)'
       : 'none';
   return <motion.div className="fixed inset-0 pointer-events-none z-0" animate={{ background: bg }} transition={{ duration: 1.5, ease: EASE }} />;
@@ -137,7 +140,7 @@ const STAGES_EN = ['Analysis', 'Questions', 'Team work', 'Review', 'Done'] as co
 function stageIdx(phase: string): number {
   // refining belongs to the review stage; lead_synthesizing to team work —
   // neither is in STAGE_PHASES, so map them explicitly before the lookup.
-  if (phase === 'refining') return 3;
+  if (phase === 'refining' || phase === 'testing') return 3;
   if (phase === 'lead_synthesizing') return 2;
   const i = STAGE_PHASES.indexOf(phase as typeof STAGE_PHASES[number]);
   return i < 0 ? 0 : i;
@@ -937,6 +940,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // Global click-outside: clears sticky attribution hover state when user taps blank space
   useAttributionClickOutside();
   const [busy, setBusy] = useState(false);
+  // The overreach/flinch step's in-flight ladder (strength + escalating claims).
+  // Local + ephemeral: only the committed result persists (session.falsification).
+  const [overreach, setOverreach] = useState<{ strength: string; claims: LoadBearingClaim[] } | null>(null);
   // Chronicler — enriches log waypoints with narration once the stream settles.
   useChronicler(session, !busy);
   const [error, setError] = useState<string | null>(null);
@@ -1765,6 +1771,49 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
+  // ── Overreach / Flinch ("시험한다") — the required step between review and the
+  //    final document. Inflate the plan into escalating success-claims; the
+  //    user's flinch surfaces the load-bearing bet, which the Decision Contract
+  //    then seals. Degrades gracefully: any failure or a too-thin ladder skips
+  //    straight to finalize so the step never dead-ends. ──
+  const onTest = async () => {
+    if (!mix || !dmFb || !latest) { onFinalize(); return; }
+    setBusy(true); setError(null); setSubstage(L('계획을 시험하는 중', 'Stress-testing the plan'));
+    abortRef.current = new AbortController();
+    try {
+      const result = await runOverreach(latest, mix, abortRef.current.signal);
+      // Need a real ladder to make a flinch meaningful — otherwise skip honestly.
+      if (result.claims.length < 3) { setSubstage(null); setBusy(false); abortRef.current = null; onFinalize(); return; }
+      setOverreach(result);
+      store.setPhase('testing');
+      track('overreach_shown', { project_id: projectId, claims: result.claims.length });
+      scrollToRef(statusBarRef);
+    } catch (e) {
+      // Cancelled → stop. Any other failure → don't trap the user; finalize.
+      if (e instanceof DOMException && e.name === 'AbortError') { setBusy(false); setSubstage(null); abortRef.current = null; return; }
+      setBusy(false); setSubstage(null); abortRef.current = null; onFinalize(); return;
+    }
+    setBusy(false); setSubstage(null); abortRef.current = null;
+  };
+
+  /** Commit the flinch result → persist it → run the real finalize. */
+  const onTestResolve = (f: FalsificationResult) => {
+    store.setFalsification(f);
+    setOverreach(null);
+    track('overreach_resolved', { project_id: projectId, no_flinch: !!f.no_flinch_fallback });
+    onFinalize();
+  };
+
+  /** No-flinch path: ask the engine for the single riskiest assumption. */
+  const onRequestHighestLoad = async (): Promise<LoadBearingClaim | null> => {
+    if (!latest || !overreach) return null;
+    try {
+      return await runHighestLoad(overreach.claims, latest, abortRef.current?.signal);
+    } catch {
+      return null;
+    }
+  };
+
   // ─── Post-complete iteration handlers ─────────────────────────────
 
   /** User submitted a revision directive → call 항해장 → append a new draft. */
@@ -1841,7 +1890,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     <>
       <PhaseAmbient phase={phase} />
       <motion.div className="relative z-10 mx-auto px-4 md:px-0"
-        animate={{ maxWidth: phase === 'complete' ? '56rem' : (phase === 'mixing' || phase === 'lead_synthesizing' || phase === 'dm_feedback' || phase === 'refining') ? '48rem' : '42rem' }}
+        animate={{ maxWidth: phase === 'complete' ? '56rem' : (phase === 'mixing' || phase === 'lead_synthesizing' || phase === 'dm_feedback' || phase === 'refining' || phase === 'testing') ? '48rem' : '42rem' }}
         transition={{ duration: 0.8, ease: EASE }}>
 
         <PingToast />
@@ -2359,20 +2408,34 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             {mix && !dmFb && !final_ && phase !== 'mixing' && <MixPreview mix={mix} dm={dm} onDM={onDM} onSkip={onSkip} busy={busy} cmReview={cmReview} debateResult={debateResult} />}
           </div>
           <div ref={dmFeedbackRef}>
-            {dmFb && !final_ && (
+            {dmFb && !final_ && phase !== 'testing' && (
               // Stable key per review — rebuilds the baseline snapshot only
               // when a new review arrives, not when toggleFix rebuilds the
               // fb object. first_reaction is effectively unique per review.
+              // "Finalize" routes through the required overreach/flinch step
+              // (onTest), which finalizes after the user commits their bet.
               <DMFeedback
                 key={`${dmFb.persona_name}::${dmFb.first_reaction}`}
                 fb={dmFb}
                 onToggle={(i) => store.toggleFix(i)}
-                onFinalize={onFinalize}
+                onFinalize={onTest}
                 onDeepen={onDeepen}
                 busy={busy}
               />
             )}
           </div>
+
+          {/* Overreach / Flinch ("시험한다") — replaces the review card while the
+              user stress-tests the plan. Renders only with a real claim ladder;
+              onTest skips straight to finalize otherwise. */}
+          {phase === 'testing' && overreach && !final_ && (
+            <Falsification
+              strength={overreach.strength}
+              claims={overreach.claims}
+              onResolve={onTestResolve}
+              onRequestHighestLoad={onRequestHighestLoad}
+            />
+          )}
 
           {final_ && <div ref={finalRef}>
             {/* Version chip + history toggle — subtle header */}
