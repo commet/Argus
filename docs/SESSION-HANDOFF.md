@@ -1,7 +1,53 @@
 # Session Handoff — resume here (another device / fresh session)
 
-> Branch: **`fix/l0-stop-the-bleeding`** · pushed to `origin` (commet/Argus).
-> Everything below is committed and green. Pick up from "What's next".
+> Current branch: **`feat/worker-stage-roster-then-core`** · pushed to `origin` (commet/Argus).
+> The real plan is **`docs/MASTER-DIRECTION-v4.md`** (L0→L5). `docs/PLAN.md` is SUPERSEDED — ignore it.
+
+---
+
+## ✅ LATEST SESSION — L2 chassis decomposition COMPLETE (gate-green)
+
+**What shipped (branch `feat/worker-stage-roster-then-core`, 15 commits, every one tsc 0 / eslint 0 errors / vitest green):**
+
+`ProgressiveFlow.tsx` **2670 → 1045 lines.** The monolith was decomposed *incrementally* (one extraction per PR, green at each step) — NOT a big-bang.
+
+- **Presentation extracted to sibling files:** `ProgressiveFlowParts.tsx` (14 leaf components), `DraftModals`, `TeamAssignmentModal`, `CompletionView`, `WorkerReportStepper`, `QuestionSection`, `ErrorBanner`, `DeployResumeBanners`, `PreMixStage`.
+- **Logic extracted to hooks (`progressive/hooks/`):** `useDraftManagement` (pre-existing), `useScrollManagement` (new), **`useWorkerRuntime`** (new — the crew deploy/resume/run pipeline + crew-settled ping + isResumable; shared abort/promise/mounted refs stay parent-owned and are passed in).
+
+**L2 acceptance (MASTER-DIRECTION-v4 §L2) status:**
+| item | status |
+|---|---|
+| inputs have accessible names (aria-label ×3) | ✅ `da41dfb` |
+| net-new **orchestration render test** (mounts the default export; asserts deploy-CTA path) | ✅ `4683fc6` — test net 1004 → **1007** |
+| WorkerRuntime hook extracted | ✅ `cd5324c` (equivalence proven by the orchestration test) |
+| lazy `require('usePersonaStore')` → static import (DI) | ✅ `282d3f0` |
+| MAX_BRANCHES + 3 migrators preserved | ✅ (store branch/migrator logic untouched) |
+| legacy behind a **feature flag** | ⏭️ **intentionally SKIPPED** — the flag exists to make a big-bang reversible; the incremental-green path + git history + the new orchestration coverage already provide that. Implementing it literally would mean resurrecting a dead 2580-line monolith = negative value. Revisit only if a big-bang re-do is ever needed. |
+
+**⚠️ Two things NOT ours (don't touch / don't clobber):**
+1. **1 failing vitest** — `middleware.test.ts > "/project" is protected`. Caused by a **concurrent session's uncommitted `src/lib/public-paths.ts`** (added `/project` to PUBLIC_PATHS). Our commits do NOT include it. Baseline is 1006/1007 green for our work.
+2. Uncommitted working-tree files from that other session: `src/app/project/page.tsx`, `src/components/ui/VoyageElements.tsx`, `src/lib/public-paths.ts`, + several `*.png`/`*.mjs` screenshot scratch files. Leave them.
+
+## ▶ WHAT'S NEXT — L4 Decision Contract ("THE KICK", §0)
+
+L2 made the chassis safe to extend; the next *value* work (the differentiator vs "just ask ChatGPT") is the **Decision Contract closed loop**. Per MASTER-DIRECTION-v4 §0 + §L4:
+
+1. **L3a-0 first (prerequisite, small):** give `HiddenAssumption`/`KeyAssumption` a deterministic `id` at generation (types.ts:11-18 / :136-141 have none today). The grading loop joins on this id, not free text. Lets the 2 fragile substring linkers (agent-spec.ts:104, prompt-chain.ts:151-152) be deleted.
+2. **Verdict sidecar (in-session value, ships on today's stack):** serialize 3–6 falsifiable predicates from recast `actor` assignments + `classified_risks` + `governing_idea` into a **reversible JSON sidecar**, surfaced as a FinalCard "Verdict" view. Derive store-free off `runInitialAnalysis`. **Decide the mount host:** FinalCard is store-coupled (`FinalCard.tsx:39`), and the `workspace/page.tsx:221` initial-analysis path renders no FinalCard — accept the coupled host or add a store-free Verdict host. Validate it needs **zero** ProgressiveFlow edits (now much easier post-L2).
+3. **Return-to-grade loop (net-new write path, = the §4 Test-1 instrument):** a real `PredicateGrade` writer UI + store (localStorage + Supabase), grade references `predicate_id`. Route the write through an observable-async helper (don't swallow). OUTCOME_RECORDS is read-only/producer-less today — this is net-new.
+
+**Also still open (smaller, from earlier levels):**
+- L0 read-side hydration guard: `storage.ts getStorage` still has no shape/version check (only parse try/catch) — the L0 "silent data loss (READ)" item. Low risk but unticked.
+- Two UX decisions deferred in the older handoff below (two competing "team" surfaces; Navigator/reflection layer) — owner's call, not unattended work.
+
+**Working agreement (unchanged):** smallest safe step → tsc 0 + eslint 0 errors + vitest green → commit per unit. Only touch LIVE-path surfaces (see `docs/UX-LIVE-TRIAGE.md`). For risky logic extraction, write the orchestration/characterization test FIRST (that's how WorkerRuntime was done safely this session).
+
+---
+
+## (Earlier handoff — history below)
+
+> Prior branch: **`fix/l0-stop-the-bleeding`** · pushed to `origin` (commet/Argus).
+> Everything below is committed and green.
 
 ## ✅ RESOLVED — Worker-stage redesign, core shipped (Option A)
 
