@@ -12,6 +12,8 @@ import {
   buildNavigatorReviewPrompt,
   buildStrategicForkPrompt,
   buildWeaknessCheckPrompt,
+  buildOverreachPrompt,
+  buildHighestLoadPrompt,
   type TypedQuestionContext,
 } from '@/lib/progressive-prompts';
 import {
@@ -39,6 +41,7 @@ import type {
   DMFeedbackResult,
   DMConcern,
   LeadSynthesisResult,
+  LoadBearingClaim,
 } from '@/stores/types';
 import { buildLeadSynthesisPrompt, type LeadAgentConfig } from '@/lib/lead-agent';
 import { resolveContributorsHeuristic, type WorkerSource } from '@/lib/attribution-heuristic';
@@ -784,6 +787,67 @@ export async function runDMFeedback(
       );
 
   return dmResponseToResult(result, decisionMaker, '', locale);
+}
+
+/**
+ * Overreach ("시험한다"): inflate the plan into escalating success-claims so the
+ * user stops where they stop believing. Returns one genuine strength + the
+ * ordered claim ladder (ids assigned here, `overreached: true`). Callers must
+ * handle the failure/degenerate case (e.g. <3 claims) by skipping the step.
+ */
+export async function runOverreach(
+  snapshot: AnalysisSnapshot,
+  mix: MixResult,
+  signal?: AbortSignal,
+  onToken?: (text: string) => void,
+): Promise<{ strength: string; claims: LoadBearingClaim[] }> {
+  const locale = getCurrentLanguage();
+  const { system, user } = buildOverreachPrompt(snapshot, mix, locale);
+
+  const shape = { strength: 'string' as const, claims: 'array' as const };
+  const result = onToken
+    ? await callLLMStreamThenParse<{ strength?: string; claims?: string[] }>(
+        [{ role: 'user', content: user }],
+        { system, maxTokens: 1200, signal, shape },
+        onToken,
+      )
+    : await callLLMJson<{ strength?: string; claims?: string[] }>(
+        [{ role: 'user', content: user }],
+        { system, maxTokens: 1200, signal, shape },
+      );
+
+  const claims: LoadBearingClaim[] = (result.claims || [])
+    .map((c) => (typeof c === 'string' ? c.trim() : ''))
+    .filter(Boolean)
+    .map((text) => ({ id: generateId(), text, overreached: true }));
+
+  return { strength: (result.strength || '').trim(), claims };
+}
+
+/**
+ * No-flinch fallback: the user believed every claim. Name the single riskiest
+ * assumption they're betting on. Returns it as a `highest_load` claim.
+ */
+export async function runHighestLoad(
+  claims: LoadBearingClaim[],
+  snapshot: AnalysisSnapshot,
+  signal?: AbortSignal,
+): Promise<LoadBearingClaim> {
+  const locale = getCurrentLanguage();
+  const { system, user } = buildHighestLoadPrompt(claims.map((c) => c.text), snapshot, locale);
+
+  const shape = { text: 'string' as const };
+  const result = await callLLMJson<{ text?: string }>(
+    [{ role: 'user', content: user }],
+    { system, maxTokens: 400, signal, shape },
+  );
+
+  return {
+    id: generateId(),
+    text: (result.text || '').trim() || (snapshot.weakest_assumption?.assumption ?? ''),
+    overreached: false,
+    highest_load: true,
+  };
 }
 
 /**
