@@ -195,7 +195,7 @@ This is the one place clarify produces a directive. The full scaffold pipeline i
    {{if caveat_if_signal_appears}}**조심:** {{caveat_if_signal_appears}}{{endif}}
 
    ─────
-   _density: low ({{decision_density_reasoning}}) · 팀 배치 / Boss 검토 생략_
+   _density: low ({{decision_density_reasoning}}) · 팀 배치 / 검증 / Boss 검토 생략_
    _재실행하려면: `/argus:sail --full "{{problem_text}}"` (강제 풀파이프)_
    ```
 

@@ -1,7 +1,7 @@
 {
   "name": "argus",
   "version": "2.1.0",
-  "description": "Verification-first judgment harness for Claude Code. Argus clarifies the real question, deploys an agent team as workers on real code/PRs/files, then verifies their output into supported, challenged, unresolved, and human-required claims before a decision scaffold is shown. Built on Claude Code subagents, Task orchestration, and AskUserQuestion human choice gates.",
+  "description": "Decision-voyage harness for Claude Code. Argus reads the user's repo, files, PRs, or decision context, checks evidence and weak claims behind the scenes, then returns a compressed Current Bearing: current course, why, fog or reef, road not taken, next helm, and an optional decision-contract seed.",
   "author": {
     "name": "Argus",
     "email": "yclee913@gmail.com",
@@ -16,6 +16,7 @@
     "./skills/team/SKILL.md",
     "./skills/verify/SKILL.md",
     "./skills/boss/SKILL.md",
+    "./skills/revise/SKILL.md",
     "./skills/chart/SKILL.md"
   ],
   "agents": [
@@ -44,6 +45,7 @@
     "./data/schemas/analysis-snapshot.json",
     "./data/schemas/worker-result.json",
     "./data/schemas/verification-ledger.json",
+    "./data/schemas/current-bearing.json",
     "./data/schemas/mix-result.json",
     "./data/schemas/dm-feedback.json",
     "./data/schemas/final-scaffold.json",
@@ -65,6 +67,9 @@
     "verification-ledger",
     "positive-negative-validation",
     "code-native",
+    "current-bearing",
+    "decision-voyage",
+    "decision-contract",
     "decision-scaffold",
     "version-tree",
     "argus",

@@ -1,64 +1,75 @@
 ---
 name: verify
-description: Verify Argus agent-team output before it is promoted. Splits worker claims into supported, challenged, unresolved, and human-required checks, then uses AskUserQuestion when the next route needs human choice. This is the plugin-native quality gate between `/argus:team` and `/argus:boss`: positive validation says what can be trusted; negative validation says what would create false confidence. Invoked as `/argus:verify`.
+description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Bearing. Invoked as `/argus:verify`.
 ---
 
 # /argus:verify
 
-**What this skill does:** Reads the latest team output and produces a `VerificationLedger`. The ledger is not post-hoc outcome grading. It is an immediate pre-commit gate over the agent team's own output.
+**What this skill does:** Reads the latest crew output and produces a
+`VerificationLedger`. This is immediate pre-commit verification, not future
+outcome grading.
 
-**Why this matters:** The old failure mode was "AI judges AI, then prints a confident answer." Argus must instead show which claims survived scrutiny, which claims were challenged, and which checks still require a human or external artifact. A scaffold is not final because it is well written; it is final only after its verification state is visible.
+**Why this matters:** Argus must not let fluent crew output become a false
+bearing. Verification names what can be trusted, what is weak, what remains in
+tension, and what only a human/external source can check.
 
 ---
 
-## When to run
+## When To Run
 
 Invoke after:
-- `/argus:team` has written `versions/{label}/workers.json`, `mix.json`, and `scaffold.json`
-- `/argus:sail` is chaining a medium/high density decision
-- User explicitly asks "검증해줘", "verify this", "can I trust this output?", or "positive/negative validation"
+
+- `/argus:team` has written `workers.json`, `mix.json`, and `scaffold.json`.
+- `/argus:sail` is chaining a medium/high decision.
+- The user asks whether the output can be trusted.
 
 Refuse when:
-- No session exists
-- Latest version has no `workers.json` or `scaffold.json`
-- Only `minimal_scaffold.json` exists. Minimal mode already contains a one-check flip condition; it does not run team verification.
+
+- no session exists,
+- latest version has no `workers.json` or `scaffold.json`,
+- only `minimal_scaffold.json` exists.
+
+Minimal mode already contains a one-check flip condition; it does not need team
+verification.
 
 ---
 
 ## Inputs
 
-- `--session <id>` optional. Defaults to latest.
-- `--strict` optional. Treat important challenged claims as routing blockers.
-- `--invoked-via-sail` optional. Suppress the full report and emit only a one-line transition for sail.
-- `--no-prompt` optional. Do not AskUserQuestion; write the ledger and return the computed routing decision. Use only in automated tests.
+- `--session <id>`: defaults to latest.
+- `--strict`: important challenged claims also block.
+- `--invoked-via-sail`: suppress the report and print only one transition line.
+- `--no-prompt`: write the ledger without `AskUserQuestion`; for tests.
 
 ---
 
 ## Execution Steps
 
-### Step 1 — Load State
+### Step 1 - Load State
 
-1. Find the latest session and version label.
+1. Find the latest session and active version label.
 2. Read:
    - `versions/{label}/workers.json`
    - `versions/{label}/mix.json`
    - `versions/{label}/scaffold.json`
-   - `versions/{label}/debate.json` if present
-   - `versions/{label}/repo_context.json` if present
-   - `.argus/config.yaml` for locale
-3. Set `session.phase = "verifying"` while this skill runs.
+   - optional `versions/{label}/debate.json`
+   - optional `versions/{label}/repo_context.json`
+   - `.argus/config.yaml`
+3. Set `session.phase = "verifying"` while the skill runs.
 
-If any worker has `status: "error"` or `verification_passed === false`, carry that into challenged claims. Do not hide it behind a polished mix.
+If any worker has `status: "error"` or `verification_passed === false`, carry
+that into `challenged_claims[]`. Do not hide it behind a polished mix.
 
-### Step 2 — Extract Claims
+### Step 2 - Extract Claims
 
-Extract 5-9 candidate claims from `mix` and `scaffold`:
-- Each `mix.sections[].content` contains claims.
-- `scaffold.hidden_assumptions[]` contains assumptions.
-- `scaffold.next_actions[]` contains action claims.
-- `team_contradictions[]` contains tension claims.
+Extract 5-9 candidate claims from:
 
-Normalize claims into this temporary shape:
+- `mix.sections[].content`
+- `scaffold.hidden_assumptions[]`
+- `scaffold.next_actions[]`
+- `scaffold.team_contradictions[]`
+
+Normalize each candidate:
 
 ```json
 {
@@ -73,15 +84,16 @@ Normalize claims into this temporary shape:
 
 Keep the list short. Verification is a gate, not a second report.
 
-### Step 3 — Positive Validation
+### Step 3 - Positive Validation
 
 For each claim, ask:
 
-- **Evidence:** Does at least one worker cite a file path, PR artifact, data point, source, or explicit reasoning chain?
-- **Specificity:** Is the claim tied to this repo/problem, or could it be pasted into any project?
-- **Cross-agent support:** Did another worker independently support the same direction?
-- **Framework fit:** Does the assigned framework's expected structure appear in the output?
-- **Action fit:** If it proposes an action, is actor + next step clear?
+- Does a worker cite a file path, PR artifact, data point, source, or explicit
+  reasoning chain?
+- Is the claim tied to this repo/problem?
+- Did another worker independently support the same direction?
+- Does the worker's assigned framework visibly shape the output?
+- If it proposes action, are actor and next step clear?
 
 Claims passing enough checks become `supported_claims[]`:
 
@@ -90,20 +102,21 @@ Claims passing enough checks become `supported_claims[]`:
   "claim": "...",
   "support": "Why this claim is safe enough to use",
   "strength": "strong|moderate|weak",
-  "evidence_refs": [{"source": "w-2", "detail": "cited src/lib/foo.ts:42"}]
+  "evidence_refs": [{"source": "src/lib/foo.ts", "detail": "line or section"}]
 }
 ```
 
-### Step 4 — Negative Validation
+### Step 4 - Negative Validation
 
 For each claim, ask:
 
-- **Unsupported:** Does it make a factual claim without evidence?
-- **Generic:** Could it be generic consulting prose?
-- **Contradicted:** Does another agent imply the opposite?
-- **False-positive risk:** Would acting on this claim prematurely block a viable path?
-- **Human-only:** Does it require customer, legal, finance, owner, or stakeholder confirmation?
-- **Code-native failure:** In `repo_scan` or `explicit_target` mode, did relevant workers fail to cite files/lines?
+- Does it make a factual claim without evidence?
+- Could it be generic consulting prose?
+- Does another worker imply the opposite?
+- Would acting on it prematurely block a viable path?
+- Does it require customer, legal, finance, owner, production, or stakeholder
+  confirmation?
+- In repo/file/PR mode, did workers fail to cite the relevant artifact?
 
 Claims failing checks become `challenged_claims[]`:
 
@@ -117,81 +130,87 @@ Claims failing checks become `challenged_claims[]`:
 }
 ```
 
-Use severity this way:
-- `critical`: would make final signoff unsafe.
-- `important`: should be fixed or shown prominently before boss/user signoff.
-- `minor`: note it; do not block.
+Severity:
 
-### Step 5 — Preserve Unresolved Tensions
+- `critical`: final signoff or execution would be unsafe.
+- `important`: must be visible in the Current Bearing or fixed.
+- `minor`: note it; do not block by itself.
 
-Convert `debate.json` and `scaffold.team_contradictions[]` into `unresolved_tensions[]`.
+### Step 5 - Preserve Tensions
 
-Do not resolve a real conflict in this skill. Verification's job is to expose the unresolved axis and name the tie-breaking condition.
+Convert `debate.json` and `scaffold.team_contradictions[]` into
+`unresolved_tensions[]`.
 
-### Step 6 — Human-Required Checks
+Do not resolve a real conflict here. Verification exposes the axis and names the
+tie-breaking condition.
+
+### Step 6 - Human-Required Checks
 
 Create `human_required_checks[]` from:
-- Existing `scaffold.human_required_checkpoints[]`
-- Challenged claims with `human-only` cause
-- Boss-independent external checks: legal counsel, customer interview, budget owner, production telemetry, deploy access, sales/customer data
 
-Each check must say why AI cannot verify it from the current repo/session:
+- `scaffold.human_required_checkpoints[]`
+- challenged claims with a human-only cause
+- external checks such as legal counsel, customer interview, budget owner,
+  production telemetry, deploy access, or sales data
+
+Each check must say why AI cannot verify it:
 
 ```json
 {
-  "check": "Ask EU counsel whether 70% GDPR readiness can ship",
-  "why_ai_cannot_verify": "Requires licensed legal judgment and current internal readiness data",
+  "check": "Ask EU counsel whether current GDPR readiness can ship",
+  "why_ai_cannot_verify": "Requires legal judgment and internal readiness data",
   "blocks": "final_signoff",
   "estimated_effort": "30-60 min"
 }
 ```
 
-### Step 7 — Routing Decision
+### Step 7 - Route
 
 Compute:
 
-- If any `critical` challenged claim exists → default `routing_decision = "ask_user"`
-- If any human check has `blocks: "execution"` → default `routing_decision = "stop_for_human_check"`
-- If `--strict` and any important challenged claim exists → `routing_decision = "ask_user"`
-- If challenged claims are all minor and no blocking human checks → `routing_decision = "proceed_to_boss"`
-- If the repair is clearly agent-owned and no human data is needed → `routing_decision = "revise_team"`
+- Any blocking human check with `blocks: "execution"` ->
+  `routing_decision = "stop_for_human_check"`.
+- Any critical challenged claim -> `routing_decision = "ask_user"`.
+- `--strict` plus any important challenged claim -> `routing_decision = "ask_user"`.
+- Agent-owned repair with no missing human evidence -> `routing_decision = "revise_team"`.
+- Only minor challenges and no blockers -> `routing_decision = "proceed_to_boss"`.
 
 Overall status:
-- `verified`: no challenged claims above minor and no blocking checks
-- `mixed`: usable with important caveats visible
-- `needs_revision`: agent-owned repair needed before stakeholder review
-- `blocked`: human/external check required before execution or final signoff
 
-### Step 8 — Ask Human When Needed
+- `verified`: no challenged claims above minor and no blocking human checks.
+- `mixed`: usable with caveats visible.
+- `needs_revision`: agent-owned repair comes before stakeholder review.
+- `blocked`: human/external check comes before execution or signoff.
 
-If routing is `ask_user` and `--no-prompt` is not set, use AskUserQuestion. This is the terminal human-choice affordance the plugin should lean into: one compact choice, not a long chat.
+### Step 8 - Ask Human When Needed
 
-**ko**
-- Title: `검증 결과 선택`
-- Question: `검증에서 {{critical_count}}개 critical / {{important_count}}개 important 이슈가 나왔습니다. 어떻게 처리할까요?`
-- Options:
-  - `검증 통과분만 진행` — proceed to boss/final card, but challenged claims stay visible
-  - `팀 보완 후 다시 검증` — route to team revision; do not call boss yet
-  - `사람 확인 후 재개` — stop and show human_required_checks
+If routing is `ask_user` and `--no-prompt` is not set, use one compact
+`AskUserQuestion`.
 
-**en**
+English:
+
 - Title: `Verification Route`
-- Question: `Verification found {{critical_count}} critical / {{important_count}} important issue(s). How should Argus route this?`
+- Question: `Verification found material issues. How should Argus route this?`
 - Options:
-  - `Proceed with verified parts` — proceed to boss/final card, challenged claims remain visible
-  - `Revise team output first` — route back for agent repair before boss
-  - `Pause for human check` — stop and show human_required_checks
+  - `Proceed with verified parts`: continue, but challenged claims remain visible
+  - `Revise crew output first`: route to `/argus:revise`
+  - `Pause for human check`: stop and show human-required checks
+
+Korean:
+
+- Title: `검증 경로`
+- Question: `검증에서 중요한 이슈가 나왔습니다. 어떻게 이어갈까요?`
+- Options:
+  - `검증된 부분만 진행`
+  - `먼저 crew output 수정`
+  - `사람 확인 후 재개`
 
 Persist the selected option to `ledger.user_choice`.
 
-If the user chooses:
-- `검증 통과분만 진행` / `Proceed with verified parts` → set `routing_decision = "proceed_to_boss"` and `overall_status = "mixed"` unless it was already `verified`
-- `팀 보완 후 다시 검증` / `Revise team output first` → set `routing_decision = "revise_team"` and `overall_status = "needs_revision"`
-- `사람 확인 후 재개` / `Pause for human check` → set `routing_decision = "stop_for_human_check"` and `overall_status = "blocked"`
+### Step 9 - Write Ledger
 
-### Step 9 — Write Ledger
-
-Write `versions/{label}/verification.json` conforming to `~/.claude/argus-data/schemas/verification-ledger.json`.
+Write `versions/{label}/verification.json` conforming to
+`~/.claude/argus-data/schemas/verification-ledger.json`.
 
 Update `versions/{label}/scaffold.json`:
 
@@ -206,52 +225,50 @@ Update `versions/{label}/scaffold.json`:
 }
 ```
 
-Also propagate critical/important challenged claims into `human_required_checkpoints[]` when a human check is needed. This keeps the scaffold a single source of truth.
+Also propagate human-only blockers into `human_required_checkpoints[]`. This
+keeps the scaffold a single source of truth.
 
 Update `session.json`:
-- `session.verification = ledger`
-- `session.final_scaffold = updated scaffold`
-- `session.phase`:
-  - `dm_feedback` when routing is `proceed_to_boss`
-  - `team_deploying` when routing is `revise_team`
-  - `complete` or `conversing` only when no team/boss path remains
-- `updated_at`
 
-### Step 10 — Report
+- `verification = ledger`
+- `final_scaffold = updated scaffold`
+- `phase = "dm_feedback"` when routing proceeds to boss
+- `phase = "team_deploying"` when routing needs revision
+- `phase = "complete"` or `"conversing"` when no team/boss path remains
+- `updated_at = now`
 
-#### If `--invoked-via-sail`
+### Step 10 - Report
 
-Print one line only:
+If `--invoked-via-sail`, print one line only:
 
 ```text
-✓ Verify — {{overall_status}} · {{supported_count}} supported · {{challenged_count}} challenged · {{human_check_count}} human checks
+Evidence checked. Any fog, reef, or human-only check will be folded into the current bearing.
 ```
 
-Sail owns the consolidated decision card.
+Do not print claim counts, ledger counts, routing internals, or agent names.
+Sail owns the consolidated Current Bearing.
 
-#### Direct Invocation
-
-Render:
+For direct invocation:
 
 ```text
-## Argus · Verify · {{label}}
+## Argus - Verify - {{label}}
 
-**Status:** {{overall_status}} ({{confidence}}/100)
+Status: {{overall_status}} ({{confidence}}/100)
 
-**Supported ({{N}}):**
-- {{first supported claim}} — {{support}}
+Supported:
+- {{first supported claim}} - {{support}}
 
-**Challenged ({{N}}):**
+Challenged:
 - [{{severity}}] {{claim}}
-  → {{suggested_fix}}
+  -> {{suggested_fix}}
 
-**Unresolved tensions ({{N}}):**
-- {{topic}} — tie-breaker: {{tie_breaking_condition}}
+Unresolved tensions:
+- {{topic}} - tie-breaker: {{tie_breaking_condition}}
 
-**Human checks ({{N}}):**
-- {{check}} — {{why_ai_cannot_verify}}
+Human checks:
+- {{check}} - {{why_ai_cannot_verify}}
 
-**Route:** {{routing_decision}}
+Route: {{routing_decision}}
 ```
 
 Keep this to one terminal screen. Full detail stays in `verification.json`.
@@ -260,18 +277,25 @@ Keep this to one terminal screen. Full detail stays in `verification.json`.
 
 ## Meta-Check Gates
 
-- **No fake certainty:** If a claim lacks evidence, it cannot be supported just because it sounds plausible.
-- **No generic praise:** Positive validation must cite a real reason, not "good structure."
-- **No buried blockers:** Critical challenged claims must appear in either `challenged_claims[]` or `human_required_checks[]`.
-- **No contradiction averaging:** Unresolved tensions remain unresolved unless a concrete tie-breaking condition is met.
-- **Human agency:** When routing materially changes the user's path, use AskUserQuestion unless `--no-prompt` was explicitly passed.
+- **No fake certainty:** unsupported claims cannot become supported because they
+  sound plausible.
+- **No generic praise:** positive validation must cite a concrete reason.
+- **No buried blockers:** critical challenged claims must appear in
+  `challenged_claims[]` or `human_required_checks[]`.
+- **No contradiction averaging:** unresolved tensions remain visible.
+- **Human agency:** material routing changes use `AskUserQuestion` unless
+  `--no-prompt` was explicitly passed.
+- **Current Bearing readiness:** the ledger must identify one best fog/reef item
+  that sail can carry into `current_bearing.json`.
 
 ---
 
 ## Forbidden Patterns
 
-- Treating verification as a stakeholder/persona review. Boss is personality feedback; verify is claim-level quality control.
+- Treating verification as stakeholder/persona review.
 - Rewriting the team's output into a nicer report instead of validating it.
-- Saying "verified" when verification only means "no obvious issue found."
-- Asking the user to grade a past outcome. This skill validates current evidence, not future reality.
-- Allowing boss review to run on `blocked` output unless the user explicitly chose to proceed with verified parts.
+- Saying `verified` when the result only means "no obvious issue found."
+- Asking the user to grade a past outcome. This skill validates current
+  evidence, not future reality.
+- Allowing boss review to run on blocked output unless the user explicitly chose
+  to proceed with verified parts.

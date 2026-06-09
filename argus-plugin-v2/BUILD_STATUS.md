@@ -203,7 +203,7 @@ Remaining 8% unverifiable by simulation:
 ### Must do before plugin swap
 
 4. **/argus:configure skill** — interactive UI for setting Boss MBTI + locale. Currently users edit `lib/config.example.yaml` → copy manually. Template pointer works for MVP but not great UX.
-5. **/argus:revise skill** — navigator revision worker for post-complete draft bumping. Without it, branching is read-only after initial completion. Medium impact.
+5. **/argus:revise skill** — implemented on 2026-06-09 follow-up. Navigator now creates child drafts after verification/boss/user directives.
 6. **Schema path resolution** — SKILL.md files reference `data/schemas/*.json` by relative path. When installed to `~/.claude/`, data goes to `~/.claude/argus-data/`. Skills need to handle both paths (plugin dev mode vs installed mode).
 7. **Agent .md → Claude Code Task tool binding** — when team skill spawns via Task tool with `subagent_type: sujin`, Claude Code must find `sujin.md` in agents directory. install.sh copies them to `~/.claude/agents/` which should work, but untested.
 8. **scripts/extract-from-webapp.ts** — placeholder directory exists but extraction script not implemented. Currently data files are hand-authored from source reading.
@@ -312,7 +312,7 @@ Two PASS-confirmed strengths preserved (no changes touch these paths):
 
 1. **Live verification post-restart** — predictions above need to be validated. If reality diverges, spec revisions needed.
 2. **Real-user round** — only check that AI-judging-AI loop is broken (donghyuk's TC-meta meta-warning).
-3. **`/argus:revise` skill** — referenced in chart spec but not yet implemented (post-MVP per original BUILD_STATUS).
+3. **`/argus:revise` skill** — resolved in 2026-06-09 follow-up. Remaining risk is live runtime validation in a fresh Claude Code session.
 4. **Self-audit hard-gate** (Phase 3-original from convenience plan, deferred) — heuristic detection of self-references + force external-review checkpoint.
 5. **Plugin reload UX** — discovered cache-at-session-start behavior. Worth surfacing in install.sh post-install message.
 
@@ -362,6 +362,32 @@ gate.
 - Rewrote README and TEST_PLAN around verification-first positioning.
 - Fixed manifest agent reference from missing `concertmaster.md` to existing
   `navigator.md`.
+- Follow-up Current Bearing pass replaced the retired `surface_card.json` with
+  `current_bearing.json` and rewrote `/argus:sail` so the default user-facing
+  output shows current course, why, fog/reef, road not taken, next helm, and an
+  optional decision-contract seed.
+
+## Current Bearing direction pass - 2026-06-10
+
+The webapp direction clarified that Argus is not just a risk reducer. It is a
+decision voyage system: clarify the destination, gather crew work, preserve
+forks, verify claims, choose a bearing, and leave a trail that can later be
+checked against reality.
+
+Plugin changes from this pass:
+
+- Added `docs/ARGUS-FINAL-DIRECTION.md` as the product direction anchor.
+- Replaced the default medium/high output contract with Current Bearing.
+- Replaced `data/schemas/surface-card.json` with
+  `data/schemas/current-bearing.json`.
+- Updated manifest, installer, README, TEST_PLAN, data docs, session layout,
+  and validation script around Current Bearing terminology.
+- Kept verification-first architecture intact; verification now feeds the
+  bearing instead of becoming the visible product.
+- Added `scripts/simulate-plugin.js` with real-shaped PR, strategy-doc, GDPR,
+  and low-density decision cases. The simulation fails on missing source refs,
+  missing road-not-taken, machinery-language leakage, overlong bearing output,
+  blocked/proceed status mismatches, and non-falsifiable contract seeds.
 
 ## New gate
 

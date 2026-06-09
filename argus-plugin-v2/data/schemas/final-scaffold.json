@@ -4,7 +4,7 @@
   "title": "FinalScaffold",
   "description": "Plugin-native final output. NOT a markdown document (that's the webapp's model). A DECISION SCAFFOLD preserving contradictions, hidden assumptions, trade-offs, verification state, and human-required checkpoints. This is the anti-commodity differentiator: Argus plugin outputs verified decision structure, not polished solutions.",
   "type": "object",
-  "required": ["reframed_question", "key_trade_offs", "hidden_assumptions", "human_required_checkpoints", "next_actions"],
+  "required": ["reframed_question", "key_trade_offs", "hidden_assumptions", "human_required_checkpoints", "verification", "next_actions"],
   "properties": {
     "reframed_question": {
       "type": "string",

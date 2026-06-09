@@ -836,7 +836,7 @@ agents:
     color: "#0F172A"
     chain: special
     chain_position: 1
-    mvp_status: deferred  # Used only by /argus:revise (post-MVP)
+    mvp_status: active  # Used by /argus:revise
     expertise:
       ko: "팀 전체 결과물을 통합 검토하고, 톤과 논리의 일관성을 맞춥니다."
       en: "Integrates team outputs; aligns tone and logical consistency across the work."

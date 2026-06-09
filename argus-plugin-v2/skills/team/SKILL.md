@@ -457,8 +457,8 @@ User typed `/argus:team` directly without going through sail. Render the full bl
 - **M1 (Code-native)**: Did `repo_context.mode` match the invocation? If `mode == hypothetical` but the user provided a `@target`, something broke. If `mode == repo_scan` but no worker cites a file path in its output, agents didn't actually use repo access — the output is de-facto hypothetical. Flag this in the final report so user knows.
 - **M9 (Worker not critic)**: Did each stage-1 worker PRODUCE an artifact in their domain? If any output reads as "I reviewed X and found issues" instead of "here's the X analysis," that's critic mode — reject and re-spawn.
 - **M3 (Contradiction preservation)**: **Only applies when debate ran.** If stakes is critical AND debate ran AND debate found disagreement, `scaffold.team_contradictions[]` MUST contain the debate entry. If debate ran and found no genuine disagreement, empty `team_contradictions[]` is correct and M3 passes. Do NOT fabricate contradiction to fill the array.
-- **M4 (Decision scaffold)**: Does scaffold have `key_trade_offs[]`, `hidden_assumptions[]`, `human_required_checkpoints[]` all populated (empty arrays are valid — the fields must EXIST)?
-- **M-Verify handoff**: Does scaffold.verification exist with `overall_status: "unverified"`? If absent, the team step is overstating certainty.
+- **M4 (Decision scaffold)**: Does scaffold have `key_trade_offs[]`, `hidden_assumptions[]`, `human_required_checkpoints[]`, `verification`, and `next_actions[]` all present (empty arrays are valid — the fields must EXIST)?
+- **M-Verify handoff**: Does scaffold.verification exist with `overall_status: "unverified"` and `routing_decision: "not_run"`? If absent, the team step is overstating certainty and the scaffold does not conform to schema.
 - **M6 (Agent relationship / stakes-driven)**: Did agent count match stakes budget? If critical stakes with only 2 agents, you under-budgeted.
 - **M7 (Commodity bot check)**: If the output reads as "here's a code review" or "here's a summary," you've lost the judgment-scaffold shape. Output must preserve decision structure, not be a flat review.
 

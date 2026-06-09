@@ -20,6 +20,7 @@ Restart Claude Code. Verify:
 ```bash
 ls ~/.claude/skills/sail/SKILL.md
 ls ~/.claude/skills/verify/SKILL.md
+ls ~/.claude/skills/revise/SKILL.md
 ls ~/.claude/agents/donghyuk.md
 ls ~/.claude/argus-data/schemas/verification-ledger.json
 ```
@@ -65,7 +66,8 @@ Watch for: unnecessary ceremony, hedging, or hidden full-pipeline behavior.
 Expected: `team -> verify -> boss`. `verification.json` must exist.
 
 Watch for: worker voice differentiation, real challenged claims, and whether
-the final card clearly includes verification status.
+the final card is compressed to direction, why, risky claim, human check, and
+next action without exposing internal machinery.
 
 ### TC3 - Critical Debate Trigger
 
@@ -101,6 +103,21 @@ Expected: at least one agent or verification challenge should be willing to cut
 scope if justified.
 
 Watch for: self-protective rationalization.
+
+### TC6 - Revision Loop
+
+Run after TC2 or TC4 has produced a scaffold:
+
+```text
+/argus:revise --repair-verification
+```
+
+Expected: a child version is created. If the revision changes meaning, the child
+draft must be marked `verification.overall_status = "unverified"` and must route
+back to `/argus:verify`.
+
+Watch for: parent version mutation, stale `verification.json` copied forward, or
+human-only checks being treated as agent-owned repairs.
 
 ---
 
@@ -144,11 +161,35 @@ review because it includes checked claims and preserved tension.
 
 FAIL: it reads like a normal markdown review with extra fields.
 
+### #5.5 Current Bearing Compression
+
+PASS: default `/argus:sail` output is one screen and does not make the user think
+about agents, ledgers, schemas, or workflow phases.
+
+FAIL: output sells the multi-agent machinery instead of showing the current
+course, why, fog/reef, road not taken, next helm, and optional contract seed.
+
+### #5.6 Voyage Continuity
+
+PASS: the output preserves at least one meaningful road-not-taken or explicitly
+states why the decision is too small for an alternate course.
+
+FAIL: the output is just a recommendation plus reasons, indistinguishable from a
+normal ChatGPT answer.
+
 ### #6 Use Intent
 
 PASS: you would act on the next action or human checkpoint.
 
 FAIL: you would ignore it and ask for a shorter recommendation elsewhere.
+
+### #7 Revision Integrity
+
+PASS: `/argus:revise` creates a child draft, preserves parent blockers, and
+requires reverification when meaning changed.
+
+FAIL: revise edits the parent in place, erases challenged claims, or keeps stale
+verification.
 
 ---
 
@@ -170,7 +211,10 @@ Write results to `.argus/test-observations.md`:
 - #3 verification: N/A - minimal route skipped verification as expected
 - #4 human gate: N/A
 - #5 commodity: PASS - [evidence]
+- #5.5 current bearing compression: PASS - [evidence]
+- #5.6 voyage continuity: PASS - [evidence]
 - #6 use intent: PASS - [evidence]
+- #7 revision integrity: N/A - no revision path in TC1
 
 ## TC2 ...
 
@@ -187,3 +231,30 @@ Write results to `.argus/test-observations.md`:
 1. The full observations file. Do not summarize raw outputs away.
 2. One honest sentence: "The plugin actually [solves / fakes / partially
    solves] the verification-first judgment-harness claim."
+
+---
+
+## Automated Simulation Gate
+
+Run before release:
+
+```bash
+node ./argus-plugin-v2/scripts/validate-plugin.js
+node ./argus-plugin-v2/scripts/simulate-plugin.js
+```
+
+`simulate-plugin.js` uses real-shaped cases:
+
+- PR/auth middleware review
+- plugin vs webapp strategy document
+- GDPR/EU launch decision
+- low-density rename route
+
+The simulation fails when a Current Bearing:
+
+- lacks source references for file/PR/document cases,
+- has no road-not-taken for medium/high decisions,
+- leaks machinery terms such as agent counts, schemas, or SurfaceCard,
+- exceeds one terminal screen,
+- marks blocked output with a proceed/anchor course,
+- includes a non-falsifiable contract seed.

@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "argus:current-bearing",
+  "title": "CurrentBearing",
+  "description": "The compressed user-facing Argus output. It shows the user's current decision course, evidence, fog, road not taken, next helm action, and optional decision-contract seed.",
+  "type": "object",
+  "required": [
+    "label",
+    "current_course",
+    "why_this_course",
+    "fog_or_reef",
+    "road_not_taken",
+    "next_helm",
+    "contract_seed",
+    "blocked",
+    "detail_path",
+    "generated_at"
+  ],
+  "properties": {
+    "label": {
+      "type": "string",
+      "description": "Version label such as v0.1."
+    },
+    "current_course": {
+      "type": "object",
+      "required": ["status", "summary"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["proceed", "hold", "fork", "anchor", "revise", "collect_evidence"],
+          "description": "The user's practical course right now."
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 240,
+          "description": "One sentence explaining the current bearing."
+        }
+      },
+      "additionalProperties": false
+    },
+    "why_this_course": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "description": "Concrete reasons tied to the user's actual file, repo, PR, document, or session evidence.",
+      "items": {
+        "type": "object",
+        "required": ["point"],
+        "properties": {
+          "point": { "type": "string", "maxLength": 220 },
+          "source": {
+            "type": "string",
+            "description": "File path, PR ref, document ref, worker id, or session artifact reference."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "fog_or_reef": {
+      "type": ["object", "null"],
+      "description": "The biggest remaining uncertainty, contradiction, unsupported claim, or human-only check.",
+      "properties": {
+        "issue": { "type": "string", "maxLength": 220 },
+        "why_it_matters": { "type": "string", "maxLength": 220 },
+        "required_check": { "type": "string", "maxLength": 220 }
+      },
+      "additionalProperties": false
+    },
+    "road_not_taken": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "description": "Viable alternate courses that were considered but should not be the current course.",
+      "items": {
+        "type": "object",
+        "required": ["option", "why_not_now"],
+        "properties": {
+          "option": { "type": "string", "maxLength": 180 },
+          "why_not_now": { "type": "string", "maxLength": 220 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "next_helm": {
+      "type": "string",
+      "maxLength": 220,
+      "description": "The next concrete action, ideally under 30 minutes unless the decision truly requires more."
+    },
+    "contract_seed": {
+      "type": ["object", "null"],
+      "description": "A falsifiable prediction candidate to seal later as a Decision Contract.",
+      "properties": {
+        "predicate": { "type": "string", "maxLength": 240 },
+        "check_by": { "type": "string", "maxLength": 120 },
+        "pass_condition": { "type": "string", "maxLength": 180 },
+        "fail_condition": { "type": "string", "maxLength": 180 }
+      },
+      "additionalProperties": false
+    },
+    "blocked": {
+      "type": "boolean",
+      "description": "True when the current course should not be executed before a repair or human check."
+    },
+    "detail_path": {
+      "type": "string",
+      "description": "Path to the full .argus session version for users who want depth."
+    },
+    "generated_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

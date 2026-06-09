@@ -38,7 +38,7 @@ Boss is now stakeholder review, not the verification gate.
 
 ## Main Architecture Change
 
-The medium/high-stakes path changed from:
+The medium/high-stakes internal path changed from:
 
 ```text
 clarify -> team -> boss -> final card
@@ -47,7 +47,7 @@ clarify -> team -> boss -> final card
 to:
 
 ```text
-clarify -> team -> verify -> boss -> final card
+clarify -> team -> verify -> boss -> Current Bearing
 ```
 
 Low-density decisions still skip the full pipeline and return a minimal scaffold.
@@ -79,7 +79,7 @@ Manifest and install:
   `verification-ledger.json`, updates v2.1 metadata, and fixes the missing
   `concertmaster.md` agent reference to `navigator.md`.
 - `install.sh` was rewritten as a clean ASCII/LF installer, with robust `--link`
-  behavior and verification that all six skills are installed.
+  behavior and verification that all seven skills are installed.
 - `.gitattributes` pins `install.sh` to LF so bash does not fail on CRLF.
 
 Schemas:
@@ -102,6 +102,11 @@ Skills:
   validation gate.
 - `skills/boss/SKILL.md` now requires verification first unless the user
   explicitly overrides.
+- `skills/revise/SKILL.md` closes the repair loop by creating child drafts after
+  verification, boss feedback, or user directives.
+- `skills/sail/SKILL.md` now treats Current Bearing as the default product
+  surface: one screen with current course, evidence, fog/reef, road not taken,
+  next helm, and an optional decision-contract seed.
 - `skills/chart/SKILL.md` shows verification status and next steps.
 - `skills/clarify/SKILL.md` now marks minimal routes as skipping team, verify,
   boss, and debate.
@@ -128,6 +133,7 @@ Static checks:
 ```text
 bash -n ./argus-plugin-v2/install.sh
 node --check ./argus-plugin-v2/statusline/index.js
+node ./argus-plugin-v2/scripts/validate-plugin.js
 JSON parse for all argus-plugin-v2 JSON files
 plugin manifest command/agent/reference path existence check
 ```
@@ -138,7 +144,7 @@ Installer check:
 temporary HOME + .claude directory
 ./argus-plugin-v2/install.sh --link
 verified:
-- 6 skills linked
+- 7 skills linked
 - 17 agents linked
 - verification-ledger.json installed
 ```

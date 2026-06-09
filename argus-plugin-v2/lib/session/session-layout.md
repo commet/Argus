@@ -22,6 +22,7 @@ root.
 │       │   │   ├── debate.json         # Critical stakes only
 │       │   │   ├── mix.json
 │       │   │   ├── verification.json   # From /argus:verify
+│       │   │   ├── current_bearing.json # Compressed Current Bearing from /argus:sail
 │       │   │   ├── boss_feedback.json  # From /argus:boss
 │       │   │   └── scaffold.json       # FinalScaffold
 │       │   ├── v0.2/
@@ -99,5 +100,6 @@ surface view reflects the active draft's scaffold.
 | `/argus:clarify` | `analysis.json`, `questions_and_answers.json`, `meta.json` |
 | `/argus:team` | `classification.json`, `team_plan.json`, `workers.json`, optional `debate.json`, `mix.json`, candidate `scaffold.json` |
 | `/argus:verify` | `verification.json`, updated `scaffold.json` verification summary, updated `session.json` verification state |
+| `/argus:sail` Step 7 | `current_bearing.json` for medium/high paths |
 | `/argus:boss` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns |
 | `/argus:revise` | New version dir. Copies forward unchanged artifacts and writes `revise_directive.txt` plus new `mix.json` if revised. |

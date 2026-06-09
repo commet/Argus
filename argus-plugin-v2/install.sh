@@ -38,7 +38,7 @@ if [ ! -d "$CLAUDE_DIR" ]; then
 fi
 
 echo ""
-echo -e "${BOLD}  Argus v2.1${NC} - verification-first judgment harness for AI."
+echo -e "${BOLD}  Argus v2.1${NC} - decision-voyage harness for Claude Code."
 echo ""
 
 TEMP_DIR=""
@@ -189,7 +189,7 @@ if [ "$LINK_MODE" = false ] && [ -n "$TEMP_DIR" ]; then
 fi
 
 ERRORS=0
-for required in sail clarify team verify boss chart; do
+for required in sail clarify team verify boss revise chart; do
   if [ ! -f "$CLAUDE_DIR/skills/$required/SKILL.md" ]; then
     fail "Missing: $required"
     ERRORS=$((ERRORS + 1))
@@ -198,6 +198,11 @@ done
 
 if [ ! -f "$CLAUDE_DIR/argus-data/schemas/verification-ledger.json" ]; then
   fail "Missing: verification-ledger.json"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [ ! -f "$CLAUDE_DIR/argus-data/schemas/current-bearing.json" ]; then
+  fail "Missing: current-bearing.json"
   ERRORS=$((ERRORS + 1))
 fi
 
@@ -214,8 +219,8 @@ if [ "$ERRORS" -eq 0 ]; then
   echo -e "    ${BOLD}/argus:sail${NC} \"A technical decision I'm stuck on\""
   echo -e "    ${BOLD}/argus:sail${NC} @PR#123"
   echo ""
-  echo -e "  ${DIM}Medium/high decisions run clarify -> team -> verify -> boss.${NC}"
-  echo -e "  ${DIM}Verification is saved in .argus/sessions/.${NC}"
+  echo -e "  ${DIM}Medium/high decisions return a compressed Current Bearing.${NC}"
+  echo -e "  ${DIM}Full reasoning is saved in .argus/sessions/.${NC}"
 else
   fail "Installation incomplete."
   exit 1

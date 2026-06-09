@@ -19,7 +19,7 @@
     "change_summary": {
       "type": "string",
       "maxLength": 60,
-      "description": "≤60 chars — what changed in this version."
+      "description": "60 chars or fewer — what changed in this version."
     },
     "directive": {
       "type": ["string", "null"],
@@ -36,11 +36,11 @@
     },
     "final_mix": {
       "description": "The MixResult used (preserved for attribution).",
-      "$ref": "./mix-result.json"
+      "oneOf": [{ "$ref": "./mix-result.json" }, { "type": "null" }]
     },
     "dm_feedback": {
       "description": "Boss feedback applied to this draft (if any).",
-      "$ref": "./dm-feedback.json"
+      "oneOf": [{ "$ref": "./dm-feedback.json" }, { "type": "null" }]
     },
     "created_at": {
       "type": "string",
