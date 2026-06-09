@@ -18,8 +18,6 @@ export type CrewDivision = {
   label: { ko: string; en: string };
   /** Single-sentence purpose, deliberately punchy — shown in the cutaway station card. */
   role: { ko: string; en: string };
-  /** Literal job in plain words — kills the metaphor decode-tax for skeptical first-timers. */
-  functionLabel: { ko: string; en: string };
   /** Where they sit on the ship — copy-only, used in the station label. */
   stationLabel: { ko: string; en: string };
   /** Member count is the visible signal; individual names live underneath if expanded. */
@@ -34,7 +32,6 @@ export const CREW_DIVISIONS: CrewDivision[] = [
       ko: '먼저 바다로 나가 낯선 해역의 정보를 가져온다',
       en: 'Sail ahead, read the unknown waters',
     },
-    functionLabel: { ko: '리서치 — 시장·경쟁·선례 조사', en: 'Research — market, rivals, precedent' },
     stationLabel: { ko: '선수 난간', en: 'Forward railing' },
     members: [
       { name: '하윤', personaRole: { ko: '리서치 인턴', en: 'Research intern' } },
@@ -49,7 +46,6 @@ export const CREW_DIVISIONS: CrewDivision[] = [
       ko: '해도를 그리고 어디로 갈지를 정한다',
       en: 'Chart the course, set the heading',
     },
-    functionLabel: { ko: '전략 — 방향 설정·우선순위', en: 'Strategy — direction & priorities' },
     stationLabel: { ko: '메인마스트 아래 해도 테이블', en: 'Chart table, under the mainmast' },
     members: [
       { name: '정민', personaRole: { ko: '전략 주니어', en: 'Strategy junior' } },
@@ -63,10 +59,6 @@ export const CREW_DIVISIONS: CrewDivision[] = [
     role: {
       ko: '각자의 손기술로 항해의 실물을 만든다',
       en: 'Build the voyage with their own hands',
-    },
-    functionLabel: {
-      ko: '실무 — 카피·재무·마케팅·기술 작성',
-      en: 'Execution — copy, finance, marketing, build',
     },
     stationLabel: { ko: '메인 갑판', en: 'Main deck' },
     members: [
@@ -86,7 +78,6 @@ export const CREW_DIVISIONS: CrewDivision[] = [
       ko: '수평선 너머의 위험을 먼저 본다',
       en: 'Spot danger before anyone else does',
     },
-    functionLabel: { ko: '리스크 — 허점·UX·법규 사전 검토', en: 'Risk — flaws, UX & compliance, up front' },
     stationLabel: { ko: "까마귀 둥지 (crow's nest)", en: "Crow's nest" },
     members: [
       { name: '동혁', personaRole: { ko: '리스크 검토자', en: 'Risk reviewer' } },
@@ -101,7 +92,6 @@ export const CREW_DIVISIONS: CrewDivision[] = [
       ko: '모든 선원의 목소리를 하나로 묶어 선장에게 전한다',
       en: 'Binds every voice into one for the captain',
     },
-    functionLabel: { ko: '종합 — 모든 의견을 하나로 묶음', en: 'Synthesis — binds every voice into one' },
     stationLabel: { ko: '조타륜 옆', en: 'Beside the helm' },
     members: [
       { name: '일등 항해사', personaRole: { ko: '종합 검토자', en: 'First mate' } },

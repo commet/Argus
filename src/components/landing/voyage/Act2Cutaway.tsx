@@ -99,22 +99,6 @@ export function Act2Cutaway() {
           )}
         </p>
 
-        {/* Plain-language line — answers "why a crew, not one model's one answer?" */}
-        <p
-          className={`bp-fade-up text-center mt-3 max-w-xl mx-auto ${locale === 'ko' ? 'break-keep' : ''}`}
-          style={{
-            color: 'var(--bp-ink-faint)',
-            fontSize: 'clamp(13px, 0.95vw, 15px)',
-            lineHeight: 1.6,
-            animationDelay: '300ms',
-          }}
-        >
-          {L(
-            '한 모델의 한 답이 아니라 — 직무가 다른 크루가 같은 문제를 각자의 눈으로 검증합니다.',
-            'Not one model’s one answer — a crew with different jobs checks the same problem, each their own way.',
-          )}
-        </p>
-
         {/* Cutaway diagram */}
         <div
           className="bp-fade-up relative mx-auto mt-10 md:mt-12"
