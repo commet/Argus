@@ -18,12 +18,6 @@ import { localizePersona } from '@/lib/worker-personas';
 
 // ─── Status helpers ───
 
-const PENDING_STATUSES = new Set<WorkerTask['status']>(['pending', 'ai_preparing']);
-
-function isPending(w: WorkerTask) {
-  return PENDING_STATUSES.has(w.status);
-}
-
 function isWorkingStatus(s: WorkerTask['status']) {
   return s === 'running' || s === 'sent' || s === 'waiting_response';
 }
@@ -84,6 +78,10 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
   const isDone = worker.status === 'done';
   const isWorking = isWorkingStatus(worker.status);
   const isError = worker.status === 'error';
+  // Standby = assigned but not yet deployed (pending / ai_preparing). Shown as a
+  // quiet row so the full crew is legible from casting, without competing with
+  // the live working rows for attention.
+  const isStandby = !isDone && !isWorking && !isError;
 
   const personaColor = worker.persona?.color || 'var(--accent)';
   const lv = worker.agent_id ? useAgentStore.getState().getAgent(worker.agent_id)?.level : undefined;
@@ -95,7 +93,14 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
   const hovered = useAgentAttentionStore(s => s.hovered);
   const setHovered = useAgentAttentionStore(s => s.setHovered);
   const clearHovered = useAgentAttentionStore(s => s.clearHovered);
+  // ── Review focus (rail ↔ body card) — the one agent being read in the stepper.
+  // Clicking a done row docks the body card onto it; stepping in the body lights
+  // this row. Same gold ring as hover, so the link reads without a new visual.
+  const focusedWorkerId = useAgentAttentionStore(s => s.focusedWorkerId);
+  const setFocusedWorker = useAgentAttentionStore(s => s.setFocusedWorker);
+  const isFocused = focusedWorkerId != null && worker.id === focusedWorkerId;
   const isHighlighted =
+    isFocused ||
     (hovered?.kind === 'agent' && hovered.workerId === worker.id) ||
     (hovered?.kind === 'section' && hovered.contributorIds.includes(worker.id)) ||
     (hovered?.kind === 'sentence' && hovered.contributorIds.includes(worker.id));
@@ -141,7 +146,7 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
       data-attribution-source="agent"
       initial={{ opacity: 0, x: 16, scale: 0.96 }}
       animate={{
-        opacity: isDimmed ? 0.4 : 1,
+        opacity: isDimmed ? 0.4 : isStandby ? 0.62 : 1,
         x: 0,
         scale: isHighlighted ? 1.015 : 1,
       }}
@@ -183,7 +188,7 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
       )}
 
       <button
-        onClick={isDone ? onToggle : undefined}
+        onClick={isDone ? () => { setFocusedWorker(worker.id); onToggle(); } : undefined}
         className={`w-full flex items-center gap-3 p-3 ${isDone ? 'cursor-pointer' : 'cursor-default'}`}
       >
         <div className="relative shrink-0">
@@ -426,11 +431,11 @@ export function AgentSidebar({ className }: { className?: string }) {
   const doneCount = workers.filter(w => w.status === 'done').length;
   const runningCount = workers.filter(w => isWorkingStatus(w.status)).length;
   const waitingInputCount = workers.filter(w => w.status === 'waiting_input').length;
-  const pendingCount = workers.filter(isPending).length;
   const allDone = doneCount === workers.length;
   const progressPct = workers.length > 0 ? Math.round((doneCount / workers.length) * 100) : 0;
-  // Sequential reveal: hide pending workers from the sidebar — they slide in once active
-  const visibleWorkers = workers.filter(w => !isPending(w));
+  // Show the full assigned crew from the moment of casting; pending stations read
+  // as quiet "standby" rows — the rail is a live crew roster, not a route line.
+  const visibleWorkers = workers;
 
   // Group workers by stage for multi-stage pipelines (Critical mode: Stage 1 분석 → Stage 2 검증)
   const hasStages = !!stages && stages.length > 1;
@@ -481,27 +486,7 @@ export function AgentSidebar({ className }: { className?: string }) {
         />
       </div>
 
-      {/* Empty "preparing" state — visible when all workers are still pending (before first activation) */}
-      {visibleWorkers.length === 0 && pendingCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: EASE }}
-          className="flex flex-col items-center gap-2 py-6 text-center"
-        >
-          <div className="relative">
-            <Loader2 size={18} className="animate-spin text-[var(--accent)]" />
-          </div>
-          <p className="text-[11px] text-[var(--text-secondary)] font-medium">
-            {L(`${pendingCount}명의 팀원 배정 중`, `Assembling ${pendingCount} team members`)}
-          </p>
-          <p className="text-[10px] text-[var(--text-tertiary)]">
-            {L('잠시만요', 'One moment')}<TypingDots />
-          </p>
-        </motion.div>
-      )}
-
-      {/* Agent rows — sequential reveal, grouped by stage when pipeline has multiple stages */}
+      {/* Agent rows — full crew (standby rows quiet), grouped by stage when pipeline has multiple stages */}
       <div className="space-y-2">
         {groupedByStage.map((group, groupIdx) => (
           <div key={group.stage?.id || 'all'} className="space-y-2">
@@ -535,19 +520,6 @@ export function AgentSidebar({ className }: { className?: string }) {
             </AnimatePresence>
           </div>
         ))}
-
-        {pendingCount > 0 && !allDone && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex items-center gap-2 px-3 pt-1 text-[10px] text-[var(--text-tertiary)]"
-          >
-            <span className="w-1 h-1 rounded-full bg-[var(--text-tertiary)]/40" />
-            <span>{L(`${pendingCount}명 더 합류 예정`, `${pendingCount} more joining`)}</span>
-          </motion.div>
-        )}
       </div>
 
       {/* Summary section — appears when all done */}

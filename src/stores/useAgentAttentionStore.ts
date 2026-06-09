@@ -38,6 +38,15 @@ interface AgentAttentionState {
   lastPingSource: PingSource | null;
   ping: (source: PingSource) => void;
 
+  // Review focus ↔ rail station — the one agent currently being read.
+  // Orthogonal to `hovered` (which is done-only draft↔agent attribution): focus
+  // is click-driven and persistent, hover is transient. The body review stepper
+  // and the rail roster both project from this single id, so clicking a rail row
+  // and reading a body card are one selection. id-based (not index) so it stays
+  // stable when the crew list re-sorts.
+  focusedWorkerId: string | null;
+  setFocusedWorker: (id: string | null) => void;
+
   // Draft ↔ sidebar hover attribution
   hovered: AttributionHover;
   /**
@@ -54,6 +63,9 @@ export const useAgentAttentionStore = create<AgentAttentionState>((set, get) => 
   lastPingAt: 0,
   lastPingSource: null,
   ping: (source) => set({ lastPingAt: Date.now(), lastPingSource: source }),
+
+  focusedWorkerId: null,
+  setFocusedWorker: (id) => set({ focusedWorkerId: id }),
 
   hovered: null,
   sticky: false,

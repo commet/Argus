@@ -962,7 +962,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const analysisCardRef = useRef<HTMLDivElement>(null);
   const teamDeployRef = useRef<HTMLDivElement>(null);
   // Report step is a one-at-a-time stepper (not a long scroll of all drafts).
-  const [reviewCursor, setReviewCursor] = useState(0);
+  // The cursor is a projection of the shared `focusedWorkerId` channel, so the
+  // body card and the rail roster row stay one selection: clicking a rail station
+  // moves this stepper, and stepping here highlights the rail. id-based, so a
+  // re-sorted crew can't drift the cursor onto the wrong agent.
+  const focusedWorkerId = useAgentAttentionStore(s => s.focusedWorkerId);
+  const setFocusedWorker = useAgentAttentionStore(s => s.setFocusedWorker);
 
   // Double rAF: frame 1 lets React commit pending state, frame 2 ensures the
   // new element is laid out before we scroll to it. Previous 200/250ms timers
@@ -982,11 +987,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     }));
   }, []);
 
-  // Reset the report stepper when the active session changes — otherwise a
-  // cursor left at e.g. 5 carries into a new session with fewer workers and
-  // clamps to its LAST worker, silently skipping the others and showing a
-  // false "all reviewed" count.
-  useEffect(() => { setReviewCursor(0); }, [session?.id]);
+  // Reset the report stepper when the active session changes — otherwise a focus
+  // left on a worker id from the previous session would resolve to "not found"
+  // (cursor 0) inconsistently, or linger on a stale highlight. Clearing focus
+  // restarts the stepper at the first worker.
+  useEffect(() => { setFocusedWorker(null); }, [session?.id, setFocusedWorker]);
 
   // Cleanup: abort all in-flight requests on unmount
   useEffect(() => {
@@ -2087,14 +2092,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             const ordered = [...workers].sort((a, b) => a.step_index - b.step_index);
             if (ordered.length === 0) return null;
             const total = ordered.length;
-            const cursor = Math.min(reviewCursor, total - 1);
+            // Cursor is derived from the shared focus channel. Unset / not-found
+            // (e.g. focus from a prior session) falls back to the first worker.
+            const focusedIdx = ordered.findIndex(w => w.id === focusedWorkerId);
+            const cursor = focusedIdx >= 0 ? focusedIdx : 0;
             const current = ordered[cursor];
+            const goTo = (i: number) => setFocusedWorker(ordered[Math.max(0, Math.min(i, total - 1))]?.id ?? null);
             // A worker counts as "handled" once the user has acted: AI approve/
             // exclude sets `approved`, SELF submit also sets approved:true, errors
             // are terminal.
             const handled = (w: WorkerTask) => w.approved != null || w.status === 'error';
             const remainingToReview = ordered.filter(w => !handled(w) && w.status === 'done').length;
-            const advance = () => setReviewCursor(c => Math.min(c + 1, total - 1));
+            const advance = () => goTo(cursor + 1);
             return (
               <div ref={workerSectionRef} className="space-y-3">
                 {/* Progress — clickable dots + N/total */}
@@ -2108,7 +2117,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   <div className="flex items-center gap-2.5">
                     <div className="flex items-center gap-1.5">
                       {ordered.map((w, i) => (
-                        <button key={w.id} onClick={() => setReviewCursor(i)}
+                        <button key={w.id} onClick={() => setFocusedWorker(w.id)}
                           aria-label={`${i + 1}/${total}`} aria-current={i === cursor}
                           className={`rounded-full transition-all cursor-pointer ${
                             i === cursor ? 'w-5 h-2 bg-[var(--accent)]'
@@ -2140,7 +2149,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 </AnimatePresence>
                 {/* Step navigation — go back to revisit, or skip ahead */}
                 <div className="flex items-center justify-between px-1 pt-0.5">
-                  <button onClick={() => setReviewCursor(c => Math.max(0, c - 1))}
+                  <button onClick={() => goTo(cursor - 1)}
                     disabled={cursor === 0}
                     className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-30 cursor-pointer disabled:cursor-default transition-colors">
                     ← {L('이전', 'Prev')}
