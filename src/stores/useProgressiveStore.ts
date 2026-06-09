@@ -155,7 +155,7 @@ export interface AddDraftInit {
   reviewing_agent_id: string | null;
 }
 
-interface ProgressiveState {
+export interface ProgressiveState {
   sessions: ProgressiveSession[];
   currentSessionId: string | null;
 
