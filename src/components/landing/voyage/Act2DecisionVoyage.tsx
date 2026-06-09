@@ -404,9 +404,12 @@ function TrailWaypoint({
   );
 }
 
-/* The terminal Arrival waypoint — the deliverable made concrete. It carries
-   the three things a ChatGPT draft never would: the risk you almost missed,
-   the bet in your own words, and the exit condition. The trail is kept. */
+/* The terminal Arrival waypoint — the deliverable made concrete, as a
+   Current Bearing (per ARGUS-FINAL-DIRECTION): current course, why it's
+   justified, the fog/reef the human must check (the dog's bark, preserved),
+   the road not taken, the next helm, and a falsifiable contract seed. The
+   promise is orientation, not a risk score. The Ship's Log is kept so the
+   user can later pick up on top of this judgment. */
 function ArrivalWaypoint({
   locale,
   L,
@@ -456,7 +459,7 @@ function ArrivalWaypoint({
             marginBottom: 12,
           }}
         >
-          {L('도착 — 결론', 'Arrival — the conclusion')}
+          {L('도착 — 현재 침로', 'Arrival — Current Bearing')}
         </span>
 
         <Cartouche padding={0}>
@@ -476,7 +479,7 @@ function ArrivalWaypoint({
                 textTransform: 'uppercase',
               }}
             >
-              <span>{L('완성된 결론', 'Final call')}</span>
+              <span>{L('현재 침로 · v0.1', 'Current Bearing · v0.1')}</span>
               <span style={{ color: 'var(--bp-ink-faint)' }}>{L('바로 보낼 수 있어요', 'Ready to send')}</span>
             </div>
 
@@ -495,34 +498,53 @@ function ArrivalWaypoint({
                 {L('신규 기능 — 한 분기 연기 권고', 'New feature — recommend deferring a quarter')}
               </h3>
 
-              <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <ArrivalRow
-                  mark="⚠"
-                  markColor="#a14b3b"
-                  label={L('당신이 놓칠 뻔한 위험', 'The risk you almost missed')}
+              <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <BearingField
+                  label={L('현재 침로', 'Current course')}
                   body={L(
-                    '환불·분쟁 리스크는 법무 검토 전엔 닫히지 않습니다 — AI가 대신 정할 수 없는, 당신이 확인할 신호.',
-                    'Refund and dispute risk stays open until legal signs off — a signal only you can confirm.',
+                    '이번 분기 출시를 멈추고 — 한 분기 연기, 법무 검토 후 재평가.',
+                    'Hold this quarter’s launch — defer one quarter, re-evaluate after legal.',
                   )}
                   locale={locale}
                 />
-                <ArrivalRow
-                  mark="✍"
-                  markColor="var(--bp-ink)"
-                  label={L('당신이 거는 베팅 (당신의 말로)', 'The bet you’re making (in your words)')}
+                <BearingField
+                  label={L('이 침로의 근거', 'Why this course')}
                   body={L(
-                    '“지금 한 분기 미뤄도, 경쟁 우위는 사라지지 않는다.”',
-                    '"Deferring one quarter won’t cost us the competitive edge."',
+                    '경쟁사 두 곳이 같은 분기에 예고 — 먼저 내는 이점보다 미완성으로 부딪칠 위험이 큽니다.',
+                    'Two rivals pre-announced for the same quarter — the first-mover edge is outweighed by colliding half-baked.',
                   )}
                   locale={locale}
                 />
-                <ArrivalRow
-                  mark="🚪"
-                  markColor="var(--bp-ink-soft)"
-                  label={L('그래서, 언제 틀렸다고 인정할 것인가', 'So — when will you call it wrong')}
+                <BearingField
+                  alert
+                  label={L('안개 · 암초 — 당신이 확인할 것', 'Fog · reef — for you to check')}
                   body={L(
-                    '법무 검토 통과 + 경쟁사 출시 확인 시 즉시 재개. 3주 후 재평가.',
-                    'Resume on legal sign-off + confirmed rival launch. Re-evaluate in 3 weeks.',
+                    '환불·분쟁 리스크는 법무 검토 전엔 닫히지 않습니다. AI가 대신 정할 수 없는, 당신이 확인할 신호.',
+                    'Refund and dispute risk stays open until legal signs off — a signal only you can confirm, not AI.',
+                  )}
+                  locale={locale}
+                />
+                <BearingField
+                  label={L('가지 않은 길', 'Road not taken')}
+                  body={L(
+                    '지금 강행 출시 — 법무가 정리되기 전에 신뢰를 먼저 소진하는 길.',
+                    'Launch now anyway — spending goodwill before legal is cleared.',
+                  )}
+                  locale={locale}
+                />
+                <BearingField
+                  label={L('다음 키', 'Next helm')}
+                  body={L(
+                    '법무 사인오프 받기 + 경쟁사 출시 타이밍 확인.',
+                    'Get legal sign-off + confirm the rivals’ launch timing.',
+                  )}
+                  locale={locale}
+                />
+                <BearingField
+                  label={L('계약 씨앗', 'Contract seed')}
+                  body={L(
+                    '3주 뒤 — 경쟁사가 먼저 출시했다면, 이 연기는 틀린 판단이었다. 그때 채점한다.',
+                    'In 3 weeks — if a rival shipped first, this deferral was the wrong call. Grade it then.',
                   )}
                   locale={locale}
                 />
@@ -554,45 +576,41 @@ function ArrivalWaypoint({
   );
 }
 
-function ArrivalRow({
-  mark,
-  markColor,
+/* One field of the Current Bearing. The fog/reef field (the human-required
+   check — the dog) gets a restrained ink-red rail; the rest stay calm ink. */
+function BearingField({
   label,
   body,
   locale,
+  alert = false,
 }: {
-  mark: string;
-  markColor: string;
   label: string;
   body: string;
   locale: Locale;
+  alert?: boolean;
 }) {
   return (
-    <div style={{ display: 'flex', gap: 12 }}>
-      <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1.5, color: markColor, flexShrink: 0 }}>
-        {mark}
+    <div style={{ paddingLeft: 12, borderLeft: `2px solid ${alert ? '#a14b3b' : 'var(--bp-ink-faint)'}` }}>
+      <span
+        className="bp-mono"
+        style={{
+          display: 'block',
+          color: alert ? '#a14b3b' : 'var(--bp-ink-faint)',
+          fontSize: 10.5,
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          fontWeight: alert ? 700 : 500,
+          marginBottom: 4,
+        }}
+      >
+        {label}
       </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span
-          className="bp-mono"
-          style={{
-            display: 'block',
-            color: 'var(--bp-ink-faint)',
-            fontSize: 10.5,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            marginBottom: 4,
-          }}
-        >
-          {label}
-        </span>
-        <p
-          className={locale === 'ko' ? 'break-keep' : ''}
-          style={{ margin: 0, color: 'var(--bp-ink)', fontSize: 13.5, lineHeight: 1.65 }}
-        >
-          {body}
-        </p>
-      </div>
+      <p
+        className={locale === 'ko' ? 'break-keep' : ''}
+        style={{ margin: 0, color: 'var(--bp-ink)', fontSize: 13.5, lineHeight: 1.65, fontWeight: alert ? 600 : 400 }}
+      >
+        {body}
+      </p>
     </div>
   );
 }
