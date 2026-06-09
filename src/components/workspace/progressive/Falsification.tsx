@@ -62,9 +62,10 @@ export function Falsification({
     setBusy(true);
     try {
       const top = await onRequestHighestLoad();
-      // Degrade gracefully: if the engine returns nothing, fall back to the last
-      // (most grandiose) claim so the step never dead-ends.
-      const pick = top ?? claims[claims.length - 1] ?? null;
+      // Degrade gracefully: if the engine returns nothing usable (null OR empty
+      // text), fall back to the last (most grandiose) claim so the surfaced
+      // constraint is never blank and the step never dead-ends.
+      const pick = top?.text?.trim() ? top : (claims[claims.length - 1] ?? null);
       if (pick) {
         setFlinched(pick);
         setNoFlinch(true);

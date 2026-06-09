@@ -112,12 +112,26 @@ describe('Falsification', () => {
     });
   });
 
-  it('no-flinch degrades to the last claim when the engine returns nothing', async () => {
+  it('no-flinch degrades to the last claim when the engine returns null', async () => {
     const onRequestHighestLoad = vi.fn().mockResolvedValue(null);
     mount({ strength: 's', claims, onResolve: vi.fn(), onRequestHighestLoad });
     await act(async () => {
       buttonByText('I believe all of it')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(container.textContent).toContain('Grandiose win'); // last claim used as fallback
+  });
+
+  it('no-flinch degrades when the engine returns a blank-text pick (never a blank surfaced constraint)', async () => {
+    const onResolve = vi.fn();
+    const onRequestHighestLoad = vi.fn().mockResolvedValue({ id: 'h', text: '   ', overreached: false, highest_load: true });
+    mount({ strength: 's', claims, onResolve, onRequestHighestLoad });
+    await act(async () => {
+      buttonByText('I believe all of it')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    // Falls back to the last claim rather than surfacing an empty constraint.
+    expect(container.textContent).toContain('Grandiose win');
+    setTextarea('my bet');
+    click(buttonByText('Seal this'));
+    expect(onResolve.mock.calls[0][0].surfaced_constraint).toBe('Grandiose win');
   });
 });

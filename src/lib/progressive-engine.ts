@@ -806,18 +806,26 @@ export async function runOverreach(
 
   const shape = { strength: 'string' as const, claims: 'array' as const };
   const result = onToken
-    ? await callLLMStreamThenParse<{ strength?: string; claims?: string[] }>(
+    ? await callLLMStreamThenParse<{ strength?: string; claims?: unknown[] }>(
         [{ role: 'user', content: user }],
         { system, maxTokens: 1200, signal, shape },
         onToken,
       )
-    : await callLLMJson<{ strength?: string; claims?: string[] }>(
+    : await callLLMJson<{ strength?: string; claims?: unknown[] }>(
         [{ role: 'user', content: user }],
         { system, maxTokens: 1200, signal, shape },
       );
 
+  // Models sometimes return objects ({text: "..."}) instead of plain strings —
+  // coerce rather than silently dropping the whole ladder.
   const claims: LoadBearingClaim[] = (result.claims || [])
-    .map((c) => (typeof c === 'string' ? c.trim() : ''))
+    .map((c) => {
+      if (typeof c === 'string') return c.trim();
+      if (c && typeof c === 'object' && typeof (c as { text?: unknown }).text === 'string') {
+        return ((c as { text: string }).text).trim();
+      }
+      return '';
+    })
     .filter(Boolean)
     .map((text) => ({ id: generateId(), text, overreached: true }));
 

@@ -61,6 +61,12 @@ describe('runOverreach', () => {
     const { claims } = await runOverreach(snapshot, mix);
     expect(claims).toEqual([]);
   });
+
+  it('coerces object-shaped claims ({text}) instead of dropping the ladder', async () => {
+    mockCall.mockResolvedValue({ strength: 's', claims: [{ text: ' c1 ' }, { text: 'c2' }, { nope: 'x' }, 'c3'] });
+    const { claims } = await runOverreach(snapshot, mix);
+    expect(claims.map((c) => c.text)).toEqual(['c1', 'c2', 'c3']); // {nope} dropped, rest kept
+  });
 });
 
 describe('runHighestLoad', () => {

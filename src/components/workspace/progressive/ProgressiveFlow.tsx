@@ -57,6 +57,7 @@ export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-co
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { Falsification } from './Falsification';
+import { Button } from '@/components/ui/Button';
 import { extractPredicatesFromSession } from '@/lib/decision-contract';
 import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
@@ -582,6 +583,23 @@ function PhaseDivider({ done, next, yourTurn }: { done: string; next: string; yo
   );
 }
 
+/* ═══ TestRecover — recovery affordance for an interrupted 'testing' step ═══
+   Shown when the overreach ladder is gone (finalize failed, or tab reloaded)
+   but the phase is still 'testing'. Keeps the step from ever being a dead end. */
+function TestRecover({ label, cta, onClick }: { label: string; cta: string; onClick: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: EASE }}
+      className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 flex flex-col items-start gap-3"
+    >
+      <p className="text-[13.5px] text-[var(--text-secondary)] leading-[1.55]">{label}</p>
+      <Button variant="primary" size="sm" onClick={onClick}>{cta}</Button>
+    </motion.div>
+  );
+}
+
 /* VerificationGate → extracted to ./VerificationGate (re-exported below) */
 
 /* TeamDeployBanner → extracted to ./TeamDeployBanner (re-exported below) */
@@ -944,17 +962,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // The overreach/flinch step's in-flight ladder (strength + escalating claims).
   // Local + ephemeral: only the committed result persists (session.falsification).
   const [overreach, setOverreach] = useState<{ strength: string; claims: LoadBearingClaim[] } | null>(null);
-  // Reload-recovery: `overreach` (the claim ladder) is ephemeral local state, but
-  // session.phase 'testing' persists. If the tab reloaded mid-test, the ladder is
-  // gone — fall back to the review step so the user re-enters it rather than
-  // staring at an empty screen. (Not triggered in the normal flow: onTest sets the
-  // ladder and the phase together; finalize keeps the ladder until the doc lands.)
-  // Referenced via `session` fields so this hook precedes any early return.
-  useEffect(() => {
-    if (session?.phase === 'testing' && !overreach && !busy && !session?.final_deliverable && session?.dm_feedback) {
-      store.setPhase('refining');
-    }
-  }, [session?.phase, overreach, busy, session?.final_deliverable, session?.dm_feedback, store]);
   // Chronicler — enriches log waypoints with narration once the stream settles.
   useChronicler(session, !busy);
   const [error, setError] = useState<string | null>(null);
@@ -1790,6 +1797,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   //    then seals. Degrades gracefully: any failure or a too-thin ladder skips
   //    straight to finalize so the step never dead-ends. ──
   const onTest = async () => {
+    if (busy) return;
     if (!mix || !dmFb || !latest) { onFinalize(); return; }
     setBusy(true); setError(null); setSubstage(L('계획을 시험하는 중', 'Stress-testing the plan'));
     abortRef.current = new AbortController();
@@ -2440,17 +2448,33 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           </div>
 
           {/* Overreach / Flinch ("시험한다") — replaces the review card while the
-              user stress-tests the plan. Renders only with a real claim ladder;
-              onTest skips straight to finalize otherwise. Hidden during the
-              finalize stream (busy) — and it reappears if finalize fails so the
-              user can retry rather than hitting an empty screen. */}
-          {phase === 'testing' && overreach && !final_ && !busy && (
-            <Falsification
-              strength={overreach.strength}
-              claims={overreach.claims}
-              onResolve={onTestResolve}
-              onRequestHighestLoad={onRequestHighestLoad}
-            />
+              user stress-tests the plan. Hidden during the finalize stream (busy).
+              Three render-level states keep it robust against finalize failure and
+              tab reload (the claim ladder is ephemeral; the committed bet persists):
+                · fresh ladder        → the flinch UI
+                · bet already sealed  → just regenerate the document (no re-flinch)
+                · ladder lost, no bet → re-enter the step */}
+          {phase === 'testing' && !final_ && !busy && (
+            overreach ? (
+              <Falsification
+                strength={overreach.strength}
+                claims={overreach.claims}
+                onResolve={onTestResolve}
+                onRequestHighestLoad={onRequestHighestLoad}
+              />
+            ) : session?.falsification ? (
+              <TestRecover
+                label={L('예측은 봉인됐어요. 최종 문서만 다시 만들면 돼요.', 'Your predictions are sealed — only the document needs regenerating.')}
+                cta={L('최종 문서 다시 만들기', 'Regenerate the document')}
+                onClick={onFinalize}
+              />
+            ) : (
+              <TestRecover
+                label={L('시험 단계가 중단됐어요.', 'The test step was interrupted.')}
+                cta={L('다시 시험하기', 'Run the test again')}
+                onClick={onTest}
+              />
+            )
           )}
 
           {final_ && <div ref={finalRef}>
