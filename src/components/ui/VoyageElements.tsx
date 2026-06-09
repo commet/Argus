@@ -134,18 +134,19 @@ export function VoyageShip({
         <path d="M 16 93 q 3 -3 6 0 M 30 95 q 3 -3 6 0 M 96 93 q 3 -3 6 0 M 110 95 q 3 -3 6 0" {...inkThin} strokeWidth={0.9} />
       </g>
 
-      {/* ── Port marker (arrived / verified): a buoy + pennant at the destination ── */}
+      {/* ── Port marker (arrived / verified): a jetty the ship is moored at ── */}
       {atPort && (
         <g>
-          <path d="M 114 89 V 64" {...inkThin} />
-          <path d="M 114 64 L 124 67 L 114 70 Z" stroke="none" fill={state === 'verified' ? GOLD : INK} opacity={state === 'verified' ? 0.95 : 0.45} />
-          <circle cx="114" cy="89" r="2.4" stroke={INK} strokeWidth={1.1} fill="var(--bp-paper)" />
+          <path d="M 98 85 H 122" stroke={INK} strokeWidth={2.2} strokeLinecap="round" fill="none" />
+          <path d="M 102 85 V 92 M 112 85 V 92 M 121 85 V 91" {...inkThin} />
+          <path d="M 121 85 V 71" {...inkThin} />
+          <path d="M 121 71 L 128 73.5 L 121 76 Z" stroke="none" fill={state === 'verified' ? GOLD : INK} opacity={state === 'verified' ? 0.95 : 0.4} />
         </g>
       )}
 
       {/* ── Mooring anchor (docked) ── */}
       {state === 'docked' && (
-        <g opacity={0.5}>
+        <g opacity={0.6}>
           <path d="M 99 65 L 103 88" {...inkThin} />
           <path d="M 103 88 m -4 -3 a 4 4 0 1 0 8 0 M 103 80 V 92 M 98 91 h 10" {...inkThin} strokeWidth={1.2} />
         </g>
@@ -179,27 +180,27 @@ export function VoyageShip({
         <path d="M 96 64 L 118 56" {...ink} />
 
         {/* Yards (spars) — hidden where the mast snapped */}
-        {!torn && <path d="M 50 26 H 70 M 46 40 H 74 M 68 40 H 90" {...inkThin} />}
+        {!torn && <path d="M 51 21 H 69 M 46 40 H 74 M 68 40 H 90" {...inkThin} />}
         {torn && <path d="M 46 40 H 74" {...inkThin} />}
 
         {/* ── Sails / canvas, per state ── */}
         {full && (
           <g fill="var(--bp-paper)" stroke={INK} strokeWidth={1.4} strokeLinejoin="round">
-            <path d="M 51 27 L 69 27 Q 74 33 70 39 L 50 38 Q 47 32 51 27 Z" />
+            <path d="M 52 22 L 68 22 Q 73 28 69 34 L 51 33 Q 48 27 52 22 Z" />
             <path d="M 47 41 L 73 41 Q 81 52 73 63 L 48 60 Q 42 50 47 41 Z" />
             <path d="M 69 41 L 89 41 Q 94 50 89 59 L 70 57 Q 65 49 69 41 Z" />
           </g>
         )}
         {slack && (
           <g fill="var(--bp-paper)" stroke={INK} strokeWidth={1.3} strokeLinejoin="round">
-            <path d="M 51 27 L 69 27 L 68 39 L 52 38 Z" />
-            <path d="M 47 41 L 73 41 L 71 62 Q 60 59 49 62 L 47 41 Z" />
-            <path d="M 69 41 L 89 41 L 87 60 Q 78 57 70 60 L 69 41 Z" />
+            <path d="M 52 22 L 68 22 Q 67 30 66 37 Q 60 33 54 37 Q 53 30 52 22 Z" />
+            <path d="M 48 41 L 72 41 Q 70 57 69 67 Q 60 61 51 67 Q 50 57 48 41 Z" />
+            <path d="M 70 41 L 89 41 Q 88 56 87 65 Q 79 59 71 65 Q 70 56 70 41 Z" />
           </g>
         )}
         {furled && (
           <g fill="var(--bp-paper)" stroke={INK} strokeWidth={1.2} strokeLinejoin="round">
-            <path d="M 50 25 Q 60 23 70 25 Q 60 28.5 50 25 Z" />
+            <path d="M 51 21 Q 60 19 69 21 Q 60 24 51 21 Z" />
             <path d="M 46 39 Q 60 37 74 39 Q 60 43 46 39 Z" />
             <path d="M 68 39 Q 79 37 90 39 Q 79 43 68 39 Z" />
           </g>

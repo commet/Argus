@@ -18,7 +18,7 @@ import Link from 'next/link';
 import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
-import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
+import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg, type VoyageState } from '@/lib/voyage-state';
 
 const STEP_LABELS_KO = ['재정의', '설계', '검증', '종합'] as const;
 const STEP_LABELS_EN = ['Reframe', 'Recast', 'Rehearse', 'Synth'] as const;
@@ -37,7 +37,17 @@ const VOYAGE_TONE_CLS: Record<string, string> = {
 };
 
 type ToolStatus = 'done' | 'in-progress' | 'not-started';
-type StatusFilter = 'all' | 'active' | 'done' | 'new';
+// Filter buckets, in voyage language. 'stuck' = the rescue filter (adrift + wrecked).
+type StatusFilter = 'all' | 'sailing' | 'stuck' | 'arrived' | 'docked';
+
+const VOYAGE_GROUP: Record<VoyageState, Exclude<StatusFilter, 'all'>> = {
+  docked: 'docked',
+  sailing: 'sailing',
+  adrift: 'stuck',
+  wrecked: 'stuck',
+  arrived: 'arrived',
+  verified: 'arrived',
+};
 
 function relativeDate(dateStr: string | undefined, locale: 'ko' | 'en'): string {
   if (!dateStr) return '';
@@ -65,7 +75,7 @@ interface StepStatus {
 export default function ProjectPage() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const { projects, currentProjectId, loadProjects, setCurrentProjectId } = useProjectStore();
+  const { projects, currentProjectId, loadProjects, setCurrentProjectId, updateProject } = useProjectStore();
   const { items: reframeItems, loadItems: loadReframe } = useReframeStore();
   const { items: recastItems, loadItems: loadRecast } = useRecastStore();
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
@@ -73,6 +83,7 @@ export default function ProjectPage() {
   const { judgments, loadJudgments, getUserPatterns } = useJudgmentStore();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [reckoningSnoozed, setReckoningSnoozed] = useState(false);
 
   useEffect(() => {
     loadProjects();
@@ -82,6 +93,9 @@ export default function ProjectPage() {
     loadPersona();
     loadJudgments();
   }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadJudgments]);
+
+  // Reset the reckoning snooze whenever we open a different project.
+  useEffect(() => { setReckoningSnoozed(false); }, [currentProjectId]);
 
   const currentProject = currentProjectId ? projects.find((p) => p.id === currentProjectId) : null;
 
@@ -181,19 +195,37 @@ export default function ProjectPage() {
     return map;
   }, [projects, reframeItems, recastItems, synthesizeItems, feedbackHistory]);
 
-  const stats = useMemo(() => {
-    let inProgress = 0;
-    let done = 0;
-    let untouched = 0;
+  // Derived voyage state per project — single source for ship, label, filter, counts.
+  const voyageStateMap = useMemo(() => {
+    const map = new Map<string, VoyageState>();
+    const now = Date.now();
     for (const p of projects) {
       const m = projectMetricsMap.get(p.id);
       if (!m) continue;
-      if (m.isDone) done++;
-      else if (m.hasProgress) inProgress++;
-      else untouched++;
+      map.set(p.id, getVoyageState({
+        started: m.hasProgress,
+        completedAllLegs: m.isDone,
+        lastActivityAt: m.lastActivityAt || p.updated_at || p.created_at || '',
+        hasCoda: !!p.meta_reflection,
+        lastLeg: m.lastActivityStepIdx >= 0 ? STEP_IDX_TO_LEG[m.lastActivityStepIdx] : null,
+        outcomeVerdict: p.outcome?.verdict,
+      }, now));
     }
-    return { total: projects.length, inProgress, done, untouched };
+    return map;
   }, [projects, projectMetricsMap]);
+
+  const stats = useMemo(() => {
+    const c = { sailing: 0, stuck: 0, arrived: 0, docked: 0, adrift: 0, wrecked: 0, arrivedPending: 0 };
+    for (const p of projects) {
+      const s = voyageStateMap.get(p.id);
+      if (!s) continue;
+      c[VOYAGE_GROUP[s]]++;
+      if (s === 'adrift') c.adrift++;
+      if (s === 'wrecked') c.wrecked++;
+      if (s === 'arrived') c.arrivedPending++; // landed, awaiting reckoning
+    }
+    return { total: projects.length, ...c };
+  }, [projects, voyageStateMap]);
 
   const sortedProjects = useMemo(() => {
     return [...projects].sort((a, b) => {
@@ -210,17 +242,13 @@ export default function ProjectPage() {
     let list = sortedProjects;
     if (statusFilter !== 'all') {
       list = list.filter((p) => {
-        const m = projectMetricsMap.get(p.id);
-        if (!m) return false;
-        if (statusFilter === 'active') return m.hasProgress && !m.isDone;
-        if (statusFilter === 'done') return m.isDone;
-        if (statusFilter === 'new') return !m.hasProgress;
-        return true;
+        const s = voyageStateMap.get(p.id);
+        return s ? VOYAGE_GROUP[s] === statusFilter : false;
       });
     }
     if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
     return list;
-  }, [sortedProjects, query, statusFilter, projectMetricsMap]);
+  }, [sortedProjects, query, statusFilter, voyageStateMap]);
 
   // Get items for current project
   const projectReframes = reframeItems.filter((d) => d.project_id === currentProjectId);
@@ -286,6 +314,7 @@ export default function ProjectPage() {
   const steps = currentProject ? getSteps() : [];
   const completedSteps = steps.filter((s) => s.status === 'done').length;
   const nextStep = steps.find((s) => s.status !== 'done');
+  const detailVoyage: VoyageState = currentProject ? (voyageStateMap.get(currentProject.id) ?? 'docked') : 'docked';
 
   return (
     <div className="space-y-6">
@@ -343,14 +372,63 @@ export default function ProjectPage() {
             </Card>
           ) : (
             <>
+              {/* Rescue nudge — surface adrift/wrecked voyages that sank down the list */}
+              {stats.stuck > 0 && statusFilter !== 'stuck' && (
+                <button
+                  onClick={() => setStatusFilter('stuck')}
+                  className="w-full flex items-center gap-3 text-left px-3.5 py-3 rounded-xl border border-amber-200 bg-[var(--checkpoint)] hover:border-amber-300 hover:shadow-[var(--shadow-sm)] transition-all cursor-pointer group"
+                >
+                  <span className="shrink-0 w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <AlertTriangle size={16} className="text-amber-700" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[13px] font-bold text-[var(--text-primary)]">
+                      {locale === 'ko'
+                        ? `멈춰 있는 항해 ${stats.stuck}척${stats.wrecked > 0 ? ` · 난파 ${stats.wrecked}` : ''}${stats.adrift > 0 ? ` · 표류 ${stats.adrift}` : ''}`
+                        : `${stats.stuck} stalled voyage${stats.stuck === 1 ? '' : 's'}${stats.wrecked > 0 ? ` · ${stats.wrecked} wrecked` : ''}${stats.adrift > 0 ? ` · ${stats.adrift} adrift` : ''}`}
+                    </span>
+                    <span className="block text-[11.5px] text-[var(--text-secondary)] mt-0.5">
+                      {L('열어두고 결론을 안 낸 결정들 — 구조하러 갈까요?', 'Decisions you opened but never landed — go rescue them?')}
+                    </span>
+                  </span>
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[12px] font-semibold text-amber-700 group-hover:gap-1.5 transition-all">
+                    {L('보기', 'View')} <ArrowRight size={13} />
+                  </span>
+                </button>
+              )}
+
+              {/* Reckoning nudge — landed voyages whose outcome is still unconfirmed */}
+              {stats.arrivedPending > 0 && statusFilter !== 'arrived' && (
+                <button
+                  onClick={() => setStatusFilter('arrived')}
+                  className="w-full flex items-center gap-3 text-left px-3.5 py-3 rounded-xl border border-[var(--success)]/25 bg-[var(--collab)] hover:border-[var(--success)]/50 hover:shadow-[var(--shadow-sm)] transition-all cursor-pointer group"
+                >
+                  <span className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--gradient-gold-subtle)' }}>
+                    <Scale size={16} className="text-[var(--accent)]" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[13px] font-bold text-[var(--text-primary)]">
+                      {locale === 'ko' ? `정산 기다리는 입항 ${stats.arrivedPending}척` : `${stats.arrivedPending} arrival${stats.arrivedPending === 1 ? '' : 's'} awaiting reckoning`}
+                    </span>
+                    <span className="block text-[11.5px] text-[var(--text-secondary)] mt-0.5">
+                      {L('결과를 마주하면 검증된 항해가 됩니다 — 판단이 맞았나요?', 'Face the outcome to verify the voyage — was the call right?')}
+                    </span>
+                  </span>
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] group-hover:gap-1.5 transition-all">
+                    {L('정산', 'Reckon')} <ArrowRight size={13} />
+                  </span>
+                </button>
+              )}
+
               {/* Filter chips + search */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {([
                     { key: 'all', label: L('전체', 'All'), count: stats.total },
-                    { key: 'active', label: L('진행 중', 'Active'), count: stats.inProgress },
-                    { key: 'done', label: L('완료', 'Done'), count: stats.done },
-                    { key: 'new', label: L('시작 전', 'New'), count: stats.untouched },
+                    { key: 'sailing', label: L('항해 중', 'Sailing'), count: stats.sailing },
+                    { key: 'stuck', label: L('표류·난파', 'Adrift·Wrecked'), count: stats.stuck },
+                    { key: 'arrived', label: L('입항·검증', 'Arrived'), count: stats.arrived },
+                    { key: 'docked', label: L('출항 전', 'Docked'), count: stats.docked },
                   ] as const).map((f) => {
                     const active = statusFilter === f.key;
                     return (
@@ -399,14 +477,7 @@ export default function ProjectPage() {
                       m.stepCount > 0 || m.aiRatio !== null || m.reviewerCount > 0 || m.riskCount > 0;
 
                     // ── Voyage state (single source of truth: lib/voyage-state) ──
-                    const voyageState = getVoyageState({
-                      started: m.hasProgress,
-                      completedAllLegs: m.isDone,
-                      lastActivityAt: m.lastActivityAt || project.updated_at || project.created_at || '',
-                      hasCoda: !!project.meta_reflection,
-                      lastLeg: m.lastActivityStepIdx >= 0 ? STEP_IDX_TO_LEG[m.lastActivityStepIdx] : null,
-                      outcomeVerdict: project.outcome?.verdict,
-                    }, Date.now());
+                    const voyageState = voyageStateMap.get(project.id) ?? 'docked';
                     const vMeta = VOYAGE_STATE_META[voyageState];
 
                     return (
@@ -572,20 +643,121 @@ export default function ProjectPage() {
             </div>
           </div>
 
-          {/* Project header */}
-          <Card>
-            <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{currentProject.name}</h2>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-[12px] text-[var(--text-secondary)]">{L('진행률', 'Progress')}</span>
-              <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[var(--accent)] rounded-full transition-all"
-                  style={{ width: `${(completedSteps / steps.length) * 100}%` }}
-                />
-              </div>
-              <span className="text-[12px] font-semibold text-[var(--accent)]">{completedSteps}/{steps.length}</span>
-            </div>
+          {/* Project header — the ship you clicked, arrived in detail */}
+          <Card className="!p-0 overflow-hidden">
+            {(() => {
+              const dv = detailVoyage;
+              const dMeta = VOYAGE_STATE_META[dv];
+              return (
+                <div className="flex items-stretch">
+                  <div className="relative w-[140px] sm:w-[160px] shrink-0 bg-[var(--bp-paper)] border-r border-[var(--border-subtle)] flex items-end justify-center overflow-hidden">
+                    <Graticule opacity={0.1} spacing={24} />
+                    <VoyageShip state={dv} size={124} title={L(dMeta.ko, dMeta.en)} className="relative z-[1] mb-1" />
+                  </div>
+                  <div className="flex-1 min-w-0 p-4 md:p-5 flex flex-col justify-center gap-2.5">
+                    <span
+                      className={`self-start inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10.5px] uppercase tracking-wide font-bold ${VOYAGE_TONE_CLS[dMeta.tone]}`}
+                      style={dMeta.tone === 'gold' ? { background: 'var(--gradient-gold-subtle)' } : undefined}
+                    >
+                      {dv === 'sailing' && <span className="w-1 h-1 rounded-full bg-[var(--accent)] animate-pulse" />}
+                      {dv === 'verified' && <Check size={9} strokeWidth={3} />}
+                      {L(dMeta.ko, dMeta.en)}
+                    </span>
+                    <h2 className="text-[18px] font-bold text-[var(--text-primary)] leading-tight">{currentProject.name}</h2>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[12px] text-[var(--text-secondary)] shrink-0">{L('진행률', 'Progress')}</span>
+                      <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[var(--accent)] rounded-full transition-all"
+                          style={{ width: `${(completedSteps / steps.length) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-[12px] font-semibold text-[var(--accent)] shrink-0">{completedSteps}/{steps.length}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </Card>
+
+          {/* 사후 정산 — the arrived ship awaits its reckoning (1-tap → verified) */}
+          {detailVoyage === 'arrived' && !reckoningSnoozed && (
+            <Card className="!bg-[var(--checkpoint)] !border-amber-200">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                  <Scale size={16} className="text-amber-700" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-bold text-[var(--text-primary)]">{L('이 항해, 실제로 어땠나요?', 'How did this voyage actually turn out?')}</p>
+                  <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
+                    {L('결론을 마주하면 «검증된 항해»가 됩니다. 판단이 맞았는지 정직하게 표시하면, 다음 판단이 더 정확해져요.',
+                       'Face the outcome to make this a verified voyage. Honest reckoning sharpens your next call.')}
+                  </p>
+                  {typeof currentProject.confidence_at_completion === 'number' && (
+                    <p className="text-[11.5px] text-[var(--text-tertiary)] mt-1.5 tabular-nums">
+                      {L(`완료 당시 확신도 ${currentProject.confidence_at_completion}/5`, `Confidence at completion: ${currentProject.confidence_at_completion}/5`)}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
+                    {([
+                      { v: 'right', ko: '맞았다', en: 'Right', cls: 'bg-[var(--collab)] text-[var(--success)] border-green-200 hover:border-[var(--success)]/50' },
+                      { v: 'mixed', ko: '일부 맞았다', en: 'Mixed', cls: 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400' },
+                      { v: 'wrong', ko: '틀렸다', en: 'Wrong', cls: 'bg-red-50 text-[var(--danger)] border-red-200 hover:border-[var(--danger)]/50' },
+                    ] as const).map((o) => (
+                      <button
+                        key={o.v}
+                        onClick={() => updateProject(currentProject.id, { outcome: { verdict: o.v, recorded_at: new Date().toISOString() } })}
+                        className={`px-3.5 py-1.5 rounded-lg text-[12.5px] font-semibold border transition-all cursor-pointer ${o.cls}`}
+                      >
+                        {L(o.ko, o.en)}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setReckoningSnoozed(true)}
+                      className="px-2 py-1.5 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+                    >
+                      {L('아직', 'Not yet')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* 정산 완료 — verified voyage */}
+          {detailVoyage === 'verified' && currentProject.outcome && (
+            <Card className="!bg-[var(--collab)] !border-green-200">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-gold-subtle)' }}>
+                  <Check size={16} className="text-[var(--accent)]" strokeWidth={2.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-bold text-[var(--text-primary)]">
+                    {L('검증된 항해', 'Verified voyage')}
+                    {' · '}
+                    {currentProject.outcome.verdict === 'right' && L('판단이 맞았습니다', 'the call was right')}
+                    {currentProject.outcome.verdict === 'mixed' && L('일부 맞았습니다', 'partly right')}
+                    {currentProject.outcome.verdict === 'wrong' && L('판단이 빗나갔습니다', 'the call missed')}
+                  </p>
+                  {typeof currentProject.confidence_at_completion === 'number' && (
+                    <p className="text-[12px] text-[var(--text-secondary)] mt-1 tabular-nums">
+                      {L(`완료 당시 확신도 ${currentProject.confidence_at_completion}/5 → 결과 대조 완료`,
+                         `Confidence then ${currentProject.confidence_at_completion}/5 → reckoned`)}
+                    </p>
+                  )}
+                  {currentProject.outcome.note && (
+                    <p className="text-[12px] text-[var(--text-secondary)] mt-1 leading-relaxed">{currentProject.outcome.note}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => updateProject(currentProject.id, { outcome: undefined })}
+                  className="shrink-0 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer self-center"
+                >
+                  {L('다시 정산', 'Redo')}
+                </button>
+              </div>
+            </Card>
+          )}
 
           {/* Steps journey */}
           <div className="space-y-0">
