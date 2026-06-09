@@ -4,6 +4,7 @@ import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { upsertToSupabase, loadAndMerge } from '@/lib/db';
 import { track } from '@/lib/analytics';
 import { useAgentStore } from '@/stores/useAgentStore';
+import { usePersonaStore } from '@/stores/usePersonaStore';
 import { agentToWorkerPersona } from '@/lib/agent-adapters';
 import { XP_REWARDS } from '@/stores/agent-types';
 import type { Agent } from '@/stores/agent-types';
@@ -943,8 +944,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
         contact: (() => {
           if (pw.agentType !== 'human') return undefined;
           const hint = pw.humanContactHint?.toLowerCase() || '';
-          const { usePersonaStore: pStore } = require('@/stores/usePersonaStore');
-          const personas = pStore?.getState?.()?.personas || [];
+          const personas = usePersonaStore.getState().personas || [];
           const match = personas.find((p: { name: string; role: string; contact?: { email?: string; slack_id?: string }; deleted_at?: string | null }) =>
             !p.deleted_at && (p.contact?.email || p.contact?.slack_id) &&
             (p.name.toLowerCase().includes(hint) || p.role.toLowerCase().includes(hint) || hint.includes(p.name.toLowerCase()))
