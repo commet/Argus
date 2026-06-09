@@ -34,7 +34,6 @@ import type { FlowAnswer, AnalysisSnapshot, WorkerTask, LeadSynthesisResult } fr
 import { findEffectForAnswer, applySnapshotPatch } from '@/lib/question-types';
 import type { StrategicForkEffect, WeaknessCheckEffect } from '@/lib/question-types';
 import { TeamAssignmentModal, type PoolModalState } from './TeamAssignmentModal';
-import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useDraftManagement } from './hooks/useDraftManagement';
 import { useScrollManagement } from './hooks/useScrollManagement';
@@ -44,6 +43,7 @@ import { WorkerReportStepper } from './WorkerReportStepper';
 import { QuestionSection } from './QuestionSection';
 import { ErrorBanner } from './ErrorBanner';
 import { DeployResumeBanners } from './DeployResumeBanners';
+import { PreMixStage } from './PreMixStage';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
 import { useLocale } from '@/hooks/useLocale';
@@ -61,7 +61,7 @@ import { UpdateSummaryChip } from './shared/UpdateSummaryChip';
 
 import {
   ReviewerBadge, PhaseAmbient, ProgressLine, AnsweredPills, PhaseStatusBar,
-  StreamSnippet, LeadSynthesisCard, PhaseDivider, VoyagePrepSummary,
+  StreamSnippet, LeadSynthesisCard, PhaseDivider,
   FramingConfirmation, ConvergenceStatus, PipelineExitOptions,
 } from './ProgressiveFlowParts';
 
@@ -994,60 +994,20 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             />
           )}
 
-          {/* Worker status summary before mix — with persona names */}
-          {shouldMix && !busy && phase === 'conversing' && !curQ && workers.length > 0 && (() => {
-            const items = workers.map(w => {
-              const name = personaName(w.persona, locale) || 'AI';
-              if (w.approved === true) return `${name} ✓`;
-              if (w.approved === false) return `${name} ✗`;
-              if (w.status === 'done') return `${name} ⏳`;
-              if (w.status === 'running') return `${name} ●`;
-              return null;
-            }).filter(Boolean);
-            return items.length > 0 ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--bg)]/60 text-[12px] text-[var(--text-secondary)]">
-                <AvatarRow personas={workers.map(w => w.persona)} maxShow={5} />
-                <span>{items.join(' · ')}</span>
-              </motion.div>
-            ) : null;
-          })()}
-
-          {/* PhaseDivider: Team analysis complete → create draft */}
-          {shouldMix && !busy && phase === 'conversing' && !curQ && (
-            <PhaseDivider done={L('팀 분석 완료', 'Team analysis done')} next={L('초안 작성 시작', 'Create draft')} yourTurn />
-          )}
-
-          {/* UserNotesInput — add your thoughts before mixing */}
-          {shouldMix && !busy && phase === 'conversing' && !curQ && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: EASE }}
-              className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 md:p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0">
-                  <span className="text-[var(--bg)] text-[8px] font-bold">{L('나', 'Me')}</span>
-                </div>
-                <span className="text-[13px] font-medium text-[var(--text-primary)]">{L('내 생각 추가', 'Add my thoughts')}</span>
-                <span className="text-[11px] text-[var(--text-tertiary)]">({L('선택', 'optional')})</span>
-              </div>
-              <textarea
-                value={session?.user_notes || ''}
-                onChange={(e) => store.setUserNotes(e.target.value || null)}
-                placeholder={L('팀 분석에 빠진 것, 강조할 점, 방향 수정 등', 'What the team missed, what to emphasize, direction changes...')}
-                rows={3} maxLength={500}
-                className="w-full px-4 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)] text-base md:text-[13px] text-[var(--text-primary)] leading-relaxed resize-none focus:outline-none focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-tertiary)]"
-              />
-            </motion.div>
-          )}
-
-          {shouldMix && !busy && phase === 'conversing' && !curQ && latest && (
-            <VoyagePrepSummary
-              snapshot={latest}
-              onMix={onMix}
-              onMore={onMore}
-              onRevisit={() => scrollToRef(answeredPillsRef, 'bottom')}
-              busy={busy}
-            />
-          )}
+          <PreMixStage
+            shouldMix={shouldMix}
+            busy={busy}
+            phase={phase}
+            curQ={curQ}
+            workers={workers}
+            session={session}
+            store={store}
+            latest={latest}
+            onMix={onMix}
+            onMore={onMore}
+            scrollToRef={scrollToRef}
+            answeredPillsRef={answeredPillsRef}
+          />
 
           {/* Lead Synthesis — previously hidden, now visible.
               (Drafting status already surfaced in PhaseStatusBar.) */}
