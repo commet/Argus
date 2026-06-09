@@ -3,7 +3,38 @@
 > Branch: **`fix/l0-stop-the-bleeding`** · pushed to `origin` (commet/Argus).
 > Everything below is committed and green. Pick up from "What's next".
 
-## ⚡ ACTIVE THREAD — Worker-stage redesign (RESUME HERE FIRST)
+## ✅ RESOLVED — Worker-stage redesign, core shipped (Option A)
+
+**Decision (owner): Option A — differentiate.** The Logbook owns the route/map
+metaphor; the agent sidebar stays a DISTINCT "live crew roster / status" surface,
+NOT a second vertical route-line. We shipped the safe, high-value core of the
+Voyage Register spec and deferred the route-line visuals.
+
+**Shipped** (`42d932a`, branch `feat/worker-stage-roster-then-core`, gate green:
+tsc clean / eslint 0 errors / vitest 1004):
+- Shared `focusedWorkerId` + `setFocusedWorker` on `useAgentAttentionStore`
+  (orthogonal to the done-only `hovered` channel).
+- Body review stepper's `reviewCursor` replaced by an id-based projection of
+  `focusedWorkerId` → clicking a rail row and reading a body card are ONE
+  selection; re-sorting the crew can't drift the cursor.
+- Sidebar rows read `focusedWorkerId` for the existing gold ring; clicking a done
+  row docks the body card onto it.
+- Full assigned crew shown from casting (pending filter dropped); standby rows
+  quiet (opacity 0.62); removed the redundant "assembling" empty-state + "N more
+  joining" footer.
+- Deploy gate (`팀 투입`) and one-at-a-time review preserved.
+
+**Deferred (route-line metaphor / polish — NOT part of Option A's core):** rail
+re-skin as a gold spine, the `FocusThread` one-shot SVG, the `CastOff` deploy
+ceremony, and the `scout_angle` pre-scout LLM pass. The spec
+(`docs/WORKER-STAGE-REDESIGN.md`) still documents these, but note its §3/§4/§7
+"single vertical gold spine" is the very metaphor Option A rejected — if revived,
+recast it as roster styling, not a route-line. **Current thread moved on to the
+PLAN's core (F4 — decompose `ProgressiveFlow.tsx`).**
+
+---
+
+## ⚡ PRIOR ACTIVE THREAD (archived) — Worker-stage redesign
 
 **Where we stopped:** designing the worker (agent) stage — how the right-rail agent status and the in-body one-at-a-time review connect.
 
