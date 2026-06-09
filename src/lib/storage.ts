@@ -28,7 +28,18 @@ export function getStorage<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
   try {
     const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : fallback;
+    if (!item) return fallback;
+    const parsed = JSON.parse(item);
+    // Read-side hydration guard. Old/corrupt/concurrently-mangled localStorage
+    // can hold a value of the wrong shape (e.g. an object where the caller's
+    // fallback is an array). Returning it unchecked crashes consumers that
+    // immediately `.filter`/`.map`/`.length` the result on hydration. When the
+    // stored shape can't satisfy `T`, fall back instead of handing back a
+    // land-mine. Conservative: only reject clear mismatches (null/undefined, or
+    // array-vs-non-array), never narrow further than the fallback already implies.
+    if (parsed === null || parsed === undefined) return fallback;
+    if (Array.isArray(fallback) !== Array.isArray(parsed)) return fallback;
+    return parsed as T;
   } catch {
     return fallback;
   }
