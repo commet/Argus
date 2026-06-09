@@ -41,7 +41,7 @@ Refuse to run when:
 ### Step 1 — Load session state
 
 1. Find session: latest `.argus/sessions/*/session.json` or specified via `--session`.
-2. Read latest snapshot from `session.snapshots[-1]`.
+2. Read the latest snapshot from `versions/{label}/analysis.json` (authoritative; session.json no longer stores snapshots).
 3. Assert `execution_plan.steps` has ≥ 2 entries. If not, halt with direction to run more clarify rounds.
 4. Compute next version label using rules from `~/.claude/argus-lib/session/version-numbering.md`:
    - v0.1 directory exists already (created by `/argus:clarify`).
@@ -423,11 +423,8 @@ Write to `versions/{label}/scaffold.json`.
 
 ### Step 10 — Update session.json
 
-- Append all workers to `session.workers[]`
-- Append stages to `session.stages[]`
-- Set `session.mix` to the MixResult
-- Set `session.final_scaffold` to the FinalScaffold
-- Update `session.classification`
+- Workers, stages, mix, and the scaffold are ALREADY written write-once to `versions/{label}/` (`workers.json`, `team_plan.json` stages, `mix.json`, `scaffold.json`) — do NOT also copy them into session.json. Duplicating them is exactly the monolithic-blob merge-conflict surface this model removes.
+- Update `session.classification` (small routing state — kept in the skeleton)
 - **Append a Draft to `session.drafts[]`** (schema: `~/.claude/argus-data/schemas/draft.json`) and set `session.active_draft_id` to it. Without this the chart version tree is permanently empty and `--checkout` / `--promote` / branching cannot work. Shape:
   - `id`: stable draft id (e.g. `draft-{label}`)
   - `parent_draft_id`: the draft this one descends from — on a `--revise`/branch run, the draft whose `version_label` matches the checked-out `session.active_draft_id`; on the first team run, `null` (root)

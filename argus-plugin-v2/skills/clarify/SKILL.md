@@ -66,7 +66,7 @@ This is the single source of truth for the artifact the team works ON (M1 code-n
 ### Step 1 — Session bootstrap
 
 1. **Read config**: Load `.argus/config.yaml` (schema: `~/.claude/argus-data/schemas/config.json`). If clarify is invoked via `/argus:sail`, the config is already loaded and present (sail Step 0 silent-creates it). If clarify is invoked DIRECTLY by the user with no config, silent-create from `~/.claude/argus-lib/config.example.yaml` (same logic as sail Step 0) — print one line "ℹ config 자동 생성 (ISTJ 기본)" and proceed. No AskUserQuestion. All user-facing text in this skill uses `config.locale`.
-2. Compute session ID: `YYYY-MM-DD-<kebab-of-first-N-words-of-problem>`. Collision-safe by appending `-2`, `-3`.
+2. Compute session ID: `YYYY-MM-DD-<kebab-of-first-5-words-of-problem>-<author>`, where `<author>` is the first 4 hex chars of a hash of `git config user.email` (fallback: `git config user.name`, else `local`). The author suffix makes the same problem from two teammates resolve to two non-colliding directories that still both travel via git — the team-safety guarantee. Still collision-safe within one author by appending `-2`, `-3`.
 3. Create `.argus/sessions/{id}/` directory.
 4. Create `session.json` at the root with schema from `~/.claude/argus-data/schemas/session.json`. Fields:
    - `id`, `problem_text`, `repo_path` (from `pwd`), `repo_branch` (from `git branch --show-current`; if the command errors because this is not a git repo, set `repo_branch: null` and `invoking_context.git_available: false` — do NOT halt or write garbage. Team Step 1.5 path C (hypothetical mode) keys off `git_available: false`.)
@@ -168,7 +168,7 @@ Otherwise, repeat up to `max_rounds` times (default 3) or until the snapshot con
    - `multiSelect: false` unless the question naturally accepts multiple
    - 2-4 options covering the answer space + open option: `"직접 입력"` (ko) / `"Let me type it"` (en)
 
-3. **Run deepening analysis**: update the snapshot with the answer. Produce a new version of AnalysisSnapshot. Append to `snapshots[]` in session.json (NOT overwrite — keeping history).
+3. **Run deepening analysis**: update the snapshot with the answer. Produce a new version of AnalysisSnapshot and write it to `versions/{label}/analysis.json` (latest is authoritative). Append the Q&A turn to `versions/{label}/questions_and_answers.json` to keep history. Do NOT store snapshots in session.json — the version dir is the authoritative, write-once-per-round home (keeps session.json thin and conflict-free).
 
 4. **Check convergence**:
    - If `execution_plan.steps` now present with ≥2 steps AND `framing_confidence >= 75` → `readyForMix = true`, exit loop.
@@ -264,7 +264,7 @@ Run `/argus:team` to deploy the agents.
 
 ### Step 6 — Update session.json
 
-Set `phase: "conversing"` (if not ready for team) or stay on `"conversing"` (if ready — team deployment is next). Update `snapshots[]`, `questions_and_answers[]`, `updated_at`.
+Set `phase: "conversing"` (if not ready for team) or stay on `"conversing"` (if ready — team deployment is next). In session.json update ONLY the thin skeleton fields: `phase`, `round`, `updated_at` (and `classification` if stakes were set). The analysis snapshot and Q&A history live in `versions/{label}/analysis.json` and `questions_and_answers.json`, not in session.json.
 
 ---
 

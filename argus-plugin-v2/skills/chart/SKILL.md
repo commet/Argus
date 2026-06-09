@@ -102,7 +102,7 @@ v0.1 ──┬── v0.2 (인력 추가 반영) ──── v0.2.1 (ISTJ 우�
 
 1. Verify label exists in `session.drafts[]`.
 2. Update `session.active_draft_id` to that draft's id.
-3. Sync the "current" view: set `session.final_scaffold` to the contents of `versions/{label}/scaffold.json` (that file is authoritative for the draft; do NOT copy a draft's possibly-null `final_scaffold` over the existing scaffold.json). This makes the Current block and any downstream reader reflect the checked-out draft.
+3. No content copy needed: `session.active_draft_id` is the only pointer that moves. The Current view and every downstream reader resolve the active draft's `version_label` and read `versions/{label}/scaffold.json` directly (it is authoritative). There is no `session.final_scaffold` to sync — the skeleton holds pointers, not scaffolds.
 4. Report: "Switched active draft to {{label}}. Run `/argus:chart` to see tree."
 
 ### Flag: `--promote <label>`

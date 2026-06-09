@@ -244,9 +244,8 @@ If boss output contains explicit new requirements that don't fit any of these th
 
 ### Step 9 — Update session
 
-- Set `session.dm_feedback` to the review
-- **Re-sync `session.final_scaffold`** to the Step 8-updated `versions/{label}/scaffold.json` (boss just added `boss_concerns_applied/rejected` and possibly new `next_actions`/`human_required_checkpoints`). Team set `session.final_scaffold` before boss ran; if you don't re-sync, `/argus:chart`'s Current view shows the pre-boss snapshot (0 concerns applied). Alternatively, treat `versions/{label}/scaffold.json` as the single authoritative source everywhere and drop `session.final_scaffold` — but do NOT leave the two silently divergent.
-- **Update the active draft** in `session.drafts[]` (the one matching `session.active_draft_id`): set `reviewing_agent_id` to the boss/mbti marker and attach the boss feedback reference, so the chart tree shows this draft was reviewed.
+- The review lives write-once at `versions/{label}/boss_feedback.json` and the applied/rejected concerns were merged into `versions/{label}/scaffold.json` (Step 8) — that scaffold.json is the single authoritative source everywhere (chart, sail Step 7 all read it). Do NOT copy the feedback or scaffold into session.json.
+- **Update the active draft** in `session.drafts[]` (the one matching `session.active_draft_id`): set `reviewing_agent_id` to the boss/mbti marker (a small pointer, not the full feedback) so the chart tree shows this draft was reviewed.
 - Set `phase: "refining"` (next natural step is applying concerns — edit `scaffold.json` + re-run `/argus:boss`; a dedicated `/argus:revise` that forks a child draft is post-MVP)
 - Update `updated_at`
 

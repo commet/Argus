@@ -218,8 +218,7 @@ Update `versions/{label}/scaffold.json`:
 Also propagate critical/important challenged claims into `human_required_checkpoints[]` when a human check is needed. This keeps the scaffold a single source of truth.
 
 Update `session.json`:
-- `session.verification = ledger`
-- `session.final_scaffold = updated scaffold`
+- The ledger lives write-once at `versions/{label}/verification.json` and the verification summary is merged into `versions/{label}/scaffold.json` (both done above) — do NOT copy them into session.json (the skeleton stays thin/conflict-free; downstream reads the version dir).
 - `session.phase`:
   - `dm_feedback` when routing is `proceed_to_boss`
   - `team_deploying` when routing is `revise_team`
