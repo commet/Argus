@@ -44,7 +44,7 @@ One of:
 3. **Autodetect from git state** (no args):
    - Current branch name (not `main`/`master`)
    - Last 1-3 commit messages
-   - Uncommitted changes (`git diff HEAD`)
+   - Uncommitted changes (`git diff HEAD`) — **redact before use.** This can include modified-but-gitignored files (e.g. `.env`, `.env.local`) with live secrets. Skip hunks from paths matching `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*`, and replace high-entropy strings / `BEGIN ... PRIVATE KEY` blocks with `[REDACTED]` before sending any diff into a prompt or writing it to `target_context`/`repo_context.json`. The same redaction applies to expanded PR diffs and file contents.
    - Open PRs authored by user
    - Report what was detected before proceeding
 
@@ -303,6 +303,7 @@ If any gate fails, revise before emitting files.
 - **User provides no problem text and git state is clean**: prompt for problem text via AskUserQuestion.
 - **PR/issue reference fails** (gh not installed, unauthorized): degrade gracefully — ask user to paste the text, note fallback in meta.json.
 - **LLM returns malformed JSON**: retry once with stricter schema emphasis. If still fails, write what you got to `versions/v0.1/raw_analysis.txt` and explain the issue to user.
+- **Corrupt/half-written stored JSON** (a prior run was interrupted mid-write, so `session.json` / `analysis.json` won't parse): do NOT crash with an opaque error. Defensively try/parse every stored file you read; on parse failure, move the bad file to `<name>.corrupt.<timestamp>`, log to `.argus/sessions/{id}/errors.log`, and either recreate it from defaults (if it's regenerable, e.g. analysis.json → re-run Step 2) or halt with a precise message naming the exact file to delete. This guard applies to every skill that reads stored session JSON (clarify, team, verify, boss, chart) — never let one interrupted write permanently brick a session.
 
 ---
 

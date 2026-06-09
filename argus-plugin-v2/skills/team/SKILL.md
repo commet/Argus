@@ -68,7 +68,7 @@ Refuse to run when:
 - **Never** proceed in explicit-target mode with empty target content; that is the silent M1 failure (workers analyze the repo generically instead of the actual changeset).
 
 **(B) Bare prose invocation** (`target_type: ad_hoc`, the most common case):
-- Run `git ls-files | head -100` to sample repo structure.
+- Sample repo structure: run `git ls-files` and take the first ~100 entries. **Cross-platform:** on Unix `git ls-files | head -100`; on Windows PowerShell `git ls-files | Select-Object -First 100`. Do NOT pipe to `head` on Windows — it errors, leaves the sketch empty, and silently drops you into hypothetical mode (workers then fabricate instead of citing real files). Same rule wherever `head`/`tail`/`rm` appear: pick the shell-appropriate form, never assume Unix.
 - Read `package.json` (or `Cargo.toml` / `pyproject.toml` / `go.mod`) for stack hints.
 - Read `README.md` first 50 lines if present.
 - Run `git log -10 --oneline` for recent activity.
@@ -220,11 +220,15 @@ Stage rules:
 
 ### Step 4 — Deploy stage 1 workers in parallel
 
-For each worker in stage-1, use the **Task tool** to spawn a sub-agent:
+For each worker in stage-1, use the **Task / Agent tool** to spawn a sub-agent.
 
-- **subagent_type**: the agent's canonical ID from agents.yaml (e.g., `sujin`, `minjae`). These map to `.claude/agents/<agentId>.md` which Phase 4 generates.
+> **Dispatch mechanism — read this.** The Agent/Task tool's `subagent_type` only accepts built-in types (`general-purpose`, `Explore`, `Plan`, …); it does **NOT** bind a custom agent by bare id like `subagent_type: "sujin"` (that silently runs a generic model while still printing the worker's name — the persona collapses invisibly). So:
+> - **subagent_type**: `general-purpose`.
+> - **Persona injection (this is what makes the worker actually be `sujin`):** read the agent's definition — `~/.claude/agents/<agentId>.md` if present, else the agent's entry in `~/.claude/argus-data/agents.yaml` (`voice_markers`, `worker_mode_examples`, capabilities) — and **inline its system-prompt content + voice examples at the top of the worker prompt below.** The worker's voice/expertise comes from this injected text, not from `subagent_type`.
+> - If a future Claude Code version supports custom-agent dispatch (e.g. plugin-scoped `subagent_type: "argus:sujin"` when installed as a plugin), you may switch to that — but inline injection is the mechanism that works today and must remain the fallback.
+
 - **description**: short (e.g., "research 3 competitors")
-- **prompt**: constructed as (locale-aware):
+- **prompt**: constructed as (locale-aware), led by the injected persona block, then:
 
   ```
   You are {{agent.name}} ({{agent.name_en}} if locale=en) working as a team worker on this problem.
@@ -265,7 +269,7 @@ For each worker in stage-1, use the **Task tool** to spawn a sub-agent:
   {{worker.framework}}
   
   ── Voice ──
-  Read your agent definition for voice + tone. Produce the output in YOUR voice — the example dialogues in your .md file are the rhythm reference.
+  (The persona block injected above IS your voice + expertise — it was inlined from the agent's .md / agents.yaml because the tool cannot load it via subagent_type.) Produce the output in YOUR voice; the example dialogues in that block are the rhythm reference.
   
   ── Rules ──
   - Do NOT critique other workers; they run in parallel and you don't see their work.
@@ -430,7 +434,8 @@ Write to `versions/{label}/scaffold.json`.
 Sail's Step 7 will render the consolidated decision card. Team only emits a transition line so the user sees that team is done:
 
 ```
-✓ Team done — {{N}} agents · {{stakes}} · {{contradictions_count}} contradictions preserved · verification next
+✓ Team done — {{N_succeeded}}/{{N_total}} agents · {{stakes}} · {{contradictions_count}} contradictions preserved · verification next
+{{if N_failed > 0}}⚠ {{N_failed}} worker(s) failed — domain coverage incomplete (see .argus/sessions/{{id}}/errors.log){{endif}}
 ```
 
 That's it. No print of contradictions/assumptions/checkpoints (sail Step 7 surfaces them). JSON files in `versions/{label}/` are still written — sail reads them.
@@ -489,7 +494,7 @@ User typed `/argus:team` directly without going through sail. Render the full bl
 ## Error modes
 
 - **Task tool spawn fails**: retry once. If still fails, mark worker status=error, continue with other workers. Explain in final report.
-- **Agent sub-agent not found** (agent .md missing): fall back to instructing yourself via the agent's data entry from agents.yaml. Note the fallback.
+- **Agent .md missing**: the persona is injected inline anyway (see Step 4 dispatch) — read it from `~/.claude/argus-data/agents.yaml` instead of `agents/<id>.md`. agents.yaml is the always-present source; the .md files are a convenience copy. Note which source was used.
 - **Debate classification ambiguous**: if you can't identify 2 clearly disagreeing agents, skip debate but log "no clear disagreement surfaced" to session.json. Don't fabricate debate.
 - **Word budget exceeded by an agent**: accept output, don't re-spawn. Note in attribution.
 

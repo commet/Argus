@@ -46,6 +46,15 @@ Read `.argus/config.yaml` (schema: `~/.claude/argus-data/schemas/config.json`).
 
 **If missing, silently create from `~/.claude/argus-lib/config.example.yaml`** (no AskUserQuestion — first-run friction was the discoverability killer). First ensure the target dir exists: `mkdir -p .argus` (on a true first run in a fresh repo `.argus/` does not exist yet, so writing the config straight away would fail).
 
+**Privacy default — write `.argus/.gitignore` on first create** (unless it already exists) so sessions stay local by default:
+```
+# Argus: decision sessions can contain code diffs + business context.
+# Remove this line (and set archive.commit_sessions: true) to share with your team.
+sessions/
+errors.log
+```
+If `config.archive.commit_sessions == true`, omit the `sessions/` line so the user's opt-in to team sharing is honored.
+
 **Substitute the detected locale into the written config — do not leave the template's `locale: ko`.** The template defaults to Korean; if you write it verbatim, every downstream output is Korean regardless of the user. After detecting locale (below):
 - Set `locale:` in the written config to the detected value.
 - If detected locale is `en`, also replace the Korean boss persona with English defaults: `name: "Manager"`, `gender: male`, `role: "Manager"` (keep `mbti_code: ISTJ`). If `ko`, keep the template's `박 팀장`.
@@ -185,9 +194,9 @@ Decision matrix:
 
 > Note: Step 6b sets `stakes_confidence = 100` after the user confirms, so a confirmed borderline decision lands in the `≥ 80` rows here, not the `< 75` row.
 
-**Auto-action notice (when skipping the prompt):** print one line in config.locale before chaining.
-- ko: "자동 진행 — `{{stakes}}` ({{confidence}}/100). 팀 배치 → 검증 → boss 검토 → 최종 카드까지 이어갑니다. (멈추려면 Ctrl-C)"
-- en: "Auto-proceeding — `{{stakes}}` ({{confidence}}/100). Chaining team → verify → boss → final card. (Ctrl-C to halt)"
+**Auto-action notice (when skipping the prompt):** print one line in config.locale before chaining. Include a rough cost/time preview so a "quick question" never silently becomes a multi-minute, multi-agent run — derive `{{agent_count}}` from the stakes budget (routine 2 / important 3 / critical 4) and `{{time_range}}` (important ~3-5 min, critical ~6-10 min):
+- ko: "자동 진행 — `{{stakes}}` ({{confidence}}/100). 에이전트 {{agent_count}}개 · 약 {{time_range}}. 팀 배치 → 검증 → boss 검토 → 최종 카드. (멈추려면 Ctrl-C)"
+- en: "Auto-proceeding — `{{stakes}}` ({{confidence}}/100). {{agent_count}} agents · ~{{time_range}}. Chaining team → verify → boss → final card. (Ctrl-C to halt)"
 
 **When asking is necessary (75–79 borderline):**
 
@@ -217,6 +226,7 @@ Read the latest `versions/{label}/`:
 - `scaffold.json` (FinalScaffold) → `reframed_question` (this is the field the card's question line uses), `key_trade_offs[0]`, `team_contradictions[]`, `hidden_assumptions[]` (filter `evaluation` in {`doubtful`, `uncertain`} — both are unvalidated and must be surfaced), `human_required_checkpoints[]`, `next_actions[0..1]`
 - `verification.json` (if verify ran) → `overall_status`, `supported_claims[]`, `challenged_claims[]`, `human_required_checks[]`, `routing_decision`
 - `boss_feedback.json` (if boss ran) → `approval_condition`, top critical concern (if any)
+- `workers.json` → count any `status: "error"` / `verification_failed` entries. **If any worker failed, the card MUST open with a visible coverage-gap warning** (ko: `⚠ 워커 {{M}}/{{N}} 실패 — 일부 도메인 분석 누락 (.argus/.../errors.log)` · en: `⚠ {{M}}/{{N}} workers failed — some domain analysis is missing (see errors.log)`). Never present a card assembled from survivors as if coverage were complete.
 
 #### Render
 
