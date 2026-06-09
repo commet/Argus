@@ -16,9 +16,9 @@ import { Falsification } from '@/components/workspace/progressive/Falsification'
 import type { LoadBearingClaim } from '@/stores/types';
 
 const claims: LoadBearingClaim[] = [
-  { id: 'c1', text: 'Plausible win', overreached: true },
-  { id: 'c2', text: 'Bolder win', overreached: true },
-  { id: 'c3', text: 'Grandiose win', overreached: true },
+  { id: 'c1', text: 'Plausible win', assumption: 'Users will try it', overreached: true },
+  { id: 'c2', text: 'Bolder win', assumption: 'Users will refer friends', overreached: true },
+  { id: 'c3', text: 'Grandiose win', assumption: 'Everyone refers everyone', overreached: true },
 ];
 
 let container: HTMLDivElement;
@@ -52,42 +52,57 @@ describe('Falsification', () => {
   it('renders the strength, frame, and the full claim ladder', () => {
     mount({ strength: 'Real strength here', claims, onResolve: vi.fn(), onRequestHighestLoad: vi.fn() });
     expect(container.textContent).toContain('Real strength here');
-    expect(container.textContent).toContain('stop me where you stop believing');
+    expect(container.textContent).toContain("can't quite believe anymore");
     expect(container.textContent).toContain('Plausible win');
     expect(container.textContent).toContain('Grandiose win');
   });
 
-  it('flinch → surfaces the flinched claim and gates the CTA until a bet is written', () => {
+  it('flinch → surfaces the rung ASSUMPTION (not the claim text) and gates the CTA', () => {
     const onResolve = vi.fn();
     mount({ strength: 's', claims, onResolve, onRequestHighestLoad: vi.fn() });
 
     click(buttonByText('Bolder win')); // flinch at claim 2
-    expect(container.textContent).toContain('This is where you stopped');
-    expect(container.textContent).toContain('Bolder win');
+    expect(container.textContent).toContain('You stopped here');
+    // The surfaced belief is the rung's assumption, NOT its claim text.
+    expect(container.textContent).toContain('Users will refer friends');
 
-    const cta = buttonByText('Seal this');
+    const cta = buttonByText('Lock it in');
     expect((cta as HTMLButtonElement).disabled).toBe(true); // gated
 
     setTextarea('I am betting users will act');
-    expect((buttonByText('Seal this') as HTMLButtonElement).disabled).toBe(false);
+    expect((buttonByText('Lock it in') as HTMLButtonElement).disabled).toBe(false);
 
-    click(buttonByText('Seal this'));
+    click(buttonByText('Lock it in'));
     expect(onResolve).toHaveBeenCalledTimes(1);
     expect(onResolve.mock.calls[0][0]).toMatchObject({
       flinched_id: 'c2',
-      surfaced_constraint: 'Bolder win',
+      surfaced_constraint: 'Users will refer friends', // the assumption, not 'Bolder win'
       real_bet: 'I am betting users will act',
       no_flinch_fallback: false,
     });
   });
 
-  it('"use this wording" fills the bet from the surfaced constraint', () => {
+  it('falls back to the claim text when a rung has no assumption', () => {
+    const onResolve = vi.fn();
+    const noAssumption: LoadBearingClaim[] = [
+      { id: 'a', text: 'Win A', overreached: true },
+      { id: 'b', text: 'Win B', overreached: true },
+      { id: 'c', text: 'Win C', overreached: true },
+    ];
+    mount({ strength: 's', claims: noAssumption, onResolve, onRequestHighestLoad: vi.fn() });
+    click(buttonByText('Win B'));
+    setTextarea('x');
+    click(buttonByText('Lock it in'));
+    expect(onResolve.mock.calls[0][0].surfaced_constraint).toBe('Win B');
+  });
+
+  it('"start from this" fills the bet from the surfaced assumption', () => {
     const onResolve = vi.fn();
     mount({ strength: 's', claims, onResolve, onRequestHighestLoad: vi.fn() });
     click(buttonByText('Plausible win'));
-    click(buttonByText('Use this wording'));
-    click(buttonByText('Seal this'));
-    expect(onResolve.mock.calls[0][0].real_bet).toBe('Plausible win');
+    click(buttonByText('Start from this'));
+    click(buttonByText('Lock it in'));
+    expect(onResolve.mock.calls[0][0].real_bet).toBe('Users will try it'); // c1's assumption
   });
 
   it('no-flinch → asks the engine for the highest-load pick and marks the fallback', async () => {
@@ -99,11 +114,11 @@ describe('Falsification', () => {
       buttonByText('I believe all of it')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(onRequestHighestLoad).toHaveBeenCalledTimes(1);
-    expect(container.textContent).toContain("You didn't flinch");
+    expect(container.textContent).toContain("You didn't stop anywhere");
     expect(container.textContent).toContain('The riskiest bet');
 
     setTextarea('My real bet');
-    click(buttonByText('Seal this'));
+    click(buttonByText('Lock it in'));
     expect(onResolve.mock.calls[0][0]).toMatchObject({
       flinched_id: null,
       surfaced_constraint: 'The riskiest bet',
@@ -112,26 +127,29 @@ describe('Falsification', () => {
     });
   });
 
-  it('no-flinch degrades to the last claim when the engine returns null', async () => {
+  it('no-flinch degrades to the FIRST rung assumption when the engine returns null', async () => {
+    const onResolve = vi.fn();
     const onRequestHighestLoad = vi.fn().mockResolvedValue(null);
-    mount({ strength: 's', claims, onResolve: vi.fn(), onRequestHighestLoad });
+    mount({ strength: 's', claims, onResolve, onRequestHighestLoad });
     await act(async () => {
       buttonByText('I believe all of it')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(container.textContent).toContain('Grandiose win'); // last claim used as fallback
+    expect(container.textContent).toContain('Users will try it'); // c1's assumption (first rung)
+    setTextarea('x');
+    click(buttonByText('Lock it in'));
+    expect(onResolve.mock.calls[0][0].surfaced_constraint).toBe('Users will try it');
   });
 
-  it('no-flinch degrades when the engine returns a blank-text pick (never a blank surfaced constraint)', async () => {
+  it('no-flinch degrades when the engine returns a blank-text pick (never a blank constraint)', async () => {
     const onResolve = vi.fn();
     const onRequestHighestLoad = vi.fn().mockResolvedValue({ id: 'h', text: '   ', overreached: false, highest_load: true });
     mount({ strength: 's', claims, onResolve, onRequestHighestLoad });
     await act(async () => {
       buttonByText('I believe all of it')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    // Falls back to the last claim rather than surfacing an empty constraint.
-    expect(container.textContent).toContain('Grandiose win');
+    expect(container.textContent).toContain('Users will try it'); // first-rung assumption fallback
     setTextarea('my bet');
-    click(buttonByText('Seal this'));
-    expect(onResolve.mock.calls[0][0].surfaced_constraint).toBe('Grandiose win');
+    click(buttonByText('Lock it in'));
+    expect(onResolve.mock.calls[0][0].surfaced_constraint).toBe('Users will try it');
   });
 });

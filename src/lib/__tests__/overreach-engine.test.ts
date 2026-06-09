@@ -62,10 +62,26 @@ describe('runOverreach', () => {
     expect(claims).toEqual([]);
   });
 
-  it('coerces object-shaped claims ({text}) instead of dropping the ladder', async () => {
-    mockCall.mockResolvedValue({ strength: 's', claims: [{ text: ' c1 ' }, { text: 'c2' }, { nope: 'x' }, 'c3'] });
+  it('parses { claim, assumption } rungs — claim → text, assumption → assumption', async () => {
+    mockCall.mockResolvedValue({
+      strength: 's',
+      claims: [
+        { claim: ' Users adopt it ', assumption: ' They will try it ' },
+        { claim: 'Users refer friends', assumption: 'They advocate unprompted' },
+        { claim: 'Everyone refers', assumption: 'Advocacy is universal' },
+      ],
+    });
+    const { claims } = await runOverreach(snapshot, mix);
+    expect(claims.map((c) => c.text)).toEqual(['Users adopt it', 'Users refer friends', 'Everyone refers']);
+    expect(claims.map((c) => c.assumption)).toEqual(['They will try it', 'They advocate unprompted', 'Advocacy is universal']);
+    expect(claims.every((c) => c.overreached === true)).toBe(true);
+  });
+
+  it('tolerates legacy/garbled shapes (plain string, {text}, missing) without dropping the ladder', async () => {
+    mockCall.mockResolvedValue({ strength: 's', claims: [{ text: ' c1 ' }, 'c2', { claim: 'c3' }, { nope: 'x' }] });
     const { claims } = await runOverreach(snapshot, mix);
     expect(claims.map((c) => c.text)).toEqual(['c1', 'c2', 'c3']); // {nope} dropped, rest kept
+    expect(claims[0].assumption).toBeUndefined(); // {text} carries no assumption
   });
 });
 

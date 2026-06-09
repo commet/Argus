@@ -816,18 +816,26 @@ export async function runOverreach(
         { system, maxTokens: 1200, signal, shape },
       );
 
-  // Models sometimes return objects ({text: "..."}) instead of plain strings —
-  // coerce rather than silently dropping the whole ladder.
+  // Each rung is { claim, assumption } — the claim is the escalating success
+  // sentence; the assumption is the belief that rung adds (what a flinch here
+  // surfaces). Tolerate plain strings / {text} too, so a malformed shape degrades
+  // to claim-only rather than dropping the whole ladder.
   const claims: LoadBearingClaim[] = (result.claims || [])
-    .map((c) => {
-      if (typeof c === 'string') return c.trim();
-      if (c && typeof c === 'object' && typeof (c as { text?: unknown }).text === 'string') {
-        return ((c as { text: string }).text).trim();
+    .map((c): LoadBearingClaim | null => {
+      if (typeof c === 'string') {
+        const text = c.trim();
+        return text ? { id: generateId(), text, overreached: true } : null;
       }
-      return '';
+      if (c && typeof c === 'object') {
+        const o = c as { claim?: unknown; text?: unknown; assumption?: unknown };
+        const text = (typeof o.claim === 'string' ? o.claim : typeof o.text === 'string' ? o.text : '').trim();
+        if (!text) return null;
+        const assumption = typeof o.assumption === 'string' ? o.assumption.trim() : undefined;
+        return { id: generateId(), text, assumption: assumption || undefined, overreached: true };
+      }
+      return null;
     })
-    .filter(Boolean)
-    .map((text) => ({ id: generateId(), text, overreached: true }));
+    .filter((c): c is LoadBearingClaim => c !== null);
 
   return { strength: (result.strength || '').trim(), claims };
 }

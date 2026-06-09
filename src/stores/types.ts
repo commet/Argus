@@ -1116,9 +1116,13 @@ export interface DMFeedbackResult {
 
 export interface LoadBearingClaim {
   id: string;
-  /** One escalating overclaim chip (or, when `highest_load`, the riskiest assumption). */
+  /** One escalating success-claim chip (or, when `highest_load`, the riskiest assumption). */
   text: string;
-  /** True for the inflated overclaim chips; the no-flinch pick is not an overclaim. */
+  /** The single belief THIS rung newly requires that the previous rung didn't —
+   *  i.e. the load-bearing assumption a flinch here isolates. This is what the
+   *  flinch surfaces (NOT the claim text), so "the assumption underneath" is real. */
+  assumption?: string;
+  /** True for the inflated success-claim chips; the no-flinch pick is not an overclaim. */
   overreached: boolean;
   /** Marks the single riskiest assumption surfaced on the no-flinch path. */
   highest_load?: boolean;

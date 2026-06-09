@@ -49,7 +49,10 @@ export function Falsification({
   const [realBet, setRealBet] = useState('');
 
   const resolved = flinched !== null; // a flinch OR a no-flinch pick has landed
-  const surfaced = flinched?.text ?? '';
+  // The surfaced bet is the BELIEF the flinched rung rests on (assumption) — not
+  // the success-claim's text. Fall back to the claim text only if the model
+  // didn't emit a per-rung assumption.
+  const surfaced = (flinched?.assumption || flinched?.text) ?? '';
 
   function flinch(claim: LoadBearingClaim) {
     if (busy || resolved) return;
@@ -63,9 +66,10 @@ export function Falsification({
     try {
       const top = await onRequestHighestLoad();
       // Degrade gracefully: if the engine returns nothing usable (null OR empty
-      // text), fall back to the last (most grandiose) claim so the surfaced
-      // constraint is never blank and the step never dead-ends.
-      const pick = top?.text?.trim() ? top : (claims[claims.length - 1] ?? null);
+      // text), fall back to the FIRST rung — the minimal belief whose failure
+      // breaks everything (the most defensible load-bearing candidate), not the
+      // most grandiose one — so the surfaced bet is never blank or absurd.
+      const pick = top?.text?.trim() ? top : (claims[0] ?? null);
       if (pick) {
         setFlinched(pick);
         setNoFlinch(true);
@@ -104,11 +108,13 @@ export function Falsification({
         </div>
       )}
 
-      {/* The mandatory one-line frame — the warm warning that we're inflating. */}
+      {/* The framing line — paint success at growing scale (not "I'm faking it",
+          which would poison the believability gradient), and make the click
+          unambiguous: the FIRST line you can't quite believe anymore. */}
       <p className="text-[13px] font-semibold text-[var(--accent)] leading-[1.55]">
         {L(
-          '이제 일부러 좀 부풀려볼게요 — 못 믿겠는 데서 멈춰 주세요.',
-          "Now I'll deliberately inflate this — stop me where you stop believing.",
+          '계획이 성공하는 모습을 점점 크게 그려볼게요. 더는 그렇게까지 될 것 같지 않은 첫 줄을 눌러 주세요.',
+          "I'll picture your plan succeeding at a bigger and bigger scale. Tap the first line you can't quite believe anymore.",
         )}
       </p>
 
@@ -174,8 +180,8 @@ export function Falsification({
               <div className="flex-1 min-w-0">
                 <p className="text-[11.5px] font-semibold text-[var(--text-secondary)]">
                   {noFlinch
-                    ? L('하나도 안 멈추셨네요 — 제가 제일 위험하다 보는 건 이거예요', "You didn't flinch — here's the one I see as riskiest")
-                    : L('여기서 멈추셨어요 — 그 아래 깔린 전제예요', 'This is where you stopped — the assumption underneath it')}
+                    ? L('하나도 안 멈추셨네요 — 제가 제일 위험하다 보는 전제는 이거예요', "You didn't stop anywhere — the belief I see as riskiest is this")
+                    : L('여기서 멈추셨네요 — 이 줄이 기대고 있는 전제예요', 'You stopped here — the belief this step is betting on')}
                 </p>
                 <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.55] mt-1">{surfaced}</p>
               </div>
@@ -199,10 +205,10 @@ export function Falsification({
                   onClick={() => setRealBet(surfaced)}
                   className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
                 >
-                  {L('이 표현 그대로 쓰기', 'Use this wording')}
+                  {L('이 전제로 시작하기', 'Start from this')}
                 </button>
                 <Button variant="primary" size="sm" onClick={commit} disabled={!realBet.trim()}>
-                  {L('이걸로 봉인하고 마무리', 'Seal this & finish')}
+                  {L('이대로 정하고 마무리', 'Lock it in & finish')}
                 </Button>
               </div>
             </div>

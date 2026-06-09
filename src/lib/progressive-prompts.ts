@@ -634,35 +634,41 @@ export function buildOverreachPrompt(
   ].filter(Boolean).join('\n');
 
   return {
-    system: `You run Argus's "stress test." You DELIBERATELY over-inflate the user's plan into escalating predictions of success — then the user stops you at the point they stop believing. That flinch point is the prize: it isolates the single assumption their whole plan secretly rests on.
+    system: `You run Argus's "stress test." You paint the user's plan succeeding at increasing scale — then they stop you at the point they stop believing. That flinch point is the prize, but ONLY because each rung is built on one specific belief: where they stop tells us which belief broke. So every rung must EXPOSE the belief it newly demands.
 
-Always respond in ${lang}. ${locale === 'ko' ? 'Use 해요체 — warm, polite, like a senior colleague. Confident and knowingly over-the-top (we WANT them to flinch), never sarcastic.' : 'Warm, confident, knowingly over-the-top tone (we WANT them to flinch) — never sarcastic or mocking.'}
+Always respond in ${lang}. ${locale === 'ko' ? 'Use 해요체 — warm, like a senior colleague thinking out loud. Confident, never sarcastic or mocking.' : 'Warm, confident — like a senior colleague thinking out loud. Never sarcastic or mocking.'}
 
 Produce TWO things:
 
 1. STRENGTH — ONE genuine, SPECIFIC strength of their plan. Real, not flattery. This earns the right to push. (1 sentence.)
 
-2. CLAIMS — 3 to 5 escalating predictions of success, each a single confident sentence.
-   THE CRITICAL RULE: the claims escalate along the plan's MOST LOAD-BEARING assumption (anchor on the weakest_assumption hint when given). Each claim must require STRICTLY MORE of that assumption being true than the one before it.
-   - Claim 1: plausible — most reasonable people would accept it.
-   - Middle claims: progressively bolder, each demanding more of the same load-bearing belief.
-   - Final claim: grandiose — only true if the assumption holds completely and nothing goes wrong.
-   The user reading top-to-bottom should feel increasing resistance and stop at a specific line. That line minus one = what they still believe; the line itself = the belief that breaks. So the GAP between claims must be about the SAME underlying assumption, not different topics.
-   Self-check: if two claims are equally believable, or escalate on different assumptions, rewrite them. Distinct rungs on ONE ladder, not a list.
+2. CLAIMS — 3 to 5 rungs of escalating success. Each rung is an OBJECT with two fields:
+   - "claim": one confident sentence describing the plan succeeding at this level (a concrete future, not an admitted exaggeration).
+   - "assumption": the SINGLE belief THIS rung newly requires that the rung before it did NOT — stated as a concrete, checkable thing they are betting is true (NOT a restatement of the claim, NOT a question). This is the load-bearing belief a flinch here isolates.
 
-No paragraphs. Each claim one sentence. Respond in JSON.`,
+   THE CRITICAL RULE — all rungs must climb ONE ladder: pick the plan's most load-bearing belief (anchor on the weakest_assumption hint when given) and let each rung demand STRICTLY MORE of that same belief. Do NOT switch axes (don't go from "users love it" to "we raised funding" — that's two ladders). Do NOT escalate by raw magnitude alone (10%→30%→90%); escalate by how much MORE of the belief must hold.
+   - Rung 1: plausible — most reasonable people would accept both the claim and its assumption.
+   - Middle rungs: each demands visibly more of the same belief.
+   - Final rung: only true if that belief holds completely and nothing else goes wrong.
+   Self-check: read only the "assumption" fields top-to-bottom. They must be the SAME belief getting more demanding — if any assumption is about a different topic, or merely repeats the claim, rewrite that rung.
+
+No paragraphs. One sentence per field. Respond in JSON.`,
 
     user: `My situation: <user-data>${snapshot.real_question ? sanitize(snapshot.real_question) : ''}</user-data>
 
 ${hints ? `Signals:\n${hints}\n\n` : ''}My plan (the draft to stress-test):
 ${mixDocText(mix)}
 
-Inflate this into an escalating ladder of success-claims along my most load-bearing assumption, and name one real strength first.
+Build the escalating ladder along my most load-bearing belief, exposing the belief each rung adds, and name one real strength first.
 
 JSON format:
 {
   "strength": "One genuine, specific strength (1 sentence)",
-  "claims": ["Plausible claim", "Bolder claim", "Bolder still", "Grandiose claim"]
+  "claims": [
+    { "claim": "Plausible success (1 sentence)", "assumption": "The belief this rung bets on (checkable, 1 sentence)" },
+    { "claim": "Bolder success", "assumption": "More of the same belief" },
+    { "claim": "Grandiose success", "assumption": "That belief holding completely" }
+  ]
 }`,
   };
 }
