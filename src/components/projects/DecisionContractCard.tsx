@@ -44,6 +44,7 @@ import type {
 } from '@/stores/types';
 import {
   generateDecisionContract,
+  contractFromPredicates,
   withCheckIn,
   gradePredicate,
   contractStatus,
@@ -104,10 +105,16 @@ const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
 export function DecisionContractCard({
   project,
   sealable = true,
+  livePredicates,
 }: {
   project: Project;
   /** Only offer to SEAL once the voyage is actually finished. */
   sealable?: boolean;
+  /** Live (progressive) path: predicates derived from the session, supplied
+   *  directly. When provided, the card seals/offers from these instead of
+   *  reading the legacy recast/feedback storage (which the live voyage never
+   *  writes). Absent → legacy /project behavior (read from storage). */
+  livePredicates?: Predicate[] | null;
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
@@ -121,7 +128,11 @@ export function DecisionContractCard({
 
   const contract = project.decision_contract ?? null;
 
+  // Live path supplies predicates directly; legacy path reads them from storage.
+  const live = !!livePredicates;
+
   const sources: PredicateSources = useMemo(() => {
+    if (live) return { recast: null, feedbacks: [] }; // unused in live mode
     const recasts = getStorage<RecastItem[]>(STORAGE_KEYS.RECAST_LIST, []).filter(
       (r) => r.project_id === project.id,
     );
@@ -133,12 +144,19 @@ export function DecisionContractCard({
       feedbacks,
       personaName: (id) => personas.find((p) => p.id === id)?.name,
     };
-  }, [project.id, personas]);
+  }, [live, project.id, personas]);
+
+  // Fresh, unsealed contract from whichever source applies. `now` injected by caller.
+  const buildFresh = (now: number): ReturnType<typeof generateDecisionContract> =>
+    livePredicates
+      ? contractFromPredicates(project.id, livePredicates, now)
+      : generateDecisionContract(project.id, sources, now);
 
   // Candidate only when the voyage is finished AND there's something to predict.
   const candidate = useMemo(
-    () => (contract || !sealable ? null : generateDecisionContract(project.id, sources, Date.now())),
-    [contract, sealable, sources, project.id],
+    () => (contract || !sealable ? null : buildFresh(Date.now())),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [contract, sealable, sources, livePredicates, project.id],
   );
 
   // NOT memoised on time — `checkInDue` depends on the wall clock; recompute each
@@ -146,9 +164,10 @@ export function DecisionContractCard({
   const status = contract ? contractStatus(contract, Date.now()) : null;
 
   function seal() {
-    const fresh = generateDecisionContract(project.id, sources, Date.now());
+    const now = Date.now();
+    const fresh = buildFresh(now);
     if (!fresh) return;
-    updateProject(project.id, { decision_contract: withCheckIn(fresh, checkIn, Date.now()) });
+    updateProject(project.id, { decision_contract: withCheckIn(fresh, checkIn, now) });
     setSealOpen(false);
   }
 

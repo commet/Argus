@@ -52,6 +52,8 @@ import { VerificationGate } from './VerificationGate';
 import { TeamDeployBanner } from './TeamDeployBanner';
 import { FinalCard } from './FinalCard';
 export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-compat re-exports (were defined here)
+import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
+import { extractPredicatesFromSession } from '@/lib/decision-contract';
 import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
@@ -914,6 +916,23 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const store = useProgressiveStore();
   const session = store.currentSession();
+  // The persisted project hosts the Decision Contract (sealed predictions +
+  // grades). Subscribed reactively so the contract card re-renders the moment a
+  // grade is written. The voyage always has a project (createProject precedes
+  // createSession), so this resolves once the session exists.
+  const contractProject = useProjectStore((s) => s.projects.find((p) => p.id === projectId));
+  // Falsifiable predictions derived from this voyage's own artifacts (key
+  // assumptions + DM concerns + team dissent) — the material for the Decision
+  // Contract sealed below the final document.
+  const contractPredicates = useMemo(
+    () => extractPredicatesFromSession({
+      mix: session?.mix,
+      final_mix: session?.final_mix,
+      dm_feedback: session?.dm_feedback,
+      debate_result: session?.debate_result,
+    }),
+    [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result],
+  );
   // Global click-outside: clears sticky attribution hover state when user taps blank space
   useAttributionClickOutside();
   const [busy, setBusy] = useState(false);
@@ -2436,6 +2455,17 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 return r.version_label;
               })()}
             />
+
+            {/* Decision Contract — the falsifiable closed loop (§0 KICK), on the
+                live voyage. Seals this run's predictions and resurfaces for
+                self-grading on the chosen check-in date. Persisted on the
+                project, so it survives across sessions and also shows on /project.
+                Renders nothing when there's nothing falsifiable to predict. */}
+            {contractProject && (
+              <div className="mt-4">
+                <DecisionContractCard project={contractProject} livePredicates={contractPredicates} />
+              </div>
+            )}
 
             {/* Debate result — persisted, collapsible */}
             {debateResult && (
