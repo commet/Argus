@@ -53,6 +53,7 @@ import { TeamDeployBanner } from './TeamDeployBanner';
 import { FinalCard } from './FinalCard';
 export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-compat re-exports (were defined here)
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
+import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { extractPredicatesFromSession } from '@/lib/decision-contract';
 import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
@@ -2242,6 +2243,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               shouldMix moment; this card is a "tap to read the full
               breakdown" affordance, not the primary narrative. Auto-
               expands once mix begins (phase moves past 'conversing'). */}
+          {/* The reframe reward — "your question changed" — surfaced the moment
+              the real question diverges from what the user first typed. Sits
+              above the (default-collapsed) analysis card so the shift is visible
+              even before the user expands the detail. */}
+          {latest && !mix && !final_ && phase === 'conversing' && (
+            <QuestionDiff
+              before={session?.problem_text ?? ''}
+              after={latest.real_question ?? ''}
+              className="mb-3"
+            />
+          )}
+
           {latest && !final_ && (
             <div ref={analysisCardRef}>
               <AnalysisCard
