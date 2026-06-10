@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scratch: visual-QA screenshots, shot/playwright scripts, dev logs (repo-root only)
+/*.png
+/dev.log
+/shot*.mjs
+/*-shot.mjs

@@ -54,11 +54,13 @@ import { VerificationGate } from './VerificationGate';
 import { TeamDeployBanner } from './TeamDeployBanner';
 import { FinalCard } from './FinalCard';
 export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-compat re-exports (were defined here)
+import { CurrentBearingCard } from './CurrentBearingCard';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { Falsification } from './Falsification';
 import { Button } from '@/components/ui/Button';
 import { extractPredicatesFromSession } from '@/lib/decision-contract';
+import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
@@ -948,6 +950,19 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // the material for the Decision Contract sealed below the final document.
   const contractPredicates = useMemo(
     () => extractPredicatesFromSession({
+      mix: session?.mix,
+      final_mix: session?.final_mix,
+      dm_feedback: session?.dm_feedback,
+      debate_result: session?.debate_result,
+      falsification: session?.falsification,
+    }),
+    [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification],
+  );
+  // The Current Bearing — the compressed one-screen orientation that sits ABOVE
+  // the final document (ARGUS-FINAL-DIRECTION §"The Surface Principle"). Derived
+  // from the same session artifacts as the contract; null until there's a draft.
+  const currentBearing = useMemo(
+    () => deriveCurrentBearing({
       mix: session?.mix,
       final_mix: session?.final_mix,
       dm_feedback: session?.dm_feedback,
@@ -2552,6 +2567,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 {L('아래에서 복사하거나, 새 프로젝트를 시작할 수 있어요', 'Copy below or start a new project')}
               </p>
             </motion.div>
+            {/* Current Bearing — the compressed orientation, above the long
+                document (ARGUS-FINAL-DIRECTION §"The Surface Principle"). The
+                document below is the depth; this is the one-screen "where this
+                decision currently stands and why". */}
+            <CurrentBearingCard bearing={currentBearing} label={activeDraft?.version_label ?? null} />
             <FinalCard
               content={final_}
               mix={finalMix}
