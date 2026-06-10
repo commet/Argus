@@ -45,3 +45,9 @@ next-env.d.ts
 /dev.log
 /shot*.mjs
 /*-shot.mjs
+
+# argus-watch + local working data: personal — never commit (repo is public)
+/.argus/
+/scripts/decision-watch-eval/fixtures/
+/scripts/decision-watch-eval/results/
+/scripts/validation-output/
