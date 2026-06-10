@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "argus:session",
   "title": "Session",
-  "description": "A plugin session — one problem being worked through /argus:clarify → :team → :verify → :boss → :revise. Stored as .argus/sessions/{id}/session.json. Scoped for plugin-native filesystem persistence.",
+  "description": "A plugin session — one problem being worked through /argus:clarify → :team → :verify → :boss → :revise. Stored as .argus/sessions/{id}/session.json. TEAM-SAFE SKELETON: this file holds only small, slow-changing coordination state (identity, phase, routing, draft-tree pointers). The heavy per-run artifacts (analysis, workers, mix, verification, boss feedback, scaffold) live authoritatively and WRITE-ONCE in versions/{label}/*.json — they are NOT duplicated here, so two teammates committing sessions to git do not collide on a monolithic blob. Session ids carry a short author suffix (see clarify) so the same problem from two people becomes two non-colliding directories that still both travel via git.",
   "type": "object",
   "required": ["id", "problem_text", "phase", "created_at", "updated_at"],
   "properties": {
@@ -26,7 +26,7 @@
       "type": "object",
       "description": "What the user was working on when they invoked argus.",
       "properties": {
-        "target_type": { "enum": ["task", "pr", "file", "branch", "design_doc", "ad_hoc"] },
+        "target_type": { "enum": ["task", "pr", "file", "branch", "issue", "design_doc", "ad_hoc"] },
         "target_ref": { "type": "string", "description": "PR#, file path, branch name, etc." }
       }
     },
@@ -53,21 +53,6 @@
       "type": "integer",
       "default": 3
     },
-    "snapshots": {
-      "type": "array",
-      "items": { "$ref": "./analysis-snapshot.json" },
-      "description": "All snapshots from /argus:clarify rounds. Latest is authoritative."
-    },
-    "questions_and_answers": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "question": { "type": "string" },
-          "answer": { "type": "string" }
-        }
-      }
-    },
     "classification": {
       "type": "object",
       "description": "Output of /argus:team classification step. May be partially populated by /argus:sail Step 6b (user-confirmed stakes) before team runs.",
@@ -88,38 +73,10 @@
         "pipeline": { "enum": ["single_stage", "two_stage"] }
       }
     },
-    "workers": {
-      "type": "array",
-      "items": { "$ref": "./worker-result.json" }
-    },
-    "stages": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "string" },
-          "label": { "type": "string" },
-          "worker_ids": { "type": "array", "items": { "type": "string" } },
-          "depends_on_stage_id": { "type": ["string", "null"] }
-        }
-      }
-    },
-    "mix": {
-      "oneOf": [{ "$ref": "./mix-result.json" }, { "type": "null" }]
-    },
-    "dm_feedback": {
-      "oneOf": [{ "$ref": "./dm-feedback.json" }, { "type": "null" }]
-    },
-    "verification": {
-      "oneOf": [{ "$ref": "./verification-ledger.json" }, { "type": "null" }]
-    },
-    "final_scaffold": {
-      "oneOf": [{ "$ref": "./final-scaffold.json" }, { "type": "null" }]
-    },
     "drafts": {
       "type": "array",
       "items": { "$ref": "./draft.json" },
-      "description": "Version tree of completed drafts. drafts[0] = root of tree."
+      "description": "Version tree of completed drafts (POINTERS, not heavy data). drafts[0] = root. Each draft references its versions/{label}/ dir where the authoritative scaffold/workers/mix/verification/boss artifacts live write-once. The full per-run artifacts are NOT stored here — read them from the version dir. This keeps the draft tree small and append-mostly so concurrent team commits don't conflict."
     },
     "active_draft_id": {
       "type": ["string", "null"],

@@ -40,15 +40,20 @@ Flags that mutate state are mutually exclusive.
 
 ## Default View
 
-1. Find latest or requested session.
-2. Read `session.json`.
-3. Read all `versions/*/meta.json` when present.
-4. Read active version:
-   - `current_bearing.json` if present
-   - `scaffold.json`
-   - `verification.json`
-   - `boss_feedback.json` if present
-5. Render a one-screen map.
+### Step 0 — Load config & guard for empty state
+
+1. Read `.argus/config.yaml` (silent-create from `~/.claude/argus-lib/config.example.yaml` if missing, same as other skills). All user-facing text in this skill uses `config.locale`.
+2. **Zero-sessions guard:** if `.argus/sessions/` does not exist or contains no session directory, do NOT error. Print and stop:
+   - ko: `아직 Argus 항해 기록이 없습니다. \`/argus:sail "<결정>"\` 로 시작하세요.`
+   - en: `No Argus voyages yet. Start one with \`/argus:sail "<your decision>"\`.`
+3. **Legacy guard:** if only pre-v2 (`v0.5`-era) files exist with no `session.json`, note that legacy sessions aren't rendered by this version and point to the newest v2 session if any.
+
+### Default (no flags) — show current session
+
+1. Find the latest session: the session directory whose `session.json` has the newest `updated_at`; if `updated_at` is missing or tied, fall back to directory mtime. Read its `session.json`.
+2. Read these per-version files for the active draft: `versions/{label}/current_bearing.json` (the Current Bearing block — course, fog/reef, next helm), `scaffold.json` (reframed_question, assumptions, checkpoints), `verification.json` (verification line), `boss_feedback.json` (boss status). Treat any missing file as "not run" rather than failing.
+3. Parse draft tree from `session.drafts[]`. If `drafts[]` is empty (session predates draft persistence, or only clarify ran), render a single-node tree from the version directories present instead of a blank tree.
+4. Render a one-screen map:
 
 ```text
 ## Argus Chart - {{session.id}}
@@ -72,7 +77,11 @@ Open Checks:
 - Boss condition: {{approval_condition or "none"}}
 
 Next:
-- {{computed next command}}
+- If verification is missing: run `/argus:verify`
+- If verification is blocked: complete human checks, then `/argus:sail --resume {{session.id}}`
+- Apply boss concerns / verify challenges: `/argus:revise` (forks a child draft with the fixes + re-verifies)
+- Promote this draft to v1.0: `/argus:chart --promote {{active_label}}`
+- Branch from an older draft: `/argus:chart --checkout <label>` then `/argus:revise --from <label>`
 ```
 
 Do not render worker counts by default. If the user wants internals, they can
@@ -91,7 +100,10 @@ Algorithm:
 3. Sort siblings by `created_at`, then `version_label`.
 4. Mark active draft with `[active]`.
 5. Mark released draft with `[released]`.
-6. Include `change_summary` when present.
+6. Mark a draft with `boss_reviewed == true` with `[reviewed]` (this is the flag's
+   one consumer — boss sets it precisely so the tree can show which drafts a
+   stakeholder has already reacted to).
+7. Include `change_summary` when present.
 
 ASCII example:
 
@@ -110,10 +122,11 @@ Avoid fragile box-drawing characters; this runs in varied terminals.
 Compute the next useful command:
 
 - Missing `verification.json` on a medium/high draft -> `/argus:verify --session <id>`
-- Verification `revise_team` -> `/argus:revise --repair-verification --session <id>`
+- Verification `revise_team` -> `/argus:revise --session <id>` (revise auto-detects the challenged claims to repair)
 - Verification `stop_for_human_check` -> show the first human check and
   `/argus:sail --resume <id>` after evidence is added
-- Boss critical applied concerns exist -> `/argus:revise --apply-boss --session <id>`
+- Verification `ask_user` (unresolved critical challenge) -> `/argus:sail --resume <id>` to make the call
+- Boss critical applied concerns exist -> `/argus:revise --session <id>` (revise auto-applies the accepted concerns)
 - No `current_bearing.json` -> `/argus:sail --resume <id>`
 - Bearing status is `anchor` -> `/argus:chart --promote <active_label>`
 - Otherwise -> `/argus:revise "<directive>"` or `/argus:chart --promote <active_label>`
@@ -142,14 +155,18 @@ Promote means anchor: this is the draft the user is ready to treat as released.
 2. Verify the active version has either:
    - `current_bearing.current_course.status == "anchor"`, or
    - user explicitly confirms promotion despite non-anchor status.
-3. Compute new label:
+3. Verify the label is pre-release via `isPreRelease()` logic — major tier is
+   `0` (e.g. `v0.3`, `v0.2.1`) OR it is not a `vN.0` release for `N >= 1`. Do NOT
+   use a `v0\.\d+` regex: it wrongly rejects valid branch labels like `v0.1.1`
+   and post-v1 labels like `v1.2` that `promoteToMajor` supports.
+4. Compute new label via the `promoteToMajor` algorithm:
    - `v0.3` -> `v1.0`
    - `v0.3.1` -> `v1.0`
    - `v1.2` -> `v2.0`
-4. Rename the version directory.
-5. Update `session.drafts[].version_label`.
-6. Set `session.released_draft_id`.
-7. If `current_bearing.contract_seed` exists, print it as the suggested
+5. Rename the version directory.
+6. Update `session.drafts[].version_label`.
+7. Set `session.released_draft_id`.
+8. If `current_bearing.contract_seed` exists, print it as the suggested
    Decision Contract seed to carry into the webapp or future plugin loop.
 
 Report:
@@ -172,7 +189,11 @@ Ask one confirmation:
   - `Delete`
   - `Cancel`
 
-Only delete after confirmation.
+Only delete after confirmation. Then remove the directory **cross-platform** —
+this skill runs on Windows too. Use the Claude Code file tools, or
+`rm -rf .argus/sessions/{{id}}/` on Unix / `Remove-Item -Recurse -Force .argus/sessions/{{id}}/`
+on Windows. Do NOT assume `rm -rf` exists — on win32/PowerShell it fails and the
+user is wrongly told the session was deleted.
 
 ---
 

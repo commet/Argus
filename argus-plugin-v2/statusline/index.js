@@ -52,6 +52,17 @@ function readStdin() {
 
 let sessionCache = { mtime: 0, data: null };
 
+// Read a write-once artifact from the active draft's version dir. Returns null on
+// any miss/parse error — the statusline must never throw on partial session state.
+function readVersionArtifact(sessionDir, label, name) {
+  if (!sessionDir || !label) return null;
+  try {
+    const p = join(sessionDir, "versions", label, name);
+    if (!existsSync(p)) return null;
+    return JSON.parse(readFileSync(p, "utf8"));
+  } catch { return null; }
+}
+
 function parseActiveSession(cwd) {
   const sessionsDir = join(cwd, ".argus", "sessions");
   if (!existsSync(sessionsDir)) return null;
@@ -60,6 +71,7 @@ function parseActiveSession(cwd) {
     // Find most recently modified session
     const entries = readdirSync(sessionsDir);
     let latest = null;
+    let latestDir = null;
     let latestMtime = 0;
 
     for (const entry of entries) {
@@ -69,6 +81,7 @@ function parseActiveSession(cwd) {
       if (stat.mtimeMs > latestMtime) {
         latestMtime = stat.mtimeMs;
         latest = sessionJson;
+        latestDir = join(sessionsDir, entry);
       }
     }
 
@@ -91,13 +104,18 @@ function parseActiveSession(cwd) {
       return parts.length >= 3;  // v0.1.1, v0.2.3 etc.
     }).length;
 
-    // Critical concerns count (from active draft's scaffold if available)
-    let criticalConcerns = 0;
-    if (session.dm_feedback?.concerns) {
-      criticalConcerns = session.dm_feedback.concerns.filter(c => c.severity === "critical").length;
-    }
+    // The thin session.json no longer embeds boss feedback or the verification
+    // ledger — they live write-once in versions/{label}/. Read the active draft's
+    // version-dir artifacts directly (defensive: any missing/corrupt file -> null).
+    const activeLabel = activeDraft?.version_label || null;
+    const bossFeedback = readVersionArtifact(latestDir, activeLabel, "boss_feedback.json");
+    const verification = readVersionArtifact(latestDir, activeLabel, "verification.json");
 
-    const verification = session.verification || activeDraft?.final_scaffold?.verification || session.final_scaffold?.verification || null;
+    // Critical concerns count (from the active draft's boss feedback if present)
+    let criticalConcerns = 0;
+    if (bossFeedback?.concerns) {
+      criticalConcerns = bossFeedback.concerns.filter(c => c.severity === "critical").length;
+    }
 
     const data = {
       id: session.id,

@@ -1,6 +1,6 @@
 ---
 name: sail
-description: Top-level Argus orchestrator. Routes a decision through clarify, crew work, verification, optional stakeholder review, and a compressed Current Bearing. The user-facing product is a decision voyage with one practical bearing, not a multi-agent workflow report. Invoked as `/argus:sail`.
+description: Top-level Argus orchestrator. Routes a decision through clarify, crew work, verification, optional stakeholder review, and a compressed Current Bearing. Works on a technical decision in your repo (PR, design doc, architecture) OR a non-code one (market entry, hiring, vendor, pricing, career) — code-aware in a repo, document/strategy mode otherwise. The user-facing product is a decision voyage with one practical bearing, not a multi-agent workflow report. Invoked as `/argus:sail`.
 ---
 
 # /argus:sail
@@ -43,10 +43,11 @@ The default entry point:
 
 ## Path Resolution
 
-Reference data resolves to:
-
-- `~/.claude/argus-data/`
-- `~/.claude/argus-lib/`
+When this skill (or any sub-skill it invokes) refers to `data/...` or `lib/...`,
+these resolve to:
+- `~/.claude/argus-data/` — schemas, agents.yaml, boss-types.yaml, classification.yaml, README.md
+- `~/.claude/argus-lib/` — locale-conventions.md, config.example.yaml, rehearsal-prompt.md (flat)
+- `~/.claude/argus-lib/session/` — session-layout.md, version-numbering.md (install.sh `cp -r` preserves the `session/` subdir; do NOT look for these flat under `argus-lib/`)
 
 Session artifacts live in:
 
@@ -58,11 +59,34 @@ Session artifacts live in:
 
 Read `.argus/config.yaml`.
 
-If missing, silently create it from `~/.claude/argus-lib/config.example.yaml`.
-Print one line only:
+**If missing, silently create from `~/.claude/argus-lib/config.example.yaml`** (no AskUserQuestion — first-run friction was the discoverability killer). First ensure the target dir exists: `mkdir -p .argus` (on a true first run in a fresh repo `.argus/` does not exist yet, so writing the config straight away would fail).
 
-- en: "Created `.argus/config.yaml`. Continuing with defaults."
-- ko: Translate the same sentence naturally.
+**Privacy default — write `.argus/.gitignore` on first create** (unless it already exists) so sessions stay local by default:
+```
+# Argus: decision sessions can contain code diffs + business context.
+# Remove this line (and set archive.commit_sessions: true) to share with your team.
+sessions/
+errors.log
+```
+If `config.archive.commit_sessions == true`, omit the `sessions/` line so the user's opt-in to team sharing is honored.
+
+**Substitute the detected locale into the written config — do not leave the template's `locale: ko`.** The template defaults to Korean; if you write it verbatim, every downstream output is Korean regardless of the user. After detecting locale (below):
+- Set `locale:` in the written config to the detected value.
+- If detected locale is `en`, also replace the Korean boss persona with English defaults: `name: "Manager"`, `gender: male`, `role: "Manager"` (keep `mbti_code: ISTJ`). If `ko`, keep the template's `박 팀장`.
+
+Print ONE line in the detected locale:
+- ko: "ℹ `.argus/config.yaml` 자동 생성 (ISTJ 박 팀장 기본). 다른 boss 원하면 그 파일 편집."
+- en: "ℹ `.argus/config.yaml` auto-created (ISTJ default boss). Edit it if you want a different stakeholder."
+
+Locale detection when no config exists yet (first match wins):
+- If `LANG` / `LC_ALL` env starts with `ko` → ko
+- On Windows (no `LANG`): if `Get-Culture` / system UI culture is Korean (`ko-*`) → ko
+- Else if the user's `problem_text` is predominantly Korean (Hangul) → ko
+- Else → en
+
+(This default — en when nothing indicates Korean — is the one the rest of the plugin assumes; keep `lib/locale-conventions.md` consistent with it.)
+
+All downstream skills inherit `locale` from the (now-existing) config.
 
 Do not ask setup questions on first run.
 
@@ -93,28 +117,31 @@ making claims. A generic answer after a user gives a file is a product failure.
 
 ## Step 3 - Route By Phase
 
-| Current phase | Next action |
+**`conversing` tiebreaker (two rows below would both match):** read `versions/{label}/analysis.json`. If `execution_plan.steps.length >= 2` → treat as "ready" (route to team). Otherwise → "not ready" (route to clarify --continue). Decide by the execution_plan, never guess.
+
+| Current phase | Next skill |
 |---|---|
 | new / no session | `/argus:clarify` |
-| `analyzing` or `conversing` without execution plan | `/argus:clarify --continue` |
-| `conversing` with execution plan | `/argus:team` |
-| `team_working` or `mixing` | show short progress/status |
-| `verifying` or team complete without `verification.json` | `/argus:verify` |
-| `dm_feedback` | `/argus:boss` |
-| `refining` or `complete` | show Current Bearing/chart and offer `/argus:revise` |
+| `analyzing` or `conversing` (execution_plan < 2 steps) | `/argus:clarify --continue` |
+| `conversing` (execution_plan ready, ≥ 2 steps) | `/argus:team` |
+| `team_deploying` (verify routed `revise_team`) | `/argus:team --revise` — re-run team with `verification.json` challenged_claims fed into the worker prompts |
+| `team_working` or `mixing` | wait / show progress via status |
+| `verifying` or team complete with no `verification.json` | `/argus:verify` |
+| `dm_feedback` pending | `/argus:boss` |
+| `refining` | `/argus:revise` (apply boss concerns / verify challenges → child draft + re-verify) |
+| `complete` | show Current Bearing/chart via `/argus:chart`; `/argus:revise` to iterate or `--promote` to finalize |
 
 ---
 
 ## Step 4 - Full Pipeline
 
-For `--full`, run:
+For `--full`, run sequentially:
 
-1. `/argus:clarify --no-minimal`
-2. `/argus:team --invoked-via-sail`
-3. `/argus:verify --invoked-via-sail`
-4. `/argus:boss --invoked-via-sail`, unless `--no-boss` or verification blocks
-   review
-5. Step 7 Current Bearing
+1. `/argus:clarify --no-minimal --invoked-via-sail` (until ready for mix, or max rounds). `--no-minimal` suppresses Step 6a auto-collapse (`--full` is an explicit user override); `--invoked-via-sail` makes clarify suppress its own scaffold print + "run /argus:team" hint and emit a one-line ack only — sail Step 7 renders the consolidated card. Without it, clarify double-renders under sail.
+2. `/argus:team --invoked-via-sail` (on the snapshot's execution_plan). The `--invoked-via-sail` flag tells team to suppress its own verbose Step 11 print block; sail's Step 7 will render the consolidated card.
+3. `/argus:verify --invoked-via-sail` (on the team output). This is the core gate: supported/challenged/human-check claims become visible before any stakeholder review.
+4. `/argus:boss --invoked-via-sail` (unless `--no-boss` OR verify's `routing_decision` is `revise_team` / `stop_for_human_check` / **`ask_user`**). `ask_user` means verify could not resolve the route (e.g. a `critical` challenged claim under `--no-prompt`); boss must NOT run on an unresolved critical challenge. Same flag otherwise — suppresses boss's verbose narration; sail Step 7 surfaces the bearing only.
+5. Step 7 Current Bearing (see below).
 
 Transitions must describe value, not machinery:
 
@@ -144,7 +171,10 @@ team, verify, or boss. Do not render Current Bearing.
 
 ## Step 6 - Default Mode
 
-Run `/argus:clarify` first, then branch.
+Run `/argus:clarify --invoked-via-sail` first, then branch. The flag makes
+clarify suppress its medium/high scaffold print (Step 5b) and emit a one-line ack
+so sail Step 7 owns the surface — a low-density run still prints its MinimalScaffold
+(clarify Step 5a is the terminal deliverable there and ignores the flag).
 
 ### Step 6a - Low Density
 
@@ -169,16 +199,21 @@ Options:
 - "Current Bearing"
 - "Treat as high-stakes"
 
-Persist the chosen stakes and continue.
+After the user answers, persist the user-confirmed stakes to
+`session.classification.stakes`, set `stakes_user_confirmed = true`, and set
+`stakes_confidence = 100` (the user just confirmed it — it is no longer
+uncertain). Without this reset, Step 6c sees confidence still `< 75` and stalls
+with no action. Then continue to Step 6c with the locked stakes.
 
 ### Step 6c - Medium/High
 
 When confidence is high enough, do not ask how to proceed. The user invoked
 Argus to get orientation inside the decision, not to manage a workflow.
 
-Print one line:
+Print one line (include a rough time preview so a quick question never silently
+becomes a multi-minute run — `~3-5 min` for important, `~6-10 min` for critical):
 
-- en: "Checking evidence and weak claims, then returning the current bearing. (Ctrl-C to halt)"
+- en: "Checking evidence and weak claims, then returning the current bearing (~{{time_range}}). (Ctrl-C to halt)"
 - ko: Translate naturally.
 
 Run:
@@ -196,18 +231,26 @@ Current Bearing is the default consumable artifact. It hides the internal
 pipeline but preserves the voyage shape: course, evidence, fog, road not taken,
 next helm action, and an optional decision-contract seed.
 
+**Coverage-gap guard:** read `workers.json` and count any `status: "error"` /
+`verification_failed` entries. If any worker failed, the bearing MUST open with a
+visible warning (ko: `⚠ 워커 {{M}}/{{N}} 실패 — 일부 도메인 분석 누락` · en:
+`⚠ {{M}}/{{N}} workers failed — some domain analysis is missing`). Never present
+a bearing assembled from survivors as if coverage were complete.
+
 Read:
 
 - `analysis.json`
 - `scaffold.json`
 - `verification.json`
+- `workers.json` (for the coverage-gap guard above)
 - optional `boss_feedback.json`
 - optional `mix.json`
 
 Write:
 
 - `versions/{label}/current_bearing.json`, conforming to
-  `~/.claude/argus-data/schemas/current-bearing.json`
+  `~/.claude/argus-data/schemas/current-bearing.json` (include the required
+  `generated_at` ISO-8601 timestamp — a bearing without it fails schema validation)
 
 ### Current Bearing Mapping
 
@@ -321,6 +364,17 @@ Target length: 10-16 lines. Never exceed one terminal screen.
 - Contract seed must be falsifiable. If it cannot be checked later, omit it.
 - The detail path is a quiet escape hatch, not the main product.
 
+**Verification routing override:** If `verification.routing_decision` is
+`revise_team` or `stop_for_human_check`, Step 7 still renders the bearing but
+MUST set the course to `revise` / `collect_evidence` and not imply completion.
+Append a resume next-line:
+- ko: `다음: {{routing_decision == "revise_team" ? "/argus:sail --resume " + session.id + " (팀이 반박 항목을 반영해 재작업 후 재검증)" : "사람 확인 항목을 처리한 뒤 /argus:sail --resume " + session.id}}`
+- en: `Next: {{routing_decision == "revise_team" ? "/argus:sail --resume " + session.id + " (team reworks the challenged claims, then re-verifies)" : "complete human checks, then /argus:sail --resume " + session.id}}`
+
+(On `revise_team`, verify has set `phase = team_deploying`; resuming routes to
+`/argus:team --revise`, which re-runs the team with `verification.json`'s
+challenged_claims injected — see Step 3.)
+
 ---
 
 ## Boss Skip Handling
@@ -362,10 +416,12 @@ user explicitly asks for `/argus:chart` or opens session files.
 
 ## Error Modes
 
-- No args + no git state: ask for the decision question via AskUserQuestion.
-- Session exists mid-phase: resume by default.
-- Sub-skill fails: log to `.argus/errors.log`, show the shortest actionable
-  failure, and stop.
+- **No args + no git state**: ask for the decision question via AskUserQuestion.
+- **Session exists mid-phase**: resume by default; offer restart only if user asks.
+- **Sub-skill fails**: log to `.argus/sessions/{id}/errors.log` (the canonical
+  per-session log — keep this consistent across sail, team, and
+  session-layout.md; gitignore `.argus/sessions/*/errors.log`), show the
+  shortest actionable failure, and stop.
 
 ---
 

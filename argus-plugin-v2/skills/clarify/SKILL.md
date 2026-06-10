@@ -25,6 +25,7 @@ Do NOT run when:
 
 **Flags clarify accepts:**
 - `--no-minimal` — force Step 5b (regular scaffold) even when `decision_density == "low"`. Sail passes this when invoked with `--quick` or `--full`. Direct `/argus:clarify "<problem>"` invocations honor minimal mode automatically.
+- `--invoked-via-sail` — clarify is running as a step inside `/argus:sail`, not standalone. When set, Step 5b writes its files but emits only a one-line ack instead of the full scaffold print, and does NOT tell the user to run `/argus:team` (sail is already chaining it). Prevents the double-render where the user sees clarify's scaffold AND sail's final card. Minimal mode (Step 5a) still prints, since on the minimal path sail exits silently and clarify's output IS the answer.
 - `--continue` — Q&A deepening round on an existing session.
 - `--revise <session-id>` — re-clarify with new input (post-MVP).
 
@@ -40,14 +41,23 @@ One of:
    - `@<file>` → Read file contents + `git log -5 --oneline <file>` for recent churn
    - `@<branch>` → `git log main..<branch>` + `git diff main...<branch> --stat`
    - `@<issue-N>` → `gh issue view N`
+   - `@doc:<path>` → Read a local document (`.md`/`.txt`/`.pdf`/etc.) into `target_context` (`kind: "document"`). This is the non-code intake path: a strategy deck, contract, memo, or spec the decision is about. Downstream team runs in document mode on it — no repo needed.
+   - You can also accept pasted context inline (the user drops the relevant facts in the problem text); set `target_context.kind: "pasted"`.
 3. **Autodetect from git state** (no args):
    - Current branch name (not `main`/`master`)
    - Last 1-3 commit messages
-   - Uncommitted changes (`git diff HEAD`)
+   - Uncommitted changes (`git diff HEAD`) — **redact before use.** This can include modified-but-gitignored files (e.g. `.env`, `.env.local`) with live secrets. Skip hunks from paths matching `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*`, and replace high-entropy strings / `BEGIN ... PRIVATE KEY` blocks with `[REDACTED]` before sending any diff into a prompt or writing it to `target_context`/`repo_context.json`. The same redaction applies to expanded PR diffs and file contents.
    - Open PRs authored by user
    - Report what was detected before proceeding
 
 If multiple candidates, use **AskUserQuestion** to disambiguate: "Which of these are you working on?"
+
+**Persist the expanded target context.** Whenever a target reference is expanded (PR diff, file contents, branch diff, issue body), write the result to `versions/v0.1/meta.json` under `target_context` so `/argus:team` can consume it directly without re-fetching — `gh` may be unauthorized or offline by the time team runs, and re-fetching duplicates work. Shape:
+- `pr` → `target_context: {kind: "pr", ref, title, description, state, files_changed: [...], diff}`
+- `issue` → `target_context: {kind: "issue", ref, title, body, state}`
+- `branch` → `target_context: {kind: "branch", ref, commits, diff_stat}`
+- `file` → `target_context: {kind: "file", ref, contents, recent_churn}`
+This is the single source of truth for the artifact the team works ON (M1 code-native). If expansion failed (gh missing / not a repo), write `target_context: {kind, ref, error: "<reason>", fallback_text: "<user-pasted text if any>"}` so team can degrade to hypothetical mode knowingly instead of silently analyzing nothing.
 
 ---
 
@@ -56,10 +66,10 @@ If multiple candidates, use **AskUserQuestion** to disambiguate: "Which of these
 ### Step 1 — Session bootstrap
 
 1. **Read config**: Load `.argus/config.yaml` (schema: `~/.claude/argus-data/schemas/config.json`). If clarify is invoked via `/argus:sail`, the config is already loaded and present (sail Step 0 silent-creates it). If clarify is invoked DIRECTLY by the user with no config, silent-create from `~/.claude/argus-lib/config.example.yaml` (same logic as sail Step 0) — print one line "ℹ config 자동 생성 (ISTJ 기본)" and proceed. No AskUserQuestion. All user-facing text in this skill uses `config.locale`.
-2. Compute session ID: `YYYY-MM-DD-<kebab-of-first-N-words-of-problem>`. Collision-safe by appending `-2`, `-3`.
+2. Compute session ID: `YYYY-MM-DD-<kebab-of-first-5-words-of-problem>-<author>`, where `<author>` is the first 4 hex chars of a hash of `git config user.email` (fallback: `git config user.name`, else `local`). The author suffix makes the same problem from two teammates resolve to two non-colliding directories that still both travel via git — the team-safety guarantee. Still collision-safe within one author by appending `-2`, `-3`.
 3. Create `.argus/sessions/{id}/` directory.
 4. Create `session.json` at the root with schema from `~/.claude/argus-data/schemas/session.json`. Fields:
-   - `id`, `problem_text`, `repo_path` (from `pwd`), `repo_branch` (from `git branch --show-current`)
+   - `id`, `problem_text`, `repo_path` (from `pwd`), `repo_branch` (from `git branch --show-current`; if the command errors because this is not a git repo, set `repo_branch: null` and `invoking_context.git_available: false` — do NOT halt or write garbage. Team Step 1.5 path C (hypothetical mode) keys off `git_available: false`.)
    - `invoking_context`: `{target_type, target_ref}` from the input expansion
    - `boss_agent`: from `config.boss` if present
    - `phase: "analyzing"`, `round: 0`, `max_rounds: 3`
@@ -158,7 +168,7 @@ Otherwise, repeat up to `max_rounds` times (default 3) or until the snapshot con
    - `multiSelect: false` unless the question naturally accepts multiple
    - 2-4 options covering the answer space + open option: `"직접 입력"` (ko) / `"Let me type it"` (en)
 
-3. **Run deepening analysis**: update the snapshot with the answer. Produce a new version of AnalysisSnapshot. Append to `snapshots[]` in session.json (NOT overwrite — keeping history).
+3. **Run deepening analysis**: update the snapshot with the answer. Produce a new version of AnalysisSnapshot and write it to `versions/{label}/analysis.json` (latest is authoritative). Append the Q&A turn to `versions/{label}/questions_and_answers.json` to keep history. Do NOT store snapshots in session.json — the version dir is the authoritative, write-once-per-round home (keeps session.json thin and conflict-free).
 
 4. **Check convergence**:
    - If `execution_plan.steps` now present with ≥2 steps AND `framing_confidence >= 75` → `readyForMix = true`, exit loop.
@@ -218,7 +228,11 @@ This is the one place clarify produces a directive. The full scaffold pipeline i
 
 #### Step 5b — `decision_density in {"medium", "high"}` (or absent for legacy) → regular scaffold
 
-Print to user:
+**If `--invoked-via-sail` is set:** do NOT print the scaffold block below. Write all files (analysis.json, meta.json, etc.) as normal, then emit a single ack line in `config.locale` and return — sail Step 7 renders the consolidated card.
+- ko: `✓ Clarify — 진짜 질문 파악 완료, 팀 배치 중…`
+- en: `✓ Clarify — real question framed, deploying team…`
+
+**Otherwise (direct invocation)**, print to user:
 
 ```
 ## Argus · Clarify · v0.1
@@ -250,7 +264,7 @@ Run `/argus:team` to deploy the agents.
 
 ### Step 6 — Update session.json
 
-Set `phase: "conversing"` (if not ready for team) or stay on `"conversing"` (if ready — team deployment is next). Update `snapshots[]`, `questions_and_answers[]`, `updated_at`.
+Set `phase: "conversing"` (if not ready for team) or stay on `"conversing"` (if ready — team deployment is next). In session.json update ONLY the thin skeleton fields: `phase`, `round`, `updated_at` (and `classification` if stakes were set). The analysis snapshot and Q&A history live in `versions/{label}/analysis.json` and `questions_and_answers.json`, not in session.json.
 
 ---
 
@@ -261,7 +275,7 @@ Written to `.argus/sessions/{id}/`:
 - `session.json` — top-level session record (schema: `~/.claude/argus-data/schemas/session.json`)
 - `versions/v0.1/analysis.json` — the AnalysisSnapshot (schema: `~/.claude/argus-data/schemas/analysis-snapshot.json`)
 - `versions/v0.1/questions_and_answers.json` — the Q&A history
-- `versions/v0.1/meta.json` — `{triggering_skill: "clarify", timestamp, framing_locked, user_accepted_framing}`
+- `versions/v0.1/meta.json` — `{triggering_skill: "clarify", timestamp, framing_locked, user_accepted_framing, target_context?, density_was?}`. `target_context` is present whenever a target reference was expanded (see Inputs) and is what `/argus:team` reads to work on the real artifact.
 - `versions/v0.1/minimal_scaffold.json` — **only when `decision_density == "low"`** (Step 5a). MinimalScaffold (schema: `~/.claude/argus-data/schemas/minimal-scaffold.json`). When this file exists, downstream `/argus:sail` MUST set phase=complete and skip team/verify/boss.
 
 ---
@@ -291,6 +305,7 @@ If any gate fails, revise before emitting files.
 - **User provides no problem text and git state is clean**: prompt for problem text via AskUserQuestion.
 - **PR/issue reference fails** (gh not installed, unauthorized): degrade gracefully — ask user to paste the text, note fallback in meta.json.
 - **LLM returns malformed JSON**: retry once with stricter schema emphasis. If still fails, write what you got to `versions/v0.1/raw_analysis.txt` and explain the issue to user.
+- **Corrupt/half-written stored JSON** (a prior run was interrupted mid-write, so `session.json` / `analysis.json` won't parse): do NOT crash with an opaque error. Defensively try/parse every stored file you read; on parse failure, move the bad file to `<name>.corrupt.<timestamp>`, log to `.argus/sessions/{id}/errors.log`, and either recreate it from defaults (if it's regenerable, e.g. analysis.json → re-run Step 2) or halt with a precise message naming the exact file to delete. This guard applies to every skill that reads stored session JSON (clarify, team, verify, boss, chart) — never let one interrupted write permanently brick a session.
 
 ---
 

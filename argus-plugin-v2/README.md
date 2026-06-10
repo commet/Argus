@@ -66,13 +66,20 @@ files.
 
 ## When To Use
 
-Good fits:
+Good fits (code and non-code — Argus is a judgment harness, not only a code tool):
 
 - "Should we migrate from Firestore to Supabase?"
 - "Review PR #42 as a product, risk, and implementation decision."
 - "Is our auth middleware design wrong?"
 - "Should this feature live in the webapp or be absorbed into the plugin?"
 - "Read this strategy doc and tell me the current course."
+- "Should we expand to the EU market next quarter, or wait one?"
+- "Should I take the senior IC offer or the management track?"
+- "Which vendor should we pick for payments — and what would make that wrong?"
+
+For non-code decisions, run Argus from any folder; you can paste the context or
+reference a local document. (Richer business-artifact intake — decks, contracts —
+is on the roadmap; today, paste the key facts.)
 
 Bad fits:
 
@@ -85,8 +92,13 @@ Bad fits:
 
 ## Install
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
+Argus is a Claude Code **plugin**. Install it through the plugin marketplace so
+its commands are namespaced as `/argus:*` (this is what makes `/argus:sail`
+work — see note below). In Claude Code:
+
+```text
+/plugin marketplace add commet/Argus
+/plugin install argus@argus
 ```
 
 Restart Claude Code. Then in any repo:
@@ -98,17 +110,39 @@ Restart Claude Code. Then in any repo:
 ```
 
 No setup is required. `.argus/config.yaml` auto-creates with sensible defaults.
-`.argus/sessions/` stores decision history in the repo so it can travel with git.
+By default `.argus/sessions/` is **git-ignored** (it can contain code diffs and
+business context); opt into committing it to share decision history with your
+team — see **Privacy & team sharing** below.
 
-For local development:
+> **Why the marketplace, not a copy script?** Claude Code only applies the
+> `argus:` namespace to commands from an installed plugin. Copying the skill
+> folders into `~/.claude/skills/` (the old `install.sh` path) exposes them as
+> bare `/sail`, `/team`, `/verify` … which collide with other skills and do
+> **not** match the documented `/argus:*` names. Use the marketplace install above.
+
+### Prerequisites
+
+- **Claude Code** (latest).
+- **git** — required for repo-aware analysis.
+- **GitHub CLI (`gh`)** — *optional but recommended.* Needed for `@PR#N` /
+  `@issue#N` auto-expansion; without it Argus asks you to paste the content.
+- **Node.js ≥ 16** — *only* if you want the optional statusline.
+
+### Platform
+
+macOS, Linux, and Windows (Claude Code runs the skills). The optional
+developer-mode helper script (`install.sh --link`, for live-editing skill files
+against a local clone) is bash; on Windows run it from **Git Bash or WSL**.
+Skill execution itself is cross-platform.
 
 ```bash
+# Local development against a clone (bash / Git Bash / WSL):
 ./argus-plugin-v2/install.sh --link
 node ./argus-plugin-v2/scripts/validate-plugin.js
 node ./argus-plugin-v2/scripts/simulate-plugin.js
 ```
 
-Restart Claude Code after editing skill files. Skill bodies are cached at
+Restart Claude Code after editing skill files — skill bodies are cached at
 session start.
 
 ---
@@ -168,8 +202,8 @@ Overrides:
 
 `/argus:boss` runs stakeholder review after verification.
 
-`/argus:revise` creates a child draft after verification, boss feedback, or a
-user repair directive.
+`/argus:revise` applies boss concerns / verify challenges to a new child draft
+and re-verifies — the iteration loop.
 
 `/argus:chart` shows the version tree and session artifacts.
 
@@ -193,6 +227,37 @@ user repair directive.
    can be committed, shared, and reopened.
 
 ---
+
+## Cost & run time
+
+A `/argus:sail` run is not always cheap — it can spawn several agents. Rough
+guide (varies with repo size and model):
+
+| Path | Triggers | Time | Output tokens |
+|---|---|---|---|
+| Minimal scaffold | low-density reversible question | ~30s | small |
+| `important` (default) | most decisions | ~3–5 min | ~40–80k |
+| `critical` | irreversible / high-impact | ~6–10 min | ~100–180k |
+
+On the full path, `sail` prints a one-line preview (agent count + rough time)
+before it chains the team, so a "quick question" never silently turns into a
+multi-minute, multi-agent run. `Ctrl-C` halts; `/argus:sail --resume <id>`
+continues. If you're on a low API tier, prefer `--quick` or the minimal path.
+
+## Privacy & team sharing
+
+Argus's `.argus/` directory can contain code diffs, file contents, and your
+problem text. Defaults are private-first:
+
+- `.argus/sessions/` is **git-ignored by default.** Decision history stays local
+  unless you opt in.
+- Clarify/team **redact** likely secrets (`.env*`, `*.key`, private-key blocks,
+  high-entropy strings) before sending diffs to the model or writing them to disk.
+- To **share with your team**, set `archive.commit_sessions: true` in
+  `.argus/config.yaml` and remove the `.argus/sessions/` ignore line — but review
+  what you're committing first: session files (and the session directory name,
+  which is derived from your question) include diffs and business context that
+  will land in `git log` for everyone with repo access.
 
 ## Reference
 

@@ -120,8 +120,11 @@ if (fs.existsSync(sailSkillPath)) {
 
 const draft = readJson(path.join(root, "data", "schemas", "draft.json"));
 if (draft) {
-  check(JSON.stringify(draft.properties?.final_mix || {}).includes('"null"'), "Draft.final_mix must allow null");
-  check(JSON.stringify(draft.properties?.dm_feedback || {}).includes('"null"'), "Draft.dm_feedback must allow null");
+  // v2.1: the draft node is a thin tree pointer — boss review is a small boolean
+  // flag; the full feedback/scaffold/mix live write-once in the version dir.
+  check(draft.properties?.boss_reviewed?.type === "boolean", "Draft.boss_reviewed must be a boolean flag");
+  check(!draft.properties?.final_scaffold && !draft.properties?.final_mix && !draft.properties?.dm_feedback,
+    "Draft must not embed final_scaffold/final_mix/dm_feedback (they belong in the version dir, not the session skeleton)");
 }
 
 const statusline = path.join(root, "statusline", "index.js");

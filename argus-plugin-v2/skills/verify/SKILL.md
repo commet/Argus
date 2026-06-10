@@ -57,8 +57,12 @@ verification.
    - `.argus/config.yaml`
 3. Set `session.phase = "verifying"` while the skill runs.
 
-If any worker has `status: "error"` or `verification_passed === false`, carry
-that into `challenged_claims[]`. Do not hide it behind a polished mix.
+Force a worker's output into challenged claims (do NOT hide it behind a polished mix) if ANY of:
+- `status` in {`error`, `verification_failed`} — note `verification_failed` is a distinct status from `error` and must be caught.
+- `verification_passed === false`.
+- `verification_score < 70` — worker-result.json explicitly contracts that a sub-70 score "must be surfaced as challenged, not silently promoted." `verification_passed` may be `null` while the score is low, so check the score independently.
+
+A worker that failed any of these may still have its claims extracted in Step 2, but they enter Step 4 (negative validation) pre-flagged and cannot become `supported_claims[]` on plausibility alone.
 
 ### Step 2 - Extract Claims
 
@@ -95,7 +99,9 @@ For each claim, ask:
 - Does the worker's assigned framework visibly shape the output?
 - If it proposes action, are actor and next step clear?
 
-Claims passing enough checks become `supported_claims[]`:
+A claim is `supported` only if it passes **at least 2 of the 5 checks above, AND one of them is Evidence or Cross-agent support** (plausibility/specificity alone is not enough — that is how generic prose sneaks in). A claim from a worker flagged in Step 1 cannot be `supported`. Assign `strength`: `strong` (Evidence + cross-agent), `moderate` (Evidence or cross-agent + one more), `weak` (passes the minimum but on softer checks). **`weak` claims do NOT count toward the headline `supported` count** shown on the final card — list them separately so the card never inflates confidence.
+
+Claims passing become `supported_claims[]`:
 
 ```json
 {
@@ -141,8 +147,7 @@ Severity:
 Convert `debate.json` and `scaffold.team_contradictions[]` into
 `unresolved_tensions[]`.
 
-Do not resolve a real conflict here. Verification exposes the axis and names the
-tie-breaking condition.
+Do not resolve a real conflict in this skill. Verification's job is to expose the unresolved axis and, when derivable, name the tie-breaking condition. `tie_breaking_condition` is carried by `debate.json` but is optional for tensions sourced from `scaffold.team_contradictions[]` (which doesn't store one) — set it when you can infer it, otherwise omit rather than invent.
 
 ### Step 6 - Human-Required Checks
 
@@ -166,21 +171,21 @@ Each check must say why AI cannot verify it:
 
 ### Step 7 - Route
 
-Compute:
+`routing_decision` is computed as an **ordered if / else-if — first match wins** (these conditions overlap, so precedence is mandatory; flat "defaults" let two routes both claim the same input):
 
-- Any blocking human check with `blocks: "execution"` ->
-  `routing_decision = "stop_for_human_check"`.
-- Any critical challenged claim -> `routing_decision = "ask_user"`.
-- `--strict` plus any important challenged claim -> `routing_decision = "ask_user"`.
-- Agent-owned repair with no missing human evidence -> `routing_decision = "revise_team"`.
-- Only minor challenges and no blockers -> `routing_decision = "proceed_to_boss"`.
+1. **else-if** any human check has `blocks: "execution"` → `stop_for_human_check`. (Highest priority: an execution blocker must never be overridable by a "proceed" choice downstream.)
+2. **else-if** any `critical` challenged claim exists → `ask_user`. (Or, under `--no-prompt` where the user can't be asked, escalate to `revise_team` if the repair is agent-owned, otherwise `stop_for_human_check` — never silently `proceed_to_boss` on a critical challenge.)
+3. **else-if** `--strict` and any `important` challenged claim exists → `ask_user`.
+4. **else-if** there is an agent-owned repair (a challenged claim with an `owner_agent_id` and no human data needed) → `revise_team`.
+5. **else** (challenged claims all minor, no blocking human checks) → `proceed_to_boss`.
 
-Overall status:
+Overall status (also ordered, first match wins):
+- `blocked`: any human/external check blocks execution or final signoff.
+- `needs_revision`: any `critical` challenged claim (even if not human-required — a critical challenge must never read as merely "mixed"), or an agent-owned repair is required.
+- `mixed`: usable with `important` caveats visible.
+- `verified`: no challenged claims above `minor` and no blocking checks.
 
-- `verified`: no challenged claims above minor and no blocking human checks.
-- `mixed`: usable with caveats visible.
-- `needs_revision`: agent-owned repair comes before stakeholder review.
-- `blocked`: human/external check comes before execution or signoff.
+**Compute `confidence` (0-100), a REQUIRED ledger field — do not leave it unset** (boss and the final card read it; an absent value becomes a fabricated number). Derive it, e.g.: start at 100; subtract per challenged claim weighted by severity (critical −30, important −15, minor −5); subtract for each unresolved human-required execution blocker (−20); floor at 0. This is confidence in the verification result, not in the business decision. Record the formula inputs in `claim_tests[]` if helpful.
 
 ### Step 8 - Ask Human When Needed
 
@@ -210,7 +215,9 @@ Persist the selected option to `ledger.user_choice`.
 ### Step 9 - Write Ledger
 
 Write `versions/{label}/verification.json` conforming to
-`~/.claude/argus-data/schemas/verification-ledger.json`.
+`~/.claude/argus-data/schemas/verification-ledger.json`. Include `generated_at`
+(current ISO-8601 timestamp) — it is a required field and a downstream validator
+rejects a ledger without it.
 
 Update `versions/{label}/scaffold.json`:
 
@@ -230,12 +237,12 @@ keeps the scaffold a single source of truth.
 
 Update `session.json`:
 
-- `verification = ledger`
-- `final_scaffold = updated scaffold`
-- `phase = "dm_feedback"` when routing proceeds to boss
-- `phase = "team_deploying"` when routing needs revision
-- `phase = "complete"` or `"conversing"` when no team/boss path remains
-- `updated_at = now`
+- The ledger lives write-once at `versions/{label}/verification.json` and the verification summary is merged into `versions/{label}/scaffold.json` (both done above) — do NOT copy them into session.json (the skeleton stays thin/conflict-free; downstream reads the version dir).
+- `session.phase`:
+  - `dm_feedback` when routing is `proceed_to_boss`
+  - `team_deploying` when routing is `revise_team`
+  - `complete` or `conversing` only when no team/boss path remains
+- `updated_at`
 
 ### Step 10 - Report
 

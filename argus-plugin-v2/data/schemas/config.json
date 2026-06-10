@@ -60,7 +60,7 @@
         "commit_sessions": {
           "type": "boolean",
           "default": false,
-          "description": "If true, status skill suggests committing .argus/sessions/ changes at phase=complete."
+          "description": "If true, /argus:chart suggests committing .argus/sessions/ changes at phase=complete."
         }
       }
     }

@@ -178,11 +178,17 @@ if [ -f "$SOURCE_DIR/statusline/index.js" ]; then
   else
     cp "$SOURCE_DIR/statusline/index.js" "$CLAUDE_DIR/statusline/argus.js"
   fi
-  ok "Statusline installed"
+  if command -v node >/dev/null 2>&1; then
+    warn "Statusline copied (optional). To enable it, add to ~/.claude/settings.json:"
+    echo -e "      ${DIM}\"statusLine\": { \"type\": \"command\", \"command\": \"node ~/.claude/statusline/argus.js\" }${NC}"
+  else
+    warn "Statusline copied but Node.js was not found — it needs Node >= 16 to run. Skipping activation hint."
+  fi
 fi
 
-mkdir -p .argus
-ok "Data directory ready (.argus/)"
+# NOTE: do NOT create .argus/ here. It is project-scoped and is created in the
+# user's repo on first /argus:sail (curl|bash runs from an arbitrary cwd, usually
+# $HOME, so creating .argus/ here would just litter the home directory).
 
 if [ "$LINK_MODE" = false ] && [ -n "$TEMP_DIR" ]; then
   rm -rf "$TEMP_DIR"
@@ -214,13 +220,19 @@ if [ "$ERRORS" -eq 0 ]; then
     echo -e "  ${DIM}Mode: linked to local repo. Restart Claude Code after editing skills.${NC}"
   fi
   echo ""
-  echo -e "  ${BOLD}Restart Claude Code${NC}, then try:"
+  warn "This copy-install exposes commands WITHOUT the argus: namespace."
+  echo -e "  ${DIM}Flat-installed skills are invoked as ${NC}${BOLD}/sail${NC}${DIM}, ${NC}${BOLD}/team${NC}${DIM}, ${NC}${BOLD}/verify${NC}${DIM} … (no ${NC}${BOLD}/argus:${NC}${DIM} prefix), which can collide with your other skills.${NC}"
+  echo -e "  ${DIM}For the documented ${NC}${BOLD}/argus:sail${NC}${DIM} experience, install as a plugin instead, inside Claude Code:${NC}"
   echo ""
-  echo -e "    ${BOLD}/argus:sail${NC} \"A technical decision I'm stuck on\""
-  echo -e "    ${BOLD}/argus:sail${NC} @PR#123"
+  echo -e "    ${BOLD}/plugin marketplace add commet/Argus${NC}"
+  echo -e "    ${BOLD}/plugin install argus@argus${NC}"
+  echo ""
+  echo -e "  ${BOLD}Restart Claude Code${NC}, then try (use ${BOLD}/argus:sail${NC} if plugin-installed, ${BOLD}/sail${NC} if copy-installed):"
+  echo ""
+  echo -e "    ${BOLD}/argus:sail${NC} \"A decision I'm stuck on\""
   echo ""
   echo -e "  ${DIM}Medium/high decisions return a compressed Current Bearing.${NC}"
-  echo -e "  ${DIM}Full reasoning is saved in .argus/sessions/.${NC}"
+  echo -e "  ${DIM}Full reasoning is saved in .argus/sessions/ (git-ignored by default).${NC}"
 else
   fail "Installation incomplete."
   exit 1

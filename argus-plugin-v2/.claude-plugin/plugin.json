@@ -49,6 +49,7 @@
     "./data/schemas/mix-result.json",
     "./data/schemas/dm-feedback.json",
     "./data/schemas/final-scaffold.json",
+    "./data/schemas/minimal-scaffold.json",
     "./data/schemas/draft.json",
     "./data/schemas/session.json",
     "./data/schemas/config.json",

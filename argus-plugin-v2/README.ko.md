@@ -85,8 +85,13 @@ Force full pipeline: /argus:sail --full "..."
 
 ## 설치
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
+Argus는 Claude Code **플러그인**입니다. 명령이 `/argus:*`로 네임스페이스되려면
+플러그인 마켓플레이스로 설치해야 합니다 (이게 `/argus:sail`을 작동하게 하는
+핵심입니다). Claude Code 안에서:
+
+```text
+/plugin marketplace add commet/Argus
+/plugin install argus@argus
 ```
 
 Claude Code를 재시작한 뒤 아무 repo에서 실행합니다.
@@ -97,13 +102,32 @@ Claude Code를 재시작한 뒤 아무 repo에서 실행합니다.
 /argus:sail @docs/strategy.md
 ```
 
-별도 설정은 필요 없습니다. `.argus/config.yaml`은 자동 생성되고,
-`.argus/sessions/`는 decision history를 repo 안에 저장하므로 git으로 같이
-옮길 수 있습니다.
+별도 설정은 필요 없습니다. `.argus/config.yaml`이 자동 생성됩니다. 기본적으로
+`.argus/sessions/`는 **git-ignore**됩니다 (코드 diff·업무 맥락이 들어갈 수
+있어서). 팀과 공유하려면 아래 "프라이버시/팀 공유"를 참고하세요.
 
-개발 중에는:
+> **왜 복사 스크립트가 아니라 마켓플레이스인가?** Claude Code는 설치된
+> 플러그인의 명령에만 `argus:` 네임스페이스를 붙입니다. skill 폴더를
+> `~/.claude/skills/`로 복사하면(기존 `install.sh` 방식) `/sail`, `/team` 처럼
+> 네임스페이스 없는 이름이 되어 다른 skill과 충돌하고 문서의 `/argus:*`와
+> 안 맞습니다.
+
+### 사전 요구사항
+
+- **Claude Code** (최신)
+- **git** — repo 인식 분석에 필요
+- **GitHub CLI (`gh`)** — *선택(권장).* `@PR#N`/`@issue#N` 자동 확장에 필요.
+  없으면 붙여넣기로 안내됩니다.
+- **Node.js ≥ 16** — *선택.* statusline을 쓸 때만.
+
+### 플랫폼
+
+macOS / Linux / Windows 모두 동작합니다(스킬은 Claude Code가 실행). 개발용
+헬퍼 스크립트(`install.sh --link`, 로컬 클론으로 스킬 파일 실시간 편집)는
+bash이므로 Windows에서는 **Git Bash 또는 WSL**에서 실행하세요.
 
 ```bash
+# 로컬 개발(bash / Git Bash / WSL):
 ./argus-plugin-v2/install.sh --link
 node ./argus-plugin-v2/scripts/validate-plugin.js
 node ./argus-plugin-v2/scripts/simulate-plugin.js
