@@ -1,0 +1,1568 @@
+AI, Take the Wheel: What Drives Delegation and Trust in
+  Human­Computer Cooperative Question Answering?
+
+Maharshi Gor, Yoo Yeon Sung, and Yu Hou                      Eve Fleisig
+             University of Maryland                   University of California
+            College Park, MD, USA
+                                                        Berkeley, CA, USA
+
+      Irene Ying     Tianyi Zhou                                                            Jordan Boyd-Graber
+   Phasechange.ai      MBZUAI                                                              University of Maryland
+Lakewood, CO, USA                                                                          College Park, MD, USA
+                   Abu Dhabi, UAE
+
+                      Abstract                        Human-AI Cooperative Trivia Competition
+
+     AI systems are fallible, and humans can make                                Team Formation (Before each Game)
+     mistakes in deciding whether to trust AI over                                                                                              Team for Game N
+     their own judgment. Thus, improving human-
+     AI collaboration requires understanding when,                                                   ... Draft Two
+     why, and how humans decide to rely on AI.
+     We study two distinct reliance decisions: the    System 1 System 2 System 3 System 4  System 5  Systems          System 2 System 5                         Humans
+     delegation choice--deciding when to let AI
+     act autonomously without knowing its output,                        Question Cycle (Twenty per Game)
+     and the adoption choice--evaluating AI sug-
+     gestions and deciding how to use them. Both                                                                                Bonus
+     of these decoupled reliance patterns shape col-                                                 1. Initial Guesses
+     laboration, but prior work rarely studies them
+     together in realistic settings with the same     Team A for Game N                              Francisco
+     users. We address this gap by studying col-                                                      Pizarro
+     laborative human­AI teams competing in a                                              Correct                    Hernán Cortéz
+     question-answering game in which humans can                                            Buzz
+     choose when and how to work with AI agents       System 2 System 5  Humans                      Hernando de           Rationale
+     to win. Our 24 matches pair 23 expert hu-                                               +10          Soto
+     mans with 16 AI agents, capturing 387 dele-                                                                      De Soto returned to Spain in 1536, with
+     gation and 1440 adoption decisions. While                                                                        wealth gathered from plunder in
+     human-AI collaboration performs better than                                                                      the Spanish conquest of the Inca Empire.
+     either AI or humans alone, humans make sub-
+     optimal collaboration decisions, both under-     Team B for Game N                                     Rationale                          Adoption
+     relying on correct AI suggestions (3.9% of op-
+     portunities missed) and over-relying when AI                                                    De Soto returned to Spain in 1536, with
+     misleads them (1.7%). Both parties contribute                                                   wealth gathered from plunder in
+     wrong answers: reported model confidence is                                                     the Spanish conquest of the Inca Empire.
+     near chance when humans and AI disagree,
+     while confirmation bias drives higher under-                                                    2. Deliberation
+     reliance (64.5%) when an AI suggestion agrees
+     with humans' initial incorrect answer. To close  System 1 System 3  Humans                                       Hernando de
+     this gap, we recommend calibrated confidence,                                                                         Soto
+     evidence-grounded explanations, and mecha-
+     nisms that help users refine trust.              Wrong Buzz -5
+                                                        (No bonus)
+1 Introduction: How much do you trust
+    LLM output?                                                                                      Correct Bonus +10 / Incorrect Bonus +0
+
+A wide range of people--from casual users look-       Figure 1: Our experimental setup has humans working
+ing for basic explanations to domain experts re-      with AI teammates in two competitive QA settings. In
+quiring professional support in medicine (Leonard     the tossup phase, AI teammates can directly answer
+et al., 2024), law (Magesh et al., 2024), and fi-     questions without human intervention. In the bonus
+                                                      phase, humans and AI collaborate to reach consensus,
+                                                      with humans providing the final answer.
+
+                                                      nance (Maple et al., 2024)--are using AI.1 How-
+                                                      ever, some users over-trust AI answers because
+                                                      of limited time or imperfect knowledge of AI
+                                                      capabilities (Goddard et al., 2012; Bansal et al.,
+                                                      2019; Buçinca et al., 2021), while other users are
+                                                      skeptical of AI output when it would indeed help
+                                                      them (Kleinberg et al., 2018; Jakesch et al., 2023).
+
+                                                         Prior work (Lee and See, 2004) focuses on trust
+                                                      and adoption of LLM output through post-hoc ac-
+                                                      ceptance measures or synthetic tasks that overlook
+                                                      real-world reliance dynamics and strategic choices
+                                                      under uncertainty (Section 5). A recent taxonomy
+                                                      of 66 human­AI studies confirms that capturing
+                                                      both delegation and advisory patterns in a single
+                                                      study remains rare (Gomez et al., 2025). More-
+                                                      over, real-world reliance decisions happen under
+                                                      pressure: limited time, imperfect knowledge of AI
+                                                      capabilities (even among experienced users), exist-
+
+                                                          1Throughout the paper, we use AI as a stand-in for text-
+                                                      based agentic workflows that are built using transformer-based
+                                                      LLMs (e.g., GPT-4.1, Claude 3.5, etc.); details in Appendix G.
+ing human social dynamics, and limited chances to     and AI disagree, relying on model confidence to
+learn through repeated interaction.                   select the correct answer performs near chance.
+                                                      On the human side, confirmation bias amplifies
+   We address this gap by studying how skilled        mistakes--when an incorrect human answer is con-
+users in human-AI teams use AI outputs in a           firmed by one of the two AI teammates, under-
+live novel collaborative benchmark2 that mea-         reliance rises to 64.5% as agreement signals re-
+sures when and how humans rely on AI as-              inforce wrong judgments. High-skill teams are
+sistance through two distinct reliance decisions.     particularly susceptible to this effect, as expertise
+Proactive delegation is the decision to let AI        breeds overconfidence in initial judgments.
+act autonomously without reviewing its output--
+capturing when AI will be used. Deliberative adop-       The successful collaborations provide a
+tion is the decision to accept or reject AI output    blueprint for improving future human­AI
+after evaluating it--capturing how AI output shapes   collaboration: we distill five design principles
+final decisions.                                      throughout our analysis (Section 4). In the bonus
+                                                      phase, explanations that cite specific question clues
+   We examine these reliance decisions through a      help humans abandon wrong answers 12% more
+competitive trivia tournament (Section 2). First,     often. However, we note that features that predict
+humans form teams with AI teammates (Figure 1).       AI correctness (reasoning coherence, question
+In team formation, teams draft AI systems from a      understanding) differ from what humans trust (sur-
+pool of based on perceived capabilities, reflecting   face similarity, presence of quotes). Encouragingly,
+humans' perception of AI capabilities. There are      human teams improve with practice: across bonus
+two types of questions: tossups and bonuses, that     rounds, inaccuracies decrease from 28% to 18%.
+captures the two distinct reliance decisions. In the  Most strikingly, teams reach correct answers in
+tossup phase (proactive delegation), teams decide     5.5% of cases where neither humans nor AI were
+whether to let their chosen AI system answer au-      initially right.
+tonomously or mute it entirely, revealing beliefs
+about AI reliability without oversight. In the bonus  2 Game Design for Human­AI
+phase (deliberative adoption), teams see AI sug-          Collaborative Question Answering
+gestions with confidence scores and explanations,
+then decide whether to adopt them, showing what       We study human-AI collaboration through a com-
+model outputs contribute to trust and how useful      petitive trivia tournament where mixed teams face
+those outputs are. These three scenarios capture      off in question-answering games. Each team has
+complementary facets of human­AI collaboration.       up to three human players and two AIs. Two teams
+Analyzing all three provides insights into "how"      compete head-to-head in a game that alternates
+people rely on AI: not just whether they accept       between two question types: "tossup" questions,
+or reject suggestions, but which models they trust,   where any player from either team can buzz in to
+when, and why. For collaboration to work, the         answer individually, and "bonus" questions, where
+questions must require both human and computer        the team that answered the tossup correctly collab-
+skills (Section 3.2).                                 orates on a three-part question. Before gameplay,
+                                                      teams draft which AI agents to work with from a
+   While collaboration is mostly synergistic--        pool of available systems (Section 3.1).
+better than either alone--it is not perfect (Sec-
+tion 4). Teams miscalibrate trust, primarily             This design is grounded in the trivia do-
+through under-reliance: they fail to adopt correct    main (Joshi et al., 2017), which provides both
+AI answers 3.9% of the time when they initially       challenging questions and a motivated, enthusi-
+propose incorrect answers. Over-reliance is less      astic community (Jennings, 2006). Koivisto and
+common (1.7%), but teams override their correct       Hamari (2019) argue that empirical human data
+answers with incorrect AI suggestions. Both parties   collection is more effective when participants are
+contribute to these errors. On the AI side, confi-    intrinsically motivated. Unlike synthetic labora-
+dence scores are poorly calibrated: when humans       tory studies, competitive trivia tournaments provide
+                                                      players who are familiar with the task, face real
+2Dataset: https://huggingface.co/datasets/            stakes with costs for incorrect reliance on agents,
+                                                      and deliberate with other humans. Our format is
+qanta-challenge/qanta25-gamedata;                     based on Quizbowl (Boyd-Graber et al., 2012), a
+
+Platform:  https://github.com/qanta-org/
+
+qb-tournament-runner;
+
+Analysis:  https://github.com/qanta-org/
+
+qanta25-analysis.
+well-established academic trivia competition.                                        Bonus Adoption
+Game flow. A game is played between two teams
+and consists of 20 cycles. Each cycle begins with a                        Step 0. Team Trivia Nerd Gets the Bonus Question
+tossup question: any player can buzz in to answer,
+and a correct answer earns 10 points for the team                     ......
+(an incorrect buzz before the question ends costs
+-5 points). If a team answers the tossup correctly,                            Step 1. Human Players Make an Initial Guess
+they earn a bonus question with three parts, each               Step 2. Human Players Read the Answers from Their AI Teammates
+worth 10 points. The team collaborates to answer
+each part, with humans making the final decision
+after seeing AI suggestions. The rest of this section
+details each phase and the human­AI collaboration.
+
+2.1 Tossup Delegation (Tossups)                                         ......
+
+Tossups are designed to be interrupted by a buzz.                                    Step 3. Human Players Make the Final Guess
+Each tossup question (a sequence of clues starting
+hard and getting easier) is read aloud to all play-             Figure 2: Overview of our collaboration interface show-
+ers.3 Once any player--human or AI--is confident                ing deliberative decision-making for bonus questions
+enough to answer, they "buzz" in with a response.               (top). Humans first provide their own guess without
+Humans buzz using a physical buzzer (or its on-                 any assistance from AI, then see suggestions from two
+line equivalent) and must answer immediately with               AI teammates with confidence scores and explanations
+no team discussion, following standard quizbowl                 (middle), and finally discuss and decide how to adopt
+rules. An AI buzzes in using the interface and simi-            them (bottom).
+larly immediately vocalizes an answer. However,
+each team only has one chance to answer a tossup;               guess Willy Wonka5 with 90% confidence. The
+an incorrect guess results in a penalty and bars                correct answer was Christ. This egregious mis-
+the incorrect player's whole team from answering                take led to an immediate request to mute that AI
+the question and participating in the bonus phase.              teammate for the rest of the game.
+Thus, a player with low accuracy or poor calibra-
+tion hinders the whole team. Human teammates                    2.2 Bonus Adoption (Bonuses)
+can shout or glare at poorly calibrated teammates;
+for AI teammates, we provide an analogous mecha-                When a team answers a tossup correctly, they earn
+nism: muting.                                                   a "bonus" question with three parts on a common
+                                                                theme (Elgohary et al., 2018) announced with a
+Muting AI teammates. Teams may mute an AI                       "lead-in" (e.g., Figure 2, top). To measure the effect
+teammate at the start of the game or after any                  of collaboration, we want to measure human abil-
+tossup­bonus cycle,4 preventing it from buzzing                 ity in the absence of AI assistance and how they
+for the rest of the game. Crucially, humans still see           navigate (often unreliable) AI support. This two-
+muted AIs' suggestions in the bonus phase--teams                stage design is essential: by recording the human
+may distrust an AI's buzzing judgment while still               guess before revealing AI suggestions, we can di-
+valuing its knowledge for collaborative decisions.              rectly compare the same team's pre- and post-AI
+For instance, during one tournament, a question                 answers, isolating the causal effect of the AI on
+began as follows:                                               human decisions.
+                                                                Initial Human Guess. The moderator reads each
+       In one work, a large-headed man with a multi-            part of the question, allows the human players to
+       colored top hat and pink. . .                            confer on the answer, and the teams provide a con-
+                                                                sensus guess without any assistance from their AI
+One of the AI players buzzed at this point with the             teammates. In the illustrated example (Figure 2),
+                                                                the second part of the question asks the team to
+    3This decrease in difficulty should be true for both types
+of players (humans and AI); see Section 3.2 for how we got          5We distinguish a guess, a (possibly incorrect) response,
+trivia experts to write these questions.                        from the correct answer to the question.
+
+    4A cycle ends immediately before the next tossup question
+is read. If neither team answered the tossup correctly, the
+cycle ends right after the tossup.
+find the element that is the midpoint of Boron and       outlines tournament structure (§ 3.1), question de-
+Fluorine on the periodic table. Human players gave       sign (§ 3.2), and AI agent architectures (§ 3.3).
+a correct guess of nitrogen. While we record this
+guess and its correctness for analysis, this does not    3.1 Tournament Structure and Participants
+contribute to the team's score. The human team is
+not told whether their guess is correct or not.          The tournament ranks human trivia teams on both
+AI Guesses. After the humans guess, they then see        their knowledge and their ability to form and work
+guesses from two distinct AI systems they drafted        with AI teams. Both tournaments--in-person and
+to be their teammates, along with a confidence           online--collect behavioral traces of human­AI col-
+score and textual explanation (Figure 2, middle).        laboration.7 Our participants comprise 23 experi-
+These explanations are generated by the AI agents        enced trivia players whose competitive experience
+themselves--not designed by the experimenters--          ranges from 1 to 7+ years (mean 3.2), including sev-
+creating natural heterogeneity across the 16 sys-        eral with national game show appearances. They
+tems built by different participants using diverse       formed nine teams across both tournaments.
+architectures. Here, System 1 the AI nicknamed           Team formation. The tournament is organized into
+RodeRunner6 uses correct reasoning, but incorrect        games, each featuring a themed question packet
+math, leading to an incorrect guess of carbon with       (e.g., music, spatial reasoning, cultural references).
+a high confidence score of 93%, while the other          Before each round, teams select two AI agents as
+system (Magicarp) guesses correctly nitrogen with        teammates using a serpentine draft (Lee and Liu,
+a clear explanation and a confidence score of 87%.       2022): pick order ascends from the lowest- to the
+Final Consensus Guess. The humans on the team            highest-scoring team, which picks twice consecu-
+now need to give a final answer. They can: retain        tively before the order reverses back down to the
+their initial guess, pick one of the AI guess(es), or    lowest-scoring team. Each AI agent can only be
+make a new guess entirely (after deliberation). This     selected once per round, preventing all teams from
+final answer counts for the team's score. In this        choosing the perceived best AI and avoiding con-
+case, the team kept their nitrogen guess, confirmed      flicts when identical agents would face each other.8
+by Magicarp, earning 10 points.                          This design gives weaker teams first access to the
+                                                         perceived-best AI teammates, partially offsetting
+2.3 Behavioral Traces Captured                           human skill gaps and preventing runaway advan-
+                                                         tages by stronger teams.
+The game design yields three complementary be-
+havioral traces. For team formation, we record              Human players initially know nothing about their
+each team's agent selections and the draft pick or-      potential AI teammates. The models' origins are ob-
+der for every round (§ 3.1). For tossups (proactive      scured through opaque nicknames (e.g., "RodeRun-
+delegation), we record who buzzed (human or AI),         ner," "Magicarp"). Over the course of early rounds,
+the clue position, each AI's mute state, buzz correct-   teams observe which AIs buzzed and whether they
+ness, and points gained or lost. For bonuses (de-        were correct; when they win a tossup, they ad-
+liberative adoption), we record the human team's         ditionally see their own AI teammates' answers,
+initial answer, each AI's answer together with its       confidence scores, and explanations for that bonus.
+confidence score (0­1) and textual explanation, the      Teams use this accumulating behavioral evidence
+team's final answer, and correctness at each stage.      to inform drafting choices in subsequent rounds.
+Together these traces span the full arc of reliance      Teams must decide not only whether to trust AI,
+decisions, from team formation through proactive         but which AI to work with--a more realistic reflec-
+delegation to deliberative adoption.                     tion of real-world AI adoption than studies with
+                                                         single fixed systems.
+3 Human­AI Cooperative Trivia                            Game Structure and Schedule. Each game con-
+    Tournament                                           sists of 20 tossup questions and 20 three-part bonus
+                                                         questions. Teams play 24 games across the two
+Following the game design (Section 2), we ran            tournaments, yielding 140 toss-ups and 420 bonus
+two tournaments (one in-person, one online) with
+23 human players and 16 AI agents. This section              7We compared online and in-person teams on bonus ac-
+                                                         curacy, switching rate, and muting behavior and found no
+    6Teams know their AI teammates only by opaque nick-  significant differences, so we pool them in all analyses.
+names during drafting (Section 3.1)
+                                                             8Draft mechanics varied slightly between prelim phase and
+                                                         playoff rounds to give teams access to preferred AI teammates;
+                                                         see Appendix E for details.
+                     Question Difficulty: Human vs AI Accuracy                             nament play. Architectures range from single-
+                                                                                           model calls with engineered prompts to multistep
+                      1                                                                    pipelines with up to four model consultations for
+                                                                                           answer generation, verification, and confidence
+                     0.8                                                                   calibration. Base models include GPT-4.1, GPT-
+                                                                                           4o, Claude 3.5 Sonnet, DeepSeek V3, and Cohere
+Average AI Accuracy  0.6                                                                   Command-R, often combined within a single agent.
+                                                                                           This architectural diversity produces heterogene-
+                     0.4                                                                   ity in capabilities: agents range from 30 to 80%
+                                                                                           accuracy on our question set, with markedly differ-
+                     0.2                                                                   ent strengths across question types, domains, and
+                                                                                           confidence calibration, ensuring no single agent
+                     0                                                                     dominates and teams lack an obvious drafting strat-
+                                                                                           egy (Section 3.1). Full agent specifications appear
+                          0         0.2  0.4          0.6            0.8  1                in Appendix G.
+                          Balanced
+                                         Average Human Accuracy                            4 How Humans Trust AI Assistance--and
+                                                                                               Where They Misjudge
+                                    Harder for Human  Harder for AI       Harder for Both
+                                                                                           We analyze how teams navigate the two forms of
+Figure 3: Question difficulty reveals systematic com-                                      reliance our tournaments capture. Section 4.1 ex-
+plementarity between humans and AI. Each point is a                                        amines proactive delegation via muting decisions
+question; x-axis shows average human accuracy, y-axis                                      on tossups: what drives teams to mute their AI,
+AI accuracy. Bubble size indicates team accuracy after                                     whether muting helps, and how close teams come
+AI-assisted deliberation. Collaboration generally im-                                      to optimal muting. Section 4.2 examines delib-
+proves accuracy, but opportunities remain for questions                                    erative adoption on bonuses: how teams evaluate
+that challenge both parties.                                                               AI suggestions, what drives switching, and where
+                                                                                           calibration breaks down. We distill findings into
+parts. The format includes a round-robin phase fol-                                        design principles (DP) for human­AI collaborative
+lowed by single-elimination playoffs; each game                                            systems, highlighted in colored callouts.
+uses a themed packet targeting known AI or hu-
+man weaknesses (temporal reasoning, cultural ref-                                             The trivia setting kept users engaged: they an-
+erences, wordplay, etc.). Appendix C summarizes                                            swer questions before the AIs, offered guesses on
+the dataset scale.                                                                         their own, and strategically muted AI teammates
+                                                                                           when beneficial. Muting rates range from 30% to
+3.2 Adversarial Question Design                                                            100% depending on round theme, and answer adop-
+                                                                                           tion on bonuses ranged from 28% to 86%--both
+We adopt the adversarial question-writing frame-                                           suggesting deliberate, context-sensitive decisions
+work of Sung et al. (2025a), which uses human-                                             rather than random behavior or blind acceptance.
+in-the-loop authoring (Kiela et al., 2021; Wallace                                         Despite being mostly synergistic, collaboration is
+et al., 2019a) to create questions challenging for                                         not frictionless. Under-reliance (3.9% of help op-
+both humans and AI systems. Tossup questions                                               portunities missed) exceeds over-reliance (1.7%),
+must be difficult at every clue while still decreas-                                       with confirmation bias and cross-model calibration
+ing in difficulty, since they can be interrupted (Sec-                                     failure as primary drivers. Key comparisons use
+tion 2.1); bonus questions must be hard enough                                             chi-squared and McNemar's tests with effect sizes
+that neither party can answer trivially alone, yet                                         reported where appropriate.
+designed so each side's strengths compensate for
+the other's blind spots. Humans struggle with pre-                                         4.1 Tossup Delegation: Muting Decisions
+cise factual recall or cross-domain linking, while
+AI systems falter on culturally embedded reasoning                                         Skilled humans often buzzed before AI players:
+and indirect references (Gor et al., 2024), making                                         17.9% of tossup questions were answered by a hu-
+solo success unlikely for either party. Figure 3                                           man before any AI buzz. Humans also showed su-
+shows bonus question difficulty for humans and                                             perior calibration, with only 20.0% of their buzzes
+AIs, highlighting this systematic complementarity.                                         being incorrect compared to 29.4% for AIs.
+Appendix D lists round themes and examples.
+
+3.3 AI Agent Architectures
+
+The tournaments feature 16 distinct AI agents built
+through a four-week open competition before tour-
+   Beyond individual buzzes, the more interesting               decisions), they do so with high magnitude: 49%
+aspect of human­AI collaboration is whether teams               earlier in the round than optimal (9.8 questions ear-
+allowed AI teammates to answer autonomously. As                 lier on average). This asymmetry is notable: over-
+described in Section 2.1, players can "mute" an AI              reliance is more frequent but smaller in mag-
+teammate before a question is read, preventing it               nitude, while under-reliance is rarer but more
+from buzzing during rest of the round. We evaluate              severe. As net effect, the average muting occurs
+muting effectiveness via counterfactual estimation:             3.4 questions earlier than optimal (about 15% of
+for each muting decision, we estimate what would                the round), suggesting early accuracy drops prompt
+have happened had the AI remained active (or been               premature AI abandonment. The rarity of optimal
+muted earlier), comparing actual outcomes against               timing highlights how hard it is for humans to cali-
+this counterfactual and against an oracle with per-             brate trust in real time, even with direct behavioral
+fect foresight (Section 4.1).                                   feedback. We did note that on topics where AI
+What Drives Muting Decisions? Teams mute less                   excels--literature, military history--teams appro-
+when models perform well, with recent accuracy                  priately let AI answer.
+being the strongest predictor. Teams also adapt to
+AI weaknesses, muting up to 30% more on chal-                      DP 1: Give users granular control over AI involvement.
+lenging topics like music, spatial reasoning and
+cross-domain identification, where AIs falter more.               Provide context-dependent toggles (by topic, difficulty)
+Does Muting Help? We analyzed whether users'                      rather than binary on/off controls. User agency over when
+mental models of AI allowed them to mute opti-                    AI participates matters as much as whether to follow its
+mally. In a round of twenty questions, there are                  advice (Vaccaro et al., 2020).
+twenty opportunities to mute. For each opportu-
+nity, we estimate the counterfactual effect on total            4.2 Bonus Answer Adoption
+points in the tossup phase if the AI had been muted
+or not.9 We define an oracle policy as the muting               In the bonus phase, teams answer multipart ques-
+strategy that maximizes net tossup points10 given               tions with the help of AI: humans provide an initial
+perfect knowledge of questions and AI behavior--a               guess; see AI guesses, confidence scores, and ex-
+ceiling that real teams cannot reach since they lack            planations; and then decide the team's final guess.
+advance knowledge. Muting pays off: eight out of
+nine teams earned more points per game on average                  But, first: how do teams decide whether to trust
+by muting than they would have by leaving their                 AI answers, and how well do they take AI ad-
+AI companions active throughout. These teams                    vice? To aid our analysis and understand why teams
+captured 79% of the oracle's maximum possible                   made specific reliance decisions, an author expe-
+gain. The exception, team T2, a strong human team,              rienced in trivia tournaments coded decision ratio-
+muted too aggressively and missed opportunities                 nales from tournament video recordings, noting
+to benefit from AI buzzes.                                      which artifacts (confidence scores, explanations,
+Calibration Gaps. Muting is not just about silenc-              model agreement), if any, teams cited during de-
+ing weak models--it requires calibrating trust. Hu-             liberation. Two independent judges validated an-
+mans learn but remain imperfect. Only 9% of mut-                swer correctness with 95%+ agreement, and a third
+ing decisions are made at the optimal time. Teams               expert resolved disagreements. For evaluating the
+tend to mute late: 73% of muting decisions occur                correctness of AI answers, we use PEDANTS' judge-
+later than the oracle policy would recommend. By                ments (Li et al., 2024).
+that point, the AI may have already cost the team
+points through incorrect buzzes.                                   When revising guesses with AI assistance (Ta-
+                                                                ble 4), humans often follow AI agreement (54.8%
+   In contrast, when teams do mute early (18% of                of decisions), followed by their own domain knowl-
+                                                                edge (35.0%). Model explanations (4.4%), confi-
+    9This counterfactual has limitations: when AI buzzes early  dence scores (2.2%), and model reputation (2.0%;
+and wrong, we cannot know if a human would have answered        "trust System 1, not System 7, bro") also guide
+correctly. However, removing an early wrong response is a       choices, though some decisions appear random
+net positive. Cases where AI could have been early and right    (1.5%). Following AI agreement achieves perfect
+are straightforward to evaluate.                                accuracy (100%), and domain knowledge performs
+                                                                well (92.4%), but confidence scores (52.3%) per-
+   10For the rest of this section, we discuss only net points   form barely better than chance, highlighting the
+that muting changes, ignoring effects on subsequent bonus       need for better cross-model calibration.
+questions.
+Metric                                 Freq (%)                    Performance Metrics Across Round by AI Difficulty
+
+Accuracy                                     42.8                 Utilization Rate trend over rounds                                            Discernment trend over rounds
+   Human initial guess correct               59.4          1                                                                           1
+   AI correct (random pick of AI)            77.6
+   Oracle AI selection                       81.2          0.8                                                                         0.8
+   Any human or AI had correct answer        81.7          Utilization Rate
+   Final consensus answer correct                                                                                         Discernment0.60.6
+                                             98.0
+Effectiveness                                94.4          0.4                                                                         0.4
+   Humans retain correct answer              83.3
+   Humans adopt a correct AI answer                        0.2                                                                         0.2
+   Humans don't know correct answer            1.7
+                                               3.9         0    1  2  3    4     5                    6                                0    1     2  3  4              5       6
+but discern which correct AI guess to
+trust                                                                  Round     2: MediumAI                                           3: HardAI        Round
+                                                                      1: EasyAI                                                                      4: HardHuman, AI
+Failure Modes
+   Over-reliance: humans reject their                      Figure 4: Utilization and discernment rates by round and
+                                                           question difficulty. As the tournament progressed, teams
+correct answer for wrong AI answer                         increasingly adopted correct AI answers when available
+   Under-reliance: humans are wrong                        (utilization rate) and became better at selecting the right
+                                                           one when models disagreed (discernment), especially
+and fail to adopt a correct AI answer                      on harder questions. This trend reveals teams learning
+                                                           to use AI help more effectively over time.
+
+Table 1: How well human and AI teammates work to-                  Metric                                In-person                                   Online
+gether on collaborative question answering. The accu-
+racy of the final consensus answer is higher than humans           Tossup Points                                                       +0.81*        +0.60
+or computers alone and better than just picking the best           Bonus Points                                                        +0.74*        +0.43
+AI (which is a hard task). However, the collaboration is           Combined Points                                                     +0.76*        +0.57
+not perfect: human teams sometimes reject their own                Buzz Accuracy                                                       +0.79*        +0.67
+correct answers or fail to adopt AI answers.                       1st-Buzz Accuracy                                                   +0.67         +0.71*
+
+  DP 2: Standardize confidence across models.                      *p < 0.05; p < 0.10
+
+  Systems deploying multiple AI agents should invest       Table 2: Spearman  between draft Elo ratings (from
+  in cross-model calibration--especially for disagreement  teams' selections) and AI performance metrics (n = 8
+  cases where users need the most help.                    systems per tournament). Teams drafted roughly in
+                                                           performance order, especially in person, where there
+4.2.1 Adoption Patterns                                    was more informal discussion of AI properties.
+
+Humans often adopt AI answers. Humans                      guish good from bad AI responses.
+adopted an AI answer 96.3% of the time they had
+no initial answer or not confident (50.7% of cases).         DP 3: Surface accumulating collaboration evidence.
+The AI was correct in 73.4% of these cases. The
+title for this paper came from Team 9, which was             Show where AI has succeeded and failed by domain dur-
+fond of saying "AI, take the wheel", referencing             ing collaboration, rather than providing only static, pre-
+Underwood (2005) as it adopted an AI answer.                 deployment proficiency summaries (Yin et al., 2019).
+Teams built informal AI reputation through ob-
+servation alone. Despite receiving no prior perfor-        Humans overruled AI, but rarely. Only 7.7%
+mance information, teams' drafting choices corre-          of final answers differed from both AI responses.
+lated with actual AI performance (Table 2).                This was more likely when humans were highly
+Teams learned to use AI more effectively. Both             confident (44.4%), though even then they kept their
+utilization rate (adopting available correct AI an-        own answer only 38.1% of the time--often revising
+swers) and discernment (picking the right AI an-           using AI-provided content (Figure 6).
+swer when models disagreed) increased signifi-
+cantly across rounds, particularly on the hardest          Synergy. With an overall accuracy of 81.7%, the
+questions (Figure 4;  = 0.41, p < 0.01). This              overall team (Table 1) is better than the humans
+rules out simple defaulting under uncertainty: if          alone (who get only slightly more than a third of the
+teams were blindly deferring to AI when they               answers correct; McNemar's 2 = 671.68, p <<
+had no answer, discernment would remain near               0.001), better than a randomly chosen AI (a little
+50%. Instead, discernment improved from 27.1%              over half), and better than an oracle pick of the
+to 75.0%, indicating that teams learned to distin-         best AI on any given team for that specific question
+                                                           (three quarters of the questions right). This shows
+                                                           that collaboration is mostly working as intended.
+                  Decision Quality Analysis:                                                      Team Error Patterns: Over Reliance vs Under Reliance
+Human Initial State  Decision  Outcome Quality
+
+                                                                                                     Team 8
+
+HHuummaann CCoorrrreecctt         SSwwiittcchh  GGoooodd SSwwiittcchh  Under Reliance Rate  0.25                                                     Low Quality (Human Acc < 25%)
+HHuummaann WWrroonngg                             BBaadd SSwwiittcchh                        0.2                                                     Medium Quality (25%  Human Acc  60%)
+                                                                                                                                                     High Quality (Human Acc > 60%)
+                                                GGoooodd RReettaaiinn
+                                                                                            0.15     Team 9                                          Team 1
+                                                                                             0.1                                                             Team 4
+                                                                                                                                        Team 5
+                                                                                            0.05                                       Team 7Team 2
+
+                                  RReettaaiinn  BBaadd RReettaaiinn                                  Team 6
+                                                     NNeeuuttrraall
+HHuummaann NNoo RReessppoonnssee                                                                             Team 3
+
+Figure 5: Every bonus decision traced from left to                                          0 Bubble size ~ Final Accuracy (larger = higher accuracy)
+right: whether the human's initial guess was correct
+(left), whether the team switched to an AI answer (cen-                                           0          0.05                           0.1           0.15            0.2             0.25
+ter), and the final outcome (right). The thickest flow--
+"Human Wrong" through "Switch" to "Good Switch"--                                                                                      Over Reliance (Misled) Rate
+represents successful collaboration: teams recognized
+their error and adopted a correct AI suggestion. The                   Figure 6: Team skill at question answering (marker
+thinner "Human Right" to "Switch" to "Bad Switch"                      color and shape) does not predict skill at using AI
+flow represents over-reliance: teams abandoned a cor-                  (marker size). Middling teams had the best under/over-
+rect answer for an incorrect AI suggestion.                            reliance tradeoff; strong teams like Team 8 under-relied
+                                                                       on AI, while weak teams like Team 4 over-relied.
+
+                                                                                                  Top Explanation Features: Correctness vs Human Selection
+
+                                                                                                                                                     Human Selection      AI Correctness
+
+4.2.2 Measuring Appropriate Reliance                                                        Question Understanding (LLM)
+                                                                                                  Evidence Grounding (LLM)
+However, despite those promising results, we are                                                      Domain Expertise (LLM)
+still not at optimal AI usage. Following Schem-                                                          Confidence Alignment
+mer et al. (2023), we examine the error cases of
+under-reliance and over-reliance. Under-reliance                                                Reasoning Coherence (LLM)
+is humans failing to adopt correct AI advice, while                                         Reasoning Transparency (LLM)
+over-reliance as correct humans adopting incorrect
+AI advice.11 Both optimal rates are 0%, although                                                             Word Overlap Ratio
+it requires both well-calibrated AI systems and dis-                                             Semantic Similarity (BERT)
+cerning human users.12
+                                                                                                           Word Overlap Count
+   Reliance errors are asymmetric (Figure 5):                                                                        Clue Mentions
+under-reliance (3.9% of help opportunities missed)
+exceeds over-reliance (misled 1.7% of times hu-                                                                  Contains Quotes
+mans were initially correct). Teams are appropri-                                                                        Definitional
+ately cautious but sometimes overly conservative.
+                                                                                                                                       40%           50%             60%       70%        80%
+  DP 4: Design for mutual coverage, targeting under-
+  reliance.                                                                                                                                          Prediction Accuracy
+
+  Highlight cases where AI confidence is high on domains               Figure 7: Explanation features differ in what predicts AI
+  where the user historically struggles, helping experts rec-          correctness versus what humans trust. Each row shows
+  ognize when to defer (Kleinberg et al., 2018).                       a feature's single-predictor accuracy. Filled markers in-
+                                                                       dicate positive predictors (higher feature = more likely):
+Consensus as a Trust Signal Teams interact with                        hollow markers indicate negative. LLM-assessed fea-
+two AIs per game, observing when models agree                          tures (Question Understanding 76%, Reasoning Coher-
+or disagree. When both AIs give the same correct                       ence 72%) predict correctness but humans rely on sur-
+answer, teams switch 82% of the time--above the                        face signals (quotes 70%, BERT similarity 66%). Only
+68% average (2 = 9.95, p < 0.002). When mod-                           Evidence Grounding appears in both top-6 lists.
+els disagree, switching drops to 45% even when
+one is correct. Consensus acts as a strong reliability                 incorrect human answer is confirmed by one AI,
+signal; disagreement signals uncertainty.                              under-reliance rises to 64.5%--teams trust the
+Confirmation bias amplifies errors. When an                            agreeing AI even when wrong (2 = F isher,
+                                                                       p << 0.001). Conversely, when AIs agree on an
+   11Formal definitions in Appendix B.1.                               incorrect answer, over-reliance spikes to >10% as
+   12And it is not realistic to actually reach 0%, as errors from      teams abandon correct initial guesses.
+incorrect / poorly written questions, out of date information,         What Makes Humans Trust an Explanation?
+etc. can cause human and computer miscalibration.                      Beyond consensus and confidence, what features
+                                                                       of an explanation lead humans to trust it? We an-
+                                                                       alyze which explanation features predict adoption
+                                                                       decisions using single-feature logistic regressions
+                                                                       with significance testing (Section 4.2). For each
+                                                                       question, we extract 57 features from each AI expla-
+                                                                       nation, spanning surface properties (length, read-
+                                                                       ability), structural patterns (quotes, clue mentions),
+                                                                       and reasoning quality (Appendix F). We then ask:
+which features predict (1) whether the AI answer         needed to understand decision mechanisms. In
+is actually correct, and (2) whether humans select       addition, skilled practitioners are a crucial group
+that explanation? For each feature, we fit a single-     in this context, but lab studies often do not en-
+feature logistic regression predicting either AI cor-    gage genuine expertise, e.g., Buçinca et al. (2020)
+rectness or human selection. Features whose coef-        uses crowdworkers to evaluate unfamiliar domains,
+ficient reaches statistical significance (p < 0.05)      which provides limited insight into how experts in-
+are shown with filled markers in Figure 7; hol-          tegrate AI into practiced workflows. Our contribu-
+low markers indicate features that did not reach         tion: We bridge these gaps by studying experts in
+significance. Marker position shows the single-          their domain of practice, capturing both proactive
+predictor accuracy: how well that feature alone dis-     delegation (deciding whether to let AI act before
+tinguishes correct from incorrect AI answers (blue)      seeing its output) and deliberative adoption (decid-
+or selected from unselected explanations (orange).       ing whether to follow AI after evaluating its answer,
+LLM-assessed features like Question Understand-          confidence, and explanation). This dual approach
+ing (76%), Reasoning Coherence (72%) strongly            reveals how humans weigh evidence, calibrate trust,
+predict correctness (Figure 7), while humans rely        and integrate AI assistance. Our setting reveals both
+on surface signals like quotes (70%), semantic sim-      systematic under-reliance (3.9% missed opportu-
+ilarity (66%), and word overlap (63%). Only              nities) and over-reliance (when AI misleads them,
+Evidence Grounding appears in both top lists. This       1.7% of opportunities), showing sophisticated but
+is demonstrated by a team's comment in Round             imperfect calibration that improves.
+4 of the online tournament. On bonus 13, part 3,         Confidence. Previous work has also found that
+Magicarp gave the same guess as the players, with        certainty/calibration (Sendak et al., 2020), explain-
+95% confidence. System 1 gave a different guess          ability (Ribeiro et al., 2016), and interpretability
+with 80% confidence. However, players read the           (Poursabzi-Sangdeh et al., 2021) affect how much
+explanations and one stated "I trust [System 1's]        users trust an AI, with both positive and nega-
+citation more" because it was grounded in the ac-        tive results. Our contribution: Confidence was
+tual bonus question text, unlike System 7's. The         not a strong predictor of switching decisions, but
+humans switched their guess to System 1's, which         explanation quality modulates this effect substan-
+turned out to be correct.                                tially. Specifically, explanations referencing spe-
+                                                         cific evidence from the question increase appropri-
+   This gap suggests a path forward: AI systems          ate switching by 12%.
+should make reasoning explicit through evidence
+citation, while humans should evaluate whether           6 Conclusion and Discussion
+explanations demonstrate genuine understanding,
+not just surface familiarity.                            Human­AI collaboration is already happening,
+                                                         both in proactive delegation and deliberative adop-
+  DP 5: Anchor explanations in evidence.                 tion settings. To improve outcomes and fully use
+                                                         human and AI resources, we need systems that are
+  Reference observable input features (specific clues,   better calibrated, offer clear evidence, and give
+  quotes) rather than abstract reasoning. Only evidence  people the information they need to make informed
+  grounding predicts both AI correctness and human       decisions. While our study focused on text-only set-
+  trust (Vasconcelos et al., 2023).                      tings, where AI agents surpassed the human teams,
+                                                         the synergistic collaboration exceeded the sum of
+5 Related Work                                           its parts. This is more important in multimodal
+                                                         domains where AI accuracy still lags. More impor-
+Human-AI collaboration is pervasive and touches          tant will be not just facilitating collaboration with
+on many fields from AI to psychology to human­           a fixed set of team members but facilitating team
+computer interaction. Here, we focus on expertise        formation: deciding which humans and which AI
+and confidence (Appendix A details related work).        contributors to tap for a given problem. To support
+Expertise. For instance, field studies analyze           future work, we release our dataset, tournament
+consequential decisions but lack controlled inter-       platform code, and analysis scripts (Appendix H).
+action: observational data from judges or physi-
+cians (Kleinberg et al., 2018; Gaube et al., 2021)
+reveal reliance patterns but without behavioral
+information (e.g., time spent on explanations,
+confidence comparisons, deliberation sequences)
+7 Limitations                                          should generalize beyond adversarial settings.
+                                                          Temporal scope. We observe learning effects
+Several limitations warrant discussion:
+   Domain specificity. While our cooperative trivia    across four tournament rounds (approximately 2
+                                                       hours per session), but cannot assess long-term
+tournament provides excellent experimental con-        trust calibration. Extended collaboration might re-
+trol and genuine expertise, generalizing findings to   veal different patterns: humans could become over-
+other domains requires caution. The competitive,       confident in AI after positive experiences, or de-
+knowledge-intensive nature of quiz bowl may not        velop more sophisticated mental models enabling
+reflect collaborative contexts like medical diagno-    better calibration. Longitudinal studies tracking
+sis or legal review where different decision pres-     trust evolution over weeks or months would com-
+sures apply. Future work should validate whether       plement our findings.
+under-reliance patterns, confidence sensitivity, and
+explanation effects generalize to other expert do-     8 Ethics Statement
+mains.
+                                                       The experiments performed in this study involved
+   Sample size and statistical power. With 23 hu-      human participants. All the experiments involving
+man players and 16 AI agents across 24 games,          human evaluation in this paper were exempt under
+our study provides reasonable statistical power        institutional IRB review.
+for main effects but limited ability to detect nu-
+anced individual differences or rare interaction pat-     All human data collection procedures were re-
+terns. Larger studies could reveal additional player   viewed and approved by an institutional review
+archetypes, more precise learning trajectories, or     board (IRB) to ensure the protection of partici-
+context-specific reliance strategies.                  pants' privacy and rights. Human buzzpoints in the
+                                                       dataset are fully anonymized. Although the post-
+   Causality and interventions. Our observational      competition survey collected participant names for
+design reveals correlational patterns between fea-     compensation purposes, only aggregate statistics
+tures (confidence, explanations) and reliance de-      and anonymized quotes are reported in the study.
+cisions, but cannot establish causality. Our anno-
+tator observes live video recordings of play and          Trivia players collectively received $600 USD
+notes which artifacts (confidence scores, expla-       in online gift cards as prizes for the competitions,
+nations, model agreement) teams use to arrive          with awards of $150, $100, and $50 for the top
+at decisions, but we cannot rule out confound-         three teams in both offline and online tournaments.
+ing: high-confidence AI may also generate bet-         Model submitters received a total of $400 USD in
+ter explanations or answer easier questions. Fu-       online gift cards, distributed as $200, $150, $100,
+ture work should use randomized interventions--        and $50 prizes. Question writers were compensated
+varying confidence levels or explanation quality       $5 per question, and editors $1 per edited question,
+experimentally--to establish causal effects.           corresponding to an estimated rate exceeding $10
+                                                       USD per hour--above the U.S. federal minimum
+   Muting interface effects. The muting mecha-         wage of $7.50 USD. All the involved participants
+nism required explicit action before each toss-up,     gave their consent to disclose their interactions with
+potentially introducing friction that inflates mut-    the interface. The documents used in the study are
+ing rates. Alternative designs (default-on with        distributed under an open license.
+quick toggle, voice commands) might yield dif-
+ferent strategic patterns. However, the systematic        IRB approval and informed consent. This
+learning and context-dependence we observe sug-        study was approved by our institutional review
+gests humans engaged strategically rather than ran-    board (IRB) to ensure participant privacy and rights.
+domly.                                                 All participants gave informed consent after being
+                                                       clearly told the study involved human-AI collabo-
+   Question design and ecological validity. Our        ration and behavioral data collection. Participation
+adversarial questions intentionally exploit known      was voluntary and could be withdrawn at any time
+AI weaknesses, creating systematic skill gaps.         without penalty. The IRB monitored procedures
+While this validates complementarity opportunities,    for collecting responses and questions to protect
+real-world collaborative contexts may feature less     privacy throughout the study.
+predictable AI failure modes. However, the design
+principles we derive--prioritizing calibrated con-        Participant compensation and treatment. Hu-
+fidence, grounded explanations, and user control--     man players participated voluntarily, motivated by
+competitive interest in quiz bowl rather than mone-   Acknowledgements
+tary compensation (consistent with standard quiz
+bowl tournament practice). Question writers re-       We thank the UMD CLIP group for valuable feed-
+ceived fair compensation ($25/hour, above typical     back on study design and adversarial evaluation.
+rates for quiz bowl writing). All participants were   We are grateful to all 33 participants who devel-
+treated with respect throughout the study.            oped and submitted AI systems or played in the
+                                                      live trivia tournament. We also thank our question
+   Data privacy and transparency. We collected        writers and editors for their contributions. In partic-
+only gameplay data (answers, timing, muting deci-     ular, we thank those who agreed to be named: Neel
+sions, switching decisions) and basic demographic     Mokaria and Amanvir Parhar for their model sub-
+information (experience level). No personally iden-   missions, Ankit Aggarwal and Kartik Ravisankar
+tifiable information beyond pseudonymous player       for their question authoring, and Jaimie Carlson for
+IDs appears in our dataset or analysis. Partici-      both submitting a model and writing questions. We
+pants were informed about AI system character-        appreciate all who made the experiment possible.
+istics (model types, skill levels) but not specific
+implementation details that might affect strategic       This work was supported in part by the National
+behavior.                                             Science Foundation (IIS-2403436) and the NSF
+                                                      Institute for Trustworthy AI in Law & Society
+   AI attribution and disclosure. Participants        (TRAILS, 2229885). Any opinions, findings, con-
+knew they were collaborating with AI agents and       clusions, or recommendations expressed are those
+understood when AI suggestions appeared. We           of the authors and do not necessarily reflect the
+clearly disclosed confidence scores and explana-      views of the sponsors.
+tions as AI-generated rather than human expert
+opinions. No deception was used; all AI interac-      References
+tions were transparent.
+                                                      Gagan Bansal, Besmira Nushi, Ece Kamar, Daniel S
+   Community engagement and data release. We             Weld, Walter S Lasecki, and Eric Horvitz. 2019. Be-
+engaged with the quizbowl community through-             yond accuracy: The role of mental models in human-
+out this research, explaining our goals and design       ai team performance. In Proceedings of the AAAI
+choices to tournament organizers and participants.       Conference on Human Computation and Crowdsourc-
+We release the full dataset (questions, responses,       ing, volume 7, pages 2­11.
+behavioral traces), the tournament web application
+source code, and all analysis scripts to support re-  Gagan Bansal, Tongshuang Wu, Joyce Zhou, Ray-
+producibility. See Appendix H for platform details.      mond Fok, Besmira Nushi, Ece Kamar, Marco Tulio
+                                                         Ribeiro, and Daniel Weld. 2021. Does the whole
+   Broader impacts. This research advances un-           exceed its parts? the effect of ai explanations on com-
+derstanding of human-AI collaboration with po-           plementary team performance. In Proceedings of the
+tential benefits for interface design in high-stakes     2021 CHI conference on human factors in computing
+domains (medical diagnosis, legal review). How-          systems, pages 1­16.
+ever, our findings about systematic under-reliance
+could be misused to encourage blind trust in AI sys-  Umang Bhatt, Javier Antorán, Yunfeng Zhang, Q. Vera
+tems. We emphasize that appropriate reliance re-         Liao, Prasanna Sattigeri, Riccardo Fogliato, Gabrielle
+quires well-calibrated AI confidence and grounded        Melançon, Ranganath Krishnan, Jason Stanley,
+explanations--trust should be conditional on AI          Omesh Tickoo, Lama Nachman, Rumi Chunara,
+system quality, not automatic.                           Madhulika Srikumar, Adrian Weller, and Alice Xi-
+                                                         ang. 2021. Uncertainty as a form of transparency:
+   Use of AI assistants. The authors used AI tools       Measuring, communicating, and using uncertainty.
+(OpenAI's ChatGPT and Anthropic's Claude) for            In Proceedings of the 2021 AAAI/ACM Conference
+coding assistance during data analysis and visual-       on AI, Ethics, and Society, AIES '21, pages 401­413.
+ization, and as a writing assistant limited to para-     ACM.
+phrasing for conciseness. All substantive content,
+analysis, and conclusions are the authors' own        Jordan Boyd-Graber, Brianna Satinoff, He He, and Hal
+work.                                                    Daumé III. 2012. Besting the quiz master: Crowd-
+                                                         sourcing incremental classification games. In Pro-
+                                                         ceedings of the 2012 Joint Conference on Empiri-
+                                                         cal Methods in Natural Language Processing and
+                                                         Computational Natural Language Learning, pages
+                                                         1290­1301, Jeju Island, Korea. Association for Com-
+                                                         putational Linguistics.
+Zana Buçinca, Phoebe Lin, Krzysztof Z. Gajos, and           Catalina Gomez, Sue Min Cho, Shichang Ke, Chien-
+   Elena L. Glassman. 2020. Proxy tasks and subjective         Ming Huang, and Mathias Unberath. 2025. Human-
+   measures can be misleading in evaluating explainable        AI collaboration is not very collaborative yet: A tax-
+   ai systems. In Proceedings of the 25th International        onomy of interaction patterns in AI-assisted decision
+   Conference on Intelligent User Interfaces, IUI '20,         making from a systematic review. Frontiers in Com-
+   pages 454­464. ACM.                                         puter Science, 6:1521066.
+
+Zana Buçinca, Maja Barbara Malaya, and Krzysztof Z.         Maharshi Gor, Hal Daumé Iii, Tianyi Zhou, and Jor-
+   Gajos. 2021. To trust or to think: Cognitive forc-          dan Lee Boyd-Graber. 2024. Do great minds think
+   ing functions can reduce overreliance on ai in ai-          alike? investigating human-AI complementarity in
+   assisted decision-making. Proceedings of the ACM            question answering with CAIMIRA. In Proceedings
+   on Human-Computer Interaction, 5(CSCW1):1­21.               of the 2024 Conference on Empirical Methods in
+                                                               Natural Language Processing, pages 21533­21564,
+Carrie J. Cai, Jonas Jongejan, and Jess Holbrook. 2019.        Miami, Florida, USA. Association for Computational
+   The effects of example-based explanations in a ma-          Linguistics.
+   chine learning interface. In Proceedings of the 24th
+   International Conference on Intelligent User Inter-      Ben Green and Yiling Chen. 2019. Disparate interac-
+   faces, IUI '19, pages 258­262. ACM.                         tions: An algorithm-in-the-loop analysis of fairness
+                                                               in risk assessments. In Proceedings of the Confer-
+Michelene T. H. Chi. 2006. Laboratory Methods for              ence on Fairness, Accountability, and Transparency,
+   Assessing Experts' and Novices' Knowledge, pages            FAT* '19, pages 90­99. ACM.
+   167­184. Cambridge University Press.
+                                                            Chuan Guo, Geoff Pleiss, Yu Sun, and Kilian Q. Wein-
+Upol Ehsan, Q. Vera Liao, Michael Muller, Mark O.              berger. 2017. On calibration of modern neural net-
+   Riedl, and Justin D. Weisz. 2021. Expanding explain-        works. In International Conference on Machine
+   ability: Towards social transparency in ai systems. In      Learning, pages 1321­1330. PMLR.
+   Proceedings of the 2021 CHI Conference on Human
+   Factors in Computing Systems, CHI '21, pages 1­19.       Sophie Haroutunian-Gordon, Hubert L. Dreyfus, and
+   ACM.                                                        Stuart E. Dreyfus. 1988. Mind over machine: A plea
+                                                               for the intuitive conception of mind. Educational
+Ahmed Elgohary, Chen Zhao, and Jordan Boyd-Graber.             Researcher, 17(3):50.
+   2018. Dataset and baselines for sequential open-
+   domain question answering. In Empirical Methods          Patrick Hemmer, Max Schemmer, Niklas Kühl, Michael
+   in Natural Language Processing.                             Vössing, and Gerhard Satzger. 2025. Complementar-
+                                                               ity in human-ai collaboration: concept, sources, and
+Stephen M. Fleming and Hakwan C. Lau. 2014. How                evidence. European Journal of Information Systems,
+   to measure metacognition. Frontiers in Human Neu-           pages 1­24.
+   roscience, 8.
+                                                            Kevin Anthony Hoff and Masooda Bashir. 2014. Trust
+Matt Gardner, Yoav Artzi, Victoria Basmov, Jonathan            in automation: Integrating empirical evidence on fac-
+   Berant, Ben Bogin, Sihao Chen, Pradeep Dasigi,              tors that influence trust. Human Factors: The Jour-
+   Dheeru Dua, Yanai Elazar, Ananth Gottumukkala,              nal of the Human Factors and Ergonomics Society,
+   et al. 2020. Evaluating models' local decision bound-       57(3):407­434.
+   aries via contrast sets. In Findings of the Association
+   for Computational Linguistics: EMNLP 2020, pages         Maurice Jakesch, Advait Bhat, Daniel Buschek, Lior
+   1307­1323.                                                  Zalmanson, and Mor Naaman. 2023. Co-writing with
+                                                               opinionated language models affects users' views. In
+Susanne Gaube, Harini Suresh, Martina Raue, Alexan-            Proceedings of the 2023 CHI conference on human
+   der Merritt, Seth J. Berkowitz, Eva Lermer, Joseph F.       factors in computing systems, pages 1­15.
+   Coughlin, John V. Guttag, Errol Colak, and Marzyeh
+   Ghassemi. 2021. Do as ai say: susceptibility in          Ken Jennings. 2006. Brainiac: adventures in the cu-
+   deployment of clinical decision-aids. npj Digital           rious, competitive, compulsive world of trivia buffs.
+   Medicine, 4(1).                                             Villard.
+
+Robert Geirhos, Jörn-Henrik Jacobsen, Claudio               Robin Jia and Percy Liang. 2017. Adversarial examples
+   Michaelis, Richard Zemel, Wieland Brendel,                  for evaluating reading comprehension systems. In
+   Matthias Bethge, and Felix A. Wichmann. 2020.               Proceedings of the 2017 Conference on Empirical
+   Shortcut learning in deep neural networks. Nature           Methods in Natural Language Processing. Associa-
+   Machine Intelligence, 2(11):665­673.                        tion for Computational Linguistics.
+
+Kate Goddard, Abdul Roudsari, and Jeremy C Wyatt.           Mandar Joshi, Eunsol Choi, Daniel Weld, and Luke
+   2012. Automation bias: a systematic review of fre-          Zettlemoyer. 2017. TriviaQA: A large scale distantly
+   quency, effect mediators, and mitigators. Journal           supervised challenge dataset for reading comprehen-
+   of the American Medical Informatics Association,            sion. In Proceedings of the Association for Computa-
+   19(1):121­127.                                              tional Linguistics.
+Douwe Kiela, Max Bartolo, Yixin Nie, Divyansh               Carsten Maple, Alpay Sabuncuoglu, Lukasz Szpruch,
+   Kaushik, Atticus Geiger, Zhengxuan Wu, Bertie Vid-          Andrew Elliott, and Tony Zemaitis Gesine Reinert.
+   gen, Grusha Prasad, Amanpreet Singh, Pratik Ring-           2024. The impact of large language models in fi-
+   shia, Zhiyi Ma, Tristan Thrush, Sebastian Riedel,           nance: Towards trustworthy adoption. The Alan Tur-
+   Zeerak Waseem, Pontus Stenetorp, Robin Jia, Mohit           ing Institute.
+   Bansal, Christopher Potts, and Adina Williams. 2021.
+   Dynabench: Rethinking benchmarking in NLP. In            Laura R. Marusich, Jonathan Z. Bakdash, Yan Zhou,
+   Conference of the North American Chapter of the             and Murat Kantarcioglu. 2024. Using ai uncertainty
+   Association for Computational Linguistics.                  quantification to improve human decision-making.
+                                                               In Proceedings of the 41st International Conference
+Gary A. Klein. 2017. Sources of Power: How People              on Machine Learning, ICML'24. JMLR.org.
+   Make Decisions. The MIT Press.
+                                                            Raja Parasuraman and Victor Riley. 1997. Humans
+Jon Kleinberg, Himabindu Lakkaraju, Jure Leskovec,             and automation: Use, misuse, disuse, abuse. Human
+   Jens Ludwig, and Sendhil Mullainathan. 2018. Hu-            factors, 39(2):230­253.
+   man decisions and machine predictions. The quar-
+   terly journal of economics, 133(1):237­293.              Forough Poursabzi-Sangdeh, Daniel G Gold-
+                                                               stein, Jake M Hofman, Jennifer Wortman
+Jonna Koivisto and Juho Hamari. 2019. The rise of mo-          Wortman Vaughan, and Hanna Wallach. 2021.
+   tivational information systems: A review of gamifica-       Manipulating and measuring model interpretability.
+   tion research. International Journal of Information         In Proceedings of the 2021 CHI Conference on
+   Management, 45:191­210.                                     Human Factors in Computing Systems, CHI '21,
+                                                               pages 1­52. ACM.
+Vivian Lai and Chenhao Tan. 2019. On human predic-
+   tions with explanations and predictions of machine       Pranav Rajpurkar, Robin Jia, and Percy Liang. 2018.
+   learning models: A case study on deception detec-           Know what you don't know: Unanswerable ques-
+   tion. In Proceedings of the Conference on Fairness,         tions for squad. In Proceedings of the 56th Annual
+   Accountability, and Transparency, FAT* '19, pages           Meeting of the Association for Computational Lin-
+   29­38. ACM.                                                 guistics (Volume 2: Short Papers). Association for
+                                                               Computational Linguistics.
+Himabindu Lakkaraju and Osbert Bastani. 2020. "how
+   do i fool you?": Manipulating user trust via mislead-    Pranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and
+   ing black box explanations. In Proceedings of the           Percy Liang. 2016. Squad: 100,000+ questions for
+   AAAI/ACM Conference on AI, Ethics, and Society,             machine comprehension of text. In Proceedings of
+   AIES '20, pages 79­85. ACM.                                 the 2016 Conference on Empirical Methods in Natu-
+                                                               ral Language Processing. Association for Computa-
+John D Lee and Katrina A See. 2004. Trust in automa-           tional Linguistics.
+   tion: Designing for appropriate reliance. Human
+   factors, 46(1):50­80.                                    Marco Tulio Ribeiro, Sameer Singh, and Carlos
+                                                               Guestrin. 2016. "why should i trust you?": Explain-
+Michael D. Lee and Siqi Liu. 2022. Drafting strategies         ing the predictions of any classifier. In Proceedings
+   in fantasy football: A study of competitive sequential      of the 22nd ACM SIGKDD International Conference
+   human decision making. Judgment and Decision                on Knowledge Discovery and Data Mining, KDD
+   Making, 17(4):691­719.                                     '16, pages 1135­1144. ACM.
+
+A. Leonard, J. Fagan, T. O'Sullivan, D. O'Connor, and       Pedro Rodriguez, Shi Feng, Mohit Iyyer, He He, and
+   P. O'Sullivan. 2024. Use of artificial intelligence in      Jordan Boyd-Graber. 2019. Quizbowl: The case for
+   triage in hospital emergency departments: A scoping         incremental question answering.
+   review. Cureus, 16:e248163.
+                                                            Max Schemmer, Niklas Kühl, Carina Benz, Andrea Bar-
+Zongxia Li, Ishani Mondal, Huy Nghiem, Yijun Liang,            tos, and Gerhard Satzger. 2023. Appropriate reliance
+   and Jordan Lee Boyd-Graber. 2024. PEDANTS:                  on ai advice: Conceptualization and the effect of ex-
+   Cheap but effective and interpretable answer equiva-        planations. In Proceedings of the 28th International
+   lence. In Findings of the Association for Computa-          Conference on Intelligent User Interfaces, IUI '23,
+   tional Linguistics: EMNLP 2024, pages 9373­9398,            pages 1­21. ACM.
+   Miami, Florida, USA. Association for Computational
+   Linguistics.                                             Mark P. Sendak, Michael Gao, Nathan Brajer, and
+                                                               Suresh Balu. 2020. Presenting machine learning
+Maria Madsen and Shirley D Gregor. 2000. Measuring             model information to clinical end users with model
+   human-computer trust. In Proceedings of the 11th            facts labels. npj Digital Medicine, 3(1).
+   Australasian Conference on Information Systems, vol-
+   ume 6, pages 1­6.                                        Keith E. Stanovich and Richard F. West. 2002. Indi-
+                                                               vidual Differences in Reasoning: Implications for
+Varun Magesh, Faiz Surani, Matthew Dahl, Mirac Suz-            the Rationality Debate?, pages 421­440. Cambridge
+   gun, Christopher D Manning, and Daniel E Ho. 2024.          University Press.
+   Ai on trial: Legal models hallucinate in 1 out of 6 (or
+   more) benchmarking queries'.
+Mark Steyvers, Heliodoro Tejeda, Gavin Kerrigan, and        Ming Yin, Jennifer Wortman Vaughan, and Hanna Wal-
+   Padhraic Smyth. 2022. Bayesian modeling of human­           lach. 2019. Understanding the effect of accuracy on
+   ai complementarity. Proceedings of the National             trust in machine learning models. In Proceedings
+   Academy of Sciences, 119(11):e2111547119.                   of the 2019 CHI Conference on Human Factors in
+                                                               Computing Systems, CHI '19, pages 1­12. ACM.
+Yoo Yeon Sung, Eve Fleisig, Yu Hou, Ishan Upadhyay,
+   and Jordan Lee Boyd-Graber. 2025a. GRACE: A              Yunfeng Zhang, Q Vera Liao, and Rachel KE Bellamy.
+   granular benchmark for evaluating model calibration         2020. Effect of confidence and explanation on accu-
+   against human calibration. In Proceedings of the            racy and trust calibration in ai-assisted decision mak-
+   63rd Annual Meeting of the Association for Compu-           ing. In Proceedings of the 2020 conference on fair-
+   tational Linguistics (Volume 1: Long Papers), pages         ness, accountability, and transparency, pages 295­
+   19586­19587, Vienna, Austria. Association for Com-          305.
+   putational Linguistics.
+                                                            A Additional Related Work
+Yoo Yeon Sung, Maharshi Gor, Eve Fleisig, Ishani Mon-
+   dal, and Jordan Lee Boyd-Graber. 2025b. Is your          This section outlines additional related work not
+   benchmark truly adversarial? AdvScore: Evaluating        featured in the main text of the paper.
+   human-grounded adversarialness. In Proceedings of
+   the 2025 Conference of the Nations of the Americas       A.1 Human-AI Collaboration and
+   Chapter of the Association for Computational Lin-               Appropriate Reliance
+   guistics: Human Language Technologies (Volume 1:
+   Long Papers), pages 623­642, Albuquerque, New            Understanding appropriate reliance in automation
+   Mexico. Association for Computational Linguistics.       has long been central to human factors research
+                                                            (Parasuraman and Riley, 1997; Lee and See, 2004).
+Matthias Sutter. 2023. Kahneman, Daniel: Thinking,          Parasuraman and Riley's foundational taxonomy
+   Fast and Slow, pages 1­2. J.B. Metzler.                  distinguishes misuse (over-reliance on unreliable
+                                                            automation) from disuse (under-reliance on reliable
+Philipp Tschandl, Christoph Rinner, Zoe Apalla,             automation), with trust calibration--matching re-
+   Giuseppe Argenziano, Noel Codella, Allan Halpern,        liance to actual capability--identified as crucial for
+   Monika Janda, Aimilios Lallas, Caterina Longo,           effective human-automation teams (Lee and See,
+   Josep Malvehy, John Paoli, Susana Puig, Cliff            2004). Early work focused on measuring trust
+   Rosendahl, H. Peter Soyer, Iris Zalaudek, and Har-       dimensions (Madsen and Gregor, 2000; Hoff and
+   ald Kittler. 2020. Human­computer collaboration          Bashir, 2014), establishing that trust must align
+   for skin cancer recognition. Nature Medicine,            with system capability for optimal collaboration.
+   26(8):1229­1234.
+                                                               Recent work demonstrates that mental model
+Carrie Underwood. 2005. Jesus, Take the Wheel. Arista       accuracy--not just AI accuracy--predicts team
+   Nashville.                                               performance. Bansal et al. (2019) show that
+                                                            when humans develop accurate understanding of
+Kristen Vaccaro, Christian Sandvig, and Karrie Kara-        AI strengths and weaknesses, team performance
+   halios. 2020. "at the end of the day facebook does       improves even when AI accuracy remains con-
+   what itwants": How users experience contesting algo-     stant. However, explanations can paradoxically
+   rithmic content moderation. Proceedings of the ACM       reduce complementarity by inducing over-reliance:
+   on Human-Computer Interaction, 4(CSCW2):1­22.            teams exposed to AI explanations sometimes defer
+                                                            blindly rather than critically evaluating suggestions
+Helena Vasconcelos, Matthew Jörke, Madeleine Grunde-        (Bansal et al., 2021). Other work formalizes the
+   McLaughlin, Tobias Gerstenberg, Michael S. Bern-         learning-to-complement problem, developing algo-
+   stein, and Ranjay Krishna. 2023. Explanations can        rithms that optimize for team performance rather
+   reduce overreliance on ai systems during decision-       than individual AI accuracy (Wilder et al., 2020).
+   making. Proceedings of the ACM on Human-                 Steyvers et al. provide a Bayesian framework for
+   Computer Interaction, 7(CSCW1):1­38.                     human-AI complementarity, showing how optimal
+                                                            aggregation depends on confidence calibration and
+Eric Wallace, Shi Feng, and Jordan Boyd-Graber. 2019a.      skill correlation (Steyvers et al., 2022). Zhang et al.
+   Misleading failures of partial-input baselines. In Pro-  find that confidence scores and explanations have
+   ceedings of the Association for Computational Lin-       complex interactions: high confidence can increase
+   guistics.                                                trust, but explanations sometimes fail to improve
+                                                            calibration (Zhang et al., 2020).
+Eric Wallace, Pedro Rodriguez, Shi Feng, Ikuya Ya-
+   mada, and Jordan Boyd-Graber. 2019b. Trick me if
+   you can: Human-in-the-loop generation of adversar-
+   ial examples for question answering. Transactions of
+   the Association for Computational Linguistics, 7:387­
+   401.
+
+Bryan Wilder, Eric Horvitz, and Ece Kamar. 2020.
+   Learning to complement humans. arXiv preprint
+   arXiv:2005.00582.
+   Field studies reveal persistent reliance problems   A.2 Trust Calibration: Confidence and
+across domains. Judges systematically ignore help-            Explanations
+ful AI bail recommendations, suggesting algorith-
+mic aversion or mistrust (Kleinberg et al., 2018).     Appropriate reliance requires well-calibrated AI
+In contrast, physicians over-rely on AI in medi-       confidence. Modern neural networks are poorly cal-
+cal imaging even when initially correct, changing      ibrated: high-confidence predictions often prove in-
+correct diagnoses to match AI suggestions (Gaube       correct, while low-confidence predictions can be ac-
+et al., 2021). A systematic review identifies under-   curate (Guo et al., 2017). Structured presentation of
+reliance as more common than over-reliance across      uncertainty--communicating both point estimates
+human-AI systems, though context matters sub-          and confidence intervals--helps users make better
+stantially (Hemmer et al., 2025). Green and Chen       decisions than point estimates alone (Bhatt et al.,
+(2019) show that users adapt AI use strategically      2021). In medical domains, confidence-aware AI
+across contexts, suggesting reliance patterns are      assistance improves diagnostic accuracy compared
+neither fixed nor random but responsive to per-        to AI without confidence scores (Tschandl et al.,
+ceived task demands.                                   2020). Model facts labels that present calibration
+                                                       information to clinical users improve trust calibra-
+   Despite this progress, three methodological gaps    tion (Sendak et al., 2020), and uncertainty quantifi-
+limit our understanding of reliance mechanisms.        cation can reduce overreliance when implemented
+First, most controlled studies measure post-hoc ac-    carefully (Marusich et al., 2024).
+ceptance rates after humans see AI suggestions
+(Bansal et al., 2021; Zhang et al., 2020), captur-        Explanations have complex, sometimes coun-
+ing whether people accept advice but not how they      terintuitive effects on reliance. While explainabil-
+decide--the real-time evaluation process, informa-     ity methods like LIME (Ribeiro et al., 2016) aim
+tion weighting, or decision criteria remain opaque.    to increase transparency, explanations can manip-
+Second, field studies analyze consequential deci-      ulate trust through plausible but incorrect ratio-
+sions but lack controlled interaction: observational   nales (Lakkaraju and Bastani, 2020). Poursabzi-
+data from judges or physicians (Kleinberg et al.,      Sangdeh et al. find that greater interpretabil-
+2018; Gaube et al., 2021) reveal reliance patterns     ity can increase overconfidence rather than im-
+without the behavioral traces (e.g., time spent on     proving calibration (Poursabzi-Sangdeh et al.,
+explanations, confidence comparisons, deliberation     2021). More promisingly, cognitive forcing func-
+sequences) needed to understand decision mecha-        tions--interventions requiring engagement with ex-
+nisms. Third, lab studies achieving experimental       planations before making decisions--reduce over-
+control often use synthetic tasks that fail to engage  reliance by prompting critical evaluation (Buçinca
+genuine expertise (Buçinca et al., 2020)-- crowd-      et al., 2021). Vasconcelos et al. demonstrate that
+workers evaluating unfamiliar domains provide lim-     explanations help when they reveal AI limitations:
+ited insight into how experts integrate AI into prac-  showing where and why AI might fail improves
+ticed workflows.                                       reliance decisions more than generic explanations
+                                                       of reasoning (Vasconcelos et al., 2023). The type of
+   Our contribution: We bridge these gaps by           explanation matters: example-based explanations
+studying experts in their domain of practice, cap-     affect trust differently than feature importance (Cai
+turing both proactive strategic decisions (muting      et al., 2019), and social transparency (explaining
+before seeing AI output) and deliberative evidence-    system context and design choices) complements
+based decisions (switching after evaluating AI's       technical explanations (Ehsan et al., 2021).
+answer, confidence, and explanation). This dual-
+signal approach reveals the reliance process itself:      Our contribution: We jointly analyze confi-
+how humans weigh evidence, calibrate trust, and        dence and explanations in naturalistic decisions,
+integrate AI assistance. Our setting reveals both      finding that grounded explanations--those ref-
+systematic under-reliance (3.9% missed opportu-        erencing specific evidence from the question--
+nities) and over-reliance (misled on 1.7% of op-       increase appropriate switching by 12%, providing
+portunities), showing sophisticated but imperfect      actionable design guidance beyond generic expla-
+calibration that improves.                             nation requirements. We show that confidence was
+                                                       not a strong predictor of switching decisions, but
+                                                       explanation quality modulates this effect substan-
+                                                       tially. Moreover, two AI companions are not al-
+ways better than one, and the consensus among AIs       Principle          Guideline
+is not always helpful.                                  Calibrated
+                                                        confidence         Invest in standardized confi-
+A.3 Adversarial Evaluation and Question                                    dence scales; within-model cal-
+       Answering                                        Grounded           ibration works, but cross-model
+                                                        explanations       comparison fails.
+Standard QA datasets like SQuAD (Rajpurkar et al.,
+2016, 2018) measure AI progress but often satu-         Strategic control  Anchor in observable input
+rate as models exploit superficial patterns. Adver-                        ("The clue mentions X...") rather
+sarial evaluation exposes systematic weaknesses:        Collaboration      than abstract reasoning; use cali-
+adding distracting sentences with keyword over-         feedback           brated scores over hedges.
+lap breaks reading comprehension models (Jia and
+Liang, 2017), and human-in-the-loop adversarial         Expert adoption    Provide context-dependent tog-
+generation creates natural-seeming questions that                          gles (by topic, difficulty) rather
+fool state-of-the-art systems (Wallace et al., 2019b).                     than binary on/off; user agency
+Contrast sets--minimal edits changing correct an-                          over when AI participates mat-
+swers--reveal that models rely on spurious cor-                            ters.
+relations rather than robust reasoning (Gardner
+et al., 2020). Shortcut learning explains these                            Surface context-specific analyt-
+failures: neural networks exploit dataset artifacts                        ics ("AI helped on 8/10 science
+rather than learning intended capabilities (Geirhos                        questions") to accelerate trust
+et al., 2020).                                                             calibration.
+
+   Quiz bowl provides a compelling testbed for in-                         Highlight AI strengths on ques-
+cremental question answering. Boyd-Graber et al.                           tion types where users struggle;
+(2012) introduced the QANTA dataset with pyra-                             under-reliance (3.9%) exceeds
+midal questions where clues progress from obscure                          over-reliance (1.7%).
+to obvious. Rodriguez et al. (2019) formalize buzz
+timing as a confidence signal: systems must decide      Table 3: Design principles for human­AI collaboration
+when to answer based on expected utility, balanc-       systems derived from our behavioral findings. Each
+ing accuracy against competitive risk. Recent work      guideline addresses a specific failure mode observed in
+systematically generates context-aware adversar-        our tournaments.
+ial examples that exploit model weaknesses while
+maintaining naturalness (Sung et al., 2025b).           tions raise questions about expert-AI integration:
+                                                        do experts rely on intuition when evaluating AI, or
+   Our contribution: While adversarial NLP typ-         does AI assistance shift them toward deliberative
+ically focuses on AI failure, we use adversarial        reasoning?
+design to create complementarity opportunities--
+questions where human-AI skill gaps enable col-            Users adapt AI use strategically across con-
+laboration gains. This reframes adversarial eval-       texts rather than maintaining fixed reliance patterns
+uation from exposing weaknesses to engineering          (Green and Chen, 2019). Users slowly learn to cal-
+productive partnerships: AI-favoring questions cre-     ibrate trust as they observe AI performance across
+ate under-reliance reduction opportunities, while       repeated interactions (Yin et al., 2019). However,
+human-favoring questions test appropriate skepti-       subjective measures like self-reported trust can mis-
+cism.                                                   lead: objective behavioral outcomes matter more
+                                                        than stated preferences (Buçinca et al., 2020). Per-
+A.4 Strategic Behavior and Expertise                    ceived control moderates AI acceptance--users
+                                                        value the ability to override AI even when they
+Cognitive science distinguishes expert intuition,       rarely exercise it (Vaccaro et al., 2020).
+which relies on holistic pattern recognition devel-
+oped through extensive experience (Klein, 2017;            Individual differences moderate reliance qual-
+Chi, 2006), from novice deliberation following ex-      ity: cognitive ability predicts susceptibility to bi-
+plicit rules (Haroutunian-Gordon et al., 1988). Kah-    ases (Stanovich and West, 2002), and metacogni-
+neman's dual process framework contrasts fast, au-      tive accuracy--knowing what you know--varies
+tomatic System 1 thinking with slow, deliberative       substantially across individuals (Fleming and Lau,
+System 2 reasoning (Sutter, 2023). These distinc-       2014). Expertise moderates how users integrate AI
+                                                        assistance: domain experts process explanations
+                                                        differently than novices, sometimes exhibiting ap-
+                                                        propriate skepticism that novices lack (Lai and Tan,
+                                                        2019).
+
+                                                           Our contribution: We study expert humans in a
+                                                        competitive domain with genuine expertise require-
+                                                        ments, capturing strategic reliance (costly muting)
+and deliberative reliance (explanation-mediated                B.2 Selection Method Breakdown
+choice). This reveals systematic patterns: experts
+under-rely (missing 3.9% of opportunities) but                 When humans revise their response using AI assis-
+over-rely (when AI misleads them, 1.7% of op-                  tance, how do they choose which guess to trust?
+portunities), showing sophisticated but imperfect              Table 4 breaks down selection methods and their
+calibration. Trust improves across rounds (+10%                effectiveness. We restrict this table to revised cases
+from Round 1 to Round 7), demonstrating learnable              with a meaningful choice among candidate an-
+calibration, and high-skill players show better cal-           swers: either the two AI systems disagree, or the
+ibration than low-skill players (gap=8% vs 22%),               AI consensus conflicts with the initial human an-
+consistent with expertise moderating AI integra-               swer. We also require that the initial human answer
+tion.                                                          or at least one AI candidate is correct, so final ac-
+                                                               curacy reflects whether the team chose a correct
+B Bonus Phase Analysis: Extended                               available answer. The first row reports cases where
+     Details                                                   the two AI systems agreed and the team adopted
+                                                               that shared answer, as a share of all eligible cases.
+This appendix provides additional details for the              For the remaining cases, the denominator resets to
+deliberative adoption analysis in Section 4.2.                 the non-agreement cases. These rows report the
+                                                               relative frequency of each selection method within
+B.1 Formal Notation                                            that remainder and the mean final correctness for
+                                                               cases using that method.
+We formalize the bonus phase interaction as fol-
+lows. After the human team confers and pro-                    Key Findings. AI agreement accounts for 55.0%
+vides an initial response, the final human answer              of eligible revised cases and is perfectly accurate
+hc  {0, 1} indicates correctness.13                            in this filtered set. Among the remaining cases,
+                                                               domain knowledge dominates selection decisions,
+   The team then sees responses from two AI agents.            accounting for 75.2% of choices with 90.9% final
+We define:                                                     accuracy. This suggests teams are most effective
+                                                               when they can use their own expertise to evaluate
+   · agc  {0, 0.5, 1}: AI guess correctness (0 if              AI suggestions rather than relying on surface sig-
+      both wrong, 0.5 if one correct, 1 if both cor-           nals. Model explanations account for 9.8% of the
+      rect)                                                    remaining choices and reach 83.3% final accuracy.
+                                                               Model reputation and confidence are less common
+   · arc  {0, 0.5, 1}: AI recall correctness, mea-             signals, at 4.2% and 3.6% respectively, and confi-
+      suring whether the correct answer appears in             dence alone has lower accuracy (54.5%). Notably,
+      either model's full output including explana-            7.2% of selections appeared random, with 50.0%
+      tions                                                    final accuracy, suggesting that teams sometimes
+                                                               lacked a clear basis for choosing among conflicting
+   · s  {0, 1}: whether the team switched from                 answers.
+      their initial response
+                                                               B.3 Decision Flow by AI Agreement
+   · fc  {0, 1}: final team correctness after delib-
+      eration                                                  Figure 5 in Section 4.2 shows the aggregate de-
+                                                               cision flow. Here we present the full breakdown
+   Following Schemmer et al. (2023), we define re-             conditioned on whether the two AI agents agreed
+liance as depending on whether the AI was correct              (Figure 8).
+and whether humans adopt it:
+                                                               Key Observations. When AIs reach consensus,
+  Under-reliance = P (s = 0 | hc = 0, arc > 0)                 teams benefit from a clear signal: switching to
+                                                         (1)   the agreed answer yields high accuracy, and under-
+                                                               reliance drops substantially. When AIs disagree,
+    Over-reliance = P (s = 1 | hc = 1, agc < 1)                teams must evaluate competing suggestions, lead-
+                                                         (2)   ing to higher cognitive load and more conserva-
+                                                               tive behavior (increased inaccuracies). This pattern
+Under-reliance captures missed help opportunities;             highlights the value of AI-AI agreement as a trust
+over-reliance captures being misled by incorrect AI
+suggestions. Both optimal rates are 0%.
+
+   13Multiple team members deliberate, so an individual mem-
+ber may have the correct answer without it being given as the
+final team response--this is still recorded as hc = 0.
+Decision Quality Analysis by AI Agreement Status
+
+ Overall: Human Initial State  Decision  Outcome Quality
+
+HHuummaann CCoorrrreecctt         SSwwiittcchh            GGoooodd SSwwiittcchh
+HHuummaann WWrroonngg             RReettaaiinn
+HHuummaann NNoo RReessppoonnssee                            BBaadd SSwwiittcchh
+                                                          GGoooodd RReettaaiinn
+
+                                                            BBaadd RReettaaiinn
+                                                                 NNeeuuttrraall
+
+AIs Agree (Consensus): Human Initial State  Decision  Outcome Quality
+
+HHuummaann CCoorrrreecctt         SSwwiittcchh            GGoooodd SSwwiittcchh
+HHuummaann WWrroonngg             RReettaaiinn              BBaadd SSwwiittcchh
+HHuummaann NNoo RReessppoonnssee                                 NNeeuuttrraall
+
+                                                          GGoooodd RReettaaiinn
+
+AIs Disagree (No Consensus): Human Initial State  Decision  Outcome Quality
+
+HHuummaann CCoorrrreecctt         SSwwiittcchh            GGoooodd SSwwiittcchh
+HHuummaann WWrroonngg             RReettaaiinn
+HHuummaann NNoo RReessppoonnssee                            BBaadd SSwwiittcchh
+                                                          GGoooodd RReettaaiinn
+
+                                                            BBaadd RReettaaiinn
+                                                                 NNeeuuttrraall
+
+Figure 8: Decision quality analysis by AI agreement status. Top: overall flow from human initial state through
+decision to outcome. Middle: when AIs agree (consensus), teams switch more readily and achieve higher accuracy.
+Bottom: when AIs disagree, teams face harder choices and under-reliance increases. Flow widths represent
+proportion of responses; colors indicate outcome quality. Compare to the aggregate view in Figure 5.
+Case                  Share of                               Share of                                   Final
+                      all cases                        disagreement cases                             accuracy
+AI Agreement
+                       55.0%                                      ­                                    100.0%
+AI Disagreement
+   Domain Knowledge    33.9%                                   75.2%                                   90.9%
+   Model Explanation    4.4%                                    9.8%                                   83.3%
+   Random Selection     3.2%                                    7.2%                                   50.0%
+   Model Reputation     1.9%                                    4.2%                                   69.2%
+   Model Confidence     1.6%                                    3.6%                                   54.5%
+
+Table 4: Selection methods used by humans when revising their responses with AI assistance. AI agreement is
+reported as a share of all eligible cases (N = 682). The remaining rows report the distribution of selection methods
+among non-agreement cases (N = 307) and their final accuracy.
+
+signal, though it can also amplify errors when both                  Relative Difficulty Distribution                                               1            Relative Difficulty by Packet
+AIs are wrong (Section 4.2).
+                                                       200                                     44.8%
+B.4 Reliance by AI Agreement Condition
+                                                       Number of Questions                                                                          0.8
+Table 5 breaks down over- and under-reliance rates                                                                                      Proportion
+across four conditions defined by whether one of       150
+the AI teammates agreed with the initial human
+response. When an incorrect human answer is con-                                                                                                    0.6
+firmed by one AI while the other provides the cor-
+rect answer, under-reliance spikes to 64.5% (§4.2).                                  25.9%
+                                                       100
+C Dataset Overview
+                                                                                                         17.7%                                      0.4
+
+                                                       50 11.5%                                                                                     0.2
+
+                                                       0                Balanced Human                   Both                                       0    1    2      3  4       5               6  7
+                                                                 AI
+
+                                                                           Harder For                                                                                   Packet
+
+                                                                                                      Both      Human                               Balanced     AI
+
+                                                       Figure 9: Relative difficulty distribution across bonus
+                                                       questions. Left: overall counts by category. Right:
+                                                       proportion breakdown by packet showing consistent
+                                                       patterns across question sets.
+
+This appendix provides an overview of the dataset         Figure 10 compares absolute difficulty for hu-
+collected in the tournament.                           mans and AI across packets. Human difficulty
+                                                       shows more variation, with some packets contain-
+D Our Adversarial Questions                            ing a higher proportion of hard questions. AI dif-
+                                                       ficulty is more uniform across packets, suggesting
+We categorize each bonus question by difficulty for    that question design affects humans and AI differ-
+humans and AI separately, based on average accu-       ently. This variation creates diverse collaboration
+racy across all responses. Questions with accuracy     scenarios within each tournament.
+below 40% are labeled Hard, 40­70% as Medium,
+and above 70% as Easy. We then compute relative                                                       Question Difficulty by Packet
+difficulty by comparing human and AI accuracy:
+questions where humans outperform AI by more           1                Human Difficulty by Packet                                                  1            AI Difficulty by Packet
+than 20 percentage points are Harder for AI, ques-
+tions where AI outperforms humans by the same          0.8                                                                                          0.8
+margin are Harder for Human, questions where
+both struggle (below 40% accuracy) are Hard for        0.6Proportion                                                                                0.6
+Both, and the remainder are Balanced.                                                                                                  Proportion
+                                                       0.4                                                                                          0.4
+   Figure 9 shows the distribution of relative diffi-
+culty. The largest category (45%) comprises ques-      0.2                                                                                          0.2
+tions harder for humans, where AI outperforms.
+About 26% fall into the Balanced category where        0    1        2  3                   4  5      6     7                                       0    1    2      3  4       5               6  7
+humans and AI perform comparably. Questions
+hard for both (18%) represent challenging items                            Packet                                                                                       Packet
+that neither humans nor AI answer reliably. Finally,
+11% are harder for AI, where humans have a clear                                                      3: Hard   2: Medium                                   1: Easy
+advantage. The right panel shows this breakdown
+by packet, revealing variation across question sets.   Figure 10: Question difficulty by packet for humans
+                                                       (left) and AI (right). Each bar shows the proportion
+                                                       of Easy, Medium, and Hard questions within a packet.
+                                                       Human difficulty varies more across packets than AI
+                                                       difficulty.
+
+                                                       E Draft Mechanics
+
+                                                       This appendix details the team formation procedure
+                                                       used in our tournaments. The draft mechanism
+                     Overall       AI consensus AI disagree H­AI confirm H­AI conflict
+
+Under-reliance
+
+Overall              3.9% (n=998)  0.7% (n=417)           6.2% (n=581)  64.5% (n=31)   2.0% (n=967)
+                                                        24.6% (n=114)   81.0% (n=21)
+Confident 16.9% (n=178)             3.1% (n=64)                                        8.3% (n=157)
+                                   0.3% (n=353)           1.7% (n=467)  30.0% (n=10)  0.7% (n=810)
+Unsure               1.1% (n=820)
+
+Over-reliance
+
+Overall              1.7% (n=666)  0.0% (n=421)         4.5% (n=245)    0.5% (n=604)  12.9% (n=62)
+                                   0.0% (n=398)                         0.5% (n=576)
+Confident 1.3% (n=632)             0.0% (n=23)          3.4% (n=234)    0.0% (n=28)    8.9% (n=56)
+                                                        27.3% (n=11)                  50.0% (n=6)
+Unsure               8.8% (n=34)
+
+Table 5: Under- and over-reliance rates by human confidence and AI agreement condition. Each cell shows the
+
+error rate and n (denominator). Significance markers compare each cell to the panel baseline (Overall row, Overall
+column):  Bonferroni p < 0.01,  p < 0.05,  p < 0.1. Shading intensity matches significance.
+
+Component              Count      Description           agent from facing itself in a match, we modified the
+Tournaments                   2                         draft to operate per-game rather than per-round. Be-
+Games                             Offline (June 14) +   fore each game, the two competing teams drafted
+Human players               24    Online (June 21)      their AI teammates from the available pool, with
+                            23    20 tossups + 20       agents selected by one team becoming unavailable
+AI agents                         bonuses each          to the opponent for that game. This ensured no AI
+Unique questions            16    Experienced           agent appeared on both sides of the same match.
+Tossup responses     140 each     quizbowl competi-
+Bonus responses                   tors                  E.3 Playoff and Finals Modifications
+Muting decisions           387    Varying skill levels
+Switching decisions      1440     and architectures     During playoff rounds in both tournaments, we
+                        150       140 tossups, 420      adopted the same per-game draft style as the online
+                        450       bonuses               tournament. This allowed teams participating in
+                                  With muting state,    finals and playoffs to have their best shot at select-
+                                  buzz timing           ing optimal AI teammates while adhering to the
+                                  With AI sugges-       constraint that no two AI systems could face each
+                                  tions per part        other in the same game.
+                                  Strategic AI dis-
+                                  abling                E.4 Implications for Analysis
+                                  Changed answer af-
+                                  ter AI input          These draft variations do not affect our main analy-
+                                                        ses, which focus on within-game reliance decisions
+Table 6: Dataset overview showing the scale and rich-   (muting, switching) rather than cross-game selec-
+ness of behavioral data collected during human-AI col-  tion patterns. However, the draft mechanism itself
+laborative quizbowl tournaments. The dataset captures   provides an team formation signal: teams' choices
+multiple types of reliance decisions with real stakes.  reveal their beliefs about AI capabilities based on
+                                                        observed performance in earlier rounds. We leave
+varied slightly between the in-person and online        detailed analysis of draft strategy to future work.
+tournaments to accommodate logistical differences.
+                                                        F Explanation Feature Analysis
+E.1 In-Person Tournament
+                                                        This appendix details the feature extraction and
+The in-person tournament used a full serpentine         analysis for AI explanations presented in Sec-
+("snake") draft before each round. With fewer           tion 4.2. We extract 57 features from each expla-
+teams than available slots for AI agents (two per       nation (49 statistical + 8 LLM-assessed) and eval-
+team), each team selected two AI teammates with-        uate their predictive power for two outcomes: (1)
+out conflict. The serpentine ordering ensured com-      whether the AI answer is correct, and (2) whether
+petitive balance: the lowest-scoring team picked        humans select that explanation.
+first, selection proceeded upward to the highest-
+scoring team (who picked twice consecutively),
+then reversed back down. This gave weaker teams
+first access to perceived stronger AI agents.
+
+E.2 Online Tournament                                   F.1 Experimental Setup
+
+The online tournament had more team­game slots          For each feature, we fit a single-feature logistic re-
+than distinct AI systems. To prevent the same AI        gression and measure prediction accuracy. This iso-
+lates each feature's individual contribution, avoid-              tion content. Notably, humans rely heav-
+ing confounds from correlated predictors.                         ily on semantic_similarity (66%) and
+                                                                  word_overlap_ratio (63%) despite these be-
+AI Correctness Prediction. We use all bonus                       ing weak correctness signals--a key driver of the
+responses where both AI systems provided answers.                 calibration gap.
+The outcome is binary: whether the AI's answer
+matches the gold answer.                                          Feature               Description
+
+Human Selection Prediction. We analyze cases                      semantic_similarity   BERT embedding cosine similarity
+where humans chose between two AI explanations.                   jaccard_similarity    Jaccard similarity of word sets
+The outcome is which explanation was selected.                    word_overlap_ratio    Shared words / explanation words
+                                                                  word_overlap_count    Raw count of shared words
+F.2 Feature Categories                                            shared_entities       Named entities in both texts
+                                                                  exp_entity_count      Total entities in explanation
+We organize features into seven categories with                   exp_entity_density    Entity count / token count
+consistent prefixes for filtering and analysis.                   mentions_answer_text  Answer string appears in explanation
+
+                                                                  Table 9: Content grounding features (content_*).
+
+LLM-Assessed Features. These eight                                Surface Linguistic Features. These 15 features
+features are rated by GPT-4o on a 1­5                             capture basic textual properties. Length measures
+scale, normalized to 0­1. Among these,                            show that longer explanations are not necessarily
+question_comprehension is the                                     better.
+top correctness predictor at 76%, while
+evidential_grounding is the only fea-                             Feature               Description
+ture appearing in top-10 for both correctness and
+human selection. The overconfidence feature                       word_count            Total word count
+serves as a negative predictor of correctness.                    sentence_count        Total sentence count
+                                                                  avg_word_length       Average characters per word
+Feature                Description                                avg_sentence_length   Average words per sentence
+                                                                  type_token_ratio      Lexical diversity
+question_comprehension Understanding of what question asks        flesch_reading_ease   Readability (higher = easier)
+                                                                  flesch_kincaid_grade  Grade level required
+evidential_grounding   Cites specific clues as evidence           smog_index            SMOG readability index
+                                                                  ari                   Automated readability index
+reasoning_coherence    Logical flow from clues to answer          noun_ratio            Proportion of nouns
+                                                                  verb_ratio            Proportion of verbs
+domain_expertise_display Domain-specific knowledge shown          adj_ratio             Proportion of adjectives
+                                                                  adv_ratio             Proportion of adverbs
+reasoning_transparency Reasoning process explicit/followable
+
+reasoning_depth        Multi-step vs. surface reasoning
+
+answer_explanation_alignmEexnptlanation supports stated answer
+
+overconfidence         Unwarranted certainty given evidence       Table 10: Surface linguistic features (surface_*).
+
+Table 7: LLM-assessed features (llm_*).
+
+Epistemic Features. These six fea-                                Structural Features. These nine features cap-
+tures capture uncertainty expression. The                         ture formatting and discourse structure. The
+confidence_alignment feature--measuring                           has_quotes feature is the top human predictor
+match between linguistic and numeric confidence--                 at 70%, yet provides a weak correctness signal--
+is a strong correctness predictor.                                another driver of miscalibration.
+
+                                                                  Feature               Description
+
+Feature                Description                                has_quotes            Contains quotation marks
+confidence_alignment
+hedge_ratio            Match: linguistic vs. numeric confidence   clue_mentions         References to "clue," "line," "phrase"
+                       Ratio of hedging words (might, could,
+certainty_ratio        perhaps)                                   position_mentions     References to "first," "beginning," etc.
+                       Ratio of certainty markers (definitely,
+uncertainty_ratio      clearly)                                   mentions_answer       Contains "answer," "guess," "conclude"
+                       Ratio of uncertainty markers (unsure, un-
+linguistic_confidence  clear)                                     num_clauses           Syntactic complexity
+modal_verb_count       Net confidence from language
+                       Count of modal verbs                       causal_connective_ratio Because, therefore, thus, hence
+
+                                                                  contrastive_connective_raHtoiwoever, but, although, yet
+
+                                                                  additive_connective_ratioAnd, also, moreover, furthermore
+
+                                                                  has_parentheses       Contains parenthetical asides
+
+                                                                  Table 11: Structural features (struct_*).
+
+Table 8: Epistemic features (epist_*).
+
+Content Grounding Features. These eight fea-                      Reasoning Pattern Features. These five features
+tures measure how explanations relate to ques-                    detect specific reasoning strategies through lexical
+                                                                  patterns.
+Feature                Description                                  F.5 Implementation Details
+                                                                    Features are extracted using a modular pipeline
+elimination            "rules out," "can't be," "eliminate"         with seven extractors:
+pattern_matching       "characteristic of," "typical," "consistent
+                       with"                                           · SurfaceLinguisticExtractor: Uses spaCy for
+analogical             "similar to," "like," "resembles"                  tokenization and POS tagging; textstat for
+definitional           "defined as," "means," "refers to"                 readability indices.
+abductive              "best explains," "most likely," "suggests"
+
+Table 12: Reasoning pattern features (reason_*).
+
+Pragmatic Features. These six features capture                         · StructuralExtractor: Pattern matching for
+interaction style and metacognition.                                      discourse connectives and formatting signals.
+
+Feature                Description                                     · ContentGroundedExtractor: Uses sentence-
+                                                                          transformers (all-MiniLM-L6-v2) for seman-
+metacognitive_markers  "I think," "I believe," "uncertain"                tic similarity; spaCy for entity extraction.
+addressee_references   Direct "you" references
+imperative_count       "consider," "note," "look," "see"               · ReasoningTypeExtractor: Regex patterns
+alternative_mentions   "also," "alternatively," "could be"                for reasoning strategy indicators.
+conditional_count      "if" statements
+limitation_admission   "don't know," "not sure," "might be             · EpistemicExtractor: Lexicon-based detec-
+                       wrong"                                             tion of hedges, certainty markers, and modal
+                                                                          verbs.
+Table 13: Pragmatic features (pragma_*).
+                                                                       · PragmaticExtractor: Pattern matching for
+F.3 Full Feature Rankings                                                 metacognitive and interaction markers.
+
+Figure 11 shows single-feature prediction accu-                        · LLMBasedExtractor: GPT-4o with struc-
+racy for all features across both outcomes. LLM-                          tured prompting for semantic quality assess-
+assessed features cluster at high correctness accu-                       ment (1­5 scale, normalized to 0­1).
+racy (70­76%) but near-chance human prediction
+(44­58%). Surface and structural features show the                     All features use consistent prefixes (surface_,
+opposite pattern.                                                   struct_, content_, reason_, epist_,
+                                                                    pragma_, llm_) enabling category-based filter-
+F.4 Key Takeaways                                                   ing and analysis.
+
+1. One shared signal:                     Only                      G AI Assistant Systems
+
+evidential_grounding   appears                                      This appendix details the AI assistant systems used
+                                                                    in the tournament. Each AI teammate consists of
+in both top-10 lists, suggesting humans                             two sub-agents: one for the tossup (tossup) phase
+                                                                    and one for the bonus (bonus) phase, reflecting the
+recognize quality when reasoning explicitly                         distinct requirements of each question mode.
+
+cites evidence.                                                     G.1 System Collection
+
+2. LLM features predict correctness:                                We collected AI systems through a four-week on-
+                                                                    line competition prior to tournament play. Partic-
+question_comprehension (76%),                                       ipants submitted their systems to our evaluation
+                                                                    platform, where they were tested on a held-out
+evidential_grounding   (74%),                                       set of 80 questions per mode (separate from the
+                                                                    questions used in the live tournament). This com-
+domain_expertise_display (74%),                                     petition format encouraged diverse architectural
+                                                                    approaches while providing participants time to it-
+and reasoning_coherence (72%)                                       erate on their designs. The resulting systems span
+                                                                    a range of strategies, from single-model configu-
+strongly predict whether the AI is correct.                         rations with carefully tuned prompts to multi-step
+                                                                    pipelines involving text-analysis, ensemble voting,
+3. Surface features predict hu-
+   man trust: has_quotes (70%),
+   semantic_similarity (66%), and
+   word_overlap_ratio (63%) predict
+   human selection but are weak correctness
+   signals.
+
+4. Implication: AI explanations should make
+   reasoning explicit through evidence citation.
+   Humans should evaluate reasoning quality
+   rather than surface familiarity.
+                                                                               Feature-wise Predictive Accuracy                                         Predicts Human Selection
+
+                                                                                              Colored bars: p < 0.05 | Gray bars: not significant                                 N=90
+
+                                                Predicts AI Correctness                                                                                                                               56%
+
+                                                                     N=3,720
+
+                 Word Overlap Ratio                  59%                              Domain Expertise (LLM)
+               Flesch Reading Ease
+               Alternative Mentions                  59%                              Mentions Answer                                                             56%
+
+                    Pattern Matching                 59%                              SMOG Index                                                                  56%
+              Analogical Reasoning
+                                                     61%                              Automated Readability                                                       56%
+                    Imperative Count
+                    Position Mentions                     62%                         Sentence Count                                                              57%
+               Abductive Reasoning
+                   Modal Verb Count                       62%                         Avg Sentence Length                                                              58%
+Reasoning Transparency (LLM)
+    Reasoning Coherence (LLM)                             63%                 Evidence Grounding (LLM)                                                                 58%
+             Confidence Alignment
+          Domain Expertise (LLM)                          64%                         Entity Count                                                                     58%
+      Evidence Grounding (LLM)
+Question Understanding (LLM)                                   65%                    Word Overlap Ratio                                                               59%
+
+                                           40%                      71%               Definitional                                                                          62%
+
+                                                                         72%          Clue Mentions                                                                         63%
+
+                                                                         74%          Word Overlap Count                                                                    63%
+
+                                                                         74% Semantic Similarity (BERT)                                                                          66%
+
+                                                                         74%          Metacognitive Markers                                                                                                70%
+
+                                                                              76%     Contains Quotes                                                                                 70%
+
+                                                50%  60%            70%          80%                                                               30%  40%  50%       60%       70%                            80%
+
+                                                     Accuracy                                                                                                Accuracy
+
+Figure 11: Full feature-wise prediction accuracy. Left: predicting AI correctness. Right: predicting human selection.
+Colored bars indicate statistical significance (p < 0.05); gray bars are not significant. LLM-assessed features
+dominate correctness prediction but are largely ignored by humans.
+
+and confidence calibration. During the tournament,                                    answering.
+teams draft these AI teammates across different
+rounds using the serpentine selection process de-                                     H Tournament Platform and Data
+scribed in Section 3.                                                                      Release
+
+G.2 Tossup Agent Specifications                                                       H.1 Tournament Web Application
+
+In the tossup phase, agents receive a partial prefix                                  Both tournaments were conducted using a custom
+of the question as it is read aloud, since it is sup-                                 web application built for human­AI collaborative
+posed to be interrupted. At each word boundary,                                       quizbowl. The platform provides:
+the agent outputs two values: a boolean buzz deci-
+sion and its most confident guess given the clues                                        · Real-time question display with clue-by-clue
+seen so far. Our moderator stops reading the ques-                                          progression for tossup questions, mirroring
+tion when the model first buzzes and accepts the                                            the pacing of a live moderator.
+guess at that point as the team's response. Table 14
+details each system's architecture for this phase,                                       · Buzzer integration via BuzzIn Live for the
+where agents must decide when to buzz and pro-                                              online tournament (physical buzzers for the
+vide answers under time pressure. The systems                                               in-person event), supporting simultaneous hu-
+exhibit considerable variation in their approach to                                         man and AI buzz attempts with millisecond-
+confidence calibration and answer generation.                                               resolution timestamps.
+
+G.3 Bonus Agent Specifications                                                        · Bonus collaboration interface (Figure 2) pre-
+                                                                                        senting human guess entry, AI suggestions
+In the bonus phase, agents receive the lead-in con-                                     with confidence and explanations, and final
+text and the current part of a three-part question.                                     answer submission in a three-step flow.
+For each part, the agent outputs three values: a
+guess, a confidence score, and an explanation jus-                                    · Moderator dashboard for controlling game
+tifying the answer. Table 15 details each system's                                      flow, recording answer correctness, managing
+architecture for this phase. These configurations                                       the serpentine draft, and tracking scores in
+often differ from their tossup counterparts, reflect-                                   real time.
+ing the different demands of deliberative question
+System    Models Used                     Calls  Approach
+System 1                                    1    Single-shot solver using prompt-level calibration norms and proba-
+System 2  GPT-4o (answer)                   1    bility gating for latency optimization.
+System 3                                    4    Rule-intensive Quizbowl specialist with domain norms embedded
+          GPT-4.1 (answer)                       in prompts, including indicator discipline and discrete confidence
+System 4                                    3    scales.
+System 5  GPT-4.1-nano (word count),        3    Confidence engineering pipeline that decouples correctness from
+System 6  GPT-4.1-nano (entity count),      4    certainty, rescaling confidence using question completeness heuris-
+          GPT-4.1 (answer), GPT-4.1-mini         tics.
+System 7  (calibration)                     4
+          GPT-4o (voter), GPT-3.5-turbo          Exact-match voting across heterogeneous models; abstains with
+System 8  (voter), GPT-4o (aggregator)      1    zero confidence unless all voters fully agree.
+          Claude-3.5-Sonnet (analysis),          Structured pipeline separating clue analysis, answer generation,
+          GPT-4o (answer),                       and confidence assignment.
+          Command-R-Plus (confidence)
+          Command-R (extraction),                Verifier-centered architecture treating generation as hypothesis,
+          GPT-4.1-mini (answer),                 penalizing disagreement via AND-style aggregation.
+          Claude-3.5-Haiku (verifier),
+          GPT-4o-mini (aggregator)               Cross-validation combining independently proposed answers with
+          GPT-4o-mini (candidate),               match-based confidence scoring.
+          Claude-3.5-Haiku (candidate),
+          GPT-4.1-mini (cross-check),            Single-pass Cohere-native design emphasizing disciplined uncer-
+          Command-R (confidence)                 tainty reporting and probability thresholds.
+          Command-R (answer)
+
+Table 14: Tossup (proactive phase) agent specifications. Each system implements a distinct strategy for answer
+generation and confidence calibration under the time pressure of buzzer-style questions.
+
+   The online tournament was conducted over a            (answers, confidence scores, explanations),
+Zoom call with the moderator sharing the web ap-         muting decisions, answer correctness la-
+plication screen and managing game progression           bels, and anonymized player metadata
+through the dashboard. All participant interactions      (experience level, team assignment). All
+with the interface were logged automatically.            personal and identifiable information has
+                                                         been explicitly anonymized before release.
+H.2 Model Submission Platform                            Available at https://huggingface.
+                                                         co/datasets/qanta-challenge/
+We received approximately 60 tossup agent sub-           qanta25-gamedata.
+missions and 25 bonus agent submissions through
+a four-week open competition. Agents were eval-       2. Tournament application: Source code
+uated on a held-out set of 80 questions from a re-       for the web application, including the
+cent tournament-difficulty quizbowl question set.        buzzer integration, bonus collaboration
+Tossup agents were ranked by expected points             interface, moderator dashboard, and
+against human buzz-point logs; bonus agents by           draft management system. Available at
+average part-level accuracy. We paired each sub-         https://github.com/qanta-org/
+mitter's top tossup and bonus agents into a single       qb-tournament-runner.
+"quizbowl AI agent" and selected the top 8 paired
+agents, ensuring architectural diversity across base  3. Analysis scripts: All scripts used for
+models and prompting strategies. See Appendix G          feature extraction, statistical testing, figure
+for per-agent specifications.                            generation, and the logistic regression
+                                                         analyses reported in this paper. Available at
+H.3 Data and Code Release                                https://github.com/qanta-org/
+                                                         qanta25-analysis.
+We release:
+
+  1. Dataset: All tournament questions (tossup
+      and bonus), human responses at each stage
+      (initial guess, final answer), AI responses
+System Models Used                         Calls  Approach
+System 1 GPT-4o-mini (answer)                1
+                                                  Single-shot lightweight model with strict JSON-only output for-
+System 2 GPT-4o (answer)                     1    mat.
+                                                  High-accuracy model with Quizbowl-specific guardrails for an-
+System 3  DeepSeek V3 (answer)               1    swer formatting.
+System 4                                     3    End-to-end single DeepSeek model for all outputs.
+System 5  GPT-4o (analyzer), GPT-4o               Multi-role pipeline reusing same model across analyzer, generator,
+System 6  (generator), GPT-4o (evaluator)    1    and evaluator.
+                                             4    Advisory-style solver providing answers with explanations.
+System 7  GPT-4o-mini (advisor)                   Multi-model pipeline with distinct roles: extraction, generation,
+                                                  verification, and aggregation.
+System 8  Command-R (extraction),
+          GPT-4.1-mini (generation),       4 Sequential synthesis for hypothesis generation, scoring, calibration,
+          GPT-4o-mini (verification),              and explanation.
+          Claude-3.5-Haiku (aggregation)
+                                           1 Single-pass Cohere model with strict JSON-only output con-
+          Claude-3.5-Haiku (hypothesis),           straints.
+          GPT-4o-mini (scoring),
+          GPT-4.1-mini (calibration),
+          Command-R (explanation)
+
+          Command-R (answer)
+
+Table 15: Bonus (deliberative phase) agent specifications. Systems vary from single-model configurations to
+multi-step pipelines, reflecting different strategies for collaborative question answering with explanations.
+
