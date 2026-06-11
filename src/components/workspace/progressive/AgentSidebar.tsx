@@ -120,7 +120,9 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
   const streamSnippet = worker.stream_text ? tailSnippet(worker.stream_text, 80) : '';
   const liveLine = streamSnippet || tickers[tickerIdx];
 
-  // ── Completion reveal — auto-expand the result for ~2.8s when status flips to done
+  // ── Completion reveal — auto-expand the result when status flips to done.
+  // No auto-collapse timer: the old 2.8s snap-shut yanked text away mid-read
+  // and made the rail jump. It stays open until the user toggles the row.
   const [autoRevealed, setAutoRevealed] = useState(false);
   const prevStatusRef = useRef(worker.status);
   useEffect(() => {
@@ -128,8 +130,6 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
     prevStatusRef.current = worker.status;
     if (!wasDone && worker.status === 'done' && worker.result) {
       setAutoRevealed(true);
-      const t = setTimeout(() => setAutoRevealed(false), 2800);
-      return () => clearTimeout(t);
     }
   }, [worker.status, worker.result]);
 
@@ -183,7 +183,11 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
       )}
 
       <button
-        onClick={isDone ? onToggle : undefined}
+        onClick={isDone ? () => {
+          // Auto-revealed (not user-pinned) rows close on first tap; otherwise toggle.
+          if (autoRevealed && !expanded) setAutoRevealed(false);
+          else onToggle();
+        } : undefined}
         className={`w-full flex items-center gap-3 p-3 ${isDone ? 'cursor-pointer' : 'cursor-default'}`}
       >
         <div className="relative shrink-0">
@@ -274,8 +278,9 @@ function AgentRow({ worker, expanded, onToggle, enterIndex, onRetry }: {
               </div>
               {worker.validation_score != null && (
                 <div className="mt-2 flex items-center gap-1.5">
-                  <span className={`text-[10px] font-medium ${worker.validation_passed ? 'text-emerald-600' : 'text-amber-600'}`}>
-                    {worker.validation_score}/100
+                  {/* Descriptive, not "N/100" — score numerals are verdict language */}
+                  <span className={`text-[10px] font-medium ${worker.validation_passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    {worker.validation_passed ? L('확인 통과', 'Checked') : L('확인 필요', 'Needs a look')}
                   </span>
                   {worker.validation_passed && <Check size={10} className="text-emerald-500" />}
                 </div>

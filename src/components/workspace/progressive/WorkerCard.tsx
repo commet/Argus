@@ -278,7 +278,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
               <span className="text-[var(--text-tertiary)] font-normal ml-1.5 text-[11px]">{persona?.role}</span>
             </p>
             <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-              <p className="text-[12px] font-semibold text-amber-900 mb-1">{L('품질 확인이 필요합니다', 'Quality check needed')}</p>
+              <p className="text-[12px] font-semibold text-amber-900 mb-1">{L('품질 확인이 필요해요', 'Quality check needed')}</p>
               {worker.validation_feedback && <p className="text-[12px] text-amber-800 mb-2.5 leading-relaxed">{worker.validation_feedback}</p>}
               <div className="flex gap-2">
                 {onRetry && <button onClick={() => onRetry(worker.id)}
@@ -497,14 +497,15 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
             {/* Task name */}
             <p className="text-[11px] text-[var(--accent)] mt-0.5">{worker.task}</p>
 
-            {/* Validation score badge */}
+            {/* Validation state — descriptive, not "N점" (score numerals are
+                verdict language; the internal score still drives the tint). */}
             {worker.validation_score != null && (
               <span className={`inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${
                 worker.validation_score >= 80 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                   : worker.validation_score >= 60 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                   : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
               }`}>
-                {L('품질', 'Quality')} {worker.validation_score}{L('점', 'pt')}
+                {worker.validation_score >= 80 ? L('확인 통과', 'Checked') : worker.validation_score >= 60 ? L('한 번 봐주세요', 'Worth a look') : L('확인 필요', 'Needs review')}
               </span>
             )}
 

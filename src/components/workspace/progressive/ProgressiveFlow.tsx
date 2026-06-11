@@ -45,7 +45,7 @@ import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
-import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, TrendingUp, TrendingDown, Minus, Scale } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { t } from '@/lib/i18n';
 import { personaName, personaRole } from './shared/persona-format';
@@ -147,20 +147,24 @@ const STAGE_PHASES = ['analyzing', 'conversing', 'mixing', 'dm_feedback', 'compl
 const STAGES_KO = ['분석', '질문', '팀 작업', '검토', '완성'] as const;
 const STAGES_EN = ['Analysis', 'Questions', 'Team work', 'Review', 'Done'] as const;
 
-function stageIdx(phase: string): number {
+function stageIdx(phase: string, crewDeployed = false): number {
   // refining belongs to the review stage; lead_synthesizing to team work —
   // neither is in STAGE_PHASES, so map them explicitly before the lookup.
   if (phase === 'refining' || phase === 'testing') return 3;
   if (phase === 'lead_synthesizing') return 2;
+  // The crew theater (CrewAtWork) actually runs DURING 'conversing' — once
+  // workers are deployed the screen shows team work, so the stepper must too,
+  // or the user watches the theater under a header that still says "질문".
+  if (phase === 'conversing' && crewDeployed) return 2;
   const i = STAGE_PHASES.indexOf(phase as typeof STAGE_PHASES[number]);
   return i < 0 ? 0 : i;
 }
 
-function ProgressLine({ phase }: { phase: string }) {
+function ProgressLine({ phase, crewDeployed = false }: { phase: string; crewDeployed?: boolean }) {
   const locale = useLocale();
   const STAGES = locale === 'ko' ? STAGES_KO : STAGES_EN;
   const N = STAGES.length;
-  const idx = stageIdx(phase);
+  const idx = stageIdx(phase, crewDeployed);
   const isComplete = phase === 'complete';
   const pct = (idx / (N - 1)) * 100;
   const currentLabel = STAGES[idx];
@@ -256,8 +260,9 @@ function AnsweredPills({ qaPairs }: { qaPairs: Array<{ question: FlowQuestion; a
         <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05, ...SPRING }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px]">
           <Check size={10} className="text-[var(--accent)]" />
-          <span className="text-[var(--text-tertiary)] max-w-[100px] sm:max-w-[80px] truncate">{qa.question.text.split(' ').slice(0, 3).join(' ')}</span>
-          <span className="text-[var(--text-primary)] font-medium max-w-[140px] sm:max-w-[100px] truncate">{qa.answer!.value}</span>
+          {/* Wider caps on LARGER screens (the sm: values were inverted). */}
+          <span className="text-[var(--text-tertiary)] max-w-[80px] sm:max-w-[120px] truncate">{qa.question.text.split(' ').slice(0, 3).join(' ')}</span>
+          <span className="text-[var(--text-primary)] font-medium max-w-[100px] sm:max-w-[160px] truncate">{qa.answer!.value}</span>
         </motion.div>
       ))}
       <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
@@ -307,30 +312,30 @@ function PhaseStatusBar({
   if (busy || phase === 'analyzing' || phase === 'mixing' || phase === 'lead_synthesizing') {
     mode = 'ai_working';
     if (phase === 'analyzing') {
-      label = L('상황을 분석하고 있습니다', 'Analyzing the situation');
+      label = L('상황을 분석하고 있어요', 'Analyzing the situation');
       sub = workersRunning > 0 ? L(`에이전트 ${workersDone}/${workersTotal} 완료`, `Agents ${workersDone}/${workersTotal} done`) : '';
     } else if (phase === 'lead_synthesizing') {
       label = L(`${leadAgentName || '리드'}가 팀 결과를 통합하는 중`, `${leadAgentName || 'Lead'} is synthesizing findings`);
     } else if (phase === 'mixing') {
-      label = L('초안을 작성하고 있습니다', 'Drafting the document');
+      label = L('초안을 작성하고 있어요', 'Drafting the document');
     } else {
-      label = L('처리 중...', 'Processing...');
+      label = L('생각하는 중...', 'Thinking...');
     }
   } else if (hasQuestion) {
     mode = 'your_turn';
-    label = L('당신 차례입니다', 'Your turn');
+    label = L('당신 차례예요', 'Your turn');
     sub = L('질문에 답해주세요', 'Please answer the question');
   } else if (deployReady) {
     mode = 'your_turn';
-    label = L('당신 차례입니다', 'Your turn');
+    label = L('당신 차례예요', 'Your turn');
     sub = L('팀 구성을 확인하고 시작하세요', 'Review the team and start');
   } else if (shouldMix) {
     mode = 'your_turn';
-    label = L('팀 분석이 끝났습니다', 'Team analysis complete');
+    label = L('팀 분석이 끝났어요', 'Team analysis complete');
     sub = L('초안 작성을 시작하세요', 'Ready to create the draft');
   } else if (workersRunning > 0) {
     mode = 'ai_working';
-    label = L('팀이 분석하고 있습니다', 'Team is analyzing');
+    label = L('팀이 분석하고 있어요', 'Team is analyzing');
     sub = L(`${workersDone}/${workersTotal} 완료`, `${workersDone}/${workersTotal} done`);
   } else {
     return null;
@@ -400,12 +405,20 @@ function PhaseStatusBar({
       {mode === 'ai_working' && elapsedLabel && (
         <span className={`text-[11px] tabular-nums shrink-0 ${showLongWait ? 'text-amber-700 dark:text-amber-300 font-semibold' : 'text-[var(--text-tertiary)]'}`}>{elapsedLabel}</span>
       )}
-      {showLongWait && onCancel && (
+      {/* Cancel is ALWAYS reachable while the AI works — not only after the
+          30s "long wait" promotion. The first half-minute used to offer no
+          way out at all; now it's a quiet tertiary action that turns amber
+          when the wait gets long. */}
+      {mode === 'ai_working' && onCancel && (
         <motion.button
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           onClick={onCancel}
-          className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-amber-700 dark:text-amber-300 border border-amber-300/50 hover:bg-amber-100/60 dark:hover:bg-amber-900/30 transition-colors cursor-pointer"
+          className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[32px] rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
+            showLongWait
+              ? 'text-amber-700 dark:text-amber-300 border border-amber-300/50 hover:bg-amber-100/60 dark:hover:bg-amber-900/30'
+              : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border border-transparent hover:border-[var(--border)]'
+          }`}
           aria-label={L('취소', 'Cancel')}
         >
           <XIcon size={10} />
@@ -761,7 +774,7 @@ function VoyagePrepSummary({
               className="group/sail w-full flex items-center justify-center gap-2.5 px-6 py-4 text-white rounded-xl text-[15px] font-semibold shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all cursor-pointer disabled:opacity-50"
               style={{ background: 'var(--gradient-gold)' }}>
               {busy
-                ? <><Loader2 size={16} className="animate-spin" /> {L('조합 중...', 'Combining...')}</>
+                ? <><Loader2 size={16} className="animate-spin" /> {L('초안 만드는 중...', 'Drafting...')}</>
                 : (
                   <>
                     {L('이 방향으로 초안 만들기', 'Create the draft')}
@@ -824,9 +837,12 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
         </div>
         <div>
           <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">{L('이 방향이 맞나요?', 'Is this the right direction?')}</p>
+          {/* Measurement language, not a score: "확신도 N%" was verdict
+              vocabulary — describe the state instead (P1 zero-verdict). */}
           <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-            {isLowConfidence ? L('이 문제는 여러 방향으로 해석될 수 있습니다.', 'This problem can be interpreted in multiple ways.') : L('분석 방향을 확인하고 다음으로 넘어갑니다.', 'Confirm the analysis direction to proceed.')}
-            {' '}{L('확신도', 'Confidence')} {confidence}%
+            {isLowConfidence
+              ? L('이 문제는 여러 방향으로 읽힐 수 있어요 — 해석이 흔들릴 여지가 있어요.', 'This problem reads in more than one way — the framing could still shift.')
+              : L('분석 방향을 확인하고 다음으로 넘어가요.', 'Confirm the analysis direction to proceed.')}
           </p>
         </div>
       </div>
@@ -835,7 +851,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
         <div className="flex gap-2 pl-9">
           <motion.button onClick={onConfirm} disabled={busy} whileTap={{ scale: 0.98 }}
             className="px-4 py-2 rounded-xl text-[12px] font-semibold text-white cursor-pointer disabled:opacity-50"
-            style={{ background: 'var(--gradient-gold)' }}>{L('맞습니다', 'Correct')}</motion.button>
+            style={{ background: 'var(--gradient-gold)' }}>{L('맞아요', 'Correct')}</motion.button>
           <motion.button onClick={() => setRejectMode(true)} disabled={busy} whileTap={{ scale: 0.98 }}
             className="px-4 py-2 rounded-xl text-[12px] font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 cursor-pointer">
             {L('다시 정의', 'Redefine')}</motion.button>
@@ -843,7 +859,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
       ) : (
         <div className="pl-9 space-y-2">
           <input value={reason} onChange={e => setReason(e.target.value)} placeholder={L('어떤 방향이 더 맞나요? (예: 이건 투자용이 아니라 내부 보고용이야)', 'What direction fits better? (e.g., This is for internal reporting, not investors)')}
-            className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-base md:text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
             onKeyDown={e => { if (e.key === 'Enter' && reason.trim()) { e.preventDefault(); onReject(reason.trim()); } }} autoFocus />
           <div className="flex gap-2">
             <motion.button onClick={() => reason.trim() && onReject(reason.trim())} disabled={busy || !reason.trim()} whileTap={{ scale: 0.98 }}
@@ -861,10 +877,16 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
 function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const colorClass = metrics.score >= 75 ? 'text-emerald-600 bg-emerald-50' :
-    metrics.score >= 50 ? 'text-amber-600 bg-amber-50' : 'text-red-500 bg-red-50';
+  const colorClass = metrics.score >= 75 ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400' :
+    metrics.score >= 50 ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400' : 'text-red-500 bg-red-50 dark:bg-red-900/20 dark:text-red-400';
   const barColor = metrics.score >= 75 ? 'bg-emerald-400' :
     metrics.score >= 50 ? 'bg-amber-400' : 'bg-red-400';
+  // Descriptive state, not a grade — "명확도 87%" was score vocabulary (P1).
+  const stateLabel = metrics.score >= 75
+    ? L('거의 정리됐어요', 'Nearly settled')
+    : metrics.score >= 50
+      ? L('정리되는 중', 'Coming together')
+      : L('아직 갈래가 많아요', 'Still forking');
 
   // Trend — answers "is this getting clearer?"
   const trend = metrics.trend === 'improving'
@@ -891,7 +913,7 @@ function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
             {L('명확도', 'Clarity')}
             {trend && <span className="flex items-center gap-0.5">{trend.icon}<span className="text-[9px]">{trend.label}</span></span>}
           </span>
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colorClass}`}>{metrics.score}%</span>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colorClass}`}>{stateLabel}</span>
         </div>
         {/* progress bar with a 75% "ready to move on" threshold marker */}
         <div className="relative h-1.5 rounded-full bg-[var(--border-subtle)]">
@@ -1028,6 +1050,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // ── Post-complete draft tree UI state ──
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [previewDraftId, setPreviewDraftId] = useState<string | null>(null);
+  // The "나" problem pill expands on tap (long briefs truncate to one line).
+  const [problemExpanded, setProblemExpanded] = useState(false);
+  // Two-step confirm for the destructive "초안부터 다시 만들기" exit.
+  const [rerunArmed, setRerunArmed] = useState(false);
   const [iterationOpen, setIterationOpen] = useState(false);
   const [iterationDirective, setIterationDirective] = useState('');
   const [isIterating, setIsIterating] = useState(false);
@@ -1419,10 +1445,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     startWorkerExecution(ws);
   };
 
-  /* Resume workers — after crash/reload, continue from where we left off */
+  /* Resume workers — after crash/reload, continue from where we left off.
+     No "at least one done" requirement: a reload BEFORE the first worker
+     finished left everyone frozen at 대기 with no way to restart (the
+     auto-deploy effect doesn't re-fire once deployPhase === 'deployed'). */
   const isResumable = deployPhase === 'deployed' && !final_
-    && workers.some(w => w.status === 'pending')
-    && workers.some(w => w.status === 'done' && w.result);
+    && workers.some(w => w.status === 'pending');
   const onResumeWorkers = () => {
     const ws = store.currentSession()?.workers ?? [];
     startWorkerExecution(ws);
@@ -1437,6 +1465,19 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     if (!newArcEnabled) return null;
     const probe = useProbeStore.getState();
     if (probe.status !== 'done' || probe.forks.length === 0) return null;
+    // The probe store is global — only forks measured on THIS session's text
+    // may become questions (a stale run from another session must stay inert).
+    if (probe.paragraph !== session?.problem_text) return null;
+    // 세션당 측정-정박 질문 ≤2 (v4.1 W2.2): per-conversion slicing isn't enough —
+    // a re-probe mints fresh fork ids, so the asked-id dedup alone would let
+    // up to 4 through. The store counter is memory-only while the session's
+    // questions persist, so count BOTH: a reload resets the store but the
+    // already-injected probe questions are right there in the session.
+    const injectedSoFar = Math.max(
+      probe.questionsInjected,
+      questions.filter((q) => q.id.startsWith('probe-fork-')).length,
+    );
+    if (injectedSoFar >= 2) return null;
     const askedIds = new Set(questions.map((q) => q.id));
     const candidates = forksToQuestions(probe.forks, {
       locale: locale as 'ko' | 'en',
@@ -1455,10 +1496,19 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     const fork = probe.forks.find((f) => forkQuestionId(f) === questionId);
     if (!fork) return;
     if (!probe.tryConsumeReprobe()) return;
-    const confirmed = `${session.problem_text}\n\n[사용자 확정] "${fork.cause_quote}" → ${value}`;
-    runDivergenceProbe(confirmed, { n: 3, fields: [fork.field] })
+    const originalText = session.problem_text;
+    const confirmed = `${originalText}\n\n[사용자 확정] "${fork.cause_quote}" → ${value}`;
+    // anchorText: quotes must verify against the user's OWN text, not the
+    // synthetic [사용자 확정] line we just appended.
+    runDivergenceProbe(confirmed, { n: 3, fields: [fork.field], anchorText: originalText })
       .then((r) => {
+        // A failed re-measure must NOT erase the standing measurement: removing
+        // the field's forks with nothing to replace them would render as "갈림
+        // 해소" — the exact failure≠silence lie probe-honesty guards against.
+        if (r.failed) return;
         const cur = useProbeStore.getState();
+        // Superseded (user moved to another session) → discard, don't pollute.
+        if (cur.paragraph !== originalText) return;
         cur.setForks([...cur.forks.filter((f) => f.field !== fork.field), ...r.forks]);
       })
       .catch(() => { /* re-probe is best-effort — silence on failure (P3) */ });
@@ -1473,7 +1523,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     if (newArcEnabled) {
       if (curQ.id.startsWith('probe-fork-')) maybeReprobe(curQ.id, value);
       const probeQ = nextPendingProbeQuestion();
-      if (probeQ) {
+      if (probeQ && useProbeStore.getState().tryConsumeQuestion()) {
         store.addAnswer(ans);
         store.addQuestion(probeQ);
         track('flow_answer', { round, probe_injected: true });
@@ -1483,7 +1533,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       }
     }
 
-    store.addAnswer(ans); store.setPhase('analyzing'); track('flow_answer', { round }); setBusy(true); setError(null); scrollToRef(statusBarRef);
+    // No scroll here — the question card unmounts and the sticky status bar is
+    // already in view; jumping now AND again on arrival was two jolts per turn.
+    store.addAnswer(ans); store.setPhase('analyzing'); track('flow_answer', { round }); setBusy(true); setError(null);
     // Tell the sidebar agents "new input just landed" — triggers flash
     useAgentAttentionStore.getState().ping('answer');
 
@@ -1591,7 +1643,20 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       // after addSnapshot/addQuestion so the snapshot reflects the user's
       // most recent answer.
       store.recordCheckpoint('briefing');
-    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('분석 실패', 'Analysis failed')); store.setPhase('conversing'); scrollToRef(statusBarRef); }
+    } catch (e) {
+      setStreamingText(null);
+      // The answer was consumed BEFORE the call — with it left in place,
+      // answers.length === questions.length and the user lands on the mix
+      // screen as if the turn succeeded. Roll it back so the question card
+      // returns (the answer was never analyzed); on user-cancel this is also
+      // the expected "go back to where I was".
+      store.rollbackAnswer(curQ.id);
+      if (!(e instanceof DOMException && e.name === 'AbortError')) {
+        setError(e instanceof Error ? e.message : L('분석에 실패했어요. 다시 시도해 주세요.', 'Analysis failed. Please try again.'));
+      }
+      store.setPhase('conversing');
+      scrollToRef(statusBarRef);
+    }
     finally { setBusy(false); abortRef.current = null; }
   };
 
@@ -2140,14 +2205,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             />
           )}
         </AnimatePresence>
-        <ProgressLine phase={phase} />
+        <ProgressLine phase={phase} crewDeployed={deployPhase === 'deployed' && workers.length > 0} />
 
         {/* PhaseStatusBar + StreamSnippet — sticky wrapper so progress info
             stays glued to the top while the user scrolls through the long
             page. Sticky lives on the wrapper, not the bar itself, so the
             wrapper provides the scroll travel room (its bottom is the body
             of the page). */}
-        <div ref={statusBarRef} className="sticky top-14 z-30 mb-6 pt-2 pb-1 bg-[var(--bg)]/85 backdrop-blur-sm">
+        <div ref={statusBarRef} className="sticky top-16 z-30 mb-6 pt-2 pb-1 bg-[var(--bg)]/85 backdrop-blur-sm">
           <PhaseStatusBar
             phase={phase} busy={busy}
             hasQuestion={!!curQ && !busy && phase === 'conversing'}
@@ -2171,17 +2236,65 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <StreamSnippet key="stream" text={streamingText} kind={streamKind} />
             )}
           </AnimatePresence>
+          {/* Errors live HERE, inside the sticky wrapper — every failure
+              handler scrolls to this bar, so the message must be where the
+              scroll lands. (It used to render at the very bottom of the page:
+              on long pages the user saw nothing and the turn just went quiet.) */}
+          <AnimatePresence>
+            {error && <motion.div key="flow-error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-2">
+              {error.startsWith('LOGIN_REQUIRED') ? (
+                <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-5">
+                  <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
+                  <p className="text-[12.5px] text-[var(--text-secondary)] mb-3">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있어요.`, `Sign in to get up to ${DAILY_LIMIT} free calls per day.`)}</p>
+                  <a href="/login" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={13} /></a>
+                </div>
+              ) : (() => {
+                const isQuota = error.includes('한도') || error.includes('rate') || error.includes('limit') || error.includes('429');
+                return (
+                  <div className="flex items-start gap-2 px-4 py-3 rounded-xl border border-[var(--danger)]/25 bg-[var(--danger)]/5">
+                    <AlertTriangle size={14} className="text-[var(--danger)] shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12.5px] text-[var(--text-primary)] leading-[1.5]">
+                        {isQuota
+                          ? L('오늘의 무료 사용 한도에 닿았어요. Settings에서 본인의 API 키를 등록하면 계속 쓸 수 있어요.', "You've hit today's free allowance. Register your own API key in Settings to keep going.")
+                          : error}
+                      </p>
+                      {isQuota && (
+                        <a href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
+                          {L('Settings에서 API 키 등록하기 →', 'Register API key in Settings →')}
+                        </a>
+                      )}
+                    </div>
+                    <button onClick={() => setError(null)} aria-label={L('닫기', 'Dismiss')}
+                      className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer shrink-0">
+                      <XIcon size={13} />
+                    </button>
+                  </div>
+                );
+              })()}
+            </motion.div>}
+          </AnimatePresence>
         </div>
 
         <div className="space-y-8">
-          {/* User input + reviewer — stacked pills */}
+          {/* User input + reviewer — stacked pills. The pill is a toggle:
+              a long problem statement truncates to one line, and the session
+              offers no other way to re-read your own brief — tap to expand. */}
           <div className="flex flex-col gap-2 items-start">
-            <motion.div layout className="flex items-center gap-3 px-5 py-3 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] max-w-full">
+            <motion.button
+              layout
+              type="button"
+              onClick={() => setProblemExpanded((o) => !o)}
+              title={problemExpanded ? undefined : L('눌러서 전체 보기', 'Tap to expand')}
+              className={`flex items-start gap-3 px-5 py-3 bg-[var(--bg)] border border-[var(--border-subtle)] max-w-full text-left cursor-pointer hover:border-[var(--accent)]/30 transition-colors ${problemExpanded ? 'rounded-2xl' : 'rounded-full'}`}
+            >
               <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0">
                 <span className="text-[var(--bg)] text-[9px] font-bold">{L('나', 'Me')}</span>
               </div>
-              <p className="text-[13px] text-[var(--text-secondary)] truncate">{session.problem_text}</p>
-            </motion.div>
+              <p className={`text-[13px] text-[var(--text-secondary)] leading-[1.55] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
+                {session.problem_text}
+              </p>
+            </motion.button>
             <ReviewerBadge reviewerId={session.reviewer_agent_id || null} />
           </div>
 
@@ -2215,14 +2328,16 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-[13px] text-amber-600 dark:text-amber-400">
                   <span>⟳</span>
-                  <span>{L('중단된 작업이 있습니다', 'Interrupted tasks found')}</span>
+                  <span>{L('중단된 작업이 있어요', 'Interrupted tasks found')}</span>
                   <span className="text-[var(--text-tertiary)]">
                     ({workers.filter(w => w.status === 'done').length}/{workers.length} {L('완료', 'done')})
                   </span>
                 </div>
                 <button onClick={onResumeWorkers}
-                  className="px-3 py-1.5 text-[13px] font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors">
-                  {L('이어서 실행', 'Resume')}
+                  className="px-3 py-2 min-h-[44px] md:min-h-0 md:py-1.5 text-[13px] font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer">
+                  {workers.some(w => w.status === 'done')
+                    ? L('이어서 실행', 'Resume')
+                    : L('다시 실행', 'Restart')}
                 </button>
               </div>
             </motion.div>
@@ -2238,6 +2353,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               onSeeDetail={() => scrollToRef(analysisCardRef, 'top')}
               locale={locale}
             />
+          )}
+
+          {/* When the current question IS a fork check, its evidence — the
+              trial-sail theater — must sit right above it, not a screen below:
+              the question quotes executors the user otherwise never saw. */}
+          {newArcEnabled && session && !mix && !final_ && phase === 'conversing' && !busy && curQ?.id?.startsWith('probe-fork-') && (
+            <TrialSail paragraph={session.problem_text} />
           )}
 
           {/* Question FIRST — user action at the top, not buried below */}
@@ -2281,9 +2403,19 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             )}
             {curQ && !busy && phase === 'conversing' && (() => {
               const teamReady = deployPhase === 'ready' && workers.length > 0;
-              const meta = teamReady
-                ? L(`${answers.length + 1}번째 질문 · 선택`, `Question ${answers.length + 1} · optional`)
-                : L(`${answers.length + 1}번째 질문`, `Question ${answers.length + 1}`);
+              const isProbeQ = !!curQ.id?.startsWith('probe-fork-');
+              // A denominator, not an open end — question fatigue is mostly not
+              // knowing how many are left. Probe questions are zero-LLM checks
+              // outside the round cap, so they carry their own label.
+              const qNow = Math.min(round + 1, maxR);
+              const isLast = qNow >= maxR;
+              const meta = isProbeQ
+                ? L('갈림 확인 · 선택', 'Fork check · optional')
+                : teamReady
+                  ? L(`질문 ${qNow}/${maxR} · 선택`, `Question ${qNow}/${maxR} · optional`)
+                  : isLast
+                    ? L(`질문 ${qNow}/${maxR} · 마지막 질문이에요`, `Question ${qNow}/${maxR} · last one`)
+                    : L(`질문 ${qNow}/${maxR}`, `Question ${qNow}/${maxR}`);
               // W1.6: in focus mode EVERY question carries the way out, inside
               // the card where the user is looking — never a hidden footer link.
               const focusEscape = focusMode && snapshots.length > 0
@@ -2313,11 +2445,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               deleted. */}
           {/* The escape now lives INSIDE the question card (above); this row
               keeps only the single quiet record toggle. */}
-          {focusMode && phase === 'conversing' && !busy && !mix && !final_ && snapshots.length > 0 && (
+          {/* Always mounted while conversing (busy included) — toggling its
+              existence per turn made the layout jump every analysis. */}
+          {focusMode && phase === 'conversing' && !mix && !final_ && snapshots.length > 0 && (
             <div className="flex justify-end -mt-3 px-1">
               <button
                 onClick={() => setRecordOpen((o) => !o)}
-                className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                disabled={busy}
+                className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[44px] md:min-h-0 px-2 -mr-2 disabled:opacity-40"
               >
                 {recordOpen ? L('기록 접기 ▴', 'Hide record ▴') : L('지금까지의 기록 ▾', 'Voyage record ▾')}
               </button>
@@ -2327,24 +2462,35 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* W1.6 ⑥ 팀 작업 극장 — live stream tails per crew member, not a
               progress bar. Below it, the one quiet line into the full stepper. */}
           {focusMode && deployPhase === 'deployed' && workers.length > 0 && !final_ && !mix && (
-            <CrewAtWork workers={workers} />
+            <CrewAtWork workers={workers} onRetry={(id) => workerActions.handleRetry(id)} />
           )}
 
           {/* W1.6 ③ focus: one quiet line replaces the grading gate. Reports
               auto-apply; whoever wants the full stepper opens it here. */}
-          {focusMode && deployPhase === 'deployed' && workers.length > 0 && !final_ && (
-            <button
-              onClick={() => setReportsOpen((o) => !o)}
-              className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer px-1"
-            >
-              {reportsOpen
-                ? L('선원 보고 접기 ▴', 'Hide crew reports ▴')
-                : L(
-                    `선원 보고 ${workers.filter((w) => w.status === 'done').length}건 — 자동 반영됐어요 · 자세히 보거나 빼려면 열어보기 ▾`,
-                    `${workers.filter((w) => w.status === 'done').length} crew reports — auto-applied · open to inspect or exclude ▾`,
-                  )}
-            </button>
-          )}
+          {focusMode && deployPhase === 'deployed' && workers.length > 0 && !final_ && (() => {
+            const doneN = workers.filter((w) => w.status === 'done').length;
+            const failedN = workers.filter((w) => w.status === 'error').length;
+            // Honest counts: a failed crew member's share does NOT go into the
+            // draft — saying "자동 반영됐어요" over a failure would be the
+            // failure≠silence lie in miniature.
+            const summary = failedN > 0
+              ? L(
+                  `선원 보고 ${doneN}건 반영 · ${failedN}건은 닿지 않았어요 — 열어서 다시 시도하거나 빼기 ▾`,
+                  `${doneN} crew reports applied · ${failedN} didn't land — open to retry or exclude ▾`,
+                )
+              : L(
+                  `선원 보고 ${doneN}건 — 자동 반영됐어요 · 자세히 보거나 빼려면 열어보기 ▾`,
+                  `${doneN} crew reports — auto-applied · open to inspect or exclude ▾`,
+                );
+            return (
+              <button
+                onClick={() => setReportsOpen((o) => !o)}
+                className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer px-1 min-h-[44px] md:min-h-0 text-left"
+              >
+                {reportsOpen ? L('선원 보고 접기 ▴', 'Hide crew reports ▴') : summary}
+              </button>
+            );
+          })()}
 
           {/* Inline worker reports — ONE-AT-A-TIME stepper. Reviewing 3 long
               drafts in a single scroll was a huge burden; instead the user
@@ -2481,7 +2627,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               snapshot={latest}
               onMix={onMix}
               onMore={onMore}
-              onRevisit={() => scrollToRef(answeredPillsRef, 'bottom')}
+              onRevisit={() => {
+                // The pills live behind the record toggle in focus mode —
+                // open it first, or this scrolls to a null ref (page bottom).
+                setRecordOpen(true);
+                requestAnimationFrame(() => scrollToRef(answeredPillsRef, 'bottom'));
+              }}
               busy={busy}
             />
           )}
@@ -2514,7 +2665,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               analysis stream during the first rounds; the deepening loop below
               is untouched (적층 not 교체). Off by default — old path is the
               A/B baseline. */}
-          {newArcEnabled && session && !mix && !final_ && (phase === 'analyzing' || phase === 'conversing') && (
+          {newArcEnabled && session && !mix && !final_ && (phase === 'analyzing' || phase === 'conversing')
+            && !(phase === 'conversing' && !busy && curQ?.id?.startsWith('probe-fork-')) && (
             <TrialSail paragraph={session.problem_text} />
           )}
 
@@ -2751,8 +2903,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               </div>
               <p className="text-[16px] font-semibold text-[var(--text-primary)]">
                 {dmFb && dmFb.concerns.filter((c: DMConcern) => c.applied).length > 0
-                  ? locale === 'ko' ? `피드백 ${dmFb.concerns.filter((c: DMConcern) => c.applied).length}건이 반영된 최종 문서입니다` : `Final document with ${dmFb.concerns.filter((c: DMConcern) => c.applied).length} feedback item(s) applied`
-                  : L('최종 문서가 완성되었습니다', 'Your document is complete')}
+                  ? locale === 'ko' ? `피드백 ${dmFb.concerns.filter((c: DMConcern) => c.applied).length}건이 반영된 최종 문서예요` : `Final document with ${dmFb.concerns.filter((c: DMConcern) => c.applied).length} feedback item(s) applied`
+                  : L('최종 문서가 완성됐어요', 'Your document is complete')}
               </p>
               <p className="text-[13px] text-[var(--text-tertiary)]">
                 {L('아래에서 복사하거나, 새 프로젝트를 시작할 수 있어요', 'Copy below or start a new project')}
@@ -2791,11 +2943,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <motion.details initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
                 className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] group">
                 <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer text-[12px] font-semibold text-[var(--text-secondary)] select-none">
-                  <span className="text-[14px]">{'⚔️'}</span>
+                  <Scale size={13} className="text-[var(--text-secondary)]" />
                   {L('팀 내 반론', 'Team Dissent')}
-                  <span className={`ml-auto text-[9px] px-2 py-0.5 rounded-full font-medium ${
-                    debateResult.severity === 'critical' ? 'bg-red-100 text-red-600' : debateResult.severity === 'important' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
-                  }`}>{debateResult.severity}</span>
+                  {/* Localized severity (raw English enum used to leak here) + dark-safe tints */}
+                  <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    debateResult.severity === 'critical' ? 'bg-red-100 text-red-600 dark:bg-red-900/25 dark:text-red-300'
+                      : debateResult.severity === 'important' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/25 dark:text-amber-300'
+                      : 'bg-gray-100 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400'
+                  }`}>{debateResult.severity === 'critical' ? L('필수', 'Critical') : debateResult.severity === 'important' ? L('권장', 'Important') : L('참고', 'Minor')}</span>
                 </summary>
                 <div className="px-4 pb-4 space-y-2 text-[13px] text-[var(--text-primary)] leading-relaxed">
                   <p>{debateResult.challenge}</p>
@@ -2805,60 +2960,75 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               </motion.details>
             )}
 
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-8 pb-16">
-              <p className="text-[13px] text-[var(--text-tertiary)] text-center mb-1.5">{L('복사해서 바로 사용하세요.', 'Copy and use it right away.')}</p>
+            {/* ③ 봉인 종막 — the voyage's last interaction. A standalone,
+                screen-transition-grade closing question ("이 결정, …에 어떻게
+                됐는지 물어봐 드릴까요?"). Accept = 1 tap (auto draft + editable
+                drawer); reject = 1 tap, lossless (everything above stays). The
+                surface never says 내기/predicate/반증. Renders nothing when there
+                is nothing falsifiable to ask about (P3 침묵).
+                Renders ABOVE the exit CTAs: the gold "새 프로젝트 시작" button
+                used to sit between the bearing and this question, so users left
+                before ever seeing it — the closing scene must come before the
+                exits, never compete with them. */}
+            {contractProject && (
+              <SealMoment project={contractProject} predicates={contractPredicates} />
+            )}
+
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-10 pb-16">
+              {/* (The old "복사해서 바로 사용하세요" label pointed at a copy button
+                  that lives in FinalCard's header, not here — removed.) */}
               <p className="text-[11px] text-[var(--text-tertiary)]/80 text-center mb-6">{L('새 프로젝트를 시작해도 이 결과는 저장돼요 — 언제든 다시 열 수 있어요.', 'Starting a new project keeps this one saved — you can reopen it anytime.')}</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
-                <button onClick={() => { useProgressiveStore.setState({ currentSessionId: null }); window.location.reload(); }}
+                <button onClick={() => {
+                  useProgressiveStore.setState({ currentSessionId: null });
+                  // Also clear the PERSISTED current project — without this,
+                  // loadProjects restores it after the reload and reopens the
+                  // very session the user just tried to leave (review P0 #2).
+                  useProjectStore.getState().setCurrentProjectId(null);
+                  window.location.assign('/workspace');
+                }}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white text-[13px] font-semibold cursor-pointer"
                   style={{ background: 'var(--gradient-gold)' }}>{L('새 프로젝트 시작', 'Start New Project')} <ArrowRight size={12} /></button>
                 <button onClick={() => { setIterationOpen(true); setIterationDirective(''); }}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] border border-[var(--accent)]/30 bg-[var(--gold-muted)]/30 hover:bg-[var(--gold-muted)]/50 cursor-pointer transition-colors">
                   <Wand2 size={13} className="text-[var(--accent)]" /> {L('항해장에게 수정 요청', 'Ask Navigator to revise')}
                 </button>
-                <button onClick={() => { if (mix) { store.setFinalDeliverable(null as unknown as string); store.setDMFeedback(null as unknown as import('@/stores/types').DMFeedbackResult); store.setMix(null as unknown as MixResult); setShowMix(true); } }}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[13px] font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 cursor-pointer transition-colors">
-                  {L('이해관계자 검증 다시 하기', 'Re-run stakeholder review')}
-                </button>
+                {/* Two-step confirm: this action DISCARDS the current final +
+                    review and regenerates from the draft stage — the label
+                    alone reads like "just re-validate". The first tap arms it
+                    with an honest description; the second commits. */}
+                {rerunArmed ? (
+                  <span className="inline-flex items-center gap-2">
+                    <button onClick={() => { if (mix) { store.setFinalDeliverable(null as unknown as string); store.setDMFeedback(null as unknown as import('@/stores/types').DMFeedbackResult); store.setMix(null as unknown as MixResult); setShowMix(true); } setRerunArmed(false); }}
+                      className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-[13px] font-semibold text-white bg-[var(--danger)] hover:opacity-90 cursor-pointer transition-opacity">
+                      {L('네, 다시 만들게요', 'Yes, regenerate')}
+                    </button>
+                    <button onClick={() => setRerunArmed(false)}
+                      className="inline-flex items-center justify-center px-4 py-3 rounded-2xl text-[13px] font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] cursor-pointer">
+                      {L('취소', 'Cancel')}
+                    </button>
+                  </span>
+                ) : (
+                  <button onClick={() => setRerunArmed(true)}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[13px] font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 cursor-pointer transition-colors"
+                    title={L('지금 문서와 검토 결과를 비우고 초안 단계부터 다시 만들어요. 이전 결과는 버전 히스토리에 남아요.', 'Clears the current document & review and regenerates from the draft stage. Previous results stay in version history.')}>
+                    {L('초안부터 다시 만들기', 'Regenerate from draft')}
+                  </button>
+                )}
               </div>
+              {rerunArmed && (
+                <p className="mt-3 text-[11.5px] text-[var(--text-tertiary)] text-center">
+                  {L('지금 문서와 이해관계자 검토를 비우고 초안 단계부터 다시 만들어요 — 이전 결과는 버전 히스토리에 남아요.', 'This clears the current document & stakeholder review and regenerates from the draft stage — previous results stay in version history.')}
+                </p>
+              )}
             </motion.div>
-
-            {/* ③ 봉인 종막 — the voyage's last interaction. A standalone,
-                screen-transition-grade closing question ("이 결정, …에 어떻게
-                됐는지 물어봐 드릴까요?"). Accept = 1 tap (auto draft + editable
-                drawer); reject = 1 tap, lossless (everything above stays). The
-                surface never says 내기/predicate/반증. Renders nothing when there
-                is nothing falsifiable to ask about (P3 침묵). */}
-            {contractProject && (
-              <SealMoment project={contractProject} predicates={contractPredicates} />
-            )}
           </div>}
 
-          <AnimatePresence>
-            {error && <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              {error.startsWith('LOGIN_REQUIRED') ? (
-                <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-6">
-                  <p className="text-[15px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
-                  <p className="text-[13px] text-[var(--text-secondary)] mb-4">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있습니다.`, `Sign in to get up to ${DAILY_LIMIT} free calls per day.`)}</p>
-                  <a href="/login" className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-white text-[14px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={14} /></a>
-                </div>
-              ) : (
-                <div className="flex items-start gap-2.5 px-5 py-4 rounded-2xl bg-red-50 border border-red-200 text-[13px] text-red-700">
-                  <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                  <div>
-                    <span>{error?.includes('한도') || error?.includes('rate') ? L('무료 체험 한도에 도달했습니다. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.', 'Free trial limit reached. Register your own API key in Settings for unlimited use.') : error}</span>
-                    {(error?.includes('한도') || error?.includes('rate')) && (
-                      <a href="/settings" className="block mt-1.5 text-[12px] text-red-600 font-medium hover:underline">{L('Settings에서 API 키 등록하기 →', 'Register API key in Settings →')}</a>
-                    )}
-                  </div>
-                </div>
-              )}
-            </motion.div>}
-          </AnimatePresence>
-
-          {/* The bottom milestone row used to duplicate the top stepper with a
-              different vocabulary; the top ProgressLine is now the single,
-              sticky progress indicator, so the redundant row was removed. */}
+          {/* Errors render inside the sticky status wrapper near the top —
+              the bottom-of-page banner that used to live here was invisible
+              on long pages (every failure handler scrolls to the status bar).
+              The bottom milestone row was likewise removed earlier; the top
+              ProgressLine is the single progress indicator. */}
         </div>
       </motion.div>
 
@@ -2978,7 +3148,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 value={iterationDirective}
                 onChange={(e) => setIterationDirective(e.target.value)}
                 placeholder={L('예: 재무 섹션의 가정을 더 보수적으로. 낙관/기본/비관 3가지 시나리오 추가.', 'e.g. Make financial assumptions more conservative. Add 3 scenarios.')}
-                className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] resize-none leading-relaxed"
+                className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-base md:text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] resize-none leading-relaxed"
                 rows={5}
                 maxLength={500}
                 disabled={isIterating}

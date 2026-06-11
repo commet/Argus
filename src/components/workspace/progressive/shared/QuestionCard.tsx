@@ -46,7 +46,8 @@ export function QuestionCard({
     onAnswer(input.trim());
   };
 
-  // 2x2 grid if all options are short, otherwise stacked
+  // 2x2 grid if all options are short, otherwise stacked. Mobile always stacks —
+  // two 19-char Korean options side-by-side wrap to 3–4 lines and lose scannability.
   const options = question.options || [];
   const useGrid = options.length > 0 && options.every(o => o.length < 20);
 
@@ -77,7 +78,7 @@ export function QuestionCard({
       {/* Options */}
       {options.length > 0 ? (
         <div className="pl-8.5">
-          <div className={useGrid ? 'grid grid-cols-2 gap-2' : 'space-y-1.5'}>
+          <div className={useGrid ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'space-y-1.5'}>
             {options.map((opt, i) => (
               <motion.button
                 key={i}
@@ -154,11 +155,16 @@ export function QuestionCard({
       {onSkip && !submitted && (
         <div className="pl-8.5 mt-3">
           {/* A visible chip, not a buried footer link — the user must always
-              SEE the way out of the question loop (G-W1 #1: "끊는 곳이 없다"). */}
+              SEE the way out of the question loop (G-W1 #1: "끊는 곳이 없다").
+              NOTE: skip must NOT set `submitted` — the parent may bounce back
+              to this same card (e.g. the verification gate gets closed without
+              approving), and a locally-locked card would strand the user with
+              every option disabled and the escape chip gone. The card unmounts
+              on a real transition anyway; `disabled` covers the busy window. */}
           <button
-            onClick={() => { if (!disabled) { setSubmitted(true); onSkip(); } }}
+            onClick={() => { if (!disabled) onSkip(); }}
             disabled={disabled}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-[12px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] cursor-pointer transition-colors disabled:opacity-40">
+            className="inline-flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 min-h-[44px] md:min-h-0 rounded-lg border border-[var(--border)] text-[12px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] cursor-pointer transition-colors disabled:opacity-40">
             {skipLabel || L('건너뛰기', 'Skip')} <ArrowRight size={11} />
           </button>
         </div>

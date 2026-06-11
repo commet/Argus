@@ -75,8 +75,9 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                 <div className="flex items-center gap-2 mb-3">
                   <span style={{ fontSize: 18 }}>⚔️</span>
                   <p className="text-[9px] font-bold text-[var(--danger)] uppercase tracking-[0.2em]">{L('팀 내 반론', 'Team Dissent')}</p>
-                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${debateResult.severity === 'critical' ? 'bg-[var(--danger)]/10 text-[var(--danger)]' : debateResult.severity === 'important' ? 'bg-[var(--warning)]/10 text-[var(--warning)]' : 'bg-[var(--text-tertiary)]/10 text-[var(--text-tertiary)]'}`}>
-                    {debateResult.severity}
+                  {/* Localized — the raw English enum used to leak into Korean UI */}
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${debateResult.severity === 'critical' ? 'bg-[var(--danger)]/10 text-[var(--danger)]' : debateResult.severity === 'important' ? 'bg-[var(--warning)]/10 text-[var(--warning)]' : 'bg-[var(--text-tertiary)]/10 text-[var(--text-tertiary)]'}`}>
+                    {debateResult.severity === 'critical' ? L('필수', 'Critical') : debateResult.severity === 'important' ? L('권장', 'Important') : L('참고', 'Minor')}
                   </span>
                 </div>
                 <p className="text-[13px] text-[var(--text-primary)] leading-relaxed mb-2">{debateResult.challenge}</p>
@@ -102,7 +103,9 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                   <motion.button onClick={onSkip} disabled={busy} whileTap={{ scale: 0.98 }}
                     className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                     style={{ background: 'var(--gradient-gold)' }}>
-                    {busy ? <Loader2 size={16} className="animate-spin" /> : L('마무리로 →', 'Wrap up →')}
+                    {/* Honest preview of what's next: one last shake of the plan,
+                        not an instant finish (expectation break drove drop-offs). */}
+                    {busy ? <Loader2 size={16} className="animate-spin" /> : L('마무리 전에 한 번 흔들어보기 →', 'One last shake, then wrap up →')}
                   </motion.button>
                   <button onClick={onDM} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
                     style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>
@@ -125,7 +128,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                     <motion.button onClick={onDM} disabled={busy} whileTap={{ scale: 0.98 }}
                       className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                       style={{ background: 'var(--gradient-gold)' }}>
-                      {busy ? <><Loader2 size={16} className="animate-spin" /> {L(`${dm || '리뷰어'}이(가) 읽고 있습니다...`, `${dm || 'Reviewer'} is reading...`)}</> : <><UserCheck size={16} /> {L('검토 받기', 'Get Review')}</>}
+                      {busy ? <><Loader2 size={16} className="animate-spin" /> {L(`${dm || '리뷰어'}이(가) 읽고 있어요...`, `${dm || 'Reviewer'} is reading...`)}</> : <><UserCheck size={16} /> {L('검토 받기', 'Get Review')}</>}
                     </motion.button>
                   </div>
                   <button onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"

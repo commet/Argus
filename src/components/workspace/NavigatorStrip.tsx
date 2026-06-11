@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Music2, X, Lightbulb, BarChart3, TrendingUp, AlertTriangle, Target, Eye } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Compass, X, Lightbulb, BarChart3, TrendingUp, AlertTriangle, Target, Eye } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
+import { getStorage, setStorage } from '@/lib/storage';
 import { buildNavigatorProfile, buildNavigatorInsights, buildLearningCurve } from '@/lib/navigator';
 import type { NavigatorInsight, LearningCurve } from '@/lib/navigator';
 import { t } from '@/lib/i18n';
@@ -191,9 +192,28 @@ function TierProgress({ tier, progress }: { tier: 1 | 2 | 3; progress: number })
    Main Component
    ──────────────────────────────────── */
 
+/** Dismissed-insight ids live in localStorage so they don't revive on remount. */
+const DISMISSED_KEY = 'argus-navigator-dismissed';
+
 export function NavigatorStrip() {
   const { navigatorOpen, toggleNavigator } = useWorkspaceStore();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+
+  // Hydrate persisted dismissals after mount (SSR-safe; getStorage parses defensively)
+  useEffect(() => {
+    const saved = getStorage<string[]>(DISMISSED_KEY, []);
+    if (saved.length > 0) {
+      setDismissed(new Set(saved.filter((v): v is string => typeof v === 'string')));
+    }
+  }, []);
+
+  const dismissInsight = (id: string) => {
+    setDismissed((prev) => {
+      const next = new Set(prev).add(id);
+      setStorage(DISMISSED_KEY, Array.from(next));
+      return next;
+    });
+  };
 
   const profile = useMemo(() => buildNavigatorProfile(), []);
   const allInsights = useMemo(() => buildNavigatorInsights(profile), [profile]);
@@ -216,7 +236,7 @@ export function NavigatorStrip() {
         title={t('navigator.open')}
       >
         <div className="absolute inset-y-0 left-0 w-[2px]" style={{ background: 'var(--gradient-gold)' }} />
-        <Music2 size={18} className="text-[var(--gold)]" />
+        <Compass size={18} className="text-[var(--gold)]" />
         {hasNewInsights && (
           <span className="w-2 h-2 rounded-full bg-[var(--gold)] shadow-[var(--glow-gold)]" />
         )}
@@ -232,7 +252,7 @@ export function NavigatorStrip() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
         <div className="flex items-center gap-2">
-          <Music2 size={16} className="text-[var(--gold)]" />
+          <Compass size={16} className="text-[var(--gold)]" />
           <span className="text-[14px] font-bold text-[var(--text-primary)]">{t('navigator.title')}</span>
         </div>
         <button
@@ -349,7 +369,7 @@ export function NavigatorStrip() {
                     )}
                   </div>
                   <button
-                    onClick={() => setDismissed((prev) => new Set(prev).add(insight.id))}
+                    onClick={() => dismissInsight(insight.id)}
                     className="opacity-0 group-hover:opacity-100 p-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-opacity"
                     title={t('navigator.close')}
                   >

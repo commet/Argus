@@ -372,7 +372,9 @@ export function WorkerDrawer({ className }: { className?: string }) {
     // a brief glow; the bounce plays once per ping.
     if (lastPingSource === 'workers_done' && lastPingAt > 0) {
       peekControls.start({
-        y: [0, -14, 0, -6, 0],
+        // Modest amplitude — at -14px the bar collided with the LogbookDrawer
+        // stacked ~56px above it on mobile complete screens.
+        y: [0, -6, 0, -3, 0],
         transition: { duration: 0.95, delay: 0.1, ease: EASE },
       });
       setCelebrate(true);

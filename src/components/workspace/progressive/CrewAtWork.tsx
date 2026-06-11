@@ -13,7 +13,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { Check, AlertTriangle } from 'lucide-react';
+import { Check, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import type { WorkerTask } from '@/stores/types';
 
@@ -30,14 +30,27 @@ function firstLine(w: WorkerTask): string {
   return line.length > 110 ? line.slice(0, 110) + '…' : line;
 }
 
-export function CrewAtWork({ workers }: { workers: WorkerTask[] }) {
+export function CrewAtWork({ workers, onRetry }: { workers: WorkerTask[]; onRetry?: (workerId: string) => void }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   if (workers.length === 0) return null;
 
   const ordered = [...workers].sort((a, b) => a.step_index - b.step_index);
   const doneCount = ordered.filter((w) => w.status === 'done').length;
+  const errorCount = ordered.filter((w) => w.status === 'error').length;
   const allDone = ordered.every((w) => w.status === 'done' || w.status === 'error');
+
+  // Honest headline: a failed crew member's share does NOT flow into the
+  // draft — "전부 초안에 들어갑니다" over a failure would be failure≠silence
+  // in miniature.
+  const headline = !allDone
+    ? L('선원들이 일하고 있어요', 'The crew is at work')
+    : errorCount === 0
+      ? L(`선원 ${doneCount}명의 작업이 끝났어요 — 전부 초안에 들어갑니다`, `${doneCount} crew finished — everything flows into the draft`)
+      : L(
+          `선원 ${ordered.length}명 중 ${doneCount}명 완료 · ${errorCount}명은 닿지 않았어요 — 실패한 몫은 빼고 갑니다`,
+          `${doneCount} of ${ordered.length} finished · ${errorCount} didn't land — the draft goes on without that share`,
+        );
 
   return (
     <motion.div
@@ -46,26 +59,29 @@ export function CrewAtWork({ workers }: { workers: WorkerTask[] }) {
       transition={{ duration: 0.4 }}
       className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 space-y-2.5"
     >
-      <p className="text-[12.5px] font-semibold text-[var(--text-primary)]">
-        {allDone
-          ? L(`선원 ${doneCount}명의 작업이 끝났어요 — 전부 초안에 들어갑니다`, `${doneCount} crew finished — everything flows into the draft`)
-          : L('선원들이 일하고 있어요', 'The crew is at work')}
-      </p>
+      <p className="text-[12.5px] font-semibold text-[var(--text-primary)]">{headline}</p>
 
       <div className="space-y-1.5">
-        {ordered.map((w) => {
+        {ordered.map((w, i) => {
           const name = (locale === 'en' ? w.persona?.nameEn : w.persona?.name) || w.persona?.name || L('선원', 'Crew');
           const emoji = w.persona?.emoji || '⚓';
           const running = w.status === 'running' || w.status === 'ai_preparing';
           return (
-            <div key={w.id} className="flex items-start gap-2.5 rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)] px-3 py-2.5">
+            <motion.div
+              key={w.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.12, duration: 0.35 }}
+              className="flex items-start gap-2.5 rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)] px-3 py-2.5"
+            >
               <span className="text-[15px] shrink-0 leading-none mt-0.5" aria-hidden>{emoji}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2">
                   <span className="text-[12px] font-semibold text-[var(--text-primary)]">{name}</span>
                   <span className="text-[11px] text-[var(--text-tertiary)] truncate">{w.task}</span>
                 </div>
-                {/* The theater: live stream tail while running; takeaway when done. */}
+                {/* The theater: live stream tail while running; takeaway when done;
+                    an honest line + inline retry when the work didn't land. */}
                 {running && w.stream_text ? (
                   <p className="text-[11.5px] text-[var(--text-secondary)] mt-1 leading-[1.5] font-mono truncate">
                     {streamTail(w.stream_text)}
@@ -73,6 +89,18 @@ export function CrewAtWork({ workers }: { workers: WorkerTask[] }) {
                   </p>
                 ) : w.status === 'done' && firstLine(w) ? (
                   <p className="text-[11.5px] text-[var(--text-secondary)] mt-1 leading-[1.5] line-clamp-2">{firstLine(w)}</p>
+                ) : w.status === 'error' ? (
+                  <p className="text-[11.5px] text-[var(--text-tertiary)] mt-1 leading-[1.5]">
+                    {L('이 선원의 작업이 닿지 않았어요.', "This crew member's work didn't land.")}
+                    {onRetry && (
+                      <button
+                        onClick={() => onRetry(w.id)}
+                        className="ml-2 inline-flex items-center gap-1 text-[var(--accent)] font-medium hover:underline cursor-pointer"
+                      >
+                        <RefreshCw size={10} /> {L('다시 시도', 'Retry')}
+                      </button>
+                    )}
+                  </p>
                 ) : null}
               </div>
               <span className="shrink-0 mt-0.5">
@@ -86,7 +114,7 @@ export function CrewAtWork({ workers }: { workers: WorkerTask[] }) {
                   <span className="text-[10px] text-[var(--text-tertiary)]">{L('대기', 'queued')}</span>
                 )}
               </span>
-            </div>
+            </motion.div>
           );
         })}
       </div>

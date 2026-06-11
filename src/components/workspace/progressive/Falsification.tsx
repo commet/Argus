@@ -189,7 +189,7 @@ export function Falsification({
 
             <div>
               <label className="block text-[12.5px] font-semibold text-[var(--text-secondary)] mb-1.5">
-                {L('진짜로 베팅하는 전제를, 당신의 말로 적어주세요', 'In your own words, what are you really betting on?')}
+                {L('이 계획이 정말 기대고 있는 한 가지를, 당신의 말로 적어주세요', 'In your own words, what is this plan really resting on?')}
               </label>
               <textarea
                 value={realBet}

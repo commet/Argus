@@ -30,8 +30,6 @@ const SYSTEM_PROMPT_KO = `당신은 Argus 워크스페이스의 어시스턴트�
 - add_step: 선원 배치에 새 단계 추가. params: { task: string }
 - remove_step: 선원 배치에서 단계 제거. params: { stepIndex: number }
 - select_question: 항로 재설정에서 질문 선택. params: { questionIndex: number }
-- confirm: 현재 단계 확정. params: {}
-- reanalyze: 현재 단계 재분석. params: {}
 - message: 단순 응답 (액션 없음). params: {}
 
 반드시 JSON만 응답하세요. message 필드는 반드시 한국어로 작성하세요:
@@ -47,8 +45,6 @@ Available actions:
 - add_step: Add a new step in Crew Assignment. params: { task: string }
 - remove_step: Remove a step in Crew Assignment. params: { stepIndex: number }
 - select_question: Select a question in Set the Heading. params: { questionIndex: number }
-- confirm: Confirm the current step. params: {}
-- reanalyze: Re-analyze the current step. params: {}
 - message: Plain reply (no action). params: {}
 
 Respond with JSON only. The message field MUST be written in English:
@@ -116,15 +112,17 @@ export function QuickChatBar({ activeStep, onNavigate }: QuickChatBarProps) {
         break;
       }
 
-      case 'confirm': {
-        // This would need to call the appropriate store's confirm action
-        // For now just show the message
-        break;
-      }
-
+      case 'confirm':
       case 'reanalyze': {
-        // Would trigger reanalysis — complex, just show message for now
-        break;
+        // Unwired actions — never echo the LLM's success message (it would
+        // claim something happened when nothing did). Honest info instead.
+        setFeedback({
+          message: getCurrentLanguage() === 'ko'
+            ? '이 동작은 아직 지원하지 않아요 — 질문 카드에서 직접 답해 주세요.'
+            : 'This action isn\'t supported yet — please answer directly on the question card.',
+          type: 'info',
+        });
+        return;
       }
 
       case 'message':

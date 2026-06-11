@@ -188,6 +188,10 @@ interface ProgressiveState {
   // Q&A
   addQuestion: (question: FlowQuestion) => void;
   addAnswer: (answer: FlowAnswer) => void;
+  /** Remove the LAST answer iff it answers `questionId` — restores the question
+   *  when the deepening call that consumed it failed (the answer was recorded
+   *  but never analyzed; leaving it would silently skip the user to mix). */
+  rollbackAnswer: (questionId: string) => void;
   advanceRound: () => void;
 
   // Analysis
@@ -335,7 +339,12 @@ function persist(sessions: ProgressiveSession[]) {
 function migrateWorkers(sessions: ProgressiveSession[]): ProgressiveSession[] {
   return sessions.map(s => ({
     ...s,
-    phase: (s.phase === 'lead_synthesizing' && !s.lead_synthesis) ? 'mixing' as const
+    // In-flight phases all land on 'conversing' after a reload. NOTE the
+    // ternary chain evaluates against the ORIGINAL phase: mapping
+    // lead_synthesizing → 'mixing' here used to leave the session stuck in a
+    // phase with busy=false — an eternal fake "초안을 작성하고 있어요" with no
+    // CTA anywhere (mixing UIs all require live state). Straight to conversing.
+    phase: (s.phase === 'lead_synthesizing' && !s.lead_synthesis) ? 'conversing' as const
       : (s.phase === 'analyzing' || s.phase === 'mixing') ? 'conversing' as const
       : s.phase,
     worker_deploy_phase: s.worker_deploy_phase ?? (s.workers?.length ? 'deployed' : 'none'),
@@ -561,6 +570,18 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
       answers: [...s.answers, answer],
     }));
+    persist(sessions);
+    set({ sessions });
+  },
+
+  rollbackAnswer: (questionId) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    const sessions = updateSession(get().sessions, currentSessionId, (s) => {
+      const last = s.answers[s.answers.length - 1];
+      if (!last || last.question_id !== questionId) return {};
+      return { answers: s.answers.slice(0, -1) };
+    });
     persist(sessions);
     set({ sessions });
   },
