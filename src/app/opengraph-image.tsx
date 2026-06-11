@@ -34,20 +34,39 @@ export default async function Image() {
           }}
         />
 
-        {/* Subtle staff lines */}
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              top: `${180 + i * 18}px`,
-              left: '80px',
-              right: '80px',
-              height: '1px',
-              background: 'rgba(184, 150, 62, 0.06)',
-            }}
+        {/* Sea-chart graticule — replaces the retired staff lines (music era) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage:
+              'repeating-linear-gradient(0deg, rgba(184, 150, 62, 0.055) 0px, rgba(184, 150, 62, 0.055) 1px, transparent 1px, transparent 63px), repeating-linear-gradient(90deg, rgba(184, 150, 62, 0.055) 0px, rgba(184, 150, 62, 0.055) 1px, transparent 1px, transparent 63px)',
+          }}
+        />
+
+        {/* Decision trail — waypoints crossing the chart, arriving at gold */}
+        <svg
+          width="1200"
+          height="200"
+          viewBox="0 0 1200 200"
+          style={{ position: 'absolute', bottom: 30, left: 0 }}
+        >
+          <path
+            d="M 80 160 C 280 150, 380 120, 560 110 C 740 100, 860 80, 1050 56"
+            fill="none"
+            stroke="rgba(212, 185, 104, 0.4)"
+            strokeWidth="2"
+            strokeDasharray="2 9"
           />
-        ))}
+          <circle cx="80" cy="160" r="5" fill="none" stroke="rgba(250, 250, 249, 0.35)" strokeWidth="2" />
+          <circle cx="430" cy="118" r="5" fill="none" stroke="rgba(250, 250, 249, 0.35)" strokeWidth="2" />
+          <circle cx="720" cy="98" r="7" fill="none" stroke="rgba(212, 185, 104, 0.55)" strokeWidth="2" />
+          <circle cx="1050" cy="56" r="9" fill="#d4b968" />
+          <circle cx="1050" cy="56" r="17" fill="none" stroke="rgba(212, 185, 104, 0.45)" strokeWidth="2" />
+        </svg>
 
         {/* Content */}
         <div

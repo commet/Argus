@@ -43,7 +43,7 @@ function getFlowSteps(locale: Locale): FlowStep[] {
       { icon: Layers, label: '종합', desc: '리드 선원과 항해장이 결과를 하나의 초안으로 통합합니다.', tone: 'ai' },
       { icon: Eye, label: '검증', desc: '의사결정자(상사·고객 등) 관점에서 약점을 시뮬레이션합니다.', tone: 'ai' },
       { icon: Edit3, label: '수정', desc: '피드백을 반영해 초안을 다듬습니다. 직접 손봐도 되고 자동 반영도 가능합니다.', tone: 'you' },
-      { icon: Check, label: '도착', desc: '현재 침로 한 화면 — 결론과 근거, 남은 확인거리가 정리됩니다. 결정을 봉인하면 정한 날짜에 돌아와 물어요.', tone: 'done' },
+      { icon: Check, label: '도착', desc: '결론·근거·확인할 것이 현재 침로 한 화면에 모입니다. 봉인하면 정한 날짜에 돌아와 물어요.', tone: 'done' },
     ];
   }
   return [
@@ -53,7 +53,7 @@ function getFlowSteps(locale: Locale): FlowStep[] {
     { icon: Layers, label: 'Mix', desc: 'The lead crew member and the Navigator merge results into a single draft.', tone: 'ai' },
     { icon: Eye, label: 'Review', desc: "Simulate how a decision-maker (boss, customer, etc.) would react and surface weak spots.", tone: 'ai' },
     { icon: Edit3, label: 'Refine', desc: 'Apply feedback — manually or automatically — to tighten the draft.', tone: 'you' },
-    { icon: Check, label: 'Arrival', desc: 'A Current Bearing on one screen — conclusion, reasoning, and what is left to check. Seal the decision and Argus returns on your chosen date to ask.', tone: 'done' },
+    { icon: Check, label: 'Arrival', desc: 'Conclusion, reasoning, and what to check — one Current Bearing. Seal it, and Argus returns on your chosen date to ask.', tone: 'done' },
   ];
 }
 
@@ -89,8 +89,8 @@ export default function GuidePage() {
         </h1>
         <p className="text-[14px] text-[var(--text-secondary)] mt-2 leading-relaxed max-w-2xl">
           {L(
-            '결정이나 고민 하나 던지면, 선원들(에이전트 팀)이 분석·조사·작성·검증까지 진행해 현재 침로 — 결론과 근거, 남은 확인거리가 담긴 한 화면 — 를 만들어줍니다. 결정을 봉인하면 정한 날짜에 돌아와 "그래서, 어떻게 됐어요?"를 물어요. 처음이라면 아래 빠른 시작만 봐도 충분해요.',
-            "Drop in a decision and your crew of agents analyzes, researches, drafts, and reviews — arriving at a Current Bearing: one screen with the conclusion, the reasoning, and what's left to check. Seal the decision and Argus returns on your chosen date to ask how it went. If you're new here, the Quick Start below is all you need.",
+            '결정 하나를 적으면 항해가 시작됩니다. 선원들이 분석하고 검증한 것이 현재 침로 한 화면으로 모이고 — 결정을 봉인하면, 정한 날짜에 돌아와 물어요. "그래서, 어떻게 됐어요?" 처음이라면 아래 빠른 시작만 봐도 충분해요.',
+            'Write down one decision and the voyage begins. Your crew\'s work converges into a single Current Bearing — and once you seal the decision, Argus comes back on the date you chose to ask: "So, how did it go?" New here? The Quick Start below is all you need.',
           )}
         </p>
       </div>
@@ -291,8 +291,9 @@ export default function GuidePage() {
       {/* ── 4. Boss Simulator ── */}
       <Card>
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-red-50 border border-red-100">
-            <MessageSquare size={18} className="text-red-500" />
+          {/* Token-based tint — the old bg-red-50 hardcode broke dark mode. */}
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--danger)]/10 border border-[var(--danger)]/20">
+            <MessageSquare size={18} className="text-[var(--danger)]" />
           </div>
           <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{L('팀장 시뮬레이터', 'Boss Simulator')}</h2>
         </div>

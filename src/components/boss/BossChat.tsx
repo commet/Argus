@@ -598,7 +598,7 @@ export function BossChat() {
                 style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
                 title={L('이 팀장이 리뷰어로 활용됩니다', 'This boss will be used as a reviewer')}
               >
-                {L('워크스페이스에서 시작 →', 'Start in workspace →')}
+                {L('워크스페이스로 데려가기 →', 'Take them to your workspace →')}
               </Link>
             </div>
           )}
@@ -750,7 +750,7 @@ export function BossChat() {
           }}
         >
           <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            {L('이 피드백을 반영해 워크스페이스에서 계획을 다듬어볼 수 있어요', 'Take this feedback into the workspace and sharpen your plan.')}
+            {L('이 피드백, 워크스페이스에서 바로 반영해볼 수 있어요', 'Take this feedback straight into your workspace.')}
           </p>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
             <Link

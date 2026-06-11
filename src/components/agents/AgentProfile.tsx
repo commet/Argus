@@ -182,7 +182,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
             </section>
           )}
 
-          {/* Boss CTAs — 대화 이어가기 + 기획안 리뷰받기 */}
+          {/* Boss CTAs — 대화 이어가기 + 워크스페이스에서 리뷰받기 */}
           {agent.origin === 'boss_sim' && (
             <section>
               <SectionLabel>{L('이 팀장과 계속', 'Continue with this boss')}</SectionLabel>
