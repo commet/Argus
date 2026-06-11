@@ -149,9 +149,10 @@ W1.5 페르소나 현행화                       W2.4 helm (P0.B 통과 시)
   재구축 완성** (기존 Q&A 유지 — "철학이 과도했다" 분기를 미리 수용). P0.B 통과 → W2.4 활성.
 
 ### W2.1 [M] probe-engine
-- **파일**: 신규 `src/lib/probe-engine.ts`, `src/app/api/probe/route.ts`(스트리밍 — 샘플 도착 순
-  emit, 집계는 전체 후), 신규 소형 `src/stores/useProbeStore.ts` (**useProgressiveStore 1807줄
-  건드리지 마라**).
+- **파일**: 신규 `src/lib/probe-engine.ts`, ~~`src/app/api/probe/route.ts`~~ **(구현 편차, 2026-06-12
+  기록: 신규 라우트 대신 기존 `/api/llm` 배관 재사용 — 인증·쿼터·재시도·서킷브레이커 중복 방지.
+  "샘플 도착 순 emit"은 `callLLMParallel`의 `onItemComplete` 콜백으로 충족)**, 신규 소형
+  `src/stores/useProbeStore.ts` (**useProgressiveStore 1807줄 건드리지 마라**).
 - **할 일**: `runDivergenceProbe`/`runAblationProbe` — P0 승자 프롬프트 그대로 이식(재발명 금지).
   N=3–5 저렴 모델, 가능하면 교차-모델. `flipped_user_claim`(그 갈림에 따라 참/거짓이 바뀌는 사용자
   문장 인용) 없는 갈림은 버림 — P2 인용 앵커의 기계적 강제.
@@ -202,8 +203,8 @@ W1.5 페르소나 현행화                       W2.4 helm (P0.B 통과 시)
 
 | 항목 | 상한 (초과 시 자동 강등) |
 |---|---|
-| 깊은 세션 1회 총 LLM 호출 | **≤30콜** (탐침 포함; 초과 시 샘플 N 자동 축소 5→3) |
-| 탐침 1배치 | 저렴 모델만, ≤8콜 |
+| 깊은 세션 1회 총 LLM 호출 | **≤30콜** (탐침 포함; 초과 시 샘플 N 자동 축소 5→3 — 세션 카운터는 미구현, 현재는 일일 쿼터가 상한 역할. 트래픽 발생 시 구현) |
+| 탐침 1배치 | ≤8콜 (실측 5콜 = C샘플 3 fast + 병합 1 + D 1. **편차 기록 2026-06-12**: 병합·D는 default(sonnet)급 — G0가 이 티어로 측정됨, "저렴 모델만"은 C 샘플에만 적용) |
 | helm 경량 스캔 | ≤20초, 1콜 |
 | 익명 사용자 | 첫 1세션 완주 보장 (현 30콜/일 한도 내 — 초과 설계 발견 시 ✋) |
 
