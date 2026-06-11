@@ -560,6 +560,15 @@ export interface Predicate {
 
 export type CheckInInterval = '1w' | '2w' | '1m';
 
+/** One superseded check-in, kept when the user says "아직" and extends the
+ *  date (W1.2 amend principle: 변침도 기록이다 — never silently overwrite).
+ *  Mirrors the watch ledger's amend event history entries. */
+export interface ContractAmendment {
+  check_in_at?: string;
+  check_in_interval?: CheckInInterval;
+  amended_at: string;
+}
+
 export interface DecisionContract {
   id: string;
   project_id: string;
@@ -571,6 +580,9 @@ export interface DecisionContract {
   check_in_at?: string;
   /** Set once every predicate carries a non-pending verdict. */
   graded_at?: string;
+  /** Superseded check-ins, oldest first. Absent on legacy contracts — always
+   *  read as `contract.history || []`. */
+  history?: ContractAmendment[];
 }
 
 // ─── Retrospective Answers (Phase 2) ───

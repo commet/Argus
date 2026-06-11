@@ -303,6 +303,32 @@ export function withCheckIn(
   };
 }
 
+/**
+ * "아직" — the outcome isn't knowable yet, so EXTEND the check-in instead of
+ * resolving (W1.2 settle modal, 4th option). The superseded check-in is pushed
+ * onto `history` — amend never overwrites (변침도 기록이다; mirrors the watch
+ * ledger's amend event). Pure: returns a new contract, `now` injected.
+ */
+export function amendCheckIn(
+  contract: DecisionContract,
+  interval: CheckInInterval,
+  now: number,
+): DecisionContract {
+  return {
+    ...contract,
+    history: [
+      ...(contract.history || []),
+      {
+        check_in_at: contract.check_in_at,
+        check_in_interval: contract.check_in_interval,
+        amended_at: new Date(now).toISOString(),
+      },
+    ],
+    check_in_interval: interval,
+    check_in_at: new Date(now + CHECK_IN_MS[interval]).toISOString(),
+  };
+}
+
 /** A predicate is "resolved" once it carries any non-pending verdict (incl. `unknown`). */
 export function isResolved(p: Predicate): boolean {
   return !!p.verdict && p.verdict !== 'pending';

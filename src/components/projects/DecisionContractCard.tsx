@@ -58,11 +58,12 @@ const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
   actor: GitBranch,
 };
 
-type Verdict = Exclude<PredicateVerdict, 'pending'>;
+export type Verdict = Exclude<PredicateVerdict, 'pending'>;
 
 /** Per-source verdict buttons. Same stored value, source-appropriate label, so
- *  "happened" reads as "발생" for a risk but "적중" for a bet. `unknown` is always last. */
-function verdictButtons(source: PredicateSource, ko: boolean): { value: Verdict; label: string }[] {
+ *  "happened" reads as "발생" for a risk but "적중" for a bet. `unknown` is always last.
+ *  Exported: SettlementModal reuses these labels (single source of truth). */
+export function verdictButtons(source: PredicateSource, ko: boolean): { value: Verdict; label: string }[] {
   const partial = { value: 'partial' as const, label: ko ? '부분' : 'Partial' };
   const unknown = { value: 'unknown' as const, label: ko ? '아직 모름' : 'Unknown' };
   if (source === 'governing_idea') {
@@ -89,8 +90,9 @@ function verdictButtons(source: PredicateSource, ko: boolean): { value: Verdict;
   ];
 }
 
-/** Frame the raw subject as a yes/no-checkable question per source. */
-function predicateQuestion(p: Predicate, ko: boolean): string {
+/** Frame the raw subject as a yes/no-checkable question per source. Exported
+ *  for SettlementModal (single source of truth). */
+export function predicateQuestion(p: Predicate, ko: boolean): string {
   if (p.source === 'governing_idea') return ko ? `핵심 가설이 맞았나 — ${p.text}` : `Did the bet hold — ${p.text}`;
   if (p.source === 'actor') return ko ? `사람 판단이 필요했나 — ${p.text}` : `Did this need human judgment — ${p.text}`;
   return ko ? `실제로 일어났나 — ${p.text}` : `Did it happen — ${p.text}`;

@@ -20,6 +20,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
+import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus } from '@/lib/decision-contract';
 
 const STEP_LABELS_KO = ['재정의', '설계', '검증', '종합'] as const;
@@ -75,6 +76,9 @@ export default function ProjectPage() {
   const { judgments, loadJudgments, getUserPatterns } = useJudgmentStore();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  // Settlement modal (W1.2 귀환 표면) — auto-opens once per project visit when
+  // the check-in date has arrived and predictions remain unresolved.
+  const [settleOpen, setSettleOpen] = useState(false);
 
   useEffect(() => {
     loadProjects();
@@ -86,6 +90,16 @@ export default function ProjectPage() {
   }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadJudgments]);
 
   const currentProject = currentProjectId ? projects.find((p) => p.id === currentProjectId) : null;
+
+  // Opening a project whose contract is due → surface the settle question.
+  // Keyed on the project id only (not the contract object), so grading inside
+  // the modal doesn't re-trigger it, and "아직" (amend) closes it for this visit.
+  useEffect(() => {
+    if (!currentProjectId) { setSettleOpen(false); return; }
+    const p = useProjectStore.getState().projects.find((x) => x.id === currentProjectId);
+    const c = p?.decision_contract;
+    if (c && contractStatus(c, Date.now()).checkInDue) setSettleOpen(true);
+  }, [currentProjectId]);
 
   /* ─── Per-project rich metrics (used in list view) ─── */
   interface ProjectMetrics {
@@ -607,6 +621,13 @@ export default function ProjectPage() {
           {/* Decision Contract — falsifiable closed loop (§0 KICK).
               Seal only offered once the voyage is finished (all legs done). */}
           <DecisionContractCard project={currentProject} sealable={completedSteps === steps.length} />
+
+          {/* Settlement modal — "그래서, 어떻게 됐어요?" Auto-opens when the
+              check-in date arrives (W1.2). "아직" extends via history-preserving
+              amend; verdicts persist per tap, so closing mid-way loses nothing. */}
+          {settleOpen && currentProject.decision_contract && (
+            <SettlementModal project={currentProject} onClose={() => setSettleOpen(false)} />
+          )}
 
           {/* Steps journey */}
           <div className="space-y-0">
