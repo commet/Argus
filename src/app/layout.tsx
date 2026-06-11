@@ -13,17 +13,17 @@ type Lang = 'ko' | 'en';
 
 const META_STRINGS: Record<Lang, { title: string; description: string; descriptionShort: string; descriptionTwitter: string; ogLocale: string }> = {
   ko: {
-    title: 'Argus — 내 전문 분야가 아닌 걸 해야 할 때',
-    description: '질문 하나 던지면, 30초 안에 기획안 뼈대가 나옵니다. 채울수록 날카로워집니다. 인지과학 + 전략기획 실무 기반.',
-    descriptionShort: '질문 하나 던지면, 30초 안에 기획안 뼈대가 나옵니다. 채울수록 날카로워집니다.',
-    descriptionTwitter: '질문 하나 던지면, 30초 안에 기획안 뼈대가 나옵니다.',
+    title: 'Argus — 그래서, 어떻게 됐어요?',
+    description: '중요한 결정을 그대로 적으면, 갈리는 자리를 보여주고 — 정한 날짜에 먼저 돌아와 묻습니다.',
+    descriptionShort: '중요한 결정을 그대로 적으면, 갈리는 자리를 보여주고 — 정한 날짜에 먼저 돌아와 묻습니다.',
+    descriptionTwitter: '중요한 결정을 그대로 적으면, 갈리는 자리를 보여주고 — 정한 날짜에 돌아와 묻습니다.',
     ogLocale: 'ko_KR',
   },
   en: {
-    title: 'Argus — For work outside your expertise',
-    description: 'Drop a question, get a draft proposal skeleton in 30 seconds. It sharpens as you fill it in. Built on cognitive science and strategic planning practice.',
-    descriptionShort: 'Drop a question, get a draft proposal skeleton in 30 seconds. It sharpens as you fill it in.',
-    descriptionTwitter: 'Drop a question, get a draft proposal skeleton in 30 seconds.',
+    title: 'Argus — So, how did it go?',
+    description: 'Write down a decision that matters, as-is — Argus shows you where things fork, and comes back first on the date you set to ask.',
+    descriptionShort: 'Write down a decision that matters, as-is — Argus shows you where things fork, and comes back on the date you set to ask.',
+    descriptionTwitter: 'Argus shows you where your decision forks — and comes back on the date you set to ask.',
     ogLocale: 'en_US',
   },
 };

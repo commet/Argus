@@ -140,7 +140,8 @@ export function Act2DecisionVoyage() {
   const allRevealed = revealed >= TOTAL;
 
   const startVoyage = (text: string) => {
-    const q = text.trim() || DEMO_QUERY[locale];
+    const q = text.trim();
+    if (!q) return;
     track('landing_cta_click', { cta: 'trail_input' });
     router.push(`/workspace?q=${encodeURIComponent(q)}`);
   };
@@ -268,7 +269,8 @@ export function Act2DecisionVoyage() {
                 border: '1px solid var(--bp-ink-faint)',
                 borderRadius: 8,
                 padding: '14px 16px',
-                fontSize: 15,
+                // 16px minimum — anything smaller triggers iOS focus zoom.
+                fontSize: 16,
                 color: 'var(--bp-ink)',
                 minHeight: 48,
                 outline: 'none',
@@ -276,6 +278,7 @@ export function Act2DecisionVoyage() {
             />
             <button
               type="submit"
+              disabled={!query.trim()}
               className="bp-mono inline-flex items-center justify-center"
               style={{
                 background: 'var(--bp-ink)',
@@ -287,7 +290,9 @@ export function Act2DecisionVoyage() {
                 minHeight: 48,
                 borderRadius: 8,
                 border: 'none',
-                cursor: 'pointer',
+                cursor: query.trim() ? 'pointer' : 'not-allowed',
+                opacity: query.trim() ? 1 : 0.4,
+                transition: 'opacity 200ms ease',
                 whiteSpace: 'nowrap',
               }}
             >
@@ -541,10 +546,10 @@ function ArrivalWaypoint({
                   locale={locale}
                 />
                 <BearingField
-                  label={L('계약 씨앗', 'Contract seed')}
+                  label={L('다시 물어볼 약속', 'A promise to ask again')}
                   body={L(
-                    '3주 뒤 — 경쟁사가 먼저 출시했다면, 이 연기는 틀린 판단이었다. 그때 채점한다.',
-                    'In 3 weeks — if a rival shipped first, this deferral was the wrong call. Grade it then.',
+                    '3주 뒤 — 경쟁사가 먼저 출시했는지, 그때 돌아와 물어요.',
+                    'In 3 weeks — whether a rival shipped first. Argus comes back then to ask.',
                   )}
                   locale={locale}
                 />

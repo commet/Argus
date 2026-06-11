@@ -35,7 +35,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { WorkerPersona } from '@/stores/types';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
-import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
+import { DAILY_LIMIT } from '@/lib/quota-config';
 
 /* ─── Step-level error fallback ─── */
 function StepErrorFallback() {
@@ -44,8 +44,8 @@ function StepErrorFallback() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <AlertTriangle size={28} className="text-[var(--text-tertiary)] mb-3" />
-      <p className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">{L('이 단계에서 오류가 발생했습니다', 'An error occurred in this step')}</p>
-      <p className="text-[12px] text-[var(--text-secondary)] mb-4">{L('다른 단계는 정상적으로 사용할 수 있습니다.', 'Other steps are still available.')}</p>
+      <p className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">{L('이 단계에서 문제가 생겼어요', 'An error occurred in this step')}</p>
+      <p className="text-[12px] text-[var(--text-secondary)] mb-4">{L('다른 단계는 정상적으로 쓸 수 있어요.', 'Other steps are still available.')}</p>
       <button onClick={() => window.location.reload()} className="px-4 py-2 text-[13px] font-medium rounded-lg bg-[var(--accent)] text-white hover:shadow-sm transition-all cursor-pointer">
         {L('새로고침', 'Refresh')}
       </button>
@@ -74,6 +74,9 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   });
   const classicSession = useSettingsStore(s => s.settings.classic_session ?? false);
   const showRail = (hasWorkers || hasWaypoints) && (classicSession || sessionPhase === 'complete');
+  // Mobile worker bar mirrors the drawer-visibility rule below (and drives the
+  // bottom padding that clears it).
+  const showWorkerBar = hasWorkers && (classicSession || sessionPhase === 'complete' || workers.some(w => w.status === 'waiting_input'));
   // Which course are we on? Shown in the header once more than one exists, so a
   // fork/switch (which jumps the conversation) doesn't feel disorienting.
   const branchInfo = useProgressiveStore(s => {
@@ -85,7 +88,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   });
 
   return (
-    <div className="relative min-h-[calc(100vh-56px)] overflow-hidden">
+    <div className="relative min-h-[calc(100vh-64px)] overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
       <Graticule opacity={0.02} spacing={18} />
 
@@ -119,13 +122,14 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
         <div className="flex">
           {/* Bottom padding clears the stacked fixed mobile bars AND the iOS
               home-indicator safe area (otherwise the last line hides behind it). */}
-          <div className={`flex-1 px-4 md:px-6 lg:pb-0 ${hasWorkers ? 'pb-[calc(120px+env(safe-area-inset-bottom))]' : showRail ? 'pb-[calc(64px+env(safe-area-inset-bottom))]' : ''}`}>
+          <div className={`flex-1 px-4 md:px-6 lg:pb-0 ${showWorkerBar ? 'pb-[calc(120px+env(safe-area-inset-bottom))]' : showRail ? 'pb-[calc(64px+env(safe-area-inset-bottom))]' : ''}`}>
             <ErrorBoundary fallback={<StepErrorFallback />}>
               <ProgressiveFlow projectId={projectId} />
             </ErrorBoundary>
           </div>
           {showRail && (
-            <div className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-14 h-[calc(100vh-120px)] overflow-y-auto border-l border-[var(--border-subtle)]/50">
+            // top-16 matches the h-16 (64px) header — top-14 left an 8px overlap.
+            <div className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-16 h-[calc(100vh-128px)] overflow-y-auto border-l border-[var(--border-subtle)]/50">
               {/* Ship's log — the live decision narrative, the primary voyage
                   companion. Owns the "전체 해도" (full chart) modal and branch
                   controls. Renders null until the first waypoint. */}
@@ -136,9 +140,13 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
         </div>
 
         {/* Mobile: ship's-log bottom drawer (sits above the worker bar), then
-            the worker drawer. Both hidden on lg where the right rail shows. */}
-        {showRail && <div className="lg:hidden"><LogbookDrawer offset={hasWorkers} /></div>}
-        {hasWorkers && <WorkerDrawer className="lg:hidden" />}
+            the worker drawer. Both hidden on lg where the right rail shows.
+            Focus mode mid-voyage: the inline CrewAtWork theater already shows
+            the same state — a second fixed bar was duplicate chrome. The
+            drawer returns when a worker actually needs input, in classic, or
+            once the voyage completes. */}
+        {showRail && <div className="lg:hidden"><LogbookDrawer offset={showWorkerBar} /></div>}
+        {showWorkerBar && <WorkerDrawer className="lg:hidden" />}
       </div>
     </div>
   );
@@ -167,6 +175,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   const [previewPersonas, setPreviewPersonas] = useState<WorkerPersona[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [justFromDemo, setJustFromDemo] = useState(false);
+  const [showAllProjects, setShowAllProjects] = useState(false);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const { createProject } = useProjectStore();
   const progressiveStore = useProgressiveStore();
@@ -207,6 +216,15 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     const text = initialProblem.trim();
     if (!text) return;
     autoStartedRef.current = true;
+    // Consume the param IMMEDIATELY: leaving ?q= in the URL meant every
+    // refresh (and "새 프로젝트", which remounts HeroFlow) re-ran the same
+    // analysis — duplicate projects, quota burned twice (audit P0 #1).
+    window.history.replaceState(null, '', '/workspace');
+    // Defuse the persisted-project restore: loadProjects() restores the last
+    // open project synchronously, which would unmount HeroFlow mid-analysis —
+    // aborting this run and hijacking the screen to an old project while the
+    // typed text is already gone from the URL (adversarial review P0 #1).
+    useProjectStore.getState().setCurrentProjectId(null);
     setProblemInput(text);
     handleSubmit(text);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -300,10 +318,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   // Demo mode — show showcase
   if (demoScenario) {
     return (
-      <div className="relative min-h-[calc(100vh-56px)] overflow-hidden">
+      <div className="relative min-h-[calc(100vh-64px)] overflow-hidden">
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
         <Graticule opacity={0.02} spacing={18} />
-        <div className="relative h-[calc(100vh-56px)]">
+        <div className="relative h-[calc(100vh-64px)]">
           <InteractiveDemo
             scenario={demoScenario}
             locale={locale}
@@ -330,7 +348,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-56px)] overflow-hidden">
+    <div className="relative min-h-[calc(100vh-64px)] overflow-hidden">
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-warm-vignette)' }} />
       <Graticule opacity={0.03} spacing={14} />
@@ -344,37 +362,63 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
 
               {/* Returning user: previous projects — compact rows.
                   Show 3 most recently updated projects (fall back to created_at when missing). */}
-              {projects.length > 0 && (
-                <div className="mb-6">
-                  <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.12em] font-semibold mb-2">
-                    {L('이어서 작업', 'Continue')}
-                  </p>
-                  <div className="space-y-1">
-                    {[...projects]
-                      .sort((a, b) => {
-                        const aT = a.updated_at || a.created_at || '';
-                        const bT = b.updated_at || b.created_at || '';
-                        return bT.localeCompare(aT);
-                      })
-                      .slice(0, 3)
-                      .map((p) => (
-                      <button key={p.id} onClick={() => onReady(p.id)}
-                        className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-lg hover:bg-[var(--surface)] hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all group">
-                        <FolderOpen size={12} className="text-[var(--accent)] shrink-0" />
-                        <span className="text-[13px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{p.name}</span>
-                        <ChevronRight size={12} className="text-[var(--text-tertiary)] shrink-0 ml-auto opacity-0 md:opacity-0 group-hover:opacity-100 transition-opacity" />
+              {projects.length > 0 && (() => {
+                const sorted = [...projects].sort((a, b) => {
+                  const aT = a.updated_at || a.created_at || '';
+                  const bT = b.updated_at || b.created_at || '';
+                  return bT.localeCompare(aT);
+                });
+                const shown = showAllProjects ? sorted : sorted.slice(0, 3);
+                const relTime = (iso?: string) => {
+                  if (!iso) return '';
+                  const ms = Date.now() - new Date(iso).getTime();
+                  if (!Number.isFinite(ms) || ms < 0) return '';
+                  const m = Math.floor(ms / 60_000);
+                  if (m < 60) return L(`${Math.max(1, m)}분 전`, `${Math.max(1, m)}m ago`);
+                  const h = Math.floor(m / 60);
+                  if (h < 24) return L(`${h}시간 전`, `${h}h ago`);
+                  const d = Math.floor(h / 24);
+                  return d < 30 ? L(`${d}일 전`, `${d}d ago`) : L(`${Math.floor(d / 30)}달 전`, `${Math.floor(d / 30)}mo ago`);
+                };
+                return (
+                  <div className="mb-6">
+                    <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.12em] font-semibold mb-2">
+                      {L('이어서 작업', 'Continue')}
+                    </p>
+                    <div className="space-y-1">
+                      {shown.map((p) => (
+                        <button key={p.id} onClick={() => onReady(p.id)}
+                          className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-lg hover:bg-[var(--surface)] hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all group">
+                          <FolderOpen size={12} className="text-[var(--accent)] shrink-0" />
+                          <span className="text-[13px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{p.name}</span>
+                          <span className="text-[11px] text-[var(--text-tertiary)] shrink-0 ml-auto tabular-nums">{relTime(p.updated_at || p.created_at)}</span>
+                          {/* Chevron stays visible on touch (no hover there) */}
+                          <ChevronRight size={12} className="text-[var(--text-tertiary)] shrink-0 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      ))}
+                    </div>
+                    {/* Anonymous users can't reach /project (auth-gated) — without
+                        this, project #4+ became unreachable though it's right
+                        there in localStorage. */}
+                    {sorted.length > 3 && (
+                      <button onClick={() => setShowAllProjects((v) => !v)}
+                        className="mt-1.5 px-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
+                        {showAllProjects ? L('접기 ▴', 'Show less ▴') : L(`전체 ${sorted.length}개 보기 ▾`, `Show all ${sorted.length} ▾`)}
                       </button>
-                    ))}
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Anonymous trial banner — compact, only critical info */}
               {!user && (
                 <div className="mb-5 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/15">
                   <div className="flex items-center gap-2 text-[12px]">
                     <Sparkles size={12} className="text-[var(--accent)] shrink-0" />
-                    <span className="text-[var(--text-primary)]">{locale === 'ko' ? <>로그인 없이 <strong>하루 {ANON_LIMIT}회 무료</strong> · 로그인하면 하루 {DAILY_LIMIT}회</> : <><strong>{ANON_LIMIT} free per day</strong> without login · {DAILY_LIMIT} per day with login</>}</span>
+                    {/* "회" counts LLM calls, not sessions — a session uses 6–9.
+                        Selling "30회" as 30 tries read as a lie by session 3.
+                        Speak in the user's unit: decisions. */}
+                    <span className="text-[var(--text-primary)]">{locale === 'ko' ? <>로그인 없이 <strong>하루 결정 2~3개 분량 무료</strong> · 로그인하면 더 넉넉해요</> : <><strong>2–3 decisions/day free</strong> without login · more with login</>}</span>
                   </div>
                   <Link href="/login" className="shrink-0 px-3 py-1 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-[12px] font-semibold hover:shadow-[var(--shadow-sm)] transition-all">{L('로그인', 'Log in')}</Link>
                 </div>
@@ -382,15 +426,18 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
 
               {/* Orientation — a short headline + the 3 steps, so first-timers know
                   what happens and "팀" isn't referenced cold in the input helper below. */}
+              {/* The landing sells the voyage ("어디서 갈리는지 보여드려요") —
+                  arriving on "기획안 생산 도구" copy broke that promise mid-step.
+                  Same loop, same vocabulary (audit P0 #3). */}
               <div className="mb-4">
                 <h2 className="text-[16px] md:text-[18px] font-semibold text-[var(--text-primary)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
-                  {L('무엇을 AI에게 시킬지, 같이 다듬어요', "Let's sharpen what to ask AI — together")}
+                  {L('지금 들고 있는 결정, 어디서 갈리는지 봐 드릴게요', "That decision you're holding — let's see where it forks")}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-[var(--text-tertiary)]">
                   {[
                     L('상황을 적으면', 'Describe the situation'),
-                    L('AI 팀이 분석하고 되물어요', 'an AI team analyzes & asks back'),
-                    L('기획안이 완성돼요', 'you get a finished plan'),
+                    L('AI 팀이 갈리는 자리를 보여드리고', 'an AI crew shows you where it forks'),
+                    L('문서와 현재 침로가 남아요', 'you leave with a document & your bearing'),
                   ].map((step, i) => (
                     <React.Fragment key={i}>
                       {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
@@ -456,7 +503,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   </Link>
                   <span aria-hidden>·</span>
                   <Link href="/boss" className="hover:text-[var(--accent)] transition-colors">
-                    {L('팀장', 'Manager')}
+                    {L('보고 상대 설정', 'Set your reviewer')}
+                  </Link>
+                  <span aria-hidden>·</span>
+                  {/* W1.3 잔여: /teams was "moved inside the workspace" on paper but
+                      had ZERO inbound links — an orphaned page. */}
+                  <Link href="/teams" className="hover:text-[var(--accent)] transition-colors">
+                    {L('팀', 'Teams')}
                   </Link>
                   <span aria-hidden>·</span>
                   <Link href="/guide" className="hover:text-[var(--accent)] transition-colors">
@@ -491,8 +544,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                         ? L('응답이 평소보다 오래 걸렸어요. 다시 시도하면 대개 해결돼요.', 'That took longer than usual. Trying again usually fixes it.')
                         : L('분석에 실패했어요. 잠시 후 다시 시도해주세요.', 'Analysis failed. Please try again in a moment.');
                   return (
-                    <div className="mt-3 px-3 py-2.5 rounded-xl bg-[var(--accent)]/5 border border-[var(--accent)]/15 text-[13px] text-[var(--text-primary)] flex items-start gap-2">
-                      <AlertTriangle size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />
+                    // Failures wear the danger tone; gold is this product's reward
+                    // color and was making errors read like promotions. Quota
+                    // guidance (an FYI, not a failure) keeps the accent tone.
+                    <div className={`mt-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--text-primary)] flex items-start gap-2 border ${
+                      isQuota ? 'bg-[var(--accent)]/5 border-[var(--accent)]/15' : 'bg-[var(--danger)]/5 border-[var(--danger)]/25'
+                    }`}>
+                      <AlertTriangle size={14} className={`shrink-0 mt-0.5 ${isQuota ? 'text-[var(--accent)]' : 'text-[var(--danger)]'}`} />
                       <div className="flex-1">
                         <span>{msg}</span>
                         <div className="mt-1.5 flex items-center gap-3">
@@ -605,8 +663,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   <p className="text-[13px] text-[var(--text-secondary)] truncate flex-1">{problemInput}</p>
                 </div>
 
-                {/* 현재 단계 표시 + 소요 시간 안내 (멈춘 게 아니라는 신호) */}
-                <div className="flex items-center gap-2 mb-4 px-1">
+                {/* 현재 단계 표시 + 소요 시간 안내 (멈춘 게 아니라는 신호).
+                    aria-live: the 20–40s core moment was silent to screen readers. */}
+                <div className="flex items-center gap-2 mb-4 px-1" aria-live="polite">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
                     <Sparkles size={14} className="text-[var(--accent)]" />
                   </motion.div>
@@ -713,13 +772,16 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   );
 }
 
-/* ─── Step metadata ─── */
-const STEPS: { id: StepId; number: string; label: string; labelEn: string; desc: string; descEn: string; icon: React.ReactNode; color: string }[] = [
-  { id: 'reframe',    number: '01', label: '문제 재정의', labelEn: 'Reframe',    desc: '숨겨진 전제 발견', descEn: 'Uncover hidden assumptions', icon: <MessageSquare size={16} />, color: '#2d4a7c' },
-  { id: 'recast',     number: '02', label: '실행 설계',   labelEn: 'Recast',     desc: '구조와 역할 배분', descEn: 'Structure & assign roles',    icon: <Sliders size={16} />,        color: '#8b6914' },
-  { id: 'rehearse',   number: '03', label: '사전 검증',   labelEn: 'Rehearse',   desc: '판단자 시뮬레이션', descEn: 'Simulate decision-makers',   icon: <UserCheck size={16} />,      color: '#6b4c9a' },
-  { id: 'refine',     number: '04', label: '수정 반영',   labelEn: 'Refine',     desc: '피드백 수렴',       descEn: 'Converge feedback',          icon: <RefreshCw size={16} />,      color: '#2d6b2d' },
-  { id: 'synthesize', number: '05', label: '종합',       labelEn: 'Synthesize', desc: '다중 관점 통합',     descEn: 'Integrate perspectives',     icon: <Layers size={16} />,         color: '#9b5de5' },
+/* ─── Step metadata ───
+   NOTE: 'refine' was removed — its component no longer exists, so the tab
+   rendered a completely blank content area (audit A: dead step). The refine
+   loop lives inside Rehearse/Progressive flows now. `labelKo2` is the
+   mobile-tab short label ('사전' alone read as "dictionary"). */
+const STEPS: { id: StepId; number: string; label: string; labelKo2: string; labelEn: string; desc: string; descEn: string; icon: React.ReactNode; color: string }[] = [
+  { id: 'reframe',    number: '01', label: '문제 재정의', labelKo2: '정의', labelEn: 'Reframe',    desc: '숨겨진 전제 발견', descEn: 'Uncover hidden assumptions', icon: <MessageSquare size={16} />, color: '#2d4a7c' },
+  { id: 'recast',     number: '02', label: '실행 설계',   labelKo2: '설계', labelEn: 'Recast',     desc: '구조와 역할 배분', descEn: 'Structure & assign roles',    icon: <Sliders size={16} />,        color: '#8b6914' },
+  { id: 'rehearse',   number: '03', label: '사전 검증',   labelKo2: '검증', labelEn: 'Rehearse',   desc: '판단자 시뮬레이션', descEn: 'Simulate decision-makers',   icon: <UserCheck size={16} />,      color: '#6b4c9a' },
+  { id: 'synthesize', number: '04', label: '종합',       labelKo2: '종합', labelEn: 'Synthesize', desc: '다중 관점 통합',     descEn: 'Integrate perspectives',     icon: <Layers size={16} />,         color: '#9b5de5' },
 ];
 
 function WorkspaceContent() {
@@ -733,9 +795,9 @@ function WorkspaceContent() {
   const progressiveStore = useProgressiveStore();
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
 
-  // Use legacy mode if ?step= is explicitly set
+  // Use legacy mode if ?step= is explicitly set ('refine' removed — no component)
   const explicitStep = searchParams.get('step') as StepId | null;
-  const useLegacyMode = explicitStep && ['reframe', 'recast', 'rehearse', 'refine', 'synthesize'].includes(explicitStep);
+  const useLegacyMode = explicitStep && ['reframe', 'recast', 'rehearse', 'synthesize'].includes(explicitStep);
 
   // Boss에서 넘어온 경우 reviewer agent ID
   const reviewerParam = searchParams.get('reviewer');
@@ -757,6 +819,17 @@ function WorkspaceContent() {
       setActiveStep(explicitStep);
     }
   }, [explicitStep, useLegacyMode, setActiveStep]);
+
+  // Legacy mode navigates with pushState — without a popstate listener the
+  // browser back button changed the URL but not the screen.
+  useEffect(() => {
+    const onPop = () => {
+      const step = new URLSearchParams(window.location.search).get('step') as StepId | null;
+      if (step && ['reframe', 'recast', 'rehearse', 'synthesize'].includes(step)) setActiveStep(step);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [setActiveStep]);
 
   // Pick up ?q= param (from landing Hero inline input) — HeroFlow handles the streaming flow
   const queryProblem = searchParams.get('q');
@@ -808,7 +881,7 @@ function WorkspaceContent() {
 
   /* ─── Active workspace: step content (legacy 4-tab mode) ─── */
   return (
-    <div className="flex flex-col min-h-[calc(100vh-56px)]">
+    <div className="flex flex-col min-h-[calc(100vh-64px)]">
       {/* Top bar: project + step indicator */}
       <div className="border-b border-[var(--border)] bg-[var(--surface)]">
         <div className="max-w-5xl mx-auto px-4 md:px-6 flex items-center gap-3">
@@ -910,7 +983,7 @@ function WorkspaceContent() {
               <div className="flex items-center gap-2 text-[12px]">
                 <Sparkles size={13} className="text-[var(--accent)] shrink-0" />
                 <span className="text-[var(--text-primary)]">
-                  {locale === 'ko' ? <>로그인 없이 <strong>하루 {ANON_LIMIT}회 무료</strong> · <Link href="/login" className="text-[var(--accent)] font-semibold underline">로그인</Link>하면 하루 {DAILY_LIMIT}회</> : <><strong>{ANON_LIMIT} free per day</strong> without login · <Link href="/login" className="text-[var(--accent)] font-semibold underline">Log in</Link> for {DAILY_LIMIT} per day</>}
+                  {locale === 'ko' ? <>로그인 없이 <strong>하루 결정 2~3개 분량 무료</strong> · <Link href="/login" className="text-[var(--accent)] font-semibold underline">로그인</Link>하면 더 넉넉해요</> : <><strong>2–3 decisions/day free</strong> without login · <Link href="/login" className="text-[var(--accent)] font-semibold underline">log in</Link> for more</>}
                 </span>
               </div>
             </div>
@@ -950,7 +1023,7 @@ function WorkspaceContent() {
               <div style={{ color: activeStep === step.id ? step.color : undefined }}>
                 {step.icon}
               </div>
-              <span className="text-[10px] font-semibold">{locale === 'ko' ? step.label.slice(0, 2) : step.labelEn.slice(0, 3)}</span>
+              <span className="text-[10px] font-semibold">{locale === 'ko' ? step.labelKo2 : step.labelEn.slice(0, 3)}</span>
             </button>
           ))}
         </div>

@@ -41,6 +41,10 @@ export default function SettingsPage() {
   const { settings, loadSettings, updateSettings } = useSettingsStore();
   const [showKey, setShowKey] = useState(false);
   const [resetModal, setResetModal] = useState(false);
+  // Mirror the ambient drone play state — startAmbient/stopAmbient alone never re-render,
+  // so the button label/style would stay frozen. Synced on mount (SSR-safe).
+  const [ambientOn, setAmbientOn] = useState(false);
+  useEffect(() => { setAmbientOn(isAmbientPlaying()); }, []);
 
   // Slack
   const slackConnections = useSlackStore(s => s.connections);
@@ -70,7 +74,7 @@ export default function SettingsPage() {
       if (name === 'SETTINGS') continue;
       data[key] = getStorage(key, null);
     }
-    downloadJson(data, `sot-backup-${new Date().toISOString().split('T')[0]}.json`);
+    downloadJson(data, `argus-backup-${new Date().toISOString().split('T')[0]}.json`);
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,6 +287,8 @@ export default function SettingsPage() {
               <button
                 onClick={() => setShowKey(!showKey)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] cursor-pointer"
+                aria-label={showKey ? L('키 숨기기', 'Hide key') : L('키 보기', 'Show key')}
+                aria-pressed={showKey}
               >
                 {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -309,6 +315,8 @@ export default function SettingsPage() {
               <button
                 onClick={() => setShowKey(!showKey)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] cursor-pointer"
+                aria-label={showKey ? L('키 숨기기', 'Hide key') : L('키 보기', 'Show key')}
+                aria-pressed={showKey}
               >
                 {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -350,6 +358,8 @@ export default function SettingsPage() {
               <button
                 onClick={() => setShowKey(!showKey)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] cursor-pointer"
+                aria-label={showKey ? L('키 숨기기', 'Hide key') : L('키 보기', 'Show key')}
+                aria-pressed={showKey}
               >
                 {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -453,19 +463,22 @@ export default function SettingsPage() {
               <button
                 onClick={() => {
                   resumeAudioContext();
-                  if (isAmbientPlaying()) {
+                  if (ambientOn) {
                     stopAmbient();
+                    setAmbientOn(false);
                   } else {
                     startAmbient(settings.audio_volume);
+                    setAmbientOn(true);
                   }
                 }}
+                aria-pressed={ambientOn}
                 className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border cursor-pointer transition-colors ${
-                  isAmbientPlaying()
+                  ambientOn
                     ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
                     : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]'
                 }`}
               >
-                {isAmbientPlaying() ? L('정지', 'Stop') : L('재생', 'Play')}
+                {ambientOn ? L('정지', 'Stop') : L('재생', 'Play')}
               </button>
             </div>
           </div>
@@ -486,8 +499,8 @@ export default function SettingsPage() {
           </div>
         )}
         {slackStatus === 'error' && (
-          <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200">
-            <p className="text-[13px] text-red-600 font-medium">{L('Slack 연결에 실패했습니다. 다시 시도해주세요.', 'Slack connection failed. Please try again.')}</p>
+          <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/25">
+            <p className="text-[13px] text-[var(--danger)] font-medium">{L('Slack 연결에 실패했습니다. 다시 시도해주세요.', 'Slack connection failed. Please try again.')}</p>
           </div>
         )}
         {slackConnections.length > 0 ? (
@@ -552,8 +565,8 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between p-3 bg-[var(--danger)]/10 rounded-lg">
             <div>
-              <p className="text-[13px] font-medium text-red-700">{L('데이터 초기화', 'Reset Data')}</p>
-              <p className="text-[11px] text-red-400">{L('모든 저장된 데이터를 삭제', 'Deletes all saved data')}</p>
+              <p className="text-[13px] font-medium text-[var(--danger)]">{L('데이터 초기화', 'Reset Data')}</p>
+              <p className="text-[11px] text-[var(--danger)]/70">{L('모든 저장된 데이터를 삭제', 'Deletes all saved data')}</p>
             </div>
             <Button variant="danger" size="sm" onClick={() => setResetModal(true)}>
               <Trash2 size={14} /> {L('초기화', 'Reset')}

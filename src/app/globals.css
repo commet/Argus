@@ -10,8 +10,8 @@
   --border: #e5e2dc;
   --border-subtle: #eeebe6;
   --text-primary: #1a1a1a;
-  --text-secondary: #868279;
-  --text-tertiary: #b0aa9f;
+  --text-secondary: #5f5a52; /* a11y: ≈6.4:1 on --bg — must sit DARKER than tertiary to keep hierarchy (was #868279 ≈3.6:1) */
+  --text-tertiary: #767066; /* a11y: ≈4.6:1 on --bg #f8f7f5 (was #b0aa9f ≈2.0:1) — used widely at 9–12px */
 
   /* Semantic */
   --ai: #f5f0e6;
@@ -94,7 +94,7 @@
   --border-subtle: #363330;
   --text-primary: #fafaf9;
   --text-secondary: #a8a29e;
-  --text-tertiary: #78716c;
+  --text-tertiary: #8a837d; /* a11y: ≈4.7:1 on dark --bg #1c1917 (was #78716c ≈3.7:1) */
 
   --ai: #2a2520;
   --human: #2a2418;
@@ -506,6 +506,12 @@ body {
   }
   .animated-placeholder {
     transition: none;
+  }
+  /* Tailwind utility animations aren't covered by the custom-keyframe resets above */
+  .animate-pulse,
+  .animate-ping,
+  .animate-spin {
+    animation: none !important;
   }
 }
 

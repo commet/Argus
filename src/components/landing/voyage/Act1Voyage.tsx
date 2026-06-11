@@ -8,6 +8,7 @@
  * the rest of the page can zoom in. No gold yet — the climax saves it.
  */
 
+import Link from 'next/link';
 import { useLocale } from '@/hooks/useLocale';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { PlateLabel } from './ui/PlateLabel';
@@ -69,7 +70,8 @@ export function Act1Voyage() {
             )}
           </p>
 
-          <h1
+          {/* h2 — the page's single h1 lives in SirenHero. */}
+          <h2
             id="voyage-heading"
             className={`bp-fade-up ${locale === 'ko' ? 'break-keep' : ''}`}
             style={{
@@ -95,7 +97,7 @@ export function Act1Voyage() {
                 <span style={{ color: 'var(--bp-ink-soft)' }}>reached its shore?</span>
               </>
             )}
-          </h1>
+          </h2>
 
           {/* Sub-1: AI siren reveal — italic, voice-over feel */}
           <p
@@ -137,7 +139,7 @@ export function Act1Voyage() {
             className="bp-fade-up mt-8 md:mt-10 inline-flex flex-wrap items-center justify-center gap-3"
             style={{ animationDelay: '760ms' }}
           >
-            <a
+            <Link
               href="/workspace"
               className="bp-mono inline-flex items-center justify-center"
               style={{
@@ -152,7 +154,7 @@ export function Act1Voyage() {
               }}
             >
               {L('무료로 시작하기', 'Start free')}
-            </a>
+            </Link>
             <a
               href="#navigate"
               className="bp-mono inline-flex items-center"

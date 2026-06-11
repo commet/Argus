@@ -14,8 +14,8 @@ const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 function getAuthErrors(locale: 'ko' | 'en'): Record<string, string> {
   if (locale === 'ko') {
     return {
-      auth_failed: '로그인에 실패했습니다. 다시 시도해주세요.',
-      oauth_denied: 'Google 로그인이 취소되었습니다.',
+      auth_failed: '로그인에 실패했어요. 다시 시도해 주세요.',
+      oauth_denied: 'Google 로그인이 취소됐어요.',
     };
   }
   return {
@@ -71,7 +71,7 @@ function LoginContent() {
       if (error) {
         setError(error);
       } else {
-        setMessage(L('비밀번호 재설정 링크를 보냈습니다. 이메일을 확인해주세요.', 'Password reset link sent. Please check your email.'));
+        setMessage(L('비밀번호 재설정 링크를 보냈어요. 이메일을 확인해 주세요.', 'Password reset link sent. Please check your email.'));
       }
     } else if (isSignUp) {
       const { error } = await signUpWithEmail(email, password, captchaToken || undefined);
@@ -80,7 +80,7 @@ function LoginContent() {
         turnstileRef.current?.reset();
         setCaptchaToken('');
       } else {
-        setMessage(L('확인 메일을 보냈습니다. 이메일을 확인해주세요.', 'Confirmation email sent. Please check your email.'));
+        setMessage(L('확인 메일을 보냈어요. 이메일을 확인해 주세요.', 'Confirmation email sent. Please check your email.'));
       }
     } else {
       const { error } = await signInWithEmail(email, password);
@@ -112,13 +112,13 @@ function LoginContent() {
 
   return (
     <div className="flex-1 flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Piano background — concert hall pre-show atmosphere */}
+      {/* Calm token-based backdrop — a faint gold wash over the app bg.
+          (Piano photo retired — leftover Overture-era music metaphor.) */}
+      <div className="absolute inset-0 bg-[var(--bg)]" />
       <div
-        className="absolute inset-0 bg-cover bg-center blur-[2px] scale-105"
-        style={{ backgroundImage: 'url(/images/piano-warm.jpg)' }}
+        className="absolute inset-0 pointer-events-none opacity-[0.06]"
+        style={{ background: 'var(--gradient-gold)' }}
       />
-      <div className="absolute inset-0 bg-[var(--bg)]/80" />
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-warm-vignette)' }} />
 
       <div className="relative w-full max-w-[400px]">
         {/* Logo */}
@@ -132,7 +132,7 @@ function LoginContent() {
             <span className="text-[22px] font-extrabold text-[var(--text-primary)] tracking-tight">Argus</span>
           </div>
           <p className="text-[14px] text-[var(--text-secondary)]">
-            {L('과제를 해석하고, 실행을 설계하세요', 'Reframe the problem. Design the execution.')}
+            {L('결정의 궤적을 이어가려면 — 로그인해 주세요', "Pick up your decision's trail — sign in.")}
           </p>
         </div>
 
@@ -226,10 +226,10 @@ function LoginContent() {
             )}
 
             {error && (
-              <p className="text-[12px] text-[var(--danger)] bg-red-50 rounded-lg px-3 py-2">{error}</p>
+              <p className="text-[12px] text-[var(--danger)] bg-[var(--danger)]/10 border border-[var(--danger)]/25 rounded-lg px-3 py-2">{error}</p>
             )}
             {message && (
-              <p className="text-[12px] text-[var(--success)] bg-green-50 rounded-lg px-3 py-2">{message}</p>
+              <p className="text-[12px] text-[var(--success)] bg-[var(--success)]/10 border border-[var(--success)]/25 rounded-lg px-3 py-2">{message}</p>
             )}
 
             {/* Terms agreement on sign-up */}

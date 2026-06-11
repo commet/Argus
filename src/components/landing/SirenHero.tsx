@@ -15,6 +15,7 @@
  */
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale } from '@/hooks/useLocale';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
@@ -91,18 +92,39 @@ export function SirenHero() {
           )}
         </p>
 
+        {/* Resolving sentence — the pitch must not end on the problem. */}
+        <p
+          className={`bp-fade-up mx-auto mt-3 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
+          style={{
+            color: 'var(--bp-ink)',
+            fontSize: 15,
+            fontWeight: 500,
+            lineHeight: 1.7,
+            animationDelay: '200ms',
+          }}
+        >
+          {L(
+            'Argus는 다르게 물어요 — 어디서 갈리는지 보여드리고, 정한 날짜에 돌아와 묻습니다.',
+            'Argus asks differently — it shows you where things fork, and comes back on the date you set to ask.',
+          )}
+        </p>
+
         {/* The single entry point. */}
         <div className="bp-fade-up mt-8" style={{ animationDelay: '240ms' }}>
           <div
             className="rounded-2xl overflow-hidden text-left focus-within:shadow-lg transition-shadow"
             style={{
-              background: 'rgba(255, 252, 245, 0.85)',
-              border: '1px solid rgba(26, 42, 58, 0.18)',
+              background: 'var(--bp-paper-deep)',
+              border: '1px solid var(--bp-ink-faint)',
             }}
           >
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
+              aria-label={L(
+                '지금 들고 있는 결정이나 계획',
+                "The decision or plan you're holding right now",
+              )}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -120,12 +142,14 @@ export function SirenHero() {
             />
             <div className="flex items-center justify-between gap-3 px-4 pb-3">
               <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: '0.08em' }}>
-                {L('한 줄이면 돼요 · 가입 없이 시작', 'One line is enough · no sign-up')}
+                {text.trim()
+                  ? L('Enter로 시작 · Shift+Enter로 줄바꿈', 'Enter to start · Shift+Enter for newline')
+                  : L('한 줄이면 돼요 · 가입 없이 시작', 'One line is enough · no sign-up')}
               </span>
               <button
                 onClick={sail}
                 disabled={!text.trim()}
-                className="shrink-0 px-6 py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-30 cursor-pointer min-h-[44px] transition-shadow hover:shadow-md"
+                className="shrink-0 px-6 py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed min-h-[44px] transition-shadow hover:shadow-md"
                 style={{ background: 'var(--gradient-gold)' }}
               >
                 {L('출항', 'Set sail')}
@@ -136,12 +160,23 @@ export function SirenHero() {
           {/* 1줄 작동 설명 — exactly one. */}
           <p
             className={`mt-4 ${locale === 'ko' ? 'break-keep' : ''}`}
-            style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, lineHeight: 1.6 }}
+            style={{ color: 'var(--bp-ink-soft)', fontSize: 14, lineHeight: 1.6 }}
           >
             {L(
               '계획서를 실행자 여럿에게 그대로 줘 보고 갈리는 자리를 보여드려요 — 그리고 정한 날짜에 먼저 돌아와 물어요.',
               'Your plan goes to several executors as-is; we show you where they split — then come back on your chosen date and ask.',
             )}
+          </p>
+
+          {/* Quiet demo path for the not-yet-ready visitor. */}
+          <p className="mt-3">
+            <Link
+              href="/workspace?demo=planning"
+              className="inline-block transition-opacity hover:opacity-70"
+              style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              {L('아직 조심스럽다면, 샘플 결정으로 둘러보기 →', 'Not ready yet? Look around with a sample decision →')}
+            </Link>
           </p>
         </div>
 

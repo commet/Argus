@@ -33,6 +33,7 @@ vi.mock('@/lib/storage', () => {
   return {
     getStorage: vi.fn((key: string, fallback: unknown) => store[key] ?? fallback),
     setStorage: vi.fn((key: string, value: unknown) => { store[key] = value; }),
+    removeStorage: vi.fn((key: string) => { delete store[key]; }),
     STORAGE_KEYS: {
       PERSONAS: 'sot_personas',
       FEEDBACK_HISTORY: 'sot_feedback_history',

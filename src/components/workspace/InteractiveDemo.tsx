@@ -156,8 +156,9 @@ function TypingInput({ text, highlights, onDone, locale = 'ko' }: {
         {isTyping && <span className="inline-block w-[2px] h-[16px] bg-[var(--accent)] ml-0.5 align-middle animate-pulse" />}
       </p>
       {isTyping && (
-        <span className="hidden sm:inline-block shrink-0 self-center text-[10px] text-[var(--text-tertiary)] tracking-wide">
-          {locale === 'ko' ? '클릭해 건너뛰기' : 'Click to skip'}
+        <span className="shrink-0 self-center text-[10px] text-[var(--text-tertiary)] tracking-wide">
+          <span className="sm:hidden">{locale === 'ko' ? '탭해서 건너뛰기' : 'Tap to skip'}</span>
+          <span className="hidden sm:inline">{locale === 'ko' ? '클릭해 건너뛰기' : 'Click to skip'}</span>
         </span>
       )}
     </motion.div>
@@ -302,12 +303,14 @@ function getAgentStatuses(phase: DemoPhase, visibleWorkers: number, total: numbe
   return Array(total).fill('done') as AgentStatus[];
 }
 
-function AgentRow({ worker, status, expanded, onToggle }: {
+function AgentRow({ worker, status, expanded, onToggle, locale = 'ko' }: {
   worker: DemoScenario['workers'][number];
   status: AgentStatus;
   expanded: boolean;
   onToggle: () => void;
+  locale?: 'ko' | 'en';
 }) {
+  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const isDone = status === 'done';
   const isWorking = status === 'working';
 
@@ -380,11 +383,11 @@ function AgentRow({ worker, status, expanded, onToggle }: {
             </p>
           )}
         </div>
-        {status === 'waiting' && <span className="text-[9px] text-[var(--text-tertiary)]/50 shrink-0 uppercase tracking-wider">standby</span>}
+        {status === 'waiting' && <span className="text-[9px] text-[var(--text-tertiary)]/50 shrink-0 uppercase tracking-wider">{L('대기', 'standby')}</span>}
         {isWorking && (
           <span className="inline-flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-full bg-[var(--accent)]/12 text-[var(--accent)]">
             <Loader2 size={10} className="animate-spin" />
-            <span className="text-[10px] font-semibold">live</span>
+            <span className="text-[10px] font-semibold">{L('진행 중', 'live')}</span>
           </span>
         )}
         {isDone && (
@@ -440,24 +443,24 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
     <div className="p-4 space-y-3.5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">Analysis Team</span>
+        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">{L('분석 팀', 'Analysis Team')}</span>
         {phase === 'analysis' && (
           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--bg)] text-[10px] text-[var(--text-tertiary)] font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-tertiary)] animate-pulse" />
-            assembling
+            {L('모이는 중', 'assembling')}
           </motion.span>
         )}
         {workingCount > 0 && phaseGte(phase, 'q1') && !phaseGte(phase, 'draft') && (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[10px] text-[var(--accent)] font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-            {workingCount} analyzing
+            {L(`${workingCount}명 분석 중`, `${workingCount} analyzing`)}
           </span>
         )}
         {phaseGte(phase, 'draft') && (
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100/60 dark:bg-emerald-900/20 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
             <Check size={10} />
-            Complete
+            {L('완료', 'Complete')}
           </span>
         )}
       </div>
@@ -485,6 +488,7 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
                 status={statuses[i]}
                 expanded={expandedIdx === i}
                 onToggle={() => setExpandedIdx(expandedIdx === i ? null : i)}
+                locale={locale}
               />
             );
           })}
@@ -544,7 +548,7 @@ function DemoAgentSidebar({ scenario, workers, phase, visibleWorkers, locale = '
             <div className="rounded-xl border border-[var(--accent)]/15 bg-[var(--accent)]/[0.03] p-3.5 space-y-2">
               <div className="flex items-center gap-1.5">
                 <Sparkles size={11} className="text-[var(--accent)]" />
-                <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider">Summary</span>
+                <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider">{L('요약', 'Summary')}</span>
               </div>
               {workers.map((w) => (
                 <div key={w.persona.id} className="flex items-start gap-2">
@@ -618,7 +622,7 @@ function DemoAgentCompactBar({ workers, phase, visibleWorkers, locale = 'ko' }: 
         </AnimatePresence>
       </div>
       <span className="text-[10px] text-[var(--text-secondary)] flex-1 inline-flex items-center gap-1.5">
-        {allDone ? 'Analysis done' : <>{locale === 'ko' ? `${workingCount}명 분석 중` : `${workingCount} analyzing`} <TypingDots /></>}
+        {allDone ? (locale === 'ko' ? '분석 완료' : 'Analysis done') : <>{locale === 'ko' ? `${workingCount}명 분석 중` : `${workingCount} analyzing`} <TypingDots /></>}
       </span>
       {workingCount > 0 && !allDone && (
         <Loader2 size={11} className="animate-spin text-[var(--accent)]" />
@@ -1518,7 +1522,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)] shrink-0 bg-[var(--surface)]/80 backdrop-blur-sm z-10">
-        <button onClick={onBack} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
+        <button onClick={onBack} className="min-h-[44px] px-3 -ml-3 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
           &larr; {L('돌아가기', 'Back')}
         </button>
         <span className="text-[11px] text-[var(--text-tertiary)]">
@@ -1737,7 +1741,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
                 {/* Page divider */}
                 <div className="flex items-center gap-4 py-4 mb-2">
                   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent" />
-                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">Next Step</span>
+                  <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest">{L('다음 단계', 'Next Step')}</span>
                   <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent" />
                 </div>
 

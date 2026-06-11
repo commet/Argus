@@ -4,6 +4,7 @@ import { SirenHero } from '@/components/landing/SirenHero';
 import { Act1Voyage } from '@/components/landing/voyage/Act1Voyage';
 import { Act2DecisionVoyage } from '@/components/landing/voyage/Act2DecisionVoyage';
 import { Act3OnDeck } from '@/components/landing/voyage/Act3OnDeck';
+import { Footer } from '@/components/layout/Footer';
 
 export default function HomePage() {
   return (
@@ -16,6 +17,7 @@ export default function HomePage() {
       <Act1Voyage />
       <Act2DecisionVoyage />
       <Act3OnDeck />
+      <Footer />
     </div>
   );
 }

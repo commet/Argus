@@ -29,7 +29,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: DEFAULT_SETTINGS,
 
   loadSettings: () => {
-    const settings = getStorage<Settings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    // Merge over defaults: stored settings predate fields added later
+    // (audio_volume, classic_session, new_arc_enabled, …) — without the spread
+    // those load as undefined and leak into math/UI (NaN volume slider).
+    const settings: Settings = { ...DEFAULT_SETTINGS, ...getStorage<Partial<Settings>>(STORAGE_KEYS.SETTINGS, {}) };
     // auto-detect mode based on saved api key
     if (settings.anthropic_api_key && settings.llm_mode === 'proxy' && (settings.llm_provider || 'anthropic') === 'anthropic') {
       settings.llm_mode = 'direct';

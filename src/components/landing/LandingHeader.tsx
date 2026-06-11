@@ -22,10 +22,10 @@ export function LandingHeader() {
     <header
       className="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
       style={{
-        background: scrolled ? 'rgba(244, 237, 224, 0.78)' : 'transparent',
+        background: scrolled ? 'color-mix(in srgb, var(--bp-paper) 78%, transparent)' : 'transparent',
         backdropFilter: scrolled ? 'blur(10px) saturate(120%)' : 'none',
         WebkitBackdropFilter: scrolled ? 'blur(10px) saturate(120%)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(26, 42, 58, 0.08)' : '1px solid transparent',
+        borderBottom: scrolled ? '1px solid var(--bp-ink-whisper)' : '1px solid transparent',
       }}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-10">
@@ -47,17 +47,6 @@ export function LandingHeader() {
             >
               Argus
             </span>
-            <span
-              className="hidden md:inline bp-mono"
-              style={{
-                color: 'var(--bp-ink-soft)',
-                fontSize: 10,
-                letterSpacing: '0.32em',
-                textTransform: 'uppercase',
-              }}
-            >
-              · est. mmxxvi
-            </span>
           </Link>
 
           <div className="flex items-center gap-3 md:gap-5">
@@ -65,7 +54,7 @@ export function LandingHeader() {
             <div
               className="flex items-center"
               style={{
-                border: '1px solid rgba(26, 42, 58, 0.18)',
+                border: '1px solid var(--bp-ink-faint)',
                 borderRadius: 999,
                 overflow: 'hidden',
               }}

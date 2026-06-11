@@ -3,8 +3,8 @@ import { headers } from 'next/headers';
 import type { Metadata } from 'next';
 
 const META = {
-  ko: { title: '에이전트 — Argus', description: '당신의 에이전트 팀을 관리하세요.' },
-  en: { title: 'Agents — Argus', description: 'Manage your agent team.' },
+  ko: { title: '선원 명부 — Argus', description: '항해를 함께하는 페르소나들을 둘러보세요.' },
+  en: { title: 'Crew Roster — Argus', description: 'Meet the personas who sail with you.' },
 } as const;
 
 export async function generateMetadata(): Promise<Metadata> {

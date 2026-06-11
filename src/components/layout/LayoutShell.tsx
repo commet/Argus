@@ -1,11 +1,21 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { MotionConfig } from 'framer-motion';
 import { Sidebar } from './Sidebar';
 import { AuthGuard } from './AuthGuard';
 import { isPublicPath } from '@/lib/public-paths';
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
+  // All framer-motion animations app-wide respect the OS reduced-motion setting.
+  return (
+    <MotionConfig reducedMotion="user">
+      <LayoutShellInner>{children}</LayoutShellInner>
+    </MotionConfig>
+  );
+}
+
+function LayoutShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isWorkspace = pathname.startsWith('/workspace');
   const isLanding = pathname === '/';

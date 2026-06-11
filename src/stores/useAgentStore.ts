@@ -25,7 +25,6 @@ import {
   type AgentGroup,
   calculateLevel,
   XP_REWARDS,
-  NAVIGATOR_UNLOCK_THRESHOLD,
   NAVIGATOR_SESSION_THRESHOLD,
 } from '@/stores/agent-types';
 
@@ -338,7 +337,7 @@ interface AgentState {
   clearUnlocked: () => void;
 
   // Seed + Migration
-  seedBuiltinAgents: () => void;
+  seedBuiltinAgents: (opts?: { deferSync?: boolean }) => void;
   migrateFromPersonas: () => void;
 }
 
@@ -355,27 +354,39 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     const chains = getStorage<AgentChain[]>(STORAGE_KEYS.AGENT_CHAINS, []);
     const activities = getStorage<AgentActivity[]>(STORAGE_KEYS.AGENT_ACTIVITIES, []);
 
+    let seededThisLoad = false;
     if (agents.length === 0) {
-      // 최초 실행: seed
-      get().seedBuiltinAgents();
-      return;
+      // 최초 실행: seed — 그리고 아래 Supabase 머지로 계속 진행한다.
+      // (예전엔 여기서 return해서 새 기기 첫 로드에 원격 에이전트가 안 보였다.)
+      // deferSync: 시드 직후 즉시 upsert하면 새 기기의 "방금 만든" 시드가
+      // mergeByTimestamp(최신 승)에서 원격의 진짜 XP/활동을 이기고, 원격
+      // 행까지 0으로 덮는다 — 머지가 끝난 뒤에 이긴 쪽을 올린다.
+      get().seedBuiltinAgents({ deferSync: true });
+      seededThisLoad = true;
+    } else {
+      // 기존 데이터 마이그레이션 (v4.1 W1.5: 해금 게이트 제거 — 빌트인 17명은
+      // 전부 즉시 사용 가능, XP/레벨은 코스메틱). 옛 localStorage에 남은
+      // unlocked:false / chain_tasks 조건을 'always'로 강제한다.
+      // 사용자가 만든 에이전트는 건드리지 않는다.
+      const builtinIds = new Set(BUILTIN_AGENTS.map(b => b.id));
+      let migrated = false;
+      const migratedAgents = agents.map(a => {
+        if (builtinIds.has(a.id) && (!a.unlocked || a.unlock_condition?.type !== 'always')) {
+          migrated = true;
+          return { ...a, unlocked: true, unlock_condition: { type: 'always' as const, required: 0 }, updated_at: now() };
+        }
+        return a;
+      });
+      if (migrated) persistAgents(migratedAgents);
+
+      set({ agents: migratedAgents, chains, activities });
+
+      // 기존 Persona 마이그레이션 (아직 안 됐으면)
+      get().migrateFromPersonas();
+
+      // 해금 상태 재계산
+      get().checkUnlocks();
     }
-
-    // 기존 데이터 마이그레이션: 항해장 해금 조건 30 → 10
-    const migratedAgents = agents.map(a => {
-      if (a.id === 'navigator' && a.unlock_condition.type === 'total_tasks' && a.unlock_condition.required > NAVIGATOR_UNLOCK_THRESHOLD) {
-        return { ...a, unlock_condition: { ...a.unlock_condition, required: NAVIGATOR_UNLOCK_THRESHOLD } };
-      }
-      return a;
-    });
-
-    set({ agents: migratedAgents, chains, activities });
-
-    // 기존 Persona 마이그레이션 (아직 안 됐으면)
-    get().migrateFromPersonas();
-
-    // 해금 상태 재계산
-    get().checkUnlocks();
 
     // Supabase async merge
     loadAndMerge<Agent>('agents', STORAGE_KEYS.AGENTS)
@@ -386,6 +397,13 @@ export const useAgentStore = create<AgentState>((set, get) => ({
           set({ agents: [...merged, ...newLocal] });
           get().checkUnlocks();
         }
+        // Fresh-device seed deferred its upsert until after the merge —
+        // now push whatever won (remote XP intact, or the seeds for a
+        // genuinely-new user). persistAgents keeps localStorage in step.
+        if (seededThisLoad) {
+          persistAgents(get().agents);
+          syncToSupabase('agents', get().agents);
+        }
       });
     loadAndMerge<AgentChain>('agent_chains', STORAGE_KEYS.AGENT_CHAINS)
       .then((merged) => {
@@ -393,6 +411,10 @@ export const useAgentStore = create<AgentState>((set, get) => ({
           const current = get().chains;
           const newLocal = current.filter(c => !merged.find(m => m.id === c.id));
           set({ chains: [...merged, ...newLocal] });
+        }
+        if (seededThisLoad) {
+          persistChains(get().chains);
+          syncToSupabase('agent_chains', get().chains);
         }
       });
   },
@@ -743,20 +765,27 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   // ─── Seed ───
 
-  seedBuiltinAgents: () => {
+  seedBuiltinAgents: (opts?: { deferSync?: boolean }) => {
     const existing = get().agents;
     if (existing.some(a => a.is_builtin)) return; // idempotent
 
-    const agents = BUILTIN_AGENTS.map(makeAgent);
+    // Seeds carry an EPOCH updated_at: they're static defaults, so any real
+    // record (remote XP from another device, or any later local mutation)
+    // must out-rank them in mergeByTimestamp. A now() stamp made a fresh
+    // device's seed "newer" than months of remote history.
+    const SEED_TS = '1970-01-01T00:00:00.000Z';
+    const agents = BUILTIN_AGENTS.map(makeAgent).map(a => ({ ...a, updated_at: SEED_TS }));
     const chains: AgentChain[] = BUILTIN_CHAINS.map(c => ({ ...c, total_tasks: 0 }));
 
     persistAgents(agents);
     persistChains(chains);
     set({ agents, chains });
 
-    // Supabase async
-    syncToSupabase('agents', agents);
-    syncToSupabase('agent_chains', chains);
+    // Supabase async — deferSync lets loadAgents push AFTER the remote merge.
+    if (!opts?.deferSync) {
+      syncToSupabase('agents', agents);
+      syncToSupabase('agent_chains', chains);
+    }
   },
 
   // ─── Migration ───
