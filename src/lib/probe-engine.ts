@@ -70,8 +70,13 @@ export interface ProbeCallLog {
 export interface DivergenceProbeResult {
   samples: ProbeSample[];
   forks: Fork[];
-  /** True when executors converged — the honest "선원들이 같은 곳으로 갔어요" card. */
+  /** True when executors MEASURABLY converged (≥2 real samples, zero forks) —
+   *  the honest "선원들이 같은 곳으로 갔어요" card. NEVER true on failure. */
   silent: boolean;
+  /** True when the measurement itself failed (<2 samples landed, not aborted).
+   *  Failure ≠ convergence — render nothing or an honest miss, never the
+   *  silence card (P3; bug found live in G-W1 contact #1). */
+  failed?: boolean;
   /** Forks the merge emitted but mechanical enforcement dropped (for signal logging). */
   dropped: number;
   calls: ProbeCallLog[];
@@ -94,6 +99,8 @@ export interface AblationProbeResult {
   ablations: Ablation[];
   findings: AblationFinding[];
   silent: boolean;
+  /** Measurement failed (call error, not abort) — failure ≠ silence. */
+  failed?: boolean;
   dropped: number;
   calls: ProbeCallLog[];
 }
@@ -229,9 +236,18 @@ export async function runDivergenceProbe(
   for (const r of results) if (r) samples.push(r);
 
   // Fewer than 2 samples → divergence is unmeasurable. Silence, honestly.
+  // Aborted (e.g. dev StrictMode unmount, user navigation) → this is NOT a
+  // measurement. Throw so the caller can reset and re-run — an aborted probe
+  // must NEVER masquerade as convergence-silence (P3: 침묵은 측정의 결과여야
+  // 한다. 측정 실패는 침묵이 아니라 실패다). Found live in G-W1 contact #1.
+  if (opts.signal?.aborted) {
+    throw new DOMException('divergence probe aborted', 'AbortError');
+  }
   if (samples.length < 2) {
+    // Calls genuinely failed (not aborted) — divergence is unmeasurable.
+    // Surface as measurement failure, not as a convergence result.
     logCalls('divergence', calls);
-    return { samples, forks: [], silent: true, dropped: 0, calls };
+    return { samples, forks: [], silent: false, failed: true, dropped: 0, calls };
   }
 
   const t1 = Date.now();
@@ -283,7 +299,8 @@ export async function runAblationProbe(
     logCalls('ablation', calls);
     if (e instanceof DOMException && e.name === 'AbortError') throw e;
     // Probe failure is not a session failure — silence, honestly.
-    return { ablations: [], findings: [], silent: true, dropped: 0, calls };
+    // Call failed (not aborted) — a failed measurement is not a quiet one.
+    return { ablations: [], findings: [], silent: false, failed: true, dropped: 0, calls };
   }
 }
 

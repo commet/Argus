@@ -67,7 +67,9 @@ export const useProbeStore = create<ProbeState>((set, get) => ({
       status: 'done',
       forks,
       findings,
-      silent: forks.length === 0 && findings.length === 0,
+      // Silence = a real measurement that converged. Requires actual samples —
+      // an empty run must NEVER render the convergence card (G-W1 #1 bug).
+      silent: s.samples.length >= 2 && forks.length === 0 && findings.length === 0,
       callLog: [...s.callLog, ...calls],
     })),
 

@@ -15,9 +15,14 @@ export function proxy(req: NextRequest) {
   crypto.getRandomValues(nonceBytes);
   const nonce = btoa(String.fromCharCode(...nonceBytes));
 
+  // Dev only: React dev-mode uses eval() for debugging features (callstack
+  // reconstruction) and logs a console error under a strict CSP. Production
+  // CSP is unchanged — React never evals in prod.
+  const devEval = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : '';
+
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${devEval}`,
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
     "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:",
     "img-src 'self' data: https://lh3.googleusercontent.com",

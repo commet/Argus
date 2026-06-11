@@ -27,7 +27,11 @@
  * ≤8-call probe budget. All text renders through JSX → auto-escaped.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
+
+// Run token (module scope — survives StrictMode remounts): late callbacks from
+// a superseded run must not touch the store.
+let trialSailRunSeq = 0;
 import { motion, AnimatePresence } from 'framer-motion';
 import { Anchor, Quote, Scale } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -61,15 +65,18 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
   // Display-only crew labels — stable for the component's lifetime.
   const labels = useMemo(() => probeExecutorLabels(N_EXECUTORS), []);
 
-  // Self-drive ONCE per session (store is transient; status guards re-entry).
-  const startedRef = useRef(false);
+  // Self-drive once per session. StrictMode-safe: dev double-mount aborts
+  // run #1 in cleanup and RESETS to idle so mount #2 re-runs cleanly; a run
+  // token makes run #1's late async callbacks no-ops so they can't pollute
+  // run #2's state. (G-W1 contact #1 found the original version turning the
+  // StrictMode abort into a fake convergence-silence — never again.)
   useEffect(() => {
-    if (startedRef.current || !paragraph.trim()) return;
+    if (!paragraph.trim()) return;
     if (useProbeStore.getState().status !== 'idle') return;
-    startedRef.current = true;
 
-    const store = useProbeStore.getState();
-    store.begin(N_EXECUTORS);
+    const myRun = ++trialSailRunSeq;
+    const mine = () => trialSailRunSeq === myRun;
+    useProbeStore.getState().begin(N_EXECUTORS);
     const abort = new AbortController();
 
     (async () => {
@@ -78,26 +85,55 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
           runDivergenceProbe(paragraph, {
             n: N_EXECUTORS,
             signal: abort.signal,
-            onSample: (_i, sample) => useProbeStore.getState().sampleArrived(sample),
+            onSample: (_i, sample) => { if (mine()) useProbeStore.getState().sampleArrived(sample); },
           }),
           runAblationProbe(paragraph, { signal: abort.signal }),
         ]);
+        if (!mine()) return; // a newer run owns the store now
+        if (div.failed && abl.failed) {
+          // Both measurements failed → honest failure state, not silence.
+          useProbeStore.getState().failed('측정이 닿지 않았어요');
+          return;
+        }
         useProbeStore.getState().completed({
           forks: div.forks,
           findings: abl.findings,
           calls: [...div.calls, ...abl.calls],
         });
       } catch (e) {
-        if (e instanceof DOMException && e.name === 'AbortError') return;
-        // A failed probe never blocks the voyage — quiet degrade (P3).
-        useProbeStore.getState().completed({ forks: [], findings: [], calls: [] });
+        if (!mine()) return;
+        if (e instanceof DOMException && e.name === 'AbortError') {
+          // Aborted mid-flight (unmount) — wipe, don't pretend.
+          useProbeStore.getState().reset();
+          return;
+        }
+        useProbeStore.getState().failed('측정이 닿지 않았어요');
       }
     })();
 
-    return () => abort.abort();
+    return () => {
+      abort.abort();
+      // Synchronous part of cleanup: if this run still owns the store and is
+      // unfinished, clear the half-state so a remount starts fresh. The async
+      // catch above also resets, but only while it still owns the run.
+      if (mine() && useProbeStore.getState().status !== 'done' && useProbeStore.getState().status !== 'error') {
+        useProbeStore.getState().reset();
+      }
+    };
   }, [paragraph]);
 
   if (status === 'idle') return null;
+
+  // Honest failure: one quiet line, no theater pretending (failure ≠ silence).
+  if (status === 'error') {
+    return (
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3">
+        <p className="text-[12px] text-[var(--text-tertiary)]">
+          {L('측정이 닿지 않았어요 — 이번 항해는 측정 없이 갑니다.', "The measurement didn't land — this voyage continues without it.")}
+        </p>
+      </div>
+    );
+  }
 
   const done = status === 'done';
 
@@ -134,8 +170,8 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                 <span className="text-[14px]" aria-hidden>{label.avatar}</span>
                 <span className="text-[12px] font-semibold text-[var(--text-primary)]">{label.name}</span>
                 {!sample && (
-                  <span className="ml-auto text-[10px] text-[var(--text-tertiary)] animate-pulse">
-                    {L('읽는 중', 'reading')}
+                  <span className={`ml-auto text-[10px] text-[var(--text-tertiary)] ${done ? '' : 'animate-pulse'}`}>
+                    {done ? L('응답 없음', 'no response') : L('읽는 중', 'reading')}
                   </span>
                 )}
               </div>
@@ -155,7 +191,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
               ) : (
                 <div className="space-y-1.5">
                   {[0, 1, 2, 3].map((r) => (
-                    <div key={r} className="h-3 rounded bg-[var(--surface)] animate-pulse" />
+                    <div key={r} className={`h-3 rounded bg-[var(--surface)] ${done ? 'opacity-40' : 'animate-pulse'}`} />
                   ))}
                 </div>
               )}
