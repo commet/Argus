@@ -853,9 +853,10 @@ export async function runHighestLoad(
   const { system, user } = buildHighestLoadPrompt(claims.map((c) => c.text), snapshot, locale);
 
   const shape = { text: 'string' as const };
+  // 'fast': one short sentence out — sonnet latency buys nothing here.
   const result = await callLLMJson<{ text?: string }>(
     [{ role: 'user', content: user }],
-    { system, maxTokens: 400, signal, shape },
+    { system, maxTokens: 400, signal, shape, model: 'fast' },
   );
 
   return {
@@ -1106,9 +1107,11 @@ export async function runNavigatorReview(
   const { system, user } = buildNavigatorReviewPrompt(problemText, workerResults, locale);
 
   try {
+    // 'fast': a 500-token meta-note rendered as one card — cheap tier suffices,
+    // and this rides alongside the user-blocking mix pipeline.
     const result = await callLLMJson<NavigatorReview>(
       [{ role: 'user', content: user }],
-      { system, maxTokens: 500, signal, shape: { overall: 'string', contradictions: 'array', blind_spots: 'array', verdict: 'string' } },
+      { system, maxTokens: 500, signal, model: 'fast', shape: { overall: 'string', contradictions: 'array', blind_spots: 'array', verdict: 'string' } },
     );
 
     // 항해장 XP 적립

@@ -69,9 +69,10 @@ Rules:
   ].filter(Boolean).join('\n');
 
   try {
+    // 'fast': two short narration lines for the logbook — background flavor.
     const res = await callLLMJson<{ significance?: string; why_abandoned?: string }>(
       [{ role: 'user', content: user }],
-      { system, maxTokens: 220, signal: ctx.signal, shape: { significance: 'string', why_abandoned: 'string' } },
+      { system, maxTokens: 220, signal: ctx.signal, model: 'fast', shape: { significance: 'string', why_abandoned: 'string' } },
     );
     const out: WaypointNarration = {};
     if (res.significance?.trim()) out.significance = res.significance.trim();

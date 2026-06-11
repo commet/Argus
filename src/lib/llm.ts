@@ -693,6 +693,36 @@ export async function callLLMStream(
     let fullText = '';
     let buffer = ''; // Buffer for incomplete SSE lines
 
+    // ── UI flush throttle ────────────────────────────────────────────────
+    // SSE delivers dozens of chunks per second, and every onToken call
+    // re-renders the whole subscriber tree (ProgressiveFlow + framer-motion;
+    // 3 workers stream concurrently). ~80ms batches are imperceptible to the
+    // eye but cut render work by an order of magnitude. The trailing timeout
+    // guarantees the latest text always lands; onComplete delivers the final.
+    const FLUSH_MS = 80;
+    let lastFlush = 0;
+    let trailing: ReturnType<typeof setTimeout> | null = null;
+    let unflushed = false; // text accumulated since the last onToken
+    const emitToken = () => {
+      const now = Date.now();
+      if (now - lastFlush >= FLUSH_MS) {
+        lastFlush = now;
+        unflushed = false;
+        if (trailing) { clearTimeout(trailing); trailing = null; }
+        callbacks.onToken(fullText);
+      } else {
+        unflushed = true;
+        if (!trailing) {
+          trailing = setTimeout(() => {
+            trailing = null;
+            lastFlush = Date.now();
+            unflushed = false;
+            callbacks.onToken(fullText);
+          }, FLUSH_MS - (now - lastFlush));
+        }
+      }
+    };
+
     // ── Inactivity watchdog ──────────────────────────────────────────────
     // A zombie connection (socket open, no final chunk) otherwise hangs the UI
     // forever — the only recovery is a page reload. Abort if no chunk arrives
@@ -741,7 +771,7 @@ export async function callLLMStream(
             }
             if (parsed.text) {
               fullText += parsed.text;
-              callbacks.onToken(fullText);
+              emitToken();
             }
             if (parsed.rateLimit !== undefined && typeof window !== 'undefined') {
               window.dispatchEvent(new CustomEvent('argus:ratelimit', {
@@ -763,7 +793,7 @@ export async function callLLMStream(
             const parsed = JSON.parse(data);
             if (parsed.text) {
               fullText += parsed.text;
-              callbacks.onToken(fullText);
+              emitToken();
             }
           } catch { /* skip */ }
         }
@@ -771,6 +801,8 @@ export async function callLLMStream(
     } finally {
       if (idleTimer) clearTimeout(idleTimer);
       clearTimeout(capTimer);
+      // Don't let a queued trailing flush fire after completion/error.
+      if (trailing) { clearTimeout(trailing); trailing = null; }
     }
 
     if (timedOut) {
@@ -783,6 +815,13 @@ export async function callLLMStream(
       );
     }
 
+    // Synchronous final flush: text deferred by the throttle must reach
+    // onToken before completion (callers render from onToken; onComplete is
+    // the parse/cleanup signal). The trailing timer was cleared in `finally`.
+    if (unflushed) {
+      unflushed = false;
+      callbacks.onToken(fullText);
+    }
     callbacks.onComplete(fullText);
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {

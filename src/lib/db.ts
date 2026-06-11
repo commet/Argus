@@ -83,9 +83,30 @@ export function mergeByTimestamp<T extends Timestamped>(local: T[], remote: T[])
 /**
  * Load + merge: localStorage first (instant), then merge with Supabase (async).
  * Returns merged data. Also saves merged result to both localStorage and Supabase.
+ *
+ * In-flight dedup (NO result caching): a workspace mount triggers loadProjects
+ * from several places at once (Providers, Header, Sidebar, the page) — without
+ * dedup each ran its own SELECT * + merge + setStorage. Concurrent callers
+ * share the one pending promise; once it settles the entry is dropped, so a
+ * later call always re-reads fresh local state (a TTL here would let a stale
+ * merge clobber a write made just after the cached load).
  */
+const _inflight = new Map<string, Promise<unknown>>();
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function loadAndMerge<T extends Timestamped>(
+  table: TableName,
+  storageKey: string,
+): Promise<T[]> {
+  const pending = _inflight.get(table);
+  if (pending) return pending as Promise<T[]>;
+  const p = loadAndMergeUncached<T>(table, storageKey).finally(() => _inflight.delete(table));
+  _inflight.set(table, p);
+  return p;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function loadAndMergeUncached<T extends Timestamped>(
   table: TableName,
   storageKey: string,
 ): Promise<T[]> {
