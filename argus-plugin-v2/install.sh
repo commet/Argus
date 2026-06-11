@@ -195,7 +195,7 @@ if [ "$LINK_MODE" = false ] && [ -n "$TEMP_DIR" ]; then
 fi
 
 ERRORS=0
-for required in sail clarify team verify boss revise chart; do
+for required in sail clarify team verify boss revise chart helm; do
   if [ ! -f "$CLAUDE_DIR/skills/$required/SKILL.md" ]; then
     fail "Missing: $required"
     ERRORS=$((ERRORS + 1))
