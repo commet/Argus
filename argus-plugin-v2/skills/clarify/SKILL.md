@@ -149,6 +149,36 @@ If `framing_confidence < 70`:
 
 2. If user rejects, re-run Step 2 with rejection reason as additional context.
 
+### Step 3.5 — 시험 항해 (Trial Sail probe) — W2 재배선
+
+**Skip when `decision_density == "low"`** (a 1-line decision doesn't get a
+crew — cost discipline + the P0.B lesson: probes talk on everything unless
+gated) **or `--quick`.**
+
+1. Read the probe prompts from `~/.claude/argus-data/prompts/probe-prompts.md`
+   — **단일 원천이다. 절대 기억으로 재작성하지 마라** (the file is held in
+   byte-parity with the web engine by a test; an improvised variant silently
+   diverges from the G0-validated levers). Path fallback per sail §Path
+   Resolution.
+2. **C 분기 탐침**: launch 3 parallel haiku-class Tasks, each = GROUND_RULES +
+   the brief verbatim in `<user-data>` + the C sample block. **차별화 지시
+   절대 금지 — 페르소나 텍스트를 이 프롬프트에 넣지 마라** (측정 오염). Crew
+   names/emoji are presentation only, applied to finished cards.
+3. Render cards as they arrive: "같은 브리프를 따로따로 읽었어요 — 서로 다른
+   지시는 없었어요."
+4. **C 병합** (sonnet-class, 1 call): the fork rules block. Mechanical
+   post-filter (trust no model): drop forks with empty `flipped_user_claim`;
+   drop forks whose `cause_quote` does not occur in the brief.
+5. **D 하중 탐침** (sonnet-class, 1 call): the ablation block. Drop findings
+   whose `removed_sentence` does not occur in the brief.
+6. Write `versions/{label}/probe.json`:
+   `{ samples[], forks[], findings[], silent }`.
+7. **갈림 0 && 하중 0** → say exactly: "선원들이 같은 곳으로 갔어요. 이 텍스트
+   안에서 잴 수 있는 갈림은 없었어요 — 남은 위험은 텍스트 밖이에요." and
+   proceed. 침묵도 출력이다 — do NOT manufacture a finding to seem useful.
+
+Budget: 5 calls (3 haiku + 2 sonnet-class), ≤8 총량 준수.
+
 ### Step 4 — Q&A loop (deepening rounds)
 
 **Skip entirely when `decision_density == "low"` AND `--no-minimal` not set.** Minimal mode produces no execution_plan and no team — there's nothing to deepen toward. The Q&A loop's purpose is filling execution_plan for team deployment; it has no value for a 1-line decision card. (False-low density would be caught by M-density meta-check before reaching here.)
@@ -158,6 +188,13 @@ If `framing_confidence < 70`:
 Otherwise, repeat up to `max_rounds` times (default 3) or until the snapshot contains a filled `execution_plan`:
 
 1. **Generate next question** based on latest snapshot. Priorities:
+   - **(FIRST — 측정-정박 질문, W2 재배선)** If `versions/{label}/probe.json`
+     has forks not yet asked: convert the highest-priority fork MECHANICALLY
+     (no LLM) per `probe-prompts.md` §갈림→질문 — purpose_reading forks first,
+     then variants count / anchor length; question quotes the `cause_quote` +
+     "이 선택에 따라 '{flipped_user_claim}'이 참도 거짓도 됩니다"; options =
+     the executors' actual variants + "직접 입력". **세션당 ≤2.** These are
+     measurements, not AI opinions — never frame them as warnings.
    - If `framing_confidence < 90` and not yet asked: ask a **strategic_fork** question to clarify the decision. Example: "이 결정에서 가장 중요한 건 (A) 속도 (B) 확실성 (C) 장기 유지보수 중 어느 쪽인가?"
    - If weakest_assumption identified: ask a **weakness_check** question. Example: "너는 X를 전제하고 있는데, 이게 틀리면 결정이 바뀌어? (O/X)"
    - Otherwise: ask a **skeleton_clarify** question. Example: "이 스켈레톤 중 어느 항목부터 자세히 채우는 게 가장 가치 있나?"
@@ -277,6 +314,7 @@ Written to `.argus/sessions/{id}/`:
 - `versions/v0.1/questions_and_answers.json` — the Q&A history
 - `versions/v0.1/meta.json` — `{triggering_skill: "clarify", timestamp, framing_locked, user_accepted_framing, target_context?, density_was?}`. `target_context` is present whenever a target reference was expanded (see Inputs) and is what `/argus:team` reads to work on the real artifact.
 - `versions/v0.1/minimal_scaffold.json` — **only when `decision_density == "low"`** (Step 5a). MinimalScaffold (schema: `~/.claude/argus-data/schemas/minimal-scaffold.json`). When this file exists, downstream `/argus:sail` MUST set phase=complete and skip team/verify/boss.
+- `versions/v0.1/probe.json` — **only when Step 3.5 ran** (density medium/high, not --quick). `{ samples[], forks[], findings[], silent }` — the trial-sail measurement; Step 4 reads it for 측정-정박 질문.
 
 ---
 

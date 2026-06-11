@@ -283,3 +283,25 @@ TC-HELM-2에서 수락 → `.argus/ledger/ledger.jsonl`에 harvest+seal 이벤�
 
 각 케이스 직후 `.argus/test-observations.md`에 결과 기록. 3/3 전 케이스 PASS 전까지
 helm을 훅에 연결하지 마라.
+
+---
+
+## TC-SAIL-PROBE — clarify 시험 항해 재배선 (W2 sail 재배선)
+
+> 사전 등록 합격선. 격리 세션, 플러그인 재설치(`install.sh --link`) 후.
+
+### TC-SP-1 — medium 밀도 → 탐침 실행 + 측정-정박 질문 우선
+`/argus:clarify "<실제 medium 결정 브리프>"`.
+**PASS** = ① `versions/v0.1/probe.json` 존재 ② 실행자 카드 카피에 "따로따로
+읽었어요" ③ Q&A 첫 질문이 fork 기반(원인 구절 인용 + flipped claim 문장 포함,
+선택지 = 실제 변형들 + 직접 입력) ④ 측정-정박 질문 ≤2 ⑤ 탐침 콜 ≤5.
+**FAIL** = 페르소나 텍스트가 탐침 프롬프트에 주입됨(차별화 지시), 갈림 없는데
+질문 생성, 경고/판정 어휘.
+
+### TC-SP-2 — low 밀도 → 탐침 생략
+`/argus:clarify "<탭 이름 바꾸기급 가역 결정>"`.
+**PASS** = probe.json 없음, MinimalScaffold 경로 그대로 (기존 TC1 회귀 없음).
+
+### TC-SP-3 — 갈림 0 → 침묵 카드
+수렴하는 명확한 브리프. **PASS** = "선원들이 같은 곳으로 갔어요" 한 줄 + 곧장
+진행, 억지 발견 0건.
