@@ -23,14 +23,17 @@ Invoke after:
 - `/argus:sail` is chaining a medium/high decision.
 - The user asks whether the output can be trusted.
 
-Refuse when:
+Refuse when (always say what to do next, never a bare halt):
 
-- no session exists,
-- latest version has no `workers.json` or `scaffold.json`,
-- only `minimal_scaffold.json` exists.
-
-Minimal mode already contains a one-check flip condition; it does not need team
-verification.
+- no session exists → point to `/argus:sail "<decision>"`.
+- latest version has no `workers.json` or `scaffold.json` → point to
+  `/argus:team` (or `/argus:sail --resume <id>`).
+- only `minimal_scaffold.json` exists → this is not an error; explain in one
+  friendly line (user's locale):
+  - en: `This was a low-density decision — the minimal scaffold already contains
+    its one flip-check, so there is no crew output to verify. To force the full
+    pipeline: /argus:sail --full "<problem>".`
+  - ko: 같은 의미를 자연스럽게.
 
 ---
 
@@ -40,6 +43,12 @@ verification.
 - `--strict`: important challenged claims also block.
 - `--invoked-via-sail`: suppress the report and print only one transition line.
 - `--no-prompt`: write the ledger without `AskUserQuestion`; for tests.
+
+**Locale:** read `config.locale` from `.argus/config.yaml` at load time. All
+user-facing output in this skill — the Step 8 question, the Step 10 report, and
+every refusal/transition line — renders in that locale. The templates below are
+written in English; translate them naturally for `ko` (labels too: 지지됨 /
+반박됨 / 미해결 긴장 / 사람 확인). JSON artifacts stay schema-English.
 
 ---
 
@@ -215,7 +224,7 @@ Persist the selected option to `ledger.user_choice`.
 ### Step 9 - Write Ledger
 
 Write `versions/{label}/verification.json` conforming to
-`~/.claude/argus-data/schemas/verification-ledger.json`. Include `generated_at`
+`${CLAUDE_PLUGIN_ROOT}/data/schemas/verification-ledger.json`. Include `generated_at`
 (current ISO-8601 timestamp) — it is a required field and a downstream validator
 rejects a ledger without it.
 

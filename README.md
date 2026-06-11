@@ -9,6 +9,15 @@ Argus는 AI에게 일을 시키기 전에 거쳐야 할 **판단의 구조**를 
 
 **웹에서 바로 사용 → [argus.voyage](https://argus.voyage)**
 
+**Claude Code 플러그인으로 사용** (결정 항해 하니스 — [상세 문서](./argus-plugin-v2/README.ko.md)):
+
+```text
+/plugin marketplace add commet/Argus
+/plugin install argus@argus
+```
+
+재시작 후 `/argus:sail "결정해야 하는 질문"` 으로 시작하세요.
+
 > *Argus*는 오디세우스가 10년 만에 변장하고 돌아왔을 때, 누더기 아래 진짜 주인을 알아본 개의 이름입니다.
 > 매끄러운 표면이 아니라 그 아래의 진짜를 보는 눈 — Argus가 하는 일이 그것입니다.
 

@@ -1,21 +1,41 @@
-# Argus (Plugin v2.1)
+# Argus
 
-[**English**](./README.md) | [Korean](./README.ko.md)
+[**English**](./README.md) | [한국어](./README.ko.md)
 
-**Decision-voyage harness for Claude Code.** Argus reads the repo, PR, file,
-document, or decision context in your current workspace, checks the weak parts
-behind the scenes, and returns one Current Bearing: where the decision stands,
-why, what remains foggy, what path is not being taken, what to do next, and what
-could later be checked against reality.
+**Ask Argus a hard decision. It checks the weak claims behind the scenes and
+returns one screen that tells you where the decision actually stands.**
 
-Argus is not a multi-agent dashboard. Agents are crew. The visible product is
-orientation.
+```text
+/plugin marketplace add commet/Argus
+/plugin install argus@argus
+/argus:sail "The decision you're stuck on"        # after a restart
+```
 
 ---
 
-## What You Get
+## Why Argus
 
-For low-density decisions, Argus returns a minimal scaffold and stops:
+AI assistants are very good at agreeing with you. Ask one whether your plan is
+sound and you usually get a confident, polished **yes** — built on claims
+nobody checked.
+
+Argus is built to not do that. Before it answers, it sharpens what you're
+really deciding, puts a small team of agents to work on your actual code,
+PR, or document, and **verifies their claims** — separating what's supported
+by evidence from what merely sounds plausible. Only then does it answer, in
+one screen called a **Current Bearing**: the current course, why, what's still
+unverified, which alternative was set aside and why, and the next concrete
+step.
+
+Agents are crew, not the show. The product is orientation, not a workflow
+report.
+
+---
+
+## What you get
+
+Argus sizes its effort to the decision. A small, reversible question gets a
+direct answer in about 30 seconds:
 
 ```text
 /argus:sail "Should we rename Workspace to Project?"
@@ -32,8 +52,8 @@ density: low - team, verification, and boss skipped
 Force full pipeline: /argus:sail --full "..."
 ```
 
-For important decisions, Argus does more work but keeps the terminal surface
-compressed:
+A consequential question gets the full pipeline — but the output stays one
+screen:
 
 ```text
 ## Argus - Current Bearing - v0.1
@@ -58,215 +78,196 @@ Check by: 30 days after plugin release.
 Details: .argus/sessions/2026-04-29-boss-absorption/versions/v0.1/
 ```
 
-That is the plugin's default promise: not a long report, not a claim scoreboard,
-not a visible agent parade. One usable bearing, with the voyage preserved in
-files.
+Reading the card, top to bottom: **where you're headed** (current course),
+**the evidence for it**, **the riskiest unverified claim** (fog/reef), **the
+alternative you're consciously not taking**, **the next concrete action**
+(next helm), and **a prediction you can later check against reality**
+(contract seed). The full reasoning — every agent's work, every verified and
+challenged claim — is preserved on disk under `.argus/sessions/`.
 
 ---
 
-## When To Use
+## When to use it
 
-Good fits (code and non-code — Argus is a judgment harness, not only a code tool):
+Argus is a judgment tool, not just a code tool. Good fits:
 
 - "Should we migrate from Firestore to Supabase?"
 - "Review PR #42 as a product, risk, and implementation decision."
 - "Is our auth middleware design wrong?"
-- "Should this feature live in the webapp or be absorbed into the plugin?"
 - "Read this strategy doc and tell me the current course."
 - "Should we expand to the EU market next quarter, or wait one?"
 - "Should I take the senior IC offer or the management track?"
-- "Which vendor should we pick for payments — and what would make that wrong?"
+- "Which payment vendor should we pick — and what would make that wrong?"
 
-For non-code decisions, run Argus from any folder; you can paste the context or
-reference a local document. (Richer business-artifact intake — decks, contracts —
-is on the roadmap; today, paste the key facts.)
+For non-code decisions, run it from any folder and paste the key facts or
+point it at a local document.
 
-Bad fits:
+Not a good fit:
 
-- Syntax lookup or documentation search.
-- Boilerplate code generation.
-- Decisions you would comfortably make before lunch.
-- Cases where you only want validation for an answer you already chose.
+- Syntax lookup, documentation search, boilerplate generation.
+- Decisions you'd comfortably make before lunch.
+- When you only want validation for an answer you've already chosen —
+  Argus will push back, and that's by design.
 
 ---
 
 ## Install
 
-Argus is a Claude Code **plugin**. Install it through the plugin marketplace so
-its commands are namespaced as `/argus:*` (this is what makes `/argus:sail`
-work — see note below). In Claude Code:
+In Claude Code:
 
 ```text
 /plugin marketplace add commet/Argus
 /plugin install argus@argus
 ```
 
-Restart Claude Code. Then in any repo:
+Restart Claude Code, then in any project:
 
 ```text
-/argus:sail "Your decision question here"
+/argus:sail "Your decision question"
 /argus:sail @PR#123
 /argus:sail @docs/strategy.md
 ```
 
-No setup is required. `.argus/config.yaml` auto-creates with sensible defaults.
-By default `.argus/sessions/` is **git-ignored** (it can contain code diffs and
-business context); opt into committing it to share decision history with your
-team — see **Privacy & team sharing** below.
+**Zero setup.** Everything ships inside the plugin. On first run Argus
+auto-creates `.argus/config.yaml` with sensible defaults (language is
+auto-detected; edit the file to change it or to pick a different stakeholder
+persona). Session history is **git-ignored by default** — see
+[Privacy](#privacy--team-sharing).
 
-> **Why the marketplace, not a copy script?** Claude Code only applies the
-> `argus:` namespace to commands from an installed plugin. Copying the skill
-> folders into `~/.claude/skills/` (the old `install.sh` path) exposes them as
-> bare `/sail`, `/team`, `/verify` … which collide with other skills and do
-> **not** match the documented `/argus:*` names. Use the marketplace install above.
+### Requirements
 
-### Prerequisites
+| Requirement | Needed for |
+|---|---|
+| Claude Code (latest) | everything |
+| `git` | repo-aware analysis (optional for non-code decisions) |
+| GitHub CLI `gh` | optional — `@PR#N` / `@issue#N` auto-expansion; without it, paste the content |
+| Node.js ≥ 16 | optional — statusline and the contract-reminder hook |
 
-- **Claude Code** (latest).
-- **git** — required for repo-aware analysis.
-- **GitHub CLI (`gh`)** — *optional but recommended.* Needed for `@PR#N` /
-  `@issue#N` auto-expansion; without it Argus asks you to paste the content.
-- **Node.js ≥ 16** — *only* if you want the optional statusline.
-
-### Platform
-
-macOS, Linux, and Windows (Claude Code runs the skills). The optional
-developer-mode helper script (`install.sh --link`, for live-editing skill files
-against a local clone) is bash; on Windows run it from **Git Bash or WSL**.
-Skill execution itself is cross-platform.
-
-```bash
-# Local development against a clone (bash / Git Bash / WSL):
-./argus-plugin-v2/install.sh --link
-node ./argus-plugin-v2/scripts/validate-plugin.js
-node ./argus-plugin-v2/scripts/simulate-plugin.js
-```
-
-Restart Claude Code after editing skill files — skill bodies are cached at
-session start.
-
----
-
-## Internal Flow
-
-Medium/high decisions use this hidden path:
-
-```text
-clarify -> crew work -> verify -> optional stakeholder review -> Current Bearing
-```
-
-Low-density decisions skip the full pipeline. Quick mode runs clarify only.
-
-The default `/argus:sail` output hides:
-
-- worker count,
-- verification counts,
-- schemas,
-- model names,
-- phase names,
-- long workflow transcripts.
-
-The details are still saved as JSON artifacts: clarify snapshot, worker results,
-mix result, verification ledger, boss feedback, current bearing, final scaffold,
-draft, and session metadata.
-
----
-
-## Routing
-
-| Question shape | Output | Why |
-|---|---|---|
-| Reversible single action with high framing confidence | MinimalScaffold | A full crew would be over-engineering. |
-| Important or critical with confident stakes | Current Bearing | The first answer should orient the decision, not explain the workflow. |
-| Borderline stakes | One `AskUserQuestion` gate | Human choice matters at the routing boundary. |
-| Verification finds blockers | Hold, revise, or collect evidence | Argus refuses to hide unsupported claims inside polished language. |
-
-Overrides:
-
-- `/argus:sail --full "..."` forces the full pipeline.
-- `/argus:sail --quick "..."` runs clarify only.
-- `/argus:sail --no-boss "..."` keeps verification but skips stakeholder review.
-- `/argus:sail --resume <session-id>` continues a paused session.
+Works on macOS, Linux, and Windows.
 
 ---
 
 ## Commands
 
-`/argus:sail` orchestrates the flow and renders the Current Bearing.
+| Command | What it does |
+|---|---|
+| `/argus:sail` | **Start here.** Runs the whole flow and renders the Current Bearing. |
+| `/argus:help` | Command map; tells you which command fits your situation. |
+| `/argus:chart` | Where am I? Version tree, open checks, next step. Also promote/branch. |
+| `/argus:revise` | Apply review feedback into a new draft and re-verify — the iteration loop. |
+| `/argus:clarify` | Sharpen the real question before any work (sail runs this first). |
+| `/argus:team` | Put the agent crew to work on the artifact (sail chains this). |
+| `/argus:verify` | Split crew claims into supported / challenged / human-required (sail chains this). |
+| `/argus:boss` | Stakeholder pressure-check in a configurable persona (sail chains this). |
+| `/argus:helm` | *Experimental.* Silent pre-approval scan of an agent plan; speaks only when an unverified claim props up an irreversible action. |
 
-`/argus:clarify` sharpens the destination and decides density/stakes.
+Flags for `sail`:
 
-`/argus:team` runs crew agents as workers on the actual artifact or decision.
-
-`/argus:verify` performs positive and negative validation of crew output.
-
-`/argus:boss` runs stakeholder review after verification.
-
-`/argus:revise` applies boss concerns / verify challenges to a new child draft
-and re-verifies — the iteration loop.
-
-`/argus:chart` shows the version tree and session artifacts.
+| Flag | Effect |
+|---|---|
+| `--quick` | Sharpen the question only; no pipeline. |
+| `--full` | Force the full pipeline even for a small question. |
+| `--no-boss` | Keep verification, skip the stakeholder review. |
+| `--resume <session-id>` | Continue a paused or blocked session. |
 
 ---
 
-## What Makes It Different
+## How it works
 
-1. **Current Bearing first.** The default product is orientation in one screen,
-   not a workflow transcript.
-2. **Crew, not panel critics.** Agents produce domain work on the actual
-   problem behind the scenes.
-3. **Verification before polish.** Supported, challenged, unresolved, and
-   human-required claims are separated before the bearing is rendered.
-4. **Road not taken is preserved.** A recommendation without an abandoned path is
-   too easy to fake.
-5. **Human choice gates are explicit.** When AI cannot verify something, Argus
-   uses terminal-native `AskUserQuestion` instead of hiding uncertainty.
-6. **Decision-contract seed.** Near anchor, Argus leaves a falsifiable predicate
-   that can later be checked against reality.
-7. **Git-native memory.** The voyage lives in `.argus/sessions/`, so the trail
-   can be committed, shared, and reopened.
+For consequential decisions, sail runs this pipeline behind the scenes:
+
+```text
+clarify ──→ crew work ──→ verify ──→ stakeholder review ──→ Current Bearing
+(real        (agents work    (claims:      (optional,           (one screen)
+ question)    the artifact)   supported /   persona-based)
+                              challenged /
+                              human-required)
+```
+
+Three properties worth knowing:
+
+- **Verification is a gate, not decoration.** If a critical claim has no
+  evidence, the bearing says *hold* or *collect evidence* — it will not hide
+  an unverified claim inside polished language. When only a human can check
+  something, Argus asks you directly instead of guessing.
+- **Disagreement is preserved.** When agents genuinely conflict, the card
+  shows the tension and what would resolve it, instead of averaging it away.
+- **The machinery stays hidden.** Agent counts, schemas, and phase names never
+  appear in the default output. The full trail is in
+  `.argus/sessions/<id>/` and `/argus:chart` when you want it.
+
+### The settlement loop
+
+A Current Bearing close to a final decision ends with a **contract seed**: a
+falsifiable prediction with a check-by date ("if plugin DAU is below X after
+30 days, do not absorb the webapp path"). Argus ships a quiet session-start
+hook: when a contract in the current project is past its check-by date, it
+prints **one line** asking you to check the prediction against reality.
+Otherwise it prints nothing — silence is the default. Disable it anytime via
+`/hooks`.
+
+This is the part that compounds: over time `.argus/` becomes a record of what
+you decided, what you predicted, and how often you were right.
 
 ---
 
 ## Cost & run time
 
-A `/argus:sail` run is not always cheap — it can spawn several agents. Rough
-guide (varies with repo size and model):
+A full run spawns several agents — it is not free. Sail prints a one-line
+time preview before any multi-agent work starts, so a quick question never
+silently becomes a 10-minute run. `Ctrl-C` halts; `--resume` continues.
 
-| Path | Triggers | Time | Output tokens |
+| Path | When | Time | Output tokens |
 |---|---|---|---|
-| Minimal scaffold | low-density reversible question | ~30s | small |
-| `important` (default) | most decisions | ~3–5 min | ~40–80k |
-| `critical` | irreversible / high-impact | ~6–10 min | ~100–180k |
+| Minimal | small reversible question | ~30 s | small |
+| Standard (default) | most decisions | ~3–5 min | ~40–80k |
+| Critical | irreversible / high-impact | ~6–10 min | ~100–180k |
 
-On the full path, `sail` prints a one-line preview (agent count + rough time)
-before it chains the team, so a "quick question" never silently turns into a
-multi-minute, multi-agent run. `Ctrl-C` halts; `/argus:sail --resume <id>`
-continues. If you're on a low API tier, prefer `--quick` or the minimal path.
+On a tight API budget, prefer `--quick`.
+
+---
 
 ## Privacy & team sharing
 
-Argus's `.argus/` directory can contain code diffs, file contents, and your
-problem text. Defaults are private-first:
+`.argus/` can contain code diffs, file contents, and your problem text.
+Defaults are private-first:
 
-- `.argus/sessions/` is **git-ignored by default.** Decision history stays local
-  unless you opt in.
-- Clarify/team **redact** likely secrets (`.env*`, `*.key`, private-key blocks,
-  high-entropy strings) before sending diffs to the model or writing them to disk.
-- To **share with your team**, set `archive.commit_sessions: true` in
-  `.argus/config.yaml` and remove the `.argus/sessions/` ignore line — but review
-  what you're committing first: session files (and the session directory name,
-  which is derived from your question) include diffs and business context that
-  will land in `git log` for everyone with repo access.
+- `.argus/sessions/` is **git-ignored by default** — decision history stays
+  local unless you opt in.
+- Likely secrets (`.env*`, `*.key`, private-key blocks, high-entropy strings)
+  are **redacted** before diffs are sent to the model or written to disk.
+- To share decision history with your team: set
+  `archive.commit_sessions: true` in `.argus/config.yaml` and remove the
+  ignore line — but review what you commit first; session files (and session
+  directory names, which derive from your question) carry business context
+  into `git log` for everyone with repo access.
+
+---
+
+## Development
+
+```bash
+# Live-edit against a local clone (bash / Git Bash / WSL):
+./argus-plugin-v2/install.sh --link
+node ./argus-plugin-v2/scripts/validate-plugin.js   # structure + contract checks
+node ./argus-plugin-v2/scripts/simulate-plugin.js   # output-quality gates
+```
+
+Restart Claude Code after editing skill files — skill bodies are cached at
+session start. Note: the copy install exposes commands *without* the
+`argus:` namespace (`/sail`, `/team`, …) and can collide with other skills;
+the marketplace install above is the supported path.
 
 ## Reference
 
-- Final direction: `../docs/ARGUS-FINAL-DIRECTION.md`
-- Agent roster: `data/agents.yaml`
-- Boss MBTI personalities: `data/boss-types.yaml`
-- Verification ledger schema: `data/schemas/verification-ledger.json`
-- Current Bearing schema: `data/schemas/current-bearing.json`
-- JSON schemas: `data/schemas/*.json`
-- Version tree mechanics: `lib/session/version-numbering.md`
-- Build status and decision log: `BUILD_STATUS.md`
-- Simulation harness: `scripts/simulate-plugin.js`
+- Changelog: `CHANGELOG.md`
+- Agent roster: `data/agents.yaml` · Boss personas: `data/boss-types.yaml`
+- Schemas: `data/schemas/*.json` (Current Bearing: `current-bearing.json`,
+  verification ledger: `verification-ledger.json`)
+- Version-tree mechanics: `lib/session/version-numbering.md`
+- Design direction: `../docs/ARGUS-FINAL-DIRECTION.md` ·
+  Build log: `BUILD_STATUS.md` · Test plan: `TEST_PLAN.md`
+
+## License
+
+MIT

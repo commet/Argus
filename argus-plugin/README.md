@@ -1,4 +1,10 @@
-# Argus
+# Argus (v1 — DEPRECATED)
+
+> ⚠️ **이 디렉토리는 구버전(v0.5)입니다.** 현재 버전은
+> [`argus-plugin-v2/`](../argus-plugin-v2/README.ko.md)이며, 마켓플레이스
+> 설치(`/plugin marketplace add commet/Argus` → `/plugin install argus@argus`)가
+> 정식 경로입니다. 아래의 curl 설치 스크립트는 구버전 스킬(`/argus`,
+> `/recast`, `/rehearse` …)을 설치하므로 새로 시작한다면 사용하지 마세요.
 
 **막막할 때 쓰는 구조화 도구.** 생각을 문서 언어로 번역합니다.
 

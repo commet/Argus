@@ -1,6 +1,6 @@
 # Argus plugin config template.
 # Copy to `.argus/config.yaml` in your repo and customize.
-# Schema: ~/.claude/argus-data/schemas/config.json
+# Schema: data/schemas/config.json (bundled with the Argus plugin)
 #
 # On first `/argus:sail` invocation, if .argus/config.yaml is missing, it is
 # silently auto-created from this template (NO setup dialog) and sail substitutes
@@ -10,7 +10,7 @@
 locale: ko  # or "en" — sail Step 0 overwrites this with the detected locale on auto-create
 
 boss:
-  mbti_code: ISTJ  # Must match an entry in ~/.claude/argus-data/boss-types.yaml. See choices:
+  mbti_code: ISTJ  # Must match an entry in the plugin's data/boss-types.yaml. See choices:
                    # ISTJ, ISFJ, INFJ, INTJ, ISTP, ISFP, INFP, INTP,
                    # ESTP, ESFP, ENFP, ENTP, ESTJ, ESFJ, ENFJ, ENTJ
   name: "박 팀장"

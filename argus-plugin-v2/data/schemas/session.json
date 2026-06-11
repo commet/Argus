@@ -41,7 +41,7 @@
       }
     },
     "phase": {
-      "enum": ["input", "analyzing", "conversing", "team_deploying", "team_working", "mixing", "verifying", "dm_feedback", "refining", "complete"],
+      "enum": ["analyzing", "conversing", "team_deploying", "verifying", "dm_feedback", "refining", "complete"],
       "description": "Plugin phase. Verification is first-class: team output becomes a candidate until /argus:verify marks what is supported, challenged, or blocked."
     },
     "round": {

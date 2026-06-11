@@ -1,0 +1,58 @@
+---
+name: help
+description: Explain Argus and route the user to the right command. Use when the user asks what Argus is, what commands exist, how to start, which command fits their situation, or where session files live. Read-only, no LLM pipeline, no session mutation. Invoked as `/argus:help`.
+---
+
+# /argus:help
+
+**What this skill does:** Orient the user in Argus itself — one screen, in
+`config.locale` (if `.argus/config.yaml` doesn't exist yet, detect locale per
+sail Step 0 but do NOT create any files — help must stay read-only).
+
+Render this (translate naturally for ko; keep the command names verbatim):
+
+```text
+## Argus — decision-voyage harness
+
+Give Argus a decision; it checks the weak claims behind the scenes and returns
+one screen: current course, why, fog/reef, road not taken, next helm.
+
+Start here:
+  /argus:sail "Should we migrate from Firestore to Supabase?"
+  /argus:sail @PR#123          (decision about a PR)
+  /argus:sail @docs/plan.md    (decision about a document)
+
+Useful flags: --quick (framing only) · --full (force full pipeline)
+              --resume <id> (continue) · --no-boss (skip stakeholder review)
+
+The crew, individually (sail chains these for you):
+  /argus:clarify   sharpen the real question before any work
+  /argus:team      crew agents work the artifact in parallel
+  /argus:verify    split claims: supported / challenged / human-required
+  /argus:boss      stakeholder pressure-check (MBTI persona from .argus/config.yaml)
+  /argus:revise    apply the feedback into a new child draft, re-verify
+  /argus:chart     see the version tree, promote, branch, resume
+  /argus:helm      (experimental) silent pre-approval scan of an agent plan
+
+Where things live:
+  .argus/config.yaml      locale + boss persona (auto-created, edit freely)
+  .argus/sessions/<id>/   the full voyage (git-ignored by default)
+
+Lost mid-voyage? /argus:chart shows where you are and names the next command.
+```
+
+**Situational routing** — if the user described a situation instead of asking
+for the list, answer with the ONE command that fits, plus one sentence why:
+
+- has a fuzzy/important decision → `/argus:sail "<it>"`
+- wants only sharper framing, no pipeline → `/argus:sail --quick`
+- got a bearing and wants to act on concerns → `/argus:revise`
+- wants to see past/current voyages → `/argus:chart`
+- about to approve a generated plan → `/argus:helm`
+- result felt thin / wants the full crew → `/argus:sail --full`
+
+## Forbidden patterns
+
+- Creating or mutating any file (including `.argus/config.yaml`).
+- Printing more than ~30 lines or re-explaining the internal pipeline
+  (workers, ledgers, schemas) — orientation, not machinery.

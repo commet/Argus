@@ -68,7 +68,7 @@ boss by editing `.argus/config.yaml` (`boss.mbti_code`/`name`/`role`) or passing
    - ko question: `사람 확인이 필요한 항목이 있어 Boss 리뷰가 왜곡될 수 있습니다. 그래도 진행할까요?`
    - options: `멈추고 확인 항목 보기`, `그래도 Boss 리뷰 진행`
    If user chooses stop, print human checks from verification and exit.
-6. Read `.argus/config.yaml` (schema: `~/.claude/argus-data/schemas/config.json`) → get `locale`, `boss.mbti_code`, `boss.name`, `boss.gender`, `boss.role`.
+6. Read `.argus/config.yaml` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/config.json`) → get `locale`, `boss.mbti_code`, `boss.name`, `boss.gender`, `boss.role`.
 7. If `config` missing entirely or `boss` block absent, fall through to fallback path in "Error Modes" section (offer a generic stakeholder review).
 8. The locale from config drives the entire review prompt — use the correct section below (Korean or English prompt template).
 
@@ -143,7 +143,7 @@ Boss personality:
 
 ### Step 3 - Validate Output
 
-Validate against `~/.claude/argus-data/schemas/dm-feedback.json`.
+Validate against `${CLAUDE_PLUGIN_ROOT}/data/schemas/dm-feedback.json`.
 
 Required:
 
@@ -286,7 +286,16 @@ Keep this to one terminal screen.
 
 ## Error Modes
 
-- **No boss configured:** offer a generic stakeholder review; otherwise stop.
+- **No boss configured:** offer a generic stakeholder review via one
+  AskUserQuestion (`Run a generic stakeholder review` / `Skip — I'll set a boss
+  in .argus/config.yaml first`). Generic mode = same Step 2 prompt and the SAME
+  output schema, but with the MBTI personality block omitted and
+  "You are {{boss.name}}, {{boss.role}}" replaced by "You are the
+  decision-owner reviewing this scaffold before sign-off." Write
+  `boss_feedback.json` with `mbti_type: null` (this is what marks the run as
+  generic — `mode` stays `quick`/`deep` as usual, per dm-feedback.json).
+  Skip the M2 personality gate (there is no voice to preserve); every other
+  gate (fix_suggestion required, verify separation) still applies.
 - **Invalid MBTI code:** list valid codes and stop.
 - **Mix/scaffold missing:** direct user to `/argus:team`.
 - **Verification missing:** direct user to `/argus:verify`.

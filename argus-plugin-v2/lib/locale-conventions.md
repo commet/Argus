@@ -2,14 +2,17 @@
 
 Every skill honors `config.locale` from `.argus/config.yaml`.
 
-**Resolution order (L3.3):**
+**Resolution order (L3.3 — must stay consistent with sail Step 0, which owns
+first-run detection and never asks setup questions):**
 1. `config.locale` if present — authoritative.
-2. Config missing/field absent → infer from the user's CURRENT conversation
-   language if it is unambiguous (their last 2+ messages clearly one language).
-3. Still ambiguous (mixed/none) → ask ONCE: "Korean or English? / 한국어로
-   할까요, 영어로 할까요?" — then write the answer back to `.argus/config.yaml`
-   (`locale: ko|en`) so the question never repeats. Never silently default on
-   an ambiguous signal: a wrong-language session reads as broken.
+2. Config missing → sail Step 0 detects ONCE and writes the result into the
+   auto-created config (first match wins): `LANG`/`LC_ALL` starts with `ko` →
+   ko; on Windows, system UI culture is `ko-*` → ko; the user's problem text is
+   predominantly Hangul → ko; else → en.
+3. The detection is silent — no "Korean or English?" prompt on first run
+   (first-run friction was the discoverability killer). If the detected value
+   is wrong, the fix is one edit: `locale:` in `.argus/config.yaml`; every
+   skill re-reads it on its next invocation.
 
 ## Affected surfaces
 

@@ -415,3 +415,28 @@ File-system validation should check:
 
 Runtime validation still requires a fresh Claude Code session because skill
 bodies are cached at session start.
+
+---
+
+# 2026-06-11 - v2.2 plugin-spec alignment pass
+
+- Manifest reduced to the official plugin.json shape: removed invented/redundant
+  `commands` / `agents` / `references` / `statusline` fields (skills and agents
+  auto-discover from `skills/` and `agents/`; `/argus:*` namespacing comes from
+  the plugin name).
+- Path resolution rewritten: bundled data/lib now referenced via
+  `${CLAUDE_PLUGIN_ROOT}/data|lib` with the canonical fallback order documented
+  once in sail §Path Resolution (plugin install → legacy copy-install dirs →
+  repo-local). This closes the 2026-04-24 open concern "plugin install path
+  ambiguity" — marketplace installs work with zero data-install steps.
+- Bilingual/UX pass: team Step 0 + sail data-missing errors now bilingual and
+  point to plugin reinstall (not install.sh); verify gained a locale rule and a
+  friendly minimal-scaffold redirect; boss generic_stakeholder fallback defined;
+  clarify Step 3.5 probe strings got en equivalents; helm marked experimental.
+- Consistency: sail Step 3 orphan phases (`team_working`/`mixing`) replaced with
+  interrupted-mid-team detection and pruned from session.json schema;
+  locale-conventions resolution order aligned to sail Step 0 silent detection;
+  session-layout boss row fixed to `boss_reviewed`.
+- validate-plugin.js rewritten for the new structure (forbids regressed manifest
+  fields, checks 8 auto-discovered skills + frontmatter, 17 agents, schema
+  inventory, and hardcoded-path regressions).

@@ -40,32 +40,51 @@ const manifestPath = path.join(root, ".claude-plugin", "plugin.json");
 const manifest = readJson(manifestPath);
 
 if (manifest) {
-  for (const field of ["commands", "agents", "references"]) {
-    for (const target of manifest[field] || []) {
-      check(fs.existsSync(path.join(root, target)), `manifest ${field} missing path: ${target}`);
+  // Claude Code auto-discovers skills/<name>/SKILL.md and agents/*.md.
+  // These fields are either redundant (commands/agents) or not in the plugin
+  // spec at all (references/statusline) — their presence means someone
+  // regressed to the pre-2.2 invented-manifest shape.
+  for (const field of ["commands", "agents", "references", "statusline"]) {
+    check(!(field in manifest), `manifest must not declare "${field}" (skills/agents auto-discover; "${field}" is not in the plugin spec)`);
+  }
+  check(manifest.name === "argus", "manifest name must be argus (it is the /argus: namespace)");
+  check(typeof manifest.version === "string" && manifest.version.length > 0, "manifest must declare a version");
+}
+
+const SKILLS = ["sail", "clarify", "team", "verify", "boss", "revise", "chart", "helm", "help"];
+for (const skill of SKILLS) {
+  const skillPath = path.join(root, "skills", skill, "SKILL.md");
+  check(fs.existsSync(skillPath), `missing skills/${skill}/SKILL.md (auto-discovered as /argus:${skill})`);
+  if (fs.existsSync(skillPath)) {
+    const body = fs.readFileSync(skillPath, "utf8");
+    check(/^---\r?\n/.test(body) && /\r?\ndescription:/.test(body.split(/\r?\n---/)[0] + "\n"), `skills/${skill}/SKILL.md missing frontmatter description`);
+    // Path-resolution regression guard: bundled files are referenced via
+    // ${CLAUDE_PLUGIN_ROOT}; only sail documents the legacy fallbacks.
+    if (skill !== "sail") {
+      check(!body.includes("~/.claude/argus-"), `skills/${skill}/SKILL.md hardcodes ~/.claude/argus-* (use \${CLAUDE_PLUGIN_ROOT}/data|lib per sail §Path Resolution)`);
     }
   }
+}
 
-  if (manifest.statusline) {
-    check(fs.existsSync(path.join(root, manifest.statusline)), `manifest statusline missing path: ${manifest.statusline}`);
-  }
+const agentFiles = fs.existsSync(path.join(root, "agents"))
+  ? fs.readdirSync(path.join(root, "agents")).filter((f) => f.endsWith(".md"))
+  : [];
+check(agentFiles.length === 17, `agents/ should hold 17 agent .md files, found ${agentFiles.length}`);
 
-  for (const command of ["sail", "clarify", "team", "verify", "boss", "revise", "chart"]) {
-    check(
-      (manifest.commands || []).includes(`./skills/${command}/SKILL.md`),
-      `manifest commands missing /argus:${command}`
-    );
-  }
-
-  check((manifest.agents || []).length === 17, `manifest should expose 17 agents, found ${(manifest.agents || []).length}`);
-  check(
-    (manifest.references || []).includes("./data/schemas/current-bearing.json"),
-    "manifest references missing current-bearing schema"
-  );
-  check(
-    !(manifest.references || []).includes("./data/schemas/surface-card.json"),
-    "manifest must not reference retired surface-card schema"
-  );
+for (const schema of [
+  "analysis-snapshot.json",
+  "worker-result.json",
+  "verification-ledger.json",
+  "current-bearing.json",
+  "mix-result.json",
+  "dm-feedback.json",
+  "final-scaffold.json",
+  "minimal-scaffold.json",
+  "draft.json",
+  "session.json",
+  "config.json"
+]) {
+  check(fs.existsSync(path.join(root, "data", "schemas", schema)), `missing data/schemas/${schema}`);
 }
 
 const installPath = path.join(root, "install.sh");
@@ -131,6 +150,21 @@ const statusline = path.join(root, "statusline", "index.js");
 if (fs.existsSync(statusline)) {
   const result = spawnSync(process.execPath, ["--check", statusline], { encoding: "utf8" });
   check(result.status === 0, `statusline syntax check failed: ${result.stderr || result.stdout}`);
+}
+
+// SessionStart contract-reminder hook: hooks.json must reference an existing,
+// syntactically valid script, and the script must never be allowed to grow a
+// top-level throw (a broken hook taxes every session start).
+const hooksJson = readJson(path.join(root, "hooks", "hooks.json"));
+if (hooksJson) {
+  const sessionStart = hooksJson.hooks?.SessionStart;
+  check(Array.isArray(sessionStart) && sessionStart.length > 0, "hooks.json must register a SessionStart hook");
+}
+const contractsScript = path.join(root, "scripts", "check-contracts.js");
+check(fs.existsSync(contractsScript), "missing scripts/check-contracts.js (referenced by hooks/hooks.json)");
+if (fs.existsSync(contractsScript)) {
+  const result = spawnSync(process.execPath, ["--check", contractsScript], { encoding: "utf8" });
+  check(result.status === 0, `check-contracts syntax check failed: ${result.stderr || result.stdout}`);
 }
 
 const simulation = path.join(root, "scripts", "simulate-plugin.js");

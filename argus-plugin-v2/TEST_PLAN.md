@@ -1,4 +1,4 @@
-# Plugin v2.1 Reality Check - Test Plan
+# Plugin v2.2 Reality Check - Test Plan
 
 **Why this exists.** Earlier plugin validation relied too much on simulated
 self-audit. v2.1 adds a first-class verification step, but that must be tested
@@ -15,9 +15,15 @@ claims, unresolved tensions, and human-required checks before final output.
 ./argus-plugin-v2/install.sh --link
 ```
 
-Restart Claude Code. Verify:
+Restart Claude Code. Verify (plugin install — the primary path — keeps
+everything under the plugin's install dir; the `~/.claude/*` paths below only
+exist after a legacy `install.sh` copy install):
 
 ```bash
+# Plugin install: /plugin marketplace add commet/Argus && /plugin install argus@argus
+# then inside a session, /argus:sail should resolve data via ${CLAUDE_PLUGIN_ROOT}.
+
+# Legacy copy install only:
 ls ~/.claude/skills/sail/SKILL.md
 ls ~/.claude/skills/verify/SKILL.md
 ls ~/.claude/skills/revise/SKILL.md
@@ -96,7 +102,7 @@ AI cannot verify the blocker.
 ### TC5 - Plugin Judging Plugin
 
 ```text
-/argus:sail "Does Argus plugin v2.1 have too many moving parts: clarify, team, verify, boss, chart, 17 agents, 16 MBTI boss types, and many schemas?"
+/argus:sail "Does Argus plugin v2.2 have too many moving parts: clarify, team, verify, boss, chart, 17 agents, 16 MBTI boss types, and many schemas?"
 ```
 
 Expected: at least one agent or verification challenge should be willing to cut
@@ -198,7 +204,7 @@ verification.
 Write results to `.argus/test-observations.md`:
 
 ```markdown
-# Plugin v2.1 Test Observations - YYYY-MM-DD
+# Plugin v2.2 Test Observations - YYYY-MM-DD
 
 ## TC1
 **Invocation**: `/argus:sail "..."`

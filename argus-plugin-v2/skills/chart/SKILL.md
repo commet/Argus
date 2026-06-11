@@ -42,7 +42,7 @@ Flags that mutate state are mutually exclusive.
 
 ### Step 0 — Load config & guard for empty state
 
-1. Read `.argus/config.yaml` (silent-create from `~/.claude/argus-lib/config.example.yaml` if missing, same as other skills). All user-facing text in this skill uses `config.locale`.
+1. Read `.argus/config.yaml` (silent-create from `${CLAUDE_PLUGIN_ROOT}/lib/config.example.yaml` if missing, same as other skills). All user-facing text in this skill uses `config.locale`.
 2. **Zero-sessions guard:** if `.argus/sessions/` does not exist or contains no session directory, do NOT error. Print and stop:
    - ko: `아직 Argus 항해 기록이 없습니다. \`/argus:sail "<결정>"\` 로 시작하세요.`
    - en: `No Argus voyages yet. Start one with \`/argus:sail "<your decision>"\`.`

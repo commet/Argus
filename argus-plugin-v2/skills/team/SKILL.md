@@ -43,17 +43,21 @@ Refuse to run when:
 
 ### Step 0 — Preflight: agents.yaml readable (L3.2)
 
-Before anything else, verify `~/.claude/argus-data/agents.yaml` exists, is
-readable, and contains the `capabilities:` key. If not: stop and print exactly
-one line — `agents.yaml이 없거나 손상됐어요. ./argus-plugin-v2/install.sh --link
-재실행 후 다시 시도해 주세요.` Do not improvise a crew without it.
+Before anything else, verify `${CLAUDE_PLUGIN_ROOT}/data/agents.yaml` exists, is
+readable, and contains the `capabilities:` key (resolve the path per sail §Path
+Resolution: plugin install dir first, then the legacy copy-install dir, then
+repo-local `argus-plugin-v2/data/`). If not found anywhere: stop and print
+exactly one line in the user's locale — ko: `agents.yaml이 없거나 손상됐어요 —
+플러그인을 재설치해 주세요 (/plugin install argus@argus).` · en: `agents.yaml is
+missing or corrupt — reinstall the plugin (/plugin install argus@argus).` Do not
+improvise a crew without it.
 
 ### Step 1 — Load session state
 
 1. Find session: latest `.argus/sessions/*/session.json` or specified via `--session`.
 2. Read the latest snapshot from `versions/{label}/analysis.json` (authoritative; session.json no longer stores snapshots).
 3. Assert `execution_plan.steps` has ≥ 2 entries. If not, halt with direction to run more clarify rounds.
-4. Compute next version label using rules from `~/.claude/argus-lib/session/version-numbering.md`:
+4. Compute next version label using rules from `${CLAUDE_PLUGIN_ROOT}/lib/session/version-numbering.md`:
    - v0.1 directory exists already (created by `/argus:clarify`).
    - **Marker-file detection for re-run**: a version is considered "team-completed" when `versions/{label}/workers.json` exists. If the latest version's `workers.json` exists, this invocation is a re-run → compute the next label via `nextChildLabel(parent_label, existing_siblings_under_same_parent)` from version-numbering.md.
    - **Branch from the checked-out draft, not the newest.** `parent_label` is the `version_label` of `session.active_draft_id` (set by `/argus:chart --checkout` or the last run), NOT simply the newest label on disk. On a `--revise` or post-checkout run this is what makes the new draft a proper child/branch (e.g. revising `v0.1` while `v0.2` exists yields `v0.1.1`, not a `v0.3` main-line). Only when `active_draft_id` is unset/points to the latest does this reduce to "main-line continuation" (`v0.2`).
@@ -116,13 +120,13 @@ This file becomes input to EVERY worker spawn. Workers can read it + Grep for sp
 
 ### Step 2 — Classify (LLM runtime)
 
-**Reference: `~/.claude/argus-data/classification.yaml`**
+**Reference: `${CLAUDE_PLUGIN_ROOT}/data/classification.yaml`**
 
 **Read upstream signals first:** load `session.classification.stakes` (if user-confirmed via sail Step 6b — `session.classification.stakes_user_confirmed == true`, treat as authoritative; do NOT re-classify, only fill `stakes_confidence: 100` and proceed to step breakdown). Otherwise read `snapshot.stakes_guess` + `snapshot.stakes_confidence` from clarify as prior.
 
 Prompt yourself:
 
-> You are classifying a problem for agent team deployment. Use the vocabulary from `~/.claude/argus-data/classification.yaml`.
+> You are classifying a problem for agent team deployment. Use the vocabulary from `${CLAUDE_PLUGIN_ROOT}/data/classification.yaml`.
 >
 > Given:
 > - Real question: {{snapshot.real_question}}
@@ -156,7 +160,7 @@ Write classification to `versions/{label}/classification.json`. Persist `stakes_
 
 ### Step 3 — Select agents (LLM + capabilities)
 
-**Reference: `~/.claude/argus-data/agents.yaml`** — each agent has `capabilities: {task_types, domains, output_types, anti_patterns}`.
+**Reference: `${CLAUDE_PLUGIN_ROOT}/data/agents.yaml`** — each agent has `capabilities: {task_types, domains, output_types, anti_patterns}`.
 
 For each step, compute best agent by:
 
@@ -238,7 +242,7 @@ For each worker in stage-1, use the **Task / Agent tool** to spawn a sub-agent.
 
 > **Dispatch mechanism — read this.** The Agent/Task tool's `subagent_type` only accepts built-in types (`general-purpose`, `Explore`, `Plan`, …); it does **NOT** bind a custom agent by bare id like `subagent_type: "sujin"` (that silently runs a generic model while still printing the worker's name — the persona collapses invisibly). So:
 > - **subagent_type**: `general-purpose`.
-> - **Persona injection (this is what makes the worker actually be `sujin`):** read the agent's definition — `~/.claude/agents/<agentId>.md` if present, else the agent's entry in `~/.claude/argus-data/agents.yaml` (`voice_markers`, `worker_mode_examples`, capabilities) — and **inline its system-prompt content + voice examples at the top of the worker prompt below.** The worker's voice/expertise comes from this injected text, not from `subagent_type`.
+> - **Persona injection (this is what makes the worker actually be `sujin`):** read the agent's definition — `${CLAUDE_PLUGIN_ROOT}/agents/<agentId>.md` if present (plugin install; for copy installs try `~/.claude/agents/<agentId>.md`), else the agent's entry in `${CLAUDE_PLUGIN_ROOT}/data/agents.yaml` (`voice_markers`, `worker_mode_examples`, capabilities) — and **inline its system-prompt content + voice examples at the top of the worker prompt below.** The worker's voice/expertise comes from this injected text, not from `subagent_type`.
 > - If a future Claude Code version supports custom-agent dispatch (e.g. plugin-scoped `subagent_type: "argus:sujin"` when installed as a plugin), you may switch to that — but inline injection is the mechanism that works today and must remain the fallback.
 
 - **description**: short (e.g., "research 3 competitors")
@@ -393,7 +397,7 @@ If multiple axes have opposing stances simultaneously, write multiple entries to
 
 Prompt yourself:
 
-> Aggregate the team's work into a MixResult (schema: `~/.claude/argus-data/schemas/mix-result.json`).
+> Aggregate the team's work into a MixResult (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/mix-result.json`).
 >
 > Team outputs:
 > {{all worker results with agent names}}
@@ -418,7 +422,7 @@ Write result to `versions/{label}/mix.json`.
 
 This is the PLUGIN-SPECIFIC divergence from webapp. Webapp produces a markdown document; plugin produces a decision scaffold.
 
-Construct a candidate `FinalScaffold` (schema: `~/.claude/argus-data/schemas/final-scaffold.json`). Candidate means it is not yet trusted; `/argus:verify` owns final verification state.
+Construct a candidate `FinalScaffold` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/final-scaffold.json`). Candidate means it is not yet trusted; `/argus:verify` owns final verification state.
 - `reframed_question`: from snapshot
 - `key_trade_offs[]`: extract from team outputs + debate. Each trade-off = axis + side_a + side_b.
 - `hidden_assumptions[]`: from mix.key_assumptions, with `evaluation` (likely_true / uncertain / doubtful) based on team's validation
@@ -435,7 +439,7 @@ Write to `versions/{label}/scaffold.json`.
 
 - Workers, stages, mix, and the scaffold are ALREADY written write-once to `versions/{label}/` (`workers.json`, `team_plan.json` stages, `mix.json`, `scaffold.json`) — do NOT also copy them into session.json. Duplicating them is exactly the monolithic-blob merge-conflict surface this model removes.
 - Update `session.classification` (small routing state — kept in the skeleton)
-- **Append a Draft to `session.drafts[]`** (schema: `~/.claude/argus-data/schemas/draft.json`) and set `session.active_draft_id` to it. Without this the chart version tree is permanently empty and `--checkout` / `--promote` / branching cannot work. Shape:
+- **Append a Draft to `session.drafts[]`** (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/draft.json`) and set `session.active_draft_id` to it. Without this the chart version tree is permanently empty and `--checkout` / `--promote` / branching cannot work. Shape:
   - `id`: stable draft id (e.g. `draft-{label}`)
   - `parent_draft_id`: the draft this one descends from — on a `--revise`/branch run, the draft whose `version_label` matches the checked-out `session.active_draft_id`; on the first team run, `null` (root)
   - `version_label`: the version label this run wrote (e.g. `v0.1`, `v0.2`, `v0.1.1`)
@@ -517,7 +521,7 @@ User typed `/argus:team` directly without going through sail. Render the full bl
 ## Error modes
 
 - **Task tool spawn fails**: retry once. If still fails, mark worker status=error, continue with other workers. Explain in final report.
-- **Agent .md missing**: the persona is injected inline anyway (see Step 4 dispatch) — read it from `~/.claude/argus-data/agents.yaml` instead of `agents/<id>.md`. agents.yaml is the always-present source; the .md files are a convenience copy. Note which source was used.
+- **Agent .md missing**: the persona is injected inline anyway (see Step 4 dispatch) — read it from `${CLAUDE_PLUGIN_ROOT}/data/agents.yaml` instead of `agents/<id>.md`. agents.yaml is the always-present source; the .md files are a convenience copy. Note which source was used.
 - **Debate classification ambiguous**: if you can't identify 2 clearly disagreeing agents, skip debate but log "no clear disagreement surfaced" to session.json. Don't fabricate debate.
 - **Word budget exceeded by an agent**: accept output, don't re-spawn. Note in attribution.
 

@@ -51,7 +51,7 @@ Example:
 ## File Naming Conventions
 
 - JSON for machine-readable artifacts conforming to schemas in
-  `~/.claude/argus-data/schemas/`.
+  `${CLAUDE_PLUGIN_ROOT}/data/schemas/`.
 - `.log` for append-only text logs.
 - `meta.json` in each version dir for non-artifact metadata such as timestamp,
   triggering skill, and user notes.
@@ -123,5 +123,5 @@ surface view reflects the active draft's scaffold.
 | `/argus:team` | `classification.json`, `team_plan.json`, `repo_context.json` (M1 code-native context), `workers.json`, optional `debate.json`, `mix.json`, candidate `scaffold.json`; appends a Draft to `session.drafts[]` and sets `active_draft_id` |
 | `/argus:verify` | `verification.json`, updated `scaffold.json` verification summary, updated `session.json` verification state |
 | `/argus:sail` Step 7 | `current_bearing.json` for medium/high paths |
-| `/argus:boss` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns; in session.json only the active draft's `reviewing_agent_id` pointer + `phase` |
+| `/argus:boss` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns; in session.json only the active draft's `boss_reviewed: true` flag + `phase` (boss does NOT touch `reviewing_agent_id` — that marks who produced a draft, not who reviewed it) |
 | `/argus:revise` | writes a transient `pending_revision.json` (session level, consumed by team), then via `/argus:team --revise` creates a new **child** version dir (full artifacts, write-once) and appends a child Draft (`directive`, `reviewing_agent_id: navigator`); then `/argus:verify` re-verifies. The parent draft is untouched. |

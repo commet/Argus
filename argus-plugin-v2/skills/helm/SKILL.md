@@ -1,13 +1,19 @@
 ---
 name: helm
-description: Pre-approval keel scan for agent plans. Before the user approves a plan (ExitPlanMode, a plan doc, a migration/deploy/delete proposal), helm runs a silent load-bearing scan and speaks ONLY when an unsupported claim touches an irreversible operation. Default output is silence. Full divergence probe is opt-in. Seals accepted bets into .argus/ledger/ (same schema as argus-watch). Invoked as `/argus:helm`.
+description: EXPERIMENTAL — pre-approval keel scan for agent plans, separate from the sail pipeline. Before the user approves a plan (ExitPlanMode, a plan doc, a migration/deploy/delete proposal), helm runs a silent load-bearing scan and speaks ONLY when an unsupported claim touches an irreversible operation. Default output is silence. Full divergence probe is opt-in. Seals accepted bets into .argus/ledger/ (same schema as argus-watch). Invoked as `/argus:helm`.
 ---
 
 # /argus:helm — 계획 승인 전 용골 스캔
 
+> Status: **experimental.** helm은 sail 파이프라인의 단계가 아니라 독립
+> 보조 스킬이다. 사용자에게 보이는 모든 출력(스캔 결과 한 줄, 발화문,
+> 봉인 제안)은 `.argus/config.yaml`의 `config.locale`을 따른다 — 아래의
+> 한국어 카피는 ko 기준 문안이며, en이면 같은 의미를 자연스러운 영어로.
+
 ## Product Contract (P0.B 판정이 봉인한 제약 — 위반 금지)
 
-> 백테스트 실측 (2026-06-11, `.argus/eval/P0B-verdict.md`): 탐침은 갈라질 계획
+> 백테스트 실측 (2026-06-11, Argus 저장소 내부 기록 `.argus/eval/P0B-verdict.md` —
+> 플러그인에 동봉되지 않음): 탐침은 갈라질 계획
 > 6개 중 5개를 선취했지만, **잘 굴러간 계획 6개 전부에서도 말했다.** 그러므로:
 
 1. **기본 출력은 침묵이다.** 침묵 = "용골 스캔: 잡히는 하중 없음" 한 줄, 그 이상 금지.
@@ -58,7 +64,9 @@ evidence_in_text("" = 근거 없음). findings = shift true && evidence "" 만.
 ## Step 2 — 봉인 (사용자가 "네"일 때만)
 
 `.argus/ledger/ledger.jsonl`에 watch와 **같은 이벤트 형식**으로 append
-(스키마 규약: `src/lib/ledger-schema.ts` · `tools/argus-watch/lib/ledger.mjs`):
+(스키마 규약은 Argus 저장소의 `src/lib/ledger-schema.ts` ·
+`tools/argus-watch/lib/ledger.mjs` — 플러그인에 동봉되지 않으므로 아래
+예시 두 줄이 이 스킬의 단일 계약이다):
 
 ```json
 {"event":"harvest","id":"<sha256(session|quote).slice(0,8)>","project":"<repo>","session":"helm/<ISO date>","decided_at":"<ISO>","quote":"<계획의 해당 문장>","decision":"<계획 한 줄 요약>","type":"adopt","stakes":"high","at":"<ISO>"}
@@ -73,6 +81,10 @@ evidence_in_text("" = 근거 없음). findings = shift true && evidence "" 만.
 계획이 실행된 흔적(해당 커밋/배포)이 보이고 check_by가 지났으면, 다음 helm 호출
 시작에 한 줄: `지난번 그 계획 — 그래서, 어떻게 됐어요?` → `argus-watch settle <id>
 happened|avoided|partial|pending` 안내. pending = check_by 연장 (amend, 이력 보존).
+
+`argus-watch` CLI는 플러그인에 동봉되지 않은 별도 도구다. 설치되어 있지 않으면
+settle 안내 대신 ledger.jsonl에 직접 settle 이벤트 한 줄을 append하는 법을
+보여준다 — 봉인·정산 자체는 CLI 없이도 동작해야 한다.
 
 ## --full (opt-in 전용) — C 분기 탐침
 

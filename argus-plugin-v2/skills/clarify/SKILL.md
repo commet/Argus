@@ -65,10 +65,10 @@ This is the single source of truth for the artifact the team works ON (M1 code-n
 
 ### Step 1 — Session bootstrap
 
-1. **Read config**: Load `.argus/config.yaml` (schema: `~/.claude/argus-data/schemas/config.json`). If clarify is invoked via `/argus:sail`, the config is already loaded and present (sail Step 0 silent-creates it). If clarify is invoked DIRECTLY by the user with no config, silent-create from `~/.claude/argus-lib/config.example.yaml` (same logic as sail Step 0) — print one line "ℹ config 자동 생성 (ISTJ 기본)" and proceed. No AskUserQuestion. All user-facing text in this skill uses `config.locale`.
+1. **Read config**: Load `.argus/config.yaml` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/config.json`). If clarify is invoked via `/argus:sail`, the config is already loaded and present (sail Step 0 silent-creates it). If clarify is invoked DIRECTLY by the user with no config, silent-create from `${CLAUDE_PLUGIN_ROOT}/lib/config.example.yaml` (same logic as sail Step 0, including locale detection) — print sail Step 0's one-line ack in the detected locale and proceed. No AskUserQuestion. All user-facing text in this skill uses `config.locale`. (Resolve `${CLAUDE_PLUGIN_ROOT}` paths per sail §Path Resolution: plugin install dir first, then the legacy copy-install dirs, then repo-local `argus-plugin-v2/`.)
 2. Compute session ID: `YYYY-MM-DD-<kebab-of-first-5-words-of-problem>-<author>`, where `<author>` is the first 4 hex chars of a hash of `git config user.email` (fallback: `git config user.name`, else `local`). The author suffix makes the same problem from two teammates resolve to two non-colliding directories that still both travel via git — the team-safety guarantee. Still collision-safe within one author by appending `-2`, `-3`.
 3. Create `.argus/sessions/{id}/` directory.
-4. Create `session.json` at the root with schema from `~/.claude/argus-data/schemas/session.json`. Fields:
+4. Create `session.json` at the root with schema from `${CLAUDE_PLUGIN_ROOT}/data/schemas/session.json`. Fields:
    - `id`, `problem_text`, `repo_path` (from `pwd`), `repo_branch` (from `git branch --show-current`; if the command errors because this is not a git repo, set `repo_branch: null` and `invoking_context.git_available: false` — do NOT halt or write garbage. Team Step 1.5 path C (hypothetical mode) keys off `git_available: false`.)
    - `invoking_context`: `{target_type, target_ref}` from the input expansion
    - `boss_agent`: from `config.boss` if present
@@ -92,7 +92,7 @@ This is the single source of truth for the artifact the team works ON (M1 code-n
 > </user-data>
 > {{endif}}
 >
-> Produce JSON conforming to `~/.claude/argus-data/schemas/analysis-snapshot.json`:
+> Produce JSON conforming to `${CLAUDE_PLUGIN_ROOT}/data/schemas/analysis-snapshot.json`:
 >
 > - `real_question`: what the user is ACTUALLY deciding. Often different from surface.
 > - `hidden_assumptions`: 3-5 assumptions the user is making without stating.
@@ -155,7 +155,16 @@ If `framing_confidence < 70`:
 crew — cost discipline + the P0.B lesson: probes talk on everything unless
 gated) **or `--quick`.**
 
-1. Read the probe prompts from `~/.claude/argus-data/prompts/probe-prompts.md`
+> Locale note: the quoted Korean strings below are the ko reference copy —
+> render user-facing lines in `config.locale`. English equivalents:
+> step 3 → "The crew read the same brief independently — no differentiated
+> instructions." · step 7 → "The crew converged on the same course. No
+> measurable fork inside this text — the remaining risk lives outside it."
+> The constraint lines (no persona text in probe prompts, mechanical
+> post-filters, call budget) are implementation rules and apply regardless
+> of locale.
+
+1. Read the probe prompts from `${CLAUDE_PLUGIN_ROOT}/data/prompts/probe-prompts.md`
    — **단일 원천이다. 절대 기억으로 재작성하지 마라** (the file is held in
    byte-parity with the web engine by a test; an improvised variant silently
    diverges from the G0-validated levers). Path fallback per sail §Path
@@ -222,7 +231,7 @@ If `--no-minimal` was passed (typically via sail --quick/--full): skip directly 
 
 This is the one place clarify produces a directive. The full scaffold pipeline is bypassed because the routing math (rule 4 in Step 2) said it would over-engineer the answer.
 
-1. Construct `MinimalScaffold` (schema: `~/.claude/argus-data/schemas/minimal-scaffold.json`):
+1. Construct `MinimalScaffold` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/minimal-scaffold.json`):
    - `recommendation`: single-sentence imperative. "그냥 작업실로 바꿔. 신호 0이면 손해 0." Not "consider X if Y" — a directive.
    - `one_check`: one thing the user verifies in <5 minutes that would flip the recommendation. If none exists, density was set wrong — go back to Step 2.
    - `caveat_if_signal_appears`: optional. Only when there's a real downstream signal worth watching post-action.
@@ -309,11 +318,11 @@ Set `phase: "conversing"` (if not ready for team) or stay on `"conversing"` (if 
 
 Written to `.argus/sessions/{id}/`:
 
-- `session.json` — top-level session record (schema: `~/.claude/argus-data/schemas/session.json`)
-- `versions/v0.1/analysis.json` — the AnalysisSnapshot (schema: `~/.claude/argus-data/schemas/analysis-snapshot.json`)
+- `session.json` — top-level session record (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/session.json`)
+- `versions/v0.1/analysis.json` — the AnalysisSnapshot (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/analysis-snapshot.json`)
 - `versions/v0.1/questions_and_answers.json` — the Q&A history
 - `versions/v0.1/meta.json` — `{triggering_skill: "clarify", timestamp, framing_locked, user_accepted_framing, target_context?, density_was?}`. `target_context` is present whenever a target reference was expanded (see Inputs) and is what `/argus:team` reads to work on the real artifact.
-- `versions/v0.1/minimal_scaffold.json` — **only when `decision_density == "low"`** (Step 5a). MinimalScaffold (schema: `~/.claude/argus-data/schemas/minimal-scaffold.json`). When this file exists, downstream `/argus:sail` MUST set phase=complete and skip team/verify/boss.
+- `versions/v0.1/minimal_scaffold.json` — **only when `decision_density == "low"`** (Step 5a). MinimalScaffold (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/minimal-scaffold.json`). When this file exists, downstream `/argus:sail` MUST set phase=complete and skip team/verify/boss.
 - `versions/v0.1/probe.json` — **only when Step 3.5 ran** (density medium/high, not --quick). `{ samples[], forks[], findings[], silent }` — the trial-sail measurement; Step 4 reads it for 측정-정박 질문.
 
 ---
@@ -339,7 +348,7 @@ If any gate fails, revise before emitting files.
 ## Error modes
 
 - **No `.argus/` directory**: create it. First-time use.
-- **`.argus/config.yaml` missing**: silent-create from `~/.claude/argus-lib/config.example.yaml`. Print one ack line. No prompts. (Legacy behavior of "proceed without boss" is removed — first-run users would never realize they could fix it.)
+- **`.argus/config.yaml` missing**: silent-create from `${CLAUDE_PLUGIN_ROOT}/lib/config.example.yaml`. Print one ack line. No prompts. (Legacy behavior of "proceed without boss" is removed — first-run users would never realize they could fix it.)
 - **User provides no problem text and git state is clean**: prompt for problem text via AskUserQuestion.
 - **PR/issue reference fails** (gh not installed, unauthorized): degrade gracefully — ask user to paste the text, note fallback in meta.json.
 - **LLM returns malformed JSON**: retry once with stricter schema emphasis. If still fails, write what you got to `versions/v0.1/raw_analysis.txt` and explain the issue to user.

@@ -9,8 +9,8 @@
     "persona_name": { "type": "string", "description": "Boss name (display)." },
     "persona_role": { "type": "string" },
     "mbti_type": {
-      "type": "string",
-      "description": "MBTI code (ISTJ, INTJ, etc.) from boss-types.yaml. Present when this feedback came from a configured MBTI boss."
+      "type": ["string", "null"],
+      "description": "MBTI code (ISTJ, INTJ, etc.) from boss-types.yaml. null when the review ran in generic-stakeholder mode (no boss configured)."
     },
     "first_reaction": {
       "type": "string",
@@ -54,7 +54,7 @@
     },
     "mode": {
       "enum": ["quick", "deep"],
-      "description": "quick = hallway conversation (~150 words); deep = team meeting."
+      "description": "Review depth: quick = hallway conversation (~150 words); deep = team meeting. Independent of persona: generic-stakeholder runs are marked by mbti_type: null, not by mode."
     },
     "would_ask": {
       "type": "array",

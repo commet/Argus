@@ -43,17 +43,30 @@ The default entry point:
 
 ## Path Resolution
 
-When this skill (or any sub-skill it invokes) refers to `data/...` or `lib/...`,
-these resolve to:
-- `~/.claude/argus-data/` — schemas, agents.yaml, boss-types.yaml, classification.yaml, README.md
-- `~/.claude/argus-lib/` — locale-conventions.md, config.example.yaml, rehearsal-prompt.md (flat)
-- `~/.claude/argus-lib/session/` — session-layout.md, version-numbering.md (install.sh `cp -r` preserves the `session/` subdir; do NOT look for these flat under `argus-lib/`)
+When this skill (or any sub-skill it invokes) refers to
+`${CLAUDE_PLUGIN_ROOT}/data/...` or `${CLAUDE_PLUGIN_ROOT}/lib/...`, resolve in
+this order — **first hit wins** (this is the canonical order; every Argus skill
+defers here):
 
-**Path fallback (L3.4):** if `~/.claude/argus-data/` is absent, try the
-repo-relative source (`<repo>/argus-plugin-v2/data/` and
-`<repo>/argus-plugin-v2/lib/`) before failing. If BOTH are absent, stop with
-one line: `Argus 데이터를 찾을 수 없어요 — ./argus-plugin-v2/install.sh --link
-를 실행해 주세요.` Never improvise schemas from memory.
+1. **Plugin install (the documented path):** `${CLAUDE_PLUGIN_ROOT}/data/` and
+   `${CLAUDE_PLUGIN_ROOT}/lib/` — Claude Code sets `${CLAUDE_PLUGIN_ROOT}` to the
+   plugin's install directory when Argus is installed via the marketplace. All
+   bundled files ship with the plugin; no extra install step is needed.
+2. **Copy install (legacy `install.sh`):** `~/.claude/argus-data/` and
+   `~/.claude/argus-lib/` (note: session docs live under `argus-lib/session/` —
+   `install.sh` preserves the subdir; do NOT look for them flat).
+3. **Developer mode (working inside the Argus repo):**
+   `<repo>/argus-plugin-v2/data/` and `<repo>/argus-plugin-v2/lib/`.
+
+Directory contents: `data/` = schemas, agents.yaml, boss-types.yaml,
+classification.yaml, prompts/; `lib/` = locale-conventions.md,
+config.example.yaml, rehearsal-prompt.md, session/ (session-layout.md,
+version-numbering.md).
+
+If ALL three locations are absent, stop with one line in the user's locale —
+ko: `Argus 데이터 파일을 찾을 수 없어요 — 플러그인을 재설치해 주세요
+(/plugin install argus@argus).` · en: `Argus data files not found — reinstall
+the plugin (/plugin install argus@argus).` Never improvise schemas from memory.
 
 Session artifacts live in:
 
@@ -65,7 +78,7 @@ Session artifacts live in:
 
 Read `.argus/config.yaml`.
 
-**If missing, silently create from `~/.claude/argus-lib/config.example.yaml`** (no AskUserQuestion — first-run friction was the discoverability killer). First ensure the target dir exists: `mkdir -p .argus` (on a true first run in a fresh repo `.argus/` does not exist yet, so writing the config straight away would fail).
+**If missing, silently create from `${CLAUDE_PLUGIN_ROOT}/lib/config.example.yaml`** (resolve per §Path Resolution; no AskUserQuestion — first-run friction was the discoverability killer). First ensure the target dir exists: `mkdir -p .argus` (on a true first run in a fresh repo `.argus/` does not exist yet, so writing the config straight away would fail).
 
 **Privacy default — write `.argus/.gitignore` on first create** (unless it already exists) so sessions stay local by default:
 ```
@@ -131,7 +144,7 @@ making claims. A generic answer after a user gives a file is a product failure.
 | `analyzing` or `conversing` (execution_plan < 2 steps) | `/argus:clarify --continue` |
 | `conversing` (execution_plan ready, ≥ 2 steps) | `/argus:team` |
 | `team_deploying` (verify routed `revise_team`) | `/argus:team --revise` — re-run team with `verification.json` challenged_claims fed into the worker prompts |
-| `team_working` or `mixing` | wait / show progress via status |
+| interrupted mid-team (`team_plan.json` exists, no `workers.json`) | `/argus:team` — the prior run died before workers finished; re-run is safe (team reuses the same version dir) |
 | `verifying` or team complete with no `verification.json` | `/argus:verify` |
 | `dm_feedback` pending | `/argus:boss` |
 | `refining` | `/argus:revise` (apply boss concerns / verify challenges → child draft + re-verify) |
@@ -255,7 +268,7 @@ Read:
 Write:
 
 - `versions/{label}/current_bearing.json`, conforming to
-  `~/.claude/argus-data/schemas/current-bearing.json` (include the required
+  `${CLAUDE_PLUGIN_ROOT}/data/schemas/current-bearing.json` (include the required
   `generated_at` ISO-8601 timestamp — a bearing without it fails schema validation)
 
 ### Current Bearing Mapping
@@ -275,7 +288,14 @@ Build:
   current course.
 - `next_helm`: one concrete next action.
 - `contract_seed`: a falsifiable future predicate when the decision is close to
-  anchor. Use `null` for early framing or missing evidence.
+  anchor. Use `null` for early framing or missing evidence. When present it has
+  FOUR required parts (all four, per the schema — a seed without pass/fail
+  conditions cannot be graded later):
+  - `predicate`: the future claim ("if X, then Y").
+  - `check_by`: when reality gets consulted (date or event + offset).
+  - `pass_condition`: the observable that confirms the predicate (≤180 chars).
+  - `fail_condition`: the observable that falsifies it (≤180 chars). If you
+    cannot name one, the seed is not falsifiable — write `null` instead.
 - `blocked`: true when verification routes to `revise_team` or
   `stop_for_human_check`.
 - `detail_path`: `.argus/sessions/{id}/versions/{label}/`
