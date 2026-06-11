@@ -42,6 +42,55 @@ done
 # 3. 결과는 .argus/eval/results/에 저장 (로컬 전용)
 ```
 
+---
+
+## 레버 백테스트 (W2.0 — `lever-backtest-workflow.js`)
+
+> `docs/EXECUTION-PLAN-v4.1-rebuild.md` W2.0 · 모든 W2 코드의 선행 게이트 G0.
+> 위 감지 백테스트와 **같은 파이프라인 골격**(블라인드 생성 → 블라인드 정렬 채점)을 재사용한다.
+> 측정 대상이 "감지기"가 아니라 **멈칫 레버 4종**(flinch-spine §P0.2)이라는 점만 다르다.
+
+### 무엇을 재는가
+결정-전 문단에 4개 레버 + `/blindspot` 베이스라인을 블라인드로 돌리고, 각 출력이 **실제로 드러난
+실패 지점**(`actual_failure_point`, ground truth)을 짚었는지 엄격 채점한다.
+
+| 레버 | 부류 | 출력 |
+|---|---|---|
+| A 과주장 캐스케이드 | 감지형 | 강점 1 + 과장 사다리(전제별 인용 앵커) + 가장 위험한 전제 |
+| B 차분 생성 | 감지형 | 대안 계획 + 갈리는 축 + ≤3행 차분표 + 고려 안 한 위험 |
+| C 분기 탐침 | 측정형 | N개 독립 샘플(haiku) → 결정 필드 갈림(`flipped_user_claim` 없으면 폐기) |
+| D 하중 탐침 | 측정형 | 문장별 제거 → 결정 바뀌는데 근거 없는 하중 주장만 |
+| blindspot | 베이스라인 | 가장 위험한 구멍 1개 |
+
+불변 규율은 모든 레버 프롬프트에 박혀 있다: 인용 앵커 강제 · 판정 금지 · 침묵 허용 ·
+`flipped_user_claim` 없는 갈림 폐기.
+
+### 채점·스왑
+- **적중(hit)**: 채점자에 레버 은닉(블라인드). 출력이 GT 실패 지점을 같은 위험으로 짚으면 적중.
+  막연한 "위험하다"는 불합격.
+- **스왑(P0.3)**: 한 문단의 출력을 다음 문단에 붙여, 거기서도 그럴듯하면 비특이적(스왑 실패).
+  스왑 통과율 = 출력이 원 문단에 고유한 비율.
+- **구체성 분해**: vague/specific 픽스처별 적중률 (예측: vague에서 C, specific에서 B·D 강세).
+
+### 픽스처
+`.argus/eval/lever-fixtures/pre-decision.json` (결정-전 문단 + 알려진 실패 지점, **gitignore — 개인 데이터**).
+세션 4 + 과거 피벗 + 공개 포스트모템 2 = 14건. 계획/결과 쌍은 `plan-result.json` (P0.B용).
+문단은 **선택된 옵션을 숨긴다** (블라인드 프로브 입력).
+
+### 재실행
+```bash
+# 픽스처는 .argus/eval/lever-fixtures/ 에 있어야 함 (gitignored)
+# Claude Code Workflow 도구로:
+#   Workflow({ scriptPath: "scripts/decision-watch-eval/lever-backtest-workflow.js" })
+# 기본 경로(pre-decision.json) 전체 14건 사용. 부분 실행: args.fixturesPath 로 다른 파일 지정.
+```
+산출: 5열 비교표(적중률·스왑통과율·vague적중·specific적중·n) + `gate.G0_pass_measure_levers`.
+
+### 🚪 GATE G0 (이 백테스트의 출구)
+C 또는 D의 적중률 > blindspot 베이스라인 **AND** 해당 레버 스왑 ≥80% → W2.1 진행.
+전부 베이스라인 이하 → **W2 전체 중지, W1만으로 재구축 완성**(미리 수용된 분기).
+**최종 통과/실패 판정은 Fable/인간** (v4.1 §0 모델 운용 — 게이트 리뷰는 판단 마디).
+
 ## 한계 (정직 조항)
 
 - GT 자체가 LLM 합의다 — 인간(창업자) 채점이 최종 판정이며, 이 수치는 그 대리 지표다.
