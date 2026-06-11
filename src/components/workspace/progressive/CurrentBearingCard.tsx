@@ -2,10 +2,11 @@
 
 /* ═══ Current Bearing — the compressed orientation above the long document ═══
  *
- * ARGUS-FINAL-DIRECTION §"The Surface Principle": the user should see a Current
- * Bearing first — current course, why, fog/reef, road not taken, next helm,
- * contract seed — not a long report. This card sits ABOVE the FinalCard so the
- * one-screen bearing is the visible center; the full document stays right below.
+ * ARGUS-FINAL-DIRECTION §"The Surface Principle": the user gets a Current
+ * Bearing — current course, why, fog/reef, road not taken, next helm — as a
+ * compressed orientation, not a long report. Shipped order (W1.1 봉인 종막):
+ * the document leads the complete scene; this card sits just BELOW the
+ * FinalCard, summarizing what the user takes with them.
  *
  * Pure presentation: it renders a CurrentBearing derived by lib/current-bearing.
  * Renders nothing when there's no bearing (no draft to orient from). */
@@ -40,6 +41,14 @@ export function CurrentBearingCard({
   if (!bearing) return null;
 
   const { current_course, why_this_course, fog_or_reef, road_not_taken, next_helm, contract_seed } = bearing;
+  // Defensive: a bearing may come from merged/older session data — omit a row
+  // rather than render an empty shell (P3: silence is output).
+  const reasons = Array.isArray(why_this_course)
+    ? why_this_course.filter((r) => r && typeof r.point === 'string' && r.point)
+    : [];
+  const roads = Array.isArray(road_not_taken)
+    ? road_not_taken.filter((r) => r && typeof r.option === 'string' && r.option)
+    : [];
   const status = STATUS_META[current_course.status] ?? STATUS_META.proceed;
   const tone = status.caution ? 'var(--gold)' : 'var(--accent)';
 
@@ -74,10 +83,10 @@ export function CurrentBearingCard({
 
       <div className="px-5 md:px-6 py-4 space-y-4">
         {/* Why this course */}
-        {why_this_course.length > 0 && (
+        {reasons.length > 0 && (
           <Section title={L('왜 이 항로인가', 'Why this course')}>
             <ul className="space-y-1.5">
-              {why_this_course.map((r, i) => (
+              {reasons.map((r, i) => (
                 <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)] leading-relaxed">
                   <span className="w-1.5 h-1.5 rounded-full mt-[7px] shrink-0" style={{ background: 'var(--accent)' }} />
                   <span>{r.point}</span>
@@ -88,7 +97,7 @@ export function CurrentBearingCard({
         )}
 
         {/* Fog / reef — the named uncertainty */}
-        {fog_or_reef && (
+        {fog_or_reef?.issue && (
           <Section title={L('안개·암초', 'Fog & reef')} icon={<AlertTriangle size={12} style={{ color: 'var(--gold)' }} />}>
             <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{fog_or_reef.issue}</p>
             {fog_or_reef.required_check && (
@@ -101,9 +110,9 @@ export function CurrentBearingCard({
         )}
 
         {/* Road not taken */}
-        {road_not_taken.length > 0 && (
+        {roads.length > 0 && (
           <Section title={L('가지 않은 길', 'Road not taken')} icon={<GitFork size={12} className="text-[var(--text-tertiary)]" />}>
-            {road_not_taken.map((r, i) => (
+            {roads.map((r, i) => (
               <div key={i} className="text-[13px] leading-relaxed">
                 <span className="text-[var(--text-secondary)] line-through decoration-[var(--text-tertiary)]/50">{r.option}</span>
                 <span className="text-[var(--text-tertiary)]"> — {r.why_not_now}</span>
@@ -124,13 +133,14 @@ export function CurrentBearingCard({
         )}
       </div>
 
-      {/* Contract seed — the falsifiable prediction to seal later */}
-      {contract_seed && (
+      {/* The prediction to come back to — surface language, never schema
+          vocabulary (no "계약 씨앗"/"predicate" on user surfaces). */}
+      {contract_seed?.predicate && (
         <div className="px-5 md:px-6 py-3 border-t border-[var(--border-subtle)] bg-[var(--accent)]/[0.04]">
           <div className="flex items-start gap-2">
             <Anchor size={12} className="text-[var(--accent)] mt-0.5 shrink-0" />
             <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
-              <span className="font-semibold text-[var(--text-primary)]">{L('계약 씨앗: ', 'Contract seed: ')}</span>
+              <span className="font-semibold text-[var(--text-primary)]">{L('나중에 확인할 것: ', 'To check later: ')}</span>
               {contract_seed.predicate}
             </p>
           </div>

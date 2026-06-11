@@ -5,6 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, Sun, Moon, Lock } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
+import { useProjectStore } from '@/stores/useProjectStore';
+import { contractStatus } from '@/lib/decision-contract';
 import { RateLimitBadge } from '@/components/ui/RateLimitBadge';
 import { SyncStatus } from '@/components/ui/SyncStatus';
 import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
@@ -27,6 +29,23 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
+
+  // Return badge — projects whose decision contract check-in is due.
+  const projects = useProjectStore((s) => s.projects);
+  const loadProjects = useProjectStore((s) => s.loadProjects);
+  const projectsLoadedRef = useRef(false);
+  useEffect(() => {
+    if (user && !projectsLoadedRef.current) {
+      projectsLoadedRef.current = true;
+      loadProjects();
+    }
+  }, [user, loadProjects]);
+  // Computed every render (no memo): a memo keyed on [projects] froze
+  // Date.now(), so a tab left open past midnight kept yesterday's count.
+  // The list is small — recomputing is free.
+  const dueCount = (projects || []).filter(
+    (p) => p.decision_contract && contractStatus(p.decision_contract, Date.now()).checkInDue,
+  ).length;
 
   // Landing page renders its own minimal header (LandingHeader). This bail
   // exists because <Header /> is rendered globally from layout.tsx; the
@@ -105,11 +124,12 @@ export function Header() {
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
                 const showLock = item.requiresAuth && !user && !loading;
+                const showReturnBadge = item.href === '/project' && dueCount > 0;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                    className={`relative px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 flex items-center gap-1.5 ${
                       isActive
                         ? 'bg-[var(--surface)] text-[var(--primary)] shadow-sm'
                         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -118,6 +138,15 @@ export function Header() {
                   >
                     {item.label}
                     {showLock && <Lock size={10} className="opacity-60" />}
+                    {showReturnBadge && (
+                      <span
+                        aria-label={L(`돌아올 결정 ${dueCount}건`, `${dueCount} decision(s) to revisit`)}
+                        className="absolute -top-0.5 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none"
+                        style={{ background: 'var(--gold)' }}
+                      >
+                        {dueCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -155,6 +184,8 @@ export function Header() {
                 onClick={toggleTheme}
                 className="p-2 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
                 title={darkMode ? 'Light mode' : 'Dark mode'}
+                aria-label={darkMode ? L('라이트 모드로 전환', 'Switch to light mode') : L('다크 모드로 전환', 'Switch to dark mode')}
+                aria-pressed={darkMode}
               >
                 {darkMode ? <Sun size={16} /> : <Moon size={16} />}
               </button>
@@ -177,6 +208,9 @@ export function Header() {
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                     className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-[var(--surface)] transition-colors cursor-pointer"
+                    aria-label={L('계정 메뉴', 'Account menu')}
+                    aria-haspopup="menu"
+                    aria-expanded={userMenuOpen}
                   >
                     {avatarUrl ? (
                       <img
@@ -224,6 +258,8 @@ export function Header() {
           <button
             className="md:hidden p-2.5 hover:bg-[var(--surface)] rounded-lg cursor-pointer transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? L('메뉴 닫기', 'Close menu') : L('메뉴 열기', 'Open menu')}
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -236,6 +272,7 @@ export function Header() {
           <div className="px-4 py-2 space-y-0.5">
             {navItems.map((item) => {
               const showLock = item.requiresAuth && !user && !loading;
+              const showReturnBadge = item.href === '/project' && dueCount > 0;
               return (
                 <Link
                   key={item.href}
@@ -247,7 +284,18 @@ export function Header() {
                       : 'text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <span>{item.label}</span>
+                  <span className="relative">
+                    {item.label}
+                    {showReturnBadge && (
+                      <span
+                        aria-label={L(`돌아올 결정 ${dueCount}건`, `${dueCount} decision(s) to revisit`)}
+                        className="absolute -top-1.5 -right-4 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none"
+                        style={{ background: 'var(--gold)' }}
+                      >
+                        {dueCount}
+                      </span>
+                    )}
+                  </span>
                   {showLock && <Lock size={11} className="opacity-60" />}
                 </Link>
               );

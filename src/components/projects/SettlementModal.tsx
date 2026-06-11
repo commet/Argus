@@ -10,19 +10,35 @@
  *   "아직" — the outcome isn't knowable yet → EXTEND check_by via amendCheckIn.
  *   The superseded date goes to contract.history; amend never overwrites the
  *   original (변침도 기록이다 — same principle as the watch ledger's amend event).
+ *   A REPEATED "아직" gets acknowledged (the history is right there) and offers
+ *   a kind exit: close the whole decision as unknowable instead of deferring
+ *   forever.
+ *
+ * Closing the loop returns something: one line of the user's own accumulating
+ * record (n번째 고리, 비켜 간 위험) — the first sliver of the 자차표 promise.
  *
  * Verdicts persist immediately per tap (each tap = one gradePredicate write),
- * so closing mid-way loses nothing. Surface language: 해요체, no 내기/반증/
- * predicate vocabulary. All text renders through JSX → auto-escaped.
+ * so closing mid-way loses nothing. Built on <Modal> for focus trap / Escape /
+ * scroll lock / focus restore. Surface language: 해요체, no 내기/반증/predicate
+ * vocabulary, no "채점" (확인, not scoring). All text renders through JSX →
+ * auto-escaped.
  */
 
 import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X as XIcon, Target, AlertTriangle, GitBranch, Check } from 'lucide-react';
+import { Target, AlertTriangle, GitBranch, Check } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, PredicateVerdict, CheckInInterval } from '@/stores/types';
-import { gradePredicate, amendCheckIn, isResolved, CHECK_IN_MS } from '@/lib/decision-contract';
+import {
+  gradePredicate,
+  amendCheckIn,
+  isResolved,
+  contractStatus,
+  summarizeGrades,
+  CHECK_IN_MS,
+} from '@/lib/decision-contract';
+import { Modal } from '@/components/ui/Modal';
 import { verdictButtons, predicateQuestion } from './DecisionContractCard';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
@@ -42,6 +58,7 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
   const updateProject = useProjectStore((s) => s.updateProject);
+  const projects = useProjectStore((s) => s.projects);
 
   const contract = project.decision_contract ?? null;
   const predicates: Predicate[] = useMemo(
@@ -50,6 +67,23 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   );
   const resolvedCount = predicates.filter(isResolved).length;
   const allResolved = predicates.length > 0 && resolvedCount === predicates.length;
+  // How many times the user already said "아직" — the history is the receipt.
+  const deferrals = Array.isArray(contract?.history) ? contract!.history.length : 0;
+
+  // The user's accumulating record across ALL projects — the first sliver of
+  // the 자차표. Counts of what actually happened; never a score.
+  const record = useMemo(() => {
+    if (!allResolved) return null;
+    const now = Date.now();
+    const graded = projects.filter(
+      (p) => p.decision_contract && contractStatus(p.decision_contract, now).allGraded,
+    );
+    const risksAvoided = graded.reduce(
+      (sum, p) => sum + summarizeGrades(p.decision_contract!).risksAvoided,
+      0,
+    );
+    return { loops: Math.max(1, graded.length), risksAvoided };
+  }, [allResolved, projects]);
 
   function grade(predicateId: string, verdict: PredicateVerdict) {
     if (!contract) return;
@@ -65,47 +99,45 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
     onClose();
   }
 
-  function fmtDate(ms: number): string {
-    return new Date(ms).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' });
+  /** A repeated "아직" deserves an exit: settle every open prediction as
+   *  unknowable, so the decision closes honestly instead of deferring forever. */
+  function closeAsUnknown() {
+    if (!contract) return;
+    let next = contract;
+    const now = Date.now();
+    for (const p of predicates.filter((x) => !isResolved(x))) {
+      next = gradePredicate(next, p.id, 'unknown', now);
+    }
+    updateProject(project.id, { decision_contract: next });
   }
 
-  if (!contract) return null;
+  function fmtDate(input: number | string): string {
+    const d = new Date(input);
+    if (Number.isNaN(d.getTime())) return '';
+    const sameYear = d.getFullYear() === new Date().getFullYear();
+    return d.toLocaleDateString(
+      ko ? 'ko-KR' : 'en-US',
+      sameYear ? { month: 'long', day: 'numeric' } : { year: 'numeric', month: 'long', day: 'numeric' },
+    );
+  }
+
+  // Defensive: a malformed contract (or one with zero predicates) has nothing
+  // to ask about — render nothing instead of an empty shell with extend chips.
+  if (!contract || predicates.length === 0) return null;
+
+  const sealedOn = fmtDate(contract.created_at);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 14, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        role="dialog"
-        aria-modal="true"
-        aria-label={L('결정 확인', 'Decision check-in')}
-        className="relative w-full max-w-lg max-h-[85vh] bg-[var(--bg)] rounded-2xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header className="flex items-start justify-between gap-3 px-6 pt-6 pb-4">
-          <div className="min-w-0">
-            <h2 className="text-[18px] font-bold text-[var(--text-primary)] leading-[1.35]">
-              {L('그래서, 어떻게 됐어요?', 'So, how did it go?')}
-            </h2>
-            <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.5] line-clamp-2">
-              {L(`그때 이 결정을 봉인하셨어요 — `, 'You sealed this decision — ')}
-              <span className="font-semibold text-[var(--text-primary)]">{project.name}</span>
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label={L('닫기', 'Close')}
-            className="p-1.5 rounded-lg hover:bg-[var(--surface)] shrink-0 cursor-pointer"
-          >
-            <XIcon className="w-4 h-4" />
-          </button>
-        </header>
+    <Modal open onClose={onClose} title={L('그래서, 어떻게 됐어요?', 'So, how did it go?')}>
+      <div className="space-y-4">
+        <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.5] -mt-1">
+          {sealedOn
+            ? L(`${sealedOn}에 봉인한 결정이에요 — `, `You sealed this decision on ${sealedOn} — `)
+            : L('그때 이 결정을 봉인하셨어요 — ', 'You sealed this decision — ')}
+          <span className="font-semibold text-[var(--text-primary)]">{project.name}</span>
+        </p>
 
-        <div className="flex-1 overflow-y-auto px-6 space-y-2.5 pb-2">
+        <div className="space-y-2.5">
           {predicates.map((p) => {
             const Icon = SOURCE_ICON[p.source] ?? AlertTriangle;
             return (
@@ -117,7 +149,7 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2 pl-[21px]">
-                  {/* 3-tap settle: scored verdicts only. The 4th path ("아직")
+                  {/* 3-tap settle: resolved verdicts only. The 4th path ("아직")
                       lives at the contract level below — it extends, not resolves. */}
                   {verdictButtons(p.source, ko)
                     .filter((v) => v.value !== 'unknown')
@@ -127,7 +159,8 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                         <button
                           key={v.value}
                           onClick={() => grade(p.id, selected ? 'pending' : v.value)}
-                          className={`px-2.5 py-1 rounded-md text-[11.5px] font-semibold border transition-colors cursor-pointer ${
+                          aria-pressed={selected}
+                          className={`px-2.5 py-1 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
                             selected
                               ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                               : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
@@ -143,31 +176,44 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
           })}
         </div>
 
-        <footer className="px-6 py-4 border-t border-[var(--border)] space-y-3">
+        <div className="pt-3 border-t border-[var(--border)]">
           <AnimatePresence mode="wait">
             {allResolved ? (
               <motion.div
                 key="done"
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between gap-3"
+                className="space-y-2.5"
               >
                 <p className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--success)]">
                   <Check size={14} strokeWidth={2.5} />
                   {L('고리를 닫았어요.', 'Loop closed.')}
                 </p>
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white cursor-pointer"
-                  style={{ background: 'var(--gradient-gold)' }}
-                >
-                  {L('확인', 'Done')}
-                </button>
+                {record && (
+                  <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
+                    {record.loops === 1
+                      ? L('첫 고리예요 — 결정이 어떻게 됐는지 끝까지 확인한 거, 이번이 처음이에요.', 'Your first loop — the first decision you followed all the way to how it turned out.')
+                      : L(`이번이 ${record.loops}번째로 닫은 고리예요.`, `That's loop number ${record.loops} you've closed.`)}
+                    {record.risksAvoided > 0 &&
+                      ' ' + L(`지금까지 위험 ${record.risksAvoided}개를 비켜 갔어요.`, `So far you've steered past ${record.risksAvoided} risk${record.risksAvoided === 1 ? '' : 's'}.`)}
+                  </p>
+                )}
+                <div className="flex justify-end">
+                  <button
+                    onClick={onClose}
+                    className="px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white cursor-pointer"
+                    style={{ background: 'var(--gradient-gold)' }}
+                  >
+                    {L('확인', 'Done')}
+                  </button>
+                </div>
               </motion.div>
             ) : (
               <motion.div key="extend" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <p className="text-[12px] text-[var(--text-secondary)] mb-2">
-                  {L('아직 몰라요 — 나중에 다시 물어봐 주세요:', "Don't know yet — ask me again:")}
+                  {deferrals >= 1
+                    ? L('지난번에도 아직이었죠 — 천천히 해도 돼요. 언제 다시 물어볼까요?', "It wasn't knowable last time either — no rush. When should I ask again?")
+                    : L('아직 몰라요 — 나중에 다시 물어봐 주세요:', "Don't know yet — ask me again:")}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   {EXTEND_OPTIONS.map((opt) => (
@@ -180,16 +226,24 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                     </button>
                   ))}
                   {resolvedCount > 0 && (
-                    <span className="ml-auto text-[11.5px] text-[var(--text-tertiary)] tabular-nums">
-                      {resolvedCount}/{predicates.length}
+                    <span className="ml-auto text-[11px] text-[var(--text-tertiary)] tabular-nums">
+                      {L(`${resolvedCount}/${predicates.length} 확인했어요`, `${resolvedCount}/${predicates.length} checked`)}
                     </span>
                   )}
                 </div>
+                {deferrals >= 2 && (
+                  <button
+                    onClick={closeAsUnknown}
+                    className="mt-2.5 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                  >
+                    {L('이 결정은 결과를 알 수 없는 걸로 닫아둘까요?', 'Close this one as unknowable?')}
+                  </button>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
-        </footer>
-      </motion.div>
-    </div>
+        </div>
+      </div>
+    </Modal>
   );
 }

@@ -7,6 +7,7 @@ import { useRecastStore } from '@/stores/useRecastStore';
 import { useSynthesizeStore } from '@/stores/useSynthesizeStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { useJudgmentStore } from '@/stores/useJudgmentStore';
+import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -33,8 +34,8 @@ const STEP_IDX_TO_LEG: ReadonlyArray<VoyageLeg> = ['reframe', 'recast', 'rehears
 const VOYAGE_TONE_CLS: Record<string, string> = {
   neutral: 'bg-[var(--bg)] text-[var(--text-tertiary)]',
   active: 'bg-[var(--accent)]/10 text-[var(--accent)]',
-  warning: 'bg-amber-50 text-amber-700',
-  danger: 'bg-red-50 text-[var(--danger)]',
+  warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  danger: 'bg-[var(--danger)]/10 text-[var(--danger)]',
   arrived: 'bg-[var(--collab)] text-[var(--success)]',
   gold: 'text-[var(--accent)]',
 };
@@ -74,11 +75,14 @@ export default function ProjectPage() {
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
   const { feedbackHistory, loadData: loadPersona } = usePersonaStore();
   const { judgments, loadJudgments, getUserPatterns } = useJudgmentStore();
+  const { sessions: progressiveSessions, loadSessions: loadProgressive } = useProgressiveStore();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  // Settlement modal (W1.2 귀환 표면) — auto-opens once per project visit when
-  // the check-in date has arrived and predictions remain unresolved.
-  const [settleOpen, setSettleOpen] = useState(false);
+  // Settlement modal (W1.2 귀환 표면) — derived at render from contractStatus,
+  // gated by a per-visit dismissed set. Deriving (instead of a getState()
+  // snapshot in an effect) means the modal still opens when the async Supabase
+  // merge lands AFTER the project is selected — once per project per visit.
+  const [settleDismissed, setSettleDismissed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadProjects();
@@ -87,19 +91,28 @@ export default function ProjectPage() {
     loadSynthesize();
     loadPersona();
     loadJudgments();
-  }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadJudgments]);
+    loadProgressive();
+  }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadJudgments, loadProgressive]);
 
   const currentProject = currentProjectId ? projects.find((p) => p.id === currentProjectId) : null;
 
   // Opening a project whose contract is due → surface the settle question.
-  // Keyed on the project id only (not the contract object), so grading inside
-  // the modal doesn't re-trigger it, and "아직" (amend) closes it for this visit.
+  // ARM-once, close-only-on-onClose: deriving open purely from checkInDue
+  // killed the modal the instant the LAST verdict landed (allGraded flips
+  // checkInDue false on that very render), so the "고리를 닫았어요" reward
+  // screen was unreachable dead code (adversarial review P0 #3). The arm
+  // effect still fires when the async Supabase merge lands late.
+  const [settleOpenId, setSettleOpenId] = useState<string | null>(null);
+  const settleDueNow = !!(
+    currentProject?.decision_contract &&
+    contractStatus(currentProject.decision_contract, Date.now()).checkInDue
+  );
   useEffect(() => {
-    if (!currentProjectId) { setSettleOpen(false); return; }
-    const p = useProjectStore.getState().projects.find((x) => x.id === currentProjectId);
-    const c = p?.decision_contract;
-    if (c && contractStatus(c, Date.now()).checkInDue) setSettleOpen(true);
-  }, [currentProjectId]);
+    if (currentProject && settleDueNow && !settleDismissed.has(currentProject.id)) {
+      setSettleOpenId(currentProject.id);
+    }
+  }, [currentProject, settleDueNow, settleDismissed]);
+  const settleOpen = !!currentProject && settleOpenId === currentProject.id;
 
   /* ─── Per-project rich metrics (used in list view) ─── */
   interface ProjectMetrics {
@@ -211,15 +224,28 @@ export default function ProjectPage() {
     return { total: projects.length, inProgress, done, untouched };
   }, [projects, projectMetricsMap]);
 
+  // Projects whose contract check-in is due — the 귀환 (return) surface.
+  const dueProjects = useMemo(() => {
+    const now = Date.now();
+    return projects.filter(
+      (p) => p.decision_contract && contractStatus(p.decision_contract, now).checkInDue,
+    );
+  }, [projects]);
+  const dueIds = useMemo(() => new Set(dueProjects.map((p) => p.id)), [dueProjects]);
+
   const sortedProjects = useMemo(() => {
     return [...projects].sort((a, b) => {
+      // Due contracts surface first — the product's promise is the return.
+      const ad = dueIds.has(a.id) ? 1 : 0;
+      const bd = dueIds.has(b.id) ? 1 : 0;
+      if (ad !== bd) return bd - ad;
       const am = projectMetricsMap.get(a.id);
       const bm = projectMetricsMap.get(b.id);
       const at = am?.lastActivityAt || a.updated_at || a.created_at || '';
       const bt = bm?.lastActivityAt || b.updated_at || b.created_at || '';
       return bt.localeCompare(at);
     });
-  }, [projects, projectMetricsMap]);
+  }, [projects, projectMetricsMap, dueIds]);
 
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -281,8 +307,8 @@ export default function ProjectPage() {
         summary: latestFeedback
           ? L(`${latestFeedback.results.length}명 피드백 완료`, `${latestFeedback.results.length} reviewer${latestFeedback.results.length === 1 ? '' : 's'} done`)
           : undefined,
-        color: 'text-purple-700',
-        bgColor: 'bg-purple-50',
+        color: 'text-purple-700 dark:text-purple-300',
+        bgColor: 'bg-purple-500/10',
       },
       {
         tool: 'synthesize',
@@ -294,7 +320,7 @@ export default function ProjectPage() {
           ? L(`${projectSyntheses.length}건 종합 완료`, `${projectSyntheses.length} synthesis${projectSyntheses.length === 1 ? '' : 'es'} done`)
           : undefined,
         color: 'text-[#9b5de5]',
-        bgColor: 'bg-[#f3ecff]',
+        bgColor: 'bg-[#9b5de5]/10',
       },
     ];
   };
@@ -302,6 +328,18 @@ export default function ProjectPage() {
   const steps = currentProject ? getSteps() : [];
   const completedSteps = steps.filter((s) => s.status === 'done').length;
   const nextStep = steps.find((s) => s.status !== 'done');
+
+  // Progressive voyage status for the open project — a voyage writes nothing to
+  // the legacy 4-tool stores, so the "다음 단계: 문제 재정의" CTA would
+  // contradict a sealed/due contract right next to it. Suppress it and point
+  // back to the workspace instead.
+  const currentVoyageSession = currentProject
+    ? progressiveSessions.find((s) => s.project_id === currentProject.id)
+    : undefined;
+  const currentHasVoyage = !!currentVoyageSession || !!currentProject?.decision_contract;
+  const currentVoyageDone = currentVoyageSession
+    ? currentVoyageSession.phase === 'complete'
+    : !!currentProject?.decision_contract;
 
   return (
     <div className="space-y-6">
@@ -359,6 +397,36 @@ export default function ProjectPage() {
             </Card>
           ) : (
             <>
+              {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환. */}
+              {dueProjects.length > 0 && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <p className="text-[13px] font-semibold text-[var(--text-primary)] shrink-0">
+                    {locale === 'ko'
+                      ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueProjects.length}건`
+                      : `So, how did it go? — ${dueProjects.length} decision${dueProjects.length === 1 ? '' : 's'} to return to`}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {dueProjects.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          // Re-arm the settle question even if dismissed earlier this visit.
+                          setSettleDismissed((prev) => {
+                            const next = new Set(prev);
+                            next.delete(p.id);
+                            return next;
+                          });
+                          setCurrentProjectId(p.id);
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-[12px] font-medium border border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 transition-colors cursor-pointer"
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Filter chips + search */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -425,12 +493,22 @@ export default function ProjectPage() {
                     }, Date.now());
                     const vMeta = VOYAGE_STATE_META[voyageState];
 
+                    // Progressive voyage — runs write nothing to the legacy
+                    // 4-tool stores, so don't show "아직 재정의 전" next to a
+                    // sealed contract (self-contradiction).
+                    const isDue = dueIds.has(project.id);
+                    const voyageSession = progressiveSessions.find((s) => s.project_id === project.id);
+                    const hasVoyage = !!voyageSession || !!project.decision_contract;
+                    const voyageDone = voyageSession ? voyageSession.phase === 'complete' : !!project.decision_contract;
+
                     return (
                       <button
                         key={project.id}
                         onClick={() => setCurrentProjectId(project.id)}
                         className={`group text-left bg-[var(--surface)] border rounded-xl p-4 hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col gap-3 ${
-                          m.isDone
+                          isDue
+                            ? 'border-amber-500/50 hover:border-amber-500/80 hover:shadow-[var(--shadow-md)]'
+                            : m.isDone
                             ? 'border-[var(--success)]/30 hover:border-[var(--success)]/60 hover:shadow-[var(--shadow-md)]'
                             : m.hasProgress
                             ? 'border-[var(--accent)]/25 hover:border-[var(--accent)]/55 hover:shadow-[var(--shadow-md)]'
@@ -472,11 +550,11 @@ export default function ProjectPage() {
                           const cs = contractStatus(project.decision_contract, Date.now());
                           if (!cs.checkInDue) return null;
                           return (
-                            <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-[var(--ai)] text-[var(--accent)] normal-case tracking-normal">
+                            <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 normal-case tracking-normal">
                               <Sparkles size={10} />
                               {locale === 'ko'
-                                ? `예측 ${cs.pending}개 채점 대기`
-                                : `${cs.pending} prediction${cs.pending === 1 ? '' : 's'} to grade`}
+                                ? `물어볼 게 ${cs.pending}개 있어요`
+                                : `${cs.pending} question${cs.pending === 1 ? '' : 's'} for you`}
                             </span>
                           );
                         })()}
@@ -490,6 +568,10 @@ export default function ProjectPage() {
                         {m.questionExcerpt ? (
                           <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] line-clamp-2 border-l-2 border-[var(--accent)]/30 pl-2.5">
                             {m.questionExcerpt}
+                          </p>
+                        ) : hasVoyage ? (
+                          <p className="text-[12px] text-[var(--text-secondary)] leading-[1.55]">
+                            {voyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
                           </p>
                         ) : !m.hasProgress ? (
                           <p className="text-[12px] text-[var(--text-tertiary)] italic leading-[1.55]">
@@ -521,7 +603,7 @@ export default function ProjectPage() {
                               </span>
                             )}
                             {m.riskCount > 0 && (
-                              <span className="inline-flex items-center gap-1 tabular-nums text-amber-700">
+                              <span className="inline-flex items-center gap-1 tabular-nums text-amber-600 dark:text-amber-400">
                                 <AlertTriangle size={11} strokeWidth={2.25} />
                                 {locale === 'ko' ? `리스크 ${m.riskCount}` : `${m.riskCount} risk${m.riskCount === 1 ? '' : 's'}`}
                               </span>
@@ -618,6 +700,28 @@ export default function ProjectPage() {
             </div>
           </Card>
 
+          {/* Progressive voyage — status + the way back to the workspace. */}
+          {currentHasVoyage && (
+            <Card className="!border-[var(--accent)]/30">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[13px] font-bold text-[var(--text-primary)]">
+                    {currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
+                  </p>
+                  <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+                    {L('이 프로젝트는 워크스페이스 항해로 진행됐어요.', 'This project ran as a workspace voyage.')}
+                  </p>
+                </div>
+                <Link
+                  href="/workspace"
+                  className="shrink-0 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--accent)] hover:underline"
+                >
+                  {L('워크스페이스에서 열기', 'Open in workspace')} <ArrowRight size={12} />
+                </Link>
+              </div>
+            </Card>
+          )}
+
           {/* Decision Contract — falsifiable closed loop (§0 KICK).
               Seal only offered once the voyage is finished (all legs done). */}
           <DecisionContractCard project={currentProject} sealable={completedSteps === steps.length} />
@@ -626,7 +730,13 @@ export default function ProjectPage() {
               check-in date arrives (W1.2). "아직" extends via history-preserving
               amend; verdicts persist per tap, so closing mid-way loses nothing. */}
           {settleOpen && currentProject.decision_contract && (
-            <SettlementModal project={currentProject} onClose={() => setSettleOpen(false)} />
+            <SettlementModal
+              project={currentProject}
+              onClose={() => {
+                setSettleOpenId(null);
+                setSettleDismissed((prev) => new Set(prev).add(currentProject.id));
+              }}
+            />
           )}
 
           {/* Steps journey */}
@@ -641,7 +751,7 @@ export default function ProjectPage() {
                 )}
 
                 <Link href={step.href}>
-                  <div className={`flex items-start gap-4 p-4 rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer ${
+                  <div className={`flex items-start gap-4 p-4 rounded-xl border transition-all hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 cursor-pointer ${
                     step.status === 'done'
                       ? 'border-[var(--success)] bg-[var(--surface)]'
                       : step.status === 'in-progress'
@@ -752,12 +862,13 @@ export default function ProjectPage() {
           {/* Output formats */}
           <OutputSelector project={currentProject} />
 
-          {/* Next step guide */}
-          {nextStep && (
-            <Card className="!bg-[var(--checkpoint)] !border-amber-200">
+          {/* Next step guide — suppressed for voyage projects (the legacy 4-tool
+              CTA contradicts a finished/sealed voyage). */}
+          {nextStep && !currentHasVoyage && (
+            <Card className="!bg-[var(--checkpoint)] !border-amber-500/30">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                  <ArrowRight size={14} className="text-amber-700" />
+                <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+                  <ArrowRight size={14} className="text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="flex-1">
                   <p className="text-[13px] font-bold text-[var(--text-primary)]">{L(`다음 단계: ${nextStep.label}`, `Next step: ${nextStep.label}`)}</p>
@@ -765,7 +876,7 @@ export default function ProjectPage() {
                     {nextStep.tool === 'reframe' && L('숨겨진 전제를 찾고 진짜 질문을 정의합니다.', 'Find hidden assumptions and define the real question.')}
                     {nextStep.tool === 'recast' && L('AI와 사람의 역할을 설계합니다.', 'Design the split between AI and human roles.')}
                     {nextStep.tool === 'rehearse' && L('판단자의 예상 반응을 시뮬레이션합니다.', 'Simulate how decision-makers will react.')}
-                    {nextStep.tool === 'refine' && L('피드백을 반영하여 최종본을 완성합니다.', 'Apply feedback and finalize the draft.')}
+                    {nextStep.tool === 'synthesize' && L('피드백을 반영하여 최종본을 완성합니다.', 'Apply feedback and finalize the draft.')}
                   </p>
                   <Link href={nextStep.href}>
                     <Button size="sm" className="mt-2">
@@ -779,10 +890,10 @@ export default function ProjectPage() {
 
           {/* All done */}
           {completedSteps === steps.length && (
-            <Card className="!bg-[var(--collab)] !border-green-200 text-center py-6">
+            <Card className="!bg-[var(--collab)] !border-[var(--success)]/30 text-center py-6">
               <Check size={24} className="mx-auto text-[var(--success)] mb-2" />
               <p className="text-[15px] font-bold text-[var(--success)]">{L('모든 단계를 완료했습니다', 'All steps complete')}</p>
-              <p className="text-[12px] text-[#2d6b2d] mt-1">{L('프로젝트 브리프를 복사하거나 다운로드하세요.', 'Copy or download the project brief.')}</p>
+              <p className="text-[12px] text-[var(--success)] mt-1">{L('프로젝트 브리프를 복사하거나 다운로드하세요.', 'Copy or download the project brief.')}</p>
               <div className="flex justify-center gap-2 mt-3">
                 <CopyButton getText={() => generateProjectBrief(currentProject)} label={L('브리프 복사', 'Copy brief')} />
               </div>

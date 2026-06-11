@@ -374,9 +374,17 @@ export function contractStatus(contract: DecisionContract, now: number): Contrac
   let daysUntilCheckIn: number | null = null;
   let checkInDue: boolean;
   if (contract.check_in_at) {
-    const ms = new Date(contract.check_in_at).getTime() - now;
-    daysUntilCheckIn = Math.ceil(ms / DAY_MS);
-    checkInDue = ms <= 0 && !allGraded;
+    // Compare at LOCAL DATE granularity, not timestamps. The seal moment shows
+    // the user a date ("6월 25일에 물어볼게요"); a timestamp comparison keeps
+    // that a lie until the exact minute of sealing two weeks later — someone
+    // who sealed at 11pm and returns on the promised morning would find
+    // nothing due. The promise is a day, so due starts at that day's midnight.
+    const t = new Date(contract.check_in_at);
+    const c = new Date(now);
+    const targetDay = new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime();
+    const currentDay = new Date(c.getFullYear(), c.getMonth(), c.getDate()).getTime();
+    daysUntilCheckIn = Math.round((targetDay - currentDay) / DAY_MS);
+    checkInDue = currentDay >= targetDay && !allGraded;
   } else {
     // No date promised → resurfaces whenever something is ungraded.
     checkInDue = !allGraded && total > 0;

@@ -154,7 +154,7 @@ export function OutputSelector({ project }: OutputSelectorProps) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{L('이타카 — 산출물 선택', 'Ithaca — Choose output')}</h3>
+      <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{L('산출물 — 가져가실 것', 'Outputs — yours to take')}</h3>
       <p className="text-[12px] text-[var(--text-secondary)]">{L('같은 항해에서 목적에 맞는 형식으로 내보냅니다.', 'From the same voyage, export in the format that fits your destination.')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

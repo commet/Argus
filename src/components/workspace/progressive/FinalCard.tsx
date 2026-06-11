@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Sparkles, ChevronDown } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
-import { voyageLogToMarkdown } from '@/lib/export';
+import { voyageLogToMarkdown, copyToClipboard } from '@/lib/export';
 import { getSessionDeltas } from '@/lib/agent-stats';
 import type { MixResult } from '@/stores/types';
 import { ShareBar } from '@/components/ui/ShareBar';
@@ -48,6 +48,20 @@ export function FinalCard({
   const copyLabel = releasedContent && releasedContent !== content && releasedLabel
     ? L(`${releasedLabel} 복사`, `Copy ${releasedLabel}`)
     : L('복사', 'Copy');
+  // Viewing a branch draft while a release exists: the main Copy intentionally
+  // copies the RELEASED text (Decision #5a). Say so plainly, and offer a quiet
+  // secondary action that copies what's actually on screen.
+  const viewingBranchDraft = !!(releasedContent && releasedContent !== content && releasedLabel);
+  const [copiedDraft, setCopiedDraft] = useState(false);
+  const copyVisibleDraft = async () => {
+    try {
+      await copyToClipboard(content);
+      setCopiedDraft(true);
+      setTimeout(() => setCopiedDraft(false), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+  };
 
   // When we have the structured mix, render it with attribution; fall back to flat markdown otherwise.
   const hasStructured = !!mix && mix.sections.length > 0;
@@ -73,6 +87,19 @@ export function FinalCard({
               copyLabel={copyLabel}
             />
           </div>
+          {viewingBranchDraft && (
+            <div className="px-5 md:px-7 py-2 border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+              <span className="text-[11px] text-[var(--text-tertiary)]">
+                {L(`출시본 ${releasedLabel}을 복사해요`, `Copy shares the released ${releasedLabel}`)}
+              </span>
+              <button
+                onClick={copyVisibleDraft}
+                className="text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] underline underline-offset-2 transition-colors cursor-pointer"
+              >
+                {copiedDraft ? L('복사했어요', 'Copied') : L('지금 보는 버전 복사', 'Copy the version on screen')}
+              </button>
+            </div>
+          )}
           {voyageLog && (
             <div className="px-5 md:px-7 py-3 border-b border-[var(--border-subtle)] bg-[var(--accent)]/[0.04]">
               <label className="flex items-start gap-2.5 cursor-pointer group">

@@ -37,8 +37,8 @@ export type CourseStatus =
 
 export interface BearingReason {
   point: string;
-  /** Where this reason came from: 'review' (the judge's good parts), 'draft'
-   *  (a load-bearing assumption), or undefined (a section heading fallback). */
+  /** Where this reason came from: 'review' (the judge's good parts) or
+   *  'draft' (a load-bearing assumption). */
   source?: string;
 }
 
@@ -95,35 +95,34 @@ const SEVERITY_ORDER: Record<ReviewConcern['severity'], number> = {
   minor: 2,
 };
 
-/** Trim and ellipsize to a cap so a bearing field never overruns its one screen. */
-function cap(s: string | undefined | null, n: number): string {
-  const t = (s ?? '').trim();
+/** Trim and ellipsize to a cap so a bearing field never overruns its one screen.
+ *  LLM-derived fields may carry non-string values — guard, never throw. */
+function cap(s: unknown, n: number): string {
+  const t = typeof s === 'string' ? s.trim() : '';
   return t.length <= n ? t : `${t.slice(0, n - 1).trimEnd()}…`;
 }
 
 /**
  * Why the current course is justified — a strict priority chain, NOT a blend:
  * the judge's good_parts (what a reviewer found compelling — the truest "why"),
- * else the draft's load-bearing assumptions, else section headings, else the
- * summary itself. Tiers don't mix: an assumption is a bet that could be wrong
- * (it already feeds the contract seed and the fog), so it stands in for a reason
- * only when no genuine reason was surfaced. Always yields ≥1 when a draft exists.
+ * else the draft's load-bearing assumptions. Tiers don't mix: an assumption is
+ * a bet that could be wrong (it already feeds the contract seed and the fog),
+ * so it stands in for a reason only when no genuine reason was surfaced.
+ * A section title or the summary itself is NOT a reason — when neither tier
+ * yields one, the field stays empty and the card omits the row (P3: silence
+ * is better than a fabricated "why").
  */
 function deriveReasons(finalMix: MixResult, dm?: DMFeedbackResult | null): BearingReason[] {
-  const tier = (items: string[], source?: string): BearingReason[] =>
+  const tier = (items: string[], source: string): BearingReason[] =>
     items
       .map((raw) => cap(raw, FIELD_CAP))
       .filter(Boolean)
       .slice(0, MAX_REASONS)
-      .map((point) => (source ? { point, source } : { point }));
+      .map((point) => ({ point, source }));
 
   const good = tier(dm?.good_parts ?? [], 'review');
   if (good.length) return good;
-  const assumptions = tier(finalMix.key_assumptions ?? [], 'draft');
-  if (assumptions.length) return assumptions;
-  const headings = tier((finalMix.sections ?? []).map((s) => s.heading));
-  if (headings.length) return headings;
-  return tier([finalMix.executive_summary]);
+  return tier(finalMix.key_assumptions ?? [], 'draft');
 }
 
 /**
@@ -139,13 +138,14 @@ function deriveFog(
     (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity],
   );
   const top = concerns[0];
-  if (top && top.text.trim()) {
+  // LLM output may omit fields or return wrong types — typeof-guard before trim.
+  if (top && typeof top.text === 'string' && top.text.trim()) {
     const fog: FogOrReef = { issue: cap(top.text, FIELD_CAP) };
     const check = cap(top.fix_suggestion, FIELD_CAP);
     if (check) fog.required_check = check;
     return fog;
   }
-  const weakest = debate?.weakestClaim?.trim();
+  const weakest = typeof debate?.weakestClaim === 'string' ? debate.weakestClaim.trim() : '';
   if (weakest) return { issue: cap(weakest, FIELD_CAP) };
   return null;
 }
@@ -183,7 +183,7 @@ export function deriveCurrentBearing(s: BearingInput): CurrentBearing | null {
   const status: CourseStatus = concerns[0]?.severity === 'critical' ? 'collect_evidence' : 'proceed';
 
   const nextRaw =
-    (finalMix.next_steps ?? []).map((x) => x.trim()).find(Boolean) ??
+    (finalMix.next_steps ?? []).map((x) => (typeof x === 'string' ? x.trim() : '')).find(Boolean) ??
     s.dm_feedback?.approval_condition ??
     '';
 

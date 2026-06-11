@@ -93,9 +93,9 @@ export function verdictButtons(source: PredicateSource, ko: boolean): { value: V
 /** Frame the raw subject as a yes/no-checkable question per source. Exported
  *  for SettlementModal (single source of truth). */
 export function predicateQuestion(p: Predicate, ko: boolean): string {
-  if (p.source === 'governing_idea') return ko ? `핵심 가설이 맞았나 — ${p.text}` : `Did the bet hold — ${p.text}`;
-  if (p.source === 'actor') return ko ? `사람 판단이 필요했나 — ${p.text}` : `Did this need human judgment — ${p.text}`;
-  return ko ? `실제로 일어났나 — ${p.text}` : `Did it happen — ${p.text}`;
+  if (p.source === 'governing_idea') return ko ? `핵심 가설이 맞았나요 — ${p.text}` : `Did the bet hold — ${p.text}`;
+  if (p.source === 'actor') return ko ? `사람 판단이 필요했나요 — ${p.text}` : `Did this need human judgment — ${p.text}`;
+  return ko ? `실제로 일어났나요 — ${p.text}` : `Did it happen — ${p.text}`;
 }
 
 const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
@@ -182,7 +182,11 @@ export function DecisionContractCard({
 
   function fmtDate(iso?: string): string {
     if (!iso) return '';
-    return new Date(iso).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' });
+    const d = new Date(iso);
+    const opts: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric' };
+    // A promise that crosses the year boundary must say which year it means.
+    if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+    return d.toLocaleDateString(ko ? 'ko-KR' : 'en-US', opts);
   }
 
   if (!contract && !candidate) return null;
@@ -201,7 +205,7 @@ export function DecisionContractCard({
             </h3>
             <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
               {L(
-                `이번 항해에서 당신은 ${candidate.predicates.length}가지를 예측했습니다. 정한 날짜에 다시 와서, 실제로 맞았는지 스스로 확인하세요 — 판단의 고리를 닫는 일입니다.`,
+                `이번 항해에서 ${candidate.predicates.length}가지를 예측했어요. 정한 날짜에 다시 와서, 실제로 맞았는지 직접 확인해 보세요 — 판단의 고리를 닫는 일이에요.`,
                 `You made ${candidate.predicates.length} predictions this voyage. Come back on your chosen date and check, for yourself, whether they held — closing the loop on your own call.`,
               )}
             </p>
@@ -271,7 +275,7 @@ export function DecisionContractCard({
             <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
               {parts.length > 0
                 ? parts.join(' · ')
-                : L(`예측 ${predicates.length}개 채점 완료`, `${predicates.length} predictions graded`)}
+                : L(`예측 ${predicates.length}개 확인 완료`, `${predicates.length} predictions checked`)}
             </p>
             <div className="mt-3">
               <PredicateList predicates={predicates} ko={ko} showVerdict />
@@ -298,7 +302,7 @@ export function DecisionContractCard({
         <div className="flex-1 min-w-0">
           <h3 className="text-[15px] font-bold text-[var(--text-primary)]">
             {due
-              ? L(`예측 ${status!.pending}개, 채점할 시간입니다`, `${status!.pending} predictions — time to score`)
+              ? L(`물어볼 게 ${status!.pending}개 있어요`, `${status!.pending} question${status!.pending === 1 ? '' : 's'} for you`)
               : L('예측 봉인됨', 'Predictions sealed')}
           </h3>
           <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
@@ -309,7 +313,7 @@ export function DecisionContractCard({
                   `${fmtDate(contract!.check_in_at)}에 확인 예정 · 예측 ${predicates.length}개`,
                   `Check-in ${fmtDate(contract!.check_in_at)} · ${predicates.length} predictions`,
                 )
-              : L(`예측 ${predicates.length}개 · 언제든 채점`, `${predicates.length} predictions · grade anytime`)}
+              : L(`예측 ${predicates.length}개 · 언제든 확인`, `${predicates.length} predictions · check anytime`)}
           </p>
 
           {!showGrades && (
@@ -317,7 +321,7 @@ export function DecisionContractCard({
               onClick={() => setGradeOpen(true)}
               className="mt-3 text-[12.5px] font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer"
             >
-              {L('지금 채점하기', 'Grade now')} <ChevronDown size={14} />
+              {L('지금 확인하기', 'Check now')} <ChevronDown size={14} />
             </button>
           )}
 
@@ -356,7 +360,7 @@ export function DecisionContractCard({
               })}
               {status!.graded > 0 && (
                 <p className="text-[11.5px] text-[var(--text-tertiary)] pt-0.5">
-                  {L(`${status!.graded}/${status!.total} 채점됨`, `${status!.graded}/${status!.total} graded`)}
+                  {L(`${status!.graded}/${status!.total} 확인했어요`, `${status!.graded}/${status!.total} checked`)}
                 </p>
               )}
             </div>

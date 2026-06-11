@@ -4,7 +4,8 @@
  * Covers the projection onto the plugin's current-bearing shape:
  *  - null when there's no draft to orient from (no mix / no summary)
  *  - summary from final_mix (preferred) over mix, capped
- *  - why_this_course priority: good_parts → key_assumptions → headings → summary
+ *  - why_this_course priority: good_parts → key_assumptions; a section title or
+ *    the summary is NOT a reason — empty otherwise (P3: the card omits the row)
  *  - fog from the sharpest concern (fix_suggestion → required_check), debate fallback
  *  - road_not_taken from the team debate's alternativeView (empty without debate)
  *  - status collect_evidence on a critical concern, else proceed; never blocked
@@ -81,17 +82,17 @@ describe('deriveCurrentBearing', () => {
     ]);
   });
 
-  it('falls back to key_assumptions, then section headings, then the summary', () => {
+  it('falls back to key_assumptions; a heading or the summary is not a reason (P3 silence)', () => {
     const assumptionOnly = deriveCurrentBearing({ mix: mix({ key_assumptions: ['demand is real'] }) });
     expect(assumptionOnly?.why_this_course).toEqual([{ point: 'demand is real', source: 'draft' }]);
 
     const headingOnly = deriveCurrentBearing({
       mix: mix({ sections: [{ heading: 'Cost', content: '' }] }),
     });
-    expect(headingOnly?.why_this_course).toEqual([{ point: 'Cost' }]);
+    expect(headingOnly?.why_this_course).toEqual([]);
 
     const summaryOnly = deriveCurrentBearing({ mix: mix({ executive_summary: 'just a summary' }) });
-    expect(summaryOnly?.why_this_course).toEqual([{ point: 'just a summary' }]);
+    expect(summaryOnly?.why_this_course).toEqual([]);
   });
 
   it('caps why_this_course at three reasons', () => {

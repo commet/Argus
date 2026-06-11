@@ -30,8 +30,9 @@
  */
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Anchor, Check, ChevronDown, Target, AlertTriangle, GitBranch } from 'lucide-react';
+import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBranch } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
@@ -52,6 +53,15 @@ const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
 ];
 
 const DEFAULT_INTERVAL: CheckInInterval = '2w';
+
+/** RFC 5545 TEXT escaping — commas/semicolons/backslashes/newlines. */
+function icsEscape(s: string): string {
+  return s
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
 
 export function SealMoment({
   project,
@@ -83,9 +93,21 @@ export function SealMoment({
   );
 
   function fmtDate(ms: number): string {
-    return new Date(ms).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' });
+    const d = new Date(ms);
+    const opts: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric' };
+    // A promise that crosses the year boundary must say which year it means.
+    if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+    return d.toLocaleDateString(ko ? 'ko-KR' : 'en-US', opts);
   }
   const dateFor = (iv: CheckInInterval) => fmtDate(Date.now() + CHECK_IN_MS[iv]);
+
+  // The COMMITTED check-in date (ms) — what was actually sealed, not the chip
+  // currently selected in the drawer (selection no longer re-seals).
+  const sealedAtMs = (() => {
+    if (!contract?.check_in_at) return null;
+    const t = new Date(contract.check_in_at).getTime();
+    return Number.isNaN(t) ? null : t;
+  })();
 
   // `iv` lets callers seal with a freshly-picked interval without waiting for the
   // setInterval state update to flush (React batches it, so reading `interval`
@@ -98,6 +120,36 @@ export function SealMoment({
     updateProject(project.id, { decision_contract: withCheckIn(fresh, iv, now) });
     setInterval(iv);
     setJustSealed(true);
+  }
+
+  // ── 캘린더에 약속 넣기 — a client-built .ics, because there is no outbound
+  //    channel yet: the calendar is the user's own reminder, honestly framed. ──
+  function downloadIcs() {
+    const target = new Date(sealedAtMs ?? Date.now() + CHECK_IN_MS[interval]);
+    const ymd = `${target.getFullYear()}${String(target.getMonth() + 1).padStart(2, '0')}${String(target.getDate()).padStart(2, '0')}`;
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const name = typeof project?.name === 'string' ? project.name : '';
+    const summary = L(`그래서, 어떻게 됐어요? — ${name}`, `So, how did it go? — ${name}`);
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Argus//Decision Check-in//EN',
+      'BEGIN:VEVENT',
+      `UID:argus-checkin-${project.id}`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${ymd}`,
+      `SUMMARY:${icsEscape(summary)}`,
+      `DESCRIPTION:${icsEscape(`${window.location.origin}/project`)}`,
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ];
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `argus-checkin-${ymd}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ── Already-sealed loop (reload / waiting / due / verified): single source of
@@ -123,11 +175,27 @@ export function SealMoment({
           <Anchor size={20} className="text-white" />
         </div>
         <p className="mt-4 text-[16px] font-semibold text-[var(--text-primary)] leading-[1.5]">
-          {L(`좋아요. ${dateFor(interval)}에 다시 물어볼게요.`, `Done. I'll ask again ${dateFor(interval)}.`)}
+          {L(
+            `좋아요. ${sealedAtMs ? fmtDate(sealedAtMs) : dateFor(interval)}에 물어볼게요 — 프로젝트 페이지에 오시면 제가 먼저 물어요.`,
+            `Done. I'll ask on ${sealedAtMs ? fmtDate(sealedAtMs) : dateFor(interval)} — come to the project page and I'll bring it up first.`,
+          )}
         </p>
         <p className="mt-1.5 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
           {L('"그래서, 어떻게 됐어요?" — 그날 이 결정으로 돌아옵니다.', '"So, how did it go?" — this decision comes back to you that day.')}
         </p>
+
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+          <Link href="/project" className="text-[12.5px] font-medium text-[var(--accent)] hover:underline">
+            {L('프로젝트 페이지 보기 →', 'See the project page →')}
+          </Link>
+          <button
+            onClick={downloadIcs}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors cursor-pointer"
+          >
+            <CalendarPlus size={13} />
+            {L('캘린더에 약속 넣기', 'Add to my calendar')}
+          </button>
+        </div>
 
         <button
           onClick={() => setDrawerOpen((o) => !o)}
@@ -147,7 +215,9 @@ export function SealMoment({
               className="overflow-hidden"
             >
               <div className="pt-4 text-left">
-                <DateChips interval={interval} onPick={(iv) => seal(iv)} dateFor={dateFor} L={L} />
+                {/* Selection-only — one control, one contract: the explicit
+                    "이대로 다시 봉인" button below is the single commit point. */}
+                <DateChips interval={interval} onPick={setInterval} dateFor={dateFor} L={L} />
                 <div className="mt-4">
                   <PredicateEditor
                     predicates={Array.isArray(predicates) ? predicates : []}
@@ -162,6 +232,11 @@ export function SealMoment({
                     L={L}
                   />
                 </div>
+                {kept.length === 0 && (
+                  <p className="mt-2 text-[11.5px] text-amber-600 dark:text-amber-400">
+                    {L('최소 1개는 남겨야 물어볼 수 있어요.', 'Keep at least one so I have something to ask about.')}
+                  </p>
+                )}
                 <button
                   onClick={() => seal()}
                   disabled={kept.length === 0}
@@ -185,7 +260,7 @@ export function SealMoment({
         <p className="text-[12.5px] text-[var(--text-tertiary)]">
           {L('마음 바뀌면 언제든 봉인할 수 있어요.', 'You can seal this anytime you change your mind.')}{' '}
           <button onClick={() => setDismissed(false)} className="font-medium text-[var(--accent)] hover:underline cursor-pointer">
-            {L('지금 봉인하기', 'Seal it now')}
+            {L('질문 다시 보기', 'Show the question again')}
           </button>
         </p>
       </div>
@@ -214,7 +289,7 @@ export function SealMoment({
         <h3 className="mt-5 text-[19px] md:text-[21px] font-bold text-[var(--text-primary)] leading-[1.4] max-w-md mx-auto">
           {L(
             `이 결정, ${dateFor(interval)}에 어떻게 됐는지 물어봐 드릴까요?`,
-            `Want me to ask you ${dateFor(interval)} how this decision turned out?`,
+            `Want me to ask you on ${dateFor(interval)} how this decision turned out?`,
           )}
         </h3>
         <p className="mt-3 text-[13.5px] text-[var(--text-secondary)] leading-[1.6] max-w-md mx-auto">
@@ -232,7 +307,7 @@ export function SealMoment({
             style={{ background: 'var(--gradient-gold)' }}
           >
             <Check size={15} />
-            {L(`네 — ${dateFor(interval)}에 물어봐 주세요`, `Yes — ask me ${dateFor(interval)}`)}
+            {L(`네 — ${dateFor(interval)}에 물어봐 주세요`, `Yes — ask me on ${dateFor(interval)}`)}
           </button>
           <button
             onClick={() => setDismissed(true)}
@@ -276,6 +351,11 @@ export function SealMoment({
                     L={L}
                   />
                 </div>
+                {kept.length === 0 && (
+                  <p className="mt-2 text-[11.5px] text-amber-600 dark:text-amber-400">
+                    {L('최소 1개는 남겨야 물어볼 수 있어요.', 'Keep at least one so I have something to ask about.')}
+                  </p>
+                )}
               </div>
             </motion.div>
           )}
