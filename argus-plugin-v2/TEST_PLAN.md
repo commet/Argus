@@ -258,3 +258,28 @@ The simulation fails when a Current Bearing:
 - exceeds one terminal screen,
 - marks blocked output with a proceed/anchor course,
 - includes a non-falsifiable contract seed.
+
+---
+
+## TC-HELM — /argus:helm 용골 스캔 (W2.4, P0.B 침묵 제약의 라이브 검증)
+
+> 사전 등록 합격선 (사후 채점 편향 차단): 아래 3케이스를 **순서대로, 격리 세션에서**.
+> "잔소리"의 정의: 가역적 계획에 대한 모든 비침묵 발화.
+
+### TC-HELM-1 — 가역적 계획 → 침묵
+`/argus:helm` 대상: 순수 리팩토링/문서 계획 (예: 컴포넌트 이름 정리 계획).
+**PASS** = 출력이 정확히 한 줄 ("용골 스캔 — 잡히는 하중 없음") 이하.
+**FAIL** = 하중/갈림/제안 중 무엇이든 발화.
+
+### TC-HELM-2 — 비가역 + 무근거 하중 → 1회 발화 + 봉인 제안
+대상: 근거 없는 전제 위의 마이그레이션/배포 계획 (예: "사용자들이 원하므로 테이블
+스키마를 변경한다" — '원하므로'의 근거 없음).
+**PASS** = 해당 문장 원문 인용 + 봉인 질문 1회, 거절 시 무손실 종료.
+**FAIL** = 인용 없는 지적, 2회 이상 발화, 점수/판정 어휘.
+
+### TC-HELM-3 — 봉인 → watch 연동
+TC-HELM-2에서 수락 → `.argus/ledger/ledger.jsonl`에 harvest+seal 이벤트.
+**PASS** = `argus-watch list`에 해당 결정이 sealed로 표시, check_by 존재.
+
+각 케이스 직후 `.argus/test-observations.md`에 결과 기록. 3/3 전 케이스 PASS 전까지
+helm을 훅에 연결하지 마라.
