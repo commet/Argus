@@ -58,6 +58,7 @@ export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-co
 import { CurrentBearingCard } from './CurrentBearingCard';
 import { SealMoment } from './SealMoment';
 import { TrialSail } from './TrialSail';
+import { CrewAtWork } from './CrewAtWork';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useProbeStore } from '@/stores/useProbeStore';
 import { runDivergenceProbe } from '@/lib/probe-engine';
@@ -1167,7 +1168,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const final_ = session?.final_deliverable ?? null;
   const finalMix = session?.final_mix ?? null;
   const round = session?.round ?? 0;
-  const maxR = session?.max_rounds ?? 5; // match createSession default (legacy sessions lacking the field)
+  // W1.6 ⑤ 질문 상한: focus mode caps deepening at 3 rounds (founder: "5라운드는
+  // 많다") — probe-fork questions don't count (zero-LLM turns). Classic keeps 5.
+  const storedMaxR = session?.max_rounds ?? 5; // match createSession default (legacy sessions lacking the field)
+  const maxR = focusMode ? Math.min(storedMaxR, 3) : storedMaxR;
 
   // Elapsed timer for PhaseStatusBar — tracks seconds rather than formatting
   // inline so the same value can derive isLongWait (30s threshold) for the
@@ -2280,6 +2284,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               const meta = teamReady
                 ? L(`${answers.length + 1}번째 질문 · 선택`, `Question ${answers.length + 1} · optional`)
                 : L(`${answers.length + 1}번째 질문`, `Question ${answers.length + 1}`);
+              // W1.6: in focus mode EVERY question carries the way out, inside
+              // the card where the user is looking — never a hidden footer link.
+              const focusEscape = focusMode && snapshots.length > 0
+                ? () => { track('focus_escape_to_mix', { round, from: 'question_card' }); onMix(); }
+                : undefined;
               return (
                 <QuestionCard
                   key={curQ.id}
@@ -2288,8 +2297,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   disabled={busy}
                   locale={locale}
                   meta={meta}
-                  onSkip={teamReady ? onDeployWorkers : undefined}
-                  skipLabel={teamReady ? L('건너뛰고 팀 투입', 'Skip & start') : undefined}
+                  onSkip={focusEscape ?? (teamReady ? onDeployWorkers : undefined)}
+                  skipLabel={focusEscape
+                    ? L('그만 묻고 여기서 마무리', 'Stop asking — wrap up here')
+                    : (teamReady ? L('건너뛰고 팀 투입', 'Skip & start') : undefined)}
                 />
               );
             })()}
@@ -2300,16 +2311,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               retreated record (analysis card, question diff, convergence, Q&A
               history, exits) lives behind a single quiet line — demoted, never
               deleted. */}
+          {/* The escape now lives INSIDE the question card (above); this row
+              keeps only the single quiet record toggle. */}
           {focusMode && phase === 'conversing' && !busy && !mix && !final_ && snapshots.length > 0 && (
-            <div className="flex items-center justify-between gap-3 -mt-3 px-1">
-              {curQ ? (
-                <button
-                  onClick={() => { track('focus_escape_to_mix', { round }); onMix(); }}
-                  className="text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
-                >
-                  {L('그만 묻고 마무리로 →', 'Stop asking — wrap up →')}
-                </button>
-              ) : <span />}
+            <div className="flex justify-end -mt-3 px-1">
               <button
                 onClick={() => setRecordOpen((o) => !o)}
                 className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
@@ -2317,6 +2322,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 {recordOpen ? L('기록 접기 ▴', 'Hide record ▴') : L('지금까지의 기록 ▾', 'Voyage record ▾')}
               </button>
             </div>
+          )}
+
+          {/* W1.6 ⑥ 팀 작업 극장 — live stream tails per crew member, not a
+              progress bar. Below it, the one quiet line into the full stepper. */}
+          {focusMode && deployPhase === 'deployed' && workers.length > 0 && !final_ && !mix && (
+            <CrewAtWork workers={workers} />
           )}
 
           {/* W1.6 ③ focus: one quiet line replaces the grading gate. Reports
@@ -2329,8 +2340,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               {reportsOpen
                 ? L('선원 보고 접기 ▴', 'Hide crew reports ▴')
                 : L(
-                    `선원 보고 ${workers.filter((w) => w.status === 'done').length}건 — 자동 반영됐어요 · 열어보기 ▾`,
-                    `${workers.filter((w) => w.status === 'done').length} crew reports — auto-applied · open ▾`,
+                    `선원 보고 ${workers.filter((w) => w.status === 'done').length}건 — 자동 반영됐어요 · 자세히 보거나 빼려면 열어보기 ▾`,
+                    `${workers.filter((w) => w.status === 'done').length} crew reports — auto-applied · open to inspect or exclude ▾`,
                   )}
             </button>
           )}
@@ -2353,6 +2364,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             const advance = () => setReviewCursor(c => Math.min(c + 1, total - 1));
             return (
               <div ref={workerSectionRef} className="space-y-3">
+                {/* W1.6 ④: the chips finally explain themselves — what 반영/제외
+                    DOES and where the rating goes. One line, always visible. */}
+                <p className="text-[11.5px] text-[var(--text-tertiary)] px-1 leading-[1.5]">
+                  {L(
+                    '반영 = 최종 문서에 들어가요 · 제외 = 빠져요 (언제든 번복 가능) · 아래 평가는 선원 기록에 남아 다음 항해 팀 구성에 참고돼요',
+                    'Apply = goes into the final doc · Exclude = left out (reversible anytime) · ratings go on the crew record for future voyages',
+                  )}
+                </p>
                 {/* Progress — clickable dots + N/total */}
                 <div className="flex items-center justify-between px-1">
                   <span className="text-[12px] font-semibold text-[var(--text-secondary)]">

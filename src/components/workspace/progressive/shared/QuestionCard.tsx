@@ -153,10 +153,12 @@ export function QuestionCard({
           user never feels trapped answering. */}
       {onSkip && !submitted && (
         <div className="pl-8.5 mt-3">
+          {/* A visible chip, not a buried footer link — the user must always
+              SEE the way out of the question loop (G-W1 #1: "끊는 곳이 없다"). */}
           <button
             onClick={() => { if (!disabled) { setSubmitted(true); onSkip(); } }}
             disabled={disabled}
-            className="inline-flex items-center gap-1 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors disabled:opacity-40">
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-[12px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] cursor-pointer transition-colors disabled:opacity-40">
             {skipLabel || L('건너뛰기', 'Skip')} <ArrowRight size={11} />
           </button>
         </div>
