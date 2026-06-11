@@ -224,7 +224,9 @@ function cmdDismiss() {
 function cmdDue() {
   const ledger = loadLedger(repoRoot);
   const due = dueBets(ledger);
-  if (!due.length) { console.log('확인일이 된 내기가 없어요.'); return; }
+  // --quiet: hook mode (세션 시작 due 인사) — nothing due means say NOTHING.
+  // A greeting that fires every session with "없어요" is nagging, not presence.
+  if (!due.length) { if (!flags.quiet) console.log('확인일이 된 내기가 없어요.'); return; }
   console.log(C.bold(`그래서, 어떻게 됐어요? — ${due.length}건\n`));
   for (const d of due) {
     console.log(`${STAKES_MARK[d.stakes] ?? ''} ${C.bold(d.id)} ${C.dim(`(check_by ${d.check_by}, ${d.project ?? '?'})`)}`);
@@ -233,6 +235,31 @@ function cmdDue() {
     console.log(`   틀렸다면: ${d.falsified_if}`);
     console.log(`   → ${C.cyan(`argus-watch settle ${d.id} happened|avoided|partial|pending`)}\n`);
   }
+}
+
+/** nudge — Stop-hook mode (세션 끝 수확 제안). Silent by default; speaks ONE
+ *  line only when there's something real: transcripts grew past the last scan
+ *  (suggest harvest), or sealed bets came due (point at them). Never both —
+ *  due wins. No LLM calls; pure file-stat check. */
+function cmdNudge() {
+  const ledger = loadLedger(repoRoot);
+  const due = dueBets(ledger);
+  if (due.length) {
+    console.log(`그래서, 어떻게 됐어요? — 확인일 된 결정 ${due.length}건: ${C.cyan('argus-watch due')}`);
+    return;
+  }
+  const state = loadScanState(repoRoot);
+  const files = discoverTranscripts({ all: false, projectDir: process.cwd() });
+  const grown = files.filter(({ file }) => {
+    try {
+      const prev = state.files[file];
+      return !prev || fs.statSync(file).size > prev.size;
+    } catch { return false; }
+  });
+  if (grown.length) {
+    console.log(`오늘 대화에 아직 안 거둔 결정이 있을 수 있어요: ${C.cyan('argus-watch scan')}`);
+  }
+  // nothing new → silence is the output.
 }
 
 function cmdSettle() {
@@ -286,7 +313,8 @@ const HELP = `argus-watch — 이미 일어난 대화에서 결정을 알아보�
   seal <id> [--check-by YYYY-MM-DD] [--predicate ..] [--falsified-if ..]
   amend <id> [--predicate ..] [--falsified-if ..] [--check-by ..]
   dismiss <id> [--reason ..]
-  due
+  due [--quiet]
+  nudge                  (훅용 — 새 결정 후보·확인일 있을 때만 한 줄, 아니면 침묵)
   settle <id> <happened|avoided|partial|pending> [--note ..]
   ledger
 
@@ -294,7 +322,7 @@ const HELP = `argus-watch — 이미 일어난 대화에서 결정을 알아보�
 
 const commands = {
   scan: cmdScan, list: cmdList, seal: cmdSeal, amend: cmdAmend,
-  dismiss: cmdDismiss, due: cmdDue, settle: cmdSettle, ledger: cmdLedger,
+  dismiss: cmdDismiss, due: cmdDue, nudge: cmdNudge, settle: cmdSettle, ledger: cmdLedger,
 };
 if (!cmd || !commands[cmd]) { console.log(HELP); process.exit(cmd ? 1 : 0); }
 await commands[cmd]();
