@@ -212,6 +212,16 @@ if [ ! -f "$CLAUDE_DIR/argus-data/schemas/current-bearing.json" ]; then
   ERRORS=$((ERRORS + 1))
 fi
 
+# L3.2 — agents.yaml post-install validation: present, readable, and shaped
+# (crew assembly depends on it; a silent miss surfaces as a confusing /team run)
+if [ ! -r "$CLAUDE_DIR/argus-data/agents.yaml" ]; then
+  fail "Missing or unreadable: agents.yaml"
+  ERRORS=$((ERRORS + 1))
+elif ! grep -q "capabilities:" "$CLAUDE_DIR/argus-data/agents.yaml"; then
+  fail "agents.yaml is present but malformed (no 'capabilities:' key)"
+  ERRORS=$((ERRORS + 1))
+fi
+
 echo ""
 
 if [ "$ERRORS" -eq 0 ]; then

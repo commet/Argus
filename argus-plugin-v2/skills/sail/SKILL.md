@@ -49,6 +49,12 @@ these resolve to:
 - `~/.claude/argus-lib/` — locale-conventions.md, config.example.yaml, rehearsal-prompt.md (flat)
 - `~/.claude/argus-lib/session/` — session-layout.md, version-numbering.md (install.sh `cp -r` preserves the `session/` subdir; do NOT look for these flat under `argus-lib/`)
 
+**Path fallback (L3.4):** if `~/.claude/argus-data/` is absent, try the
+repo-relative source (`<repo>/argus-plugin-v2/data/` and
+`<repo>/argus-plugin-v2/lib/`) before failing. If BOTH are absent, stop with
+one line: `Argus 데이터를 찾을 수 없어요 — ./argus-plugin-v2/install.sh --link
+를 실행해 주세요.` Never improvise schemas from memory.
+
 Session artifacts live in:
 
 - `<cwd>/.argus/sessions/`

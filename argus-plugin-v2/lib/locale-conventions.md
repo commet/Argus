@@ -1,6 +1,15 @@
 # Locale Conventions
 
-Every skill honors `config.locale` from `.argus/config.yaml`. Default is `ko` when config is missing or locale field absent.
+Every skill honors `config.locale` from `.argus/config.yaml`.
+
+**Resolution order (L3.3):**
+1. `config.locale` if present — authoritative.
+2. Config missing/field absent → infer from the user's CURRENT conversation
+   language if it is unambiguous (their last 2+ messages clearly one language).
+3. Still ambiguous (mixed/none) → ask ONCE: "Korean or English? / 한국어로
+   할까요, 영어로 할까요?" — then write the answer back to `.argus/config.yaml`
+   (`locale: ko|en`) so the question never repeats. Never silently default on
+   an ambiguous signal: a wrong-language session reads as broken.
 
 ## Affected surfaces
 

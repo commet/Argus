@@ -41,6 +41,13 @@ Refuse to run when:
 
 ## Execution steps
 
+### Step 0 — Preflight: agents.yaml readable (L3.2)
+
+Before anything else, verify `~/.claude/argus-data/agents.yaml` exists, is
+readable, and contains the `capabilities:` key. If not: stop and print exactly
+one line — `agents.yaml이 없거나 손상됐어요. ./argus-plugin-v2/install.sh --link
+재실행 후 다시 시도해 주세요.` Do not improvise a crew without it.
+
 ### Step 1 — Load session state
 
 1. Find session: latest `.argus/sessions/*/session.json` or specified via `--session`.
