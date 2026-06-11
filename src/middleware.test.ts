@@ -32,6 +32,7 @@ describe('public path classification', () => {
     '/project',
     '/agents',
     '/teams',
+    '/voyage-preview', // removed temporary QA route — must never silently return to PUBLIC_PATHS
     '/tools/reframe',
     '/tools/recast',
     '/tools/rehearse',

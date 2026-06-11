@@ -284,7 +284,7 @@ export default function GuidePage() {
         </div>
 
         <Link href="/agents" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline mt-4">
-          {L('에이전트 허브', 'Agent hub')} <ArrowRight size={14} />
+          {L('선원 명부', 'Crew roster')} <ArrowRight size={14} />
         </Link>
       </Card>
 

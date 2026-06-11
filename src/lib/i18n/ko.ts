@@ -176,12 +176,6 @@ export const ko = {
   'errorDisplay.retry': '다시 시도',
   'errorDisplay.login': '로그인',
 
-  // Site metadata
-  'meta.title': 'Argus — 내 전문 분야가 아닌 걸 해야 할 때',
-  'meta.description': '질문 하나 던지면, 30초 안에 기획안 뼈대가 나옵니다. 채울수록 날카로워집니다. 인지과학 + 전략기획 실무 기반.',
-  'meta.descriptionShort': '질문 하나 던지면, 30초 안에 기획안 뼈대가 나옵니다. 채울수록 날카로워집니다.',
-  'meta.descriptionTwitter': '질문 하나 던지면, 30초 안에 기획안 뼈대가 나옵니다.',
-
   // Interactive Demo
   'demo.me': '나',
   'demo.teamAssembled': '팀이 구성되었습니다. 상황을 분석합니다...',

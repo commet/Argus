@@ -168,11 +168,6 @@ export const en: Record<TranslationKey, string> = {
   'errorDisplay.retry': 'Retry',
   'errorDisplay.login': 'Log in',
 
-  'meta.title': 'Argus — For work outside your expertise',
-  'meta.description': 'Drop a question, get a draft proposal skeleton in 30 seconds. It sharpens as you fill it in. Built on cognitive science and strategic planning practice.',
-  'meta.descriptionShort': 'Drop a question, get a draft proposal skeleton in 30 seconds. It sharpens as you fill it in.',
-  'meta.descriptionTwitter': 'Drop a question, get a draft proposal skeleton in 30 seconds.',
-
   'demo.me': 'Me',
   'demo.teamAssembled': 'Team assembled. Analyzing the situation...',
   'demo.thirdTeammate': '? — Third teammate',
