@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       ` : ''}
 
       <p style="font-size: 13px; color: #6B7280; margin-bottom: 8px;">
-        이 이메일에 답장하시면 ${eName}님의 기획 프로세스에 자동으로 반영됩니다.
+        이 이메일에 답장하시면 ${eName}님의 의사결정 과정에 자동으로 반영됩니다.
       </p>
 
       <p style="font-size: 11px; color: #9CA3AF; margin-top: 32px;">
