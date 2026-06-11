@@ -1097,8 +1097,10 @@ export async function runNavigatorReview(
   workerResults: Array<{ agentName: string; agentRole: string; task: string; result: string }>,
   signal?: AbortSignal,
 ): Promise<NavigatorReview | null> {
+  // W1.5①: the unlock gate is cosmetic now — navigator review runs whenever
+  // the agent exists (XP/level remain as progression flavor only).
   const navigator = useAgentStore.getState().getAgent('navigator');
-  if (!navigator?.unlocked) return null;
+  if (!navigator) return null;
 
   const locale = getCurrentLanguage();
   const { system, user } = buildNavigatorReviewPrompt(problemText, workerResults, locale);

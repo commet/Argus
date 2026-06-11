@@ -49,8 +49,8 @@ export function AgentHub() {
   if (agents.length === 0) {
     return (
       <div className="agent-hub" aria-busy="true" aria-live="polite">
-        <h1 className="agent-hub-title">{L('에이전트', 'Agents')}</h1>
-        <p className="agent-hub-subtitle">{L('당신의 팀입니다. 사용할수록 성장합니다.', 'Your team. They grow as you work with them.')}</p>
+        <h1 className="agent-hub-title">{L('선원 명부', 'Crew Roster')}</h1>
+        <p className="agent-hub-subtitle">{L('항해를 함께한 선원들의 기록입니다. 모두 첫 항해부터 함께해요.', 'The crew who sail with you — all aboard from your first voyage.')}</p>
         <div className="mt-6 space-y-8">
           {[0, 1, 2].map((sectionIdx) => (
             <section key={sectionIdx} className="space-y-3">
@@ -89,9 +89,11 @@ export function AgentHub() {
 
   return (
     <div className="agent-hub">
-      <h1 className="agent-hub-title">{L('에이전트', 'Agents')}</h1>
+      {/* W1.5④ 선원 명부 — a roster you BROWSE, not a page you manage. All
+          crew sail from the first voyage; XP/level is progression flavor. */}
+      <h1 className="agent-hub-title">{L('선원 명부', 'Crew Roster')}</h1>
       <p className="agent-hub-subtitle">
-        {L('당신의 팀입니다. 사용할수록 성장합니다.', 'Your team. They grow as you work with them.')}
+        {L('항해를 함께한 선원들의 기록입니다. 모두 첫 항해부터 함께해요.', 'The crew who sail with you — all aboard from your first voyage.')}
       </p>
 
       {/* 체인 에이전트: 리서치 */}

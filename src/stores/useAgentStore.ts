@@ -25,7 +25,6 @@ import {
   type AgentGroup,
   calculateLevel,
   XP_REWARDS,
-  CHAIN_UNLOCK_THRESHOLDS,
   NAVIGATOR_UNLOCK_THRESHOLD,
   NAVIGATOR_SESSION_THRESHOLD,
 } from '@/stores/agent-types';
@@ -50,7 +49,7 @@ const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_a
     id: 'sujin', name: '다은', nameEn: 'Sophie', role: '리서치 애널리스트', roleEn: 'Research Analyst', emoji: '🔍', color: '#3B82F6',
     origin: 'builtin', capabilities: ['task_execution', 'web_search'],
     group: 'research', chain_id: 'research',
-    unlock_condition: { type: 'chain_tasks', chain_id: 'research', required: CHAIN_UNLOCK_THRESHOLDS.senior }, unlocked: false,
+    unlock_condition: { type: 'always', required: 0 }, unlocked: true,
     expertise: '자료 조사, 시장 분석, 데이터 수집에 강합니다. 빠짐없이 꼼꼼하게 찾아냅니다.',
     expertiseEn: 'Strong at desk research, market analysis, and data gathering. Thorough and exhaustive.',
     tone: '팩트 중심으로 간결하게, 출처를 명시하며 신뢰감 있게 정리합니다.',
@@ -62,7 +61,7 @@ const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_a
     id: 'research_director', name: '도윤', nameEn: 'Marcus', role: '리서치 디렉터', roleEn: 'Research Director', emoji: '🧠', color: '#1D4ED8',
     origin: 'builtin', capabilities: ['task_execution', 'review', 'web_search'],
     group: 'research', chain_id: 'research',
-    unlock_condition: { type: 'chain_tasks', chain_id: 'research', required: CHAIN_UNLOCK_THRESHOLDS.master }, unlocked: false,
+    unlock_condition: { type: 'always', required: 0 }, unlocked: true,
     expertise: '종합적 인사이트 도출, 데이터 간 패턴 발견, 전략적 함의 제시에 강합니다.',
     expertiseEn: 'Strong at synthesizing insights, finding patterns across data, and articulating strategic implications.',
     tone: '핵심 인사이트를 먼저 제시하고, 근거를 간결하게 뒷받침합니다.',
@@ -88,7 +87,7 @@ const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_a
     id: 'hyunwoo', name: '현우', nameEn: 'Nathan', role: '전략가', roleEn: 'Strategist', emoji: '🎯', color: '#8B5CF6',
     origin: 'builtin', capabilities: ['task_execution'],
     group: 'strategy', chain_id: 'strategy',
-    unlock_condition: { type: 'chain_tasks', chain_id: 'strategy', required: CHAIN_UNLOCK_THRESHOLDS.senior }, unlocked: false,
+    unlock_condition: { type: 'always', required: 0 }, unlocked: true,
     expertise: '전략 수립, 포지셔닝, 경쟁 분석의 전문가입니다. 큰 그림을 그립니다.',
     expertiseEn: 'Expert in strategy formulation, positioning, and competitive analysis. Draws the big picture.',
     tone: '핵심만 짚되, 왜 그런지 한 줄로 설득력 있게 설명합니다.',
@@ -100,7 +99,7 @@ const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_a
     id: 'chief_strategist', name: '승현', nameEn: 'Victor', role: '수석 전략가', roleEn: 'Chief Strategist', emoji: '🏛️', color: '#6D28D9',
     origin: 'builtin', capabilities: ['task_execution', 'review'],
     group: 'strategy', chain_id: 'strategy',
-    unlock_condition: { type: 'chain_tasks', chain_id: 'strategy', required: CHAIN_UNLOCK_THRESHOLDS.master }, unlocked: false,
+    unlock_condition: { type: 'always', required: 0 }, unlocked: true,
     expertise: '시나리오 플래닝, 프레임 전환, 의사결정 구조 설계에 강합니다.',
     expertiseEn: 'Strong at scenario planning, reframing, and decision-structure design.',
     tone: '여러 시나리오를 제시하되, 권장안을 명확히 밝히고 논거를 붙입니다.',
@@ -238,7 +237,7 @@ const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_a
     id: 'navigator', name: '항해장', nameEn: 'Navigator', role: 'Navigator', roleEn: 'Navigator', emoji: '🧭', color: '#D97706',
     origin: 'builtin', capabilities: ['review'],
     group: 'special', chain_id: null,
-    unlock_condition: { type: 'total_tasks', required: NAVIGATOR_UNLOCK_THRESHOLD }, unlocked: false,
+    unlock_condition: { type: 'always', required: 0 }, unlocked: true,
     expertise: '메타 관찰, 품질 체크, 팀 간 모순 발견, 사용자 성장 미션 제안.',
     tone: '관조적이고 때로 보수적. 놓치고 있는 관점을 짚어줍니다.',
     keywords: [],
@@ -481,7 +480,12 @@ export const useAgentStore = create<AgentState>((set, get) => ({
   // ─── Query ───
 
   getUnlockedAgents: () => {
-    return get().agents.filter(a => a.unlocked && !a.archived);
+    // W1.5① 게이트 제거 (창업자 결정): the unlock gate no longer filters the
+    // main flow — all 17 personas are available from the first session. The
+    // `unlocked` flag and XP/level survive as COSMETIC progression only
+    // (UnlockToast / CollectionProgress); they must never gate capability.
+    // Function name kept for API stability across ~10 call sites.
+    return get().agents.filter(a => !a.archived);
   },
 
   getAgentsByGroup: (group) => {
