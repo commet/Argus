@@ -11,9 +11,9 @@ import { getCurrentLanguage } from '@/lib/i18n';
  * regardless of the prompt body's language.
  */
 function getLocaleDirective(): string {
-  return getCurrentLanguage() === 'ko'
-    ? '\n\n---\n\n## Response Language\n한국어로만 응답하세요. 제목, 필드 이름(JSON key 제외), 설명, 예시 — 모두 한국어.'
-    : '\n\n---\n\n## Response Language\nRespond in English only. Headings, field values (not JSON keys), explanations, examples — all English. Do not mix languages.';
+  const locale = getCurrentLanguage();
+  const lang = locale === 'ko' ? 'Korean' : 'English';
+  return `\n\n---\n\n## Response Language\nAlways respond in ${lang}. Headings, field values (not JSON keys), explanations, examples — all in ${lang}. Do not mix languages.`;
 }
 
 /**

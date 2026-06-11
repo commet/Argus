@@ -113,7 +113,7 @@ Rules:
 - Do not over-subdivide. If a single call would suffice, return just 1 step
 - 2-4 steps maximum. 5+ is forbidden
 - Each step's output must be specific and measurable
-- Respond in English${delegationBlock}
+- Always respond in English${delegationBlock}
 
 Respond with JSON only in this exact shape:
 {

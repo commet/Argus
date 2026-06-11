@@ -52,7 +52,7 @@ function buildDebatePromptKo(input: DebateInput): { system: string; user: string
 - 가장 취약한 주장 1개를 골라서 왜 위험한지 설명하세요.
 - 대안적 관점을 제시하세요.
 - severity: 이 문제가 계획을 망칠 수 있으면 critical, 수정하면 되면 important, 개선 수준이면 minor.
-- 한국어로 간결하게.
+- Always respond in Korean. 간결하게.
 
 JSON으로 응답:
 {
@@ -87,7 +87,7 @@ Rules:
 - Pick the single weakest claim and explain why it's dangerous.
 - Offer an alternative viewpoint.
 - severity: "critical" if this would break the plan, "important" if fixable, "minor" if cosmetic.
-- Respond in English, concisely.
+- Always respond in English, concisely.
 
 Respond with JSON only:
 {

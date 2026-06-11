@@ -218,8 +218,8 @@ If nothing new, return observation: null.
 JSON: { "observation": "one-line observation or null", "category": "preference|skill_gap|communication_style|work_pattern" }`;
 
     const systemPrompt = locale === 'ko'
-      ? '사용자의 업무 패턴을 분석하는 관찰자. 구체적이고 실용적인 관찰만. 한국어로.'
-      : "You are an observer analyzing the user's work patterns. Only surface concrete, practical observations. Respond in English.";
+      ? '사용자의 업무 패턴을 분석하는 관찰자. 구체적이고 실용적인 관찰만. Always respond in Korean.'
+      : "You are an observer analyzing the user's work patterns. Only surface concrete, practical observations. Always respond in English.";
 
     const result = await callLLMJson<{
       observation: string | null;
