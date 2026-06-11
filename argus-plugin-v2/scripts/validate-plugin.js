@@ -51,7 +51,7 @@ if (manifest) {
   check(typeof manifest.version === "string" && manifest.version.length > 0, "manifest must declare a version");
 }
 
-const SKILLS = ["sail", "clarify", "team", "verify", "boss", "revise", "chart", "helm", "help"];
+const SKILLS = ["sail", "clarify", "team", "verify", "boss", "revise", "chart", "helm", "help", "settle", "log"];
 for (const skill of SKILLS) {
   const skillPath = path.join(root, "skills", skill, "SKILL.md");
   check(fs.existsSync(skillPath), `missing skills/${skill}/SKILL.md (auto-discovered as /argus:${skill})`);

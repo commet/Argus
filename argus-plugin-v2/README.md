@@ -153,7 +153,9 @@ Works on macOS, Linux, and Windows.
 |---|---|
 | `/argus:sail` | **Start here.** Runs the whole flow and renders the Current Bearing. |
 | `/argus:help` | Command map; tells you which command fits your situation. |
-| `/argus:chart` | Where am I? Version tree, open checks, next step. Also promote/branch. |
+| `/argus:chart` | Where am I in this voyage? Version tree, open checks, next step. Also promote/branch. |
+| `/argus:log` | Voyage log across all sessions: past decisions, sealed contracts, your prediction record. |
+| `/argus:settle` | Check predictions whose date arrived against reality; builds your calibration history. |
 | `/argus:revise` | Apply review feedback into a new draft and re-verify — the iteration loop. |
 | `/argus:clarify` | Sharpen the real question before any work (sail runs this first). |
 | `/argus:team` | Put the agent crew to work on the artifact (sail chains this). |
@@ -200,14 +202,20 @@ Three properties worth knowing:
 
 A Current Bearing close to a final decision ends with a **contract seed**: a
 falsifiable prediction with a check-by date ("if plugin DAU is below X after
-30 days, do not absorb the webapp path"). Argus ships a quiet session-start
-hook: when a contract in the current project is past its check-by date, it
-prints **one line** asking you to check the prediction against reality.
-Otherwise it prints nothing — silence is the default. Disable it anytime via
-`/hooks`.
+30 days, do not absorb the webapp path"). The loop then closes itself:
+
+1. A quiet session-start hook prints **one line** when a contract in the
+   current project is past its check-by date — and nothing otherwise.
+   Disable anytime via `/hooks`.
+2. `/argus:settle` asks what reality did (held / missed / partial / push the
+   date) and records it in an append-only ledger.
+3. `/argus:log` shows the running record — and once enough contracts are
+   settled, new voyages quietly take your track record into account when
+   surfacing hidden assumptions.
 
 This is the part that compounds: over time `.argus/` becomes a record of what
-you decided, what you predicted, and how often you were right.
+you decided, what you predicted, and how often you were right — a history no
+fresh tool can give you back.
 
 ---
 

@@ -125,3 +125,5 @@ surface view reflects the active draft's scaffold.
 | `/argus:sail` Step 7 | `current_bearing.json` for medium/high paths |
 | `/argus:boss` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns; in session.json only the active draft's `boss_reviewed: true` flag + `phase` (boss does NOT touch `reviewing_agent_id` — that marks who produced a draft, not who reviewed it) |
 | `/argus:revise` | writes a transient `pending_revision.json` (session level, consumed by team), then via `/argus:team --revise` creates a new **child** version dir (full artifacts, write-once) and appends a child Draft (`directive`, `reviewing_agent_id: navigator`); then `/argus:verify` re-verifies. The parent draft is untouched. |
+| `/argus:settle` | appends `harvest`/`seal` (bearing-seed import), `settle`, or `amend` events to `.argus/ledger/ledger.jsonl` — append-only, never touches session dirs |
+| `/argus:log`, `/argus:help`, `/argus:chart` (default) | read-only — write nothing |

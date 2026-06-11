@@ -4,6 +4,35 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.3.0 — 2026-06-12
+
+The settlement loop is now complete, and the accumulated history is finally
+visible and useful.
+
+### Added
+- **`/argus:settle`** — settle contracts past their check-by date: one neutral
+  question per contract (held / missed / partial / push the date), outcome
+  appended to the append-only ledger. Bearing seeds are imported into the
+  ledger on first settle so it stays the single replayable source. This was
+  the missing back half of the loop — the 2.2.0 reminder hook pointed at a
+  command that couldn't act.
+- **`/argus:log`** — the voyage log: one screen across ALL sessions (recent
+  decisions and their courses, sealed/open/overdue contracts, the running
+  held/missed/partial record). `--insights` adds at most 3 pattern lines once
+  ≥3 contracts are settled, each grounded in a concrete entry.
+- **Track-record context in clarify** — once ≥2 contracts are settled, new
+  voyages inject ONE reference-only line (counts + the most recently missed
+  prediction) into the initial analysis. Scoped, never directive, never
+  fewer-than-2 anecdotes.
+- **First-voyage hint** — after the project's first-ever bearing, one line
+  pointing to `/argus:chart` and `/argus:help`. Never repeats.
+
+### Changed
+- Reminder hook, statusline overdue line, and chart's next-command logic all
+  route to `/argus:settle` (previously dead-ended at `/argus:chart` or the
+  dogfood-only `/watch`).
+- chart Open Checks shows a contract past check-by as a first-class row.
+
 ## 2.2.0 — 2026-06-12
 
 Plugin-spec alignment + first-run friction removal.

@@ -76,6 +76,26 @@ This is the single source of truth for the artifact the team works ON (M1 code-n
    - `created_at`, `updated_at`
 5. Create `versions/v0.1/` subdirectory. This holds all artifacts for draft v0.1.
 
+### Step 1.5 — Track-record context (mechanical, skip silently if absent)
+
+If `.argus/ledger/ledger.jsonl` exists, replay it (seal opens, settle closes —
+skip unparsable lines) and count settled outcomes. **Only when ≥2 contracts are
+settled**, prepare ONE reference line for the Step 2 prompt, appended as:
+
+```text
+<user-data context="track-record">
+Past voyages in this project: {{T}} contracts settled — held {{h}}, missed {{a}}, partial {{p}}. Most recently missed: "{{predicate, clipped 80}}".
+</user-data>
+```
+
+Injection rules (these override any urge to use the data harder):
+- Reference only — the line informs `hidden_assumptions` and `stakes_guess`
+  sensitivity; it must NEVER override content-based judgment of the current
+  problem or change the recommendation by itself.
+- One line, counts + one concrete example. No trend prose, no "you tend to…".
+- Fewer than 2 settled contracts → inject nothing at all (one data point is an
+  anecdote, not a record).
+
 ### Step 2 — Initial analysis
 
 **Prompt the LLM (yourself) as follows:**

@@ -292,7 +292,7 @@ function argusLine(root, budget) {
     const o = overdue[0];
     const head = overdue.length > 1 ? `OVERDUE ×${overdue.length}` : "OVERDUE";
     const text = clip((o.kind === "seed" ? "seed: " : "") + o.text, Math.max(16, budget - cells(head) - 26));
-    return `📜 ${C.r}${BOLD}${head}${R} ${C.r}${mmdd(o.date)}${R}${SEP}${text}${SEP}${C.d}→ /watch due${R}`;
+    return `📜 ${C.r}${BOLD}${head}${R} ${C.r}${mmdd(o.date)}${R}${SEP}${text}${SEP}${C.d}→ /argus:settle${R}`;
   }
 
   // 2. Due today: same urgency as overdue, but the honest label —
@@ -301,7 +301,7 @@ function argusLine(root, budget) {
     const d0 = dueToday[0];
     const more = dueToday.length > 1 ? ` ${C.d}+${dueToday.length - 1}${R}` : "";
     const text = clip((d0.kind === "seed" ? "seed: " : "") + d0.text, Math.max(16, budget - 36));
-    return `📜 ${C.r}${BOLD}due today${R}${SEP}${text}${more}${SEP}${C.d}→ /watch due${R}`;
+    return `📜 ${C.r}${BOLD}due today${R}${SEP}${text}${more}${SEP}${C.d}→ /argus:settle${R}`;
   }
 
   // 3. A run in progress: transient, footer-appropriate.

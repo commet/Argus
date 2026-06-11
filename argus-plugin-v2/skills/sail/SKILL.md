@@ -377,6 +377,12 @@ Details: {{detail_path}}
 
 Target length: 10-16 lines. Never exceed one terminal screen.
 
+**First-voyage hint:** if this is the project's FIRST session (exactly one
+directory under `.argus/sessions/`), append one line after the bearing —
+ko: `첫 항해가 기록됐어요. /argus:chart 로 언제든 돌아올 수 있고, /argus:help 가 지도예요.`
+en: `Your first voyage is logged. /argus:chart returns here anytime; /argus:help shows the map.`
+Never print it again after the first session.
+
 ### Bearing Rules
 
 - Do not render counts like "4 supported / 2 challenged" in the default

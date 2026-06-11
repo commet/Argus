@@ -75,6 +75,7 @@ Open Checks:
 - Verification: {{overall_status or "not run"}}
 - Human checks: {{first human check or "none"}}
 - Boss condition: {{approval_condition or "none"}}
+{{if contract past check-by}}- Contract: "{{predicate clipped 50}}" was due {{check_by}} -> /argus:settle{{endif}}
 
 Next:
 - If verification is missing: run `/argus:verify`
@@ -121,6 +122,9 @@ Avoid fragile box-drawing characters; this runs in varied terminals.
 
 Compute the next useful command:
 
+- A sealed contract (ledger or this session's bearing seed) is past its
+  check-by date -> `/argus:settle` (outranks everything below — an unsettled
+  past prediction is the most perishable item on the chart)
 - Missing `verification.json` on a medium/high draft -> `/argus:verify --session <id>`
 - Verification `revise_team` -> `/argus:revise --session <id>` (revise auto-detects the challenged claims to repair)
 - Verification `stop_for_human_check` -> show the first human check and

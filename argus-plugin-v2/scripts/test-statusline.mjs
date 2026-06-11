@@ -107,7 +107,7 @@ t("overdue bet → OVERDUE line with /watch hint", () => {
   assert(out.length === 2, `expected 2 lines, got ${out.length}`);
   assert(out[1].includes("OVERDUE"), `no OVERDUE: ${out[1]}`);
   assert(out[1].includes("플러그인 보존"), `missing decision text: ${out[1]}`);
-  assert(out[1].includes("/watch due"), `missing hint: ${out[1]}`);
+  assert(out[1].includes("/argus:settle"), `missing hint: ${out[1]}`);
 });
 
 t("two overdue bets → ×2, oldest date shown", () => {
@@ -145,7 +145,7 @@ t("bet due today → 'due today', not OVERDUE", () => {
   const l2 = lines(run(r))[1];
   assert(l2.includes("due today"), `no due today: ${l2}`);
   assert(!l2.includes("OVERDUE"), `today is due, not overdue: ${l2}`);
-  assert(l2.includes("/watch due"), `missing hint: ${l2}`);
+  assert(l2.includes("/argus:settle"), `missing hint: ${l2}`);
 });
 
 t("overdue beats due today", () => {
@@ -182,6 +182,26 @@ t("fresh bearing → status + summary + fog", () => {
   assert(l2.includes("proceed"), `no status: ${l2}`);
   assert(l2.includes("마이그레이션"), `no summary: ${l2}`);
   assert(l2.includes("DAU 근거 없음"), `no fog: ${l2}`);
+});
+
+t("underscore spelling (v2 skills write current_bearing.json) is read too", () => {
+  const r = repo();
+  const dir = join(r, ".argus", "sessions", "s1", "versions", "v0.1");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "current_bearing.json"), JSON.stringify({
+    label: "v0.1",
+    current_course: { status: "proceed", summary: "언더스코어 파일도 읽힌다" },
+    why_this_course: [{ point: "x" }],
+    fog_or_reef: null,
+    road_not_taken: [{ option: "a", why_not_now: "b" }],
+    next_helm: "n",
+    contract_seed: null,
+    blocked: false,
+    detail_path: ".",
+    generated_at: new Date(Date.now() - 0.1 * DAY).toISOString(),
+  }));
+  const l2 = lines(run(r))[1];
+  assert(l2 && l2.includes("언더스코어 파일도 읽힌다"), `underscore bearing not read: ${l2}`);
 });
 
 t("blocked bearing → ⛔", () => {

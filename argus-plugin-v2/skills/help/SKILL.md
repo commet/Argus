@@ -31,7 +31,9 @@ The crew, individually (sail chains these for you):
   /argus:verify    split claims: supported / challenged / human-required
   /argus:boss      stakeholder pressure-check (MBTI persona from .argus/config.yaml)
   /argus:revise    apply the feedback into a new child draft, re-verify
-  /argus:chart     see the version tree, promote, branch, resume
+  /argus:chart     see one voyage's version tree, promote, branch, resume
+  /argus:log       voyage log across ALL sessions + your prediction record
+  /argus:settle    check past predictions against reality (the contract loop)
   /argus:helm      (experimental) silent pre-approval scan of an agent plan
 
 Where things live:
@@ -47,7 +49,9 @@ for the list, answer with the ONE command that fits, plus one sentence why:
 - has a fuzzy/important decision → `/argus:sail "<it>"`
 - wants only sharper framing, no pipeline → `/argus:sail --quick`
 - got a bearing and wants to act on concerns → `/argus:revise`
-- wants to see past/current voyages → `/argus:chart`
+- wants to dig into the current voyage → `/argus:chart`
+- asks "what have I decided here" / "my track record" → `/argus:log`
+- a contract reminder fired / "how did that bet go?" → `/argus:settle`
 - about to approve a generated plan → `/argus:helm`
 - result felt thin / wants the full crew → `/argus:sail --full`
 

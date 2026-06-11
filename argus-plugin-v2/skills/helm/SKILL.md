@@ -79,12 +79,10 @@ evidence_in_text("" = 근거 없음). findings = shift true && evidence "" 만.
 ## Step 3 — 반자동 정산 (실행 완료 후)
 
 계획이 실행된 흔적(해당 커밋/배포)이 보이고 check_by가 지났으면, 다음 helm 호출
-시작에 한 줄: `지난번 그 계획 — 그래서, 어떻게 됐어요?` → `argus-watch settle <id>
-happened|avoided|partial|pending` 안내. pending = check_by 연장 (amend, 이력 보존).
-
-`argus-watch` CLI는 플러그인에 동봉되지 않은 별도 도구다. 설치되어 있지 않으면
-settle 안내 대신 ledger.jsonl에 직접 settle 이벤트 한 줄을 append하는 법을
-보여준다 — 봉인·정산 자체는 CLI 없이도 동작해야 한다.
+시작에 한 줄: `지난번 그 계획 — 그래서, 어떻게 됐어요?` → `/argus:settle` 안내
+(플러그인의 정산 스킬 — 같은 ledger를 읽고 쓴다). pending = check_by 연장
+(amend, 이력 보존). `argus-watch` CLI가 설치된 환경에서는 `argus-watch settle
+<id>`도 같은 결과를 낸다 — 어느 쪽이든 원장은 하나다.
 
 ## --full (opt-in 전용) — C 분기 탐침
 
