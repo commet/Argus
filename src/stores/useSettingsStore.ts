@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS: Settings = {
   language: 'ko',
   audio_enabled: false,
   audio_volume: 0.15,
+  all_output_formats: false,
 };
 
 interface SettingsState {

@@ -639,6 +639,10 @@ export interface Settings {
   language: 'ko' | 'en';
   audio_enabled: boolean;
   audio_volume: number;
+  /** W1.4 산출물 압축: default exposure is ONE format (판단 근거서). The other
+   *  format generators are preserved behind this flag — never deleted. Optional
+   *  so legacy localStorage settings load safely (read as `?? false`). */
+  all_output_formats?: boolean;
 }
 
 // ─── Judgment Vitality Engine ───

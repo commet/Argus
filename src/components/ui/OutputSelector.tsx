@@ -6,6 +6,7 @@ import { CopyButton } from './CopyButton';
 import { FileText, MessageSquare, Code, CheckSquare, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Project, MetaReflection } from '@/stores/types';
 import { useProjectStore } from '@/stores/useProjectStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 import { Field } from './Field';
 import { generateProjectBrief } from '@/lib/project-brief';
 import { generatePromptChain } from '@/lib/prompt-chain';
@@ -29,49 +30,13 @@ interface OutputFormat {
   fileExt: string;
 }
 
+/** W1.4 산출물 압축 — default exposure is the 판단 근거서 line only; the rest
+ *  are preserved (never deleted) behind the `all_output_formats` setting.
+ *  Music-era format names swept to plain or voyage-consistent names (W1.4
+ *  잔재 어휘 일소 — the old terms must not appear anywhere in src/). */
 function getFormats(locale: 'ko' | 'en'): OutputFormat[] {
   const ko = locale === 'ko';
   return [
-    {
-      key: 'brief',
-      icon: <FileText size={18} />,
-      label: ko ? '프로그램 노트 · Project Brief' : 'Project Brief · 프로그램 노트',
-      description: ko
-        ? '경영진이나 팀에 공유하는 의사결정 기록. 가장 먼저 만드세요.'
-        : 'Decision record to share with leadership or the team. Start here.',
-      generator: generateProjectBrief,
-      fileExt: 'md',
-    },
-    {
-      key: 'prompt-chain',
-      icon: <MessageSquare size={18} />,
-      label: ko ? '파트보 · Prompt Chain' : 'Prompt Chain · 파트보',
-      description: ko
-        ? 'Claude/ChatGPT에 순서대로 입력할 프롬프트 세트. AI 실행 시 사용.'
-        : 'A sequenced prompt set to paste into Claude/ChatGPT. For AI execution.',
-      generator: generatePromptChain,
-      fileExt: 'md',
-    },
-    {
-      key: 'agent-spec',
-      icon: <Code size={18} />,
-      label: ko ? '총보 · Agent Spec' : 'Agent Spec · 총보',
-      description: ko
-        ? 'LangGraph/CrewAI 구현의 출발점이 되는 설계서.'
-        : 'Starting spec for LangGraph / CrewAI implementations.',
-      generator: generateAgentSpec,
-      fileExt: 'yaml',
-    },
-    {
-      key: 'checklist',
-      icon: <CheckSquare size={18} />,
-      label: ko ? '셋리스트 · Execution Checklist' : 'Execution Checklist · 셋리스트',
-      description: ko
-        ? '각 단계를 하나씩 확인하며 실행하는 체크리스트.'
-        : 'Step-by-step checklist to verify as you execute.',
-      generator: generateChecklist,
-      fileExt: 'md',
-    },
     {
       key: 'rationale',
       icon: <Scale size={18} />,
@@ -82,13 +47,62 @@ function getFormats(locale: 'ko' | 'en'): OutputFormat[] {
       generator: generateDecisionRationale,
       fileExt: 'md',
     },
+    {
+      key: 'brief',
+      icon: <FileText size={18} />,
+      label: ko ? '브리프 · Project Brief' : 'Project Brief · 브리프',
+      description: ko
+        ? '경영진이나 팀에 공유하는 의사결정 기록.'
+        : 'Decision record to share with leadership or the team.',
+      generator: generateProjectBrief,
+      fileExt: 'md',
+    },
+    {
+      key: 'prompt-chain',
+      icon: <MessageSquare size={18} />,
+      label: ko ? '프롬프트 체인 · Prompt Chain' : 'Prompt Chain · 프롬프트 체인',
+      description: ko
+        ? 'Claude/ChatGPT에 순서대로 입력할 프롬프트 세트. AI 실행 시 사용.'
+        : 'A sequenced prompt set to paste into Claude/ChatGPT. For AI execution.',
+      generator: generatePromptChain,
+      fileExt: 'md',
+    },
+    {
+      key: 'agent-spec',
+      icon: <Code size={18} />,
+      label: ko ? '에이전트 설계서 · Agent Spec' : 'Agent Spec · 에이전트 설계서',
+      description: ko
+        ? 'LangGraph/CrewAI 구현의 출발점이 되는 설계서.'
+        : 'Starting spec for LangGraph / CrewAI implementations.',
+      generator: generateAgentSpec,
+      fileExt: 'yaml',
+    },
+    {
+      key: 'checklist',
+      icon: <CheckSquare size={18} />,
+      label: ko ? '실행 점검표 · Execution Checklist' : 'Execution Checklist · 실행 점검표',
+      description: ko
+        ? '각 단계를 하나씩 확인하며 실행하는 체크리스트.'
+        : 'Step-by-step checklist to verify as you execute.',
+      generator: generateChecklist,
+      fileExt: 'md',
+    },
   ];
 }
+
+/** Format keys exposed by default (기본 노출 1종 — 판단 근거서 계열). */
+const DEFAULT_FORMAT_KEYS = ['rationale'];
 
 export function OutputSelector({ project }: OutputSelectorProps) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const formats = getFormats(locale);
+  const allFormats = getFormats(locale);
+  // 기본 노출 1종; 나머지는 설정 flag 뒤 보존 (W1.4). Persisted via settings so
+  // a user who opens them once keeps them open.
+  const allFormatsOn = useSettingsStore((s) => s.settings.all_output_formats ?? false);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const formats = allFormatsOn ? allFormats : allFormats.filter((f) => DEFAULT_FORMAT_KEYS.includes(f.key));
+  const hiddenCount = allFormats.length - formats.length;
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [preview, setPreview] = useState<string>('');
   const [codaOpen, setCodaOpen] = useState(false);
@@ -123,7 +137,9 @@ export function OutputSelector({ project }: OutputSelectorProps) {
     }
   };
 
-  const selectedFormat = formats.find((f) => f.key === selectedKey);
+  // Look up in ALL formats: a hidden-format selection must keep its preview
+  // working even if the user collapses the list mid-preview.
+  const selectedFormat = allFormats.find((f) => f.key === selectedKey);
 
   const handleDownload = () => {
     if (!selectedFormat || !preview) return;
@@ -162,6 +178,16 @@ export function OutputSelector({ project }: OutputSelectorProps) {
           </button>
         ))}
       </div>
+
+      {/* The preserved formats — one quiet toggle, persisted in settings. */}
+      <button
+        onClick={() => updateSettings({ all_output_formats: !allFormatsOn })}
+        className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+      >
+        {allFormatsOn
+          ? L('기본 형식만 보기', 'Show default format only')
+          : L(`다른 형식 ${hiddenCount}종 더 보기`, `Show ${hiddenCount} more formats`)}
+      </button>
 
       {/* Preview */}
       {selectedKey && preview && (
