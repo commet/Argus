@@ -56,7 +56,7 @@ import { TeamDeployBanner } from './TeamDeployBanner';
 import { FinalCard } from './FinalCard';
 export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-compat re-exports (were defined here)
 import { CurrentBearingCard } from './CurrentBearingCard';
-import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
+import { SealMoment } from './SealMoment';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { Falsification } from './Falsification';
 import { Button } from '@/components/ui/Button';
@@ -2568,11 +2568,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 {L('아래에서 복사하거나, 새 프로젝트를 시작할 수 있어요', 'Copy below or start a new project')}
               </p>
             </motion.div>
-            {/* Current Bearing — the compressed orientation, above the long
-                document (ARGUS-FINAL-DIRECTION §"The Surface Principle"). The
-                document below is the depth; this is the one-screen "where this
-                decision currently stands and why". */}
-            <CurrentBearingCard bearing={currentBearing} label={activeDraft?.version_label ?? null} />
+            {/* ① 산출물 ("가져가실 것") — the document is what the user takes
+                with them; it leads the complete scene (W1.1 봉인 종막 order). */}
             <FinalCard
               content={final_}
               mix={finalMix}
@@ -2593,16 +2590,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               })()}
             />
 
-            {/* Decision Contract — the falsifiable closed loop (§0 KICK), on the
-                live voyage. Seals this run's predictions and resurfaces for
-                self-grading on the chosen check-in date. Persisted on the
-                project, so it survives across sessions and also shows on /project.
-                Renders nothing when there's nothing falsifiable to predict. */}
-            {contractProject && (
-              <div className="mt-4">
-                <DecisionContractCard project={contractProject} livePredicates={contractPredicates} />
-              </div>
-            )}
+            {/* ② Current Bearing — the compressed one-screen orientation, now
+                sitting just under the document it summarizes (W1.1 order). */}
+            <div className="mt-4">
+              <CurrentBearingCard bearing={currentBearing} label={activeDraft?.version_label ?? null} />
+            </div>
 
             {/* Debate result — persisted, collapsible */}
             {debateResult && (
@@ -2640,6 +2632,16 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 </button>
               </div>
             </motion.div>
+
+            {/* ③ 봉인 종막 — the voyage's last interaction. A standalone,
+                screen-transition-grade closing question ("이 결정, …에 어떻게
+                됐는지 물어봐 드릴까요?"). Accept = 1 tap (auto draft + editable
+                drawer); reject = 1 tap, lossless (everything above stays). The
+                surface never says 내기/predicate/반증. Renders nothing when there
+                is nothing falsifiable to ask about (P3 침묵). */}
+            {contractProject && (
+              <SealMoment project={contractProject} predicates={contractPredicates} />
+            )}
           </div>}
 
           <AnimatePresence>
