@@ -440,6 +440,22 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   </div>
                 </div>
 
+                {/* W1.3: 1차 nav에서 내려온 진입들 — 삭제가 아니라 워크스페이스
+                    내부 진입으로 이동. 3차 위계(tertiary)로 조용히. */}
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-[var(--text-tertiary)]">
+                  <Link href="/agents" className="hover:text-[var(--accent)] transition-colors">
+                    {L('선원 명부', 'Crew roster')}
+                  </Link>
+                  <span aria-hidden>·</span>
+                  <Link href="/boss" className="hover:text-[var(--accent)] transition-colors">
+                    {L('팀장', 'Manager')}
+                  </Link>
+                  <span aria-hidden>·</span>
+                  <Link href="/guide" className="hover:text-[var(--accent)] transition-colors">
+                    {L('가이드', 'Guide')}
+                  </Link>
+                </div>
+
                 {error && error.startsWith('LOGIN_REQUIRED') && (
                   <div className="mt-3 p-4 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/20">
                     <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>

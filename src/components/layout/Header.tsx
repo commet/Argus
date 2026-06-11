@@ -15,12 +15,12 @@ export function Header() {
   const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
 
+  // W1.3 단일 진입: first-line nav is [워크스페이스·프로젝트·설정] only.
+  // /agents·/boss·/guide routes are NOT deleted — they're reachable from
+  // inside the workspace (crew-roster row), just no longer top-level doors.
   const navItems: Array<{ href: string; label: string; primary?: boolean; requiresAuth?: boolean }> = [
     { href: '/workspace', label: L('워크스페이스', 'Workspace'), primary: true },
     { href: '/project', label: L('프로젝트', 'Projects'), requiresAuth: true },
-    { href: '/agents', label: L('에이전트', 'Agents'), requiresAuth: true },
-    { href: '/boss', label: L('팀장', 'Manager') },
-    { href: '/guide', label: L('가이드', 'Guide') },
     { href: '/settings', label: L('설정', 'Settings') },
   ];
 

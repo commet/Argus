@@ -124,8 +124,10 @@ function LoginContent() {
         {/* Logo */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2.5 mb-3">
+            {/* Overture-era 'O' logo retired (W1.3) — voyage-vocabulary text
+                wordmark, matching the app header's badge. */}
             <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shadow-[var(--shadow-sm)]" style={{ background: 'var(--gradient-gold)' }}>
-              <span className="text-white font-black text-[15px]">O</span>
+              <span className="text-white font-black text-[15px]">A</span>
             </div>
             <span className="text-[22px] font-extrabold text-[var(--text-primary)] tracking-tight">Argus</span>
           </div>
