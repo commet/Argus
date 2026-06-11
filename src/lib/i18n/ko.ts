@@ -216,6 +216,8 @@ export const ko = {
   'nextStep.toRehearse.reason': '실행 설계가 완성되었습니다. 이제 선원 회의를 열어 검증하세요. 핵심 가정이 맞는지, 놓친 리스크가 없는지 검증합니다.',
   'nextStep.toRefine.label': '항로 수정으로',
   'nextStep.toRefine.reason': '이해관계자의 반응을 확인했습니다. 지적 사항을 제약조건으로 변환하여, 항로가 잡힐 때까지 반복해 다듬으세요.',
+  'nextStep.toSynthesize.label': '종합으로',
+  'nextStep.toSynthesize.reason': '이해관계자의 반응을 확인했습니다. 지적을 반영해 여러 관점을 하나의 결론으로 종합하세요.',
   'nextStep.toPerform.label': '출항 — 이타카로',
   'nextStep.toPerform.reason': '항로가 잡혔습니다. 사고의 궤적이 담긴 산출물을 생성하세요.',
   'nextStep.rehearseAgain.label': '리허설 다시',

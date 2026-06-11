@@ -15,7 +15,6 @@ export const PUBLIC_PATHS = [
   '/settings',
   '/privacy',
   '/terms',
-  '/voyage-preview',
 ] as const;
 
 export const PUBLIC_PREFIXES = ['/api/', '/_next/', '/favicon.ico'] as const;

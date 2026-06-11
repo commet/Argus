@@ -38,22 +38,22 @@ function getFlowSteps(locale: Locale): FlowStep[] {
   if (locale === 'ko') {
     return [
       { icon: Search, label: '분석', desc: '숨은 가정과 진짜 질문을 찾아냅니다.', tone: 'ai' },
-      { icon: MessageCircle, label: '대화', desc: '질문 2~3개에 답하면 맥락이 정교해지고 팀이 배정됩니다.', tone: 'you' },
-      { icon: Users, label: '팀 작업', desc: '배정된 에이전트들이 병렬로 분석·조사·작성을 진행합니다.', tone: 'ai' },
-      { icon: Layers, label: '종합', desc: '리드 에이전트와 항해장(Navigator)이 결과를 하나의 초안으로 통합합니다.', tone: 'ai' },
+      { icon: MessageCircle, label: '대화', desc: '질문 2~3개에 답하면 맥락이 정교해지고 선원이 배정됩니다.', tone: 'you' },
+      { icon: Users, label: '선원 작업', desc: '배정된 선원들이 병렬로 분석·조사·작성을 진행합니다.', tone: 'ai' },
+      { icon: Layers, label: '종합', desc: '리드 선원과 항해장이 결과를 하나의 초안으로 통합합니다.', tone: 'ai' },
       { icon: Eye, label: '검증', desc: '의사결정자(상사·고객 등) 관점에서 약점을 시뮬레이션합니다.', tone: 'ai' },
       { icon: Edit3, label: '수정', desc: '피드백을 반영해 초안을 다듬습니다. 직접 손봐도 되고 자동 반영도 가능합니다.', tone: 'you' },
-      { icon: Check, label: '완성', desc: '제출 가능한 문서 — 복사·다운로드·팀장 시뮬레이터로 바로 연결됩니다.', tone: 'done' },
+      { icon: Check, label: '도착', desc: '현재 침로 한 화면 — 결론과 근거, 남은 확인거리가 정리됩니다. 결정을 봉인하면 정한 날짜에 돌아와 물어요.', tone: 'done' },
     ];
   }
   return [
     { icon: Search, label: 'Analyze', desc: 'Surface hidden assumptions and the real question behind your problem.', tone: 'ai' },
-    { icon: MessageCircle, label: 'Converse', desc: 'Answer 2–3 questions — context sharpens and the team auto-assembles.', tone: 'you' },
-    { icon: Users, label: 'Team work', desc: 'The assigned agents analyze, research, and write in parallel.', tone: 'ai' },
-    { icon: Layers, label: 'Mix', desc: 'The lead agent and Navigator merge results into a single draft.', tone: 'ai' },
+    { icon: MessageCircle, label: 'Converse', desc: 'Answer 2–3 questions — context sharpens and your crew assembles.', tone: 'you' },
+    { icon: Users, label: 'Crew work', desc: 'Your crew analyzes, researches, and writes in parallel.', tone: 'ai' },
+    { icon: Layers, label: 'Mix', desc: 'The lead crew member and the Navigator merge results into a single draft.', tone: 'ai' },
     { icon: Eye, label: 'Review', desc: "Simulate how a decision-maker (boss, customer, etc.) would react and surface weak spots.", tone: 'ai' },
     { icon: Edit3, label: 'Refine', desc: 'Apply feedback — manually or automatically — to tighten the draft.', tone: 'you' },
-    { icon: Check, label: 'Done', desc: 'A ready-to-send document — copy, download, or jump into Boss Simulator.', tone: 'done' },
+    { icon: Check, label: 'Arrival', desc: 'A Current Bearing on one screen — conclusion, reasoning, and what is left to check. Seal the decision and Argus returns on your chosen date to ask.', tone: 'done' },
   ];
 }
 
@@ -64,16 +64,16 @@ export default function GuidePage() {
 
   const quickStartSteps = locale === 'ko'
     ? [
-        '고민을 그대로 입력 → 30초 안에 진짜 질문·숨은 가정·초안 골격',
-        '질문 2~3개에 답변 → 에이전트 팀 자동 배정',
-        '팀이 병렬 작업 → 결과 승인하거나 수정 요청',
-        '의사결정자 시뮬레이션으로 약점 점검 → 완성',
+        '결정이나 고민을 그대로 입력 → 진짜 질문과 숨은 가정이 드러납니다',
+        '질문 2~3개에 답변 → 선원(에이전트) 팀이 자동으로 꾸려집니다',
+        '선원들이 병렬로 작업 → 필요한 곳만 수정 요청',
+        '의사결정자 시뮬레이션으로 약점 점검 → 현재 침로 완성',
       ]
     : [
-        'Drop your problem → real question, hidden assumptions, and skeleton in 30 seconds',
-        'Answer 2–3 questions → the agent team auto-assembles',
-        'Team works in parallel → approve or request changes',
-        'Simulate decision-maker reactions → finalize',
+        'Write your decision as-is → the real question and hidden assumptions surface',
+        'Answer 2–3 questions → your crew of agents assembles automatically',
+        'The crew works in parallel → request changes only where needed',
+        'Simulate decision-maker reactions → arrive at your Current Bearing',
       ];
 
   const lv2Xp = AGENT_LEVELS.find(l => l.level === 2)?.xp ?? 100;
@@ -89,8 +89,8 @@ export default function GuidePage() {
         </h1>
         <p className="text-[14px] text-[var(--text-secondary)] mt-2 leading-relaxed max-w-2xl">
           {L(
-            '고민 하나 던지면, 에이전트 팀이 분석·조사·작성·검증까지 자동으로 진행하고 제출 가능한 초안을 만들어줍니다. 처음이라면 아래 빠른 시작만 봐도 충분해요.',
-            "Drop in a problem and the agent team analyzes, researches, drafts, and reviews — producing a document you can actually send. If you're new here, the Quick Start below is all you need.",
+            '결정이나 고민 하나 던지면, 선원들(에이전트 팀)이 분석·조사·작성·검증까지 진행해 현재 침로 — 결론과 근거, 남은 확인거리가 담긴 한 화면 — 를 만들어줍니다. 결정을 봉인하면 정한 날짜에 돌아와 "그래서, 어떻게 됐어요?"를 물어요. 처음이라면 아래 빠른 시작만 봐도 충분해요.',
+            "Drop in a decision and your crew of agents analyzes, researches, drafts, and reviews — arriving at a Current Bearing: one screen with the conclusion, the reasoning, and what's left to check. Seal the decision and Argus returns on your chosen date to ask how it went. If you're new here, the Quick Start below is all you need.",
           )}
         </p>
       </div>
@@ -217,12 +217,12 @@ export default function GuidePage() {
           <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--surface)] border border-[var(--border)]">
             <Bot size={18} className="text-[var(--text-secondary)]" />
           </div>
-          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{L('에이전트 팀', 'Agent Team')}</h2>
+          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{L('선원들 — 에이전트 팀', 'The Crew — Agent Team')}</h2>
         </div>
         <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-4">
           {L(
-            '17명의 전문 에이전트가 각자의 방법론으로 일합니다. 사용할수록 레벨업하고, 당신의 패턴을 학습해서 결과가 점점 달라집니다.',
-            '17 specialists, each with their own methodology. They level up and learn your patterns the more you use them — outputs shift over time.',
+            '17명의 전문 선원이 각자의 방법론으로 일합니다. 당신은 키를 잡고, 선원들은 배 아래에서 일해요. 함께 항해할수록 당신의 패턴을 학습해서 결과가 점점 달라집니다.',
+            '17 specialist crew members, each with their own methodology. You hold the helm; they work below deck. The more voyages you share, the better they learn your patterns — outputs shift over time.',
           )}
         </p>
 
@@ -250,7 +250,7 @@ export default function GuidePage() {
                 <span className="text-[var(--text-secondary)]">— {L(`체인 작업 ${CHAIN_UNLOCK_THRESHOLDS.master}회`, `${CHAIN_UNLOCK_THRESHOLDS.master} chain tasks`)}</span>
               </li>
               <li>
-                <strong>{L('항해장 (Navigator)', 'Navigator')}</strong>{' '}
+                <strong>{L('항해장', 'Navigator')}</strong>{' '}
                 <span className="text-[var(--text-secondary)]">— {L(
                   `전체 작업 ${NAVIGATOR_UNLOCK_THRESHOLD}회 또는 세션 ${NAVIGATOR_SESSION_THRESHOLD}회 완료`,
                   `${NAVIGATOR_UNLOCK_THRESHOLD} total tasks or ${NAVIGATOR_SESSION_THRESHOLD} sessions`,
@@ -349,15 +349,14 @@ export default function GuidePage() {
         <div className="px-5 pb-5 pt-1 space-y-3">
           <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
             {L(
-              '워크스페이스 URL에 ?step=… 을 붙이면 4탭 레거시 인터페이스로 진입합니다. 분석을 따로 돌려서 다른 도구에 붙여넣고 싶을 때 유용합니다.',
-              'Append ?step=… to the workspace URL to enter the legacy 4-tab interface. Useful when you want to run a single stage and paste the result elsewhere.',
+              '워크스페이스 URL에 ?step=… 을 붙이면 단계별 인터페이스로 진입합니다. 한 단계만 따로 돌려서 결과를 다른 도구에 붙여넣고 싶을 때 유용합니다.',
+              'Append ?step=… to the workspace URL to run a single stage on its own. Useful when you want to paste the result elsewhere.',
             )}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <LegacyChip href="/workspace?step=reframe" label={L('문제 재정의', 'Reframe')} />
             <LegacyChip href="/workspace?step=recast" label={L('실행 설계', 'Recast')} />
             <LegacyChip href="/workspace?step=rehearse" label={L('사전 검증', 'Rehearse')} />
-            <LegacyChip href="/workspace?step=refine" label={L('수정 반영', 'Refine')} />
             <LegacyChip href="/workspace?step=synthesize" label={L('종합', 'Synthesize')} />
           </div>
         </div>

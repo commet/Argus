@@ -16,7 +16,7 @@ export default function TermsPage() {
       </Link>
 
       <h1 className="text-[24px] font-bold text-[var(--text-primary)] mb-2">{L('서비스 이용약관', 'Terms of Service')}</h1>
-      <p className="text-[13px] text-[var(--text-secondary)] mb-8">{L('최종 수정일: 2026년 3월 23일', 'Last updated: March 23, 2026')}</p>
+      <p className="text-[13px] text-[var(--text-secondary)] mb-8">{L('최종 수정일: 2026년 6월 11일', 'Last updated: June 11, 2026')}</p>
 
       <div className="prose prose-sm max-w-none space-y-6 text-[14px] text-[var(--text-primary)] leading-relaxed">
         <section>
@@ -30,8 +30,8 @@ export default function TermsPage() {
         <section>
           <h2 className="text-[16px] font-bold mb-2">{L('제2조 (서비스의 내용)', 'Article 2 (Service Description)')}</h2>
           <p>{L(
-            '서비스는 구조화된 사고 도구로, 과제 분석, 실행 설계, 이해관계자 시뮬레이션, 반복 개선 기능을 제공합니다. 서비스의 구체적인 기능과 범위는 회사의 판단에 따라 변경될 수 있습니다.',
-            'The Service is a structured-thinking tool offering task analysis, execution design, stakeholder simulation, and iterative improvement. Specific features and scope may change at the Company\'s discretion.',
+            '서비스는 의사결정 지원 도구로, 질문 명확화, AI 에이전트 기반 분석·검토, 이해관계자 시뮬레이션, 결정 기록 및 사후 확인 기능을 제공합니다. 서비스의 구체적인 기능과 범위는 회사의 판단에 따라 변경될 수 있습니다.',
+            'The Service is a decision-support tool offering question clarification, AI-agent analysis and review, stakeholder simulation, and decision records with later follow-up. Specific features and scope may change at the Company\'s discretion.',
           )}</p>
         </section>
 

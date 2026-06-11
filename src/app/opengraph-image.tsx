@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'Argus — 내 전문 분야가 아닌 걸 해야 할 때';
+export const alt = 'Argus — 그래서, 어떻게 됐어요?';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -84,7 +84,7 @@ export default async function Image() {
               letterSpacing: '-0.02em',
             }}
           >
-            내 전문 분야가 아닌 걸
+            &ldquo;그래서,
           </div>
           <div
             style={{
@@ -98,7 +98,7 @@ export default async function Image() {
               marginTop: '-16px',
             }}
           >
-            해야 할 때.
+            어떻게 됐어요?&rdquo;
           </div>
 
           {/* Subtitle */}
@@ -110,7 +110,7 @@ export default async function Image() {
               marginTop: '8px',
             }}
           >
-            질문 하나 던지면, 30초 안에 뼈대가 나옵니다.
+            중요한 결정을 항해처럼 — 그리고 정한 날짜에 돌아와 묻습니다.
           </div>
         </div>
 

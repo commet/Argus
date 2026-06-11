@@ -215,7 +215,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
                   <PenSquare size={14} style={{ color: agent.color, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                      {L('기획안 리뷰받기', 'Get plan reviewed')}
+                      {L('워크스페이스에서 리뷰받기', 'Get reviewed in workspace')}
                     </p>
                     <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
                       {L('이 팀장이 워크스페이스에서 피드백을 줍니다', 'This boss gives feedback in your workspace')}

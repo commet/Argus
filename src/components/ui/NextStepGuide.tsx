@@ -47,11 +47,13 @@ export function NextStepGuide({
   }
 
   if (currentTool === 'rehearse') {
+    // Refine no longer exists as a standalone step — feedback convergence
+    // happens inside Rehearse, so the next stop is Synthesize.
     options.push({
-      href: '/tools/refine',
+      href: '/tools/synthesize',
       icon: <RefreshCw size={16} />,
-      label: t('nextStep.toRefine.label'),
-      reason: t('nextStep.toRefine.reason'),
+      label: t('nextStep.toSynthesize.label'),
+      reason: t('nextStep.toSynthesize.reason'),
       primary: true,
     });
   }
