@@ -446,3 +446,34 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
   }
   return s;
 }
+
+export interface CrossProjectRecord {
+  /** Fully-settled contracts — loops actually closed. */
+  loops: number;
+  betsHeld: number;
+  risksAvoided: number;
+}
+
+/**
+ * The user's accumulating record across ALL projects — the first sliver of the
+ * 자차표. Counts of what actually happened, never a score (P1). Single source:
+ * SettlementModal's closing line and /project's quiet record strip both read
+ * this, so the numbers can never drift apart.
+ * Accepts anything with an optional decision_contract (Project is structurally
+ * assignable without importing the store type here).
+ */
+export function summarizeRecord(
+  projects: Array<{ decision_contract?: DecisionContract }>,
+  now: number,
+): CrossProjectRecord {
+  const rec: CrossProjectRecord = { loops: 0, betsHeld: 0, risksAvoided: 0 };
+  for (const p of projects) {
+    const c = p?.decision_contract;
+    if (!c || !contractStatus(c, now).allGraded) continue;
+    rec.loops++;
+    const g = summarizeGrades(c);
+    rec.betsHeld += g.betsHeld;
+    rec.risksAvoided += g.risksAvoided;
+  }
+  return rec;
+}

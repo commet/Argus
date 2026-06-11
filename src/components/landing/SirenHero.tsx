@@ -73,7 +73,7 @@ export function SirenHero() {
             animationDelay: '80ms',
           }}
         >
-          {L('그걸 물어주는 유일한 눈.', 'The one eye that comes back to ask.')}
+          {L('결정을 분석하고, 정한 날짜에 결과를 물으러 돌아오는 AI예요.', 'An AI that analyzes your decision — and comes back on the date you set to ask how it went.')}
         </p>
 
         {/* 30초 피치 v2, 첫 두 문장 — 원전 그대로. */}
@@ -152,7 +152,7 @@ export function SirenHero() {
                 className="shrink-0 px-6 py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed min-h-[44px] transition-shadow hover:shadow-md"
                 style={{ background: 'var(--gradient-gold)' }}
               >
-                {L('출항', 'Set sail')}
+                {L('어디서 갈리는지 보기', 'See where it forks')}
               </button>
             </div>
           </div>
@@ -163,8 +163,19 @@ export function SirenHero() {
             style={{ color: 'var(--bp-ink-soft)', fontSize: 14, lineHeight: 1.6 }}
           >
             {L(
-              '계획서를 실행자 여럿에게 그대로 줘 보고 갈리는 자리를 보여드려요 — 그리고 정한 날짜에 먼저 돌아와 물어요.',
-              'Your plan goes to several executors as-is; we show you where they split — then come back on your chosen date and ask.',
+              'AI 실행자 여럿에게 따로따로 읽혀 보고 갈리는 자리를 보여드려요 — 그리고 정한 날짜에 먼저 돌아와 물어요.',
+              'Several AI executors read it separately; we show you where they split — then come back on your chosen date and ask.',
+            )}
+          </p>
+
+          {/* Quiet privacy reassurance for the suspicious first-timer. */}
+          <p
+            className={`mt-1.5 ${locale === 'ko' ? 'break-keep' : ''}`}
+            style={{ color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.6, opacity: 0.85 }}
+          >
+            {L(
+              '입력한 내용은 분석에만 쓰여요 — 사람에게 가지 않아요.',
+              'What you type is used only for analysis — it never goes to a person.',
             )}
           </p>
 

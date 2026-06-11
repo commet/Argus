@@ -103,9 +103,10 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                   <motion.button onClick={onSkip} disabled={busy} whileTap={{ scale: 0.98 }}
                     className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                     style={{ background: 'var(--gradient-gold)' }}>
-                    {/* Honest preview of what's next: one last shake of the plan,
-                        not an instant finish (expectation break drove drop-offs). */}
-                    {busy ? <Loader2 size={16} className="animate-spin" /> : L('마무리 전에 한 번 흔들어보기 →', 'One last shake, then wrap up →')}
+                    {/* Honest preview of what's next: the believability check,
+                        not an instant finish ("흔들어보기" meant nothing to a
+                        novice — say what actually happens). */}
+                    {busy ? <Loader2 size={16} className="animate-spin" /> : L('마무리 전에, 어디까지 믿어지는지 확인하기 →', 'Before wrapping up — see how far you believe it →')}
                   </motion.button>
                   <button onClick={onDM} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
                     style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>

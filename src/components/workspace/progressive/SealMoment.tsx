@@ -243,7 +243,7 @@ export function SealMoment({
                   className="mt-4 w-full py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-50 cursor-pointer"
                   style={{ background: 'var(--gradient-gold)' }}
                 >
-                  {L('이대로 다시 봉인', 'Re-seal as edited')}
+                  {L('이대로 다시 약속', 'Save the new promise')}
                 </button>
               </div>
             </motion.div>
@@ -258,7 +258,7 @@ export function SealMoment({
     return (
       <div className="mt-10 text-center">
         <p className="text-[12.5px] text-[var(--text-tertiary)]">
-          {L('마음 바뀌면 언제든 봉인할 수 있어요.', 'You can seal this anytime you change your mind.')}{' '}
+          {L('마음 바뀌면 언제든 약속을 걸 수 있어요.', 'You can set the reminder anytime you change your mind.')}{' '}
           <button onClick={() => setDismissed(false)} className="font-medium text-[var(--accent)] hover:underline cursor-pointer">
             {L('질문 다시 보기', 'Show the question again')}
           </button>
@@ -297,6 +297,11 @@ export function SealMoment({
             '그날 이 결정으로 한 번 돌아와, 실제로 어떻게 됐는지 직접 확인하는 거예요. 판단의 고리를 닫는 일이죠.',
             "That day, you'll come back to this one decision and check, for yourself, how it actually went — closing the loop on your own call.",
           )}
+        </p>
+        {/* Channel disclosure BEFORE consent — a suspicious user won't say yes
+            without knowing HOW the asking happens ("이메일? 스팸?"). */}
+        <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] max-w-md mx-auto">
+          {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요 — 메일이나 알림은 보내지 않아요.', "On that day, I'll ask first when you open the projects page — no emails, no notifications.")}
         </p>
 
         <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">

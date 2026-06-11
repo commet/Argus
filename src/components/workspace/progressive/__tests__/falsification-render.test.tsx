@@ -52,7 +52,10 @@ describe('Falsification', () => {
   it('renders the strength, frame, and the full claim ladder', () => {
     mount({ strength: 'Real strength here', claims, onResolve: vi.fn(), onRequestHighestLoad: vi.fn() });
     expect(container.textContent).toContain('Real strength here');
-    expect(container.textContent).toContain("can't quite believe anymore");
+    // New instruction declares the ladder is deliberately inflated and gives
+    // a plain (non-double-negative) click rule.
+    expect(container.textContent).toContain('deliberately inflated');
+    expect(container.textContent).toContain('no, not that far');
     expect(container.textContent).toContain('Plausible win');
     expect(container.textContent).toContain('Grandiose win');
   });
@@ -96,13 +99,27 @@ describe('Falsification', () => {
     expect(onResolve.mock.calls[0][0].surfaced_constraint).toBe('Win B');
   });
 
-  it('"start from this" fills the bet from the surfaced assumption', () => {
+  it('"use this sentence" fills the bet from the surfaced assumption', () => {
     const onResolve = vi.fn();
     mount({ strength: 's', claims, onResolve, onRequestHighestLoad: vi.fn() });
     click(buttonByText('Plausible win'));
-    click(buttonByText('Start from this'));
+    click(buttonByText('Use this sentence as-is'));
     click(buttonByText('Lock it in'));
     expect(onResolve.mock.calls[0][0].real_bet).toBe('Users will try it'); // c1's assumption
+  });
+
+  it('the writing-skip exit resolves with the surfaced belief as the bet', () => {
+    const onResolve = vi.fn();
+    mount({ strength: 's', claims, onResolve, onRequestHighestLoad: vi.fn() });
+    click(buttonByText('Bolder win'));
+    click(buttonByText('just give me the document'));
+    expect(onResolve).toHaveBeenCalledTimes(1);
+    expect(onResolve.mock.calls[0][0]).toMatchObject({
+      flinched_id: 'c2',
+      surfaced_constraint: 'Users will refer friends',
+      real_bet: 'Users will refer friends',
+      no_flinch_fallback: false,
+    });
   });
 
   it('no-flinch → asks the engine for the highest-load pick and marks the fallback', async () => {

@@ -22,7 +22,9 @@ import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
-import { contractStatus } from '@/lib/decision-contract';
+import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
+import { deriveCurrentBearing } from '@/lib/current-bearing';
+import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
 
 const STEP_LABELS_KO = ['재정의', '설계', '검증', '종합'] as const;
 const STEP_LABELS_EN = ['Reframe', 'Recast', 'Rehearse', 'Synth'] as const;
@@ -340,6 +342,12 @@ export default function ProjectPage() {
   const currentVoyageDone = currentVoyageSession
     ? currentVoyageSession.phase === 'complete'
     : !!currentProject?.decision_contract;
+  // The decision's CONTENT — until now this page showed only process chrome
+  // (progress %, steps, formats) and never WHAT was decided. The bearing is
+  // the one-screen answer; it replaces the bare "항해 완료" status card.
+  const currentBearing = currentVoyageSession ? deriveCurrentBearing(currentVoyageSession) : null;
+  // 자차표 — the user's accumulating record across all projects. Quiet, factual.
+  const crossRecord = summarizeRecord(projects, Date.now());
 
   return (
     <div className="space-y-6">
@@ -397,6 +405,21 @@ export default function ProjectPage() {
             </Card>
           ) : (
             <>
+              {/* 자차표 — the user's accumulating record of closed loops.
+                  Until now this only flashed once inside the settlement modal
+                  and vanished; this is where it LIVES. Facts, never a score. */}
+              {crossRecord.loops > 0 && (
+                <p className="px-1 text-[12px] text-[var(--text-tertiary)]">
+                  {locale === 'ko'
+                    ? `지금까지 닫은 고리 ${crossRecord.loops}개` +
+                      (crossRecord.betsHeld > 0 ? ` · 적중한 가설 ${crossRecord.betsHeld}개` : '') +
+                      (crossRecord.risksAvoided > 0 ? ` · 비켜 간 위험 ${crossRecord.risksAvoided}개` : '')
+                    : `${crossRecord.loops} loop${crossRecord.loops === 1 ? '' : 's'} closed so far` +
+                      (crossRecord.betsHeld > 0 ? ` · ${crossRecord.betsHeld} bet${crossRecord.betsHeld === 1 ? '' : 's'} held` : '') +
+                      (crossRecord.risksAvoided > 0 ? ` · ${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '')}
+                </p>
+              )}
+
               {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환. */}
               {dueProjects.length > 0 && (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
@@ -685,41 +708,69 @@ export default function ProjectPage() {
             </div>
           </div>
 
-          {/* Project header */}
+          {/* Project header — the legacy 4-step progress bar is a FALSE
+              coordinate for voyage projects (they write nothing to those
+              stores), so it only renders for legacy-tool projects. */}
           <Card>
-            <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{currentProject.name}</h2>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-[12px] text-[var(--text-secondary)]">{L('진행률', 'Progress')}</span>
-              <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[var(--accent)] rounded-full transition-all"
-                  style={{ width: `${(completedSteps / steps.length) * 100}%` }}
-                />
-              </div>
-              <span className="text-[12px] font-semibold text-[var(--accent)]">{completedSteps}/{steps.length}</span>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{currentProject.name}</h2>
+              {currentHasVoyage && (
+                <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
+                  {currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
+                </span>
+              )}
             </div>
+            {!currentHasVoyage && (
+              <div className="flex items-center gap-3 mt-2">
+                <span className="text-[12px] text-[var(--text-secondary)]">{L('진행률', 'Progress')}</span>
+                <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[var(--accent)] rounded-full transition-all"
+                    style={{ width: `${(completedSteps / steps.length) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[12px] font-semibold text-[var(--accent)]">{completedSteps}/{steps.length}</span>
+              </div>
+            )}
           </Card>
 
-          {/* Progressive voyage — status + the way back to the workspace. */}
+          {/* The decision itself — the Current Bearing IS the content of a
+              voyage project (the long document stays in the workspace).
+              Falls back to the plain status row when no bearing derives
+              (voyage still under way / very old session). */}
           {currentHasVoyage && (
-            <Card className="!border-[var(--accent)]/30">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[13px] font-bold text-[var(--text-primary)]">
-                    {currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
-                  </p>
-                  <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
-                    {L('이 프로젝트는 워크스페이스 항해로 진행됐어요.', 'This project ran as a workspace voyage.')}
-                  </p>
+            currentBearing ? (
+              <div>
+                <CurrentBearingCard bearing={currentBearing} />
+                <div className="flex justify-end -mt-2">
+                  <Link
+                    href="/workspace"
+                    className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:underline"
+                  >
+                    {L('워크스페이스에서 열기', 'Open in workspace')} <ArrowRight size={12} />
+                  </Link>
                 </div>
-                <Link
-                  href="/workspace"
-                  className="shrink-0 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--accent)] hover:underline"
-                >
-                  {L('워크스페이스에서 열기', 'Open in workspace')} <ArrowRight size={12} />
-                </Link>
               </div>
-            </Card>
+            ) : (
+              <Card className="!border-[var(--accent)]/30">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[13px] font-bold text-[var(--text-primary)]">
+                      {currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
+                    </p>
+                    <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+                      {L('이 프로젝트는 워크스페이스 항해로 진행됐어요.', 'This project ran as a workspace voyage.')}
+                    </p>
+                  </div>
+                  <Link
+                    href="/workspace"
+                    className="shrink-0 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--accent)] hover:underline"
+                  >
+                    {L('워크스페이스에서 열기', 'Open in workspace')} <ArrowRight size={12} />
+                  </Link>
+                </div>
+              </Card>
+            )
           )}
 
           {/* Decision Contract — falsifiable closed loop (§0 KICK).
@@ -739,8 +790,10 @@ export default function ProjectPage() {
             />
           )}
 
-          {/* Steps journey */}
-          <div className="space-y-0">
+          {/* Steps journey — legacy 4-tool projects only. For a voyage project
+              these four "아직 시작 전" cards were dead chrome contradicting the
+              완료 state right above them (compression audit B-6). */}
+          {!currentHasVoyage && <div className="space-y-0">
             {steps.map((step, i) => (
               <div key={step.tool}>
                 {/* Connector */}
@@ -789,7 +842,7 @@ export default function ProjectPage() {
                 </Link>
               </div>
             ))}
-          </div>
+          </div>}
 
           {/* Metacognition: 나의 판단 패턴 (Tier 1-E) */}
           {judgments.length > 0 && (() => {
@@ -836,31 +889,13 @@ export default function ProjectPage() {
             );
           })()}
 
-          {/* Similar project hint (Tier 1-E) */}
-          {currentProject && (() => {
-            const otherProjects = projects.filter(p => p.id !== currentProject.id && p.refs.length >= 2);
-            if (otherProjects.length === 0) return null;
-            const latestD = projectReframes[projectReframes.length - 1];
-            if (!latestD?.analysis?.surface_task) return null;
-            return (
-              <div className="text-[12px] text-[var(--text-secondary)]">
-                {otherProjects.length > 0 && (
-                  <p>
-                    {L(
-                      `이전 프로젝트 ${otherProjects.length}건과 비교할 수 있습니다.`,
-                      `You can compare against ${otherProjects.length} previous project${otherProjects.length === 1 ? '' : 's'}.`
-                    )}
-                  </p>
-                )}
-              </div>
-            );
-          })()}
+          {/* (The "이전 프로젝트 N건과 비교할 수 있습니다" hint was a dead
+              sentence — no action attached — and was removed.) */}
 
-          {/* Execution readiness */}
-          <ExecutionReadiness projectId={currentProject.id} />
-
-          {/* Output formats */}
-          <OutputSelector project={currentProject} />
+          {/* Execution readiness + output formats read the LEGACY tool stores;
+              a voyage project would get empty/hollow documents from them. */}
+          {!currentHasVoyage && <ExecutionReadiness projectId={currentProject.id} />}
+          {!currentHasVoyage && <OutputSelector project={currentProject} />}
 
           {/* Next step guide — suppressed for voyage projects (the legacy 4-tool
               CTA contradicts a finished/sealed voyage). */}

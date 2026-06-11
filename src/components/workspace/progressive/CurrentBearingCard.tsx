@@ -11,9 +11,11 @@
  * Pure presentation: it renders a CurrentBearing derived by lib/current-bearing.
  * Renders nothing when there's no bearing (no draft to orient from). */
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Compass, AlertTriangle, GitFork, ArrowRight, Anchor } from 'lucide-react';
+import { Compass, AlertTriangle, GitFork, ArrowRight, Anchor, Copy, Check } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { bearingToMarkdown } from '@/lib/current-bearing';
 import type { CurrentBearing, CourseStatus } from '@/lib/current-bearing';
 import { EASE } from './shared/constants';
 
@@ -38,7 +40,18 @@ export function CurrentBearingCard({
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [copied, setCopied] = useState(false);
   if (!bearing) return null;
+
+  // The bearing is the thing the user KEEPS — it needs its own copy, not just
+  // the long document's ShareBar.
+  const copyBearing = async () => {
+    try {
+      await navigator.clipboard.writeText(bearingToMarkdown(bearing, locale === 'ko' ? 'ko' : 'en'));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch { /* clipboard unavailable (http/permissions) — quiet no-op */ }
+  };
 
   const { current_course, why_this_course, fog_or_reef, road_not_taken, next_helm, contract_seed } = bearing;
   // Defensive: a bearing may come from merged/older session data — omit a row
@@ -69,15 +82,30 @@ export function CurrentBearingCard({
             </span>
             {label && <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums">{label}</span>}
           </div>
-          <span
-            className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-            style={{ color: tone, background: `color-mix(in srgb, ${tone} 12%, transparent)` }}
-          >
-            {L(status.ko, status.en)}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={copyBearing}
+              aria-label={L('현재 항로 복사', 'Copy current bearing')}
+              className="inline-flex items-center gap-1 text-[10.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[28px] px-1.5 -mr-1"
+            >
+              {copied ? <Check size={11} className="text-[var(--success)]" /> : <Copy size={11} />}
+              {copied ? L('복사됨', 'Copied') : L('복사', 'Copy')}
+            </button>
+            <span
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              style={{ color: tone, background: `color-mix(in srgb, ${tone} 12%, transparent)` }}
+            >
+              {L(status.ko, status.en)}
+            </span>
+          </div>
         </div>
         <p className="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] leading-snug">
           {current_course.summary}
+        </p>
+        {/* First-use definition — "현재 항로" must introduce itself (novice
+            audit: the product's one deliverable was an undefined term). */}
+        <p className="text-[10.5px] text-[var(--text-tertiary)] mt-1.5">
+          {L('이 결정이 지금 향하는 방향을 한 장으로 요약한 거예요 — 나중에 다시 열어도 여기부터 이어가요.', 'A one-page summary of where this decision is headed — pick it back up from here anytime.')}
         </p>
       </div>
 
@@ -98,7 +126,7 @@ export function CurrentBearingCard({
 
         {/* Fog / reef — the named uncertainty */}
         {fog_or_reef?.issue && (
-          <Section title={L('안개·암초', 'Fog & reef')} icon={<AlertTriangle size={12} style={{ color: 'var(--gold)' }} />}>
+          <Section title={L('안개·암초 — 아직 확실치 않은 것', 'Fog & reef — what\'s still unsure')} icon={<AlertTriangle size={12} style={{ color: 'var(--gold)' }} />}>
             <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{fog_or_reef.issue}</p>
             {fog_or_reef.required_check && (
               <p className="text-[12px] text-[var(--text-tertiary)] mt-1 leading-relaxed">
@@ -126,7 +154,7 @@ export function CurrentBearingCard({
           <div className="flex items-start gap-2 pt-1">
             <ArrowRight size={14} className="text-[var(--accent)] mt-0.5 shrink-0" />
             <p className="text-[13px] font-medium text-[var(--text-primary)] leading-relaxed">
-              <span className="text-[var(--text-tertiary)] font-normal">{L('다음 키: ', 'Next helm: ')}</span>
+              <span className="text-[var(--text-tertiary)] font-normal">{L('다음 할 일: ', 'Next step: ')}</span>
               {next_helm}
             </p>
           </div>

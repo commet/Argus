@@ -20,6 +20,7 @@ export function FinalCard({
   releasedContent,
   releasedLabel,
   sessionId,
+  defaultCollapsed = false,
 }: {
   content: string;
   mix?: MixResult | null;
@@ -33,6 +34,11 @@ export function FinalCard({
    *  per-agent XP/level deltas accrued during this session from the
    *  activities log and renders a small celebration footer. */
   sessionId?: string | null;
+  /** Collapse the document BODY behind one tap. On the complete screen the
+   *  bearing card right below opens with the SAME executive summary — the
+   *  full text in both places was the app's single worst duplicate. Copy and
+   *  share work without expanding. */
+  defaultCollapsed?: boolean;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
@@ -65,6 +71,7 @@ export function FinalCard({
 
   // When we have the structured mix, render it with attribution; fall back to flat markdown otherwise.
   const hasStructured = !!mix && mix.sections.length > 0;
+  const [bodyOpen, setBodyOpen] = useState(!defaultCollapsed);
 
   return (
     <motion.div initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.9, ease: EASE }}>
@@ -77,7 +84,7 @@ export function FinalCard({
                 <Check size={13} className="text-white" />
               </div>
               <div>
-                <span className="text-[14px] font-semibold text-[var(--text-primary)]">{L('완성된 기획안', 'Final Document')}</span>
+                <span className="text-[14px] font-semibold text-[var(--text-primary)]">{L('완성된 문서', 'Final Document')}</span>
                 <span className="text-[11px] text-[var(--text-tertiary)] ml-2">{L('바로 보낼 수 있어요', 'Ready to send')}</span>
               </div>
             </div>
@@ -117,7 +124,21 @@ export function FinalCard({
               </label>
             </div>
           )}
-          {hasStructured ? (
+          {!bodyOpen ? (
+            // Collapsed: title + one tap to expand. Copy/share above work
+            // without expanding — the bearing card below is the orientation.
+            <div className="px-5 md:px-8 py-5">
+              {hasStructured && (
+                <h2 className="text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
+              )}
+              <button
+                onClick={() => setBodyOpen(true)}
+                className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+              >
+                {L('전체 문서 펼치기', 'Show the full document')} <ChevronDown size={13} />
+              </button>
+            </div>
+          ) : hasStructured ? (
             <div className="p-5 md:p-8 space-y-5">
               <h2 className="text-[22px] md:text-[26px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
               <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-5 text-[14px] text-[var(--text-secondary)] italic leading-relaxed">
@@ -139,9 +160,27 @@ export function FinalCard({
                   ))}
                 </div>
               )}
+              {defaultCollapsed && (
+                <button
+                  onClick={() => setBodyOpen(false)}
+                  className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                >
+                  {L('문서 접기 ▴', 'Collapse the document ▴')}
+                </button>
+              )}
             </div>
           ) : (
-            <div className="p-5 md:p-8 space-y-1">{renderMd(content)}</div>
+            <div className="p-5 md:p-8 space-y-1">
+              {renderMd(content)}
+              {defaultCollapsed && (
+                <button
+                  onClick={() => setBodyOpen(false)}
+                  className="mt-3 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                >
+                  {L('문서 접기 ▴', 'Collapse the document ▴')}
+                </button>
+              )}
+            </div>
           )}
           {/* Agent-growth footer — the team's XP/level changes from this run.
               Deliberately understated: the deliverable is the triumphant

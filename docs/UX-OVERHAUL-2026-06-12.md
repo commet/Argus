@@ -1,5 +1,7 @@
 # UX 대수선 — 감사·수정·잔여 백로그 (2026-06-12 야간 작업)
 
+> **2차 라운드 (같은 날 후속)**: 렌즈를 바꿔 4트랙 재감사 — ① 껍데기(보이지만 안 도는 것) ② 성능·호출 경제 ③ 의미 완성·압축 ④ 초보자 낯섦. 결과는 §6에 추가.
+
 > v4.1 재구축 직후의 workspace를 "시중 제품 수준"으로 끌어올리기 위한 전수 감사와 일괄 수정.
 > 감사 = 병렬 4트랙(첫 방문 여정 / 항해 중 / 완료·정산 루프 / 디자인 시스템·접근성·코드 버그) + 초기 v4.1 수용 기준 리뷰.
 > 총 발견 ~125건 → 이번 작업에서 P0 전건 + P1 대부분 수정. 검증: vitest 1161/1161 통과, `next build` 통과.
@@ -107,6 +109,49 @@
 - `npm run build` — 통과 (낡은 `.next` 아티팩트 제거 후; `voyage-preview` 잔재였음)
 - grep 검증: 표면 `내기|반증|predicate|채점|베팅` 0건 (코드 주석 제외) · `파트보|총보|셋리스트` 0건
 - 야간 diff 전체에 대한 적대적 코드 리뷰 1회 수행 (발견분 반영)
+
+## 6. 2차 라운드 — 껍데기·효율·의미·낯섦 (2026-06-12 후속)
+
+### 고친 것
+
+**의미 완성 (베어링이 사는 집)**
+- Current Bearing이 세션 밖에서도 산다: `/project` 상세에서 결정의 내용을 보여주는 유일한 카드로(레거시 4단계 여정·진행률·산출물 포맷은 voyage 프로젝트에서 숨김), 카드 자체 복사(`bearingToMarkdown`), 첫 사용 정의 한 줄.
+- 자차표가 사는 집: `summarizeRecord()` 단일 진실원 — /project 목록 상단 "닫은 고리 N · 적중 가설 M · 비켜 간 위험 K" + SettlementModal 재사용.
+- 수렴의 증거 석방: UpdateSummaryChip이 기록 게이트 밖으로(기본 노출).
+- 측정 어휘의 기본 경로 진출: Falsification 해소부에 "이 전제가 참인지 거짓인지에 따라, 성패가 갈려요".
+
+**압축 (한 화면 테제)**
+- 완료 화면: FinalCard 본문 기본 접힘(최악의 중복 — exec summary가 한 뷰포트에 두 번 — 해소; 복사·공유는 펼치지 않아도 동작), 팀 내 반론 카드 삭제(베어링의 가지 않은 길/안개와 동문), 완성 스테퍼·세리머니 보조문 제거, "초안부터 다시"는 3차 텍스트 링크로 강등.
+- conversing: "팀은 이미 준비됐어요" 배너 삭제(메타+스킵칩과 3중복), CrewAtWork 헤드라인에 보고 토글 흡수(독립 줄 삭제).
+
+**껍데기 배선/정직화**
+- 설정 '실험실' 신설 — new_arc_enabled(시험 항해)·classic_session·all_output_formats에 처음으로 UI가 생김.
+- 죽어 있던 "나의 사용 현황" 한 줄 버그(analyzeDQTrend 무인자 호출) 수정; Learning Health 카드는 데이터 있을 때만; expire-tokens cron 등록; Slack 미설정 503 JSON 막다른 길 → 설정 배너; 이메일 "답장하면 반영" 문구 env 가드; /api/search 키부재 시 disabled 명시; 팀 초대 토스트 정직화+admin 레이스 수정; .env.example 신설.
+- fork 되감기 테이프에 falsification·debate_result 추가 — 옛 가지의 real_bet이 새 가지 계약의 최상위 술어로 새던 측정 오염 봉쇄.
+- 보스 핸드오프 `?reviewer=`가 복원된 프로젝트에 납치되던 것 수정; 전환음이 progressive 흐름에서 실제로 울림; probe 질문 ≤2 캡의 리로드 우회 봉쇄(영속 질문 카운트).
+
+**성능**
+- `callLLMStream` onToken 80ms 스로틀(+완료 직전 동기 플러시) — 전 스트림의 토큰당 전체 트리 리렌더 해소.
+- runMixCore: debate ∥ lead synthesis 병렬화(멀티스테이지 세션 mix 도달 ~5–8초 단축).
+- 사이드카 3종(항해장 리뷰·highest-load·연대기) fast 티어 — debate는 표면 품질 때문에 default 유지.
+- Supabase 업서트 leading→trailing 디바운스(3s), loadAndMerge 동시호출 디덥, 랜딩에서 스토어 그래프 부팅 차단(StoreInitializer 경로 게이트), 문제 pill layout prop 제거.
+
+**초보자 낯섦**
+- BLOCKS 해소: "실행자 여럿에게 그대로 줘 보고" → AI 명시+"사람에게 가지 않아요"(랜딩·TrialSail·CrewAtWork); Falsification 자필 관문에 진짜 스킵("이대로 두고 문서만 받을게요") + 지시문 평문화("일부러 부풀린 시나리오… '에이, 이건 아니다' 싶은 줄").
+- testing 중 MixPreview 잔존 → runOverreach 중복 호출 버그 수정.
+- 용어: '침로'→'항로' 전면 통일 + 첫 사용 정의(현재 항로·선원), "다음 키"→"다음 할 일", "흔들어보기"→"어디까지 믿어지는지 확인하기", 갈림 질문에 주어 복원("같은 글을 따로 읽은 AI들이"), '봉인' 어휘를 거절/서랍에서 '약속'으로, 봉인 ASK에 채널 선공개("프로젝트 페이지에 오시면 제가 먼저 물어요 — 메일·알림 없음").
+- 가이드 최상단 '자주 묻는 것' 5문답 신설, 해금/XP는 접힘으로 강등. 랜딩 h1 보조문 기능화, CTA "출항"→"어디서 갈리는지 보기".
+
+### 2차 잔여 백로그 (추가분)
+- **[P1] typed 질문 직렬 침묵 5–10초** — legacy next_question 선표시 + typed 병렬 교체, 또는 스키마 병합으로 1콜화 (엔진 프롬프트 변경이라 G-W1 이후 권장).
+- **[P1] 체크포인트 다이어트** — state_snapshot이 세션 전체 복사본(세션 JSON ~8배). 참조 공유 또는 diff 저장.
+- **[P2] overreach 스트리밍** — runOverreach가 onToken을 지원하나 StreamSnippet 파서와 미정합. 사다리용 partial 표시 설계 후 배선.
+- **[P2] progressive 흐름에 학습 신호 기록** — recordSignal이 레거시 4R에서만 호출됨(A3). 봉인/정산/질문스킵 이벤트부터.
+- **[P2] 세션 단위 localStorage 키 분리** + 어휘 삼중주(팀원/선원/에이전트) 전면 통일.
+- **[P3] daily-report 발신자(onboarding@resend.dev), eval-engine interview_signals 하드코딩, local_endpoint 잔재.**
+
+### 2차 검증
+- vitest **1163/1163** (Falsification 스킵 출구·새 카피 테스트 추가) · `next build` 통과 · **프로덕션 서버 기동 후 11개 라우트 전부 200, 로그 무에러**.
 
 ## 5. 현실 접촉 (사람이 해야 할 일 — 모델이 대신 못 함)
 

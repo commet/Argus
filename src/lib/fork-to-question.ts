@@ -117,10 +117,12 @@ export function forksToQuestions(forks: Fork[], opts: ForkToQuestionOptions = {}
       const lead = FIELD_LEAD[fork.field] ?? FIELD_LEAD.purpose_reading;
       return {
         id: forkQuestionId(fork),
-        // The measurement, anchored to the user's own phrase (P2) — no verdict (P1).
+        // The measurement, anchored to the user's own phrase (P2) — no verdict
+        // (P1). SUBJECT restored: "갈렸어요" without naming WHO read it lands
+        // as "the AI is confused" for users who never saw the theater.
         text: ko
-          ? `${lead.ko} — "${fork.cause_quote}"를 서로 다르게 읽었어요. 어느 쪽이 맞아요?`
-          : `${lead.en} — they read "${fork.cause_quote}" differently. Which is right?`,
+          ? `같은 글을 따로 읽은 AI들이 ${lead.ko} — "${fork.cause_quote}"를 서로 다르게 읽었어요. 어느 쪽이 맞아요?`
+          : `AIs reading the same text separately ${lead.en.toLowerCase().replace(/^they /, '')} — they read "${fork.cause_quote}" differently. Which is right?`,
         // Why this fork matters to THEM: their own implicit claim flips on it.
         subtext: ko
           ? `이 선택에 따라 "${fork.flipped_user_claim}"이 참도 거짓도 됩니다.`

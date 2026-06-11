@@ -28,6 +28,7 @@ import { exportProgressiveAsReframe, exportProgressiveAsRecast } from '@/lib/pro
 import { useAgentStore } from '@/stores/useAgentStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { useReframeStore } from '@/stores/useReframeStore';
+import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useAgentAttentionStore, useAttributionClickOutside } from '@/stores/useAgentAttentionStore';
@@ -45,7 +46,7 @@ import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
-import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, TrendingUp, TrendingDown, Minus, Scale } from 'lucide-react';
+import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { t } from '@/lib/i18n';
 import { personaName, personaRole } from './shared/persona-format';
@@ -1186,6 +1187,19 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   }, [session?.id, session?.workers?.filter(w => w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response')).length]);
 
   const phase = session?.phase ?? 'input';
+  // Transition tone — the settings toggle existed but nothing in the
+  // progressive flow ever played it (hollow-shell audit C10). One soft tone
+  // per phase transition, only when enabled.
+  const audioEnabled = useSettingsStore((s) => s.settings.audio_enabled);
+  const audioVolume = useSettingsStore((s) => s.settings.audio_volume);
+  const prevPhaseRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevPhaseRef.current !== null && prevPhaseRef.current !== phase && audioEnabled) {
+      resumeAudioContext();
+      playTransitionTone(audioVolume);
+    }
+    prevPhaseRef.current = phase;
+  }, [phase, audioEnabled, audioVolume]);
   const snapshots = session?.snapshots ?? [];
   const questions = session?.questions ?? [];
   const answers = session?.answers ?? [];
@@ -1696,6 +1710,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       }));
 
       // 항해장 메타 리뷰 + debate (해금 시만, 비차단)
+      // Debate is STARTED here but awaited later: it used to serially block
+      // the lead-synthesis kickoff (~5–8s) though the two are independent —
+      // both consume worker results, both feed mix (perf audit P1).
+      let debatePromise: Promise<DebateResult | null> = Promise.resolve(null);
       if (workerResults.length > 0) {
         const cmWorkers = session!.workers
           .filter(w => w.approved !== false && w.result)
@@ -1711,25 +1729,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           .then(r => { if (r && mountedRef.current) setCmReview(r); })
           .catch(() => {});
 
-        // Critical stakes: Cross-Agent Debate (mix 전에 실행하여 결과를 반영)
+        // Critical stakes: Cross-Agent Debate (mix 전에 결과를 반영)
         const stages = session?.stages;
         if (stages && stages.length > 1) {
           setSubstage(L('팀 내 반론 검토 중', 'Running team-internal debate'));
           const debateWorkers = cmWorkers.map(w => ({ ...w, framework: session!.workers.find(ww => ww.persona?.name === w.agentName)?.framework || null }));
-          try {
-            const debateRes = await runDebate(session!.problem_text, debateWorkers);
-            if (debateRes) {
-              store.setDebateResult(debateRes);
-              // debate 결과를 workerResults에 추가하여 mix에 반영
-              workerResults.push({
-                workerId: '',
-                name: undefined,
-                task: locale === 'ko' ? `[팀 내 반론] ${debateRes.targetAgent}의 분석에 대한 비판` : `[Team Dissent] Critique of ${debateRes.targetAgent}'s analysis`,
-                result: locale === 'ko' ? `${debateRes.challenge}\n\n약점: ${debateRes.weakestClaim}\n\n대안: ${debateRes.alternativeView}` : `${debateRes.challenge}\n\nWeakness: ${debateRes.weakestClaim}\n\nAlternative: ${debateRes.alternativeView}`,
-                taskGroupId: 'debate',
-              });
-            }
-          } catch { /* debate 실패해도 mix는 진행 */ }
+          debatePromise = runDebate(session!.problem_text, debateWorkers).catch(() => null);
         }
       }
 
@@ -1778,6 +1783,20 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             })
             .catch(() => null);
         }
+      }
+
+      // Debate ran in parallel with the lead kickoff; its result must land in
+      // workerResults BEFORE runMix (mix reads it as a dissent block).
+      const debateRes = await debatePromise;
+      if (debateRes) {
+        store.setDebateResult(debateRes);
+        workerResults.push({
+          workerId: '',
+          name: undefined,
+          task: locale === 'ko' ? `[팀 내 반론] ${debateRes.targetAgent}의 분석에 대한 비판` : `[Team Dissent] Critique of ${debateRes.targetAgent}'s analysis`,
+          result: locale === 'ko' ? `${debateRes.challenge}\n\n약점: ${debateRes.weakestClaim}\n\n대안: ${debateRes.alternativeView}` : `${debateRes.challenge}\n\nWeakness: ${debateRes.weakestClaim}\n\nAlternative: ${debateRes.alternativeView}`,
+          taskGroupId: 'debate',
+        });
       }
 
       // Lead synthesis 완료 대기 (짧은 타임아웃) — 끝났으면 Mix에 포함, 아니면 null로 진행
@@ -2205,7 +2224,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             />
           )}
         </AnimatePresence>
-        <ProgressLine phase={phase} crewDeployed={deployPhase === 'deployed' && workers.length > 0} />
+        {/* Hidden once complete — a finished stepper is dead chrome competing
+            with the one-screen bearing (compression audit B-1). */}
+        {phase !== 'complete' && (
+          <ProgressLine phase={phase} crewDeployed={deployPhase === 'deployed' && workers.length > 0} />
+        )}
 
         {/* PhaseStatusBar + StreamSnippet — sticky wrapper so progress info
             stays glued to the top while the user scrolls through the long
@@ -2281,8 +2304,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               a long problem statement truncates to one line, and the session
               offers no other way to re-read your own brief — tap to expand. */}
           <div className="flex flex-col gap-2 items-start">
+            {/* no `layout` prop: it re-measured on every streaming re-render */}
             <motion.button
-              layout
               type="button"
               onClick={() => setProblemExpanded((o) => !o)}
               title={problemExpanded ? undefined : L('눌러서 전체 보기', 'Tap to expand')}
@@ -2346,11 +2369,15 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* Update summary chip — surfaces "what changed" at the user's eye level
               (right above the next question). AnalysisCard lives further down,
               so without this, users miss the evolution they just triggered. */}
-          {showRecord && latest && snapshots.length > 1 && !final_ && phase === 'conversing' && !mix && (
+          {/* NOT behind the record gate: this one line IS the convergence
+              feedback ("your answer changed X"). With it hidden, answers
+              vanished into a black box until the end — the tightening promise
+              evaporated from the default screen (meaning audit A5). */}
+          {latest && snapshots.length > 1 && !final_ && phase === 'conversing' && !mix && (
             <UpdateSummaryChip
               snapshot={latest}
               prevSnapshot={snapshots[snapshots.length - 2]}
-              onSeeDetail={() => scrollToRef(analysisCardRef, 'top')}
+              onSeeDetail={() => { setRecordOpen(true); requestAnimationFrame(() => scrollToRef(analysisCardRef, 'top')); }}
               locale={locale}
             />
           )}
@@ -2383,24 +2410,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 </p>
               </motion.div>
             )}
-            {/* Once the team is assembled, further questions are OPTIONAL
-                refinements — make that explicit so the user doesn't feel
-                they must answer before deploying. The 출항 CTA sits above. */}
-            {curQ && !busy && phase === 'conversing' && deployPhase === 'ready' && workers.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: EASE }}
-                className="flex items-center gap-2 px-3.5 py-2.5 mb-3 rounded-xl bg-[var(--bg)] border border-dashed border-[var(--border)]"
-              >
-                <span className="text-[13px] shrink-0 leading-none">✓</span>
-                <p className="text-[12px] text-[var(--text-secondary)] leading-[1.5]">
-                  {locale === 'ko'
-                    ? <>팀은 이미 준비됐어요. <strong className="text-[var(--text-primary)]">위에서 바로 시작</strong>해도 되고, 아래 질문으로 더 다듬어도 돼요 <span className="text-[var(--text-tertiary)]">(선택)</span>.</>
-                    : <>Your team is ready. <strong className="text-[var(--text-primary)]">Start now from above</strong>, or refine further with the question below <span className="text-[var(--text-tertiary)]">(optional)</span>.</>}
-                </p>
-              </motion.div>
-            )}
+            {/* (The "팀은 이미 준비됐어요…(선택)" banner was removed: the
+                question meta ("질문 N/M · 선택") and the skip chip ("건너뛰고
+                팀 투입") already say optional — three voices for one fact.) */}
             {curQ && !busy && phase === 'conversing' && (() => {
               const teamReady = deployPhase === 'ready' && workers.length > 0;
               const isProbeQ = !!curQ.id?.startsWith('probe-fork-');
@@ -2431,7 +2443,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   meta={meta}
                   onSkip={focusEscape ?? (teamReady ? onDeployWorkers : undefined)}
                   skipLabel={focusEscape
-                    ? L('그만 묻고 여기서 마무리', 'Stop asking — wrap up here')
+                    ? L('그만 묻고 초안 만들기 — 지금까지 답한 것으로', 'Stop asking — draft from what I\'ve answered')
                     : (teamReady ? L('건너뛰고 팀 투입', 'Skip & start') : undefined)}
                 />
               );
@@ -2461,36 +2473,17 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
           {/* W1.6 ⑥ 팀 작업 극장 — live stream tails per crew member, not a
               progress bar. Below it, the one quiet line into the full stepper. */}
+          {/* The report-stepper toggle now lives in CrewAtWork's headline —
+              the standalone "선원 보고 N건 — 자동 반영됐어요" line below the
+              theater said the same thing twice (compression worst-dup #2). */}
           {focusMode && deployPhase === 'deployed' && workers.length > 0 && !final_ && !mix && (
-            <CrewAtWork workers={workers} onRetry={(id) => workerActions.handleRetry(id)} />
+            <CrewAtWork
+              workers={workers}
+              onRetry={(id) => workerActions.handleRetry(id)}
+              reportsOpen={reportsOpen}
+              onToggleReports={() => setReportsOpen((o) => !o)}
+            />
           )}
-
-          {/* W1.6 ③ focus: one quiet line replaces the grading gate. Reports
-              auto-apply; whoever wants the full stepper opens it here. */}
-          {focusMode && deployPhase === 'deployed' && workers.length > 0 && !final_ && (() => {
-            const doneN = workers.filter((w) => w.status === 'done').length;
-            const failedN = workers.filter((w) => w.status === 'error').length;
-            // Honest counts: a failed crew member's share does NOT go into the
-            // draft — saying "자동 반영됐어요" over a failure would be the
-            // failure≠silence lie in miniature.
-            const summary = failedN > 0
-              ? L(
-                  `선원 보고 ${doneN}건 반영 · ${failedN}건은 닿지 않았어요 — 열어서 다시 시도하거나 빼기 ▾`,
-                  `${doneN} crew reports applied · ${failedN} didn't land — open to retry or exclude ▾`,
-                )
-              : L(
-                  `선원 보고 ${doneN}건 — 자동 반영됐어요 · 자세히 보거나 빼려면 열어보기 ▾`,
-                  `${doneN} crew reports — auto-applied · open to inspect or exclude ▾`,
-                );
-            return (
-              <button
-                onClick={() => setReportsOpen((o) => !o)}
-                className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer px-1 min-h-[44px] md:min-h-0 text-left"
-              >
-                {reportsOpen ? L('선원 보고 접기 ▴', 'Hide crew reports ▴') : summary}
-              </button>
-            );
-          })()}
 
           {/* Inline worker reports — ONE-AT-A-TIME stepper. Reviewing 3 long
               drafts in a single scroll was a huge burden; instead the user
@@ -2778,7 +2771,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             {/* W1.6 재구성 ④: focus routes the primary CTA through the flinch
                 ladder (onTest) — the G0-best lever is the road, not a branch.
                 Stakeholder review demotes to opt-in. Classic unchanged. */}
-            {mix && !dmFb && !final_ && phase !== 'mixing' && (
+            {/* phase !== 'testing': once the flinch ladder is up, leaving this
+                card mounted kept its live gold CTA above the ladder — pressing
+                it again re-ran runOverreach (double call) and the user was
+                scrolled into a stale draft (novice audit, real bug). */}
+            {mix && !dmFb && !final_ && phase !== 'mixing' && phase !== 'testing' && (
               <MixPreview
                 mix={mix} dm={dm} onDM={onDM}
                 onSkip={focusMode ? onTest : onSkip}
@@ -2906,9 +2903,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   ? locale === 'ko' ? `피드백 ${dmFb.concerns.filter((c: DMConcern) => c.applied).length}건이 반영된 최종 문서예요` : `Final document with ${dmFb.concerns.filter((c: DMConcern) => c.applied).length} feedback item(s) applied`
                   : L('최종 문서가 완성됐어요', 'Your document is complete')}
               </p>
-              <p className="text-[13px] text-[var(--text-tertiary)]">
-                {L('아래에서 복사하거나, 새 프로젝트를 시작할 수 있어요', 'Copy below or start a new project')}
-              </p>
             </motion.div>
             {/* ① 산출물 ("가져가실 것") — the document is what the user takes
                 with them; it leads the complete scene (W1.1 봉인 종막 order). */}
@@ -2916,6 +2910,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               content={final_}
               mix={finalMix}
               sessionId={session?.id ?? null}
+              defaultCollapsed
               releasedContent={(() => {
                 const rid = session?.released_draft_id;
                 if (!rid) return null;
@@ -2938,27 +2933,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <CurrentBearingCard bearing={currentBearing} label={activeDraft?.version_label ?? null} />
             </div>
 
-            {/* Debate result — persisted, collapsible */}
-            {debateResult && (
-              <motion.details initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-                className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] group">
-                <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer text-[12px] font-semibold text-[var(--text-secondary)] select-none">
-                  <Scale size={13} className="text-[var(--text-secondary)]" />
-                  {L('팀 내 반론', 'Team Dissent')}
-                  {/* Localized severity (raw English enum used to leak here) + dark-safe tints */}
-                  <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                    debateResult.severity === 'critical' ? 'bg-red-100 text-red-600 dark:bg-red-900/25 dark:text-red-300'
-                      : debateResult.severity === 'important' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/25 dark:text-amber-300'
-                      : 'bg-gray-100 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400'
-                  }`}>{debateResult.severity === 'critical' ? L('필수', 'Critical') : debateResult.severity === 'important' ? L('권장', 'Important') : L('참고', 'Minor')}</span>
-                </summary>
-                <div className="px-4 pb-4 space-y-2 text-[13px] text-[var(--text-primary)] leading-relaxed">
-                  <p>{debateResult.challenge}</p>
-                  {debateResult.weakestClaim && <p className="text-[var(--text-secondary)]"><strong>{debateResult.targetAgent}</strong>{L('의 약점: ', "'s weakness: ")}{debateResult.weakestClaim}</p>}
-                  {debateResult.alternativeView && <p className="text-[var(--text-secondary)] italic">{debateResult.alternativeView}</p>}
-                </div>
-              </motion.details>
-            )}
+            {/* (The standalone 팀 내 반론 card was removed: the bearing's
+                "가지 않은 길" + "안개·암초" rows render the SAME debate_result
+                in compressed form — two surfaces, one fact. The full dissent
+                text remains reachable in the Logbook record.) */}
 
             {/* ③ 봉인 종막 — the voyage's last interaction. A standalone,
                 screen-transition-grade closing question ("이 결정, …에 어떻게
@@ -2993,34 +2971,28 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] border border-[var(--accent)]/30 bg-[var(--gold-muted)]/30 hover:bg-[var(--gold-muted)]/50 cursor-pointer transition-colors">
                   <Wand2 size={13} className="text-[var(--accent)]" /> {L('항해장에게 수정 요청', 'Ask Navigator to revise')}
                 </button>
-                {/* Two-step confirm: this action DISCARDS the current final +
-                    review and regenerates from the draft stage — the label
-                    alone reads like "just re-validate". The first tap arms it
-                    with an honest description; the second commits. */}
+              </div>
+              {/* Destructive + rare → demoted to a quiet tertiary line below
+                  the real exits (compression audit B-10). Two-step stays. */}
+              <div className="mt-4 text-center">
                 {rerunArmed ? (
-                  <span className="inline-flex items-center gap-2">
+                  <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11.5px] text-[var(--text-tertiary)]">
+                    {L('지금 문서와 검토를 비우고 초안부터 다시 만들어요 — 이전 결과는 버전 히스토리에 남아요.', 'Clears the current document & review, regenerates from draft — previous results stay in version history.')}
                     <button onClick={() => { if (mix) { store.setFinalDeliverable(null as unknown as string); store.setDMFeedback(null as unknown as import('@/stores/types').DMFeedbackResult); store.setMix(null as unknown as MixResult); setShowMix(true); } setRerunArmed(false); }}
-                      className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-[13px] font-semibold text-white bg-[var(--danger)] hover:opacity-90 cursor-pointer transition-opacity">
+                      className="font-semibold text-[var(--danger)] hover:underline cursor-pointer">
                       {L('네, 다시 만들게요', 'Yes, regenerate')}
                     </button>
-                    <button onClick={() => setRerunArmed(false)}
-                      className="inline-flex items-center justify-center px-4 py-3 rounded-2xl text-[13px] font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] cursor-pointer">
+                    <button onClick={() => setRerunArmed(false)} className="hover:underline cursor-pointer">
                       {L('취소', 'Cancel')}
                     </button>
                   </span>
                 ) : (
                   <button onClick={() => setRerunArmed(true)}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[13px] font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 cursor-pointer transition-colors"
-                    title={L('지금 문서와 검토 결과를 비우고 초안 단계부터 다시 만들어요. 이전 결과는 버전 히스토리에 남아요.', 'Clears the current document & review and regenerates from the draft stage. Previous results stay in version history.')}>
+                    className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors">
                     {L('초안부터 다시 만들기', 'Regenerate from draft')}
                   </button>
                 )}
               </div>
-              {rerunArmed && (
-                <p className="mt-3 text-[11.5px] text-[var(--text-tertiary)] text-center">
-                  {L('지금 문서와 이해관계자 검토를 비우고 초안 단계부터 다시 만들어요 — 이전 결과는 버전 히스토리에 남아요.', 'This clears the current document & stakeholder review and regenerates from the draft stage — previous results stay in version history.')}
-                </p>
-              )}
             </motion.div>
           </div>}
 

@@ -142,7 +142,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
     return (
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3">
         <p className="text-[12px] text-[var(--text-tertiary)]">
-          {L('측정이 닿지 않았어요 — 이번 항해는 측정 없이 갑니다.', "The measurement didn't land — this voyage continues without it.")}
+          {L('이번엔 결과를 받지 못했어요 — 이번 항해는 이 측정 없이 가요.', "No reading came back this time — this voyage continues without it.")}
         </p>
       </div>
     );
@@ -157,13 +157,15 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
       transition={{ duration: 0.5, ease: EASE }}
       className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 md:p-5 space-y-3"
     >
-      {/* The honest frame: same brief, read separately. */}
+      {/* The honest frame: same text, read separately. "AI 선원" is explicit —
+          without it, "줬어요" read as "my confidential plan went to PEOPLE"
+          (novice audit, a would-quit moment). */}
       <div>
         <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">
-          {L(`당신의 브리프를 선원 ${N_EXECUTORS}명에게 그대로 줬어요`, `Your brief went to ${N_EXECUTORS} crew members, as-is`)}
+          {L(`적으신 내용을 AI 선원 ${N_EXECUTORS}명이 그대로 읽었어요`, `${N_EXECUTORS} AI crew members read your text, as-is`)}
         </p>
         <p className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">
-          {L('같은 브리프를 따로따로 읽었어요 — 서로 다른 지시는 없었어요.', 'Each read the same brief separately — no differing instructions.')}
+          {L('같은 글을 따로따로 읽었어요 — 서로 다른 지시는 없었고, 내용은 분석에만 쓰여요.', 'Each read the same text separately — no differing instructions, and it stays inside the analysis.')}
         </p>
       </div>
 

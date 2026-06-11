@@ -65,8 +65,8 @@ export function Act1Voyage() {
             }}
           >
             {L(
-              'Decision Voyage — 결정 하나를, 항해처럼',
-              'Decision Voyage — navigate one decision',
+              'AI 결정 검토 — 답이 아니라, 빈틈과 갈림을 보여줘요',
+              'AI decision review — not answers, but the gaps and the forks',
             )}
           </p>
 

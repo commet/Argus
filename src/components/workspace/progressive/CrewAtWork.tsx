@@ -30,7 +30,15 @@ function firstLine(w: WorkerTask): string {
   return line.length > 110 ? line.slice(0, 110) + '…' : line;
 }
 
-export function CrewAtWork({ workers, onRetry }: { workers: WorkerTask[]; onRetry?: (workerId: string) => void }) {
+export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
+  workers: WorkerTask[];
+  onRetry?: (workerId: string) => void;
+  /** When provided, the headline carries the report-stepper toggle as a tail
+   *  link — the standalone "선원 보고 N건 — 자동 반영됐어요" line below this
+   *  card said the same thing twice (compression audit, worst-duplicate #2). */
+  reportsOpen?: boolean;
+  onToggleReports?: () => void;
+}) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   if (workers.length === 0) return null;
@@ -59,7 +67,22 @@ export function CrewAtWork({ workers, onRetry }: { workers: WorkerTask[]; onRetr
       transition={{ duration: 0.4 }}
       className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 space-y-2.5"
     >
-      <p className="text-[12.5px] font-semibold text-[var(--text-primary)]">{headline}</p>
+      <p className="text-[12.5px] font-semibold text-[var(--text-primary)]">
+        {headline}
+        {onToggleReports && allDone && (doneCount > 0 || errorCount > 0) && (
+          <button
+            onClick={onToggleReports}
+            className="ml-2 text-[11.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+          >
+            {reportsOpen ? L('접기 ▴', 'Hide ▴') : L('· 열어보기 ▾', '· Open ▾')}
+          </button>
+        )}
+      </p>
+      {/* First-use definition — a novice meets "선원" cold here. One line, once:
+          they're AI teammates, and the brief stays inside the analysis. */}
+      <p className="text-[11px] text-[var(--text-tertiary)] -mt-1.5">
+        {L('선원은 이 건을 각자 따로 검토하는 AI 팀원이에요 — 입력하신 내용은 분석에만 쓰여요.', 'Crew members are AI teammates each reviewing this separately — your input is used for analysis only.')}
+      </p>
 
       <div className="space-y-1.5">
         {ordered.map((w, i) => {

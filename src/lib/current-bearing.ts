@@ -205,3 +205,35 @@ export function deriveCurrentBearing(s: BearingInput): CurrentBearing | null {
     blocked: false,
   };
 }
+
+/**
+ * The bearing as a paste-anywhere text block — the thing the user KEEPS.
+ * ARGUS-FINAL-DIRECTION sells one compressed screen; without a copyable form
+ * the card was view-only while the long document had a whole ShareBar.
+ * Plain markdown, same field order as the card, omits empty rows (P3).
+ */
+export function bearingToMarkdown(b: CurrentBearing, locale: 'ko' | 'en' = 'ko'): string {
+  const ko = locale === 'ko';
+  const t = (k: string, e: string) => (ko ? k : e);
+  const lines: string[] = [];
+  lines.push(`## ${t('현재 항로', 'Current Bearing')}`);
+  lines.push(b.current_course.summary);
+  if (b.why_this_course.length) {
+    lines.push('', `**${t('왜 이 항로인가', 'Why this course')}**`);
+    for (const r of b.why_this_course) lines.push(`- ${r.point}`);
+  }
+  if (b.fog_or_reef?.issue) {
+    lines.push('', `**${t('안개·암초', 'Fog & reef')}**`);
+    lines.push(`- ${b.fog_or_reef.issue}`);
+    if (b.fog_or_reef.required_check) lines.push(`  - ${t('확인할 것', 'Check')}: ${b.fog_or_reef.required_check}`);
+  }
+  if (b.road_not_taken.length) {
+    lines.push('', `**${t('가지 않은 길', 'Road not taken')}**`);
+    for (const r of b.road_not_taken) lines.push(`- ~~${r.option}~~ — ${r.why_not_now}`);
+  }
+  if (b.next_helm) lines.push('', `**${t('다음 할 일', 'Next step')}**: ${b.next_helm}`);
+  if (b.contract_seed?.predicate) {
+    lines.push('', `**${t('나중에 확인할 것', 'To check later')}**: ${b.contract_seed.predicate}`);
+  }
+  return lines.join('\n');
+}

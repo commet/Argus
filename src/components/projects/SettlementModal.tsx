@@ -34,8 +34,7 @@ import {
   gradePredicate,
   amendCheckIn,
   isResolved,
-  contractStatus,
-  summarizeGrades,
+  summarizeRecord,
   CHECK_IN_MS,
 } from '@/lib/decision-contract';
 import { Modal } from '@/components/ui/Modal';
@@ -71,18 +70,12 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   const deferrals = Array.isArray(contract?.history) ? contract!.history.length : 0;
 
   // The user's accumulating record across ALL projects — the first sliver of
-  // the 자차표. Counts of what actually happened; never a score.
+  // the 자차표. Single source: summarizeRecord (also feeds /project's strip),
+  // so the two surfaces can never drift apart.
   const record = useMemo(() => {
     if (!allResolved) return null;
-    const now = Date.now();
-    const graded = projects.filter(
-      (p) => p.decision_contract && contractStatus(p.decision_contract, now).allGraded,
-    );
-    const risksAvoided = graded.reduce(
-      (sum, p) => sum + summarizeGrades(p.decision_contract!).risksAvoided,
-      0,
-    );
-    return { loops: Math.max(1, graded.length), risksAvoided };
+    const rec = summarizeRecord(projects, Date.now());
+    return { ...rec, loops: Math.max(1, rec.loops) };
   }, [allResolved, projects]);
 
   function grade(predicateId: string, verdict: PredicateVerdict) {

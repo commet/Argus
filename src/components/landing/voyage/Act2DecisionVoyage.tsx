@@ -464,7 +464,7 @@ function ArrivalWaypoint({
             marginBottom: 12,
           }}
         >
-          {L('도착 — 현재 침로', 'Arrival — Current Bearing')}
+          {L('도착 — 지금의 결론 (현재 항로)', 'Arrival — your conclusion now (Current Bearing)')}
         </span>
 
         <Cartouche padding={0}>
@@ -484,7 +484,7 @@ function ArrivalWaypoint({
                 textTransform: 'uppercase',
               }}
             >
-              <span>{L('현재 침로 · v0.1', 'Current Bearing · v0.1')}</span>
+              <span>{L('현재 항로 · v0.1', 'Current Bearing · v0.1')}</span>
               <span style={{ color: 'var(--bp-ink-faint)' }}>{L('바로 보낼 수 있어요', 'Ready to send')}</span>
             </div>
 
@@ -505,7 +505,7 @@ function ArrivalWaypoint({
 
               <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <BearingField
-                  label={L('현재 침로', 'Current course')}
+                  label={L('현재 항로', 'Current course')}
                   body={L(
                     '이번 분기 출시를 멈추고 — 한 분기 연기, 법무 검토 후 재평가.',
                     'Hold this quarter’s launch — defer one quarter, re-evaluate after legal.',
@@ -513,7 +513,7 @@ function ArrivalWaypoint({
                   locale={locale}
                 />
                 <BearingField
-                  label={L('이 침로의 근거', 'Why this course')}
+                  label={L('이 항로의 근거', 'Why this course')}
                   body={L(
                     '경쟁사 두 곳이 같은 분기에 예고 — 먼저 내는 이점보다 미완성으로 부딪칠 위험이 큽니다.',
                     'Two rivals pre-announced for the same quarter — the first-mover edge is outweighed by colliding half-baked.',
@@ -538,7 +538,7 @@ function ArrivalWaypoint({
                   locale={locale}
                 />
                 <BearingField
-                  label={L('다음 키', 'Next helm')}
+                  label={L('다음에 할 일', 'What to do next')}
                   body={L(
                     '법무 사인오프 받기 + 경쟁사 출시 타이밍 확인.',
                     'Get legal sign-off + confirm the rivals’ launch timing.',

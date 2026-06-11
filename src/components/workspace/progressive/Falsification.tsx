@@ -111,10 +111,14 @@ export function Falsification({
       {/* The framing line — paint success at growing scale (not "I'm faking it",
           which would poison the believability gradient), and make the click
           unambiguous: the FIRST line you can't quite believe anymore. */}
+      {/* Two-sentence instruction: (1) declare the ladder is DELIBERATELY
+          inflated scenarios — half the novices read it as the AI's actual
+          forecast ("이 계획이 이렇게 된다고?") — and (2) replace the
+          double-negative click rule with a plain one. */}
       <p className="text-[13px] font-semibold text-[var(--accent)] leading-[1.55]">
         {L(
-          '계획이 성공하는 모습을 점점 크게 그려볼게요. 더는 그렇게까지 될 것 같지 않은 첫 줄을 눌러 주세요.',
-          "I'll picture your plan succeeding at a bigger and bigger scale. Tap the first line you can't quite believe anymore.",
+          '아래는 일부러 점점 크게 부풀린 성공 시나리오예요. 위에서부터 읽다가, 처음으로 "에이, 이건 아니다" 싶은 줄을 눌러 주세요.',
+          'Below are success scenarios deliberately inflated step by step. Read from the top and tap the first line that makes you go "no, not that far."',
         )}
       </p>
 
@@ -184,6 +188,11 @@ export function Falsification({
                     : L('여기서 멈추셨네요 — 이 줄이 기대고 있는 전제예요', 'You stopped here — the belief this step is betting on')}
                 </p>
                 <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.55] mt-1">{surfaced}</p>
+                {/* The fork-callout grammar, carried into the default path —
+                    the measurement vocabulary's one default-on appearance. */}
+                <p className="text-[11.5px] text-[var(--accent)] leading-[1.5] mt-1.5">
+                  {L('이 전제가 참인지 거짓인지에 따라, 이 계획의 성패가 갈려요.', 'Whether this holds true or not is where this plan succeeds or fails.')}
+                </p>
               </div>
             </div>
 
@@ -205,11 +214,24 @@ export function Falsification({
                   onClick={() => setRealBet(surfaced)}
                   className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
                 >
-                  {L('이 전제로 시작하기', 'Start from this')}
+                  {L('이 문장 그대로 쓰기', 'Use this sentence as-is')}
                 </button>
                 <Button variant="primary" size="sm" onClick={commit} disabled={!realBet.trim()}>
                   {L('이대로 정하고 마무리', 'Lock it in & finish')}
                 </Button>
+              </div>
+              {/* The honest skip: 8 minutes in, a mandatory hand-written gate
+                  is where busy users close the tab and never get the document
+                  (novice audit BLOCKS). The surfaced belief stands in as the
+                  bet — same data, zero friction, document still arrives. */}
+              <div className="mt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => { if (surfaced) onResolve({ claims, flinched_id: noFlinch ? null : flinched!.id, surfaced_constraint: surfaced, real_bet: surfaced, no_flinch_fallback: noFlinch }); }}
+                  className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                >
+                  {L('이대로 두고 문서만 받을게요', 'Skip writing — just give me the document')}
+                </button>
               </div>
             </div>
           </div>

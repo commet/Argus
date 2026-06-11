@@ -437,7 +437,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   {[
                     L('상황을 적으면', 'Describe the situation'),
                     L('AI 팀이 갈리는 자리를 보여드리고', 'an AI crew shows you where it forks'),
-                    L('문서와 현재 침로가 남아요', 'you leave with a document & your bearing'),
+                    L('문서와 결론 요약 한 장(현재 항로)이 남아요', 'you leave with a document & a one-page bearing'),
                   ].map((step, i) => (
                     <React.Fragment key={i}>
                       {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
@@ -499,7 +499,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     내부 진입으로 이동. 3차 위계(tertiary)로 조용히. */}
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-[var(--text-tertiary)]">
                   <Link href="/agents" className="hover:text-[var(--accent)] transition-colors">
-                    {L('선원 명부', 'Crew roster')}
+                    {L('AI 팀 소개', 'Meet the AI crew')}
                   </Link>
                   <span aria-hidden>·</span>
                   <Link href="/boss" className="hover:text-[var(--accent)] transition-colors">
@@ -633,7 +633,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   className="text-[11px] text-[var(--text-tertiary)] pt-1">
                   {/* Honest framing: the initial pass is a single read that finds the real
                       question; this crew does its individual work later, at the worker stage. */}
-                  {L('팀이 모였어요 — 먼저 상황을 읽고 진짜 질문을 찾습니다...', 'Your crew is here — first, reading the situation to find the real question...')}
+                  {L('AI 팀원 4명이 이 건을 따로따로 봐요 — 먼저 상황을 읽고 진짜 질문을 찾는 중...', 'Four AI teammates take this on separately — first, reading the situation to find the real question...')}
                 </motion.p>
               </div>
             </motion.div>
@@ -740,7 +740,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 md:p-5"
                 >
                   <div className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.15em] mb-2">
-                    {L('뼈대', 'Skeleton')}
+                    {L('문서 뼈대', 'Document skeleton')}
                   </div>
                   {hasSkeleton ? (
                     <ol className="space-y-1.5">
@@ -801,6 +801,14 @@ function WorkspaceContent() {
 
   // Boss에서 넘어온 경우 reviewer agent ID
   const reviewerParam = searchParams.get('reviewer');
+
+  // Boss handoff must land on a FRESH HeroFlow: with currentProjectId now
+  // persisted, an open project would render instead and ?reviewer= was read
+  // by nothing — the promise silently failed (hollow-shell audit C11).
+  useEffect(() => {
+    if (reviewerParam) setCurrentProjectId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewerParam]);
 
   useEffect(() => {
     loadProjects();

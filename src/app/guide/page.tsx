@@ -15,6 +15,7 @@ import {
   Check,
   Workflow,
   Settings2,
+  HelpCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale } from '@/hooks/useLocale';
@@ -43,7 +44,7 @@ function getFlowSteps(locale: Locale): FlowStep[] {
       { icon: Layers, label: '종합', desc: '리드 선원과 항해장이 결과를 하나의 초안으로 통합합니다.', tone: 'ai' },
       { icon: Eye, label: '검증', desc: '의사결정자(상사·고객 등) 관점에서 약점을 시뮬레이션합니다.', tone: 'ai' },
       { icon: Edit3, label: '수정', desc: '피드백을 반영해 초안을 다듬습니다. 직접 손봐도 되고 자동 반영도 가능합니다.', tone: 'you' },
-      { icon: Check, label: '도착', desc: '결론·근거·확인할 것이 현재 침로 한 화면에 모입니다. 봉인하면 정한 날짜에 돌아와 물어요.', tone: 'done' },
+      { icon: Check, label: '도착', desc: '결론·근거·확인할 것이 현재 항로 한 화면에 모입니다. 봉인하면 정한 날짜에 돌아와 물어요.', tone: 'done' },
     ];
   }
   return [
@@ -67,7 +68,7 @@ export default function GuidePage() {
         '결정이나 고민을 그대로 입력 → 진짜 질문과 숨은 가정이 드러납니다',
         '질문 2~3개에 답변 → 선원(에이전트) 팀이 자동으로 꾸려집니다',
         '선원들이 병렬로 작업 → 필요한 곳만 수정 요청',
-        '의사결정자 시뮬레이션으로 약점 점검 → 현재 침로 완성',
+        '의사결정자 시뮬레이션으로 약점 점검 → 현재 항로 완성',
       ]
     : [
         'Write your decision as-is → the real question and hidden assumptions surface',
@@ -89,11 +90,74 @@ export default function GuidePage() {
         </h1>
         <p className="text-[14px] text-[var(--text-secondary)] mt-2 leading-relaxed max-w-2xl">
           {L(
-            '결정 하나를 적으면 항해가 시작됩니다. 선원들이 분석하고 검증한 것이 현재 침로 한 화면으로 모이고 — 결정을 봉인하면, 정한 날짜에 돌아와 물어요. "그래서, 어떻게 됐어요?" 처음이라면 아래 빠른 시작만 봐도 충분해요.',
+            '결정 하나를 적으면 항해가 시작됩니다. 선원들이 분석하고 검증한 것이 현재 항로 한 화면으로 모이고 — 결정을 봉인하면, 정한 날짜에 돌아와 물어요. "그래서, 어떻게 됐어요?" 처음이라면 아래 빠른 시작만 봐도 충분해요.',
             'Write down one decision and the voyage begins. Your crew\'s work converges into a single Current Bearing — and once you seal the decision, Argus comes back on the date you chose to ask: "So, how did it go?" New here? The Quick Start below is all you need.',
           )}
         </p>
       </div>
+
+      {/* ── 0. FAQ — a novice's real questions, answered first ── */}
+      <Card>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--accent)]/10">
+            <HelpCircle size={18} className="text-[var(--accent)]" />
+          </div>
+          <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{L('자주 묻는 것', 'Common questions')}</h2>
+        </div>
+        <div className="space-y-4">
+          {(locale === 'ko'
+            ? [
+                {
+                  q: '질문은 왜 하나요?',
+                  a: "답이 분석을 구체화하고, 갈리는 지점을 좁혀요. 언제든 '그만 묻고 초안 만들기'로 건너뛸 수 있어요.",
+                },
+                {
+                  q: '내가 쓴 내용은 어디로 가나요?',
+                  a: '분석에만 쓰여요. 사람에게 전달되지 않고, 브라우저와 내 계정에만 저장돼요.',
+                },
+                {
+                  q: '무료로 어디까지 쓰나요?',
+                  a: '로그인 없이 하루 결정 2~3개 분량, 로그인하면 더 넉넉해요.',
+                },
+                {
+                  q: "'물어봐 준다'는 게 어떻게 오나요?",
+                  a: '정한 날짜에 프로젝트 페이지에 오시면 제가 먼저 물어요 — 메일·알림은 보내지 않아요. 원하면 캘린더 파일로 약속을 넣을 수 있어요.',
+                },
+                {
+                  q: '현재 항로가 뭔가요?',
+                  a: '이 결정이 지금 향하는 방향을 한 장으로 압축한 요약이에요 — 결론·이유·남은 확인거리·다음 할 일.',
+                },
+              ]
+            : [
+                {
+                  q: 'Why does it ask me questions?',
+                  a: 'Your answers sharpen the analysis and narrow where things fork. You can skip anytime with "stop asking, draft now."',
+                },
+                {
+                  q: 'Where does what I write go?',
+                  a: "It's used only for analysis. It never goes to a person — it's stored only in your browser and your account.",
+                },
+                {
+                  q: 'How much can I use for free?',
+                  a: 'Without logging in, about 2–3 decisions a day; logging in gives you more room.',
+                },
+                {
+                  q: 'How does "coming back to ask" work?',
+                  a: "Visit your project page on the date you set and Argus asks first — no emails or notifications are sent. If you like, you can add the appointment as a calendar file.",
+                },
+                {
+                  q: 'What is a Current Bearing?',
+                  a: "A one-page summary of where this decision is headed right now — conclusion, reasoning, what's left to check, and what to do next.",
+                },
+              ]
+          ).map((item, i) => (
+            <div key={i}>
+              <p className="text-[13.5px] font-bold text-[var(--text-primary)] leading-snug">{item.q}</p>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.65] mt-1">{item.a}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       {/* ── 1. Quick Start ── */}
       <Card>
@@ -234,7 +298,15 @@ export default function GuidePage() {
           <ChainRow tone="validation" label={L('검증', 'Validation')} agents={locale === 'ko' ? '동혁 · 지은 · 윤석' : 'Donghyuk · Jieun · Yunseok'} />
         </div>
 
-        {/* Unlock & level — two compact panels */}
+        {/* Unlock & level — demoted into a collapsed details; novices don't need XP first */}
+        <details className="group/growth rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)]">
+          <summary className="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer list-none">
+            <span className="text-[12.5px] font-semibold text-[var(--text-secondary)]">
+              {L('선원 성장 시스템 (선택)', 'Crew growth system (optional)')}
+            </span>
+            <ArrowRight size={12} className="text-[var(--text-tertiary)] transition-transform group-open/growth:rotate-90 shrink-0" />
+          </summary>
+          <div className="px-4 pb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="rounded-xl px-4 py-3.5 bg-[var(--bg)] border border-[var(--border-subtle)]">
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] mb-2">
@@ -282,6 +354,8 @@ export default function GuidePage() {
             </ul>
           </div>
         </div>
+          </div>
+        </details>
 
         <Link href="/agents" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline mt-4">
           {L('선원 명부', 'Crew roster')} <ArrowRight size={14} />
