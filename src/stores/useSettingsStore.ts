@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS: Settings = {
   audio_enabled: false,
   audio_volume: 0.15,
   all_output_formats: false,
+  new_arc_enabled: false,
 };
 
 interface SettingsState {

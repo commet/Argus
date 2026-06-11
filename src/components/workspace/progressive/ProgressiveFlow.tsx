@@ -57,6 +57,8 @@ import { FinalCard } from './FinalCard';
 export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-compat re-exports (were defined here)
 import { CurrentBearingCard } from './CurrentBearingCard';
 import { SealMoment } from './SealMoment';
+import { TrialSail } from './TrialSail';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { Falsification } from './Falsification';
 import { Button } from '@/components/ui/Button';
@@ -974,6 +976,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   );
   // Global click-outside: clears sticky attribution hover state when user taps blank space
   useAttributionClickOutside();
+  // W2.3 새 아크 flag — settings 우선, URL ?arc=1 데모 오버라이드. Off = the old
+  // path, pixel-identical (구 경로 무손상 — A/B 기준선).
+  const newArcSetting = useSettingsStore((s) => s.settings.new_arc_enabled ?? false);
+  const newArcEnabled = newArcSetting ||
+    (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('arc') === '1');
   const [busy, setBusy] = useState(false);
   // The overreach/flinch step's in-flight ladder (strength + escalating claims).
   // Local + ephemeral: only the committed result persists (session.falsification).
@@ -2340,6 +2347,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               after={latest.real_question ?? ''}
               className="mb-3"
             />
+          )}
+
+          {/* 시험 항해 극장 (W2.3 적층, flag 뒤) — runs alongside the existing
+              analysis stream during the first rounds; the deepening loop below
+              is untouched (적층 not 교체). Off by default — old path is the
+              A/B baseline. */}
+          {newArcEnabled && session && !mix && !final_ && (phase === 'analyzing' || phase === 'conversing') && (
+            <TrialSail paragraph={session.problem_text} />
           )}
 
           {latest && !final_ && (

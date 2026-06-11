@@ -643,6 +643,10 @@ export interface Settings {
    *  format generators are preserved behind this flag — never deleted. Optional
    *  so legacy localStorage settings load safely (read as `?? false`). */
   all_output_formats?: boolean;
+  /** W2.3 적층 배선: the new session arc (trial-sail theater + measurement-
+   *  anchored questions). Default OFF — the old path is the A/B baseline and
+   *  regression safety net (구 경로 무손상). URL `?arc=1` overrides for demos. */
+  new_arc_enabled?: boolean;
 }
 
 // ─── Judgment Vitality Engine ───
