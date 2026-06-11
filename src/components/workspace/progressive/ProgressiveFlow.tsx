@@ -994,6 +994,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const [recordOpen, setRecordOpen] = useState(false);
   /** A retreated block renders when: classic layout, OR the user opened 기록. */
   const showRecord = !focusMode || recordOpen;
+  /** W1.6 ③: the crew-report review stepper retreats behind "열어보기" in
+   *  focus mode (reports auto-apply; grading homework is opt-in, not a gate). */
+  const [reportsOpen, setReportsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   // The overreach/flinch step's in-flight ladder (strength + escalating claims).
   // Local + ephemeral: only the committed result persists (session.falsification).
@@ -1231,6 +1234,37 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const shouldMix = showMix || (phase === 'conversing' && snapshots.length > 0 && !curQ && !mix && !busy);
   const deployPhase = session?.worker_deploy_phase ?? 'none';
   const workers = session?.workers ?? [];
+
+  /* W1.6 재구성 ② 팀 자동 출항 — focus mode skips the HR-approval screen.
+   * The crew assembling and working is THEATER the user watches while
+   * answering questions, not paperwork they sign. Classic keeps the banner.
+   * (Hook zone: must sit before the `if (!session)` early return. The
+   * handlers it calls are consts defined below — initialized by the time the
+   * effect fires post-render.) */
+  const autoDeployedRef = useRef(false);
+  useEffect(() => {
+    if (!focusMode || autoDeployedRef.current) return;
+    if (deployPhase !== 'ready' || workers.length === 0) return;
+    autoDeployedRef.current = true;
+    track('focus_auto_deploy', { workers: workers.length });
+    onDeployWorkers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusMode, deployPhase, workers.length]);
+
+  /* W1.6 재구성 ③ 선원 보고 자동 반영 — focus mode doesn't make the user grade
+   * the crew's homework (the #1 "최악" screen, G-W1 #1). Reports auto-apply
+   * when done; the full review stepper retreats behind "열어보기" and 반영/제외
+   * stays available there for whoever wants it. */
+  useEffect(() => {
+    if (!focusMode || deployPhase !== 'deployed' || workers.length === 0) return;
+    const allSettled = workers.every((w) => w.status === 'done' || w.status === 'error');
+    const anyUnapproved = workers.some((w) => w.status === 'done' && w.approved == null);
+    if (allSettled && anyUnapproved) {
+      track('focus_auto_approve', { count: workers.filter((w) => w.status === 'done' && w.approved == null).length });
+      store.approveAllPending();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusMode, deployPhase, workers]);
   const workerContext = useWorkerContext();
   const workerActions = useWorkerActions(workerContext);
 
@@ -1885,7 +1919,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   //    straight to finalize so the step never dead-ends. ──
   const onTest = async () => {
     if (busy) return;
-    if (!mix || !dmFb || !latest) { onFinalize(); return; }
+    // dmFb intentionally NOT required (W1.6 ④): the focus path reaches the
+    // ladder straight from the draft; runOverreach needs only latest + mix.
+    if (!mix || !latest) { onFinalize(); return; }
     setBusy(true); setError(null); setSubstage(L('계획을 시험하는 중', 'Stress-testing the plan'));
     abortRef.current = new AbortController();
     try {
@@ -2145,13 +2181,15 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <ReviewerBadge reviewerId={session.reviewer_agent_id || null} />
           </div>
 
-          {/* PhaseDivider: Team assembled → confirm */}
-          {deployPhase === 'ready' && workers.length > 0 && (
+          {/* PhaseDivider: Team assembled → confirm.
+              W1.6 재구성: focus mode auto-deploys (no HR-approval screen) —
+              the crew is theater, not paperwork. Classic keeps the gate. */}
+          {!focusMode && deployPhase === 'ready' && workers.length > 0 && (
             <PhaseDivider done={L('상황 파악', 'Analysis')} next={L('팀 구성 확인', 'Confirm team')} yourTurn />
           )}
 
-          {/* Team deploy banner — 사용자 확인 후 worker 실행 */}
-          {deployPhase === 'ready' && workers.length > 0 && (
+          {/* Team deploy banner — 사용자 확인 후 worker 실행 (classic only) */}
+          {!focusMode && deployPhase === 'ready' && workers.length > 0 && (
             <div ref={teamDeployRef}>
             <TeamDeployBanner
               workers={workers}
@@ -2281,11 +2319,27 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </div>
           )}
 
+          {/* W1.6 ③ focus: one quiet line replaces the grading gate. Reports
+              auto-apply; whoever wants the full stepper opens it here. */}
+          {focusMode && deployPhase === 'deployed' && workers.length > 0 && !final_ && (
+            <button
+              onClick={() => setReportsOpen((o) => !o)}
+              className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer px-1"
+            >
+              {reportsOpen
+                ? L('선원 보고 접기 ▴', 'Hide crew reports ▴')
+                : L(
+                    `선원 보고 ${workers.filter((w) => w.status === 'done').length}건 — 자동 반영됐어요 · 열어보기 ▾`,
+                    `${workers.filter((w) => w.status === 'done').length} crew reports — auto-applied · open ▾`,
+                  )}
+            </button>
+          )}
+
           {/* Inline worker reports — ONE-AT-A-TIME stepper. Reviewing 3 long
               drafts in a single scroll was a huge burden; instead the user
               handles one agent at a time with a finding-first card and the full
               draft one tap away. */}
-          {deployPhase === 'deployed' && !final_ && (() => {
+          {(!focusMode || reportsOpen) && deployPhase === 'deployed' && !final_ && (() => {
             const ordered = [...workers].sort((a, b) => a.step_index - b.step_index);
             if (ordered.length === 0) return null;
             const total = ordered.length;
@@ -2458,8 +2512,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </div>
           )}
 
-          {/* Framing Confirmation — Round 1 후 사용자 확인 (Weakness A) */}
-          {latest && !latest.framing_locked && snapshots.length === 1 && phase === 'conversing' && !mix && !final_ && (
+          {/* Framing Confirmation — Round 1 후 사용자 확인 (Weakness A).
+              W1.6 재구성: focus mode SKIPS this gate — the user just answered
+              a question; asking them to re-approve the framing is a second
+              demand on the same trust. QuestionCard's free-text input is the
+              standing "방향이 다르면 직접 적기" escape. Classic keeps it. */}
+          {!focusMode && latest && !latest.framing_locked && snapshots.length === 1 && phase === 'conversing' && !mix && !final_ && (
             <FramingConfirmation
               snapshot={latest}
               onConfirm={() => {
@@ -2546,7 +2604,17 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <PhaseDivider done={L('초안 완성', 'Draft ready')} next={L('검토', 'Review')} yourTurn />
           )}
           <div ref={mixPreviewRef}>
-            {mix && !dmFb && !final_ && phase !== 'mixing' && <MixPreview mix={mix} dm={dm} onDM={onDM} onSkip={onSkip} busy={busy} cmReview={cmReview} debateResult={debateResult} />}
+            {/* W1.6 재구성 ④: focus routes the primary CTA through the flinch
+                ladder (onTest) — the G0-best lever is the road, not a branch.
+                Stakeholder review demotes to opt-in. Classic unchanged. */}
+            {mix && !dmFb && !final_ && phase !== 'mixing' && (
+              <MixPreview
+                mix={mix} dm={dm} onDM={onDM}
+                onSkip={focusMode ? onTest : onSkip}
+                primary={focusMode ? 'wrap' : 'review'}
+                busy={busy} cmReview={cmReview} debateResult={debateResult}
+              />
+            )}
           </div>
           <div ref={dmFeedbackRef}>
             {dmFb && !final_ && phase !== 'testing' && (

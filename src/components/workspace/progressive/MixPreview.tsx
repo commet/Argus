@@ -11,7 +11,12 @@ import { renderInline } from './shared/renderMd';
 import { EASE } from './shared/constants';
 
 /* ═══ Mix Preview ═══ */
-export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult }: { mix: MixResult; dm: string | null; onDM: () => void; onSkip: () => void; busy: boolean; cmReview?: NavigatorReview | null; debateResult?: DebateResult | null }) {
+export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult, primary = 'review' }: { mix: MixResult; dm: string | null; onDM: () => void; onSkip: () => void; busy: boolean; cmReview?: NavigatorReview | null; debateResult?: DebateResult | null;
+  /** W1.6 재구성 ④: 'wrap' makes the forward path (→ the flinch ladder) the
+   *  primary CTA and demotes the stakeholder review to a quiet opt-in line —
+   *  the old default buried the G0-best lever behind a "skip" branch. */
+  primary?: 'review' | 'wrap';
+}) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   return (
@@ -91,25 +96,42 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             )}
 
             <div className="pt-6 border-t border-[var(--border-subtle)] space-y-3">
-              {/* Reviewer suggestion card */}
-              <div className="rounded-xl border border-[var(--accent)]/10 bg-[var(--accent)]/[0.03] p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[14px] font-bold text-[var(--accent)]">
-                    {(dm || '?').charAt(0).toUpperCase()}
+              {primary === 'wrap' ? (
+                <>
+                  {/* Forward is primary: 마무리(→ 사다리). Review is the quiet opt-in. */}
+                  <motion.button onClick={onSkip} disabled={busy} whileTap={{ scale: 0.98 }}
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
+                    style={{ background: 'var(--gradient-gold)' }}>
+                    {busy ? <Loader2 size={16} className="animate-spin" /> : L('마무리로 →', 'Wrap up →')}
+                  </motion.button>
+                  <button onClick={onDM} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
+                    style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>
+                    {L(`${dm || '이해관계자'} 시점 검토 한번 받아보기 (선택)`, `Optional: review as ${dm || 'a stakeholder'}`)}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Reviewer suggestion card */}
+                  <div className="rounded-xl border border-[var(--accent)]/10 bg-[var(--accent)]/[0.03] p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-9 h-9 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[14px] font-bold text-[var(--accent)]">
+                        {(dm || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-semibold text-[var(--text-primary)]">{dm || L('의사결정권자', 'Decision-Maker')}</p>
+                        <p className="text-[11px] text-[var(--text-tertiary)]">{L('올리기 전에 한번 검토 받아보세요', 'Get a review before you submit')}</p>
+                      </div>
+                    </div>
+                    <motion.button onClick={onDM} disabled={busy} whileTap={{ scale: 0.98 }}
+                      className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
+                      style={{ background: 'var(--gradient-gold)' }}>
+                      {busy ? <><Loader2 size={16} className="animate-spin" /> {L(`${dm || '리뷰어'}이(가) 읽고 있습니다...`, `${dm || 'Reviewer'} is reading...`)}</> : <><UserCheck size={16} /> {L('검토 받기', 'Get Review')}</>}
+                    </motion.button>
                   </div>
-                  <div>
-                    <p className="text-[14px] font-semibold text-[var(--text-primary)]">{dm || L('의사결정권자', 'Decision-Maker')}</p>
-                    <p className="text-[11px] text-[var(--text-tertiary)]">{L('올리기 전에 한번 검토 받아보세요', 'Get a review before you submit')}</p>
-                  </div>
-                </div>
-                <motion.button onClick={onDM} disabled={busy} whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
-                  style={{ background: 'var(--gradient-gold)' }}>
-                  {busy ? <><Loader2 size={16} className="animate-spin" /> {L(`${dm || '리뷰어'}이(가) 읽고 있습니다...`, `${dm || 'Reviewer'} is reading...`)}</> : <><UserCheck size={16} /> {L('검토 받기', 'Get Review')}</>}
-                </motion.button>
-              </div>
-              <button onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
-                style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>{L('검토 건너뛰고 이대로 완성', 'Skip the review & finalize')}</button>
+                  <button onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
+                    style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>{L('검토 건너뛰고 이대로 완성', 'Skip the review & finalize')}</button>
+                </>
+              )}
             </div>
           </div>
         </div>
