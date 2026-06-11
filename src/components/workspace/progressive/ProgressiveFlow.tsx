@@ -1,5 +1,6 @@
 'use client';
 
+import { DAILY_LIMIT } from '@/lib/quota-config';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -2646,7 +2647,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               {error.startsWith('LOGIN_REQUIRED') ? (
                 <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-6">
                   <p className="text-[15px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
-                  <p className="text-[13px] text-[var(--text-secondary)] mb-4">{L('로그인하면 하루 10회까지 무료로 사용할 수 있습니다.', 'Sign in to get up to 10 free uses per day.')}</p>
+                  <p className="text-[13px] text-[var(--text-secondary)] mb-4">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있습니다.`, `Sign in to get up to ${DAILY_LIMIT} free calls per day.`)}</p>
                   <a href="/login" className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-white text-[14px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={14} /></a>
                 </div>
               ) : (
