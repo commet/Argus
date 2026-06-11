@@ -36,6 +36,9 @@ interface ProbeState {
   failed: (message: string) => void;
   /** Returns false when the ≤2 re-probe budget is spent (caller must respect). */
   tryConsumeReprobe: () => boolean;
+  /** Replace the measured forks (경량 재탐침 result — drives the reverse
+   *  convergence gauge: 갈림 3 → 1). */
+  setForks: (forks: Fork[]) => void;
   reset: () => void;
 }
 
@@ -75,6 +78,8 @@ export const useProbeStore = create<ProbeState>((set, get) => ({
     set((s) => ({ reprobeCount: s.reprobeCount + 1 }));
     return true;
   },
+
+  setForks: (forks) => set({ forks }),
 
   reset: () =>
     set({

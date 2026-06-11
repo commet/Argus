@@ -93,6 +93,14 @@ describe('forksToQuestions — mechanical conversion', () => {
     expect(q1.id).toBe(q2.id);
   });
 
+  it('includeWriteMyOwn:false omits the escape-hatch option (UI has its own input)', () => {
+    const [q] = forksToQuestions([fork()], { includeWriteMyOwn: false });
+    expect(q.options).toEqual(['MVP부터 만든다', '고객 인터뷰부터 한다']);
+    // default stays plan-faithful
+    const [qDefault] = forksToQuestions([fork()]);
+    expect(qDefault.options).toContain(WRITE_MY_OWN_KO);
+  });
+
   it('locale en renders english scaffolding with the same anchors', () => {
     const [q] = forksToQuestions([fork()], { locale: 'en' });
     expect(q.options).toContain(WRITE_MY_OWN_EN);

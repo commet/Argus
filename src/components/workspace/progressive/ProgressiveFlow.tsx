@@ -59,6 +59,9 @@ import { CurrentBearingCard } from './CurrentBearingCard';
 import { SealMoment } from './SealMoment';
 import { TrialSail } from './TrialSail';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useProbeStore } from '@/stores/useProbeStore';
+import { runDivergenceProbe } from '@/lib/probe-engine';
+import { forksToQuestions, forkQuestionId } from '@/lib/fork-to-question';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { Falsification } from './Falsification';
 import { Button } from '@/components/ui/Button';
@@ -1377,10 +1380,61 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     startWorkerExecution(ws);
   };
 
+  /* W2.3b 측정-정박 질문 (flag 뒤) — the probe's forks become the next 1–2
+   * questions, injected WITHOUT an LLM round (the fork→question conversion is
+   * mechanical). The deepening loop resumes on the following answer with the
+   * probe Q/A already in the qa history — measurement anchors, deepening
+   * continues around it (적층 not 교체). */
+  const nextPendingProbeQuestion = (): FlowQuestion | null => {
+    if (!newArcEnabled) return null;
+    const probe = useProbeStore.getState();
+    if (probe.status !== 'done' || probe.forks.length === 0) return null;
+    const askedIds = new Set(questions.map((q) => q.id));
+    const candidates = forksToQuestions(probe.forks, {
+      locale: locale as 'ko' | 'en',
+      includeWriteMyOwn: false, // QuestionCard renders its own free-text input
+    });
+    return candidates.find((q) => !askedIds.has(q.id)) ?? null;
+  };
+
+  /** 경량 재탐침 (W2.3) — after the user settles a fork, re-measure ONLY that
+   * field with their answer appended as confirmed context. Background, never
+   * blocks the conversation; ≤2/session enforced by the probe store. The
+   * theater's fork list updates in place (갈림 3 → 1, reverse gauge). */
+  const maybeReprobe = (questionId: string, value: string) => {
+    if (!session) return;
+    const probe = useProbeStore.getState();
+    const fork = probe.forks.find((f) => forkQuestionId(f) === questionId);
+    if (!fork) return;
+    if (!probe.tryConsumeReprobe()) return;
+    const confirmed = `${session.problem_text}\n\n[사용자 확정] "${fork.cause_quote}" → ${value}`;
+    runDivergenceProbe(confirmed, { n: 3, fields: [fork.field] })
+      .then((r) => {
+        const cur = useProbeStore.getState();
+        cur.setForks([...cur.forks.filter((f) => f.field !== fork.field), ...r.forks]);
+      })
+      .catch(() => { /* re-probe is best-effort — silence on failure (P3) */ });
+  };
+
   /* Handlers */
   const onAnswer = async (value: string) => {
     if (!curQ || busy || !latest) return;
     const ans: FlowAnswer = { question_id: curQ.id, value };
+
+    // ── W2.3b: probe-question turns are zero-LLM ──
+    if (newArcEnabled) {
+      if (curQ.id.startsWith('probe-fork-')) maybeReprobe(curQ.id, value);
+      const probeQ = nextPendingProbeQuestion();
+      if (probeQ) {
+        store.addAnswer(ans);
+        store.addQuestion(probeQ);
+        track('flow_answer', { round, probe_injected: true });
+        useAgentAttentionStore.getState().ping('answer');
+        scrollToRef(questionRef);
+        return; // deepening resumes on the next answer, qa history intact
+      }
+    }
+
     store.addAnswer(ans); store.setPhase('analyzing'); track('flow_answer', { round }); setBusy(true); setError(null); scrollToRef(statusBarRef);
     // Tell the sidebar agents "new input just landed" — triggers flash
     useAgentAttentionStore.getState().ping('answer');

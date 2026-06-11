@@ -83,6 +83,9 @@ export interface ForkToQuestionOptions {
   locale?: 'ko' | 'en';
   /** Question slots remaining this session (default MAX_PROBE_QUESTIONS). */
   limit?: number;
+  /** Set false when the consuming UI already renders its own free-text input
+   *  (e.g. QuestionCard's "또는 직접 입력...") — avoids a duplicate escape hatch. */
+  includeWriteMyOwn?: boolean;
 }
 
 /**
@@ -122,7 +125,10 @@ export function forksToQuestions(forks: Fork[], opts: ForkToQuestionOptions = {}
         subtext: ko
           ? `이 선택에 따라 "${fork.flipped_user_claim}"이 참도 거짓도 됩니다.`
           : `Depending on this, "${fork.flipped_user_claim}" becomes true or false.`,
-        options: [...fork.variants, ko ? WRITE_MY_OWN_KO : WRITE_MY_OWN_EN],
+        options: [
+          ...fork.variants,
+          ...(opts.includeWriteMyOwn === false ? [] : [ko ? WRITE_MY_OWN_KO : WRITE_MY_OWN_EN]),
+        ],
         type: 'select' as const,
         // Purpose-level forks reframe the question itself; execution-level
         // forks shape the plan.

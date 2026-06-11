@@ -224,8 +224,8 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                 <Anchor size={12} className="text-[var(--text-tertiary)] mt-0.5 shrink-0" />
                 <p className="text-[12px] text-[var(--text-secondary)] leading-[1.55]">
                   {L(
-                    '선원들이 같은 곳으로 갔어요. 이 텍스트 안에서 잴 수 있는 갈림은 없었어요 — 남은 위험은 텍스트 밖이에요.',
-                    'The crew sailed to the same place. Nothing measurably forked inside this text — what risk remains lives outside it.',
+                    '선원들이 같은 곳으로 갔어요. 이 텍스트 안에서 잴 수 있는 갈림은 없었어요 — 남은 위험은 텍스트 밖이에요. 곧장 마무리로 가도 좋아요.',
+                    'The crew sailed to the same place. Nothing measurably forked inside this text — what risk remains lives outside it. Feel free to head straight for the finish.',
                   )}
                 </p>
               </div>
