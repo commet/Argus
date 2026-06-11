@@ -139,6 +139,22 @@ t("unsealed candidate → silent", () => {
   assert(lines(run(r)).length === 1, "candidate should not render");
 });
 
+t("bet due today → 'due today', not OVERDUE", () => {
+  const r = repo();
+  ledger(r, bet("aaaa0001", iso(0), "오늘 정산할 결정"));
+  const l2 = lines(run(r))[1];
+  assert(l2.includes("due today"), `no due today: ${l2}`);
+  assert(!l2.includes("OVERDUE"), `today is due, not overdue: ${l2}`);
+  assert(l2.includes("/watch due"), `missing hint: ${l2}`);
+});
+
+t("overdue beats due today", () => {
+  const r = repo();
+  ledger(r, [...bet("aaaa0001", iso(-2), "지난 것"), ...bet("aaaa0002", iso(0), "오늘 것")]);
+  const l2 = lines(run(r))[1];
+  assert(l2.includes("OVERDUE") && !l2.includes("×2"), `strict overdue only: ${l2}`);
+});
+
 t("bet due in 3 days → dim due line", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(3), "사흘 뒤 확인할 결정"));
@@ -271,6 +287,31 @@ t("corrupt bearing json → silent, no crash", () => {
   mkdirSync(join(r, ".argus"), { recursive: true });
   writeFileSync(join(r, ".argus", "current-bearing.json"), "{not valid");
   assert(lines(run(r)).length === 1, "corrupt bearing must degrade to line 1");
+});
+
+t("session opened in a subdirectory → .argus found at repo root", () => {
+  const r = repo();
+  ledger(r, bet("aaaa0001", iso(-1), "루트의 결정"));
+  const sub = join(r, "src", "components");
+  mkdirSync(sub, { recursive: true });
+  const l2 = lines(run(sub))[1];
+  assert(l2 && l2.includes("OVERDUE"), `walk-up failed from subdir: ${l2}`);
+});
+
+t("git branch read from .git/HEAD without spawning git", () => {
+  const r = repo();
+  mkdirSync(join(r, ".git"), { recursive: true });
+  writeFileSync(join(r, ".git", "HEAD"), "ref: refs/heads/feat/test-branch\n");
+  const l1 = lines(run(r))[0];
+  assert(l1.includes("feat/test-branch"), `branch missing: ${l1}`);
+});
+
+t("detached HEAD → short hash", () => {
+  const r = repo();
+  mkdirSync(join(r, ".git"), { recursive: true });
+  writeFileSync(join(r, ".git", "HEAD"), "0123456789abcdef0123456789abcdef01234567\n");
+  const l1 = lines(run(r))[0];
+  assert(l1.includes("01234567"), `short hash missing: ${l1}`);
 });
 
 t("no stdin → still prints something", () => {

@@ -4,12 +4,13 @@
  *
  * Line 1 (always): model, context bar, session duration, git branch.
  * Line 2 (at most ONE, absent by default), by priority:
- *   1. OVERDUE contract checks — sealed bets past check_by (+ bearing contract seeds)
- *   2. live session progress   — session.json touched < 15 min ago, phase != complete
- *   3. checks due within 7 days
- *   4. fresh Current Bearing   — generated < 48 h ago: status + summary + fog
- *   5. decaying bearing        — 2–14 days old: glyph + age only
- *   6. nothing
+ *   1. OVERDUE contract checks — sealed bets strictly past check_by (+ bearing seeds)
+ *   2. checks due TODAY        — same urgency, honest label
+ *   3. live session progress   — session.json touched < 15 min ago, phase != complete
+ *   4. checks due within 7 days
+ *   5. fresh Current Bearing   — generated < 48 h ago: status + summary + fog
+ *   6. decaying bearing        — 2–14 days old: glyph + age only
+ *   7. nothing
  *
  * Why this hierarchy: of everything Argus produces, only a contract check date
  * stays true and behavior-changing weeks after it was written. A bearing is
@@ -29,8 +30,7 @@
  */
 
 const fs = require("fs");
-const { execSync } = require("child_process");
-const { join } = require("path");
+const { join, resolve, isAbsolute } = require("path");
 
 // ─── ANSI ────────────────────────────────────────────────
 
@@ -107,6 +107,29 @@ function localToday(offsetDays = 0) {
 
 function mmdd(iso) { return iso.slice(5); }
 
+// ─── Filesystem walk-up ──────────────────────────────────
+
+/** Walk from start toward the filesystem root, return the first non-null find(dir). */
+function walkUp(start, find) {
+  let dir = start;
+  for (let i = 0; i < 16; i++) {
+    const hit = find(dir);
+    if (hit) return hit;
+    const parent = resolve(dir, "..");
+    if (parent === dir) return null;
+    dir = parent;
+  }
+  return null;
+}
+
+/** Sessions often run in a subdirectory; .argus lives at the repo root. */
+function findArgusRoot(cwd) {
+  return walkUp(cwd, d => {
+    try { return fs.statSync(join(d, ".argus")).isDirectory() ? d : null; }
+    catch { return null; }
+  }) || cwd;
+}
+
 // ─── Ledger: sealed bets with a check date ───────────────
 // Minimal replay of tools/argus-watch/lib/ledger.mjs semantics. Reimplemented
 // because the statusline ships standalone with the plugin; if the two drift,
@@ -150,16 +173,20 @@ function loadSealedBets(root) {
 // ─── Current Bearing ─────────────────────────────────────
 
 function bearingCandidates(root) {
-  const out = [join(root, ".argus", "current-bearing.json")];
+  // Both spellings: the v2 skills write current_bearing.json (underscore,
+  // per sail Step 7 / session-layout.md); the hyphen form is the legacy/webapp
+  // emission. Missing files cost one failed stat each — cheap.
+  const names = ["current_bearing.json", "current-bearing.json"];
+  const out = names.map(n => join(root, ".argus", n));
   const sessions = join(root, ".argus", "sessions");
   let ids = [];
   try { ids = fs.readdirSync(sessions); } catch { return out; }
   for (const id of ids) {
-    out.push(join(sessions, id, "current-bearing.json"));
+    for (const n of names) out.push(join(sessions, id, n));
     const versions = join(sessions, id, "versions");
     let vs = [];
     try { vs = fs.readdirSync(versions); } catch { continue; }
-    for (const v of vs) out.push(join(versions, v, "current-bearing.json"));
+    for (const v of vs) for (const n of names) out.push(join(versions, v, n));
   }
   return out;
 }
@@ -228,7 +255,8 @@ function collectChecks(root, bearing, today) {
   const horizon = localToday(7);
   const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
   return {
-    overdue: items.filter(i => i.date <= today).sort(byDate),
+    overdue: items.filter(i => i.date < today).sort(byDate),
+    dueToday: items.filter(i => i.date === today),
     dueSoon: items.filter(i => i.date > today && i.date <= horizon).sort(byDate),
   };
 }
@@ -238,6 +266,8 @@ function collectChecks(root, bearing, today) {
 function phaseColor(phase) {
   if (phase === "verifying") return C.y;
   if (phase === "dm_feedback" || phase === "refining") return C.m;
+  // team_working/mixing/input are pre-v2.2 phases kept ONLY for sessions
+  // written by older versions — no current skill emits them.
   if (phase === "team_deploying" || phase === "team_working" || phase === "mixing") return C.c;
   if (phase === "analyzing" || phase === "conversing" || phase === "input") return C.w;
   return C.y;
@@ -255,7 +285,7 @@ function courseColor(status, blocked) {
 function argusLine(root, budget) {
   const today = localToday();
   const bearing = loadBearing(root);
-  const { overdue, dueSoon } = collectChecks(root, bearing, today);
+  const { overdue, dueToday, dueSoon } = collectChecks(root, bearing, today);
 
   // 1. Overdue: never decays, beats everything.
   if (overdue.length) {
@@ -265,7 +295,16 @@ function argusLine(root, budget) {
     return `📜 ${C.r}${BOLD}${head}${R} ${C.r}${mmdd(o.date)}${R}${SEP}${text}${SEP}${C.d}→ /watch due${R}`;
   }
 
-  // 2. A run in progress: transient, footer-appropriate.
+  // 2. Due today: same urgency as overdue, but the honest label —
+  //    check_by <= today means "settle now", not "you are late".
+  if (dueToday.length) {
+    const d0 = dueToday[0];
+    const more = dueToday.length > 1 ? ` ${C.d}+${dueToday.length - 1}${R}` : "";
+    const text = clip((d0.kind === "seed" ? "seed: " : "") + d0.text, Math.max(16, budget - 36));
+    return `📜 ${C.r}${BOLD}due today${R}${SEP}${text}${more}${SEP}${C.d}→ /watch due${R}`;
+  }
+
+  // 3. A run in progress: transient, footer-appropriate.
   const live = loadLiveSession(root);
   if (live) {
     const parts = [`⚓ ${phaseColor(live.phase)}${live.phase}${R}`];
@@ -276,7 +315,7 @@ function argusLine(root, budget) {
     return parts.join(SEP);
   }
 
-  // 3. Due within 7 days.
+  // 4. Due within 7 days.
   if (dueSoon.length) {
     const d0 = dueSoon[0];
     const more = dueSoon.length > 1 ? ` ${C.d}+${dueSoon.length - 1}${R}` : "";
@@ -284,7 +323,7 @@ function argusLine(root, budget) {
     return `📜 ${C.y}due ${mmdd(d0.date)}${R}${SEP}${DIM}${text}${R}${more}`;
   }
 
-  // 4–5. Bearing: full while fresh, then decays, then disappears.
+  // 5–6. Bearing: full while fresh, then decays, then disappears.
   if (!bearing) return null;
   const days = bearing._ageMs / DAY;
   if (days > 14) return null;
@@ -331,13 +370,25 @@ function formatDuration(ms) {
   return `${Math.floor(m / 60)}h${m % 60}m`;
 }
 
+// Reads .git/HEAD directly instead of spawning git — the statusline runs on
+// every render and a subprocess is the single most expensive thing it can do.
 function getGitBranch(cwd) {
-  try {
-    return execSync("git rev-parse --abbrev-ref HEAD", {
-      cwd, encoding: "utf8", timeout: 2000,
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch { return null; }
+  return walkUp(cwd, dir => {
+    const g = join(dir, ".git");
+    let st;
+    try { st = fs.statSync(g); } catch { return null; }
+    try {
+      let gitdir = g;
+      if (st.isFile()) { // worktree / submodule: .git is a pointer file
+        const m = /^gitdir:\s*(.+?)\s*$/m.exec(fs.readFileSync(g, "utf8"));
+        if (!m) return null;
+        gitdir = isAbsolute(m[1]) ? m[1] : resolve(dir, m[1]);
+      }
+      const head = fs.readFileSync(join(gitdir, "HEAD"), "utf8").trim();
+      const ref = /^ref: refs\/heads\/(.+)$/.exec(head);
+      return ref ? ref[1] : head.slice(0, 8); // detached HEAD → short hash
+    } catch { return null; }
+  });
 }
 
 // ─── Main ────────────────────────────────────────────────
@@ -361,7 +412,7 @@ function main() {
   out.push(l1);
 
   try {
-    const l2 = argusLine(cwd, budget);
+    const l2 = argusLine(findArgusRoot(cwd), budget);
     if (l2) out.push(l2);
   } catch { /* an error earns silence, not a broken footer */ }
 
