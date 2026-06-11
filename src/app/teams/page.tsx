@@ -37,8 +37,9 @@ export default function TeamsPage() {
 
   useEffect(() => {
     if (currentTeamId) {
-      loadMembers(currentTeamId);
-      loadInvites(currentTeamId);
+      // loadInvites checks admin/owner against the members list — load members
+      // first, or the check runs against an empty list on first selection.
+      loadMembers(currentTeamId).then(() => loadInvites(currentTeamId));
     }
   }, [currentTeamId, loadMembers, loadInvites]);
 
@@ -272,7 +273,7 @@ export default function TeamsPage() {
             </div>
             {inviteSuccess && (
               <p className="text-[12px] text-[var(--success)] mt-2 flex items-center gap-1">
-                <Check size={12} /> {L(`${inviteSuccess}에게 초대를 보냈습니다`, `Invite sent to ${inviteSuccess}`)}
+                <Check size={12} /> {L(`${inviteSuccess}님의 초대를 기록했어요 — 상대에게 이 페이지 링크를 직접 전달해 주세요.`, `Invite recorded for ${inviteSuccess} — share this page's link with them directly.`)}
               </p>
             )}
             {inviteError && (

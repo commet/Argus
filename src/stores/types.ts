@@ -1004,6 +1004,12 @@ export interface VoyageCheckpointState {
   user_notes: string | null;
   decision_maker: string | null;
   lead_synthesis: LeadSynthesisResult | null;
+  /** Both feed extractPredicatesFromSession/deriveCurrentBearing — without
+   *  them in the rewind tape, a fork carried the ABANDONED branch's real_bet
+   *  and dissent into the new branch's contract (measurement integrity).
+   *  Optional: old checkpoints lack them (restore treats absent as null). */
+  falsification?: Falsification | null;
+  debate_result?: { challenge: string; targetAgent: string; weakestClaim: string; alternativeView: string; severity: string } | null;
 }
 
 export interface VoyageCheckpoint {

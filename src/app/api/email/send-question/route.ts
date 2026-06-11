@@ -68,6 +68,13 @@ export async function POST(req: NextRequest) {
   const eQuestion = escapeHtml(safeQuestion);
   const eContext = escapeHtml(safeContext);
 
+  // The reply-to-reflect promise is only true when the inbound webhook is
+  // configured (EMAIL_INBOUND_SECRET). Otherwise, be honest about it.
+  const inboundConfigured = !!process.env.EMAIL_INBOUND_SECRET;
+  const replyNotice = inboundConfigured
+    ? `이 이메일에 답장하시면 ${eName}님의 의사결정 과정에 자동으로 반영됩니다.`
+    : '답장은 아직 자동으로 연결되지 않아요 — 내용은 워크스페이스에서 직접 반영해 주세요.';
+
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="border-bottom: 2px solid #D97706; padding-bottom: 16px; margin-bottom: 24px;">
@@ -91,7 +98,7 @@ export async function POST(req: NextRequest) {
       ` : ''}
 
       <p style="font-size: 13px; color: #6B7280; margin-bottom: 8px;">
-        이 이메일에 답장하시면 ${eName}님의 의사결정 과정에 자동으로 반영됩니다.
+        ${replyNotice}
       </p>
 
       <p style="font-size: 11px; color: #9CA3AF; margin-top: 32px;">

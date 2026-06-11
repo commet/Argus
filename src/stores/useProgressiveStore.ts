@@ -83,6 +83,10 @@ function restoreFields(snap: VoyageCheckpointState): Partial<ProgressiveSession>
     user_notes: snap.user_notes,
     decision_maker: snap.decision_maker,
     lead_synthesis: snap.lead_synthesis,
+    // Absent on old checkpoints → null, never the abandoned branch's values:
+    // both feed the contract seed and the bearing (measurement integrity).
+    falsification: snap.falsification ?? null,
+    debate_result: snap.debate_result ?? null,
   };
 }
 
@@ -305,19 +309,23 @@ interface ProgressiveState {
 /**
  * Persist to localStorage + async Supabase sync for mutated sessions.
  * Supabase sync is debounced per session ID to avoid flooding.
+ *
+ * TRAILING debounce: each new mutation resets the timer, so the upsert fires
+ * once, 3s after activity SETTLES. The old leading-edge version fired every
+ * ~2s for the whole active phase, uploading the full session (with its
+ * checkpoint copies — easily hundreds of KB) over and over.
  */
-const _pendingSyncs = new Set<string>();
+const _pendingSyncs = new Map<string, ReturnType<typeof setTimeout>>();
 function persist(sessions: ProgressiveSession[]) {
   setStorage(STORAGE_KEYS.PROGRESSIVE_SESSIONS, sessions);
 
   // Supabase async sync — find sessions that changed (heuristic: any with workers or non-input phase)
   for (const s of sessions) {
     if (s.phase === 'input' && (!s.workers || s.workers.length === 0)) continue; // Skip empty sessions
-    if (_pendingSyncs.has(s.id)) continue; // Already queued
 
-    _pendingSyncs.add(s.id);
-    // Debounce: wait 2s to batch rapid mutations (e.g., streaming token updates)
-    setTimeout(() => {
+    const existing = _pendingSyncs.get(s.id);
+    if (existing) clearTimeout(existing);
+    _pendingSyncs.set(s.id, setTimeout(() => {
       _pendingSyncs.delete(s.id);
       const latest = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []).find(ss => ss.id === s.id);
       if (!latest) return;
@@ -331,7 +339,7 @@ function persist(sessions: ProgressiveSession[]) {
         ),
         updated_at: latest.updated_at || new Date().toISOString(),
       }).catch(() => { /* fire-and-forget — localStorage is primary */ });
-    }, 2000);
+    }, 3000));
   }
 }
 
@@ -1413,6 +1421,8 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       user_notes: session.user_notes ?? null,
       decision_maker: session.decision_maker,
       lead_synthesis: session.lead_synthesis ?? null,
+      falsification: session.falsification ?? null,
+      debate_result: session.debate_result ?? null,
     };
 
     const checkpoint: VoyageCheckpoint = {

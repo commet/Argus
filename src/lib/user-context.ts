@@ -9,7 +9,7 @@
  */
 
 import { sanitizeForPrompt } from './persona-prompt';
-import type { Settings } from '@/stores/types';
+import type { Settings, DecisionQualityScore } from '@/stores/types';
 import type { NavigatorProfile } from './navigator';
 
 // ── Types ──
@@ -61,10 +61,13 @@ export function getUserObservations(): UserObservations {
   try {
     // Dynamic require: navigator chain이 무겁고 SSR에서 문제될 수 있어서 lazy load
     const { buildNavigatorProfile } = require('./navigator') as { buildNavigatorProfile: () => NavigatorProfile };
-    const { analyzeDQTrend } = require('./decision-quality') as { analyzeDQTrend: () => { trend: string } };
+    const { analyzeDQTrend, getDQScores } = require('./decision-quality') as {
+      analyzeDQTrend: (scores: DecisionQualityScore[]) => { trend: string };
+      getDQScores: () => DecisionQualityScore[];
+    };
 
     const profile = buildNavigatorProfile();
-    const dq = analyzeDQTrend();
+    const dq = analyzeDQTrend(getDQScores() || []);
 
     return {
       sessionCount: profile.sessionCount,

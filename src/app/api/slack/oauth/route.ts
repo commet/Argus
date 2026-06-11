@@ -14,7 +14,9 @@ export async function GET(req: NextRequest) {
   const clientId = process.env.SLACK_CLIENT_ID;
   const signingSecret = process.env.SLACK_SIGNING_SECRET;
   if (!clientId || !signingSecret) {
-    return NextResponse.json({ error: 'Slack not configured' }, { status: 503 });
+    // The settings Connect button navigates the whole window here — a raw JSON
+    // 503 would strand the user. Send them back with a friendly explanation.
+    return NextResponse.redirect(new URL('/settings?slack=unconfigured', req.url));
   }
 
   // Get userId from query param (passed by client-side JS)

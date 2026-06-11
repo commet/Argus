@@ -3,6 +3,8 @@ import { validateContentType, validateContentLength, validateOrigin } from '@/li
 
 const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
 
+let warnedMissingKey = false;
+
 export async function POST(req: NextRequest) {
   const ctError = validateContentType(req);
   if (ctError) return ctError;
@@ -12,7 +14,12 @@ export async function POST(req: NextRequest) {
   if (originError) return originError;
 
   if (!BRAVE_API_KEY) {
-    return NextResponse.json({ results: [] });
+    if (!warnedMissingKey) {
+      console.warn('[api/search] BRAVE_SEARCH_API_KEY is not set — web search is disabled.');
+      warnedMissingKey = true;
+    }
+    // disabled lets callers distinguish "no key" from "no results"
+    return NextResponse.json({ results: [], disabled: true });
   }
 
   try {

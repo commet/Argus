@@ -9,7 +9,7 @@ import { clearAllStorage, STORAGE_KEYS, getStorage } from '@/lib/storage';
 import { downloadJson } from '@/lib/export';
 import { deleteAllUserData } from '@/lib/db';
 import type { LLMMode, LLMProvider } from '@/stores/types';
-import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, Volume2, TrendingUp, Brain, MessageSquare, Unlink, User, BarChart3 } from 'lucide-react';
+import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, Volume2, TrendingUp, Brain, MessageSquare, Unlink, User, BarChart3, FlaskConical } from 'lucide-react';
 import { getObservationsSummary } from '@/lib/user-context';
 import { assessLearningHealth } from '@/lib/learning-health';
 import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAmbientPlaying } from '@/lib/audio';
@@ -64,6 +64,9 @@ export default function SettingsPage() {
       window.history.replaceState({}, '', '/settings');
     } else if (slack === 'error') {
       setSlackStatus('error');
+      window.history.replaceState({}, '', '/settings');
+    } else if (slack === 'unconfigured') {
+      setSlackStatus('unconfigured');
       window.history.replaceState({}, '', '/settings');
     }
   }, [loadSettings, loadSlack]);
@@ -146,7 +149,7 @@ export default function SettingsPage() {
           <h3 className="text-[15px] font-bold">{L('내 프로필', 'My Profile')}</h3>
         </div>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
-          {L('AI가 내 역할과 수준에 맞게 피드백 톤과 깊이를 조절합니다.', 'AI adjusts feedback tone and depth based on your role and level.')}
+          {L('검토 피드백(상사 시점 리뷰)의 톤과 깊이에 반영돼요.', 'Used to tune the tone and depth of review feedback (boss-perspective reviews).')}
         </p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -503,6 +506,11 @@ export default function SettingsPage() {
             <p className="text-[13px] text-[var(--danger)] font-medium">{L('Slack 연결에 실패했습니다. 다시 시도해주세요.', 'Slack connection failed. Please try again.')}</p>
           </div>
         )}
+        {slackStatus === 'unconfigured' && (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
+            <p className="text-[13px] text-[var(--text-secondary)]">{L('Slack 연동이 아직 설정되지 않은 배포예요 — 운영자가 SLACK_* 환경변수를 등록하면 켜져요.', 'Slack integration isn\'t configured on this deployment yet — it turns on once the operator sets the SLACK_* environment variables.')}</p>
+          </div>
+        )}
         {slackConnections.length > 0 ? (
           <div className="space-y-2">
             {slackConnections.map((conn: { id: string; team_name: string }) => (
@@ -578,6 +586,58 @@ export default function SettingsPage() {
       {/* ── 5. Learning Health (conditional) ── */}
       <LearningHealthCard />
 
+      {/* ── 6. Labs ── */}
+      <Card>
+        <div className="flex items-center gap-2 mb-1">
+          <FlaskConical size={16} className="text-[var(--accent)]" />
+          <h3 className="text-[15px] font-bold">{L('실험실 (Labs)', 'Labs')}</h3>
+        </div>
+        <p className="text-[12px] text-[var(--text-secondary)] mb-4">
+          {L('아직 다듬는 중인 기능이에요. 언제든 켜고 끌 수 있어요.', 'Features still being polished. Toggle anytime.')}
+        </p>
+        <div className="space-y-3">
+          {([
+            {
+              key: 'new_arc_enabled' as const,
+              label: L('시험 항해 (실험 중)', 'Trial Sail (experimental)'),
+              desc: L('분석 단계에서 AI 실행자 여럿이 같은 글을 따로 읽고, 갈리는 지점을 측정해 보여줘요', 'In the analysis stage, several AI executors read the same text separately and show where they diverge'),
+            },
+            {
+              key: 'classic_session' as const,
+              label: L('클래식 세션 보기', 'Classic session view'),
+              desc: L('항해 중 우측 기록 레일과 단계별 확인 화면을 항상 펼쳐 둬요', 'Keep the right-side log rail and per-step confirmation screens always open during a voyage'),
+            },
+            {
+              key: 'all_output_formats' as const,
+              label: L('모든 산출물 형식', 'All output formats'),
+              desc: L('기본 1종 외의 산출물 형식을 모두 보여줘요', 'Show every output format beyond the single default'),
+            },
+          ]).map((lab) => {
+            const on = !!settings[lab.key];
+            return (
+              <div key={lab.key} className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-medium">{lab.label}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)]">{lab.desc}</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={on}
+                  onClick={() => updateSettings({ [lab.key]: !on })}
+                  className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${
+                    on ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
+                  }`}
+                >
+                  <span className={`block w-5 h-5 rounded-full bg-[var(--surface)] shadow-sm transition-transform ${
+                    on ? 'translate-x-[22px]' : 'translate-x-[2px]'
+                  } mt-[2px]`} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
       <Modal open={resetModal} onClose={() => setResetModal(false)} title={L('데이터 초기화', 'Reset Data')}>
         <p className="text-[14px] text-[var(--text-primary)] mb-2">
           {L('모든 프로젝트의 분석, 초안, 검토 이력이 영구 삭제됩니다.', 'All analyses, drafts, and review history across your projects will be permanently deleted.')}
@@ -624,7 +684,11 @@ function LearningHealthCard() {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const health = useMemo(() => assessLearningHealth(), []);
 
+  // Only show once there is real underlying data — the legacy 4R flow was the
+  // only writer of these signals, so for most users this card would otherwise
+  // sit at "Tier 1 · 0 signals · not enough data" forever.
   if (!health) return null;
+  if ((health.signal_count || 0) === 0 && (health.learning_tier || 1) <= 1) return null;
 
   const tierLabels = { 1: L('시작', 'Start'), 2: L('학습 중', 'Learning'), 3: L('최적화', 'Optimized') } as Record<number, string>;
   const tierColors = { 1: 'text-[var(--text-secondary)]', 2: 'text-[var(--accent)]', 3: 'text-[var(--success)]' };
