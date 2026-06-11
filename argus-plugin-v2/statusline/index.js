@@ -1,23 +1,36 @@
 #!/usr/bin/env node
 /**
- * Argus v2 Status Line for Claude Code
+ * Argus Status Line — the line earns its space; it does not rent it.
  *
- * Design principle (unchanged from v0.5): show what changes behavior, not what decorates the screen.
- * Every line must contain information the user CANNOT see in the conversation.
+ * Line 1 (always): model, context bar, session duration, git branch.
+ * Line 2 (at most ONE, absent by default), by priority:
+ *   1. OVERDUE contract checks — sealed bets past check_by (+ bearing contract seeds)
+ *   2. live session progress   — session.json touched < 15 min ago, phase != complete
+ *   3. checks due within 7 days
+ *   4. fresh Current Bearing   — generated < 48 h ago: status + summary + fog
+ *   5. decaying bearing        — 2–14 days old: glyph + age only
+ *   6. nothing
  *
- * Line 1: Model + Context forecast + Duration + branch
- * Line 2: Active session — phase, active draft label, agents deployed, verification, open concerns
- * Line 3: Decision tree summary — total drafts, released version, branches
+ * Why this hierarchy: of everything Argus produces, only a contract check date
+ * stays true and behavior-changing weeks after it was written. A bearing is
+ * orientation the day it is generated and noise two weeks later — so it decays
+ * and disappears. Machinery (agent counts, claim counts, boss persona) never
+ * appears here; that is the webapp voyage view's job.
  *
- * Zero dependencies — pure Node.js (CommonJS).
+ * Data sources (all optional; absence = silence, never an error):
+ *   .argus/ledger/ledger.jsonl                       — argus-watch append-only event log
+ *   .argus/current-bearing.json                      — bearing emitted at repo root
+ *   .argus/sessions/<id>/current-bearing.json        — per-session bearing
+ *   .argus/sessions/<id>/versions/<v>/current-bearing.json
+ *   .argus/sessions/<id>/session.json                — live phase, only while fresh
  *
- * Divergence from v0.5: no 4R references (reframe/recast/rehearse/refine), no journal.md parsing.
- * Reads session.json files under .argus/sessions/ instead.
+ * Zero dependencies — pure Node.js (CommonJS). Must never throw: a statusline
+ * error must degrade to line 1, not to a stack trace under the input box.
  */
 
-const { readFileSync, existsSync, statSync, readdirSync, openSync, readSync, closeSync } = require("fs");
+const fs = require("fs");
 const { execSync } = require("child_process");
-const { basename, join } = require("path");
+const { join } = require("path");
 
 // ─── ANSI ────────────────────────────────────────────────
 
@@ -27,9 +40,12 @@ const BOLD = `${E}1m`;
 const DIM = `${E}2m`;
 const C = {
   g: `${E}32m`, y: `${E}33m`, r: `${E}31m`,
-  c: `${E}36m`, m: `${E}35m`, b: `${E}34m`,
-  w: `${E}37m`, d: `${E}90m`,
+  c: `${E}36m`, m: `${E}35m`, w: `${E}37m`, d: `${E}90m`,
 };
+
+const SEP = ` ${C.d}·${R} `;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const DAY = 86400000;
 
 // ─── Stdin ───────────────────────────────────────────────
 
@@ -39,7 +55,7 @@ function readStdin() {
     const buf = Buffer.alloc(4096);
     while (true) {
       try {
-        const n = readSync(process.stdin.fd, buf, 0, 4096);
+        const n = fs.readSync(process.stdin.fd, buf, 0, 4096);
         if (n === 0) break;
         chunks.push(Buffer.from(buf.slice(0, n)));
       } catch { break; }
@@ -48,100 +64,272 @@ function readStdin() {
   } catch { return null; }
 }
 
-// ─── Session state parser ────────────────────────────────
+// ─── Display width (Hangul/CJK/emoji are double-width) ──
 
-let sessionCache = { mtime: 0, data: null };
-
-// Read a write-once artifact from the active draft's version dir. Returns null on
-// any miss/parse error — the statusline must never throw on partial session state.
-function readVersionArtifact(sessionDir, label, name) {
-  if (!sessionDir || !label) return null;
-  try {
-    const p = join(sessionDir, "versions", label, name);
-    if (!existsSync(p)) return null;
-    return JSON.parse(readFileSync(p, "utf8"));
-  } catch { return null; }
+function charCells(cp) {
+  if (cp >= 0x1100 && cp <= 0x115f) return 2;   // Hangul Jamo
+  if (cp >= 0x2e80 && cp <= 0xa4cf) return 2;   // CJK radicals … Yi
+  if (cp >= 0xac00 && cp <= 0xd7a3) return 2;   // Hangul syllables
+  if (cp >= 0xf900 && cp <= 0xfaff) return 2;   // CJK compatibility
+  if (cp >= 0xfe30 && cp <= 0xfe4f) return 2;
+  if (cp >= 0xff00 && cp <= 0xff60) return 2;   // fullwidth forms
+  if (cp >= 0x1f300 && cp <= 0x1faff) return 2; // emoji
+  if (cp === 0x2693 || cp === 0x26d4) return 2; // ⚓ ⛔
+  return 1;
 }
 
-function parseActiveSession(cwd) {
-  const sessionsDir = join(cwd, ".argus", "sessions");
-  if (!existsSync(sessionsDir)) return null;
-
-  try {
-    // Find most recently modified session
-    const entries = readdirSync(sessionsDir);
-    let latest = null;
-    let latestDir = null;
-    let latestMtime = 0;
-
-    for (const entry of entries) {
-      const sessionJson = join(sessionsDir, entry, "session.json");
-      if (!existsSync(sessionJson)) continue;
-      const stat = statSync(sessionJson);
-      if (stat.mtimeMs > latestMtime) {
-        latestMtime = stat.mtimeMs;
-        latest = sessionJson;
-        latestDir = join(sessionsDir, entry);
-      }
-    }
-
-    if (!latest) return null;
-
-    if (sessionCache.mtime === latestMtime && sessionCache.data) {
-      return sessionCache.data;
-    }
-
-    const raw = readFileSync(latest, "utf8");
-    const session = JSON.parse(raw);
-
-    const drafts = session.drafts || [];
-    const activeDraft = drafts.find(d => d.id === session.active_draft_id) || drafts[drafts.length - 1];
-    const releasedDraft = drafts.find(d => d.id === session.released_draft_id);
-
-    // Count branches (drafts with a period in their label beyond the first)
-    const branches = drafts.filter(d => {
-      const parts = d.version_label.split(".");
-      return parts.length >= 3;  // v0.1.1, v0.2.3 etc.
-    }).length;
-
-    // The thin session.json no longer embeds boss feedback or the verification
-    // ledger — they live write-once in versions/{label}/. Read the active draft's
-    // version-dir artifacts directly (defensive: any missing/corrupt file -> null).
-    const activeLabel = activeDraft?.version_label || null;
-    const bossFeedback = readVersionArtifact(latestDir, activeLabel, "boss_feedback.json");
-    const verification = readVersionArtifact(latestDir, activeLabel, "verification.json");
-
-    // Critical concerns count (from the active draft's boss feedback if present)
-    let criticalConcerns = 0;
-    if (bossFeedback?.concerns) {
-      criticalConcerns = bossFeedback.concerns.filter(c => c.severity === "critical").length;
-    }
-
-    const data = {
-      id: session.id,
-      phase: session.phase,
-      round: session.round,
-      maxRounds: session.max_rounds,
-      problemSnippet: (session.problem_text || "").slice(0, 40),
-      agentsDeployed: (session.workers || []).length,
-      mbtiBoss: session.boss_agent?.mbti_code || null,
-      draftCount: drafts.length,
-      activeLabel: activeDraft?.version_label || null,
-      releasedLabel: releasedDraft?.version_label || null,
-      branchCount: branches,
-      criticalConcerns,
-      stakes: session.classification?.stakes || null,
-      verificationStatus: verification?.overall_status || null,
-      challengedCount: verification?.challenged_claims?.length ?? verification?.challenged_count ?? null,
-      humanCheckCount: verification?.human_required_checks?.length ?? verification?.human_check_count ?? null,
-    };
-
-    sessionCache = { mtime: latestMtime, data };
-    return data;
-  } catch { return null; }
+function cells(s) {
+  let n = 0;
+  for (const ch of s) n += charCells(ch.codePointAt(0));
+  return n;
 }
 
-// ─── Git ─────────────────────────────────────────────────
+function clip(s, max) {
+  if (cells(s) <= max) return s;
+  let out = "";
+  let n = 0;
+  for (const ch of s) {
+    const w = charCells(ch.codePointAt(0));
+    if (n + w > max - 1) break;
+    out += ch;
+    n += w;
+  }
+  return out + "…";
+}
+
+// ─── Dates ───────────────────────────────────────────────
+
+/** Today as a LOCAL-timezone ISO date (matches argus-watch ledger.mjs). */
+function localToday(offsetDays = 0) {
+  const d = new Date(Date.now() + offsetDays * DAY);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function mmdd(iso) { return iso.slice(5); }
+
+// ─── Ledger: sealed bets with a check date ───────────────
+// Minimal replay of tools/argus-watch/lib/ledger.mjs semantics. Reimplemented
+// because the statusline ships standalone with the plugin; if the two drift,
+// the ledger event log is the contract — follow ledger.mjs.
+
+function loadSealedBets(root) {
+  let raw;
+  try { raw = fs.readFileSync(join(root, ".argus", "ledger", "ledger.jsonl"), "utf8"); }
+  catch { return []; }
+
+  const map = new Map();
+  for (const line of raw.split("\n")) {
+    if (!line.trim()) continue;
+    let e;
+    try { e = JSON.parse(line); } catch { continue; }
+    const cur = map.get(e.id);
+    switch (e.event) {
+      case "harvest":
+        if (!cur) map.set(e.id, { status: "candidate", decision: e.decision, quote: e.quote });
+        break;
+      case "seal":
+        if (cur) Object.assign(cur, { status: "sealed", predicate: e.predicate, check_by: e.check_by });
+        break;
+      case "amend":
+        if (cur) {
+          if (e.predicate != null) cur.predicate = e.predicate;
+          if (e.check_by != null) cur.check_by = e.check_by;
+        }
+        break;
+      case "dismiss":
+        if (cur) cur.status = "dismissed";
+        break;
+      case "settle":
+        if (cur) cur.status = "settled";
+        break;
+    }
+  }
+  return [...map.values()].filter(d => d.status === "sealed" && d.check_by && ISO_DATE.test(d.check_by));
+}
+
+// ─── Current Bearing ─────────────────────────────────────
+
+function bearingCandidates(root) {
+  const out = [join(root, ".argus", "current-bearing.json")];
+  const sessions = join(root, ".argus", "sessions");
+  let ids = [];
+  try { ids = fs.readdirSync(sessions); } catch { return out; }
+  for (const id of ids) {
+    out.push(join(sessions, id, "current-bearing.json"));
+    const versions = join(sessions, id, "versions");
+    let vs = [];
+    try { vs = fs.readdirSync(versions); } catch { continue; }
+    for (const v of vs) out.push(join(versions, v, "current-bearing.json"));
+  }
+  return out;
+}
+
+function loadBearing(root) {
+  let best = null;
+  for (const p of bearingCandidates(root)) {
+    let st;
+    try { st = fs.statSync(p); } catch { continue; }
+    let b;
+    try { b = JSON.parse(fs.readFileSync(p, "utf8")); } catch { continue; }
+    const t = Date.parse(b.generated_at) || st.mtimeMs;
+    if (!best || t > best.t) best = { b, t };
+  }
+  if (!best) return null;
+  best.b._ageMs = Date.now() - best.t;
+  return best.b;
+}
+
+// ─── Live session ────────────────────────────────────────
+
+const LIVE_WINDOW_MS = 15 * 60000;
+
+function loadLiveSession(root) {
+  const sessions = join(root, ".argus", "sessions");
+  let ids = [];
+  try { ids = fs.readdirSync(sessions); } catch { return null; }
+
+  let latest = null;
+  for (const id of ids) {
+    const p = join(sessions, id, "session.json");
+    let st;
+    try { st = fs.statSync(p); } catch { continue; }
+    if (!latest || st.mtimeMs > latest.mtimeMs) latest = { p, mtimeMs: st.mtimeMs };
+  }
+  if (!latest || Date.now() - latest.mtimeMs > LIVE_WINDOW_MS) return null;
+
+  let s;
+  try { s = JSON.parse(fs.readFileSync(latest.p, "utf8")); } catch { return null; }
+  if (!s.phase || s.phase === "complete") return null;
+
+  const drafts = s.drafts || [];
+  const active = drafts.find(d => d.id === s.active_draft_id) || drafts[drafts.length - 1];
+  return {
+    phase: s.phase,
+    round: s.round,
+    maxRounds: s.max_rounds,
+    label: (active && active.version_label) || null,
+  };
+}
+
+// ─── Contract checks (ledger bets + bearing seed) ────────
+
+function collectChecks(root, bearing, today) {
+  const items = loadSealedBets(root).map(d => ({
+    date: d.check_by,
+    text: d.decision || d.predicate || "",
+    kind: "bet",
+  }));
+
+  const seed = bearing && bearing.contract_seed;
+  if (seed && seed.check_by && ISO_DATE.test(seed.check_by)) {
+    items.push({ date: seed.check_by, text: seed.predicate || "", kind: "seed" });
+  }
+
+  const horizon = localToday(7);
+  const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  return {
+    overdue: items.filter(i => i.date <= today).sort(byDate),
+    dueSoon: items.filter(i => i.date > today && i.date <= horizon).sort(byDate),
+  };
+}
+
+// ─── Colors ──────────────────────────────────────────────
+
+function phaseColor(phase) {
+  if (phase === "verifying") return C.y;
+  if (phase === "dm_feedback" || phase === "refining") return C.m;
+  if (phase === "team_deploying" || phase === "team_working" || phase === "mixing") return C.c;
+  if (phase === "analyzing" || phase === "conversing" || phase === "input") return C.w;
+  return C.y;
+}
+
+function courseColor(status, blocked) {
+  if (blocked) return C.r;
+  if (status === "proceed" || status === "anchor") return C.g;
+  if (status === "fork") return C.m;
+  return C.y; // hold, revise, collect_evidence, unknown
+}
+
+// ─── Line 2: the one Argus line ──────────────────────────
+
+function argusLine(root, budget) {
+  const today = localToday();
+  const bearing = loadBearing(root);
+  const { overdue, dueSoon } = collectChecks(root, bearing, today);
+
+  // 1. Overdue: never decays, beats everything.
+  if (overdue.length) {
+    const o = overdue[0];
+    const head = overdue.length > 1 ? `OVERDUE ×${overdue.length}` : "OVERDUE";
+    const text = clip((o.kind === "seed" ? "seed: " : "") + o.text, Math.max(16, budget - cells(head) - 26));
+    return `📜 ${C.r}${BOLD}${head}${R} ${C.r}${mmdd(o.date)}${R}${SEP}${text}${SEP}${C.d}→ /watch due${R}`;
+  }
+
+  // 2. A run in progress: transient, footer-appropriate.
+  const live = loadLiveSession(root);
+  if (live) {
+    const parts = [`⚓ ${phaseColor(live.phase)}${live.phase}${R}`];
+    if (live.label) parts.push(`${C.c}${live.label}${R}`);
+    if (live.round && live.maxRounds && (live.phase === "analyzing" || live.phase === "conversing")) {
+      parts.push(`${C.d}Q${live.round}/${live.maxRounds}${R}`);
+    }
+    return parts.join(SEP);
+  }
+
+  // 3. Due within 7 days.
+  if (dueSoon.length) {
+    const d0 = dueSoon[0];
+    const more = dueSoon.length > 1 ? ` ${C.d}+${dueSoon.length - 1}${R}` : "";
+    const text = clip((d0.kind === "seed" ? "seed: " : "") + d0.text, Math.max(16, budget - 18));
+    return `📜 ${C.y}due ${mmdd(d0.date)}${R}${SEP}${DIM}${text}${R}${more}`;
+  }
+
+  // 4–5. Bearing: full while fresh, then decays, then disappears.
+  if (!bearing) return null;
+  const days = bearing._ageMs / DAY;
+  if (days > 14) return null;
+
+  const status = (bearing.current_course && bearing.current_course.status) || "?";
+  const sc = courseColor(status, bearing.blocked);
+
+  if (days > 2) {
+    return `${DIM}⚓ ${status} · ${Math.round(days)}d ago${R}`;
+  }
+
+  const segs = [`⚓ ${sc}${bearing.blocked ? "⛔ " : ""}${BOLD}${status}${R}`];
+  const summary = bearing.current_course && bearing.current_course.summary;
+  const fog = bearing.fog_or_reef && bearing.fog_or_reef.issue;
+
+  // Fixed overhead: glyphs, separators, age tag. Fog keeps a reserved share —
+  // it is the highest-value token and must survive truncation.
+  const fixed = 16 + cells(status);
+  const fogMax = fog ? Math.max(24, Math.floor((budget - fixed) * 0.45)) : 0;
+  const sumMax = Math.max(16, budget - fixed - fogMax);
+  if (summary) segs.push(clip(summary, sumMax));
+  if (fog) segs.push(`🌫 ${C.y}${clip(fog, fogMax)}${R}`);
+  if (bearing._ageMs > DAY) segs.push(`${C.d}${Math.round(bearing._ageMs / 3600000)}h${R}`);
+  return segs.join(SEP);
+}
+
+// ─── Line 1: harness ─────────────────────────────────────
+
+function bar(pct, w) {
+  w = w || 8;
+  if (pct == null || isNaN(pct)) pct = 0;
+  pct = Math.round(pct);
+  const f = Math.min(Math.floor((pct / 100) * w), w);
+  const color = pct < 70 ? C.g : pct < 85 ? C.y : C.r;
+  return `${color}${"█".repeat(f)}${DIM}${"░".repeat(w - f)}${R} ${color}${pct}%${R}`;
+}
+
+function formatDuration(ms) {
+  if (!ms) return null;
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  return `${Math.floor(m / 60)}h${m % 60}m`;
+}
 
 function getGitBranch(cwd) {
   try {
@@ -152,135 +340,32 @@ function getGitBranch(cwd) {
   } catch { return null; }
 }
 
-// ─── Render helpers ──────────────────────────────────────
-
-function bar(pct, w) {
-  w = w || 10;
-  if (pct == null || isNaN(pct)) pct = 0;
-  pct = Math.round(pct);
-  const f = Math.min(Math.floor((pct / 100) * w), w);
-  const e = w - f;
-  const color = pct < 70 ? C.g : pct < 85 ? C.y : C.r;
-  return `${color}${"█".repeat(f)}${DIM}${"░".repeat(e)}${R} ${color}${pct}%${R}`;
-}
-
-function formatDuration(ms) {
-  if (!ms) return null;
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  return `${h}h${m % 60}m`;
-}
-
-function phaseColor(phase) {
-  if (!phase) return C.d;
-  if (phase === "complete") return C.g;
-  if (phase === "verifying") return C.y;
-  if (phase === "dm_feedback" || phase === "refining") return C.m;
-  if (phase === "team_working" || phase === "mixing") return C.c;
-  if (phase === "analyzing" || phase === "conversing") return C.b;
-  return C.y;
-}
-
 // ─── Main ────────────────────────────────────────────────
 
 function main() {
-  const stdin = readStdin();
-  if (!stdin) { process.stdout.write("Argus"); return; }
+  const stdin = readStdin() || {};
+  const cwd = stdin.cwd || (stdin.workspace && stdin.workspace.current_dir) || process.cwd();
+  const model = (stdin.model && stdin.model.display_name) || "Claude";
+  const cols = Number(process.env.COLUMNS) || 110;
+  const budget = Math.max(60, cols - 4);
 
   const out = [];
-  const cwd = stdin.cwd || stdin.workspace?.current_dir || ".";
-  const model = stdin.model?.display_name || "Claude";
-  const branch = getGitBranch(cwd);
 
-  // ═══ LINE 1: Model │ Context │ Duration │ Branch ═══
-
-  const ctxPct = stdin.context_window?.used_percentage ?? 0;
-  const duration = formatDuration(stdin.cost?.total_duration_ms);
-
-  let l1 = `${C.c}${model}${R} ${bar(ctxPct, 8)}`;
+  let l1 = `${C.c}${model}${R} ${bar((stdin.context_window && stdin.context_window.used_percentage) || 0)}`;
   const meta = [];
-  if (duration) meta.push(`${C.d}${duration}${R}`);
+  const dur = formatDuration(stdin.cost && stdin.cost.total_duration_ms);
+  if (dur) meta.push(`${C.d}${dur}${R}`);
+  const branch = getGitBranch(cwd);
   if (branch) meta.push(`${C.m}${branch}${R}`);
   if (meta.length) l1 += ` ${C.d}│${R} ${meta.join(" ")}`;
   out.push(l1);
 
-  // ═══ LINE 2: Active session ═══
-
-  const session = parseActiveSession(cwd);
-  if (session) {
-    const parts = [];
-
-    // Session marker
-    parts.push(`${C.m}♫${R} ${C.w}${BOLD}${session.id.slice(0, 30)}${R}`);
-
-    // Phase + active version
-    const pc = phaseColor(session.phase);
-    parts.push(`${pc}${session.phase}${R}${session.activeLabel ? `${C.d}·${R}${C.c}${session.activeLabel}${R}` : ""}`);
-
-    // Stakes badge
-    if (session.stakes) {
-      const stakesColor = session.stakes === "critical" ? C.r : session.stakes === "important" ? C.y : C.d;
-      parts.push(`${stakesColor}${session.stakes}${R}`);
-    }
-
-    // Round (if in conversing/analyzing)
-    if (session.phase === "conversing" || session.phase === "analyzing") {
-      parts.push(`${C.d}Q${session.round}/${session.maxRounds}${R}`);
-    }
-
-    // Agents deployed
-    if (session.agentsDeployed > 0) {
-      parts.push(`${C.d}agents${R} ${C.c}${session.agentsDeployed}${R}`);
-    }
-
-    // Verification
-    if (session.verificationStatus) {
-      const vc = session.verificationStatus === "verified" ? C.g
-        : session.verificationStatus === "blocked" || session.verificationStatus === "needs_revision" ? C.r
-          : C.y;
-      const details = [];
-      if (session.challengedCount != null) details.push(`${session.challengedCount} challenged`);
-      if (session.humanCheckCount != null && session.humanCheckCount > 0) details.push(`${session.humanCheckCount} human`);
-      parts.push(`${C.d}verify${R} ${vc}${session.verificationStatus}${R}${details.length ? `${C.d}(${details.join(", ")})${R}` : ""}`);
-    }
-
-    // Boss
-    if (session.mbtiBoss) {
-      parts.push(`${C.d}boss${R} ${C.y}${session.mbtiBoss}${R}`);
-    }
-
-    // Critical concerns
-    if (session.criticalConcerns > 0) {
-      parts.push(`${C.r}⚠ ${session.criticalConcerns} critical${R}`);
-    }
-
-    out.push(parts.join(` ${C.d}│${R} `));
-  }
-
-  // ═══ LINE 3: Draft tree summary ═══
-
-  if (session && session.draftCount > 0) {
-    const parts = [];
-
-    parts.push(`${C.d}drafts${R} ${C.c}${session.draftCount}${R}`);
-
-    if (session.branchCount > 0) {
-      parts.push(`${C.y}${session.branchCount} branch${session.branchCount > 1 ? "es" : ""}${R}`);
-    }
-
-    if (session.releasedLabel) {
-      parts.push(`${C.g}🏷 ${session.releasedLabel}${R}`);
-    }
-
-    if (parts.length > 1) {  // Only show if there's something beyond just count
-      out.push(parts.join(` ${C.d}│${R} `));
-    }
-  }
+  try {
+    const l2 = argusLine(cwd, budget);
+    if (l2) out.push(l2);
+  } catch { /* an error earns silence, not a broken footer */ }
 
   process.stdout.write(out.join("\n"));
 }
 
-main();
+try { main(); } catch { process.stdout.write("Argus"); }
