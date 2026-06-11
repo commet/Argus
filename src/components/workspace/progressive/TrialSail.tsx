@@ -61,6 +61,7 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
   const forks = useProbeStore((s) => s.forks);
   const findings = useProbeStore((s) => s.findings);
   const silent = useProbeStore((s) => s.silent);
+  const ablationFailed = useProbeStore((s) => s.ablationFailed);
 
   // Display-only crew labels — stable for the component's lifetime.
   const labels = useMemo(() => probeExecutorLabels(N_EXECUTORS), []);
@@ -72,11 +73,20 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
   // StrictMode abort into a fake convergence-silence — never again.)
   useEffect(() => {
     if (!paragraph.trim()) return;
-    if (useProbeStore.getState().status !== 'idle') return;
+    const st = useProbeStore.getState();
+    if (st.status !== 'idle') {
+      // Same paragraph → this run (or its finished result) is ours; don't re-probe.
+      if (st.paragraph === paragraph) return;
+      // Different paragraph → a PREVIOUS session's probe is still in the global
+      // store (done/error states survive unmount by design, so a reload shows
+      // the result). Wipe it — otherwise this session would render the old
+      // session's samples/forks and even inject its stale questions.
+      st.reset();
+    }
 
     const myRun = ++trialSailRunSeq;
     const mine = () => trialSailRunSeq === myRun;
-    useProbeStore.getState().begin(N_EXECUTORS);
+    useProbeStore.getState().begin(N_EXECUTORS, paragraph);
     const abort = new AbortController();
 
     (async () => {
@@ -99,6 +109,9 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
           forks: div.forks,
           findings: abl.findings,
           calls: [...div.calls, ...abl.calls],
+          // D alone failing must not let C's convergence wear the silence card
+          // (failure ≠ silence — the half that failed didn't measure anything).
+          ablationFailed: !!abl.failed,
         });
       } catch (e) {
         if (!mine()) return;
@@ -188,10 +201,16 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                     </div>
                   ))}
                 </motion.dl>
+              ) : done ? (
+                // Honest no-show: a frozen skeleton reads as "loading stuck" —
+                // say plainly that this reading never arrived.
+                <p className="text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
+                  {L('이 선원의 응답은 닿지 않았어요.', "This reading didn't arrive.")}
+                </p>
               ) : (
                 <div className="space-y-1.5">
                   {[0, 1, 2, 3].map((r) => (
-                    <div key={r} className={`h-3 rounded bg-[var(--surface)] ${done ? 'opacity-40' : 'animate-pulse'}`} />
+                    <div key={r} className="h-3 rounded bg-[var(--surface)] animate-pulse" />
                   ))}
                 </div>
               )}
@@ -253,6 +272,14 @@ export function TrialSail({ paragraph }: { paragraph: string }) {
                 </div>
               </div>
             ))}
+
+            {/* Honest partial failure: D (the primary lever) didn't land. One
+                quiet line — never the silence card (failure ≠ convergence). */}
+            {ablationFailed && (
+              <p className="text-[11px] text-[var(--text-tertiary)]">
+                {L('하중 측정은 이번에 닿지 않았어요.', "The load-bearing measurement didn't land this time.")}
+              </p>
+            )}
 
             {/* 침묵 카드 — convergence is a real, honest result (P3). */}
             {silent && (

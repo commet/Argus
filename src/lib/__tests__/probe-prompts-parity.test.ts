@@ -20,10 +20,16 @@ import {
   dPrompt,
 } from '../prompts/probe-prompts';
 
-const PLUGIN_MD = readFileSync(
+// JS template literals are LF-normalized at parse time (ECMAScript spec), but
+// readFileSync returns whatever line endings git checked out (CRLF on Windows
+// with autocrlf). Normalize both sides so parity compares CONTENT, not checkout
+// config — without this the suite fails on Windows despite zero drift.
+const lf = (s: string) => s.replace(/\r\n/g, '\n');
+
+const PLUGIN_MD = lf(readFileSync(
   join(process.cwd(), 'argus-plugin-v2/data/prompts/probe-prompts.md'),
   'utf8',
-);
+));
 
 describe('probe prompt parity: web TS ⇄ plugin md', () => {
   it.each([
@@ -32,7 +38,7 @@ describe('probe prompt parity: web TS ⇄ plugin md', () => {
     ['C_FORK_RULES_BLOCK', C_FORK_RULES_BLOCK],
     ['D_ABLATION_BLOCK', D_ABLATION_BLOCK],
   ])('%s appears verbatim in the plugin prompt file', (_name, block) => {
-    expect(PLUGIN_MD).toContain(block.trim());
+    expect(PLUGIN_MD).toContain(lf(block).trim());
   });
 
   it('the plugin file declares the parity contract (so a skill editor sees it)', () => {

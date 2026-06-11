@@ -189,6 +189,11 @@ export interface DivergenceProbeOptions {
   n?: number;
   /** Re-probe: only look at these fields (경량 재탐침, W2.3 — 세션당 ≤2회는 호출자 책임). */
   fields?: ForkField[];
+  /** Anchor-validation text when it differs from the probed paragraph. The
+   *  re-probe appends synthetic lines ("[사용자 확정] …") to the paragraph the
+   *  executors read — quotes must still be verified against the USER'S OWN
+   *  words, or a hallucinated anchor citing the synthetic line would pass. */
+  anchorText?: string;
   /** Fires as each executor's sample lands (도착 순 — drives the theater). */
   onSample?: (index: number, sample: ProbeSample) => void;
   signal?: AbortSignal;
@@ -259,12 +264,19 @@ export async function runDivergenceProbe(
       { system: '', model: 'default', maxTokens: 1500, signal: opts.signal },
     );
     calls.push({ kind: 'c_merge', ms: Date.now() - t1, chars: JSON.stringify(merged).length, ok: true });
-    const enforced = enforceForks(paragraph, merged);
+    const enforced = enforceForks(opts.anchorText ?? paragraph, merged);
     forks = enforced.forks;
     dropped = enforced.dropped;
   } catch {
     // Merge failure → no measured forks. Don't fake them (P3).
     calls.push({ kind: 'c_merge', ms: Date.now() - t1, chars: 0, ok: false });
+    // An ABORTED merge is not a measurement at all — rethrow like the sample
+    // stage (and runAblationProbe) so the caller resets instead of receiving a
+    // zero-fork result that reads as convergence. Without this, unmounting
+    // mid-merge would revive the store as `done`+silent after cleanup's reset.
+    if (opts.signal?.aborted) {
+      throw new DOMException('divergence probe aborted', 'AbortError');
+    }
   }
 
   logCalls('divergence', calls);

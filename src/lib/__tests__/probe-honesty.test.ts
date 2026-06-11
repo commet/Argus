@@ -88,7 +88,7 @@ describe('engine: failure ≠ silence', () => {
 describe('store: the silence card requires real samples', () => {
   it('completed with ZERO samples never sets silent', () => {
     const s = useProbeStore.getState();
-    s.begin(3);
+    s.begin(3, '문단입니다.');
     s.completed({ forks: [], findings: [], calls: [] });
     expect(useProbeStore.getState().silent).toBe(false); // the rendered lie, sealed
     expect(useProbeStore.getState().status).toBe('done');
@@ -96,7 +96,7 @@ describe('store: the silence card requires real samples', () => {
 
   it('completed with 2+ samples and nothing found → silent (honest convergence)', () => {
     const s = useProbeStore.getState();
-    s.begin(3);
+    s.begin(3, '문단입니다.');
     s.sampleArrived(SAMPLE);
     s.sampleArrived(SAMPLE);
     s.completed({ forks: [], findings: [], calls: [] });
@@ -105,7 +105,7 @@ describe('store: the silence card requires real samples', () => {
 
   it('failed() is a distinct state — not done, not silent', () => {
     const s = useProbeStore.getState();
-    s.begin(3);
+    s.begin(3, '문단입니다.');
     s.failed('측정이 닿지 않았어요');
     expect(useProbeStore.getState().status).toBe('error');
     expect(useProbeStore.getState().silent).toBe(false);
@@ -113,9 +113,57 @@ describe('store: the silence card requires real samples', () => {
 
   it('reset() returns to idle so a remount can re-run cleanly', () => {
     const s = useProbeStore.getState();
-    s.begin(3);
+    s.begin(3, '문단입니다.');
     s.reset();
     expect(useProbeStore.getState().status).toBe('idle');
     expect(useProbeStore.getState().samples).toEqual([]);
+  });
+});
+
+describe('store: session identity & budgets (cross-session pollution, sealed)', () => {
+  it('begin() records the measured paragraph — the global store can tell sessions apart', () => {
+    const s = useProbeStore.getState();
+    s.begin(3, '첫 세션 문단');
+    expect(useProbeStore.getState().paragraph).toBe('첫 세션 문단');
+    s.reset();
+    expect(useProbeStore.getState().paragraph).toBeNull();
+  });
+
+  it('a fresh begin() restarts the session budgets (re-probe + question caps)', () => {
+    const s = useProbeStore.getState();
+    s.begin(3, '첫 세션');
+    expect(s.tryConsumeReprobe()).toBe(true);
+    expect(s.tryConsumeReprobe()).toBe(true);
+    expect(s.tryConsumeReprobe()).toBe(false); // ≤2 enforced
+    expect(s.tryConsumeQuestion()).toBe(true);
+    expect(s.tryConsumeQuestion()).toBe(true);
+    expect(s.tryConsumeQuestion()).toBe(false); // ≤2 enforced (v4.1 W2.2)
+    s.begin(3, '다음 세션');
+    expect(s.tryConsumeReprobe()).toBe(true); // budget is per session, not forever
+    expect(s.tryConsumeQuestion()).toBe(true);
+  });
+});
+
+describe('engine: re-probe anchors verify against the ORIGINAL text', () => {
+  it('a quote that only occurs in the synthetic [사용자 확정] line is dropped', async () => {
+    vi.mocked(callLLMParallel).mockImplementation(async (calls, opts) => {
+      const o = opts as { onItemComplete?: (i: number, r: ProbeSample) => void };
+      calls.forEach((_, i) => o.onItemComplete?.(i, SAMPLE));
+      return { results: [SAMPLE, SAMPLE, SAMPLE], errors: [null, null, null], successCount: 3, failureCount: 0 };
+    });
+    const original = '다음 분기에 신제품을 출시한다.';
+    const synthetic = `${original}\n\n[사용자 확정] "신제품" → B안`;
+    vi.mocked(callLLMJson).mockResolvedValue({
+      forks: [
+        // anchored in the synthetic line only → must be dropped
+        { field: 'week1_action', variants: ['x', 'y'], cause_quote: '사용자 확정', flipped_user_claim: 'c' },
+        // anchored in the user's own words → must survive
+        { field: 'key_resource', variants: ['x', 'y'], cause_quote: '신제품을 출시', flipped_user_claim: 'c' },
+      ],
+    });
+    const r = await runDivergenceProbe(synthetic, { anchorText: original });
+    expect(r.forks).toHaveLength(1);
+    expect(r.forks[0].field).toBe('key_resource');
+    expect(r.dropped).toBe(1);
   });
 });
