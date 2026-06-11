@@ -984,6 +984,16 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const newArcSetting = useSettingsStore((s) => s.settings.new_arc_enabled ?? false);
   const newArcEnabled = newArcSetting ||
     (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('arc') === '1');
+  // W1.6 선실 대청소 (founder verdict, G-W1 #1): focus session is the DEFAULT.
+  // Primary exposure mid-voyage = ① the current question ② the crew/theater
+  // ③ a standing escape hatch. Everything else (analysis card, question diff,
+  // convergence, exits, Q&A history) retreats behind one quiet "기록" toggle —
+  // demoted, never deleted. classic_session=true restores the old layout.
+  const classicSession = useSettingsStore((s) => s.settings.classic_session ?? false);
+  const focusMode = !classicSession;
+  const [recordOpen, setRecordOpen] = useState(false);
+  /** A retreated block renders when: classic layout, OR the user opened 기록. */
+  const showRecord = !focusMode || recordOpen;
   const [busy, setBusy] = useState(false);
   // The overreach/flinch step's in-flight ladder (strength + escalating claims).
   // Local + ephemeral: only the committed result persists (session.falsification).
@@ -2179,7 +2189,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* Update summary chip — surfaces "what changed" at the user's eye level
               (right above the next question). AnalysisCard lives further down,
               so without this, users miss the evolution they just triggered. */}
-          {latest && snapshots.length > 1 && !final_ && phase === 'conversing' && !mix && (
+          {showRecord && latest && snapshots.length > 1 && !final_ && phase === 'conversing' && !mix && (
             <UpdateSummaryChip
               snapshot={latest}
               prevSnapshot={snapshots[snapshots.length - 2]}
@@ -2246,6 +2256,30 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               );
             })()}
           </div>
+
+          {/* W1.6 focus mode: the standing escape hatch + the ONE record toggle.
+              The user can always stop being asked ("그만 묻고 마무리로") and the
+              retreated record (analysis card, question diff, convergence, Q&A
+              history, exits) lives behind a single quiet line — demoted, never
+              deleted. */}
+          {focusMode && phase === 'conversing' && !busy && !mix && !final_ && snapshots.length > 0 && (
+            <div className="flex items-center justify-between gap-3 -mt-3 px-1">
+              {curQ ? (
+                <button
+                  onClick={() => { track('focus_escape_to_mix', { round }); onMix(); }}
+                  className="text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                >
+                  {L('그만 묻고 마무리로 →', 'Stop asking — wrap up →')}
+                </button>
+              ) : <span />}
+              <button
+                onClick={() => setRecordOpen((o) => !o)}
+                className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              >
+                {recordOpen ? L('기록 접기 ▴', 'Hide record ▴') : L('지금까지의 기록 ▾', 'Voyage record ▾')}
+              </button>
+            </div>
+          )}
 
           {/* Inline worker reports — ONE-AT-A-TIME stepper. Reviewing 3 long
               drafts in a single scroll was a huge burden; instead the user
@@ -2381,7 +2415,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
           {/* Lead Synthesis — previously hidden, now visible.
               (Drafting status already surfaced in PhaseStatusBar.) */}
-          {session?.lead_synthesis && !final_ && (
+          {(showRecord || phase !== 'conversing') && session?.lead_synthesis && !final_ && (
             <LeadSynthesisCard synthesis={session.lead_synthesis} />
           )}
 
@@ -2395,7 +2429,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               the real question diverges from what the user first typed. Sits
               above the (default-collapsed) analysis card so the shift is visible
               even before the user expands the detail. */}
-          {latest && !mix && !final_ && phase === 'conversing' && (
+          {showRecord && latest && !mix && !final_ && phase === 'conversing' && (
             <QuestionDiff
               before={session?.problem_text ?? ''}
               after={latest.real_question ?? ''}
@@ -2411,7 +2445,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <TrialSail paragraph={session.problem_text} />
           )}
 
-          {latest && !final_ && (
+          {(showRecord || phase !== 'conversing') && latest && !final_ && (
             <div ref={analysisCardRef}>
               <AnalysisCard
                 snapshot={latest}
@@ -2454,7 +2488,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           )}
 
           {/* Convergence Status — 라운드 2+ (Weakness C) */}
-          {snapshots.length >= 2 && !mix && !final_ && phase === 'conversing' && (
+          {showRecord && snapshots.length >= 2 && !mix && !final_ && phase === 'conversing' && (
             <ConvergenceStatus metrics={
               workers.length > 0
                 ? assessConvergenceWithWorkers(snapshots, workers.map(w => ({ validationScore: w.validation_score, approved: w.approved })))
@@ -2463,7 +2497,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           )}
 
           {/* Pipeline Exit — 라운드 1+ 후 4R로 분기 가능 (Weakness D) */}
-          {latest && snapshots.length >= 1 && !mix && !final_ && phase === 'conversing' && !busy && (
+          {showRecord && latest && snapshots.length >= 1 && !mix && !final_ && phase === 'conversing' && !busy && (
             <PipelineExitOptions
               onReframe={() => {
                 try {
@@ -2501,7 +2535,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* Answered Q&A history — collapsed at bottom. ref is used by
               VoyagePrepSummary's "Revisit my answers" link to scroll back
               to the Q&A history without disrupting the user's flow. */}
-          {!final_ && (
+          {(showRecord || phase !== 'conversing') && !final_ && (
             <div ref={answeredPillsRef}>
               <AnsweredPills qaPairs={qaPairs} />
             </div>

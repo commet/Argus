@@ -65,7 +65,15 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
     const sess = s.sessions.find(x => x.id === s.currentSessionId);
     return (sess?.waypoints?.length ?? 0) > 0;
   });
-  const showRail = hasWorkers || hasWaypoints;
+  // W1.6 선실 대청소: mid-voyage, the rail (Logbook + AgentSidebar) was the
+  // single biggest "중구난방" source (G-W1 contact #1). Focus mode (default)
+  // shows it only once the voyage is complete; classic_session restores it.
+  const sessionPhase = useProgressiveStore(s => {
+    const sess = s.sessions.find(x => x.id === s.currentSessionId);
+    return sess?.phase ?? null;
+  });
+  const classicSession = useSettingsStore(s => s.settings.classic_session ?? false);
+  const showRail = (hasWorkers || hasWaypoints) && (classicSession || sessionPhase === 'complete');
   // Which course are we on? Shown in the header once more than one exists, so a
   // fork/switch (which jumps the conversation) doesn't feel disorienting.
   const branchInfo = useProgressiveStore(s => {
@@ -129,7 +137,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
 
         {/* Mobile: ship's-log bottom drawer (sits above the worker bar), then
             the worker drawer. Both hidden on lg where the right rail shows. */}
-        <div className="lg:hidden"><LogbookDrawer offset={hasWorkers} /></div>
+        {showRail && <div className="lg:hidden"><LogbookDrawer offset={hasWorkers} /></div>}
         {hasWorkers && <WorkerDrawer className="lg:hidden" />}
       </div>
     </div>

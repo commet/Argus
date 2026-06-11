@@ -647,6 +647,10 @@ export interface Settings {
    *  anchored questions). Default OFF — the old path is the A/B baseline and
    *  regression safety net (구 경로 무손상). URL `?arc=1` overrides for demos. */
   new_arc_enabled?: boolean;
+  /** W1.6 선실 대청소 (founder verdict, G-W1 contact #1): focus session IS the
+   *  default — one question, collapsed records, standing escape hatch, no side
+   *  rail mid-voyage. `true` restores the old cluttered layout (rollback/AB). */
+  classic_session?: boolean;
 }
 
 // ─── Judgment Vitality Engine ───
