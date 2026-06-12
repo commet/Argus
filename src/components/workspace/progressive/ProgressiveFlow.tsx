@@ -2513,7 +2513,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 : undefined;
               return (
                 <QuestionCard
-                  key={curQ.id}
+                  // Keyed by SLOT, not question id: the P1-3 typed upgrade (and
+                  // the framing-reject re-ask) swap the question IN PLACE via
+                  // replaceLatestQuestion — an id key would remount the card and
+                  // wipe whatever the user was typing. The slot only advances
+                  // when an answer lands, which is exactly when a reset is right.
+                  key={`q-slot-${answers.length}`}
                   question={curQ}
                   onAnswer={onAnswer}
                   disabled={busy}
