@@ -124,14 +124,24 @@ Restart Claude Code, then in any project:
 
 ```text
 /argus:sail "Your decision question"
-/argus:sail @PR#123
-/argus:sail @docs/strategy.md
+/argus:sail "Is PR 123 safe to merge?"
+/argus:sail "Is docs/strategy.md taking us the right way?"
 ```
 
-**Zero setup.** Everything ships inside the plugin. On first run Argus
-auto-creates `.argus/config.yaml` with sensible defaults (language is
-auto-detected; edit the file to change it or to pick a different stakeholder
-persona). Session history is **git-ignored by default** — see
+Just say it — quotes optional, no syntax to learn. When your question names a
+PR, issue, file, branch, or document, Argus reads that artifact and works on
+it. You can even skip the command: asking Claude "review this deck before I
+send it" or "should we ship this?" triggers Argus on its own. Documents
+supported: pdf/md/txt read directly; **pptx/docx/xlsx/hwpx** extracted
+dependency-free (legacy .ppt/.doc/.hwp → Argus asks for a PDF export).
+Explicit `@PR#123` / `@doc:<path>` forms exist if prose is ambiguous.
+
+**Zero setup.** Everything ships inside the plugin. Your first session after
+installing greets you with a one-line pointer to `/argus:help` (once, ever —
+Argus stays silent otherwise). On first run Argus auto-creates
+`.argus/config.yaml` with sensible defaults (language is auto-detected; edit
+the file to change it or to pick a different stakeholder persona). Session
+history is **git-ignored by default** — see
 [Privacy](#privacy--team-sharing).
 
 ### Requirements
@@ -140,7 +150,7 @@ persona). Session history is **git-ignored by default** — see
 |---|---|
 | Claude Code (latest) | everything |
 | `git` | repo-aware analysis (optional for non-code decisions) |
-| GitHub CLI `gh` | optional — `@PR#N` / `@issue#N` auto-expansion; without it, paste the content |
+| GitHub CLI `gh` | optional — fetching PRs/issues you mention; without it, paste the content |
 | Node.js ≥ 16 | optional — statusline and the contract-reminder hook |
 
 Works on macOS, Linux, and Windows.
@@ -154,7 +164,7 @@ Works on macOS, Linux, and Windows.
 | `/argus:sail` | **Start here.** Runs the whole flow and renders the Current Bearing. |
 | `/argus:help` | Command map; tells you which command fits your situation. |
 | `/argus:chart` | Where am I in this voyage? Version tree, open checks, next step. Also promote/branch. |
-| `/argus:log` | Voyage log across all sessions: past decisions, sealed contracts, your prediction record. |
+| `/argus:log` | Voyage log across all sessions: past decisions, sealed contracts, your prediction record. `--insights` adds pattern notes once ≥3 contracts are settled; `--all` lists every session. |
 | `/argus:settle` | Check predictions whose date arrived against reality; builds your calibration history. |
 | `/argus:revise` | Apply review feedback into a new draft and re-verify — the iteration loop. |
 | `/argus:clarify` | Sharpen the real question before any work (sail runs this first). |

@@ -38,7 +38,7 @@ if [ ! -d "$CLAUDE_DIR" ]; then
 fi
 
 echo ""
-echo -e "${BOLD}  Argus v2.3${NC} - decision-voyage harness for Claude Code."
+echo -e "${BOLD}  Argus v2.4${NC} - decision-voyage harness for Claude Code."
 echo ""
 
 TEMP_DIR=""
@@ -190,6 +190,12 @@ fi
 # user's repo on first /argus:sail (curl|bash runs from an arbitrary cwd, usually
 # $HOME, so creating .argus/ here would just litter the home directory).
 
+# The SessionStart contract-reminder hook (hooks/hooks.json + check-contracts.js)
+# resolves its script via ${CLAUDE_PLUGIN_ROOT}, which only exists under a plugin
+# install — a copy install cannot run it, so we don't copy it and say so instead.
+warn "The overdue-contract session reminder ships with the PLUGIN install only."
+info "Copy installs still get /settle and /log; only the automatic reminder is missing."
+
 if [ "$LINK_MODE" = false ] && [ -n "$TEMP_DIR" ]; then
   rm -rf "$TEMP_DIR"
 fi
@@ -225,7 +231,7 @@ fi
 echo ""
 
 if [ "$ERRORS" -eq 0 ]; then
-  echo -e "${GREEN}${BOLD}  Installed successfully (v2.3.0)${NC}"
+  echo -e "${GREEN}${BOLD}  Installed successfully (v2.4.0)${NC}"
   if [ "$LINK_MODE" = true ]; then
     echo -e "  ${DIM}Mode: linked to local repo. Restart Claude Code after editing skills.${NC}"
   fi

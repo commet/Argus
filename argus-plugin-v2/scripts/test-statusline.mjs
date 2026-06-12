@@ -100,7 +100,7 @@ t("empty repo → line 1 only", () => {
   assert(out[0].includes("TestModel"), "missing model name");
 });
 
-t("overdue bet → OVERDUE line with /watch hint", () => {
+t("overdue bet → OVERDUE line with /argus:settle hint", () => {
   const r = repo();
   ledger(r, bet("aaaa0001", iso(-3), "플러그인 보존, 포지셔닝 피벗"));
   const out = lines(run(r));
@@ -231,6 +231,65 @@ t("contract seed past check_by → OVERDUE seed (no ledger needed)", () => {
   const l2 = lines(run(r))[1];
   assert(l2.includes("OVERDUE"), `seed overdue not shown: ${l2}`);
   assert(l2.includes("seed:"), `seed not marked: ${l2}`);
+});
+
+// A version-dir bearing whose seed was imported into the ledger by /argus:settle
+// (id bearing:<session>:<label>). settle never mutates the bearing file, so the
+// statusline must defer to the ledger replay or it flashes OVERDUE forever.
+function importedSeedRepo(extraEvents) {
+  const r = repo();
+  const dir = join(r, ".argus", "sessions", "s1", "versions", "v0.1");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "current_bearing.json"), JSON.stringify({
+    label: "v0.1",
+    current_course: { status: "proceed", summary: "시드 임포트 케이스" },
+    why_this_course: [{ point: "x" }],
+    fog_or_reef: null,
+    road_not_taken: [{ option: "a", why_not_now: "b" }],
+    next_helm: "n",
+    contract_seed: { predicate: "임포트된 예측", check_by: iso(-3) },
+    blocked: false,
+    detail_path: ".",
+    generated_at: new Date(Date.now() - 0.1 * DAY).toISOString(),
+  }));
+  ledger(r, [
+    { event: "harvest", id: "bearing:s1:v0.1", decision: "시드 임포트 케이스", quote: "임포트된 예측" },
+    { event: "seal", id: "bearing:s1:v0.1", predicate: "임포트된 예측", check_by: iso(-3) },
+    ...extraEvents,
+  ]);
+  return r;
+}
+
+t("seed imported + settled in ledger → no OVERDUE, bearing renders", () => {
+  const r = importedSeedRepo([{ event: "settle", id: "bearing:s1:v0.1", outcome: "happened" }]);
+  const l2 = lines(run(r))[1];
+  assert(l2 && !l2.includes("OVERDUE"), `settled imported seed must not be overdue: ${l2}`);
+  assert(l2.includes("proceed"), `fresh bearing should render instead: ${l2}`);
+});
+
+t("seed imported + pushed via amend → no OVERDUE", () => {
+  const r = importedSeedRepo([{ event: "amend", id: "bearing:s1:v0.1", check_by: iso(30) }]);
+  const l2 = lines(run(r))[1];
+  assert(l2 && !l2.includes("OVERDUE"), `pushed imported seed must not be overdue: ${l2}`);
+});
+
+t("seed imported but still open → counted once, not twice", () => {
+  const r = importedSeedRepo([]);
+  const l2 = lines(run(r))[1];
+  assert(l2.includes("OVERDUE"), `open imported seed is still due: ${l2}`);
+  assert(!l2.includes("×2"), `must not double-count seed + ledger bet: ${l2}`);
+});
+
+t("root-level seed settled in ledger (predicate match) → no OVERDUE", () => {
+  const r = repo();
+  bearing(r, { contract_seed: { predicate: "루트 시드 예측", check_by: iso(-1) } }, 0.1);
+  ledger(r, [
+    { event: "harvest", id: "ffff0001", decision: "d", quote: "루트 시드 예측" },
+    { event: "seal", id: "ffff0001", predicate: "루트 시드 예측", check_by: iso(-1) },
+    { event: "settle", id: "ffff0001", outcome: "partial" },
+  ]);
+  const l2 = lines(run(r))[1];
+  assert(l2 && !l2.includes("OVERDUE"), `root seed sealed under another id must dedup by predicate: ${l2}`);
 });
 
 t("non-ISO seed check_by → ignored, bearing renders", () => {

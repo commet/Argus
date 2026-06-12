@@ -1,6 +1,7 @@
 ---
 name: sail
-description: Top-level Argus orchestrator. Routes a decision through clarify, crew work, verification, optional stakeholder review, and a compressed Current Bearing. Works on a technical decision in your repo (PR, design doc, architecture) OR a non-code one (market entry, hiring, vendor, pricing, career) — code-aware in a repo, document/strategy mode otherwise. The user-facing product is a decision voyage with one practical bearing, not a multi-agent workflow report. Invoked as `/argus:sail`.
+description: Top-level Argus orchestrator. Routes a decision through clarify, crew work, verification, optional stakeholder review, and a compressed Current Bearing. Use whenever the user weighs a consequential decision or wants something pressure-checked before committing — even without the slash command. Triggers — "이거 해도 되나?", "머지해도 될까?", "A랑 B 중 뭐가 낫지?", "이 보고서/기획안 검토해줘", "임원회의 가져가도 되나?", "should we ship/migrate/hire?", "review this deck/plan". Handles repo decisions (PR, design doc, architecture) and non-code ones (market entry, hiring, vendor, pricing, a PPT/report). Targets may be named in plain prose (PR, issue, file, branch, document — office files extracted per clarify §Document Extraction); no syntax needed. NOT for trivial reversible choices or pure execution tasks. Output is one practical bearing, not a multi-agent report. Invoked as `/argus:sail`.
+argument-hint: "[your decision — may mention a PR, issue, file, branch, or document]"
 ---
 
 # /argus:sail
@@ -28,12 +29,18 @@ in the default bearing. Those details live in `.argus/sessions/` and
 
 ## When To Run
 
-The default entry point:
+The default entry point. The argument is plain prose — quotes are optional
+(`/argus:sail PR 12 머지해도 되나` works as-is), and when the text names a PR,
+issue, file, branch, or document, clarify detects and reads that artifact
+(see clarify §Inputs); the user never needs reference syntax. Claude may also
+invoke this skill WITHOUT the slash command when the user's plain request
+matches the description triggers — treat that invocation identically:
 
 - `/argus:sail "<problem description>"`
-- `/argus:sail @PR#123`
-- `/argus:sail @<file>`
-- `/argus:sail`
+- `/argus:sail "PR 12 머지해도 되나?"` (prose target — clarify expands it)
+- `/argus:sail "docs/strategy.md 방향이 맞나?"`
+- `/argus:sail @PR#123` / `@<file>` (explicit override when prose is ambiguous)
+- `/argus:sail` (no args — autodetect from git state)
 - `/argus:sail --full "<problem>"`
 - `/argus:sail --quick "<problem>"`
 - `/argus:sail --no-boss "<problem>"`
@@ -85,9 +92,13 @@ Read `.argus/config.yaml`.
 # Argus: decision sessions can contain code diffs + business context.
 # Remove this line (and set archive.commit_sessions: true) to share with your team.
 sessions/
+# The ledger holds your personal predictions and settled outcomes verbatim.
+ledger/
 errors.log
 ```
-If `config.archive.commit_sessions == true`, omit the `sessions/` line so the user's opt-in to team sharing is honored.
+If `config.archive.commit_sessions == true`, omit the `sessions/` line so the user's opt-in to team sharing is honored. The `ledger/` line stays even then — the calibration record is personal by default; the user can delete the line by hand to share it.
+
+If `.argus/.gitignore` already exists but lacks the `ledger/` line (it predates the settlement loop), append the two ledger lines above — do not touch the rest of the file.
 
 **Substitute the detected locale into the written config — do not leave the template's `locale: ko`.** The template defaults to Korean; if you write it verbatim, every downstream output is Korean regardless of the user. After detecting locale (below):
 - Set `locale:` in the written config to the detected value.

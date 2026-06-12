@@ -74,6 +74,9 @@ evidence_in_text("" = 근거 없음). findings = shift true && evidence "" 만.
 ```
 
 - id 해시·이벤트 리플레이 규칙은 ledger.mjs와 동일 — `argus-watch list`에 그대로 잡힌다.
+- `.argus/ledger/` 생성 시 `.argus/.gitignore`에 `ledger/` 줄이 있는지 확인하고
+  없으면 추가 (sail Step 0 프라이버시 기본값 — helm이 원장을 처음 만드는
+  경우도 있으므로 여기서도 보장한다).
 - 거절은 1탭, 무손실. 재촉 금지.
 
 ## Step 3 — 반자동 정산 (실행 완료 후)

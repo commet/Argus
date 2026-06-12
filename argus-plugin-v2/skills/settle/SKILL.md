@@ -39,7 +39,10 @@ Two sources, merged and deduped by id:
 2. **Bearing seeds:** every `.argus/sessions/*/versions/*/current_bearing.json`
    with a `contract_seed` whose `check_by` contains an ISO date ≤ today.
    Synthesize a stable id: `bearing:<session-id>:<label>`. Skip seeds whose id
-   already appears in the ledger (they were settled or already imported).
+   already appears in the ledger (they were settled or already imported) — or
+   whose verbatim predicate was already sealed under another id (e.g., sealed
+   manually via argus-watch); the reminder hook and statusline dedup the same
+   two ways, and settle must agree with them.
    Prose check-by values ("30 days after release") are not mechanically due —
    list them at the end as "date unclear; settle explicitly if it has passed."
 
@@ -86,7 +89,9 @@ If more than 3 are due, settle the 3 oldest and say how many remain.
 ```
 
 Create `.argus/ledger/` if missing. Ensure `.argus/.gitignore` exists per sail
-Step 0 (the ledger inherits the privacy default).
+Step 0 **and contains a `ledger/` line** — older gitignores predate the
+settlement loop and only cover `sessions/`; append the line if missing so the
+ledger (verbatim predicates and outcomes) stays local by default.
 
 ## Step 4 — Report (one screen)
 

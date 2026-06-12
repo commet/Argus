@@ -440,3 +440,138 @@ bodies are cached at session start.
 - validate-plugin.js rewritten for the new structure (forbids regressed manifest
   fields, checks 8 auto-discovered skills + frontmatter, 17 agents, schema
   inventory, and hardcoded-path regressions).
+
+---
+
+# 2026-06-12 - v2.3.0 settlement loop + v2.3.1 hardening
+
+## v2.3.0 (shipped earlier today)
+
+Added the back half of the decision-contract loop: `/argus:settle` (outcome
+recording into the append-only ledger, bearing-seed import), `/argus:log`
+(cross-session voyage log + `--insights`), clarify track-record injection,
+first-voyage hint, and routed the reminder hook / statusline / chart at
+`/argus:settle`. See CHANGELOG 2.3.0.
+
+## v2.3.1 (same-day hardening pass)
+
+A cross-reference review of 2.3.0 found that the skill specs agreed with each
+other on the ledger contract, but the two mechanical surfaces had not caught
+up. Four real bugs fixed:
+
+1. `check-contracts.js` replayed only `seal`/`settle` — pushed (`amend`) and
+   dismissed contracts kept firing the session-start reminder. Now replays the
+   full `ledger.mjs` event set; reads both bearing spellings.
+2. Settled bearing seeds: hook + statusline counted `contract_seed`
+   unconditionally, so after `/argus:settle` imported and settled a seed, both
+   surfaces flashed OVERDUE forever while settle said "no contracts due."
+   Both now dedup against ledger ids (`bearing:<session>:<label>`) and, for
+   root-level bearings, verbatim sealed predicates.
+3. Privacy: settle claimed the ledger inherited sail's gitignore default, but
+   the gitignore only covered `sessions/` — predictions were committed by
+   default. sail Step 0 now writes `ledger/`; settle/helm append it to older
+   gitignores.
+4. Coverage: validate-plugin.js install.sh guard widened 7 → all 11 commands;
+   `data/prompts/probe-prompts.md` and the `ledger/` gitignore line are now
+   validated. (The "checks 8 skills" wording above was already stale at 2.2.0
+   — the script's SKILLS array is the source of truth.)
+
+New test layer: `scripts/test-check-contracts.mjs` (21 fixtures: replay
+semantics, seed dedup, locale, prose dates, corrupt input) + 4 new statusline
+fixtures for imported/settled/pushed seeds. All green:
+`validate-plugin.js` ✓ · `test-statusline.mjs` 34/34 ✓ ·
+`test-check-contracts.mjs` 21/21 ✓.
+
+Docs synced: README ko/en (`--insights`/`--all`), marketplace.json description
+moved off the pre-Current-Bearing wording, TEST_PLAN retitled v2.3 with
+pre-registered TC-SETTLE/TC-LOG/TC-TRACK cases, install.sh warns the copy
+install lacks the reminder hook.
+
+Also aligned session-layout.md §Git Commitment with sail's local-by-default
+gitignore (it previously recommended committing `.argus/` wholesale).
+
+Open items for next pass:
+- TC-SETTLE/TC-LOG/TC-TRACK live runs (fresh session, plugin install) — the
+  skill layer is spec-verified but not yet reality-tested.
+
+---
+
+# 2026-06-12 - v2.4.0 prose-first intake
+
+UX review question: "is the intake actually the easiest form for a user?"
+Answer was no — the plugin invented a reference micro-syntax (`@PR#N`,
+`@doc:<path>`) where the Claude Code convention (verified against the official
+skill-authoring docs; `/review` and `/pr-summary` work this way) is: the
+argument is plain prose, the SKILL instructs the model to detect references
+and fetch them itself with tools, and `argument-hint` frontmatter documents
+the expected argument.
+
+Changes:
+- clarify §Inputs rewritten: natural-language target detection (PR / issue /
+  file / branch / document named in prose) is the primary path; each mention
+  is mechanically verified (PR exists, path exists) before expansion; `@`
+  forms demoted to precision overrides; native Claude Code @-mention content
+  is consumed as-is, not re-read.
+- Ambiguity fallback: one AskUserQuestion with detected candidates — never a
+  silent degrade to repo_scan, never a guessed artifact.
+- `argument-hint` added to sail/clarify frontmatter; validate-plugin.js
+  guards both hints and the prose-first Inputs section.
+- sail When-To-Run, help, READMEs (ko/en), team M1 gate aligned.
+- TEST_PLAN: pre-registered TC-NL-1..4 (prose PR, prose file path, numeric
+  false-positive, unresolvable mention → one question).
+
+Second pass (same day) — non-developer intake + invocation:
+- clarify §Document Extraction: pptx/docx/xlsx/hwpx are zip+XML, so ONE pinned
+  dependency-free recipe (built-in unzip → tag strip → slide/sheet boundaries
+  preserved) replaces per-machine improvisation; installing parsers is
+  forbidden (the "environment lottery" the user called out). Legacy
+  .ppt/.doc/.hwp → honest PDF-export ask; image-heavy decks → fallback, not a
+  husk analysis. Guarded by validate-plugin.js.
+- sail description got concrete natural-language triggers (ko+en) + a NOT-for
+  clause, so "이 보고서 임원회의 가져가도 되나?" invokes Argus without the
+  slash command.
+- Quotes documented optional; TC-NL-5 + TC-DOC-1..3 pre-registered.
+
+Pre-commit review round (two independent reviewers over the full uncommitted
+diff) — fixes applied:
+- sail description was 1118 chars (> ~1024 truncation risk — the NOT-for
+  over-trigger clause sat exactly in the clipped tail); compressed to 877.
+- chart/log frontmatter descriptions contained unquoted ": " — breaks strict
+  YAML parsers; replaced with em-dash/semicolon. validate-plugin.js now
+  YAML-lints every skill description (no unquoted ": ", ≤1024 chars).
+- settle Step 1 now mirrors the surfaces' second dedup rule (verbatim
+  predicate sealed under a foreign id) so settle/hook/statusline can never
+  disagree about whether a seed is open.
+- clarify: native @-mention of an office binary routes to §Document
+  Extraction (injected bytes aren't text); ambiguity question explicitly
+  ordered BEFORE the expansion-failure error shape.
+- team Step 1.5(C) doc-intake wording de-@-syntaxed; rehearsal-prompt test
+  case converted to a prose target.
+- statusline loadLedger skips id-less events (parity with the hook);
+  check-contracts comments corrected; vacuous test assertion ("2" matched the
+  year) tightened; help render block back under its 30-line budget;
+  TEST_PLAN retitled v2.4.
+- scripts/test-check-contracts.mjs was untracked → staged (it's named in the
+  automated gate; a commit without it would break TEST_PLAN's instructions).
+
+Third pass (same day) — install→first-use bridge:
+- Confirmed against official docs: marketplace install shows the plugin
+  description + inventory in the install dialog, then drops the user at the
+  prompt with NO post-install welcome mechanism — the rich onboarding banner
+  only existed in legacy install.sh, i.e. the deprecated path had better
+  onboarding than the documented one.
+- check-contracts.js (SessionStart hook) now prints a one-line orientation on
+  the very first session after install ("just ask, or /argus:sail; full map:
+  /argus:help"), gated by a once-per-machine marker
+  (`$CLAUDE_CONFIG_DIR/argus-greeted`, default `~/.claude/`) written before
+  printing — write failure = silence, never a repeating greeting. Overdue
+  line wins and burns the marker. Locale: config → LANG → system locale.
+- 5 new hook fixtures (26 total): greet-once, ko greeting, overdue-beats-
+  greeting, unwritable config dir → silence, permanent silence after marker.
+  Test harness isolates CLAUDE_CONFIG_DIR so runs never touch the real
+  ~/.claude.
+- Non-code follow-up worth doing: submit Argus to the community marketplace
+  (platform.claude.com submission form) for in-product discoverability.
+
+Live verification pending alongside TC-SETTLE (skill bodies cache at session
+start — needs a fresh session).

@@ -300,7 +300,7 @@ Save this report to `.argus/rehearsals/YYYY-MM-DD-rehearsal-<n>.md` (create dir 
 If user wants to stress-test specific code paths, use these alternate test cases:
 
 - **Tests `explicit_target` mode + critical stakes + debate**: 
-  > `/argus:sail @PR#42` where PR is a database migration adding NOT NULL to a 50M-row column.
+  > `/argus:sail PR 42 이대로 머지해도 되나?` where PR is a database migration adding NOT NULL to a 50M-row column. (Prose target — also exercises v2.4 natural-language detection; `@PR#42` is the equivalent explicit override.)
 
 - **Tests Step 3.5 reconciliation (5+ steps)**: 
   > "Boss simulator를 Argus에서 분리해 독립 제품으로 만들까?"
