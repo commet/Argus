@@ -7,18 +7,18 @@
     "url": "https://github.com/commet"
   },
   "metadata": {
-    "description": "Argus — verification-first judgment harness for Claude Code.",
-    "version": "2.3.0"
+    "description": "Argus — decision-voyage harness for Claude Code.",
+    "version": "2.4.0"
   },
   "plugins": [
     {
       "name": "argus",
       "source": "./argus-plugin-v2",
-      "description": "Verification-first judgment harness. Clarifies the real question, deploys an agent team as workers on real code/PRs/files, then verifies their output into supported / challenged / unresolved / human-required claims before a decision scaffold is shown.",
-      "version": "2.3.0",
+      "description": "Decision-voyage harness. Clarifies the real question, puts an agent crew to work on real code/PRs/files, verifies their claims, and returns a one-screen Current Bearing: course, why, fog or reef, road not taken, next helm — plus a falsifiable decision contract you later settle against reality (/argus:settle, /argus:log).",
+      "version": "2.4.0",
       "license": "MIT",
       "category": "productivity",
-      "keywords": ["decision-making", "judgment-harness", "verification", "current-bearing"]
+      "keywords": ["decision-making", "judgment-harness", "verification", "current-bearing", "decision-contract"]
     }
   ]
 }

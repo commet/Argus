@@ -1,4 +1,4 @@
-# Plugin v2.2 Reality Check - Test Plan
+# Plugin v2.4 Reality Check - Test Plan
 
 **Why this exists.** Earlier plugin validation relied too much on simulated
 self-audit. v2.1 adds a first-class verification step, but that must be tested
@@ -102,7 +102,7 @@ AI cannot verify the blocker.
 ### TC5 - Plugin Judging Plugin
 
 ```text
-/argus:sail "Does Argus plugin v2.2 have too many moving parts: clarify, team, verify, boss, chart, 17 agents, 16 MBTI boss types, and many schemas?"
+/argus:sail "Does Argus plugin v2.4 have too many moving parts: clarify, team, verify, boss, chart, settle, log, 17 agents, 16 MBTI boss types, and many schemas?"
 ```
 
 Expected: at least one agent or verification challenge should be willing to cut
@@ -204,7 +204,7 @@ verification.
 Write results to `.argus/test-observations.md`:
 
 ```markdown
-# Plugin v2.2 Test Observations - YYYY-MM-DD
+# Plugin v2.4 Test Observations - YYYY-MM-DD
 
 ## TC1
 **Invocation**: `/argus:sail "..."`
@@ -247,6 +247,8 @@ Run before release:
 ```bash
 node ./argus-plugin-v2/scripts/validate-plugin.js
 node ./argus-plugin-v2/scripts/simulate-plugin.js
+node ./argus-plugin-v2/scripts/test-statusline.mjs
+node ./argus-plugin-v2/scripts/test-check-contracts.mjs
 ```
 
 `simulate-plugin.js` uses real-shaped cases:
@@ -311,3 +313,99 @@ helm을 훅에 연결하지 마라.
 ### TC-SP-3 — 갈림 0 → 침묵 카드
 수렴하는 명확한 브리프. **PASS** = "선원들이 같은 곳으로 갔어요" 한 줄 + 곧장
 진행, 억지 발견 0건.
+
+---
+
+## TC-SETTLE — 정산 루프 (v2.3, seal → reality → settle)
+
+> 사전 등록 합격선. 격리 세션. 기계 레이어(훅·스테이터스라인)는
+> `test-check-contracts.mjs` / `test-statusline.mjs`가 커버하므로 여기서는
+> 스킬 레이어(LLM이 SKILL.md를 따르는지)만 라이브로 검증한다.
+
+### TC-ST-1 — 정산 기본 흐름
+사전 조건: `.argus/ledger/ledger.jsonl`에 check_by가 지난 sealed 계약 1건
+(harvest+seal 수동 작성 또는 이전 helm/watch 봉인).
+`/argus:settle` 실행.
+**PASS** = ① AskUserQuestion 1회, 선택지에 held/missed/partial/push/skip 전부
+② 선택 후 ledger에 `settle`(또는 push 시 `amend`) 이벤트가 **append**됨 —
+기존 줄 수정/삭제 0 ③ Track record 줄이 카운트만 보여줌 (칭찬/질책 어휘 0)
+④ `.argus/.gitignore`에 `ledger/` 줄 존재.
+**FAIL** = 결과를 스킬이 추론해서 기록, 기존 줄 재작성, 점수/평가 어휘.
+
+### TC-ST-2 — 베어링 시드 임포트 정산
+사전 조건: ledger 없음, `sessions/<id>/versions/<label>/current_bearing.json`에
+check_by 지난 `contract_seed`만 존재.
+`/argus:settle` 실행 → 정산.
+**PASS** = ① ledger에 `bearing:<session-id>:<label>` id로 harvest+seal 임포트
+후 settle ② 베어링 파일은 바이트 단위로 미변경 ③ 직후 `/argus:settle` 재실행
+시 "No contracts due" ④ (플러그인 설치 환경) 다음 세션 시작 훅 침묵 +
+스테이터스라인 OVERDUE 없음 — 2.3.0의 영구 OVERDUE 루프 회귀 체크.
+
+### TC-ST-3 — 정산할 것 없음 → 한 줄
+due 계약 0 상태에서 `/argus:settle`.
+**PASS** = "No contracts due. Next check-by: ..." 정확히 한 줄. 파일 쓰기 0.
+
+### TC-LOG-1 — 항해일지 기본
+세션 2개 이상 + sealed 계약 1개 이상인 프로젝트에서 `/argus:log`.
+**PASS** = 한 화면 이내, Voyages/Recent/Contracts/Record 섹션, 기계 장치
+어휘(worker/schema/phase) 0, 쓰기 0.
+
+### TC-LOG-2 — `--insights` 게이트
+정산 2건 이하 상태에서 `/argus:log --insights`.
+**PASS** = 인사이트 거부 + "N건 더 필요" 안내. 정산 3건 이상이면 최대 3줄,
+각 줄이 구체 엔트리를 인용 (일반론 = FAIL).
+
+### TC-TRACK-1 — clarify 적중 기록 주입
+정산 2건 이상 상태에서 `/argus:clarify "<medium 결정>"`.
+**PASS** = 분석에 reference-only 한 줄 (`<user-data context="track-record">`
+경유), "be more conservative"류 blanket 지시 없음. 정산 1건 이하면 주입 0.
+
+---
+
+## TC-NL — 자연어 타겟 인테이크 (v2.4, prose-first 계약)
+
+> 사전 등록 합격선. 격리 세션. `@` 문법 없이 산문만으로.
+
+### TC-NL-1 — 산문 속 PR 언급 → explicit_target
+열린 PR이 있는 repo에서 `/argus:sail "PR <N> 머지해도 되나?"` (`@` 없이).
+**PASS** = ① `gh pr view <N>`로 확장 ② `meta.json.target_context.kind == "pr"`
+③ `repo_context.mode == "explicit_target"` ④ 워커 출력이 해당 diff를 인용.
+**FAIL** = repo_scan/hypothetical로 강등, PR 번호를 일반 텍스트로 취급.
+
+### TC-NL-2 — 산문 속 파일 경로 → file 타겟
+`/argus:sail "src/lib/db.ts 이렇게 둬도 되나?"`.
+**PASS** = 파일 Read + `git log -5` 확장, `target_context.kind == "file"`.
+
+### TC-NL-3 — 숫자가 타겟이 아닐 때 → 오탐 0
+`/argus:sail "12개 마케팅 채널 중 뭘 줄일까?"`.
+**PASS** = PR/이슈 fetch 시도 0회, 일반 텍스트 경로로 진행.
+
+### TC-NL-4 — 해석 실패 → 한 번 묻기, 추측 금지
+존재하지 않는 PR 번호로 `/argus:sail "PR 999 머지해도 되나?"`.
+**PASS** = AskUserQuestion 정확히 1회 ("어느 자료를 보고 판단할까요?" + 후보 +
+"자료 없이 텍스트만으로"), 침묵 강등/오인 분석 0.
+
+### TC-NL-5 — 슬래시 없이 자연어 트리거
+새 세션에서 명령어 없이: "이 기획안 임원회의 가져가도 되나? docs/plan.md 봐줘".
+**PASS** = Claude가 argus sail 스킬을 자체 호출, 파일 읽고 정상 파이프라인.
+**FAIL** = 일반 어시스턴트 답변으로 처리 (트리거 미작동).
+
+---
+
+## TC-DOC — 오피스 문서 추출 (v2.4, 결정적 레시피)
+
+### TC-DOC-1 — pptx 추출
+텍스트가 든 .pptx를 두고 `/argus:sail 보고서.pptx 이대로 보고해도 되나`.
+**PASS** = ① 패키지 설치 시도 0회 (pip/npm/pandoc 금지) ② 내장 unzip 경로로
+슬라이드 XML 추출 ③ `target_context.extraction == "xml-strip"`, 슬라이드
+경계(`[slide N]`) 보존 ④ 분석이 실제 슬라이드 내용을 인용.
+**FAIL** = 파서 즉석 발명, 설치 시도, 안 읽고 일반론 분석.
+
+### TC-DOC-2 — 구형 바이너리 → 정직한 거절
+.hwp 또는 .ppt 대상.
+**PASS** = "PDF로 내보내거나 붙여넣어 주세요" 한 줄 + 정지. 추측 분석 0.
+
+### TC-DOC-3 — 이미지 위주 덱 → husk 분석 금지
+텍스트가 거의 없는 .pptx.
+**PASS** = 추출 텍스트가 빈약함을 말하고 PDF/붙여넣기 폴백 제안 — 빈 껍데기로
+파이프라인 강행 금지.

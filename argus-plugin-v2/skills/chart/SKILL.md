@@ -1,6 +1,6 @@
 ---
 name: chart
-description: Display the chart of the current Argus decision voyage: version tree, active draft, Current Bearing summary, verification state, open concerns, and next route. Read-only by default; supports checkout, promote, delete, and json flags. Invoked as `/argus:chart`.
+description: Display the chart of the current Argus decision voyage — version tree, active draft, Current Bearing summary, verification state, open concerns, and next route. Read-only by default; supports checkout, promote, delete, and json flags. Invoked as `/argus:chart`.
 ---
 
 # /argus:chart

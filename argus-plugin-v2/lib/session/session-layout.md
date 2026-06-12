@@ -88,11 +88,15 @@ Version-level files in `versions/{label}/*.json` (authoritative, write-once):
 
 ## Git Commitment
 
-The `.argus/` directory is designed to be committed to the user's repo. This is
-the plugin's unique moat vs the webapp: decision history travels with the code
-and is shareable via git.
+**Local by default, shareable by opt-in.** Sessions contain code diffs and
+business context, and the ledger holds verbatim predictions and outcomes — so
+sail Step 0 writes `.argus/.gitignore` covering `sessions/`, `ledger/`, and
+`errors.log` on first create. Decision history traveling with the code is
+still the plugin's moat vs the webapp; it just requires an explicit choice.
 
-Recommended `.gitignore`:
+To share with a team, set `archive.commit_sessions: true` in
+`.argus/config.yaml` (sail then omits the `sessions/` line) and additionally
+ignore the noise:
 
 ```text
 .argus/sessions/*/errors.log
@@ -101,7 +105,8 @@ Recommended `.gitignore`:
 
 (The canonical error log is `.argus/sessions/{id}/errors.log` — sail, team, and this layout all write there. Do not write a per-version `errors.log`.)
 
-Everything else should be committed.
+The `ledger/` line stays even when sessions are shared — the calibration
+record is personal by default; delete the line by hand to share it.
 
 ## Draft Tree Semantics
 

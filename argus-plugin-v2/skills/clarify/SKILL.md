@@ -1,6 +1,7 @@
 ---
 name: clarify
-description: Sharpen a problem before deploying a team to work on it. Surfaces hidden assumptions, reframes the surface question into the real question, and produces a skeleton + execution plan. Entry point of the Argus pipeline (charting the waters before sailing). Use when the user has a problem to work through — a technical decision, a PR to review, a design choice, a fuzzy goal. Output is an AnalysisSnapshot written to `.argus/sessions/{id}/versions/v0.1/analysis.json` that `/argus:team` will consume. NEVER skip this step to save time — the analysis IS the value. Invoked as `/argus:clarify`.
+description: Sharpen a problem before deploying a team to work on it. Surfaces hidden assumptions, reframes the surface question into the real question, and produces a skeleton + execution plan. Entry point of the Argus pipeline (charting the waters before sailing). Use when the user has a problem to work through — a technical decision, a PR to review, a design choice, a fuzzy goal. The user may name a PR, issue, file, branch, or document in plain prose — detect and expand it (see Inputs); no special syntax required. Output is an AnalysisSnapshot written to `.argus/sessions/{id}/versions/v0.1/analysis.json` that `/argus:team` will consume. NEVER skip this step to save time — the analysis IS the value. Invoked as `/argus:clarify`.
+argument-hint: "[decision question — may mention a PR, issue, file, branch, or document]"
 ---
 
 # /argus:clarify
@@ -15,8 +16,9 @@ description: Sharpen a problem before deploying a team to work on it. Surfaces h
 
 Invoke automatically when:
 - `/argus:sail` is called without prior session state in `.argus/sessions/`
-- User passes a problem via `/argus:clarify "<problem text>"`
-- User passes a target via `/argus:clarify @PR#123` / `@<file-path>` / `@<branch>`
+- User passes a problem via `/argus:clarify "<problem text>"` — including prose
+  that names a PR/issue/file/branch/document ("PR 12 머지해도 되나?")
+- User passes an explicit target via `/argus:clarify @PR#123` / `@<file-path>` / `@<branch>`
 - After `/argus:clarify --revise <session-id>` — re-clarifies with new input
 
 Do NOT run when:
@@ -36,13 +38,53 @@ Do NOT run when:
 One of:
 
 1. **Direct problem text** (string argument)
-2. **Target reference** — expand via context collection:
-   - `@PR#N` → `gh pr view N --json title,body,files,state,commits` + diff
-   - `@<file>` → Read file contents + `git log -5 --oneline <file>` for recent churn
-   - `@<branch>` → `git log main..<branch>` + `git diff main...<branch> --stat`
-   - `@<issue-N>` → `gh issue view N`
-   - `@doc:<path>` → Read a local document (`.md`/`.txt`/`.pdf`/etc.) into `target_context` (`kind: "document"`). This is the non-code intake path: a strategy deck, contract, memo, or spec the decision is about. Downstream team runs in document mode on it — no repo needed.
-   - You can also accept pasted context inline (the user drops the relevant facts in the problem text); set `target_context.kind: "pasted"`.
+2. **Target reference — natural language is the primary form.** The user should
+   never need to learn a syntax: per Claude Code convention (the built-in
+   `/review` works this way), the skill interprets prose and fetches the
+   artifact itself with tools. Scan the problem text for mentions of:
+   - **a PR** ("PR 12", "pull request #12", "PR 12 머지해도 되나?") →
+     `gh pr view N --json title,body,files,state,commits` + diff.
+     "this PR" / "이 PR" with no number → resolve from the current branch
+     (`gh pr view` with no args); if that fails, fall to the ambiguity question.
+   - **an issue** ("issue 42", "#42 이슈") → `gh issue view N`
+   - **a file path that exists** ("src/lib/db.ts 이렇게 바꿔도 되나") →
+     Read contents + `git log -5 --oneline <file>` for recent churn
+   - **a branch that exists** ("feat/x 머지 타이밍 괜찮아?") →
+     `git log main..<branch>` + `git diff main...<branch> --stat`
+   - **a local document** ("전략.md 기준으로", "이 보고서.pptx 임원회의 가져가도
+     되나") → read it into `target_context` (`kind: "document"`). This is the
+     non-code intake path: a strategy deck, report, contract, memo, or spec
+     the decision is about. Downstream team runs in document mode on it — no
+     repo needed. **Format handling — follow §Document Extraction below
+     exactly; never improvise a parser or install one.**
+
+   A number/path is only a target when the surrounding prose treats it as the
+   subject of the decision — "PR 12 머지해도 되나" yes; "12개 옵션 중에" no.
+   Verify mechanically before committing (the PR/issue exists, the path
+   exists); a mention that doesn't resolve goes to the ambiguity question, not
+   into a guess.
+
+   **Explicit forms still work as precision overrides** when prose is
+   ambiguous: `@PR#N`, `@<file>`, `@<branch>`, `@issue-N`, `@doc:<path>`.
+   Treat them identically to the resolved prose forms.
+
+   **Native @-mention:** when the user typed `@<file>` via Claude Code's own
+   file picker, the harness has ALREADY injected the file contents into the
+   conversation. Do not re-read it — record what was injected as
+   `target_context: {kind: "file", ref, contents}`. Exception: if the attached
+   file is an office binary (pptx/docx/xlsx/hwpx), the injected bytes are not
+   usable text — apply §Document Extraction to the path instead.
+
+   **Pasted context** also works (the user drops the relevant facts in the
+   problem text); set `target_context.kind: "pasted"`.
+
+   **Ambiguity fallback — one question, never a guess:** if the text plausibly
+   points at an artifact but mechanical resolution fails (number matches no
+   PR, path doesn't exist, several branches match), ask ONE AskUserQuestion —
+   ko: "어느 자료를 보고 판단할까요?" / en: "What should I look at for this?" —
+   options: the detected candidates + "자료 없이 텍스트만으로" / "Just the text,
+   no artifact". Never silently fall to repo_scan when the user clearly named
+   something, and never analyze a wrong artifact.
 3. **Autodetect from git state** (no args):
    - Current branch name (not `main`/`master`)
    - Last 1-3 commit messages
@@ -57,7 +99,47 @@ If multiple candidates, use **AskUserQuestion** to disambiguate: "Which of these
 - `issue` → `target_context: {kind: "issue", ref, title, body, state}`
 - `branch` → `target_context: {kind: "branch", ref, commits, diff_stat}`
 - `file` → `target_context: {kind: "file", ref, contents, recent_churn}`
-This is the single source of truth for the artifact the team works ON (M1 code-native). If expansion failed (gh missing / not a repo), write `target_context: {kind, ref, error: "<reason>", fallback_text: "<user-pasted text if any>"}` so team can degrade to hypothetical mode knowingly instead of silently analyzing nothing.
+This is the single source of truth for the artifact the team works ON (M1 code-native). If expansion failed (gh missing / not a repo), write `target_context: {kind, ref, error: "<reason>", fallback_text: "<user-pasted text if any>"}` so team can degrade to hypothetical mode knowingly instead of silently analyzing nothing. **Order matters:** the ambiguity question above comes FIRST — the error shape is recorded only after the user chooses to proceed without the artifact (or can't provide it), never as a silent substitute for asking.
+
+---
+
+## Document Extraction (deterministic — same recipe on every machine)
+
+Office-style documents are ZIP containers holding XML; their text is
+extractable with nothing but the platform's built-in unzip. **The recipe below
+is the single allowed method.** Do NOT install anything (`pip install
+python-pptx`, npm packages, pandoc, …) and do NOT invent another parser —
+extraction quality must be identical on every user's machine, and an install
+step turns a 30-second intake into an environment lottery.
+
+1. **`.pdf` / `.md` / `.txt` (and other plain text)** → Read directly. PDF is
+   natively readable by the Read tool.
+2. **ZIP-based formats** — extract the XML, then strip tags:
+   - `.pptx` → `ppt/slides/slide*.xml` in slide-number order, plus
+     `ppt/notesSlides/notesSlide*.xml` when present (speaker notes often hold
+     the real argument).
+   - `.docx` → `word/document.xml`.
+   - `.xlsx` → `xl/sharedStrings.xml` + `xl/worksheets/sheet*.xml`.
+   - `.hwpx` → `Contents/section*.xml` (한컴 hwpx is the same zip+XML shape).
+
+   How to unzip (pick by platform, both are built in):
+   - Windows PowerShell: `Expand-Archive -Path <file> -DestinationPath <temp dir>` (copy to a `.zip` name first if Expand-Archive refuses the extension), then Read the XMLs.
+   - macOS/Linux: `unzip -p <file> 'ppt/slides/slide*.xml'` (one command per inner path).
+
+   Tag-strip mechanically: delete `<[^>]+>`, collapse runs of whitespace,
+   keep structural boundaries as plain headings (`[slide 3]`, `[sheet:
+   매출]`) so the team can cite locations.
+3. **Legacy binary formats (`.ppt`, `.doc`, `.xls`, `.hwp`)** are NOT zip and
+   have no dependency-free parser — do not guess. One honest line, ko: "이
+   형식은 직접 못 읽어요 — PDF로 내보내서 다시 주시거나, 내용을 붙여넣어
+   주세요." / en: "I can't read this format directly — export it to PDF or
+   paste the content." Then stop and wait; never analyze a file you didn't
+   read.
+4. **Sanity gate:** if a multi-slide/multi-page document yielded suspiciously
+   little text (< ~200 chars), the deck is probably image-heavy — say so and
+   offer the PDF/paste fallback instead of analyzing a husk. Record what
+   happened either way: `target_context: {kind: "document", ref, contents,
+   extraction: "native-read" | "xml-strip", extraction_note?}`.
 
 ---
 

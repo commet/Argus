@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "argus",
   "displayName": "Argus",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Decision-voyage harness for Claude Code. Argus reads the user's repo, files, PRs, or decision context, checks evidence and weak claims behind the scenes, then returns a compressed Current Bearing: current course, why, fog or reef, road not taken, next helm, and an optional decision-contract seed.",
   "author": {
     "name": "Argus",

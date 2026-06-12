@@ -4,6 +4,97 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.4.0 — 2026-06-12
+
+Intake aligned with Claude Code convention: say it, don't syntax it.
+
+### Changed
+- **Natural-language targets are now the primary intake path.** "PR 12 머지해도
+  되나?" / "Is docs/strategy.md right?" — clarify detects a PR, issue, file,
+  branch, or document named in prose, verifies it resolves (the PR exists, the
+  path exists), and expands it exactly like the old reference forms. This is
+  how Claude Code's own skills (`/review`, `/pr-summary`) locate their target;
+  the invented `@PR#N` / `@doc:<path>` micro-syntax demanded the user learn
+  what the model could simply interpret. The `@` forms remain as precision
+  overrides for ambiguous prose.
+- **Ambiguity asks, never guesses:** when prose plausibly names an artifact
+  but mechanical resolution fails, clarify asks ONE question ("어느 자료를 보고
+  판단할까요?") with the detected candidates instead of silently degrading to
+  repo-scan mode or analyzing the wrong thing.
+- **Native @-mention respected:** files attached via Claude Code's own `@`
+  file picker are already injected by the harness — clarify records the
+  injected content as `target_context` instead of re-reading.
+- `argument-hint` frontmatter added to sail and clarify so autocomplete shows
+  what the argument can be; validate-plugin.js guards it.
+- READMEs (ko/en), `/argus:help`, and team's M1 gate rewritten around the
+  prose-first contract.
+
+### Added
+- **Office-document extraction, deterministic and dependency-free** (clarify
+  §Document Extraction): pptx/docx/xlsx/hwpx are zip+XML — the skill pins ONE
+  recipe (built-in unzip → strip tags → keep slide/sheet boundaries) and
+  forbids improvising parsers or installing packages, so a PPT report gets
+  the same intake quality on every machine. Legacy binaries (.ppt/.doc/.hwp)
+  get an honest "export to PDF or paste" line, never a guess; an image-heavy
+  deck that yields almost no text triggers the same fallback instead of a
+  husk analysis.
+- **Natural-language auto-invocation** — sail's description now carries
+  concrete trigger phrases ("이거 해도 되나?", "이 보고서 검토해줘", "should we
+  ship?", "review this deck") so Claude invokes Argus from a plain request,
+  no slash command needed. Scoped with an explicit NOT-for clause (trivial
+  reversible choices, pure execution tasks) to avoid over-triggering.
+- Quotes documented as optional: `/argus:sail PR 12 머지해도 되나` works as-is.
+- **First-session orientation line** — a marketplace install drops the user
+  back at the prompt with zero guidance (Claude Code has no post-install
+  welcome mechanism). The SessionStart hook now prints ONE line on the very
+  first session after install — "just ask, or /argus:sail; full map:
+  /argus:help" — gated by a once-per-machine marker
+  (`<config dir>/argus-greeted`) written BEFORE printing, so it can never
+  repeat. An overdue-contract line takes priority and also burns the marker
+  (a user with contracts to settle needs no introduction). Locale follows
+  config → LANG → system locale.
+
+## 2.3.1 — 2026-06-12
+
+Settlement-loop hardening: the two mechanical surfaces (SessionStart hook,
+statusline) now follow the same ledger contract as the skills.
+
+### Fixed
+- **Hook ignored `amend` and `dismiss`** — `check-contracts.js` replayed only
+  `seal`/`settle`, so a contract whose date was pushed (settle's "push the
+  date" writes `amend`) kept firing the session-start reminder with the stale
+  date for the whole extension, and a dismissed contract nagged forever. The
+  hook now replays the full event set per `ledger.mjs` (the contract).
+- **Settled bearing seeds flashed OVERDUE forever** — settle imports a seed
+  into the ledger (id `bearing:<session>:<label>`) and never mutates the
+  bearing file, but the hook and the statusline both counted `contract_seed`
+  unconditionally. After settling, both surfaces pointed at `/argus:settle`
+  while settle itself correctly said "no contracts due." Both now skip seeds
+  whose id — or verbatim predicate, for root-level bearings — already appears
+  in the ledger.
+- **Ledger was not actually gitignored** — settle claimed "the ledger inherits
+  the privacy default," but sail Step 0's `.argus/.gitignore` only covered
+  `sessions/` and `errors.log`; verbatim predictions were committed by
+  default. sail now writes a `ledger/` line, and settle/helm append it to
+  older gitignores that predate the settlement loop.
+- Hook now reads the legacy `current-bearing.json` spelling too (parity with
+  the statusline).
+
+### Added
+- `scripts/test-check-contracts.mjs` — 21 fixture tests for the hook (replay
+  semantics, seed dedup, locale, prose dates, corrupt input).
+- Statusline regression tests for imported/settled/pushed seeds.
+- validate-plugin.js: install.sh guard now covers all 11 commands; checks
+  `data/prompts/probe-prompts.md` (clarify hard-depends on it) and the
+  `ledger/` gitignore line in sail Step 0.
+
+### Changed
+- README ko/en document `/argus:log --insights` and `--all`; marketplace
+  listing text updated from the pre-Current-Bearing "decision scaffold"
+  wording to the voyage/settlement loop.
+- install.sh warns that the legacy copy install does not ship the
+  contract-reminder hook (plugin install is the supported path for it).
+
 ## 2.3.0 — 2026-06-12
 
 The settlement loop is now complete, and the accumulated history is finally

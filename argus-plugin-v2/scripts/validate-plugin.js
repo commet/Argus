@@ -58,12 +58,43 @@ for (const skill of SKILLS) {
   if (fs.existsSync(skillPath)) {
     const body = fs.readFileSync(skillPath, "utf8");
     check(/^---\r?\n/.test(body) && /\r?\ndescription:/.test(body.split(/\r?\n---/)[0] + "\n"), `skills/${skill}/SKILL.md missing frontmatter description`);
+    // Frontmatter hygiene: an unquoted description containing ": " breaks
+    // strict YAML parsers (gray-matter/js-yaml — "bad indentation of a
+    // mapping entry"), and descriptions past ~1024 chars risk truncation,
+    // which would clip whatever scoping clause sits at the tail.
+    const descMatch = (body.split(/\r?\n---/)[0] + "\n").match(/\ndescription:[ \t]*(.*)\r?\n/);
+    if (descMatch) {
+      const desc = descMatch[1];
+      if (!/^["']/.test(desc)) {
+        check(!desc.includes(": "), `skills/${skill}/SKILL.md description contains unquoted ": " (breaks strict YAML — use an em-dash or quote the value)`);
+      }
+      check(desc.length <= 1024, `skills/${skill}/SKILL.md description is ${desc.length} chars (>1024 risks truncation)`);
+    }
     // Path-resolution regression guard: bundled files are referenced via
     // ${CLAUDE_PLUGIN_ROOT}; only sail documents the legacy fallbacks.
     if (skill !== "sail") {
       check(!body.includes("~/.claude/argus-"), `skills/${skill}/SKILL.md hardcodes ~/.claude/argus-* (use \${CLAUDE_PLUGIN_ROOT}/data|lib per sail §Path Resolution)`);
     }
+    // Intake convention guards (v2.4.0): the entry-point skills must show an
+    // argument hint and must keep natural-language target detection primary —
+    // a regression back to @-syntax-only intake re-imposes a learned syntax.
+    if (skill === "sail" || skill === "clarify") {
+      check(/\nargument-hint:/.test(body.split(/\r?\n---/)[0] + "\n"), `skills/${skill}/SKILL.md frontmatter must declare argument-hint`);
+    }
   }
+}
+
+const clarifySkillPath = path.join(root, "skills", "clarify", "SKILL.md");
+if (fs.existsSync(clarifySkillPath)) {
+  const clarify = fs.readFileSync(clarifySkillPath, "utf8");
+  check(/natural language is the primary form/i.test(clarify), "clarify §Inputs must keep natural-language target detection as the primary intake path (prose-first contract, v2.4.0)");
+  // Document intake must stay deterministic: one pinned extraction recipe,
+  // no per-machine improvisation (the "environment lottery" failure mode).
+  check(clarify.includes("## Document Extraction"), "clarify must keep the §Document Extraction section (pinned, dependency-free office-doc recipe)");
+  for (const fmt of ["pptx", "docx", "xlsx", "hwpx"]) {
+    check(clarify.includes(fmt), `clarify §Document Extraction must cover .${fmt}`);
+  }
+  check(/do not install/i.test(clarify), "clarify §Document Extraction must forbid installing parsers (deterministic intake)");
 }
 
 const agentFiles = fs.existsSync(path.join(root, "agents"))
@@ -87,11 +118,18 @@ for (const schema of [
   check(fs.existsSync(path.join(root, "data", "schemas", schema)), `missing data/schemas/${schema}`);
 }
 
+// clarify Step 3.5 hard-depends on this file ("never rewrite from memory");
+// it is data, not a schema, so the schema loop above does not cover it.
+check(
+  fs.existsSync(path.join(root, "data", "prompts", "probe-prompts.md")),
+  "missing data/prompts/probe-prompts.md (clarify Step 3.5 probe prompts)"
+);
+
 const installPath = path.join(root, "install.sh");
 if (fs.existsSync(installPath)) {
   const install = fs.readFileSync(installPath, "utf8");
   check(!install.includes("\r\n"), "install.sh must use LF line endings for bash");
-  for (const command of ["sail", "clarify", "team", "verify", "boss", "revise", "chart"]) {
+  for (const command of SKILLS) {
     check(new RegExp(`\\b${command}\\b`).test(install), `install.sh does not verify ${command}`);
   }
 }
@@ -135,6 +173,9 @@ if (fs.existsSync(sailSkillPath)) {
   check(sail.includes("Current Bearing"), "sail skill must define Current Bearing rendering");
   check(!sail.includes("## Step 7 - SurfaceCard"), "sail skill must not use SurfaceCard as the Step 7 output");
   check(sail.includes("No machinery selling"), "sail skill must forbid machinery selling");
+  // Privacy regression guard: the ledger holds verbatim predictions/outcomes,
+  // and settle/helm both assert that sail's gitignore covers it.
+  check(/^ledger\/$/m.test(sail), "sail Step 0 .argus/.gitignore block must include a ledger/ line (privacy default for the settlement ledger)");
 }
 
 const draft = readJson(path.join(root, "data", "schemas", "draft.json"));

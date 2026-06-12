@@ -91,7 +91,7 @@ improvise a crew without it.
 
 **(C) No git repo — document / strategy mode** (a first-class path, NOT an error — many decisions are not about code: market entry, hiring, vendor choice, career, pricing):
 - Skip repo gathering. Set `repo_context.mode = "document"`.
-- If `meta.json.target_context` exists (the user referenced a doc via `@doc:<path>` in clarify, or pasted context), pass that artifact to workers as the thing they reason ON — same role the diff plays in code mode.
+- If `meta.json.target_context` exists (the user named a document in prose or via `@doc:<path>` in clarify, or pasted context), pass that artifact to workers as the thing they reason ON — same role the diff plays in code mode.
 - Otherwise workers reason from the problem text + their domain expertise. This is legitimate, not degraded.
 - Do NOT print a "you're using it wrong / run from a repo" warning. Only suggest a repo when the question is clearly code-related yet no repo was found (e.g. it mentions files/PRs/functions). For a market-entry or hiring question, a repo is irrelevant — saying "run from a project repo" is the #1 abandonment trigger for non-code users.
 - Workers must NOT force code framing: a strategy question gets strategy structure, not "IF the code looks like X". See the worker prompt's document-mode block.
@@ -508,7 +508,7 @@ User typed `/argus:team` directly without going through sail. Render the full bl
 
 ## Meta-check gates (self-verify before returning)
 
-- **M1 (Code-native)**: Did `repo_context.mode` match the invocation? If `mode == hypothetical` but the user provided a `@target`, something broke. If `mode == repo_scan` but no worker cites a file path in its output, agents didn't actually use repo access — the output is de-facto hypothetical; flag it. **Do NOT flag `mode == document` as a failure** — a non-code decision with no repo is a legitimate, first-class path, not an M1 violation. M1 only governs questions that ARE about code.
+- **M1 (Code-native)**: Did `repo_context.mode` match the invocation? If `mode == hypothetical` but the user provided a target (named in prose or via `@` — see clarify §Inputs), something broke. If `mode == repo_scan` but no worker cites a file path in its output, agents didn't actually use repo access — the output is de-facto hypothetical; flag it. **Do NOT flag `mode == document` as a failure** — a non-code decision with no repo is a legitimate, first-class path, not an M1 violation. M1 only governs questions that ARE about code.
 - **M9 (Worker not critic)**: Did each stage-1 worker PRODUCE an artifact in their domain? If any output reads as "I reviewed X and found issues" instead of "here's the X analysis," that's critic mode — reject and re-spawn.
 - **M3 (Contradiction preservation)**: **Only applies when debate ran.** If stakes is critical AND debate ran AND debate found disagreement, `scaffold.team_contradictions[]` MUST contain the debate entry. If debate ran and found no genuine disagreement, empty `team_contradictions[]` is correct and M3 passes. Do NOT fabricate contradiction to fill the array.
 - **M4 (Decision scaffold)**: Does scaffold have `key_trade_offs[]`, `hidden_assumptions[]`, `human_required_checkpoints[]`, `verification`, and `next_actions[]` all present (empty arrays are valid — the fields must EXIST)?

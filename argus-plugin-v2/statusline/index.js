@@ -135,22 +135,26 @@ function findArgusRoot(cwd) {
 // because the statusline ships standalone with the plugin; if the two drift,
 // the ledger event log is the contract — follow ledger.mjs.
 
-function loadSealedBets(root) {
+function loadLedger(root) {
+  const empty = { bets: [], ids: new Set(), sealedPredicates: new Set() };
   let raw;
   try { raw = fs.readFileSync(join(root, ".argus", "ledger", "ledger.jsonl"), "utf8"); }
-  catch { return []; }
+  catch { return empty; }
 
   const map = new Map();
   for (const line of raw.split("\n")) {
     if (!line.trim()) continue;
     let e;
     try { e = JSON.parse(line); } catch { continue; }
+    if (!e.id) continue; // malformed event — never key a bet on undefined
+    empty.ids.add(e.id);
     const cur = map.get(e.id);
     switch (e.event) {
       case "harvest":
         if (!cur) map.set(e.id, { status: "candidate", decision: e.decision, quote: e.quote });
         break;
       case "seal":
+        if (typeof e.predicate === "string") empty.sealedPredicates.add(e.predicate);
         if (cur) Object.assign(cur, { status: "sealed", predicate: e.predicate, check_by: e.check_by });
         break;
       case "amend":
@@ -167,7 +171,8 @@ function loadSealedBets(root) {
         break;
     }
   }
-  return [...map.values()].filter(d => d.status === "sealed" && d.check_by && ISO_DATE.test(d.check_by));
+  empty.bets = [...map.values()].filter(d => d.status === "sealed" && d.check_by && ISO_DATE.test(d.check_by));
+  return empty;
 }
 
 // ─── Current Bearing ─────────────────────────────────────
@@ -176,33 +181,38 @@ function bearingCandidates(root) {
   // Both spellings: the v2 skills write current_bearing.json (underscore,
   // per sail Step 7 / session-layout.md); the hyphen form is the legacy/webapp
   // emission. Missing files cost one failed stat each — cheap.
+  // seedId is the settle-skill import id (bearing:<session-id>:<label>) when
+  // the path carries enough context to synthesize it; null at root/session level.
   const names = ["current_bearing.json", "current-bearing.json"];
-  const out = names.map(n => join(root, ".argus", n));
+  const out = names.map(n => ({ path: join(root, ".argus", n), seedId: null }));
   const sessions = join(root, ".argus", "sessions");
   let ids = [];
   try { ids = fs.readdirSync(sessions); } catch { return out; }
   for (const id of ids) {
-    for (const n of names) out.push(join(sessions, id, n));
+    for (const n of names) out.push({ path: join(sessions, id, n), seedId: null });
     const versions = join(sessions, id, "versions");
     let vs = [];
     try { vs = fs.readdirSync(versions); } catch { continue; }
-    for (const v of vs) for (const n of names) out.push(join(versions, v, n));
+    for (const v of vs) for (const n of names) {
+      out.push({ path: join(versions, v, n), seedId: `bearing:${id}:${v}` });
+    }
   }
   return out;
 }
 
 function loadBearing(root) {
   let best = null;
-  for (const p of bearingCandidates(root)) {
+  for (const c of bearingCandidates(root)) {
     let st;
-    try { st = fs.statSync(p); } catch { continue; }
+    try { st = fs.statSync(c.path); } catch { continue; }
     let b;
-    try { b = JSON.parse(fs.readFileSync(p, "utf8")); } catch { continue; }
+    try { b = JSON.parse(fs.readFileSync(c.path, "utf8")); } catch { continue; }
     const t = Date.parse(b.generated_at) || st.mtimeMs;
-    if (!best || t > best.t) best = { b, t };
+    if (!best || t > best.t) best = { b, t, seedId: c.seedId };
   }
   if (!best) return null;
   best.b._ageMs = Date.now() - best.t;
+  best.b._seedId = best.seedId;
   return best.b;
 }
 
@@ -241,14 +251,22 @@ function loadLiveSession(root) {
 // ─── Contract checks (ledger bets + bearing seed) ────────
 
 function collectChecks(root, bearing, today) {
-  const items = loadSealedBets(root).map(d => ({
+  const ledger = loadLedger(root);
+  const items = ledger.bets.map(d => ({
     date: d.check_by,
     text: d.decision || d.predicate || "",
     kind: "bet",
   }));
 
+  // A seed already imported into the ledger (by /argus:settle) is owned by the
+  // ledger replay above — counting the bearing file too would keep flashing
+  // OVERDUE forever after settling, since settle never mutates the bearing.
   const seed = bearing && bearing.contract_seed;
-  if (seed && seed.check_by && ISO_DATE.test(seed.check_by)) {
+  const imported = seed && (
+    (bearing._seedId && ledger.ids.has(bearing._seedId)) ||
+    (typeof seed.predicate === "string" && ledger.sealedPredicates.has(seed.predicate))
+  );
+  if (seed && !imported && seed.check_by && ISO_DATE.test(seed.check_by)) {
     items.push({ date: seed.check_by, text: seed.predicate || "", kind: "seed" });
   }
 
