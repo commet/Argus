@@ -21,6 +21,21 @@ Never copy-paste a system prompt to a second location. If the same persona promp
 
 Current violation: FEEDBACK_SYSTEM exists separately in PersonaFeedbackStep and a similar version in RefinementLoopStep. These MUST be kept in sync.
 
+## Principle: Persistence Declaration (2026-06-13 근원 분석에서 추가)
+
+localStorage-first 아키텍처에서 UI는 로컬만 읽는다 — 서버에 안 가는 데이터도
+모든 화면과 모든 테스트(경계 mock)에서 멀쩡해 보인다. 그래서:
+
+1. **새 사용자 입력/행동 데이터를 저장할 때는 거취를 선언한다** — 키를
+   `STORAGE_KEYS`에 등록하고 `persistence-contract.test.ts`의 CONTRACT에
+   synced(테이블) 또는 localOnly(사유)로 적는다. 사설 키 리터럴은 CI가 막는다.
+2. **경로 이주(legacy→new flow) 때는 옆줄도 같이 옮긴다** — 기능을 새 흐름으로
+   옮길 때 옛 흐름의 부수 호출(recordSignal, record*, track 류)을 grep해서
+   각각 이식하거나 명시적으로 포기 기록을 남긴다. (signal-recorder가 4R에만
+   연결된 채 progressive가 주 경로가 되어 2.5달간 신호 0건이었던 사례)
+3. **현실 접촉 후엔 행수도 본다** — 실주행 관찰에 "예상 테이블에 행이 늘었나"
+   1줄을 포함한다. UI가 멀쩡한 것과 데이터가 도착한 것은 다른 사실이다.
+
 ## Principle: Defensive Data Access
 
 All data from these sources must use optional chaining + fallbacks:
