@@ -1242,6 +1242,13 @@ export interface ProgressiveSession {
    *  Optional + backward-compat: legacy sessions read undefined. */
   falsification?: Falsification | null;
 
+  /** P1-4 체크포인트 다이어트: session-level pool for large strings (worker
+   *  results, final documents) referenced by checkpoints as `@cpblob:<key>`
+   *  instead of full copies — checkpoints used to multiply the session ~8x.
+   *  Append-only; resolved on restore. Absent on legacy sessions (their
+   *  checkpoints carry full strings and restore unchanged). */
+  checkpoint_blobs?: Record<string, string>;
+
   // Final
   final_deliverable: string | null;
   /**

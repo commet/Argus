@@ -265,7 +265,16 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
           setPhase('analyzing');
           track('first_analysis_start', { text_length: text.length, anonymous: !user });
         }
-      }, controller.signal);
+      }, controller.signal, (typedQ, replacesId) => {
+        // P1-3: the first question shows instantly (legacy); the typed upgrade
+        // lands a few seconds later — swap only while it's still unanswered.
+        const s = progressiveStore.currentSession();
+        if (!s) return;
+        const last = s.questions[s.questions.length - 1];
+        if (last?.id === replacesId && s.answers.length < s.questions.length) {
+          progressiveStore.replaceLatestQuestion(typedQ);
+        }
+      });
 
       // ADD-4: 스트림은 정상 종료됐지만 파싱 결과가 비어있는 경우(첫 상호작용의 malformed JSON 등).
       // skeleton·hidden_assumptions가 모두 비면 분석이 사실상 실패한 것 — 빈 "분석 중..." placeholder로
