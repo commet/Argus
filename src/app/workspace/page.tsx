@@ -86,6 +86,20 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
     const active = branches.find(b => b.id === sess?.active_branch_id);
     return active ? { name: active.name, color: active.color, count: branches.length, anchored: active.status === 'anchored' } : null;
   });
+  // P1-2 follow-up: with the rail hidden mid-voyage (선실 대청소) and forking
+  // now one tap away (답 수정), the header chip is the ONLY standing branch
+  // surface — so it switches courses too, not just displays the current one.
+  const sessionBranches = useProgressiveStore(s => {
+    const sess = s.sessions.find(x => x.id === s.currentSessionId);
+    return sess?.branches || [];
+  });
+  const activeBranchId = useProgressiveStore(s => {
+    const sess = s.sessions.find(x => x.id === s.currentSessionId);
+    return sess?.active_branch_id ?? null;
+  });
+  const switchBranch = useProgressiveStore(s => s.switchBranch);
+  const branchingLocked = useProgressiveStore(s => s.isBranchingLocked());
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
 
   return (
     <div className="relative min-h-[calc(100vh-64px)] overflow-hidden">
@@ -101,13 +115,57 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
               {projectName}
             </span>
             {branchInfo && (
-              <span
-                className="flex items-center gap-1 text-[12px] text-[var(--text-secondary)] min-w-0 pl-2 ml-0.5 border-l border-[var(--border-subtle)]"
-                title={L(`현재 항로 · 총 ${branchInfo.count}개`, `Current course · ${branchInfo.count} total`)}
-              >
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: branchInfo.color }} />
-                <span className="truncate max-w-[140px]">{branchInfo.name}</span>
-                {branchInfo.anchored && <span className="text-[var(--accent)] shrink-0">⚑</span>}
+              <span className="relative min-w-0 pl-2 ml-0.5 border-l border-[var(--border-subtle)]">
+                <button
+                  onClick={() => setBranchMenuOpen((o) => !o)}
+                  aria-expanded={branchMenuOpen}
+                  aria-haspopup="listbox"
+                  title={L(`현재 항로 · 총 ${branchInfo.count}개 — 눌러서 갈아타기`, `Current course · ${branchInfo.count} total — tap to switch`)}
+                  className="flex items-center gap-1 text-[12px] text-[var(--text-secondary)] min-w-0 hover:text-[var(--text-primary)] cursor-pointer min-h-[44px]"
+                >
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: branchInfo.color }} />
+                  <span className="truncate max-w-[140px]">{branchInfo.name}</span>
+                  {branchInfo.anchored && <span className="text-[var(--accent)] shrink-0">⚑</span>}
+                  <ChevronDown size={11} className={`shrink-0 text-[var(--text-tertiary)] transition-transform ${branchMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {branchMenuOpen && (
+                  <>
+                    {/* click-away backdrop */}
+                    <div className="fixed inset-0 z-40" onClick={() => setBranchMenuOpen(false)} />
+                    <div role="listbox" className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] p-1.5 space-y-0.5">
+                      {sessionBranches.map((b) => {
+                        const isActive = b.id === activeBranchId;
+                        const disabled = branchingLocked && !isActive;
+                        return (
+                          <button
+                            key={b.id}
+                            role="option"
+                            aria-selected={isActive}
+                            disabled={disabled}
+                            onClick={() => { if (!isActive && !disabled) { switchBranch(b.id); } setBranchMenuOpen(false); }}
+                            className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-[12px] transition-colors ${
+                              isActive
+                                ? 'bg-[var(--bg)] text-[var(--text-primary)] font-semibold'
+                                : disabled
+                                ? 'text-[var(--text-tertiary)] opacity-50 cursor-not-allowed'
+                                : 'text-[var(--text-secondary)] hover:bg-[var(--bg)] cursor-pointer'
+                            }`}
+                          >
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: b.color }} />
+                            <span className="truncate flex-1 min-w-0">{b.name}</span>
+                            {b.status === 'anchored' && <span className="text-[var(--accent)] shrink-0 text-[10px]">⚑</span>}
+                            {isActive && <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{L('현재', 'now')}</span>}
+                          </button>
+                        );
+                      })}
+                      <p className="px-2.5 pt-1 pb-0.5 text-[10px] text-[var(--text-tertiary)] leading-[1.5]">
+                        {branchingLocked
+                          ? L('지금은 작업 중이라 갈아탈 수 없어요 — 끝나면 풀려요.', 'Switching is locked while work is running.')
+                          : L('갈아타도 지금 항로는 그대로 남아요.', 'Switching keeps this course intact.')}
+                      </p>
+                    </div>
+                  </>
+                )}
               </span>
             )}
           </div>
