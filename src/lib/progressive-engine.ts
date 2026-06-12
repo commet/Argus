@@ -297,6 +297,11 @@ export async function runInitialAnalysis(
   problemText: string,
   onToken?: (text: string) => void,
   signal?: AbortSignal,
+  /** P1-3 무음 구간 제거: when provided, the legacy next_question returns
+   *  IMMEDIATELY and the typed-question generation runs in the background —
+   *  the caller swaps it in via replaceLatestQuestion if the user hasn't
+   *  answered yet. Without it, behavior is unchanged (await typed). */
+  onTypedUpgrade?: (typed: FlowQuestion, replacesQuestionId: string) => void,
 ): Promise<{
   snapshot: AnalysisSnapshot;
   question: FlowQuestion;
@@ -330,11 +335,20 @@ export async function runInitialAnalysis(
 
   // Phase 1 typed question: framing_confidence>=70이면 strategic_fork로 넘어간다.
   // 실패 시 기존 next_question으로 fallback.
-  const typed = await pickAndGenerateTypedQuestion(
+  const legacyQuestion: FlowQuestion = {
+    id: generateId(),
+    text: result.next_question?.text || (locale === 'ko' ? '이 결과물을 누가 최종 판단해?' : 'Who will make the final decision on this?'),
+    subtext: result.next_question?.subtext,
+    options: result.next_question?.options,
+    type: result.next_question?.type || 'select',
+    engine_phase: 'reframe',
+  };
+
+  const typedArgs = [
     {
       round: 0,
       framingConfidence,
-      askedTypes: [],
+      askedTypes: [] as QuestionTypeTag[],
       workerOutputsReady: false,
     },
     {
@@ -346,17 +360,20 @@ export async function runInitialAnalysis(
         insight: snapshot.insight,
       },
     },
-    signal,
-  );
+  ] as const;
 
-  const question: FlowQuestion = typed ?? {
-    id: generateId(),
-    text: result.next_question?.text || (locale === 'ko' ? '이 결과물을 누가 최종 판단해?' : 'Who will make the final decision on this?'),
-    subtext: result.next_question?.subtext,
-    options: result.next_question?.options,
-    type: result.next_question?.type || 'select',
-    engine_phase: 'reframe',
-  };
+  let question: FlowQuestion;
+  if (onTypedUpgrade) {
+    // Show the legacy question NOW; upgrade in the background (best-effort —
+    // abort/failure leaves the legacy question standing, which is honest).
+    question = legacyQuestion;
+    pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal)
+      .then((t) => { if (t) onTypedUpgrade(t, legacyQuestion.id); })
+      .catch(() => { /* upgrade is optional polish, never a failure */ });
+  } else {
+    const typed = await pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal);
+    question = typed ?? legacyQuestion;
+  }
 
   return {
     snapshot,
@@ -435,6 +452,9 @@ export async function runDeepening(
   signal?: AbortSignal,
   leadContext?: string,
   registeredPersonas?: Array<{ name: string; role: string; hasContact: boolean }>,
+  /** P1-3: legacy question returns immediately; typed generation upgrades it
+   *  in the background via the callback (see runInitialAnalysis). */
+  onTypedUpgrade?: (typed: FlowQuestion, replacesQuestionId: string) => void,
 ): Promise<{
   snapshot: AnalysisSnapshot;
   question: FlowQuestion | null;
@@ -522,45 +542,51 @@ export async function runDeepening(
       if (tag) askedTypes.push(tag);
     }
 
-    const typed = await pickAndGenerateTypedQuestion(
-      {
-        round,
-        framingConfidence: snapshot.framing_confidence ?? 75,
-        askedTypes,
-        // round>=1 means the engine already asked a strategic_fork; we treat
-        // that as "enough context to fire weakness_check" even without full
-        // worker output. Real worker integration comes in a later phase.
-        workerOutputsReady: round >= 1,
+    const stateCtx = {
+      round,
+      framingConfidence: snapshot.framing_confidence ?? 75,
+      askedTypes,
+      // round>=1 means the engine already asked a strategic_fork; we treat
+      // that as "enough context to fire weakness_check" even without full
+      // worker output. Real worker integration comes in a later phase.
+      workerOutputsReady: round >= 1,
+    };
+    const genCtx = {
+      problemText,
+      snapshot: {
+        real_question: snapshot.real_question,
+        hidden_assumptions: snapshot.hidden_assumptions,
+        skeleton: snapshot.skeleton,
+        insight: snapshot.insight,
       },
-      {
-        problemText,
-        snapshot: {
-          real_question: snapshot.real_question,
-          hidden_assumptions: snapshot.hidden_assumptions,
-          skeleton: snapshot.skeleton,
-          insight: snapshot.insight,
-        },
-        previousQA: questionsAndAnswers.map(qa => ({
-          q: qa.question.text,
-          a: qa.answer.value,
-        })),
-      },
-      signal,
-    );
+      previousQA: questionsAndAnswers.map(qa => ({
+        q: qa.question.text,
+        a: qa.answer.value,
+      })),
+    };
 
-    if (typed) {
-      question = typed;
+    const legacyQuestion: FlowQuestion | null = result.next_question
+      ? {
+          id: generateId(),
+          text: result.next_question.text,
+          subtext: result.next_question.subtext,
+          options: result.next_question.options,
+          type: result.next_question.type || 'select',
+          engine_phase: round >= 1 ? 'recast' : 'reframe',
+        }
+      : null;
+
+    if (legacyQuestion && onTypedUpgrade) {
+      // P1-3: the user sees the next question immediately (the deepening
+      // answer already arrived); the typed upgrade lands ~5–10s later and
+      // swaps in only while the question is still unanswered.
+      question = legacyQuestion;
+      pickAndGenerateTypedQuestion(stateCtx, genCtx, signal)
+        .then((t) => { if (t) onTypedUpgrade(t, legacyQuestion.id); })
+        .catch(() => { /* best-effort upgrade */ });
     } else {
-      question = result.next_question
-        ? {
-            id: generateId(),
-            text: result.next_question.text,
-            subtext: result.next_question.subtext,
-            options: result.next_question.options,
-            type: result.next_question.type || 'select',
-            engine_phase: round >= 1 ? 'recast' : 'reframe',
-          }
-        : null;
+      const typed = await pickAndGenerateTypedQuestion(stateCtx, genCtx, signal);
+      question = typed ?? legacyQuestion;
     }
   }
 

@@ -64,21 +64,60 @@ function phaseToStage(phase: ProgressivePhase): VoyageStage {
   }
 }
 
+/* ─── P1-4 체크포인트 다이어트: blob interning ───
+ * Checkpoints used to copy every worker's full result document and the final
+ * deliverable PER CHECKPOINT — the session JSON grew ~8x as branches multiplied.
+ * Large strings now live ONCE in session.checkpoint_blobs (content-keyed,
+ * append-only) and checkpoints store `@cpblob:<key>` refs. Restore resolves
+ * refs; legacy checkpoints (full strings) pass through untouched. Consumers
+ * that only truthiness-check these fields (progressSignature, deriveWaypoint)
+ * are unaffected — a ref string is still truthy. */
+const CP_BLOB_PREFIX = '@cpblob:';
+const CP_BLOB_MIN_LEN = 200; // below this, interning costs more than it saves
+
+/** Content key: djb2 + length (length term makes accidental collisions
+ *  practically require equal-length different docs with equal hash). */
+export function cpBlobKey(value: string): string {
+  let h = 5381;
+  for (let i = 0; i < value.length; i++) h = ((h << 5) + h + value.charCodeAt(i)) | 0;
+  return `${(h >>> 0).toString(36)}-${value.length}`;
+}
+
+/** Intern a large string into the pool (mutates `blobs`), returning a ref.
+ *  Small/null/already-ref values pass through unchanged. */
+export function internCpString(blobs: Record<string, string>, value: string | null): string | null {
+  if (!value || value.length < CP_BLOB_MIN_LEN || value.startsWith(CP_BLOB_PREFIX)) return value;
+  const key = cpBlobKey(value);
+  if (!(key in blobs)) blobs[key] = value;
+  return CP_BLOB_PREFIX + key;
+}
+
+/** Resolve a possible ref back to its content. A missing blob (theoretical
+ *  corruption) returns the ref itself — a visible marker beats silent loss. */
+export function resolveCpString(blobs: Record<string, string> | undefined, value: string | null): string | null {
+  if (!value || !value.startsWith(CP_BLOB_PREFIX)) return value;
+  return blobs?.[value.slice(CP_BLOB_PREFIX.length)] ?? value;
+}
+
 /** The live session fields restored from a checkpoint's state snapshot. Shared
  *  by restoreCheckpoint and switchBranch/forkBranch so the field list lives in
  *  exactly one place (adding a field to VoyageCheckpointState updates all). */
-function restoreFields(snap: VoyageCheckpointState): Partial<ProgressiveSession> {
+function restoreFields(snap: VoyageCheckpointState, blobs?: Record<string, string>): Partial<ProgressiveSession> {
   return {
     phase: snap.phase,
     round: snap.round,
     questions: snap.questions,
     answers: snap.answers,
     snapshots: snap.snapshots,
-    workers: snap.workers,
+    workers: snap.workers.map((w) => ({
+      ...w,
+      result: resolveCpString(blobs, w.result),
+      completion_note: resolveCpString(blobs, w.completion_note),
+    })),
     worker_deploy_phase: snap.worker_deploy_phase,
     mix: snap.mix,
     dm_feedback: snap.dm_feedback,
-    final_deliverable: snap.final_deliverable,
+    final_deliverable: resolveCpString(blobs, snap.final_deliverable),
     final_mix: snap.final_mix,
     user_notes: snap.user_notes,
     decision_maker: snap.decision_maker,
@@ -1402,6 +1441,9 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // Avoid duplicate origin: if this is the very first checkpoint and
     // the session has nothing meaningful yet, still record it — that's
     // the rewindable "before anything happened" state.
+    // P1-4: intern the bulky strings into the session pool — the snapshot
+    // stores refs, not copies. `blobs` accumulates into checkpoint_blobs below.
+    const blobs = { ...(session.checkpoint_blobs || {}) };
     const state_snapshot: VoyageCheckpointState = {
       phase: session.phase,
       round: session.round,
@@ -1412,11 +1454,16 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       // load anyway (migrateWorkers), so storing it per checkpoint is pure waste
       // and the biggest avoidable contributor to localStorage growth as branches
       // multiply checkpoints.
-      workers: session.workers.map(w => (w.stream_text ? { ...w, stream_text: '' } : w)),
+      workers: session.workers.map(w => ({
+        ...w,
+        stream_text: '',
+        result: internCpString(blobs, w.result),
+        completion_note: internCpString(blobs, w.completion_note),
+      })),
       worker_deploy_phase: session.worker_deploy_phase,
       mix: session.mix,
       dm_feedback: session.dm_feedback,
-      final_deliverable: session.final_deliverable,
+      final_deliverable: internCpString(blobs, session.final_deliverable),
       final_mix: session.final_mix ?? null,
       user_notes: session.user_notes ?? null,
       decision_maker: session.decision_maker,
@@ -1487,6 +1534,8 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
         active_checkpoint_id: checkpoint.id,
         branches,
         active_branch_id,
+        // P1-4: the (append-only) blob pool the new snapshot's refs point into.
+        checkpoint_blobs: blobs,
         ...(waypoint ? { waypoints: [...(s.waypoints || []), waypoint] } : {}),
       };
     });
@@ -1506,7 +1555,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // intact in the array — the previous branch is preserved as siblings
     // of any future checkpoint that gets recorded after the fork.
     const sessions = updateSession(get().sessions, currentSessionId, () => ({
-      ...restoreFields(target.state_snapshot),
+      ...restoreFields(target.state_snapshot, session.checkpoint_blobs),
       active_checkpoint_id: checkpointId,
     }));
     persist(sessions);
@@ -1568,7 +1617,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // new branch in a single update. Subsequent recordCheckpoint calls parent
     // off fromCheckpointId, producing a real sibling lineage.
     const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
-      ...restoreFields(fromCp.state_snapshot),
+      ...restoreFields(fromCp.state_snapshot, session.checkpoint_blobs),
       active_checkpoint_id: fromCheckpointId,
       branches: [...(s.branches || []), newBranch],
       active_branch_id: newBranchId,
@@ -1600,7 +1649,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // Atomic: restore the target branch's live state AND flip active_branch_id
     // in one update so the two never momentarily disagree (stale-closure guard).
     const sessions = updateSession(get().sessions, currentSessionId, () => ({
-      ...restoreFields(targetCp.state_snapshot),
+      ...restoreFields(targetCp.state_snapshot, session.checkpoint_blobs),
       active_checkpoint_id: target.head_checkpoint_id,
       active_branch_id: branchId,
     }));

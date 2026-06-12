@@ -291,6 +291,25 @@ describe('Voyage branch layer', () => {
       expect(cp.state_snapshot.workers[0].id).toBe('w1');
       expect(cp.state_snapshot.workers[0].stream_text).toBe('');
     });
+
+    it('P1-4: interns large worker results as @cpblob refs and restores the FULL string on fork', () => {
+      const sid = startSession();
+      const BIG = '아주 긴 결과 문서 본문 '.repeat(40); // ≥200 chars
+      const worker = { id: 'w1', status: 'done', result: BIG, completion_note: null, task: 't', stream_text: '' } as unknown as WorkerTask;
+      useProgressiveStore.setState(st => ({
+        sessions: st.sessions.map(s => (s.id === sid ? { ...s, workers: [worker], worker_deploy_phase: 'deployed' as const } : s)),
+      }));
+      const cp = api().recordCheckpoint('crew_done')!;
+      // The snapshot stores a ref, the pool stores the content ONCE.
+      expect(cp.state_snapshot.workers[0].result!.startsWith('@cpblob:')).toBe(true);
+      expect(Object.values(session(sid).checkpoint_blobs || {})).toContain(BIG);
+      // A second checkpoint with the same result adds NO new blob (the 8x fix).
+      api().recordCheckpoint('briefing');
+      expect(Object.keys(session(sid).checkpoint_blobs || {})).toHaveLength(1);
+      // Fork-restore resolves the ref back to the full original string.
+      api().forkBranch(cp.id);
+      expect(session(sid).workers[0].result).toBe(BIG);
+    });
   });
 
   describe('robustness', () => {

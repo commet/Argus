@@ -251,25 +251,65 @@ function ProgressLine({ phase, crewDeployed = false }: { phase: string; crewDepl
 /* LiveAnalysis + VersionPills → replaced by shared AnalysisCard */
 
 /* ═══ Answered Q&A — horizontal pills with "sent to team" indicator ═══ */
-function AnsweredPills({ qaPairs }: { qaPairs: Array<{ question: FlowQuestion; answer: FlowAnswer | null }> }) {
+/** P1-2 과거 답 수정 진입로 (B-7): a pill taps open to the full Q/A; when a
+ *  pre-answer checkpoint exists, "이 답부터 다시" forks a NEW branch there —
+ *  the current course is preserved (변침도 기록), the question re-presents. */
+function AnsweredPills({ qaPairs, canRevisit, onRevisit }: {
+  qaPairs: Array<{ question: FlowQuestion; answer: FlowAnswer | null }>;
+  /** Per-ANSWER-index: is there a checkpoint to fork from? */
+  canRevisit?: (answerIndex: number) => boolean;
+  onRevisit?: (answerIndex: number) => void;
+}) {
   const locale = useLocale();
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
   const answered = qaPairs.filter(qa => qa.answer);
   if (!answered.length) return null;
+  const open = openIdx !== null ? answered[openIdx] : null;
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {answered.map((qa, i) => (
-        <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05, ...SPRING }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px]">
-          <Check size={10} className="text-[var(--accent)]" />
-          {/* Wider caps on LARGER screens (the sm: values were inverted). */}
-          <span className="text-[var(--text-tertiary)] max-w-[80px] sm:max-w-[120px] truncate">{qa.question.text.split(' ').slice(0, 3).join(' ')}</span>
-          <span className="text-[var(--text-primary)] font-medium max-w-[100px] sm:max-w-[160px] truncate">{qa.answer!.value}</span>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {answered.map((qa, i) => (
+          <motion.button key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05, ...SPRING }}
+            onClick={() => setOpenIdx(openIdx === i ? null : i)}
+            aria-expanded={openIdx === i}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--surface)] border text-[11px] cursor-pointer transition-colors ${
+              openIdx === i ? 'border-[var(--accent)]/50' : 'border-[var(--border-subtle)] hover:border-[var(--accent)]/30'
+            }`}>
+            <Check size={10} className="text-[var(--accent)]" />
+            {/* Wider caps on LARGER screens (the sm: values were inverted). */}
+            <span className="text-[var(--text-tertiary)] max-w-[80px] sm:max-w-[120px] truncate">{qa.question.text.split(' ').slice(0, 3).join(' ')}</span>
+            <span className="text-[var(--text-primary)] font-medium max-w-[100px] sm:max-w-[160px] truncate">{qa.answer!.value}</span>
+          </motion.button>
+        ))}
+        <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
+          className="text-[10px] text-[var(--accent)]/60 flex items-center gap-1">
+          <ArrowRight size={9} /> {locale === 'ko' ? '팀 분석에 반영' : 'sent to team'}
+        </motion.span>
+      </div>
+
+      {open && (
+        <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 space-y-2">
+          <p className="text-[12px] text-[var(--text-secondary)] leading-[1.55]">{open.question.text}</p>
+          <p className="text-[13px] text-[var(--text-primary)] font-medium leading-[1.5]">→ {open.answer!.value}</p>
+          {canRevisit?.(openIdx!) && onRevisit ? (
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <span className="text-[10.5px] text-[var(--text-tertiary)]">
+                {locale === 'ko' ? '지금까지의 항로는 가지로 그대로 남아요' : 'Your current course stays preserved as a branch'}
+              </span>
+              <button
+                onClick={() => { onRevisit(openIdx!); setOpenIdx(null); }}
+                className="shrink-0 px-3 py-1.5 rounded-lg border border-[var(--accent)]/40 text-[11.5px] font-medium text-[var(--accent)] hover:bg-[var(--ai)] transition-colors cursor-pointer">
+                {locale === 'ko' ? '이 답부터 다시 →' : 'Redo from this answer →'}
+              </button>
+            </div>
+          ) : (
+            <p className="text-[10.5px] text-[var(--text-tertiary)] pt-1">
+              {locale === 'ko' ? '이 지점은 답 이후 흐름이 많이 진행돼 직접 수정 대신 새 질문으로 반영하는 게 안전해요.' : 'This point is past safe rewind — fold changes in via a new answer instead.'}
+            </p>
+          )}
         </motion.div>
-      ))}
-      <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-        className="text-[10px] text-[var(--accent)]/60 flex items-center gap-1">
-        <ArrowRight size={9} /> {locale === 'ko' ? '팀 분석에 반영' : 'sent to team'}
-      </motion.span>
+      )}
     </div>
   );
 }
@@ -1528,6 +1568,44 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       .catch(() => { /* re-probe is best-effort — silence on failure (P3) */ });
   };
 
+  /** P1-3: background typed-question upgrade — swap in only while the question
+   *  it replaces is still the latest AND unanswered. A late upgrade after the
+   *  user moved on is silently dropped (their flow is never yanked). */
+  const onTypedUpgrade = (typedQ: FlowQuestion, replacesId: string) => {
+    const s = store.currentSession();
+    if (!s) return;
+    const last = s.questions[s.questions.length - 1];
+    if (last?.id === replacesId && s.answers.length < s.questions.length) {
+      store.replaceLatestQuestion(typedQ);
+    }
+  };
+
+  /** P1-2: the checkpoint that captured the state RIGHT BEFORE answer i was
+   *  given — answers.length === i with question i already on deck. Forking
+   *  there re-presents the question with everything after preserved as a
+   *  sibling branch. Returns null when no such checkpoint exists (e.g. a
+   *  zero-LLM probe turn recorded none) — the pill then explains instead. */
+  const checkpointBeforeAnswer = (i: number) => {
+    const cps = session?.checkpoints || [];
+    const matches = cps.filter(
+      (c) => (c.state_snapshot?.answers?.length ?? -1) === i && (c.state_snapshot?.questions?.length ?? 0) >= i + 1,
+    );
+    return matches.length ? matches[matches.length - 1] : null;
+  };
+  const onRevisitAnswer = (i: number) => {
+    // Belt: never fork while AI work is in flight — the in-flight handler
+    // would write its results onto the freshly-forked state (same lock the
+    // Logbook rows and the header switcher respect).
+    if (busy || store.isBranchingLocked()) return;
+    const cp = checkpointBeforeAnswer(i);
+    if (!cp) return;
+    const bid = store.forkBranch(cp.id, L(`${i + 1}번째 답 다시`, `Redo answer ${i + 1}`));
+    if (bid) {
+      track('answer_revisit_fork', { index: i });
+      scrollToRef(questionRef);
+    }
+  };
+
   /* Handlers */
   const onAnswer = async (value: string) => {
     if (!curQ || busy || !latest) return;
@@ -1594,7 +1672,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         }
       }
       const personas = usePersonaStore.getState().personas.filter(p => !p.is_example && !p.deleted_at).map(p => ({ name: p.name, role: p.role, hasContact: !!(p.contact?.email || p.contact?.slack_id) }));
-      const r = await runDeepening(session.problem_text, latest, qa, round, maxR, snapshots, (text) => setStreamingText(text), abortRef.current.signal, leadCtx, personas.length > 0 ? personas : undefined);
+      const r = await runDeepening(session.problem_text, latest, qa, round, maxR, snapshots, (text) => setStreamingText(text), abortRef.current.signal, leadCtx, personas.length > 0 ? personas : undefined, onTypedUpgrade);
       setStreamingText(null);
       // Phase 1: merge typed-question effects onto the fresh snapshot.
       // Strategy: if the user picked a strategic_fork option, the fork's
@@ -1955,7 +2033,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         }
       }
       const personas2 = usePersonaStore.getState().personas.filter(p => !p.is_example && !p.deleted_at).map(p => ({ name: p.name, role: p.role, hasContact: !!(p.contact?.email || p.contact?.slack_id) }));
-      const r = await runDeepening(session!.problem_text, latest, qa, round, round + 2, snapshots, (text) => setStreamingText(text), abortRef.current.signal, moreLeadCtx, personas2.length > 0 ? personas2 : undefined);
+      const r = await runDeepening(session!.problem_text, latest, qa, round, round + 2, snapshots, (text) => setStreamingText(text), abortRef.current.signal, moreLeadCtx, personas2.length > 0 ? personas2 : undefined, onTypedUpgrade);
       setStreamingText(null);
       r.question ? (store.addQuestion(r.question), store.setPhase('conversing')) : (setShowMix(true), store.setPhase('conversing'));
     } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('실패', 'Failed')); store.setPhase('conversing'); setShowMix(true); }
@@ -2759,7 +2837,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               to the Q&A history without disrupting the user's flow. */}
           {(showRecord || phase !== 'conversing') && !final_ && (
             <div ref={answeredPillsRef}>
-              <AnsweredPills qaPairs={qaPairs} />
+              <AnsweredPills
+                qaPairs={qaPairs}
+                canRevisit={(i) => !busy && !store.isBranchingLocked() && !!checkpointBeforeAnswer(i)}
+                onRevisit={onRevisitAnswer}
+              />
             </div>
           )}
 

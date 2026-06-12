@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, UserCheck } from 'lucide-react';
+import { Loader2, UserCheck, ChevronDown } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import type { MixResult } from '@/stores/types';
 import type { NavigatorReview } from '@/lib/progressive-engine';
@@ -19,6 +20,10 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  // P1-1 본문 아코디언: the draft body collapses by default so the forward CTA
+  // is reachable WITHOUT scrolling a full document (E-23). Title + executive
+  // summary stay — they ARE the preview; sections/next-steps live behind 전문.
+  const [bodyOpen, setBodyOpen] = useState(false);
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: EASE }}>
       <div className="rounded-2xl p-[1px] bg-gradient-to-b from-[var(--accent)]/20 to-[var(--accent)]/5">
@@ -29,17 +34,33 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             <h2 className="text-[22px] md:text-[28px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix.title}</h2>
             <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-5 text-[15px] text-[var(--text-secondary)] italic leading-relaxed">{renderInline(mix.executive_summary)}</blockquote>
 
-            <div className="space-y-5">
-              {mix.sections.map((s, i) => (
-                <AttributedSection key={i} section={s} index={i} />
-              ))}
-            </div>
+            {/* Collapsed by default — the CTA must not hide below a full document. */}
+            <button
+              onClick={() => setBodyOpen((o) => !o)}
+              aria-expanded={bodyOpen}
+              className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+            >
+              {bodyOpen
+                ? L('본문 접기', 'Collapse body')
+                : L(`전문 보기 — ${mix.sections.length}개 섹션${mix.next_steps.length ? ' · 다음 단계' : ''}`, `Read full draft — ${mix.sections.length} section${mix.sections.length === 1 ? '' : 's'}`)}
+              <ChevronDown size={13} className={`transition-transform ${bodyOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-            {mix.next_steps.length > 0 && (
-              <div className="pt-5 border-t border-[var(--border-subtle)]">
-                <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-3">{L('다음 단계', 'Next Steps')}</p>
-                {mix.next_steps.map((s, i) => <div key={i} className="flex items-start gap-2.5 text-[13px] text-[var(--text-primary)] mb-2 leading-relaxed"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] mt-2 shrink-0" /><span>{s}</span></div>)}
-              </div>
+            {bodyOpen && (
+              <>
+                <div className="space-y-5">
+                  {mix.sections.map((s, i) => (
+                    <AttributedSection key={i} section={s} index={i} />
+                  ))}
+                </div>
+
+                {mix.next_steps.length > 0 && (
+                  <div className="pt-5 border-t border-[var(--border-subtle)]">
+                    <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-3">{L('다음 단계', 'Next Steps')}</p>
+                    {mix.next_steps.map((s, i) => <div key={i} className="flex items-start gap-2.5 text-[13px] text-[var(--text-primary)] mb-2 leading-relaxed"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] mt-2 shrink-0" /><span>{s}</span></div>)}
+                  </div>
+                )}
+              </>
             )}
 
             {cmReview && (
