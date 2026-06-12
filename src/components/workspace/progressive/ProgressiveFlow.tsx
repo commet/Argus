@@ -1593,6 +1593,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     return matches.length ? matches[matches.length - 1] : null;
   };
   const onRevisitAnswer = (i: number) => {
+    // Belt: never fork while AI work is in flight — the in-flight handler
+    // would write its results onto the freshly-forked state (same lock the
+    // Logbook rows and the header switcher respect).
+    if (busy || store.isBranchingLocked()) return;
     const cp = checkpointBeforeAnswer(i);
     if (!cp) return;
     const bid = store.forkBranch(cp.id, L(`${i + 1}번째 답 다시`, `Redo answer ${i + 1}`));
@@ -2835,7 +2839,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <div ref={answeredPillsRef}>
               <AnsweredPills
                 qaPairs={qaPairs}
-                canRevisit={(i) => !!checkpointBeforeAnswer(i)}
+                canRevisit={(i) => !busy && !store.isBranchingLocked() && !!checkpointBeforeAnswer(i)}
                 onRevisit={onRevisitAnswer}
               />
             </div>
