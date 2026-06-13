@@ -37,6 +37,7 @@ import { runAllAIWorkers, runPipeline, type WorkerContext } from '@/lib/worker-e
 import { withTranscript } from '@/lib/execution-transcript';
 import { getCompletionNote } from '@/lib/worker-personas';
 import { track } from '@/lib/analytics';
+import { recordSignal } from '@/lib/signal-recorder';
 import type { FlowQuestion, FlowAnswer, AnalysisSnapshot, DMConcern, MixResult, ConvergenceMetrics, WorkerTask, LeadSynthesisResult, Draft, LoadBearingClaim, Falsification as FalsificationResult } from '@/stores/types';
 import { findEffectForAnswer, applySnapshotPatch } from '@/lib/question-types';
 import type { StrategicForkEffect, WeaknessCheckEffect } from '@/lib/question-types';
@@ -1613,7 +1614,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
     // ── W2.3b: probe-question turns are zero-LLM ──
     if (newArcEnabled) {
-      if (curQ.id.startsWith('probe-fork-')) maybeReprobe(curQ.id, value);
+      if (curQ.id.startsWith('probe-fork-')) {
+        maybeReprobe(curQ.id, value);
+        // Learning signal — answering a measured fork is the user resolving a
+        // divergence the product surfaced. Core to the moat (2026-06-13 fix).
+        recordSignal({ project_id: projectId, tool: 'voyage', signal_type: 'fork_answered', signal_data: { round } });
+      }
       const probeQ = nextPendingProbeQuestion();
       if (probeQ && useProbeStore.getState().tryConsumeQuestion()) {
         store.addAnswer(ans);

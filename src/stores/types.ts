@@ -422,7 +422,11 @@ export interface PersonaAccuracyRating {
 export interface QualitySignal {
   id: string;
   project_id?: string;
-  tool: 'reframe' | 'recast' | 'rehearse' | 'refine';
+  /** 'voyage' = the progressive flow (the main product path). The 4-step tool
+   *  values are legacy. 2026-06-13: the new flow recorded ZERO signals because
+   *  this union (and every recordSignal call site) predated the progressive
+   *  migration — the learning loop was wired only into the retired flow. */
+  tool: 'voyage' | 'reframe' | 'recast' | 'rehearse' | 'refine';
   signal_type: string;
   signal_data: Record<string, unknown>;
   created_at: string;

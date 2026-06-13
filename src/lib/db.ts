@@ -218,6 +218,12 @@ export async function upsertToSupabase(table: TableName, item: any): Promise<voi
 
     if (error) {
       log.error(`upsert to ${table} failed: ${error.message}`, { context: 'db' });
+      // Light the SyncStatus badge — this is the cloud-persistence path for
+      // sealed decision contracts, predicate grades and the full voyage
+      // document. A silent failure here = the user's actual decision never
+      // reaches the cloud, with zero signal (insert/loadAndMerge already report;
+      // this path was the one omission). 2026-06-13 data-wiring audit.
+      reportSyncFailure(`upsert:${table}`, { message: error.message });
     }
   } catch (err) {
     handleError(err, `db.upsert:${table}`);
@@ -241,6 +247,7 @@ export async function softDeleteFromSupabase(table: SoftDeletableTable, id: stri
 
     if (error) {
       log.error(`soft delete from ${table} failed: ${error.message}`, { context: 'db' });
+      reportSyncFailure(`softDelete:${table}`, { message: error.message });
     }
   } catch (err) {
     handleError(err, `db.softDelete:${table}`);
@@ -255,11 +262,15 @@ export async function deleteFromSupabase(table: TableName, id: string): Promise<
   if (!userId) return;
 
   try {
-    await supabase
+    const { error } = await supabase
       .from(table)
       .delete()
       .eq('id', id)
       .eq('user_id', userId);
+    if (error) {
+      log.error(`delete from ${table} failed: ${error.message}`, { context: 'db' });
+      reportSyncFailure(`delete:${table}`, { message: error.message });
+    }
   } catch (err) {
     handleError(err, `db.delete:${table}`);
   }

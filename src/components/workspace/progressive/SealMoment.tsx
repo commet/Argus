@@ -37,6 +37,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
 import { contractFromPredicates, withCheckIn, CHECK_IN_MS } from '@/lib/decision-contract';
+import { recordSignal } from '@/lib/signal-recorder';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { EASE } from './shared/constants';
 
@@ -120,6 +121,12 @@ export function SealMoment({
     updateProject(project.id, { decision_contract: withCheckIn(fresh, iv, now) });
     setInterval(iv);
     setJustSealed(true);
+    // Learning signal (2026-06-13 data-wiring fix) — the new flow recorded
+    // nothing. Accepting the seal is the strongest engagement signal the
+    // product has. Not already sealed → only count the first seal.
+    if (!justSealed) {
+      recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: kept.length } });
+    }
   }
 
   // ── 캘린더에 약속 넣기 — a client-built .ics, because there is no outbound
@@ -315,7 +322,12 @@ export function SealMoment({
             {L(`네 — ${dateFor(interval)}에 물어봐 주세요`, `Yes — ask me on ${dateFor(interval)}`)}
           </button>
           <button
-            onClick={() => setDismissed(true)}
+            onClick={() => {
+              setDismissed(true);
+              // A decline is as informative as an accept — the product learns
+              // which decisions users don't want followed up.
+              recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_declined', signal_data: { predicates: kept.length } });
+            }}
             className="inline-flex items-center justify-center px-7 py-3 rounded-2xl text-[14px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--text-secondary)]/40 cursor-pointer transition-colors"
           >
             {L('아니요, 괜찮아요', 'No, thanks')}

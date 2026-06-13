@@ -38,6 +38,7 @@ import {
   CHECK_IN_MS,
 } from '@/lib/decision-contract';
 import { Modal } from '@/components/ui/Modal';
+import { recordSignal } from '@/lib/signal-recorder';
 import { verdictButtons, predicateQuestion } from './DecisionContractCard';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
@@ -83,6 +84,9 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
     updateProject(project.id, {
       decision_contract: gradePredicate(contract, predicateId, verdict, Date.now()),
     });
+    // Learning signal — settlement is the return half of the loop; its verdict
+    // is the ground truth the product is built to accumulate (2026-06-13 fix).
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict } });
   }
 
   /** "아직" — extend the check-in (history-preserving amend) and close. */

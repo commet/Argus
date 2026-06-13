@@ -53,13 +53,28 @@ When removing a feature:
 3. Remove imports, state variables, i18n keys, type fields
 4. Check if Supabase table has related columns (cleanup optional)
 
-## Principle: Schema Sync
+## Principle: Schema Sync (2026-06-13 강화)
 
-After modifying `stores/types.ts`, immediately check if the corresponding Supabase table needs a migration:
+`sanitizeItem` (db.ts)는 `user_id/created_at/updated_at`만 빼고 **나머지 필드를
+전부 그대로 upsert로 보낸다.** 그래서 동기화되는 인터페이스(Project/Persona/…)에
+컬럼 없는 필드를 추가하면 PostgREST가 PGRST204로 **행 전체를 거부**하고 — 에러는
+삼켜지므로 — 그 사용자의 데이터가 조용히 서버에 안 닿는다 (2026-06-13: contact가
+채워진 페르소나가 정확히 이렇게 동기화를 멈췄던 사례).
+
+규약:
+1. 동기화 인터페이스에 필드를 추가하면 **같은 커밋에서 마이그레이션으로 컬럼을
+   추가**하고 `src/lib/__tests__/schema-drift.test.ts`의 `TABLE_COLUMNS`를 갱신한다.
+   안 하면 그 가드 테스트가 PR을 막는다 (실DB 컬럼의 사본 대조).
+2. `deleted_at` 등 soft-delete가 쓰는 컬럼이 실재하는지 확인 — 없으면 삭제가
+   서버에서 no-op이 되어 삭제한 행이 reload 시 부활한다.
+3. 새 동기화 테이블을 `TableName`에 추가하면 그 테이블이 실DB에 **존재하는지**
+   확인 — reframe/recast/synthesize는 TableName에만 있고 테이블이 없어 전부
+   localStorage-only였다 (조용히).
+
+확인 SQL:
 ```sql
 SELECT column_name FROM information_schema.columns WHERE table_name = 'TABLE_NAME';
 ```
-Compare against the TypeScript interface. Add missing columns.
 
 ## Architecture Notes
 
