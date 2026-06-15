@@ -15,6 +15,31 @@ When adding a field to any TypeScript interface (e.g., `Persona`, `RecastStep`),
 6. **UI that displays this type** — update cards, forms, detail views
 7. **Handoff/conversion functions** — `autoPersonaToFull()`, `buildDecomposeContext()`, etc.
 
+## Principle: The Zero-Judgment Gate (every new user-facing surface)
+
+Argus's spine is `maximum generation, zero judgment`. Before shipping any new
+surface, pass it through one gate:
+
+> **Does this feature generate, or does it judge the user's decision / narrate
+> ownership in their stead? If it judges, it violates the spine.**
+
+Three concrete rules that follow (full rationale in
+`docs/ARGUS-FINAL-DIRECTION.md` → Zero-Judgment Invariant, and
+`docs/ESSAY-IMPLICATIONS-judgment-ownership-2026-06-15.md`):
+
+1. **Never lie about authorship.** A machine-surfaced sentence must not silently
+   inherit a user-owned field (`real_bet`, `governing_idea`). Tag provenance
+   (`user` vs `ai_surfaced`) and shade it — but **keep every friction escape**
+   (skip / believe-all / use-as-is). The invariant is honest provenance, NOT a
+   forced-typing gate (which ejects the tiredest user → zero ownership).
+2. **No user-facing verdict about who the user is.** Do not surface an
+   uncalibrated score/tier (e.g. Judgment Vitality `gamma`) to the user. Keep it
+   internal-routing-only or remove it. Meaning-language to the user comes only
+   from `patterns`' sample-size-scaled frequency statements.
+3. **Verification is not a chat.** No conclusion is verified by debating the model
+   in-frame; verification is a single-shot commitment plus reality at settlement.
+   This is an internal design invariant — do NOT turn it into landing copy.
+
 ## Principle: Single Source of Truth for Prompts
 
 Never copy-paste a system prompt to a second location. If the same persona prompt is needed in both PersonaFeedbackStep and RefinementLoopStep, extract it to a shared function in a lib file.

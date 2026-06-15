@@ -40,6 +40,35 @@ Argus is a navigation harness for judgment.
   should leave behind falsifiable predicates that can later be graded against
   reality.
 
+### The Zero-Judgment Invariant (internal engine, not signboard)
+
+`maximum generation, zero judgment.` Argus uses AI's generative power maximally
+and its *judging* power at zero. Every new surface must pass one gate:
+
+> **Does this feature generate, or does it judge? If it judges the user's
+> decision — or narrates ownership in the user's stead — it violates the spine.**
+
+This is the load-bearing form of three findings (see
+`docs/ESSAY-IMPLICATIONS-judgment-ownership-2026-06-15.md`):
+
+- **Verification is not a chat.** A reviewer who verifies inside the same window
+  becomes the model's second persuasion target. Argus's answer is structural and
+  already shipped — it runs *before* you hand work to an AI, `watch` reads *past*
+  transcripts, and `settle` lets *reality* judge later. No conclusion is verified
+  by debating the model in-frame.
+- **Never mint ownership the user did not author.** A machine-surfaced sentence
+  must never silently inherit a user-owned label (`real_bet`, `governing_idea`).
+  The invariant is *"never lie about who authored it,"* **not** *"never let them
+  leave without typing."* Friction escapes stay; provenance must be honest.
+- **Do not surface an uncalibrated verdict about who the user is.** No AI-authored
+  sentence may grade the user's vitality, rigidity, or judgment quality to their
+  face. Meaning is shown as the user's own re-said words and the settled record —
+  never a score standing in for felt ownership.
+
+Keep this as an **engine** (a builder-facing gate), not a **signboard** (landing
+copy that lectures users about epistemics). Demonstrate orientation; do not
+narrate the theory.
+
 ## The Surface Principle
 
 The default surface must be compressed, but not shallow.
