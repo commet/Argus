@@ -351,6 +351,15 @@ t("narrow terminal → Korean text clipped, line fits budget", () => {
   assert(l2.includes("🌫"), `fog must survive truncation: ${l2}`);
 });
 
+t("UTF-8 BOM bearing/ledger (PS 5.1 Out-File) → still read", () => {
+  const r = repo();
+  mkdirSync(join(r, ".argus", "ledger"), { recursive: true });
+  writeFileSync(join(r, ".argus", "ledger", "ledger.jsonl"),
+    "﻿" + bet("aaaa0001", iso(-1), "BOM 결정").map(e => JSON.stringify(e)).join("\n") + "\n");
+  const l2 = lines(run(r))[1];
+  assert(l2 && l2.includes("OVERDUE"), `BOM ledger must still replay: ${l2}`);
+});
+
 t("corrupt ledger lines → skipped, no crash", () => {
   const r = repo();
   mkdirSync(join(r, ".argus", "ledger"), { recursive: true });

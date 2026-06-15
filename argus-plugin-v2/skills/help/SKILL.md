@@ -18,7 +18,7 @@ Give Argus a decision; it checks the weak claims behind the scenes and returns
 one screen: current course, why, fog/reef, road not taken, next helm.
 
 Start here — just say it (quotes optional); if you name a PR, file, or
-document (pdf/pptx/docx/xlsx/hwpx included), Argus reads it:
+document (pdf/pptx/docx/hwpx included), Argus reads it:
   /argus:sail Should we migrate from Firestore to Supabase?
   /argus:sail Is PR 123 safe to merge?
   /argus:sail 보고서.pptx 이대로 임원회의 가져가도 되나?

@@ -397,13 +397,16 @@ due 계약 0 상태에서 `/argus:settle`.
 ### TC-DOC-1 — pptx 추출
 텍스트가 든 .pptx를 두고 `/argus:sail 보고서.pptx 이대로 보고해도 되나`.
 **PASS** = ① 패키지 설치 시도 0회 (pip/npm/pandoc 금지) ② 내장 unzip 경로로
-슬라이드 XML 추출 ③ `target_context.extraction == "xml-strip"`, 슬라이드
-경계(`[slide N]`) 보존 ④ 분석이 실제 슬라이드 내용을 인용.
+슬라이드 XML 추출 (Windows는 .zip 복사 필수) ③ `target_context.extraction ==
+"xml-strip"`, 슬라이드 경계(`[slide N]`) 보존, slide10이 slide2 뒤에 오는
+숫자 정렬 ④ 분석이 실제 슬라이드 내용을 인용 ⑤ "읽음: 슬라이드 N장 · M자"
+출처 한 줄 출력.
 **FAIL** = 파서 즉석 발명, 설치 시도, 안 읽고 일반론 분석.
 
-### TC-DOC-2 — 구형 바이너리 → 정직한 거절
-.hwp 또는 .ppt 대상.
-**PASS** = "PDF로 내보내거나 붙여넣어 주세요" 한 줄 + 정지. 추측 분석 0.
+### TC-DOC-2 — xlsx·구형 바이너리 → 정직한 거절
+.xlsx, .hwp, .ppt 각각 대상.
+**PASS** = xlsx → "CSV/PDF로 내보내 주세요" 한 줄, 구형 → "PDF로 내보내거나
+붙여넣어 주세요" 한 줄 + 정지. 추측 분석 0, 깡통(정수 나열) 추출 0.
 
 ### TC-DOC-3 — 이미지 위주 덱 → husk 분석 금지
 텍스트가 거의 없는 .pptx.

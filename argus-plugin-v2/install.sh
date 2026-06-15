@@ -231,7 +231,7 @@ fi
 echo ""
 
 if [ "$ERRORS" -eq 0 ]; then
-  echo -e "${GREEN}${BOLD}  Installed successfully (v2.4.0)${NC}"
+  echo -e "${GREEN}${BOLD}  Installed successfully (v2.4.1)${NC}"
   if [ "$LINK_MODE" = true ]; then
     echo -e "  ${DIM}Mode: linked to local repo. Restart Claude Code after editing skills.${NC}"
   fi

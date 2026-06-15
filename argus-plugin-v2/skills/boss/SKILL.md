@@ -175,7 +175,11 @@ write the defaults and let Current Bearing show the top concern if relevant.
 
 ### Step 5 - Route Boss Demands
 
-Boss output can create three kinds of follow-up:
+Scan ALL boss output for demands — including ones embedded inside
+`first_reaction` prose ("관련 자료 보내줘", "월요일까지 가져와"): a demand is a
+demand wherever the persona uttered it, and `first_reaction` is where
+personas most naturally issue them. Boss output can create three kinds of
+follow-up:
 
 - **Decision owed by user:** append to `scaffold.next_actions[]` with
   `actor: "user"`.

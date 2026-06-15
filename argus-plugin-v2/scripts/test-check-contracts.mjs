@@ -232,6 +232,44 @@ t("locale ko in config.yaml → Korean line", () => {
   assert(out.includes("정산할 때") && out.includes("/argus:settle"), `expected ko line: ${out}`);
 });
 
+t("UTF-8 BOM bearing (PS 5.1 Out-File) → still fires", () => {
+  const r = repo();
+  const dir = join(r, ".argus", "sessions", "s1", "versions", "v0.1");
+  mkdirSync(dir, { recursive: true });
+  const json = JSON.stringify({ label: "v0.1", contract_seed: { predicate: "BOM 시드", check_by: iso(-2) } });
+  writeFileSync(join(dir, "current_bearing.json"), "﻿" + json);
+  const out = run(r);
+  assert(out.includes("BOM 시드"), `BOM-prefixed bearing must still be read: ${out}`);
+});
+
+t("UTF-8 BOM ledger → still replayed", () => {
+  const r = repo();
+  mkdirSync(join(r, ".argus", "ledger"), { recursive: true });
+  writeFileSync(join(r, ".argus", "ledger", "ledger.jsonl"),
+    "﻿" + bet("aaaa0001", iso(-1), "BOM 원장").map(e => JSON.stringify(e)).join("\n") + "\n");
+  assert(run(r).includes("/argus:settle"), "BOM-prefixed ledger must still fire");
+});
+
+t("root-level bearing seed → fires (statusline coverage parity)", () => {
+  const r = repo();
+  mkdirSync(join(r, ".argus"), { recursive: true });
+  writeFileSync(join(r, ".argus", "current-bearing.json"), JSON.stringify({
+    label: "v0.1", contract_seed: { predicate: "루트 시드", check_by: iso(-1) },
+  }));
+  assert(run(r).includes("루트 시드"), "root-level seed must alert like the statusline does");
+});
+
+t("root-level seed sealed by predicate → silence", () => {
+  const r = repo();
+  mkdirSync(join(r, ".argus"), { recursive: true });
+  writeFileSync(join(r, ".argus", "current-bearing.json"), JSON.stringify({
+    label: "v0.1", contract_seed: { predicate: "루트 봉인 시드", check_by: iso(-1) },
+  }));
+  ledger(r, bet("eeee0001", iso(-1), "x", [{ event: "settle", outcome: "happened" }])
+    .map(e => (e.event === "seal" ? { ...e, predicate: "루트 봉인 시드" } : e)));
+  assert(run(r) === "", "root seed settled under any id must be silent");
+});
+
 // ─── First-session greeting (once per machine) ──────────
 
 t("first session ever → one greeting line, then permanent silence", () => {

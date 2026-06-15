@@ -132,9 +132,10 @@ Just say it — quotes optional, no syntax to learn. When your question names a
 PR, issue, file, branch, or document, Argus reads that artifact and works on
 it. You can even skip the command: asking Claude "review this deck before I
 send it" or "should we ship this?" triggers Argus on its own. Documents
-supported: pdf/md/txt read directly; **pptx/docx/xlsx/hwpx** extracted
-dependency-free (legacy .ppt/.doc/.hwp → Argus asks for a PDF export).
-Explicit `@PR#123` / `@doc:<path>` forms exist if prose is ambiguous.
+supported: pdf/md/txt read directly; **pptx/docx/hwpx** extracted
+dependency-free; xlsx and legacy .ppt/.doc/.hwp → Argus asks for a CSV/PDF
+export instead of guessing. Explicit `@PR#123` / `@doc:<path>` forms exist if
+prose is ambiguous.
 
 **Zero setup.** Everything ships inside the plugin. Your first session after
 installing greets you with a one-line pointer to `/argus:help` (once, ever —
@@ -237,9 +238,9 @@ silently becomes a 10-minute run. `Ctrl-C` halts; `--resume` continues.
 
 | Path | When | Time | Output tokens |
 |---|---|---|---|
-| Minimal | small reversible question | ~30 s | small |
-| Standard (default) | most decisions | ~3–5 min | ~40–80k |
-| Critical | irreversible / high-impact | ~6–10 min | ~100–180k |
+| Minimal | small reversible question | ~1 min | small |
+| Standard (default) | most decisions | ~4–8 min | ~40–80k |
+| Critical | irreversible / high-impact | ~8–12 min | ~100–180k |
 
 On a tight API budget, prefer `--quick`.
 
@@ -253,7 +254,9 @@ Defaults are private-first:
 - `.argus/sessions/` is **git-ignored by default** — decision history stays
   local unless you opt in.
 - Likely secrets (`.env*`, `*.key`, private-key blocks, high-entropy strings)
-  are **redacted** before diffs are sent to the model or written to disk.
+  are **instructed to be redacted** before diffs reach the model or disk — a
+  prompt-rule mitigation, not a mechanical guarantee; in a secrets-heavy repo,
+  inspect session files before committing them anywhere.
 - To share decision history with your team: set
   `archive.commit_sessions: true` in `.argus/config.yaml` and remove the
   ignore line — but review what you commit first; session files (and session

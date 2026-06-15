@@ -115,37 +115,61 @@ step turns a 30-second intake into an environment lottery.
 1. **`.pdf` / `.md` / `.txt` (and other plain text)** → Read directly. PDF is
    natively readable by the Read tool.
 2. **ZIP-based formats** — extract the XML, then strip tags:
-   - `.pptx` → `ppt/slides/slide*.xml` in slide-number order, plus
-     `ppt/notesSlides/notesSlide*.xml` when present (speaker notes often hold
-     the real argument).
+   - `.pptx` → `ppt/slides/slide*.xml` **numerically sorted** (lexicographic
+     order puts slide10 before slide2 — sort by the number in the filename),
+     plus `ppt/notesSlides/notesSlide*.xml` when present (speaker notes often
+     hold the real argument).
    - `.docx` → `word/document.xml`.
-   - `.xlsx` → `xl/sharedStrings.xml` + `xl/worksheets/sheet*.xml`.
    - `.hwpx` → `Contents/section*.xml` (한컴 hwpx is the same zip+XML shape).
 
+   Extract into the **OS temp dir** (`$env:TEMP` / `/tmp`), NEVER the user's
+   cwd — extraction happens before density is known, and sail Step 0's
+   zero-droppings rule covers scratch files too.
+
    How to unzip (pick by platform, both are built in):
-   - Windows PowerShell: `Expand-Archive -Path <file> -DestinationPath <temp dir>` (copy to a `.zip` name first if Expand-Archive refuses the extension), then Read the XMLs.
+   - Windows PowerShell: **copy to a `.zip` name first — this is mandatory,
+     not a fallback** (PS 5.1 Expand-Archive always refuses non-.zip
+     extensions; verified by live run 2026-06-12): `Copy-Item <file>
+     <temp>\doc.zip; Expand-Archive -Path <temp>\doc.zip -DestinationPath
+     <temp>\out`, then Read the XMLs.
    - macOS/Linux: `unzip -p <file> 'ppt/slides/slide*.xml'` (one command per inner path).
 
    Tag-strip mechanically: delete `<[^>]+>`, collapse runs of whitespace,
-   keep structural boundaries as plain headings (`[slide 3]`, `[sheet:
-   매출]`) so the team can cite locations.
-3. **Legacy binary formats (`.ppt`, `.doc`, `.xls`, `.hwp`)** are NOT zip and
+   keep structural boundaries as plain headings (`[slide 3]`) so the team can
+   cite locations.
+3. **`.xlsx` — honest fallback, NOT extraction.** Technically zip+XML, but
+   string cells are index references into `sharedStrings.xml` — tag-stripping
+   yields sheets of bare integers indistinguishable from data, a husk that
+   would pass the sanity gate and feed a confident analysis of noise. Do not
+   produce it. One line, ko: "엑셀은 구조를 잃지 않고 읽기 어려워요 — CSV나
+   PDF로 내보내 주시면 그대로 분석할게요." / en: "I can't read xlsx without
+   losing its structure — export to CSV or PDF and I'll work on that."
+4. **Legacy binary formats (`.ppt`, `.doc`, `.xls`, `.hwp`)** are NOT zip and
    have no dependency-free parser — do not guess. One honest line, ko: "이
    형식은 직접 못 읽어요 — PDF로 내보내서 다시 주시거나, 내용을 붙여넣어
    주세요." / en: "I can't read this format directly — export it to PDF or
    paste the content." Then stop and wait; never analyze a file you didn't
    read.
-4. **Sanity gate:** if a multi-slide/multi-page document yielded suspiciously
-   little text (< ~200 chars), the deck is probably image-heavy — say so and
-   offer the PDF/paste fallback instead of analyzing a husk. Record what
-   happened either way: `target_context: {kind: "document", ref, contents,
-   extraction: "native-read" | "xml-strip", extraction_note?}`.
+5. **Sanity gate + provenance:** if a multi-slide/multi-page document yielded
+   suspiciously little text (< ~200 chars), the deck is probably image-heavy —
+   say so and offer the PDF/paste fallback instead of analyzing a husk.
+   Either way, print ONE provenance line so the user can catch a husk you
+   missed — ko: "읽음: 슬라이드 14장 · 3,200자 (발표자 노트 포함)" / en:
+   "Read: 14 slides · 3,200 chars (incl. speaker notes)" — and record:
+   `target_context: {kind: "document", ref, contents, extraction:
+   "native-read" | "xml-strip", extraction_note?}`.
 
 ---
 
 ## Execution steps
 
 ### Step 1 — Session bootstrap
+
+**Auto-invocation deferral (sail Step 0 zero-droppings rule):** if this run
+was auto-triggered from plain prose rather than an explicit command, buffer
+the session bootstrap in memory — perform the directory/file writes below
+only once `decision_density` is known to be medium/high or the user engages.
+Low density on an auto-trigger → answer inline, write nothing.
 
 1. **Read config**: Load `.argus/config.yaml` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/config.json`). If clarify is invoked via `/argus:sail`, the config is already loaded and present (sail Step 0 silent-creates it). If clarify is invoked DIRECTLY by the user with no config, silent-create from `${CLAUDE_PLUGIN_ROOT}/lib/config.example.yaml` (same logic as sail Step 0, including locale detection) — print sail Step 0's one-line ack in the detected locale and proceed. No AskUserQuestion. All user-facing text in this skill uses `config.locale`. (Resolve `${CLAUDE_PLUGIN_ROOT}` paths per sail §Path Resolution: plugin install dir first, then the legacy copy-install dirs, then repo-local `argus-plugin-v2/`.)
 2. Compute session ID: `YYYY-MM-DD-<kebab-of-first-5-words-of-problem>-<author>`, where `<author>` is the first 4 hex chars of a hash of `git config user.email` (fallback: `git config user.name`, else `local`). The author suffix makes the same problem from two teammates resolve to two non-colliding directories that still both travel via git — the team-safety guarantee. Still collision-safe within one author by appending `-2`, `-3`.
@@ -271,6 +295,13 @@ gated) **or `--quick`.**
    byte-parity with the web engine by a test; an improvised variant silently
    diverges from the G0-validated levers). Path fallback per sail §Path
    Resolution.
+**"브리프" 정의:** the probe's brief = `problem_text` + the expanded
+`target_context` contents (diff, document text, PR body — whatever the team
+will work ON), concatenated verbatim. With only a 6-word problem text, every
+fork/finding would fail the quote-anchoring post-filters and the probe would
+be structurally silent on ALL document/PR runs — the target IS the text being
+probed.
+
 2. **C 분기 탐침**: launch 3 parallel haiku-class Tasks, each = GROUND_RULES +
    the brief verbatim in `<user-data>` + the C sample block. **차별화 지시
    절대 금지 — 페르소나 텍스트를 이 프롬프트에 넣지 마라** (측정 오염). Crew

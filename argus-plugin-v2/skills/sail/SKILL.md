@@ -83,6 +83,15 @@ Session artifacts live in:
 
 ## Step 0 - Load Config
 
+**Zero-droppings rule for auto-invocation.** When sail was triggered from a
+plain natural-language request (no explicit `/argus:sail`), do NOT create
+`.argus/` or any file yet. Hold all writes in memory through clarify's initial
+analysis; create `.argus/` only once the decision is confirmed non-trivial
+(`decision_density` medium/high, or the user engages with a question). If the
+density turns out low, answer with the minimal card inline and write
+NOTHING — a mistaken auto-trigger must leave the user's repo byte-identical.
+Explicit `/argus:sail` invocations create files as written below.
+
 Read `.argus/config.yaml`.
 
 **If missing, silently create from `${CLAUDE_PLUGIN_ROOT}/lib/config.example.yaml`** (resolve per §Path Resolution; no AskUserQuestion — first-run friction was the discoverability killer). First ensure the target dir exists: `mkdir -p .argus` (on a true first run in a fresh repo `.argus/` does not exist yet, so writing the config straight away would fail).
@@ -241,7 +250,9 @@ When confidence is high enough, do not ask how to proceed. The user invoked
 Argus to get orientation inside the decision, not to manage a workflow.
 
 Print one line (include a rough time preview so a quick question never silently
-becomes a multi-minute run — `~3-5 min` for important, `~6-10 min` for critical):
+becomes a multi-minute run — `~4-8 min` for important, `~8-12 min` for critical;
+honest numbers from a measured run, not aspirations — and print it BEFORE any
+probe/extraction work begins, not after the user has already waited):
 
 - en: "Checking evidence and weak claims, then returning the current bearing (~{{time_range}}). (Ctrl-C to halt)"
 - ko: Translate naturally.
@@ -281,6 +292,10 @@ Write:
 - `versions/{label}/current_bearing.json`, conforming to
   `${CLAUDE_PLUGIN_ROOT}/data/schemas/current-bearing.json` (include the required
   `generated_at` ISO-8601 timestamp — a bearing without it fails schema validation)
+- `session.json`: set `phase: "complete"` after the bearing is rendered. Boss
+  leaves the phase at `refining` and nothing else ever closes it — without
+  this line no session in the default flow EVER reaches `complete`, and a
+  later `--resume` misroutes a finished voyage into `/argus:revise`.
 
 ### Current Bearing Mapping
 

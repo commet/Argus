@@ -573,5 +573,69 @@ Third pass (same day) — install→first-use bridge:
 - Non-code follow-up worth doing: submit Argus to the community marketplace
   (platform.claude.com submission form) for in-product discoverability.
 
+Fourth pass (same day, v2.4.1) — devil's-advocate round on the shipped 2.4.0:
+- First actual runtime datapoint in the plugin's history: built a fake pptx
+  with Korean slides and ran the §Document Extraction recipe end-to-end on
+  Windows. Two spec corrections fell out — Expand-Archive ALWAYS refuses
+  .pptx (copy-to-.zip is mandatory, was worded as fallback), and slide files
+  need numeric sort.
+- xlsx demoted from extraction to honest CSV/PDF-export fallback: tag-strip
+  on xlsx yields sharedStrings index integers — a husk that would pass the
+  sanity gate.
+- Zero-droppings rule: auto-triggered sail must not create .argus/ until the
+  decision is confirmed non-trivial (over-trigger droppings in strangers'
+  repos was judged the worst retention risk of NL invocation).
+- Ledger write verification (settle/helm): append → re-read → JSON.parse,
+  because every reader silently skips corrupt lines (a malformed seal = a
+  prediction that never existed).
+- Settle #1 payoff surface: quote the source bearing's fog/reef next to the
+  outcome — the loop's friction/payoff was upside-down (first visible payoff
+  previously arrived at settle #3 via --insights).
+- README redaction claim downgraded to prompt-rule honesty (ko+en);
+  extraction provenance line added ("읽음: 슬라이드 N장 · M자").
+- Explicitly NOT doing (devil's-advocate concurrence): helm polish, more
+  static fixtures, boss/MBTI depth, xlsx parser — all sit behind the
+  unmeasured interaction #1.
+
+Fifth pass (same day) — the gate got walked, twice, in simulation:
+two agent-driven end-to-end runs against real fixtures (a real pptx with
+Korean slides + speaker notes; a planted overdue bearing seed). Results:
+
+PM voyage ("보고서.pptx 임원회의 가져가도 되나?", no slash):
+- SURVIVED. Extraction recipe worked verbatim (copy-to-zip mandatory, numeric
+  slide sort, notes read, provenance line printed); zero-droppings held
+  (nothing written before density=medium); bearing = 17 lines, zero
+  machinery leakage, 4-part falsifiable seed, and it found the deck's real
+  weakness (unverified 8% + the "검증 안 됨" admission physically embedded in
+  the shareable file — something paste-into-Claude likely misses).
+- Cost: ~17 model calls, est. 5–8 min, 1 user question. The question was the
+  WRONG fork (purpose_reading priority burned the ≤2 budget on the weak
+  fork; the 8% crux was never asked — workers recovered it). Fork-priority
+  re-ranking deferred: the rule lives in probe-prompts.md under byte-parity
+  with the webapp's G0-validated levers; changing it is a webapp-coupled
+  decision, logged here as the top open product question.
+- 11 spec conflicts logged; all but fork-priority fixed this pass (verify
+  rule-4 loop trap, blocks over-gating, team self-escalation, probe brief
+  undefined on documents, extraction temp dir, phase never completing, boss
+  first_reaction demands, time-preview honesty).
+
+Settlement loop (/argus:settle on an overdue seed):
+- SURVIVED end-to-end: reminder → settle (seed import, append-only writes,
+  write-verification gate passed) → hook/statusline/log all went silent via
+  the same dedup — and the v2.4.1 안개 payoff line landed as designed ("당시
+  짚었던 안개: 'B안 우위가 프로모션 효과일 수 있음' — 현실의 답: partial").
+  Bearing byte-identical after settle (SHA256 match).
+- Found the highest-leverage mechanical bug of the day: **UTF-8 BOM** (from
+  PS 5.1 Out-File) made bearings/ledgers silently invisible to hook and
+  statusline on Windows — no reminder ever fires, and the miss burns the
+  greeting marker. Fixed with BOM-strip in both readers + fixtures (hook 30,
+  statusline 36 tests).
+
+Still genuinely unverifiable in simulation (needs ONE real fresh session):
+auto-invocation firing probability on paraphrased asks, Claude Code
+permission-prompt count during extraction (a non-dev sees "Allow
+Expand-Archive?" as a malware warning), and whether SessionStart hook stdout
+actually renders to the user in the current Claude Code version.
+
 Live verification pending alongside TC-SETTLE (skill bodies cache at session
 start — needs a fresh session).

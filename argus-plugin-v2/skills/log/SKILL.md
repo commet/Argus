@@ -32,7 +32,11 @@ was predicted, and how those predictions fared.
    (defensive-parse; skip corrupt) → id, `problem_text`, `phase`,
    `updated_at`. From the newest version dir read `current_bearing.json` →
    `current_course.status` + summary, or `minimal_scaffold.json` →
-   "minimal". Missing both → "in progress".
+   "minimal". Missing both → "in progress". **A session dir with a bearing
+   but no readable `session.json`** (webapp emission, partial sync) still
+   counts as a voyage — render it degraded from the bearing
+   (`current_course.summary` in place of `problem_text`, date from
+   `generated_at`); never show "Voyages: 0" next to "Contracts: 1 sealed".
 2. **Ledger:** replay `.argus/ledger/ledger.jsonl` by id (`seal` opens,
    `amend` updates, `settle`/`dismiss` closes; skip unparsable lines).
    Compute: sealed count, open contracts (with next/overdue check-by dates),

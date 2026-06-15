@@ -4,6 +4,81 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.4.1 — 2026-06-12
+
+Post-release devil's-advocate pass + the plugin's first two end-to-end
+simulated runs (PM pptx voyage, full settlement loop). Both survived; one
+real bug and eleven spec gaps fell out.
+
+### Fixed (from the simulated runs)
+- **Windows BOM bug (the big one):** a bearing/ledger ever touched by PS 5.1
+  `Out-File -Encoding utf8` carries a UTF-8 BOM; `JSON.parse` threw, the file
+  silently vanished from the reminder hook AND the statusline (no overdue
+  alert, ever — the calibration flywheel never starts), and the miss burned
+  the once-per-machine greeting at the wrong moment. Both readers now strip
+  BOM; regression fixtures added.
+- **verify routing loop-trap:** rule 4 sent ANY owner-tagged challenged claim
+  — even `minor`, whose own definition says don't block — into `revise_team`,
+  re-running the whole team over a wording nit. Now requires severity ≥
+  important; minors travel as caveats.
+- **verify over-blocking:** prose examples only ever showed gating `blocks`
+  values; a model following them flips the bearing to `collect_evidence` on
+  merely-worth-doing checks. The four-value semantics (`none`/`boss_review`
+  don't gate) are now stated.
+- **team self-escalation trap:** the critic mandate could append a critique
+  step → overflow the budget → trigger the stakes auto-upgrade to critical
+  (4 agents + debate), nearly doubling cost on a classification coin-flip.
+  Only plan-native critique steps count now.
+- **No session ever reached `complete`:** boss leaves `refining` and nothing
+  closed it; `--resume` misrouted finished voyages into revise. sail Step 7
+  now sets `complete` after rendering the bearing.
+- **Probe was structurally silent on document runs:** "the brief" was
+  undefined for document targets — anchors quoted a 6-word problem text and
+  every fork failed the post-filters. Brief = problem_text + extracted
+  target contents, now stated.
+- **Extraction scratch dir** pinned to OS temp (extracting into cwd would
+  break zero-droppings); hook now scans root/session-level bearings (parity
+  with the statusline — a seed can no longer alert on one surface while
+  settle can't reach it); settle Step 1 scans the same three levels.
+- settle Step 4's 안개-line data path specified (parse the contract id back
+  into the bearing path); seed-import no longer fabricates `stakes:"high"`;
+  log renders bearing-only voyages instead of "Voyages: 0 / Contracts: 1";
+  boss demands embedded in `first_reaction` route like any other demand;
+  time previews and README cost table updated to measured numbers (~4–8 min
+  standard); track-record line shows "(인사이트까지 N건)" before T=3.
+
+### Fixed
+- **xlsx demoted to honest fallback.** Cell values in xlsx are index
+  references into sharedStrings.xml — the pinned tag-strip recipe would
+  produce sheets of bare integers that pass the sanity gate and feed a
+  confident analysis of noise. Argus now asks for a CSV/PDF export instead
+  ("a correct *I can't read this well* beats a deterministic husk").
+- **pptx extraction recipe live-verified on Windows** (fake deck, Korean
+  text, end-to-end): PS 5.1 Expand-Archive ALWAYS refuses non-.zip
+  extensions, so the copy-to-.zip step is now mandatory wording, not a
+  fallback; slide files must be numerically sorted (slide10 < slide2
+  lexicographically).
+- **Zero-droppings rule for auto-invocation** (sail Step 0 + clarify Step 1):
+  a natural-language trigger must not create `.argus/` until the decision is
+  confirmed non-trivial; a mistaken auto-trigger leaves the repo
+  byte-identical. Explicit `/argus:sail` writes as before.
+- **README secret-redaction claim downgraded to the truth** (ko+en): it is a
+  prompt-rule mitigation, not a mechanical guarantee — inspect session files
+  before committing them in secrets-heavy repos.
+
+### Added
+- **Extraction provenance line** — after any document intake, one line states
+  what was actually read ("읽음: 슬라이드 14장 · 3,200자") so the user can
+  catch a husk the sanity gate missed.
+- **Ledger write verification** (settle + helm): after appending, re-read and
+  JSON-parse the new line — every reader silently skips corrupt lines, so a
+  malformed seal is a prediction that silently ceases to exist; now it gets
+  corrected at write time.
+- **Settle #1 payoff**: when a settled contract came from a bearing seed, the
+  report quotes the bearing's fog/reef next to the outcome ("당시 짚었던
+  안개: … — 현실의 답: …") — the earliest visible proof that the harness saw
+  a real risk, and the only moment cheap enough to buy settle #2.
+
 ## 2.4.0 — 2026-06-12
 
 Intake aligned with Claude Code convention: say it, don't syntax it.

@@ -178,6 +178,14 @@ Each check must say why AI cannot verify it:
 }
 ```
 
+`blocks` takes FOUR values (per the schema): `"execution"` and
+`"final_signoff"` gate; `"boss_review"` and `"none"` do NOT. A check that is
+merely worth doing is `"none"` and must not flip the overall status to
+`blocked` (or the bearing to `collect_evidence`). Most human checks are
+`"none"` or `"boss_review"` — reserve the gating values for checks whose
+failure genuinely invalidates the course. (The example above gates because
+unsigned legal review really does.)
+
 ### Step 7 - Route
 
 `routing_decision` is computed as an **ordered if / else-if — first match wins** (these conditions overlap, so precedence is mandatory; flat "defaults" let two routes both claim the same input):
@@ -185,8 +193,8 @@ Each check must say why AI cannot verify it:
 1. **else-if** any human check has `blocks: "execution"` → `stop_for_human_check`. (Highest priority: an execution blocker must never be overridable by a "proceed" choice downstream.)
 2. **else-if** any `critical` challenged claim exists → `ask_user`. (Or, under `--no-prompt` where the user can't be asked, escalate to `revise_team` if the repair is agent-owned, otherwise `stop_for_human_check` — never silently `proceed_to_boss` on a critical challenge.)
 3. **else-if** `--strict` and any `important` challenged claim exists → `ask_user`.
-4. **else-if** there is an agent-owned repair (a challenged claim with an `owner_agent_id` and no human data needed) → `revise_team`.
-5. **else** (challenged claims all minor, no blocking human checks) → `proceed_to_boss`.
+4. **else-if** there is an agent-owned repair worth a loop — a challenged claim of severity **`important` or above** with an `owner_agent_id` and no human data needed → `revise_team`. `minor` challenged claims NEVER trigger this route, owner or not (their own definition says they don't block; re-running the whole team over a wording nit is the loop-forever failure mode).
+5. **else** (challenged claims all minor, no blocking human checks) → `proceed_to_boss`. Minor claims travel forward as visible caveats, not as work orders.
 
 Overall status (also ordered, first match wins):
 - `blocked`: any human/external check blocks execution or final signoff.

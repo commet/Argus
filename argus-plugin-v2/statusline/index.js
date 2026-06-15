@@ -47,6 +47,12 @@ const SEP = ` ${C.d}·${R} `;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const DAY = 86400000;
 
+// PS 5.1's `Out-File -Encoding utf8` writes a BOM; JSON.parse chokes on it
+// and the file silently vanishes from every surface. Strip before parsing.
+function deBom(s) {
+  return s.charCodeAt(0) === 0xfeff ? s.slice(1) : s;
+}
+
 // ─── Stdin ───────────────────────────────────────────────
 
 function readStdin() {
@@ -138,7 +144,7 @@ function findArgusRoot(cwd) {
 function loadLedger(root) {
   const empty = { bets: [], ids: new Set(), sealedPredicates: new Set() };
   let raw;
-  try { raw = fs.readFileSync(join(root, ".argus", "ledger", "ledger.jsonl"), "utf8"); }
+  try { raw = deBom(fs.readFileSync(join(root, ".argus", "ledger", "ledger.jsonl"), "utf8")); }
   catch { return empty; }
 
   const map = new Map();
@@ -206,7 +212,7 @@ function loadBearing(root) {
     let st;
     try { st = fs.statSync(c.path); } catch { continue; }
     let b;
-    try { b = JSON.parse(fs.readFileSync(c.path, "utf8")); } catch { continue; }
+    try { b = JSON.parse(deBom(fs.readFileSync(c.path, "utf8"))); } catch { continue; }
     const t = Date.parse(b.generated_at) || st.mtimeMs;
     if (!best || t > best.t) best = { b, t, seedId: c.seedId };
   }
@@ -235,7 +241,7 @@ function loadLiveSession(root) {
   if (!latest || Date.now() - latest.mtimeMs > LIVE_WINDOW_MS) return null;
 
   let s;
-  try { s = JSON.parse(fs.readFileSync(latest.p, "utf8")); } catch { return null; }
+  try { s = JSON.parse(deBom(fs.readFileSync(latest.p, "utf8"))); } catch { return null; }
   if (!s.phase || s.phase === "complete") return null;
 
   const drafts = s.drafts || [];

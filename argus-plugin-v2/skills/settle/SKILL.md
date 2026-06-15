@@ -36,8 +36,13 @@ Two sources, merged and deduped by id:
    (`predicate`, `falsified_if`, `check_by`), `amend` updates fields,
    `settle`/`dismiss` closes it. Keep contracts still open whose `check_by`
    (ISO date) ≤ today.
-2. **Bearing seeds:** every `.argus/sessions/*/versions/*/current_bearing.json`
-   with a `contract_seed` whose `check_by` contains an ISO date ≤ today.
+2. **Bearing seeds:** every `current_bearing.json` (or legacy hyphen
+   spelling) with a `contract_seed` whose `check_by` contains an ISO date ≤
+   today — scan the same three levels the statusline and reminder hook scan,
+   so no surface can alert on a seed settle can't reach:
+   `.argus/sessions/*/versions/*/` (id `bearing:<session-id>:<label>`),
+   `.argus/sessions/*/` (id `bearing:<session-id>:<bearing.label or "v0">`),
+   and `.argus/` root (id `bearing:root:<bearing.label or "v0">`).
    Synthesize a stable id: `bearing:<session-id>:<label>`. Skip seeds whose id
    already appears in the ledger (they were settled or already imported) — or
    whose verbatim predicate was already sealed under another id (e.g., sealed
@@ -72,9 +77,11 @@ If more than 3 are due, settle the 3 oldest and say how many remain.
   then settle — so the ledger stays the single replayable source:
 
 ```json
-{"event":"harvest","id":"bearing:<session-id>:<label>","project":"<repo dir name>","session":"<session-id>","decided_at":"<bearing generated_at>","quote":"<predicate>","decision":"<current_course.summary>","type":"adopt","stakes":"high","at":"<now ISO>"}
+{"event":"harvest","id":"bearing:<session-id>:<label>","project":"<name of the directory containing .argus>","session":"<session-id>","decided_at":"<bearing generated_at>","quote":"<predicate>","decision":"<current_course.summary>","type":"adopt","stakes":"<from the session's classification.json if readable; omit the field otherwise — never fabricate>","at":"<now ISO>"}
 {"event":"seal","id":"<same id>","predicate":"<predicate>","falsified_if":"<fail_condition or 'opposite observed'>","check_by":"<ISO date>","at":"<now ISO>"}
 ```
+
+Omit `note` from the settle event when the user offered no sentence.
 
 - Outcome events:
 
@@ -99,16 +106,31 @@ ledger (verbatim predicates and outcomes) stays local by default.
 ## Argus - Settle
 
 ✓ "{{predicate clipped 70}}" → {{outcome}}
+{{if contract came from a bearing seed AND that bearing has fog_or_reef}}
+  당시 짚었던 안개: "{{fog_or_reef.issue clipped 60}}" — 현실의 답: {{outcome}}
+{{endif}}
 {{...per settled contract}}
 {{if pending}}→ "{{predicate}}" pushed to {{new check_by}}{{endif}}
 
-Track record: {{S}} sealed · {{T}} settled — held {{h}} · missed {{a}} · partial {{p}}
+Track record: {{S}} sealed · {{T}} settled — held {{h}} · missed {{a}} · partial {{p}}{{if T < 3}} (인사이트까지 {{3-T}}건){{endif}}
 {{if remaining due}}{{N}} more due — run /argus:settle again.{{endif}}
 {{if T >= 3}}Patterns across your voyages: /argus:log{{endif}}
+{{if a settled outcome was missed/partial AND its fog_or_reef names an open question}}열린 질문이 하나 남았네요 — 잡아보려면: /argus:sail{{endif}}
 ```
 
+**Recovering `fog_or_reef` for the 안개 line:** parse the contract id back
+into a path — `bearing:<session-id>:<label>` →
+`.argus/sessions/<session-id>/versions/<label>/current_bearing.json` (try the
+hyphen spelling too; `bearing:root:<label>` → the root bearing). This works
+for ledger-origin contracts settled in a later run, where the id is the only
+link back to the source bearing. If the bearing is gone, skip the line —
+never reconstruct the fog from memory.
+
 The track-record line is computed mechanically from the full ledger replay.
-No praise, no scolding — counts only.
+No praise, no scolding — counts only. The "당시 짚었던 안개" line is the one
+deliberate exception to counts-only: a user's first settle must show that the
+harness saw a real risk at decision time, or there is no reason to come back
+for settle #2 — it quotes, it never editorializes.
 
 ---
 
@@ -116,6 +138,11 @@ No praise, no scolding — counts only.
 
 - **Append-only:** never modify or delete existing ledger lines; corrupt lines
   are skipped, not repaired.
+- **Write verification:** after appending, re-read the line(s) you just wrote
+  and JSON-parse each one. Every reader in the system silently skips
+  unparsable lines, so a malformed seal isn't an error — it's a prediction
+  that ceases to exist. If a line fails to parse, append a corrected line
+  immediately (never edit in place).
 - **No self-grading:** the user states the outcome; the skill never infers
   `happened`/`avoided` from git state or argument.
 - **No nagging:** one pass per invocation; skipping is one tap and is never

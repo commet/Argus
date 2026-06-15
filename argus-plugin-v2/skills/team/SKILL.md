@@ -89,7 +89,7 @@ improvise a crew without it.
 - Assemble a **repo_sketch** block: `{languages, frameworks, recent_commits, directory_tree_sample}`.
 - Workers receive this sketch and can Grep/Glob for specific files as they work.
 
-**(C) No git repo — document / strategy mode** (a first-class path, NOT an error — many decisions are not about code: market entry, hiring, vendor choice, career, pricing):
+**(C) Document / strategy mode** (a first-class path, NOT an error — many decisions are not about code: market entry, hiring, vendor choice, career, pricing). Two entry conditions: no git repo at all, **or** the target is a document (`target_context.kind == "document"` / `"pasted"`) even when a git repo happens to exist — a deck reviewed inside a code repo is still a document decision; do not force path (A)/(B) repo framing onto it:
 - Skip repo gathering. Set `repo_context.mode = "document"`.
 - If `meta.json.target_context` exists (the user named a document in prose or via `@doc:<path>` in clarify, or pasted context), pass that artifact to workers as the thing they reason ON — same role the diff plays in code mode.
 - Otherwise workers reason from the problem text + their domain expertise. This is legitimate, not degraded.
@@ -185,6 +185,13 @@ Apply (a), then (b), then (c) in order. Each step may resolve the overage partia
 
 **(a) Stakes auto-upgrade when critique is present.** If at least one step has `primary_task_type == "critique"` AND current stakes is `routine` or `important`, upgrade stakes by one level (`routine → important` or `important → critical`). Recompute `agent_count_max` (important=3, critical=4). Log upgrade in `classification.json` with `stakes_upgrade_reason: "critique_step_present"`.
 - Applies regardless of over-count magnitude. Rationale: a critique step in the execution plan is a strong signal the problem merits fuller team deployment; don't gate on "exactly +1 over budget."
+- **Only a critique step that came from the PLAN counts.** A critique/critic
+  step that Step 2's own mandate appended (or that exists only because a step
+  was loosely classified as critique when it's really analysis/research) must
+  not trigger the upgrade — otherwise every important-stakes 3-step plan
+  self-escalates to critical (mandate adds critic → budget overflows → (a)
+  fires), nearly doubling cost on a classification coin-flip. When in doubt
+  whether a step is genuinely critique, it isn't.
 - If still over budget after (a), continue to (b).
 
 **(b) Merge adjacent same-type steps.** Scan steps for pairs with identical `primary_task_type` AND similar `context_domain` (same or adjacent in classification.yaml). Merge iteratively: concatenate `task` strings with " + ", union `expected_output`, keep the agent with higher score if both had hints. Each merged step gets one agent. Log merges to `classification.json:merges[]`.

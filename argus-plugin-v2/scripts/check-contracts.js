@@ -57,9 +57,17 @@ function clip(text, max) {
   return text.length <= max ? text : text.slice(0, max - 1) + "…";
 }
 
+// Strip a UTF-8 BOM: PowerShell 5.1's `Out-File -Encoding utf8` writes one,
+// Node's "utf8" read keeps it, and JSON.parse then throws — which on Windows
+// silently disappears every bearing/ledger a user ever touched with PS
+// tooling (no reminder, no statusline, and the greeting fires instead).
+function deBom(s) {
+  return s.charCodeAt(0) === 0xfeff ? s.slice(1) : s;
+}
+
 function readJson(file) {
   try {
-    return JSON.parse(fs.readFileSync(file, "utf8"));
+    return JSON.parse(deBom(fs.readFileSync(file, "utf8")));
   } catch {
     return null;
   }
@@ -78,7 +86,7 @@ function replayLedger(argusDir, today) {
   const map = new Map();
   let raw;
   try {
-    raw = fs.readFileSync(path.join(argusDir, "ledger", "ledger.jsonl"), "utf8");
+    raw = deBom(fs.readFileSync(path.join(argusDir, "ledger", "ledger.jsonl"), "utf8"));
   } catch {
     return { overdue: [], ids, sealedPredicates };
   }
@@ -126,26 +134,39 @@ function replayLedger(argusDir, today) {
 
 function bearingContracts(argusDir, today, ledger) {
   const out = [];
+
+  // One dir's seed, deduped against the ledger by import id and by verbatim
+  // predicate (root/session-level bearings have no version label, so their
+  // synthesized id may differ — the predicate is the universal key).
+  function collectSeed(dir, importId) {
+    if (importId && ledger.ids.has(importId)) return; // imported → ledger owns it
+    for (const name of BEARING_NAMES) {
+      const bearing = readJson(path.join(dir, name));
+      const seed = bearing && bearing.contract_seed;
+      if (!seed) continue;
+      if (typeof seed.predicate === "string" && ledger.sealedPredicates.has(seed.predicate)) return;
+      const date = asDate(seed.check_by);
+      if (date && date <= today && typeof seed.predicate === "string") {
+        out.push({ date, text: seed.predicate });
+      }
+      return; // first spelling WITH a seed wins; never count one dir twice
+    }
+  }
+
+  // Root-level bearing (legacy/webapp emission) — same coverage as the
+  // statusline, so a seed can never light one surface and not the other.
+  collectSeed(argusDir, null);
+
   const sessions = path.join(argusDir, "sessions");
   let ids = [];
   try { ids = fs.readdirSync(sessions); } catch { return out; }
   for (const id of ids) {
+    collectSeed(path.join(sessions, id), null); // session-level (legacy)
     const versions = path.join(sessions, id, "versions");
     let labels = [];
     try { labels = fs.readdirSync(versions); } catch { continue; }
     for (const label of labels) {
-      if (ledger.ids.has(`bearing:${id}:${label}`)) continue; // imported → ledger owns it
-      for (const name of BEARING_NAMES) {
-        const bearing = readJson(path.join(versions, label, name));
-        const seed = bearing && bearing.contract_seed;
-        if (!seed) continue;
-        if (typeof seed.predicate === "string" && ledger.sealedPredicates.has(seed.predicate)) break;
-        const date = asDate(seed.check_by);
-        if (date && date <= today && typeof seed.predicate === "string") {
-          out.push({ date, text: seed.predicate });
-        }
-        break; // first spelling WITH a seed wins; never count one version dir twice
-      }
+      collectSeed(path.join(versions, label), `bearing:${id}:${label}`);
     }
   }
   return out;
