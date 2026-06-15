@@ -7,8 +7,12 @@
  * a status field by hand (which they wouldn't).
  *
  * Locked decisions:
- *  - 도착(arrived) = the Coda (meta_reflection) was written. An intentional
- *    "I've landed" act, not merely "touched the last tool".
+ *  - 검증(verified) = the outcome was reckoned (every predicate graded). The
+ *    strongest landing — settling your predictions IS reckoning the voyage, so
+ *    it counts on its own, with or without a Coda. No unfair wreck afterward.
+ *  - 도착(arrived) = the Coda (meta_reflection) was written but the outcome
+ *    isn't reckoned yet. An intentional "I've landed" act, not merely
+ *    "touched the last tool".
  *  - 표류(adrift) at 14 idle days, 난파(wrecked) at 30 — and ONLY when the
  *    voyage is genuinely incomplete. A finished-but-no-Coda voyage is
  *    "approaching port" (sailing), never wrecked. No unfair shipwrecks.
@@ -60,16 +64,18 @@ function idleDays(lastActivityAt: string, now: number): number {
 }
 
 export function getVoyageState(s: VoyageSignals, now: number): VoyageState {
-  // 1. Landing is terminal and overrides idleness — a written Coda always wins.
-  if (s.hasCoda) {
-    return s.outcomeVerdict && s.outcomeVerdict !== 'pending' ? 'verified' : 'arrived';
-  }
-  // 2. Never left harbor.
+  // 1. Outcome reckoned (every predicate graded) is terminal and overrides
+  //    idleness — settling your predictions IS landing the voyage, so it counts
+  //    on its own even without a written Coda. No unfair wreck after a reckoning.
+  if (s.outcomeVerdict && s.outcomeVerdict !== 'pending') return 'verified';
+  // 2. A written Coda is an intentional landing → arrived (outcome not yet reckoned).
+  if (s.hasCoda) return 'arrived';
+  // 3. Never left harbor.
   if (!s.started) return 'docked';
-  // 3. Reached the final leg but hasn't written the Coda → approaching port.
-  //    Deliberately cannot wreck; the nudge is "write the Coda", not "you failed".
+  // 4. Reached the final leg but hasn't landed yet → approaching port.
+  //    Deliberately cannot wreck; the nudge is "land it", not "you failed".
   if (s.completedAllLegs) return 'sailing';
-  // 4. Incomplete + idle → drift, then wreck. Both conditions required.
+  // 5. Incomplete + idle → drift, then wreck. Both conditions required.
   const idle = idleDays(s.lastActivityAt, now);
   if (idle >= WRECK_DAYS) return 'wrecked';
   if (idle >= DRIFT_DAYS) return 'adrift';
