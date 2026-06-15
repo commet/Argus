@@ -25,9 +25,9 @@ type Decl = { table: string } | { localOnly: string };
 
 /** 키별 영속성 선언 — 새 키를 추가하면 여기서 결정을 내려야 한다. */
 const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
-  REFRAME_LIST: { table: 'reframe_items' },
-  SYNTHESIZE_LIST: { table: 'synthesize_items' },
-  RECAST_LIST: { table: 'recast_items' },
+  REFRAME_LIST: { localOnly: '레거시 4단계 도구 — Supabase 테이블 없음, localStorage-only로 정직화(2026-06-13)' },
+  SYNTHESIZE_LIST: { localOnly: '레거시 4단계 도구 — 테이블 없음, localStorage-only(2026-06-13)' },
+  RECAST_LIST: { localOnly: '레거시 4단계 도구 — 테이블 없음, localStorage-only(2026-06-13)' },
   PERSONAS: { table: 'personas' },
   FEEDBACK_HISTORY: { table: 'feedback_records' },
   PROJECTS: { table: 'projects' },

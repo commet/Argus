@@ -35,6 +35,8 @@ import {
   amendCheckIn,
   isResolved,
   summarizeRecord,
+  contractStatus,
+  deriveOutcomeVerdict,
   CHECK_IN_MS,
 } from '@/lib/decision-contract';
 import { Modal } from '@/components/ui/Modal';
@@ -81,9 +83,17 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
 
   function grade(predicateId: string, verdict: PredicateVerdict) {
     if (!contract) return;
-    updateProject(project.id, {
-      decision_contract: gradePredicate(contract, predicateId, verdict, Date.now()),
-    });
+    const next = gradePredicate(contract, predicateId, verdict, Date.now());
+    const patch: Partial<Project> = { decision_contract: next };
+    // 2026-06-13: when the last predicate is settled, stamp the voyage outcome
+    // from the user's own grades — this is the only writer of project.outcome,
+    // which flips the voyage to its terminal '검증된 항해' (verified) state.
+    // Don't overwrite an outcome the user may have set elsewhere.
+    if (!project.outcome && contractStatus(next, Date.now()).allGraded) {
+      const verdict = deriveOutcomeVerdict(next);
+      if (verdict) patch.outcome = { verdict, recorded_at: new Date().toISOString() };
+    }
+    updateProject(project.id, patch);
     // Learning signal — settlement is the return half of the loop; its verdict
     // is the ground truth the product is built to accumulate (2026-06-13 fix).
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict } });

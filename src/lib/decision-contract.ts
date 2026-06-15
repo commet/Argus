@@ -447,6 +447,26 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
   return s;
 }
 
+/**
+ * Derive the voyage's outcome verdict from the user's OWN settled grades
+ * (2026-06-13: the `verified` voyage state had no writer, so it was
+ * permanently unreachable). This is the user grading reality against their own
+ * predictions — not the AI judging the user (P1 holds). Favorable = bets held
+ * + risks avoided; unfavorable = bets broke + risks materialized; both = mixed.
+ * Returns null until at least one scored (non-unknown) grade exists.
+ */
+export function deriveOutcomeVerdict(
+  contract: DecisionContract,
+): 'right' | 'wrong' | 'mixed' | 'pending' | null {
+  const g = summarizeGrades(contract);
+  const favorable = g.betsHeld + g.risksAvoided + g.rolesConfirmed;
+  const unfavorable = g.betsBroke + g.risksHappened;
+  if (favorable === 0 && unfavorable === 0) return null; // only 'unknown' grades
+  if (favorable > 0 && unfavorable === 0) return 'right';
+  if (unfavorable > 0 && favorable === 0) return 'wrong';
+  return 'mixed';
+}
+
 export interface CrossProjectRecord {
   /** Fully-settled contracts — loops actually closed. */
   loops: number;

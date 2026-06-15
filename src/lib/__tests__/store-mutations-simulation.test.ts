@@ -249,7 +249,9 @@ describe('useReframeStore mutations', () => {
     expect(item.created_at).toBeTruthy();
     expect(item.updated_at).toBeTruthy();
 
-    expect(mockUpsert).toHaveBeenCalledWith('reframe_items', expect.objectContaining({ id }));
+    // 2026-06-13 정직화: reframe_items엔 Supabase 테이블이 없어 localStorage-only.
+    // 동기화를 호출하지 않는 것이 올바른 동작 (조용한 400 실패 제거).
+    expect(mockUpsert).not.toHaveBeenCalled();
   });
 
   it('updateItem — updates item fields', () => {
@@ -266,7 +268,7 @@ describe('useReframeStore mutations', () => {
     expect(item.selected_question).toBe('Refined question');
     expect(item.input_text).toBe('Original question'); // preserved
 
-    expect(mockUpsert).toHaveBeenCalledTimes(1);
+    expect(mockUpsert).not.toHaveBeenCalled(); // localStorage-only (2026-06-13)
   });
 
   it('deleteItem — removes item from state and clears currentId if matching', () => {
@@ -279,7 +281,7 @@ describe('useReframeStore mutations', () => {
     const state = useReframeStore.getState();
     expect(state.items).toHaveLength(0);
     expect(state.currentId).toBeNull();
-    expect(mockDelete).toHaveBeenCalledWith('reframe_items', id);
+    expect(mockDelete).not.toHaveBeenCalled(); // reframe_items localStorage-only (2026-06-13)
   });
 
   it('setCurrentId — sets current id', () => {
@@ -331,7 +333,7 @@ describe('useRecastStore mutations', () => {
     expect(item.steps[0].checkpoint).toBe(true);
     expect(item.steps[1].task).toBe('Step 1'); // other step untouched
 
-    expect(mockUpsert).toHaveBeenCalledTimes(1);
+    expect(mockUpsert).not.toHaveBeenCalled(); // recast_items localStorage-only (2026-06-13)
   });
 
   it('addStep — appends new step to recast item', () => {
@@ -371,7 +373,7 @@ describe('useRecastStore mutations', () => {
     expect(item.steps[1].task).toBe('Step 2');
     expect(item.steps[2].task).toBe('Step 0');
 
-    expect(mockUpsert).toHaveBeenCalledTimes(1);
+    expect(mockUpsert).not.toHaveBeenCalled(); // recast_items localStorage-only (2026-06-13)
   });
 });
 
