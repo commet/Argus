@@ -39,6 +39,18 @@ Three concrete rules that follow (full rationale in
 3. **Verification is not a chat.** No conclusion is verified by debating the model
    in-frame; verification is a single-shot commitment plus reality at settlement.
    This is an internal design invariant — do NOT turn it into landing copy.
+4. **Over-fire is also a spine violation (the mirror clause).** `zero judgment`
+   is wider than "don't judge the user" — it also means **don't judge *whether to
+   intervene* in the user's stead.** A surface over-fires when it manufactures a
+   fork on a genuinely flat decision, runs ceremony on a low-stakes/reversible
+   one, reopens a decision the user already closed, or pushes engagement when
+   "stay / do nothing" is the right answer. The default must be *restraint*
+   (name at most one load-bearing assumption + return the handle), not a weighted
+   two-pole fork — never emit an engine-weighted pole to the user. Rationale and
+   evidence: the 4-round engine stress test
+   (`docs/STRESS-SYNTHESIS-rounds1-4-2026-06-16.md`) found a find-the-leverage
+   engine over-fires on 60% of flat cases and tilts forks in ways `ai_surfaced`
+   tagging cannot neutralize. Honest provenance is necessary but **not** sufficient.
 
 ## Principle: Single Source of Truth for Prompts
 
