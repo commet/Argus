@@ -202,6 +202,73 @@ Injection rules (these override any urge to use the data harder):
 - Fewer than 2 settled contracts → inject nothing at all (one data point is an
   anecdote, not a record).
 
+### Step 1.7 — Request-type & readiness gate (step-0: *whether* to run the engine)
+
+The whole pipeline below — reframe, probe, crew, verify — assumes the user is
+**navigating an undecided question**. Run it on a different kind of request and
+the engine does harm: it re-opens a decision the user already closed, forks an
+emotional vent into options nobody asked for, or — when the real bottleneck is
+avoidance, not analysis — hands a stuck user more forks to hide behind. *What*
+to decide gets max generation; *whether to decide at all* gets zero judgment.
+So classify the raw input on two axes BEFORE Step 2, and route.
+
+> Spine guard (non-negotiable, per the Zero-Judgment gate): the classification
+> is a *recognition the user can cheaply correct*, never a verdict about who they
+> are. Every non-open branch below states what Argus read and keeps a one-line
+> escape back to the full engine. Conditions on observables ("this has been open
+> a while", "you've already decided") — never "you're avoiding this."
+
+**Axis 1 — request_type** (what is being asked):
+- **`open_decision`** — an undecided question seeking a course ("A냐 B냐?", "이거
+  해도 되나?", "should we ship?"). **The only type that flows to Step 2 and
+  beyond.** This is the **default whenever you are not confident** — a false
+  non-open ejects a real decision from the engine, the more harmful error.
+- **`validation`** — the user has **already decided** and wants a pressure-check,
+  not a re-frame ("X 하기로 했는데 괜찮을까?", "이미 정했고 확인만", "we're going
+  with X, sanity-check me"). Respect the closed decision.
+- **`vent`** — emotional processing, not a decision request ("진짜 지친다", "이
+  프로젝트 너무 싫다", no question being posed). Do not manufacture a decision.
+- **`info`** — a plain factual/how-to question ("X가 뭐야?", "how does Y work?").
+  Just answer it; no session, no machinery.
+
+**Axis 2 — readiness** (open_decision only): set **`resistance`** ONLY on
+explicit textual signals that the block is not informational — long-pending +
+no new input + reported back-and-forth ("몇 달째 못 정하겠어", "계속 왔다 갔다 해",
+"keep putting this off"). Absent any such signal → `ready` (default). Do not
+infer resistance from tone or guess it from a first-time question.
+
+**Routing:**
+
+- **`open_decision` + `ready`** → proceed to Step 2 unchanged. (The common path.)
+- **`validation`** → do NOT reframe and do NOT re-open. Acknowledge the decision
+  as made, then offer the single cheapest **falsifiable check** — the one thing
+  that, if it came back wrong, would change their mind — and an optional contract
+  seed (reuse the Step 7 `contract_seed` shape). No crew unless they ask.
+  Write `request_type: "validation"` to the snapshot; set `decision_density` so
+  sail does not escalate. One escape line, e.g. ko: "이미 정한 걸로 보고 확인할
+  지점만 짚었어요 — 처음부터 다시 따져보길 원하면 말해줘요." / en: "Read this as
+  already-decided, so I flagged the one check worth making — say the word if you
+  want it pressure-tested from scratch."
+- **`vent`** → reflect briefly and honestly; do NOT fork or analyze. Then *invite*
+  (never force): ko: "결정으로 바꿔서 같이 볼까요? 아니면 그냥 들을게요." / en:
+  "Want to turn this into a decision, or should I just listen?" Write nothing to
+  `.argus/` unless the user accepts the invitation.
+- **`info`** → answer the question directly. No session, no reframe.
+- **`open_decision` + `resistance`** → run Step 2 (the framing still has value),
+  but surface the pattern as the live issue and do **not** spin up the probe/crew
+  to generate more options. Condition on the observable, hand control back: ko:
+  "이 결정이 꽤 오래 열려 있고 새로 들어온 정보는 없는 것 같아요 — 그럼 분석이
+  빠진 조각이 아닐 수도 있어요. 제일 작은 실제 테스트 하나를 정해볼까요, 아니면
+  계속 틀을 잡아볼까요?" / en: "This has been open a while with no new
+  information — so more analysis may not be the missing piece. Want to set the
+  smallest real-world test instead, or keep framing?" Route the test through the
+  settle loop (`/argus:settle`) rather than the crew.
+
+When any non-open branch fires, this is one of the few places clarify answers
+inline instead of building a scaffold — deliberate, and symmetric with the
+`decision_density: "low"` exception. Record `request_type` (and `readiness` when
+set) on the snapshot either way, so sail Step 6 can route without re-classifying.
+
 ### Step 2 — Initial analysis
 
 **Prompt the LLM (yourself) as follows:**
@@ -230,9 +297,11 @@ Injection rules (these override any urge to use the data harder):
 > - `stakes_confidence`: 0-100. How sure are you about stakes_guess? <75 means downstream sail must AskUserQuestion before locking the routing.
 > - `decision_density`: "low" | "medium" | "high". The cognitive weight this decision actually deserves. See rule 4 below for low-density gate. Default "medium".
 > - `decision_density_reasoning`: one-sentence justification for the chosen density.
+> - `request_type`: carry over the Step 1.7 classification (`open_decision` here — non-open types short-circuited before reaching Step 2).
+> - `readiness`: `ready` or `resistance`, per Step 1.7.
 >
 > Rules:
-> 1. The `real_question` MUST NOT be "how do I {{surface request verbatim}}?". If surface matches real, you haven't reframed. Examples:
+> 1. **(open_decision only)** The `real_question` MUST NOT be "how do I {{surface request verbatim}}?". If surface matches real, you haven't reframed. This reframe mandate applies ONLY to `open_decision`; a `validation` request is answered against the decision the user already made (Step 1.7) and is never re-opened into a different question. Examples:
 >    - Surface: "should we use TypeScript or JavaScript?" → Real: "How much long-term velocity are we willing to trade for short-term setup speed, given team seniority?"
 >    - Surface: "review my PR" → Real: "What's the ONE risk in this PR that would make me roll it back in 48 hours?"
 > 2. `hidden_assumptions` must be declarative sentences, not questions.
@@ -464,7 +533,8 @@ Written to `.argus/sessions/{id}/`:
 
 Before finalizing, verify:
 
-- **M5 (Analysis primacy)**: Did you reframe? Is `real_question` different from the surface request? If same → fail, retry Step 2 with stricter instruction.
+- **M-request-type (Step-0 gate integrity)**: Did you classify request_type before reframing? A `validation`/`vent`/`info` request that got force-reframed into a different question is a gate failure — re-route per Step 1.7. When you classified non-open, did you keep the one-line escape back to the full engine (honest provenance, never a trap)? `resistance` must rest on an explicit textual signal, not tone.
+- **M5 (Analysis primacy)**: Did you reframe? Is `real_question` different from the surface request? If same → fail, retry Step 2 with stricter instruction. **Exception: `validation` requests are intentionally not reframed (Step 1.7); M5 does not apply to them.**
 - **M4 (Decision scaffold shape)**: Does the snapshot contain `hidden_assumptions` and `skeleton` as actual arrays, not flat recommendation? If LLM returned a solution-like narrative → fail, retry. **Exception: when `decision_density == "low"`, `skeleton` may be empty array (the minimal scaffold replaces it).**
 - **M9 (Worker mode, not critic)**: clarify doesn't invoke workers. NA. But DO NOT include agent voices or critique in the analysis output — that's /argus:team and /argus:boss territory.
 - **M-density (Minimal-mode integrity)**: If `decision_density == "low"`:
@@ -498,3 +568,6 @@ If any gate fails, revise before emitting files.
 - Using trait descriptions of agents ("a researcher would ask...") — no agents run here.
 - Setting `decision_density: "low"` to "save the user time" when the four conditions in Step 2 rule 4 don't all hold. False-low is more harmful than false-medium.
 - Writing a MinimalScaffold with `recommendation` that says "consider X" or "it depends." Minimal mode is for directives only; if you can't give a directive, density isn't low.
+- **Re-opening a `validation` request** into a different question, or running the crew on it, when the user already decided and only asked for a check (Step 1.7).
+- **Forking a `vent`** into options the user never asked for, or writing a session for it before the user accepts the invitation to make it a decision.
+- **Arming `resistance`** with more forks/crew when the bottleneck is avoidance, not analysis — or naming the avoidance as a verdict about the user instead of conditioning on the observable (long-pending + no new info).

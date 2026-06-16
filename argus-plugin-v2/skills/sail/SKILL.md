@@ -215,6 +215,24 @@ clarify suppress its medium/high scaffold print (Step 5b) and emit a one-line ac
 so sail Step 7 owns the surface — a low-density run still prints its MinimalScaffold
 (clarify Step 5a is the terminal deliverable there and ignores the flag).
 
+### Step 6·0 - Request-type gate (before density)
+
+Read `request_type` from the snapshot (clarify Step 1.7). Only
+`open_decision` flows the team/verify/boss pipeline. For any other type,
+clarify has already given the user the right inline answer — sail must NOT
+escalate:
+
+- `validation` / `vent` / `info` → exit silently after clarify's inline answer.
+  Do not run team, verify, or boss; do not render a Current Bearing. (Escalating
+  a closed decision into the full crew is the precise harm Step 1.7 exists to
+  stop.) A `validation` request that produced a `contract_seed` may still seal it
+  via the normal settle loop — but that is the user's move, not an auto-escalation.
+- `open_decision` with `readiness == "resistance"` → do not deploy the crew;
+  surface clarify's resistance prompt and the settle-loop test. Continue only if
+  the user explicitly asks to keep working the decision.
+- `open_decision` + `ready` (or `request_type` absent — legacy) → continue to
+  Step 6a/6b/6c as normal.
+
 ### Step 6a - Low Density
 
 If `decision_density == "low"`, clarify has already rendered MinimalScaffold and
@@ -491,3 +509,6 @@ user explicitly asks for `/argus:chart` or opens session files.
 - Asking "how should we proceed?" when confidence is high.
 - Letting sub-skills print their full reports when `--invoked-via-sail` is set.
 - Calling the final output SurfaceCard.
+- Escalating a `validation` / `vent` / `info` request (clarify Step 1.7
+  `request_type`) into team/verify/boss, or re-opening a decision the user
+  already made. Only `open_decision` flows the full pipeline.

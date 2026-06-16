@@ -8,14 +8,14 @@
   },
   "metadata": {
     "description": "Argus — decision-voyage harness for Claude Code.",
-    "version": "2.4.1"
+    "version": "2.5.0"
   },
   "plugins": [
     {
       "name": "argus",
       "source": "./argus-plugin-v2",
       "description": "Decision-voyage harness. Clarifies the real question, puts an agent crew to work on real code/PRs/files, verifies their claims, and returns a one-screen Current Bearing: course, why, fog or reef, road not taken, next helm — plus a falsifiable decision contract you later settle against reality (/argus:settle, /argus:log).",
-      "version": "2.4.1",
+      "version": "2.5.0",
       "license": "MIT",
       "category": "productivity",
       "keywords": ["decision-making", "judgment-harness", "verification", "current-bearing", "decision-contract"]

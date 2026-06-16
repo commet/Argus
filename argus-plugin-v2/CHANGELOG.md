@@ -4,6 +4,56 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.5.0 — 2026-06-17
+
+Step-0 gate: Argus now decides *whether* to run the engine before deciding
+*what* to analyze. Closes the two-thirds of the C5 finding the harness lacked.
+
+Context: the stress tests (`docs/STRESS-round1-findings-2026-06-16.md`) found
+the engine's most damaging failures came from running the full reframe→fork
+machine on inputs that were not open decisions — re-opening a decision the user
+had already closed, forking an emotional vent into options nobody asked for, and
+(the subtle one) handing a *stuck* user more forks to hide behind when the real
+bottleneck was avoidance, not analysis. The plugin already had the STAKES axis
+(`decision_density: "low"`); it had neither of the other two step-0 axes. This
+release adds them as a prompt-level front gate — not the unvalidated round-2
+multi-pass architecture, which stays in `docs/` until reality contact. The
+durable principle, not the literal pipeline.
+
+### Added
+- **clarify Step 1.7 — request-type & readiness gate.** Before any reframe,
+  clarify classifies the raw input on two axes:
+  - `request_type`: `open_decision` (the only type that flows the full
+    pipeline) · `validation` (already decided — pressure-check, never re-open) ·
+    `vent` (emotional processing — reflect and invite, never fork) · `info`
+    (plain question — just answer). Default `open_decision` whenever unsure: a
+    false non-open ejects a real decision, the more harmful error.
+  - `readiness`: `resistance` (open_decision only, set ONLY on explicit textual
+    signals of long-pending + no-new-info + back-and-forth) surfaces the
+    avoidance as the live issue and routes to the smallest real-world test
+    (settle loop) instead of spinning up more options. Else `ready`.
+  - **Spine guard:** every non-open branch is a recognition the user can cheaply
+    correct (honest provenance), keeps a one-line escape back to the full engine,
+    and conditions on observables — never a verdict about who the user is. The
+    Zero-Judgment gate (CLAUDE.md) is preserved: this makes Argus do *less* when
+    less is right, never judge the user's decision in their stead.
+- `request_type` + `readiness` declared on the AnalysisSnapshot schema (a silent
+  field would never reach sail's router); both absent → `open_decision`/`ready`
+  for back-compat with pre-2.5 snapshots.
+- **sail Step 6·0 — request-type gate.** sail reads `request_type` and refuses to
+  escalate `validation`/`vent`/`info` (and `open_decision` + `resistance`) into
+  team/verify/boss. Only an open, ready decision flows the crew.
+- validate-plugin.js guards: the Step 1.7 section and its four types, the two new
+  schema enums, and sail's request_type routing — so the gate can't silently
+  regress (verified non-vacuous).
+
+### Changed
+- clarify Step 2's reframe mandate ("real_question MUST NOT be the surface
+  question") is now scoped to `open_decision`. A `validation` request is answered
+  against the decision the user already made and is never re-opened. M5
+  (analysis primacy) gains the matching exception; new M-request-type meta-check
+  guards gate integrity.
+
 ## 2.4.1 — 2026-06-12
 
 Post-release devil's-advocate pass + the plugin's first two end-to-end

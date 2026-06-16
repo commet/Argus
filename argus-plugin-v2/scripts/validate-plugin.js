@@ -95,6 +95,14 @@ if (fs.existsSync(clarifySkillPath)) {
     check(clarify.includes(fmt), `clarify §Document Extraction must cover .${fmt}`);
   }
   check(/do not install/i.test(clarify), "clarify §Document Extraction must forbid installing parsers (deterministic intake)");
+  // Step-0 request-type gate (v2.5.0): clarify must classify request_type before
+  // reframing, so a closed decision / vent / plain question is not force-run
+  // through the full engine (the C5 finding). Guard the section and the four types.
+  check(/request-type & readiness gate/i.test(clarify), "clarify must keep the Step 1.7 request-type & readiness gate (step-0: whether to run the engine)");
+  for (const t of ["open_decision", "validation", "vent", "info"]) {
+    check(clarify.includes(t), `clarify Step 1.7 must define request_type "${t}"`);
+  }
+  check(/resistance/i.test(clarify), "clarify Step 1.7 must cover the readiness=resistance axis (avoidance is not an analysis bottleneck)");
 }
 
 const agentFiles = fs.existsSync(path.join(root, "agents"))
@@ -124,6 +132,22 @@ check(
   fs.existsSync(path.join(root, "data", "prompts", "probe-prompts.md")),
   "missing data/prompts/probe-prompts.md (clarify Step 3.5 probe prompts)"
 );
+
+// Step-0 gate schema sync (v2.5.0): the two new axes must be declared on the
+// AnalysisSnapshot (a silent field would never travel to sail's router).
+const analysisSnapshot = readJson(path.join(root, "data", "schemas", "analysis-snapshot.json"));
+if (analysisSnapshot) {
+  check(
+    Array.isArray(analysisSnapshot.properties?.request_type?.enum) &&
+      ["open_decision", "validation", "vent", "info"].every((t) => analysisSnapshot.properties.request_type.enum.includes(t)),
+    "AnalysisSnapshot must declare request_type with open_decision/validation/vent/info (clarify Step 1.7)"
+  );
+  check(
+    Array.isArray(analysisSnapshot.properties?.readiness?.enum) &&
+      ["ready", "resistance"].every((r) => analysisSnapshot.properties.readiness.enum.includes(r)),
+    "AnalysisSnapshot must declare readiness with ready/resistance (clarify Step 1.7)"
+  );
+}
 
 const installPath = path.join(root, "install.sh");
 if (fs.existsSync(installPath)) {
@@ -173,6 +197,9 @@ if (fs.existsSync(sailSkillPath)) {
   check(sail.includes("Current Bearing"), "sail skill must define Current Bearing rendering");
   check(!sail.includes("## Step 7 - SurfaceCard"), "sail skill must not use SurfaceCard as the Step 7 output");
   check(sail.includes("No machinery selling"), "sail skill must forbid machinery selling");
+  // Step-0 gate routing (v2.5.0): sail must read request_type and refuse to
+  // escalate a non-open request into the crew pipeline.
+  check(sail.includes("request_type"), "sail must route on request_type — only open_decision flows team/verify/boss (clarify Step 1.7)");
   // Privacy regression guard: the ledger holds verbatim predictions/outcomes,
   // and settle/helm both assert that sail's gitignore covers it.
   check(/^ledger\/$/m.test(sail), "sail Step 0 .argus/.gitignore block must include a ledger/ line (privacy default for the settlement ledger)");

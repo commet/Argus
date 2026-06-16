@@ -83,6 +83,14 @@
         "explanation": { "type": "string" }
       }
     },
+    "request_type": {
+      "enum": ["open_decision", "validation", "vent", "info"],
+      "description": "Step-0 gate (clarify Step 1.7): what the user is actually asking for, independent of stakes. open_decision = navigating an undecided question (the ONLY type that flows the full reframe→probe→team pipeline). validation = the user has already decided and wants a pressure-check, not a re-open. vent = emotional processing, not a decision request — do not fork. info = a plain question — just answer. Absent on legacy snapshots → treat as open_decision for back-compat. Default to open_decision whenever the classification is not confident: a false non-open ejects a real decision from the engine, which is the more harmful error."
+    },
+    "readiness": {
+      "enum": ["ready", "resistance"],
+      "description": "Step-0 RESISTANCE axis (clarify Step 1.7), meaningful only when request_type==open_decision. resistance = the decision has been open a long time AND no new information has arrived AND the user reports repeated back-and-forth — the bottleneck is not analysis, so generating more forks would arm the avoidance. Surface the pattern (conditioned on those observables, never as a verdict about the person) and offer the smallest real-world test. Set ONLY on explicit textual signals ('been putting this off for months', 'keep going back and forth'); default ready. Absent → ready."
+    },
     "decision_density": {
       "enum": ["low", "medium", "high"],
       "description": "Estimated cognitive weight the decision deserves. low = single-action, reversible, high confidence — emit MinimalScaffold and stop. medium = standard FinalScaffold via team. high = critical-stakes, two-stage with debate. Set by /argus:clarify in Step 2 alongside the snapshot. Routing in /argus:sail Step 6 reads this. Absent on legacy snapshots — treat as medium for back-compat."
