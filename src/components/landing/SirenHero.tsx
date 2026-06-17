@@ -3,15 +3,22 @@
 /**
  * SirenHero — the single first screen (W1.3 세이렌 1화면).
  *
- * One viewport, one entry point: the tagline, the two opening sentences of
- * the 30-second pitch (FRAMEWORK §7 v2 — verbatim source), an input box that
- * goes straight into the voyage (/workspace?q=), and ONE line of how-it-works.
- * The original three acts are preserved untouched below the fold — this
- * screen's only job is that a new visitor sees the question and a place to
- * type, without scrolling.
+ * One viewport, one entry point. Hero grammar, top to bottom:
+ *   kicker → headline (the lonely question) → the verbatim problem pitch →
+ *   the fork motif (the page literally forks here) → the resolving line →
+ *   input (the single entry to the voyage) → one how-it-works line →
+ *   privacy → quiet demo path → scroll cue.
+ *
+ * The kicker carries the plain functional description (so the serif headline
+ * can stay the emotional focal point); the ForkPath gives the screen its one
+ * visual anchor — the product's own picture, "어디서 갈리는지" — instead of a
+ * wall of centered prose. The original three acts are preserved untouched
+ * below the fold; this screen's only job is that a new visitor sees the
+ * question and a place to type without scrolling.
  *
  * Copy rules (FRAMEWORK §7): measurement is never the headline — 알아봄 and
  * 귀환 are. No scores, no verdict vocabulary, no 내기/반증 on the surface.
+ * Gold is restraint: exactly two touches here — the fork node and the CTA.
  */
 
 import { useState } from 'react';
@@ -19,6 +26,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale } from '@/hooks/useLocale';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
+import { ForkPath } from './voyage/illustrations/ForkPath';
 
 export function SirenHero() {
   const locale = useLocale();
@@ -41,49 +49,61 @@ export function SirenHero() {
         // svh: the input must be visible without scrolling on mobile too
         // (URL bar collapse safe). Header is fixed/transparent above this.
         minHeight: '100svh',
-        paddingTop: 'clamp(72px, 10vh, 112px)',
-        paddingBottom: 48,
+        paddingTop: 'clamp(64px, 9vh, 104px)',
+        paddingBottom: 40,
       }}
     >
       <PaperGrain opacity={0.05} />
 
       <div className="relative w-full max-w-2xl mx-auto px-6 md:px-10 text-center">
-        {/* Tagline — candidate 1, verbatim (FRAMEWORK §7). */}
+        {/* Kicker — the plain product class, mono, in connecting hairlines.
+            Carries the functional description so the headline below can stay
+            the emotional focal point. */}
+        <div
+          className="bp-fade-up flex items-center justify-center gap-3"
+          style={{ marginBottom: 18 }}
+        >
+          <span aria-hidden="true" className="hidden sm:block" style={{ width: 28, height: 1, background: 'var(--bp-ink-faint)' }} />
+          <span
+            className="bp-mono"
+            style={{
+              color: 'var(--bp-ink-soft)',
+              fontSize: 11,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              fontWeight: 500,
+            }}
+          >
+            {L('결정을 분석하고 · 정한 날짜에 돌아오는 AI', 'ANALYZES YOUR DECISION · RETURNS ON YOUR DATE')}
+          </span>
+          <span aria-hidden="true" className="hidden sm:block" style={{ width: 28, height: 1, background: 'var(--bp-ink-faint)' }} />
+        </div>
+
+        {/* Headline — candidate 1, verbatim (FRAMEWORK §7). The focal point. */}
         <h1
           id="siren-heading"
           className={`bp-fade-up ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             fontFamily: 'var(--font-display)',
             color: 'var(--bp-ink)',
-            fontSize: 'clamp(26px, 4.5vw, 40px)',
+            fontSize: 'clamp(30px, 5.2vw, 48px)',
             fontWeight: 700,
-            lineHeight: 1.3,
-            letterSpacing: '-0.01em',
+            lineHeight: 1.25,
+            letterSpacing: '-0.015em',
+            animationDelay: '60ms',
           }}
         >
           {L('"그래서, 어떻게 됐어요?"', '"So — how did it go?"')}
         </h1>
-        <p
-          className={`bp-fade-up mt-2 ${locale === 'ko' ? 'break-keep' : ''}`}
-          style={{
-            fontFamily: 'var(--font-display)',
-            color: 'var(--bp-ink-soft)',
-            fontSize: 'clamp(15px, 2vw, 19px)',
-            lineHeight: 1.5,
-            animationDelay: '80ms',
-          }}
-        >
-          {L('결정을 분석하고, 정한 날짜에 결과를 물으러 돌아오는 AI예요.', 'An AI that analyzes your decision — and comes back on the date you set to ask how it went.')}
-        </p>
 
-        {/* 30초 피치 v2, 첫 두 문장 — 원전 그대로. */}
+        {/* 30초 피치 v2, 첫 두 문장 — 원전 그대로. The problem / empathy hook. */}
         <p
-          className={`bp-fade-up mx-auto mt-6 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
+          className={`bp-fade-up mx-auto mt-5 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             color: 'var(--bp-ink-soft)',
-            fontSize: 'clamp(13.5px, 1.5vw, 15.5px)',
+            fontSize: 'clamp(14px, 1.6vw, 16px)',
             lineHeight: 1.75,
-            animationDelay: '160ms',
+            animationDelay: '140ms',
           }}
         >
           {L(
@@ -92,27 +112,37 @@ export function SirenHero() {
           )}
         </p>
 
-        {/* Resolving sentence — the pitch must not end on the problem. */}
+        {/* The visual anchor — the page forks where the copy turns from the
+            problem to what Argus does. */}
+        <div
+          className="bp-fade-up mx-auto mt-6"
+          style={{ maxWidth: 300, animationDelay: '200ms' }}
+          aria-hidden="false"
+        >
+          <ForkPath />
+        </div>
+
+        {/* Resolving line — the pitch must not end on the problem. */}
         <p
-          className={`bp-fade-up mx-auto mt-3 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
+          className={`bp-fade-up mx-auto mt-5 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             color: 'var(--bp-ink)',
-            fontSize: 15,
+            fontSize: 'clamp(15px, 1.7vw, 17px)',
             fontWeight: 500,
-            lineHeight: 1.7,
-            animationDelay: '200ms',
+            lineHeight: 1.6,
+            animationDelay: '260ms',
           }}
         >
           {L(
-            'Argus는 다르게 물어요 — 어디서 갈리는지 보여드리고, 정한 날짜에 돌아와 묻습니다.',
-            'Argus asks differently — it shows you where things fork, and comes back on the date you set to ask.',
+            'Argus는 칭찬도 반박도 하지 않아요 — 당신 계획이 어디서 갈리는지 보여주고, 정한 날짜에 돌아와 묻습니다.',
+            'Argus neither flatters nor argues — it shows you where your plan forks, and comes back on the date you set to ask.',
           )}
         </p>
 
         {/* The single entry point. */}
-        <div className="bp-fade-up mt-8" style={{ animationDelay: '240ms' }}>
+        <div className="bp-fade-up mt-7" style={{ animationDelay: '320ms' }}>
           <div
-            className="rounded-2xl overflow-hidden text-left focus-within:shadow-lg transition-shadow"
+            className="rounded-2xl overflow-hidden text-left transition-shadow focus-within:shadow-lg"
             style={{
               background: 'var(--bp-paper-deep)',
               border: '1px solid var(--bp-ink-faint)',
@@ -163,8 +193,8 @@ export function SirenHero() {
             style={{ color: 'var(--bp-ink-soft)', fontSize: 14, lineHeight: 1.6 }}
           >
             {L(
-              'AI 실행자 여럿에게 따로따로 읽혀 보고 갈리는 자리를 보여드려요 — 그리고 정한 날짜에 먼저 돌아와 물어요.',
-              'Several AI executors read it separately; we show you where they split — then come back on your chosen date and ask.',
+              '관점이 다른 AI 여럿이 당신 계획을 따로 읽고, 갈리는 자리를 보여드려요 — 그리고 정한 날짜에 먼저 돌아와 물어요.',
+              'Several AI readers, each a different perspective, read your plan separately and show you where they split — then come back first on your chosen date to ask.',
             )}
           </p>
 
@@ -192,7 +222,7 @@ export function SirenHero() {
         </div>
 
         {/* Scroll cue to the preserved three acts. */}
-        <div className="bp-fade-up mt-10" style={{ animationDelay: '320ms' }}>
+        <div className="bp-fade-up mt-9" style={{ animationDelay: '400ms' }}>
           <span
             className="bp-mono inline-block animate-bounce"
             aria-hidden
