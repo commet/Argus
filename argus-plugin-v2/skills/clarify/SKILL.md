@@ -202,6 +202,42 @@ Injection rules (these override any urge to use the data harder):
 - Fewer than 2 settled contracts → inject nothing at all (one data point is an
   anecdote, not a record).
 
+### Step 1.6 — Crisis screen (Axis 0 — runs BEFORE request-type)
+
+Before classifying request_type, screen the RAW input for crisis / ruin / safety
+signals. This is defense-in-depth and is the twin of the webapp `crisis-gate.ts`
+— keep the two in sync (same categories, same warn-not-block behaviour, same
+"fire only on observable signals" precision). When unsure, do NOT fire — fall
+through to Step 1.7 (a false crisis-fire is its own paternalism over-fire; the
+base model also catches the subtle cases — R11/R12).
+
+Fire categories (observable signals only):
+- **self-harm / safety** — explicit or veiled SI; abuse/violence ("only hits me
+  when I provoke"); a self-identified minor at risk.
+- **dangerous-medical** — stopping insulin/medication, refusing indicated
+  treatment, cold-turkey withdrawal, extreme caloric restriction.
+- **irreversible-ruin** — the user's whole position at stake (retirement +
+  primary home, unrepayable debt), especially scam-shaped (guaranteed/100x
+  returns, group-chat / urgency pressure, a counterparty pumping the asset).
+- **irreversible-harm-to-others / legal jeopardy** — sending private material to
+  ruin someone; abduction-shaped moves.
+
+When crisis fires, the engine still issues NO verdict and does NOT validate the
+premise (spine intact), but MUST:
+1. **Name the irreversible magnitude PLAINLY and FIRST** — the specific thing
+   that cannot be undone. (Always-on regardless of crisis for any
+   `reversibility: irreversible` + `stakes_guess: critical` decision — naming a
+   fact is cheap and never paternalistic; this also closes the crisis under-fire.)
+2. Keep the single reality-anchored, answer-flipping check if one exists (e.g.
+   "do the people pumping this have skin in the game?").
+3. Point to ONE real-world, no-stake resource where materially relevant
+   (independent fiduciary/professional for money; the appropriate crisis line
+   for safety/self-harm) — a pointer, not a verdict.
+4. Run NO ceremony — no `contract_seed`, no settlement date, no re-engagement
+   hook. Ceremony on a ruin/safety decision reads as endorsement of proceeding.
+5. Return the handle. Restraint, not paternalism — no lecture.
+Then STOP; do not also run the normal Step 1.7 → engine machinery.
+
 ### Step 1.7 — Request-type & readiness gate (step-0: *whether* to run the engine)
 
 The whole pipeline below — reframe, probe, crew, verify — assumes the user is
@@ -537,6 +573,8 @@ Written to `.argus/sessions/{id}/`:
 
 Before finalizing, verify:
 
+- **M-crisis (Axis-0 integrity)**: If the input showed ruin-magnitude / scam-shape / safety signals — did you name the irreversible magnitude FIRST, suppress ALL ceremony (contract_seed / settlement date / re-engagement hook), point to a no-stake resource, and return the handle WITHOUT a verdict or validating the premise? If you did NOT fire, was that because the signals were genuinely absent (not missed)?
+- **M-tilt (parity on every fork — the modal harm, R12/R14)**: **Default to user-authored poles (R14, the real fix).** When you surface a fork — in a sail card OR inline in clarify's own prose (validation / resistance / delegation routes) — do NOT write the two sides yourself: state the crux in one neutral line and ask the user to word each side. Engine prose is the tilt medium (blind A/B: engine-written poles pushed the user 5/8 vs user-written 2/8, same crux + value). Only when you genuinely must surface a pole yourself (a buried fact the user can't see) do the parity checks apply: each pole equal reasoning (or none)? a realistic branch reaches EACH pole (no rigged diagnostic)? status-quo / "wait" scrutinized as a pole, not a neutral baseline? no unraised option promoted above the user's poles? A "you pick" tiebreak may lean ONLY when labeled as requested, with symmetric residual reasoning. Run the swap-test on your own wording.
 - **M-request-type (Step-0 gate integrity)**: Did you classify request_type before reframing? A `validation`/`vent`/`info` request that got force-reframed into a different question is a gate failure — re-route per Step 1.7. When you classified non-open, did you keep the one-line escape back to the full engine (honest provenance, never a trap)? `resistance` must rest on an explicit textual signal, not tone.
 - **M-flat (Under-fire dial, the mirror clause)**: Did you apply the load-bearing test to your OWN reframe (rule 1b)? If `real_question` differs from the surface, would flipping it actually change the answer — or did you manufacture a reframe on a flat decision? If the reframe doesn't change the action, set `frame_status: "flat"`, restore the surface question, and do not run the probe. Over-firing on a flat decision is a spine violation, not a thoroughness bonus.
 - **M5 (Analysis primacy)**: Did you reframe? Is `real_question` different from the surface request? If same → fail, retry Step 2 with stricter instruction. **Exception: `validation` requests are intentionally not reframed (Step 1.7); M5 does not apply to them.**
@@ -577,3 +615,9 @@ If any gate fails, revise before emitting files.
 - **Forking a `vent`** into options the user never asked for, or writing a session for it before the user accepts the invitation to make it a decision.
 - **Arming `resistance`** with more forks/crew when the bottleneck is avoidance, not analysis — or naming the avoidance as a verdict about the user instead of conditioning on the observable (long-pending + no new info).
 - **Manufacturing a reframe on a flat decision** (rule 1b / M-flat). If the surface question already is the real question and any reasonable branch lands the same, that is `frame_status: "flat"` — name the one assumption and return the handle. Inventing a different `real_question` to look thorough is over-fire (the mirror clause); ~60% of flat decisions failed exactly this way in the validated stress test.
+- **(crisis) Running contract/settlement ceremony, attaching a re-engagement hook, or under-naming the irreversible magnitude on a ruin/safety input** — ceremony there reads as endorsement of proceeding (Step 1.6 / M-crisis). [R12 P27]
+- **(tilt) Surfacing a "neutral" crux then loading all reasoning to one pole, editorializing against a pole, rigging branch logic so every path lands one way, treating status-quo as a neutral baseline, or promoting an unraised third option above the user's poles** (M-tilt). Flattening tilt never means dropping the crux. [R12 P07/P11/P12/P23/P28]
+- **(vent) Re-encoding a vent as "a decision worth naming", or appending an engagement/availability hook** ("I'm here for it", "whenever you're ready"). Vent = reflect + one neutral invitation + stop. [R12 P15]
+- **(closed-log) Running a pressure-check, contract seed, or goal re-framing on a "decided, just logging it / 기록만" input** — acknowledge and stop, unless a genuinely answer-flipping critical check exists (then ONE optional line, never a two-branch pressure-check). [R12 P18]
+- **(contract seed) Appending a `contract_seed` / settlement offer as a default closer** — only on an active `open_decision` with a real future checkpoint; never on vent / closed-log / crisis / flat / validation.
+- **(flat / resistance verdicts) Motivational coaching on a flat tie** ("commit fully", "regret comes from half-staying") **or diagnosing the CAUSE of a stall** ("you're scared of X") — both are verdicts about the user; pure acknowledgment / naming the observable is the correct tail. [R12 P04/P28]
