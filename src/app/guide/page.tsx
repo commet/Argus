@@ -44,7 +44,7 @@ function getFlowSteps(locale: Locale): FlowStep[] {
       { icon: Layers, label: '종합', desc: '리드 선원과 항해장이 결과를 하나의 초안으로 통합합니다.', tone: 'ai' },
       { icon: Eye, label: '검증', desc: '의사결정자(상사·고객 등) 관점에서 약점을 시뮬레이션합니다.', tone: 'ai' },
       { icon: Edit3, label: '수정', desc: '피드백을 반영해 초안을 다듬습니다. 직접 손봐도 되고 자동 반영도 가능합니다.', tone: 'you' },
-      { icon: Check, label: '도착', desc: '결론·근거·확인할 것이 현재 항로 한 화면에 모입니다. 봉인하면 정한 날짜에 돌아와 물어요.', tone: 'done' },
+      { icon: Check, label: '도착', desc: '결론·근거·확인할 것이 현재 방위 한 화면에 모입니다. 봉인하면 정한 날짜에 돌아와 물어요.', tone: 'done' },
     ];
   }
   return [
@@ -54,7 +54,7 @@ function getFlowSteps(locale: Locale): FlowStep[] {
     { icon: Layers, label: 'Mix', desc: 'The lead crew member and the Navigator merge results into a single draft.', tone: 'ai' },
     { icon: Eye, label: 'Review', desc: "Simulate how a decision-maker (boss, customer, etc.) would react and surface weak spots.", tone: 'ai' },
     { icon: Edit3, label: 'Refine', desc: 'Apply feedback — manually or automatically — to tighten the draft.', tone: 'you' },
-    { icon: Check, label: 'Arrival', desc: 'Conclusion, reasoning, and what to check — one Current Bearing. Seal it, and Argus returns on your chosen date to ask.', tone: 'done' },
+    { icon: Check, label: 'Arrival', desc: 'Conclusion, reasoning, and what to check — one Current Heading. Seal it, and Argus returns on your chosen date to ask.', tone: 'done' },
   ];
 }
 
@@ -68,13 +68,13 @@ export default function GuidePage() {
         '결정이나 고민을 그대로 입력 → 진짜 질문과 숨은 가정이 드러납니다',
         '질문 2~3개에 답변 → 선원(에이전트) 팀이 자동으로 꾸려집니다',
         '선원들이 병렬로 작업 → 필요한 곳만 수정 요청',
-        '의사결정자 시뮬레이션으로 약점 점검 → 현재 항로 완성',
+        '의사결정자 시뮬레이션으로 약점 점검 → 현재 방위 완성',
       ]
     : [
         'Write your decision as-is → the real question and hidden assumptions surface',
         'Answer 2–3 questions → your crew of agents assembles automatically',
         'The crew works in parallel → request changes only where needed',
-        'Simulate decision-maker reactions → arrive at your Current Bearing',
+        'Simulate decision-maker reactions → arrive at your Current Heading',
       ];
 
   const lv2Xp = AGENT_LEVELS.find(l => l.level === 2)?.xp ?? 100;
@@ -90,8 +90,8 @@ export default function GuidePage() {
         </h1>
         <p className="text-[14px] text-[var(--text-secondary)] mt-2 leading-relaxed max-w-2xl">
           {L(
-            '결정 하나를 적으면 항해가 시작됩니다. 선원들이 분석하고 검증한 것이 현재 항로 한 화면으로 모이고 — 결정을 봉인하면, 정한 날짜에 돌아와 물어요. "그래서, 어떻게 됐어요?" 처음이라면 아래 빠른 시작만 봐도 충분해요.',
-            'Write down one decision and the voyage begins. Your crew\'s work converges into a single Current Bearing — and once you seal the decision, Argus comes back on the date you chose to ask: "So, how did it go?" New here? The Quick Start below is all you need.',
+            '결정 하나를 적으면 항해가 시작됩니다. 선원들이 분석하고 검증한 것이 현재 방위 한 화면으로 모이고 — 결정을 봉인하면, 정한 날짜에 돌아와 물어요. "그래서, 어떻게 됐어요?" 처음이라면 아래 빠른 시작만 봐도 충분해요.',
+            'Write down one decision and the voyage begins. Your crew\'s work converges into a single Current Heading — and once you seal the decision, Argus comes back on the date you chose to ask: "So, how did it go?" New here? The Quick Start below is all you need.',
           )}
         </p>
       </div>
@@ -124,7 +124,7 @@ export default function GuidePage() {
                   a: '정한 날짜에 프로젝트 페이지에 오시면 제가 먼저 물어요 — 메일·알림은 보내지 않아요. 원하면 캘린더 파일로 약속을 넣을 수 있어요.',
                 },
                 {
-                  q: '현재 항로가 뭔가요?',
+                  q: '현재 방위가 뭔가요?',
                   a: '이 결정이 지금 향하는 방향을 한 장으로 압축한 요약이에요 — 결론·이유·남은 확인거리·다음 할 일.',
                 },
               ]
@@ -146,7 +146,7 @@ export default function GuidePage() {
                   a: "Visit your project page on the date you set and Argus asks first — no emails or notifications are sent. If you like, you can add the appointment as a calendar file.",
                 },
                 {
-                  q: 'What is a Current Bearing?',
+                  q: 'What is a Current Heading?',
                   a: "A one-page summary of where this decision is headed right now — conclusion, reasoning, what's left to check, and what to do next.",
                 },
               ]

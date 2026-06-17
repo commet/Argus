@@ -78,14 +78,14 @@ export function CurrentBearingCard({
           <div className="flex items-center gap-2">
             <Compass size={15} style={{ color: tone }} />
             <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
-              {L('현재 항로', 'Current Bearing')}
+              {L('현재 방위', 'Current Heading')}
             </span>
             {label && <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums">{label}</span>}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={copyBearing}
-              aria-label={L('현재 항로 복사', 'Copy current bearing')}
+              aria-label={L('현재 방위 복사', 'Copy current heading')}
               className="inline-flex items-center gap-1 text-[10.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[28px] px-1.5 -mr-1"
             >
               {copied ? <Check size={11} className="text-[var(--success)]" /> : <Copy size={11} />}
@@ -102,7 +102,7 @@ export function CurrentBearingCard({
         <p className="text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] leading-snug">
           {current_course.summary}
         </p>
-        {/* First-use definition — "현재 항로" must introduce itself (novice
+        {/* First-use definition — "현재 방위" must introduce itself (novice
             audit: the product's one deliverable was an undefined term). */}
         <p className="text-[10.5px] text-[var(--text-tertiary)] mt-1.5">
           {L('이 결정이 지금 향하는 방향을 한 장으로 요약한 거예요 — 나중에 다시 열어도 여기부터 이어가요.', 'A one-page summary of where this decision is headed — pick it back up from here anytime.')}

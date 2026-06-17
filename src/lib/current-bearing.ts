@@ -216,7 +216,7 @@ export function bearingToMarkdown(b: CurrentBearing, locale: 'ko' | 'en' = 'ko')
   const ko = locale === 'ko';
   const t = (k: string, e: string) => (ko ? k : e);
   const lines: string[] = [];
-  lines.push(`## ${t('현재 항로', 'Current Bearing')}`);
+  lines.push(`## ${t('현재 방위', 'Current Heading')}`);
   lines.push(b.current_course.summary);
   if (b.why_this_course.length) {
     lines.push('', `**${t('왜 이 항로인가', 'Why this course')}**`);

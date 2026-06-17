@@ -53,7 +53,7 @@ describe('CurrentBearingCard', () => {
   it('surfaces every populated bearing field', () => {
     mount({ bearing: full, label: 'v0.1' });
     const text = container.textContent ?? '';
-    expect(text).toContain('Current Bearing');
+    expect(text).toContain('Current Heading');
     expect(text).toContain('v0.1');
     expect(text).toContain('Run a 4-hour migration spike');
     expect(text).toContain('Clear cost ceiling');

@@ -55,10 +55,10 @@ const BEATS: Beat[] = [
     tone: 'you',
   },
   {
-    stage: { ko: '진짜 질문', en: 'The real question' },
+    stage: { ko: '물음부터 갈렸다', en: 'The question split' },
     body: {
-      ko: '물음은 “언제 내보내나”가 아니었습니다 — “먼저 내는 이점이, 미완성으로 부딪칠 위험보다 큰가”였습니다.',
-      en: 'The question was never "when to ship" — it was "does the first-mover edge outweigh the risk of colliding while half-baked."',
+      ko: '같은 브리프를 여러 실행자에게 그대로 줬더니, 이게 푸는 게 무슨 문제인지부터 갈렸어요 — 누구는 출시 타이밍으로, 누구는 경쟁 방어로 읽었죠. 진짜 질문이 아직 안 정해졌다는 신호예요.',
+      en: 'Handed the same brief to several readers, they split on what problem it even solves — one read launch timing, another defending against rivals. A sign the real question isn’t settled yet.',
     },
     tone: 'argus',
   },
@@ -464,7 +464,7 @@ function ArrivalWaypoint({
             marginBottom: 12,
           }}
         >
-          {L('도착 — 지금의 결론 (현재 항로)', 'Arrival — your conclusion now (Current Bearing)')}
+          {L('도착 — 지금의 결론 (현재 방위)', 'Arrival — your conclusion now (Current Heading)')}
         </span>
 
         <Cartouche padding={0}>
@@ -484,7 +484,7 @@ function ArrivalWaypoint({
                 textTransform: 'uppercase',
               }}
             >
-              <span>{L('현재 항로 · v0.1', 'Current Bearing · v0.1')}</span>
+              <span>{L('현재 방위 · v0.1', 'Current Heading · v0.1')}</span>
               <span style={{ color: 'var(--bp-ink-faint)' }}>{L('바로 보낼 수 있어요', 'Ready to send')}</span>
             </div>
 

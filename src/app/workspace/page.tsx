@@ -504,7 +504,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   {[
                     L('상황을 적으면', 'Describe the situation'),
                     L('AI 팀이 갈리는 자리를 보여드리고', 'an AI crew shows you where it forks'),
-                    L('문서와 결론 요약 한 장(현재 항로)이 남아요', 'you leave with a document & a one-page bearing'),
+                    L('문서와 결론 요약 한 장(현재 방위)이 남아요', 'you leave with a document & a one-page Heading'),
                   ].map((step, i) => (
                     <React.Fragment key={i}>
                       {i > 0 && <ChevronRight size={11} className="text-[var(--text-tertiary)]/50 shrink-0" />}
