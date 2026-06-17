@@ -510,7 +510,8 @@ body {
   /* Tailwind utility animations aren't covered by the custom-keyframe resets above */
   .animate-pulse,
   .animate-ping,
-  .animate-spin {
+  .animate-spin,
+  .animate-bounce {
     animation: none !important;
   }
 }
@@ -2644,6 +2645,10 @@ button, a, input, textarea {
   cursor: not-allowed;
 }
 .bp-btn-primary:disabled::before { opacity: 0; }
+/* Ink-frame modifier — for surfaces that spend gold elsewhere (e.g. the
+   SirenHero, whose single gold is the ForkPath node): the hover frame stays
+   ink instead of revealing a second gold. */
+.bp-btn-primary--ink-frame::before { border-color: var(--bp-ink); }
 
 /* Secondary — outline button */
 .bp-btn-secondary {
@@ -2680,6 +2685,11 @@ button, a, input, textarea {
 }
 .bp-input-frame:focus-within {
   border-color: var(--bp-ink);
+  /* Inset ink hairline — a perceivable focus edge on the focused field
+     itself (not a blurry drop shadow), so the primary control reads as
+     focused without the rounded --accent ring that clashes with the
+     square blueprint frame. No reflow (inset, not border thickening). */
+  box-shadow: inset 0 0 0 1px var(--bp-ink);
 }
 .bp-input {
   background: transparent;
@@ -2692,6 +2702,22 @@ button, a, input, textarea {
   color: var(--bp-ink-soft);
   opacity: 0.6;
 }
+/* Hero decision field — keeps the serif/legible body text (NOT bp-input's
+   mono+shrink) but gives the placeholder an explicit AA-passing color
+   (full --bp-ink-soft, opacity 1 ≈ 4.9:1 on paper-deep). */
+.bp-hero-input::placeholder {
+  color: var(--bp-ink-soft);
+  opacity: 1;
+}
+/* Quiet secondary link — readable (full ink-soft ≈ 5.4:1) and darkens on
+   hover to reinforce the affordance instead of fading toward the paper. */
+.bp-quiet-link {
+  color: var(--bp-ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 200ms var(--ease-wave);
+}
+.bp-quiet-link:hover { color: var(--bp-ink); }
 
 /* Station label card — used beside ship diagram */
 .bp-station {

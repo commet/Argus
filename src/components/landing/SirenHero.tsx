@@ -3,25 +3,30 @@
 /**
  * SirenHero — the single first screen (W1.3 세이렌 1화면).
  *
- * One viewport, one entry point. Hero grammar, top to bottom:
- *   kicker → headline (the lonely question) → the verbatim problem pitch →
- *   the fork motif (the page literally forks here) → the resolving line →
- *   input (the single entry to the voyage) → one how-it-works line →
- *   privacy → quiet demo path → scroll cue.
+ * The money screen, and therefore the strongest expression of the logbook
+ * identity — not the most templated. Hero grammar, top to bottom:
+ *   kicker → headline (the lonely question, verbatim) → the verbatim problem
+ *   pitch → the ForkPath motif (the page literally forks, and a dashed arc
+ *   returns) → the resolving line → a ruled chart-field input (the single
+ *   entry to the voyage) → one how-it-works line → a marginal privacy note →
+ *   a demoted demo path → scroll cue. Marginalia frame it like a plate.
  *
- * The kicker carries the plain functional description (so the serif headline
- * can stay the emotional focal point); the ForkPath gives the screen its one
- * visual anchor — the product's own picture, "어디서 갈리는지" — instead of a
- * wall of centered prose. The original three acts are preserved untouched
- * below the fold; this screen's only job is that a new visitor sees the
- * question and a place to type without scrolling.
+ * Gold is spent exactly once on this screen — the ForkPath divergence node —
+ * because the value moment is recognition (the fork), not the click. The CTA
+ * is navy ink (bp-btn-primary), the input a ruled field with corner ticks; no
+ * drop shadows, no fat radii, no second gold — ink physics, not screen glass.
  *
  * Copy rules (FRAMEWORK §7): measurement is never the headline — 알아봄 and
- * 귀환 are. No scores, no verdict vocabulary, no 내기/반증 on the surface.
- * Gold is restraint: exactly two touches here — the fork node and the CTA.
+ * 귀환 are. No scores, no verdict vocabulary, no 내기/반증 on the surface. The
+ * how-it-works line admits the honest null-fork case ("갈리는 자리가 있으면")
+ * so the CTA never writes a check the product must decline.
+ *
+ * The original three acts are preserved untouched below the fold; this
+ * screen's only job is that a new visitor sees the question and a place to
+ * type without scrolling.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale } from '@/hooks/useLocale';
@@ -33,6 +38,37 @@ export function SirenHero() {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const router = useRouter();
   const [text, setText] = useState('');
+  const [focused, setFocused] = useState(false);
+
+  // Cold-start cure: rotate the empty field through real held-decision
+  // examples so a first-timer is never staring at a blank canvas wondering
+  // "what do I even type?". Pauses while focused or once they start typing,
+  // and stays static under prefers-reduced-motion.
+  const PROMPTS = [
+    L('지금 들고 있는 결정이나 계획을 그대로 적어보세요', "Write down the decision or plan you're holding right now"),
+    L('예: 이 기능, 지금 낼까 더 다듬고 낼까', 'e.g. Ship this feature now, or polish it more?'),
+    L('예: 받은 이직 제안, 받아들일까', 'e.g. Take the job offer I just got?'),
+    L('예: 다음 분기 채용을 멈춰야 할까', 'e.g. Should we pause hiring next quarter?'),
+  ];
+  const [promptIdx, setPromptIdx] = useState(0);
+  const reduceMotion = useRef(false);
+  useEffect(() => {
+    reduceMotion.current =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion.current) {
+      // No animation — but still surface a concrete example (the cold-start
+      // cure) rather than leaving the generic instruction at index 0.
+      setPromptIdx(1);
+      return;
+    }
+    const id = setInterval(() => {
+      setPromptIdx((i) => (i + 1) % PROMPTS.length);
+    }, 4500);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale]);
+  const placeholder = !text && !focused ? PROMPTS[promptIdx] : PROMPTS[0];
 
   function sail() {
     const t = text.trim();
@@ -48,22 +84,45 @@ export function SirenHero() {
         background: 'var(--bp-paper)',
         // svh: the input must be visible without scrolling on mobile too
         // (URL bar collapse safe). Header is fixed/transparent above this.
+        // Floor kept low so the textarea + CTA clear the fold even when
+        // mobile chrome / laptop toolbars eat vertical space.
         minHeight: '100svh',
-        paddingTop: 'clamp(64px, 9vh, 104px)',
-        paddingBottom: 40,
+        paddingTop: 'clamp(48px, 7vh, 92px)',
+        paddingBottom: 32,
       }}
     >
       <PaperGrain opacity={0.05} />
 
+      {/* Marginalia — the plate notes a logbook page carries. Decorative,
+          desktop-only (space), faint. A generic page cannot fake these. */}
+      <span
+        aria-hidden="true"
+        className="bp-mono hidden md:block"
+        style={{
+          position: 'absolute', left: 28, bottom: 22,
+          color: 'var(--bp-ink-soft)', opacity: 0.42,
+          fontSize: 9.5, letterSpacing: '0.28em', textTransform: 'uppercase',
+        }}
+      >
+        § 0 · {L('세이렌', 'The Siren')}
+      </span>
+      <span
+        aria-hidden="true"
+        className="bp-mono hidden md:block"
+        style={{
+          position: 'absolute', right: 28, bottom: 22,
+          color: 'var(--bp-ink-soft)', opacity: 0.42,
+          fontSize: 9.5, letterSpacing: '0.22em',
+        }}
+      >
+        37°34′N · 126°58′E
+      </span>
+
       <div className="relative w-full max-w-2xl mx-auto px-6 md:px-10 text-center">
-        {/* Kicker — the plain product class, mono, in connecting hairlines.
-            Carries the functional description so the headline below can stay
-            the emotional focal point. */}
-        <div
-          className="bp-fade-up flex items-center justify-center gap-3"
-          style={{ marginBottom: 18 }}
-        >
-          <span aria-hidden="true" className="hidden sm:block" style={{ width: 28, height: 1, background: 'var(--bp-ink-faint)' }} />
+        {/* Kicker — the plain product class, mono, in connecting hairlines, so
+            the serif headline below stays the single emotional focal point. */}
+        <div className="bp-fade-up flex items-center justify-center gap-3" style={{ marginBottom: 16 }}>
+          <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
           <span
             className="bp-mono"
             style={{
@@ -76,7 +135,7 @@ export function SirenHero() {
           >
             {L('결정을 분석하고 · 정한 날짜에 돌아오는 AI', 'ANALYZES YOUR DECISION · RETURNS ON YOUR DATE')}
           </span>
-          <span aria-hidden="true" className="hidden sm:block" style={{ width: 28, height: 1, background: 'var(--bp-ink-faint)' }} />
+          <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
         </div>
 
         {/* Headline — candidate 1, verbatim (FRAMEWORK §7). The focal point. */}
@@ -86,9 +145,9 @@ export function SirenHero() {
           style={{
             fontFamily: 'var(--font-display)',
             color: 'var(--bp-ink)',
-            fontSize: 'clamp(30px, 5.2vw, 48px)',
+            fontSize: 'clamp(28px, 5vw, 46px)',
             fontWeight: 700,
-            lineHeight: 1.25,
+            lineHeight: 1.22,
             letterSpacing: '-0.015em',
             animationDelay: '60ms',
           }}
@@ -98,11 +157,11 @@ export function SirenHero() {
 
         {/* 30초 피치 v2, 첫 두 문장 — 원전 그대로. The problem / empathy hook. */}
         <p
-          className={`bp-fade-up mx-auto mt-5 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
+          className={`bp-fade-up mx-auto mt-4 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             color: 'var(--bp-ink-soft)',
-            fontSize: 'clamp(14px, 1.6vw, 16px)',
-            lineHeight: 1.75,
+            fontSize: 'clamp(13.5px, 1.5vw, 15.5px)',
+            lineHeight: 1.7,
             animationDelay: '140ms',
           }}
         >
@@ -113,23 +172,24 @@ export function SirenHero() {
         </p>
 
         {/* The visual anchor — the page forks where the copy turns from the
-            problem to what Argus does. */}
-        <div
-          className="bp-fade-up mx-auto mt-6"
-          style={{ maxWidth: 300, animationDelay: '200ms' }}
-          aria-hidden="false"
-        >
-          <ForkPath />
+            problem to what Argus does, and the dashed arc shows the return. */}
+        <div className="bp-fade-up mx-auto mt-4" style={{ maxWidth: 236, animationDelay: '200ms' }}>
+          <ForkPath
+            label={L(
+              '한 계획이 따로 읽혀 여러 갈래로 갈라지고 — 정한 날짜에 당신에게 돌아옵니다',
+              'One plan, read separately, forking into divergent routes — then a return on your date',
+            )}
+          />
         </div>
 
         {/* Resolving line — the pitch must not end on the problem. */}
         <p
-          className={`bp-fade-up mx-auto mt-5 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
+          className={`bp-fade-up mx-auto mt-4 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             color: 'var(--bp-ink)',
             fontSize: 'clamp(15px, 1.7vw, 17px)',
             fontWeight: 500,
-            lineHeight: 1.6,
+            lineHeight: 1.55,
             animationDelay: '260ms',
           }}
         >
@@ -139,90 +199,107 @@ export function SirenHero() {
           )}
         </p>
 
-        {/* The single entry point. */}
-        <div className="bp-fade-up mt-7" style={{ animationDelay: '320ms' }}>
-          <div
-            className="rounded-2xl overflow-hidden text-left transition-shadow focus-within:shadow-lg"
-            style={{
-              background: 'var(--bp-paper-deep)',
-              border: '1px solid var(--bp-ink-faint)',
-            }}
-          >
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              aria-label={L(
-                '지금 들고 있는 결정이나 계획',
-                "The decision or plan you're holding right now",
-              )}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  sail();
-                }
-              }}
-              placeholder={L(
-                '지금 들고 있는 결정이나 계획을 그대로 적어보세요',
-                "Write down the decision or plan you're holding right now",
-              )}
-              rows={3}
-              maxLength={5000}
-              className="w-full px-5 py-4 bg-transparent text-base md:text-[15px] resize-none focus:outline-none"
-              style={{ color: 'var(--bp-ink)', lineHeight: 1.65 }}
-            />
-            <div className="flex items-center justify-between gap-3 px-4 pb-3">
-              <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: '0.08em' }}>
-                {text.trim()
-                  ? L('Enter로 시작 · Shift+Enter로 줄바꿈', 'Enter to start · Shift+Enter for newline')
-                  : L('한 줄이면 돼요 · 가입 없이 시작', 'One line is enough · no sign-up')}
-              </span>
-              <button
-                onClick={sail}
-                disabled={!text.trim()}
-                className="shrink-0 px-6 py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed min-h-[44px] transition-shadow hover:shadow-md"
-                style={{ background: 'var(--gradient-gold)' }}
-              >
-                {L('어디서 갈리는지 보기', 'See where it forks')}
-              </button>
+        {/* The single entry point — a ruled chart field with corner ticks, no
+            drop shadow, no fat radius. Ink physics, not screen glass. */}
+        <div className="bp-fade-up mt-6" style={{ animationDelay: '320ms' }}>
+          <div className="relative">
+            {/* corner registration ticks — frame it like a plate field */}
+            {([
+              { k: 'tl', s: { top: -1, left: -1, borderTop: '1.5px solid', borderLeft: '1.5px solid' } },
+              { k: 'tr', s: { top: -1, right: -1, borderTop: '1.5px solid', borderRight: '1.5px solid' } },
+              { k: 'bl', s: { bottom: -1, left: -1, borderBottom: '1.5px solid', borderLeft: '1.5px solid' } },
+              { k: 'br', s: { bottom: -1, right: -1, borderBottom: '1.5px solid', borderRight: '1.5px solid' } },
+            ] as const).map(({ k, s }) => (
+              <span
+                key={k}
+                aria-hidden="true"
+                style={{ position: 'absolute', width: 9, height: 9, borderColor: 'var(--bp-ink-soft)', opacity: 0.5, zIndex: 1, ...s }}
+              />
+            ))}
+            <div
+              className="bp-input-frame overflow-hidden text-left"
+              style={{ background: 'var(--bp-paper-deep)' }}
+            >
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                aria-label={L(
+                  '지금 들고 있는 결정이나 계획',
+                  "The decision or plan you're holding right now",
+                )}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sail();
+                  }
+                }}
+                placeholder={placeholder}
+                rows={3}
+                maxLength={5000}
+                className="bp-hero-input w-full px-5 py-4 bg-transparent text-base md:text-[15px] resize-none focus:outline-none"
+                style={{ color: 'var(--bp-ink)', lineHeight: 1.6 }}
+              />
+              <div className="flex items-center justify-between gap-3 px-4 pb-3">
+                <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: '0.08em' }}>
+                  {text.trim()
+                    ? L('Enter로 시작 · Shift+Enter로 줄바꿈', 'Enter to start · Shift+Enter for newline')
+                    : L('한 줄이면 돼요 · 가입 없이 시작', 'One line is enough · no sign-up')}
+                </span>
+                <button
+                  onClick={sail}
+                  disabled={!text.trim()}
+                  className="bp-btn-primary bp-btn-primary--ink-frame shrink-0"
+                  style={{ minHeight: 44 }}
+                >
+                  {L('어디서 갈리는지 보기', 'See where it forks')}
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* 1줄 작동 설명 — exactly one. */}
+          {/* 1줄 작동 설명 — exactly one. Admits the honest null-fork case
+              ("갈리는 자리가 있으면") so the CTA never overpromises a split. */}
           <p
             className={`mt-4 ${locale === 'ko' ? 'break-keep' : ''}`}
-            style={{ color: 'var(--bp-ink-soft)', fontSize: 14, lineHeight: 1.6 }}
+            style={{ color: 'var(--bp-ink-soft)', fontSize: 13, lineHeight: 1.6 }}
           >
             {L(
-              '관점이 다른 AI 여럿이 당신 계획을 따로 읽고, 갈리는 자리를 보여드려요 — 그리고 정한 날짜에 먼저 돌아와 물어요.',
-              'Several AI readers, each a different perspective, read your plan separately and show you where they split — then come back first on your chosen date to ask.',
+              '관점이 다른 AI 여럿이 당신 계획을 따로 읽어요. 갈리는 자리가 있으면 보여드리고 — 정한 날짜에 먼저 돌아와 물어요.',
+              'Several AI readers, each a different perspective, read your plan separately. Where it forks, we show you — then come back first on your chosen date to ask.',
             )}
           </p>
 
-          {/* Quiet privacy reassurance for the suspicious first-timer. */}
+          {/* Privacy — a marginal hairline note, distinct register from the
+              line above. Placed at the point of anxiety (beside the input). */}
           <p
-            className={`mt-1.5 ${locale === 'ko' ? 'break-keep' : ''}`}
-            style={{ color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.6, opacity: 0.85 }}
+            className={`mt-2 inline-flex items-center gap-2 ${locale === 'ko' ? 'break-keep' : ''}`}
+            style={{ color: 'var(--bp-ink-soft)', fontSize: 11.5, lineHeight: 1.5 }}
           >
+            <span aria-hidden="true" style={{ width: 14, height: 1, background: 'var(--bp-ink-faint)' }} />
             {L(
               '입력한 내용은 분석에만 쓰여요 — 사람에게 가지 않아요.',
               'What you type is used only for analysis — it never goes to a person.',
             )}
-          </p>
-
-          {/* Quiet demo path for the not-yet-ready visitor. */}
-          <p className="mt-3">
-            <Link
-              href="/workspace?demo=planning"
-              className="inline-block transition-opacity hover:opacity-70"
-              style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, textDecoration: 'underline', textUnderlineOffset: 3 }}
-            >
-              {L('아직 조심스럽다면, 샘플 결정으로 둘러보기 →', 'Not ready yet? Look around with a sample decision →')}
-            </Link>
+            <span aria-hidden="true" style={{ width: 14, height: 1, background: 'var(--bp-ink-faint)' }} />
           </p>
         </div>
 
+        {/* Quiet demo path — clearly secondary, separated from the primary
+            action so it does not cannibalize the textarea. */}
+        <div className="mt-6">
+          <Link
+            href="/workspace?demo=planning"
+            className="bp-quiet-link inline-block"
+            style={{ fontSize: 12 }}
+          >
+            {L('아직 조심스럽다면, 샘플 결정으로 둘러보기 →', 'Not ready yet? Look around with a sample decision →')}
+          </Link>
+        </div>
+
         {/* Scroll cue to the preserved three acts. */}
-        <div className="bp-fade-up mt-9" style={{ animationDelay: '400ms' }}>
+        <div className="bp-fade-up mt-7" style={{ animationDelay: '400ms' }}>
           <span
             className="bp-mono inline-block animate-bounce"
             aria-hidden
