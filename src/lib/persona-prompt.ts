@@ -25,6 +25,15 @@ export function sanitizeForPrompt(text: string): string {
   return text
     .replace(/<\/?[a-zA-Z][^>]*>/g, '')        // XML/HTML tags
     .replace(/\[\/?\s*(?:SYSTEM|END|INST|USER|ASSISTANT|CONTEXT)[^\]]*\]/gi, '') // bracket directives
+    // Natural-language injection (EN): anchored to imperative override phrases only,
+    // so it neutralizes "ignore all previous instructions" without touching prose.
+    .replace(/\b(?:ignore|disregard|forget|override)\s+(?:all\s+|the\s+|any\s+|every\s+)?(?:previous|above|prior|earlier|preceding|the\s+above)\s+(?:instructions?|prompts?|messages?|context|directions?|rules?)/gi, '')
+    .replace(/\b(?:new\s+)?system\s+prompt\s*:/gi, '')
+    // Natural-language injection (KO): "위/이전/앞 지시 무시", "명령 다 잊어", "무시하고 ~출력".
+    // Anchored to (지시/명령/지침/프롬프트/규칙 … 무시/잊/무효), so legitimate persona
+    // text like "지시받는 걸 싫어함" or "시스템 기획자" is NOT stripped.
+    .replace(/(?:이전|위|앞|상기|모든)\s*(?:의)?\s*(?:지시|명령|지침|프롬프트|규칙)\s*(?:사항)?\s*(?:을|를|은|는)?\s*(?:다|모두)?\s*(?:무시|무효화?|잊어?(?:버려)?)/g, '')
+    .replace(/무시하?(?:고|라|세요|해)\s*(?:다음|아래|이제|이것|위)/g, '')
     .replace(/[\r\n]+/g, ' ')                   // collapse newlines to single space
     .replace(/\s{3,}/g, '  ')                   // collapse excessive whitespace
     .trim();

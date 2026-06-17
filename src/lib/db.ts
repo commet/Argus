@@ -287,7 +287,7 @@ export async function deleteAllUserData(): Promise<void> {
     'agent_activities', 'agent_chains', 'agents',
     'outcome_records', 'retrospective_answers', 'decision_quality_scores',
     'quality_signals', 'accuracy_ratings', 'feedback_records', 'judgment_records',
-    'reframe_items', 'recast_items',
+    'reframe_items', 'recast_items', 'synthesize_items',
     'personas', 'projects',
     'progressive_sessions',
   ];

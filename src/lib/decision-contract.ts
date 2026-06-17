@@ -452,6 +452,11 @@ export interface CrossProjectRecord {
   loops: number;
   betsHeld: number;
   risksAvoided: number;
+  /** Losses are part of the record too — a track record that only sums wins is a
+   *  trophy case, not calibration. Surfaced so the cross-project strip can show
+   *  held-vs-broke honestly (P1: counts of what happened, never a score). */
+  betsBroke: number;
+  risksHappened: number;
 }
 
 /**
@@ -466,7 +471,7 @@ export function summarizeRecord(
   projects: Array<{ decision_contract?: DecisionContract }>,
   now: number,
 ): CrossProjectRecord {
-  const rec: CrossProjectRecord = { loops: 0, betsHeld: 0, risksAvoided: 0 };
+  const rec: CrossProjectRecord = { loops: 0, betsHeld: 0, risksAvoided: 0, betsBroke: 0, risksHappened: 0 };
   for (const p of projects) {
     const c = p?.decision_contract;
     if (!c || !contractStatus(c, now).allGraded) continue;
@@ -474,6 +479,8 @@ export function summarizeRecord(
     const g = summarizeGrades(c);
     rec.betsHeld += g.betsHeld;
     rec.risksAvoided += g.risksAvoided;
+    rec.betsBroke += g.betsBroke;
+    rec.risksHappened += g.risksHappened;
   }
   return rec;
 }
