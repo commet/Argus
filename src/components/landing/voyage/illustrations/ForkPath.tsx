@@ -1,139 +1,132 @@
 'use client';
 
 /**
- * ForkPath — the SirenHero's single visual anchor (redrawn for impact).
+ * ForkPath → "The Bearing Fan" (침로 부채꼴) — the SirenHero's hero diagram.
  *
- * The picture of the whole product in one chart: your plan (a bold ink trunk)
- * enters from the left, and at one gold node it is read separately by many
- * eyes and the course forks (알아봄 — the judgment you left blank). From the
- * date you set on the settled route, a dashed arc curves back to you
- * (귀환 — "정한 날짜에 돌아와 묻습니다").
+ * ONE plan (your course, the bold line) enters from the left and is read by FOUR
+ * eyes that AGREE CHEAPLY — they ride it as a tight bundle — then FAN OPEN, wide,
+ * at one gold pivot. That opening gap is the judgment you left blank. A dashed
+ * arc returns from it to the date you set: "정한 날, 먼저 물어와요."
  *
- * Three chart annotations make it legible at a glance — 당신의 계획 → 읽는
- * 눈마다 갈리는 곳 → 정한 날짜에 귀환 — in the same mono marginalia register
- * the rest of the logbook uses. Gold is still spent exactly once (the fork
- * node, the value moment = recognition); everything else is navy-ink hairline,
- * token-colored and dark-mode safe. Strokes draw themselves in on load via
- * `bp-stroke-draw`; under prefers-reduced-motion they render statically.
+ * Weight discipline (a flat single stroke is what read "cheap" before):
+ *   grid 0.5px @7%  <  reader hairlines 1.6px ink-soft  <  the plan 3px ink
+ *   <  the gold wedge wash + ONE saturated gold node.  Gold is spent once.
+ * Reveals are opacity / stroke-dashoffset only; one-shot on view; reduced-motion = final.
  */
 
-import { useId } from 'react';
+import { useEffect, useRef, useState, useId } from 'react';
 
 export function ForkPath({ className, label }: { className?: string; label?: string }) {
-  // Per-instance marker id — safe if ForkPath is ever mounted twice on a page.
-  const arrowId = `forkpath-return-${useId().replace(/:/g, '')}`;
-  // Divergence node — where the single plan becomes many readings.
-  const node = { x: 150, y: 74 };
+  const uid = useId().replace(/:/g, '');
+  const gridId = `bf-grid-${uid}`;
+  const arrowId = `bf-arrow-${uid}`;
 
-  // Three routes fanning out from the node — charted courses, not a circuit.
-  const routes = [
-    `M ${node.x} ${node.y} C 214 74, 250 40, 334 32`,
-    `M ${node.x} ${node.y} C 224 74, 276 74, 346 74`,
-    `M ${node.x} ${node.y} C 214 74, 250 108, 334 116`,
-  ];
-  const ends = [
-    { x: 334, y: 32 },
-    { x: 346, y: 74 },
-    { x: 334, y: 116 },
-  ];
+  const ref = useRef<SVGSVGElement | null>(null);
+  const [play, setPlay] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setPlay(true); return; }
+    const io = new IntersectionObserver((e) => { if (e[0]?.isIntersecting) { setPlay(true); io.disconnect(); } }, { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
-  const DRAW = 540; // dasharray long enough to hide any path until it draws
+  // ── geometry (viewBox 0 0 1000 400) ───────────────────────────────────────
+  const O = { x: 62, y: 206 };       // your plan starts here
+  const fork = { x: 404, y: 204 };   // gold pivot at ~40% — the fan splays right of it
+  const buoy = { x: 858, y: 52 };
+
+  const planD = `M ${O.x} ${O.y} C 180 212, 300 206, ${fork.x} ${fork.y}`;
+  const hug = `M ${O.x} ${O.y} C 180 210, 300 206, ${fork.x} ${fork.y}`;
+  const ends = [ { x: 946, y: 66 }, { x: 962, y: 158 }, { x: 962, y: 252 }, { x: 946, y: 344 } ];
+  const readers = [
+    `${hug} C 560 178, 770 104, ${ends[0].x} ${ends[0].y}`,
+    `${hug} C 584 196, 786 146, ${ends[1].x} ${ends[1].y}`,
+    `${hug} C 584 214, 786 264, ${ends[2].x} ${ends[2].y}`,
+    `${hug} C 560 232, 770 308, ${ends[3].x} ${ends[3].y}`,
+  ];
+  const wedge = `M ${fork.x} ${fork.y} L ${ends[0].x} ${ends[0].y} L ${ends[1].x} ${ends[1].y} L ${ends[2].x} ${ends[2].y} L ${ends[3].x} ${ends[3].y} Z`;
 
   return (
     <svg
-      viewBox="0 0 400 158"
-      className={className}
-      style={{ color: 'var(--bp-ink)', width: '100%', height: 'auto', display: 'block' }}
+      ref={ref}
+      viewBox="0 0 1000 400"
+      className={`${className ?? ''} ${play ? 'bf-play' : ''}`}
+      style={{ width: '100%', height: 'auto', display: 'block', color: 'var(--bp-ink)' }}
       role="img"
-      aria-label={
-        label ??
-        'One plan, read separately by many eyes, forking into divergent routes — then a return on your date'
-      }
+      aria-label={label ?? 'Your plan, read by four eyes that agree at first then fan open at one gold point — the judgment you left blank — with a dashed return on the date you set'}
     >
       <defs>
-        <marker id={arrowId} viewBox="0 0 8 8" refX="5.5" refY="4" markerWidth="7.5" markerHeight="7.5" orient="auto">
-          <path d="M1 1 L7 4 L1 7 Z" fill="currentColor" opacity="0.78" />
+        <pattern id={gridId} width="25" height="25" patternUnits="userSpaceOnUse">
+          <path d="M25 0H0V25" fill="none" stroke="var(--bp-ink)" strokeWidth="0.5" opacity="0.07" />
+        </pattern>
+        <marker id={arrowId} viewBox="0 0 10 10" refX="6.5" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+          <path d="M1.5 1.5 L8 5 L1.5 8.5" fill="none" stroke="var(--bp-ink-soft)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </marker>
       </defs>
 
-      {/* Chart annotations — the logbook's mono marginalia, so the diagram
-          reads at a glance without a caption underneath. */}
-      <text x="14" y="60" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 10.5, letterSpacing: '0.03em', opacity: 0.72 }}>
-        당신의 계획
-      </text>
-      <text x="208" y="15" textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 10.5, letterSpacing: '0.03em', opacity: 0.74 }}>
-        읽는 눈마다 갈리는 곳
-      </text>
-      <text x="188" y="152" textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 10.5, letterSpacing: '0.03em', opacity: 0.74 }}>
-        정한 날짜에 귀환
-      </text>
+      <style>{`
+        .bf-draw{stroke-dasharray:2600;stroke-dashoffset:2600;}
+        .bf-play .bf-draw{animation:bfDraw var(--d,900ms) var(--g,0ms) cubic-bezier(.22,.61,.36,1) forwards;}
+        .bf-soft{opacity:0;}
+        .bf-play .bf-soft{animation:bfIn 560ms var(--g,0ms) ease-out forwards;}
+        .bf-glow{opacity:0;transform-box:fill-box;transform-origin:center;}
+        .bf-play .bf-glow{animation:bfGlow 640ms 1280ms cubic-bezier(.34,1.4,.64,1) forwards;}
+        @keyframes bfDraw{to{stroke-dashoffset:0;}}
+        @keyframes bfIn{to{opacity:1;}}
+        @keyframes bfGlow{0%{opacity:0;transform:scale(.3);}55%{opacity:1;}100%{opacity:1;transform:scale(1);}}
+        @media (prefers-reduced-motion: reduce){.bf-draw,.bf-soft,.bf-glow{animation:none!important;opacity:1!important;stroke-dashoffset:0!important;transform:none!important;}}
+      `}</style>
 
-      {/* Start point + trunk — the plan, before it forks. */}
-      <circle cx="20" cy={node.y} r="2.8" fill="currentColor" opacity={0.85} />
-      <path
-        d={`M 20 ${node.y} L ${node.x} ${node.y}`}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2.4}
-        strokeLinecap="round"
-        opacity={0.9}
-        className="bp-stroke-draw"
-        style={{ strokeDasharray: DRAW, ['--draw-from' as string]: DRAW, animationDelay: '240ms' }}
-      />
+      {/* L1 — faint blueprint substrate */}
+      <rect x="28" y="30" width="944" height="340" fill={`url(#${gridId})`} />
 
-      {/* Three diverging routes — the separate readings. */}
-      {routes.map((d, i) => (
-        <path
-          key={i}
-          d={d}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={i === 1 ? 1.7 : 1.4}
-          strokeLinecap="round"
-          opacity={i === 1 ? 0.72 : 0.5}
-          className="bp-stroke-draw"
-          style={{ strokeDasharray: DRAW, ['--draw-from' as string]: DRAW, animationDelay: `${600 + i * 130}ms` }}
-        />
-      ))}
+      {/* L4a — the gold wedge wash (fades in after the fan draws) */}
+      <path d={wedge} className="bf-soft" style={{ ['--g' as string]: '1140ms' }} fill="var(--bp-gold)" fillOpacity="0.15" stroke="var(--bp-gold)" strokeWidth="1.1" strokeDasharray="2 3" strokeOpacity="0.55" />
 
-      {/* Open endpoints — outcomes left unsettled. */}
+      {/* L3 — four reading-eyes: hug, then fan wide. Hairlines, never gold. */}
+      <g fill="none" stroke="var(--bp-ink-soft)" strokeWidth="1.6" strokeLinecap="round" opacity="0.82">
+        {readers.map((d, i) => (
+          <path key={i} d={d} className="bf-draw" style={{ ['--d' as string]: '1120ms', ['--g' as string]: `${620 + i * 95}ms` }} />
+        ))}
+      </g>
+      {/* open endpoints — readings left unsettled */}
       {ends.map((p, i) => (
-        <circle
-          key={i}
-          cx={p.x}
-          cy={p.y}
-          r={3}
-          fill="var(--bp-paper)"
-          stroke="currentColor"
-          strokeWidth={1.1}
-          opacity={0.55}
-          className="bp-fade-up"
-          style={{ animationDelay: `${980 + i * 100}ms` }}
-        />
+        <circle key={i} cx={p.x} cy={p.y} r="4" fill="var(--bp-paper)" stroke="var(--bp-ink-soft)" strokeWidth="1.3" className="bf-soft" style={{ ['--g' as string]: `${1180 + i * 70}ms` }} />
       ))}
 
-      {/* The return: a dashed arc from the set-date waypoint on the settled
-          route, curving back to you — promised (dashed), not yet walked. */}
-      <g className="bp-fade-up" style={{ animationDelay: '1220ms' }}>
-        <circle cx={300} cy={node.y} r={4} fill="var(--bp-paper)" stroke="currentColor" strokeWidth={1.2} opacity={0.8} />
-        <circle cx={300} cy={node.y} r={1.3} fill="currentColor" opacity={0.8} />
-        <path
-          d={`M 300 ${node.y + 8} C 286 140, 116 144, 64 ${node.y + 18}`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeDasharray="4 3"
-          opacity={0.62}
-          markerEnd={`url(#${arrowId})`}
-        />
+      {/* L2 — the plan: the one heavy course line + origin node */}
+      <path d={planD} className="bf-draw" fill="none" stroke="var(--bp-ink)" strokeWidth="3" strokeLinecap="round" style={{ ['--d' as string]: '720ms', ['--g' as string]: '220ms' }} />
+      <circle cx={O.x} cy={O.y} r="6" fill="var(--bp-ink)" className="bf-soft" style={{ ['--g' as string]: '180ms' }} />
+
+      {/* L5 — the return: dashed out to the date buoy, then an arrow back to you */}
+      <g className="bf-soft" style={{ ['--g' as string]: '1460ms' }}>
+        <path d={`M ${ends[0].x - 30} ${ends[0].y + 4} C 880 70, 880 60, ${buoy.x + 30} ${buoy.y + 6}`} fill="none" stroke="var(--bp-ink-soft)" strokeWidth="1.3" strokeDasharray="5 4" opacity="0.7" />
+        <path d={`M ${buoy.x - 30} ${buoy.y + 8} C 540 -40, 230 150, ${O.x + 70} ${O.y - 30}`} fill="none" stroke="var(--bp-ink-soft)" strokeWidth="1.3" strokeDasharray="5 4" opacity="0.58" markerEnd={`url(#${arrowId})`} />
+        <rect x={buoy.x - 44} y={buoy.y - 15} width="88" height="30" rx="3" fill="var(--bp-paper)" stroke="var(--bp-ink-soft)" strokeWidth="1.1" />
+        <text x={buoy.x} y={buoy.y + 5} textAnchor="middle" className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 14, letterSpacing: '0.12em', fontWeight: 700 }}>6.30</text>
+        <text x={buoy.x} y={buoy.y + 34} textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 12.5 }}>정한 날, 먼저 물어와요</text>
       </g>
 
-      {/* The fork node — the ONLY gold on this screen. The judgment you left
-          blank: not the click, the recognition. */}
-      <g className="bp-fade-up" style={{ animationDelay: '900ms' }}>
-        <circle cx={node.x} cy={node.y} r={10} fill="none" stroke="var(--bp-gold)" strokeWidth={1} opacity={0.4} />
-        <circle cx={node.x} cy={node.y} r={5} fill="var(--bp-gold)" />
+      {/* the ONLY saturated gold — the divergence pivot (ignites once) */}
+      <g className="bf-glow">
+        <circle cx={fork.x} cy={fork.y} r="22" fill="var(--bp-gold)" opacity="0.15" />
+        <circle cx={fork.x} cy={fork.y} r="14" fill="none" stroke="var(--bp-gold)" strokeWidth="1.3" opacity="0.5" />
+        <circle cx={fork.x} cy={fork.y} r="8" fill="var(--bp-gold)" />
       </g>
+
+      {/* annotations — navy ink, so gold stays singular */}
+      <g className="bf-soft" style={{ ['--g' as string]: '1620ms' }}>
+        <line x1={fork.x} y1={fork.y - 26} x2={fork.x} y2="118" stroke="var(--bp-ink-soft)" strokeWidth="0.9" opacity="0.6" />
+        <text x={fork.x} y="106" textAnchor="middle" className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 16, fontWeight: 800 }}>여기서 길이 갈려요</text>
+        <text x={fork.x} y="128" textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 13 }}>아직 비워둔 판단입니다</text>
+      </g>
+      <text x={O.x - 2} y={O.y - 20} className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 14, fontWeight: 800 }}>당신의 계획</text>
+      <text x="150" y={O.y + 40} className="bp-mono bf-soft" fill="var(--bp-ink-soft)" style={{ fontSize: 12.5, ['--g' as string]: '880ms' }}>읽는 눈, 넷 — 저마다 다른 시선</text>
+
+      {/* marginalia plate */}
+      <text x="32" y="384" className="bp-mono" fill="var(--bp-ink-soft)" opacity="0.5" style={{ fontSize: 11, letterSpacing: '0.16em' }}>ARGUS · fig. I — 읽힘의 도해</text>
     </svg>
   );
 }

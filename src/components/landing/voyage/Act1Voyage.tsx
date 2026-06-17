@@ -24,9 +24,9 @@ export function Act1Voyage() {
       aria-labelledby="voyage-heading"
       style={{
         background: 'var(--bp-paper)',
-        minHeight: '100vh',
-        paddingTop: 'clamp(96px, 12vh, 128px)',
-        paddingBottom: 80,
+        minHeight: 'auto',
+        paddingTop: 'clamp(48px, 7vh, 84px)',
+        paddingBottom: 'clamp(64px, 9vh, 100px)',
       }}
     >
       <PaperGrain opacity={0.05} />
@@ -78,44 +78,26 @@ export function Act1Voyage() {
               fontFamily: 'var(--font-display)',
               color: 'var(--bp-ink)',
               fontWeight: 700,
-              fontSize: 'clamp(32px, 3.8vw, 60px)',
-              lineHeight: 1.1,
+              fontSize: 'clamp(27px, 3.2vw, 40px)',
+              lineHeight: 1.18,
               letterSpacing: '-0.012em',
               animationDelay: '320ms',
             }}
           >
             {locale === 'ko' ? (
               <>
-                당신의 항해는 —
+                큰 결정은 긴 항해예요.
                 <br />
-                <span style={{ color: 'var(--bp-ink-soft)' }}>왜 종착지에 닿지 못했는가.</span>
+                <span style={{ color: 'var(--bp-ink-soft)' }}>길을 잃는 건, “왜”를 적어두지 않아서예요.</span>
               </>
             ) : (
               <>
-                Why hasn&rsquo;t your voyage
+                A big decision is a long voyage.
                 <br />
-                <span style={{ color: 'var(--bp-ink-soft)' }}>reached its shore?</span>
+                <span style={{ color: 'var(--bp-ink-soft)' }}>You lose your way when the “why” goes unwritten.</span>
               </>
             )}
           </h2>
-
-          {/* Sub-1: AI siren reveal — italic, voice-over feel */}
-          <p
-            className={`bp-fade-up mt-5 md:mt-7 max-w-3xl mx-auto ${locale === 'ko' ? 'break-keep' : ''}`}
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontStyle: 'italic',
-              color: 'var(--bp-ink-soft)',
-              fontSize: 'clamp(15px, 1.4vw, 22px)',
-              lineHeight: 1.55,
-              animationDelay: '460ms',
-            }}
-          >
-            {L(
-              '— AI라는 감미로운 목소리에 홀려, 그 답에 정박해버린 채로.',
-              '— Lured by the sweet voice of AI, anchored at its answer.',
-            )}
-          </p>
 
           {/* Plain-language spine — Decision Voyage. The product turns a hard judgment into a
               *navigable* state and keeps the trail of WHY. Machinery stays below decks. */}
@@ -130,8 +112,8 @@ export function Act1Voyage() {
             }}
           >
             {L(
-              'Argus는 중요한 결정을 항해하게 합니다. 지금 어디 있고, 무엇을 봤고, 무엇을 확인해야 하며, 왜 방향을 바꿨는지 — 그 “왜”를 잃지 않도록.',
-              'Argus makes a hard decision navigable — where you are, what you’ve seen, what to check, and why you changed course. Without losing the trail of why.',
+              'Argus는 중요한 결정을 항해처럼 기록해요. 지금 어디쯤인지, 무엇을 봤고 무엇을 더 봐야 하는지, 왜 방향을 틀었는지 — 그 “왜”가 사라지지 않도록.',
+              'Argus records a hard decision like a voyage — where you are, what you’ve seen and still need to, why you changed course. So the “why” never disappears.',
             )}
           </p>
 

@@ -13,7 +13,6 @@ import { useLocale } from '@/hooks/useLocale';
 import { track } from '@/lib/analytics';
 import { STAGES } from '@/data/voyage-crew';
 import { PaperGrain } from './atmosphere/PaperGrain';
-import { PlateLabel } from './ui/PlateLabel';
 import { HelmScene } from './illustrations/HelmScene';
 
 export function Act3OnDeck() {
@@ -33,10 +32,6 @@ export function Act3OnDeck() {
       <PaperGrain opacity={0.045} />
 
       <div className="relative max-w-6xl mx-auto px-6 md:px-10">
-        <div className="bp-fade-up">
-          <PlateLabel numeral="III" title={L('방위 · The Heading', 'The Heading')} />
-        </div>
-
         <h2
           id="ondeck-heading"
           className={`bp-fade-up text-center mt-8 md:mt-10 max-w-3xl mx-auto ${locale === 'ko' ? 'break-keep' : ''}`}
@@ -44,8 +39,8 @@ export function Act3OnDeck() {
             fontFamily: 'var(--font-display)',
             color: 'var(--bp-ink)',
             fontWeight: 700,
-            fontSize: 'clamp(34px, 4.4vw, 54px)',
-            lineHeight: 1.1,
+            fontSize: 'clamp(25px, 3vw, 38px)',
+            lineHeight: 1.16,
             letterSpacing: '-0.012em',
             animationDelay: '120ms',
           }}

@@ -63,36 +63,12 @@ const BEATS: Beat[] = [
     tone: 'argus',
   },
   {
-    stage: { ko: '부딪혀 보다', en: 'Tested against your world' },
-    body: {
-      ko: '당신의 로드맵·경쟁 동향과 부딪혀 봤습니다. 경쟁사 두 곳이 같은 분기에 유사 기능을 예고했고, 온보딩 흐름은 신규 약관 동의를 건너뜁니다.',
-      en: 'Run against your roadmap and the market: two rivals pre-announced similar features for the same quarter, and the onboarding flow skips the new terms-of-service consent.',
-    },
-    tone: 'argus',
-  },
-  {
-    stage: { ko: '다른 눈들', en: 'Other eyes' },
-    body: {
-      ko: '리서치·전략·리스크·법무가 각자의 눈으로 같은 안을 따져보고, 약한 주장과 빈틈을 분리해 냈습니다.',
-      en: 'Research, strategy, risk, and legal each weighed the same plan their own way — separating the weak claims from the real gaps.',
-    },
-    tone: 'argus',
-  },
-  {
     stage: { ko: '⚠ 확인할 것', en: '⚠ For you to check' },
     body: {
       ko: '당신이 스스로 미뤄둔 것 하나 — 환불·분쟁 리스크는 법무 검토 전엔 닫히지 않습니다. 이건 AI가 대신 정할 수 없습니다. 당신이 확인해야 합니다.',
       en: 'One thing you quietly set aside — refund and dispute risk stays open until legal signs off. AI can’t decide this for you. You have to check it.',
     },
     tone: 'alert',
-  },
-  {
-    stage: { ko: '방향 전환', en: 'Course change' },
-    body: {
-      ko: '그래서 방향을 바꿉니다: “이번 분기 출시” → “한 분기 연기, 법무 검토 후 재평가”. 바꾼 이유가 항적에 남습니다.',
-      en: 'So you change course: "launch this quarter" → "defer a quarter, re-evaluate after legal." The reason why is kept in the trail.',
-    },
-    tone: 'argus',
   },
 ];
 
@@ -132,7 +108,7 @@ export function Act2DecisionVoyage() {
   // Step the reveal forward, one waypoint at a time.
   useEffect(() => {
     if (!started || revealed >= TOTAL) return;
-    const delay = revealed === 0 ? 250 : 900;
+    const delay = revealed === 0 ? 180 : 260;
     const t = setTimeout(() => setRevealed((r) => r + 1), delay);
     return () => clearTimeout(t);
   }, [started, revealed, TOTAL]);
@@ -513,14 +489,6 @@ function ArrivalWaypoint({
                   locale={locale}
                 />
                 <BearingField
-                  label={L('이 항로의 근거', 'Why this course')}
-                  body={L(
-                    '경쟁사 두 곳이 같은 분기에 예고 — 먼저 내는 이점보다 미완성으로 부딪칠 위험이 큽니다.',
-                    'Two rivals pre-announced for the same quarter — the first-mover edge is outweighed by colliding half-baked.',
-                  )}
-                  locale={locale}
-                />
-                <BearingField
                   alert
                   label={L('안개 · 암초 — 당신이 확인할 것', 'Fog · reef — for you to check')}
                   body={L(
@@ -534,14 +502,6 @@ function ArrivalWaypoint({
                   body={L(
                     '지금 강행 출시 — 법무가 정리되기 전에 신뢰를 먼저 소진하는 길.',
                     'Launch now anyway — spending goodwill before legal is cleared.',
-                  )}
-                  locale={locale}
-                />
-                <BearingField
-                  label={L('다음에 할 일', 'What to do next')}
-                  body={L(
-                    '법무 사인오프 받기 + 경쟁사 출시 타이밍 확인.',
-                    'Get legal sign-off + confirm the rivals’ launch timing.',
                   )}
                   locale={locale}
                 />
