@@ -133,7 +133,7 @@ export function SirenHero() {
               fontWeight: 500,
             }}
           >
-            {L('결정을 분석하고 · 정한 날짜에 돌아오는 AI', 'ANALYZES YOUR DECISION · RETURNS ON YOUR DATE')}
+            {L('계획을 진짜로 읽고 · 정한 날짜에 돌아오는 AI', 'READS YOUR PLAN FOR REAL · RETURNS ON YOUR DATE')}
           </span>
           <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
         </div>
@@ -165,19 +165,20 @@ export function SirenHero() {
             animationDelay: '140ms',
           }}
         >
-          {L(
-            '중요한 결정일수록 혼자 들고 있게 됩니다. 사람들에게 보여주면 "좋아 보여요"가 돌아오고, AI에게 물으면 더 유창한 "좋아 보여요"가 돌아옵니다.',
-            'The bigger the decision, the more alone you hold it. Show people and you get "looks good" — ask an AI and you get a more fluent "looks good."',
+          {locale === 'ko' ? (
+            <>중요한 결정일수록 혼자 들고 있게 됩니다.<br />사람들에게 보여주면 “좋아 보여요”가 돌아오고, AI에게 물으면 더 유창한 “좋아 보여요”가 돌아옵니다.</>
+          ) : (
+            <>The bigger the decision, the more alone you hold it.<br />Show people and you get “looks good” — ask an AI and you get a more fluent “looks good.”</>
           )}
         </p>
 
         {/* The visual anchor — the page forks where the copy turns from the
             problem to what Argus does, and the dashed arc shows the return. */}
-        <div className="bp-fade-up mx-auto mt-4" style={{ maxWidth: 236, animationDelay: '200ms' }}>
+        <div className="bp-fade-up mx-auto mt-5" style={{ maxWidth: 380, animationDelay: '200ms' }}>
           <ForkPath
             label={L(
-              '한 계획이 따로 읽혀 여러 갈래로 갈라지고 — 정한 날짜에 당신에게 돌아옵니다',
-              'One plan, read separately, forking into divergent routes — then a return on your date',
+              '한 계획이 여러 시선에 따로 읽혀 길이 갈라지고 — 정한 날짜에 당신에게 돌아옵니다',
+              'One plan, read separately by many eyes, forking into divergent routes — then a return on your date',
             )}
           />
         </div>
@@ -194,8 +195,8 @@ export function SirenHero() {
           }}
         >
           {L(
-            'Argus는 칭찬도 반박도 하지 않아요. 당신 계획이 스스로 말하게 해서, 아직 비워둔 판단을 보여주고 — 정한 날짜에 돌아와 묻습니다.',
-            'Argus neither flatters nor argues. It lets your plan speak for itself — surfacing the judgment you left blank — then comes back on the date you set to ask.',
+            'Argus는 칭찬도 반박도 하지 않아요. 그저 당신의 계획을 진짜로 읽어요 — 동의는 흔하고, 알아봄은 드무니까요.',
+            'Argus neither flatters nor argues. It just reads your plan for real — agreement is cheap, being truly read is rare.',
           )}
         </p>
 
@@ -236,16 +237,16 @@ export function SirenHero() {
                   }
                 }}
                 placeholder={placeholder}
-                rows={3}
+                rows={2}
                 maxLength={5000}
                 className="bp-hero-input w-full px-5 py-4 bg-transparent text-base md:text-[15px] resize-none focus:outline-none"
                 style={{ color: 'var(--bp-ink)', lineHeight: 1.6 }}
               />
               <div className="flex items-center justify-between gap-3 px-4 pb-3">
-                <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: '0.08em' }}>
+                <span style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.005em', lineHeight: 1.4 }}>
                   {text.trim()
                     ? L('Enter로 시작 · Shift+Enter로 줄바꿈', 'Enter to start · Shift+Enter for newline')
-                    : L('한 줄이면 돼요 · 가입 없이 시작', 'One line is enough · no sign-up')}
+                    : L('한 줄이면 충분해요 · 가입 없이 바로', 'One line is enough · no sign-up')}
                 </span>
                 <button
                   onClick={sail}
@@ -253,7 +254,7 @@ export function SirenHero() {
                   className="bp-btn-primary bp-btn-primary--ink-frame shrink-0"
                   style={{ minHeight: 44 }}
                 >
-                  {L('진짜로 읽혀보기', 'Have it truly read')}
+                  {L('읽어봐 주세요', 'Have it read')}
                 </button>
               </div>
             </div>
@@ -266,8 +267,8 @@ export function SirenHero() {
             style={{ color: 'var(--bp-ink-soft)', fontSize: 13, lineHeight: 1.6 }}
           >
             {L(
-              '관점이 다른 AI 여럿이 당신 계획을 따로 읽어요. 갈리는 자리가 있으면 — 거기가 당신이 비워둔 판단이에요. 그리고 정한 날짜에 먼저 돌아와 물어요.',
-              'Several AI readers, each a different perspective, read your plan separately. Where they split — that\'s the judgment you left blank. Then, on your date, we come back first to ask.',
+              '여러 AI가 저마다 다른 눈으로 당신의 계획을 따로 읽어요. 길이 갈리는 곳이 있다면 — 거기가 아직 당신이 비워둔 판단이에요. 정한 날엔, 잊지 않고 먼저 물어와요.',
+              'Several AIs read your plan separately, each through different eyes. Where the paths split — that\'s the judgment you\'ve left blank. And on the day you set, it comes back first to ask.',
             )}
           </p>
 

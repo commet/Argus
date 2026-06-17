@@ -1,78 +1,84 @@
 'use client';
 
 /**
- * ForkPath — the SirenHero's single visual anchor.
+ * ForkPath — the SirenHero's single visual anchor (redrawn for impact).
  *
- * One ink trunk (your plan) enters from the left and splits into three
- * diverging routes at a single gold node: the picture of "어디서 갈리는지"
- * (where it forks). From the route the reading settles on, a dashed arc
- * curves back to you — the return-on-your-date comeback, Argus's most
- * ownable mechanic, drawn in chart language instead of only stated in copy.
+ * The picture of the whole product in one chart: your plan (a bold ink trunk)
+ * enters from the left, and at one gold node it is read separately by many
+ * eyes and the course forks (알아봄 — the judgment you left blank). From the
+ * date you set on the settled route, a dashed arc curves back to you
+ * (귀환 — "정한 날짜에 돌아와 묻습니다").
  *
- * Gold is spent exactly once on this whole screen: the divergence node.
- * That is the value moment (recognition — the judgment you left blank), not
- * the click. Everything else is navy ink hairline, 18th-c. blueprint register,
+ * Three chart annotations make it legible at a glance — 당신의 계획 → 읽는
+ * 눈마다 갈리는 곳 → 정한 날짜에 귀환 — in the same mono marginalia register
+ * the rest of the logbook uses. Gold is still spent exactly once (the fork
+ * node, the value moment = recognition); everything else is navy-ink hairline,
  * token-colored and dark-mode safe. Strokes draw themselves in on load via
- * `bp-stroke-draw`; under prefers-reduced-motion they render statically
- * complete (no inline dashoffset → defaults to 0).
+ * `bp-stroke-draw`; under prefers-reduced-motion they render statically.
  */
 
 import { useId } from 'react';
 
 export function ForkPath({ className, label }: { className?: string; label?: string }) {
-  // Per-instance marker id — safe if ForkPath is ever mounted twice on a page
-  // (duplicate SVG ids would make every url(#…) resolve to the first one).
+  // Per-instance marker id — safe if ForkPath is ever mounted twice on a page.
   const arrowId = `forkpath-return-${useId().replace(/:/g, '')}`;
-  // Divergence node — where the single plan becomes three readings.
-  const node = { x: 148, y: 58 };
+  // Divergence node — where the single plan becomes many readings.
+  const node = { x: 150, y: 74 };
 
-  // Three routes fanning out from the node. Smooth quadratics so they read
-  // as charted courses, not a circuit diagram.
+  // Three routes fanning out from the node — charted courses, not a circuit.
   const routes = [
-    `M ${node.x} ${node.y} C 212 58, 254 22, 330 18`,
-    `M ${node.x} ${node.y} C 220 58, 262 58, 322 58`,
-    `M ${node.x} ${node.y} C 212 58, 254 94, 330 98`,
+    `M ${node.x} ${node.y} C 214 74, 250 40, 334 32`,
+    `M ${node.x} ${node.y} C 224 74, 276 74, 346 74`,
+    `M ${node.x} ${node.y} C 214 74, 250 108, 334 116`,
   ];
   const ends = [
-    { x: 330, y: 18 },
-    { x: 330, y: 98 },
+    { x: 334, y: 32 },
+    { x: 346, y: 74 },
+    { x: 334, y: 116 },
   ];
 
-  // dasharray long enough to hide any single path until it draws.
-  const DRAW = 420;
+  const DRAW = 540; // dasharray long enough to hide any path until it draws
 
   return (
     <svg
-      viewBox="0 0 360 134"
+      viewBox="0 0 400 158"
       className={className}
       style={{ color: 'var(--bp-ink)', width: '100%', height: 'auto', display: 'block' }}
       role="img"
-      aria-label={label ?? 'One plan, read separately, forking into divergent routes — then a return on your date'}
+      aria-label={
+        label ??
+        'One plan, read separately by many eyes, forking into divergent routes — then a return on your date'
+      }
     >
       <defs>
-        <marker
-          id={arrowId}
-          viewBox="0 0 8 8"
-          refX="5.5"
-          refY="4"
-          markerWidth="7"
-          markerHeight="7"
-          orient="auto"
-        >
-          <path d="M1 1 L7 4 L1 7 Z" fill="currentColor" opacity="0.7" />
+        <marker id={arrowId} viewBox="0 0 8 8" refX="5.5" refY="4" markerWidth="7.5" markerHeight="7.5" orient="auto">
+          <path d="M1 1 L7 4 L1 7 Z" fill="currentColor" opacity="0.78" />
         </marker>
       </defs>
 
-      {/* Trunk — the plan, before it forks. */}
+      {/* Chart annotations — the logbook's mono marginalia, so the diagram
+          reads at a glance without a caption underneath. */}
+      <text x="14" y="60" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 10.5, letterSpacing: '0.03em', opacity: 0.72 }}>
+        당신의 계획
+      </text>
+      <text x="208" y="15" textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 10.5, letterSpacing: '0.03em', opacity: 0.74 }}>
+        읽는 눈마다 갈리는 곳
+      </text>
+      <text x="188" y="152" textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 10.5, letterSpacing: '0.03em', opacity: 0.74 }}>
+        정한 날짜에 귀환
+      </text>
+
+      {/* Start point + trunk — the plan, before it forks. */}
+      <circle cx="20" cy={node.y} r="2.8" fill="currentColor" opacity={0.85} />
       <path
-        d={`M 12 ${node.y} L ${node.x} ${node.y}`}
+        d={`M 20 ${node.y} L ${node.x} ${node.y}`}
         fill="none"
         stroke="currentColor"
-        strokeWidth={1.4}
+        strokeWidth={2.4}
         strokeLinecap="round"
-        opacity={0.85}
+        opacity={0.9}
         className="bp-stroke-draw"
-        style={{ strokeDasharray: DRAW, ['--draw-from' as string]: DRAW, animationDelay: '260ms' }}
+        style={{ strokeDasharray: DRAW, ['--draw-from' as string]: DRAW, animationDelay: '240ms' }}
       />
 
       {/* Three diverging routes — the separate readings. */}
@@ -82,56 +88,51 @@ export function ForkPath({ className, label }: { className?: string; label?: str
           d={d}
           fill="none"
           stroke="currentColor"
-          strokeWidth={i === 1 ? 1.1 : 0.9}
+          strokeWidth={i === 1 ? 1.7 : 1.4}
           strokeLinecap="round"
-          opacity={i === 1 ? 0.7 : 0.5}
+          opacity={i === 1 ? 0.72 : 0.5}
           className="bp-stroke-draw"
-          style={{
-            strokeDasharray: DRAW,
-            ['--draw-from' as string]: DRAW,
-            animationDelay: `${580 + i * 130}ms`,
-          }}
+          style={{ strokeDasharray: DRAW, ['--draw-from' as string]: DRAW, animationDelay: `${600 + i * 130}ms` }}
         />
       ))}
 
-      {/* Open endpoints (up / down) — outcomes left unsettled. */}
+      {/* Open endpoints — outcomes left unsettled. */}
       {ends.map((p, i) => (
         <circle
           key={i}
           cx={p.x}
           cy={p.y}
-          r={2.4}
+          r={3}
           fill="var(--bp-paper)"
           stroke="currentColor"
-          strokeWidth={0.9}
-          opacity={0.5}
+          strokeWidth={1.1}
+          opacity={0.55}
           className="bp-fade-up"
-          style={{ animationDelay: `${940 + i * 110}ms` }}
+          style={{ animationDelay: `${980 + i * 100}ms` }}
         />
       ))}
 
-      {/* The return: a dashed arc curving back to you from the settled route —
-          "정한 날짜에 돌아와 묻습니다". Promised (dashed), not yet walked. */}
-      <g className="bp-fade-up" style={{ animationDelay: '1180ms' }}>
-        {/* Waypoint the return departs from — the date you set. */}
-        <circle cx={322} cy={58} r={3.4} fill="var(--bp-paper)" stroke="currentColor" strokeWidth={1} opacity={0.7} />
-        <circle cx={322} cy={58} r={1} fill="currentColor" opacity={0.7} />
+      {/* The return: a dashed arc from the set-date waypoint on the settled
+          route, curving back to you — promised (dashed), not yet walked. */}
+      <g className="bp-fade-up" style={{ animationDelay: '1220ms' }}>
+        <circle cx={300} cy={node.y} r={4} fill="var(--bp-paper)" stroke="currentColor" strokeWidth={1.2} opacity={0.8} />
+        <circle cx={300} cy={node.y} r={1.3} fill="currentColor" opacity={0.8} />
         <path
-          d="M 322 64 C 308 116, 210 122, 170 70"
+          d={`M 300 ${node.y + 8} C 286 140, 116 144, 64 ${node.y + 18}`}
           fill="none"
           stroke="currentColor"
-          strokeWidth={1.1}
-          strokeDasharray="3 3"
-          opacity={0.58}
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          opacity={0.62}
           markerEnd={`url(#${arrowId})`}
         />
       </g>
 
       {/* The fork node — the ONLY gold on this screen. The judgment you left
           blank: not the click, the recognition. */}
-      <g className="bp-fade-up" style={{ animationDelay: '880ms' }}>
-        <circle cx={node.x} cy={node.y} r={7} fill="none" stroke="var(--bp-gold)" strokeWidth={0.8} opacity={0.4} />
-        <circle cx={node.x} cy={node.y} r={4} fill="var(--bp-gold)" />
+      <g className="bp-fade-up" style={{ animationDelay: '900ms' }}>
+        <circle cx={node.x} cy={node.y} r={10} fill="none" stroke="var(--bp-gold)" strokeWidth={1} opacity={0.4} />
+        <circle cx={node.x} cy={node.y} r={5} fill="var(--bp-gold)" />
       </g>
     </svg>
   );
