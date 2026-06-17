@@ -799,6 +799,19 @@ export interface AnalysisSnapshot {
   convergence_score?: number;       // 0-100: 질문 안정성 + 가정 감소 종합
   convergence_trend?: 'improving' | 'stable' | 'declining' | 'unclear';
 
+  // ── Under-fire judgment gates (ported from plugin v2.6; webapp wiring is a
+  //    follow-on — these fields carry the gate results through the voyage) ──
+  /** step-0: what kind of request this is. Only open_decision flows to the full engine. */
+  request_type?: 'open_decision' | 'validation' | 'vent' | 'info';
+  /** open_decision only: ready (default) vs resistance (long-pending, no new info). */
+  readiness?: 'ready' | 'resistance';
+  /** Whether real_question meaningfully differs from the surface question (rule 1b).
+   *  flat → do not manufacture a reframe/fork (the over-fire mirror clause). */
+  frame_status?: 'flat' | 'load_bearing';
+  /** Cognitive weight the decision deserves; low → a 1-line directive, not a scaffold. */
+  decision_density?: 'low' | 'medium' | 'high';
+  decision_density_reasoning?: string;
+
   // ── Typed-question effects captured into analysis (Phase 1) ──
   /** 상사가 사인할 수 있는 1줄 결정문 — strategic_fork 답에서 흘러옴 */
   decision_line?: string;

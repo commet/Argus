@@ -484,3 +484,47 @@ export function summarizeRecord(
   }
   return rec;
 }
+
+export interface SealGateInput {
+  stakes: 'routine' | 'important' | 'critical';
+  reversibility: 'reversible' | 'partial' | 'irreversible';
+  /** 0-100. */
+  framingConfidence: number;
+  predicates: Predicate[];
+}
+
+export interface SealDecision {
+  seal: boolean;
+  /** 'contract' = seal it; 'single_check' = record one falsifiable check, no full
+   *  contract; 'none' = nothing falsifiable to record. The caller must record the
+   *  single_check — never silently drop a real decision (decision 2). */
+  mode: 'contract' | 'single_check' | 'none';
+  reason: string;
+}
+
+/** §0 sealing gate (decision 2). Routine + reversible + confident decisions get a
+ *  single falsifiable check instead of a full sealed contract; everything else may
+ *  seal. Never seals an empty/unfalsifiable predicate set; never returns a path
+ *  that silently drops a real decision record. Pure. */
+export function shouldSealContract(input: SealGateInput): SealDecision {
+  const preds = Array.isArray(input.predicates) ? input.predicates : [];
+  if (preds.length === 0) {
+    return { seal: false, mode: 'none', reason: 'no falsifiable predicate to seal' };
+  }
+  if (
+    input.stakes === 'routine' &&
+    input.reversibility === 'reversible' &&
+    input.framingConfidence >= 75
+  ) {
+    return {
+      seal: false,
+      mode: 'single_check',
+      reason: 'routine + reversible + confident → a single check, not a sealed contract',
+    };
+  }
+  return {
+    seal: true,
+    mode: 'contract',
+    reason: 'stakes / reversibility / uncertainty warrant a sealed contract',
+  };
+}
