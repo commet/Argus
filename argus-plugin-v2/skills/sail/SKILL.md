@@ -231,7 +231,38 @@ escalate:
   surface clarify's resistance prompt and the settle-loop test. Continue only if
   the user explicitly asks to keep working the decision.
 - `open_decision` + `ready` (or `request_type` absent — legacy) → continue to
-  Step 6a/6b/6c as normal.
+  the flatness gate below.
+
+### Step 6·0.5 - Flatness gate (under-fire default — port helm's P0.B weight-gate)
+
+Validated finding (`docs/STRESS-SYNTHESIS-rounds1-4`): a find-the-leverage engine
+over-fires on ~60% of FLAT decisions — it manufactures a fork where none is
+load-bearing, runs crew ceremony on a reversible coin-flip, and emits a tilted
+pole. `decision_density: low` (Step 6a) and the request-type gate (Step 6·0)
+do NOT catch a **medium/high-stakes decision that is nonetheless flat** (no
+load-bearing fork — e.g. an all-axes-satisfied choice where any branch lands the
+same). `helm` already solves this with a silence-default weight-gate; sail must
+inherit the discipline (copy the silence-default, NOT helm's irreversible-only
+trigger — sail's orientation job is broader).
+
+Read `frame_status` from the snapshot (clarify Step 2). The bar is on FIRING the
+crew, not on staying flat:
+
+- `frame_status == "flat"` → do **NOT** deploy team/verify/boss. The probe found
+  no load-bearing fork. Render a **restraint bearing** directly (Step 7, FLAT
+  course): name at most ONE assumption the user is resting on (or none), state
+  plainly that the axes line up so any reasonable branch lands the same, and
+  return the handle. No manufactured road-not-taken, no manufactured fog. This is
+  the default, and it is a complete, honest answer — not a degraded one.
+- `frame_status == "load_bearing"` (or absent — legacy) → a reframe/fork that
+  actually changes the answer survived clarify's positive-threshold check.
+  Continue to Step 6b/6c and deploy the crew.
+
+Restraint here is not under-fire: the user still gets oriented (the one
+assumption + the handle). Firing the full crew on a flat decision is the
+over-fire the mirror clause forbids. When genuinely unsure between flat and
+load-bearing, clarify defaults to load_bearing (it is the safe direction there —
+see clarify Step 2); sail trusts that signal.
 
 ### Step 6a - Low Density
 
@@ -360,16 +391,26 @@ Use artifacts in this order:
      confidence and remaining tensions
 2. **Reasons:** take strongest source-specific supported claims first. Then add
    boss approval condition only when it changes the course.
-3. **Fog/Reef:** choose exactly one top item by priority:
+3. **Fog/Reef:** surface ONE item ONLY when it is genuinely load-bearing —
+   it would change the course or block sign-off. In priority:
    - critical challenged claim
    - blocking human-required check
    - unresolved tension with no tie-breaker result
    - critical boss concern
-   - strongest remaining assumption
-4. **Road not taken:** derive from `scaffold.key_trade_offs[]`,
-   `verification.unresolved_tensions[]`, or explicit boss concerns. If none
-   exists, create one from the rejected obvious alternative. For medium/high
-   paths this field must contain 1-2 items.
+   **If none of those exist, `fog_or_reef` is `null`.** Do NOT fall back to
+   "the strongest remaining assumption" to fill the slot — every decision has a
+   weakest-supported assumption, and surfacing it when it is not load-bearing
+   manufactures fog (over-fire, mirror clause). A clean, well-supported
+   decision honestly has no reef.
+4. **Road not taken:** derive ONLY from real, evidence-backed alternatives —
+   `scaffold.key_trade_offs[]`, `verification.unresolved_tensions[]`, or explicit
+   boss concerns. **If no evidence-backed alternative exists, leave
+   `road_not_taken` empty (`[]`) — do NOT fabricate one from "the rejected
+   obvious alternative."** A flat decision legitimately has no road not taken;
+   inventing one to fill a medium/high slot is manufactured divergence
+   (over-fire, the exact failure the validated stress test measured at ~60% on
+   flat cases). When two real poles DO exist, render them at parity (see Bearing
+   Rules — no engine-weighted pole).
 5. **Next helm:** choose the smallest concrete action that moves the voyage:
    repair, human check, source pull, spike, or promotion.
 6. **Contract seed:** include only when the current course is `proceed`, `fork`,
@@ -380,10 +421,23 @@ Use artifacts in this order:
 
 - `proceed`: evidence is sufficient for a reversible next move.
 - `hold`: do not decide yet; a specific check comes first.
-- `fork`: two viable paths remain and the next action is to choose or test one.
+- `fork`: two **genuinely viable** paths remain and the next action is to choose
+  or test one. Use ONLY when both poles are real — never to dramatize a flat
+  decision. When `fork` is the status, render the two poles at parity and name
+  the crux that decides them; do not pick for the user (see Bearing Rules).
 - `anchor`: this draft can be promoted or sealed.
 - `revise`: agent-owned claims need repair before the bearing is usable.
 - `collect_evidence`: a human or external source must provide missing evidence.
+
+**FLAT course (the restraint default — Step 6·0.5).** When the decision is flat
+(no load-bearing fork), the bearing uses `proceed` or `anchor`, with
+`road_not_taken: []` and usually `fog_or_reef: null`. `current_course.summary`
+states plainly that the axes line up so any reasonable branch lands the same;
+`why_this_course` names at most the ONE assumption the user is resting on (or a
+single supporting reason); `next_helm` may be a **done-handle** — "nothing else
+to decide here — go ahead" / "이 결정은 여기서 닫혀요 — 그대로 진행하세요" — which
+is a first-class next action, not a failure to find work. Returning the handle on
+a flat decision is the product working correctly, not under-delivering.
 
 When `verification.routing_decision` is `revise_team`, set `status: "revise"`.
 When it is `stop_for_human_check`, set `status: "collect_evidence"`.
@@ -436,7 +490,27 @@ Never print it again after the first session.
   same issue. Merge them.
 - If evidence is thin, set the course to `hold` or `collect_evidence` instead
   of writing a longer report.
-- Always include 1-2 road-not-taken items for medium/high decisions.
+- **Road not taken is load-bearing-gated, not mandatory.** Include 1-2 items
+  ONLY when real, evidence-backed alternatives exist; on a flat decision leave it
+  empty. Never fabricate an alternative to satisfy a slot (over-fire).
+- **Never emit an engine-weighted pole.** When two poles are shown (status
+  `fork`, or two road-not-taken items), render them at PARITY: comparable depth
+  and word-count, no caveat stacked on only one side, do not "melt" one pole's
+  cost while loading the other's, no verdict tone ("X is right" vs "is Y even
+  worth it"). Present the poles + the crux that decides them; the user picks.
+  A tilting bearing is a disguised verdict (validated as the modal harm).
+  **Swap-test before rendering:** if swapping the two poles' labels would change
+  which one reads as favored, the asymmetry is engine tilt — flatten it. (Honest
+  note: this lint is a floor; the stress test proved tilt can live below
+  structural checks. Keep the poles factual and let the user weigh them.)
+- **Refuse identity/moral verdicts.** Do not render — or seal as a contract — a
+  verdict about who the user is ("you're not selfish", "you're a bad partner if
+  you don't"). A contract seed is a falsifiable claim about the WORLD, not a
+  judgment of the user; if the decision was framed as "am I a [bad/selfish]
+  person", convert it to a behavioral/world predicate or set `contract_seed:
+  null`. Then **boomerang-scan the closing lines** (`current_course.summary`,
+  `next_helm`): strip any soft re-issuance of a refused verdict (implicit
+  absolution or condemnation). This is qualitative — hold the line by hand.
 - Contract seed must be falsifiable. If it cannot be checked later, omit it.
 - The detail path is a quiet escape hatch, not the main product.
 
@@ -478,8 +552,15 @@ user explicitly asks for `/argus:chart` or opens session files.
 - **Surface compression:** default output fits one screen and contains only
   current course, why, fog/reef, road not taken, next helm, optional contract
   seed, and detail path.
-- **Voyage continuity:** output preserves at least one alternate course or states
-  why none matters.
+- **Voyage continuity:** output preserves at least one alternate course OR
+  explicitly states the decision is flat (no real alternative). An empty
+  `road_not_taken` with a one-line "the axes line up — any reasonable branch
+  lands the same" SATISFIES this gate; it is not a failure to find an
+  alternative. Do not manufacture a road-not-taken to pass this check.
+- **Under-fire default (the mirror clause):** the bearing must not over-fire —
+  no manufactured fork on a flat decision, no fabricated fog, no engine-weighted
+  pole, no reflexive push to re-engage when "you're done" is the honest answer.
+  Restraint (one assumption + handle) is the default; depth is user-pulled.
 - **Evidence feel:** when user gave a file/PR/document, the bearing must prove
   it read that artifact through source-specific reasons.
 - **No false completion:** blocked or challenged output must not sound approved.
@@ -512,3 +593,8 @@ user explicitly asks for `/argus:chart` or opens session files.
 - Escalating a `validation` / `vent` / `info` request (clarify Step 1.7
   `request_type`) into team/verify/boss, or re-opening a decision the user
   already made. Only `open_decision` flows the full pipeline.
+- **Over-firing on a flat decision (the mirror clause — spine violation).**
+  Manufacturing a fork / road-not-taken / fog where none is load-bearing,
+  running the crew on a `frame_status: flat` decision, emitting an
+  engine-weighted pole, or reflexively pushing `/argus:revise` / re-engagement
+  when the honest answer is "you're done." Restraint is the default.

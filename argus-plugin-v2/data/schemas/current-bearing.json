@@ -68,9 +68,9 @@
     },
     "road_not_taken": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "maxItems": 2,
-      "description": "Viable alternate courses that were considered but should not be the current course.",
+      "description": "Evidence-backed alternate courses that were genuinely considered but should not be the current course. EMPTY on a flat decision (no real fork) — never fabricate an alternative to fill the slot; a manufactured road-not-taken is over-fire (mirror clause, v2.6.0). Each pole must be rendered at parity with the chosen course (no charity asymmetry, no caveat stacking, no 'melting' one side's cost) — a tilting road-not-taken is a disguised verdict.",
       "items": {
         "type": "object",
         "required": ["option", "why_not_now"],

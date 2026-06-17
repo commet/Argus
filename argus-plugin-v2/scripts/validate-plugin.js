@@ -103,6 +103,11 @@ if (fs.existsSync(clarifySkillPath)) {
     check(clarify.includes(t), `clarify Step 1.7 must define request_type "${t}"`);
   }
   check(/resistance/i.test(clarify), "clarify Step 1.7 must cover the readiness=resistance axis (avoidance is not an analysis bottleneck)");
+  // Under-fire dial (v2.6.0): clarify must apply the load-bearing test to its own
+  // reframe and default to restraint (frame_status: flat) when no fork changes
+  // the answer — the ~60% over-fire the validated stress test measured.
+  check(/frame_status/.test(clarify), "clarify must set frame_status (flat|load_bearing) — the under-fire dial (v2.6.0)");
+  check(/load-bearing/i.test(clarify) && /\bflat\b/i.test(clarify), "clarify Step 2 must require a reframe to be LOAD-BEARING or not made (no manufactured reframe on a flat decision)");
 }
 
 const agentFiles = fs.existsSync(path.join(root, "agents"))
@@ -147,6 +152,11 @@ if (analysisSnapshot) {
       ["ready", "resistance"].every((r) => analysisSnapshot.properties.readiness.enum.includes(r)),
     "AnalysisSnapshot must declare readiness with ready/resistance (clarify Step 1.7)"
   );
+  check(
+    Array.isArray(analysisSnapshot.properties?.frame_status?.enum) &&
+      ["flat", "load_bearing"].every((f) => analysisSnapshot.properties.frame_status.enum.includes(f)),
+    "AnalysisSnapshot must declare frame_status with flat/load_bearing (clarify Step 2 — the under-fire dial, v2.6.0)"
+  );
 }
 
 const installPath = path.join(root, "install.sh");
@@ -183,7 +193,10 @@ if (currentBearing) {
     check(currentBearing.required?.includes(field), `CurrentBearing must require ${field}`);
   }
   check(currentBearing.properties?.why_this_course?.maxItems === 3, "CurrentBearing why_this_course[] must be capped at 3 items");
-  check(currentBearing.properties?.road_not_taken?.minItems === 1, "CurrentBearing road_not_taken[] must require at least 1 item");
+  // v2.6.0 under-fire: road_not_taken must be ALLOWED to be empty on a flat
+  // decision. minItems:1 previously ENFORCED the over-fire (a manufactured
+  // alternative to fill the slot) — flipped to 0. maxItems stays 2.
+  check(currentBearing.properties?.road_not_taken?.minItems === 0, "CurrentBearing road_not_taken[] must allow empty (minItems 0) — a flat decision has no road not taken (v2.6.0 under-fire default)");
   check(currentBearing.properties?.road_not_taken?.maxItems === 2, "CurrentBearing road_not_taken[] must be capped at 2 items");
   check(
     currentBearing.properties?.current_course?.properties?.status?.enum?.includes("collect_evidence"),
@@ -200,9 +213,24 @@ if (fs.existsSync(sailSkillPath)) {
   // Step-0 gate routing (v2.5.0): sail must read request_type and refuse to
   // escalate a non-open request into the crew pipeline.
   check(sail.includes("request_type"), "sail must route on request_type — only open_decision flows team/verify/boss (clarify Step 1.7)");
+  // Under-fire default (v2.6.0): sail must have a flatness gate, must NOT mandate
+  // a forced/fabricated road-not-taken, and must forbid the engine-weighted pole.
+  check(/frame_status/.test(sail) && /[Ff]latness gate/.test(sail), "sail must have a flatness gate (Step 6·0.5) keyed on frame_status — the under-fire default (v2.6.0)");
+  check(!/create one from the rejected obvious alternative/.test(sail), "sail must NOT mandate fabricating a road-not-taken ('create one from the rejected obvious alternative') — that clause manufactured the ~60% flat-decision over-fire (v2.6.0)");
+  check(!/Always include 1-2 road-not-taken items for medium\/high decisions\./.test(sail), "sail must not force 1-2 road-not-taken on every medium/high decision — load-bearing-gated, empty on flat (v2.6.0)");
+  check(/engine-weighted pole/i.test(sail) && /[Ss]wap-test/.test(sail), "sail must forbid the engine-weighted pole and apply the swap-test parity check (asymmetric_steer was the modal harm — v2.6.0)");
   // Privacy regression guard: the ledger holds verbatim predictions/outcomes,
   // and settle/helm both assert that sail's gitignore covers it.
   check(/^ledger\/$/m.test(sail), "sail Step 0 .argus/.gitignore block must include a ledger/ line (privacy default for the settlement ledger)");
+}
+
+// Settlement is reality-only (v2.6.0): settle must NOT auto-offer /argus:sail on
+// a missed/partial outcome (reopen-on-settle was over-fire).
+const settleSkillPath = path.join(root, "skills", "settle", "SKILL.md");
+if (fs.existsSync(settleSkillPath)) {
+  const settle = fs.readFileSync(settleSkillPath, "utf8");
+  check(!/열린 질문이 하나 남았네요 — 잡아보려면: \/argus:sail/.test(settle), "settle must not auto-offer /argus:sail on a missed/partial outcome (reopen-on-settle over-fire, v2.6.0)");
+  check(/reality-only/i.test(settle), "settle must state settlement is reality-only — reopening is the user's explicit move (v2.6.0)");
 }
 
 const draft = readJson(path.join(root, "data", "schemas", "draft.json"));

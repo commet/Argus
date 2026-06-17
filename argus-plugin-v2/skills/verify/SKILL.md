@@ -151,6 +151,16 @@ Severity:
 - `important`: must be visible in the Current Bearing or fixed.
 - `minor`: note it; do not block by itself.
 
+**Do not manufacture minor challenges to fill the ledger.** A genuinely clean,
+reversible decision can verify with zero challenges — that is a valid `verified`
+outcome, not a failure to find something. Inventing nitpick challenges so the
+gate "did work" is over-fire (the mirror clause, CLAUDE.md): it manufactures
+ceremony and downstream pushes a needless revise loop. **This restraint is
+asymmetric and never applies upward:** a `critical` or `important` challenge is
+ALWAYS surfaced — verify's reason to exist is catching the fluent-but-wrong
+claim, and burying a real reef to look tidy is the opposite, under-fire failure.
+Suppress only the manufactured *minor*, never a real material challenge.
+
 ### Step 5 - Preserve Tensions
 
 Convert `debate.json` and `scaffold.team_contradictions[]` into
@@ -319,6 +329,10 @@ Keep this to one terminal screen. Full detail stays in `verification.json`.
 - Treating verification as stakeholder/persona review.
 - Rewriting the team's output into a nicer report instead of validating it.
 - Saying `verified` when the result only means "no obvious issue found."
+- Manufacturing minor challenges so the gate looks like it did work, on a clean
+  reversible decision (over-fire — the mirror clause). Zero challenges is a valid
+  `verified`. (This never licenses suppressing a critical/important challenge —
+  that is the opposite, under-fire failure.)
 - Asking the user to grade a past outcome. This skill validates current
   evidence, not future reality.
 - Allowing boss review to run on blocked output unless the user explicitly chose

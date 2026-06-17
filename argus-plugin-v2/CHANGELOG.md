@@ -4,6 +4,93 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.6.0 — 2026-06-17
+
+Under-fire default: the dial that decides *whether to intervene* is now pinned to
+restraint across the whole pipeline. This is the plugin's answer to the validated
+spine-level finding that the engine over-fires by architecture.
+
+Context: the 4-round engine stress test (`docs/STRESS-SYNTHESIS-rounds1-4`,
+~98 cases / ~400 agents) reached verdict **(b)** — a find-the-leverage engine
+*manufactures divergence when none exists*: over-fire on **60%** of flat
+negative-controls, and `asymmetric_steer` (an engine-weighted pole) was the
+**modal** harm. The spine's mirror clause ("zero judgment" also means don't judge
+*whether to intervene* in the user's stead) is not rule-patchable — it's a dial,
+and the founder's fixed choice is **under-fire default + cheap user-pulled depth**
+(CLAUDE.md rule 4, added this cycle). `/argus:helm` already embodied this (P0.B
+silence-default weight-gate); 2.6.0 generalizes that discipline to the surfaces
+that lacked it.
+
+**Honesty note (read before trusting this):** the plugin is prompt-based with no
+executable LLM in CI, so the new guards (`validate-plugin.js` string/schema
+checks, `simulate-plugin.js` over-fire-shape lint) are a **regression floor, not
+a safety proof** — the stress test proved tilt can live *below* structural
+resolution. The real verdict needs the manual Round-5 protocol now written in
+`TEST_PLAN.md` (strict 5-vote blind panel + the 10 R4 negative-controls). A
+changeset that called string-presence "verified" would repeat the Round-3 mistake
+(its 4.2% was an artifact of an incomplete battery).
+
+### Added
+- **clarify Step 2 — the under-fire dial (`frame_status`).** Before reframing,
+  the load-bearing test is applied to clarify's *own* reframe: would flipping to
+  the reframed question actually change the answer? If no, `frame_status: "flat"`
+  — the surface question IS the real question; do not manufacture a different one,
+  and Step 3.5 (the probe — a fork *generator*) is skipped. If yes,
+  `load_bearing` and the pipeline runs. Default `load_bearing` only when genuinely
+  unsure (a missed real fork is worse than one honest flat answer). New M-flat
+  meta-check + forbidden pattern. Declared on the AnalysisSnapshot schema.
+- **sail Step 6·0.5 — flatness gate.** A `frame_status: "flat"` decision does NOT
+  deploy team/verify/boss; sail renders a restraint **FLAT course** directly (one
+  assumption + a done-handle). This catches the gap `decision_density: low` and
+  the v2.5 request-type gate miss: a *medium/high-stakes but flat* decision (all
+  axes aligned, any branch lands the same). Ports helm's silence-default, not its
+  irreversible-only trigger.
+- **negative-control regression fixtures** — three R4 flat over-fire cases
+  (folder-rename, satisfied-incumbent, working-Express-stack) baked into
+  `simulate-plugin.js` as expected restraint bearings (empty `road_not_taken`,
+  null `fog_or_reef`, proceed/anchor), plus an over-fire-shape lint (no
+  manufactured fork on flat; gross pole-asymmetry floor). Manual Round-5 protocol
+  added to `TEST_PLAN.md`.
+
+### Changed
+- **sail Current Bearing is no longer a forced-fork generator.** The mandates
+  "Always include 1-2 road-not-taken items" and "if none exists, create one from
+  the rejected obvious alternative" are removed — `road_not_taken` is now
+  load-bearing-gated (empty on a flat decision), and `fog_or_reef` no longer
+  falls back to "the strongest remaining assumption" (a clean decision has no
+  reef). The `current-bearing.json` schema relaxes `road_not_taken.minItems`
+  1→0, and the `validate-plugin.js` guard that *enforced* the over-fire is
+  flipped to match.
+- **No engine-weighted pole.** When two poles are shown (`fork` status or two
+  roads), they render at parity (comparable depth/word-count, no caveat stacked
+  on one side, no "melting" one pole's cost, no verdict tone) + the crux; a
+  swap-test self-check flattens tilt. A tilting bearing is a disguised verdict.
+- **Refuse identity/moral verdicts as contracts + boomerang scan.** A
+  `contract_seed` is a falsifiable claim about the world, never a verdict about
+  the user; closing lines are scanned for soft re-issuance of a refused verdict
+  (the R4 absolution-boomerang).
+- **boss** no longer manufactures concerns on a clean reversible scaffold
+  (`concerns: []` + one approval condition is valid) and only pushes
+  `/argus:revise` when something is actually worth applying.
+- **verify** must not manufacture minor challenges to look busy — zero challenges
+  is a valid `verified`. (Asymmetric: a critical/important challenge is ALWAYS
+  surfaced; this never licenses burying a real reef.)
+- **settle** is reality-only — a missed/partial outcome no longer auto-offers
+  `/argus:sail` (reopen-on-settle was over-fire); re-deciding is the user's move.
+- The mirror clause (over-fire = spine violation) is now in the Forbidden
+  Patterns / meta-checks of sail, clarify, verify, boss, and settle, so future
+  skills inherit the under-fire default.
+
+### Deliberately NOT done
+- **No `ai_surfaced` provenance tagging added as "the fix."** R4 proved honest
+  provenance is *necessary but not sufficient* — a tagged fork still tilts. Adding
+  tagging and calling it the over-fire fix would repeat the exact error the
+  synthesis warns against; it is deferred and, if ever added, is honesty-only.
+- **No port of the webapp P0/P1 plan verbatim.** Those target `src/lib/*` files;
+  the plugin's over-fire lived in different surfaces (sail render contract,
+  current-bearing schema, verify/boss/settle). The byte-locked
+  `data/prompts/probe-prompts.md` was left untouched (parity with the web engine).
+
 ## 2.5.0 — 2026-06-17
 
 Step-0 gate: Argus now decides *whether* to run the engine before deciding

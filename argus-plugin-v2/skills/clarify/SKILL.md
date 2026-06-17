@@ -299,11 +299,13 @@ set) on the snapshot either way, so sail Step 6 can route without re-classifying
 > - `decision_density_reasoning`: one-sentence justification for the chosen density.
 > - `request_type`: carry over the Step 1.7 classification (`open_decision` here — non-open types short-circuited before reaching Step 2).
 > - `readiness`: `ready` or `resistance`, per Step 1.7.
+> - `frame_status`: `flat` or `load_bearing` (see rule 1b — the under-fire dial).
 >
 > Rules:
-> 1. **(open_decision only)** The `real_question` MUST NOT be "how do I {{surface request verbatim}}?". If surface matches real, you haven't reframed. This reframe mandate applies ONLY to `open_decision`; a `validation` request is answered against the decision the user already made (Step 1.7) and is never re-opened into a different question. Examples:
+> 1. **(open_decision, load-bearing only)** The `real_question` MUST NOT be "how do I {{surface request verbatim}}?" — *when a load-bearing reframe exists*. This reframe mandate applies ONLY to `open_decision`; a `validation` request is answered against the decision the user already made (Step 1.7) and is never re-opened into a different question. Examples:
 >    - Surface: "should we use TypeScript or JavaScript?" → Real: "How much long-term velocity are we willing to trade for short-term setup speed, given team seniority?"
 >    - Surface: "review my PR" → Real: "What's the ONE risk in this PR that would make me roll it back in 48 hours?"
+> 1b. **The reframe must be LOAD-BEARING, or it must not be made (`frame_status`).** Before reframing, apply the leverage test to your own reframe: *would flipping to the reframed question actually change the answer/action?* If yes → `frame_status: "load_bearing"`, reframe as in rule 1. If **no** — the surface question already IS the real question, the axes line up, any reasonable branch lands the same — then **set `frame_status: "flat"`, let `real_question` equal the surface question, and do NOT manufacture a different one.** A reframe that does not change the answer is manufactured divergence — the validated stress test measured this over-fire on ~60% of flat decisions, and it is the more harmful error here (the mirror clause, CLAUDE.md). When genuinely unsure, default `load_bearing` (the safe direction — a missed real fork is worse than one honest flat answer). On `flat`, Step 3.5 (probe) and the team are skipped and sail renders a restraint bearing (Step 6·0.5); the honest deliverable is "this is flat — here's the one thing you're resting on, go ahead," not a fabricated fork.
 > 2. `hidden_assumptions` must be declarative sentences, not questions.
 > 3. Do NOT propose solutions. This skill's job ends at structuring the question — UNLESS rule 4 applies.
 > 4. **`decision_density: "low"` gate** — set ONLY when ALL of:
@@ -348,7 +350,9 @@ If `framing_confidence < 70`:
 
 **Skip when `decision_density == "low"`** (a 1-line decision doesn't get a
 crew — cost discipline + the P0.B lesson: probes talk on everything unless
-gated) **or `--quick`.**
+gated) **or `frame_status == "flat"`** (the probe is a fork *generator*; on a
+flat decision it will manufacture a divergence that does not exist — the exact
+~60% over-fire the stress test measured, mirror clause) **or `--quick`.**
 
 > Locale note: the quoted Korean strings below are the ko reference copy —
 > render user-facing lines in `config.locale`. English equivalents:
@@ -534,6 +538,7 @@ Written to `.argus/sessions/{id}/`:
 Before finalizing, verify:
 
 - **M-request-type (Step-0 gate integrity)**: Did you classify request_type before reframing? A `validation`/`vent`/`info` request that got force-reframed into a different question is a gate failure — re-route per Step 1.7. When you classified non-open, did you keep the one-line escape back to the full engine (honest provenance, never a trap)? `resistance` must rest on an explicit textual signal, not tone.
+- **M-flat (Under-fire dial, the mirror clause)**: Did you apply the load-bearing test to your OWN reframe (rule 1b)? If `real_question` differs from the surface, would flipping it actually change the answer — or did you manufacture a reframe on a flat decision? If the reframe doesn't change the action, set `frame_status: "flat"`, restore the surface question, and do not run the probe. Over-firing on a flat decision is a spine violation, not a thoroughness bonus.
 - **M5 (Analysis primacy)**: Did you reframe? Is `real_question` different from the surface request? If same → fail, retry Step 2 with stricter instruction. **Exception: `validation` requests are intentionally not reframed (Step 1.7); M5 does not apply to them.**
 - **M4 (Decision scaffold shape)**: Does the snapshot contain `hidden_assumptions` and `skeleton` as actual arrays, not flat recommendation? If LLM returned a solution-like narrative → fail, retry. **Exception: when `decision_density == "low"`, `skeleton` may be empty array (the minimal scaffold replaces it).**
 - **M9 (Worker mode, not critic)**: clarify doesn't invoke workers. NA. But DO NOT include agent voices or critique in the analysis output — that's /argus:team and /argus:boss territory.
@@ -571,3 +576,4 @@ If any gate fails, revise before emitting files.
 - **Re-opening a `validation` request** into a different question, or running the crew on it, when the user already decided and only asked for a check (Step 1.7).
 - **Forking a `vent`** into options the user never asked for, or writing a session for it before the user accepts the invitation to make it a decision.
 - **Arming `resistance`** with more forks/crew when the bottleneck is avoidance, not analysis — or naming the avoidance as a verdict about the user instead of conditioning on the observable (long-pending + no new info).
+- **Manufacturing a reframe on a flat decision** (rule 1b / M-flat). If the surface question already is the real question and any reasonable branch lands the same, that is `frame_status: "flat"` — name the one assumption and return the handle. Inventing a different `real_question` to look thorough is over-fire (the mirror clause); ~60% of flat decisions failed exactly this way in the validated stress test.

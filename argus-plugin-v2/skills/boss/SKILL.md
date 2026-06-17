@@ -93,6 +93,13 @@ Rules:
 - Every concern must include a concrete fix suggestion.
 - Do not say a challenged claim is solved unless verification or the user routed
   it forward.
+- **Do not manufacture concerns.** If the verified scaffold is sound — clean
+  verification, reversible decision — returning `concerns: []` with a single
+  `approval_condition` is the correct, honest output. A stakeholder who invents
+  objections to seem rigorous is over-firing (the mirror clause, CLAUDE.md):
+  surface at most the ONE condition that would actually change the course, not a
+  filled quota of severity-tagged worries. Restraint reads as confidence, not
+  laziness.
 - Keep your MBTI voice distinct. Use the personality's speech pattern and
   example dialogue rhythm.
 - Return JSON only.
@@ -267,9 +274,14 @@ Approval condition: {{approval_condition}}
 {{endfor}}
 {{endif}}
 
-{{locale-aware footer}}
-- ko: `다음: 우려를 반영하려면 \`/argus:revise\` (선택한 우려로 자식 초안 생성 + 재검증). 현재 초안으로 확정하려면 \`/argus:chart --promote\`.`
-- en: `Next: \`/argus:revise\` to apply the concerns (forks a child draft + re-verifies). Or \`/argus:chart --promote\` to finalize this draft.`
+{{locale-aware footer — conditional on there being a concern worth applying}}
+- **If `concerns[]` is empty (or all rejected):** do NOT push `/argus:revise` —
+  there is nothing to revise. Offer the done-handle instead:
+  - ko: `다음: 반영할 우려 없음 — 이대로 확정하려면 \`/argus:chart --promote\`.`
+  - en: `Next: no concerns to apply — \`/argus:chart --promote\` to finalize as is.`
+- **If at least one concern is worth applying:**
+  - ko: `다음: 우려를 반영하려면 \`/argus:revise\` (선택한 우려로 자식 초안 생성 + 재검증). 현재 초안으로 확정하려면 \`/argus:chart --promote\`.`
+  - en: `Next: \`/argus:revise\` to apply the concerns (forks a child draft + re-verifies). Or \`/argus:chart --promote\` to finalize this draft.`
 ```
 
 Keep this to one terminal screen.
@@ -309,6 +321,10 @@ Keep this to one terminal screen.
 
 ## Forbidden Patterns
 
+- **Manufacturing concerns on a clean, reversible scaffold** to seem rigorous,
+  or reflexively pushing `/argus:revise` when there is nothing worth applying
+  (over-fire — the mirror clause). `concerns: []` + one approval condition is a
+  valid, honest stakeholder review.
 - Generic reviewer voice.
 - Applying every concern automatically.
 - Running without verification unless the user explicitly overrides.

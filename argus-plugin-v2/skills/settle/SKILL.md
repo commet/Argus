@@ -115,8 +115,16 @@ ledger (verbatim predicates and outcomes) stays local by default.
 Track record: {{S}} sealed · {{T}} settled — held {{h}} · missed {{a}} · partial {{p}}{{if T < 3}} (인사이트까지 {{3-T}}건){{endif}}
 {{if remaining due}}{{N}} more due — run /argus:settle again.{{endif}}
 {{if T >= 3}}Patterns across your voyages: /argus:log{{endif}}
-{{if a settled outcome was missed/partial AND its fog_or_reef names an open question}}열린 질문이 하나 남았네요 — 잡아보려면: /argus:sail{{endif}}
 ```
+
+**Settlement is reality-only — do NOT auto-offer `/argus:sail` on a missed or
+partial outcome.** A missed bet does not mean the decision should be re-opened;
+the user just learned what reality did and may simply be recording it.
+Re-deciding is the user's explicit move, not an engine nudge — pushing
+re-engagement here is over-fire (the mirror clause, CLAUDE.md), the same reason
+the request-type gate (clarify Step 1.7) refuses to fork a vent. The 안개-line
+above already surfaces "what you flagged vs what reality did" honestly; let that
+stand on its own. If the user wants to re-decide, they will say so.
 
 **Recovering `fog_or_reef` for the 안개 line:** parse the contract id back
 into a path — `bearing:<session-id>:<label>` →
@@ -153,6 +161,9 @@ for settle #2 — it quotes, it never editorializes.
 ## Forbidden patterns
 
 - Judging the outcome ("that was a bad call").
+- **Reopening a settled decision** — auto-offering `/argus:sail` / re-engagement
+  on a missed or partial outcome (over-fire, the mirror clause). Settlement
+  records reality; re-deciding is the user's explicit move.
 - Settling without an explicit user answer.
 - Rewriting `check_by` on a contract the user didn't choose to push.
 - Producing a long retrospective — that is `/argus:log --insights` territory.

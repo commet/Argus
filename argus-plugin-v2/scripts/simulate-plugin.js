@@ -149,6 +149,76 @@ const cases = [
     userInput: "/argus:sail \"Rename Workspace to Project?\"",
     minimalExpected: true,
     bearing: null
+  },
+  // ── v2.6.0 negative-control fixtures (over-fire regression floor) ──
+  // Flat decisions from the validated stress test (docs/STRESS-round4-findings,
+  // §1) where the leverage engine over-fired. The under-fire default must render
+  // a restraint bearing: no manufactured fork, no fabricated fog, a done-handle.
+  {
+    id: "R4-04-folder-rename",
+    userInput: "/argus:sail \"name the scratch folder tmp or scratch?\"",
+    flat: true,
+    bearing: {
+      label: "v0.1",
+      current_course: {
+        status: "proceed",
+        summary: "Either name is fine — it's a two-second reversible rename with no downstream signal, so pick one and move on."
+      },
+      why_this_course: [
+        { point: "The folder is local scratch; renaming later costs nothing, so no axis separates the two names." }
+      ],
+      fog_or_reef: null,
+      road_not_taken: [],
+      next_helm: "Nothing else to decide here — name it and keep going.",
+      contract_seed: null,
+      blocked: false,
+      detail_path: ".argus/sessions/2026-06-17-folder-rename/versions/v0.1/",
+      generated_at: "2026-06-17T00:00:00.000Z"
+    }
+  },
+  {
+    id: "R4-05-incumbent-stay",
+    userInput: "/argus:sail \"I'm happy in my job, all good — should I look around anyway?\"",
+    flat: true,
+    bearing: {
+      label: "v0.1",
+      current_course: {
+        status: "anchor",
+        summary: "Every axis you named is already satisfied — staying is the answer; there's no fork here to work."
+      },
+      why_this_course: [
+        { point: "You report pay, growth, and team are all good and nothing has changed — so no decision pressure exists to act on." }
+      ],
+      fog_or_reef: null,
+      road_not_taken: [],
+      next_helm: "You're done — no action needed.",
+      contract_seed: null,
+      blocked: false,
+      detail_path: ".argus/sessions/2026-06-17-incumbent/versions/v0.1/",
+      generated_at: "2026-06-17T00:00:00.000Z"
+    }
+  },
+  {
+    id: "R4-07-express-stack",
+    userInput: "/argus:sail \"my Express API runs fine, keep it?\"",
+    flat: true,
+    bearing: {
+      label: "v0.1",
+      current_course: {
+        status: "proceed",
+        summary: "The stack works and you named no problem with it — keep it; there is no load-bearing reason to migrate."
+      },
+      why_this_course: [
+        { point: "A well-running Express API with no stated pain point has no axis that a rewrite would improve." }
+      ],
+      fog_or_reef: null,
+      road_not_taken: [],
+      next_helm: "Keep shipping on it — nothing to change.",
+      contract_seed: null,
+      blocked: false,
+      detail_path: ".argus/sessions/2026-06-17-express/versions/v0.1/",
+      generated_at: "2026-06-17T00:00:00.000Z"
+    }
   }
 ];
 
@@ -187,12 +257,43 @@ function validateBearing(testCase) {
     fail(id, "file/PR/document cases require at least one source reference");
   }
 
-  if (!Array.isArray(bearing.road_not_taken) || bearing.road_not_taken.length < 1 || bearing.road_not_taken.length > 2) {
-    fail(id, "road_not_taken must contain 1-2 items");
+  // v2.6.0 under-fire: 0-2 items. Empty is legitimate on a flat decision.
+  if (!Array.isArray(bearing.road_not_taken) || bearing.road_not_taken.length > 2) {
+    fail(id, "road_not_taken must contain 0-2 items");
   }
   for (const [index, road] of bearing.road_not_taken.entries()) {
     requireString(id, road.option, `road_not_taken[${index}].option`);
     requireString(id, road.why_not_now, `road_not_taken[${index}].why_not_now`);
+  }
+
+  // Over-fire-shape lint (regression FLOOR, not a safety proof — the stress test
+  // proved tilt can live below structural checks; this catches the gross shapes).
+  if (testCase.flat) {
+    // A flat negative-control decision must NOT manufacture a fork/fog.
+    if (bearing.road_not_taken.length !== 0) {
+      fail(id, "flat decision must have an EMPTY road_not_taken — a manufactured alternative is over-fire");
+    }
+    if (bearing.fog_or_reef !== null) {
+      fail(id, "flat decision must have fog_or_reef: null — manufactured fog is over-fire");
+    }
+    if (!["proceed", "anchor"].includes(bearing.current_course.status)) {
+      fail(id, `flat decision must use proceed/anchor status, not ${bearing.current_course.status} (no manufactured fork)`);
+    }
+  }
+  if (bearing.current_course.status === "fork" && bearing.road_not_taken.length < 1) {
+    // A 'fork' bearing surfaces the chosen course + at least one real alternative pole.
+    fail(id, "a 'fork' status bearing must show at least one road_not_taken pole (the other viable path)");
+  }
+  // Gross parity floor: when a real alternative pole is shown, neither side may be
+  // ~3x the other in length (a crude asymmetric_steer floor — tilt can still live
+  // below this, per the stress test; it only catches the gross engine-weighted pole).
+  if (bearing.current_course.status === "fork" && bearing.road_not_taken.length >= 1) {
+    const chosen = bearing.current_course.summary.length;
+    const other = (bearing.road_not_taken[0].option + " " + bearing.road_not_taken[0].why_not_now).length;
+    const ratio = Math.max(chosen, other) / Math.max(1, Math.min(chosen, other));
+    if (ratio > 3) {
+      fail(id, `fork poles are grossly asymmetric (length ratio ${ratio.toFixed(1)}x > 3) — likely an engine-weighted pole`);
+    }
   }
 
   requireString(id, bearing.next_helm, "next_helm");

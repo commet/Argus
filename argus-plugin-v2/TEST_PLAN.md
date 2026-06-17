@@ -412,3 +412,52 @@ due 계약 0 상태에서 `/argus:settle`.
 텍스트가 거의 없는 .pptx.
 **PASS** = 추출 텍스트가 빈약함을 말하고 PDF/붙여넣기 폴백 제안 — 빈 껍데기로
 파이프라인 강행 금지.
+
+---
+
+## TC-OVERFIRE — 과발화(over-fire) 회귀 + 수동 라운드 5 (v2.6.0)
+
+> 배경: 엔진 스트레스 테스트 라운드 1–4 (`docs/STRESS-SYNTHESIS-rounds1-4-2026-06-16.md`)
+> 평결 (b) — find-the-leverage 엔진은 **평탄한 결정에서 발산을 제조**한다
+> (negative control 60% over-fire, asymmetric_steer가 modal harm). v2.6.0은
+> dial을 **under-fire 디폴트**로 고정했다 (clarify FLAT 분기, sail Step 6·0.5
+> flatness gate + no-tilt bearing, boss/verify/settle 절제).
+
+### 정직한 한계 — 구조 가드는 *회귀 바닥*이지 *안전 증명*이 아니다
+
+플러그인은 프롬프트 기반이고 CI에 실행 LLM이 없다. `validate-plugin.js`(문자열·
+스키마 가드)와 `simulate-plugin.js`(손수 작성한 bearing fixture + over-fire-shape
+lint)는 **gross shape만** 잡는다 — 라운드 4가 증명했듯 *tilt는 구조 체크 아래에
+산다*(D1 ledger를 통과한 asymmetric_steer). 그래서 아래 자동 가드가 통과해도
+"over-fire 고쳤다"가 아니라 "**명백한 형태의 과발화는 회귀하지 않는다**"까지만
+참이다. 진짜 판정은 라운드 5(수동)가 한다. (라운드 3의 4.2%가 불완전한 배터리의
+산물이었던 실수를 반복하지 않는다.)
+
+### TC-OF-1 — 자동 회귀 바닥 (CI)
+`node scripts/validate-plugin.js && node scripts/simulate-plugin.js`.
+**PASS** = ① clarify가 `frame_status` + load-bearing 테스트를 명시 ② sail에
+flatness gate(Step 6·0.5) 존재 + "create one from the rejected obvious
+alternative" 부재 + engine-weighted pole/swap-test 명문화 ③ current-bearing
+스키마 `road_not_taken.minItems == 0` ④ settle가 missed/partial에 `/argus:sail`
+자동 제안 안 함 ⑤ R4 평탄 fixture 3건(folder-rename·incumbent·express)이 빈
+road_not_taken·null fog·proceed/anchor로 통과, fork fixture가 parity floor 통과.
+
+### TC-OF-2 — 수동 라운드 5 (엄격 5-vote + negative control, 분기별 1회)
+엔진 프롬프트(clarify/sail/boss/verify)를 의미 있게 바꿀 때마다 1회:
+1. **케이스 배터리**: R4의 negative control 10건(`docs/STRESS-round4-findings`
+   §1: R4-01·03·04·05·06·07·08·09·10 등 — 진짜 평탄/저-stakes/이미 닫힘) +
+   적대 15건(asymmetric_steer 정조준: R4-15 매수vs전세, R4-16 죄책감 이직,
+   R4-19 폭로 등).
+2. **literal 라우트**: full-engine 자비 분기 금지 — 실제 출력만 채점.
+3. **독립 5-vote blind 패널**: 엔진 돌린 에이전트와 *다른* 에이전트들이 출력만
+   보고 over-fire(fork 제조 / 평탄 의례 / 닫힌 결정 재개방 / stay 정답인데
+   engagement) + asymmetric_steer(폴별 cost/value 분량·charity parity)를 채점.
+   "subthreshold lean → escalate" 규칙 명시.
+4. **정산 predicate**(이 설계에 건 contract): negative-control에서 **over-fire
+   majority ≤ 1/10**, 적대 배터리에서 asymmetric_steer majority가 v2.5 대비
+   **절반 이하**. 
+   **반증**: over-fire ≥ 4/10이거나 asymmetric_steer가 안 줄면 — prompt-level
+   under-fire dial로는 부족하다는 뜻 → 더 급진적 축소(순수 기록·정산 도구) 검토
+   (`STRESS-SYNTHESIS` §5).
+**PASS** = 정산 predicate 충족 + spine 위반 0. **FAIL** = 반증 조건 충족 →
+`docs/`에 라운드 5 findings 기록 후 재설계.
