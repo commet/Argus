@@ -35,12 +35,31 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     'influence', 'is_example', 'decision_style', 'risk_tolerance', 'success_metric',
     'deleted_at', 'user_description', 'contact', // ← 2026-06-13 추가
   ],
+  // ← 2026-06-18: 코드가 upsert하지만 실DB에 없던 3개 테이블 신설 (finish-line 감사).
+  reframe_items: [
+    'id', 'user_id', 'project_id', 'loop_id', 'iteration_number', 'input_text',
+    'analysis', 'selected_question', 'final_decomposition', 'status',
+    'user_edited_question', 'reanalysis_count', 'interview_signals',
+    'deleted_at', 'created_at', 'updated_at',
+  ],
+  recast_items: [
+    'id', 'user_id', 'project_id', 'loop_id', 'iteration_number', 'input_text',
+    'analysis', 'steps', 'status', 'deleted_at', 'created_at', 'updated_at',
+  ],
+  synthesize_items: [
+    'id', 'user_id', 'project_id', 'loop_id', 'iteration_number', 'raw_input',
+    'sources', 'analysis', 'final_synthesis', 'status',
+    'deleted_at', 'created_at', 'updated_at',
+  ],
 };
 
 /** 인터페이스엔 있으나 컬럼이 아닌(보내지지 않거나 sanitize로 제거되는) 필드. */
 const LOCAL_ONLY: Record<string, Record<string, string>> = {
   projects: {},
   personas: {},
+  reframe_items: {},
+  recast_items: {},
+  synthesize_items: {},
 };
 
 /** types.ts에서 한 인터페이스의 최상위 필드명만 추출 (중첩 객체는 brace-depth로 건너뜀). */
@@ -76,6 +95,9 @@ describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 �
   it.each([
     ['projects', 'Project'],
     ['personas', 'Persona'],
+    ['reframe_items', 'ReframeItem'],
+    ['recast_items', 'RecastItem'],
+    ['synthesize_items', 'SynthesizeItem'],
   ])('%s: 모든 %s 필드가 컬럼 또는 LOCAL_ONLY로 선언돼 있다', (table, iface) => {
     const cols = new Set(TABLE_COLUMNS[table]);
     const localOnly = LOCAL_ONLY[table] ?? {};
@@ -100,7 +122,7 @@ describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 �
 
   it('소프트삭제 대상 테이블은 deleted_at 컬럼을 갖는다 (부활 버그 회귀 방지)', () => {
     // SoftDeletableTable 중 실제 컬럼을 매니페스트로 검증 가능한 것만.
-    for (const table of ['projects', 'personas']) {
+    for (const table of ['projects', 'personas', 'reframe_items', 'recast_items', 'synthesize_items']) {
       expect(TABLE_COLUMNS[table], `${table}: soft-delete가 쓰는 deleted_at 컬럼 누락`).toContain('deleted_at');
     }
   });
