@@ -194,8 +194,8 @@ export function SirenHero() {
           }}
         >
           {L(
-            'Argus는 칭찬도 반박도 하지 않아요 — 당신 계획이 어디서 갈리는지 보여주고, 정한 날짜에 돌아와 묻습니다.',
-            'Argus neither flatters nor argues — it shows you where your plan forks, and comes back on the date you set to ask.',
+            'Argus는 칭찬도 반박도 하지 않아요. 당신 계획이 스스로 말하게 해서, 아직 비워둔 판단을 보여주고 — 정한 날짜에 돌아와 묻습니다.',
+            'Argus neither flatters nor argues. It lets your plan speak for itself — surfacing the judgment you left blank — then comes back on the date you set to ask.',
           )}
         </p>
 
@@ -253,7 +253,7 @@ export function SirenHero() {
                   className="bp-btn-primary bp-btn-primary--ink-frame shrink-0"
                   style={{ minHeight: 44 }}
                 >
-                  {L('어디서 갈리는지 보기', 'See where it forks')}
+                  {L('진짜로 읽혀보기', 'Have it truly read')}
                 </button>
               </div>
             </div>
@@ -266,8 +266,8 @@ export function SirenHero() {
             style={{ color: 'var(--bp-ink-soft)', fontSize: 13, lineHeight: 1.6 }}
           >
             {L(
-              '관점이 다른 AI 여럿이 당신 계획을 따로 읽어요. 갈리는 자리가 있으면 보여드리고 — 정한 날짜에 먼저 돌아와 물어요.',
-              'Several AI readers, each a different perspective, read your plan separately. Where it forks, we show you — then come back first on your chosen date to ask.',
+              '관점이 다른 AI 여럿이 당신 계획을 따로 읽어요. 갈리는 자리가 있으면 — 거기가 당신이 비워둔 판단이에요. 그리고 정한 날짜에 먼저 돌아와 물어요.',
+              'Several AI readers, each a different perspective, read your plan separately. Where they split — that\'s the judgment you left blank. Then, on your date, we come back first to ask.',
             )}
           </p>
 

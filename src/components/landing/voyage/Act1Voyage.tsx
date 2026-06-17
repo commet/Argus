@@ -65,8 +65,8 @@ export function Act1Voyage() {
             }}
           >
             {L(
-              'AI 결정 검토 — 답이 아니라, 빈틈과 갈림을 보여줘요',
-              'AI decision review — not answers, but the gaps and the forks',
+              'AI 결정 검토 — 답이 아니라, 당신이 비워둔 판단을 비춰줘요',
+              'AI decision review — not an answer, but the judgment you left blank, mirrored back',
             )}
           </p>
 
