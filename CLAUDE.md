@@ -51,6 +51,21 @@ Three concrete rules that follow (full rationale in
    (`docs/STRESS-SYNTHESIS-rounds1-4-2026-06-16.md`) found a find-the-leverage
    engine over-fires on 60% of flat cases and tilts forks in ways `ai_surfaced`
    tagging cannot neutralize. Honest provenance is necessary but **not** sufficient.
+   **Refinement (rounds 5–8, `docs/STRESS-SYNTHESIS-rounds5-8-2026-06-17.md`):**
+   the restraint default *works* — flipping to an under-fire default killed flat
+   over-fire (60%→0%) and the redesign halved total harm vs the old engine
+   (11→6) — so the fix is real, but two rules fall out of it. (a) **Firing form =
+   a bare neutral crux *question*, never a directional statement, never a
+   two-pole fork, and NEVER a disclaimed lean** ("this leans toward X, but it's
+   not my verdict" still tested as a spine violation — you cannot launder a
+   verdict by tagging it; per-output tilt-tagging makes the violation *worse*).
+   (b) The *fire-or-not* gate must run **before** the form — a crux-question
+   template left as the default will manufacture a question on a flat case. The
+   residual lean that survives all of this is irreducible (`value ∝ leverage ∝
+   tilt`: the highest-leverage assumption is the one that most points at the
+   flip) — so `zero judgment` is an **asymptote you approach and disclose at the
+   product level**, not a state you claim. Never write "we don't judge"; write
+   "we surface the one question, and name the faint lean as a known limit."
 
 ## Principle: Single Source of Truth for Prompts
 
