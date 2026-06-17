@@ -83,10 +83,18 @@ If more than 3 are due, settle the 3 oldest and say how many remain.
 
 Omit `note` from the settle event when the user offered no sentence.
 
-- Outcome events:
+- Outcome events. **A held bet on luck is NOT a held bet on judgment** (R17:
+  the one settle failure was a reckless, no-prep gamble that got lucky being
+  logged as a clean "held", cementing winging-it as a validated win). So when
+  recording, optionally capture the user's OWN read of WHY it went that way —
+  reasoning, or luck / external factors outside it. This is the user's
+  self-report, NOT Argus grading them (reality is still the only judge); it just
+  keeps a lucky outcome from compounding into the record as a skill-win, and
+  lets the track record separate judgment from luck. Offer it as a light second
+  tap, never a quiz; omit `basis` if the user doesn't answer.
 
 ```json
-{"event":"settle","id":"<id>","outcome":"happened|avoided|partial","note":"<one user sentence if offered>","at":"<now ISO>"}
+{"event":"settle","id":"<id>","outcome":"happened|avoided|partial","basis":"reasoned|luck|external|mixed — user's own read, optional","note":"<one user sentence if offered>","at":"<now ISO>"}
 ```
 
 - `pending` → extend instead (history preserved, no settle):
