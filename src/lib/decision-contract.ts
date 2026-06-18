@@ -23,6 +23,7 @@ import type {
   Predicate,
   PredicateSource,
   PredicateVerdict,
+  PredicateBasis,
   DecisionContract,
   CheckInInterval,
   MixResult,
@@ -334,7 +335,9 @@ export function isResolved(p: Predicate): boolean {
   return !!p.verdict && p.verdict !== 'pending';
 }
 
-/** Grade one predicate (immutable). Stamps graded_at; finalizes the contract once all are resolved. */
+/** Grade one predicate (immutable). Stamps graded_at; finalizes the contract once
+ *  all are resolved. Re-tapping a verdict CLEARS any prior `basis` — the "why"
+ *  no longer applies once the outcome itself changed. */
 export function gradePredicate(
   contract: DecisionContract,
   predicateId: string,
@@ -344,11 +347,36 @@ export function gradePredicate(
   const iso = new Date(now).toISOString();
   const predicates = (contract?.predicates ?? []).map((p) =>
     p.id === predicateId
-      ? { ...p, verdict, graded_at: verdict === 'pending' ? undefined : iso }
+      ? { ...p, verdict, graded_at: verdict === 'pending' ? undefined : iso, basis: undefined }
       : p,
   );
   const allResolved = predicates.length > 0 && predicates.every(isResolved);
   return { ...contract, predicates, graded_at: allResolved ? iso : undefined };
+}
+
+/**
+ * Attach the user's optional read of WHY a good outcome happened (the light
+ * second tap, never a quiz). Only meaningful once the predicate carries a verdict
+ * — a no-op on an unresolved predicate, so it can never resolve something by
+ * itself. Self-report only; reality is still the judge (R17). Immutable.
+ */
+export function setPredicateBasis(
+  contract: DecisionContract,
+  predicateId: string,
+  basis: PredicateBasis | undefined,
+): DecisionContract {
+  const predicates = (contract?.predicates ?? []).map((p) =>
+    p.id === predicateId && isResolved(p) ? { ...p, basis } : p,
+  );
+  return { ...contract, predicates };
+}
+
+/** A held bet / avoided risk the user themselves attributed to luck or outside
+ *  factors — NOT their judgment. `mixed` and `reasoned` (and an unanswered tap)
+ *  are NOT counted here: this is the conservative "by my own read, this win
+ *  wasn't mine" marker, so it never overstates how lucky the record was. */
+export function isLuckBasis(basis?: PredicateBasis): boolean {
+  return basis === 'luck' || basis === 'external';
 }
 
 export interface ContractStatus {
@@ -403,6 +431,10 @@ export interface GradeSummary {
   betsBroke: number;
   /** Role calls confirmed (the human-judgment step did need a human). */
   rolesConfirmed: number;
+  /** Subset of betsHeld + risksAvoided the user themselves attributed to luck /
+   *  outside factors (basis). A held bet on luck is not a held bet on judgment
+   *  (R17) — surfaced so the record can separate skill-wins from lucky ones. */
+  goodOutcomesOnLuck: number;
   /** Predicates graded but outcome unknown — not scored either way. */
   unknown: number;
   /** Total predicates with any verdict (incl. unknown/partial). */
@@ -423,6 +455,7 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
     betsHeld: 0,
     betsBroke: 0,
     rolesConfirmed: 0,
+    goodOutcomesOnLuck: 0,
     unknown: 0,
     resolved: 0,
     total: preds.length,
@@ -435,10 +468,10 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
       continue;
     }
     if (p.source === 'risk') {
-      if (p.verdict === 'avoided') s.risksAvoided++;
+      if (p.verdict === 'avoided') { s.risksAvoided++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; }
       else if (p.verdict === 'happened') s.risksHappened++;
     } else if (p.source === 'governing_idea') {
-      if (p.verdict === 'happened') s.betsHeld++;
+      if (p.verdict === 'happened') { s.betsHeld++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; }
       else if (p.verdict === 'avoided') s.betsBroke++;
     } else if (p.source === 'actor') {
       if (p.verdict === 'happened') s.rolesConfirmed++;
@@ -457,6 +490,10 @@ export interface CrossProjectRecord {
    *  held-vs-broke honestly (P1: counts of what happened, never a score). */
   betsBroke: number;
   risksHappened: number;
+  /** Of the wins above (betsHeld + risksAvoided), how many the user attributed to
+   *  luck / outside factors. Keeps a lucky streak from reading as a skill record
+   *  (R17). Counts only, never a score. */
+  goodOutcomesOnLuck: number;
 }
 
 /**
@@ -471,7 +508,7 @@ export function summarizeRecord(
   projects: Array<{ decision_contract?: DecisionContract }>,
   now: number,
 ): CrossProjectRecord {
-  const rec: CrossProjectRecord = { loops: 0, betsHeld: 0, risksAvoided: 0, betsBroke: 0, risksHappened: 0 };
+  const rec: CrossProjectRecord = { loops: 0, betsHeld: 0, risksAvoided: 0, betsBroke: 0, risksHappened: 0, goodOutcomesOnLuck: 0 };
   for (const p of projects) {
     const c = p?.decision_contract;
     if (!c || !contractStatus(c, now).allGraded) continue;
@@ -481,6 +518,7 @@ export function summarizeRecord(
     rec.risksAvoided += g.risksAvoided;
     rec.betsBroke += g.betsBroke;
     rec.risksHappened += g.risksHappened;
+    rec.goodOutcomesOnLuck += g.goodOutcomesOnLuck;
   }
   return rec;
 }

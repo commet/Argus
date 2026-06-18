@@ -547,6 +547,17 @@ export type PredicateSource = 'risk' | 'actor' | 'governing_idea';
  *  open forever. `pending` = not yet answered. */
 export type PredicateVerdict = 'happened' | 'avoided' | 'partial' | 'unknown' | 'pending';
 
+/** The user's OWN read of WHY a good outcome went the way it did — held bet or
+ *  avoided risk. A held bet on luck is NOT a held bet on judgment (R17: the one
+ *  settle failure was a reckless no-prep gamble that got lucky, logged as a clean
+ *  "held", cementing winging-it as a validated win). This is the user's
+ *  self-report, NOT Argus grading them (reality is still the only judge); it just
+ *  keeps a lucky outcome from compounding into the record as a skill-win. Optional
+ *  — absent when the user doesn't answer the light second tap. Single source of
+ *  truth shared with the plugin settle event's `basis` (parity-guarded). */
+export const PREDICATE_BASES = ['reasoned', 'luck', 'external', 'mixed'] as const;
+export type PredicateBasis = typeof PREDICATE_BASES[number];
+
 export interface Predicate {
   /** Deterministic, stable across re-generation (hash of source+text). The grade join key. */
   id: string;
@@ -560,6 +571,10 @@ export interface Predicate {
   /** User's later grade. Absent/`pending` until they return to score it. */
   verdict?: PredicateVerdict;
   graded_at?: string;
+  /** User's optional read of WHY a good outcome happened (held bet / avoided
+   *  risk): reasoned vs luck/external. Separates judgment-wins from luck-wins in
+   *  the track record. Cleared when the verdict returns to pending. */
+  basis?: PredicateBasis;
 }
 
 export type CheckInInterval = '1w' | '2w' | '1m';

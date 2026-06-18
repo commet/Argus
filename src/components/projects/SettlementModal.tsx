@@ -29,9 +29,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Target, AlertTriangle, GitBranch, Check } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
-import type { Project, Predicate, PredicateSource, PredicateVerdict, CheckInInterval } from '@/stores/types';
+import type { Project, Predicate, PredicateSource, PredicateVerdict, PredicateBasis, CheckInInterval } from '@/stores/types';
 import {
   gradePredicate,
+  setPredicateBasis,
   amendCheckIn,
   isResolved,
   summarizeRecord,
@@ -39,7 +40,7 @@ import {
 } from '@/lib/decision-contract';
 import { Modal } from '@/components/ui/Modal';
 import { recordSignal } from '@/lib/signal-recorder';
-import { verdictButtons, predicateQuestion } from './DecisionContractCard';
+import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
   governing_idea: Target,
@@ -87,6 +88,16 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
     // Learning signal — settlement is the return half of the loop; its verdict
     // is the ground truth the product is built to accumulate (2026-06-13 fix).
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict } });
+  }
+
+  /** The light second tap: the user's own read of WHY a win went their way.
+   *  Optional — tapping the selected basis again clears it. Self-report (R17). */
+  function setBasis(predicateId: string, basis: PredicateBasis, selected: boolean) {
+    if (!contract) return;
+    updateProject(project.id, {
+      decision_contract: setPredicateBasis(contract, predicateId, selected ? undefined : basis),
+    });
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { basis } });
   }
 
   /** "아직" — extend the check-in (history-preserving amend) and close. */
@@ -168,6 +179,45 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                       );
                     })}
                 </div>
+                {/* Light, optional second tap on a WIN only: was it your read or
+                    luck? Keeps a lucky outcome from logging as a judgment-win
+                    (R17). Never required — the loop closes whether or not it's
+                    answered. */}
+                <AnimatePresence>
+                  {isCreditClaimingOutcome(p) && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pl-[21px] mt-2">
+                        <p className="text-[11px] text-[var(--text-tertiary)] mb-1.5">
+                          {L('어쩌다 그렇게 됐어요? (선택)', 'What made it go your way? (optional)')}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {basisOptions(ko).map((b) => {
+                            const on = p.basis === b.value;
+                            return (
+                              <button
+                                key={b.value}
+                                onClick={() => setBasis(p.id, b.value, on)}
+                                aria-pressed={on}
+                                className={`px-2 py-0.5 rounded-md text-[11.5px] font-medium border transition-colors cursor-pointer ${
+                                  on
+                                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                                    : 'border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--accent)]/40'
+                                }`}
+                              >
+                                {b.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })}
@@ -193,6 +243,10 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                       : L(`이번이 ${record.loops}번째로 닫은 고리예요.`, `That's loop number ${record.loops} you've closed.`)}
                     {record.risksAvoided > 0 &&
                       ' ' + L(`지금까지 위험 ${record.risksAvoided}개를 비켜 갔어요.`, `So far you've steered past ${record.risksAvoided} risk${record.risksAvoided === 1 ? '' : 's'}.`)}
+                    {/* The user's own read, not a verdict: keeps a lucky win from
+                        reading as a judgment-win in the record (R17). */}
+                    {record.goodOutcomesOnLuck > 0 &&
+                      ' ' + L(`그중 ${record.goodOutcomesOnLuck}개는 운이었다고 보셨고요.`, `You marked ${record.goodOutcomesOnLuck} of those as luck.`)}
                   </p>
                 )}
                 <div className="flex justify-end">
