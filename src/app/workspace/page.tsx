@@ -337,7 +337,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       // ADD-4: 스트림은 정상 종료됐지만 파싱 결과가 비어있는 경우(첫 상호작용의 malformed JSON 등).
       // skeleton·hidden_assumptions가 모두 비면 분석이 사실상 실패한 것 — 빈 "분석 중..." placeholder로
       // 프로젝트를 만들어 막다른 길에 가두지 말고, 재시도 가능한 에러로 표면화한다(아래 catch가 처리).
-      if (result.snapshot.skeleton.length === 0 && result.snapshot.hidden_assumptions.length === 0) {
+      // 단, 위기 백업이 발동한 스냅샷은 의도적으로 skeleton·assumptions가 비어 있는 VALID 종착 상태이므로
+      // 에러로 튕기지 않는다(안 그러면 우려 메시지가 화면에 닿지 못함).
+      if (
+        !result.snapshot.crisis?.isCrisis &&
+        result.snapshot.skeleton.length === 0 &&
+        result.snapshot.hidden_assumptions.length === 0
+      ) {
         throw new Error(L('분석 결과를 받지 못했어요. 잠시 후 다시 시도해 주세요.', "Couldn't read the analysis result. Please try again."));
       }
 

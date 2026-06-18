@@ -32,6 +32,7 @@ import { runDebateRound, type DebateResult } from '@/lib/debate-engine';
 import { generateId } from '@/lib/uuid';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { getCurrentLanguage } from '@/lib/i18n';
+import { classifyCrisis } from '@/lib/crisis-gate';
 import type {
   AnalysisSnapshot,
   ConvergenceMetrics,
@@ -308,6 +309,41 @@ export async function runInitialAnalysis(
   detectedDM: string | null;
 }> {
   const locale = getCurrentLanguage();
+
+  // ── Deterministic crisis backstop (decision 3: warn + resource, never block) ──
+  // High-PRECISION regex screen in FRONT of the LLM. When it fires the input is
+  // clearly a crisis, so we short-circuit: zero LLM tokens, no planning
+  // machinery, and a machine-readable `crisis` flag the UI renders as a
+  // non-blocking concern. Recall is NOT lost — the subtler cases this misses
+  // fall through to the LLM, whose STEP-0 GATE A still suppresses the skeleton
+  // and names the concern. Never widen the regex here (over-fire = its own harm).
+  const crisis = classifyCrisis(problemText);
+  if (crisis.isCrisis && crisis.category) {
+    const snapshot: AnalysisSnapshot = {
+      version: 0,
+      // The concern message is NOT stored here — it lives only on `crisis` and is
+      // rendered solely by CrisisConcernBanner. Keeping real_question as the
+      // user's own words avoids the decision card ("우리가 잡은 항로") mislabeling
+      // a hotline message as a plotted course, and avoids polluting the
+      // downstream real_question if the user consciously continues.
+      real_question: problemText,
+      hidden_assumptions: [],
+      skeleton: [],          // suppresses the plan AND blocks contract sealing (no predicates)
+      framing_confidence: 20, // low — never offers a "is this framing right?" ceremony
+      framing_locked: true,   // suppresses FramingConfirmation on a safety input
+      crisis,
+    };
+    // A valid-but-suppressed question so the conscious-continue path has a target;
+    // the UI hides it by default and only reveals it after an explicit override.
+    const question: FlowQuestion = {
+      id: generateId(),
+      text: locale === 'ko' ? '계속 진행하시겠어요?' : 'Would you like to continue?',
+      type: 'short',
+      engine_phase: 'reframe',
+    };
+    return { snapshot, question, detectedDM: null };
+  }
+
   const { system, user } = buildInitialAnalysisPrompt(problemText, locale);
 
   // Stream: real-time display then JSON parse, or standard approach
@@ -497,6 +533,10 @@ export async function runDeepening(
     insight: result.insight,
     framing_confidence: currentSnapshot.framing_confidence,
     framing_locked: currentSnapshot.framing_locked,
+    // Carry the deterministic crisis flag forward so the resource banner stays
+    // pinned across deepening even after a conscious "continue" (defensive: the
+    // banner also reads it off the round-0 snapshot, but don't depend on that).
+    crisis: currentSnapshot.crisis,
   };
 
   // Adaptive convergence: 스냅샷 전체 + 새 스냅샷으로 수렴도 계산

@@ -1,3 +1,8 @@
+// Type-only import: crisis-gate.ts is the single source of truth for the crisis
+// taxonomy (its CRISIS_CATEGORIES const + CrisisSignal); referencing the type
+// here is erased at compile time, so this adds no runtime dependency or cycle.
+import type { CrisisSignal } from '@/lib/crisis-gate';
+
 // ─── Reframe (항로 재설정 | 문제 재정의) ───
 
 export interface ReframeHiddenQuestion {
@@ -888,6 +893,14 @@ export interface AnalysisSnapshot {
   /** Cognitive weight the decision deserves; low → a 1-line directive, not a scaffold. */
   decision_density?: 'low' | 'medium' | 'high';
   decision_density_reasoning?: string;
+
+  /** Deterministic crisis backstop result (crisis-gate.ts), set ONLY at round 0
+   *  when the high-precision classifier fires. Absence = no deterministic hit
+   *  (the LLM's STEP-0 GATE A still covers the subtler misses). Drives a
+   *  non-blocking concern + resource in the UI (decision 3: warn, never block).
+   *  Stores the category (not a frozen string) so the concern re-localizes on
+   *  reload via formatConcernMessage. */
+  crisis?: CrisisSignal;
 
   // ── Typed-question effects captured into analysis (Phase 1) ──
   /** 상사가 사인할 수 있는 1줄 결정문 — strategic_fork 답에서 흘러옴 */
