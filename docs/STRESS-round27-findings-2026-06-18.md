@@ -70,13 +70,20 @@ framing_confidence. A genuine missing-classifier-branch (symmetric with the
 existing VENT/FLAT/CRISIS off-ramps), not instruction-piling. Mirrored into plugin
 clarify Step 1.7 (`self_profiling`) for one-brain parity.
 
-## Deferred (with reason)
+## Follow-up (now DONE)
 
 - **Wire the deterministic `classifyCrisis` backstop** (R27 secondary;
-  PARITY-MAP §E.1 top priority). It needs a snapshot field + UI rendering to not
-  become another dead field, so it gets its own validated slice. The load-bearing
-  recall lever (LLM safety prior + crisis-first precedence) is already in.
-  Do **not** widen the abuse regex when wiring (over-fire risk).
+  PARITY-MAP §E.1 top priority) — **SHIPPED** as its own understand→implement→
+  adversarial-verify slice (commit 51c3b8e). `classifyCrisis` now runs in front
+  of the LLM in `runInitialAnalysis`; on a hit it short-circuits (zero tokens,
+  skeleton=[] → no plan / no contract seal, framing_locked) and sets a
+  machine-readable `crisis` flag that drives a non-blocking `CrisisConcernBanner`
+  (warn + real resource + one conscious "continue", never a hard block). The
+  regex was NOT widened (over-fire guard). Recall lever stays the LLM's STEP-0
+  GATE A for the subtler misses. Adversarial verify (5 lenses) caught one HIGH
+  defect (concern double-rendered + mislabeled as "Course we plotted") → fixed at
+  the source. Guards: `progressive-engine-crisis-wiring.test.ts` (fires without
+  the LLM; doesn't false-fire) + `crisis-concern-render.test.tsx`.
 
 ## What this round confirms about method
 

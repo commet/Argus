@@ -20,6 +20,14 @@
   anti-dependency 킥*(하버 철학). 남은 진짜 위반은 처방형 "you should…" 코칭 카피.
 - **재확인(R27):** value-monoculture·prompt-injection·dependency-erosion 3개 도메인은
   양 표면 모두 기존 기계로 이미 커버 — 회의자 검증이 조작된 발견 100% 기각.
+- **닫힌 드리프트(§A.9 / §E.1 최우선):** webapp의 결정론적 위기-게이트(`classifyCrisis`)가
+  죽은 코드(테스트만, 라이브 미연결)였던 것 → 이제 `runInitialAnalysis`에서 LLM *앞단*에
+  연결. 위기면 토큰 0으로 short-circuit(skeleton=[] → 계획·계약봉인 차단, framing_locked),
+  화면엔 비차단 `CrisisConcernBanner`(자원 링크 + "그래도 계속" 1탭, 결코 하드블록 X).
+  설계는 understand→implement→**적대적 5렌즈 검증** 거쳤고, HIGH 결함 1개(우려문 이중
+  렌더+"우리가 잡은 항로" 오라벨)를 근원 수정(우려문은 배너에만, real_question=원문,
+  AnalysisCard는 차단 중 숨김). 리콜 레버는 여전히 LLM GATE A(미묘 케이스). 정밀 regex는
+  안 넓힘(과발화 방지). 가드: `progressive-engine-crisis-wiring.test.ts`+`crisis-concern-render.test.tsx`.
 
 ## A. 어긋난 것 (drifted — 정렬 필요)
 1. **frame_status(평탄 판정):** plugin 작동(wired) ↔ webapp 포팅됐으나 **DEAD(unwired)** — 라이브 웹앱 흐름은 여전히 평탄에 over-fire(프롬프트 STEP 0로만 부분 커버).
