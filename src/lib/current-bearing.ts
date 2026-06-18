@@ -27,13 +27,21 @@ import type {
 } from '@/stores/types';
 import { extractPredicatesFromSession } from './decision-contract';
 
-export type CourseStatus =
-  | 'proceed'
-  | 'hold'
-  | 'fork'
-  | 'anchor'
-  | 'revise'
-  | 'collect_evidence';
+/** Single source of truth for the course-status set. The webapp Current Bearing
+ *  AND the plugin's bearing schema (argus-plugin-v2/data/schemas/
+ *  current-bearing.json `current_course.status.enum`) must agree on this set; the
+ *  parity test (course-status-parity.test.ts) fails CI if they drift apart.
+ *  Add/rename a status here only, then update the plugin schema + sail SKILL.md
+ *  status legend in the same change. */
+export const COURSE_STATUSES = [
+  'proceed',
+  'hold',
+  'fork',
+  'anchor',
+  'revise',
+  'collect_evidence',
+] as const;
+export type CourseStatus = typeof COURSE_STATUSES[number];
 
 export interface BearingReason {
   point: string;
