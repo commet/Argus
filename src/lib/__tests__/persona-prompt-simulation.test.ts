@@ -215,9 +215,13 @@ describe('Persona Prompt Simulation', () => {
       expect(prompt).toContain('이 관점에서 자료를 검토하세요');
     });
 
-    it('intensity: 부드럽게', () => {
+    it('intensity: 부드럽게 — constructive but no forced-praise floor (R25)', () => {
       const prompt = buildFeedbackSystemPrompt(makePersona(), '전반적 인상', '부드럽게');
-      expect(prompt).toContain('praise를 3개 이상');
+      expect(prompt).toContain('건설적 톤');
+      // R25 fix: the soft mode must NOT mandate a praise count (manufactured praise);
+      // praise is honest-only and may be empty.
+      expect(prompt).not.toContain('praise를 3개 이상');
+      expect(prompt).toContain('진심인 것만');
     });
 
     it('intensity: 까다롭게', () => {
