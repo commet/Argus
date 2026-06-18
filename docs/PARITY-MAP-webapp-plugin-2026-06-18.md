@@ -6,6 +6,21 @@
 ## 분류 카운트
 공유-일치 **11** · 어긋남(drifted) **9** · 웹앱만 **8** · 플러그인만 **2**
 
+## 갱신 로그 (2026-06-18, R27 + 재드리프트 작업)
+- **닫힌 드리프트:** 위기-우선 순서(A.9 일부). webapp STEP 0가 CRISIS를 평탄
+  peer(VALIDATION 먼저)로 두던 것 → plugin의 Step1.6-before-1.7을 포팅(GATE A +
+  "CRISIS WINS over VALIDATION" tie-break). 강제회귀 가드 `step0-gates.test.ts`.
+- **닫힌 드리프트:** CourseStatus enum 단일원천+가드, crisis taxonomy 단일원천+가드,
+  계약 `basis`(운/실력, A.8) webapp 포팅, decision-state 커버리지 가드.
+- **새 공유 상태:** `self_profiling` (누가-나인가 요청 → 콜드리드 거부, anti-Barnum)
+  를 webapp GATE B + plugin clarify Step1.7 양쪽에 추가(R27 cold_start).
+- **정정:** Navigator(웹앱 §A.7 판정 코칭)는 **레거시 전용** — 라이브 progressive
+  흐름엔 안 뜨고 legacy 4-tab(`?step=...`)에서만 렌더. 스파인 위험은 실재하나
+  도달면이 좁음. "are you still intending to leave?" 류는 위반이 아니라 *의도된
+  anti-dependency 킥*(하버 철학). 남은 진짜 위반은 처방형 "you should…" 코칭 카피.
+- **재확인(R27):** value-monoculture·prompt-injection·dependency-erosion 3개 도메인은
+  양 표면 모두 기존 기계로 이미 커버 — 회의자 검증이 조작된 발견 100% 기각.
+
 ## A. 어긋난 것 (drifted — 정렬 필요)
 1. **frame_status(평탄 판정):** plugin 작동(wired) ↔ webapp 포팅됐으나 **DEAD(unwired)** — 라이브 웹앱 흐름은 여전히 평탄에 over-fire(프롬프트 STEP 0로만 부분 커버).
 2. **density 게이트:** plugin wired ↔ webapp `applyDecisionDensityGate` 한 번도 안 불림.
