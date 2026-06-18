@@ -16,14 +16,20 @@
  * human/resource and lets the user consciously continue. Pure + unit-testable.
  */
 
-export type CrisisCategory =
-  | 'self_harm'
-  | 'dangerous_medical'
-  | 'abuse_coercion'
-  | 'legal_jeopardy'
-  | 'financial_ruin'
-  | 'minor_at_risk'
-  | 'irreversible_harm_to_others';
+/** Single source of truth for the crisis category set. The webapp crisis-gate
+ *  AND the plugin clarify Axis-0 screen must agree on this set; the parity test
+ *  (crisis-taxonomy-parity.test.ts) fails CI if they drift apart. Add/rename a
+ *  category here only, then update the plugin Axis-0 list in the same change. */
+export const CRISIS_CATEGORIES = [
+  'self_harm',
+  'dangerous_medical',
+  'abuse_coercion',
+  'legal_jeopardy',
+  'financial_ruin',
+  'minor_at_risk',
+  'irreversible_harm_to_others',
+] as const;
+export type CrisisCategory = typeof CRISIS_CATEGORIES[number];
 
 export interface CrisisSignal {
   isCrisis: boolean;
