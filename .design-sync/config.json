@@ -1,0 +1,43 @@
+{
+  "shape": "package",
+  "projectId": "1d812d28-76d7-4c09-830c-87f1fb87b4ca",
+  "pkg": "argus",
+  "globalName": "ArgusDS",
+  "srcDir": "src",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": ".design-sync/styles.css",
+  "readmeHeader": ".design-sync/conventions.md",
+  "guidelinesGlob": [],
+  "componentSrcMap": {
+    "Button": "src/components/ui/Button.tsx",
+    "Card": "src/components/ui/Card.tsx",
+    "Badge": "src/components/ui/Badge.tsx",
+    "Field": "src/components/ui/Field.tsx",
+    "Modal": "src/components/ui/Modal.tsx",
+    "Tab": "src/components/ui/Tab.tsx",
+    "ModeToggle": "src/components/ui/ModeToggle.tsx",
+    "StepEntry": "src/components/ui/StepEntry.tsx",
+    "LoadingSteps": "src/components/ui/LoadingSteps.tsx",
+    "AnimatedPlaceholder": "src/components/ui/AnimatedPlaceholder.tsx",
+    "SyncStatus": "src/components/ui/SyncStatus.tsx",
+    "ForkLimitToast": "src/components/ui/ForkLimitToast.tsx",
+    "StorageErrorToast": "src/components/ui/StorageErrorToast.tsx",
+    "Compass": "src/components/landing/voyage/illustrations/Compass.tsx",
+    "ForkPath": "src/components/landing/voyage/illustrations/ForkPath.tsx",
+    "SailingShip": "src/components/landing/voyage/illustrations/SailingShip.tsx",
+    "ShipCutaway": "src/components/landing/voyage/illustrations/ShipCutaway.tsx",
+    "HelmScene": "src/components/landing/voyage/illustrations/HelmScene.tsx",
+    "Cartouche": "src/components/landing/voyage/ui/Cartouche.tsx",
+    "PlateLabel": "src/components/landing/voyage/ui/PlateLabel.tsx",
+    "StationCard": "src/components/landing/voyage/ui/StationCard.tsx",
+    "HorizonGlow": "src/components/landing/voyage/atmosphere/HorizonGlow.tsx",
+    "PaperGrain": "src/components/landing/voyage/atmosphere/PaperGrain.tsx",
+    "SeaRipples": "src/components/landing/voyage/atmosphere/SeaRipples.tsx"
+  },
+  "overrides": {
+    "Modal": { "cardMode": "single", "viewport": "680x460" },
+    "ShipCutaway": { "cardMode": "column" },
+    "HelmScene": { "cardMode": "column" },
+    "SailingShip": { "cardMode": "column" }
+  }
+}
