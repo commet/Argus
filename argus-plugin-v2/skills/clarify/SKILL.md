@@ -266,6 +266,11 @@ So classify the raw input on two axes BEFORE Step 2, and route.
   프로젝트 너무 싫다", no question being posed). Do not manufacture a decision.
 - **`info`** — a plain factual/how-to question ("X가 뭐야?", "how does Y work?").
   Just answer it; no session, no machinery.
+- **`self_profiling`** — the request asks Argus to characterize **who the user
+  is** ("내가 어떤 결정자인지 분석해줘", "read me", "what kind of decider am I").
+  Not a decision to navigate. NEVER a verdict about who they are (Zero-Judgment
+  rule 2); a read drawn from no logged history is a cold-read — the Barnum trap
+  the product exists to reject. Decline the cold-read.
 
 **Axis 2 — readiness** (open_decision only): set **`resistance`** ONLY on
 explicit textual signals that the block is not informational — long-pending +
@@ -290,6 +295,14 @@ infer resistance from tone or guess it from a first-time question.
   "Want to turn this into a decision, or should I just listen?" Write nothing to
   `.argus/` unless the user accepts the invitation.
 - **`info`** → answer the question directly. No session, no reframe.
+- **`self_profiling`** → decline the cold-read honestly: a real read of how they
+  decide is earned only from their own logged voyages (≥3 settled — the patterns
+  sample-size bar), so name that and point them at building it (run a real
+  decision, settle it). No trait verdict, no session. ko: "어떤 결정자인지는 내가
+  지레짐작할 게 아니라 당신이 실제로 내린 결정들에서 드러나요 — 몇 번 항해하고
+  정산하면 그때 패턴으로 같이 봐요." / en: "What kind of decider you are isn't mine
+  to guess — it shows up in the decisions you actually log. Run a few and settle
+  them, and we'll read the pattern then."
 - **`open_decision` + `resistance`** → run Step 2 (the framing still has value),
   but surface the pattern as the live issue and do **not** spin up the probe/crew
   to generate more options. Condition on the observable, hand control back: ko:

@@ -36,13 +36,16 @@ interface DecisionState {
 }
 
 const DECISION_STATES: DecisionState[] = [
-  { key: 'crisis',     webapp: /CRISIS/,                  plugin: /crisis/i },
-  { key: 'vent',       webapp: /\bVENT\b/,                plugin: /`?vent`?/ },
-  { key: 'validation', webapp: /VALIDATION/,              plugin: /`?validation`?/ },
-  { key: 'info',       webapp: /\bINFO\b/,                plugin: /`?info`?/ },
-  { key: 'open',       webapp: /\bOPEN\b/,                plugin: /open_decision/ },
-  { key: 'resistance', webapp: /RESISTANCE/,              plugin: /`?resistance`?/ },
-  { key: 'flat',       webapp: /\bFLAT\b/,                plugin: /frame_status|`?flat`?/ },
+  { key: 'crisis',         webapp: /CRISIS/,             plugin: /crisis/i },
+  { key: 'vent',           webapp: /\bVENT\b/,           plugin: /`?vent`?/ },
+  { key: 'validation',     webapp: /VALIDATION/,         plugin: /`?validation`?/ },
+  { key: 'info',           webapp: /\bINFO\b/,           plugin: /`?info`?/ },
+  { key: 'open',           webapp: /\bOPEN\b/,           plugin: /open_decision/ },
+  { key: 'resistance',     webapp: /RESISTANCE/,         plugin: /`?resistance`?/ },
+  { key: 'flat',           webapp: /\bFLAT\b/,           plugin: /frame_status|`?flat`?/ },
+  // R27: a request to characterize WHO THE USER IS gets a decline-the-cold-read
+  // off-ramp on both surfaces (anti-Barnum, Zero-Judgment rule 2).
+  { key: 'self_profiling', webapp: /SELF-PROFILING/,     plugin: /self_profiling/ },
 ];
 
 const webappPrompt = readFileSync(
@@ -67,9 +70,9 @@ describe('decision-state coverage — plugin clarify (drift guard)', () => {
 });
 
 describe('decision-state set is complete (no silent shrink)', () => {
-  it('covers exactly the 7 known states', () => {
+  it('covers exactly the 8 known states', () => {
     expect(DECISION_STATES.map((s) => s.key).sort()).toEqual(
-      ['crisis', 'flat', 'info', 'open', 'resistance', 'validation', 'vent'].sort(),
+      ['crisis', 'flat', 'info', 'open', 'resistance', 'self_profiling', 'validation', 'vent'].sort(),
     );
   });
 });
