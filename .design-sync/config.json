@@ -8,8 +8,12 @@
   "cssEntry": ".design-sync/styles.css",
   "readmeHeader": ".design-sync/conventions.md",
   "guidelinesGlob": [],
-  "extraEntries": ["./.design-sync/_design-providers.tsx"],
-  "provider": { "component": "DesignRouterProvider" },
+  "extraEntries": [
+    "./.design-sync/_design-providers.tsx"
+  ],
+  "provider": {
+    "component": "DesignRouterProvider"
+  },
   "componentSrcMap": {
     "Button": "src/components/ui/Button.tsx",
     "Card": "src/components/ui/Card.tsx",
@@ -35,13 +39,11 @@
     "HorizonGlow": "src/components/landing/voyage/atmosphere/HorizonGlow.tsx",
     "PaperGrain": "src/components/landing/voyage/atmosphere/PaperGrain.tsx",
     "SeaRipples": "src/components/landing/voyage/atmosphere/SeaRipples.tsx",
-
     "SirenHero": "src/components/landing/SirenHero.tsx",
     "LandingHeader": "src/components/landing/LandingHeader.tsx",
     "Act1Voyage": "src/components/landing/voyage/Act1Voyage.tsx",
     "Act2DecisionVoyage": "src/components/landing/voyage/Act2DecisionVoyage.tsx",
     "Act3OnDeck": "src/components/landing/voyage/Act3OnDeck.tsx",
-
     "CopyButton": "src/components/ui/CopyButton.tsx",
     "EmailButton": "src/components/ui/EmailButton.tsx",
     "ExecutionReadiness": "src/components/ui/ExecutionReadiness.tsx",
@@ -52,22 +54,126 @@
     "RateLimitBadge": "src/components/ui/RateLimitBadge.tsx",
     "ShareBar": "src/components/ui/ShareBar.tsx",
     "SlackChannelPicker": "src/components/ui/SlackChannelPicker.tsx",
-
     "Graticule": "src/components/ui/VoyageElements.tsx",
     "ChartEdge": "src/components/ui/VoyageElements.tsx",
-    "VoyageShip": "src/components/ui/VoyageElements.tsx"
+    "VoyageShip": "src/components/ui/VoyageElements.tsx",
+    "ReframeStep": "src/components/workspace/ReframeStep.tsx",
+    "QuestionDiff": "src/components/workspace/QuestionDiff.tsx",
+    "StepIntro": "src/components/workspace/StepIntro.tsx",
+    "RehearseStep": "src/components/workspace/RehearseStep.tsx",
+    "InteractiveDemo": "src/components/workspace/InteractiveDemo.tsx",
+    "WorkflowGraph": "src/components/workspace/WorkflowGraph.tsx",
+    "QuickChatBar": "src/components/workspace/QuickChatBar.tsx",
+    "FinalCard": "src/components/workspace/progressive/FinalCard.tsx",
+    "BranchMap": "src/components/workspace/progressive/BranchMap.tsx",
+    "WorkerReportBlock": "src/components/workspace/progressive/WorkerCard.tsx",
+    "CrisisConcernBanner": "src/components/workspace/progressive/CrisisConcernBanner.tsx",
+    "MixPreview": "src/components/workspace/progressive/MixPreview.tsx",
+    "TypingDots": "src/components/workspace/progressive/shared/AgentVisuals.tsx",
+    "AvatarRipple": "src/components/workspace/progressive/shared/AgentVisuals.tsx",
+    "ShimmerBar": "src/components/workspace/progressive/shared/AgentVisuals.tsx",
+    "AttentionFlash": "src/components/workspace/progressive/shared/AgentVisuals.tsx",
+    "QuestionCard": "src/components/workspace/progressive/shared/QuestionCard.tsx",
+    "UpdateSummaryChip": "src/components/workspace/progressive/shared/UpdateSummaryChip.tsx",
+    "AnalysisCard": "src/components/workspace/progressive/shared/AnalysisCard.tsx",
+    "WorkerPanel": "src/components/workspace/progressive/WorkerPanel.tsx",
+    "WorkerDrawer": "src/components/workspace/progressive/WorkerPanel.tsx",
+    "ProgressiveFlow": "src/components/workspace/progressive/ProgressiveFlow.tsx",
+    "AgentSidebar": "src/components/workspace/progressive/AgentSidebar.tsx",
+    "AttributedSection": "src/components/workspace/progressive/AttributedSection.tsx",
+    "VerificationGate": "src/components/workspace/progressive/VerificationGate.tsx",
+    "PingToast": "src/components/workspace/progressive/PingToast.tsx",
+    "DMFeedback": "src/components/workspace/progressive/DMFeedback.tsx",
+    "TrialSail": "src/components/workspace/progressive/TrialSail.tsx",
+    "PersonaPoolModal": "src/components/workspace/progressive/PersonaPoolModal.tsx",
+    "Falsification": "src/components/workspace/progressive/Falsification.tsx",
+    "Logbook": "src/components/workspace/progressive/Logbook.tsx",
+    "LogbookDrawer": "src/components/workspace/progressive/Logbook.tsx",
+    "WorkerAvatar": "src/components/workspace/progressive/WorkerAvatar.tsx",
+    "AvatarRow": "src/components/workspace/progressive/WorkerAvatar.tsx",
+    "CurrentBearingCard": "src/components/workspace/progressive/CurrentBearingCard.tsx",
+    "VoyageChart": "src/components/workspace/progressive/VoyageChart.tsx",
+    "SealMoment": "src/components/workspace/progressive/SealMoment.tsx",
+    "CrewAtWork": "src/components/workspace/progressive/CrewAtWork.tsx",
+    "TeamDeployBanner": "src/components/workspace/progressive/TeamDeployBanner.tsx",
+    "SynthesizeStep": "src/components/workspace/SynthesizeStep.tsx",
+    "NavigatorStrip": "src/components/workspace/NavigatorStrip.tsx",
+    "NavigatorInline": "src/components/workspace/NavigatorInline.tsx",
+    "ContextChainBlock": "src/components/workspace/ContextChainBlock.tsx",
+    "VersionHistoryDrawer": "src/components/workspace/VersionHistoryDrawer.tsx",
+    "RecastStep": "src/components/workspace/RecastStep.tsx",
+    "SettlementModal": "src/components/projects/SettlementModal.tsx",
+    "DecisionContractCard": "src/components/projects/DecisionContractCard.tsx",
+    "AgentCard": "src/components/agents/AgentCard.tsx",
+    "PersonaRefinementSection": "src/components/agents/PersonaRefinementSection.tsx",
+    "UnlockToast": "src/components/agents/UnlockToast.tsx",
+    "AgentProfile": "src/components/agents/AgentProfile.tsx",
+    "AgentHub": "src/components/agents/AgentHub.tsx",
+    "CollectionProgress": "src/components/boss/CollectionProgress.tsx",
+    "SajuPreview": "src/components/boss/SajuPreview.tsx",
+    "PostVerdictPanel": "src/components/boss/PostVerdictPanel.tsx",
+    "InnerMonologueCard": "src/components/boss/InnerMonologueCard.tsx",
+    "VerdictShareCard": "src/components/boss/VerdictShareCard.tsx",
+    "BossSetup": "src/components/boss/BossSetup.tsx",
+    "BossConfirmation": "src/components/boss/BossConfirmation.tsx",
+    "PastVerdictRecap": "src/components/boss/PastVerdictRecap.tsx",
+    "DailyMoodIndicator": "src/components/boss/DailyMoodIndicator.tsx",
+    "TypeToggle": "src/components/boss/TypeToggle.tsx",
+    "BehavioralToggle": "src/components/boss/BehavioralToggle.tsx",
+    "BossChat": "src/components/boss/BossChat.tsx",
+    "ChatMessage": "src/components/boss/ChatMessage.tsx",
+    "Footer": "src/components/layout/Footer.tsx",
+    "Header": "src/components/layout/Header.tsx",
+    "Sidebar": "src/components/layout/Sidebar.tsx",
+    "FeedbackRequest": "src/components/tools/FeedbackRequest.tsx",
+    "PersonaAvatar": "src/components/tools/FeedbackMessage.tsx",
+    "FeedbackMessage": "src/components/tools/FeedbackMessage.tsx",
+    "PersonaCard": "src/components/tools/PersonaCard.tsx",
+    "DiscussionThread": "src/components/tools/DiscussionThread.tsx",
+    "PersonaForm": "src/components/tools/PersonaForm.tsx",
+    "FeedbackResult": "src/components/tools/FeedbackResult.tsx"
   },
   "overrides": {
-    "Modal": { "cardMode": "single", "viewport": "680x460" },
-    "ShipCutaway": { "cardMode": "column" },
-    "HelmScene": { "cardMode": "column" },
-    "SailingShip": { "cardMode": "column" },
-
-    "SirenHero": { "cardMode": "column" },
-    "LandingHeader": { "cardMode": "column" },
-    "Act1Voyage": { "cardMode": "column" },
-    "Act2DecisionVoyage": { "cardMode": "column" },
-    "Act3OnDeck": { "cardMode": "column" },
-    "SlackChannelPicker": { "cardMode": "single", "viewport": "440x520" }
+    "Modal": {
+      "cardMode": "single",
+      "viewport": "680x460"
+    },
+    "ShipCutaway": {
+      "cardMode": "column"
+    },
+    "HelmScene": {
+      "cardMode": "column"
+    },
+    "SailingShip": {
+      "cardMode": "column"
+    },
+    "SirenHero": {
+      "cardMode": "column"
+    },
+    "LandingHeader": {
+      "cardMode": "column"
+    },
+    "Act1Voyage": {
+      "cardMode": "column"
+    },
+    "Act2DecisionVoyage": {
+      "cardMode": "column"
+    },
+    "Act3OnDeck": {
+      "cardMode": "column"
+    },
+    "SlackChannelPicker": {
+      "cardMode": "single",
+      "viewport": "440x520"
+    },
+    "SettlementModal": {
+      "cardMode": "single",
+      "viewport": "480x640"
+    },
+    "FinalCard": { "cardMode": "column" },
+    "MixPreview": { "cardMode": "column" },
+    "TeamDeployBanner": { "cardMode": "column" },
+    "DMFeedback": { "cardMode": "column" },
+    "AttributedSection": { "cardMode": "column" }
   }
 }

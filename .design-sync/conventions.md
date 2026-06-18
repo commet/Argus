@@ -48,10 +48,20 @@ over hand-rolled boxes.
 
 Read `styles.css` for the full token + utility set. Each component has
 `components/<group>/<Name>/<Name>.d.ts` (the props API) and `<Name>.prompt.md`
-(usage). Groups: `general` (primitives + form/output controls, plus the chart SVGs
-`Graticule`, `ChartEdge`, `VoyageShip`), `illustrations` (`Compass`, `ForkPath`,
-`SailingShip`, `ShipCutaway`, `HelmScene`), `voyage` + `atmosphere` (brand chrome),
-and `landing` (full landing sections).
+(usage). Groups (117 components):
+- `general` — primitives + form/output controls + chart SVGs (`Graticule`, `ChartEdge`, `VoyageShip`)
+- `illustrations` (`Compass`, `ForkPath`, `SailingShip`, `ShipCutaway`, `HelmScene`), `voyage` + `atmosphere` — brand chrome
+- `landing` — full landing sections
+- `progressive` + `workspace` + `shared` — the **decision-voyage flow** surfaces (the live run): worker cards, agent visuals, the Logbook, branch map, current-bearing card, verification gate, attribution sections, falsification, etc.
+- `boss` — stakeholder pressure-check (MBTI verdicts, inner-monologue, chat)
+- `agents` — crew/persona cards & profiles
+- `tools` — persona feedback (cards, messages, discussion threads)
+- `projects` — decision contract + settlement modal
+
+The biggest flow orchestrators (`ProgressiveFlow`, `InteractiveDemo`, the Step screens,
+`PersonaForm`, `BossChat`, `AgentSidebar`, drawers) ship as **importable floor cards** — fully
+usable in code, but state-heavy enough that their preview is the typographic placeholder; compose
+them from their `.d.ts`, or build from the smaller graded pieces above.
 
 ## Full landing sections (compose, don't rebuild)
 
