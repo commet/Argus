@@ -48,7 +48,23 @@ over hand-rolled boxes.
 
 Read `styles.css` for the full token + utility set. Each component has
 `components/<group>/<Name>/<Name>.d.ts` (the props API) and `<Name>.prompt.md`
-(usage). Groups: `general` (primitives), `illustrations` + `voyage` + `atmosphere` (brand chrome).
+(usage). Groups: `general` (primitives + form/output controls, plus the chart SVGs
+`Graticule`, `ChartEdge`, `VoyageShip`), `illustrations` (`Compass`, `ForkPath`,
+`SailingShip`, `ShipCutaway`, `HelmScene`), `voyage` + `atmosphere` (brand chrome),
+and `landing` (full landing sections).
+
+## Full landing sections (compose, don't rebuild)
+
+The whole marketing voyage ships as ready-made, no-prop sections — reach for these
+before assembling a landing from primitives:
+- **`SirenHero`** — the hero ("그래서, 어떻게 됐어요?") with the ruled chart-field input.
+- **`Act1Voyage`** (§ I, the problem), **`Act2DecisionVoyage`** (§ II · The Trail —
+  one decision unrolled as a ship's-log of waypoints), **`Act3OnDeck`** (§ III, the
+  gold Ithaca payoff). `Act2DecisionVoyage` reveals its trail on scroll; design it as
+  the slow continuous "one decision being navigated" beat.
+- **`LandingHeader`** — the wordmark + locale/auth bar.
+These are full-bleed; place them in a single column, not a grid. They carry the dawn-
+harbour canvas (parchment, `PaperGrain`, gold accent reserved for Act 3 / the CTA).
 
 ## Idiomatic snippet
 

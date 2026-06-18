@@ -42,9 +42,13 @@ Argus is a **Next.js app, not a packaged design system**. This is an off-script
   shows the completed drawing (otherwise the staggered draw-in leaves it blank).
 - **SeaRipples** preview overrides the component's default `position:absolute`
   className so it renders inline on a parchment panel (waves are deliberately faint).
-- 3 components ship the **floor card** (fully importable, no authored preview):
+- 2 components ship the **floor card** (fully importable, no authored preview):
   `ForkLimitToast`, `StorageErrorToast` (event-driven toasts — render null without
-  a runtime event), and `SyncStatus` renders its real default ("동기화됨" pill).
+  a runtime event). `SyncStatus` renders its real default ("동기화됨" pill).
+- **RateLimitBadge** reads a shared `window` `argus:ratelimit` CustomEvent, so
+  multiple instances on one page converge to the same value → a multi-cell variant
+  sweep trips `variants render identically`. Preview is intentionally **single-cell**
+  (the near-limit "low" state). Don't "fix" it back into a 3-state sweep.
 
 
 - `[FONT_REMOTE]` Pretendard / Noto Serif KR / JetBrains Mono / Cambria — fonts are
@@ -56,11 +60,64 @@ Argus is a **Next.js app, not a packaged design system**. This is an off-script
   initial values in production too), not a sync artifact. Some may be runtime-set.
   See Re-sync risks.
 
-## Provider
+## Provider + browser shims (2026-06-18 — landing sections + ui added)
 
-None needed. `useLocale` is a self-contained hook (localStorage + useState,
-defaults to `'en'`); `@/data/voyage-crew` is static data. Components render
-standalone — no `cfg.provider`.
+The original 24 were self-contained (`useLocale` = localStorage+useState defaulting
+`'en'`; static data). The **18 added on 2026-06-18** (5 landing sections, 10 ui, 3
+chart illustrations from `VoyageElements.tsx`) pulled in three standalone-render
+blockers. All are solved WITHOUT touching production code, via two design-sync-only
+files re-exported from `_bundle-entry.tsx`:
+
+1. **`_process-shim.ts`** (imported on the entry's FIRST line, before anything else):
+   - Next's `app-router-context.shared-runtime.js` reads `process.env.NODE_ENV` at
+     module-eval with no guard → `ReferenceError: process is not defined` → whole
+     bundle crashes → every preview blank. Shim defines `globalThis.process.env`.
+   - `src/lib/supabase.ts` runs `createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, …)`
+     at module-eval (stores import it) → `Error: supabaseUrl is required.` Shim sets
+     dummy `NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` (inert — previews never fetch).
+   - **Import order is load-bearing**: the shim MUST be the entry's first statement.
+2. **`_design-providers.tsx`** → `DesignRouterProvider`, wired via
+   `cfg.provider`. It nests TWO contexts, both needed by added components:
+   - **App Router** (`AppRouterContext`): `Act2DecisionVoyage` and `SirenHero` call
+     `useRouter()` at render; outside Next it throws. The stub supplies a no-op
+     router (both only `router.push()` in click handlers, never at render).
+   - **AuthProvider** (`../src/lib/auth`): `LandingHeader` calls `useAuth()` which
+     throws outside the provider. AuthProvider's only mount side-effect is
+     `supabase.auth.getSession()` → with the dummy env it rejects → `{loading:false,
+     user:null}` = signed-out state. Imports `_process-shim` on its FIRST line so
+     gotrue's `process.nextTick`/`process.env` refs are defined before it evaluates.
+   `cfg.provider` wraps EVERY preview — harmless for components that don't read either.
+   **Gotcha that cost two rebuilds:** gotrue (via getSession) needs `process.nextTick`
+   too, not just `process.env` — the shim now stubs nextTick/version/platform as well.
+
+Zustand stores (`ExecutionReadiness`, `OutputSelector`, `ShareBar`, `SlackChannelPicker`)
+need NO provider — they're module singletons; an empty store just renders empty, so
+those previews pass realistic data via props instead.
+
+## Authored-preview patterns for the added set
+
+- **Scroll-reveal sections** (`Act2DecisionVoyage`, and any Act* / SirenHero that
+  reveal on `IntersectionObserver`): a static capture never scrolls. These components
+  short-circuit to "reveal everything at once" under `prefers-reduced-motion`, so the
+  preview overrides `window.matchMedia` to report reduced-motion (+ neutralizes the
+  `bp-fade-up` entrance). See `previews/Act2DecisionVoyage.tsx` — copy that header.
+- **`position:absolute` illustrations** (`Graticule`, like `SeaRipples`): wrap in a
+  sized `position:relative` box or they collapse to nothing.
+- Sections are no-props + `cfg.overrides.<Name>.cardMode = "column"` (full-width).
+  `SlackChannelPicker` is an overlay → `{cardMode:"single", viewport:"440x520"}` + `open:true`.
+- **localStorage-seeding for store components** (ExecutionReadiness, OutputSelector): the
+  stores hydrate synchronously from `localStorage` via the literal `STORAGE_KEYS` strings
+  (`sot_reframe_list`, `sot_recast_list`, `sot_personas`, `sot_feedback_history`,
+  `sot_judgments`, `sot_settings`). Seed them at preview module scope (guarded by
+  `typeof window`) and the store's mount effect picks them up — no store export needed.
+- **`bp-fade-up` entrance** (Act1/Act3/SirenHero): 800ms opacity:0→1, NO IntersectionObserver
+  — neutralize per-preview with `.<name>-preview .bp-fade-up{animation:none;opacity:1}`.
+  Only `Act2DecisionVoyage` actually reveals on scroll (needs the matchMedia override).
+- **`Graticule`/`ChartEdge`** are background/inline chart fragments — only visible inside a
+  sized `position:relative` `var(--bp-paper)` panel (SeaRipples pattern).
+- **`GuidedInput`/`InterviewInput`** render nav/submit labels in the bundle's default locale
+  (Korean) even on English cells — component-internal i18n, only `submitLabel` is overridable.
+  Not a defect.
 
 ## Design context
 
@@ -79,3 +136,16 @@ in `docs/PLAN_design_vision.md` (editorial "Logbook" / dawn-harbour system).
   (it is, via the app's own deps) — on a fresh clone run `npm ci` first.
 - styles.css is a full-app superset (~239 KB). If size becomes a problem, scope
   Tailwind content to the scoped component dirs + `.design-sync/previews/`.
+- **The 3 design-sync-only files are load-bearing and NOT shipped to the app:**
+  `_process-shim.ts`, `_design-providers.tsx`, and their first-line import order.
+  If a re-sync regresses to blank previews with `process is not defined` /
+  `supabaseUrl is required` / `useAuth must be used within AuthProvider`, the shim
+  or provider import order broke — check `_bundle-entry.tsx` imports `_process-shim`
+  on line 1 and `_design-providers` imports it first too.
+- **`SlackChannelPicker` / `ShareBar` Slack button** show only the DISCONNECTED state.
+  `useSlackStore` is Supabase/`fetch('/api/slack/channels')`-backed (not localStorage),
+  inert in capture, and not exported from `_bundle-entry.tsx`. To show a populated
+  channel list later, export `useSlackStore` from the entry and `setState` it in the
+  preview, or add a fetch/auth shim. Low priority — disconnected is a real, polished state.
+- If a landing section is renamed/restructured in `src/components/landing/`, its preview's
+  `matchMedia`/`bp-fade-up` neutralizer may need updating (re-check the captured trail).

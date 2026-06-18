@@ -8,6 +8,8 @@
   "cssEntry": ".design-sync/styles.css",
   "readmeHeader": ".design-sync/conventions.md",
   "guidelinesGlob": [],
+  "extraEntries": ["./.design-sync/_design-providers.tsx"],
+  "provider": { "component": "DesignRouterProvider" },
   "componentSrcMap": {
     "Button": "src/components/ui/Button.tsx",
     "Card": "src/components/ui/Card.tsx",
@@ -32,12 +34,40 @@
     "StationCard": "src/components/landing/voyage/ui/StationCard.tsx",
     "HorizonGlow": "src/components/landing/voyage/atmosphere/HorizonGlow.tsx",
     "PaperGrain": "src/components/landing/voyage/atmosphere/PaperGrain.tsx",
-    "SeaRipples": "src/components/landing/voyage/atmosphere/SeaRipples.tsx"
+    "SeaRipples": "src/components/landing/voyage/atmosphere/SeaRipples.tsx",
+
+    "SirenHero": "src/components/landing/SirenHero.tsx",
+    "LandingHeader": "src/components/landing/LandingHeader.tsx",
+    "Act1Voyage": "src/components/landing/voyage/Act1Voyage.tsx",
+    "Act2DecisionVoyage": "src/components/landing/voyage/Act2DecisionVoyage.tsx",
+    "Act3OnDeck": "src/components/landing/voyage/Act3OnDeck.tsx",
+
+    "CopyButton": "src/components/ui/CopyButton.tsx",
+    "EmailButton": "src/components/ui/EmailButton.tsx",
+    "ExecutionReadiness": "src/components/ui/ExecutionReadiness.tsx",
+    "GuidedInput": "src/components/ui/GuidedInput.tsx",
+    "InterviewInput": "src/components/ui/InterviewInput.tsx",
+    "NextStepGuide": "src/components/ui/NextStepGuide.tsx",
+    "OutputSelector": "src/components/ui/OutputSelector.tsx",
+    "RateLimitBadge": "src/components/ui/RateLimitBadge.tsx",
+    "ShareBar": "src/components/ui/ShareBar.tsx",
+    "SlackChannelPicker": "src/components/ui/SlackChannelPicker.tsx",
+
+    "Graticule": "src/components/ui/VoyageElements.tsx",
+    "ChartEdge": "src/components/ui/VoyageElements.tsx",
+    "VoyageShip": "src/components/ui/VoyageElements.tsx"
   },
   "overrides": {
     "Modal": { "cardMode": "single", "viewport": "680x460" },
     "ShipCutaway": { "cardMode": "column" },
     "HelmScene": { "cardMode": "column" },
-    "SailingShip": { "cardMode": "column" }
+    "SailingShip": { "cardMode": "column" },
+
+    "SirenHero": { "cardMode": "column" },
+    "LandingHeader": { "cardMode": "column" },
+    "Act1Voyage": { "cardMode": "column" },
+    "Act2DecisionVoyage": { "cardMode": "column" },
+    "Act3OnDeck": { "cardMode": "column" },
+    "SlackChannelPicker": { "cardMode": "single", "viewport": "440x520" }
   }
 }
