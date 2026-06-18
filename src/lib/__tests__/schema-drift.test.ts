@@ -51,6 +51,19 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     'sources', 'analysis', 'final_synthesis', 'status',
     'deleted_at', 'created_at', 'updated_at',
   ],
+  // ← 2026-06-18: plugin→webapp bridge tables (plugin saved content landing zone).
+  plugin_decisions: [
+    'id', 'user_id', 'source', 'ledger_id', 'project', 'session', 'decided_at',
+    'harvested_at', 'quote', 'decision', 'type', 'stakes', 'status', 'predicate',
+    'falsified_if', 'check_by', 'sealed_at', 'outcome', 'settled_at', 'settle_note',
+    'dismissed_at', 'dismiss_reason', 'history', 'raw', 'imported_at',
+    'created_at', 'updated_at',
+  ],
+  plugin_bearings: [
+    'id', 'user_id', 'source', 'session', 'version_label', 'label', 'current_course',
+    'why_this_course', 'fog_or_reef', 'road_not_taken', 'next_helm', 'contract_seed',
+    'blocked', 'generated_at', 'raw', 'imported_at', 'created_at', 'updated_at',
+  ],
 };
 
 /** 인터페이스엔 있으나 컬럼이 아닌(보내지지 않거나 sanitize로 제거되는) 필드. */
@@ -60,6 +73,8 @@ const LOCAL_ONLY: Record<string, Record<string, string>> = {
   reframe_items: {},
   recast_items: {},
   synthesize_items: {},
+  plugin_decisions: {},
+  plugin_bearings: {},
 };
 
 /** types.ts에서 한 인터페이스의 최상위 필드명만 추출 (중첩 객체는 brace-depth로 건너뜀). */
@@ -98,6 +113,8 @@ describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 �
     ['reframe_items', 'ReframeItem'],
     ['recast_items', 'RecastItem'],
     ['synthesize_items', 'SynthesizeItem'],
+    ['plugin_decisions', 'PluginDecision'],
+    ['plugin_bearings', 'PluginBearing'],
   ])('%s: 모든 %s 필드가 컬럼 또는 LOCAL_ONLY로 선언돼 있다', (table, iface) => {
     const cols = new Set(TABLE_COLUMNS[table]);
     const localOnly = LOCAL_ONLY[table] ?? {};

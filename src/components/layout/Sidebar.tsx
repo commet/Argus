@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
-import { Users, Settings, BookOpen, FolderOpen, User } from 'lucide-react';
+import { Users, Settings, BookOpen, FolderOpen, User, Download } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 
 export function Sidebar() {
@@ -14,6 +14,7 @@ export function Sidebar() {
 
   const utilityItems = [
     { href: '/project', label: L('프로젝트', 'Projects'), icon: FolderOpen },
+    { href: '/import', label: L('가져오기', 'Import'), icon: Download },
     { href: '/teams', label: L('팀', 'Teams'), icon: Users },
     { href: '/guide', label: L('사용 가이드', 'Guide'), icon: BookOpen },
     { href: '/settings', label: L('설정', 'Settings'), icon: Settings },

@@ -18,7 +18,8 @@ type TableName = 'projects' | 'personas' | 'reframe_items' | 'recast_items'
   | 'quality_signals' | 'outcome_records' | 'retrospective_answers' | 'decision_quality_scores'
   | 'agents' | 'agent_chains' | 'agent_activities'
   | 'synthesize_items'
-  | 'progressive_sessions';
+  | 'progressive_sessions'
+  | 'plugin_decisions' | 'plugin_bearings';
 
 type SoftDeletableTable = 'projects' | 'personas' | 'reframe_items' | 'recast_items' | 'synthesize_items';
 

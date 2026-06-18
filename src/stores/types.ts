@@ -620,6 +620,68 @@ export interface DecisionQualityScore {
   created_at: string;
 }
 
+// ─── Plugin Bridge (Claude Code plugin → webapp) ───
+// Landing zone for content the Argus plugin saves to local disk
+// (.argus/ledger/ledger.jsonl + .argus/sessions/.../current_bearing.json), so a
+// logged-in user can open it in the webapp. Columns mirror
+// supabase/migrations/20260618_plugin_bridge_tables.sql exactly.
+
+export interface PluginAmendment {
+  predicate?: string;
+  falsified_if?: string;
+  check_by?: string;
+  amended_at: string;
+}
+
+export interface PluginDecision {
+  id: string;
+  source: 'import' | 'push';
+  ledger_id: string;            // plugin's sha256(session|quote)[:8]
+  project?: string;
+  session?: string;
+  decided_at?: string;
+  harvested_at?: string;
+  quote?: string;
+  decision?: string;
+  type?: string;
+  stakes?: string;              // high | medium | low
+  status?: 'candidate' | 'sealed' | 'settled' | 'dismissed';
+  predicate?: string;
+  falsified_if?: string;
+  check_by?: string;            // verbatim YYYY-MM-DD
+  sealed_at?: string;
+  outcome?: 'happened' | 'avoided' | 'partial' | 'pending';
+  settled_at?: string;
+  settle_note?: string;
+  dismissed_at?: string;
+  dismiss_reason?: string;
+  history?: PluginAmendment[];
+  raw?: unknown;
+  imported_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PluginBearing {
+  id: string;
+  source: 'import' | 'push';
+  session?: string;
+  version_label?: string;
+  label?: string;
+  current_course?: { status?: string; summary?: string } | null;
+  why_this_course?: Array<{ point?: string; source?: string }>;
+  fog_or_reef?: { issue?: string; why_it_matters?: string; required_check?: string } | null;
+  road_not_taken?: Array<{ option?: string; why_not_now?: string }>;
+  next_helm?: string;
+  contract_seed?: { predicate?: string; check_by?: string; pass_condition?: string; fail_condition?: string } | null;
+  blocked?: boolean;
+  generated_at?: string;
+  raw?: unknown;
+  imported_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Settings ───
 
 export type LLMMode = 'proxy' | 'direct' | 'local';
