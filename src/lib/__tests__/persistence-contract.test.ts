@@ -61,6 +61,7 @@ const ROGUE_ALLOWLIST: Record<string, string> = {
   sot_context_strategy_records: 'P2 백로그: 컨텍스트 전략 자기개선 기록 — 서버 동기화 미결 (context-strategy.ts)',
   argus_eval_results: '로컬 평가 데이터 — 개인 픽스처, 동기화 대상 아님 (eval-engine.ts)',
   argus_eval_refine: '로컬 평가 데이터 — 개인 픽스처, 동기화 대상 아님 (eval-engine.ts)',
+  argus_metrics: '스토리지 키 아님 — 운영자 계기판 집계용 Postgres RPC 이름 (admin/page.tsx, supabase.rpc)',
 };
 
 function walk(dir: string, acc: string[] = []): string[] {
