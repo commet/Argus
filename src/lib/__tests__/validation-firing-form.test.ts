@@ -93,3 +93,44 @@ describe('C3 — bounded affect-ack before a refuse-to-own (both surfaces)', () 
     expect(pluginClarify).toMatch(/NO multi-sentence warmth/);
   });
 });
+
+/**
+ * R29/R30 — the vent route's canonical on-ramp WAS itself a banned two-pole fork +
+ * availability hook ("결정으로 바꿔서 같이 볼까요? 아니면 그냥 들을게요"), so every
+ * model tier "deviated" 6/6 by faithfully COMPLYING with a defective template
+ * (same defect class as C1). Plugin-only — the webapp vent branch already reflects
+ * one line and stops. Fix: one-clause reflection + ONE *stated* handle, no
+ * two-pole question, no "그냥 들을게요" pole; reconciled with Forbidden patterns.
+ */
+describe('C4 — plugin vent on-ramp is a single stated handle, not a two-pole fork+hook', () => {
+  it('the old two-pole "볼까요? 아니면 그냥 들을게요" fork is gone from the vent route', () => {
+    expect(pluginClarify).not.toMatch(/볼까요\? 아니면 그냥 들을게요/);
+  });
+
+  it('the vent route now leaves a single stated handle and forbids the two-pole question', () => {
+    expect(pluginClarify).toMatch(/필요하면 이걸 결정으로 같이 정리/);
+    expect(pluginClarify).toMatch(/never a two-pole question/);
+  });
+
+  it('Forbidden patterns reconciles: it bans offering the on-ramp as a two-pole question', () => {
+    expect(pluginClarify).toMatch(/offering the on-ramp as a two-pole question/);
+  });
+});
+
+/**
+ * R29 residual — C2 closed the explicit normalizing premise but the lean leaked
+ * through the RHETORICAL-QUESTION form ("does others disagreeing change your
+ * reason?"). Both surfaces now name the rhetorical/leading-question form as the
+ * same banned disclaimed lean.
+ */
+describe('C2b — rhetorical-question form of the normalizing lean is banned (both surfaces)', () => {
+  it('webapp names the rhetorical-question / leading-question form', () => {
+    expect(webapp).toMatch(/rhetorical-question form/i);
+    expect(webapp).toMatch(/leading question/i);
+  });
+
+  it('plugin names the rhetorical-question / leading-question form', () => {
+    expect(pluginClarify).toMatch(/rhetorical-question/i); // "form" may wrap to next line in markdown
+    expect(pluginClarify).toMatch(/leading question/i);
+  });
+});
