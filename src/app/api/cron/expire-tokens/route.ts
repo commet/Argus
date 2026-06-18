@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { timingSafeEqual } from 'node:crypto';
+
+/** Constant-time string compare (avoids leaking the secret via timing). */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
+}
 
 /**
  * Cron: expire stale human agent message tokens.
@@ -12,8 +21,10 @@ import { createClient } from '@supabase/supabase-js';
  */
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail CLOSED: if CRON_SECRET is unset, an `Authorization: Bearer undefined`
+  // would otherwise authorize a service-role mass-update. Mirror daily-report.
+  const authHeader = req.headers.get('authorization') || '';
+  if (!process.env.CRON_SECRET || !safeEqual(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -32,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     console.error('[cron/expire-tokens] Error:', error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 
   // Update has_pending_humans for affected sessions

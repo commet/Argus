@@ -175,7 +175,10 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode('data: [DONE]\n\n'));
               controller.close();
             }
-          } catch {
+          } catch (err) {
+            // Log the real cause server-side — without this an Anthropic outage,
+            // a 529 overload, and a code bug are indistinguishable in production.
+            console.error('[api/llm] stream error:', err);
             if (!cancelled) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Stream error' })}\n\n`));
               controller.close();
@@ -209,7 +212,10 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ text: block ? block.text : '' });
     res.headers.set('Cache-Control', 'no-store');
     return res;
-  } catch {
+  } catch (err) {
+    // Log the real cause server-side (provider error type / request id) so the
+    // paid Anthropic path is observable; keep the client body generic.
+    console.error('[api/llm] Anthropic call failed:', err);
     return NextResponse.json(
       { error: 'LLM call failed. Please try again in a moment.' },
       { status: 500 }

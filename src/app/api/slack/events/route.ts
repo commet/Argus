@@ -92,11 +92,16 @@ export async function POST(req: NextRequest) {
 
         if (claimed) {
           // First processor — execute RPC
-          await admin.rpc('update_worker_response', {
+          const { error: rpcErr } = await admin.rpc('update_worker_response', {
             p_session_id: tracked.session_id,
             p_worker_id: tracked.worker_id,
             p_response: responseText,
           });
+          if (rpcErr) {
+            // Reply is stored on the claimed row but not propagated — log instead
+            // of dropping silently (recoverable from human_agent_messages).
+            console.error('[slack/events] update_worker_response failed — reply captured but not propagated to session:', rpcErr.message);
+          }
         }
       }
     }

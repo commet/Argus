@@ -12,9 +12,10 @@
  * does a generic upsert). progressive_sessions (wrapped {data} shape) and agents
  * (own sync path) are deliberately excluded — their own stores migrate them.
  */
-import { getCurrentUserId } from './supabase';
+import { getCurrentUserId, supabase } from './supabase';
 import { getStorage, STORAGE_KEYS } from './storage';
 import { loadAndMerge } from './db';
+import type { ProgressiveSession } from '@/stores/types';
 
 type SyncTable = Parameters<typeof loadAndMerge>[0];
 
@@ -55,5 +56,44 @@ export async function migrateLocalToAccount(): Promise<number> {
       /* best effort per table — one failure must not abort the rest */
     }
   }
+
+  // progressive_sessions is the highest-value artifact (final_deliverable,
+  // falsification, drafts) but uses a special {data}-wrapper row shape, so it is
+  // NOT in SYNC_MAP (generic loadAndMerge would send the raw shape and be
+  // rejected). Its own loadSessions only PULLS remote, so anonymous sessions
+  // never reach the account on sign-in unless re-mutated — silent loss. Push the
+  // local-only ones here with the same wrapper persist() uses.
+  try {
+    const sessions = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []);
+    const real = sessions.filter(
+      (s) => s && s.id && !(s.phase === 'input' && (!s.workers || s.workers.length === 0)),
+    );
+    if (real.length > 0) {
+      localCount += real.length;
+      const { data: remote } = await supabase
+        .from('progressive_sessions').select('id').eq('user_id', userId);
+      const remoteIds = new Set((remote ?? []).map((r: { id: string }) => r.id));
+      const toPush = real.filter((s) => !remoteIds.has(s.id));
+      if (toPush.length > 0) {
+        await supabase.from('progressive_sessions').upsert(
+          toPush.map((s) => ({
+            id: s.id,
+            user_id: userId,
+            project_id: s.project_id,
+            data: s,
+            phase: s.phase,
+            has_pending_humans: (s.workers || []).some(
+              (w) => w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response'),
+            ),
+            updated_at: s.updated_at || new Date().toISOString(),
+          })),
+          { onConflict: 'id' },
+        );
+      }
+    }
+  } catch {
+    /* best effort — local remains the source of truth */
+  }
+
   return localCount;
 }
