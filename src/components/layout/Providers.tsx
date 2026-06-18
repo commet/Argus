@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AuthProvider } from '@/lib/auth';
 import { UnlockToast } from '@/components/agents/UnlockToast';
+import { AccountSyncToast } from '@/components/ui/AccountSyncToast';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useProjectStore } from '@/stores/useProjectStore';
@@ -39,6 +40,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <StoreInitializer />
       {children}
       <UnlockToast />
+      <AccountSyncToast />
     </AuthProvider>
   );
 }

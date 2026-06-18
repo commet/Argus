@@ -5,6 +5,7 @@ import { supabase, clearUserCache } from './supabase';
 import { clearAllStorage } from './storage';
 import { setAnalyticsUser } from './analytics';
 import { getCurrentLanguage } from './i18n';
+import { migrateLocalToAccount } from './account-migration';
 import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -81,6 +82,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       setAnalyticsUser(session?.user?.id ?? null);
       setLoading(false);
+
+      // On a genuine sign-in, eagerly migrate local-first work into the account
+      // and confirm it (local-first → "your thinking follows you when you sign up").
+      if (_event === 'SIGNED_IN' && session?.user) {
+        migrateLocalToAccount()
+          .then((count) => {
+            if (count > 0 && typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('argus:account-synced', { detail: { count } }));
+            }
+          })
+          .catch(() => { /* migration is best-effort; never block auth */ });
+      }
     });
 
     return () => subscription.unsubscribe();
