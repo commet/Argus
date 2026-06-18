@@ -5,13 +5,13 @@
   --primary-light: #2e2e2e;
   --accent: #96782e;         /* Gold — contrast-safe on white (4.5:1+) */
   --accent-light: #b8963e;   /* Brighter gold for backgrounds/borders */
-  --bg: #f8f7f5;
+  --bg: #f6f4f0;            /* contrast pass 2026-06-18: deepened a touch so white surfaces pop */
   --surface: #ffffff;
-  --border: #e5e2dc;
-  --border-subtle: #eeebe6;
-  --text-primary: #1a1a1a;
-  --text-secondary: #5f5a52; /* a11y: ≈6.4:1 on --bg — must sit DARKER than tertiary to keep hierarchy (was #868279 ≈3.6:1) */
-  --text-tertiary: #767066; /* a11y: ≈4.6:1 on --bg #f8f7f5 (was #b0aa9f ≈2.0:1) — used widely at 9–12px */
+  --border: #d2ccc0;        /* contrast pass: was #e5e2dc — too faint, cards floated on cream */
+  --border-subtle: #ddd6cb; /* contrast pass: was #eeebe6 — nearly invisible; now reads as "placed" */
+  --text-primary: #16140f;  /* contrast pass: was #1a1a1a — slightly deeper warm ink */
+  --text-secondary: #494339; /* contrast pass: was #5f5a52 (≈6.4:1) → ≈8:1, present not pale */
+  --text-tertiary: #5c564b; /* contrast pass: was #767066 (≈4.6:1) → ≈5.9:1 — used widely at 9–12px, must read */
 
   /* Semantic */
   --ai: #f5f0e6;
@@ -26,12 +26,12 @@
   --risk-manageable: #EF9F27;
   --risk-unspoken: #7F77DD;
 
-  /* Shadows — warm tint, actually visible */
-  --shadow-xs: 0 1px 2px rgba(26, 26, 26, 0.06), 0 0 1px rgba(26, 26, 26, 0.04);
-  --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.08), 0 0 1px rgba(26, 26, 26, 0.04);
-  --shadow-md: 0 4px 16px rgba(26, 26, 26, 0.10), 0 2px 4px rgba(26, 26, 26, 0.06);
-  --shadow-lg: 0 8px 32px rgba(26, 26, 26, 0.12), 0 4px 8px rgba(26, 26, 26, 0.06);
-  --shadow-xl: 0 20px 48px rgba(26, 26, 26, 0.16), 0 8px 16px rgba(26, 26, 26, 0.08);
+  /* Shadows — warm tint, actually visible (contrast pass 2026-06-18: deepened sm/md so cards lift) */
+  --shadow-xs: 0 1px 2px rgba(26, 26, 26, 0.08), 0 0 1px rgba(26, 26, 26, 0.05);
+  --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.11), 0 0 1px rgba(26, 26, 26, 0.06);
+  --shadow-md: 0 4px 16px rgba(26, 26, 26, 0.14), 0 2px 4px rgba(26, 26, 26, 0.08);
+  --shadow-lg: 0 8px 32px rgba(26, 26, 26, 0.16), 0 4px 8px rgba(26, 26, 26, 0.08);
+  --shadow-xl: 0 20px 48px rgba(26, 26, 26, 0.20), 0 8px 16px rgba(26, 26, 26, 0.10);
 
   /* Concert hall accents */
   --gold: #b8963e;
@@ -40,7 +40,9 @@
   --chart-line: rgba(181, 166, 140, 0.15);
 
   /* Gradients — Concert Hall Palette */
-  --gradient-gold: linear-gradient(135deg, #b8963e 0%, #d4b968 50%, #96782e 100%);
+  /* contrast pass 2026-06-18: deepened so white-text CTAs (Start/시작/Sign in) read
+     and the primary affordance has weight — old mid #d4b968 made white text fail + look disabled */
+  --gradient-gold: linear-gradient(135deg, #a8842f 0%, #b8963e 48%, #826722 100%);
   --gradient-gold-subtle: linear-gradient(135deg, rgba(184, 150, 62, 0.12) 0%, rgba(212, 185, 104, 0.06) 100%);
   --gradient-gold-text: linear-gradient(135deg, #d4b968 0%, #96782e 100%);
   --gradient-concert-hall: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(184, 150, 62, 0.08) 0%, transparent 70%);
@@ -153,11 +155,12 @@
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text-primary);
-  --shadow-xs: 0 1px 2px rgba(26, 26, 26, 0.06), 0 0 1px rgba(26, 26, 26, 0.04);
-  --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.08), 0 0 1px rgba(26, 26, 26, 0.04);
-  --shadow-md: 0 4px 16px rgba(26, 26, 26, 0.10), 0 2px 4px rgba(26, 26, 26, 0.06);
-  --shadow-lg: 0 8px 32px rgba(26, 26, 26, 0.12), 0 4px 8px rgba(26, 26, 26, 0.06);
-  --shadow-xl: 0 20px 48px rgba(26, 26, 26, 0.16), 0 8px 16px rgba(26, 26, 26, 0.08);
+  /* contrast pass 2026-06-18: kept in sync with :root shadows above */
+  --shadow-xs: 0 1px 2px rgba(26, 26, 26, 0.08), 0 0 1px rgba(26, 26, 26, 0.05);
+  --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.11), 0 0 1px rgba(26, 26, 26, 0.06);
+  --shadow-md: 0 4px 16px rgba(26, 26, 26, 0.14), 0 2px 4px rgba(26, 26, 26, 0.08);
+  --shadow-lg: 0 8px 32px rgba(26, 26, 26, 0.16), 0 4px 8px rgba(26, 26, 26, 0.08);
+  --shadow-xl: 0 20px 48px rgba(26, 26, 26, 0.20), 0 8px 16px rgba(26, 26, 26, 0.10);
 }
 
 html {
