@@ -35,11 +35,20 @@ Argus is a **Next.js app, not a packaged design system**. This is an off-script
 
 ## Known render warns (triaged — not new on re-sync)
 
-- `[RENDER_THIN]` **ForkPath** and **SailingShip** — false positives. Both are
-  sparse, textless line illustrations (SailingShip paints a full 46 KB ship;
-  ForkPath a fork diagram). ForkPath's preview injects a `<style>` that disables
-  its `bp-stroke-draw` / `bp-fade-up` entrance animations so the static capture
-  shows the completed drawing (otherwise the staggered draw-in leaves it blank).
+- `[RENDER_THIN]` **SailingShip** — false positive: a sparse, textless line
+  illustration that paints a full 46 KB ship. Recorded; not new.
+- **ForkPath was rewritten (2026-06-19) into the "Bearing Fan"** (a wide
+  viewBox-1000x400 diagram: one plan → a gold divergence pivot → four reader
+  lines fanning into a gold wedge → a dashed return arc to a date buoy). It now
+  has real content (no longer `[RENDER_THIN]`). Its entrance animation classes
+  changed from `bp-stroke-draw`/`bp-fade-up` to **`.bf-draw` / `.bf-soft` /
+  `.bf-glow`** (a one-shot IntersectionObserver-gated self-draw). Because a
+  static capture lands mid-draw, BOTH `previews/ForkPath.tsx` AND
+  `previews/SirenHero.tsx` (SirenHero embeds the Bearing Fan) inject a `<style>`
+  that freezes those classes to their end-state (`animation:none`,
+  `stroke-dashoffset:0`, `opacity:1`, `transform:none`). **If ForkPath's
+  animation classes change again, update the freeze rule in both previews** or
+  the cards capture blank/half-drawn.
 - **SeaRipples** preview overrides the component's default `position:absolute`
   className so it renders inline on a parchment panel (waves are deliberately faint).
 - 2 components ship the **floor card** (fully importable, no authored preview):
