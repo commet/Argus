@@ -11,6 +11,13 @@
 import './_process-shim';
 import React from 'react';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+// Sidebar/Header call usePathname()/useSearchParams(); without these contexts
+// they return null and the components throw (e.g. pathname.startsWith('/auth')).
+import {
+  PathnameContext,
+  SearchParamsContext,
+  PathParamsContext,
+} from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 // LandingHeader (and any auth-aware surface) calls useAuth(), which throws
 // "useAuth must be used within AuthProvider" outside the provider. AuthProvider's
 // only mount side-effect is supabase.auth.getSession() — with the dummy supabase
@@ -31,7 +38,13 @@ const stubRouter = {
 export function DesignRouterProvider({ children }: { children?: React.ReactNode }) {
   return (
     <AppRouterContext.Provider value={stubRouter as never}>
-      <AuthProvider>{children}</AuthProvider>
+      <PathnameContext.Provider value="/projects">
+        <SearchParamsContext.Provider value={new URLSearchParams() as never}>
+          <PathParamsContext.Provider value={{}}>
+            <AuthProvider>{children}</AuthProvider>
+          </PathParamsContext.Provider>
+        </SearchParamsContext.Provider>
+      </PathnameContext.Provider>
     </AppRouterContext.Provider>
   );
 }

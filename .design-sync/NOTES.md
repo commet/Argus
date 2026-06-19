@@ -37,6 +37,8 @@ Argus is a **Next.js app, not a packaged design system**. This is an off-script
 
 - `[RENDER_THIN]` **SailingShip** — false positive: a sparse, textless line
   illustration that paints a full 46 KB ship. Recorded; not new.
+- `[RENDER_THIN]` **BranchMap** — false positive: a narrow (≤320px) version-tree
+  SVG. The authored preview adds a `bp-mono` caption so it clears the check.
 - **ForkPath was rewritten (2026-06-19) into the "Bearing Fan"** (a wide
   viewBox-1000x400 diagram: one plan → a gold divergence pivot → four reader
   lines fanning into a gold wedge → a dashed return arc to a date buoy). It now
@@ -128,6 +130,47 @@ those previews pass realistic data via props instead.
   (Korean) even on English cells — component-internal i18n, only `submitLabel` is overridable.
   Not a defect.
 
+## 2026-06-19 — workspace/app expansion (42 → 117 components)
+
+Added ~75 workspace/boss/agents/tools/projects/layout surfaces. Excluded pure infra
+(`Providers`, `AuthGuard`, `Analytics`, `LayoutShell`). Big stateful orchestrators are
+**accepted floor cards** (importable, no authored preview): `ProgressiveFlow`,
+`InteractiveDemo`, the Step files, `BossChat`/`BossSetup`, `PersonaForm`, `AgentSidebar`,
+`AgentHub`, `WorkerPanel`/`WorkerDrawer`, `Logbook`/`LogbookDrawer`, `VoyageChart`,
+`PersonaPoolModal`, `NavigatorStrip`, `FeedbackResult`/`FeedbackRequest`,
+`PersonaRefinementSection`, `VersionHistoryDrawer`, `SealMoment`, `TrialSail`, `QuickChatBar`.
+
+**Two load-bearing findings (independently hit by most batches):**
+
+1. **framer-motion entrances capture BLANK.** `package-capture`/validate pin a fixed clock
+   (`page.clock.setFixedTime`), which freezes framer-motion's JS tween at its
+   `initial={{opacity:0}}` frame → the root screenshots blank. The repo bundles its OWN
+   framer-motion copy, so `MotionGlobalConfig.skipAnimations` from a preview's import does
+   NOT reach it (React is externalized/shared; framer-motion is not). The reliable fix is a
+   **module-scope `<style>` injected in the preview**: `[style*="opacity"]{opacity:1!important}`
+   `[style*="transform"]{transform:none!important}` — `!important` overrides framer's inline
+   styles and the attribute-selectors touch only animating elements. ~30 previews carry this;
+   any new `motion.*`-rooted component needs it. For a `position:fixed` overlay inside a cell,
+   contain with `contain:paint` (a `transform` wrapper collides with the un-freeze style).
+   Also: the clock is pinned to a FIXED DATE — author date-gated states relative to it.
+
+2. **Store-sharing wall.** The bundle ships its own Zustand store instances. A preview that
+   re-imports `useXStore` gets a SEPARATE instance — `setState` never reaches the bundled
+   component. Two patterns that work: (a) **seed localStorage at preview module scope** via the
+   literal `STORAGE_KEYS` (`sot_reframe_list`/`sot_recast_list`/`sot_personas`/
+   `sot_feedback_history`/`sot_judgments`/`sot_settings`/`sot_agents`/`sot_boss_collection`) for
+   stores that hydrate on mount; (b) for non-persisted stores, render a HIDDEN bundle component
+   whose mount effect populates the shared store (e.g. an off-screen `AgentHub` calls
+   `loadAgents`→`checkUnlocks` so `UnlockToast`/`PastVerdictRecap` see the data).
+
+**Provider now also supplies** `PathnameContext`/`SearchParamsContext`/`PathParamsContext`
+(Sidebar/Header `usePathname`). **cardMode overrides** added: column for `FinalCard`,
+`MixPreview`, `TeamDeployBanner`, `DMFeedback`, `AttributedSection`; single for `SettlementModal`
+(480x640). **`Sidebar` is floored** — it renders only an empty shell without seeded
+`projects`/`personas`; to author it later, seed those stores. **`BranchMap` trips `[RENDER_THIN]`**
+but is a sparse SVG branch diagram (benign, like `SailingShip`/`ForkPath`). `InnerMonologueCard`
+shows only its in-verdict-context cell (the bare locked state renders empty without a loaded boss agent).
+
 ## Design context
 
 Token contrast/weight pass applied to `globals.css` on 2026-06-18 (text tiers,
@@ -158,3 +201,14 @@ in `docs/PLAN_design_vision.md` (editorial "Logbook" / dawn-harbour system).
   preview, or add a fetch/auth shim. Low priority — disconnected is a real, polished state.
 - If a landing section is renamed/restructured in `src/components/landing/`, its preview's
   `matchMedia`/`bp-fade-up` neutralizer may need updating (re-check the captured trail).
+- **`[BUNDLE_EXPORT] N/N not a component on window.ArgusDS` is a FALSE NEGATIVE on this
+  large bundle (~3.8 MB, 117 components).** validate's smoke check loads react+react-dom+bundle
+  via `page.setContent` and reads `window.ArgusDS`; on the big bundle it reads empty (passed at
+  42 components / 1.9 MB, fails at 117). It is NOT real: the bundle ends with
+  `window.ArgusDS = …` and the per-preview render check renders 99 non-floor components with real
+  content — each imports `window.ArgusDS.<Name>`, which is dispositive proof the exports resolve.
+  claude.ai/design loads the bundle exactly like the preview HTML (react→react-dom→_ds_bundle.js
+  script tags), which works. **Verdict gate:** trust `render check: N/N clean` + all-graded; the
+  `[BUNDLE_EXPORT]` exit-1 from this check alone is safe to upload over (bumping its 10s timeout
+  did NOT help — it's the setContent smoke path, not a timeout). If the bundle ever shrinks back
+  under the threshold this clears on its own.
