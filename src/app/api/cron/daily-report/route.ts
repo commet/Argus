@@ -126,8 +126,15 @@ export async function GET(req: Request) {
   const twoWeeksAgo = kstRange(14);
 
   // ─── 1. Auth users + owner ids ───
-  const { data: usersData } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-  const allUsers: UserRow[] = (usersData?.users || []).map(u => ({
+  // Paginate — a single perPage:1000 page silently undercounts past 1000 users.
+  const authUsers: { id: string; email?: string; created_at: string; user_metadata?: Record<string, unknown> }[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const { data: pageData } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+    const batch = pageData?.users || [];
+    authUsers.push(...batch);
+    if (batch.length < 1000) break;
+  }
+  const allUsers: UserRow[] = authUsers.map(u => ({
     id: u.id,
     email: u.email || null,
     created_at: u.created_at,

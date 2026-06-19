@@ -13,6 +13,17 @@ import type { Agent } from '@/stores/agent-types';
 import { buildAgentContext } from '@/lib/agent-prompt-builder';
 import { buildUserContextForReview } from '@/lib/user-context';
 
+/**
+ * Doc-safe sanitizer: strips the <user-data> fence so a pasted document cannot
+ * close + reopen the delimiter to inject instructions, while PRESERVING newlines
+ * (sanitizeForPrompt collapses them — which is why the document was previously
+ * interpolated raw, the prompt-injection hole). Length-capped to bound payload.
+ */
+const MAX_DOC_CHARS = 20000;
+function sanitizeDoc(str: string): string {
+  return String(str ?? '').replace(/<\/?\s*user-data[^>]*>/gi, '').slice(0, MAX_DOC_CHARS);
+}
+
 type Locale = 'ko' | 'en';
 type ReviewMode = 'quick' | 'deep';
 
@@ -187,7 +198,7 @@ ${jsonSchema}`;
   const user = `맥락: <user-data>${s(context)}</user-data>
 
 검토할 문서:
-<user-data context="document">${document}</user-data>`;
+<user-data context="document">${sanitizeDoc(document)}</user-data>`;
 
   return { system, user };
 }
@@ -262,7 +273,7 @@ ${jsonSchema}`;
   const user = `Context: <user-data>${s(context)}</user-data>
 
 Document to review:
-<user-data context="document">${document}</user-data>`;
+<user-data context="document">${sanitizeDoc(document)}</user-data>`;
 
   return { system, user };
 }

@@ -34,17 +34,19 @@ const SYNC_MAP: Array<{ key: string; table: SyncTable }> = [
   { key: STORAGE_KEYS.SYNTHESIZE_LIST, table: 'synthesize_items' },
 ];
 
-let _ranThisLoad = false;
+// Keyed by user id (not a bare boolean) so signing out and into a DIFFERENT
+// account in the same page load still migrates the second account; set only AFTER
+// a successful pass so a transient failure can retry.
+let _ranForUser: string | null = null;
 
 /**
  * Push local-only rows to the signed-in account; returns the number of local
- * items now backed by the account (0 if not signed in or already run this load).
+ * items now backed by the account (0 if not signed in or already run for this user).
  */
 export async function migrateLocalToAccount(): Promise<number> {
-  if (_ranThisLoad) return 0;
   const userId = await getCurrentUserId();
-  if (!userId) return 0;        // not truly signed in yet — allow a later retry
-  _ranThisLoad = true;
+  if (!userId) return 0;            // not truly signed in yet — allow a later retry
+  if (_ranForUser === userId) return 0;
 
   let localCount = 0;
   for (const { key, table } of SYNC_MAP) {
@@ -95,5 +97,6 @@ export async function migrateLocalToAccount(): Promise<number> {
     /* best effort — local remains the source of truth */
   }
 
+  _ranForUser = userId; // mark done only after a full pass (allows retry on earlier throw)
   return localCount;
 }
