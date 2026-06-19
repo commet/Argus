@@ -49,17 +49,23 @@ export async function GET(req: NextRequest) {
   // Update has_pending_humans for affected sessions
   const sessionIds = [...new Set((expired || []).map(e => e.session_id))];
   for (const sid of sessionIds) {
-    const { data: remaining } = await admin
-      .from('human_agent_messages')
-      .select('id')
-      .eq('session_id', sid)
-      .eq('status', 'sent')
-      .limit(1);
+    // Per-iteration guard: a single failure must not abort the rest (leaving
+    // later sessions' has_pending_humans stale).
+    try {
+      const { data: remaining } = await admin
+        .from('human_agent_messages')
+        .select('id')
+        .eq('session_id', sid)
+        .eq('status', 'sent')
+        .limit(1);
 
-    await admin
-      .from('progressive_sessions')
-      .update({ has_pending_humans: (remaining?.length ?? 0) > 0, updated_at: new Date().toISOString() })
-      .eq('id', sid);
+      await admin
+        .from('progressive_sessions')
+        .update({ has_pending_humans: (remaining?.length ?? 0) > 0, updated_at: new Date().toISOString() })
+        .eq('id', sid);
+    } catch (e) {
+      console.error('[cron/expire-tokens] session update failed:', sid, e);
+    }
   }
 
   return NextResponse.json({ ok: true, expired: expired?.length ?? 0, sessions: sessionIds.length });

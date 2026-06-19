@@ -311,6 +311,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                 <>
                   <textarea
                     value={bulkInput}
+                    maxLength={20000}
                     onChange={(e) => setBulkInput(e.target.value)}
                     placeholder={L("ChatGPT 답변:\n시장 규모는 약 500억 원으로...\n\nClaude 답변:\n해당 시장은 300~700억 원 사이로...", "ChatGPT response:\nThe market size is about $50M...\n\nClaude response:\nThe market is between $30M–70M...")}
                     className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-4 py-3 text-[15px] leading-[1.7] placeholder:text-[var(--text-secondary)] placeholder:text-[14px] focus:outline-none focus:border-[var(--accent)] resize-none"
@@ -343,6 +344,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                         </div>
                         <textarea
                           value={source.content}
+                          maxLength={10000}
                           onChange={(e) => updateIndividualSource(i, 'content', e.target.value)}
                           placeholder={L("이 소스의 결과물이나 의견을 붙여넣으세요", "Paste this source's output or opinion")}
                           className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2 text-[14px] leading-[1.6] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)] resize-none"
@@ -462,6 +464,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                     <label className="text-[12px] font-bold text-amber-700">{L('나의 판단', 'My judgment')}</label>
                     <textarea
                       value={conflict.user_judgment || ''}
+                      maxLength={2000}
                       onChange={(e) => handleJudgment(conflict.id, e.target.value)}
                       placeholder={L("이 쟁점에 대한 당신의 판단을 입력하세요...", "Enter your judgment on this conflict...")}
                       className="w-full bg-[var(--checkpoint)] border border-amber-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:border-amber-400 resize-none"

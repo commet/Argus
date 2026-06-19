@@ -214,6 +214,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
               />
               <textarea
                 value={documentText}
+                maxLength={20000}
                 onChange={(e) => setDocumentText(e.target.value)}
                 className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-xl px-4 py-3 text-[14px] leading-relaxed placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] resize-none"
                 rows={6}
