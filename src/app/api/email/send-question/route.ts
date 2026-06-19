@@ -57,6 +57,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'sessionId and workerId required for tracking' }, { status: 400 });
   }
 
+  // Rate limit: cap outbound emails per user per day. Without this an
+  // authenticated account is an unthrottled spam/phishing relay from the
+  // argus.voyage domain (Resend cost + sender-reputation blacklisting).
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+  const DAILY_EMAIL_LIMIT = 30;
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count: sentToday } = await admin
+    .from('human_agent_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .gte('created_at', since24h);
+  if ((sentToday ?? 0) >= DAILY_EMAIL_LIMIT) {
+    return NextResponse.json(
+      { error: `Daily email limit (${DAILY_EMAIL_LIMIT}) reached. Try again tomorrow.` },
+      { status: 429 },
+    );
+  }
+
   const replyToken = generateId();
   const safeQuestion = question.slice(0, 2000);
   const safeContext = (context || '').slice(0, 5000);
@@ -120,12 +141,8 @@ export async function POST(req: NextRequest) {
       replyTo: fromAddress,
     });
 
-    // Track for reply matching
-    const admin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
-    await admin.from('human_agent_messages').upsert({
+    // Track for reply matching (reuse the admin client from the rate-limit check).
+    const { error: trackErr } = await admin.from('human_agent_messages').upsert({
       user_id: user.id,
       session_id: sessionId,
       worker_id: workerId,
@@ -134,6 +151,13 @@ export async function POST(req: NextRequest) {
       status: 'sent',
       created_at: new Date().toISOString(),
     }, { onConflict: 'session_id,worker_id' });
+
+    if (trackErr) {
+      // Email already went out but tracking failed → the reply can never be
+      // matched back. Surface it (tracked:false) instead of claiming success.
+      console.error('[email/send-question] tracking upsert failed — reply loop not wired:', trackErr.message);
+      return NextResponse.json({ ok: true, tracked: false }, { status: 200 });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

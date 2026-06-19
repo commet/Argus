@@ -6,7 +6,12 @@ import { SirenHero } from 'argus';
 // neutralize the entrance to keep the whole hero painted.
 export const Default = () => (
   <div className="siren-hero-preview">
-    <style>{`.siren-hero-preview .bp-fade-up { animation: none !important; opacity: 1 !important; }`}</style>
+    <style>{`
+      .siren-hero-preview .bp-fade-up { animation: none !important; opacity: 1 !important; }
+      .siren-hero-preview .bf-draw { animation: none !important; stroke-dashoffset: 0 !important; }
+      .siren-hero-preview .bf-soft,
+      .siren-hero-preview .bf-glow { animation: none !important; opacity: 1 !important; transform: none !important; }
+    `}</style>
     <SirenHero />
   </div>
 );

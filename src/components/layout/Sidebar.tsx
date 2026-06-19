@@ -5,12 +5,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
-import { Users, Settings, BookOpen, FolderOpen, User, Download } from 'lucide-react';
+import { Users, Settings, BookOpen, FolderOpen, User, Download, BarChart3 } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { useAuth } from '@/lib/auth';
+
+const OPERATOR_EMAILS = new Set(['time22say@gmail.com', 'yclee913@gmail.com']);
 
 export function Sidebar() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const { user } = useAuth();
+  const isOperator = !!user?.email && OPERATOR_EMAILS.has(user.email);
 
   const utilityItems = [
     { href: '/project', label: L('프로젝트', 'Projects'), icon: FolderOpen },
@@ -18,6 +23,7 @@ export function Sidebar() {
     { href: '/teams', label: L('팀', 'Teams'), icon: Users },
     { href: '/guide', label: L('사용 가이드', 'Guide'), icon: BookOpen },
     { href: '/settings', label: L('설정', 'Settings'), icon: Settings },
+    ...(isOperator ? [{ href: '/admin', label: L('계기판', 'Dashboard'), icon: BarChart3 }] : []),
   ];
 
   const pathname = usePathname();

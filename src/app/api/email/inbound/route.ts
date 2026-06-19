@@ -58,7 +58,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await req.json();
+  let body: { to?: string; text?: string; html?: string };
+  try {
+    body = await req.json();
+  } catch {
+    // Malformed/non-JSON provider payload → clean 400 (not a 500 that triggers
+    // webhook retries + noisy stack traces).
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
   const toAddress = body.to || '';
   const responseText = stripQuotedReply(body.text || body.html?.replace(/<[^>]*>/g, '') || '');
 
@@ -105,11 +112,18 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (claimed) {
-    await admin.rpc('update_worker_response', {
+    const { error: rpcErr } = await admin.rpc('update_worker_response', {
       p_session_id: tracked.session_id,
       p_worker_id: tracked.worker_id,
       p_response: safeResponse,
     });
+    if (rpcErr) {
+      // The reply is durably stored (response_text above) but did not reach the
+      // session. Surface it instead of dropping silently; the row stays claimed
+      // so it won't double-process, and the text is recoverable from the table.
+      console.error('[email/inbound] update_worker_response failed — reply captured but not propagated to session:', rpcErr.message);
+      return NextResponse.json({ ok: true, propagated: false }, { status: 200 });
+    }
   }
 
   return NextResponse.json({ ok: true });

@@ -64,6 +64,47 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     'why_this_course', 'fog_or_reef', 'road_not_taken', 'next_helm', 'contract_seed',
     'blocked', 'generated_at', 'raw', 'imported_at', 'created_at', 'updated_at',
   ],
+  // ← 2026-06-19 backend audit: the guard covered only 7 of 18 synced interfaces,
+  // which is exactly why the agents *En drift went live. Cover the rest.
+  agents: [
+    'id', 'user_id', 'name', 'role', 'emoji', 'color', 'origin', 'capabilities',
+    'group', 'chain_id', 'unlock_condition', 'unlocked', 'expertise', 'tone', 'keywords',
+    'organization', 'priorities', 'communication_style', 'known_concerns', 'relationship_notes',
+    'influence', 'decision_style', 'risk_tolerance', 'success_metric', 'extracted_traits',
+    'feedback_logs', 'personality_code', 'personality_profile', 'boss_gender', 'saju_profile',
+    'xp', 'level', 'observations', 'is_builtin', 'is_example', 'archived', 'last_used_at',
+    'created_at', 'updated_at', 'chat_history', 'birth_year', 'birth_month',
+    'inner_monologue_archive', 'birth_day', 'zodiac_profile', 'boss_locale', 'user_context_hint',
+    'nameEn', 'roleEn', 'expertiseEn', 'toneEn', // ← 2026-06-19 added (were the live drift)
+  ],
+  agent_chains: ['id', 'user_id', 'name', 'agent_ids', 'total_tasks', 'created_at', 'updated_at'],
+  agent_activities: ['id', 'user_id', 'agent_id', 'type', 'context', 'session_id', 'xp_earned', 'created_at'],
+  feedback_records: [
+    'id', 'user_id', 'project_id', 'loop_id', 'iteration_number', 'document_title', 'document_text',
+    'persona_ids', 'feedback_perspective', 'feedback_intensity', 'results', 'synthesis',
+    'created_at', 'structured_synthesis', 'discussion', 'discussion_takeaway',
+  ],
+  judgment_records: [
+    'id', 'user_id', 'project_id', 'type', 'context', 'decision', 'reasoning',
+    'original_ai_suggestion', 'user_changed', 'tool', 'created_at',
+  ],
+  accuracy_ratings: [
+    'id', 'user_id', 'feedback_record_id', 'persona_id', 'accuracy_score', 'accuracy_notes',
+    'which_aspects_accurate', 'which_aspects_inaccurate', 'created_at',
+  ],
+  quality_signals: ['id', 'user_id', 'project_id', 'tool', 'signal_type', 'signal_data', 'created_at'],
+  outcome_records: [
+    'id', 'user_id', 'project_id', 'hypothesis_result', 'hypothesis_notes', 'materialized_risks',
+    'approval_outcomes', 'overall_success', 'key_learnings', 'what_would_change', 'created_at',
+  ],
+  retrospective_answers: [
+    'id', 'user_id', 'project_id', 'question_id', 'question_text', 'category', 'answer', 'data_basis', 'created_at',
+  ],
+  decision_quality_scores: [
+    'id', 'user_id', 'project_id', 'appropriate_frame', 'creative_alternatives', 'relevant_information',
+    'clear_values', 'sound_reasoning', 'commitment_to_action', 'initial_framing_challenged',
+    'blind_spots_surfaced', 'user_changed_mind', 'overall_dq', 'created_at',
+  ],
 };
 
 /** 인터페이스엔 있으나 컬럼이 아닌(보내지지 않거나 sanitize로 제거되는) 필드. */
@@ -104,7 +145,14 @@ function topLevelFields(src: string, ifaceName: string): string[] {
 }
 
 const TYPES_SRC = readFileSync(join(process.cwd(), 'src/stores/types.ts'), 'utf8');
+const AGENT_TYPES_SRC = readFileSync(join(process.cwd(), 'src/stores/agent-types.ts'), 'utf8');
 const DB_SRC = readFileSync(join(process.cwd(), 'src/lib/db.ts'), 'utf8');
+
+/** Resolve an interface's fields from whichever source file declares it. */
+function fieldsOf(iface: string): string[] {
+  const src = TYPES_SRC.includes(`export interface ${iface} {`) ? TYPES_SRC : AGENT_TYPES_SRC;
+  return topLevelFields(src, iface);
+}
 
 describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 컬럼', () => {
   it.each([
@@ -115,10 +163,21 @@ describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 �
     ['synthesize_items', 'SynthesizeItem'],
     ['plugin_decisions', 'PluginDecision'],
     ['plugin_bearings', 'PluginBearing'],
+    // ← 2026-06-19 backend audit: cover the remaining synced interfaces.
+    ['agents', 'Agent'],
+    ['agent_chains', 'AgentChain'],
+    ['agent_activities', 'AgentActivity'],
+    ['feedback_records', 'FeedbackRecord'],
+    ['judgment_records', 'JudgmentRecord'],
+    ['accuracy_ratings', 'PersonaAccuracyRating'],
+    ['quality_signals', 'QualitySignal'],
+    ['outcome_records', 'OutcomeRecord'],
+    ['retrospective_answers', 'RetrospectiveAnswer'],
+    ['decision_quality_scores', 'DecisionQualityScore'],
   ])('%s: 모든 %s 필드가 컬럼 또는 LOCAL_ONLY로 선언돼 있다', (table, iface) => {
     const cols = new Set(TABLE_COLUMNS[table]);
     const localOnly = LOCAL_ONLY[table] ?? {};
-    for (const field of topLevelFields(TYPES_SRC, iface)) {
+    for (const field of fieldsOf(iface)) {
       const ok = cols.has(field) || field in localOnly;
       expect(
         ok,

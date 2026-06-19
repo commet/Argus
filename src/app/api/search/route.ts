@@ -1,9 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { validateContentType, validateContentLength, validateOrigin } from '@/lib/api-security';
 
 const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
+const SEARCH_DAILY_LIMIT = 100;
 
 let warnedMissingKey = false;
+
+/**
+ * Per-IP daily cap on the billable Brave call. Reuses the anon rate-limit RPC
+ * with a distinct "search:" namespace so it does NOT share the LLM anon bucket.
+ * Without this the endpoint is unauthenticated + unthrottled paid-API access
+ * (the validateOrigin CSRF check is bypassable by omitting Origin+Referer).
+ */
+async function checkSearchRateLimit(ip: string): Promise<boolean> {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(`search:${ip}`));
+  const ipHash = Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+  const { data: allowed, error } = await supabase.rpc('check_anon_rate_limit', {
+    p_ip_hash: ipHash,
+    p_limit: SEARCH_DAILY_LIMIT,
+  });
+  if (error) {
+    console.error('[api/search] rate-limit RPC error:', error.message);
+    return false; // fail closed
+  }
+  return allowed === true;
+}
 
 export async function POST(req: NextRequest) {
   const ctError = validateContentType(req);
@@ -20,6 +47,14 @@ export async function POST(req: NextRequest) {
     }
     // disabled lets callers distinguish "no key" from "no results"
     return NextResponse.json({ results: [], disabled: true });
+  }
+
+  // Bound abuse of the paid Brave API (no auth on this route by design).
+  const ip = req.headers.get('x-real-ip')
+    || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || 'unknown';
+  if (!(await checkSearchRateLimit(ip))) {
+    return NextResponse.json({ error: '검색 요청이 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429 });
   }
 
   try {

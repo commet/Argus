@@ -170,9 +170,13 @@ export async function syncToSupabase(table: TableName, localItems: any[]): Promi
 
     if (error) {
       log.error(`sync to ${table} failed: ${error.message}`, { context: 'db' });
+      // Surface to the user via the SyncStatus badge — this path carries agents/
+      // XP/boss personas and was the only write helper not reporting failures.
+      reportSyncFailure(`sync:${table}`, { message: error.message });
     }
   } catch (err) {
     log.error(`sync to ${table} error`, { context: 'db', data: err });
+    reportSyncFailure(`sync:${table}`, { message: err instanceof Error ? err.message : 'unknown' });
   }
 }
 
