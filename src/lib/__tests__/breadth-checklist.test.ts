@@ -99,3 +99,25 @@ describe('R39 — external-approval sub-sweep + honesty guard + heavy bare-crux 
     expect(pluginClarify).toMatch(/directional headline/);
   });
 });
+
+/**
+ * R40 — verify-first absorbed the crew's last edge (ground-truth), with ONE residual
+ * class: asserting UNVERIFIABLE EXTERNAL state (runtime/dashboard/live-provider/
+ * third-party-config) as settled fact (rgt-2 confabulated a Supabase dashboard
+ * provider-switch). The honesty guard generalizes from "invented current state in
+ * the repo" (R39 Stripe-DPA) to "asserted external state not knowable from a static
+ * read" — tag it as inference, never assert it. Pinned on both surfaces.
+ */
+describe('R40 — unverifiable-external state must be tagged, never asserted (both surfaces)', () => {
+  it('webapp generalizes the honesty guard to runtime/dashboard/external state', () => {
+    expect(webapp).toMatch(/unverifiable-external/);
+    expect(webapp).toMatch(/runtime \/ dashboard \/ third-party-config|runtime\/dashboard/i);
+    expect(webapp).toMatch(/NEVER assert it as settled fact/);
+  });
+
+  it('plugin carries verify-first (read the repo) + tag-don\'t-assert external state', () => {
+    expect(pluginClarify).toMatch(/unverifiable-external/);
+    expect(pluginClarify).toMatch(/VERIFY it by reading before asserting/);
+    expect(pluginClarify).toMatch(/NEVER assert it as settled fact/);
+  });
+});
