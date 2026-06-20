@@ -190,17 +190,26 @@ settled**, prepare ONE reference line for the Step 2 prompt, appended as:
 
 ```text
 <user-data context="track-record">
-Past voyages in this project: {{T}} contracts settled — held {{h}}, missed {{a}}, partial {{p}}. Most recently missed: "{{predicate, clipped 80}}".
+Past voyages in this project: {{T}} contracts settled — held {{h}}, missed {{a}}, partial {{p}}.{{ IF the recent miss is relevant (rule 1): ` Most recently missed: "{{predicate, clipped 80}}".` }}
 </user-data>
 ```
 
 Injection rules (these override any urge to use the data harder):
-- Reference only — the line informs `hidden_assumptions` and `stakes_guess`
-  sensitivity; it must NEVER override content-based judgment of the current
-  problem or change the recommendation by itself.
-- One line, counts + one concrete example. No trend prose, no "you tend to…".
-- Fewer than 2 settled contracts → inject nothing at all (one data point is an
-  anecdote, not a record).
+1. **Counts are always safe; the concrete example is RELEVANCE-GATED (R38).**
+   Append `Most recently missed: "{{predicate}}"` ONLY when the current problem
+   shares a **domain or failure-mechanism** with that missed contract — a cheap,
+   mechanical tag/keyword/domain overlap, NOT a judgment call. On a mismatch,
+   inject the COUNTS ONLY and omit the example: an unrelated recent-miss seeds a
+   false analogy (R38 case-4 — a marketing-attribution miss bled into a surgery
+   decision as a loose "same kind of fog" link) and crowds out problem-specific
+   analysis. The bare counts still calibrate `stakes_guess` sensitivity without
+   seeding an analogy.
+2. Reference only — the line informs `hidden_assumptions` and `stakes_guess`
+   sensitivity; it must NEVER override content-based judgment of the current
+   problem or change the recommendation by itself.
+3. No trend prose, no "you tend to…".
+4. Fewer than 2 settled contracts → inject nothing at all (one data point is an
+   anecdote, not a record).
 
 ### Step 1.6 — Crisis screen (Axis 0 — runs BEFORE request-type)
 
