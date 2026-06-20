@@ -24,8 +24,10 @@ vi.mock('@/lib/llm', () => ({
   callLLMStreamThenParse: vi.fn(),
 }));
 
-import { applyRouteContract } from '@/lib/progressive-engine';
+import { applyRouteContract, runInitialAnalysis } from '@/lib/progressive-engine';
+import { callLLMJson } from '@/lib/llm';
 
+const mockJson = vi.mocked(callLLMJson);
 const NON_OPEN = ['vent', 'validation', 'info', 'self_profiling', 'flat', 'resistance'];
 
 describe('applyRouteContract — enforces the restraint structural contract', () => {
@@ -66,5 +68,41 @@ describe('applyRouteContract — safe defaults (never blanks a legitimate plan b
     expect(result.real_question).toBe('keep me');
     expect(result.insight).toBe('keep me too');
     expect(result.skeleton).toEqual([]);
+  });
+});
+
+/**
+ * R32 — the engine WIRES the model's STEP-0 classification onto the snapshot
+ * (previously a dead/unwired field) so ProgressiveFlow can make a non-open route
+ * terminal. Together with R31's coercion: a non-open snapshot carries its
+ * request_type AND has its plan blanked.
+ */
+describe('runInitialAnalysis pins request_type on the snapshot (R31+R32 together)', () => {
+  it('a non-open classification is pinned AND its manufactured plan is blanked', async () => {
+    mockJson.mockResolvedValue({
+      real_question: '회의가 많아 지친 마음',
+      framing_confidence: 55,
+      hidden_assumptions: [],
+      skeleton: ['먼저 일정을 줄여라', '그다음 위임하라'], // model over-fired a plan on a vent
+      request_type: 'vent',
+      next_question: null,
+    } as never);
+    const { snapshot } = await runInitialAnalysis('회의가 너무 많아서 지친다');
+    expect(snapshot.request_type).toBe('vent');
+    expect(snapshot.skeleton).toEqual([]); // R31 contract guard blanked the plan
+  });
+
+  it('an open classification keeps its plan and is pinned open', async () => {
+    mockJson.mockResolvedValue({
+      real_question: '핵심 질문은?',
+      framing_confidence: 82,
+      hidden_assumptions: ['가정 1'],
+      skeleton: ['단계 1', '단계 2'],
+      request_type: 'open',
+      next_question: { text: '상황 질문', type: 'select', options: ['A', 'B', 'C'] },
+    } as never);
+    const { snapshot } = await runInitialAnalysis('이직할지 남을지 큰 결정이야');
+    expect(snapshot.request_type).toBe('open');
+    expect(snapshot.skeleton.length).toBeGreaterThan(0);
   });
 });

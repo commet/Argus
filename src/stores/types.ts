@@ -881,10 +881,12 @@ export interface AnalysisSnapshot {
   convergence_score?: number;       // 0-100: 질문 안정성 + 가정 감소 종합
   convergence_trend?: 'improving' | 'stable' | 'declining' | 'unclear';
 
-  // ── Under-fire judgment gates (ported from plugin v2.6; webapp wiring is a
-  //    follow-on — these fields carry the gate results through the voyage) ──
-  /** step-0: what kind of request this is. Only open_decision flows to the full engine. */
-  request_type?: 'open_decision' | 'validation' | 'vent' | 'info';
+  // ── Under-fire judgment gates (ported from plugin v2.6) ──
+  /** step-0: the model's own STEP-0 classification (R31/R32 — now WIRED: set by
+   *  runInitialAnalysis from the LLM output, read by ProgressiveFlow to make a
+   *  non-open route terminal — no fabricated follow-up question). Only `open`
+   *  flows the full engine; every other value is a terminal inline answer. */
+  request_type?: 'open' | 'flat' | 'vent' | 'validation' | 'info' | 'resistance' | 'self_profiling' | 'crisis';
   /** open_decision only: ready (default) vs resistance (long-pending, no new info). */
   readiness?: 'ready' | 'resistance';
   /** Whether real_question meaningfully differs from the surface question (rule 1b).

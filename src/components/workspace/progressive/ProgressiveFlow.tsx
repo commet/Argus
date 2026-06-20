@@ -1325,6 +1325,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const crisis = snapshots.find((s) => s.crisis?.isCrisis)?.crisis ?? null;
   const crisisBlocking = !!crisis && !crisisOverride;
 
+  // R32 — a non-open route (vent/validation/info/flat/self_profiling/resistance)
+  // is TERMINAL: the inline answer (insight) is the deliverable, so suppress the
+  // fabricated follow-up question. The question OBJECT stays alive (curQ truthy),
+  // so `shouldMix` (which fires on !curQ) can never deploy the crew on a vent —
+  // the same safety property the crisis backstop relies on. Render-suppress only.
+  const nonOpenRoute = snapshots.find((s) => s.request_type && s.request_type !== 'open')?.request_type ?? null;
+  const suppressQuestion = !!nonOpenRoute;
+
   const qaPairs = useMemo(() => questions.map((q, i) => ({ question: q, answer: answers[i] || null })), [questions, answers]);
   const curQ = questions.length > answers.length ? questions[questions.length - 1] : null;
   const latest = snapshots[snapshots.length - 1] || null;
@@ -2504,7 +2512,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 questions and what happens after. Shown only on the very
                 first question of a session; disappears once the user has
                 answered anything. */}
-            {curQ && !busy && phase === 'conversing' && round === 0 && answers.length === 0 && !crisisBlocking && (
+            {curQ && !busy && phase === 'conversing' && round === 0 && answers.length === 0 && !crisisBlocking && !suppressQuestion && (
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2522,7 +2530,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             {/* (The "팀은 이미 준비됐어요…(선택)" banner was removed: the
                 question meta ("질문 N/M · 선택") and the skip chip ("건너뛰고
                 팀 투입") already say optional — three voices for one fact.) */}
-            {curQ && !busy && phase === 'conversing' && !crisisBlocking && (() => {
+            {curQ && !busy && phase === 'conversing' && !crisisBlocking && !suppressQuestion && (() => {
               const teamReady = deployPhase === 'ready' && workers.length > 0;
               const isProbeQ = !!curQ.id?.startsWith('probe-fork-');
               // A denominator, not an open end — question fatigue is mostly not
@@ -2780,7 +2788,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* While the crisis backstop is blocking, hide the decision card — it
               would otherwise re-introduce decision chrome ("우리가 잡은 항로")
               around a safety input, the very ceremony the crisis path suppresses. */}
-          {(showRecord || phase !== 'conversing') && latest && !final_ && !crisisBlocking && (
+          {(showRecord || phase !== 'conversing' || suppressQuestion) && latest && !final_ && !crisisBlocking && (
             <div ref={analysisCardRef}>
               <AnalysisCard
                 snapshot={latest}

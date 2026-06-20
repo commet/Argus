@@ -410,6 +410,10 @@ export async function runInitialAnalysis(
     skeleton: result.skeleton || [],
     framing_confidence: framingConfidence,
     framing_locked: false,
+    // R32 — wire the model's STEP-0 classification onto the snapshot so the flow
+    // can make a non-open route terminal (ProgressiveFlow suppresses the fabricated
+    // follow-up question). Undefined when the model omits it → flow stays normal.
+    request_type: result.request_type,
   };
 
   // Phase 1 typed question: framing_confidence>=70이면 strategic_fork로 넘어간다.
@@ -580,6 +584,9 @@ export async function runDeepening(
     // pinned across deepening even after a conscious "continue" (defensive: the
     // banner also reads it off the round-0 snapshot, but don't depend on that).
     crisis: currentSnapshot.crisis,
+    // Carry the route classification forward (deepening only happens on an open
+    // decision, but keep it pinned so the flow's non-open check is stable).
+    request_type: currentSnapshot.request_type,
   };
 
   // Adaptive convergence: 스냅샷 전체 + 새 스냅샷으로 수렴도 계산
