@@ -41,6 +41,21 @@ was predicted, and how those predictions fared.
    `amend` updates, `settle`/`dismiss` closes; skip unparsable lines).
    Compute: sealed count, open contracts (with next/overdue check-by dates),
    settled outcomes tally (happened / avoided / partial).
+3. **Pattern-eligibility (mechanical — compute HERE, gate Step 3 BEFORE any LLM
+   call; R33).** From the settled contracts compute `T` = settled count and
+   `domains` = number of distinct decision domains they span. Set `pattern_strength`:
+   - `T < 3` → `none` (the ≥3 gate; --insights refuses).
+   - `3 ≤ T ≤ 5` → `counts_only`.
+   - `6 ≤ T ≤ 10` → `tendency`.
+   - `T ≥ 11` → `rule`.
+   Then **downgrade one level (never above `counts_only`) when the entries are
+   scattered** — `domains` high relative to `T` (e.g. T=4 across 4 unrelated
+   areas): scattered settles are a thin record, not a pattern. This number, not
+   the LLM's judgment, decides how strong a claim Step 3 may make — a small-n
+   correlation stated as a "rule"/"mechanism"/"the only variable" is the over-claim
+   a skeptic breaks every time (R33: 0/6 headline claims survived), and on a
+   noisy record it is a manufactured-meaning spine violation (gate before form,
+   rounds 5-8).
 
 If `.argus/` is missing or holds no sessions and no ledger: print one line —
 `No voyages logged yet. Start one: /argus:sail "<your decision>"` — and stop.
@@ -69,17 +84,46 @@ machinery — same surface rules as the Current Bearing.
 
 ## Step 3 — `--insights` (optional, the only LLM use)
 
-Only when settled contracts ≥ 3. Prompt yourself with the settled predicates +
-outcomes + the recent sessions' fog/reef items, all wrapped in `<user-data>`,
-and produce AT MOST 3 lines, each grounded in a specific entry:
+Only when `pattern_strength != none` (Step 1). **Claim STRENGTH is bound to the
+sample size — this is the load-bearing rule (R33).** The n=1 value is real, but
+the moat is *over-sold* the moment a 4-7-entry correlation is stated as a rule:
 
-- one pattern in what held vs missed (cite the entries, not vibes),
-- one recurring fog/reef theme across voyages, if any,
-- one suggestion phrased as reference, not directive ("worth one extra check
-  when X" — never "be more conservative").
+- `counts_only` (3-5 settled): **frequency counts + single-entry observations
+  ONLY.** e.g. "X를 먼저 확인한 3건 중 2건이 held." NO causal language, NO
+  direction ("과대/과소 추정한다"), NO "유일한 변수", NO mechanism, NO "패턴/규칙".
+  Say plainly it is too few for a pattern: "아직 패턴이라기엔 적어요 (정산 {{T}}건)."
+- `tendency` (6-10): a hedged tendency, scoped to the record ("이 기록에선 ~한
+  경향") — never a law.
+- `rule` (11+): may be stated as a pattern, still scoped to the user's own log.
 
-If the data shows no real pattern, say exactly that in one line — a forced
-insight is worse than none.
+Prompt yourself with the settled predicates + outcomes + recent fog/reef items
+**plus the `basis` (reasoned/luck/external) and fog/reef tags VERBATIM** — do NOT
+re-infer or relabel a tag the user/engine already set (R33: weak models relabel a
+`luck`/`mixed` win as a skill-win, or a `fog` as a `reef`; the ledger tag is
+ground truth — quote it). Wrap all in `<user-data>`. Produce AT MOST 3 lines,
+each grounded in a SPECIFIC entry, at the strength `pattern_strength` allows:
+
+- one observation in held-vs-missed (cite entries, not vibes);
+- one fog/reef theme **only if it genuinely recurs** (a single occurrence is not
+  a theme — stay silent rather than inflate one entry);
+- one suggestion as reference, not directive ("worth one extra check when X" —
+  never "be more conservative").
+
+**Quarantine-but-count, never drop (R33).** Do NOT omit a counterexample or a
+`luck`-tagged win to make a cleaner claim. A lucky win is NOT a skill win — keep
+it on the record but quarantine it from the skill claim ("held 3건 중 1건은 본인이
+운으로 표시"). Silently dropping the inconvenient entry to state a clean pattern is
+the exact over-claim a skeptic breaks.
+
+**No-pattern honesty is mechanical, not discretionary.** If `pattern_strength` is
+`none`, or Step 1 downgraded for scatter, say EXACTLY that in one line — "아직
+패턴이라기엔 신호가 약해요 (정산 {{T}}건 · {{domains}} 영역) — 더 쌓이면 같이
+봐요." — and stop. A forced insight on a thin/noisy record is a manufactured-meaning
+spine violation, not thoroughness.
+
+Close with ONE quiet scoping line (the irreducible small-n residual, disclosed not
+hidden): "당신 자신의 (아직 적은) 기록에 대한 관찰이에요 — 법칙이 아니라 참고고,
+건수에 맞춰 말했어요."
 
 ---
 
