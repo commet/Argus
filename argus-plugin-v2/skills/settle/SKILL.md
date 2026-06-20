@@ -71,6 +71,21 @@ quiz — neutral tone):
 
 If more than 3 are due, settle the 3 oldest and say how many remain.
 
+**The recorded outcome IS the user's tapped option, verbatim (R41 — the foundation
+rule, at the point of action, not just in the meta-gates).** NEVER narrate a
+verdict by mapping reality to the sealed pass/fail YOURSELF (e.g. "결과: 실패" /
+"that maps to missed") — that makes the MODEL the judge, which is the one integrity
+break the n=1 record cannot survive (a record of model-graded outcomes is
+worthless). You surface the sealed predicate + pass/fail and the question; the user
+states what reality did. **Discrepancy case:** when the user's prose disagrees with
+the sealed conditions ("basically held" when the fail_condition was met), do NOT
+resolve it with a stated verdict — re-surface the sealed pass/fail VERBATIM and let
+them settle it against that ("당신이 봉인한 기준은 이거예요 — 현실을 여기에 대보세요;
+답은 당신이 정합니다"). This matters most on the weakest model tier (R41: a weak
+tier self-graded the verdict — it landed correct only because the fixture's facts
+were unambiguous; a real settlement 30 days later, fed by self-serving memory, will
+not be).
+
 ## Step 3 — Record (append-only; never rewrite existing lines)
 
 - For a **bearing seed not yet in the ledger**, first import it as two events,
