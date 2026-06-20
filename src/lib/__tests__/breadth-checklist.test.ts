@@ -71,3 +71,31 @@ describe('R37 — fire-or-not gate at the breadth sweep (never on a closed decis
     expect(pluginClarify).toMatch(/already-logged/);
   });
 });
+
+/**
+ * R39 — sharpening the single pass to absorb the crew's residual off-frame edge
+ * (crew survival 3/3 -> 1/4) introduced two harms it must ship WITH: a confabulated
+ * current-state next-action ("Stripe DPA" on a repo with no payment layer) and a
+ * spine-form slip (a directional headline "항로: 진행" on the heaviest case). The
+ * external-approval sub-sweep ships ONLY bundled with the honesty guard + the
+ * bare-crux firing form, on both surfaces.
+ */
+describe('R39 — external-approval sub-sweep + honesty guard + heavy bare-crux (both surfaces)', () => {
+  it('webapp carries the external-approval gate, the honesty guard, and the heavy firing-form', () => {
+    expect(webapp).toMatch(/External-approval/i);
+    expect(webapp).toMatch(/HONESTY GUARD/);
+    expect(webapp).toMatch(/verify-first/);
+    expect(webapp).toMatch(/NEVER assert that a specific vendor\/integration EXISTS/);
+    expect(webapp).toMatch(/do NOT license a verdict/);
+    expect(webapp).toMatch(/directional headline/);
+  });
+
+  it('plugin carries the external-approval gate, the honesty guard, and the heavy firing-form', () => {
+    expect(pluginClarify).toMatch(/External-approval/i);
+    expect(pluginClarify).toMatch(/HONESTY GUARD/);
+    expect(pluginClarify).toMatch(/verify-first/);
+    expect(pluginClarify).toMatch(/NEVER assert a specific vendor\/integration EXISTS/);
+    expect(pluginClarify).toMatch(/do NOT license a verdict/);
+    expect(pluginClarify).toMatch(/directional headline/);
+  });
+});
