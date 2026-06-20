@@ -111,6 +111,7 @@ Analyze this and help me get started.
 
 JSON format:
 {
+  "request_type": "open | flat | vent | validation | info | resistance | self_profiling | crisis — your STEP 0 classification. ONLY 'open' gets a skeleton/plan; every other type MUST have skeleton [].",
   "real_question": "The ONE question I need to answer first (natural sentence, ends with ?)",
   "framing_confidence": 85,
   "hidden_assumptions": [
