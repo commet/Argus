@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, clearUserCache } from './supabase';
 import { clearAllStorage } from './storage';
-import { setAnalyticsUser } from './analytics';
+import { setAnalyticsUser, track } from './analytics';
 import { getCurrentLanguage } from './i18n';
 import { migrateLocalToAccount } from './account-migration';
 import type { User, Session } from '@supabase/supabase-js';
@@ -100,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = async (redirectAfter?: string) => {
+    track('login_attempt', { method: 'google' });
     // Supabase OAuth takes a full-page redirect, so sessionStorage survives the round-trip.
     // auth/callback consumes + clears the key.
     if (redirectAfter && redirectAfter.startsWith('/') && !redirectAfter.startsWith('//')) {
@@ -114,11 +115,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithEmail = async (email: string, password: string) => {
+    track('login_attempt', { method: 'email' });
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) track('login_failure', { method: 'email', reason: error.message.slice(0, 80) });
     return { error: error ? translateError(error.message) : null };
   };
 
   const signUpWithEmail = async (email: string, password: string, captchaToken?: string) => {
+    track('signup_attempt', { method: 'email' });
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -127,6 +131,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         captchaToken,
       },
     });
+    if (error) track('signup_failure', { method: 'email', reason: error.message.slice(0, 80) });
+    else track('signup_success', { method: 'email' });
     return { error: error ? translateError(error.message) : null };
   };
 

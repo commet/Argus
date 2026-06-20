@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Project, ProjectRef } from '@/stores/types';
 import { STORAGE_KEYS, getStorage, setStorage, removeStorage } from '@/lib/storage';
 import { generateId, loadItems, addNewItem, updateItem, deleteItem, updateNestedField } from './createItemStore';
+import { track } from '@/lib/analytics';
 
 const TABLE = 'projects' as const;
 const KEY = STORAGE_KEYS.PROJECTS;
@@ -41,10 +42,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   createProject: (name, description = '') => {
     const now = new Date().toISOString();
-    return addNewItem(KEY, TABLE, () => get().projects, (projects, id) => set({ projects, currentProjectId: id }), {
+    const isFirst = get().projects.length === 0;
+    const id = addNewItem(KEY, TABLE, () => get().projects, (projects, pid) => set({ projects, currentProjectId: pid }), {
       id: generateId(), name, description, refs: [],
       created_at: now, updated_at: now,
     });
+    // Activation funnel milestone (was missing) — distinguish the very first.
+    track(isFirst ? 'first_project_created' : 'project_created', { has_description: !!description });
+    return id;
   },
 
   updateProject: (id, data) => updateItem(KEY, TABLE, () => get().projects, (projects) => set({ projects }), id, data),

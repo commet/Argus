@@ -40,6 +40,7 @@ import {
 } from '@/lib/decision-contract';
 import { Modal } from '@/components/ui/Modal';
 import { recordSignal } from '@/lib/signal-recorder';
+import { track } from '@/lib/analytics';
 import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
@@ -88,6 +89,7 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
     // Learning signal — settlement is the return half of the loop; its verdict
     // is the ground truth the product is built to accumulate (2026-06-13 fix).
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict } });
+    track('decision_graded', { verdict });
   }
 
   /** The light second tap: the user's own read of WHY a win went their way.

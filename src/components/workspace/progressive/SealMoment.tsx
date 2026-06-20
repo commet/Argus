@@ -38,6 +38,7 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
 import { contractFromPredicates, withCheckIn, CHECK_IN_MS } from '@/lib/decision-contract';
 import { recordSignal } from '@/lib/signal-recorder';
+import { track } from '@/lib/analytics';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { EASE } from './shared/constants';
 
@@ -126,6 +127,8 @@ export function SealMoment({
     // product has. Not already sealed → only count the first seal.
     if (!justSealed) {
       recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: kept.length } });
+      // Also in the main funnel (user_events) — this is the activation north-star.
+      track('decision_sealed', { interval: iv, predicates: kept.length });
     }
   }
 
@@ -327,6 +330,7 @@ export function SealMoment({
               // A decline is as informative as an accept — the product learns
               // which decisions users don't want followed up.
               recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_declined', signal_data: { predicates: kept.length } });
+              track('decision_seal_declined', { predicates: kept.length });
             }}
             className="inline-flex items-center justify-center px-7 py-3 rounded-2xl text-[14px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--text-secondary)]/40 cursor-pointer transition-colors"
           >

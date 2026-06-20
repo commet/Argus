@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AuthProvider } from '@/lib/auth';
 import { UnlockToast } from '@/components/agents/UnlockToast';
 import { AccountSyncToast } from '@/components/ui/AccountSyncToast';
+import { initErrorSensors } from '@/lib/error-sensors';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useProjectStore } from '@/stores/useProjectStore';
@@ -24,6 +25,7 @@ function StoreInitializer() {
   const isMarketing = MARKETING_PATHS.has(pathname ?? '/');
 
   useEffect(() => {
+    initErrorSensors(); // capture uncaught errors everywhere (incl. marketing pages)
     if (isMarketing) return;
     loadAgents();
     loadSettings();
