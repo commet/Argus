@@ -51,3 +51,23 @@ describe('R36 — the breadth sweep is SCOPED to heavy decisions (restraint, not
     expect(pluginClarify).toMatch(/SKIP on low-stakes|low-stakes\/reversible/i);
   });
 });
+
+/**
+ * R37 — the sweep over-fired once on an already-CLOSED low-stakes logging request
+ * (a classification mis-fire routed it into the OPEN sweep). Reinforce the
+ * fire-or-not invariant at the sweep site on both surfaces: never reopen a closed
+ * decision to "add breadth" (mirror clause; the gate runs before the form).
+ */
+describe('R37 — fire-or-not gate at the breadth sweep (never on a closed decision)', () => {
+  it('webapp gates the sweep to OPEN-only, never on VALIDATION/CLOSED', () => {
+    expect(webapp).toMatch(/FIRE-OR-NOT/);
+    expect(webapp).toMatch(/NEVER on a VALIDATION\/CLOSED/);
+    expect(webapp).toMatch(/already-logged/);
+  });
+
+  it('plugin gates the sweep to OPEN-only, never on VALIDATION/CLOSED', () => {
+    expect(pluginClarify).toMatch(/FIRE-OR-NOT/);
+    expect(pluginClarify).toMatch(/NEVER on a VALIDATION\/CLOSED/);
+    expect(pluginClarify).toMatch(/already-logged/);
+  });
+});
