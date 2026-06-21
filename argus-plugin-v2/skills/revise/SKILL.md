@@ -46,9 +46,28 @@ Refuse when:
 
 Build a list of concrete things to fix, each tied to an owner:
 
-- From `boss_feedback.json.concerns[]`: every concern with `applied == true` (critical ones default applied). Each → `{ source: "boss_concern", text, suggested_fix, owner_agent_id?, severity }`.
-- From `verification.json.challenged_claims[]`: every `critical` / `important` challenge. Each → `{ source: "challenged_claim", text: claim, suggested_fix, owner_agent_id, severity }`.
-- Any free-text directive the user typed in the invocation.
+- From `boss_feedback.json.concerns[]`: every concern with `applied == true` (critical ones default applied). Each → `{ source: "boss_concern", text, suggested_fix, owner_agent_id, severity }`. **Boss concerns carry no owner — revise resolves it here** (the boss reviews the scaffold, not a specific worker). See §Resolving the owner below; the resolved `owner_agent_id` is required, never left blank.
+- From `verification.json.challenged_claims[]`: every `critical` / `important` challenge. Each → `{ source: "challenged_claim", text: claim, suggested_fix, owner_agent_id, severity }`. Verify already attributes these to the originating worker.
+- Any free-text directive the user typed in the invocation. Owner = `navigator` (synthesis pass).
+
+**§Resolving the owner for a boss concern (so none is silently lost).** Each
+applied concern's `text` points to WHERE (section/line) per the dm-feedback
+schema. Resolve in order:
+1. **Section → worker.** Match the targeted section to the worker who produced it
+   (`mix.json` records each section's contributing worker; fall back to scaffold
+   section attribution). Assign that `owner_agent_id`.
+2. **Cross-cutting → `navigator`.** If the concern targets the synthesis, the
+   overall frame, or a contradiction *between* workers (no single owner), assign
+   `owner_agent_id = "navigator"` — the synthesis pass owns cross-cutting rework.
+3. **Not worker-addressable → human check, not a revision item.** If the concern
+   cannot be resolved by re-running any worker (e.g. "needs real legal sign-off",
+   "the market data doesn't exist yet"), do NOT add it to `items[]`. Append it to
+   the scaffold's `human_required_checkpoints[]` with `reason: "boss_concern_unrouted"`
+   so it survives into the bearing. Surfacing it is the honest outcome; dropping it
+   is the bug this rule closes.
+
+Every applied boss concern ends as exactly one of: an owned `items[]` entry, or a
+`human_required_checkpoints[]` entry. None disappears.
 
 **Human choice (unless `--invoked-via-sail` or `--no-prompt`):** use AskUserQuestion to confirm which items to apply — preselect all `critical` items. Keep it to one compact multi-select, not a chat.
 - ko Title: `무엇을 반영할까요?` — options are the items as `[{{severity}}] {{text}}`, plus "직접 입력".
