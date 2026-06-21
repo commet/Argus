@@ -95,18 +95,35 @@ Normalize each candidate:
 }
 ```
 
+**`source_worker_ids` is mandatory and is what makes Step 1's flagging
+enforceable.** The extraction sources must preserve worker attribution so it can
+be filled: `mix.sections[]` carry the contributing worker id(s) (team Step 8
+records which worker(s) fed each section); `scaffold.hidden_assumptions[]` /
+`next_actions[]` / `team_contradictions[]` likewise trace to their originating
+worker(s). When a candidate cannot be traced to any worker (pure synthesis), set
+`source_worker_ids: ["navigator"]` — never leave it empty (an untraceable claim
+must not silently escape the flag). A claim whose `source_worker_ids` intersects
+the **Step 1 flagged-worker set** is pre-flagged: it skips Step 3 and enters Step 4
+already challenged, and cannot become `supported_claims[]` on plausibility alone.
+
 Keep the list short. Verification is a gate, not a second report.
 
 ### Step 3 - Positive Validation
 
 For each claim, ask:
 
-- Does a worker cite a file path, PR artifact, data point, source, or explicit
-  reasoning chain?
-- Is the claim tied to this repo/problem?
-- Did another worker independently support the same direction?
-- Does the worker's assigned framework visibly shape the output?
-- If it proposes action, are actor and next step clear?
+- **Evidence:** Does a worker cite a file path, PR artifact, data point, source,
+  or explicit reasoning chain?
+- **Specificity:** Is the claim tied to this repo/problem?
+- **Cross-agent support:** Did another worker **actively, independently make the
+  same or a compatible claim** — its own affirmative statement of the same
+  direction? This requires a positive second assertion. **Silence is not support,
+  and non-contradiction is not support** — a claim no other worker mentioned, or
+  merely did not argue against, fails this check. (Treating absence-of-opposition
+  as support is exactly how generic prose with no second source launders itself
+  into `supported`; this check exists to stop that.)
+- **Framework:** Does the worker's assigned framework visibly shape the output?
+- **Action clarity:** If it proposes action, are actor and next step clear?
 
 A claim is `supported` only if it passes **at least 2 of the 5 checks above, AND one of them is Evidence or Cross-agent support** (plausibility/specificity alone is not enough — that is how generic prose sneaks in). A claim from a worker flagged in Step 1 cannot be `supported`. Assign `strength`: `strong` (Evidence + cross-agent), `moderate` (Evidence or cross-agent + one more), `weak` (passes the minimum but on softer checks). **`weak` claims do NOT count toward the headline `supported` count** shown on the final card — list them separately so the card never inflates confidence.
 
@@ -321,6 +338,30 @@ Keep this to one terminal screen. Full detail stays in `verification.json`.
   `--no-prompt` was explicitly passed.
 - **Current Bearing readiness:** the ledger must identify one best fog/reef item
   that sail can carry into `current_bearing.json`.
+
+---
+
+## Error Modes
+
+Apply the plugin's defensive-read discipline (same as clarify) to every artifact
+read in Step 1:
+
+- **Missing `workers.json` / `mix.json` / `scaffold.json`:** there is nothing to
+  verify. Halt with the minimal-scaffold redirect (point to `/argus:team` or
+  `/argus:sail --resume`); do not fabricate claims from an empty input.
+- **Corrupt / unparseable artifact:** quarantine it to `<name>.corrupt.<ts>` and
+  report the recovery path; do not crash and do not silently treat a corrupt file
+  as empty (an unreadable `workers.json` is NOT "zero workers" — that would
+  produce a falsely clean `verified`). If only `mix.json` is corrupt but
+  `workers.json` is intact, re-derive claims from the workers directly and note
+  the degraded source.
+- **Partial write (process killed mid-write):** a `workers.json` short of the
+  planned worker set is interrupted, not complete — defer to sail Step 3's
+  interrupted-mid-team handling (re-run team) rather than verifying a partial set.
+- **Empty / absent `debate.json` / `repo_context.json`:** these are optional;
+  treat absent as "none," not an error.
+
+A corrupt-read must never resolve to a higher confidence than the true state.
 
 ---
 
