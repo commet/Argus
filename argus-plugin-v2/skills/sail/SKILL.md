@@ -146,7 +146,18 @@ making claims. A generic answer after a user gives a file is a product failure.
 
 ## Step 2 - Resolve Session
 
-1. If `--resume <id>`, load that session.
+1. If `--resume <id>`, load `.argus/sessions/<id>/session.json`.
+   - **Not found** (no such dir): do not crash. List the 3 most recent session ids
+     with their one-line problem text and ask one `AskUserQuestion` (resume one of
+     these / start fresh). If none exist, say so in the detected locale and offer
+     to start fresh.
+   - **Found but unparseable** (corrupt `session.json`): quarantine it to
+     `session.json.corrupt.<ts>` and treat the session as its last *valid* phase
+     by re-deriving phase from the artifacts present on disk (Step 3's table reads
+     `team_plan.json` / `workers.json` / `verification.json` / etc. directly), not
+     from the unreadable record. If no artifacts are recoverable, report the
+     quarantine and offer to start fresh. Never silently proceed on a malformed
+     session.
 2. If bare `/argus:sail`, continue latest session when one is active.
 3. If an existing session targets the same PR/file, ask one compact
    `AskUserQuestion`: continue existing or start fresh.
@@ -164,7 +175,7 @@ making claims. A generic answer after a user gives a file is a product failure.
 | `analyzing` or `conversing` (execution_plan < 2 steps) | `/argus:clarify --continue` |
 | `conversing` (execution_plan ready, ≥ 2 steps) | `/argus:team` |
 | `team_deploying` (verify routed `revise_team`) | `/argus:team --revise` — re-run team with `verification.json` challenged_claims fed into the worker prompts |
-| interrupted mid-team (`team_plan.json` exists, no `workers.json`) | `/argus:team` — the prior run died before workers finished; re-run is safe (team reuses the same version dir) |
+| interrupted mid-team (`team_plan.json` exists AND `workers.json` is absent, **unparseable, or missing any worker named in `team_plan.json`**) | `/argus:team` — the prior run died or was killed mid-write before all workers finished; re-run is safe (team reuses the same version dir and overwrites partial output). A `workers.json` that exists but fails to parse or is short of the planned worker set counts as interrupted, not complete — never route a partial worker set to `/argus:verify` |
 | `verifying` or team complete with no `verification.json` | `/argus:verify` |
 | `dm_feedback` pending | `/argus:boss` |
 | `refining` | `/argus:revise` (apply boss concerns / verify challenges → child draft + re-verify) |
@@ -205,6 +216,15 @@ Forbidden transition strings:
 
 Use this when the user wants problem framing, not a full bearing. Do not run
 team, verify, or boss. Do not render Current Bearing.
+
+**Droppings rule for `--quick`.** `--quick` is explicit, but if clarify resolves
+to `decision_density: low` (an inline-only framing with no persisted scaffold),
+it leaves NOTHING on disk — same discipline as the auto-invocation zero-droppings
+rule (Step 0). A `--quick` that produces a real persisted scaffold (medium/high
+density, or an `execution_plan` worth resuming) writes its session as usual. The
+"explicit invocations create files" rule (Step 0) governs the full pipeline, not
+a trivial inline framing — `/argus:sail --quick "rename a tab?"` must not litter a
+session dir for a one-line answer.
 
 ---
 
@@ -281,17 +301,33 @@ Question:
 - en: "How heavy is this decision?"
 - ko: Translate naturally.
 
-Options:
+Options (each maps to a DIFFERENT path — the answer must change behavior, or the
+question is theater):
 
 - "Light framing only"
 - "Current Bearing"
 - "Treat as high-stakes"
 
-After the user answers, persist the user-confirmed stakes to
-`session.classification.stakes`, set `stakes_user_confirmed = true`, and set
+After the user answers, persist `stakes_user_confirmed = true` and set
 `stakes_confidence = 100` (the user just confirmed it — it is no longer
-uncertain). Without this reset, Step 6c sees confidence still `< 75` and stalls
-with no action. Then continue to Step 6c with the locked stakes.
+uncertain; without this reset Step 6c would re-see `< 75` and stall). Then
+**branch on the chosen option** — the three are NOT the same path:
+
+- **"Light framing only"** → the user chose restraint. Do **NOT** deploy
+  team/verify/boss and do **NOT** render a Current Bearing. Treat exactly like
+  `--quick`: clarify's framing (the MinimalScaffold / light analysis already
+  produced) is the terminal deliverable. Persist `session.classification.stakes`
+  as the lighter of the detected guesses (or `low`), mark the session `complete`,
+  and exit. Running the full crew here after the user explicitly asked for "light"
+  is the mirror-clause over-fire the spine forbids (see Forbidden Patterns).
+- **"Current Bearing"** → set `session.classification.stakes = "important"` and
+  continue to Step 6c (team/verify/boss → bearing).
+- **"Treat as high-stakes"** → set `session.classification.stakes = "critical"`
+  and continue to Step 6c (critical stakes raises agent budget + the critic
+  mandate per team's classification rules).
+
+Only the latter two reach Step 6c. The time preview in Step 6c is printed only on
+that path — "Light framing only" returns immediately with no multi-minute run.
 
 ### Step 6c - Medium/High
 
@@ -636,3 +672,7 @@ user explicitly asks for `/argus:chart` or opens session files.
   running the crew on a `frame_status: flat` decision, emitting an
   engine-weighted pole, or reflexively pushing `/argus:revise` / re-engagement
   when the honest answer is "you're done." Restraint is the default.
+- **Running team/verify/boss after the user chose "Light framing only"** in the
+  Step 6b stakes question. The three options must map to three paths; collapsing
+  them into one full-pipeline run makes the question theater and over-fires on a
+  user who explicitly asked for restraint.
