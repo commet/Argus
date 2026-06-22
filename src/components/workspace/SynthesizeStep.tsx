@@ -18,6 +18,9 @@ import type { InputMode } from '@/components/ui/ModeToggle';
 import { LoadingSteps } from '@/components/ui/LoadingSteps';
 import { useHandoffStore } from '@/stores/useHandoffStore';
 import { useJudgmentStore } from '@/stores/useJudgmentStore';
+import { useProjectStore } from '@/stores/useProjectStore';
+import { SealMoment } from '@/components/workspace/progressive/SealMoment';
+import { extractPredicatesFromSynthesis } from '@/lib/decision-contract';
 import { buildEnhancedSystemPrompt } from '@/lib/context-builder';
 import { NextStepGuide } from '@/components/ui/NextStepGuide';
 import { NavigatorInline } from '@/components/workspace/NavigatorInline';
@@ -162,6 +165,15 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
   }, []);
 
   const current = getCurrentItem();
+
+  // North-Star C: arm the seal→settle loop at the synthesize terminus. The
+  // project (subscribed so a seal re-renders) lets us hand the user's committed
+  // judgments to a SealMoment that writes project.decision_contract — so a
+  // tools-chain decision enters dueProjects/SettlementModal like the voyage,
+  // instead of evaporating into a Share button.
+  const sealProject = useProjectStore((s) =>
+    current?.project_id ? s.projects.find((p) => p.id === current.project_id) : undefined,
+  );
 
   useEffect(() => {
     if (current?.status !== 'analyzing') return;
@@ -559,6 +571,18 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
               </div>
             </div>
           </Card>
+
+          {/* North-Star C: the loop's terminus — seal the committed judgments so
+              this decision returns at settlement. Renders only when a project
+              exists to carry the contract; SealMoment self-silences (null) when
+              there's nothing falsifiable to predict. */}
+          {sealProject && (
+            <SealMoment
+              project={sealProject}
+              predicates={extractPredicatesFromSynthesis(current.analysis.conflicts)}
+            />
+          )}
+
           <div className="flex items-center justify-between">
             <Button variant="secondary" size="sm" onClick={() => { setCurrentId(null); setBulkInput(''); }}>
               <ArrowRight size={14} /> {L('새 합성', 'New synthesis')}

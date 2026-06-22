@@ -13,6 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   extractPredicatesFromSession,
+  extractPredicatesFromSynthesis,
   contractFromPredicates,
   stablePredicateId,
   type SessionPredicateInput,
@@ -47,6 +48,42 @@ function dm(concerns: DMConcern[]): DMFeedbackResult {
     approval_condition: '',
   };
 }
+
+describe('extractPredicatesFromSynthesis (North-Star C — tools terminus)', () => {
+  it('maps each committed judgment to a governing_idea predicate (the user\'s own bet)', () => {
+    const preds = extractPredicatesFromSynthesis([
+      { topic: '가격 정책', user_judgment: '프리미엄으로 간다' },
+      { topic: 'Launch timing', user_judgment: 'Ship in Q3' },
+    ]);
+    expect(preds.map((p) => p.source)).toEqual(['governing_idea', 'governing_idea']);
+    expect(preds[0].text).toBe('가격 정책: 프리미엄으로 간다');
+    expect(preds[1].text).toBe('Launch timing: Ship in Q3');
+    // The user's own words — never machine-surfaced.
+    expect(preds.every((p) => p.authored === undefined)).toBe(true);
+  });
+
+  it('skips conflicts the user left unresolved and dedupes', () => {
+    const preds = extractPredicatesFromSynthesis([
+      { topic: 'A', user_judgment: 'do X' },
+      { topic: 'B', user_judgment: '' },        // unresolved → skipped
+      { topic: 'C' },                            // no judgment → skipped
+      { topic: 'A', user_judgment: 'do X' },     // dup → deduped
+    ]);
+    expect(preds).toHaveLength(1);
+    expect(preds[0].text).toBe('A: do X');
+  });
+
+  it('produces a sealable contract from synthesis predicates', () => {
+    const preds = extractPredicatesFromSynthesis([{ topic: 'T', user_judgment: 'J' }]);
+    const contract = contractFromPredicates('proj-1', preds, T0);
+    expect(contract).not.toBeNull();
+    expect(contract!.predicates).toHaveLength(1);
+  });
+
+  it('returns [] when nothing is committed (SealMoment then self-silences)', () => {
+    expect(extractPredicatesFromSynthesis([{ topic: 'A' }, { topic: 'B', user_judgment: '  ' }])).toEqual([]);
+  });
+});
 
 describe('extractPredicatesFromSession', () => {
   it('maps key_assumptions to governing bets and concerns to risks', () => {

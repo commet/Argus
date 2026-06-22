@@ -277,6 +277,29 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
 }
 
 /**
+ * Tools path (synthesize): the user's committed call on each conflict IS their
+ * governing judgment — the bet they're making. Map each resolved conflict to a
+ * governing_idea predicate so a synthesize project can seal + settle like the
+ * voyage (North-Star C). These are the user's OWN words, never machine-surfaced —
+ * `authored` is left absent, which the track record reads as the user's own.
+ */
+export function extractPredicatesFromSynthesis(
+  conflicts: { topic?: string; user_judgment?: string }[],
+): Predicate[] {
+  const byId = new Map<string, Predicate>();
+  for (const c of conflicts) {
+    const judgment = (c.user_judgment ?? '').trim();
+    if (!judgment) continue;
+    const topic = (c.topic ?? '').trim();
+    const text = topic ? `${topic}: ${judgment}` : judgment;
+    const id = stablePredicateId('governing_idea', text);
+    if (byId.has(id)) continue;
+    byId.set(id, { id, text, source: 'governing_idea' });
+  }
+  return [...byId.values()].slice(0, MAX_PREDICATES);
+}
+
+/**
  * Build a contract directly from precomputed predicates (live path). Returns
  * null when there's nothing falsifiable — we never seal an empty contract.
  */
