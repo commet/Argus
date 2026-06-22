@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useMemo, useRef } from 'react';
+import { createContext, useContext, useMemo, useRef, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   type Locale,
   type TranslationKey,
@@ -8,6 +9,22 @@ import {
   setModuleLocale,
   getCurrentLanguage,
 } from '@/lib/i18n';
+import { getStorage, STORAGE_KEYS } from '@/lib/storage';
+import { stripLocale } from '@/lib/locale-path';
+import type { Settings } from '@/stores/types';
+
+/**
+ * The user's EXPLICIT locale choice, read on the client: a `?lang` override
+ * first, then the language they saved in Settings. Returns null when the user
+ * has made no explicit choice (so the server's Accept-Language seed stands).
+ */
+function explicitClientLocale(): Locale | null {
+  if (typeof window === 'undefined') return null;
+  const url = new URLSearchParams(window.location.search).get('lang');
+  if (url === 'ko' || url === 'en') return url;
+  const stored = getStorage<Partial<Settings>>(STORAGE_KEYS.SETTINGS, {}).language;
+  return stored === 'ko' || stored === 'en' ? stored : null;
+}
 
 /**
  * LocaleProvider — the single source of truth for the active locale.
@@ -35,12 +52,41 @@ interface LocaleContextValue {
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 export function LocaleProvider({
-  locale,
+  locale: seed,
   children,
 }: {
   locale: Locale;
   children: React.ReactNode;
 }) {
+  // The route segment ([locale]) is the source of truth — `seed` is it.
+  const locale = seed;
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // The user's EXPLICIT choice (?lang, then saved Settings language) must win
+  // over the browser's Accept-Language the proxy fell back to — otherwise someone
+  // who chose Korean on an English browser is forced to English. But the URL is
+  // authoritative here, so we don't flip the locale in place (that would render
+  // Korean under an /en URL); we persist the choice to the argus-locale cookie
+  // and NAVIGATE to the matching locale route, keeping URL and content in sync.
+  // Self-limiting: after the redirect the route IS the explicit locale, so the
+  // cookie matches and no further navigation fires (no loop).
+  useEffect(() => {
+    const explicit = explicitClientLocale();
+    const active = explicit ?? seed;
+    if (typeof document !== 'undefined') {
+      document.cookie = `argus-locale=${active}; path=/; max-age=31536000; samesite=lax`;
+    }
+    if (explicit && explicit !== seed) {
+      const rest = stripLocale(pathname || '/');
+      const search = typeof window !== 'undefined' ? window.location.search : '';
+      router.replace(`/${explicit}${rest === '/' ? '' : rest}${search}`);
+    }
+    // Mount-only: the stored choice is stable for the session; useLocaleSwitch
+    // handles in-session changes by navigating + updating the cookie itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Keep the module mirror aligned with the rendered locale. Writing during
   // render is intentional so a synchronous bare `t()` in a child sees the right
   // value (see file header). CLIENT-ONLY: never on the server — module state is

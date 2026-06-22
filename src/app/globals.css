@@ -2883,3 +2883,18 @@ button, a, input, textarea {
   0%, 100% { transform: translate(-50%, -100%) rotateX(-21deg) translateY(0); }
   50%      { transform: translate(-50%, -100%) rotateX(-21deg) translateY(-3px); }
 }
+
+/* ===== Design showcase pages (/design/foundry, /design/workspace) — hover &
+   active interactions. The cards/buttons there carry inline resting styles
+   (gradients, layered shadows), so the lift is done with transform + filter,
+   which don't conflict with an inline box-shadow. ===== */
+.ds-showcase button:not(:disabled) { transition: transform .14s ease, filter .14s ease; }
+.ds-showcase button:not(:disabled):hover { transform: translateY(-1px); filter: brightness(1.045); }
+.ds-showcase button:not(:disabled):active { transform: translateY(1px); filter: brightness(.99); }
+.ds-showcase .ds-lift { transition: transform .18s ease, filter .18s ease; }
+.ds-showcase .ds-lift:hover { transform: translateY(-3px); filter: brightness(1.02); }
+@media (prefers-reduced-motion: reduce) {
+  .ds-showcase button:not(:disabled), .ds-showcase .ds-lift { transition: none; }
+  .ds-showcase button:not(:disabled):hover, .ds-showcase button:not(:disabled):active,
+  .ds-showcase .ds-lift:hover { transform: none; }
+}

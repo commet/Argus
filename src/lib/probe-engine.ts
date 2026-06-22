@@ -34,6 +34,7 @@
 import { callLLMJson, callLLMParallel } from './llm';
 import { sanitizeForPrompt } from './persona-prompt';
 import { cSamplePrompt, cForkPrompt, dPrompt } from './prompts/probe-prompts';
+import { getCurrentLanguage } from '@/lib/i18n';
 
 // ─── Types ───
 
@@ -208,6 +209,7 @@ export async function runDivergenceProbe(
 ): Promise<DivergenceProbeResult> {
   const n = Math.min(5, Math.max(3, opts.n ?? 3));
   const safe = sanitizeForPrompt(paragraph);
+  const locale = getCurrentLanguage();
   const calls: ProbeCallLog[] = [];
   const samples: ProbeSample[] = [];
 
@@ -221,7 +223,7 @@ export async function runDivergenceProbe(
 
   const { results } = await callLLMParallel<ProbeSample>(
     Array.from({ length: n }, () => ({
-      messages: [{ role: 'user' as const, content: cSamplePrompt(safe) }],
+      messages: [{ role: 'user' as const, content: cSamplePrompt(safe, locale) }],
     })),
     {
       system: '',
@@ -260,7 +262,7 @@ export async function runDivergenceProbe(
   let dropped = 0;
   try {
     const merged = await callLLMJson<{ forks: unknown[] }>(
-      [{ role: 'user', content: cForkPrompt(safe, samples, opts.fields) }],
+      [{ role: 'user', content: cForkPrompt(safe, samples, opts.fields, locale) }],
       { system: '', model: 'default', maxTokens: 1500, signal: opts.signal },
     );
     calls.push({ kind: 'c_merge', ms: Date.now() - t1, chars: JSON.stringify(merged).length, ok: true });
@@ -295,11 +297,12 @@ export async function runAblationProbe(
   opts: AblationProbeOptions = {},
 ): Promise<AblationProbeResult> {
   const safe = sanitizeForPrompt(paragraph);
+  const locale = getCurrentLanguage();
   const calls: ProbeCallLog[] = [];
   const t0 = Date.now();
   try {
     const raw = await callLLMJson<{ ablations: unknown[]; findings: unknown[] }>(
-      [{ role: 'user', content: dPrompt(safe) }],
+      [{ role: 'user', content: dPrompt(safe, locale) }],
       { system: '', model: 'default', maxTokens: 2000, signal: opts.signal },
     );
     calls.push({ kind: 'd_ablation', ms: Date.now() - t0, chars: JSON.stringify(raw).length, ok: true });

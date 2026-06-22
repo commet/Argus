@@ -13,6 +13,7 @@ const SANS = "var(--font-sans,'Pretendard',system-ui)";
 export default function WorkspacePage() {
   return (
     <div
+      className="ds-showcase"
       style={{
         minHeight: '100vh',
         background: '#e8dec9',

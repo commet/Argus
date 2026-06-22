@@ -7,17 +7,25 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: CardVariant;
 }
 
+// Dimensional rebuild (ArgusV2 foundry direction): cards keep their tint but
+// gain a layered drop shadow + an inset top highlight, so they read as paper
+// lifted off the desk. Kept as Tailwind arbitrary shadows (not inline) so the
+// hoverable `hover:shadow-[...]` can still override on hover. rgba layers are
+// theme-safe; the white inset stays subtle in dark mode.
+const DEPTH = 'shadow-[0_1px_2px_rgba(0,0,0,0.05),0_6px_16px_rgba(0,0,0,0.055),inset_0_1px_0_rgba(255,255,255,0.5)]';
+const DEPTH_HI = 'shadow-[0_2px_6px_rgba(0,0,0,0.08),0_16px_36px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.62)]';
+
 const variantStyles: Record<CardVariant, string> = {
-  default: 'bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-sm)]',
-  ai: 'bg-[var(--ai)] border-[var(--accent-light)]/15 shadow-[var(--shadow-sm)]',
-  human: 'bg-[var(--human)] border-[#8b6914]/10 shadow-[var(--shadow-sm)]',
-  checkpoint: 'bg-[var(--checkpoint)] border-amber-200 shadow-[var(--shadow-sm)]',
-  success: 'bg-[var(--collab)] border-green-200 shadow-[var(--shadow-sm)]',
-  danger: 'bg-red-50/50 border-red-200/50 shadow-[var(--shadow-sm)]',
-  muted: 'bg-[var(--bg)] border-[var(--border-subtle)]',
-  elevated: 'bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-md)]',
-  premium: 'bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-md)] relative overflow-hidden',
-  musical: 'bg-[var(--surface)] border-[var(--border-subtle)] shadow-[var(--shadow-sm)] relative overflow-hidden',
+  default: `bg-[var(--surface)] border-[var(--border-subtle)] ${DEPTH}`,
+  ai: `bg-[var(--ai)] border-[var(--accent-light)]/15 ${DEPTH}`,
+  human: `bg-[var(--human)] border-[#8b6914]/10 ${DEPTH}`,
+  checkpoint: `bg-[var(--checkpoint)] border-amber-200 ${DEPTH}`,
+  success: `bg-[var(--collab)] border-green-200 ${DEPTH}`,
+  danger: `bg-red-50/50 border-red-200/50 ${DEPTH}`,
+  muted: 'bg-[var(--bg)] border-[var(--border-subtle)] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]',
+  elevated: `bg-[var(--surface)] border-[var(--border-subtle)] ${DEPTH_HI}`,
+  premium: `bg-[var(--surface)] border-[var(--border-subtle)] ${DEPTH_HI} relative overflow-hidden`,
+  musical: `bg-[var(--surface)] border-[var(--border-subtle)] ${DEPTH} relative overflow-hidden`,
 };
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(

@@ -28,6 +28,7 @@ const panelLabel: React.CSSProperties = { font: `600 10px/1 ${MONO}`, letterSpac
 export default function FoundryPage() {
   return (
     <div
+      className="ds-showcase"
       style={{
         minHeight: '100vh',
         background: '#ece3d0',
@@ -130,7 +131,7 @@ export default function FoundryPage() {
               <h3 style={{ margin: '2px 0 0', font: `600 16px ${SERIF}`, color: '#221e19' }}>평면 표면</h3>
               <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: '#6b6459' }}>테두리만 있는 중립 표면. 밀도 높은 목록에.</p>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 22, background: 'linear-gradient(180deg,#fdfbf6,#f8f1e3)', border: '1px solid #e2d8c3', borderRadius: 14, boxShadow: '0 1px 2px rgba(43,39,34,.07),0 8px 22px rgba(43,39,34,.08),inset 0 1px 0 rgba(255,255,255,.8)' }}>
+            <div className="ds-lift" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 22, background: 'linear-gradient(180deg,#fdfbf6,#f8f1e3)', border: '1px solid #e2d8c3', borderRadius: 14, boxShadow: '0 1px 2px rgba(43,39,34,.07),0 8px 22px rgba(43,39,34,.08),inset 0 1px 0 rgba(255,255,255,.8)' }}>
               <span style={{ ...panelLabel, letterSpacing: '.16em' }}>Raised · 호버</span>
               <h3 style={{ margin: '2px 0 0', font: `600 16px ${SERIF}`, color: '#221e19' }}>떠오르는 표면</h3>
               <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: '#6b6459' }}>마우스를 올리면 더 떠오릅니다. 클릭 가능한 항목에.</p>

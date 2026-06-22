@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import './globals.css';
 
 const SITE_URL = 'https://argus.voyage';
@@ -29,10 +29,21 @@ function pickLangFromAcceptLanguage(header: string | null): Lang {
   return first.startsWith('ko') ? 'ko' : 'en';
 }
 
+/**
+ * Resolve the SSR language. Priority:
+ *   1. x-locale header — the value the proxy already resolved for this request
+ *      (it folds in the [locale] route segment / ?lang / argus-locale cookie /
+ *      Accept-Language), so in the routed world this is authoritative.
+ *   2. argus-locale cookie — the user's explicit choice, as a fallback if the
+ *      proxy header is somehow absent.
+ *   3. Accept-Language — when no explicit choice has been made.
+ */
 async function resolveLang(): Promise<Lang> {
   const h = await headers();
   const fromHeader = h.get('x-locale');
   if (fromHeader === 'ko' || fromHeader === 'en') return fromHeader;
+  const cookieLang = (await cookies()).get('argus-locale')?.value;
+  if (cookieLang === 'ko' || cookieLang === 'en') return cookieLang;
   return pickLangFromAcceptLanguage(h.get('accept-language'));
 }
 
