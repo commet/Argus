@@ -70,4 +70,13 @@ describe('VoyagePhaseRail render', () => {
   it('does not show the deaf-rower line during Bind', () => {
     expect(render('analyzing')).not.toContain('AI가 대신 정할 수 없어요');
   });
+
+  it('renders a mini glyph for every phase (knot / oar+wave / anchor)', () => {
+    const html = render('analyzing');
+    // All three phase glyphs are always present in the names row.
+    expect((html.match(/<svg/g) || []).length).toBeGreaterThanOrEqual(3);
+    // The Listen oar blade is the only <ellipse>; the anchor shank is unique.
+    expect(html).toContain('<ellipse');
+    expect(html).toContain('M12 7.9V20');
+  });
 });

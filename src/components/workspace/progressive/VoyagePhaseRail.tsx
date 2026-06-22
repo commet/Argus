@@ -31,12 +31,62 @@
  * no verdict, no recommendation, no score. (See CLAUDE.md → Zero-Judgment Gate.)
  */
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { EASE } from './shared/constants';
 
 export type VoyagePhaseKey = 'bind' | 'listen' | 'land';
+
+/* ═══ Per-phase mini glyphs ═══
+ * Minimal line icons (stroke 1.5, currentColor, no fill) drawn on a 24 viewBox
+ * so they stay crisp at 16px and sit at the same weight as the lucide `Check`.
+ *   bind   → an interlocking rope loop (a knot / cleat hitch)
+ *   listen → an oar dipped across a small wave (the deaf rowers' stroke)
+ *   land   → an anchor
+ */
+function PhaseGlyph({ glyph, size = 16 }: { glyph: VoyagePhaseKey; size?: number }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.5,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  };
+  if (glyph === 'bind') {
+    // Two interlocking loops with two free tails — reads as a tied knot.
+    return (
+      <svg {...common}>
+        <circle cx="9.4" cy="10.4" r="3.1" />
+        <circle cx="14.6" cy="13.6" r="3.1" />
+        <path d="M7.2 8.2 5 6" />
+        <path d="M16.8 15.8 19 18" />
+      </svg>
+    );
+  }
+  if (glyph === 'listen') {
+    // An oar (shaft + blade) crossing a calm two-bump wave.
+    return (
+      <svg {...common}>
+        <path d="M16.5 5.5 10.4 12.6" />
+        <ellipse cx="9.2" cy="13.9" rx="1.8" ry="1.8" />
+        <path d="M4 18c1.4 0 1.4-1.4 2.8-1.4S8.2 18 9.6 18s1.4-1.4 2.8-1.4S13.8 18 15.2 18s1.4-1.4 2.8-1.4" />
+      </svg>
+    );
+  }
+  // land — a classic anchor (matches the lucide Anchor silhouette).
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="5.5" r="2.4" />
+      <path d="M12 7.9V20" />
+      <path d="M5.5 12.5H3a9 9 0 0 0 18 0h-2.5" />
+    </svg>
+  );
+}
 
 /** Group an operational `phase` (+ crew state) into one of the 3 voyage phases. */
 export function voyagePhaseOf(phase: string, crewDeployed = false): VoyagePhaseKey {
@@ -110,6 +160,7 @@ const PHASES: readonly PhaseMeta[] = [
 export function VoyagePhaseRail({ phase, crewDeployed = false }: { phase: string; crewDeployed?: boolean }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const reduce = useReducedMotion();
 
   const activeKey = voyagePhaseOf(phase, crewDeployed);
   const activeIdx = PHASES.findIndex(p => p.key === activeKey);
@@ -157,16 +208,19 @@ export function VoyagePhaseRail({ phase, crewDeployed = false }: { phase: string
             >
               {(done || isActive) && (
                 <motion.div
+                  key={done ? 'done' : 'active'}
                   className="absolute inset-y-0 left-0 rounded-full"
+                  // Cross-fade the fill colour as a phase completes so the
+                  // gradient→solid handoff never hard-cuts.
                   style={{ background: done ? 'var(--accent)' : 'var(--gradient-gold)' }}
-                  initial={{ width: isActive ? '18%' : '100%' }}
-                  animate={{ width: '100%' }}
+                  initial={{ width: isActive ? '18%' : '100%', opacity: isActive ? 0.6 : 0 }}
+                  animate={{ width: '100%', opacity: 1 }}
                   transition={{ duration: 0.9, ease: EASE }}
                 />
               )}
-              {isActive && (
+              {isActive && !reduce && (
                 // Single, slow breathing glow — the calm cousin of the old
-                // node ping; reduced-motion users lose only a soft opacity wash.
+                // node ping; reduced-motion users get the static fill only.
                 <motion.div
                   className="absolute inset-0 rounded-full"
                   style={{ background: 'var(--gradient-gold)', filter: 'blur(3px)' }}
@@ -179,28 +233,49 @@ export function VoyagePhaseRail({ phase, crewDeployed = false }: { phase: string
         })}
       </div>
 
-      {/* Voyage names — active bold, completed checked + muted, future faint. */}
+      {/* Voyage names + per-phase glyph — the active phase is the clear focal
+          one (gold glyph that breathes, larger/bolder name); completed phases
+          are muted accent + a Check; future phases stay faint. */}
       <div className="grid grid-cols-3 mb-2.5">
         {PHASES.map((p, i) => {
           const done = i < activeIdx;
           const isActive = i === activeIdx;
+          // Glyph colour: active = gold, completed = faded gold, future = tertiary.
+          const glyphColor = isActive
+            ? 'text-[var(--accent)]'
+            : done
+              ? 'text-[var(--accent)]/70'
+              : 'text-[var(--text-tertiary)]';
           return (
             <div
               key={p.key}
-              className={`flex items-center gap-1 ${i === 0 ? 'justify-start' : i === 2 ? 'justify-end' : 'justify-center'}`}
+              className={`flex items-center gap-1.5 ${i === 0 ? 'justify-start' : i === 2 ? 'justify-end' : 'justify-center'}`}
             >
-              {done && <Check className="w-3 h-3 text-[var(--accent)]/80" strokeWidth={3} aria-hidden />}
+              <motion.span
+                className={`shrink-0 transition-colors duration-500 ${glyphColor}`}
+                // The active glyph gives one slow, calm breath; reduced-motion
+                // and inactive phases stay still.
+                animate={isActive && !reduce ? { opacity: [0.7, 1, 0.7] } : { opacity: 1 }}
+                transition={
+                  isActive && !reduce
+                    ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }
+                    : { duration: 0.4, ease: EASE }
+                }
+              >
+                <PhaseGlyph glyph={p.key} size={isActive ? 17 : 15} />
+              </motion.span>
               <span
-                className={`text-[12px] tracking-wide transition-colors duration-500 ${
+                className={`tracking-wide transition-all duration-500 ${
                   isActive
-                    ? 'text-[var(--text-primary)] font-bold'
+                    ? 'text-[13px] text-[var(--text-primary)] font-bold'
                     : done
-                      ? 'text-[var(--accent)]/80 font-medium'
-                      : 'text-[var(--text-tertiary)]'
+                      ? 'text-[12px] text-[var(--accent)]/80 font-medium'
+                      : 'text-[12px] text-[var(--text-tertiary)]'
                 }`}
               >
                 {L(p.ko, p.en)}
               </span>
+              {done && <Check className="w-3 h-3 text-[var(--accent)]/80 shrink-0" strokeWidth={3} aria-hidden />}
             </div>
           );
         })}

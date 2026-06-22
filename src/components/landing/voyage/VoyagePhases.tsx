@@ -141,9 +141,9 @@ export function VoyagePhases() {
           }}
         >
           {locale === 'ko' ? (
-            <>묶고 · 듣고 · <span style={{ color: 'var(--bp-gold-deep)' }}>닿습니다.</span></>
+            <>묶고 · 듣고 · <span className="bp-gold-shimmer" style={{ color: 'var(--bp-gold-deep)' }}>닿습니다.</span></>
           ) : (
-            <>Bind · listen · <span style={{ color: 'var(--bp-gold-deep)' }}>land.</span></>
+            <>Bind · listen · <span className="bp-gold-shimmer" style={{ color: 'var(--bp-gold-deep)' }}>land.</span></>
           )}
         </h2>
 
@@ -181,6 +181,15 @@ export function VoyagePhases() {
                 }}
               />
             ))}
+            {/* the voyage marker — a small ship that sails the route, bobbing */}
+            <span
+              className="bp-sail-x"
+              style={{ position: 'absolute', top: -50, left: '16%', transform: 'translateX(-50%)', color: 'var(--bp-ink)' }}
+            >
+              <span className="bp-bob" style={{ display: 'block' }}>
+                <ShipMark />
+              </span>
+            </span>
           </div>
 
           <ol
@@ -318,6 +327,25 @@ function LegPlate({
         {leg.detail[locale]}
       </p>
     </li>
+  );
+}
+
+/* The little ship that sails the route — a naval-print sloop in miniature. */
+function ShipMark() {
+  return (
+    <svg viewBox="0 0 38 30" width="34" height="27" fill="none" style={{ color: 'var(--bp-ink)', display: 'block' }} aria-hidden="true">
+      {/* mast + pennant */}
+      <line x1="19" y1="4" x2="19" y2="20" stroke="currentColor" strokeWidth="1" />
+      <path d="M 19 4 l 7 2 l -7 2 Z" fill="currentColor" opacity="0.8" />
+      {/* mainsail (billowed to the right) */}
+      <path d="M 19 7 Q 30 11 28 19 L 19 19 Z" fill="var(--bp-paper)" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
+      {/* jib (to the left) */}
+      <path d="M 19 9 Q 11 13 10 19 L 19 19 Z" fill="var(--bp-paper)" stroke="currentColor" strokeWidth="0.9" strokeLinejoin="round" />
+      {/* hull */}
+      <path d="M 5 19 L 33 19 L 29 25 Q 19 28 9 25 Z" fill="var(--bp-paper)" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      {/* wake tick */}
+      <path d="M 2 27 q 5 -2 9 0" fill="none" stroke="currentColor" strokeWidth="0.6" opacity="0.45" />
+    </svg>
   );
 }
 
