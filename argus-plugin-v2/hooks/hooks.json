@@ -11,6 +11,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/validate-gates.mjs\" --latest --warn",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }

@@ -1,0 +1,38 @@
+name: Argus spine eval (live)
+
+# Behavioral eval that GENERATES bearings from the real sail SKILL.md and scores
+# them (static gate + LLM judge) for over-fire / tilt / crisis off-ramp. Needs a
+# live API key, so it runs nightly + on demand rather than on every PR. The
+# deterministic static layer runs on every PR inside ci.yml.
+on:
+  schedule:
+    - cron: '0 6 * * *' # 06:00 UTC nightly
+  workflow_dispatch:
+    inputs:
+      repeat:
+        description: 'Times to repeat each case (over-fire rate sample size)'
+        default: '1'
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    # Skips cleanly if the key secret isn't configured.
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.ARGUS_EVAL_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run behavioral eval
+        run: node argus-plugin-v2/evals/run.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EVAL_REPEAT: ${{ github.event.inputs.repeat || '1' }}
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: argus-eval-report
+          path: argus-plugin-v2/evals/report.json

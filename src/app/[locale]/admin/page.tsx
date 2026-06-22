@@ -19,6 +19,20 @@ interface Metrics {
   projects_7d: number;
   projects_30d: number;
   latest_project: string | null;
+  return_loop: {
+    sealed_total: number;
+    sealed_anon: number;
+    sealed_auth: number;
+    seal_declined: number;
+    settled_total: number;
+    settled_anon: number;
+    settled_auth: number;
+    sessions_sealed: number;
+    sessions_settled: number;
+    sealed_7d: number;
+    settled_7d: number;
+    verdicts: Record<string, number>;
+  } | null;
   tables: Record<string, number>;
 }
 
@@ -106,6 +120,55 @@ export default function AdminPage() {
               </p>
             </Card>
           )}
+
+          {/* Return loop — the BEHAVIORAL funnel from user_events (anon-inclusive).
+              The projects funnel above only sees logged-in users; anon seals/settles
+              live only as events. This is where the first real settle 0→1 shows up. */}
+          {metrics.return_loop && (() => {
+            const r = metrics.return_loop!;
+            const verdictPairs = Object.entries(r.verdicts || {}).filter(([k]) => k !== '(none)');
+            return (
+              <>
+                <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2 mt-2">
+                  {L('귀환 루프 (행동 이벤트 기준, 익명 포함)', 'Return loop (behavioral events, anon-inclusive)')}
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+                  <Stat label={L('봉인 (seal)', 'Sealed')} value={r.sealed_total} accent
+                    hint={`${L('익명', 'anon')} ${r.sealed_anon} · ${L('로그인', 'auth')} ${r.sealed_auth} · +${r.sealed_7d} ${L('7일', '7d')}`} />
+                  <Stat label={L('봉인 포기', 'Seal declined')} value={r.seal_declined} />
+                  <Stat label={L('정산 (settle)', 'Settled')} value={r.settled_total} accent
+                    hint={`${L('익명', 'anon')} ${r.settled_anon} · ${L('로그인', 'auth')} ${r.settled_auth} · +${r.settled_7d} ${L('7일', '7d')}`} />
+                  <Stat label={L('정산한 세션', 'Sessions settled')} value={r.sessions_settled}
+                    hint={`${L('봉인 세션', 'sealed sess')} ${r.sessions_sealed}`} />
+                </div>
+
+                {r.settled_total > 0 && verdictPairs.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {verdictPairs.map(([verdict, n]) => (
+                      <span key={verdict} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-1 text-[12px] text-[var(--text-secondary)]">
+                        <span className="font-semibold text-[var(--text-primary)]">{verdict}</span> {n}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {r.settled_total === 0 ? (
+                  <Card variant="muted" className="!p-3 mb-6 flex items-start gap-2">
+                    <Compass size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+                    <p className="text-[12.5px] text-[var(--text-secondary)] leading-snug">
+                      {L(`봉인 ${r.sealed_total}건 중 실제 정산(현실과 대조)까지 온 건 0건 — 귀환 루프가 아직 한 번도 닫히지 않았습니다. 이 숫자가 0→1 되는 순간이 해자가 처음 작동하는 증거입니다.`,
+                         `Of ${r.sealed_total} seals, 0 reached an actual settle — the return loop has never closed. The moment this goes 0→1 is the first proof the moat works.`)}
+                    </p>
+                  </Card>
+                ) : (
+                  <p className="text-[11px] text-[var(--text-tertiary)] mb-6 leading-snug">
+                    {L('참고: 익명 정산은 며칠 뒤 새 세션에서 일어나 세션 단위로는 과소집계됩니다 — 전환율 대신 원시 카운트를 봅니다.',
+                       'Note: anon settle happens days later in a new session, so session-based conversion undercounts — read raw counts, not a %.')}
+                  </p>
+                )}
+              </>
+            );
+          })()}
 
           {/* Per-table row counts — "did the data actually arrive" */}
           <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('테이블별 행수', 'Rows per table')}</h2>

@@ -10,6 +10,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "eval": "node argus-plugin-v2/evals/run.mjs",
+    "eval:static": "node argus-plugin-v2/evals/static-gate.test.mjs",
+    "gates": "node argus-plugin-v2/scripts/validate-gates.mjs",
+    "gates:test": "node argus-plugin-v2/scripts/validate-gates.test.mjs",
     "validate:progressive": "tsx --env-file=.env.local scripts/validate-progressive.ts",
     "probe:boss": "tsx --env-file=.env.local scripts/probe-boss-store.ts",
     "validate:boss": "tsx --env-file=.env.local scripts/validate-boss.ts"

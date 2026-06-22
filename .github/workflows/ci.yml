@@ -30,3 +30,14 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+
+      # Argus spine eval — STATIC layer (deterministic, no API key). Gates every PR
+      # on the gross zero-judgment violations. The live LLM-judged layer runs
+      # nightly in argus-eval.yml. See argus-plugin-v2/evals/README.md.
+      - name: Argus spine static gate
+        run: node argus-plugin-v2/evals/static-gate.test.mjs
+
+      # Enforcement gates — the architectural check that the verify / route-contract /
+      # flat gates hold in session artifacts (prose rules are a floor, not enforcement).
+      - name: Argus enforcement gates
+        run: node argus-plugin-v2/scripts/validate-gates.test.mjs

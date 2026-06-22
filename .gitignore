@@ -59,3 +59,6 @@ ds-bundle/
 .design-diag-shots/
 .design-diag-dev.log
 .design-sync/styles.css
+
+# Argus eval run artifact
+argus-plugin-v2/evals/report.json
