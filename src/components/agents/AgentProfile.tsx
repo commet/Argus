@@ -234,7 +234,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
             <section>
               <SectionLabel>{L(`관찰 (${agent.observations.length})`, `Observations (${agent.observations.length})`)}</SectionLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {agent.observations
+                {[...agent.observations]
                   .sort((a, b) => b.confidence - a.confidence)
                   .map(obs => (
                     <div

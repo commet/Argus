@@ -220,6 +220,7 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
   const [phase, setPhase] = useState<RehearsalPhase>('setup');
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [discussionLoading, setDiscussionLoading] = useState(false);
+  const [discussionError, setDiscussionError] = useState('');
   const [latestFeedback, setLatestFeedback] = useState<FeedbackRecord | null>(null);
   const [handoffContent, setHandoffContent] = useState<string>('');
   const [handoffTitle, setHandoffTitle] = useState<string>('');
@@ -445,6 +446,7 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
   // ── Discussion simulation ──
   const handleStartDiscussion = async () => {
     if (!latestFeedback || latestFeedback.results.length < 2) return;
+    setDiscussionError('');
     setDiscussionLoading(true);
     try {
       const personaProfiles = latestFeedback.results.map(r => {
@@ -478,8 +480,9 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
       });
       track('discussion_complete', { message_count: discussionResult.messages.length });
     } catch (err) {
+      // CLAUDE.md forbids OS dialogs — surface as an inline banner with retry.
       const de = toDisplayError(err);
-      alert(L('토론을 생성할 수 없었습니다. ', 'Could not generate discussion. ') + de.message);
+      setDiscussionError(L('토론을 생성할 수 없었습니다. ', 'Could not generate discussion. ') + de.message);
     } finally {
       setDiscussionLoading(false);
     }
@@ -754,6 +757,15 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
             onStartDiscussion={handleStartDiscussion}
             discussionLoading={discussionLoading}
           />
+
+          {discussionError && (
+            <div role="alert" className="flex items-center justify-between gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2">
+              <span className="min-w-0">{discussionError}</span>
+              <button onClick={() => { setDiscussionError(''); handleStartDiscussion(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer transition-colors">
+                {L('다시 시도', 'Retry')}
+              </button>
+            </div>
+          )}
 
           {latestFeedback?.project_id && (
             <NextStepGuide
