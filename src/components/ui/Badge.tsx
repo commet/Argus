@@ -25,6 +25,10 @@ export function Badge({ variant = 'default', children }: BadgeProps) {
         text-[12px] font-semibold tracking-[0.04em]
         ${variantStyles[variant]}
       `}
+      // Dimensional rebuild: an inset top highlight + micro drop shadow give the
+      // engraved-into-the-surface feel (ArgusV2 foundry direction). Overrides the
+      // flat variant shadow; theme-safe (the white highlight stays subtle in dark).
+      style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,.55), 0 1px 2px rgba(0,0,0,.06)' }}
     >
       {children}
     </span>
