@@ -86,6 +86,40 @@ Version-level files in `versions/{label}/*.json` (authoritative, write-once):
 - A version starts when `/argus:clarify`, `/argus:team`, `/argus:verify`, or
   `/argus:boss` begins a new draft chain.
 
+## Write Discipline (Atomic)
+
+The read side (clarify Error modes — the canonical corrupt/partial-read guard)
+quarantines a half-written file *after the fact*. This is its write-side
+counterpart: stop the half-written file from being produced in the first place.
+"write-once" above is a *concurrency* property (don't duplicate write-many
+artifacts into one blob); atomicity is a *separate* property and is mandatory:
+
+- **Temp + rename, never in place.** Write the complete content to
+  `<name>.json.tmp` in the same directory, then atomically `rename` it over
+  `<name>.json` (a same-directory rename is atomic on every target filesystem). A
+  reader therefore always observes either the complete previous file or the
+  complete new file — never a truncation. **Never write in place over a good
+  file:** a process killed mid-write would destroy the only copy, leaving the
+  corrupt-read guard with nothing to fall back to.
+- **A leftover `*.json.tmp` is the signature of a crashed write.** The canonical
+  `<name>.json` beside it is still intact (old or new content). Readers IGNORE
+  `*.tmp` / `*.stream.partial` entirely — never parse one as the artifact and never
+  quarantine it as if it were (it is not a corrupt artifact, it is a discarded
+  write attempt). The next writer overwrites it.
+- **Write a set-valued artifact once, when the set is complete.** `workers.json`
+  (and any file holding a planned *set*) is written a single time after the full
+  set is assembled — never appended entry-by-entry. Atomic single-file writes
+  prevent byte-level truncation; writing the set in one shot prevents the *other*
+  partial — a syntactically valid file holding fewer items than planned, which
+  would read as a falsely complete smaller set. (A genuinely interrupted *run* —
+  team killed before assembling the set — leaves no `workers.json` at all, which
+  reads correctly as "team did not finish"; verify/sail then re-run team rather
+  than trusting a partial.)
+- **Universal, no drift list.** Every skill that writes any stored session or
+  version `.json` owns this discipline — clarify, team, verify, boss, chart, sail,
+  revise, settle. Same rule as the read side: if a skill writes a stored `.json`,
+  it writes it atomically. Do not maintain a hand-picked list of who must comply.
+
 ## Git Commitment
 
 **Local by default, shareable by opt-in.** Sessions contain code diffs and
@@ -101,7 +135,12 @@ ignore the noise:
 ```text
 .argus/sessions/*/errors.log
 .argus/sessions/*/versions/**/*.stream.partial
+.argus/sessions/*/versions/**/*.json.tmp
 ```
+
+(`*.json.tmp` is the atomic-write scratch file from the Write Discipline above —
+a crashed write may leave one behind; it is never the artifact, so it must never
+travel in a shared session.)
 
 (The canonical error log is `.argus/sessions/{id}/errors.log` — sail, team, and this layout all write there. Do not write a per-version `errors.log`.)
 
