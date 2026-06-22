@@ -50,22 +50,27 @@ async function resolveLang(): Promise<Lang> {
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await resolveLang();
   const m = META_STRINGS[lang];
+  // The locale-less path of THIS request (set by proxy.ts), e.g. '' or '/guide'.
+  // Without it every page would inherit the homepage's canonical/hreflang and
+  // Google would treat sub-pages as duplicates of the locale homepage.
+  const path = (await headers()).get('x-pathname') || '';
 
   return {
     title: m.title,
     description: m.description,
     metadataBase: new URL(SITE_URL),
     alternates: {
-      canonical: `${SITE_URL}/${lang}`,
+      canonical: `${SITE_URL}/${lang}${path}`,
       languages: {
-        en: `${SITE_URL}/en`,
-        ko: `${SITE_URL}/ko`,
+        en: `${SITE_URL}/en${path}`,
+        ko: `${SITE_URL}/ko${path}`,
+        'x-default': `${SITE_URL}/en${path}`,
       },
     },
     openGraph: {
       title: m.title,
       description: m.descriptionShort,
-      url: `${SITE_URL}/${lang}`,
+      url: `${SITE_URL}/${lang}${path}`,
       siteName: 'Argus',
       locale: m.ogLocale,
       type: 'website',
