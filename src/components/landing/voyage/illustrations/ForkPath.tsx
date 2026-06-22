@@ -15,8 +15,11 @@
  */
 
 import { useEffect, useRef, useState, useId } from 'react';
+import { useLocale } from '@/hooks/useLocale';
 
 export function ForkPath({ className, label }: { className?: string; label?: string }) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const uid = useId().replace(/:/g, '');
   const gridId = `bf-grid-${uid}`;
   const arrowId = `bf-arrow-${uid}`;
@@ -106,7 +109,7 @@ export function ForkPath({ className, label }: { className?: string; label?: str
         <path d={`M ${buoy.x - 30} ${buoy.y + 8} C 540 -40, 230 150, ${O.x + 70} ${O.y - 30}`} fill="none" stroke="var(--bp-ink-soft)" strokeWidth="1.3" strokeDasharray="5 4" opacity="0.58" markerEnd={`url(#${arrowId})`} />
         <rect x={buoy.x - 44} y={buoy.y - 15} width="88" height="30" rx="3" fill="var(--bp-paper)" stroke="var(--bp-ink-soft)" strokeWidth="1.1" />
         <text x={buoy.x} y={buoy.y + 5} textAnchor="middle" className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 14, letterSpacing: '0.12em', fontWeight: 700 }}>6.30</text>
-        <text x={buoy.x} y={buoy.y + 34} textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 12.5 }}>정한 날, 먼저 물어와요</text>
+        <text x={buoy.x} y={buoy.y + 34} textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 12.5 }}>{L('정한 날, 먼저 물어와요', 'On your date, I ask first')}</text>
       </g>
 
       {/* the ONLY saturated gold — the divergence pivot (ignites once) */}
@@ -119,14 +122,14 @@ export function ForkPath({ className, label }: { className?: string; label?: str
       {/* annotations — navy ink, so gold stays singular */}
       <g className="bf-soft" style={{ ['--g' as string]: '1620ms' }}>
         <line x1={fork.x} y1={fork.y - 26} x2={fork.x} y2="118" stroke="var(--bp-ink-soft)" strokeWidth="0.9" opacity="0.6" />
-        <text x={fork.x} y="106" textAnchor="middle" className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 16, fontWeight: 800 }}>여기서 길이 갈려요</text>
-        <text x={fork.x} y="128" textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 13 }}>아직 비워둔 판단입니다</text>
+        <text x={fork.x} y="106" textAnchor="middle" className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 16, fontWeight: 800 }}>{L('여기서 길이 갈려요', 'This is where it forks')}</text>
+        <text x={fork.x} y="128" textAnchor="middle" className="bp-mono" fill="var(--bp-ink-soft)" style={{ fontSize: 13 }}>{L('아직 비워둔 판단입니다', 'the judgment you left blank')}</text>
       </g>
-      <text x={O.x - 2} y={O.y - 20} className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 14, fontWeight: 800 }}>당신의 계획</text>
-      <text x="150" y={O.y + 40} className="bp-mono bf-soft" fill="var(--bp-ink-soft)" style={{ fontSize: 12.5, ['--g' as string]: '880ms' }}>읽는 눈, 넷 — 저마다 다른 시선</text>
+      <text x={O.x - 2} y={O.y - 20} className="bp-mono" fill="var(--bp-ink)" style={{ fontSize: 14, fontWeight: 800 }}>{L('당신의 계획', 'Your plan')}</text>
+      <text x="150" y={O.y + 40} className="bp-mono bf-soft" fill="var(--bp-ink-soft)" style={{ fontSize: 12.5, ['--g' as string]: '880ms' }}>{L('읽는 눈, 넷 — 저마다 다른 시선', 'Four eyes reading — each its own angle')}</text>
 
       {/* marginalia plate */}
-      <text x="32" y="384" className="bp-mono" fill="var(--bp-ink-soft)" opacity="0.5" style={{ fontSize: 11, letterSpacing: '0.16em' }}>ARGUS · fig. I — 읽힘의 도해</text>
+      <text x="32" y="384" className="bp-mono" fill="var(--bp-ink-soft)" opacity="0.5" style={{ fontSize: 11, letterSpacing: '0.16em' }}>{L('ARGUS · fig. I — 읽힘의 도해', 'ARGUS · fig. I — the anatomy of being read')}</text>
     </svg>
   );
 }

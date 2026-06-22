@@ -129,7 +129,7 @@ export async function runWorkerTask(
   let searchContext = '';
   if (agent?.capabilities.includes('web_search')) {
     try {
-      const results = await fetchSearchResults(task.task);
+      const results = await fetchSearchResults(task.task, locale);
       searchContext = buildSearchContext(results);
     } catch {
       // 검색 실패 시 무시 — 작업 자체는 계속 진행
@@ -345,6 +345,7 @@ export async function runPipeline(
     return 0;
   });
 
+  const locale = getCurrentLanguage();
   const stageResults = new Map<string, Map<string, string>>(); // stageId → (workerId → result text)
 
   // Crash resume: seed stageResults with already-completed workers
@@ -388,7 +389,11 @@ export async function runPipeline(
         const priorText = Array.from(sourceResults.entries())
           .map(([wId, text]) => {
             const w = workers.find(w2 => w2.id === wId);
-            return `[${w?.persona?.name || '팀원'}의 분석]\n${text}`;
+            const fallbackName = locale === 'en' ? 'Team member' : '팀원';
+            const analysisLabel = locale === 'en'
+              ? `[Analysis by ${w?.persona?.name || fallbackName}]`
+              : `[${w?.persona?.name || fallbackName}의 분석]`;
+            return `${analysisLabel}\n${text}`;
           })
           .join('\n\n---\n\n');
 
@@ -397,7 +402,7 @@ export async function runPipeline(
           peerResults: priorText,
           qaHistory: [
             ...context.qaHistory,
-            { q: '이전 팀원들의 분석 결과', a: priorText },
+            { q: locale === 'en' ? "Previous team members' analysis" : '이전 팀원들의 분석 결과', a: priorText },
           ],
         };
       }
@@ -428,12 +433,12 @@ export async function runPipeline(
 
 // ─── Web Search ───
 
-async function fetchSearchResults(query: string): Promise<SearchResult[]> {
+async function fetchSearchResults(query: string, locale?: 'ko' | 'en'): Promise<SearchResult[]> {
   try {
     const res = await fetch('/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: query.slice(0, 300) }),
+      body: JSON.stringify({ query: query.slice(0, 300), locale: locale ?? getCurrentLanguage() }),
     });
     if (!res.ok) return [];
     const { results } = await res.json();

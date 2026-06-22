@@ -687,12 +687,18 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
           <p className="text-[12px] text-[var(--text-secondary)]">{L('이름, 직책, 성격, 의사결정 스타일, 최근 관심사 — 무엇이든.', 'Name, role, personality, decision style, recent concerns — anything.')}</p>
           <div className="relative">
             <AnimatedPlaceholder
-              texts={[
+              texts={locale === 'ko' ? [
                 '김 상무님은 CFO입니다. ROI를 최우선시하고, 결론부터 듣고 싶어합니다.',
                 '박 대표님은 비전형 리더입니다. 큰 그림을 먼저 보고, 시장 기회를 놓치면 안 된다고 강조합니다.',
                 '이 팀장은 기술 출신입니다. 실현 가능성과 구체적 스펙을 먼저 확인하려 합니다.',
                 '정 이사님은 투자자입니다. 유닛 이코노믹스와 시장 규모부터 봅니다.',
                 '최 부장은 클라이언트 측 PM입니다. 납기와 리스크 사전 공유를 중시합니다.',
+              ] : [
+                'Director Kim is our CFO. ROI comes first, and they want the conclusion up front.',
+                'CEO Park is a visionary leader. They look at the big picture first and stress not missing market opportunities.',
+                'Team lead Lee has an engineering background. They check feasibility and concrete specs first.',
+                'Director Jung is an investor. They look at unit economics and market size first.',
+                'Manager Choi is the PM on the client side. They value delivery timelines and sharing risks early.',
               ]}
               visible={!freeText.trim()}
               className="absolute left-4 top-3 text-[14px] text-[var(--text-secondary)] leading-[1.7] max-w-[calc(100%-2rem)] truncate"

@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, MessageSquare, Share2 } from 'lucide-react';
 import { useBossStore } from '@/stores/useBossStore';
 import { getPersonalityType, PERSONALITY_TYPES } from '@/lib/boss/personality-types';
-import { pickScenarios, detectCategory, DIFFICULTY_LABELS, type Scenario } from '@/lib/boss/scenarios';
+import { pickScenarios, detectCategory, getDifficultyLabel, type Scenario } from '@/lib/boss/scenarios';
 import { CollectionProgress } from './CollectionProgress';
 import { InnerMonologueCard } from './InnerMonologueCard';
 import { useT } from '@/contexts/LocaleProvider';
+import { useLocale } from '@/hooks/useLocale';
 
 interface PostVerdictPanelProps {
   verdict: { verdict: string; reason: string; tip?: string };
@@ -17,6 +18,7 @@ interface PostVerdictPanelProps {
 
 export function PostVerdictPanel({ verdict, onShare }: PostVerdictPanelProps) {
   const t = useT();
+  const locale = useLocale();
   const { lastSituation, resetForNewType, resetForNewSituation, addUserMessage, startChat } = useBossStore();
   const axes = useBossStore(s => s.axes);
   const typeCode = `${axes.ei}${axes.sn}${axes.tf}${axes.jp}`;
@@ -38,7 +40,7 @@ export function PostVerdictPanel({ verdict, onShare }: PostVerdictPanelProps) {
 
   const handleScenario = (scenario: Scenario) => {
     resetForNewSituation();
-    addUserMessage(scenario.text);
+    addUserMessage(locale === 'en' ? scenario.textEn : scenario.text);
     startChat();
   };
 
@@ -100,7 +102,7 @@ export function PostVerdictPanel({ verdict, onShare }: PostVerdictPanelProps) {
                   </p>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {scenarios.map(s => {
-                      const diff = DIFFICULTY_LABELS[s.difficulty];
+                      const diff = getDifficultyLabel(s.difficulty, locale);
                       return (
                         <button
                           key={s.id}
@@ -115,7 +117,7 @@ export function PostVerdictPanel({ verdict, onShare }: PostVerdictPanelProps) {
                           onMouseOut={e => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
                         >
                           <span style={{ fontSize: 20, display: 'block', marginBottom: 4 }}>{s.emoji}</span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block' }}>{s.displayText}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', display: 'block' }}>{locale === 'en' ? s.displayTextEn : s.displayText}</span>
                           <span style={{ fontSize: 10, color: diff.color, fontWeight: 500 }}>{diff.label}</span>
                         </button>
                       );

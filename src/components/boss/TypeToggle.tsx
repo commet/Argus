@@ -1,15 +1,18 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { AXES } from '@/lib/boss/personality-types';
+import { getLocalizedAxes } from '@/lib/boss/personality-types';
 import { useBossStore } from '@/stores/useBossStore';
 import { track } from '@/lib/analytics';
+import { useLocale } from '@/hooks/useLocale';
 
 /**
  * 4-axis pill selector with boss context hints.
  * E/I  S/N  T/F  J/P — each with a boss-specific description.
  */
 export function TypeToggle() {
+  const locale = useLocale();
+  const localizedAxes = getLocalizedAxes(locale);
   const axes = useBossStore((s) => s.axes);
   const setAxis = useBossStore((s) => s.setAxis);
 
@@ -21,7 +24,7 @@ export function TypeToggle() {
 
   return (
     <div className="bt-row">
-      {AXES.map((axis) => {
+      {localizedAxes.map((axis) => {
         const current = axes[axis.key];
         const isLeft = current === axis.left.code;
         const activeDesc = isLeft ? axis.left.desc : axis.right.desc;
