@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useLocale } from '@/hooks/useLocale';
 
 interface DecisionVoyageFilmProps {
   speed?: number; // 0.5 – 1.6
@@ -45,36 +46,38 @@ type Session = {
   plateSub: string;
 };
 
-const D: [Session, Session] = [
-  {
-    ctx: '신규 가입이 3주째 폭증 중. 지금이 절호의 기회처럼 보인다.',
-    q: '마케팅 예산을 2배로 태울까?',
-    prem: '“지금 몰린 사용자는 그대로 남는다”',
-    premSub: '이 가정부터 따져봐야 한다.',
-    s: ['CAC 회수 24개월', '신규 유입 3.2x ↑', 'D7 잔존 8%'],
-    a: { eye: '아니오 · 전제가 틀리다', t: '누수부터 막고 키운다', i: '느리지만 안전 · 이탈을 먼저.' },
-    b: { eye: '예 · 전제가 맞다', t: '예산 2배 증액', i: '빠르지만 위험 · 밑 빠진 독.' },
-    c: null,
-    three: false,
-    chosen: 'a',
-    plate: '전제 교정 — 누수부터 막고 키운다',
-    plateSub: '다음 갈림길: 이탈을 어디서 막을지.',
-  },
-  {
-    ctx: '잔존을 끌어올리기로 했다. 그런데 팀은 자꾸 새 기능부터 만들자고 한다.',
-    q: '이탈, 어디서 막을까?',
-    prem: '“기능이 많아질수록 더 머무른다”',
-    premSub: '모두가 당연하게 믿는 가정.',
-    s: ['기능 추가 ROI 0.4x', '신규 첫날 이탈 62%', '가치 체감 시 잔존 3배'],
-    a: { eye: 'A · 온보딩 재설계', t: '첫날 이탈부터 잡기', i: '효과는 빠르지만 표면적.' },
-    b: { eye: 'B · 핵심 가치를 체감', t: '“쓰는 이유”를 먼저 경험', i: '근본적 · 체감 시 잔존 3배.' },
-    c: { eye: 'C · 기능 더 추가', t: '요구는 많지만', i: '정작 잔존엔 영향이 적다.' },
-    three: true,
-    chosen: 'b',
-    plate: '전제 교정 — 기능이 아니라 “쓰는 이유”가 잔존을 만든다',
-    plateSub: '다음: 가치를 체감하기까지의 단계를 설계.',
-  },
-];
+function buildSessions(L: (ko: string, en: string) => string): [Session, Session] {
+  return [
+    {
+      ctx: L('신규 가입이 3주째 폭증 중. 지금이 절호의 기회처럼 보인다.', 'New signups have spiked for three straight weeks. It looks like the perfect moment.'),
+      q: L('마케팅 예산을 2배로 태울까?', 'Should we double the marketing budget?'),
+      prem: L('“지금 몰린 사용자는 그대로 남는다”', '"The users flooding in now will stay."'),
+      premSub: L('이 가정부터 따져봐야 한다.', 'That assumption is the first thing to test.'),
+      s: [L('CAC 회수 24개월', 'CAC payback 24 mo'), L('신규 유입 3.2x ↑', 'New signups 3.2x ↑'), L('D7 잔존 8%', 'D7 retention 8%')],
+      a: { eye: L('아니오 · 전제가 틀리다', 'No · the premise is wrong'), t: L('누수부터 막고 키운다', 'Plug the leak, then grow'), i: L('느리지만 안전 · 이탈을 먼저.', 'Slower but safe · churn first.') },
+      b: { eye: L('예 · 전제가 맞다', 'Yes · the premise holds'), t: L('예산 2배 증액', 'Double the budget'), i: L('빠르지만 위험 · 밑 빠진 독.', 'Fast but risky · a leaky bucket.') },
+      c: null,
+      three: false,
+      chosen: 'a',
+      plate: L('전제 교정 — 누수부터 막고 키운다', 'Premise corrected — plug the leak before growing'),
+      plateSub: L('다음 갈림길: 이탈을 어디서 막을지.', 'Next fork: where to stop the churn.'),
+    },
+    {
+      ctx: L('잔존을 끌어올리기로 했다. 그런데 팀은 자꾸 새 기능부터 만들자고 한다.', 'You decided to lift retention. But the team keeps wanting to build new features first.'),
+      q: L('이탈, 어디서 막을까?', 'Churn — where do we stop it?'),
+      prem: L('“기능이 많아질수록 더 머무른다”', '"The more features, the longer they stay."'),
+      premSub: L('모두가 당연하게 믿는 가정.', 'The assumption everyone takes for granted.'),
+      s: [L('기능 추가 ROI 0.4x', 'New-feature ROI 0.4x'), L('신규 첫날 이탈 62%', 'Day-1 churn 62%'), L('가치 체감 시 잔존 3배', '3x retention once value lands')],
+      a: { eye: L('A · 온보딩 재설계', 'A · redesign onboarding'), t: L('첫날 이탈부터 잡기', 'Stop the day-1 drop-off'), i: L('효과는 빠르지만 표면적.', 'Fast effect, but surface-level.') },
+      b: { eye: L('B · 핵심 가치를 체감', 'B · make the core value land'), t: L('“쓰는 이유”를 먼저 경험', 'Feel the "why use it" first'), i: L('근본적 · 체감 시 잔존 3배.', 'Fundamental · 3x retention once it lands.') },
+      c: { eye: L('C · 기능 더 추가', 'C · add more features'), t: L('요구는 많지만', 'Much-requested, but'), i: L('정작 잔존엔 영향이 적다.', 'barely moves retention.') },
+      three: true,
+      chosen: 'b',
+      plate: L('전제 교정 — 기능이 아니라 “쓰는 이유”가 잔존을 만든다', 'Premise corrected — not features but the "why" drives retention'),
+      plateSub: L('다음: 가치를 체감하기까지의 단계를 설계.', 'Next: design the steps until value lands.'),
+    },
+  ];
+}
 
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 const smooth = (x: number) => {
@@ -114,8 +117,9 @@ const card = (l: number, tp: number | string, w: number, r: number | string, ext
   );
 
 // renderVals returns an untyped style/text map (mirrors the reference's R).
-function renderVals(t: number) {
+function renderVals(t: number, L: (ko: string, en: string) => string) {
   const R: Record<string, React.CSSProperties | string> = {};
+  const D = buildSessions(L);
   const act = t < ACT ? 0 : 1;
   const lt = t - act * ACT;
   const Dn = D[act];
@@ -423,13 +427,13 @@ function renderVals(t: number) {
     boxShadow: '0 0 8px rgba(216,178,94,.5)',
   };
   const ph: Array<[number, number, string]> = [
-    [0, 3000, '질문 · Argus가 묻는다'],
-    [3000, 6500, '전제 도출 · 크루가 캐낸 가정'],
-    [6500, 10000, act === 0 ? '갈림길 · 예 / 아니오' : '갈림길 · 세 갈래'],
-    [10000, 13000, '선택 · 당신이 정한다'],
-    [13000, 16400, '전진 · 배가 나아간다'],
-    [16400, 19400, '현재 방위 · 결정의 의미'],
-    [19400, 22000, '다음 세션으로'],
+    [0, 3000, L('질문 · Argus가 묻는다', 'Question · Argus asks')],
+    [3000, 6500, L('전제 도출 · 크루가 캐낸 가정', 'Premise · the assumption the crew dug up')],
+    [6500, 10000, act === 0 ? L('갈림길 · 예 / 아니오', 'Fork · yes / no') : L('갈림길 · 세 갈래', 'Fork · three ways')],
+    [10000, 13000, L('선택 · 당신이 정한다', 'Choice · you decide')],
+    [13000, 16400, L('전진 · 배가 나아간다', 'Advance · the ship moves')],
+    [16400, 19400, L('현재 방위 · 결정의 의미', 'Current Heading · what the decision means')],
+    [19400, 22000, L('다음 세션으로', 'On to the next session')],
   ];
   let pc = 6;
   for (let i = 0; i < ph.length; i++) {
@@ -484,9 +488,10 @@ function renderVals(t: number) {
   return R;
 }
 
-const CREW_MED = [
+function buildCrewMed(L: (ko: string, en: string) => string) {
+  return [
   {
-    label: '재무·회계',
+    label: L('재무·회계', 'Finance · Accounting'),
     icon: (
       <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
         <path d="M16 5 V27 M9 27 H23 M16 9 L6 13 M16 9 L26 13" stroke="#3a2a10" strokeWidth="2" strokeLinecap="round" />
@@ -495,7 +500,7 @@ const CREW_MED = [
     ),
   },
   {
-    label: '마케팅·그로스',
+    label: L('마케팅·그로스', 'Marketing · Growth'),
     icon: (
       <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
         <path d="M5 25 V18 M13 25 V13 M21 25 V9 M29 25 V4" stroke="#3a2a10" strokeWidth="2.4" strokeLinecap="round" />
@@ -504,7 +509,7 @@ const CREW_MED = [
     ),
   },
   {
-    label: '전략',
+    label: L('전략', 'Strategy'),
     icon: (
       <svg width="17" height="17" viewBox="0 0 32 32" fill="none">
         <path d="M9 4 V28" stroke="#3a2a10" strokeWidth="2.4" strokeLinecap="round" />
@@ -512,9 +517,13 @@ const CREW_MED = [
       </svg>
     ),
   },
-];
+  ];
+}
 
 export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: DecisionVoyageFilmProps) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const CREW_MED = buildCrewMed(L);
   const [t, setT] = useState(0);
 
   useEffect(() => {
@@ -538,7 +547,7 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
     return () => cancelAnimationFrame(raf);
   }, [speed, pauseAtArrival]);
 
-  const R = renderVals(t);
+  const R = renderVals(t, L);
   const s = (k: string) => R[k] as React.CSSProperties;
   const txt = (k: string) => R[k] as string;
   const medStyles = [s('m0'), s('m1'), s('m2')];
@@ -563,7 +572,7 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '0 4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <span style={{ width: 22, height: 1, background: '#a87d31' }} />
-            <span style={{ whiteSpace: 'nowrap', font: `600 11px/1 ${MONO}`, letterSpacing: '.24em', textTransform: 'uppercase', color: '#a87d31' }}>Argus · 항적 The Trail</span>
+            <span style={{ whiteSpace: 'nowrap', font: `600 11px/1 ${MONO}`, letterSpacing: '.24em', textTransform: 'uppercase', color: '#a87d31' }}>{L('Argus · 항적 The Trail', 'Argus · The Trail')}</span>
           </div>
           <span style={s('oPhase')}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#c2933f', boxShadow: '0 0 6px #d8b25e' }} />
@@ -676,7 +685,7 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
 
           {/* ===== FLAT OVERLAYS ===== */}
           <div style={s('oOrder')}>
-            <span style={{ display: 'block', font: `700 10px/1 ${MONO}`, letterSpacing: '.2em', textTransform: 'uppercase', color: '#a87d31' }}>선장의 지시</span>
+            <span style={{ display: 'block', font: `700 10px/1 ${MONO}`, letterSpacing: '.2em', textTransform: 'uppercase', color: '#a87d31' }}>{L('선장의 지시', "Captain's orders")}</span>
             <p style={{ margin: '7px 0 0', font: `400 12.5px/1.55 ${SERIF}`, color: '#6b5c38', wordBreak: 'keep-all' }}>{txt('orderCtx')}</p>
             <p style={{ margin: '6px 0 0', font: `600 17px/1.45 ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('orderQ')}</p>
           </div>
@@ -687,7 +696,7 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
                 <circle cx="10" cy="10" r="6.5" stroke="#a87d31" strokeWidth="2.2" />
                 <path d="M15 15 L21 21" stroke="#a87d31" strokeWidth="2.6" strokeLinecap="round" />
               </svg>
-              <span style={{ font: `700 9.5px/1 ${MONO}`, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a87d31', whiteSpace: 'nowrap' }}>숨은 전제 · Argus가 들춤</span>
+              <span style={{ font: `700 9.5px/1 ${MONO}`, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a87d31', whiteSpace: 'nowrap' }}>{L('숨은 전제 · Argus가 들춤', 'Hidden premise · surfaced by Argus')}</span>
             </div>
             <h4 style={{ margin: 0, font: `600 16px/1.4 ${SERIF}`, color: '#f4ecd6', wordBreak: 'keep-all' }}>{txt('premText')}</h4>
             <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.45, color: '#cabb95', wordBreak: 'keep-all' }}>{txt('premSub')}</p>
@@ -697,24 +706,24 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
           <div style={s('cA')}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <span style={{ font: `700 9.5px/1 ${MONO}`, letterSpacing: '.06em', textTransform: 'uppercase', color: txt('aEyeColor') }}>{txt('aEye')}</span>
-              <span style={s('aStamp')}>현재 방위</span>
+              <span style={s('aStamp')}>{L('현재 방위', 'Current Heading')}</span>
             </div>
             <h4 style={{ margin: 0, font: `600 15px ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('aTitle')}</h4>
             <p style={{ margin: 0, fontSize: 11, lineHeight: 1.45, color: '#6b5c38', wordBreak: 'keep-all' }}>{txt('aImpl')}</p>
             <span style={s('aPick')}>
-              <span style={{ flex: 'none', display: 'grid', placeItems: 'center', width: 15, height: 15, borderRadius: '50%', background: '#1f8a5b', color: '#fff', font: `700 10px/1 ${MONO}` }}>✓</span>선택됨 · Argus 추천
+              <span style={{ flex: 'none', display: 'grid', placeItems: 'center', width: 15, height: 15, borderRadius: '50%', background: '#1f8a5b', color: '#fff', font: `700 10px/1 ${MONO}` }}>✓</span>{L('선택됨 · Argus 추천', "Chosen · Argus's pick")}
             </span>
           </div>
           {/* choice card B */}
           <div style={s('cB')}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <span style={{ font: `700 9.5px/1 ${MONO}`, letterSpacing: '.06em', textTransform: 'uppercase', color: txt('bEyeColor') }}>{txt('bEye')}</span>
-              <span style={s('bStamp')}>현재 방위</span>
+              <span style={s('bStamp')}>{L('현재 방위', 'Current Heading')}</span>
             </div>
             <h4 style={{ margin: 0, font: `600 15px ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('bTitle')}</h4>
             <p style={{ margin: 0, fontSize: 11, lineHeight: 1.45, color: '#6b5c38', wordBreak: 'keep-all' }}>{txt('bImpl')}</p>
             <span style={s('bPick')}>
-              <span style={{ flex: 'none', display: 'grid', placeItems: 'center', width: 15, height: 15, borderRadius: '50%', background: '#1f8a5b', color: '#fff', font: `700 10px/1 ${MONO}` }}>✓</span>선택됨 · Argus 추천
+              <span style={{ flex: 'none', display: 'grid', placeItems: 'center', width: 15, height: 15, borderRadius: '50%', background: '#1f8a5b', color: '#fff', font: `700 10px/1 ${MONO}` }}>✓</span>{L('선택됨 · Argus 추천', "Chosen · Argus's pick")}
             </span>
           </div>
           {/* choice card C (act 2 only) */}
@@ -736,8 +745,8 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
 
           <div style={s('oCrew')}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, whiteSpace: 'nowrap' }}>
-              <span style={{ font: `700 10px/1 ${MONO}`, letterSpacing: '.05em', textTransform: 'uppercase', color: '#a87d31' }}>쟁점 자동 감지</span>
-              <span style={{ font: `700 11px/1 ${MONO}`, letterSpacing: '.03em', textTransform: 'uppercase', color: '#5a3f16' }}>→ 크루 배정</span>
+              <span style={{ font: `700 10px/1 ${MONO}`, letterSpacing: '.05em', textTransform: 'uppercase', color: '#a87d31' }}>{L('쟁점 자동 감지', 'Issues auto-detected')}</span>
+              <span style={{ font: `700 11px/1 ${MONO}`, letterSpacing: '.03em', textTransform: 'uppercase', color: '#5a3f16' }}>{L('→ 크루 배정', '→ crew assigned')}</span>
             </div>
             <span style={{ width: 1, height: 38, background: 'rgba(120,90,40,.25)' }} />
             {CREW_MED.map((m, k) => (
@@ -750,7 +759,7 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
           </div>
 
           <div style={s('oPlate')}>
-            <span style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', font: `600 9.5px/1 ${MONO}`, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8c6526', padding: '7px 11px', borderRadius: 8, border: '1px solid rgba(168,125,49,.34)', background: 'rgba(168,125,49,.12)' }}>현재 방위</span>
+            <span style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', font: `600 9.5px/1 ${MONO}`, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8c6526', padding: '7px 11px', borderRadius: 8, border: '1px solid rgba(168,125,49,.34)', background: 'rgba(168,125,49,.12)' }}>{L('현재 방위', 'Current Heading')}</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
               <h3 style={{ margin: 0, font: `600 15px/1.3 ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('plateTitle')}</h3>
               <span style={{ fontSize: 11.5, lineHeight: 1.4, color: '#6b5c38', wordBreak: 'keep-all' }}>{txt('plateSub')}</span>
@@ -766,10 +775,10 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
               <path d="M9 50 L50 43 L91 50 L50 57 Z" fill="#f6ecd6" opacity=".4" />
               <circle cx="50" cy="50" r="4" fill="#f6ecd6" />
             </svg>
-            <span style={{ display: 'block', font: `700 10px/1 ${MONO}`, letterSpacing: '.32em', textTransform: 'uppercase', color: '#e2bf6e' }}>다음 항해 · Session 2 / 2</span>
-            <h3 style={{ margin: '11px 0 0', font: `600 26px/1.25 ${SERIF}`, letterSpacing: '-.01em', color: '#f8efda', wordBreak: 'keep-all' }}>새로운 갈림길</h3>
+            <span style={{ display: 'block', font: `700 10px/1 ${MONO}`, letterSpacing: '.32em', textTransform: 'uppercase', color: '#e2bf6e' }}>{L('다음 항해 · Session 2 / 2', 'Next voyage · Session 2 / 2')}</span>
+            <h3 style={{ margin: '11px 0 0', font: `600 26px/1.25 ${SERIF}`, letterSpacing: '-.01em', color: '#f8efda', wordBreak: 'keep-all' }}>{L('새로운 갈림길', 'A new fork')}</h3>
             <div style={{ width: 44, height: 1, background: 'linear-gradient(90deg,transparent,#c2933f,transparent)', margin: '13px auto 0' }} />
-            <p style={{ margin: '12px 0 0', fontSize: 12.5, lineHeight: 1.55, color: '#d3bd92', wordBreak: 'keep-all' }}>첫 결정에서 이어집니다 — 이제, 이탈을 어디서 막을까?</p>
+            <p style={{ margin: '12px 0 0', fontSize: 12.5, lineHeight: 1.55, color: '#d3bd92', wordBreak: 'keep-all' }}>{L('첫 결정에서 이어집니다 — 이제, 이탈을 어디서 막을까?', 'Continuing from the first decision — now, where do we stop the churn?')}</p>
           </div>
 
           <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(120,90,40,.14)', zIndex: 6 }}>

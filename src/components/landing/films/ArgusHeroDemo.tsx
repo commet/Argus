@@ -21,6 +21,7 @@
 
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
+import { useLocale } from '@/hooks/useLocale';
 
 type SpeedLabel = '차분히' | '기본' | '빠르게';
 
@@ -36,13 +37,22 @@ const MONO = "'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif";
 const SANS = "var(--font-sans,'Pretendard',system-ui,sans-serif)";
 const DISPLAY = 'var(--font-display)';
 
-const S =
-  '대표님이 갑자기 신사업 기획안을 2주 안에 만들어오라고 했어. 백엔드 5명인데 기획은 처음이야.';
-const GOLDS: Array<[number, number]> = [];
-['2주 안에', '기획은 처음'].forEach((k) => {
-  const i = S.indexOf(k);
-  if (i >= 0) GOLDS.push([i, i + k.length]);
-});
+// The typed-out brief + the two gold "capture" spans. Locale-aware: the gold
+// keywords are resolved against the localized string via indexOf, so the EN
+// keywords MUST be exact substrings of the EN brief.
+function buildBrief(locale: string): { S: string; GOLDS: Array<[number, number]> } {
+  const S =
+    locale === 'ko'
+      ? '대표님이 갑자기 신사업 기획안을 2주 안에 만들어오라고 했어. 백엔드 5명인데 기획은 처음이야.'
+      : "My boss sprang a new-business proposal on us — due in 2 weeks. We're 5 backend engineers, and planning is brand new to us.";
+  const keys = locale === 'ko' ? ['2주 안에', '기획은 처음'] : ['in 2 weeks', 'planning is brand new'];
+  const GOLDS: Array<[number, number]> = [];
+  keys.forEach((k) => {
+    const i = S.indexOf(k);
+    if (i >= 0) GOLDS.push([i, i + k.length]);
+  });
+  return { S, GOLDS };
+}
 const SEGS: Array<[number, number]> = [
   [0, 3600],
   [3600, 6100],
@@ -113,8 +123,10 @@ interface RenderVals {
   d: React.CSSProperties[];
 }
 
-function renderVals(t: number, reduced: boolean, grain: boolean, captionBar: boolean): RenderVals {
+function renderVals(t: number, reduced: boolean, grain: boolean, captionBar: boolean, locale: string): RenderVals {
   const R = {} as RenderVals;
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const { S, GOLDS } = buildBrief(locale);
   R.showCaption = captionBar !== false;
   R.showGrain = grain !== false;
   R.s = [];
@@ -130,12 +142,12 @@ function renderVals(t: number, reduced: boolean, grain: boolean, captionBar: boo
   }
   if (reduced) sc = 5;
   const statuses: Array<[string, string]> = [
-    ['상황 읽는 중', 'var(--accent)'],
-    ['크루 소환', 'var(--accent)'],
-    ['해도 분석 중', 'var(--accent)'],
-    ['확인 필요', '#c9852f'],
-    ['크루 작업 중', 'var(--accent)'],
-    ['초안 완성', 'var(--success)'],
+    [L('상황 읽는 중', 'Reading the situation'), 'var(--accent)'],
+    [L('크루 소환', 'Summoning crew'), 'var(--accent)'],
+    [L('해도 분석 중', 'Reading the chart'), 'var(--accent)'],
+    [L('확인 필요', 'Needs your check'), '#c9852f'],
+    [L('크루 작업 중', 'Crew at work'), 'var(--accent)'],
+    [L('초안 완성', 'Draft ready'), 'var(--success)'],
   ];
   R.statusLabel = statuses[sc][0];
   R.statusDot = {
@@ -324,13 +336,13 @@ function renderVals(t: number, reduced: boolean, grain: boolean, captionBar: boo
     const sw = 0.05 + k * 0.05;
     const dn = 0.5 + k * 0.11;
     let kind: 'idle' | 'work' | 'done' = 'idle';
-    let label = '대기';
+    let label = L('대기', 'Idle');
     if (p4 >= dn) {
       kind = 'done';
-      label = '✓ 완료';
+      label = L('✓ 완료', '✓ Done');
     } else if (p4 >= sw) {
       kind = 'work';
-      label = '작업 중';
+      label = L('작업 중', 'Working');
     }
     R.wp[k] = pill(kind);
     R.ws[k] = label;
@@ -352,55 +364,52 @@ function renderVals(t: number, reduced: boolean, grain: boolean, captionBar: boo
   return R;
 }
 
-const CREW = [
-  {
-    name: '다은',
-    badge: '리서치',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-        <circle cx="13" cy="13" r="7" stroke="var(--text-secondary)" strokeWidth="2.1" />
-        <path d="M18.5 18.5 L25 25" stroke="var(--text-secondary)" strokeWidth="2.6" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    name: '현우',
-    badge: '전략',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-        <path d="M16 4 L19 16 L16 28 L13 16 Z" fill="var(--text-secondary)" />
-        <path d="M4 16 L16 13 L28 16 L16 19 Z" fill="var(--text-secondary)" opacity=".5" />
-      </svg>
-    ),
-  },
-  {
-    name: '규민',
-    badge: '숫자',
-    icon: (
-      <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
-        <path d="M6 9h20M6 16h20M6 23h20M11 5v22M21 5v22" stroke="var(--text-secondary)" strokeWidth="1.8" />
-      </svg>
-    ),
-  },
-  {
-    name: '동혁',
-    badge: '리스크',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-        <path d="M16 5 L28 26 H4 Z" stroke="var(--text-secondary)" strokeWidth="2" fill="none" strokeLinejoin="round" />
-        <path d="M16 13 V19" stroke="var(--text-secondary)" strokeWidth="2.2" strokeLinecap="round" />
-        <circle cx="16" cy="22.5" r="1.3" fill="var(--text-secondary)" />
-      </svg>
-    ),
-  },
+const CREW_ICONS = [
+  (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <circle cx="13" cy="13" r="7" stroke="var(--text-secondary)" strokeWidth="2.1" />
+      <path d="M18.5 18.5 L25 25" stroke="var(--text-secondary)" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
+  ),
+  (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <path d="M16 4 L19 16 L16 28 L13 16 Z" fill="var(--text-secondary)" />
+      <path d="M4 16 L16 13 L28 16 L16 19 Z" fill="var(--text-secondary)" opacity=".5" />
+    </svg>
+  ),
+  (
+    <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+      <path d="M6 9h20M6 16h20M6 23h20M11 5v22M21 5v22" stroke="var(--text-secondary)" strokeWidth="1.8" />
+    </svg>
+  ),
+  (
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <path d="M16 5 L28 26 H4 Z" stroke="var(--text-secondary)" strokeWidth="2" fill="none" strokeLinejoin="round" />
+      <path d="M16 13 V19" stroke="var(--text-secondary)" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="16" cy="22.5" r="1.3" fill="var(--text-secondary)" />
+    </svg>
+  ),
 ];
 
-const WORKERS = [
-  { name: '다은', role: '리서치' },
-  { name: '현우', role: '전략' },
-  { name: '규민', role: '숫자' },
-  { name: '동혁', role: '리스크' },
-];
+// Crew names + roles map to the canonical English agent names (agent-registry):
+// 다은→Sophie, 현우→Nathan, 규민→Ethan, 동혁→Blake.
+function buildCrew(L: (ko: string, en: string) => string) {
+  return [
+    { name: L('다은', 'Sophie'), badge: L('리서치', 'Research'), icon: CREW_ICONS[0] },
+    { name: L('현우', 'Nathan'), badge: L('전략', 'Strategy'), icon: CREW_ICONS[1] },
+    { name: L('규민', 'Ethan'), badge: L('숫자', 'Numbers'), icon: CREW_ICONS[2] },
+    { name: L('동혁', 'Blake'), badge: L('리스크', 'Risk'), icon: CREW_ICONS[3] },
+  ];
+}
+
+function buildWorkers(L: (ko: string, en: string) => string) {
+  return [
+    { name: L('다은', 'Sophie'), role: L('리서치', 'Research') },
+    { name: L('현우', 'Nathan'), role: L('전략', 'Strategy') },
+    { name: L('규민', 'Ethan'), role: L('숫자', 'Numbers') },
+    { name: L('동혁', 'Blake'), role: L('리스크', 'Risk') },
+  ];
+}
 
 const avatarBubble: React.CSSProperties = {
   width: 24,
@@ -422,6 +431,10 @@ export function ArgusHeroDemo({
   captionBar = true,
   embedded = false,
 }: ArgusHeroDemoProps) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const CREW = buildCrew(L);
+  const WORKERS = buildWorkers(L);
   const [t, setT] = useState(0);
   const [reduced, setReduced] = useState(false);
 
@@ -443,7 +456,7 @@ export function ArgusHeroDemo({
     return () => cancelAnimationFrame(raf);
   }, [speed]);
 
-  const R = renderVals(t, reduced, grain, captionBar);
+  const R = renderVals(t, reduced, grain, captionBar, locale);
 
   return (
     <div
@@ -470,12 +483,12 @@ export function ArgusHeroDemo({
             <div style={{ display: 'flex', alignItems: 'center', gap: 11, whiteSpace: 'nowrap' }}>
               <span style={{ width: 22, height: 1, background: 'var(--accent)' }} />
               <span style={{ font: `600 11px/1 ${MONO}`, letterSpacing: '.24em', textTransform: 'uppercase', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
-                Argus · 제품 미리보기
+                {L('Argus · 제품 미리보기', 'Argus · Product preview')}
               </span>
             </div>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, font: `500 11px/1 ${MONO}`, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#b25347', boxShadow: '0 0 6px rgba(178,83,71,.5)' }} />
-              자동 재생 · 반복
+              {L('자동 재생 · 반복', 'Auto-play · loops')}
             </span>
           </div>
         )}
@@ -546,11 +559,11 @@ export function ArgusHeroDemo({
               </svg>
               <span style={{ font: `600 15px ${DISPLAY}`, color: 'var(--text-primary)', letterSpacing: '-.01em', whiteSpace: 'nowrap' }}>Argus</span>
               <span style={{ flex: 'none', width: 1, height: 15, background: 'var(--border)' }} />
-              <span style={{ font: `500 12px ${MONO}`, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>신사업 기획안</span>
+              <span style={{ font: `500 12px ${MONO}`, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{L('신사업 기획안', 'New-business proposal')}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
               <div style={R.avStack}>
-                {['다', '현', '규', '동'].map((c) => (
+                {(locale === 'ko' ? ['다', '현', '규', '동'] : ['S', 'N', 'E', 'B']).map((c) => (
                   <span key={c} style={avatarBubble}>
                     {c}
                   </span>
@@ -582,7 +595,7 @@ export function ArgusHeroDemo({
               <div style={{ padding: '20px 22px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 13 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 8px color-mix(in oklab,var(--accent) 60%,transparent)' }} />
-                  <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>상황 입력</span>
+                  <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>{L('상황 입력', 'The situation')}</span>
                 </div>
                 <p style={{ margin: 0, font: `400 17px/1.7 ${DISPLAY}`, color: 'var(--text-primary)', minHeight: '3.4em' }}>
                   {R.typedNodes}
@@ -590,12 +603,12 @@ export function ArgusHeroDemo({
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>Argus가 포착 —</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{L('Argus가 포착 —', 'Argus caught —')}</span>
                 <span style={R.ann0}>
-                  <span>⚑</span>데드라인 · 2주
+                  <span>⚑</span>{L('데드라인 · 2주', 'Deadline · 2 weeks')}
                 </span>
                 <span style={R.ann1}>
-                  <span>⚠</span>미경험 리스크
+                  <span>⚠</span>{L('미경험 리스크', 'First-time risk')}
                 </span>
               </div>
             </div>
@@ -612,7 +625,7 @@ export function ArgusHeroDemo({
                   <path d="M10 50 L50 43 L90 50 L50 57 Z" fill="var(--text-primary)" opacity=".25" />
                   <circle cx="50" cy="50" r="4.5" fill="var(--text-primary)" />
                 </svg>
-                <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>크루 소환 · 다른 눈들</span>
+                <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{L('크루 소환 · 다른 눈들', 'Summoning crew · other eyes')}</span>
               </div>
               <div style={{ display: 'flex', gap: 30, flexWrap: 'wrap', justifyContent: 'center' }}>
                 {CREW.map((m, k) => (
@@ -656,20 +669,23 @@ export function ArgusHeroDemo({
               <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 13 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', animation: 'argglow 1.6s ease-in-out infinite' }} />
-                  <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.16em', textTransform: 'uppercase', color: '#8c6526', whiteSpace: 'nowrap' }}>해도 분석 중</span>
+                  <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.16em', textTransform: 'uppercase', color: '#8c6526', whiteSpace: 'nowrap' }}>{L('해도 분석 중', 'Reading the chart')}</span>
                 </div>
                 <div style={R.cd0}>
                   <div style={{ padding: '15px 17px', borderRadius: 12, background: 'linear-gradient(180deg,#fffdf8,#f7eed9)', border: '1px solid #e0cfa6', boxShadow: '0 2px 4px rgba(60,44,18,.16),0 14px 28px rgba(60,44,18,.16),inset 0 1px 0 rgba(255,255,255,.9)' }}>
-                    <span style={{ font: `600 9.5px/1 ${MONO}`, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--accent)' }}>Argus가 다시 잡은 진짜 질문</span>
+                    <span style={{ font: `600 9.5px/1 ${MONO}`, letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--accent)' }}>{L('Argus가 다시 잡은 진짜 질문', 'The real question, reframed by Argus')}</span>
                     <p style={{ margin: '8px 0 0', font: `600 16px/1.5 ${DISPLAY}`, color: '#1c1812', wordBreak: 'keep-all' }}>
-                      ‘기획안’이 아니라 — 2주 안에 검증할 <span style={{ color: 'var(--accent)' }}>첫 진입점</span>은?
+                      {L('‘기획안’이 아니라 — 2주 안에 검증할 ', 'Not "a proposal" — what\'s the ')}<span style={{ color: 'var(--accent)' }}>{L('첫 진입점', 'first entry point')}</span>{L('은?', ' to validate in 2 weeks?')}
                     </p>
                   </div>
                 </div>
                 <div style={R.cd1}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-                    <span style={{ font: `600 9.5px/1 ${MONO}`, letterSpacing: '.12em', textTransform: 'uppercase', color: '#9a6b3e', whiteSpace: 'nowrap' }}>숨은 암초</span>
-                    {['신사업 = 새 코드베이스?', '‘기획안’의 독자 미정'].map((txt) => (
+                    <span style={{ font: `600 9.5px/1 ${MONO}`, letterSpacing: '.12em', textTransform: 'uppercase', color: '#9a6b3e', whiteSpace: 'nowrap' }}>{L('숨은 암초', 'Hidden reefs')}</span>
+                    {(locale === 'ko'
+                      ? ['신사업 = 새 코드베이스?', '‘기획안’의 독자 미정']
+                      : ['New business = new codebase?', 'Who reads the proposal?']
+                    ).map((txt) => (
                       <span key={txt} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, font: `600 11.5px ${SANS}`, color: '#7a5b4e', padding: '5px 11px', borderRadius: 20, background: 'rgba(178,83,71,.1)', border: '1px solid rgba(178,83,71,.32)', whiteSpace: 'nowrap' }}>
                         <span style={{ color: '#b25347' }}>⚠</span>
                         {txt}
@@ -679,11 +695,18 @@ export function ArgusHeroDemo({
                 </div>
                 <div style={R.cd2}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
-                    {[
-                      ['01', '문제 · 기회'],
-                      ['02', '2주 검증'],
-                      ['03', '팀 · 리스크'],
-                    ].map(([num, txt], idx) => (
+                    {(locale === 'ko'
+                      ? [
+                          ['01', '문제 · 기회'],
+                          ['02', '2주 검증'],
+                          ['03', '팀 · 리스크'],
+                        ]
+                      : [
+                          ['01', 'Problem · Opportunity'],
+                          ['02', '2-week validation'],
+                          ['03', 'Team · Risk'],
+                        ]
+                    ).map(([num, txt], idx) => (
                       <span key={num} style={{ display: 'contents' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, font: `600 12px ${SANS}`, color: '#3a2c12', padding: '7px 13px', borderRadius: 10, background: 'rgba(255,253,247,.85)', border: '1px solid #ddcba1', whiteSpace: 'nowrap' }}>
                           <span style={{ font: `700 10px ${MONO}`, color: 'var(--accent)' }}>{num}</span>
@@ -703,21 +726,21 @@ export function ArgusHeroDemo({
             <div style={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{ flex: 'none', width: 38, height: 38, borderRadius: '50%', background: 'var(--ai)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', display: 'grid', placeItems: 'center' }}>
-                  <span style={{ font: `700 15px ${DISPLAY}`, color: 'var(--text-secondary)' }}>현</span>
+                  <span style={{ font: `700 15px ${DISPLAY}`, color: 'var(--text-secondary)' }}>{L('현', 'N')}</span>
                 </div>
                 <div style={{ padding: '15px 18px', borderRadius: '4px 14px 14px 14px', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
-                  <span style={{ font: `600 9px/1 ${MONO}`, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>현우 · 전략</span>
-                  <p style={{ margin: '6px 0 0', font: `600 16px/1.5 ${DISPLAY}`, color: 'var(--text-primary)', wordBreak: 'keep-all' }}>이 기획안, 경영진 설득용인가요 실행 계획용인가요?</p>
+                  <span style={{ font: `600 9px/1 ${MONO}`, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>{L('현우 · 전략', 'Nathan · Strategy')}</span>
+                  <p style={{ margin: '6px 0 0', font: `600 16px/1.5 ${DISPLAY}`, color: 'var(--text-primary)', wordBreak: 'keep-all' }}>{L('이 기획안, 경영진 설득용인가요 실행 계획용인가요?', 'Is this proposal to win over the executives, or an execution plan?')}</p>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={R.oaSty}>
                   <div style={R.oaFillStyle} />
-                  <span style={{ position: 'relative' }}>경영진 설득용</span>
+                  <span style={{ position: 'relative' }}>{L('경영진 설득용', 'To win over execs')}</span>
                   <span style={R.chkA}>✓</span>
                 </div>
                 <div style={R.obSty}>
-                  <span>실행 계획용</span>
+                  <span>{L('실행 계획용', 'An execution plan')}</span>
                 </div>
               </div>
             </div>
@@ -727,7 +750,7 @@ export function ArgusHeroDemo({
           <div style={R.s[4]}>
             <div style={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-                <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>크루 작업 중</span>
+                <span style={{ font: `600 10px/1 ${MONO}`, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{L('크루 작업 중', 'Crew at work')}</span>
                 <span style={{ font: `600 13px/1 ${MONO}`, color: 'var(--accent)' }}>{R.progPct}%</span>
               </div>
               <div style={{ height: 8, borderRadius: 5, background: 'color-mix(in oklab,var(--accent) 12%,transparent)', overflow: 'hidden' }}>
@@ -752,11 +775,11 @@ export function ArgusHeroDemo({
             <div style={{ width: '100%', maxWidth: 620, display: 'flex', gap: 22, alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 230, display: 'flex', flexDirection: 'column', gap: 13 }}>
                 <div>
-                  <Badge variant="gold">현재 방위</Badge>
+                  <Badge variant="gold">{L('현재 방위', 'Current Heading')}</Badge>
                 </div>
-                <h3 style={{ margin: 0, font: `600 23px/1.28 ${DISPLAY}`, color: '#1c1812', letterSpacing: '-.01em', wordBreak: 'keep-all' }}>1차 진입 기획안, 완성</h3>
+                <h3 style={{ margin: 0, font: `600 23px/1.28 ${DISPLAY}`, color: '#1c1812', letterSpacing: '-.01em', wordBreak: 'keep-all' }}>{L('1차 진입 기획안, 완성', 'First-entry plan, ready')}</h3>
                 <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.65, color: 'var(--text-secondary)', wordBreak: 'keep-all' }}>
-                  5인 · 2주로 검증할 <span style={{ color: 'var(--accent)', fontWeight: 600 }}>단일 카테고리 파일럿</span>까지 — 갈 길이 한 장에 잡혔습니다.
+                  {L('5인 · 2주로 검증할 ', 'Down to a ')}<span style={{ color: 'var(--accent)', fontWeight: 600 }}>{L('단일 카테고리 파일럿', 'single-category pilot')}</span>{L('까지 — 갈 길이 한 장에 잡혔습니다.', ' five people can validate in 2 weeks — the path ahead, on one page.')}
                 </p>
               </div>
               <div style={{ flex: 'none', width: 236, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)', padding: '16px 16px 18px', transform: 'rotate(-1.2deg)' }}>
