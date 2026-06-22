@@ -75,6 +75,7 @@ import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
 import { AnalysisCard } from './shared/AnalysisCard';
+import { VoyagePhaseRail } from './VoyagePhaseRail';
 import { UpdateSummaryChip } from './shared/UpdateSummaryChip';
 import { QuestionCard } from './shared/QuestionCard';
 
@@ -135,120 +136,13 @@ function getParticle(name: string): string {
   return '는';
 }
 
-/* ═══ Phase Header — top-of-page orientation card ═══
- * The earlier "minimal stepper" assumed PhaseStatusBar would carry the live
- * state; in practice first-time users couldn't tell what stage they were in
- * or what to do next. This card answers both questions explicitly:
- *   1. Where am I? (big stage label + N/4)
- *   2. What happens next? (one-line guide that updates per phase/state)
- */
-// Single top stepper — unified to plain functional stage names so it speaks
-// the same language as the rest of the flow (the old voyage labels
-// "항해 준비/항해/보고/정박" diverged from the bottom milestone row, which
-// already used these words). One source of truth for stage order + labels.
-const STAGE_PHASES = ['analyzing', 'conversing', 'mixing', 'dm_feedback', 'complete'] as const;
-const STAGES_KO = ['분석', '질문', '팀 작업', '검토', '완성'] as const;
-const STAGES_EN = ['Analysis', 'Questions', 'Team work', 'Review', 'Done'] as const;
-
-function stageIdx(phase: string, crewDeployed = false): number {
-  // refining belongs to the review stage; lead_synthesizing to team work —
-  // neither is in STAGE_PHASES, so map them explicitly before the lookup.
-  if (phase === 'refining' || phase === 'testing') return 3;
-  if (phase === 'lead_synthesizing') return 2;
-  // The crew theater (CrewAtWork) actually runs DURING 'conversing' — once
-  // workers are deployed the screen shows team work, so the stepper must too,
-  // or the user watches the theater under a header that still says "질문".
-  if (phase === 'conversing' && crewDeployed) return 2;
-  const i = STAGE_PHASES.indexOf(phase as typeof STAGE_PHASES[number]);
-  return i < 0 ? 0 : i;
-}
-
-function ProgressLine({ phase, crewDeployed = false }: { phase: string; crewDeployed?: boolean }) {
-  const locale = useLocale();
-  const STAGES = locale === 'ko' ? STAGES_KO : STAGES_EN;
-  const N = STAGES.length;
-  const idx = stageIdx(phase, crewDeployed);
-  const isComplete = phase === 'complete';
-  const pct = (idx / (N - 1)) * 100;
-  const currentLabel = STAGES[idx];
-
-  // Compact stepper with a tiny "N/5 · stage" eyebrow up top — keeps the
-  // user oriented ("어디에 와있지?") without the heavy hero card the
-  // first iteration had.
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: EASE }}
-      className="mb-6 px-1 mt-1"
-    >
-      <div className="flex items-baseline justify-between mb-2 px-0.5">
-        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] tabular-nums">
-          {idx + 1}/{N}
-          <span className="ml-1.5 text-[var(--text-primary)] normal-case tracking-normal">
-            {currentLabel}
-          </span>
-        </span>
-      </div>
-      <div className="relative h-[4px] rounded-full bg-[var(--border-subtle)]/70 mb-2.5">
-        <motion.div
-          className="absolute inset-y-0 left-0 rounded-full"
-          style={{ background: 'var(--gradient-gold)' }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.9, ease: EASE }}
-        />
-        {STAGES.map((_, i) => {
-          const left = (i / (N - 1)) * 100;
-          const done = i < idx || (isComplete && i <= N - 1);
-          const active = !isComplete && i === idx;
-          return (
-            <div
-              key={i}
-              className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ring-[2px] transition-all duration-500 ${
-                done
-                  ? 'bg-[var(--accent)] ring-[var(--bg)]'
-                  : active
-                    ? 'bg-[var(--surface)] ring-[var(--accent)] shadow-[0_0_0_3px_rgba(180,160,100,0.28)]'
-                    : 'bg-[var(--border)] ring-[var(--bg)]'
-              }`}
-              style={{ left: `calc(${left}% - 6px)` }}
-            >
-              {active && (
-                <motion.div
-                  className="absolute inset-0 rounded-full bg-[var(--accent)]/45"
-                  animate={{ scale: [1, 2, 1], opacity: [0.75, 0, 0.75] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-      <div className="grid grid-cols-5">
-        {STAGES.map((label, i) => {
-          const done = i < idx || (isComplete && i <= N - 1);
-          const active = !isComplete && i === idx;
-          return (
-            <span
-              key={label}
-              className={`text-[11px] truncate transition-colors duration-500 ${
-                i === 0 ? 'text-left' : i === N - 1 ? 'text-right' : 'text-center'
-              } ${
-                done
-                  ? 'text-[var(--accent)]/80 font-medium'
-                  : active
-                    ? 'text-[var(--text-primary)] font-semibold'
-                    : 'text-[var(--text-tertiary)]'
-              }`}
-            >
-              {label}
-            </span>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-}
+/* The top progress indicator is now the 3-phase voyage rail
+ * (VoyagePhaseRail). It replaced the old flat 5-step `ProgressLine`, which
+ * spoke only in operational substages (분석/질문/팀 작업/검토/완성) and so
+ * never told a first-time user which of Argus's THREE narrative phases
+ * (묶기/듣기/닿기) they were in. The rail keeps those substages as a quiet
+ * secondary label under the active voyage phase. See VoyagePhaseRail.tsx for
+ * the full operational → voyage mapping. */
 
 /* LiveAnalysis + VersionPills → replaced by shared AnalysisCard */
 
@@ -980,10 +874,13 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
 function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  // §3 Batch 6 (spine): a low-clarity decision is still forking — that is NOT a
+  // failure, so it is NEVER red ("you're failing" is a verdict). The scale runs
+  // neutral → gold → success: still-forking reads as a calm neutral, not an alarm.
   const colorClass = metrics.score >= 75 ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400' :
-    metrics.score >= 50 ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400' : 'text-red-500 bg-red-50 dark:bg-red-900/20 dark:text-red-400';
+    metrics.score >= 50 ? 'text-[var(--accent)] bg-[var(--ai)]' : 'text-[var(--text-secondary)] bg-[var(--bg-hover)]';
   const barColor = metrics.score >= 75 ? 'bg-emerald-400' :
-    metrics.score >= 50 ? 'bg-amber-400' : 'bg-red-400';
+    metrics.score >= 50 ? 'bg-[var(--accent)]' : 'bg-[var(--text-tertiary)]/40';
   // Descriptive state, not a grade — "명확도 87%" was score vocabulary (P1).
   const stateLabel = metrics.score >= 75
     ? L('거의 정리됐어요', 'Nearly settled')
@@ -995,7 +892,7 @@ function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
   const trend = metrics.trend === 'improving'
     ? { icon: <TrendingUp size={11} className="text-emerald-500" />, label: L('좋아지는 중', 'improving') }
     : metrics.trend === 'declining'
-      ? { icon: <TrendingDown size={11} className="text-red-500" />, label: L('흔들리는 중', 'unsettled') }
+      ? { icon: <TrendingDown size={11} className="text-[var(--text-tertiary)]" />, label: L('흔들리는 중', 'unsettled') }
       : metrics.trend === 'stable'
         ? { icon: <Minus size={11} className="text-[var(--text-tertiary)]" />, label: L('안정적', 'stable') }
         : null;
@@ -2405,7 +2302,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         {/* Hidden once complete — a finished stepper is dead chrome competing
             with the one-screen bearing (compression audit B-1). */}
         {phase !== 'complete' && (
-          <ProgressLine phase={phase} crewDeployed={deployPhase === 'deployed' && workers.length > 0} />
+          <VoyagePhaseRail phase={phase} crewDeployed={deployPhase === 'deployed' && workers.length > 0} />
         )}
 
         {/* PhaseStatusBar + StreamSnippet — sticky wrapper so progress info
@@ -3229,7 +3126,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               the bottom-of-page banner that used to live here was invisible
               on long pages (every failure handler scrolls to the status bar).
               The bottom milestone row was likewise removed earlier; the top
-              ProgressLine is the single progress indicator. */}
+              VoyagePhaseRail is the single progress indicator. */}
         </div>
       </motion.div>
 
