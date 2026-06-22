@@ -1,0 +1,43 @@
+import { describe, it, expect } from 'vitest';
+import { USER_DATA_TABLES } from '../user-data-tables';
+
+/**
+ * Erasure-coverage drift guard (mirrors schema-drift.test.ts's TABLE_COLUMNS contract).
+ *
+ * LIVE_USER_SCOPED_TABLES is a hand-mirrored copy of every public table that has a
+ * `user_id` column on the live DB (overture-db), captured 2026-06-23 via:
+ *   SELECT table_name FROM information_schema.columns
+ *   WHERE table_schema='public' AND column_name='user_id' ... (BASE TABLEs only)
+ *
+ * If a migration adds a new user-scoped table, this test fails until the table is
+ * added to BOTH this list and USER_DATA_TABLES — so account deletion/export can
+ * never again silently skip a table (the bug that left 13 of 29 tables un-erased).
+ */
+const LIVE_USER_SCOPED_TABLES = [
+  'accuracy_ratings', 'agent_activities', 'agent_chains', 'agents',
+  'decision_quality_scores', 'feedback_records', 'human_agent_messages',
+  'judgment_records', 'outcome_records', 'personas', 'plugin_bearings',
+  'plugin_decisions', 'plugin_tokens', 'progressive_sessions', 'projects',
+  'quality_signals', 'rate_limits', 'recast_items', 'reframe_items',
+  'retrospective_answers', 'share_log', 'shared_links', 'slack_connections',
+  'synthesize_items', 'team_members', 'team_review_inputs',
+  'telegram_connect_codes', 'telegram_connections', 'user_events',
+].sort();
+
+describe('account erasure / export coverage (drift guard)', () => {
+  it('USER_DATA_TABLES covers every live user-scoped table', () => {
+    const covered = [...USER_DATA_TABLES].sort();
+    // Anything live but not covered = a table whose user data would survive deletion.
+    const missing = LIVE_USER_SCOPED_TABLES.filter((t) => !covered.includes(t));
+    expect(missing, `user-scoped tables missing from USER_DATA_TABLES (would NOT be erased): ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('USER_DATA_TABLES has no stale entries (every covered table is live)', () => {
+    const stale = [...USER_DATA_TABLES].filter((t) => !LIVE_USER_SCOPED_TABLES.includes(t));
+    expect(stale, `tables in USER_DATA_TABLES no longer in the live schema: ${stale.join(', ')}`).toEqual([]);
+  });
+
+  it('has no duplicates', () => {
+    expect(new Set(USER_DATA_TABLES).size).toBe(USER_DATA_TABLES.length);
+  });
+});
