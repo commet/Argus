@@ -88,6 +88,15 @@ not be).
 
 ## Step 3 — Record (append-only; never rewrite existing lines)
 
+**Concurrency (true append, not read-modify-write).** Append each event as a
+single line in append mode (`O_APPEND`) — never read the whole `ledger.jsonl`,
+add a line in memory, and rewrite the file. Two concurrent writers (a seal from
+one session, a settle from another, or helm sealing while settle runs) each
+appending one line both land; a read-rewrite-whole-file would lose one. Append-only
+is exactly what lets concurrent in-process writers AND git merges both converge —
+this rule applies to every ledger writer (settle, helm, watch), not just here.
+
+
 - For a **bearing seed not yet in the ledger**, first import it as two events,
   then settle — so the ledger stays the single replayable source:
 

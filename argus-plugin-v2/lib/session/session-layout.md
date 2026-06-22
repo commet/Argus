@@ -156,6 +156,39 @@ record is personal by default; delete the line by hand to share it.
 - `released_draft_id` is the draft marked as `v{major}.0` through
   `/argus:chart --promote`.
 
+### Concurrency: the version dirs are authoritative; `drafts[]` is a derived index
+
+The atomic Write Discipline above prevents a *truncated* file; it does **not**
+prevent a **lost update** — atomicity is not isolation. Two writers (two
+`team --revise` runs, or two sessions on one repo — this project hit exactly this)
+each read `session.json` at v1, each append a draft, each atomically write v2: both
+writes are individually intact, but the second silently erases the first's draft
+pointer. The fix is to never treat the in-memory snapshot as still-current at write
+time:
+
+- **The authoritative draft set is the version directories on disk**, not
+  `session.drafts[]`. Each `versions/{label}/` dir is created **write-once under a
+  unique label** (`nextChildLabel`), so two concurrent writers never collide on the
+  dirs themselves — only on the single `drafts[]` index that points at them.
+  `drafts[]` is therefore a *cache* of that truth, not the truth.
+- **Every `session.json` write re-reads immediately before writing and merges**,
+  never blind-overwrites: rebuild `drafts[]` as the union of (what is in the file
+  *now*, re-read just before write) ∪ (your new draft), deduplicated by
+  `version_label`, then reconciled against the version dirs actually present (a dir
+  on disk with no `drafts[]` entry → add it; the dirs win). This makes `drafts[]`
+  convergent regardless of write order — no append can drop a sibling.
+- **Scalar pointers** (`active_draft_id`, `phase`, `updated_at`) are inherently
+  last-writer-wins ("whoever acted most recently") and that is acceptable — but the
+  same re-read-merge must run so that updating a pointer never clobbers `drafts[]`
+  membership in the process.
+- **Optimistic guard (optional but cheap):** compare the `updated_at` you read at
+  load against the one on disk just before writing; if it changed, another writer
+  intervened — re-read and re-merge rather than overwrite.
+
+A reader (e.g. chart) that finds `drafts[]` out of step with the dirs trusts the
+**dirs** and reconciles, for the same reason: the dirs are write-once truth, the
+index can lag a concurrent write.
+
 When `active_draft_id` changes through `/argus:chart --checkout`, the session's
 surface view reflects the active draft's scaffold.
 
