@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { headers, cookies } from 'next/headers';
+import { buildLocaleAlternates } from '@/lib/locale-path';
 import './globals.css';
 
 const SITE_URL = 'https://argus.voyage';
@@ -59,14 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: m.title,
     description: m.description,
     metadataBase: new URL(SITE_URL),
-    alternates: {
-      canonical: `${SITE_URL}/${lang}${path}`,
-      languages: {
-        en: `${SITE_URL}/en${path}`,
-        ko: `${SITE_URL}/ko${path}`,
-        'x-default': `${SITE_URL}/en${path}`,
-      },
-    },
+    alternates: buildLocaleAlternates(SITE_URL, lang, path),
     openGraph: {
       title: m.title,
       description: m.descriptionShort,
