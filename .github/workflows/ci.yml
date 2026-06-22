@@ -54,6 +54,11 @@ jobs:
       - name: Argus install smoke
         run: node argus-plugin-v2/scripts/install-smoke.mjs
 
+      # Single-source generation: generated cross-surface artifacts must match their
+      # JSON source (drift prevention, not just detection).
+      - name: Argus generated-contract sync
+        run: node argus-plugin-v2/scripts/generate-contracts.test.mjs
+
       # Plugin structure + bearing simulations.
       - name: Argus plugin validate
         run: node argus-plugin-v2/scripts/validate-plugin.js && node argus-plugin-v2/scripts/simulate-plugin.js

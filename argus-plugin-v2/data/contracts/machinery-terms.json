@@ -1,0 +1,14 @@
+{
+  "_doc": "SINGLE SOURCE for the machinery terms a user-facing bearing must never leak (the product is orientation, not a workflow report). Both JS consumers (evals/static-gate.mjs, scripts/simulate-plugin.js) IMPORT this — no second copy to drift. The markdown reference fragment (skills/_generated/forbidden-terms.md) is GENERATED from it by scripts/generate-contracts.mjs, because a markdown skill cannot import JSON — the same generate-then-check pattern the webapp<->plugin contracts need. Run `node scripts/generate-contracts.mjs` to regenerate; CI runs it with --check to fail on drift.",
+  "forbidden_surface_terms": [
+    "multi-agent",
+    "agent count",
+    "ledger count",
+    "schema",
+    "model name",
+    "supported_count",
+    "challenged_count",
+    "SurfaceCard",
+    "workflow report"
+  ]
+}
