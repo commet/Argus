@@ -25,6 +25,7 @@ import type {
   PredicateVerdict,
   PredicateBasis,
   DecisionContract,
+  ContractProvenance,
   CheckInInterval,
   MixResult,
   DMFeedbackResult,
@@ -32,6 +33,20 @@ import type {
   Falsification,
 } from '@/stores/types';
 import { generateId } from './uuid';
+
+/**
+ * Engine version stamped on every sealed contract (dim8). Bump the prompt_version
+ * tag whenever the decision engine's prompts/skills change materially (the R-rounds)
+ * so calibration can compare like-for-like. app_version is the release/sha; in a
+ * build it can be wired to NEXT_PUBLIC_APP_VERSION, falling back to the tag here.
+ */
+const PROMPT_VERSION = 'r60-2026-06';
+const APP_VERSION =
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_APP_VERSION) || PROMPT_VERSION;
+
+function makeProvenance(now: number): ContractProvenance {
+  return { app_version: APP_VERSION, prompt_version: PROMPT_VERSION, sealed_at: new Date(now).toISOString() };
+}
 
 const DAY_MS = 86_400_000;
 const MAX_PREDICATES = 6;
@@ -155,6 +170,7 @@ export function generateDecisionContract(
     project_id: projectId,
     predicates,
     created_at: new Date(now).toISOString(),
+    provenance: makeProvenance(now),
   };
 }
 
@@ -314,6 +330,7 @@ export function contractFromPredicates(
     project_id: projectId,
     predicates,
     created_at: new Date(now).toISOString(),
+    provenance: makeProvenance(now),
   };
 }
 

@@ -614,6 +614,21 @@ export interface DecisionContract {
   /** Superseded check-ins, oldest first. Absent on legacy contracts — always
    *  read as `contract.history || []`. */
   history?: ContractAmendment[];
+  /** Generating conditions stamped at seal time (dim8). The engine churns weekly
+   *  (R-rounds); a contract sealed under one prompt version is a different
+   *  instrument than another, so a miss graded later can be attributed to
+   *  judgment vs a since-changed generator. Absent on legacy contracts. */
+  provenance?: ContractProvenance;
+}
+
+/** Run provenance for a sealed contract (dim8) — auditable reproducibility, not
+ *  bit-identical determinism (the LLM floor is disclosed, not chased). The
+ *  authoritative per-call model id is recorded server-side (api/llm logs
+ *  llm_usage); this client stamp pins the engine version at seal time. */
+export interface ContractProvenance {
+  app_version: string;     // app release tag / git short sha
+  prompt_version: string;  // engine prompt/skill version (R-round) — instrument identity
+  sealed_at: string;       // ISO timestamp of the seal
 }
 
 // ─── Retrospective Answers (Phase 2) ───
