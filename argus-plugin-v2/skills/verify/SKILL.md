@@ -95,18 +95,35 @@ Normalize each candidate:
 }
 ```
 
+**`source_worker_ids` is mandatory and is what makes Step 1's flagging
+enforceable.** The extraction sources must preserve worker attribution so it can
+be filled: `mix.sections[]` carry the contributing worker id(s) (team Step 8
+records which worker(s) fed each section); `scaffold.hidden_assumptions[]` /
+`next_actions[]` / `team_contradictions[]` likewise trace to their originating
+worker(s). When a candidate cannot be traced to any worker (pure synthesis), set
+`source_worker_ids: ["navigator"]` — never leave it empty (an untraceable claim
+must not silently escape the flag). A claim whose `source_worker_ids` intersects
+the **Step 1 flagged-worker set** is pre-flagged: it skips Step 3 and enters Step 4
+already challenged, and cannot become `supported_claims[]` on plausibility alone.
+
 Keep the list short. Verification is a gate, not a second report.
 
 ### Step 3 - Positive Validation
 
 For each claim, ask:
 
-- Does a worker cite a file path, PR artifact, data point, source, or explicit
-  reasoning chain?
-- Is the claim tied to this repo/problem?
-- Did another worker independently support the same direction?
-- Does the worker's assigned framework visibly shape the output?
-- If it proposes action, are actor and next step clear?
+- **Evidence:** Does a worker cite a file path, PR artifact, data point, source,
+  or explicit reasoning chain?
+- **Specificity:** Is the claim tied to this repo/problem?
+- **Cross-agent support:** Did another worker **actively, independently make the
+  same or a compatible claim** — its own affirmative statement of the same
+  direction? This requires a positive second assertion. **Silence is not support,
+  and non-contradiction is not support** — a claim no other worker mentioned, or
+  merely did not argue against, fails this check. (Treating absence-of-opposition
+  as support is exactly how generic prose with no second source launders itself
+  into `supported`; this check exists to stop that.)
+- **Framework:** Does the worker's assigned framework visibly shape the output?
+- **Action clarity:** If it proposes action, are actor and next step clear?
 
 A claim is `supported` only if it passes **at least 2 of the 5 checks above, AND one of them is Evidence or Cross-agent support** (plausibility/specificity alone is not enough — that is how generic prose sneaks in). A claim from a worker flagged in Step 1 cannot be `supported`. Assign `strength`: `strong` (Evidence + cross-agent), `moderate` (Evidence or cross-agent + one more), `weak` (passes the minimum but on softer checks). **`weak` claims do NOT count toward the headline `supported` count** shown on the final card — list them separately so the card never inflates confidence.
 
@@ -203,7 +220,7 @@ unsigned legal review really does.)
 1. **else-if** any human check has `blocks: "execution"` → `stop_for_human_check`. (Highest priority: an execution blocker must never be overridable by a "proceed" choice downstream.)
 2. **else-if** any `critical` challenged claim exists → `ask_user`. (Or, under `--no-prompt` where the user can't be asked, escalate to `revise_team` if the repair is agent-owned, otherwise `stop_for_human_check` — never silently `proceed_to_boss` on a critical challenge.)
 3. **else-if** `--strict` and any `important` challenged claim exists → `ask_user`.
-4. **else-if** there is an agent-owned repair worth a loop — a challenged claim of severity **`important` or above** with an `owner_agent_id` and no human data needed → `revise_team`. `minor` challenged claims NEVER trigger this route, owner or not (their own definition says they don't block; re-running the whole team over a wording nit is the loop-forever failure mode).
+4. **else-if** there is an agent-owned repair worth a loop — a challenged claim of severity **`important` or above** with an `owner_agent_id` and no human data needed — **AND the revise loop has not converged-out**: `session.revise_cycles < session.max_revise_cycles` (default 3) AND this claim is **not a repeat** of one already challenged in the immediately-prior verification on this lineage → `revise_team`. `minor` challenged claims NEVER trigger this route, owner or not (their own definition says they don't block; re-running the whole team over a wording nit is the loop-forever failure mode). **If the only agent-owned repair is a repeat claim, or `revise_cycles` has reached the cap → `stop_for_human_check`** and write that claim to `human_required_checks[]` with `reason: "unconverged_after_revision"` (cap reached → `reason: "max_revisions_reached"`). Re-looping the team on a claim it already failed to fix is wasted ceremony; escalation to a human is the honest exit, not another auto-pass.
 5. **else** (challenged claims all minor, no blocking human checks) → `proceed_to_boss`. Minor claims travel forward as visible caveats, not as work orders.
 
 Overall status (also ordered, first match wins):
@@ -321,6 +338,30 @@ Keep this to one terminal screen. Full detail stays in `verification.json`.
   `--no-prompt` was explicitly passed.
 - **Current Heading readiness:** the ledger must identify one best fog/reef item
   that sail can carry into `current_bearing.json`.
+
+---
+
+## Error Modes
+
+Apply the plugin's defensive-read discipline (same as clarify) to every artifact
+read in Step 1:
+
+- **Missing `workers.json` / `mix.json` / `scaffold.json`:** there is nothing to
+  verify. Halt with the minimal-scaffold redirect (point to `/argus:team` or
+  `/argus:sail --resume`); do not fabricate claims from an empty input.
+- **Corrupt / unparseable artifact:** quarantine it to `<name>.corrupt.<ts>` and
+  report the recovery path; do not crash and do not silently treat a corrupt file
+  as empty (an unreadable `workers.json` is NOT "zero workers" — that would
+  produce a falsely clean `verified`). If only `mix.json` is corrupt but
+  `workers.json` is intact, re-derive claims from the workers directly and note
+  the degraded source.
+- **Partial write (process killed mid-write):** a `workers.json` short of the
+  planned worker set is interrupted, not complete — defer to sail Step 3's
+  interrupted-mid-team handling (re-run team) rather than verifying a partial set.
+- **Empty / absent `debate.json` / `repo_context.json`:** these are optional;
+  treat absent as "none," not an error.
+
+A corrupt-read must never resolve to a higher confidence than the true state.
 
 ---
 

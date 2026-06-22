@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { stripLocale } from '@/lib/locale-path';
 import { AuthProvider } from '@/lib/auth';
 import { UnlockToast } from '@/components/agents/UnlockToast';
+import { AccountSyncToast } from '@/components/ui/AccountSyncToast';
+import { initErrorSensors } from '@/lib/error-sensors';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useProjectStore } from '@/stores/useProjectStore';
@@ -24,6 +26,7 @@ function StoreInitializer() {
   const isMarketing = MARKETING_PATHS.has(stripLocale(pathname ?? '/'));
 
   useEffect(() => {
+    initErrorSensors(); // capture uncaught errors everywhere (incl. marketing pages)
     if (isMarketing) return;
     loadAgents();
     loadSettings();
@@ -40,6 +43,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <StoreInitializer />
       {children}
       <UnlockToast />
+      <AccountSyncToast />
     </AuthProvider>
   );
 }

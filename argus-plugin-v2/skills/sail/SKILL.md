@@ -146,7 +146,18 @@ making claims. A generic answer after a user gives a file is a product failure.
 
 ## Step 2 - Resolve Session
 
-1. If `--resume <id>`, load that session.
+1. If `--resume <id>`, load `.argus/sessions/<id>/session.json`.
+   - **Not found** (no such dir): do not crash. List the 3 most recent session ids
+     with their one-line problem text and ask one `AskUserQuestion` (resume one of
+     these / start fresh). If none exist, say so in the detected locale and offer
+     to start fresh.
+   - **Found but unparseable** (corrupt `session.json`): quarantine it to
+     `session.json.corrupt.<ts>` and treat the session as its last *valid* phase
+     by re-deriving phase from the artifacts present on disk (Step 3's table reads
+     `team_plan.json` / `workers.json` / `verification.json` / etc. directly), not
+     from the unreadable record. If no artifacts are recoverable, report the
+     quarantine and offer to start fresh. Never silently proceed on a malformed
+     session.
 2. If bare `/argus:sail`, continue latest session when one is active.
 3. If an existing session targets the same PR/file, ask one compact
    `AskUserQuestion`: continue existing or start fresh.
@@ -156,6 +167,16 @@ making claims. A generic answer after a user gives a file is a product failure.
 
 ## Step 3 - Route By Phase
 
+**Derive the phase from on-disk artifacts BEFORE reading the table** (session-layout
+→ "Phase Is Derived From Artifacts, Not Declared"). `session.phase` is a hint a
+mid-chain crash can leave stale — e.g. team wrote its artifacts but died before its
+Step 10 phase update, so `phase` reads `conversing` while team is actually complete.
+Read the "Current phase" column below as the **derived** phase (the furthest-along
+complete artifact in the active version dir), not raw `session.phase`. The artifacts
+always win; consult `session.phase` only to break a tie the artifacts leave
+ambiguous. This is the same artifact-trust the corrupt-session path (Step 2) uses —
+extended to a readable-but-stale phase, which is the more common crash shape.
+
 **`conversing` tiebreaker (two rows below would both match):** read `versions/{label}/analysis.json`. If `execution_plan.steps.length >= 2` → treat as "ready" (route to team). Otherwise → "not ready" (route to clarify --continue). Decide by the execution_plan, never guess.
 
 | Current phase | Next skill |
@@ -164,7 +185,7 @@ making claims. A generic answer after a user gives a file is a product failure.
 | `analyzing` or `conversing` (execution_plan < 2 steps) | `/argus:clarify --continue` |
 | `conversing` (execution_plan ready, ≥ 2 steps) | `/argus:team` |
 | `team_deploying` (verify routed `revise_team`) | `/argus:team --revise` — re-run team with `verification.json` challenged_claims fed into the worker prompts |
-| interrupted mid-team (`team_plan.json` exists, no `workers.json`) | `/argus:team` — the prior run died before workers finished; re-run is safe (team reuses the same version dir) |
+| interrupted mid-team (`team_plan.json` exists AND `workers.json` is absent, **unparseable, or missing any worker named in `team_plan.json`**) | `/argus:team` — the prior run died or was killed mid-write before all workers finished; re-run is safe (team reuses the same version dir and overwrites partial output). A `workers.json` that exists but fails to parse or is short of the planned worker set counts as interrupted, not complete — never route a partial worker set to `/argus:verify` |
 | `verifying` or team complete with no `verification.json` | `/argus:verify` |
 | `dm_feedback` pending | `/argus:boss` |
 | `refining` | `/argus:revise` (apply boss concerns / verify challenges → child draft + re-verify) |
@@ -205,6 +226,15 @@ Forbidden transition strings:
 
 Use this when the user wants problem framing, not a full bearing. Do not run
 team, verify, or boss. Do not render Current Heading.
+
+**Droppings rule for `--quick`.** `--quick` is explicit, but if clarify resolves
+to `decision_density: low` (an inline-only framing with no persisted scaffold),
+it leaves NOTHING on disk — same discipline as the auto-invocation zero-droppings
+rule (Step 0). A `--quick` that produces a real persisted scaffold (medium/high
+density, or an `execution_plan` worth resuming) writes its session as usual. The
+"explicit invocations create files" rule (Step 0) governs the full pipeline, not
+a trivial inline framing — `/argus:sail --quick "rename a tab?"` must not litter a
+session dir for a one-line answer.
 
 ---
 
@@ -281,17 +311,33 @@ Question:
 - en: "How heavy is this decision?"
 - ko: Translate naturally.
 
-Options:
+Options (each maps to a DIFFERENT path — the answer must change behavior, or the
+question is theater):
 
 - "Light framing only"
 - "Current Heading"
 - "Treat as high-stakes"
 
-After the user answers, persist the user-confirmed stakes to
-`session.classification.stakes`, set `stakes_user_confirmed = true`, and set
+After the user answers, persist `stakes_user_confirmed = true` and set
 `stakes_confidence = 100` (the user just confirmed it — it is no longer
-uncertain). Without this reset, Step 6c sees confidence still `< 75` and stalls
-with no action. Then continue to Step 6c with the locked stakes.
+uncertain; without this reset Step 6c would re-see `< 75` and stall). Then
+**branch on the chosen option** — the three are NOT the same path:
+
+- **"Light framing only"** → the user chose restraint. Do **NOT** deploy
+  team/verify/boss and do **NOT** render a Current Heading. Treat exactly like
+  `--quick`: clarify's framing (the MinimalScaffold / light analysis already
+  produced) is the terminal deliverable. Persist `session.classification.stakes`
+  as the lighter of the detected guesses (or `low`), mark the session `complete`,
+  and exit. Running the full crew here after the user explicitly asked for "light"
+  is the mirror-clause over-fire the spine forbids (see Forbidden Patterns).
+- **"Current Heading"** → set `session.classification.stakes = "important"` and
+  continue to Step 6c (team/verify/boss → bearing).
+- **"Treat as high-stakes"** → set `session.classification.stakes = "critical"`
+  and continue to Step 6c (critical stakes raises agent budget + the critic
+  mandate per team's classification rules).
+
+Only the latter two reach Step 6c. The time preview in Step 6c is printed only on
+that path — "Light framing only" returns immediately with no multi-minute run.
 
 ### Step 6c - Medium/High
 
@@ -493,6 +539,26 @@ Never print it again after the first session.
 - **Road not taken is load-bearing-gated, not mandatory.** Include 1-2 items
   ONLY when real, evidence-backed alternatives exist; on a flat decision leave it
   empty. Never fabricate an alternative to satisfy a slot (over-fire).
+- **Default fork format = let the USER write the poles (R14 — the real tilt fix).**
+  When a genuine two-pole fork exists, do NOT write the two sides yourself.
+  Engine prose is the tilt medium: in the R14 blind A/B test, engine-written
+  poles made users feel pushed in 5/8 cases; user-written poles, 2/8 — at the
+  SAME crux and the SAME value. So instead: state ONLY the crux (the one thing
+  the decision turns on) in a single neutral line, add at most one cheap
+  reality-check, and ask the user to put each side in their own words ("write
+  each side as you see it — if I word them I'll lean without meaning to").
+  Author the crux + the question; never the pole content, never a
+  characterization of a side, never a pick. **Frame the crux SYMMETRICALLY (R16
+  — kills the residual lean):** name the axis as *which cost is larger*, both
+  sides' cost in the same breath ("whether the cost of telling outweighs the
+  cost of staying silent"), NEVER as one side's downside ("is your silence
+  really free?"). A one-sided crux, or a reality-check that tests only one pole,
+  IS the lean even when you refuse to word the poles — the R16 blind test cut the
+  push rate from 8/10 to 1/10 (at higher value) purely by symmetrizing the crux.
+  Where a case genuinely resists a symmetric crux (rare), say so plainly rather
+  than force a lean. The parity rules below apply ONLY to the rare case where you
+  must surface a pole yourself (e.g. a buried fact the user cannot see) — never
+  as the default.
 - **Never emit an engine-weighted pole.** When two poles are shown (status
   `fork`, or two road-not-taken items), render them at PARITY: comparable depth
   and word-count, no caveat stacked on only one side, do not "melt" one pole's
@@ -503,6 +569,24 @@ Never print it again after the first session.
   which one reads as favored, the asymmetry is engine tilt — flatten it. (Honest
   note: this lint is a floor; the stress test proved tilt can live below
   structural checks. Keep the poles factual and let the user weigh them.)
+  Word-count parity is necessary but NOT sufficient — R12 found four tilt
+  vectors that slip past it; block all four:
+  1. **No editorializing prose against a pole** ("is Y even worth it", "the
+     problem with X") — state each pole's case in its OWN terms.
+  2. **No rigged diagnostic.** If you give branch logic ("if A… / if B…"), at
+     least one realistic branch must land on EACH pole. A tree where every
+     branch routes to one answer is a verdict — either the decision is actually
+     flat (collapse to a FLAT course) or you tilted it; rebuild so both poles
+     are reachable.
+  3. **Status-quo / "wait" / "don't change" is a POLE, not a neutral baseline.**
+     Give it the same scrutiny and word-count as the change pole; defaulting to
+     "stay" untested is status-quo tilt.
+  4. **Do not inject an option the user did not raise and rank it above their
+     poles** ("the only reversible one", "the real answer is a third thing"). A
+     genuinely material third option becomes a peer pole at parity, never the
+     recommendation.
+  The crux MUST still be surfaced — flattening tilt never means dropping the
+  fork (this guards must-fire value).
 - **Refuse identity/moral verdicts.** Do not render — or seal as a contract — a
   verdict about who the user is ("you're not selfish", "you're a bad partner if
   you don't"). A contract seed is a falsifiable claim about the WORLD, not a
@@ -598,3 +682,7 @@ user explicitly asks for `/argus:chart` or opens session files.
   running the crew on a `frame_status: flat` decision, emitting an
   engine-weighted pole, or reflexively pushing `/argus:revise` / re-engagement
   when the honest answer is "you're done." Restraint is the default.
+- **Running team/verify/boss after the user chose "Light framing only"** in the
+  Step 6b stakes question. The three options must map to three paths; collapsing
+  them into one full-pipeline run makes the question theater and over-fires on a
+  user who explicitly asked for restraint.

@@ -89,7 +89,8 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ text: block ? block.text : '' });
     res.headers.set('Cache-Control', 'no-store');
     return res;
-  } catch {
+  } catch (err) {
+    console.error('[api/llm/direct] Anthropic call failed:', err);
     return NextResponse.json(
       { error: 'LLM call failed. Please check your API key.' },
       { status: 500 }

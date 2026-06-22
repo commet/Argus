@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { validateMessages, validateSystemPrompt, validateRequest, normalizeMaxTokens } from '@/lib/llm-validation';
 import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
+import { logServerEvent } from '@/lib/server-events';
 
 /**
  * Verify Supabase auth token from request.
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
     // Logged-in user: DAILY_LIMIT/day via Supabase RPC
     const allowed = await checkRateLimit(auth.userId, auth.token);
     if (!allowed) {
+      logServerEvent('server_rate_limited', { kind: 'auth_daily', limit: DAILY_LIMIT }, { userId: auth.userId, path: '/api/llm' });
       return NextResponse.json(
         { error: `Today's free quota (${DAILY_LIMIT} calls) is used up. Enter your own API key in Settings for unlimited use.` },
         { status: 429 }
@@ -120,6 +122,7 @@ export async function POST(req: NextRequest) {
     // Anonymous: ANON_LIMIT/day per IP
     const allowed = await checkAnonRateLimit(ip);
     if (!allowed) {
+      logServerEvent('server_rate_limited', { kind: 'anon_daily', limit: ANON_LIMIT }, { path: '/api/llm' });
       return NextResponse.json(
         { error: `Free trial quota exhausted. Log in to keep using up to ${DAILY_LIMIT} free calls per day!`, needsLogin: true },
         { status: 429 }
@@ -175,7 +178,10 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode('data: [DONE]\n\n'));
               controller.close();
             }
-          } catch {
+          } catch (err) {
+            // Log the real cause server-side — without this an Anthropic outage,
+            // a 529 overload, and a code bug are indistinguishable in production.
+            console.error('[api/llm] stream error:', err);
             if (!cancelled) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Stream error' })}\n\n`));
               controller.close();
@@ -209,7 +215,12 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ text: block ? block.text : '' });
     res.headers.set('Cache-Control', 'no-store');
     return res;
-  } catch {
+  } catch (err) {
+    // Log the real cause server-side (provider error type / request id) so the
+    // paid Anthropic path is observable; keep the client body generic.
+    console.error('[api/llm] Anthropic call failed:', err);
+    const status = (err as { status?: number })?.status;
+    logServerEvent('server_llm_error', { message: String((err as Error)?.message || err).slice(0, 300), status }, { path: '/api/llm' });
     return NextResponse.json(
       { error: 'LLM call failed. Please try again in a moment.' },
       { status: 500 }

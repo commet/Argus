@@ -418,6 +418,7 @@ export function WorkflowGraph({
                               ) : (
                                 <textarea
                                   value={step.user_decision || ''}
+                                  maxLength={2000}
                                   onChange={(e) => onUpdateField?.(i, { user_decision: e.target.value })}
                                   placeholder={L('이 단계에서의 판단을 입력하세요...', 'Enter your judgment for this step...')}
                                   rows={2}
@@ -507,6 +508,7 @@ export function WorkflowGraph({
                                 ) : (
                                   <textarea
                                     value={step.user_decision || ''}
+                                    maxLength={2000}
                                     onChange={(e) => onUpdateField?.(i, { user_decision: e.target.value })}
                                     placeholder={L('이 단계에서의 판단을 입력하세요...', 'Enter your judgment for this step...')}
                                     rows={2}

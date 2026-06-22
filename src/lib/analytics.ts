@@ -72,8 +72,11 @@
  *   group by from_step, to_step order by count desc;
  */
 
-import { supabase } from './supabase';
 import { reportSyncFailure } from './sync-health';
+// NOTE: supabase is imported LAZILY inside track() (not at module top) so that
+// importing `track` from this module does not eagerly pull the Supabase client
+// into a module graph (which throws at load when env is absent, e.g. in unit
+// tests / build). Keeps llm.ts/auth.ts/stores importable without a Supabase env.
 
 let _sessionId: string | null = null;
 
@@ -123,7 +126,13 @@ function getSourceMeta(): Record<string, unknown> {
     utm_medium: params.get('utm_medium'),
     utm_campaign: params.get('utm_campaign'),
     utm_content: params.get('utm_content'),
+    utm_term: params.get('utm_term'),
+    ref: params.get('ref'),            // generic community/share tag
     fbclid: params.get('fbclid'),
+    gclid: params.get('gclid'),        // Google Ads
+    msclkid: params.get('msclkid'),    // Microsoft Ads
+    ttclid: params.get('ttclid'),      // TikTok
+    li_fat_id: params.get('li_fat_id'),// LinkedIn
   };
   for (const k of Object.keys(meta)) if (meta[k] == null) delete meta[k];
   sessionStorage.setItem('ov_src', JSON.stringify(meta));
@@ -166,19 +175,23 @@ export function track(event: string, properties?: Record<string, unknown>) {
   // maybeEmitSessionStart before the recursive track() call, so no infinite loop)
   if (event !== 'session_start') maybeEmitSessionStart();
 
+  const row = {
+    event_name: event,
+    properties: { ...getSessionMeta(), ...properties },
+    session_id: getSessionId(),
+    user_id: _userId,
+    page_path: window.location.pathname + window.location.search,
+    referrer: document.referrer || null,
+  };
+
   try {
-    supabase.from('user_events').insert({
-      event_name: event,
-      properties: { ...getSessionMeta(), ...properties },
-      session_id: getSessionId(),
-      user_id: _userId,
-      page_path: window.location.pathname + window.location.search,
-      referrer: document.referrer || null,
-    }).then(({ error }) => {
+    // Lazy import so this module is loadable without a Supabase env (see note above).
+    import('./supabase').then(async ({ supabase }) => {
+      const { error } = await supabase.from('user_events').insert(row);
       // Telemetry is non-critical: count the failure as a canary but do NOT flip
       // the sync badge (anon-key inserts can fail for benign reasons).
       if (error) reportSyncFailure('analytics', { surface: false });
-    });
+    }).catch(() => { /* analytics never breaks the app */ });
   } catch {
     // silently fail — analytics should never break the app
   }

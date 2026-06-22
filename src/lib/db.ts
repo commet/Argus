@@ -18,7 +18,8 @@ type TableName = 'projects' | 'personas' | 'reframe_items' | 'recast_items'
   | 'quality_signals' | 'outcome_records' | 'retrospective_answers' | 'decision_quality_scores'
   | 'agents' | 'agent_chains' | 'agent_activities'
   | 'synthesize_items'
-  | 'progressive_sessions';
+  | 'progressive_sessions'
+  | 'plugin_decisions' | 'plugin_bearings';
 
 type SoftDeletableTable = 'projects' | 'personas' | 'reframe_items' | 'recast_items' | 'synthesize_items';
 
@@ -169,9 +170,13 @@ export async function syncToSupabase(table: TableName, localItems: any[]): Promi
 
     if (error) {
       log.error(`sync to ${table} failed: ${error.message}`, { context: 'db' });
+      // Surface to the user via the SyncStatus badge — this path carries agents/
+      // XP/boss personas and was the only write helper not reporting failures.
+      reportSyncFailure(`sync:${table}`, { message: error.message });
     }
   } catch (err) {
     log.error(`sync to ${table} error`, { context: 'db', data: err });
+    reportSyncFailure(`sync:${table}`, { message: err instanceof Error ? err.message : 'unknown' });
   }
 }
 
@@ -287,7 +292,7 @@ export async function deleteAllUserData(): Promise<void> {
     'agent_activities', 'agent_chains', 'agents',
     'outcome_records', 'retrospective_answers', 'decision_quality_scores',
     'quality_signals', 'accuracy_ratings', 'feedback_records', 'judgment_records',
-    'reframe_items', 'recast_items',
+    'reframe_items', 'recast_items', 'synthesize_items',
     'personas', 'projects',
     'progressive_sessions',
   ];

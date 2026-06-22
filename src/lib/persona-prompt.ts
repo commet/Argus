@@ -25,6 +25,15 @@ export function sanitizeForPrompt(text: string): string {
   return text
     .replace(/<\/?[a-zA-Z][^>]*>/g, '')        // XML/HTML tags
     .replace(/\[\/?\s*(?:SYSTEM|END|INST|USER|ASSISTANT|CONTEXT)[^\]]*\]/gi, '') // bracket directives
+    // Natural-language injection (EN): anchored to imperative override phrases only,
+    // so it neutralizes "ignore all previous instructions" without touching prose.
+    .replace(/\b(?:ignore|disregard|forget|override)\s+(?:all\s+|the\s+|any\s+|every\s+)?(?:previous|above|prior|earlier|preceding|the\s+above)\s+(?:instructions?|prompts?|messages?|context|directions?|rules?)/gi, '')
+    .replace(/\b(?:new\s+)?system\s+prompt\s*:/gi, '')
+    // Natural-language injection (KO): "위/이전/앞 지시 무시", "명령 다 잊어", "무시하고 ~출력".
+    // Anchored to (지시/명령/지침/프롬프트/규칙 … 무시/잊/무효), so legitimate persona
+    // text like "지시받는 걸 싫어함" or "시스템 기획자" is NOT stripped.
+    .replace(/(?:이전|위|앞|상기|모든)\s*(?:의)?\s*(?:지시|명령|지침|프롬프트|규칙)\s*(?:사항)?\s*(?:을|를|은|는)?\s*(?:다|모두)?\s*(?:무시|무효화?|잊어?(?:버려)?)/g, '')
+    .replace(/무시하?(?:고|라|세요|해)\s*(?:다음|아래|이제|이것|위)/g, '')
     .replace(/[\r\n]+/g, ' ')                   // collapse newlines to single space
     .replace(/\s{3,}/g, '  ')                   // collapse excessive whitespace
     .trim();
@@ -99,7 +108,7 @@ export function buildFeedbackSystemPrompt(
   };
 
   const intensityGuide: Record<string, string> = {
-    '부드럽게': '건설적 톤. praise를 3개 이상. concerns는 "~하면 더 좋을 것 같아요" 형태로.',
+    '부드럽게': '건설적 톤. 단 칭찬은 진심인 것만 — 없으면 비워두세요(개수 채우려고 없는 칭찬 지어내기 금지). concerns는 "~하면 더 좋을 것 같아요" 형태로.',
     '솔직하게': '잘한 점을 먼저 인정한 후, 핵심 문제만 짧게. 빈말 없이, 하지만 건설적으로.',
     '까다롭게': '비판적 관점. "왜 이것이 안 되는지"를 기본 태도로. praise는 0-1개.',
   };
@@ -123,6 +132,7 @@ export function buildFeedbackSystemPrompt(
 - 당신은 같은 조직에서 이 사람의 성공을 바라는 동료입니다. 짓밟는 게 아니라 돕는 겁니다.
 - 잘한 점은 구체적으로 인정하고, 우려는 해결 방향 힌트와 함께 전달하세요.
 - 피드백이 짧을수록 좋습니다. 핵심만 간결하게.
+- [권위를 지어내지 마세요 — R25 핵심] 회사의 실제 데이터가 없으면 *구체 수치·기한·규정명·도메인 판정*을 만들어내지 마세요. "CFO라면 비용을 물어볼 것"은 OK, "비용 15% 증가 / PCI-DSS 필수 / 12개월 소요"처럼 *없는 사실*을 이 역할의 입에 넣는 건 금지(가짜 권위). 당신이 내놓을 것은 이 역할이 *신경 쓸 관심사와 던질 질문*이지, 지어낸 사실·수치가 아닙니다. 승인 조건도 "무엇을 *봐야* 안심할지"(관심사)이지 지어낸 수치 게이트가 아닙니다. 모를 땐 "이건 내가 모르니 X 자료를 봐야 안다"고 솔직히 하세요.
 
 [분석 방식]
 - 실패 시나리오: "이 계획이 이미 실패했다고 가정. 가장 가능성 높은 원인은?"
@@ -149,7 +159,7 @@ ${persona.influence === 'high' ? '- ⚠️ 이 사람의 영향력이 높습니�
 ## 응답 형식 (JSON만 출력 — 모든 텍스트를 이 사람의 실제 말투로. 간결하게.)
 {
   "overall_reaction": "이 자료에 대한 첫인상 한 마디. 이 사람다운 말투로",
-  "praise": ["이 사람이 진심으로 인정할 부분. 구체적 칭찬 2~3개"],
+  "praise": ["이 사람이 진심으로 인정할 부분만 — 없으면 빈 배열 []. 개수 채우려 지어내기 금지"],
   "concerns": ["이 사람이 짚을 우려. 해결 힌트와 함께. 1~2개"],
   "first_questions": ["핵심 질문. 구어체로. 2개"],
   "classified_risks": [

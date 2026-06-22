@@ -71,7 +71,31 @@ quiz — neutral tone):
 
 If more than 3 are due, settle the 3 oldest and say how many remain.
 
+**The recorded outcome IS the user's tapped option, verbatim (R41 — the foundation
+rule, at the point of action, not just in the meta-gates).** NEVER narrate a
+verdict by mapping reality to the sealed pass/fail YOURSELF (e.g. "결과: 실패" /
+"that maps to missed") — that makes the MODEL the judge, which is the one integrity
+break the n=1 record cannot survive (a record of model-graded outcomes is
+worthless). You surface the sealed predicate + pass/fail and the question; the user
+states what reality did. **Discrepancy case:** when the user's prose disagrees with
+the sealed conditions ("basically held" when the fail_condition was met), do NOT
+resolve it with a stated verdict — re-surface the sealed pass/fail VERBATIM and let
+them settle it against that ("당신이 봉인한 기준은 이거예요 — 현실을 여기에 대보세요;
+답은 당신이 정합니다"). This matters most on the weakest model tier (R41: a weak
+tier self-graded the verdict — it landed correct only because the fixture's facts
+were unambiguous; a real settlement 30 days later, fed by self-serving memory, will
+not be).
+
 ## Step 3 — Record (append-only; never rewrite existing lines)
+
+**Concurrency (true append, not read-modify-write).** Append each event as a
+single line in append mode (`O_APPEND`) — never read the whole `ledger.jsonl`,
+add a line in memory, and rewrite the file. Two concurrent writers (a seal from
+one session, a settle from another, or helm sealing while settle runs) each
+appending one line both land; a read-rewrite-whole-file would lose one. Append-only
+is exactly what lets concurrent in-process writers AND git merges both converge —
+this rule applies to every ledger writer (settle, helm, watch), not just here.
+
 
 - For a **bearing seed not yet in the ledger**, first import it as two events,
   then settle — so the ledger stays the single replayable source:
@@ -83,10 +107,18 @@ If more than 3 are due, settle the 3 oldest and say how many remain.
 
 Omit `note` from the settle event when the user offered no sentence.
 
-- Outcome events:
+- Outcome events. **A held bet on luck is NOT a held bet on judgment** (R17:
+  the one settle failure was a reckless, no-prep gamble that got lucky being
+  logged as a clean "held", cementing winging-it as a validated win). So when
+  recording, optionally capture the user's OWN read of WHY it went that way —
+  reasoning, or luck / external factors outside it. This is the user's
+  self-report, NOT Argus grading them (reality is still the only judge); it just
+  keeps a lucky outcome from compounding into the record as a skill-win, and
+  lets the track record separate judgment from luck. Offer it as a light second
+  tap, never a quiz; omit `basis` if the user doesn't answer.
 
 ```json
-{"event":"settle","id":"<id>","outcome":"happened|avoided|partial","note":"<one user sentence if offered>","at":"<now ISO>"}
+{"event":"settle","id":"<id>","outcome":"happened|avoided|partial","basis":"reasoned|luck|external|mixed — user's own read, optional","note":"<one user sentence if offered>","at":"<now ISO>"}
 ```
 
 - `pending` → extend instead (history preserved, no settle):

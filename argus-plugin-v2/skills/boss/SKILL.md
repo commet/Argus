@@ -100,8 +100,20 @@ Rules:
   surface at most the ONE condition that would actually change the course, not a
   filled quota of severity-tagged worries. Restraint reads as confidence, not
   laziness.
-- Keep your MBTI voice distinct. Use the personality's speech pattern and
-  example dialogue rhythm.
+- **Anchor every concern to your SEAT's objective function, NOT your personality
+  (R42).** A head-to-head test found the value of this review comes from the SEAT —
+  what THIS role is accountable for (contracts / people / revenue / system-ownership
+  / compliance) raising a concern the decision's default frame flattens — and 0/5 of
+  the value was attributable to the MBTI type (the letters are costume; surfacing
+  "your ISTJ reviewer says…" is Barnum). State each concern as "as the owner of {X}
+  I object because {Y}". MBTI is a tone skin only — never the SOURCE of a concern.
+- **Suppress duplicates (R42).** If a concern is one any competent reviewer would
+  already raise, do NOT restate it louder in persona voice — that SUBTRACTS value
+  (the one value-negative case in the test was exactly a louder restatement). Add
+  only what your seat's objective UNIQUELY surfaces; if your seat adds nothing this
+  scaffold doesn't already cover, keep `concerns` short or empty — that is honest.
+- Keep your voice distinct via speech-pattern/rhythm — but the voice DELIVERS the
+  seat's concern; it does not generate it.
 - Return JSON only.
 
 Output:
@@ -215,11 +227,20 @@ Write `versions/{label}/boss_feedback.json`:
 }
 ```
 
-Update `versions/{label}/scaffold.json`:
+Update `versions/{label}/scaffold.json` — **idempotently** (session-layout →
+"Re-entry Is Idempotent"; R55 makes a re-run of boss a normal recovery path, so a
+second run must reproduce this scaffold, not a doubled one):
 
-- `boss_concerns_applied[]`
-- `boss_concerns_rejected[]`
-- routed next actions / human checkpoints / pending questions
+- `boss_concerns_applied[]` / `boss_concerns_rejected[]` — **SET** these arrays to
+  this run's result, do not append to whatever a prior boss run left. Each concern
+  carries a stable id so the lists are deterministic across re-runs.
+- routed next actions / human checkpoints / pending questions — fold each concern's
+  fix into `scaffold.next_actions[]` / `human_required_checkpoints[]` **keyed by the
+  concern id, replace-if-present, never blind-append.** A re-run re-derives the same
+  routed entries and overwrites them in place; it must not add a second copy of an
+  action/check it already routed. (Appending here was the latent re-entry bug: a
+  crash-then-resume, or a manual second `/argus:boss`, would double the routed
+  actions.)
 
 Update `session.json` (keep the skeleton thin — the review lives write-once at
 `versions/{label}/boss_feedback.json` and applied/rejected concerns are merged
@@ -315,7 +336,8 @@ Keep this to one terminal screen.
 - **Invalid MBTI code:** list valid codes and stop.
 - **Mix/scaffold missing:** direct user to `/argus:team`.
 - **Verification missing:** direct user to `/argus:verify`.
-- **Invalid JSON:** retry once with stricter format enforcement.
+- **Corrupt stored artifact** (a `mix.json` / `scaffold.json` / `verification.json` / `boss_feedback.json` on disk that won't parse): apply the canonical defensive-read discipline (clarify Error modes) — quarantine it to `<name>.corrupt.<ts>`, log to `errors.log`, and report the recovery path; do NOT crash and do NOT silently treat it as missing/empty. A corrupt `verification.json` is NOT "verification missing" — that would route the user to re-verify a step that already ran (and may have blocked). Halt naming the exact file rather than reviewing against a record you couldn't read.
+- **Malformed LLM feedback** (the boss's OWN generated response won't parse — distinct from a corrupt stored file): retry once with stricter format enforcement.
 
 ---
 

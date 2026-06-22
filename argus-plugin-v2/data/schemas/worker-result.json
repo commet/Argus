@@ -74,11 +74,6 @@
       "type": ["string", "null"],
       "description": "Concise issues from quality gate, framework guard-rail, or verifier."
     },
-    "claim_ids": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "Claims in verification-ledger.json that cite this worker."
-    },
     "error": {
       "type": ["string", "null"]
     },

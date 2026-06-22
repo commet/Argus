@@ -13,6 +13,17 @@ import type { Agent } from '@/stores/agent-types';
 import { buildAgentContext } from '@/lib/agent-prompt-builder';
 import { buildUserContextForReview } from '@/lib/user-context';
 
+/**
+ * Doc-safe sanitizer: strips the <user-data> fence so a pasted document cannot
+ * close + reopen the delimiter to inject instructions, while PRESERVING newlines
+ * (sanitizeForPrompt collapses them — which is why the document was previously
+ * interpolated raw, the prompt-injection hole). Length-capped to bound payload.
+ */
+const MAX_DOC_CHARS = 20000;
+function sanitizeDoc(str: string): string {
+  return String(str ?? '').replace(/<\/?\s*user-data[^>]*>/gi, '').slice(0, MAX_DOC_CHARS);
+}
+
 type Locale = 'ko' | 'en';
 type ReviewMode = 'quick' | 'deep';
 
@@ -167,7 +178,8 @@ ${personalityLine}${userBlock}
 - 우려는 반드시 "이렇게 고치면 됩니다"와 함께 — 지적만 하고 끝내지 마세요.
 - 모든 지적은 문서의 구체적 부분(몇 쪽, 어느 섹션)을 가리켜야 합니다.
 - 당신이 윗선에 올렸을 때 걸릴 포인트를 미리 알려주는 겁니다.
-- 특히 문서가 "당연히 맞다"고 전제하는 가정을 찾아내세요. 그 가정이 틀리면 전체가 무너지는 핵심 가정을 짚는 게 가장 가치 있는 피드백이에요.${attitudeExtra}
+- 특히 문서가 "당연히 맞다"고 전제하는 가정을 찾아내세요. 그 가정이 틀리면 전체가 무너지는 핵심 가정을 짚는 게 가장 가치 있는 피드백이에요.
+- 모든 우려를 당신의 "자리(seat)"의 목적함수에 묶으세요 — 이 역할이 책임지는 것(계약/사람/매출/시스템 소유/컴플라이언스). 가치는 그 자리의 고유 목적이 기본 프레임이 놓치는 걸 잡아내는 데서 나오지, 성격 유형에서 나오지 않아요. 어떤 우려가 평범한 리뷰어도 낼 만한 거라면, 같은 걸 당신 목소리로 *더 크게* 재진술하지 마세요 — 그건 가치를 깎습니다. 당신 자리만이 보는 것만 더하고, 그게 없으면 짧게 끝내세요.${attitudeExtra}
 
 [분량]
 ${lengthGuide}
@@ -187,7 +199,7 @@ ${jsonSchema}`;
   const user = `맥락: <user-data>${s(context)}</user-data>
 
 검토할 문서:
-<user-data context="document">${document}</user-data>`;
+<user-data context="document">${sanitizeDoc(document)}</user-data>`;
 
   return { system, user };
 }
@@ -242,7 +254,8 @@ ${personalityLine}${userBlock}
 - Acknowledge what's working first. Be specific — name the section/page.
 - Every concern MUST come with "here's how to fix it" — don't just criticize.
 - You're flagging what would get pushback from higher-ups.
-- Especially look for assumptions the document takes for granted. The most valuable feedback targets the ONE assumption that, if wrong, collapses the entire argument.${attitudeExtra}
+- Especially look for assumptions the document takes for granted. The most valuable feedback targets the ONE assumption that, if wrong, collapses the entire argument.
+- Anchor every concern to YOUR SEAT's objective — what this role is accountable for (contracts / people / revenue / system-ownership / compliance). The value is the seat's distinct objective surfacing what the default frame flattens, NOT your personality type. If a concern is one any competent reviewer would already raise, do NOT restate it louder in your voice — that subtracts value; add only what your seat uniquely sees, and keep it short if that's nothing.${attitudeExtra}
 
 [Length]
 ${lengthGuide}
@@ -262,7 +275,7 @@ ${jsonSchema}`;
   const user = `Context: <user-data>${s(context)}</user-data>
 
 Document to review:
-<user-data context="document">${document}</user-data>`;
+<user-data context="document">${sanitizeDoc(document)}</user-data>`;
 
   return { system, user };
 }

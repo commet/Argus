@@ -32,6 +32,7 @@ import { runDebateRound, type DebateResult } from '@/lib/debate-engine';
 import { generateId } from '@/lib/uuid';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { getCurrentLanguage } from '@/lib/i18n';
+import { classifyCrisis } from '@/lib/crisis-gate';
 import type {
   AnalysisSnapshot,
   ConvergenceMetrics,
@@ -54,6 +55,10 @@ interface InitialAnalysisResponse {
   why_this_matters?: string;
   hidden_assumptions: string[];
   skeleton: string[];
+  /** R31 — the model's own STEP-0 classification, surfaced so the RUNTIME can
+   *  enforce the structural contract (only `open` builds a plan). Optional: an
+   *  older/weaker model may omit it, in which case the guard no-ops (safe). */
+  request_type?: 'open' | 'flat' | 'vent' | 'validation' | 'info' | 'resistance' | 'self_profiling' | 'crisis';
   next_question: {
     text: string;
     subtext?: string;
@@ -61,6 +66,39 @@ interface InitialAnalysisResponse {
     type: 'select' | 'short';
   };
   detected_decision_maker: string | null;
+}
+
+/**
+ * R31 — runtime route-contract guard (the "rules=data on the surface with a
+ * runtime" move). R29 measured that weaker/mid models (esp. sonnet, the webapp's
+ * default tier) IGNORE the STEP-0 under-fire gates ~44% of the time and build a
+ * plan / manufacture a fork on a non-open request — a mirror-clause over-fire the
+ * markdown plugin cannot stop (no runtime) but the webapp CAN.
+ *
+ * This is the SAFE structural form: it only ENFORCES the contract the prompt
+ * already states (skeleton is non-empty ONLY for `open`). It is purely
+ * subtractive — it blanks a plan that should not exist — and NEVER rewrites the
+ * insight/real_question prose (text-scrubbing is fragile and could mangle a good
+ * answer). Default is no-op: it fires only on a RECOGNIZED non-open request_type,
+ * so a missing/unknown value leaves the output untouched.
+ *
+ * Exported pure for unit testing.
+ */
+const NON_OPEN_REQUEST_TYPES = new Set([
+  'vent', 'validation', 'info', 'self_profiling', 'flat', 'resistance',
+]);
+
+export function applyRouteContract<T extends { request_type?: string; skeleton?: string[] }>(
+  result: T,
+): { result: T; coerced: boolean } {
+  const rt = result.request_type;
+  if (rt && NON_OPEN_REQUEST_TYPES.has(rt) && Array.isArray(result.skeleton) && result.skeleton.length > 0) {
+    // The model classified this as a non-open request but still built a plan —
+    // an internal contradiction. Honor the restraint side (the spine-safe
+    // direction): a non-open request gets no manufactured plan.
+    return { result: { ...result, skeleton: [] }, coerced: true };
+  }
+  return { result, coerced: false };
 }
 
 interface ExecutionPlanStep {
@@ -308,6 +346,41 @@ export async function runInitialAnalysis(
   detectedDM: string | null;
 }> {
   const locale = getCurrentLanguage();
+
+  // ── Deterministic crisis backstop (decision 3: warn + resource, never block) ──
+  // High-PRECISION regex screen in FRONT of the LLM. When it fires the input is
+  // clearly a crisis, so we short-circuit: zero LLM tokens, no planning
+  // machinery, and a machine-readable `crisis` flag the UI renders as a
+  // non-blocking concern. Recall is NOT lost — the subtler cases this misses
+  // fall through to the LLM, whose STEP-0 GATE A still suppresses the skeleton
+  // and names the concern. Never widen the regex here (over-fire = its own harm).
+  const crisis = classifyCrisis(problemText);
+  if (crisis.isCrisis && crisis.category) {
+    const snapshot: AnalysisSnapshot = {
+      version: 0,
+      // The concern message is NOT stored here — it lives only on `crisis` and is
+      // rendered solely by CrisisConcernBanner. Keeping real_question as the
+      // user's own words avoids the decision card ("우리가 잡은 항로") mislabeling
+      // a hotline message as a plotted course, and avoids polluting the
+      // downstream real_question if the user consciously continues.
+      real_question: problemText,
+      hidden_assumptions: [],
+      skeleton: [],          // suppresses the plan AND blocks contract sealing (no predicates)
+      framing_confidence: 20, // low — never offers a "is this framing right?" ceremony
+      framing_locked: true,   // suppresses FramingConfirmation on a safety input
+      crisis,
+    };
+    // A valid-but-suppressed question so the conscious-continue path has a target;
+    // the UI hides it by default and only reveals it after an explicit override.
+    const question: FlowQuestion = {
+      id: generateId(),
+      text: locale === 'ko' ? '계속 진행하시겠어요?' : 'Would you like to continue?',
+      type: 'short',
+      engine_phase: 'reframe',
+    };
+    return { snapshot, question, detectedDM: null };
+  }
+
   const { system, user } = buildInitialAnalysisPrompt(problemText, locale);
 
   // Stream: real-time display then JSON parse, or standard approach
@@ -322,6 +395,12 @@ export async function runInitialAnalysis(
         { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
       );
 
+  // R31 — runtime route-contract guard: a non-open request that nonetheless built
+  // a plan is the model ignoring the STEP-0 under-fire gate (R29: ~44% on weak/mid
+  // tiers). Enforce the restraint structural contract the prompt already states.
+  const { result: contractResult } = applyRouteContract(result);
+  Object.assign(result, contractResult);
+
   const framingConfidence = Math.min(100, Math.max(0, result.framing_confidence ?? 75));
 
   const snapshot: AnalysisSnapshot = {
@@ -331,6 +410,10 @@ export async function runInitialAnalysis(
     skeleton: result.skeleton || [],
     framing_confidence: framingConfidence,
     framing_locked: false,
+    // R32 — wire the model's STEP-0 classification onto the snapshot so the flow
+    // can make a non-open route terminal (ProgressiveFlow suppresses the fabricated
+    // follow-up question). Undefined when the model omits it → flow stays normal.
+    request_type: result.request_type,
   };
 
   // Phase 1 typed question: framing_confidence>=70이면 strategic_fork로 넘어간다.
@@ -497,6 +580,13 @@ export async function runDeepening(
     insight: result.insight,
     framing_confidence: currentSnapshot.framing_confidence,
     framing_locked: currentSnapshot.framing_locked,
+    // Carry the deterministic crisis flag forward so the resource banner stays
+    // pinned across deepening even after a conscious "continue" (defensive: the
+    // banner also reads it off the round-0 snapshot, but don't depend on that).
+    crisis: currentSnapshot.crisis,
+    // Carry the route classification forward (deepening only happens on an open
+    // decision, but keep it pinned so the flow's non-open check is stable).
+    request_type: currentSnapshot.request_type,
   };
 
   // Adaptive convergence: 스냅샷 전체 + 새 스냅샷으로 수렴도 계산

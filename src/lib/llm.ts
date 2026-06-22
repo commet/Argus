@@ -1,6 +1,7 @@
 import { getStorage, STORAGE_KEYS } from '@/lib/storage';
 import type { Settings } from '@/stores/types';
 import { DAILY_LIMIT } from '@/lib/quota-config';
+import { track } from '@/lib/analytics';
 
 // ━━━ Types ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -61,6 +62,15 @@ export class LLMError extends Error {
 }
 
 function categorizeError(status: number, body?: Record<string, unknown>): LLMError {
+  const e = buildLlmError(status, body);
+  // Launch sensor: every categorized LLM failure (rate_limit / overloaded / auth /
+  // context_too_long / unknown) becomes a queryable event so a community-launch
+  // traffic spike (429/529 floods, quota exhaustion) is visible, not just in logs.
+  try { track('llm_error', { category: e.category, status: e.status, retryable: e.retryable }); } catch { /* analytics never breaks the call */ }
+  return e;
+}
+
+function buildLlmError(status: number, body?: Record<string, unknown>): LLMError {
   if (status === 429) {
     // 무료 체험 한도 소진(익명 사용자) — 서버가 needsLogin 플래그를 함께 내려줌.
     // 이 경우는 단순 rate limit이 아니라 "로그인하면 풀린다"는 별개의 UX 경로.

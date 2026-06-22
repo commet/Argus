@@ -86,6 +86,16 @@
       "type": ["string", "null"],
       "description": "Draft marked as v{major}.0 release."
     },
+    "revise_cycles": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many --revise rework cycles have run for this session. Incremented by /argus:team at the start of each --revise run (the single chokepoint both the /argus:revise path and sail's revise_team routing cross). Bounds the automated revise loop together with max_revise_cycles."
+    },
+    "max_revise_cycles": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Hard cap on revise cycles (default 3). Set via /argus:revise --max-revisions <N>. When revise_cycles reaches it, verify routes stop_for_human_check and team writes remaining challenges to human_required_checkpoints (reason: max_revisions_reached) instead of looping."
+    },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" }
   }

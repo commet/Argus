@@ -3,8 +3,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, clearUserCache } from './supabase';
 import { clearAllStorage } from './storage';
-import { setAnalyticsUser } from './analytics';
+import { setAnalyticsUser, track } from './analytics';
 import { getCurrentLanguage } from './i18n';
+import { migrateLocalToAccount } from './account-migration';
 import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -81,12 +82,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       setAnalyticsUser(session?.user?.id ?? null);
       setLoading(false);
+
+      // On a genuine sign-in, eagerly migrate local-first work into the account
+      // and confirm it (local-first → "your thinking follows you when you sign up").
+      if (_event === 'SIGNED_IN' && session?.user) {
+        migrateLocalToAccount()
+          .then((count) => {
+            if (count > 0 && typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('argus:account-synced', { detail: { count } }));
+            }
+          })
+          .catch(() => { /* migration is best-effort; never block auth */ });
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signInWithGoogle = async (redirectAfter?: string) => {
+    track('login_attempt', { method: 'google' });
     // Supabase OAuth takes a full-page redirect, so sessionStorage survives the round-trip.
     // auth/callback consumes + clears the key.
     if (redirectAfter && redirectAfter.startsWith('/') && !redirectAfter.startsWith('//')) {
@@ -101,11 +115,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithEmail = async (email: string, password: string) => {
+    track('login_attempt', { method: 'email' });
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) track('login_failure', { method: 'email', reason: error.message.slice(0, 80) });
     return { error: error ? translateError(error.message) : null };
   };
 
   const signUpWithEmail = async (email: string, password: string, captchaToken?: string) => {
+    track('signup_attempt', { method: 'email' });
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -114,6 +131,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         captchaToken,
       },
     });
+    if (error) track('signup_failure', { method: 'email', reason: error.message.slice(0, 80) });
+    else track('signup_success', { method: 'email' });
     return { error: error ? translateError(error.message) : null };
   };
 

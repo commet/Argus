@@ -38,6 +38,7 @@ import { withTranscript } from '@/lib/execution-transcript';
 import { getCompletionNote } from '@/lib/worker-personas';
 import { track } from '@/lib/analytics';
 import { recordSignal } from '@/lib/signal-recorder';
+import { CrisisConcernBanner } from './CrisisConcernBanner';
 import type { FlowQuestion, FlowAnswer, AnalysisSnapshot, DMConcern, MixResult, ConvergenceMetrics, WorkerTask, LeadSynthesisResult, Draft, LoadBearingClaim, Falsification as FalsificationResult } from '@/stores/types';
 import { findEffectForAnswer, applySnapshotPatch } from '@/lib/question-types';
 import type { StrategicForkEffect, WeaknessCheckEffect } from '@/lib/question-types';
@@ -1095,6 +1096,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const [previewDraftId, setPreviewDraftId] = useState<string | null>(null);
   // The "나" problem pill expands on tap (long briefs truncate to one line).
   const [problemExpanded, setProblemExpanded] = useState(false);
+  // Crisis backstop: the concern + resource shows by default and the decision
+  // machinery is suppressed; one conscious tap (never a hard block, decision 3)
+  // lets the user re-enter the normal flow. Local state so it never re-fires.
+  const [crisisOverride, setCrisisOverride] = useState(false);
   // Two-step confirm for the destructive "초안부터 다시 만들기" exit.
   const [rerunArmed, setRerunArmed] = useState(false);
   const [iterationOpen, setIterationOpen] = useState(false);
@@ -1313,6 +1318,21 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     ? drafts.find((d) => d.id === previewDraftId) ?? null
     : null;
   const dm = session?.decision_maker ?? null;
+
+  // Crisis backstop (decision 3): the deterministic gate sets snapshot.crisis at
+  // round 0. Read it off whichever snapshot carries it so the resource stays
+  // pinned through deepening. `crisisBlocking` suppresses the decision machinery
+  // until the user consciously continues — it NEVER hard-blocks.
+  const crisis = snapshots.find((s) => s.crisis?.isCrisis)?.crisis ?? null;
+  const crisisBlocking = !!crisis && !crisisOverride;
+
+  // R32 — a non-open route (vent/validation/info/flat/self_profiling/resistance)
+  // is TERMINAL: the inline answer (insight) is the deliverable, so suppress the
+  // fabricated follow-up question. The question OBJECT stays alive (curQ truthy),
+  // so `shouldMix` (which fires on !curQ) can never deploy the crew on a vent —
+  // the same safety property the crisis backstop relies on. Render-suppress only.
+  const nonOpenRoute = snapshots.find((s) => s.request_type && s.request_type !== 'open')?.request_type ?? null;
+  const suppressQuestion = !!nonOpenRoute;
 
   const qaPairs = useMemo(() => questions.map((q, i) => ({ question: q, answer: answers[i] || null })), [questions, answers]);
   const curQ = questions.length > answers.length ? questions[questions.length - 1] : null;
@@ -2406,6 +2426,19 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <ReviewerBadge reviewerId={session.reviewer_agent_id || null} />
           </div>
 
+          {/* Crisis backstop (decision 3: warn + a real resource, NEVER block).
+              The deterministic gate fired on round 0 → the concern + resource
+              show by default and the decision machinery below is suppressed.
+              One conscious tap re-enters the flow; the resource stays pinned. */}
+          {crisis && (
+            <CrisisConcernBanner
+              crisis={crisis}
+              locale={locale}
+              blocking={crisisBlocking}
+              onContinue={() => setCrisisOverride(true)}
+            />
+          )}
+
           {/* PhaseDivider: Team assembled → confirm.
               W1.6 재구성: focus mode auto-deploys (no HR-approval screen) —
               the crew is theater, not paperwork. Classic keeps the gate. */}
@@ -2480,7 +2513,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 questions and what happens after. Shown only on the very
                 first question of a session; disappears once the user has
                 answered anything. */}
-            {curQ && !busy && phase === 'conversing' && round === 0 && answers.length === 0 && (
+            {curQ && !busy && phase === 'conversing' && round === 0 && answers.length === 0 && !crisisBlocking && !suppressQuestion && (
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2498,7 +2531,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             {/* (The "팀은 이미 준비됐어요…(선택)" banner was removed: the
                 question meta ("질문 N/M · 선택") and the skip chip ("건너뛰고
                 팀 투입") already say optional — three voices for one fact.) */}
-            {curQ && !busy && phase === 'conversing' && (() => {
+            {curQ && !busy && phase === 'conversing' && !crisisBlocking && !suppressQuestion && (() => {
               const teamReady = deployPhase === 'ready' && workers.length > 0;
               const isProbeQ = !!curQ.id?.startsWith('probe-fork-');
               // A denominator, not an open end — question fatigue is mostly not
@@ -2753,7 +2786,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <TrialSail paragraph={session.problem_text} />
           )}
 
-          {(showRecord || phase !== 'conversing') && latest && !final_ && (
+          {/* While the crisis backstop is blocking, hide the decision card — it
+              would otherwise re-introduce decision chrome ("우리가 잡은 항로")
+              around a safety input, the very ceremony the crisis path suppresses. */}
+          {(showRecord || phase !== 'conversing' || suppressQuestion) && latest && !final_ && !crisisBlocking && (
             <div ref={analysisCardRef}>
               <AnalysisCard
                 snapshot={latest}

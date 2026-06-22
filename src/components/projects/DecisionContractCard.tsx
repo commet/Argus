@@ -39,6 +39,7 @@ import type {
   FeedbackRecord,
   CheckInInterval,
   PredicateVerdict,
+  PredicateBasis,
   PredicateSource,
   Predicate,
 } from '@/stores/types';
@@ -47,6 +48,7 @@ import {
   contractFromPredicates,
   withCheckIn,
   gradePredicate,
+  setPredicateBasis,
   contractStatus,
   summarizeGrades,
   type PredicateSources,
@@ -96,6 +98,28 @@ export function predicateQuestion(p: Predicate, ko: boolean): string {
   if (p.source === 'governing_idea') return ko ? `핵심 가설이 맞았나요 — ${p.text}` : `Did the bet hold — ${p.text}`;
   if (p.source === 'actor') return ko ? `사람 판단이 필요했나요 — ${p.text}` : `Did this need human judgment — ${p.text}`;
   return ko ? `실제로 일어났나요 — ${p.text}` : `Did it happen — ${p.text}`;
+}
+
+/** A "good outcome" verdict where crediting the user's judgment is at stake — a
+ *  held bet or an avoided risk. Only here do we offer the optional basis tap;
+ *  asking "luck or skill?" about a loss or an unknown would be noise. */
+export function isCreditClaimingOutcome(p: Predicate): boolean {
+  return (
+    (p.source === 'governing_idea' && p.verdict === 'happened') ||
+    (p.source === 'risk' && p.verdict === 'avoided')
+  );
+}
+
+/** The optional "why did it go your way?" choices — the light second tap, never a
+ *  quiz. Self-report, NOT Argus grading (R17). Single source of truth shared with
+ *  SettlementModal; values mirror the plugin settle `basis` (parity-guarded). */
+export function basisOptions(ko: boolean): { value: PredicateBasis; label: string }[] {
+  return [
+    { value: 'reasoned', label: ko ? '판단대로' : 'My read' },
+    { value: 'luck', label: ko ? '운이 좋았음' : 'Luck' },
+    { value: 'external', label: ko ? '외부 요인' : 'Outside factors' },
+    { value: 'mixed', label: ko ? '반반' : 'A bit of both' },
+  ];
 }
 
 const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
@@ -180,6 +204,14 @@ export function DecisionContractCard({
     });
   }
 
+  /** Optional second tap on a win: the user's own read (luck vs. judgment). */
+  function setBasis(predicateId: string, basis: PredicateBasis, selected: boolean) {
+    if (!contract) return;
+    updateProject(project.id, {
+      decision_contract: setPredicateBasis(contract, predicateId, selected ? undefined : basis),
+    });
+  }
+
   function fmtDate(iso?: string): string {
     if (!iso) return '';
     const d = new Date(iso);
@@ -260,6 +292,8 @@ export function DecisionContractCard({
       g.risksAvoided > 0 && L(`위험 ${g.risksAvoided}개 회피`, `${g.risksAvoided} risk${g.risksAvoided === 1 ? '' : 's'} avoided`),
       g.risksHappened > 0 && L(`${g.risksHappened}개 발생`, `${g.risksHappened} hit`),
       g.betsHeld > 0 && L(`가설 ${g.betsHeld}개 적중`, `${g.betsHeld} bet${g.betsHeld === 1 ? '' : 's'} held`),
+      // The user's own read — a lucky win isn't a judgment win (R17).
+      g.goodOutcomesOnLuck > 0 && L(`그중 운 ${g.goodOutcomesOnLuck}개`, `${g.goodOutcomesOnLuck} on luck`),
       g.unknown > 0 && L(`${g.unknown}개 미정`, `${g.unknown} unresolved`),
     ].filter(Boolean);
     return (
@@ -355,6 +389,34 @@ export function DecisionContractCard({
                         );
                       })}
                     </div>
+                    {/* Optional "luck or judgment?" tap on a win — never required
+                        (R17). Same single-source helpers as the settlement modal. */}
+                    {isCreditClaimingOutcome(p) && (
+                      <div className="pl-[21px] mt-2">
+                        <p className="text-[11px] text-[var(--text-tertiary)] mb-1.5">
+                          {L('어쩌다 그렇게 됐어요? (선택)', 'What made it go your way? (optional)')}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {basisOptions(ko).map((b) => {
+                            const on = p.basis === b.value;
+                            return (
+                              <button
+                                key={b.value}
+                                onClick={() => setBasis(p.id, b.value, on)}
+                                aria-pressed={on}
+                                className={`px-2 py-0.5 rounded-md text-[11.5px] font-medium border transition-colors cursor-pointer ${
+                                  on
+                                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                                    : 'border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--accent)]/40'
+                                }`}
+                              >
+                                {b.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

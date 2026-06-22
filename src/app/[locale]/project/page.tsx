@@ -413,10 +413,12 @@ export default function ProjectPage() {
                   {locale === 'ko'
                     ? `지금까지 닫은 고리 ${crossRecord.loops}개` +
                       (crossRecord.betsHeld > 0 ? ` · 적중한 가설 ${crossRecord.betsHeld}개` : '') +
-                      (crossRecord.risksAvoided > 0 ? ` · 비켜 간 위험 ${crossRecord.risksAvoided}개` : '')
+                      (crossRecord.risksAvoided > 0 ? ` · 비켜 간 위험 ${crossRecord.risksAvoided}개` : '') +
+                      (crossRecord.goodOutcomesOnLuck > 0 ? ` · 그중 운으로 본 게 ${crossRecord.goodOutcomesOnLuck}개` : '')
                     : `${crossRecord.loops} loop${crossRecord.loops === 1 ? '' : 's'} closed so far` +
                       (crossRecord.betsHeld > 0 ? ` · ${crossRecord.betsHeld} bet${crossRecord.betsHeld === 1 ? '' : 's'} held` : '') +
-                      (crossRecord.risksAvoided > 0 ? ` · ${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '')}
+                      (crossRecord.risksAvoided > 0 ? ` · ${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '') +
+                      (crossRecord.goodOutcomesOnLuck > 0 ? ` · ${crossRecord.goodOutcomesOnLuck} marked as luck` : '')}
                 </p>
               )}
 

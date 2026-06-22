@@ -2711,6 +2711,46 @@ button, a, input, textarea {
 .bp-hero-input::placeholder {
   color: var(--bp-ink-soft);
   opacity: 1;
+  font-style: italic;
+}
+/* The hero chart-field owns its own focus language (ink baseline inks in from
+   the left + corner ticks darken) — so suppress the global gold focus ring,
+   which read as a cheap rounded gold box clashing with the square plate. */
+.bp-hero-input:focus,
+.bp-hero-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+/* Scroll cue — a "sounding line": an ink rule with a weight that bobs, so the
+   transition to the voyage is a real, visible, clickable signifier (not a faint glyph). */
+.bp-sounding { text-decoration: none; }
+.bp-sounding-line {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: 46px;
+  background: var(--bp-ink);
+  opacity: 0.5;
+}
+.bp-sounding-line::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bp-ink);
+  transform: translate(-50%, 0);
+  animation: bp-sound 1.8s ease-in-out infinite;
+}
+.bp-sounding:hover .bp-sounding-line { opacity: 0.8; }
+@keyframes bp-sound {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, 8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bp-sounding-line::after { animation: none; }
 }
 /* Quiet secondary link — readable (full ink-soft ≈ 5.4:1) and darkens on
    hover to reinforce the affordance instead of fading toward the paper. */

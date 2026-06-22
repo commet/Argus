@@ -45,10 +45,10 @@ export function SirenHero() {
   // "what do I even type?". Pauses while focused or once they start typing,
   // and stays static under prefers-reduced-motion.
   const PROMPTS = [
-    L('지금 들고 있는 결정이나 계획을 그대로 적어보세요', "Write down the decision or plan you're holding right now"),
-    L('예: 이 기능, 지금 낼까 더 다듬고 낼까', 'e.g. Ship this feature now, or polish it more?'),
-    L('예: 받은 이직 제안, 받아들일까', 'e.g. Take the job offer I just got?'),
-    L('예: 다음 분기 채용을 멈춰야 할까', 'e.g. Should we pause hiring next quarter?'),
+    L('예)  다니던 회사를 그만두고, 작은 가게를 열까 해요.', 'e.g.  Leave my job to open a small shop?'),
+    L('예)  받은 이직 제안, 받아들여도 될지 고민이에요.', 'e.g.  Take the job offer I just got?'),
+    L('예)  이 기능, 이번 분기에 낼까 더 다듬을까.', 'e.g.  Ship this feature this quarter, or polish it more?'),
+    L('예)  지금 이 투자를 집행해도 괜찮을까요.', 'e.g.  Should we make this investment now?'),
   ];
   const [promptIdx, setPromptIdx] = useState(0);
   const reduceMotion = useRef(false);
@@ -86,9 +86,9 @@ export function SirenHero() {
         // (URL bar collapse safe). Header is fixed/transparent above this.
         // Floor kept low so the textarea + CTA clear the fold even when
         // mobile chrome / laptop toolbars eat vertical space.
-        minHeight: '100svh',
-        paddingTop: 'clamp(48px, 7vh, 92px)',
-        paddingBottom: 32,
+        minHeight: '92svh',
+        paddingTop: 'clamp(40px, 6vh, 84px)',
+        paddingBottom: 28,
       }}
     >
       <PaperGrain opacity={0.05} />
@@ -133,7 +133,7 @@ export function SirenHero() {
               fontWeight: 500,
             }}
           >
-            {L('결정을 분석하고 · 정한 날짜에 돌아오는 AI', 'ANALYZES YOUR DECISION · RETURNS ON YOUR DATE')}
+            {L('계획을 진짜로 읽고 · 정한 날짜에 돌아오는 AI', 'READS YOUR PLAN FOR REAL · RETURNS ON YOUR DATE')}
           </span>
           <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
         </div>
@@ -165,19 +165,20 @@ export function SirenHero() {
             animationDelay: '140ms',
           }}
         >
-          {L(
-            '중요한 결정일수록 혼자 들고 있게 됩니다. 사람들에게 보여주면 "좋아 보여요"가 돌아오고, AI에게 물으면 더 유창한 "좋아 보여요"가 돌아옵니다.',
-            'The bigger the decision, the more alone you hold it. Show people and you get "looks good" — ask an AI and you get a more fluent "looks good."',
+          {locale === 'ko' ? (
+            <>중요한 결정일수록 혼자 들고 있게 됩니다.<br />사람들에게 보여주면 “좋아 보여요”가 돌아오고,<br />AI에게 물으면 더 유창한 “좋아 보여요”가 돌아옵니다.</>
+          ) : (
+            <>The bigger the decision, the more alone you hold it.<br />Show people and you get “looks good” — ask an AI and you get a more fluent “looks good.”</>
           )}
         </p>
 
         {/* The visual anchor — the page forks where the copy turns from the
             problem to what Argus does, and the dashed arc shows the return. */}
-        <div className="bp-fade-up mx-auto mt-4" style={{ maxWidth: 236, animationDelay: '200ms' }}>
+        <div className="bp-fade-up mt-6" style={{ width: 'min(840px, 92vw)', marginLeft: '50%', transform: 'translateX(-50%)', animationDelay: '200ms' }}>
           <ForkPath
             label={L(
-              '한 계획이 따로 읽혀 여러 갈래로 갈라지고 — 정한 날짜에 당신에게 돌아옵니다',
-              'One plan, read separately, forking into divergent routes — then a return on your date',
+              '한 계획이 여러 시선에 따로 읽혀 길이 갈라지고 — 정한 날짜에 당신에게 돌아옵니다',
+              'One plan, read separately by many eyes, forking into divergent routes — then a return on your date',
             )}
           />
         </div>
@@ -193,98 +194,132 @@ export function SirenHero() {
             animationDelay: '260ms',
           }}
         >
-          {L(
-            'Argus는 칭찬도 반박도 하지 않아요. 당신 계획이 스스로 말하게 해서, 아직 비워둔 판단을 보여주고 — 정한 날짜에 돌아와 묻습니다.',
-            'Argus neither flatters nor argues. It lets your plan speak for itself — surfacing the judgment you left blank — then comes back on the date you set to ask.',
+          {locale === 'ko' ? (
+            <>Argus는 칭찬도 반박도 하지 않아요.<br />그저 당신의 계획을 진짜로 읽어요 —<br />“좋아{' '}보여요”는 읽지 않고도 할 수 있는 말이니까요.</>
+          ) : (
+            <>Argus neither flatters nor argues.<br />It just reads your plan, for real —<br />“looks good” is the one thing you can say without reading it.</>
           )}
         </p>
 
-        {/* The single entry point — a ruled chart field with corner ticks, no
-            drop shadow, no fat radius. Ink physics, not screen glass. */}
-        <div className="bp-fade-up mt-6" style={{ animationDelay: '320ms' }}>
-          <div className="relative">
-            {/* corner registration ticks — frame it like a plate field */}
-            {([
-              { k: 'tl', s: { top: -1, left: -1, borderTop: '1.5px solid', borderLeft: '1.5px solid' } },
-              { k: 'tr', s: { top: -1, right: -1, borderTop: '1.5px solid', borderRight: '1.5px solid' } },
-              { k: 'bl', s: { bottom: -1, left: -1, borderBottom: '1.5px solid', borderLeft: '1.5px solid' } },
-              { k: 'br', s: { bottom: -1, right: -1, borderBottom: '1.5px solid', borderRight: '1.5px solid' } },
-            ] as const).map(({ k, s }) => (
-              <span
-                key={k}
-                aria-hidden="true"
-                style={{ position: 'absolute', width: 9, height: 9, borderColor: 'var(--bp-ink-soft)', opacity: 0.5, zIndex: 1, ...s }}
-              />
-            ))}
-            <div
-              className="bp-input-frame overflow-hidden text-left"
-              style={{ background: 'var(--bp-paper-deep)' }}
-            >
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
-                aria-label={L(
-                  '지금 들고 있는 결정이나 계획',
-                  "The decision or plan you're holding right now",
-                )}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sail();
-                  }
-                }}
-                placeholder={placeholder}
-                rows={3}
-                maxLength={5000}
-                className="bp-hero-input w-full px-5 py-4 bg-transparent text-base md:text-[15px] resize-none focus:outline-none"
-                style={{ color: 'var(--bp-ink)', lineHeight: 1.6 }}
-              />
-              <div className="flex items-center justify-between gap-3 px-4 pb-3">
-                <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: '0.08em' }}>
-                  {text.trim()
-                    ? L('Enter로 시작 · Shift+Enter로 줄바꿈', 'Enter to start · Shift+Enter for newline')
-                    : L('한 줄이면 돼요 · 가입 없이 시작', 'One line is enough · no sign-up')}
-                </span>
-                <button
-                  onClick={sail}
-                  disabled={!text.trim()}
-                  className="bp-btn-primary bp-btn-primary--ink-frame shrink-0"
-                  style={{ minHeight: 44 }}
-                >
-                  {L('진짜로 읽혀보기', 'Have it truly read')}
-                </button>
-              </div>
-            </div>
+        {/* The single entry point — a logbook "chart field": a persistent
+            marginalia label + corner ticks + a ruled baseline, no rectangle.
+            Focus = pen meets paper (ink inks in from the left); never a gold box. */}
+        <div className="bp-fade-up mt-7 mx-auto text-left" style={{ animationDelay: '320ms', maxWidth: 600 }}>
+          {/* persistent label — purpose never depends on the disappearing placeholder */}
+          <div className="flex items-center gap-2" style={{ marginBottom: 11 }}>
+            <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11.5, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+              {L('LOG ENTRY · 들고 계신 결정', 'LOG ENTRY · the decision you carry')}
+            </span>
           </div>
 
-          {/* 1줄 작동 설명 — exactly one. Admits the honest null-fork case
-              ("갈리는 자리가 있으면") so the CTA never overpromises a split. */}
-          <p
-            className={`mt-4 ${locale === 'ko' ? 'break-keep' : ''}`}
-            style={{ color: 'var(--bp-ink-soft)', fontSize: 13, lineHeight: 1.6 }}
-          >
-            {L(
-              '관점이 다른 AI 여럿이 당신 계획을 따로 읽어요. 갈리는 자리가 있으면 — 거기가 당신이 비워둔 판단이에요. 그리고 정한 날짜에 먼저 돌아와 물어요.',
-              'Several AI readers, each a different perspective, read your plan separately. Where they split — that\'s the judgment you left blank. Then, on your date, we come back first to ask.',
-            )}
-          </p>
-
-          {/* Privacy — a marginal hairline note, distinct register from the
-              line above. Placed at the point of anxiety (beside the input). */}
-          <p
-            className={`mt-2 inline-flex items-center gap-2 ${locale === 'ko' ? 'break-keep' : ''}`}
-            style={{ color: 'var(--bp-ink-soft)', fontSize: 11.5, lineHeight: 1.5 }}
-          >
-            <span aria-hidden="true" style={{ width: 14, height: 1, background: 'var(--bp-ink-faint)' }} />
-            {L(
-              '입력한 내용은 분석에만 쓰여요 — 사람에게 가지 않아요.',
-              'What you type is used only for analysis — it never goes to a person.',
-            )}
-            <span aria-hidden="true" style={{ width: 14, height: 1, background: 'var(--bp-ink-faint)' }} />
-          </p>
+          <div className="relative" style={{ background: 'var(--bp-paper-deep)', padding: '16px 20px 0' }}>
+            {/* corner registration ticks — darken & lengthen on focus */}
+            {([
+              { k: 'tl', s: { top: -1, left: -1, borderTopStyle: 'solid', borderTopWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
+              { k: 'tr', s: { top: -1, right: -1, borderTopStyle: 'solid', borderTopWidth: 1.5, borderRightStyle: 'solid', borderRightWidth: 1.5 } },
+              { k: 'bl', s: { bottom: -1, left: -1, borderBottomStyle: 'solid', borderBottomWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
+              { k: 'br', s: { bottom: -1, right: -1, borderBottomStyle: 'solid', borderBottomWidth: 1.5, borderRightStyle: 'solid', borderRightWidth: 1.5 } },
+            ] as const).map(({ k, s }) => {
+              const tick = focused ? 'var(--bp-ink)' : 'var(--bp-ink-soft)';
+              return (
+                <span
+                  key={k}
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    width: focused ? 15 : 10,
+                    height: focused ? 15 : 10,
+                    borderTopColor: tick,
+                    borderRightColor: tick,
+                    borderBottomColor: tick,
+                    borderLeftColor: tick,
+                    opacity: focused ? 0.95 : 0.5,
+                    transition: 'width 220ms ease, height 220ms ease, border-color 220ms ease, opacity 220ms ease',
+                    zIndex: 1,
+                    ...s,
+                  }}
+                />
+              );
+            })}
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              aria-label={L('지금 들고 있는 결정이나 계획', "The decision or plan you're holding right now")}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sail();
+                }
+              }}
+              placeholder={placeholder}
+              rows={2}
+              maxLength={5000}
+              className={`bp-hero-input w-full bg-transparent resize-none focus:outline-none ${locale === 'ko' ? 'break-keep' : ''}`}
+              style={{ color: 'var(--bp-ink)', fontSize: 18, lineHeight: 1.7 }}
+            />
+            {/* baseline rule: static faint hairline + an ink rule that inks-in from the left on focus */}
+            <div style={{ position: 'relative', height: 1.5, marginTop: 4 }}>
+              <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'var(--bp-ink-faint)' }} />
+              <span
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'var(--bp-ink)',
+                  transform: focused ? 'scaleX(1)' : 'scaleX(0)',
+                  transformOrigin: 'left',
+                  transition: 'transform 320ms cubic-bezier(.22,.61,.36,1)',
+                }}
+              />
+            </div>
+            {/* footer: folded microcopy (send + privacy) + the gold-ignite CTA */}
+            <div className="flex items-center justify-between gap-3" style={{ paddingTop: 11, paddingBottom: 13 }}>
+              <span style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.005em', lineHeight: 1.4 }}>
+                {text.trim()
+                  ? L('⏎ 로 보내기 · Shift+⏎ 줄바꿈', '⏎ to send · Shift+⏎ for newline')
+                  : L('⏎ 한 줄이면 충분해요 · 적은 내용은 저장하지 않아요', '⏎ one line is enough · we don’t store what you write')}
+              </span>
+              <button
+                onClick={sail}
+                disabled={!text.trim()}
+                className="bp-mono shrink-0"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  minHeight: 42,
+                  padding: '9px 18px',
+                  border: '1px solid',
+                  borderColor: text.trim() ? 'var(--bp-gold)' : 'var(--bp-ink-soft)',
+                  background: text.trim() ? 'var(--bp-gold)' : 'transparent',
+                  color: text.trim() ? 'var(--bp-paper)' : 'var(--bp-ink-soft)',
+                  fontSize: 12,
+                  letterSpacing: '0.12em',
+                  cursor: text.trim() ? 'pointer' : 'not-allowed',
+                  transition: 'background 220ms ease, border-color 220ms ease, color 220ms ease',
+                  borderRadius: 0,
+                }}
+              >
+                {L('읽어봐 주세요', 'Have it read')}
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* one plain-language line on how it works (the honest null-fork case is kept) */}
+        <p
+          className={`bp-fade-up mx-auto mt-6 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
+          style={{ color: 'var(--bp-ink-soft)', fontSize: 13, lineHeight: 1.65, animationDelay: '420ms' }}
+        >
+          {locale === 'ko' ? (
+            <>여러 AI가 저마다 다른 눈으로 당신의 계획을 따로 읽어요.<br />길이 갈리는 곳이 있다면 — 거기가 아직 당신이 비워둔 판단이에요.<br />정한 날엔, 잊지 않고 먼저 물어와요.</>
+          ) : (
+            <>Several AIs read your plan separately, each through different eyes.<br />Where the paths split — that&rsquo;s the judgment you&rsquo;ve left blank.<br />And on the day you set, it comes back first to ask.</>
+          )}
+        </p>
 
         {/* Quiet demo path — clearly secondary, separated from the primary
             action so it does not cannibalize the textarea. */}
@@ -298,15 +333,18 @@ export function SirenHero() {
           </LocaleLink>
         </div>
 
-        {/* Scroll cue to the preserved three acts. */}
-        <div className="bp-fade-up mt-7" style={{ animationDelay: '400ms' }}>
-          <span
-            className="bp-mono inline-block animate-bounce"
-            aria-hidden
-            style={{ color: 'var(--bp-ink-soft)', fontSize: 10, letterSpacing: '0.3em' }}
+        {/* Scroll cue — a clickable "sounding line" down to the voyage. */}
+        <div className="bp-fade-up mt-9 flex justify-center" style={{ animationDelay: '440ms' }}>
+          <a
+            href="#voyage-heading"
+            aria-label={L('항해의 전말 보기', 'See the full voyage')}
+            className="bp-sounding inline-flex flex-col items-center gap-2"
           >
-            {L('▾ 항해의 전말', '▾ THE FULL VOYAGE')}
-          </span>
+            <span className="bp-mono" style={{ color: 'var(--bp-ink)', opacity: 0.72, fontSize: 10.5, letterSpacing: '0.26em', textTransform: 'uppercase' }}>
+              {L('항해의 전말', 'The full voyage')}
+            </span>
+            <span aria-hidden="true" className="bp-sounding-line" />
+          </a>
         </div>
       </div>
     </section>

@@ -1,3 +1,8 @@
+// Type-only import: crisis-gate.ts is the single source of truth for the crisis
+// taxonomy (its CRISIS_CATEGORIES const + CrisisSignal); referencing the type
+// here is erased at compile time, so this adds no runtime dependency or cycle.
+import type { CrisisSignal } from '@/lib/crisis-gate';
+
 // ─── Reframe (항로 재설정 | 문제 재정의) ───
 
 export interface ReframeHiddenQuestion {
@@ -547,6 +552,17 @@ export type PredicateSource = 'risk' | 'actor' | 'governing_idea';
  *  open forever. `pending` = not yet answered. */
 export type PredicateVerdict = 'happened' | 'avoided' | 'partial' | 'unknown' | 'pending';
 
+/** The user's OWN read of WHY a good outcome went the way it did — held bet or
+ *  avoided risk. A held bet on luck is NOT a held bet on judgment (R17: the one
+ *  settle failure was a reckless no-prep gamble that got lucky, logged as a clean
+ *  "held", cementing winging-it as a validated win). This is the user's
+ *  self-report, NOT Argus grading them (reality is still the only judge); it just
+ *  keeps a lucky outcome from compounding into the record as a skill-win. Optional
+ *  — absent when the user doesn't answer the light second tap. Single source of
+ *  truth shared with the plugin settle event's `basis` (parity-guarded). */
+export const PREDICATE_BASES = ['reasoned', 'luck', 'external', 'mixed'] as const;
+export type PredicateBasis = typeof PREDICATE_BASES[number];
+
 export interface Predicate {
   /** Deterministic, stable across re-generation (hash of source+text). The grade join key. */
   id: string;
@@ -560,6 +576,10 @@ export interface Predicate {
   /** User's later grade. Absent/`pending` until they return to score it. */
   verdict?: PredicateVerdict;
   graded_at?: string;
+  /** User's optional read of WHY a good outcome happened (held bet / avoided
+   *  risk): reasoned vs luck/external. Separates judgment-wins from luck-wins in
+   *  the track record. Cleared when the verdict returns to pending. */
+  basis?: PredicateBasis;
 }
 
 export type CheckInInterval = '1w' | '2w' | '1m';
@@ -618,6 +638,68 @@ export interface DecisionQualityScore {
   user_changed_mind: boolean;
   overall_dq: number;
   created_at: string;
+}
+
+// ─── Plugin Bridge (Claude Code plugin → webapp) ───
+// Landing zone for content the Argus plugin saves to local disk
+// (.argus/ledger/ledger.jsonl + .argus/sessions/.../current_bearing.json), so a
+// logged-in user can open it in the webapp. Columns mirror
+// supabase/migrations/20260618_plugin_bridge_tables.sql exactly.
+
+export interface PluginAmendment {
+  predicate?: string;
+  falsified_if?: string;
+  check_by?: string;
+  amended_at: string;
+}
+
+export interface PluginDecision {
+  id: string;
+  source: 'import' | 'push';
+  ledger_id: string;            // plugin's sha256(session|quote)[:8]
+  project?: string;
+  session?: string;
+  decided_at?: string;
+  harvested_at?: string;
+  quote?: string;
+  decision?: string;
+  type?: string;
+  stakes?: string;              // high | medium | low
+  status?: 'candidate' | 'sealed' | 'settled' | 'dismissed';
+  predicate?: string;
+  falsified_if?: string;
+  check_by?: string;            // verbatim YYYY-MM-DD
+  sealed_at?: string;
+  outcome?: 'happened' | 'avoided' | 'partial' | 'pending';
+  settled_at?: string;
+  settle_note?: string;
+  dismissed_at?: string;
+  dismiss_reason?: string;
+  history?: PluginAmendment[];
+  raw?: unknown;
+  imported_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PluginBearing {
+  id: string;
+  source: 'import' | 'push';
+  session?: string;
+  version_label?: string;
+  label?: string;
+  current_course?: { status?: string; summary?: string } | null;
+  why_this_course?: Array<{ point?: string; source?: string }>;
+  fog_or_reef?: { issue?: string; why_it_matters?: string; required_check?: string } | null;
+  road_not_taken?: Array<{ option?: string; why_not_now?: string }>;
+  next_helm?: string;
+  contract_seed?: { predicate?: string; check_by?: string; pass_condition?: string; fail_condition?: string } | null;
+  blocked?: boolean;
+  generated_at?: string;
+  raw?: unknown;
+  imported_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // ─── Settings ───
@@ -798,6 +880,29 @@ export interface AnalysisSnapshot {
   // Convergence tracking (Weakness C fix)
   convergence_score?: number;       // 0-100: 질문 안정성 + 가정 감소 종합
   convergence_trend?: 'improving' | 'stable' | 'declining' | 'unclear';
+
+  // ── Under-fire judgment gates (ported from plugin v2.6) ──
+  /** step-0: the model's own STEP-0 classification (R31/R32 — now WIRED: set by
+   *  runInitialAnalysis from the LLM output, read by ProgressiveFlow to make a
+   *  non-open route terminal — no fabricated follow-up question). Only `open`
+   *  flows the full engine; every other value is a terminal inline answer. */
+  request_type?: 'open' | 'flat' | 'vent' | 'validation' | 'info' | 'resistance' | 'self_profiling' | 'crisis';
+  /** open_decision only: ready (default) vs resistance (long-pending, no new info). */
+  readiness?: 'ready' | 'resistance';
+  /** Whether real_question meaningfully differs from the surface question (rule 1b).
+   *  flat → do not manufacture a reframe/fork (the over-fire mirror clause). */
+  frame_status?: 'flat' | 'load_bearing';
+  /** Cognitive weight the decision deserves; low → a 1-line directive, not a scaffold. */
+  decision_density?: 'low' | 'medium' | 'high';
+  decision_density_reasoning?: string;
+
+  /** Deterministic crisis backstop result (crisis-gate.ts), set ONLY at round 0
+   *  when the high-precision classifier fires. Absence = no deterministic hit
+   *  (the LLM's STEP-0 GATE A still covers the subtler misses). Drives a
+   *  non-blocking concern + resource in the UI (decision 3: warn, never block).
+   *  Stores the category (not a frozen string) so the concern re-localizes on
+   *  reload via formatConcernMessage. */
+  crisis?: CrisisSignal;
 
   // ── Typed-question effects captured into analysis (Phase 1) ──
   /** 상사가 사인할 수 있는 1줄 결정문 — strategic_fork 답에서 흘러옴 */
