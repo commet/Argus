@@ -23,6 +23,7 @@ import { NextStepGuide } from '@/components/ui/NextStepGuide';
 import { NavigatorInline } from '@/components/workspace/NavigatorInline';
 import { Sparkles, Loader2, FileText, Trash2, Check, PlusCircle, X, AlertTriangle, ArrowRight, RotateCcw, Bot, Scale, Send } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { getCurrentLanguage } from '@/lib/i18n';
 
 const LOADING_MESSAGES_KO = [
   '소스를 분리하고 있습니다...',
@@ -35,7 +36,7 @@ const LOADING_MESSAGES_EN = [
   'Analyzing agreements and conflicts...',
 ];
 
-const SYSTEM_PROMPT = `당신은 전략기획 전문가입니다. 사용자가 제출한 여러 AI 결과물 또는 의견들을 분석하여 아래 JSON 구조로 응답하세요.
+const SYSTEM_PROMPT_KO = `당신은 전략기획 전문가입니다. 사용자가 제출한 여러 AI 결과물 또는 의견들을 분석하여 아래 JSON 구조로 응답하세요.
 
 1. sources_summary: 각 소스(또는 의견)의 핵심 주장을 정리. 각 소스에 대해:
    - name: 소스 이름 또는 번호 (사용자가 라벨을 붙였으면 그대로, 아니면 "소스 1", "소스 2" 등)
@@ -50,6 +51,26 @@ const SYSTEM_PROMPT = `당신은 전략기획 전문가입니다. 사용자가 �
 4. questions_for_user: 사용자가 결정해야 할 핵심 질문 1~2개
 
 반드시 JSON만 응답하세요.`;
+
+const SYSTEM_PROMPT_EN = `You are a strategy expert. Analyze the multiple AI outputs or opinions the user submitted and respond in the JSON structure below.
+
+1. sources_summary: Summarize each source's (or opinion's) core claim. For each source:
+   - name: Source name or number (use the user's label if given, otherwise "Source 1", "Source 2", etc.)
+   - core_claim: The core claim in one sentence
+2. agreements: A list of points the sources agree on (array of strings, 1-3 items)
+3. conflicts: A list of issues where the sources clash. For each issue:
+   - id: A unique identifier (conflict_1, conflict_2, etc.)
+   - topic: The issue topic in one sentence
+   - side_a: { source: source name, position: this source's position }
+   - side_b: { source: source name, position: this source's position }
+   - analysis: One sentence analyzing why these two positions differ
+4. questions_for_user: The 1-2 key questions the user needs to decide
+
+Respond with JSON only.`;
+
+function getSystemPrompt(): string {
+  return getCurrentLanguage() === 'ko' ? SYSTEM_PROMPT_KO : SYSTEM_PROMPT_EN;
+}
 
 const buildSynthesizeInterview = (L: (ko: string, en: string) => string): InterviewStep[] => [
   {
@@ -173,7 +194,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
     try {
       const analysis = await callLLMJson<SynthesizeAnalysis>(
         [{ role: 'user', content: userContent }],
-        { system: buildEnhancedSystemPrompt(SYSTEM_PROMPT), maxTokens: 2500, shape: { sources_summary: 'array', agreements: 'array', conflicts: 'array', questions_for_user: 'array' } }
+        { system: buildEnhancedSystemPrompt(getSystemPrompt()), maxTokens: 2500, shape: { sources_summary: 'array', agreements: 'array', conflicts: 'array', questions_for_user: 'array' } }
       );
       updateItem(id, { analysis, status: 'review' });
     } catch (err) {

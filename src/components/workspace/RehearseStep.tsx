@@ -35,6 +35,135 @@ import { recommendBlindSpotPersona } from '@/lib/auto-persona';
 import type { BlindSpotRecommendation } from '@/lib/auto-persona';
 import { useLocale } from '@/hooks/useLocale';
 
+/* ────────────────────────────────────────────
+   Synthesis & discussion prompts (locale-selected)
+   ──────────────────────────────────────────── */
+
+const SYNTHESIS_SYSTEM_KO = `여러 이해관계자의 피드백을 종합 분석하세요.
+
+응답 형식 (JSON만 출력):
+{
+  "common_agreements": ["모든 이해관계자가 동의하는 포인트 1~3개"],
+  "key_conflicts": [
+    {
+      "topic": "갈등 주제",
+      "positions": [
+        {"persona_id": "해당 페르소나 ID", "stance": "이 사람의 입장 요약"}
+      ]
+    }
+  ],
+  "priority_actions": [
+    {
+      "action": "우선 수정해야 할 사항",
+      "requested_by": "요청한 이해관계자 이름",
+      "priority": "high 또는 medium"
+    }
+  ]
+}
+
+규칙:
+- 영향력 높은 이해관계자의 우려를 priority "high"로
+- 핵심 위협(critical)과 침묵의 리스크(unspoken)를 우선 반영
+- 한국어로 작성
+- 반드시 JSON만 응답`;
+
+const SYNTHESIS_SYSTEM_EN = `Synthesize and analyze feedback from multiple stakeholders.
+
+Response format (output JSON only):
+{
+  "common_agreements": ["1-3 points all stakeholders agree on"],
+  "key_conflicts": [
+    {
+      "topic": "the conflict topic",
+      "positions": [
+        {"persona_id": "the persona's ID", "stance": "a summary of this person's position"}
+      ]
+    }
+  ],
+  "priority_actions": [
+    {
+      "action": "the change to make first",
+      "requested_by": "the name of the stakeholder who requested it",
+      "priority": "high or medium"
+    }
+  ]
+}
+
+Rules:
+- Mark the concerns of high-influence stakeholders as priority "high"
+- Prioritize critical threats (critical) and unspoken risks (unspoken)
+- Write in English
+- Respond with JSON only`;
+
+function getSynthesisSystem(): string {
+  return getCurrentLanguage() === 'ko' ? SYNTHESIS_SYSTEM_KO : SYNTHESIS_SYSTEM_EN;
+}
+
+const SYNTHESIS_FALLBACK_SYSTEM_KO = '여러 이해관계자의 피드백을 종합하세요. 1) 공통 지적 사항 2) 페르소나별로 다른 반응 3) 우선 수정 권고. 한국어로 답변하세요.';
+const SYNTHESIS_FALLBACK_SYSTEM_EN = 'Synthesize feedback from multiple stakeholders. 1) Common points raised 2) Reactions that differ by persona 3) Recommended fixes in priority order. Answer in English.';
+
+function getSynthesisFallbackSystem(): string {
+  return getCurrentLanguage() === 'ko' ? SYNTHESIS_FALLBACK_SYSTEM_KO : SYNTHESIS_FALLBACK_SYSTEM_EN;
+}
+
+const DISCUSSION_SYSTEM_KO = `이해관계자들이 자료를 검토한 후 회의실에서 토론합니다.
+각 이해관계자의 개별 피드백을 보고, 서로의 의견에 반응하는 대화를 시뮬레이션하세요.
+
+규칙:
+- 첫 발화는 영향력이 가장 높은 이해관계자가 시작
+- 각 발화는 다른 이해관계자의 구체적 발언에 반응해야 함
+- 단순 동의("맞습니다")보다 이유나 관점 차이를 드러내기
+- 영향력이 높은 이해관계자의 발언이 대화를 주도
+- 6~10개 메시지로 핵심 쟁점만 다루기
+- 각 이해관계자의 말투와 관심사를 유지
+- 모든 이해관계자가 최소 2번씩 발언
+
+응답 형식 (JSON만 출력):
+{
+  "messages": [
+    {
+      "persona_id": "해당 페르소나 ID",
+      "message": "이 사람의 말투로 된 발언. 구체적이고 자연스럽게.",
+      "reacting_to": "반응 대상 persona_id 또는 null (첫 발언)",
+      "type": "agreement 또는 disagreement 또는 elaboration 또는 question"
+    }
+  ],
+  "key_takeaway": "토론의 핵심 결론 1문장"
+}
+
+한국어로 작성하세요. 반드시 JSON만 응답하세요.`;
+
+const DISCUSSION_SYSTEM_EN = `The stakeholders review the material and then discuss it in a meeting room.
+Look at each stakeholder's individual feedback and simulate a conversation where they react to one another's opinions.
+
+Rules:
+- The first to speak is the highest-influence stakeholder
+- Each utterance must react to a specific remark by another stakeholder
+- Reveal reasons or differences in perspective rather than plain agreement ("I agree")
+- High-influence stakeholders' remarks drive the conversation
+- Cover only the key issues in 6-10 messages
+- Keep each stakeholder's tone and interests consistent
+- Every stakeholder speaks at least twice
+
+Response format (output JSON only):
+{
+  "messages": [
+    {
+      "persona_id": "the persona's ID",
+      "message": "an utterance in this person's voice. Concrete and natural.",
+      "reacting_to": "the persona_id being reacted to, or null (first utterance)",
+      "type": "agreement or disagreement or elaboration or question"
+    }
+  ],
+  "key_takeaway": "the discussion's core conclusion in one sentence"
+}
+
+Write in English. Respond with JSON only.`;
+
+function getDiscussionSystem(): string {
+  return getCurrentLanguage() === 'ko' ? DISCUSSION_SYSTEM_KO : DISCUSSION_SYSTEM_EN;
+}
+
 /// Unified review prompt (shared with web app)
 function buildPersonaReview(persona: Persona, documentText: string, contextText: string, perspective?: string, intensity?: string): { system: string; user: string } {
   const agent = useAgentStore.getState().getAgent(persona.id) || undefined;
@@ -229,46 +358,20 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
         const feedbackSummary = results.map((r) => {
           const p = getPersona(r.persona_id);
           const influence = p?.influence || 'medium';
-          return `### ${p?.name} (ID: ${r.persona_id}, 영향력: ${influence})\n질문: ${(r.first_questions || []).join('; ')}\n칭찬: ${(r.praise || []).join('; ')}\n우려: ${(r.concerns || []).join('; ')}${r.classified_risks ? `\n리스크: ${r.classified_risks.map(cr => `[${cr.category}] ${cr.text}`).join('; ')}` : ''}`;
+          return `### ${p?.name} (ID: ${r.persona_id}, ${L('영향력', 'influence')}: ${influence})\n${L('질문', 'Questions')}: ${(r.first_questions || []).join('; ')}\n${L('칭찬', 'Praise')}: ${(r.praise || []).join('; ')}\n${L('우려', 'Concerns')}: ${(r.concerns || []).join('; ')}${r.classified_risks ? `\n${L('리스크', 'Risks')}: ${r.classified_risks.map(cr => `[${cr.category}] ${cr.text}`).join('; ')}` : ''}`;
         }).join('\n\n');
 
         try {
           const synthResult = await callLLMJson<StructuredSynthesis>(
             [{ role: 'user', content: feedbackSummary }],
-            { system: `여러 이해관계자의 피드백을 종합 분석하세요.
-
-응답 형식 (JSON만 출력):
-{
-  "common_agreements": ["모든 이해관계자가 동의하는 포인트 1~3개"],
-  "key_conflicts": [
-    {
-      "topic": "갈등 주제",
-      "positions": [
-        {"persona_id": "해당 페르소나 ID", "stance": "이 사람의 입장 요약"}
-      ]
-    }
-  ],
-  "priority_actions": [
-    {
-      "action": "우선 수정해야 할 사항",
-      "requested_by": "요청한 이해관계자 이름",
-      "priority": "high 또는 medium"
-    }
-  ]
-}
-
-규칙:
-- 영향력 높은 이해관계자의 우려를 priority "high"로
-- 핵심 위협(critical)과 침묵의 리스크(unspoken)를 우선 반영
-- 한국어로 작성
-- 반드시 JSON만 응답`, maxTokens: 1500, shape: { common_agreements: 'array', key_conflicts: 'array', priority_actions: 'array' } }
+            { system: getSynthesisSystem(), maxTokens: 1500, shape: { common_agreements: 'array', key_conflicts: 'array', priority_actions: 'array' } }
           );
           structured_synthesis = synthResult;
-          synthesis = `공통 합의: ${synthResult.common_agreements.join(', ')}. 핵심 갈등: ${synthResult.key_conflicts.map(c => c.topic).join(', ')}.`;
+          synthesis = L(`공통 합의: ${synthResult.common_agreements.join(', ')}. 핵심 갈등: ${synthResult.key_conflicts.map(c => c.topic).join(', ')}.`, `Common agreements: ${synthResult.common_agreements.join(', ')}. Key conflicts: ${synthResult.key_conflicts.map(c => c.topic).join(', ')}.`);
         } catch {
           synthesis = await callLLM(
             [{ role: 'user', content: feedbackSummary }],
-            { system: '여러 이해관계자의 피드백을 종합하세요. 1) 공통 지적 사항 2) 페르소나별로 다른 반응 3) 우선 수정 권고. 한국어로 답변하세요.', maxTokens: 1500 }
+            { system: getSynthesisFallbackSystem(), maxTokens: 1500 }
           );
         }
       }
@@ -346,43 +449,18 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
     try {
       const personaProfiles = latestFeedback.results.map(r => {
         const p = getPersona(r.persona_id);
-        return `## ${p?.name} (ID: ${r.persona_id}, ${p?.role}, 영향력: ${p?.influence || 'medium'})
-성향: ${p?.extracted_traits?.join(', ') || ''}
-전반적 반응: ${r.overall_reaction}
-주요 우려: ${(r.concerns || []).join('; ')}
-질문: ${(r.first_questions || []).join('; ')}
-리스크: ${(r.classified_risks || []).map(cr => `[${cr.category}] ${cr.text}`).join('; ')}`;
+        return `## ${p?.name} (ID: ${r.persona_id}, ${p?.role}, ${L('영향력', 'influence')}: ${p?.influence || 'medium'})
+${L('성향', 'Traits')}: ${p?.extracted_traits?.join(', ') || ''}
+${L('전반적 반응', 'Overall reaction')}: ${r.overall_reaction}
+${L('주요 우려', 'Main concerns')}: ${(r.concerns || []).join('; ')}
+${L('질문', 'Questions')}: ${(r.first_questions || []).join('; ')}
+${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.category}] ${cr.text}`).join('; ')}`;
       }).join('\n\n');
 
       const discussionResult = await callLLMJson<{ messages: DiscussionMessage[]; key_takeaway: string }>(
         [{ role: 'user', content: personaProfiles }],
         {
-          system: `이해관계자들이 자료를 검토한 후 회의실에서 토론합니다.
-각 이해관계자의 개별 피드백을 보고, 서로의 의견에 반응하는 대화를 시뮬레이션하세요.
-
-규칙:
-- 첫 발화는 영향력이 가장 높은 이해관계자가 시작
-- 각 발화는 다른 이해관계자의 구체적 발언에 반응해야 함
-- 단순 동의("맞습니다")보다 이유나 관점 차이를 드러내기
-- 영향력이 높은 이해관계자의 발언이 대화를 주도
-- 6~10개 메시지로 핵심 쟁점만 다루기
-- 각 이해관계자의 말투와 관심사를 유지
-- 모든 이해관계자가 최소 2번씩 발언
-
-응답 형식 (JSON만 출력):
-{
-  "messages": [
-    {
-      "persona_id": "해당 페르소나 ID",
-      "message": "이 사람의 말투로 된 발언. 구체적이고 자연스럽게.",
-      "reacting_to": "반응 대상 persona_id 또는 null (첫 발언)",
-      "type": "agreement 또는 disagreement 또는 elaboration 또는 question"
-    }
-  ],
-  "key_takeaway": "토론의 핵심 결론 1문장"
-}
-
-한국어로 작성하세요. 반드시 JSON만 응답하세요.`,
+          system: getDiscussionSystem(),
           maxTokens: 2500,
           shape: { messages: 'array', key_takeaway: 'string' },
         }

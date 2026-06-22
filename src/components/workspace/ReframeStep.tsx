@@ -35,13 +35,14 @@ import { NavigatorInline } from '@/components/workspace/NavigatorInline';
 import { useT } from '@/contexts/LocaleProvider';
 import { recordSignal } from '@/lib/signal-recorder';
 import { useLocale } from '@/hooks/useLocale';
+import { getCurrentLanguage } from '@/lib/i18n';
 
 /* ───────────────────────────────────────────
    System Prompt
    ─────────────────────────────────────────── */
 
 /* ── Stage 1: 전제 도출 프롬프트 (가설 기반 사고) ── */
-const ASSUMPTION_PROMPT = `당신은 전략기획 전문가입니다. 주어진 과제의 숨겨진 전제를 찾으세요.
+const ASSUMPTION_PROMPT_KO = `당신은 전략기획 전문가입니다. 주어진 과제의 숨겨진 전제를 찾으세요.
 
 [사고 방식: 가설 기반 사고 + 4축 전제 점검]
 - 이 과제가 나온 진짜 이유는 무엇인가? 가설을 세우세요.
@@ -62,10 +63,35 @@ const ASSUMPTION_PROMPT = `당신은 전략기획 전문가입니다. 주어진 
 
 반드시 JSON만 응답하세요.`;
 
+const ASSUMPTION_PROMPT_EN = `You are a strategy expert. Find the hidden assumptions behind the given task.
+
+[Mindset: hypothesis-based thinking + 4-axis assumption check]
+- What is the real reason this task came up? Form a hypothesis.
+- Find the assumptions that must be true for this task to be meaningful.
+- Check across four axes: (1) customer value (2) feasibility (3) business viability (4) organizational capacity
+
+[Diversity principle]
+- The 3-4 assumptions must come from different axes. No more than one from the same axis.
+- Mark each assumption's axis with the axis field.
+
+Respond in the JSON structure below.
+1. surface_task: Summarize the task the user described in one sentence
+2. hidden_assumptions: The 3-4 assumptions that must hold for this task to make sense. For each:
+   - assumption: The assumption (one sentence, clearly stated)
+   - risk_if_false: Concretely, what risk arises if this assumption is wrong
+   - axis: The axis this assumption belongs to ("customer_value" | "feasibility" | "business" | "org_capacity")
+3. reasoning_narrative: Explain in 2-3 sentences why these assumptions matter
+
+Respond with JSON only.`;
+
+function getAssumptionPrompt(): string {
+  return getCurrentLanguage() === 'ko' ? ASSUMPTION_PROMPT_KO : ASSUMPTION_PROMPT_EN;
+}
+
 /* ── Stage 2: 리프레이밍 프롬프트 (전제 평가 패턴별 분기) ── */
 
 // ── 공통 사고 프레임 (모든 패턴에 내장) ──
-const STRATEGIC_THINKING_FRAME = `
+const STRATEGIC_THINKING_FRAME_KO = `
 [재정의 전 내적 검토 — 다음을 순서대로 고려한 뒤 종합하세요]
 1. 전제 패턴: 확인/의심/불확실의 조합이 이 과제에 대해 무엇을 말해주는가?
 2. 진짜 목적: 이 과제를 시킨 사람이 정말 원하는 결과는? 표면 목표와 다를 수 있다.
@@ -77,12 +103,24 @@ const STRATEGIC_THINKING_FRAME = `
 - 재정의된 질문의 범위는 원래 과제와 같거나 넓어야 합니다. 좁아지면 안 됩니다.
 - 전제 하나에 천착하지 말고, 위 5가지를 종합한 통찰을 담으세요.`;
 
+const STRATEGIC_THINKING_FRAME_EN = `
+[Internal review before reframing — consider these in order, then synthesize]
+1. Assumption pattern: What does the mix of confirmed/doubtful/uncertain tell you about this task?
+2. Real purpose: What outcome does the person who assigned this task actually want? It may differ from the surface goal.
+3. Time axis: What happens in 6 months if this is not done? What priority does that imply?
+4. Missing boundaries: Among the areas this task deliberately leaves out, is any of them load-bearing?
+5. Nature of the problem: Is this a technical problem, an organizational one, a political one, or a timing one?
+
+[Scope principle]
+- The reframed question's scope must be equal to or wider than the original task. It must not narrow.
+- Don't fixate on a single assumption; capture an insight that synthesizes the five points above.`;
+
 // 패턴 A: 전제 대부분 확인됨 → 실행 구체화 모드
-const REFRAMING_PROMPT_CONFIRMED = `당신은 20년 이상 경험한 전략기획 전문가입니다. 사용자가 이 과제의 핵심 전제를 대부분 확인했습니다.
+const REFRAMING_PROMPT_CONFIRMED_KO = `당신은 20년 이상 경험한 전략기획 전문가입니다. 사용자가 이 과제의 핵심 전제를 대부분 확인했습니다.
 
 전제가 확인되었으므로 방향은 맞습니다. 질문을 부정하지 말고 더 날카롭게 만드세요.
 "해야 하는가?"가 아니라 "어떻게 가장 효과적으로 할 것인가?"로 발전시키세요.
-${STRATEGIC_THINKING_FRAME}
+${STRATEGIC_THINKING_FRAME_KO}
 
 아래 JSON 구조로 응답하세요.
 1. reframed_question: 원래 과제와 같은 범위에서, 위 5가지 관점을 종합한 핵심 질문
@@ -95,15 +133,32 @@ ${STRATEGIC_THINKING_FRAME}
 
 반드시 JSON만 응답하세요.`;
 
+const REFRAMING_PROMPT_CONFIRMED_EN = `You are a strategy expert with 20+ years of experience. The user has confirmed most of this task's core assumptions.
+
+Since the assumptions hold, the direction is right. Don't negate the question — make it sharper.
+Develop it from "should we do this?" into "how do we do it most effectively?"
+${STRATEGIC_THINKING_FRAME_EN}
+
+Respond in the JSON structure below.
+1. reframed_question: A core question that synthesizes the five perspectives above, at the same scope as the original task
+2. why_reframing_matters: In 1-2 sentences, what changes in execution once it's sharpened this way
+3. hidden_questions: The 2-3 key forks to consider during execution. For each:
+   - question: The question text (short and judgeable)
+   - reasoning: What difference the choice at this fork makes to the outcome (1 sentence)
+   - source_assumption: Which confirmed assumption or review perspective this fork came from
+4. ai_limitations: 1-2 parts of this task that AI does poorly
+
+Respond with JSON only.`;
+
 // 패턴 B: 일부 전제 의심/불확실 → 방향 유지 + 각도 전환 모드
-const REFRAMING_PROMPT_MIXED = `당신은 20년 이상 경험한 전략기획 전문가입니다. 사용자의 전제 평가를 바탕으로 질문을 재정의하세요.
+const REFRAMING_PROMPT_MIXED_KO = `당신은 20년 이상 경험한 전략기획 전문가입니다. 사용자의 전제 평가를 바탕으로 질문을 재정의하세요.
 
 [핵심 원칙]
 - "맞음" 전제는 과제의 방향을 지지합니다. 이 방향을 유지하세요.
 - "의심됨" 전제는 방향을 뒤집는 근거가 아니라, 실행 시 해결할 조건입니다.
 - "불확실" 전제는 검증이 필요한 변수입니다.
 - 사용자가 의심/불확실 이유를 적었다면, 그 맥락을 반드시 재정의에 반영하세요. 이유는 사용자의 현장 경험에서 나온 것입니다.
-${STRATEGIC_THINKING_FRAME}
+${STRATEGIC_THINKING_FRAME_KO}
 
 [절대 하지 말 것]
 - 확인된 전제를 무시하고 의심된 전제만으로 과제 전체를 뒤집지 마세요.
@@ -129,13 +184,46 @@ ${STRATEGIC_THINKING_FRAME}
 
 반드시 JSON만 응답하세요.`;
 
+const REFRAMING_PROMPT_MIXED_EN = `You are a strategy expert with 20+ years of experience. Reframe the question based on the user's assumption evaluations.
+
+[Core principles]
+- "True" assumptions support the task's direction. Keep that direction.
+- "Doubtful" assumptions are not grounds to flip the direction — they are conditions to resolve during execution.
+- "Uncertain" assumptions are variables that need validation.
+- If the user wrote reasons for doubt/uncertainty, you must reflect that context in the reframing. The reasons come from the user's field experience.
+${STRATEGIC_THINKING_FRAME_EN}
+
+[Never do this]
+- Don't ignore the confirmed assumptions and flip the whole task on the strength of doubtful ones alone.
+- Don't propose abandoning the original task with a "should we do Y first instead of X?" framing.
+- Don't fixate on a single doubtful assumption.
+
+[Example]
+Original task: "Improving work efficiency with AI"
+Confirmed: "inefficiency exists" + "leadership wants real improvement" / Doubtful: "team buy-in" / Uncertain: "measurability"
+
+Wrong: "Should we remove workflow barriers first instead of AI?" ← direction flipped
+Wrong: "How do we get team buy-in?" ← fixated on one assumption, scope narrowed
+Right: "Whether AI efficiency succeeds rests on organizational design, not technology — how do we design tech adoption and change management at the same time?" ← scope kept, synthesizing assumptions + purpose + boundaries
+
+Respond in the JSON structure below.
+1. reframed_question: A core question that synthesizes the five perspectives above and the assumption evaluations, at the same scope as the original task
+2. why_reframing_matters: In 1-2 sentences, what this shift in angle changes in execution
+3. hidden_questions: The 2-3 directions you can pursue within this angle. For each:
+   - question: The question text (short and judgeable)
+   - reasoning: What changes if you take this direction (1 sentence)
+   - source_assumption: Which assumption or review perspective this question came from
+4. ai_limitations: 1-2 parts of this task that AI does poorly
+
+Respond with JSON only.`;
+
 // 패턴 C: 대부분 의심됨 → 과제 재고 모드
-const REFRAMING_PROMPT_CHALLENGED = `당신은 20년 이상 경험한 전략기획 전문가입니다. 사용자가 이 과제의 핵심 전제 대부분을 의심하고 있습니다.
+const REFRAMING_PROMPT_CHALLENGED_KO = `당신은 20년 이상 경험한 전략기획 전문가입니다. 사용자가 이 과제의 핵심 전제 대부분을 의심하고 있습니다.
 
 전제 대부분이 의심되므로 이 과제를 그대로 진행하는 것이 맞는지부터 질문해야 합니다.
 과제를 폐기하거나 근본적으로 재정의하는 것도 유효한 방향입니다.
 사용자가 의심 이유를 적었다면, 그 맥락이 재정의의 핵심 근거입니다.
-${STRATEGIC_THINKING_FRAME}
+${STRATEGIC_THINKING_FRAME_KO}
 
 아래 JSON 구조로 응답하세요.
 1. reframed_question: 위 5가지 관점을 종합하여, 전제가 무너진 상황에서 정말 답해야 할 근본 질문
@@ -147,6 +235,34 @@ ${STRATEGIC_THINKING_FRAME}
 4. ai_limitations: AI가 이 과제에서 잘 못할 부분 1-2개
 
 반드시 JSON만 응답하세요.`;
+
+const REFRAMING_PROMPT_CHALLENGED_EN = `You are a strategy expert with 20+ years of experience. The user doubts most of this task's core assumptions.
+
+Since most assumptions are doubted, you must first question whether proceeding with this task as-is is even right.
+Abandoning the task or fundamentally redefining it are also valid directions.
+If the user wrote reasons for the doubt, that context is the central basis for the reframing.
+${STRATEGIC_THINKING_FRAME_EN}
+
+Respond in the JSON structure below.
+1. reframed_question: Synthesizing the five perspectives above, the fundamental question you truly need to answer once the assumptions have collapsed
+2. why_reframing_matters: In 1-2 sentences, why you shouldn't push the original question forward as-is
+3. hidden_questions: 2-3 alternative directions. For each:
+   - question: The question text (short and judgeable)
+   - reasoning: How this direction differs from the original task (1 sentence)
+   - source_assumption: Which assumption or review perspective this alternative came from
+4. ai_limitations: 1-2 parts of this task that AI does poorly
+
+Respond with JSON only.`;
+
+function getReframingPromptConfirmed(): string {
+  return getCurrentLanguage() === 'ko' ? REFRAMING_PROMPT_CONFIRMED_KO : REFRAMING_PROMPT_CONFIRMED_EN;
+}
+function getReframingPromptMixed(): string {
+  return getCurrentLanguage() === 'ko' ? REFRAMING_PROMPT_MIXED_KO : REFRAMING_PROMPT_MIXED_EN;
+}
+function getReframingPromptChallenged(): string {
+  return getCurrentLanguage() === 'ko' ? REFRAMING_PROMPT_CHALLENGED_KO : REFRAMING_PROMPT_CHALLENGED_EN;
+}
 
 /* ───────────────────────────────────────────
    Interview entry steps (v2 — Cynefin/Thompson-Tuden)
@@ -243,60 +359,64 @@ function computeInterviewSteps(selections: Record<string, string>, L: (ko: strin
   return steps;
 }
 
-/** Map interview signals to premise extraction guidance for ASSUMPTION_PROMPT */
+/** Map interview signals to premise extraction guidance for the assumption prompt */
 function getPremiseExtractionGuidance(signals: InterviewSignals): string | null {
+  const ko = getCurrentLanguage() === 'ko';
+  const L = (k: string, e: string) => (ko ? k : e);
   const parts: string[] = [];
 
   // Nature-based guidance (independent — not else-if)
   if (signals.nature === 'no_answer') {
-    parts.push('- 탐색적 과제입니다. "이 방향이 가치가 있다", "이 문제가 실제로 존재한다" 같은 존재론적 전제를 찾으세요.');
+    parts.push(L('- 탐색적 과제입니다. "이 방향이 가치가 있다", "이 문제가 실제로 존재한다" 같은 존재론적 전제를 찾으세요.', '- This is an exploratory task. Find existential assumptions like "this direction has value" or "this problem actually exists."'));
   }
   if (signals.nature === 'needs_analysis') {
-    parts.push('- 분석이 필요한 과제입니다. "이 데이터가 신뢰할 수 있다", "이 분석 방법이 적합하다" 같은 방법론적 전제를 찾으세요.');
+    parts.push(L('- 분석이 필요한 과제입니다. "이 데이터가 신뢰할 수 있다", "이 분석 방법이 적합하다" 같은 방법론적 전제를 찾으세요.', '- This task needs analysis. Find methodological assumptions like "this data is reliable" or "this analysis method is appropriate."'));
   }
   if (signals.nature === 'on_fire') {
-    parts.push('- 긴급 상황입니다. "이것이 근본 원인이다", "이 대응이 상황을 악화시키지 않는다" 같은 진단적 전제를 찾으세요.');
+    parts.push(L('- 긴급 상황입니다. "이것이 근본 원인이다", "이 대응이 상황을 악화시키지 않는다" 같은 진단적 전제를 찾으세요.', '- This is an urgent situation. Find diagnostic assumptions like "this is the root cause" or "this response won\'t make things worse."'));
   }
   if (signals.nature === 'known_path') {
-    parts.push('- 방법이 알려진 과제입니다. "이 방법이 우리 상황에도 적용된다", "필요한 자원이 확보되어 있다" 같은 적용 가능성 전제를 찾으세요.');
+    parts.push(L('- 방법이 알려진 과제입니다. "이 방법이 우리 상황에도 적용된다", "필요한 자원이 확보되어 있다" 같은 적용 가능성 전제를 찾으세요.', '- This task has a known path. Find applicability assumptions like "this method also applies to our situation" or "the needed resources are secured."'));
   }
 
   // Goal-based guidance (independent)
   if (signals.goal === 'competing') {
-    parts.push('- 목표가 충돌합니다. "이 이해관계자의 목표가 더 중요하다", "두 목표를 동시에 달성할 수 있다" 같은 우선순위 전제를 찾으세요.');
+    parts.push(L('- 목표가 충돌합니다. "이 이해관계자의 목표가 더 중요하다", "두 목표를 동시에 달성할 수 있다" 같은 우선순위 전제를 찾으세요.', '- The goals conflict. Find prioritization assumptions like "this stakeholder\'s goal matters more" or "both goals can be achieved at once."'));
   }
   if (signals.goal === 'unclear') {
-    parts.push('- 목표가 불분명합니다. "이것이 진짜 해결할 문제다", "이 성공 기준이 올바르다" 같은 목표 타당성 전제를 찾으세요.');
+    parts.push(L('- 목표가 불분명합니다. "이것이 진짜 해결할 문제다", "이 성공 기준이 올바르다" 같은 목표 타당성 전제를 찾으세요.', '- The goal is unclear. Find goal-validity assumptions like "this is the real problem to solve" or "this success criterion is correct."'));
   }
   if (signals.goal === 'direction_only') {
-    parts.push('- 방향만 있고 구체 목표가 없습니다. "이 방향에서 가장 먼저 검증할 것"에 대한 전제를 찾으세요.');
+    parts.push(L('- 방향만 있고 구체 목표가 없습니다. "이 방향에서 가장 먼저 검증할 것"에 대한 전제를 찾으세요.', '- There is only a direction, no specific goal. Find assumptions about "what to validate first within this direction."'));
   }
 
   // Stakes-based guidance (independent)
   if (signals.stakes === 'irreversible') {
-    parts.push('- 되돌리기 어려운 결정입니다. 전제 중 하나는 반드시 "되돌릴 수 없는 결과"와 관련된 것이어야 합니다.');
+    parts.push(L('- 되돌리기 어려운 결정입니다. 전제 중 하나는 반드시 "되돌릴 수 없는 결과"와 관련된 것이어야 합니다.', '- This is a hard-to-reverse decision. One of the assumptions must relate to an "irreversible outcome."'));
   }
   if (signals.stakes === 'experiment') {
-    parts.push('- 작은 시도입니다. "이 실험이 의미 있는 데이터를 준다", "이 범위가 검증하기에 충분하다" 같은 실험 설계 전제를 찾으세요.');
+    parts.push(L('- 작은 시도입니다. "이 실험이 의미 있는 데이터를 준다", "이 범위가 검증하기에 충분하다" 같은 실험 설계 전제를 찾으세요.', '- This is a small experiment. Find experiment-design assumptions like "this experiment yields meaningful data" or "this scope is enough to validate."'));
   }
 
   // Adaptive signal guidance — trigger
   if (signals.trigger === 'external_pressure') {
-    parts.push('- 외부 압력이 계기입니다. "이 외부 변화가 우리에게 실제로 영향을 준다", "지금 대응하지 않으면 뒤처진다" 같은 긴급성 전제를 찾으세요.');
+    parts.push(L('- 외부 압력이 계기입니다. "이 외부 변화가 우리에게 실제로 영향을 준다", "지금 대응하지 않으면 뒤처진다" 같은 긴급성 전제를 찾으세요.', '- External pressure is the trigger. Find urgency assumptions like "this external change actually affects us" or "we fall behind if we don\'t respond now."'));
   }
   if (signals.trigger === 'recurring') {
-    parts.push('- 반복되는 문제입니다. "이전에 해결이 안 된 근본 원인이 있다", "이번 접근이 구조적으로 다르다" 같은 근본 원인 전제를 찾으세요.');
+    parts.push(L('- 반복되는 문제입니다. "이전에 해결이 안 된 근본 원인이 있다", "이번 접근이 구조적으로 다르다" 같은 근본 원인 전제를 찾으세요.', '- This is a recurring problem. Find root-cause assumptions like "there is a root cause that was never resolved before" or "this approach is structurally different."'));
   }
   if (signals.trigger === 'internal_request') {
-    parts.push('- 내부 요청이 계기입니다. "요청자가 진짜 원하는 것"과 "표면적 요청" 사이의 차이에 대한 전제를 찾으세요.');
+    parts.push(L('- 내부 요청이 계기입니다. "요청자가 진짜 원하는 것"과 "표면적 요청" 사이의 차이에 대한 전제를 찾으세요.', '- An internal request is the trigger. Find assumptions about the gap between "what the requester really wants" and "the surface request."'));
   }
 
   // Adaptive signal guidance — history
   if (signals.history === 'failed') {
-    parts.push('- 과거에 비슷한 시도가 실패했습니다. "이번에는 다르다"의 근거가 되는 전제를 반드시 포함하세요.');
+    parts.push(L('- 과거에 비슷한 시도가 실패했습니다. "이번에는 다르다"의 근거가 되는 전제를 반드시 포함하세요.', '- A similar attempt failed in the past. You must include an assumption that grounds "this time is different."'));
   }
 
-  return parts.length > 0 ? `\n[인터뷰 기반 전제 탐색 지침]\n${parts.join('\n')}` : null;
+  return parts.length > 0
+    ? L(`\n[인터뷰 기반 전제 탐색 지침]\n${parts.join('\n')}`, `\n[Interview-based assumption-search guidance]\n${parts.join('\n')}`)
+    : null;
 }
 
 /** Dynamic placeholder — nature × trigger/history 조합으로 구체적인 예시 제공 */
@@ -466,7 +586,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
 
     // Stage 1: Generate assumptions only (user evaluates before reframing)
     // Inject signal-specific premise extraction guidance for v2 interviews
-    let baseAssumptionPrompt = ASSUMPTION_PROMPT;
+    let baseAssumptionPrompt = getAssumptionPrompt();
     if (signals?.version === 2 || signals?.nature) {
       const guidance = getPremiseExtractionGuidance(signals);
       if (guidance) {
@@ -598,10 +718,10 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
       const assumptions = current.analysis.hidden_assumptions || [];
       const evalSummary = assumptions
         .map((a: HiddenAssumption, i: number) => {
-          const label = a.evaluation === 'doubtful' ? '의심됨' : a.evaluation === 'likely_true' ? '맞을 가능성 높음' : '불확실';
+          const label = a.evaluation === 'doubtful' ? L('의심됨', 'Doubtful') : a.evaluation === 'likely_true' ? L('맞을 가능성 높음', 'Likely true') : L('불확실', 'Uncertain');
           let line = `${i + 1}. [${label}] "${a.assumption}" → ${a.risk_if_false || ''}`;
           if (a.evaluation_reason?.trim()) {
-            line += `\n   사용자 이유: ${a.evaluation_reason.trim()}`;
+            line += `\n   ${L('사용자 이유', "User's reason")}: ${a.evaluation_reason.trim()}`;
           }
           return line;
         })
@@ -617,16 +737,16 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
       let evalPattern: string;
       if (doubtful.length >= total * 0.5) {
         // 패턴 C: 전제 대부분 의심 → 과제 재고
-        baseReframingPrompt = REFRAMING_PROMPT_CHALLENGED;
-        evalPattern = `전제 ${total}건 중 ${doubtful.length}건 의심됨 — 과제의 전제 대부분이 흔들리고 있습니다.`;
+        baseReframingPrompt = getReframingPromptChallenged();
+        evalPattern = L(`전제 ${total}건 중 ${doubtful.length}건 의심됨 — 과제의 전제 대부분이 흔들리고 있습니다.`, `${doubtful.length} of ${total} assumptions are doubtful — most of the task's premises are shaky.`);
       } else if (doubtful.length === 0 && uncertain.length === 0) {
         // 패턴 A: 전제 모두 확인 → 실행 구체화
-        baseReframingPrompt = REFRAMING_PROMPT_CONFIRMED;
-        evalPattern = `전제 ${total}건 모두 확인됨 — 과제의 방향은 맞습니다. 실행을 구체화해주세요.`;
+        baseReframingPrompt = getReframingPromptConfirmed();
+        evalPattern = L(`전제 ${total}건 모두 확인됨 — 과제의 방향은 맞습니다. 실행을 구체화해주세요.`, `All ${total} assumptions confirmed — the task's direction is right. Please make execution concrete.`);
       } else {
         // 패턴 B: 일부 의심/불확실 → 방향 유지 + 조건 통합
-        baseReframingPrompt = REFRAMING_PROMPT_MIXED;
-        evalPattern = `전제 ${total}건 중 ${confirmed.length}건 확인, ${doubtful.length}건 의심, ${uncertain.length}건 불확실. 확인된 전제가 방향을 잡고, 의심/불확실은 해결할 조건입니다.`;
+        baseReframingPrompt = getReframingPromptMixed();
+        evalPattern = L(`전제 ${total}건 중 ${confirmed.length}건 확인, ${doubtful.length}건 의심, ${uncertain.length}건 불확실. 확인된 전제가 방향을 잡고, 의심/불확실은 해결할 조건입니다.`, `Of ${total} assumptions, ${confirmed.length} confirmed, ${doubtful.length} doubtful, ${uncertain.length} uncertain. The confirmed ones set the direction; the doubtful/uncertain ones are conditions to resolve.`);
       }
 
       let reframingPrompt = buildEnhancedSystemPrompt(baseReframingPrompt);
@@ -634,7 +754,10 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
         reframingPrompt = applyReframingStrategy(reframingPrompt, currentStrategy);
       }
 
-      const userMessage = `[원래 과제]\n${current.analysis.surface_task}\n\n[사용자의 전제 평가]\n${evalSummary}\n\n[평가 요약]\n${evalPattern}\n\n이 평가를 바탕으로 질문을 재정의해주세요.`;
+      const userMessage = L(
+        `[원래 과제]\n${current.analysis.surface_task}\n\n[사용자의 전제 평가]\n${evalSummary}\n\n[평가 요약]\n${evalPattern}\n\n이 평가를 바탕으로 질문을 재정의해주세요.`,
+        `[Original task]\n${current.analysis.surface_task}\n\n[User's assumption evaluation]\n${evalSummary}\n\n[Evaluation summary]\n${evalPattern}\n\nPlease reframe the question based on this evaluation.`
+      );
 
       // Start streaming for preview
       setIsStreaming(true);
@@ -749,11 +872,11 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
     updateItem(currentId, { status: 'analyzing', analysis: null, reanalysis_count: newCount });
     try {
       const prompt = current.selected_question
-        ? `원래 과제: ${current.input_text}\n\n재정의된 질문으로 다시 분석해주세요: ${current.selected_question}`
+        ? L(`원래 과제: ${current.input_text}\n\n재정의된 질문으로 다시 분석해주세요: ${current.selected_question}`, `Original task: ${current.input_text}\n\nPlease re-analyze with this reframed question: ${current.selected_question}`)
         : current.input_text;
       const analysis = await callLLMJson<ReframeAnalysis>(
         [{ role: 'user', content: prompt }],
-        { system: buildEnhancedSystemPrompt(ASSUMPTION_PROMPT, current?.project_id), maxTokens: 1200, shape: { surface_task: 'string', reframed_question: 'string', hidden_assumptions: 'array', hidden_questions: 'array' } }
+        { system: buildEnhancedSystemPrompt(getAssumptionPrompt(), current?.project_id), maxTokens: 1200, shape: { surface_task: 'string', reframed_question: 'string', hidden_assumptions: 'array', hidden_questions: 'array' } }
       );
       updateItem(currentId, { analysis, status: 'review' });
     } catch (err) {

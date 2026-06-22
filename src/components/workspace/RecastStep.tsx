@@ -34,8 +34,9 @@ const lazyEvalEngine = () => import('@/lib/eval-engine');
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { Users } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { getCurrentLanguage } from '@/lib/i18n';
 
-const SYSTEM_PROMPT = `당신은 전략기획 전문가입니다. 단순 작업 목록이 아니라, 의사결정자를 설득할 수 있는 실행 설계를 만드세요.
+const SYSTEM_PROMPT_KO = `당신은 전략기획 전문가입니다. 단순 작업 목록이 아니라, 의사결정자를 설득할 수 있는 실행 설계를 만드세요.
 
 [사고 방식]
 - 결론 먼저: "그래서 뭘 하자는 건데?"에 한 문장으로 답할 수 있어야 합니다.
@@ -111,6 +112,87 @@ const SYSTEM_PROMPT = `당신은 전략기획 전문가입니다. 단순 작업 
     - why_relevant: 검증이 필요한 이유 한 문장
 
 반드시 JSON만 응답하세요.`;
+
+const SYSTEM_PROMPT_EN = `You are a strategy expert. Don't produce a plain task list — design an execution plan that can persuade a decision-maker.
+
+[Mindset]
+- Conclusion first: you must be able to answer "so what are we doing?" in one sentence.
+- Storyline: explain why this approach, in a situation → problem → solution structure.
+- Expected output: specify concretely what each step "produces." (Not "market research" but "1 page of TAM/SAM analysis + a competitor map")
+- Judgment points: at steps a human must decide, show what is being decided and what the options are.
+- State assumptions: surface the key assumptions that must be true for this plan to hold.
+- Identify bottlenecks: pin down the critical path that delays everything if it slips.
+
+[actor assignment — judge the following 4 for each step]
+1. Information needed: public data / general knowledge → ai favored | internal info / experience / relationships → human required
+2. Nature of judgment: quantitative analysis / pattern matching → ai favored | strategic interpretation / political judgment / framing → human required
+3. Cost of failure: re-runnable (low cost) → ai possible | irreversible (high cost) → human or both
+4. Accountability: process / system → ai possible | a specific decision-maker → human or both
+
+Result:
+- "ai": all 4 lean ai → AI executes alone
+- "human": item 2 or 4 is human → a human executes directly
+- "both": AI produces analysis/options and a human interprets/chooses/verifies. In this case you MUST write ai_scope (what AI does) and human_scope (what the human does) concretely
+
+[Adjust for context]
+- If the AI-delegation level is "drafts only," reduce AI-solo steps
+- If importance is "executive briefing" or above, the key judgment steps must be "human"
+
+Respond in the JSON structure below.
+
+1. governing_idea: The answer when a decision-maker asks "so?". One sentence capturing the core direction of the whole execution.
+2. storyline: The narrative structure explaining the logic of the approach.
+   - situation: The current situation (agreed facts)
+   - complication: The problem or opportunity (what creates tension)
+   - resolution: Our approach (the logic that supports governing_idea)
+3. goal_summary: The final goal stated in one clear sentence
+4. steps: 3-5 steps (max 5. Merge if there would be more). For each step:
+   - task: What to do (concretely)
+   - actor: "ai" | "human" | "human→ai" | "ai→human"
+     * "human→ai": a human sets the direction/judgment first, then AI executes/produces (e.g. decide strategic direction → AI writes the draft)
+     * "ai→human": AI generates/analyzes, then a human decides/edits (e.g. AI proposes 3 options → human picks)
+     * "human": human only (stakeholder meetings, final decisions, etc.)
+     * "ai": AI only (data collection, analysis automation, etc.)
+   - actor_reasoning: Why this owner. 1-2 sentences including the 4 judgment criteria above
+   - expected_output: The concrete expected output of this step (e.g. "3 three-year revenue scenarios + sensitivity analysis")
+   - judgment: When actor is "human", "human→ai", or "ai→human", write what the human decides as "question: option A vs option B vs option C". If actor is "ai", an empty string
+   - checkpoint: true/false (whether a human must verify this step)
+   - checkpoint_reason: The reason when checkpoint is true
+   - estimated_time: Estimated time (e.g. "30 min", "2 hours", "1 day")
+   - ai_direction_options: When actor is "ai", "human→ai", or "ai→human", 2-4 direction options the user can give the AI. If actor is "human", an empty array
+   - ai_scope: When actor is "human→ai" or "ai→human", what AI does concretely. Otherwise an empty string
+   - human_scope: When actor is "human→ai" or "ai→human", what the human does concretely. Otherwise an empty string
+5. key_assumptions: 2-4 key assumptions that must be true for this plan to hold. For each:
+   - assumption: The assumption
+   - importance: "high" | "medium" | "low"
+   - certainty: "high" | "medium" | "low" (current confidence)
+   - if_wrong: The impact on the plan if this assumption is wrong
+6. critical_path: Array of step numbers that affect the whole schedule if delayed (e.g. [1, 3, 5])
+7. total_estimated_time: Total estimated time
+8. ai_ratio: Share owned by AI (integer 0-100)
+9. human_ratio: Share owned by humans (integer 0-100)
+10. design_rationale: Explain in 2-3 sentences the rationale for this workflow order and role assignment. Why this order, why this assignment.
+11. suggested_reviewers: Exactly 3 stakeholders who should verify this plan before execution. Consider:
+    - The people who will receive this output (reporting audience, decision-makers)
+    - The people who affect this plan's resources/authority
+    - The field experts who can verify this plan's feasibility
+    For each stakeholder:
+    - name: Name + title (e.g. "Director Kim", "Team Lead Lee")
+    - role: Concrete role (e.g. "VP of Sales", "Finance Team Lead")
+    - influence: "high" (their opposition kills it) | "medium" (their opinion matters) | "low" (for reference)
+    - decision_style: "analytical" (judges by data and numbers) | "intuitive" (experience and instinct) | "consensus" (values agreement) | "directive" (fast decisions, directive)
+    - risk_tolerance: "low" (safety first, failure-averse) | "medium" (balanced) | "high" (prioritizes seizing opportunity)
+    - priorities: What this person checks first in this project (a concrete interest in this context, not a generic role description)
+    - communication_style: Concrete habits when receiving a report (e.g. "conclusion within 3 minutes", "refuses to discuss without data", "needs analogies and examples to be convinced")
+    - known_concerns: Concrete things they'll worry about in this project (based on past experience or the current situation)
+    - success_metric: What you must show for this person to say OK (e.g. "3-year ROI simulation", "3 points of differentiation vs competitors")
+    - why_relevant: One sentence on why their verification is needed
+
+Respond with JSON only.`;
+
+function getSystemPrompt(): string {
+  return getCurrentLanguage() === 'ko' ? SYSTEM_PROMPT_KO : SYSTEM_PROMPT_EN;
+}
 
 const buildRecastEntrySteps = (L: (ko: string, en: string) => string) => [
   {
@@ -301,7 +383,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
     }
 
     // Build system prompt: base + user patterns + typed decompose context
-    let systemPrompt = buildEnhancedSystemPrompt(SYSTEM_PROMPT, current?.project_id || pendingProjectId);
+    let systemPrompt = buildEnhancedSystemPrompt(getSystemPrompt(), current?.project_id || pendingProjectId);
 
     // Inject typed context from decompose (Phase 0 pipeline)
     const ctx = reframeCtx || (relatedReframe ? buildReframeContext(relatedReframe) : null);

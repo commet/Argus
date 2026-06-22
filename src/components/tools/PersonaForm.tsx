@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { AnimatedPlaceholder } from '@/components/ui/AnimatedPlaceholder';
 import { callLLMJson } from '@/lib/llm';
 import { useLocale } from '@/hooks/useLocale';
+import { getCurrentLanguage } from '@/lib/i18n';
 import type { Persona } from '@/stores/types';
 import { Sparkles, Loader2, Check, Pencil, Upload, ChevronRight, ChevronLeft, FileText, UserCircle } from 'lucide-react';
 
@@ -225,7 +226,7 @@ const buildRolePresets = (L: (ko: string, en: string) => string): RolePreset[] =
   },
 ];
 
-const STRUCTURE_PROMPT = `사용자가 특정 이해관계자에 대해 자유롭게 작성한 텍스트를 읽고, 아래 JSON 구조로 정리하세요. 텍스트에 명시된 정보만 추출하세요. JSON만 출력.
+const STRUCTURE_PROMPT_KO = `사용자가 특정 이해관계자에 대해 자유롭게 작성한 텍스트를 읽고, 아래 JSON 구조로 정리하세요. 텍스트에 명시된 정보만 추출하세요. JSON만 출력.
 
 {
   "name": "",
@@ -240,7 +241,26 @@ const STRUCTURE_PROMPT = `사용자가 특정 이해관계자에 대해 자유�
 
 extracted_traits는 핵심 성향 2~4개의 짧은 키워드.`;
 
-const FILE_ANALYZE_PROMPT = `아래 텍스트(회의록, 이메일, 채팅 등)에서 핵심 의사결정자 1명의 성향, 패턴, 스타일을 분석하여 페르소나 프로필을 생성하세요. JSON만 출력.
+const STRUCTURE_PROMPT_EN = `Read the free-form text the user wrote about a particular stakeholder and organize it into the JSON structure below. Only extract information stated in the text. Output JSON only.
+
+{
+  "name": "",
+  "role": "",
+  "organization": "",
+  "priorities": "",
+  "communication_style": "",
+  "known_concerns": "",
+  "relationship_notes": "",
+  "extracted_traits": []
+}
+
+extracted_traits is 2-4 short keywords for the core traits.`;
+
+function getStructurePrompt(): string {
+  return getCurrentLanguage() === 'ko' ? STRUCTURE_PROMPT_KO : STRUCTURE_PROMPT_EN;
+}
+
+const FILE_ANALYZE_PROMPT_KO = `아래 텍스트(회의록, 이메일, 채팅 등)에서 핵심 의사결정자 1명의 성향, 패턴, 스타일을 분석하여 페르소나 프로필을 생성하세요. JSON만 출력.
 
 {
   "name": "",
@@ -252,6 +272,23 @@ const FILE_ANALYZE_PROMPT = `아래 텍스트(회의록, 이메일, 채팅 등)�
   "relationship_notes": "",
   "extracted_traits": []
 }`;
+
+const FILE_ANALYZE_PROMPT_EN = `From the text below (meeting notes, emails, chats, etc.), analyze the traits, patterns, and style of one key decision-maker and generate a persona profile. Output JSON only.
+
+{
+  "name": "",
+  "role": "",
+  "organization": "",
+  "priorities": "",
+  "communication_style": "",
+  "known_concerns": "",
+  "relationship_notes": "",
+  "extracted_traits": []
+}`;
+
+function getFileAnalyzePrompt(): string {
+  return getCurrentLanguage() === 'ko' ? FILE_ANALYZE_PROMPT_KO : FILE_ANALYZE_PROMPT_EN;
+}
 
 // ─── Chip Selector Sub-component ───
 
@@ -399,7 +436,7 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
     try {
       const result = await callLLMJson<Record<string, unknown>>(
         [{ role: 'user', content: freeText }],
-        { system: STRUCTURE_PROMPT, maxTokens: 1000, shape: { extracted_traits: 'array' } }
+        { system: getStructurePrompt(), maxTokens: 1000, shape: { extracted_traits: 'array' } }
       );
       setForm({
         name: (result.name as string) || '',
@@ -435,7 +472,7 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
       const text = await file.text();
       const result = await callLLMJson<Record<string, unknown>>(
         [{ role: 'user', content: text }],
-        { system: FILE_ANALYZE_PROMPT, maxTokens: 1000, shape: { extracted_traits: 'array' } }
+        { system: getFileAnalyzePrompt(), maxTokens: 1000, shape: { extracted_traits: 'array' } }
       );
       setForm({
         name: (result.name as string) || '',

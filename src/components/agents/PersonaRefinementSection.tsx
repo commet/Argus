@@ -6,6 +6,7 @@ import { Plus, Sparkles, Check, X, Loader2, Trash2 } from 'lucide-react';
 import type { Agent, AgentObservation, ObservationSource } from '@/stores/agent-types';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { callLLMStream } from '@/lib/llm';
+import { getCurrentLanguage } from '@/lib/i18n';
 
 type Category = AgentObservation['category'];
 
@@ -15,6 +16,80 @@ const CATEGORY_META: Record<Category, { label: string; order: number }> = {
   preference: { label: '선호·가치', order: 2 },
   skill_gap: { label: '약점·사각', order: 3 },
 };
+
+// English category labels — used only for building the locale-selected refine prompt
+const CATEGORY_LABEL_EN: Record<Category, string> = {
+  communication_style: 'Communication style',
+  work_pattern: 'Work pattern',
+  preference: 'Preferences & values',
+  skill_gap: 'Weaknesses & blind spots',
+};
+
+/* ────────────────────────────────────────────
+   Persona-refinement prompt (locale-selected)
+   ──────────────────────────────────────────── */
+
+function buildRefineSystemKO(existingObs: string, chatSummary: string, archiveSummary: string): string {
+  return `당신은 심리학적 관찰자다. 부하직원이 저장한 '팀장 페르소나'를 실제 상호작용 데이터를 바탕으로 구체화하는 것이 목표다.
+
+현재 이 팀장에 대해 기록된 관찰:
+${existingObs || '(없음)'}
+
+최근 대화:
+${chatSummary || '(없음)'}
+
+최근 팀장 속마음 기록:
+${archiveSummary || '(없음)'}
+
+위 데이터에서 **기존 관찰과 겹치지 않는**, 구체적이고 행동 관찰이 가능한 새 관찰을 2~3개 제안하라.
+
+규칙:
+- 카테고리는 반드시 이 중 하나: communication_style, work_pattern, preference, skill_gap
+- observation은 한 문장(50자 이내). "이 팀장은 ~하다" 식의 단정적 서술.
+- reason은 위 데이터에서 어떤 근거로 이런 관찰을 했는지 한 줄.
+- 추상적이거나 성격유형 일반론은 피하고, 이 사용자-팀장 관계에서만 나오는 특유의 패턴에 집중.
+- 이미 기록된 관찰과 의미가 겹치면 제외.
+- 데이터가 부족하면 빈 배열 반환.
+
+응답 형식: JSON만. 다른 설명 금지.
+{
+  "proposals": [
+    {"category": "...", "observation": "...", "reason": "..."},
+    ...
+  ]
+}`;
+}
+
+function buildRefineSystemEN(existingObs: string, chatSummary: string, archiveSummary: string): string {
+  return `You are a psychological observer. Your goal is to flesh out the "manager persona" a direct report has saved, based on actual interaction data.
+
+Observations currently recorded about this manager:
+${existingObs || '(none)'}
+
+Recent conversation:
+${chatSummary || '(none)'}
+
+Recent records of the manager's inner thoughts:
+${archiveSummary || '(none)'}
+
+From the data above, propose 2-3 new observations that **do not overlap with existing observations** and are concrete and behaviorally observable.
+
+Rules:
+- The category must be one of: communication_style, work_pattern, preference, skill_gap
+- observation is one sentence (under 50 characters). An assertive statement in the form "This manager does ~".
+- reason is one line on what evidence in the data above led to this observation.
+- Avoid the abstract or generic personality-type talk; focus on the distinctive patterns that arise only in this user–manager relationship.
+- Exclude anything that overlaps in meaning with an already-recorded observation.
+- If the data is insufficient, return an empty array.
+
+Response format: JSON only. No other explanation.
+{
+  "proposals": [
+    {"category": "...", "observation": "...", "reason": "..."},
+    ...
+  ]
+}`;
+}
 
 const SOURCE_META: Record<ObservationSource, { label: string; color: string; bg: string }> = {
   auto: { label: '자동', color: 'var(--text-tertiary)', bg: 'rgba(120,120,120,0.1)' },
@@ -87,50 +162,26 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
     setRefineError(null);
     setProposals(null);
     try {
+      const ko = getCurrentLanguage() === 'ko';
       const chatSummary = (agent.chat_history || [])
         .slice(-20)
-        .map(t => `${t.role === 'user' ? '부하' : '팀장'}: ${t.content}`)
+        .map(t => `${t.role === 'user' ? (ko ? '부하' : 'Report') : (ko ? '팀장' : 'Manager')}: ${t.content}`)
         .join('\n');
       const archiveSummary = (agent.inner_monologue_archive || [])
         .slice(-3)
-        .map(e => `[${e.verdict}] ${e.situation}\n속마음: ${e.text}`)
+        .map(e => `[${e.verdict}] ${e.situation}\n${ko ? '속마음' : 'Inner thoughts'}: ${e.text}`)
         .join('\n\n');
       const existingObs = agent.observations
-        .map(o => `- [${CATEGORY_META[o.category].label}] ${o.observation}`)
+        .map(o => `- [${ko ? CATEGORY_META[o.category].label : CATEGORY_LABEL_EN[o.category]}] ${o.observation}`)
         .join('\n');
 
-      const system = `당신은 심리학적 관찰자다. 부하직원이 저장한 '팀장 페르소나'를 실제 상호작용 데이터를 바탕으로 구체화하는 것이 목표다.
-
-현재 이 팀장에 대해 기록된 관찰:
-${existingObs || '(없음)'}
-
-최근 대화:
-${chatSummary || '(없음)'}
-
-최근 팀장 속마음 기록:
-${archiveSummary || '(없음)'}
-
-위 데이터에서 **기존 관찰과 겹치지 않는**, 구체적이고 행동 관찰이 가능한 새 관찰을 2~3개 제안하라.
-
-규칙:
-- 카테고리는 반드시 이 중 하나: communication_style, work_pattern, preference, skill_gap
-- observation은 한 문장(50자 이내). "이 팀장은 ~하다" 식의 단정적 서술.
-- reason은 위 데이터에서 어떤 근거로 이런 관찰을 했는지 한 줄.
-- 추상적이거나 성격유형 일반론은 피하고, 이 사용자-팀장 관계에서만 나오는 특유의 패턴에 집중.
-- 이미 기록된 관찰과 의미가 겹치면 제외.
-- 데이터가 부족하면 빈 배열 반환.
-
-응답 형식: JSON만. 다른 설명 금지.
-{
-  "proposals": [
-    {"category": "...", "observation": "...", "reason": "..."},
-    ...
-  ]
-}`;
+      const system = ko
+        ? buildRefineSystemKO(existingObs, chatSummary, archiveSummary)
+        : buildRefineSystemEN(existingObs, chatSummary, archiveSummary);
 
       let accumulated = '';
       await callLLMStream(
-        [{ role: 'user', content: '위 데이터를 분석해서 새 관찰 2~3개를 JSON으로 제안해라.' }],
+        [{ role: 'user', content: ko ? '위 데이터를 분석해서 새 관찰 2~3개를 JSON으로 제안해라.' : 'Analyze the data above and propose 2-3 new observations as JSON.' }],
         { system, maxTokens: 500 },
         {
           onToken: (text) => { accumulated = text; },
