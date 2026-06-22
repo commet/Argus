@@ -184,6 +184,21 @@ html {
   html { scroll-behavior: auto; }
 }
 
+/* a11y: ONE global keyboard focus ring. The workspace tree shipped with zero
+   :focus-visible across 124+ interactive elements — unusable by keyboard / switch
+   users. App register = a gold ring offset on the bg; the outline follows each
+   element's own radius. (A handful of surfaces still `focus:outline-none` and
+   need that removed per-file to inherit this — tracked in the audit roadmap.) */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* The logbook register speaks in square ink plates, not rounded gold — its
+   elements are already radius:0, so the outline reads as a square ink edge. */
+.bp-root :focus-visible {
+  outline-color: var(--bp-ink);
+}
+
 body {
   background: var(--bg);
   color: var(--text-primary);
