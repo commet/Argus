@@ -29,6 +29,7 @@ Refuse when:
 - `--from <version-label>` optional. Revise from a specific draft instead of the active one (e.g. branch from an older `v0.1` while `v0.2` exists). Defaults to `session.active_draft_id`.
 - `--invoked-via-sail` optional. Suppress the verbose report; emit a one-line transition (sail owns the card).
 - `--no-prompt` optional. Don't AskUserQuestion; apply all `critical`/`applied` items automatically. For automated/test runs.
+- `--max-revisions <N>` optional. Writes `session.max_revise_cycles` (default 3). The hard cap on automated revise cycles; once `session.revise_cycles` reaches it, the loop stops and remaining challenges escalate to a human check instead of re-running.
 
 ---
 
@@ -105,6 +106,16 @@ Invoke `/argus:team --revise` (and `--invoked-via-sail` if this skill was). Team
 
 Invoke `/argus:verify` (`--invoked-via-sail` if applicable) on the new child draft. The whole point is to learn **whether the fix held** — did the previously-challenged claims become supported, or are they still challenged? Verify writes the new `verification.json` + scaffold summary as usual.
 
+**Convergence check (the exit condition `converging` means).** Compare the new
+`verification.json` against the parent's. A claim that was challenged before and is
+**still challenged** did not converge. If a still-challenged claim is a repeat
+(same claim across this revision), OR `session.revise_cycles >= session.max_revise_cycles`,
+do **NOT** invite another automatic pass — append it to the scaffold's
+`human_required_checkpoints[]` with `reason: "unconverged_after_revision"` and tell
+the user it needs a human, not another loop. Verify's Step 7 enforces the same cap
+on the automated path; this is the human-visible half. A new pass is only offered
+when there is genuinely new, agent-addressable feedback under the cap.
+
 ### Step 6 — Report
 
 #### `--invoked-via-sail`
@@ -124,9 +135,10 @@ Show what changed and whether it held (locale-aware):
 
 **Re-verification:** {{new overall_status}} ({{new supported}}↑ / {{new challenged}}↓)
 {{if a previously-challenged claim is now supported}}✓ Resolved: {{claim}}{{endif}}
-{{if still challenged}}⚠ Still challenged: {{claim}} — may need a human check or another pass{{endif}}
+{{if still challenged AND converging}}⚠ Still challenged: {{claim}} — one more agent pass may resolve it ({{revise_cycles}}/{{max_revise_cycles}}){{endif}}
+{{if still challenged AND NOT converging (repeat or cap reached)}}⛔ Not converging: {{claim}} — escalated to a human check ({{reason}}); another auto-pass won't help{{endif}}
 
-**Next:** `/argus:boss` to re-review · `/argus:chart` to see the tree · `/argus:revise` again if needed
+**Next:** `/argus:boss` to re-review · `/argus:chart` to see the tree{{if converging AND under cap}} · `/argus:revise` again if needed{{endif}}
 ```
 
 ---
@@ -154,3 +166,4 @@ Show what changed and whether it held (locale-aware):
 - Re-running the full pipeline from clarify. Revise reuses the locked framing + analysis; only the workers re-run with fixes.
 - Marking the revision "verified" itself — `/argus:verify` (Step 5) owns that, on the new draft.
 - Applying feedback the user deselected.
+- Looping past `session.max_revise_cycles`, or re-issuing `revise_team` on a claim that survived a prior revision. An unconverged claim escalates to a human check (`unconverged_after_revision` / `max_revisions_reached`) — it does NOT auto-loop forever.
