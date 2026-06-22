@@ -81,6 +81,7 @@ describe('Falsification', () => {
       flinched_id: 'c2',
       surfaced_constraint: 'Users will refer friends', // the assumption, not 'Bolder win'
       real_bet: 'I am betting users will act',
+      real_bet_authored: 'user', // the user typed it — authored, not machine-surfaced
       no_flinch_fallback: false,
     });
   });
@@ -108,7 +109,7 @@ describe('Falsification', () => {
     expect(onResolve.mock.calls[0][0].real_bet).toBe('Users will try it'); // c1's assumption
   });
 
-  it('the writing-skip exit resolves with the surfaced belief as the bet', () => {
+  it('the writing-skip exit resolves with the surfaced belief as the bet, TAGGED ai_surfaced (not silently the user\'s)', () => {
     const onResolve = vi.fn();
     mount({ strength: 's', claims, onResolve, onRequestHighestLoad: vi.fn() });
     click(buttonByText('Bolder win'));
@@ -118,8 +119,22 @@ describe('Falsification', () => {
       flinched_id: 'c2',
       surfaced_constraint: 'Users will refer friends',
       real_bet: 'Users will refer friends',
+      // CLAUDE.md A1: the skip stands the machine sentence in as the bet, but it
+      // must be honestly tagged as ai_surfaced — never silently the user's own.
+      real_bet_authored: 'ai_surfaced',
       no_flinch_fallback: false,
     });
+  });
+
+  it('"use this sentence as-is" then lock-in is authored by the USER (affirmative adoption, not silent)', () => {
+    const onResolve = vi.fn();
+    mount({ strength: 's', claims, onResolve, onRequestHighestLoad: vi.fn() });
+    click(buttonByText('Plausible win'));
+    click(buttonByText('Use this sentence as-is'));
+    click(buttonByText('Lock it in'));
+    // The user actively adopted the sentence into their own field — consented,
+    // so authorship is 'user', distinct from the silent skip path above.
+    expect(onResolve.mock.calls[0][0].real_bet_authored).toBe('user');
   });
 
   it('no-flinch → asks the engine for the highest-load pick and marks the fallback', async () => {

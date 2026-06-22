@@ -1275,6 +1275,14 @@ export interface Falsification {
   surfaced_constraint?: string;
   /** The user's own re-statement of the real bet (active write). */
   real_bet?: string;
+  /** Provenance of `real_bet` — honest authorship, never silent (CLAUDE.md A1).
+   *  'user' = the user typed it (or affirmatively adopted it via "use as-is" then
+   *  locked in). 'ai_surfaced' = the friction-skip path stood the machine-surfaced
+   *  belief in as the bet without the user authoring it. Downstream calibration
+   *  must NOT count an 'ai_surfaced' bet as the user's own judgment (it is the
+   *  machine's assumption, not the user's prediction) — same separation as
+   *  luck-vs-judgment basis. Absent (legacy) is treated as 'user'. */
+  real_bet_authored?: 'user' | 'ai_surfaced';
   /** True when the constraint was surfaced via the highest-load pick, not a flinch. */
   no_flinch_fallback?: boolean;
 }
