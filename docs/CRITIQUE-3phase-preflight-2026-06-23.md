@@ -15,6 +15,55 @@
 
 ---
 
+## ★ 05:15 재검토 결과 (UPDATE — 이 박스부터 보세요)
+
+3시간 뒤 다른 세션들이 조용해진 것을 확인하고(모든 브랜치 2h+ 전 마지막 커밋, 미커밋 변화 없음)
+지휘자로서 전수 재검토 + 교통정리 + 통합을 실행했다. **파운더 예측대로, 대부분 해결됐다.**
+
+> ### 🟢 통합 완료 — `feat/3phase-integration` 브랜치 (푸시됨)
+> 흩어진 두 트랙(랜딩 프레젠테이션 `docs/gjc` + BIND 로직 `feat/bind-phase-1`)을 **main 기준
+> 새 브랜치 하나로 통합.** 결과: **충돌 0건, `tsc` 그린, 테스트 18/18, `next build` 그린.**
+> main + 21커밋 / 45파일. 롤백 태그 `preflight-base-20260623-0513` 박아둠.
+> → **이게 "다 구현된 하나의 브랜치"다.** §0이 없다고 한 그것이 이제 존재한다.
+
+**채점표 (§2 체크리스트):**
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| P0-1 통합 브랜치 부재 | 🟢 **해결** | `feat/3phase-integration` 생성·검증·푸시 |
+| P0-2 순환의존(VoyagePhaseRail) | 🟢 **해결** | 두 브랜치 함께 머지 → 파일+import 공존, tsc 그린 |
+| P0-3 모델-ID 회귀 | 🟢 **해결** | feature가 route.ts 미수정 → main의 `claude-sonnet-4-6` 유지, grep 0건 |
+| P0-4 앞문 가입 검증 | 🟡 **파운더 수동** | 코드 밖(Supabase SMTP). *직접 1회 가입 실주행 필요* |
+| P0-5 랜딩↔제품 정합 | 🟢 **해결** | BindCard가 page.tsx에 완전 배선(`'binding'` phase, `buildEarlyContract`) → 제품이 bind-first |
+| P1-2 익명 정산 표면 | 🟢 **해결** | `public-paths.ts:24` `/project` public화 |
+| P1-3 익명 due 신호 | 🟢 **해결** | `Header.tsx:39` `if(user)` 게이트 제거 |
+| P1-4 bind 배선 | 🟢 **해결** | `80bfb93` BindCard wired |
+| P1-5 seal CREATE→AUGMENT | 🟢 **해결** | `SealMoment.tsx:139` `augmentContract` 사용 |
+| P1-8 bind 계측 | 🟢 **해결** | `page.tsx:387` `track('decision_sealed',{source:'bind_open',anonymous,has_lean,has_date})` |
+| P2-1~5 스파인(boss/falsification/reframe) | 🟢 **해결** | `e79bc1f`·`b2b775b`·`1e4894a`·`205f9d9`·`c3dd4b1`·`5f057a4` 전부 포함 |
+| P1-1 익명 서버 영속 | 🟡 **설계상 deferred** | `db.ts:217` localStorage-first 유지. *같은 기기* 루프는 닫힘(P1-2,3). 타기기/초기화 손실은 CUT LINE 2 |
+| P1-6 `shouldSealContract` 배선 | 🔴 **미해결** | 여전히 dead. over-fire 방지용. SealMoment null-render가 임시 방어. CUT LINE 2 |
+| P1-7 플러그인 미러 | 🟡 **부분** | `a04aa7a` rope-before-crew parity. 완성도 추가 필요. 웹앱 배포와 독립 |
+| P2-6 익명 seal 휘발성 고지 | 🔴 **미해결** | SealMoment에 "이 기기에 저장됨" 사용자 고지 없음. *작은 정직성 보완 — §재검토-남은것* |
+
+**결론: CUT LINE 1(정직하게 배포 가능)이 거의 충족됐다.** 남은 단 하나의 코드 외 블로커는
+**P0-4(파운더가 직접 가입 1회 실주행)**. 그것만 통과하면 `feat/3phase-integration`은 배포 가능.
+
+**파운더가 깨어나서 할 일 (순서대로):**
+1. **`feat/3phase-integration`으로 직접 결정 1건 dogfood** (§6 "단 하나의 수"): 새 이메일 가입 →
+   봉인 → /project에서 정산 도달까지. 막히면 그게 P0-4 실체.
+2. 잘 돌면 → **이 브랜치를 main에 PR/머지 → 배포.** (PR: github.com/commet/Argus/pull/new/feat/3phase-integration)
+3. 배포 후 CUT LINE 2: P2-6 휘발성 고지(작은 정직성), P1-1 서버영속, P1-6 게이트, P1-7 플러그인.
+   — 이건 라이브에서 실사용자와 함께. *지금 다 하려 하지 말 것(§4.7).*
+
+> **내가 P2-6/P1-6를 자율로 코드에 안 넣은 이유:** 둘 다 *사용자 대면 카피/판단 로직* 변경이라
+> 깨끗한 통합 위에 한밤중에 얹기보다 파운더 판단이 맞다(스파인: 사용자 대면 문구는 신중).
+> 통합 자체가 가장 크고 안전한 실행이었고, 그건 완료·검증·푸시했다.
+
+*(아래는 자기 전에 쓴 원본 검토 — 진단의 근거. §2 체크리스트는 위 채점표로 갱신됨.)*
+
+---
+
 ## TL;DR (자고 일어나서 이거 한 박스만 봐도 됨)
 
 - **나쁜 소식 아님:** 코드 품질은 좋다. 비유도 옳다. 랜딩은 90% 됐다. 엔진도 GREEN이다.
