@@ -239,3 +239,29 @@ it. `session.phase` is consulted only to break ties the artifacts leave genuinel
 ambiguous. This is the same artifact-trust the corrupt-session recovery path already
 uses (sail Step 2) — generalized from "session.json won't parse" to the far more
 common "session.json parses fine but its phase is stale."
+
+## Re-entry Is Idempotent
+
+Phase-derivation (above) makes **re-running a sub-step the normal recovery path** —
+a crashed chain routes back to whichever step its artifacts say is incomplete. So
+re-running any sub-step on the same inputs MUST converge to the same state, never
+accumulate. A sub-step's output is a **pure function of its upstream artifacts**:
+run it twice, get the same result.
+
+- **File-writing steps overwrite and recompute, never append.** Re-running
+  `/argus:verify` overwrites `verification.json` (a fresh ledger), it does not add a
+  second one. Re-running `/argus:team` on a crashed run reuses the same version dir
+  (the `workers.json` marker — absent/partial → reuse the label and overwrite; a
+  *complete* set means team already finished, so phase-derivation routes onward, not
+  back into team). Mutations into a shared file (e.g. boss folding concerns into
+  `scaffold.json`) must be computed by **set/replace keyed by a stable id**, never by
+  appending — appending is what turns a second run into duplicated actions/checks.
+- **Event-sourced writes achieve the same by replay-collapse, not overwrite.** The
+  ledger is append-only, yet settle is idempotent because Step 1 replays events by
+  `id` and a closed contract is not re-surfaced as due — so a second settle never
+  appends a duplicate `settle` for the same id. Append-only + replay-by-id = the
+  event-log equivalent of overwrite.
+- **The test:** for every sub-step ask "if this runs twice on the same inputs, is
+  the on-disk state identical?" If not — if it appends, bumps a counter, or
+  re-applies an already-applied change — it is a re-entry bug, because R55 guarantees
+  it *will* sometimes run twice.

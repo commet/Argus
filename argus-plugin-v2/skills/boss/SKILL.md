@@ -227,11 +227,20 @@ Write `versions/{label}/boss_feedback.json`:
 }
 ```
 
-Update `versions/{label}/scaffold.json`:
+Update `versions/{label}/scaffold.json` — **idempotently** (session-layout →
+"Re-entry Is Idempotent"; R55 makes a re-run of boss a normal recovery path, so a
+second run must reproduce this scaffold, not a doubled one):
 
-- `boss_concerns_applied[]`
-- `boss_concerns_rejected[]`
-- routed next actions / human checkpoints / pending questions
+- `boss_concerns_applied[]` / `boss_concerns_rejected[]` — **SET** these arrays to
+  this run's result, do not append to whatever a prior boss run left. Each concern
+  carries a stable id so the lists are deterministic across re-runs.
+- routed next actions / human checkpoints / pending questions — fold each concern's
+  fix into `scaffold.next_actions[]` / `human_required_checkpoints[]` **keyed by the
+  concern id, replace-if-present, never blind-append.** A re-run re-derives the same
+  routed entries and overwrites them in place; it must not add a second copy of an
+  action/check it already routed. (Appending here was the latent re-entry bug: a
+  crash-then-resume, or a manual second `/argus:boss`, would double the routed
+  actions.)
 
 Update `session.json` (keep the skeleton thin — the review lives write-once at
 `versions/{label}/boss_feedback.json` and applied/rejected concerns are merged
