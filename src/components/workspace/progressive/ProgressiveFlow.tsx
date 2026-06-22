@@ -1500,8 +1500,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             const qTitle = t('progressive.humanQTitle', { task: hw.task });
             const qContext = hw.ai_preliminary ? t('progressive.humanQContext', { ai: hw.ai_preliminary }) : '';
             const body = hw.contact?.channel === 'slack'
-              ? { userId: hw.contact.address, title: qTitle, content: `${hw.question_to_human || hw.task}${qContext ? `\n\n${qContext}` : ''}`, sessionId: session.id, workerId: hw.id }
-              : { to: hw.contact!.address, subject: qTitle, question: hw.question_to_human || hw.task, context: hw.ai_preliminary || '', senderName: session.decision_maker || 'Argus', sessionId: session.id, workerId: hw.id };
+              ? { userId: hw.contact.address, title: qTitle, content: `${hw.question_to_human || hw.task}${qContext ? `\n\n${qContext}` : ''}`, sessionId: session.id, workerId: hw.id, locale }
+              : { to: hw.contact!.address, subject: qTitle, question: hw.question_to_human || hw.task, context: hw.ai_preliminary || '', senderName: session.decision_maker || 'Argus', sessionId: session.id, workerId: hw.id, locale };
             fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) })
               .then(r => r.json())
               .then(r => {

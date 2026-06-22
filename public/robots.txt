@@ -1,12 +1,15 @@
 User-agent: *
 Allow: /
+# Locale-prefixed paths (/en/…, /ko/…). The `/*/` wildcard matches the leading
+# locale segment so these rules apply under every locale. /api stays at root.
 Disallow: /api/
-Disallow: /auth/
-Disallow: /workspace/
-Disallow: /settings
-Disallow: /teams
-Disallow: /project
-Disallow: /agents
-Disallow: /boss
+Disallow: /*/auth/
+Disallow: /*/settings
+Disallow: /*/teams
+Disallow: /*/project
+Disallow: /*/agents
+Disallow: /*/boss
+Disallow: /*/admin
+Disallow: /*/import
 
 Sitemap: https://argus.voyage/sitemap.xml

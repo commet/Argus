@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || 'unknown';
   if (!(await checkSajuRateLimit(ip))) {
-    return NextResponse.json({ error: '요청이 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429 });
+    return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 });
   }
 
   try {

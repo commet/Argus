@@ -54,19 +54,21 @@ export async function POST(req: NextRequest) {
     || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || 'unknown';
   if (!(await checkSearchRateLimit(ip))) {
-    return NextResponse.json({ error: '검색 요청이 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429 });
+    return NextResponse.json({ error: 'Too many search requests. Please try again shortly.' }, { status: 429 });
   }
 
   try {
-    const { query } = await req.json();
+    const { query, locale } = await req.json();
     if (!query || typeof query !== 'string' || query.length > 300) {
-      return NextResponse.json({ error: '유효한 검색어가 필요합니다' }, { status: 400 });
+      return NextResponse.json({ error: 'A valid search query is required.' }, { status: 400 });
     }
+    // en-first product, but default 'ko' to preserve behavior when the caller omits it.
+    const searchLang = locale === 'en' ? 'en' : 'ko';
 
     const url = new URL('https://api.search.brave.com/res/v1/web/search');
     url.searchParams.set('q', query);
     url.searchParams.set('count', '5');
-    url.searchParams.set('search_lang', 'ko');
+    url.searchParams.set('search_lang', searchLang);
 
     const res = await fetch(url.toString(), {
       headers: {

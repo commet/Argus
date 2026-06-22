@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 
 const META = {
   ko: {
@@ -16,17 +15,22 @@ const META = {
   },
 } as const;
 
-export async function generateMetadata(): Promise<Metadata> {
-  const h = await headers();
-  const first = (h.get('accept-language') || '').split(',')[0]?.toLowerCase() ?? '';
-  const lang: 'ko' | 'en' = first.startsWith('ko') ? 'ko' : 'en';
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const lang: 'ko' | 'en' = locale === 'ko' ? 'ko' : 'en';
   const m = META[lang];
   return {
     title: m.title,
     description: m.description,
+    // Next overrides (not merges) nested metadata, so re-include the fields the
+    // root layout sets or the boss page loses og:url / site_name / type / locale.
     openGraph: {
       title: m.ogTitle,
       description: m.ogDesc,
+      url: `https://argus.voyage/${lang}/boss`,
+      siteName: 'Argus',
+      locale: lang === 'ko' ? 'ko_KR' : 'en_US',
+      type: 'website',
     },
   };
 }

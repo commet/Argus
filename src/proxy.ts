@@ -95,11 +95,14 @@ export function proxy(req: NextRequest) {
     return response;
   }
 
-  // Already locale-prefixed — proceed, expose the locale to layouts.
+  // Already locale-prefixed — proceed, expose the locale + the locale-less path
+  // to layouts (the latter so generateMetadata can build a per-page canonical /
+  // hreflang instead of inheriting the homepage's).
   if (isLocale(firstSeg)) {
     const requestHeaders = new Headers(req.headers);
     requestHeaders.set('x-nonce', nonce);
     requestHeaders.set('x-locale', firstSeg);
+    requestHeaders.set('x-pathname', pathname.slice(firstSeg.length + 1) || '');
     const response = NextResponse.next({ request: { headers: requestHeaders } });
     response.headers.set('Content-Security-Policy', csp);
     return response;
@@ -108,7 +111,8 @@ export function proxy(req: NextRequest) {
   // Locale-less page path — redirect to the resolved locale.
   const locale = resolveLocale(req);
   const target = req.nextUrl.clone();
-  target.pathname = `/${locale}${pathname}`;
+  // Avoid `/` → `/en/` (a trailing slash Next then 308-normalizes — a third hop).
+  target.pathname = pathname === '/' ? `/${locale}` : `/${locale}${pathname}`;
   const response = NextResponse.redirect(target, 307);
   response.cookies.set('argus-locale', locale, {
     path: '/',

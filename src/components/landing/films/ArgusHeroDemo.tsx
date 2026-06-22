@@ -366,24 +366,24 @@ function renderVals(t: number, reduced: boolean, grain: boolean, captionBar: boo
 
 const CREW_ICONS = [
   (
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+    <svg key="research" width="28" height="28" viewBox="0 0 32 32" fill="none">
       <circle cx="13" cy="13" r="7" stroke="var(--text-secondary)" strokeWidth="2.1" />
       <path d="M18.5 18.5 L25 25" stroke="var(--text-secondary)" strokeWidth="2.6" strokeLinecap="round" />
     </svg>
   ),
   (
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+    <svg key="strategy" width="28" height="28" viewBox="0 0 32 32" fill="none">
       <path d="M16 4 L19 16 L16 28 L13 16 Z" fill="var(--text-secondary)" />
       <path d="M4 16 L16 13 L28 16 L16 19 Z" fill="var(--text-secondary)" opacity=".5" />
     </svg>
   ),
   (
-    <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+    <svg key="numbers" width="26" height="26" viewBox="0 0 32 32" fill="none">
       <path d="M6 9h20M6 16h20M6 23h20M11 5v22M21 5v22" stroke="var(--text-secondary)" strokeWidth="1.8" />
     </svg>
   ),
   (
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+    <svg key="risk" width="28" height="28" viewBox="0 0 32 32" fill="none">
       <path d="M16 5 L28 26 H4 Z" stroke="var(--text-secondary)" strokeWidth="2" fill="none" strokeLinejoin="round" />
       <path d="M16 13 V19" stroke="var(--text-secondary)" strokeWidth="2.2" strokeLinecap="round" />
       <circle cx="16" cy="22.5" r="1.3" fill="var(--text-secondary)" />

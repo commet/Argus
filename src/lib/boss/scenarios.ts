@@ -6,33 +6,35 @@
 export interface Scenario {
   id: string;
   emoji: string;
-  text: string;           // LLM에 보내는 실제 텍스트
-  displayText: string;    // UI에 표시되는 짧은 제목
+  text: string;           // LLM에 보내는 실제 텍스트 (ko)
+  textEn: string;         // LLM에 보내는 실제 텍스트 (en)
+  displayText: string;    // UI에 표시되는 짧은 제목 (ko)
+  displayTextEn: string;  // UI에 표시되는 짧은 제목 (en)
   category: 'negotiation' | 'feedback' | 'daily' | 'growth' | 'conflict';
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
 export const SCENARIOS: Scenario[] = [
   // 협상
-  { id: 'raise', emoji: '💰', text: '연봉 인상을 요청하고 싶습니다', displayText: '연봉 협상', category: 'negotiation', difficulty: 'medium' },
-  { id: 'remote', emoji: '🏠', text: '재택근무를 좀 더 하고 싶은데요', displayText: '재택 확대', category: 'negotiation', difficulty: 'easy' },
-  { id: 'headcount', emoji: '👥', text: '프로젝트에 인력이 부족해서 추가 충원을 요청드립니다', displayText: '인력 충원', category: 'negotiation', difficulty: 'hard' },
+  { id: 'raise', emoji: '💰', text: '연봉 인상을 요청하고 싶습니다', textEn: "I'd like to ask for a raise.", displayText: '연봉 협상', displayTextEn: 'Salary negotiation', category: 'negotiation', difficulty: 'medium' },
+  { id: 'remote', emoji: '🏠', text: '재택근무를 좀 더 하고 싶은데요', textEn: "I'd like to work from home a bit more.", displayText: '재택 확대', displayTextEn: 'More remote work', category: 'negotiation', difficulty: 'easy' },
+  { id: 'headcount', emoji: '👥', text: '프로젝트에 인력이 부족해서 추가 충원을 요청드립니다', textEn: "We're short-staffed on the project, so I'd like to request additional headcount.", displayText: '인력 충원', displayTextEn: 'More headcount', category: 'negotiation', difficulty: 'hard' },
   // 피드백
-  { id: 'review-dispute', emoji: '📊', text: '이번 성과 평가 결과에 대해 이의가 있습니다', displayText: '평가 이의', category: 'feedback', difficulty: 'hard' },
-  { id: 'counter-feedback', emoji: '🗣️', text: '지난번에 주신 피드백에 대해 다시 말씀드리고 싶은 게 있어요', displayText: '피드백 반론', category: 'feedback', difficulty: 'hard' },
-  { id: 'team-conflict', emoji: '😤', text: '같은 팀 동료와 갈등이 좀 있어서 상담드리고 싶습니다', displayText: '동료 갈등', category: 'feedback', difficulty: 'medium' },
+  { id: 'review-dispute', emoji: '📊', text: '이번 성과 평가 결과에 대해 이의가 있습니다', textEn: 'I have an objection to my performance review this cycle.', displayText: '평가 이의', displayTextEn: 'Disputing a review', category: 'feedback', difficulty: 'hard' },
+  { id: 'counter-feedback', emoji: '🗣️', text: '지난번에 주신 피드백에 대해 다시 말씀드리고 싶은 게 있어요', textEn: "There's something I'd like to revisit about the feedback you gave me last time.", displayText: '피드백 반론', displayTextEn: 'Pushing back on feedback', category: 'feedback', difficulty: 'hard' },
+  { id: 'team-conflict', emoji: '😤', text: '같은 팀 동료와 갈등이 좀 있어서 상담드리고 싶습니다', textEn: "I'm having some conflict with a teammate and wanted to talk it through.", displayText: '동료 갈등', displayTextEn: 'Coworker conflict', category: 'feedback', difficulty: 'medium' },
   // 일상
-  { id: 'early-leave', emoji: '🕐', text: '오늘 칼퇴 좀 해도 될까요', displayText: '칼퇴 요청', category: 'daily', difficulty: 'easy' },
-  { id: 'less-meetings', emoji: '📅', text: '회의를 좀 줄일 수 있을까요?', displayText: '회의 축소', category: 'daily', difficulty: 'easy' },
-  { id: 'scope', emoji: '📋', text: '제 업무 범위가 좀 애매한 것 같아서요', displayText: '업무 범위', category: 'daily', difficulty: 'medium' },
+  { id: 'early-leave', emoji: '🕐', text: '오늘 칼퇴 좀 해도 될까요', textEn: 'Would it be okay if I left right on time today?', displayText: '칼퇴 요청', displayTextEn: 'Leaving on time', category: 'daily', difficulty: 'easy' },
+  { id: 'less-meetings', emoji: '📅', text: '회의를 좀 줄일 수 있을까요?', textEn: 'Could we cut down on meetings a bit?', displayText: '회의 축소', displayTextEn: 'Fewer meetings', category: 'daily', difficulty: 'easy' },
+  { id: 'scope', emoji: '📋', text: '제 업무 범위가 좀 애매한 것 같아서요', textEn: 'I feel like my role scope is a bit unclear.', displayText: '업무 범위', displayTextEn: 'Role scope', category: 'daily', difficulty: 'medium' },
   // 성장
-  { id: 'lead', emoji: '🚀', text: '제가 이번에 리드 한번 맡아봐도 될까요?', displayText: '리드 자원', category: 'growth', difficulty: 'medium' },
-  { id: 'conference', emoji: '🎓', text: '이번 달에 컨퍼런스가 있는데 참석하고 싶습니다', displayText: '컨퍼런스', category: 'growth', difficulty: 'easy' },
-  { id: 'transfer', emoji: '🔀', text: '다른 부서로 이동하고 싶은 마음이 있습니다', displayText: '부서 이동', category: 'growth', difficulty: 'hard' },
+  { id: 'lead', emoji: '🚀', text: '제가 이번에 리드 한번 맡아봐도 될까요?', textEn: 'Could I take the lead on this one?', displayText: '리드 자원', displayTextEn: 'Volunteering to lead', category: 'growth', difficulty: 'medium' },
+  { id: 'conference', emoji: '🎓', text: '이번 달에 컨퍼런스가 있는데 참석하고 싶습니다', textEn: "There's a conference this month and I'd like to attend.", displayText: '컨퍼런스', displayTextEn: 'Conference', category: 'growth', difficulty: 'easy' },
+  { id: 'transfer', emoji: '🔀', text: '다른 부서로 이동하고 싶은 마음이 있습니다', textEn: "I've been thinking about transferring to another team.", displayText: '부서 이동', displayTextEn: 'Team transfer', category: 'growth', difficulty: 'hard' },
   // 갈등
-  { id: 'unfair', emoji: '⚖️', text: '업무 분배가 좀 불공정한 것 같아서요', displayText: '불공정 항의', category: 'conflict', difficulty: 'hard' },
-  { id: 'resign', emoji: '🚪', text: '퇴사를 고민하고 있습니다', displayText: '퇴사 전달', category: 'conflict', difficulty: 'hard' },
-  { id: 'mistake', emoji: '😰', text: '실수가 있었는데 보고드리고 수습 방안을 가져왔습니다', displayText: '실수 보고', category: 'conflict', difficulty: 'medium' },
+  { id: 'unfair', emoji: '⚖️', text: '업무 분배가 좀 불공정한 것 같아서요', textEn: 'I feel the workload distribution is a bit unfair.', displayText: '불공정 항의', displayTextEn: 'Unfair workload', category: 'conflict', difficulty: 'hard' },
+  { id: 'resign', emoji: '🚪', text: '퇴사를 고민하고 있습니다', textEn: "I'm thinking about resigning.", displayText: '퇴사 전달', displayTextEn: 'Resigning', category: 'conflict', difficulty: 'hard' },
+  { id: 'mistake', emoji: '😰', text: '실수가 있었는데 보고드리고 수습 방안을 가져왔습니다', textEn: "I made a mistake — I'm here to report it and bring a plan to fix it.", displayText: '실수 보고', displayTextEn: 'Reporting a mistake', category: 'conflict', difficulty: 'medium' },
 ];
 
 const CATEGORY_LABELS: Record<Scenario['category'], string> = {
@@ -45,7 +47,18 @@ const DIFFICULTY_LABELS: Record<Scenario['difficulty'], { label: string; color: 
   hard: { label: '어려움', color: 'var(--danger)' },
 };
 
-export { CATEGORY_LABELS, DIFFICULTY_LABELS };
+const DIFFICULTY_LABELS_EN: Record<Scenario['difficulty'], { label: string; color: string }> = {
+  easy: { label: 'Easy', color: 'var(--success)' },
+  medium: { label: 'Medium', color: 'var(--warning)' },
+  hard: { label: 'Hard', color: 'var(--danger)' },
+};
+
+/** Locale-aware difficulty label (color is locale-independent). */
+export function getDifficultyLabel(difficulty: Scenario['difficulty'], locale: 'ko' | 'en') {
+  return (locale === 'en' ? DIFFICULTY_LABELS_EN : DIFFICULTY_LABELS)[difficulty];
+}
+
+export { CATEGORY_LABELS, DIFFICULTY_LABELS, DIFFICULTY_LABELS_EN };
 
 /**
  * 대화 종료 후 3개 시나리오 추천.

@@ -80,7 +80,8 @@ export function LocaleProvider({
     if (explicit && explicit !== seed) {
       const rest = stripLocale(pathname || '/');
       const search = typeof window !== 'undefined' ? window.location.search : '';
-      router.replace(`/${explicit}${rest === '/' ? '' : rest}${search}`);
+      const hash = typeof window !== 'undefined' ? window.location.hash : '';
+      router.replace(`/${explicit}${rest === '/' ? '' : rest}${search}${hash}`);
     }
     // Mount-only: the stored choice is stable for the session; useLocaleSwitch
     // handles in-session changes by navigating + updating the cookie itself.

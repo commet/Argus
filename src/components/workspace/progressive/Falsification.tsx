@@ -87,6 +87,7 @@ export function Falsification({
       flinched_id: noFlinch ? null : flinched.id,
       surfaced_constraint: surfaced,
       real_bet: bet,
+      real_bet_authored: 'user', // the user typed it (or adopted "use as-is" then locked in) — authored
       no_flinch_fallback: noFlinch,
     });
   }
@@ -223,11 +224,15 @@ export function Falsification({
               {/* The honest skip: 8 minutes in, a mandatory hand-written gate
                   is where busy users close the tab and never get the document
                   (novice audit BLOCKS). The surfaced belief stands in as the
-                  bet — same data, zero friction, document still arrives. */}
+                  bet — same data, zero friction, document still arrives. But it
+                  is tagged `ai_surfaced`, NOT silently inherited as the user's
+                  own bet (CLAUDE.md A1): the friction escape stays, the authorship
+                  stays honest, so calibration never counts this as the user's
+                  judgment. */}
               <div className="mt-2 text-center">
                 <button
                   type="button"
-                  onClick={() => { if (surfaced) onResolve({ claims, flinched_id: noFlinch ? null : flinched!.id, surfaced_constraint: surfaced, real_bet: surfaced, no_flinch_fallback: noFlinch }); }}
+                  onClick={() => { if (surfaced) onResolve({ claims, flinched_id: noFlinch ? null : flinched!.id, surfaced_constraint: surfaced, real_bet: surfaced, real_bet_authored: 'ai_surfaced', no_flinch_fallback: noFlinch }); }}
                   className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                 >
                   {L('이대로 두고 문서만 받을게요', 'Skip writing — just give me the document')}

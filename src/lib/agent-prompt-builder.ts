@@ -53,7 +53,7 @@ export function buildSearchContext(searchResults: SearchResult[]): string {
   const lines = ['## Reference: Web search results'];
   for (const r of searchResults.slice(0, 5)) {
     lines.push(`- **${r.title}**: ${r.snippet}`);
-    if (r.url) lines.push(`  출처: ${r.url}`);
+    if (r.url) lines.push(`  Source: ${r.url}`);
   }
 
   return lines.join('\n').slice(0, 1200);

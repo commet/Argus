@@ -238,7 +238,10 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
   const governing: Predicate[] = [];
   const betText = falsificationBetText(s.falsification);
   if (betText) {
-    const p = add({ text: betText, source: 'governing_idea' });
+    // Carry the flinch bet's authorship (R57) so calibration can tell the user's
+    // own prediction from a machine-surfaced belief the skip stood in (R58).
+    const authored = s.falsification?.real_bet_authored === 'ai_surfaced' ? 'ai_surfaced' as const : undefined;
+    const p = add({ text: betText, source: 'governing_idea', ...(authored ? { authored } : {}) });
     if (p) governing.push(p);
   }
   for (const a of finalMix?.key_assumptions ?? []) {
@@ -435,6 +438,11 @@ export interface GradeSummary {
    *  outside factors (basis). A held bet on luck is not a held bet on judgment
    *  (R17) — surfaced so the record can separate skill-wins from lucky ones. */
   goodOutcomesOnLuck: number;
+  /** Subset of betsHeld whose governing bet was machine-surfaced via the skip
+   *  (`authored === 'ai_surfaced'`, R57/R58). The user never made this prediction,
+   *  so its holding is NOT their judgment — counted here, not as a skill-win, the
+   *  same separation principle as goodOutcomesOnLuck. */
+  betsHeldAiSurfaced: number;
   /** Predicates graded but outcome unknown — not scored either way. */
   unknown: number;
   /** Total predicates with any verdict (incl. unknown/partial). */
@@ -456,6 +464,7 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
     betsBroke: 0,
     rolesConfirmed: 0,
     goodOutcomesOnLuck: 0,
+    betsHeldAiSurfaced: 0,
     unknown: 0,
     resolved: 0,
     total: preds.length,
@@ -471,7 +480,7 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
       if (p.verdict === 'avoided') { s.risksAvoided++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; }
       else if (p.verdict === 'happened') s.risksHappened++;
     } else if (p.source === 'governing_idea') {
-      if (p.verdict === 'happened') { s.betsHeld++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; }
+      if (p.verdict === 'happened') { s.betsHeld++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; if (p.authored === 'ai_surfaced') s.betsHeldAiSurfaced++; }
       else if (p.verdict === 'avoided') s.betsBroke++;
     } else if (p.source === 'actor') {
       if (p.verdict === 'happened') s.rolesConfirmed++;

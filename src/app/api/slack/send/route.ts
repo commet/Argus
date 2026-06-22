@@ -46,6 +46,8 @@ export async function POST(req: NextRequest) {
   // Parse body
   const body = await req.json();
   const { channelId, userId: slackUserId, title, content, threadTs, sessionId, workerId } = body;
+  // en-first product, but default 'ko' to preserve behavior when the caller omits it.
+  const lang: 'ko' | 'en' = body.locale === 'en' ? 'en' : 'ko';
 
   // Support DM via slackUserId OR channel via channelId
   const targetChannel = slackUserId || channelId;
@@ -121,7 +123,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Slack connection expired. Please reconnect.' }, { status: 401 });
     }
     console.error('[slack/send] Slack API error:', data.error);
-    return NextResponse.json({ error: 'Slack 메시지 전송에 실패했습니다.' }, { status: 502 });
+    return NextResponse.json({ error: lang === 'en' ? 'Failed to send the Slack message.' : 'Slack 메시지 전송에 실패했습니다.' }, { status: 502 });
   }
 
   // Store thread_ts for reply matching (if session/worker tracking requested)

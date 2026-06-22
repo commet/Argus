@@ -1,5 +1,4 @@
 import { AgentHub } from '@/components/agents/AgentHub';
-import { headers } from 'next/headers';
 import type { Metadata } from 'next';
 
 const META = {
@@ -7,10 +6,9 @@ const META = {
   en: { title: 'Crew Roster — Argus', description: 'Meet the personas who sail with you.' },
 } as const;
 
-export async function generateMetadata(): Promise<Metadata> {
-  const h = await headers();
-  const first = (h.get('accept-language') || '').split(',')[0]?.toLowerCase() ?? '';
-  const lang: 'ko' | 'en' = first.startsWith('ko') ? 'ko' : 'en';
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const lang: 'ko' | 'en' = locale === 'ko' ? 'ko' : 'en';
   return META[lang];
 }
 

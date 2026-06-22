@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Slack connection expired. Please reconnect.' }, { status: 401 });
     }
     console.error('[slack/channels] Slack API error:', data.error);
-    return NextResponse.json({ error: 'Slack 채널 목록을 가져올 수 없습니다.' }, { status: 502 });
+    return NextResponse.json({ error: 'Failed to fetch the Slack channel list.' }, { status: 502 });
   }
 
   const channels = (data.channels || []).map((ch: { id: string; name: string; is_private: boolean }) => ({

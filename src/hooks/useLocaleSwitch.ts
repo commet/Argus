@@ -44,8 +44,9 @@ export function useLocaleSwitch() {
 
     const basePath = pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/');
     const search = typeof window !== 'undefined' ? window.location.search : '';
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
     const rest = stripLocale(basePath);
-    const newPath = `/${next}${rest === '/' ? '' : rest}${search}`;
+    const newPath = `/${next}${rest === '/' ? '' : rest}${search}${hash}`;
     router.push(newPath);
   };
 

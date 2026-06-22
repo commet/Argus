@@ -96,6 +96,25 @@ describe('summarizeGrades — separates lucky wins from skill wins', () => {
     expect(g.betsBroke).toBe(1);
     expect(g.goodOutcomesOnLuck).toBe(0);
   });
+
+  it('separates a held bet that was machine-surfaced (authored=ai_surfaced) from the user\'s judgment (R57/R58)', () => {
+    const c = contractWith([
+      { source: 'governing_idea', verdict: 'happened', authored: 'ai_surfaced' }, // machine-surfaced, held
+      { source: 'governing_idea', verdict: 'happened', authored: 'user' },        // user's own, held
+      { source: 'governing_idea', verdict: 'happened' },                          // legacy/untagged → user's own
+    ]);
+    const g = summarizeGrades(c);
+    expect(g.betsHeld).toBe(3);              // still counted as held bets overall
+    expect(g.betsHeldAiSurfaced).toBe(1);    // but only the machine-surfaced one is segregated
+  });
+
+  it('a held bet on luck AND machine-surfaced lands in both buckets, not as clean judgment', () => {
+    const c = contractWith([{ source: 'governing_idea', verdict: 'happened', basis: 'luck', authored: 'ai_surfaced' }]);
+    const g = summarizeGrades(c);
+    expect(g.betsHeld).toBe(1);
+    expect(g.goodOutcomesOnLuck).toBe(1);
+    expect(g.betsHeldAiSurfaced).toBe(1);
+  });
 });
 
 describe('summarizeRecord — luck count aggregates across projects', () => {

@@ -46,6 +46,8 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { to, subject, question, context, senderName, sessionId, workerId } = body;
+  // en-first product, but default 'ko' to preserve behavior when the caller omits it.
+  const lang: 'ko' | 'en' = body.locale === 'en' ? 'en' : 'ko';
 
   if (!to || typeof to !== 'string' || !to.includes('@')) {
     return NextResponse.json({ error: 'Valid email address required' }, { status: 400 });
@@ -82,7 +84,8 @@ export async function POST(req: NextRequest) {
   const safeQuestion = question.slice(0, 2000);
   const safeContext = (context || '').slice(0, 5000);
   const safeName = (senderName || 'Argus User').slice(0, 100);
-  const safeSubject = (subject || `${safeName}님의 질문`).slice(0, 200);
+  const defaultSubject = lang === 'en' ? `Question from ${safeName}` : `${safeName}님의 질문`;
+  const safeSubject = (subject || defaultSubject).slice(0, 200);
 
   // Build email HTML — all user inputs HTML-escaped to prevent XSS
   const eName = escapeHtml(safeName);
@@ -92,19 +95,29 @@ export async function POST(req: NextRequest) {
   // The reply-to-reflect promise is only true when the inbound webhook is
   // configured (EMAIL_INBOUND_SECRET). Otherwise, be honest about it.
   const inboundConfigured = !!process.env.EMAIL_INBOUND_SECRET;
-  const replyNotice = inboundConfigured
-    ? `이 이메일에 답장하시면 ${eName}님의 의사결정 과정에 자동으로 반영됩니다.`
-    : '답장은 아직 자동으로 연결되지 않아요 — 내용은 워크스페이스에서 직접 반영해 주세요.';
+  const replyNotice = lang === 'en'
+    ? (inboundConfigured
+      ? `Replying to this email will automatically feed into ${eName}'s decision process.`
+      : "Replies aren't automatically wired up yet — please reflect your input directly in the workspace.")
+    : (inboundConfigured
+      ? `이 이메일에 답장하시면 ${eName}님의 의사결정 과정에 자동으로 반영됩니다.`
+      : '답장은 아직 자동으로 연결되지 않아요 — 내용은 워크스페이스에서 직접 반영해 주세요.');
+
+  const headerLabel = lang === 'en' ? 'Question request' : '질문 요청';
+  const askLine = lang === 'en'
+    ? `<strong>${eName}</strong> is asking for your input:`
+    : `<strong>${eName}</strong>님이 의견을 구합니다:`;
+  const contextLabel = lang === 'en' ? 'Reference' : '참고 자료';
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="border-bottom: 2px solid #D97706; padding-bottom: 16px; margin-bottom: 24px;">
         <span style="font-size: 14px; font-weight: 700; color: #D97706;">Argus</span>
-        <span style="font-size: 12px; color: #9CA3AF; margin-left: 8px;">질문 요청</span>
+        <span style="font-size: 12px; color: #9CA3AF; margin-left: 8px;">${headerLabel}</span>
       </div>
 
       <p style="font-size: 14px; color: #374151; margin-bottom: 16px;">
-        <strong>${eName}</strong>님이 의견을 구합니다:
+        ${askLine}
       </p>
 
       <div style="background: #FEF3C7; border-left: 3px solid #D97706; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
@@ -113,7 +126,7 @@ export async function POST(req: NextRequest) {
 
       ${eContext ? `
       <div style="background: #F3F4F6; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-        <p style="font-size: 11px; font-weight: 600; color: #6B7280; margin: 0 0 8px 0;">참고 자료</p>
+        <p style="font-size: 11px; font-weight: 600; color: #6B7280; margin: 0 0 8px 0;">${contextLabel}</p>
         <p style="font-size: 13px; color: #374151; white-space: pre-wrap; margin: 0;">${eContext}</p>
       </div>
       ` : ''}

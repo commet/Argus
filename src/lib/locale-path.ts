@@ -43,3 +43,21 @@ export function withLocale(locale: AppLocale, path: string): string {
   if (/^\/(?:en|ko)(?:\/|$|\?|#)/.test(path)) return path; // already prefixed
   return `/${locale}${path === '/' ? '' : path}`;
 }
+
+/**
+ * Per-page canonical + hreflang alternates for a locale-less path (`''` for the
+ * homepage, `'/guide'` for a sub-page). The path MUST be the page's own —
+ * baking in a fixed homepage path is exactly the regression that made Google
+ * treat every sub-page as a duplicate of the locale homepage. Includes
+ * x-default (→ en) per hreflang best practice.
+ */
+export function buildLocaleAlternates(siteUrl: string, locale: AppLocale, path: string) {
+  return {
+    canonical: `${siteUrl}/${locale}${path}`,
+    languages: {
+      en: `${siteUrl}/en${path}`,
+      ko: `${siteUrl}/ko${path}`,
+      'x-default': `${siteUrl}/en${path}`,
+    } as Record<string, string>,
+  };
+}
