@@ -29,7 +29,7 @@
  * contract is read defensively so legacy localStorage sessions never crash.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBranch } from 'lucide-react';
@@ -88,6 +88,18 @@ export function SealMoment({
 
   // Defensive: legacy sessions may carry a malformed contract.
   const contract = project?.decision_contract ?? null;
+
+  // §D.2 restraint observability: the seal renders null on zero predicates in
+  // BOTH the "correctly silent on a flat decision" case AND the "engine produced
+  // nothing" case — restraint and a broken loop look identical. Emit a signal so
+  // analytics can SEE how often a completed flow reaches the seal with nothing to
+  // arm (internal routing only — never surfaced to the user).
+  const silentNoSeal = !contract && (Array.isArray(predicates) ? predicates.length : 0) === 0;
+  useEffect(() => {
+    if (!silentNoSeal) return;
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_not_armed', signal_data: { predicates: 0 } });
+    track('seal_not_armed', { project_id: project.id });
+  }, [silentNoSeal, project.id]);
 
   const kept = useMemo(
     () => (Array.isArray(predicates) ? predicates : []).filter((p) => !dropped.has(p.id)),

@@ -408,18 +408,24 @@ export default function ProjectPage() {
               {/* 자차표 — the user's accumulating record of closed loops.
                   Until now this only flashed once inside the settlement modal
                   and vanished; this is where it LIVES. Facts, never a score. */}
+              {/* 자차표 — North-Star D: raised from a 12px tertiary-gray line to a
+                  quiet bordered strip with a label, so the moat the user is
+                  accruing is actually visible. Still counts-only, never a score. */}
               {crossRecord.loops > 0 && (
-                <p className="px-1 text-[12px] text-[var(--text-tertiary)]">
-                  {locale === 'ko'
-                    ? `지금까지 닫은 고리 ${crossRecord.loops}개` +
-                      (crossRecord.betsHeld > 0 ? ` · 적중한 가설 ${crossRecord.betsHeld}개` : '') +
-                      (crossRecord.risksAvoided > 0 ? ` · 비켜 간 위험 ${crossRecord.risksAvoided}개` : '') +
-                      (crossRecord.goodOutcomesOnLuck > 0 ? ` · 그중 운으로 본 게 ${crossRecord.goodOutcomesOnLuck}개` : '')
-                    : `${crossRecord.loops} loop${crossRecord.loops === 1 ? '' : 's'} closed so far` +
-                      (crossRecord.betsHeld > 0 ? ` · ${crossRecord.betsHeld} bet${crossRecord.betsHeld === 1 ? '' : 's'} held` : '') +
-                      (crossRecord.risksAvoided > 0 ? ` · ${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '') +
-                      (crossRecord.goodOutcomesOnLuck > 0 ? ` · ${crossRecord.goodOutcomesOnLuck} marked as luck` : '')}
-                </p>
+                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 flex items-baseline gap-2.5">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] shrink-0">{L('나의 기록', 'Your record')}</span>
+                  <span className="text-[13px] text-[var(--text-secondary)] leading-snug">
+                    {locale === 'ko'
+                      ? `닫은 고리 ${crossRecord.loops}개` +
+                        (crossRecord.betsHeld > 0 ? ` · 적중한 가설 ${crossRecord.betsHeld}개` : '') +
+                        (crossRecord.risksAvoided > 0 ? ` · 비켜 간 위험 ${crossRecord.risksAvoided}개` : '') +
+                        (crossRecord.goodOutcomesOnLuck > 0 ? ` · 그중 운으로 본 게 ${crossRecord.goodOutcomesOnLuck}개` : '')
+                      : `${crossRecord.loops} loop${crossRecord.loops === 1 ? '' : 's'} closed` +
+                        (crossRecord.betsHeld > 0 ? ` · ${crossRecord.betsHeld} bet${crossRecord.betsHeld === 1 ? '' : 's'} held` : '') +
+                        (crossRecord.risksAvoided > 0 ? ` · ${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '') +
+                        (crossRecord.goodOutcomesOnLuck > 0 ? ` · ${crossRecord.goodOutcomesOnLuck} marked as luck` : '')}
+                  </span>
+                </div>
               )}
 
               {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환. */}
@@ -846,38 +852,64 @@ export default function ProjectPage() {
             ))}
           </div>}
 
-          {/* Metacognition: 나의 판단 패턴 (Tier 1-E) */}
-          {judgments.length > 0 && (() => {
-            const patterns = getUserPatterns();
+          {/* Metacognition: 나의 판단 패턴 — North-Star D.
+              Was derived from judgmentStore, which ONLY the legacy 4-tool flow
+              writes — so the DEFAULT progressive voyage (which seals into
+              decision_contract) showed the user no track record at all. Now the
+              primary source is the sealed contracts (counts-only, via
+              summarizeRecord); legacy tool judgments are kept as a secondary line
+              when present. A "forming" state at the first seal stops the moat from
+              looking empty the moment it starts accruing. */}
+          {(() => {
+            const sealedProjects = projects.filter(p => p.decision_contract);
+            const sealedCount = sealedProjects.length;
+            const patterns = judgments.length > 0 ? getUserPatterns() : null;
             const projectJudgments = judgments.filter(j => j.project_id === currentProjectId);
-            const actorOverrides = projectJudgments.filter(j => j.type === 'actor_override');
-            const toHuman = actorOverrides.filter(j => j.decision === 'human');
-            const toAi = actorOverrides.filter(j => j.decision === 'ai');
+            // Nothing to show: neither a sealed decision nor a legacy judgment.
+            if (sealedCount === 0 && (!patterns || patterns.totalJudgments === 0)) return null;
+            const settled = crossRecord.loops;
+            const forming = sealedCount > 0 && settled === 0; // sealed, no outcome graded yet
             return (
               <Card className="!bg-[var(--bg)]">
                 <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">{L('나의 판단 패턴', 'Your judgment patterns')}</h3>
                 <div className="space-y-2 text-[12px] text-[var(--text-secondary)]">
-                  <p>
-                    {locale === 'ko' ? (
-                      <>지금까지 <span className="font-bold text-[var(--text-primary)]">{patterns.totalJudgments}건</span>의 판단을 기록했습니다.</>
-                    ) : (
-                      <>You&apos;ve logged <span className="font-bold text-[var(--text-primary)]">{patterns.totalJudgments}</span> judgment{patterns.totalJudgments === 1 ? '' : 's'} so far.</>
-                    )}
-                  </p>
-                  {patterns.overrideRate > 0 && (
+                  {sealedCount > 0 && (forming ? (
                     <p>
                       {locale === 'ko' ? (
-                        <>AI 제안을 <span className="font-bold text-[var(--text-primary)]">{Math.round(patterns.overrideRate * 100)}%</span> 수정했습니다
-                          {toHuman.length > toAi.length ? ' — 주로 AI→사람으로 변경' : toAi.length > toHuman.length ? ' — 주로 사람→AI로 변경' : ''}.
-                        </>
+                        <><span className="font-bold text-[var(--accent)]">패턴이 만들어지는 중</span> — 지금까지 <span className="font-bold text-[var(--text-primary)]">{sealedCount}개</span> 결정을 봉인했어요. 확인일이 오면 결과가 여기 쌓여요.</>
                       ) : (
-                        <>You&apos;ve modified AI suggestions <span className="font-bold text-[var(--text-primary)]">{Math.round(patterns.overrideRate * 100)}%</span> of the time
-                          {toHuman.length > toAi.length ? ' — mostly shifting AI→Human' : toAi.length > toHuman.length ? ' — mostly shifting Human→AI' : ''}.
-                        </>
+                        <><span className="font-bold text-[var(--accent)]">Your pattern is forming</span> — <span className="font-bold text-[var(--text-primary)]">{sealedCount}</span> decision{sealedCount === 1 ? '' : 's'} sealed. When the check-in day comes, the outcome lands here.</>
                       )}
                     </p>
+                  ) : (
+                    <p>
+                      {locale === 'ko' ? (
+                        <>지금까지 <span className="font-bold text-[var(--text-primary)]">{sealedCount}개</span> 결정을 봉인했고, 그중 <span className="font-bold text-[var(--text-primary)]">{settled}개</span>는 결과까지 확인했어요.</>
+                      ) : (
+                        <>You&apos;ve sealed <span className="font-bold text-[var(--text-primary)]">{sealedCount}</span> decision{sealedCount === 1 ? '' : 's'}, and closed the loop on <span className="font-bold text-[var(--text-primary)]">{settled}</span>.</>
+                      )}
+                    </p>
+                  ))}
+                  {/* The accrued record — counts of what happened, never a score. */}
+                  {settled > 0 && (crossRecord.betsHeld > 0 || crossRecord.risksAvoided > 0 || crossRecord.betsBroke > 0) && (
+                    <p>
+                      {locale === 'ko'
+                        ? [
+                            crossRecord.betsHeld > 0 ? `적중한 가설 ${crossRecord.betsHeld}개` : '',
+                            crossRecord.risksAvoided > 0 ? `비켜 간 위험 ${crossRecord.risksAvoided}개` : '',
+                            crossRecord.betsBroke > 0 ? `빗나간 가설 ${crossRecord.betsBroke}개` : '',
+                            crossRecord.goodOutcomesOnLuck > 0 ? `그중 운으로 본 게 ${crossRecord.goodOutcomesOnLuck}개` : '',
+                          ].filter(Boolean).join(' · ')
+                        : [
+                            crossRecord.betsHeld > 0 ? `${crossRecord.betsHeld} bet${crossRecord.betsHeld === 1 ? '' : 's'} held` : '',
+                            crossRecord.risksAvoided > 0 ? `${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '',
+                            crossRecord.betsBroke > 0 ? `${crossRecord.betsBroke} bet${crossRecord.betsBroke === 1 ? '' : 's'} missed` : '',
+                            crossRecord.goodOutcomesOnLuck > 0 ? `${crossRecord.goodOutcomesOnLuck} marked as luck` : '',
+                          ].filter(Boolean).join(' · ')}
+                    </p>
                   )}
-                  {projectJudgments.length > 0 && (
+                  {/* Legacy 4-tool judgments — kept as a secondary line when present. */}
+                  {patterns && projectJudgments.length > 0 && (
                     <p>
                       {locale === 'ko' ? (
                         <>이 프로젝트에서 <span className="font-bold text-[var(--text-primary)]">{projectJudgments.length}건</span>의 판단을 내렸습니다.</>
