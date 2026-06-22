@@ -24,7 +24,7 @@ root.
 │       │   │   ├── debate.json         # Critical stakes only
 │       │   │   ├── mix.json
 │       │   │   ├── verification.json   # From /argus:verify
-│       │   │   ├── current_bearing.json # Compressed Current Bearing from /argus:sail
+│       │   │   ├── current_bearing.json # Compressed Current Heading from /argus:sail
 │       │   │   ├── boss_feedback.json  # From /argus:boss
 │       │   │   └── scaffold.json       # FinalScaffold
 │       │   ├── v0.2/

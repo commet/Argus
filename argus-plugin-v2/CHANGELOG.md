@@ -53,7 +53,7 @@ changeset that called string-presence "verified" would repeat the Round-3 mistak
   added to `TEST_PLAN.md`.
 
 ### Changed
-- **sail Current Bearing is no longer a forced-fork generator.** The mandates
+- **sail Current Heading is no longer a forced-fork generator.** The mandates
   "Always include 1-2 road-not-taken items" and "if none exists, create one from
   the rejected obvious alternative" are removed — `road_not_taken` is now
   load-bearing-gated (empty on a flat decision), and `fog_or_reef` no longer
@@ -381,7 +381,7 @@ Plugin-spec alignment + first-run friction removal.
   routing (`proceed_to_boss` / `revise_team` / `stop_for_human_check` /
   `ask_user`); `/argus:revise` iteration loop with child drafts;
   `/argus:chart` version tree with checkout/promote.
-- Current Bearing as the default surface (machinery hidden by default).
+- Current Heading as the default surface (machinery hidden by default).
 - Trial-sail probe (clarify Step 3.5) with mechanical post-filters.
 
 ## 2.0.0 — 2026-04-24

@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Bearing. Invoked as `/argus:verify`.
+description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Heading. Invoked as `/argus:verify`.
 ---
 
 # /argus:verify
@@ -148,7 +148,7 @@ Claims failing checks become `challenged_claims[]`:
 Severity:
 
 - `critical`: final signoff or execution would be unsafe.
-- `important`: must be visible in the Current Bearing or fixed.
+- `important`: must be visible in the Current Heading or fixed.
 - `minor`: note it; do not block by itself.
 
 **Do not manufacture minor challenges to fill the ledger.** A genuinely clean,
@@ -280,7 +280,7 @@ Evidence checked. Any fog, reef, or human-only check will be folded into the cur
 ```
 
 Do not print claim counts, ledger counts, routing internals, or agent names.
-Sail owns the consolidated Current Bearing.
+Sail owns the consolidated Current Heading.
 
 For direct invocation:
 
@@ -319,7 +319,7 @@ Keep this to one terminal screen. Full detail stays in `verification.json`.
 - **No contradiction averaging:** unresolved tensions remain visible.
 - **Human agency:** material routing changes use `AskUserQuestion` unless
   `--no-prompt` was explicitly passed.
-- **Current Bearing readiness:** the ledger must identify one best fog/reef item
+- **Current Heading readiness:** the ledger must identify one best fog/reef item
   that sail can carry into `current_bearing.json`.
 
 ---

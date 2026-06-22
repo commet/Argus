@@ -22,7 +22,7 @@ AI 어시스턴트는 동의를 아주 잘합니다. 계획이 괜찮은지 물�
 Argus는 그러지 않도록 설계됐습니다. 답하기 전에 먼저 진짜 질문이 무엇인지
 벼리고, 에이전트 팀을 실제 코드·PR·문서 위에 투입해 일을 시키고, 그 결과의
 **주장을 검증**합니다 — 근거가 있는 것과 그럴듯하게 들릴 뿐인 것을 분리한
-뒤에야 답합니다. 그 답이 **Current Bearing**(현재 항로) 한 화면입니다:
+뒤에야 답합니다. 그 답이 **Current Heading**(현재 방위) 한 화면입니다:
 지금 항로, 그 이유, 아직 검증 안 된 것, 의식적으로 접어둔 대안과 그 이유,
 다음 한 수.
 
@@ -54,7 +54,7 @@ Force full pipeline: /argus:sail --full "..."
 무거운 질문이면 풀 파이프라인이 돌지만, 출력은 한 화면을 유지합니다:
 
 ```text
-## Argus - Current Bearing - v0.1
+## Argus - Current Heading - v0.1
 
 현재 항로: 전체 통합을 결정하기 전에 4시간 migration spike를 먼저 한다.
 
@@ -157,7 +157,7 @@ macOS · Linux · Windows에서 동작합니다.
 
 | 명령 | 하는 일 |
 |---|---|
-| `/argus:sail` | **여기서 시작.** 전체 흐름을 돌리고 Current Bearing을 렌더링. |
+| `/argus:sail` | **여기서 시작.** 전체 흐름을 돌리고 Current Heading을 렌더링. |
 | `/argus:help` | 명령어 지도. 상황을 말하면 맞는 명령 하나를 짚어줌. |
 | `/argus:chart` | 이 항해의 어디인가? 버전 트리, 미해결 확인, 다음 단계. promote/branch도 여기서. |
 | `/argus:log` | 항해일지: 전체 세션의 과거 결정, 봉인된 계약, 예측 적중 기록. `--insights`는 정산 3건 이상부터 패턴 노트 추가, `--all`은 전체 세션 나열. |
@@ -185,7 +185,7 @@ macOS · Linux · Windows에서 동작합니다.
 무게 있는 결정에서 sail은 뒤에서 이 파이프라인을 돌립니다:
 
 ```text
-clarify ──→ 선원 작업 ──→ verify ──→ 이해관계자 검토 ──→ Current Bearing
+clarify ──→ 선원 작업 ──→ verify ──→ 이해관계자 검토 ──→ Current Heading
 (진짜 질문)  (artifact를    (주장 분리:    (선택,            (한 화면)
              직접 작업)     지지/반박/     페르소나 기반)
                            사람 확인)
@@ -204,7 +204,7 @@ clarify ──→ 선원 작업 ──→ verify ──→ 이해관계자 검�
 
 ### 정산 루프
 
-결정에 가까워진 Current Bearing은 **계약 씨앗**으로 끝납니다: 확인 날짜가
+결정에 가까워진 Current Heading은 **계약 씨앗**으로 끝납니다: 확인 날짜가
 박힌 반증 가능한 예측("plugin DAU가 30일 뒤 X 미만이면 webapp path를
 흡수하지 않는다"). 루프는 이렇게 스스로 닫힙니다:
 
@@ -274,7 +274,7 @@ node ./argus-plugin-v2/scripts/simulate-plugin.js   # 출력 품질 게이트
 
 - 변경 이력: `CHANGELOG.md`
 - 에이전트 명단: `data/agents.yaml` · Boss 페르소나: `data/boss-types.yaml`
-- 스키마: `data/schemas/*.json` (Current Bearing: `current-bearing.json`,
+- 스키마: `data/schemas/*.json` (Current Heading: `current-bearing.json`,
   검증 원장: `verification-ledger.json`)
 - 버전 트리 메커니즘: `lib/session/version-numbering.md`
 - 설계 방향: `../docs/ARGUS-FINAL-DIRECTION.md` ·

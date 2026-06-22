@@ -362,12 +362,12 @@ gate.
 - Rewrote README and TEST_PLAN around verification-first positioning.
 - Fixed manifest agent reference from missing `concertmaster.md` to existing
   `navigator.md`.
-- Follow-up Current Bearing pass replaced the retired `surface_card.json` with
+- Follow-up Current Heading pass replaced the retired `surface_card.json` with
   `current_bearing.json` and rewrote `/argus:sail` so the default user-facing
   output shows current course, why, fog/reef, road not taken, next helm, and an
   optional decision-contract seed.
 
-## Current Bearing direction pass - 2026-06-10
+## Current Heading direction pass - 2026-06-10
 
 The webapp direction clarified that Argus is not just a risk reducer. It is a
 decision voyage system: clarify the destination, gather crew work, preserve
@@ -377,11 +377,11 @@ checked against reality.
 Plugin changes from this pass:
 
 - Added `docs/ARGUS-FINAL-DIRECTION.md` as the product direction anchor.
-- Replaced the default medium/high output contract with Current Bearing.
+- Replaced the default medium/high output contract with Current Heading.
 - Replaced `data/schemas/surface-card.json` with
   `data/schemas/current-bearing.json`.
 - Updated manifest, installer, README, TEST_PLAN, data docs, session layout,
-  and validation script around Current Bearing terminology.
+  and validation script around Current Heading terminology.
 - Kept verification-first architecture intact; verification now feeds the
   bearing instead of becoming the visible product.
 - Added `scripts/simulate-plugin.js` with real-shaped PR, strategy-doc, GDPR,

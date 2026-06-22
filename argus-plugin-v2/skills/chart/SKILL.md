@@ -1,6 +1,6 @@
 ---
 name: chart
-description: Display the chart of the current Argus decision voyage — version tree, active draft, Current Bearing summary, verification state, open concerns, and next route. Read-only by default; supports checkout, promote, delete, and json flags. Invoked as `/argus:chart`.
+description: Display the chart of the current Argus decision voyage — version tree, active draft, Current Heading summary, verification state, open concerns, and next route. Read-only by default; supports checkout, promote, delete, and json flags. Invoked as `/argus:chart`.
 ---
 
 # /argus:chart
@@ -51,7 +51,7 @@ Flags that mutate state are mutually exclusive.
 ### Default (no flags) — show current session
 
 1. Find the latest session: the session directory whose `session.json` has the newest `updated_at`; if `updated_at` is missing or tied, fall back to directory mtime. Read its `session.json`.
-2. Read these per-version files for the active draft: `versions/{label}/current_bearing.json` (the Current Bearing block — course, fog/reef, next helm), `scaffold.json` (reframed_question, assumptions, checkpoints), `verification.json` (verification line), `boss_feedback.json` (boss status). Treat any missing file as "not run" rather than failing.
+2. Read these per-version files for the active draft: `versions/{label}/current_bearing.json` (the Current Heading block — course, fog/reef, next helm), `scaffold.json` (reframed_question, assumptions, checkpoints), `verification.json` (verification line), `boss_feedback.json` (boss status). Treat any missing file as "not run" rather than failing.
 3. Parse draft tree from `session.drafts[]`. If `drafts[]` is empty (session predates draft persistence, or only clarify ran), render a single-node tree from the version directories present instead of a blank tree.
 4. Render a one-screen map:
 
@@ -61,7 +61,7 @@ Flags that mutate state are mutually exclusive.
 Problem: {{problem_text[:80]}}
 Active: {{active_label}}  Released: {{released_label or "-"}}
 
-Current Bearing:
+Current Heading:
 - Course: {{current_bearing.current_course.summary or "not rendered yet"}}
 - Fog/Reef: {{current_bearing.fog_or_reef.issue or "none named"}}
 - Next helm: {{current_bearing.next_helm or "run /argus:sail --resume {{id}}"}}

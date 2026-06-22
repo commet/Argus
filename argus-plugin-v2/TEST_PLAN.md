@@ -167,7 +167,7 @@ review because it includes checked claims and preserved tension.
 
 FAIL: it reads like a normal markdown review with extra fields.
 
-### #5.5 Current Bearing Compression
+### #5.5 Current Heading Compression
 
 PASS: default `/argus:sail` output is one screen and does not make the user think
 about agents, ledgers, schemas, or workflow phases.
@@ -258,7 +258,7 @@ node ./argus-plugin-v2/scripts/test-check-contracts.mjs
 - GDPR/EU launch decision
 - low-density rename route
 
-The simulation fails when a Current Bearing:
+The simulation fails when a Current Heading:
 
 - lacks source references for file/PR/document cases,
 - has no road-not-taken for medium/high decisions,

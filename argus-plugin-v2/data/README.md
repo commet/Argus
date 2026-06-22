@@ -11,7 +11,7 @@ This directory is the **reference data** consumed by plugin skills at runtime. I
 | `classification.yaml` | Task/domain/output vocab + stakes rules | `src/lib/task-classifier.ts`, `orchestrator-classify.ts` |
 | `schemas/*.json` | JSON Schema contracts for plugin artifacts | `src/stores/types.ts` |
 | `schemas/verification-ledger.json` | Plugin-native positive/negative validation ledger | Plugin v2.1, aligned with webapp worker validation direction |
-| `schemas/current-bearing.json` | Compressed one-screen user-facing decision-voyage bearing | Plugin v2.1 Current Bearing contract |
+| `schemas/current-bearing.json` | Compressed one-screen user-facing decision-voyage bearing | Plugin v2.1 Current Heading contract |
 
 ## Regenerate from webapp
 

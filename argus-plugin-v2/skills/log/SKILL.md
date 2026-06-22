@@ -65,7 +65,7 @@ Reopen a voyage: /argus:chart --session <id> · /argus:sail --resume <id>
 ```
 
 Keep it under one terminal screen. No worker counts, no schema names, no
-machinery — same surface rules as the Current Bearing.
+machinery — same surface rules as the Current Heading.
 
 ## Step 3 — `--insights` (optional, the only LLM use)
 

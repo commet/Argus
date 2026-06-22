@@ -8,7 +8,7 @@
  *   2. checks due TODAY        — same urgency, honest label
  *   3. live session progress   — session.json touched < 15 min ago, phase != complete
  *   4. checks due within 7 days
- *   5. fresh Current Bearing   — generated < 48 h ago: status + summary + fog
+ *   5. fresh Current Heading   — generated < 48 h ago: status + summary + fog
  *   6. decaying bearing        — 2–14 days old: glyph + age only
  *   7. nothing
  *
@@ -181,7 +181,7 @@ function loadLedger(root) {
   return empty;
 }
 
-// ─── Current Bearing ─────────────────────────────────────
+// ─── Current Heading ─────────────────────────────────────
 
 function bearingCandidates(root) {
   // Both spellings: the v2 skills write current_bearing.json (underscore,

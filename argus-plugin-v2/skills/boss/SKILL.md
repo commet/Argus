@@ -1,6 +1,6 @@
 ---
 name: boss
-description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Boss is not the verification gate; it reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the Current Bearing. Invoked as `/argus:boss`.
+description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Boss is not the verification gate; it reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the Current Heading. Invoked as `/argus:boss`.
 ---
 
 # /argus:boss
@@ -178,7 +178,7 @@ For each concern:
 
 Use `AskUserQuestion` only when running directly and the user needs to decide
 which non-critical concerns to apply. When invoked by sail, do not interrupt;
-write the defaults and let Current Bearing show the top concern if relevant.
+write the defaults and let Current Heading show the top concern if relevant.
 
 ### Step 5 - Route Boss Demands
 
@@ -242,7 +242,7 @@ Stakeholder pressure checked. Approval conditions will be folded into the curren
 ```
 
 Do not print concern counts, MBTI theatrics, or a second report. Sail owns the
-Current Bearing.
+Current Heading.
 
 For direct invocation:
 

@@ -1,6 +1,6 @@
 ---
 name: sail
-description: Top-level Argus orchestrator. Routes a decision through clarify, crew work, verification, optional stakeholder review, and a compressed Current Bearing. Use whenever the user weighs a consequential decision or wants something pressure-checked before committing — even without the slash command. Triggers — "이거 해도 되나?", "머지해도 될까?", "A랑 B 중 뭐가 낫지?", "이 보고서/기획안 검토해줘", "임원회의 가져가도 되나?", "should we ship/migrate/hire?", "review this deck/plan". Handles repo decisions (PR, design doc, architecture) and non-code ones (market entry, hiring, vendor, pricing, a PPT/report). Targets may be named in plain prose (PR, issue, file, branch, document — office files extracted per clarify §Document Extraction); no syntax needed. NOT for trivial reversible choices or pure execution tasks. Output is one practical bearing, not a multi-agent report. Invoked as `/argus:sail`.
+description: Top-level Argus orchestrator. Routes a decision through clarify, crew work, verification, optional stakeholder review, and a compressed Current Heading. Use whenever the user weighs a consequential decision or wants something pressure-checked before committing — even without the slash command. Triggers — "이거 해도 되나?", "머지해도 될까?", "A랑 B 중 뭐가 낫지?", "이 보고서/기획안 검토해줘", "임원회의 가져가도 되나?", "should we ship/migrate/hire?", "review this deck/plan". Handles repo decisions (PR, design doc, architecture) and non-code ones (market entry, hiring, vendor, pricing, a PPT/report). Targets may be named in plain prose (PR, issue, file, branch, document — office files extracted per clarify §Document Extraction); no syntax needed. NOT for trivial reversible choices or pure execution tasks. Output is one practical bearing, not a multi-agent report. Invoked as `/argus:sail`.
 argument-hint: "[your decision — may mention a PR, issue, file, branch, or document]"
 ---
 
@@ -19,7 +19,7 @@ current coordinates in a decision voyage:
 The default user-facing output is either:
 
 - a MinimalScaffold for low-density reversible decisions, or
-- a Current Bearing for medium/high decisions.
+- a Current Heading for medium/high decisions.
 
 Do not expose worker counts, ledger counts, schemas, model names, or phase names
 in the default bearing. Those details live in `.argus/sessions/` and
@@ -168,7 +168,7 @@ making claims. A generic answer after a user gives a file is a product failure.
 | `verifying` or team complete with no `verification.json` | `/argus:verify` |
 | `dm_feedback` pending | `/argus:boss` |
 | `refining` | `/argus:revise` (apply boss concerns / verify challenges → child draft + re-verify) |
-| `complete` | show Current Bearing/chart via `/argus:chart`; `/argus:revise` to iterate or `--promote` to finalize |
+| `complete` | show Current Heading/chart via `/argus:chart`; `/argus:revise` to iterate or `--promote` to finalize |
 
 ---
 
@@ -180,7 +180,7 @@ For `--full`, run sequentially:
 2. `/argus:team --invoked-via-sail` (on the snapshot's execution_plan). The `--invoked-via-sail` flag tells team to suppress its own verbose Step 11 print block; sail's Step 7 will render the consolidated card.
 3. `/argus:verify --invoked-via-sail` (on the team output). This is the core gate: supported/challenged/human-check claims become visible before any stakeholder review.
 4. `/argus:boss --invoked-via-sail` (unless `--no-boss` OR verify's `routing_decision` is `revise_team` / `stop_for_human_check` / **`ask_user`**). `ask_user` means verify could not resolve the route (e.g. a `critical` challenged claim under `--no-prompt`); boss must NOT run on an unresolved critical challenge. Same flag otherwise — suppresses boss's verbose narration; sail Step 7 surfaces the bearing only.
-5. Step 7 Current Bearing (see below).
+5. Step 7 Current Heading (see below).
 
 Transitions must describe value, not machinery:
 
@@ -204,7 +204,7 @@ Forbidden transition strings:
 `--quick` runs `/argus:clarify --no-minimal` and stops.
 
 Use this when the user wants problem framing, not a full bearing. Do not run
-team, verify, or boss. Do not render Current Bearing.
+team, verify, or boss. Do not render Current Heading.
 
 ---
 
@@ -223,7 +223,7 @@ clarify has already given the user the right inline answer — sail must NOT
 escalate:
 
 - `validation` / `vent` / `info` → exit silently after clarify's inline answer.
-  Do not run team, verify, or boss; do not render a Current Bearing. (Escalating
+  Do not run team, verify, or boss; do not render a Current Heading. (Escalating
   a closed decision into the full crew is the precise harm Step 1.7 exists to
   stop.) A `validation` request that produced a `contract_seed` may still seal it
   via the normal settle loop — but that is the user's move, not an auto-escalation.
@@ -284,7 +284,7 @@ Question:
 Options:
 
 - "Light framing only"
-- "Current Bearing"
+- "Current Heading"
 - "Treat as high-stakes"
 
 After the user answers, persist the user-confirmed stakes to
@@ -311,13 +311,13 @@ Run:
 1. `/argus:team --invoked-via-sail`
 2. `/argus:verify --invoked-via-sail`
 3. `/argus:boss --invoked-via-sail`, unless skipped or blocked
-4. Step 7 Current Bearing
+4. Step 7 Current Heading
 
 ---
 
-## Step 7 - Current Bearing
+## Step 7 - Current Heading
 
-Current Bearing is the default consumable artifact. It hides the internal
+Current Heading is the default consumable artifact. It hides the internal
 pipeline but preserves the voyage shape: course, evidence, fog, road not taken,
 next helm action, and an optional decision-contract seed.
 
@@ -346,7 +346,7 @@ Write:
   this line no session in the default flow EVER reaches `complete`, and a
   later `--resume` misroutes a finished voyage into `/argus:revise`.
 
-### Current Bearing Mapping
+### Current Heading Mapping
 
 Build:
 
@@ -448,7 +448,7 @@ Render in the user's locale. Keep the labels natural, but preserve this
 information order:
 
 ```text
-## Argus - Current Bearing - {{label}}
+## Argus - Current Heading - {{label}}
 
 Current course: {{current_course.summary}}
 
@@ -530,7 +530,7 @@ challenged_claims injected — see Step 3.)
 ## Boss Skip Handling
 
 `--no-boss`, `boss = null`, or user choice can skip stakeholder review. Still
-render Current Bearing. Do not mention that boss was skipped in the bearing.
+render Current Heading. Do not mention that boss was skipped in the bearing.
 
 ---
 
@@ -540,7 +540,7 @@ render Current Bearing. Do not mention that boss was skipped in the bearing.
 |---|---|
 | Low density | MinimalScaffold |
 | Quick | Clarify scaffold |
-| Medium/high | Current Bearing |
+| Medium/high | Current Heading |
 
 No JSON dumps. No path-only summaries. No internal pipeline report unless the
 user explicitly asks for `/argus:chart` or opens session files.

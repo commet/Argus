@@ -23,7 +23,7 @@ Argus is built to not do that. Before it answers, it sharpens what you're
 really deciding, puts a small team of agents to work on your actual code,
 PR, or document, and **verifies their claims** — separating what's supported
 by evidence from what merely sounds plausible. Only then does it answer, in
-one screen called a **Current Bearing**: the current course, why, what's still
+one screen called a **Current Heading**: the current course, why, what's still
 unverified, which alternative was set aside and why, and the next concrete
 step.
 
@@ -56,7 +56,7 @@ A consequential question gets the full pipeline — but the output stays one
 screen:
 
 ```text
-## Argus - Current Bearing - v0.1
+## Argus - Current Heading - v0.1
 
 Current course: run a 4-hour migration spike before deciding on consolidation.
 
@@ -162,7 +162,7 @@ Works on macOS, Linux, and Windows.
 
 | Command | What it does |
 |---|---|
-| `/argus:sail` | **Start here.** Runs the whole flow and renders the Current Bearing. |
+| `/argus:sail` | **Start here.** Runs the whole flow and renders the Current Heading. |
 | `/argus:help` | Command map; tells you which command fits your situation. |
 | `/argus:chart` | Where am I in this voyage? Version tree, open checks, next step. Also promote/branch. |
 | `/argus:log` | Voyage log across all sessions: past decisions, sealed contracts, your prediction record. `--insights` adds pattern notes once ≥3 contracts are settled; `--all` lists every session. |
@@ -190,7 +190,7 @@ Flags for `sail`:
 For consequential decisions, sail runs this pipeline behind the scenes:
 
 ```text
-clarify ──→ crew work ──→ verify ──→ stakeholder review ──→ Current Bearing
+clarify ──→ crew work ──→ verify ──→ stakeholder review ──→ Current Heading
 (real        (agents work    (claims:      (optional,           (one screen)
  question)    the artifact)   supported /   persona-based)
                               challenged /
@@ -211,7 +211,7 @@ Three properties worth knowing:
 
 ### The settlement loop
 
-A Current Bearing close to a final decision ends with a **contract seed**: a
+A Current Heading close to a final decision ends with a **contract seed**: a
 falsifiable prediction with a check-by date ("if plugin DAU is below X after
 30 days, do not absorb the webapp path"). The loop then closes itself:
 
@@ -283,7 +283,7 @@ the marketplace install above is the supported path.
 
 - Changelog: `CHANGELOG.md`
 - Agent roster: `data/agents.yaml` · Boss personas: `data/boss-types.yaml`
-- Schemas: `data/schemas/*.json` (Current Bearing: `current-bearing.json`,
+- Schemas: `data/schemas/*.json` (Current Heading: `current-bearing.json`,
   verification ledger: `verification-ledger.json`)
 - Version-tree mechanics: `lib/session/version-numbering.md`
 - Design direction: `../docs/ARGUS-FINAL-DIRECTION.md` ·

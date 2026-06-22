@@ -3,7 +3,7 @@
   "name": "argus",
   "displayName": "Argus",
   "version": "2.6.0",
-  "description": "Decision-voyage harness for Claude Code. Argus reads the user's repo, files, PRs, or decision context, checks evidence and weak claims behind the scenes, then returns a compressed Current Bearing: current course, why, fog or reef, road not taken, next helm, and an optional decision-contract seed.",
+  "description": "Decision-voyage harness for Claude Code. Argus reads the user's repo, files, PRs, or decision context, checks evidence and weak claims behind the scenes, then returns a compressed Current Heading: current course, why, fog or reef, road not taken, next helm, and an optional decision-contract seed.",
   "author": {
     "name": "Argus",
     "email": "yclee913@gmail.com",

@@ -69,7 +69,7 @@ const cases = [
       label: "v0.2",
       current_course: {
         status: "fork",
-        summary: "Keep webapp and plugin as separate surfaces for one release, but align them around Current Bearing."
+        summary: "Keep webapp and plugin as separate surfaces for one release, but align them around Current Heading."
       },
       why_this_course: [
         {
@@ -96,7 +96,7 @@ const cases = [
           why_not_now: "It would preserve the machinery-first feel the product is trying to avoid."
         }
       ],
-      next_helm: "Ship the plugin Current Bearing pass, then measure repeat use by surface for 30 days.",
+      next_helm: "Ship the plugin Current Heading pass, then measure repeat use by surface for 30 days.",
       contract_seed: {
         predicate: "If plugin repeat use exceeds webapp repeat use for repo-linked decisions over 30 days, prioritize plugin-first loops.",
         check_by: "30 days after plugin release",
@@ -325,7 +325,7 @@ function validateBearing(testCase) {
 
 function renderBearing(bearing) {
   const lines = [
-    `## Argus - Current Bearing - ${bearing.label}`,
+    `## Argus - Current Heading - ${bearing.label}`,
     `Current course: ${bearing.current_course.summary}`,
     "Why this course:",
     ...bearing.why_this_course.map((reason) => `- ${reason.point}${reason.source ? ` (${reason.source})` : ""}`)

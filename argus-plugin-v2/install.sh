@@ -247,7 +247,7 @@ if [ "$ERRORS" -eq 0 ]; then
   echo ""
   echo -e "    ${BOLD}/argus:sail${NC} \"A decision I'm stuck on\""
   echo ""
-  echo -e "  ${DIM}Medium/high decisions return a compressed Current Bearing.${NC}"
+  echo -e "  ${DIM}Medium/high decisions return a compressed Current Heading.${NC}"
   echo -e "  ${DIM}Full reasoning is saved in .argus/sessions/ (git-ignored by default).${NC}"
 else
   fail "Installation incomplete."

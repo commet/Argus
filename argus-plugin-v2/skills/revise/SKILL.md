@@ -37,7 +37,7 @@ Refuse when:
 ### Step 1 — Load the draft being revised
 
 1. Read `.argus/config.yaml` for `locale`. All user-facing text uses it.
-2. Find the session; resolve the parent draft: `--from <label>` if given, else `session.active_draft_id` → its `version_label`. Call it `parent_label`.
+2. Find the session; resolve the parent draft: if `--from <label>` is given, find the draft in `session.drafts[]` whose `version_label` matches it; else use `session.active_draft_id`. Call its id `parent_draft_id` and its `version_label` `parent_label`. (Everything downstream branches from THIS draft, not necessarily the active one — `--from v0.1` while `v0.2` is active must branch from `v0.1`.)
 3. Read from `versions/{parent_label}/`: `scaffold.json` (required), `boss_feedback.json` (if present), `verification.json` (if present).
 4. If neither `boss_feedback.json` nor `verification.json` exists, halt: there is nothing to revise. Point the user to `/argus:verify` first.
 5. Defensive-read every JSON (see clarify error modes) — a corrupt file is moved aside and reported, not crashed on.
@@ -62,7 +62,7 @@ Write `.argus/sessions/{id}/pending_revision.json` (a transient hand-off file, c
 
 ```json
 {
-  "parent_draft_id": "{active_draft_id}",
+  "parent_draft_id": "{parent_draft_id}",
   "parent_label": "{parent_label}",
   "directive_text": "Address: GDPR evidence gap; tighten the rollout kill-criteria.",
   "items": [
@@ -77,7 +77,7 @@ Set `session.phase = "team_deploying"` and `updated_at`.
 ### Step 4 — Re-run the team on a new child draft
 
 Invoke `/argus:team --revise` (and `--invoked-via-sail` if this skill was). Team will:
-- Branch from `session.active_draft_id` → compute the child label via `nextChildLabel` (e.g. revising `v0.1` while `v0.2` exists → `v0.1.1`; revising the latest → `v0.2`). (team Step 1.4)
+- Branch from `pending_revision.parent_draft_id` (the resolved parent — NOT necessarily `session.active_draft_id`) → compute the child label via `nextChildLabel` from `parent_label` (e.g. revising `v0.1` while `v0.2` exists → `v0.1.1`; revising the latest → `v0.2`). (team Step 1.4)
 - Read `pending_revision.json` and inject each item into its `owner_agent_id` worker's prompt ("Your prior output was challenged on X; the suggested fix is Y — produce a revised analysis that addresses it"). Workers without a targeted item carry their prior output forward unchanged where possible.
 - Write the new `versions/{child_label}/` artifacts and append a child Draft with `directive = directive_text`, `reviewing_agent_id = "navigator"`, `parent_draft_id` set, and `set session.active_draft_id` to it.
 - Delete `pending_revision.json`.
