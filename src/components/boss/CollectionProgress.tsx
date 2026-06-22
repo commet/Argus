@@ -34,75 +34,60 @@ const VERDICT_INDICATOR: Record<string, { color: string; label: string }> = {
   rejected: { color: 'var(--danger)', label: '❌' },
 };
 
-const ALL_TYPES = Object.keys(PERSONALITY_TYPES);
-const MILESTONE_MESSAGES_KO: Record<number, string> = {
-  4: '25% 클리어!',
-  8: '절반 돌파! 설득력 중급 🎖️',
-  12: '75%! 거의 다 왔어요',
-  16: '전유형 클리어! 직장인 마스터 🏆',
-};
-const MILESTONE_MESSAGES_EN: Record<number, string> = {
-  4: '25% unlocked!',
-  8: 'Halfway there — intermediate persuader 🎖️',
-  12: '75%! Almost there',
-  16: 'All types cleared — Workplace Master 🏆',
-};
-
+/**
+ * Rehearsal record — counts-only.
+ *
+ * §2.4-4: this was a "collect all 16 MBTI" Pokedex — a 16-slot grid with
+ * 25/50/75/100% milestone badges and a "직장인 마스터 / Workplace Master"
+ * completion. That is the gamification the thesis forbids: a mastery tier is a
+ * verdict about who the user is, and "collect them all" manufactures a chase.
+ * Replaced with a plain ledger of what actually happened — how many rehearsals,
+ * with what verdicts — no denominator-to-fill, no milestone, no tier. Honest
+ * n=1 history, counts-only (the spine's held/broke/marked-as-luck shape).
+ */
 export function CollectionProgress() {
   const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [expanded, setExpanded] = useState(false);
+  // Storage dedupes by typeCode, so each entry is one boss type rehearsed.
   const collection = useMemo(() => getCollection(), []);
-  const completedSet = useMemo(() => new Set(collection.map(c => c.typeCode)), [collection]);
-  const count = completedSet.size;
+  const count = collection.length;
+
+  const tally = useMemo(() => ({
+    approved: collection.filter(c => c.verdict === 'approved').length,
+    conditional: collection.filter(c => c.verdict === 'conditional').length,
+    rejected: collection.filter(c => c.verdict === 'rejected').length,
+  }), [collection]);
 
   if (count === 0) return null;
 
-  const milestone = (locale === 'ko' ? MILESTONE_MESSAGES_KO : MILESTONE_MESSAGES_EN)[count];
-
   return (
     <div style={{ marginTop: 4 }}>
-      {/* Name the purpose — the dots alone don't say WHY you'd collect types.
-          The point is comparing how different boss types react to you. */}
       <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.05em', textTransform: 'uppercase', margin: '0 0 6px' }}>
-        {locale === 'ko' ? '유형별 팀장 반응 모으기' : 'Boss reactions, by type'}
+        {L('지금까지의 리허설', 'Your rehearsals so far')}
       </p>
       <button
         onClick={() => setExpanded(!expanded)}
         style={{
           width: '100%', padding: '8px 12px', borderRadius: 10,
           background: 'var(--bg)', border: '1px solid var(--border-subtle)',
-          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
           transition: 'border-color 0.15s',
         }}
       >
-        {/* Progress dots */}
-        <div style={{ display: 'flex', gap: 3, flex: 1 }}>
-          {ALL_TYPES.map(code => {
-            const entry = collection.find(c => c.typeCode === code);
-            return (
-              <div
-                key={code}
-                style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: entry ? VERDICT_INDICATOR[entry.verdict]?.color || 'var(--accent)' : 'var(--border)',
-                  transition: 'background 0.3s',
-                }}
-              />
-            );
-          })}
-        </div>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-          {count}/16
+        {/* Counts only — what happened, no goal to complete. */}
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+          {L(`리허설 ${count}번`, `${count} rehearsal${count === 1 ? '' : 's'}`)}
+        </span>
+        <span style={{ flex: 1, display: 'flex', gap: 10, fontSize: 11, color: 'var(--text-secondary)', justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
+          {tally.approved > 0 && <span>✅ {tally.approved}</span>}
+          {tally.conditional > 0 && <span>🤔 {tally.conditional}</span>}
+          {tally.rejected > 0 && <span>❌ {tally.rejected}</span>}
         </span>
       </button>
 
-      {milestone && (
-        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', textAlign: 'center', margin: '6px 0 0' }}>
-          {milestone}
-        </p>
-      )}
-
-      {/* Expanded 4x4 grid */}
+      {/* Expanded — a list of the rehearsals done, a record (not a grid of
+          empty slots to fill). */}
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -113,29 +98,18 @@ export function CollectionProgress() {
             style={{ overflow: 'hidden' }}
           >
             <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4,
+              display: 'flex', flexDirection: 'column', gap: 4,
               marginTop: 8, padding: 8, borderRadius: 12,
               background: 'var(--bg)', border: '1px solid var(--border-subtle)',
             }}>
-              {ALL_TYPES.map(code => {
-                const type = PERSONALITY_TYPES[code];
-                const entry = collection.find(c => c.typeCode === code);
-                const done = !!entry;
+              {collection.slice().reverse().map(entry => {
+                const type = PERSONALITY_TYPES[entry.typeCode];
                 return (
-                  <div
-                    key={code}
-                    style={{
-                      padding: '6px 4px', borderRadius: 8, textAlign: 'center',
-                      background: done ? 'var(--surface)' : 'transparent',
-                      opacity: done ? 1 : 0.35,
-                      border: done ? '1px solid var(--border-subtle)' : '1px solid transparent',
-                    }}
-                  >
-                    <span style={{ fontSize: 16 }}>{type.emoji}</span>
-                    <p style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-primary)', margin: '2px 0 0' }}>{code}</p>
-                    {entry && (
-                      <span style={{ fontSize: 10 }}>{VERDICT_INDICATOR[entry.verdict]?.label}</span>
-                    )}
+                  <div key={entry.typeCode} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px' }}>
+                    <span style={{ fontSize: 15 }}>{type?.emoji ?? entry.emoji}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', minWidth: 36 }}>{entry.typeCode}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.situation}</span>
+                    <span style={{ fontSize: 12 }}>{VERDICT_INDICATOR[entry.verdict]?.label}</span>
                   </div>
                 );
               })}

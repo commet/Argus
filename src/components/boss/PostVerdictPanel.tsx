@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, MessageSquare, Share2 } from 'lucide-react';
 import { useBossStore } from '@/stores/useBossStore';
-import { getPersonalityType, PERSONALITY_TYPES } from '@/lib/boss/personality-types';
 import { pickScenarios, detectCategory, getDifficultyLabel, type Scenario } from '@/lib/boss/scenarios';
 import { CollectionProgress } from './CollectionProgress';
 import { InnerMonologueCard } from './InnerMonologueCard';
@@ -19,23 +18,21 @@ interface PostVerdictPanelProps {
 export function PostVerdictPanel({ verdict, onShare }: PostVerdictPanelProps) {
   const t = useT();
   const locale = useLocale();
-  const { lastSituation, resetForNewType, resetForNewSituation, addUserMessage, startChat } = useBossStore();
-  const axes = useBossStore(s => s.axes);
-  const typeCode = `${axes.ei}${axes.sn}${axes.tf}${axes.jp}`;
-  const [showScenarios, setShowScenarios] = useState(false);
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const { lastSituation, reset, resetForNewSituation, addUserMessage, startChat } = useBossStore();
 
-  // 다른 유형 이름 미리보기
-  const allCodes = Object.keys(PERSONALITY_TYPES);
-  const otherCodes = allCodes.filter(c => c !== typeCode);
-  const suggestedCode = otherCodes[Math.floor(Math.random() * otherCodes.length)];
-  const suggestedType = getPersonalityType(suggestedCode);
+  const [showScenarios, setShowScenarios] = useState(false);
 
   // 시나리오 추천
   const currentCategory = detectCategory(lastSituation);
   const scenarios = pickScenarios(null, currentCategory);
 
+  // §2.4-4: "다른 유형" used to slot-machine a RANDOM next personality
+  // (resetForNewType picked a random MBTI). That random pull + the collect-all
+  // grid was the gamification the thesis forbids. Now it returns to setup so the
+  // user DELIBERATELY chooses which boss to rehearse next — a choice, not a pull.
   const handleNewType = () => {
-    resetForNewType(lastSituation);
+    reset();
   };
 
   const handleScenario = (scenario: Scenario) => {
@@ -66,10 +63,10 @@ export function PostVerdictPanel({ verdict, onShare }: PostVerdictPanelProps) {
               <button
                 onClick={handleNewType}
                 className="bc-post-btn"
-                title={suggestedType ? t('boss.otherTypeTitle', { emoji: suggestedType.emoji, name: suggestedType.name }) : t('boss.otherTypeRandom')}
+                title={L('다른 팀장 유형을 직접 골라 리허설해요', 'Pick a different boss type to rehearse')}
               >
                 <RefreshCw size={12} />
-                <span>{t('boss.otherType')}</span>
+                <span>{L('다른 팀장', 'Another boss')}</span>
               </button>
               <button
                 onClick={() => setShowScenarios(!showScenarios)}

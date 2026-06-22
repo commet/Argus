@@ -87,7 +87,6 @@ interface BossState {
 
   // Retention — 리셋 + 컬렉션
   lastSituation: string;
-  resetForNewType: (situation: string) => void;
   resetForNewSituation: () => void;
 
   // Agent 연동 액션
@@ -257,27 +256,8 @@ export const useBossStore = create<BossState>((set, get) => ({
   },
   resetInnerMonologue: () => set({ innerMonologue: '', innerStreamingText: '', innerLoading: false }),
 
-  resetForNewType: (situation) => {
-    const current = `${get().axes.ei}${get().axes.sn}${get().axes.tf}${get().axes.jp}`;
-    // 현재 유형 제외 랜덤 선택
-    const allCodes = ['ISTJ','ISFJ','INFJ','INTJ','ISTP','ISFP','INFP','INTP','ESTP','ESFP','ENFP','ENTP','ESTJ','ESFJ','ENFJ','ENTJ'];
-    const others = allCodes.filter(c => c !== current);
-    const picked = others[Math.floor(Math.random() * others.length)];
-    set({
-      axes: { ei: picked[0] as 'E'|'I', sn: picked[1] as 'S'|'N', tf: picked[2] as 'T'|'F', jp: picked[3] as 'J'|'P' },
-      messages: [],
-      isStreaming: false,
-      streamingText: '',
-      phase: 'chat',
-      loadedAgentId: null,
-      lastSituation: situation,
-      innerMonologue: '',
-      innerStreamingText: '',
-      innerLoading: false,
-      // The hint described the previous boss; the new random type is a different person.
-      userContextHint: '',
-    });
-  },
+  // §2.4-4: resetForNewType (random next MBTI = slot-machine) removed. "Another
+  // boss" now routes through reset() back to setup for a deliberate choice.
 
   resetForNewSituation: () => {
     set({
