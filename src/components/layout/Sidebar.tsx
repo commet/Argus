@@ -42,7 +42,7 @@ export function Sidebar() {
   if (pathname === '/' || pathname === '/login' || pathname.startsWith('/auth')) return null;
 
   return (
-    <aside className="hidden lg:flex flex-col w-56 bg-[var(--surface)]/60 backdrop-blur-sm border-r border-[var(--border-subtle)] shrink-0 overflow-y-auto relative">
+    <aside className="hidden lg:flex flex-col w-56 bg-[var(--surface)] border-r border-[var(--border-subtle)] shrink-0 overflow-y-auto relative">
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-surface)' }} />
       {/* Current project */}
       {currentProject && (

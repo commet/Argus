@@ -110,7 +110,7 @@ export function Header() {
   if (isLanding || pathname.startsWith('/design')) return null;
 
   return (
-    <header className="sticky top-0 z-40 bg-[var(--bg)]/80 backdrop-blur-xl border-b border-[var(--border-subtle)]">
+    <header className="sticky top-0 z-40 bg-[var(--bg)] border-b border-[var(--border-subtle)]">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="h-16 flex items-center justify-between">
           <LocaleLink href="/" className="flex items-center gap-2.5 group">
@@ -122,7 +122,7 @@ export function Header() {
 
           <div className="hidden md:flex items-center gap-3">
             {/* Desktop nav */}
-            <nav className="flex items-center gap-0.5 bg-[var(--surface)]/60 backdrop-blur-sm rounded-full px-1.5 py-1 border border-[var(--border-subtle)] shadow-[var(--shadow-xs)]">
+            <nav className="flex items-center gap-0.5 bg-[var(--surface)] rounded-full px-1.5 py-1 border border-[var(--border-subtle)] shadow-[var(--shadow-xs)]">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
                 const showLock = item.requiresAuth && !user && !loading;
@@ -270,7 +270,7 @@ export function Header() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <nav className="md:hidden border-t border-[var(--border-subtle)] bg-[var(--surface)]/95 backdrop-blur-xl animate-slide-down">
+        <nav className="md:hidden border-t border-[var(--border-subtle)] bg-[var(--surface)] animate-slide-down">
           <div className="px-4 py-2 space-y-0.5">
             {navItems.map((item) => {
               const showLock = item.requiresAuth && !user && !loading;

@@ -396,7 +396,7 @@ function PhaseStatusBar({
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`mx-auto mb-3 flex items-center gap-3 px-5 py-3 rounded-2xl border backdrop-blur-sm transition-colors duration-500 ${
+      className={`mx-auto mb-3 flex items-center gap-3 px-5 py-3 rounded-2xl border transition-colors duration-500 ${
         mode === 'ai_working'
           ? showLongWait
             ? 'bg-amber-50/60 dark:bg-amber-900/10 border-amber-300/25'
@@ -2413,7 +2413,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             page. Sticky lives on the wrapper, not the bar itself, so the
             wrapper provides the scroll travel room (its bottom is the body
             of the page). */}
-        <div ref={statusBarRef} className="sticky top-16 z-30 mb-6 pt-2 pb-1 bg-[var(--bg)]/85 backdrop-blur-sm">
+        <div ref={statusBarRef} className="sticky top-16 z-30 mb-6 pt-2 pb-1 bg-[var(--bg)]">
           <PhaseStatusBar
             phase={phase} busy={busy}
             hasQuestion={!!curQ && !busy && phase === 'conversing'}

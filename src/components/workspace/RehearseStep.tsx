@@ -630,11 +630,11 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                   )}
                   <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <button onClick={() => { setEditingPersona(p); setShowPersonaForm(true); }}
-                      className="p-1.5 bg-[var(--surface)]/90 backdrop-blur-sm rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
+                      className="p-1.5 bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
                       <Pencil size={11} />
                     </button>
                     <button onClick={() => { if (confirm(L('정말 삭제할까요?', 'Really delete?'))) deletePersona(p.id); }}
-                      className="p-1.5 bg-[var(--surface)]/90 backdrop-blur-sm rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-red-500 cursor-pointer transition-colors">
+                      className="p-1.5 bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-red-500 cursor-pointer transition-colors">
                       <Trash2 size={11} />
                     </button>
                   </div>

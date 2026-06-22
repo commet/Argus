@@ -98,8 +98,8 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div
-        className="absolute inset-0 backdrop-blur-md"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.50) 100%)' }}
+        className="absolute inset-0"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.58) 100%)' }}
         onClick={onClose}
         aria-hidden="true"
       />

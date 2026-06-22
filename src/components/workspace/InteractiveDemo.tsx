@@ -1521,7 +1521,7 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)] shrink-0 bg-[var(--surface)]/80 backdrop-blur-sm z-10">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)] shrink-0 bg-[var(--surface)] z-10">
         <button onClick={onBack} className="min-h-[44px] px-3 -ml-3 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
           &larr; {L('돌아가기', 'Back')}
         </button>
