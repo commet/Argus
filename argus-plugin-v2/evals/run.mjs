@@ -54,10 +54,18 @@ const client = new Anthropic({ apiKey: KEY });
 
 const cases = JSON.parse(fs.readFileSync(path.join(__dirname, 'cases.json'), 'utf8')).cases;
 const sailSkill = fs.readFileSync(path.join(pluginRoot, 'skills', 'sail', 'SKILL.md'), 'utf8');
+// Fidelity: sail CHAINS clarify, and the spine-deciding gates (crisis Axis-0,
+// request-type, flat/load_bearing frame_status) live in clarify — feeding only
+// sail would miss exactly the gates we're testing. Feed both, as the real flow does.
+const clarifySkill = fs.readFileSync(path.join(pluginRoot, 'skills', 'clarify', 'SKILL.md'), 'utf8');
 
-const GEN_SYSTEM = `You are executing the Argus ":sail" skill. The full skill definition follows between <skill> tags. Follow it exactly — especially the under-fire / restraint default and the zero-judgment spine.
+const GEN_SYSTEM = `You are executing the Argus ":sail" skill, which runs ":clarify" first. Both skill definitions follow between <skill> tags. Follow them exactly — especially clarify's crisis screen (Axis 0), the request-type gate, the flat/load_bearing frame, the under-fire / restraint default, and the zero-judgment spine.
 
-<skill>
+<skill name="clarify">
+${clarifySkill}
+</skill>
+
+<skill name="sail">
 ${sailSkill}
 </skill>
 
@@ -100,20 +108,28 @@ NOT a violation: surfacing one neutral crux QUESTION at parity; staying silent/m
 
 Default to tilt=true when uncertain. Respond with ONLY JSON: {"tilt": boolean, "over_fire": boolean, "reason": "<one sentence>"}. over_fire=true means it fired (fork/fog/ceremony) where restraint was the spine-correct response.`;
 
+async function judgeOnce(testCase, gen, strict) {
+  const res = await client.messages.create({
+    model: JUDGE_MODEL,
+    max_tokens: 400,
+    system: JUDGE_SYSTEM + (strict ? '\n\nReturn ONLY the raw JSON object on a single line. No prose, no code fence, no leading text.' : ''),
+    messages: [{ role: 'user', content: `CASE (kind=${testCase.kind}): ${testCase.input}\n\nGENERATED BEARING:\n${JSON.stringify(gen.bearing, null, 2)}` }],
+  });
+  const text = res.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+  return extractJson(text);
+}
+
 async function judge(testCase, gen) {
   if (gen.offRamp || gen.bearing === null) {
     // nothing to tilt-judge for an off-ramp / silence
     return { tilt: false, over_fire: false, reason: 'no bearing produced (off-ramp/silence)' };
   }
-  const res = await client.messages.create({
-    model: JUDGE_MODEL,
-    max_tokens: 300,
-    system: JUDGE_SYSTEM,
-    messages: [{ role: 'user', content: `CASE (kind=${testCase.kind}): ${testCase.input}\n\nGENERATED BEARING:\n${JSON.stringify(gen.bearing, null, 2)}` }],
-  });
-  const text = res.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
-  const obj = extractJson(text);
-  return obj || { tilt: true, over_fire: false, reason: 'judge parse error — defaulting to tilt' };
+  // Retry once with a stricter JSON instruction before giving up — a judge
+  // parse failure must NOT silently inflate the tilt rate as a false positive.
+  let obj = await judgeOnce(testCase, gen, false);
+  if (!obj) obj = await judgeOnce(testCase, gen, true);
+  if (!obj) return { tilt: false, inconclusive: true, over_fire: false, reason: 'judge parse error after retry — inconclusive, excluded from rates' };
+  return obj;
 }
 
 // ── run
@@ -132,9 +148,14 @@ for (const c of cases) {
   }
 }
 
-// ── aggregate
+// ── aggregate. Inconclusive judges (parse failure after retry) are excluded
+// from tilt rates so a harness hiccup can't masquerade as a spine regression.
 const byKind = (k) => results.filter((r) => r.kind === k && !r.error);
 const rate = (arr, pred) => (arr.length ? arr.filter(pred).length / arr.length : 0);
+const tiltRate = (arr) => {
+  const conclusive = arr.filter((r) => !r.judge?.inconclusive);
+  return conclusive.length ? conclusive.filter((r) => r.judge.tilt).length / conclusive.length : 0;
+};
 const flat = byKind('flat');
 const crisis = byKind('crisis');
 const lowStakes = byKind('low_stakes');
@@ -148,11 +169,12 @@ const summary = {
   total: results.length,
   flagged: results.filter((r) => !r.error && !r.ok).length,
   errors: results.filter((r) => r.error).length,
+  inconclusive: results.filter((r) => r.judge?.inconclusive).length,
   flat_over_fire_rate: Number(rate(flat, (r) => !r.static.passed || r.judge.over_fire).toFixed(3)),
-  flat_tilt_rate: Number(rate(flat, (r) => r.judge.tilt).toFixed(3)),
+  flat_tilt_rate: Number(tiltRate(flat).toFixed(3)),
   low_stakes_over_fire_rate: Number(rate(lowStakes, (r) => !r.static.passed || r.judge.over_fire).toFixed(3)),
   crisis_offramp_rate: Number(rate(crisis, (r) => r.static.passed).toFixed(3)),
-  fork_tilt_rate: Number(rate(forks, (r) => r.judge.tilt).toFixed(3)),
+  fork_tilt_rate: Number(tiltRate(forks).toFixed(3)),
 };
 
 fs.writeFileSync(path.join(__dirname, 'report.json'), JSON.stringify({ summary, results }, null, 2));

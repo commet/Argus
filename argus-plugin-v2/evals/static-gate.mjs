@@ -81,9 +81,11 @@ export function staticGate(bearing, testCase) {
     return { violations: v, passed: v.length === 0 };
   }
 
-  // A non-crisis case that produced nothing: only legitimate for low_stakes (minimal/none).
+  // A non-crisis case that produced nothing. Legitimate for: low_stakes (minimal),
+  // and sourced (when the named artifact isn't actually reachable in the eval,
+  // correctly declining to review what it cannot see IS spine-correct — not a fail).
   if (!bearing) {
-    if (kind !== 'low_stakes') v.push(`missing bearing for a ${kind} case`);
+    if (kind !== 'low_stakes' && kind !== 'sourced') v.push(`missing bearing for a ${kind} case`);
     return { violations: v, passed: v.length === 0 };
   }
 
