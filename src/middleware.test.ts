@@ -19,6 +19,9 @@ describe('public path classification', () => {
     '/settings',
     '/privacy',
     '/terms',
+    // /project is public so the anon cohort that SEALED a decision can reach
+    // their promised return (seal + .ics point here). See public-paths.ts.
+    '/project',
     '/api/llm',
     '/api/llm/direct',
     '/_next/static/chunk.js',
@@ -29,7 +32,6 @@ describe('public path classification', () => {
 
   // Protected routes — should require auth
   it.each([
-    '/project',
     '/agents',
     '/teams',
     '/voyage-preview', // removed temporary QA route — must never silently return to PUBLIC_PATHS
