@@ -1,25 +1,32 @@
 'use client';
 
+import { usePathname, useRouter } from 'next/navigation';
 import { useLocale } from './useLocale';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
+import { stripLocale } from '@/lib/locale-path';
 
 /**
  * Locale switching for headers and language toggles.
  *
- * Persists via useSettingsStore (localStorage) and forces a full page reload
- * so SSR-injected text regenerates with the new locale. Don't replace the
- * reload with router.refresh() unless layout.tsx + i18n bundles are reworked
- * to react to a runtime locale change.
+ * Reactive: the locale lives in the route (`/en/...` | `/ko/...`) and the
+ * LocaleProvider re-renders from the segment, so switching is a client-side
+ * navigation — no page reload. We swap the leading locale segment of the
+ * current path for the new one (preserving the rest + query) and `router.push`.
+ * The `argus-locale` cookie is updated so the middleware default and SSR agree
+ * on the next visit; localStorage settings stay in sync too.
  */
 export function useLocaleSwitch() {
   const locale = useLocale();
+  const pathname = usePathname();
+  const router = useRouter();
   const { updateSettings } = useSettingsStore();
 
   const switchTo = (next: 'ko' | 'en') => {
     if (next === locale) return;
-    // The reload (needed for SSR text regen) discards any in-flight voyage work,
-    // so confirm while the engine is streaming or workers are running.
+
+    // A locale switch navigates and remounts; confirm before discarding any
+    // in-flight voyage work (engine streaming / workers running).
     const inFlight = useProgressiveStore.getState().isBranchingLocked();
     if (inFlight && typeof window !== 'undefined') {
       const ok = window.confirm(
@@ -29,8 +36,17 @@ export function useLocaleSwitch() {
       );
       if (!ok) return;
     }
+
     updateSettings({ language: next });
-    window.location.reload();
+    if (typeof document !== 'undefined') {
+      document.cookie = `argus-locale=${next}; path=/; max-age=31536000; samesite=lax`;
+    }
+
+    const basePath = pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/');
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    const rest = stripLocale(basePath);
+    const newPath = `/${next}${rest === '/' ? '' : rest}${search}`;
+    router.push(newPath);
   };
 
   return { locale, switchTo };

@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { ArrowLeft } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 
@@ -11,9 +11,9 @@ export default function TermsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-5 py-12">
-      <Link href="/login" className="inline-flex items-center gap-1 text-[13px] text-[var(--accent)] hover:underline mb-6">
+      <LocaleLink href="/login" className="inline-flex items-center gap-1 text-[13px] text-[var(--accent)] hover:underline mb-6">
         <ArrowLeft size={14} /> {L('돌아가기', 'Back')}
-      </Link>
+      </LocaleLink>
 
       <h1 className="text-[24px] font-bold text-[var(--text-primary)] mb-2">{L('서비스 이용약관', 'Terms of Service')}</h1>
       <p className="text-[13px] text-[var(--text-secondary)] mb-8">{L('최종 수정일: 2026년 6월 11일', 'Last updated: June 11, 2026')}</p>

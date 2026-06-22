@@ -8,7 +8,7 @@
  * waypoint, the primary CTA. The rest of the page earned this moment.
  */
 
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
 import { track } from '@/lib/analytics';
 import { STAGES } from '@/data/voyage-crew';
@@ -83,7 +83,7 @@ export function Act3OnDeck() {
           className="bp-fade-up flex flex-col items-center mt-10 md:mt-12"
           style={{ animationDelay: '500ms' }}
         >
-          <Link
+          <LocaleLink
             href="/workspace"
             onClick={() => track('landing_cta_click', { cta: 'voyage_helm' })}
             className="bp-btn-primary"
@@ -105,7 +105,7 @@ export function Act3OnDeck() {
                 strokeLinejoin="miter"
               />
             </svg>
-          </Link>
+          </LocaleLink>
           <p
             className="bp-mono mt-4"
             style={{

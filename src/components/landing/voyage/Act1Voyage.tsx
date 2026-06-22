@@ -8,7 +8,7 @@
  * the rest of the page can zoom in. No gold yet — the climax saves it.
  */
 
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { PlateLabel } from './ui/PlateLabel';
@@ -139,7 +139,7 @@ export function Act1Voyage() {
             className="bp-fade-up mt-8 md:mt-10 inline-flex flex-wrap items-center justify-center gap-3"
             style={{ animationDelay: '760ms' }}
           >
-            <Link
+            <LocaleLink
               href="/workspace"
               className="bp-mono inline-flex items-center justify-center"
               style={{
@@ -154,7 +154,7 @@ export function Act1Voyage() {
               }}
             >
               {L('무료로 시작하기', 'Start free')}
-            </Link>
+            </LocaleLink>
             <a
               href="#navigate"
               className="bp-mono inline-flex items-center"

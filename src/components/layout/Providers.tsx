@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { stripLocale } from '@/lib/locale-path';
 import { AuthProvider } from '@/lib/auth';
 import { UnlockToast } from '@/components/agents/UnlockToast';
 import { useAgentStore } from '@/stores/useAgentStore';
@@ -20,7 +21,7 @@ function StoreInitializer() {
   const loadSettings = useSettingsStore(s => s.loadSettings);
   const loadProjects = useProjectStore(s => s.loadProjects);
   const loadPersonas = usePersonaStore(s => s.loadData);
-  const isMarketing = MARKETING_PATHS.has(pathname ?? '/');
+  const isMarketing = MARKETING_PATHS.has(stripLocale(pathname ?? '/'));
 
   useEffect(() => {
     if (isMarketing) return;

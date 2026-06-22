@@ -15,7 +15,7 @@ import { CopyButton } from '@/components/ui/CopyButton';
 import { generateProjectBrief } from '@/lib/project-brief';
 import { OutputSelector } from '@/components/ui/OutputSelector';
 import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
@@ -361,14 +361,14 @@ export default function ProjectPage() {
             </p>
           </div>
           {projects.length > 0 && (
-            <Link
+            <LocaleLink
               href="/workspace"
               onClick={() => setCurrentProjectId(null)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[var(--bg)] text-[12.5px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer self-start sm:self-auto"
               style={{ background: 'var(--gradient-gold)' }}
             >
               <Plus size={13} /> {L('새 프로젝트', 'New project')}
-            </Link>
+            </LocaleLink>
           )}
         </div>
       )}
@@ -393,14 +393,14 @@ export default function ProjectPage() {
                 {L('워크스페이스에서 프로젝트를 만들면, 4단계 프로세스의 진행 상황을 여기서 한눈에 확인할 수 있습니다.', 'Create a project in your workspace and track the 4-stage process progress here at a glance.')}
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-                <Link href="/workspace">
+                <LocaleLink href="/workspace">
                   <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all cursor-pointer">
                     {L('워크스페이스에서 시작하기', 'Start in workspace')} <ArrowRight size={14} />
                   </button>
-                </Link>
-                <Link href="/workspace?demo=planning" className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors">
+                </LocaleLink>
+                <LocaleLink href="/workspace?demo=planning" className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors">
                   {L('또는 30초 데모 먼저 보기 →', 'Or see a 30-second demo first →')}
-                </Link>
+                </LocaleLink>
               </div>
             </Card>
           ) : (
@@ -743,12 +743,12 @@ export default function ProjectPage() {
               <div>
                 <CurrentBearingCard bearing={currentBearing} />
                 <div className="flex justify-end -mt-2">
-                  <Link
+                  <LocaleLink
                     href="/workspace"
                     className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:underline"
                   >
                     {L('워크스페이스에서 열기', 'Open in workspace')} <ArrowRight size={12} />
-                  </Link>
+                  </LocaleLink>
                 </div>
               </div>
             ) : (
@@ -762,12 +762,12 @@ export default function ProjectPage() {
                       {L('이 프로젝트는 워크스페이스 항해로 진행됐어요.', 'This project ran as a workspace voyage.')}
                     </p>
                   </div>
-                  <Link
+                  <LocaleLink
                     href="/workspace"
                     className="shrink-0 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--accent)] hover:underline"
                   >
                     {L('워크스페이스에서 열기', 'Open in workspace')} <ArrowRight size={12} />
-                  </Link>
+                  </LocaleLink>
                 </div>
               </Card>
             )
@@ -803,7 +803,7 @@ export default function ProjectPage() {
                   </div>
                 )}
 
-                <Link href={step.href}>
+                <LocaleLink href={step.href}>
                   <div className={`flex items-start gap-4 p-4 rounded-xl border transition-all hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 cursor-pointer ${
                     step.status === 'done'
                       ? 'border-[var(--success)] bg-[var(--surface)]'
@@ -839,7 +839,7 @@ export default function ProjectPage() {
 
                     <ArrowRight size={14} className="text-[var(--text-secondary)] mt-3 shrink-0" />
                   </div>
-                </Link>
+                </LocaleLink>
               </div>
             ))}
           </div>}
@@ -913,11 +913,11 @@ export default function ProjectPage() {
                     {nextStep.tool === 'rehearse' && L('판단자의 예상 반응을 시뮬레이션합니다.', 'Simulate how decision-makers will react.')}
                     {nextStep.tool === 'synthesize' && L('피드백을 반영하여 최종본을 완성합니다.', 'Apply feedback and finalize the draft.')}
                   </p>
-                  <Link href={nextStep.href}>
+                  <LocaleLink href={nextStep.href}>
                     <Button size="sm" className="mt-2">
                       {L(`${nextStep.label} 시작`, `Start ${nextStep.label}`)} <ArrowRight size={12} />
                     </Button>
-                  </Link>
+                  </LocaleLink>
                 </div>
               </div>
             </Card>

@@ -5,6 +5,7 @@ import { MotionConfig } from 'framer-motion';
 import { Sidebar } from './Sidebar';
 import { AuthGuard } from './AuthGuard';
 import { isPublicPath } from '@/lib/public-paths';
+import { stripLocale } from '@/lib/locale-path';
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   // All framer-motion animations app-wide respect the OS reduced-motion setting.
@@ -16,7 +17,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 }
 
 function LayoutShellInner({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathname = stripLocale(usePathname());
   const isWorkspace = pathname.startsWith('/workspace');
   const isLanding = pathname === '/';
   const isDesign = pathname.startsWith('/design');

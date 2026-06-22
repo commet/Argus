@@ -12,10 +12,10 @@
  */
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 
 export default function RefinePage() {
-  const router = useRouter();
+  const router = useLocaleRouter();
   useEffect(() => {
     router.replace('/tools/synthesize');
   }, [router]);

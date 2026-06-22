@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useAgentStore } from '@/stores/useAgentStore';
 import type { Agent, AgentChain } from '@/stores/agent-types';
 import { AgentCard } from './AgentCard';
@@ -137,7 +137,7 @@ export function AgentHub() {
           {peopleAgents.map(agent => (
             <AgentCard key={agent.id} agent={agent} onClick={() => agent.unlocked && setSelectedAgent(agent)} />
           ))}
-          <Link href="/boss" className="agent-card agent-card-boss-cta" style={{ textDecoration: 'none' }}>
+          <LocaleLink href="/boss" className="agent-card agent-card-boss-cta" style={{ textDecoration: 'none' }}>
             <div className="agent-card-emoji">👔</div>
             <div className="agent-card-role">{L('팀장 시뮬레이터', 'Boss Simulator')}</div>
             <div className="agent-card-name">{L('내 팀장은 뭐라고 할까?', 'What would my boss say?')}</div>
@@ -148,7 +148,7 @@ export function AgentHub() {
             }}>
               {L('시작하기 →', 'Start →')}
             </span>
-          </Link>
+          </LocaleLink>
         </div>
       </section>
 

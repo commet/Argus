@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
@@ -31,7 +31,7 @@ export function LandingHeader() {
       <div className="max-w-7xl mx-auto px-6 md:px-10">
         <div className="h-14 md:h-16 flex items-center justify-between">
           {/* Wordmark — min 44px hit area for mobile */}
-          <Link
+          <LocaleLink
             href="/"
             className="flex items-baseline gap-2 group"
             style={{ padding: '12px 4px 12px 0', marginLeft: -4 }}
@@ -47,7 +47,7 @@ export function LandingHeader() {
             >
               Argus
             </span>
-          </Link>
+          </LocaleLink>
 
           <div className="flex items-center gap-3 md:gap-5">
             {/* Locale toggle (mono / ink) */}
@@ -96,7 +96,7 @@ export function LandingHeader() {
             {/* Auth area — min 44px tap area */}
             {!loading && (
               user ? (
-                <Link
+                <LocaleLink
                   href="/workspace"
                   className="bp-mono transition-opacity hover:opacity-70 inline-flex items-center"
                   style={{
@@ -109,9 +109,9 @@ export function LandingHeader() {
                   }}
                 >
                   {L('워크스페이스 →', 'Workspace →')}
-                </Link>
+                </LocaleLink>
               ) : (
-                <Link
+                <LocaleLink
                   href="/login"
                   className="bp-mono transition-opacity hover:opacity-70 inline-flex items-center"
                   style={{
@@ -124,7 +124,7 @@ export function LandingHeader() {
                   }}
                 >
                   {L('로그인', 'Sign In')}
-                </Link>
+                </LocaleLink>
               )
             )}
           </div>

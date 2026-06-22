@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Card } from './Card';
 import { ArrowRight, Map, Users, RefreshCw, FileText } from 'lucide-react';
 import { useT } from '@/contexts/LocaleProvider';
@@ -116,9 +116,9 @@ export function NextStepGuide({
               </div>
               <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">{option.reason}</p>
             </div>
-            <Link href={option.href} className="shrink-0 mt-1">
+            <LocaleLink href={option.href} className="shrink-0 mt-1">
               <ArrowRight size={14} className="text-[var(--text-secondary)] hover:text-[var(--accent)]" />
-            </Link>
+            </LocaleLink>
           </div>
         ))}
       </div>

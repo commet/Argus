@@ -3,7 +3,7 @@
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { useEffect, useState } from 'react';
 import { track, trackError } from '@/lib/analytics';
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -649,9 +649,9 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
               <div className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-4 mt-3">
                 <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Your free trial is used up')}</p>
                 <p className="text-[13px] text-[var(--text-secondary)] mb-3">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 계속 사용할 수 있습니다.`, `Sign in to keep using it free — up to ${DAILY_LIMIT} calls a day.`)}</p>
-                <Link href="/login" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-[13px] font-semibold hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all">
+                <LocaleLink href="/login" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-[13px] font-semibold hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all">
                   {L('로그인 / 회원가입', 'Sign in / Sign up')}
-                </Link>
+                </LocaleLink>
               </div>
             ) : (
               <div className="flex items-center justify-between gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2 mt-3">

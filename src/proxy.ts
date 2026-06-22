@@ -2,25 +2,54 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Proxy: generates a per-request CSP nonce.
+ * Proxy: per-request CSP nonce + path-based locale routing.
  *
+ * CSP (unchanged):
  * - Nonce replaces 'unsafe-inline' in script-src (XSS mitigation)
  * - 'strict-dynamic' allows Next.js chunk loading from nonce-tagged scripts
  * - style-src keeps 'unsafe-inline' (needed for Tailwind/styled-jsx)
  * - Auth is handled client-side (Supabase + AuthGuard + RLS)
+ *
+ * Locale:
+ * - /api/*, root metadata routes (sitemap, robots, manifest, icons, og-image),
+ *   and any path with a file extension get CSP only — never locale-prefixed.
+ * - A path already under /en or /ko proceeds, with x-locale set to it.
+ * - A locale-less page path is 307-redirected to /{locale}{path}, locale
+ *   resolved from ?lang → argus-locale cookie → Accept-Language.
  */
-export function proxy(req: NextRequest) {
-  // Use getRandomValues (guaranteed in Edge Runtime) instead of randomUUID
-  const nonceBytes = new Uint8Array(16);
-  crypto.getRandomValues(nonceBytes);
-  const nonce = btoa(String.fromCharCode(...nonceBytes));
 
+const LOCALES = ['en', 'ko'] as const;
+type Locale = (typeof LOCALES)[number];
+
+// Root-level special files Next serves directly. They must NOT be locale-
+// redirected or they 404 (sitemap/robots/manifest) or break <head> refs
+// (icon/apple-icon/opengraph-image). favicon.ico is already matcher-excluded.
+const RESERVED_ROOT_PATHS = new Set([
+  'sitemap.xml',
+  'robots.txt',
+  'manifest.webmanifest',
+  'icon',
+  'apple-icon',
+  'opengraph-image',
+  'twitter-image',
+]);
+
+function isLocale(seg: string | undefined): seg is Locale {
+  return !!seg && (LOCALES as readonly string[]).includes(seg);
+}
+
+/** A first segment we must leave alone: a reserved metadata route or a file. */
+function isReservedRootSeg(seg: string | undefined): boolean {
+  if (!seg) return false;
+  return RESERVED_ROOT_PATHS.has(seg) || seg.includes('.');
+}
+
+function buildCsp(nonce: string): string {
   // Dev only: React dev-mode uses eval() for debugging features (callstack
   // reconstruction) and logs a console error under a strict CSP. Production
   // CSP is unchanged — React never evals in prod.
   const devEval = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : '';
-
-  const csp = [
+  return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${devEval}`,
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
@@ -33,12 +62,59 @@ export function proxy(req: NextRequest) {
     "base-uri 'self'",
     "form-action 'self'",
   ].join('; ');
+}
 
-  // Pass nonce to layout via request header
-  const requestHeaders = new Headers(req.headers);
-  requestHeaders.set('x-nonce', nonce);
+function resolveLocale(req: NextRequest): Locale {
+  const queryLang = req.nextUrl.searchParams.get('lang');
+  if (isLocale(queryLang ?? undefined)) return queryLang as Locale;
 
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  const cookieLang = req.cookies.get('argus-locale')?.value;
+  if (isLocale(cookieLang)) return cookieLang;
+
+  const accept = req.headers.get('accept-language') ?? '';
+  const first = accept.split(',')[0]?.trim().toLowerCase() ?? '';
+  return first.startsWith('ko') ? 'ko' : 'en';
+}
+
+export function proxy(req: NextRequest) {
+  // Use getRandomValues (guaranteed in Edge Runtime) instead of randomUUID
+  const nonceBytes = new Uint8Array(16);
+  crypto.getRandomValues(nonceBytes);
+  const nonce = btoa(String.fromCharCode(...nonceBytes));
+  const csp = buildCsp(nonce);
+
+  const { pathname } = req.nextUrl;
+  const firstSeg = pathname.split('/')[1];
+
+  // /api, reserved metadata routes, and static-ish files — CSP only, no locale.
+  if (pathname.startsWith('/api') || isReservedRootSeg(firstSeg)) {
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-nonce', nonce);
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set('Content-Security-Policy', csp);
+    return response;
+  }
+
+  // Already locale-prefixed — proceed, expose the locale to layouts.
+  if (isLocale(firstSeg)) {
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-nonce', nonce);
+    requestHeaders.set('x-locale', firstSeg);
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set('Content-Security-Policy', csp);
+    return response;
+  }
+
+  // Locale-less page path — redirect to the resolved locale.
+  const locale = resolveLocale(req);
+  const target = req.nextUrl.clone();
+  target.pathname = `/${locale}${pathname}`;
+  const response = NextResponse.redirect(target, 307);
+  response.cookies.set('argus-locale', locale, {
+    path: '/',
+    maxAge: 31536000,
+    sameSite: 'lax',
+  });
   response.headers.set('Content-Security-Policy', csp);
   return response;
 }

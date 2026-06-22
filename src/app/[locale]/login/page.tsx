@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState, useRef, Suspense } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { LocaleLink } from '@/components/ui/LocaleLink';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useLocale } from '@/hooks/useLocale';
+import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
 import { Zap, FolderOpen, Users, MessageSquare } from 'lucide-react';
 
@@ -27,7 +28,7 @@ function getAuthErrors(locale: 'ko' | 'en'): Record<string, string> {
 function LoginContent() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const router = useRouter();
+  const router = useLocaleRouter();
   const searchParams = useSearchParams();
   const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword } = useAuth();
   const [isReset, setIsReset] = useState(false);
@@ -330,12 +331,12 @@ function LoginContent() {
 
         {/* Escape hatch — anon users can keep exploring */}
         <div className="text-center mt-5">
-          <Link
+          <LocaleLink
             href="/workspace"
             className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors"
           >
             {L(`로그인 없이 계속 → 하루 ${ANON_LIMIT}회 무료`, `Continue without login → ${ANON_LIMIT} free calls/day`)}
-          </Link>
+          </LocaleLink>
         </div>
       </div>
     </div>

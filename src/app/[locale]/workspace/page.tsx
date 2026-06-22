@@ -23,7 +23,7 @@ import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers } from 'lucide-react';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Graticule } from '@/components/ui/VoyageElements';
 import { EASE } from '@/components/workspace/progressive/shared/constants';
 import { getPersonaPool } from '@/lib/worker-personas';
@@ -487,7 +487,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                         Speak in the user's unit: decisions. */}
                     <span className="text-[var(--text-primary)]">{locale === 'ko' ? <>로그인 없이 <strong>하루 결정 2~3개 분량 무료</strong> · 로그인하면 더 넉넉해요</> : <><strong>2–3 decisions/day free</strong> without login · more with login</>}</span>
                   </div>
-                  <Link href="/login" className="shrink-0 px-3 py-1 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-[12px] font-semibold hover:shadow-[var(--shadow-sm)] transition-all">{L('로그인', 'Log in')}</Link>
+                  <LocaleLink href="/login" className="shrink-0 px-3 py-1 rounded-lg bg-[var(--accent)] text-[var(--bg)] text-[12px] font-semibold hover:shadow-[var(--shadow-sm)] transition-all">{L('로그인', 'Log in')}</LocaleLink>
                 </div>
               )}
 
@@ -565,32 +565,32 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 {/* W1.3: 1차 nav에서 내려온 진입들 — 삭제가 아니라 워크스페이스
                     내부 진입으로 이동. 3차 위계(tertiary)로 조용히. */}
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-[var(--text-tertiary)]">
-                  <Link href="/agents" className="hover:text-[var(--accent)] transition-colors">
+                  <LocaleLink href="/agents" className="hover:text-[var(--accent)] transition-colors">
                     {L('AI 팀 소개', 'Meet the AI crew')}
-                  </Link>
+                  </LocaleLink>
                   <span aria-hidden>·</span>
-                  <Link href="/boss" className="hover:text-[var(--accent)] transition-colors">
+                  <LocaleLink href="/boss" className="hover:text-[var(--accent)] transition-colors">
                     {L('보고 상대 설정', 'Set your reviewer')}
-                  </Link>
+                  </LocaleLink>
                   <span aria-hidden>·</span>
                   {/* W1.3 잔여: /teams was "moved inside the workspace" on paper but
                       had ZERO inbound links — an orphaned page. */}
-                  <Link href="/teams" className="hover:text-[var(--accent)] transition-colors">
+                  <LocaleLink href="/teams" className="hover:text-[var(--accent)] transition-colors">
                     {L('팀', 'Teams')}
-                  </Link>
+                  </LocaleLink>
                   <span aria-hidden>·</span>
-                  <Link href="/guide" className="hover:text-[var(--accent)] transition-colors">
+                  <LocaleLink href="/guide" className="hover:text-[var(--accent)] transition-colors">
                     {L('가이드', 'Guide')}
-                  </Link>
+                  </LocaleLink>
                 </div>
 
                 {error && error.startsWith('LOGIN_REQUIRED') && (
                   <div className="mt-3 p-4 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/20">
                     <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
                     <p className="text-[12px] text-[var(--text-secondary)] mb-3 leading-relaxed">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있습니다.`, `Sign in to get up to ${DAILY_LIMIT} free uses per day.`)}</p>
-                    <Link href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-[12px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>
+                    <LocaleLink href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-[12px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>
                       {L('로그인', 'Sign In')} <ChevronRight size={12} />
-                    </Link>
+                    </LocaleLink>
                   </div>
                 )}
                 {error && !error.startsWith('LOGIN_REQUIRED') && (() => {
@@ -1058,7 +1058,7 @@ function WorkspaceContent() {
               <div className="flex items-center gap-2 text-[12px]">
                 <Sparkles size={13} className="text-[var(--accent)] shrink-0" />
                 <span className="text-[var(--text-primary)]">
-                  {locale === 'ko' ? <>로그인 없이 <strong>하루 결정 2~3개 분량 무료</strong> · <Link href="/login" className="text-[var(--accent)] font-semibold underline">로그인</Link>하면 더 넉넉해요</> : <><strong>2–3 decisions/day free</strong> without login · <Link href="/login" className="text-[var(--accent)] font-semibold underline">log in</Link> for more</>}
+                  {locale === 'ko' ? <>로그인 없이 <strong>하루 결정 2~3개 분량 무료</strong> · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">로그인</LocaleLink>하면 더 넉넉해요</> : <><strong>2–3 decisions/day free</strong> without login · <LocaleLink href="/login" className="text-[var(--accent)] font-semibold underline">log in</LocaleLink> for more</>}
                 </span>
               </div>
             </div>

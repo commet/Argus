@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, PenSquare, ArrowRight, ChevronDown, Sparkles } from 'lucide-react';
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import type { Agent, InnerMonologueArchiveEntry } from '@/stores/agent-types';
 import { getLevelProgress, AGENT_LEVELS } from '@/stores/agent-types';
 import { PersonaRefinementSection } from './PersonaRefinementSection';
@@ -187,7 +187,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
             <section>
               <SectionLabel>{L('이 팀장과 계속', 'Continue with this boss')}</SectionLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <Link
+                <LocaleLink
                   href={`/boss?agent=${agent.id}`}
                   onClick={onClose}
                   className="agent-boss-cta"
@@ -205,8 +205,8 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
                     </p>
                   </div>
                   <ArrowRight size={12} style={{ color: 'var(--text-tertiary)' }} />
-                </Link>
-                <Link
+                </LocaleLink>
+                <LocaleLink
                   href={`/workspace?reviewer=${agent.id}`}
                   onClick={onClose}
                   className="agent-boss-cta"
@@ -222,7 +222,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
                     </p>
                   </div>
                   <ArrowRight size={12} style={{ color: 'var(--text-tertiary)' }} />
-                </Link>
+                </LocaleLink>
               </div>
             </section>
           )}

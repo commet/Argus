@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, Sun, Moon, Lock } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
@@ -12,6 +12,7 @@ import { SyncStatus } from '@/components/ui/SyncStatus';
 import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
 import { ForkLimitToast } from '@/components/ui/ForkLimitToast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
+import { stripLocale } from '@/lib/locale-path';
 
 export function Header() {
   const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
@@ -26,7 +27,7 @@ export function Header() {
     { href: '/settings', label: L('설정', 'Settings') },
   ];
 
-  const pathname = usePathname();
+  const pathname = stripLocale(usePathname());
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
 
@@ -98,7 +99,7 @@ export function Header() {
   const handleSignOut = async () => {
     setUserMenuOpen(false);
     await signOut();
-    router.push('/login');
+    router.push(`/${locale}/login`);
   };
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
@@ -112,12 +113,12 @@ export function Header() {
     <header className="sticky top-0 z-40 bg-[var(--bg)]/80 backdrop-blur-xl border-b border-[var(--border-subtle)]">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <LocaleLink href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shadow-[var(--shadow-sm)] group-hover:shadow-[var(--glow-gold)] transition-all duration-300" style={{ background: 'var(--gradient-gold)' }}>
               <span className="text-white text-[13px] font-black tracking-tight">A</span>
             </div>
             <span className="text-[var(--primary)] font-extrabold text-[18px] tracking-tight">Argus</span>
-          </Link>
+          </LocaleLink>
 
           <div className="hidden md:flex items-center gap-3">
             {/* Desktop nav */}
@@ -127,7 +128,7 @@ export function Header() {
                 const showLock = item.requiresAuth && !user && !loading;
                 const showReturnBadge = item.href === '/project' && dueCount > 0;
                 return (
-                  <Link
+                  <LocaleLink
                     key={item.href}
                     href={item.href}
                     className={`relative px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 flex items-center gap-1.5 ${
@@ -148,7 +149,7 @@ export function Header() {
                         {dueCount}
                       </span>
                     )}
-                  </Link>
+                  </LocaleLink>
                 );
               })}
             </nav>
@@ -245,12 +246,12 @@ export function Header() {
                   )}
                 </div>
               ) : (
-                <Link
+                <LocaleLink
                   href="/login"
                   className="px-3.5 py-1.5 rounded-full text-[13px] font-semibold text-[var(--accent)] hover:bg-[var(--ai)]/50 transition-colors"
                 >
                   {L('로그인', 'Sign In')}
-                </Link>
+                </LocaleLink>
               )
             )}
           </div>
@@ -275,7 +276,7 @@ export function Header() {
               const showLock = item.requiresAuth && !user && !loading;
               const showReturnBadge = item.href === '/project' && dueCount > 0;
               return (
-                <Link
+                <LocaleLink
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
@@ -298,7 +299,7 @@ export function Header() {
                     )}
                   </span>
                   {showLock && <Lock size={11} className="opacity-60" />}
-                </Link>
+                </LocaleLink>
               );
             })}
             {/* Mobile locale toggle */}
@@ -337,13 +338,13 @@ export function Header() {
                     {L('로그아웃', 'Sign Out')} ({displayName})
                   </button>
                 ) : (
-                  <Link
+                  <LocaleLink
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
                     className="block px-4 py-2.5 rounded-lg text-[14px] font-semibold text-[var(--accent)]"
                   >
                     {L('로그인', 'Sign In')}
-                  </Link>
+                  </LocaleLink>
                 )}
               </div>
             )}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, RotateCcw, Bookmark, Check, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { ChatMessage } from './ChatMessage';
 import { PostVerdictPanel } from './PostVerdictPanel';
 import { VerdictShareCard } from './VerdictShareCard';
@@ -587,21 +587,21 @@ export function BossChat() {
                 <Check size={10} /> {isAnon ? L('임시 저장됨', 'Saved (this browser)') : L('저장됨', 'Saved')}
               </span>
               {isAnon && (
-                <Link
+                <LocaleLink
                   href="/login"
                   style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
                   title={L('로그인하면 다른 기기에서도 이 팀장과 다시 대화할 수 있어요', 'Sign in to keep this boss across devices')}
                 >
                   {L('로그인하면 영구 저장', 'Sign in to keep')}
-                </Link>
+                </LocaleLink>
               )}
-              <Link
+              <LocaleLink
                 href={`/workspace?reviewer=${loadedAgentId || ''}`}
                 style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
                 title={L('이 팀장이 리뷰어로 활용됩니다', 'This boss will be used as a reviewer')}
               >
                 {L('워크스페이스로 데려가기 →', 'Take them to your workspace →')}
-              </Link>
+              </LocaleLink>
             </div>
           )}
           <button
@@ -755,7 +755,7 @@ export function BossChat() {
             {L('이 피드백, 워크스페이스에서 바로 반영해볼 수 있어요', 'Take this feedback straight into your workspace.')}
           </p>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-            <Link
+            <LocaleLink
               href={`/workspace?reviewer=${loadedAgentId || ''}`}
               onClick={(e) => {
                 if (!loadedAgentId) {
@@ -775,7 +775,7 @@ export function BossChat() {
               }}
             >
               {L('시작', 'Start')} <ArrowRight size={10} />
-            </Link>
+            </LocaleLink>
             <button
               onClick={() => setCtaDismissed(true)}
               style={{ fontSize: 10, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}

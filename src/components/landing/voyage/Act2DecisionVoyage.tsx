@@ -21,7 +21,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { useLocale } from '@/hooks/useLocale';
 import { track } from '@/lib/analytics';
 import { PaperGrain } from './atmosphere/PaperGrain';
@@ -100,7 +100,7 @@ const BEATS: Beat[] = [
 export function Act2DecisionVoyage() {
   const locale = useLocale() as Locale;
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  const router = useRouter();
+  const router = useLocaleRouter();
 
   const sectionRef = useRef<HTMLElement | null>(null);
   const [started, setStarted] = useState(false);

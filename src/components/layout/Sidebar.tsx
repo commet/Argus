@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect } from 'react';
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { usePathname } from 'next/navigation';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { Users, Settings, BookOpen, FolderOpen, User } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { stripLocale } from '@/lib/locale-path';
 
 export function Sidebar() {
   const locale = useLocale();
@@ -19,7 +20,7 @@ export function Sidebar() {
     { href: '/settings', label: L('설정', 'Settings'), icon: Settings },
   ];
 
-  const pathname = usePathname();
+  const pathname = stripLocale(usePathname());
   const { projects, currentProjectId, loadProjects } = useProjectStore();
   const { personas, loadData: loadPersonas } = usePersonaStore();
 
@@ -60,7 +61,7 @@ export function Sidebar() {
           </p>
           <div className="space-y-0.5">
             {personas.slice(0, 4).map((p) => (
-              <Link
+              <LocaleLink
                 key={p.id}
                 href="/workspace?step=rehearse"
                 className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors"
@@ -69,7 +70,7 @@ export function Sidebar() {
                   <User size={10} />
                 </div>
                 <span className="truncate">{p.name}</span>
-              </Link>
+              </LocaleLink>
             ))}
           </div>
         </div>
@@ -81,7 +82,7 @@ export function Sidebar() {
           const Icon = item.icon;
           const isActive = pathname === item.href;
           return (
-            <Link
+            <LocaleLink
               key={item.href}
               href={item.href}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
@@ -92,7 +93,7 @@ export function Sidebar() {
             >
               <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
               {item.label}
-            </Link>
+            </LocaleLink>
           );
         })}
       </div>

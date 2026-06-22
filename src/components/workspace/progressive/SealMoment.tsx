@@ -30,7 +30,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBranch } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -192,9 +192,9 @@ export function SealMoment({
         </p>
 
         <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/project" className="text-[12.5px] font-medium text-[var(--accent)] hover:underline">
+          <LocaleLink href="/project" className="text-[12.5px] font-medium text-[var(--accent)] hover:underline">
             {L('프로젝트 페이지 보기 →', 'See the project page →')}
-          </Link>
+          </LocaleLink>
           <button
             onClick={downloadIcs}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors cursor-pointer"

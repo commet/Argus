@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useLocale } from '@/hooks/useLocale';
+import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 
 export default function AuthCallbackPage() {
-  const router = useRouter();
+  const router = useLocaleRouter();
   const locale = useLocale();
 
   useEffect(() => {

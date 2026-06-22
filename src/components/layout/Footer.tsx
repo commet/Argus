@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
 
 export function Footer() {
@@ -12,9 +12,9 @@ export function Footer() {
         Argus — Think before you recast
       </p>
       <div className="flex items-center justify-center gap-3 text-[11px] text-[var(--text-tertiary)]">
-        <Link href="/terms" className="hover:text-[var(--text-secondary)] transition-colors">{L('이용약관', 'Terms')}</Link>
+        <LocaleLink href="/terms" className="hover:text-[var(--text-secondary)] transition-colors">{L('이용약관', 'Terms')}</LocaleLink>
         <span>|</span>
-        <Link href="/privacy" className="hover:text-[var(--text-secondary)] transition-colors">{L('개인정보처리방침', 'Privacy')}</Link>
+        <LocaleLink href="/privacy" className="hover:text-[var(--text-secondary)] transition-colors">{L('개인정보처리방침', 'Privacy')}</LocaleLink>
       </div>
     </footer>
   );

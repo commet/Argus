@@ -1,12 +1,6 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import './globals.css';
-import { Header } from '@/components/layout/Header';
-import { LayoutShell } from '@/components/layout/LayoutShell';
-import { Providers } from '@/components/layout/Providers';
-import { Analytics } from '@/components/layout/Analytics';
-import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
-import { LocaleProvider } from '@/contexts/LocaleProvider';
 
 const SITE_URL = 'https://argus.voyage';
 
@@ -35,9 +29,15 @@ function pickLangFromAcceptLanguage(header: string | null): Lang {
   return first.startsWith('ko') ? 'ko' : 'en';
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+async function resolveLang(): Promise<Lang> {
   const h = await headers();
-  const lang = pickLangFromAcceptLanguage(h.get('accept-language'));
+  const fromHeader = h.get('x-locale');
+  if (fromHeader === 'ko' || fromHeader === 'en') return fromHeader;
+  return pickLangFromAcceptLanguage(h.get('accept-language'));
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await resolveLang();
   const m = META_STRINGS[lang];
 
   return {
@@ -45,16 +45,16 @@ export async function generateMetadata(): Promise<Metadata> {
     description: m.description,
     metadataBase: new URL(SITE_URL),
     alternates: {
-      canonical: SITE_URL,
+      canonical: `${SITE_URL}/${lang}`,
       languages: {
-        ko: `${SITE_URL}?lang=ko`,
-        en: `${SITE_URL}?lang=en`,
+        en: `${SITE_URL}/en`,
+        ko: `${SITE_URL}/ko`,
       },
     },
     openGraph: {
       title: m.title,
       description: m.descriptionShort,
-      url: SITE_URL,
+      url: `${SITE_URL}/${lang}`,
       siteName: 'Argus',
       locale: m.ogLocale,
       type: 'website',
@@ -74,7 +74,7 @@ export default async function RootLayout({
 }>) {
   const h = await headers();
   const nonce = h.get('x-nonce') || '';
-  const lang = pickLangFromAcceptLanguage(h.get('accept-language'));
+  const lang = await resolveLang();
 
   return (
     <html lang={lang}>
@@ -98,23 +98,7 @@ export default async function RootLayout({
         />
         <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('argus-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.setAttribute('data-theme','dark')}}catch(e){}})()` }} />
       </head>
-      <body>
-        <LocaleProvider locale={lang}>
-          <Providers>
-            <Analytics />
-            <ErrorBoundary>
-              <div className="min-h-screen flex flex-col">
-                <Header />
-                <div className="flex flex-1">
-                  <LayoutShell>
-                    {children}
-                  </LayoutShell>
-                </div>
-              </div>
-            </ErrorBoundary>
-          </Providers>
-        </LocaleProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

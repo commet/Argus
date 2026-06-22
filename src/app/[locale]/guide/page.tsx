@@ -17,7 +17,7 @@ import {
   Settings2,
   HelpCircle,
 } from 'lucide-react';
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
 import {
   CHAIN_UNLOCK_THRESHOLDS,
@@ -185,13 +185,13 @@ export default function GuidePage() {
             </div>
           ))}
         </div>
-        <Link
+        <LocaleLink
           href="/workspace"
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
           style={{ background: 'var(--gradient-gold)' }}
         >
           {L('워크스페이스로 가기', 'Go to workspace')} <ArrowRight size={14} />
-        </Link>
+        </LocaleLink>
       </Card>
 
       {/* ── 2. Flow walkthrough ── */}
@@ -357,9 +357,9 @@ export default function GuidePage() {
           </div>
         </details>
 
-        <Link href="/agents" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline mt-4">
+        <LocaleLink href="/agents" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline mt-4">
           {L('선원 명부', 'Crew roster')} <ArrowRight size={14} />
-        </Link>
+        </LocaleLink>
       </Card>
 
       {/* ── 4. Boss Simulator ── */}
@@ -398,9 +398,9 @@ export default function GuidePage() {
           </ul>
         </div>
 
-        <Link href="/boss" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline">
+        <LocaleLink href="/boss" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--accent)] hover:underline">
           {L('팀장 시뮬레이터 열기', 'Open Boss Simulator')} <ArrowRight size={14} />
-        </Link>
+        </LocaleLink>
       </Card>
 
       {/* ── 5. Advanced ── */}
@@ -464,12 +464,12 @@ function ChainRow({ tone, label, agents }: { tone: 'ai' | 'strategy' | 'executio
 
 function LegacyChip({ href, label }: { href: string; label: string }) {
   return (
-    <Link
+    <LocaleLink
       href={href}
       className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-sm)] transition-all text-[12.5px] text-[var(--text-primary)] font-medium group/chip"
     >
       <span className="truncate">{label}</span>
       <ArrowRight size={11} className="text-[var(--text-tertiary)] group-hover/chip:text-[var(--accent)] transition-colors shrink-0" />
-    </Link>
+    </LocaleLink>
   );
 }

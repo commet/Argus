@@ -1,9 +1,10 @@
 'use client';
 
-import Link from 'next/link';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { useLocale } from '@/hooks/useLocale';
+import { stripLocale } from '@/lib/locale-path';
 import { Lock, ChevronRight } from 'lucide-react';
 
 /**
@@ -74,8 +75,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    const page = detectPage(pathname);
+    const page = detectPage(stripLocale(pathname || '/'));
     const { title, description } = getCopy(page, ko);
+    // Keep the full locale-prefixed path so login returns the user to it.
     const redirectTo = encodeURIComponent(pathname || '/');
 
     return (
@@ -87,19 +89,19 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           <h2 className="text-[20px] font-bold text-[var(--text-primary)] mb-2">{title}</h2>
           <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-6">{description}</p>
           <div className="flex flex-col gap-2 items-center">
-            <Link
+            <LocaleLink
               href={`/login?redirect=${redirectTo}`}
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-white text-[14px] font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
               style={{ background: 'var(--gradient-gold)' }}
             >
               {L('로그인하고 계속하기', 'Sign in to continue')} <ChevronRight size={14} />
-            </Link>
-            <Link
+            </LocaleLink>
+            <LocaleLink
               href="/workspace"
               className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors"
             >
               {L('로그인 없이 워크스페이스 써보기 →', 'Try the workspace without signing in →')}
-            </Link>
+            </LocaleLink>
           </div>
         </div>
       </div>

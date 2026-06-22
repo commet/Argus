@@ -2,10 +2,10 @@
 
 import { RecastStep } from '@/components/workspace/RecastStep';
 import { StepIntro } from '@/components/workspace/StepIntro';
-import { useRouter } from 'next/navigation';
+import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 
 export default function RecastPage() {
-  const router = useRouter();
+  const router = useLocaleRouter();
   return (
     <>
       <StepIntro stepKey="recast" />

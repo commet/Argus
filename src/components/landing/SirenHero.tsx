@@ -27,16 +27,16 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
+import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
 import { ForkPath } from './voyage/illustrations/ForkPath';
 
 export function SirenHero() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  const router = useRouter();
+  const router = useLocaleRouter();
   const [text, setText] = useState('');
   const [focused, setFocused] = useState(false);
 
@@ -289,13 +289,13 @@ export function SirenHero() {
         {/* Quiet demo path — clearly secondary, separated from the primary
             action so it does not cannibalize the textarea. */}
         <div className="mt-6">
-          <Link
+          <LocaleLink
             href="/workspace?demo=planning"
             className="bp-quiet-link inline-block"
             style={{ fontSize: 12 }}
           >
             {L('아직 조심스럽다면, 샘플 결정으로 둘러보기 →', 'Not ready yet? Look around with a sample decision →')}
-          </Link>
+          </LocaleLink>
         </div>
 
         {/* Scroll cue to the preserved three acts. */}
