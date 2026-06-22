@@ -4,13 +4,13 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Sparkles } from 'lucide-react';
 import { useAgentStore } from '@/stores/useAgentStore';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 
 interface PastVerdictRecapProps {
   agentId: string;
 }
 
-const VERDICT_META: Record<string, { labelKey: Parameters<typeof t>[0]; icon: string; color: string }> = {
+const VERDICT_META: Record<string, { labelKey: Parameters<ReturnType<typeof useT>>[0]; icon: string; color: string }> = {
   approved: { labelKey: 'boss.verdict.approved', icon: '✅', color: 'rgb(29, 125, 63)' },
   conditional: { labelKey: 'boss.verdict.conditionalShort', icon: '🤔', color: 'rgb(184, 150, 62)' },
   rejected: { labelKey: 'boss.verdict.rejected', icon: '❌', color: 'rgb(220, 53, 69)' },
@@ -23,6 +23,7 @@ const VERDICT_META: Record<string, { labelKey: Parameters<typeof t>[0]; icon: st
  * 감정 완결성 + 지난 이면 재열람 루프 동시 달성.
  */
 export function PastVerdictRecap({ agentId }: PastVerdictRecapProps) {
+  const t = useT();
   const agent = useAgentStore(s => s.agents.find(a => a.id === agentId));
   const [openInner, setOpenInner] = useState(false);
 

@@ -6,7 +6,7 @@ import { useRecastStore } from '@/stores/useRecastStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { useJudgmentStore } from '@/stores/useJudgmentStore';
 import { Check, AlertTriangle, Circle, Shield } from 'lucide-react';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 
 interface Props {
   projectId: string;
@@ -21,6 +21,7 @@ interface ReadinessCheck {
 }
 
 export function ExecutionReadiness({ projectId }: Props) {
+  const t = useT();
   const { items: reframeItems, loadItems: loadReframe } = useReframeStore();
   const { items: recastItems, loadItems: loadRecast } = useRecastStore();
   const { feedbackHistory, loadData: loadPersona } = usePersonaStore();

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Zap } from 'lucide-react';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 import { DAILY_LIMIT } from '@/lib/quota-config';
 
 /**
@@ -10,6 +10,7 @@ import { DAILY_LIMIT } from '@/lib/quota-config';
  * Listens to 'argus:ratelimit' custom events dispatched by the LLM stream handler.
  */
 export function RateLimitBadge() {
+  const t = useT();
   const [remaining, setRemaining] = useState<number | null>(null);
 
   useEffect(() => {

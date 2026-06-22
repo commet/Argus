@@ -8,7 +8,7 @@ import { getPersonalityType, PERSONALITY_TYPES } from '@/lib/boss/personality-ty
 import { pickScenarios, detectCategory, DIFFICULTY_LABELS, type Scenario } from '@/lib/boss/scenarios';
 import { CollectionProgress } from './CollectionProgress';
 import { InnerMonologueCard } from './InnerMonologueCard';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 
 interface PostVerdictPanelProps {
   verdict: { verdict: string; reason: string; tip?: string };
@@ -16,6 +16,7 @@ interface PostVerdictPanelProps {
 }
 
 export function PostVerdictPanel({ verdict, onShare }: PostVerdictPanelProps) {
+  const t = useT();
   const { lastSituation, resetForNewType, resetForNewSituation, addUserMessage, startChat } = useBossStore();
   const axes = useBossStore(s => s.axes);
   const typeCode = `${axes.ei}${axes.sn}${axes.tf}${axes.jp}`;

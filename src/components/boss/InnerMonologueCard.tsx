@@ -12,7 +12,7 @@ import {
 } from '@/lib/boss/boss-prompt';
 import { computeDailyMood } from '@/lib/boss/daily-energy';
 import type { InnerMonologueArchiveEntry } from '@/stores/agent-types';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 import { track } from '@/lib/analytics';
 import { useLocale } from '@/hooks/useLocale';
 
@@ -26,6 +26,7 @@ interface InnerMonologueCardProps {
  * "표면 vs 이면"의 간극이 감정적 피크를 만드는 장치.
  */
 export function InnerMonologueCard({ verdict }: InnerMonologueCardProps) {
+  const t = useT();
   const locale = useLocale();
   const {
     innerMonologue,

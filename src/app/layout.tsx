@@ -6,6 +6,7 @@ import { LayoutShell } from '@/components/layout/LayoutShell';
 import { Providers } from '@/components/layout/Providers';
 import { Analytics } from '@/components/layout/Analytics';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
+import { LocaleProvider } from '@/contexts/LocaleProvider';
 
 const SITE_URL = 'https://argus.voyage';
 
@@ -98,19 +99,21 @@ export default async function RootLayout({
         <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('argus-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.setAttribute('data-theme','dark')}}catch(e){}})()` }} />
       </head>
       <body>
-        <Providers>
-          <Analytics />
-          <ErrorBoundary>
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <div className="flex flex-1">
-                <LayoutShell>
-                  {children}
-                </LayoutShell>
+        <LocaleProvider locale={lang}>
+          <Providers>
+            <Analytics />
+            <ErrorBoundary>
+              <div className="min-h-screen flex flex-col">
+                <Header />
+                <div className="flex flex-1">
+                  <LayoutShell>
+                    {children}
+                  </LayoutShell>
+                </div>
               </div>
-            </div>
-          </ErrorBoundary>
-        </Providers>
+            </ErrorBoundary>
+          </Providers>
+        </LocaleProvider>
       </body>
     </html>
   );

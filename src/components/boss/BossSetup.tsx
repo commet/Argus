@@ -11,7 +11,7 @@ import { ArrowRight } from 'lucide-react';
 import { SajuPreview } from './SajuPreview';
 import { CollectionProgress } from './CollectionProgress';
 import { BossConfirmation } from './BossConfirmation';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 import { useLocale } from '@/hooks/useLocale';
 import { track } from '@/lib/analytics';
 
@@ -78,6 +78,7 @@ const HINT_EXAMPLES_EN = [
 ];
 
 export function BossSetup() {
+  const t = useT();
   const locale = useLocale();
   const { axes, gender, birthYear, birthMonth, birthDay, sajuLoading, userContextHint, demoSituation, setGender, setBirth, setUserContextHint, setDemoSituation, loadSaju, startChat, addUserMessage } = useBossStore();
   const [situation, setSituation] = useState('');

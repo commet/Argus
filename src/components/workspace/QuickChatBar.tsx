@@ -7,7 +7,9 @@ import { useReframeStore } from '@/stores/useReframeStore';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { useAgentAttentionStore } from '@/stores/useAgentAttentionStore';
 import type { StepId } from '@/stores/useWorkspaceStore';
-import { t, getCurrentLanguage } from '@/lib/i18n';
+import { getCurrentLanguage } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
+import { useLocale } from '@/hooks/useLocale';
 
 interface QuickChatBarProps {
   activeStep: StepId;
@@ -55,6 +57,8 @@ function getSystemPrompt(): string {
 }
 
 export function QuickChatBar({ activeStep, onNavigate }: QuickChatBarProps) {
+  const t = useT();
+  const locale = useLocale();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
@@ -117,7 +121,7 @@ export function QuickChatBar({ activeStep, onNavigate }: QuickChatBarProps) {
         // Unwired actions — never echo the LLM's success message (it would
         // claim something happened when nothing did). Honest info instead.
         setFeedback({
-          message: getCurrentLanguage() === 'ko'
+          message: locale === 'ko'
             ? '이 동작은 아직 지원하지 않아요 — 질문 카드에서 직접 답해 주세요.'
             : 'This action isn\'t supported yet — please answer directly on the question card.',
           type: 'info',

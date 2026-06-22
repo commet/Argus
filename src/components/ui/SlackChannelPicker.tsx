@@ -5,7 +5,7 @@ import { Hash, Lock, Search, Check, Loader2 } from 'lucide-react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { useSlackStore } from '@/stores/useSlackStore';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 
 interface SlackChannelPickerProps {
   open: boolean;
@@ -15,6 +15,7 @@ interface SlackChannelPickerProps {
 }
 
 export function SlackChannelPicker({ open, onClose, title, content }: SlackChannelPickerProps) {
+  const t = useT();
   const { channels, channelsLoading, sending, loadChannels, sendToSlack } = useSlackStore();
   const [search, setSearch] = useState('');
   const [sent, setSent] = useState(false);

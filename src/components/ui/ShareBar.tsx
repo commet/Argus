@@ -7,7 +7,7 @@ import { EmailButton } from './EmailButton';
 import { SlackChannelPicker } from './SlackChannelPicker';
 import { Button } from './Button';
 import { useSlackStore } from '@/stores/useSlackStore';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 import { track } from '@/lib/analytics';
 
 interface ShareBarProps {
@@ -20,6 +20,7 @@ interface ShareBarProps {
 }
 
 export function ShareBar({ getText, getTitle, copyLabel, shareContext = 'unknown' }: ShareBarProps) {
+  const t = useT();
   const [slackOpen, setSlackOpen] = useState(false);
   const isConnected = useSlackStore(s => s.isConnected());
   const effectiveCopyLabel = copyLabel ?? t('ui.copyMarkdown');

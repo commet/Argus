@@ -1,133 +1,77 @@
-# Argus i18n Migration Plan — 영어 기본, 한국어 번역
+# Argus i18n Migration Plan — locale-as-route, reactive, en-first
+
+> **상태**: 2026-06-22 창업자 판단 4개 확정 후 재작성. 이전 버전(`?lang` + reload)은
+> 폐기. 이 문서가 단일 소스다.
 
 ## 배경
 
-LinkedIn에서 유입된 32명의 en-US 사용자가 전원 0초 이탈. 랜딩은 영어 대응 완료(2026-04-06), 나머지 페이지와 LLM 프롬프트는 한국어 하드코딩.
+처음 온 영어 사용자가 영어 랜딩 안에서 한국어를 만난다(워크스페이스/토스트/시드
+페르소나/LLM 결과). 근원은 번역 데이터가 아니라 **locale 아키텍처**다 — 기본값이
+세 곳에서 갈린다: `useLocale()`/SSR=`en`, `t()`/`getCurrentLanguage()`/설정스토어=`ko`.
 
-## 원칙
+## 확정된 아키텍처 (창업자 판단 4개)
 
-- **영어가 기본(source), 한국어가 번역**
-- **LLM 프롬프트는 영어 1벌 + `Respond in {locale}` 디렉티브**
-- **UI 텍스트는 기존 `useLocale()` 훅 + `L(ko, en)` 패턴 사용**
-- **에이전트 이름(수진, 현우, 동혁)은 캐릭터 정체성이므로 유지**
+| 축 | 결정 | 구현 |
+|---|---|---|
+| D1 기본 locale | **엣지에서 결정** | `proxy.ts`가 `?lang → cookie(argus-locale) → Accept-Language`로 결정, locale-less 경로를 `/{locale}`로 redirect |
+| D2 반응성 | **LocaleProvider 단일화** | 경로의 `[locale]` 세그먼트가 진실의 소스 → `useLocale()`/`useT()`가 context 구독 → 전환=navigate(리렌더), reload 없음 |
+| D3 SSR/SEO | **경로 기반 `/en` `/ko`** | App Router `[locale]` 세그먼트, 언어별 canonical + hreflang |
+| D4 시드 | **en 기본 + ko 변형** | `DEFAULT_PERSONAS_EN` / `DEFAULT_PERSONAS_KO`, seed 시 locale 분기 |
 
-## 작업 범위
+원칙(유지):
+- **영어가 source, 한국어가 번역.** LLM 프롬프트는 영어 1벌 + `Respond in {locale}`.
+- **에이전트 이름(수진/현우/동혁…)은 캐릭터 정체성 → 유지.**
+- **사주(`/boss/saju`)는 이미 locale-gate → 손대지 않음.**
 
-### 1. LLM 프롬프트 전환 (최우선, 가장 위험)
+## 키스톤: LocaleProvider 단일 소스
 
-**파일**: `src/lib/progressive-prompts.ts` (~600줄)
-
-변경할 것:
-- 모든 `Korean only` → `Always respond in ${locale}.` (locale은 파라미터로 받음)
-- 한국어 예시를 영어로 교체하되, 프롬프트 구조/의도는 그대로
-- user prompt의 한국어 지시문 → 영어로 교체
-- JSON 포맷 안의 한국어 설명 → 영어로
-
-```typescript
-// 변경 전
-system: `... Korean only. Direct, specific — no academic tone. ...`
-
-// 변경 후  
-system: `... Always respond in ${locale === 'ko' ? 'Korean' : 'English'}. Direct, specific — no academic tone. ...`
+```
+src/app/[locale]/layout.tsx  ──reads params.locale──▶ <LocaleProvider locale>
+                                                          │
+            ┌─────────────────────────────────────────────┼──────────────────────┐
+            ▼                          ▼                    ▼                      ▼
+      useLocale() (context)     useT()/L() (context)   setModuleLocale()    <html lang> + metadata
+       리액티브, 구독            리액티브 번역           (t()/getCurrentLanguage 등
+                                                         非-React 호출부 일관)
 ```
 
-**주의**: 프롬프트의 의도와 톤을 바꾸면 안 됨. 영어로 번역만.
+- `useLocale()`: context 우선, provider 없으면(테스트 등) 기존 fallback.
+- `useT()`: 새 훅. context 구독 → 전환 시 즉시 리렌더.
+- `t()` / `getCurrentLanguage()`: 모듈 레벨 `currentLocale` 미러를 읽도록 변경
+  (기본 `'ko'` 제거). LocaleProvider가 mount/locale 변화 시 미러를 set. 엔진이
+  프롬프트 빌드할 때 이 값을 읽는다.
+- 전환: `useLocaleSwitch().switchTo(next)` → `router.push(/{next}/...)` (reload 폐기).
 
-구체적 변경 위치 (grep으로 확인된 것):
-- L24: `Korean only` → locale 디렉티브
-- L116: `Korean only` → locale 디렉티브  
-- L245: `Korean only. 바로 쓸 수 있는 결과물을 만들어` → locale 기반
-- L296: `Korean only` → locale 디렉티브
-- L307: `Professional Korean` → `Professional ${locale === 'ko' ? 'Korean' : 'English'}`
-- L365: `natural conversational Korean` → locale 기반
-- L479: `Korean only` → locale 디렉티브
-- L514: `Korean only` → locale 디렉티브
+## 실행 순서 (멈춰도 실익이 남게)
 
-**locale을 어떻게 전달할 것인가**:
-- `buildInitialAnalysisPrompt(problemText, locale)` — 2번째 파라미터로
-- `buildDeepeningPrompt(..., locale)` — 마지막 파라미터로
-- `buildWorkerTaskPrompt(..., taskType, locale)` — 마지막 파라미터로
-- 나머지 build* 함수들도 동일
+### Phase 0 — 사용자-대면 버그 죽이기 (기본값 정렬 + 반응성)
+1. `LocaleProvider` 생성 (context + 모듈 미러 sync).
+2. `i18n/index.ts`: `t()`/`getCurrentLanguage()` 기본 `'ko'` → 모듈 미러. `useT()` 추가.
+3. `useLocale()`: context 구독. `useSettingsStore` 기본 `language: 'ko'` 처리.
+4. `useLocaleSwitch()`: reload → `router.push`.
 
-locale 값은 `progressive-engine.ts`에서 전달. engine은 `useSettingsStore` 또는 `getCurrentLanguage()`에서 가져옴.
+### Phase 1 — 경로 기반 라우팅 (D1+D3)
+5. `proxy.ts`: locale redirect (`?lang→cookie→Accept-Language`) + 쿠키 set. `/api`,`_next` 제외.
+6. 비-API 라우트 전부 `src/app/[locale]/` 아래로 이동 (git mv). `/api`·메타데이터 루트 유지.
+7. 루트 `layout.tsx` → `<html>`/`<body>`/`<Providers>` 셸만, locale은 `[locale]/layout.tsx`에서.
+8. 내부 `<Link href>`·`router.push`를 locale-prefix 인지하도록 (헬퍼 `localeHref()`).
+9. `generateMetadata`: `[locale]` 기반 canonical + hreflang.
 
-### 2. Worker/Agent 프롬프트 전환
+### Phase 2 — 시드 콘텐츠 (D4)
+10. `DEFAULT_PERSONAS_EN`/`_KO` 분기. (CLAUDE.md 필드 체크리스트 준수.)
 
-**파일**: `src/lib/agent-skills.ts` (~700줄)
+### Phase 3 — LLM 프롬프트 (영어 1벌 + locale 디렉티브)
+11. `progressive-prompts.ts`: `Korean only` → `Respond in ${locale}`. build* 함수에 locale 파라미터.
+12. `progressive-engine.ts`: locale 배관 (모듈 미러에서).
+13. `agent-skills.ts` / `guard-rails.ts` / `task-classifier.ts` / `worker-quality.ts`: 영어/이중 패턴.
 
-변경할 것:
-- 프레임워크 이름은 이미 영어 많음 (MECE, SWOT, Porter 5F). 한국어 설명만 영어로
-- `levelPrompts` (junior/senior/guru 지시문): 영어로 교체
-- `checkpoints`: 영어로 교체
-- `outputFormat`: 영어로 교체
-
-```typescript
-// 변경 전
-frameworks: ['MECE 분류: 빠짐없이, 겹침없이 분류']
-
-// 변경 후
-frameworks: ['MECE Classification: Mutually Exclusive, Collectively Exhaustive']
-```
-
-### 3. Guard-rails 한국어 키워드
-
-**파일**: `src/lib/guard-rails.ts`
-
-변경할 것:
-- 검증기의 한국어 키워드에 영어 대응 추가 (이중 매칭)
-
-```typescript
-// 변경 전
-const failureKw = countMatches(output, ['실패', '망', '붕괴']);
-
-// 변경 후
-const failureKw = countMatches(output, ['실패', '망', '붕괴', 'fail', 'collapse', 'crisis']);
-```
-
-### 4. Task Classifier 영어 패턴
-
-**파일**: `src/lib/task-classifier.ts`
-
-변경할 것:
-- 이미 일부 영어 패턴 있음. 한국어 패턴과 동등하게 영어 패턴 보강
-
-### 5. UI 텍스트 (페이지별)
-
-**파일들** (우선순위 순):
-1. `src/app/workspace/page.tsx` + `ProgressiveFlow.tsx` — 핵심 워크플로우
-2. `src/app/demo/` — 데모 시나리오
-3. `src/components/workspace/progressive/WorkerCard.tsx` — 에이전트 결과 UI
-4. `src/app/settings/page.tsx` — 설정
-5. 나머지 페이지들
-
-**패턴**: 기존 `useLocale()` + `L(ko, en)` 그대로 사용
-
-```tsx
-const locale = useLocale();
-const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-
-<button>{L('반영', 'Apply')}</button>
-```
-
-### 6. Specificity/Quality 검증 영어 대응
-
-**파일**: `src/lib/worker-quality.ts`
-
-변경할 것:
-- `GENERIC_PHRASES`에 영어 제네릭 문구 추가
-- `checkSpecificity`에서 영어 수치 패턴 추가
-
-## 실행 순서
-
-1. **progressive-prompts.ts** — locale 파라미터 추가 + 디렉티브 전환 (가장 중요)
-2. **progressive-engine.ts** — locale을 prompt 함수들에 전달하는 배관
-3. **agent-skills.ts** — 프레임워크/체크포인트/레벨프롬프트 영어 전환
-4. **guard-rails.ts + task-classifier.ts + worker-quality.ts** — 이중 언어 패턴
-5. **UI 컴포넌트들** — 페이지별 L() 적용
+### Phase 4 — 문자열 스윕 (남은 한국어 하드코딩)
+14. 랜딩 hero(ForkPath 등) · 워크스페이스 · 토스트 · 예시 등 `L()`/`useT()` 적용.
+15. `return-email.ts`(STUB, 발송 미배선) — locale화하되 우선순위 낮음.
 
 ## 검증
-
-- 영어로 "I need to write a project proposal for my CEO" 입력 → 영어로 분석 나오는지
-- 한국어로 "대표님이 기획안 써오라고 했어" 입력 → 한국어로 분석 나오는지
-- guard-rails가 영어 결과물도 제대로 검증하는지
-- 기존 한국어 테스트 (1009개) 통과하는지
+- `?lang` 없이 EN Accept-Language → `/en`으로 redirect, 영어 SSR, 한국어 0.
+- KO Accept-Language → `/ko`, 한국어 SSR.
+- 헤더 언어 토글 → reload 없이 즉시 전환 (D2).
+- 기존 테스트 전부 통과 + `persistence-contract`/`schema-drift` 가드 통과.
+- en/ko 키 parity 유지 (302/302).

@@ -5,6 +5,7 @@ import { Button } from './Button';
 import { AnimatedPlaceholder } from './AnimatedPlaceholder';
 import { Sparkles } from 'lucide-react';
 import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 
 interface ChipOption {
   value: string;
@@ -40,6 +41,7 @@ export function GuidedInput({
   onSubmit,
   disabled,
 }: GuidedInputProps) {
+  const t = useT();
   const effectiveSubmitLabel = submitLabel ?? t('ui.submitAnalysis');
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [text, setText] = useState('');

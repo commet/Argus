@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Card } from './Card';
 import { ArrowRight, Map, Users, RefreshCw, FileText } from 'lucide-react';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 
 interface NextStepOption {
   href: string;
@@ -24,6 +24,7 @@ export function NextStepGuide({
   projectId,
   onSendTo,
 }: NextStepGuideProps) {
+  const t = useT();
   const options: NextStepOption[] = [];
 
   if (currentTool === 'reframe') {

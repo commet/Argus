@@ -381,6 +381,9 @@ describe('Checklist', () => {
   });
 
   it('21: generates header with project name', () => {
+    // First getStorage call is SETTINGS (via getCurrentLanguage). Pin ko so the
+    // header renders in Korean — matches the pattern in tests 22–25.
+    mockGetStorage.mockReturnValueOnce({ language: 'ko' });
     const project = makeProject({ name: 'Alpha Launch' });
     const result = generateChecklist(project);
     expect(result).toContain('# 실행 체크리스트: Alpha Launch');

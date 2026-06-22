@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import type { Settings } from '@/stores/types';
+import { useLocaleContext } from '@/contexts/LocaleProvider';
 
 export type Locale = 'ko' | 'en';
 
@@ -20,40 +21,43 @@ function detectUrlLocale(): Locale | null {
 /**
  * Resolves the user's locale.
  *
- * Priority (highest first):
- *   1. URL param (?lang=ko | ?lang=en) — transient; for shareable marketing links
- *   2. Explicit user setting — persisted in Settings (set via Settings UI)
- *   3. Browser Accept-Language on first visit — auto-persisted so next visit is stable
- *   4. Default: 'en' — matches SSR to avoid hydration flash for English-speaking users
+ * The source of truth is the LocaleProvider (seeded from the request's resolved
+ * locale on the server, so SSR and the first client paint agree). When a
+ * provider is present we read from it — this is reactive, so a locale change
+ * (navigation) re-renders consumers without a page reload.
  *
- * A Korean browser user will see English for ~1 frame on first visit before the
- * useEffect switches to Korean (acceptable, given the product's English-first focus).
+ * The standalone path below only runs when there is NO provider (e.g. a
+ * component mounted in a unit test). It mirrors the old resolution order:
+ *   1. URL param (?lang=ko | ?lang=en)
+ *   2. Explicit stored setting
+ *   3. Browser Accept-Language on first visit (auto-persisted)
+ *   4. Default 'en'
  */
 export function useLocale(): Locale {
-  const [locale, setLocale] = useState<Locale>('en');
+  const ctx = useLocaleContext();
+  const [fallbackLocale, setFallbackLocale] = useState<Locale>('en');
 
   useEffect(() => {
-    // 1. URL param wins (does NOT persist — URL is the source of truth for that session)
+    if (ctx) return; // provider is the source of truth
+
     const urlLocale = detectUrlLocale();
     if (urlLocale) {
-      setLocale(urlLocale);
+      setFallbackLocale(urlLocale);
       return;
     }
 
-    // 2. Explicit user setting (previously chosen in Settings)
     const settings = getStorage<Settings>(STORAGE_KEYS.SETTINGS, {} as Settings);
     if (settings.language) {
-      setLocale(settings.language as Locale);
+      setFallbackLocale(settings.language as Locale);
       return;
     }
 
-    // 3. First visit: detect from browser, persist so subsequent visits are stable
     const browserLocale = detectBrowserLocale();
     setStorage(STORAGE_KEYS.SETTINGS, { ...settings, language: browserLocale });
-    setLocale(browserLocale);
-  }, []);
+    setFallbackLocale(browserLocale);
+  }, [ctx]);
 
-  return locale;
+  return ctx ? ctx.locale : fallbackLocale;
 }
 
 /**
@@ -61,5 +65,5 @@ export function useLocale(): Locale {
  * Usage: const L = useLandingText(locale); L('제목', 'Title')
  */
 export function useLandingText(locale: Locale) {
-  return (ko: string, en: string) => locale === 'ko' ? ko : en;
+  return (ko: string, en: string) => (locale === 'ko' ? ko : en);
 }

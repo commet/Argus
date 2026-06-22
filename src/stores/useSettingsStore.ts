@@ -11,7 +11,9 @@ const DEFAULT_SETTINGS: Settings = {
   gemini_model: 'gemini-2.5-flash',
   llm_mode: 'proxy',
   local_endpoint: '',
-  language: 'ko',
+  // en-first: the source language. A returning user's stored choice wins via
+  // the spread-merge in loadSettings; only fresh installs get this default.
+  language: 'en',
   audio_enabled: false,
   audio_volume: 0.15,
   all_output_formats: false,

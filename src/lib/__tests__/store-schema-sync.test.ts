@@ -274,8 +274,10 @@ describe('Store Schema Sync', () => {
       expect(useSettingsStore.getState().settings.llm_mode).toBe('proxy');
     });
 
-    it('기본 언어는 한국어', () => {
-      expect(useSettingsStore.getState().settings.language).toBe('ko');
+    it('기본 언어는 영어 (en-first)', () => {
+      // en-first launch: a fresh install with no stored preference defaults to
+      // English. A returning user's stored choice still wins via loadSettings.
+      expect(useSettingsStore.getState().settings.language).toBe('en');
     });
   });
 

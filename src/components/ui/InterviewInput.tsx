@@ -5,6 +5,7 @@ import { Button } from './Button';
 import { AnimatedPlaceholder } from './AnimatedPlaceholder';
 import { Sparkles, ArrowRight, ArrowLeft, Check, SkipForward } from 'lucide-react';
 import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 
 interface ChipOption {
   value: string;
@@ -39,6 +40,7 @@ export function InterviewInput({
   onSubmit,
   disabled,
 }: InterviewInputProps) {
+  const t = useT();
   const effectiveSubmitLabel = submitLabel ?? t('ui.submitAnalysis');
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});

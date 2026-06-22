@@ -7,7 +7,7 @@ import { getPersonalityType } from '@/lib/boss/personality-types';
 import { useBossStore } from '@/stores/useBossStore';
 import { useLocale } from '@/hooks/useLocale';
 import { composeKyeol } from '@/lib/boss/kyeol';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 
 interface VerdictShareCardProps {
   verdict: { verdict: string; reason: string; tip?: string };
@@ -16,7 +16,7 @@ interface VerdictShareCardProps {
   onClose: () => void;
 }
 
-const VERDICT_LABEL_KEY: Record<string, Parameters<typeof t>[0]> = {
+const VERDICT_LABEL_KEY: Record<string, Parameters<ReturnType<typeof useT>>[0]> = {
   approved: 'boss.verdict.approved',
   conditional: 'boss.verdict.conditional',
   rejected: 'boss.verdict.rejected',
@@ -43,6 +43,7 @@ function findBestQuote(messages: Array<{ role: string; content: string }>): stri
 }
 
 export function VerdictShareCard({ verdict, typeCode, situation, onClose }: VerdictShareCardProps) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const locale = useLocale();
   const type = getPersonalityType(typeCode);

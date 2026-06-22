@@ -27,7 +27,7 @@ import { buildReframeContext, injectReframeContext, mergeAssumptionsIntoKeyAssum
 import type { ReframeContext } from '@/stores/types';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { NavigatorInline } from '@/components/workspace/NavigatorInline';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 import { recordSignal, getSignals } from '@/lib/signal-recorder';
 import { autoPersonaToFull } from '@/lib/auto-persona';
 const lazyEvalEngine = () => import('@/lib/eval-engine');
@@ -228,6 +228,7 @@ interface RecastStepProps {
 
 export function RecastStep({ onNavigate }: RecastStepProps) {
   const locale = useLocale();
+  const t = useT();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const RECAST_ENTRY_STEPS = buildRecastEntrySteps(L);
   const store = useRecastStore();

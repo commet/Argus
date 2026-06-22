@@ -49,7 +49,7 @@ import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
 import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 import { personaName, personaRole } from './shared/persona-format';
 import { MixPreview } from './MixPreview';
 import { DMFeedback } from './DMFeedback';
@@ -1008,6 +1008,7 @@ function PipelineExitOptions({ onReframe, onRehearse }: {
 
 export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const locale = useLocale();
+  const t = useT();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const store = useProgressiveStore();
   const session = store.currentSession();

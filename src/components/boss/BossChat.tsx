@@ -20,7 +20,8 @@ import { getPersonalityType as getType } from '@/lib/boss/personality-types';
 import { getYearElement } from '@/lib/boss/saju-interpreter';
 import { DailyMoodIndicator } from './DailyMoodIndicator';
 import { PastVerdictRecap } from './PastVerdictRecap';
-import { t, getCurrentLanguage } from '@/lib/i18n';
+import { getCurrentLanguage } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 import { useLocale } from '@/hooks/useLocale';
 
 // ─── 대화 온도 추적 ───
@@ -234,6 +235,7 @@ export function BossChat() {
   } = useBossStore();
 
   const locale = useLocale();
+  const t = useT();
   const L = (k: string, e: string) => (locale === 'ko' ? k : e);
   const { user } = useAuth();
   const isAnon = !user;
@@ -347,7 +349,7 @@ export function BossChat() {
 
     // Agent에서 로드된 boss면 agent 프롬프트 사용 (Lv.2+ observation 주입)
     const agent = loadedAgentId ? useAgentStore.getState().getAgent(loadedAgentId) : undefined;
-    const bossLocale: 'ko' | 'en' = (agent?.boss_locale as 'ko' | 'en') ?? (getCurrentLanguage() === 'ko' ? 'ko' : 'en');
+    const bossLocale: 'ko' | 'en' = (agent?.boss_locale as 'ko' | 'en') ?? (locale === 'ko' ? 'ko' : 'en');
 
     const consumeForceVerdict = forceVerdictRef.current;
     if (consumeForceVerdict) forceVerdictRef.current = false;
@@ -412,7 +414,7 @@ export function BossChat() {
         onError: async (err) => {
           const msg = err instanceof Error ? err.message : String(err);
           const isOverloaded = msg.includes('과부하') || msg.includes('503') || msg.includes('529') || msg.includes('서버') || msg.toLowerCase().includes('overloaded') || msg.toLowerCase().includes('server');
-          const ko = getCurrentLanguage() === 'ko';
+          const ko = locale === 'ko';
           if (isOverloaded && retry < 2) {
             console.warn(`[boss] overloaded, retry ${retry + 1}...`);
             updateStreamingText(ko ? '잠시만...' : 'One moment...');
@@ -440,7 +442,7 @@ export function BossChat() {
         },
       },
     );
-  }, [typeData, sajuProfile, gender, setStreaming, updateStreamingText, commitAssistantMessage]);
+  }, [typeData, sajuProfile, gender, setStreaming, updateStreamingText, commitAssistantMessage, locale]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();

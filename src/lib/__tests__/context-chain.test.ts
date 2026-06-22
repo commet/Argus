@@ -5,6 +5,11 @@ import {
   extractInterviewSignals,
   mergeAssumptionsIntoKeyAssumptions,
 } from '@/lib/context-chain';
+import { setModuleLocale } from '@/lib/i18n';
+
+// i18n default is now 'en' (en-first). These suites verify the KOREAN prompt
+// output, so pin the locale. The English branch is verified in Phase 3.
+beforeEach(() => setModuleLocale('ko'));
 
 /* ────────────────────────────────────
    buildReframeContext

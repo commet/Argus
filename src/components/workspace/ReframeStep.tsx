@@ -32,7 +32,7 @@ import type { EntryStep } from '@/components/ui/StepEntry';
 const lazyEvalEngine = () => import('@/lib/eval-engine');
 import { applyPromptMutations } from '@/lib/prompt-mutation';
 import { NavigatorInline } from '@/components/workspace/NavigatorInline';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 import { recordSignal } from '@/lib/signal-recorder';
 import { useLocale } from '@/hooks/useLocale';
 
@@ -381,6 +381,7 @@ interface ReframeStepProps {
 
 export function ReframeStep({ onNavigate }: ReframeStepProps) {
   const locale = useLocale();
+  const t = useT();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const CORE_STEPS = buildCoreSteps(L);
   const { items, currentId, loadItems, createItem, updateItem, deleteItem, setCurrentId, getCurrentItem } = useReframeStore();

@@ -6,9 +6,9 @@ import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
 import { getStorage, setStorage } from '@/lib/storage';
 import { buildNavigatorProfile, buildNavigatorInsights, buildLearningCurve } from '@/lib/navigator';
 import type { NavigatorInsight, LearningCurve } from '@/lib/navigator';
-import { t } from '@/lib/i18n';
+import { useT } from '@/contexts/LocaleProvider';
 
-const STRATEGY_KEYS: Record<string, Parameters<typeof t>[0]> = {
+const STRATEGY_KEYS: Record<string, Parameters<ReturnType<typeof useT>>[0]> = {
   challenge_existence: 'strategy.challengeExistence',
   narrow_scope: 'strategy.narrowScope',
   diagnose_root: 'strategy.diagnoseRoot',
@@ -29,7 +29,7 @@ const TREND_COLOR: Record<string, string> = {
   not_enough_data: 'text-[var(--text-tertiary)]',
 };
 
-const TREND_KEY: Record<string, Parameters<typeof t>[0]> = {
+const TREND_KEY: Record<string, Parameters<ReturnType<typeof useT>>[0]> = {
   improving: 'learning.trendImproving',
   stable: 'learning.trendStable',
   declining: 'learning.trendDeclining',
@@ -163,6 +163,7 @@ function AxisCoverageBar({ coverage, gap }: { coverage: Record<string, number>; 
    ──────────────────────────────────── */
 
 function TierProgress({ tier, progress }: { tier: 1 | 2 | 3; progress: number }) {
+  const t = useT();
   const tierLabels = ['', t('learning.tierBeginner'), t('learning.tierSkilled'), t('learning.tierMaster')];
   const nextTierLabels = ['', t('learning.tierSkilled'), t('learning.tierMaster'), ''];
 
@@ -196,6 +197,7 @@ function TierProgress({ tier, progress }: { tier: 1 | 2 | 3; progress: number })
 const DISMISSED_KEY = 'argus-navigator-dismissed';
 
 export function NavigatorStrip() {
+  const t = useT();
   const { navigatorOpen, toggleNavigator } = useWorkspaceStore();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
