@@ -304,6 +304,106 @@ function cmdLedger() {
   console.log(C.dim(`\n  원장 위치: ${ledgerDir(repoRoot)} (로컬 전용)`));
 }
 
+// ─────────────────────── push to webapp ───────────────────────
+// The plugin's results live in local .argus/ files. `connect` saves a personal
+// access token (issued in the webapp's Settings) once; `push` ships the ledger
+// + voyage bearings to the webapp so every web channel (Slack/Telegram/email)
+// can share them — instead of hand-uploading JSON through the /import page.
+
+function pushConfigFile() { return path.join(ledgerDir(repoRoot), 'push.json'); }
+
+function loadPushConfig() {
+  // Precedence: flags > env > saved config file. (.argus/ledger/ is gitignored,
+  // so the saved token never lands in version control.)
+  let cfg = {};
+  try { cfg = JSON.parse(fs.readFileSync(pushConfigFile(), 'utf8')); } catch { /* none */ }
+  return {
+    token: flags.token || process.env.ARGUS_PUSH_TOKEN || cfg.token || null,
+    url: (flags.url || process.env.ARGUS_PUSH_URL || cfg.url || 'https://argus.voyage').replace(/\/$/, ''),
+  };
+}
+
+function cmdConnect() {
+  const token = flags.token || flags._[0];
+  if (!token) {
+    console.error('usage: argus-watch connect --token <argus_pat_…> [--url https://argus.voyage]');
+    console.error('토큰은 웹앱 설정 → 연동 & 데이터 → "플러그인 푸시 토큰"에서 발급해요.');
+    process.exit(1);
+  }
+  const url = (flags.url || process.env.ARGUS_PUSH_URL || 'https://argus.voyage').replace(/\/$/, '');
+  fs.mkdirSync(ledgerDir(repoRoot), { recursive: true });
+  fs.writeFileSync(pushConfigFile(), JSON.stringify({ token, url }, null, 2));
+  console.log(`${C.green('연결됐어요.')} 이제 ${C.cyan('argus-watch push')}로 결과를 웹앱에 보낼 수 있어요.`);
+  console.log(C.dim(`   (토큰은 ${pushConfigFile()} 에 저장 — gitignored)`));
+}
+
+/** Collect current_bearing.json files anywhere under .argus/sessions/. */
+function findBearingFiles() {
+  const root = path.join(repoRoot, '.argus', 'sessions');
+  const found = [];
+  const walk = (dir, depth) => {
+    if (depth > 6) return;
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) walk(full, depth + 1);
+      else if (e.name === 'current_bearing.json') found.push(full);
+    }
+  };
+  walk(root, 0);
+  return found;
+}
+
+async function cmdPush() {
+  const { token, url } = loadPushConfig();
+  if (!token) {
+    console.error('아직 연결되지 않았어요. 먼저:');
+    console.error(`  ${C.cyan('argus-watch connect --token <argus_pat_…>')}`);
+    console.error('  (토큰은 웹앱 설정 → 연동 & 데이터에서 발급)');
+    process.exit(1);
+  }
+
+  const files = [];
+  const ledgerPath = path.join(ledgerDir(repoRoot), 'ledger.jsonl');
+  if (fs.existsSync(ledgerPath)) {
+    files.push({ name: 'ledger.jsonl', content: fs.readFileSync(ledgerPath, 'utf8') });
+  }
+  for (const bp of findBearingFiles()) {
+    files.push({ name: path.relative(repoRoot, bp), content: fs.readFileSync(bp, 'utf8') });
+  }
+
+  if (!files.length) {
+    console.log('보낼 게 없어요 — 아직 봉인된 결정도, 항해 기록(current_bearing.json)도 없어요.');
+    return;
+  }
+
+  console.log(C.dim(`${files.length}개 파일을 ${url} 로 보내는 중…`));
+  let res, data;
+  try {
+    res = await fetch(`${url}/api/plugin/ingest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ files }),
+    });
+    data = await res.json().catch(() => ({}));
+  } catch (err) {
+    console.error(C.red(`전송 실패: ${err.message}`));
+    process.exit(1);
+  }
+
+  if (!res.ok) {
+    console.error(C.red(`전송 실패 (${res.status}): ${data.error || '알 수 없는 오류'}`));
+    if (res.status === 401) console.error('토큰이 만료/무효일 수 있어요. 설정에서 새로 발급하고 다시 connect 하세요.');
+    process.exit(1);
+  }
+
+  const s = data.summary || {};
+  console.log(`${C.green('보냈어요.')} 결정 ${s.decisions?.written ?? 0}건 · 항해 기록 ${s.bearings?.written ?? 0}건이 웹앱에 도착했어요.`);
+  if (s.skipped?.length) console.log(C.dim(`   건너뜀: ${s.skipped.length}개 (형식 불일치)`));
+  console.log(C.dim(`   웹앱에서 열어보기: ${url}/import`));
+}
+
 // ───────────────────────── main ─────────────────────────
 
 const HELP = `argus-watch — 이미 일어난 대화에서 결정을 알아보는 눈
@@ -317,12 +417,16 @@ const HELP = `argus-watch — 이미 일어난 대화에서 결정을 알아보�
   nudge                  (훅용 — 새 결정 후보·확인일 있을 때만 한 줄, 아니면 침묵)
   settle <id> <happened|avoided|partial|pending> [--note ..]
   ledger
+  connect --token <argus_pat_…> [--url ..]   웹앱 푸시 토큰 저장 (설정에서 발급)
+  push                                        결정·항해 기록을 웹앱으로 전송
 
-데이터는 .argus/ledger/ (로컬 전용, git 제외)에만 저장돼요.`;
+데이터는 .argus/ledger/ (로컬 전용, git 제외)에만 저장돼요.
+push는 명시적으로 실행할 때만 선택한 결과를 웹앱(본인 계정)으로 보냅니다.`;
 
 const commands = {
   scan: cmdScan, list: cmdList, seal: cmdSeal, amend: cmdAmend,
   dismiss: cmdDismiss, due: cmdDue, nudge: cmdNudge, settle: cmdSettle, ledger: cmdLedger,
+  connect: cmdConnect, push: cmdPush,
 };
 if (!cmd || !commands[cmd]) { console.log(HELP); process.exit(cmd ? 1 : 0); }
 await commands[cmd]();

@@ -85,10 +85,20 @@ export default function ImportPage() {
       <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
         {L('플러그인 기록 가져오기', 'Import plugin records')}
       </h1>
-      <p className="text-[14px] text-[var(--text-secondary)] mb-6">
+      <p className="text-[14px] text-[var(--text-secondary)] mb-3">
         {L('Claude Code 플러그인의 .argus/ledger/ledger.jsonl 과 current_bearing.json 파일을 올리면 여기서 열어볼 수 있어요.',
            'Upload your Claude Code plugin’s .argus/ledger/ledger.jsonl and current_bearing.json files to open them here.')}
       </p>
+      <div className="mb-6 px-3.5 py-3 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)]">
+        <p className="text-[12.5px] text-[var(--text-secondary)]">
+          {L('더 쉬운 방법: 설정에서 푸시 토큰을 발급한 뒤, 플러그인에서 한 번만 ',
+             'Easier: issue a push token in Settings, then once in the plugin run ')}
+          <code className="text-[11.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">argus-watch connect --token …</code>
+          {L(' 하고 ', ' and ')}
+          <code className="text-[11.5px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">argus-watch push</code>
+          {L(' 하면 파일을 직접 올리지 않아도 자동으로 들어와요.', ' — no manual upload needed.')}
+        </p>
+      </div>
 
       {/* Upload */}
       <Card variant="muted" className="mb-6">

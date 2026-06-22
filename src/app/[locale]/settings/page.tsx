@@ -9,11 +9,13 @@ import { clearAllStorage, STORAGE_KEYS, getStorage } from '@/lib/storage';
 import { downloadJson } from '@/lib/export';
 import { deleteAllUserData } from '@/lib/db';
 import type { LLMMode, LLMProvider } from '@/stores/types';
-import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, Volume2, TrendingUp, Brain, MessageSquare, Unlink, User, BarChart3, FlaskConical } from 'lucide-react';
+import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, Volume2, TrendingUp, Brain, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2 } from 'lucide-react';
 import { getObservationsSummary } from '@/lib/user-context';
 import { assessLearningHealth } from '@/lib/learning-health';
 import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAmbientPlaying } from '@/lib/audio';
 import { useSlackStore } from '@/stores/useSlackStore';
+import { useTelegramStore } from '@/stores/useTelegramStore';
+import { supabase } from '@/lib/supabase';
 import { useLocale } from '@/hooks/useLocale';
 
 function buildLlmProviders(L: (ko: string, en: string) => string) {
@@ -547,6 +549,14 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* Telegram */}
+        <div className="border-t border-[var(--border-subtle)] my-4" />
+        <TelegramBlock locale={locale} />
+
+        {/* Plugin push token */}
+        <div className="border-t border-[var(--border-subtle)] my-4" />
+        <PluginTokenBlock locale={locale} />
+
         {/* Data management */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
         <div className="space-y-2">
@@ -650,6 +660,158 @@ export default function SettingsPage() {
           <Button variant="danger" onClick={handleReset}>{L('삭제', 'Delete')}</Button>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+function TelegramBlock({ locale }: { locale: string }) {
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const connections = useTelegramStore((s) => s.connections);
+  const loadConnections = useTelegramStore((s) => s.loadConnections);
+  const startConnect = useTelegramStore((s) => s.startConnect);
+  const disconnect = useTelegramStore((s) => s.disconnect);
+  const [pending, setPending] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  useEffect(() => { loadConnections(); }, [loadConnections]);
+
+  const handleConnect = async () => {
+    setNote(null);
+    setPending(true);
+    const r = await startConnect();
+    if (r.ok && r.link) {
+      window.open(r.link, '_blank', 'noopener');
+      setNote(L('텔레그램이 열리면 “시작/Start”을 눌러 주세요. 연결되면 아래에 표시돼요.',
+                'When Telegram opens, tap “Start”. Once connected it appears below.'));
+    } else if (r.error === 'unconfigured') {
+      setNote(L('이 배포에는 아직 Telegram 봇이 설정되지 않았어요(운영자가 TELEGRAM_* 환경변수 등록 필요).',
+                'Telegram bot isn’t configured on this deployment yet (operator must set TELEGRAM_* env vars).'));
+    } else {
+      setNote(r.error || L('연결을 시작할 수 없어요.', 'Could not start connect.'));
+    }
+    setPending(false);
+  };
+
+  return (
+    <div>
+      {connections.length > 0 ? (
+        <div className="space-y-2">
+          {connections.map((c) => (
+            <div key={c.id} className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg">
+              <div>
+                <p className="text-[14px] font-medium flex items-center gap-1.5">
+                  <Check size={14} className="text-[var(--success)]" /> {c.chat_title || L('내 Telegram', 'My Telegram')}
+                </p>
+                <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 이 Telegram 채팅으로 바로 보낼 수 있어요', 'Send results straight to this Telegram chat')}</p>
+              </div>
+              <Button variant="danger" size="sm" onClick={() => disconnect(c.id)}>
+                <Unlink size={14} /> {L('연결 해제', 'Disconnect')}
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
+          <div>
+            <p className="text-[14px] font-medium">{L('Telegram에 연결하기', 'Connect to Telegram')}</p>
+            <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 Telegram으로 직접 공유', 'Share results directly to Telegram')}</p>
+          </div>
+          <Button variant="secondary" size="sm" onClick={handleConnect} disabled={pending}>
+            {pending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} {L('연결하기', 'Connect')}
+          </Button>
+        </div>
+      )}
+      {note && <p className="text-[12px] text-[var(--text-secondary)] mt-2">{note}</p>}
+      {connections.length === 0 && (
+        <button onClick={() => loadConnections()} className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] mt-1.5 cursor-pointer transition-colors">
+          {L('연결했는데 안 보이면 새로고침', 'Connected but not showing? Refresh')}
+        </button>
+      )}
+    </div>
+  );
+}
+
+interface PluginToken { id: string; label: string | null; last_used_at: string | null; created_at: string }
+
+function PluginTokenBlock({ locale }: { locale: string }) {
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [tokens, setTokens] = useState<PluginToken[]>([]);
+  const [issued, setIssued] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    const { data } = await supabase
+      .from('plugin_tokens')
+      .select('id, label, last_used_at, created_at')
+      .order('created_at', { ascending: false });
+    setTokens(data || []);
+  };
+  useEffect(() => { load(); }, []);
+
+  const issue = async () => {
+    setError(''); setBusy(true); setIssued(null);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) { setError(L('로그인이 필요해요.', 'Login required.')); return; }
+      const res = await fetch('/api/plugin/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ label: 'CLI' }),
+      });
+      const json = await res.json();
+      if (json.token) { setIssued(json.token); await load(); }
+      else setError(json.error || L('발급 실패', 'Could not issue'));
+    } finally { setBusy(false); }
+  };
+
+  const revoke = async (id: string) => {
+    await supabase.from('plugin_tokens').delete().eq('id', id);
+    await load();
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[14px] font-medium flex items-center gap-1.5"><KeyRound size={14} className="text-[var(--accent)]" /> {L('플러그인 푸시 토큰', 'Plugin push token')}</p>
+          <p className="text-[12px] text-[var(--text-secondary)]">{L('Claude Code 플러그인에서 argus-watch push로 결과를 자동 전송', 'Auto-send plugin results via argus-watch push')}</p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={issue} disabled={busy}>
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} {L('새 토큰 발급', 'Issue token')}
+        </Button>
+      </div>
+      {error && <p className="text-[12px] text-red-600 mt-2">{error}</p>}
+
+      {issued && (
+        <div className="mt-3 p-3 rounded-lg bg-[var(--checkpoint)] border border-amber-500/30">
+          <p className="text-[12px] font-medium text-[var(--text-primary)] mb-1.5">{L('이 토큰은 지금만 보여요. 복사해서 안전하게 보관하세요.', 'Shown only once. Copy and store it safely.')}</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-[11.5px] font-mono bg-[var(--bg)] px-2.5 py-1.5 rounded-md break-all">{issued}</code>
+            <Button variant="secondary" size="sm" onClick={async () => { await navigator.clipboard.writeText(issued); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
+              {copied ? <Check size={13} /> : <Copy size={13} />}
+            </Button>
+          </div>
+          <p className="text-[11px] text-[var(--text-tertiary)] mt-2 font-mono">argus-watch connect --token {issued.slice(0, 14)}…</p>
+        </div>
+      )}
+
+      {tokens.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {tokens.map((t) => (
+            <div key={t.id} className="flex items-center justify-between text-[12px] px-2.5 py-1.5 rounded-md bg-[var(--bg)]">
+              <span className="text-[var(--text-secondary)]">
+                {t.label || 'CLI'} · <span className="text-[var(--text-tertiary)]">{t.last_used_at ? L('최근 사용 ', 'used ') + t.last_used_at.slice(0, 10) : L('미사용', 'unused')}</span>
+              </span>
+              <button onClick={() => revoke(t.id)} className="text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors">
+                {L('해지', 'Revoke')}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

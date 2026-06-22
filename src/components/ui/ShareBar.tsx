@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageSquare } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { CopyButton } from './CopyButton';
-import { EmailButton } from './EmailButton';
-import { SlackChannelPicker } from './SlackChannelPicker';
 import { Button } from './Button';
-import { useSlackStore } from '@/stores/useSlackStore';
+import { ShareComposer } from './ShareComposer';
 import { useT } from '@/contexts/LocaleProvider';
-import { track } from '@/lib/analytics';
+import { useLocale } from '@/hooks/useLocale';
 
 interface ShareBarProps {
   getText: () => string;
@@ -19,37 +17,34 @@ interface ShareBarProps {
   shareContext?: string;
 }
 
+/**
+ * Copy is instant (paste IS the review). Every *transmitting* channel — email,
+ * Slack, Telegram — goes through ShareComposer's preview→confirm flow behind one
+ * "Send…" button, so nothing leaves the app without the user seeing it first.
+ */
 export function ShareBar({ getText, getTitle, copyLabel, shareContext = 'unknown' }: ShareBarProps) {
   const t = useT();
-  const [slackOpen, setSlackOpen] = useState(false);
-  const isConnected = useSlackStore(s => s.isConnected());
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [composerOpen, setComposerOpen] = useState(false);
   const effectiveCopyLabel = copyLabel ?? t('ui.copyMarkdown');
-
-  const trackShare = (channel: 'copy' | 'email' | 'slack') =>
-    track('output_shared', { channel, context: shareContext });
 
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <CopyButton getText={getText} label={effectiveCopyLabel} onCopied={() => trackShare('copy')} />
-        <EmailButton getSubject={getTitle} getBody={getText} onSent={() => trackShare('email')} />
-        {isConnected ? (
-          <Button variant="secondary" onClick={() => { trackShare('slack'); setSlackOpen(true); }}>
-            <MessageSquare size={14} />
-            Slack
-          </Button>
-        ) : (
-          <a href="/settings" className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors px-2">
-            {t('ui.connectSlack')}
-          </a>
-        )}
+        <CopyButton getText={getText} label={effectiveCopyLabel} />
+        <Button variant="secondary" onClick={() => setComposerOpen(true)}>
+          <Send size={14} />
+          {L('보내기', 'Send')}
+        </Button>
       </div>
 
-      <SlackChannelPicker
-        open={slackOpen}
-        onClose={() => setSlackOpen(false)}
-        title={getTitle()}
-        content={getText()}
+      <ShareComposer
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        getText={getText}
+        getTitle={getTitle}
+        shareContext={shareContext}
       />
     </>
   );
