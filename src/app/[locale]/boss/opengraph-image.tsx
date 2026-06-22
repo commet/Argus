@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og';
-import { headers } from 'next/headers';
 
 // Twitter / Facebook standard
 export const size = { width: 1200, height: 630 };
@@ -60,16 +59,9 @@ const COPY_EN: Copy = {
   subtitle: 'Personality + birth-energy → a simulation that actually lands',
 };
 
-function detectLocale(acceptLanguage: string | null): 'ko' | 'en' {
-  if (!acceptLanguage) return 'ko';
-  // First language token wins. Korean OS locales lead with 'ko-...' or 'ko_...'.
-  const first = acceptLanguage.split(',')[0]?.toLowerCase().trim() ?? '';
-  return first.startsWith('ko') ? 'ko' : 'en';
-}
-
-export default async function Image() {
-  const h = await headers();
-  const locale = detectLocale(h.get('accept-language'));
+export default async function Image({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale: seg } = await params;
+  const locale: 'ko' | 'en' = seg === 'ko' ? 'ko' : 'en';
   const copy = locale === 'ko' ? COPY_KO : COPY_EN;
 
   // Best-effort font load. On Vercel these fetches succeed and Korean/Latin

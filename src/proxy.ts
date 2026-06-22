@@ -111,7 +111,8 @@ export function proxy(req: NextRequest) {
   // Locale-less page path — redirect to the resolved locale.
   const locale = resolveLocale(req);
   const target = req.nextUrl.clone();
-  target.pathname = `/${locale}${pathname}`;
+  // Avoid `/` → `/en/` (a trailing slash Next then 308-normalizes — a third hop).
+  target.pathname = pathname === '/' ? `/${locale}` : `/${locale}${pathname}`;
   const response = NextResponse.redirect(target, 307);
   response.cookies.set('argus-locale', locale, {
     path: '/',

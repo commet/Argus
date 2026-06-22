@@ -15,6 +15,7 @@ import { assessLearningHealth } from '@/lib/learning-health';
 import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAmbientPlaying } from '@/lib/audio';
 import { useSlackStore } from '@/stores/useSlackStore';
 import { useLocale } from '@/hooks/useLocale';
+import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 
 function buildLlmProviders(L: (ko: string, en: string) => string) {
   return [
@@ -34,6 +35,7 @@ function buildLlmModes(L: (ko: string, en: string) => string) {
 
 export default function SettingsPage() {
   const locale = useLocale();
+  const { switchTo } = useLocaleSwitch();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const llmProviders = buildLlmProviders(L);
   const llmModes = buildLlmModes(L);
@@ -401,9 +403,9 @@ export default function SettingsPage() {
           ].map((lang) => (
             <button
               key={lang.value}
-              onClick={() => { updateSettings({ language: lang.value }); window.location.reload(); }}
+              onClick={() => switchTo(lang.value)}
               className={`flex-1 py-2 rounded-lg text-[13px] font-medium border text-center transition-colors cursor-pointer ${
-                settings.language === lang.value
+                locale === lang.value
                   ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)]'
               }`}
