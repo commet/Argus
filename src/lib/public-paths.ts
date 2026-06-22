@@ -16,6 +16,12 @@ export const PUBLIC_PATHS = [
   '/privacy',
   '/terms',
   '/design',
+  // /project is public so the anonymous cohort that SEALED a decision can reach
+  // their promised return (the seal + .ics both point here). The page is
+  // localStorage-first — it renders the user's local projects, the due strip,
+  // and the SettlementModal for anon; AuthGuard previously walled it, so the
+  // seal made a dated promise to a surface the sealer was then locked out of.
+  '/project',
 ] as const;
 
 export const PUBLIC_PREFIXES = ['/api/', '/_next/', '/favicon.ico'] as const;

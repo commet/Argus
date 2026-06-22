@@ -34,12 +34,12 @@ export function Header() {
   // Return badge — projects whose decision contract check-in is due.
   const projects = useProjectStore((s) => s.projects);
   const loadProjects = useProjectStore((s) => s.loadProjects);
-  const projectsLoadedRef = useRef(false);
+  // localStorage-first: load for EVERYONE (anon included). The seal->return loop
+  // promises the anonymous cohort a dated return, so the due badge must light up
+  // for them too — it was gated behind `if (user)`, leaving anon's badge always
+  // dead. Reruns when a user logs in so the remote merge lands.
   useEffect(() => {
-    if (user && !projectsLoadedRef.current) {
-      projectsLoadedRef.current = true;
-      loadProjects();
-    }
+    loadProjects();
   }, [user, loadProjects]);
   // Computed every render (no memo): a memo keyed on [projects] froze
   // Date.now(), so a tab left open past midnight kept yesterday's count.
