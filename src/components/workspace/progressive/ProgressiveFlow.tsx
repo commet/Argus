@@ -48,7 +48,7 @@ import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
-import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, TrendingUp, TrendingDown, Minus, Eye } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useT } from '@/contexts/LocaleProvider';
 import { personaName, personaRole } from './shared/persona-format';
@@ -855,6 +855,66 @@ function VoyagePrepSummary({
   );
 }
 
+/* ═══ MirrorBeat — the recognition moment, moved to the FRONT of the voyage
+ * (North-Star B). The active mirror used to render only at phase 'testing',
+ * after minutes of LLM waits + crew theater; the early hidden-premise was
+ * collapsed behind the 기록 toggle. So the value moment (recognizing the blank
+ * judgment the AI quietly filled in) arrived too late for first-timers.
+ *
+ * This surfaces ONE load-bearing premise the analysis assumed but the user
+ * never stated — right after the streamed analysis, alongside the first
+ * questions, before crew/mix/DM-feedback.
+ *
+ * Spine (CLAUDE.md zero-judgment): it is a NEUTRAL CRUX QUESTION, never a
+ * directional statement and never a two-pole fork. Provenance is honest — the
+ * `--ai` register + "AI가 채운 전제" tag mark it as machine-surfaced, not the
+ * user's own words. It is NON-BLOCKING: the user keeps answering below and can
+ * dismiss it. No answer is captured here (the deep restatement stays at the
+ * single Falsification commitment) — this is recognition, not a verdict. */
+export function MirrorBeat({ assumption, onDismiss }: { assumption: string; onDismiss: () => void }) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.5, ease: EASE }}
+      className="mb-4 rounded-2xl bg-[var(--ai)] border border-[var(--border-subtle)] p-4 md:p-5"
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-6 h-6 rounded-full bg-[var(--accent)]/10 flex items-center justify-center shrink-0 mt-0.5">
+          <Eye size={12} className="text-[var(--accent)]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          {/* Provenance tag — this is the machine's read, not the user's words. */}
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-1.5">
+            {L('AI가 채운 전제', 'A premise the AI filled in')}
+          </p>
+          {/* The surfaced premise. */}
+          <p className="text-[14.5px] md:text-[15px] text-[var(--text-primary)] leading-[1.55] font-medium">
+            {assumption}
+          </p>
+          {/* The crux — a bare neutral question, never a lean. */}
+          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] mt-2">
+            {L('이건 당신이 말한 게 아니라, 분석이 대신 깔아둔 전제예요. 정말 맞나요?',
+               'You didn\'t say this — the analysis laid it down for you. Is it actually true?')}
+          </p>
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="text-[12px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[44px] md:min-h-0 -my-2 md:my-0"
+            >
+              {L('확인했어요 — 계속할게요', 'Noted — keep going')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 /* ═══ Framing Confirmation (Weakness A fix) ═══ */
 function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
   snapshot: AnalysisSnapshot;
@@ -1072,6 +1132,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   useChronicler(session, !busy);
   const [error, setError] = useState<string | null>(null);
   const [showMix, setShowMix] = useState(false);
+  // North-Star B: the early mirror beat is shown once per session, then the
+  // user dismisses it. Parent-owned so it stays gone across re-renders/rounds
+  // (restraint > engagement — never re-nag the same premise).
+  const [mirrorSeen, setMirrorSeen] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
   // Verification gate — open when the captain tries to sail with unreviewed work.
   const [verifyGateOpen, setVerifyGateOpen] = useState(false);
@@ -2515,6 +2579,28 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {newArcEnabled && !frameIsFlat && session && !mix && !final_ && phase === 'conversing' && !busy && curQ?.id?.startsWith('probe-fork-') && (
             <TrialSail paragraph={session.problem_text} />
           )}
+
+          {/* North-Star B — the mirror, moved to the FRONT of the voyage.
+              Surfaces ONE load-bearing premise the analysis assumed but the
+              user never stated, as a neutral crux question, right after the
+              streamed analysis and alongside the first questions — before
+              crew/mix/DM-feedback. Gated on `curQ` so it lives only in the
+              early Q&A window (it disappears once questions are exhausted, where
+              VoyagePrepSummary carries the premise into the draft gate). Skipped
+              on probe-fork turns (those carry their own TrialSail evidence) and
+              on the crisis/suppressed path (no decision chrome around safety). */}
+          <AnimatePresence>
+            {focusMode && phase === 'conversing' && !mix && !final_ && !busy
+              && !!curQ && !curQ.id?.startsWith('probe-fork-')
+              && !crisisBlocking && !suppressQuestion
+              && !mirrorSeen && !!latest?.hidden_assumptions?.[0] && (
+              <MirrorBeat
+                key="mirror-beat"
+                assumption={latest.hidden_assumptions[0]}
+                onDismiss={() => { setMirrorSeen(true); track('mirror_seen', { round }); }}
+              />
+            )}
+          </AnimatePresence>
 
           {/* Question FIRST — user action at the top, not buried below */}
           <div ref={questionRef}>
