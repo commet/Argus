@@ -27,6 +27,7 @@ import { PaperGrain } from './atmosphere/PaperGrain';
 import { PlateLabel } from './ui/PlateLabel';
 import { Cartouche } from './ui/Cartouche';
 import { DecisionVoyageFilm } from '@/components/landing/films/DecisionVoyageFilm';
+import { ScaleToFit } from '@/components/landing/films/ScaleToFit';
 
 type Locale = 'ko' | 'en';
 type Tone = 'you' | 'argus' | 'alert' | 'arrival';
@@ -181,7 +182,9 @@ export function Act2DecisionVoyage() {
             transform: 'translateX(-50%)',
           }}
         >
-          <DecisionVoyageFilm />
+          <ScaleToFit designWidth={1000}>
+            <DecisionVoyageFilm />
+          </ScaleToFit>
         </div>
 
         {/* The trail — a ship's log unrolling */}

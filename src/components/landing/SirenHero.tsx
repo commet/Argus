@@ -31,6 +31,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
 import { ArgusHeroDemo } from './films/ArgusHeroDemo';
+import { ScaleToFit } from './films/ScaleToFit';
 
 export function SirenHero() {
   const locale = useLocale();
@@ -172,7 +173,9 @@ export function SirenHero() {
             static ForkPath: a full Argus session in 6 beats shows the same
             "one plan forks, then returns" idea, but moving. */}
         <div className="bp-fade-up mx-auto mt-6" style={{ maxWidth: 660, animationDelay: '200ms' }}>
-          <ArgusHeroDemo embedded />
+          <ScaleToFit designWidth={660}>
+            <ArgusHeroDemo embedded />
+          </ScaleToFit>
         </div>
 
         {/* Resolving line — the pitch must not end on the problem. */}
