@@ -289,6 +289,8 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
 }
 
 function InnerMonologueArchiveList({ entries, color }: { entries: InnerMonologueArchiveEntry[]; color: string }) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [expanded, setExpanded] = useState<string | null>(
     entries.length > 0 ? entries[entries.length - 1].id : null,
   );
@@ -296,9 +298,9 @@ function InnerMonologueArchiveList({ entries, color }: { entries: InnerMonologue
   const sorted = [...entries].reverse();
 
   const VERDICT_META: Record<string, { label: string; icon: string; color: string }> = {
-    approved: { label: '승인', icon: '✅', color: 'rgb(29, 125, 63)' },
-    conditional: { label: '조건부', icon: '🤔', color: 'rgb(184, 150, 62)' },
-    rejected: { label: '반려', icon: '❌', color: 'rgb(220, 53, 69)' },
+    approved: { label: L('승인', 'Approved'), icon: '✅', color: 'rgb(29, 125, 63)' },
+    conditional: { label: L('조건부', 'Conditional'), icon: '🤔', color: 'rgb(184, 150, 62)' },
+    rejected: { label: L('반려', 'Rejected'), icon: '❌', color: 'rgb(220, 53, 69)' },
   };
 
   return (
@@ -307,7 +309,7 @@ function InnerMonologueArchiveList({ entries, color }: { entries: InnerMonologue
         const isOpen = expanded === entry.id;
         const verdictMeta = VERDICT_META[entry.verdict] || { label: entry.verdict, icon: '•', color: 'var(--text-secondary)' };
         const date = new Date(entry.created_at);
-        const dateStr = formatRelativeDate(entry.created_at);
+        const dateStr = formatRelativeDate(entry.created_at, locale);
         return (
           <div
             key={entry.id}
@@ -363,7 +365,7 @@ function InnerMonologueArchiveList({ entries, color }: { entries: InnerMonologue
                     <>
                       <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>·</span>
                       <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                        그날 {entry.daily_mood_label}
+                        {L('그날', 'That day')} {entry.daily_mood_label}
                       </span>
                     </>
                   )}
@@ -406,7 +408,7 @@ function InnerMonologueArchiveList({ entries, color }: { entries: InnerMonologue
                           color: 'rgb(109,40,217)',
                         }}
                       >
-                        속마음
+                        {L('속마음', 'Inner thoughts')}
                       </span>
                     </div>
                     <p
@@ -433,7 +435,7 @@ function InnerMonologueArchiveList({ entries, color }: { entries: InnerMonologue
                           borderTop: '1px dotted var(--border-subtle)',
                         }}
                       >
-                        당시 판정 근거: {entry.verdict_reason}
+                        {L('당시 판정 근거:', 'Verdict reasoning at the time:')} {entry.verdict_reason}
                       </p>
                     )}
                   </div>

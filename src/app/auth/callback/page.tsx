@@ -3,9 +3,11 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useLocale } from '@/hooks/useLocale';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
+  const locale = useLocale();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -42,7 +44,7 @@ export default function AuthCallbackPage() {
     <div className="flex-1 flex items-center justify-center">
       <div className="text-center space-y-3">
         <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-[14px] text-[var(--text-secondary)]">로그인 중...</p>
+        <p className="text-[14px] text-[var(--text-secondary)]">{locale === 'ko' ? '로그인 중...' : 'Signing in...'}</p>
       </div>
     </div>
   );

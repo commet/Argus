@@ -7,6 +7,7 @@ import type { Agent, AgentObservation, ObservationSource } from '@/stores/agent-
 import { useAgentStore } from '@/stores/useAgentStore';
 import { callLLMStream } from '@/lib/llm';
 import { getCurrentLanguage } from '@/lib/i18n';
+import { useLocale } from '@/hooks/useLocale';
 
 type Category = AgentObservation['category'];
 
@@ -98,6 +99,14 @@ const SOURCE_META: Record<ObservationSource, { label: string; color: string; bg:
   user: { label: '직접 기입', color: 'rgb(29, 125, 63)', bg: 'rgba(45, 138, 78, 0.12)' },
 };
 
+// English source labels (SOURCE_META.label is Korean; used in UI via srcLabel()).
+const SOURCE_LABEL_EN: Record<ObservationSource, string> = {
+  auto: 'Auto',
+  calibration: 'Calibrated',
+  refined: 'Suggested',
+  user: 'Manual',
+};
+
 interface PersonaRefinementSectionProps {
   agent: Agent;
 }
@@ -112,6 +121,11 @@ interface RefineProposal {
 export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProps) {
   const addObservation = useAgentStore(s => s.addObservation);
   const updateAgent = useAgentStore(s => s.updateAgent);
+
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const catLabel = (cat: Category) => (locale === 'ko' ? CATEGORY_META[cat].label : CATEGORY_LABEL_EN[cat]);
+  const srcLabel = (src: ObservationSource) => (locale === 'ko' ? SOURCE_META[src].label : SOURCE_LABEL_EN[src]);
 
   const [addMode, setAddMode] = useState(false);
   const [newCategory, setNewCategory] = useState<Category>('communication_style');
@@ -202,16 +216,16 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
                 }))
                 .slice(0, 3);
               if (cleaned.length === 0) {
-                setRefineError('분석할 만한 패턴이 아직 부족해요. 대화를 몇 번 더 해보세요.');
+                setRefineError(L('분석할 만한 패턴이 아직 부족해요. 대화를 몇 번 더 해보세요.', 'Not enough of a pattern to analyze yet. Try a few more conversations.'));
               } else {
                 setProposals(cleaned);
               }
             } catch {
-              setRefineError('분석 결과를 읽지 못했어요. 다시 시도해주세요.');
+              setRefineError(L('분석 결과를 읽지 못했어요. 다시 시도해주세요.', "Couldn't read the analysis result. Please try again."));
             }
           },
           onError: () => {
-            setRefineError('분석 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
+            setRefineError(L('분석 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.', 'Something went wrong during analysis. Please try again shortly.'));
           },
         },
       );
@@ -247,7 +261,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
             letterSpacing: '0.06em', textTransform: 'uppercase', margin: 0,
           }}
         >
-          페르소나 구체화 {totalObs > 0 && `(${totalObs})`}
+          {L('페르소나 구체화', 'Flesh out persona')} {totalObs > 0 && `(${totalObs})`}
         </p>
         {!addMode && !proposals && (
           <div style={{ display: 'flex', gap: 4 }}>
@@ -257,10 +271,10 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
                 onClick={handleRefine}
                 disabled={refining}
                 className="pr-mini-btn pr-mini-btn-refine"
-                title="최근 대화와 속마음 기록으로 페르소나 다듬기"
+                title={L('최근 대화와 속마음 기록으로 페르소나 다듬기', 'Refine the persona from recent conversations and inner-thought records')}
               >
                 {refining ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                <span>다듬기</span>
+                <span>{L('다듬기', 'Refine')}</span>
               </button>
             )}
             <button
@@ -269,7 +283,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
               className="pr-mini-btn"
             >
               <Plus size={11} />
-              <span>직접 추가</span>
+              <span>{L('직접 추가', 'Add manually')}</span>
             </button>
           </div>
         )}
@@ -296,7 +310,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
           >
             <p className="pr-proposals-title">
               <Sparkles size={11} style={{ marginRight: 4, display: 'inline-block', verticalAlign: '-1px' }} />
-              대화에서 발견한 것들 — 마음에 드는 것만 골라주세요
+              {L('대화에서 발견한 것들 — 마음에 드는 것만 골라주세요', 'What I noticed from your conversations — pick the ones that ring true')}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {proposals.map((p, i) => (
@@ -313,7 +327,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
                   <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                       <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '0.04em' }}>
-                        {CATEGORY_META[p.category].label}
+                        {catLabel(p.category)}
                       </span>
                     </div>
                     <p style={{ fontSize: 12, color: 'var(--text-primary)', margin: 0, lineHeight: 1.5 }}>
@@ -335,14 +349,14 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
                 disabled={proposals.filter(p => p.selected).length === 0}
                 className="pr-btn-primary"
               >
-                선택한 것 저장 ({proposals.filter(p => p.selected).length})
+                {L('선택한 것 저장', 'Save selected')} ({proposals.filter(p => p.selected).length})
               </button>
               <button
                 type="button"
                 onClick={() => setProposals(null)}
                 className="pr-btn-secondary"
               >
-                버리기
+                {L('버리기', 'Discard')}
               </button>
             </div>
           </motion.div>
@@ -369,14 +383,14 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
                     className="pr-cat-btn"
                     data-active={newCategory === cat}
                   >
-                    {CATEGORY_META[cat].label}
+                    {catLabel(cat)}
                   </button>
                 ))}
             </div>
             <textarea
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
-              placeholder="이 팀장에 대해 알게 된 것을 한 문장으로..."
+              placeholder={L('이 팀장에 대해 알게 된 것을 한 문장으로...', 'One sentence on what you learned about this manager...')}
               maxLength={120}
               rows={2}
               className="pr-textarea"
@@ -392,7 +406,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
                   onClick={() => { setAddMode(false); setNewText(''); }}
                   className="pr-btn-secondary"
                 >
-                  취소
+                  {L('취소', 'Cancel')}
                 </button>
                 <button
                   type="button"
@@ -400,7 +414,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
                   disabled={!newText.trim()}
                   className="pr-btn-primary"
                 >
-                  저장
+                  {L('저장', 'Save')}
                 </button>
               </div>
             </div>
@@ -420,7 +434,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
                   fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)',
                   letterSpacing: '0.05em', margin: '0 0 4px',
                 }}>
-                  {CATEGORY_META[cat].label}
+                  {catLabel(cat)}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {grouped[cat].map(obs => {
@@ -436,7 +450,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
                             className="pr-obs-source"
                             style={{ color: srcMeta.color, background: srcMeta.bg }}
                           >
-                            {srcMeta.label}
+                            {srcLabel(source)}
                           </span>
                           <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
                             {Math.round(obs.confidence * 100)}%
@@ -446,7 +460,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
                               type="button"
                               onClick={() => handleDelete(obs.id)}
                               className="pr-obs-delete"
-                              title="삭제"
+                              title={L('삭제', 'Delete')}
                             >
                               <Trash2 size={10} />
                             </button>
@@ -461,7 +475,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
         </div>
       ) : (
         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6, margin: 0 }}>
-          아직 이 팀장에 대한 관찰이 없어요. 대화를 하면 자동으로 쌓이고, 직접 기입할 수도 있어요.
+          {L('아직 이 팀장에 대한 관찰이 없어요. 대화를 하면 자동으로 쌓이고, 직접 기입할 수도 있어요.', 'No observations about this manager yet. They build up automatically as you talk, and you can also add them manually.')}
         </p>
       )}
     </section>
