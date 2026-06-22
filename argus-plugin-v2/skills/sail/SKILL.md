@@ -167,6 +167,16 @@ making claims. A generic answer after a user gives a file is a product failure.
 
 ## Step 3 - Route By Phase
 
+**Derive the phase from on-disk artifacts BEFORE reading the table** (session-layout
+→ "Phase Is Derived From Artifacts, Not Declared"). `session.phase` is a hint a
+mid-chain crash can leave stale — e.g. team wrote its artifacts but died before its
+Step 10 phase update, so `phase` reads `conversing` while team is actually complete.
+Read the "Current phase" column below as the **derived** phase (the furthest-along
+complete artifact in the active version dir), not raw `session.phase`. The artifacts
+always win; consult `session.phase` only to break a tie the artifacts leave
+ambiguous. This is the same artifact-trust the corrupt-session path (Step 2) uses —
+extended to a readable-but-stale phase, which is the more common crash shape.
+
 **`conversing` tiebreaker (two rows below would both match):** read `versions/{label}/analysis.json`. If `execution_plan.steps.length >= 2` → treat as "ready" (route to team). Otherwise → "not ready" (route to clarify --continue). Decide by the execution_plan, never guess.
 
 | Current phase | Next skill |

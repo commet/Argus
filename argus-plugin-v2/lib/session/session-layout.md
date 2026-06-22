@@ -204,3 +204,38 @@ surface view reflects the active draft's scaffold.
 | `/argus:revise` | writes a transient `pending_revision.json` (session level, consumed by team), then via `/argus:team --revise` creates a new **child** version dir (full artifacts, write-once) and appends a child Draft (`directive`, `reviewing_agent_id: navigator`); then `/argus:verify` re-verifies. The parent draft is untouched. |
 | `/argus:settle` | appends `harvest`/`seal` (bearing-seed import), `settle`, or `amend` events to `.argus/ledger/ledger.jsonl` — append-only, never touches session dirs |
 | `/argus:log`, `/argus:help`, `/argus:chart` (default) | read-only — write nothing |
+
+## Phase Is Derived From Artifacts, Not Declared
+
+`session.phase` is a **hint, not the source of truth** — for the same reason the
+version dirs (not `drafts[]`) are authoritative and the artifacts (not a corrupt
+`session.json`) drive recovery. A sub-step writes its artifact *then* updates
+`session.phase`; a crash, kill, or sail sub-step that dies **between those two
+writes** leaves `phase` lagging the artifacts (e.g. team wrote
+`workers.json`/`mix.json`/`scaffold.json` but died before its Step 10 phase update,
+so `phase` still reads `conversing` while team is in fact complete). Routing off the
+stale scalar would re-run a finished step or skip an unfinished one.
+
+So **derive the effective phase from the artifacts present in the active version
+dir** (the "Files Written By Phase" table above is the ladder), highest rung that is
+actually complete wins:
+
+| Artifact present & complete (active version dir) | Derived phase / next |
+|---|---|
+| `current_bearing.json` | bearing rendered → `complete` (chart) |
+| `boss_feedback.json` | boss done → `refining`/`complete` per routing |
+| `verification.json` | verify done → `dm_feedback` (boss next) or per `routing_decision` |
+| `scaffold.json` + `mix.json` + `workers.json` (full set per `team_plan.json`) | team done → `verifying` (verify next) |
+| `team_plan.json` present but `workers.json` absent/partial/unparseable | interrupted mid-team → re-run `/argus:team` |
+| `analysis.json` with `execution_plan.steps ≥ 2` | framing ready → `conversing` (team next) |
+| `analysis.json` only (`execution_plan < 2`) | `analyzing`/`conversing` → clarify `--continue` |
+| nothing | `new` → clarify |
+
+**The artifacts always win over `session.phase`.** If the derived phase is *ahead*
+of `session.phase`, a crash happened between artifact-write and phase-write — advance
+to the artifacts. If `session.phase` is *ahead* of the artifacts (says `verifying`
+but no `verification.json`), the step did not actually complete — route to produce
+it. `session.phase` is consulted only to break ties the artifacts leave genuinely
+ambiguous. This is the same artifact-trust the corrupt-session recovery path already
+uses (sail Step 2) — generalized from "session.json won't parse" to the far more
+common "session.json parses fine but its phase is stale."
