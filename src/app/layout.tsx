@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { LayoutShell } from '@/components/layout/LayoutShell';
@@ -35,9 +35,22 @@ function pickLangFromAcceptLanguage(header: string | null): Lang {
   return first.startsWith('ko') ? 'ko' : 'en';
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+/**
+ * Resolve the SSR language. The argus-locale cookie (set when the user makes an
+ * explicit choice — see LocaleProvider / useLocaleSwitch) wins over the
+ * browser's Accept-Language, so a returning user who chose Korean on an English
+ * browser is served Korean from the first paint (no flash). Falls back to
+ * Accept-Language when no explicit choice has been made.
+ */
+async function resolveLang(): Promise<Lang> {
+  const cookieLang = (await cookies()).get('argus-locale')?.value;
+  if (cookieLang === 'ko' || cookieLang === 'en') return cookieLang;
   const h = await headers();
-  const lang = pickLangFromAcceptLanguage(h.get('accept-language'));
+  return pickLangFromAcceptLanguage(h.get('accept-language'));
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await resolveLang();
   const m = META_STRINGS[lang];
 
   return {
@@ -74,7 +87,7 @@ export default async function RootLayout({
 }>) {
   const h = await headers();
   const nonce = h.get('x-nonce') || '';
-  const lang = pickLangFromAcceptLanguage(h.get('accept-language'));
+  const lang = await resolveLang();
 
   return (
     <html lang={lang}>
