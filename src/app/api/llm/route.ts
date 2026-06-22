@@ -175,6 +175,18 @@ export async function POST(req: NextRequest) {
               }
             }
             if (!cancelled) {
+              // Capture run provenance + token cost (dims 8 & 10): the model id and
+              // usage were being discarded. Server-side telemetry only — no user meter.
+              try {
+                const final = await anthropicStream.finalMessage();
+                logServerEvent('llm_usage', {
+                  model: final.model || modelId,
+                  tier: body.model || 'default',
+                  input_tokens: final.usage?.input_tokens,
+                  output_tokens: final.usage?.output_tokens,
+                  stream: true,
+                }, { userId: auth?.userId ?? null, path: '/api/llm' });
+              } catch { /* telemetry must never break the stream */ }
               controller.enqueue(encoder.encode('data: [DONE]\n\n'));
               controller.close();
             }
@@ -212,6 +224,14 @@ export async function POST(req: NextRequest) {
     });
 
     const block = response.content.find((b) => b.type === 'text');
+    // Capture run provenance + token cost (dims 8 & 10) — was discarded. Telemetry only.
+    logServerEvent('llm_usage', {
+      model: response.model || modelId,
+      tier: body.model || 'default',
+      input_tokens: response.usage?.input_tokens,
+      output_tokens: response.usage?.output_tokens,
+      stream: false,
+    }, { userId: auth?.userId ?? null, path: '/api/llm' });
     const res = NextResponse.json({ text: block ? block.text : '' });
     res.headers.set('Cache-Control', 'no-store');
     return res;

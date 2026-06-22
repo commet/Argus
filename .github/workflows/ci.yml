@@ -41,3 +41,19 @@ jobs:
       # flat gates hold in session artifacts (prose rules are a floor, not enforcement).
       - name: Argus enforcement gates
         run: node argus-plugin-v2/scripts/validate-gates.test.mjs
+
+      # Enforcement is a HARD BLOCK, not advisory (CLI exits non-zero on a violation).
+      - name: Argus enforcement hard-block
+        run: node argus-plugin-v2/scripts/enforcement-hardblock.test.mjs
+
+      # Secret redaction (the mechanical version of clarify's "redact before use").
+      - name: Argus secret redaction
+        run: node argus-plugin-v2/scripts/redact.test.mjs
+
+      # Clean-install preconditions (manifest parity, skills/agents/hooks/schemas resolve).
+      - name: Argus install smoke
+        run: node argus-plugin-v2/scripts/install-smoke.mjs
+
+      # Plugin structure + bearing simulations.
+      - name: Argus plugin validate
+        run: node argus-plugin-v2/scripts/validate-plugin.js && node argus-plugin-v2/scripts/simulate-plugin.js

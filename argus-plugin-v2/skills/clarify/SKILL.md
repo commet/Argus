@@ -88,7 +88,7 @@ One of:
 3. **Autodetect from git state** (no args):
    - Current branch name (not `main`/`master`)
    - Last 1-3 commit messages
-   - Uncommitted changes (`git diff HEAD`) — **redact before use.** This can include modified-but-gitignored files (e.g. `.env`, `.env.local`) with live secrets. Skip hunks from paths matching `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*`, and replace high-entropy strings / `BEGIN ... PRIVATE KEY` blocks with `[REDACTED]` before sending any diff into a prompt or writing it to `target_context`/`repo_context.json`. The same redaction applies to expanded PR diffs and file contents.
+   - Uncommitted changes (`git diff HEAD`) — **redact before use.** This can include modified-but-gitignored files (e.g. `.env`, `.env.local`) with live secrets. Skip hunks from paths matching `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` (use `isSecretPath`), and pipe every diff / PR body / file content through the **mechanical redactor** before injection — `git diff HEAD | node "${CLAUDE_PLUGIN_ROOT}/scripts/redact.mjs"` (or `import { redactSecrets }`). It strips PEM private keys, `*_SECRET/_TOKEN/_KEY=…`, provider key shapes (sk-…, ghp_…, AKIA…, xox…), JWTs, `user:pass@host` URL creds, and high-entropy tokens, while leaving prose / git shas / file paths intact (tested in `scripts/redact.test.mjs`). Redaction is a mechanical step, not a judgment call — never send a raw diff into a prompt or `target_context`/`repo_context.json`.
    - Open PRs authored by user
    - Report what was detected before proceeding
 
