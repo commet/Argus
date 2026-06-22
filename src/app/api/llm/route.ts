@@ -147,11 +147,11 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey });
     const stream = body.stream === true;
 
-    // Model routing: fast=Haiku (cheap/fast), default=Sonnet, strong=Opus
+    // Model routing: fast=Haiku (cheap/fast), default=Sonnet, strong=Sonnet
     const MODEL_MAP: Record<string, string> = {
       fast: 'claude-haiku-4-5-20251001',
-      default: 'claude-sonnet-4-20250514',
-      strong: 'claude-sonnet-4-20250514', // Note: using Opus here would raise costs significantly
+      default: 'claude-sonnet-4-6',
+      strong: 'claude-sonnet-4-6', // Note: using Opus here would raise costs significantly
     };
     const modelId = MODEL_MAP[body.model as string] || MODEL_MAP.default;
 
