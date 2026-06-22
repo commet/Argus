@@ -833,9 +833,9 @@ export function BossChat() {
                     }
                   });
                 }
-                track('boss_calibration_similarity', { rating: 'eerie', mbti: typeCode, turns: messages.length });
+                track('boss_calibration_similarity', { rating: 'very_lifelike', mbti: typeCode, turns: messages.length });
                 setCalibrationStep('done');
-              }} className="bc-cal-btn bc-cal-btn-active">{L('😮 정말 실감났어', '😮 Really lifelike')}</button>
+              }} className="bc-cal-btn bc-cal-btn-active">{L('👍 정말 그럴듯했어', '👍 Very convincing')}</button>
             </div>
           </motion.div>
         )}

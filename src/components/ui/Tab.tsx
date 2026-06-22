@@ -16,7 +16,7 @@ interface TabProps {
 
 export function Tab({ tabs, activeKey, onChange }: TabProps) {
   return (
-    <div className="flex gap-0.5 bg-[var(--bg)]/80 backdrop-blur-sm p-1 rounded-xl overflow-x-auto relative border border-[var(--border-subtle)] shadow-[var(--shadow-xs)]">
+    <div className="flex gap-0.5 bg-[var(--bg)] p-1 rounded-xl overflow-x-auto relative border border-[var(--border-subtle)] shadow-[var(--shadow-xs)]">
       {tabs.map((tab) => (
         <button
           key={tab.key}

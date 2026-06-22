@@ -20,6 +20,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLocale } from '@/hooks/useLocale';
 import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { runInitialAnalysis } from '@/lib/progressive-engine';
+import { buildEarlyContract } from '@/lib/decision-contract';
 import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers } from 'lucide-react';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
@@ -28,6 +29,7 @@ import { Graticule } from '@/components/ui/VoyageElements';
 import { EASE } from '@/components/workspace/progressive/shared/constants';
 import { getPersonaPool } from '@/lib/worker-personas';
 import { WorkerAvatar, AvatarRow } from '@/components/workspace/progressive/WorkerAvatar';
+import { BindCard, type BindResult } from '@/components/workspace/progressive/BindCard';
 import { InteractiveDemo } from '@/components/workspace/InteractiveDemo';
 import { getDemoScenarios } from '@/lib/demo-data';
 import type { DemoScenario } from '@/lib/demo-data';
@@ -214,7 +216,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
 /* EASE — imported from shared/constants */
 
 /* ─── HeroFlow: idle → assembling → analyzing → ready ─── */
-type HeroPhase = 'idle' | 'assembling' | 'analyzing' | 'ready';
+type HeroPhase = 'idle' | 'binding' | 'assembling' | 'analyzing' | 'ready';
 
 function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: {
   onReady: (projectId: string) => void;
@@ -235,7 +237,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   const [justFromDemo, setJustFromDemo] = useState(false);
   const [showAllProjects, setShowAllProjects] = useState(false);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
-  const { createProject } = useProjectStore();
+  const { createProject, updateProject } = useProjectStore();
   const progressiveStore = useProgressiveStore();
   const phaseRef = React.useRef<HeroPhase>('idle');
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -243,6 +245,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   const elapsedTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const autoStartedRef = React.useRef(false);
+  // Phase 1 BIND: the in-flight (buffered) initial analysis and the submitted text,
+  // so the bind card can be shown WHILE the analysis runs and finalize after the rope.
+  const analysisRef = React.useRef<Promise<{ result?: Awaited<ReturnType<typeof runInitialAnalysis>>; error?: unknown }> | null>(null);
+  const pendingTextRef = React.useRef<string>('');
   const searchParams = useSearchParams();
 
   // Keep ref in sync for use inside async callback
@@ -288,57 +294,78 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProblem]);
 
-  const handleSubmit = async (directText?: string) => {
+  // Phase 1 BIND — submit no longer goes straight into generation. It fires the
+  // initial analysis IN PARALLEL (buffered, not revealed) and shows the BindCard so
+  // the user can tie their own rope BEFORE hearing the AI ("rope before the Sirens").
+  // proceedAfterBind() then reveals the assembling/analyzing beat and finalizes.
+  const handleSubmit = (directText?: string) => {
     const text = (directText || problemInput).trim();
     if (!text || phase !== 'idle') return;
     if (directText) setProblemInput(text);
 
-    // 1. idle → assembling: 팀 등장 (store 미동기 — HeroFlow가 언마운트되면 안 됨)
-    setPhase('assembling');
+    pendingTextRef.current = text;
     setError(null);
     const pool = getPersonaPool(locale);
     setPreviewPersonas(pool.slice(0, 4));
     track('workspace_problem_submit', { text_length: text.length, source: 'hero_flow' });
 
-    // Elapsed counter + cancellation so the user is never stuck on a slow/hung run.
+    // Fire the analysis now; its stream is buffered (BindCard doesn't render it),
+    // so the song is captured but not heard until the rope is tied. The promise
+    // never rejects — it settles to { result } | { error } so an early failure
+    // during binding is surfaced only when the user proceeds.
     const controller = new AbortController();
     analyzeAbortRef.current = controller;
+    analysisRef.current = startAnalysis(text, controller);
+
+    setPhase('binding');
+  };
+
+  const startAnalysis = (text: string, controller: AbortController) =>
+    runInitialAnalysis(text, (token) => {
+      setStreamingText(token);
+      if (phaseRef.current === 'assembling') {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        setPhase('analyzing');
+        track('first_analysis_start', { text_length: text.length, anonymous: !user });
+      }
+    }, controller.signal, (typedQ, replacesId) => {
+      // P1-3: the first question shows instantly (legacy); the typed upgrade
+      // lands a few seconds later — swap only while it's still unanswered.
+      const s = progressiveStore.currentSession();
+      if (!s) return;
+      const last = s.questions[s.questions.length - 1];
+      if (last?.id === replacesId && s.answers.length < s.questions.length) {
+        progressiveStore.replaceLatestQuestion(typedQ);
+      }
+    }).then((result) => ({ result })).catch((error) => ({ error }));
+
+  // Called by BindCard. `bind` = the rope (lean + check-in) or null on skip.
+  const proceedAfterBind = async (bind: BindResult | null) => {
+    const text = pendingTextRef.current;
+    const controller = analyzeAbortRef.current;
+    if (!text || !controller) { setPhase('idle'); return; }
+
+    // Reveal the team-assembling → analyzing beat while we await the (often
+    // already-resolved) in-flight analysis.
+    setPhase('assembling');
     setElapsed(0);
     if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
     elapsedTimerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
-
-    // 2. assembling → analyzing (타이머 또는 첫 토큰)
     timerRef.current = setTimeout(() => {
       if (phaseRef.current === 'assembling') setPhase('analyzing');
     }, 2000);
 
+    const settled = await (analysisRef.current ?? Promise.resolve(
+      { error: new Error('no analysis') } as { result?: Awaited<ReturnType<typeof runInitialAnalysis>>; error?: unknown },
+    ));
+
     try {
-      // 3. 스트리밍 분석 — 프로젝트/세션은 분석 성공 후에 생성한다.
-      //    createProject가 동기로 currentProjectId를 set하면 부모가 ProgressiveLayout으로 전환하면서
-      //    HeroFlow가 즉시 언마운트돼 assembling/analyzing 애니메이션이 한 번도 렌더되지 않음.
-      const result = await runInitialAnalysis(text, (token) => {
-        setStreamingText(token);
-        if (phaseRef.current === 'assembling') {
-          if (timerRef.current) clearTimeout(timerRef.current);
-          setPhase('analyzing');
-          track('first_analysis_start', { text_length: text.length, anonymous: !user });
-        }
-      }, controller.signal, (typedQ, replacesId) => {
-        // P1-3: the first question shows instantly (legacy); the typed upgrade
-        // lands a few seconds later — swap only while it's still unanswered.
-        const s = progressiveStore.currentSession();
-        if (!s) return;
-        const last = s.questions[s.questions.length - 1];
-        if (last?.id === replacesId && s.answers.length < s.questions.length) {
-          progressiveStore.replaceLatestQuestion(typedQ);
-        }
-      });
+      if (settled.error) throw settled.error;
+      const result = settled.result!;
 
       // ADD-4: 스트림은 정상 종료됐지만 파싱 결과가 비어있는 경우(첫 상호작용의 malformed JSON 등).
-      // skeleton·hidden_assumptions가 모두 비면 분석이 사실상 실패한 것 — 빈 "분석 중..." placeholder로
-      // 프로젝트를 만들어 막다른 길에 가두지 말고, 재시도 가능한 에러로 표면화한다(아래 catch가 처리).
-      // 단, 위기 백업이 발동한 스냅샷은 의도적으로 skeleton·assumptions가 비어 있는 VALID 종착 상태이므로
-      // 에러로 튕기지 않는다(안 그러면 우려 메시지가 화면에 닿지 못함).
+      // skeleton·hidden_assumptions가 모두 비면 분석이 사실상 실패한 것 — 재시도 가능한 에러로 표면화.
+      // 단, 위기 백업이 발동한 스냅샷은 의도적으로 비어 있는 VALID 종착 상태이므로 에러로 튕기지 않는다.
       if (
         !result.snapshot.crisis?.isCrisis &&
         result.snapshot.skeleton.length === 0 &&
@@ -347,16 +374,25 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
         throw new Error(L('분석 결과를 받지 못했어요. 잠시 후 다시 시도해 주세요.', "Couldn't read the analysis result. Please try again."));
       }
 
-      // 4. 분석 성공 — 이제 프로젝트 + 세션 생성 후 결과 주입
+      // 분석 성공 — 프로젝트 + (Phase 1 rope) + 세션 생성.
       if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
       const pid = createProject(text.slice(0, 40));
+      // Tie the rope at OPEN: seal the user's own lean + check-in BEFORE the song,
+      // so a contract exists even if the user abandons mid-pipeline (the 47/0 fix).
+      // Skip (bind === null) writes nothing — honest-empty, identical to before.
+      if (bind) {
+        const early = buildEarlyContract(pid, bind, Date.now());
+        if (early) {
+          updateProject(pid, { decision_contract: early });
+          track('decision_sealed', { source: 'bind_open', anonymous: !user, has_lean: !!bind.lean, has_date: !!bind.interval });
+        }
+      }
       progressiveStore.createSession(pid, text, reviewerAgentId);
       progressiveStore.addSnapshot(result.snapshot);
       if (result.detectedDM) progressiveStore.setDecisionMaker(result.detectedDM);
       progressiveStore.addQuestion(result.question);
       progressiveStore.setPhase('conversing');
 
-      // 5. ready → ProgressiveFlow로 전환 (onReady → 부모가 setCurrentProjectId)
       setPhase('ready');
       onReady(pid);
     } catch (err) {
@@ -674,6 +710,14 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   </p>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {/* ═══ BIND: 출항 전 밧줄 묶기 (Phase 1) — analysis runs buffered behind it ═══ */}
+          {phase === 'binding' && (
+            <motion.div key="binding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.3, ease: EASE }} className="pt-8 md:pt-16">
+              <BindCard problem={pendingTextRef.current} onProceed={proceedAfterBind} />
             </motion.div>
           )}
 

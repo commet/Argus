@@ -84,8 +84,8 @@ export function PingToast() {
             transition={{ duration: VISIBLE_MS / 1000, ease: EASE, times: [0, 0.12, 0.78, 1] }}
             className={
               isOutput
-                ? 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[var(--accent)]/18 backdrop-blur-sm border border-[var(--accent)]/35 shadow-[0_0_18px_-4px_rgba(180,160,100,0.55)]'
-                : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--accent)]/12 backdrop-blur-sm border border-[var(--accent)]/25 shadow-[0_0_14px_-4px_rgba(180,160,100,0.4)]'
+                ? 'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[var(--surface)] border border-[var(--accent)]/35 shadow-[0_0_18px_-4px_rgba(180,160,100,0.55)]'
+                : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--surface)] border border-[var(--accent)]/25 shadow-[0_0_14px_-4px_rgba(180,160,100,0.4)]'
             }
           >
             <motion.span

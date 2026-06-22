@@ -1808,15 +1808,18 @@ button, a, input, textarea {
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* §3 Batch 5: purple-AI containment. Purple is the ONE deliberate register —
+   the boss's inner-monologue reveal (.bc-inner-*) — and must NOT leak into
+   generic chrome. The persona-refinement UI now uses the app gold --accent. */
 .pr-mini-btn-refine {
-  background: rgba(139, 92, 246, 0.08);
-  border-color: rgba(139, 92, 246, 0.25);
-  color: rgb(109, 40, 217);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent);
 }
 .pr-mini-btn-refine:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: rgba(139, 92, 246, 0.45);
-  color: rgb(109, 40, 217);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent);
 }
 
 .pr-btn-primary {
@@ -1895,14 +1898,14 @@ button, a, input, textarea {
 .pr-proposals {
   padding: 12px;
   border-radius: 12px;
-  background: linear-gradient(155deg, rgba(139, 92, 246, 0.05) 0%, rgba(30, 27, 75, 0.06) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   margin-bottom: 10px;
 }
 .pr-proposals-title {
   font-size: 11px;
   font-weight: 700;
-  color: rgb(109, 40, 217);
+  color: var(--accent);
   margin: 0 0 8px;
 }
 .pr-proposal {
@@ -1919,8 +1922,8 @@ button, a, input, textarea {
   text-align: left;
 }
 .pr-proposal[data-selected="true"] {
-  border-color: rgba(139, 92, 246, 0.45);
-  background: rgba(139, 92, 246, 0.05);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 .pr-proposal-check {
   width: 14px;
@@ -1937,8 +1940,8 @@ button, a, input, textarea {
   transition: all 0.15s;
 }
 .pr-proposal[data-selected="true"] .pr-proposal-check {
-  background: rgb(139, 92, 246);
-  border-color: rgb(139, 92, 246);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .pr-obs {
@@ -1990,8 +1993,8 @@ button, a, input, textarea {
   margin: 14px 16px 4px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: linear-gradient(160deg, rgba(120, 120, 120, 0.04) 0%, rgba(91, 33, 182, 0.04) 100%);
-  border: 1px dashed rgba(91, 33, 182, 0.22);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .bc-recap-header {
   display: flex;
@@ -2045,17 +2048,17 @@ button, a, input, textarea {
   width: 100%;
   padding: 7px 10px;
   border-radius: 10px;
-  background: rgba(139, 92, 246, 0.08);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  color: rgb(109, 40, 217);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 .bc-recap-toggle:hover {
-  background: rgba(139, 92, 246, 0.14);
-  border-color: rgba(139, 92, 246, 0.35);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 .bc-recap-count {
   color: var(--text-tertiary);
@@ -2089,13 +2092,13 @@ button, a, input, textarea {
 }
 
 [data-theme="dark"] .bc-recap {
-  background: linear-gradient(160deg, rgba(139, 92, 246, 0.08) 0%, rgba(15, 23, 42, 0.2) 100%);
-  border-color: rgba(139, 92, 246, 0.25);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 [data-theme="dark"] .bc-recap-toggle {
-  background: rgba(139, 92, 246, 0.12);
-  border-color: rgba(139, 92, 246, 0.3);
-  color: rgb(196, 181, 253);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--accent);
 }
 
 /* ── Agent Profile boss CTA ── */
@@ -2139,7 +2142,8 @@ button, a, input, textarea {
   background: var(--bg);
 }
 
-/* ── BossSetup meta (생년월/성별) — 이면 layer CTA ── */
+/* ── BossSetup meta (생년월/성별) — accent-tinted CTA (was purple; §3 Batch 5
+   pulled it onto --accent so purple stays contained to the .bc-inner-* reveal) ── */
 .bs-persona-meta {
   display: flex;
   flex-direction: column;
@@ -2147,8 +2151,8 @@ button, a, input, textarea {
   margin-top: 12px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(91, 33, 182, 0.04) 0%, rgba(30, 58, 138, 0.04) 100%);
-  border: 1px dashed rgba(91, 33, 182, 0.18);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .bs-meta-header {
   display: flex;
@@ -2195,8 +2199,8 @@ button, a, input, textarea {
   transition: border-color 0.2s;
 }
 .bs-birth[data-valid="true"] {
-  border-color: rgba(91, 33, 182, 0.3);
-  box-shadow: 0 0 0 3px rgba(91, 33, 182, 0.05);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 5%, transparent);
 }
 .bs-num-suffix {
   font-size: 10px;
@@ -2227,8 +2231,8 @@ button, a, input, textarea {
 [data-theme="dark"] .bc-inner-revealed-label { color: rgb(196, 181, 253); }
 [data-theme="dark"] .bc-inner-caret { background: rgb(196, 181, 253); }
 [data-theme="dark"] .bs-persona-meta {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.06) 0%, rgba(59, 130, 246, 0.05) 100%);
-  border-color: rgba(139, 92, 246, 0.22);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 /* ── Dark overrides ── */

@@ -6,6 +6,8 @@
  * inside a section without bleeding into others.
  */
 
+import { useId } from 'react';
+
 export function PaperGrain({
   className = 'absolute inset-0 w-full h-full pointer-events-none',
   opacity = 0.045,
@@ -17,7 +19,10 @@ export function PaperGrain({
 }) {
   const step = density === 'fine' ? 4 : 7;
   const r = density === 'fine' ? 0.45 : 0.75;
-  const id = `paper-grain-${density}`;
+  // useId() — every instance gets a unique pattern id. With a static id, the 5
+  // sections that each render a PaperGrain produced duplicate DOM ids, so every
+  // `url(#…)` resolved to the first match (invalid HTML + wrong-fill risk).
+  const id = `paper-grain${useId()}`;
   return (
     <svg className={className} aria-hidden="true" style={{ opacity }}>
       <defs>

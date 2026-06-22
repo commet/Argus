@@ -220,6 +220,7 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
   const [phase, setPhase] = useState<RehearsalPhase>('setup');
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [discussionLoading, setDiscussionLoading] = useState(false);
+  const [discussionError, setDiscussionError] = useState('');
   const [latestFeedback, setLatestFeedback] = useState<FeedbackRecord | null>(null);
   const [handoffContent, setHandoffContent] = useState<string>('');
   const [handoffTitle, setHandoffTitle] = useState<string>('');
@@ -445,6 +446,7 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
   // ── Discussion simulation ──
   const handleStartDiscussion = async () => {
     if (!latestFeedback || latestFeedback.results.length < 2) return;
+    setDiscussionError('');
     setDiscussionLoading(true);
     try {
       const personaProfiles = latestFeedback.results.map(r => {
@@ -478,8 +480,9 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
       });
       track('discussion_complete', { message_count: discussionResult.messages.length });
     } catch (err) {
+      // CLAUDE.md forbids OS dialogs — surface as an inline banner with retry.
       const de = toDisplayError(err);
-      alert(L('토론을 생성할 수 없었습니다. ', 'Could not generate discussion. ') + de.message);
+      setDiscussionError(L('토론을 생성할 수 없었습니다. ', 'Could not generate discussion. ') + de.message);
     } finally {
       setDiscussionLoading(false);
     }
@@ -630,11 +633,11 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                   )}
                   <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <button onClick={() => { setEditingPersona(p); setShowPersonaForm(true); }}
-                      className="p-1.5 bg-[var(--surface)]/90 backdrop-blur-sm rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
+                      className="p-1.5 bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
                       <Pencil size={11} />
                     </button>
                     <button onClick={() => { if (confirm(L('정말 삭제할까요?', 'Really delete?'))) deletePersona(p.id); }}
-                      className="p-1.5 bg-[var(--surface)]/90 backdrop-blur-sm rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-red-500 cursor-pointer transition-colors">
+                      className="p-1.5 bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-red-500 cursor-pointer transition-colors">
                       <Trash2 size={11} />
                     </button>
                   </div>
@@ -754,6 +757,15 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
             onStartDiscussion={handleStartDiscussion}
             discussionLoading={discussionLoading}
           />
+
+          {discussionError && (
+            <div role="alert" className="flex items-center justify-between gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2">
+              <span className="min-w-0">{discussionError}</span>
+              <button onClick={() => { setDiscussionError(''); handleStartDiscussion(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer transition-colors">
+                {L('다시 시도', 'Retry')}
+              </button>
+            </div>
+          )}
 
           {latestFeedback?.project_id && (
             <NextStepGuide

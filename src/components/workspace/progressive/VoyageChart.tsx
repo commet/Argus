@@ -93,7 +93,7 @@ export function VoyageChart() {
   };
 
   return (
-    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]/85 backdrop-blur-sm overflow-hidden">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden">
       {/* Header — chart title + clearer waypoint count */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-subtle)]/60">
         <Compass size={12} className="text-[var(--accent)]" />
@@ -392,7 +392,7 @@ export function VoyageChart() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setConfirmId(null)}
-                className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+                className="fixed inset-0 z-[60] bg-black/45"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 12 }}

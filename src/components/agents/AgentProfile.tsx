@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, PenSquare, ArrowRight, ChevronDown, Sparkles } from 'lucide-react';
 import { LocaleLink } from '@/components/ui/LocaleLink';
@@ -61,18 +61,46 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
   const levelData = AGENT_LEVELS.find(l => l.level === agent.level);
   const isMaxLevel = agent.level >= AGENT_LEVELS[AGENT_LEVELS.length - 1].level;
 
+  // Modal a11y (§3 Batch 2): Esc to close, focus the dialog on open, a simple
+  // Tab focus-trap, and return focus to the trigger on close — so keyboard /
+  // switch users aren't stranded behind the overlay.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const prevFocus = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); return; }
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); prevFocus?.focus?.(); };
+  }, [onClose]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4"
     >
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/45" onClick={onClose} aria-hidden="true" />
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="agent-profile-title"
+        tabIndex={-1}
         initial={{ opacity: 0, y: 24, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12 }}
         transition={{ duration: 0.35, ease: EASE }}
-        className="relative w-full sm:max-w-md max-h-[85vh] sm:max-h-[80vh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col"
+        className="relative w-full sm:max-w-md max-h-[85dvh] sm:max-h-[80dvh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col focus:outline-none"
       >
         {/* Header */}
         <div className="relative px-6 pt-6 pb-4 shrink-0" style={{ borderBottom: `3px solid ${agent.color}` }}>
@@ -99,7 +127,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
 
             {/* Identity */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
+              <p id="agent-profile-title" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
                 {displayName}
               </p>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
@@ -234,7 +262,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
             <section>
               <SectionLabel>{L(`관찰 (${agent.observations.length})`, `Observations (${agent.observations.length})`)}</SectionLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {agent.observations
+                {[...agent.observations]
                   .sort((a, b) => b.confidence - a.confidence)
                   .map(obs => (
                     <div

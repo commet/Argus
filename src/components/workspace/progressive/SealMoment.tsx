@@ -36,7 +36,7 @@ import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBra
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
-import { contractFromPredicates, withCheckIn, CHECK_IN_MS } from '@/lib/decision-contract';
+import { contractFromPredicates, withCheckIn, augmentContract, CHECK_IN_MS } from '@/lib/decision-contract';
 import { recordSignal } from '@/lib/signal-recorder';
 import { track } from '@/lib/analytics';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
@@ -44,6 +44,7 @@ import { EASE } from './shared/constants';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
   governing_idea: Target,
+  user_lean: Target,
   risk: AlertTriangle,
   actor: GitBranch,
 };
@@ -129,18 +130,25 @@ export function SealMoment({
   function seal(iv: CheckInInterval = interval) {
     if (kept.length === 0) return;
     const now = Date.now();
-    const fresh = contractFromPredicates(project.id, kept, now);
-    if (!fresh) return;
-    updateProject(project.id, { decision_contract: withCheckIn(fresh, iv, now) });
+    // If an EARLY rope already exists (Phase 1 BIND at project-OPEN), AUGMENT it —
+    // merge the run's predicates onto it, preserving id/created_at and the user's
+    // own user_lean predicate, and re-confirm the check-in. Never clobber the rope
+    // ("bind tighter at peak temptation"). Otherwise create a fresh contract.
+    const existing = project.decision_contract;
+    const next = existing
+      ? augmentContract(existing, kept, now, iv)
+      : (() => { const f = contractFromPredicates(project.id, kept, now); return f ? withCheckIn(f, iv, now) : null; })();
+    if (!next) return;
+    updateProject(project.id, { decision_contract: next });
     setInterval(iv);
     setJustSealed(true);
     // Learning signal (2026-06-13 data-wiring fix) — the new flow recorded
     // nothing. Accepting the seal is the strongest engagement signal the
     // product has. Not already sealed → only count the first seal.
     if (!justSealed) {
-      recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: kept.length } });
+      recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: next.predicates.length } });
       // Also in the main funnel (user_events) — this is the activation north-star.
-      track('decision_sealed', { interval: iv, predicates: kept.length });
+      track('decision_sealed', { interval: iv, predicates: next.predicates.length, augmented: !!existing });
     }
   }
 

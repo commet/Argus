@@ -22,9 +22,9 @@ export function LandingHeader() {
     <header
       className="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
       style={{
-        background: scrolled ? 'color-mix(in srgb, var(--bp-paper) 78%, transparent)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(10px) saturate(120%)' : 'none',
-        WebkitBackdropFilter: scrolled ? 'blur(10px) saturate(120%)' : 'none',
+        // De-glass (§3 identity): the logbook is ink-on-paper, not screen glass.
+        // Scrolled state is opaque parchment + an ink hairline, no blur.
+        background: scrolled ? 'var(--bp-paper)' : 'transparent',
         borderBottom: scrolled ? '1px solid var(--bp-ink-whisper)' : '1px solid transparent',
       }}
     >
