@@ -14,6 +14,8 @@ import { BossConfirmation } from './BossConfirmation';
 import { useT } from '@/contexts/LocaleProvider';
 import { useLocale } from '@/hooks/useLocale';
 import { track } from '@/lib/analytics';
+import { classifyCrisis, type CrisisSignal } from '@/lib/crisis-gate';
+import { CrisisConcernBanner } from '@/components/workspace/progressive/CrisisConcernBanner';
 
 const EXAMPLE_SITUATIONS_KO = [
   '연봉 협상을 하고 싶은데요',
@@ -84,6 +86,12 @@ export function BossSetup() {
   const [situation, setSituation] = useState('');
   const [isLaunching, setIsLaunching] = useState(false);
   const [confirmedSituation, setConfirmedSituation] = useState('');
+  // Crisis backstop (crisis-gate.ts): the boss must not issue an authority verdict
+  // (approved/rejected/conditional) on a self-harm / abuse / crisis input — incl.
+  // the burnout prompts this UI itself seeds. On a clear signal we short-circuit to
+  // a concern + a real resource (decision 3: warn, never hard-block — one conscious
+  // override re-enters). Not a verdict about the user; the trigger is never shown.
+  const [crisis, setCrisis] = useState<CrisisSignal | null>(null);
   // Default to "easy" mode — workplace-language quiz. Power users / Korean MBTI fans
   // can flip to MBTI-direct toggle. Both modes share the same axis state.
   const [axisMode, setAxisMode] = useState<'easy' | 'mbti'>('easy');
@@ -102,9 +110,7 @@ export function BossSetup() {
   const birthMonthValid = birthMonth >= 1 && birthMonth <= 12;
   const birthDayValid = birthDay >= 1 && birthDay <= 31;
 
-  const handleSubmit = useCallback(async () => {
-    if (!situation.trim() || isLaunching) return;
-    const trimmed = situation.trim();
+  const launch = useCallback((trimmed: string) => {
     setConfirmedSituation(trimmed);
     setIsLaunching(true);
     addUserMessage(trimmed);
@@ -118,7 +124,30 @@ export function BossSetup() {
     });
     // Fire Saju in background — confirmation panel shows loader until it lands.
     loadSaju();
-  }, [situation, isLaunching, loadSaju, addUserMessage, typeCode, gender, birthYearValid, birthMonthValid, birthDayValid]);
+  }, [loadSaju, addUserMessage, typeCode, gender, birthYearValid, birthMonthValid, birthDayValid]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!situation.trim() || isLaunching) return;
+    const trimmed = situation.trim();
+    // Crisis backstop fires BEFORE any verdict machinery: a roleplayed authority
+    // must not "approve/reject" a self-harm/abuse/crisis input.
+    const sig = classifyCrisis(trimmed);
+    if (sig.isCrisis) {
+      setCrisis(sig);
+      track('boss_crisis_gated', { category: sig.category });
+      return;
+    }
+    launch(trimmed);
+  }, [situation, isLaunching, launch]);
+
+  // Conscious override (decision 3): the user has seen the concern + resource and
+  // chooses to rehearse anyway. The concern stays surfaced; we do not re-gate.
+  const handleCrisisOverride = useCallback(() => {
+    const trimmed = situation.trim();
+    if (!trimmed) return;
+    track('boss_crisis_override');
+    launch(trimmed);
+  }, [situation, launch]);
 
   // Demo path: AutoDemo on /boss?demo=... pre-populates axes/birth and writes
   // a sample situation into the store. Consume it once, prefill the textarea,
@@ -133,6 +162,11 @@ export function BossSetup() {
       const { setIsLaunching: _ } = { setIsLaunching: setIsLaunching };
       if (!isLaunching) {
         const trimmed = demoSituation.trim();
+        const sig = classifyCrisis(trimmed);
+        if (sig.isCrisis) {
+          setCrisis(sig);
+          return;
+        }
         setConfirmedSituation(trimmed);
         setIsLaunching(true);
         addUserMessage(trimmed);
@@ -346,7 +380,7 @@ export function BossSetup() {
           <textarea
             id="bs-situation"
             value={situation}
-            onChange={(e) => setSituation(e.target.value)}
+            onChange={(e) => { setSituation(e.target.value); if (crisis) setCrisis(null); }}
             onKeyDown={handleKeyDown}
             className="bs-textarea"
             rows={2}
@@ -387,6 +421,17 @@ export function BossSetup() {
             />
           </div>
         </div>
+        {/* Crisis backstop surface — sits directly above the CTA so it meets the
+            eye on submit. While shown, the rehearsal (and its verdict) is held;
+            one conscious tap continues. */}
+        {crisis?.isCrisis && (
+          <CrisisConcernBanner
+            crisis={crisis}
+            locale={locale}
+            blocking={true}
+            onContinue={handleCrisisOverride}
+          />
+        )}
         <div className="bs-cta-row">
           <p className="bs-fine">{t('boss.disclaimer')}</p>
           <motion.button
