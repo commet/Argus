@@ -27,6 +27,7 @@ import { track } from '@/lib/analytics';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { PlateLabel } from './ui/PlateLabel';
 import { Cartouche } from './ui/Cartouche';
+import { DecisionVoyageFilm } from '@/components/landing/films/DecisionVoyageFilm';
 
 type Locale = 'ko' | 'en';
 type Tone = 'you' | 'argus' | 'alert' | 'arrival';
@@ -207,6 +208,23 @@ export function Act2DecisionVoyage() {
             'Not an answer handed down — it flags what you missed, and keeps why you changed course.',
           )}
         </p>
+
+        {/* The decision voyage, on the chart — two sessions navigated on a 3D
+            parchment chart. The unrolling trail below is the same story told
+            as a ship's log. */}
+        <div
+          className="bp-fade-up mt-12 md:mt-14"
+          style={{
+            animationDelay: '320ms',
+            // Break out of the max-w-3xl reading column: the chart is designed
+            // ~1000px wide, so center a wider band against the viewport.
+            width: 'min(1040px, 92vw)',
+            marginLeft: '50%',
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <DecisionVoyageFilm />
+        </div>
 
         {/* The trail — a ship's log unrolling */}
         <ol

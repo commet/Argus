@@ -19,6 +19,7 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isWorkspace = pathname.startsWith('/workspace');
   const isLanding = pathname === '/';
+  const isDesign = pathname.startsWith('/design');
   const isLogin = pathname === '/login';
   const isCallback = pathname.startsWith('/auth/callback');
   const needsAuth = !isPublicPath(pathname);
@@ -28,8 +29,10 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
     return <main className="flex-1 w-full">{children}</main>;
   }
 
-  // Landing — full width, no auth
-  if (isLanding) {
+  // Landing & design showcase — full width, no auth, no app chrome.
+  // The /design/* pages are public component/film references with their own
+  // headers, so they get the same bare full-width shell as the landing.
+  if (isLanding || isDesign) {
     return (
       <main className="flex-1 w-full animate-fade-in">
         {children}

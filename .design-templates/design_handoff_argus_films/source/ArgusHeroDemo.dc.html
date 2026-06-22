@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Argus Hero — Auto-play Product Demo" description="Silent product-tour film for the landing hero: one continuous Argus app session (persistent titlebar + live status + crew avatars) across 6 beats — brief intake with live capture chips, crew summon around a brass compass, analysis drawn on a chart-paper canvas, Argus asks back, crew works, glanceable draft preview. DS tokens + real Badge/Card; gold once per scene; loops; reduced-motion shows the final beat." -->
+<helmet>
+<script src="./ds-base.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0}
+  @keyframes argspin{to{transform:rotate(360deg)}}
+  @keyframes argwork{0%,100%{box-shadow:0 0 0 0 color-mix(in oklab,var(--accent) 0%,transparent)}50%{box-shadow:0 0 0 4px color-mix(in oklab,var(--accent) 16%,transparent)}}
+  @keyframes argglow{0%,100%{opacity:.5}50%{opacity:.9}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:grid;place-items:center;background:var(--bg);background-image:radial-gradient(120% 80% at 18% -8%, color-mix(in oklab,var(--ai) 70%, transparent), transparent 56%), radial-gradient(110% 95% at 100% 108%, color-mix(in oklab,var(--accent) 8%, transparent), transparent 54%);font-family:var(--font-sans);color:var(--text-primary);padding:40px 24px">
+<div style="width:100%;max-width:980px;display:flex;flex-direction:column;gap:18px">
+
+  <!-- caption -->
+  <sc-if value="{{ showCaption }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 4px">
+    <div style="display:flex;align-items:center;gap:11px;white-space:nowrap">
+      <span style="width:22px;height:1px;background:var(--accent)"></span>
+      <span style="font:600 11px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--text-tertiary);white-space:nowrap">Argus · 제품 미리보기</span>
+    </div>
+    <span style="display:inline-flex;align-items:center;gap:7px;font:500 11px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--text-tertiary);white-space:nowrap"><span style="width:7px;height:7px;border-radius:50%;background:#b25347;box-shadow:0 0 6px rgba(178,83,71,.5)"></span>자동 재생 · 반복</span>
+  </div>
+  </sc-if>
+
+  <!-- ===== STAGE = APP WINDOW ===== -->
+  <div style="position:relative;width:100%;aspect-ratio:16/10;min-height:480px;border-radius:20px;overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:0 1px 0 color-mix(in oklab,var(--surface) 80%, transparent) inset, var(--shadow-md), 0 40px 80px -28px color-mix(in oklab,var(--accent) 22%, transparent)">
+    <!-- warm light wash -->
+    <div style="position:absolute;inset:0;background:radial-gradient(120% 80% at 18% 0%, color-mix(in oklab,var(--ai) 75%, transparent), transparent 55%), radial-gradient(110% 90% at 100% 100%, color-mix(in oklab,var(--accent) 7%, transparent), transparent 52%);pointer-events:none"></div>
+    <!-- paper grain -->
+    <sc-if value="{{ showGrain }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(0deg, color-mix(in srgb,var(--text-primary) 2%, transparent) 0 1px, transparent 1px 3px);pointer-events:none;opacity:.55"></div>
+    </sc-if>
+
+    <!-- ===== persistent app titlebar ===== -->
+    <div style="position:absolute;top:0;left:0;right:0;height:52px;z-index:6;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 18px;background:linear-gradient(180deg, color-mix(in oklab,var(--surface) 92%,var(--accent) 8%), var(--surface));border-bottom:1px solid var(--border);box-shadow:0 1px 0 color-mix(in oklab,#fff 45%,transparent) inset">
+      <div style="display:flex;align-items:center;gap:11px;min-width:0">
+        <svg width="20" height="20" viewBox="0 0 100 100" fill="none" style="flex:none"><circle cx="50" cy="50" r="43" stroke="var(--accent)" stroke-width="5"></circle><path d="M50 12 L58 50 L50 88 L42 50 Z" fill="var(--accent)"></path><path d="M12 50 L50 42 L88 50 L50 58 Z" fill="var(--text-primary)" opacity=".28"></path><circle cx="50" cy="50" r="6" fill="var(--text-primary)"></circle></svg>
+        <span style="font:600 15px var(--font-display);color:var(--text-primary);letter-spacing:-.01em;white-space:nowrap">Argus</span>
+        <span style="flex:none;width:1px;height:15px;background:var(--border)"></span>
+        <span style="font:500 12px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">신사업 기획안</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:13px">
+        <div style="{{ avStack }}">
+          <span style="width:24px;height:24px;border-radius:50%;background:var(--ai);border:1.5px solid var(--surface);display:grid;place-items:center;font:700 10px var(--font-display);color:var(--text-secondary);margin-left:-7px;box-shadow:var(--shadow-sm)">다</span>
+          <span style="width:24px;height:24px;border-radius:50%;background:var(--ai);border:1.5px solid var(--surface);display:grid;place-items:center;font:700 10px var(--font-display);color:var(--text-secondary);margin-left:-7px;box-shadow:var(--shadow-sm)">현</span>
+          <span style="width:24px;height:24px;border-radius:50%;background:var(--ai);border:1.5px solid var(--surface);display:grid;place-items:center;font:700 10px var(--font-display);color:var(--text-secondary);margin-left:-7px;box-shadow:var(--shadow-sm)">규</span>
+          <span style="width:24px;height:24px;border-radius:50%;background:var(--ai);border:1.5px solid var(--surface);display:grid;place-items:center;font:700 10px var(--font-display);color:var(--text-secondary);margin-left:-7px;box-shadow:var(--shadow-sm)">동</span>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:7px;font:600 11px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--text-secondary);white-space:nowrap;padding:6px 11px;border-radius:20px;background:color-mix(in oklab,var(--surface) 70%,transparent);border:1px solid var(--border)"><span style="{{ statusDot }}"></span>{{ statusLabel }}</span>
+      </div>
+    </div>
+
+    <!-- ===== SCENE 0 · BRIEF ===== -->
+    <div style="{{ s0 }}">
+      <div style="width:100%;max-width:580px;display:flex;flex-direction:column;gap:16px">
+        <div style="padding:20px 22px;border-radius:14px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px">
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px color-mix(in oklab,var(--accent) 60%,transparent)"></span>
+            <span style="font:600 10px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--text-tertiary)">상황 입력</span>
+          </div>
+          <p style="margin:0;font:400 17px/1.7 var(--font-display);color:var(--text-primary);min-height:3.4em">{{ typedNodes }}<span style="{{ cursorStyle }}"></span></p>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+          <span style="font-size:11px;color:var(--text-tertiary);white-space:nowrap">Argus가 포착 —</span>
+          <span style="{{ ann0 }}"><span>⚑</span>데드라인 · 2주</span>
+          <span style="{{ ann1 }}"><span>⚠</span>미경험 리스크</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCENE 1 · CREW SUMMON ===== -->
+    <div style="{{ s1 }}">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:24px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:9px">
+          <svg width="46" height="46" viewBox="0 0 100 100" fill="none" style="filter:drop-shadow(0 4px 10px color-mix(in oklab,var(--accent) 30%,transparent))"><circle cx="50" cy="50" r="45" stroke="var(--accent)" stroke-width="2"></circle><circle cx="50" cy="50" r="33" stroke="color-mix(in oklab,var(--accent) 45%,transparent)" stroke-width="1.2"></circle><path d="M50 10 L57 50 L50 90 L43 50 Z" fill="var(--accent)"></path><path d="M10 50 L50 43 L90 50 L50 57 Z" fill="var(--text-primary)" opacity=".25"></path><circle cx="50" cy="50" r="4.5" fill="var(--text-primary)"></circle></svg>
+          <span style="font:600 10px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--text-tertiary);white-space:nowrap">크루 소환 · 다른 눈들</span>
+        </div>
+        <div style="display:flex;gap:30px;flex-wrap:wrap;justify-content:center">
+          <div style="{{ tm0 }}">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--ai);border:1px solid var(--border);box-shadow:var(--shadow-sm);display:grid;place-items:center">
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><circle cx="13" cy="13" r="7" stroke="var(--text-secondary)" stroke-width="2.1"></circle><path d="M18.5 18.5 L25 25" stroke="var(--text-secondary)" stroke-width="2.6" stroke-linecap="round"></path></svg>
+            </div>
+            <span style="font:600 14px var(--font-display);color:var(--text-primary);margin-top:12px;white-space:nowrap">다은</span>
+            <div style="margin-top:7px"><x-import component-from-global-scope="ArgusDS.Badge" variant="ai" hint-size="64px,24px">리서치</x-import></div>
+          </div>
+          <div style="{{ tm1 }}">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--ai);border:1px solid var(--border);box-shadow:var(--shadow-sm);display:grid;place-items:center">
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><path d="M16 4 L19 16 L16 28 L13 16 Z" fill="var(--text-secondary)"></path><path d="M4 16 L16 13 L28 16 L16 19 Z" fill="var(--text-secondary)" opacity=".5"></path></svg>
+            </div>
+            <span style="font:600 14px var(--font-display);color:var(--text-primary);margin-top:12px;white-space:nowrap">현우</span>
+            <div style="margin-top:7px"><x-import component-from-global-scope="ArgusDS.Badge" variant="ai" hint-size="64px,24px">전략</x-import></div>
+          </div>
+          <div style="{{ tm2 }}">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--ai);border:1px solid var(--border);box-shadow:var(--shadow-sm);display:grid;place-items:center">
+              <svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M6 9h20M6 16h20M6 23h20M11 5v22M21 5v22" stroke="var(--text-secondary)" stroke-width="1.8"></path></svg>
+            </div>
+            <span style="font:600 14px var(--font-display);color:var(--text-primary);margin-top:12px;white-space:nowrap">규민</span>
+            <div style="margin-top:7px"><x-import component-from-global-scope="ArgusDS.Badge" variant="ai" hint-size="64px,24px">숫자</x-import></div>
+          </div>
+          <div style="{{ tm3 }}">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--ai);border:1px solid var(--border);box-shadow:var(--shadow-sm);display:grid;place-items:center">
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><path d="M16 5 L28 26 H4 Z" stroke="var(--text-secondary)" stroke-width="2" fill="none" stroke-linejoin="round"></path><path d="M16 13 V19" stroke="var(--text-secondary)" stroke-width="2.2" stroke-linecap="round"></path><circle cx="16" cy="22.5" r="1.3" fill="var(--text-secondary)"></circle></svg>
+            </div>
+            <span style="font:600 14px var(--font-display);color:var(--text-primary);margin-top:12px;white-space:nowrap">동혁</span>
+            <div style="margin-top:7px"><x-import component-from-global-scope="ArgusDS.Badge" variant="ai" hint-size="64px,24px">리스크</x-import></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCENE 2 · ANALYSIS ON THE CHART ===== -->
+    <div style="{{ s2 }}">
+      <div style="width:100%;max-width:640px;position:relative;border-radius:16px;overflow:hidden;background:linear-gradient(150deg,#f6edd6 0%,#ece0c2 100%);border:1px solid #ddcba1;box-shadow:var(--shadow-md);padding:22px 24px">
+        <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,rgba(120,90,40,.06) 0 1px,transparent 1px 34px),repeating-linear-gradient(90deg,rgba(120,90,40,.06) 0 1px,transparent 1px 34px);pointer-events:none"></div>
+        <svg width="118" height="118" viewBox="0 0 100 100" fill="none" style="position:absolute;right:10px;bottom:-6px;opacity:.5;pointer-events:none"><circle cx="50" cy="50" r="46" stroke="#a07d40" stroke-width="1.2"></circle><circle cx="50" cy="50" r="32" stroke="#bfa066" stroke-width="1"></circle><path d="M50 6 L56 50 L50 94 L44 50 Z" fill="#9a6b1e" opacity=".45"></path><path d="M6 50 L50 44 L94 50 L50 56 Z" fill="#6e5020" opacity=".28"></path><circle cx="50" cy="50" r="3.2" fill="#6e5020"></circle></svg>
+        <div style="position:relative;display:flex;flex-direction:column;gap:13px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:argglow 1.6s ease-in-out infinite"></span>
+            <span style="font:600 10px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8c6526;white-space:nowrap">해도 분석 중</span>
+          </div>
+          <div style="{{ cd0 }}">
+            <div style="padding:15px 17px;border-radius:12px;background:linear-gradient(180deg,#fffdf8,#f7eed9);border:1px solid #e0cfa6;box-shadow:0 2px 4px rgba(60,44,18,.16),0 14px 28px rgba(60,44,18,.16),inset 0 1px 0 rgba(255,255,255,.9)">
+              <span style="font:600 9.5px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)">Argus가 다시 잡은 진짜 질문</span>
+              <p style="margin:8px 0 0;font:600 16px/1.5 var(--font-display);color:#1c1812;word-break:keep-all">‘기획안’이 아니라 — 2주 안에 검증할 <span style="color:var(--accent)">첫 진입점</span>은?</p>
+            </div>
+          </div>
+          <div style="{{ cd1 }}">
+            <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+              <span style="font:600 9.5px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#9a6b3e;white-space:nowrap">숨은 암초</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font:600 11.5px var(--font-sans);color:#7a5b4e;padding:5px 11px;border-radius:20px;background:rgba(178,83,71,.1);border:1px solid rgba(178,83,71,.32);white-space:nowrap"><span style="color:#b25347">⚠</span>신사업 = 새 코드베이스?</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font:600 11.5px var(--font-sans);color:#7a5b4e;padding:5px 11px;border-radius:20px;background:rgba(178,83,71,.1);border:1px solid rgba(178,83,71,.32);white-space:nowrap"><span style="color:#b25347">⚠</span>‘기획안’의 독자 미정</span>
+            </div>
+          </div>
+          <div style="{{ cd2 }}">
+            <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:7px;font:600 12px var(--font-sans);color:#3a2c12;padding:7px 13px;border-radius:10px;background:rgba(255,253,247,.85);border:1px solid #ddcba1;white-space:nowrap"><span style="font:700 10px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--accent)">01</span>문제 · 기회</span>
+              <span style="width:18px;height:1.5px;background:rgba(120,90,40,.35)"></span>
+              <span style="display:inline-flex;align-items:center;gap:7px;font:600 12px var(--font-sans);color:#3a2c12;padding:7px 13px;border-radius:10px;background:rgba(255,253,247,.85);border:1px solid #ddcba1;white-space:nowrap"><span style="font:700 10px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--accent)">02</span>2주 검증</span>
+              <span style="width:18px;height:1.5px;background:rgba(120,90,40,.35)"></span>
+              <span style="display:inline-flex;align-items:center;gap:7px;font:600 12px var(--font-sans);color:#3a2c12;padding:7px 13px;border-radius:10px;background:rgba(255,253,247,.85);border:1px solid #ddcba1;white-space:nowrap"><span style="font:700 10px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--accent)">03</span>팀 · 리스크</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCENE 3 · ASK BACK ===== -->
+    <div style="{{ s3 }}">
+      <div style="width:100%;max-width:520px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="flex:none;width:38px;height:38px;border-radius:50%;background:var(--ai);border:1px solid var(--border);box-shadow:var(--shadow-sm);display:grid;place-items:center"><span style="font:700 15px var(--font-display);color:var(--text-secondary)">현</span></div>
+          <div style="padding:15px 18px;border-radius:4px 14px 14px 14px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm)">
+            <span style="font:600 9px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--text-tertiary)">현우 · 전략</span>
+            <p style="margin:6px 0 0;font:600 16px/1.5 var(--font-display);color:var(--text-primary);word-break:keep-all">이 기획안, 경영진 설득용인가요 실행 계획용인가요?</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div style="{{ oaSty }}"><div style="{{ oaFillStyle }}"></div><span style="position:relative">경영진 설득용</span><span style="{{ chkA }}">✓</span></div>
+          <div style="{{ obSty }}"><span>실행 계획용</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCENE 4 · WORKERS ===== -->
+    <div style="{{ s4 }}">
+      <div style="width:100%;max-width:520px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+          <span style="font:600 10px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--text-tertiary);white-space:nowrap">크루 작업 중</span>
+          <span style="font:600 13px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--accent)">{{ progPct }}%</span>
+        </div>
+        <div style="height:8px;border-radius:5px;background:color-mix(in oklab,var(--accent) 12%,transparent);overflow:hidden"><div style="{{ pbW }}"></div></div>
+        <div style="display:flex;flex-direction:column;gap:9px;margin-top:2px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border)"><div style="display:flex;align-items:center;gap:10px;white-space:nowrap"><span style="font:600 13px var(--font-display);color:var(--text-primary)">다은</span><span style="font:500 11px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--text-tertiary)">리서치</span></div><span style="{{ wp0 }}">{{ ws0 }}</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border)"><div style="display:flex;align-items:center;gap:10px;white-space:nowrap"><span style="font:600 13px var(--font-display);color:var(--text-primary)">현우</span><span style="font:500 11px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--text-tertiary)">전략</span></div><span style="{{ wp1 }}">{{ ws1 }}</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border)"><div style="display:flex;align-items:center;gap:10px;white-space:nowrap"><span style="font:600 13px var(--font-display);color:var(--text-primary)">규민</span><span style="font:500 11px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--text-tertiary)">숫자</span></div><span style="{{ wp2 }}">{{ ws2 }}</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border)"><div style="display:flex;align-items:center;gap:10px;white-space:nowrap"><span style="font:600 13px var(--font-display);color:var(--text-primary)">동혁</span><span style="font:500 11px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--text-tertiary)">리스크</span></div><span style="{{ wp3 }}">{{ ws3 }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCENE 5 · DRAFT (glanceable) ===== -->
+    <div style="{{ s5 }}">
+      <div style="width:100%;max-width:620px;display:flex;gap:22px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:230px;display:flex;flex-direction:column;gap:13px">
+          <div><x-import component-from-global-scope="ArgusDS.Badge" variant="gold" hint-size="84px,24px">현재 방위</x-import></div>
+          <h3 style="margin:0;font:600 23px/1.28 var(--font-display);color:#1c1812;letter-spacing:-.01em;word-break:keep-all">1차 진입 기획안, 완성</h3>
+          <p style="margin:0;font-size:13.5px;line-height:1.65;color:var(--text-secondary);word-break:keep-all">5인 · 2주로 검증할 <span style="color:var(--accent);font-weight:600">단일 카테고리 파일럿</span>까지 — 갈 길이 한 장에 잡혔습니다.</p>
+        </div>
+        <div style="flex:none;width:236px;border-radius:12px;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-md);padding:16px 16px 18px;transform:rotate(-1.2deg)">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:12px"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent)"></span><span style="width:6px;height:6px;border-radius:50%;background:color-mix(in oklab,var(--accent) 30%,transparent)"></span><span style="width:6px;height:6px;border-radius:50%;background:color-mix(in oklab,var(--accent) 30%,transparent)"></span></div>
+          <div style="height:9px;width:78%;border-radius:3px;background:color-mix(in oklab,var(--text-primary) 78%,transparent);margin-bottom:14px"></div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;gap:9px"><span style="font:700 9px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--accent)">01</span><div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="height:5px;width:92%;border-radius:3px;background:color-mix(in oklab,var(--text-primary) 30%,transparent)"></div><div style="height:5px;width:64%;border-radius:3px;background:var(--border)"></div></div></div>
+            <div style="display:flex;align-items:center;gap:9px"><span style="font:700 9px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--accent)">02</span><div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="height:5px;width:84%;border-radius:3px;background:color-mix(in oklab,var(--text-primary) 30%,transparent)"></div><div style="height:5px;width:58%;border-radius:3px;background:var(--border)"></div></div></div>
+            <div style="display:flex;align-items:center;gap:9px"><span style="font:700 9px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--accent)">03</span><div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="height:5px;width:88%;border-radius:3px;background:color-mix(in oklab,var(--text-primary) 30%,transparent)"></div><div style="height:5px;width:50%;border-radius:3px;background:var(--border)"></div></div></div>
+            <div style="display:flex;align-items:center;gap:9px"><span style="font:700 9px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif;color:var(--accent)">04</span><div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="height:5px;width:70%;border-radius:3px;background:color-mix(in oklab,var(--text-primary) 30%,transparent)"></div><div style="height:5px;width:42%;border-radius:3px;background:var(--border)"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- progress dots -->
+    <div style="position:absolute;left:0;right:0;bottom:20px;z-index:6;display:flex;justify-content:center;gap:8px">
+      <span style="{{ d0 }}"></span><span style="{{ d1 }}"></span><span style="{{ d2 }}"></span><span style="{{ d3 }}"></span><span style="{{ d4 }}"></span><span style="{{ d5 }}"></span>
+    </div>
+  </div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:960,&quot;height&quot;:640},&quot;speed&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;차분히&quot;,&quot;기본&quot;,&quot;빠르게&quot;],&quot;default&quot;:&quot;기본&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;grain&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;captionBar&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.S = "대표님이 갑자기 신사업 기획안을 2주 안에 만들어오라고 했어. 백엔드 5명인데 기획은 처음이야.";
+    this.golds = [];
+    ["2주 안에","기획은 처음"].forEach(k => { const i = this.S.indexOf(k); if (i >= 0) this.golds.push([i, i + k.length]); });
+    this.segs = [[0,3600],[3600,6100],[6100,9400],[9400,11900],[11900,14600],[14600,17400]];
+    this.TOTAL = 17900;
+    this.state = { t: 0, reduced: false };
+  }
+  speed(){ const m={ "차분히":0.72, "기본":1, "빠르게":1.45 }; return m[this.props.speed] || 1; }
+  componentDidMount(){
+    const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq && mq.matches){ this.setState({ t: 15800, reduced: true }); return; }
+    this.start = Date.now();
+    this.timer = setInterval(() => { this.setState({ t: ((Date.now() - this.start) * this.speed()) % this.TOTAL }); }, 40);
+  }
+  componentWillUnmount(){ if (this.timer) clearInterval(this.timer); }
+  clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
+  env(t,a,b){ const fi=440, fo=380; const e=this.clamp((t-a)/fi,0,1); const x=this.clamp((b-t)/fo,0,1); return { o:e*x, ty:(1-e)*18-(1-x)*10 }; }
+  lp(t,i){ const s=this.segs[i]; return this.clamp((t-s[0])/(s[1]-s[0]),0,1); }
+  layer(t,i){ const e=this.env(t,this.segs[i][0],this.segs[i][1]); return { position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', padding:'74px 50px 60px', boxSizing:'border-box', opacity:e.o, transform:'translateY('+e.ty.toFixed(1)+'px)', pointerEvents:'none', willChange:'opacity, transform' }; }
+  reveal(p,k,step,dur){ return this.clamp((p - k*step)/dur, 0, 1); }
+  renderVals(){
+    const t = this.state.t;
+    const R = {};
+    R.showCaption = this.props.captionBar !== false;
+    R.showGrain = this.props.grain !== false;
+    for (let i=0;i<6;i++) R['s'+i] = this.layer(t, i);
+
+    // current scene index (for titlebar status + dots)
+    let sc = 5;
+    for (let i=0;i<6;i++){ if (t>=this.segs[i][0] && t<this.segs[i][1]){ sc=i; break; } }
+    if (this.state.reduced) sc = 5;
+    const statuses = [['상황 읽는 중','var(--accent)'],['크루 소환','var(--accent)'],['해도 분석 중','var(--accent)'],['확인 필요','#c9852f'],['크루 작업 중','var(--accent)'],['초안 완성','var(--success)']];
+    R.statusLabel = statuses[sc][0];
+    R.statusDot = { width:'7px', height:'7px', borderRadius:'50%', flex:'none', background:statuses[sc][1], boxShadow:'0 0 7px '+statuses[sc][1] };
+    R.avStack = { display:'flex', alignItems:'center', paddingLeft:'7px', opacity:this.clamp((t-this.segs[1][0])/520,0,1).toFixed(3), transition:'opacity .3s ease' };
+
+    // scene 0 — typing + capture chips
+    const p0 = this.lp(t,0);
+    const n = Math.round(this.clamp(p0/0.78,0,1) * this.S.length);
+    const isGold = (i) => this.golds.some(g => i>=g[0] && i<g[1]);
+    const nodes = [];
+    for (let i=0;i<n;i++){ const g=isGold(i); nodes.push(React.createElement('span',{key:i,style:{color:g?'var(--accent)':'var(--text-primary)',fontWeight:g?700:400}}, this.S[i])); }
+    R.typedNodes = nodes;
+    R.cursorStyle = { display:'inline-block', width:'2px', height:'1.05em', marginLeft:'2px', background:'var(--accent)', verticalAlign:'-2px', opacity: (Math.floor(t/470)%2 ? 1 : 0.12), transition:'opacity .1s' };
+    const annBase = (r,risk) => ({ display:'inline-flex', alignItems:'center', gap:'5px', font:'600 11px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif', padding:'5px 11px', borderRadius:'20px', whiteSpace:'nowrap', background: risk?'rgba(178,83,71,.1)':'color-mix(in oklab,var(--accent) 12%,transparent)', border:'1px solid '+(risk?'rgba(178,83,71,.34)':'color-mix(in oklab,var(--accent) 35%,transparent)'), color: risk?'#b25347':'var(--accent)', opacity:r, transform:'translateY('+((1-r)*8).toFixed(1)+'px)' });
+    R.ann0 = annBase(this.clamp((p0-0.66)/0.14,0,1), false);
+    R.ann1 = annBase(this.clamp((p0-0.8)/0.14,0,1), true);
+
+    // scene 1 — crew
+    const p1 = this.lp(t,1);
+    const tmStyle = (k) => { const r=this.reveal(p1,k,0.15,0.32); return { display:'flex', flexDirection:'column', alignItems:'center', opacity:r, transform:'translateY('+((1-r)*16).toFixed(1)+'px) scale('+(0.86+0.14*r).toFixed(3)+')' }; };
+    for (let k=0;k<4;k++) R['tm'+k] = tmStyle(k);
+
+    // scene 2 — analysis (reveals on chart-paper)
+    const p2 = this.lp(t,2);
+    const wrap = (r) => ({ opacity:r, transform:'translateY('+((1-r)*14).toFixed(1)+'px)', transition:'none' });
+    R.cd0 = wrap(this.clamp((p2-0.12)/0.2,0,1));
+    R.cd1 = wrap(this.clamp((p2-0.42)/0.2,0,1));
+    R.cd2 = wrap(this.clamp((p2-0.64)/0.2,0,1));
+
+    // scene 3 — ask back
+    const p3 = this.lp(t,3);
+    const fill = this.clamp((p3-0.3)/0.34,0,1);
+    const picked = p3 > 0.66;
+    R.oaSty = { position:'relative', overflow:'hidden', flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', padding:'15px 16px', borderRadius:'12px', background:'var(--surface)', border:'1.5px solid '+(fill>0.02?'var(--accent)':'var(--border)'), boxShadow: picked ? '0 8px 20px color-mix(in oklab,var(--accent) 24%,transparent)' : 'var(--shadow-sm)', font:'600 14px var(--font-sans)', color:'var(--text-primary)', transition:'border-color .3s, box-shadow .3s' };
+    R.oaFillStyle = { position:'absolute', left:0, top:0, bottom:0, width:(fill*100).toFixed(1)+'%', background:'linear-gradient(90deg, color-mix(in oklab,var(--accent) 22%,transparent), color-mix(in oklab,var(--accent) 9%,transparent))', transition:'none' };
+    R.chkA = { position:'relative', display:'inline-grid', placeItems:'center', width:'18px', height:'18px', borderRadius:'50%', background:'var(--accent)', color:'#fff', font:'700 11px 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif', opacity: picked?1:0, transform:'scale('+(picked?1:0.4)+')', transition:'all .3s ease' };
+    R.obSty = { flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'15px 16px', borderRadius:'12px', background:'var(--bg)', border:'1.5px solid var(--border)', font:'600 14px var(--font-sans)', color:'var(--text-tertiary)', opacity: picked?0.55:1, transition:'opacity .3s' };
+
+    // scene 4 — workers
+    const p4 = this.lp(t,4);
+    R.progPct = String(Math.round(this.clamp(p4/0.9,0,1) * 100));
+    R.pbW = { height:'100%', width:Math.round(this.clamp(p4/0.9,0,1)*100)+'%', background:'var(--gradient-gold)', transition:'none' };
+    const pill = (kind) => {
+      const base = { display:'inline-flex', alignItems:'center', gap:'6px', font:'600 10px/1 'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif', letterSpacing:'.04em', padding:'5px 11px', borderRadius:'20px', whiteSpace:'nowrap', transition:'all .3s ease' };
+      if (kind==='idle') return { ...base, color:'var(--text-tertiary)', border:'1px solid var(--border)', background:'transparent' };
+      if (kind==='work') return { ...base, color:'var(--accent)', border:'1px solid color-mix(in oklab,var(--accent) 40%,transparent)', background:'color-mix(in oklab,var(--accent) 12%,transparent)', animation:'argwork 1.4s ease-in-out infinite' };
+      return { ...base, color:'var(--success)', border:'1px solid color-mix(in oklab,var(--success) 40%,transparent)', background:'color-mix(in oklab,var(--success) 11%,transparent)' };
+    };
+    for (let k=0;k<4;k++){
+      const sw = 0.05 + k*0.05;
+      const dn = 0.5 + k*0.11;
+      let kind='idle', label='대기';
+      if (p4>=dn){ kind='done'; label='✓ 완료'; }
+      else if (p4>=sw){ kind='work'; label='작업 중'; }
+      R['wp'+k] = pill(kind);
+      R['ws'+k] = label;
+    }
+
+    // progress dots
+    for (let k=0;k<6;k++){
+      const a = k===sc;
+      R['d'+k] = { width: a?'22px':'7px', height:'7px', borderRadius:'4px', background: a?'var(--accent)':'var(--border)', transition:'all .4s ease' };
+    }
+
+    return R;
+  }
+}
+</script>
+</body>
+</html>

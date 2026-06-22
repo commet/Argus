@@ -2845,3 +2845,41 @@ button, a, input, textarea {
 @media (max-width: 640px) {
   .cutaway-annotation { display: none; }
 }
+
+/* ===== Product films (landing) — keyframes from the claude.ai/design refs.
+   ArgusHeroDemo: argspin/argwork/argglow. DecisionVoyageFilm: dv*. The film
+   components hold the final resolved frame under prefers-reduced-motion (they
+   never start the rAF clock), so these loops never run in that mode. ===== */
+@keyframes argspin { to { transform: rotate(360deg); } }
+@keyframes argwork {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 0%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 16%, transparent); }
+}
+@keyframes argglow { 0%, 100% { opacity: .5; } 50% { opacity: .9; } }
+@keyframes argdrift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+@keyframes dvpulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .55; }
+  50%      { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+}
+@keyframes dvreef {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .5; }
+  50%      { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
+@keyframes dvbob {
+  0%, 100% { transform: translate(-50%, -100%) rotateX(-20deg) translateY(0); }
+  50%      { transform: translate(-50%, -100%) rotateX(-20deg) translateY(-3px); }
+}
+@keyframes dvripple {
+  0%   { transform: translate(-50%, -50%) scale(.4); opacity: .7; }
+  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+/* Workspace showcase variants (rotateX(-21deg), pulse) */
+@keyframes argpulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .5; }
+  50%      { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+}
+@keyframes argbob {
+  0%, 100% { transform: translate(-50%, -100%) rotateX(-21deg) translateY(0); }
+  50%      { transform: translate(-50%, -100%) rotateX(-21deg) translateY(-3px); }
+}
