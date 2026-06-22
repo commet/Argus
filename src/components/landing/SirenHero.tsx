@@ -27,7 +27,6 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
@@ -302,29 +301,10 @@ export function SirenHero() {
           </div>
         </div>
 
-        {/* one plain-language line on how it works (the honest null-fork case is kept) */}
-        <p
-          className={`bp-fade-up mx-auto mt-6 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
-          style={{ color: 'var(--bp-ink-soft)', fontSize: 13, lineHeight: 1.65, animationDelay: '420ms' }}
-        >
-          {locale === 'ko' ? (
-            <>여러 AI가 저마다 다른 눈으로 당신의 계획을 따로 읽어요.<br />길이 갈리는 곳이 있다면 — 거기가 아직 당신이 비워둔 판단이에요.<br />정한 날엔, 잊지 않고 먼저 물어와요.</>
-          ) : (
-            <>Several AIs read your plan separately, each through different eyes.<br />Where the paths split — that&rsquo;s the judgment you&rsquo;ve left blank.<br />And on the day you set, it comes back first to ask.</>
-          )}
-        </p>
-
-        {/* Quiet demo path — clearly secondary, separated from the primary
-            action so it does not cannibalize the textarea. */}
-        <div className="mt-6">
-          <LocaleLink
-            href="/workspace?demo=planning"
-            className="bp-quiet-link inline-block"
-            style={{ fontSize: 12 }}
-          >
-            {L('아직 조심스럽다면, 샘플 결정으로 둘러보기 →', 'Not ready yet? Look around with a sample decision →')}
-          </LocaleLink>
-        </div>
+        {/* The film above already SHOWS the mechanic (separate reads → the fork
+            → the return), so the old "how it works" paragraph and the secondary
+            demo link were cut — show, don't tell. The input footer keeps the
+            ease + privacy microcopy. */}
 
         {/* Scroll cue — a clickable "sounding line" down to the voyage. */}
         <div className="bp-fade-up mt-9 flex justify-center" style={{ animationDelay: '440ms' }}>
