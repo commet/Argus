@@ -33,6 +33,7 @@ import { generateId } from '@/lib/uuid';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { getCurrentLanguage } from '@/lib/i18n';
 import { classifyCrisis, type CrisisSignal } from '@/lib/crisis-gate';
+import { assessFrameStatus } from '@/lib/judgment-gates';
 import type {
   AnalysisSnapshot,
   ConvergenceMetrics,
@@ -429,6 +430,17 @@ export async function runInitialAnalysis(
     // can make a non-open route terminal (ProgressiveFlow suppresses the fabricated
     // follow-up question). Undefined when the model omits it → flow stays normal.
     request_type: result.request_type,
+    // R60 — populate frame_status (was DEAD: assessFrameStatus existed but was never
+    // called, so the flat-decision over-fire gate had nothing to read). Conservative
+    // by design: only 'flat' when the reframe is essentially the surface question AND
+    // there are no assumptions to pivot on — otherwise 'load_bearing'. The flow gates
+    // team deployment + the probe on 'flat' so a genuinely flat decision isn't given
+    // manufactured ceremony (CLAUDE.md mirror clause).
+    frame_status: assessFrameStatus({
+      realQuestion: result.real_question || '',
+      surfaceQuestion: problemText,
+      assumptions: result.hidden_assumptions || [],
+    }),
   };
 
   // Phase 1 typed question: framing_confidence>=70이면 strategic_fork로 넘어간다.
@@ -634,6 +646,13 @@ export async function runDeepening(
     // Carry the route classification forward (deepening only happens on an open
     // decision, but keep it pinned so the flow's non-open check is stable).
     request_type: currentSnapshot.request_type,
+    // R60 — re-assess flat/load_bearing on the refined question (a deepened reframe
+    // can resolve to flat). Conservative; gates team/probe in the flow.
+    frame_status: assessFrameStatus({
+      realQuestion: result.real_question || currentSnapshot.real_question || '',
+      surfaceQuestion: problemText,
+      assumptions: result.hidden_assumptions || currentSnapshot.hidden_assumptions || [],
+    }),
   };
 
   // Adaptive convergence: 스냅샷 전체 + 새 스냅샷으로 수렴도 계산
