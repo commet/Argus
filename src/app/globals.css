@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Tailwind v4: bind the `dark:` variant to the real app theme toggle
+   ([data-theme="dark"], driven by Header) instead of prefers-color-scheme.
+   Without this, every `dark:` utility (53 files) tracked the OS — decoupled
+   from the toggle AND from the token remaps below. This one line reconnects
+   the entire app's dark-mode wiring. */
+@custom-variant dark ([data-theme="dark"] &);
+
 :root {
   --primary: #1a1a1a;
   --primary-light: #2e2e2e;
@@ -7,6 +14,8 @@
   --accent-light: #b8963e;   /* Brighter gold for backgrounds/borders */
   --bg: #f6f4f0;            /* contrast pass 2026-06-18: deepened a touch so white surfaces pop */
   --surface: #ffffff;
+  --bg-hover: #efece6;       /* warm neutral hover fill — was UNDEFINED (resolved transparent → agent badge + level pill vanished) */
+  --warning: #d97706;        /* amber-600 — was UNDEFINED (a CollectionProgress verdict dot rendered invisible) */
   --border: #d2ccc0;        /* contrast pass: was #e5e2dc — too faint, cards floated on cream */
   --border-subtle: #ddd6cb; /* contrast pass: was #eeebe6 — nearly invisible; now reads as "placed" */
   --text-primary: #16140f;  /* contrast pass: was #1a1a1a — slightly deeper warm ink */
@@ -92,6 +101,8 @@
   --accent-light: #e8d48b;
   --bg: #1c1917;
   --surface: #292524;
+  --bg-hover: #363330;
+  --warning: #fbbf24;        /* amber-400 — readable on charcoal */
   --border: #44403c;
   --border-subtle: #363330;
   --text-primary: #fafaf9;
@@ -164,7 +175,13 @@
 }
 
 html {
+  /* keep anchor targets (#voyage-heading, #navigate, …) clear of the fixed header */
+  scroll-padding-top: clamp(56px, 8vh, 72px);
   scroll-behavior: smooth;
+}
+/* a11y: honor the OS reduced-motion setting for anchor scrolling (was global) */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
 
 body {
