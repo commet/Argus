@@ -33,6 +33,7 @@ import type {
   Falsification,
 } from '@/stores/types';
 import { generateId } from './uuid';
+import { calibrationDisclosure, type CalibrationDisclosure } from './calibration-disclosure';
 
 /**
  * Engine version stamped on every sealed contract (dim8). Bump the prompt_version
@@ -570,6 +571,18 @@ export function summarizeRecord(
     rec.goodOutcomesOnLuck += g.goodOutcomesOnLuck;
   }
   return rec;
+}
+
+/**
+ * Dim9 — the honest empirical-maturity disclosure for a cross-project record.
+ * `loops` is the count of fully-SETTLED contracts (the only validated outcomes),
+ * so it gates whether any accuracy/calibration framing may render. Every
+ * track-record / patterns / DQ-trend surface should read `showStats`/`banner`
+ * from here: below SETTLED_THRESHOLD it returns counts-only + an honest
+ * "unproven, not a track record" banner. Raw counts are always safe to show.
+ */
+export function recordDisclosure(rec: CrossProjectRecord): CalibrationDisclosure {
+  return calibrationDisclosure({ runs: rec.loops, sealed: rec.loops, settled: rec.loops });
 }
 
 export interface SealGateInput {

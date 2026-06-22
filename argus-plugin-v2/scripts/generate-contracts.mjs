@@ -30,6 +30,29 @@ const ARTIFACTS = [
     render: (d) =>
       `${AUTO}\n\n# Forbidden machinery terms (reference)\n\nA user-facing Current Heading must never leak these (the product is orientation, not a workflow report):\n\n${d.forbidden_surface_terms.map((t) => `- \`${t}\``).join('\n')}\n`,
   },
+  {
+    source: 'data/contracts/crisis-taxonomy.json',
+    output: 'skills/_generated/crisis-taxonomy.md',
+    render: (d) =>
+      `${AUTO}\n\n# Crisis taxonomy (Axis-0 reference)\n\nclarify Step 1.6 screens for these BEFORE request-type. On a hit: off-ramp to a human resource, no decision verdict.\n\n${d.categories.map((c) => `- **${c.id}** — ${c.desc}`).join('\n')}\n`,
+  },
+];
+
+// Parity assertions: a contract whose authoritative copy lives in webapp TS (can't
+// import the plugin JSON) — verify the TS const matches the source instead of
+// rewriting it. Same generate-then-check discipline, applied across the surface seam.
+const PARITY = [
+  {
+    source: 'data/contracts/crisis-taxonomy.json',
+    tsFile: '../src/lib/crisis-gate.ts',
+    extract: (ts) => {
+      const m = ts.match(/export const CRISIS_CATEGORIES\s*=\s*\[([\s\S]*?)\]\s*as const/);
+      if (!m) return null;
+      return [...m[1].matchAll(/['"]([a-z_]+)['"]/g)].map((x) => x[1]);
+    },
+    expected: (d) => d.categories.map((c) => c.id),
+    label: 'webapp crisis-gate CRISIS_CATEGORIES ↔ crisis-taxonomy.json',
+  },
 ];
 
 let stale = 0;
@@ -50,5 +73,18 @@ for (const a of ARTIFACTS) {
   }
 }
 
-if (check && stale) process.exit(1);
-if (check) console.log(`generate-contracts: ${ARTIFACTS.length} artifact(s) in sync.`);
+// Parity assertions run in BOTH modes (a drift here is always a failure).
+for (const p of PARITY) {
+  const data = JSON.parse(fs.readFileSync(path.join(pluginRoot, p.source), 'utf8'));
+  const tsPath = path.join(pluginRoot, p.tsFile);
+  const got = fs.existsSync(tsPath) ? p.extract(fs.readFileSync(tsPath, 'utf8')) : null;
+  const want = p.expected(data);
+  const equal = got && got.length === want.length && want.every((w, i) => got[i] === w);
+  if (!equal) {
+    stale++;
+    console.error(`DRIFT: ${p.label}\n  source: ${JSON.stringify(want)}\n  TS:     ${JSON.stringify(got)}`);
+  }
+}
+
+if (stale) process.exit(1);
+if (check) console.log(`generate-contracts: ${ARTIFACTS.length} artifact(s) in sync, ${PARITY.length} parity assertion(s) ok.`);
