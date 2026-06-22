@@ -81,15 +81,25 @@ const PATTERNS: Array<{ category: CrisisCategory; res: RegExp[] }> = [
   {
     category: 'financial_ruin',
     res: [
-      /(entire|whole|all\s+(my|of\s+my))\s+(401k|retirement|savings|life\s+savings).{0,45}(crypto|coin|100x|meme)/i,
-      /second\s+mortgage.{0,30}(crypto|coin|bet)/i,
+      // Total-stake phrase + speculative signal, both required (precision). Broadened
+      // so "life savings ... 50x" and "all my savings ... guaranteed" fire too, not
+      // just "401k ... 100x" (F20). \d{2,3}x covers 20x/50x/100x. Split savings vs
+      // 401k/retirement so the optional "my" doesn't double-require a space.
+      /(life|all\s+(of\s+)?(my\s+)?|entire|whole|my\s+(life|entire))\s*savings\b.{0,45}(crypto|coin|meme|\d{2,3}x|guaranteed)/i,
+      /(entire|whole|all\s+(of\s+)?(my\s+)?|my)\s*(401k|retirement)\b.{0,45}(crypto|coin|meme|\d{2,3}x|guaranteed)/i,
+      /second\s+mortgage.{0,30}(crypto|coin|bet|\d{2,3}x)/i,
     ],
   },
   {
     category: 'minor_at_risk',
     res: [
       /\bi['’ ]?a?m\s+1[0-7]\b/i,
+      // An online stranger + a meeting, in EITHER order and varied phrasing (F19).
+      // The online-stranger anchor is kept on purpose — a bare "meet"/"come over"
+      // with no stranger signal would over-fire on any adult (the mirror clause).
       /(meet|see)\s+(up\s+with\s+)?(a\s+)?(guy|man|girl|person)\s+I\s+met\s+online/i,
+      /(guy|man|girl|person|someone)\s+(I\s+)?(met\s+)?online\b.{0,50}(wants?\s+(to\s+)?(meet|see)|come\s+over|meet\s+up|see\s+me)/i,
+      /(meet\s+up|come\s+over|meet|see)\b.{0,40}(guy|man|girl|person|someone)\b.{0,20}(from|met)\s+online/i,
     ],
   },
   {
