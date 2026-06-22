@@ -327,7 +327,8 @@ Keep this to one terminal screen.
 - **Invalid MBTI code:** list valid codes and stop.
 - **Mix/scaffold missing:** direct user to `/argus:team`.
 - **Verification missing:** direct user to `/argus:verify`.
-- **Invalid JSON:** retry once with stricter format enforcement.
+- **Corrupt stored artifact** (a `mix.json` / `scaffold.json` / `verification.json` / `boss_feedback.json` on disk that won't parse): apply the canonical defensive-read discipline (clarify Error modes) — quarantine it to `<name>.corrupt.<ts>`, log to `errors.log`, and report the recovery path; do NOT crash and do NOT silently treat it as missing/empty. A corrupt `verification.json` is NOT "verification missing" — that would route the user to re-verify a step that already ran (and may have blocked). Halt naming the exact file rather than reviewing against a record you couldn't read.
+- **Malformed LLM feedback** (the boss's OWN generated response won't parse — distinct from a corrupt stored file): retry once with stricter format enforcement.
 
 ---
 

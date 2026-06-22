@@ -41,7 +41,7 @@ Refuse when:
 2. Find the session; resolve the parent draft: `--from <label>` if given, else `session.active_draft_id` → its `version_label`. Call it `parent_label`.
 3. Read from `versions/{parent_label}/`: `scaffold.json` (required), `boss_feedback.json` (if present), `verification.json` (if present).
 4. If neither `boss_feedback.json` nor `verification.json` exists, halt: there is nothing to revise. Point the user to `/argus:verify` first.
-5. Defensive-read every JSON (see clarify error modes) — a corrupt file is moved aside and reported, not crashed on.
+5. Defensive-read every JSON (see clarify error modes — the canonical discipline) — on parse failure, quarantine the file to `<name>.corrupt.<ts>`, log to `errors.log`, and report the recovery path; never crash. **Distinguish missing from corrupt:** a *missing* `verification.json`/`boss_feedback.json` means there is nothing to revise yet → point the user to `/argus:verify` (Step 4 already halts on this). A *corrupt* one is different — it must NOT be read as "not run": revising against a `verification.json` you couldn't parse (treating it as "no challenges") would silently drop the very challenges this skill exists to apply. Halt naming the file to recover rather than producing a child draft from an unreadable parent record.
 
 ### Step 2 — Gather the revision items
 
