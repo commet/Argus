@@ -51,7 +51,7 @@ Flags that mutate state are mutually exclusive.
 ### Default (no flags) — show current session
 
 1. Find the latest session: the session directory whose `session.json` has the newest `updated_at`; if `updated_at` is missing or tied, fall back to directory mtime. Read its `session.json`.
-2. Read these per-version files for the active draft: `versions/{label}/current_bearing.json` (the Current Bearing block — course, fog/reef, next helm), `scaffold.json` (reframed_question, assumptions, checkpoints), `verification.json` (verification line), `boss_feedback.json` (boss status). Treat any missing file as "not run" rather than failing.
+2. Read these per-version files for the active draft: `versions/{label}/current_bearing.json` (the Current Bearing block — course, fog/reef, next helm), `scaffold.json` (reframed_question, assumptions, checkpoints), `verification.json` (read `routing_decision` + `overall_status`), `boss_feedback.json` (boss status). **Missing vs corrupt are different states:** treat a *missing* file as "not run" (render the dash, route to the skill that produces it). Treat a file that exists but *fails to parse* as **corrupt, not absent** — render `⚠ <name> unreadable (recover: rerun /argus:<skill>)` for that line and quarantine it to `<name>.corrupt.<ts>`; do NOT silently collapse a corrupt `verification.json` into "not run," which would route the user past a verification that actually ran (and may have blocked).
 3. Parse draft tree from `session.drafts[]`. If `drafts[]` is empty (session predates draft persistence, or only clarify ran), render a single-node tree from the version directories present instead of a blank tree.
 4. Render a one-screen map:
 
@@ -120,7 +120,14 @@ Avoid fragile box-drawing characters; this runs in varied terminals.
 
 ## Next Command Logic
 
-Compute the next useful command:
+Compute the next useful command as an **ordered if / else-if — first match wins**
+(the conditions overlap, so precedence is mandatory; a flat list would let two
+gates both claim the same state). The verification gates read **one field,
+`verification.json.routing_decision`** — a single enum computed by verify Step 7
+as its own ordered-first-match, so it holds **exactly one** of `revise_team` /
+`stop_for_human_check` / `ask_user` / `proceed_to_boss`. Do NOT read multiple
+boolean flags or `overall_status` for routing — `routing_decision` is the single
+source of truth, and reading anything else is what reintroduces gate collisions.
 
 - A sealed contract (ledger or this session's bearing seed) is past its
   check-by date -> `/argus:settle` (outranks everything below — an unsettled
