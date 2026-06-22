@@ -580,6 +580,13 @@ export interface Predicate {
    *  risk): reasoned vs luck/external. Separates judgment-wins from luck-wins in
    *  the track record. Cleared when the verdict returns to pending. */
   basis?: PredicateBasis;
+  /** Authorship of a governing-bet predicate sourced from the flinch step
+   *  (`Falsification.real_bet_authored`). 'ai_surfaced' = the machine-surfaced
+   *  belief stood in as the bet via the no-friction skip, NOT a prediction the
+   *  user made. A held 'ai_surfaced' bet is not the user's judgment held — the
+   *  track record separates it, same principle as luck-vs-judgment basis (R17).
+   *  Absent (typed/adopted bet, or non-bet predicate) = the user's own. */
+  authored?: 'user' | 'ai_surfaced';
 }
 
 export type CheckInInterval = '1w' | '2w' | '1m';
