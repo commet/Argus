@@ -32,7 +32,8 @@ import { runDebateRound, type DebateResult } from '@/lib/debate-engine';
 import { generateId } from '@/lib/uuid';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { getCurrentLanguage } from '@/lib/i18n';
-import { classifyCrisis } from '@/lib/crisis-gate';
+import { classifyCrisis, type CrisisSignal } from '@/lib/crisis-gate';
+import { assessFrameStatus } from '@/lib/judgment-gates';
 import type {
   AnalysisSnapshot,
   ConvergenceMetrics,
@@ -331,6 +332,42 @@ export async function pickAndGenerateTypedQuestion(
  * Step 1: 초기 분석 — 문제 입력 → 즉시 뼈대 + 첫 질문
  * @param onToken - 스트리밍 콜백 (있으면 실시간 출력 표시)
  */
+/** Build the suppressed crisis snapshot + conscious-continue question — the SINGLE
+ *  shape every entry path uses when classifyCrisis fires (runInitialAnalysis,
+ *  refineInitialFraming, runDeepening), so the safety backstop can't drift between
+ *  paths (CLAUDE.md: single source of truth for the suppression shape).
+ *  `real_question` stays the user's OWN navigation words — the concern lives only on
+ *  `crisis` and is rendered by CrisisConcernBanner; `skeleton: []` suppresses the
+ *  plan AND blocks contract sealing (no predicates); `framing_locked` suppresses the
+ *  "is this framing right?" ceremony on a safety input. */
+function buildCrisisSnapshot(
+  userWords: string,
+  crisis: CrisisSignal,
+  locale: string,
+  version: number,
+  carry?: Partial<AnalysisSnapshot>,
+): { snapshot: AnalysisSnapshot; question: FlowQuestion } {
+  const snapshot: AnalysisSnapshot = {
+    version,
+    real_question: userWords,
+    hidden_assumptions: [],
+    skeleton: [],
+    framing_confidence: 20,
+    framing_locked: true,
+    crisis,
+    ...carry,
+  };
+  // A valid-but-suppressed question so the conscious-continue path has a target;
+  // the UI hides it by default and only reveals it after an explicit override.
+  const question: FlowQuestion = {
+    id: generateId(),
+    text: locale === 'ko' ? '계속 진행하시겠어요?' : 'Would you like to continue?',
+    type: 'short',
+    engine_phase: 'reframe',
+  };
+  return { snapshot, question };
+}
+
 export async function runInitialAnalysis(
   problemText: string,
   onToken?: (text: string) => void,
@@ -356,28 +393,7 @@ export async function runInitialAnalysis(
   // and names the concern. Never widen the regex here (over-fire = its own harm).
   const crisis = classifyCrisis(problemText);
   if (crisis.isCrisis && crisis.category) {
-    const snapshot: AnalysisSnapshot = {
-      version: 0,
-      // The concern message is NOT stored here — it lives only on `crisis` and is
-      // rendered solely by CrisisConcernBanner. Keeping real_question as the
-      // user's own words avoids the decision card ("우리가 잡은 항로") mislabeling
-      // a hotline message as a plotted course, and avoids polluting the
-      // downstream real_question if the user consciously continues.
-      real_question: problemText,
-      hidden_assumptions: [],
-      skeleton: [],          // suppresses the plan AND blocks contract sealing (no predicates)
-      framing_confidence: 20, // low — never offers a "is this framing right?" ceremony
-      framing_locked: true,   // suppresses FramingConfirmation on a safety input
-      crisis,
-    };
-    // A valid-but-suppressed question so the conscious-continue path has a target;
-    // the UI hides it by default and only reveals it after an explicit override.
-    const question: FlowQuestion = {
-      id: generateId(),
-      text: locale === 'ko' ? '계속 진행하시겠어요?' : 'Would you like to continue?',
-      type: 'short',
-      engine_phase: 'reframe',
-    };
+    const { snapshot, question } = buildCrisisSnapshot(problemText, crisis, locale, 0);
     return { snapshot, question, detectedDM: null };
   }
 
@@ -414,6 +430,17 @@ export async function runInitialAnalysis(
     // can make a non-open route terminal (ProgressiveFlow suppresses the fabricated
     // follow-up question). Undefined when the model omits it → flow stays normal.
     request_type: result.request_type,
+    // R60 — populate frame_status (was DEAD: assessFrameStatus existed but was never
+    // called, so the flat-decision over-fire gate had nothing to read). Conservative
+    // by design: only 'flat' when the reframe is essentially the surface question AND
+    // there are no assumptions to pivot on — otherwise 'load_bearing'. The flow gates
+    // team deployment + the probe on 'flat' so a genuinely flat decision isn't given
+    // manufactured ceremony (CLAUDE.md mirror clause).
+    frame_status: assessFrameStatus({
+      realQuestion: result.real_question || '',
+      surfaceQuestion: problemText,
+      assumptions: result.hidden_assumptions || [],
+    }),
   };
 
   // Phase 1 typed question: framing_confidence>=70이면 strategic_fork로 넘어간다.
@@ -480,6 +507,19 @@ export async function refineInitialFraming(
   detectedDM: string | null;
 }> {
   const locale = getCurrentLanguage();
+
+  // Safety backstop on the framing-rejection path (F17). A user can start with a
+  // safe problem, then introduce a crisis signal in the rejection reason — that
+  // text was never screened. Screen it before any LLM call, same suppression as
+  // runInitialAnalysis. (The original problemText was already screened at round 0.)
+  const crisis = classifyCrisis(rejectionReason);
+  if (crisis.isCrisis && crisis.category) {
+    const { snapshot, question } = buildCrisisSnapshot(
+      problemText, crisis, locale, 0, { framing_override_reason: rejectionReason },
+    );
+    return { snapshot, question, detectedDM: null };
+  }
+
   const { system, user } = buildInitialRefinementPrompt(
     problemText, rejectedQuestion, rejectionReason, locale,
   );
@@ -545,6 +585,25 @@ export async function runDeepening(
   convergenceMetrics: ConvergenceMetrics;
 }> {
   const locale = getCurrentLanguage();
+
+  // Safety backstop on the Q&A deepening path (F18). A crisis can surface in a
+  // round-1+ answer, not just the round-0 problem. Screen the answers before the LLM
+  // call. Do NOT re-fire if the user already consciously continued past a round-0
+  // crisis (carried on currentSnapshot.crisis; the banner stays pinned) — that would
+  // re-block every round (over-fire / the mirror clause).
+  if (!currentSnapshot.crisis?.isCrisis) {
+    const answersText = questionsAndAnswers.map((qa) => qa.answer?.value || '').join('  ');
+    const crisis = classifyCrisis(answersText);
+    if (crisis.isCrisis && crisis.category) {
+      const { snapshot, question } = buildCrisisSnapshot(
+        currentSnapshot.real_question, crisis, locale, currentSnapshot.version + 1,
+        { request_type: currentSnapshot.request_type },
+      );
+      const convergence = assessConvergence([...allSnapshots, snapshot]);
+      return { snapshot, question, readyForMix: false, convergenceMetrics: convergence };
+    }
+  }
+
   // Conductor: pass unlocked agent list for team-aware task decomposition
   const agentStore = useAgentStore.getState();
   const isKo = locale === 'ko';
@@ -587,6 +646,13 @@ export async function runDeepening(
     // Carry the route classification forward (deepening only happens on an open
     // decision, but keep it pinned so the flow's non-open check is stable).
     request_type: currentSnapshot.request_type,
+    // R60 — re-assess flat/load_bearing on the refined question (a deepened reframe
+    // can resolve to flat). Conservative; gates team/probe in the flow.
+    frame_status: assessFrameStatus({
+      realQuestion: result.real_question || currentSnapshot.real_question || '',
+      surfaceQuestion: problemText,
+      assumptions: result.hidden_assumptions || currentSnapshot.hidden_assumptions || [],
+    }),
   };
 
   // Adaptive convergence: 스냅샷 전체 + 새 스냅샷으로 수렴도 계산

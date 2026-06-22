@@ -1332,12 +1332,21 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // so `shouldMix` (which fires on !curQ) can never deploy the crew on a vent —
   // the same safety property the crisis backstop relies on. Render-suppress only.
   const nonOpenRoute = snapshots.find((s) => s.request_type && s.request_type !== 'open')?.request_type ?? null;
-  const suppressQuestion = !!nonOpenRoute;
+  // R60 — a flat frame (the reframe carries no leverage: every branch lands the same)
+  // is treated like a non-open route — TERMINAL, not a trigger for crew ceremony.
+  // assessFrameStatus is conservative (only flat when the reframe ≈ surface AND no
+  // assumptions), so this suppresses manufactured over-fire without blocking genuine
+  // decisions. The terminal analysis card (the suppressQuestion branch in render) is
+  // the deliverable, so a flat decision never dead-ends.
+  const frameIsFlat = snapshots.some((s) => s.frame_status === 'flat');
+  const suppressQuestion = !!nonOpenRoute || frameIsFlat;
 
   const qaPairs = useMemo(() => questions.map((q, i) => ({ question: q, answer: answers[i] || null })), [questions, answers]);
   const curQ = questions.length > answers.length ? questions[questions.length - 1] : null;
   const latest = snapshots[snapshots.length - 1] || null;
-  const shouldMix = showMix || (phase === 'conversing' && snapshots.length > 0 && !curQ && !mix && !busy);
+  // R60 — never deploy the crew on a flat decision (the highest-measured over-fire
+  // harm, ~60% in the stress test). It terminates with the analysis card instead.
+  const shouldMix = (showMix || (phase === 'conversing' && snapshots.length > 0 && !curQ && !mix && !busy)) && !frameIsFlat;
   const deployPhase = session?.worker_deploy_phase ?? 'none';
   const workers = session?.workers ?? [];
 
@@ -2503,7 +2512,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* When the current question IS a fork check, its evidence — the
               trial-sail theater — must sit right above it, not a screen below:
               the question quotes executors the user otherwise never saw. */}
-          {newArcEnabled && session && !mix && !final_ && phase === 'conversing' && !busy && curQ?.id?.startsWith('probe-fork-') && (
+          {newArcEnabled && !frameIsFlat && session && !mix && !final_ && phase === 'conversing' && !busy && curQ?.id?.startsWith('probe-fork-') && (
             <TrialSail paragraph={session.problem_text} />
           )}
 
@@ -2781,8 +2790,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               analysis stream during the first rounds; the deepening loop below
               is untouched (적층 not 교체). Off by default — old path is the
               A/B baseline. */}
-          {newArcEnabled && session && !mix && !final_ && (phase === 'analyzing' || phase === 'conversing')
+          {newArcEnabled && !frameIsFlat && session && !mix && !final_ && (phase === 'analyzing' || phase === 'conversing')
             && !(phase === 'conversing' && !busy && curQ?.id?.startsWith('probe-fork-')) && (
+            /* R60 — don't run the divergence probe (it manufactures forks) once the
+               frame is known flat. During analyzing frame_status isn't computed yet,
+               so the probe may still start; it unmounts as soon as round-0 lands flat.
+               (TrialSail is behind newArcEnabled, off by default.) */
             <TrialSail paragraph={session.problem_text} />
           )}
 

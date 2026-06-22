@@ -26,9 +26,10 @@ vi.mock('@/lib/llm', () => ({
   callLLMStreamThenParse: vi.fn(),
 }));
 
-import { runInitialAnalysis } from '@/lib/progressive-engine';
+import { runInitialAnalysis, refineInitialFraming, runDeepening } from '@/lib/progressive-engine';
 import { callLLMJson, callLLMStreamThenParse } from '@/lib/llm';
 import { classifyCrisis } from '@/lib/crisis-gate';
+import type { AnalysisSnapshot, FlowQuestion, FlowAnswer } from '@/stores/types';
 
 const mockJson = vi.mocked(callLLMJson);
 const mockStream = vi.mocked(callLLMStreamThenParse);
@@ -92,6 +93,66 @@ describe('crisis backstop does NOT false-fire (precision / mirror clause)', () =
     expect(snapshot.crisis).toBeUndefined();
     expect(mockJson).toHaveBeenCalled(); // the LLM WAS consulted
     expect(snapshot.skeleton.length).toBeGreaterThan(0);
+  });
+});
+
+// F17 — the framing-rejection path: a crisis can arrive in the rejection reason
+// after a safe initial problem. It must be screened before any LLM call.
+describe('crisis backstop fires on the framing-rejection path (F17)', () => {
+  it('short-circuits refineInitialFraming with ZERO LLM calls when the rejection reason is a crisis', async () => {
+    const { snapshot, question } = await refineInitialFraming(
+      'should I change careers?',                       // safe original problem (already screened at round 0)
+      'How will this land with your family?',           // the rejected question
+      "honestly I just want to drive somewhere far and not come back", // crisis in the REASON
+    );
+    expect(snapshot.crisis?.isCrisis).toBe(true);
+    expect(snapshot.skeleton).toEqual([]);
+    expect(snapshot.framing_locked).toBe(true);
+    expect(snapshot.real_question).toBe('should I change careers?'); // user's own words, not the crisis text
+    expect(mockJson).not.toHaveBeenCalled();
+    expect(mockStream).not.toHaveBeenCalled();
+    expect(question).toBeTruthy();
+  });
+
+  it('lets a navigable rejection reason reach the LLM untouched (precision)', async () => {
+    mockJson.mockResolvedValue({
+      real_question: 'refined question', framing_confidence: 75,
+      hidden_assumptions: ['a'], skeleton: ['s1', 's2'], next_question: null,
+    } as never);
+    const { snapshot } = await refineInitialFraming(
+      'should I change careers?', 'rejected q', 'actually I care more about growth than money',
+    );
+    expect(snapshot.crisis).toBeUndefined();
+    expect(mockJson).toHaveBeenCalled();
+  });
+});
+
+// F18 — the Q&A deepening path: a crisis can surface in a round-1+ answer, not just
+// the round-0 problem. It must be screened before the deepening LLM call.
+describe('crisis backstop fires on the Q&A deepening path (F18)', () => {
+  const baseSnapshot: AnalysisSnapshot = {
+    version: 0,
+    real_question: 'should I take a gap year?',
+    hidden_assumptions: ['a'],
+    skeleton: ['s1', 's2'],
+    framing_confidence: 80,
+    framing_locked: true,
+  };
+  const q: FlowQuestion = { id: 'q1', text: 'What matters most?', type: 'short', engine_phase: 'reframe' };
+
+  it('short-circuits runDeepening with ZERO LLM calls when an ANSWER carries a crisis', async () => {
+    const answer: FlowAnswer = { question_id: 'q1', value: "i don't care anymore, there's no point to any of it" };
+    const { snapshot, question, readyForMix } = await runDeepening(
+      'should I take a gap year?', baseSnapshot,
+      [{ question: q, answer }], 1, 3, [baseSnapshot],
+    );
+    expect(snapshot.crisis?.isCrisis).toBe(true);
+    expect(snapshot.skeleton).toEqual([]);
+    expect(readyForMix).toBe(false);
+    expect(snapshot.real_question).toBe('should I take a gap year?'); // user's own words preserved
+    expect(mockJson).not.toHaveBeenCalled();
+    expect(mockStream).not.toHaveBeenCalled();
+    expect(question).toBeTruthy();
   });
 });
 
