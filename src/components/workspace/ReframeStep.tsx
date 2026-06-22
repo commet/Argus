@@ -1247,7 +1247,10 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
               const allConfirmed = dCount === 0 && uCount === 0;
               const questionLabel = allConfirmed ? L('구체화된 핵심 질문', 'Sharpened core question') : L('재정의된 질문', 'Reframed question');
               const rationaleLabel = allConfirmed ? L('왜 이렇게 구체화했는가', 'Why this sharpening') : L('왜 이렇게 재정의했는가', 'Why this reframing');
-              const directionLabel = allConfirmed ? L('실행의 핵심 갈림길', 'Key execution forks') : t('reframe.direction');
+              // §2.4-3: "핵심 갈림길 / Key execution forks" framed these as THE
+              // decisive forks (engine-weighted). Neutral framing — a set of angles
+              // the user may take or override, not a weighted fork.
+              const directionLabel = allConfirmed ? L('실행에서 생각해볼 방향', 'Directions to weigh in execution') : L('생각해볼 방향', 'Directions to consider');
               return (
               <>
                 {/* 재정의된 질문 — 통합 카드 */}
@@ -1281,11 +1284,20 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                       <div className="flex-1 h-px bg-[var(--border-subtle)]" />
                     </div>
 
-                    {/* 재정의된 질문 — 메인 */}
-                    <div className="bg-[var(--primary)] text-[var(--bg)] px-5 py-5 md:px-6 md:py-6">
-                      <p className="text-[11px] font-semibold text-white/50 mb-2">{questionLabel}</p>
-                      <p className="text-[18px] md:text-[20px] font-bold leading-snug animate-rise" style={{ fontFamily: 'var(--font-display)' }}>
+                    {/* 재정의된 질문 — 메인.
+                        §2.4-3 restraint default: this used to render as an
+                        authoritative primary-color verdict about what the problem
+                        "really" is, with NO provenance — the confident-reframe →
+                        agree → lock-in trap. It is now an honestly machine-surfaced
+                        suggestion (--ai register + an "AI 제안" provenance tag) that
+                        returns the decision to the user. Not a verdict. */}
+                    <div className="bg-[var(--ai)] px-5 py-5 md:px-6 md:py-6">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-2">{L('AI 제안', 'AI suggestion')} · {questionLabel}</p>
+                      <p className="text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-snug animate-rise" style={{ fontFamily: 'var(--font-display)' }}>
                         {analysis.reframed_question}
+                      </p>
+                      <p className="text-[12px] text-[var(--text-secondary)] mt-2.5 leading-relaxed">
+                        {L('이게 진짜 답할 질문인지는 — 당신이 정해요.', "Whether this is the real question to answer — that's yours to decide.")}
                       </p>
                     </div>
 
@@ -1330,11 +1342,11 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                             <div>
                               <p className="text-[15px] font-semibold text-[var(--text-primary)] leading-snug">{hq.question}</p>
                               <p className="text-[13px] text-[var(--text-secondary)] mt-2 leading-relaxed">{hq.reasoning}</p>
-                              {hq.source_assumption && (
-                                <span className="inline-flex items-center gap-1 mt-2.5 px-2.5 py-1 rounded-md text-[11px] text-[var(--accent)] font-medium" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
-                                  <span className="opacity-50">&larr;</span> {hq.source_assumption}
-                                </span>
-                              )}
+                              {/* §2.4-3: the source_assumption badge ("← this fork
+                                  challenges assumption X") made each direction look
+                                  engine-backed — the weighting that turned a menu of
+                                  angles into a weighted fork. Dropped; these are now a
+                                  flat set of angles the user picks among or overrides. */}
                             </div>
                           </div>
                         </div>
