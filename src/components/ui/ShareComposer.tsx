@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  Mail, MessageSquare, Send, Hash, Lock, Search, Check, Loader2, Download, Copy as CopyIcon, ExternalLink,
+  Mail, MessageSquare, Send, Hash, Lock, Search, Check, Loader2, Download, Copy as CopyIcon, ExternalLink, Link2,
 } from 'lucide-react';
 import { Modal } from './Modal';
 import { Button } from './Button';
@@ -23,7 +23,7 @@ interface ShareComposerProps {
   shareContext?: string;
 }
 
-type Channel = 'email' | 'slack' | 'telegram';
+type Channel = 'email' | 'slack' | 'telegram' | 'link';
 
 /**
  * Unified "preview → confirm → send" surface for every transmitting channel.
@@ -86,6 +86,7 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
     email: { icon: <Mail size={15} />, label: 'Email', ready: true },
     slack: { icon: <MessageSquare size={15} />, label: 'Slack', ready: slackConnected },
     telegram: { icon: <Send size={15} />, label: 'Telegram', ready: tgConnected },
+    link: { icon: <Link2 size={15} />, label: L('링크', 'Link'), ready: !!user },
   };
 
   if (sentVia) {
@@ -135,7 +136,7 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
         {/* Channel chooser */}
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{L('보낼 곳', 'Send to')}</span>
-          <div className="grid grid-cols-3 gap-2 mt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
             {(Object.keys(channelMeta) as Channel[]).map((ch) => (
               <button
                 key={ch}
@@ -180,8 +181,90 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
             onSent={() => { trackShare('telegram'); setSentVia('telegram'); }}
           />
         )}
+        {active === 'link' && (
+          <LinkPanel user={!!user} title={title} text={text} context={shareContext} onCreated={() => trackShare('link')} />
+        )}
       </div>
     </Modal>
+  );
+}
+
+/* ── Public link ── */
+function LinkPanel({ user, title, text, context, onCreated }: { user: boolean; title: string; text: string; context: string; onCreated: () => void }) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  if (!user) {
+    return (
+      <div className="rounded-xl border border-[var(--border-subtle)] p-3.5 animate-fade-in">
+        <p className="text-[12px] text-[var(--text-secondary)] mb-2">
+          {L('로그인하면 계정 없이도 누구나 열 수 있는 공개 링크를 만들 수 있어요.',
+             'Log in to mint a public link anyone can open — no account needed.')}
+        </p>
+        <Link href="/login" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
+          {L('로그인', 'Log in')} <ExternalLink size={12} />
+        </Link>
+      </div>
+    );
+  }
+
+  const create = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) { setError(L('인증이 필요해요.', 'Authentication required.')); return; }
+      const res = await fetch('/api/share/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title, content: text, context }),
+      });
+      const json = await res.json();
+      if (json.ok && json.path) {
+        setUrl(`${window.location.origin}${json.path}`);
+        onCreated();
+      } else setError(json.error || L('링크 생성 실패', 'Could not create link'));
+    } catch {
+      setError(L('링크 생성 실패', 'Could not create link'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copy = async () => {
+    await copyToClipboard(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="rounded-xl border border-[var(--border-subtle)] p-3.5 space-y-2.5 animate-fade-in">
+      {error && <p className="text-[12px] text-red-600">{error}</p>}
+      {url ? (
+        <>
+          <p className="text-[11.5px] text-[var(--text-secondary)]">{L('누구나 이 링크로 결과를 열어볼 수 있어요.', 'Anyone with this link can open the result.')}</p>
+          <div className="flex items-center gap-2">
+            <input readOnly value={url} className="flex-1 text-[12px] font-mono bg-[var(--bg)] border border-[var(--border-subtle)] rounded-lg px-2.5 py-2 text-[var(--text-primary)]" onFocus={(e) => e.currentTarget.select()} />
+            <Button variant="secondary" size="sm" onClick={copy}>
+              {copied ? <Check size={13} /> : <CopyIcon size={13} />}
+            </Button>
+          </div>
+          <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
+            {L('새 탭에서 열기', 'Open in new tab')} <ExternalLink size={11} />
+          </a>
+        </>
+      ) : (
+        <Button size="sm" onClick={create} disabled={busy}>
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
+          {L('공개 링크 만들기', 'Create public link')}
+        </Button>
+      )}
+    </div>
   );
 }
 

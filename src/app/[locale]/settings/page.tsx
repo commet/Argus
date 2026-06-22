@@ -9,7 +9,7 @@ import { clearAllStorage, STORAGE_KEYS, getStorage } from '@/lib/storage';
 import { downloadJson } from '@/lib/export';
 import { deleteAllUserData } from '@/lib/db';
 import type { LLMMode, LLMProvider } from '@/stores/types';
-import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, Volume2, TrendingUp, Brain, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2 } from 'lucide-react';
+import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, Volume2, TrendingUp, Brain, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, Link2 } from 'lucide-react';
 import { getObservationsSummary } from '@/lib/user-context';
 import { assessLearningHealth } from '@/lib/learning-health';
 import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAmbientPlaying } from '@/lib/audio';
@@ -559,6 +559,10 @@ export default function SettingsPage() {
         <div className="border-t border-[var(--border-subtle)] my-4" />
         <PluginTokenBlock locale={locale} />
 
+        {/* Public share links */}
+        <div className="border-t border-[var(--border-subtle)] my-4" />
+        <SharedLinksBlock locale={locale} />
+
         {/* Data management */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
         <div className="space-y-2">
@@ -809,6 +813,51 @@ function PluginTokenBlock({ locale }: { locale: string }) {
               </span>
               <button onClick={() => revoke(t.id)} className="text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors">
                 {L('해지', 'Revoke')}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SharedLink { id: string; token: string; title: string | null; view_count: number; created_at: string }
+
+function SharedLinksBlock({ locale }: { locale: string }) {
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const [links, setLinks] = useState<SharedLink[]>([]);
+  const [origin, setOrigin] = useState('');
+
+  const load = async () => {
+    const { data } = await supabase
+      .from('shared_links')
+      .select('id, token, title, view_count, created_at')
+      .order('created_at', { ascending: false });
+    setLinks(data || []);
+  };
+  useEffect(() => { setOrigin(window.location.origin); load(); }, []);
+
+  const revoke = async (id: string) => {
+    await supabase.from('shared_links').delete().eq('id', id);
+    await load();
+  };
+
+  return (
+    <div>
+      <p className="text-[14px] font-medium flex items-center gap-1.5"><Link2 size={14} className="text-[var(--accent)]" /> {L('공개 링크', 'Public links')}</p>
+      <p className="text-[12px] text-[var(--text-secondary)] mb-2">{L('결과 화면의 “보내기 → 링크”로 만든 공개 페이지. 취소하면 즉시 열람 불가.', 'Public pages minted via “Send → Link”. Revoking makes them unreachable at once.')}</p>
+      {links.length === 0 ? (
+        <p className="text-[12px] text-[var(--text-tertiary)]">{L('아직 만든 공개 링크가 없어요.', 'No public links yet.')}</p>
+      ) : (
+        <div className="space-y-1.5">
+          {links.map((l) => (
+            <div key={l.id} className="flex items-center justify-between gap-2 text-[12px] px-2.5 py-1.5 rounded-md bg-[var(--bg)]">
+              <a href={`${origin}/d/${l.token}`} target="_blank" rel="noopener noreferrer" className="truncate text-[var(--text-secondary)] hover:text-[var(--accent)]">
+                {l.title || '/d/' + l.token} <span className="text-[var(--text-tertiary)]">· {L('조회', 'views')} {l.view_count}</span>
+              </a>
+              <button onClick={() => revoke(l.id)} className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors">
+                {L('취소', 'Revoke')}
               </button>
             </div>
           ))}

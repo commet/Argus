@@ -32,6 +32,10 @@ const RESERVED_ROOT_PATHS = new Set([
   'apple-icon',
   'opengraph-image',
   'twitter-image',
+  // Public share pages (/d/<token>) are intentionally locale-less and chrome-
+  // less — served by app/d/[token] under the root layout, not [locale]. Leave
+  // them alone so the proxy doesn't 307 them to /{locale}/d/… (which has no route).
+  'd',
 ]);
 
 function isLocale(seg: string | undefined): seg is Locale {
