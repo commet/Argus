@@ -1249,8 +1249,11 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
               const rationaleLabel = allConfirmed ? L('왜 이렇게 구체화했는가', 'Why this sharpening') : L('왜 이렇게 재정의했는가', 'Why this reframing');
               // §2.4-3: "핵심 갈림길 / Key execution forks" framed these as THE
               // decisive forks (engine-weighted). Neutral framing — a set of angles
-              // the user may take or override, not a weighted fork.
-              const directionLabel = allConfirmed ? L('실행에서 생각해볼 방향', 'Directions to weigh in execution') : L('생각해볼 방향', 'Directions to consider');
+              // the user may take or override, not a weighted fork. A single label
+              // regardless of confirmation state: bifurcating to "weigh in execution"
+              // once assumptions are confirmed would presuppose the execution
+              // decision (a whether→how nudge) the user hasn't made.
+              const directionLabel = L('생각해볼 방향', 'Directions to consider');
               return (
               <>
                 {/* 재정의된 질문 — 통합 카드 */}
