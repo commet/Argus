@@ -29,6 +29,7 @@ export async function ingestPluginFiles(
   client: SupabaseClient,
   userId: string,
   files: FileInput[],
+  source: 'import' | 'push' = 'import',
 ): Promise<ImportSummary> {
   const summary: ImportSummary = {
     loggedIn: true,
@@ -78,7 +79,7 @@ export async function ingestPluginFiles(
       ...d,
       id: idByLedger.get(d.ledger_id) ?? generateId(),
       user_id: userId,
-      source: 'import' as const,
+      source,
       imported_at: now,
     }));
     const { error } = await client.from('plugin_decisions').upsert(rows, { onConflict: 'id' });
@@ -98,7 +99,7 @@ export async function ingestPluginFiles(
       ...b,
       id: idByKey.get(keyOf(b.session, b.version_label)) ?? generateId(),
       user_id: userId,
-      source: 'import' as const,
+      source,
       imported_at: now,
     }));
     const { error } = await client.from('plugin_bearings').upsert(rows, { onConflict: 'id' });

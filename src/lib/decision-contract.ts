@@ -246,7 +246,9 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
   }
   for (const a of finalMix?.key_assumptions ?? []) {
     if (governing.length >= MAX_LIVE_GOVERNING) break;
-    const p = add({ text: a, source: 'governing_idea' });
+    // key_assumptions are AI-authored (the mix draft) — tag them ai_surfaced so a held
+    // machine assumption never inflates the user's own skill-wins in summarizeGrades (R58).
+    const p = add({ text: a, source: 'governing_idea', authored: 'ai_surfaced' });
     if (p) governing.push(p);
   }
 

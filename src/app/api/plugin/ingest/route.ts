@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No valid files' }, { status: 400 });
   }
 
-  const summary = await ingestPluginFiles(admin, tokenRow.user_id, clean);
+  const summary = await ingestPluginFiles(admin, tokenRow.user_id, clean, 'push');
 
   // Best-effort: stamp last-used so the user can see the token is live.
   admin.from('plugin_tokens')
