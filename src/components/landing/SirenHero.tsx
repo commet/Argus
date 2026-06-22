@@ -173,7 +173,10 @@ export function SirenHero() {
             static ForkPath: a full Argus session in 6 beats shows the same
             "one plan forks, then returns" idea, but moving. */}
         <div className="bp-fade-up mx-auto mt-6" style={{ maxWidth: 660, animationDelay: '200ms' }}>
-          <ScaleToFit designWidth={660}>
+          {/* Render the film at its native design width (~940) so the scene
+              layouts (esp. the Draft card) lay out without clipping, then
+              ScaleToFit shrinks the whole frame to the hero column / phone. */}
+          <ScaleToFit designWidth={940}>
             <ArgusHeroDemo embedded />
           </ScaleToFit>
         </div>

@@ -47,15 +47,16 @@ export function ScaleToFit({
     return () => ro.disconnect();
   }, [designWidth]);
 
+  // origin top-left + margin auto handles both cases cleanly:
+  //  • scale < 1 (inner wider than outer): auto margins collapse to 0, inner
+  //    left-aligns, scaling from (0,0) fills the outer exactly — no clipping.
+  //  • scale = 1 (inner ≤ outer): auto margins centre the inner; scale is a
+  //    no-op. Centred, untouched.
   return (
-    <div
-      ref={outerRef}
-      className={className}
-      style={{ width: '100%', height: boxH, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', overflow: 'hidden' }}
-    >
+    <div ref={outerRef} className={className} style={{ width: '100%', height: boxH, overflow: 'hidden' }}>
       <div
         ref={innerRef}
-        style={{ width: designWidth, flex: 'none', transform: `scale(${scale})`, transformOrigin: 'top center' }}
+        style={{ width: designWidth, margin: '0 auto', transform: `scale(${scale})`, transformOrigin: 'top left' }}
       >
         {children}
       </div>
