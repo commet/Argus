@@ -2969,12 +2969,58 @@ button, a, input, textarea {
   transform-origin: center bottom;
 }
 
+/* ── Continuous idle motion — keeps each glyph quietly ALIVE after it draws.
+   All gentle, all slow; the band must read as calm, not animated chrome. ── */
+
+/* Pendulum sway for a hanging element (the sealed tag, the anchor on its chain). */
+@keyframes bp-sway {
+  0%, 100% { transform: rotate(-2.6deg); }
+  50%      { transform: rotate(2.6deg); }
+}
+.bp-sway { animation: bp-sway 5.5s ease-in-out infinite; transform-box: fill-box; }
+
+/* Boat bob — a slow rise/settle on the swell. */
+@keyframes bp-bob {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+  50%      { transform: translateY(-2.5px) rotate(0.6deg); }
+}
+.bp-bob { animation: bp-bob 6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+
+/* Oar stroke — the deaf rowers pull. Two phases so oars aren't in lockstep. */
+@keyframes bp-oar {
+  0%, 100% { transform: rotate(-7deg); }
+  50%      { transform: rotate(8deg); }
+}
+.bp-oar { animation: bp-oar 3.4s ease-in-out infinite; transform-box: fill-box; }
+.bp-oar-b { animation-duration: 3.9s; animation-delay: -1.2s; }
+.bp-oar-c { animation-duration: 3.1s; animation-delay: -0.5s; }
+
+/* Wax-seal glint — a faint highlight breathes across the gold. */
+@keyframes bp-seal-glint {
+  0%, 100% { opacity: 0.0; }
+  50%      { opacity: 0.5; }
+}
+.bp-seal-glint { animation: bp-seal-glint 4.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+
+/* Compass-rose watermark — a very slow drift, decorative atmosphere. */
+@keyframes bp-rose-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.bp-rose-spin { animation: bp-rose-spin 140s linear infinite; transform-box: fill-box; transform-origin: center; }
+
+/* Leg plate — a mounted chart plate that lifts off the board on hover. */
+.bp-leg-plate { transition: transform 360ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 360ms ease; }
+.bp-leg-plate:hover { transform: translateY(-4px); box-shadow: 5px 8px 0 0 var(--bp-ink-faint); }
+@media (hover: none) { .bp-leg-plate:hover { transform: none; box-shadow: 3px 3px 0 0 var(--bp-ink-faint); } }
+
 @media (prefers-reduced-motion: reduce) {
   .bp-wave-0, .bp-wave-1, .bp-wave-2,
   .bp-sail-unfurl, .bp-stroke-draw,
   .bp-needle-drift, .bp-fade-up,
   .bp-fade-soft, .bp-seal-stamp, .bp-song-pulse,
-  .bp-anchor-drop, .bp-ripple-out {
+  .bp-anchor-drop, .bp-ripple-out,
+  .bp-sway, .bp-bob, .bp-oar, .bp-seal-glint, .bp-rose-spin {
     animation: none;
   }
 }

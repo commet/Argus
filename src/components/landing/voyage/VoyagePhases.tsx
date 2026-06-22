@@ -96,6 +96,24 @@ export function VoyagePhases() {
     >
       <PaperGrain opacity={0.05} />
 
+      {/* Chart atmosphere — a faint lat/long grid + a slowly drifting compass
+          rose + a depth sounding. Pure decoration; gives the band the depth of
+          an actual sea chart instead of a flat panel. */}
+      <div aria-hidden="true" className="absolute inset-0 pointer-events-none overflow-hidden">
+        <ChartGrid />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'var(--bp-ink-soft)', opacity: 0.05 }}>
+          <span className="bp-rose-spin" style={{ display: 'block' }}>
+            <CompassRose size={420} />
+          </span>
+        </div>
+        <span
+          className="bp-mono hidden md:block"
+          style={{ position: 'absolute', right: 30, top: 26, color: 'var(--bp-ink-soft)', opacity: 0.32, fontSize: 9.5, letterSpacing: '0.22em' }}
+        >
+          ▽ 24 fathoms
+        </span>
+      </div>
+
       <div className="relative max-w-5xl mx-auto px-6 md:px-10">
         {/* Header — the map key for the whole voyage. */}
         <div className="bp-fade-up flex items-center justify-center gap-3" style={{ marginBottom: 18 }}>
@@ -189,19 +207,20 @@ function LegPlate({
   index: number;
 }) {
   const { Glyph } = leg;
+  const coord = ['41° 23′ N', '38° 02′ N', '38° 27′ N'][index] ?? '';
   return (
     <li
       className="relative flex flex-col items-center text-center bp-fade-up"
       style={{ animationDelay: `${220 + index * 160}ms` }}
     >
-      {/* the plate frame holding the glyph */}
+      {/* the plate frame holding the glyph — a mounted chart plate */}
       <div
-        className="relative w-full"
+        className="relative w-full bp-leg-plate"
         style={{
           background: 'var(--bp-paper)',
           border: '1px solid var(--bp-ink-faint)',
-          boxShadow: '2px 2px 0 0 var(--bp-ink-faint)',
-          padding: '20px 18px 16px',
+          boxShadow: '3px 3px 0 0 var(--bp-ink-faint)',
+          padding: '22px 18px 16px',
         }}
       >
         {/* a top accent rule — gold on Land (the payoff), ink elsewhere */}
@@ -209,14 +228,44 @@ function LegPlate({
           aria-hidden="true"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: leg.gold ? 'var(--bp-gold)' : 'var(--bp-ink-soft)', opacity: leg.gold ? 1 : 0.5 }}
         />
+        {/* corner registration ticks — the marks of a plate pinned to a board */}
+        {([
+          { top: 7, left: 7, bt: 1, bl: 1 },
+          { top: 7, right: 7, bt: 1, br: 1 },
+          { bottom: 7, left: 7, bb: 1, bl: 1 },
+          { bottom: 7, right: 7, bb: 1, br: 1 },
+        ] as Array<Record<string, number>>).map((c, k) => (
+          <span
+            key={k}
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              width: 7,
+              height: 7,
+              top: c.top, left: c.left, right: c.right, bottom: c.bottom,
+              borderTop: c.bt ? '1px solid var(--bp-ink-soft)' : undefined,
+              borderBottom: c.bb ? '1px solid var(--bp-ink-soft)' : undefined,
+              borderLeft: c.bl ? '1px solid var(--bp-ink-soft)' : undefined,
+              borderRight: c.br ? '1px solid var(--bp-ink-soft)' : undefined,
+              opacity: 0.4,
+            }}
+          />
+        ))}
         {/* leg index, top-left margin note */}
         <span
           className="bp-mono"
-          style={{ position: 'absolute', top: 12, left: 14, color: 'var(--bp-ink-faint)', fontSize: 9.5, letterSpacing: '0.2em', textTransform: 'uppercase' }}
+          style={{ position: 'absolute', top: 13, left: 16, color: 'var(--bp-ink-faint)', fontSize: 9.5, letterSpacing: '0.2em', textTransform: 'uppercase' }}
         >
           {leg.leg[locale]}
         </span>
-        <div style={{ width: '100%', height: 150, maxWidth: 240, margin: '8px auto 0' }}>
+        {/* decorative bearing, top-right margin note */}
+        <span
+          className="bp-mono"
+          style={{ position: 'absolute', top: 13, right: 16, color: 'var(--bp-ink-faint)', fontSize: 9, letterSpacing: '0.14em' }}
+        >
+          {coord}
+        </span>
+        <div style={{ width: '100%', height: 150, maxWidth: 240, margin: '10px auto 0' }}>
           <Glyph show />
         </div>
       </div>
@@ -269,5 +318,46 @@ function LegPlate({
         {leg.detail[locale]}
       </p>
     </li>
+  );
+}
+
+/* A faint lat/long chart grid — atmosphere behind the band. */
+function ChartGrid() {
+  const cols = [10, 25, 40, 55, 70, 85];
+  const rows = [18, 42, 66, 90];
+  return (
+    <svg
+      className="absolute inset-0 w-full h-full"
+      preserveAspectRatio="none"
+      style={{ color: 'var(--bp-ink-soft)', opacity: 0.06 }}
+      aria-hidden="true"
+    >
+      {cols.map((x) => (
+        <line key={`c${x}`} x1={`${x}%`} y1="0" x2={`${x}%`} y2="100%" stroke="currentColor" strokeWidth="0.5" />
+      ))}
+      {rows.map((y) => (
+        <line key={`r${y}`} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`} stroke="currentColor" strokeWidth="0.5" />
+      ))}
+    </svg>
+  );
+}
+
+/* A compass rose watermark — drifts very slowly behind the content. */
+function CompassRose({ size = 360 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="50" cy="50" r="44" strokeWidth="0.4" />
+      <circle cx="50" cy="50" r="33" strokeWidth="0.3" />
+      <circle cx="50" cy="50" r="2" fill="currentColor" stroke="none" />
+      <line x1="50" y1="4" x2="50" y2="96" strokeWidth="0.4" />
+      <line x1="4" y1="50" x2="96" y2="50" strokeWidth="0.4" />
+      <line x1="19" y1="19" x2="81" y2="81" strokeWidth="0.3" />
+      <line x1="81" y1="19" x2="19" y2="81" strokeWidth="0.3" />
+      {/* eight-point star */}
+      <path d="M50 8 L55 50 L50 46 L45 50 Z" strokeWidth="0.4" fill="currentColor" />
+      <path d="M50 92 L45 50 L50 54 L55 50 Z" strokeWidth="0.4" />
+      <path d="M8 50 L50 45 L46 50 L50 55 Z" strokeWidth="0.4" />
+      <path d="M92 50 L50 55 L54 50 L50 45 Z" strokeWidth="0.4" />
+    </svg>
   );
 }
