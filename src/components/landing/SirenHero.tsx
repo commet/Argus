@@ -27,11 +27,11 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
-import { ForkPath } from './voyage/illustrations/ForkPath';
+import { ArgusHeroDemo } from './films/ArgusHeroDemo';
+import { ScaleToFit } from './films/ScaleToFit';
 
 export function SirenHero() {
   const locale = useLocale();
@@ -78,17 +78,14 @@ export function SirenHero() {
 
   return (
     <section
-      className="relative bp-root overflow-hidden flex items-center"
+      className="relative bp-root overflow-hidden"
       aria-labelledby="siren-heading"
       style={{
         background: 'var(--bp-paper)',
-        // svh: the input must be visible without scrolling on mobile too
-        // (URL bar collapse safe). Header is fixed/transparent above this.
-        // Floor kept low so the textarea + CTA clear the fold even when
-        // mobile chrome / laptop toolbars eat vertical space.
-        minHeight: '92svh',
-        paddingTop: 'clamp(40px, 6vh, 84px)',
-        paddingBottom: 28,
+        // Natural height: the hero now carries the product film as its living
+        // anchor, so it flows from the top instead of being centred in 100svh.
+        paddingTop: 'clamp(48px, 7vh, 92px)',
+        paddingBottom: 'clamp(48px, 8vh, 96px)',
       }}
     >
       <PaperGrain opacity={0.05} />
@@ -172,15 +169,16 @@ export function SirenHero() {
           )}
         </p>
 
-        {/* The visual anchor — the page forks where the copy turns from the
-            problem to what Argus does, and the dashed arc shows the return. */}
-        <div className="bp-fade-up mt-6" style={{ width: 'min(840px, 92vw)', marginLeft: '50%', transform: 'translateX(-50%)', animationDelay: '200ms' }}>
-          <ForkPath
-            label={L(
-              '한 계획이 여러 시선에 따로 읽혀 길이 갈라지고 — 정한 날짜에 당신에게 돌아옵니다',
-              'One plan, read separately by many eyes, forking into divergent routes — then a return on your date',
-            )}
-          />
+        {/* The living anchor — the product itself in motion. Replaces the
+            static ForkPath: a full Argus session in 6 beats shows the same
+            "one plan forks, then returns" idea, but moving. */}
+        <div className="bp-fade-up mx-auto mt-6" style={{ maxWidth: 660, animationDelay: '200ms' }}>
+          {/* Render the film at its native design width (~940) so the scene
+              layouts (esp. the Draft card) lay out without clipping, then
+              ScaleToFit shrinks the whole frame to the hero column / phone. */}
+          <ScaleToFit designWidth={940}>
+            <ArgusHeroDemo embedded />
+          </ScaleToFit>
         </div>
 
         {/* Resolving line — the pitch must not end on the problem. */}
@@ -309,29 +307,10 @@ export function SirenHero() {
           </div>
         </div>
 
-        {/* one plain-language line on how it works (the honest null-fork case is kept) */}
-        <p
-          className={`bp-fade-up mx-auto mt-6 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
-          style={{ color: 'var(--bp-ink-soft)', fontSize: 13, lineHeight: 1.65, animationDelay: '420ms' }}
-        >
-          {locale === 'ko' ? (
-            <>여러 AI가 저마다 다른 눈으로 당신의 계획을 따로 읽어요.<br />길이 갈리는 곳이 있다면 — 거기가 아직 당신이 비워둔 판단이에요.<br />정한 날엔, 잊지 않고 먼저 물어와요.</>
-          ) : (
-            <>Several AIs read your plan separately, each through different eyes.<br />Where the paths split — that&rsquo;s the judgment you&rsquo;ve left blank.<br />And on the day you set, it comes back first to ask.</>
-          )}
-        </p>
-
-        {/* Quiet demo path — clearly secondary, separated from the primary
-            action so it does not cannibalize the textarea. */}
-        <div className="mt-6">
-          <LocaleLink
-            href="/workspace?demo=planning"
-            className="bp-quiet-link inline-block"
-            style={{ fontSize: 12 }}
-          >
-            {L('아직 조심스럽다면, 샘플 결정으로 둘러보기 →', 'Not ready yet? Look around with a sample decision →')}
-          </LocaleLink>
-        </div>
+        {/* The film above already SHOWS the mechanic (separate reads → the fork
+            → the return), so the old "how it works" paragraph and the secondary
+            demo link were cut — show, don't tell. The input footer keeps the
+            ease + privacy microcopy. */}
 
         {/* Scroll cue — a clickable "sounding line" down to the voyage. */}
         <div className="bp-fade-up mt-9 flex justify-center" style={{ animationDelay: '440ms' }}>

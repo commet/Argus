@@ -8,7 +8,6 @@
  * the rest of the page can zoom in. No gold yet — the climax saves it.
  */
 
-import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { PlateLabel } from './ui/PlateLabel';
@@ -117,26 +116,12 @@ export function Act1Voyage() {
             )}
           </p>
 
+          {/* The hero owns the primary input/CTA now; here Act 1 only invites
+              the reader downward into the concrete case. A single quiet link. */}
           <div
             className="bp-fade-up mt-8 md:mt-10 inline-flex flex-wrap items-center justify-center gap-3"
             style={{ animationDelay: '760ms' }}
           >
-            <LocaleLink
-              href="/workspace"
-              className="bp-mono inline-flex items-center justify-center"
-              style={{
-                background: 'var(--bp-ink)',
-                color: 'var(--bp-paper, #faf7f0)',
-                fontSize: 12.5,
-                letterSpacing: '0.16em',
-                textTransform: 'uppercase',
-                padding: '12px 24px',
-                minHeight: 44,
-                borderRadius: 8,
-              }}
-            >
-              {L('무료로 시작하기', 'Start free')}
-            </LocaleLink>
             <a
               href="#navigate"
               className="bp-mono inline-flex items-center"
@@ -151,7 +136,7 @@ export function Act1Voyage() {
                 minHeight: 44,
               }}
             >
-              {L('어떻게 항해하는지', 'See it navigate')}
+              {L('어떻게 항해하는지 보기', 'See it navigate')}
             </a>
             <span
               className="bp-mono"

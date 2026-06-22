@@ -21,13 +21,13 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { useLocaleRouter } from '@/hooks/useLocaleRouter';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
-import { track } from '@/lib/analytics';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { PlateLabel } from './ui/PlateLabel';
 import { Cartouche } from './ui/Cartouche';
 import { DecisionVoyageFilm } from '@/components/landing/films/DecisionVoyageFilm';
+import { ScaleToFit } from '@/components/landing/films/ScaleToFit';
 
 type Locale = 'ko' | 'en';
 type Tone = 'you' | 'argus' | 'alert' | 'arrival';
@@ -36,14 +36,6 @@ type Beat = {
   stage: { ko: string; en: string };
   body: { ko: string; en: string };
   tone: Tone;
-};
-
-// The demo decision the trail navigates. Concrete and specific on purpose —
-// a generic example would read as a horoscope (anti-Barnum). One real call,
-// navigated end to end.
-const DEMO_QUERY = {
-  ko: '이번 분기에 신규 기능을 출시할까?',
-  en: 'Should we launch the new feature this quarter?',
 };
 
 const BEATS: Beat[] = [
@@ -76,14 +68,12 @@ const BEATS: Beat[] = [
 export function Act2DecisionVoyage() {
   const locale = useLocale() as Locale;
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  const router = useLocaleRouter();
 
   const sectionRef = useRef<HTMLElement | null>(null);
   const [started, setStarted] = useState(false);
   // revealed = number of waypoints shown (the Arrival card counts as the last).
   const TOTAL = BEATS.length + 1; // +1 for the Arrival deliverable card
   const [revealed, setRevealed] = useState(0);
-  const [query, setQuery] = useState('');
 
   // Trigger the reveal when the trail scrolls into view. Reduced-motion = all at once.
   useEffect(() => {
@@ -115,13 +105,6 @@ export function Act2DecisionVoyage() {
   }, [started, revealed, TOTAL]);
 
   const allRevealed = revealed >= TOTAL;
-
-  const startVoyage = (text: string) => {
-    const q = text.trim();
-    if (!q) return;
-    track('landing_cta_click', { cta: 'trail_input' });
-    router.push(`/workspace?q=${encodeURIComponent(q)}`);
-  };
 
   return (
     <section
@@ -199,7 +182,9 @@ export function Act2DecisionVoyage() {
             transform: 'translateX(-50%)',
           }}
         >
-          <DecisionVoyageFilm />
+          <ScaleToFit designWidth={1000}>
+            <DecisionVoyageFilm />
+          </ScaleToFit>
         </div>
 
         {/* The trail — a ship's log unrolling */}
@@ -221,83 +206,33 @@ export function Act2DecisionVoyage() {
           <ArrivalWaypoint locale={locale} L={L} shown={revealed >= BEATS.length + 1} />
         </ol>
 
-        {/* Inline input — "want to try it" connects to using it */}
+        {/* The canonical input now lives in the hero. After the deliverable we
+            add a single quiet invitation — a link, not a competing input box. */}
         <div
-          className="bp-fade-up mt-12 md:mt-14"
+          className="bp-fade-up mt-12 md:mt-14 text-center"
           style={{
             animationDelay: '480ms',
-            opacity: allRevealed ? 1 : 0.45,
+            opacity: allRevealed ? 1 : 0.5,
             transition: 'opacity 500ms ease',
           }}
         >
-          <p
-            className="bp-mono text-center"
+          <LocaleLink
+            href="/workspace"
+            className="bp-mono inline-flex items-center"
             style={{
-              color: 'var(--bp-ink-faint)',
-              fontSize: 11,
+              color: 'var(--bp-ink)',
+              fontSize: 11.5,
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
-              marginBottom: 14,
+              borderBottom: '1px solid var(--bp-ink)',
+              paddingBottom: 4,
+              minHeight: 44,
             }}
           >
-            {L('당신의 결정으로 — 직접', 'Now with your own decision')}
-          </p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              startVoyage(query);
-            }}
-            className="flex flex-col sm:flex-row items-stretch gap-3 max-w-xl mx-auto"
-          >
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              maxLength={300}
-              aria-label={L('항해할 결정을 입력하세요', 'Enter a decision to navigate')}
-              placeholder={DEMO_QUERY[locale]}
-              className={locale === 'ko' ? 'break-keep' : ''}
-              style={{
-                flex: 1,
-                background: 'var(--bp-paper)',
-                border: '1px solid var(--bp-ink-faint)',
-                borderRadius: 8,
-                padding: '14px 16px',
-                // 16px minimum — anything smaller triggers iOS focus zoom.
-                fontSize: 16,
-                color: 'var(--bp-ink)',
-                minHeight: 48,
-                outline: 'none',
-              }}
-            />
-            <button
-              type="submit"
-              disabled={!query.trim()}
-              className="bp-mono inline-flex items-center justify-center"
-              style={{
-                background: 'var(--bp-ink)',
-                color: 'var(--bp-paper)',
-                fontSize: 12.5,
-                letterSpacing: '0.16em',
-                textTransform: 'uppercase',
-                padding: '12px 24px',
-                minHeight: 48,
-                borderRadius: 8,
-                border: 'none',
-                cursor: query.trim() ? 'pointer' : 'not-allowed',
-                opacity: query.trim() ? 1 : 0.4,
-                transition: 'opacity 200ms ease',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {L('이 결정을 항해하기', 'Navigate this')}
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style={{ marginLeft: 8 }}>
-                <path d="M2 7h9M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square" strokeLinejoin="miter" />
-              </svg>
-            </button>
-          </form>
+            {L('내 결정으로 직접 해보기', 'Try it with my own decision')}
+          </LocaleLink>
           <p
-            className="bp-mono text-center mt-4"
+            className="bp-mono mt-4"
             style={{ color: 'var(--bp-ink-faint)', fontSize: 10.5, letterSpacing: '0.16em' }}
           >
             {L('로그인 없이 무료 · 30초 안에 첫 분석', 'Free, no login · first read in 30 seconds')}
