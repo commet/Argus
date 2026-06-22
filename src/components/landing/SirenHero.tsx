@@ -31,7 +31,7 @@ import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
-import { ForkPath } from './voyage/illustrations/ForkPath';
+import { ArgusHeroDemo } from './films/ArgusHeroDemo';
 
 export function SirenHero() {
   const locale = useLocale();
@@ -78,17 +78,14 @@ export function SirenHero() {
 
   return (
     <section
-      className="relative bp-root overflow-hidden flex items-center"
+      className="relative bp-root overflow-hidden"
       aria-labelledby="siren-heading"
       style={{
         background: 'var(--bp-paper)',
-        // svh: the input must be visible without scrolling on mobile too
-        // (URL bar collapse safe). Header is fixed/transparent above this.
-        // Floor kept low so the textarea + CTA clear the fold even when
-        // mobile chrome / laptop toolbars eat vertical space.
-        minHeight: '92svh',
-        paddingTop: 'clamp(40px, 6vh, 84px)',
-        paddingBottom: 28,
+        // Natural height: the hero now carries the product film as its living
+        // anchor, so it flows from the top instead of being centred in 100svh.
+        paddingTop: 'clamp(48px, 7vh, 92px)',
+        paddingBottom: 'clamp(48px, 8vh, 96px)',
       }}
     >
       <PaperGrain opacity={0.05} />
@@ -172,15 +169,11 @@ export function SirenHero() {
           )}
         </p>
 
-        {/* The visual anchor — the page forks where the copy turns from the
-            problem to what Argus does, and the dashed arc shows the return. */}
-        <div className="bp-fade-up mt-6" style={{ width: 'min(840px, 92vw)', marginLeft: '50%', transform: 'translateX(-50%)', animationDelay: '200ms' }}>
-          <ForkPath
-            label={L(
-              '한 계획이 여러 시선에 따로 읽혀 길이 갈라지고 — 정한 날짜에 당신에게 돌아옵니다',
-              'One plan, read separately by many eyes, forking into divergent routes — then a return on your date',
-            )}
-          />
+        {/* The living anchor — the product itself in motion. Replaces the
+            static ForkPath: a full Argus session in 6 beats shows the same
+            "one plan forks, then returns" idea, but moving. */}
+        <div className="bp-fade-up mx-auto mt-6" style={{ maxWidth: 660, animationDelay: '200ms' }}>
+          <ArgusHeroDemo embedded />
         </div>
 
         {/* Resolving line — the pitch must not end on the problem. */}
