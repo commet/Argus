@@ -6,8 +6,11 @@ import { upsertToSupabase, softDeleteFromSupabase, loadAndMerge, insertToSupabas
 import { track } from '@/lib/analytics';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { agentToPersona, personaToAgentInput } from '@/lib/agent-adapters';
+import { getCurrentLanguage } from '@/lib/i18n';
 
-const DEFAULT_PERSONAS: Omit<Persona, 'id' | 'created_at' | 'updated_at' | 'feedback_logs'>[] = [
+type SeedPersona = Omit<Persona, 'id' | 'created_at' | 'updated_at' | 'feedback_logs'>;
+
+const DEFAULT_PERSONAS_KO: SeedPersona[] = [
   {
     name: '최진우 대표',
     role: 'CEO',
@@ -54,6 +57,59 @@ const DEFAULT_PERSONAS: Omit<Persona, 'id' | 'created_at' | 'updated_at' | 'feed
     is_example: true,
   },
 ];
+
+const DEFAULT_PERSONAS_EN: SeedPersona[] = [
+  {
+    name: 'James Carter, CEO',
+    role: 'CEO',
+    organization: '',
+    priorities: 'Vision and strategic direction, overall coherence of the storyline, "so what is it, in one line?"',
+    communication_style: 'Wants the big picture first. Looks for the So What before the details. Loses interest without a narrative.',
+    known_concerns: 'Strategic direction and market positioning; a story that holds up in front of the board and investors',
+    relationship_notes: '',
+    influence: 'high',
+    decision_style: 'intuitive',
+    risk_tolerance: 'high',
+    success_metric: 'A board-ready story plus one line capturing the core direction',
+    extracted_traits: ['Story-driven', 'Big-picture first', 'Obsessed with So What', 'Intuitive judgment'],
+    is_example: true,
+  },
+  {
+    name: 'Rachel Kim, Head of Business Planning',
+    role: 'Head of Business Planning',
+    organization: '',
+    priorities: 'Alignment with top-level guidelines, reporting-line alignment, heading off risk early',
+    communication_style: '"Does this match the VP\'s direction?" is a constant refrain. Politically astute; backs you strongly when the context fits.',
+    known_concerns: "Conflict with the boss's existing policy, lack of internal consensus, missed process steps",
+    relationship_notes: '',
+    influence: 'high',
+    decision_style: 'consensus',
+    risk_tolerance: 'low',
+    success_metric: '100% alignment with top-level guidelines + pre-agreement from the reporting line',
+    extracted_traits: ['Guideline-compliant', 'Reporting-line sensitive', 'Risk-averse', 'Politically astute'],
+    is_example: true,
+  },
+  {
+    name: 'Kevin Lee, Data Analytics Lead',
+    role: 'Data Analytics Lead',
+    organization: '',
+    priorities: 'Consistency of numbers and data, quantitative evidence, explicit sources',
+    communication_style: '"Do you have the supporting data?" is a constant refrain. Approves fast when the data is there. Prefers numbers over gut.',
+    known_concerns: 'Inconsistencies between figures, statistics with unclear sources',
+    relationship_notes: '',
+    influence: 'medium',
+    decision_style: 'analytical',
+    risk_tolerance: 'low',
+    success_metric: 'Source and consistency verified for every figure',
+    extracted_traits: ['Numbers-focused', 'Evidence-first', 'Consistency-checking', 'Meticulous'],
+    is_example: true,
+  },
+];
+
+/** Locale-branched example personas. en-first: English by default, Korean when the user's locale is ko. */
+function defaultPersonas(): SeedPersona[] {
+  return getCurrentLanguage() === 'ko' ? DEFAULT_PERSONAS_KO : DEFAULT_PERSONAS_EN;
+}
 
 interface PersonaState {
   personas: Persona[];
@@ -223,7 +279,7 @@ export const usePersonaStore = create<PersonaState>((set, get) => ({
   seedDefaultPersonas: () => {
     if (get().personas.length > 0) return;
     const now = new Date().toISOString();
-    const seeded: Persona[] = DEFAULT_PERSONAS.map((d) => ({
+    const seeded: Persona[] = defaultPersonas().map((d) => ({
       ...d,
       id: generateId(),
       feedback_logs: [],
