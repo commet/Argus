@@ -42,9 +42,12 @@ export function LocaleProvider({
   children: React.ReactNode;
 }) {
   // Keep the module mirror aligned with the rendered locale. Writing during
-  // render is intentional (see file header). Guard so we only call on change.
+  // render is intentional so a synchronous bare `t()` in a child sees the right
+  // value (see file header). CLIENT-ONLY: never on the server — module state is
+  // shared across requests there, so writing it during SSR would race between a
+  // /en and a /ko request. The guard makes this a no-op server-side.
   const lastWritten = useRef<Locale | null>(null);
-  if (lastWritten.current !== locale) {
+  if (typeof window !== 'undefined' && lastWritten.current !== locale) {
     setModuleLocale(locale);
     lastWritten.current = locale;
   }
