@@ -542,8 +542,11 @@ export interface OutcomeRecord {
 // Stored embedded on Project (rides existing project sync), reversibly: drop
 // `Project.decision_contract` and the feature is gone with no orphaned rows.
 
-/** Where a predicate was derived from. */
-export type PredicateSource = 'risk' | 'actor' | 'governing_idea';
+/** Where a predicate was derived from. `user_lean` = the user's own pre-AI lean,
+ *  sealed at project-OPEN before any generation (Phase 1 BIND, "tie the rope
+ *  before you hear the Sirens"). Always authored:'user' — it is the user's own
+ *  prediction, the anchor the later AI output is checked against, never overwritten. */
+export type PredicateSource = 'risk' | 'actor' | 'governing_idea' | 'user_lean';
 
 /** The user's later verdict on whether the prediction held.
  *  `unknown` = "결과를 아직 모름" — resolves the predicate (so the contract can
