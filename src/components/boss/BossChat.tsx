@@ -81,7 +81,14 @@ function classifyReaction(text: string): Reaction {
   return 'neutral';
 }
 
-function updateMood(current: BossMood, reaction: Reaction, round: number): BossMood {
+// Cosmetic on-screen demeanor ONLY (avatar ring / vibe text). The verdict is
+// never derived from this — see the spine note at the buildFollowUpContext call.
+// §2.4-6: the round-7 auto-flip (warming→convinced / cooling→rejected / a bare
+// neutral chat → 'convinced') was removed. That hard counter forced a directional
+// verdict regardless of content — the un-launderable engine-weighted lean the
+// stress rounds flagged. The boss now concludes only when the LLM reads enough in
+// the actual conversation; this function never produces 'convinced'/'rejected'.
+function updateMood(current: BossMood, reaction: Reaction): BossMood {
   if (current === 'convinced' || current === 'rejected') return current;
 
   // 강한 논거 → warming
@@ -104,15 +111,6 @@ function updateMood(current: BossMood, reaction: Reaction, round: number): BossM
   }
 
   // neutral → 변화 없음 (캐주얼 대화 시 과잉 반응 방지)
-
-  // 7라운드 이상이면 결론으로
-  if (round >= 7) {
-    if (current === 'warming') return 'convinced';
-    if (current === 'cooling') return 'rejected';
-    // neutral 상태로 7라운드 = 대화가 진전 없음 → conditional
-    return 'convinced'; // boss가 "일단 해봐" 스타일로 마무리
-  }
-
   return current;
 }
 
@@ -343,8 +341,8 @@ export function BossChat() {
     const lastUserMsg = [...chatMessages].reverse().find(m => m.role === 'user');
     if (lastUserMsg && !isFirst) {
       const reaction = classifyReaction(lastUserMsg.content);
-      currentMood = updateMood(currentMood, reaction, round);
-      setBossMood(currentMood); // UI 반영용 (프롬프트에는 이미 currentMood 사용)
+      currentMood = updateMood(currentMood, reaction);
+      setBossMood(currentMood); // 화면 데메이너용(아바타 링/바이브) — 판정에는 안 쓰임
     }
 
     // Agent에서 로드된 boss면 agent 프롬프트 사용 (Lv.2+ observation 주입)
@@ -353,9 +351,14 @@ export function BossChat() {
 
     const consumeForceVerdict = forceVerdictRef.current;
     if (consumeForceVerdict) forceVerdictRef.current = false;
+    // Spine (§2.4-6): the verdict must be the LLM's read of the ACTUAL
+    // conversation — never tilted by a client-side keyword counter. `currentMood`
+    // still drives the boss's cosmetic on-screen demeanor, but the verdict-bearing
+    // prompt always receives a neutral mood so no keyword-derived lean
+    // ("you're persuaded" / "their reasoning is thin") pre-tilts the conclusion.
     const contextSuffix = isFirst
       ? buildFirstMessageContext(bossLocale)
-      : buildFollowUpContext(round, currentMood, bossLocale, consumeForceVerdict);
+      : buildFollowUpContext(round, 'neutral', bossLocale, consumeForceVerdict);
 
     const zodiac = useBossStore.getState().zodiacProfile;
     const userContextHint = useBossStore.getState().userContextHint;
@@ -400,7 +403,7 @@ export function BossChat() {
               verdict: ext.verdict.verdict,
               mbti: tc,
               turns: useBossStore.getState().messages.length,
-              triggered_by: consumeForceVerdict ? 'force' : (round >= 7 ? 'auto' : 'natural'),
+              triggered_by: consumeForceVerdict ? 'force' : (round >= 7 ? 'late' : 'natural'),
             });
             useBossStore.getState().updateStreamingText(ext.clean);
           }
@@ -800,12 +803,18 @@ export function BossChat() {
               aria-label={L('닫기', 'Dismiss')}
               className="bc-cal-dismiss"
             >×</button>
-            <p className="bc-cal-q">{L('실제 팀장이랑 얼마나 비슷해?', 'How close is this to your actual boss?')}</p>
+            {/* §2.4-5: rehearsal frame, not prediction. The old "how close to
+                your ACTUAL boss?" + "😮 소름/Eerie" rating sold the sim as a
+                supernatural predictor of the real person at the emotional peak,
+                with no caveat. We ask how true-to-life the PRACTICE felt, drop the
+                eerie/predictive label, and restate the "may differ" caveat here. */}
+            <p className="bc-cal-q">{L('리허설로 얼마나 실감 났어?', 'How true-to-life did this rehearsal feel?')}</p>
+            <p className="bc-cal-caveat">{L('연습용 시뮬이라, 실제 반응은 다를 수 있어요', "It's a practice sim — the real reaction may differ")}</p>
             <div className="bc-cal-options">
               <button onClick={() => {
                 track('boss_calibration_similarity', { rating: 'a_bit_off', mbti: typeCode, turns: messages.length });
                 setCalibrationStep('detail');
-              }} className="bc-cal-btn">{L('😐 좀 다름', '😐 A bit off')}</button>
+              }} className="bc-cal-btn">{L('😐 좀 달랐어', '😐 A bit off')}</button>
               <button onClick={() => {
                 if (loadedAgentId) {
                   const agent = useAgentStore.getState().getAgent(loadedAgentId);
@@ -814,7 +823,7 @@ export function BossChat() {
                 }
                 track('boss_calibration_similarity', { rating: 'pretty_close', mbti: typeCode, turns: messages.length });
                 setCalibrationStep('done');
-              }} className="bc-cal-btn bc-cal-btn-active">{L('🤔 꽤 비슷', '🤔 Pretty close')}</button>
+              }} className="bc-cal-btn bc-cal-btn-active">{L('🤔 꽤 그럴듯', '🤔 Pretty convincing')}</button>
               <button onClick={() => {
                 if (loadedAgentId) {
                   const agent = useAgentStore.getState().getAgent(loadedAgentId);
@@ -826,7 +835,7 @@ export function BossChat() {
                 }
                 track('boss_calibration_similarity', { rating: 'eerie', mbti: typeCode, turns: messages.length });
                 setCalibrationStep('done');
-              }} className="bc-cal-btn bc-cal-btn-active">{L('😮 소름', '😮 Eerie')}</button>
+              }} className="bc-cal-btn bc-cal-btn-active">{L('😮 정말 실감났어', '😮 Really lifelike')}</button>
             </div>
           </motion.div>
         )}

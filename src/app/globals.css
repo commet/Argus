@@ -1450,6 +1450,12 @@ button, a, input, textarea {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
+  margin-bottom: 4px;
+}
+/* §2.4-5: the rehearsal caveat, placed AT the emotional peak (not only pre-chat). */
+.bc-cal-caveat {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
   margin-bottom: 10px;
 }
 .bc-cal-options {
