@@ -185,14 +185,21 @@ export function Falsification({
               <div className="flex-1 min-w-0">
                 <p className="text-[11.5px] font-semibold text-[var(--text-secondary)]">
                   {noFlinch
-                    ? L('하나도 안 멈추셨네요 — 제가 제일 위험하다 보는 전제는 이거예요', "You didn't stop anywhere — the belief I see as riskiest is this")
+                    ? L('하나도 안 멈추셨네요. 그럼 하나만 같이 볼게요 — 이 계획이 기대고 있는 전제예요.', "You didn't stop anywhere. So here's just one to look at — a premise this plan is resting on.")
                     : L('여기서 멈추셨네요 — 이 줄이 기대고 있는 전제예요', 'You stopped here — the belief this step is betting on')}
                 </p>
                 <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.55] mt-1">{surfaced}</p>
-                {/* The fork-callout grammar, carried into the default path —
-                    the measurement vocabulary's one default-on appearance. */}
+                {/* Spine (§2.4-2, CLAUDE.md rounds 5–8): the no-flinch path used to
+                    assert a ranked verdict ("the belief I see as RISKIEST is this")
+                    and the fork-callout asserted stakes ("this is where the plan
+                    succeeds or fails"). Both are directional statements — even as
+                    the one default-on measurement line, that tested as a lean you
+                    cannot launder. The surfaced assumption is irreducible (value ∝
+                    leverage ∝ tilt), so we still NAME it — but the crux is a bare
+                    neutral QUESTION, never a verdict about which belief is riskiest
+                    or what it decides. Ask; don't conclude. */}
                 <p className="text-[11.5px] text-[var(--accent)] leading-[1.5] mt-1.5">
-                  {L('이 전제가 참인지 거짓인지에 따라, 이 계획의 성패가 갈려요.', 'Whether this holds true or not is where this plan succeeds or fails.')}
+                  {L('이게 정말 맞나요?', 'Is it actually true?')}
                 </p>
               </div>
             </div>

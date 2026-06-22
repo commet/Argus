@@ -139,7 +139,7 @@ describe('Falsification', () => {
 
   it('no-flinch → asks the engine for the highest-load pick and marks the fallback', async () => {
     const onResolve = vi.fn();
-    const onRequestHighestLoad = vi.fn().mockResolvedValue({ id: 'h', text: 'The riskiest bet', overreached: false, highest_load: true });
+    const onRequestHighestLoad = vi.fn().mockResolvedValue({ id: 'h', text: 'Users keep using it after launch', overreached: false, highest_load: true });
     mount({ strength: 's', claims, onResolve, onRequestHighestLoad });
 
     await act(async () => {
@@ -147,13 +147,20 @@ describe('Falsification', () => {
     });
     expect(onRequestHighestLoad).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("You didn't stop anywhere");
-    expect(container.textContent).toContain('The riskiest bet');
+    expect(container.textContent).toContain('Users keep using it after launch');
+
+    // Spine (§2.4-2): the no-flinch path must NOT issue a ranked verdict about
+    // which belief is "riskiest", nor a stakes-statement about what it decides.
+    // The crux is a bare neutral question. (CLAUDE.md rounds 5–8.)
+    expect(container.textContent).toContain('Is it actually true?');
+    expect(container.textContent).not.toContain('riskiest');
+    expect(container.textContent).not.toContain('succeeds or fails');
 
     setTextarea('My real bet');
     click(buttonByText('Lock it in'));
     expect(onResolve.mock.calls[0][0]).toMatchObject({
       flinched_id: null,
-      surfaced_constraint: 'The riskiest bet',
+      surfaced_constraint: 'Users keep using it after launch',
       no_flinch_fallback: true,
       real_bet: 'My real bet',
     });
