@@ -36,8 +36,18 @@ Supabase가 보내는 **회원가입 확인 메일**을 브랜드 있게 바꾸�
 - table 기반 + 인라인 스타일 (Gmail/Outlook/애플 메일 호환).
 - 푸터에 홈 링크(`argus.voyage`) + "가입 안 했으면 무시" 보안 안내(피싱 신뢰 신호).
 
-## 다른 인증 메일도 바꾸려면
+## 비밀번호 재설정 메일도 같은 톤으로 (이미 만들어 둠)
 
-같은 패턴으로 **Reset password**, **Magic Link** 템플릿도 만들 수 있습니다. 필요하면
-`confirm-signup.html`을 복사해 제목/본문 문구만 바꾸면 됩니다(버튼 변수는 각각
-`{{ .ConfirmationURL }}` 그대로). 요청하면 추가로 만들어 드립니다.
+[`reset-password.html`](./reset-password.html) — 같은 로그북 디자인의 **비밀번호 재설정** 메일.
+적용법은 위와 동일하되 탭만 다릅니다:
+
+1. **Authentication → Email Templates → "Reset password"** 탭 선택.
+2. **Subject** 를 `비밀번호 재설정 — Argus` 로.
+3. **Message body(HTML)** 에 `reset-password.html` 내용을 통째로 붙여넣기 → **Save**.
+
+(변수는 `{{ .ConfirmationURL }}`(재설정 링크) + `{{ .SiteURL }}` 로 confirm 메일과 동일.)
+
+## 그 밖의 인증 메일 (Magic Link 등)
+
+같은 패턴으로 **Magic Link**, **Email change** 템플릿도 만들 수 있습니다. `confirm-signup.html`
+을 복사해 제목/본문 문구만 바꾸면 됩니다(버튼 변수 동일). 요청하면 추가로 만들어 드립니다.
