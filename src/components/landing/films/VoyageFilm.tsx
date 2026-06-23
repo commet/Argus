@@ -155,7 +155,7 @@ export function VoyageFilm() {
             </span>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 1.9vw, 20px)', lineHeight: 1.4, letterSpacing: '-0.008em', maxWidth: 640 }}
+              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14px, 1.85vw, 19.5px)', lineHeight: 1.46, letterSpacing: '-0.006em', maxWidth: 640 }}
             >
               {L(INTRO.lineKo, INTRO.lineEn)}
             </p>
@@ -179,7 +179,7 @@ export function VoyageFilm() {
             </p>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--bp-ink)', fontSize: 'clamp(16px, 2.3vw, 25px)', lineHeight: 1.34, letterSpacing: '-0.012em', maxWidth: 660 }}
+              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(15.5px, 2.15vw, 23px)', lineHeight: 1.4, letterSpacing: '-0.006em', maxWidth: 640 }}
             >
               {L(active.lineKo, active.lineEn)}
             </p>
