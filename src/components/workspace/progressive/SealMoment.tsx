@@ -34,6 +34,7 @@ import { LocaleLink } from '@/components/ui/LocaleLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBranch } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
 import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, CHECK_IN_MS } from '@/lib/decision-contract';
@@ -84,6 +85,7 @@ export function SealMoment({
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
   const updateProject = useProjectStore((s) => s.updateProject);
+  const { user } = useAuth();
 
   const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_INTERVAL);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -352,6 +354,15 @@ export function SealMoment({
         <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] max-w-md mx-auto">
           {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요 — 메일이나 알림은 보내지 않아요.', "On that day, I'll ask first when you open the projects page — no emails, no notifications.")}
         </p>
+        {/* P2-6 honesty: an anonymous seal lives in localStorage only. Don't let the
+            "comes back to you" promise read as a lie when it can vanish on this device.
+            Not a gate — they can still seal locally; just told the truth + the way out. */}
+        {!user && (
+          <p className="mt-1.5 text-[11.5px] text-[var(--accent)]/90 max-w-md mx-auto">
+            {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 로그인하면 계정으로 옮겨가 어디서나 돌아올 수 있어요.',
+               'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Log in and it moves to your account, reachable anywhere.')}
+          </p>
+        )}
 
         <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
           <button
