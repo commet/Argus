@@ -337,6 +337,19 @@ export function SealMoment({
         <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-[var(--ai)] text-[var(--accent)]">
           <Anchor size={22} />
         </div>
+        {/* P1-3: when the user tied a rope at the START, acknowledge it here — the
+            augment merges it silently otherwise, so the satisfying "I committed, and
+            here it is again" arc never lands. Their own line, carried through. */}
+        {(() => {
+          const earlyLean = contract?.predicates?.find((p) => p.source === 'user_lean')?.text;
+          if (!earlyLean) return null;
+          return (
+            <p className="mt-5 text-[13px] text-[var(--text-secondary)] leading-[1.5] max-w-md mx-auto px-3 py-2 rounded-xl bg-[var(--ai)]/40 border border-[var(--border-subtle)]">
+              {L('출항 때 당신은 이렇게 적었죠 — ', 'When you set out, you wrote — ')}
+              <span className="font-semibold text-[var(--text-primary)]">&ldquo;{earlyLean}&rdquo;</span>
+            </p>
+          );
+        })()}
         <h3 className="mt-5 text-[19px] md:text-[21px] font-bold text-[var(--text-primary)] leading-[1.4] max-w-md mx-auto">
           {L(
             `이 결정, ${dateFor(interval)}에 어떻게 됐는지 물어봐 드릴까요?`,

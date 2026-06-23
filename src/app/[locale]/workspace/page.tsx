@@ -30,6 +30,7 @@ import { EASE } from '@/components/workspace/progressive/shared/constants';
 import { getPersonaPool } from '@/lib/worker-personas';
 import { WorkerAvatar, AvatarRow } from '@/components/workspace/progressive/WorkerAvatar';
 import { BindCard, type BindResult } from '@/components/workspace/progressive/BindCard';
+import { VoyagePhaseRail } from '@/components/workspace/progressive/VoyagePhaseRail';
 import { InteractiveDemo } from '@/components/workspace/InteractiveDemo';
 import { getDemoScenarios } from '@/lib/demo-data';
 import type { DemoScenario } from '@/lib/demo-data';
@@ -770,6 +771,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
           {phase === 'binding' && (
             <motion.div key="binding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: EASE }} className="pt-8 md:pt-16">
+              {/* P1-1: the rail was absent at the literal 묶기 moment — show "1/3 묶기"
+                  above the card so the bind reads as Act 1 of 3, not a random gate. */}
+              <div className="max-w-xl mx-auto mb-4">
+                <VoyagePhaseRail phase="binding" />
+              </div>
               <BindCard
                 problem={pendingTextRef.current}
                 onProceed={proceedAfterBind}

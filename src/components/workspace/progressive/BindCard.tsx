@@ -83,9 +83,11 @@ export function BindCard({
         <h2 className="text-[19px] font-bold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
           {L('답을 듣기 전에 — 지금 마음은 어디로 기울어요?', 'Before you hear the answer — where are you leaning right now?')}
         </h2>
+        {/* P1: the WHY (cluster 4) — the rope metaphor needs its payload, or a
+            skeptic reads "why ask me, you're the tool" and skips, defeating the phase. */}
         <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5 leading-snug">
-          {L('안 적어도 됩니다. 적어두면 나중에 “그래서 어떻게 됐는지” 같이 맞춰봐요.',
-             "Optional. If you jot it down, we'll check back later on how it actually went.")}
+          {L('답을 먼저 들으면 원래 생각이 흐려져요. 그 전에 한 줄만 남겨두면, 나중에 그게 진짜 내 판단이었는지 같이 맞춰볼 수 있어요. (안 적어도 됩니다.)',
+             "Hearing the answer first blurs your own read. Leave one line before it, and later we can check whether your call actually held. (Optional.)")}
         </p>
 
         {problem && (
@@ -163,6 +165,14 @@ export function BindCard({
             <ArrowRight size={15} />
           </button>
         </div>
+
+        {/* Reassure that skipping is safe and the analysis isn't lost — the AI is
+            already reading in the background (cluster 4: the buffered run is invisible,
+            so the screen can feel like a gate of unknown cost). */}
+        <p className="mt-3 text-[11px] text-[var(--text-tertiary)]/80 text-center">
+          {L('AI 팀은 이미 이 건을 읽고 있어요 — 어느 쪽이든 다음 화면에서 보여드려요.',
+             "The crew is already reading this — either way, you'll see it on the next screen.")}
+        </p>
       </div>
     </motion.div>
   );
