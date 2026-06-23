@@ -101,13 +101,19 @@ async function runReframe(chatId: number | string, input: string, deep: boolean)
   let result;
   try {
     const system = reframeSystemPrompt(locale) + (deep ? deeperSuffix(locale) : '');
-    const text = await callAnthropicText({ system, user: input.slice(0, INPUT_MAX), model: 'fast', maxTokens: 1200 });
+    // Use the same model the webapp's reframe uses (default = Sonnet) — the
+    // 'fast'/Haiku path is unexercised in this deployment, so default is the
+    // proven one. (Optimize back to fast later once verified.)
+    const text = await callAnthropicText({ system, user: input.slice(0, INPUT_MAX), model: 'default', maxTokens: 1200 });
     result = parseReframe(text);
   } catch (err) {
     console.error('[telegram/webhook] reframe failed:', err);
-    await sendMessage(chatId, locale === 'ko'
+    // TEMP diagnostic: surface a short error reason while stabilizing the bot.
+    const reason = String((err as { status?: number; message?: string })?.message || err)
+      .slice(0, 200).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    await sendMessage(chatId, (locale === 'ko'
       ? '잠깐 막혔어요. 잠시 후 다시 보내 주세요.'
-      : 'Hit a snag. Please try again in a moment.');
+      : 'Hit a snag. Please try again in a moment.') + `\n\n<code>${reason}</code>`);
     return;
   }
   if (!result.surface_task && result.hidden_assumptions.length === 0) {
