@@ -22,7 +22,7 @@ import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
-import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
+import { contractStatus, summarizeRecord, extractPredicatesFromSession } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
 
@@ -342,6 +342,22 @@ export default function ProjectPage() {
   const currentVoyageDone = currentVoyageSession
     ? currentVoyageSession.phase === 'complete'
     : !!currentProject?.decision_contract;
+  // P0-2 (the 47/0 leak): the seal was only reachable in the one in-flow SealMoment
+  // screen. Re-derive the voyage's falsifiable predicates HERE so a completed-but-
+  // unsealed voyage can still be sealed from /project at any later time. null for a
+  // legacy (non-voyage) project → DecisionContractCard keeps its legacy storage path.
+  const liveContractPredicates = useMemo(
+    () => (currentVoyageSession
+      ? extractPredicatesFromSession({
+          mix: currentVoyageSession.mix,
+          final_mix: currentVoyageSession.final_mix,
+          dm_feedback: currentVoyageSession.dm_feedback,
+          debate_result: currentVoyageSession.debate_result,
+          falsification: currentVoyageSession.falsification,
+        })
+      : null),
+    [currentVoyageSession],
+  );
   // The decision's CONTENT — until now this page showed only process chrome
   // (progress %, steps, formats) and never WHAT was decided. The bearing is
   // the one-screen answer; it replaces the bare "항해 완료" status card.
@@ -783,7 +799,11 @@ export default function ProjectPage() {
 
           {/* Decision Contract — falsifiable closed loop (§0 KICK).
               Seal only offered once the voyage is finished (all legs done). */}
-          <DecisionContractCard project={currentProject} sealable={completedSteps === steps.length} />
+          <DecisionContractCard
+            project={currentProject}
+            sealable={currentHasVoyage ? currentVoyageDone : completedSteps === steps.length}
+            livePredicates={liveContractPredicates}
+          />
 
           {/* Settlement modal — "그래서, 어떻게 됐어요?" Auto-opens when the
               check-in date arrives (W1.2). "아직" extends via history-preserving

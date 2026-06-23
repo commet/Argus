@@ -132,9 +132,44 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
     );
   }
 
-  // Defensive: a malformed contract (or one with zero predicates) has nothing
-  // to ask about — render nothing instead of an empty shell with extend chips.
-  if (!contract || predicates.length === 0) return null;
+  if (!contract) return null;
+
+  // P0-4: a date-armed contract with NO predicates (a date-only BIND rope, or a
+  // completed voyage that yielded nothing falsifiable) still reaches its check-in
+  // date. Rendering null = the day we promised to "bring it up" arrives and nothing
+  // happens — a broken promise. Keep it: ask the one free question and let them close
+  // the loop. Closing clears the check-in so it stops resurfacing.
+  if (predicates.length === 0) {
+    const closeFreeform = () => {
+      updateProject(project.id, {
+        decision_contract: { ...contract, graded_at: new Date().toISOString(), check_in_at: undefined, check_in_interval: undefined },
+      });
+      recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict: 'freeform_close' } });
+      track('decision_graded', { verdict: 'freeform_close' });
+      onClose();
+    };
+    return (
+      <Modal open onClose={onClose} title={L('그래서, 어떻게 됐어요?', 'So, how did it go?')}>
+        <div className="space-y-4">
+          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.5] -mt-1">
+            {L('그날 이 결정을 다시 보기로 했었죠 — ', 'You set a date to revisit this — ')}
+            <span className="font-semibold text-[var(--text-primary)]">{project.name}</span>
+          </p>
+          <p className="text-[12.5px] text-[var(--text-tertiary)] leading-[1.5]">
+            {L('따로 봉인한 예측은 없었어요 — 한 번 돌아본 걸로 이 고리를 닫을게요.',
+               "No specific predictions were sealed for this one — we'll close the loop as a look-back.")}
+          </p>
+          <button
+            onClick={closeFreeform}
+            className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white cursor-pointer"
+            style={{ background: 'var(--gradient-gold, var(--accent))' }}
+          >
+            {L('돌아봤어요 — 닫기', 'Looked back — close it')}
+          </button>
+        </div>
+      </Modal>
+    );
+  }
 
   const sealedOn = fmtDate(contract.created_at);
 

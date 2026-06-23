@@ -36,18 +36,27 @@ const MAX_LEAN = 140;
 export function BindCard({
   onProceed,
   problem,
+  initialLean,
+  initialInterval,
+  notice,
 }: {
   /** null = full skip (no rope, write nothing). A BindResult = tie the rope. */
   onProceed: (bind: BindResult | null) => void;
   /** The problem the user just submitted — shown small, for orientation only. */
   problem?: string;
+  /** Restore a previously-typed rope (P0-5: a quota/error after binding must not
+   *  silently discard the user's words — re-show the card with them intact). */
+  initialLean?: string;
+  initialInterval?: CheckInInterval | null;
+  /** A banner above the form — e.g. "log in to hear the crew; your note is kept". */
+  notice?: string;
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
 
-  const [lean, setLean] = useState('');
-  const [interval, setInterval] = useState<CheckInInterval | null>(null);
+  const [lean, setLean] = useState(initialLean ?? '');
+  const [interval, setInterval] = useState<CheckInInterval | null>(initialInterval ?? null);
 
   const trimmed = lean.trim();
   const hasCommitment = trimmed.length > 0 || interval !== null;
@@ -66,6 +75,11 @@ export function BindCard({
         <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-2">
           {L('출항 전 · 밧줄 묶기', 'Before you sail · tie the rope')}
         </p>
+        {notice && (
+          <p className="mb-3 px-3 py-2 rounded-lg bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[12px] text-[var(--text-primary)] leading-snug">
+            {notice}
+          </p>
+        )}
         <h2 className="text-[19px] font-bold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
           {L('답을 듣기 전에 — 지금 마음은 어디로 기울어요?', 'Before you hear the answer — where are you leaning right now?')}
         </h2>
@@ -116,6 +130,13 @@ export function BindCard({
             </button>
           ))}
         </div>
+        {/* P0-4b: a lean with no date never auto-resurfaces — nudge a date so the
+            rope actually comes back on its own. */}
+        {trimmed.length > 0 && interval === null && (
+          <p className="mt-2 text-[11.5px] text-[var(--accent)]/90 leading-snug">
+            {L('확인일을 고르면 그날 이 한 줄을 다시 물어볼게요.', "Pick a date and I'll bring this line back to you that day.")}
+          </p>
+        )}
 
         <div className="mt-6 flex items-center justify-between gap-3">
           {/* Dominant, unconditional skip. */}
