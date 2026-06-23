@@ -20,8 +20,24 @@
  * inverts via CSS (.bp-voyage-video). `?cap=N` force-shows a chapter (preview).
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
+
+// Captions break at sentence/clause boundaries (a literal "\n" in the copy),
+// never wherever the line happens to fill — so a phrase like
+// "그 한 걸음을 또렷하게 내딛도록" always lands whole on its own line.
+function Lines({ text }: { text: string }) {
+  return (
+    <>
+      {text.split('\n').map((ln, i) => (
+        <Fragment key={i}>
+          {i > 0 && <br />}
+          {ln}
+        </Fragment>
+      ))}
+    </>
+  );
+}
 
 type Chapter = {
   num: string; ko: string; en: string;
@@ -36,8 +52,8 @@ type Chapter = {
 const INTRO = {
   from: 1.0, to: 5.3,
   eyebrowKo: '호메로스 · 오디세이아', eyebrowEn: 'HOMER · THE ODYSSEY',
-  lineKo: '세이렌은 “내가 다 알려줄게” 노래로 뱃사람을 홀렸습니다 — 지금의 AI처럼. 오디세우스는, 휩쓸리지 않고 지나는 법을 알았죠.',
-  lineEn: 'The Sirens lured sailors with a song — “we will tell you all.” Much like today’s AI. Odysseus knew how to pass without being swept away.',
+  lineKo: '세이렌은 “내가 다 알려줄게” 노래로 뱃사람을 홀렸습니다 — 지금의 AI처럼.\n오디세우스는, 휩쓸리지 않고 지나는 법을 알았죠.',
+  lineEn: 'The Sirens lured sailors with a song — “we will tell you all.” Much like today’s AI.\nOdysseus knew how to pass without being swept away.',
 };
 
 // Myth lines are quoted in Homer's voice (echoing Pope's 1725 verse — public
@@ -52,29 +68,29 @@ const CHAPTERS: Chapter[] = [
     num: 'I', ko: '묶기', en: 'Bind', from: 6, to: 12.6,
     mythKo: '“나를 돛대에 묶어라. 풀어달라 빌어도, 더 단단히.”',
     mythEn: '“Bind me to the mast — and though I plead, bind me the tighter.”',
-    lineKo: '묻기 전에, 지금 당신이 어느 쪽으로 기울었는지부터 적어 둬요. AI의 유창한 답에 흔들리지 않게.',
-    lineEn: 'Before you ask, jot down which way you’re leaning right now — so the AI’s fluent answer can’t sway you off it.',
+    lineKo: '묻기 전에, 지금 당신이 어느 쪽으로 기울었는지부터 적어 둬요.\nAI의 유창한 답에 흔들리지 않게.',
+    lineEn: 'Before you ask, jot down which way you’re leaning right now —\nso the AI’s fluent answer can’t sway you off it.',
   },
   {
     num: 'II', ko: '듣기', en: 'Listen', from: 14.2, to: 21, lure: true,
-    mythKo: '“이리 와 들으라. 우리 노래를 들은 자는, 세상 모든 일을 알고 떠나리라.”',
-    mythEn: '“Come hither and hear — whoever hears our song departs knowing all that is.”',
-    lineKo: 'AI는 “좋아 보여요” 대신, 당신이 놓친 단 하나를 짚어줘요. 결정은 끝까지 당신 몫이고요.',
-    lineEn: 'Instead of “looks good,” it names the one thing you missed. The decision stays yours, all the way.',
+    mythKo: '“이리 와 들으라.\n우리 노래를 들은 자는, 세상 모든 일을 알고 떠나리라.”',
+    mythEn: '“Come hither and hear —\nwhoever hears our song departs knowing all that is.”',
+    lineKo: 'AI는 “좋아 보여요” 대신, 당신이 놓친 단 하나를 짚어줘요.\n결정은 끝까지 당신 몫이고요.',
+    lineEn: 'Instead of “looks good,” it names the one thing you missed.\nThe decision stays yours, all the way.',
   },
   {
     num: 'III', ko: '닿기', en: 'Land', from: 23, to: 30,
     mythKo: '“노래가 잦아들고, 마침내 단단한 땅에 발을 디딘다.”',
     mythEn: '“The song fades, and at last he sets foot on solid ground.”',
-    lineKo: 'AI는 거들 뿐, 결정은 현실의 당신 몫이에요. 그 한 걸음을 또렷하게 내딛도록.',
-    lineEn: 'The AI only helps you see; the real decision is yours, out in the world — and you step clearly.',
+    lineKo: 'AI는 거들 뿐, 결정은 현실의 당신 몫이에요.\n그 한 걸음을 또렷하게 내딛도록.',
+    lineEn: 'The AI only helps you see; the real decision is yours —\nand you step out clearly into the world.',
   },
   {
     num: 'IV', ko: '알아봄', en: 'Recognition', from: 32, to: 39.4, gold: true,
     mythKo: '“스러져 가던 늙은 개만이, 옛 주인을 알아보았다.”',
     mythEn: '“Only old Argos, failing, knew his master still.”',
-    lineKo: '정한 날 Argus가 돌아와 물어요 — “그래서, 어떻게 됐어요?” 현실로 확인한 판단이 쌓여, 당신만의 판단력이 됩니다.',
-    lineEn: 'On your day, Argus returns — “So, how did it go?” Calls checked against reality pile up, and become judgment you can trust.',
+    lineKo: '정한 날 Argus가 돌아와 물어요 — “그래서, 어떻게 됐어요?”\n현실로 확인한 판단이 쌓여, 당신만의 판단력이 됩니다.',
+    lineEn: 'On your day, Argus returns — “So, how did it go?”\nCalls checked against reality become judgment you can trust.',
   },
 ];
 
@@ -130,12 +146,14 @@ export function VoyageFilm() {
       {/* gold top rule */}
       <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 3 }} />
 
-      {/* bottom scrim — a smooth cream wash so type stays legible (no hard box) */}
+      {/* bottom scrim — a smooth cream wash so type stays legible (no hard box).
+          Near-solid paper through the caption band (0–44%), then a long fade —
+          enough backing to read clean type over a busy engraving, never an edge. */}
       <div
         aria-hidden="true"
         style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: '62%', zIndex: 1,
-          background: 'linear-gradient(to top, var(--bp-paper) 4%, color-mix(in srgb, var(--bp-paper) 78%, transparent) 26%, color-mix(in srgb, var(--bp-paper) 30%, transparent) 60%, transparent 100%)',
+          position: 'absolute', left: 0, right: 0, bottom: 0, height: '74%', zIndex: 1,
+          background: 'linear-gradient(to top, var(--bp-paper) 0%, var(--bp-paper) 24%, color-mix(in srgb, var(--bp-paper) 92%, transparent) 44%, color-mix(in srgb, var(--bp-paper) 52%, transparent) 68%, transparent 100%)',
         }}
       />
 
@@ -149,15 +167,15 @@ export function VoyageFilm() {
           <div key="intro" className="bp-fade-up flex flex-col items-center">
             <span
               className="bp-mono"
-              style={{ marginBottom: 11, fontSize: 'clamp(9.5px, 1.05vw, 11px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 600, color: 'var(--bp-ink-soft)' }}
+              style={{ marginBottom: 11, fontSize: 'clamp(9.5px, 1.05vw, 11px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 9px var(--bp-paper), 0 1px 1px var(--bp-paper)' }}
             >
               {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
             </span>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14px, 1.85vw, 19.5px)', lineHeight: 1.46, letterSpacing: '-0.006em', maxWidth: 640 }}
+              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14px, 1.85vw, 19.5px)', lineHeight: 1.46, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 10px var(--bp-paper)' }}
             >
-              {L(INTRO.lineKo, INTRO.lineEn)}
+              <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
             </p>
           </div>
         )}
@@ -167,21 +185,21 @@ export function VoyageFilm() {
                 The dog is the coda (종장), not a fourth leg. */}
             <span
               className="bp-mono"
-              style={{ marginBottom: 10, fontSize: 'clamp(9px, 1vw, 10.5px)', letterSpacing: '0.28em', textTransform: 'uppercase', fontWeight: 600, color: active.gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink-soft)' }}
+              style={{ marginBottom: 10, fontSize: 'clamp(9.5px, 1vw, 11px)', letterSpacing: '0.28em', textTransform: 'uppercase', fontWeight: 700, color: active.gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)', textShadow: '0 0 9px var(--bp-paper), 0 1px 1px var(--bp-paper)' }}
             >
               {active.gold ? L('종장', 'Coda') : L(`${active.num} · ${active.ko}`, `${active.num} · ${active.en}`)}
             </span>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, marginBottom: 12, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', fontSize: 'clamp(12.5px, 1.5vw, 15.5px)', lineHeight: 1.4, opacity: active.lure ? 1 : 0.92, letterSpacing: '0.01em' }}
+              style={{ margin: 0, marginBottom: 12, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink)', fontSize: 'clamp(13px, 1.55vw, 16px)', lineHeight: 1.42, opacity: active.lure ? 1 : 0.86, letterSpacing: '0.01em', textWrap: 'pretty', textShadow: '0 0 9px var(--bp-paper)' }}
             >
-              {L(active.mythKo, active.mythEn)}
+              <Lines text={L(active.mythKo, active.mythEn)} />
             </p>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(15.5px, 2.15vw, 23px)', lineHeight: 1.4, letterSpacing: '-0.006em', maxWidth: 640 }}
+              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(15.5px, 2.15vw, 23px)', lineHeight: 1.4, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 10px var(--bp-paper)' }}
             >
-              {L(active.lineKo, active.lineEn)}
+              <Lines text={L(active.lineKo, active.lineEn)} />
             </p>
           </div>
         )}

@@ -122,7 +122,7 @@ export function Act2DecisionVoyage() {
 
       <div className="relative max-w-3xl mx-auto px-6 md:px-10">
         <div className="bp-fade-up">
-          <PlateLabel numeral="II" title={L('항적 · The Trail', 'The Trail')} />
+          <PlateLabel numeral="I" title={L('항적 · The Trail', 'The Trail')} />
         </div>
 
         <h2
@@ -175,16 +175,23 @@ export function Act2DecisionVoyage() {
           className="bp-fade-up mt-12 md:mt-14"
           style={{
             animationDelay: '320ms',
-            // Break out of the max-w-3xl reading column: the chart is designed
-            // ~1000px wide, so center a wider band against the viewport.
-            width: 'min(1040px, 92vw)',
-            marginLeft: '50%',
-            transform: 'translateX(-50%)',
+            // Break out of the max-w-3xl reading column to a full-viewport band,
+            // then center a fixed-width chart inside it. Viewport-anchored
+            // (100vw / -50vw) instead of a parent-relative margin trick, so the
+            // chart can't drift off-center regardless of the column's padding.
+            position: 'relative',
+            width: '100vw',
+            left: '50%',
+            right: '50%',
+            marginLeft: '-50vw',
+            marginRight: '-50vw',
           }}
         >
-          <ScaleToFit designWidth={1000}>
-            <DecisionVoyageFilm />
-          </ScaleToFit>
+          <div style={{ width: 'min(1040px, 92vw)', margin: '0 auto' }}>
+            <ScaleToFit designWidth={1000}>
+              <DecisionVoyageFilm />
+            </ScaleToFit>
+          </div>
         </div>
 
         {/* The trail — a ship's log unrolling */}
