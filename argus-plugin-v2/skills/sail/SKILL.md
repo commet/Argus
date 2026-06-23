@@ -417,6 +417,10 @@ Build:
   - `pass_condition`: the observable that confirms the predicate (≤180 chars).
   - `fail_condition`: the observable that falsifies it (≤180 chars). If you
     cannot name one, the seed is not falsifiable — write `null` instead.
+  - `author`: `"ai_surfaced"` — this seed is the ENGINE's belief, not a prediction
+    the user made (vs the user's own BIND lean from clarify Step 3.4, which seals
+    with `author:"user"`). Honest provenance so `log`'s calibration quarantines a
+    held AI seed from the user's skill claim (R57/R58 — parity with the webapp).
 - `blocked`: true when verification routes to `revise_team` or
   `stop_for_human_check`.
 - `detail_path`: `.argus/sessions/{id}/versions/{label}/`
