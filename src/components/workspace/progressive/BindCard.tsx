@@ -23,6 +23,9 @@ import type { CheckInInterval } from '@/stores/types';
 export interface BindResult {
   lean?: string;
   interval?: CheckInInterval;
+  /** A specific picked date (ISO yyyy-mm-dd) — overrides interval. Real outcomes
+   *  often land on a known date (a launch, a result) that isn't 1w/2w/1m. */
+  check_in_at?: string;
 }
 
 const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
@@ -57,12 +60,22 @@ export function BindCard({
 
   const [lean, setLean] = useState(initialLean ?? '');
   const [interval, setInterval] = useState<CheckInInterval | null>(initialInterval ?? null);
+  const [customDate, setCustomDate] = useState(''); // P1-4: a specific picked date (yyyy-mm-dd)
 
   const trimmed = lean.trim();
-  const hasCommitment = trimmed.length > 0 || interval !== null;
+  const hasCommitment = trimmed.length > 0 || interval !== null || customDate !== '';
 
-  const tie = () => onProceed(hasCommitment ? { lean: trimmed || undefined, interval: interval ?? undefined } : null);
+  const tie = () => onProceed(hasCommitment
+    ? { lean: trimmed || undefined, interval: customDate ? undefined : (interval ?? undefined), check_in_at: customDate ? new Date(customDate).toISOString() : undefined }
+    : null);
   const skip = () => onProceed(null);
+
+  // Resolve a relative interval to a concrete date so "2주" reads as "2주 · 7월 8일".
+  const dateLabel = (iv: CheckInInterval) => {
+    const MS = { '1w': 7, '2w': 14, '1m': 30 }[iv] * 86_400_000;
+    const d = new Date(Date.now() + MS);
+    return d.toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' });
+  };
 
   return (
     <motion.div
@@ -114,27 +127,38 @@ export function BindCard({
           className="mt-4 w-full resize-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-3.5 py-3 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)] focus:outline-none"
         />
 
-        {/* Check-in window — none preselected; an untapped default is never a commitment. */}
-        <div className="mt-3 flex items-center gap-2">
+        {/* Check-in window — none preselected; an untapped default is never a commitment.
+            Each chip shows its resolved date; "직접" opens a date picker for a known day. */}
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
           <span className="text-[12px] text-[var(--text-tertiary)]">{L('확인일:', 'Check back:')}</span>
           {INTERVALS.map((iv) => (
             <button
               key={iv.value}
               type="button"
-              onClick={() => setInterval(interval === iv.value ? null : iv.value)}
+              onClick={() => { setInterval(interval === iv.value ? null : iv.value); setCustomDate(''); }}
               className={`rounded-full border px-3 py-1 text-[12.5px] transition-colors ${
-                interval === iv.value
+                interval === iv.value && !customDate
                   ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--bg)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
               }`}
             >
-              {ko ? iv.ko : iv.en}
+              {(ko ? iv.ko : iv.en)} · {dateLabel(iv.value)}
             </button>
           ))}
+          <input
+            type="date"
+            value={customDate}
+            min={new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)}
+            onChange={(e) => { setCustomDate(e.target.value); if (e.target.value) setInterval(null); }}
+            className={`rounded-full border px-2.5 py-1 text-[12px] bg-[var(--bg)] cursor-pointer ${
+              customDate ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
+            }`}
+            title={L('직접 고르기', 'Pick a date')}
+          />
         </div>
         {/* P0-4b: a lean with no date never auto-resurfaces — nudge a date so the
             rope actually comes back on its own. */}
-        {trimmed.length > 0 && interval === null && (
+        {trimmed.length > 0 && interval === null && !customDate && (
           <p className="mt-2 text-[11.5px] text-[var(--accent)]/90 leading-snug">
             {L('확인일을 고르면 그날 이 한 줄을 다시 물어볼게요.', "Pick a date and I'll bring this line back to you that day.")}
           </p>
