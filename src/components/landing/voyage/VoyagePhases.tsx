@@ -10,16 +10,19 @@
  * (Bind / Land), never in the generation middle (Listen) — exactly the priority
  * inversion the canon argues for (docs/MYTH-SIRENS-design-grounding-2026-06-23).
  *
- * Each leg is a hand-drawn naval-print plate (PhaseGlyphs) revealed on scroll
- * via the same `bp-fade-up` entrance the rest of the landing uses (staggered by
- * animationDelay). Copy is zero-judgment: it describes what the USER does at
- * each leg and never recommends a direction. The deaf-rower invariant ("AI
+ * Each leg is a real public-domain engraving — John Flaxman's compositions for
+ * Homer's Odyssey, engraved by A. Réveil (1805) — inked to the page through a
+ * CSS mask (background:var(--bp-ink)) so it adapts navy-on-cream / cream-on-
+ * charcoal with the theme. Mapped to the canon: Circe (the prior guide who
+ * hands the protocol → Bind), The Sirens (the song → Listen), and Ulysses laid
+ * sleeping on Ithaca's shore (arrival → Land). Plates reveal with the same
+ * `bp-fade-up` entrance. Copy is zero-judgment: it describes what the USER does
+ * at each leg and never recommends a direction. The deaf-rower invariant ("AI
  * can't decide for you — you confirm") is carried verbatim on the Listen leg.
  */
 
 import { useLocale } from '@/hooks/useLocale';
 import { PaperGrain } from './atmosphere/PaperGrain';
-import { BindGlyph, ListenGlyph, LandGlyph } from './illustrations/PhaseGlyphs';
 
 type Locale = 'ko' | 'en';
 
@@ -32,7 +35,9 @@ type Leg = {
   invariant?: boolean;
   /** Land is the gold payoff leg. */
   gold?: boolean;
-  Glyph: (p: { show?: boolean; className?: string }) => React.ReactElement;
+  /** The engraving asset key (public/voyage/<img>.png) + its myth source. */
+  img: string;
+  source: string;
 };
 
 const LEGS: Leg[] = [
@@ -47,7 +52,8 @@ const LEGS: Leg[] = [
       ko: '지금의 판단과 확인할 날짜를 정해 봉인해요. 손은 묶되, 귀는 열어둡니다.',
       en: 'Seal your current lean and a date to check it. Hands bound — ears open.',
     },
-    Glyph: BindGlyph,
+    img: 'bind',
+    source: 'Circe',
   },
   {
     leg: { ko: '제2구간', en: 'Leg II' },
@@ -61,7 +67,8 @@ const LEGS: Leg[] = [
       en: 'AI can’t decide for you. You confirm.',
     },
     invariant: true,
-    Glyph: ListenGlyph,
+    img: 'listen',
+    source: 'The Sirens',
   },
   {
     leg: { ko: '제3구간', en: 'Leg III' },
@@ -75,7 +82,8 @@ const LEGS: Leg[] = [
       en: 'The truly irreversible choice happens here — not in the AI step.',
     },
     gold: true,
-    Glyph: LandGlyph,
+    img: 'land',
+    source: 'Ithaca',
   },
 ];
 
@@ -200,6 +208,17 @@ export function VoyagePhases() {
               <LegPlate key={leg.name.en} leg={leg} locale={locale} index={i} />
             ))}
           </ol>
+
+          {/* Provenance — the plates are real engravings, honestly credited. */}
+          <p
+            className="bp-mono text-center mt-12 md:mt-14"
+            style={{ color: 'var(--bp-ink-faint)', fontSize: 10, letterSpacing: '0.12em' }}
+          >
+            {L(
+              '동판화 · 존 플랙스먼 구성, A. 레베일 판각 — 호메로스 오디세이아(1805) · 퍼블릭 도메인',
+              'Engravings · composed by John Flaxman, engraved by A. Réveil — Homer’s Odyssey (1805) · public domain',
+            )}
+          </p>
         </div>
       </div>
     </section>
@@ -215,7 +234,7 @@ function LegPlate({
   locale: Locale;
   index: number;
 }) {
-  const { Glyph } = leg;
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const coord = ['41° 23′ N', '38° 02′ N', '38° 27′ N'][index] ?? '';
   return (
     <li
@@ -274,9 +293,34 @@ function LegPlate({
         >
           {coord}
         </span>
-        <div style={{ width: '100%', height: 150, maxWidth: 240, margin: '10px auto 0' }}>
-          <Glyph show />
-        </div>
+        {/* the engraving — a public-domain Flaxman / A. Réveil plate from
+            Homer's Odyssey (1805), inked to the page through a CSS mask so it
+            renders navy-on-cream in light and cream-on-charcoal in dark. */}
+        <div
+          role="img"
+          aria-label={L(`${leg.name.ko} — 플랙스먼의 오디세이아 동판화`, `${leg.name.en} — a Flaxman Odyssey engraving`)}
+          style={{
+            width: '100%',
+            height: 174,
+            marginTop: 14,
+            background: 'var(--bp-ink)',
+            WebkitMaskImage: `url(/voyage/${leg.img}.png)`,
+            maskImage: `url(/voyage/${leg.img}.png)`,
+            WebkitMaskRepeat: 'no-repeat',
+            maskRepeat: 'no-repeat',
+            WebkitMaskPosition: 'center',
+            maskPosition: 'center',
+            WebkitMaskSize: 'contain',
+            maskSize: 'contain',
+          }}
+        />
+        {/* engraving source — a quiet plate caption */}
+        <span
+          className="bp-mono"
+          style={{ display: 'block', marginTop: 8, color: 'var(--bp-ink-faint)', fontSize: 9, letterSpacing: '0.1em', fontStyle: 'italic' }}
+        >
+          {leg.source}
+        </span>
       </div>
 
       {/* the leg name — the focal word */}
