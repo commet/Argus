@@ -22,7 +22,7 @@ import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
-import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
+import { contractStatus, summarizeRecord, recordDisclosure } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
 
@@ -348,6 +348,8 @@ export default function ProjectPage() {
   const currentBearing = currentVoyageSession ? deriveCurrentBearing(currentVoyageSession) : null;
   // 자차표 — the user's accumulating record across all projects. Quiet, factual.
   const crossRecord = summarizeRecord(projects, Date.now());
+  // Dim9 — below the settled threshold this is counts, not a proven track record.
+  const recordReveal = recordDisclosure(crossRecord);
 
   return (
     <div className="space-y-6">
@@ -425,6 +427,12 @@ export default function ProjectPage() {
                         (crossRecord.risksAvoided > 0 ? ` · ${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '') +
                         (crossRecord.goodOutcomesOnLuck > 0 ? ` · ${crossRecord.goodOutcomesOnLuck} marked as luck` : '')}
                   </span>
+                  {/* Dim9 — don't let a handful of settled loops read as a proven track record. */}
+                  {!recordReveal.showStats && (
+                    <span className="text-[11px] text-[var(--text-tertiary)] italic shrink-0">
+                      {L('아직 확정된 기록은 아님', 'not yet a track record')}
+                    </span>
+                  )}
                 </div>
               )}
 

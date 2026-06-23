@@ -62,3 +62,4 @@ ds-bundle/
 
 # Argus eval run artifact
 argus-plugin-v2/evals/report.json
+argus-plugin-v2/evals/sweep-report.json

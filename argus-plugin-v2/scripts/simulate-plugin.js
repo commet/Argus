@@ -5,17 +5,11 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const schema = JSON.parse(fs.readFileSync(path.join(root, "data", "schemas", "current-bearing.json"), "utf8"));
 
-const forbiddenSurfaceTerms = [
-  "multi-agent",
-  "agent count",
-  "ledger count",
-  "schema",
-  "model name",
-  "supported_count",
-  "challenged_count",
-  "SurfaceCard",
-  "workflow report"
-];
+// SINGLE SOURCE: data/contracts/machinery-terms.json (shared with evals/static-gate.mjs
+// — no second hand-maintained copy that can drift).
+const forbiddenSurfaceTerms = JSON.parse(
+  fs.readFileSync(path.join(root, "data", "contracts", "machinery-terms.json"), "utf8"),
+).forbidden_surface_terms;
 
 const cases = [
   {

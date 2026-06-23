@@ -1,0 +1,11 @@
+{
+  "_doc": "Canonical course-status set for the generator. The same 6 members live in webapp src/lib/current-bearing.ts (COURSE_STATUSES) and the plugin schema (data/schemas/current-bearing.json current_course.status.enum). generate-contracts.mjs PARITY-asserts BOTH against this list (same members, same order) and generates the plugin status-legend fragment from it — add/rename a status here + both copies in the same change, or CI goes red. (The webapp's existing course-status-parity.test.ts remains as a redundant guard.)",
+  "statuses": [
+    { "id": "proceed", "desc": "Act on the current course — no load-bearing reason to change." },
+    { "id": "hold", "desc": "Do not execute yet — a repair or human check must come first." },
+    { "id": "fork", "desc": "A genuine load-bearing decision with a real alternative pole." },
+    { "id": "anchor", "desc": "Stay put — every named axis is already satisfied; no fork to work." },
+    { "id": "revise", "desc": "The agent team should revise before boss/user signoff." },
+    { "id": "collect_evidence", "desc": "Blocked on external/human evidence before the course can be set." }
+  ]
+}

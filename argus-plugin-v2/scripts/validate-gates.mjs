@@ -72,6 +72,7 @@ export function checkVersion(dir) {
   if (!bearing) return v; // no bearing produced → nothing to enforce against
   const verif = firstExisting(dir, VERIF_NAMES);
   const analysis = firstExisting(dir, ANALYSIS_NAMES);
+  const workers = firstExisting(dir, ['workers.json', 'worker_results.json', 'worker-results.json']);
 
   const status = bearing.current_course?.status;
   const road = Array.isArray(bearing.road_not_taken) ? bearing.road_not_taken : [];
@@ -89,6 +90,23 @@ export function checkVersion(dir) {
     const execBlockingHuman = (verif.human_required_checks || []).some((h) => h.blocks === 'execution' || h.blocks === 'final_signoff');
     if (execBlockingHuman && executable) {
       v.push('VERIFY: a human_required_check that blocks execution/final_signoff exists but bearing is executable (blocked!=true)');
+    }
+  }
+
+  // ── OUTPUT-INTEGRITY GATE — no degraded run may render as a clean "verified".
+  // A failed/empty/weak worker that vanishes from the surfaced output is the
+  // "never lie about completeness" violation (spine extension of authorship honesty).
+  const workerList = Array.isArray(workers) ? workers : (workers?.workers || workers?.results || []);
+  if (Array.isArray(workerList) && workerList.length) {
+    const failed = workerList.filter((w) =>
+      ['error', 'verification_failed'].includes(w.status) ||
+      w.verification_passed === false ||
+      (typeof w.verification_score === 'number' && w.verification_score < 70));
+    if (failed.length && verif && verif.overall_status === 'verified') {
+      v.push(`OUTPUT-INTEGRITY: ${failed.length} worker(s) failed/weak (${failed.map((w) => w.agent_id || w.id).join(', ')}) but verification overall_status=verified — a degraded run is masquerading as clean`);
+    }
+    if (failed.length && executable && bearing.fog_or_reef == null && status !== 'hold') {
+      v.push('OUTPUT-INTEGRITY: a failed/weak worker exists but the bearing surfaces no fog_or_reef and is executable — the failure was silently dropped');
     }
   }
 

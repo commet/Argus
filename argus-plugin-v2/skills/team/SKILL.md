@@ -245,6 +245,25 @@ Stage rules:
 - `stakes: critical` → two stages: stage-1 = all non-critique workers; stage-2 = critique worker(s) + debate, depends on stage-1 results.
 - General rule: **any plan containing a `critique` step runs that step in stage-2** (it needs stage-1 results as input), regardless of stakes label.
 
+### Step 3.7 — Run-cost accountability (before spawning)
+
+Fan-out runs on the **user's own metered plan**, and parallel subagents are billed
+at a premium (Anthropic moved parallel subagent usage to a separately-metered pool
+in 2026-06). Spawning a large agent tree with no cost signal makes a serious user
+feel reckless. So, before Step 4 spawns:
+
+1. **Pre-spawn budget line.** State it first: `Deploying ~{N} agents in parallel
+   (stage-1 {a}, stage-2 {b}) on your plan.` where N is the planned worker count.
+   This is one line, not ceremony — restraint made legible.
+2. **`--lean` flag.** If invoked with `--lean` (or `team.lean: true` in config), cap
+   fan-out: stage-1 width ≤ 2, skip stage-2 unless stakes are `critical`, and cap
+   revise iterations at 1. Lean is the explainable economical default for routine
+   stakes; say `(lean mode — capped fan-out)` so the user knows what was traded.
+3. **Model routing.** Run planning/synthesis (navigator) on the strong tier and the
+   domain/critique workers on the fast/default tier — workers are ~85% of the calls
+   and the cheaper tier covers them at a fraction of the cost. Never route every
+   worker to the strongest model "to be safe."
+
 ### Step 4 — Deploy stage 1 workers in parallel
 
 For each worker in stage-1, use the **Task / Agent tool** to spawn a sub-agent.
@@ -328,6 +347,11 @@ All stage-1 workers spawn in a **single message with multiple Task tool calls in
 Each Task returns a result. For each:
 1. Append to `workers` array in `versions/{label}/workers.json` with `status: "done"`, `result: <agent output>`, timestamps.
 2. If any worker errored, log to `.argus/sessions/{id}/errors.log` (the canonical per-session log — same path sail and session-layout.md use; do NOT write a separate `versions/{label}/errors.log`). Don't halt — other workers continue.
+
+**Worker failure contract (output integrity — "never lie about completeness").** A worker that returns empty, off-shape, unparseable, or errors is a *failure to record*, never a thing to silently drop, paraphrase around, or backfill with a plausible-looking result:
+- Set that worker `status: "error"` (or `"verification_failed"` if it ran but produced unusable output) and store the cause in `error`. A weak-but-present result keeps `status: "done"` but carries `verification_score` (<70 = must be surfaced as challenged, not promoted).
+- Every `error` / `verification_failed` / score<70 worker MUST appear in the user-facing output — as a `fog_or_reef` item or a `scaffold.human_required_checkpoints[]` entry (`reason: "worker_failed"`). The synthesis/verify step must NOT mark `overall_status: "verified"` while any worker failed; downgrade to `mixed`/`needs_revision`.
+- If ALL workers in a stage fail, do not emit a clean scaffold: surface "could not complete — N of M contributions failed, retry or narrow the scope" rather than empty defaults. An incomplete run must never render as a clean, verified result. (Guarded mechanically by `scripts/validate-gates.mjs` OUTPUT-INTEGRITY.)
 
 ### Step 6 — Deploy stage 2 negative validation worker (whenever a critique/stage-2 worker exists — i.e. `important` or `critical`)
 

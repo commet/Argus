@@ -16,7 +16,8 @@
     "gates:test": "node argus-plugin-v2/scripts/validate-gates.test.mjs",
     "validate:progressive": "tsx --env-file=.env.local scripts/validate-progressive.ts",
     "probe:boss": "tsx --env-file=.env.local scripts/probe-boss-store.ts",
-    "validate:boss": "tsx --env-file=.env.local scripts/validate-boss.ts"
+    "validate:boss": "tsx --env-file=.env.local scripts/validate-boss.ts",
+    "eval:sweep": "node argus-plugin-v2/evals/sweep.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

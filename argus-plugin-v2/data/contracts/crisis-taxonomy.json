@@ -1,0 +1,12 @@
+{
+  "_doc": "SINGLE SOURCE for the crisis taxonomy (clarify Axis-0 / webapp crisis-gate). The webapp keeps the authoritative classifier+regex in src/lib/crisis-gate.ts (CRISIS_CATEGORIES); generate-contracts.mjs ASSERTS that const matches this list (parity guard, no rewrite) and generates the plugin reference fragment from it. Add a category in ONE place here + crisis-gate.ts in the same change, or CI goes red.",
+  "categories": [
+    { "id": "self_harm", "desc": "Self-harm / suicidal ideation or intent." },
+    { "id": "dangerous_medical", "desc": "A plan to stop/misuse medication or a dangerous medical act (e.g. skipping insulin)." },
+    { "id": "abuse_coercion", "desc": "Ongoing abuse or coercive control being rationalized or minimized." },
+    { "id": "legal_jeopardy", "desc": "An imminent act that creates serious legal jeopardy (e.g. fleeing with kids pre-hearing)." },
+    { "id": "financial_ruin", "desc": "An irreversible bet that risks total financial ruin (retirement/home on a gamble)." },
+    { "id": "minor_at_risk", "desc": "A minor in danger (grooming, meeting a stranger, exploitation)." },
+    { "id": "irreversible_harm_to_others", "desc": "An imminent irreversible act harming others (doxxing, releasing private material)." }
+  ]
+}

@@ -86,5 +86,26 @@ check('flat + fabricated fog fails', run({
   'analysis.json': { frame_status: 'flat', request_type: 'open_decision' },
 }).some((m) => m.startsWith('FRAME-FLAT')));
 
+// 11. OUTPUT-INTEGRITY: a failed worker but overall_status=verified FAILS.
+check('failed worker + verified status fails', run({
+  'current_bearing.json': cleanBearing,
+  'verification-ledger.json': { overall_status: 'verified', routing_decision: 'proceed_to_boss', challenged_claims: [], human_required_checks: [] },
+  'worker_results.json': [{ id: 'w1', agent_id: 'sujin', status: 'done', verification_passed: true }, { id: 'w2', agent_id: 'minseo', status: 'verification_failed' }],
+}).some((m) => m.startsWith('OUTPUT-INTEGRITY')));
+
+// 12. OUTPUT-INTEGRITY: a weak worker (score<70) silently dropped (no fog, executable) FAILS.
+check('weak worker silently dropped fails', run({
+  'current_bearing.json': { ...cleanBearing, fog_or_reef: null, blocked: false },
+  'worker_results.json': [{ id: 'w1', agent_id: 'sujin', status: 'done', verification_score: 42 }],
+}).some((m) => m.startsWith('OUTPUT-INTEGRITY')));
+
+// 13. OUTPUT-INTEGRITY: all workers clean → passes.
+check('all workers clean passes', run({
+  'current_bearing.json': cleanBearing,
+  'verification-ledger.json': { overall_status: 'verified', routing_decision: 'proceed_to_boss', challenged_claims: [], human_required_checks: [] },
+  'worker_results.json': [{ id: 'w1', agent_id: 'sujin', status: 'done', verification_passed: true, verification_score: 88 }],
+  'analysis.json': { frame_status: 'load_bearing', request_type: 'open_decision' },
+}).length === 0);
+
 console.log(`\nvalidate-gates.test: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
