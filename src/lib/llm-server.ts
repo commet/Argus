@@ -7,10 +7,16 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 
-const MODEL_MAP: Record<string, string> = {
-  fast: 'claude-haiku-4-5-20251001',
-  default: 'claude-sonnet-4-20250514',
-  strong: 'claude-sonnet-4-20250514',
+/**
+ * Model candidates per tier, tried newest→safest. Pinned IDs drift as Anthropic
+ * deprecates models (the webapp's old map 404'd on this key), so each tier ends
+ * with a stable `-latest` alias that any account can resolve — the bot always
+ * gets SOME working model instead of dying on a stale pin.
+ */
+const MODEL_CANDIDATES: Record<string, string[]> = {
+  fast: ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest'],
+  default: ['claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-3-5-sonnet-latest'],
+  strong: ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-3-5-sonnet-latest'],
 };
 
 export async function callAnthropicText(opts: {
@@ -23,13 +29,27 @@ export async function callAnthropicText(opts: {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set');
 
   const client = new Anthropic({ apiKey });
-  const resp = await client.messages.create({
-    model: MODEL_MAP[opts.model ?? 'default'] ?? MODEL_MAP.default,
-    max_tokens: opts.maxTokens ?? 1200,
-    system: opts.system,
-    messages: [{ role: 'user', content: opts.user }],
-  });
+  const candidates = MODEL_CANDIDATES[opts.model ?? 'default'] ?? MODEL_CANDIDATES.default;
 
-  const block = resp.content.find((b) => b.type === 'text');
-  return block && block.type === 'text' ? block.text : '';
+  let lastErr: unknown;
+  for (const model of candidates) {
+    try {
+      const resp = await client.messages.create({
+        model,
+        max_tokens: opts.maxTokens ?? 1200,
+        system: opts.system,
+        messages: [{ role: 'user', content: opts.user }],
+      });
+      const block = resp.content.find((b) => b.type === 'text');
+      return block && block.type === 'text' ? block.text : '';
+    } catch (err) {
+      lastErr = err;
+      // Only fall through when this specific model is unavailable; real failures
+      // (auth, overload, rate) should surface immediately.
+      const status = (err as { status?: number })?.status;
+      if (status === 404) continue;
+      throw err;
+    }
+  }
+  throw lastErr;
 }
