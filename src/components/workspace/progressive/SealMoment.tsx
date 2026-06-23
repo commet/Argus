@@ -181,6 +181,14 @@ export function SealMoment({
     const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const name = typeof project?.name === 'string' ? project.name : '';
     const summary = L(`그래서, 어떻게 됐어요? — ${name}`, `So, how did it go? — ${name}`);
+    // Carry the actual stakes into the calendar event so the ping weeks later is
+    // self-explanatory (the user's own lean, then the link to settle it).
+    const lean = contract?.predicates?.find((p) => p.source === 'user_lean')?.text;
+    const desc = [
+      lean ? L(`출항 때 당신의 한 줄: "${lean}"`, `Your opening call: "${lean}"`) : '',
+      L('그날 돌아와 실제로 어땠는지 확인하세요:', 'Come back and check how it actually went:'),
+      `${window.location.origin}/project`,
+    ].filter(Boolean).join('\\n');
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -190,7 +198,13 @@ export function SealMoment({
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${ymd}`,
       `SUMMARY:${icsEscape(summary)}`,
-      `DESCRIPTION:${icsEscape(`${window.location.origin}/project`)}`,
+      `DESCRIPTION:${icsEscape(desc)}`,
+      // A same-day alarm so the reminder actually surfaces (the only outbound nudge).
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:${icsEscape(summary)}`,
+      'TRIGGER;VALUE=DATE-TIME:' + `${ymd}T090000`,
+      'END:VALARM',
       'END:VEVENT',
       'END:VCALENDAR',
     ];
@@ -365,7 +379,11 @@ export function SealMoment({
         {/* Channel disclosure BEFORE consent — a suspicious user won't say yes
             without knowing HOW the asking happens ("이메일? 스팸?"). */}
         <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] max-w-md mx-auto">
-          {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요 — 메일이나 알림은 보내지 않아요.', "On that day, I'll ask first when you open the projects page — no emails, no notifications.")}
+          {L('제가 알림을 보내진 않아요 — 잊지 않게 그날을 달력에 넣어둘까요?', "I won't send notifications — want me to drop the day on your calendar so it isn't forgotten?")}
+          {' '}
+          <button onClick={downloadIcs} className="font-semibold text-[var(--accent)] hover:underline cursor-pointer">
+            {L('달력에 넣기', 'Add to calendar')}
+          </button>
         </p>
         {/* P2-6 honesty: an anonymous seal lives in localStorage only. Don't let the
             "comes back to you" promise read as a lie when it can vanish on this device.
