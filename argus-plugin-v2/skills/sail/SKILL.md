@@ -398,7 +398,10 @@ Build:
 
 - `label`: the active version label.
 - `current_course.status`: one of `proceed`, `hold`, `fork`, `anchor`,
-  `revise`, or `collect_evidence`.
+  `revise`, or `collect_evidence`. (Canonical set + meanings:
+  `data/contracts/course-status.json` → `skills/_generated/course-status.md`;
+  `scripts/generate-contracts.mjs` asserts the webapp `COURSE_STATUSES` and the
+  bearing schema enum both match it.)
 - `current_course.summary`: what the user should understand as the current
   bearing.
 - `why_this_course[]`: 1-3 concrete reasons tied to the user's repo/file/PR/

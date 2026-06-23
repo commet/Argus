@@ -222,6 +222,11 @@ signals. This is defense-in-depth and is the twin of the webapp `crisis-gate.ts`
 through to Step 1.7 (a false crisis-fire is its own paternalism over-fire; the
 base model also catches the subtle cases — R11/R12).
 
+> **Canonical category set:** `data/contracts/crisis-taxonomy.json` (single source) →
+> rendered to `skills/_generated/crisis-taxonomy.md`. `scripts/generate-contracts.mjs`
+> asserts the webapp `crisis-gate.ts` `CRISIS_CATEGORIES` matches it (CI guard) — edit
+> the JSON + `crisis-gate.ts` together, never just one.
+
 Fire categories (observable signals only):
 - **self-harm / safety** — explicit or veiled SI; abuse/violence ("only hits me
   when I provoke"); a self-identified minor at risk.
