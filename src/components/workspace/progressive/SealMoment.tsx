@@ -36,7 +36,7 @@ import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBra
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
-import { contractFromPredicates, withCheckIn, augmentContract, CHECK_IN_MS } from '@/lib/decision-contract';
+import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, CHECK_IN_MS } from '@/lib/decision-contract';
 import { recordSignal } from '@/lib/signal-recorder';
 import { track } from '@/lib/analytics';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
@@ -69,10 +69,16 @@ function icsEscape(s: string): string {
 export function SealMoment({
   project,
   predicates,
+  gate,
 }: {
   project: Project;
   /** Falsifiable predictions derived from this voyage (live path). */
   predicates: Predicate[];
+  /** §0 sealing restraint inputs (from the analysis snapshot). When routine +
+   *  reversible + confident, the seal records a single light check instead of the
+   *  full multi-predicate contract (CLAUDE.md mirror clause — don't over-fire
+   *  ceremony on a low-stakes reversible call). Absent → full ceremony (safe). */
+  gate?: { stakes?: 'routine' | 'important' | 'critical'; reversibility?: 'reversible' | 'partial' | 'irreversible'; framingConfidence?: number };
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
@@ -130,14 +136,27 @@ export function SealMoment({
   function seal(iv: CheckInInterval = interval) {
     if (kept.length === 0) return;
     const now = Date.now();
-    // If an EARLY rope already exists (Phase 1 BIND at project-OPEN), AUGMENT it —
-    // merge the run's predicates onto it, preserving id/created_at and the user's
-    // own user_lean predicate, and re-confirm the check-in. Never clobber the rope
-    // ("bind tighter at peak temptation"). Otherwise create a fresh contract.
     const existing = project.decision_contract;
+    // §0 restraint gate (CLAUDE.md mirror clause): a routine + reversible + confident
+    // decision gets ONE light check, not the full multi-predicate ceremony. It NEVER
+    // drops the decision — single_check still seals (the user's early rope alone if one
+    // exists, else the single sharpest predicate). Absent gate inputs → full contract.
+    const decision = shouldSealContract({
+      stakes: gate?.stakes ?? 'important',
+      reversibility: gate?.reversibility ?? 'partial',
+      framingConfidence: gate?.framingConfidence ?? 0,
+      predicates: kept,
+    });
+    if (decision.mode === 'none') return;
+    const toSeal = decision.mode === 'single_check'
+      ? (existing ? [] : kept.slice(0, 1)) // keep only the user's early rope, or one predicate
+      : kept;
+    // If an EARLY rope already exists (Phase 1 BIND at project-OPEN), AUGMENT it —
+    // merge onto it, preserving id/created_at and the user's own user_lean predicate,
+    // and re-confirm the check-in. Never clobber ("bind tighter at peak temptation").
     const next = existing
-      ? augmentContract(existing, kept, now, iv)
-      : (() => { const f = contractFromPredicates(project.id, kept, now); return f ? withCheckIn(f, iv, now) : null; })();
+      ? augmentContract(existing, toSeal, now, iv)
+      : (() => { const f = contractFromPredicates(project.id, toSeal, now); return f ? withCheckIn(f, iv, now) : null; })();
     if (!next) return;
     updateProject(project.id, { decision_contract: next });
     setInterval(iv);
@@ -148,7 +167,7 @@ export function SealMoment({
     if (!justSealed) {
       recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: next.predicates.length } });
       // Also in the main funnel (user_events) — this is the activation north-star.
-      track('decision_sealed', { interval: iv, predicates: next.predicates.length, augmented: !!existing });
+      track('decision_sealed', { interval: iv, predicates: next.predicates.length, augmented: !!existing, mode: decision.mode });
     }
   }
 

@@ -988,6 +988,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     }),
     [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification],
   );
+  // §0 sealing restraint inputs from the latest analysis snapshot — lets SealMoment
+  // give a routine + reversible + confident decision one light check instead of the
+  // full ceremony (CLAUDE.md mirror clause). Absent fields → full ceremony (safe).
+  const sealGate = useMemo(() => {
+    const snaps = session?.snapshots ?? [];
+    const s = snaps[snaps.length - 1];
+    return { stakes: s?.stakes, reversibility: s?.reversibility, framingConfidence: s?.framing_confidence };
+  }, [session?.snapshots]);
   // The Current Bearing — the compressed one-screen orientation that sits ABOVE
   // the final document (ARGUS-FINAL-DIRECTION §"The Surface Principle"). Derived
   // from the same session artifacts as the contract; null until there's a draft.
@@ -3075,7 +3083,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 before ever seeing it — the closing scene must come before the
                 exits, never compete with them. */}
             {contractProject && (
-              <SealMoment project={contractProject} predicates={contractPredicates} />
+              <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} />
             )}
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-10 pb-16">

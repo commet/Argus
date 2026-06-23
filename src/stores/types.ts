@@ -887,6 +887,12 @@ export interface AnalysisSnapshot {
   framing_locked?: boolean;         // Round 1 질문을 사용자가 확인했는지
   framing_override_reason?: string; // 사용자가 거부한 이유
 
+  // Decision weight — feeds the §0 sealing restraint gate (shouldSealContract) so a
+  // routine + reversible + confident decision gets a single light check, not the full
+  // sealing ceremony (CLAUDE.md mirror clause). Safe-default to the heavier path.
+  stakes?: 'routine' | 'important' | 'critical';
+  reversibility?: 'reversible' | 'partial' | 'irreversible';
+
   // Convergence tracking (Weakness C fix)
   convergence_score?: number;       // 0-100: 질문 안정성 + 가정 감소 종합
   convergence_trend?: 'improving' | 'stable' | 'declining' | 'unclear';

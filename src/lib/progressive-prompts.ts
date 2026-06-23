@@ -121,6 +121,8 @@ JSON format:
   "request_type": "open | flat | vent | validation | info | resistance | self_profiling | crisis — your STEP 0 classification. ONLY 'open' gets a skeleton/plan; every other type MUST have skeleton [].",
   "real_question": "The ONE question I need to answer first (natural sentence, ends with ?)",
   "framing_confidence": 85,
+  "stakes": "routine | important | critical — how much rides on getting this right (routine = small/everyday/low-cost, critical = major, hard-to-walk-back consequences)",
+  "reversibility": "reversible | partial | irreversible — how easily this could be undone if it goes wrong",
   "hidden_assumptions": [
     "Realistic assumption 1",
     "Realistic assumption 2"

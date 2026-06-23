@@ -60,6 +60,11 @@ interface InitialAnalysisResponse {
    *  enforce the structural contract (only `open` builds a plan). Optional: an
    *  older/weaker model may omit it, in which case the guard no-ops (safe). */
   request_type?: 'open' | 'flat' | 'vent' | 'validation' | 'info' | 'resistance' | 'self_profiling' | 'crisis';
+  /** Decision weight — feeds the §0 sealing restraint gate (shouldSealContract) so
+   *  a routine + reversible + confident decision gets a single light check, not the
+   *  full sealing ceremony (CLAUDE.md mirror clause). Optional/safe-default. */
+  stakes?: 'routine' | 'important' | 'critical';
+  reversibility?: 'reversible' | 'partial' | 'irreversible';
   next_question: {
     text: string;
     subtext?: string;
@@ -441,6 +446,12 @@ export async function runInitialAnalysis(
       surfaceQuestion: problemText,
       assumptions: result.hidden_assumptions || [],
     }),
+    // Decision weight for the §0 sealing restraint gate. Safe defaults: only the
+    // explicit 'routine'/'reversible' values can downgrade the seal to a single
+    // check — an omitted/garbled classification keeps the full ceremony (never
+    // wrongly skips a real decision's seal).
+    stakes: result.stakes === 'routine' || result.stakes === 'critical' ? result.stakes : 'important',
+    reversibility: result.reversibility === 'reversible' || result.reversibility === 'irreversible' ? result.reversibility : 'partial',
   };
 
   // Phase 1 typed question: framing_confidence>=70이면 strategic_fork로 넘어간다.
