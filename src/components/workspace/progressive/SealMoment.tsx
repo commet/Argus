@@ -371,10 +371,19 @@ export function SealMoment({
             "comes back to you" promise read as a lie when it can vanish on this device.
             Not a gate — they can still seal locally; just told the truth + the way out. */}
         {!user && (
-          <p className="mt-1.5 text-[11.5px] text-[var(--accent)]/90 max-w-md mx-auto">
-            {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 로그인하면 계정으로 옮겨가 어디서나 돌아올 수 있어요.',
-               'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Log in and it moves to your account, reachable anywhere.')}
-          </p>
+          <div className="mt-1.5 max-w-md mx-auto">
+            <p className="text-[11.5px] text-[var(--accent)]/90">
+              {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요.',
+                 'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices.')}
+            </p>
+            {/* P1-9: the highest-intent moment to log in — give a one-tap path (was text-only). */}
+            <LocaleLink
+              href="/login?redirect=/project"
+              className="inline-block mt-1.5 text-[12px] font-semibold text-[var(--accent)] hover:underline"
+            >
+              {L('로그인하고 어디서나 돌아오기 →', 'Log in to keep it & return anywhere →')}
+            </LocaleLink>
+          </div>
         )}
 
         <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
