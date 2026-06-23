@@ -708,7 +708,7 @@ function TelegramBlock({ locale }: { locale: string }) {
                 <p className="text-[14px] font-medium flex items-center gap-1.5">
                   <Check size={14} className="text-[var(--success)]" /> {c.chat_title || L('내 Telegram', 'My Telegram')}
                 </p>
-                <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 이 Telegram 채팅으로 바로 보낼 수 있어요', 'Send results straight to this Telegram chat')}</p>
+                <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 이 채팅으로 보내고, 봇에게 고민을 DM하면 바로 리프레임해 줘요', 'Send results here — and DM the bot a decision to get an instant reframe')}</p>
               </div>
               <Button variant="danger" size="sm" onClick={() => disconnect(c.id)}>
                 <Unlink size={14} /> {L('연결 해제', 'Disconnect')}
