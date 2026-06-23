@@ -14,7 +14,7 @@ interface AuthContextType {
   loading: boolean;
   signInWithGoogle: (redirectAfter?: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUpWithEmail: (email: string, password: string, captchaToken?: string, name?: string) => Promise<{ error: string | null }>;
+  signUpWithEmail: (email: string, password: string, captchaToken?: string, profile?: { name?: string; role?: string }) => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -121,21 +121,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? translateError(error.message) : null };
   };
 
-  const signUpWithEmail = async (email: string, password: string, captchaToken?: string, name?: string) => {
+  const signUpWithEmail = async (email: string, password: string, captchaToken?: string, profile?: { name?: string; role?: string }) => {
     track('signup_attempt', { method: 'email' });
-    const displayName = name?.trim();
+    // Optional profile — stored on user_metadata for greeting + decision-context personalization.
+    const displayName = profile?.name?.trim();
+    const role = profile?.role?.trim();
+    const data: Record<string, string> = {};
+    if (displayName) data.display_name = displayName;
+    if (role) data.role = role;
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
         captchaToken,
-        // Optional — stored on user_metadata.display_name for greeting/personalization.
-        ...(displayName ? { data: { display_name: displayName } } : {}),
+        ...(Object.keys(data).length ? { data } : {}),
       },
     });
     if (error) track('signup_failure', { method: 'email', reason: error.message.slice(0, 80) });
-    else track('signup_success', { method: 'email', named: !!displayName });
+    else track('signup_success', { method: 'email', named: !!displayName, role: role || 'none' });
     return { error: error ? translateError(error.message) : null };
   };
 
