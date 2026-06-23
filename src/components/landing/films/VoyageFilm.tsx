@@ -30,38 +30,51 @@ type Chapter = {
   lineKo: string; lineEn: string;
 };
 
-// Myth lines echo Homer (Pope's 1725 verse — public domain): the binding that
-// holds against your own pleading; the Sirens' lure of total knowledge ("we
-// know all that comes to pass"), which IS the AI metaphor; the homecoming; old
-// Argos who alone knew his master. Service lines map to Argus's real features.
+// Intro, over the opening sail — most viewers won't know this is the Odyssey,
+// so name the metaphor plainly (AI = the all-knowing-sounding Sirens) before the
+// chapters roll.
+const INTRO = {
+  from: 1.2, to: 5.2,
+  eyebrowKo: '호메로스 · 오디세이아', eyebrowEn: 'HOMER · THE ODYSSEY',
+  lineKo: '세이렌의 노래처럼, AI는 모든 걸 아는 듯 부릅니다. 그 곁을 지나는 법 —',
+  lineEn: 'Like the Sirens’ song, AI sings as if it knows everything. The way past it —',
+};
+
+// Myth lines are quoted in Homer's voice (echoing Pope's 1725 verse — public
+// domain): the binding that holds against your own pleading; the Sirens' lure of
+// total knowledge ("we know all that comes to pass"), which IS the AI; the
+// homecoming to one's own shore; old Argos who alone knew his master. Service
+// lines span Argus's spine — not the seal alone: set your own call (Bind) · an
+// honest read, you keep the decision (Listen) · pass the AI fast and land in
+// your real choice (Land) · it returns to ask, and your record knows you (Recog).
 const CHAPTERS: Chapter[] = [
   {
     num: 'I', ko: '묶기', en: 'Bind', from: 6, to: 12.6,
-    mythKo: '나를 돛대에 묶어라 — 내가 풀어달라 빌어도, 더 단단히.',
-    mythEn: 'Bind me to the mast — and though I plead, bind me the tighter.',
-    lineKo: 'AI를 만나기 전에, 당신의 판단과 확인할 날을 먼저 정해 둡니다.',
-    lineEn: 'Before you face the AI, you set your own call — and a day to check it.',
+    mythKo: '“나를 돛대에 묶어라. 풀어달라 빌어도, 더 단단히.”',
+    mythEn: '“Bind me to the mast — and though I plead, bind me the tighter.”',
+    lineKo: 'AI에게 묻기 전에, 당신의 판단과 확인할 날을 먼저 정합니다.',
+    lineEn: 'Before you ask the AI, you fix your own call — and a day to check it.',
   },
   {
     num: 'II', ko: '듣기', en: 'Listen', from: 14.2, to: 21,
-    mythKo: '이리 와 들으라 — 우리는 땅 위의 모든 일을 아노니.',
-    mythEn: 'Come hither and hear — for we know all that comes to pass on earth.',
-    lineKo: 'AI는 당신의 계획을 진짜로 읽어요 — 놓친 건 짚되, 결정은 당신 몫.',
-    lineEn: 'The AI truly reads your plan — it flags what you missed, but the call stays yours.',
+    mythKo: '“이리 와 들으라. 우리는 땅 위의 모든 일을 아노라.”',
+    mythEn: '“Come hither and hear — for we know all that comes to pass on earth.”',
+    lineKo: 'AI는 칭찬 대신, 당신이 놓친 곳을 비춰요. 결정은 끝까지 당신 몫이고요.',
+    lineEn: 'The AI shows what you missed — no flattery — and the call stays yours.',
   },
   {
     num: 'III', ko: '닿기', en: 'Land', from: 23, to: 30,
-    mythKo: '노래가 잦아들고, 그는 제 땅의 기슭에 내려선다.',
-    mythEn: 'The song falls silent; he sets foot on his own shore.',
-    lineKo: '정한 날, Argus가 돌아와 묻습니다 — “그래서, 어떻게 됐어요?”',
-    lineEn: 'On your day, Argus returns and asks — “So, how did it go?”',
+    mythKo: '“노래가 잦아들고, 마침내 제 땅의 기슭에 닿는다.”',
+    mythEn: '“The song fades; at last he sets foot on his own shore.”',
+    lineKo: '세이렌은 지나치는 길목일 뿐. 진짜 결정은, 당신이 닿는 현실에서 일어나요.',
+    lineEn: 'The Siren-song is only a passage — the real call happens where you land, in reality.',
   },
   {
     num: 'IV', ko: '알아봄', en: 'Recognition', from: 32, to: 39.4, gold: true,
-    mythKo: '스러져 가던 늙은 개만이, 옛 주인을 알아보았다.',
-    mythEn: 'Only old Argos, failing, knew his master still.',
-    lineKo: '쌓인 당신만의 기록이, 어떤 AI의 장담보다 당신을 잘 압니다.',
-    lineEn: 'Your own record, kept over time, knows you better than any AI’s certainty.',
+    mythKo: '“스러져 가던 늙은 개만이, 옛 주인을 알아보았다.”',
+    mythEn: '“Only old Argos, failing, knew his master still.”',
+    lineKo: '정한 날 Argus가 돌아와 물어요 — “그래서, 어떻게 됐어요?” 쌓인 기록이, 당신을 알아봐요.',
+    lineEn: 'On your day, Argus returns to ask — “So, how did it go?” — and your record comes to know you.',
   },
 ];
 
@@ -72,13 +85,15 @@ export function VoyageFilm() {
   // active = chapter whose window we're inside (null between scenes / opening).
   // shown = the most recent chapter, so the rail keeps its progress through gaps.
   const [active, setActive] = useState<Chapter | null>(null);
+  const [intro, setIntro] = useState(false);
   const [shownIdx, setShownIdx] = useState<number>(-1);
 
   useEffect(() => {
-    // Preview affordance: /ko?cap=2 pins a chapter (the video clock can't be
-    // screenshotted headless). Harmless in production.
+    // Preview affordance: /ko?cap=2 pins a chapter, /ko?cap=intro the intro (the
+    // video clock can't be screenshotted headless). Harmless in production.
     const forced = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('cap') : null;
     if (forced !== null) {
+      if (forced === 'intro') { setIntro(true); setShownIdx(-1); return; }
       const i = Math.max(0, Math.min(CHAPTERS.length - 1, parseInt(forced, 10) || 0));
       setActive(CHAPTERS[i]); setShownIdx(i); return;
     }
@@ -86,7 +101,9 @@ export function VoyageFilm() {
     if (!v) return;
     const onTime = () => {
       const t = v.currentTime;
-      const inWin = CHAPTERS.find((c) => t >= c.from && t <= c.to) ?? null;
+      const isIntro = t >= INTRO.from && t <= INTRO.to;
+      setIntro((prev) => (prev === isIntro ? prev : isIntro));
+      const inWin = isIntro ? null : (CHAPTERS.find((c) => t >= c.from && t <= c.to) ?? null);
       setActive((prev) => (prev?.num === inWin?.num ? prev : inWin));
       let idx = -1;
       for (let i = 0; i < CHAPTERS.length; i++) if (t >= CHAPTERS[i].from - 1.4) idx = i;
@@ -122,12 +139,28 @@ export function VoyageFilm() {
         }}
       />
 
-      {/* ── caption block: the scene (myth) over what Argus does ── */}
+      {/* ── caption block: the intro frame, then each scene's myth + meaning ── */}
       <div
         className="absolute left-0 right-0 flex flex-col items-center text-center"
-        style={{ bottom: 'clamp(54px, 13%, 96px)', padding: '0 28px', zIndex: 2, opacity: active ? 1 : 0, transition: 'opacity 520ms ease' }}
+        style={{ bottom: 'clamp(54px, 13%, 96px)', padding: '0 28px', zIndex: 2, opacity: intro || active ? 1 : 0, transition: 'opacity 520ms ease' }}
         aria-live="polite"
       >
+        {intro && !active && (
+          <div key="intro" className="bp-fade-up flex flex-col items-center">
+            <span
+              className="bp-mono"
+              style={{ marginBottom: 11, fontSize: 'clamp(9.5px, 1.05vw, 11px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 600, color: 'var(--bp-ink-soft)' }}
+            >
+              {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
+            </span>
+            <p
+              className={`${locale === 'ko' ? 'break-keep' : ''}`}
+              style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 1.9vw, 20px)', lineHeight: 1.4, letterSpacing: '-0.008em', maxWidth: 640 }}
+            >
+              {L(INTRO.lineKo, INTRO.lineEn)}
+            </p>
+          </div>
+        )}
         {active && (
           <div key={active.num} className="bp-fade-up flex flex-col items-center">
             <p
