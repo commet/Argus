@@ -70,8 +70,8 @@ export function BindCard({
           {L('답을 듣기 전에 — 지금 마음은 어디로 기울어요?', 'Before you hear the answer — where are you leaning right now?')}
         </h2>
         <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5 leading-snug">
-          {L('안 적어도 됩니다. 적어두면 나중에 “그래서 어떻게 됐는지” 같이 맞춰봐요.',
-             "Optional. If you jot it down, we'll check back later on how it actually went.")}
+          {L('AI 답에 휩쓸리기 전, 지금 생각이 가장 솔직해요. 적어두면 확인일에 “그래서 어떻게 됐는지” 같이 맞춰봐요 — 안 적어도 됩니다.',
+             "Before the AI sways you, your hunch right now is the honest one. Jot it and we’ll check how it actually went on your date — optional.")}
         </p>
 
         {problem && (

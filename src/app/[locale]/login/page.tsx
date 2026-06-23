@@ -8,7 +8,7 @@ import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
-import { Zap, FolderOpen, Users, MessageSquare } from 'lucide-react';
+import { Zap, FolderOpen, Users, MessageSquare, MailCheck } from 'lucide-react';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -49,6 +49,7 @@ function LoginContent() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
+  const [signupSentTo, setSignupSentTo] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -95,7 +96,7 @@ function LoginContent() {
         turnstileRef.current?.reset();
         setCaptchaToken('');
       } else {
-        setMessage(L('확인 메일을 보냈어요. 이메일을 확인해 주세요.', 'Confirmation email sent. Please check your email.'));
+        setSignupSentTo(email);
       }
     } else {
       const { error } = await signInWithEmail(email, password);
@@ -120,6 +121,31 @@ function LoginContent() {
         <div className="text-center">
           <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-[13px] text-[var(--text-secondary)]">{L('워크스페이스로 이동 중...', 'Taking you to the workspace...')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (signupSentTo) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-[400px] text-center">
+          <div className="w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center shadow-[var(--shadow-sm)]" style={{ background: 'var(--gradient-gold)' }}>
+            <MailCheck size={26} className="text-white" />
+          </div>
+          <h1 className="text-[20px] font-bold text-[var(--text-primary)] mb-2">{L('확인 메일을 보냈어요', 'Check your email')}</h1>
+          <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed">
+            {L(`${signupSentTo}로 보낸 메일의 링크를 누르면 가입이 끝나요.`, `Click the link in the email we sent to ${signupSentTo} to finish signing up.`)}
+          </p>
+          <p className="text-[12.5px] text-[var(--text-tertiary)] mt-3 leading-relaxed">
+            {L('메일이 안 보이면 스팸함도 확인해 주세요 — 도착까지 1~2분 걸릴 수 있어요.', 'Don’t see it? Check your spam folder — it can take a minute or two.')}
+          </p>
+          <button
+            onClick={() => { setSignupSentTo(null); setMessage(''); }}
+            className="mt-6 text-[13px] font-medium text-[var(--accent)] hover:underline cursor-pointer"
+          >
+            {L('다른 이메일로 다시 시도', 'Use a different email')}
+          </button>
         </div>
       </div>
     );
@@ -233,7 +259,7 @@ function LoginContent() {
             {isSignUp && (
               <div>
                 <p className="mb-1.5 px-1 text-[12px] text-[var(--text-secondary)]">
-                  {L('무슨 일을 하세요? (선택)', 'What do you do? (optional)')}
+                  {L('무슨 일을 하세요? (선택 — 건너뛰어도 돼요)', 'What do you do? (optional — feel free to skip)')}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {SIGNUP_ROLES.map((r) => {
