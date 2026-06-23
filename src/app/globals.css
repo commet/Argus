@@ -3025,6 +3025,11 @@ button, a, input, textarea {
 }
 .bp-sail-x { animation: bp-sail-x 17s ease-in-out infinite; }
 
+/* Voyage hero film — the baked mp4 is ink-on-cream; in dark mode invert it
+   (keeping warmth via hue-rotate) so it reads cream-on-charcoal like the rest. */
+.bp-voyage-video { filter: none; transition: filter 300ms ease; }
+[data-theme="dark"] .bp-voyage-video { filter: invert(1) hue-rotate(180deg); }
+
 /* Gold-leaf shimmer — a slow light band sweeps the climactic word. */
 @keyframes bp-gold-shimmer {
   0%   { background-position: 220% 0; }

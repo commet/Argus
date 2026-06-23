@@ -169,9 +169,14 @@ export function SirenHero() {
         </p>
 
         {/* The living anchor — Odysseus's voyage past the Sirens as one
-            continuous moving engraving (묶기 → 듣기 → 닿기 → 알아봄). The myth
-            that names the product, in motion. */}
-        <div className="bp-fade-up mx-auto mt-6" style={{ maxWidth: 680, animationDelay: '200ms' }}>
+            continuous moving engraving (출항 → 묶기 → 듣기 → 닿기 → 알아봄), the
+            myth that names the product. Breaks out to full-bleed for a
+            cinematic first impression; mobile keeps the film's native 16:9 so
+            the engraving is never hard-cropped. */}
+        <div
+          className="bp-fade-up h-[56.25vw] md:h-[56vh] md:max-h-[600px]"
+          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 32, marginBottom: 10, animationDelay: '200ms' }}
+        >
           <VoyageFilm />
         </div>
 
