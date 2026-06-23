@@ -51,11 +51,14 @@ const DIRECTIVE_VERDICT_PATTERNS = [
 
 function renderBearingText(bearing) {
   if (!bearing) return '';
+  // Defensive: weaker tiers (haiku) sometimes emit why_this_course/road_not_taken
+  // as a non-array; treat any non-array as empty rather than crashing the gate.
+  const arr = (x) => (Array.isArray(x) ? x : []);
   const lines = [
     bearing.current_course?.summary || '',
-    ...(bearing.why_this_course || []).map((r) => `${r.point || ''} ${r.source || ''}`),
+    ...arr(bearing.why_this_course).map((r) => `${r?.point || ''} ${r?.source || ''}`),
     bearing.fog_or_reef ? `${bearing.fog_or_reef.issue || ''} ${bearing.fog_or_reef.why_it_matters || ''} ${bearing.fog_or_reef.required_check || ''}` : '',
-    ...(bearing.road_not_taken || []).map((r) => `${r.option || ''} ${r.why_not_now || ''}`),
+    ...arr(bearing.road_not_taken).map((r) => `${r?.option || ''} ${r?.why_not_now || ''}`),
     bearing.next_helm || '',
     bearing.contract_seed ? `${bearing.contract_seed.predicate || ''}` : '',
   ];
@@ -121,7 +124,7 @@ export function staticGate(bearing, testCase) {
   }
 
   // ── Sourced cases (PR/file/doc) must cite at least one source.
-  if (testCase.requiresSource && !(bearing.why_this_course || []).some((r) => r.source)) {
+  if (testCase.requiresSource && !(Array.isArray(bearing.why_this_course) ? bearing.why_this_course : []).some((r) => r?.source)) {
     v.push('file/PR/doc case requires at least one source reference');
   }
 
