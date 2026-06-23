@@ -345,6 +345,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     const controller = analyzeAbortRef.current;
     if (!text || !controller) { setPhase('idle'); return; }
 
+    // Bind funnel (P1-8): every submit shows the bind, so submit→bind_resolved gives
+    // the rope-vs-skip rate; decision_sealed(source:bind_open) fires only on a tied
+    // rope. Captured (data > dashboard) so the conversion tradeoff is observable.
+    track('bind_resolved', { committed: !!bind, has_lean: !!bind?.lean, has_date: !!bind?.interval, anonymous: !user });
+
     // Reveal the team-assembling → analyzing beat while we await the (often
     // already-resolved) in-flight analysis.
     setPhase('assembling');
