@@ -426,6 +426,14 @@ export default function ProjectPage() {
                   {L('또는 데모 먼저 보기 →', 'Or see a quick demo first →')}
                 </LocaleLink>
               </div>
+              {/* P2-4: a plugin-first user has no cue their CLI decisions can come in
+                  here — /import was buried as a generic nav item. */}
+              <p className="mt-5 pt-4 border-t border-[var(--border-subtle)] text-[11.5px] text-[var(--text-tertiary)]">
+                {L('Claude Code 플러그인을 쓰세요? ', 'Using the Claude Code plugin? ')}
+                <LocaleLink href="/import" className="font-semibold text-[var(--accent)] hover:underline">
+                  {L('플러그인 결정 가져오기 →', 'Import your plugin decisions →')}
+                </LocaleLink>
+              </p>
             </Card>
           ) : (
             <>
