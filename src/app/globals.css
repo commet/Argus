@@ -3030,6 +3030,11 @@ button, a, input, textarea {
 .bp-voyage-video { filter: none; transition: filter 300ms ease; }
 [data-theme="dark"] .bp-voyage-video { filter: invert(1) hue-rotate(180deg); }
 
+/* Siren-lure red — a muted, period-appropriate crimson for the Sirens' tempting
+   line (knowledge, not lust). Lighter in dark mode so it reads on charcoal. */
+:root { --bp-lure: #a4452f; }
+[data-theme="dark"] { --bp-lure: #cf6e54; }
+
 /* Gold-leaf shimmer — a slow light band sweeps the climactic word. */
 @keyframes bp-gold-shimmer {
   0%   { background-position: 220% 0; }

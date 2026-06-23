@@ -25,7 +25,7 @@ import { useLocale } from '@/hooks/useLocale';
 
 type Chapter = {
   num: string; ko: string; en: string;
-  from: number; to: number; gold?: boolean;
+  from: number; to: number; gold?: boolean; lure?: boolean;
   mythKo: string; mythEn: string;
   lineKo: string; lineEn: string;
 };
@@ -36,8 +36,8 @@ type Chapter = {
 const INTRO = {
   from: 1.0, to: 5.3,
   eyebrowKo: '호메로스 · 오디세이아', eyebrowEn: 'HOMER · THE ODYSSEY',
-  lineKo: 'AI에 휩쓸리지 않고, 더 나은 결정에 닿는 법 — 3천 년 전, 오디세우스가 세이렌을 지난 그대로.',
-  lineEn: 'Pass the AI’s Siren-song and reach a better decision — just as Odysseus did, three thousand years ago.',
+  lineKo: '세이렌은 “내가 다 알려줄게” 노래로 뱃사람을 홀렸습니다 — 지금의 AI처럼. 오디세우스는, 휩쓸리지 않고 지나는 법을 알았죠.',
+  lineEn: 'The Sirens lured sailors with a song — “we will tell you all.” Much like today’s AI. Odysseus knew how to pass without being swept away.',
 };
 
 // Myth lines are quoted in Homer's voice (echoing Pope's 1725 verse — public
@@ -52,20 +52,20 @@ const CHAPTERS: Chapter[] = [
     num: 'I', ko: '묶기', en: 'Bind', from: 6, to: 12.6,
     mythKo: '“나를 돛대에 묶어라. 풀어달라 빌어도, 더 단단히.”',
     mythEn: '“Bind me to the mast — and though I plead, bind me the tighter.”',
-    lineKo: '묻기 전에, 지금 당신의 결론을 먼저 적어 둬요. AI의 유창한 답에도 흔들리지 않게.',
-    lineEn: 'Write down your own call before you ask — so the AI’s fluent answer can’t quietly overwrite it.',
+    lineKo: '묻기 전에, 지금 당신이 어느 쪽으로 기울었는지부터 적어 둬요. AI의 유창한 답에 흔들리지 않게.',
+    lineEn: 'Before you ask, jot down which way you’re leaning right now — so the AI’s fluent answer can’t sway you off it.',
   },
   {
-    num: 'II', ko: '듣기', en: 'Listen', from: 14.2, to: 21,
-    mythKo: '“이리 와 들으라. 우리는 땅 위의 모든 일을 아노라.”',
-    mythEn: '“Come hither and hear — for we know all that comes to pass on earth.”',
-    lineKo: 'AI는 “좋아 보여요” 대신, 당신이 놓친 단 하나를 짚어줘요 — 결정은 뺏지 않고.',
-    lineEn: 'Instead of “looks good,” it names the one thing you missed — and never makes the call for you.',
+    num: 'II', ko: '듣기', en: 'Listen', from: 14.2, to: 21, lure: true,
+    mythKo: '“이리 와 들으라. 우리 노래를 들은 자는, 세상 모든 일을 알고 떠나리라.”',
+    mythEn: '“Come hither and hear — whoever hears our song departs knowing all that is.”',
+    lineKo: 'AI는 “좋아 보여요” 대신, 당신이 놓친 단 하나를 짚어줘요. 결정은 끝까지 당신 몫이고요.',
+    lineEn: 'Instead of “looks good,” it names the one thing you missed. The decision stays yours, all the way.',
   },
   {
     num: 'III', ko: '닿기', en: 'Land', from: 23, to: 30,
-    mythKo: '“노래가 잦아들고, 마침내 제 땅의 기슭에 닿는다.”',
-    mythEn: '“The song fades; at last he sets foot on his own shore.”',
+    mythKo: '“노래가 잦아들고, 마침내 단단한 땅에 발을 디딘다.”',
+    mythEn: '“The song fades, and at last he sets foot on solid ground.”',
     lineKo: 'AI는 거들 뿐, 결정은 현실의 당신 몫이에요. 그 한 걸음을 또렷하게 내딛도록.',
     lineEn: 'The AI only helps you see; the real decision is yours, out in the world — and you step clearly.',
   },
@@ -163,9 +163,17 @@ export function VoyageFilm() {
         )}
         {active && (
           <div key={active.num} className="bp-fade-up flex flex-col items-center">
+            {/* refined chapter heading — like a book's, not a flat TOC rail.
+                The dog is the coda (종장), not a fourth leg. */}
+            <span
+              className="bp-mono"
+              style={{ marginBottom: 10, fontSize: 'clamp(9px, 1vw, 10.5px)', letterSpacing: '0.28em', textTransform: 'uppercase', fontWeight: 600, color: active.gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink-soft)' }}
+            >
+              {active.gold ? L('종장', 'Coda') : L(`${active.num} · ${active.ko}`, `${active.num} · ${active.en}`)}
+            </span>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, marginBottom: 12, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, color: 'var(--bp-ink-soft)', fontSize: 'clamp(12.5px, 1.5vw, 15.5px)', lineHeight: 1.4, opacity: 0.92, letterSpacing: '0.01em' }}
+              style={{ margin: 0, marginBottom: 12, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', fontSize: 'clamp(12.5px, 1.5vw, 15.5px)', lineHeight: 1.4, opacity: active.lure ? 1 : 0.92, letterSpacing: '0.01em' }}
             >
               {L(active.mythKo, active.mythEn)}
             </p>
@@ -179,34 +187,27 @@ export function VoyageFilm() {
         )}
       </div>
 
-      {/* ── chapter rail: persistent progress through the four legs ── */}
+      {/* ── progress: minimal dots, not a word rail (which read as a cheap TOC) ── */}
       <div
         className="absolute left-0 right-0 flex items-center justify-center"
-        style={{ bottom: 'clamp(18px, 5%, 30px)', gap: 'clamp(8px, 1.4vw, 18px)', padding: '0 20px', zIndex: 2 }}
+        style={{ bottom: 'clamp(18px, 5%, 30px)', gap: 9, padding: '0 20px', zIndex: 2 }}
         aria-hidden="true"
       >
         {CHAPTERS.map((c, i) => {
           const on = i === shownIdx;
           const passed = i < shownIdx;
+          const size = on ? 7 : 5;
           return (
             <span
               key={c.num}
-              className="bp-mono inline-flex items-baseline"
               style={{
-                gap: 5,
-                fontSize: 'clamp(8.5px, 1vw, 10.5px)',
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                fontWeight: on ? 700 : 500,
-                color: on ? (c.gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)') : passed ? 'var(--bp-ink-soft)' : 'var(--bp-ink-faint)',
-                borderBottom: on ? `1.5px solid ${c.gold ? 'var(--bp-gold)' : 'var(--bp-ink)'}` : '1.5px solid transparent',
-                paddingBottom: 3,
-                transition: 'color 400ms ease, border-color 400ms ease, font-weight 400ms ease',
+                width: size, height: size, borderRadius: '50%',
+                background: on ? (c.gold ? 'var(--bp-gold)' : 'var(--bp-ink)') : passed ? 'var(--bp-ink-soft)' : 'transparent',
+                border: !on && !passed ? '1px solid var(--bp-ink-faint)' : 'none',
+                opacity: on ? 1 : passed ? 0.55 : 0.5,
+                transition: 'width 360ms ease, height 360ms ease, background 360ms ease, opacity 360ms ease',
               }}
-            >
-              <span style={{ opacity: 0.7 }}>{c.num}</span>
-              <span>{L(c.ko, c.en)}</span>
-            </span>
+            />
           );
         })}
       </div>
