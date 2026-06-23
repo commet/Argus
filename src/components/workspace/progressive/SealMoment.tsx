@@ -88,6 +88,7 @@ export function SealMoment({
   const { user } = useAuth();
 
   const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_INTERVAL);
+  const [emailReminder, setEmailReminder] = useState(false); // opt-in (logged-in only)
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dropped, setDropped] = useState<Set<string>>(new Set());
   // Tracks a seal performed in THIS session, so we show the calm confirmation
@@ -160,7 +161,10 @@ export function SealMoment({
       ? augmentContract(existing, toSeal, now, iv)
       : (() => { const f = contractFromPredicates(project.id, toSeal, now); return f ? withCheckIn(f, iv, now) : null; })();
     if (!next) return;
-    updateProject(project.id, { decision_contract: next });
+    // Opt-in email reminder (logged-in only) — off by default keeps "no emails unless
+    // you ask" true; the checkin-due cron only emails contracts with this flag.
+    const sealed = emailReminder && !!user ? { ...next, email_reminder: true } : next;
+    updateProject(project.id, { decision_contract: sealed });
     setInterval(iv);
     setJustSealed(true);
     // Learning signal (2026-06-13 data-wiring fix) — the new flow recorded
@@ -385,6 +389,19 @@ export function SealMoment({
             {L('달력에 넣기', 'Add to calendar')}
           </button>
         </p>
+        {/* Opt-in email reminder (logged-in only) — off by default so "no emails" stays
+            true for everyone who doesn't ask. The checkin-due cron emails only these. */}
+        {user && (
+          <label className="mt-2 inline-flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={emailReminder}
+              onChange={(e) => setEmailReminder(e.target.checked)}
+              className="accent-[var(--accent)]"
+            />
+            {L('그날 이메일로도 한 번 알려드릴까요?', 'Also email me once on that day?')}
+          </label>
+        )}
         {/* P2-6 honesty: an anonymous seal lives in localStorage only. Don't let the
             "comes back to you" promise read as a lie when it can vanish on this device.
             Not a gate — they can still seal locally; just told the truth + the way out. */}
