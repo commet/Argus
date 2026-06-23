@@ -49,8 +49,8 @@ export function AccountSyncToast() {
         >
           <Check size={14} className="mt-0.5 shrink-0 text-[var(--primary)]" />
           <span className="text-[12px] leading-snug text-[var(--text-primary)]">
-            {L(`로컬 기록 ${toast.count}건을 계정에 연결했어요.`,
-               `Linked ${toast.count} local record${toast.count === 1 ? '' : 's'} to your account.`)}
+            {L(`결정 ${toast.count}건을 계정에 저장했어요 — 이제 어디서나 이어서.`,
+               `Saved ${toast.count} decision${toast.count === 1 ? '' : 's'} to your account — continue anywhere now.`)}
           </span>
         </motion.div>
       )}
