@@ -1,8 +1,6 @@
 import { ScrollTracker } from '@/components/landing/ScrollTracker';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { SirenHero } from '@/components/landing/SirenHero';
-import { VoyagePhases } from '@/components/landing/voyage/VoyagePhases';
-import { Act1Voyage } from '@/components/landing/voyage/Act1Voyage';
 import { Act2DecisionVoyage } from '@/components/landing/voyage/Act2DecisionVoyage';
 import { Testimonials } from '@/components/landing/Testimonials';
 import { Act3OnDeck } from '@/components/landing/voyage/Act3OnDeck';
@@ -13,15 +11,17 @@ export default function HomePage() {
     <div>
       <ScrollTracker />
       <LandingHeader />
-      {/* W1.3 세이렌 1화면 — the single first screen: tagline + input, no
-          scroll needed. The original three acts are preserved below. */}
+      {/* The single first screen: the cinematic Sirens voyage film already
+          carries the whole spine (출항 → 묶기 → 듣기 → 닿기 → 알아봄) with its
+          chaptered captions, plus the headline + the one input. */}
       <SirenHero />
-      {/* The three-leg voyage (Bind → Listen → Land) — plants the spine's
-          mental model (you tie your rope BEFORE the song) before the detailed
-          acts. The missing Bind beat lives here. */}
-      <VoyagePhases />
-      <Act1Voyage />
+      {/* The Trail — the one section that shows the REAL product: a single
+          decision being navigated, beat by beat, into a Current Bearing. The
+          old metaphor-restatement bands (Act 1 voyage + the 3-leg phases) were
+          cut: the hero film now tells that story once, cinematically, so the
+          page goes straight from the myth to the proof. */}
       <Act2DecisionVoyage />
+      {/* Real voices, then the closing helm + CTA. */}
       <Testimonials />
       <Act3OnDeck />
       <Footer />
