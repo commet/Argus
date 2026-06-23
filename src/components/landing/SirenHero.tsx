@@ -30,8 +30,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
-import { ArgusHeroDemo } from './films/ArgusHeroDemo';
-import { ScaleToFit } from './films/ScaleToFit';
+import { VoyageFilm } from './films/VoyageFilm';
 
 export function SirenHero() {
   const locale = useLocale();
@@ -169,16 +168,11 @@ export function SirenHero() {
           )}
         </p>
 
-        {/* The living anchor — the product itself in motion. Replaces the
-            static ForkPath: a full Argus session in 6 beats shows the same
-            "one plan forks, then returns" idea, but moving. */}
-        <div className="bp-fade-up mx-auto mt-6" style={{ maxWidth: 660, animationDelay: '200ms' }}>
-          {/* Render the film at its native design width (~940) so the scene
-              layouts (esp. the Draft card) lay out without clipping, then
-              ScaleToFit shrinks the whole frame to the hero column / phone. */}
-          <ScaleToFit designWidth={940}>
-            <ArgusHeroDemo embedded />
-          </ScaleToFit>
+        {/* The living anchor — Odysseus's voyage past the Sirens as one
+            continuous moving engraving (묶기 → 듣기 → 닿기 → 알아봄). The myth
+            that names the product, in motion. */}
+        <div className="bp-fade-up mx-auto mt-6" style={{ maxWidth: 680, animationDelay: '200ms' }}>
+          <VoyageFilm />
         </div>
 
         {/* Resolving line — the pitch must not end on the problem. */}
