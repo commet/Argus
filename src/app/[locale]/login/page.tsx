@@ -35,6 +35,7 @@ function LoginContent() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -75,7 +76,7 @@ function LoginContent() {
         setMessage(L('비밀번호 재설정 링크를 보냈어요. 이메일을 확인해 주세요.', 'Password reset link sent. Please check your email.'));
       }
     } else if (isSignUp) {
-      const { error } = await signUpWithEmail(email, password, captchaToken || undefined);
+      const { error } = await signUpWithEmail(email, password, captchaToken || undefined, name);
       if (error) {
         setError(error);
         turnstileRef.current?.reset();
@@ -200,6 +201,22 @@ function LoginContent() {
 
           {/* Email / Password Form */}
           <form onSubmit={handleEmailAuth} className="space-y-3">
+            {isSignUp && (
+              <div>
+                <input
+                  type="text"
+                  maxLength={40}
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={L('어떻게 불러드릴까요? (선택)', 'What should we call you? (optional)')}
+                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                />
+                <p className="mt-1 px-1 text-[11px] text-[var(--text-tertiary)] leading-snug">
+                  {L('정산할 때 이 이름으로 인사하고, 결정 기록에 함께 남겨요.', 'We greet you by this name and keep it with your decision log.')}
+                </p>
+              </div>
+            )}
             <div>
               <input
                 type="email"

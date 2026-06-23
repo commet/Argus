@@ -14,7 +14,7 @@ interface AuthContextType {
   loading: boolean;
   signInWithGoogle: (redirectAfter?: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUpWithEmail: (email: string, password: string, captchaToken?: string) => Promise<{ error: string | null }>;
+  signUpWithEmail: (email: string, password: string, captchaToken?: string, name?: string) => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -121,18 +121,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? translateError(error.message) : null };
   };
 
-  const signUpWithEmail = async (email: string, password: string, captchaToken?: string) => {
+  const signUpWithEmail = async (email: string, password: string, captchaToken?: string, name?: string) => {
     track('signup_attempt', { method: 'email' });
+    const displayName = name?.trim();
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
         captchaToken,
+        // Optional — stored on user_metadata.display_name for greeting/personalization.
+        ...(displayName ? { data: { display_name: displayName } } : {}),
       },
     });
     if (error) track('signup_failure', { method: 'email', reason: error.message.slice(0, 80) });
-    else track('signup_success', { method: 'email' });
+    else track('signup_success', { method: 'email', named: !!displayName });
     return { error: error ? translateError(error.message) : null };
   };
 
