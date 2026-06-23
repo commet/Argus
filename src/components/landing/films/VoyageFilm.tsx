@@ -34,10 +34,10 @@ type Chapter = {
 // so name the metaphor plainly (AI = the all-knowing-sounding Sirens) before the
 // chapters roll.
 const INTRO = {
-  from: 1.2, to: 5.2,
+  from: 1.0, to: 5.3,
   eyebrowKo: '호메로스 · 오디세이아', eyebrowEn: 'HOMER · THE ODYSSEY',
-  lineKo: '세이렌의 노래처럼, AI는 모든 걸 아는 듯 부릅니다. 그 곁을 지나는 법 —',
-  lineEn: 'Like the Sirens’ song, AI sings as if it knows everything. The way past it —',
+  lineKo: 'AI에 휩쓸리지 않고, 더 나은 결정에 닿는 법 — 3천 년 전, 오디세우스가 세이렌을 지난 그대로.',
+  lineEn: 'Pass the AI’s Siren-song and reach a better decision — just as Odysseus did, three thousand years ago.',
 };
 
 // Myth lines are quoted in Homer's voice (echoing Pope's 1725 verse — public
@@ -52,29 +52,29 @@ const CHAPTERS: Chapter[] = [
     num: 'I', ko: '묶기', en: 'Bind', from: 6, to: 12.6,
     mythKo: '“나를 돛대에 묶어라. 풀어달라 빌어도, 더 단단히.”',
     mythEn: '“Bind me to the mast — and though I plead, bind me the tighter.”',
-    lineKo: 'AI에게 묻기 전에, 당신의 판단과 확인할 날을 먼저 정합니다.',
-    lineEn: 'Before you ask the AI, you fix your own call — and a day to check it.',
+    lineKo: '묻기 전에, 지금 당신의 결론을 먼저 적어 둬요. AI의 유창한 답에도 흔들리지 않게.',
+    lineEn: 'Write down your own call before you ask — so the AI’s fluent answer can’t quietly overwrite it.',
   },
   {
     num: 'II', ko: '듣기', en: 'Listen', from: 14.2, to: 21,
     mythKo: '“이리 와 들으라. 우리는 땅 위의 모든 일을 아노라.”',
     mythEn: '“Come hither and hear — for we know all that comes to pass on earth.”',
-    lineKo: 'AI는 칭찬 대신, 당신이 놓친 곳을 비춰요. 결정은 끝까지 당신 몫이고요.',
-    lineEn: 'The AI shows what you missed — no flattery — and the call stays yours.',
+    lineKo: 'AI는 “좋아 보여요” 대신, 당신이 놓친 단 하나를 짚어줘요 — 결정은 뺏지 않고.',
+    lineEn: 'Instead of “looks good,” it names the one thing you missed — and never makes the call for you.',
   },
   {
     num: 'III', ko: '닿기', en: 'Land', from: 23, to: 30,
     mythKo: '“노래가 잦아들고, 마침내 제 땅의 기슭에 닿는다.”',
     mythEn: '“The song fades; at last he sets foot on his own shore.”',
-    lineKo: '세이렌은 지나치는 길목일 뿐. 진짜 결정은, 당신이 닿는 현실에서 일어나요.',
-    lineEn: 'The Siren-song is only a passage — the real call happens where you land, in reality.',
+    lineKo: 'AI는 거들 뿐, 결정은 현실의 당신 몫이에요. 그 한 걸음을 또렷하게 내딛도록.',
+    lineEn: 'The AI only helps you see; the real decision is yours, out in the world — and you step clearly.',
   },
   {
     num: 'IV', ko: '알아봄', en: 'Recognition', from: 32, to: 39.4, gold: true,
     mythKo: '“스러져 가던 늙은 개만이, 옛 주인을 알아보았다.”',
     mythEn: '“Only old Argos, failing, knew his master still.”',
-    lineKo: '정한 날 Argus가 돌아와 물어요 — “그래서, 어떻게 됐어요?” 쌓인 기록이, 당신을 알아봐요.',
-    lineEn: 'On your day, Argus returns to ask — “So, how did it go?” — and your record comes to know you.',
+    lineKo: '정한 날 Argus가 돌아와 물어요 — “그래서, 어떻게 됐어요?” 현실로 확인한 판단이 쌓여, 당신만의 판단력이 됩니다.',
+    lineEn: 'On your day, Argus returns — “So, how did it go?” Calls checked against reality pile up, and become judgment you can trust.',
   },
 ];
 
