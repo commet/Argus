@@ -284,26 +284,46 @@ export async function deleteFromSupabase(table: TableName, id: string): Promise<
 /**
  * Delete ALL user data from Supabase (for account reset).
  */
-export async function deleteAllUserData(): Promise<void> {
-  const userId = await getCurrentUserId();
-  if (!userId) return;
+export interface DeletionReceipt {
+  ok: boolean;
+  identityDeleted: boolean;
+  receipt: Record<string, number | string>;
+}
 
-  const tables: TableName[] = [
-    'agent_activities', 'agent_chains', 'agents',
-    'outcome_records', 'retrospective_answers', 'decision_quality_scores',
-    'quality_signals', 'accuracy_ratings', 'feedback_records', 'judgment_records',
-    'reframe_items', 'recast_items', 'synthesize_items',
-    'personas', 'projects',
-    'progressive_sessions',
-  ];
-
-  for (const table of tables) {
-    try {
-      await supabase.from(table).delete().eq('user_id', userId);
-    } catch (err) {
-      handleError(err, `db.deleteAll:${table}`);
-    }
+/**
+ * Provable, complete account erasure. Delegates to the service-role server
+ * endpoint, which deletes EVERY user-scoped table (all 29, single-sourced in
+ * user-data-tables.ts) plus the auth identity, and returns a receipt.
+ *
+ * Replaces a broken client loop that covered only 16 tables, swallowed errors (a
+ * failed delete reported success), and never removed the identity. Failures now
+ * SURFACE (throw) instead of hiding, and the receipt shows what was actually removed.
+ */
+export async function deleteAllUserData(): Promise<DeletionReceipt> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    // Not signed in → no server-side data to erase (anon data is localStorage-only).
+    return { ok: true, identityDeleted: false, receipt: {} };
   }
+
+  const res = await fetch('/api/account/delete', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+
+  let body: DeletionReceipt;
+  try {
+    body = await res.json();
+  } catch {
+    throw new Error('Account deletion failed: could not read server response.');
+  }
+  if (!res.ok || !body.ok) {
+    // Never report a partial/failed erasure as success.
+    log.error(`account deletion incomplete: ${JSON.stringify(body.receipt)}`, { context: 'db' });
+    reportSyncFailure('account-delete', { message: 'erasure incomplete' });
+    throw new Error('Account deletion did not complete — some data may remain. Please contact support.');
+  }
+  return body;
 }
 
 /**

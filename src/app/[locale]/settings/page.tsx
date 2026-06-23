@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { clearAllStorage, STORAGE_KEYS, getStorage } from '@/lib/storage';
 import { downloadJson } from '@/lib/export';
-import { deleteAllUserData } from '@/lib/db';
+import { exportAccountData, deleteAccount } from '@/lib/api-account';
+import { useAuth } from '@/lib/auth';
 import type { LLMMode, LLMProvider } from '@/stores/types';
-import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, Volume2, TrendingUp, Brain, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, Link2 } from 'lucide-react';
+import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, Volume2, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, Link2 } from 'lucide-react';
 import { getObservationsSummary } from '@/lib/user-context';
-import { assessLearningHealth } from '@/lib/learning-health';
 import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAmbientPlaying } from '@/lib/audio';
 import { useSlackStore } from '@/stores/useSlackStore';
 import { useTelegramStore } from '@/stores/useTelegramStore';
@@ -42,9 +42,12 @@ export default function SettingsPage() {
   const llmProviders = buildLlmProviders(L);
   const llmModes = buildLlmModes(L);
 
+  const { user } = useAuth();
   const { settings, loadSettings, updateSettings } = useSettingsStore();
   const [showKey, setShowKey] = useState(false);
   const [resetModal, setResetModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   // Mirror the ambient drone play state — startAmbient/stopAmbient alone never re-render,
   // so the button label/style would stay frozen. Synced on mount (SSR-safe).
   const [ambientOn, setAmbientOn] = useState(false);
@@ -117,12 +120,42 @@ export default function SettingsPage() {
     reader.readAsText(file);
   };
 
+  const handleServerExport = async () => {
+    setExporting(true);
+    try {
+      await exportAccountData();
+    } catch {
+      alert(L('내보내기에 실패했어요. 다시 시도해 주세요.', 'Export failed. Please try again.'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleReset = async () => {
-    clearAllStorage();
-    await deleteAllUserData();
-    setResetModal(false);
-    alert(L('모든 데이터가 초기화되었습니다. 페이지를 새로고침합니다.', 'All data has been reset. The page will now reload.'));
-    window.location.reload();
+    setDeleting(true);
+    try {
+      if (user) {
+        // Logged in — erase ALL server data + the auth identity (complete, with receipt).
+        const result = await deleteAccount();
+        if (!result.ok) {
+          alert(L('일부 데이터를 지우지 못했어요. 계정은 안전하게 보존했어요. 다시 시도해 주세요.', 'Some data could not be deleted. Your account was kept safe. Please try again.'));
+          setDeleting(false);
+          return;
+        }
+        clearAllStorage();
+        await supabase.auth.signOut();
+        setResetModal(false);
+        window.location.href = '/';
+      } else {
+        // Anonymous — only this browser's local data exists.
+        clearAllStorage();
+        setResetModal(false);
+        window.location.reload();
+      }
+    } catch {
+      alert(L('삭제에 실패했어요. 다시 시도해 주세요.', 'Deletion failed. Please try again.'));
+      setDeleting(false);
+    }
   };
 
   const handleProviderChange = (provider: LLMProvider) => {
@@ -563,46 +596,56 @@ export default function SettingsPage() {
         <div className="border-t border-[var(--border-subtle)] my-4" />
         <SharedLinksBlock locale={locale} />
 
-        {/* Data management */}
+        {/* Data & account */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg">
-            <div>
-              <p className="text-[13px] font-medium">{L('데이터 내보내기', 'Export Data')}</p>
-              <p className="text-[11px] text-[var(--text-secondary)]">{L('모든 데이터를 JSON으로 다운로드', 'Download all data as JSON')}</p>
+          {/* Export */}
+          <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium">{L('내 데이터 내보내기', 'Export my data')}</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">
+                {user
+                  ? L('서버에 저장된 모든 데이터를 JSON 한 파일로', 'Every row stored on the server, as one JSON file')
+                  : L('이 브라우저의 데이터를 JSON으로', 'This browser’s data, as JSON')}
+              </p>
             </div>
-            <Button variant="secondary" size="sm" onClick={handleExport}>
-              <Download size={14} /> {L('내보내기', 'Export')}
+            <Button variant="secondary" size="sm" onClick={user ? handleServerExport : handleExport} disabled={exporting}>
+              {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {L('내보내기', 'Export')}
             </Button>
           </div>
-          <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg">
-            <div>
-              <p className="text-[13px] font-medium">{L('데이터 가져오기', 'Import Data')}</p>
-              <p className="text-[11px] text-[var(--text-secondary)]">{L('JSON 파일에서 복원', 'Restore from JSON file')}</p>
+          {/* Import */}
+          <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium">{L('백업 가져오기', 'Import backup')}</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">{L('내보낸 JSON 파일에서 복원', 'Restore from an exported JSON file')}</p>
             </div>
-            <label className="cursor-pointer">
+            <label className="cursor-pointer shrink-0">
               <span className="inline-flex items-center justify-center gap-2 rounded-[10px] font-medium transition-all duration-150 active:scale-[0.98] bg-transparent border-[1.5px] border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg)] px-3 py-1.5 text-[13px]">
                 <Upload size={14} /> {L('가져오기', 'Import')}
               </span>
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
           </div>
-          <div className="flex items-center justify-between p-3 bg-[var(--danger)]/10 rounded-lg">
-            <div>
-              <p className="text-[13px] font-medium text-[var(--danger)]">{L('데이터 초기화', 'Reset Data')}</p>
-              <p className="text-[11px] text-[var(--danger)]/70">{L('모든 저장된 데이터를 삭제', 'Deletes all saved data')}</p>
+          {/* Delete / reset */}
+          <div className="flex items-center justify-between p-3 bg-[var(--danger)]/10 rounded-lg gap-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium text-[var(--danger)]">
+                {user ? L('계정 완전 삭제', 'Delete my account') : L('데이터 초기화', 'Reset data')}
+              </p>
+              <p className="text-[11px] text-[var(--danger)]/70">
+                {user
+                  ? L('모든 데이터와 계정을 영구 삭제 — 되돌릴 수 없어요', 'Permanently erase all data + your account — cannot be undone')
+                  : L('이 브라우저의 모든 데이터를 삭제', 'Delete all data in this browser')}
+              </p>
             </div>
             <Button variant="danger" size="sm" onClick={() => setResetModal(true)}>
-              <Trash2 size={14} /> {L('초기화', 'Reset')}
+              <Trash2 size={14} /> {user ? L('계정 삭제', 'Delete') : L('초기화', 'Reset')}
             </Button>
           </div>
         </div>
       </Card>
 
-      {/* ── 5. Learning Health (conditional) ── */}
-      <LearningHealthCard />
-
-      {/* ── 6. Labs ── */}
+      {/* ── 5. Labs ── */}
       <Card>
         <div className="flex items-center gap-2 mb-1">
           <FlaskConical size={16} className="text-[var(--accent)]" />
@@ -654,16 +697,22 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      <Modal open={resetModal} onClose={() => setResetModal(false)} title={L('데이터 초기화', 'Reset Data')}>
+      <Modal open={resetModal} onClose={() => { if (!deleting) setResetModal(false); }} title={user ? L('계정 완전 삭제', 'Delete my account') : L('데이터 초기화', 'Reset data')}>
         <p className="text-[14px] text-[var(--text-primary)] mb-2">
-          {L('모든 프로젝트의 분석, 초안, 검토 이력이 영구 삭제됩니다.', 'All analyses, drafts, and review history across your projects will be permanently deleted.')}
+          {user
+            ? L('서버에 저장된 모든 데이터와 계정이 영구 삭제되고, 로그아웃됩니다.', 'All your server-stored data and your account will be permanently deleted, and you’ll be signed out.')
+            : L('이 브라우저에 저장된 모든 프로젝트·초안·검토 이력이 삭제됩니다.', 'Every project, draft, and review stored in this browser will be deleted.')}
         </p>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
-          {L('저장한 팀장과 에이전트도 함께 사라집니다. 되돌릴 수 없어요.', 'Saved bosses and agents will be cleared too. This cannot be undone.')}
+          {user
+            ? L('되돌릴 수 없어요. 필요하면 먼저 “내보내기”로 백업하세요.', 'This cannot be undone. Export a backup first if you might need it.')
+            : L('되돌릴 수 없어요.', 'This cannot be undone.')}
         </p>
         <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setResetModal(false)}>{L('취소', 'Cancel')}</Button>
-          <Button variant="danger" onClick={handleReset}>{L('삭제', 'Delete')}</Button>
+          <Button variant="secondary" onClick={() => setResetModal(false)} disabled={deleting}>{L('취소', 'Cancel')}</Button>
+          <Button variant="danger" onClick={handleReset} disabled={deleting}>
+            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} {user ? L('영구 삭제', 'Delete forever') : L('삭제', 'Delete')}
+          </Button>
         </div>
       </Modal>
     </div>
@@ -892,60 +941,3 @@ function ObservationsBlock({ locale }: { locale: string }) {
   );
 }
 
-function LearningHealthCard() {
-  const locale = useLocale();
-  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const health = useMemo(() => assessLearningHealth(), []);
-
-  // Only show once there is real underlying data — the legacy 4R flow was the
-  // only writer of these signals, so for most users this card would otherwise
-  // sit at "Tier 1 · 0 signals · not enough data" forever.
-  if (!health) return null;
-  if ((health.signal_count || 0) === 0 && (health.learning_tier || 1) <= 1) return null;
-
-  const tierLabels = { 1: L('시작', 'Start'), 2: L('학습 중', 'Learning'), 3: L('최적화', 'Optimized') } as Record<number, string>;
-  const tierColors = { 1: 'text-[var(--text-secondary)]', 2: 'text-[var(--accent)]', 3: 'text-[var(--success)]' };
-  const trendIcons = { improving: '↗', stable: '→', not_enough_data: '—' };
-  const trendLabels = { improving: L('개선 중', 'Improving'), stable: L('안정', 'Stable'), not_enough_data: L('데이터 부족', 'Not enough data') };
-
-  return (
-    <Card>
-      <div className="flex items-center gap-2 mb-4">
-        <Brain size={16} className="text-[var(--accent)]" />
-        <h3 className="text-[15px] font-bold">{L('학습 상태', 'Learning Health')}</h3>
-        <span className={`ml-auto text-[12px] font-bold ${tierColors[health.learning_tier]}`}>
-          Tier {health.learning_tier}: {tierLabels[health.learning_tier]}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div className="text-center p-2 rounded-lg bg-[var(--bg)]">
-          <p className="text-[18px] font-bold text-[var(--text-primary)]">{health.signal_count}</p>
-          <p className="text-[10px] text-[var(--text-secondary)]">{L('수집된 신호', 'Signals Collected')}</p>
-        </div>
-        <div className="text-center p-2 rounded-lg bg-[var(--bg)]">
-          <p className="text-[18px] font-bold text-[var(--text-primary)]">{health.eval_coverage}%</p>
-          <p className="text-[10px] text-[var(--text-secondary)]">{L('전략 평가율', 'Strategy Coverage')}</p>
-        </div>
-        <div className="text-center p-2 rounded-lg bg-[var(--bg)]">
-          <p className="text-[18px] font-bold text-[var(--text-primary)]">{trendIcons[health.override_trend]}</p>
-          <p className="text-[10px] text-[var(--text-secondary)]">{L('오버라이드', 'Override')} {trendLabels[health.override_trend]}</p>
-        </div>
-        <div className="text-center p-2 rounded-lg bg-[var(--bg)]">
-          <p className="text-[18px] font-bold text-[var(--text-primary)]">{trendIcons[health.convergence_trend]}</p>
-          <p className="text-[10px] text-[var(--text-secondary)]">{L('수렴 속도', 'Convergence')} {trendLabels[health.convergence_trend]}</p>
-        </div>
-      </div>
-
-      {health.recommendations.length > 0 && (
-        <div className="space-y-1">
-          {health.recommendations.map((r, i) => (
-            <p key={i} className="text-[12px] text-[var(--text-secondary)] flex items-start gap-1.5">
-              <TrendingUp size={12} className="text-[var(--accent)] shrink-0 mt-0.5" /> {r}
-            </p>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
-}
