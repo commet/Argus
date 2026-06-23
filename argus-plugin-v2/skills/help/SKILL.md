@@ -36,9 +36,10 @@ The crew, individually (sail chains these for you):
   /argus:log       voyage log across ALL sessions + your prediction record
   /argus:settle    check past predictions against reality (the contract loop)
   /argus:helm      (experimental) silent pre-approval scan of an agent plan
+  /argus:configure set the language + your Boss persona (writes .argus/config.yaml)
 
 Where things live:
-  .argus/config.yaml      locale + boss persona (auto-created, edit freely)
+  .argus/config.yaml      locale + boss persona (auto-created, or set via /argus:configure)
   .argus/sessions/<id>/   the full voyage (git-ignored by default)
 
 Lost mid-voyage? /argus:chart shows where you are and names the next command.
@@ -54,6 +55,7 @@ for the list, answer with the ONE command that fits, plus one sentence why:
 - asks "what have I decided here" / "my track record" → `/argus:log`
 - a contract reminder fired / "how did that bet go?" → `/argus:settle`
 - about to approve a generated plan → `/argus:helm`
+- wants to change the language or set up the Boss persona → `/argus:configure`
 - result felt thin / wants the full crew → `/argus:sail --full`
 
 ## Forbidden patterns
