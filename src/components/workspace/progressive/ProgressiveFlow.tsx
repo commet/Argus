@@ -2404,6 +2404,22 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <ReviewerBadge reviewerId={session.reviewer_agent_id || null} />
           </div>
 
+          {/* P1-2: the user's own pre-AI lean was invisible all through LISTEN, then
+              reappeared cold at settlement. Hold it on screen so the bind has a payoff
+              and the AI's read can be weighed against "what I said". */}
+          {(() => {
+            const lean = contractProject?.decision_contract?.predicates?.find((p) => p.source === 'user_lean')?.text;
+            if (!lean) return null;
+            return (
+              <div className="mt-2 flex items-center gap-2 px-3.5 py-2 rounded-full bg-[var(--ai)]/30 border border-[var(--border-subtle)] w-fit max-w-full">
+                <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--accent)] shrink-0">
+                  {L('내가 기운 쪽', 'My lean')}
+                </span>
+                <span className="text-[12.5px] text-[var(--text-secondary)] truncate">{lean}</span>
+              </div>
+            );
+          })()}
+
           {/* Crisis backstop (decision 3: warn + a real resource, NEVER block).
               The deterministic gate fired on round 0 → the concern + resource
               show by default and the decision machinery below is suppressed.

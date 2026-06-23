@@ -43,7 +43,7 @@ const VOYAGE_TONE_CLS: Record<string, string> = {
 };
 
 type ToolStatus = 'done' | 'in-progress' | 'not-started';
-type StatusFilter = 'all' | 'active' | 'done' | 'new';
+type StatusFilter = 'all' | 'active' | 'done' | 'new' | 'settled';
 
 function relativeDate(dateStr: string | undefined, locale: 'ko' | 'en'): string {
   if (!dateStr) return '';
@@ -254,6 +254,8 @@ export default function ProjectPage() {
     let list = sortedProjects;
     if (statusFilter !== 'all') {
       list = list.filter((p) => {
+        // P2: "Settled" = the moat — decisions followed all the way to a graded outcome.
+        if (statusFilter === 'settled') return !!p.decision_contract && contractStatus(p.decision_contract, Date.now()).allGraded;
         const m = projectMetricsMap.get(p.id);
         if (!m) return false;
         if (statusFilter === 'active') return m.hasProgress && !m.isDone;
@@ -262,7 +264,13 @@ export default function ProjectPage() {
         return true;
       });
     }
-    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
+    // P2: search the decision CONTENT (lean + predictions), not just the project name —
+    // at scale the user remembers what they decided, not the name they typed.
+    if (q) list = list.filter((p) => {
+      if (p.name.toLowerCase().includes(q)) return true;
+      const preds = p.decision_contract?.predicates;
+      return Array.isArray(preds) && preds.some((pred) => pred.text?.toLowerCase().includes(q));
+    });
     return list;
   }, [sortedProjects, query, statusFilter, projectMetricsMap]);
 
@@ -481,6 +489,7 @@ export default function ProjectPage() {
                     { key: 'all', label: L('전체', 'All'), count: stats.total },
                     { key: 'active', label: L('진행 중', 'Active'), count: stats.inProgress },
                     { key: 'done', label: L('완료', 'Done'), count: stats.done },
+                    { key: 'settled', label: L('정산됨', 'Settled'), count: sortedProjects.filter((p) => !!p.decision_contract && contractStatus(p.decision_contract, Date.now()).allGraded).length },
                     { key: 'new', label: L('시작 전', 'New'), count: stats.untouched },
                   ] as const).map((f) => {
                     const active = statusFilter === f.key;
