@@ -53,7 +53,7 @@ const LEGS: Leg[] = [
       en: 'Seal your current lean and a date to check it. Hands bound — ears open.',
     },
     img: 'bind',
-    source: 'Circe',
+    source: 'The Siren Vase',
   },
   {
     leg: { ko: '제2구간', en: 'Leg II' },
@@ -83,7 +83,7 @@ const LEGS: Leg[] = [
     },
     gold: true,
     img: 'land',
-    source: 'Ithaca',
+    source: 'Arrival',
   },
 ];
 
@@ -215,8 +215,8 @@ export function VoyagePhases() {
             style={{ color: 'var(--bp-ink-faint)', fontSize: 10, letterSpacing: '0.12em' }}
           >
             {L(
-              '동판화 · 존 플랙스먼 구성, A. 레베일 판각 — 호메로스 오디세이아(1805) · 퍼블릭 도메인',
-              'Engravings · composed by John Flaxman, engraved by A. Réveil — Homer’s Odyssey (1805) · public domain',
+              '도판 · 아테네 세이렌 도기 + 존 플랙스먼 오디세이아(A. 레베일 판각, 1805) · 퍼블릭 도메인',
+              'Plates · an Athenian Siren vase + John Flaxman’s Odyssey (engr. A. Réveil, 1805) · public domain',
             )}
           </p>
         </div>
@@ -298,7 +298,7 @@ function LegPlate({
             renders navy-on-cream in light and cream-on-charcoal in dark. */}
         <div
           role="img"
-          aria-label={L(`${leg.name.ko} — 플랙스먼의 오디세이아 동판화`, `${leg.name.en} — a Flaxman Odyssey engraving`)}
+          aria-label={L(`${leg.name.ko} — 고전 판화`, `${leg.name.en} — a classical engraving`)}
           style={{
             width: '100%',
             height: 174,
