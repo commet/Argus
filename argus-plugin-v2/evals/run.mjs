@@ -52,7 +52,11 @@ if (!KEY) {
 const { default: Anthropic } = await import('@anthropic-ai/sdk');
 const client = new Anthropic({ apiKey: KEY });
 
-const cases = JSON.parse(fs.readFileSync(path.join(__dirname, 'cases.json'), 'utf8')).cases;
+const ALL_CASES = JSON.parse(fs.readFileSync(path.join(__dirname, 'cases.json'), 'utf8')).cases;
+// EVAL_KINDS=flat,low_stakes restricts the run to those kinds (used by the tier sweep
+// to focus on the over-fire-sensitive cases without paying for the whole corpus 3x).
+const KINDS = (process.env.EVAL_KINDS || '').split(',').map((s) => s.trim()).filter(Boolean);
+const cases = KINDS.length ? ALL_CASES.filter((c) => KINDS.includes(c.kind)) : ALL_CASES;
 const sailSkill = fs.readFileSync(path.join(pluginRoot, 'skills', 'sail', 'SKILL.md'), 'utf8');
 // Fidelity: sail CHAINS clarify, and the spine-deciding gates (crisis Axis-0,
 // request-type, flat/load_bearing frame_status) live in clarify — feeding only

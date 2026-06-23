@@ -36,6 +36,12 @@ const ARTIFACTS = [
     render: (d) =>
       `${AUTO}\n\n# Crisis taxonomy (Axis-0 reference)\n\nclarify Step 1.6 screens for these BEFORE request-type. On a hit: off-ramp to a human resource, no decision verdict.\n\n${d.categories.map((c) => `- **${c.id}** — ${c.desc}`).join('\n')}\n`,
   },
+  {
+    source: 'data/contracts/course-status.json',
+    output: 'skills/_generated/course-status.md',
+    render: (d) =>
+      `${AUTO}\n\n# Course-status legend (current_course.status)\n\nThe practical course a bearing reports. Same set in the webapp + the bearing schema.\n\n${d.statuses.map((s) => `- **${s.id}** — ${s.desc}`).join('\n')}\n`,
+  },
 ];
 
 // Parity assertions: a contract whose authoritative copy lives in webapp TS (can't
@@ -52,6 +58,27 @@ const PARITY = [
     },
     expected: (d) => d.categories.map((c) => c.id),
     label: 'webapp crisis-gate CRISIS_CATEGORIES ↔ crisis-taxonomy.json',
+  },
+  {
+    source: 'data/contracts/course-status.json',
+    tsFile: '../src/lib/current-bearing.ts',
+    extract: (ts) => {
+      const m = ts.match(/export const COURSE_STATUSES\s*=\s*\[([\s\S]*?)\]\s*as const/);
+      if (!m) return null;
+      return [...m[1].matchAll(/['"]([a-z_]+)['"]/g)].map((x) => x[1]);
+    },
+    expected: (d) => d.statuses.map((s) => s.id),
+    label: 'webapp current-bearing COURSE_STATUSES ↔ course-status.json',
+  },
+  {
+    source: 'data/contracts/course-status.json',
+    tsFile: 'data/schemas/current-bearing.json',
+    extract: (text) => {
+      try { return JSON.parse(text).properties.current_course.properties.status.enum; }
+      catch { return null; }
+    },
+    expected: (d) => d.statuses.map((s) => s.id),
+    label: 'plugin bearing-schema status.enum ↔ course-status.json',
   },
 ];
 
