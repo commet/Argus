@@ -45,6 +45,7 @@ import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOption
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
   governing_idea: Target,
+  user_lean: Target,
   risk: AlertTriangle,
   actor: GitBranch,
 };

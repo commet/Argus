@@ -263,7 +263,9 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
   }
   for (const a of finalMix?.key_assumptions ?? []) {
     if (governing.length >= MAX_LIVE_GOVERNING) break;
-    const p = add({ text: a, source: 'governing_idea' });
+    // key_assumptions are AI-authored (the mix draft) — tag them ai_surfaced so a held
+    // machine assumption never inflates the user's own skill-wins in summarizeGrades (R58).
+    const p = add({ text: a, source: 'governing_idea', authored: 'ai_surfaced' });
     if (p) governing.push(p);
   }
 
@@ -346,6 +348,71 @@ export function withCheckIn(
     check_in_interval: interval,
     check_in_at: new Date(now + CHECK_IN_MS[interval]).toISOString(),
   };
+}
+
+/**
+ * Phase 1 BIND — "tie the rope before you hear the Sirens". Build a contract at
+ * project-OPEN, BEFORE any AI generation, from the user's own optional lean + an
+ * optional check-in window. This is what fills the moat: even a user who abandons
+ * mid-pipeline leaves a sealed rope, instead of nothing (the 47-projects/0-contracts
+ * void). Honest-empty invariant: with NO lean and NO interval there is nothing to
+ * commit → returns null (the caller writes zero rows; a full skip is byte-identical
+ * to the old no-contract behavior).
+ *
+ *  - lean typed   → one user_lean predicate (authored:'user', never prefilled).
+ *  - date only    → predicates:[] + check-in (a valid rope: "bind the commitment,
+ *                   ears open"). A predicate-less contract is NOT counted as a closed
+ *                   loop (contractStatus.allGraded is false when total===0) and
+ *                   resurfaces at the date; the late SealMoment AUGMENTs it with the
+ *                   run's predicates so it becomes gradeable.
+ */
+export function buildEarlyContract(
+  projectId: string,
+  opts: { lean?: string; interval?: CheckInInterval },
+  now: number,
+): DecisionContract | null {
+  const lean = opts.lean?.trim();
+  const hasLean = !!lean;
+  const hasInterval = !!opts.interval;
+  if (!hasLean && !hasInterval) return null; // honest-empty: nothing committed
+
+  const predicates: Predicate[] = hasLean
+    ? [{ id: stablePredicateId('user_lean', lean!), text: lean!, source: 'user_lean', authored: 'user' }]
+    : [];
+
+  const base: DecisionContract = {
+    id: generateId(),
+    project_id: projectId,
+    predicates,
+    created_at: new Date(now).toISOString(),
+  };
+  return opts.interval ? withCheckIn(base, opts.interval, now) : base;
+}
+
+/**
+ * "Bind tighter at peak temptation" — when the late SealMoment runs and an EARLY
+ * rope already exists, AUGMENT it instead of overwriting (the old SealMoment
+ * clobbered project.decision_contract). Preserve id / created_at / the user's
+ * own user_lean predicate / the existing check-in; APPEND the freshly-extracted
+ * predicates, de-duped by stable id (the user_lean predicate always wins on a
+ * collision — its provenance and authorship are never replaced by an AI-derived
+ * one). `interval` re-confirms/updates the check-in when provided. Pure.
+ */
+export function augmentContract(
+  existing: DecisionContract,
+  newPredicates: Predicate[],
+  now: number,
+  interval?: CheckInInterval,
+): DecisionContract {
+  const byId = new Map<string, Predicate>();
+  // Existing predicates (incl. the user_lean rope) go in first and are authoritative.
+  for (const p of Array.isArray(existing.predicates) ? existing.predicates : []) byId.set(p.id, p);
+  for (const p of newPredicates) if (!byId.has(p.id)) byId.set(p.id, p);
+  const merged: DecisionContract = {
+    ...existing,
+    predicates: [...byId.values()].slice(0, MAX_PREDICATES),
+  };
+  return interval ? withCheckIn(merged, interval, now) : merged;
 }
 
 /**
@@ -520,7 +587,9 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
     if (p.source === 'risk') {
       if (p.verdict === 'avoided') { s.risksAvoided++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; }
       else if (p.verdict === 'happened') s.risksHappened++;
-    } else if (p.source === 'governing_idea') {
+    } else if (p.source === 'governing_idea' || p.source === 'user_lean') {
+      // user_lean is the user's own pre-AI bet; it grades like a governing bet
+      // (held → betsHeld). It is authored:'user', so it never counts as ai_surfaced.
       if (p.verdict === 'happened') { s.betsHeld++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; if (p.authored === 'ai_surfaced') s.betsHeldAiSurfaced++; }
       else if (p.verdict === 'avoided') s.betsBroke++;
     } else if (p.source === 'actor') {

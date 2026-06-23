@@ -393,7 +393,7 @@ function ArrivalWaypoint({
             marginBottom: 12,
           }}
         >
-          {L('도착 — 지금의 결론 (현재 방위)', 'Arrival — your conclusion now (Current Heading)')}
+          {L('닿기 — 당신이 정할 자리 (현재 방위)', 'Land — where you decide (Current Heading)')}
         </span>
 
         <Cartouche padding={0}>
@@ -418,6 +418,23 @@ function ArrivalWaypoint({
             </div>
 
             <div style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
+              {/* The deliverable is a neutral CRUX QUESTION, never a verdict
+                  (zero-judgment spine, CLAUDE.md). The product names the one
+                  load-bearing question — it never answers it for you. */}
+              <span
+                className="bp-mono"
+                style={{
+                  display: 'block',
+                  color: 'var(--bp-ink-faint)',
+                  fontSize: 10,
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  marginBottom: 8,
+                }}
+              >
+                {L('갈림목 · 당신만 답할 수 있는 질문', 'The crux · the question only you can answer')}
+              </span>
               <h3
                 className={locale === 'ko' ? 'break-keep' : ''}
                 style={{
@@ -425,19 +442,22 @@ function ArrivalWaypoint({
                   color: 'var(--bp-ink)',
                   fontSize: 'clamp(17px, 2vw, 21px)',
                   fontWeight: 700,
-                  lineHeight: 1.25,
+                  lineHeight: 1.3,
                   margin: 0,
                 }}
               >
-                {L('신규 기능 — 한 분기 연기 권고', 'New feature — recommend deferring a quarter')}
+                {L(
+                  '이번 분기 출시 타이밍의 가치가, 법무 검토를 건너뛰는 리스크보다 큰가요?',
+                  'Is this quarter’s launch timing worth more than the risk of skipping legal review?',
+                )}
               </h3>
 
               <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <BearingField
-                  label={L('현재 항로', 'Current course')}
+                  label={L('당신이 들고 있는 결정', 'The call you’re holding')}
                   body={L(
-                    '이번 분기 출시를 멈추고 — 한 분기 연기, 법무 검토 후 재평가.',
-                    'Hold this quarter’s launch — defer one quarter, re-evaluate after legal.',
+                    '이번 분기에 신규 기능을 출시할지 — 6주를 빌드했고, 팀은 내보내고 싶어 합니다.',
+                    'Whether to launch the new feature this quarter — six weeks built, the team wants to ship.',
                   )}
                   locale={locale}
                 />
@@ -451,10 +471,10 @@ function ArrivalWaypoint({
                   locale={locale}
                 />
                 <BearingField
-                  label={L('가지 않은 길', 'Road not taken')}
+                  label={L('두 갈래, 각자의 비용', 'Each branch, its own cost')}
                   body={L(
-                    '지금 강행 출시 — 법무가 정리되기 전에 신뢰를 먼저 소진하는 길.',
-                    'Launch now anyway — spending goodwill before legal is cleared.',
+                    '지금 출시하면 — 법무가 정리되기 전 신뢰를 당겨 씁니다. 미루면 — 분기 모멘텀과 팀 사기를 내려놓습니다. 어느 쪽도 공짜는 아니에요.',
+                    'Ship now — you spend goodwill before legal clears. Hold — you give up this quarter’s momentum and team morale. Neither path is free.',
                   )}
                   locale={locale}
                 />

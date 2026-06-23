@@ -14,6 +14,7 @@ import { track } from '@/lib/analytics';
 import { STAGES } from '@/data/voyage-crew';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { HelmScene } from './illustrations/HelmScene';
+import { LegBreadcrumb } from './ui/LegBreadcrumb';
 
 export function Act3OnDeck() {
   const locale = useLocale();
@@ -73,10 +74,23 @@ export function Act3OnDeck() {
           <HelmScene stages={STAGES} locale={locale} />
         </div>
 
+        {/* Bind-first reminder at the conversion point — the spine's whole
+            argument is that you tie your rope BEFORE the song, yet first-timers
+            jump straight to the AI. Name the first move right here. */}
+        <div className="bp-fade-up flex flex-col items-center mt-10 md:mt-12" style={{ animationDelay: '440ms' }}>
+          <span
+            className="bp-mono"
+            style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: '0.2em', textTransform: 'uppercase' }}
+          >
+            {L('당신 차례 — 첫 한 걸음', 'Your turn — the first move')}
+          </span>
+          <LegBreadcrumb active="bind" />
+        </div>
+
         {/* CTA */}
         <div
-          className="bp-fade-up flex flex-col items-center mt-10 md:mt-12"
-          style={{ animationDelay: '500ms' }}
+          className="bp-fade-up flex flex-col items-center mt-6 md:mt-7"
+          style={{ animationDelay: '560ms' }}
         >
           <LocaleLink
             href="/workspace"

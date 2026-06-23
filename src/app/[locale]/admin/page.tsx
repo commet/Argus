@@ -31,6 +31,8 @@ interface Metrics {
     sessions_settled: number;
     sealed_7d: number;
     settled_7d: number;
+    plugin_sealed?: number;
+    plugin_settled?: number;
     verdicts: Record<string, number>;
   } | null;
   tables: Record<string, number>;
@@ -141,6 +143,16 @@ export default function AdminPage() {
                   <Stat label={L('정산한 세션', 'Sessions settled')} value={r.sessions_settled}
                     hint={`${L('봉인 세션', 'sealed sess')} ${r.sessions_sealed}`} />
                 </div>
+
+                {/* Plugin-cohort moat (argus-watch seal/settle via the bridge tables) */}
+                {(r.plugin_sealed != null || r.plugin_settled != null) && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
+                    <Stat label={L('플러그인 봉인', 'Plugin sealed')} value={r.plugin_sealed ?? 0}
+                      hint={L('argus-watch seal', 'argus-watch seal')} />
+                    <Stat label={L('플러그인 정산', 'Plugin settled')} value={r.plugin_settled ?? 0}
+                      hint={L('현실과 대조됨', 'checked vs reality')} />
+                  </div>
+                )}
 
                 {r.settled_total > 0 && verdictPairs.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-2">
