@@ -30,34 +30,38 @@ type Chapter = {
   lineKo: string; lineEn: string;
 };
 
+// Myth lines echo Homer (Pope's 1725 verse — public domain): the binding that
+// holds against your own pleading; the Sirens' lure of total knowledge ("we
+// know all that comes to pass"), which IS the AI metaphor; the homecoming; old
+// Argos who alone knew his master. Service lines map to Argus's real features.
 const CHAPTERS: Chapter[] = [
   {
     num: 'I', ko: '묶기', en: 'Bind', from: 6, to: 12.6,
-    mythKo: '노래를 듣기 전에, 돛대에 자신을 묶는다.',
-    mythEn: 'Before the song, he binds himself to the mast.',
-    lineKo: 'AI에게 묻기 전에 — 당신의 판단과 확인할 날을 먼저 봉인합니다.',
-    lineEn: 'Before you ask the AI — you seal your own call, and the day to check it.',
+    mythKo: '나를 돛대에 묶어라 — 내가 풀어달라 빌어도, 더 단단히.',
+    mythEn: 'Bind me to the mast — and though I plead, bind me the tighter.',
+    lineKo: 'AI를 만나기 전에, 당신의 판단과 확인할 날을 먼저 정해 둡니다.',
+    lineEn: 'Before you face the AI, you set your own call — and a day to check it.',
   },
   {
     num: 'II', ko: '듣기', en: 'Listen', from: 14.2, to: 21,
-    mythKo: '노래는 다 듣되, 키는 내주지 않는다.',
-    mythEn: 'He hears all of it, but never yields the helm.',
-    lineKo: 'AI는 마음껏 분석하지만, 봉인한 결론은 건드리지 못합니다.',
-    lineEn: 'The AI analyzes all it wants — but can’t touch the call you sealed.',
+    mythKo: '이리 와 들으라 — 우리는 땅 위의 모든 일을 아노니.',
+    mythEn: 'Come hither and hear — for we know all that comes to pass on earth.',
+    lineKo: 'AI는 당신의 계획을 진짜로 읽어요 — 놓친 건 짚되, 결정은 당신 몫.',
+    lineEn: 'The AI truly reads your plan — it flags what you missed, but the call stays yours.',
   },
   {
     num: 'III', ko: '닿기', en: 'Land', from: 23, to: 30,
-    mythKo: '노래가 지나가면, 배는 뭍에 닿는다.',
-    mythEn: 'The song passes; the ship reaches shore.',
-    lineKo: '정한 날, Argus가 돌아와 물어요 — “그래서, 어떻게 됐어요?”',
-    lineEn: 'On your day, Argus comes back to ask — “So, how did it go?”',
+    mythKo: '노래가 잦아들고, 그는 제 땅의 기슭에 내려선다.',
+    mythEn: 'The song falls silent; he sets foot on his own shore.',
+    lineKo: '정한 날, Argus가 돌아와 묻습니다 — “그래서, 어떻게 됐어요?”',
+    lineEn: 'On your day, Argus returns and asks — “So, how did it go?”',
   },
   {
     num: 'IV', ko: '알아봄', en: 'Recognition', from: 32, to: 39.4, gold: true,
-    mythKo: '충견만이, 진짜 주인을 알아본다.',
-    mythEn: 'Only the faithful dog knows its true master.',
-    lineKo: '쌓인 당신의 기록이, AI의 장담을 당신의 실제로 바꿉니다.',
-    lineEn: 'Your own record turns the AI’s certainty into your reality.',
+    mythKo: '스러져 가던 늙은 개만이, 옛 주인을 알아보았다.',
+    mythEn: 'Only old Argos, failing, knew his master still.',
+    lineKo: '쌓인 당신만의 기록이, 어떤 AI의 장담보다 당신을 잘 압니다.',
+    lineEn: 'Your own record, kept over time, knows you better than any AI’s certainty.',
   },
 ];
 
