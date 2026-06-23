@@ -238,12 +238,12 @@ export function DecisionContractCard({
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-[15px] font-bold text-[var(--text-primary)]">
-              {L('이 결정을 예측으로 봉인하기', 'Seal this decision as predictions')}
+              {L('이 결정, 나중에 어떻게 됐는지 물어봐 드릴까요?', 'Want me to ask you later how this turned out?')}
             </h3>
             <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
               {L(
-                `이번 항해에서 ${candidate.predicates.length}가지를 예측했어요. 정한 날짜에 다시 와서, 실제로 맞았는지 직접 확인해 보세요 — 판단의 고리를 닫는 일이에요.`,
-                `You made ${candidate.predicates.length} predictions this voyage. Come back on your chosen date and check, for yourself, whether they held — closing the loop on your own call.`,
+                '정한 날에 이 결정으로 한 번 돌아와, 실제로 어떻게 됐는지 직접 확인하는 거예요 — 판단의 고리를 닫는 일이죠.',
+                "On the day you choose, you'll come back to this decision and check, for yourself, how it actually went — closing the loop on your own call.",
               )}
             </p>
 
@@ -252,7 +252,7 @@ export function DecisionContractCard({
                 onClick={() => setSealOpen(true)}
                 className="mt-3 text-[12.5px] font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
-                {L('예측 보기 & 봉인', 'Review & seal')} <ChevronDown size={14} />
+                {L('그날 물어볼 것들 보기', 'See what I’ll ask')} <ChevronDown size={14} />
               </button>
             ) : (
               <div className="mt-3 space-y-3">
@@ -278,7 +278,7 @@ export function DecisionContractCard({
                   </div>
                 </div>
                 <Button variant="primary" size="sm" onClick={seal}>
-                  {L('약속하고 봉인', 'Commit & seal')}
+                  {L('네 — 그날 물어봐 주세요', "Yes — ask me that day")}
                 </Button>
               </div>
             )}
@@ -291,7 +291,10 @@ export function DecisionContractCard({
   const predicates = Array.isArray(contract!.predicates) ? contract!.predicates : [];
 
   // ════ State 4: VERIFIED ════
-  if (status!.allGraded) {
+  // P2: allow re-grading a mistaken verdict — when gradeOpen, fall through to the
+  // grade panel below instead of the read-only verified card (gradePredicate already
+  // supports re-grading back to pending).
+  if (status!.allGraded && !gradeOpen) {
     const g = summarizeGrades(contract!);
     const parts = [
       g.risksAvoided > 0 && L(`위험 ${g.risksAvoided}개 회피`, `${g.risksAvoided} risk${g.risksAvoided === 1 ? '' : 's'} avoided`),
@@ -319,6 +322,12 @@ export function DecisionContractCard({
             <div className="mt-3">
               <PredicateList predicates={predicates} ko={ko} showVerdict />
             </div>
+            <button
+              onClick={() => setGradeOpen(true)}
+              className="mt-2 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+            >
+              {L('잘못 표시했어요 — 고치기', 'Marked one wrong — edit')}
+            </button>
           </div>
         </div>
       </Card>
@@ -429,6 +438,14 @@ export function DecisionContractCard({
                 <p className="text-[11.5px] text-[var(--text-tertiary)] pt-0.5">
                   {L(`${status!.graded}/${status!.total} 확인했어요`, `${status!.graded}/${status!.total} checked`)}
                 </p>
+              )}
+              {gradeOpen && !due && (
+                <button
+                  onClick={() => setGradeOpen(false)}
+                  className="text-[11.5px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
+                >
+                  {L('완료', 'Done')}
+                </button>
               )}
             </div>
           )}

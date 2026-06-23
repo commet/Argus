@@ -16,7 +16,7 @@ import { generateProjectBrief } from '@/lib/project-brief';
 import { OutputSelector } from '@/components/ui/OutputSelector';
 import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, Trash2 } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
@@ -71,7 +71,7 @@ interface StepStatus {
 export default function ProjectPage() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const { projects, currentProjectId, loadProjects, setCurrentProjectId } = useProjectStore();
+  const { projects, currentProjectId, loadProjects, setCurrentProjectId, deleteProject } = useProjectStore();
   const { items: reframeItems, loadItems: loadReframe } = useReframeStore();
   const { items: recastItems, loadItems: loadRecast } = useRecastStore();
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
@@ -406,7 +406,7 @@ export default function ProjectPage() {
               <FileText size={24} className="mx-auto text-[var(--text-secondary)] mb-3" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 프로젝트가 없습니다', 'No projects yet')}</p>
               <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-xs mx-auto">
-                {L('워크스페이스에서 프로젝트를 만들면, 4단계 프로세스의 진행 상황을 여기서 한눈에 확인할 수 있습니다.', 'Create a project in your workspace and track the 4-stage process progress here at a glance.')}
+                {L('워크스페이스에서 결정을 시작하면, 봉인한 결정과 확인일이 여기 모여요 — 그날 “어떻게 됐는지” 돌아보는 곳이에요.', "Start a decision in your workspace, and your sealed decisions and check-in dates gather here — the place you come back to see how each one went.")}
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
                 <LocaleLink href="/workspace">
@@ -415,7 +415,7 @@ export default function ProjectPage() {
                   </button>
                 </LocaleLink>
                 <LocaleLink href="/workspace?demo=planning" className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors">
-                  {L('또는 30초 데모 먼저 보기 →', 'Or see a 30-second demo first →')}
+                  {L('또는 데모 먼저 보기 →', 'Or see a quick demo first →')}
                 </LocaleLink>
               </div>
             </Card>
@@ -738,11 +738,27 @@ export default function ProjectPage() {
           <Card>
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{currentProject.name}</h2>
-              {currentHasVoyage && (
-                <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
-                  {currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
-                </span>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {currentHasVoyage && (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
+                    {currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
+                  </span>
+                )}
+                {/* P2: per-project delete — deleteProject existed but was wired to no UI;
+                    the only deletion was an all-data reset. Soft-deletes server-side too. */}
+                <button
+                  onClick={() => {
+                    if (window.confirm(L('이 결정을 삭제할까요? 되돌릴 수 없어요.', 'Delete this decision? This cannot be undone.'))) {
+                      deleteProject(currentProject.id);
+                      setCurrentProjectId(null);
+                    }
+                  }}
+                  title={L('삭제', 'Delete')}
+                  className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--danger,#dc2626)] hover:bg-[var(--surface)] cursor-pointer transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
             {!currentHasVoyage && (
               <div className="flex items-center gap-3 mt-2">
