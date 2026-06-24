@@ -3,6 +3,7 @@ import { adminClient } from '@/lib/share-guard';
 import { reframeSystemPrompt, deeperSuffix, coerceReframe, reframeToMarkdown, REFRAME_TOOL_SCHEMA, questionSystemPrompt, coerceQuestion, questionToMarkdown, QUESTION_TOOL_NAME, QUESTION_TOOL_SCHEMA } from '@/lib/reframe-core';
 import { sealSystemPrompt, coerceSealDraft, sealPreviewMarkdown, formatCheckBy, parseCheckBy, SEAL_TOOL_NAME, SEAL_TOOL_SCHEMA } from '@/lib/seal-core';
 import { rehearseSystemPrompt, buildRehearseUser, coerceRehearse, rehearseToMarkdown, REHEARSE_PRESETS, REHEARSE_TOOL_NAME, REHEARSE_TOOL_SCHEMA } from '@/lib/rehearse-core';
+import { recordSummaryMarkdown } from '@/lib/record-core';
 import { callAnthropicJson } from '@/lib/llm-server';
 import { markdownToTelegramHtml, markdownToTelegramLight as lightHtml } from '@/lib/telegram-format';
 import { tgSendMessage as sendMessage, tgSendChatAction, tgAnswerCallback as answerCallback } from '@/lib/telegram-api';
@@ -207,6 +208,25 @@ async function handleQuestion(chatId: number | string, userId: string): Promise<
   }
   const title = locale === 'ko' ? '질문 다시 세우기' : 'Reframing the question';
   await sendMessage(chatId, markdownToTelegramHtml(title, questionToMarkdown(q, locale)), questionKeyboard(locale));
+}
+
+// ── Track record (자차표) — the visible payoff of the seal/settle loop ──
+async function showRecord(chatId: number | string, userId: string): Promise<void> {
+  const { data } = await adminClient()
+    .from('telegram_decisions').select('status, outcome').eq('user_id', userId);
+  const rows = data ?? [];
+  const counts = {
+    open: rows.filter((r) => r.status === 'sealed').length,
+    settled: rows.filter((r) => r.status === 'settled').length,
+    happened: rows.filter((r) => r.outcome === 'happened').length,
+    avoided: rows.filter((r) => r.outcome === 'avoided').length,
+    partial: rows.filter((r) => r.outcome === 'partial').length,
+  };
+  await sendMessage(chatId, lightHtml(recordSummaryMarkdown(counts, 'ko')));
+}
+
+function recordButton(locale: 'ko' | 'en') {
+  return { inline_keyboard: [[{ text: locale === 'ko' ? '📊 내 기록' : '📊 My record', callback_data: 'rc:show' }]] };
 }
 
 // ── Rehearse: simulate a stakeholder's reaction ──
@@ -428,7 +448,7 @@ async function handleSettle(chatId: number | string, userId: string, payload: st
       ? `\n정산 ${settled}건째 — 이제 당신의 판단 기록이 쌓이고 있어요.`
       : `\n${settled} settled — your track record is building.`;
   }
-  await sendMessage(chatId, lightHtml(msg));
+  await sendMessage(chatId, lightHtml(msg), recordButton(locale));
 }
 
 // ── /start connect flow ──
@@ -530,6 +550,8 @@ export async function POST(req: NextRequest) {
         await handleSealConfirm(chatId, userId, data.slice(3));
       } else if (data.startsWith('st:')) {
         await handleSettle(chatId, userId, data.slice(3));
+      } else if (data === 'rc:show') {
+        await showRecord(chatId, userId);
       }
     } catch (err) {
       console.error('[telegram/webhook] callback failed:', err);
@@ -549,6 +571,25 @@ export async function POST(req: NextRequest) {
   const startMatch = /^\/start(?:\s+(\S+))?/.exec(text);
   if (startMatch) {
     await handleStart(chat, startMatch[1]);
+    return NextResponse.json({ ok: true });
+  }
+  if (text === '/record' || text === '/stats') {
+    const userId = await userForChat(chat.id);
+    if (userId) await showRecord(chat.id, userId);
+    else await sendMessage(chat.id, '먼저 웹앱 설정에서 Telegram을 연결해 주세요.');
+    return NextResponse.json({ ok: true });
+  }
+  if (text === '/help') {
+    await sendMessage(chat.id, lightHtml([
+      '🧭 **Argus 봇 쓰는 법**',
+      '',
+      '고민이나 결정을 **그냥 메시지로** 보내면 숨은 전제를 짚어 드려요.',
+      '결과 아래 버튼으로:',
+      '• 🔍 더 깊이 / 🎯 진짜 질문 / 🎭 리허설',
+      '• 🔒 봉인 — 정한 날 "어떻게 됐어요?" 하고 돌아와 물어봐요',
+      '',
+      '/record — 내 결정 기록 보기',
+    ].join('\n')));
     return NextResponse.json({ ok: true });
   }
   // Ignore other slash-commands quietly.
