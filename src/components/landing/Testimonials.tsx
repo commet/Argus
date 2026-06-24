@@ -54,8 +54,8 @@ export function Testimonials() {
       aria-labelledby="voices-heading"
       style={{
         background: 'var(--bp-paper)',
-        paddingTop: 'clamp(44px, 6vh, 72px)',
-        paddingBottom: 'clamp(64px, 9vh, 110px)',
+        paddingTop: 'clamp(26px, 3.5vh, 44px)',
+        paddingBottom: 'clamp(32px, 4.5vh, 56px)',
       }}
     >
       <PaperGrain opacity={0.04} />

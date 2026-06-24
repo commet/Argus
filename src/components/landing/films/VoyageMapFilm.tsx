@@ -58,10 +58,10 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
   // navTy / revealTy re-tuned to center the content in the shorter (more
   // rectangular) stage below — the route + cartouches sit a touch higher so the
   // chart fills the band instead of floating in empty parchment.
-  const navS = 0.92, focusX = 560, navTy = -52;
-  const navTx = clamp(focusX - navS * shipX, 1000 - navS * 2200, 60);
+  const navS = 0.92, focusX = 620, navTy = -52;
+  const navTx = clamp(focusX - navS * shipX, 1240 - navS * 2200, 60);
   const r = smooth((t - 22600) / 3200);
-  const revealS = 0.49, revealTx = 0, revealTy = 92;
+  const revealS = 0.52, revealTx = 48, revealTy = 92;
   const S = navS + (revealS - navS) * r;
   const Tx = navTx + (revealTx - navTx) * r;
   const Ty = navTy + (revealTy - navTy) * r;

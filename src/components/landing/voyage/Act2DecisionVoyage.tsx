@@ -32,7 +32,7 @@ export function Act2DecisionVoyage() {
       style={{
         background: 'var(--bp-paper)',
         paddingTop: 'clamp(40px, 5vh, 64px)',
-        paddingBottom: 'clamp(44px, 6vh, 72px)',
+        paddingBottom: 'clamp(26px, 3.5vh, 44px)',
       }}
     >
       <PaperGrain opacity={0.045} />
@@ -91,20 +91,20 @@ export function Act2DecisionVoyage() {
 
         {/* The canonical input lives in the hero; here, a single quiet link. */}
         <div className="bp-fade-up mt-12 md:mt-14 text-center" style={{ animationDelay: '440ms' }}>
+          {/* A prominent text-CTA — no box (keeps the logbook restraint), but
+              clearly tappable: larger/bolder, an ink underline that warms to gold
+              and an arrow that slides on hover. */}
           <LocaleLink
             href="/workspace"
-            className="inline-flex items-center"
-            style={{
-              fontWeight: 600,
-              color: 'var(--bp-ink)',
-              fontSize: 13,
-              letterSpacing: '0.04em',
-              borderBottom: '1px solid var(--bp-ink)',
-              paddingBottom: 4,
-              minHeight: 44,
-            }}
+            className="group inline-flex items-center gap-2 text-[var(--bp-ink)] hover:text-[var(--bp-gold-deep)] transition-colors"
+            style={{ fontWeight: 700, fontSize: 'clamp(15px, 1.5vw, 17px)', letterSpacing: '0.01em', minHeight: 44 }}
           >
-            {L('내 결정으로 직접 해보기', 'Try it with my own decision')}
+            <span className="border-b-2 border-[var(--bp-ink)] group-hover:border-[var(--bp-gold-deep)] transition-colors" style={{ paddingBottom: 3 }}>
+              {L('내 결정으로 직접 해보기', 'Try it with my own decision')}
+            </span>
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">
+              <path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </LocaleLink>
           <p
             className="mt-4"
