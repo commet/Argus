@@ -150,12 +150,10 @@ export function VoyageFilm() {
         autoPlay muted loop playsInline preload="metadata"
         poster="/voyage/voyage-poster.jpg"
         aria-label={L('오디세우스의 항해 — 묶기, 듣기, 닿기, 그리고 알아봄', "Odysseus's voyage — bind, listen, land, and recognition")}
-        // contain, not cover: on wide screens a cropped band always loses either
-        // the top (masts/heads) or the bottom — so show the WHOLE 16:9 frame and
-        // let the cream margins fall to the sides. The plate's own cream blends
-        // into the band background, so it reads as an engraving on paper, never a
-        // letterboxed video. (On mobile the band is already 16:9, so no margins.)
-        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', background: 'var(--bp-paper)' }}
+        // cover, but the band itself is now 16:9 (SirenHero), so cover fills the
+        // width edge-to-edge with no crop and no margins — full-bleed AND whole.
+        // (It only crops a sliver on very tall viewports where max-h caps it.)
+        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', background: 'var(--bp-paper)' }}
       >
         <source src="/voyage/voyage-film.mp4" type="video/mp4" />
       </video>
@@ -215,10 +213,12 @@ export function VoyageFilm() {
             >
               <Lines text={L(active.mythKo, active.mythEn)} />
             </p>
-            {/* attribution — who/when, so a newcomer can place the quote. */}
+            {/* attribution — who/when, so a newcomer can place the quote.
+                Set in the body sans (NOT mono — JetBrains Mono has no Korean
+                glyphs, so the KO line was falling back to an ugly default). */}
             <p
-              className={`bp-mono ${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, marginBottom: 13, fontSize: 'clamp(9px, 0.85vw, 10px)', fontWeight: 600, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', opacity: 1, letterSpacing: '0.02em', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}
+              className={`${locale === 'ko' ? 'break-keep' : ''}`}
+              style={{ margin: 0, marginBottom: 13, fontSize: 'clamp(11px, 1.05vw, 12.5px)', fontWeight: 500, fontStyle: 'italic', color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', opacity: 1, letterSpacing: '0.01em', textShadow: '0 0 2px var(--bp-paper), 0 0 7px var(--bp-paper), 0 0 12px var(--bp-paper)' }}
             >
               — {L(active.attrKo, active.attrEn)}
             </p>
