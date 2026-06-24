@@ -114,7 +114,7 @@ export function Act2DecisionVoyage() {
       aria-labelledby="trail-heading"
       style={{
         background: 'var(--bp-paper)',
-        paddingTop: 'clamp(80px, 10vh, 120px)',
+        paddingTop: 'clamp(40px, 5vh, 64px)',
         paddingBottom: 'clamp(80px, 10vh, 120px)',
       }}
     >
@@ -140,15 +140,11 @@ export function Act2DecisionVoyage() {
         >
           {locale === 'ko' ? (
             <>
-              하나의 결정이,
-              <br />
-              <span style={{ color: 'var(--bp-ink-soft)' }}>항해되는 모습.</span>
+              하나의 결정이, <span style={{ color: 'var(--bp-ink-soft)' }}>항해되는 모습.</span>
             </>
           ) : (
             <>
-              One decision,
-              <br />
-              <span style={{ color: 'var(--bp-ink-soft)' }}>being navigated.</span>
+              One decision, <span style={{ color: 'var(--bp-ink-soft)' }}>being navigated.</span>
             </>
           )}
         </h2>
