@@ -4,18 +4,28 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { track } from '@/lib/analytics';
 import type { CheckInInterval } from '@/stores/types';
 
 /**
  * Phase 1 — BIND ("묶기"). Shown BEFORE the AI's answer is revealed, while the
  * initial analysis runs in parallel (buffered). The user MAY tie a rope: their own
- * one-line lean + a check-in window. Everything is optional; the dominant action is
- * to skip. This is "tie the rope before you hear the Sirens" — and it is what seeds
- * a decision_contract at OPEN so the moat fills even on mid-pipeline abandonment.
+ * one-line lean + a check-in window. This is "tie the rope before you hear the
+ * Sirens" — and it seeds a decision_contract at OPEN so the moat fills even on
+ * mid-pipeline abandonment.
+ *
+ * TWO-DOOR PASS-THROUGH (founder decision 2026-06-24, seal analysis §6): the two
+ * exits — "이대로 묶기" (write your line) and "아직 모르겠어요 — 그대로 들을게요"
+ * (not sure → just listen) — carry EQUAL visual weight. The prior design made skip
+ * visually dominant; in practice everyone skipped and the phase produced an empty
+ * rope. Equal doors nudge a line WITHOUT a forced-typing gate: "not sure" is still
+ * one tap and loses nothing, but it is an explicit, recorded stance
+ * (`bind_stance {committed:false}`) rather than a greased default — so no one
+ * passes the song unmarked. This SUPERSEDES the old "skip must be visually
+ * dominant" invariant; the no-forced-typing floor below is unchanged.
  *
  * SPINE INVARIANTS (do not regress):
- *  - The skip is unconditional and visually dominant (Enter = skip). Never a
- *    forced-typing gate — a tired user taps once and proceeds, losing nothing.
+ *  - Never a forced-typing gate — "아직 모르겠어요" is always one tap, loses nothing.
  *  - The lean field is NEVER prefilled from any model output (no borrowed rope).
  *  - No two-pole fork, no directional statement, no score. One neutral prompt.
  *  - On skip we fake nothing: onProceed(null) writes zero contract rows.
@@ -65,10 +75,18 @@ export function BindCard({
   const trimmed = lean.trim();
   const hasCommitment = trimmed.length > 0 || interval !== null || customDate !== '';
 
-  const tie = () => onProceed(hasCommitment
-    ? { lean: trimmed || undefined, interval: customDate ? undefined : (interval ?? undefined), check_in_at: customDate ? new Date(customDate).toISOString() : undefined }
-    : null);
-  const skip = () => onProceed(null);
+  const tie = () => {
+    track('bind_stance', { committed: true, lean: !!trimmed, dated: !!(interval || customDate) });
+    onProceed(hasCommitment
+      ? { lean: trimmed || undefined, interval: customDate ? undefined : (interval ?? undefined), check_in_at: customDate ? new Date(customDate).toISOString() : undefined }
+      : null);
+  };
+  // An explicit "not sure" stance — recorded, not silence, so the funnel can tell a
+  // conscious pass-through from an abandonment (two-door rationale, §6).
+  const skip = () => {
+    track('bind_stance', { committed: false });
+    onProceed(null);
+  };
 
   // Resolve a relative interval to a concrete date so "2주" reads as "2주 · 7월 8일".
   const dateLabel = (iv: CheckInInterval) => {
@@ -164,28 +182,28 @@ export function BindCard({
           </p>
         )}
 
-        <div className="mt-6 flex items-center justify-between gap-3">
-          {/* Dominant, unconditional skip. */}
+        {/* Two equal doors (founder decision 2026-06-24): neither greased. "아직
+            모르겠어요" is still one tap and loses nothing; tying needs a line/date. */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={skip}
-            className="text-[13.5px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="inline-flex items-center justify-center rounded-xl border border-[var(--border-subtle)] px-4 py-2.5 text-[13.5px] font-semibold text-[var(--text-secondary)] hover:border-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
           >
-            {L('아직 잘 모르겠어요 →', "I'm not sure yet →")}
+            {L('아직 모르겠어요 — 그대로', "Not sure — just listen")}
           </button>
 
-          {/* Secondary — only meaningful once there's something to tie. */}
           <button
             type="button"
             onClick={tie}
             disabled={!hasCommitment}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13.5px] font-semibold transition-opacity ${
+            className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-[13.5px] font-semibold transition-colors ${
               hasCommitment
                 ? 'bg-[var(--primary)] text-[var(--bg)]'
-                : 'cursor-default bg-[var(--surface-2)] text-[var(--text-tertiary)] opacity-50'
+                : 'cursor-default border border-[var(--border-subtle)] bg-transparent text-[var(--text-tertiary)] opacity-60'
             }`}
           >
-            {L('묶고 계속', 'Tie it & continue')}
+            {L('이대로 묶기', 'Tie this in')}
             <ArrowRight size={15} />
           </button>
         </div>
