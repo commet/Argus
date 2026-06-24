@@ -29,6 +29,15 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  // Hold the latest onClose in a ref so the focus-trap effect below does NOT list
+  // it as a dependency. Callers pass a fresh inline arrow (`onClose={() => ...}`)
+  // every render, so an onClose dep made the effect tear down + re-run on EVERY
+  // keystroke — the cleanup yanked focus back to the trigger button and the
+  // re-run refocused the input one frame later. That focus bounce broke IME
+  // composition (Korean died, English dropped characters) and made the input feel
+  // like it only accepted one character ("한 글자 이상 안 쳐짐").
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   // Portal target only exists in the browser — gate on mount to avoid an
   // SSR/hydration mismatch.
   const [mounted, setMounted] = useState(false);
@@ -52,7 +61,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -88,7 +97,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       // Return focus to the trigger that opened the dialog
       previouslyFocusedRef.current?.focus?.();
     };
-  }, [open, mounted, onClose]);
+  }, [open, mounted]);
 
   if (!open || !mounted) return null;
 

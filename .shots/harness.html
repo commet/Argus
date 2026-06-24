@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=Noto+Serif+KR:wght@600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bp-paper:#f4ede0; --bp-paper-deep:#ebe2d0; --bp-ink:#1a2a3a;
+  --bp-ink-soft:#4a6180; --bp-ink-faint:rgba(26,42,58,.18);
+  --bp-gold:#96782e; --bp-gold-deep:#7a6224; --bp-lure:#a4452f;
+  --font-display:'Noto Serif KR',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+.stage{position:relative;width:1280px;height:720px;overflow:hidden;background:var(--bp-paper)}
+.stage img.film{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.toprule{position:absolute;top:0;left:0;right:0;height:2px;background:var(--bp-gold);z-index:3}
+
+/* ── NEW frosted local reading surface (variant B) ── */
+.frost{
+  position:absolute;left:0;bottom:0;z-index:1;pointer-events:none;
+  width:min(740px,72%);height:min(60%,378px);
+  -webkit-backdrop-filter:blur(7px) saturate(1.03) brightness(1.05);
+  backdrop-filter:blur(7px) saturate(1.03) brightness(1.05);
+  background:linear-gradient(to top right, color-mix(in srgb, var(--bp-paper) 46%, transparent), transparent 66%);
+  -webkit-mask-image:radial-gradient(125% 122% at 2% 100%, #000 40%, transparent 74%);
+  mask-image:radial-gradient(125% 122% at 2% 100%, #000 40%, transparent 74%);
+}
+
+.cap{position:absolute;left:77px;bottom:86px;max-width:640px;z-index:2;text-align:left}
+.row{display:flex;align-items:center;gap:26px}
+.folio{flex:none;align-self:flex-start;font-family:var(--font-display);font-weight:700;
+  font-size:141px;line-height:.78;color:transparent;-webkit-text-stroke:1.25px var(--folioc,var(--bp-ink));
+  opacity:.22;user-select:none}
+/* variant B numeral: filled + halo so it actually reads */
+.folioB{color:color-mix(in srgb, var(--folioc,var(--bp-ink)) 100%, transparent);
+  -webkit-text-stroke:0;opacity:.30;
+  text-shadow:0 0 2px var(--bp-paper),0 0 9px var(--bp-paper),0 0 20px var(--bp-paper)}
+.spine{flex:none;width:1.5px;align-self:stretch;background:var(--bp-gold);opacity:.75}
+.body{flex:1;min-width:0}
+.eyebrow{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:13px;
+  text-transform:uppercase;font-weight:700;letter-spacing:.28em;color:var(--bp-ink);
+  text-shadow:0 0 2px var(--bp-paper),0 0 5px var(--bp-paper),0 0 10px var(--bp-paper)}
+.quote{margin-top:16px;font-family:'Nanum Myeongjo',var(--font-display),serif;font-weight:700;
+  font-size:31px;line-height:1.34;letter-spacing:.005em;max-width:42ch;color:var(--qink,var(--bp-ink));
+  word-break:keep-all;
+  text-shadow:0 0 1px var(--bp-paper),0 0 3px var(--bp-paper),0 0 9px var(--bp-paper),0 0 16px var(--bp-paper)}
+.tail{margin-top:18px}
+.attr{margin:0 0 10px;font-style:italic;font-weight:500;font-size:14px;color:var(--bp-ink-soft);
+  letter-spacing:.01em;word-break:keep-all;
+  text-shadow:0 0 1px var(--bp-paper),0 0 3px var(--bp-paper),0 0 8px var(--bp-paper),0 0 14px var(--bp-paper)}
+.svc{margin:0;font-weight:600;font-size:20px;line-height:1.45;color:var(--bp-ink);
+  letter-spacing:-.006em;max-width:44ch;word-break:keep-all;
+  text-shadow:0 0 1px var(--bp-paper),0 0 3px var(--bp-paper),0 0 8px var(--bp-paper),0 0 14px var(--bp-paper)}
+</style></head>
+<body>
+<div class="stage" id="stage">
+  <img class="film" id="film" src="">
+  <div class="frost" id="frost"></div>
+  <div class="toprule"></div>
+  <div class="cap">
+    <div class="row">
+      <div class="folio folioB" id="folio">I</div>
+      <div class="spine"></div>
+      <div class="body">
+        <span class="eyebrow" id="eyebrow">I · 묶기</span>
+        <div class="quote" id="quote">“나를 돛대에 묶어라. 풀어달라 빌어도, 더 단단히.”</div>
+        <div class="tail">
+          <p class="attr" id="attr">— 오디세우스, 세이렌을 앞두고 스스로를 묶으며</p>
+          <p class="svc" id="svc">묻기 전에, 지금 내 판단부터 적어 둬요.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

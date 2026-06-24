@@ -57,6 +57,7 @@ const MAX_ACTORS = 2;
 const MAX_LIVE_GOVERNING = 2;
 
 export const CHECK_IN_MS: Record<CheckInInterval, number> = {
+  '3d': 3 * DAY_MS,
   '1w': 7 * DAY_MS,
   '2w': 14 * DAY_MS,
   '1m': 30 * DAY_MS,
@@ -368,13 +369,17 @@ export function withCheckIn(
  */
 export function buildEarlyContract(
   projectId: string,
-  opts: { lean?: string; interval?: CheckInInterval },
+  opts: { lean?: string; interval?: CheckInInterval; check_in_at?: string },
   now: number,
 ): DecisionContract | null {
   const lean = opts.lean?.trim();
   const hasLean = !!lean;
-  const hasInterval = !!opts.interval;
-  if (!hasLean && !hasInterval) return null; // honest-empty: nothing committed
+  // A custom picked date (check_in_at) is a check-in just like a relative interval.
+  const customDate = opts.check_in_at && !Number.isNaN(Date.parse(opts.check_in_at))
+    ? new Date(opts.check_in_at).toISOString()
+    : undefined;
+  const hasCheckIn = !!opts.interval || !!customDate;
+  if (!hasLean && !hasCheckIn) return null; // honest-empty: nothing committed
 
   const predicates: Predicate[] = hasLean
     ? [{ id: stablePredicateId('user_lean', lean!), text: lean!, source: 'user_lean', authored: 'user' }]
@@ -386,6 +391,9 @@ export function buildEarlyContract(
     predicates,
     created_at: new Date(now).toISOString(),
   };
+  // A specific picked date overrides the relative interval (real outcomes often
+  // land on a known day — a launch, a result — that isn't 3d/1w/2w/1m).
+  if (customDate) return { ...base, check_in_at: customDate };
   return opts.interval ? withCheckIn(base, opts.interval, now) : base;
 }
 

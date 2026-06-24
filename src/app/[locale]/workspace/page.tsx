@@ -21,7 +21,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract } from '@/lib/decision-contract';
-import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers } from 'lucide-react';
+import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, Bot, Users, BookOpen } from 'lucide-react';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { LocaleLink } from '@/components/ui/LocaleLink';
@@ -389,7 +389,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
         const early = buildEarlyContract(pid, bind, Date.now());
         if (early) {
           updateProject(pid, { decision_contract: early });
-          track('decision_sealed', { source: 'bind_open', anonymous: !user, has_lean: !!bind.lean, has_date: !!bind.interval });
+          track('decision_sealed', { source: 'bind_open', anonymous: !user, has_lean: !!bind.lean, has_date: !!(bind.interval || bind.check_in_at) });
         }
       }
       progressiveStore.createSession(pid, text, reviewerAgentId);
@@ -473,56 +473,6 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
           {phase === 'idle' && (
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4, ease: EASE }}>
-
-              {/* Returning user: previous projects — compact rows.
-                  Show 3 most recently updated projects (fall back to created_at when missing). */}
-              {projects.length > 0 && (() => {
-                const sorted = [...projects].sort((a, b) => {
-                  const aT = a.updated_at || a.created_at || '';
-                  const bT = b.updated_at || b.created_at || '';
-                  return bT.localeCompare(aT);
-                });
-                const shown = showAllProjects ? sorted : sorted.slice(0, 3);
-                const relTime = (iso?: string) => {
-                  if (!iso) return '';
-                  const ms = Date.now() - new Date(iso).getTime();
-                  if (!Number.isFinite(ms) || ms < 0) return '';
-                  const m = Math.floor(ms / 60_000);
-                  if (m < 60) return L(`${Math.max(1, m)}분 전`, `${Math.max(1, m)}m ago`);
-                  const h = Math.floor(m / 60);
-                  if (h < 24) return L(`${h}시간 전`, `${h}h ago`);
-                  const d = Math.floor(h / 24);
-                  return d < 30 ? L(`${d}일 전`, `${d}d ago`) : L(`${Math.floor(d / 30)}달 전`, `${Math.floor(d / 30)}mo ago`);
-                };
-                return (
-                  <div className="mb-6">
-                    <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.12em] font-semibold mb-2">
-                      {L('이어서 작업', 'Continue')}
-                    </p>
-                    <div className="space-y-1">
-                      {shown.map((p) => (
-                        <button key={p.id} onClick={() => onReady(p.id)}
-                          className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-lg hover:bg-[var(--surface)] hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all group">
-                          <FolderOpen size={12} className="text-[var(--accent)] shrink-0" />
-                          <span className="text-[13px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{p.name}</span>
-                          <span className="text-[11px] text-[var(--text-tertiary)] shrink-0 ml-auto tabular-nums">{relTime(p.updated_at || p.created_at)}</span>
-                          {/* Chevron stays visible on touch (no hover there) */}
-                          <ChevronRight size={12} className="text-[var(--text-tertiary)] shrink-0 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
-                        </button>
-                      ))}
-                    </div>
-                    {/* Anonymous users can't reach /project (auth-gated) — without
-                        this, project #4+ became unreachable though it's right
-                        there in localStorage. */}
-                    {sorted.length > 3 && (
-                      <button onClick={() => setShowAllProjects((v) => !v)}
-                        className="mt-1.5 px-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
-                        {showAllProjects ? L('접기 ▴', 'Show less ▴') : L(`전체 ${sorted.length}개 보기 ▾`, `Show all ${sorted.length} ▾`)}
-                      </button>
-                    )}
-                  </div>
-                );
-              })()}
 
               {/* Anonymous trial banner — compact, only critical info */}
               {!user && (
@@ -609,26 +559,27 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   </div>
                 </div>
 
-                {/* W1.3: 1차 nav에서 내려온 진입들 — 삭제가 아니라 워크스페이스
-                    내부 진입으로 이동. 3차 위계(tertiary)로 조용히. */}
-                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-[var(--text-tertiary)]">
-                  <LocaleLink href="/agents" className="hover:text-[var(--accent)] transition-colors">
-                    {L('AI 팀 소개', 'Meet the AI crew')}
-                  </LocaleLink>
-                  <span aria-hidden>·</span>
-                  <LocaleLink href="/boss" className="hover:text-[var(--accent)] transition-colors">
-                    {L('보고 상대 설정', 'Set your reviewer')}
-                  </LocaleLink>
-                  <span aria-hidden>·</span>
-                  {/* W1.3 잔여: /teams was "moved inside the workspace" on paper but
-                      had ZERO inbound links — an orphaned page. */}
-                  <LocaleLink href="/teams" className="hover:text-[var(--accent)] transition-colors">
-                    {L('팀', 'Teams')}
-                  </LocaleLink>
-                  <span aria-hidden>·</span>
-                  <LocaleLink href="/guide" className="hover:text-[var(--accent)] transition-colors">
-                    {L('가이드', 'Guide')}
-                  </LocaleLink>
+                {/* Secondary entries — previously near-invisible tertiary text links
+                    (G-design: "눈에 전혀 안 들어와"). Now tappable chips: an icon + label
+                    with a real border and hover lift, so they read as "places you can go"
+                    without boxing the whole row into a heavy panel. Still secondary to the
+                    input above. */}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {[
+                    { href: '/agents', icon: Bot, label: L('AI 팀 소개', 'Meet the AI crew') },
+                    { href: '/boss', icon: UserCheck, label: L('보고 상대 설정', 'Set your reviewer') },
+                    { href: '/teams', icon: Users, label: L('팀', 'Teams') },
+                    { href: '/guide', icon: BookOpen, label: L('가이드', 'Guide') },
+                  ].map(({ href, icon: Icon, label }) => (
+                    <LocaleLink
+                      key={href}
+                      href={href}
+                      className="group inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] pl-2.5 pr-3 py-1.5 min-h-[36px] text-[12px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] hover:shadow-[var(--shadow-sm)] transition-all"
+                    >
+                      <Icon size={13} className="text-[var(--text-tertiary)] group-hover:text-[var(--accent)] transition-colors" />
+                      {label}
+                    </LocaleLink>
+                  ))}
                 </div>
 
                 {error && error.startsWith('LOGIN_REQUIRED') && (
@@ -685,6 +636,57 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   );
                 })()}
               </div>
+
+              {/* Returning user: previous projects — compact rows. Sits BELOW the
+                  primary input so the workspace opens on "what's the situation?" not
+                  on a history list; past projects stay reachable in the middle. */}
+              {projects.length > 0 && (() => {
+                const sorted = [...projects].sort((a, b) => {
+                  const aT = a.updated_at || a.created_at || '';
+                  const bT = b.updated_at || b.created_at || '';
+                  return bT.localeCompare(aT);
+                });
+                const shown = showAllProjects ? sorted : sorted.slice(0, 3);
+                const relTime = (iso?: string) => {
+                  if (!iso) return '';
+                  const ms = Date.now() - new Date(iso).getTime();
+                  if (!Number.isFinite(ms) || ms < 0) return '';
+                  const m = Math.floor(ms / 60_000);
+                  if (m < 60) return L(`${Math.max(1, m)}분 전`, `${Math.max(1, m)}m ago`);
+                  const h = Math.floor(m / 60);
+                  if (h < 24) return L(`${h}시간 전`, `${h}h ago`);
+                  const d = Math.floor(h / 24);
+                  return d < 30 ? L(`${d}일 전`, `${d}d ago`) : L(`${Math.floor(d / 30)}달 전`, `${Math.floor(d / 30)}mo ago`);
+                };
+                return (
+                  <div className="mt-8">
+                    <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.12em] font-semibold mb-2">
+                      {L('이어서 작업', 'Continue')}
+                    </p>
+                    <div className="space-y-1">
+                      {shown.map((p) => (
+                        <button key={p.id} onClick={() => onReady(p.id)}
+                          className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-lg hover:bg-[var(--surface)] hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all group">
+                          <FolderOpen size={12} className="text-[var(--accent)] shrink-0" />
+                          <span className="text-[13px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{p.name}</span>
+                          <span className="text-[11px] text-[var(--text-tertiary)] shrink-0 ml-auto tabular-nums">{relTime(p.updated_at || p.created_at)}</span>
+                          {/* Chevron stays visible on touch (no hover there) */}
+                          <ChevronRight size={12} className="text-[var(--text-tertiary)] shrink-0 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      ))}
+                    </div>
+                    {/* Anonymous users can't reach /project (auth-gated) — without
+                        this, project #4+ became unreachable though it's right
+                        there in localStorage. */}
+                    {sorted.length > 3 && (
+                      <button onClick={() => setShowAllProjects((v) => !v)}
+                        className="mt-1.5 px-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
+                        {showAllProjects ? L('접기 ▴', 'Show less ▴') : L(`전체 ${sorted.length}개 보기 ▾`, `Show all ${sorted.length} ▾`)}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* SECONDARY: Demo scenarios — compact, framed as "둘러보기".
                   Returning users glance past; first-timers explore. */}

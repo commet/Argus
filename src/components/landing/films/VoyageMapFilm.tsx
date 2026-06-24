@@ -219,7 +219,7 @@ export function VoyageMapFilm() {
       </div>
 
       {/* ===== STAGE ===== */}
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '12/5', minHeight: 420, borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(155deg,#fbf6ea 0%,#f3ead2 58%,#e9dcbe 100%)', border: '1px solid #ddcba1', boxShadow: '0 2px 0 rgba(255,255,255,.5) inset,0 30px 64px rgba(60,44,18,.2),0 8px 20px rgba(60,44,18,.12)' }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '12/5', minHeight: 460, borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(155deg,#fbf6ea 0%,#f3ead2 58%,#e9dcbe 100%)', border: '1px solid #ddcba1', boxShadow: '0 2px 0 rgba(255,255,255,.5) inset,0 30px 64px rgba(60,44,18,.2),0 8px 20px rgba(60,44,18,.12)' }}>
 
         {/* ===== PANNING WORLD (oversized chart) ===== */}
         <div style={s('world')}>

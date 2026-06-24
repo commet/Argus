@@ -7,8 +7,9 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Plus, Users, Mail, Check, X, Crown, Shield, User, Trash2, Copy, ArrowRight } from 'lucide-react';
+import { Plus, Users, Mail, Check, X, Crown, Shield, User, Trash2, Copy, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 
 export default function TeamsPage() {
   const locale = useLocale();
@@ -91,6 +92,15 @@ export default function TeamsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
+      {/* Back to the workspace — /teams is reached from the workspace's secondary
+          links and had no way back, stranding the user here (G-design feedback). */}
+      <LocaleLink
+        href="/workspace"
+        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors -mb-2"
+      >
+        <ArrowLeft size={14} />
+        {L('워크스페이스로 돌아가기', 'Back to workspace')}
+      </LocaleLink>
       <div>
         <h1 className="text-[22px] font-bold tracking-tight text-[var(--text-primary)]">{L('팀', 'Teams')}</h1>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">
