@@ -54,11 +54,14 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
   const sp = bez(SEG[li], dp);
   const shipX = sp[0], shipY = sp[1];
 
-  // camera: pan to follow the ship, then zoom out to the full map
-  const navS = 0.92, focusX = 560, navTy = 10;
+  // camera: pan to follow the ship, then zoom out to the full map.
+  // navTy / revealTy re-tuned to center the content in the shorter (more
+  // rectangular) stage below — the route + cartouches sit a touch higher so the
+  // chart fills the band instead of floating in empty parchment.
+  const navS = 0.92, focusX = 560, navTy = -52;
   const navTx = clamp(focusX - navS * shipX, 1000 - navS * 2200, 60);
   const r = smooth((t - 22600) / 3200);
-  const revealS = 0.46, revealTx = 0, revealTy = 148;
+  const revealS = 0.49, revealTx = 0, revealTy = 92;
   const S = navS + (revealS - navS) * r;
   const Tx = navTx + (revealTx - navTx) * r;
   const Ty = navTy + (revealTy - navTy) * r;
@@ -216,7 +219,7 @@ export function VoyageMapFilm() {
       </div>
 
       {/* ===== STAGE ===== */}
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '27/16', minHeight: 560, borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(155deg,#fbf6ea 0%,#f3ead2 58%,#e9dcbe 100%)', border: '1px solid #ddcba1', boxShadow: '0 2px 0 rgba(255,255,255,.5) inset,0 30px 64px rgba(60,44,18,.2),0 8px 20px rgba(60,44,18,.12)' }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '12/5', minHeight: 420, borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(155deg,#fbf6ea 0%,#f3ead2 58%,#e9dcbe 100%)', border: '1px solid #ddcba1', boxShadow: '0 2px 0 rgba(255,255,255,.5) inset,0 30px 64px rgba(60,44,18,.2),0 8px 20px rgba(60,44,18,.12)' }}>
 
         {/* ===== PANNING WORLD (oversized chart) ===== */}
         <div style={s('world')}>

@@ -36,22 +36,22 @@ export function Act3OnDeck() {
     >
       <PaperGrain opacity={0.045} />
 
-      <div className="relative max-w-3xl mx-auto px-6 md:px-10 text-center">
+      <div className="relative max-w-4xl mx-auto px-6 md:px-10 text-center">
         <h2
           id="ondeck-heading"
-          className={`bp-fade-up mx-auto max-w-2xl ${locale === 'ko' ? 'break-keep' : ''}`}
+          className={`bp-fade-up mx-auto ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             fontFamily: 'var(--font-display)',
             color: 'var(--bp-ink)',
             fontWeight: 700,
-            fontSize: 'clamp(25px, 3vw, 38px)',
+            fontSize: 'clamp(23px, 2.85vw, 35px)',
             lineHeight: 1.22,
             letterSpacing: '-0.012em',
             animationDelay: '80ms',
           }}
         >
           {locale === 'ko' ? (
-            <>결정 하나하나가, <span style={{ color: 'var(--bp-gold-deep)' }}>당신만의 항로가 됩니다.</span></>
+            <>결정 하나하나가,&nbsp;<span style={{ color: 'var(--bp-gold-deep)' }}>당신만의 항로가 됩니다.</span></>
           ) : (
             <>Each decision becomes <span style={{ color: 'var(--bp-gold-deep)' }}>a course only you have charted.</span></>
           )}
@@ -90,8 +90,7 @@ export function Act3OnDeck() {
         {/* Bind-first reminder + the primary CTA. */}
         <div className="bp-fade-up flex flex-col items-center mt-12 md:mt-14" style={{ animationDelay: '420ms' }}>
           <span
-            className="bp-mono"
-            style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: '0.2em', textTransform: 'uppercase' }}
+            style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, fontWeight: 600, letterSpacing: '0.02em' }}
           >
             {L('당신 차례 — 첫 한 걸음', 'Your turn — the first move')}
           </span>
@@ -104,8 +103,14 @@ export function Act3OnDeck() {
             onClick={() => track('landing_cta_click', { cta: 'voyage_close' })}
             className="bp-btn-primary"
             style={{
-              padding: '18px 36px',
-              fontSize: 13,
+              padding: '17px 38px',
+              // override the class's JetBrains Mono (no Korean glyphs) with the
+              // body sans so "지금 출항" renders clean, not a broken fallback.
+              fontFamily: "var(--font-sans, 'Pretendard Variable', Pretendard, system-ui, sans-serif)",
+              fontSize: 15,
+              fontWeight: 700,
+              letterSpacing: '0.03em',
+              textTransform: 'none',
               background: 'var(--bp-gold-deep)',
               borderColor: 'var(--bp-gold-deep)',
               color: 'var(--bp-paper)',
@@ -117,8 +122,8 @@ export function Act3OnDeck() {
             </svg>
           </LocaleLink>
           <p
-            className="bp-mono mt-4"
-            style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase' }}
+            className="mt-4"
+            style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.01em' }}
           >
             {L('로그인 없이 무료 · 30초 안에 첫 분석', 'Free, no login · first read in 30 seconds')}
           </p>
