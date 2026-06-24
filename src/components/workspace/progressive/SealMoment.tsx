@@ -88,6 +88,7 @@ export function SealMoment({
   const { user } = useAuth();
 
   const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_INTERVAL);
+  const [emailReminder, setEmailReminder] = useState(false); // opt-in (logged-in only)
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dropped, setDropped] = useState<Set<string>>(new Set());
   // Tracks a seal performed in THIS session, so we show the calm confirmation
@@ -160,7 +161,10 @@ export function SealMoment({
       ? augmentContract(existing, toSeal, now, iv)
       : (() => { const f = contractFromPredicates(project.id, toSeal, now); return f ? withCheckIn(f, iv, now) : null; })();
     if (!next) return;
-    updateProject(project.id, { decision_contract: next });
+    // Opt-in email reminder (logged-in only) — off by default keeps "no emails unless
+    // you ask" true; the checkin-due cron only emails contracts with this flag.
+    const sealed = emailReminder && !!user ? { ...next, email_reminder: true } : next;
+    updateProject(project.id, { decision_contract: sealed });
     setInterval(iv);
     setJustSealed(true);
     // Learning signal (2026-06-13 data-wiring fix) — the new flow recorded
@@ -181,6 +185,14 @@ export function SealMoment({
     const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const name = typeof project?.name === 'string' ? project.name : '';
     const summary = L(`그래서, 어떻게 됐어요? — ${name}`, `So, how did it go? — ${name}`);
+    // Carry the actual stakes into the calendar event so the ping weeks later is
+    // self-explanatory (the user's own lean, then the link to settle it).
+    const lean = contract?.predicates?.find((p) => p.source === 'user_lean')?.text;
+    const desc = [
+      lean ? L(`출항 때 당신의 한 줄: "${lean}"`, `Your opening call: "${lean}"`) : '',
+      L('그날 돌아와 실제로 어땠는지 확인하세요:', 'Come back and check how it actually went:'),
+      `${window.location.origin}/project`,
+    ].filter(Boolean).join('\\n');
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -190,7 +202,13 @@ export function SealMoment({
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${ymd}`,
       `SUMMARY:${icsEscape(summary)}`,
-      `DESCRIPTION:${icsEscape(`${window.location.origin}/project`)}`,
+      `DESCRIPTION:${icsEscape(desc)}`,
+      // A same-day alarm so the reminder actually surfaces (the only outbound nudge).
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:${icsEscape(summary)}`,
+      'TRIGGER;VALUE=DATE-TIME:' + `${ymd}T090000`,
+      'END:VALARM',
       'END:VEVENT',
       'END:VCALENDAR',
     ];
@@ -337,6 +355,19 @@ export function SealMoment({
         <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-[var(--ai)] text-[var(--accent)]">
           <Anchor size={22} />
         </div>
+        {/* P1-3: when the user tied a rope at the START, acknowledge it here — the
+            augment merges it silently otherwise, so the satisfying "I committed, and
+            here it is again" arc never lands. Their own line, carried through. */}
+        {(() => {
+          const earlyLean = contract?.predicates?.find((p) => p.source === 'user_lean')?.text;
+          if (!earlyLean) return null;
+          return (
+            <p className="mt-5 text-[13px] text-[var(--text-secondary)] leading-[1.5] max-w-md mx-auto px-3 py-2 rounded-xl bg-[var(--ai)]/40 border border-[var(--border-subtle)]">
+              {L('출항 때 당신은 이렇게 적었죠 — ', 'When you set out, you wrote — ')}
+              <span className="font-semibold text-[var(--text-primary)]">&ldquo;{earlyLean}&rdquo;</span>
+            </p>
+          );
+        })()}
         <h3 className="mt-5 text-[19px] md:text-[21px] font-bold text-[var(--text-primary)] leading-[1.4] max-w-md mx-auto">
           {L(
             `이 결정, ${dateFor(interval)}에 어떻게 됐는지 물어봐 드릴까요?`,
@@ -352,16 +383,42 @@ export function SealMoment({
         {/* Channel disclosure BEFORE consent — a suspicious user won't say yes
             without knowing HOW the asking happens ("이메일? 스팸?"). */}
         <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] max-w-md mx-auto">
-          {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요 — 메일이나 알림은 보내지 않아요.', "On that day, I'll ask first when you open the projects page — no emails, no notifications.")}
+          {L('제가 알림을 보내진 않아요 — 잊지 않게 그날을 달력에 넣어둘까요?', "I won't send notifications — want me to drop the day on your calendar so it isn't forgotten?")}
+          {' '}
+          <button onClick={downloadIcs} className="font-semibold text-[var(--accent)] hover:underline cursor-pointer">
+            {L('달력에 넣기', 'Add to calendar')}
+          </button>
         </p>
+        {/* Opt-in email reminder (logged-in only) — off by default so "no emails" stays
+            true for everyone who doesn't ask. The checkin-due cron emails only these. */}
+        {user && (
+          <label className="mt-2 inline-flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)] cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={emailReminder}
+              onChange={(e) => setEmailReminder(e.target.checked)}
+              className="accent-[var(--accent)]"
+            />
+            {L('그날 이메일로도 한 번 알려드릴까요?', 'Also email me once on that day?')}
+          </label>
+        )}
         {/* P2-6 honesty: an anonymous seal lives in localStorage only. Don't let the
             "comes back to you" promise read as a lie when it can vanish on this device.
             Not a gate — they can still seal locally; just told the truth + the way out. */}
         {!user && (
-          <p className="mt-1.5 text-[11.5px] text-[var(--accent)]/90 max-w-md mx-auto">
-            {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 로그인하면 계정으로 옮겨가 어디서나 돌아올 수 있어요.',
-               'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Log in and it moves to your account, reachable anywhere.')}
-          </p>
+          <div className="mt-1.5 max-w-md mx-auto">
+            <p className="text-[11.5px] text-[var(--accent)]/90">
+              {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요.',
+                 'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices.')}
+            </p>
+            {/* P1-9: the highest-intent moment to log in — give a one-tap path (was text-only). */}
+            <LocaleLink
+              href="/login?redirect=/project"
+              className="inline-block mt-1.5 text-[12px] font-semibold text-[var(--accent)] hover:underline"
+            >
+              {L('로그인하고 어디서나 돌아오기 →', 'Log in to keep it & return anywhere →')}
+            </LocaleLink>
+          </div>
         )}
 
         <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">

@@ -23,6 +23,9 @@ import type { CheckInInterval } from '@/stores/types';
 export interface BindResult {
   lean?: string;
   interval?: CheckInInterval;
+  /** A specific picked date (ISO yyyy-mm-dd) — overrides interval. Real outcomes
+   *  often land on a known date (a launch, a result) that isn't 1w/2w/1m. */
+  check_in_at?: string;
 }
 
 const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
@@ -36,24 +39,43 @@ const MAX_LEAN = 140;
 export function BindCard({
   onProceed,
   problem,
+  initialLean,
+  initialInterval,
+  notice,
 }: {
   /** null = full skip (no rope, write nothing). A BindResult = tie the rope. */
   onProceed: (bind: BindResult | null) => void;
   /** The problem the user just submitted — shown small, for orientation only. */
   problem?: string;
+  /** Restore a previously-typed rope (P0-5: a quota/error after binding must not
+   *  silently discard the user's words — re-show the card with them intact). */
+  initialLean?: string;
+  initialInterval?: CheckInInterval | null;
+  /** A banner above the form — e.g. "log in to hear the crew; your note is kept". */
+  notice?: string;
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
 
-  const [lean, setLean] = useState('');
-  const [interval, setInterval] = useState<CheckInInterval | null>(null);
+  const [lean, setLean] = useState(initialLean ?? '');
+  const [interval, setInterval] = useState<CheckInInterval | null>(initialInterval ?? null);
+  const [customDate, setCustomDate] = useState(''); // P1-4: a specific picked date (yyyy-mm-dd)
 
   const trimmed = lean.trim();
-  const hasCommitment = trimmed.length > 0 || interval !== null;
+  const hasCommitment = trimmed.length > 0 || interval !== null || customDate !== '';
 
-  const tie = () => onProceed(hasCommitment ? { lean: trimmed || undefined, interval: interval ?? undefined } : null);
+  const tie = () => onProceed(hasCommitment
+    ? { lean: trimmed || undefined, interval: customDate ? undefined : (interval ?? undefined), check_in_at: customDate ? new Date(customDate).toISOString() : undefined }
+    : null);
   const skip = () => onProceed(null);
+
+  // Resolve a relative interval to a concrete date so "2주" reads as "2주 · 7월 8일".
+  const dateLabel = (iv: CheckInInterval) => {
+    const MS = { '1w': 7, '2w': 14, '1m': 30 }[iv] * 86_400_000;
+    const d = new Date(Date.now() + MS);
+    return d.toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' });
+  };
 
   return (
     <motion.div
@@ -66,12 +88,19 @@ export function BindCard({
         <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-2">
           {L('출항 전 · 밧줄 묶기', 'Before you sail · tie the rope')}
         </p>
+        {notice && (
+          <p className="mb-3 px-3 py-2 rounded-lg bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[12px] text-[var(--text-primary)] leading-snug">
+            {notice}
+          </p>
+        )}
         <h2 className="text-[19px] font-bold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
           {L('답을 듣기 전에 — 지금 마음은 어디로 기울어요?', 'Before you hear the answer — where are you leaning right now?')}
         </h2>
+        {/* P1: the WHY (cluster 4) — the rope metaphor needs its payload, or a
+            skeptic reads "why ask me, you're the tool" and skips, defeating the phase. */}
         <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5 leading-snug">
-          {L('AI 답에 휩쓸리기 전, 지금 생각이 가장 솔직해요. 적어두면 확인일에 “그래서 어떻게 됐는지” 같이 맞춰봐요 — 안 적어도 됩니다.',
-             "Before the AI sways you, your hunch right now is the honest one. Jot it and we’ll check how it actually went on your date — optional.")}
+          {L('답을 먼저 들으면 원래 생각이 흐려져요. 그 전에 한 줄만 남겨두면, 나중에 그게 진짜 내 판단이었는지 같이 맞춰볼 수 있어요. (안 적어도 됩니다.)',
+             "Hearing the answer first blurs your own read. Leave one line before it, and later we can check whether your call actually held. (Optional.)")}
         </p>
 
         {problem && (
@@ -98,24 +127,42 @@ export function BindCard({
           className="mt-4 w-full resize-none rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-3.5 py-3 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)] focus:outline-none"
         />
 
-        {/* Check-in window — none preselected; an untapped default is never a commitment. */}
-        <div className="mt-3 flex items-center gap-2">
+        {/* Check-in window — none preselected; an untapped default is never a commitment.
+            Each chip shows its resolved date; "직접" opens a date picker for a known day. */}
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
           <span className="text-[12px] text-[var(--text-tertiary)]">{L('확인일:', 'Check back:')}</span>
           {INTERVALS.map((iv) => (
             <button
               key={iv.value}
               type="button"
-              onClick={() => setInterval(interval === iv.value ? null : iv.value)}
+              onClick={() => { setInterval(interval === iv.value ? null : iv.value); setCustomDate(''); }}
               className={`rounded-full border px-3 py-1 text-[12.5px] transition-colors ${
-                interval === iv.value
+                interval === iv.value && !customDate
                   ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--bg)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
               }`}
             >
-              {ko ? iv.ko : iv.en}
+              {(ko ? iv.ko : iv.en)} · {dateLabel(iv.value)}
             </button>
           ))}
+          <input
+            type="date"
+            value={customDate}
+            min={new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)}
+            onChange={(e) => { setCustomDate(e.target.value); if (e.target.value) setInterval(null); }}
+            className={`rounded-full border px-2.5 py-1 text-[12px] bg-[var(--bg)] cursor-pointer ${
+              customDate ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'
+            }`}
+            title={L('직접 고르기', 'Pick a date')}
+          />
         </div>
+        {/* P0-4b: a lean with no date never auto-resurfaces — nudge a date so the
+            rope actually comes back on its own. */}
+        {trimmed.length > 0 && interval === null && !customDate && (
+          <p className="mt-2 text-[11.5px] text-[var(--accent)]/90 leading-snug">
+            {L('확인일을 고르면 그날 이 한 줄을 다시 물어볼게요.', "Pick a date and I'll bring this line back to you that day.")}
+          </p>
+        )}
 
         <div className="mt-6 flex items-center justify-between gap-3">
           {/* Dominant, unconditional skip. */}
@@ -142,6 +189,14 @@ export function BindCard({
             <ArrowRight size={15} />
           </button>
         </div>
+
+        {/* Reassure that skipping is safe and the analysis isn't lost — the AI is
+            already reading in the background (cluster 4: the buffered run is invisible,
+            so the screen can feel like a gate of unknown cost). */}
+        <p className="mt-3 text-[11px] text-[var(--text-tertiary)]/80 text-center">
+          {L('AI 팀은 이미 이 건을 읽고 있어요 — 어느 쪽이든 다음 화면에서 보여드려요.',
+             "The crew is already reading this — either way, you'll see it on the next screen.")}
+        </p>
       </div>
     </motion.div>
   );

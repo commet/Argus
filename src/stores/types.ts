@@ -617,6 +617,12 @@ export interface DecisionContract {
   /** Superseded check-ins, oldest first. Absent on legacy contracts — always
    *  read as `contract.history || []`. */
   history?: ContractAmendment[];
+  /** OPT-IN (logged-in only): the user chose to also be emailed on the check-in day.
+   *  Default off — the product's "no emails unless you ask" promise stays true. The
+   *  checkin-due cron only emails contracts with this set. */
+  email_reminder?: boolean;
+  /** Set by the cron when a reminder email was sent, to avoid daily duplicates. */
+  reminder_sent_at?: string;
 }
 
 // ─── Retrospective Answers (Phase 2) ───

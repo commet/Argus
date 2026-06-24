@@ -29,6 +29,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Target, AlertTriangle, GitBranch, Check } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
+import { useAuth } from '@/lib/auth';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import type { Project, Predicate, PredicateSource, PredicateVerdict, PredicateBasis, CheckInInterval } from '@/stores/types';
 import {
   gradePredicate,
@@ -62,10 +64,16 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   const L = (k: string, e: string) => (ko ? k : e);
   const updateProject = useProjectStore((s) => s.updateProject);
   const projects = useProjectStore((s) => s.projects);
+  const { user } = useAuth();
 
   const contract = project.decision_contract ?? null;
   const predicates: Predicate[] = useMemo(
-    () => (Array.isArray(contract?.predicates) ? contract!.predicates : []),
+    // P2: the user's OWN opening lean is the emotional core of the settle — pin it
+    // first so "was MY call right?" is the headline, not a line item among machine bets.
+    () => {
+      const ps = Array.isArray(contract?.predicates) ? [...contract!.predicates] : [];
+      return ps.sort((a, b) => (a.source === 'user_lean' ? -1 : 0) - (b.source === 'user_lean' ? -1 : 0));
+    },
     [contract],
   );
   const resolvedCount = predicates.filter(isResolved).length;
@@ -132,9 +140,44 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
     );
   }
 
-  // Defensive: a malformed contract (or one with zero predicates) has nothing
-  // to ask about — render nothing instead of an empty shell with extend chips.
-  if (!contract || predicates.length === 0) return null;
+  if (!contract) return null;
+
+  // P0-4: a date-armed contract with NO predicates (a date-only BIND rope, or a
+  // completed voyage that yielded nothing falsifiable) still reaches its check-in
+  // date. Rendering null = the day we promised to "bring it up" arrives and nothing
+  // happens — a broken promise. Keep it: ask the one free question and let them close
+  // the loop. Closing clears the check-in so it stops resurfacing.
+  if (predicates.length === 0) {
+    const closeFreeform = () => {
+      updateProject(project.id, {
+        decision_contract: { ...contract, graded_at: new Date().toISOString(), check_in_at: undefined, check_in_interval: undefined },
+      });
+      recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict: 'freeform_close' } });
+      track('decision_graded', { verdict: 'freeform_close' });
+      onClose();
+    };
+    return (
+      <Modal open onClose={onClose} title={L('그래서, 어떻게 됐어요?', 'So, how did it go?')}>
+        <div className="space-y-4">
+          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.5] -mt-1">
+            {L('그날 이 결정을 다시 보기로 했었죠 — ', 'You set a date to revisit this — ')}
+            <span className="font-semibold text-[var(--text-primary)]">{project.name}</span>
+          </p>
+          <p className="text-[12.5px] text-[var(--text-tertiary)] leading-[1.5]">
+            {L('따로 봉인한 예측은 없었어요 — 한 번 돌아본 걸로 이 고리를 닫을게요.',
+               "No specific predictions were sealed for this one — we'll close the loop as a look-back.")}
+          </p>
+          <button
+            onClick={closeFreeform}
+            className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white cursor-pointer"
+            style={{ background: 'var(--gradient-gold, var(--accent))' }}
+          >
+            {L('돌아봤어요 — 닫기', 'Looked back — close it')}
+          </button>
+        </div>
+      </Modal>
+    );
+  }
 
   const sealedOn = fmtDate(contract.created_at);
 
@@ -152,7 +195,12 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
           {predicates.map((p) => {
             const Icon = SOURCE_ICON[p.source] ?? AlertTriangle;
             return (
-              <div key={p.id} className="rounded-xl border border-[var(--border)] p-3 bg-[var(--surface)]">
+              <div key={p.id} className={`rounded-xl border p-3 ${p.source === 'user_lean' ? 'border-[var(--accent)]/40 bg-[var(--ai)]/30' : 'border-[var(--border)] bg-[var(--surface)]'}`}>
+                {p.source === 'user_lean' && (
+                  <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--accent)] mb-1">
+                    {L('출항 때 당신의 한 줄', 'Your opening call')}
+                  </p>
+                )}
                 <div className="flex items-start gap-2">
                   <Icon size={13} className="text-[var(--text-tertiary)] mt-0.5 shrink-0" />
                   <p className="text-[13px] text-[var(--text-primary)] leading-[1.5] flex-1 min-w-0">
@@ -250,6 +298,16 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                         reading as a judgment-win in the record (R17). */}
                     {record.goodOutcomesOnLuck > 0 &&
                       ' ' + L(`그중 ${record.goodOutcomesOnLuck}개는 운이었다고 보셨고요.`, `You marked ${record.goodOutcomesOnLuck} of those as luck.`)}
+                  </p>
+                )}
+                {/* P2/P1-9: the hard-won record is localStorage-only for anon users —
+                    mirror the seal-time honesty + give a one-tap way to keep it. */}
+                {!user && (
+                  <p className="text-[11.5px] text-[var(--text-tertiary)] leading-[1.5]">
+                    {L('이 기록은 지금 이 기기에만 있어요 — ', 'This record lives on this device only — ')}
+                    <LocaleLink href="/login" className="font-semibold text-[var(--accent)] hover:underline">
+                      {L('로그인하면 어디서나 남아요', 'log in to keep it anywhere')}
+                    </LocaleLink>
                   </p>
                 )}
                 <div className="flex justify-end">

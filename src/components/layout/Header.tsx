@@ -21,9 +21,14 @@ export function Header() {
   // W1.3 단일 진입: first-line nav is [워크스페이스·프로젝트·설정] only.
   // /agents·/boss·/guide routes are NOT deleted — they're reachable from
   // inside the workspace (crew-roster row), just no longer top-level doors.
+  // /project is PUBLIC (public-paths.ts) and localStorage-first — it shows the user's
+  // own (anon-included) decisions and the due-return strip. It must NOT wear a 🔒:
+  // the seal promises anon users a dated return there, so a lock next to the due badge
+  // told the exact cohort we courted that their own decision was off-limits (they never
+  // clicked, the loop never closed). Login is nudged for SYNC at the seal, not here.
   const navItems: Array<{ href: string; label: string; primary?: boolean; requiresAuth?: boolean }> = [
     { href: '/workspace', label: L('워크스페이스', 'Workspace'), primary: true },
-    { href: '/project', label: L('프로젝트', 'Projects'), requiresAuth: true },
+    { href: '/project', label: L('프로젝트', 'Projects') },
     { href: '/settings', label: L('설정', 'Settings') },
   ];
 

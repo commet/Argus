@@ -350,13 +350,14 @@ export function withCheckIn(
  */
 export function buildEarlyContract(
   projectId: string,
-  opts: { lean?: string; interval?: CheckInInterval },
+  opts: { lean?: string; interval?: CheckInInterval; check_in_at?: string },
   now: number,
 ): DecisionContract | null {
   const lean = opts.lean?.trim();
   const hasLean = !!lean;
   const hasInterval = !!opts.interval;
-  if (!hasLean && !hasInterval) return null; // honest-empty: nothing committed
+  const hasDate = !!opts.check_in_at;
+  if (!hasLean && !hasInterval && !hasDate) return null; // honest-empty: nothing committed
 
   const predicates: Predicate[] = hasLean
     ? [{ id: stablePredicateId('user_lean', lean!), text: lean!, source: 'user_lean', authored: 'user' }]
@@ -368,6 +369,8 @@ export function buildEarlyContract(
     predicates,
     created_at: new Date(now).toISOString(),
   };
+  // A specific picked date wins over a relative interval.
+  if (opts.check_in_at) return { ...base, check_in_at: opts.check_in_at };
   return opts.interval ? withCheckIn(base, opts.interval, now) : base;
 }
 

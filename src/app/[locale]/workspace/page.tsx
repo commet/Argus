@@ -20,7 +20,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLocale } from '@/hooks/useLocale';
 import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { runInitialAnalysis } from '@/lib/progressive-engine';
-import { buildEarlyContract } from '@/lib/decision-contract';
+import { buildEarlyContract, contractStatus } from '@/lib/decision-contract';
 import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers } from 'lucide-react';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
@@ -30,6 +30,7 @@ import { EASE } from '@/components/workspace/progressive/shared/constants';
 import { getPersonaPool } from '@/lib/worker-personas';
 import { WorkerAvatar, AvatarRow } from '@/components/workspace/progressive/WorkerAvatar';
 import { BindCard, type BindResult } from '@/components/workspace/progressive/BindCard';
+import { VoyagePhaseRail } from '@/components/workspace/progressive/VoyagePhaseRail';
 import { InteractiveDemo } from '@/components/workspace/InteractiveDemo';
 import { getDemoScenarios } from '@/lib/demo-data';
 import type { DemoScenario } from '@/lib/demo-data';
@@ -234,10 +235,16 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   const [streamingText, setStreamingText] = useState('');
   const [previewPersonas, setPreviewPersonas] = useState<WorkerPersona[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // P0-5: a quota/error AFTER the user tied a rope must not silently discard it.
+  const [bindNotice, setBindNotice] = useState<string | null>(null);
+  const pendingBindRef = React.useRef<BindResult | null>(null);
   const [justFromDemo, setJustFromDemo] = useState(false);
   const [showAllProjects, setShowAllProjects] = useState(false);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const { createProject, updateProject } = useProjectStore();
+  // Full Project[] from the store (the `projects` prop is a slim {id,name,…} shape
+  // without decision_contract) — needed for the due-return strip.
+  const storeProjects = useProjectStore((s) => s.projects);
   const progressiveStore = useProgressiveStore();
   const phaseRef = React.useRef<HeroPhase>('idle');
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -345,6 +352,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     const controller = analyzeAbortRef.current;
     if (!text || !controller) { setPhase('idle'); return; }
 
+    pendingBindRef.current = bind; // P0-5: remember the rope so an error can restore it
+    setBindNotice(null);
+
     // Bind funnel (P1-8): every submit shows the bind, so submit→bind_resolved gives
     // the rope-vs-skip rate; decision_sealed(source:bind_open) fires only on a tied
     // rope. Captured (data > dashboard) so the conversion tradeoff is observable.
@@ -416,16 +426,31 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       //   - "한도" / "rate" → 로그인 사용자의 일반 rate limit
       const needsLogin = errMsg.startsWith('LOGIN_REQUIRED');
       const isRateLimit = !needsLogin && (errMsg.includes('한도') || errMsg.includes('rate') || errMsg.includes('limit') || errMsg.includes('429'));
-
-      // errMsg 그대로 setError — 렌더 쪽에서 prefix로 분기해 login CTA vs generic 배너 결정.
-      // 세션은 아직 생성 안 했으므로 정리 로직 불필요.
-      setError(errMsg || L('분석에 실패했습니다. 다시 시도해주세요.', 'Analysis failed. Please try again.'));
-      setPhase('idle');
-      setStreamingText('');
       track('workspace_start_error', { error: errMsg, is_rate_limit: isRateLimit, needs_login: needsLogin });
       if (needsLogin || isRateLimit) {
         track('quota_blocked', { reason: needsLogin ? 'anon_quota' : 'auth_quota', anonymous: !user });
       }
+      setStreamingText('');
+
+      // P0-5: the user tied a rope (lean and/or date) and THEN the run failed — do NOT
+      // discard their words to an empty idle screen (that trains people never to bind).
+      // Re-show the bind with their note intact + an honest notice, and re-fire the
+      // analysis so a retry works without retyping.
+      const invested = bind && (bind.lean || bind.interval);
+      if (invested) {
+        const retry = new AbortController();
+        analyzeAbortRef.current = retry;
+        analysisRef.current = startAnalysis(text, retry);
+        setBindNotice(needsLogin
+          ? L('크루를 들으려면 로그인이 필요해요 — 적어둔 한 줄은 그대로 둘게요.', 'Log in to hear the crew — your note is kept.')
+          : L('분석에 실패했어요 — 적어둔 건 그대로예요. 다시 “묶고 계속”을 눌러 주세요.', "That run failed — your note is kept. Tap continue to retry."));
+        setPhase('binding');
+        return;
+      }
+
+      // errMsg 그대로 setError — 렌더 쪽에서 prefix로 분기해 login CTA vs generic 배너 결정.
+      setError(errMsg || L('분석에 실패했습니다. 다시 시도해주세요.', 'Analysis failed. Please try again.'));
+      setPhase('idle');
     }
   };
 
@@ -474,6 +499,31 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4, ease: EASE }}>
 
+              {/* Due-return strip — the seal promises "I'll bring it up"; the user lands
+                  HERE (Workspace), not /project, so the promise must show here too. Anon
+                  reaches /project now (lock removed), where the SettlementModal auto-opens. */}
+              {(() => {
+                const due = (storeProjects || []).filter(
+                  (p) => p.decision_contract && contractStatus(p.decision_contract, Date.now()).checkInDue,
+                );
+                if (due.length === 0) return null;
+                return (
+                  <LocaleLink
+                    href="/project"
+                    className="mb-5 flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[var(--gold)]/10 border border-[var(--gold)]/25 hover:border-[var(--gold)]/45 transition-colors"
+                  >
+                    <span className="flex items-center gap-2 text-[13px] text-[var(--text-primary)]">
+                      <span className="text-[var(--gold)]">⚓</span>
+                      <strong>{L(`그래서, 어떻게 됐어요?`, 'So — how did it go?')}</strong>
+                      <span className="text-[var(--text-tertiary)]">
+                        {L(`돌아볼 결정 ${due.length}건`, `${due.length} decision${due.length === 1 ? '' : 's'} to revisit`)}
+                      </span>
+                    </span>
+                    <ChevronRight size={14} className="text-[var(--gold)] shrink-0" />
+                  </LocaleLink>
+                );
+              })()}
+
               {/* Returning user: previous projects — compact rows.
                   Show 3 most recently updated projects (fall back to created_at when missing). */}
               {projects.length > 0 && (() => {
@@ -511,9 +561,8 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                         </button>
                       ))}
                     </div>
-                    {/* Anonymous users can't reach /project (auth-gated) — without
-                        this, project #4+ became unreachable though it's right
-                        there in localStorage. */}
+                    {/* /project IS reachable for anon (public + localStorage-first); this
+                        expander still matters so project #4+ is reachable from here too. */}
                     {sorted.length > 3 && (
                       <button onClick={() => setShowAllProjects((v) => !v)}
                         className="mt-1.5 px-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
@@ -722,7 +771,18 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
           {phase === 'binding' && (
             <motion.div key="binding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: EASE }} className="pt-8 md:pt-16">
-              <BindCard problem={pendingTextRef.current} onProceed={proceedAfterBind} />
+              {/* P1-1: the rail was absent at the literal 묶기 moment — show "1/3 묶기"
+                  above the card so the bind reads as Act 1 of 3, not a random gate. */}
+              <div className="max-w-xl mx-auto mb-4">
+                <VoyagePhaseRail phase="binding" />
+              </div>
+              <BindCard
+                problem={pendingTextRef.current}
+                onProceed={proceedAfterBind}
+                initialLean={pendingBindRef.current?.lean}
+                initialInterval={pendingBindRef.current?.interval ?? null}
+                notice={bindNotice ?? undefined}
+              />
             </motion.div>
           )}
 

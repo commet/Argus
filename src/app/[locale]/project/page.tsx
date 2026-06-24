@@ -16,13 +16,13 @@ import { generateProjectBrief } from '@/lib/project-brief';
 import { OutputSelector } from '@/components/ui/OutputSelector';
 import { ExecutionReadiness } from '@/components/ui/ExecutionReadiness';
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Layers, Map as MapIcon, Users, FileText, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, Trash2 } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
-import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
+import { contractStatus, summarizeRecord, extractPredicatesFromSession } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
 
@@ -43,7 +43,7 @@ const VOYAGE_TONE_CLS: Record<string, string> = {
 };
 
 type ToolStatus = 'done' | 'in-progress' | 'not-started';
-type StatusFilter = 'all' | 'active' | 'done' | 'new';
+type StatusFilter = 'all' | 'active' | 'done' | 'new' | 'settled';
 
 function relativeDate(dateStr: string | undefined, locale: 'ko' | 'en'): string {
   if (!dateStr) return '';
@@ -71,7 +71,7 @@ interface StepStatus {
 export default function ProjectPage() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const { projects, currentProjectId, loadProjects, setCurrentProjectId } = useProjectStore();
+  const { projects, currentProjectId, loadProjects, setCurrentProjectId, deleteProject } = useProjectStore();
   const { items: reframeItems, loadItems: loadReframe } = useReframeStore();
   const { items: recastItems, loadItems: loadRecast } = useRecastStore();
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
@@ -254,6 +254,8 @@ export default function ProjectPage() {
     let list = sortedProjects;
     if (statusFilter !== 'all') {
       list = list.filter((p) => {
+        // P2: "Settled" = the moat — decisions followed all the way to a graded outcome.
+        if (statusFilter === 'settled') return !!p.decision_contract && contractStatus(p.decision_contract, Date.now()).allGraded;
         const m = projectMetricsMap.get(p.id);
         if (!m) return false;
         if (statusFilter === 'active') return m.hasProgress && !m.isDone;
@@ -262,7 +264,13 @@ export default function ProjectPage() {
         return true;
       });
     }
-    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
+    // P2: search the decision CONTENT (lean + predictions), not just the project name —
+    // at scale the user remembers what they decided, not the name they typed.
+    if (q) list = list.filter((p) => {
+      if (p.name.toLowerCase().includes(q)) return true;
+      const preds = p.decision_contract?.predicates;
+      return Array.isArray(preds) && preds.some((pred) => pred.text?.toLowerCase().includes(q));
+    });
     return list;
   }, [sortedProjects, query, statusFilter, projectMetricsMap]);
 
@@ -342,6 +350,22 @@ export default function ProjectPage() {
   const currentVoyageDone = currentVoyageSession
     ? currentVoyageSession.phase === 'complete'
     : !!currentProject?.decision_contract;
+  // P0-2 (the 47/0 leak): the seal was only reachable in the one in-flow SealMoment
+  // screen. Re-derive the voyage's falsifiable predicates HERE so a completed-but-
+  // unsealed voyage can still be sealed from /project at any later time. null for a
+  // legacy (non-voyage) project → DecisionContractCard keeps its legacy storage path.
+  const liveContractPredicates = useMemo(
+    () => (currentVoyageSession
+      ? extractPredicatesFromSession({
+          mix: currentVoyageSession.mix,
+          final_mix: currentVoyageSession.final_mix,
+          dm_feedback: currentVoyageSession.dm_feedback,
+          debate_result: currentVoyageSession.debate_result,
+          falsification: currentVoyageSession.falsification,
+        })
+      : null),
+    [currentVoyageSession],
+  );
   // The decision's CONTENT — until now this page showed only process chrome
   // (progress %, steps, formats) and never WHAT was decided. The bearing is
   // the one-screen answer; it replaces the bare "항해 완료" status card.
@@ -390,7 +414,7 @@ export default function ProjectPage() {
               <FileText size={24} className="mx-auto text-[var(--text-secondary)] mb-3" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 프로젝트가 없습니다', 'No projects yet')}</p>
               <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-xs mx-auto">
-                {L('워크스페이스에서 프로젝트를 만들면, 4단계 프로세스의 진행 상황을 여기서 한눈에 확인할 수 있습니다.', 'Create a project in your workspace and track the 4-stage process progress here at a glance.')}
+                {L('워크스페이스에서 결정을 시작하면, 봉인한 결정과 확인일이 여기 모여요 — 그날 “어떻게 됐는지” 돌아보는 곳이에요.', "Start a decision in your workspace, and your sealed decisions and check-in dates gather here — the place you come back to see how each one went.")}
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
                 <LocaleLink href="/workspace">
@@ -399,9 +423,17 @@ export default function ProjectPage() {
                   </button>
                 </LocaleLink>
                 <LocaleLink href="/workspace?demo=planning" className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors">
-                  {L('또는 30초 데모 먼저 보기 →', 'Or see a 30-second demo first →')}
+                  {L('또는 데모 먼저 보기 →', 'Or see a quick demo first →')}
                 </LocaleLink>
               </div>
+              {/* P2-4: a plugin-first user has no cue their CLI decisions can come in
+                  here — /import was buried as a generic nav item. */}
+              <p className="mt-5 pt-4 border-t border-[var(--border-subtle)] text-[11.5px] text-[var(--text-tertiary)]">
+                {L('Claude Code 플러그인을 쓰세요? ', 'Using the Claude Code plugin? ')}
+                <LocaleLink href="/import" className="font-semibold text-[var(--accent)] hover:underline">
+                  {L('플러그인 결정 가져오기 →', 'Import your plugin decisions →')}
+                </LocaleLink>
+              </p>
             </Card>
           ) : (
             <>
@@ -465,6 +497,7 @@ export default function ProjectPage() {
                     { key: 'all', label: L('전체', 'All'), count: stats.total },
                     { key: 'active', label: L('진행 중', 'Active'), count: stats.inProgress },
                     { key: 'done', label: L('완료', 'Done'), count: stats.done },
+                    { key: 'settled', label: L('정산됨', 'Settled'), count: sortedProjects.filter((p) => !!p.decision_contract && contractStatus(p.decision_contract, Date.now()).allGraded).length },
                     { key: 'new', label: L('시작 전', 'New'), count: stats.untouched },
                   ] as const).map((f) => {
                     const active = statusFilter === f.key;
@@ -722,11 +755,27 @@ export default function ProjectPage() {
           <Card>
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{currentProject.name}</h2>
-              {currentHasVoyage && (
-                <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
-                  {currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
-                </span>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {currentHasVoyage && (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
+                    {currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
+                  </span>
+                )}
+                {/* P2: per-project delete — deleteProject existed but was wired to no UI;
+                    the only deletion was an all-data reset. Soft-deletes server-side too. */}
+                <button
+                  onClick={() => {
+                    if (window.confirm(L('이 결정을 삭제할까요? 되돌릴 수 없어요.', 'Delete this decision? This cannot be undone.'))) {
+                      deleteProject(currentProject.id);
+                      setCurrentProjectId(null);
+                    }
+                  }}
+                  title={L('삭제', 'Delete')}
+                  className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--danger,#dc2626)] hover:bg-[var(--surface)] cursor-pointer transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
             {!currentHasVoyage && (
               <div className="flex items-center gap-3 mt-2">
@@ -783,7 +832,11 @@ export default function ProjectPage() {
 
           {/* Decision Contract — falsifiable closed loop (§0 KICK).
               Seal only offered once the voyage is finished (all legs done). */}
-          <DecisionContractCard project={currentProject} sealable={completedSteps === steps.length} />
+          <DecisionContractCard
+            project={currentProject}
+            sealable={currentHasVoyage ? currentVoyageDone : completedSteps === steps.length}
+            livePredicates={liveContractPredicates}
+          />
 
           {/* Settlement modal — "그래서, 어떻게 됐어요?" Auto-opens when the
               check-in date arrives (W1.2). "아직" extends via history-preserving
