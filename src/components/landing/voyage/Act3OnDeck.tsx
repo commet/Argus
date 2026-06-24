@@ -17,6 +17,8 @@ import { useLocale } from '@/hooks/useLocale';
 import { track } from '@/lib/analytics';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { LegBreadcrumb } from './ui/LegBreadcrumb';
+import { VoyageMapFilm } from '@/components/landing/films/VoyageMapFilm';
+import { ScaleToFit } from '@/components/landing/films/ScaleToFit';
 
 export function Act3OnDeck() {
   const locale = useLocale();
@@ -65,9 +67,24 @@ export function Act3OnDeck() {
           )}
         </p>
 
-        {/* The voyagemap — a branching course-chart in logbook ink. */}
-        <div className="bp-fade-up mt-12 md:mt-14" style={{ animationDelay: '260ms' }}>
-          <CourseChart locale={locale} />
+        {/* The Grand Chart — the whole voyage as one living nautical map: the
+            ship sails through every past decision, the chosen route inking gold
+            while the roads not taken stay as dotted ghost-routes, then the
+            camera zooms out to the full annotated chart. Breaks out to a wider
+            band; ScaleToFit shrinks the 1080-wide design intact on mobile. */}
+        <div
+          className="bp-fade-up mt-12 md:mt-14"
+          style={{
+            animationDelay: '260ms',
+            position: 'relative', width: '100vw', left: '50%', right: '50%',
+            marginLeft: '-50vw', marginRight: '-50vw',
+          }}
+        >
+          <div style={{ width: 'min(1120px, 94vw)', margin: '0 auto' }}>
+            <ScaleToFit designWidth={1080}>
+              <VoyageMapFilm />
+            </ScaleToFit>
+          </div>
         </div>
 
         {/* Bind-first reminder + the primary CTA. */}
@@ -111,70 +128,3 @@ export function Act3OnDeck() {
   );
 }
 
-/* A branching course-chart (git-graph) in logbook ink: a trunk course, one
-   road not taken (dimmed), and the chosen branch climbing to a gold anchored
-   heading. Decorative but honest to the product's real branch map. */
-function CourseChart({ locale }: { locale: 'ko' | 'en' }) {
-  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  const ink = 'var(--bp-ink)';
-  const soft = 'var(--bp-ink-soft)';
-  const faint = 'var(--bp-ink-faint)';
-  const gold = 'var(--bp-gold)';
-  const goldDeep = 'var(--bp-gold-deep)';
-
-  // lanes (y) and time columns (x) on a 380×170 board
-  const TRUNK = 122, MID = 74, TOP = 30;
-  const X = [30, 104, 178, 252, 326, 362];
-
-  return (
-    <div
-      className="relative mx-auto"
-      style={{ width: '100%', maxWidth: 640, border: `1px solid ${faint}`, background: 'var(--bp-paper-deep)', boxShadow: '3px 3px 0 0 var(--bp-ink-faint)' }}
-    >
-      {/* top gold rule — the chart plate */}
-      <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: gold }} />
-      {/* corner ticks */}
-      {([{ t: 8, l: 8, bt: 1, bl: 1 }, { t: 8, r: 8, bt: 1, br: 1 }, { b: 8, l: 8, bb: 1, bl: 1 }, { b: 8, r: 8, bb: 1, br: 1 }] as Array<Record<string, number>>).map((c, i) => (
-        <span key={i} aria-hidden="true" style={{ position: 'absolute', width: 7, height: 7, top: c.t, left: c.l, right: c.r, bottom: c.b, borderTop: c.bt ? `1px solid ${soft}` : undefined, borderBottom: c.bb ? `1px solid ${soft}` : undefined, borderLeft: c.bl ? `1px solid ${soft}` : undefined, borderRight: c.br ? `1px solid ${soft}` : undefined, opacity: 0.4 }} />
-      ))}
-
-      <svg viewBox="0 0 392 170" width="100%" role="img" aria-label={L('결정이 갈라지는 항로 해도', 'A branching course chart of decisions')} style={{ display: 'block', padding: '16px 10px 10px' }}>
-        <defs>
-          <pattern id="cc-grid" width="22" height="22" patternUnits="userSpaceOnUse">
-            <path d="M22 0 L0 0 0 22" stroke={faint} strokeWidth="0.5" fill="none" />
-          </pattern>
-        </defs>
-        <rect x="0" y="0" width="392" height="170" fill="url(#cc-grid)" opacity="0.5" />
-
-        {/* edges */}
-        {/* trunk */}
-        <path d={`M${X[0]} ${TRUNK} H${X[2]}`} stroke={ink} strokeWidth="2" fill="none" strokeLinecap="round" />
-        {/* abandoned fork up from x1 → mid lane (dimmed) */}
-        <path d={`M${X[1]} ${TRUNK} C ${X[1] + 36} ${TRUNK}, ${X[2] - 36} ${MID}, ${X[2]} ${MID} H${X[3]}`} stroke={soft} strokeWidth="1.4" fill="none" strokeLinecap="round" strokeDasharray="2 6" opacity="0.6" />
-        {/* chosen gold fork up from x2 → top lane */}
-        <path d={`M${X[2]} ${TRUNK} C ${X[2] + 36} ${TRUNK}, ${X[3] - 36} ${TOP}, ${X[3]} ${TOP} H${X[5]}`} stroke={gold} strokeWidth="2.4" fill="none" strokeLinecap="round" />
-
-        {/* nodes — trunk */}
-        {[X[0], X[1], X[2]].map((x, i) => (
-          <circle key={`t${i}`} cx={x} cy={TRUNK} r="4.2" fill="var(--bp-paper-deep)" stroke={ink} strokeWidth="1.8" />
-        ))}
-        {/* abandoned nodes */}
-        {[X[2], X[3]].map((x, i) => (
-          <circle key={`a${i}`} cx={x} cy={MID} r="3.6" fill="var(--bp-paper-deep)" stroke={soft} strokeWidth="1.4" opacity="0.6" />
-        ))}
-        {/* chosen gold nodes */}
-        {[X[3], X[4]].map((x, i) => (
-          <circle key={`g${i}`} cx={x} cy={TOP} r="4.2" fill="var(--bp-paper-deep)" stroke={goldDeep} strokeWidth="1.8" />
-        ))}
-        {/* anchored head — filled gold + flag */}
-        <circle cx={X[5]} cy={TOP} r="5.4" fill={gold} stroke={goldDeep} strokeWidth="1.4" />
-        <path d={`M${X[5] + 6} ${TOP - 11} v13 M${X[5] + 6} ${TOP - 11} l9 3 -9 3`} stroke={goldDeep} strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* labels */}
-        <text x={X[0]} y={TRUNK + 20} fontFamily="var(--font-mono)" fontSize="9" fill={soft} textAnchor="middle" letterSpacing="0.5">{L('시작', 'start')}</text>
-        <text x={X[3]} y={MID - 11} fontFamily="var(--font-mono)" fontSize="8.5" fill={soft} textAnchor="middle" opacity="0.7">{L('가지 않은 길', 'road not taken')}</text>
-        <text x={X[5]} y={TOP + 22} fontFamily="var(--font-mono)" fontSize="9" fill={goldDeep} textAnchor="end" letterSpacing="0.5" fontWeight="700">{L('현재 방위', 'current heading')}</text>
-      </svg>
-    </div>
-  );
-}

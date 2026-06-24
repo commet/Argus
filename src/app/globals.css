@@ -3117,6 +3117,19 @@ button, a, input, textarea {
   0%   { transform: translate(-50%, -50%) scale(.4); opacity: .7; }
   100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
 }
+/* VoyageMap (The Grand Chart) — ship bob + position/reef pulses */
+@keyframes vmbob {
+  0%, 100% { transform: translate(-50%, -100%) translateY(0); }
+  50%      { transform: translate(-50%, -100%) translateY(-3px); }
+}
+@keyframes vmpulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .55; }
+  50%      { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
+}
+@keyframes vmreef {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .45; }
+  50%      { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
 /* Workspace showcase variants (rotateX(-21deg), pulse) */
 @keyframes argpulse {
   0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .5; }
