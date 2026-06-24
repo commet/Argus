@@ -67,8 +67,6 @@ export function SirenHero() {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
-  const placeholder = !text && !focused ? PROMPTS[promptIdx] : PROMPTS[0];
-
   function sail() {
     const t = text.trim();
     if (!t) return;
@@ -84,7 +82,7 @@ export function SirenHero() {
         // Natural height: the hero now carries the product film as its living
         // anchor, so it flows from the top instead of being centred in 100svh.
         paddingTop: 'clamp(48px, 7vh, 92px)',
-        paddingBottom: 'clamp(48px, 8vh, 96px)',
+        paddingBottom: 'clamp(24px, 3.5vh, 44px)',
       }}
     >
       <PaperGrain opacity={0.05} />
@@ -239,6 +237,25 @@ export function SirenHero() {
                 />
               );
             })}
+            {/* Pen-prompt overlay: when the field is empty and at rest, a blinking
+                ink caret leads the rotating example — so the chart-field reads as
+                "waiting for you to write", not as a quote to read. It sits behind
+                the (transparent, empty) textarea and ignores pointer events, so
+                the moment you click or type, the real field takes over seamlessly. */}
+            {!text && !focused && (
+              <div
+                aria-hidden="true"
+                className={locale === 'ko' ? 'break-keep' : ''}
+                style={{
+                  position: 'absolute', top: 16, left: 20, right: 20, zIndex: 0,
+                  pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 8,
+                  color: 'var(--bp-ink-soft)', fontStyle: 'italic', fontSize: 18, lineHeight: 1.7,
+                }}
+              >
+                <span className="bp-caret" style={{ height: 21 }} />
+                <span style={{ flex: 1, minWidth: 0 }}>{PROMPTS[promptIdx]}</span>
+              </div>
+            )}
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -251,11 +268,11 @@ export function SirenHero() {
                   sail();
                 }
               }}
-              placeholder={placeholder}
+              placeholder={!text && !focused ? '' : PROMPTS[0]}
               rows={2}
               maxLength={5000}
               className={`bp-hero-input w-full bg-transparent resize-none focus:outline-none ${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ color: 'var(--bp-ink)', fontSize: 18, lineHeight: 1.7 }}
+              style={{ color: 'var(--bp-ink)', fontSize: 18, lineHeight: 1.7, padding: 0, position: 'relative', zIndex: 1 }}
             />
             {/* baseline rule: static faint hairline + an ink rule that inks-in from the left on focus */}
             <div style={{ position: 'relative', height: 1.5, marginTop: 4 }}>

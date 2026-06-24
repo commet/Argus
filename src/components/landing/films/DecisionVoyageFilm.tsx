@@ -16,7 +16,7 @@
  * (`t = 18600`) instead of animating.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 
 interface DecisionVoyageFilmProps {
@@ -51,30 +51,30 @@ function buildSessions(L: (ko: string, en: string) => string): [Session, Session
     {
       ctx: L('신규 가입이 3주째 폭증 중. 지금이 절호의 기회처럼 보인다.', 'New signups have spiked for three straight weeks. It looks like the perfect moment.'),
       q: L('마케팅 예산을 2배로 태울까?', 'Should we double the marketing budget?'),
-      prem: L('“지금 몰린 사용자는 그대로 남는다”', '"The users flooding in now will stay."'),
+      prem: L('“지금 몰려든 사람들은 계속 남는다”', '"The users flooding in now will stay."'),
       premSub: L('이 가정부터 따져봐야 한다.', 'That assumption is the first thing to test.'),
-      s: [L('CAC 회수 24개월', 'CAC payback 24 mo'), L('신규 유입 3.2x ↑', 'New signups 3.2x ↑'), L('D7 잔존 8%', 'D7 retention 8%')],
-      a: { eye: L('아니오 · 전제가 틀리다', 'No · the premise is wrong'), t: L('누수부터 막고 키운다', 'Plug the leak, then grow'), i: L('느리지만 안전 · 이탈을 먼저.', 'Slower but safe · churn first.') },
+      s: [L('광고비 회수 24개월', 'CAC payback 24 mo'), L('신규 가입 3.2배 ↑', 'New signups 3.2x ↑'), L('한 주 뒤 8%만 남음', 'Only 8% left after a week')],
+      a: { eye: L('아니오 · 전제가 틀리다', 'No · the premise is wrong'), t: L('이탈부터 막고 키운다', 'Stop the leaving first, then grow'), i: L('느리지만 안전 · 빠져나감을 먼저.', 'Slower but safe · churn first.') },
       b: { eye: L('예 · 전제가 맞다', 'Yes · the premise holds'), t: L('예산 2배 증액', 'Double the budget'), i: L('빠르지만 위험 · 밑 빠진 독.', 'Fast but risky · a leaky bucket.') },
       c: null,
       three: false,
       chosen: 'a',
-      plate: L('전제 교정 — 누수부터 막고 키운다', 'Premise corrected — plug the leak before growing'),
+      plate: L('전제 교정 — 빠져나감부터 막고 키운다', 'Premise corrected — stop the leaving before growing'),
       plateSub: L('다음 갈림길: 이탈을 어디서 막을지.', 'Next fork: where to stop the churn.'),
     },
     {
-      ctx: L('잔존을 끌어올리기로 했다. 그런데 팀은 자꾸 새 기능부터 만들자고 한다.', 'You decided to lift retention. But the team keeps wanting to build new features first.'),
+      ctx: L('이탈을 줄이기로 했다. 그런데 팀은 자꾸 새 기능부터 만들자고 한다.', 'You decided to cut churn. But the team keeps wanting to build new features first.'),
       q: L('이탈, 어디서 막을까?', 'Churn — where do we stop it?'),
-      prem: L('“기능이 많아질수록 더 머무른다”', '"The more features, the longer they stay."'),
+      prem: L('“기능이 많아질수록 더 오래 쓴다”', '"The more features, the longer they stay."'),
       premSub: L('모두가 당연하게 믿는 가정.', 'The assumption everyone takes for granted.'),
-      s: [L('기능 추가 ROI 0.4x', 'New-feature ROI 0.4x'), L('신규 첫날 이탈 62%', 'Day-1 churn 62%'), L('가치 체감 시 잔존 3배', '3x retention once value lands')],
-      a: { eye: L('A · 온보딩 재설계', 'A · redesign onboarding'), t: L('첫날 이탈부터 잡기', 'Stop the day-1 drop-off'), i: L('효과는 빠르지만 표면적.', 'Fast effect, but surface-level.') },
-      b: { eye: L('B · 핵심 가치를 체감', 'B · make the core value land'), t: L('“쓰는 이유”를 먼저 경험', 'Feel the "why use it" first'), i: L('근본적 · 체감 시 잔존 3배.', 'Fundamental · 3x retention once it lands.') },
-      c: { eye: L('C · 기능 더 추가', 'C · add more features'), t: L('요구는 많지만', 'Much-requested, but'), i: L('정작 잔존엔 영향이 적다.', 'barely moves retention.') },
+      s: [L('기능 더 만들어도 효과 0.4배', 'New-feature ROI 0.4x'), L('가입 첫날 62%가 떠남', 'Day-1 churn 62%'), L('“쓸 이유” 느끼면 3배 더 남음', '3x retention once value lands')],
+      a: { eye: L('A · 첫 사용 경험 개선', 'A · redesign onboarding'), t: L('첫날 이탈부터 잡기', 'Stop the day-1 drop-off'), i: L('효과는 빠르지만 표면적.', 'Fast effect, but surface-level.') },
+      b: { eye: L('B · “쓸 이유”를 체감하게', 'B · make the core value land'), t: L('“쓸 이유”를 먼저 느끼게', 'Feel the "why use it" first'), i: L('근본적 · 느끼면 3배 더 남음.', 'Fundamental · 3x retention once it lands.') },
+      c: { eye: L('C · 기능 더 추가', 'C · add more features'), t: L('요구는 많지만', 'Much-requested, but'), i: L('정작 이탈엔 영향이 적다.', 'barely moves retention.') },
       three: true,
       chosen: 'b',
-      plate: L('전제 교정 — 기능이 아니라 “쓰는 이유”가 잔존을 만든다', 'Premise corrected — not features but the "why" drives retention'),
-      plateSub: L('다음: 가치를 체감하기까지의 단계를 설계.', 'Next: design the steps until value lands.'),
+      plate: L('전제 교정 — 기능이 아니라 “쓸 이유”가 사람을 남게 한다', 'Premise corrected — not features but the "why" keeps people'),
+      plateSub: L('다음: “쓸 이유”를 느끼기까지의 단계를 설계.', 'Next: design the steps until the value lands.'),
     },
   ];
 }
@@ -428,7 +428,7 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
   };
   const ph: Array<[number, number, string]> = [
     [0, 3000, L('질문 · Argus가 묻는다', 'Question · Argus asks')],
-    [3000, 6500, L('전제 도출 · 크루가 캐낸 가정', 'Premise · the assumption the crew dug up')],
+    [3000, 6500, L('숨은 전제 · 크루가 찾아낸 가정', 'Premise · the assumption the crew dug up')],
     [6500, 10000, act === 0 ? L('갈림길 · 예 / 아니오', 'Fork · yes / no') : L('갈림길 · 세 갈래', 'Fork · three ways')],
     [10000, 13000, L('선택 · 당신이 정한다', 'Choice · you decide')],
     [13000, 16400, L('전진 · 배가 나아간다', 'Advance · the ship moves')],
@@ -525,11 +525,32 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const CREW_MED = buildCrewMed(L);
   const [t, setT] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  // The film is a timed story — if it runs while off-screen, a viewer scrolling
+  // down lands in the middle and never sees the setup. So it stays parked at
+  // its first frame until it scrolls into view, then plays from the top (and
+  // re-arms each time it leaves, so you always catch the beginning).
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => setInView(!!entries[0]?.isIntersecting),
+      { threshold: 0.25 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     if (mq && mq.matches) {
       setT(REDUCED_T);
+      return;
+    }
+    if (!inView) {
+      setT(0); // parked at the opening frame until scrolled to
       return;
     }
     const sp = Number(speed) || 1;
@@ -545,7 +566,7 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [speed, pauseAtArrival]);
+  }, [inView, speed, pauseAtArrival]);
 
   const R = renderVals(t, L);
   const s = (k: string) => R[k] as React.CSSProperties;
@@ -555,6 +576,7 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
 
   return (
     <div
+      ref={rootRef}
       style={{
         width: '100%',
         display: 'grid',
@@ -696,7 +718,7 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
                 <circle cx="10" cy="10" r="6.5" stroke="#a87d31" strokeWidth="2.2" />
                 <path d="M15 15 L21 21" stroke="#a87d31" strokeWidth="2.6" strokeLinecap="round" />
               </svg>
-              <span style={{ font: `700 9.5px/1 ${MONO}`, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a87d31', whiteSpace: 'nowrap' }}>{L('숨은 전제 · Argus가 들춤', 'Hidden premise · surfaced by Argus')}</span>
+              <span style={{ font: `700 9.5px/1 ${MONO}`, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a87d31', whiteSpace: 'nowrap' }}>{L('숨은 전제 · Argus가 짚어냄', 'Hidden premise · surfaced by Argus')}</span>
             </div>
             <h4 style={{ margin: 0, font: `600 16px/1.4 ${SERIF}`, color: '#f4ecd6', wordBreak: 'keep-all' }}>{txt('premText')}</h4>
             <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.45, color: '#cabb95', wordBreak: 'keep-all' }}>{txt('premSub')}</p>

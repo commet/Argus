@@ -43,6 +43,10 @@ type Chapter = {
   num: string; ko: string; en: string;
   from: number; to: number; gold?: boolean; lure?: boolean;
   mythKo: string; mythEn: string;
+  // attribution — a compact "who / when said this" tag under the quote. Carries
+  // the meaning for someone who's never read the Odyssey (the bound Odysseus,
+  // the Sirens' song, the loyal dog Argos) without an explainer paragraph.
+  attrKo: string; attrEn: string;
   lineKo: string; lineEn: string;
 };
 
@@ -68,6 +72,8 @@ const CHAPTERS: Chapter[] = [
     num: 'I', ko: '묶기', en: 'Bind', from: 6, to: 12.6,
     mythKo: '“나를 돛대에 묶어라. 풀어달라 빌어도, 더 단단히.”',
     mythEn: '“Bind me to the mast — and though I plead, bind me the tighter.”',
+    attrKo: '오디세우스, 세이렌을 앞두고 스스로를 묶으며',
+    attrEn: 'Odysseus, binding himself before the Sirens',
     lineKo: '묻기 전에, 지금 당신이 어느 쪽으로 기울었는지부터 적어 둬요.\nAI의 유창한 답에 흔들리지 않게.',
     lineEn: 'Before you ask, jot down which way you’re leaning right now —\nso the AI’s fluent answer can’t sway you off it.',
   },
@@ -75,6 +81,8 @@ const CHAPTERS: Chapter[] = [
     num: 'II', ko: '듣기', en: 'Listen', from: 14.2, to: 21, lure: true,
     mythKo: '“이리 와 들으라.\n우리 노래를 들은 자는, 세상 모든 일을 알고 떠나리라.”',
     mythEn: '“Come hither and hear —\nwhoever hears our song departs knowing all that is.”',
+    attrKo: '세이렌의 노래 — “다 알려주겠다”는 그 유혹',
+    attrEn: 'The Sirens’ song — the lure of “we’ll tell you all”',
     lineKo: 'AI는 “좋아 보여요” 대신, 당신이 놓친 단 하나를 짚어줘요.\n결정은 끝까지 당신 몫이고요.',
     lineEn: 'Instead of “looks good,” it names the one thing you missed.\nThe decision stays yours, all the way.',
   },
@@ -82,6 +90,8 @@ const CHAPTERS: Chapter[] = [
     num: 'III', ko: '닿기', en: 'Land', from: 23, to: 30,
     mythKo: '“노래가 잦아들고, 마침내 단단한 땅에 발을 디딘다.”',
     mythEn: '“The song fades, and at last he sets foot on solid ground.”',
+    attrKo: '세이렌의 바다를 지나, 마침내 뭍에 닿은 오디세우스',
+    attrEn: 'Odysseus, ashore at last past the Sirens’ sea',
     lineKo: 'AI는 거들 뿐, 결정은 현실의 당신 몫이에요.\n그 한 걸음을 또렷하게 내딛도록.',
     lineEn: 'The AI only helps you see; the real decision is yours —\nand you step out clearly into the world.',
   },
@@ -89,6 +99,8 @@ const CHAPTERS: Chapter[] = [
     num: 'IV', ko: '알아봄', en: 'Recognition', from: 32, to: 39.4, gold: true,
     mythKo: '“스러져 가던 늙은 개만이, 옛 주인을 알아보았다.”',
     mythEn: '“Only old Argos, failing, knew his master still.”',
+    attrKo: '20년을 기다린 늙은 개 아르고스, 단 하나 주인을 알아보다',
+    attrEn: 'Argos, the old dog who waited 20 years, knew his master alone',
     lineKo: '정한 날 Argus가 돌아와 물어요 — “그래서, 어떻게 됐어요?”\n현실로 확인한 판단이 쌓여, 당신만의 판단력이 됩니다.',
     lineEn: 'On your day, Argus returns — “So, how did it go?”\nCalls checked against reality become judgment you can trust.',
   },
@@ -194,15 +206,24 @@ export function VoyageFilm() {
             >
               {active.gold ? L('종장', 'Coda') : L(`${active.num} · ${active.ko}`, `${active.num} · ${active.en}`)}
             </span>
+            {/* the Homer quote — now the literary focal point: larger serif,
+                full strength, with its own attribution beneath. */}
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, marginBottom: 12, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink)', fontSize: 'clamp(13px, 1.55vw, 16px)', lineHeight: 1.42, opacity: active.lure ? 1 : 0.9, letterSpacing: '0.01em', textWrap: 'pretty', textShadow: '0 0 3px var(--bp-paper), 0 0 7px var(--bp-paper), 0 0 13px var(--bp-paper)' }}
+              style={{ margin: 0, marginBottom: 7, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 600, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink)', fontSize: 'clamp(16.5px, 2.2vw, 23px)', lineHeight: 1.38, letterSpacing: '0.005em', textWrap: 'pretty', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 12px var(--bp-paper), 0 0 18px var(--bp-paper)' }}
             >
               <Lines text={L(active.mythKo, active.mythEn)} />
             </p>
+            {/* attribution — who/when, so a newcomer can place the quote. */}
+            <p
+              className={`bp-mono ${locale === 'ko' ? 'break-keep' : ''}`}
+              style={{ margin: 0, marginBottom: 16, fontSize: 'clamp(10px, 1vw, 11.5px)', fontWeight: 600, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', opacity: 1, letterSpacing: '0.03em', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}
+            >
+              — {L(active.attrKo, active.attrEn)}
+            </p>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(15.5px, 2.15vw, 23px)', lineHeight: 1.4, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 3px var(--bp-paper), 0 0 9px var(--bp-paper), 0 0 16px var(--bp-paper)' }}
+              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 1.85vw, 19px)', lineHeight: 1.42, letterSpacing: '-0.006em', maxWidth: 580, textWrap: 'pretty', textShadow: '0 0 3px var(--bp-paper), 0 0 9px var(--bp-paper), 0 0 16px var(--bp-paper)' }}
             >
               <Lines text={L(active.lineKo, active.lineEn)} />
             </p>
