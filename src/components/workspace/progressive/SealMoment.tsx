@@ -111,6 +111,17 @@ export function SealMoment({
     track('seal_not_armed', { project_id: project.id });
   }, [silentNoSeal, project.id]);
 
+  // Did the user actually SEE the seal question? Fires once when the standalone
+  // ASK is presented (no contract yet + something falsifiable to arm). This is
+  // the funnel's missing rung: it separates "never reached the seal" from "saw
+  // it and chose not to" — the only way to read whether the 0-seal problem is
+  // mechanical (never delivered) or motivational (declined). Internal-only.
+  const sealAsked = !contract && (Array.isArray(predicates) ? predicates.length : 0) > 0;
+  useEffect(() => {
+    if (!sealAsked) return;
+    track('seal_impression', { project_id: project.id, predicates: Array.isArray(predicates) ? predicates.length : 0 });
+  }, [sealAsked, project.id]);
+
   const kept = useMemo(
     () => (Array.isArray(predicates) ? predicates : []).filter((p) => !dropped.has(p.id)),
     [predicates, dropped],

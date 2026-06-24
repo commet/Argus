@@ -24,7 +24,7 @@
  * auto-escaped.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, AlertTriangle, GitBranch, Check } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -80,6 +80,22 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   const allResolved = predicates.length > 0 && resolvedCount === predicates.length;
   // How many times the user already said "아직" — the history is the receipt.
   const deferrals = Array.isArray(contract?.history) ? contract!.history.length : 0;
+
+  // Return-loop instrumentation: the founder's core question is "do people who
+  // came back actually close the loop?" — so we need the came-back-but-left
+  // number, not just the graded one. `shown` fires on open; `abandoned` fires on
+  // unmount when the contract still wasn't fully resolved (read from a ref so the
+  // cleanup sees the latest state, not the mount-time snapshot). Internal-only.
+  const allResolvedRef = useRef(allResolved);
+  allResolvedRef.current = allResolved;
+  useEffect(() => {
+    track('settle_prompt_shown', { project_id: project.id, predicates: predicates.length });
+    return () => {
+      if (!allResolvedRef.current) track('settle_abandoned', { project_id: project.id });
+    };
+    // mount/unmount only — one shown per open, one abandoned-or-not per close.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // The user's accumulating record across ALL projects — the first sliver of
   // the 자차표. Single source: summarizeRecord (also feeds /project's strip),
@@ -189,6 +205,13 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
             ? L(`${sealedOn}에 봉인한 결정이에요 — `, `You sealed this decision on ${sealedOn} — `)
             : L('그때 이 결정을 봉인하셨어요 — ', 'You sealed this decision — ')}
           <span className="font-semibold text-[var(--text-primary)]">{project.name}</span>
+        </p>
+        {/* Fights loss-avoidance (the return asymmetry): a bad outcome is the
+            hardest to come back and grade, so say plainly we're checking the
+            prediction, not the person. Honest, non-judgmental (spine). */}
+        <p className="text-[11.5px] text-[var(--text-tertiary)] leading-[1.5] -mt-2">
+          {L('결과가 어떻든 괜찮아요 — 확인하는 건 그때의 예측이지, 당신이 아니에요. 좋은 판단도 결과는 나쁠 수 있으니까요.',
+             "However it turned out is fine — what we check is the prediction back then, not you. A good call can still get a bad result.")}
         </p>
 
         <div className="space-y-2.5">
