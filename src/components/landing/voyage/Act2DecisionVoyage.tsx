@@ -30,40 +30,6 @@ import { DecisionVoyageFilm } from '@/components/landing/films/DecisionVoyageFil
 import { ScaleToFit } from '@/components/landing/films/ScaleToFit';
 
 type Locale = 'ko' | 'en';
-type Tone = 'you' | 'argus' | 'alert' | 'arrival';
-
-type Beat = {
-  stage: { ko: string; en: string };
-  body: { ko: string; en: string };
-  tone: Tone;
-};
-
-const BEATS: Beat[] = [
-  {
-    stage: { ko: '당신', en: 'You' },
-    body: {
-      ko: '“이번 분기에 신규 기능을 출시할까? 6주째 만들고 있고, 팀은 내보내고 싶어 한다.”',
-      en: '"Should we launch the new feature this quarter? We’ve built it for six weeks and the team wants to ship."',
-    },
-    tone: 'you',
-  },
-  {
-    stage: { ko: '물음부터 갈렸다', en: 'The question split' },
-    body: {
-      ko: '같은 브리프를 여러 실행자에게 그대로 줬더니, 이게 푸는 게 무슨 문제인지부터 갈렸어요 — 누구는 출시 타이밍으로, 누구는 경쟁 방어로 읽었죠. 진짜 질문이 아직 안 정해졌다는 신호예요.',
-      en: 'Handed the same brief to several readers, they split on what problem it even solves — one read launch timing, another defending against rivals. A sign the real question isn’t settled yet.',
-    },
-    tone: 'argus',
-  },
-  {
-    stage: { ko: '⚠ 확인할 것', en: '⚠ For you to check' },
-    body: {
-      ko: '당신이 스스로 미뤄둔 것 하나 — 환불·분쟁 리스크는 법무 검토 전엔 닫히지 않습니다. 이건 AI가 대신 정할 수 없습니다. 당신이 확인해야 합니다.',
-      en: 'One thing you quietly set aside — refund and dispute risk stays open until legal signs off. AI can’t decide this for you. You have to check it.',
-    },
-    tone: 'alert',
-  },
-];
 
 export function Act2DecisionVoyage() {
   const locale = useLocale() as Locale;
@@ -71,8 +37,10 @@ export function Act2DecisionVoyage() {
 
   const sectionRef = useRef<HTMLElement | null>(null);
   const [started, setStarted] = useState(false);
-  // revealed = number of waypoints shown (the Arrival card counts as the last).
-  const TOTAL = BEATS.length + 1; // +1 for the Arrival deliverable card
+  // revealed: 0 → 1 when the section scrolls into view, fading in the one
+  // deliverable card (the per-beat trail was removed — the chart film already
+  // tells that story, so the text waypoints just duplicated it above).
+  const TOTAL = 1;
   const [revealed, setRevealed] = useState(0);
 
   // Trigger the reveal when the trail scrolls into view. Reduced-motion = all at once.
@@ -115,7 +83,7 @@ export function Act2DecisionVoyage() {
       style={{
         background: 'var(--bp-paper)',
         paddingTop: 'clamp(40px, 5vh, 64px)',
-        paddingBottom: 'clamp(80px, 10vh, 120px)',
+        paddingBottom: 'clamp(44px, 6vh, 72px)',
       }}
     >
       <PaperGrain opacity={0.045} />
@@ -190,23 +158,12 @@ export function Act2DecisionVoyage() {
           </div>
         </div>
 
-        {/* The trail — a ship's log unrolling */}
+        {/* The one deliverable the chart leaves you with — the Current Bearing. */}
         <ol
-          className="bp-fade-up mt-12 md:mt-14"
+          className="bp-fade-up mt-10 md:mt-12"
           style={{ listStyle: 'none', padding: 0, margin: 0, animationDelay: '360ms' }}
         >
-          {BEATS.map((beat, i) => (
-            <TrailWaypoint
-              key={i}
-              beat={beat}
-              locale={locale}
-              shown={i < revealed}
-              isLast={false}
-            />
-          ))}
-
-          {/* Arrival — the differentiated deliverable in miniature */}
-          <ArrivalWaypoint locale={locale} L={L} shown={revealed >= BEATS.length + 1} />
+          <ArrivalWaypoint locale={locale} L={L} shown={revealed >= 1} />
         </ol>
 
         {/* The canonical input now lives in the hero. After the deliverable we
@@ -243,101 +200,6 @@ export function Act2DecisionVoyage() {
         </div>
       </div>
     </section>
-  );
-}
-
-/* One waypoint on the trail. The connecting segment + node dot live in the
-   left gutter; the body sits to the right. The ⚠ alert beat (the dog) gets a
-   restrained ink-red — the one place the eye is meant to catch. */
-function TrailWaypoint({
-  beat,
-  locale,
-  shown,
-}: {
-  beat: Beat;
-  locale: Locale;
-  shown: boolean;
-  isLast: boolean;
-}) {
-  const alert = beat.tone === 'alert';
-  const you = beat.tone === 'you';
-  const dot = alert ? '#a14b3b' : you ? 'var(--bp-ink)' : 'var(--bp-ink-soft)';
-
-  return (
-    <li
-      style={{
-        display: 'flex',
-        gap: 18,
-        position: 'relative',
-        paddingBottom: 26,
-        opacity: shown ? 1 : 0,
-        transform: shown ? 'translateY(0)' : 'translateY(10px)',
-        transition: 'opacity 520ms ease, transform 520ms ease',
-      }}
-    >
-      {/* Gutter: connecting line + node */}
-      <div style={{ position: 'relative', width: 14, flexShrink: 0 }}>
-        {/* vertical connector running through the row */}
-        <span
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            left: 6,
-            top: 14,
-            bottom: -2,
-            width: 1,
-            background: 'var(--bp-ink-faint)',
-          }}
-        />
-        {/* node dot */}
-        <span
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            top: 4,
-            left: 0,
-            width: alert ? 14 : 12,
-            height: alert ? 14 : 12,
-            borderRadius: '50%',
-            background: alert ? dot : 'var(--bp-paper)',
-            border: `2px solid ${dot}`,
-            boxShadow: alert ? '0 0 0 4px rgba(161,75,59,0.12)' : 'none',
-          }}
-        />
-      </div>
-
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
-        <span
-          className="bp-mono"
-          style={{
-            display: 'block',
-            color: alert ? '#a14b3b' : 'var(--bp-ink-faint)',
-            fontSize: 11,
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            fontWeight: alert ? 700 : 500,
-            marginBottom: 7,
-          }}
-        >
-          {beat.stage[locale]}
-        </span>
-        <p
-          className={locale === 'ko' ? 'break-keep' : ''}
-          style={{
-            margin: 0,
-            color: you ? 'var(--bp-ink-soft)' : 'var(--bp-ink)',
-            fontStyle: you ? 'italic' : 'normal',
-            fontFamily: you ? 'var(--font-display)' : 'inherit',
-            fontSize: you ? 'clamp(15px, 1.3vw, 18px)' : 14.5,
-            lineHeight: 1.65,
-            fontWeight: alert ? 600 : 400,
-          }}
-        >
-          {beat.body[locale]}
-        </p>
-      </div>
-    </li>
   );
 }
 

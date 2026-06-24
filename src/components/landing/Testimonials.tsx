@@ -54,7 +54,7 @@ export function Testimonials() {
       aria-labelledby="voices-heading"
       style={{
         background: 'var(--bp-paper)',
-        paddingTop: 'clamp(64px, 9vh, 110px)',
+        paddingTop: 'clamp(44px, 6vh, 72px)',
         paddingBottom: 'clamp(64px, 9vh, 110px)',
       }}
     >
