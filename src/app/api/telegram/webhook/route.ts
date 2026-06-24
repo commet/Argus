@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/share-guard';
 import { reframeSystemPrompt, deeperSuffix, coerceReframe, reframeToMarkdown, REFRAME_TOOL_SCHEMA, questionSystemPrompt, coerceQuestion, questionToMarkdown, QUESTION_TOOL_NAME, QUESTION_TOOL_SCHEMA } from '@/lib/reframe-core';
 import { sealSystemPrompt, coerceSealDraft, sealPreviewMarkdown, formatCheckBy, parseCheckBy, SEAL_TOOL_NAME, SEAL_TOOL_SCHEMA } from '@/lib/seal-core';
+import { rehearseSystemPrompt, buildRehearseUser, coerceRehearse, rehearseToMarkdown, REHEARSE_PRESETS, REHEARSE_TOOL_NAME, REHEARSE_TOOL_SCHEMA } from '@/lib/rehearse-core';
 import { callAnthropicJson } from '@/lib/llm-server';
 import { markdownToTelegramHtml, markdownToTelegramLight as lightHtml } from '@/lib/telegram-format';
 import { tgSendMessage as sendMessage, tgSendChatAction, tgAnswerCallback as answerCallback } from '@/lib/telegram-api';
@@ -43,8 +44,9 @@ function reframeKeyboard(locale: 'ko' | 'en') {
       ],
       [
         { text: ko ? '🎯 진짜 질문' : '🎯 Real question', callback_data: 'rf:question' },
-        { text: ko ? '🔒 봉인' : '🔒 Seal', callback_data: 'rf:seal' },
+        { text: ko ? '🎭 리허설' : '🎭 Rehearse', callback_data: 'rf:rehearse' },
       ],
+      [{ text: ko ? '🔒 이 결정 봉인' : '🔒 Seal this decision', callback_data: 'rf:seal' }],
     ],
   };
 }
@@ -53,6 +55,24 @@ function reframeKeyboard(locale: 'ko' | 'en') {
 function questionKeyboard(locale: 'ko' | 'en') {
   return {
     inline_keyboard: [[{ text: locale === 'ko' ? '🔒 이 결정 봉인' : '🔒 Seal this decision', callback_data: 'rf:seal' }]],
+  };
+}
+
+/** Stakeholder picker for rehearse. */
+function rehearsePickerKeyboard(locale: 'ko' | 'en') {
+  const lab = (k: string) => (locale === 'ko' ? REHEARSE_PRESETS[k].ko : REHEARSE_PRESETS[k].en);
+  return {
+    inline_keyboard: [
+      [
+        { text: lab('boss'), callback_data: 'rh:boss' },
+        { text: lab('investor'), callback_data: 'rh:investor' },
+      ],
+      [
+        { text: lab('customer'), callback_data: 'rh:customer' },
+        { text: lab('team'), callback_data: 'rh:team' },
+      ],
+      [{ text: locale === 'ko' ? '✏️ 직접 지정' : '✏️ Custom', callback_data: 'rh:custom' }],
+    ],
   };
 }
 
@@ -189,7 +209,65 @@ async function handleQuestion(chatId: number | string, userId: string): Promise<
   await sendMessage(chatId, markdownToTelegramHtml(title, questionToMarkdown(q, locale)), questionKeyboard(locale));
 }
 
+// ── Rehearse: simulate a stakeholder's reaction ──
+async function lastInputFor(chatId: number | string): Promise<string | null> {
+  const { data } = await adminClient()
+    .from('telegram_sessions').select('last_input').eq('chat_id', String(chatId)).single();
+  return data?.last_input ?? null;
+}
+
+async function handleRehearsePicker(chatId: number | string): Promise<void> {
+  const decision = await lastInputFor(chatId);
+  if (!decision) {
+    await sendMessage(chatId, '리허설할 계획이 없어요. 먼저 결정이나 계획을 메시지로 보내 주세요.');
+    return;
+  }
+  const locale = detectLocale(decision);
+  await sendMessage(chatId, locale === 'ko'
+    ? '누구 앞에서 리허설할까요?'
+    : 'Whom should we rehearse against?', rehearsePickerKeyboard(locale));
+}
+
+async function handleRehearse(chatId: number | string, userId: string, who: string, whoLabel: string, decisionArg?: string): Promise<void> {
+  const decision = decisionArg ?? (await lastInputFor(chatId));
+  if (!decision) {
+    await sendMessage(chatId, '리허설할 계획이 없어요. 먼저 결정을 보내 주세요.');
+    return;
+  }
+  if (!(await allowBotCall(userId))) {
+    await sendMessage(chatId, `오늘 봇 분석 한도(${BOT_DAILY_LIMIT}회)를 다 썼어요. 내일 다시 시도해 주세요.`);
+    return;
+  }
+  const locale = detectLocale(decision);
+  await sendTyping(chatId);
+  let r = null;
+  try {
+    const raw = await callAnthropicJson({
+      system: rehearseSystemPrompt(locale), user: buildRehearseUser(decision.slice(0, INPUT_MAX), who, locale),
+      toolName: REHEARSE_TOOL_NAME, schema: REHEARSE_TOOL_SCHEMA, model: 'fast', maxTokens: 1100,
+    });
+    r = coerceRehearse(raw);
+  } catch (err) {
+    console.error('[telegram/webhook] rehearse failed:', err);
+  }
+  if (!r) {
+    await sendMessage(chatId, locale === 'ko'
+      ? '리허설을 만들기 어려웠어요. 잠시 후 다시 시도해 주세요.'
+      : "Couldn't run the rehearsal. Try again in a moment.");
+    return;
+  }
+  const title = locale === 'ko' ? '리허설' : 'Rehearsal';
+  await sendMessage(chatId, markdownToTelegramHtml(title, rehearseToMarkdown(r, whoLabel, locale)), questionKeyboard(locale));
+}
+
 // ── Seal flow (decision → falsifiable, later-checkable form) ──
+interface RehearsePending {
+  kind: 'rehearse';
+  awaiting: 'who';
+  decision: string;
+  locale: 'ko' | 'en';
+}
+
 interface SealPending {
   kind: 'seal';
   decision: string;
@@ -428,6 +506,24 @@ export async function POST(req: NextRequest) {
         await runReframe(chatId, sess.last_input, data === 'rf:deep');
       } else if (data === 'rf:question') {
         await handleQuestion(chatId, userId);
+      } else if (data === 'rf:rehearse') {
+        await handleRehearsePicker(chatId);
+      } else if (data.startsWith('rh:')) {
+        const role = data.slice(3);
+        const decision = await lastInputFor(chatId);
+        const locale = decision ? detectLocale(decision) : 'ko';
+        if (!decision) {
+          await sendMessage(chatId, '리허설할 계획이 없어요. 먼저 결정을 보내 주세요.');
+        } else if (role === 'custom') {
+          const pending: RehearsePending = { kind: 'rehearse', awaiting: 'who', decision, locale };
+          await adminClient().from('telegram_sessions').update({ pending }).eq('chat_id', String(chatId));
+          await sendMessage(chatId, locale === 'ko'
+            ? '누구 앞에서 리허설할까요? 한 줄로 적어 보내 주세요. (예: CFO · 까다로운 고객 · 팀장)'
+            : 'Whom? Type one line. (e.g. CFO · a tough customer · team lead)');
+        } else if (REHEARSE_PRESETS[role]) {
+          const p = REHEARSE_PRESETS[role];
+          await handleRehearse(chatId, userId, locale === 'ko' ? p.whoKo : p.whoEn, locale === 'ko' ? p.ko : p.en, decision);
+        }
       } else if (data === 'rf:seal') {
         await handleSealDraft(chatId, userId);
       } else if (data.startsWith('sl:')) {
@@ -467,10 +563,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // A seal is waiting for a typed date → consume this message as the date.
+    // A pending flow may be waiting for typed input (rehearse target / seal date).
     const { data: sess } = await adminClient()
       .from('telegram_sessions').select('pending').eq('chat_id', String(chat.id)).single();
-    const pend = (sess?.pending ?? null) as SealPending | null;
+    const pend = (sess?.pending ?? null) as SealPending | RehearsePending | null;
+    if (pend?.kind === 'rehearse' && pend.awaiting === 'who') {
+      const who = text.slice(0, 100);
+      await adminClient().from('telegram_sessions').update({ pending: null }).eq('chat_id', String(chat.id));
+      await handleRehearse(chat.id, userId, who, who, pend.decision);
+      return NextResponse.json({ ok: true });
+    }
     if (pend?.kind === 'seal' && pend.awaiting === 'date') {
       const parsed = parseCheckBy(text, kstDatePlus(0));
       if (!parsed) {
