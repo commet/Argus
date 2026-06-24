@@ -189,7 +189,7 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
   const bodyHalo = '0 0 1px var(--bp-paper), 0 0 8px var(--bp-paper)';
   const quoteHalo = lure ? '0 0 1px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 12px var(--bp-paper)' : bodyHalo;
   const folioColor = gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)';
-  const folioOpacity = gold ? 0.26 : 0.18;
+  const folioOpacity = gold ? 0.3 : 0.22;
   const spineColor = gold ? 'var(--bp-ink)' : 'var(--bp-gold)';
   const eyebrowColor = gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)';
   const clusterDelay = quoteEnd(L(active.mythKo, active.mythEn), narrow);
@@ -202,22 +202,22 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
       initial={rm ? { opacity: 1 } : { opacity: 0, letterSpacing: '0.34em', scale: 1.06 }}
       animate={{ opacity: 1, letterSpacing: '0.28em', scale: 1 }}
       transition={{ duration: 0.26, delay: rm ? 0 : 0.18, ease }}
-      style={{ display: 'inline-block', fontSize: 'clamp(10.5px, 1vw, 12px)', textTransform: 'uppercase', fontWeight: 700, color: eyebrowColor, textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper)', transformOrigin: 'left center', whiteSpace: 'nowrap' }}
+      style={{ display: 'inline-block', fontSize: 'clamp(11px, 1.05vw, 13px)', textTransform: 'uppercase', fontWeight: 700, color: eyebrowColor, textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper)', transformOrigin: 'left center', whiteSpace: 'nowrap' }}
     >
       {gold ? L('종장', 'Coda') : L(`${active.num} · ${active.ko}`, `${active.num} · ${active.en}`)}
     </motion.span>
   );
   const quote = (
-    <div className={bk} style={{ fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, fontSize: 'clamp(18px, 2.2vw, 26px)', lineHeight: 1.36, letterSpacing: '0.005em', maxWidth: '46ch', textWrap: 'pretty' }}>
+    <div className={bk} style={{ fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, fontSize: 'clamp(21px, 2.6vw, 31px)', lineHeight: 1.34, letterSpacing: '0.005em', maxWidth: '42ch', textWrap: 'pretty' }}>
       <InkedQuote text={L(active.mythKo, active.mythEn)} ink={quoteInk} nib={nib} halo={quoteHalo} rm={rm} narrow={narrow} />
     </div>
   );
   const tail = (
     <motion.div initial={rm ? { opacity: 1 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36, delay: rm ? 0 : clusterDelay, ease }} style={{ marginTop: 11 }}>
-      <p className={bk} style={{ margin: '0 0 7px', fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(11.5px, 1.1vw, 13px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', letterSpacing: '0.01em', textShadow: bodyHalo }}>
+      <p className={bk} style={{ margin: '0 0 8px', fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(12px, 1.15vw, 14px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', letterSpacing: '0.01em', textShadow: bodyHalo }}>
         — {L(active.attrKo, active.attrEn)}
       </p>
-      <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(14.5px, 1.65vw, 17.5px)', lineHeight: 1.45, color: 'var(--bp-ink)', letterSpacing: '-0.006em', maxWidth: '46ch', textWrap: 'pretty', textShadow: bodyHalo }}>
+      <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(15.5px, 1.9vw, 20px)', lineHeight: 1.45, color: 'var(--bp-ink)', letterSpacing: '-0.006em', maxWidth: '44ch', textWrap: 'pretty', textShadow: bodyHalo }}>
         <Lines text={L(active.lineKo, active.lineEn)} />
       </p>
     </motion.div>
