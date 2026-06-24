@@ -138,7 +138,11 @@ export function VoyageFilm() {
         autoPlay muted loop playsInline preload="metadata"
         poster="/voyage/voyage-poster.jpg"
         aria-label={L('오디세우스의 항해 — 묶기, 듣기, 닿기, 그리고 알아봄', "Odysseus's voyage — bind, listen, land, and recognition")}
-        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', background: 'var(--bp-paper-deep)' }}
+        // object-position top: on wide screens the band is shorter than the
+        // film's 16:9, so cover must crop. Pin the TOP (masts, heads, the bound
+        // figure) and let the crop fall on the lower water — most of which sits
+        // under the caption scrim anyway.
+        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', background: 'var(--bp-paper-deep)' }}
       >
         <source src="/voyage/voyage-film.mp4" type="video/mp4" />
       </video>
@@ -146,34 +150,35 @@ export function VoyageFilm() {
       {/* gold top rule */}
       <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 3 }} />
 
-      {/* bottom scrim — a smooth cream wash so type stays legible (no hard box).
-          Near-solid paper through the caption band (0–44%), then a long fade —
-          enough backing to read clean type over a busy engraving, never an edge. */}
+      {/* bottom scrim — a LIGHT cream veil, not a wash: enough to seat the type
+          but translucent so the engraving reads right through it. The per-glyph
+          paper halo (text-shadow) does the real legibility work, so this stays a
+          gentle gradient that never swallows the lower half of the scene. */}
       <div
         aria-hidden="true"
         style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: '74%', zIndex: 1,
-          background: 'linear-gradient(to top, var(--bp-paper) 0%, var(--bp-paper) 24%, color-mix(in srgb, var(--bp-paper) 92%, transparent) 44%, color-mix(in srgb, var(--bp-paper) 52%, transparent) 68%, transparent 100%)',
+          position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%', zIndex: 1,
+          background: 'linear-gradient(to top, color-mix(in srgb, var(--bp-paper) 88%, transparent) 0%, color-mix(in srgb, var(--bp-paper) 64%, transparent) 36%, color-mix(in srgb, var(--bp-paper) 24%, transparent) 70%, transparent 100%)',
         }}
       />
 
       {/* ── caption block: the intro frame, then each scene's myth + meaning ── */}
       <div
         className="absolute left-0 right-0 flex flex-col items-center text-center"
-        style={{ bottom: 'clamp(54px, 13%, 96px)', padding: '0 28px', zIndex: 2, opacity: intro || active ? 1 : 0, transition: 'opacity 520ms ease' }}
+        style={{ bottom: 'clamp(30px, 9%, 64px)', padding: '0 28px', zIndex: 2, opacity: intro || active ? 1 : 0, transition: 'opacity 520ms ease' }}
         aria-live="polite"
       >
         {intro && !active && (
           <div key="intro" className="bp-fade-up flex flex-col items-center">
             <span
               className="bp-mono"
-              style={{ marginBottom: 11, fontSize: 'clamp(9.5px, 1.05vw, 11px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 9px var(--bp-paper), 0 1px 1px var(--bp-paper)' }}
+              style={{ marginBottom: 11, fontSize: 'clamp(9.5px, 1.05vw, 11px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 3px var(--bp-paper), 0 0 8px var(--bp-paper), 0 0 15px var(--bp-paper)' }}
             >
               {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
             </span>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14px, 1.85vw, 19.5px)', lineHeight: 1.46, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 10px var(--bp-paper)' }}
+              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14px, 1.85vw, 19.5px)', lineHeight: 1.46, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 3px var(--bp-paper), 0 0 9px var(--bp-paper), 0 0 16px var(--bp-paper)' }}
             >
               <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
             </p>
@@ -185,19 +190,19 @@ export function VoyageFilm() {
                 The dog is the coda (종장), not a fourth leg. */}
             <span
               className="bp-mono"
-              style={{ marginBottom: 10, fontSize: 'clamp(9.5px, 1vw, 11px)', letterSpacing: '0.28em', textTransform: 'uppercase', fontWeight: 700, color: active.gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)', textShadow: '0 0 9px var(--bp-paper), 0 1px 1px var(--bp-paper)' }}
+              style={{ marginBottom: 10, fontSize: 'clamp(9.5px, 1vw, 11px)', letterSpacing: '0.28em', textTransform: 'uppercase', fontWeight: 700, color: active.gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)', textShadow: '0 0 3px var(--bp-paper), 0 0 8px var(--bp-paper), 0 0 15px var(--bp-paper)' }}
             >
               {active.gold ? L('종장', 'Coda') : L(`${active.num} · ${active.ko}`, `${active.num} · ${active.en}`)}
             </span>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, marginBottom: 12, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink)', fontSize: 'clamp(13px, 1.55vw, 16px)', lineHeight: 1.42, opacity: active.lure ? 1 : 0.86, letterSpacing: '0.01em', textWrap: 'pretty', textShadow: '0 0 9px var(--bp-paper)' }}
+              style={{ margin: 0, marginBottom: 12, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 500, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink)', fontSize: 'clamp(13px, 1.55vw, 16px)', lineHeight: 1.42, opacity: active.lure ? 1 : 0.9, letterSpacing: '0.01em', textWrap: 'pretty', textShadow: '0 0 3px var(--bp-paper), 0 0 7px var(--bp-paper), 0 0 13px var(--bp-paper)' }}
             >
               <Lines text={L(active.mythKo, active.mythEn)} />
             </p>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(15.5px, 2.15vw, 23px)', lineHeight: 1.4, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 10px var(--bp-paper)' }}
+              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(15.5px, 2.15vw, 23px)', lineHeight: 1.4, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 3px var(--bp-paper), 0 0 9px var(--bp-paper), 0 0 16px var(--bp-paper)' }}
             >
               <Lines text={L(active.lineKo, active.lineEn)} />
             </p>
