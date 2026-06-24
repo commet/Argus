@@ -16,6 +16,9 @@ export function PlateLabel({
   className?: string;
 }) {
   const isCenter = align === 'center';
+  // Hangul inherits the heavy mono tracking and reads loose/disjointed — tighten
+  // it when the (already-localized) title contains Korean; keep Latin formal.
+  const hasKo = /[가-힣]/.test(title);
   return (
     <div
       className={className}
@@ -32,7 +35,7 @@ export function PlateLabel({
         style={{
           color: 'var(--bp-ink-soft)',
           fontSize: 11.5,
-          letterSpacing: '0.32em',
+          letterSpacing: hasKo ? '0.15em' : '0.32em',
           textTransform: 'uppercase',
           fontWeight: 500,
           whiteSpace: 'nowrap',

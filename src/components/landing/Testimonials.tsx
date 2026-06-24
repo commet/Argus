@@ -67,7 +67,7 @@ export function Testimonials() {
           <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
           <span
             className="bp-mono"
-            style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: '0.24em', textTransform: 'uppercase', fontWeight: 500 }}
+            style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.12em' : '0.24em', textTransform: 'uppercase', fontWeight: 500 }}
           >
             {L('VOICES · 후기', 'VOICES · REVIEWS')}
           </span>
@@ -151,7 +151,7 @@ export function Testimonials() {
         {/* honest note — these are early, real, and few on purpose */}
         <p
           className="bp-mono mt-8"
-          style={{ color: 'var(--bp-ink-soft)', opacity: 0.85, fontSize: 10.5, letterSpacing: '0.16em' }}
+          style={{ color: 'var(--bp-ink-soft)', opacity: 0.85, fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.04em' : '0.16em' }}
         >
           {L('실제 사용자가 남긴 후기예요.', 'A real note from someone who used it.')}
         </p>

@@ -207,7 +207,7 @@ export function SirenHero() {
           {/* persistent label — purpose never depends on the disappearing placeholder */}
           <div className="flex items-center gap-2" style={{ marginBottom: 11 }}>
             <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
-            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11.5, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11.5, letterSpacing: locale === 'ko' ? '0.06em' : '0.14em', textTransform: 'uppercase' }}>
               {L('LOG ENTRY · 들고 계신 결정', 'LOG ENTRY · the decision you carry')}
             </span>
           </div>
@@ -253,7 +253,7 @@ export function SirenHero() {
                 style={{
                   position: 'absolute', top: 16, left: 20, right: 20, zIndex: 0,
                   pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 8,
-                  color: 'var(--bp-ink-soft)', fontStyle: 'italic', fontSize: 18, lineHeight: 1.7,
+                  color: 'var(--bp-ink-soft)', opacity: 0.82, fontStyle: 'italic', fontSize: 18, lineHeight: 1.7,
                 }}
               >
                 <span className="bp-caret" style={{ height: 21 }} />
@@ -294,7 +294,7 @@ export function SirenHero() {
               />
             </div>
             {/* footer: folded microcopy (send + privacy) + the gold-ignite CTA */}
-            <div className="flex items-center justify-between gap-3" style={{ paddingTop: 11, paddingBottom: 13 }}>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5" style={{ paddingTop: 11, paddingBottom: 13 }}>
               <span style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.005em', lineHeight: 1.4 }}>
                 {text.trim()
                   ? L('⏎ 로 보내기 · Shift+⏎ 줄바꿈', '⏎ to send · Shift+⏎ for newline')
@@ -303,7 +303,7 @@ export function SirenHero() {
               <button
                 onClick={sail}
                 disabled={!text.trim()}
-                className="bp-mono shrink-0"
+                className={`shrink-0 ${locale === 'ko' ? '' : 'bp-mono'}`}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -314,8 +314,12 @@ export function SirenHero() {
                   borderColor: text.trim() ? 'var(--bp-gold)' : 'var(--bp-ink-soft)',
                   background: text.trim() ? 'var(--bp-gold)' : 'transparent',
                   color: text.trim() ? 'var(--bp-paper)' : 'var(--bp-ink-soft)',
-                  fontSize: 12,
-                  letterSpacing: '0.12em',
+                  // Korean reads as a tracked mono fallback (no Hangul glyphs) —
+                  // render it in the body sans at near-zero tracking instead.
+                  fontFamily: locale === 'ko' ? "'Pretendard Variable', Pretendard, system-ui, sans-serif" : undefined,
+                  fontSize: locale === 'ko' ? 13 : 12,
+                  fontWeight: locale === 'ko' ? 600 : undefined,
+                  letterSpacing: locale === 'ko' ? '0.01em' : '0.12em',
                   cursor: text.trim() ? 'pointer' : 'not-allowed',
                   transition: 'background 220ms ease, border-color 220ms ease, color 220ms ease',
                   borderRadius: 0,
@@ -341,7 +345,7 @@ export function SirenHero() {
             aria-label={L('결정 하나를 끝까지 항해하는 과정 보기', 'Watch one decision navigated end to end')}
             className="bp-sounding inline-flex flex-col items-center gap-2"
           >
-            <span className="bp-mono" style={{ color: 'var(--bp-ink)', opacity: 0.72, fontSize: 10.5, letterSpacing: '0.26em', textTransform: 'uppercase' }}>
+            <span className="bp-mono" style={{ color: 'var(--bp-ink)', opacity: 0.72, fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.08em' : '0.26em', textTransform: 'uppercase' }}>
               {L('실제로 어떻게 되는지', 'See it work')}
             </span>
             <span aria-hidden="true" className="bp-sounding-line" />

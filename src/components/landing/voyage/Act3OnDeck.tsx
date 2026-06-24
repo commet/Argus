@@ -101,19 +101,18 @@ export function Act3OnDeck() {
           <LocaleLink
             href="/workspace"
             onClick={() => track('landing_cta_click', { cta: 'voyage_close' })}
-            className="bp-btn-primary"
+            className="bp-btn-primary bp-cta-gold"
             style={{
               padding: '17px 38px',
               // override the class's JetBrains Mono (no Korean glyphs) with the
               // body sans so "지금 출항" renders clean, not a broken fallback.
+              // (fill/hover live in .bp-cta-gold so the hover isn't blocked by
+              // an inline background.)
               fontFamily: "var(--font-sans, 'Pretendard Variable', Pretendard, system-ui, sans-serif)",
               fontSize: 15,
               fontWeight: 700,
               letterSpacing: '0.03em',
               textTransform: 'none',
-              background: 'var(--bp-gold-deep)',
-              borderColor: 'var(--bp-gold-deep)',
-              color: 'var(--bp-paper)',
             }}
           >
             {L('지금 출항', 'Set sail now')}

@@ -102,7 +102,7 @@ export function LandingHeader() {
                   style={{
                     color: 'var(--bp-ink)',
                     fontSize: 11,
-                    letterSpacing: '0.16em',
+                    letterSpacing: locale === 'ko' ? '0.04em' : '0.16em',
                     textTransform: 'uppercase',
                     padding: '12px 6px',
                     minHeight: 44,
@@ -117,7 +117,7 @@ export function LandingHeader() {
                   style={{
                     color: 'var(--bp-ink-soft)',
                     fontSize: 11,
-                    letterSpacing: '0.16em',
+                    letterSpacing: locale === 'ko' ? '0.04em' : '0.16em',
                     textTransform: 'uppercase',
                     padding: '12px 6px',
                     minHeight: 44,

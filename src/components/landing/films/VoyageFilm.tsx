@@ -202,11 +202,15 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
   const ease: [number, number, number, number] = [0.22, 0.61, 0.36, 1];
   const bk = locale === 'ko' ? 'break-keep' : '';
 
+  // Hangul reads loose under the mono's wide tracking — settle to a tighter
+  // target in Korean (Latin keeps the formal plate-caption tracking).
+  const ebFrom = locale === 'ko' ? '0.22em' : '0.34em';
+  const ebTo = locale === 'ko' ? '0.14em' : '0.28em';
   const eyebrow = (
     <motion.span
       className="bp-mono"
-      initial={rm ? { opacity: 1 } : { opacity: 0, letterSpacing: '0.34em', scale: 1.06 }}
-      animate={{ opacity: 1, letterSpacing: '0.28em', scale: 1 }}
+      initial={rm ? { opacity: 1 } : { opacity: 0, letterSpacing: ebFrom, scale: 1.06 }}
+      animate={{ opacity: 1, letterSpacing: ebTo, scale: 1 }}
       transition={{ duration: 0.26, delay: rm ? 0 : 0.18, ease }}
       style={{ display: 'inline-block', fontSize: 'clamp(11px, 1.05vw, 13px)', textTransform: 'uppercase', fontWeight: 700, color: eyebrowColor, textShadow: '0 0 2px var(--bp-paper), 0 0 5px var(--bp-paper), 0 0 10px var(--bp-paper)', transformOrigin: 'left center', whiteSpace: 'nowrap' }}
     >
@@ -387,7 +391,7 @@ export function VoyageFilm() {
             aria-live="polite"
           >
             <motion.div className="flex flex-col items-center" initial={rm ? { opacity: 1 } : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}>
-              <span className="bp-mono" style={{ marginBottom: 11, fontSize: 'clamp(10px, 1.05vw, 11.5px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}>
+              <span className="bp-mono" style={{ marginBottom: 11, fontSize: 'clamp(10px, 1.05vw, 11.5px)', letterSpacing: locale === 'ko' ? '0.13em' : '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}>
                 {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
               </span>
               <p className={`${locale === 'ko' ? 'break-keep' : ''}`} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 1.75vw, 19px)', lineHeight: 1.5, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}>

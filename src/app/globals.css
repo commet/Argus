@@ -81,7 +81,7 @@
   --bp-ink-whisper: rgba(26, 42, 58, 0.08); /* Background grid */
   --bp-gold: #96782e;           /* Gold leaf — same as --accent, paired with ink */
   --bp-gold-deep: #7a6224;      /* Pressed gold, hover state */
-  --bp-azure: #1f6aa8;          /* Feature-blue — marks "what Argus does" copy */
+  --bp-azure: #185a8c;          /* Feature-blue — marks "what Argus does" copy (AA on paper) */
 
   /* Easing */
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
@@ -2699,6 +2699,31 @@ button, a, input, textarea {
    SirenHero, whose single gold is the ForkPath node): the hover frame stays
    ink instead of revealing a second gold. */
 .bp-btn-primary--ink-frame::before { border-color: var(--bp-ink); }
+
+/* Gold-fill CTA (Act 3 "지금 출항") — the page's single most important button.
+   bp-btn-primary's hover is a gold frame, which is invisible on a gold fill, so
+   the button felt static. This gives it a real response: the fill presses
+   darker, lifts 1px, and casts a soft gold shadow. */
+.bp-cta-gold {
+  background: var(--bp-gold-deep);
+  border-color: var(--bp-gold-deep);
+  color: var(--bp-paper);
+  transition: background 180ms var(--ease-wave), transform 180ms var(--ease-wave), box-shadow 180ms var(--ease-wave);
+}
+.bp-cta-gold:hover {
+  background: #6a5520;
+  border-color: #6a5520;
+  transform: translateY(-1px);
+  box-shadow: 0 7px 18px rgba(122, 98, 36, 0.30);
+}
+.bp-cta-gold:hover::before { opacity: 0; }
+.bp-cta-gold:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 9px rgba(122, 98, 36, 0.24);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bp-cta-gold:hover { transform: none; }
+}
 
 /* Secondary — outline button */
 .bp-btn-secondary {
