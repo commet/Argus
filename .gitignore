@@ -63,3 +63,6 @@ ds-bundle/
 # Argus eval run artifact
 argus-plugin-v2/evals/report.json
 argus-plugin-v2/evals/sweep-report.json
+
+# scratch: bind/listen voyage shot harness output (never commit — large binaries)
+.shots/
