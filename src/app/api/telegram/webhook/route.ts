@@ -4,6 +4,7 @@ import { reframeSystemPrompt, deeperSuffix, coerceReframe, reframeToMarkdown, RE
 import { sealSystemPrompt, coerceSealDraft, sealPreviewMarkdown, formatCheckBy, parseCheckBy, SEAL_TOOL_NAME, SEAL_TOOL_SCHEMA } from '@/lib/seal-core';
 import { rehearseSystemPrompt, buildRehearseUser, coerceRehearse, rehearseToMarkdown, REHEARSE_PRESETS, REHEARSE_TOOL_NAME, REHEARSE_TOOL_SCHEMA } from '@/lib/rehearse-core';
 import { recordSummaryMarkdown } from '@/lib/record-core';
+import { recastSystemPrompt, coerceRecast, recastToMarkdown, RECAST_TOOL_NAME, RECAST_TOOL_SCHEMA } from '@/lib/recast-core';
 import { callAnthropicJson } from '@/lib/llm-server';
 import { markdownToTelegramHtml, markdownToTelegramLight as lightHtml } from '@/lib/telegram-format';
 import { tgSendMessage as sendMessage, tgSendChatAction, tgAnswerCallback as answerCallback } from '@/lib/telegram-api';
@@ -46,6 +47,10 @@ function reframeKeyboard(locale: 'ko' | 'en') {
       [
         { text: ko ? '🎯 진짜 질문' : '🎯 Real question', callback_data: 'rf:question' },
         { text: ko ? '🎭 리허설' : '🎭 Rehearse', callback_data: 'rf:rehearse' },
+      ],
+      [
+        { text: ko ? '🤝 역할 나누기' : '🤝 Split roles', callback_data: 'rf:recast' },
+        { text: ko ? '🌐 웹앱에서' : '🌐 In the webapp', callback_data: 'rf:handoff' },
       ],
       [{ text: ko ? '🔒 이 결정 봉인' : '🔒 Seal this decision', callback_data: 'rf:seal' }],
     ],
@@ -278,6 +283,55 @@ async function handleRehearse(chatId: number | string, userId: string, who: stri
   }
   const title = locale === 'ko' ? '리허설' : 'Rehearsal';
   await sendMessage(chatId, markdownToTelegramHtml(title, rehearseToMarkdown(r, whoLabel, locale)), questionKeyboard(locale));
+}
+
+// ── Recast: split into AI / human-judgment / both (the judgment ladder) ──
+async function handleRecast(chatId: number | string, userId: string): Promise<void> {
+  const decision = await lastInputFor(chatId);
+  if (!decision) {
+    await sendMessage(chatId, '역할을 나눌 계획이 없어요. 먼저 결정이나 계획을 보내 주세요.');
+    return;
+  }
+  if (!(await allowBotCall(userId))) {
+    await sendMessage(chatId, `오늘 봇 분석 한도(${BOT_DAILY_LIMIT}회)를 다 썼어요. 내일 다시 시도해 주세요.`);
+    return;
+  }
+  const locale = detectLocale(decision);
+  await sendTyping(chatId);
+  let steps = null;
+  try {
+    const raw = await callAnthropicJson({
+      system: recastSystemPrompt(locale), user: decision.slice(0, INPUT_MAX),
+      toolName: RECAST_TOOL_NAME, schema: RECAST_TOOL_SCHEMA, model: 'fast', maxTokens: 1200,
+    });
+    steps = coerceRecast(raw);
+  } catch (err) {
+    console.error('[telegram/webhook] recast failed:', err);
+  }
+  if (!steps) {
+    await sendMessage(chatId, locale === 'ko'
+      ? '역할 분담을 만들기 어려웠어요. 잠시 후 다시 시도해 주세요.'
+      : "Couldn't split the roles. Try again in a moment.");
+    return;
+  }
+  const title = locale === 'ko' ? '역할 나누기' : 'Role split';
+  await sendMessage(chatId, markdownToTelegramHtml(title, recastToMarkdown(steps, locale)), questionKeyboard(locale));
+}
+
+// ── Handoff: open the decision in the webapp for the heavy multi-expert flow ──
+async function handleHandoff(chatId: number | string): Promise<void> {
+  const decision = await lastInputFor(chatId);
+  if (!decision) {
+    await sendMessage(chatId, '웹앱으로 넘길 내용이 없어요. 먼저 결정을 보내 주세요.');
+    return;
+  }
+  const locale = detectLocale(decision);
+  // /workspace reads ?q= to pre-fill (the same contract the landing input uses).
+  const url = `https://argus.voyage/workspace?q=${encodeURIComponent(decision.slice(0, 500))}`;
+  await sendMessage(chatId, locale === 'ko'
+    ? '여러 전문가가 함께 보는 깊은 분석(팀·검증·최종 문서)은 웹앱에서 — 이 결정을 미리 담아 열어요.'
+    : 'For the full multi-expert analysis (team · verify · final doc), open it in the webapp — this decision pre-loaded.',
+    { inline_keyboard: [[{ text: locale === 'ko' ? '🌐 웹앱에서 열기' : '🌐 Open in the webapp', url }]] });
 }
 
 // ── Seal flow (decision → falsifiable, later-checkable form) ──
@@ -544,6 +598,10 @@ export async function POST(req: NextRequest) {
           const p = REHEARSE_PRESETS[role];
           await handleRehearse(chatId, userId, locale === 'ko' ? p.whoKo : p.whoEn, locale === 'ko' ? p.ko : p.en, decision);
         }
+      } else if (data === 'rf:recast') {
+        await handleRecast(chatId, userId);
+      } else if (data === 'rf:handoff') {
+        await handleHandoff(chatId);
       } else if (data === 'rf:seal') {
         await handleSealDraft(chatId, userId);
       } else if (data.startsWith('sl:')) {
