@@ -40,7 +40,7 @@ const QUOTES: Quote[] = [
         it felt like <strong style={{ fontWeight: 700, color: 'var(--bp-ink)' }}>real collaboration</strong>.
       </>
     ),
-    who: { ko: 'H님 · Argus 초기 테스터', en: 'H · early Argus tester' },
+    who: { ko: 'H님 · Argus 사용자', en: 'H · Argus user' },
   },
 ];
 
@@ -68,7 +68,7 @@ export function Testimonials() {
             className="bp-mono"
             style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: '0.24em', textTransform: 'uppercase', fontWeight: 500 }}
           >
-            {L('VOICES · 초기 테스터', 'VOICES · EARLY TESTERS')}
+            {L('VOICES · 후기', 'VOICES · REVIEWS')}
           </span>
           <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
         </div>
@@ -152,7 +152,7 @@ export function Testimonials() {
           className="bp-mono mt-8"
           style={{ color: 'var(--bp-ink-faint)', fontSize: 10.5, letterSpacing: '0.16em' }}
         >
-          {L('초기 베타 테스터의 실제 후기예요.', 'A real note from an early beta tester.')}
+          {L('실제 사용자가 남긴 후기예요.', 'A real note from someone who used it.')}
         </p>
       </div>
     </section>

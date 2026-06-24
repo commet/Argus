@@ -174,7 +174,7 @@ export function SirenHero() {
             cinematic first impression; mobile keeps the film's native 16:9 so
             the engraving is never hard-cropped. */}
         <div
-          className="bp-fade-up h-[56.25vw] md:h-[56vh] md:max-h-[600px]"
+          className="bp-fade-up h-[56.25vw] md:h-[60vh] md:max-h-[660px]"
           style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 32, marginBottom: 10, animationDelay: '200ms' }}
         >
           <VoyageFilm />
@@ -311,44 +311,17 @@ export function SirenHero() {
             demo link were cut — show, don't tell. The input footer keeps the
             ease + privacy microcopy. */}
 
-        {/* A whisper of the three legs the voyage below expands — so the spine
-            (you bind, the crew rows, you land) is felt before any scroll. */}
-        <div className="bp-fade-up mt-9 flex justify-center" style={{ animationDelay: '400ms' }}>
+        {/* Scroll cue — a clickable "sounding line" down to the Trail, where the
+            product actually navigates one decision. (The film above already
+            shows the three legs, so the old 묶기·듣기·닿기 hint was cut.) */}
+        <div className="bp-fade-up mt-10 flex justify-center" style={{ animationDelay: '420ms' }}>
           <a
-            href="#three-legs"
-            aria-label={L('세 구간 보기 — 묶기, 듣기, 닿기', 'See the three legs — Bind, Listen, Land')}
-            className="inline-flex items-center"
-            style={{ gap: 10 }}
-          >
-            {([['묶기', 'Bind'], ['듣기', 'Listen'], ['닿기', 'Land']] as const).map(([ko, en], i) => (
-              <span key={en} className="inline-flex items-center" style={{ gap: 10 }}>
-                {i > 0 && <span aria-hidden="true" style={{ color: 'var(--bp-ink-faint)', fontSize: 10 }}>→</span>}
-                <span
-                  className="bp-mono"
-                  style={{
-                    fontSize: 10.5,
-                    letterSpacing: '0.2em',
-                    textTransform: 'uppercase',
-                    fontWeight: i === 2 ? 700 : 500,
-                    color: i === 2 ? 'var(--bp-gold-deep)' : 'var(--bp-ink-soft)',
-                  }}
-                >
-                  {L(ko, en)}
-                </span>
-              </span>
-            ))}
-          </a>
-        </div>
-
-        {/* Scroll cue — a clickable "sounding line" down to the voyage. */}
-        <div className="bp-fade-up mt-6 flex justify-center" style={{ animationDelay: '460ms' }}>
-          <a
-            href="#voyage-heading"
-            aria-label={L('항해의 전말 보기', 'See the full voyage')}
+            href="#navigate"
+            aria-label={L('하나의 결정이 항해되는 모습 보기', 'See one decision being navigated')}
             className="bp-sounding inline-flex flex-col items-center gap-2"
           >
             <span className="bp-mono" style={{ color: 'var(--bp-ink)', opacity: 0.72, fontSize: 10.5, letterSpacing: '0.26em', textTransform: 'uppercase' }}>
-              {L('항해의 전말', 'The full voyage')}
+              {L('실제로 어떻게 되는지', 'See it work')}
             </span>
             <span aria-hidden="true" className="bp-sounding-line" />
           </a>
