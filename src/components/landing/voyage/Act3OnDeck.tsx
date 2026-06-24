@@ -30,8 +30,8 @@ export function Act3OnDeck() {
       aria-labelledby="ondeck-heading"
       style={{
         background: 'var(--bp-paper)',
-        paddingTop: 'clamp(56px, 8vh, 96px)',
-        paddingBottom: 'clamp(80px, 12vh, 140px)',
+        paddingTop: 'clamp(34px, 4.5vh, 56px)',
+        paddingBottom: 'clamp(96px, 14vh, 168px)',
       }}
     >
       <PaperGrain opacity={0.045} />
@@ -80,15 +80,15 @@ export function Act3OnDeck() {
             marginLeft: '-50vw', marginRight: '-50vw',
           }}
         >
-          <div style={{ width: 'min(1120px, 94vw)', margin: '0 auto' }}>
-            <ScaleToFit designWidth={1080}>
+          <div style={{ width: 'min(1280px, 95vw)', margin: '0 auto' }}>
+            <ScaleToFit designWidth={1240}>
               <VoyageMapFilm />
             </ScaleToFit>
           </div>
         </div>
 
         {/* Bind-first reminder + the primary CTA. */}
-        <div className="bp-fade-up flex flex-col items-center mt-12 md:mt-14" style={{ animationDelay: '420ms' }}>
+        <div className="bp-fade-up flex flex-col items-center mt-20 md:mt-28" style={{ animationDelay: '420ms' }}>
           <span
             style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, fontWeight: 600, letterSpacing: '0.02em' }}
           >
