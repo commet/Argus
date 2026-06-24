@@ -7,6 +7,15 @@
 >
 > 근거: 외부 시장 증거 + Argus 자체 텔레메트리(13유저 / 47프로젝트 / 0 sealed / 0 settled).
 
+> **⚠️ 정정 (2026-06-24, 코드 검증 후):** §7 수 2의 "Argus는 return-trigger scaffolding이
+> *하나도* 없다"는 **틀렸다.** 실제로는 거의 다 구축돼 있다 — 웹앱 `api/cron/checkin-due/route.ts`
+> = opt-in 정산 리마인더 이메일 cron(vercel.json에 매일 등록, SealMoment에 opt-in 토글 + .ics
+> 달력 fallback), 플러그인 `check-contracts.js` = 라이브 statusline 리마인더. **유일한 실제 구멍:
+> cron의 `from`이 Resend 샌드박스 `onboarding@resend.dev`(검증된 `argus.voyage` 도메인 미사용)
+> → 메일이 실제로 도달 안 할 가능성.** 즉 수 2는 "만들어라"가 아니라 **"켜라"**(발신주소 교체 +
+> env 확인 + 실제 1통 테스트). 전략적 결론(루프 미완 = 핵심 병목)은 유지되지만, 처방은 훨씬 싸다.
+> 텔레그램은 *공유* 채널이지 리마인더가 아니다.
+
 ---
 
 ## 1. 가장 불편한 진실 1개
