@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/share-guard';
-import { reframeSystemPrompt, deeperSuffix, parseReframe, reframeToMarkdown } from '@/lib/reframe-core';
-import { callAnthropicText } from '@/lib/llm-server';
+import { reframeSystemPrompt, deeperSuffix, coerceReframe, reframeToMarkdown, REFRAME_TOOL_SCHEMA } from '@/lib/reframe-core';
+import { callAnthropicJson } from '@/lib/llm-server';
 import { markdownToTelegramHtml } from '@/lib/telegram-format';
 
 /**
@@ -109,10 +109,14 @@ async function runReframe(chatId: number | string, input: string, deep: boolean,
   let result;
   try {
     const system = reframeSystemPrompt(locale) + (deep ? deeperSuffix(locale) : '');
-    // 'fast' (Haiku) keeps the synchronous webhook quick enough that Telegram
-    // never times out and retries; the chain falls back to a proven model.
-    const text = await callAnthropicText({ system, user: input.slice(0, INPUT_MAX), model, maxTokens: 1200 });
-    result = parseReframe(text);
+    // Forced tool-use → always-valid JSON (a flaky fast model would otherwise
+    // emit a malformed array and break text-JSON parsing). 'fast' keeps the
+    // synchronous webhook quick; the chain falls back to a proven model.
+    const raw = await callAnthropicJson({
+      system, user: input.slice(0, INPUT_MAX),
+      toolName: 'reframe_result', schema: REFRAME_TOOL_SCHEMA, model, maxTokens: 1500,
+    });
+    result = coerceReframe(raw);
   } catch (err) {
     console.error('[telegram/webhook] reframe failed:', err);
     // TEMP diagnostic: surface a short error reason while stabilizing the bot.

@@ -55,3 +55,45 @@ export async function callAnthropicText(opts: {
   }
   throw lastErr;
 }
+
+/**
+ * Forced-JSON call via tool use: the model is REQUIRED to call a single tool
+ * whose input matches `schema`, so the result is always valid structured JSON —
+ * no fragile text-JSON parsing (a flaky model can otherwise emit a missing comma
+ * and break the parse). Returns the tool input object, or null if absent.
+ */
+export async function callAnthropicJson(opts: {
+  system: string;
+  user: string;
+  toolName: string;
+  schema: Record<string, unknown>;
+  model?: 'fast' | 'default' | 'strong';
+  maxTokens?: number;
+}): Promise<Record<string, unknown> | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set');
+
+  const client = new Anthropic({ apiKey });
+  const candidates = MODEL_CANDIDATES[opts.model ?? 'default'] ?? MODEL_CANDIDATES.default;
+
+  let lastErr: unknown;
+  for (const model of candidates) {
+    try {
+      const resp = await client.messages.create({
+        model,
+        max_tokens: opts.maxTokens ?? 1500,
+        system: opts.system,
+        messages: [{ role: 'user', content: opts.user }],
+        tools: [{ name: opts.toolName, input_schema: opts.schema as Anthropic.Tool.InputSchema }],
+        tool_choice: { type: 'tool', name: opts.toolName },
+      });
+      const block = resp.content.find((b) => b.type === 'tool_use');
+      return block && block.type === 'tool_use' ? (block.input as Record<string, unknown>) : null;
+    } catch (err) {
+      lastErr = err;
+      if ((err as { status?: number })?.status === 404) continue;
+      throw err;
+    }
+  }
+  throw lastErr;
+}

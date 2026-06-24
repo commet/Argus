@@ -77,6 +77,21 @@ export function deeperSuffix(locale: 'ko' | 'en'): string {
     : '\n\n[Deeper] Pick the single most load-bearing assumption (the one whose failure collapses everything) and, in its risk_if_false, also state the cheapest way to test it.';
 }
 
+/** Coerce an already-parsed object (e.g. a forced tool_use input) into the
+ *  result shape — tolerant of missing/odd fields. */
+export function coerceReframe(obj: unknown): ReframeCoreResult {
+  const o = (obj ?? {}) as Partial<ReframeCoreResult>;
+  return {
+    surface_task: typeof o.surface_task === 'string' ? o.surface_task : '',
+    hidden_assumptions: Array.isArray(o.hidden_assumptions)
+      ? o.hidden_assumptions
+          .map((a) => (typeof a === 'string' ? { assumption: a } : a))
+          .filter((a): a is ReframeAssumption => !!a && typeof a.assumption === 'string')
+      : [],
+    reasoning_narrative: typeof o.reasoning_narrative === 'string' ? o.reasoning_narrative : undefined,
+  };
+}
+
 /** Tolerant JSON extraction — models sometimes wrap JSON in prose or fences. */
 export function parseReframe(text: string): ReframeCoreResult {
   let raw = text.trim();
@@ -88,17 +103,30 @@ export function parseReframe(text: string): ReframeCoreResult {
     const end = raw.lastIndexOf('}');
     if (start >= 0 && end > start) raw = raw.slice(start, end + 1);
   }
-  const obj = JSON.parse(raw) as Partial<ReframeCoreResult>;
-  return {
-    surface_task: typeof obj.surface_task === 'string' ? obj.surface_task : '',
-    hidden_assumptions: Array.isArray(obj.hidden_assumptions)
-      ? obj.hidden_assumptions
-          .map((a) => (typeof a === 'string' ? { assumption: a } : a))
-          .filter((a): a is ReframeAssumption => !!a && typeof a.assumption === 'string')
-      : [],
-    reasoning_narrative: typeof obj.reasoning_narrative === 'string' ? obj.reasoning_narrative : undefined,
-  };
+  return coerceReframe(JSON.parse(raw));
 }
+
+/** JSON-Schema for the forced tool call — guarantees valid structured output. */
+export const REFRAME_TOOL_SCHEMA = {
+  type: 'object' as const,
+  properties: {
+    surface_task: { type: 'string' as const },
+    hidden_assumptions: {
+      type: 'array' as const,
+      items: {
+        type: 'object' as const,
+        properties: {
+          assumption: { type: 'string' as const },
+          risk_if_false: { type: 'string' as const },
+          axis: { type: 'string' as const },
+        },
+        required: ['assumption'],
+      },
+    },
+    reasoning_narrative: { type: 'string' as const },
+  },
+  required: ['surface_task', 'hidden_assumptions'],
+};
 
 const AXIS_LABEL: Record<string, { ko: string; en: string }> = {
   customer_value: { ko: '고객 가치', en: 'Customer value' },
