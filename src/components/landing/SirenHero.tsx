@@ -168,11 +168,11 @@ export function SirenHero() {
 
         {/* The living anchor — Odysseus's voyage past the Sirens as one
             continuous moving engraving (출항 → 묶기 → 듣기 → 닿기 → 알아봄), the
-            myth that names the product. Breaks out to full-bleed for a
-            cinematic first impression; mobile keeps the film's native 16:9 so
-            the engraving is never hard-cropped. */}
+            myth that names the product. Full-bleed AND at the film's true 16:9
+            height (capped only on very tall viewports), so it fills the width
+            edge-to-edge — overwhelming — while nothing gets cropped. */}
         <div
-          className="bp-fade-up h-[56.25vw] md:h-[60vh] md:max-h-[660px]"
+          className="bp-fade-up h-[56.25vw] max-h-[92vh]"
           style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 32, marginBottom: 10, animationDelay: '200ms' }}
         >
           <VoyageFilm />
