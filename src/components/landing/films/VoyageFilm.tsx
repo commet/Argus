@@ -191,7 +191,11 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
     ? '0 0 1px var(--bp-paper), 0 0 3px var(--bp-paper), 0 0 7px var(--bp-paper), 0 0 13px var(--bp-paper)'
     : '0 0 1px var(--bp-paper), 0 0 3px var(--bp-paper), 0 0 9px var(--bp-paper), 0 0 16px var(--bp-paper)';
   const folioColor = gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)';
-  const folioOpacity = gold ? 0.3 : 0.22;
+  // FILLED watermark numeral (not a hairline outline — that vanished over the
+  // busy engraving). A soft paper halo lifts it off the line-work so the
+  // chapter mark actually reads, without competing with the quote.
+  const folioOpacity = gold ? 0.42 : 0.34;
+  const folioHalo = '0 0 2px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 24px var(--bp-paper)';
   const spineColor = gold ? 'var(--bp-ink)' : 'var(--bp-gold)';
   const eyebrowColor = gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)';
   const clusterDelay = quoteEnd(L(active.mythKo, active.mythEn), narrow);
@@ -216,7 +220,7 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
   );
   const tail = (
     <motion.div initial={rm ? { opacity: 1 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36, delay: rm ? 0 : clusterDelay, ease }} style={{ marginTop: 18 }}>
-      <p className={bk} style={{ margin: '0 0 10px', fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(12px, 1.15vw, 14px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', letterSpacing: '0.01em', textShadow: bodyHalo }}>
+      <p className={bk} style={{ margin: '0 0 10px', fontStyle: 'italic', fontWeight: 600, fontSize: 'clamp(12.5px, 1.2vw, 14.5px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink)', opacity: 0.92, letterSpacing: '0.01em', textShadow: bodyHalo }}>
         — {L(active.attrKo, active.attrEn)}
       </p>
       <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(15.5px, 1.9vw, 20px)', lineHeight: 1.45, color: 'var(--bp-ink)', letterSpacing: '-0.006em', maxWidth: '44ch', textWrap: 'pretty', textShadow: bodyHalo }}>
@@ -229,7 +233,7 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
     return (
       <div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 9 }}>
-          <span aria-hidden="true" style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(34px, 12vw, 54px)', lineHeight: 0.78, color: 'transparent', WebkitTextStroke: `1px ${folioColor}`, opacity: folioOpacity, userSelect: 'none' }}>{active.num}</span>
+          <span aria-hidden="true" style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(34px, 12vw, 54px)', lineHeight: 0.78, color: folioColor, opacity: folioOpacity, textShadow: folioHalo, userSelect: 'none' }}>{active.num}</span>
           {eyebrow}
         </div>
         {quote}
@@ -244,7 +248,7 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
         initial={rm ? {} : { clipPath: 'inset(0 0 100% 0)' }}
         animate={{ clipPath: 'inset(0 0 0% 0)' }}
         transition={{ duration: 0.7, delay: rm ? 0 : 0.08, ease: 'easeOut' }}
-        style={{ flex: 'none', alignSelf: 'flex-start', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(76px, 11vw, 160px)', lineHeight: 0.78, color: 'transparent', WebkitTextStroke: `1.25px ${folioColor}`, opacity: folioOpacity, userSelect: 'none' }}
+        style={{ flex: 'none', alignSelf: 'flex-start', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(76px, 11vw, 160px)', lineHeight: 0.78, color: folioColor, opacity: folioOpacity, textShadow: folioHalo, userSelect: 'none' }}
       >
         {active.num}
       </motion.div>
@@ -321,12 +325,48 @@ export function VoyageFilm() {
       {/* gold top rule */}
       <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 3 }} />
 
-      {/* NO reading-zone wash: dimming the frame hid the engraving's left-side
-          subjects. The text now lives on the UN-dimmed video via per-glyph paper
-          halos only — this is a light cream engraving, so dark ink + a tight halo
-          reads clean without darkening any of the picture. Just a slim bottom
-          fade under the dots (over the water strip, low-importance everywhere). */}
-      <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '26%', zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(to top, color-mix(in srgb, var(--bp-paper) 70%, transparent) 0%, transparent 100%)' }} />
+      {/* Localized FROSTED reading surface — NOT a full-frame wash (that hid the
+          engraving's subjects). It blurs only the caption zone's line-noise and
+          lifts it a touch toward paper, so dark ink reads while the picture stays
+          visible THROUGH it (figures soften, never disappear). Radial mask =
+          feathered corner vignette, no box edge. Chapter card → bottom-left;
+          intro → bottom-center. Fades with its caption. */}
+      <AnimatePresence>
+        {active && !intro && (
+          <motion.div
+            key="frost-ch"
+            aria-hidden="true"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
+            style={{
+              position: 'absolute', left: 0, bottom: 0, zIndex: 1, pointerEvents: 'none',
+              width: 'min(780px, 76%)', height: 'min(64%, 400px)',
+              backdropFilter: 'blur(9px) saturate(1.02) brightness(1.03)',
+              WebkitBackdropFilter: 'blur(9px) saturate(1.02) brightness(1.03)',
+              background: 'linear-gradient(to top right, color-mix(in srgb, var(--bp-paper) 56%, transparent), transparent 70%)',
+              maskImage: 'radial-gradient(132% 128% at 0% 100%, #000 48%, transparent 80%)',
+              WebkitMaskImage: 'radial-gradient(132% 128% at 0% 100%, #000 48%, transparent 80%)',
+            }}
+          />
+        )}
+        {intro && !active && (
+          <motion.div
+            key="frost-intro"
+            aria-hidden="true"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
+            style={{
+              position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 1, pointerEvents: 'none',
+              height: 'min(44%, 250px)',
+              backdropFilter: 'blur(7px) saturate(1.02) brightness(1.04)',
+              WebkitBackdropFilter: 'blur(7px) saturate(1.02) brightness(1.04)',
+              background: 'linear-gradient(to top, color-mix(in srgb, var(--bp-paper) 50%, transparent), transparent 78%)',
+              maskImage: 'radial-gradient(82% 130% at 50% 100%, #000 46%, transparent 82%)',
+              WebkitMaskImage: 'radial-gradient(82% 130% at 50% 100%, #000 46%, transparent 82%)',
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── caption: the intro is the centered establishing shot; each chapter is a
             lower-left PLATE FOLIO (title card) that inks itself in. ── */}
