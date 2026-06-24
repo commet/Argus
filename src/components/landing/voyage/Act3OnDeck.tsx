@@ -51,7 +51,7 @@ export function Act3OnDeck() {
           }}
         >
           {locale === 'ko' ? (
-            <>결정 하나하나가,&nbsp;<span style={{ color: 'var(--bp-gold-deep)' }}>당신만의 항로가 됩니다.</span></>
+            <>결정 하나하나가,&nbsp;<span style={{ color: 'var(--bp-gold-deep)' }}>당신만의 항로가&nbsp;됩니다.</span></>
           ) : (
             <>Each decision becomes <span style={{ color: 'var(--bp-gold-deep)' }}>a course only you have charted.</span></>
           )}

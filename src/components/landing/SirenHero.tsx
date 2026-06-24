@@ -146,7 +146,11 @@ export function SirenHero() {
             animationDelay: '60ms',
           }}
         >
-          {L('AI에 묻기 전에, 당신 판단부터.', 'Before you ask AI — your own call first.')}
+          {locale === 'ko' ? (
+            <>AI에 묻기 전에, 당신&nbsp;판단부터.</>
+          ) : (
+            'Before you ask AI — your own call first.'
+          )}
         </h1>
 
         {/* 30초 피치 v2, 첫 두 문장 — 원전 그대로. The problem / empathy hook. */}

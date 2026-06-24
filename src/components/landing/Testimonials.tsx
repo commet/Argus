@@ -151,7 +151,7 @@ export function Testimonials() {
         {/* honest note — these are early, real, and few on purpose */}
         <p
           className="bp-mono mt-8"
-          style={{ color: 'var(--bp-ink-faint)', fontSize: 10.5, letterSpacing: '0.16em' }}
+          style={{ color: 'var(--bp-ink-soft)', opacity: 0.85, fontSize: 10.5, letterSpacing: '0.16em' }}
         >
           {L('실제 사용자가 남긴 후기예요.', 'A real note from someone who used it.')}
         </p>
