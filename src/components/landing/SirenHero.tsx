@@ -190,9 +190,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>Argus는 칭찬도 반박도 하지 않아요.<br />그저 당신의 계획을 진짜로 읽어요 —<br />“좋아{' '}보여요”는 읽지 않고도 할 수 있는 말이니까요.</>
+            <>칭찬도 반박도 하지 않아요.<br />“좋아 보여요” 대신, 당신의 계획을 진짜로 읽어요.</>
           ) : (
-            <>Argus neither flatters nor argues.<br />It just reads your plan, for real —<br />“looks good” is the one thing you can say without reading it.</>
+            <>It won’t flatter you or argue.<br />Instead of “looks good,” it actually reads your plan.</>
           )}
         </p>
 
