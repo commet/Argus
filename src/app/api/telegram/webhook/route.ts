@@ -30,31 +30,37 @@ const FIFTEEN_MIN = 15 * 60 * 1000;
 function tgUrl(method: string): string {
   return `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/${method}`;
 }
-async function tgCall(method: string, body: Record<string, unknown>): Promise<void> {
+async function tgCall(method: string, body: Record<string, unknown>): Promise<{ ok: boolean; description?: string } | null> {
   try {
-    await fetch(tgUrl(method), {
+    const res = await fetch(tgUrl(method), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    const data = await res.json();
+    if (data && data.ok === false) console.error(`[telegram/webhook] ${method} rejected:`, data.description);
+    return data;
   } catch (err) {
     console.error(`[telegram/webhook] ${method} failed:`, err);
+    return null;
   }
 }
-function sendMessage(chatId: number | string, html: string, keyboard?: unknown): Promise<void> {
-  return tgCall('sendMessage', {
-    chat_id: chatId,
-    text: html,
-    parse_mode: 'HTML',
-    disable_web_page_preview: true,
-    ...(keyboard ? { reply_markup: keyboard } : {}),
-  });
+async function sendMessage(chatId: number | string, html: string, keyboard?: unknown): Promise<void> {
+  const base = { chat_id: chatId, disable_web_page_preview: true, ...(keyboard ? { reply_markup: keyboard } : {}) };
+  const res = await tgCall('sendMessage', { ...base, text: html, parse_mode: 'HTML' });
+  // Telegram DROPS messages with malformed HTML (e.g. an unbalanced <b> produced
+  // when model markdown has a stray '**') and returns ok:false. Guarantee
+  // delivery by retrying as plain text with tags stripped.
+  if (!res || res.ok === false) {
+    const plain = html.replace(/<\/?[^>]+>/g, '');
+    await tgCall('sendMessage', { ...base, text: plain });
+  }
 }
-function sendTyping(chatId: number | string): Promise<void> {
-  return tgCall('sendChatAction', { chat_id: chatId, action: 'typing' });
+async function sendTyping(chatId: number | string): Promise<void> {
+  await tgCall('sendChatAction', { chat_id: chatId, action: 'typing' });
 }
-function answerCallback(id: string, text?: string): Promise<void> {
-  return tgCall('answerCallbackQuery', { callback_query_id: id, ...(text ? { text } : {}) });
+async function answerCallback(id: string, text?: string): Promise<void> {
+  await tgCall('answerCallbackQuery', { callback_query_id: id, ...(text ? { text } : {}) });
 }
 
 function reframeKeyboard(locale: 'ko' | 'en') {
