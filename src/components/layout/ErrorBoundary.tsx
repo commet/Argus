@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { handleError } from '@/lib/error-handler';
 import { getCurrentLanguage } from '@/lib/i18n';
 
@@ -62,12 +63,12 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               </button>
               {/* Always-safe escape: if retry keeps re-throwing the same broken
                   subtree, a full nav to /workspace remounts the app cleanly. */}
-              <a
+              <Link
                 href="/workspace"
                 className="text-xs text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors"
               >
                 {ko ? '워크스페이스로 돌아가기' : 'Back to workspace'}
-              </a>
+              </Link>
             </div>
           </div>
         </div>

@@ -111,7 +111,7 @@ export function InnerMonologueCard({ verdict }: InnerMonologueCardProps) {
       },
     );
   }, [typeData, sajuProfile, yearMonthProfile, zodiacProfile, gender, locale, loadedAgentId, verdict,
-      innerLoading, innerMonologue, startInnerMonologue, updateInnerStreamingText, commitInnerMonologue]);
+      innerLoading, innerMonologue, startInnerMonologue, updateInnerStreamingText, commitInnerMonologue, t]);
 
   // ─── Locked state ───
   if (!revealed) {

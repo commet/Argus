@@ -8,6 +8,7 @@ import {
   MAX_SYSTEM_LENGTH,
   MAX_MESSAGES,
   MAX_TOTAL_BODY,
+  MAX_TOKENS_CAP,
 } from '@/lib/llm-validation';
 
 // ─── Messages Validation ───
@@ -137,10 +138,10 @@ describe('normalizeMaxTokens', () => {
     expect(normalizeMaxTokens('')).toBe(2000);
   });
 
-  it('caps at 4096', () => {
-    expect(normalizeMaxTokens(200000)).toBe(4096);
-    expect(normalizeMaxTokens(5000)).toBe(4096);
-    expect(normalizeMaxTokens(4096)).toBe(4096);
+  it('caps at the configured output ceiling', () => {
+    expect(normalizeMaxTokens(200000)).toBe(MAX_TOKENS_CAP);
+    expect(normalizeMaxTokens(MAX_TOKENS_CAP + 1)).toBe(MAX_TOKENS_CAP);
+    expect(normalizeMaxTokens(MAX_TOKENS_CAP)).toBe(MAX_TOKENS_CAP);
   });
 
   it('passes through valid values', () => {
@@ -151,7 +152,7 @@ describe('normalizeMaxTokens', () => {
 
   it('handles string numbers', () => {
     expect(normalizeMaxTokens('3000')).toBe(3000);
-    expect(normalizeMaxTokens('999999')).toBe(4096);
+    expect(normalizeMaxTokens('999999')).toBe(MAX_TOKENS_CAP);
   });
 });
 

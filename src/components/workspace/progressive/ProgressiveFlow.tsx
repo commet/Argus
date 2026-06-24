@@ -69,6 +69,7 @@ import { forksToQuestions, forkQuestionId } from '@/lib/fork-to-question';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { Falsification } from './Falsification';
 import { Button } from '@/components/ui/Button';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { extractPredicatesFromSession } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { EASE, SPRING } from './shared/constants';
@@ -2352,7 +2353,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-5">
                   <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
                   <p className="text-[12.5px] text-[var(--text-secondary)] mb-3">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있어요.`, `Sign in to get up to ${DAILY_LIMIT} free calls per day.`)}</p>
-                  <a href="/login" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={13} /></a>
+                  <LocaleLink href="/login" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={13} /></LocaleLink>
                 </div>
               ) : (() => {
                 const isQuota = error.includes('한도') || error.includes('rate') || error.includes('limit') || error.includes('429');
@@ -2366,9 +2367,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                           : error}
                       </p>
                       {isQuota && (
-                        <a href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
+                        <LocaleLink href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
                           {L('Settings에서 API 키 등록하기 →', 'Register API key in Settings →')}
-                        </a>
+                        </LocaleLink>
                       )}
                     </div>
                     <button onClick={() => setError(null)} aria-label={L('닫기', 'Dismiss')}

@@ -126,15 +126,15 @@ describe('Falsification', () => {
     });
   });
 
-  it('"use this sentence as-is" then lock-in is authored by the USER (affirmative adoption, not silent)', () => {
+  it('"use this sentence as-is" then lock-in remains ai_surfaced (verbatim adoption, not re-authorship)', () => {
     const onResolve = vi.fn();
     mount({ strength: 's', claims, onResolve, onRequestHighestLoad: vi.fn() });
     click(buttonByText('Plausible win'));
     click(buttonByText('Use this sentence as-is'));
     click(buttonByText('Lock it in'));
-    // The user actively adopted the sentence into their own field — consented,
-    // so authorship is 'user', distinct from the silent skip path above.
-    expect(onResolve.mock.calls[0][0].real_bet_authored).toBe('user');
+    // The user consented to use the machine sentence, but did not re-author it.
+    // Keep calibration conservative: only a genuinely changed re-statement is user-authored.
+    expect(onResolve.mock.calls[0][0].real_bet_authored).toBe('ai_surfaced');
   });
 
   it('no-flinch → asks the engine for the highest-load pick and marks the fallback', async () => {
