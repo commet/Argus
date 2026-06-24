@@ -38,7 +38,9 @@ else {
 
 // 2. every skill dir has a SKILL.md with name+description frontmatter
 const skillsDir = path.join(pluginRoot, 'skills');
-const skills = fs.readdirSync(skillsDir).filter((d) => fs.statSync(path.join(skillsDir, d)).isDirectory());
+// `_`-prefixed dirs (e.g. _generated, holding auto-generated reference fragments)
+// are NOT skills — skip them.
+const skills = fs.readdirSync(skillsDir).filter((d) => !d.startsWith('_') && fs.statSync(path.join(skillsDir, d)).isDirectory());
 if (skills.length === 0) fail('no skills found');
 for (const s of skills) {
   const md = path.join(skillsDir, s, 'SKILL.md');

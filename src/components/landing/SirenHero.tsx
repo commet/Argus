@@ -30,8 +30,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
-import { ArgusHeroDemo } from './films/ArgusHeroDemo';
-import { ScaleToFit } from './films/ScaleToFit';
+import { VoyageFilm } from './films/VoyageFilm';
 
 export function SirenHero() {
   const locale = useLocale();
@@ -169,16 +168,16 @@ export function SirenHero() {
           )}
         </p>
 
-        {/* The living anchor — the product itself in motion. Replaces the
-            static ForkPath: a full Argus session in 6 beats shows the same
-            "one plan forks, then returns" idea, but moving. */}
-        <div className="bp-fade-up mx-auto mt-6" style={{ maxWidth: 660, animationDelay: '200ms' }}>
-          {/* Render the film at its native design width (~940) so the scene
-              layouts (esp. the Draft card) lay out without clipping, then
-              ScaleToFit shrinks the whole frame to the hero column / phone. */}
-          <ScaleToFit designWidth={940}>
-            <ArgusHeroDemo embedded />
-          </ScaleToFit>
+        {/* The living anchor — Odysseus's voyage past the Sirens as one
+            continuous moving engraving (출항 → 묶기 → 듣기 → 닿기 → 알아봄), the
+            myth that names the product. Breaks out to full-bleed for a
+            cinematic first impression; mobile keeps the film's native 16:9 so
+            the engraving is never hard-cropped. */}
+        <div
+          className="bp-fade-up h-[56.25vw] md:h-[60vh] md:max-h-[660px]"
+          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 32, marginBottom: 10, animationDelay: '200ms' }}
+        >
+          <VoyageFilm />
         </div>
 
         {/* Resolving line — the pitch must not end on the problem. */}
@@ -312,15 +311,17 @@ export function SirenHero() {
             demo link were cut — show, don't tell. The input footer keeps the
             ease + privacy microcopy. */}
 
-        {/* Scroll cue — a clickable "sounding line" down to the voyage. */}
-        <div className="bp-fade-up mt-9 flex justify-center" style={{ animationDelay: '440ms' }}>
+        {/* Scroll cue — a clickable "sounding line" down to the Trail, where the
+            product actually navigates one decision. (The film above already
+            shows the three legs, so the old 묶기·듣기·닿기 hint was cut.) */}
+        <div className="bp-fade-up mt-10 flex justify-center" style={{ animationDelay: '420ms' }}>
           <a
-            href="#voyage-heading"
-            aria-label={L('항해의 전말 보기', 'See the full voyage')}
+            href="#navigate"
+            aria-label={L('하나의 결정이 항해되는 모습 보기', 'See one decision being navigated')}
             className="bp-sounding inline-flex flex-col items-center gap-2"
           >
             <span className="bp-mono" style={{ color: 'var(--bp-ink)', opacity: 0.72, fontSize: 10.5, letterSpacing: '0.26em', textTransform: 'uppercase' }}>
-              {L('항해의 전말', 'The full voyage')}
+              {L('실제로 어떻게 되는지', 'See it work')}
             </span>
             <span aria-hidden="true" className="bp-sounding-line" />
           </a>

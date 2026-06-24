@@ -56,6 +56,7 @@ import {
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
   governing_idea: Target,
+  user_lean: Target,
   risk: AlertTriangle,
   actor: GitBranch,
 };
@@ -68,7 +69,7 @@ export type Verdict = Exclude<PredicateVerdict, 'pending'>;
 export function verdictButtons(source: PredicateSource, ko: boolean): { value: Verdict; label: string }[] {
   const partial = { value: 'partial' as const, label: ko ? '부분' : 'Partial' };
   const unknown = { value: 'unknown' as const, label: ko ? '아직 모름' : 'Unknown' };
-  if (source === 'governing_idea') {
+  if (source === 'governing_idea' || source === 'user_lean') {
     return [
       { value: 'happened', label: ko ? '적중' : 'Held' },
       { value: 'avoided', label: ko ? '빗나감' : 'Broke' },
@@ -95,6 +96,9 @@ export function verdictButtons(source: PredicateSource, ko: boolean): { value: V
 /** Frame the raw subject as a yes/no-checkable question per source. Exported
  *  for SettlementModal (single source of truth). */
 export function predicateQuestion(p: Predicate, ko: boolean): string {
+  // user_lean: re-confront the user's OWN opening line as a bare neutral question
+  // (the myth's "bind tighter" — their pre-AI lean is the anchor reality grades).
+  if (p.source === 'user_lean') return ko ? `출항 때 당신의 한 줄이 맞았나요 — ${p.text}` : `Did your opening lean hold — ${p.text}`;
   if (p.source === 'governing_idea') return ko ? `핵심 가설이 맞았나요 — ${p.text}` : `Did the bet hold — ${p.text}`;
   if (p.source === 'actor') return ko ? `사람 판단이 필요했나요 — ${p.text}` : `Did this need human judgment — ${p.text}`;
   return ko ? `실제로 일어났나요 — ${p.text}` : `Did it happen — ${p.text}`;
@@ -106,6 +110,7 @@ export function predicateQuestion(p: Predicate, ko: boolean): string {
 export function isCreditClaimingOutcome(p: Predicate): boolean {
   return (
     (p.source === 'governing_idea' && p.verdict === 'happened') ||
+    (p.source === 'user_lean' && p.verdict === 'happened') ||
     (p.source === 'risk' && p.verdict === 'avoided')
   );
 }

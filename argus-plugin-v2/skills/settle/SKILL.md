@@ -121,6 +121,13 @@ Omit `note` from the settle event when the user offered no sentence.
 {"event":"settle","id":"<id>","outcome":"happened|avoided|partial","basis":"reasoned|luck|external|mixed — user's own read, optional","note":"<one user sentence if offered>","at":"<now ISO>"}
 ```
 
+**Authorship (mirror of the webapp `authored` field, R57/R58).** A seal carrying
+`author:"user"` is the user's OWN prediction (the Phase-1 BIND lean from clarify Step
+3.4) — re-confront it verbatim and, in `log`'s calibration, count a held one as the
+user's judgment. A seal WITHOUT `author` (the AI-surfaced seed from sail Step 7) is a
+machine-surfaced belief, not the user's bet — a held one is NOT the user's skill-win
+(same principle as luck-vs-judgment basis). Never silently relabel one as the other.
+
 - `pending` → extend instead (history preserved, no settle):
 
 ```json

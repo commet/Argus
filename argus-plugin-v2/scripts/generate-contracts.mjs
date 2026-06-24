@@ -89,7 +89,10 @@ for (const a of ARTIFACTS) {
   const outPath = path.join(pluginRoot, a.output);
   const current = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf8') : null;
   if (check) {
-    if (current !== expected) {
+    // EOL-agnostic compare: git autocrlf checks these out as CRLF on Windows while
+    // render() produces LF — without normalizing, --check false-fails off-Linux.
+    const norm = (s) => (s == null ? s : s.replace(/\r\n/g, '\n'));
+    if (norm(current) !== norm(expected)) {
       stale++;
       console.error(`STALE: ${a.output} is out of sync with ${a.source} — run: node scripts/generate-contracts.mjs`);
     }

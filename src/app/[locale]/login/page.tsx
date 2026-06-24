@@ -25,6 +25,18 @@ function getAuthErrors(locale: 'ko' | 'en'): Record<string, string> {
   };
 }
 
+// Optional role chips on sign-up — decision-context personalization (stored on
+// user_metadata.role). Ids stay stable in English; labels are localized.
+const SIGNUP_ROLES = [
+  { id: 'founder', ko: '창업·대표', en: 'Founder' },
+  { id: 'product', ko: '기획·PM', en: 'Product / PM' },
+  { id: 'engineering', ko: '개발', en: 'Engineering' },
+  { id: 'design', ko: '디자인', en: 'Design' },
+  { id: 'marketing', ko: '마케팅·그로스', en: 'Marketing' },
+  { id: 'leadership', ko: '경영·리더', en: 'Leadership' },
+  { id: 'other', ko: '기타', en: 'Other' },
+] as const;
+
 function LoginContent() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
@@ -35,6 +47,8 @@ function LoginContent() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -75,7 +89,7 @@ function LoginContent() {
         setMessage(L('비밀번호 재설정 링크를 보냈어요. 이메일을 확인해 주세요.', 'Password reset link sent. Please check your email.'));
       }
     } else if (isSignUp) {
-      const { error } = await signUpWithEmail(email, password, captchaToken || undefined);
+      const { error } = await signUpWithEmail(email, password, captchaToken || undefined, { name, role });
       if (error) {
         setError(error);
         turnstileRef.current?.reset();
@@ -200,6 +214,49 @@ function LoginContent() {
 
           {/* Email / Password Form */}
           <form onSubmit={handleEmailAuth} className="space-y-3">
+            {isSignUp && (
+              <div>
+                <input
+                  type="text"
+                  maxLength={40}
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={L('어떻게 불러드릴까요? (선택)', 'What should we call you? (optional)')}
+                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                />
+                <p className="mt-1 px-1 text-[11px] text-[var(--text-tertiary)] leading-snug">
+                  {L('정산할 때 이 이름으로 인사하고, 결정 기록에 함께 남겨요.', 'We greet you by this name and keep it with your decision log.')}
+                </p>
+              </div>
+            )}
+            {isSignUp && (
+              <div>
+                <p className="mb-1.5 px-1 text-[12px] text-[var(--text-secondary)]">
+                  {L('무슨 일을 하세요? (선택)', 'What do you do? (optional)')}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {SIGNUP_ROLES.map((r) => {
+                    const active = role === r.id;
+                    return (
+                      <button
+                        type="button"
+                        key={r.id}
+                        onClick={() => setRole(active ? '' : r.id)}
+                        aria-pressed={active}
+                        className={`px-3 py-1.5 rounded-full text-[12.5px] border transition-all cursor-pointer ${
+                          active
+                            ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] font-medium'
+                            : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
+                        }`}
+                      >
+                        {L(r.ko, r.en)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div>
               <input
                 type="email"

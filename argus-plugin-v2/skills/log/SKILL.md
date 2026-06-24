@@ -115,6 +115,13 @@ it on the record but quarantine it from the skill claim ("held 3건 중 1건은 
 운으로 표시"). Silently dropping the inconvenient entry to state a clean pattern is
 the exact over-claim a skeptic breaks.
 
+**Authorship quarantine (R57/R58 — parity with the webapp `betsHeldAiSurfaced`).**
+A held seal carrying `author:"user"` (the Phase-1 BIND lean from clarify Step 3.4) IS
+the user's own prediction — count it as a skill claim. A held seal WITHOUT `author`
+(the AI-surfaced seed from sail Step 7) is the engine's belief, not the user's bet —
+quarantine it from the skill claim exactly like a luck win ("held 3건 중 1건은 AI가
+세운 가설"). Never let a machine-surfaced seed inflate the user's calibration.
+
 **No-pattern honesty is mechanical, not discretionary.** If `pattern_strength` is
 `none`, or Step 1 downgraded for scatter, say EXACTLY that in one line — "아직
 패턴이라기엔 신호가 약해요 (정산 {{T}}건 · {{domains}} 영역) — 더 쌓이면 같이

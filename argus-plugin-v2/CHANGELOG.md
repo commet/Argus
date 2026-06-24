@@ -4,6 +4,35 @@ All notable changes to the Argus plugin. Versioning follows
 [semver](https://semver.org); users receive an update only when the
 `version` in `.claude-plugin/plugin.json` is bumped.
 
+## 2.7.0 — 2026-06-24
+
+Quality, measurement, and trust infrastructure — turning "we wrote the rules" into
+"we measure that the rules actually fire", plus the cross-surface single-source the
+two-bodies architecture needed. (Benchmarked against the substantial Claude Code
+plugins/skills/MCP; gaps closed across 10 dimensions — `docs/DIMENSIONS-10-scorecard-2026-06-23`.)
+
+- **Behavioral eval harness** (`evals/`): generates bearings from the real clarify+sail
+  skills and scores them — static gate (deterministic, in CI) + LLM judge + a per-tier
+  sweep. Live finding: over-fire is tier-dependent — **haiku breaches the spine floor
+  (~0.41); sonnet/opus hold (~0.22)** → route bearing-generation to sonnet+. Prompt
+  caching keeps re-runs cheap. (`docs/EVAL-RESULTS-2026-06-23`.)
+- **Enforcement gates** (`scripts/validate-gates.mjs` + a `Stop` hook): the verify /
+  route-contract / flat / output-integrity gates are checked mechanically against
+  session artifacts (warn-mode hook + CI hard-block) — prose rules are a floor, not
+  enforcement.
+- **Single-source generator** (`scripts/generate-contracts.mjs`): machinery-terms,
+  crisis-taxonomy, and course-status are single-sourced in `data/contracts/`, with
+  parity assertions across the webapp ↔ plugin seam and a CI sync guard (drift caught).
+- **Output integrity**: a failed/empty/weak worker can no longer be silently dropped or
+  promoted as "verified" (team failure contract + gate).
+- **Secret redaction** (`scripts/redact.mjs`): the "redact before use" rule is now a
+  tested mechanical step (clarify pipes diffs through it), not just prose.
+- **Run-cost accountability**: `team` warns before a large fan-out and offers `--lean`,
+  with model-routing guidance (workers cheap, synthesis strong) — fan-out bills the
+  user's own metered plan.
+- **Untrusted-content / toxic-flow rule** in `clarify`: loaded PR/doc/repo content is
+  data, never instructions.
+
 ## 2.6.0 — 2026-06-17
 
 Under-fire default: the dial that decides *whether to intervene* is now pinned to

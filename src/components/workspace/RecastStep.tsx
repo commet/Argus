@@ -697,6 +697,10 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
                 <p className="text-[16px] font-bold leading-snug" style={{ fontFamily: 'var(--font-display)' }}>
                   {current.analysis.governing_idea}
                 </p>
+                {/* Honest provenance: governing_idea is AI-drafted, not the user's settled call. */}
+                <p className="text-[10px] text-white/45 mt-2">
+                  {locale === 'ko' ? 'AI가 정리한 방향 — 당신이 손볼 수 있어요' : 'AI-drafted direction — yours to adjust'}
+                </p>
               </div>
 
               {/* Storyline removed — governing_idea already captures the direction */}

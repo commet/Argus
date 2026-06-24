@@ -222,6 +222,11 @@ signals. This is defense-in-depth and is the twin of the webapp `crisis-gate.ts`
 through to Step 1.7 (a false crisis-fire is its own paternalism over-fire; the
 base model also catches the subtle cases — R11/R12).
 
+> **Canonical category set:** `data/contracts/crisis-taxonomy.json` (single source) →
+> rendered to `skills/_generated/crisis-taxonomy.md`. `scripts/generate-contracts.mjs`
+> asserts the webapp `crisis-gate.ts` `CRISIS_CATEGORIES` matches it (CI guard) — edit
+> the JSON + `crisis-gate.ts` together, never just one.
+
 Fire categories (observable signals only):
 - **self-harm / safety** — explicit or veiled SI; abuse/violence ("only hits me
   when I provoke"); a self-identified minor at risk.
@@ -428,6 +433,43 @@ If `framing_confidence < 70`:
      - "Let me reframe it" → accept new input, re-analyze
 
 2. If user rejects, re-run Step 2 with rejection reason as additional context.
+
+### Step 3.4 — BIND (tie the rope before the crew) — Phase 1 mirror
+
+The webapp seals the user's own lean at project-OPEN, BEFORE any generation
+("tie the rope before you hear the Sirens" — `docs/MYTH-SIRENS-design-grounding`).
+Mirror it here so both surfaces share the same spine. **Run only for
+`request_type == open_decision`** (vent/info/validation/self_profiling/crisis never
+run the crew, so there is no song to tie a rope against — skip silently). **Skip on
+`--quick` and on `frame_status == "flat"`.**
+
+Ask once, in prose (NEVER a two-pole fork, never a directional nudge):
+
+> **locale ko:** "출항 전에 — 지금 마음은 한 줄로 어디로 기울어요? (없으면 그냥 넘어가요)
+> 그리고 언제 다시 확인할까요? — 1주 / 2주 / 1달 / 안 함"
+> **locale en:** "Before we sail — in one line, where are you leaning right now?
+> (skip if unsure) · And when should I check back — 1 week / 2 weeks / 1 month / never"
+
+Then:
+
+- **Skip / no lean and no date → write NOTHING** (honest-empty; identical to today).
+  The skip is unconditional — never block, never re-ask, never fabricate a lean.
+- **Lean given → write an EARLY rope to the ledger now** (the user's own words are the
+  predicate; `author:"user"` records that it is theirs, not machine-surfaced):
+
+```json
+{"event":"harvest","id":"lean:<session-id>","project":"<.argus dir name>","session":"<session-id>","decided_at":"<now ISO>","quote":"<the user's lean, verbatim>","decision":"<the user's lean, verbatim>","type":"open","at":"<now ISO>"}
+{"event":"seal","id":"lean:<session-id>","predicate":"<the user's lean, verbatim>","falsified_if":"opposite observed","check_by":"<now + 1w/2w/1m, or omit if no date>","author":"user","at":"<now ISO>"}
+```
+
+- **Date only, no lean →** record only the check-in intent (a valid rope: "bind the
+  commitment, ears open"); do not fabricate a predicate.
+
+**Ears open (deaf rowers):** the lean is NEVER handed to the crew as a directive and
+NEVER suppresses Phase 2 generation — it is only the anchor that `settle` re-confronts
+later ("출항 때 당신은 X로 기울어 있었다 — 지금도?", a bare neutral question, never a
+disclaimed lean). The ledger is append-only, so the late seed-seal and `settle` preserve
+this early rope automatically — they never clobber it.
 
 ### Step 3.5 — 시험 항해 (Trial Sail probe) — W2 재배선
 

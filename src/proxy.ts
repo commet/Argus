@@ -129,6 +129,8 @@ export function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Exclude static assets (incl. video/audio/font) so e.g. /voyage/*.mp4 is
+    // served directly from /public and never 307-redirected under a locale.
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|mp4|webm|mov|mp3|m4a|woff|woff2|ttf|otf)$).*)',
   ],
 };
