@@ -183,13 +183,13 @@ export function VoyageFilm() {
           <div key="intro" className="bp-fade-up flex flex-col items-center">
             <span
               className="bp-mono"
-              style={{ marginBottom: 11, fontSize: 'clamp(9.5px, 1.05vw, 11px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 3px var(--bp-paper), 0 0 8px var(--bp-paper), 0 0 15px var(--bp-paper)' }}
+              style={{ marginBottom: 11, fontSize: 'clamp(10px, 1.05vw, 11.5px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}
             >
               {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
             </span>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(13px, 1.6vw, 17px)', lineHeight: 1.5, letterSpacing: '-0.006em', maxWidth: 560, textWrap: 'pretty', textShadow: '0 0 3px var(--bp-paper), 0 0 9px var(--bp-paper), 0 0 16px var(--bp-paper)' }}
+              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 1.75vw, 19px)', lineHeight: 1.5, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}
             >
               <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
             </p>
@@ -201,7 +201,7 @@ export function VoyageFilm() {
                 The dog is the coda (종장), not a fourth leg. */}
             <span
               className="bp-mono"
-              style={{ marginBottom: 9, fontSize: 'clamp(9px, 0.9vw, 10.5px)', letterSpacing: '0.28em', textTransform: 'uppercase', fontWeight: 700, color: active.gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)', textShadow: '0 0 3px var(--bp-paper), 0 0 8px var(--bp-paper)' }}
+              style={{ marginBottom: 9, fontSize: 'clamp(10px, 0.95vw, 11.5px)', letterSpacing: '0.28em', textTransform: 'uppercase', fontWeight: 700, color: active.gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}
             >
               {active.gold ? L('종장', 'Coda') : L(`${active.num} · ${active.ko}`, `${active.num} · ${active.en}`)}
             </span>
@@ -209,7 +209,7 @@ export function VoyageFilm() {
                 full strength, with its own attribution beneath. */}
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, marginBottom: 6, fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink)', fontSize: 'clamp(15px, 1.75vw, 19px)', lineHeight: 1.4, letterSpacing: '0.005em', textWrap: 'pretty', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 12px var(--bp-paper), 0 0 18px var(--bp-paper)' }}
+              style={{ margin: 0, marginBottom: 7, fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink)', fontSize: 'clamp(17px, 2vw, 21.5px)', lineHeight: 1.4, letterSpacing: '0.005em', textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 9px var(--bp-paper), 0 0 16px var(--bp-paper)' }}
             >
               <Lines text={L(active.mythKo, active.mythEn)} />
             </p>
@@ -218,13 +218,13 @@ export function VoyageFilm() {
                 glyphs, so the KO line was falling back to an ugly default). */}
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, marginBottom: 13, fontSize: 'clamp(11px, 1.05vw, 12.5px)', fontWeight: 500, fontStyle: 'italic', color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', opacity: 1, letterSpacing: '0.01em', textShadow: '0 0 2px var(--bp-paper), 0 0 7px var(--bp-paper), 0 0 12px var(--bp-paper)' }}
+              style={{ margin: 0, marginBottom: 14, fontSize: 'clamp(11.5px, 1.1vw, 13px)', fontWeight: 500, fontStyle: 'italic', color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', opacity: 1, letterSpacing: '0.01em', textShadow: '0 0 1px var(--bp-paper), 0 0 5px var(--bp-paper), 0 0 11px var(--bp-paper)' }}
             >
               — {L(active.attrKo, active.attrEn)}
             </p>
             <p
               className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(13.5px, 1.5vw, 16px)', lineHeight: 1.42, letterSpacing: '-0.006em', maxWidth: 560, textWrap: 'pretty', textShadow: '0 0 3px var(--bp-paper), 0 0 9px var(--bp-paper), 0 0 16px var(--bp-paper)' }}
+              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(15px, 1.75vw, 18.5px)', lineHeight: 1.45, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}
             >
               <Lines text={L(active.lineKo, active.lineEn)} />
             </p>
