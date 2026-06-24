@@ -161,16 +161,21 @@ async function handleSealDraft(chatId: number | string, userId: string): Promise
   const locale = detectLocale(sess.last_input);
   await sendTyping(chatId);
   let draft = null;
+  let errReason = '';
   try {
     const raw = await callAnthropicJson({
       system: sealSystemPrompt(locale), user: sess.last_input.slice(0, INPUT_MAX),
       toolName: SEAL_TOOL_NAME, schema: SEAL_TOOL_SCHEMA, model: 'fast', maxTokens: 900,
     });
     draft = coerceSealDraft(raw);
+    if (!draft) errReason = 'coerce_null:' + JSON.stringify(raw).slice(0, 180);
   } catch (err) {
+    errReason = String((err as { message?: string })?.message || err).slice(0, 200);
     console.error('[telegram/webhook] seal draft failed:', err);
   }
   if (!draft) {
+    // TEMP self-diagnostic: stash the reason so it can be read via SQL.
+    await admin.from('telegram_sessions').update({ pending: { kind: 'sealerr', reason: errReason } }).eq('chat_id', String(chatId));
     await sendMessage(chatId, locale === 'ko'
       ? '이건 봉인할 결정으로 정리하기 어려웠어요. "무엇을 하기로 했는지" 한 줄로 적어 보내 주세요.'
       : "Couldn't shape this into a sealable decision. Send one line on what you decided.");
