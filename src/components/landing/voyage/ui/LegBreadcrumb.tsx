@@ -38,13 +38,11 @@ export function LegBreadcrumb({ active, className }: { active: Leg; className?: 
               <span style={{ color: 'var(--bp-ink-faint)', fontSize: 10 }}>→</span>
             )}
             <span
-              className="bp-mono"
               style={{
-                fontSize: 10.5,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
+                fontSize: 13,
+                letterSpacing: '0.04em',
                 fontWeight: on ? 700 : 500,
-                color: on ? 'var(--bp-ink)' : 'var(--bp-ink-faint)',
+                color: on ? 'var(--bp-ink)' : 'var(--bp-ink-soft)',
                 borderBottom: on ? '1.5px solid var(--bp-gold)' : '1.5px solid transparent',
                 paddingBottom: 2,
                 transition: 'color 300ms ease',
