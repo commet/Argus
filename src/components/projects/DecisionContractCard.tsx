@@ -401,12 +401,27 @@ export function DecisionContractCard({
           )}
 
           {!showGrades && (
-            <button
-              onClick={() => setGradeOpen(true)}
-              className="mt-3 text-[12.5px] font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer"
-            >
-              {L('지금 확인하기', 'Check now')} <ChevronDown size={14} />
-            </button>
+            <div className="mt-3 flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => setGradeOpen(true)}
+                className="text-[12.5px] font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                {L('지금 확인하기', 'Check now')} <ChevronDown size={14} />
+              </button>
+              {/* Unseal — cancel the whole commitment so it can be re-edited / re-sealed
+                  (distinct from delete, which removes the decision entirely). The card
+                  falls back to its SEAL state if predicates are still derivable. */}
+              <button
+                onClick={() => {
+                  if (window.confirm(L('봉인을 취소할까요? 예측·확인일이 지워지고 다시 봉인할 수 있어요.', 'Unseal this? Its predictions & check-in date clear, and you can seal again.'))) {
+                    updateProject(project.id, { decision_contract: undefined });
+                  }
+                }}
+                className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+              >
+                {L('봉인 취소', 'Unseal')}
+              </button>
+            </div>
           )}
 
           {showGrades && (
