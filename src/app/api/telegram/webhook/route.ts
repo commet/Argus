@@ -183,18 +183,28 @@ export async function POST(req: NextRequest) {
   if (cb?.message?.chat) {
     const chatId = cb.message.chat.id;
     const deep = cb.data === 'rf:deep';
+    // Stop the button spinner synchronously so it always clears, even if the
+    // deferred work below has trouble.
+    await answerCallback(cb.id);
     after(async () => {
-      await answerCallback(cb.id);
-      const userId = await userForChat(chatId);
-      if (!userId) { await sendMessage(chatId, '먼저 웹앱 설정에서 Telegram을 연결해 주세요.'); return; }
-      const { data: sess } = await adminClient()
-        .from('telegram_sessions').select('last_input').eq('chat_id', String(chatId)).single();
-      if (!sess?.last_input) { await sendMessage(chatId, '다시 분석할 내용이 없어요. 고민을 새로 보내 주세요.'); return; }
-      if (!(await allowBotCall(userId))) {
-        await sendMessage(chatId, `오늘 봇 분석 한도(${BOT_DAILY_LIMIT}회)를 다 썼어요. 내일 다시 시도해 주세요.`);
-        return;
+      try {
+        const userId = await userForChat(chatId);
+        if (!userId) { await sendMessage(chatId, '먼저 웹앱 설정에서 Telegram을 연결해 주세요.'); return; }
+        const { data: sess } = await adminClient()
+          .from('telegram_sessions').select('last_input').eq('chat_id', String(chatId)).single();
+        if (!sess?.last_input) { await sendMessage(chatId, '다시 분석할 내용이 없어요. 고민을 새로 보내 주세요.'); return; }
+        if (!(await allowBotCall(userId))) {
+          await sendMessage(chatId, `오늘 봇 분석 한도(${BOT_DAILY_LIMIT}회)를 다 썼어요. 내일 다시 시도해 주세요.`);
+          return;
+        }
+        await sendMessage(chatId, deep ? '🔍 더 깊이 보는 중…' : '♻️ 다시 보는 중…');
+        await runReframe(chatId, sess.last_input, deep);
+      } catch (err) {
+        console.error('[telegram/webhook] callback failed:', err);
+        const reason = String((err as { message?: string })?.message || err)
+          .slice(0, 200).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        await sendMessage(chatId, `버튼 처리 중 막혔어요.\n\n<code>${reason}</code>`);
       }
-      await runReframe(chatId, sess.last_input, deep);
     });
     return NextResponse.json({ ok: true });
   }
