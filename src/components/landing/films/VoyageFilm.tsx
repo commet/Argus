@@ -186,8 +186,10 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
   const lure = !!active.lure, gold = !!active.gold;
   const quoteInk = lure ? 'var(--bp-lure)' : 'var(--bp-ink)';
   const nib = lure ? 'var(--bp-lure)' : 'var(--bp-gold)';
-  const bodyHalo = '0 0 1px var(--bp-paper), 0 0 8px var(--bp-paper)';
-  const quoteHalo = lure ? '0 0 1px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 12px var(--bp-paper)' : bodyHalo;
+  const bodyHalo = '0 0 1px var(--bp-paper), 0 0 3px var(--bp-paper), 0 0 8px var(--bp-paper), 0 0 14px var(--bp-paper)';
+  const quoteHalo = lure
+    ? '0 0 1px var(--bp-paper), 0 0 3px var(--bp-paper), 0 0 7px var(--bp-paper), 0 0 13px var(--bp-paper)'
+    : '0 0 1px var(--bp-paper), 0 0 3px var(--bp-paper), 0 0 9px var(--bp-paper), 0 0 16px var(--bp-paper)';
   const folioColor = gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)';
   const folioOpacity = gold ? 0.3 : 0.22;
   const spineColor = gold ? 'var(--bp-ink)' : 'var(--bp-gold)';
@@ -202,7 +204,7 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
       initial={rm ? { opacity: 1 } : { opacity: 0, letterSpacing: '0.34em', scale: 1.06 }}
       animate={{ opacity: 1, letterSpacing: '0.28em', scale: 1 }}
       transition={{ duration: 0.26, delay: rm ? 0 : 0.18, ease }}
-      style={{ display: 'inline-block', fontSize: 'clamp(11px, 1.05vw, 13px)', textTransform: 'uppercase', fontWeight: 700, color: eyebrowColor, textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper)', transformOrigin: 'left center', whiteSpace: 'nowrap' }}
+      style={{ display: 'inline-block', fontSize: 'clamp(11px, 1.05vw, 13px)', textTransform: 'uppercase', fontWeight: 700, color: eyebrowColor, textShadow: '0 0 2px var(--bp-paper), 0 0 5px var(--bp-paper), 0 0 10px var(--bp-paper)', transformOrigin: 'left center', whiteSpace: 'nowrap' }}
     >
       {gold ? L('종장', 'Coda') : L(`${active.num} · ${active.ko}`, `${active.num} · ${active.en}`)}
     </motion.span>
@@ -213,8 +215,8 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
     </div>
   );
   const tail = (
-    <motion.div initial={rm ? { opacity: 1 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36, delay: rm ? 0 : clusterDelay, ease }} style={{ marginTop: 11 }}>
-      <p className={bk} style={{ margin: '0 0 8px', fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(12px, 1.15vw, 14px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', letterSpacing: '0.01em', textShadow: bodyHalo }}>
+    <motion.div initial={rm ? { opacity: 1 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36, delay: rm ? 0 : clusterDelay, ease }} style={{ marginTop: 18 }}>
+      <p className={bk} style={{ margin: '0 0 10px', fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(12px, 1.15vw, 14px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', letterSpacing: '0.01em', textShadow: bodyHalo }}>
         — {L(active.attrKo, active.attrEn)}
       </p>
       <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(15.5px, 1.9vw, 20px)', lineHeight: 1.45, color: 'var(--bp-ink)', letterSpacing: '-0.006em', maxWidth: '44ch', textWrap: 'pretty', textShadow: bodyHalo }}>
@@ -255,7 +257,7 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
       />
       <div style={{ flex: 1, minWidth: 0 }}>
         {eyebrow}
-        <div style={{ marginTop: 10 }}>{quote}</div>
+        <div style={{ marginTop: 16 }}>{quote}</div>
         {tail}
       </div>
     </div>
@@ -319,10 +321,11 @@ export function VoyageFilm() {
       {/* gold top rule */}
       <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 3 }} />
 
-      {/* LEFT ink-wash reading zone — replaces the symmetric bottom scrim. A quiet
-          cream zone hugs the text's left third; the engraving breathes on the right. */}
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(100deg, color-mix(in srgb, var(--bp-paper) 92%, transparent) 0%, color-mix(in srgb, var(--bp-paper) 70%, transparent) 42%, transparent 62%, transparent 100%)' }} />
-      {/* slim bottom fade so the dot progress stays legible */}
+      {/* NO reading-zone wash: dimming the frame hid the engraving's left-side
+          subjects. The text now lives on the UN-dimmed video via per-glyph paper
+          halos only — this is a light cream engraving, so dark ink + a tight halo
+          reads clean without darkening any of the picture. Just a slim bottom
+          fade under the dots (over the water strip, low-importance everywhere). */}
       <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '26%', zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(to top, color-mix(in srgb, var(--bp-paper) 70%, transparent) 0%, transparent 100%)' }} />
 
       {/* ── caption: the intro is the centered establishing shot; each chapter is a
