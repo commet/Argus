@@ -174,7 +174,7 @@ export function SirenHero() {
             cinematic first impression; mobile keeps the film's native 16:9 so
             the engraving is never hard-cropped. */}
         <div
-          className="bp-fade-up h-[56.25vw] md:h-[56vh] md:max-h-[600px]"
+          className="bp-fade-up h-[56.25vw] md:h-[60vh] md:max-h-[660px]"
           style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 32, marginBottom: 10, animationDelay: '200ms' }}
         >
           <VoyageFilm />
