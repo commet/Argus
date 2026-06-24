@@ -23,6 +23,12 @@ function inline(s: string): string {
     .replace(/`([^`]+?)`/g, '<code>$1</code>');
 }
 
+/** Minimal markdown→Telegram HTML for short messages (escape + **bold**), no
+ *  title/footer. tgSendMessage's plain-text fallback covers any residual issue. */
+export function markdownToTelegramLight(md: string): string {
+  return escape(md).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+}
+
 export function markdownToTelegramHtml(title: string, markdown: string): string {
   const lines = escape(markdown).split('\n');
   const out: string[] = [`<b>${escape(title).slice(0, 200)}</b>`, ''];
