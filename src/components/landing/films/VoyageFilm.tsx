@@ -21,7 +21,70 @@
  */
 
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useLocale } from '@/hooks/useLocale';
+
+// ≤640px = the short 16:9 mobile band (the plate folio collapses to one column).
+function useIsNarrow() {
+  const [n, setN] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const on = () => setN(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return n;
+}
+
+// One clause of the Homer quote, revealed by a FEATHERED ink mask sweeping
+// left→right over fully-formed (always-legible) glyphs, with a single hairline
+// "nib" of glow riding the wet edge. The mask alpha moves; the letters never do.
+function Clause({ text, ink, nib, halo, dur, delay }: { text: string; ink: string; nib: string; halo: string; dur: number; delay: number }) {
+  const MASK = 'linear-gradient(90deg, #000 0 62%, transparent 80%)';
+  return (
+    <span style={{ position: 'relative', display: 'block' }}>
+      <motion.span
+        style={{
+          display: 'block', color: ink, textShadow: halo, willChange: 'mask-position',
+          maskImage: MASK, WebkitMaskImage: MASK,
+          maskSize: '168% 100%', WebkitMaskSize: '168% 100%',
+          maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat',
+        }}
+        initial={{ maskPosition: '112% 0%' }}
+        animate={{ maskPosition: '0% 0%' }}
+        transition={{ duration: dur, delay, ease: [0.33, 0, 0.3, 1] }}
+      >
+        {text}
+      </motion.span>
+      <motion.span
+        aria-hidden="true"
+        style={{ position: 'absolute', top: '8%', bottom: '8%', width: 1.5, borderRadius: 1, background: nib, boxShadow: `0 0 5px 0.5px color-mix(in srgb, ${nib} 55%, transparent)` }}
+        initial={{ left: '-1%', opacity: 0 }}
+        animate={{ left: '101%', opacity: [0, 1, 1, 0] }}
+        transition={{ duration: dur, delay, ease: [0.33, 0, 0.3, 1], opacity: { times: [0, 0.08, 0.92, 1] } }}
+      />
+    </span>
+  );
+}
+
+// Orchestrates the quote's clauses (split on the authored "\n") so each inks in
+// after the previous, with a small pen-lift gap. Reduced-motion = plain text.
+function InkedQuote({ text, ink, nib, halo, rm, narrow }: { text: string; ink: string; nib: string; halo: string; rm: boolean; narrow: boolean }) {
+  const clauses = text.split('\n');
+  if (rm) return <>{clauses.map((c, i) => <span key={i} style={{ display: 'block', color: ink, textShadow: halo }}>{c}</span>)}</>;
+  const mult = narrow ? 0.9 : 1;
+  const durs = clauses.map((c) => Math.min(0.85, Math.max(0.46, c.length * 0.045)) * mult);
+  return (
+    <>
+      {clauses.map((c, i) => {
+        const delay = 0.3 + durs.slice(0, i).reduce((a, d) => a + d + 0.18, 0);
+        return <Clause key={i} text={c} ink={ink} nib={nib} halo={halo} dur={durs[i]} delay={delay} />;
+      })}
+    </>
+  );
+}
 
 // Captions break at sentence/clause boundaries (a literal "\n" in the copy),
 // never wherever the line happens to fill — so a phrase like
@@ -106,6 +169,99 @@ const CHAPTERS: Chapter[] = [
   },
 ];
 
+// When the quote finishes inking — so the attribution+service rise right after.
+function quoteEnd(text: string, narrow: boolean) {
+  const mult = narrow ? 0.9 : 1;
+  const durs = text.split('\n').map((c) => Math.min(0.85, Math.max(0.46, c.length * 0.045)) * mult);
+  const lastDelay = 0.3 + durs.slice(0, -1).reduce((a, d) => a + d + 0.18, 0);
+  return lastDelay + (durs[durs.length - 1] ?? 0.46);
+}
+
+/* The lower-left "plate folio" — a giant ghosted chapter numeral + a margin
+   spine rule + the body (eyebrow · inked Homer quote · attribution · service).
+   This asymmetric title-card composition is the cure for the boring centered
+   subtitle. Folio is decorative watermark (aria-hidden); gold is spent ONCE per
+   card (spine, or the folio on the coda — never both). */
+function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L: (ko: string, en: string) => string; locale: string; rm: boolean; narrow: boolean }) {
+  const lure = !!active.lure, gold = !!active.gold;
+  const quoteInk = lure ? 'var(--bp-lure)' : 'var(--bp-ink)';
+  const nib = lure ? 'var(--bp-lure)' : 'var(--bp-gold)';
+  const bodyHalo = '0 0 1px var(--bp-paper), 0 0 8px var(--bp-paper)';
+  const quoteHalo = lure ? '0 0 1px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 12px var(--bp-paper)' : bodyHalo;
+  const folioColor = gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)';
+  const folioOpacity = gold ? 0.3 : 0.22;
+  const spineColor = gold ? 'var(--bp-ink)' : 'var(--bp-gold)';
+  const eyebrowColor = gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)';
+  const clusterDelay = quoteEnd(L(active.mythKo, active.mythEn), narrow);
+  const ease: [number, number, number, number] = [0.22, 0.61, 0.36, 1];
+  const bk = locale === 'ko' ? 'break-keep' : '';
+
+  const eyebrow = (
+    <motion.span
+      className="bp-mono"
+      initial={rm ? { opacity: 1 } : { opacity: 0, letterSpacing: '0.34em', scale: 1.06 }}
+      animate={{ opacity: 1, letterSpacing: '0.28em', scale: 1 }}
+      transition={{ duration: 0.26, delay: rm ? 0 : 0.18, ease }}
+      style={{ display: 'inline-block', fontSize: 'clamp(11px, 1.05vw, 13px)', textTransform: 'uppercase', fontWeight: 700, color: eyebrowColor, textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper)', transformOrigin: 'left center', whiteSpace: 'nowrap' }}
+    >
+      {gold ? L('종장', 'Coda') : L(`${active.num} · ${active.ko}`, `${active.num} · ${active.en}`)}
+    </motion.span>
+  );
+  const quote = (
+    <div className={bk} style={{ fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, fontSize: 'clamp(21px, 2.6vw, 31px)', lineHeight: 1.34, letterSpacing: '0.005em', maxWidth: '42ch', textWrap: 'pretty' }}>
+      <InkedQuote text={L(active.mythKo, active.mythEn)} ink={quoteInk} nib={nib} halo={quoteHalo} rm={rm} narrow={narrow} />
+    </div>
+  );
+  const tail = (
+    <motion.div initial={rm ? { opacity: 1 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36, delay: rm ? 0 : clusterDelay, ease }} style={{ marginTop: 11 }}>
+      <p className={bk} style={{ margin: '0 0 8px', fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(12px, 1.15vw, 14px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', letterSpacing: '0.01em', textShadow: bodyHalo }}>
+        — {L(active.attrKo, active.attrEn)}
+      </p>
+      <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(15.5px, 1.9vw, 20px)', lineHeight: 1.45, color: 'var(--bp-ink)', letterSpacing: '-0.006em', maxWidth: '44ch', textWrap: 'pretty', textShadow: bodyHalo }}>
+        <Lines text={L(active.lineKo, active.lineEn)} />
+      </p>
+    </motion.div>
+  );
+
+  if (narrow) {
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 9 }}>
+          <span aria-hidden="true" style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(34px, 12vw, 54px)', lineHeight: 0.78, color: 'transparent', WebkitTextStroke: `1px ${folioColor}`, opacity: folioOpacity, userSelect: 'none' }}>{active.num}</span>
+          {eyebrow}
+        </div>
+        {quote}
+        {tail}
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(16px, 2vw, 30px)' }}>
+      <motion.div
+        aria-hidden="true"
+        initial={rm ? {} : { clipPath: 'inset(0 0 100% 0)' }}
+        animate={{ clipPath: 'inset(0 0 0% 0)' }}
+        transition={{ duration: 0.7, delay: rm ? 0 : 0.08, ease: 'easeOut' }}
+        style={{ flex: 'none', alignSelf: 'flex-start', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(76px, 11vw, 160px)', lineHeight: 0.78, color: 'transparent', WebkitTextStroke: `1.25px ${folioColor}`, opacity: folioOpacity, userSelect: 'none' }}
+      >
+        {active.num}
+      </motion.div>
+      <motion.div
+        aria-hidden="true"
+        initial={rm ? { scaleY: 1 } : { scaleY: 0 }}
+        animate={{ scaleY: 1 }}
+        transition={{ duration: 0.42, ease }}
+        style={{ flex: 'none', width: 1.5, alignSelf: 'stretch', background: spineColor, transformOrigin: 'top', opacity: 0.75 }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {eyebrow}
+        <div style={{ marginTop: 10 }}>{quote}</div>
+        {tail}
+      </div>
+    </div>
+  );
+}
+
 export function VoyageFilm() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
@@ -115,6 +271,8 @@ export function VoyageFilm() {
   const [active, setActive] = useState<Chapter | null>(null);
   const [intro, setIntro] = useState(false);
   const [shownIdx, setShownIdx] = useState<number>(-1);
+  const rm = !!useReducedMotion();
+  const narrow = useIsNarrow();
 
   useEffect(() => {
     // Preview affordance: /ko?cap=2 pins a chapter, /ko?cap=intro the intro (the
@@ -161,76 +319,48 @@ export function VoyageFilm() {
       {/* gold top rule */}
       <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 3 }} />
 
-      {/* bottom scrim — a LIGHT cream veil, not a wash: enough to seat the type
-          but translucent so the engraving reads right through it. The per-glyph
-          paper halo (text-shadow) does the real legibility work, so this stays a
-          gentle gradient that never swallows the lower half of the scene. */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%', zIndex: 1,
-          background: 'linear-gradient(to top, color-mix(in srgb, var(--bp-paper) 88%, transparent) 0%, color-mix(in srgb, var(--bp-paper) 64%, transparent) 36%, color-mix(in srgb, var(--bp-paper) 24%, transparent) 70%, transparent 100%)',
-        }}
-      />
+      {/* LEFT ink-wash reading zone — replaces the symmetric bottom scrim. A quiet
+          cream zone hugs the text's left third; the engraving breathes on the right. */}
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(100deg, color-mix(in srgb, var(--bp-paper) 92%, transparent) 0%, color-mix(in srgb, var(--bp-paper) 70%, transparent) 42%, transparent 62%, transparent 100%)' }} />
+      {/* slim bottom fade so the dot progress stays legible */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '26%', zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(to top, color-mix(in srgb, var(--bp-paper) 70%, transparent) 0%, transparent 100%)' }} />
 
-      {/* ── caption block: the intro frame, then each scene's myth + meaning ── */}
-      <div
-        className="absolute left-0 right-0 flex flex-col items-center text-center"
-        style={{ bottom: 'clamp(30px, 9%, 64px)', padding: '0 28px', zIndex: 2, opacity: intro || active ? 1 : 0, transition: 'opacity 520ms ease' }}
-        aria-live="polite"
-      >
+      {/* ── caption: the intro is the centered establishing shot; each chapter is a
+            lower-left PLATE FOLIO (title card) that inks itself in. ── */}
+      <AnimatePresence mode="wait">
         {intro && !active && (
-          <div key="intro" className="bp-fade-up flex flex-col items-center">
-            <span
-              className="bp-mono"
-              style={{ marginBottom: 11, fontSize: 'clamp(10px, 1.05vw, 11.5px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}
-            >
-              {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
-            </span>
-            <p
-              className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 1.75vw, 19px)', lineHeight: 1.5, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}
-            >
-              <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
-            </p>
-          </div>
+          <motion.div
+            key="intro"
+            initial={false}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
+            className="absolute left-0 right-0 flex flex-col items-center text-center"
+            style={{ bottom: 'clamp(30px, 9%, 64px)', padding: '0 28px', zIndex: 2 }}
+            aria-live="polite"
+          >
+            <motion.div className="flex flex-col items-center" initial={rm ? { opacity: 1 } : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}>
+              <span className="bp-mono" style={{ marginBottom: 11, fontSize: 'clamp(10px, 1.05vw, 11.5px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}>
+                {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
+              </span>
+              <p className={`${locale === 'ko' ? 'break-keep' : ''}`} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 1.75vw, 19px)', lineHeight: 1.5, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}>
+                <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
+              </p>
+            </motion.div>
+          </motion.div>
         )}
         {active && (
-          <div key={active.num} className="bp-fade-up flex flex-col items-center">
-            {/* refined chapter heading — like a book's, not a flat TOC rail.
-                The dog is the coda (종장), not a fourth leg. */}
-            <span
-              className="bp-mono"
-              style={{ marginBottom: 9, fontSize: 'clamp(10px, 0.95vw, 11.5px)', letterSpacing: '0.28em', textTransform: 'uppercase', fontWeight: 700, color: active.gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}
-            >
-              {active.gold ? L('종장', 'Coda') : L(`${active.num} · ${active.ko}`, `${active.num} · ${active.en}`)}
-            </span>
-            {/* the Homer quote — now the literary focal point: larger serif,
-                full strength, with its own attribution beneath. */}
-            <p
-              className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, marginBottom: 7, fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink)', fontSize: 'clamp(17px, 2vw, 21.5px)', lineHeight: 1.4, letterSpacing: '0.005em', textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 9px var(--bp-paper), 0 0 16px var(--bp-paper)' }}
-            >
-              <Lines text={L(active.mythKo, active.mythEn)} />
-            </p>
-            {/* attribution — who/when, so a newcomer can place the quote.
-                Set in the body sans (NOT mono — JetBrains Mono has no Korean
-                glyphs, so the KO line was falling back to an ugly default). */}
-            <p
-              className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, marginBottom: 14, fontSize: 'clamp(11.5px, 1.1vw, 13px)', fontWeight: 500, fontStyle: 'italic', color: active.lure ? 'var(--bp-lure)' : 'var(--bp-ink-soft)', opacity: 1, letterSpacing: '0.01em', textShadow: '0 0 1px var(--bp-paper), 0 0 5px var(--bp-paper), 0 0 11px var(--bp-paper)' }}
-            >
-              — {L(active.attrKo, active.attrEn)}
-            </p>
-            <p
-              className={`${locale === 'ko' ? 'break-keep' : ''}`}
-              style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(15px, 1.75vw, 18.5px)', lineHeight: 1.45, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}
-            >
-              <Lines text={L(active.lineKo, active.lineEn)} />
-            </p>
-          </div>
+          <motion.div
+            key={active.num}
+            initial={false}
+            exit={rm ? { opacity: 0 } : { opacity: 0, x: -12 }}
+            transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
+            style={{ position: 'absolute', left: narrow ? 'clamp(16px, 5vw, 24px)' : 'clamp(24px, 6vw, 84px)', bottom: narrow ? 'clamp(28px, 9%, 56px)' : 'clamp(40px, 12%, 90px)', right: 'auto', textAlign: 'left', maxWidth: narrow ? '90vw' : 'min(58ch, 640px)', zIndex: 2 }}
+            aria-live="polite"
+          >
+            <PlateFolioCard active={active} L={L} locale={locale} rm={rm} narrow={narrow} />
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
 
       {/* ── progress: minimal dots, not a word rail (which read as a cheap TOC) ── */}
       <div
