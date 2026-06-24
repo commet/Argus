@@ -128,6 +128,82 @@ export const REFRAME_TOOL_SCHEMA = {
   required: ['surface_task', 'hidden_assumptions'],
 };
 
+/* ── Stage 2: 질문 재정의 + 중립 크럭스 ──
+ * Spine (CLAUDE.md mirror clause): the crux is a BARE NEUTRAL QUESTION — never a
+ * directional statement, a two-pole fork, or a disclaimed lean. We surface the
+ * real question and the one load-bearing crux; we do NOT decide for the user. */
+
+export interface ReframeQuestion {
+  reframed_question: string;
+  crux_question: string;
+  alternatives: string[];
+}
+
+export const QUESTION_TOOL_NAME = 'reframe_question';
+
+export const QUESTION_TOOL_SCHEMA = {
+  type: 'object' as const,
+  properties: {
+    reframed_question: { type: 'string' as const, description: '표면 질문 뒤의 더 정확하고 결정적인 진짜 질문 (질문 형태)' },
+    crux_question: { type: 'string' as const, description: '가장 하중이 큰 핵심을 담은 중립적인 질문 하나 (판단·방향 금지)' },
+    alternatives: { type: 'array' as const, items: { type: 'string' as const }, description: '다르게 볼 수 있는 질문 1-2개' },
+  },
+  required: ['reframed_question', 'crux_question'],
+};
+
+const QUESTION_SYSTEM_KO = `당신은 사용자의 표면 질문 뒤에 있는 '진짜 질문'을 드러냅니다. 판단하지 말고, 더 정확한 질문으로 다시 세우세요. 도구를 호출해 만드세요:
+
+- reframed_question: 표면적으로 묻는 것 뒤에 있는, 더 정확하고 결정적인 진짜 질문 (한 문장, 반드시 질문 형태)
+- crux_question: 이 결정에서 가장 하중이 큰(답이 정해지면 나머지가 따라오는) 단 하나의 핵심을 **중립적인 질문**으로. 한 문장.
+- alternatives: 다르게 볼 수 있는 질문 1-2개 (없으면 빈 배열)
+
+원칙(매우 중요 — 반드시 지킬 것):
+- crux_question과 reframed_question은 반드시 '질문(?로 끝나는)'이어야 합니다. 단정·판단·조언·'~해야 한다'·'~쪽으로 기운다' 표현 절대 금지.
+- 두 갈래(A vs B 중 골라라) 강제 금지. 사용자가 무엇을 해야 하는지 말하지 마세요.
+- 당신은 진짜 질문과 핵심을 드러낼 뿐, 답을 정하지 않습니다. 답은 사용자와 현실의 몫입니다.`;
+
+const QUESTION_SYSTEM_EN = `You reveal the REAL question behind the user's surface question. Don't judge — re-pose it more precisely. Call the tool to produce:
+
+- reframed_question: the more precise, decisive real question behind what they surface (one sentence, MUST be a question)
+- crux_question: the single most load-bearing point (answer it and the rest follows) as a NEUTRAL question. One sentence.
+- alternatives: 1-2 other ways to frame it (empty array if none)
+
+Principles (critical — must follow):
+- crux_question and reframed_question MUST be questions (ending in ?). Never a statement, verdict, advice, "should", or "leans toward X".
+- Never force a two-pole fork (pick A vs B). Never tell the user what to do.
+- You only surface the real question and the crux; you do not decide. The answer belongs to the user and reality.`;
+
+export function questionSystemPrompt(locale: 'ko' | 'en'): string {
+  return locale === 'ko' ? QUESTION_SYSTEM_KO : QUESTION_SYSTEM_EN;
+}
+
+export function coerceQuestion(obj: unknown): ReframeQuestion | null {
+  const o = (obj ?? {}) as Partial<ReframeQuestion>;
+  if (typeof o.reframed_question !== 'string' || !o.reframed_question.trim()) return null;
+  if (typeof o.crux_question !== 'string' || !o.crux_question.trim()) return null;
+  return {
+    reframed_question: o.reframed_question.trim(),
+    crux_question: o.crux_question.trim(),
+    alternatives: Array.isArray(o.alternatives)
+      ? o.alternatives.filter((a): a is string => typeof a === 'string' && !!a.trim()).slice(0, 3)
+      : [],
+  };
+}
+
+/** Render the question reframe. Identity-language, not mechanism: we name the
+ *  real question and the one crux — no "어디서 갈린다"(branch-detector) framing. */
+export function questionToMarkdown(q: ReframeQuestion, locale: 'ko' | 'en'): string {
+  const ko = locale === 'ko';
+  const out: string[] = [];
+  out.push(`🎯 **${ko ? '진짜 질문' : 'The real question'}**`, q.reframed_question, '');
+  out.push(`**${ko ? '결국 이거예요' : 'It comes down to this'}**`, q.crux_question);
+  if (q.alternatives.length) {
+    out.push('', `${ko ? '다른 각도' : 'Other angles'}:`);
+    q.alternatives.forEach((a) => out.push(`• ${a}`));
+  }
+  return out.join('\n');
+}
+
 const AXIS_LABEL: Record<string, { ko: string; en: string }> = {
   customer_value: { ko: '고객 가치', en: 'Customer value' },
   feasibility: { ko: '실행 가능성', en: 'Feasibility' },

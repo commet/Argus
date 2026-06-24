@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   reframeSystemPrompt, deeperSuffix, parseReframe, reframeToMarkdown,
   ASSUMPTION_PROMPT_KO, ASSUMPTION_PROMPT_EN,
+  questionSystemPrompt, coerceQuestion, questionToMarkdown,
 } from '@/lib/reframe-core';
 
 describe('reframe-core', () => {
@@ -93,6 +94,39 @@ describe('reframe-core', () => {
       expect(md).toContain('Surface task');
       expect(md).toContain('(Business)');
       expect(md).toContain('if false:');
+    });
+  });
+
+  describe('Stage 2 — question reframe + neutral crux (spine)', () => {
+    it('system prompt encodes the restraint invariant (crux = question, no verdict/fork)', () => {
+      const ko = questionSystemPrompt('ko');
+      expect(ko).toContain('중립적인 질문');
+      expect(ko).toContain('두 갈래');     // forbids a two-pole fork
+      expect(ko).toContain('판단하지');
+      const en = questionSystemPrompt('en').toLowerCase();
+      expect(en).toContain('neutral question');
+      expect(en).toContain('never tell the user what to do');
+    });
+    it('coerceQuestion guards required fields and caps alternatives', () => {
+      expect(coerceQuestion({ reframed_question: 'X?', crux_question: 'Y?' }))
+        .toEqual({ reframed_question: 'X?', crux_question: 'Y?', alternatives: [] });
+      expect(coerceQuestion({ reframed_question: '', crux_question: 'Y?' })).toBeNull();
+      expect(coerceQuestion({ reframed_question: 'X?' })).toBeNull();
+      expect(coerceQuestion({ reframed_question: 'X?', crux_question: 'Y?', alternatives: ['a', 'b', 'c', 'd'] })!.alternatives)
+        .toHaveLength(3);
+    });
+    it('markdown surfaces the real question + crux, uses identity not branch-mechanism language', () => {
+      const md = questionToMarkdown(
+        { reframed_question: '지금이 적기인가?', crux_question: '멘토링 여력이 실제로 있는가?', alternatives: ['외주가 더 맞지 않나?'] },
+        'ko',
+      );
+      expect(md).toContain('진짜 질문');
+      expect(md).toContain('지금이 적기인가?');
+      expect(md).toContain('멘토링 여력이 실제로 있는가?');
+      expect(md).toContain('외주가 더 맞지 않나?');
+      // copy-identity-not-mechanism: never the "어디서 갈리는지"(branch-detector) framing
+      expect(md).not.toContain('갈리');
+      expect(md).not.toContain('분기');
     });
   });
 });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/share-guard';
-import { reframeSystemPrompt, deeperSuffix, coerceReframe, reframeToMarkdown, REFRAME_TOOL_SCHEMA } from '@/lib/reframe-core';
+import { reframeSystemPrompt, deeperSuffix, coerceReframe, reframeToMarkdown, REFRAME_TOOL_SCHEMA, questionSystemPrompt, coerceQuestion, questionToMarkdown, QUESTION_TOOL_NAME, QUESTION_TOOL_SCHEMA } from '@/lib/reframe-core';
 import { sealSystemPrompt, coerceSealDraft, sealPreviewMarkdown, formatCheckBy, parseCheckBy, SEAL_TOOL_NAME, SEAL_TOOL_SCHEMA } from '@/lib/seal-core';
 import { callAnthropicJson } from '@/lib/llm-server';
 import { markdownToTelegramHtml, markdownToTelegramLight as lightHtml } from '@/lib/telegram-format';
@@ -34,14 +34,25 @@ function sendTyping(chatId: number | string): Promise<void> {
 }
 
 function reframeKeyboard(locale: 'ko' | 'en') {
+  const ko = locale === 'ko';
   return {
     inline_keyboard: [
       [
-        { text: locale === 'ko' ? '🔍 더 깊이' : '🔍 Deeper', callback_data: 'rf:deep' },
-        { text: locale === 'ko' ? '♻️ 다시' : '♻️ Again', callback_data: 'rf:redo' },
+        { text: ko ? '🔍 더 깊이' : '🔍 Deeper', callback_data: 'rf:deep' },
+        { text: ko ? '♻️ 다시' : '♻️ Again', callback_data: 'rf:redo' },
       ],
-      [{ text: locale === 'ko' ? '🔒 이 결정 봉인' : '🔒 Seal this decision', callback_data: 'rf:seal' }],
+      [
+        { text: ko ? '🎯 진짜 질문' : '🎯 Real question', callback_data: 'rf:question' },
+        { text: ko ? '🔒 봉인' : '🔒 Seal', callback_data: 'rf:seal' },
+      ],
     ],
+  };
+}
+
+/** Keyboard under the Stage-2 question output — sealing is the natural next step. */
+function questionKeyboard(locale: 'ko' | 'en') {
+  return {
+    inline_keyboard: [[{ text: locale === 'ko' ? '🔒 이 결정 봉인' : '🔒 Seal this decision', callback_data: 'rf:seal' }]],
   };
 }
 
@@ -141,6 +152,41 @@ async function runReframe(chatId: number | string, input: string, deep: boolean,
   const md = reframeToMarkdown(result, locale);
   const title = locale === 'ko' ? '리프레임 — 숨은 전제 점검' : 'Reframe — hidden-assumption check';
   await sendMessage(chatId, markdownToTelegramHtml(title, md), reframeKeyboard(locale));
+}
+
+// ── Stage 2: question reframe + neutral crux (shared brain) ──
+async function handleQuestion(chatId: number | string, userId: string): Promise<void> {
+  const admin = adminClient();
+  const { data: sess } = await admin
+    .from('telegram_sessions').select('last_input').eq('chat_id', String(chatId)).single();
+  if (!sess?.last_input) {
+    await sendMessage(chatId, '다시 볼 내용이 없어요. 고민을 새로 보내 주세요.');
+    return;
+  }
+  if (!(await allowBotCall(userId))) {
+    await sendMessage(chatId, `오늘 봇 분석 한도(${BOT_DAILY_LIMIT}회)를 다 썼어요. 내일 다시 시도해 주세요.`);
+    return;
+  }
+  const locale = detectLocale(sess.last_input);
+  await sendTyping(chatId);
+  let q = null;
+  try {
+    const raw = await callAnthropicJson({
+      system: questionSystemPrompt(locale), user: sess.last_input.slice(0, INPUT_MAX),
+      toolName: QUESTION_TOOL_NAME, schema: QUESTION_TOOL_SCHEMA, model: 'fast', maxTokens: 900,
+    });
+    q = coerceQuestion(raw);
+  } catch (err) {
+    console.error('[telegram/webhook] question reframe failed:', err);
+  }
+  if (!q) {
+    await sendMessage(chatId, locale === 'ko'
+      ? '진짜 질문을 뽑아내기 어려웠어요. 잠시 후 다시 시도해 주세요.'
+      : "Couldn't pull out the real question. Try again in a moment.");
+    return;
+  }
+  const title = locale === 'ko' ? '질문 다시 세우기' : 'Reframing the question';
+  await sendMessage(chatId, markdownToTelegramHtml(title, questionToMarkdown(q, locale)), questionKeyboard(locale));
 }
 
 // ── Seal flow (decision → falsifiable, later-checkable form) ──
@@ -380,6 +426,8 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ ok: true });
         }
         await runReframe(chatId, sess.last_input, data === 'rf:deep');
+      } else if (data === 'rf:question') {
+        await handleQuestion(chatId, userId);
       } else if (data === 'rf:seal') {
         await handleSealDraft(chatId, userId);
       } else if (data.startsWith('sl:')) {
