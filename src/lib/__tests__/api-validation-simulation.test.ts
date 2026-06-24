@@ -37,7 +37,7 @@ function validateApiKey(apiKey: unknown): boolean {
 
 /** From /api/llm/route.ts lines 6-13 */
 const MAX_MESSAGE_LENGTH = 50_000;
-const MAX_SYSTEM_LENGTH = 10_000;
+const MAX_SYSTEM_LENGTH = 24_000;
 const MAX_MESSAGES = 20;
 const MAX_TOTAL_BODY = 500_000;
 const VALID_ROLES = new Set(['user', 'assistant']);
@@ -249,13 +249,21 @@ describe('API Validation Patterns', () => {
   // System Prompt Length
   // ─────────────────────────────────────
   describe('System prompt length validation', () => {
-    it('accepts system prompt within MAX_SYSTEM_LENGTH (10,000)', () => {
-      const system = 'a'.repeat(10_000);
+    it('accepts system prompt within MAX_SYSTEM_LENGTH (24,000)', () => {
+      const system = 'a'.repeat(24_000);
+      expect(typeof system === 'string' && system.length <= MAX_SYSTEM_LENGTH).toBe(true);
+    });
+
+    // Regression: the real initial-analysis prompt is ~13k. The old 10k cap
+    // rejected it (live 400 "Invalid request" on every analysis). Guard that a
+    // realistic 13k system prompt is now accepted.
+    it('accepts a realistic ~13k initial-analysis-sized system prompt', () => {
+      const system = 'a'.repeat(13_100);
       expect(typeof system === 'string' && system.length <= MAX_SYSTEM_LENGTH).toBe(true);
     });
 
     it('rejects system prompt exceeding MAX_SYSTEM_LENGTH', () => {
-      const system = 'a'.repeat(10_001);
+      const system = 'a'.repeat(24_001);
       expect(typeof system === 'string' && system.length <= MAX_SYSTEM_LENGTH).toBe(false);
     });
 

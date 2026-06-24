@@ -7,7 +7,13 @@ import { validateOrigin, validateContentType, validateContentLength } from '@/li
 
 export const MAX_TOKENS_CAP = 4096;
 export const MAX_MESSAGE_LENGTH = 50_000;
-export const MAX_SYSTEM_LENGTH = 10_000;
+// The initial-analysis system prompt (buildInitialAnalysisPrompt) is legitimately
+// ~13k chars after the R36–R60 STEP-0 / BREADTH gate accumulation — the 10k cap
+// was silently rejecting EVERY initial analysis with a 400 "Invalid request"
+// (the buffered run failed → "분석에 실패했어요" every time). 24k covers the real
+// prompts with headroom; messages already allow 50k each, so this is not a new
+// abuse vector.
+export const MAX_SYSTEM_LENGTH = 24_000;
 export const MAX_MESSAGES = 20;
 export const MAX_TOTAL_BODY = 500_000;
 const VALID_ROLES = new Set(['user', 'assistant']);
