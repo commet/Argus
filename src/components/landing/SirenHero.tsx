@@ -127,7 +127,7 @@ export function SirenHero() {
               fontWeight: 500,
             }}
           >
-            {L('계획을 진짜로 읽고 · 정한 날짜에 돌아오는 AI', 'READS YOUR PLAN FOR REAL · RETURNS ON YOUR DATE')}
+            {L('실행은 AI가, 판단은 당신이', 'AI does the doing · you do the deciding')}
           </span>
           <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
         </div>
