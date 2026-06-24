@@ -664,7 +664,7 @@ export default function SettingsPage() {
             {
               key: 'classic_session' as const,
               label: L('클래식 세션 보기', 'Classic session view'),
-              desc: L('항해 중 우측 기록 레일과 단계별 확인 화면을 항상 펼쳐 둬요', 'Keep the right-side log rail and per-step confirmation screens always open during a voyage'),
+              desc: L('단계별 확인 화면을 항상 펼쳐 둬요 (항해 지도는 이제 왼쪽에 늘 있어요)', 'Keep the per-step confirmation screens always open (the voyage map now lives on the left at all times)'),
             },
             {
               key: 'all_output_formats' as const,

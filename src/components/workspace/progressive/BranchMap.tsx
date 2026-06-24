@@ -12,7 +12,7 @@
  *   - a node that carries a ship's-log waypoint is filled (vs hollow)
  */
 
-import { useMemo } from 'react';
+import { useMemo, useId } from 'react';
 import { Flag } from 'lucide-react';
 import { layoutBranchMap, BM } from '@/lib/branch-map-layout';
 import type { VoyageBranch, VoyageCheckpoint, Waypoint } from '@/stores/types';
@@ -42,6 +42,12 @@ export function BranchMap({
     [checkpoints, branches],
   );
 
+  // Unique per-instance grid id — the rail renders one BranchMap inline AND a
+  // second inside the 전체 해도 modal, so a hardcoded id would collide (invalid
+  // HTML; url(#id) would resolve to whichever appears first). Strip colons from
+  // useId() so the value is safe inside an SVG url(#…) reference.
+  const gridId = 'bmgrid-' + useId().replace(/:/g, '');
+
   const byId = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
   const statusByBranch = useMemo(() => new Map(branches.map(b => [b.id, b.status])), [branches]);
   const waypointCps = useMemo(() => new Set(waypoints.map(w => w.checkpoint_id)), [waypoints]);
@@ -64,11 +70,11 @@ export function BranchMap({
       aria-label="Voyage course chart"
     >
       <defs>
-        <pattern id="branchmap-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <pattern id={gridId} width="20" height="20" patternUnits="userSpaceOnUse">
           <path d="M 20 0 L 0 0 0 20" stroke="currentColor" strokeWidth="0.4" fill="none" />
         </pattern>
       </defs>
-      <rect x="0" y="0" width={vbW} height={height} fill="url(#branchmap-grid)" className="text-[var(--text-tertiary)]" opacity="0.16" />
+      <rect x="0" y="0" width={vbW} height={height} fill={`url(#${gridId})`} className="text-[var(--text-tertiary)]" opacity="0.16" />
 
       {/* Edges — colored by the branch the segment leads into */}
       {nodes.map((n) => {

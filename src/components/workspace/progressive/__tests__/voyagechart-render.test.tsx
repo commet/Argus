@@ -42,7 +42,7 @@ describe('VoyageChart render', () => {
   it('renders the branch map SVG with color-coded course-lines', () => {
     const html = renderToStaticMarkup(createElement(VoyageChart));
     expect(html.length).toBeGreaterThan(100);
-    expect(html).toContain('branchmap-grid'); // BranchMap SVG present
+    expect(html).toContain('bmgrid-');         // BranchMap SVG grid (per-instance useId)
     expect(html).toContain('<circle');         // checkpoint nodes
     expect(html).toContain('#2d4a7c');         // main course color
     expect(html).toContain('#8b6914');         // fork course color (lane 1 edge)

@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS: Settings = {
   all_output_formats: false,
   new_arc_enabled: false,
   classic_session: false,
+  voyage_map_collapsed: false,
 };
 
 interface SettingsState {

@@ -750,9 +750,15 @@ export interface Settings {
    *  regression safety net (구 경로 무손상). URL `?arc=1` overrides for demos. */
   new_arc_enabled?: boolean;
   /** W1.6 선실 대청소 (founder verdict, G-W1 contact #1): focus session IS the
-   *  default — one question, collapsed records, standing escape hatch, no side
-   *  rail mid-voyage. `true` restores the old cluttered layout (rollback/AB). */
+   *  default — one question, collapsed records, standing escape hatch. `true`
+   *  restores the old per-step confirmation screens (rollback/AB). NOTE: this no
+   *  longer governs the side rail — the Voyage Map rail is now always available
+   *  on the left (collapsible), see `voyage_map_collapsed`. */
   classic_session?: boolean;
+  /** Voyage Map rail (left): the inline branch-graph + decision trail + agent
+   *  activity. Always available during a voyage; this remembers whether the user
+   *  collapsed it to its spine. Default OFF (expanded). localStorage-only. */
+  voyage_map_collapsed?: boolean;
 }
 
 // ─── Judgment Vitality Engine ───
