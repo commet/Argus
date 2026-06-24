@@ -116,12 +116,9 @@ async function runReframe(chatId: number | string, input: string, deep: boolean,
     result = coerceReframe(raw);
   } catch (err) {
     console.error('[telegram/webhook] reframe failed:', err);
-    // TEMP diagnostic: surface a short error reason while stabilizing the bot.
-    const reason = String((err as { status?: number; message?: string })?.message || err)
-      .slice(0, 200).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    await sendMessage(chatId, (locale === 'ko'
+    await sendMessage(chatId, locale === 'ko'
       ? '잠깐 막혔어요. 잠시 후 다시 보내 주세요.'
-      : 'Hit a snag. Please try again in a moment.') + `\n\n<code>${reason}</code>`);
+      : 'Hit a snag. Please try again in a moment.');
     return;
   }
   if (!result.surface_task && result.hidden_assumptions.length === 0) {
@@ -161,21 +158,16 @@ async function handleSealDraft(chatId: number | string, userId: string): Promise
   const locale = detectLocale(sess.last_input);
   await sendTyping(chatId);
   let draft = null;
-  let errReason = '';
   try {
     const raw = await callAnthropicJson({
       system: sealSystemPrompt(locale), user: sess.last_input.slice(0, INPUT_MAX),
       toolName: SEAL_TOOL_NAME, schema: SEAL_TOOL_SCHEMA, model: 'fast', maxTokens: 900,
     });
     draft = coerceSealDraft(raw);
-    if (!draft) errReason = 'coerce_null:' + JSON.stringify(raw).slice(0, 180);
   } catch (err) {
-    errReason = String((err as { message?: string })?.message || err).slice(0, 200);
     console.error('[telegram/webhook] seal draft failed:', err);
   }
   if (!draft) {
-    // TEMP self-diagnostic: stash the reason so it can be read via SQL.
-    await admin.from('telegram_sessions').update({ pending: { kind: 'sealerr', reason: errReason } }).eq('chat_id', String(chatId));
     await sendMessage(chatId, locale === 'ko'
       ? '이건 봉인할 결정으로 정리하기 어려웠어요. "무엇을 하기로 했는지" 한 줄로 적어 보내 주세요.'
       : "Couldn't shape this into a sealable decision. Send one line on what you decided.");
@@ -373,9 +365,7 @@ export async function POST(req: NextRequest) {
       }
     } catch (err) {
       console.error('[telegram/webhook] callback failed:', err);
-      const reason = String((err as { message?: string })?.message || err)
-        .slice(0, 200).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      await sendMessage(chatId, `버튼 처리 중 막혔어요.\n\n<code>${reason}</code>`);
+      await sendMessage(chatId, '버튼 처리 중 잠깐 막혔어요. 잠시 후 다시 시도해 주세요.');
     }
     return NextResponse.json({ ok: true });
   }
@@ -416,9 +406,7 @@ export async function POST(req: NextRequest) {
     await runReframe(chat.id, text, false);
   } catch (err) {
     console.error('[telegram/webhook] message failed:', err);
-    const reason = String((err as { message?: string })?.message || err)
-      .slice(0, 200).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    await sendMessage(chat.id, `잠깐 막혔어요.\n\n<code>${reason}</code>`);
+    await sendMessage(chat.id, '잠깐 막혔어요. 잠시 후 다시 보내 주세요.');
   }
   return NextResponse.json({ ok: true });
 }
