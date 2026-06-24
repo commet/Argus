@@ -78,6 +78,7 @@
   --bp-ink-whisper: rgba(26, 42, 58, 0.08); /* Background grid */
   --bp-gold: #96782e;           /* Gold leaf — same as --accent, paired with ink */
   --bp-gold-deep: #7a6224;      /* Pressed gold, hover state */
+  --bp-azure: #1f6aa8;          /* Feature-blue — marks "what Argus does" copy */
 
   /* Easing */
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
@@ -152,6 +153,7 @@
   --bp-ink-whisper: rgba(232, 220, 195, 0.06);
   --bp-gold: #d4b968;
   --bp-gold-deep: #e8d48b;
+  --bp-azure: #6fb3e0;
 }
 
 [data-theme="dark"] body {

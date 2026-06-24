@@ -27,17 +27,18 @@ const QUOTES: Quote[] = [
     body: (
       <>
         인공지능을 쓰며 늘 아쉬웠던 건 ‘생각을 <strong style={{ fontWeight: 700, color: 'var(--bp-ink)' }}>뾰족하게</strong>’ 만드는
-        거였어요. 생각이 뭉툭하면 AI를 잘 다룰 수가 없거든요. 숨은 전제를 찾아주고, 관점을 바꾸고, 같이 개선해
-        나가는 과정이 — AI에게 하청 주는 게 아니라 <strong style={{ fontWeight: 700, color: 'var(--bp-ink)' }}>진짜 협업하는
+        거였어요. 생각이 뭉툭하면 AI를 잘 다룰 수가 없거든요.<br />
+        <span style={{ color: 'var(--bp-azure)', fontWeight: 600 }}>숨은 전제를 찾아주고, 관점을 바꾸고, 같이 개선해 나가는 과정</span>이
+        {' '}— AI에게 하청 주는 게 아니라 <strong style={{ fontWeight: 700, color: 'var(--bp-ink)' }}>진짜 협업하는
         느낌</strong>이었어요.
       </>
     ),
     bodyEn: (
       <>
         What I always craved from AI was getting my thinking <strong style={{ fontWeight: 700, color: 'var(--bp-ink)' }}>sharper</strong>
-        {' '}— when your thinking is blunt, you can’t steer an AI well. It surfaced my hidden assumptions, shifted my
-        perspective, and improved the plan <em>with</em> me — it didn’t feel like outsourcing to an AI,
-        it felt like <strong style={{ fontWeight: 700, color: 'var(--bp-ink)' }}>real collaboration</strong>.
+        {' '}— when your thinking is blunt, you can’t steer an AI well.<br />
+        <span style={{ color: 'var(--bp-azure)', fontWeight: 600 }}>It surfaced my hidden assumptions, shifted my perspective, and improved the plan <em>with</em> me</span>
+        {' '}— it didn’t feel like outsourcing to an AI, it felt like <strong style={{ fontWeight: 700, color: 'var(--bp-ink)' }}>real collaboration</strong>.
       </>
     ),
     who: { ko: 'H님 · Argus 사용자', en: 'H · Argus user' },
@@ -87,7 +88,7 @@ export function Testimonials() {
             animationDelay: '80ms',
           }}
         >
-          {L('써보고, 이렇게 말했어요.', 'They tried it — and said this.')}
+          {L('직접 써보고, 남긴 말이에요.', 'What they said after trying it.')}
         </h2>
 
         {/* quotes */}

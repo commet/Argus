@@ -112,7 +112,7 @@ export function SirenHero() {
         37°34′N · 126°58′E
       </span>
 
-      <div className="relative w-full max-w-2xl mx-auto px-6 md:px-10 text-center">
+      <div className="relative w-full max-w-3xl mx-auto px-6 md:px-10 text-center">
         {/* Kicker — the plain product class, mono, in connecting hairlines, so
             the serif headline below stays the single emotional focal point. */}
         <div className="bp-fade-up flex items-center justify-center gap-3" style={{ marginBottom: 16 }}>
@@ -135,11 +135,11 @@ export function SirenHero() {
         {/* Headline — candidate 1, verbatim (FRAMEWORK §7). The focal point. */}
         <h1
           id="siren-heading"
-          className={`bp-fade-up ${locale === 'ko' ? 'break-keep' : ''}`}
+          className={`bp-fade-up ${locale === 'ko' ? 'break-keep sm:whitespace-nowrap' : ''}`}
           style={{
             fontFamily: 'var(--font-display)',
             color: 'var(--bp-ink)',
-            fontSize: 'clamp(28px, 5vw, 46px)',
+            fontSize: 'clamp(27px, 4.8vw, 45px)',
             fontWeight: 700,
             lineHeight: 1.22,
             letterSpacing: '-0.015em',
@@ -160,9 +160,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>물어보면, AI는 늘 답을 줘요 — 빠르고, 그럴듯하게.<br />그런데 그 답을 듣는 순간, 원래 내 생각은 흐려집니다.<br />내가 정한 건지, 그냥 휩쓸린 건지도 모른 채로.</>
+            <>AI는 무엇이든 답해줘요 — 빠르고, 그럴듯하게.<br />그런데 그 답을 듣는 순간, 내 생각은 슬그머니 흐려집니다.<br />내가 정한 건지, 그냥 휩쓸린 건지도 모른 채로.</>
           ) : (
-            <>Ask, and the AI always answers — fast, and convincing.<br />But the moment you hear it, your own read goes blurry.<br />You can’t tell if you decided, or just got swept.</>
+            <>Ask anything, and AI answers — fast, and convincing.<br />But the moment you hear it, your own thinking quietly blurs.<br />And you can’t tell — did you choose, or just get swept?</>
           )}
         </p>
 
@@ -334,7 +334,7 @@ export function SirenHero() {
         <div className="bp-fade-up mt-10 flex justify-center" style={{ animationDelay: '420ms' }}>
           <a
             href="#navigate"
-            aria-label={L('하나의 결정이 항해되는 모습 보기', 'See one decision being navigated')}
+            aria-label={L('결정 하나를 끝까지 항해하는 과정 보기', 'Watch one decision navigated end to end')}
             className="bp-sounding inline-flex flex-col items-center gap-2"
           >
             <span className="bp-mono" style={{ color: 'var(--bp-ink)', opacity: 0.72, fontSize: 10.5, letterSpacing: '0.26em', textTransform: 'uppercase' }}>

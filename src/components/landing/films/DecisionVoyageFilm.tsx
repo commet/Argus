@@ -49,7 +49,7 @@ type Session = {
 function buildSessions(L: (ko: string, en: string) => string): [Session, Session] {
   return [
     {
-      ctx: L('신규 가입이 3주째 폭증 중. 지금이 절호의 기회처럼 보인다.', 'New signups have spiked for three straight weeks. It looks like the perfect moment.'),
+      ctx: L('신규 가입이 3주째 폭증 중.\n지금이 절호의 기회처럼 보인다.', 'New signups have spiked for three straight weeks.\nIt looks like the perfect moment.'),
       q: L('마케팅 예산을 2배로 태울까?', 'Should we double the marketing budget?'),
       prem: L('“지금 몰려든 사람들은 계속 남는다”', '"The users flooding in now will stay."'),
       premSub: L('이 가정부터 따져봐야 한다.', 'That assumption is the first thing to test.'),
@@ -63,7 +63,7 @@ function buildSessions(L: (ko: string, en: string) => string): [Session, Session
       plateSub: L('다음 갈림길: 이탈을 어디서 막을지.', 'Next fork: where to stop the churn.'),
     },
     {
-      ctx: L('이탈을 줄이기로 했다. 그런데 팀은 자꾸 새 기능부터 만들자고 한다.', 'You decided to cut churn. But the team keeps wanting to build new features first.'),
+      ctx: L('이탈을 줄이기로 했다.\n그런데 팀은 자꾸 새 기능부터 만들자고 한다.', 'You decided to cut churn.\nBut the team keeps wanting to build new features first.'),
       q: L('이탈, 어디서 막을까?', 'Churn — where do we stop it?'),
       prem: L('“기능이 많아질수록 더 오래 쓴다”', '"The more features, the longer they stay."'),
       premSub: L('모두가 당연하게 믿는 가정.', 'The assumption everyone takes for granted.'),
@@ -708,17 +708,17 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
           {/* ===== FLAT OVERLAYS ===== */}
           <div style={s('oOrder')}>
             <span style={{ display: 'block', font: `700 10px/1 ${MONO}`, letterSpacing: '.2em', textTransform: 'uppercase', color: '#a87d31' }}>{L('선장의 지시', "Captain's orders")}</span>
-            <p style={{ margin: '7px 0 0', font: `400 12.5px/1.55 ${SERIF}`, color: '#6b5c38', wordBreak: 'keep-all' }}>{txt('orderCtx')}</p>
+            <p style={{ margin: '7px 0 0', font: `400 12.5px/1.55 ${SERIF}`, color: '#6b5c38', wordBreak: 'keep-all', whiteSpace: 'pre-line' }}>{txt('orderCtx')}</p>
             <p style={{ margin: '6px 0 0', font: `600 17px/1.45 ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('orderQ')}</p>
           </div>
 
           <div style={s('cPrem')}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                <circle cx="10" cy="10" r="6.5" stroke="#a87d31" strokeWidth="2.2" />
-                <path d="M15 15 L21 21" stroke="#a87d31" strokeWidth="2.6" strokeLinecap="round" />
+                <circle cx="10" cy="10" r="6.5" stroke="#f0d68a" strokeWidth="2.4" />
+                <path d="M15 15 L21 21" stroke="#f0d68a" strokeWidth="2.8" strokeLinecap="round" />
               </svg>
-              <span style={{ font: `700 9.5px/1 ${MONO}`, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a87d31', whiteSpace: 'nowrap' }}>{L('숨은 전제 · Argus가 짚어냄', 'Hidden premise · surfaced by Argus')}</span>
+              <span style={{ font: `700 10.5px/1 ${MONO}`, letterSpacing: '.12em', textTransform: 'uppercase', color: '#f0d68a', whiteSpace: 'nowrap' }}>{L('숨은 전제 · Argus가 짚어냄', 'Hidden premise · surfaced by Argus')}</span>
             </div>
             <h4 style={{ margin: 0, font: `600 16px/1.4 ${SERIF}`, color: '#f4ecd6', wordBreak: 'keep-all' }}>{txt('premText')}</h4>
             <p style={{ margin: 0, fontSize: 11.5, lineHeight: 1.45, color: '#cabb95', wordBreak: 'keep-all' }}>{txt('premSub')}</p>

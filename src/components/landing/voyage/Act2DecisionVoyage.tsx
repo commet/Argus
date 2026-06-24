@@ -56,9 +56,9 @@ export function Act2DecisionVoyage() {
           }}
         >
           {locale === 'ko' ? (
-            <>하나의 결정이, <span style={{ color: 'var(--bp-ink-soft)' }}>항해되는 모습.</span></>
+            <>결정 하나를, <span style={{ color: 'var(--bp-ink-soft)' }}>끝까지 항해하다.</span></>
           ) : (
-            <>One decision, <span style={{ color: 'var(--bp-ink-soft)' }}>being navigated.</span></>
+            <>Navigating one decision, <span style={{ color: 'var(--bp-ink-soft)' }}>end to end.</span></>
           )}
         </h2>
 
