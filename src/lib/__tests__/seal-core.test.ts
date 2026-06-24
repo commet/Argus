@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   sealSystemPrompt, coerceSealDraft, sealPreviewMarkdown, settleQuestionMarkdown, formatCheckBy,
-  SEAL_TOOL_SCHEMA,
+  parseCheckBy, SEAL_TOOL_SCHEMA,
 } from '@/lib/seal-core';
 
 describe('seal-core', () => {
@@ -62,6 +62,37 @@ describe('seal-core', () => {
   describe('formatCheckBy', () => {
     it('ko renders 월/일', () => {
       expect(formatCheckBy(new Date(2026, 8, 24), 'ko')).toBe('9월 24일');
+    });
+  });
+
+  describe('parseCheckBy (custom date input)', () => {
+    const TODAY = '2026-06-24';
+    it('parses ISO dates', () => {
+      expect(parseCheckBy('2026-09-01', TODAY)).toBe('2026-09-01');
+      expect(parseCheckBy('확인일은 2026-12-31요', TODAY)).toBe('2026-12-31');
+    });
+    it('parses "M월 D일" — this year, or next if already past', () => {
+      expect(parseCheckBy('9월 1일', TODAY)).toBe('2026-09-01');
+      expect(parseCheckBy('6월 1일', TODAY)).toBe('2027-06-01'); // past → next year
+      expect(parseCheckBy('6월 30일', TODAY)).toBe('2026-06-30'); // future this year
+    });
+    it('parses M/D', () => {
+      expect(parseCheckBy('9/1', TODAY)).toBe('2026-09-01');
+    });
+    it('parses relative units (most-specific first)', () => {
+      expect(parseCheckBy('45일 뒤', TODAY)).toBe('2026-08-08');
+      expect(parseCheckBy('3주 뒤', TODAY)).toBe('2026-07-15');
+      expect(parseCheckBy('2달 뒤', TODAY)).toBe('2026-08-23');
+      expect(parseCheckBy('2 weeks', TODAY)).toBe('2026-07-08');
+      expect(parseCheckBy('3 months', TODAY)).toBe('2026-09-22');
+    });
+    it('clamps to [tomorrow, +365]', () => {
+      expect(parseCheckBy('0일', TODAY)).toBe('2026-06-25');   // today → tomorrow
+      expect(parseCheckBy('500일 뒤', TODAY)).toBe('2027-06-24'); // > 365 → +365
+    });
+    it('returns null on unparseable input', () => {
+      expect(parseCheckBy('그냥 아무 말', TODAY)).toBeNull();
+      expect(parseCheckBy('', TODAY)).toBeNull();
     });
   });
 });

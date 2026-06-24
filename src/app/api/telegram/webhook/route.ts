@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/share-guard';
 import { reframeSystemPrompt, deeperSuffix, coerceReframe, reframeToMarkdown, REFRAME_TOOL_SCHEMA } from '@/lib/reframe-core';
-import { sealSystemPrompt, coerceSealDraft, sealPreviewMarkdown, formatCheckBy, SEAL_TOOL_NAME, SEAL_TOOL_SCHEMA } from '@/lib/seal-core';
+import { sealSystemPrompt, coerceSealDraft, sealPreviewMarkdown, formatCheckBy, parseCheckBy, SEAL_TOOL_NAME, SEAL_TOOL_SCHEMA } from '@/lib/seal-core';
 import { callAnthropicJson } from '@/lib/llm-server';
 import { markdownToTelegramHtml, markdownToTelegramLight as lightHtml } from '@/lib/telegram-format';
 import { tgSendMessage as sendMessage, tgSendChatAction, tgAnswerCallback as answerCallback } from '@/lib/telegram-api';
@@ -46,17 +46,28 @@ function reframeKeyboard(locale: 'ko' | 'en') {
 }
 
 function sealKeyboard(locale: 'ko' | 'en') {
+  const ko = locale === 'ko';
   return {
     inline_keyboard: [
-      [{ text: locale === 'ko' ? '✅ 봉인' : '✅ Seal', callback_data: 'sl:ok' }],
       [
-        { text: locale === 'ko' ? '📅 1주 뒤' : '📅 in 1w', callback_data: 'sl:1w' },
-        { text: locale === 'ko' ? '📅 1달 뒤' : '📅 in 1m', callback_data: 'sl:1m' },
+        { text: ko ? '3일' : '3d', callback_data: 'sl:3d' },
+        { text: ko ? '1주' : '1w', callback_data: 'sl:1w' },
+        { text: ko ? '2주' : '2w', callback_data: 'sl:2w' },
       ],
-      [{ text: locale === 'ko' ? '❌ 취소' : '❌ Cancel', callback_data: 'sl:x' }],
+      [
+        { text: ko ? '1달' : '1m', callback_data: 'sl:1m' },
+        { text: ko ? '3달' : '3m', callback_data: 'sl:3m' },
+        { text: ko ? '✏️ 직접' : '✏️ Custom', callback_data: 'sl:date' },
+      ],
+      [
+        { text: ko ? '✅ 봉인' : '✅ Seal', callback_data: 'sl:ok' },
+        { text: ko ? '❌ 취소' : '❌ Cancel', callback_data: 'sl:x' },
+      ],
     ],
   };
 }
+
+const PRESET_DAYS: Record<string, number> = { '3d': 3, '1w': 7, '2w': 14, '1m': 30, '3m': 90 };
 
 /** "today + days" as a YYYY-MM-DD string in KST (matches the reminder cron's
  *  notion of "today"). */
@@ -141,6 +152,8 @@ interface SealPending {
   check_by: string;
   quote: string;
   locale: 'ko' | 'en';
+  /** Set when waiting for the user to TYPE a custom check-in date. */
+  awaiting?: 'date';
 }
 
 async function handleSealDraft(chatId: number | string, userId: string): Promise<void> {
@@ -198,16 +211,27 @@ async function handleSealConfirm(chatId: number | string, userId: string, action
     await sendMessage(chatId, locale === 'ko' ? '봉인하지 않았어요.' : 'Not sealed.');
     return;
   }
-  if (action === '1w' || action === '1m') {
-    const checkBy = kstDatePlus(action === '1w' ? 7 : 30);
-    await admin.from('telegram_sessions').update({ pending: { ...p, check_by: checkBy } }).eq('chat_id', String(chatId));
+  // Date preset (3d/1w/2w/1m/3m) → update check_by, re-show preview.
+  if (action in PRESET_DAYS) {
+    const checkBy = kstDatePlus(PRESET_DAYS[action]);
+    await admin.from('telegram_sessions').update({ pending: { ...p, check_by: checkBy, awaiting: undefined } }).eq('chat_id', String(chatId));
     await sendMessage(chatId, lightHtml(sealPreviewMarkdown(
       { decision: p.decision, predicate: p.predicate, falsified_if: p.falsified_if, check_by_days: 0 },
       dateLabel(checkBy, locale), locale,
     )), sealKeyboard(locale));
     return;
   }
-  // action === 'ok' → write the sealed decision
+  // Custom date → prompt the user to type one (consumed in the message branch).
+  if (action === 'date') {
+    await admin.from('telegram_sessions').update({ pending: { ...p, awaiting: 'date' } }).eq('chat_id', String(chatId));
+    await sendMessage(chatId, locale === 'ko'
+      ? '확인일을 입력해 주세요. 예: 2026-09-01 · 9월 1일 · 45일 뒤 · 3주 뒤'
+      : 'Type a check-in date. e.g. 2026-09-01 · 9/1 · in 45 days · 3 weeks');
+    return;
+  }
+  if (action !== 'ok') return; // unknown action → ignore
+
+  // Write the sealed decision.
   const { error } = await admin.from('telegram_decisions').insert({
     user_id: userId, chat_id: String(chatId),
     decision: p.decision, quote: p.quote || null,
@@ -386,13 +410,38 @@ export async function POST(req: NextRequest) {
   // Ignore other slash-commands quietly.
   if (text.startsWith('/')) return NextResponse.json({ ok: true });
 
-  // Plain message → reframe (gated). Synchronous (see callback note above).
+  // Plain message → either a typed check-in date (if a seal awaits one) or a new
+  // reframe (gated). Synchronous (see callback note above).
   try {
     const userId = await userForChat(chat.id);
     if (!userId) {
       await sendMessage(chat.id, '먼저 웹앱 설정에서 Telegram을 연결해 주세요. 연결하면 여기서 바로 고민을 리프레임해 드려요.');
       return NextResponse.json({ ok: true });
     }
+
+    // A seal is waiting for a typed date → consume this message as the date.
+    const { data: sess } = await adminClient()
+      .from('telegram_sessions').select('pending').eq('chat_id', String(chat.id)).single();
+    const pend = (sess?.pending ?? null) as SealPending | null;
+    if (pend?.kind === 'seal' && pend.awaiting === 'date') {
+      const parsed = parseCheckBy(text, kstDatePlus(0));
+      if (!parsed) {
+        await sendMessage(chat.id, pend.locale === 'en'
+          ? "Couldn't read that as a date. e.g. 2026-09-01 · 9/1 · in 45 days"
+          : '날짜로 못 읽었어요. 예: 2026-09-01 · 9월 1일 · 45일 뒤');
+        return NextResponse.json({ ok: true });
+      }
+      await adminClient().from('telegram_sessions')
+        .update({ pending: { ...pend, check_by: parsed, awaiting: undefined } })
+        .eq('chat_id', String(chat.id));
+      await sendMessage(chat.id, lightHtml(sealPreviewMarkdown(
+        { decision: pend.decision, predicate: pend.predicate, falsified_if: pend.falsified_if, check_by_days: 0 },
+        dateLabel(parsed, pend.locale), pend.locale,
+      )), sealKeyboard(pend.locale));
+      return NextResponse.json({ ok: true });
+    }
+
+    // Otherwise → new reframe. Clear any stale pending seal.
     if (!(await allowBotCall(userId))) {
       await sendMessage(chat.id, `오늘 봇 분석 한도(${BOT_DAILY_LIMIT}회)를 다 썼어요. 내일 다시 시도해 주세요.`);
       return NextResponse.json({ ok: true });
@@ -401,6 +450,7 @@ export async function POST(req: NextRequest) {
       chat_id: String(chat.id),
       user_id: userId,
       last_input: text.slice(0, INPUT_MAX),
+      pending: null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'chat_id' });
     await runReframe(chat.id, text, false);

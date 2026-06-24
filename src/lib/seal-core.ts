@@ -76,6 +76,49 @@ export function coerceSealDraft(obj: unknown): SealDraft | null {
   };
 }
 
+/** Add days to a YYYY-MM-DD string (UTC date math; TZ-safe for date-only). */
+function addDaysISO(todayISO: string, days: number): string {
+  const [y, m, d] = todayISO.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d) + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * Parse a user-typed check-in date into YYYY-MM-DD, relative to todayISO (KST).
+ * Accepts: ISO (2026-09-01), "M월 D일" / "M/D" (this year, or next if past),
+ * "N일/주/달 (뒤)" and English "N days/weeks/months". Result is clamped to
+ * [tomorrow, +365d]. Returns null if nothing parses.
+ */
+export function parseCheckBy(text: string, todayISO: string): string | null {
+  const s = text.trim();
+  const clamp = (iso: string): string => {
+    const min = addDaysISO(todayISO, 1);
+    const max = addDaysISO(todayISO, 365);
+    return iso < min ? min : iso > max ? max : iso;
+  };
+  let m: RegExpMatchArray | null;
+
+  // ISO date
+  if ((m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/))) {
+    const iso = `${m[1]}-${String(+m[2]).padStart(2, '0')}-${String(+m[3]).padStart(2, '0')}`;
+    if (!Number.isNaN(Date.parse(iso))) return clamp(iso);
+  }
+  // "M월 D일" or "M/D" — month/day, resolved to this year or next if already past
+  if ((m = s.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일?/)) || (m = s.match(/(?:^|\s)(\d{1,2})\/(\d{1,2})(?:\s|$)/))) {
+    const mm = +m[1], dd = +m[2];
+    if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
+      const [ty] = todayISO.split('-').map(Number);
+      const mk = (yr: number) => `${yr}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+      const iso = mk(mk(ty) <= todayISO ? ty + 1 : ty);
+      if (!Number.isNaN(Date.parse(iso))) return clamp(iso);
+    }
+  }
+  // relative: months → weeks → days (most specific unit first)
+  if ((m = s.match(/(\d+)\s*(?:달|개월|months?)/))) return clamp(addDaysISO(todayISO, parseInt(m[1], 10) * 30));
+  if ((m = s.match(/(\d+)\s*(?:주|weeks?)/))) return clamp(addDaysISO(todayISO, parseInt(m[1], 10) * 7));
+  if ((m = s.match(/(\d+)\s*(?:일|days?)/))) return clamp(addDaysISO(todayISO, parseInt(m[1], 10)));
+  return null;
+}
+
 /** Format a Date as a local-ish friendly date string (caller passes the date). */
 export function formatCheckBy(date: Date, locale: 'ko' | 'en'): string {
   const m = date.getMonth() + 1;
