@@ -47,6 +47,7 @@ import {
   generateDecisionContract,
   contractFromPredicates,
   withCheckIn,
+  amendCheckIn,
   gradePredicate,
   setPredicateBasis,
   contractStatus,
@@ -156,6 +157,7 @@ export function DecisionContractCard({
   const [checkIn, setCheckIn] = useState<CheckInInterval>('2w');
   const [sealOpen, setSealOpen] = useState(false);
   const [gradeOpen, setGradeOpen] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false); // change the check-in date before it's due
 
   const contract = project.decision_contract ?? null;
 
@@ -363,6 +365,40 @@ export function DecisionContractCard({
                 )
               : L(`예측 ${predicates.length}개 · 언제든 확인`, `${predicates.length} predictions · check anytime`)}
           </p>
+
+          {/* Change the check-in date BEFORE it's due (was only possible as an
+              "아직"-extend AFTER the date arrived). amendCheckIn keeps the old date in
+              history (변침도 기록이다). */}
+          {!due && !showGrades && (
+            <div className="mt-2">
+              {!rescheduleOpen ? (
+                <button
+                  onClick={() => setRescheduleOpen(true)}
+                  className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                >
+                  {L('날짜 바꾸기', 'Change the date')}
+                </button>
+              ) : (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {INTERVALS.map((iv) => (
+                    <button
+                      key={iv.value}
+                      onClick={() => {
+                        updateProject(project.id, { decision_contract: amendCheckIn(contract!, iv.value, Date.now()) });
+                        setRescheduleOpen(false);
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 cursor-pointer transition-colors"
+                    >
+                      {L(iv.ko, iv.en)}
+                    </button>
+                  ))}
+                  <button onClick={() => setRescheduleOpen(false)} className="text-[11.5px] text-[var(--text-tertiary)] hover:underline cursor-pointer">
+                    {L('취소', 'Cancel')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {!showGrades && (
             <button
