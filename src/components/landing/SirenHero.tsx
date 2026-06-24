@@ -127,7 +127,7 @@ export function SirenHero() {
               fontWeight: 500,
             }}
           >
-            {L('계획을 진짜로 읽고 · 정한 날짜에 돌아오는 AI', 'READS YOUR PLAN FOR REAL · RETURNS ON YOUR DATE')}
+            {L('THINK BEFORE YOU COMMIT', 'THINK BEFORE YOU COMMIT')}
           </span>
           <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
         </div>
@@ -146,7 +146,7 @@ export function SirenHero() {
             animationDelay: '60ms',
           }}
         >
-          {L('"그래서, 어떻게 됐어요?"', '"So — how did it go?"')}
+          {L('AI에 묻기 전에, 당신 판단부터.', 'Before you ask AI — your own call first.')}
         </h1>
 
         {/* 30초 피치 v2, 첫 두 문장 — 원전 그대로. The problem / empathy hook. */}
@@ -160,9 +160,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>중요한 결정일수록 혼자 들고 있게 됩니다.<br />사람들에게 보여주면 “좋아 보여요”가 돌아오고,<br />AI에게 물으면 더 유창한 “좋아 보여요”가 돌아옵니다.</>
+            <>물어보면, AI는 늘 답을 줘요 — 빠르고, 그럴듯하게.<br />그런데 그 답을 듣는 순간, 원래 내 생각은 흐려집니다.<br />내가 정한 건지, 그냥 휩쓸린 건지도 모른 채로.</>
           ) : (
-            <>The bigger the decision, the more alone you hold it.<br />Show people and you get “looks good” — ask an AI and you get a more fluent “looks good.”</>
+            <>Ask, and the AI always answers — fast, and convincing.<br />But the moment you hear it, your own read goes blurry.<br />You can’t tell if you decided, or just got swept.</>
           )}
         </p>
 
@@ -190,9 +190,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>칭찬도 반박도 하지 않아요.<br />“좋아 보여요” 대신, 당신의 계획을 진짜로 읽어요.</>
+            <>Argus는 답을 먼저 건네지 않아요.<br />당신의 계획을 진짜로 읽고, 당신이 놓친 한 가지를 비춰줄 뿐이에요.</>
           ) : (
-            <>It won’t flatter you or argue.<br />Instead of “looks good,” it actually reads your plan.</>
+            <>Argus doesn’t hand you an answer.<br />It reads your plan, for real — and mirrors back the one thing you missed.</>
           )}
         </p>
 
