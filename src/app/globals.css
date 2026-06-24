@@ -2763,6 +2763,17 @@ button, a, input, textarea {
   outline: none;
   box-shadow: none;
 }
+/* A pen-prompt caret that blinks at the field's start when it's empty and
+   unfocused — turns the ruled chart-field from "something to read" into
+   "something waiting for you to write". Steady, unhurried blink (ink, not gold). */
+@keyframes bp-caret-blink { 0%, 47% { opacity: 1; } 53%, 100% { opacity: 0; } }
+.bp-caret {
+  display: inline-block;
+  width: 2px;
+  background: var(--bp-ink);
+  animation: bp-caret-blink 1.15s steps(1, end) infinite;
+}
+@media (prefers-reduced-motion: reduce) { .bp-caret { animation: none; opacity: 1; } }
 /* Scroll cue — a "sounding line": an ink rule with a weight that bobs, so the
    transition to the voyage is a real, visible, clickable signifier (not a faint glyph). */
 .bp-sounding { text-decoration: none; }
