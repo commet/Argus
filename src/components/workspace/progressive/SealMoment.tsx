@@ -37,7 +37,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
-import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, CHECK_IN_MS } from '@/lib/decision-contract';
+import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, stablePredicateId, CHECK_IN_MS } from '@/lib/decision-contract';
 import { recordSignal } from '@/lib/signal-recorder';
 import { track } from '@/lib/analytics';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
@@ -91,6 +91,7 @@ export function SealMoment({
   const [emailReminder, setEmailReminder] = useState(false); // opt-in (logged-in only)
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dropped, setDropped] = useState<Set<string>>(new Set());
+  const [edits, setEdits] = useState<Record<string, string>>({}); // edit a prediction's wording before sealing
   // Tracks a seal performed in THIS session, so we show the calm confirmation
   // here instead of falling through to the grading card on the same render.
   const [justSealed, setJustSealed] = useState(false);
@@ -114,6 +115,15 @@ export function SealMoment({
   const kept = useMemo(
     () => (Array.isArray(predicates) ? predicates : []).filter((p) => !dropped.has(p.id)),
     [predicates, dropped],
+  );
+  // Apply any wording edits — a re-worded prediction gets a fresh stable id (it's a
+  // different statement now; safe pre-seal since nothing is graded yet).
+  const keptEdited = useMemo(
+    () => kept.map((p) => {
+      const t = edits[p.id]?.trim();
+      return t && t !== p.text ? { ...p, text: t, id: stablePredicateId(p.source, t) } : p;
+    }),
+    [kept, edits],
   );
 
   function fmtDate(ms: number): string {
@@ -148,12 +158,12 @@ export function SealMoment({
       stakes: gate?.stakes ?? 'important',
       reversibility: gate?.reversibility ?? 'partial',
       framingConfidence: gate?.framingConfidence ?? 0,
-      predicates: kept,
+      predicates: keptEdited,
     });
     if (decision.mode === 'none') return;
     const toSeal = decision.mode === 'single_check'
-      ? (existing ? [] : kept.slice(0, 1)) // keep only the user's early rope, or one predicate
-      : kept;
+      ? (existing ? [] : keptEdited.slice(0, 1)) // keep only the user's early rope, or one predicate
+      : keptEdited;
     // If an EARLY rope already exists (Phase 1 BIND at project-OPEN), AUGMENT it —
     // merge onto it, preserving id/created_at and the user's own user_lean predicate,
     // and re-confirm the check-in. Never clobber ("bind tighter at peak temptation").
@@ -291,6 +301,8 @@ export function SealMoment({
                   <PredicateEditor
                     predicates={Array.isArray(predicates) ? predicates : []}
                     dropped={dropped}
+                    edits={edits}
+                    onEdit={(id, text) => setEdits((e) => ({ ...e, [id]: text }))}
                     onToggle={(id) => {
                       setDropped((prev) => {
                         const next = new Set(prev);
@@ -469,6 +481,8 @@ export function SealMoment({
                   <PredicateEditor
                     predicates={Array.isArray(predicates) ? predicates : []}
                     dropped={dropped}
+                    edits={edits}
+                    onEdit={(id, text) => setEdits((e) => ({ ...e, [id]: text }))}
                     onToggle={(id) => {
                       setDropped((prev) => {
                         const next = new Set(prev);
@@ -533,39 +547,48 @@ function DateChips({
 function PredicateEditor({
   predicates,
   dropped,
+  edits,
   onToggle,
+  onEdit,
   L,
 }: {
   predicates: Predicate[];
   dropped: Set<string>;
+  edits: Record<string, string>;
   onToggle: (id: string) => void;
+  onEdit: (id: string, text: string) => void;
   L: (k: string, e: string) => string;
 }) {
   if (predicates.length === 0) return null;
   return (
     <div>
       <p className="text-[12px] font-semibold text-[var(--text-secondary)] mb-2">
-        {L('그날 물어볼 것들', "What I'll ask you about")}
+        {L('그날 물어볼 것들 — 문구를 손봐도 돼요', "What I'll ask you about — reword if you like")}
       </p>
       <ul className="space-y-1.5">
         {predicates.map((p) => {
           const Icon = SOURCE_ICON[p.source] ?? AlertTriangle;
           const off = dropped.has(p.id);
           return (
-            <li key={p.id}>
+            <li key={p.id}
+              className={`flex items-start gap-2 rounded-lg border px-3 py-2 transition-colors ${
+                off ? 'border-[var(--border)] opacity-45' : 'border-[var(--border)] focus-within:border-[var(--accent)]/50'
+              }`}
+            >
+              <Icon size={13} className="text-[var(--text-tertiary)] mt-1.5 shrink-0" />
+              <textarea
+                value={edits[p.id] ?? p.text}
+                onChange={(e) => onEdit(p.id, e.target.value)}
+                disabled={off}
+                rows={1}
+                maxLength={200}
+                className={`flex-1 min-w-0 resize-none bg-transparent text-[12.5px] text-[var(--text-primary)] leading-[1.5] focus:outline-none ${off ? 'line-through' : ''}`}
+              />
               <button
                 onClick={() => onToggle(p.id)}
-                className={`w-full flex items-start gap-2 text-left rounded-lg border px-3 py-2 transition-colors cursor-pointer ${
-                  off
-                    ? 'border-[var(--border)] opacity-45 line-through'
-                    : 'border-[var(--border)] hover:border-[var(--accent)]/40'
-                }`}
+                className="text-[10.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 mt-0.5 cursor-pointer"
               >
-                <Icon size={13} className="text-[var(--text-tertiary)] mt-0.5 shrink-0" />
-                <span className="flex-1 min-w-0 text-[12.5px] text-[var(--text-primary)] leading-[1.5]">{p.text}</span>
-                <span className="text-[10.5px] text-[var(--text-tertiary)] shrink-0 mt-0.5">
-                  {off ? L('뺌', 'off') : L('뺄까요?', 'remove?')}
-                </span>
+                {off ? L('되살리기', 'restore') : L('뺄까요?', 'remove?')}
               </button>
             </li>
           );
