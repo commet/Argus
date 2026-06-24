@@ -14,7 +14,9 @@ import Anthropic from '@anthropic-ai/sdk';
  * gets SOME working model instead of dying on a stale pin.
  */
 const MODEL_CANDIDATES: Record<string, string[]> = {
-  fast: ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest'],
+  // Each tier ends with a proven, widely-available `-latest` alias so the call
+  // always resolves SOME model even if every newer pin 404s on this key.
+  fast: ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-latest', 'claude-3-5-sonnet-latest'],
   default: ['claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-3-5-sonnet-latest'],
   strong: ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-3-5-sonnet-latest'],
 };

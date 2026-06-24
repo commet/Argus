@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse, after } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/share-guard';
 import { reframeSystemPrompt, deeperSuffix, parseReframe, reframeToMarkdown } from '@/lib/reframe-core';
 import { callAnthropicText } from '@/lib/llm-server';
@@ -15,10 +15,12 @@ import { markdownToTelegramHtml } from '@/lib/telegram-format';
  * and the web UI can't drift. Abuse/cost is gated: only chats connected to an
  * account may run the LLM, and each account has a daily bot cap.
  *
- * Telegram needs a fast 200, but an LLM call takes seconds — so we ack
- * immediately and do the work in after(). maxDuration covers the LLM time.
+ * Processing is synchronous (we await the LLM before returning 200): the fast
+ * model keeps it to a few seconds, inside Telegram's webhook timeout. We had to
+ * drop next/server after() — it ran for message updates but NOT callback_query
+ * updates on this deployment, silently dropping button taps.
  */
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const BOT_DAILY_LIMIT = 20;
 const INPUT_MAX = 4000;
@@ -95,16 +97,15 @@ async function allowBotCall(userId: string): Promise<boolean> {
 }
 
 // ── Reframe run (shared brain) ──
-async function runReframe(chatId: number | string, input: string, deep: boolean): Promise<void> {
+async function runReframe(chatId: number | string, input: string, deep: boolean, model: 'fast' | 'default' = 'fast'): Promise<void> {
   const locale = detectLocale(input);
   await sendTyping(chatId);
   let result;
   try {
     const system = reframeSystemPrompt(locale) + (deep ? deeperSuffix(locale) : '');
-    // Use the same model the webapp's reframe uses (default = Sonnet) — the
-    // 'fast'/Haiku path is unexercised in this deployment, so default is the
-    // proven one. (Optimize back to fast later once verified.)
-    const text = await callAnthropicText({ system, user: input.slice(0, INPUT_MAX), model: 'default', maxTokens: 1200 });
+    // 'fast' (Haiku) keeps the synchronous webhook quick enough that Telegram
+    // never times out and retries; the chain falls back to a proven model.
+    const text = await callAnthropicText({ system, user: input.slice(0, INPUT_MAX), model, maxTokens: 1200 });
     result = parseReframe(text);
   } catch (err) {
     console.error('[telegram/webhook] reframe failed:', err);
@@ -183,29 +184,27 @@ export async function POST(req: NextRequest) {
   if (cb?.message?.chat) {
     const chatId = cb.message.chat.id;
     const deep = cb.data === 'rf:deep';
-    // Stop the button spinner synchronously so it always clears, even if the
-    // deferred work below has trouble.
-    await answerCallback(cb.id);
-    after(async () => {
-      try {
-        const userId = await userForChat(chatId);
-        if (!userId) { await sendMessage(chatId, '먼저 웹앱 설정에서 Telegram을 연결해 주세요.'); return; }
-        const { data: sess } = await adminClient()
-          .from('telegram_sessions').select('last_input').eq('chat_id', String(chatId)).single();
-        if (!sess?.last_input) { await sendMessage(chatId, '다시 분석할 내용이 없어요. 고민을 새로 보내 주세요.'); return; }
-        if (!(await allowBotCall(userId))) {
-          await sendMessage(chatId, `오늘 봇 분석 한도(${BOT_DAILY_LIMIT}회)를 다 썼어요. 내일 다시 시도해 주세요.`);
-          return;
-        }
-        await sendMessage(chatId, deep ? '🔍 더 깊이 보는 중…' : '♻️ 다시 보는 중…');
-        await runReframe(chatId, sess.last_input, deep);
-      } catch (err) {
-        console.error('[telegram/webhook] callback failed:', err);
-        const reason = String((err as { message?: string })?.message || err)
-          .slice(0, 200).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        await sendMessage(chatId, `버튼 처리 중 막혔어요.\n\n<code>${reason}</code>`);
+    // Synchronous — after() does NOT run for callback_query updates on this
+    // deployment (it does for messages). With the fast model the whole thing is
+    // a few seconds, well inside Telegram's webhook timeout.
+    await answerCallback(cb.id); // clear the button spinner
+    try {
+      const userId = await userForChat(chatId);
+      if (!userId) { await sendMessage(chatId, '먼저 웹앱 설정에서 Telegram을 연결해 주세요.'); return NextResponse.json({ ok: true }); }
+      const { data: sess } = await adminClient()
+        .from('telegram_sessions').select('last_input').eq('chat_id', String(chatId)).single();
+      if (!sess?.last_input) { await sendMessage(chatId, '다시 분석할 내용이 없어요. 고민을 새로 보내 주세요.'); return NextResponse.json({ ok: true }); }
+      if (!(await allowBotCall(userId))) {
+        await sendMessage(chatId, `오늘 봇 분석 한도(${BOT_DAILY_LIMIT}회)를 다 썼어요. 내일 다시 시도해 주세요.`);
+        return NextResponse.json({ ok: true });
       }
-    });
+      await runReframe(chatId, sess.last_input, deep);
+    } catch (err) {
+      console.error('[telegram/webhook] callback failed:', err);
+      const reason = String((err as { message?: string })?.message || err)
+        .slice(0, 200).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      await sendMessage(chatId, `버튼 처리 중 막혔어요.\n\n<code>${reason}</code>`);
+    }
     return NextResponse.json({ ok: true });
   }
 
@@ -219,22 +218,22 @@ export async function POST(req: NextRequest) {
 
   const startMatch = /^\/start(?:\s+(\S+))?/.exec(text);
   if (startMatch) {
-    after(() => handleStart(chat, startMatch[1]));
+    await handleStart(chat, startMatch[1]);
     return NextResponse.json({ ok: true });
   }
   // Ignore other slash-commands quietly.
   if (text.startsWith('/')) return NextResponse.json({ ok: true });
 
-  // Plain message → reframe (gated).
-  after(async () => {
+  // Plain message → reframe (gated). Synchronous (see callback note above).
+  try {
     const userId = await userForChat(chat.id);
     if (!userId) {
       await sendMessage(chat.id, '먼저 웹앱 설정에서 Telegram을 연결해 주세요. 연결하면 여기서 바로 고민을 리프레임해 드려요.');
-      return;
+      return NextResponse.json({ ok: true });
     }
     if (!(await allowBotCall(userId))) {
       await sendMessage(chat.id, `오늘 봇 분석 한도(${BOT_DAILY_LIMIT}회)를 다 썼어요. 내일 다시 시도해 주세요.`);
-      return;
+      return NextResponse.json({ ok: true });
     }
     await adminClient().from('telegram_sessions').upsert({
       chat_id: String(chat.id),
@@ -243,6 +242,11 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'chat_id' });
     await runReframe(chat.id, text, false);
-  });
+  } catch (err) {
+    console.error('[telegram/webhook] message failed:', err);
+    const reason = String((err as { message?: string })?.message || err)
+      .slice(0, 200).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    await sendMessage(chat.id, `잠깐 막혔어요.\n\n<code>${reason}</code>`);
+  }
   return NextResponse.json({ ok: true });
 }
