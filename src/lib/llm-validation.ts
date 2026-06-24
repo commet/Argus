@@ -5,7 +5,13 @@ import { validateOrigin, validateContentType, validateContentLength } from '@/li
  * Shared LLM request validation — used by all /api/llm/* routes.
  */
 
-export const MAX_TOKENS_CAP = 4096;
+// 64K — sonnet-4-6 / haiku-4-5 streaming output ceiling. Raised from 4096 so the
+// stream-path adaptive budget + truncation retry (callLLMStreamThenParse) can
+// actually request more on a max_tokens cutoff; at 4096 the engine's 4000-token
+// calls were already at the ceiling and any 1.5× retry was silently clamped to ~+2%.
+// Keep STREAM_MAX_TOKENS_CAP in src/lib/llm.ts in sync (client can't import this
+// server-only module).
+export const MAX_TOKENS_CAP = 64_000;
 export const MAX_MESSAGE_LENGTH = 50_000;
 export const MAX_SYSTEM_LENGTH = 10_000;
 export const MAX_MESSAGES = 20;

@@ -23,9 +23,15 @@ export interface LLMOptions {
 
 export interface StreamCallbacks {
   onToken: (text: string) => void;
-  onComplete: (fullText: string) => void;
+  /** meta.stopReason carries the server-forwarded Anthropic stop_reason
+   *  ('max_tokens' = output was truncated mid-JSON). */
+  onComplete: (fullText: string, meta?: { stopReason?: string | null }) => void;
   onError: (error: Error) => void;
 }
+
+// Mirror of MAX_TOKENS_CAP in src/lib/llm-validation.ts (that module imports
+// next/server and must not be pulled into the client bundle). Keep in sync.
+const STREAM_MAX_TOKENS_CAP = 64_000;
 
 // ━━━ Error System (Claude Code 패턴: 에러 분류 + 재시도 가능 여부 판단) ━━━
 
@@ -228,6 +234,51 @@ async function fetchWithRetry(
 
 const MAX_JSON_LENGTH = 200_000;
 
+/**
+ * Best-effort repair of a JSON object truncated mid-stream (e.g. the model hit
+ * max_tokens, leaving an unterminated string or unclosed braces). Walks the
+ * text tracking string/escape state and a bracket stack, rewinds to the last
+ * structurally safe boundary (end of a complete value, or just before a
+ * dangling comma), then closes any still-open containers. Returns the parsed
+ * object, or null if nothing salvageable. Conservative by design — only ever
+ * called as a last resort after exact parsing fails.
+ */
+export function repairTruncatedJSON(text: string): unknown {
+  const start = text.indexOf('{');
+  if (start < 0) return null;
+  const s = text.slice(start);
+  let inStr = false;
+  let esc = false;
+  const stack: string[] = [];        // expected closers for currently-open containers
+  let cut = -1;                      // length of `s` to keep
+  let cutStack: string[] = [];       // stack snapshot at the cut point
+  const mark = (idx: number) => { cut = idx; cutStack = [...stack]; };
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === '"') {
+        inStr = false;
+        // A closed string is a safe cut ONLY inside an array, where it is always
+        // an element. Inside an object it might be a key awaiting its value, so
+        // those boundaries are taken at the comma / closing brace instead.
+        if (stack[stack.length - 1] === ']') mark(i + 1);
+      }
+      continue;
+    }
+    if (c === '"') inStr = true;
+    else if (c === '{') stack.push('}');
+    else if (c === '[') stack.push(']');
+    else if (c === '}' || c === ']') { stack.pop(); mark(i + 1); } // a closed container
+    else if (c === ',') mark(i); // safe to end here, dropping the trailing comma
+  }
+  if (cut < 0) return null;
+  let candidate = s.slice(0, cut);
+  for (let k = cutStack.length - 1; k >= 0; k--) candidate += cutStack[k];
+  try { return JSON.parse(candidate); } catch { return null; }
+}
+
 export function parseJSON<T = unknown>(text: string): T {
   if (text.length > MAX_JSON_LENGTH) {
     throw new LLMError('LLM 응답이 너무 큽니다.', { category: 'parse_failure' });
@@ -257,6 +308,16 @@ export function parseJSON<T = unknown>(text: string): T {
       if (arrMatch) {
         try { parsed = JSON.parse(arrMatch[0]); } catch { /* fall through */ }
       }
+    }
+
+    // Strategy 4: repair a JSON object truncated mid-stream (the model hit
+    // max_tokens). Rewinds to the last structurally complete point and closes
+    // open containers, so a near-complete object still yields its early fields
+    // (validateShape then fills the rest). Last resort — only runs once the
+    // exact-parse strategies above have failed.
+    if (!parsed) {
+      const repaired = repairTruncatedJSON(text);
+      if (repaired) parsed = repaired;
     }
 
     if (!parsed) {
@@ -702,6 +763,7 @@ export async function callLLMStream(
     const decoder = new TextDecoder();
     let fullText = '';
     let buffer = ''; // Buffer for incomplete SSE lines
+    let stopReason: string | null = null; // server-forwarded Anthropic stop_reason
 
     // ── UI flush throttle ────────────────────────────────────────────────
     // SSE delivers dozens of chunks per second, and every onToken call
@@ -783,6 +845,9 @@ export async function callLLMStream(
               fullText += parsed.text;
               emitToken();
             }
+            if (parsed.stop_reason !== undefined) {
+              stopReason = parsed.stop_reason;
+            }
             if (parsed.rateLimit !== undefined && typeof window !== 'undefined') {
               window.dispatchEvent(new CustomEvent('argus:ratelimit', {
                 detail: { remaining: parsed.rateLimit },
@@ -805,6 +870,7 @@ export async function callLLMStream(
               fullText += parsed.text;
               emitToken();
             }
+            if (parsed.stop_reason !== undefined) stopReason = parsed.stop_reason;
           } catch { /* skip */ }
         }
       }
@@ -832,7 +898,7 @@ export async function callLLMStream(
       unflushed = false;
       callbacks.onToken(fullText);
     }
-    callbacks.onComplete(fullText);
+    callbacks.onComplete(fullText, { stopReason });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       callbacks.onError(new LLMError('요청이 취소되었습니다.', { category: 'network', cause: error }));
@@ -846,9 +912,34 @@ export async function callLLMStream(
 
 // ━━━ Streaming JSON (new: stream + parse at end) ━━━
 
+/** One streamed call → resolves with the full text + the server stop_reason. */
+function streamOnce(
+  messages: LLMMessage[],
+  options: LLMOptions,
+  onToken: (text: string) => void,
+): Promise<{ text: string; stopReason: string | null }> {
+  return new Promise((resolve, reject) => {
+    callLLMStream(messages, options, {
+      onToken,
+      onComplete: (fullText, meta) => resolve({ text: fullText, stopReason: meta?.stopReason ?? null }),
+      onError: reject,
+    });
+  });
+}
+
 /**
  * Stream LLM output for UX (show progress), then parse as JSON at the end.
  * Best of both worlds: real-time UX + structured output.
+ *
+ * Truncation-resilient: if the server reports stop_reason==='max_tokens' (the
+ * JSON was cut mid-object) OR the parse/validation fails, it retries ONCE with a
+ * larger budget (min(base×1.5, cap)) — provided there is headroom under the
+ * 64K cap. Korean output is token-dense and accumulates across rounds, so the
+ * common "JSON 파싱 실패 on the 2nd question" was a silent max_tokens cutoff; this
+ * recovers it transparently before any error ever reaches the user. The retry
+ * re-streams from scratch (onToken restarts) — acceptable for a rare second pass.
+ * parseJSON's repairTruncatedJSON remains the last-resort salvage when even the
+ * enlarged budget truncates at the cap.
  */
 export async function callLLMStreamThenParse<T = unknown>(
   messages: LLMMessage[],
@@ -857,21 +948,54 @@ export async function callLLMStreamThenParse<T = unknown>(
   },
   onToken: (text: string) => void
 ): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    callLLMStream(messages, options, {
-      onToken,
-      onComplete: (fullText) => {
-        try {
-          const parsed = parseJSON<T>(fullText);
-          const validated = options.shape
-            ? validateShape<T & Record<string, unknown>>(parsed, options.shape) as T
-            : parsed;
-          resolve(validated);
-        } catch (error) {
-          reject(error);
+  const baseMax = options.maxTokens ?? 2000;
+  const MAX_ATTEMPTS = 2; // initial + one larger-budget retry
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const budget = attempt === 0
+      ? baseMax
+      : Math.min(Math.ceil(baseMax * 1.5), STREAM_MAX_TOKENS_CAP);
+    const hasHeadroom = budget < STREAM_MAX_TOKENS_CAP;
+    const canRetry = attempt < MAX_ATTEMPTS - 1 && hasHeadroom;
+
+    try {
+      const { text, stopReason } = await streamOnce(
+        messages,
+        { ...options, maxTokens: budget },
+        onToken,
+      );
+
+      // Truncated mid-JSON: retry with a bigger budget rather than parsing a
+      // guaranteed-broken blob. If no retry is possible, fall through to parse
+      // (repairTruncatedJSON may still salvage the early fields).
+      if (stopReason === 'max_tokens' && canRetry) {
+        lastError = new LLMError('응답이 max_tokens에서 잘렸습니다.', { category: 'parse_failure' });
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[llm] stream truncated (max_tokens) — retrying with budget ${Math.ceil(baseMax * 1.5)}`);
         }
-      },
-      onError: reject,
-    });
-  });
+        continue;
+      }
+
+      const parsed = parseJSON<T>(text);
+      return options.shape
+        ? validateShape<T & Record<string, unknown>>(parsed, options.shape) as T
+        : parsed;
+    } catch (error) {
+      lastError = error;
+      const isParseError = error instanceof LLMError
+        && (error.category === 'parse_failure' || error.category === 'validation');
+      if (isParseError && canRetry) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[llm] stream parse failed — retrying (${attempt + 1}/${MAX_ATTEMPTS - 1})`);
+        }
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new LLMError('스트리밍 JSON 파싱에 실패했습니다.', { category: 'parse_failure' });
 }

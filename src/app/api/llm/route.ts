@@ -165,6 +165,7 @@ export async function POST(req: NextRequest) {
 
       const encoder = new TextEncoder();
       let cancelled = false;
+      let stopReason: string | null = null;
       const readable = new ReadableStream({
         async start(controller) {
           try {
@@ -172,9 +173,17 @@ export async function POST(req: NextRequest) {
               if (cancelled) break;
               if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`));
+              } else if (event.type === 'message_delta' && event.delta.stop_reason) {
+                // Carries why generation ended. 'max_tokens' = the JSON is
+                // truncated; the client uses this to retry with a larger budget
+                // instead of guessing from an unparseable blob.
+                stopReason = event.delta.stop_reason;
               }
             }
             if (!cancelled) {
+              if (stopReason) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ stop_reason: stopReason })}\n\n`));
+              }
               controller.enqueue(encoder.encode('data: [DONE]\n\n'));
               controller.close();
             }
@@ -212,7 +221,7 @@ export async function POST(req: NextRequest) {
     });
 
     const block = response.content.find((b) => b.type === 'text');
-    const res = NextResponse.json({ text: block ? block.text : '' });
+    const res = NextResponse.json({ text: block ? block.text : '', stop_reason: response.stop_reason });
     res.headers.set('Cache-Control', 'no-store');
     return res;
   } catch (err) {

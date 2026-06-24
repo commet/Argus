@@ -13,6 +13,9 @@ interface UpdateSummaryChipProps {
   prevSnapshot: AnalysisSnapshot | null;
   /** Optional handler for "see full" — scroll to full AnalysisCard */
   onSeeDetail?: () => void;
+  /** Suppress the "이전(Before)" block — used on the first refinement, where the
+   *  previous question was never really read so the contrast is contextless. */
+  hideBefore?: boolean;
   locale?: 'ko' | 'en';
 }
 
@@ -27,6 +30,7 @@ export function UpdateSummaryChip({
   snapshot,
   prevSnapshot,
   onSeeDetail,
+  hideBefore = false,
   locale = 'ko',
 }: UpdateSummaryChipProps) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
@@ -65,24 +69,30 @@ export function UpdateSummaryChip({
         {L('반영해서 다시 봤어요', 'Refined with your input')}
       </div>
 
-      {/* Question before/after — typography carries the evolution */}
+      {/* Question before/after — typography carries the evolution. On the first
+          refinement the "이전" is suppressed (contextless), leaving just the
+          refined question under the "반영해서 다시 봤어요" eyebrow. */}
       {questionChanged && (
         <div className="mb-4 space-y-3">
-          <div>
-            <div className="text-[9px] font-semibold tracking-[0.14em] uppercase text-[var(--text-tertiary)] mb-1">
-              {L('이전', 'Before')}
+          {!hideBefore && (
+            <div>
+              <div className="text-[9px] font-semibold tracking-[0.14em] uppercase text-[var(--text-tertiary)] mb-1">
+                {L('이전', 'Before')}
+              </div>
+              <p
+                className="text-[13px] md:text-[14px] text-[var(--text-tertiary)] leading-[1.55]"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {prevSnapshot.real_question}
+              </p>
             </div>
-            <p
-              className="text-[13px] md:text-[14px] text-[var(--text-tertiary)] leading-[1.55]"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              {prevSnapshot.real_question}
-            </p>
-          </div>
+          )}
           <div>
-            <div className="text-[9px] font-semibold tracking-[0.14em] uppercase text-[var(--accent)] mb-1">
-              {L('지금', 'Now')}
-            </div>
+            {!hideBefore && (
+              <div className="text-[9px] font-semibold tracking-[0.14em] uppercase text-[var(--accent)] mb-1">
+                {L('지금', 'Now')}
+              </div>
+            )}
             <p
               className="text-[15px] md:text-[17px] font-semibold text-[var(--text-primary)] leading-[1.4] tracking-tight"
               style={{ fontFamily: 'var(--font-display)' }}

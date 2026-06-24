@@ -633,12 +633,16 @@ export async function runDeepening(
   const result = onToken
     ? await callLLMStreamThenParse<DeepeningResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
+        // 4000 (was 2000): by round 2+ the response carries an accumulated
+        // skeleton + assumptions + execution_plan + next question, and Korean
+        // output is token-dense — 2000 truncated the JSON mid-object, surfacing
+        // as "JSON 파싱 실패" on the second question. Match the mix budget.
+        { system, maxTokens: 4000, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
         onToken,
       )
     : await callLLMJson<DeepeningResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
+        { system, maxTokens: 4000, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
       );
 
   const snapshot: AnalysisSnapshot = {
