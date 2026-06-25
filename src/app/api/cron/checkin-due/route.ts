@@ -57,6 +57,11 @@ export async function GET(req: Request) {
   );
   const resend = new Resend(process.env.RESEND_API_KEY);
   const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://argus.voyage';
+  // Must send from the VERIFIED argus.voyage domain — Resend's sandbox sender
+  // (onboarding@resend.dev) only delivers to the account owner, so real users
+  // never got the reminder. Replies route to the founder's inbox.
+  const fromDomain = process.env.EMAIL_FROM_DOMAIN || 'argus.voyage';
+  const replyTo = process.env.EMAIL_REPLY_TO || 'sayucurator@gmail.com';
   const now = Date.now();
 
   // Pull candidate contracts (small scale: select the lot, filter in JS for clarity).
@@ -96,7 +101,8 @@ export async function GET(req: Request) {
           <p style="font-size:11px;color:#a8a29e;margin:20px 0 0">이 메일은 봉인할 때 알림을 켜셔서 받은 거예요.</p>
         </div>`;
       await resend.emails.send({
-        from: 'Argus <onboarding@resend.dev>',
+        from: `Argus <hello@${fromDomain}>`,
+        replyTo,
         to: email,
         subject: `그래서, 어떻게 됐어요? — ${name}`,
         html,
