@@ -451,11 +451,13 @@ export default function ProjectPage() {
                       ? `닫은 고리 ${crossRecord.loops}개` +
                         (crossRecord.betsHeld > 0 ? ` · 적중한 가설 ${crossRecord.betsHeld}개` : '') +
                         (crossRecord.risksAvoided > 0 ? ` · 비켜 간 위험 ${crossRecord.risksAvoided}개` : '') +
-                        (crossRecord.goodOutcomesOnLuck > 0 ? ` · 그중 운으로 본 게 ${crossRecord.goodOutcomesOnLuck}개` : '')
+                        (crossRecord.goodOutcomesOnLuck > 0 ? ` · 그중 운으로 본 게 ${crossRecord.goodOutcomesOnLuck}개` : '') +
+                        (crossRecord.draftedWins > 0 ? ` · 그중 초안대로 ${crossRecord.draftedWins}개` : '')
                       : `${crossRecord.loops} loop${crossRecord.loops === 1 ? '' : 's'} closed` +
                         (crossRecord.betsHeld > 0 ? ` · ${crossRecord.betsHeld} bet${crossRecord.betsHeld === 1 ? '' : 's'} held` : '') +
                         (crossRecord.risksAvoided > 0 ? ` · ${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '') +
-                        (crossRecord.goodOutcomesOnLuck > 0 ? ` · ${crossRecord.goodOutcomesOnLuck} marked as luck` : '')}
+                        (crossRecord.goodOutcomesOnLuck > 0 ? ` · ${crossRecord.goodOutcomesOnLuck} marked as luck` : '') +
+                        (crossRecord.draftedWins > 0 ? ` · ${crossRecord.draftedWins} from a draft` : '')}
                   </span>
                 </div>
               )}
@@ -952,12 +954,14 @@ export default function ProjectPage() {
                             crossRecord.risksAvoided > 0 ? `비켜 간 위험 ${crossRecord.risksAvoided}개` : '',
                             crossRecord.betsBroke > 0 ? `빗나간 가설 ${crossRecord.betsBroke}개` : '',
                             crossRecord.goodOutcomesOnLuck > 0 ? `그중 운으로 본 게 ${crossRecord.goodOutcomesOnLuck}개` : '',
+                            crossRecord.draftedWins > 0 ? `그중 초안대로 ${crossRecord.draftedWins}개` : '',
                           ].filter(Boolean).join(' · ')
                         : [
                             crossRecord.betsHeld > 0 ? `${crossRecord.betsHeld} bet${crossRecord.betsHeld === 1 ? '' : 's'} held` : '',
                             crossRecord.risksAvoided > 0 ? `${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '',
                             crossRecord.betsBroke > 0 ? `${crossRecord.betsBroke} bet${crossRecord.betsBroke === 1 ? '' : 's'} missed` : '',
                             crossRecord.goodOutcomesOnLuck > 0 ? `${crossRecord.goodOutcomesOnLuck} marked as luck` : '',
+                            crossRecord.draftedWins > 0 ? `${crossRecord.draftedWins} from a draft` : '',
                           ].filter(Boolean).join(' · ')}
                     </p>
                   )}

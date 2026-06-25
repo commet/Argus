@@ -627,12 +627,16 @@ function WaveDivider({ className = '' }: { className?: string }) {
 }
 
 function VoyagePrepSummary({
-  snapshot, onMix, onMore, onRevisit, busy,
+  snapshot, onMix, onMore, onRevisit, onDeepCrew, busy,
 }: {
   snapshot: AnalysisSnapshot;
   onMix: () => void;
   onMore: () => void;
   onRevisit: () => void;
+  /** Express → deep opt-in: bring the AI crew in to pull the draft apart before
+   *  writing it. Provided only on the express road (focus, crew not yet running);
+   *  undefined hides the button entirely. */
+  onDeepCrew?: () => void;
   busy: boolean;
 }) {
   const locale = useLocale();
@@ -724,6 +728,21 @@ function VoyagePrepSummary({
                 )}
             </motion.button>
 
+            {/* The OTHER road — bring the crew in to pull the draft apart before
+                writing it (the opt-in depth the express default skips). Its own
+                row above the link-style tweaks so it reads as a real alternative,
+                not a tertiary nudge. Shown only on the express road. */}
+            {!busy && onDeepCrew && (
+              <div className="mt-3">
+                <button
+                  onClick={onDeepCrew}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium text-[var(--text-secondary)] border border-dashed border-[var(--border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors cursor-pointer"
+                >
+                  {L('먼저 팀에 맡기기 — 전문가 4명이 뜯어봐요', 'Bring the team in first — 4 specialists pull it apart')}
+                </button>
+              </div>
+            )}
+
             {/* Secondary actions — keep them link-style so the primary
                 CTA stays unambiguous. */}
             {!busy && (
@@ -801,7 +820,7 @@ export function MirrorBeat({ assumption, onDismiss }: { assumption: string; onDi
               onClick={onDismiss}
               className="text-[12px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[44px] md:min-h-0 -my-2 md:my-0"
             >
-              {L('확인했어요 — 계속할게요', 'Noted — keep going')}
+              {L('확인했어요 — 아래 질문에 답할게요', 'Noted — on to the question below')}
             </button>
           </div>
         </div>
@@ -1024,6 +1043,15 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // demoted, never deleted. classic_session=true restores the old layout.
   const classicSession = useSettingsStore((s) => s.settings.classic_session ?? false);
   const focusMode = !classicSession;
+  // Express-by-default (cut the over-built Phase 2): in focus mode the crew does
+  // NOT auto-run and deepening stops after one sharpening question — the user
+  // reaches a draft fast. `deepen` flips ONLY when they explicitly opt into the
+  // crew ("bring the team in first"), which raises the round cap, builds the
+  // execution_plan, and auto-deploys. Local UI state — intentionally NOT
+  // persisted (no synced field, no migration); a reload re-opens on the express
+  // road, which is the honest default. Cutting ceremony is spine-aligned (the
+  // mirror clause: don't run crew ceremony on a decision that doesn't ask for it).
+  const [deepen, setDeepen] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
   /** A retreated block renders when: classic layout, OR the user opened 기록. */
   const showRecord = !focusMode || recordOpen;
@@ -1031,6 +1059,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
    *  focus mode (reports auto-apply; grading homework is opt-in, not a gate). */
   const [reportsOpen, setReportsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  // P0-3b: preserve a typed answer across an error/rollback remount (keyed by
+  // question id) so a failed turn never makes the user retype. Cleared once the
+  // answer successfully lands. A ref — it must survive re-render without itself
+  // triggering one.
+  const answerDraftRef = useRef<Record<string, string>>({});
+  // P0-3b: when a turn fails, hold the value so the error banner can offer a
+  // one-tap retry that re-submits the exact answer (no retype).
+  const [retryValue, setRetryValue] = useState<string | null>(null);
   // The overreach/flinch step's in-flight ladder (strength + escalating claims).
   // Local + ephemeral: only the committed result persists (session.falsification).
   const [overreach, setOverreach] = useState<{ strength: string; claims: LoadBearingClaim[] } | null>(null);
@@ -1228,7 +1264,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // W1.6 ⑤ 질문 상한: focus mode caps deepening at 3 rounds (founder: "5라운드는
   // 많다") — probe-fork questions don't count (zero-LLM turns). Classic keeps 5.
   const storedMaxR = session?.max_rounds ?? 5; // match createSession default (legacy sessions lacking the field)
-  const maxR = focusMode ? Math.min(storedMaxR, 3) : storedMaxR;
+  // Express default caps deepening at ONE question (label reads "1/1 · 마지막");
+  // opting into the crew (deepen) restores the focus cap of 3. Classic keeps 5.
+  // The maxR=1 engine edge (a max-round "what do you want to do?" choice question)
+  // is neutralized in onAnswer below — express always routes to draft-prep.
+  const maxR = focusMode ? (deepen ? Math.min(storedMaxR, 3) : 1) : storedMaxR;
 
   // Elapsed timer for PhaseStatusBar — tracks seconds rather than formatting
   // inline so the same value can derive isLongWait (30s threshold) for the
@@ -1317,6 +1357,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // R60 — never deploy the crew on a flat decision (the highest-measured over-fire
   // harm, ~60% in the stress test). It terminates with the analysis card instead.
   const shouldMix = (showMix || (phase === 'conversing' && snapshots.length > 0 && !curQ && !mix && !busy)) && !frameIsFlat;
+  // North-Star B sequencing: while the "AI가 채운 전제" recognition card is up,
+  // the question below is dimmed/locked so the user reads the premise FIRST,
+  // then the question brightens on dismiss. (Same gate as the MirrorBeat render
+  // below — kept here so the question block can react to it.)
+  const mirrorActive = focusMode && phase === 'conversing' && !mix && !final_ && !busy
+    && !!curQ && !curQ.id?.startsWith('probe-fork-')
+    && !crisisBlocking && !suppressQuestion
+    && !mirrorSeen && !!latest?.hidden_assumptions?.[0];
   const deployPhase = session?.worker_deploy_phase ?? 'none';
   const workers = session?.workers ?? [];
 
@@ -1328,13 +1376,16 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
    * effect fires post-render.) */
   const autoDeployedRef = useRef(false);
   useEffect(() => {
-    if (!focusMode || autoDeployedRef.current) return;
+    // Auto-deploy ONLY once the user opted into the crew (deepen). On the express
+    // road the crew never auto-runs — that's the Phase-2 cut. The "bring the team
+    // in" affordance is what flips deepen + builds the plan that lands here.
+    if (!focusMode || !deepen || autoDeployedRef.current) return;
     if (deployPhase !== 'ready' || workers.length === 0) return;
     autoDeployedRef.current = true;
     track('focus_auto_deploy', { workers: workers.length });
     onDeployWorkers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusMode, deployPhase, workers.length]);
+  }, [focusMode, deepen, deployPhase, workers.length]);
 
   /* W1.6 재구성 ③ 선원 보고 자동 반영 — focus mode doesn't make the user grade
    * the crew's homework (the #1 "최악" screen, G-W1 #1). Reports auto-apply
@@ -1633,7 +1684,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
     // No scroll here — the question card unmounts and the sticky status bar is
     // already in view; jumping now AND again on arrival was two jolts per turn.
-    store.addAnswer(ans); store.setPhase('analyzing'); track('flow_answer', { round }); setBusy(true); setError(null);
+    store.addAnswer(ans); store.setPhase('analyzing'); track('flow_answer', { round }); setBusy(true); setError(null); setRetryValue(null);
     // Tell the sidebar agents "new input just landed" — triggers flash
     useAgentAttentionStore.getState().ping('answer');
 
@@ -1718,7 +1769,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         }
         // After deployed — don't touch running workers
       }
-      if (r.readyForMix || !r.question) {
+      // Express override (cut-phase2): on the express road (focus + not opted
+      // into the crew) the FIRST answer routes straight to draft-prep — even if
+      // the engine wanted another round or returned the max-round choice
+      // question (a side effect of maxR=1). The standing "go deeper" + "draft
+      // now" affordances keep both roads open, so this never traps anyone.
+      if (r.readyForMix || !r.question || (focusMode && !deepen)) {
         setShowMix(true); store.setPhase('conversing');
         // Team analysis done — MixTrigger is mounting below. Scroll there so
         // users see the next CTA, not the phase bar above.
@@ -1741,6 +1797,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       // after addSnapshot/addQuestion so the snapshot reflects the user's
       // most recent answer.
       store.recordCheckpoint('briefing');
+      // Answer landed — its preserved draft is no longer needed.
+      delete answerDraftRef.current[curQ.id];
     } catch (e) {
       setStreamingText(null);
       // The answer was consumed BEFORE the call — with it left in place,
@@ -1751,6 +1809,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       store.rollbackAnswer(curQ.id);
       if (!(e instanceof DOMException && e.name === 'AbortError')) {
         setError(e instanceof Error ? e.message : L('분석에 실패했어요. 다시 시도해 주세요.', 'Analysis failed. Please try again.'));
+        // Hold the answer so the error banner can re-submit it in one tap; the
+        // free-text draft is also preserved (answerDraftRef) for manual edits.
+        setRetryValue(value);
       }
       store.setPhase('conversing');
       scrollToRef(statusBarRef);
@@ -1945,6 +2006,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // (the central "사람이 반드시 검증" promise, made real as a junction — not a
   // hard block; an explicit override always exists).
   const onMix = () => {
+    // Express-draft sensor (cut-phase2): measures how often a draft is made on the
+    // express road (no deployed crew) vs the deep road, and the round it happened.
+    track('flow_express_draft', { had_crew: (session?.workers?.length ?? 0) > 0 && deployPhase === 'deployed', round, deepen });
     const pending = store.unreviewedWorkers().length;
     if (pending > 0) { track('verify_gate_shown', { pending }); setVerifyGateOpen(true); return; }
     runMixCore();
@@ -2044,6 +2108,41 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       r.question ? (store.addQuestion(r.question), store.setPhase('conversing')) : (setShowMix(true), store.setPhase('conversing'));
     } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('실패', 'Failed')); store.setPhase('conversing'); setShowMix(true); }
     finally { setBusy(false); abortRef.current = null; scroll(); }
+  };
+
+  // "Bring the team in first" — the express → deep opt-in. The express road never
+  // built an execution_plan (maxR=1 stops at round 0), so there is no crew to
+  // deploy yet: run ONE deepening round (round forced ≥1 so the prompt emits the
+  // plan), init the workers, and let the auto-deploy effect — now that `deepen`
+  // is set — send them off. If a plan already exists, just deploy. Routes back to
+  // draft-prep; no extra question is forced on the user.
+  const onGoDeeper = async () => {
+    setDeepen(true);
+    track('flow_go_deeper', { from: 'prep_summary', round });
+    if (deployPhase === 'ready' && workers.length > 0) { onDeployWorkers(); return; }
+    if (!latest || busy) return;
+    setShowMix(false); setBusy(true); store.setPhase('analyzing'); scrollToRef(statusBarRef);
+    try {
+      const qa = qaPairs.filter(q => q.answer).map(q => ({ question: q.question, answer: q.answer! }));
+      abortRef.current = new AbortController();
+      setStreamKind('analysis'); setStreamingText('');
+      const personas = usePersonaStore.getState().personas.filter(p => !p.is_example && !p.deleted_at).map(p => ({ name: p.name, role: p.role, hasContact: !!(p.contact?.email || p.contact?.slack_id) }));
+      const deepRound = Math.max(round, 1); // ≥1 → deepening prompt builds the execution_plan
+      const r = await runDeepening(session!.problem_text, latest, qa, deepRound, deepRound + 2, snapshots, (text) => setStreamingText(text), abortRef.current.signal, undefined, personas.length > 0 ? personas : undefined);
+      setStreamingText(null);
+      store.addSnapshot(r.snapshot);
+      const existing = store.currentSession()?.workers ?? [];
+      if (existing.length === 0 && r.snapshot.execution_plan && r.snapshot.execution_plan.steps.length > 0) {
+        store.initWorkers(r.snapshot.execution_plan.steps);
+      }
+      // Back to draft-prep; the just-inited crew auto-deploys and works as theater.
+      // If no plan came back, the express draft path still stands.
+      setShowMix(true); store.setPhase('conversing');
+    } catch (e) {
+      setStreamingText(null);
+      if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('실패', 'Failed'));
+      store.setPhase('conversing'); setShowMix(true);
+    } finally { setBusy(false); abortRef.current = null; scroll(); }
   };
 
   const onSkip = () => {
@@ -2371,8 +2470,19 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                           {L('Settings에서 API 키 등록하기 →', 'Register API key in Settings →')}
                         </LocaleLink>
                       )}
+                      {/* P0-3b: a real way forward, not just a dismiss. Re-submits
+                          the exact answer that failed (no retype) — the dead-end
+                          close-only banner sat on the activation cliff. */}
+                      {!isQuota && retryValue !== null && (
+                        <button
+                          onClick={() => { const v = retryValue; setError(null); setRetryValue(null); if (v !== null) onAnswer(v); }}
+                          className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white cursor-pointer"
+                          style={{ background: 'var(--gradient-gold)' }}>
+                          {L('다시 시도', 'Try again')} <ArrowRight size={12} />
+                        </button>
+                      )}
                     </div>
-                    <button onClick={() => setError(null)} aria-label={L('닫기', 'Dismiss')}
+                    <button onClick={() => { setError(null); setRetryValue(null); }} aria-label={L('닫기', 'Dismiss')}
                       className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer shrink-0">
                       <XIcon size={13} />
                     </button>
@@ -2490,6 +2600,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <UpdateSummaryChip
               snapshot={latest}
               prevSnapshot={snapshots[snapshots.length - 2]}
+              // First refinement (v0→v1): the "before" is the round-0 question the
+              // user never actually dwelt on, so showing it as "이전" reads as
+              // contextless. Suppress it on the first pass — just show the refined
+              // "지금". From the 2nd refinement on, the prior "지금" has been seen,
+              // so the before/after contrast is meaningful.
+              hideBefore={snapshots.length === 2}
               onSeeDetail={() => { setRecordOpen(true); requestAnimationFrame(() => scrollToRef(analysisCardRef, 'top')); }}
               locale={locale}
             />
@@ -2512,20 +2628,28 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               on probe-fork turns (those carry their own TrialSail evidence) and
               on the crisis/suppressed path (no decision chrome around safety). */}
           <AnimatePresence>
-            {focusMode && phase === 'conversing' && !mix && !final_ && !busy
-              && !!curQ && !curQ.id?.startsWith('probe-fork-')
-              && !crisisBlocking && !suppressQuestion
-              && !mirrorSeen && !!latest?.hidden_assumptions?.[0] && (
+            {mirrorActive && (
               <MirrorBeat
                 key="mirror-beat"
-                assumption={latest.hidden_assumptions[0]}
-                onDismiss={() => { setMirrorSeen(true); track('mirror_seen', { round }); }}
+                assumption={latest!.hidden_assumptions[0]}
+                onDismiss={() => {
+                  setMirrorSeen(true);
+                  track('mirror_seen', { round });
+                  // The question was dimmed/locked behind the premise — now pull
+                  // it into view as it brightens, so the next step is obvious.
+                  scrollToRef(questionRef, 'top');
+                }}
               />
             )}
           </AnimatePresence>
 
-          {/* Question FIRST — user action at the top, not buried below */}
-          <div ref={questionRef}>
+          {/* Question — dimmed & locked while the premise card above is up
+              (sequential read: premise FIRST, then this brightens on dismiss). */}
+          <div
+            ref={questionRef}
+            aria-hidden={mirrorActive}
+            className={`transition-all duration-500 ${mirrorActive ? 'opacity-40 blur-[1.5px] pointer-events-none select-none' : 'opacity-100'}`}
+          >
             {/* First-time onboarding — explains *why* we're asking the user
                 questions and what happens after. Shown only on the very
                 first question of a session; disappears once the user has
@@ -2540,8 +2664,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 <span className="text-[15px] shrink-0 leading-none mt-0.5">💬</span>
                 <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
                   {locale === 'ko'
-                    ? <>질문 <strong className="text-[var(--text-primary)]">두세 개</strong>만 답해주시면, 어울리는 <strong className="text-[var(--text-primary)]">팀을 꾸려서</strong> 분석을 시작해요.</>
-                    : <>Just <strong className="text-[var(--text-primary)]">a couple of questions</strong> and we&apos;ll <strong className="text-[var(--text-primary)]">assemble the right team</strong> to start.</>}
+                    ? <>질문 <strong className="text-[var(--text-primary)]">하나만</strong> 답하면 더 또렷해져요 — <strong className="text-[var(--text-primary)]">바로 초안</strong>으로 가도 되고, 더 파고 싶으면 팀을 부르면 돼요.</>
+                    : <>One question sharpens it — go <strong className="text-[var(--text-primary)]">straight to a draft</strong>, or bring the <strong className="text-[var(--text-primary)]">team</strong> in to dig deeper.</>}
                 </p>
               </motion.div>
             )}
@@ -2578,12 +2702,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   key={`q-slot-${answers.length}`}
                   question={curQ}
                   onAnswer={onAnswer}
-                  disabled={busy}
+                  disabled={busy || mirrorActive}
                   locale={locale}
                   meta={meta}
+                  initialValue={answerDraftRef.current[curQ.id] ?? ''}
+                  onDraftChange={(v) => { answerDraftRef.current[curQ.id] = v; }}
                   onSkip={focusEscape ?? (teamReady ? onDeployWorkers : undefined)}
                   skipLabel={focusEscape
-                    ? L('그만 묻고 초안 만들기 — 지금까지 답한 것으로', 'Stop asking — draft from what I\'ve answered')
+                    ? L('바로 초안 만들기 — 지금까지로 충분해요', 'Draft it now — this is enough')
                     : (teamReady ? L('건너뛰고 팀 투입', 'Skip & start') : undefined)}
                 />
               );
@@ -2760,6 +2886,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               snapshot={latest}
               onMix={onMix}
               onMore={onMore}
+              // The crew opt-in shows only on the express road (focus, not yet
+              // deepened, crew not already running). Hidden once they've gone deep.
+              onDeepCrew={focusMode && !deepen && deployPhase !== 'deployed' ? onGoDeeper : undefined}
               onRevisit={() => {
                 // The pills live behind the record toggle in focus mode —
                 // open it first, or this scrolls to a null ref (page bottom).
@@ -2810,7 +2939,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* While the crisis backstop is blocking, hide the decision card — it
               would otherwise re-introduce decision chrome ("우리가 잡은 항로")
               around a safety input, the very ceremony the crisis path suppresses. */}
-          {(showRecord || phase !== 'conversing' || suppressQuestion) && latest && !final_ && !crisisBlocking && (
+          {/* `analyzing` excluded (was `phase !== 'conversing'`): between Q&A
+              rounds the phase briefly flips to 'analyzing' while deepening runs,
+              and the old condition force-expanded this long "항로" doc for those
+              seconds — then collapsed it again, reading as a jarring pop-in.
+              During the Q&A loop the card stays behind the 기록 toggle; it only
+              auto-opens once we've actually left Q&A (mixing/testing/complete). */}
+          {(showRecord || (phase !== 'conversing' && phase !== 'analyzing') || suppressQuestion) && latest && !final_ && !crisisBlocking && (
             <div ref={analysisCardRef}>
               <AnalysisCard
                 snapshot={latest}

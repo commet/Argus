@@ -41,9 +41,11 @@ export interface BindResult {
 }
 
 const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
+  { value: '3d', ko: '3일', en: '3 days' },
   { value: '1w', ko: '1주', en: '1 week' },
   { value: '2w', ko: '2주', en: '2 weeks' },
   { value: '1m', ko: '1달', en: '1 month' },
+  { value: '3m', ko: '3달', en: '3 months' },
 ];
 
 const MAX_LEAN = 140;
@@ -92,7 +94,7 @@ export function BindCard({
 
   // Resolve a relative interval to a concrete date so "2주" reads as "2주 · 7월 8일".
   const dateLabel = (iv: CheckInInterval) => {
-    const MS = { '1w': 7, '2w': 14, '1m': 30 }[iv] * 86_400_000;
+    const MS = { '3d': 3, '1w': 7, '2w': 14, '1m': 30, '3m': 90 }[iv] * 86_400_000;
     const d = new Date(Date.now() + MS);
     return d.toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' });
   };
@@ -162,7 +164,8 @@ export function BindCard({
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-tertiary)]'
               }`}
             >
-              {(ko ? iv.ko : iv.en)} · {dateLabel(iv.value)}
+              <span className="font-bold">{ko ? iv.ko : iv.en}</span>
+              <span className="opacity-60"> · {dateLabel(iv.value)}</span>
             </button>
           ))}
           <input
@@ -214,8 +217,8 @@ export function BindCard({
             already reading in the background (cluster 4: the buffered run is invisible,
             so the screen can feel like a gate of unknown cost). */}
         <p className="mt-3 text-[11px] text-[var(--text-tertiary)]/80 text-center">
-          {L('AI 팀은 이미 이 건을 읽고 있어요 — 어느 쪽이든 다음 화면에서 보여드려요.',
-             "The crew is already reading this — either way, you'll see it on the next screen.")}
+          {L('항해사가 먼저 이 글을 읽고 있어요 — 선원들은 그다음 합류해요. 어느 쪽이든 다음 화면에서 보여드려요.',
+             "A navigator is already reading this first — the crew joins after. Either way, you'll see it on the next screen.")}
         </p>
       </div>
     </motion.div>

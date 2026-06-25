@@ -87,7 +87,13 @@ export function Falsification({
       flinched_id: noFlinch ? null : flinched.id,
       surfaced_constraint: surfaced,
       real_bet: bet,
-      real_bet_authored: 'user', // the user typed it (or adopted "use as-is" then locked in) — authored
+      // Honest provenance (CLAUDE.md A1, R57-58): a verbatim-adopted surfaced
+      // sentence ("use this sentence as-is", which sets realBet = surfaced) is
+      // ai_surfaced — NOT laundered as the user's own bet. Only a genuine re-type
+      // (the committed text differs from the surfaced sentence) is authored:'user'.
+      // This routes use-as-is into the existing betsHeldAiSurfaced separation so a
+      // rubber-stamped bet never inflates the user's self-verified track record.
+      real_bet_authored: bet === surfaced.trim() ? 'ai_surfaced' : 'user',
       no_flinch_fallback: noFlinch,
     });
   }

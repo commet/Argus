@@ -41,9 +41,11 @@ const MAX_ACTORS = 2;
 const MAX_LIVE_GOVERNING = 2;
 
 export const CHECK_IN_MS: Record<CheckInInterval, number> = {
+  '3d': 3 * DAY_MS,
   '1w': 7 * DAY_MS,
   '2w': 14 * DAY_MS,
   '1m': 30 * DAY_MS,
+  '3m': 90 * DAY_MS,
 };
 
 /**
@@ -439,11 +441,15 @@ export function gradePredicate(
   predicateId: string,
   verdict: PredicateVerdict,
   now: number,
+  /** Provenance of this verdict. 'ai_draft' = committed from an unedited
+   *  settle-align draft (rubber-stamped). Omitted by a normal user tap, which
+   *  keeps the verdict clean. Cleared back to undefined on `pending`. */
+  via?: 'ai_draft',
 ): DecisionContract {
   const iso = new Date(now).toISOString();
   const predicates = (contract?.predicates ?? []).map((p) =>
     p.id === predicateId
-      ? { ...p, verdict, graded_at: verdict === 'pending' ? undefined : iso, basis: undefined }
+      ? { ...p, verdict, graded_at: verdict === 'pending' ? undefined : iso, basis: undefined, verdict_via: verdict === 'pending' ? undefined : via }
       : p,
   );
   const allResolved = predicates.length > 0 && predicates.every(isResolved);
@@ -536,6 +542,13 @@ export interface GradeSummary {
    *  so its holding is NOT their judgment — counted here, not as a skill-win, the
    *  same separation principle as goodOutcomesOnLuck. */
   betsHeldAiSurfaced: number;
+  /** Subset of betsHeld whose VERDICT was rubber-stamped from a settle-align
+   *  draft (`verdict_via === 'ai_draft'`). The outcome held, but the user didn't
+   *  verify it themselves — so it's kept out of the clean self-verified record,
+   *  the same separation as betsHeldAiSurfaced. */
+  betsHeldAiDrafted: number;
+  /** Subset of risksAvoided whose verdict was rubber-stamped from a draft. */
+  risksAvoidedAiDrafted: number;
   /** Predicates graded but outcome unknown — not scored either way. */
   unknown: number;
   /** Total predicates with any verdict (incl. unknown/partial). */
@@ -558,6 +571,8 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
     rolesConfirmed: 0,
     goodOutcomesOnLuck: 0,
     betsHeldAiSurfaced: 0,
+    betsHeldAiDrafted: 0,
+    risksAvoidedAiDrafted: 0,
     unknown: 0,
     resolved: 0,
     total: preds.length,
@@ -570,12 +585,12 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
       continue;
     }
     if (p.source === 'risk') {
-      if (p.verdict === 'avoided') { s.risksAvoided++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; }
+      if (p.verdict === 'avoided') { s.risksAvoided++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; if (p.verdict_via === 'ai_draft') s.risksAvoidedAiDrafted++; }
       else if (p.verdict === 'happened') s.risksHappened++;
     } else if (p.source === 'governing_idea' || p.source === 'user_lean') {
       // user_lean is the user's own pre-AI bet; it grades like a governing bet
       // (held → betsHeld). It is authored:'user', so it never counts as ai_surfaced.
-      if (p.verdict === 'happened') { s.betsHeld++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; if (p.authored === 'ai_surfaced') s.betsHeldAiSurfaced++; }
+      if (p.verdict === 'happened') { s.betsHeld++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; if (p.authored === 'ai_surfaced') s.betsHeldAiSurfaced++; if (p.verdict_via === 'ai_draft') s.betsHeldAiDrafted++; }
       else if (p.verdict === 'avoided') s.betsBroke++;
     } else if (p.source === 'actor') {
       if (p.verdict === 'happened') s.rolesConfirmed++;
@@ -598,6 +613,11 @@ export interface CrossProjectRecord {
    *  luck / outside factors. Keeps a lucky streak from reading as a skill record
    *  (R17). Counts only, never a score. */
   goodOutcomesOnLuck: number;
+  /** Of the wins above, how many had their VERDICT rubber-stamped from a
+   *  settle-align draft (`verdict_via === 'ai_draft'`) rather than verified by the
+   *  user. Disclosed in the 자차표 so an accepted draft never silently reads as the
+   *  user's own self-verified win — same disclosure principle as goodOutcomesOnLuck. */
+  draftedWins: number;
 }
 
 /**
@@ -612,7 +632,7 @@ export function summarizeRecord(
   projects: Array<{ decision_contract?: DecisionContract }>,
   now: number,
 ): CrossProjectRecord {
-  const rec: CrossProjectRecord = { loops: 0, betsHeld: 0, risksAvoided: 0, betsBroke: 0, risksHappened: 0, goodOutcomesOnLuck: 0 };
+  const rec: CrossProjectRecord = { loops: 0, betsHeld: 0, risksAvoided: 0, betsBroke: 0, risksHappened: 0, goodOutcomesOnLuck: 0, draftedWins: 0 };
   for (const p of projects) {
     const c = p?.decision_contract;
     if (!c || !contractStatus(c, now).allGraded) continue;
@@ -623,6 +643,7 @@ export function summarizeRecord(
     rec.betsBroke += g.betsBroke;
     rec.risksHappened += g.risksHappened;
     rec.goodOutcomesOnLuck += g.goodOutcomesOnLuck;
+    rec.draftedWins += g.betsHeldAiDrafted + g.risksAvoidedAiDrafted;
   }
   return rec;
 }

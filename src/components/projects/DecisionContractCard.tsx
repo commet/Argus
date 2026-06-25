@@ -304,6 +304,8 @@ export function DecisionContractCard({
       g.betsHeld > 0 && L(`가설 ${g.betsHeld}개 적중`, `${g.betsHeld} bet${g.betsHeld === 1 ? '' : 's'} held`),
       // The user's own read — a lucky win isn't a judgment win (R17).
       g.goodOutcomesOnLuck > 0 && L(`그중 운 ${g.goodOutcomesOnLuck}개`, `${g.goodOutcomesOnLuck} on luck`),
+      // Draft-accepted verdicts disclosed — a rubber-stamped win isn't self-verified.
+      (g.betsHeldAiDrafted + g.risksAvoidedAiDrafted) > 0 && L(`그중 초안 ${g.betsHeldAiDrafted + g.risksAvoidedAiDrafted}개`, `${g.betsHeldAiDrafted + g.risksAvoidedAiDrafted} from a draft`),
       g.unknown > 0 && L(`${g.unknown}개 미정`, `${g.unknown} unresolved`),
     ].filter(Boolean);
     return (

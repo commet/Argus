@@ -437,15 +437,6 @@ export interface QualitySignal {
   created_at: string;
 }
 
-export interface LearningHealth {
-  signal_count: number;
-  eval_coverage: number;
-  override_trend: 'improving' | 'stable' | 'not_enough_data';
-  convergence_trend: 'improving' | 'stable' | 'not_enough_data';
-  learning_tier: 1 | 2 | 3;
-  recommendations: string[];
-}
-
 export interface RetrospectiveQuestion {
   id: string;
   category: 'process' | 'judgment' | 'learning';
@@ -590,9 +581,16 @@ export interface Predicate {
    *  track record separates it, same principle as luck-vs-judgment basis (R17).
    *  Absent (typed/adopted bet, or non-bet predicate) = the user's own. */
   authored?: 'user' | 'ai_surfaced';
+  /** How the verdict was reached. 'ai_draft' = committed from an unedited LLM
+   *  alignment draft (settle-align reads the user's outcome account and proposes
+   *  a verdict per predicate). Absent = the user typed/changed/independently
+   *  tapped it. Keeps rubber-stamped wins out of the self-verified track record,
+   *  the same separation principle as `authored`/`basis`. Nests in the
+   *  decision_contract jsonb column — no migration. */
+  verdict_via?: 'ai_draft';
 }
 
-export type CheckInInterval = '1w' | '2w' | '1m';
+export type CheckInInterval = '3d' | '1w' | '2w' | '1m' | '3m';
 
 /** One superseded check-in, kept when the user says "아직" and extends the
  *  date (W1.2 amend principle: 변침도 기록이다 — never silently overwrite).
@@ -623,6 +621,11 @@ export interface DecisionContract {
   email_reminder?: boolean;
   /** Set by the cron when a reminder email was sent, to avoid daily duplicates. */
   reminder_sent_at?: string;
+  /** User's free-text account of what actually happened, written at settlement.
+   *  Self-authored. Feeds settle-align (the single-shot outcome-alignment agent);
+   *  never overwrites a predicate's text or the user_lean rope. Rides the existing
+   *  decision_contract jsonb column — no new DB column, no migration. */
+  outcome_note?: string;
 }
 
 // ─── Retrospective Answers (Phase 2) ───

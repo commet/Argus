@@ -28,7 +28,7 @@ import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Graticule } from '@/components/ui/VoyageElements';
 import { EASE } from '@/components/workspace/progressive/shared/constants';
 import { getPersonaPool } from '@/lib/worker-personas';
-import { WorkerAvatar, AvatarRow } from '@/components/workspace/progressive/WorkerAvatar';
+import { WorkerAvatar } from '@/components/workspace/progressive/WorkerAvatar';
 import { BindCard, type BindResult } from '@/components/workspace/progressive/BindCard';
 import { VoyagePhaseRail } from '@/components/workspace/progressive/VoyagePhaseRail';
 import { InteractiveDemo } from '@/components/workspace/InteractiveDemo';
@@ -526,55 +526,6 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 );
               })()}
 
-              {/* Returning user: previous projects — compact rows.
-                  Show 3 most recently updated projects (fall back to created_at when missing). */}
-              {projects.length > 0 && (() => {
-                const sorted = [...projects].sort((a, b) => {
-                  const aT = a.updated_at || a.created_at || '';
-                  const bT = b.updated_at || b.created_at || '';
-                  return bT.localeCompare(aT);
-                });
-                const shown = showAllProjects ? sorted : sorted.slice(0, 3);
-                const relTime = (iso?: string) => {
-                  if (!iso) return '';
-                  const ms = Date.now() - new Date(iso).getTime();
-                  if (!Number.isFinite(ms) || ms < 0) return '';
-                  const m = Math.floor(ms / 60_000);
-                  if (m < 60) return L(`${Math.max(1, m)}분 전`, `${Math.max(1, m)}m ago`);
-                  const h = Math.floor(m / 60);
-                  if (h < 24) return L(`${h}시간 전`, `${h}h ago`);
-                  const d = Math.floor(h / 24);
-                  return d < 30 ? L(`${d}일 전`, `${d}d ago`) : L(`${Math.floor(d / 30)}달 전`, `${Math.floor(d / 30)}mo ago`);
-                };
-                return (
-                  <div className="mb-6">
-                    <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.12em] font-semibold mb-2">
-                      {L('이어서 작업', 'Continue')}
-                    </p>
-                    <div className="space-y-1">
-                      {shown.map((p) => (
-                        <button key={p.id} onClick={() => onReady(p.id)}
-                          className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-lg hover:bg-[var(--surface)] hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all group">
-                          <FolderOpen size={12} className="text-[var(--accent)] shrink-0" />
-                          <span className="text-[13px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{p.name}</span>
-                          <span className="text-[11px] text-[var(--text-tertiary)] shrink-0 ml-auto tabular-nums">{relTime(p.updated_at || p.created_at)}</span>
-                          {/* Chevron stays visible on touch (no hover there) */}
-                          <ChevronRight size={12} className="text-[var(--text-tertiary)] shrink-0 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
-                        </button>
-                      ))}
-                    </div>
-                    {/* /project IS reachable for anon (public + localStorage-first); this
-                        expander still matters so project #4+ is reachable from here too. */}
-                    {sorted.length > 3 && (
-                      <button onClick={() => setShowAllProjects((v) => !v)}
-                        className="mt-1.5 px-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
-                        {showAllProjects ? L('접기 ▴', 'Show less ▴') : L(`전체 ${sorted.length}개 보기 ▾`, `Show all ${sorted.length} ▾`)}
-                      </button>
-                    )}
-                  </div>
-                );
-              })()}
-
               {/* Anonymous trial banner — compact, only critical info */}
               {!user && (
                 <div className="mb-5 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/15">
@@ -721,9 +672,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                         <div className="mt-1.5 flex items-center gap-3">
                           {/* Quota → settings; everything else → an explicit retry. */}
                           {isQuota ? (
-                            <a href="/settings" className="text-[12px] text-[var(--accent)] font-medium hover:underline">
+                            <LocaleLink href="/settings" className="text-[12px] text-[var(--accent)] font-medium hover:underline">
                               {L('Settings에서 API 키 등록하기 →', 'Register your API key in Settings →')}
-                            </a>
+                            </LocaleLink>
                           ) : (
                             <button onClick={() => handleSubmit()}
                               className="inline-flex items-center gap-1 text-[12px] text-[var(--accent)] font-semibold hover:underline cursor-pointer">
@@ -736,6 +687,56 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   );
                 })()}
               </div>
+
+              {/* Returning user: previous projects — compact rows. Sits BELOW the
+                  primary input so the workspace opens on "what's the situation?" not
+                  on a history list; past projects stay reachable in the middle. */}
+              {projects.length > 0 && (() => {
+                const sorted = [...projects].sort((a, b) => {
+                  const aT = a.updated_at || a.created_at || '';
+                  const bT = b.updated_at || b.created_at || '';
+                  return bT.localeCompare(aT);
+                });
+                const shown = showAllProjects ? sorted : sorted.slice(0, 3);
+                const relTime = (iso?: string) => {
+                  if (!iso) return '';
+                  const ms = Date.now() - new Date(iso).getTime();
+                  if (!Number.isFinite(ms) || ms < 0) return '';
+                  const m = Math.floor(ms / 60_000);
+                  if (m < 60) return L(`${Math.max(1, m)}분 전`, `${Math.max(1, m)}m ago`);
+                  const h = Math.floor(m / 60);
+                  if (h < 24) return L(`${h}시간 전`, `${h}h ago`);
+                  const d = Math.floor(h / 24);
+                  return d < 30 ? L(`${d}일 전`, `${d}d ago`) : L(`${Math.floor(d / 30)}달 전`, `${Math.floor(d / 30)}mo ago`);
+                };
+                return (
+                  <div className="mt-8">
+                    <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.12em] font-semibold mb-2">
+                      {L('이어서 작업', 'Continue')}
+                    </p>
+                    <div className="space-y-1">
+                      {shown.map((p) => (
+                        <button key={p.id} onClick={() => onReady(p.id)}
+                          className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-lg hover:bg-[var(--surface)] hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all group">
+                          <FolderOpen size={12} className="text-[var(--accent)] shrink-0" />
+                          <span className="text-[13px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{p.name}</span>
+                          <span className="text-[11px] text-[var(--text-tertiary)] shrink-0 ml-auto tabular-nums">{relTime(p.updated_at || p.created_at)}</span>
+                          {/* Chevron stays visible on touch (no hover there) */}
+                          <ChevronRight size={12} className="text-[var(--text-tertiary)] shrink-0 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      ))}
+                    </div>
+                    {/* /project IS reachable for anon (public + localStorage-first); this
+                        expander still matters so project #4+ is reachable from here too. */}
+                    {sorted.length > 3 && (
+                      <button onClick={() => setShowAllProjects((v) => !v)}
+                        className="mt-1.5 px-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
+                        {showAllProjects ? L('접기 ▴', 'Show less ▴') : L(`전체 ${sorted.length}개 보기 ▾`, `Show all ${sorted.length} ▾`)}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* SECONDARY: Demo scenarios — compact, framed as "둘러보기".
                   Returning users glance past; first-timers explore. */}
@@ -801,24 +802,49 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 <p className="text-[13px] text-[var(--text-secondary)] truncate">{problemInput}</p>
               </motion.div>
 
-              {/* 팀 등장 */}
-              <div className="rounded-xl bg-[var(--accent)]/[0.03] border border-[var(--accent)]/10 p-4 space-y-2.5">
-                {previewPersonas.map((p, i) => (
-                  <motion.div key={p.id}
-                    initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 + i * 0.3, duration: 0.4, ease: EASE }}
-                    className="flex items-center gap-3">
-                    <WorkerAvatar persona={p} size="sm" />
-                    <span className="text-[13px] font-medium text-[var(--text-primary)]">{p.name}</span>
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{p.role}</span>
-                  </motion.div>
-                ))}
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.4 }}
-                  className="text-[11px] text-[var(--text-tertiary)] pt-1">
-                  {/* Honest framing: the initial pass is a single read that finds the real
-                      question; this crew does its individual work later, at the worker stage. */}
-                  {L('AI 팀원 4명이 이 건을 따로따로 봐요 — 먼저 상황을 읽고 진짜 질문을 찾는 중...', 'Four AI teammates take this on separately — first, reading the situation to find the real question...')}
-                </motion.p>
+              {/* 팀 등장 — honest opening beat. The engine runs a SINGLE integrated
+                  read here (runInitialAnalysis), so we show ONE navigator actually
+                  reading, and the four crew DIMMED + labeled "standing by" — they
+                  deploy later, at the worker stage. No avatar row implying 4-up
+                  parallel work that isn't happening yet (honest provenance). */}
+              <div className="rounded-xl bg-[var(--accent)]/[0.03] border border-[var(--accent)]/10 p-4 space-y-3">
+                {/* The active reader — the one pass that is actually running now. */}
+                <motion.div
+                  initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, ease: EASE }}
+                  className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center shrink-0">
+                    <motion.span animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="flex">
+                      <Sparkles size={14} className="text-white" />
+                    </motion.span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-tight">
+                      {L('항해사가 먼저 읽는 중', 'A navigator reads first')}
+                    </p>
+                    <p className="text-[11px] text-[var(--text-tertiary)] leading-tight mt-0.5">
+                      {L('이 글을 통째로 읽어 진짜 질문을 찾고 있어요', 'Reading the whole thing to find the real question')}
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* The crew — shown DIMMED + labeled as standing by, not working. */}
+                <div className="pt-2 border-t border-[var(--border-subtle)]/60">
+                  <p className="text-[10px] text-[var(--text-tertiary)] mb-2">
+                    {L('대기 중인 선원 — 질문이 잡히면 합류', 'Crew standing by — they join once the question is set')}
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1.5 opacity-55">
+                    {previewPersonas.map((p, i) => (
+                      <motion.div key={p.id}
+                        initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + i * 0.15, duration: 0.4, ease: EASE }}
+                        className="flex items-center gap-2">
+                        <WorkerAvatar persona={p} size="sm" />
+                        <span className="text-[12px] font-medium text-[var(--text-primary)]">{p.name}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -841,9 +867,17 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
               <motion.div key="analyzing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, ease: EASE }} className="pt-6 md:pt-10">
 
-                {/* 상단: 팀 아바타 + 문제 echo */}
+                {/* 상단: 단일 항해사 표시 + 문제 echo. Still one read running — the
+                    crew hasn't deployed, so no 4-up avatar row here either. */}
                 <div className="flex items-center gap-3 mb-5">
-                  <AvatarRow personas={previewPersonas} />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-[var(--accent)] flex items-center justify-center shrink-0">
+                      <motion.span animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="flex">
+                        <Sparkles size={13} className="text-white" />
+                      </motion.span>
+                    </div>
+                    <span className="hidden sm:inline text-[11px] text-[var(--text-tertiary)]">{L('항해사 · 선원 대기', 'Navigator · crew waiting')}</span>
+                  </div>
                   <p className="text-[13px] text-[var(--text-secondary)] truncate flex-1">{problemInput}</p>
                 </div>
 

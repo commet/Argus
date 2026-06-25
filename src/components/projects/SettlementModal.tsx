@@ -24,9 +24,9 @@
  * auto-escaped.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, AlertTriangle, GitBranch, Check } from 'lucide-react';
+import { Target, AlertTriangle, GitBranch, Check, Sparkles, Loader2 } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useAuth } from '@/lib/auth';
@@ -43,6 +43,7 @@ import {
 import { Modal } from '@/components/ui/Modal';
 import { recordSignal } from '@/lib/signal-recorder';
 import { track } from '@/lib/analytics';
+import { alignOutcome, type OutcomeDraft } from '@/lib/settle-align';
 import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
@@ -81,6 +82,56 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   // How many times the user already said "아직" — the history is the receipt.
   const deferrals = Array.isArray(contract?.history) ? contract!.history.length : 0;
 
+  // ── Outcome-alignment agent (단발 정산 도우미) ──
+  // The user can write one paragraph of what actually happened; a single-shot
+  // agent reads it against each sealed prediction and pre-highlights a draft
+  // verdict + a grounding line lifted from their own words. The draft is
+  // non-binding — they confirm/override/accept, and a draft-accepted verdict is
+  // tagged `ai_draft` so it never inflates the self-verified record (spine).
+  const [account, setAccount] = useState(contract?.outcome_note ?? '');
+  const [drafts, setDrafts] = useState<Record<string, OutcomeDraft>>({});
+  const [aligning, setAligning] = useState(false);
+  const [alignError, setAlignError] = useState(false);
+  const hasDrafts = Object.keys(drafts).length > 0;
+
+  /** Persist the account, then read it against the predicates (single shot). */
+  async function runAlign() {
+    if (!contract || !account.trim() || aligning) return;
+    setAligning(true);
+    setAlignError(false);
+    // Persist the account first — it's the user's own words, valuable even if the
+    // alignment call fails (and it rehydrates on reopen).
+    updateProject(project.id, { decision_contract: { ...contract, outcome_note: account.trim() } });
+    track('settle_align_used', { project_id: project.id, predicates: predicates.length });
+    try {
+      setDrafts(await alignOutcome(predicates, account.trim(), ko ? 'ko' : 'en'));
+    } catch {
+      setAlignError(true);
+    } finally {
+      setAligning(false);
+    }
+  }
+
+  /** Commit every still-open predicate from its draft — tagged `ai_draft`. Each is
+   *  still individually overridable above; this is the one-tap "looks right". */
+  function acceptAllDrafts() {
+    if (!contract) return;
+    let next = contract;
+    const now = Date.now();
+    let count = 0;
+    for (const p of predicates) {
+      if (isResolved(p)) continue;
+      const d = drafts[p.id];
+      if (!d) continue;
+      next = gradePredicate(next, p.id, d.verdict, now, 'ai_draft');
+      count++;
+    }
+    if (count === 0) return;
+    updateProject(project.id, { decision_contract: next });
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict: 'align_accept_all' } });
+    track('settle_align_accepted_all', { project_id: project.id, count });
+  }
+
   // Return-loop instrumentation: the founder's core question is "do people who
   // came back actually close the loop?" — so we need the came-back-but-left
   // number, not just the graded one. `shown` fires on open; `abandoned` fires on
@@ -106,10 +157,10 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
     return { ...rec, loops: Math.max(1, rec.loops) };
   }, [allResolved, projects]);
 
-  function grade(predicateId: string, verdict: PredicateVerdict) {
+  function grade(predicateId: string, verdict: PredicateVerdict, via?: 'ai_draft') {
     if (!contract) return;
     updateProject(project.id, {
-      decision_contract: gradePredicate(contract, predicateId, verdict, Date.now()),
+      decision_contract: gradePredicate(contract, predicateId, verdict, Date.now(), via),
     });
     // Learning signal — settlement is the return half of the loop; its verdict
     // is the ground truth the product is built to accumulate (2026-06-13 fix).
@@ -214,9 +265,48 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
              "However it turned out is fine — what we check is the prediction back then, not you. A good call can still get a bad result.")}
         </p>
 
+        {/* Optional outcome account → single-shot alignment. Never blocks: the
+            manual taps below always work, with or without this. */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+          <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5 leading-[1.5]">
+            {L('무슨 일이 있었는지 한 단락으로 적어볼까요? (선택) — 적어주시면 아래 질문에 초안을 맞춰드려요.',
+               "Want to write a paragraph on what actually happened? (optional) — I'll line it up against the questions below as a draft.")}
+          </label>
+          <textarea
+            value={account}
+            onChange={(e) => setAccount(e.target.value)}
+            rows={3}
+            maxLength={1000}
+            placeholder={L('그때 이 결정이 실제로 어떻게 흘러갔는지, 기억나는 대로…', 'However it actually played out, as best you remember…')}
+            className="w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-[12.5px] text-[var(--text-primary)] leading-[1.5] focus:outline-none focus:border-[var(--accent)]/50"
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              onClick={runAlign}
+              disabled={!account.trim() || aligning}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50 cursor-pointer"
+              style={{ background: 'var(--gradient-gold, var(--accent))' }}
+            >
+              {aligning ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              {aligning ? L('맞춰보는 중…', 'Lining up…') : L('맞춰보기', 'Line it up')}
+            </button>
+            {hasDrafts && (
+              <span className="text-[11px] text-[var(--text-tertiary)] leading-[1.4] flex-1 min-w-[160px]">
+                {L('초안은 적어주신 글을 읽어 표시해둔 것뿐이에요 — 맞는지는 직접 정하세요.', "The drafts are just a reading of what you wrote — you decide what's right.")}
+              </span>
+            )}
+          </div>
+          {alignError && (
+            <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+              {L('지금은 맞춰드리기 어려워요 — 아래에서 직접 표시해 주세요.', "Couldn't line it up right now — please mark them below yourself.")}
+            </p>
+          )}
+        </div>
+
         <div className="space-y-2.5">
           {predicates.map((p) => {
             const Icon = SOURCE_ICON[p.source] ?? AlertTriangle;
+            const draft = drafts[p.id];
             return (
               <div key={p.id} className={`rounded-xl border p-3 ${p.source === 'user_lean' ? 'border-[var(--accent)]/40 bg-[var(--ai)]/30' : 'border-[var(--border)] bg-[var(--surface)]'}`}>
                 {p.source === 'user_lean' && (
@@ -232,27 +322,42 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2 pl-[21px]">
                   {/* 3-tap settle: resolved verdicts only. The 4th path ("아직")
-                      lives at the contract level below — it extends, not resolves. */}
+                      lives at the contract level below — it extends, not resolves.
+                      A settle-align draft pre-highlights its verdict (dashed); the
+                      user still owns the tap. Tapping the highlighted draft commits
+                      as `ai_draft`; tapping any other button commits clean. */}
                   {verdictButtons(p.source, ko)
                     .filter((v) => v.value !== 'unknown')
                     .map((v) => {
                       const selected = p.verdict === v.value;
+                      const isDraft = !!draft && draft.verdict === v.value && !isResolved(p) && !selected;
                       return (
                         <button
                           key={v.value}
-                          onClick={() => grade(p.id, selected ? 'pending' : v.value)}
+                          onClick={() => grade(p.id, selected ? 'pending' : v.value, isDraft ? 'ai_draft' : undefined)}
                           aria-pressed={selected}
-                          className={`px-2.5 py-1 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
                             selected
                               ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                              : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
+                              : isDraft
+                                ? 'border-dashed border-[var(--accent)] text-[var(--accent)] bg-[var(--ai)]/40'
+                                : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
                           }`}
                         >
                           {v.label}
+                          {isDraft && <span className="text-[9px] font-bold uppercase tracking-wide opacity-70">{L('초안', 'draft')}</span>}
                         </button>
                       );
                     })}
                 </div>
+                {/* The grounding the draft read from the user's own account — a
+                    READING frame ("이렇게 읽었어요"), never claimed as their words. */}
+                {draft && !isResolved(p) && (
+                  <p className="pl-[21px] mt-1.5 text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
+                    <span className="text-[var(--text-secondary)]">{L('이렇게 읽었어요 — ', 'Read it as — ')}</span>
+                    {draft.evidence}
+                  </p>
+                )}
                 {/* Light, optional second tap on a WIN only: was it your read or
                     luck? Keeps a lucky outcome from logging as a judgment-win
                     (R17). Never required — the loop closes whether or not it's
@@ -297,6 +402,23 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
           })}
         </div>
 
+        {/* One-tap "looks right" — commits every still-open draft as `ai_draft`.
+            Each remains individually overridable above; hidden once all resolved. */}
+        {hasDrafts && !allResolved && (
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--ai)]/30 border border-[var(--accent)]/20 px-3 py-2.5">
+            <span className="text-[11.5px] text-[var(--text-secondary)] leading-[1.4]">
+              {L('각 항목은 따로 바꿔도 돼요.', 'You can still change any of them.')}
+            </span>
+            <button
+              onClick={acceptAllDrafts}
+              className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white cursor-pointer"
+              style={{ background: 'var(--gradient-gold, var(--accent))' }}
+            >
+              {L('초안대로 다 확인', 'Accept all drafts')}
+            </button>
+          </div>
+        )}
+
         <div className="pt-3 border-t border-[var(--border)]">
           <AnimatePresence mode="wait">
             {allResolved ? (
@@ -321,6 +443,10 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                         reading as a judgment-win in the record (R17). */}
                     {record.goodOutcomesOnLuck > 0 &&
                       ' ' + L(`그중 ${record.goodOutcomesOnLuck}개는 운이었다고 보셨고요.`, `You marked ${record.goodOutcomesOnLuck} of those as luck.`)}
+                    {/* Disclose draft-accepted verdicts so a rubber-stamped win
+                        never silently reads as the user's own self-verified one. */}
+                    {record.draftedWins > 0 &&
+                      ' ' + L(`그중 ${record.draftedWins}개는 초안대로 확인했어요.`, `${record.draftedWins} of those you confirmed from the draft.`)}
                   </p>
                 )}
                 {/* P2/P1-9: the hard-won record is localStorage-only for anon users —
