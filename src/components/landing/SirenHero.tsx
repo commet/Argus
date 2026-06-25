@@ -175,8 +175,12 @@ export function SirenHero() {
             myth that names the product. Full-bleed AND at the film's true 16:9
             height (capped only on very tall viewports), so it fills the width
             edge-to-edge — overwhelming — while nothing gets cropped. */}
+        {/* Mobile (<640px): height is CONTENT-driven — VoyageFilm stacks the 16:9
+            video above a paper caption gutter (text never overlaps the engraving),
+            so the band sizes to video+gutter. ≥640px keeps the fixed 16:9 band the
+            cinematic lower-left overlay was composed for (capped on tall viewports). */}
         <div
-          className="bp-fade-up h-[56.25vw] max-h-[82vh]"
+          className="bp-fade-up h-auto sm:h-[56.25vw] sm:max-h-[82vh]"
           style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 32, marginBottom: 20, animationDelay: '200ms' }}
         >
           <VoyageFilm />

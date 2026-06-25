@@ -29,7 +29,7 @@ function useIsNarrow() {
   const [n, setN] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mq = window.matchMedia('(max-width: 640px)');
+    const mq = window.matchMedia('(max-width: 639.98px)'); // aligns with Tailwind `sm`
     const on = () => setN(mq.matches);
     on();
     mq.addEventListener('change', on);
@@ -120,7 +120,9 @@ const INTRO = {
   from: 1.0, to: 5.3,
   eyebrowKo: '호메로스 · 오디세이아', eyebrowEn: 'HOMER · THE ODYSSEY',
   lineKo: '세이렌은 “내가 다 알려줄게” 노래로 뱃사람을 홀렸습니다 — 지금의 AI처럼.\n오디세우스는, 휩쓸리지 않고 지나는 법을 알았죠.',
-  lineEn: 'The Sirens lured sailors with a song — “we will tell you all.” Much like today’s AI.\nOdysseus knew how to pass without being swept away.',
+  // Break BEFORE the quote so it stays whole on its own line instead of wrapping
+  // mid-phrase ("we will tell" | "you all").
+  lineEn: 'The Sirens lured sailors with a song —\n“we will tell you all.” Much like today’s AI.\nOdysseus knew how to pass without being swept away.',
 };
 
 // Myth lines are quoted in Homer's voice (echoing Pope's 1725 verse — public
@@ -164,8 +166,10 @@ const CHAPTERS: Chapter[] = [
     mythEn: '“Only old Argos, failing,\nknew his master still.”',
     attrKo: '20년을 기다린 늙은 개 아르고스, 주인을 알아보다',
     attrEn: 'Argos, the dog who waited 20 years, knew his master',
-    lineKo: '정한 날 돌아와 물어요 — “그래서, 어떻게 됐어요?”',
-    lineEn: 'on your day, I return — “so, how did it go?”',
+    // Explicit break BEFORE the quote so the whole question drops to its own
+    // line instead of wrapping mid-phrase (“그래서,” | “어떻게 됐어요?”).
+    lineKo: '정한 날 돌아와 물어요 —\n“그래서, 어떻게 됐어요?”',
+    lineEn: 'on your day, I return —\n“so, how did it go?”',
   },
 ];
 
@@ -318,6 +322,61 @@ export function VoyageFilm() {
     evs.forEach((e) => v.addEventListener(e, onTime));
     return () => evs.forEach((e) => v.removeEventListener(e, onTime));
   }, []);
+
+  // ── MOBILE (<640px): stack the video (16:9) ABOVE a paper caption gutter, so
+  // the plate-folio text never covers the engraving. The phone band is too short
+  // for the desktop lower-left overlay — its frost box swallowed most of the
+  // picture. The desktop cinematic overlay (below) is unchanged. ──
+  if (narrow) {
+    const introMode = intro && !active;
+    // Persist the most recent chapter through the ~1.5s gaps between windows so
+    // the gutter never flashes empty (desktop just shows the engraving in gaps).
+    const gChapter = active ?? (shownIdx >= 0 ? CHAPTERS[shownIdx] : null);
+    return (
+      <figure className="relative w-full" style={{ margin: 0, overflow: 'hidden', background: 'var(--bp-paper)', display: 'flex', flexDirection: 'column' }}>
+        {/* video — true 16:9, full width, nothing over it */}
+        <div className="relative w-full" style={{ aspectRatio: '16 / 9', flex: 'none', overflow: 'hidden' }}>
+          <video
+            ref={vref}
+            className="bp-voyage-video"
+            autoPlay muted loop playsInline preload="metadata"
+            poster="/voyage/voyage-poster.jpg"
+            aria-label={L('오디세우스의 항해 — 묶기, 듣기, 닿기, 그리고 알아봄', "Odysseus's voyage — bind, listen, land, and recognition")}
+            style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', background: 'var(--bp-paper)' }}
+          >
+            <source src="/voyage/voyage-film.mp4" type="video/mp4" />
+          </video>
+          <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 3 }} />
+        </div>
+        {/* caption gutter — paper strip with a FIXED height (sized for the
+            tallest chapter, measured ~196px of text) so chapter swaps never shift
+            the page below. Caption is vertically centered; progress dots pinned
+            bottom-left. */}
+        <div style={{ position: 'relative', flex: 'none', height: 256, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '14px 18px 34px' }}>
+          <AnimatePresence mode="wait">
+            {introMode ? (
+              <motion.div key="intro" style={{ textAlign: 'left' }} initial={rm ? { opacity: 1 } : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }} aria-live="polite">
+                <span className="bp-mono" style={{ display: 'block', marginBottom: 9, fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)' }}>{L(INTRO.eyebrowKo, INTRO.eyebrowEn)}</span>
+                <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 4vw, 17px)', lineHeight: 1.5, letterSpacing: '-0.006em', textWrap: 'pretty' }}>
+                  <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
+                </p>
+              </motion.div>
+            ) : gChapter ? (
+              <motion.div key={gChapter.num} style={{ textAlign: 'left' }} initial={rm ? { opacity: 1 } : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }} aria-live="polite">
+                <PlateFolioCard active={gChapter} L={L} locale={locale} rm={rm} narrow={true} />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+          <div className="flex items-center" style={{ position: 'absolute', left: 18, bottom: 14, gap: 9 }} aria-hidden="true">
+            {CHAPTERS.map((c, i) => {
+              const on = i === shownIdx; const passed = i < shownIdx; const size = on ? 7 : 5;
+              return <span key={c.num} style={{ width: size, height: size, borderRadius: '50%', background: on ? (c.gold ? 'var(--bp-gold)' : 'var(--bp-ink)') : passed ? 'var(--bp-ink-soft)' : 'transparent', border: !on && !passed ? '1px solid var(--bp-ink-faint)' : 'none', opacity: on ? 1 : passed ? 0.55 : 0.5, transition: 'width 360ms ease, height 360ms ease, background 360ms ease, opacity 360ms ease' }} />;
+            })}
+          </div>
+        </div>
+      </figure>
+    );
+  }
 
   return (
     <figure className="relative w-full h-full" style={{ margin: 0, overflow: 'hidden', background: 'var(--bp-paper)' }}>
