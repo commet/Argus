@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { settlementReminderText, settlementReplyMarkup } from '@/lib/telegram-settlement';
-import { isCheckInReminderDue, selectOpenPredicate } from '@/lib/checkin-reminder';
+import { isCheckInReminderDue, renderCheckInReminderEmail, selectOpenPredicate } from '@/lib/checkin-reminder';
 import type { DecisionContract } from '@/stores/types';
 
 export const runtime = 'nodejs';
@@ -33,10 +33,6 @@ function safeCompare(a: string, b: string): boolean {
   let mismatch = lengthMismatch;
   for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ compareTarget.charCodeAt(i);
   return mismatch === 0;
-}
-
-function escHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 async function sendTelegramReminder(args: {
@@ -115,14 +111,7 @@ export async function GET(req: Request) {
         if (email) {
           const lean = c.predicates?.find((p) => p.source === 'user_lean')?.text;
           const link = `${origin}/project`;
-          const html = `
-            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a">
-              <p style="font-size:18px;font-weight:700;margin:0 0 12px">그래서, 어떻게 됐어요?</p>
-              <p style="font-size:14px;color:#57534e;line-height:1.6;margin:0 0 8px">${escHtml(name)} — 그날 확인하기로 한 결정이에요.</p>
-              ${lean ? `<p style="font-size:13px;color:#78716c;line-height:1.5;margin:0 0 16px">출항 때 당신의 한 줄: “${escHtml(lean)}”</p>` : ''}
-              <a href="${link}" style="display:inline-block;background:#2d4a7c;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:10px 18px;border-radius:10px">돌아가서 정산하기 →</a>
-              <p style="font-size:11px;color:#a8a29e;margin:20px 0 0">이 메일은 봉인할 때 알림을 켜셔서 받은 거예요.</p>
-            </div>`;
+          const html = renderCheckInReminderEmail({ projectName: name, lean, link });
           await resend.emails.send({
             from: `Argus <hello@${fromDomain}>`,
             replyTo,
@@ -157,7 +146,7 @@ export async function GET(req: Request) {
             botToken,
             chatId: String(conn.chat_id),
             text,
-            replyMarkup: settlementReplyMarkup(r.id),
+            replyMarkup: settlementReplyMarkup(r.id, c.id),
           })) delivered++;
         }
         if (delivered > 0) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DecisionContract } from '@/stores/types';
-import { isCheckInReminderDue, selectOpenPredicate } from '../checkin-reminder';
+import { isCheckInReminderDue, renderCheckInReminderEmail, selectOpenPredicate } from '../checkin-reminder';
 
 const base = (patch: Partial<DecisionContract> = {}): DecisionContract => ({
   id: 'c1',
@@ -46,5 +46,20 @@ describe('check-in reminder selection', () => {
         { id: 'pred_1', source: 'governing_idea', text: 'First check', verdict: 'happened' },
       ],
     }))?.id).toBe('pred_1');
+  });
+
+  it('renders escaped reminder email html with the actual lean text', () => {
+    const html = renderCheckInReminderEmail({
+      projectName: '<Launch>',
+      lean: 'Use <script>alert(1)</script>',
+      link: 'https://argus.voyage/project?x="quoted"',
+    });
+
+    expect(html).toContain('&lt;Launch&gt; is ready for its Argus check-in.');
+    expect(html).toContain('Use &lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).not.toContain('${');
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('href="https://argus.voyage/project?x=&quot;quoted&quot;"');
+    expect(html).toContain('</a>');
   });
 });

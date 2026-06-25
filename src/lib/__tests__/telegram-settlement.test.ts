@@ -19,6 +19,9 @@ const contract = (): DecisionContract => ({
   ],
 });
 
+const uuidProjectId = '11111111-1111-4111-8111-111111111111';
+const uuidContractId = '22222222-2222-4222-8222-222222222222';
+
 describe('telegram settlement intent parsing', () => {
   it('parses inline keyboard callback data', () => {
     expect(parseSettlementIntent({ callbackData: 'stl|partial|p1' })).toEqual({
@@ -89,6 +92,19 @@ describe('telegram settlement intent parsing', () => {
       predicate: 'Activation holds',
     })).toContain('ARGUS_SETTLE:p1:c1');
     expect(settlementReplyMarkup('p1').inline_keyboard.flat().map((b) => b.callback_data)).toContain('stl|pending|p1');
+  });
+
+  it('packs project and contract ids into inline callbacks when ids are UUIDs', () => {
+    const callbacks = settlementReplyMarkup(uuidProjectId, uuidContractId).inline_keyboard.flat().map((b) => b.callback_data);
+    expect(callbacks.every((data) => data.length <= 64)).toBe(true);
+    expect(callbacks).not.toContain(`stl|pending|${uuidProjectId}`);
+
+    expect(parseSettlementIntent({ callbackData: callbacks[0] })).toEqual({
+      projectId: uuidProjectId,
+      contractId: uuidContractId,
+      outcome: 'happened',
+      source: 'callback',
+    });
   });
 });
 

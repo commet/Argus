@@ -33,16 +33,36 @@ export function settlementToken(projectId: string, contractId?: string): string 
   return contractId ? `${TOKEN_PREFIX}:${projectId}:${contractId}` : `${TOKEN_PREFIX}:${projectId}`;
 }
 
-export function settlementReplyMarkup(projectId: string) {
+const CALLBACK_PREFIX = 'stl1';
+const CALLBACK_OUTCOME_CODE: Record<TelegramSettlementOutcome, string> = {
+  happened: 'h',
+  avoided: 'a',
+  partial: 'm',
+  pending: 'p',
+};
+const CALLBACK_CODE_OUTCOME: Record<string, TelegramSettlementOutcome> = {
+  h: 'happened',
+  a: 'avoided',
+  m: 'partial',
+  p: 'pending',
+};
+
+export function settlementReplyMarkup(projectId: string, contractId?: string) {
+  const callbackTarget = contractId ? encodeCallbackTarget(projectId, contractId) : null;
+  const callbackData = (outcome: TelegramSettlementOutcome) =>
+    callbackTarget
+      ? `${CALLBACK_PREFIX}|${CALLBACK_OUTCOME_CODE[outcome]}|${callbackTarget}`
+      : `stl|${outcome}|${projectId}`;
+
   return {
     inline_keyboard: [
       [
-        { text: 'Happened', callback_data: `stl|happened|${projectId}` },
-        { text: 'Avoided', callback_data: `stl|avoided|${projectId}` },
+        { text: 'Happened', callback_data: callbackData('happened') },
+        { text: 'Avoided', callback_data: callbackData('avoided') },
       ],
       [
-        { text: 'Partial', callback_data: `stl|partial|${projectId}` },
-        { text: 'Still pending', callback_data: `stl|pending|${projectId}` },
+        { text: 'Partial', callback_data: callbackData('partial') },
+        { text: 'Still pending', callback_data: callbackData('pending') },
       ],
     ],
   };
@@ -157,6 +177,12 @@ export function escapeTelegramHtml(value: string): string {
 function parseCallbackData(data?: string): TelegramSettlementIntent | null {
   if (!data) return null;
   const parts = data.split('|');
+  if (parts.length === 3 && parts[0] === CALLBACK_PREFIX) {
+    const outcome = CALLBACK_CODE_OUTCOME[parts[1]];
+    const target = decodeCallbackTarget(parts[2]);
+    if (!outcome || !target) return null;
+    return { ...target, outcome, source: 'callback' };
+  }
   if (parts.length !== 3 || parts[0] !== 'stl') return null;
   const outcome = parseOutcome(parts[1]);
   if (!outcome || !parts[2]) return null;
@@ -210,4 +236,41 @@ function stripOutcome(text: string, matchedText: string): string | undefined {
 function cleanNote(note?: string): string | undefined {
   const trimmed = note?.trim();
   return trimmed ? trimmed.slice(0, 1000) : undefined;
+}
+
+function encodeCallbackTarget(projectId: string, contractId: string): string | null {
+  const projectBytes = uuidToBytes(projectId);
+  const contractBytes = uuidToBytes(contractId);
+  if (!projectBytes || !contractBytes) return null;
+  return Buffer.concat([projectBytes, contractBytes]).toString('base64url');
+}
+
+function decodeCallbackTarget(token: string): Pick<TelegramSettlementIntent, 'projectId' | 'contractId'> | null {
+  try {
+    const bytes = Buffer.from(token, 'base64url');
+    if (bytes.length !== 32) return null;
+    return {
+      projectId: bytesToUuid(bytes.subarray(0, 16)),
+      contractId: bytesToUuid(bytes.subarray(16, 32)),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function uuidToBytes(id: string): Buffer | null {
+  const hex = id.replace(/-/g, '').toLowerCase();
+  if (!/^[0-9a-f]{32}$/.test(hex)) return null;
+  return Buffer.from(hex, 'hex');
+}
+
+function bytesToUuid(bytes: Buffer): string {
+  const hex = bytes.toString('hex');
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join('-');
 }
