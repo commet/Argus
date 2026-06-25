@@ -254,10 +254,14 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
     <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(16px, 2vw, 30px)' }}>
       <motion.div
         aria-hidden="true"
-        initial={rm ? {} : { clipPath: 'inset(0 0 100% 0)' }}
-        animate={{ clipPath: 'inset(0 0 0% 0)' }}
-        transition={{ duration: 0.7, delay: rm ? 0 : 0.08, ease: 'easeOut' }}
-        style={{ flex: 'none', alignSelf: 'flex-start', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(76px, 11vw, 160px)', lineHeight: 0.78, color: folioColor, opacity: folioOpacity, textShadow: folioHalo, userSelect: 'none' }}
+        // Fade+rise in — NOT a clipPath reveal. With lineHeight 0.78 the glyph
+        // overflows its line box, and an inset() clip cut that overflow off at the
+        // bottom (the narrow numeral, which has no clip, stayed whole — that's why
+        // the bottom only vanished on wide). Opacity has no such edge.
+        initial={rm ? { opacity: folioOpacity } : { opacity: 0, y: 12 }}
+        animate={{ opacity: folioOpacity, y: 0 }}
+        transition={{ duration: 0.6, delay: rm ? 0 : 0.08, ease: [0.22, 0.61, 0.36, 1] }}
+        style={{ flex: 'none', alignSelf: 'flex-start', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(76px, 11vw, 160px)', lineHeight: 0.78, color: folioColor, textShadow: folioHalo, userSelect: 'none' }}
       >
         {active.num}
       </motion.div>
@@ -348,28 +352,29 @@ export function VoyageFilm() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
             style={{
-              // Wide: start the frosted band exactly where the body text begins —
-              // i.e. PAST the giant folio numeral — so the blur lifts the TEXT, not
-              // the numeral (whose lower half was washing into the band). The start
-              // is computed from the SAME clamps that size the numeral (card left +
-              // numeral width + the inter-column gap), so the numeral stays fully
-              // clear at EVERY viewport width, not just the ones we eyeballed. The
-              // mask centre sits inside the band so its left edge feathers in by the
-              // spine — no hard seam. Narrow stacks numeral above the text, so the
-              // band stays full-width there.
+              // Anchored at the bottom-LEFT corner (both layouts). The trick that
+              // kills the hard "cut box" edge: left + bottom are the screen edges, so
+              // a clip there is invisible — only the RIGHT and TOP need to feather,
+              // and the radial mask reaches FULLY transparent (alpha 0) well inside
+              // the box on those two sides, so the blur dissolves into the picture
+              // with no straight seam across the figures. (The earlier offset-past-
+              // numeral band still hard-cut on its right edge on wide screens, landing
+              // a straight line right over the central figure.) The numeral sits
+              // inside the band — dark ink on the lifted paper reads MORE clearly.
               position: 'absolute',
-              left: narrow ? 0 : 'calc(clamp(24px, 6vw, 84px) + clamp(76px, 11vw, 160px) + clamp(14px, 1.6vw, 24px))',
-              bottom: 0, zIndex: 1, pointerEvents: 'none',
-              width: narrow ? 'min(820px, 80%)' : 'min(740px, 60%)', height: 'min(64%, 400px)',
+              left: 0, bottom: 0, zIndex: 1, pointerEvents: 'none',
+              width: narrow ? 'min(820px, 80%)' : 'min(760px, 64%)', height: 'min(60%, 400px)',
               backdropFilter: 'blur(9px) saturate(1.0) brightness(1.08)',
               WebkitBackdropFilter: 'blur(9px) saturate(1.0) brightness(1.08)',
-              background: 'linear-gradient(to top right, color-mix(in srgb, var(--bp-paper) 40%, transparent), transparent 70%)',
+              background: narrow
+                ? 'linear-gradient(to top right, color-mix(in srgb, var(--bp-paper) 40%, transparent), transparent 70%)'
+                : 'radial-gradient(74% 78% at 13% 87%, color-mix(in srgb, var(--bp-paper) 50%, transparent), transparent 72%)',
               maskImage: narrow
                 ? 'radial-gradient(140% 132% at 0% 100%, #000 44%, transparent 82%)'
-                : 'radial-gradient(128% 132% at 24% 100%, #000 34%, transparent 84%)',
+                : 'radial-gradient(74% 80% at 12% 88%, #000 0 40%, transparent 78%)',
               WebkitMaskImage: narrow
                 ? 'radial-gradient(140% 132% at 0% 100%, #000 44%, transparent 82%)'
-                : 'radial-gradient(128% 132% at 24% 100%, #000 34%, transparent 84%)',
+                : 'radial-gradient(74% 80% at 12% 88%, #000 0 40%, transparent 78%)',
             }}
           />
         )}
