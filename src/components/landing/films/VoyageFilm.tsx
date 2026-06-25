@@ -416,29 +416,24 @@ export function VoyageFilm() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
             style={{
-              // Anchored at the bottom-LEFT corner (both layouts). The trick that
-              // kills the hard "cut box" edge: left + bottom are the screen edges, so
-              // a clip there is invisible — only the RIGHT and TOP need to feather,
-              // and the radial mask reaches FULLY transparent (alpha 0) well inside
-              // the box on those two sides, so the blur dissolves into the picture
-              // with no straight seam across the figures. (The earlier offset-past-
-              // numeral band still hard-cut on its right edge on wide screens, landing
-              // a straight line right over the central figure.) The numeral sits
-              // inside the band — dark ink on the lifted paper reads MORE clearly.
+              // Shaped to the TEXT block, not a corner vignette: a rectangle SOLID
+              // across the full text width, feathered only on the RIGHT (just past
+              // the longest line) and TOP — left + bottom are screen edges, so a clip
+              // there is invisible. mask-composite intersects a horizontal fade with a
+              // vertical one, giving UNIFORM backing behind every line; a radial
+              // under-covered the wide two-line block's top-right, so line-ends fell
+              // onto bare engraving and lost legibility. Desktop-only — the mobile
+              // gutter returns earlier, so this never needs a narrow variant.
               position: 'absolute',
               left: 0, bottom: 0, zIndex: 1, pointerEvents: 'none',
-              width: narrow ? 'min(820px, 80%)' : 'min(760px, 64%)', height: 'min(60%, 400px)',
-              backdropFilter: 'blur(9px) saturate(1.0) brightness(1.08)',
-              WebkitBackdropFilter: 'blur(9px) saturate(1.0) brightness(1.08)',
-              background: narrow
-                ? 'linear-gradient(to top right, color-mix(in srgb, var(--bp-paper) 40%, transparent), transparent 70%)'
-                : 'radial-gradient(74% 78% at 13% 87%, color-mix(in srgb, var(--bp-paper) 50%, transparent), transparent 72%)',
-              maskImage: narrow
-                ? 'radial-gradient(140% 132% at 0% 100%, #000 44%, transparent 82%)'
-                : 'radial-gradient(74% 80% at 12% 88%, #000 0 40%, transparent 78%)',
-              WebkitMaskImage: narrow
-                ? 'radial-gradient(140% 132% at 0% 100%, #000 44%, transparent 82%)'
-                : 'radial-gradient(74% 80% at 12% 88%, #000 0 40%, transparent 78%)',
+              width: 'min(880px, 72%)', height: 'min(62%, 430px)',
+              backdropFilter: 'blur(9px) saturate(1.0) brightness(1.05)',
+              WebkitBackdropFilter: 'blur(9px) saturate(1.0) brightness(1.05)',
+              background: 'color-mix(in srgb, var(--bp-paper) 60%, transparent)',
+              maskImage: 'linear-gradient(to right, #000 70%, transparent 94%), linear-gradient(to top, #000 58%, transparent 95%)',
+              WebkitMaskImage: 'linear-gradient(to right, #000 70%, transparent 94%), linear-gradient(to top, #000 58%, transparent 95%)',
+              maskComposite: 'intersect',
+              WebkitMaskComposite: 'source-in',
             }}
           />
         )}
