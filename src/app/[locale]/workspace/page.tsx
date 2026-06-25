@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useWorkspaceStore, type StepId } from '@/stores/useWorkspaceStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { ReframeStep } from '@/components/workspace/ReframeStep';
 import { RecastStep } from '@/components/workspace/RecastStep';
@@ -12,8 +13,8 @@ import { RehearseStep } from '@/components/workspace/RehearseStep';
 import { SynthesizeStep } from '@/components/workspace/SynthesizeStep';
 import { ProgressiveFlow } from '@/components/workspace/progressive/ProgressiveFlow';
 import { WorkerDrawer, useWorkers } from '@/components/workspace/progressive/WorkerPanel';
-import { AgentSidebar } from '@/components/workspace/progressive/AgentSidebar';
-import { Logbook, LogbookDrawer } from '@/components/workspace/progressive/Logbook';
+import { LogbookDrawer } from '@/components/workspace/progressive/Logbook';
+import { VoyageMapRail } from '@/components/workspace/progressive/VoyageMapRail';
 import { QuickChatBar } from '@/components/workspace/QuickChatBar';
 import { NavigatorStrip } from '@/components/workspace/NavigatorStrip';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -67,30 +68,38 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
     const sess = s.sessions.find(x => x.id === s.currentSessionId);
     return (sess?.waypoints?.length ?? 0) > 0;
   });
-  // W1.6 선실 대청소: mid-voyage, the rail (Logbook + AgentSidebar) was the
-  // single biggest "중구난방" source (G-W1 contact #1). Focus mode (default)
-  // shows it only once the voyage is complete; classic_session restores it.
-  const sessionPhase = useProgressiveStore(s => {
+  // The Voyage Map rail (left) is the standing companion for the WHOLE voyage —
+  // restored from the W1.6 focus-mode demotion that hid it until 'complete'. The
+  // mid-voyage "중구난방" that prompted that demotion is now held off by the
+  // rail's own collapse-to-spine (state in `voyage_map_collapsed`), not by hiding
+  // it outright. It appears once the voyage has any map content or live crew.
+  const hasCheckpoints = useProgressiveStore(s => {
     const sess = s.sessions.find(x => x.id === s.currentSessionId);
-    return sess?.phase ?? null;
+    return (sess?.checkpoints?.length ?? 0) > 0;
   });
-  const classicSession = useSettingsStore(s => s.settings.classic_session ?? false);
-  const showRail = (hasWorkers || hasWaypoints) && (classicSession || sessionPhase === 'complete');
-  // Mobile worker bar mirrors the drawer-visibility rule below (and drives the
-  // bottom padding that clears it).
-  const showWorkerBar = hasWorkers && (classicSession || sessionPhase === 'complete' || workers.some(w => w.status === 'waiting_input'));
+  const showMap = hasWorkers || hasWaypoints || hasCheckpoints;
+  // Mobile: log + crew live in bottom drawers (collapsed bars by default → no
+  // clutter), now available throughout the voyage (not gated to 'complete').
+  const mobileLogShow = hasWaypoints;
+  const mobileWorkerShow = hasWorkers;
   // Which course are we on? Shown in the header once more than one exists, so a
   // fork/switch (which jumps the conversation) doesn't feel disorienting.
-  const branchInfo = useProgressiveStore(s => {
+  // useShallow: this selector returns a fresh {name,color,count,anchored} object
+  // when >1 branch exists. Without shallow equality, zustand sees a new snapshot
+  // every render → React's "getSnapshot should be cached" → infinite re-render
+  // (React #185) the moment a session has more than one course. Shallow-compare
+  // the fields so a same-valued object is treated as unchanged.
+  const branchInfo = useProgressiveStore(useShallow(s => {
     const sess = s.sessions.find(x => x.id === s.currentSessionId);
     const branches = sess?.branches || [];
     if (branches.length <= 1) return null;
     const active = branches.find(b => b.id === sess?.active_branch_id);
     return active ? { name: active.name, color: active.color, count: branches.length, anchored: active.status === 'anchored' } : null;
-  });
-  // P1-2 follow-up: with the rail hidden mid-voyage (선실 대청소) and forking
-  // now one tap away (답 수정), the header chip is the ONLY standing branch
-  // surface — so it switches courses too, not just displays the current one.
+  }));
+  // The header chip switches courses too (not just displays). It complements the
+  // Voyage Map rail's Logbook switcher: the chip is the standing branch surface
+  // when the rail is collapsed to its spine (counts only, no switch) or on mobile
+  // (rail hidden), and stays reachable while scrolled. Both call switchBranch.
   const sessionBranches = useProgressiveStore(s => {
     const sess = s.sessions.find(x => x.id === s.currentSessionId);
     return sess?.branches || [];
@@ -109,8 +118,18 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
       <Graticule opacity={0.02} spacing={18} />
 
       <div className="relative pt-8 md:pt-12 pb-16">
+        {/* Desktop: the Voyage Map rail (left) stands beside the flow. DOM order
+            is flow-FIRST (so keyboard reaches the primary task before the heavy
+            companion rail), with the rail placed visually left via lg:order-first.
+            The project header lives inside the flow column so it shares the flow's
+            centering context (it used to center against the full viewport, which
+            drifted ~150px off the document column once the rail took space). */}
+        <div className="flex">
+          {/* Center: header + flow. min-w-0 lets long lines truncate instead of
+              shoving the rail. Bottom padding clears the stacked mobile drawers. */}
+          <div className={`flex-1 min-w-0 px-4 md:px-6 lg:pb-0 ${mobileWorkerShow && mobileLogShow ? 'pb-[calc(120px+env(safe-area-inset-bottom))]' : (mobileWorkerShow || mobileLogShow) ? 'pb-[calc(64px+env(safe-area-inset-bottom))]' : ''}`}>
         {/* Project header */}
-        <div className="max-w-2xl mx-auto mb-6 flex items-center justify-between px-4 md:px-6">
+        <div className="max-w-2xl mx-auto mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <FolderOpen size={14} className="text-[var(--accent)] shrink-0" />
             <span className="text-[13px] font-semibold text-[var(--text-secondary)] truncate max-w-[160px] shrink-0">
@@ -176,37 +195,26 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
           </button>
         </div>
 
-        {/* Desktop: flex layout with agent sidebar on right.
-            Mobile bottom padding clears the stacked fixed bars: log bar (~56px)
-            + worker bar (~56px) when both are present. */}
-        <div className="flex">
-          {/* Bottom padding clears the stacked fixed mobile bars AND the iOS
-              home-indicator safe area (otherwise the last line hides behind it). */}
-          <div className={`flex-1 px-4 md:px-6 lg:pb-0 ${showWorkerBar ? 'pb-[calc(120px+env(safe-area-inset-bottom))]' : showRail ? 'pb-[calc(64px+env(safe-area-inset-bottom))]' : ''}`}>
             <ErrorBoundary fallback={<StepErrorFallback />}>
               <ProgressiveFlow projectId={projectId} />
             </ErrorBoundary>
           </div>
-          {showRail && (
-            // top-16 matches the h-16 (64px) header — top-14 left an 8px overlap.
-            <div className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-16 h-[calc(100vh-128px)] overflow-y-auto border-l border-[var(--border-subtle)]/50">
-              {/* Ship's log — the live decision narrative, the primary voyage
-                  companion. Owns the "전체 해도" (full chart) modal and branch
-                  controls. Renders null until the first waypoint. */}
-              <Logbook />
-              {hasWorkers && <AgentSidebar />}
+          {showMap && (
+            // top-16 matches the h-16 (64px) header. The rail owns its own width
+            // (full ↔ collapsed spine) + scroll + border. lg:order-first places
+            // it visually left while keeping it AFTER the flow in DOM (tab order).
+            <div className="hidden lg:block shrink-0 sticky top-16 h-[calc(100vh-128px)] lg:order-first">
+              <VoyageMapRail />
             </div>
           )}
         </div>
 
-        {/* Mobile: ship's-log bottom drawer (sits above the worker bar), then
-            the worker drawer. Both hidden on lg where the right rail shows.
-            Focus mode mid-voyage: the inline CrewAtWork theater already shows
-            the same state — a second fixed bar was duplicate chrome. The
-            drawer returns when a worker actually needs input, in classic, or
-            once the voyage completes. */}
-        {showRail && <div className="lg:hidden"><LogbookDrawer offset={showWorkerBar} /></div>}
-        {showWorkerBar && <WorkerDrawer className="lg:hidden" />}
+        {/* Mobile: ship's-log bottom drawer (sits above the crew bar), then the
+            crew drawer. Both hidden on lg where the left rail shows. Available
+            throughout the voyage now — collapsed bars by default, so no clutter;
+            the desktop demotion lesson is handled by the rail's own collapse. */}
+        {mobileLogShow && <div className="lg:hidden"><LogbookDrawer offset={mobileWorkerShow} /></div>}
+        {mobileWorkerShow && <WorkerDrawer className="lg:hidden" />}
       </div>
     </div>
   );
@@ -621,9 +629,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                         <div className="mt-1.5 flex items-center gap-3">
                           {/* Quota → settings; everything else → an explicit retry. */}
                           {isQuota ? (
-                            <a href="/settings" className="text-[12px] text-[var(--accent)] font-medium hover:underline">
+                            <LocaleLink href="/settings" className="text-[12px] text-[var(--accent)] font-medium hover:underline">
                               {L('Settings에서 API 키 등록하기 →', 'Register your API key in Settings →')}
-                            </a>
+                            </LocaleLink>
                           ) : (
                             <button onClick={() => handleSubmit()}
                               className="inline-flex items-center gap-1 text-[12px] text-[var(--accent)] font-semibold hover:underline cursor-pointer">
@@ -983,6 +991,19 @@ function WorkspaceContent() {
     ? progressiveStore.sessions.find(s => s.project_id === currentProjectId)
     : null;
 
+  // Sync the active session id to the restored project in an EFFECT, never during
+  // render. The old in-render setState (below) flagged React's "Cannot update a
+  // component while rendering" on every reload-with-session (currentSessionId
+  // hydrates as null). The flow waits one frame for this to land (guard below).
+  useEffect(() => {
+    if (!progressiveSession || useLegacyMode) return;
+    if (useProgressiveStore.getState().currentSessionId !== progressiveSession.id) {
+      useProgressiveStore.setState({ currentSessionId: progressiveSession.id });
+    }
+    // Depend on the session id (stable), not the object (a fresh find() each render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressiveSession?.id, useLegacyMode]);
+
   /* ─── Empty state: HeroFlow with morphing transition ─── */
   if (!currentProjectId) {
     return (
@@ -998,11 +1019,9 @@ function WorkspaceContent() {
 
   /* ─── Progressive Flow: default for new sessions ─── */
   if (progressiveSession && !useLegacyMode) {
-    // Sync active session ID (safe: Zustand setState is synchronous)
-    if (progressiveStore.currentSessionId !== progressiveSession.id) {
-      useProgressiveStore.setState({ currentSessionId: progressiveSession.id });
-    }
-
+    // Wait one frame for the effect above to sync the active session id — avoids
+    // both the setState-in-render violation and rendering the flow on a null session.
+    if (progressiveStore.currentSessionId !== progressiveSession.id) return null;
     return (
       <ProgressiveLayout projectId={progressiveSession.project_id} projectName={currentProject?.name} onReset={() => {
         setCurrentProjectId(null);

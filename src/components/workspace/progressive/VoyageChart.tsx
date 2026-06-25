@@ -37,7 +37,7 @@ import { useLocale } from '@/hooks/useLocale';
 import type { VoyageStage } from '@/stores/types';
 import { getActivePath } from '@/lib/version-tree';
 import { branchHeadSummary } from '@/lib/branch-summary';
-import { BranchMap } from './BranchMap';
+import { SeaChart } from './SeaChart';
 import { EASE } from './shared/constants';
 
 // Stage order — denominator for the header's "reached / total" waypoint count.
@@ -118,10 +118,11 @@ export function VoyageChart() {
         </div>
       )}
 
-      {/* Chart body */}
+      {/* Chart body — the full antique sea-chart */}
       <div className="relative px-2 py-3">
-        <div className="max-h-[340px] overflow-y-auto">
-          <BranchMap
+        <div className="max-h-[460px] overflow-y-auto rounded-[10px] ring-1 ring-[rgba(120,90,30,0.22)]">
+          <SeaChart
+            variant="full"
             checkpoints={checkpoints}
             branches={branches}
             waypoints={session?.waypoints || []}

@@ -66,6 +66,7 @@
 
   /* Typography */
   --font-display: 'Noto Serif KR', Georgia, 'Times New Roman', serif;
+  --font-chart: 'Cormorant Garamond', 'Nanum Myeongjo', 'Noto Serif KR', Georgia, 'Times New Roman', serif;
   /* Korean glyphs fall through to Pretendard (JetBrains Mono has none) — keeps
      Latin/numbers monospace while Korean labels render cleanly instead of in a
      broken fallback. */
