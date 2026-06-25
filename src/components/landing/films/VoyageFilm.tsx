@@ -321,7 +321,12 @@ export function VoyageFilm() {
     const evs = ['timeupdate', 'seeked', 'loadeddata', 'play'] as const;
     evs.forEach((e) => v.addEventListener(e, onTime));
     return () => evs.forEach((e) => v.removeEventListener(e, onTime));
-  }, []);
+    // Re-run on `narrow`: the mobile and desktop layouts render SEPARATE <video>
+    // elements (the gutter stacks, the desktop overlays), so when the viewport
+    // crosses 640px the element behind `vref` is swapped. Without `narrow` here,
+    // the listeners stay bound to the old (now-unmounted) video and the caption
+    // freezes — the film keeps playing but the chapter sync stops.
+  }, [narrow]);
 
   // ── MOBILE (<640px): stack the video (16:9) ABOVE a paper caption gutter, so
   // the plate-folio text never covers the engraving. The phone band is too short
