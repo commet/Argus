@@ -66,6 +66,7 @@
 
   /* Typography */
   --font-display: 'Noto Serif KR', Georgia, 'Times New Roman', serif;
+  --font-chart: 'Cormorant Garamond', 'Nanum Myeongjo', 'Noto Serif KR', Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', 'Menlo', 'SF Mono', ui-monospace, monospace;
 
   /* Blueprint palette — landing-scoped. Paper + navy ink + gold leaf.

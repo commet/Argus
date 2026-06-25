@@ -9,6 +9,8 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /** Tailwind max-width class for the dialog. Defaults to `max-w-lg`. */
+  widthClass?: string;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -25,7 +27,7 @@ function unlockScroll() {
   if (scrollLockCount === 0) document.body.style.overflow = '';
 }
 
-export function Modal({ open, onClose, title, children }: ModalProps) {
+export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -105,7 +107,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       />
       <div
         ref={dialogRef}
-        className="relative bg-[var(--surface)] rounded-[20px] shadow-[var(--shadow-xl)] border border-[var(--border-subtle)] w-full max-w-lg mx-4 max-h-[85vh] overflow-hidden animate-fade-in"
+        className={`relative bg-[var(--surface)] rounded-[20px] shadow-[var(--shadow-xl)] border border-[var(--border-subtle)] w-full ${widthClass} mx-4 max-h-[85vh] overflow-hidden animate-fade-in`}
       >
         <div className="h-[2px] w-full" style={{ background: 'var(--gradient-gold)' }} />
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)]">

@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useWorkspaceStore, type StepId } from '@/stores/useWorkspaceStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { ReframeStep } from '@/components/workspace/ReframeStep';
 import { RecastStep } from '@/components/workspace/RecastStep';
@@ -84,13 +85,18 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   const mobileWorkerShow = hasWorkers;
   // Which course are we on? Shown in the header once more than one exists, so a
   // fork/switch (which jumps the conversation) doesn't feel disorienting.
-  const branchInfo = useProgressiveStore(s => {
+  // useShallow: this selector returns a fresh {name,color,count,anchored} object
+  // when >1 branch exists. Without shallow equality, zustand sees a new snapshot
+  // every render → React's "getSnapshot should be cached" → infinite re-render
+  // (React #185) the moment a session has more than one course. Shallow-compare
+  // the fields so a same-valued object is treated as unchanged.
+  const branchInfo = useProgressiveStore(useShallow(s => {
     const sess = s.sessions.find(x => x.id === s.currentSessionId);
     const branches = sess?.branches || [];
     if (branches.length <= 1) return null;
     const active = branches.find(b => b.id === sess?.active_branch_id);
     return active ? { name: active.name, color: active.color, count: branches.length, anchored: active.status === 'anchored' } : null;
-  });
+  }));
   // The header chip switches courses too (not just displays). It complements the
   // Voyage Map rail's Logbook switcher: the chip is the standing branch surface
   // when the rail is collapsed to its spine (counts only, no switch) or on mobile
@@ -1077,6 +1083,19 @@ function WorkspaceContent() {
     ? progressiveStore.sessions.find(s => s.project_id === currentProjectId)
     : null;
 
+  // Sync the active session id to the restored project in an EFFECT, never during
+  // render. The old in-render setState (below) flagged React's "Cannot update a
+  // component while rendering" on every reload-with-session (currentSessionId
+  // hydrates as null). The flow waits one frame for this to land (guard below).
+  useEffect(() => {
+    if (!progressiveSession || useLegacyMode) return;
+    if (useProgressiveStore.getState().currentSessionId !== progressiveSession.id) {
+      useProgressiveStore.setState({ currentSessionId: progressiveSession.id });
+    }
+    // Depend on the session id (stable), not the object (a fresh find() each render).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressiveSession?.id, useLegacyMode]);
+
   /* ─── Empty state: HeroFlow with morphing transition ─── */
   if (!currentProjectId) {
     return (
@@ -1092,11 +1111,9 @@ function WorkspaceContent() {
 
   /* ─── Progressive Flow: default for new sessions ─── */
   if (progressiveSession && !useLegacyMode) {
-    // Sync active session ID (safe: Zustand setState is synchronous)
-    if (progressiveStore.currentSessionId !== progressiveSession.id) {
-      useProgressiveStore.setState({ currentSessionId: progressiveSession.id });
-    }
-
+    // Wait one frame for the effect above to sync the active session id — avoids
+    // both the setState-in-render violation and rendering the flow on a null session.
+    if (progressiveStore.currentSessionId !== progressiveSession.id) return null;
     return (
       <ProgressiveLayout projectId={progressiveSession.project_id} projectName={currentProject?.name} onReset={() => {
         setCurrentProjectId(null);

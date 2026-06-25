@@ -24,8 +24,8 @@ const state: {
 };
 
 vi.mock('@/hooks/useLocale', () => ({ useLocale: () => 'ko' }));
-vi.mock('@/components/workspace/progressive/BranchMap', () => ({
-  BranchMap: () => createElement('div', null, 'BRANCHMAP_STUB'),
+vi.mock('@/components/workspace/progressive/SeaChart', () => ({
+  SeaChart: () => createElement('div', null, 'SEACHART_STUB'),
 }));
 vi.mock('@/components/workspace/progressive/VoyageChart', () => ({ VoyageChart: () => null }));
 vi.mock('@/components/workspace/progressive/Logbook', () => ({
@@ -67,7 +67,7 @@ describe('VoyageMapRail — full (expanded)', () => {
     expect(html).toContain('항해 지도');     // rail header
     expect(html).toContain('해도');           // hero eyebrow
     expect(html).toContain('전체 해도');       // full-chart entry (hasChart)
-    expect(html).toContain('BRANCHMAP_STUB'); // the inline graph hero
+    expect(html).toContain('SEACHART_STUB'); // the inline graph hero
     expect(html).toContain('LOGBOOK_STUB');   // trail section (hasWaypoints)
     expect(html).toContain('CREW_STUB');      // crew section (hasWorkers)
   });
@@ -79,7 +79,7 @@ describe('VoyageMapRail — full (expanded)', () => {
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
     expect(html).toContain('해도');                 // hero still present
     expect(html).toContain('갈림길이 여기 해도로');  // empty-state copy
-    expect(html).not.toContain('BRANCHMAP_STUB');   // no graph yet
+    expect(html).not.toContain('SEACHART_STUB');   // no graph yet
     expect(html).not.toContain('전체 해도');         // no full-chart entry yet
     expect(html).not.toContain('LOGBOOK_STUB');     // no trail (no waypoints)
     expect(html).not.toContain('CREW_STUB');        // no crew
@@ -97,7 +97,7 @@ describe('VoyageMapRail — collapsed spine', () => {
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
     expect(html).toContain('항해 지도');        // vertical label
     expect(html).toContain('>2<');              // waypoint count badge
-    expect(html).not.toContain('BRANCHMAP_STUB'); // graph not rendered while collapsed
+    expect(html).not.toContain('SEACHART_STUB'); // graph not rendered while collapsed
     expect(html).not.toContain('LOGBOOK_STUB');
   });
 });

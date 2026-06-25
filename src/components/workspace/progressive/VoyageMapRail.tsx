@@ -39,7 +39,7 @@ import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLocale } from '@/hooks/useLocale';
 import { Modal } from '@/components/ui/Modal';
-import { BranchMap } from './BranchMap';
+import { SeaChart } from './SeaChart';
 import { VoyageChart } from './VoyageChart';
 import { Logbook } from './Logbook';
 import { AgentSidebar, isWorkingStatus } from './AgentSidebar';
@@ -100,42 +100,34 @@ function VoyageMapHero() {
         )}
       </div>
 
-      {/* The chart card — a gradient-edged frame around the live course-graph.
-          The accessible entry to the full chart is the header button + the SVG
-          nodes' own onPick; this container click is a convenience enhancement. */}
-      <div className="relative rounded-xl p-[1px] bg-gradient-to-b from-[var(--accent)]/25 via-[var(--border-subtle)] to-transparent">
-        <div className="relative rounded-[calc(0.75rem-1px)] bg-[var(--surface)] overflow-hidden group">
-          {hasChart ? (
-            <>
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label={L('전체 해도 열기', 'Open full chart')}
-                onClick={() => setChartOpen(true)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChartOpen(true); } }}
-                className="px-2.5 py-3 max-h-[260px] overflow-y-auto cursor-pointer rounded-[calc(0.75rem-1px)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
-              >
-                <BranchMap
-                  checkpoints={checkpoints}
-                  branches={branches}
-                  waypoints={waypoints}
-                  activeBranchId={activeBranch?.id ?? null}
-                  activeCheckpointId={activeId}
-                  onPick={() => setChartOpen(true)}
-                />
-              </div>
-              {/* Hover affordance — the whole card invites the full chart */}
-              <div className="absolute inset-x-0 bottom-0 px-3 py-1.5 bg-gradient-to-t from-[var(--surface)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <span className="text-[9.5px] text-[var(--accent)] font-medium inline-flex items-center gap-1">
-                  <Maximize2 size={9} /> {L('눌러서 탐색', 'Tap to explore')}
-                </span>
-              </div>
-            </>
-          ) : (
-            <EmptyChart />
-          )}
+      {/* The chart card — an antique sea-chart (SeaChart is self-framed:
+          parchment + neatline + shadow), tappable to open the full chart. */}
+      {hasChart ? (
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={L('전체 해도 열기', 'Open full chart')}
+          onClick={() => setChartOpen(true)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChartOpen(true); } }}
+          className="relative block w-full max-h-[330px] overflow-y-auto cursor-pointer group rounded-[10px] ring-1 ring-[rgba(120,90,30,0.20)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/60"
+        >
+          <SeaChart
+            variant="compact"
+            checkpoints={checkpoints}
+            branches={branches}
+            waypoints={waypoints}
+            activeBranchId={activeBranch?.id ?? null}
+            activeCheckpointId={activeId}
+          />
+          <div className="sticky bottom-0 -mt-6 px-3 py-1.5 bg-gradient-to-t from-[rgba(20,14,4,0.55)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <span className="text-[9.5px] text-[#f6eedb] font-semibold inline-flex items-center gap-1">
+              <Maximize2 size={9} /> {L('눌러서 펼치기', 'Tap to open the chart')}
+            </span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <EmptyChart />
+      )}
 
       {/* Compact legend — the SVG marks can't explain themselves */}
       {hasChart && (
@@ -166,7 +158,7 @@ function VoyageMapHero() {
         </p>
       )}
 
-      <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 해도', 'Full chart')}>
+      <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 해도', 'Full chart')} widthClass="max-w-2xl">
         <VoyageChart />
       </Modal>
     </div>
