@@ -177,7 +177,7 @@ export function SirenHero() {
             edge-to-edge — overwhelming — while nothing gets cropped. */}
         <div
           className="bp-fade-up h-[56.25vw] max-h-[82vh]"
-          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 32, marginBottom: 10, animationDelay: '200ms' }}
+          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 32, marginBottom: 20, animationDelay: '200ms' }}
         >
           <VoyageFilm />
         </div>
