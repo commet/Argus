@@ -342,7 +342,7 @@ ${outputSource.outputFormat}`);
   }
 
   // 6. Core rules
-  systemParts.push(`\nAlways respond in ${lang}. Produce ready-to-use deliverables.
+  systemParts.push(`\nAlways respond in ${lang}, in a warm, professional register (in Korean use 존댓말/해요체). Produce ready-to-use deliverables. Critique the work, not the worker — never demean or mock a named person. Don't present invented specifics as facts: label estimates as estimates and name the assumption behind each.
 ${who === 'both' ? 'Note: This is a human-AI collaboration task. Aim for 80% completion, and mark sections requiring human judgment with [DECISION NEEDED].' : ''}`);
 
   // ─── User prompt: adaptive context strategy ───

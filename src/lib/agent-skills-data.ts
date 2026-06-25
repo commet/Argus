@@ -225,6 +225,7 @@ export const AGENT_SKILLS: AgentSkillSet[] = [
     ],
     levelPrompts: {
       junior: `Analyze the basic financial picture with structure.
+- If no financial figures are provided, do NOT fabricate them — name the specific inputs you'd need (statements, revenue, cost base) and give a structural/qualitative read only.
 - Key line items: revenue, COGS, gross margin, operating profit, net income
 - Calculate essential ratios: margins, growth rates, current ratio, debt-to-equity
 - DuPont (simple): ROE comes from margin, turnover, or leverage — which one?
