@@ -39,13 +39,13 @@ vi.mock('@/hooks/useLocale', () => ({ useLocale: () => 'ko' }));
 import { VoyageChart } from '@/components/workspace/progressive/VoyageChart';
 
 describe('VoyageChart render', () => {
-  it('renders the branch map SVG with color-coded course-lines', () => {
+  it('renders the sea-chart (parchment + compass + course) without throwing', () => {
     const html = renderToStaticMarkup(createElement(VoyageChart));
     expect(html.length).toBeGreaterThan(100);
-    expect(html).toContain('branchmap-grid'); // BranchMap SVG present
-    expect(html).toContain('<circle');         // checkpoint nodes
-    expect(html).toContain('#2d4a7c');         // main course color
-    expect(html).toContain('#8b6914');         // fork course color (lane 1 edge)
+    expect(html).toContain('<circle');             // chart nodes + compass rose
+    expect(html).toContain('결정 항해 해도');        // SeaChart aria-label
+    expect(html).toContain('#2d4a7c');             // main branch color (course list dot)
+    expect(html).toContain('#8b6914');             // fork branch color (course list dot)
   });
 
   it('shows the active-course summary when multiple branches exist', () => {

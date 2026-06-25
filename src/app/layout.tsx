@@ -106,12 +106,19 @@ export default async function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
         />
-        {/* Nanum Myeongjo — a classical Korean serif used only for the hero
-            film's Homeric quotes, so the verse reads as old print, distinct
-            from the UI's Noto Serif KR display face. */}
+        {/* Nanum Myeongjo — a classical Korean serif used for the hero film's
+            Homeric quotes AND the decision-voyage SeaChart's Korean labels, so
+            both read as old print, distinct from the UI's Noto Serif KR. */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap"
+        />
+        {/* Cormorant Garamond — an elegant high-contrast Garamond for the
+            SeaChart's Latin cartographic labels / cartouche / compass: reads as
+            fine engraving rather than blunt press ink (see --font-chart). */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap"
         />
         <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('argus-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.setAttribute('data-theme','dark')}}catch(e){}})()` }} />
       </head>

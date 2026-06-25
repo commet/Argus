@@ -39,7 +39,7 @@ const WP_META: Record<WaypointType, { Icon: LucideIcon; color: string; ko: strin
   anchorage:     { Icon: Anchor,        color: '#2d6b2d',               ko: '정박',      en: 'Anchorage' },
 };
 
-export function Logbook() {
+export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean } = {}) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
@@ -134,12 +134,17 @@ export function Logbook() {
         <h3 className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">
           {L('항해일지', "Ship's log")}
         </h3>
-        <button
-          onClick={() => setChartOpen(true)}
-          className="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
-        >
-          <MapIcon size={11} /> {L('전체 해도', 'Full chart')}
-        </button>
+        {/* When embedded under the Voyage Map hero (which owns the chart), the
+            hero's "전체 해도" button is the single chart entry point — suppress
+            this duplicate. Standalone (mobile drawer, classic) keeps it. */}
+        {!hideChartButton && (
+          <button
+            onClick={() => setChartOpen(true)}
+            className="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+          >
+            <MapIcon size={11} /> {L('전체 해도', 'Full chart')}
+          </button>
+        )}
       </div>
 
       {/* Branch switcher — only once a fork exists */}
@@ -334,10 +339,15 @@ export function Logbook() {
         })}
       </ol>
 
-      {/* Full chart (해도) — the spatial exploration / rewind surface */}
-      <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 해도', 'Full chart')}>
-        <VoyageChart />
-      </Modal>
+      {/* Full chart (해도) — the spatial exploration / rewind surface. When the
+          chart button is suppressed (embedded under the Voyage Map hero, which
+          owns the single chart entry point), nothing can open this Modal, so we
+          don't mount it — the hero's chart is the one source of truth. */}
+      {!hideChartButton && (
+        <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 해도', 'Full chart')}>
+          <VoyageChart />
+        </Modal>
+      )}
     </aside>
   );
 }

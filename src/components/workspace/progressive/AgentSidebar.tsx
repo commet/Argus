@@ -24,7 +24,7 @@ function isPending(w: WorkerTask) {
   return PENDING_STATUSES.has(w.status);
 }
 
-function isWorkingStatus(s: WorkerTask['status']) {
+export function isWorkingStatus(s: WorkerTask['status']) {
   return s === 'running' || s === 'sent' || s === 'waiting_response';
 }
 
