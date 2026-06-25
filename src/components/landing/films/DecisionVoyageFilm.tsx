@@ -578,16 +578,15 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
     <div
       ref={rootRef}
       style={{
+        // Sit directly on the page parchment (var(--bp-paper)) like the Grand
+        // Chart film — no separate card layer (its own bg + gradient + rounded
+        // padding) which made The Trail read as a panel floating above the page.
+        // Only the inner STAGE carries its own chart surface + shadow.
         width: '100%',
         display: 'grid',
         placeItems: 'center',
-        background: '#e8dec9',
-        backgroundImage:
-          'radial-gradient(120% 80% at 16% -6%,rgba(255,251,242,.85),rgba(232,222,201,0) 55%),radial-gradient(100% 90% at 100% 110%,rgba(120,90,40,.16),rgba(232,222,201,0) 52%)',
         fontFamily: "var(--font-sans,'Pretendard',system-ui,sans-serif)",
         color: '#2b2722',
-        padding: '36px 24px',
-        borderRadius: 18,
       }}
     >
       <div style={{ width: '100%', maxWidth: 1000, display: 'flex', flexDirection: 'column', gap: 14 }}>
