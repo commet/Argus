@@ -337,10 +337,21 @@ ${checkpointSource.checkpoints.map(c => `\u2610 ${c}`).join('\n')}`);
   }
 
   // 5. Output format
+  //    The outputFormat templates are 6-9 "executive report" sections — richer
+  //    than the token budget can fill at depth. Rather than trimming the (good)
+  //    templates, scope the response to the budget: lead with what the decision
+  //    needs, one line for the rest, never pad to fill the structure. focusedSkill
+  //    reuses the FULL outputFormat (getFrameworkSkill), so when a single framework
+  //    is assigned, tell the model to center the sections that framework drives.
   const outputSource = focusedSkill || skills;
   if (outputSource) {
+    const wordBudget = Math.round(levelConfig.maxTokens * 0.6);
+    const focusNote = focusedSkill
+      ? `\nThis run is scoped to the assigned framework — lead with the sections it drives; one line each is fine for the rest of the structure.`
+      : '';
     systemParts.push(`\nOutput format:
-${outputSource.outputFormat}`);
+${outputSource.outputFormat}${focusNote}
+Prioritize the most decision-relevant sections in depth; if a section has little to say for THIS task, compress it to one line instead of padding to fill the structure. Keep the whole response within roughly ${wordBudget} words.`);
   }
 
   // 6. Core rules
