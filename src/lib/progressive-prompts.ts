@@ -154,10 +154,7 @@ export function buildDeepeningPrompt(
   questionsAndAnswers: Array<{ question: FlowQuestion; answer: FlowAnswer }>,
   round: number,
   maxRounds: number,
-  availableAgents?: Array<{ name: string; role: string; specialty: string }>,
   locale: Locale = 'en',
-  leadContext?: string,
-  registeredPersonas?: Array<{ name: string; role: string; hasContact: boolean }>,
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
   // Context compression: summarize older Q&A when it gets long (preserve more in later rounds)
@@ -169,13 +166,6 @@ export function buildDeepeningPrompt(
       ).join('\n\n');
 
   const isLastRound = round >= maxRounds - 1;
-
-  // Conductor: provide unlocked agent list for team composition awareness
-  const teamBlock = (round >= 1 && availableAgents && availableAgents.length > 0)
-    ? `\nAvailable team members:\n${availableAgents.map(a => `- ${a.name}(${a.role}): ${a.specialty}`).join('\n')}
-Design each step's task to match team members' expertise. Research for researchers, number crunching for number specialists.
-CRITICAL: Never write a team member's name INSIDE task/ai_scope/self_scope text. The actual assignment is decided separately, so a name in the prose will mismatch the assigned member. Describe the ACTION only ("글로벌 소싱 전문가들의 LinkedIn 프로필을 조사하고 정리", NOT "하윤이 ...를 조사"). Put the suggested member's name ONLY in agent_hint.`
-    : '';
 
   return {
     system: `You are a practical senior colleague. Always respond in ${lang}. ${locale === 'ko' ? '해요체 (polite but warm).' : 'Warm, professional tone.'}
@@ -201,18 +191,6 @@ Your job each round:
 3. Update hidden assumptions — only change what the answer resolved or revealed. Don't shuffle items for novelty.
 4. Update skeleton — only modify items DIRECTLY AFFECTED by the new answer. Keep stable items unchanged. Never exceed 5-6 items.
    Use natural sequence connectors (${locale === 'ko' ? '먼저, 그다음, 그리고 등 — vary naturally' : 'First, Then, Next, etc. — vary naturally'}).
-${round >= 1 ? `5. Build execution_plan — assign tasks to your team. 3-5 steps max. For each step:
-   - agent_type: "ai" (AI executes: research, analysis, drafting) | "self" (user decides: strategy, budget, priorities) | "human" (ask someone else: tech validation, customer feedback, internal approval)
-   - ai_scope: what AI does — describe the ACTION, never name a person (required for ai/self types; for human, AI prepares the question + context)
-   - self_scope: what the user judges/validates — action only, no person names (required for ai/self types; empty for human)
-   - decision: if self_scope involves a choice, write "질문: Option A vs Option B vs Option C" so UI renders selectable chips. Empty string if no explicit choice.
-   - For "human" steps: add question_to_human (the question to send) and human_contact_hint (role like "CTO" or "고객")
-   Rule: EVERY "ai" step must have self_scope — explain what the user should review about the AI result.
-   Rule: EVERY "self" step should have ai_scope — how AI can help (generate options, comparison, data).${
-  registeredPersonas && registeredPersonas.length > 0
-    ? `\n   Known stakeholders (use for "human" steps if relevant):\n${registeredPersonas.map(p => `   - ${p.name} (${p.role})${p.hasContact ? ' ✓ contactable' : ''}`).join('\n')}\n   When creating a "human" step, match to a known stakeholder if their role fits. Use their exact name in human_contact_hint.`
-    : ''
-}${leadContext ? '\n' + leadContext : ''}${teamBlock}` : ''}
 
 QUESTION RULES (critical — this determines the quality of the entire session):
 - The answer they just gave should VISIBLY change the analysis. If nothing changes, the question was pointless.
@@ -231,7 +209,6 @@ Current analysis (v${currentSnapshot.version}):
 - Real question: ${sanitize(currentSnapshot.real_question)}
 - Hidden assumptions: ${currentSnapshot.hidden_assumptions.map(a => sanitize(a)).join(' / ')}
 - Skeleton: ${currentSnapshot.skeleton.map(s => sanitize(s)).join(' / ')}
-${currentSnapshot.execution_plan ? `- Execution plan: ${currentSnapshot.execution_plan.steps.map(s => `${sanitize(s.task)}(${(s as Record<string, unknown>).agent_type || s.who})`).join(' \u2192 ')}` : ''}
 
 Q&A:
 ${qaHistory}
@@ -244,11 +221,77 @@ JSON:
   "real_question": "Updated question — more specific than before (natural sentence, ends with ?)",
   "hidden_assumptions": ["Realistic only, 2-3 items"],
   "skeleton": ["Only change items affected by the latest answer. Use natural sequence words. 5 items max."],
-  ${round >= 1 ? `"execution_plan": {
-    "steps": [{"task": "What to do", "agent_type": "ai|self|human", "output": "Deliverable", "ai_scope": "What AI does", "self_scope": "What user judges", "decision": "질문: A vs B vs C (or empty)", "agent_hint": "Team member name (if applicable)", "question_to_human": "Question for external person (human type only)", "human_contact_hint": "Role like CTO (human type only)"}]
-  },` : ''}
   "next_question": ${isLastRound ? 'null' : '{"text": "Situation-shaping question (reference their latest answer)", "subtext": "Why this changes the strategy", "options": ["Leads to strategy A", "Strategy B", "Strategy C"], "type": "select|short"}'},
   "ready_for_mix": ${isLastRound ? 'true' : 'false'}
+}`,
+  };
+}
+
+// ─── 2b. Execution Plan (generated in its OWN call from round 1+) ───
+//
+// Split out of buildDeepeningPrompt so the large plan never shares a token
+// budget — or a single JSON parse — with the streamed insight/question. The plan
+// is the biggest, most-truncation-prone part of the response, and it is NOT what
+// the user is watching stream in. Generating it separately is the structural fix
+// for the round-3 "JSON 파싱 실패" (a truncated plan used to break the whole
+// response). Built from the freshly-deepened analysis (the post-answer snapshot).
+export function buildExecutionPlanPrompt(
+  problemText: string,
+  analysis: { real_question: string; hidden_assumptions: string[]; skeleton: string[] },
+  questionsAndAnswers: Array<{ question: FlowQuestion; answer: FlowAnswer }>,
+  round: number,
+  availableAgents?: Array<{ name: string; role: string; specialty: string }>,
+  locale: Locale = 'en',
+  leadContext?: string,
+  registeredPersonas?: Array<{ name: string; role: string; hasContact: boolean }>,
+): { system: string; user: string } {
+  const lang = locale === 'ko' ? 'Korean' : 'English';
+  const keepRecent = getKeepRecent(round);
+  const qaHistory = shouldCompact(questionsAndAnswers)
+    ? compactQAHistory(questionsAndAnswers, keepRecent, locale)
+    : questionsAndAnswers.map((qa, i) =>
+        `Q${i + 1}: ${sanitize(qa.question.text)}\nA${i + 1}: ${sanitize(qa.answer.value)}`,
+      ).join('\n\n');
+
+  const teamBlock = (availableAgents && availableAgents.length > 0)
+    ? `\nAvailable team members:\n${availableAgents.map(a => `- ${a.name}(${a.role}): ${a.specialty}`).join('\n')}
+Design each step's task to match team members' expertise. Research for researchers, number crunching for number specialists.
+CRITICAL: Never write a team member's name INSIDE task/ai_scope/self_scope text. The actual assignment is decided separately, so a name in the prose will mismatch the assigned member. Describe the ACTION only ("글로벌 소싱 전문가들의 LinkedIn 프로필을 조사하고 정리", NOT "하윤이 ...를 조사"). Put the suggested member's name ONLY in agent_hint.`
+    : '';
+
+  const personaBlock = (registeredPersonas && registeredPersonas.length > 0)
+    ? `\nKnown stakeholders (use for "human" steps if relevant):\n${registeredPersonas.map(p => `- ${p.name} (${p.role})${p.hasContact ? ' ✓ contactable' : ''}`).join('\n')}\nWhen creating a "human" step, match to a known stakeholder if their role fits. Use their exact name in human_contact_hint.`
+    : '';
+
+  return {
+    system: `You are a practical senior colleague turning a sharpened analysis into an actionable execution plan. Always respond in ${lang}. ${locale === 'ko' ? '해요체 (polite but warm).' : 'Warm, professional tone.'}
+
+Build an execution_plan — assign tasks to your team. 3-5 steps max. For each step:
+- agent_type: "ai" (AI executes: research, analysis, drafting) | "self" (user decides: strategy, budget, priorities) | "human" (ask someone else: tech validation, customer feedback, internal approval)
+- ai_scope: what AI does — describe the ACTION, never name a person (required for ai/self types; for human, AI prepares the question + context)
+- self_scope: what the user judges/validates — action only, no person names (required for ai/self types; empty for human)
+- decision: if self_scope involves a choice, write "질문: Option A vs Option B vs Option C" so UI renders selectable chips. Empty string if no explicit choice.
+- For "human" steps: add question_to_human (the question to send) and human_contact_hint (role like "CTO" or "고객")
+Rule: EVERY "ai" step must have self_scope — explain what the user should review about the AI result.
+Rule: EVERY "self" step should have ai_scope — how AI can help (generate options, comparison, data).${personaBlock}${leadContext ? '\n' + leadContext : ''}${teamBlock}`,
+
+    user: `Original problem:
+<user-data>${sanitize(problemText)}</user-data>
+
+Sharpened analysis:
+- Real question: ${sanitize(analysis.real_question)}
+- Hidden assumptions: ${analysis.hidden_assumptions.map(a => sanitize(a)).join(' / ')}
+- Plan skeleton: ${analysis.skeleton.map(s => sanitize(s)).join(' / ')}
+
+Q&A so far:
+${qaHistory}
+
+Turn the skeleton into a concrete execution plan assigned to the team. Respond with JSON only.
+
+JSON:
+{
+  "steps": [{"task": "What to do", "agent_type": "ai|self|human", "output": "Deliverable", "ai_scope": "What AI does", "self_scope": "What user judges", "decision": "질문: A vs B vs C (or empty)", "agent_hint": "Team member name (if applicable)", "question_to_human": "Question for external person (human type only)", "human_contact_hint": "Role like CTO (human type only)"}],
+  "key_assumptions": ["assumptions the plan depends on, 1-3 items"]
 }`,
   };
 }
