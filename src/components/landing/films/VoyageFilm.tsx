@@ -348,13 +348,23 @@ export function VoyageFilm() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
             style={{
-              position: 'absolute', left: 0, bottom: 0, zIndex: 1, pointerEvents: 'none',
-              width: 'min(820px, 80%)', height: 'min(64%, 400px)',
+              // Wide: start the frosted band to the RIGHT of the giant folio
+              // numeral so the blur lifts the TEXT, not the numeral (whose lower
+              // half was washing into the densest bottom-left corner). The mask
+              // centre sits a little inside the band so its left edge feathers in
+              // beside the numeral — no hard seam. Narrow stacks numeral above the
+              // text, so the band stays full-width there.
+              position: 'absolute', left: narrow ? 0 : 'clamp(150px, 17vw, 250px)', bottom: 0, zIndex: 1, pointerEvents: 'none',
+              width: narrow ? 'min(820px, 80%)' : 'min(720px, 62%)', height: 'min(64%, 400px)',
               backdropFilter: 'blur(9px) saturate(1.0) brightness(1.08)',
               WebkitBackdropFilter: 'blur(9px) saturate(1.0) brightness(1.08)',
               background: 'linear-gradient(to top right, color-mix(in srgb, var(--bp-paper) 40%, transparent), transparent 70%)',
-              maskImage: 'radial-gradient(140% 132% at 0% 100%, #000 44%, transparent 82%)',
-              WebkitMaskImage: 'radial-gradient(140% 132% at 0% 100%, #000 44%, transparent 82%)',
+              maskImage: narrow
+                ? 'radial-gradient(140% 132% at 0% 100%, #000 44%, transparent 82%)'
+                : 'radial-gradient(132% 132% at 16% 100%, #000 40%, transparent 82%)',
+              WebkitMaskImage: narrow
+                ? 'radial-gradient(140% 132% at 0% 100%, #000 44%, transparent 82%)'
+                : 'radial-gradient(132% 132% at 16% 100%, #000 40%, transparent 82%)',
             }}
           />
         )}
