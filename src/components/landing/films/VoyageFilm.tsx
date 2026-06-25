@@ -135,41 +135,41 @@ const INTRO = {
 const CHAPTERS: Chapter[] = [
   {
     num: 'I', ko: '묶기', en: 'Bind', from: 6, to: 12.6,
-    mythKo: '“나를 돛대에 묶어라. 풀어달라 빌어도, 더 단단히.”',
-    mythEn: '“Bind me to the mast — though I plead, bind me tighter.”',
+    mythKo: '“나를 돛대에 묶어라.\n풀어달라 빌어도, 더 단단히.”',
+    mythEn: '“Bind me to the mast —\nthough I plead, bind me tighter.”',
     attrKo: '오디세우스, 세이렌을 앞두고 스스로를 묶으며',
     attrEn: 'Odysseus, binding himself before the Sirens',
-    lineKo: '묻기 전에, 지금 내 판단부터 적어 둬요.',
-    lineEn: 'Before you ask, write down your own call first.',
+    lineKo: '묻기 전에, 당신 판단부터 적어 둬요.',
+    lineEn: 'before you ask, write your own call down first.',
   },
   {
     num: 'II', ko: '듣기', en: 'Listen', from: 14.2, to: 21, lure: true,
-    mythKo: '“우리 노래를 들은 자는, 모든 것을 알고 떠나리라.”',
-    mythEn: '“Whoever hears our song departs knowing all.”',
+    mythKo: '“우리 노래를 들은 자는,\n모든 것을 알고 떠나리라.”',
+    mythEn: '“Whoever hears our song\ndeparts knowing all.”',
     attrKo: '세이렌의 노래 — “다 알려주겠다”는 유혹',
     attrEn: 'The Sirens’ song — the lure of “we’ll tell you all”',
-    lineKo: 'AI는 칭찬 대신, 당신이 놓친 단 하나를 짚어줘요.',
-    lineEn: 'Instead of praise, it names the one thing you missed.',
+    lineKo: '칭찬 대신, 당신이 놓친 단 하나를 짚어줘요.',
+    lineEn: 'instead of praise, it names the one thing you missed.',
   },
   {
     num: 'III', ko: '닿기', en: 'Land', from: 23, to: 30,
-    mythKo: '“노래가 잦아들고, 마침내 단단한 땅에 발을 디딘다.”',
-    mythEn: '“The song fades; at last he steps onto solid ground.”',
+    mythKo: '“노래가 잦아들고,\n마침내 단단한 땅에 발을 디딘다.”',
+    mythEn: '“The song fades; at last\nhe steps onto solid ground.”',
     attrKo: '세이렌의 바다를 지나 뭍에 닿은 오디세우스',
     attrEn: 'Odysseus, ashore at last past the Sirens’ sea',
     lineKo: '결정은 결국, 현실의 당신 몫이에요.',
-    lineEn: 'In the end, the decision is yours — out in the world.',
+    lineEn: 'in the end, the decision is yours — out in the world.',
   },
   {
     num: 'IV', ko: '알아봄', en: 'Recognition', from: 32, to: 39.4, gold: true,
-    mythKo: '“스러져 가던 늙은 개만이, 옛 주인을 알아보았다.”',
-    mythEn: '“Only old Argos, failing, knew his master still.”',
+    mythKo: '“스러져 가던 늙은 개만이,\n옛 주인을 알아보았다.”',
+    mythEn: '“Only old Argos, failing,\nknew his master still.”',
     attrKo: '20년을 기다린 늙은 개 아르고스, 주인을 알아보다',
     attrEn: 'Argos, the dog who waited 20 years, knew his master',
     // Explicit break BEFORE the quote so the whole question drops to its own
     // line instead of wrapping mid-phrase (“그래서,” | “어떻게 됐어요?”).
-    lineKo: '정한 날, Argus가 돌아와 물어요 —\n”그래서, 어떻게 됐어요?”',
-    lineEn: 'On your day, Argus returns —\n”So, how did it go?”',
+    lineKo: '정한 날 돌아와 물어요 —\n“그래서, 어떻게 됐어요?”',
+    lineEn: 'on your day, I return —\n“so, how did it go?”',
   },
 ];
 
@@ -198,19 +198,23 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
   // FILLED watermark numeral (not a hairline outline — that vanished over the
   // busy engraving). A soft paper halo lifts it off the line-work so the
   // chapter mark actually reads, without competing with the quote.
-  const folioOpacity = gold ? 0.42 : 0.34;
-  const folioHalo = '0 0 2px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 24px var(--bp-paper)';
+  const folioOpacity = gold ? 0.48 : 0.4;
+  const folioHalo = '0 0 2px var(--bp-paper), 0 0 7px var(--bp-paper), 0 0 16px var(--bp-paper)';
   const spineColor = gold ? 'var(--bp-ink)' : 'var(--bp-gold)';
   const eyebrowColor = gold ? 'var(--bp-gold-deep)' : 'var(--bp-ink)';
   const clusterDelay = quoteEnd(L(active.mythKo, active.mythEn), narrow);
   const ease: [number, number, number, number] = [0.22, 0.61, 0.36, 1];
   const bk = locale === 'ko' ? 'break-keep' : '';
 
+  // Hangul reads loose under the mono's wide tracking — settle to a tighter
+  // target in Korean (Latin keeps the formal plate-caption tracking).
+  const ebFrom = locale === 'ko' ? '0.22em' : '0.34em';
+  const ebTo = locale === 'ko' ? '0.14em' : '0.28em';
   const eyebrow = (
     <motion.span
       className="bp-mono"
-      initial={rm ? { opacity: 1 } : { opacity: 0, letterSpacing: '0.34em', scale: 1.06 }}
-      animate={{ opacity: 1, letterSpacing: '0.28em', scale: 1 }}
+      initial={rm ? { opacity: 1 } : { opacity: 0, letterSpacing: ebFrom, scale: 1.06 }}
+      animate={{ opacity: 1, letterSpacing: ebTo, scale: 1 }}
       transition={{ duration: 0.26, delay: rm ? 0 : 0.18, ease }}
       style={{ display: 'inline-block', fontSize: 'clamp(11px, 1.05vw, 13px)', textTransform: 'uppercase', fontWeight: 700, color: eyebrowColor, textShadow: '0 0 2px var(--bp-paper), 0 0 5px var(--bp-paper), 0 0 10px var(--bp-paper)', transformOrigin: 'left center', whiteSpace: 'nowrap' }}
     >
@@ -218,16 +222,21 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
     </motion.span>
   );
   const quote = (
-    <div className={bk} style={{ fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, fontSize: 'clamp(21px, 2.6vw, 31px)', lineHeight: 1.34, letterSpacing: '0.005em', maxWidth: '42ch', textWrap: 'pretty' }}>
+    <div className={bk} style={{ fontFamily: "'Nanum Myeongjo', var(--font-display), serif", fontWeight: 700, fontSize: 'clamp(21px, 2.6vw, 31px)', lineHeight: 1.32, letterSpacing: '0.005em', maxWidth: '52ch', whiteSpace: 'pre-line' }}>
       <InkedQuote text={L(active.mythKo, active.mythEn)} ink={quoteInk} nib={nib} halo={quoteHalo} rm={rm} narrow={narrow} />
     </div>
   );
+  // attribution (who said the myth line) — held visually apart from the blue
+  // "what Argus does" line below by a short rule, so the two never read as one.
+  // Both stay on a single line in the wide layout (the box is now wide enough).
   const tail = (
-    <motion.div initial={rm ? { opacity: 1 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36, delay: rm ? 0 : clusterDelay, ease }} style={{ marginTop: 18 }}>
-      <p className={bk} style={{ margin: '0 0 10px', fontStyle: 'italic', fontWeight: 600, fontSize: 'clamp(12.5px, 1.2vw, 14.5px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink)', opacity: 0.92, letterSpacing: '0.01em', textShadow: bodyHalo }}>
+    <motion.div initial={rm ? { opacity: 1 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36, delay: rm ? 0 : clusterDelay, ease }} style={{ marginTop: 16 }}>
+      <p className={bk} style={{ margin: 0, fontStyle: 'italic', fontWeight: 600, fontSize: 'clamp(12.5px, 1.2vw, 14.5px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink)', opacity: 0.9, letterSpacing: '0.01em', whiteSpace: narrow ? 'normal' : 'nowrap', textShadow: bodyHalo }}>
         — {L(active.attrKo, active.attrEn)}
       </p>
-      <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(15.5px, 1.9vw, 20px)', lineHeight: 1.45, color: 'var(--bp-ink)', letterSpacing: '-0.006em', maxWidth: '44ch', textWrap: 'pretty', textShadow: bodyHalo }}>
+      <div aria-hidden="true" style={{ height: 1, width: 30, background: 'var(--bp-ink-faint)', margin: '11px 0' }} />
+      <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(15.5px, 1.9vw, 20px)', lineHeight: 1.42, color: 'var(--bp-azure)', letterSpacing: '-0.004em', whiteSpace: narrow ? 'normal' : 'nowrap', textShadow: bodyHalo }}>
+        <b style={{ fontWeight: 800, color: 'var(--bp-azure)' }}>Argus:</b>{' '}
         <Lines text={L(active.lineKo, active.lineEn)} />
       </p>
     </motion.div>
@@ -249,10 +258,14 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
     <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(16px, 2vw, 30px)' }}>
       <motion.div
         aria-hidden="true"
-        initial={rm ? {} : { clipPath: 'inset(0 0 100% 0)' }}
-        animate={{ clipPath: 'inset(0 0 0% 0)' }}
-        transition={{ duration: 0.7, delay: rm ? 0 : 0.08, ease: 'easeOut' }}
-        style={{ flex: 'none', alignSelf: 'flex-start', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(76px, 11vw, 160px)', lineHeight: 0.78, color: folioColor, opacity: folioOpacity, textShadow: folioHalo, userSelect: 'none' }}
+        // Fade+rise in — NOT a clipPath reveal. With lineHeight 0.78 the glyph
+        // overflows its line box, and an inset() clip cut that overflow off at the
+        // bottom (the narrow numeral, which has no clip, stayed whole — that's why
+        // the bottom only vanished on wide). Opacity has no such edge.
+        initial={rm ? { opacity: folioOpacity } : { opacity: 0, y: 12 }}
+        animate={{ opacity: folioOpacity, y: 0 }}
+        transition={{ duration: 0.6, delay: rm ? 0 : 0.08, ease: [0.22, 0.61, 0.36, 1] }}
+        style={{ flex: 'none', alignSelf: 'flex-start', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(76px, 11vw, 160px)', lineHeight: 0.78, color: folioColor, textShadow: folioHalo, userSelect: 'none' }}
       >
         {active.num}
       </motion.div>
@@ -398,13 +411,29 @@ export function VoyageFilm() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
             style={{
-              position: 'absolute', left: 0, bottom: 0, zIndex: 1, pointerEvents: 'none',
-              width: 'min(780px, 76%)', height: 'min(64%, 400px)',
-              backdropFilter: 'blur(9px) saturate(1.02) brightness(1.03)',
-              WebkitBackdropFilter: 'blur(9px) saturate(1.02) brightness(1.03)',
-              background: 'linear-gradient(to top right, color-mix(in srgb, var(--bp-paper) 56%, transparent), transparent 70%)',
-              maskImage: 'radial-gradient(132% 128% at 0% 100%, #000 48%, transparent 80%)',
-              WebkitMaskImage: 'radial-gradient(132% 128% at 0% 100%, #000 48%, transparent 80%)',
+              // Anchored at the bottom-LEFT corner (both layouts). The trick that
+              // kills the hard "cut box" edge: left + bottom are the screen edges, so
+              // a clip there is invisible — only the RIGHT and TOP need to feather,
+              // and the radial mask reaches FULLY transparent (alpha 0) well inside
+              // the box on those two sides, so the blur dissolves into the picture
+              // with no straight seam across the figures. (The earlier offset-past-
+              // numeral band still hard-cut on its right edge on wide screens, landing
+              // a straight line right over the central figure.) The numeral sits
+              // inside the band — dark ink on the lifted paper reads MORE clearly.
+              position: 'absolute',
+              left: 0, bottom: 0, zIndex: 1, pointerEvents: 'none',
+              width: narrow ? 'min(820px, 80%)' : 'min(760px, 64%)', height: 'min(60%, 400px)',
+              backdropFilter: 'blur(9px) saturate(1.0) brightness(1.08)',
+              WebkitBackdropFilter: 'blur(9px) saturate(1.0) brightness(1.08)',
+              background: narrow
+                ? 'linear-gradient(to top right, color-mix(in srgb, var(--bp-paper) 40%, transparent), transparent 70%)'
+                : 'radial-gradient(74% 78% at 13% 87%, color-mix(in srgb, var(--bp-paper) 50%, transparent), transparent 72%)',
+              maskImage: narrow
+                ? 'radial-gradient(140% 132% at 0% 100%, #000 44%, transparent 82%)'
+                : 'radial-gradient(74% 80% at 12% 88%, #000 0 40%, transparent 78%)',
+              WebkitMaskImage: narrow
+                ? 'radial-gradient(140% 132% at 0% 100%, #000 44%, transparent 82%)'
+                : 'radial-gradient(74% 80% at 12% 88%, #000 0 40%, transparent 78%)',
             }}
           />
         )}
@@ -416,12 +445,12 @@ export function VoyageFilm() {
             transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
             style={{
               position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 1, pointerEvents: 'none',
-              height: 'min(44%, 250px)',
-              backdropFilter: 'blur(7px) saturate(1.02) brightness(1.04)',
-              WebkitBackdropFilter: 'blur(7px) saturate(1.02) brightness(1.04)',
-              background: 'linear-gradient(to top, color-mix(in srgb, var(--bp-paper) 50%, transparent), transparent 78%)',
-              maskImage: 'radial-gradient(82% 130% at 50% 100%, #000 46%, transparent 82%)',
-              WebkitMaskImage: 'radial-gradient(82% 130% at 50% 100%, #000 46%, transparent 82%)',
+              height: 'min(46%, 260px)',
+              backdropFilter: 'blur(7px) saturate(1.0) brightness(1.07)',
+              WebkitBackdropFilter: 'blur(7px) saturate(1.0) brightness(1.07)',
+              background: 'linear-gradient(to top, color-mix(in srgb, var(--bp-paper) 38%, transparent), transparent 80%)',
+              maskImage: 'radial-gradient(86% 132% at 50% 100%, #000 44%, transparent 84%)',
+              WebkitMaskImage: 'radial-gradient(86% 132% at 50% 100%, #000 44%, transparent 84%)',
             }}
           />
         )}
@@ -441,7 +470,7 @@ export function VoyageFilm() {
             aria-live="polite"
           >
             <motion.div className="flex flex-col items-center" initial={rm ? { opacity: 1 } : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}>
-              <span className="bp-mono" style={{ marginBottom: 11, fontSize: 'clamp(10px, 1.05vw, 11.5px)', letterSpacing: '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}>
+              <span className="bp-mono" style={{ marginBottom: 11, fontSize: 'clamp(10px, 1.05vw, 11.5px)', letterSpacing: locale === 'ko' ? '0.13em' : '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}>
                 {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
               </span>
               <p className={`${locale === 'ko' ? 'break-keep' : ''}`} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 1.75vw, 19px)', lineHeight: 1.5, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}>
@@ -456,7 +485,7 @@ export function VoyageFilm() {
             initial={false}
             exit={rm ? { opacity: 0 } : { opacity: 0, x: -12 }}
             transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
-            style={{ position: 'absolute', left: narrow ? 'clamp(16px, 5vw, 24px)' : 'clamp(24px, 6vw, 84px)', bottom: narrow ? 'clamp(28px, 9%, 56px)' : 'clamp(40px, 12%, 90px)', right: 'auto', textAlign: 'left', maxWidth: narrow ? '90vw' : 'min(58ch, 640px)', zIndex: 2 }}
+            style={{ position: 'absolute', left: narrow ? 'clamp(16px, 5vw, 24px)' : 'clamp(24px, 6vw, 84px)', bottom: narrow ? 'clamp(28px, 9%, 56px)' : 'clamp(36px, 11%, 84px)', right: 'auto', textAlign: 'left', maxWidth: narrow ? '90vw' : 'min(82ch, 880px)', zIndex: 2 }}
             aria-live="polite"
           >
             <PlateFolioCard active={active} L={L} locale={locale} rm={rm} narrow={narrow} />
