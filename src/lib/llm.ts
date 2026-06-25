@@ -857,21 +857,38 @@ export async function callLLMStreamThenParse<T = unknown>(
   },
   onToken: (text: string) => void
 ): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
+  // Stream first (for the live UX), collecting the full text.
+  const fullText = await new Promise<string>((resolve, reject) => {
     callLLMStream(messages, options, {
       onToken,
-      onComplete: (fullText) => {
-        try {
-          const parsed = parseJSON<T>(fullText);
-          const validated = options.shape
-            ? validateShape<T & Record<string, unknown>>(parsed, options.shape) as T
-            : parsed;
-          resolve(validated);
-        } catch (error) {
-          reject(error);
-        }
-      },
+      onComplete: resolve,
       onError: reject,
     });
   });
+
+  try {
+    const parsed = parseJSON<T>(fullText);
+    return options.shape
+      ? validateShape<T & Record<string, unknown>>(parsed, options.shape) as T
+      : parsed;
+  } catch (error) {
+    // The streamed text didn't parse — almost always a mid-JSON truncation.
+    // Fall back to ONE clean non-streaming structured call (callLLMJson carries
+    // its own corrective parse-retry). This is the safety net under the
+    // stream-then-parse pattern: a truncated stream degrades to a re-fetch
+    // instead of a hard "JSON 파싱 실패" in the user's face. Only recover from
+    // parse/validation failures — never from abort / auth / rate-limit, which
+    // must surface unchanged.
+    const recoverable = error instanceof LLMError &&
+      (error.category === 'parse_failure' || error.category === 'validation');
+    if (recoverable) {
+      // A truncated stream is the likeliest cause, so a same-budget retry would
+      // hit the same ceiling. Give the clean retry extra room (the server clamps
+      // to its own cap), turning genuine length overflow into a recoverable case
+      // too — not just markdown-wrapped / preamble malformations.
+      const retryTokens = Math.min((options.maxTokens ?? 2000) + 2000, 8000);
+      return callLLMJson<T>(messages, { ...options, maxTokens: retryTokens });
+    }
+    throw error;
+  }
 }

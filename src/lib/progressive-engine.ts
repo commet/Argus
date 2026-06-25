@@ -7,6 +7,7 @@ import {
   buildInitialAnalysisPrompt,
   buildInitialRefinementPrompt,
   buildDeepeningPrompt,
+  buildExecutionPlanPrompt,
   buildMixPrompt,
   buildFinalDeliverablePrompt,
   buildNavigatorReviewPrompt,
@@ -626,27 +627,69 @@ export async function runDeepening(
       specialty: a.expertise?.split('.')[0] || a.role,
     }));
 
+  // ── Call A: the streamed narrative (insight / question / assumptions / skeleton). ──
+  // The large execution_plan is NO LONGER part of this response — it is generated
+  // in a separate call below. That split is the structural fix for the round-3
+  // "JSON 파싱 실패": the plan used to inflate this JSON past the token budget and
+  // truncate it mid-structure. Without the plan, this payload stays small and the
+  // streamed parse can't be cut off.
   const { system, user } = buildDeepeningPrompt(
-    problemText, currentSnapshot, questionsAndAnswers, round, maxRounds, availableAgents, locale, leadContext, registeredPersonas,
+    problemText, currentSnapshot, questionsAndAnswers, round, maxRounds, locale,
   );
 
+  // maxTokens 2500: the narrative alone (no plan) runs ~1000-1300 tokens even in
+  // Korean, so this is genuine 2x headroom — not a payload we're chasing.
   const result = onToken
     ? await callLLMStreamThenParse<DeepeningResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
+        { system, maxTokens: 2500, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
         onToken,
       )
     : await callLLMJson<DeepeningResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
+        { system, maxTokens: 2500, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
       );
+
+  // ── Call B: execution_plan in its own robust, plan-only call (round >= 1). ──
+  // Generated from the freshly-deepened analysis (Call A's output). It gets the
+  // whole token budget to itself, so it can't truncate the narrative — and it is
+  // best-effort: a plan failure must NEVER sink the turn (the user already saw the
+  // insight stream in). On failure we carry the previous plan forward. A user
+  // abort still propagates so the outer handler can roll the answer back.
+  let executionPlan = currentSnapshot.execution_plan;
+  if (round >= 1) {
+    try {
+      const planPrompt = buildExecutionPlanPrompt(
+        problemText,
+        {
+          real_question: result.real_question || currentSnapshot.real_question,
+          hidden_assumptions: result.hidden_assumptions || currentSnapshot.hidden_assumptions,
+          skeleton: result.skeleton || currentSnapshot.skeleton,
+        },
+        questionsAndAnswers, round, availableAgents, locale, leadContext, registeredPersonas,
+      );
+      // maxTokens 3500: a 5-step Korean plan with human-step fields is the
+      // largest realistic payload; 3500 (under the 4096 server cap) clears it.
+      // callLLMJson also carries a corrective parse-retry of its own.
+      const plan = await callLLMJson<{ steps: ExecutionPlanStep[]; key_assumptions?: string[] }>(
+        [{ role: 'user', content: planPrompt.user }],
+        { system: planPrompt.system, maxTokens: 3500, signal, shape: { steps: 'array', key_assumptions: 'array' } },
+      );
+      if (plan?.steps?.length) {
+        executionPlan = { steps: plan.steps, key_assumptions: plan.key_assumptions || [] };
+      }
+    } catch (e) {
+      if (signal?.aborted) throw e; // user cancellation — let the outer handler roll back
+      // otherwise best-effort: keep the prior plan, don't fail the whole turn
+    }
+  }
 
   const snapshot: AnalysisSnapshot = {
     version: currentSnapshot.version + 1,
     real_question: result.real_question || currentSnapshot.real_question,
     hidden_assumptions: result.hidden_assumptions || currentSnapshot.hidden_assumptions,
     skeleton: result.skeleton || currentSnapshot.skeleton,
-    execution_plan: result.execution_plan || currentSnapshot.execution_plan,
+    execution_plan: executionPlan,
     insight: result.insight,
     framing_confidence: currentSnapshot.framing_confidence,
     framing_locked: currentSnapshot.framing_locked,
