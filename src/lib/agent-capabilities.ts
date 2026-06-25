@@ -86,10 +86,10 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
 
   // ━━━ Production ━━━
   {
-    agentId: 'minjae',  // 숫자 전문가
+    agentId: 'minjae',  // 숫자 전문가 — 추정·시장규모·유닛이코노믹스·시나리오 (vs 혜연=재무제표·밸류에이션)
     taskTypes: ['calculation', 'analysis'],
-    domains: ['finance', 'market', 'ops'],
-    outputTypes: ['numbers', 'report', 'comparison'],
+    domains: ['market', 'ops', 'finance'],   // market-first: sizing/estimation, finance is secondary
+    outputTypes: ['numbers', 'comparison', 'report'],  // comparison-first: scenario/sensitivity tables
     antiPatterns: ['writing', 'design', 'legal_review'],
   },
   {
@@ -139,9 +139,9 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
 
   // ━━━ New: Finance, Marketing, HR ━━━
   {
-    agentId: 'hyeyeon',  // 재무·회계
-    taskTypes: ['calculation', 'analysis', 'critique'],
-    domains: ['finance', 'market', 'ops'],
+    agentId: 'hyeyeon',  // 재무·회계 — 재무제표 분석·밸류에이션·감사 (vs 규민=추정·시장)
+    taskTypes: ['analysis', 'calculation', 'critique'],  // analysis-first: statement analysis/audit
+    domains: ['finance', 'ops', 'market'],   // finance-only-first; market is tertiary
     outputTypes: ['numbers', 'report', 'risk_assessment'],
     antiPatterns: ['design', 'writing'],
   },
