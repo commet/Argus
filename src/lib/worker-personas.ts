@@ -42,7 +42,7 @@ const DEFAULT_CUSTOMIZATION: PersonaCustomization = {
 const BUILTIN_PERSONAS: WorkerPersona[] = [
   {
     id: 'researcher',
-    name: '다은', nameEn: 'Daeun',
+    name: '다은', nameEn: 'Sophie',
     role: '리서치 애널리스트', roleEn: 'Research Analyst',
     emoji: '🔍',
     expertise: '자료 조사, 시장 분석, 데이터 수집에 강합니다. 빠짐없이 꼼꼼하게 찾아냅니다.',
@@ -53,7 +53,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'strategist',
-    name: '현우', nameEn: 'Hyunwoo',
+    name: '현우', nameEn: 'Nathan',
     role: '전략 구루', roleEn: 'Strategy Lead',
     emoji: '🎯',
     expertise: '전략 수립, 포지셔닝, 경쟁 분석의 전문가입니다. 큰 그림을 그립니다.',
@@ -64,7 +64,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'numbers',
-    name: '규민', nameEn: 'Gyumin',
+    name: '규민', nameEn: 'Ethan',
     role: '숫자 분석가', roleEn: 'Numbers Analyst',
     emoji: '📊',
     expertise: '수치 분석, 재무 모델링, ROI 계산에 능합니다. 숫자로 이야기합니다.',
@@ -75,7 +75,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'copywriter',
-    name: '서연', nameEn: 'Seoyeon',
+    name: '서연', nameEn: 'Claire',
     role: '카피라이터', roleEn: 'Copywriter',
     emoji: '✍️',
     expertise: '문서 작성, 카피라이팅, 메시지 설계의 전문가입니다. 읽히는 글을 씁니다.',
@@ -86,7 +86,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'critic',
-    name: '동혁', nameEn: 'Donghyuk',
+    name: '동혁', nameEn: 'Blake',
     role: '리스크 검토자', roleEn: 'Risk Reviewer',
     emoji: '⚠️',
     expertise: '리스크 분석, 반론 검토, 약점 파악의 전문가입니다. 놓치기 쉬운 걸 찾습니다.',
@@ -97,7 +97,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'ux',
-    name: '지은', nameEn: 'Jieun',
+    name: '지은', nameEn: 'Maya',
     role: 'UX 설계자', roleEn: 'UX Designer',
     emoji: '🎨',
     expertise: '사용자 경험, 인터페이스 설계, 사용성 평가에 강합니다.',
@@ -108,7 +108,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'legal',
-    name: '윤석', nameEn: 'Yunseok',
+    name: '윤석', nameEn: 'Arthur',
     role: '법률·규정 검토자', roleEn: 'Legal & Compliance Reviewer',
     emoji: '⚖️',
     expertise: '법적 리스크, 규정 준수, 계약 조건 검토에 능합니다.',
@@ -119,7 +119,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'intern',
-    name: '하윤', nameEn: 'Hayun',
+    name: '하윤', nameEn: 'Riley',
     role: '리서치 인턴', roleEn: 'Research Intern',
     emoji: '📝',
     expertise: '기초 자료 정리, 벤치마킹, 사례 수집을 담당합니다. 열정적으로 찾아옵니다.',
@@ -130,7 +130,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'engineer',
-    name: '준서', nameEn: 'Junseo',
+    name: '준서', nameEn: 'Leo',
     role: '기술 설계자', roleEn: 'Technical Architect',
     emoji: '⚙️',
     expertise: '기술 아키텍처, 구현 가능성 검토, 시스템 설계에 강합니다.',
@@ -141,7 +141,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'pm',
-    name: '예린', nameEn: 'Yerin',
+    name: '예린', nameEn: 'Grace',
     role: '프로젝트 매니저', roleEn: 'Project Manager',
     emoji: '📋',
     expertise: '일정 관리, 이해관계자 조율, 실행 계획 수립에 능합니다.',
@@ -152,7 +152,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'finance',
-    name: '혜연', nameEn: 'Hyeyeon',
+    name: '혜연', nameEn: 'Diana',
     role: '재무 전문가', roleEn: 'Finance Specialist',
     emoji: '💰',
     expertise: '재무 계획, 투자 판단, 현금흐름 분석, 자금 조달 전략에 깊이가 있습니다.',
@@ -163,7 +163,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'marketing',
-    name: '민서', nameEn: 'Minseo',
+    name: '민서', nameEn: 'Stella',
     role: '마케팅 전략가', roleEn: 'Marketing Strategist',
     emoji: '📣',
     expertise: '시장 포지셔닝, 브랜드 메시지, 채널 전략, 고객 획득 퍼널 설계에 능합니다.',
@@ -174,7 +174,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'people_culture',
-    name: '수진', nameEn: 'Sujin',
+    name: '수진', nameEn: 'Harper',
     role: '조직·문화 전문가', roleEn: 'People & Culture Specialist',
     emoji: '🤝',
     expertise: '조직 설계, 채용 전략, 문화 형성, 팀 갈등 해결에 깊이가 있습니다.',
@@ -185,7 +185,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'research_director',
-    name: '도윤', nameEn: 'Doyoon',
+    name: '도윤', nameEn: 'Marcus',
     role: '리서치 디렉터', roleEn: 'Research Director',
     emoji: '🧭',
     expertise: '여러 리서치 결과를 교차 분석하고 핵심 인사이트를 뽑아냅니다.',
@@ -196,7 +196,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'strategy_jr',
-    name: '정민', nameEn: 'Jungmin',
+    name: '정민', nameEn: 'Alex',
     role: '전략 주니어', roleEn: 'Strategy Associate',
     emoji: '📑',
     expertise: '옵션 비교표 작성, 기초 벤치마킹, 전략 초안 정리를 담당합니다.',
@@ -207,7 +207,7 @@ const BUILTIN_PERSONAS: WorkerPersona[] = [
   },
   {
     id: 'chief_strategist',
-    name: '승현', nameEn: 'Seunghyun',
+    name: '승현', nameEn: 'Victor',
     role: '수석 전략가', roleEn: 'Chief Strategist',
     emoji: '♟️',
     expertise: '시나리오 설계, 의사결정 구조, 권장 경로 선택까지 책임집니다.',
