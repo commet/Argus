@@ -221,8 +221,13 @@ export async function runAllAIWorkers(
     if (aType === 'ai') return true;
     // Legacy support
     if (!w.agent_type && (w.who === 'ai' || w.who === 'both')) return true;
-    // Self/Human workers with ai_scope need AI preliminary execution
-    if ((aType === 'self' || aType === 'human') && w.ai_scope && w.status === 'ai_preparing') return true;
+    // Self/Human workers with ai_scope need AI preliminary execution. Normally
+    // deployWorkers() stamps them 'ai_preparing', BUT crash-resume hydration
+    // resets in-flight workers ('running'/'ai_preparing') back to 'pending'
+    // (useProgressiveStore sanitize). Without 'pending' here, a reload mid-run
+    // left every self/human-with-ai_scope worker filtered out — aiWorkers empty,
+    // the executor returned immediately, and "다시 실행" did nothing (stuck 0/N).
+    if ((aType === 'self' || aType === 'human') && w.ai_scope && (w.status === 'ai_preparing' || w.status === 'pending')) return true;
     return false;
   });
   if (aiWorkers.length === 0) return;
