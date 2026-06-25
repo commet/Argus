@@ -17,6 +17,7 @@ export interface TelegramSettlementResult {
   graded: number;
   alreadySettled: boolean;
   deferred: boolean;
+  freeformClosed: boolean;
 }
 
 const TOKEN_PREFIX = 'ARGUS_SETTLE';
@@ -105,12 +106,31 @@ export function applyTelegramSettlement(
       graded: 0,
       alreadySettled: false,
       deferred: true,
+      freeformClosed: false,
+    };
+  }
+
+  const predicates = Array.isArray(contract.predicates) ? contract.predicates : [];
+  if (predicates.length === 0) {
+    return {
+      contract: {
+        ...contract,
+        outcome_note: cleanNote(intent.note) ?? contract.outcome_note,
+        graded_at: new Date(now).toISOString(),
+        check_in_at: undefined,
+        check_in_interval: undefined,
+      },
+      outcome: intent.outcome,
+      graded: 0,
+      alreadySettled: false,
+      deferred: false,
+      freeformClosed: true,
     };
   }
 
   let next: DecisionContract = { ...contract, outcome_note: cleanNote(intent.note) ?? contract.outcome_note };
   let graded = 0;
-  for (const predicate of Array.isArray(contract.predicates) ? contract.predicates : []) {
+  for (const predicate of predicates) {
     if (isResolved(predicate)) continue;
     next = gradePredicate(next, predicate.id, intent.outcome, now);
     graded++;
@@ -122,6 +142,7 @@ export function applyTelegramSettlement(
     graded,
     alreadySettled: graded === 0,
     deferred: false,
+    freeformClosed: false,
   };
 }
 
@@ -145,10 +166,12 @@ function parseCallbackData(data?: string): TelegramSettlementIntent | null {
 function parseCommand(text?: string): TelegramSettlementIntent | null {
   const match = text?.trim().match(/^\/settle(?:@\w+)?\s+(\S+)\s+(\S+)(?:\s+([\s\S]+))?$/i);
   if (!match) return null;
+  const target = parseToken(match[1]) ?? parseCompactTarget(match[1]);
+  if (!target.projectId) return null;
   const outcome = parseOutcome(match[2]);
   if (!outcome) return null;
   return {
-    projectId: match[1],
+    ...target,
     outcome,
     note: cleanNote(match[3]),
     source: 'command',
@@ -159,6 +182,11 @@ function parseToken(text?: string): Pick<TelegramSettlementIntent, 'projectId' |
   const match = text?.match(/ARGUS_SETTLE:([^:\s]+)(?::([^:\s]+))?/);
   if (!match) return null;
   return { projectId: match[1], contractId: match[2] };
+}
+
+function parseCompactTarget(text: string): Pick<TelegramSettlementIntent, 'projectId' | 'contractId'> {
+  const [projectId, contractId] = text.split(':');
+  return { projectId, contractId };
 }
 
 function parseOutcome(text: string): TelegramSettlementOutcome | null {

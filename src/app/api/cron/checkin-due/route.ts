@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { settlementReminderText, settlementReplyMarkup } from '@/lib/telegram-settlement';
+import { isCheckInReminderDue, selectOpenPredicate } from '@/lib/checkin-reminder';
+import type { DecisionContract } from '@/stores/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,16 +37,6 @@ function safeCompare(a: string, b: string): boolean {
 
 function escHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-interface Contract {
-  id?: string;
-  check_in_at?: string;
-  graded_at?: string;
-  email_reminder?: boolean;
-  reminder_sent_at?: string;
-  telegram_reminder_sent_at?: string;
-  predicates?: { id?: string; source?: string; text?: string; verdict?: string }[];
 }
 
 async function sendTelegramReminder(args: {
@@ -98,18 +90,15 @@ export async function GET(req: Request) {
     .is('deleted_at', null);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const due = (rows ?? []).filter((r: { decision_contract: Contract | null }) => {
+  const due = (rows ?? []).filter((r: { decision_contract: DecisionContract | null }) => {
     const c = r.decision_contract;
-    if (!c) return false;
-    if (!c.check_in_at || c.graded_at) return false;             // armed + ungraded
-    if (new Date(c.check_in_at).getTime() > now) return false;   // actually due
-    return true;
+    return isCheckInReminderDue(c, now);
   });
 
   let sent = 0;
   let telegramSent = 0;
   const failures: string[] = [];
-  for (const r of due as { id: string; user_id: string; name: string; decision_contract: Contract }[]) {
+  for (const r of due as { id: string; user_id: string; name: string; decision_contract: DecisionContract }[]) {
     try {
       const c = r.decision_contract;
       const name = typeof r.name === 'string' ? r.name : '';
@@ -155,7 +144,7 @@ export async function GET(req: Request) {
           .from('telegram_connections')
           .select('chat_id')
           .eq('user_id', r.user_id);
-        const openPredicate = c.predicates?.find((p) => !p.verdict || p.verdict === 'pending') ?? c.predicates?.[0];
+        const openPredicate = selectOpenPredicate(c);
         const text = settlementReminderText({
           projectName: name,
           projectId: r.id,

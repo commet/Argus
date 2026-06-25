@@ -27,6 +27,14 @@ Routing policy for item 2: **low-stakes/flat/reversible -> fast bearing by defau
 - **Decision replay predicate 선택**: replay의 check-later row가 첫 predicate를 무조건 보여줘 이미 해결된 항목을 다시 보여줄 수 있었다. 보완: unresolved predicate를 우선 표시한다.
 - **프로젝트 상세 간격/표현**: replay 추가 뒤 workspace link가 음수 margin으로 timeline에 붙을 수 있었고, 한국어 replay 라벨이 "최종 항로"라서 "Current Bearing" 철학과 어긋났다. 보완: 정상 margin, "현재 항로"로 수정한다.
 
+## 2026-06-26 마지막 인접 감사 보완
+
+- **cron due 판단 drift**: 웹의 `contractStatus()`는 "약속한 날짜의 0시부터 due"로 보는데, cron은 정확한 timestamp와 `graded_at`만 봤다. 같은 결정이 웹에서는 due인데 이메일/Telegram reminder는 아직 안 나가거나, legacy contract는 이미 모든 predicate가 해결됐는데 `graded_at` 누락 때문에 다시 알림이 나갈 수 있었다. 보완: reminder 후보 판단을 `isCheckInReminderDue()`로 추출하고 내부에서 `contractStatus()`를 단일 기준으로 쓴다.
+- **date-only rope의 Telegram 미종결**: 웹 SettlementModal은 predicate가 없는 날짜 약속을 "돌아봤어요 — 닫기"로 닫지만, Telegram 답장은 0개 predicate를 업데이트하고 계약을 계속 due 상태로 남겼다. 보완: predicate-less contract에 non-pending 답장이 오면 `graded_at`을 찍고 `check_in_at/check_in_interval`을 제거한다.
+- **/settle 명령어의 stale guard 손실**: 답장 token에는 `contractId`가 있었지만 `/settle` 명령어는 project id만 받았다. 사용자가 reminder token을 복사해 명령어로 처리하면 stale guard를 유지하지 못했다. 보완: `/settle ARGUS_SETTLE:<projectId>:<contractId> happened ...` 형식을 허용한다.
+- **웹 date-only close의 빈 기록/오염된 지표**: predicate가 없는 날짜 약속은 웹에서 닫을 수는 있었지만 실제 결과 메모를 저장하지 못했고, 닫기 직후에도 `settle_abandoned`로 추적될 수 있었다. 보완: freeform note를 `outcome_note`에 보존하고, freeform close는 abandoned 이벤트에서 제외한다.
+- **리마인더 카피의 약속 불일치**: SealMoment/Guide는 "알림을 보내지 않는다"고 말했지만 실제로는 이메일 opt-in과 Telegram reminder 경로가 생겼다. 보완: 사용자-facing 카피를 "달력 저장 + 명시적 이메일 opt-in" 기준으로 바꿔 거짓 부정 약속을 제거한다.
+
 1과 6은 같은 spine을 만지지만, 동시에 하면 너무 커진다. 먼저 1로 화면과 replay를 만들고, 6에서 저장 모델을 정리하는 순서가 안전하다.
 
 ## 1. Current Bearing을 기본 출력으로 올린다는 뜻

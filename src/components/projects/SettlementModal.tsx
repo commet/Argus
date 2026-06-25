@@ -138,11 +138,12 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   // unmount when the contract still wasn't fully resolved (read from a ref so the
   // cleanup sees the latest state, not the mount-time snapshot). Internal-only.
   const allResolvedRef = useRef(allResolved);
+  const freeformClosedRef = useRef(false);
   allResolvedRef.current = allResolved;
   useEffect(() => {
     track('settle_prompt_shown', { project_id: project.id, predicates: predicates.length });
     return () => {
-      if (!allResolvedRef.current) track('settle_abandoned', { project_id: project.id });
+      if (!allResolvedRef.current && !freeformClosedRef.current) track('settle_abandoned', { project_id: project.id });
     };
     // mount/unmount only — one shown per open, one abandoned-or-not per close.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -216,8 +217,16 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   // the loop. Closing clears the check-in so it stops resurfacing.
   if (predicates.length === 0) {
     const closeFreeform = () => {
+      const note = account.trim();
+      freeformClosedRef.current = true;
       updateProject(project.id, {
-        decision_contract: { ...contract, graded_at: new Date().toISOString(), check_in_at: undefined, check_in_interval: undefined },
+        decision_contract: {
+          ...contract,
+          outcome_note: note || contract.outcome_note,
+          graded_at: new Date().toISOString(),
+          check_in_at: undefined,
+          check_in_interval: undefined,
+        },
       });
       recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict: 'freeform_close' } });
       track('decision_graded', { verdict: 'freeform_close' });
@@ -234,6 +243,17 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
             {L('따로 봉인한 예측은 없었어요 — 한 번 돌아본 걸로 이 고리를 닫을게요.',
                "No specific predictions were sealed for this one — we'll close the loop as a look-back.")}
           </p>
+          <label className="block text-[12px] font-medium text-[var(--text-secondary)] leading-[1.5]">
+            {L('실제로 어떻게 됐는지 짧게 남겨두기 (선택)', 'Leave a short note on what happened (optional)')}
+          </label>
+          <textarea
+            value={account}
+            onChange={(e) => setAccount(e.target.value)}
+            rows={3}
+            maxLength={1000}
+            placeholder={L('결과, 배운 점, 아직 모르는 점...', 'Outcome, lesson, what is still unknown...')}
+            className="w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-[12.5px] text-[var(--text-primary)] leading-[1.5] focus:outline-none focus:border-[var(--accent)]/50"
+          />
           <button
             onClick={closeFreeform}
             className="w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white cursor-pointer"

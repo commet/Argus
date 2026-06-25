@@ -406,7 +406,7 @@ export function SealMoment({
         {/* Channel disclosure BEFORE consent — a suspicious user won't say yes
             without knowing HOW the asking happens ("이메일? 스팸?"). */}
         <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] max-w-md mx-auto">
-          {L('제가 알림을 보내진 않아요 — 잊지 않게 그날을 달력에 넣어둘까요?', "I won't send notifications — want me to drop the day on your calendar so it isn't forgotten?")}
+          {L('먼저 달력에 남겨둘 수 있어요. 이메일 알림은 아래에서 직접 켤 때만 보냅니다.', 'You can add the day to your calendar now. Email is sent only if you turn it on below.')}
           {' '}
           <button onClick={downloadIcs} className="font-semibold text-[var(--accent)] hover:underline cursor-pointer">
             {L('달력에 넣기', 'Add to calendar')}

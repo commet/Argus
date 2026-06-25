@@ -104,6 +104,11 @@ async function handleSettlement(
     return;
   }
 
+  if (result.freeformClosed) {
+    await sendBotMessage(chatId, `<b>Look-back recorded.</b>\n${name} is closed for now.`);
+    return;
+  }
+
   if (result.alreadySettled) {
     await sendBotMessage(chatId, `<b>Already settled.</b>\n${name} had no open checks left.`);
     return;

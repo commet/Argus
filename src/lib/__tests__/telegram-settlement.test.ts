@@ -71,6 +71,16 @@ describe('telegram settlement intent parsing', () => {
     });
   });
 
+  it('parses command mode with the full reminder token so stale guards still work', () => {
+    expect(parseSettlementIntent({ text: `/settle ${settlementToken('p1', 'c1')} happened checked from the reminder` })).toEqual({
+      projectId: 'p1',
+      contractId: 'c1',
+      outcome: 'happened',
+      note: 'checked from the reminder',
+      source: 'command',
+    });
+  });
+
   it('builds a compact reminder with callback buttons', () => {
     expect(settlementReminderText({
       projectName: 'Launch',
@@ -95,7 +105,19 @@ describe('applyTelegramSettlement', () => {
   it('extends the check-in by one week when still pending', () => {
     const result = applyTelegramSettlement(contract(), { outcome: 'pending' }, Date.UTC(2026, 0, 9));
     expect(result.deferred).toBe(true);
+    expect(result.freeformClosed).toBe(false);
     expect(result.contract.history?.length).toBe(1);
     expect(result.contract.check_in_at).toBe('2026-01-16T00:00:00.000Z');
+  });
+
+  it('closes predicate-less date-only contracts like the web look-back path', () => {
+    const dateOnly: DecisionContract = { ...contract(), predicates: [] };
+    const result = applyTelegramSettlement(dateOnly, { outcome: 'partial', note: 'Looked back from Telegram.' }, Date.UTC(2026, 0, 9));
+
+    expect(result.freeformClosed).toBe(true);
+    expect(result.contract.graded_at).toBe('2026-01-09T00:00:00.000Z');
+    expect(result.contract.check_in_at).toBeUndefined();
+    expect(result.contract.check_in_interval).toBeUndefined();
+    expect(result.contract.outcome_note).toBe('Looked back from Telegram.');
   });
 });
