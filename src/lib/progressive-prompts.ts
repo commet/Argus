@@ -257,7 +257,7 @@ JSON:
 
 // ─── 2.5. Worker Task (individual agent work) ───
 
-import { getSkillSet, getFrameworkSkill, LEVEL_CONFIGS, numericLevelToAgentLevel } from '@/lib/agent-skills';
+import { getSkillSet, getFrameworkSkill, LEVEL_CONFIGS, effectiveWorkerLevel } from '@/lib/agent-skills';
 import type { AgentLevel } from '@/stores/types';
 import type { Agent } from '@/stores/agent-types';
 import { buildAgentContext } from '@/lib/agent-prompt-builder';
@@ -276,8 +276,8 @@ export function buildWorkerTaskPrompt(
   locale: Locale = 'en',
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
-  // Agent level: use agent's numeric level -> AgentLevel conversion if available
-  const effectiveLevel = agent ? numericLevelToAgentLevel(agent.level) : level;
+  // Agent level: base skill always on — junior floors to senior (intern excepted)
+  const effectiveLevel = agent ? effectiveWorkerLevel(agent.level, agent.id) : level;
   const levelConfig = LEVEL_CONFIGS[effectiveLevel];
   // Skill lookup: agent ID first, fallback to persona ID
   const skillLookupId = agent?.id || persona?.id;

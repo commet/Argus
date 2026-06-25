@@ -17,6 +17,27 @@ export function numericLevelToAgentLevel(lv: number): AgentLevel {
   return 'junior';
 }
 
+/**
+ * Worker execution level with "base skill always on".
+ *
+ * The junior tier is treated as a FLOOR of senior, so a brand-new agent
+ * (numeric level 1) already runs at its senior prompt + token budget instead
+ * of the 800-token / fast-model junior cap. Earned numeric levels still promote
+ * to guru (lv≥5) — XP becomes a bonus on top, not a gate in front. This only
+ * reinterprets the numeric level for prompt/token/model selection; the raw
+ * `agent.level` is untouched, so planning/tool/routing gates are unaffected.
+ *
+ * Exception: intern, whose senior/guru levelPrompts are placeholders
+ * ("operates at junior level only") — it must stay junior.
+ */
+export function effectiveWorkerLevel(numericLevel: number, agentId?: string): AgentLevel {
+  // intern's senior AND guru levelPrompts are placeholders — junior-only by design.
+  if (agentId && agentIdToPersonaId(agentId) === 'intern') return 'junior';
+  const base = numericLevelToAgentLevel(numericLevel);
+  // Base skill always on: a level-1 (junior) agent already runs at its senior tier.
+  return base === 'junior' ? 'senior' : base;
+}
+
 // ─── Level System ───
 
 export interface AgentLevelConfig {
