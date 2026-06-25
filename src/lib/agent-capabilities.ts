@@ -88,7 +88,7 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
   {
     agentId: 'minjae',  // 숫자 전문가 — 추정·시장규모·유닛이코노믹스·시나리오 (vs 혜연=재무제표·밸류에이션)
     taskTypes: ['calculation', 'analysis'],
-    domains: ['market', 'ops', 'finance'],   // market-first: sizing/estimation, finance is secondary
+    domains: ['market', 'finance', 'ops'],   // market-first (sizing); finance still 2nd so minjae stays the general calc agent
     outputTypes: ['numbers', 'comparison', 'report'],  // comparison-first: scenario/sensitivity tables
     antiPatterns: ['writing', 'design', 'legal_review'],
   },
@@ -140,8 +140,8 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
   // ━━━ New: Finance, Marketing, HR ━━━
   {
     agentId: 'hyeyeon',  // 재무·회계 — 재무제표 분석·밸류에이션·감사 (vs 규민=추정·시장)
-    taskTypes: ['analysis', 'calculation', 'critique'],  // analysis-first: statement analysis/audit
-    domains: ['finance', 'ops', 'market'],   // finance-only-first; market is tertiary
+    taskTypes: ['calculation', 'analysis', 'critique'],
+    domains: ['finance', 'ops', 'market'],   // finance-only-first; wins finance via domain, not by demoting minjae's calc
     outputTypes: ['numbers', 'report', 'risk_assessment'],
     antiPatterns: ['design', 'writing'],
   },
@@ -153,9 +153,9 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
     antiPatterns: ['legal_review', 'calculation'],
   },
   {
-    agentId: 'sujin_hr',  // 사람·문화
+    agentId: 'sujin_hr',  // 사람·문화 — people 도메인 전담 (PM 예린의 ops와 분리)
     taskTypes: ['planning', 'writing', 'analysis', 'synthesis'],
-    domains: ['ops', 'product'],
+    domains: ['people', 'ops', 'product'],
     outputTypes: ['plan', 'document', 'checklist'],
     antiPatterns: ['calculation', 'legal_review', 'design'],
   },

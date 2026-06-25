@@ -30,7 +30,8 @@ export type ContextDomain =
   | 'tech'          // 기술, 아키텍처, 구현
   | 'legal'         // 법률, 규제, 계약
   | 'ux'            // 사용자 경험, 인터페이스
-  | 'ops'           // 운영, 프로세스, 인력
+  | 'ops'           // 운영, 프로세스, 효율 (사람 관련은 people)
+  | 'people'        // 채용, 조직, 문화, 평가·보상 (HR 전담 — PM의 ops와 분리)
   | 'product'       // 제품, 기능, 로드맵
   | 'brand';        // 브랜드, 마케팅, 커뮤니케이션
 
@@ -151,11 +152,16 @@ const DOMAIN_PATTERNS: Record<ContextDomain, PatternRule[]> = {
     [/user/i, 2], [/experience/i, 1], [/interface/i, 2], [/prototype/i, 3], [/usability/i, 3],
   ],
   ops: [
-    ['운영', 2], ['프로세스', 2], ['인력', 2], ['채용', 2], ['조직', 2],
-    ['효율', 1], ['자동화', 2],
-    [/operation/i, 2], [/process/i, 2], [/hiring/i, 2], [/recruit/i, 2],
-    [/automation/i, 2], [/staff/i, 2], [/headcount/i, 2], [/organization/i, 2],
-    [/efficien/i, 1], [/workflow/i, 2],
+    ['운영', 2], ['프로세스', 2], ['효율', 1], ['자동화', 2], ['공급망', 2], ['물류', 2],
+    [/operation/i, 2], [/process/i, 2],
+    [/automation/i, 2], [/efficien/i, 1], [/workflow/i, 2], [/supply\s*chain/i, 2], [/logistics/i, 2],
+  ],
+  people: [
+    ['채용', 3], ['인사', 3], ['조직', 2], ['인력', 2], ['문화', 2], ['온보딩', 3],
+    ['변화관리', 3], ['보상', 2], ['평가 체계', 3], ['퇴사', 2], ['리더십', 2], ['팀워크', 2],
+    [/\bHR\b/, 3], [/hiring/i, 3], [/recruit/i, 3], [/headcount/i, 3], [/staff(ing)?/i, 2],
+    [/onboarding/i, 3], [/culture/i, 2], [/retention/i, 2], [/compensation/i, 2],
+    [/performance\s+review/i, 3], [/org(anization)?\s+design/i, 3], [/leadership/i, 2], [/morale/i, 2],
   ],
   product: [
     ['제품', 2], ['기능', 1], ['서비스', 1], ['출시', 2],
