@@ -104,7 +104,18 @@ Bearing/Bind/Siren/seal/settle/recast는 검색 수요 0(coined term). 철학 �
 
 ### 🟡 MEDIUM
 
-**M1. 반쯤 은퇴한 두 번째 제품(멀티에이전트 오케스트레이션)이 여전히 출하 중.** 21개 lib(agent-*, orchestrator*, worker-engine, debate-engine) + 35KB useAgentStore + /agents·/boss 페이지. 창업자 본인 테제는 "멀티에이전트 말고 압축된 한 화면을 팔아라". Header가 이 라우트를 "워크스페이스 안에서만 도달, 더 이상 최상위 문 아님"으로 강등. 죽진 않았지만(아직 import됨) 팀이 *안 가기로 한* 방향을 위해 유지보수·타입·드리프트 무게를 지는 부착된 평행 제품. **반쯤 은퇴한 코드가 가장 비싸다.**
+**M1. 멀티에이전트 — "반쯤 은퇴"는 부정확. 엔진은 라이브, 게임 UI만 강등.** (2026-06-25 정밀 importer 추적으로 교정)
+
+이전 표면 판정("21 lib가 반쯤 죽은 평행 제품 → 아카이브")은 **틀렸다.** 실제 importer를 추적하니:
+- **엔진은 100% 라이브** — `progressive voyage`(현 제품)가 매 실행 직접 호출한다: 라우팅(`orchestrator-select.ts` capability 매칭, LLM 안 씀·결정론적) → 워커 실행(`worker-engine.ts`, 동시 3, 검증 실패 시 재시도) → 리드 합성(`lead-agent.ts`) → critical이면 Critic 반론(`debate-engine.ts`) → 품질 게이트(`worker-quality.ts`, placeholder/specificity 실제 차단). `useProgressiveStore.ts:955` → `ProgressiveFlow.tsx:1499` 라이브 경로.
+- **강등된 건 "보이는 게임 UI"뿐** — `/agents`(XP/레벨/언락 AgentHub), `/boss`(의사결정권자 시뮬). Header에서 빠지고 워크스페이스 idle의 *3차 텍스트 링크*로만 도달(`workspace/page.tsx:623,627`). 이게 "반쯤 죽음(reachable-but-demoted)".
+- 즉 **코드는 이미 창업자 테제와 정렬돼 있다** — 멀티에이전트를 *자랑하지 않고* 백엔드 엔진으로 숨긴 채 결과만 압축해 판다(`workspace/page.tsx:811` "항해사 1명이 먼저 읽고, 크루는 대기"로 정직하게 표시, 4명 동시 일하는 척 안 함). 충돌은 표면적이다.
+
+**그래서 진짜 문제는 "아카이브"가 아니라 두 가지다:**
+1. **17명이 3곳에 중복 정의 (single-source 위반, CLAUDE.md 원칙 정면 위반).** webapp 5파일(`agent-registry`+`agent-capabilities`+`worker-personas`+`agent-skills-data`+`orchestrator-framework`) + 플러그인 `data/agents.yaml`(복사본, "one-way sync" 수동 재생성 명시) + 플러그인 `agents/*.md` 17개(진짜 서브에이전트 정의). 한 사람의 voice/expertise/framework가 손으로 세 번 복사돼 있어 **에이전트 하나 바꾸면 3배 일 + 드리프트.**
+2. **차별화가 얕다.** 라우팅 레벨에선 17명이 진짜 다르게 배정되지만(capability 프로필이 실제로 다름 → "ROI 계산"은 minjae, "개인정보 위험"은 taejun으로 결정론적 분기), 프롬프트 레벨 차이는 *수백 자 페르소나 문자열 + 프레임워크 이름*뿐 — 근본적으로 다른 추론이 아니다.
+
+**자기개선 루프는 데이터 0으로 휴면** — hit-rate 보정이 "5건 이상"일 때만 작동(`orchestrator-select.ts:83`)인데 봉인/정산이 거의 0이라 코드는 살아있고 실효 0. (루프가 닫혀야 깨어남 — C1과 같은 뿌리)
 
 **M2. ~3,000줄 손-유지 평행 데모데이터 2개 언어.** `demo-data.ts`(1514) + `demo-data-en.ts`(1522)가 거의 동일한 하드코딩 시나리오 트리, 손으로 lockstep 유지해야 함, 둘을 잇는 가드 테스트 없음. 시나리오 하나 고치면 두 번 적용해야 하는 copy-paste-drift 위험.
 
@@ -176,7 +187,7 @@ Bearing/Bind/Siren/seal/settle/recast는 검색 수요 0(coined term). 철학 �
 14. **[ADD/M] 최소 return trigger 연결**(H4): checkin-due cron은 이미 존재 — anon 케이스(device-id 연속성 최소)까지 닿게.
 
 ### 정리 (L — 활성화 1건 난 *후에*)
-15. **[CUT/L] 멀티에이전트/boss 서브시스템 결정**(M1): 정식 아카이브(/legacy, 라우트 제거, 타입 체크리스트에서 제외) 또는 재투자. "도달은 되는데 문은 아닌" 연옥에 21 lib + 35KB 스토어 + 2 페이지를 두지 마라.
+15. **[CHANGE/L] 멀티에이전트 — 엔진은 키우고(테제 정렬), 게임 UI만 결정**(M1 교정): 엔진(라우터+워커+리드+debate+품질게이트)은 *라이브이므로 절대 아카이브 X* — 오히려 (A) 깊은 차별화(에이전트별 few-shot/도구/검증 규칙 차등, 플러그인 `worker_mode_examples`를 webapp 워커에 주입)로 *안 보이는 한 화면을 더 정확하게*. 정리 대상은 강등된 **게임 UI(/agents XP·레벨, /boss)뿐** — 살릴지 들어낼지 결정(반쯤 죽은 상태가 가장 비쌈). 자원을 게임 UI 부활(B, 테제 충돌)에 쓰지 마라. **선행 필수: 17명 정의를 단일 소스 1곳(예: agents.yaml)으로 통합하고 webapp/plugin이 거기서 생성** — 안 하면 모든 업그레이드가 3배 일.
 16. **[CHANGE/L] types.ts(99 인터페이스)를 도메인 모듈로 분할 + ProgressiveFlow.tsx를 서브스텝 컴포넌트로 carve**(H5): 메가파일이 머지 전략을 지시하고 필드 추가에 수동 체크리스트를 강요하는 상태 종료.
 17. **[CHANGE/L] 인앱에 LogbookCard 채택 + bp-* 잉크플레이트 언어 이식**(M3/M4): 랜딩↔앱 이음매 봉합(브랜드 인상 절반을 깎는 곳). 이미 스펙·문서화됨 = 발명 아닌 실행. lucide → 자체 헤어라인 글리프.
 
