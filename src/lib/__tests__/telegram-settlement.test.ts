@@ -41,6 +41,27 @@ describe('telegram settlement intent parsing', () => {
     });
   });
 
+  it('parses Korean reply aliases and strips the alias from the note', () => {
+    expect(parseSettlementIntent({
+      replyText: `확인해 주세요\n${settlementToken('p1', 'c1')}`,
+      text: '발생했어 - 활성화가 기준을 넘었어',
+    })).toEqual({
+      projectId: 'p1',
+      contractId: 'c1',
+      outcome: 'happened',
+      note: '활성화가 기준을 넘었어',
+      source: 'reply',
+    });
+
+    expect(parseSettlementIntent({
+      replyText: `확인해 주세요\n${settlementToken('p1', 'c1')}`,
+      text: '아직이야: 다음 주에 다시 볼게',
+    })).toMatchObject({
+      outcome: 'pending',
+      note: '다음 주에 다시 볼게',
+    });
+  });
+
   it('parses command mode for non-reply clients', () => {
     expect(parseSettlementIntent({ text: '/settle p1 avoided launch was quieter than expected' })).toEqual({
       projectId: 'p1',

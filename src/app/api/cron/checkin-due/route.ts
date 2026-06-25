@@ -38,6 +38,7 @@ function escHtml(s: string): string {
 }
 
 interface Contract {
+  id?: string;
   check_in_at?: string;
   graded_at?: string;
   email_reminder?: boolean;
@@ -158,6 +159,7 @@ export async function GET(req: Request) {
         const text = settlementReminderText({
           projectName: name,
           projectId: r.id,
+          contractId: c.id,
           predicate: openPredicate?.text,
         });
         let delivered = 0;

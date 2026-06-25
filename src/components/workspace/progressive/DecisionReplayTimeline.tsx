@@ -55,6 +55,8 @@ export function DecisionReplayTimeline({
   ]).slice(0, 2);
   const road = bearing?.road_not_taken?.find((r) => clean(r.option));
   const allPredicates = contract?.predicates ?? [];
+  const replayPredicate = allPredicates.find((p) => !p.verdict || p.verdict === 'pending') ?? allPredicates[0];
+  const replayPredicateText = clean(replayPredicate?.text) || clean(bearing?.contract_seed?.predicate);
   const graded = allPredicates.filter((p) => p.verdict && p.verdict !== 'pending').length;
   const settled = allPredicates.length > 0 && graded === allPredicates.length;
 
@@ -115,7 +117,7 @@ export function DecisionReplayTimeline({
       tone: bearing.current_course.status === 'collect_evidence' || bearing.current_course.status === 'hold'
         ? 'warning'
         : 'success',
-      label: L('최종 항로', 'Current bearing'),
+      label: L('현재 항로', 'Current bearing'),
       title: bearing.current_course.summary,
       meta: bearing.next_helm
         ? L(`다음: ${bearing.next_helm}`, `Next: ${bearing.next_helm}`)
@@ -123,13 +125,13 @@ export function DecisionReplayTimeline({
     });
   }
 
-  if (contract?.check_in_at || bearing?.contract_seed?.predicate) {
+  if (contract?.check_in_at || replayPredicateText) {
     steps.push({
       key: 'contract',
       Icon: Anchor,
       tone: settled ? 'success' : 'accent',
       label: settled ? L('정산 완료', 'Settled') : L('나중에 확인', 'Check later'),
-      title: contract?.predicates?.[0]?.text || bearing?.contract_seed?.predicate || '',
+      title: replayPredicateText || L('확인 일정이 잡혀 있어요', 'Follow-up is scheduled'),
       meta: contract?.check_in_at
         ? L(`확인일: ${formatDate(contract.check_in_at, locale)}`, `Check-in: ${formatDate(contract.check_in_at, locale)}`)
         : undefined,

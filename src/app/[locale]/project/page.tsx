@@ -820,7 +820,7 @@ export default function ProjectPage() {
                     outcome={currentProject.outcome}
                   />
                 </div>
-                <div className="flex justify-end -mt-2">
+                <div className="mt-3 flex justify-end">
                   <LocaleLink
                     href="/workspace"
                     className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:underline"

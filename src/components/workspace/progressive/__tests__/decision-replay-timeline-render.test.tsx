@@ -61,11 +61,20 @@ const contract: DecisionContract = {
   project_id: 'p1',
   created_at: '2026-06-25T00:00:00.000Z',
   check_in_at: '2026-07-09T00:00:00.000Z',
-  predicates: [{
-    id: 'pred_1',
-    text: 'Plugin DAU stays above baseline after 30 days',
-    source: 'governing_idea',
-  }],
+  predicates: [
+    {
+      id: 'pred_1',
+      text: 'Spike can be scheduled this week',
+      source: 'governing_idea',
+      verdict: 'happened',
+      graded_at: '2026-06-26T00:00:00.000Z',
+    },
+    {
+      id: 'pred_2',
+      text: 'Plugin DAU stays above baseline after 30 days',
+      source: 'risk',
+    },
+  ],
 };
 
 describe('DecisionReplayTimeline', () => {
@@ -90,6 +99,7 @@ describe('DecisionReplayTimeline', () => {
     expect(text).toContain('Check later');
     expect(text).toContain('Reality answered');
     expect(text).toContain('Run a 4-hour migration spike first');
+    expect(text).toContain('Plugin DAU stays above baseline after 30 days');
   });
 
   it('renders nothing when there is no replay material', () => {

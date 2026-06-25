@@ -17,6 +17,20 @@ describe('routing defaults', () => {
     }])).toBe(true);
   });
 
+  it('uses the last known routing signal when a later snapshot omits carried fields', () => {
+    expect(shouldDefaultFastPath([
+      {
+        stakes: 'routine',
+        reversibility: 'reversible',
+        framing_confidence: 82,
+        decision_density: 'low',
+      },
+      {
+        frame_status: 'load_bearing',
+      },
+    ])).toBe(true);
+  });
+
   it('keeps material or uncertain decisions on team review by default', () => {
     expect(shouldDefaultFastPath([])).toBe(false);
     expect(shouldDefaultFastPath([{

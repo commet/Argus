@@ -1284,10 +1284,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // W1.6 ⑤ 질문 상한: focus mode caps deepening at 3 rounds (founder: "5라운드는
   // 많다") — probe-fork questions don't count (zero-LLM turns). Classic keeps 5.
   const storedMaxR = session?.max_rounds ?? 5; // match createSession default (legacy sessions lacking the field)
-  // Express default caps deepening at ONE question (label reads "1/1 · 마지막");
-  // opting into the crew (deepen) restores the focus cap of 3. Classic keeps 5.
+  // Fast-path routes cap questioning at ONE turn; material/uncertain routes default
+  // to team review and use the focus cap of 3. Classic keeps 5.
   // The maxR=1 engine edge (a max-round "what do you want to do?" choice question)
-  // is neutralized in onAnswer below — express always routes to draft-prep.
+  // is neutralized in onAnswer below — fast-path routes go straight to draft-prep.
   const maxR = focusMode ? (effectiveDeepen ? Math.min(storedMaxR, 3) : 1) : storedMaxR;
 
   // Elapsed timer for PhaseStatusBar — tracks seconds rather than formatting
@@ -1396,9 +1396,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
    * effect fires post-render.) */
   const autoDeployedRef = useRef(false);
   useEffect(() => {
-    // Auto-deploy ONLY once the user opted into the crew (deepen). On the express
-    // road the crew never auto-runs — that's the Phase-2 cut. The "bring the team
-    // in" affordance is what flips deepen + builds the plan that lands here.
+    // Auto-deploy when this route is on team review: either the user opted in
+    // from a fast default, or the request was material/uncertain enough that
+    // team review is the default. Fast-path routes never auto-run the crew.
     if (!focusMode || !effectiveDeepen || autoDeployedRef.current) return;
     if (deployPhase !== 'ready' || workers.length === 0) return;
     autoDeployedRef.current = true;
@@ -2026,8 +2026,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // (the central "사람이 반드시 검증" promise, made real as a junction — not a
   // hard block; an explicit override always exists).
   const onMix = () => {
-    // Express-draft sensor (cut-phase2): measures how often a draft is made on the
-    // express road (no deployed crew) vs the deep road, and the round it happened.
+    // Fast-draft sensor: measures how often a draft is made without deployed crew
+    // vs the team-review road, and the round it happened.
     track('flow_express_draft', {
       had_crew: (session?.workers?.length ?? 0) > 0 && deployPhase === 'deployed',
       round,

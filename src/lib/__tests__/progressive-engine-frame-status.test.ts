@@ -20,7 +20,7 @@ vi.mock('@/lib/llm', () => ({
   callLLMStreamThenParse: vi.fn(),
 }));
 
-import { runInitialAnalysis } from '@/lib/progressive-engine';
+import { refineInitialFraming, runInitialAnalysis } from '@/lib/progressive-engine';
 import { callLLMJson } from '@/lib/llm';
 
 const mockJson = vi.mocked(callLLMJson);
@@ -54,5 +54,33 @@ describe('runInitialAnalysis populates frame_status (R60)', () => {
 
     const { snapshot } = await runInitialAnalysis('should we migrate the backend to Kubernetes?');
     expect(snapshot.frame_status).toBe('load_bearing');
+  });
+
+  it('preserves routing fields on the framing-rejection path', async () => {
+    mockJson.mockResolvedValue({
+      request_type: 'flat',
+      real_question: 'rename the tab from Workspace to Project?',
+      framing_confidence: 82,
+      stakes: 'routine',
+      reversibility: 'reversible',
+      decision_density: 'low',
+      decision_density_reasoning: 'Small reversible copy decision.',
+      hidden_assumptions: [],
+      skeleton: ['rename it anyway'],
+      next_question: null,
+    } as never);
+
+    const { snapshot } = await refineInitialFraming(
+      'rename the tab from Workspace to Project?',
+      'Should we reposition the workspace?',
+      'No, this is just a label tweak.',
+    );
+
+    expect(snapshot.request_type).toBe('flat');
+    expect(snapshot.frame_status).toBe('flat');
+    expect(snapshot.stakes).toBe('routine');
+    expect(snapshot.reversibility).toBe('reversible');
+    expect(snapshot.decision_density).toBe('low');
+    expect(snapshot.skeleton).toEqual([]);
   });
 });

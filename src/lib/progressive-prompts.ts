@@ -859,6 +859,7 @@ Re-analyze from scratch, incorporating their correction. The new real_question m
 2. Still be a QUESTION (ends with ?)
 3. Be more specific than the rejected version
 4. Include framing_confidence — if you're still uncertain, say so (60-70).
+5. Re-run STEP 0 classification. If the user's correction makes this flat/non-open, do not manufacture a plan.
 
 Do NOT repeat the rejected question with minor edits. Find the ACTUAL underlying question.`,
 
@@ -875,8 +876,13 @@ Re-analyze completely based on the user's rejection reason.
 
 JSON format:
 {
+  "request_type": "open | flat | vent | validation | info | resistance | self_profiling | crisis",
   "real_question": "New core question (ends with ?)",
   "framing_confidence": 75,
+  "stakes": "routine | important | critical",
+  "reversibility": "reversible | partial | irreversible",
+  "decision_density": "low | medium | high — low ONLY when reversible, private, low-cost, no external approval, and no legal/security/finance/people/customer-facing impact; use medium/high when unsure",
+  "decision_density_reasoning": "One sentence explaining why this deserves a fast bearing or team review",
   "why_this_matters": "Why this question is the right one (1 sentence)",
   "hidden_assumptions": ["Realistic hidden assumptions, 2-3 items"],
   "skeleton": ["Updated skeleton items"],

@@ -16,6 +16,17 @@ Argus의 다음 보완은 크게 여섯 묶음으로 나누는 게 좋다.
 
 Routing policy for item 2: **low-stakes/flat/reversible -> fast bearing by default; medium/high/uncertain stakes -> team review by default; both paths must offer the opposite choice.**
 
+## 2026-06-26 구현 재감사 보완
+
+이 문서 기반의 1차 구현 뒤, 다음 결함을 추가로 확인하고 보완했다.
+
+- **프레임 재분석 경로 누락**: 사용자가 초기 프레임을 거절한 뒤 다시 분석하는 `refineInitialFraming` 경로가 `request_type`, `stakes`, `reversibility`, `decision_density`, `frame_status`를 저장하지 않았다. 이 경우 low-stakes/flat 라우팅 정책이 초기 경로와 다르게 동작할 수 있었다. 보완: 초기 분석과 동일한 shape/route contract를 사용하고 snapshot에 모든 라우팅 축을 저장한다.
+- **deepening snapshot의 라우팅 축 손실**: Q&A 이후 snapshot이 초기 density/stakes/reversibility를 들고 가지 않아 최신 snapshot만 보는 UI/라우팅에서 신호가 약해질 수 있었다. 보완: deepening snapshot에 라우팅 축을 carry하고, routing helper도 마지막 known signal을 fallback으로 본다.
+- **Telegram stale settlement 보호막 약함**: reminder text는 `contractId`를 받을 수 있었지만 cron 발송에서 넣지 않았다. 답장 settlement가 오래된 계약인지 확인하는 stale guard가 제대로 힘을 못 썼다. 보완: cron reminder token에 contract id를 포함한다.
+- **Telegram 한국어 alias 처리**: `발생 - ...`, `아직: ...` 같은 답장을 outcome으로 인식하고도 note에서 alias를 지우지 못하거나, `\b` 경계 때문에 한글 alias가 불안정했다. 보완: alias match 결과를 note stripping에 재사용한다.
+- **Decision replay predicate 선택**: replay의 check-later row가 첫 predicate를 무조건 보여줘 이미 해결된 항목을 다시 보여줄 수 있었다. 보완: unresolved predicate를 우선 표시한다.
+- **프로젝트 상세 간격/표현**: replay 추가 뒤 workspace link가 음수 margin으로 timeline에 붙을 수 있었고, 한국어 replay 라벨이 "최종 항로"라서 "Current Bearing" 철학과 어긋났다. 보완: 정상 margin, "현재 항로"로 수정한다.
+
 1과 6은 같은 spine을 만지지만, 동시에 하면 너무 커진다. 먼저 1로 화면과 replay를 만들고, 6에서 저장 모델을 정리하는 순서가 안전하다.
 
 ## 1. Current Bearing을 기본 출력으로 올린다는 뜻

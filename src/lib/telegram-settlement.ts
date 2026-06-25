@@ -22,10 +22,10 @@ export interface TelegramSettlementResult {
 const TOKEN_PREFIX = 'ARGUS_SETTLE';
 
 const OUTCOME_ALIASES: Array<[RegExp, TelegramSettlementOutcome]> = [
-  [/^(happened|hit|yes|true|held|발생|맞음|됐다|성공)\b/i, 'happened'],
-  [/^(avoided|prevented|no|false|회피|피함|막음|안\s*일어남)\b/i, 'avoided'],
-  [/^(partial|partly|some|mixed|부분|일부|반반)\b/i, 'partial'],
-  [/^(later|pending|still\s*pending|not\s*yet|아직|나중|보류)\b/i, 'pending'],
+  [/^(happened|hit|yes|true|held|발생(?:함|했음|했어|했다|했고)?|맞음|맞아|맞았어|됐다|됐어|성공(?:함|했어|했다)?|됨)(?=$|[\s:：,\-])/iu, 'happened'],
+  [/^(avoided|prevented|no|false|회피(?:함|했어|했다)?|피함|피했어|막음|막았어|안\s*일어남|안\s*일어났어)(?=$|[\s:：,\-])/iu, 'avoided'],
+  [/^(partial|partly|some|mixed|부분(?:적)?|일부|반반|애매|섞임)(?=$|[\s:：,\-])/iu, 'partial'],
+  [/^(later|pending|still\s*pending|not\s*yet|아직(?:임|이야)?|나중|보류|미정)(?=$|[\s:：,\-])/iu, 'pending'],
 ];
 
 export function settlementToken(projectId: string, contractId?: string): string {
@@ -82,13 +82,13 @@ export function parseSettlementIntent(input: {
   const replyToken = parseToken(input.replyText);
   if (!replyToken || !input.text) return null;
 
-  const outcome = parseOutcome(input.text);
-  if (!outcome) return null;
+  const matchedOutcome = matchOutcome(input.text);
+  if (!matchedOutcome) return null;
 
   return {
     ...replyToken,
-    outcome,
-    note: stripOutcome(input.text, outcome),
+    outcome: matchedOutcome.outcome,
+    note: stripOutcome(input.text, matchedOutcome.matchedText),
     source: 'reply',
   };
 }
@@ -162,15 +162,20 @@ function parseToken(text?: string): Pick<TelegramSettlementIntent, 'projectId' |
 }
 
 function parseOutcome(text: string): TelegramSettlementOutcome | null {
+  return matchOutcome(text)?.outcome ?? null;
+}
+
+function matchOutcome(text: string): { outcome: TelegramSettlementOutcome; matchedText: string } | null {
   const normalized = text.trim();
   for (const [pattern, outcome] of OUTCOME_ALIASES) {
-    if (pattern.test(normalized)) return outcome;
+    const match = normalized.match(pattern);
+    if (match?.[0]) return { outcome, matchedText: match[0] };
   }
   return null;
 }
 
-function stripOutcome(text: string, outcome: TelegramSettlementOutcome): string | undefined {
-  const stripped = text.trim().replace(new RegExp(`^${outcome}\\b[:：,\\-\\s]*`, 'i'), '').trim();
+function stripOutcome(text: string, matchedText: string): string | undefined {
+  const stripped = text.trim().slice(matchedText.length).replace(/^[:：,\-\s]+/, '').trim();
   return cleanNote(stripped);
 }
 

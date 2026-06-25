@@ -83,6 +83,20 @@ interface InitialAnalysisResponse {
   detected_decision_maker: string | null;
 }
 
+const INITIAL_ANALYSIS_SHAPE = {
+  request_type: 'string',
+  real_question: 'string',
+  framing_confidence: { type: 'number', coerce: true },
+  stakes: 'string',
+  reversibility: 'string',
+  decision_density: 'string',
+  decision_density_reasoning: 'string',
+  hidden_assumptions: 'array',
+  skeleton: 'array',
+  next_question: 'object',
+  detected_decision_maker: 'string',
+} as const;
+
 /**
  * R31 — runtime route-contract guard (the "rules=data on the surface with a
  * runtime" move). R29 measured that weaker/mid models (esp. sonnet, the webapp's
@@ -415,12 +429,12 @@ export async function runInitialAnalysis(
   const result = onToken
     ? await callLLMStreamThenParse<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', decision_density: 'string', next_question: 'object' } },
+        { system, maxTokens: 2000, signal, shape: INITIAL_ANALYSIS_SHAPE },
         onToken,
       )
     : await callLLMJson<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', decision_density: 'string', next_question: 'object' } },
+        { system, maxTokens: 2000, signal, shape: INITIAL_ANALYSIS_SHAPE },
       );
 
   // R31 — runtime route-contract guard: a non-open request that nonetheless built
@@ -551,14 +565,19 @@ export async function refineInitialFraming(
   const result = onToken
     ? await callLLMStreamThenParse<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 2000, signal, shape: INITIAL_ANALYSIS_SHAPE },
         onToken,
       )
     : await callLLMJson<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 2000, signal, shape: INITIAL_ANALYSIS_SHAPE },
       );
 
+  const { result: contractResult } = applyRouteContract(result);
+  Object.assign(result, contractResult);
+
+  const requestType = normalizeRequestType(result.request_type);
+  const decisionDensity = normalizeDecisionDensity(result.decision_density) ?? 'medium';
   const framingConfidence = Math.min(100, Math.max(0, result.framing_confidence ?? 70));
 
   const snapshot: AnalysisSnapshot = {
@@ -569,6 +588,18 @@ export async function refineInitialFraming(
     framing_confidence: framingConfidence,
     framing_locked: false,
     framing_override_reason: rejectionReason,
+    request_type: requestType,
+    frame_status: assessFrameStatus({
+      realQuestion: result.real_question || '',
+      surfaceQuestion: problemText,
+      assumptions: result.hidden_assumptions || [],
+    }),
+    stakes: result.stakes === 'routine' || result.stakes === 'critical' ? result.stakes : 'important',
+    reversibility: result.reversibility === 'reversible' || result.reversibility === 'irreversible' ? result.reversibility : 'partial',
+    decision_density: decisionDensity,
+    decision_density_reasoning: typeof result.decision_density_reasoning === 'string'
+      ? result.decision_density_reasoning
+      : undefined,
   };
 
   return {
@@ -674,6 +705,10 @@ export async function runDeepening(
     // Carry the route classification forward (deepening only happens on an open
     // decision, but keep it pinned so the flow's non-open check is stable).
     request_type: currentSnapshot.request_type,
+    stakes: currentSnapshot.stakes,
+    reversibility: currentSnapshot.reversibility,
+    decision_density: currentSnapshot.decision_density,
+    decision_density_reasoning: currentSnapshot.decision_density_reasoning,
     // R60 — re-assess flat/load_bearing on the refined question (a deepened reframe
     // can resolve to flat). Conservative; gates team/probe in the flow.
     frame_status: assessFrameStatus({
