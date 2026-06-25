@@ -84,8 +84,8 @@
       }
     },
     "request_type": {
-      "enum": ["open_decision", "validation", "vent", "info"],
-      "description": "Step-0 gate (clarify Step 1.7): what the user is actually asking for, independent of stakes. open_decision = navigating an undecided question (the ONLY type that flows the full reframe→probe→team pipeline). validation = the user has already decided and wants a pressure-check, not a re-open. vent = emotional processing, not a decision request — do not fork. info = a plain question — just answer. Absent on legacy snapshots → treat as open_decision for back-compat. Default to open_decision whenever the classification is not confident: a false non-open ejects a real decision from the engine, which is the more harmful error."
+      "enum": ["open", "flat", "vent", "validation", "info", "resistance", "self_profiling", "crisis", "open_decision"],
+      "description": "Step-0 gate: canonical web vocabulary is open | flat | vent | validation | info | resistance | self_profiling | crisis. open = navigating an undecided question and the only type that flows the full reframe/probe/team pipeline. open_decision is accepted as a legacy plugin alias and should normalize to open on ingest. Non-open request types must not manufacture a plan."
     },
     "readiness": {
       "enum": ["ready", "resistance"],
@@ -112,6 +112,10 @@
       "minimum": 0,
       "maximum": 100,
       "description": "Confidence in stakes_guess. <75 means /argus:sail SHOULD AskUserQuestion before locking the routing path (per M-preserve-user-agency). 75+ proceeds without confirmation."
+    },
+    "stakes": {
+      "enum": ["routine", "important", "critical"],
+      "description": "Canonical webapp stakes vocabulary. routine = small/everyday/low-cost; important = meaningful but recoverable; critical = major or hard-to-walk-back consequences. Plugin files may also carry stakes_guess for the same axis."
     },
     "reversibility": {
       "enum": ["reversible", "partial", "irreversible"],

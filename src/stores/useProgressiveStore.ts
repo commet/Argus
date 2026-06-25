@@ -16,6 +16,7 @@ import { nextChildLabel, promoteToMajor, ROOT_LABEL } from '@/lib/version-number
 import { getCurrentLanguage } from '@/lib/i18n';
 import { getActivePath as getActivePathGeneric, overallLatest } from '@/lib/version-tree';
 import { deriveWaypoint } from '@/lib/voyage-log';
+import { deriveCurrentBearing } from '@/lib/current-bearing';
 import type {
   ProgressiveSession,
   ProgressivePhase,
@@ -38,6 +39,7 @@ import type {
   VoyageCheckpointState,
   VoyageBranch,
   Waypoint,
+  BearingLedgerEntry,
 } from '@/stores/types';
 
 /** Course-line colors, cycled as new branches fork off the tree. */
@@ -430,11 +432,14 @@ function migrateSessionDrafts(sessions: ProgressiveSession[]): ProgressiveSessio
       reviewing_agent_id: null,
       created_at: s.updated_at || s.created_at || new Date().toISOString(),
     };
-    return {
+    const migrated: ProgressiveSession = {
       ...s,
       drafts: [draft],
       active_draft_id: s.active_draft_id ?? id,
     };
+    if (migrated.bearing_entries && migrated.bearing_entries.length > 0) return migrated;
+    const bearingEntry = buildBearingLedgerEntry(migrated, draft, 'finalize', `legacy-bearing-${s.id}-0`);
+    return bearingEntry ? { ...migrated, bearing_entries: [bearingEntry] } : migrated;
   });
 }
 
@@ -477,6 +482,42 @@ function updateSession(
   return sessions.map(s =>
     s.id === id ? { ...s, ...updater(s), updated_at: new Date().toISOString() } : s,
   );
+}
+
+function buildBearingLedgerEntry(
+  session: ProgressiveSession,
+  draft: Draft | null,
+  source: BearingLedgerEntry['source'],
+  id = generateId(),
+): BearingLedgerEntry | null {
+  const bearing = deriveCurrentBearing(session);
+  if (!bearing) return null;
+  const latestSnapshot = session.snapshots[session.snapshots.length - 1];
+  return {
+    id,
+    created_at: new Date().toISOString(),
+    source,
+    draft_id: draft?.id ?? session.active_draft_id ?? null,
+    version_label: draft?.version_label ?? null,
+    snapshot_version: latestSnapshot?.version,
+    bearing,
+  };
+}
+
+function upsertBearingEntry(
+  entries: BearingLedgerEntry[] | undefined,
+  entry: BearingLedgerEntry,
+): BearingLedgerEntry[] {
+  const current = entries ?? [];
+  const index = current.findIndex((existing) =>
+    entry.draft_id
+      ? existing.draft_id === entry.draft_id
+      : existing.id === entry.id,
+  );
+  if (index < 0) return [...current, entry];
+  const next = current.slice();
+  next[index] = { ...current[index], ...entry };
+  return next;
 }
 
 export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
@@ -572,6 +613,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       worker_deploy_phase: 'none' as WorkerDeployPhase,
       mix: null,
       dm_feedback: null,
+      bearing_entries: [],
       final_deliverable: null,
       final_mix: null,
       created_at: now,
@@ -819,10 +861,25 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
           reviewing_agent_id: reviewingAgentId,
           created_at: new Date().toISOString(),
         };
+        const sessionForBearing: ProgressiveSession = {
+          ...current,
+          final_deliverable: text,
+          final_mix: finalMix ?? null,
+          drafts: [...existingDrafts, newDraft],
+          active_draft_id: newDraft.id,
+        };
+        const bearingEntry = buildBearingLedgerEntry(
+          sessionForBearing,
+          newDraft,
+          existingDrafts.length === 0 ? 'finalize' : 'draft_revision',
+        );
 
         sessions = updateSession(sessions, currentSessionId, (s) => ({
           drafts: [...(s.drafts || []), newDraft],
           active_draft_id: newDraft.id,
+          ...(bearingEntry
+            ? { bearing_entries: upsertBearingEntry(s.bearing_entries, bearingEntry) }
+            : {}),
         }));
       }
     }
@@ -861,6 +918,14 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       reviewing_agent_id: init.reviewing_agent_id,
       created_at: new Date().toISOString(),
     };
+    const sessionForBearing: ProgressiveSession = {
+      ...current,
+      final_deliverable: init.final_text,
+      final_mix: init.final_mix ?? current.final_mix ?? null,
+      drafts: [...existing, newDraft],
+      active_draft_id: newId,
+    };
+    const bearingEntry = buildBearingLedgerEntry(sessionForBearing, newDraft, 'draft_revision');
 
     const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
       drafts: [...(s.drafts || []), newDraft],
@@ -870,6 +935,9 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       final_deliverable: init.final_text,
       final_mix: init.final_mix ?? s.final_mix ?? null,
       phase: 'complete' as ProgressivePhase,
+      ...(bearingEntry
+        ? { bearing_entries: upsertBearingEntry(s.bearing_entries, bearingEntry) }
+        : {}),
     }));
     persist(sessions);
     set({ sessions });
@@ -915,6 +983,9 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       return {
         drafts: drafts.map((d) =>
           d.id === draftId ? { ...d, version_label: newLabel } : d,
+        ),
+        bearing_entries: (s.bearing_entries || []).map((entry) =>
+          entry.draft_id === draftId ? { ...entry, version_label: newLabel } : entry,
         ),
         released_draft_id: draftId,
       };

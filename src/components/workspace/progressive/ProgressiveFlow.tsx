@@ -59,6 +59,7 @@ import { TeamDeployBanner } from './TeamDeployBanner';
 import { FinalCard } from './FinalCard';
 export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-compat re-exports (were defined here)
 import { CurrentBearingCard } from './CurrentBearingCard';
+import { DecisionReplayTimeline } from './DecisionReplayTimeline';
 import { SealMoment } from './SealMoment';
 import { TrialSail } from './TrialSail';
 import { CrewAtWork } from './CrewAtWork';
@@ -72,6 +73,7 @@ import { Button } from '@/components/ui/Button';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { extractPredicatesFromSession } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
+import { hasFlatFrame, shouldDefaultFastPath } from '@/lib/routing-default';
 import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
@@ -80,7 +82,7 @@ import { VoyagePhaseRail } from './VoyagePhaseRail';
 import { UpdateSummaryChip } from './shared/UpdateSummaryChip';
 import { QuestionCard } from './shared/QuestionCard';
 
-/* Reviewer 배지 — 저장된 팀장이 있으면 세션 내내 노출 */
+/* Reviewer badge — a saved boss/persona is presented in workspace as stakeholder review. */
 function ReviewerBadge({ reviewerId }: { reviewerId: string | null }) {
   const agent = useAgentStore(s => reviewerId ? s.agents.find(a => a.id === reviewerId) : undefined);
   const locale = useLocale();
@@ -97,7 +99,7 @@ function ReviewerBadge({ reviewerId }: { reviewerId: string | null }) {
         background: 'linear-gradient(135deg, rgba(91,33,182,0.06) 0%, rgba(30,58,138,0.06) 100%)',
         border: '1px dashed rgba(91,33,182,0.25)',
       }}
-      title={agent.personality_profile?.bossVibe || L('저장된 팀장이 이 기획을 리뷰합니다', 'Your saved manager will review this plan')}
+      title={L('이해관계자 관점으로 이 기획을 검토합니다', 'Stakeholder review is active for this plan')}
     >
       <motion.span
         className="text-[14px] leading-none"
@@ -1020,14 +1022,22 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // the final document (ARGUS-FINAL-DIRECTION §"The Surface Principle"). Derived
   // from the same session artifacts as the contract; null until there's a draft.
   const currentBearing = useMemo(
-    () => deriveCurrentBearing({
-      mix: session?.mix,
-      final_mix: session?.final_mix,
-      dm_feedback: session?.dm_feedback,
-      debate_result: session?.debate_result,
-      falsification: session?.falsification,
-    }),
-    [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification],
+    () => {
+      const entries = session?.bearing_entries ?? [];
+      const activeEntry = session?.active_draft_id
+        ? entries.find((entry) => entry.draft_id === session.active_draft_id)
+        : null;
+      const latestEntry = activeEntry ?? entries[entries.length - 1] ?? null;
+      if (latestEntry?.bearing) return latestEntry.bearing;
+      return deriveCurrentBearing({
+        mix: session?.mix,
+        final_mix: session?.final_mix,
+        dm_feedback: session?.dm_feedback,
+        debate_result: session?.debate_result,
+        falsification: session?.falsification,
+      });
+    },
+    [session?.bearing_entries, session?.active_draft_id, session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification],
   );
   // Global click-outside: clears sticky attribution hover state when user taps blank space
   useAttributionClickOutside();
@@ -1052,6 +1062,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // road, which is the honest default. Cutting ceremony is spine-aligned (the
   // mirror clause: don't run crew ceremony on a decision that doesn't ask for it).
   const [deepen, setDeepen] = useState(false);
+  // User override for the opposite path. Non-low-stakes defaults to team review;
+  // this flag records the explicit "skip team and draft now" choice.
+  const [forceFastPath, setForceFastPath] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
   /** A retreated block renders when: classic layout, OR the user opened 기록. */
   const showRecord = !focusMode || recordOpen;
@@ -1123,6 +1136,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const mixPreviewRef = useRef<HTMLDivElement>(null);
   const dmFeedbackRef = useRef<HTMLDivElement>(null);
   const finalRef = useRef<HTMLDivElement>(null);
+  const finalDocumentRef = useRef<HTMLDivElement>(null);
+  const sealMomentRef = useRef<HTMLDivElement>(null);
   const answeredPillsRef = useRef<HTMLDivElement>(null);
   const analysisCardRef = useRef<HTMLDivElement>(null);
   const teamDeployRef = useRef<HTMLDivElement>(null);
@@ -1261,6 +1276,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const final_ = session?.final_deliverable ?? null;
   const finalMix = session?.final_mix ?? null;
   const round = session?.round ?? 0;
+  const routeFrameIsFlat = hasFlatFrame(snapshots);
+  const fastDefault = shouldDefaultFastPath(snapshots);
+  const effectiveDeepen = focusMode
+    ? (!forceFastPath && (deepen || (snapshots.length > 0 && !fastDefault)))
+    : deepen;
   // W1.6 ⑤ 질문 상한: focus mode caps deepening at 3 rounds (founder: "5라운드는
   // 많다") — probe-fork questions don't count (zero-LLM turns). Classic keeps 5.
   const storedMaxR = session?.max_rounds ?? 5; // match createSession default (legacy sessions lacking the field)
@@ -1268,7 +1288,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // opting into the crew (deepen) restores the focus cap of 3. Classic keeps 5.
   // The maxR=1 engine edge (a max-round "what do you want to do?" choice question)
   // is neutralized in onAnswer below — express always routes to draft-prep.
-  const maxR = focusMode ? (deepen ? Math.min(storedMaxR, 3) : 1) : storedMaxR;
+  const maxR = focusMode ? (effectiveDeepen ? Math.min(storedMaxR, 3) : 1) : storedMaxR;
 
   // Elapsed timer for PhaseStatusBar — tracks seconds rather than formatting
   // inline so the same value can derive isLongWait (30s threshold) for the
@@ -1348,7 +1368,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // assumptions), so this suppresses manufactured over-fire without blocking genuine
   // decisions. The terminal analysis card (the suppressQuestion branch in render) is
   // the deliverable, so a flat decision never dead-ends.
-  const frameIsFlat = snapshots.some((s) => s.frame_status === 'flat');
+  const frameIsFlat = routeFrameIsFlat;
   const suppressQuestion = !!nonOpenRoute || frameIsFlat;
 
   const qaPairs = useMemo(() => questions.map((q, i) => ({ question: q, answer: answers[i] || null })), [questions, answers]);
@@ -1379,13 +1399,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     // Auto-deploy ONLY once the user opted into the crew (deepen). On the express
     // road the crew never auto-runs — that's the Phase-2 cut. The "bring the team
     // in" affordance is what flips deepen + builds the plan that lands here.
-    if (!focusMode || !deepen || autoDeployedRef.current) return;
+    if (!focusMode || !effectiveDeepen || autoDeployedRef.current) return;
     if (deployPhase !== 'ready' || workers.length === 0) return;
     autoDeployedRef.current = true;
-    track('focus_auto_deploy', { workers: workers.length });
+    track('focus_auto_deploy', { workers: workers.length, default_fast: fastDefault });
     onDeployWorkers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusMode, deepen, deployPhase, workers.length]);
+  }, [focusMode, effectiveDeepen, deployPhase, workers.length]);
 
   /* W1.6 재구성 ③ 선원 보고 자동 반영 — focus mode doesn't make the user grade
    * the crew's homework (the #1 "최악" screen, G-W1 #1). Reports auto-apply
@@ -1774,7 +1794,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       // the engine wanted another round or returned the max-round choice
       // question (a side effect of maxR=1). The standing "go deeper" + "draft
       // now" affordances keep both roads open, so this never traps anyone.
-      if (r.readyForMix || !r.question || (focusMode && !deepen)) {
+      if (r.readyForMix || !r.question || (focusMode && !effectiveDeepen)) {
         setShowMix(true); store.setPhase('conversing');
         // Team analysis done — MixTrigger is mounting below. Scroll there so
         // users see the next CTA, not the phase bar above.
@@ -1969,7 +1989,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       // mix (e.g., add user_notes and re-run).
       store.recordCheckpoint('mix');
 
-      // Phase 6: Boss reviewer가 있으면 자동 DM 피드백
+      // Phase 6: saved stakeholder reviewer auto-runs a quick pressure check.
       let autoDMFired = false;
       if (session?.reviewer_agent_id) {
         const reviewerAgent = useAgentStore.getState().getAgent(session.reviewer_agent_id);
@@ -2008,7 +2028,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const onMix = () => {
     // Express-draft sensor (cut-phase2): measures how often a draft is made on the
     // express road (no deployed crew) vs the deep road, and the round it happened.
-    track('flow_express_draft', { had_crew: (session?.workers?.length ?? 0) > 0 && deployPhase === 'deployed', round, deepen });
+    track('flow_express_draft', {
+      had_crew: (session?.workers?.length ?? 0) > 0 && deployPhase === 'deployed',
+      round,
+      deepen,
+      effective_deepen: effectiveDeepen,
+      default_fast: fastDefault,
+      user_forced_fast: forceFastPath,
+    });
     const pending = store.unreviewedWorkers().length;
     if (pending > 0) { track('verify_gate_shown', { pending }); setVerifyGateOpen(true); return; }
     runMixCore();
@@ -2018,7 +2045,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     if (!mix) return; setBusy(true); setError(null); scrollToRef(statusBarRef);
     abortRef.current = new AbortController();
     try {
-      // Boss agent가 연결되어 있으면 Boss 성격 DM 피드백
+      // Saved stakeholder reviewer: use their seat/personality as review context.
       const reviewerAgent = session?.reviewer_agent_id
         ? useAgentStore.getState().getAgent(session.reviewer_agent_id)
         : undefined;
@@ -2041,7 +2068,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       useAgentAttentionStore.getState().ping('dm_ready');
       scrollToRef(dmFeedbackRef, 'bottom');
 
-      // Boss 리뷰 후 observation 업데이트 + XP
+      // Stakeholder review updates the reviewer memory + XP.
       if (reviewerAgent && f) {
         import('@/lib/observation-engine').then(({ onBossReviewCompleted }) => {
           onBossReviewCompleted(reviewerAgent.id, f);
@@ -2117,8 +2144,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // is set — send them off. If a plan already exists, just deploy. Routes back to
   // draft-prep; no extra question is forced on the user.
   const onGoDeeper = async () => {
+    setForceFastPath(false);
     setDeepen(true);
-    track('flow_go_deeper', { from: 'prep_summary', round });
+    track('flow_go_deeper', { from: 'prep_summary', round, default_fast: fastDefault });
     if (deployPhase === 'ready' && workers.length > 0) { onDeployWorkers(); return; }
     if (!latest || busy) return;
     setShowMix(false); setBusy(true); store.setPhase('analyzing'); scrollToRef(statusBarRef);
@@ -2690,7 +2718,17 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               // W1.6: in focus mode EVERY question carries the way out, inside
               // the card where the user is looking — never a hidden footer link.
               const focusEscape = focusMode && snapshots.length > 0
-                ? () => { track('focus_escape_to_mix', { round, from: 'question_card' }); onMix(); }
+                ? () => {
+                    setForceFastPath(true);
+                    setDeepen(false);
+                    track('focus_escape_to_mix', {
+                      round,
+                      from: 'question_card',
+                      default_fast: fastDefault,
+                      effective_deepen: effectiveDeepen,
+                    });
+                    onMix();
+                  }
                 : undefined;
               return (
                 <QuestionCard
@@ -2709,7 +2747,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   onDraftChange={(v) => { answerDraftRef.current[curQ.id] = v; }}
                   onSkip={focusEscape ?? (teamReady ? onDeployWorkers : undefined)}
                   skipLabel={focusEscape
-                    ? L('바로 초안 만들기 — 지금까지로 충분해요', 'Draft it now — this is enough')
+                    ? (effectiveDeepen
+                        ? L('팀 검토 생략하고 바로 초안 만들기', 'Skip team review and draft now')
+                        : L('바로 초안 만들기 - 지금까지로 충분해요', 'Draft it now - this is enough'))
                     : (teamReady ? L('건너뛰고 팀 투입', 'Skip & start') : undefined)}
                 />
               );
@@ -2888,7 +2928,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               onMore={onMore}
               // The crew opt-in shows only on the express road (focus, not yet
               // deepened, crew not already running). Hidden once they've gone deep.
-              onDeepCrew={focusMode && !deepen && deployPhase !== 'deployed' ? onGoDeeper : undefined}
+              onDeepCrew={focusMode && !effectiveDeepen && deployPhase !== 'deployed' ? onGoDeeper : undefined}
               onRevisit={() => {
                 // The pills live behind the record toggle in focus mode —
                 // open it first, or this scrolls to a null ref (page bottom).
@@ -3186,57 +3226,67 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               </div>
               <p className="text-[16px] font-semibold text-[var(--text-primary)]">
                 {dmFb && dmFb.concerns.filter((c: DMConcern) => c.applied).length > 0
-                  ? locale === 'ko' ? `피드백 ${dmFb.concerns.filter((c: DMConcern) => c.applied).length}건이 반영된 최종 문서예요` : `Final document with ${dmFb.concerns.filter((c: DMConcern) => c.applied).length} feedback item(s) applied`
-                  : L('최종 문서가 완성됐어요', 'Your document is complete')}
+                  ? locale === 'ko' ? `피드백 ${dmFb.concerns.filter((c: DMConcern) => c.applied).length}건을 반영해 현재 항로를 정리했어요` : `Current bearing updated with ${dmFb.concerns.filter((c: DMConcern) => c.applied).length} feedback item(s)`
+                  : L('현재 항로가 준비됐어요', 'Your current bearing is ready')}
               </p>
             </motion.div>
-            {/* ① 산출물 ("가져가실 것") — the document is what the user takes
-                with them; it leads the complete scene (W1.1 봉인 종막 order). */}
-            <FinalCard
-              content={final_}
-              mix={finalMix}
-              sessionId={session?.id ?? null}
-              defaultCollapsed
-              releasedContent={(() => {
-                const rid = session?.released_draft_id;
-                if (!rid) return null;
-                const r = drafts.find((d) => d.id === rid);
-                if (!r || r.id === activeDraftId) return null;
-                return r.final_text;
-              })()}
-              releasedLabel={(() => {
-                const rid = session?.released_draft_id;
-                if (!rid) return null;
-                const r = drafts.find((d) => d.id === rid);
-                if (!r || r.id === activeDraftId) return null;
-                return r.version_label;
-              })()}
-            />
+            {/* Current Bearing leads: the first complete-state artifact is the
+                practical course, not the long supporting document. */}
+            <div className="mt-1">
+              <CurrentBearingCard
+                bearing={currentBearing}
+                label={activeDraft?.version_label ?? null}
+                onShowEvidence={() => scrollToRef(finalDocumentRef, 'top')}
+                onSeal={contractProject ? () => scrollToRef(sealMomentRef, 'top') : undefined}
+                canSeal={!!contractProject && contractPredicates.length > 0 && !contractProject.decision_contract}
+              />
+            </div>
 
-            {/* ② Current Bearing — the compressed one-screen orientation, now
-                sitting just under the document it summarizes (W1.1 order). */}
+            {contractProject && (
+              <div ref={sealMomentRef}>
+                <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} />
+              </div>
+            )}
+
             <div className="mt-4">
-              <CurrentBearingCard bearing={currentBearing} label={activeDraft?.version_label ?? null} />
+              <DecisionReplayTimeline
+                problemText={session?.problem_text}
+                snapshots={snapshots}
+                questions={questions}
+                answers={answers}
+                bearing={currentBearing}
+                contract={contractProject?.decision_contract ?? null}
+                outcome={contractProject?.outcome}
+              />
+            </div>
+
+            <div ref={finalDocumentRef} className="mt-4">
+              <FinalCard
+                content={final_}
+                mix={finalMix}
+                sessionId={session?.id ?? null}
+                defaultCollapsed
+                releasedContent={(() => {
+                  const rid = session?.released_draft_id;
+                  if (!rid) return null;
+                  const r = drafts.find((d) => d.id === rid);
+                  if (!r || r.id === activeDraftId) return null;
+                  return r.final_text;
+                })()}
+                releasedLabel={(() => {
+                  const rid = session?.released_draft_id;
+                  if (!rid) return null;
+                  const r = drafts.find((d) => d.id === rid);
+                  if (!r || r.id === activeDraftId) return null;
+                  return r.version_label;
+                })()}
+              />
             </div>
 
             {/* (The standalone 팀 내 반론 card was removed: the bearing's
                 "가지 않은 길" + "안개·암초" rows render the SAME debate_result
                 in compressed form — two surfaces, one fact. The full dissent
                 text remains reachable in the Logbook record.) */}
-
-            {/* ③ 봉인 종막 — the voyage's last interaction. A standalone,
-                screen-transition-grade closing question ("이 결정, …에 어떻게
-                됐는지 물어봐 드릴까요?"). Accept = 1 tap (auto draft + editable
-                drawer); reject = 1 tap, lossless (everything above stays). The
-                surface never says 내기/predicate/반증. Renders nothing when there
-                is nothing falsifiable to ask about (P3 침묵).
-                Renders ABOVE the exit CTAs: the gold "새 프로젝트 시작" button
-                used to sit between the bearing and this question, so users left
-                before ever seeing it — the closing scene must come before the
-                exits, never compete with them. */}
-            {contractProject && (
-              <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} />
-            )}
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-10 pb-16">
               {/* (The old "복사해서 바로 사용하세요" label pointed at a copy button

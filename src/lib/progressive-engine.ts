@@ -34,6 +34,13 @@ import { useAgentStore } from '@/stores/useAgentStore';
 import { getCurrentLanguage } from '@/lib/i18n';
 import { classifyCrisis, type CrisisSignal } from '@/lib/crisis-gate';
 import { assessFrameStatus } from '@/lib/judgment-gates';
+import {
+  ANALYSIS_REQUEST_TYPES,
+  normalizeDecisionDensity,
+  normalizeRequestType,
+  type AnalysisRequestType,
+  type LegacyPluginRequestType,
+} from '@/lib/analysis-routing';
 import type {
   AnalysisSnapshot,
   ConvergenceMetrics,
@@ -59,12 +66,14 @@ interface InitialAnalysisResponse {
   /** R31 — the model's own STEP-0 classification, surfaced so the RUNTIME can
    *  enforce the structural contract (only `open` builds a plan). Optional: an
    *  older/weaker model may omit it, in which case the guard no-ops (safe). */
-  request_type?: 'open' | 'flat' | 'vent' | 'validation' | 'info' | 'resistance' | 'self_profiling' | 'crisis';
+  request_type?: AnalysisRequestType | LegacyPluginRequestType;
   /** Decision weight — feeds the §0 sealing restraint gate (shouldSealContract) so
    *  a routine + reversible + confident decision gets a single light check, not the
    *  full sealing ceremony (CLAUDE.md mirror clause). Optional/safe-default. */
   stakes?: 'routine' | 'important' | 'critical';
   reversibility?: 'reversible' | 'partial' | 'irreversible';
+  decision_density?: 'low' | 'medium' | 'high';
+  decision_density_reasoning?: string;
   next_question: {
     text: string;
     subtext?: string;
@@ -90,14 +99,12 @@ interface InitialAnalysisResponse {
  *
  * Exported pure for unit testing.
  */
-const NON_OPEN_REQUEST_TYPES = new Set([
-  'vent', 'validation', 'info', 'self_profiling', 'flat', 'resistance',
-]);
+const NON_OPEN_REQUEST_TYPES = new Set<string>(ANALYSIS_REQUEST_TYPES.filter((type) => type !== 'open'));
 
 export function applyRouteContract<T extends { request_type?: string; skeleton?: string[] }>(
   result: T,
 ): { result: T; coerced: boolean } {
-  const rt = result.request_type;
+  const rt = normalizeRequestType(result.request_type);
   if (rt && NON_OPEN_REQUEST_TYPES.has(rt) && Array.isArray(result.skeleton) && result.skeleton.length > 0) {
     // The model classified this as a non-open request but still built a plan —
     // an internal contradiction. Honor the restraint side (the spine-safe
@@ -408,12 +415,12 @@ export async function runInitialAnalysis(
   const result = onToken
     ? await callLLMStreamThenParse<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', decision_density: 'string', next_question: 'object' } },
         onToken,
       )
     : await callLLMJson<InitialAnalysisResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
+        { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', decision_density: 'string', next_question: 'object' } },
       );
 
   // R31 — runtime route-contract guard: a non-open request that nonetheless built
@@ -422,6 +429,8 @@ export async function runInitialAnalysis(
   const { result: contractResult } = applyRouteContract(result);
   Object.assign(result, contractResult);
 
+  const requestType = normalizeRequestType(result.request_type);
+  const decisionDensity = normalizeDecisionDensity(result.decision_density) ?? 'medium';
   const framingConfidence = Math.min(100, Math.max(0, result.framing_confidence ?? 75));
 
   const snapshot: AnalysisSnapshot = {
@@ -434,7 +443,7 @@ export async function runInitialAnalysis(
     // R32 — wire the model's STEP-0 classification onto the snapshot so the flow
     // can make a non-open route terminal (ProgressiveFlow suppresses the fabricated
     // follow-up question). Undefined when the model omits it → flow stays normal.
-    request_type: result.request_type,
+    request_type: requestType,
     // R60 — populate frame_status (was DEAD: assessFrameStatus existed but was never
     // called, so the flat-decision over-fire gate had nothing to read). Conservative
     // by design: only 'flat' when the reframe is essentially the surface question AND
@@ -452,6 +461,10 @@ export async function runInitialAnalysis(
     // wrongly skips a real decision's seal).
     stakes: result.stakes === 'routine' || result.stakes === 'critical' ? result.stakes : 'important',
     reversibility: result.reversibility === 'reversible' || result.reversibility === 'irreversible' ? result.reversibility : 'partial',
+    decision_density: decisionDensity,
+    decision_density_reasoning: typeof result.decision_density_reasoning === 'string'
+      ? result.decision_density_reasoning
+      : undefined,
   };
 
   // Phase 1 typed question: framing_confidence>=70이면 strategic_fork로 넘어간다.

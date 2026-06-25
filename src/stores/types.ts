@@ -2,6 +2,8 @@
 // taxonomy (its CRISIS_CATEGORIES const + CrisisSignal); referencing the type
 // here is erased at compile time, so this adds no runtime dependency or cycle.
 import type { CrisisSignal } from '@/lib/crisis-gate';
+import type { AnalysisRequestType } from '@/lib/analysis-routing';
+import type { CurrentBearing } from '@/lib/current-bearing';
 
 // ─── Reframe (항로 재설정 | 문제 재정의) ───
 
@@ -621,6 +623,8 @@ export interface DecisionContract {
   email_reminder?: boolean;
   /** Set by the cron when a reminder email was sent, to avoid daily duplicates. */
   reminder_sent_at?: string;
+  /** Set by the cron when a Telegram reminder was sent, to avoid daily duplicates. */
+  telegram_reminder_sent_at?: string;
   /** User's free-text account of what actually happened, written at settlement.
    *  Self-authored. Feeds settle-align (the single-shot outcome-alignment agent);
    *  never overwrites a predicate's text or the user_lean rope. Rides the existing
@@ -917,7 +921,7 @@ export interface AnalysisSnapshot {
    *  runInitialAnalysis from the LLM output, read by ProgressiveFlow to make a
    *  non-open route terminal — no fabricated follow-up question). Only `open`
    *  flows the full engine; every other value is a terminal inline answer. */
-  request_type?: 'open' | 'flat' | 'vent' | 'validation' | 'info' | 'resistance' | 'self_profiling' | 'crisis';
+  request_type?: AnalysisRequestType;
   /** open_decision only: ready (default) vs resistance (long-pending, no new info). */
   readiness?: 'ready' | 'resistance';
   /** Whether real_question meaningfully differs from the surface question (rule 1b).
@@ -1193,6 +1197,16 @@ export interface VoyageBranch {
   created_at: string;
 }
 
+export interface BearingLedgerEntry {
+  id: string;
+  created_at: string;
+  source: 'finalize' | 'draft_revision' | 'plugin_import';
+  draft_id?: string | null;
+  version_label?: string | null;
+  snapshot_version?: number;
+  bearing: CurrentBearing;
+}
+
 // ─── Ship's log (항해일지) — narrated waypoints over the voyage ───
 
 /**
@@ -1456,6 +1470,9 @@ export interface ProgressiveSession {
    * the active path. Optional + backward-compat (legacy = empty/undefined).
    */
   waypoints?: Waypoint[];
+  /** Persisted Current Bearing entries. Derivation remains as fallback, but
+   *  replay/settlement should prefer the recorded course at decision time. */
+  bearing_entries?: BearingLedgerEntry[];
 
   // Boss/Reviewer 연결
   reviewer_agent_id?: string;   // Boss agent가 DM 리뷰어로 연결

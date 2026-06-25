@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/share-guard';
+import {
+  applyTelegramSettlement,
+  escapeTelegramHtml,
+  parseSettlementIntent,
+  type TelegramSettlementIntent,
+} from '@/lib/telegram-settlement';
+import type { DecisionContract } from '@/stores/types';
 
 /**
  * Telegram bot webhook. Telegram POSTs updates here; the operator registers it
@@ -10,18 +17,102 @@ import { adminClient } from '@/lib/share-guard';
  * resolve the pending code → user, persist their chat_id, and confirm. We always
  * return 200 so Telegram doesn't retry-storm on our own errors.
  */
-async function sendBotMessage(chatId: number | string, text: string): Promise<void> {
+async function sendBotMessage(
+  chatId: number | string,
+  text: string,
+  opts: { replyMarkup?: unknown } = {},
+): Promise<void> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) return;
   try {
     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', reply_markup: opts.replyMarkup }),
     });
   } catch (err) {
     console.error('[telegram/webhook] confirm send failed:', err);
   }
+}
+
+async function answerCallbackQuery(callbackId: string, text?: string): Promise<void> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackId, text }),
+    });
+  } catch (err) {
+    console.error('[telegram/webhook] callback answer failed:', err);
+  }
+}
+
+async function handleSettlement(
+  chatId: number | string,
+  intent: TelegramSettlementIntent,
+): Promise<void> {
+  const admin = adminClient();
+  const { data: conn } = await admin
+    .from('telegram_connections')
+    .select('user_id')
+    .eq('chat_id', String(chatId))
+    .limit(1)
+    .maybeSingle();
+
+  if (!conn?.user_id) {
+    await sendBotMessage(chatId, 'This Telegram chat is not connected to Argus yet. Open Argus settings and connect Telegram first.');
+    return;
+  }
+
+  const { data: project, error } = await admin
+    .from('projects')
+    .select('id, user_id, name, decision_contract')
+    .eq('id', intent.projectId)
+    .eq('user_id', conn.user_id)
+    .is('deleted_at', null)
+    .single();
+
+  if (error || !project?.decision_contract) {
+    await sendBotMessage(chatId, 'I could not find an open Argus check-in for that reply.');
+    return;
+  }
+
+  const contract = project.decision_contract as DecisionContract;
+  if (intent.contractId && contract.id !== intent.contractId) {
+    await sendBotMessage(chatId, 'That check-in is stale. Open Argus or wait for the latest reminder.');
+    return;
+  }
+
+  const result = applyTelegramSettlement(contract, intent, Date.now());
+  const { error: updateError } = await admin
+    .from('projects')
+    .update({ decision_contract: result.contract })
+    .eq('id', project.id)
+    .eq('user_id', conn.user_id);
+
+  if (updateError) {
+    console.error('[telegram/webhook] settlement update failed:', updateError.message);
+    await sendBotMessage(chatId, 'I could not save that settlement. Please try once more in Argus.');
+    return;
+  }
+
+  const name = escapeTelegramHtml(typeof project.name === 'string' ? project.name : 'Argus');
+  if (result.deferred) {
+    await sendBotMessage(chatId, `<b>Still pending recorded.</b>\n${name} will resurface again in about a week.`);
+    return;
+  }
+
+  if (result.alreadySettled) {
+    await sendBotMessage(chatId, `<b>Already settled.</b>\n${name} had no open checks left.`);
+    return;
+  }
+
+  await sendBotMessage(
+    chatId,
+    `<b>Settlement saved.</b>\n${name}: ${result.graded} open check(s) marked ${escapeTelegramHtml(result.outcome)}.`,
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -40,11 +131,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  const callback = update.callback_query as
+    | { id?: string; data?: string; message?: { chat?: { id: number | string } } }
+    | undefined;
+
+  const callbackIntent = parseSettlementIntent({ callbackData: callback?.data });
+  const callbackChatId = callback?.message?.chat?.id;
+  if (callbackIntent && callbackChatId) {
+    if (callback?.id) await answerCallbackQuery(callback.id, 'Saving settlement...');
+    await handleSettlement(callbackChatId, callbackIntent);
+    return NextResponse.json({ ok: true });
+  }
+
   const message = (update.message ?? update.edited_message) as
-    | { text?: string; chat?: { id: number; title?: string; first_name?: string; type?: string } }
+    | { text?: string; chat?: { id: number; title?: string; first_name?: string; type?: string }; reply_to_message?: { text?: string } }
     | undefined;
   const text = message?.text?.trim() ?? '';
   const chat = message?.chat;
+
+  const replyIntent = parseSettlementIntent({ text, replyText: message?.reply_to_message?.text });
+  if (replyIntent && chat) {
+    await handleSettlement(chat.id, replyIntent);
+    return NextResponse.json({ ok: true });
+  }
 
   const m = /^\/start(?:\s+(\S+))?/.exec(text);
   if (!m || !chat) {

@@ -25,6 +25,7 @@ import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus, summarizeRecord, extractPredicatesFromSession } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
+import { DecisionReplayTimeline } from '@/components/workspace/progressive/DecisionReplayTimeline';
 
 const STEP_LABELS_KO = ['재정의', '설계', '검증', '종합'] as const;
 const STEP_LABELS_EN = ['Reframe', 'Recast', 'Rehearse', 'Synth'] as const;
@@ -369,7 +370,14 @@ export default function ProjectPage() {
   // The decision's CONTENT — until now this page showed only process chrome
   // (progress %, steps, formats) and never WHAT was decided. The bearing is
   // the one-screen answer; it replaces the bare "항해 완료" status card.
-  const currentBearing = currentVoyageSession ? deriveCurrentBearing(currentVoyageSession) : null;
+  const currentBearing = useMemo(() => {
+    if (!currentVoyageSession) return null;
+    const entries = currentVoyageSession.bearing_entries ?? [];
+    const activeEntry = currentVoyageSession.active_draft_id
+      ? entries.find((entry) => entry.draft_id === currentVoyageSession.active_draft_id)
+      : null;
+    return activeEntry?.bearing ?? entries[entries.length - 1]?.bearing ?? deriveCurrentBearing(currentVoyageSession);
+  }, [currentVoyageSession]);
   // 자차표 — the user's accumulating record across all projects. Quiet, factual.
   const crossRecord = summarizeRecord(projects, Date.now());
 
@@ -801,6 +809,17 @@ export default function ProjectPage() {
             currentBearing ? (
               <div>
                 <CurrentBearingCard bearing={currentBearing} />
+                <div className="mt-3">
+                  <DecisionReplayTimeline
+                    problemText={currentVoyageSession?.problem_text ?? currentProject?.description ?? currentProject?.name}
+                    snapshots={currentVoyageSession?.snapshots ?? []}
+                    questions={currentVoyageSession?.questions ?? []}
+                    answers={currentVoyageSession?.answers ?? []}
+                    bearing={currentBearing}
+                    contract={currentProject.decision_contract ?? null}
+                    outcome={currentProject.outcome}
+                  />
+                </div>
                 <div className="flex justify-end -mt-2">
                   <LocaleLink
                     href="/workspace"

@@ -123,6 +123,8 @@ JSON format:
   "framing_confidence": 85,
   "stakes": "routine | important | critical — how much rides on getting this right (routine = small/everyday/low-cost, critical = major, hard-to-walk-back consequences)",
   "reversibility": "reversible | partial | irreversible — how easily this could be undone if it goes wrong",
+  "decision_density": "low | medium | high — low ONLY when reversible, private, low-cost, no external approval, and no legal/security/finance/people/customer-facing impact; use medium/high when unsure",
+  "decision_density_reasoning": "One sentence explaining why this deserves a fast bearing or team review",
   "hidden_assumptions": [
     "Realistic assumption 1",
     "Realistic assumption 2"
