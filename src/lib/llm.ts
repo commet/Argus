@@ -882,7 +882,12 @@ export async function callLLMStreamThenParse<T = unknown>(
     const recoverable = error instanceof LLMError &&
       (error.category === 'parse_failure' || error.category === 'validation');
     if (recoverable) {
-      return callLLMJson<T>(messages, options);
+      // A truncated stream is the likeliest cause, so a same-budget retry would
+      // hit the same ceiling. Give the clean retry extra room (the server clamps
+      // to its own cap), turning genuine length overflow into a recoverable case
+      // too — not just markdown-wrapped / preamble malformations.
+      const retryTokens = Math.min((options.maxTokens ?? 2000) + 2000, 8000);
+      return callLLMJson<T>(messages, { ...options, maxTokens: retryTokens });
     }
     throw error;
   }

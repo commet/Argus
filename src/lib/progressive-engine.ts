@@ -637,15 +637,17 @@ export async function runDeepening(
     problemText, currentSnapshot, questionsAndAnswers, round, maxRounds, locale,
   );
 
+  // maxTokens 2500: the narrative alone (no plan) runs ~1000-1300 tokens even in
+  // Korean, so this is genuine 2x headroom — not a payload we're chasing.
   const result = onToken
     ? await callLLMStreamThenParse<DeepeningResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
+        { system, maxTokens: 2500, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
         onToken,
       )
     : await callLLMJson<DeepeningResponse>(
         [{ role: 'user', content: user }],
-        { system, maxTokens: 2000, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
+        { system, maxTokens: 2500, signal, shape: { insight: 'string', real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', ready_for_mix: 'boolean' } },
       );
 
   // ── Call B: execution_plan in its own robust, plan-only call (round >= 1). ──
@@ -666,9 +668,12 @@ export async function runDeepening(
         },
         questionsAndAnswers, round, availableAgents, locale, leadContext, registeredPersonas,
       );
+      // maxTokens 3500: a 5-step Korean plan with human-step fields is the
+      // largest realistic payload; 3500 (under the 4096 server cap) clears it.
+      // callLLMJson also carries a corrective parse-retry of its own.
       const plan = await callLLMJson<{ steps: ExecutionPlanStep[]; key_assumptions?: string[] }>(
         [{ role: 'user', content: planPrompt.user }],
-        { system: planPrompt.system, maxTokens: 3000, signal, shape: { steps: 'array', key_assumptions: 'array' } },
+        { system: planPrompt.system, maxTokens: 3500, signal, shape: { steps: 'array', key_assumptions: 'array' } },
       );
       if (plan?.steps?.length) {
         executionPlan = { steps: plan.steps, key_assumptions: plan.key_assumptions || [] };
