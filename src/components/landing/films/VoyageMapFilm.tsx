@@ -61,7 +61,10 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
   const navS = 0.92, focusX = 620, navTy = -52;
   const navTx = clamp(focusX - navS * shipX, 1240 - navS * 2200, 60);
   const r = smooth((t - 22600) / 3200);
-  const revealS = 0.52, revealTx = 48, revealTy = 92;
+  // reveal zoom raised (0.52 → 0.62) so the chart's labels/cartouches read at
+  // rest instead of shrinking into atmosphere; recentred (Tx/Ty) so the whole
+  // route — origin through current-bearing — still sits inside the wider stage.
+  const revealS = 0.62, revealTx = -56, revealTy = 50;
   const S = navS + (revealS - navS) * r;
   const Tx = navTx + (revealTx - navTx) * r;
   const Ty = navTy + (revealTy - navTy) * r;
@@ -205,7 +208,7 @@ export function VoyageMapFilm() {
   const txt = (k: string) => R[k] as string;
 
   return (
-    <div ref={rootRef} style={{ width: '100%', maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14, fontFamily: "var(--font-sans,'Pretendard',system-ui,sans-serif)", color: '#2b2722' }}>
+    <div ref={rootRef} style={{ width: '100%', maxWidth: 1216, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14, fontFamily: "var(--font-sans,'Pretendard',system-ui,sans-serif)", color: '#2b2722' }}>
       {/* header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '0 4px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
