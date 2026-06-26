@@ -106,7 +106,7 @@ vi.mock('@/stores/usePersonaStore', () => ({
 
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { setStorage, __resetStore } from '@/lib/storage';
-import type { ProgressiveSession, MixResult, WorkerTask } from '@/stores/types';
+import type { ProgressiveSession, MixResult, WorkerTask, VoyageCheckpointState } from '@/stores/types';
 import { setModuleLocale } from '@/lib/i18n';
 
 // i18n default is now 'en' (en-first). These suites verify the KOREAN prompt
@@ -631,5 +631,45 @@ describe('isBranchingLocked — pending workers must not lock branching (fix #2)
     const sid = createProgressiveSession();
     setWorkers(sid, 'none', ['pending']);
     expect(api().isBranchingLocked()).toBe(false);
+  });
+});
+
+// #3 reproduction: picking a node in the full 해도 → "이 지점에서 항해" calls
+// navigateToCheckpoint. This proves the FORK MECHANISM itself works (state forks +
+// rewinds) — so the user-visible "연결이 안 됨" was purely that VoyageChart could
+// not close its enclosing Modal (now fixed via onNavigated), NOT a broken fork.
+describe('navigateToCheckpoint forks + rewinds (chart fork mechanism)', () => {
+  const cpState = (): VoyageCheckpointState => ({
+    phase: 'conversing', round: 0, questions: [], answers: [], snapshots: [],
+    workers: [], worker_deploy_phase: 'none', mix: null, dm_feedback: null,
+    final_deliverable: null, final_mix: null, user_notes: null, decision_maker: null, lead_synthesis: null,
+  });
+  const seed = (): ProgressiveSession => ({
+    id: 'voy-1', project_id: 'p1', problem_text: 'x', decision_maker: null,
+    phase: 'conversing', round: 1, max_rounds: 3, questions: [], answers: [],
+    snapshots: [], workers: [], worker_deploy_phase: 'none', mix: null, dm_feedback: null,
+    final_deliverable: null, final_mix: null, created_at: 'a', updated_at: 'b',
+    checkpoints: [
+      { id: 'c1', parent_id: null, stage: 'origin', label: '출발', created_at: '2026-01-01T00:00:01.000Z', state_snapshot: cpState() },
+      { id: 'c2', parent_id: 'c1', stage: 'briefing', label: '준비', created_at: '2026-01-01T00:00:02.000Z', state_snapshot: cpState() },
+    ],
+    active_checkpoint_id: 'c2',
+    branches: [{ id: 'b1', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'a' }],
+    active_branch_id: 'b1',
+  });
+
+  it('picking an ancestor checkpoint forks a new course and rewinds the active checkpoint', () => {
+    setStorage('sot_progressive_sessions', [seed()]);
+    api().loadSessions();
+    useProgressiveStore.setState({ currentSessionId: 'voy-1' });
+
+    const before = api().sessions.find((s) => s.id === 'voy-1')!;
+    expect(before.branches!.length).toBe(1);
+
+    api().navigateToCheckpoint('c1'); // c1 is on the active path (ancestor) → fork
+
+    const after = api().sessions.find((s) => s.id === 'voy-1')!;
+    expect(after.branches!.length).toBe(2);          // a new course was created
+    expect(after.active_checkpoint_id).toBe('c1');   // live state rewound to the pick
   });
 });

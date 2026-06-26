@@ -345,7 +345,7 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
           don't mount it — the hero's chart is the one source of truth. */}
       {!hideChartButton && (
         <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 해도', 'Full chart')}>
-          <VoyageChart />
+          <VoyageChart onNavigated={() => setChartOpen(false)} />
         </Modal>
       )}
     </aside>
