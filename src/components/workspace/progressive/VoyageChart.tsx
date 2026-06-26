@@ -45,7 +45,7 @@ const STAGE_ORDER: VoyageStage[] = [
   'origin', 'briefing', 'crew_set', 'crew_done', 'mix', 'review', 'anchor',
 ];
 
-export function VoyageChart() {
+export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
@@ -88,7 +88,14 @@ export function VoyageChart() {
     setSelectedId(null);
   };
   const handleConfirm = () => {
-    if (confirmId) navigateToCheckpoint(confirmId);
+    if (confirmId) {
+      navigateToCheckpoint(confirmId);
+      // navigateToCheckpoint forks/switches the live state, but this chart lives
+      // inside a Modal it can't close itself — without this the rewound main flow
+      // is hidden behind the still-open chart, so the fork looked like a no-op
+      // ("다른 항로로 가보려 해도 연결이 안 됨"). Close the modal to surface it.
+      onNavigated?.();
+    }
     setConfirmId(null);
   };
 

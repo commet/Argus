@@ -174,7 +174,7 @@ function VoyageMapHero() {
       )}
 
       <Modal open={chartOpen} onClose={() => setChartOpen(false)} title={L('전체 해도', 'Full chart')} widthClass="max-w-2xl">
-        <VoyageChart />
+        <VoyageChart onNavigated={() => setChartOpen(false)} />
       </Modal>
     </div>
   );
