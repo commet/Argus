@@ -29,6 +29,7 @@ import { buildReviewPrompt } from '@/lib/review-prompt';
 import type { Agent } from '@/stores/agent-types';
 import { assessConvergence, assessConvergenceWithWorkers } from '@/lib/progressive-convergence';
 import { runDebateRound, type DebateResult } from '@/lib/debate-engine';
+import type { VerifyDepth } from '@/lib/orchestration-pattern';
 import { generateId } from '@/lib/uuid';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { getCurrentLanguage } from '@/lib/i18n';
@@ -1342,6 +1343,7 @@ export async function runNavigatorReview(
   problemText: string,
   workerResults: Array<{ agentName: string; agentRole: string; task: string; result: string }>,
   signal?: AbortSignal,
+  depth: VerifyDepth = 'standard',
 ): Promise<NavigatorReview | null> {
   // W1.5①: the unlock gate is cosmetic now — navigator review runs whenever
   // the agent exists (XP/level remain as progression flavor only).
@@ -1349,7 +1351,7 @@ export async function runNavigatorReview(
   if (!navigator) return null;
 
   const locale = getCurrentLanguage();
-  const { system, user } = buildNavigatorReviewPrompt(problemText, workerResults, locale);
+  const { system, user } = buildNavigatorReviewPrompt(problemText, workerResults, locale, depth);
 
   try {
     // 'fast': a 500-token meta-note rendered as one card — cheap tier suffices,

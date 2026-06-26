@@ -258,6 +258,7 @@ JSON:
 // ─── 2.5. Worker Task (individual agent work) ───
 
 import { getSkillSet, getFrameworkSkill, LEVEL_CONFIGS, effectiveWorkerLevel } from '@/lib/agent-skills';
+import type { VerifyDepth } from '@/lib/orchestration-pattern';
 import type { AgentLevel } from '@/stores/types';
 import type { Agent } from '@/stores/agent-types';
 import { buildAgentContext } from '@/lib/agent-prompt-builder';
@@ -914,6 +915,7 @@ export function buildNavigatorReviewPrompt(
   problemText: string,
   workerResults: Array<{ agentName: string; agentRole: string; task: string; result: string; taskGroupId?: string }>,
   locale: Locale = 'en',
+  depth: VerifyDepth = 'standard',
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
 
@@ -939,6 +941,15 @@ export function buildNavigatorReviewPrompt(
     return `${taskHeader}\n${subBullets}`;
   }).join('\n\n');
 
+  // Verification is always on; depth scales how hard the Navigator pushes.
+  // light: a single neutral crux (spine: never manufacture a fork on a flat call).
+  // deep: exhaustive pushback. standard: the default review.
+  const depthBlock = depth === 'light'
+    ? `\n- LIGHT CHECK (low-stakes): surface ONLY the single most load-bearing assumption, as one neutral question in blind_spots. If the call is genuinely flat, say so in overall and keep blind_spots minimal \u2014 do NOT manufacture concerns. Never assert a verdict; pose the crux as a question.`
+    : depth === 'deep'
+      ? `\n- DEEP CHECK (high-stakes): be exhaustive \u2014 surface every material contradiction and blind spot, and push hard on the single strongest claim before it ships.`
+      : '';
+
   return {
     system: `You are the Navigator. Like a ship's navigator, you read every crew member's report and chart one course.
 
@@ -950,7 +961,7 @@ Rules:
 - A task labeled "(N perspectives \u2014 intentional team diversity)" is the user's deliberate multi-lens setup. Don't flag in-group emphasis differences as contradictions unless they materially undermine the conclusion.
 - If a perspective was missed by everyone, flag it.
 - Overall quality judgment: "Is this ready to show the decision maker?"
-- 3-5 sentences. No rambling.
+- 3-5 sentences. No rambling.${depthBlock}
 Always respond in ${lang}.`,
 
     user: `Project: <user-data>${sanitize(problemText)}</user-data>
