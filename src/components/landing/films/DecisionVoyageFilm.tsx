@@ -21,7 +21,6 @@ import { useLocale } from '@/hooks/useLocale';
 
 interface DecisionVoyageFilmProps {
   speed?: number; // 0.5 – 1.6
-  pauseAtArrival?: boolean;
 }
 
 const MONO = "'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif";
@@ -520,16 +519,17 @@ function buildCrewMed(L: (ko: string, en: string) => string) {
   ];
 }
 
-export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: DecisionVoyageFilmProps) {
+export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const CREW_MED = buildCrewMed(L);
-  const [t, setT] = useState(0);
+  // Opens on the FIRST decision already worked through (the author's resolved
+  // frame) — never a blank box a scroller skips past. The full two-session
+  // walkthrough is opt-in via "처음부터 보기": it plays once, then settles back
+  // to this frame.
+  const [t, setT] = useState(REDUCED_T);
+  const [playing, setPlaying] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  // The film is a timed story — if it runs while off-screen, a viewer scrolling
-  // down lands in the middle and never sees the setup. So it stays parked at
-  // its first frame until it scrolls into view, then plays from the top (and
-  // re-arms each time it leaves, so you always catch the beginning).
   const [inView, setInView] = useState(false);
 
   useEffect(() => {
@@ -545,14 +545,9 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
 
   useEffect(() => {
     const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    if (mq && mq.matches) {
-      setT(REDUCED_T);
-      return;
-    }
-    if (!inView) {
-      setT(0); // parked at the opening frame until scrolled to
-      return;
-    }
+    if (mq && mq.matches) { setT(REDUCED_T); return; }            // resolved, no motion
+    if (!inView) { setPlaying(false); setT(REDUCED_T); return; }  // re-arm to the resolved frame
+    if (!playing) { setT(REDUCED_T); return; }                    // rest: the worked-through first decision
     const sp = Number(speed) || 1;
     let last = performance.now();
     let acc = 0;
@@ -560,13 +555,13 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
     const tick = (now: number) => {
       acc += (now - last) * sp;
       last = now;
-      const nt = pauseAtArrival ? Math.min(acc, TOTAL - 250) : acc % TOTAL;
-      setT(nt);
+      if (acc >= TOTAL - 250) { setPlaying(false); setT(REDUCED_T); return; } // settle when the walkthrough ends
+      setT(acc);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [inView, speed, pauseAtArrival]);
+  }, [inView, playing, speed]);
 
   const R = renderVals(t, L);
   const s = (k: string) => R[k] as React.CSSProperties;
@@ -595,11 +590,24 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
             <span style={{ width: 22, height: 1, background: '#a87d31' }} />
             <span style={{ whiteSpace: 'nowrap', font: `600 11px/1 ${MONO}`, letterSpacing: '.24em', textTransform: 'uppercase', color: '#a87d31' }}>{L('Argus · 항적 The Trail', 'Argus · The Trail')}</span>
           </div>
-          <span style={s('oPhase')}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#c2933f', boxShadow: '0 0 6px #d8b25e' }} />
-            <span style={{ whiteSpace: 'nowrap' }}>{txt('phaseLabel')}</span>
-            <span style={s('actPip')}>{txt('actLabel')}</span>
-          </span>
+          {playing ? (
+            <span style={s('oPhase')}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#c2933f', boxShadow: '0 0 6px #d8b25e' }} />
+              <span style={{ whiteSpace: 'nowrap' }}>{txt('phaseLabel')}</span>
+              <span style={s('actPip')}>{txt('actLabel')}</span>
+            </span>
+          ) : (
+            <button
+              onClick={() => setPlaying(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 6px', margin: '-4px -6px', background: 'none', border: 'none', cursor: 'pointer', font: `600 11px/1 ${MONO}`, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a07d3f', whiteSpace: 'nowrap', transition: 'color 160ms ease' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#7a5a22')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#a07d3f')}
+              aria-label={L('이 결정이 처리되는 과정을 처음부터 재생', 'Replay how this decision gets worked through, from the start')}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 1 2.64 6.36M3 12V7m0 5h5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <span>{L('처음부터 보기', 'Replay from the start')}</span>
+            </button>
+          )}
         </div>
 
         {/* ===== STAGE ===== */}
@@ -802,9 +810,11 @@ export function DecisionVoyageFilm({ speed = 1, pauseAtArrival = false }: Decisi
             <p style={{ margin: '12px 0 0', fontSize: 12.5, lineHeight: 1.55, color: '#d3bd92', wordBreak: 'keep-all' }}>{L('첫 결정에서 이어집니다 — 이제, 이탈을 어디서 막을까?', 'Continuing from the first decision — now, where do we stop the churn?')}</p>
           </div>
 
-          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(120,90,40,.14)', zIndex: 6 }}>
-            <div style={s('oProg')} />
-          </div>
+          {playing && (
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(120,90,40,.14)', zIndex: 6 }}>
+              <div style={s('oProg')} />
+            </div>
+          )}
         </div>
       </div>
     </div>
