@@ -29,7 +29,9 @@ const SERIF = "var(--font-display,'Noto Serif KR',serif)";
 // one line). The numeric chrome (counter/legend) stays mono.
 const SANS = "'Pretendard Variable',Pretendard,system-ui,sans-serif";
 const TOTAL = 33000;
-const REDUCED_T = 29500;
+const REST_LO = 26000;     // voyage fully drawn (reveal complete) — the rest/ambient floor
+const REST_HI = 33000;     // top of the settled tail the ambient loop cycles
+const REVEAL_DONE = 26000; // a replayed build settles back to rest here
 const LEG_START = [2000, 6200, 10400, 14600, 18800];
 const LEG_DRAW = 3450;
 const SEG: number[][][] = [
@@ -180,7 +182,12 @@ function Cartouche({ st, fork, call, crew }: { st: React.CSSProperties; fork: st
 export function VoyageMapFilm() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  const [t, setT] = useState(0);
+  // Start on the FINISHED chart (not a 22s build a scroller never waits for): the
+  // whole map is the payoff, so show it complete and let it breathe — ship bob,
+  // current-heading pulse, a faint gold shimmer on the route. The full voyage
+  // animation is opt-in via "처음부터 항해 보기".
+  const [t, setT] = useState(REST_LO);
+  const [playing, setPlaying] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
 
@@ -194,19 +201,24 @@ export function VoyageMapFilm() {
 
   useEffect(() => {
     const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    if (mq && mq.matches) { setT(REDUCED_T); return; }
-    if (!inView) { setT(0); return; }
+    if (mq && mq.matches) { setT(REST_LO); return; }   // completed, no motion
+    if (!inView) return;                                // off-screen: hold (already complete)
     let last = performance.now();
     let acc = 0;
     let raf = 0;
     const tick = (now: number) => {
       acc += now - last; last = now;
-      setT(acc % TOTAL);
+      if (playing) {
+        if (acc >= REVEAL_DONE) { setPlaying(false); setT(REST_LO); return; } // settle when the voyage finishes
+        setT(acc);                                      // play the build from the top
+      } else {
+        setT(REST_LO + (acc % (REST_HI - REST_LO)));    // ambient: loop the settled tail (shimmer only)
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [inView]);
+  }, [inView, playing]);
 
   const R = renderVals(t, L);
   const s = (k: string) => R[k] as React.CSSProperties;
@@ -220,10 +232,23 @@ export function VoyageMapFilm() {
           <span style={{ width: 22, height: 1, background: '#a87d31' }} />
           <span style={{ whiteSpace: 'nowrap', font: `600 11px/1 ${MONO}`, letterSpacing: '.24em', textTransform: 'uppercase', color: '#a87d31' }}>{L('Argus · 전체 항해도 The Grand Chart', 'Argus · The Grand Chart')}</span>
         </div>
-        <span style={s('oPhase')}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#c2933f', boxShadow: '0 0 6px #d8b25e' }} />
-          <span style={{ whiteSpace: 'nowrap' }}>{txt('phaseLabel')}</span>
-        </span>
+        {playing ? (
+          <span style={s('oPhase')}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#c2933f', boxShadow: '0 0 6px #d8b25e' }} />
+            <span style={{ whiteSpace: 'nowrap' }}>{txt('phaseLabel')}</span>
+          </span>
+        ) : (
+          <button
+            onClick={() => setPlaying(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 6px', margin: '-4px -6px', background: 'none', border: 'none', cursor: 'pointer', font: `600 11px/1 ${MONO}`, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a07d3f', whiteSpace: 'nowrap', transition: 'color 160ms ease' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#7a5a22')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#a07d3f')}
+            aria-label={L('전체 항해를 처음부터 재생', 'Replay the whole voyage from the start')}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 1 2.64 6.36M3 12V7m0 5h5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span>{L('처음부터 항해 보기', 'Replay the voyage')}</span>
+          </button>
+        )}
       </div>
 
       {/* ===== STAGE ===== */}
@@ -362,7 +387,7 @@ export function VoyageMapFilm() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 26, height: 0, borderTop: '2.5px dotted #8f3d33' }} /><span style={{ whiteSpace: 'nowrap', font: `600 12.5px/1 ${MONO}`, color: '#8c6526' }}>{L('가지 않은 길', 'Roads not taken')}</span></div>
         </div>
 
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(120,90,40,.14)', zIndex: 6 }}><div style={s('oProg')} /></div>
+        {playing && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(120,90,40,.14)', zIndex: 6 }}><div style={s('oProg')} /></div>}
       </div>
     </div>
   );
