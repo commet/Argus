@@ -144,12 +144,12 @@ function GhostMarker({ st, reef, title, sub }: { st: React.CSSProperties; reef: 
           <span style={{ position: 'absolute', left: 0, top: -1, transform: 'translate(-50%,-50%)' }}>
             <svg width="26" height="17" viewBox="0 0 28 18" fill="none"><path d="M2 16 L8 5 L13 16 Z" fill="#7a5446" /><path d="M9 16 L15 3 L21 16 Z" fill="#523727" /><path d="M17 16 L22 7 L26 16 Z" fill="#7a5446" /><path d="M1 16.2 H27" stroke="#d6e7e3" strokeWidth="1.5" strokeLinecap="round" opacity=".55" /></svg>
           </span>
-          <span style={{ position: 'absolute', left: 17, top: -9, whiteSpace: 'nowrap', font: `600 10.5px/1.3 ${MONO}`, color: '#8f3d33' }}>{title}<span style={{ display: 'block', fontWeight: 400, color: '#a86a5e' }}>{sub}</span></span>
+          <span style={{ position: 'absolute', left: 17, top: -9, whiteSpace: 'nowrap', font: `600 13px/1.3 ${MONO}`, color: '#8f3d33' }}>{title}<span style={{ display: 'block', fontWeight: 400, color: '#a86a5e' }}>{sub}</span></span>
         </>
       ) : (
         <>
           <span style={{ position: 'absolute', left: 0, top: 0, transform: 'translate(-50%,-50%)', width: 9, height: 9, borderRadius: '50%', border: '2px solid #a87d31', background: '#f3e6c6' }} />
-          <span style={{ position: 'absolute', left: 12, top: -8, whiteSpace: 'nowrap', font: `600 10.5px/1.3 ${MONO}`, color: '#8c6526' }}>{title}<span style={{ display: 'block', fontWeight: 400, color: '#a8915f' }}>{sub}</span></span>
+          <span style={{ position: 'absolute', left: 12, top: -8, whiteSpace: 'nowrap', font: `600 13px/1.3 ${MONO}`, color: '#8c6526' }}>{title}<span style={{ display: 'block', fontWeight: 400, color: '#a8915f' }}>{sub}</span></span>
         </>
       )}
     </div>
@@ -161,12 +161,12 @@ function Cartouche({ st, fork, call, crew }: { st: React.CSSProperties; fork: st
   return (
     <div style={st}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '9px 12px', borderRadius: 12, background: '#fdf9f0', border: '1px solid #e3d6b6', boxShadow: '0 1px 2px rgba(60,44,18,.06),0 8px 18px rgba(60,44,18,.12)' }}>
-        <span style={{ font: `700 9px/1.2 ${MONO}`, letterSpacing: '.04em', color: '#a87d31' }}>{fork}</span>
+        <span style={{ font: `700 11px/1.25 ${MONO}`, letterSpacing: '.04em', color: '#a87d31' }}>{fork}</span>
         <span style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-          <span style={{ flex: 'none', marginTop: 1, display: 'grid', placeItems: 'center', width: 15, height: 15, borderRadius: '50%', background: '#1f8a5b', color: '#fff', font: `700 9px/1 ${MONO}` }}>✓</span>
-          <span style={{ font: `600 13px/1.3 ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{call}</span>
+          <span style={{ flex: 'none', marginTop: 1, display: 'grid', placeItems: 'center', width: 17, height: 17, borderRadius: '50%', background: '#1f8a5b', color: '#fff', font: `700 11px/1 ${MONO}` }}>✓</span>
+          <span style={{ font: `600 16px/1.3 ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{call}</span>
         </span>
-        <span style={{ font: `600 8.5px/1 ${MONO}`, color: '#8c6526' }}>{crew}</span>
+        <span style={{ font: `600 10.5px/1 ${MONO}`, color: '#8c6526' }}>{crew}</span>
       </div>
     </div>
   );
@@ -265,7 +265,7 @@ export function VoyageMapFilm() {
               <g transform="translate(252 212)" fill="#7d8a4e"><circle cx="0" cy="0" r="8" /><circle cx="11" cy="3" r="6" /></g>
               <g transform="translate(234 258)" fill="#86934f"><circle cx="0" cy="0" r="7" /></g>
             </svg>
-            <span style={{ position: 'absolute', left: 150, top: 300, whiteSpace: 'nowrap', font: `700 11px/1.3 ${MONO}`, letterSpacing: '.04em', color: '#5d6b2e' }}>{L('정박 · 안정 성장 항구', 'Made port · steady growth')}<span style={{ display: 'block', fontWeight: 400, fontSize: 10, color: '#7d8a4e' }}>{L('긴 항해의 도착지', "the long voyage's end")}</span></span>
+            <span style={{ position: 'absolute', left: 150, top: 300, whiteSpace: 'nowrap', font: `700 13.5px/1.3 ${MONO}`, letterSpacing: '.04em', color: '#5d6b2e' }}>{L('정박 · 안정 성장 항구', 'Made port · steady growth')}<span style={{ display: 'block', fontWeight: 400, fontSize: 12.5, color: '#7d8a4e' }}>{L('긴 항해의 도착지', "the long voyage's end")}</span></span>
           </div></div>
 
           {/* ===== ROUTES ===== */}
@@ -275,8 +275,8 @@ export function VoyageMapFilm() {
             <path d="M830 408 C884 452 930 484 958 506" stroke="#8f3d33" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 9" style={s('gh3')} />
             <path d="M1200 322 C1256 282 1300 248 1326 220" stroke="#a87d31" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 9" style={s('gh4')} />
             <path d="M1560 404 C1616 446 1660 478 1688 500" stroke="#8f3d33" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 9" style={s('gh5')} />
-            <path d="M470 322 C540 366 586 406 612 444" stroke="#a87d31" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 9" style={s('gh6')} />
-            <path d="M1200 322 C1256 366 1302 406 1326 444" stroke="#8f3d33" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 9" style={s('gh7')} />
+            <path d="M470 322 C516 384 548 452 560 486" stroke="#a87d31" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 9" style={s('gh6')} />
+            <path d="M1200 322 C1248 384 1270 452 1270 486" stroke="#8f3d33" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 9" style={s('gh7')} />
 
             <path d="M110 350 C230 344 350 326 470 322" stroke="#efe0bb" strokeWidth="7.5" strokeLinecap="round" pathLength={1} strokeDasharray="1" style={s('seg1')} />
             <path d="M470 322 C600 318 700 408 830 408" stroke="#efe0bb" strokeWidth="7.5" strokeLinecap="round" pathLength={1} strokeDasharray="1" style={s('seg2')} />
@@ -298,29 +298,29 @@ export function VoyageMapFilm() {
           </svg>
 
           {/* ===== reef markers (not-taken endpoints) ===== */}
-          <div style={{ position: 'absolute', left: 606, top: 206, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm1')} reef title={L('예산 2배 증액', 'Double the budget')} sub={L('밑 빠진 독 · 가지 않음', 'a leaky bucket · not taken')} /></div>
-          <div style={{ position: 'absolute', left: 958, top: 292, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm2')} reef={false} title={L('온보딩만 손보기', 'Just fix onboarding')} sub={L('표면적 · 가지 않음', 'surface-level · not taken')} /></div>
-          <div style={{ position: 'absolute', left: 958, top: 506, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm3')} reef title={L('기능 더 추가', 'Add more features')} sub={L('재방문엔 영향 적음 · 가지 않음', "barely moves retention · not taken")} /></div>
-          <div style={{ position: 'absolute', left: 1326, top: 220, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm4')} reef={false} title={L('튜토리얼 보강', 'Beef up the tutorial')} sub={L('읽지 않음 · 가지 않음', 'no one reads it · not taken')} /></div>
-          <div style={{ position: 'absolute', left: 1688, top: 500, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm5')} reef title={L('지금 바로 확장', 'Scale right now')} sub={L('암초 · 가지 않음', 'a reef · not taken')} /></div>
-          <div style={{ position: 'absolute', left: 612, top: 444, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm6')} reef={false} title={L('채널 더 확대', 'Open more channels')} sub={L('비용만 늘고 효과 적음 · 가지 않음', 'all cost, little lift · not taken')} /></div>
-          <div style={{ position: 'absolute', left: 1326, top: 444, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm7')} reef title={L('가격 인상 실험', 'Test a price hike')} sub={L('이탈 가속 · 가지 않음', 'speeds churn · not taken')} /></div>
+          <div style={{ position: 'absolute', left: 606, top: 206, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm1')} reef title={L('예산 2배 증액', 'Double the budget')} sub={L('밑 빠진 독', 'a leaky bucket')} /></div>
+          <div style={{ position: 'absolute', left: 958, top: 292, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm2')} reef={false} title={L('온보딩만 손보기', 'Just fix onboarding')} sub={L('표면적', 'surface-level')} /></div>
+          <div style={{ position: 'absolute', left: 958, top: 506, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm3')} reef title={L('기능 더 추가', 'Add more features')} sub={L('재방문엔 영향 적음', "barely moves retention")} /></div>
+          <div style={{ position: 'absolute', left: 1326, top: 220, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm4')} reef={false} title={L('튜토리얼 보강', 'Beef up the tutorial')} sub={L('읽지 않음', 'no one reads it')} /></div>
+          <div style={{ position: 'absolute', left: 1688, top: 500, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm5')} reef title={L('지금 바로 확장', 'Scale right now')} sub={L('암초', 'a reef')} /></div>
+          <div style={{ position: 'absolute', left: 560, top: 486, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm6')} reef={false} title={L('채널 더 확대', 'Open more channels')} sub={L('비용만 늘고 효과 적음', 'all cost, little lift')} /></div>
+          <div style={{ position: 'absolute', left: 1270, top: 486, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm7')} reef title={L('가격 인상 실험', 'Test a price hike')} sub={L('이탈 가속', 'speeds churn')} /></div>
 
           {/* origin marker */}
-          <div style={{ position: 'absolute', left: 110, top: 350, width: 0, height: 0, zIndex: 8 }}><div style={s('dotO')}><span style={{ position: 'absolute', left: -2, top: 14, whiteSpace: 'nowrap', font: `700 10px/1.3 ${MONO}`, letterSpacing: '.04em', color: '#6e5020' }}>{L('출항', 'Set sail')}<span style={{ display: 'block', fontWeight: 400, color: '#8c6526' }}>{L('급성장의 파도', 'the growth surge')}</span></span></div></div>
+          <div style={{ position: 'absolute', left: 110, top: 350, width: 0, height: 0, zIndex: 8 }}><div style={s('dotO')}><span style={{ position: 'absolute', left: -2, top: 14, whiteSpace: 'nowrap', font: `700 12.5px/1.3 ${MONO}`, letterSpacing: '.04em', color: '#6e5020' }}>{L('출항', 'Set sail')}<span style={{ display: 'block', fontWeight: 400, color: '#8c6526' }}>{L('급성장의 파도', 'the growth surge')}</span></span></div></div>
 
           {/* decision cartouches */}
-          <div style={{ position: 'absolute', left: 388, top: 360, width: 172, zIndex: 8 }}><Cartouche st={s('lab1')} fork={L('갈림길 ① · 예산 2배로 태울까?', 'Fork ① · double the budget?')} call={L('이탈부터 막는다', 'Stop the leaving first')} crew={L('재무·회계', 'Finance · Accounting')} /></div>
-          <div style={{ position: 'absolute', left: 706, top: 446, width: 172, zIndex: 8 }}><Cartouche st={s('lab2')} fork={L('갈림길 ② · 이탈, 어디서 막나?', 'Fork ② · where to stop churn?')} call={L('진짜 가치를 먼저 경험하게', 'Make the real value land first')} crew={L('마케팅·그로스', 'Marketing · Growth')} /></div>
-          <div style={{ position: 'absolute', left: 1118, top: 360, width: 172, zIndex: 8 }}><Cartouche st={s('lab3')} fork={L('갈림길 ③ · 가치를 어떻게 느끼게 하나?', 'Fork ③ · how to make value land?')} call={L('효과를 처음 느끼는 순간을 앞당긴다', 'Pull the first "aha" earlier')} crew={L('전략', 'Strategy')} /></div>
-          <div style={{ position: 'absolute', left: 1430, top: 442, width: 172, zIndex: 8 }}><Cartouche st={s('lab4')} fork={L('갈림길 ④ · 확장은 언제?', 'Fork ④ · when to scale?')} call={L('이탈이 멈춘 뒤에', 'After the churn stops')} crew={L('재무·회계', 'Finance · Accounting')} /></div>
+          <div style={{ position: 'absolute', left: 380, top: 360, width: 196, zIndex: 8 }}><Cartouche st={s('lab1')} fork={L('갈림길 ① · 예산 2배로 태울까?', 'Fork ① · double the budget?')} call={L('이탈부터 막는다', 'Stop the leaving first')} crew={L('재무·회계', 'Finance · Accounting')} /></div>
+          <div style={{ position: 'absolute', left: 700, top: 446, width: 196, zIndex: 8 }}><Cartouche st={s('lab2')} fork={L('갈림길 ② · 이탈, 어디서 막나?', 'Fork ② · where to stop churn?')} call={L('진짜 가치를 먼저 경험하게', 'Make the real value land first')} crew={L('마케팅·그로스', 'Marketing · Growth')} /></div>
+          <div style={{ position: 'absolute', left: 1104, top: 360, width: 214, zIndex: 8 }}><Cartouche st={s('lab3')} fork={L('갈림길 ③ · 가치를 어떻게 느끼게 하나?', 'Fork ③ · how to make value land?')} call={L('효과를 처음 느끼는 순간을 앞당긴다', 'Pull the first "aha" earlier')} crew={L('전략', 'Strategy')} /></div>
+          <div style={{ position: 'absolute', left: 1424, top: 442, width: 192, zIndex: 8 }}><Cartouche st={s('lab4')} fork={L('갈림길 ④ · 확장은 언제?', 'Fork ④ · when to scale?')} call={L('이탈이 멈춘 뒤에', 'After the churn stops')} crew={L('재무·회계', 'Finance · Accounting')} /></div>
 
           {/* current bearing cartouche */}
-          <div style={{ position: 'absolute', left: 1628, top: 150, width: 216, zIndex: 9 }}><div style={s('labCur')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '11px 14px', borderRadius: 13, background: 'radial-gradient(130% 120% at 0% 0%,#33291b,#1d1610)', border: '1px solid #7d5a22', boxShadow: '0 0 0 1px rgba(226,191,110,.16) inset,0 14px 30px rgba(24,18,8,.4)' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: `700 9px/1 ${MONO}`, letterSpacing: '.12em', textTransform: 'uppercase', color: '#e2bf6e' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1f8a5b', boxShadow: '0 0 0 3px rgba(31,138,91,.28)' }} />{L('현재 방위', 'Current heading')}</span>
-              <span style={{ font: `600 15px/1.3 ${SERIF}`, color: '#f8efda', wordBreak: 'keep-all' }}>{L('남는 사용자 위에서 성장', 'Grow on the users who stay')}</span>
-              <span style={{ font: `400 10.5px/1.45 ${MONO}`, color: '#cdbb8e', wordBreak: 'keep-all' }}>{L('네 번의 결정이 만든 항로 위,', 'On a course four decisions made,')}<br />{L('다섯 번째 항해 중', 'now on the fifth leg')}</span>
+          <div style={{ position: 'absolute', left: 1612, top: 150, width: 244, zIndex: 9 }}><div style={s('labCur')}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '12px 15px', borderRadius: 13, background: 'radial-gradient(130% 120% at 0% 0%,#33291b,#1d1610)', border: '1px solid #7d5a22', boxShadow: '0 0 0 1px rgba(226,191,110,.16) inset,0 14px 30px rgba(24,18,8,.4)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: `700 11px/1 ${MONO}`, letterSpacing: '.12em', textTransform: 'uppercase', color: '#e2bf6e' }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1f8a5b', boxShadow: '0 0 0 3px rgba(31,138,91,.28)' }} />{L('현재 방위', 'Current heading')}</span>
+              <span style={{ font: `600 18.5px/1.3 ${SERIF}`, color: '#f8efda', wordBreak: 'keep-all' }}>{L('남는 사용자 위에서 성장', 'Grow on the users who stay')}</span>
+              <span style={{ font: `400 13px/1.45 ${MONO}`, color: '#cdbb8e', wordBreak: 'keep-all' }}>{L('네 번의 결정이 만든 항로 위,', 'On a course four decisions made,')}<br />{L('다섯 번째 항해 중', 'now on the fifth leg')}</span>
             </div>
           </div></div>
 
@@ -347,14 +347,14 @@ export function VoyageMapFilm() {
         {/* counter */}
         <div style={s('oCounter')}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#1f8a5b', boxShadow: '0 0 0 3px rgba(31,138,91,.2)' }} />
-          <span style={{ whiteSpace: 'nowrap', font: `600 11px/1 ${MONO}`, letterSpacing: '.03em', color: '#5a3f16' }}>{txt('counterText')}</span>
+          <span style={{ whiteSpace: 'nowrap', font: `600 13px/1 ${MONO}`, letterSpacing: '.03em', color: '#5a3f16' }}>{txt('counterText')}</span>
         </div>
 
         {/* legend */}
         <div style={s('oLegend')}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 26, height: 3, borderRadius: 2, background: '#d3a23f', boxShadow: '0 0 0 2px #efe0bb' }} /><span style={{ whiteSpace: 'nowrap', font: `600 10.5px/1 ${MONO}`, color: '#5a3f16' }}>{L('걸어온 결정', 'Decisions taken')}</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 26, height: 3, borderRadius: 2, background: '#d3a23f', boxShadow: '0 0 0 2px #efe0bb' }} /><span style={{ whiteSpace: 'nowrap', font: `600 12.5px/1 ${MONO}`, color: '#5a3f16' }}>{L('걸어온 결정', 'Decisions taken')}</span></div>
           <span style={{ width: 1, height: 16, background: 'rgba(120,90,40,.25)' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 26, height: 0, borderTop: '2.5px dotted #8f3d33' }} /><span style={{ whiteSpace: 'nowrap', font: `600 10.5px/1 ${MONO}`, color: '#8c6526' }}>{L('가지 않은 길', 'Roads not taken')}</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 26, height: 0, borderTop: '2.5px dotted #8f3d33' }} /><span style={{ whiteSpace: 'nowrap', font: `600 12.5px/1 ${MONO}`, color: '#8c6526' }}>{L('가지 않은 길', 'Roads not taken')}</span></div>
         </div>
 
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(120,90,40,.14)', zIndex: 6 }}><div style={s('oProg')} /></div>
