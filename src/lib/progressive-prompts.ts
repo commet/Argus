@@ -961,6 +961,7 @@ Rules:
 - A task labeled "(N perspectives \u2014 intentional team diversity)" is the user's deliberate multi-lens setup. Don't flag in-group emphasis differences as contradictions unless they materially undermine the conclusion.
 - If a perspective was missed by everyone, flag it.
 - Overall quality judgment: "Is this ready to show the decision maker?"
+- Flag only MATERIAL issues — don't manufacture a concern or contradiction to look thorough; if the work is solid, say so (spine: no over-fire on a flat call).
 - 3-5 sentences. No rambling.${depthBlock}
 Always respond in ${lang}.`,
 

@@ -325,6 +325,19 @@ describe('planWorkers', () => {
     expect(leaning.orchestrationPlan.pattern).toBe('review_loop');
   });
 
+  it('non-AI steps do NOT inflate the pattern gate (workerCount = AI count)', () => {
+    // 1 AI worker + 2 human confirmation steps on a routine call must stay
+    // single/light — the humans must not push it to parallel/standard.
+    const steps = [
+      { task: 'AI가 분석', who: 'ai', output: '보고서' },
+      { task: '사람이 확인', who: 'human', output: '확인' },
+      { task: '사람이 결재', who: 'human', output: '결재' },
+    ];
+    const r = planWorkers(steps, { stakes: 'experiment' } as never, MOCK_AGENTS, []);
+    expect(r.orchestrationPlan.pattern).toBe('single');
+    expect(r.orchestrationPlan.verifyDepth).toBe('light');
+  });
+
   it('서로 다른 에이전트가 배정됨', () => {
     const steps = [
       { task: '시장 조사', who: 'ai', output: '보고서' },

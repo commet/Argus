@@ -57,9 +57,12 @@ function buildStages(
   classification: InputClassification,
   userLeaning = false,
 ): { workers: PlannedWorker[]; stages: PipelineStage[]; plan: OrchestrationPlan } {
-  const plan = planOrchestration(classification, workers.length, { userLeaning });
+  // Pattern/verify gates key off the AI worker count, not the raw step count —
+  // self/human confirmation steps must not inflate single/light into parallel/standard.
+  const aiCount = workers.filter(w => w.agentType === 'ai').length;
+  const plan = planOrchestration(classification, aiCount, { userLeaning });
 
-  if (plan.pattern !== 'review_loop' || workers.length < 2) {
+  if (plan.pattern !== 'review_loop' || aiCount < 2) {
     // 단일 스테이지: 전부 병렬
     const stageId = 'stage_1';
     const updated = workers.map(w => ({ ...w, stageId }));

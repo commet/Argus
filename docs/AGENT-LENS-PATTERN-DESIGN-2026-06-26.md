@@ -45,7 +45,7 @@
   - light: routine && workerCount≤2 → **중립 crux 질문 하나만** (스파인: over-fire 금지)
   - standard: 그 외
 
-**Argus 특색 2가지**: (1) 검증은 critical-only가 아니라 *상수*(제품 정체성=놓친 반대편).
+**Argus 특색 2가지**: (1) 검증은 critical-only가 아니라 **crew 경로의 *상수***(워커가 배정되면 navigator review 항상 실행, 깊이만 조절). express 빠른경로는 워커가 없어 navigator가 아니라 *분석의 hidden_assumptions 표면화 + flinch 테스트*로 검증 — verifyDepth는 crew 경로의 navigator를 다스린다. 제품 정체성=놓친 반대편.
 (2) Bind의 사용자 lean을 검증 깊이에 투입(확증편향이면 더 세게) — harness엔 없는 우리 신호.
 
 ## 위계 / retention (사용자 원래 의도 존중)

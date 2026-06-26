@@ -8,8 +8,12 @@
  * Inspired by the agent-team "pattern catalog" idea (Pipeline / Fan-out / Producer-
  * Reviewer / Supervisor ...) but adapted to Argus's job: a *decision* tool, not a
  * code-team factory. Two Argus-specific choices:
- *   1) Verification is a CONSTANT, not a critical-only stage — it is the product's
- *      identity ("surface the reader's blind side"). stakes only scales its DEPTH.
+ *   1) Verification is a CONSTANT on the CREW path, not a critical-only stage —
+ *      every run that deploys workers gets a navigator review (depth-scaled here),
+ *      not just critical ones. (The express fast-path runs no workers, so there's
+ *      no navigator to scale; it verifies differently — via the analysis's
+ *      surfaced hidden_assumptions + the flinch test. So verifyDepth governs the
+ *      crew path's navigator, NOT a universal "verification is always on" claim.)
  *   2) The user's pre-AI lean (from Bind) feeds verify depth: leaning on an
  *      important call = confirmation-bias risk → review harder, even if not critical.
  *
