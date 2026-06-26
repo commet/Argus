@@ -742,7 +742,10 @@ export async function callLLMStream(
     // suppresses (so the spinner would never clear). User cancellation via
     // options.signal is unaffected and still surfaces as the existing AbortError.
     const IDLE_MS = 30_000;
-    const HARD_CAP_MS = 180_000;
+    // 300s (was 180s): a full 8k-token document legitimately streams longer than
+    // 3 min. The 30s IDLE watchdog still kills a genuinely dead connection fast;
+    // HARD_CAP is only the absolute backstop, so a larger value won't hang the UI.
+    const HARD_CAP_MS = 300_000;
     let timedOut: 'idle' | 'cap' | null = null;
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
     const triggerTimeout = (kind: 'idle' | 'cap') => {
@@ -886,7 +889,7 @@ export async function callLLMStreamThenParse<T = unknown>(
       // hit the same ceiling. Give the clean retry extra room (the server clamps
       // to its own cap), turning genuine length overflow into a recoverable case
       // too — not just markdown-wrapped / preamble malformations.
-      const retryTokens = Math.min((options.maxTokens ?? 2000) + 2000, 8000);
+      const retryTokens = Math.min((options.maxTokens ?? 2000) + 2000, 8192);
       return callLLMJson<T>(messages, { ...options, maxTokens: retryTokens });
     }
     throw error;

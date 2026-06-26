@@ -137,10 +137,11 @@ describe('normalizeMaxTokens', () => {
     expect(normalizeMaxTokens('')).toBe(2000);
   });
 
-  it('caps at 4096', () => {
-    expect(normalizeMaxTokens(200000)).toBe(4096);
-    expect(normalizeMaxTokens(5000)).toBe(4096);
-    expect(normalizeMaxTokens(4096)).toBe(4096);
+  it('caps at 8192', () => {
+    expect(normalizeMaxTokens(200000)).toBe(8192);
+    expect(normalizeMaxTokens(9000)).toBe(8192);
+    expect(normalizeMaxTokens(8192)).toBe(8192);
+    expect(normalizeMaxTokens(5000)).toBe(5000); // under the cap → honored
   });
 
   it('passes through valid values', () => {
@@ -151,7 +152,7 @@ describe('normalizeMaxTokens', () => {
 
   it('handles string numbers', () => {
     expect(normalizeMaxTokens('3000')).toBe(3000);
-    expect(normalizeMaxTokens('999999')).toBe(4096);
+    expect(normalizeMaxTokens('999999')).toBe(8192);
   });
 });
 
