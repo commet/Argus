@@ -408,6 +408,40 @@ export function SeaChart({
           );
         })}
 
+        {/* Roads not taken AT A FORK — the options you were offered but didn't
+            pick, drawn as faint dashed stubs peeling into the open sea with a
+            keyword (full). Tap (full) to fork from here and choose again. */}
+        {placed.map((n) => {
+          const wp = wpByCp.get(n.id);
+          const notTaken = (wp?.alternatives || []).filter(a => !a.taken);
+          if (notTaken.length === 0) return null;
+          return (
+            <g key={`alt-${n.id}`} className={onPick && full ? 'cursor-pointer' : undefined}
+              onClick={handlePick && full ? () => handlePick(n.id) : undefined}>
+              {notTaken.slice(0, full ? 3 : 2).map((alt, k) => {
+                const ang = ((full ? 150 : 158) + k * 19) * Math.PI / 180;   // fan down-/up-left into open sea
+                const len = full ? 40 : 14;
+                const ex = n.px + Math.cos(ang) * len;
+                const ey = n.py + Math.sin(ang) * len;
+                const mx = n.px + Math.cos(ang) * len * 0.55 + (full ? 5 : 2);
+                const my = n.py + Math.sin(ang) * len * 0.55;
+                const kw = alt.label.length > 16 ? alt.label.slice(0, 15) + '…' : alt.label;
+                return (
+                  <g key={k} opacity={0.6}>
+                    <path d={`M ${n.px} ${n.py} Q ${mx} ${my} ${ex} ${ey}`} fill="none"
+                      stroke={PAPER.ghost} strokeWidth={full ? 1 : 0.8} strokeDasharray="2 3" strokeLinecap="round" />
+                    <circle cx={ex} cy={ey} r={full ? 1.5 : 1} fill={PAPER.ghost} />
+                    {full && (
+                      <text x={ex - 4} y={ey + 3} textAnchor="end" fontSize={7.5} fill={PAPER.sepia}
+                        fontFamily={CHART_FONT} fontStyle="italic" style={{ letterSpacing: '0.02em' }}>{kw}</text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          );
+        })}
+
         {/* Depth soundings — faint italic numerals over the open sea */}
         {soundings.map((s, i) => (
           <text key={`snd-${i}`} x={s.x} y={s.y} fontSize={6.5} fill={PAPER.sepia} fontFamily={CHART_FONT} fontStyle="italic" opacity={0.42} textAnchor="middle">{s.n}</text>

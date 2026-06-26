@@ -28,12 +28,14 @@ import { generateId } from '@/lib/uuid';
 import { getCurrentLanguage } from '@/lib/i18n';
 import type {
   AnalysisSnapshot,
+  FlowQuestion,
   VoyageCheckpoint,
   VoyageCheckpointState,
   Waypoint,
   WaypointType,
   WaypointAlternative,
 } from '@/stores/types';
+import type { TypedQuestionMeta } from '@/lib/question-types';
 
 const norm = (s: string | undefined | null): string =>
   (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -55,6 +57,33 @@ function lastAnswerTrigger(state: VoyageCheckpointState, ko: boolean): string | 
   if (!a) return undefined;
   const q = state.questions.find((q) => q.id === a.question_id);
   return q ? `${ko ? '질문' : 'Q'}: ${truncate(q.text, 60)} → ${truncate(a.value, 60)}` : truncate(a.value, 80);
+}
+
+/**
+ * If the answer that triggered this round resolved a `strategic_fork`, surface
+ * the fork's options as roads not taken: every direction the user DIDN'T pick
+ * becomes a tap-to-sail alternative (the one they picked is taken=true). This is
+ * what turns "아 다른 선택지를 고를걸" into a real branch they can sail later —
+ * the chart draws the unchosen options as faint dashed keyword stubs and the
+ * Logbook offers each a "이 길 가보기" handle (both read `alternatives`).
+ *
+ * Only fires when the *most recent* answer is the fork, so the options surface
+ * once (on the checkpoint right after the choice), not on every later round.
+ */
+function strategicForkAlternatives(state: VoyageCheckpointState): WaypointAlternative[] | undefined {
+  const a = state.answers[state.answers.length - 1];
+  if (!a) return undefined;
+  const q = state.questions.find((q) => q.id === a.question_id) as
+    (FlowQuestion & { typed?: TypedQuestionMeta }) | undefined;
+  const meta = q?.typed;
+  if (!meta || meta.tag !== 'strategic_fork' || !meta.options || meta.options.length < 2) return undefined;
+  const chosen = a.value.trim();
+  const alts: WaypointAlternative[] = meta.options.map((o) => {
+    const why = o.effect && 'rationale' in o.effect ? (o.effect.rationale || '') : '';
+    return { label: truncate(o.label, 80), why_abandoned: truncate(why, 80), taken: o.label.trim() === chosen };
+  });
+  // Worth surfacing only if at least one direction was left untravelled.
+  return alts.some((x) => !x.taken) ? alts : undefined;
 }
 
 export interface DeriveWaypointArgs {
@@ -107,6 +136,17 @@ export function deriveWaypoint(args: DeriveWaypointArgs): Waypoint | null {
       const cur = latestSnap(state.snapshots);
       if (!cur) return null;
       const prev = prevState ? latestSnap(prevState.snapshots) : undefined;
+
+      // A strategic_fork the user just resolved → its unchosen options ARE the
+      // roads not taken (richer and more recognizable than a bare framing diff,
+      // and each is tap-to-sail). Takes precedence over the real_question diff.
+      const forkAlts = strategicForkAlternatives(state);
+      if (forkAlts) {
+        return make('course_change', truncate(cur.real_question, 80) || (ko ? '방향 선택' : 'Direction chosen'), {
+          trigger: lastAnswerTrigger(state, ko),
+          alternatives: forkAlts,
+        });
+      }
 
       // course_change: the real question turned. The prior framing becomes a
       // road not taken (why_abandoned filled by the Phase 5 LLM pass).
