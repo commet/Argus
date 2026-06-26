@@ -23,6 +23,11 @@ import { useLocale } from '@/hooks/useLocale';
 
 const MONO = "'JetBrains Mono','SF Mono',Menlo,Consolas,sans-serif";
 const SERIF = "var(--font-display,'Noto Serif KR',serif)";
+// Route labels (fork / reef / origin / harbor) carry Korean, which has no glyphs
+// in JetBrains Mono — it fell back to a system face AND inherited the mono's wide
+// spaces, reading loose. Pretendard keeps them tight (and lets the long fork fit
+// one line). The numeric chrome (counter/legend) stays mono.
+const SANS = "'Pretendard Variable',Pretendard,system-ui,sans-serif";
 const TOTAL = 33000;
 const REDUCED_T = 29500;
 const LEG_START = [2000, 6200, 10400, 14600, 18800];
@@ -144,12 +149,12 @@ function GhostMarker({ st, reef, title, sub }: { st: React.CSSProperties; reef: 
           <span style={{ position: 'absolute', left: 0, top: -1, transform: 'translate(-50%,-50%)' }}>
             <svg width="26" height="17" viewBox="0 0 28 18" fill="none"><path d="M2 16 L8 5 L13 16 Z" fill="#7a5446" /><path d="M9 16 L15 3 L21 16 Z" fill="#523727" /><path d="M17 16 L22 7 L26 16 Z" fill="#7a5446" /><path d="M1 16.2 H27" stroke="#d6e7e3" strokeWidth="1.5" strokeLinecap="round" opacity=".55" /></svg>
           </span>
-          <span style={{ position: 'absolute', left: 17, top: -9, whiteSpace: 'nowrap', font: `600 13px/1.3 ${MONO}`, color: '#8f3d33' }}>{title}<span style={{ display: 'block', fontWeight: 400, color: '#a86a5e' }}>{sub}</span></span>
+          <span style={{ position: 'absolute', left: 17, top: -9, whiteSpace: 'nowrap', font: `600 13px/1.3 ${SANS}`, color: '#8f3d33' }}>{title}<span style={{ display: 'block', fontWeight: 400, color: '#a86a5e' }}>{sub}</span></span>
         </>
       ) : (
         <>
           <span style={{ position: 'absolute', left: 0, top: 0, transform: 'translate(-50%,-50%)', width: 9, height: 9, borderRadius: '50%', border: '2px solid #a87d31', background: '#f3e6c6' }} />
-          <span style={{ position: 'absolute', left: 12, top: -8, whiteSpace: 'nowrap', font: `600 13px/1.3 ${MONO}`, color: '#8c6526' }}>{title}<span style={{ display: 'block', fontWeight: 400, color: '#a8915f' }}>{sub}</span></span>
+          <span style={{ position: 'absolute', left: 12, top: -8, whiteSpace: 'nowrap', font: `600 13px/1.3 ${SANS}`, color: '#8c6526' }}>{title}<span style={{ display: 'block', fontWeight: 400, color: '#a8915f' }}>{sub}</span></span>
         </>
       )}
     </div>
@@ -161,7 +166,7 @@ function Cartouche({ st, fork, call, crew }: { st: React.CSSProperties; fork: st
   return (
     <div style={st}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '9px 12px', borderRadius: 12, background: '#fdf9f0', border: '1px solid #e3d6b6', boxShadow: '0 1px 2px rgba(60,44,18,.06),0 8px 18px rgba(60,44,18,.12)' }}>
-        <span style={{ font: `700 11px/1.25 ${MONO}`, letterSpacing: '.04em', color: '#a87d31' }}>{fork}</span>
+        <span style={{ font: `700 10.5px/1.3 ${SANS}`, letterSpacing: '-0.01em', color: '#a87d31' }}>{fork}</span>
         <span style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
           <span style={{ flex: 'none', marginTop: 1, display: 'grid', placeItems: 'center', width: 17, height: 17, borderRadius: '50%', background: '#1f8a5b', color: '#fff', font: `700 11px/1 ${MONO}` }}>✓</span>
           <span style={{ font: `600 16px/1.3 ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{call}</span>
@@ -265,7 +270,7 @@ export function VoyageMapFilm() {
               <g transform="translate(252 212)" fill="#7d8a4e"><circle cx="0" cy="0" r="8" /><circle cx="11" cy="3" r="6" /></g>
               <g transform="translate(234 258)" fill="#86934f"><circle cx="0" cy="0" r="7" /></g>
             </svg>
-            <span style={{ position: 'absolute', left: 150, top: 300, whiteSpace: 'nowrap', font: `700 13.5px/1.3 ${MONO}`, letterSpacing: '.04em', color: '#5d6b2e' }}>{L('정박 · 안정 성장 항구', 'Made port · steady growth')}<span style={{ display: 'block', fontWeight: 400, fontSize: 12.5, color: '#7d8a4e' }}>{L('긴 항해의 도착지', "the long voyage's end")}</span></span>
+            <span style={{ position: 'absolute', left: 150, top: 300, whiteSpace: 'nowrap', font: `700 13.5px/1.3 ${SANS}`, letterSpacing: '-0.005em', color: '#5d6b2e' }}>{L('정박 · 안정 성장 항구', 'Made port · steady growth')}<span style={{ display: 'block', fontWeight: 400, fontSize: 12.5, color: '#7d8a4e' }}>{L('긴 항해의 도착지', "the long voyage's end")}</span></span>
           </div></div>
 
           {/* ===== ROUTES ===== */}
@@ -307,7 +312,7 @@ export function VoyageMapFilm() {
           <div style={{ position: 'absolute', left: 1270, top: 486, width: 0, height: 0, zIndex: 7 }}><GhostMarker st={s('rm7')} reef title={L('가격 인상 실험', 'Test a price hike')} sub={L('이탈 가속', 'speeds churn')} /></div>
 
           {/* origin marker */}
-          <div style={{ position: 'absolute', left: 110, top: 350, width: 0, height: 0, zIndex: 8 }}><div style={s('dotO')}><span style={{ position: 'absolute', left: -2, top: 14, whiteSpace: 'nowrap', font: `700 12.5px/1.3 ${MONO}`, letterSpacing: '.04em', color: '#6e5020' }}>{L('출항', 'Set sail')}<span style={{ display: 'block', fontWeight: 400, color: '#8c6526' }}>{L('급성장의 파도', 'the growth surge')}</span></span></div></div>
+          <div style={{ position: 'absolute', left: 110, top: 350, width: 0, height: 0, zIndex: 8 }}><div style={s('dotO')}><span style={{ position: 'absolute', left: -2, top: 14, whiteSpace: 'nowrap', font: `700 12.5px/1.3 ${SANS}`, letterSpacing: '-0.005em', color: '#6e5020' }}>{L('출항', 'Set sail')}<span style={{ display: 'block', fontWeight: 400, color: '#8c6526' }}>{L('급성장의 파도', 'the growth surge')}</span></span></div></div>
 
           {/* decision cartouches */}
           <div style={{ position: 'absolute', left: 380, top: 360, width: 196, zIndex: 8 }}><Cartouche st={s('lab1')} fork={L('갈림길 ① · 예산 2배로 태울까?', 'Fork ① · double the budget?')} call={L('이탈부터 막는다', 'Stop the leaving first')} crew={L('재무·회계', 'Finance · Accounting')} /></div>
