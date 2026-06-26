@@ -1206,12 +1206,14 @@ function dmResponseToResult(
  */
 export async function runFinalDeliverable(
   mix: MixResult,
-  dmFeedback: DMFeedbackResult,
+  // Nullable: the focus path (and the sealed-prediction recovery) finalizes with
+  // no DM feedback. A null here means "no applied fixes" → just render the mix.
+  dmFeedback: DMFeedbackResult | null,
   signal?: AbortSignal,
   workerSources?: WorkerSource[],
   onToken?: (text: string) => void,
 ): Promise<{ markdown: string; finalMix: MixResult }> {
-  const appliedFixes = dmFeedback.concerns
+  const appliedFixes = (dmFeedback?.concerns ?? [])
     .filter(c => c.applied)
     .map(c => ({ concern: c.text, fix: c.fix_suggestion }));
 
