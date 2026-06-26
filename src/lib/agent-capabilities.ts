@@ -54,8 +54,8 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
     antiPatterns: ['legal_review', 'design'],
   },
   {
-    agentId: 'research_director',  // 리서치 디렉터 (도윤)
-    taskTypes: ['analysis', 'synthesis', 'research'],
+    agentId: 'research_director',  // 리서치 디렉터 (도윤) — 종합(synthesis) 전담: 여러 결과를 한 결론으로
+    taskTypes: ['synthesis', 'analysis', 'research'],  // synthesis-first: fills the synthesis gap; analysis now sole-owned by junseo
     domains: ['market', 'product', 'finance'],
     outputTypes: ['report', 'document', 'comparison'],
     antiPatterns: ['design', 'legal_review'],
