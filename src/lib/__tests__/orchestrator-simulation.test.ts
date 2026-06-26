@@ -291,6 +291,27 @@ describe('planWorkers', () => {
     expect(result.classification.stakes).toBe('critical');
   });
 
+  it('on_fire 위기 → review_loop 패턴 + 2 스테이지 (irreversible 아니어도 검증 점화)', () => {
+    const steps = [
+      { task: '시장 조사', who: 'ai', output: '보고서' },
+      { task: '비용 추정', who: 'ai', output: '수치' },
+      { task: '리스크 검토', who: 'ai', output: '리스크' },
+    ];
+    const result = planWorkers(steps, { nature: 'on_fire' } as never, MOCK_AGENTS, []);
+    expect(result.orchestrationPlan.pattern).toBe('review_loop');
+    expect(result.orchestrationPlan.verifyDepth).toBe('deep');
+    expect(result.stages.length).toBe(2);
+  });
+
+  it('orchestrationPlan을 항상 노출하고 검증 깊이는 비어있지 않다 (검증 상수)', () => {
+    const result = planWorkers(
+      [{ task: '시장 조사', who: 'ai', output: '보고서' }],
+      undefined, MOCK_AGENTS, [],
+    );
+    expect(result.orchestrationPlan).toBeDefined();
+    expect(['light', 'standard', 'deep']).toContain(result.orchestrationPlan.verifyDepth);
+  });
+
   it('서로 다른 에이전트가 배정됨', () => {
     const steps = [
       { task: '시장 조사', who: 'ai', output: '보고서' },
