@@ -25,6 +25,7 @@ import type { Agent, AgentObservation } from '@/stores/agent-types';
 import type { InputClassification } from './orchestrator-classify';
 import { classifySteps, type TaskClassification } from './task-classifier';
 import { scoreAgentForTask, getCapability } from './agent-capabilities';
+import { lensOf, type Lens } from './agent-lens';
 import { getAgentHitRate } from './hit-rate';
 
 /* ─── Types ─── */
@@ -115,6 +116,7 @@ export function selectAgents(
 ): Map<number, Agent> {
   const result = new Map<number, Agent>();
   const usedAgentIds = new Set<string>();
+  const usedLenses = new Set<Lens>();   // 7-lens diversity: at most one worker per lens
   const traces: SelectionTrace[] = [];
 
   // ── Layer 1: Task Classification (모든 step을 한 번에, 문맥 포함) ──
@@ -137,7 +139,14 @@ export function selectAgents(
     const tc = taskClassifications[i];
     if (!tc) continue;
 
-    const available = unlockedAgents.filter(a => !usedAgentIds.has(a.id) && !a.archived);
+    // One worker per lens: a lens already filled is unavailable, so the chain-
+    // hierarchy near-ties (e.g. hayoon~sujin, both Scout) resolve to the higher
+    // scorer and the rest of the run diversifies to other lenses.
+    const available = unlockedAgents.filter(a => {
+      if (usedAgentIds.has(a.id) || a.archived) return false;
+      const lens = lensOf(a.id);
+      return !(lens && usedLenses.has(lens));
+    });
     if (available.length === 0) break;
 
     // ── Layer 2: Capability Scoring ──
@@ -177,6 +186,8 @@ export function selectAgents(
     if (best && best.totalScore > 0) {
       result.set(i, best.agent);
       usedAgentIds.add(best.agent.id);
+      const bestLens = lensOf(best.agent.id);
+      if (bestLens) usedLenses.add(bestLens);
 
       traces.push({
         stepIndex: i,
