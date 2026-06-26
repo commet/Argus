@@ -134,6 +134,72 @@ export function parsePartialDoc(text: string): PartialDoc {
   };
 }
 
+/* ─── Salvage a truncated mix/final document (graceful degrade) ───
+ *
+ * When the streamed document JSON is cut off mid-structure and BOTH the parse and
+ * the corrective retry fail, we still have the text that DID stream — usually a
+ * title, summary, and several complete sections, with only the last section
+ * partial. Recovering those beats throwing the whole draft away after minutes of
+ * streaming. Drops the trailing incomplete section; keeps every complete one. */
+
+/** Walk `"key": [ {...}, {...}, ... ]` and return every COMPLETE `{...}` object
+ *  (JSON.parse'd). Stops at the first incomplete/truncated object. */
+function extractCompleteObjects(text: string, key: string): Record<string, unknown>[] {
+  const m = text.match(new RegExp(`"${key}"\\s*:\\s*\\[`));
+  if (!m || m.index === undefined) return [];
+  const out: Record<string, unknown>[] = [];
+  let i = m.index + m[0].length;
+  while (i < text.length) {
+    while (i < text.length && /[\s,]/.test(text[i])) i++;   // skip whitespace / commas
+    if (i >= text.length || text[i] === ']') break;
+    if (text[i] !== '{') break;
+    // Collect one balanced object, respecting strings and escapes.
+    let depth = 0, inStr = false, esc = false;
+    const start = i;
+    for (; i < text.length; i++) {
+      const c = text[i];
+      if (esc) { esc = false; continue; }
+      if (c === '\\') { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === '{') depth++;
+      else if (c === '}') { depth--; if (depth === 0) { i++; break; } }
+    }
+    if (depth !== 0) break; // trailing object was truncated → stop here
+    try {
+      const o = JSON.parse(text.slice(start, i));
+      if (o && typeof o === 'object') out.push(o as Record<string, unknown>);
+    } catch { break; }
+  }
+  return out;
+}
+
+export interface SalvagedDoc {
+  title: string;
+  executive_summary: string;
+  sections: Array<{ heading?: string; content?: string; contributors?: string[]; sentences?: unknown[] }>;
+  key_assumptions: string[];
+  next_steps: string[];
+}
+
+/** Recover a usable document from truncated mix/final JSON, or null if there's
+ *  nothing worth keeping (no title and no complete section). */
+export function salvageMixDoc(text: string): SalvagedDoc | null {
+  if (!text || text.length < 20) return null;
+  const title = extractStringField(text, 'title').value;
+  const summary = extractStringField(text, 'executive_summary');
+  const sections = extractCompleteObjects(text, 'sections')
+    .filter(o => typeof o.heading === 'string' || typeof o.content === 'string') as SalvagedDoc['sections'];
+  if (!title && sections.length === 0) return null;
+  return {
+    title,
+    executive_summary: summary.value,
+    sections,
+    key_assumptions: extractCompleteStrings(text, 'key_assumptions'),
+    next_steps: extractCompleteStrings(text, 'next_steps'),
+  };
+}
+
 /* ─── Shared feedback snippet for DMFeedback responses ─── */
 export interface PartialFeedback {
   first_reaction: string;

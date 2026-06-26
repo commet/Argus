@@ -2,7 +2,8 @@
  * Progressive Engine — LLM 호출 + 상태 전이 오케스트레이션
  */
 
-import { callLLMJson, callLLMStreamThenParse } from '@/lib/llm';
+import { callLLMJson, callLLMStreamThenParse, LLMError } from '@/lib/llm';
+import { salvageMixDoc } from '@/lib/partial-analysis';
 import {
   buildInitialAnalysisPrompt,
   buildInitialRefinementPrompt,
@@ -669,7 +670,7 @@ export async function runDeepening(
         questionsAndAnswers, round, availableAgents, locale, leadContext, registeredPersonas,
       );
       // maxTokens 3500: a 5-step Korean plan with human-step fields is the
-      // largest realistic payload; 3500 (under the 4096 server cap) clears it.
+      // largest realistic payload; 3500 (well under the server cap) clears it.
       // callLLMJson also carries a corrective parse-retry of its own.
       const plan = await callLLMJson<{ steps: ExecutionPlanStep[]; key_assumptions?: string[] }>(
         [{ role: 'user', content: planPrompt.user }],
@@ -876,16 +877,33 @@ export async function runMix(
     : userPrompt;
 
   const shape = { title: 'string' as const, executive_summary: 'string' as const, sections: 'array' as const, key_assumptions: 'array' as const, next_steps: 'array' as const };
-  const result = onToken
-    ? await callLLMStreamThenParse<MixResponse>(
-        [{ role: 'user', content: user }],
-        { system, maxTokens: 4000, signal, shape },
-        onToken,
-      )
-    : await callLLMJson<MixResponse>(
-        [{ role: 'user', content: user }],
-        { system, maxTokens: 4000, signal, shape },
-      );
+  // maxTokens 8000 (server cap is now 8192): a full multi-section draft routinely
+  // needs more than 4000 output tokens — at 4000 the document JSON truncated and
+  // failed to parse after minutes of streaming.
+  let result: MixResponse;
+  let lastStreamText = '';
+  try {
+    result = onToken
+      ? await callLLMStreamThenParse<MixResponse>(
+          [{ role: 'user', content: user }],
+          { system, maxTokens: 8000, signal, shape },
+          (text) => { lastStreamText = text; onToken(text); },
+        )
+      : await callLLMJson<MixResponse>(
+          [{ role: 'user', content: user }],
+          { system, maxTokens: 8000, signal, shape },
+        );
+  } catch (e) {
+    // A — salvage net: if the document still failed to parse (extreme length),
+    // recover the sections that DID stream rather than losing the whole draft and
+    // showing a bare error after minutes of work. Only for parse/validation
+    // failures on the streamed path; abort/network/auth surface unchanged.
+    if (signal?.aborted) throw e;
+    const recoverable = e instanceof LLMError && (e.category === 'parse_failure' || e.category === 'validation');
+    const salvaged = recoverable ? salvageMixDoc(lastStreamText) : null;
+    if (!salvaged) throw e;
+    result = salvaged as MixResponse;
+  }
 
   // Build name → workerId lookup for attribution resolution.
   const nameToId = new Map<string, string>();
@@ -1208,16 +1226,28 @@ export async function runFinalDeliverable(
   const { system, user } = buildFinalDeliverablePrompt(mix, appliedFixes, locale);
 
   const shape = { title: 'string' as const, executive_summary: 'string' as const, sections: 'array' as const };
-  const result = onToken
-    ? await callLLMStreamThenParse<FinalResponse>(
-        [{ role: 'user', content: user }],
-        { system, maxTokens: 4000, signal, shape },
-        onToken,
-      )
-    : await callLLMJson<FinalResponse>(
-        [{ role: 'user', content: user }],
-        { system, maxTokens: 4000, signal, shape },
-      );
+  // maxTokens 8000 + salvage net — same rationale as runMix: the finalized
+  // document is full-length and must not be lost to a truncated parse.
+  let result: FinalResponse;
+  let lastStreamText = '';
+  try {
+    result = onToken
+      ? await callLLMStreamThenParse<FinalResponse>(
+          [{ role: 'user', content: user }],
+          { system, maxTokens: 8000, signal, shape },
+          (text) => { lastStreamText = text; onToken(text); },
+        )
+      : await callLLMJson<FinalResponse>(
+          [{ role: 'user', content: user }],
+          { system, maxTokens: 8000, signal, shape },
+        );
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    const recoverable = e instanceof LLMError && (e.category === 'parse_failure' || e.category === 'validation');
+    const salvaged = recoverable ? salvageMixDoc(lastStreamText) : null;
+    if (!salvaged) throw e;
+    result = salvaged as unknown as FinalResponse;
+  }
 
   // Build heading → original section lookup for attribution transplant.
   const originalByHeading = new Map<string, MixResult['sections'][number]>();

@@ -5,7 +5,13 @@ import { validateOrigin, validateContentType, validateContentLength } from '@/li
  * Shared LLM request validation — used by all /api/llm/* routes.
  */
 
-export const MAX_TOKENS_CAP = 4096;
+// 8192 (was 4096): the final draft/mix is a full multi-section document that
+// legitimately needs more than 4096 output tokens. At 4096 the document JSON
+// truncated mid-structure → "JSON 파싱 실패" after minutes of streaming. Only
+// calls that REQUEST >4096 (runMix / runFinalDeliverable) are affected; every
+// other call requests ≤4000, so their cost is unchanged. Sonnet supports well
+// beyond 8192 output, so this is safe model-side.
+export const MAX_TOKENS_CAP = 8192;
 export const MAX_MESSAGE_LENGTH = 50_000;
 // The initial-analysis system prompt (buildInitialAnalysisPrompt) is legitimately
 // ~13k chars after the R36–R60 STEP-0 / BREADTH gate accumulation — the 10k cap
