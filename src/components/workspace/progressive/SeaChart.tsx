@@ -453,7 +453,7 @@ export function SeaChart({
         {/* ── The inked main course — one winding spline + ink-bleed wobble ── */}
         {activePath.length > 1 && (
           <g filter={`url(#bleed-${uid})`}>
-            <path d={activeCourse} pathLength={1} fill="none" stroke={PAPER.ink} strokeWidth={full ? 2.6 : 1.55} strokeLinecap="round" strokeLinejoin="round" opacity={0.92}
+            <path d={activeCourse} pathLength={1} fill="none" stroke={PAPER.ink} strokeWidth={full ? 2.1 : 1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.9}
               strokeDasharray={animate ? 1 : undefined} strokeDashoffset={animate ? 1 : undefined}>
               {animate && <animate attributeName="stroke-dashoffset" from="1" to="0" dur="1.5s" begin="0.15s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.45 0 0.2 1" />}
             </path>
@@ -472,12 +472,14 @@ export function SeaChart({
           const anchored = n.isHead && n.branchId && statusByBranch.get(n.branchId) === 'anchored';
           const isReef = wp?.type === 'reef';
           const baseColor = isReef ? PAPER.reef : isActiveBranch ? PAPER.ink : PAPER.sepia;
-          const r = full ? (wp ? 5.5 : 3.8) : (wp ? 3.1 : 2.0);
+          const r = full ? (wp ? 4 : 2.4) : (wp ? 3 : 1.9);
 
           return (
             <g key={`n-${n.id}`}>
              <g opacity={dim(n.branchId)} className={onPick ? 'cursor-pointer' : undefined} onClick={handlePick ? () => handlePick(n.id) : undefined}>
-              {wp && !isActiveCp && <circle cx={n.px} cy={n.py} r={r + (full ? 4.5 : 3)} fill="none" stroke={baseColor} strokeWidth={0.5} opacity={0.3} />}
+              {/* a whisper-thin halo only on waypoints, to lift them off the sea
+                  without the old "target" heaviness */}
+              {wp && !isActiveCp && <circle cx={n.px} cy={n.py} r={r + (full ? 2.4 : 1.8)} fill="none" stroke={baseColor} strokeWidth={0.4} opacity={0.18} />}
 
               {isActiveCp ? (
                 // my ship — the chart's hero: a larger gold caravel with a soft
@@ -512,8 +514,16 @@ export function SeaChart({
                   <line x1={n.px - r * 0.8} y1={n.py - r * 0.1} x2={n.px + r * 0.8} y2={n.py - r * 0.1} />
                   <path d={`M ${n.px - r} ${n.py + r * 0.4} Q ${n.px} ${n.py + r * 1.4}, ${n.px + r} ${n.py + r * 0.4}`} />
                 </g>
+              ) : wp ? (
+                // a charted survey mark — a fine ring with a small solid core,
+                // not a fat ink blob (reads precise, like a station on a chart)
+                <g>
+                  <circle cx={n.px} cy={n.py} r={r} fill={PAPER.paper0} stroke={baseColor} strokeWidth={isActiveBranch ? 1 : 0.85} />
+                  <circle cx={n.px} cy={n.py} r={Math.max(1, r * 0.42)} fill={baseColor} />
+                </g>
               ) : (
-                <circle cx={n.px} cy={n.py} r={r} fill={wp ? baseColor : PAPER.paper0} stroke={baseColor} strokeWidth={isActiveBranch ? 1.3 : 1} />
+                // a plain logged checkpoint — a small hollow dot
+                <circle cx={n.px} cy={n.py} r={r} fill={PAPER.paper0} stroke={baseColor} strokeWidth={0.8} opacity={0.85} />
               )}
 
               {anchored && !isActiveCp && (

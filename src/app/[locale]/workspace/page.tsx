@@ -118,16 +118,19 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
       <Graticule opacity={0.02} spacing={18} />
 
       <div className="relative pt-8 md:pt-12 pb-16">
-        {/* Desktop: the Voyage Map rail (left) stands beside the flow. DOM order
-            is flow-FIRST (so keyboard reaches the primary task before the heavy
-            companion rail), with the rail placed visually left via lg:order-first.
-            The project header lives inside the flow column so it shares the flow's
-            centering context (it used to center against the full viewport, which
-            drifted ~150px off the document column once the rail took space). */}
-        <div className="flex">
-          {/* Center: header + flow. min-w-0 lets long lines truncate instead of
-              shoving the rail. Bottom padding clears the stacked mobile drawers. */}
-          <div className={`flex-1 min-w-0 px-4 md:px-6 lg:pb-0 ${mobileWorkerShow && mobileLogShow ? 'pb-[calc(120px+env(safe-area-inset-bottom))]' : (mobileWorkerShow || mobileLogShow) ? 'pb-[calc(64px+env(safe-area-inset-bottom))]' : ''}`}>
+        {/* Desktop (xl+): the flow column sits DEAD-CENTRE of the viewport, with
+            the Voyage Map rail floating in the mirror-image RIGHT gutter. Two
+            equal flex-1 spacers flank the capped flow column so the centre never
+            drifts whether or not the rail is shown; the rail lives in the right
+            spacer with a gap from the flow and breathing room off the edge. Below
+            xl the gutters are too narrow, so the rail gives way to the bottom
+            drawers. DOM order is flow-FIRST (keyboard reaches the task first). */}
+        <div className="flex justify-center px-4 md:px-6 lg:px-8">
+          {/* Left gutter — mirrors the right rail gutter to keep the flow centred */}
+          <div className="hidden xl:block flex-1" aria-hidden="true" />
+          {/* Centre: header + flow, capped so it reads as a column. min-w-0 lets
+              long lines truncate. Bottom padding clears the stacked mobile drawers. */}
+          <div className={`w-full max-w-2xl min-w-0 lg:pb-0 ${mobileWorkerShow && mobileLogShow ? 'pb-[calc(120px+env(safe-area-inset-bottom))]' : (mobileWorkerShow || mobileLogShow) ? 'pb-[calc(64px+env(safe-area-inset-bottom))]' : ''}`}>
         {/* Project header */}
         <div className="max-w-2xl mx-auto mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
@@ -199,22 +202,25 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
               <ProgressiveFlow projectId={projectId} />
             </ErrorBoundary>
           </div>
-          {showMap && (
-            // top-16 matches the h-16 (64px) header. The rail owns its own width
-            // (full ↔ collapsed spine) + scroll + border. lg:order-first places
-            // it visually left while keeping it AFTER the flow in DOM (tab order).
-            <div className="hidden lg:block shrink-0 sticky top-16 h-[calc(100vh-128px)] lg:order-first">
-              <VoyageMapRail />
-            </div>
-          )}
+          {/* Right gutter — holds the rail (xl+) left-aligned with a gap from the
+              flow; the rail brings its own width (full ↔ collapsed spine). When
+              there's no map yet, the empty spacer still balances the left one so
+              the flow stays centred. top-16 matches the 64px header. */}
+          <div className="hidden xl:block flex-1" aria-hidden={!showMap}>
+            {showMap && (
+              <div className="sticky top-16 h-[calc(100vh-128px)] ml-4 2xl:ml-10">
+                <VoyageMapRail />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Mobile: ship's-log bottom drawer (sits above the crew bar), then the
-            crew drawer. Both hidden on lg where the left rail shows. Available
-            throughout the voyage now — collapsed bars by default, so no clutter;
-            the desktop demotion lesson is handled by the rail's own collapse. */}
-        {mobileLogShow && <div className="lg:hidden"><LogbookDrawer offset={mobileWorkerShow} /></div>}
-        {mobileWorkerShow && <WorkerDrawer className="lg:hidden" />}
+        {/* Below xl: ship's-log bottom drawer (sits above the crew bar), then the
+            crew drawer. Hidden at xl+ where the right rail shows (the rail needs a
+            wide-enough gutter, so 1024–1280 laptops keep the drawers). Collapsed
+            bars by default, so no clutter. */}
+        {mobileLogShow && <div className="xl:hidden"><LogbookDrawer offset={mobileWorkerShow} /></div>}
+        {mobileWorkerShow && <WorkerDrawer className="xl:hidden" />}
       </div>
     </div>
   );
