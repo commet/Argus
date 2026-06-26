@@ -67,6 +67,7 @@ describe('VoyageMapRail — full (expanded)', () => {
     expect(html).toContain('항해 지도');     // rail header
     expect(html).toContain('해도');           // hero eyebrow
     expect(html).toContain('전체 해도');       // full-chart entry (hasChart)
+    expect(html).toContain('지금');           // current-position caption label
     expect(html).toContain('SEACHART_STUB'); // the inline graph hero
     expect(html).toContain('LOGBOOK_STUB');   // trail section (hasWaypoints)
     expect(html).toContain('CREW_STUB');      // crew section (hasWorkers)

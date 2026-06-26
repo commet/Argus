@@ -120,7 +120,7 @@ export function VoyageChart() {
 
       {/* Chart body — the full antique sea-chart */}
       <div className="relative px-2 py-3">
-        <div className="max-h-[460px] overflow-y-auto rounded-[10px] ring-1 ring-[rgba(120,90,30,0.22)]">
+        <div className="h-[clamp(340px,56vh,540px)] overflow-hidden rounded-[10px] ring-1 ring-[rgba(120,90,30,0.22)]">
           <SeaChart
             variant="full"
             checkpoints={checkpoints}
@@ -163,8 +163,8 @@ export function VoyageChart() {
             First-timers get a "try forking" nudge; veterans get a how-to. */}
         <div className="text-[10px] text-[var(--text-tertiary)] mt-2 px-1 leading-tight">
           {branches.length <= 1
-            ? L('아직 한 항로예요. 기점을 클릭해 다른 항로를 내볼 수 있어요.', 'Single course so far. Click a waypoint to start a new course.')
-            : L('기점이나 항로를 클릭해 그 시점으로 돌아가거나 새 항로를 낼 수 있어요.', 'Click a waypoint or course to revisit or start a new course there.')}
+            ? L('아직 한 항로예요. 기점을 클릭해 다른 항로를 내볼 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Single course so far. Click a waypoint to start a new course. · Drag to pan, +/− to zoom.')
+            : L('기점이나 항로를 클릭해 그 시점으로 돌아가거나 새 항로를 낼 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Click a waypoint or course to revisit or start a new course there. · Drag to pan, +/− to zoom.')}
         </div>
 
         {/* Course legend — every branch (incl. freshly-forked ones with no

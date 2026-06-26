@@ -20,7 +20,8 @@
  * `variant="full"`    — the 전체 해도 modal (large, labelled, cartouche + legend).
  */
 
-import { useId, useMemo, useState, useEffect } from 'react';
+import { useId, useMemo, useState, useEffect, useRef } from 'react';
+import { Plus, Minus, Maximize } from 'lucide-react';
 import { layoutBranchMap } from '@/lib/branch-map-layout';
 import { useLocale } from '@/hooks/useLocale';
 import type { VoyageBranch, VoyageCheckpoint, Waypoint, WaypointType } from '@/stores/types';
@@ -165,22 +166,29 @@ export function SeaChart({
   }, []);
   const animate = full && !reduce;
 
+  // Zoom / pan — full chart only. Default view (k=1, no offset) letterbox-fits
+  // the WHOLE voyage; the user zooms in to read labels and pans to explore.
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [view, setView] = useState({ k: 1, x: 0, y: 0 });
+  const drag = useRef<{ px: number; py: number; ox: number; oy: number; moved: boolean } | null>(null);
+  const suppressPick = useRef(false);
+
   const { nodes } = useMemo(() => layoutBranchMap(checkpoints, branches), [checkpoints, branches]);
 
   const layout = useMemo(() => {
     if (nodes.length === 0) return null;
     const rows = nodes.map(n => Math.round((n.y - 16) / 34));
     const maxRow = Math.max(0, ...rows);
-    const rowGap = full ? 66 : 40;
-    const amp = full ? 58 : 18;           // winding amplitude — a real sea route
-    const forkSpread = full ? 92 : 34;    // how far roads-not-taken peel to the left
-    // Symmetric margins so the trunk sits at the centre: the chosen course winds
-    // down the middle (start centred), labels read to the RIGHT, and the
-    // not-taken forks peel into the open "unknown" sea on the LEFT.
-    const sideL = full ? 176 : 24;
-    const sideR = full ? 176 : 24;
-    const padTop = full ? 58 : 28;
-    const padBottom = full ? 52 : 26;
+    const rowGap = full ? 52 : 40;        // tighter rows → less sparse, fills the frame
+    const amp = full ? 74 : 18;           // winding amplitude — a real sea route
+    const forkSpread = full ? 120 : 34;   // how far roads-not-taken peel to the left
+    // Course sits just LEFT of centre so the chosen route winds down the middle,
+    // labels read to the RIGHT (wide margin), and the not-taken forks peel into
+    // the open "unknown" sea on the LEFT.
+    const sideL = full ? 120 : 24;
+    const sideR = full ? 196 : 24;
+    const padTop = full ? 50 : 28;
+    const padBottom = full ? 46 : 26;
     // zero-phase wander → starts dead-centre, then swings RIGHT and back LEFT
     // (primary near one wave per ~6 turns) for a true serpentine sea route.
     const wander = (row: number) => amp * (0.7 * Math.sin(row * 0.95) + 0.3 * Math.sin(row * 2.2));
@@ -205,6 +213,10 @@ export function SeaChart({
   const wpByCp = useMemo(() => { const m = new Map<string, Waypoint>(); for (const w of waypoints) m.set(w.checkpoint_id, w); return m; }, [waypoints]);
   const statusByBranch = useMemo(() => new Map(branches.map(b => [b.id, b.status])), [branches]);
 
+  // Reset the view whenever the voyage's shape or the current position changes,
+  // so a freshly opened / updated chart always starts fully framed.
+  useEffect(() => { setView({ k: 1, x: 0, y: 0 }); }, [layout?.W, layout?.H, activeCheckpointId]);
+
   if (!layout) {
     return (
       <div className="relative w-full overflow-hidden rounded-[10px]" style={{ background: `radial-gradient(120% 90% at 30% 20%, ${PAPER.paper0}, ${PAPER.paper1} 70%, ${PAPER.paper2})`, aspectRatio: full ? '16 / 10' : '5 / 4' }}>
@@ -216,6 +228,44 @@ export function SeaChart({
   }
 
   const { placed, byId, W, H, activePath } = layout;
+
+  // ── Zoom / pan plumbing (full only) ──
+  const clientToSvg = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    const m = svg?.getScreenCTM();
+    if (!svg || !m) return { x: W / 2, y: H / 2 };
+    const pt = svg.createSVGPoint(); pt.x = clientX; pt.y = clientY;
+    const o = pt.matrixTransform(m.inverse());
+    return { x: o.x, y: o.y };           // viewBox coords (pre our <g> transform)
+  };
+  const zoomAt = (factor: number, ox: number, oy: number) => setView(v => {
+    const k = Math.min(4, Math.max(0.55, v.k * factor));
+    const cx = (ox - v.x) / v.k, cy = (oy - v.y) / v.k;
+    return { k, x: ox - k * cx, y: oy - k * cy };
+  });
+  const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!full) return;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    drag.current = { px: e.clientX, py: e.clientY, ox: view.x, oy: view.y, moved: false };
+  };
+  const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!drag.current) return;
+    const dx = e.clientX - drag.current.px, dy = e.clientY - drag.current.py;
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.current.moved = true;
+    const s = svgRef.current?.getScreenCTM()?.a || 1;   // screen px per viewBox unit
+    setView(v => ({ ...v, x: drag.current!.ox + dx / s, y: drag.current!.oy + dy / s }));
+  };
+  const onPointerUp = () => { if (drag.current?.moved) suppressPick.current = true; drag.current = null; };
+  const onWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    if (!full || !(e.ctrlKey || e.metaKey)) return;   // plain wheel scrolls the page
+    e.preventDefault();
+    const o = clientToSvg(e.clientX, e.clientY);
+    zoomAt(e.deltaY < 0 ? 1.12 : 0.89, o.x, o.y);
+  };
+  const handlePick = onPick
+    ? (id: string) => { if (suppressPick.current) { suppressPick.current = false; return; } onPick(id); }
+    : undefined;
+
   const dim = (branchId: string | null) => (branchId && statusByBranch.get(branchId) === 'abandoned' ? 0.4 : 1);
   const roseR = full ? Math.min(58, W * 0.11) : 11;
   // compass tucks into the bottom-left open sea (the right side carries labels);
@@ -251,9 +301,13 @@ export function SeaChart({
   ] : [];
 
   return (
-    <div className="relative w-full overflow-hidden rounded-[10px] shadow-[inset_0_0_46px_rgba(78,56,16,0.15)]">
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMinYMin meet" role="img"
-        aria-label={L('결정 항해 해도', 'Decision voyage chart')} style={{ display: 'block' }}>
+    <div className={`relative w-full overflow-hidden rounded-[10px] shadow-[inset_0_0_46px_rgba(78,56,16,0.15)]${full ? ' h-full' : ''}`}>
+      <svg ref={svgRef} width="100%" height={full ? '100%' : undefined}
+        viewBox={`0 0 ${W} ${H}`} preserveAspectRatio={full ? 'xMidYMid meet' : 'xMinYMin meet'} role="img"
+        aria-label={L('결정 항해 해도', 'Decision voyage chart')}
+        onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp} onWheel={onWheel}
+        style={{ display: 'block', touchAction: full ? 'none' : undefined, cursor: full ? (drag.current ? 'grabbing' : 'grab') : undefined }}>
         <defs>
           <radialGradient id={`paper-${uid}`} cx="32%" cy="16%" r="100%">
             <stop offset="0%" stopColor={PAPER.paper0} />
@@ -290,6 +344,12 @@ export function SeaChart({
           <radialGradient id={`vig-${uid}`} cx="50%" cy="44%" r="76%"><stop offset="54%" stopColor="rgba(0,0,0,0)" /><stop offset="100%" stopColor="rgba(52,34,8,0.27)" /></radialGradient>
           <filter id={`glow-${uid}`} x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation={full ? 3 : 1.7} result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
         </defs>
+
+        {/* Static backdrop so zooming OUT reveals a continuous paper tone, not the
+            page behind the SVG. Stays put while the chart group transforms. */}
+        <rect x="0" y="0" width={W} height={H} fill={PAPER.paper2} />
+
+        <g transform={full ? `translate(${view.x} ${view.y}) scale(${view.k})` : undefined}>
 
         {/* Parchment + cool water wash + depth contours + stains + graticule + grain */}
         <rect x="0" y="0" width={W} height={H} fill={`url(#paper-${uid})`} />
@@ -359,7 +419,7 @@ export function SeaChart({
         {/* ── The inked main course — one winding spline + ink-bleed wobble ── */}
         {activePath.length > 1 && (
           <g filter={`url(#bleed-${uid})`}>
-            <path d={activeCourse} pathLength={1} fill="none" stroke={PAPER.ink} strokeWidth={full ? 2.6 : 1.9} strokeLinecap="round" strokeLinejoin="round" opacity={0.92}
+            <path d={activeCourse} pathLength={1} fill="none" stroke={PAPER.ink} strokeWidth={full ? 2.6 : 1.55} strokeLinecap="round" strokeLinejoin="round" opacity={0.92}
               strokeDasharray={animate ? 1 : undefined} strokeDashoffset={animate ? 1 : undefined}>
               {animate && <animate attributeName="stroke-dashoffset" from="1" to="0" dur="1.5s" begin="0.15s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.45 0 0.2 1" />}
             </path>
@@ -378,27 +438,39 @@ export function SeaChart({
           const anchored = n.isHead && n.branchId && statusByBranch.get(n.branchId) === 'anchored';
           const isReef = wp?.type === 'reef';
           const baseColor = isReef ? PAPER.reef : isActiveBranch ? PAPER.ink : PAPER.sepia;
-          const r = full ? (wp ? 5.5 : 3.8) : (wp ? 4.2 : 2.8);
+          const r = full ? (wp ? 5.5 : 3.8) : (wp ? 3.1 : 2.0);
 
           return (
             <g key={`n-${n.id}`}>
-             <g opacity={dim(n.branchId)} className={onPick ? 'cursor-pointer' : undefined} onClick={onPick ? () => onPick(n.id) : undefined}>
+             <g opacity={dim(n.branchId)} className={onPick ? 'cursor-pointer' : undefined} onClick={handlePick ? () => handlePick(n.id) : undefined}>
               {wp && !isActiveCp && <circle cx={n.px} cy={n.py} r={r + (full ? 4.5 : 3)} fill="none" stroke={baseColor} strokeWidth={0.5} opacity={0.3} />}
 
               {isActiveCp ? (
                 // my ship — the chart's hero: a larger gold caravel with a soft
-                // halo and a spreading wake, so the eye lands on "here, now".
+                // halo, a spreading wake, and a slow sonar pulse, so the eye
+                // lands on "here, now".
+                <>
+                {!reduce && [0, 1.3].map((begin, i) => (
+                  <circle key={`pulse-${i}`} cx={n.px} cy={n.py} r={full ? 9 : 4} fill="none"
+                    stroke={PAPER.gold} strokeWidth={full ? 1.3 : 0.8} opacity={0}>
+                    <animate attributeName="r" from={full ? 8 : 3.5} to={full ? 30 : 13} dur="2.6s"
+                      begin={`${begin}s`} repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.22 0.6 0.25 1" />
+                    <animate attributeName="opacity" values="0.55;0" keyTimes="0;1" dur="2.6s"
+                      begin={`${begin}s`} repeatCount="indefinite" />
+                  </circle>
+                ))}
                 <g filter={`url(#glow-${uid})`}>
-                  <circle cx={n.px} cy={n.py} r={full ? 18 : 10} fill={PAPER.goldSoft} opacity={0.15} />
-                  <circle cx={n.px} cy={n.py} r={full ? 10 : 6} fill={PAPER.goldSoft} opacity={0.18} />
+                  <circle cx={n.px} cy={n.py} r={full ? 18 : 7.5} fill={PAPER.goldSoft} opacity={0.15} />
+                  <circle cx={n.px} cy={n.py} r={full ? 10 : 4.5} fill={PAPER.goldSoft} opacity={0.18} />
                   {full && (
                     <g stroke={PAPER.gold} fill="none" opacity={0.3}>
                       <path d={`M ${n.px - 13} ${n.py + 7} Q ${n.px} ${n.py + 13} ${n.px + 13} ${n.py + 7}`} strokeWidth={0.7} />
                       <path d={`M ${n.px - 19} ${n.py + 10} Q ${n.px} ${n.py + 19} ${n.px + 19} ${n.py + 10}`} strokeWidth={0.5} opacity={0.6} />
                     </g>
                   )}
-                  <Ship cx={n.px} cy={n.py + (full ? 2 : 1)} s={full ? 11 : 6.5} color={PAPER.gold} />
+                  <Ship cx={n.px} cy={n.py + (full ? 2 : 1)} s={full ? 11 : 5} color={PAPER.gold} />
                 </g>
+                </>
               ) : wp?.type === 'departure' ? (
                 <g stroke={baseColor} strokeWidth={full ? 1.4 : 1.1} strokeLinecap="round" fill="none">
                   <circle cx={n.px} cy={n.py - r} r={full ? 1.5 : 1.2} fill={baseColor} stroke="none" />
@@ -441,7 +513,27 @@ export function SeaChart({
         <g opacity={full ? 1 : 0.3}><CompassRose cx={roseCx} cy={roseCy} r={roseR} /></g>
 
         <rect x="0" y="0" width={W} height={H} fill={`url(#vig-${uid})`} pointerEvents="none" />
+        </g>
       </svg>
+
+      {/* Zoom controls — full chart only. Default view fits the whole voyage;
+          these let the user push in to read labels and pull back out. */}
+      {full && (
+        <div className="absolute right-2 top-2 flex flex-col rounded-lg overflow-hidden border border-[rgba(120,90,30,0.3)] bg-[rgba(246,238,219,0.85)] backdrop-blur-sm shadow-sm">
+          <button type="button" onClick={() => zoomAt(1.3, W / 2, H / 2)} title={L('확대', 'Zoom in')} aria-label={L('확대', 'Zoom in')}
+            className="w-7 h-7 flex items-center justify-center text-[#3a2c12] hover:bg-[rgba(173,131,39,0.18)] transition-colors cursor-pointer">
+            <Plus size={14} />
+          </button>
+          <button type="button" onClick={() => zoomAt(0.77, W / 2, H / 2)} title={L('축소', 'Zoom out')} aria-label={L('축소', 'Zoom out')}
+            className="w-7 h-7 flex items-center justify-center text-[#3a2c12] hover:bg-[rgba(173,131,39,0.18)] transition-colors cursor-pointer border-t border-[rgba(120,90,30,0.25)]">
+            <Minus size={14} />
+          </button>
+          <button type="button" onClick={() => setView({ k: 1, x: 0, y: 0 })} title={L('전체 보기', 'Fit chart')} aria-label={L('전체 보기', 'Fit chart')}
+            className="w-7 h-7 flex items-center justify-center text-[#3a2c12] hover:bg-[rgba(173,131,39,0.18)] transition-colors cursor-pointer border-t border-[rgba(120,90,30,0.25)]">
+            <Maximize size={12} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
