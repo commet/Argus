@@ -106,7 +106,7 @@ vi.mock('@/stores/usePersonaStore', () => ({
 
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { setStorage, __resetStore } from '@/lib/storage';
-import type { ProgressiveSession, MixResult } from '@/stores/types';
+import type { ProgressiveSession, MixResult, WorkerTask } from '@/stores/types';
 import { setModuleLocale } from '@/lib/i18n';
 
 // i18n default is now 'en' (en-first). These suites verify the KOREAN prompt
@@ -594,5 +594,42 @@ describe('ProgressiveStore Draft Tree', () => {
       const path = api().getActiveDraftPath();
       expect(path.map((d) => d.version_label)).toEqual(['v0.1', 'v1.0', 'v1.1']);
     });
+  });
+});
+
+// A session can get stuck in worker_deploy_phase='deployed' with workers frozen
+// at 'pending' (crash/reload). Counting 'pending' as busy permanently locked
+// branching, so "이 길 가보기" and map forks went dead. Only genuinely in-flight
+// workers ('running'/'ai_preparing') should lock.
+describe('isBranchingLocked — pending workers must not lock branching (fix #2)', () => {
+  const mkWorker = (status: string): WorkerTask => ({
+    id: `w-${status}`, task: 't', who: 'ai', expected_output: 'o', status,
+    persona: null, level: 'junior', stream_text: '', result: null, human_input: null,
+    error: null, approved: null, completion_note: null, started_at: null, completed_at: null,
+  } as WorkerTask);
+
+  const setWorkers = (sid: string, deployPhase: string, statuses: string[]) =>
+    useProgressiveStore.setState({
+      sessions: api().sessions.map((s) => s.id === sid
+        ? { ...s, phase: 'conversing', worker_deploy_phase: deployPhase, workers: statuses.map(mkWorker) }
+        : s),
+    } as never);
+
+  it('does NOT lock when deployed workers are only pending (stuck/crash-reset session)', () => {
+    const sid = createProgressiveSession();
+    setWorkers(sid, 'deployed', ['pending', 'pending']);
+    expect(api().isBranchingLocked()).toBe(false);
+  });
+
+  it('still locks while a worker is genuinely in-flight', () => {
+    const sid = createProgressiveSession();
+    setWorkers(sid, 'deployed', ['pending', 'running']);
+    expect(api().isBranchingLocked()).toBe(true);
+  });
+
+  it('does not lock before deploy', () => {
+    const sid = createProgressiveSession();
+    setWorkers(sid, 'none', ['pending']);
+    expect(api().isBranchingLocked()).toBe(false);
   });
 });

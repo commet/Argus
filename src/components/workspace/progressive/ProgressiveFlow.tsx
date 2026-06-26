@@ -2165,7 +2165,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   };
 
   const onFinalize = async () => {
-    if (!mix || !dmFb) return; setBusy(true); setError(null); scrollToRef(statusBarRef);
+    // dmFb is optional: the focus path reaches finalize straight from the draft
+    // (and the sealed-prediction "최종 문서 다시 만들기" recovery) with NO DM
+    // feedback. Requiring it here made that button a silent no-op. Only the mix
+    // (the draft) is actually required; runFinalDeliverable tolerates a null dmFb.
+    if (!mix) return; setBusy(true); setError(null); scrollToRef(statusBarRef);
     setSubstage(L('피드백 반영 + 최종본 다듬는 중', 'Applying feedback + polishing'));
     setStreamKind('doc');
     setStreamingText('');

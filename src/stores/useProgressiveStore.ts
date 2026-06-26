@@ -498,8 +498,13 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const s = get().currentSession();
     if (!s) return false;
     const phaseBusy = s.phase === 'analyzing' || s.phase === 'mixing' || s.phase === 'lead_synthesizing';
+    // Only genuinely in-flight workers lock branching. 'pending' means "not
+    // started" — counting it as busy permanently locked branching on a session
+    // that got stuck in deployed+pending (crash/reload), so "이 길 가보기" and
+    // map forks became dead. The user explicitly forking wants to leave that
+    // course anyway, so a not-yet-started worker must not block them.
     const workersBusy = s.worker_deploy_phase === 'deployed'
-      && (s.workers || []).some(w => w.status === 'running' || w.status === 'ai_preparing' || w.status === 'pending');
+      && (s.workers || []).some(w => w.status === 'running' || w.status === 'ai_preparing');
     return phaseBusy || workersBusy;
   },
 
