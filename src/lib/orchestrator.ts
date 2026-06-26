@@ -55,8 +55,9 @@ export interface OrchestratorResult {
 function buildStages(
   workers: PlannedWorker[],
   classification: InputClassification,
+  userLeaning = false,
 ): { workers: PlannedWorker[]; stages: PipelineStage[]; plan: OrchestrationPlan } {
-  const plan = planOrchestration(classification, workers.length);
+  const plan = planOrchestration(classification, workers.length, { userLeaning });
 
   if (plan.pattern !== 'review_loop' || workers.length < 2) {
     // 단일 스테이지: 전부 병렬
@@ -116,6 +117,9 @@ export function planWorkers(
   signals: InterviewSignals | undefined,
   unlockedAgents: Agent[],
   observations: AgentObservation[],
+  /** The user already typed a pre-AI lean (Bind rope) — confirmation-bias risk,
+   *  feeds verify depth via planOrchestration. Default false = unchanged behavior. */
+  userLeaning = false,
 ): OrchestratorResult {
   // 1. 입력 분류
   const problemText = steps.map(s => s.task).join(' ');
@@ -196,7 +200,7 @@ export function planWorkers(
   });
 
   // 4. 스테이지 배치 (패턴 + 검증 깊이 결정)
-  const { workers, stages, plan } = buildStages(rawWorkers, classification);
+  const { workers, stages, plan } = buildStages(rawWorkers, classification, userLeaning);
 
   return { classification, workers, stages, orchestrationPlan: plan };
 }

@@ -264,7 +264,7 @@ interface ProgressiveState {
   linkToRecast: (recastItemId: string) => void;
 
   // Workers
-  initWorkers: (steps: { task: string; who?: string; agent_type?: string; output: string; agent_hint?: string; ai_scope?: string; self_scope?: string; decision?: string; question_to_human?: string; human_contact_hint?: string }[], signals?: InterviewSignals) => WorkerTask[];
+  initWorkers: (steps: { task: string; who?: string; agent_type?: string; output: string; agent_hint?: string; ai_scope?: string; self_scope?: string; decision?: string; question_to_human?: string; human_contact_hint?: string }[], signals?: InterviewSignals, userLeaning?: boolean) => WorkerTask[];
   deployWorkers: () => void;
   updateWorker: (workerId: string, partial: Partial<WorkerTask>) => void;
   setWorkerStreamText: (workerId: string, text: string) => void;
@@ -1010,7 +1010,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
 
   // ─── Workers ───
 
-  initWorkers: (steps, signals?) => {
+  initWorkers: (steps, signals?, userLeaning = false) => {
     const { currentSessionId } = get();
     if (!currentSessionId) return [];
     const agentStore = useAgentStore.getState();
@@ -1023,7 +1023,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // Orchestrator: 입력 분류 → 에이전트 선택 → 프레임워크 배정
     const unlockedAgents = agentStore.getUnlockedAgents();
     const allObservations = unlockedAgents.flatMap(a => a.observations || []);
-    const { classification, workers: planned, stages: plannedStages, orchestrationPlan } = planWorkers(steps, signals, unlockedAgents, allObservations);
+    const { classification, workers: planned, stages: plannedStages, orchestrationPlan } = planWorkers(steps, signals, unlockedAgents, allObservations, userLeaning);
 
     // Lead Agent 선정: stakes >= important AND agentCount >= 2
     const leadConfig = selectLeadAgent(classification, unlockedAgents);

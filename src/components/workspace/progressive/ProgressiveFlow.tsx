@@ -997,6 +997,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // grade is written. The voyage always has a project (createProject precedes
   // createSession), so this resolves once the session exists.
   const contractProject = useProjectStore((s) => s.projects.find((p) => p.id === projectId));
+  // The user typed a pre-AI lean (Bind rope) → confirmation-bias risk → deeper verify.
+  // Read from the store at call time (not this render's closure) to avoid a stale value.
+  const computeUserLean = () => !!useProjectStore.getState().projects
+    .find((p) => p.id === projectId)?.decision_contract?.predicates
+    ?.some((p) => p.source === 'user_lean' && !!p.text?.trim());
   // Falsifiable predictions derived from this voyage's own artifacts — the
   // flinch-surfaced bet (leads) + key assumptions + DM concerns + team dissent —
   // the material for the Decision Contract sealed below the final document.
@@ -1777,14 +1782,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       if (r.snapshot.execution_plan && r.snapshot.execution_plan.steps.length > 0) {
         if (existingWorkers.length === 0) {
           // First time — init workers
-          store.initWorkers(r.snapshot.execution_plan.steps);
+          store.initWorkers(r.snapshot.execution_plan.steps, undefined, computeUserLean());
         } else if (currentDeployPhase === 'ready') {
           // Plan changed before deploy — check if tasks differ
           const oldTasks = existingWorkers.map(w => w.task).sort().join('|');
           const newTasks = r.snapshot.execution_plan.steps.map(s => s.task).sort().join('|');
           if (oldTasks !== newTasks) {
             // Re-init with updated plan (workers haven't been deployed yet, safe to replace)
-            store.initWorkers(r.snapshot.execution_plan.steps);
+            store.initWorkers(r.snapshot.execution_plan.steps, undefined, computeUserLean());
           }
         }
         // After deployed — don't touch running workers
@@ -2161,7 +2166,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       store.addSnapshot(r.snapshot);
       const existing = store.currentSession()?.workers ?? [];
       if (existing.length === 0 && r.snapshot.execution_plan && r.snapshot.execution_plan.steps.length > 0) {
-        store.initWorkers(r.snapshot.execution_plan.steps);
+        store.initWorkers(r.snapshot.execution_plan.steps, undefined, computeUserLean());
       }
       // Back to draft-prep; the just-inited crew auto-deploys and works as theater.
       // If no plan came back, the express draft path still stands.

@@ -312,6 +312,19 @@ describe('planWorkers', () => {
     expect(['light', 'standard', 'deep']).toContain(result.orchestrationPlan.verifyDepth);
   });
 
+  it('userLeaning + important → deep verify / review_loop (확증편향 가드)', () => {
+    const steps = [
+      { task: '시장 조사', who: 'ai', output: '보고서' },
+      { task: '비용 추정', who: 'ai', output: '수치' },
+      { task: '리스크 검토', who: 'ai', output: '리스크' },
+    ];
+    const neutral = planWorkers(steps, { stakes: 'important' } as never, MOCK_AGENTS, [], false);
+    const leaning = planWorkers(steps, { stakes: 'important' } as never, MOCK_AGENTS, [], true);
+    expect(neutral.orchestrationPlan.verifyDepth).toBe('standard');
+    expect(leaning.orchestrationPlan.verifyDepth).toBe('deep');
+    expect(leaning.orchestrationPlan.pattern).toBe('review_loop');
+  });
+
   it('서로 다른 에이전트가 배정됨', () => {
     const steps = [
       { task: '시장 조사', who: 'ai', output: '보고서' },
