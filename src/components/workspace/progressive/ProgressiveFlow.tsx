@@ -1606,7 +1606,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
      No "at least one done" requirement: a reload BEFORE the first worker
      finished left everyone frozen at 대기 with no way to restart (the
      auto-deploy effect doesn't re-fire once deployPhase === 'deployed'). */
-  const isResumable = deployPhase === 'deployed' && !final_
+  // Once the draft (mix) exists the team phase is over — its results were already
+  // consumed into the draft — so a "resume workers" banner above the draft is
+  // stale clutter that competes with the deliverable. Gate it on !mix too.
+  const isResumable = deployPhase === 'deployed' && !final_ && !mix
     && workers.some(w => w.status === 'pending');
   const onResumeWorkers = () => {
     const ws = store.currentSession()?.workers ?? [];
@@ -2904,7 +2907,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 isActive={!mix}
                 showExecutionPlan
                 locale={locale}
-                defaultCollapsed={phase === 'conversing' && !mix}
+                // Collapse to a compact peek once the draft (mix) exists — the
+                // draft is the protagonist then, and this analysis is the
+                // supporting "course we plotted" reference, not the main event.
+                // (Also collapsed during the Q&A loop so it doesn't bury the
+                // question.) defaultCollapsed=true also exposes the expand/collapse
+                // toggle, so the user can still open it on demand.
+                defaultCollapsed={!!mix || phase === 'conversing'}
               />
             </div>
           )}
