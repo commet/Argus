@@ -1890,7 +1890,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             // Same-task multi-persona signal for the Navigator prompt.
             taskGroupId: w.task_group_id || w.id,
           }));
-        runNavigatorReview(session!.problem_text, cmWorkers)
+        runNavigatorReview(session!.problem_text, cmWorkers, undefined, session?.verify_depth ?? 'standard')
           .then(r => { if (r && mountedRef.current) setCmReview(r); })
           .catch(() => {});
 

@@ -1023,7 +1023,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     // Orchestrator: 입력 분류 → 에이전트 선택 → 프레임워크 배정
     const unlockedAgents = agentStore.getUnlockedAgents();
     const allObservations = unlockedAgents.flatMap(a => a.observations || []);
-    const { classification, workers: planned, stages: plannedStages } = planWorkers(steps, signals, unlockedAgents, allObservations);
+    const { classification, workers: planned, stages: plannedStages, orchestrationPlan } = planWorkers(steps, signals, unlockedAgents, allObservations);
 
     // Lead Agent 선정: stakes >= important AND agentCount >= 2
     const leadConfig = selectLeadAgent(classification, unlockedAgents);
@@ -1137,6 +1137,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const sessions = updateSession(get().sessions, currentSessionId, () => ({
       workers,
       stages,
+      verify_depth: orchestrationPlan.verifyDepth,
       worker_deploy_phase: 'ready' as WorkerDeployPhase,
     }));
     persist(sessions);

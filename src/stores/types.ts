@@ -1394,6 +1394,10 @@ export interface ProgressiveSession {
   workers: WorkerTask[];          // 병렬 에이전트 작업자
   worker_deploy_phase: WorkerDeployPhase;
   stages?: PipelineStage[];       // 스테이지 파이프라인 (Phase 3)
+  /** Verification depth (= VerifyDepth in orchestration-pattern) from
+   *  planOrchestration; scales how hard the navigator review pushes. Inline
+   *  union avoids a types→lib import cycle. Legacy sessions read undefined → 'standard'. */
+  verify_depth?: 'light' | 'standard' | 'deep';
   lead_agent?: { agent_id: string; agent_name: string; domain: string } | null;
   lead_synthesis?: LeadSynthesisResult | null;
   user_notes?: string | null;           // 사용자가 mix 전에 추가한 의견
