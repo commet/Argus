@@ -1884,27 +1884,36 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       // the lead-synthesis kickoff (~5–8s) though the two are independent —
       // both consume worker results, both feed mix (perf audit P1).
       let debatePromise: Promise<DebateResult | null> = Promise.resolve(null);
-      if (workerResults.length > 0) {
-        const cmWorkers = session!.workers
-          .filter(w => w.approved !== false && w.result)
-          .map(w => ({
-            agentName: personaName(w.persona, locale) || L('에이전트', 'Agent'),
-            agentRole: personaRole(w.persona, locale),
-            task: w.task,
-            result: w.result || '',
-            // Same-task multi-persona signal for the Navigator prompt.
-            taskGroupId: w.task_group_id || w.id,
-          }));
-        runNavigatorReview(session!.problem_text, cmWorkers, undefined, session?.verify_depth ?? 'standard')
+      // Read a FRESH session here. `session` is the render closure and is stale
+      // after `await workersRef.current` above (workers finished → store updated,
+      // but the closure still holds result=null). mix/lead already use the fresh
+      // enrichedResults; navigator/debate MUST too, or they review an empty/stale
+      // worker set and then render a "blind-spot/contradiction" card over nothing.
+      const freshSession = store.currentSession() ?? session;
+      const cmWorkers = (freshSession?.workers ?? [])
+        .filter(w => w.approved !== false && w.result)
+        .map(w => ({
+          agentName: personaName(w.persona, locale) || L('에이전트', 'Agent'),
+          agentRole: personaRole(w.persona, locale),
+          task: w.task,
+          result: w.result || '',
+          // Same-task multi-persona signal for the Navigator prompt.
+          taskGroupId: w.task_group_id || w.id,
+        }));
+      // Gate on the ACTUAL navigator input, not workerResults — the latter also
+      // counts preliminary/pending_human rows whose w.result is null, so it can be
+      // >0 while cmWorkers is empty (would call runNavigatorReview([]) — review of nothing).
+      if (cmWorkers.length > 0) {
+        runNavigatorReview(freshSession!.problem_text, cmWorkers, undefined, freshSession?.verify_depth ?? 'standard')
           .then(r => { if (r && mountedRef.current) setCmReview(r); })
           .catch(() => {});
 
         // Critical stakes: Cross-Agent Debate (mix 전에 결과를 반영)
-        const stages = session?.stages;
+        const stages = freshSession?.stages;
         if (stages && stages.length > 1) {
           setSubstage(L('팀 내 반론 검토 중', 'Running team-internal debate'));
-          const debateWorkers = cmWorkers.map(w => ({ ...w, framework: session!.workers.find(ww => ww.persona?.name === w.agentName)?.framework || null }));
-          debatePromise = runDebate(session!.problem_text, debateWorkers).catch(() => null);
+          const debateWorkers = cmWorkers.map(w => ({ ...w, framework: (freshSession?.workers ?? []).find(ww => ww.persona?.name === w.agentName)?.framework || null }));
+          debatePromise = runDebate(freshSession!.problem_text, debateWorkers).catch(() => null);
         }
       }
 
