@@ -42,7 +42,7 @@ import { Modal } from '@/components/ui/Modal';
 import { SeaChart } from './SeaChart';
 import { VoyageChart } from './VoyageChart';
 import { Logbook } from './Logbook';
-import { AgentSidebar, isWorkingStatus } from './AgentSidebar';
+import { isWorkingStatus } from './AgentSidebar';
 import { useWorkers } from './WorkerPanel';
 import { EASE } from './shared/constants';
 
@@ -246,8 +246,6 @@ export function VoyageMapRail() {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const collapsed = useSettingsStore(s => s.settings.voyage_map_collapsed ?? false);
   const updateSettings = useSettingsStore(s => s.updateSettings);
-  const workers = useWorkers();
-  const hasWorkers = workers.length > 0;
   const hasWaypoints = useProgressiveStore(s => {
     const sess = s.sessions.find(ss => ss.id === s.currentSessionId);
     return (sess?.waypoints?.length ?? 0) > 0;
@@ -295,12 +293,10 @@ export function VoyageMapRail() {
         </div>
       )}
 
-      {/* 3. Crew activity — AgentSidebar owns its own "분석 팀" header. */}
-      {hasWorkers && (
-        <div className="mt-1 pt-1 border-t border-[var(--border-subtle)]/50">
-          <AgentSidebar />
-        </div>
-      )}
+      {/* Crew activity removed from the rail: the crew is duplicated by the
+          left-column "선원들이 일하고 있어요" collapsed header (④ 보조), so the
+          rail would double it. The collapsed-spine still shows a single
+          "analyzing" pulse dot for at-a-glance liveness. */}
     </motion.aside>
   );
 }

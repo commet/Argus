@@ -263,7 +263,11 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
                   >
                     {L(meta.ko, meta.en)}
                   </div>
-                  <div className={`text-[12px] leading-[1.45] text-[var(--text-primary)] ${emphasize ? 'font-semibold' : ''} ${isOpen ? '' : 'line-clamp-2'}`}>
+                  {/* Collapsed = a ONE-line trail entry (a glanceable "where I've
+                      been" log), not the full question — that lives in the left
+                      column. Expanding (tap) still reveals the full headline +
+                      significance/trigger below, so nothing is lost. */}
+                  <div className={`text-[11.5px] leading-[1.4] text-[var(--text-primary)] ${emphasize ? 'font-semibold' : ''} ${isOpen ? '' : 'line-clamp-1'}`}>
                     {w.headline}
                   </div>
                 </div>
