@@ -57,6 +57,13 @@ export function AnalysisCard({
   // Compact peek — used during Q&A loop so the card doesn't dominate
   // while the user is still answering. Tap to expand.
   if (collapsed) {
+    const stepCount = snapshot.skeleton?.length ?? 0;
+    const assumeCount = snapshot.hidden_assumptions?.length ?? 0;
+    // Show the DOCUMENT, not the question. real_question == the question the user
+    // is answering right below it, so echoing it here read as "질문이 두 개".
+    // Lead with the insight (a statement, not a question) + what's accrued so far,
+    // so the collapsed course = a peek at the deliverable, distinct from the Q.
+    const summaryLine = snapshot.insight || snapshot.skeleton?.[0] || snapshot.real_question;
     return (
       <motion.button
         type="button"
@@ -71,8 +78,15 @@ export function AnalysisCard({
             {L('우리가 잡은 항로', 'Course we plotted')}
           </div>
           <p className="text-[13px] text-[var(--text-primary)] leading-snug line-clamp-2">
-            {snapshot.real_question}
+            {renderText(summaryLine)}
           </p>
+          {(stepCount > 0 || assumeCount > 0) && (
+            <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
+              {stepCount > 0 && <span>{L(`${stepCount}단계 계획`, `${stepCount}-step plan`)}</span>}
+              {stepCount > 0 && assumeCount > 0 && <span aria-hidden>·</span>}
+              {assumeCount > 0 && <span>{L(`가정 ${assumeCount}개`, `${assumeCount} assumptions`)}</span>}
+            </div>
+          )}
         </div>
         <div className="shrink-0 flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] mt-0.5 group-hover:text-[var(--accent)] transition-colors">
           <span>{L('펼치기', 'Expand')}</span>

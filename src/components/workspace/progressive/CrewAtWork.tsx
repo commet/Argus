@@ -12,8 +12,9 @@
  * All text renders through JSX → auto-escaped.
  */
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Check, AlertTriangle, RefreshCw, ChevronDown } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import type { WorkerTask } from '@/stores/types';
 
@@ -41,6 +42,10 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  // Collapsed by default (④ 보조): the crew works in the background while the
+  // user answers the question above. The header keeps the live "team working"
+  // signal (avatars + count); the full theater opens on tap.
+  const [open, setOpen] = useState(false);
   if (workers.length === 0) return null;
 
   const ordered = [...workers].sort((a, b) => a.step_index - b.step_index);
@@ -65,22 +70,53 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 space-y-2.5"
+      className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4"
     >
-      <p className="text-[12.5px] font-semibold text-[var(--text-primary)]">
-        {headline}
-        {onToggleReports && allDone && (doneCount > 0 || errorCount > 0) && (
-          <button
-            onClick={onToggleReports}
-            className="ml-2 text-[11.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
-          >
-            {reportsOpen ? L('접기 ▴', 'Hide ▴') : L('· 열어보기 ▾', '· Open ▾')}
-          </button>
-        )}
-      </p>
+      {/* Header — tap to expand the full theater. Avatars + a live count keep the
+          "team is working" signal without the whole crew list taking over the
+          screen while the user is answering above. */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-3 text-left cursor-pointer"
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex -space-x-1 shrink-0">
+            {ordered.slice(0, 5).map((w, i) => (
+              <span
+                key={w.id}
+                className="w-5 h-5 rounded-full bg-[var(--bg)] border border-[var(--surface)] flex items-center justify-center text-[10px] leading-none"
+                style={{ zIndex: 5 - i }}
+                aria-hidden
+              >
+                {w.persona?.emoji || '⚓'}
+              </span>
+            ))}
+          </div>
+          <p className="text-[12.5px] font-semibold text-[var(--text-primary)] truncate">{headline}</p>
+        </div>
+        <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
+          {!allDone && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" aria-hidden />}
+          <span className="tabular-nums">{doneCount}/{ordered.length}</span>
+          <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        </span>
+      </button>
+
+      {!open ? null : (
+      <div className="mt-3 space-y-2.5">
+      {/* Report stepper toggle (when finished) */}
+      {onToggleReports && allDone && (doneCount > 0 || errorCount > 0) && (
+        <button
+          onClick={onToggleReports}
+          className="text-[11.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+        >
+          {reportsOpen ? L('보고 접기 ▴', 'Hide reports ▴') : L('선원 보고 열어보기 ▾', 'Open crew reports ▾')}
+        </button>
+      )}
       {/* First-use definition — a novice meets "선원" cold here. One line, once:
           they're AI teammates, and the brief stays inside the analysis. */}
-      <p className="text-[11px] text-[var(--text-tertiary)] -mt-1.5">
+      <p className="text-[11px] text-[var(--text-tertiary)]">
         {L('선원은 이 건을 각자 따로 검토하는 AI 팀원이에요 — 입력하신 내용은 분석에만 쓰여요.', 'Crew members are AI teammates each reviewing this separately — your input is used for analysis only.')}
       </p>
 
@@ -141,6 +177,8 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
           );
         })}
       </div>
+      </div>
+      )}
     </motion.div>
   );
 }

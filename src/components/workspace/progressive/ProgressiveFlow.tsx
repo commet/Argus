@@ -274,18 +274,18 @@ function AnsweredPills({ qaPairs, canRevisit, onRevisit }: {
           <motion.button key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05, ...SPRING }}
             onClick={() => setOpenIdx(openIdx === i ? null : i)}
             aria-expanded={openIdx === i}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--surface)] border text-[11px] cursor-pointer transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[var(--surface)] border text-[12px] cursor-pointer transition-colors ${
               openIdx === i ? 'border-[var(--accent)]/50' : 'border-[var(--border-subtle)] hover:border-[var(--accent)]/30'
             }`}>
-            <Check size={10} className="text-[var(--accent)]" />
+            <Check size={12} className="text-[var(--accent)]" />
             {/* Wider caps on LARGER screens (the sm: values were inverted). */}
             <span className="text-[var(--text-tertiary)] max-w-[80px] sm:max-w-[120px] truncate">{qa.question.text.split(' ').slice(0, 3).join(' ')}</span>
             <span className="text-[var(--text-primary)] font-medium max-w-[100px] sm:max-w-[160px] truncate">{qa.answer!.value}</span>
           </motion.button>
         ))}
         <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-          className="text-[10px] text-[var(--accent)]/60 flex items-center gap-1">
-          <ArrowRight size={9} /> {locale === 'ko' ? '팀 분석에 반영' : 'sent to team'}
+          className="text-[11px] font-medium text-[var(--accent)]/80 flex items-center gap-1">
+          <ArrowRight size={11} /> {locale === 'ko' ? '팀 분석에 반영' : 'sent to team'}
         </motion.span>
       </div>
 
@@ -980,10 +980,15 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
 function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const colorClass = metrics.score >= 75 ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400' :
-    metrics.score >= 50 ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400' : 'text-red-500 bg-red-50 dark:bg-red-900/20 dark:text-red-400';
-  const barColor = metrics.score >= 75 ? 'bg-emerald-400' :
-    metrics.score >= 50 ? 'bg-amber-400' : 'bg-red-400';
+  // Map the 3 states to design tokens. This bar was the one spot still wearing
+  // the pre-token palette (raw emerald/amber/red Tailwind), which read as "old
+  // design" next to the gold/parchment system. --success/--warning/--danger
+  // already exist (light + dark), so use them.
+  const tone = metrics.score >= 75
+    ? { text: 'text-[var(--success)]', bg: 'bg-[var(--success)]/12', bar: 'bg-[var(--success)]' }
+    : metrics.score >= 50
+      ? { text: 'text-[var(--warning)]', bg: 'bg-[var(--warning)]/12', bar: 'bg-[var(--warning)]' }
+      : { text: 'text-[var(--danger)]', bg: 'bg-[var(--danger)]/10', bar: 'bg-[var(--danger)]' };
   // Descriptive state, not a grade — "명확도 87%" was score vocabulary (P1).
   const stateLabel = metrics.score >= 75
     ? L('거의 정리됐어요', 'Nearly settled')
@@ -993,11 +998,11 @@ function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
 
   // Trend — answers "is this getting clearer?"
   const trend = metrics.trend === 'improving'
-    ? { icon: <TrendingUp size={11} className="text-emerald-500" />, label: L('좋아지는 중', 'improving') }
+    ? { icon: <TrendingUp size={13} className="text-[var(--success)]" />, label: L('좋아지는 중', 'improving') }
     : metrics.trend === 'declining'
-      ? { icon: <TrendingDown size={11} className="text-red-500" />, label: L('흔들리는 중', 'unsettled') }
+      ? { icon: <TrendingDown size={13} className="text-[var(--danger)]" />, label: L('흔들리는 중', 'unsettled') }
       : metrics.trend === 'stable'
-        ? { icon: <Minus size={11} className="text-[var(--text-tertiary)]" />, label: L('안정적', 'stable') }
+        ? { icon: <Minus size={13} className="text-[var(--text-tertiary)]" />, label: L('안정적', 'stable') }
         : null;
 
   // "When do I stop?" — rounds left / ready
@@ -1009,30 +1014,30 @@ function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: EASE }}
-      className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[var(--bg)]/60 border border-[var(--border-subtle)]">
+      className="flex items-center gap-4 px-4 py-3.5 rounded-xl bg-[var(--bg)]/60 border border-[var(--border-subtle)]">
       <div className="flex-1">
-        <div className="flex items-center justify-between mb-1">
-          <span className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--text-tertiary)]">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="flex items-center gap-2 text-[12px] font-semibold text-[var(--text-secondary)]">
             {L('명확도', 'Clarity')}
-            {trend && <span className="flex items-center gap-0.5">{trend.icon}<span className="text-[9px]">{trend.label}</span></span>}
+            {trend && <span className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-tertiary)]">{trend.icon}{trend.label}</span>}
           </span>
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colorClass}`}>{stateLabel}</span>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${tone.text} ${tone.bg}`}>{stateLabel}</span>
         </div>
         {/* progress bar with a 75% "ready to move on" threshold marker */}
-        <div className="relative h-1.5 rounded-full bg-[var(--border-subtle)]">
+        <div className="relative h-2 rounded-full bg-[var(--border-subtle)]">
           <div className="absolute inset-0 rounded-full overflow-hidden">
-            <motion.div className={`h-full rounded-full ${barColor}`}
+            <motion.div className={`h-full rounded-full ${tone.bar}`}
               initial={{ width: 0 }} animate={{ width: `${metrics.score}%` }} transition={{ duration: 0.8, ease: EASE }} />
           </div>
-          <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-[7px] rounded-full bg-[var(--text-tertiary)]/55"
+          <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-[9px] rounded-full bg-[var(--text-tertiary)]/55"
             style={{ left: '75%' }} title={L('75%면 다음 단계로 넘어가도 좋아요', 'At 75% you can move on')} />
         </div>
-        <div className="mt-1 flex items-center gap-1">
-          {metrics.is_converged && <Check size={10} className="shrink-0 text-emerald-500" />}
-          <span className={`text-[9px] font-medium ${metrics.is_converged ? 'text-emerald-600' : 'text-[var(--text-tertiary)]'}`}>{roundsLabel}</span>
+        <div className="mt-1.5 flex items-center gap-1.5">
+          {metrics.is_converged && <Check size={12} className="shrink-0 text-[var(--success)]" />}
+          <span className={`text-[11px] font-medium ${metrics.is_converged ? 'text-[var(--success)]' : 'text-[var(--text-tertiary)]'}`}>{roundsLabel}</span>
         </div>
       </div>
-      <p className="text-[10px] text-[var(--text-tertiary)] max-w-[160px] leading-tight">{metrics.guidance}</p>
+      <p className="text-[11px] text-[var(--text-secondary)] max-w-[170px] leading-snug">{metrics.guidance}</p>
     </motion.div>
   );
 }
@@ -1045,18 +1050,18 @@ function PipelineExitOptions({ onReframe, onRehearse }: {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   return (
-    <div className="flex flex-col gap-2 border-t border-dashed border-[var(--border-subtle)] pt-4 mt-2">
-      <p className="text-[10px] font-medium text-[var(--text-tertiary)] tracking-wide">{L('다른 도구로 전환', 'Switch to another tool')}</p>
-      <div className="flex gap-2">
+    <div className="flex flex-col gap-2.5 border-t border-dashed border-[var(--border-subtle)] pt-4 mt-2">
+      <p className="text-[12px] font-semibold text-[var(--text-secondary)]">{L('다른 도구로 전환', 'Switch to another tool')}</p>
+      <div className="flex gap-2.5">
         <button onClick={onReframe}
-          className="flex-1 text-left px-3 py-2 rounded-xl bg-[var(--bg)]/60 hover:bg-[var(--accent)]/5 border border-transparent hover:border-[var(--accent)]/10 cursor-pointer transition-colors duration-300">
-          <p className="text-[11px] font-medium text-[var(--text-secondary)]">{L('→ 문제 재정의', '→ Reframe Problem')}</p>
-          <p className="text-[9px] text-[var(--text-tertiary)]">{L('더 깊이 들어가기', 'Dig deeper')}</p>
+          className="flex-1 text-left px-3.5 py-2.5 rounded-xl bg-[var(--bg)]/60 hover:bg-[var(--accent)]/5 border border-[var(--border-subtle)]/60 hover:border-[var(--accent)]/30 cursor-pointer transition-colors duration-300">
+          <p className="text-[13px] font-semibold text-[var(--text-primary)]">{L('→ 문제 재정의', '→ Reframe Problem')}</p>
+          <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{L('더 깊이 들어가기', 'Dig deeper')}</p>
         </button>
         <button onClick={onRehearse}
-          className="flex-1 text-left px-3 py-2 rounded-xl bg-[var(--bg)]/60 hover:bg-[var(--accent)]/5 border border-transparent hover:border-[var(--accent)]/10 cursor-pointer transition-colors duration-300">
-          <p className="text-[11px] font-medium text-[var(--text-secondary)]">{L('→ 피드백 먼저', '→ Feedback First')}</p>
-          <p className="text-[9px] text-[var(--text-tertiary)]">{L('이해관계자 반응 시뮬레이션', 'Simulate stakeholder reactions')}</p>
+          className="flex-1 text-left px-3.5 py-2.5 rounded-xl bg-[var(--bg)]/60 hover:bg-[var(--accent)]/5 border border-[var(--border-subtle)]/60 hover:border-[var(--accent)]/30 cursor-pointer transition-colors duration-300">
+          <p className="text-[13px] font-semibold text-[var(--text-primary)]">{L('→ 피드백 먼저', '→ Feedback First')}</p>
+          <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{L('이해관계자 반응 시뮬레이션', 'Simulate stakeholder reactions')}</p>
         </button>
       </div>
     </div>
@@ -2575,6 +2580,20 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </motion.div>
           )}
 
+          {/* ③ 계기판 — convergence (명확도) at the TOP, out of the record gate.
+              A glanceable "어디쯤 왔나" read above the body, so the user checks
+              progress with a side-glance and keeps focus on 항로·질문. Was hidden
+              behind "지금까지의 기록 ▾". */}
+          {snapshots.length >= 2 && !mix && !final_ && phase === 'conversing' && (
+            <div className="mb-3">
+              <ConvergenceStatus metrics={
+                workers.length > 0
+                  ? assessConvergenceWithWorkers(snapshots, workers.map(w => ({ validationScore: w.validation_score, approved: w.approved })))
+                  : assessConvergence(snapshots)
+              } />
+            </div>
+          )}
+
           {/* Update summary chip — surfaces "what changed" at the user's eye level
               (right above the next question). AnalysisCard lives further down,
               so without this, users miss the evolution they just triggered. */}
@@ -2619,6 +2638,25 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               />
             )}
           </AnimatePresence>
+
+          {/* ② 산출물 = 우리가 잡은 항로. Moved ABOVE the question and OUT of the
+              record gate: during Q&A it shows as a collapsed 1-line peek (the
+              current heading) so the user sees what we're steering toward BEFORE
+              answering, and can expand it to the full document (gaps/skeleton).
+              It used to hide behind "지금까지의 기록 ▾" — the one piece the user
+              called "important" was invisible by default. */}
+          {latest && !final_ && !crisisBlocking && phase === 'conversing' && (
+            <div ref={analysisCardRef} className="mb-3">
+              <AnalysisCard
+                snapshot={latest}
+                prevSnapshot={snapshots.length > 1 ? snapshots[snapshots.length - 2] : null}
+                isActive={!mix}
+                showExecutionPlan
+                locale={locale}
+                defaultCollapsed={phase === 'conversing' && !mix}
+              />
+            </div>
+          )}
 
           {/* Question FIRST — user action at the top, not buried below */}
           <div ref={questionRef}>
@@ -2903,11 +2941,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <TrialSail paragraph={session.problem_text} />
           )}
 
-          {/* While the crisis backstop is blocking, hide the decision card — it
-              would otherwise re-introduce decision chrome ("우리가 잡은 항로")
-              around a safety input, the very ceremony the crisis path suppresses. */}
-          {(showRecord || phase !== 'conversing' || suppressQuestion) && latest && !final_ && !crisisBlocking && (
-            <div ref={analysisCardRef}>
+          {/* 우리가 잡은 항로 — for the NON-conversing stages (draft/mix) it's
+              shown in FULL here. During conversing it's rendered collapsed ABOVE
+              the question instead (out of the record gate, see top of MAIN).
+              Crisis blocking still suppresses the decision chrome. */}
+          {(phase !== 'conversing' || mix) && latest && !final_ && !crisisBlocking && (
+            <div>
               <AnalysisCard
                 snapshot={latest}
                 prevSnapshot={snapshots.length > 1 ? snapshots[snapshots.length - 2] : null}
@@ -2916,10 +2955,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 locale={locale}
                 // Collapse to a compact peek once the draft (mix) exists — the
                 // draft is the protagonist then, and this analysis is the
-                // supporting "course we plotted" reference, not the main event.
-                // (Also collapsed during the Q&A loop so it doesn't bury the
-                // question.) defaultCollapsed=true also exposes the expand/collapse
-                // toggle, so the user can still open it on demand.
+                // supporting "course we plotted" reference. During conversing the
+                // course is rendered collapsed ABOVE the question instead; this
+                // block only handles the non-conversing / mix stages.
                 defaultCollapsed={!!mix || phase === 'conversing'}
               />
             </div>
@@ -2958,14 +2996,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             />
           )}
 
-          {/* Convergence Status — 라운드 2+ (Weakness C) */}
-          {showRecord && snapshots.length >= 2 && !mix && !final_ && phase === 'conversing' && (
-            <ConvergenceStatus metrics={
-              workers.length > 0
-                ? assessConvergenceWithWorkers(snapshots, workers.map(w => ({ validationScore: w.validation_score, approved: w.approved })))
-                : assessConvergence(snapshots)
-            } />
-          )}
+          {/* (Convergence Status moved UP to the top as ③ 계기판 — out of the
+              record gate. See the top of MAIN.) */}
 
           {/* Pipeline Exit — 라운드 1+ 후 4R로 분기 가능 (Weakness D) */}
           {showRecord && latest && snapshots.length >= 1 && !mix && !final_ && phase === 'conversing' && !busy && (

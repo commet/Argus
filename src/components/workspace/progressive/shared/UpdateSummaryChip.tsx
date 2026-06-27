@@ -56,93 +56,42 @@ export function UpdateSummaryChip({
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
-      className="rounded-2xl bg-[var(--accent)]/[0.03] px-5 py-5 md:px-6"
+      className="rounded-xl bg-[var(--accent)]/[0.04] border border-[var(--accent)]/12 px-4 py-2.5 flex items-center justify-between gap-x-4 gap-y-1.5 flex-wrap"
       aria-label={L('팀 분석 업데이트 요약', 'Team analysis update summary')}
     >
-      {/* Eyebrow — humble verb phrase that works for the first refinement
-          (v0→v1) and any subsequent one. Avoids meta-labels like "Updated". */}
-      <div className="text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--accent)] mb-4">
-        {L('반영해서 다시 봤어요', 'Refined with your input')}
+      {/* The real_question itself now lives ONLY in the course card (the 접힌 1줄
+          right below). This chip carries just the "your answer moved it" feedback
+          so the same question isn't printed three times (chip + course + Q card). */}
+      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--accent)] shrink-0">
+        {L('답 반영해서 다시 봤어요', 'Refined with your answer')}
       </div>
 
-      {/* Question before/after — typography carries the evolution */}
-      {questionChanged && (
-        <div className="mb-4 space-y-3">
-          <div>
-            <div className="text-[9px] font-semibold tracking-[0.14em] uppercase text-[var(--text-tertiary)] mb-1">
-              {L('이전', 'Before')}
-            </div>
-            <p
-              className="text-[13px] md:text-[14px] text-[var(--text-tertiary)] leading-[1.55]"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              {prevSnapshot.real_question}
-            </p>
-          </div>
-          <div>
-            <div className="text-[9px] font-semibold tracking-[0.14em] uppercase text-[var(--accent)] mb-1">
-              {L('지금', 'Now')}
-            </div>
-            <p
-              className="text-[15px] md:text-[17px] font-semibold text-[var(--text-primary)] leading-[1.4] tracking-tight"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              {snapshot.real_question}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Footer: stats + see-detail link */}
-      {(hasSkDelta || hasAsDelta || onSeeDetail) && (
-        <div className="flex items-center justify-between gap-3 text-[11px]">
-          <div className="flex items-center gap-5 tabular-nums">
-            {hasSkDelta && (
-              <span className="inline-flex items-baseline gap-1.5">
-                <span className="text-[var(--text-tertiary)]">
-                  {L('단계', 'Steps')}
-                </span>
-                {skNew > 0 && (
-                  <span className="font-semibold text-[var(--text-primary)]">
-                    +{skNew}
-                  </span>
-                )}
-                {skRem > 0 && (
-                  <span className="text-[var(--text-tertiary)]">−{skRem}</span>
-                )}
-              </span>
-            )}
-            {hasAsDelta && (
-              <span className="inline-flex items-baseline gap-1.5">
-                <span className="text-[var(--text-tertiary)]">
-                  {L('가정', 'Assumptions')}
-                </span>
-                {asNew > 0 && (
-                  <span className="font-semibold text-[var(--text-primary)]">
-                    +{asNew}
-                  </span>
-                )}
-                {asRem > 0 && (
-                  <span className="text-[var(--text-tertiary)]">−{asRem}</span>
-                )}
-              </span>
-            )}
-          </div>
-          {onSeeDetail && (
-            <button
-              type="button"
-              onClick={onSeeDetail}
-              className="inline-flex items-center gap-1 text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors -mr-1 px-1.5 py-1 rounded-md group"
-            >
-              <span>{L('전체 보기', 'See full')}</span>
-              <ArrowDown
-                size={10}
-                className="transition-transform group-hover:translate-y-0.5"
-              />
-            </button>
-          )}
-        </div>
-      )}
+      <div className="flex items-center gap-4 text-[11px] tabular-nums">
+        {hasSkDelta && (
+          <span className="inline-flex items-baseline gap-1.5">
+            <span className="text-[var(--text-tertiary)]">{L('단계', 'Steps')}</span>
+            {skNew > 0 && <span className="font-semibold text-[var(--text-primary)]">+{skNew}</span>}
+            {skRem > 0 && <span className="text-[var(--text-tertiary)]">−{skRem}</span>}
+          </span>
+        )}
+        {hasAsDelta && (
+          <span className="inline-flex items-baseline gap-1.5">
+            <span className="text-[var(--text-tertiary)]">{L('가정', 'Assumptions')}</span>
+            {asNew > 0 && <span className="font-semibold text-[var(--text-primary)]">+{asNew}</span>}
+            {asRem > 0 && <span className="text-[var(--text-tertiary)]">−{asRem}</span>}
+          </span>
+        )}
+        {onSeeDetail && (
+          <button
+            type="button"
+            onClick={onSeeDetail}
+            className="inline-flex items-center gap-1 text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors -mr-1 px-1.5 py-1 rounded-md group"
+          >
+            <span>{L('전체 보기', 'See full')}</span>
+            <ArrowDown size={10} className="transition-transform group-hover:translate-y-0.5" />
+          </button>
+        )}
+      </div>
     </motion.section>
   );
 }
