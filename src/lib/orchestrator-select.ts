@@ -61,6 +61,7 @@ function computeExperienceBoost(
 
   // 3b. 관찰 기반 보정
   const relevantObs = observations.filter(o => o.confidence >= 0.3);
+  let skillGapBoost = 0;
   for (const obs of relevantObs) {
     const obsLower = obs.observation.toLowerCase();
     const taskDomain = taskClassification.contextDomain;
@@ -69,7 +70,7 @@ function computeExperienceBoost(
       // 사용자에게 이 도메인의 skill gap이 있음 → 해당 도메인 에이전트 부스트
       const cap = getCapability(agent.id);
       if (cap && cap.domains.includes(taskDomain)) {
-        boost += 0.05 * obs.confidence;
+        skillGapBoost += 0.05 * obs.confidence;
       }
     } else if (obs.category === 'preference') {
       // 사용자가 특정 패턴을 선호 → 에이전트 이름이 관찰에 있으면 부스트
@@ -78,6 +79,10 @@ function computeExperienceBoost(
       }
     }
   }
+  // Cap accrued skill_gap boost so observation pile-up can't overwhelm the
+  // taskType match (50% weight; 1st↔2nd-rank gap is only 0.10). Was unbounded —
+  // a timebomb that flips routing once observation data accrues.
+  boost += Math.min(skillGapBoost, 0.10);
 
   // 3c. 히트레이트 반영 (5건 이상 데이터가 있을 때만)
   const hitRate = getAgentHitRate(agent.id);
