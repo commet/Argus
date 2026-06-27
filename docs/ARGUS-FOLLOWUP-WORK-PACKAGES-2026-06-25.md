@@ -36,6 +36,7 @@ Routing policy for item 2: **low-stakes/flat/reversible -> fast bearing by defau
 - **리마인더 카피의 약속 불일치**: SealMoment/Guide는 "알림을 보내지 않는다"고 말했지만 실제로는 이메일 opt-in과 Telegram reminder 경로가 생겼다. 보완: 사용자-facing 카피를 "달력 저장 + 명시적 이메일 opt-in" 기준으로 바꿔 거짓 부정 약속을 제거한다.
 - **Telegram 버튼의 남은 stale guard 구멍**: 답장/명령어 token은 `contractId`를 보존하지만 inline button은 Telegram `callback_data` 64바이트 제한 때문에 project id만 보냈다. 보완: UUID project/contract id 쌍을 32바이트로 압축해 base64url token으로 싣고, 과거 `stl|outcome|projectId` 포맷은 backward compatible하게 유지한다.
 - **이메일 reminder HTML의 깨지기 쉬운 인라인 템플릿**: cron route 안에 직접 박힌 HTML이 프로젝트명/lean escape와 태그 구조를 route 구현 세부에 묶고 있었다. 보완: `renderCheckInReminderEmail()`로 추출해 실제 lean 보존, HTML escaping, 닫는 태그를 테스트로 고정한다.
+- **Resend 실패를 성공으로 stamp할 위험**: `resend.emails.send()`는 throw 대신 `{ error }`를 반환할 수 있는데, cron은 이를 확인하지 않고 `reminder_sent_at`을 찍을 수 있었다. 보완: Resend 응답 검사 헬퍼를 추가해 실패 전송은 sent/stamp 처리하지 않고 `failures`로 남긴다.
 
 1과 6은 같은 spine을 만지지만, 동시에 하면 너무 커진다. 먼저 1로 화면과 replay를 만들고, 6에서 저장 모델을 정리하는 순서가 안전하다.
 

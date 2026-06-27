@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { settlementReminderText, settlementReplyMarkup } from '@/lib/telegram-settlement';
-import { isCheckInReminderDue, renderCheckInReminderEmail, selectOpenPredicate } from '@/lib/checkin-reminder';
+import { isCheckInReminderDue, renderCheckInReminderEmail, resendEmailErrorMessage, selectOpenPredicate } from '@/lib/checkin-reminder';
 import type { DecisionContract } from '@/stores/types';
 
 export const runtime = 'nodejs';
@@ -112,13 +112,15 @@ export async function GET(req: Request) {
           const lean = c.predicates?.find((p) => p.source === 'user_lean')?.text;
           const link = `${origin}/project`;
           const html = renderCheckInReminderEmail({ projectName: name, lean, link });
-          await resend.emails.send({
+          const emailResult = await resend.emails.send({
             from: `Argus <hello@${fromDomain}>`,
             replyTo,
             to: email,
             subject: `그래서, 어떻게 됐어요? — ${name}`,
             html,
           });
+          const emailError = resendEmailErrorMessage(emailResult);
+          if (emailError) throw new Error(`email send failed: ${emailError}`);
           nextContract = { ...nextContract, reminder_sent_at: stamp };
           changed = true;
           sent++;
@@ -157,10 +159,11 @@ export async function GET(req: Request) {
       }
 
       if (changed) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('projects')
           .update({ decision_contract: nextContract })
           .eq('id', r.id);
+        if (updateError) failures.push(`${r.id}: reminder stamp update failed: ${updateError.message}`);
       }
     } catch (e) {
       failures.push(`${r.id}: ${e instanceof Error ? e.message : String(e)}`);

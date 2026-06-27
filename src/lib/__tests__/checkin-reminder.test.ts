@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DecisionContract } from '@/stores/types';
-import { isCheckInReminderDue, renderCheckInReminderEmail, selectOpenPredicate } from '../checkin-reminder';
+import { isCheckInReminderDue, renderCheckInReminderEmail, resendEmailErrorMessage, selectOpenPredicate } from '../checkin-reminder';
 
 const base = (patch: Partial<DecisionContract> = {}): DecisionContract => ({
   id: 'c1',
@@ -61,5 +61,12 @@ describe('check-in reminder selection', () => {
     expect(html).not.toContain('<script>');
     expect(html).toContain('href="https://argus.voyage/project?x=&quot;quoted&quot;"');
     expect(html).toContain('</a>');
+  });
+
+  it('detects Resend error payloads so failed sends are not stamped as sent', () => {
+    expect(resendEmailErrorMessage({ data: { id: 'email_1' }, error: null })).toBeNull();
+    expect(resendEmailErrorMessage({ error: { message: 'domain is not verified' } })).toBe('domain is not verified');
+    expect(resendEmailErrorMessage({ error: 'rate limited' })).toBe('rate limited');
+    expect(resendEmailErrorMessage({ error: {} })).toBe('unknown email send error');
   });
 });

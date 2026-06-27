@@ -42,3 +42,15 @@ export function renderCheckInReminderEmail(args: {
       <p style="font-size:11px;color:#a8a29e;margin:20px 0 0">You are receiving this because you turned on a one-time email reminder for this sealed decision.</p>
     </div>`;
 }
+
+export function resendEmailErrorMessage(result: unknown): string | null {
+  if (!result || typeof result !== 'object' || !('error' in result)) return null;
+  const error = (result as { error?: unknown }).error;
+  if (!error) return null;
+  if (typeof error === 'string') return error;
+  if (typeof error === 'object' && error && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim()) return message;
+  }
+  return 'unknown email send error';
+}
