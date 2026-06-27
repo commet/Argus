@@ -601,7 +601,13 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
   setDecisionMaker: (name) => {
     const { currentSessionId } = get();
     if (!currentSessionId) return;
-    const sessions = updateSession(get().sessions, currentSessionId, () => ({ decision_maker: name }));
+    // The initial-analysis prompt returns the STRING "null" when no decision-maker
+    // is inferred; the caller's `if (r.detectedDM)` treated that non-empty string
+    // as truthy and stored it, surfacing as literal "null 시점 검토" in the UI.
+    // Drop junk names here so the store never holds a non-name.
+    const clean = (name ?? '').trim();
+    if (!clean || clean.toLowerCase() === 'null' || clean.toLowerCase() === 'undefined') return;
+    const sessions = updateSession(get().sessions, currentSessionId, () => ({ decision_maker: clean }));
     persist(sessions);
     set({ sessions });
   },
