@@ -1389,7 +1389,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const previewDraft = previewDraftId
     ? drafts.find((d) => d.id === previewDraftId) ?? null
     : null;
-  const dm = session?.decision_maker ?? null;
+  // Defensive: existing sessions may already hold the literal string "null"
+  // (stored before setDecisionMaker filtered it) — never surface that as a name.
+  const rawDm = session?.decision_maker ?? null;
+  const dm = rawDm && rawDm.toLowerCase() !== 'null' && rawDm.toLowerCase() !== 'undefined' ? rawDm : null;
 
   // Crisis backstop (decision 3): the deterministic gate sets snapshot.crisis at
   // round 0. Read it off whichever snapshot carries it so the resource stays
