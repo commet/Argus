@@ -22,7 +22,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract } from '@/lib/decision-contract';
-import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, Bot, Users, BookOpen } from 'lucide-react';
+import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, Bot, Users, BookOpen, History, Compass } from 'lucide-react';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { LocaleLink } from '@/components/ui/LocaleLink';
@@ -507,8 +507,8 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
               {/* The landing sells the voyage ("어디서 갈리는지 보여드려요") —
                   arriving on "기획안 생산 도구" copy broke that promise mid-step.
                   Same loop, same vocabulary (audit P0 #3). */}
-              <div className="mb-4">
-                <h2 className="text-[16px] md:text-[18px] font-semibold text-[var(--text-primary)] mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+              <div className="mb-5">
+                <h2 className="text-[19px] md:text-[23px] font-semibold text-[var(--text-primary)] leading-tight mb-2.5" style={{ fontFamily: 'var(--font-display)' }}>
                   {L('지금 들고 있는 결정, 어디서 갈리는지 봐 드릴게요', "That decision you're holding — let's see where it forks")}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] text-[var(--text-tertiary)]">
@@ -532,20 +532,23 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   immediately actionable. Marketing copy lives below or
                   is reserved for first-time users (no projects yet). */}
               <div className="mb-3">
-                <label className="block text-[13px] font-semibold text-[var(--text-primary)] mb-1">
+                <label className="block text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">
                   {L('어떤 상황인가요?', "What's the situation?")}
                 </label>
-                <p className="text-[12px] text-[var(--text-tertiary)] mb-2.5 leading-relaxed">
+                <p className="text-[13px] text-[var(--text-secondary)] mb-3 leading-relaxed">
                   {L('분야·형식 상관없어요. 떠오르는 대로 편하게 적어주세요 — 나머지는 팀이 정리해요.', 'Any field or format — just describe it however it comes to mind. The team handles the rest.')}
                 </p>
-                <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] overflow-hidden focus-within:border-[var(--accent)]/40 transition-colors">
+                {/* PRIMARY input — lifted off the page with a soft shadow + a faint
+                    accent border so it reads as THE thing to do, not just one more
+                    same-toned card among the demo tiles below. */}
+                <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--surface)] overflow-hidden shadow-[var(--shadow-md)] focus-within:border-[var(--accent)]/50 focus-within:shadow-[var(--shadow-lg)] transition-all">
                   {justFromDemo && (
                     <div className="px-4 md:px-5 py-2.5 bg-[var(--accent)]/8 border-b border-[var(--accent)]/15 text-[12px] text-[var(--accent)] flex items-center gap-2">
                       <Sparkles size={12} className="shrink-0" />
                       <span>{L('데모 내용을 가져왔어요. 그대로 쓰거나 내 상황으로 바꿔도 돼요.', 'Loaded from the demo. Run as-is, or rewrite for your own situation.')}</span>
                     </div>
                   )}
-                  <div className="p-3 md:p-4">
+                  <div className="p-4 md:p-5">
                     {/* text-base (16px) on mobile prevents iOS Safari auto-zoom on focus.
                         text-[15px] on md+ keeps the desktop refined size. */}
                     <textarea ref={inputRef} value={problemInput}
@@ -553,7 +556,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
                       placeholder={L('예: 다음 주까지 보고서를 써야 하는데 어디서 시작해야 할지 모르겠어', "e.g., I need to write a report by next week but don't know where to start")}
                       rows={3} maxLength={5000}
-                      className="w-full px-3 py-2.5 bg-transparent text-base md:text-[15px] text-[var(--text-primary)] leading-[1.65] resize-none focus:outline-none placeholder:text-[var(--text-tertiary)]" />
+                      className="w-full px-3 py-2.5 bg-transparent text-base md:text-[16px] text-[var(--text-primary)] leading-[1.65] resize-none focus:outline-none placeholder:text-[var(--text-tertiary)]" />
                     <div className="flex items-center justify-between gap-3 mt-2 px-1">
                       {/* When empty: a gentle nudge (why is Start dimmed?) — shown on
                           all sizes. When typed: the desktop keyboard hint. */}
@@ -673,16 +676,25 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   return d < 30 ? L(`${d}일 전`, `${d}d ago`) : L(`${Math.floor(d / 30)}달 전`, `${Math.floor(d / 30)}mo ago`);
                 };
                 return (
-                  <div className="mt-8">
-                    <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.12em] font-semibold mb-2">
-                      {L('이어서 작업', 'Continue')}
-                    </p>
-                    <div className="space-y-1">
+                  // A real section break: the divider + heavier heading split "my
+                  // own work" away from the input above and the demos below, so the
+                  // three zones read as three, not one continuous list.
+                  <div className="mt-9 pt-7 border-t border-[var(--border-subtle)]/60">
+                    <div className="flex items-baseline justify-between mb-3">
+                      <p className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--text-secondary)]">
+                        <History size={14} className="text-[var(--accent)]" />
+                        {L('이어서 작업', 'Continue where you left off')}
+                      </p>
+                      <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums">{L(`${sorted.length}개`, `${sorted.length}`)}</span>
+                    </div>
+                    {/* Each past voyage rests as a real, bordered surface (not a bare
+                        hover-row) so the list reads as a stack of openable cards. */}
+                    <div className="space-y-1.5">
                       {shown.map((p) => (
                         <button key={p.id} onClick={() => onReady(p.id)}
-                          className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-lg hover:bg-[var(--surface)] hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all group">
-                          <FolderOpen size={12} className="text-[var(--accent)] shrink-0" />
-                          <span className="text-[13px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{p.name}</span>
+                          className="w-full text-left flex items-center gap-2.5 px-3.5 py-3 md:py-2.5 min-h-[44px] rounded-xl border border-[var(--border-subtle)]/70 bg-[var(--surface)]/50 hover:bg-[var(--surface)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all group">
+                          <FolderOpen size={14} className="text-[var(--accent)] shrink-0" />
+                          <span className="text-[14px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{p.name}</span>
                           <span className="text-[11px] text-[var(--text-tertiary)] shrink-0 ml-auto tabular-nums">{relTime(p.updated_at || p.created_at)}</span>
                           {/* Chevron stays visible on touch (no hover there) */}
                           <ChevronRight size={12} className="text-[var(--text-tertiary)] shrink-0 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
@@ -702,24 +714,45 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 );
               })()}
 
-              {/* SECONDARY: Demo scenarios — compact, framed as "둘러보기".
-                  Returning users glance past; first-timers explore. */}
-              <div className="mt-10">
-                <p className="text-[11px] text-[var(--text-tertiary)] mb-3 uppercase tracking-[0.12em] font-semibold">
-                  {L('처음이라면 — 시나리오로 둘러보기', "New here? — Try a sample scenario")}
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {demoScenarios.map(s => (
-                    <button key={s.id} onClick={() => setDemoScenario(s)}
-                      className="text-left p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all duration-200 group">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[16px]">{s.icon}</span>
-                        <span className="text-[13px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">{s.title}</span>
+              {/* SECONDARY: Demo scenarios. Weight flips on who's here — for a
+                  returning user (projects exist) this is a quiet "or browse" footer
+                  under their own work; for a first-timer it's the main thing to try,
+                  so the heading carries real weight and no divider buries it. */}
+              <div className={projects.length > 0 ? 'mt-9 pt-7 border-t border-[var(--border-subtle)]/60' : 'mt-7'}>
+                {(() => {
+                  // Returning users already have "이어서 작업" above as the main act,
+                  // so the demos drop to a muted footer — smaller, flatter, single-
+                  // line, no hover-lift — instead of full tiles that compete with it.
+                  // A first-timer has no work yet, so for them the demos stay the
+                  // primary thing to try (full tiles).
+                  const muted = projects.length > 0;
+                  return (
+                    <>
+                      <p className={`flex items-center gap-1.5 mb-3 ${muted ? 'text-[12px] text-[var(--text-tertiary)] font-medium' : 'text-[14px] text-[var(--text-secondary)] font-semibold'}`}>
+                        <Compass size={muted ? 13 : 15} className="text-[var(--text-tertiary)]" />
+                        {muted
+                          ? L('다른 예시도 둘러보기', 'Or browse a few examples')
+                          : L('처음이라면 — 시나리오로 둘러보기', 'New here? — try a sample scenario')}
+                      </p>
+                      <div className={`grid grid-cols-1 sm:grid-cols-3 ${muted ? 'gap-2' : 'gap-3'}`}>
+                        {demoScenarios.map(s => (
+                          <button key={s.id} onClick={() => setDemoScenario(s)}
+                            className={`text-left rounded-xl border cursor-pointer transition-all duration-200 group ${
+                              muted
+                                ? 'p-3 border-[var(--border-subtle)]/50 bg-transparent hover:bg-[var(--surface)]/70 hover:border-[var(--accent)]/25'
+                                : 'p-4 border-[var(--border-subtle)] bg-[var(--surface)]/60 hover:bg-[var(--surface)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5'
+                            }`}>
+                            <div className={`flex items-center gap-2 ${muted ? 'mb-1' : 'mb-2'}`}>
+                              <span className={muted ? 'text-[14px] opacity-70' : 'text-[18px]'}>{s.icon}</span>
+                              <span className={`font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors ${muted ? 'text-[12px]' : 'text-[13px]'}`}>{s.title}</span>
+                            </div>
+                            <p className={`text-[var(--text-tertiary)] leading-relaxed ${muted ? 'text-[11px] line-clamp-1' : 'text-[12px] line-clamp-2'}`}>&ldquo;{s.problemText}&rdquo;</p>
+                          </button>
+                        ))}
                       </div>
-                      <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed line-clamp-2">&ldquo;{s.problemText}&rdquo;</p>
-                    </button>
-                  ))}
-                </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* TERTIARY: Marketing copy — only for absolute first-time users
