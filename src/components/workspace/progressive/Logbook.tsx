@@ -319,19 +319,13 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
                       </ul>
                     </details>
                   )}
-                  {/* Generic re-entry — fork a new course from this exact point.
-                      Makes the core "go back & choose differently" reachable at
-                      every turn (course-changes use their road-not-taken above;
-                      the anchorage is the end, nothing to fork forward). */}
-                  {w.type !== 'anchorage' && notTaken.length === 0 && (
-                    <button
-                      onClick={() => { if (!locked) { forkBranch(w.checkpoint_id); setChartOpen(false); } }}
-                      disabled={locked}
-                      className={`inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    >
-                      <GitBranch size={9} /> {L('이 시점에서 다른 길로', 'Fork a new course here')}
-                    </button>
-                  )}
+                  {/* (Removed) the generic per-row "fork a new course here" CTA on
+                      waypoints with NO road-not-taken. Offering a fork on a point
+                      that has no real alternative is a manufactured fork on a flat
+                      decision (spine: zero-judgment / mirror clause — don't invent
+                      a branch the analysis didn't surface). Rewind-from-anywhere
+                      lives in the chart (이 지점에서 항해); real roads-not-taken keep
+                      their own "이 길 가보기" above. */}
                 </div>
               )}
             </li>
