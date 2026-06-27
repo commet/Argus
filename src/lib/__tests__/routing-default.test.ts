@@ -47,4 +47,9 @@ describe('routing defaults', () => {
       decision_density: 'medium',
     }])).toBe(false);
   });
+
+  it('critical / irreversible NEVER fast-paths, even on low density (verify must run)', () => {
+    expect(shouldDefaultFastPath([{ decision_density: 'low', stakes: 'critical' }])).toBe(false);
+    expect(shouldDefaultFastPath([{ decision_density: 'low', reversibility: 'irreversible' }])).toBe(false);
+  });
 });

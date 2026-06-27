@@ -142,11 +142,18 @@ export function selectAgents(
     // One worker per lens: a lens already filled is unavailable, so the chain-
     // hierarchy near-ties (e.g. hayoon~sujin, both Scout) resolve to the higher
     // scorer and the rest of the run diversifies to other lenses.
-    const available = unlockedAgents.filter(a => {
+    let available = unlockedAgents.filter(a => {
       if (usedAgentIds.has(a.id) || a.archived) return false;
       const lens = lensOf(a.id);
       return !(lens && usedLenses.has(lens));
     });
+    // All lenses filled (9+ AI steps) → relax the one-per-lens rule and keep
+    // routing by CAPABILITY score (anti-patterns still respected), rather than
+    // letting initWorkers drop to the keyword fallback, which ignores capability
+    // AND anti-patterns entirely (an intern could get a legal step).
+    if (available.length === 0) {
+      available = unlockedAgents.filter(a => !usedAgentIds.has(a.id) && !a.archived);
+    }
     if (available.length === 0) break;
 
     // ── Layer 2: Capability Scoring ──

@@ -22,6 +22,12 @@ export function shouldDefaultFastPath(snapshots: RouteSignal[]): boolean {
     reversibility === 'reversible' &&
     framingConfidence >= 75;
 
+  // critical / irreversible NEVER auto-fast-paths, even on low decision_density —
+  // it must deploy the crew so the navigator/debate verify pass (and the Bind-lean
+  // confirmation-bias guard) actually runs. Otherwise the whole verify/lean wiring
+  // is dead on the most important decisions.
+  if (stakes === 'critical' || reversibility === 'irreversible') return false;
+
   return hasFlatFrame(snapshots) || decisionDensity === 'low' || confidentRoutine;
 }
 
