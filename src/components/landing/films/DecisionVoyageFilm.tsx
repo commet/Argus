@@ -531,6 +531,11 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
   const [playing, setPlaying] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
+  // Mobile renders the film at ~0.36× (ScaleToFit), so the "처음부터 보기" control
+  // is a ~7px tap target — unusable. On phones the film auto-plays the full
+  // walkthrough loop (motion reads as alive); desktop keeps the resolved-first
+  // frame + the replay control.
+  const [narrow, setNarrow] = useState(false);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -544,10 +549,19 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
   }, []);
 
   useEffect(() => {
-    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    if (mq && mq.matches) { setT(REDUCED_T); return; }            // resolved, no motion
-    if (!inView) { setPlaying(false); setT(REDUCED_T); return; }  // re-arm to the resolved frame
-    if (!playing) { setT(REDUCED_T); return; }                    // rest: the worked-through first decision
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(max-width: 640px)');
+    const on = () => setNarrow(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+
+  useEffect(() => {
+    if (!inView) { setPlaying(false); setT(REDUCED_T); return; }
+    const reduced = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const loop = narrow && !reduced;                            // phones auto-play; honour reduce-motion
+    if (!loop && !playing) { setT(REDUCED_T); return; }          // desktop rest: the worked-through first decision
     const sp = Number(speed) || 1;
     let last = performance.now();
     let acc = 0;
@@ -555,13 +569,13 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
     const tick = (now: number) => {
       acc += (now - last) * sp;
       last = now;
-      if (acc >= TOTAL - 250) { setPlaying(false); setT(REDUCED_T); return; } // settle when the walkthrough ends
-      setT(acc);
+      if (loop) { setT(acc % TOTAL); }                                                  // phone: continuous walkthrough
+      else { if (acc >= TOTAL - 250) { setPlaying(false); setT(REDUCED_T); return; } setT(acc); } // desktop replay once
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [inView, playing, speed]);
+  }, [inView, playing, narrow, speed]);
 
   const R = renderVals(t, L);
   const s = (k: string) => R[k] as React.CSSProperties;
@@ -590,13 +604,7 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
             <span style={{ width: 22, height: 1, background: '#a87d31' }} />
             <span style={{ whiteSpace: 'nowrap', font: `600 11px/1 ${MONO}`, letterSpacing: '.24em', textTransform: 'uppercase', color: '#a87d31' }}>{L('Argus · 항적 The Trail', 'Argus · The Trail')}</span>
           </div>
-          {playing ? (
-            <span style={s('oPhase')}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#c2933f', boxShadow: '0 0 6px #d8b25e' }} />
-              <span style={{ whiteSpace: 'nowrap' }}>{txt('phaseLabel')}</span>
-              <span style={s('actPip')}>{txt('actLabel')}</span>
-            </span>
-          ) : (
+          {!playing && !narrow ? (
             <button
               onClick={() => setPlaying(true)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 6px', margin: '-4px -6px', background: 'none', border: 'none', cursor: 'pointer', font: `600 11px/1 ${MONO}`, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a07d3f', whiteSpace: 'nowrap', transition: 'color 160ms ease' }}
@@ -607,6 +615,12 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 1 2.64 6.36M3 12V7m0 5h5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <span>{L('처음부터 보기', 'Replay from the start')}</span>
             </button>
+          ) : (
+            <span style={s('oPhase')}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#c2933f', boxShadow: '0 0 6px #d8b25e' }} />
+              <span style={{ whiteSpace: 'nowrap' }}>{txt('phaseLabel')}</span>
+              <span style={s('actPip')}>{txt('actLabel')}</span>
+            </span>
           )}
         </div>
 
@@ -810,7 +824,7 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
             <p style={{ margin: '12px 0 0', fontSize: 12.5, lineHeight: 1.55, color: '#d3bd92', wordBreak: 'keep-all' }}>{L('첫 결정에서 이어집니다 — 이제, 이탈을 어디서 막을까?', 'Continuing from the first decision — now, where do we stop the churn?')}</p>
           </div>
 
-          {playing && (
+          {(playing || narrow) && (
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(120,90,40,.14)', zIndex: 6 }}>
               <div style={s('oProg')} />
             </div>
