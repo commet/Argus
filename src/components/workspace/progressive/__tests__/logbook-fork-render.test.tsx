@@ -1,8 +1,9 @@
 /**
- * Logbook generic fork affordance — every turn (except the anchorage, and
- * except course-changes which use their road-not-taken) offers "fork a new
- * course here", so the core "go back & choose differently" is discoverable
- * right where the user reads their history.
+ * Logbook does NOT manufacture a fork on a flat point. A waypoint with no real
+ * road-not-taken must not offer a generic "fork a new course here" — that invents
+ * a branch the analysis never surfaced (spine: zero-judgment / mirror clause).
+ * Rewind-from-anywhere lives in the chart; real roads-not-taken keep their own
+ * "이 길 가보기".
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -45,9 +46,9 @@ vi.mock('@/components/workspace/progressive/VoyageChart', () => ({ VoyageChart: 
 
 import { Logbook } from '@/components/workspace/progressive/Logbook';
 
-describe('Logbook generic fork', () => {
-  it('offers "fork a new course here" on a non-anchorage turn without alternatives', () => {
+describe('Logbook does not manufacture a fork on a flat point', () => {
+  it('does NOT offer a generic "fork a new course here" on a turn without real alternatives', () => {
     const html = renderToStaticMarkup(createElement(Logbook));
-    expect(html).toContain('이 시점에서 다른 길로');
+    expect(html).not.toContain('이 시점에서 다른 길로');
   });
 });
