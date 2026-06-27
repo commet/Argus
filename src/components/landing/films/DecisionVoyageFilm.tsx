@@ -523,18 +523,14 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const CREW_MED = buildCrewMed(L);
-  // Opens on the FIRST decision already worked through (the author's resolved
-  // frame) — never a blank box a scroller skips past. The full two-session
-  // walkthrough is opt-in via "처음부터 보기": it plays once, then settles back
-  // to this frame.
+  // First paint = the FIRST decision already worked through (never a blank box).
+  // Then it comes alive: desktop holds that resolved frame a beat, rewinds to the
+  // start and plays the decision being worked through once — so it's clearly a
+  // living animation — then settles back exactly on the resolved frame. Mobile
+  // (film at ~0.36× via ScaleToFit) just auto-loops the full walkthrough.
   const [t, setT] = useState(REDUCED_T);
-  const [playing, setPlaying] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
-  // Mobile renders the film at ~0.36× (ScaleToFit), so the "처음부터 보기" control
-  // is a ~7px tap target — unusable. On phones the film auto-plays the full
-  // walkthrough loop (motion reads as alive); desktop keeps the resolved-first
-  // frame + the replay control.
   const [narrow, setNarrow] = useState(false);
 
   useEffect(() => {
@@ -558,30 +554,36 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
   }, []);
 
   useEffect(() => {
-    if (!inView) { setPlaying(false); setT(REDUCED_T); return; }
+    if (!inView) { setT(REDUCED_T); return; }
     const reduced = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    const loop = narrow && !reduced;                            // phones auto-play; honour reduce-motion
-    if (!loop && !playing) { setT(REDUCED_T); return; }          // desktop rest: the worked-through first decision
+    if (reduced) { setT(REDUCED_T); return; }                   // static — honour reduce-motion
     const sp = Number(speed) || 1;
-    let last = performance.now();
-    let acc = 0;
-    let raf = 0;
+    const HOOK = 1800;                                          // hold the resolved frame before rewinding
+    const start = performance.now();
+    let last = start, acc = 0, raf = 0;
     const tick = (now: number) => {
-      acc += (now - last) * sp;
-      last = now;
-      if (loop) { setT(acc % TOTAL); }                                                  // phone: continuous walkthrough
-      else { if (acc >= TOTAL - 250) { setPlaying(false); setT(REDUCED_T); return; } setT(acc); } // desktop replay once
+      if (narrow) {                                            // phone: continuous walkthrough loop
+        acc += (now - last) * sp; last = now;
+        setT(acc % TOTAL);
+      } else {                                                 // desktop: resolved → rewind → play once → settle
+        const e = now - start;
+        if (e < HOOK) setT(REDUCED_T);                          // show the worked-through decision first
+        else setT(Math.min(REDUCED_T, (e - HOOK) * sp));        // rewind, play the build, land exactly on the resolved frame
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [inView, playing, narrow, speed]);
+  }, [inView, narrow, speed]);
 
   const R = renderVals(t, L);
   const s = (k: string) => R[k] as React.CSSProperties;
   const txt = (k: string) => R[k] as string;
   const medStyles = [s('m0'), s('m1'), s('m2')];
   const medStats = [txt('s0'), txt('s1'), txt('s2')];
+  // the build is on screen (phone loop, or the desktop rewind-play); at rest
+  // (the worked-through frame) we drop the running phase label + progress bar.
+  const animating = narrow || t < REDUCED_T - 100;
 
   return (
     <div
@@ -604,18 +606,7 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
             <span style={{ width: 22, height: 1, background: '#a87d31' }} />
             <span style={{ whiteSpace: 'nowrap', font: `600 11px/1 ${MONO}`, letterSpacing: '.24em', textTransform: 'uppercase', color: '#a87d31' }}>{L('Argus · 항적 The Trail', 'Argus · The Trail')}</span>
           </div>
-          {!playing && !narrow ? (
-            <button
-              onClick={() => setPlaying(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 6px', margin: '-4px -6px', background: 'none', border: 'none', cursor: 'pointer', font: `600 11px/1 ${MONO}`, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a07d3f', whiteSpace: 'nowrap', transition: 'color 160ms ease' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#7a5a22')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#a07d3f')}
-              aria-label={L('이 결정이 처리되는 과정을 처음부터 재생', 'Replay how this decision gets worked through, from the start')}
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 1 2.64 6.36M3 12V7m0 5h5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              <span>{L('처음부터 보기', 'Replay from the start')}</span>
-            </button>
-          ) : (
+          {animating && (
             <span style={s('oPhase')}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#c2933f', boxShadow: '0 0 6px #d8b25e' }} />
               <span style={{ whiteSpace: 'nowrap' }}>{txt('phaseLabel')}</span>
@@ -824,7 +815,7 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
             <p style={{ margin: '12px 0 0', fontSize: 12.5, lineHeight: 1.55, color: '#d3bd92', wordBreak: 'keep-all' }}>{L('첫 결정에서 이어집니다 — 이제, 이탈을 어디서 막을까?', 'Continuing from the first decision — now, where do we stop the churn?')}</p>
           </div>
 
-          {(playing || narrow) && (
+          {animating && (
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(120,90,40,.14)', zIndex: 6 }}>
               <div style={s('oProg')} />
             </div>

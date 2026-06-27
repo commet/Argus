@@ -182,18 +182,14 @@ function Cartouche({ st, fork, call, crew }: { st: React.CSSProperties; fork: st
 export function VoyageMapFilm() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  // Start on the FINISHED chart (not a 22s build a scroller never waits for): the
-  // whole map is the payoff, so show it complete and let it breathe — ship bob,
-  // current-heading pulse, a faint gold shimmer on the route. The full voyage
-  // animation is opt-in via "처음부터 항해 보기".
+  // First paint = the FINISHED chart (never a blank box). Then it comes alive:
+  // desktop holds the finished map a beat (the payoff), rewinds to the origin and
+  // plays the voyage build once — so it's unmistakably a living animation, not a
+  // frozen image — then settles back to the finished map with a faint shimmer.
+  // Mobile (chart at ~0.3× via ScaleToFit) just auto-loops the voyage.
   const [t, setT] = useState(REST_LO);
-  const [playing, setPlaying] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
-  // Mobile renders the whole chart at ~0.3× (ScaleToFit), so the "처음부터 항해
-  // 보기" control is a ~7px tap target — unusable. On phones the chart just
-  // auto-plays the voyage loop (motion reads as alive); desktop keeps the
-  // completed-first chart + the replay control.
   const [narrow, setNarrow] = useState(false);
 
   useEffect(() => {
@@ -214,30 +210,37 @@ export function VoyageMapFilm() {
   }, []);
 
   useEffect(() => {
-    if (!inView) { setPlaying(false); setT(REST_LO); return; }
+    if (!inView) { setT(REST_LO); return; }
     const reduced = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    const loop = narrow && !reduced;                      // phones auto-play; honour reduce-motion
-    if (!loop && !playing) {                              // desktop at rest
-      if (reduced) { setT(REST_LO); return; }             // static
-      let last = performance.now(); let acc = 0; let raf = 0;
-      const amb = (now: number) => { acc += now - last; last = now; setT(REST_LO + (acc % (REST_HI - REST_LO))); raf = requestAnimationFrame(amb); };
-      raf = requestAnimationFrame(amb);                   // ambient shimmer on the finished chart
-      return () => cancelAnimationFrame(raf);
-    }
-    let last = performance.now(); let acc = 0; let raf = 0;
+    if (reduced) { setT(REST_LO); return; }              // static — honour reduce-motion
+    const HOOK = 1800;                                    // hold the finished map before rewinding
+    const start = performance.now();
+    let last = start, acc = 0, raf = 0;
     const tick = (now: number) => {
-      acc += now - last; last = now;
-      if (loop) { setT(acc % TOTAL); }                                                 // phone: continuous voyage
-      else { if (acc >= REVEAL_DONE) { setPlaying(false); setT(REST_LO); return; } setT(acc); } // desktop replay once
+      if (narrow) {                                       // phone: continuous voyage loop
+        acc += now - last; last = now;
+        setT(acc % TOTAL);
+      } else {                                            // desktop: finished → rewind → build once → settle + ambient
+        const e = now - start;
+        if (e < HOOK) setT(REST_LO);
+        else {
+          const be = e - HOOK;
+          if (be < REVEAL_DONE) setT(be);                 // rewind to the origin and play the build
+          else setT(REST_LO + ((be - REVEAL_DONE) % (REST_HI - REST_LO))); // settle + faint shimmer
+        }
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [inView, playing, narrow]);
+  }, [inView, narrow]);
 
   const R = renderVals(t, L);
   const s = (k: string) => R[k] as React.CSSProperties;
   const txt = (k: string) => R[k] as string;
+  // the build is on screen (phone loop, or the desktop rewind-build); at rest
+  // (finished map) we drop the running phase label + progress bar.
+  const animating = narrow || t < REST_LO - 100;
 
   return (
     <div ref={rootRef} style={{ width: '100%', maxWidth: 1216, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14, fontFamily: "var(--font-sans,'Pretendard',system-ui,sans-serif)", color: '#2b2722' }}>
@@ -247,18 +250,7 @@ export function VoyageMapFilm() {
           <span style={{ width: 22, height: 1, background: '#a87d31' }} />
           <span style={{ whiteSpace: 'nowrap', font: `600 11px/1 ${MONO}`, letterSpacing: '.24em', textTransform: 'uppercase', color: '#a87d31' }}>{L('Argus · 전체 항해도 The Grand Chart', 'Argus · The Grand Chart')}</span>
         </div>
-        {!playing && !narrow ? (
-          <button
-            onClick={() => setPlaying(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 6px', margin: '-4px -6px', background: 'none', border: 'none', cursor: 'pointer', font: `600 11px/1 ${MONO}`, letterSpacing: '.1em', textTransform: 'uppercase', color: '#a07d3f', whiteSpace: 'nowrap', transition: 'color 160ms ease' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#7a5a22')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#a07d3f')}
-            aria-label={L('전체 항해를 처음부터 재생', 'Replay the whole voyage from the start')}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 1 2.64 6.36M3 12V7m0 5h5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <span>{L('처음부터 항해 보기', 'Replay the voyage')}</span>
-          </button>
-        ) : (
+        {animating && (
           <span style={s('oPhase')}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#c2933f', boxShadow: '0 0 6px #d8b25e' }} />
             <span style={{ whiteSpace: 'nowrap' }}>{txt('phaseLabel')}</span>
@@ -402,7 +394,7 @@ export function VoyageMapFilm() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 26, height: 0, borderTop: '2.5px dotted #8f3d33' }} /><span style={{ whiteSpace: 'nowrap', font: `600 12.5px/1 ${MONO}`, color: '#8c6526' }}>{L('가지 않은 길', 'Roads not taken')}</span></div>
         </div>
 
-        {(playing || narrow) && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(120,90,40,.14)', zIndex: 6 }}><div style={s('oProg')} /></div>}
+        {animating && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'rgba(120,90,40,.14)', zIndex: 6 }}><div style={s('oProg')} /></div>}
       </div>
     </div>
   );
