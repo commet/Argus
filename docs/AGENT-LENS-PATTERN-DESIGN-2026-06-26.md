@@ -7,18 +7,19 @@
 
 ## 두 축 분리
 
-- **WHO = 7 렌즈** (라우팅 단위, 겹치지 않음). 17명의 지식·프레임워크·말투가드는
+- **WHO = 8 렌즈** (라우팅 단위, 겹치지 않음). 17명의 지식·프레임워크·말투가드는
   전부 보존되고, "별도 에이전트 명패"만 7개로 묶인다.
 - **HOW = 협업 패턴** (일의 성격이 부름). 분류 → 패턴 → 렌즈 협업 구조.
 
-## 7 렌즈 ← 17명 매핑 (전문성 전부 보존)
+## 8 렌즈 ← 17명 매핑 (전문성 전부 보존)
 
 | 렌즈 | 흡수 | 보존 프레임워크 |
 |--|--|--|
 | 🔍 탐색 | hayoon·sujin | CRAAP·출처평가·triangulation·벤치마킹 |
 | 📊 수치 | minjae·hyeyeon | 시장규모·ROI·유닛이코노믹스·DCF·재무제표 |
 | ♟️ 전략 | strategy_jr·hyunwoo·chief_strategist | Playing to Win·7 Powers·시나리오·Wardley |
-| ⚠️ 검증 | donghyuk·taejun(법무) | 리스크매트릭스·pre-mortem·PIPA·계약검토 |
+| ⚠️ 검증 | donghyuk | 리스크매트릭스·pre-mortem·레드팀 |
+| ⚖️ 법무 | taejun | PIPA·계약검토·컴플라이언스 (skeptic에서 분리 — 둘 다 필요한 결정에 동시 배정) |
 | 🛠️ 실행 | sujin_hr(HR)·yerin·junseo | Team Topologies·ADKAR·RICE·아키텍처 |
 | ✍️ 전달 | seoyeon·jieun | SCQA·PAS·StoryBrand·UX 10법칙 |
 | 🎛️ 지휘 | research_director·navigator | 종합·SCQA·모순 적출 |
@@ -69,5 +70,5 @@
 
 - 흡수: 패턴=협업구조 개념, Producer-Reviewer(=review_loop), 선택 결정트리,
   중간산출물 보존(=Bearing Ledger), Progressive Disclosure(프레임워크 task별 로드).
-- 우리 것: 의사결정 맥락(코드팀 X), 7 렌즈 구성, 검증 상수화, Bind-lean 검증신호,
+- 우리 것: 의사결정 맥락(코드팀 X), 8 렌즈 구성, 검증 상수화, Bind-lean 검증신호,
   over-fire 금지 스파인, 이름 전부 자체. 패턴은 분산컴퓨팅 고전(누구 것도 아님).

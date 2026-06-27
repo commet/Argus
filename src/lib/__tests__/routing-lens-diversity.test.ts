@@ -11,12 +11,17 @@ const cls: InputClassification =
   { stakes: 'important', domains: [], decisionType: 'needs_analysis', agentCount: 4 };
 
 describe('agent-lens mapping', () => {
-  it('all 15 routable agents map to a lens, covering all 7 lenses', () => {
+  it('all 16 routable agents map to a lens, covering all 8 lenses', () => {
     const ids = ['hayoon', 'sujin', 'minjae', 'hyeyeon', 'strategy_jr', 'hyunwoo',
-      'chief_strategist', 'donghyuk', 'taejun', 'sujin_hr', 'yerin', 'junseo',
+      'chief_strategist', 'minseo', 'donghyuk', 'taejun', 'sujin_hr', 'yerin', 'junseo',
       'seoyeon', 'jieun', 'research_director'];
     for (const id of ids) expect(lensOf(id)).not.toBeNull();
-    expect(new Set(ids.map(lensOf)).size).toBe(7);
+    expect(new Set(ids.map(lensOf)).size).toBe(8);
+  });
+
+  it('legal is its own lens, split from skeptic (both can be assigned together)', () => {
+    expect(lensOf('taejun')).toBe('legal');
+    expect(lensOf('donghyuk')).toBe('skeptic');
   });
 
   it('unmapped/custom agents are exempt (lensOf → null)', () => {

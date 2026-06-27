@@ -1,13 +1,17 @@
 /**
- * agent-lens.ts — the 7 lenses (WHO), grouping the 17 agents.
+ * agent-lens.ts — the 8 lenses (WHO), grouping the 16 routable agents.
  *
- * A lens is a distinct *way of looking*, not a person. The 17 agents keep all
- * their knowledge/frameworks/voice; this layer just groups them so routing
- * works at the lens level (7 non-overlapping perspectives) instead of fighting
- * over near-identical neighbors. Diversity rule: at most one worker per lens in
- * a run, which dissolves the chain-hierarchy ties (e.g. hayoon~sujin, both
- * Scout) we measured in the routing audit — the higher score wins the lens, the
- * rest of the run goes to other lenses.
+ * A lens is a distinct *way of looking*, not a person. The agents keep all their
+ * knowledge/frameworks/voice; this layer just groups them so routing works at
+ * the lens level (non-overlapping perspectives) instead of fighting over
+ * near-identical neighbors. Diversity rule: at most one worker per lens in a
+ * run, which dissolves the chain-hierarchy ties (e.g. hayoon~sujin, both Scout)
+ * we measured in the routing audit — the higher score wins the lens, the rest
+ * of the run goes to other lenses.
+ *
+ * legal is its OWN lens (split from skeptic): legal/compliance is a genuinely
+ * different competence than risk/pre-mortem, so a decision needing both gets a
+ * legal worker AND a risk worker instead of one-of-each-blocking-the-other.
  *
  * Mapping mirrors docs/AGENT-LENS-PATTERN-DESIGN-2026-06-26.md. Kept separate
  * from agent-registry so this is additive and reversible.
@@ -17,7 +21,8 @@ export type Lens =
   | 'scout'      // 탐색 — fast facts, evidence, cases
   | 'quant'      // 수치 — estimation, ROI, finance
   | 'strategy'   // 전략 — direction, framing, options
-  | 'skeptic'    // 검증 — risk, counter-view, legal
+  | 'skeptic'    // 검증 — risk, counter-view, pre-mortem
+  | 'legal'      // 법무 — legal/compliance/contract review
   | 'operator'   // 실행 — people, org, schedule, feasibility
   | 'craft'      // 전달 — write-to-be-read, UX
   | 'conductor'; // 지휘 — synthesize, surface contradictions
@@ -30,8 +35,9 @@ const LENS_BY_AGENT: Record<string, Lens> = {
   strategy_jr: 'strategy',
   hyunwoo: 'strategy',
   chief_strategist: 'strategy',
+  minseo: 'strategy',   // 마케팅·그로스 = GTM 전략 (was missing → exempt from diversity)
   donghyuk: 'skeptic',
-  taejun: 'skeptic',
+  taejun: 'legal',
   sujin_hr: 'operator',
   yerin: 'operator',
   junseo: 'operator',
