@@ -974,10 +974,10 @@ Review the team's outputs holistically and share your assessment.
 
 JSON:
 {
-  "overall": "One-line quality judgment",
+  "overall": "One-line read of where the work stands (observational, not a go/no-go)",
   "contradictions": ["Contradictions between agents (if any)"],
   "blind_spots": ["Perspectives no one covered (if any)"],
-  "verdict": "One-line conclusion on whether to proceed as-is"
+  "verdict": "The single biggest open question the decision-maker should resolve — phrased as a NEUTRAL question, never a proceed/don't-proceed verdict (spine: the call is the user's, not ours)"
 }`,
   };
 }
