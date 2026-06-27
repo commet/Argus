@@ -76,16 +76,21 @@ function buildStages(
     return { workers: updated, stages, plan };
   }
 
-  // review_loop: Critic을 Stage 2로 분리
+  // review_loop: Critic을 Stage 2로 분리. critic은 반드시 AI 워커여야 한다 —
+  // self/human 워커가 critic으로 뽑히면 worker-engine이 stage_2를 0개 실행하고
+  // (aiWorkers.length===0) "검증" 스테이지가 에러 없이 침묵 속에 증발한다.
   const criticIdx = workers.findIndex(w => {
+    if (w.agentType !== 'ai') return false;
     // validation group의 리스크 관련 에이전트
     const kws = ['리스크', '위험', '실패', '비판', 'risk', 'danger', 'failure', 'critique', 'review', 'validate'];
     const focusLower = w.focus.toLowerCase();
     return kws.some(kw => focusLower.includes(kw)) || w.framework?.includes('Pre-mortem') || w.framework?.includes('Red Team');
   });
 
-  // Critic이 명확하지 않으면 마지막 워커를 Stage 2로
-  const stage2Idx = criticIdx >= 0 ? criticIdx : workers.length - 1;
+  // Critic이 명확하지 않으면 마지막 AI 워커를 Stage 2로 (self/human은 검증 못 함)
+  let lastAiIdx = -1;
+  for (let i = workers.length - 1; i >= 0; i--) { if (workers[i].agentType === 'ai') { lastAiIdx = i; break; } }
+  const stage2Idx = criticIdx >= 0 ? criticIdx : lastAiIdx;
 
   const stage1Workers = workers.filter((_, i) => i !== stage2Idx).map(w => ({ ...w, stageId: 'stage_1' }));
   // Stage 2 critic depends on all Stage 1 workers

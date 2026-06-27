@@ -31,9 +31,13 @@ export function numericLevelToAgentLevel(lv: number): AgentLevel {
  * ("operates at junior level only") — it must stay junior.
  */
 export function effectiveWorkerLevel(numericLevel: number, agentId?: string): AgentLevel {
+  const personaId = agentId ? agentIdToPersonaId(agentId) : undefined;
   // intern's senior AND guru levelPrompts are placeholders — junior-only by design.
-  if (agentId && agentIdToPersonaId(agentId) === 'intern') return 'junior';
+  if (personaId === 'intern') return 'junior';
   const base = numericLevelToAgentLevel(numericLevel);
+  // strategy_jr's guru levelPrompt is a placeholder ("operates at senior level max")
+  // — cap it at senior so the placeholder never leaks into the system prompt.
+  if (personaId === 'strategy_jr' && base === 'guru') return 'senior';
   // Base skill always on: a level-1 (junior) agent already runs at its senior tier.
   return base === 'junior' ? 'senior' : base;
 }

@@ -25,6 +25,11 @@ describe('effectiveWorkerLevel — "base skill always on"', () => {
     expect(effectiveWorkerLevel(5, 'hayoon')).toBe('junior');
   });
 
+  it('caps strategy_jr at senior even at lv5 (its guru prompt is a placeholder)', () => {
+    expect(effectiveWorkerLevel(1, 'strategy_jr')).toBe('senior');
+    expect(effectiveWorkerLevel(5, 'strategy_jr')).toBe('senior');
+  });
+
   it('does NOT mutate the raw numeric mapping (planning/tool/routing gates stay on agent.level)', () => {
     expect(numericLevelToAgentLevel(1)).toBe('junior');
     expect(numericLevelToAgentLevel(3)).toBe('senior');
