@@ -164,7 +164,7 @@ describe('Voyage branch layer', () => {
     });
   });
 
-  describe('fork / switch / anchor actions', () => {
+  describe('fork / switch actions', () => {
     it('forkBranch creates a sibling course-line from a checkpoint, preserving the source branch', () => {
       const sid = startSession();
       const c1 = api().recordCheckpoint('origin')!;
@@ -237,34 +237,6 @@ describe('Voyage branch layer', () => {
       api().switchBranch(activeId);          // same branch
       api().switchBranch('does-not-exist');  // unknown
       expect(session(sid).active_branch_id).toBe(activeId);
-    });
-
-    it('anchorBranch marks the chosen course anchored and retires the rest (preserved)', () => {
-      const sid = startSession();
-      const c1 = api().recordCheckpoint('origin')!;
-      api().recordCheckpoint('briefing');
-      const mainId = session(sid).active_branch_id!;
-      const forkId = api().forkBranch(c1.id)!;
-
-      api().anchorBranch(forkId);
-      const s = session(sid);
-      expect(s.branches!.find(b => b.id === forkId)!.status).toBe('anchored');
-      expect(s.branches!.find(b => b.id === mainId)!.status).toBe('abandoned');
-      expect(s.branches).toHaveLength(2); // nothing deleted
-    });
-
-    it('anchoring a non-active branch switches to it (output = anchored course)', () => {
-      const sid = startSession();
-      const c1 = api().recordCheckpoint('origin')!;
-      api().recordCheckpoint('briefing');         // main → c2
-      const mainId = session(sid).active_branch_id!;
-      const forkId = api().forkBranch(c1.id)!;     // active = fork
-      api().switchBranch(mainId);                  // active = main
-      api().anchorBranch(forkId);                  // anchor the non-active fork
-      const s = session(sid);
-      expect(s.active_branch_id).toBe(forkId);     // switched to the anchored course
-      expect(s.branches!.find(b => b.id === forkId)!.status).toBe('anchored');
-      expect(s.branches!.find(b => b.id === mainId)!.status).toBe('abandoned');
     });
   });
 
@@ -353,61 +325,6 @@ describe('Voyage branch layer', () => {
       }));
       const cp = api().recordCheckpoint('briefing')!;
       expect(session(sid).branches!.some(b => b.head_checkpoint_id === cp.id)).toBe(true);
-    });
-  });
-
-  describe('deleteBranch', () => {
-    it('removes a non-active branch, pruning its exclusive checkpoints but keeping shared ancestry', () => {
-      const sid = startSession();
-      const c1 = api().recordCheckpoint('origin')!;
-      const c2 = api().recordCheckpoint('briefing')!;     // main head
-      const mainId = session(sid).active_branch_id!;
-      api().forkBranch(c1.id);                              // active = fork (head c1)
-      const c3 = api().recordCheckpoint('briefing')!;       // fork sails → head c3 (parent c1)
-      const forkId = session(sid).active_branch_id!;
-      api().switchBranch(mainId);                           // leave the fork
-
-      api().deleteBranch(forkId);
-      const s = session(sid);
-      expect(s.branches).toHaveLength(1);
-      expect(s.branches![0].id).toBe(mainId);
-      expect(s.checkpoints!.find(c => c.id === c3.id)).toBeUndefined(); // exclusive → pruned
-      expect(s.checkpoints!.find(c => c.id === c1.id)).toBeDefined();   // shared → kept
-      expect(s.checkpoints!.find(c => c.id === c2.id)).toBeDefined();   // main's own → kept
-    });
-
-    it('refuses to delete the active branch or the last remaining branch', () => {
-      const sid = startSession();
-      const c1 = api().recordCheckpoint('origin')!;
-      api().forkBranch(c1.id);
-      const activeId = session(sid).active_branch_id!;
-      api().deleteBranch(activeId);                         // active → no-op
-      expect(session(sid).branches!.some(b => b.id === activeId)).toBe(true);
-
-      // collapse to a single branch, then try to delete it
-      const other = session(sid).branches!.find(b => b.id !== activeId)!.id;
-      api().deleteBranch(other);
-      expect(session(sid).branches).toHaveLength(1);
-      api().deleteBranch(session(sid).branches![0].id);     // last → no-op
-      expect(session(sid).branches).toHaveLength(1);
-    });
-  });
-
-  describe('renameBranch', () => {
-    it('renames a course, trims, ignores empty, and caps length', () => {
-      const sid = startSession();
-      api().recordCheckpoint('origin');
-      const id = session(sid).active_branch_id!;
-      const name = () => session(sid).branches!.find(b => b.id === id)!.name;
-
-      api().renameBranch(id, '  챗봇 직접 제작  ');
-      expect(name()).toBe('챗봇 직접 제작'); // trimmed
-
-      api().renameBranch(id, '   ');
-      expect(name()).toBe('챗봇 직접 제작'); // empty ignored — keeps previous
-
-      api().renameBranch(id, 'x'.repeat(80));
-      expect(name().length).toBe(60); // capped
     });
   });
 

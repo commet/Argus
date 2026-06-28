@@ -16,10 +16,10 @@
  * avoid forking/switching out from under a running analysis.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Sailboat, Milestone, AlertTriangle, Eye, Wind, Anchor, ChevronDown, ChevronUp,
-  Map as MapIcon, Flag, GitBranch, Compass, X, Hand,
+  Map as MapIcon, GitBranch, Compass, X, Hand,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -43,18 +43,12 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
-  const switchBranch = useProgressiveStore(s => s.switchBranch);
-  const anchorBranch = useProgressiveStore(s => s.anchorBranch);
   const forkBranch = useProgressiveStore(s => s.forkBranch);
-  const deleteBranch = useProgressiveStore(s => s.deleteBranch);
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [chartOpen, setChartOpen] = useState(false);
-  // Two-step delete confirm — deleting a course is destructive (the explored
-  // path is gone), so the X arms a confirm rather than deleting on first click.
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const { waypoints, branches, activeBranch, parentOf, assumptionsByCp } = useMemo(() => {
+  const { waypoints, parentOf, assumptionsByCp } = useMemo(() => {
     const empty = { waypoints: [], branches: [], activeBranch: null, parentOf: new Map<string, string | null>(), assumptionsByCp: new Map<string, string[]>() };
     if (!session) return empty;
     const branches = session.branches || [];
@@ -78,19 +72,9 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
   const openEntry = openId !== null ? openId : lastId;
   const toggle = (id: string) => setOpenId(openEntry === id ? '' : id);
 
-  // Hold branch mutations while the engine streams or workers are in flight
+  // Hold the "이 길 가보기" fork while the engine streams or workers are in flight
   // (shared lock — same rule the chart uses).
   const locked = useProgressiveStore(s => s.isBranchingLocked());
-
-  // Disarm a pending delete-confirm if its target is no longer a deletable,
-  // non-active course (switched-to-active / removed) or while branching is
-  // locked — otherwise a stale confirm could re-surface armed.
-  useEffect(() => {
-    if (!confirmDeleteId) return;
-    const stillDeletable = branches.some(b => b.id === confirmDeleteId && b.id !== activeBranch?.id);
-    if (!stillDeletable || locked) setConfirmDeleteId(null);
-  }, [confirmDeleteId, branches, activeBranch?.id, locked]);
-  const multiBranch = branches.length > 1;
 
   // "Take the road not taken" — fork from the checkpoint *before* the turn so
   // the user re-decides at that fork. Falls back to the turn checkpoint itself.
@@ -147,79 +131,11 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
         )}
       </div>
 
-      {/* Branch switcher — only once a fork exists */}
-      {multiBranch && (
-        <div className="mb-3 space-y-1.5">
-          <div className="flex flex-wrap gap-1">
-            {branches.map(b => {
-              const isActive = b.id === activeBranch?.id;
-              return (
-                <span
-                  key={b.id}
-                  className={`inline-flex items-center rounded-full text-[10.5px] font-medium max-w-[150px] transition-all ${
-                    isActive
-                      ? 'text-white shadow-[var(--shadow-xs)]'
-                      : 'text-[var(--text-secondary)] bg-[var(--bg)] border border-[var(--border-subtle)]'
-                  }`}
-                  style={isActive ? { background: b.color } : undefined}
-                >
-                  <button
-                    onClick={() => !isActive && !locked && switchBranch(b.id)}
-                    disabled={locked && !isActive}
-                    title={b.name}
-                    className={`inline-flex items-center gap-1 pl-2 ${isActive ? 'pr-2' : 'pr-1'} py-1 min-w-0 cursor-pointer ${locked && !isActive ? 'opacity-40 cursor-not-allowed' : ''} ${isActive ? '' : 'hover:text-[var(--text-primary)]'}`}
-                  >
-                    {b.status === 'anchored' ? <Flag size={9} className="shrink-0" /> : <GitBranch size={9} className="shrink-0" />}
-                    <span className="truncate">{b.name}</span>
-                  </button>
-                  {!isActive && (
-                    confirmDeleteId === b.id ? (
-                      <span className="inline-flex items-center gap-1 pr-1.5 pl-1">
-                        <button
-                          onClick={() => { setConfirmDeleteId(null); if (!locked) deleteBranch(b.id); }}
-                          disabled={locked}
-                          className={`text-[9.5px] font-semibold text-[var(--danger)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                        >
-                          {L('삭제', 'Delete')}
-                        </button>
-                        <button
-                          onClick={() => setConfirmDeleteId(null)}
-                          aria-label={L('취소', 'Cancel')}
-                          className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer"
-                        >
-                          <X size={9} />
-                        </button>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmDeleteId(b.id)}
-                        disabled={locked}
-                        aria-label={L('항로 삭제', 'Delete course')}
-                        className={`pr-1.5 pl-0.5 py-1 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                      >
-                        <X size={9} />
-                      </button>
-                    )
-                  )}
-                </span>
-              );
-            })}
-          </div>
-          {activeBranch?.status === 'anchored' ? (
-            <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[var(--accent)]">
-              <Flag size={10} /> {L(`최종 항로 · ${branches.length}개 중 선택`, `Anchored · chosen from ${branches.length}`)}
-            </span>
-          ) : activeBranch && (
-            <button
-              onClick={() => !locked && anchorBranch(activeBranch.id)}
-              disabled={locked}
-              className={`inline-flex items-center gap-1 text-[10.5px] font-medium text-[var(--accent)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-            >
-              <Anchor size={10} /> {L('이 항로로 확정', 'Anchor this course')}
-            </button>
-          )}
-        </div>
-      )}
+      {/* Branch switch / anchor / delete chips removed (voyage redesign step 3a):
+          managing named courses is git-ceremony. The 항해일지 is now read-only
+          narration of the ACTIVE course; returning to an explored course lives in
+          the 해도 ("이 길로"), and exploring a road-not-taken keeps its own
+          "이 길 가보기" below. */}
 
       {/* Waypoints */}
       <ol className="relative">

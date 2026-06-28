@@ -100,8 +100,8 @@ export function resolveCpString(blobs: Record<string, string> | undefined, value
 }
 
 /** The live session fields restored from a checkpoint's state snapshot. Shared
- *  by restoreCheckpoint and switchBranch/forkBranch so the field list lives in
- *  exactly one place (adding a field to VoyageCheckpointState updates all). */
+ *  by switchBranch / forkBranch so the field list lives in exactly one place
+ *  (adding a field to VoyageCheckpointState updates all). */
 function restoreFields(snap: VoyageCheckpointState, blobs?: Record<string, string>): Partial<ProgressiveSession> {
   return {
     phase: snap.phase,
@@ -303,11 +303,6 @@ interface ProgressiveState {
    *  each stage transition. Returns the new checkpoint, or null if no
    *  active session. */
   recordCheckpoint: (stage: VoyageStage, label?: string, silent?: boolean) => VoyageCheckpoint | null;
-  /** Rewind to a checkpoint: replaces the live session fields with that
-   *  waypoint's snapshot and moves active_checkpoint_id to it. The next
-   *  recordCheckpoint() call will then attach to it as parent — producing
-   *  a fresh branch automatically. */
-  restoreCheckpoint: (checkpointId: string) => void;
   /** Fork a new course-line from a checkpoint: restores live state to that
    *  point, creates a sibling branch, and makes it active. Preserves any
    *  in-progress work on the current branch first. Returns the new branch id. */
@@ -315,19 +310,10 @@ interface ProgressiveState {
   /** Switch the live session to another branch's head (single-active model).
    *  Preserves the current branch's in-progress work before leaving. */
   switchBranch: (branchId: string) => void;
-  /** Mark a branch as the chosen final course; all others become 'abandoned'
-   *  (preserved in the tree, never deleted). */
-  anchorBranch: (branchId: string) => void;
   /** Resolve a chart checkpoint click to the right branch verb: switch to the
    *  branch that owns it, else fork a new course from it. Keeps the chart in
    *  sync with the branch model (no silent reassignment). */
   navigateToCheckpoint: (checkpointId: string) => void;
-  /** Remove a non-active branch and prune the checkpoints/waypoints exclusive
-   *  to it (ancestry shared with surviving branches is kept). No-op on the
-   *  active branch or the last remaining one. */
-  deleteBranch: (branchId: string) => void;
-  /** Rename a course-line. Trims, ignores empty, caps length. */
-  renameBranch: (branchId: string, name: string) => void;
   /** Merge Chronicler narration (significance / why_abandoned) into a waypoint.
    *  Best-effort enrichment from the async LLM pass; no-op if not found. */
   enrichWaypoint: (waypointId: string, patch: Partial<Waypoint>) => void;
@@ -1555,24 +1541,6 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     return checkpoint;
   },
 
-  restoreCheckpoint: (checkpointId) => {
-    const { currentSessionId } = get();
-    if (!currentSessionId) return;
-    const session = get().currentSession();
-    if (!session) return;
-    const target = (session.checkpoints || []).find(c => c.id === checkpointId);
-    if (!target) return;
-    // Replace live fields with the snapshot. The checkpoint itself stays
-    // intact in the array — the previous branch is preserved as siblings
-    // of any future checkpoint that gets recorded after the fork.
-    const sessions = updateSession(get().sessions, currentSessionId, () => ({
-      ...restoreFields(target.state_snapshot, session.checkpoint_blobs),
-      active_checkpoint_id: checkpointId,
-    }));
-    persist(sessions);
-    set({ sessions });
-  },
-
   forkBranch: (fromCheckpointId, label) => {
     const { currentSessionId } = get();
     if (!currentSessionId) return null;
@@ -1669,31 +1637,6 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     track('voyage_switch_branch', {});
   },
 
-  anchorBranch: (branchId) => {
-    const { currentSessionId } = get();
-    if (!currentSessionId) return;
-    const session = get().currentSession();
-    if (!session?.branches) return;
-    if (!session.branches.some(b => b.id === branchId)) return;
-    // Make the chosen course canonical first: switch to it so the live session
-    // fields (and therefore the final deliverable / export) ARE this branch's
-    // state. Without this, anchoring a non-active branch would leave the output
-    // pointing at a different course.
-    if (session.active_branch_id !== branchId) get().switchBranch(branchId);
-    // Chosen branch → anchored; every other course-line → abandoned (kept in
-    // the tree, still switchable, just visually retired).
-    const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
-      branches: (s.branches || []).map(b =>
-        b.id === branchId
-          ? { ...b, status: 'anchored' as const }
-          : { ...b, status: 'abandoned' as const },
-      ),
-    }));
-    persist(sessions);
-    set({ sessions });
-    track('voyage_anchor_branch', {});
-  },
-
   navigateToCheckpoint: (checkpointId) => {
     const session = get().currentSession();
     if (!session) return;
@@ -1713,53 +1656,6 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     if (owning) { get().switchBranch(owning.id); return; }
     // Unowned point → fork.
     get().forkBranch(checkpointId);
-  },
-
-  deleteBranch: (branchId) => {
-    const { currentSessionId } = get();
-    if (!currentSessionId) return;
-    const session = get().currentSession();
-    if (!session?.branches) return;
-    const branches = session.branches;
-    if (branches.length <= 1) return;                  // keep at least one course
-    if (branchId === session.active_branch_id) return;  // can't delete the active one
-    const target = branches.find(b => b.id === branchId);
-    if (!target) return;
-
-    const checkpoints = session.checkpoints || [];
-    const survivors = branches.filter(b => b.id !== branchId);
-    // Checkpoints exclusive to the doomed branch (not on any survivor's path).
-    const survivorIds = new Set(
-      survivors.flatMap(b => getActivePathGeneric(checkpoints, b.head_checkpoint_id).map(c => c.id)),
-    );
-    const remove = new Set(
-      getActivePathGeneric(checkpoints, target.head_checkpoint_id)
-        .map(c => c.id)
-        .filter(id => !survivorIds.has(id)),
-    );
-
-    const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
-      branches: (s.branches || []).filter(b => b.id !== branchId),
-      checkpoints: (s.checkpoints || []).filter(c => !remove.has(c.id)),
-      waypoints: (s.waypoints || []).filter(w => !remove.has(w.checkpoint_id)),
-    }));
-    persist(sessions);
-    set({ sessions });
-    track('voyage_delete_branch', {});
-  },
-
-  renameBranch: (branchId, name) => {
-    const trimmed = name.trim().slice(0, 60);
-    if (!trimmed) return;
-    const { currentSessionId } = get();
-    if (!currentSessionId) return;
-    const session = get().currentSession();
-    if (!session?.branches?.some(b => b.id === branchId)) return;
-    const sessions = updateSession(get().sessions, currentSessionId, (s) => ({
-      branches: (s.branches || []).map(b => b.id === branchId ? { ...b, name: trimmed } : b),
-    }));
-    persist(sessions);
-    set({ sessions });
   },
 
   enrichWaypoint: (waypointId, patch) => {

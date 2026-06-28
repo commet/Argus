@@ -79,10 +79,12 @@ describe('Logbook render', () => {
     expect(html).toContain('이탈의 진짜 원인은?');
   });
 
-  it('renders branch chips for both course-lines + the anchor verb', () => {
-    expect(html).toContain('본 항로');
-    expect(html).toContain('챗봇 분기');
-    expect(html).toContain('이 항로로 확정');
+  it('is read-only narration of the active course — no branch chips / anchor (step 3a)', () => {
+    // Managing named courses (switch / anchor / delete) moved out of the log: it
+    // now only narrates the active course. Returning to an explored course lives
+    // in the 해도; exploring a road-not-taken keeps its own "이 길 가보기" below.
+    expect(html).not.toContain('챗봇 분기');      // non-active course chip gone
+    expect(html).not.toContain('이 항로로 확정');   // anchor verb gone
   });
 
   it('renders the road-not-taken with a fork affordance on the open course-change', () => {
