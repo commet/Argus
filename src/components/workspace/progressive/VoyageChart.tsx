@@ -148,12 +148,12 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
           )}
         </div>
 
-        {/* Footer hint — adapts to whether the user has any branches yet.
-            First-timers get a "try forking" nudge; veterans get a how-to. */}
+        {/* Footer hint — how to step back along the route. Journey language:
+            click a waypoint to return there and answer differently. */}
         <div className="text-[10px] text-[var(--text-tertiary)] mt-2 px-1 leading-tight">
           {branches.length <= 1
-            ? L('아직 한 항로예요. 기점을 클릭해 다른 항로를 내볼 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Single course so far. Click a waypoint to start a new course. · Drag to pan, +/− to zoom.')
-            : L('기점이나 항로를 클릭해 그 시점으로 돌아가거나 새 항로를 낼 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Click a waypoint or course to revisit or start a new course there. · Drag to pan, +/− to zoom.')}
+            ? L('기점을 클릭하면 그 시점으로 돌아가 다른 답으로 가볼 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Click a waypoint to step back there and try a different answer. · Drag to pan, +/− to zoom.')
+            : L('기점이나 항로를 클릭해 그 시점으로 돌아갈 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Click a waypoint or course to step back there. · Drag to pan, +/− to zoom.')}
         </div>
 
         {/* Course list — the paths you've explored (incl. freshly-forked ones

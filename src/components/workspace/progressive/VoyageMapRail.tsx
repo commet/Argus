@@ -8,8 +8,8 @@
  *
  *   1. 해도 (Chart)   — an INLINE branching course-graph (the spatial fork map):
  *                       where the decision split, which lane you're on, and the
- *                       entry point to the full interactive chart (rewind / fork
- *                       / anchor / compare). This is the hero.
+ *                       entry point to the full interactive chart (step back to
+ *                       any point on the route). This is the hero.
  *   2. 항해일지 (Trail) — the Logbook narrative: the turns you took, the roads
  *                       not taken, and the one-tap "다른 길로" handles.
  *   3. 분석 팀 (Crew)   — live agent activity (status, stream, results).
@@ -19,8 +19,8 @@
  * step back. The focus-mode lesson (this surface was the #1 mid-voyage clutter)
  * is honored two ways: it is COLLAPSIBLE to a slim spine (state remembered in
  * `voyage_map_collapsed`), and each section is restrained — read-first: the
- * trail's one-tap handles (switch / fork / anchor) stay inline, while the
- * spatial rewind / compare surface is deferred to the 전체 해도 modal. Each
+ * trail's one-tap "다른 길로" / "이 길로" handles stay inline, while the spatial
+ * step-back surface is deferred to the 전체 해도 modal. Each
  * child owns its own header (해도 eyebrow / 항해일지 / 분석 팀), so the rail adds
  * only hairline separators — no duplicate labels.
  *
@@ -96,7 +96,7 @@ function VoyageMapHero() {
         {hasChart && (
           <button
             onClick={() => setChartOpen(true)}
-            title={L('전체 해도 — 되돌아가기 · 분기 · 확정 · 비교', 'Full chart — rewind · fork · anchor · compare')}
+            title={L('전체 해도 — 지나온 길의 어느 지점으로든 되돌아가기', 'Full chart — step back to any point on the route')}
             className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
           >
             <Maximize2 size={10} /> {L('전체 해도', 'Full chart')}
