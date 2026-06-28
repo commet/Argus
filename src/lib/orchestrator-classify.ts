@@ -61,7 +61,14 @@ function extractDomains(texts: string[]): Domain[] {
   const scores: [Domain, number][] = [];
 
   for (const [domain, keywords] of Object.entries(DOMAIN_KEYWORDS) as [Domain, string[]][]) {
-    const count = keywords.filter(kw => combined.includes(kw.toLowerCase())).length;
+    const count = keywords.filter(kw => {
+      const k = kw.toLowerCase();
+      // Short ASCII abbreviations (hr/ux/ui/api/pr/it...) must match on a WORD
+      // BOUNDARY — plain substring gave false positives that flipped the whole
+      // domain (through→hr, luxury→ux, capital→api, build→ui).
+      if (/^[a-z]{2,3}$/.test(k)) return new RegExp(`\\b${k}\\b`).test(combined);
+      return combined.includes(k);
+    }).length;
     if (count > 0) scores.push([domain, count]);
   }
 
