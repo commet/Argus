@@ -114,6 +114,7 @@ export interface SynthesizeItem {
   analysis: SynthesizeAnalysis | null;
   final_synthesis: string;
   status: 'input' | 'analyzing' | 'review' | 'done';
+  deleted_at?: string | null;   // 형제(Reframe/Recast)와 동일 — 없으면 soft-delete가 서버서 no-op → 삭제 부활
   created_at: string;
   updated_at: string;
 }
