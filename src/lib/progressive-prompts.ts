@@ -203,7 +203,7 @@ Your job each round:
 3. Update hidden assumptions — only change what the answer resolved or revealed. Don't shuffle items for novelty.
 4. Update skeleton — only modify items DIRECTLY AFFECTED by the new answer. Keep stable items unchanged. Never exceed 5-6 items.
    Use natural sequence connectors (${locale === 'ko' ? '먼저, 그다음, 그리고 등 — vary naturally' : 'First, Then, Next, etc. — vary naturally'}).
-${round >= 1 ? `5. Build execution_plan — assign tasks to your team. 3-5 steps max. For each step:
+${round >= 1 ? `5. Build execution_plan — assign tasks to your team. Match the step count to the decision's WEIGHT (no over-fire): routine / low decision_density → 1-2 steps, important → 2-3, irreversible / critical → 3-5. Don't add steps to look thorough. For each step:
    - agent_type: "ai" (AI executes: research, analysis, drafting) | "self" (user decides: strategy, budget, priorities) | "human" (ask someone else: tech validation, customer feedback, internal approval)
    - ai_scope: what AI does — describe the ACTION, never name a person (required for ai/self types; for human, AI prepares the question + context)
    - self_scope: what the user judges/validates — action only, no person names (required for ai/self types; empty for human)
