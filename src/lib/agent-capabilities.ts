@@ -9,12 +9,13 @@
  */
 
 import type { TaskType, ContextDomain, OutputType } from './task-classifier';
+import type { AgentId } from './agent-registry';
 import { getCapabilityDelta } from './capability-tuner';
 
 /* ─── Types ─── */
 
 export interface AgentCapabilityProfile {
-  agentId: string;
+  agentId: AgentId;   // 정본 타입 — 오타/유령 id는 컴파일이 거부 (누락은 agent-registry.test의 양방향 가드가 잡는다)
   taskTypes: TaskType[];         // 순서 = 숙련도 (첫번째가 핵심)
   domains: ContextDomain[];      // 순서 = 친화도
   outputTypes: OutputType[];     // 순서 = 생산 능력

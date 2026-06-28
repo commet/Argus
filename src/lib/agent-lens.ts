@@ -17,6 +17,8 @@
  * from agent-registry so this is additive and reversible.
  */
 
+import type { AgentId } from './agent-registry';
+
 export type Lens =
   | 'scout'      // 탐색 — fast facts, evidence, cases
   | 'quant'      // 수치 — estimation, sizing, unit-economics, ROI (minjae)
@@ -29,7 +31,7 @@ export type Lens =
   | 'craft'      // 전달 — write-to-be-read, UX
   | 'conductor'; // 지휘 — synthesize, surface contradictions
 
-export const LENS_BY_AGENT: Record<string, Lens> = {
+export const LENS_BY_AGENT: Record<AgentId, Lens> = {
   hayoon: 'scout',
   sujin: 'scout',
   minjae: 'quant',
@@ -52,5 +54,5 @@ export const LENS_BY_AGENT: Record<string, Lens> = {
 /** The lens an agent belongs to, or null for unmapped/custom agents
  *  (which are exempt from the one-per-lens diversity rule). */
 export function lensOf(agentId: string): Lens | null {
-  return LENS_BY_AGENT[agentId] ?? null;
+  return LENS_BY_AGENT[agentId as AgentId] ?? null;
 }
