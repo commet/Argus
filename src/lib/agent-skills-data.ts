@@ -1,6 +1,6 @@
 import type { AgentSkillSet } from './agent-skills';
 
-// ─── 14 Agent Skill Sets ───
+// ─── 17 Agent Skill Sets (registry와 1:1 — registry.test 양방향 가드가 강제) ───
 
 export const AGENT_SKILLS: AgentSkillSet[] = [
   // ━━━ 1. RESEARCHER (다은) ━━━

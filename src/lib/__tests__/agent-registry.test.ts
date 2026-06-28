@@ -176,4 +176,11 @@ describe('Agent Registry', () => {
   it('registry ↔ BUILTIN_AGENTS: 양방향 정확히 일치 (UI 표시 공책)', () => {
     expectSameSet(getAllAgentIds(), BUILTIN_AGENTS.map(a => a.id));
   });
+
+  // AGENT_SKILLS는 이전엔 단방향(skills ⊆ registry)만 검사돼, registry에 추가됐는데
+  // 스킬셋에서 빠지면 getSkillSet=undefined로 프레임워크 0 주입이 조용히 일어났다.
+  // 양방향으로 닫는다. (personaId는 AgentSkillSet 타입이 PersonaId라 오타/유령은 이미 컴파일강제)
+  it('registry ↔ AGENT_SKILLS: personaId 양방향 정확히 일치 (단방향이던 구멍)', () => {
+    expectSameSet(AGENT_REGISTRY.map(a => a.personaId), AGENT_SKILLS.map(s => s.personaId));
+  });
 });

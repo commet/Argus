@@ -15,11 +15,11 @@ import { getCapabilityDelta } from './capability-tuner';
 /* ─── Types ─── */
 
 export interface AgentCapabilityProfile {
-  agentId: AgentId;   // 정본 타입 — 오타/유령 id는 컴파일이 거부 (누락은 agent-registry.test의 양방향 가드가 잡는다)
-  taskTypes: TaskType[];         // 순서 = 숙련도 (첫번째가 핵심)
-  domains: ContextDomain[];      // 순서 = 친화도
-  outputTypes: OutputType[];     // 순서 = 생산 능력
-  antiPatterns: TaskType[];      // 이 에이전트가 하면 안 되는 것
+  agentId: AgentId;                       // 정본 타입 — 오타/유령 id는 컴파일이 거부
+  readonly taskTypes: readonly TaskType[];      // 순서 = 숙련도 (첫번째가 핵심)
+  readonly domains: readonly ContextDomain[];   // 순서 = 친화도
+  readonly outputTypes: readonly OutputType[];  // 순서 = 생산 능력
+  readonly antiPatterns: readonly TaskType[];   // 이 에이전트가 하면 안 되는 것
 }
 
 /* ─── Scoring Constants ─── */
@@ -38,7 +38,7 @@ const WEIGHTS = {
 
 /* ─── 17 Agent Profiles ─── */
 
-export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
+export const AGENT_CAPABILITIES = [
   // ━━━ Research Chain ━━━
   {
     agentId: 'hayoon',  // 인턴
@@ -169,7 +169,17 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
     outputTypes: ['report', 'document', 'risk_assessment'],
     antiPatterns: [],
   },
-];
+] as const satisfies readonly AgentCapabilityProfile[];
+
+/**
+ * 완전성 컴파일 가드: AGENT_REGISTRY의 모든 AgentId가 위 배열에 존재해야 한다.
+ * 한 명이라도 빠지면 _CapMissing이 never가 아니게 되어 아래 줄이 컴파일 에러(TS2322)다.
+ * = lens의 Record<AgentId>와 동급의 "누락이 빌드를 멈춘다"를, 배열 형태 그대로 강제.
+ * (양방향 테스트 가드보다 한 단계 근본 — 검사를 돌리기 전에 빌드가 거부한다.)
+ */
+type _CapMissing = Exclude<AgentId, typeof AGENT_CAPABILITIES[number]['agentId']>;
+const _capComplete: [_CapMissing] extends [never] ? true : ['MISSING agentId in AGENT_CAPABILITIES', _CapMissing] = true;
+void _capComplete;
 
 /* ─── Capability Lookup ─── */
 
@@ -193,7 +203,7 @@ export function isCriticAgentId(agentId: string): boolean {
 
 /* ─── Scoring Engine ─── */
 
-function rankScore(item: string, ranked: string[]): number {
+function rankScore(item: string, ranked: readonly string[]): number {
   const idx = ranked.indexOf(item);
   if (idx === -1) return DEFAULT_SCORE;
   return RANK_SCORES[idx] ?? RANK_SCORES[RANK_SCORES.length - 1];

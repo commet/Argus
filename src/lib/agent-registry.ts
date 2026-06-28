@@ -55,6 +55,9 @@ export const AGENT_REGISTRY = [
  */
 export type AgentId = typeof AGENT_REGISTRY[number]['agentId'];
 
+/** 정본에서 도출한 personaId 유니온 (skills/personas/completion notes 키). */
+export type PersonaId = typeof AGENT_REGISTRY[number]['personaId'];
+
 // ─── Lookup Maps (lazy-init) ───
 
 let _byAgentId: Map<string, AgentIdentity> | null = null;

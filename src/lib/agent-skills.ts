@@ -8,6 +8,7 @@
  */
 
 import type { AgentLevel } from '@/stores/types';
+import type { PersonaId } from './agent-registry';
 
 // ─── Level Mapping (session 3-tier ↔ unified system Lv.1-5) ───
 
@@ -87,7 +88,7 @@ export interface AgentTool {
 // ─── Skill Definition per Persona ───
 
 export interface AgentSkillSet {
-  personaId: string;
+  personaId: PersonaId;
   frameworks: string[];
   checkpoints: string[];
   outputFormat: string;
