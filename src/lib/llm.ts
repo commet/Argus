@@ -2,6 +2,7 @@ import { getStorage, STORAGE_KEYS } from '@/lib/storage';
 import type { Settings } from '@/stores/types';
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { track } from '@/lib/analytics';
+import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL } from '@/lib/llm-models';
 
 // ━━━ Types ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -421,8 +422,8 @@ function getSettings(): Settings {
     openai_api_key: '',
     gemini_api_key: '',
     llm_provider: 'anthropic',
-    openai_model: 'gpt-4o',
-    gemini_model: 'gemini-2.5-flash',
+    openai_model: DEFAULT_OPENAI_MODEL,
+    gemini_model: DEFAULT_GEMINI_MODEL,
     llm_mode: 'proxy',
     local_endpoint: '',
     language: 'ko',
@@ -456,7 +457,7 @@ export async function callLLM(
     if (!settings.openai_api_key) {
       throw new LLMError('OpenAI API 키가 설정되지 않았습니다. 설정에서 키를 입력해주세요.', { category: 'auth' });
     }
-    return callOpenAI(settings.openai_api_key, settings.openai_model || 'gpt-4o', messages, options);
+    return callOpenAI(settings.openai_api_key, settings.openai_model || DEFAULT_OPENAI_MODEL, messages, options);
   }
 
   // Gemini provider — always direct (user's own key)
@@ -464,7 +465,7 @@ export async function callLLM(
     if (!settings.gemini_api_key) {
       throw new LLMError('Google AI API 키가 설정되지 않았습니다. 설정에서 키를 입력해주세요.', { category: 'auth' });
     }
-    return callGemini(settings.gemini_api_key, settings.gemini_model || 'gemini-2.5-flash', messages, options);
+    return callGemini(settings.gemini_api_key, settings.gemini_model || DEFAULT_GEMINI_MODEL, messages, options);
   }
 
   if (settings.llm_mode === 'direct' && settings.anthropic_api_key) {
@@ -730,10 +731,10 @@ export async function callLLMStream(
   };
   if (isGemini) {
     bodyObj.apiKey = settings.gemini_api_key;
-    bodyObj.model = resolveGeminiModel(settings.gemini_model || 'gemini-2.5-flash', options.model);
+    bodyObj.model = resolveGeminiModel(settings.gemini_model || DEFAULT_GEMINI_MODEL, options.model);
   } else if (isOpenAI) {
     bodyObj.apiKey = settings.openai_api_key;
-    bodyObj.model = resolveOpenAIModel(settings.openai_model || 'gpt-4o', options.model);
+    bodyObj.model = resolveOpenAIModel(settings.openai_model || DEFAULT_OPENAI_MODEL, options.model);
   } else if (isDirect) {
     bodyObj.apiKey = settings.anthropic_api_key;
   }

@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth';
 import type { LLMMode, LLMProvider } from '@/stores/types';
 import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, Volume2, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, Link2 } from 'lucide-react';
 import { getObservationsSummary } from '@/lib/user-context';
+import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL } from '@/lib/llm-models';
 import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAmbientPlaying } from '@/lib/audio';
 import { useSlackStore } from '@/stores/useSlackStore';
 import { useTelegramStore } from '@/stores/useTelegramStore';
@@ -364,7 +365,7 @@ export default function SettingsPage() {
             <div className="mt-3">
               <label className="text-[12px] text-[var(--text-secondary)] mb-1 block">{L('모델', 'Model')}</label>
               <select
-                value={settings.openai_model || 'gpt-4o'}
+                value={settings.openai_model || DEFAULT_OPENAI_MODEL}
                 onChange={(e) => updateSettings({ openai_model: e.target.value })}
                 className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
               >
@@ -407,7 +408,7 @@ export default function SettingsPage() {
             <div className="mt-3">
               <label className="text-[12px] text-[var(--text-secondary)] mb-1 block">{L('모델', 'Model')}</label>
               <select
-                value={settings.gemini_model || 'gemini-2.5-flash'}
+                value={settings.gemini_model || DEFAULT_GEMINI_MODEL}
                 onChange={(e) => updateSettings({ gemini_model: e.target.value })}
                 className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3.5 py-2.5 text-[14px] focus:outline-none focus:border-[var(--accent)] cursor-pointer"
               >
