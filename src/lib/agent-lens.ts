@@ -1,5 +1,5 @@
 /**
- * agent-lens.ts — the 8 lenses (WHO), grouping the 16 routable agents.
+ * agent-lens.ts — the 10 lenses (WHO), grouping the 16 routable agents.
  *
  * A lens is a distinct *way of looking*, not a person. The agents keep all their
  * knowledge/frameworks/voice; this layer just groups them so routing works at
@@ -19,8 +19,10 @@
 
 export type Lens =
   | 'scout'      // 탐색 — fast facts, evidence, cases
-  | 'quant'      // 수치 — estimation, ROI, finance
-  | 'strategy'   // 전략 — direction, framing, options
+  | 'quant'      // 수치 — estimation, sizing, unit-economics, ROI (minjae)
+  | 'finance'    // 재무 — statements, valuation, audit (hyeyeon; split from quant — different competence)
+  | 'strategy'   // 전략 — direction, framing, options (firm-level)
+  | 'marketing'  // 마케팅 — GTM, channels, growth (minseo; split from strategy)
   | 'skeptic'    // 검증 — risk, counter-view, pre-mortem
   | 'legal'      // 법무 — legal/compliance/contract review
   | 'operator'   // 실행 — people, org, schedule, feasibility
@@ -31,11 +33,11 @@ const LENS_BY_AGENT: Record<string, Lens> = {
   hayoon: 'scout',
   sujin: 'scout',
   minjae: 'quant',
-  hyeyeon: 'quant',
+  hyeyeon: 'finance',
   strategy_jr: 'strategy',
   hyunwoo: 'strategy',
   chief_strategist: 'strategy',
-  minseo: 'strategy',   // 마케팅·그로스 = GTM 전략 (was missing → exempt from diversity)
+  minseo: 'marketing',   // GTM/채널/그로스 — split from strategy (firm-strategy ≠ go-to-market)
   donghyuk: 'skeptic',
   taejun: 'legal',
   sujin_hr: 'operator',
