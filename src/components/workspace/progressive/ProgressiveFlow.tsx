@@ -59,6 +59,7 @@ import { TeamDeployBanner } from './TeamDeployBanner';
 import { FinalCard } from './FinalCard';
 export { DMFeedback, VerificationGate, TeamDeployBanner, FinalCard }; // back-compat re-exports (were defined here)
 import { CurrentBearingCard } from './CurrentBearingCard';
+import { WakeReturn } from './WakeReturn';
 import { DecisionReplayTimeline } from './DecisionReplayTimeline';
 import { SealMoment } from './SealMoment';
 import { TrialSail } from './TrialSail';
@@ -997,6 +998,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // grade is written. The voyage always has a project (createProject precedes
   // createSession), so this resolves once the session exists.
   const contractProject = useProjectStore((s) => s.projects.find((p) => p.id === projectId));
+  const updateProject = useProjectStore((s) => s.updateProject);
   // The user typed a pre-AI lean (Bind rope) → confirmation-bias risk → deeper verify.
   // Read from the store at call time (not this render's closure) to avoid a stale value.
   const computeUserLean = () => !!useProjectStore.getState().projects
@@ -3255,6 +3257,30 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 canSeal={!!contractProject && contractPredicates.length > 0 && !contractProject.decision_contract}
               />
             </div>
+
+            {/* WakeReturn — 1st settlement (생각↔생각): mirror the pre-AI rope back the
+                moment the answer is fully revealed, and ask "still holds?". Only when a
+                real rope exists; the recheck rides the decision_contract jsonb (no migration).
+                This makes the AI's pull on the user's own read visible in-session — the
+                on-ramp that sells the later opt-in 현실 settlement at the check-in date. */}
+            {(() => {
+              const c = contractProject?.decision_contract;
+              const ropeText = c?.predicates?.find((p) => p.source === 'user_lean')?.text;
+              if (!contractProject || !c || !ropeText) return null;
+              return (
+                <div className="mt-4">
+                  <WakeReturn
+                    lean={ropeText}
+                    leanAfter={c.lean_after ?? null}
+                    onCommit={(after) =>
+                      updateProject(contractProject.id, {
+                        decision_contract: { ...c, lean_after: { ...after, at: new Date().toISOString() } },
+                      })
+                    }
+                  />
+                </div>
+              );
+            })()}
 
             {contractProject && (
               <div ref={sealMomentRef}>

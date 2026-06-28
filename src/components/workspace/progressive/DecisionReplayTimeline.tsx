@@ -1,6 +1,6 @@
 'use client';
 
-import { Anchor, CheckCircle2, Compass, GitFork, MessageSquareText, RotateCcw, Target } from 'lucide-react';
+import { Anchor, CheckCircle2, Compass, GitFork, MessageSquareText, RotateCcw, Target, Waves } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import type {
@@ -122,6 +122,22 @@ export function DecisionReplayTimeline({
       meta: bearing.next_helm
         ? L(`다음: ${bearing.next_helm}`, `Next: ${bearing.next_helm}`)
         : undefined,
+    });
+  }
+
+  // FIRST settlement (생각↔생각): did the user's own read move after hearing the answer?
+  // Mirror the two points the user wrote — NEVER a verdict on the move (zero-judgment).
+  if (contract?.lean_after) {
+    const la = contract.lean_after;
+    const anchorText = clean(allPredicates.find((p) => p.source === 'user_lean')?.text);
+    steps.push({
+      key: 'wake',
+      Icon: Waves,
+      tone: la.changed ? 'accent' : 'neutral',
+      label: L('내 생각의 항적', "My read's wake"),
+      title: la.changed ? L('마음이 움직였어요', 'My read moved') : L('단단함 — 흔들리지 않았어요', 'It held — unmoved'),
+      body: la.changed && clean(la.text) ? clean(la.text) : undefined,
+      meta: anchorText ? L(`출발: ${anchorText}`, `Set out: ${anchorText}`) : undefined,
     });
   }
 

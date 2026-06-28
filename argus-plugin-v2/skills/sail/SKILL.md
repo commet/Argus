@@ -531,6 +531,62 @@ ko: `첫 항해가 기록됐어요. /argus:chart 로 언제든 돌아올 수 있
 en: `Your first voyage is logged. /argus:chart returns here anytime; /argus:help shows the map.`
 Never print it again after the first session.
 
+### Step 7.5 - Wake (1차 정산: 닻이 어디로 움직였나)
+
+The webapp mirrors the pre-AI BIND lean back the moment the bearing is revealed and
+asks "still holds?" (`WakeReturn` / `lean_after`). This is the SAME pass on the plugin
+surface — the bind from clarify Step 3.4 finally pays off **in-session**, making the
+crew's pull on the user's own read visible immediately, not weeks later at settle.
+It is the on-ramp that sells the later reality settlement (`/argus:settle`).
+
+**Run ONLY when a real rope exists, and only in an interactive run.** Read
+`.argus/ledger/ledger.jsonl`; find the `seal` with id `lean:<session-id>` and
+`author:"user"` (the BIND lean from clarify Step 3.4).
+- **No such seal** (the user skipped the lean at Step 3.4) → render nothing, skip
+  this step. With no anchor there is nothing to weigh against — never manufacture
+  the moment (mirror clause).
+- **A `wake` event already exists for that id** → already settled once; skip (no re-ask).
+- **`--no-prompt` / non-interactive** → skip (cannot ask); the next interactive
+  voyage or settle still has the rope.
+
+When the rope exists, ONE `AskUserQuestion` (a measurement, not a quiz — neutral tone):
+
+- Title: `항적` (en: `Your wake`)
+- Question: `출발할 때 당신은 "{{lean predicate verbatim}}" 이라고 했어요. 다 보고 난 지금도 그래요?`
+  (en: `When you set out you said "{{lean}}". Now that you've seen it all — does it still hold?`)
+- Options:
+  - `그대로예요` (en: `It still holds`) → `changed:false`, `lean_after` = the lean verbatim
+  - `바뀌었어요` (en: `It moved`) → ask for ONE line; `changed:true`, `lean_after` = the user's new line
+  - `건너뛰기` (en: `Skip`) → write nothing
+
+**Spine (do not regress):**
+- `lean_after` is PURE user-authored — NEVER prefilled from the bearing or any model
+  output (no borrowed rope; identical floor to BindCard / clarify Step 3.4).
+- argus passes NO verdict on the move. Surface the two points the user wrote; the
+  bare label (`단단함` held / `마음이 움직였어요` moved) is a FACT, never "wiser" /
+  "the crew was right" / "you were wrong". The crew are deaf rowers — they do not
+  judge whether your read should have moved.
+- Skip is one tap, lossless, never re-asked.
+
+**Record** (append-only, `O_APPEND` — same discipline as seal/settle; the field
+shape mirrors the webapp `lean_after {text, changed}`):
+
+```json
+{"event":"wake","id":"lean:<session-id>","lean_before":"<the BIND lean verbatim>","lean_after":"<held: same text; moved: the user's new line>","changed":true,"at":"<now ISO>"}
+```
+
+- Same id as the BIND seal (`lean:<session-id>`) so a ledger replay attaches the
+  after-reading to the same rope. `wake` is unknown to existing readers (statusline
+  and settle replay switch on event type with no `default` branch) → safely ignored
+  by them; only the surfaces that opt in (settle Step 4, log) read it.
+- **Write verification:** re-read the appended line and JSON-parse it; on failure
+  append a corrected line (never edit in place) — a malformed wake is a settlement
+  that ceases to exist.
+
+**Render** after recording (user's locale), one line, no verdict:
+- held: `단단함 — 들은 뒤에도 닻은 그대로예요.` (en: `It held — the anchor didn't move.`)
+- moved: `출발: {{lean_before}} → 지금: {{lean_after}}` (en: `Set out: {{lean_before}} → now: {{lean_after}}`)
+
 ### Bearing Rules
 
 - Do not render counts like "4 supported / 2 challenged" in the default

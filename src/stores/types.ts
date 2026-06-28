@@ -631,6 +631,23 @@ export interface DecisionContract {
    *  never overwrites a predicate's text or the user_lean rope. Rides the existing
    *  decision_contract jsonb column — no new DB column, no migration. */
   outcome_note?: string;
+  /** FIRST settlement (생각↔생각), captured at the completion screen the moment the
+   *  AI's answer is fully revealed. The pre-AI `user_lean` rope is mirrored back and
+   *  the user is asked "still holds?" — they tap 그대로 or rewrite one line. This is
+   *  the immediate, free, every-user pass that makes the AI's pull on the user's own
+   *  read VISIBLE (the bind finally pays off in-session, not weeks later at settle).
+   *  PURE user-authored — never AI-filled (no borrowed rope), no AI verdict on the
+   *  move (zero-judgment: we only mirror the two points the user wrote, never label it
+   *  "wiser"/"AI's doing"). `changed:false` = the lean held (단단함). Rides the
+   *  decision_contract jsonb — no new DB column, no migration (outcome_note precedent). */
+  lean_after?: {
+    /** The user's lean AFTER hearing the answer. Equals the rope text when unchanged. */
+    text: string;
+    /** Did the user say it moved? false = they tapped 그대로 (held). */
+    changed: boolean;
+    /** ISO timestamp of the recheck. */
+    at: string;
+  };
 }
 
 // ─── Retrospective Answers (Phase 2) ───
