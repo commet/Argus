@@ -237,8 +237,20 @@ export function selectAgents(
     // stakes).
     const targetStep = bestCritiqueStep >= 0 ? bestCritiqueStep : steps.length - 1;
     if (targetStep >= 0) {
+      // If we overwrite an already-assigned step, release the displaced agent's
+      // id/lens claim — otherwise that lens stays "used" but unfilled (orphaned)
+      // and the run silently loses a perspective.
+      const displaced = result.get(targetStep);
+      if (displaced && displaced.id !== criticAgent.id) {
+        usedAgentIds.delete(displaced.id);
+        const dl = lensOf(displaced.id);
+        if (dl) usedLenses.delete(dl);
+      }
       result.set(targetStep, criticAgent);
       usedAgentIds.add(criticAgent.id);
+      // critic도 lens를 점유 — force-add가 lens 가드를 우회해 같은 렌즈 중복을 만들지 않게.
+      const criticLens = lensOf(criticAgent.id);
+      if (criticLens) usedLenses.add(criticLens);
       // Record the rationale so the why-this-agent line shows for the Critic —
       // and REPLACE any stale trace if we overwrote an already-assigned step
       // (otherwise the line would describe the agent we just displaced).
