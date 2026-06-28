@@ -54,13 +54,14 @@ describe('VoyageChart render', () => {
     expect(html).toContain('항로 2개');     // course count
   });
 
-  it('renders the course legend with all branches and their controls', () => {
+  it('lists explored courses with only the "return to this path" control — no branch ceremony', () => {
     const html = renderToStaticMarkup(createElement(VoyageChart));
-    expect(html).toContain('항로 목록');     // legend header
-    expect(html).toContain('챗봇 분기');     // the non-active fork branch
-    expect(html).toContain('활성');          // active marker on main
-    expect(html).toContain('전환');          // switch control on the fork
-    expect(html).toContain('이름 변경');      // rename affordance on each course
-    expect(html).toContain('활성 항로와 비교'); // compare affordance on non-active course
+    expect(html).toContain('항로 목록');       // course list header
+    expect(html).toContain('챗봇 분기');       // the non-active explored course
+    expect(html).toContain('지금 이 길');       // current-course marker
+    expect(html).toContain('이 길로');          // the one kept control: return to this path
+    // Branch-management ceremony is gone (rename / compare / anchor / delete).
+    expect(html).not.toContain('이름 변경');
+    expect(html).not.toContain('활성 항로와 비교');
   });
 });

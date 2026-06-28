@@ -29,14 +29,13 @@
  * a new course from it (keeping the chart consistent with the branch model).
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, Anchor, X as XIcon, RotateCcw, ChevronRight, Flag, Pencil, GitCompare, Check } from 'lucide-react';
+import { Compass, X as XIcon, RotateCcw, ChevronRight, Flag } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
 import type { VoyageStage } from '@/stores/types';
 import { getActivePath } from '@/lib/version-tree';
-import { branchHeadSummary } from '@/lib/branch-summary';
 import { SeaChart } from './SeaChart';
 import { EASE } from './shared/constants';
 
@@ -51,32 +50,15 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
   const navigateToCheckpoint = useProgressiveStore(s => s.navigateToCheckpoint);
   const switchBranch = useProgressiveStore(s => s.switchBranch);
-  const anchorBranch = useProgressiveStore(s => s.anchorBranch);
-  const deleteBranch = useProgressiveStore(s => s.deleteBranch);
-  const renameBranch = useProgressiveStore(s => s.renameBranch);
   const locked = useProgressiveStore(s => s.isBranchingLocked());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftName, setDraftName] = useState('');
-  const [compareId, setCompareId] = useState<string | null>(null);
-  // Two-step delete confirm — a course delete is destructive; arm before acting.
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
   const activeId = session?.active_checkpoint_id ?? null;
   const activePath = useMemo(() => getActivePath(checkpoints, activeId), [checkpoints, activeId]);
   const branches = useMemo(() => session?.branches ?? [], [session?.branches]);
   const activeBranch = branches.find(b => b.id === session?.active_branch_id) ?? null;
-  const waypoints = useMemo(() => session?.waypoints ?? [], [session?.waypoints]);
-
-  // Disarm a pending delete-confirm if its target is no longer a deletable,
-  // non-active course or while branching is locked (mirrors Logbook).
-  useEffect(() => {
-    if (!deleteConfirmId) return;
-    const stillDeletable = branches.some(b => b.id === deleteConfirmId && b.id !== activeBranch?.id);
-    if (!stillDeletable || locked) setDeleteConfirmId(null);
-  }, [deleteConfirmId, branches, activeBranch?.id, locked]);
 
   if (!session || checkpoints.length === 0) return null;
 
@@ -174,9 +156,9 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
             : L('기점이나 항로를 클릭해 그 시점으로 돌아가거나 새 항로를 낼 수 있어요. · 끌어서 이동, +/− 로 확대·축소.', 'Click a waypoint or course to revisit or start a new course there. · Drag to pan, +/− to zoom.')}
         </div>
 
-        {/* Course legend — every branch (incl. freshly-forked ones with no
-            divergent checkpoint yet, which the SVG tree can't show). Full
-            management: switch / anchor / delete. */}
+        {/* Course list — the paths you've explored (incl. freshly-forked ones
+            with no divergent checkpoint yet, which the SVG tree can't show).
+            Read-only except "이 길로" to return to a path you took. */}
         {branches.length > 1 && (
           <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]/40 space-y-0.5">
             <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-1">
@@ -192,153 +174,26 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
                   className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''} ${abandoned ? 'opacity-50' : ''}`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: b.color }} />
-                  {editingId === b.id ? (
-                    <input
-                      autoFocus
-                      value={draftName}
-                      maxLength={60}
-                      onChange={(e) => setDraftName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') { renameBranch(b.id, draftName); setEditingId(null); }
-                        else if (e.key === 'Escape') setEditingId(null);
-                      }}
-                      onBlur={() => { renameBranch(b.id, draftName); setEditingId(null); }}
-                      className="text-[11px] flex-1 min-w-0 bg-[var(--bg)] border border-[var(--accent)]/40 rounded px-1 py-0.5 text-[var(--text-primary)] focus:outline-none"
-                    />
-                  ) : (
-                    <>
-                      <span className="text-[11px] text-[var(--text-primary)] truncate flex-1 min-w-0" title={b.name}>{b.name}</span>
-                      <button
-                        onClick={() => { setEditingId(b.id); setDraftName(b.name); }}
-                        title={L('이름 변경', 'Rename')}
-                        className="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 cursor-pointer"
-                      >
-                        <Pencil size={10} />
-                      </button>
-                    </>
-                  )}
+                  <span className="text-[11px] text-[var(--text-primary)] truncate flex-1 min-w-0" title={b.name}>{b.name}</span>
                   {b.status === 'anchored' && <Flag size={9} className="text-[var(--accent)] shrink-0" />}
                   <span className="text-[9px] text-[var(--text-tertiary)] tabular-nums shrink-0">{count}</span>
                   {isActive ? (
-                    <span className="text-[9px] text-[var(--accent)] font-semibold shrink-0 ml-0.5">{L('활성', 'active')}</span>
+                    <span className="text-[9px] text-[var(--accent)] font-semibold shrink-0 ml-0.5">{L('지금 이 길', 'current')}</span>
                   ) : (
                     <button
                       onClick={() => !locked && switchBranch(b.id)}
                       disabled={locked}
-                      title={L('이 항로로 전환', 'Switch to this course')}
+                      title={L('이 길로 돌아가기', 'Go to this course')}
                       className={`text-[9px] font-medium text-[var(--accent)] hover:underline shrink-0 ml-0.5 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
-                      {L('전환', 'Switch')}
+                      {L('이 길로', 'Go')}
                     </button>
-                  )}
-                  {b.status !== 'anchored' && (
-                    <button
-                      onClick={() => !locked && anchorBranch(b.id)}
-                      disabled={locked}
-                      title={L('이 항로로 확정', 'Anchor this course')}
-                      className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    >
-                      <Anchor size={11} />
-                    </button>
-                  )}
-                  {!isActive && activeBranch && (
-                    <button
-                      onClick={() => setCompareId(prev => (prev === b.id ? null : b.id))}
-                      title={L('활성 항로와 비교', 'Compare with active course')}
-                      className={`p-0.5 shrink-0 cursor-pointer ${compareId === b.id ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--accent)]'}`}
-                    >
-                      <GitCompare size={11} />
-                    </button>
-                  )}
-                  {!isActive && (
-                    deleteConfirmId === b.id ? (
-                      <span className="inline-flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => { setDeleteConfirmId(null); if (!locked) deleteBranch(b.id); }}
-                          disabled={locked}
-                          className={`text-[9px] font-semibold text-[var(--danger)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                        >
-                          {L('삭제', 'Delete')}
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmId(null)}
-                          aria-label={L('취소', 'Cancel')}
-                          className="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer"
-                        >
-                          <XIcon size={11} />
-                        </button>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => setDeleteConfirmId(b.id)}
-                        disabled={locked}
-                        title={L('항로 삭제', 'Delete course')}
-                        className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                      >
-                        <XIcon size={11} />
-                      </button>
-                    )
                   )}
                 </div>
               );
             })}
           </div>
         )}
-
-        {/* Course comparison — weigh the active course against another before
-            anchoring, so the choice isn't blind. */}
-        {compareId && activeBranch && (() => {
-          const other = branches.find(b => b.id === compareId);
-          if (!other) return null;
-          const cols = [
-            branchHeadSummary(checkpoints, waypoints, activeBranch),
-            branchHeadSummary(checkpoints, waypoints, other),
-          ];
-          return (
-            <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]/40">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-tertiary)] flex items-center gap-1">
-                  <GitCompare size={10} /> {L('항로 비교', 'Compare courses')}
-                </span>
-                <button onClick={() => setCompareId(null)} aria-label={L('닫기', 'Close')} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer">
-                  <XIcon size={11} />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {cols.map((s, i) => (
-                  <div key={s.id} className="rounded-lg border border-[var(--border-subtle)] p-2 space-y-1.5 min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
-                      <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{s.name}</span>
-                      {i === 0 && <span className="text-[8px] text-[var(--accent)] font-bold shrink-0">{L('활성', 'active')}</span>}
-                    </div>
-                    <div>
-                      <div className="text-[8px] uppercase tracking-wide text-[var(--text-tertiary)]">{L('진짜 질문', 'Real question')}</div>
-                      <div className="text-[10px] text-[var(--text-primary)] leading-snug">{s.realQuestion || '—'}</div>
-                    </div>
-                    {s.assumptions.length > 0 && (
-                      <div>
-                        <div className="text-[8px] uppercase tracking-wide text-[var(--text-tertiary)]">{L('남은 가정', 'Open assumptions')}</div>
-                        <ul className="space-y-0.5">
-                          {s.assumptions.map((a, k) => (
-                            <li key={k} className="text-[9.5px] text-[var(--text-secondary)] leading-snug flex gap-1">
-                              <span className="opacity-50 shrink-0">·</span><span className="min-w-0">{a}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-[9px] text-[var(--text-tertiary)] pt-0.5">
-                      <span>{L(`변곡점 ${s.turns}`, `${s.turns} turns`)}</span>
-                      {s.hasFinal && <span className="inline-flex items-center gap-0.5 text-[var(--accent)]"><Check size={8} />{L('산출물', 'draft')}</span>}
-                      {s.status === 'anchored' && <span className="text-[var(--accent)]">⚑</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
       </div>
 
       {/* Selection popover (slides in below the chart for the picked
