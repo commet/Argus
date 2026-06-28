@@ -30,7 +30,7 @@ import {
 
 // ─── Builtin Agent Definitions ───
 
-const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_at' | 'created_at' | 'updated_at'>[] = [
+export const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_at' | 'created_at' | 'updated_at'>[] = [
   // ── 리서치 체인 ──
   {
     id: 'hayoon', name: '하윤', nameEn: 'Riley', role: '리서치 인턴', roleEn: 'Research Intern', emoji: '📝', color: '#06B6D4',

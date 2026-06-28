@@ -29,7 +29,7 @@ export type Lens =
   | 'craft'      // 전달 — write-to-be-read, UX
   | 'conductor'; // 지휘 — synthesize, surface contradictions
 
-const LENS_BY_AGENT: Record<string, Lens> = {
+export const LENS_BY_AGENT: Record<string, Lens> = {
   hayoon: 'scout',
   sujin: 'scout',
   minjae: 'quant',
