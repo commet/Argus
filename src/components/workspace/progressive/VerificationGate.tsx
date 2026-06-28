@@ -88,12 +88,12 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
                 {finding && <p className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-[1.55] line-clamp-3">{finding}</p>}
                 <div className="flex items-center gap-2 mt-2.5">
                   <button onClick={() => onApprove(w.id)}
-                    className="px-3 py-1.5 text-[12px] font-semibold text-white rounded-lg cursor-pointer shadow-[var(--shadow-sm)]"
+                    className="inline-flex items-center px-3.5 py-2 min-h-9 text-[12px] font-semibold text-white rounded-lg cursor-pointer shadow-[var(--shadow-sm)]"
                     style={{ background: 'var(--gradient-gold)' }}>
                     {L('반영', 'Apply')}
                   </button>
                   <button onClick={() => onReject(w.id)}
-                    className="px-3 py-1.5 text-[12px] text-red-600 hover:bg-red-50 rounded-lg border border-red-200 cursor-pointer transition-colors">
+                    className="inline-flex items-center px-3.5 py-2 min-h-9 text-[12px] text-red-600 hover:bg-red-50 rounded-lg border border-red-200 cursor-pointer transition-colors">
                     {L('제외', 'Exclude')}
                   </button>
                   {onRetry && (

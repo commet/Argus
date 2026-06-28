@@ -451,24 +451,77 @@ export default function ProjectPage() {
               {/* 자차표 — North-Star D: raised from a 12px tertiary-gray line to a
                   quiet bordered strip with a label, so the moat the user is
                   accruing is actually visible. Still counts-only, never a score. */}
+              {/* 자차표 — Miller's Law: the 5-stat run-on sentence is broken into
+                  scannable count chips. Still counts-only, never a score. KO reads
+                  label→number, EN number→label. */}
               {crossRecord.loops > 0 && (
-                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 flex items-baseline gap-2.5">
+                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 flex items-center gap-x-2.5 gap-y-1.5 flex-wrap">
                   <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] shrink-0">{L('나의 기록', 'Your record')}</span>
-                  <span className="text-[13px] text-[var(--text-secondary)] leading-snug">
-                    {locale === 'ko'
-                      ? `닫은 고리 ${crossRecord.loops}개` +
-                        (crossRecord.betsHeld > 0 ? ` · 적중한 가설 ${crossRecord.betsHeld}개` : '') +
-                        (crossRecord.risksAvoided > 0 ? ` · 비켜 간 위험 ${crossRecord.risksAvoided}개` : '') +
-                        (crossRecord.goodOutcomesOnLuck > 0 ? ` · 그중 운으로 본 게 ${crossRecord.goodOutcomesOnLuck}개` : '') +
-                        (crossRecord.draftedWins > 0 ? ` · 그중 초안대로 ${crossRecord.draftedWins}개` : '')
-                      : `${crossRecord.loops} loop${crossRecord.loops === 1 ? '' : 's'} closed` +
-                        (crossRecord.betsHeld > 0 ? ` · ${crossRecord.betsHeld} bet${crossRecord.betsHeld === 1 ? '' : 's'} held` : '') +
-                        (crossRecord.risksAvoided > 0 ? ` · ${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '') +
-                        (crossRecord.goodOutcomesOnLuck > 0 ? ` · ${crossRecord.goodOutcomesOnLuck} marked as luck` : '') +
-                        (crossRecord.draftedWins > 0 ? ` · ${crossRecord.draftedWins} from a draft` : '')}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {([
+                      { n: crossRecord.loops, ko: '닫은 고리', en: 'closed' },
+                      ...(crossRecord.betsHeld > 0 ? [{ n: crossRecord.betsHeld, ko: '적중한 가설', en: 'bets held' }] : []),
+                      ...(crossRecord.risksAvoided > 0 ? [{ n: crossRecord.risksAvoided, ko: '비켜 간 위험', en: 'risks steered past' }] : []),
+                      ...(crossRecord.goodOutcomesOnLuck > 0 ? [{ n: crossRecord.goodOutcomesOnLuck, ko: '운으로 본 것', en: 'marked as luck' }] : []),
+                      ...(crossRecord.draftedWins > 0 ? [{ n: crossRecord.draftedWins, ko: '초안대로', en: 'from a draft' }] : []),
+                    ]).map((c, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-md bg-[var(--bg)] border border-[var(--border-subtle)] text-[12px] text-[var(--text-secondary)] whitespace-nowrap"
+                      >
+                        {locale === 'ko' ? (
+                          <>{c.ko} <span className="font-bold tabular-nums text-[var(--text-primary)]">{c.n}</span></>
+                        ) : (
+                          <><span className="font-bold tabular-nums text-[var(--text-primary)]">{c.n}</span> {c.en}</>
+                        )}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* Endowed Progress (honest): before the first loop closes there is no
+                  record to show, so the dashboard sat empty for exactly the cohort we
+                  most want to pull forward. This is a real-action mini-map, not a faked
+                  head-start: step 1 is lit only because projects exist (a decision WAS
+                  written), step 2 only when something is actually sealed. No score. It
+                  is mutually exclusive with the record strip (loops === 0 vs > 0). */}
+              {crossRecord.loops === 0 && (() => {
+                const anySealed = projects.some((p) => !!p.decision_contract);
+                const steps = [
+                  { ko: '결정 적기', en: 'Write it', done: true, current: false },
+                  { ko: '봉인', en: 'Seal', done: anySealed, current: !anySealed },
+                  { ko: '확인', en: 'Settle', done: false, current: anySealed },
+                ];
+                return (
+                  <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 flex items-center gap-x-2.5 gap-y-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] shrink-0">{L('첫 기록까지', 'Toward your first record')}</span>
+                    <div className="flex items-center flex-wrap">
+                      {steps.map((s, i) => (
+                        <span key={i} className="inline-flex items-center">
+                          {i > 0 && <ArrowRight size={11} className="text-[var(--text-tertiary)]/50 mx-1" />}
+                          <span
+                            className={`inline-flex items-center gap-1 text-[12px] ${
+                              s.done
+                                ? 'text-[var(--success)] font-semibold'
+                                : s.current
+                                ? 'text-[var(--text-primary)] font-semibold'
+                                : 'text-[var(--text-tertiary)]'
+                            }`}
+                          >
+                            {s.done ? (
+                              <Check size={11} strokeWidth={3} />
+                            ) : (
+                              <span className={`w-1.5 h-1.5 rounded-full ${s.current ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`} />
+                            )}
+                            {locale === 'ko' ? s.ko : s.en}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환. */}
               {dueProjects.length > 0 && (
@@ -685,7 +738,12 @@ export default function ProjectPage() {
                           </div>
                         )}
 
-                        {/* 4-step progress with current-step emphasis */}
+                        {/* 4-step progress — legacy 4-tool flow ONLY. A progressive
+                            voyage writes nothing to those stores, so rendering 4 empty
+                            grey legs (재정의·설계·검증·종합) beneath a "항해 완료" pill was
+                            dead, self-contradicting chrome. Hide it for voyage cards;
+                            the status pill above already carries voyage state. */}
+                        {!hasVoyage && (
                         <div className="space-y-1.5 mt-auto pt-1">
                           <div className="flex items-center gap-1">
                             {m.statuses.map((s, i) => (
@@ -725,6 +783,7 @@ export default function ProjectPage() {
                             })}
                           </div>
                         </div>
+                        )}
                       </button>
                     );
                   })}
