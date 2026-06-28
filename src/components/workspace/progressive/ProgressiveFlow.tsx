@@ -502,23 +502,11 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                   </ul>
                 </div>
               )}
-              {synthesis.unresolved_tensions.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-[0.15em] mb-2">{L('미해결 쟁점', 'Unresolved Tensions')}</p>
-                  <ul className="space-y-1.5">
-                    {synthesis.unresolved_tensions.map((t, i) => (
-                      <li key={i} className="flex gap-2 text-[13px] text-amber-700 dark:text-amber-400">
-                        <AlertTriangle size={11} className="shrink-0 mt-1" />
-                        <span>{t}</span>
-                      </li>
-                    ))}
-                  </ul>
+              {synthesis.open_question && (
+                <div className="rounded-xl bg-[var(--bg)]/60 px-4 py-3">
+                  <p className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.15em] mb-1.5">{L('남은 질문 하나', 'One Open Question')}</p>
+                  <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{synthesis.open_question}</p>
                 </div>
-              )}
-              {synthesis.recommendation_direction && (
-                <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-4 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
-                  {synthesis.recommendation_direction}
-                </blockquote>
               )}
             </div>
           </motion.div>

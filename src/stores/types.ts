@@ -1385,13 +1385,26 @@ export interface MixResult {
   next_steps: string[];
 }
 
+/**
+ * Lead (navigator) synthesis — spine-bound output of the integration step.
+ *
+ * Generative fields only (integration + findings). The two judgment-shaped
+ * fields the old contract carried — `recommendation_direction` (a verdict) and
+ * `unresolved_tensions` (engine-manufactured warnings, rendered amber) — were
+ * removed: both violate the Zero-Judgment Gate (see CLAUDE.md). They are
+ * replaced by a SINGLE gated `open_question` — at most one neutral crux, '' when
+ * the picture is genuinely flat (never manufacture a fork). The synthesizer is
+ * the neutral navigator (항해장), not a domain persona — the user-facing voice is
+ * an integrator, not a specialist issuing a verdict in the user's stead.
+ */
 export interface LeadSynthesisResult {
   lead_agent_id: string;
   lead_agent_name: string;
   integrated_analysis: string;
   key_findings: string[];
-  unresolved_tensions: string[];
-  recommendation_direction: string;
+  /** At most ONE load-bearing neutral crux question. '' (empty) when the
+   *  decision is flat — gated by a fire-or-not check in the synthesis prompt. */
+  open_question: string;
 }
 
 export interface ProgressiveSession {

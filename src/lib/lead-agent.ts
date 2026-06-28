@@ -10,12 +10,9 @@
  * Routine / single-agent tasks skip lead overhead (returns null).
  */
 
-import type { Agent } from '@/stores/agent-types';
-import type { InputClassification, Domain, Stakes } from './orchestrator-classify';
-import type { LeadSynthesisResult } from '@/stores/types';
+import type { InputClassification, Domain } from './orchestrator-classify';
 import { getSkillSet } from './agent-skills';
 import { sanitizeForPrompt as sanitize } from './persona-prompt';
-import { getCurrentLanguage } from '@/lib/i18n';
 
 // ─── Types ───
 
@@ -32,25 +29,26 @@ export interface LeadAgentConfig {
 
 type Locale = 'ko' | 'en';
 
-// ─── Domain → Lead Agent Mapping ───
-// Chain agents escalate by stakes: important → senior, critical → master
-
-const LEAD_DOMAIN_MAP: Record<string, { default: string; critical: string }> = {
-  strategy:  { default: 'hyunwoo',  critical: 'chief_strategist' },
-  research:  { default: 'sujin',    critical: 'research_director' },
-  numbers:   { default: 'minjae',   critical: 'minjae' },
-  finance:   { default: 'hyeyeon',  critical: 'hyeyeon' },
-  marketing: { default: 'minseo',   critical: 'minseo' },
-  hr:        { default: 'sujin_hr', critical: 'sujin_hr' },
-  legal:     { default: 'taejun',   critical: 'taejun' },
-  ux:        { default: 'jieun',    critical: 'jieun' },
-  tech:      { default: 'junseo',   critical: 'junseo' },
-  copy:      { default: 'seoyeon',  critical: 'seoyeon' },
-  pm:        { default: 'yerin',    critical: 'yerin' },
-  risk:      { default: 'donghyuk', critical: 'donghyuk' },
+// ─── Neutral Synthesizer (the user-facing voice) ───
+// The lead that SYNTHESIZES and SPEAKS to the user is always the neutral
+// navigator (항해장 / 종합 검토자), never a domain specialist. Rationale: every
+// reference multi-agent design seats a GENERALIST in the synthesis chair
+// (Anthropic: Opus lead over Sonnet workers; Mixture-of-Agents: a strong domain
+// proposer is often a poor aggregator). Domain depth lives in the WORKERS; the
+// primary domain is passed to the navigator only as a focus lens, not as an
+// identity. This also decouples the user-facing voice from the brittle
+// keyword-count domain signal — a mis-ranked domains[0] can no longer hand a
+// verdict to the wrong specialist. Built as a self-contained constant so lead
+// selection never depends on the navigator being in the unlocked roster.
+const NAVIGATOR_LEAD: Omit<LeadAgentConfig, 'domain'> = {
+  agentId: 'navigator',
+  agentName: '항해장',
+  agentNameEn: 'Navigator',
+  agentRole: '종합 검토자',
+  agentRoleEn: 'Chief Reviewer',
+  expertise: '팀 전체 결과물을 통합 검토하고, 톤과 논리의 일관성을 맞춥니다.',
+  tone: '개별 의견을 존중하되, 전체가 한 목소리로 읽히도록 편집합니다.',
 };
-
-const DEFAULT_LEAD = 'hyunwoo'; // Nathan — generalist business strategist
 
 // ─── Synthesis Directives (domain-specific instructions for lead synthesis) ───
 
@@ -73,7 +71,6 @@ const SYNTHESIS_DIRECTIVES: Record<string, string> = {
 
 export function selectLeadAgent(
   classification: InputClassification,
-  unlockedAgents: Agent[],
 ): LeadAgentConfig | null {
   // Gate 1: Routine stakes → no lead
   if (classification.stakes === 'routine') return null;
@@ -81,45 +78,12 @@ export function selectLeadAgent(
   // Gate 2: Too few agents → no lead overhead
   if (classification.agentCount < 2) return null;
 
-  // Primary domain
-  const primaryDomain = classification.domains[0];
-  if (!primaryDomain) return null;
-
-  const isCritical = classification.stakes === 'critical';
-
-  // Look up candidate from domain map
-  const mapping = LEAD_DOMAIN_MAP[primaryDomain];
-  const candidateId = mapping
-    ? mapping[isCritical ? 'critical' : 'default']
-    : DEFAULT_LEAD;
-
-  // Try candidate → fallback default tier → fallback Nathan → null
-  const candidates = [
-    candidateId,
-    mapping?.default,
-    DEFAULT_LEAD,
-  ].filter((id, i, arr) => id && arr.indexOf(id) === i); // dedupe
-
-  for (const id of candidates) {
-    if (!id) continue;
-    const agent = unlockedAgents.find(a => a.id === id && !a.archived);
-    if (agent) return buildConfig(agent, primaryDomain as Domain);
-  }
-
-  return null;
-}
-
-function buildConfig(agent: Agent, domain: Domain): LeadAgentConfig {
-  return {
-    agentId: agent.id,
-    agentName: agent.name,
-    agentNameEn: agent.nameEn || agent.name,
-    agentRole: agent.role,
-    agentRoleEn: agent.roleEn || agent.role,
-    expertise: agent.expertise || '',
-    tone: agent.tone || '',
-    domain,
-  };
+  // The synthesizer is ALWAYS the neutral navigator. The primary domain (top of
+  // the keyword-ranked list) is carried only as a focus lens for the synthesis
+  // directive — it never changes WHO speaks. Falls back to 'strategy' focus when
+  // classification is empty (generalist integration), never null on this branch.
+  const focusDomain = (classification.domains[0] ?? 'strategy') as Domain;
+  return { ...NAVIGATOR_LEAD, domain: focusDomain };
 }
 
 // ─── Lead Decomposition Context (injected into buildDeepeningPrompt) ───
@@ -130,12 +94,12 @@ export function buildLeadDecompositionContext(lead: LeadAgentConfig, locale: Loc
   const directive = SYNTHESIS_DIRECTIVES[lead.domain] || SYNTHESIS_DIRECTIVES.strategy;
 
   return locale === 'ko'
-    ? `[리드 에이전트: ${name} (${role})]
-이 분석은 ${name}이 이끕니다. 실행 계획을 설계할 때 ${role}의 관점에서 각 팀원에게 무엇이 필요한지 판단하세요.
-${name}이 최종적으로 모든 결과를 통합할 것이므로, 각 태스크가 통합 분석에 기여하도록 설계하세요.`
-    : `[Lead Agent: ${name} (${role})]
-This analysis is led by ${name}. When designing the execution plan, think from the perspective of a ${role} about what each team member needs to deliver.
-${name} will ultimately synthesize all results, so design each task to feed into a coherent integrated analysis.`;
+    ? `[종합: ${name} (${role})]
+${name}이 모든 결과를 하나의 일관된 방향으로 통합합니다. 각 태스크가 그 통합에 기여하도록 설계하세요.
+이번 결정의 초점: ${directive}`
+    : `[Synthesis: ${name} (${role})]
+${name} will weave all results into one coherent orientation. Design each task so it feeds that integration.
+Focus for this decision: ${directive}`;
 }
 
 // ─── Lead Synthesis Prompt ───
@@ -183,39 +147,40 @@ export function buildLeadSynthesisPrompt(
   }).join('\n\n');
 
   return {
-    system: `You are ${name}, ${role}.
+    system: `You are ${name} (${role}) — the neutral integrator who hands the decision-maker ONE coherent orientation once the analyses are in.
 ${lead.expertise}
 ${lead.tone}
 ${frameworkBlock}
 
-Your team has completed their individual analyses. As the lead, your job is to SYNTHESIZE all of their findings into ONE integrated analysis.
+Focus lens for this decision: ${directive}
 
-${directive}
+You are weaving several analyses into one. Write entirely as a single navigator's orientation.
 
-Rules:
-- This is NOT a summary of each worker's output. It's YOUR expert synthesis — an integrated view that creates meaning no single worker could produce alone.
-- Identify connections between workers' findings that they couldn't see individually.
-- A task labeled "(N perspectives — intentional team diversity)" means the user deliberately assigned multiple personas to that task; the sub-bullets are different lenses on the SAME task. Synthesize where they agree and surface where they meaningfully diverge — but treat it as one task in your integrated analysis, not N tasks.
-- If workers contradict each other (across DIFFERENT tasks), make a judgment call and explain your reasoning.
-- Be specific. Use actual numbers, names, and facts from the worker results.
-- 3-5 key findings. Each must be a genuine insight, not a restatement.
-- State your recommendation direction clearly — the decision maker should know what you'd advise.
+HARD RULES (these define the product, not style):
+- NEVER reference the team, "agents", "workers", "two analyses", "N perspectives", or the analysis process itself. The reader must see one coherent orientation, not a status report about who-said-what. The internal structure is yours alone — never narrate it.
+- DO NOT issue a verdict, a recommendation, or "what you'd advise". You orient; you never decide in the user's stead. No directional statement — not even a hedged or disclaimed one ("this leans toward X but…" is still forbidden).
+- DO NOT manufacture tensions, risks, or warnings. If the picture is genuinely clear, say so plainly. Surfacing a fork on a flat decision is worse than surfacing nothing.
+- Be specific: use the actual numbers, facts, and findings from the material. Integration should create meaning no single piece showed alone — surface those connections.
+- 3-5 key findings, each a genuine insight, not a restatement.
+
+THE ONE OPEN QUESTION (gated — read carefully):
+- Fire-or-not FIRST: is there exactly ONE load-bearing unknown that would genuinely change the direction if it were answered? If yes, pose it as a single NEUTRAL question — no lean, no implied answer. If the decision is flat or already clear, return "" (empty string). Never invent a question to seem thorough.
+
 Always respond in ${lang}.`,
 
     user: `Project: <user-data>${sanitize(problemText)}</user-data>
 Core question: ${sanitize(realQuestion)}
 
-Team results:
+Material to integrate:
 ${resultsBlock}
 
-Synthesize these into your integrated analysis.
+Weave this into one coherent orientation. Do not reference the material's sources or the process.
 
 JSON:
 {
-  "integrated_analysis": "Your expert synthesis — 1-2 substantive paragraphs weaving all findings together",
+  "integrated_analysis": "1-2 substantive paragraphs weaving the material into one coherent orientation",
   "key_findings": ["Genuine insight 1 (not a restatement)", "Insight 2", "Insight 3"],
-  "unresolved_tensions": ["Contradictions or gaps that remain (if any)"],
-  "recommendation_direction": "One clear sentence: what you'd recommend and why"
+  "open_question": "At most ONE neutral crux question, or \"\" if the decision is flat / already clear"
 }`,
   };
 }

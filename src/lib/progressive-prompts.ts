@@ -422,21 +422,21 @@ export function buildMixPrompt(
   const systemPrompt = leadSynthesis
     ? `You are a professional document editor. Always respond in ${lang}.
 
-A domain expert (${leadSynthesis.lead_agent_name}) has already synthesized the team's findings into an integrated analysis. Your job is to format this into a polished, professional document for ${sanitize(dmLabel)}.
+An integrated orientation has already been prepared from the analysis. Your job is to format it into a polished, professional document for ${sanitize(dmLabel)}.
 
 Rules:
-- The lead expert's synthesis is your PRIMARY source. Preserve their strategic logic and recommendations.
-- Executive summary: 2-3 sentences derived from the lead's integrated analysis.
-- 4-6 sections. Structure the lead's analysis into clear sections with supporting evidence from worker results.
+- The integrated orientation is your PRIMARY source. Preserve its logic and structure.
+- Executive summary: 2-3 sentences derived from the integrated orientation.
+- 4-6 sections. Structure the orientation into clear sections with supporting evidence from the research results.
 - Include the assumptions explicitly — this shows intellectual honesty.
 - Next steps should be time-bound and assigned (who does what by when). At least 3 next steps.
 - Write it so the user can literally send this as-is. No "[insert here]" placeholders.
 - Tone: confident but honest about uncertainties. Professional ${lang}.
 - DO NOT use markdown headers in section content — just flowing text with emphasis where needed.
 - Use **bold** for key terms and critical numbers.
-- Include a "${riskSectionName}" section based on the lead's unresolved tensions and risk analysis.
-- DO NOT override the lead's recommendations with your own judgment. You format, they strategize.
-- NARRATIVE FLOW: Each section must connect to the next. The document should read as one continuous argument, not separate blocks. Weave the lead's insights with specific worker evidence to create depth.`
+- Include a "${riskSectionName}" section grounded in the actual research evidence — concrete risks with specific mitigations, not manufactured caveats.
+- Write as one continuous editorial voice — never reference the analysis process, the team, or how many perspectives contributed.
+- NARRATIVE FLOW: Each section must connect to the next. The document should read as one continuous argument, not separate blocks. Weave the orientation with specific evidence to create depth.`
     : `You are assembling a final draft document. Always respond in ${lang}.
 ${locale === 'ko' ? 'Tone: 해요체 (polite but warm). Not a formal report — more like a well-structured brief that a smart colleague would write. Confident but honest.' : 'Tone: warm, professional. Not a formal corporate report — more like a well-structured brief from a smart colleague. Confident but honest about uncertainties.'}
 
@@ -479,14 +479,12 @@ ATTRIBUTION (required when worker results are provided):
   // Lead synthesis block for user prompt
   const leadBlock = leadSynthesis
     ? `
-Lead Expert Synthesis (by ${leadSynthesis.lead_agent_name}):
+Integrated orientation (the backbone of this document):
 ${leadSynthesis.integrated_analysis}
 
 Key findings:
 ${leadSynthesis.key_findings.map(f => `- ${f}`).join('\n')}
-
-Recommendation: ${leadSynthesis.recommendation_direction}
-${leadSynthesis.unresolved_tensions.length > 0 ? `\nUnresolved tensions:\n${leadSynthesis.unresolved_tensions.map(t => `- ${t}`).join('\n')}` : ''}`
+${leadSynthesis.open_question ? `\nOne open question to fold in honestly (surface it, do not answer it for the user):\n- ${leadSynthesis.open_question}` : ''}`
     : '';
 
   // Group worker results by task_group_id (or task text fallback) so the LLM

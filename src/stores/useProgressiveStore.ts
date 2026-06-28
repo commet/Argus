@@ -1026,7 +1026,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const { classification, workers: planned, stages: plannedStages, orchestrationPlan } = planWorkers(steps, signals, unlockedAgents, allObservations, userLeaning);
 
     // Lead Agent 선정: stakes >= important AND agentCount >= 2
-    const leadConfig = selectLeadAgent(classification, unlockedAgents);
+    const leadConfig = selectLeadAgent(classification);
     if (leadConfig) {
       // Defer store update to after workers are set — use get().setLeadAgent
       // (called at the end of initWorkers after session update)
