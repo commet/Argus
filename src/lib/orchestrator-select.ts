@@ -24,7 +24,7 @@
 import type { Agent, AgentObservation } from '@/stores/agent-types';
 import type { InputClassification } from './orchestrator-classify';
 import { classifySteps, type TaskClassification } from './task-classifier';
-import { scoreAgentForTask, getCapability } from './agent-capabilities';
+import { scoreAgentForTask, getCapability, isCriticAgentId } from './agent-capabilities';
 import { lensOf, type Lens } from './agent-lens';
 import { getAgentHitRate } from './hit-rate';
 
@@ -132,10 +132,7 @@ export function selectAgents(
 
   // ── critical stakes → Critic 예약 ──
   const criticAgent = classification.stakes === 'critical'
-    ? unlockedAgents.find(a => {
-        const cap = getCapability(a.id);
-        return cap && cap.taskTypes[0] === 'critique';
-      })
+    ? unlockedAgents.find(a => isCriticAgentId(a.id))
     : null;
 
   // ── 각 step에 에이전트 배정 ──

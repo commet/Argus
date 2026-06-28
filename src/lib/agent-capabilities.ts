@@ -181,6 +181,15 @@ export function getCapability(agentId: string): AgentCapabilityProfile | undefin
   return capabilityMap.get(agentId);
 }
 
+/** Single source of truth for "is this the critic agent" — its primary task type
+ *  is critique. Used by selectAgents (critic guarantee), buildStages (stage-2
+ *  critic), and runDebate, so all three pick the SAME agent instead of three
+ *  different keyword/capability heuristics that could disagree. */
+export function isCriticAgentId(agentId: string): boolean {
+  const cap = capabilityMap.get(agentId);
+  return !!cap && cap.taskTypes[0] === 'critique';
+}
+
 /* ─── Scoring Engine ─── */
 
 function rankScore(item: string, ranked: string[]): number {

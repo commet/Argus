@@ -15,6 +15,7 @@ import { assignFramework } from './orchestrator-framework';
 import { classifySteps } from './task-classifier';
 import { buildAssignmentReason } from './assignment-reason';
 import { planOrchestration, type OrchestrationPlan } from './orchestration-pattern';
+import { isCriticAgentId } from './agent-capabilities';
 
 /* ─── Types ─── */
 
@@ -79,13 +80,11 @@ function buildStages(
   // review_loop: Critic을 Stage 2로 분리. critic은 반드시 AI 워커여야 한다 —
   // self/human 워커가 critic으로 뽑히면 worker-engine이 stage_2를 0개 실행하고
   // (aiWorkers.length===0) "검증" 스테이지가 에러 없이 침묵 속에 증발한다.
-  const criticIdx = workers.findIndex(w => {
-    if (w.agentType !== 'ai') return false;
-    // validation group의 리스크 관련 에이전트
-    const kws = ['리스크', '위험', '실패', '비판', 'risk', 'danger', 'failure', 'critique', 'review', 'validate'];
-    const focusLower = w.focus.toLowerCase();
-    return kws.some(kw => focusLower.includes(kw)) || w.framework?.includes('Pre-mortem') || w.framework?.includes('Red Team');
-  });
+  // Single source of truth (isCriticAgentId) — same agent the selector reserved
+  // as the critic and the same one runDebate will run, so UI stage-2 = actual
+  // reviewer. (Was a separate focus-keyword heuristic that could pick a different
+  // worker — e.g. a "고객 리뷰 분석" step matched 'review'.)
+  const criticIdx = workers.findIndex(w => w.agentType === 'ai' && isCriticAgentId(w.agentId));
 
   // Critic이 명확하지 않으면 마지막 AI 워커를 Stage 2로 (self/human은 검증 못 함)
   let lastAiIdx = -1;

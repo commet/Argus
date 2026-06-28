@@ -30,6 +30,7 @@ import type { Agent } from '@/stores/agent-types';
 import { assessConvergence, assessConvergenceWithWorkers } from '@/lib/progressive-convergence';
 import { runDebateRound, type DebateResult } from '@/lib/debate-engine';
 import type { VerifyDepth } from '@/lib/orchestration-pattern';
+import { isCriticAgentId } from '@/lib/agent-capabilities';
 import { generateId } from '@/lib/uuid';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { getCurrentLanguage } from '@/lib/i18n';
@@ -1387,7 +1388,7 @@ export async function runDebate(
 ): Promise<DebateResult | null> {
   // Critic 에이전트 찾기
   const agents = useAgentStore.getState().getUnlockedAgents();
-  const critic = agents.find(a => (a.keywords || []).some(kw => ['리스크', '위험', '비판', 'risk', 'danger', 'critique'].includes(kw)));
+  const critic = agents.find(a => isCriticAgentId(a.id));
   if (!critic) return null;
 
   const locale = getCurrentLanguage();
