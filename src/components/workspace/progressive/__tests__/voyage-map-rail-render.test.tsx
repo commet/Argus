@@ -1,7 +1,7 @@
 /**
  * VoyageMapRail render verification — exercises the rail's own composition logic
  * (collapse spine ↔ full rail, 해도 hero with/without a charted course, and the
- * trail/crew section gating) with seeded store data. Heavy children (BranchMap,
+ * trail section gating) with seeded store data. Heavy children (BranchMap,
  * Logbook, AgentSidebar, VoyageChart) are stubbed so this asserts the RAIL's
  * wiring, not theirs (those have their own render tests). Closest deterministic
  * proxy to a visual check with no browser.
@@ -70,7 +70,9 @@ describe('VoyageMapRail — full (expanded)', () => {
     expect(html).toContain('지금');           // current-position caption label
     expect(html).toContain('SEACHART_STUB'); // the inline graph hero
     expect(html).toContain('LOGBOOK_STUB');   // trail section (hasWaypoints)
-    expect(html).toContain('CREW_STUB');      // crew section (hasWorkers)
+    // Crew activity is intentionally NOT in the rail anymore (it's duplicated by
+    // the left-column "선원들이 일하고 있어요" header), so the rail must not render it.
+    expect(html).not.toContain('CREW_STUB');
   });
 
   it('shows the empty-chart identity (no graph) before the first fork is logged', () => {
