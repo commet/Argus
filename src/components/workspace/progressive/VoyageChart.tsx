@@ -31,12 +31,14 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, X as XIcon, RotateCcw, ChevronRight, Flag } from 'lucide-react';
+import { Compass, X as XIcon, RotateCcw, ChevronRight } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
-import type { VoyageStage } from '@/stores/types';
+import type { VoyageStage, Waypoint } from '@/stores/types';
 import { getActivePath } from '@/lib/version-tree';
+import { resolveCheckpointNav } from '@/lib/voyage-nav';
 import { SeaChart } from './SeaChart';
+import { WaypointCard } from './shared/WaypointCard';
 import { EASE } from './shared/constants';
 
 // Stage order — denominator for the header's "reached / total" waypoint count.
@@ -50,17 +52,40 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
   const navigateToCheckpoint = useProgressiveStore(s => s.navigateToCheckpoint);
   const switchBranch = useProgressiveStore(s => s.switchBranch);
+  const forkBranch = useProgressiveStore(s => s.forkBranch);
   const locked = useProgressiveStore(s => s.isBranchingLocked());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
+  const waypoints = useMemo(() => session?.waypoints || [], [session?.waypoints]);
   const activeId = session?.active_checkpoint_id ?? null;
   const activePath = useMemo(() => getActivePath(checkpoints, activeId), [checkpoints, activeId]);
   const branches = useMemo(() => session?.branches ?? [], [session?.branches]);
   const activeBranch = branches.find(b => b.id === session?.active_branch_id) ?? null;
 
+  // A tapped node resolves to its logged turn (if any), so the selection panel
+  // shows the SAME WaypointCard the rail uses — one home for a turn's narration.
+  const wpByCp = useMemo(() => {
+    const m = new Map<string, Waypoint>();
+    for (const w of waypoints) m.set(w.checkpoint_id, w);
+    return m;
+  }, [waypoints]);
+  const parentOf = useMemo(() => new Map(checkpoints.map(c => [c.id, c.parent_id])), [checkpoints]);
+  const assumptionsByCp = useMemo(
+    () => new Map(checkpoints.map(c => [c.id, c.state_snapshot?.snapshots?.slice(-1)?.[0]?.hidden_assumptions || []])),
+    [checkpoints],
+  );
+
   if (!session || checkpoints.length === 0) return null;
+
+  // Take a road not taken — fork from the point before the turn (same rule as
+  // the trail/rail). Closing the modal surfaces the rewound flow underneath.
+  const takeRoad = (cpId: string, label: string) => {
+    if (locked) return;
+    forkBranch(parentOf.get(cpId) ?? cpId, label);
+    onNavigated?.();
+  };
 
   const handleNodeClick = (id: string) => {
     setSelectedId(prev => prev === id ? null : id);
@@ -102,7 +127,6 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
         <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[var(--border-subtle)]/40 text-[10px]">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: activeBranch.color }} />
           <span className="font-semibold text-[var(--text-primary)] truncate max-w-[130px]">{activeBranch.name}</span>
-          {activeBranch.status === 'anchored' && <Flag size={9} className="text-[var(--accent)] shrink-0" />}
           <span className="ml-auto text-[var(--text-tertiary)]">{L(`항로 ${branches.length}개`, `${branches.length} courses`)}</span>
         </div>
       )}
@@ -136,16 +160,6 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--accent)', outline: '1px solid var(--accent)', outlineOffset: '1.5px' }} />
             {L('현재 위치', 'Current')}
           </span>
-          <span className="inline-flex items-center gap-1">
-            <Flag size={9} className="text-[var(--accent)] shrink-0" />
-            {L('확정 항로', 'Anchored')}
-          </span>
-          {branches.some(b => b.status === 'abandoned') && (
-            <span className="inline-flex items-center gap-1 opacity-50">
-              <span className="w-2 h-2 rounded-full border shrink-0" style={{ borderColor: 'var(--text-tertiary)' }} />
-              {L('포기한 항로', 'Abandoned')}
-            </span>
-          )}
         </div>
 
         {/* Footer hint — how to step back along the route. Journey language:
@@ -167,15 +181,13 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
             {branches.map(b => {
               const isActive = b.id === activeBranch?.id;
               const count = getActivePath(checkpoints, b.head_checkpoint_id).length;
-              const abandoned = b.status === 'abandoned';
               return (
                 <div
                   key={b.id}
-                  className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''} ${abandoned ? 'opacity-50' : ''}`}
+                  className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''}`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: b.color }} />
                   <span className="text-[11px] text-[var(--text-primary)] truncate flex-1 min-w-0" title={b.name}>{b.name}</span>
-                  {b.status === 'anchored' && <Flag size={9} className="text-[var(--accent)] shrink-0" />}
                   <span className="text-[9px] text-[var(--text-tertiary)] tabular-nums shrink-0">{count}</span>
                   {isActive ? (
                     <span className="text-[9px] text-[var(--accent)] font-semibold shrink-0 ml-0.5">{L('지금 이 길', 'current')}</span>
@@ -196,12 +208,29 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
         )}
       </div>
 
-      {/* Selection popover (slides in below the chart for the picked
-          waypoint). Active-waypoint clicks just close — no empty popover. */}
+      {/* Selection panel (slides in below the chart for the picked node). The
+          picked turn's full story renders in the SAME WaypointCard the rail
+          uses, plus a "이 지점에서 항해" rewind action. Active-node clicks just
+          close — no empty panel. */}
       <AnimatePresence>
         {selectedId && (() => {
           const cp = checkpoints.find(c => c.id === selectedId);
           if (!cp || cp.id === activeId) return null;
+          const wp = wpByCp.get(cp.id) ?? null;
+          const dateStr = new Date(cp.created_at).toLocaleString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+          });
+          const rewindBtn = (
+            <button
+              type="button"
+              onClick={() => handleRestoreRequest(cp.id)}
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[11px] font-semibold text-[var(--accent)] border border-[var(--accent)]/35 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer min-h-[36px]"
+            >
+              <RotateCcw size={11} />
+              {L('이 지점에서 항해', 'Sail from here')}
+              <ChevronRight size={10} />
+            </button>
+          );
           return (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -211,8 +240,8 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
               className="overflow-hidden border-t border-[var(--accent)]/20 bg-[var(--accent)]/[0.04]"
             >
               <div className="px-4 py-3">
-                <div className="flex items-baseline justify-between gap-2 mb-1">
-                  <span className="text-[11.5px] font-semibold text-[var(--text-primary)]">{cp.label}</span>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[10px] text-[var(--text-tertiary)]">{dateStr}</span>
                   <button
                     type="button"
                     onClick={() => setSelectedId(null)}
@@ -222,20 +251,21 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
                     <XIcon size={11} />
                   </button>
                 </div>
-                <div className="text-[10px] text-[var(--text-tertiary)] mb-2.5">
-                  {new Date(cp.created_at).toLocaleString(locale === 'ko' ? 'ko-KR' : 'en-US', {
-                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                  })}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleRestoreRequest(cp.id)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[11px] font-semibold text-[var(--accent)] border border-[var(--accent)]/35 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer min-h-[36px]"
-                >
-                  <RotateCcw size={11} />
-                  {L('이 지점에서 항해', 'Sail from here')}
-                  <ChevronRight size={10} />
-                </button>
+                {wp ? (
+                  <WaypointCard
+                    waypoint={wp}
+                    assumptions={assumptionsByCp.get(cp.id) || []}
+                    locked={locked}
+                    onTakeRoad={takeRoad}
+                    action={rewindBtn}
+                  />
+                ) : (
+                  // A checkpoint with no logged turn — just its label + rewind.
+                  <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5">
+                    <div className="text-[12px] font-semibold text-[var(--text-primary)] mb-2.5">{cp.label}</div>
+                    {rewindBtn}
+                  </div>
+                )}
               </div>
             </motion.div>
           );
@@ -248,6 +278,25 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
         {confirmId && (() => {
           const target = checkpoints.find(c => c.id === confirmId);
           if (!target) return null;
+          // Reuse the store's exact fork-vs-switch decision so the copy below
+          // tells the truth: returning to a course already sailed (switch) vs.
+          // diverging into a fresh line (fork).
+          const nav = resolveCheckpointNav(
+            checkpoints, branches, session.active_branch_id, activeId, confirmId,
+          );
+          const isSwitch = nav.action === 'switch';
+          const title = isSwitch
+            ? L('가봤던 이 길로 돌아갈까요?', 'Return to this course?')
+            : L('여기서 새 항로 잡을까요?', 'Set a new course from here?');
+          const body = isSwitch
+            ? L(
+                `이미 가봤던 '${target.label}' 시점으로 돌아갑니다. 지금 작업은 따로 보존돼요.`,
+                `Returns to '${target.label}', a course you already sailed. Your current work is preserved separately.`,
+              )
+            : L(
+                `'${target.label}' 시점으로 돌아갑니다. 현재 진행한 작업은 다른 항로로 보존돼요.`,
+                `Rewinds to '${target.label}'. Your current work is preserved as a separate course.`,
+              );
           return (
             <>
               <motion.div
@@ -271,13 +320,10 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">
-                        {L('여기서 새 항로 잡을까요?', 'Set a new course from here?')}
+                        {title}
                       </h3>
                       <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
-                        {L(
-                          `'${target.label}' 시점으로 돌아갑니다. 현재 진행한 작업은 다른 항로로 보존돼요.`,
-                          `Rewinds to '${target.label}'. Your current work is preserved as a separate course.`,
-                        )}
+                        {body}
                       </p>
                     </div>
                     <button
@@ -300,7 +346,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
                       className="flex-1 px-3 py-2.5 rounded-lg text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] cursor-pointer"
                       style={{ background: 'var(--gradient-gold)' }}
                     >
-                      {L('이 항로로', 'Set course')}
+                      {isSwitch ? L('이 길로', 'Go') : L('이 항로로', 'Set course')}
                     </button>
                   </div>
                 </div>

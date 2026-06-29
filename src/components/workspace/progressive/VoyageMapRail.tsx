@@ -29,19 +29,20 @@
  * convergence score. It surfaces the territory; it never judges the route.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Compass, Map as MapIcon, Maximize2, PanelLeftClose, PanelLeftOpen,
-  Milestone, GitBranch, Anchor,
+  Milestone, GitBranch, ArrowLeft,
 } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLocale } from '@/hooks/useLocale';
 import { Modal } from '@/components/ui/Modal';
+import type { Waypoint } from '@/stores/types';
 import { SeaChart } from './SeaChart';
 import { VoyageChart } from './VoyageChart';
-import { Logbook } from './Logbook';
+import { WaypointCard } from './shared/WaypointCard';
 import { isWorkingStatus } from './AgentSidebar';
 import { useWorkers } from './WorkerPanel';
 import { EASE } from './shared/constants';
@@ -60,31 +61,58 @@ function EmptyChart() {
         <Compass size={26} strokeWidth={1.4} />
       </motion.div>
       <p className="text-[11px] leading-[1.55] text-[var(--text-tertiary)] max-w-[180px]">
-        {L('이 결정의 갈림길이 여기 해도로 그려져요. 답을 고르고 침로를 바꿀 때마다 길이 이어져요.',
+        {L('이 결정의 갈림길이 여기 해도로 그려져요. 답을 고르고 항로를 바꿀 때마다 길이 이어져요.',
            "This decision's forks chart here. Each answer and course-change extends the route.")}
       </p>
     </div>
   );
 }
 
-/* ═══ Hero — the inline branching course-graph (the spatial fork map) ═══ */
+/* ═══ Hero — the unified map: a spatial chart + the tapped turn's card ═══
+   The founder's "map-first, tap reveals a card": the parchment chart is the
+   surface; tapping a logged point shows THAT turn's story in one card below
+   (defaulting to the current position). No parallel Logbook list — the card IS
+   the log, read one turn at a time, spatially. */
 function VoyageMapHero() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
+  const forkBranch = useProgressiveStore(s => s.forkBranch);
+  const locked = useProgressiveStore(s => s.isBranchingLocked());
   const [chartOpen, setChartOpen] = useState(false);
+  const [pickedCp, setPickedCp] = useState<string | null>(null);
 
-  const checkpoints = session?.checkpoints || [];
+  const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
   const branches = session?.branches || [];
-  const waypoints = session?.waypoints || [];
+  const waypoints = useMemo(() => session?.waypoints || [], [session?.waypoints]);
   const activeBranch = branches.find(b => b.id === session?.active_branch_id) ?? null;
   const activeId = session?.active_checkpoint_id ?? null;
   const hasChart = checkpoints.length > 0;
   const multiBranch = branches.length > 1;
-  // The wordless compact chart gets ONE line of context: what the current
-  // position actually is (its waypoint headline) — the rest of the words live
-  // in the 항해일지 below and the full 해도.
-  const currentWp = waypoints.find(w => w.checkpoint_id === activeId) ?? null;
+
+  const wpByCp = useMemo(() => {
+    const m = new Map<string, Waypoint>();
+    for (const w of waypoints) m.set(w.checkpoint_id, w);
+    return m;
+  }, [waypoints]);
+  const parentOf = useMemo(() => new Map(checkpoints.map(c => [c.id, c.parent_id])), [checkpoints]);
+  const assumptionsByCp = useMemo(
+    () => new Map(checkpoints.map(c => [c.id, c.state_snapshot?.snapshots?.slice(-1)?.[0]?.hidden_assumptions || []])),
+    [checkpoints],
+  );
+
+  // The card shows the picked turn, defaulting to the current position. Picking
+  // a node with no logged turn falls through to current (the card stays stable).
+  const shownCp = (pickedCp && wpByCp.has(pickedCp)) ? pickedCp : activeId;
+  const shownWp = shownCp ? wpByCp.get(shownCp) ?? null : null;
+  const isCurrent = shownCp === activeId;
+
+  // Take the road not taken — fork from the point *before* the turn so the user
+  // re-decides at that fork (same rule the trail used).
+  const takeRoad = (cpId: string, label: string) => {
+    if (locked) return;
+    forkBranch(parentOf.get(cpId) ?? cpId, label);
+  };
 
   return (
     <div className="px-4 pt-4">
@@ -104,17 +132,15 @@ function VoyageMapHero() {
         )}
       </div>
 
-      {/* The chart card — an antique sea-chart (SeaChart is self-framed:
-          parchment + neatline + shadow), tappable to open the full chart. */}
+      {/* The chart card — an antique sea-chart (SeaChart self-frames: parchment +
+          neatline + shadow). Tapping a node picks that turn for the card below;
+          the eyebrow "전체 해도" opens the full pan/zoom/rewind surface.
+          Fixed height + fit-to-box (SeaChart fills it with preserveAspect
+          'meet'), so the WHOLE voyage — crucially the current ship — is always
+          in view; before, a route taller than the box scrolled "you are here"
+          off the bottom. */}
       {hasChart ? (
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label={L('전체 해도 열기', 'Open full chart')}
-          onClick={() => setChartOpen(true)}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChartOpen(true); } }}
-          className="relative block w-full max-h-[330px] overflow-y-auto cursor-pointer group rounded-[10px] ring-1 ring-[rgba(120,90,30,0.20)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/60"
-        >
+        <div className="relative block w-full h-[300px] rounded-[10px] ring-1 ring-[rgba(120,90,30,0.20)]">
           <SeaChart
             variant="compact"
             checkpoints={checkpoints}
@@ -122,26 +148,11 @@ function VoyageMapHero() {
             waypoints={waypoints}
             activeBranchId={activeBranch?.id ?? null}
             activeCheckpointId={activeId}
+            onPick={(id) => setPickedCp(id)}
           />
-          <div className="sticky bottom-0 -mt-6 px-3 py-1.5 bg-gradient-to-t from-[rgba(20,14,4,0.55)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            <span className="text-[9.5px] text-[#f6eedb] font-semibold inline-flex items-center gap-1">
-              <Maximize2 size={9} /> {L('눌러서 펼치기', 'Tap to open the chart')}
-            </span>
-          </div>
         </div>
       ) : (
         <EmptyChart />
-      )}
-
-      {/* Current-position caption — gives the wordless compact chart one line of
-          meaning: where "지금" actually is. */}
-      {hasChart && currentWp && (
-        <p className="mt-2 px-0.5 text-[10.5px] leading-[1.45] text-[var(--text-secondary)] flex items-baseline gap-1.5">
-          <span className="shrink-0 text-[8.5px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
-            {L('지금', 'Now')}
-          </span>
-          <span className="min-w-0 line-clamp-2">{currentWp.headline}</span>
-        </p>
       )}
 
       {/* Compact legend — the SVG marks can't explain themselves */}
@@ -155,21 +166,37 @@ function VoyageMapHero() {
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)', outline: '1px solid var(--accent)', outlineOffset: '1.5px' }} />
             {L('현재', 'Here')}
           </span>
-          {branches.some(b => b.status === 'anchored') && (
-            <span className="inline-flex items-center gap-1">
-              <Anchor size={9} className="text-[var(--accent)]" /> {L('확정', 'Anchored')}
-            </span>
+          <span className="text-[var(--text-tertiary)]/70">· {L('점을 탭하면 그 결정이 아래에 펼쳐져요', 'Tap a point to read that turn below')}</span>
+        </div>
+      )}
+
+      {/* The picked / current turn — the unified narration card (replaces the
+          old "지금" caption AND the parallel Logbook list). */}
+      {hasChart && shownWp && (
+        <div className="mt-2.5">
+          <WaypointCard
+            waypoint={shownWp}
+            assumptions={assumptionsByCp.get(shownWp.checkpoint_id) || []}
+            locked={locked}
+            onTakeRoad={takeRoad}
+            eyebrow={isCurrent ? L('지금', 'Now') : undefined}
+          />
+          {!isCurrent && (
+            <button
+              onClick={() => setPickedCp(null)}
+              className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={10} /> {L('지금 위치로', 'Back to current')}
+            </button>
           )}
         </div>
       )}
 
-      {/* Single-course nudge → toward the product's core "take another path".
-          Gated on waypoints too, so it never points at a 'trail below' that the
-          rail hasn't rendered (the trail is gated on the same signal). */}
+      {/* Single-course nudge → toward the product's core "take another path". */}
       {hasChart && !multiBranch && waypoints.length > 0 && (
-        <p className="mt-1.5 px-0.5 text-[9.5px] leading-[1.5] text-[var(--text-tertiary)]">
-          {L('아직 한 갈래예요. 아래 흐름에서 갈림길로 돌아가 다른 길을 내볼 수 있어요.',
-             'One course so far. Step back to a fork in the trail below to try another path.')}
+        <p className="mt-2 px-0.5 text-[10px] leading-[1.5] text-[var(--text-tertiary)]">
+          {L('아직 한 갈래예요. 위 해도에서 갈림길로 돌아가 다른 길을 내볼 수 있어요.',
+             'One course so far. Step back to a fork on the chart above to try another path.')}
         </p>
       )}
 
@@ -246,10 +273,6 @@ export function VoyageMapRail() {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const collapsed = useSettingsStore(s => s.settings.voyage_map_collapsed ?? false);
   const updateSettings = useSettingsStore(s => s.updateSettings);
-  const hasWaypoints = useProgressiveStore(s => {
-    const sess = s.sessions.find(ss => ss.id === s.currentSessionId);
-    return (sess?.waypoints?.length ?? 0) > 0;
-  });
 
   if (collapsed) {
     return (
@@ -282,21 +305,14 @@ export function VoyageMapRail() {
         </button>
       </div>
 
-      {/* 1. The chart (hero) */}
+      {/* The unified map: chart + the tapped-turn card. The parallel Logbook
+          list was removed here (voyage redesign step 4) — it re-stated the same
+          waypoints the chart already shows. A turn's narration now lives in one
+          place: tap its point on the chart. The full vertical trail survives as
+          the mobile bottom-drawer (LogbookDrawer) where there's no room for a
+          map. Crew activity stays out of the rail too (duplicated by the
+          left-column "선원들이 일하고 있어요" header). */}
       <VoyageMapHero />
-
-      {/* 2. Decision trail — Logbook owns its own "항해일지" header. Only once
-            turns are logged, so the rail never shows an empty duplicate. */}
-      {hasWaypoints && (
-        <div className="mt-3 pt-1 border-t border-[var(--border-subtle)]/50">
-          <Logbook hideChartButton />
-        </div>
-      )}
-
-      {/* Crew activity removed from the rail: the crew is duplicated by the
-          left-column "선원들이 일하고 있어요" collapsed header (④ 보조), so the
-          rail would double it. The collapsed-spine still shows a single
-          "analyzing" pulse dot for at-a-glance liveness. */}
     </motion.aside>
   );
 }

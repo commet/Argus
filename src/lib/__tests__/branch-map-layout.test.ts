@@ -26,8 +26,8 @@ describe('layoutBranchMap', () => {
       c('c3', 'c1', '2026-01-01T00:00:03Z'),
     ];
     const branches: VoyageBranch[] = [
-      { id: 'main', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'a' },
-      { id: 'fork', name: '분기', head_checkpoint_id: 'c3', forked_from_checkpoint_id: 'c1', status: 'sailing', color: '#8b6914', created_at: 'b' },
+      { id: 'main', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, color: '#2d4a7c', created_at: 'a' },
+      { id: 'fork', name: '분기', head_checkpoint_id: 'c3', forked_from_checkpoint_id: 'c1', color: '#8b6914', created_at: 'b' },
     ];
     const { nodes, width, height, laneByBranch } = layoutBranchMap(checkpoints, branches);
 
@@ -62,7 +62,7 @@ describe('layoutBranchMap', () => {
       c('c2', 'c1', '2026-01-01T00:00:02Z'),
     ];
     const branches: VoyageBranch[] = [
-      { id: 'main', name: 'm', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'a' },
+      { id: 'main', name: 'm', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, color: '#2d4a7c', created_at: 'a' },
     ];
     const { nodes } = layoutBranchMap(checkpoints, branches);
     expect(nodes.every(n => n.lane === 0)).toBe(true);

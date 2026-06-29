@@ -28,9 +28,6 @@ vi.mock('@/components/workspace/progressive/SeaChart', () => ({
   SeaChart: () => createElement('div', null, 'SEACHART_STUB'),
 }));
 vi.mock('@/components/workspace/progressive/VoyageChart', () => ({ VoyageChart: () => null }));
-vi.mock('@/components/workspace/progressive/Logbook', () => ({
-  Logbook: () => createElement('div', null, 'LOGBOOK_STUB'),
-}));
 vi.mock('@/components/workspace/progressive/AgentSidebar', () => ({
   AgentSidebar: () => createElement('div', null, 'CREW_STUB'),
   isWorkingStatus: (s: string) => s === 'running',
@@ -44,7 +41,7 @@ vi.mock('@/stores/useSettingsStore', () => ({
 }));
 vi.mock('@/stores/useProgressiveStore', () => ({
   useProgressiveStore: (sel: (s: unknown) => unknown) =>
-    sel({ sessions: [state.session], currentSessionId: 's1' }),
+    sel({ sessions: [state.session], currentSessionId: 's1', forkBranch: () => null, isBranchingLocked: () => false }),
 }));
 
 import { VoyageMapRail } from '@/components/workspace/progressive/VoyageMapRail';
@@ -54,7 +51,7 @@ const charted: Partial<ProgressiveSession> = {
   active_branch_id: 'b-main',
   active_checkpoint_id: 'c1',
   checkpoints: [{ id: 'c1', parent_id: null, stage: 'origin', label: 'o', created_at: 'x', state_snapshot: {} as never }],
-  branches: [{ id: 'b-main', name: '본 항로', head_checkpoint_id: 'c1', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'x' }],
+  branches: [{ id: 'b-main', name: '본 항로', head_checkpoint_id: 'c1', forked_from_checkpoint_id: null, color: '#2d4a7c', created_at: 'x' }],
   waypoints: [{ id: 'w1', checkpoint_id: 'c1', type: 'departure', headline: '출항', created_at: 'x' }],
 };
 
@@ -67,9 +64,11 @@ describe('VoyageMapRail — full (expanded)', () => {
     expect(html).toContain('항해 지도');     // rail header
     expect(html).toContain('해도');           // hero eyebrow
     expect(html).toContain('전체 해도');       // full-chart entry (hasChart)
-    expect(html).toContain('지금');           // current-position caption label
     expect(html).toContain('SEACHART_STUB'); // the inline graph hero
-    expect(html).toContain('LOGBOOK_STUB');   // trail section (hasWaypoints)
+    // Step 4: the parallel Logbook list is gone — a turn's narration now renders
+    // in ONE WaypointCard below the chart (the current turn by default).
+    expect(html).toContain('지금');           // current-turn card eyebrow
+    expect(html).toContain('출항');           // the current waypoint's type, in the card
     // Crew activity is intentionally NOT in the rail anymore (it's duplicated by
     // the left-column "선원들이 일하고 있어요" header), so the rail must not render it.
     expect(html).not.toContain('CREW_STUB');
@@ -84,7 +83,6 @@ describe('VoyageMapRail — full (expanded)', () => {
     expect(html).toContain('갈림길이 여기 해도로');  // empty-state copy
     expect(html).not.toContain('SEACHART_STUB');   // no graph yet
     expect(html).not.toContain('전체 해도');         // no full-chart entry yet
-    expect(html).not.toContain('LOGBOOK_STUB');     // no trail (no waypoints)
     expect(html).not.toContain('CREW_STUB');        // no crew
   });
 });
@@ -95,12 +93,11 @@ describe('VoyageMapRail — collapsed spine', () => {
     state.workers = [{ id: 'wk1', status: 'running' } as WorkerTask];
     state.session = { ...charted, waypoints: [
       { id: 'w1', checkpoint_id: 'c1', type: 'departure', headline: '출항', created_at: 'x' },
-      { id: 'w2', checkpoint_id: 'c1', type: 'course_change', headline: '침로', created_at: 'y' },
+      { id: 'w2', checkpoint_id: 'c1', type: 'course_change', headline: '항로', created_at: 'y' },
     ] };
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
     expect(html).toContain('항해 지도');        // vertical label
     expect(html).toContain('>2<');              // waypoint count badge
     expect(html).not.toContain('SEACHART_STUB'); // graph not rendered while collapsed
-    expect(html).not.toContain('LOGBOOK_STUB');
   });
 });

@@ -84,7 +84,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   const mobileWorkerShow = hasWorkers;
   // Which course are we on? Shown in the header once more than one exists, so a
   // fork/switch (which jumps the conversation) doesn't feel disorienting.
-  // useShallow: this selector returns a fresh {name,color,count,anchored} object
+  // useShallow: this selector returns a fresh {name,color,count} object
   // when >1 branch exists. Without shallow equality, zustand sees a new snapshot
   // every render → React's "getSnapshot should be cached" → infinite re-render
   // (React #185) the moment a session has more than one course. Shallow-compare
@@ -94,7 +94,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
     const branches = sess?.branches || [];
     if (branches.length <= 1) return null;
     const active = branches.find(b => b.id === sess?.active_branch_id);
-    return active ? { name: active.name, color: active.color, count: branches.length, anchored: active.status === 'anchored' } : null;
+    return active ? { name: active.name, color: active.color, count: branches.length } : null;
   }));
   // The header chip switches courses too (not just displays). It complements the
   // Voyage Map rail's Logbook switcher: the chip is the standing branch surface
@@ -149,7 +149,6 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
                 >
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: branchInfo.color }} />
                   <span className="truncate max-w-[140px]">{branchInfo.name}</span>
-                  {branchInfo.anchored && <span className="text-[var(--accent)] shrink-0">⚑</span>}
                   <ChevronDown size={11} className={`shrink-0 text-[var(--text-tertiary)] transition-transform ${branchMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {branchMenuOpen && (
@@ -177,7 +176,6 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
                           >
                             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: b.color }} />
                             <span className="truncate flex-1 min-w-0">{b.name}</span>
-                            {b.status === 'anchored' && <span className="text-[var(--accent)] shrink-0 text-[10px]">⚑</span>}
                             {isActive && <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{L('현재', 'now')}</span>}
                           </button>
                         );

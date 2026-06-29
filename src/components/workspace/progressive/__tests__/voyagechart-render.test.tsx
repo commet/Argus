@@ -22,8 +22,8 @@ const checkpoints: VoyageCheckpoint[] = [
 const session: Partial<ProgressiveSession> = {
   id: 's1', checkpoints, active_checkpoint_id: 'c2',
   branches: [
-    { id: 'b-main', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'x' },
-    { id: 'b-fork', name: '챗봇 분기', head_checkpoint_id: 'c3', forked_from_checkpoint_id: 'c1', status: 'sailing', color: '#8b6914', created_at: 'y' },
+    { id: 'b-main', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, color: '#2d4a7c', created_at: 'x' },
+    { id: 'b-fork', name: '챗봇 분기', head_checkpoint_id: 'c3', forked_from_checkpoint_id: 'c1', color: '#8b6914', created_at: 'y' },
   ],
   active_branch_id: 'b-main',
 };
@@ -31,7 +31,7 @@ const session: Partial<ProgressiveSession> = {
 vi.mock('@/stores/useProgressiveStore', () => ({
   useProgressiveStore: (selector: (s: unknown) => unknown) => selector({
     sessions: [session], currentSessionId: 's1', navigateToCheckpoint: () => {},
-    switchBranch: () => {}, anchorBranch: () => {}, deleteBranch: () => {}, renameBranch: () => {}, isBranchingLocked: () => false,
+    switchBranch: () => {}, isBranchingLocked: () => false,
   }),
 }));
 vi.mock('@/hooks/useLocale', () => ({ useLocale: () => 'ko' }));

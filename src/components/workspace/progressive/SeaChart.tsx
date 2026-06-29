@@ -5,13 +5,23 @@
  *
  * The voyage's checkpoints/branches are positioned by the pure geometry in
  * lib/branch-map-layout, then RE-DRAWN as a charted sea route on aged parchment:
- * a graticule, ink stains and a scorched edge, a 16-point compass rose with
- * rhumb lines, the chosen course threading a WINDING multi-harmonic spline (with
- * an ink-bleed wobble), my ship at the current position, and the roads-not-taken
- * rendered as UNKNOWN routes — fading dashed courses that variously end at an
- * island, a phantom ship, or dissolve into uncharted fog. A few phantom sails
- * drift in the empty sea to hint at the wider unknown. Period typography via
- * `--font-chart` (Cormorant Garamond → Nanum Myeongjo).
+ * a graticule, a 16-point compass rose with rhumb lines, the chosen course
+ * threading a WINDING multi-harmonic spline (with an ink-bleed wobble), my ship
+ * at the current position, and the roads-not-taken rendered as UNKNOWN routes —
+ * fading dashed courses that (in the full chart) end at an island, a phantom
+ * ship, or dissolve into uncharted fog. Period typography via `--font-chart`
+ * (Cormorant Garamond → Nanum Myeongjo).
+ *
+ * Ornament diet (redesign step 5, refined): the founder kept parchment + ship
+ * but asked to cut excess. Meaningless cartographer flourishes were removed
+ * everywhere (depth soundings = random numerals, isobaths, drifting phantom
+ * sails). The genuinely heavy bits stay FULL-ONLY (the scorch displacement
+ * filter, the road-not-taken island/fog/ship endpoints, rhumb lines). But the
+ * compact rail chart KEEPS its craft — subtle stains, a faint grain, a single
+ * neatline frame, a near-whisper graticule, and a WARM (sepia, not muddy navy)
+ * compass — because stripping those made the small chart read as flat
+ * graph-paper fill ("짜친다"). Kept everywhere: parchment, cool wash, vignette,
+ * the inked course, waypoints, the ship.
  *
  * Self-contained parchment palette so it reads as a physical chart object in
  * both light and dark themes.
@@ -57,7 +67,7 @@ interface SeaChartProps {
 
 const WP_LABEL: Record<WaypointType, { ko: string; en: string }> = {
   departure:     { ko: '출항',     en: 'Departure' },
-  course_change: { ko: '침로 변경', en: 'Course change' },
+  course_change: { ko: '항로 변경', en: 'Course change' },
   reef:          { ko: '암초',     en: 'Reef' },
   sighting:      { ko: '관측',     en: 'Sighting' },
   headwind:      { ko: '역풍',     en: 'Headwind' },
@@ -120,8 +130,12 @@ function Ship({ cx, cy, s, color, phantom = false, angle = 0 }: { cx: number; cy
   );
 }
 
-/** 16-point compass rose. */
-function CompassRose({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+/** 16-point compass rose. `warm` tints the long points sepia instead of navy
+ *  ink — at the low opacity it sits at in the compact rail, navy went muddy
+ *  grey-blue (read as cheap clip-art); warm keeps it a tonal parchment mark. */
+function CompassRose({ cx, cy, r, warm = false }: { cx: number; cy: number; r: number; warm?: boolean }) {
+  const longFill = warm ? PAPER.sepia : PAPER.ink;
+  const nFill = warm ? PAPER.sepia : PAPER.ink;
   const pts: React.ReactNode[] = [];
   for (let i = 0; i < 16; i++) {
     const a = (i * Math.PI) / 8;
@@ -133,7 +147,7 @@ function CompassRose({ cx, cy, r }: { cx: number; cy: number; r: number }) {
     const lX = cx + Math.cos(a) * w, lY = cy + Math.sin(a) * w;
     const rX = cx - Math.cos(a) * w, rY = cy - Math.sin(a) * w;
     pts.push(<path key={i} d={`M ${cx} ${cy} L ${lX} ${lY} L ${tipX} ${tipY} L ${rX} ${rY} Z`}
-      fill={long ? PAPER.ink : i % 4 === 2 ? PAPER.sepia : 'none'} stroke={PAPER.sepia} strokeWidth={0.4}
+      fill={long ? longFill : i % 4 === 2 ? PAPER.sepia : 'none'} stroke={PAPER.sepia} strokeWidth={0.4}
       opacity={long ? 0.85 : mid ? 0.5 : 0.33} />);
   }
   return (
@@ -142,7 +156,7 @@ function CompassRose({ cx, cy, r }: { cx: number; cy: number; r: number }) {
       <circle cx={cx} cy={cy} r={r * 0.66} fill="none" stroke={PAPER.sepia} strokeWidth={0.4} opacity={0.4} />
       {pts}
       <circle cx={cx} cy={cy} r={r * 0.07} fill={PAPER.gold} />
-      <text x={cx} y={cy - r * 1.12} textAnchor="middle" fontSize={r * 0.32} fill={PAPER.ink} fontWeight={600} fontFamily={CHART_FONT} style={{ letterSpacing: '0.04em' }}>N</text>
+      <text x={cx} y={cy - r * 1.12} textAnchor="middle" fontSize={r * 0.32} fill={nFill} fontWeight={600} fontFamily={CHART_FONT} style={{ letterSpacing: '0.04em' }}>N</text>
     </g>
   );
 }
@@ -186,32 +200,70 @@ export function SeaChart({
     // labels read to the RIGHT (wide margin), and the not-taken forks peel into
     // the open "unknown" sea on the LEFT.
     const sideL = full ? 120 : 24;
-    const sideR = full ? 196 : 24;
     const padTop = full ? 50 : 28;
     const padBottom = full ? 46 : 26;
     // zero-phase wander → starts dead-centre, then swings RIGHT and back LEFT
     // (primary near one wave per ~6 turns) for a true serpentine sea route.
     const wander = (row: number) => amp * (0.7 * Math.sin(row * 0.95) + 0.3 * Math.sin(row * 2.2));
-    const baseX = sideL + amp;            // trunk centre
-    const W = baseX + amp + sideR;        // = centre is baseX
-    const H = padTop + maxRow * rowGap + padBottom;
-    const placed = nodes.map((n, i) => {
+    const baseX = sideL + amp;            // natural trunk centre
+    let H = padTop + maxRow * rowGap + padBottom;
+    // Place every node. The active course winds down the centre; forks peel into
+    // the open sea on ALTERNATING sides (odd lane → left, even → right). Two
+    // refinements so a many-branch fan doesn't blow out wide:
+    //   • distance grows with √tier, not linearly — far forks pack closer
+    //     instead of marching ever outward.
+    //   • a per-branch hash jitter scatters them off the two clean diagonals so
+    //     the fan reads organic, not like ruled lines (jitter < the side gap, so
+    //     a fork never crosses to the wrong side).
+    const jitterOf = (seed: string) => ((hash(seed) % 1000) / 1000 - 0.5) * forkSpread * 0.6;
+    const placed0 = nodes.map((n, i) => {
       const isActive = n.branchId === activeBranchId;
+      const rank = Math.max(1, n.lane);
+      const side = rank % 2 === 1 ? -1 : 1;
+      const dist = forkSpread * Math.sqrt(Math.ceil(rank / 2));
       const px = isActive
         ? baseX + wander(rows[i])
-        : baseX - forkSpread * Math.max(1, n.lane) + wander(rows[i]) * 0.3;
+        : baseX + side * dist + jitterOf(n.branchId || n.id) + wander(rows[i]) * 0.3;
       return { ...n, px, py: padTop + rows[i] * rowGap, row: rows[i], isActive };
     });
+    // …then size the viewBox to ENCLOSE every node (forks would otherwise march
+    // off the parchment onto white), and PAD it to roughly the container's aspect
+    // so the parchment fills the frame without white letterboxing — short routes
+    // would otherwise sit in a narrow strip, and the √-compressed fork fan is
+    // narrower than the wide full-chart box. Right margin is wider on the full
+    // chart to fit the waypoint labels that extend right of a node.
+    let minPx = baseX, maxPx = baseX;
+    for (const p of placed0) { if (p.px < minPx) minPx = p.px; if (p.px > maxPx) maxPx = p.px; }
+    const padL = full ? 60 : 16;
+    const padR = full ? 200 : 16;
+    let W = (maxPx - minPx) + padL + padR;
+    let offsetX = padL - minPx;
+    let offsetY = 0;
+    const targetAspect = full ? 1.45 : 0.95;  // ≈ the SeaChart container's W/H
+    if (W < H * targetAspect) {                 // too narrow → pad open sea L/R
+      const want = H * targetAspect; offsetX += (want - W) / 2; W = want;
+    } else if (W > H * targetAspect) {          // too wide → pad sea top/bottom
+      const wantH = W / targetAspect; offsetY = (wantH - H) / 2; H = wantH;
+    }
+    const placed = placed0.map(p => ({ ...p, px: p.px + offsetX, py: p.py + offsetY }));
     const byId = new Map(placed.map(p => [p.id, p]));
-    const activePath: typeof placed = [];
-    let cursor = activeCheckpointId ? byId.get(activeCheckpointId) : undefined;
+    // Walk the FULL active-branch lineage (head → root), not just root → current.
+    // When the user has rewound to a past point, the checkpoints AHEAD of them
+    // (current → head, already sailed) must still ink onto the route — otherwise
+    // they float as disconnected dots. Split at the current checkpoint:
+    //   behind (root → current) = solid course; ahead (current → head) = faded.
+    const headId = branches.find(b => b.id === activeBranchId)?.head_checkpoint_id ?? activeCheckpointId;
+    const fullPath: typeof placed = [];
+    let cursor = headId ? byId.get(headId) : undefined;
     const guard = new Set<string>();
-    while (cursor && !guard.has(cursor.id)) { guard.add(cursor.id); activePath.unshift(cursor); cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined; }
-    return { placed, byId, W, H, baseX, activePath };
-  }, [nodes, full, activeCheckpointId, activeBranchId]);
+    while (cursor && !guard.has(cursor.id)) { guard.add(cursor.id); fullPath.unshift(cursor); cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined; }
+    const curIdx = fullPath.findIndex(n => n.id === activeCheckpointId);
+    const activePath = curIdx >= 0 ? fullPath.slice(0, curIdx + 1) : fullPath;
+    const aheadPath = curIdx >= 0 ? fullPath.slice(curIdx) : []; // current..head (incl. current for spline continuity)
+    return { placed, byId, W, H, activePath, aheadPath };
+  }, [nodes, full, activeCheckpointId, activeBranchId, branches]);
 
   const wpByCp = useMemo(() => { const m = new Map<string, Waypoint>(); for (const w of waypoints) m.set(w.checkpoint_id, w); return m; }, [waypoints]);
-  const statusByBranch = useMemo(() => new Map(branches.map(b => [b.id, b.status])), [branches]);
 
   // Reset the view whenever the voyage's shape or the current position changes,
   // so a freshly opened / updated chart always starts fully framed.
@@ -227,7 +279,7 @@ export function SeaChart({
     );
   }
 
-  const { placed, byId, W, H, activePath } = layout;
+  const { placed, byId, W, H, activePath, aheadPath } = layout;
 
   // ── Zoom / pan plumbing (full only) ──
   const clientToSvg = (clientX: number, clientY: number) => {
@@ -266,13 +318,15 @@ export function SeaChart({
     ? (id: string) => { if (suppressPick.current) { suppressPick.current = false; return; } onPick(id); }
     : undefined;
 
-  const dim = (branchId: string | null) => (branchId && statusByBranch.get(branchId) === 'abandoned' ? 0.4 : 1);
   const roseR = full ? Math.min(58, W * 0.11) : 11;
   // compass tucks into the bottom-left open sea (the right side carries labels);
   // in the narrow rail it's a faint top-right corner watermark, clear of the route
   const roseCx = full ? roseR + 30 : W - roseR - 4;
   const roseCy = full ? H - roseR - 26 : roseR + 5;
   const activeCourse = spline(activePath.map(n => ({ x: n.px, y: n.py })));
+  // The already-sailed stretch AHEAD of a rewound position — a faded trail so
+  // those checkpoints sit on the route instead of floating as loose dots.
+  const aheadCourse = aheadPath.length > 1 ? spline(aheadPath.map(n => ({ x: n.px, y: n.py }))) : '';
 
   const stains = [
     { x: W * 0.18, y: H * 0.32, r: full ? 48 : 22 },
@@ -285,25 +339,10 @@ export function SeaChart({
   type Treat = 'island' | 'ship' | 'fog';
   const treatOf = (id: string): Treat => (['island', 'ship', 'fog'] as Treat[])[hash(id) % 3];
 
-  // Phantom sails drifting in the open sea (full) — one in the far-right margin,
-  // one in the unknown sea to the left, hinting at the wider unknown.
-  const driftShips = full ? [
-    { x: W * 0.91, y: H * 0.18, s: 6.5, a: -16 },
-    { x: W * 0.12, y: H * 0.5, s: 5.5, a: 14 },
-  ] : [];
-
-  // Depth soundings scattered over open water (full) — a cartographer's detail,
-  // kept clear of the centred course and its right-hand labels.
-  const soundings = full ? [
-    { x: W * 0.93, y: H * 0.36, n: 9 }, { x: W * 0.9, y: H * 0.52, n: 14 },
-    { x: W * 0.95, y: H * 0.68, n: 6 }, { x: W * 0.1, y: H * 0.3, n: 23 },
-    { x: W * 0.07, y: H * 0.7, n: 31 }, { x: W * 0.16, y: H * 0.86, n: 18 },
-  ] : [];
-
   return (
-    <div className={`relative w-full overflow-hidden rounded-[10px] shadow-[inset_0_0_46px_rgba(78,56,16,0.15)]${full ? ' h-full' : ''}`}>
-      <svg ref={svgRef} width="100%" height={full ? '100%' : undefined}
-        viewBox={`0 0 ${W} ${H}`} preserveAspectRatio={full ? 'xMidYMid meet' : 'xMinYMin meet'} role="img"
+    <div className="relative w-full h-full overflow-hidden rounded-[10px] shadow-[inset_0_0_46px_rgba(78,56,16,0.15)]">
+      <svg ref={svgRef} width="100%" height="100%"
+        viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"
         aria-label={L('결정 항해 해도', 'Decision voyage chart')}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp} onWheel={onWheel}
@@ -354,20 +393,31 @@ export function SeaChart({
         {/* Parchment + cool water wash + depth contours + stains + graticule + grain */}
         <rect x="0" y="0" width={W} height={H} fill={`url(#paper-${uid})`} />
         <rect x="0" y="0" width={W} height={H} fill={`url(#cool-${uid})`} />
-        {/* faint isobaths in the deep water toward the bottom */}
-        {full && [0, 1, 2, 3].map((i) => (
-          <path key={`bath-${i}`} d={`M ${W * 0.04} ${H * (0.74 + i * 0.066)} Q ${W * 0.5} ${H * (0.66 + i * 0.066)} ${W * 0.96} ${H * (0.76 + i * 0.066)}`}
-            fill="none" stroke="#54708a" strokeWidth={0.6} opacity={0.14} />
-        ))}
-        {stains.map((s, i) => <ellipse key={i} cx={s.x} cy={s.y} rx={s.r} ry={s.r * 0.78} fill={`url(#stain-${uid})`} />)}
-        <rect x="0" y="0" width={W} height={H} fill={`url(#grat-${uid})`} opacity={full ? 0.17 : 0.13} />
+        {/* Aged stains + grain + scorched edge are full-chart only — in the
+            narrow rail they muddied a small surface (and the grain/scorch
+            turbulence filters are GPU-costly on an always-visible hero). The
+            parchment gradient, cool wash, graticule and vignette already carry
+            the "양피지" feel in compact. */}
+        {/* Aged stains + a faint grain give the paper its craft. They're subtle
+            in compact (and the heavy scorch displacement stays full-only for
+            cost), but WITHOUT them the small chart read as flat graph-paper fill
+            — the founder's "짜친다". The graticule is dropped to a near-whisper in
+            compact so it stops reading as a wireframe grid. */}
+        {stains.map((s, i) => <ellipse key={i} cx={s.x} cy={s.y} rx={s.r} ry={s.r * 0.78} fill={`url(#stain-${uid})`} opacity={full ? 1 : 0.7} />)}
+        <rect x="0" y="0" width={W} height={H} fill={`url(#grat-${uid})`} opacity={full ? 0.17 : 0.06} />
         <rect x="0" y="0" width={W} height={H} filter={`url(#grain-${uid})`} opacity={full ? 0.06 : 0.05} />
 
-        {/* Scorched, irregular edge */}
-        <rect x={full ? 6 : 3} y={full ? 6 : 3} width={W - (full ? 12 : 6)} height={H - (full ? 12 : 6)} fill="none" stroke="rgba(68,42,12,0.34)" strokeWidth={full ? 9 : 5} filter={`url(#scorch-${uid})`} opacity={0.55} />
+        {/* Scorched, irregular edge (full only — heavy displacement filter) */}
+        {full && <rect x={6} y={6} width={W - 12} height={H - 12} fill="none" stroke="rgba(68,42,12,0.34)" strokeWidth={9} filter={`url(#scorch-${uid})`} opacity={0.55} />}
 
-        {/* Neatline */}
-        {full && (<><rect x="9" y="9" width={W - 18} height={H - 18} fill="none" stroke={PAPER.sepia} strokeWidth={1} opacity={0.55} /><rect x="13" y="13" width={W - 26} height={H - 26} fill="none" stroke={PAPER.sepia} strokeWidth={0.5} opacity={0.4} /></>)}
+        {/* Neatline frame — full gets a double rule; compact a single light one,
+            so the small chart reads as a contained chart OBJECT, not a bleed of
+            flat colour. */}
+        {full ? (
+          <><rect x="9" y="9" width={W - 18} height={H - 18} fill="none" stroke={PAPER.sepia} strokeWidth={1} opacity={0.55} /><rect x="13" y="13" width={W - 26} height={H - 26} fill="none" stroke={PAPER.sepia} strokeWidth={0.5} opacity={0.4} /></>
+        ) : (
+          <rect x={4} y={4} width={W - 8} height={H - 8} fill="none" stroke={PAPER.sepia} strokeWidth={0.6} opacity={0.5} />
+        )}
 
         {/* Rhumb lines from the compass */}
         {full && Array.from({ length: 16 }).map((_, i) => { const a = (i * Math.PI) / 8; return <line key={i} x1={roseCx} y1={roseCy} x2={roseCx + Math.sin(a) * (W + H)} y2={roseCy - Math.cos(a) * (W + H)} stroke={PAPER.sepia} strokeWidth={0.4} opacity={0.12} />; })}
@@ -379,17 +429,19 @@ export function SeaChart({
           if (!p) return null;
           const my = (p.py + n.py) / 2;
           return <path key={`g-${n.id}`} d={`M ${p.px} ${p.py} C ${p.px} ${my}, ${n.px} ${my}, ${n.px} ${n.py}`} fill="none"
-            stroke={`url(#fade-${uid})`} strokeWidth={1.5} strokeLinecap="round" strokeDasharray="2 5" opacity={dim(n.branchId)} />;
+            stroke={`url(#fade-${uid})`} strokeWidth={1.5} strokeLinecap="round" strokeDasharray="2 5" />;
         })}
 
-        {/* Unknown-route endpoints: island / phantom ship / fog */}
-        {ghostHeads.map((n, i) => {
+        {/* Unknown-route endpoints: island / phantom ship / fog. Full only — in
+            the rail the dashed branch lines already read as "다른 길"; these tiny
+            islands/fog blobs only clutter a small chart. */}
+        {full && ghostHeads.map((n, i) => {
           const t = treatOf(n.branchId!);
           // a faint tail continuing past the head toward the nearer side (into the unknown)
           const dir = n.px > W / 2 ? 1 : -1;
           const tail = `M ${n.px} ${n.py} q ${dir * (full ? 26 : 12)} ${full ? 14 : 7}, ${dir * (full ? 52 : 24)} ${full ? 8 : 4}`;
           return (
-            <g key={`gt-${n.id}`} opacity={dim(n.branchId)}>
+            <g key={`gt-${n.id}`}>
               <path d={tail} fill="none" stroke={PAPER.ghost} strokeWidth={1.1} strokeDasharray="1.5 5" opacity={0.5} />
               {t === 'fog' && (
                 <>
@@ -442,18 +494,16 @@ export function SeaChart({
           );
         })}
 
-        {/* Depth soundings — faint italic numerals over the open sea */}
-        {soundings.map((s, i) => (
-          <text key={`snd-${i}`} x={s.x} y={s.y} fontSize={6.5} fill={PAPER.sepia} fontFamily={CHART_FONT} fontStyle="italic" opacity={0.42} textAnchor="middle">{s.n}</text>
-        ))}
-
-        {/* Drifting phantom sails in the open sea (full) */}
-        {driftShips.map((d, i) => <Ship key={`drift-${i}`} cx={d.x} cy={d.y} s={d.s} color={PAPER.sepiaSoft} phantom angle={d.a} />)}
+        {/* The already-sailed stretch ahead of a rewound position — faint dashed
+            ink, so checkpoints past "here" stay on the route, not floating. */}
+        {aheadCourse && (
+          <path d={aheadCourse} fill="none" stroke={PAPER.ink} strokeWidth={full ? 1.5 : 1} strokeLinecap="round" strokeLinejoin="round" opacity={0.3} strokeDasharray={full ? '1.5 4' : '1 3'} />
+        )}
 
         {/* ── The inked main course — one winding spline + ink-bleed wobble ── */}
         {activePath.length > 1 && (
           <g filter={`url(#bleed-${uid})`}>
-            <path d={activeCourse} pathLength={1} fill="none" stroke={PAPER.ink} strokeWidth={full ? 2.1 : 1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.9}
+            <path d={activeCourse} pathLength={1} fill="none" stroke={PAPER.ink} strokeWidth={full ? 2.1 : 1.25} strokeLinecap="round" strokeLinejoin="round" opacity={0.9}
               strokeDasharray={animate ? 1 : undefined} strokeDashoffset={animate ? 1 : undefined}>
               {animate && <animate attributeName="stroke-dashoffset" from="1" to="0" dur="1.5s" begin="0.15s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.45 0 0.2 1" />}
             </path>
@@ -469,14 +519,13 @@ export function SeaChart({
           const wp = wpByCp.get(n.id);
           const isActiveCp = n.id === activeCheckpointId;
           const isActiveBranch = n.branchId === activeBranchId;
-          const anchored = n.isHead && n.branchId && statusByBranch.get(n.branchId) === 'anchored';
           const isReef = wp?.type === 'reef';
           const baseColor = isReef ? PAPER.reef : isActiveBranch ? PAPER.ink : PAPER.sepia;
           const r = full ? (wp ? 4 : 2.4) : (wp ? 3 : 1.9);
 
           return (
             <g key={`n-${n.id}`}>
-             <g opacity={dim(n.branchId)} className={onPick ? 'cursor-pointer' : undefined} onClick={handlePick ? () => handlePick(n.id) : undefined}>
+             <g className={onPick ? 'cursor-pointer' : undefined} onClick={handlePick ? () => handlePick(n.id) : undefined}>
               {/* a whisper-thin halo only on waypoints, to lift them off the sea
                   without the old "target" heaviness */}
               {wp && !isActiveCp && <circle cx={n.px} cy={n.py} r={r + (full ? 2.4 : 1.8)} fill="none" stroke={baseColor} strokeWidth={0.4} opacity={0.18} />}
@@ -526,13 +575,6 @@ export function SeaChart({
                 <circle cx={n.px} cy={n.py} r={r} fill={PAPER.paper0} stroke={baseColor} strokeWidth={0.8} opacity={0.85} />
               )}
 
-              {anchored && !isActiveCp && (
-                <g stroke={PAPER.gold} strokeWidth={1.1} fill="none">
-                  <line x1={n.px + r + 2} y1={n.py - r - 5} x2={n.px + r + 2} y2={n.py + 2} />
-                  <path d={`M ${n.px + r + 2} ${n.py - r - 5} L ${n.px + r + 8} ${n.py - r - 2.5} L ${n.px + r + 2} ${n.py - r} Z`} fill={PAPER.gold} />
-                </g>
-              )}
-
               {full && wp && (() => {
                 const lx = n.px + (isActiveCp ? (full ? 19 : 12) : r + 11);
                 const text = wp.headline.length > 28 ? wp.headline.slice(0, 27) + '…' : wp.headline;
@@ -553,8 +595,9 @@ export function SeaChart({
           );
         })}
 
-        {/* Compass rose — bottom-left in the full chart; a faint corner watermark in compact */}
-        <g opacity={full ? 1 : 0.3}><CompassRose cx={roseCx} cy={roseCy} r={roseR} /></g>
+        {/* Compass rose — bottom-left in the full chart; a faint WARM corner
+            watermark in compact (navy went muddy grey at low opacity). */}
+        <g opacity={full ? 1 : 0.4}><CompassRose cx={roseCx} cy={roseCy} r={roseR} warm={!full} /></g>
 
         <rect x="0" y="0" width={W} height={H} fill={`url(#vig-${uid})`} pointerEvents="none" />
         </g>

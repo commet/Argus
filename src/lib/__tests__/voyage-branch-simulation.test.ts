@@ -122,7 +122,6 @@ describe('Voyage branch layer', () => {
       expect(s.branches).toHaveLength(1);
       const main = s.branches![0];
       expect(main.forked_from_checkpoint_id).toBeNull();
-      expect(main.status).toBe('sailing');
       expect(main.head_checkpoint_id).toBe(cp!.id);
       expect(s.active_branch_id).toBe(main.id);
       expect(s.active_checkpoint_id).toBe(cp!.id);
@@ -164,7 +163,7 @@ describe('Voyage branch layer', () => {
     });
   });
 
-  describe('fork / switch / anchor actions', () => {
+  describe('fork / switch actions', () => {
     it('forkBranch creates a sibling course-line from a checkpoint, preserving the source branch', () => {
       const sid = startSession();
       const c1 = api().recordCheckpoint('origin')!;
@@ -238,45 +237,42 @@ describe('Voyage branch layer', () => {
       api().switchBranch('does-not-exist');  // unknown
       expect(session(sid).active_branch_id).toBe(activeId);
     });
-
-    it('anchorBranch marks the chosen course anchored and retires the rest (preserved)', () => {
-      const sid = startSession();
-      const c1 = api().recordCheckpoint('origin')!;
-      api().recordCheckpoint('briefing');
-      const mainId = session(sid).active_branch_id!;
-      const forkId = api().forkBranch(c1.id)!;
-
-      api().anchorBranch(forkId);
-      const s = session(sid);
-      expect(s.branches!.find(b => b.id === forkId)!.status).toBe('anchored');
-      expect(s.branches!.find(b => b.id === mainId)!.status).toBe('abandoned');
-      expect(s.branches).toHaveLength(2); // nothing deleted
-    });
-
-    it('anchoring a non-active branch switches to it (output = anchored course)', () => {
-      const sid = startSession();
-      const c1 = api().recordCheckpoint('origin')!;
-      api().recordCheckpoint('briefing');         // main → c2
-      const mainId = session(sid).active_branch_id!;
-      const forkId = api().forkBranch(c1.id)!;     // active = fork
-      api().switchBranch(mainId);                  // active = main
-      api().anchorBranch(forkId);                  // anchor the non-active fork
-      const s = session(sid);
-      expect(s.active_branch_id).toBe(forkId);     // switched to the anchored course
-      expect(s.branches!.find(b => b.id === forkId)!.status).toBe('anchored');
-      expect(s.branches!.find(b => b.id === mainId)!.status).toBe('abandoned');
-    });
   });
 
-  describe('quota guards (Phase 6)', () => {
-    it('caps branches per session at 8 and refuses further forks', () => {
+  describe('snapshot interning', () => {
+    it('no branch cap — forking past the old MAX_BRANCHES=8 still succeeds', () => {
       const sid = startSession();
       const c1 = api().recordCheckpoint('origin')!; // main = 1 branch
       const results = Array.from({ length: 10 }, () => api().forkBranch(c1.id));
       const s = session(sid);
-      expect(s.branches!.length).toBe(8);                       // capped
-      expect(results.filter(Boolean).length).toBe(7);          // 1 main + 7 forks = 8
-      expect(results[7]).toBeNull();                            // the 8th fork is blocked
+      expect(s.branches!.length).toBe(11);                 // 1 main + 10 forks, uncapped
+      expect(results.every(Boolean)).toBe(true);           // none refused
+    });
+
+    it('scale: 15+ accumulated forks never throw and keep every branch head valid', () => {
+      const sid = startSession();
+      const c1 = api().recordCheckpoint('origin')!;
+      api().recordCheckpoint('briefing');
+      const forkIds: string[] = [];
+      // Fork repeatedly off the same early point, each advancing a checkpoint —
+      // the worst case for the chart's leftward lane spread.
+      expect(() => {
+        for (let i = 0; i < 15; i++) {
+          const id = api().forkBranch(c1.id, `갈래 ${i}`);
+          expect(id).toBeTruthy();
+          forkIds.push(id!);
+          api().recordCheckpoint('briefing');
+        }
+        // Hop across them — switch + chart-style navigation must stay consistent.
+        api().switchBranch(forkIds[0]);
+        api().navigateToCheckpoint(c1.id);
+        api().switchBranch(forkIds[7]);
+      }).not.toThrow();
+      const s = session(sid);
+      expect(s.branches!.length).toBeGreaterThanOrEqual(16); // main + 15 forks
+      // No corruption: every branch points at a checkpoint that actually exists.
+      const cpIds = new Set(s.checkpoints!.map(c => c.id));
+      for (const b of s.branches!) expect(cpIds.has(b.head_checkpoint_id)).toBe(true);
     });
 
     it('strips transient stream_text from checkpoint snapshots', () => {
@@ -353,61 +349,6 @@ describe('Voyage branch layer', () => {
       }));
       const cp = api().recordCheckpoint('briefing')!;
       expect(session(sid).branches!.some(b => b.head_checkpoint_id === cp.id)).toBe(true);
-    });
-  });
-
-  describe('deleteBranch', () => {
-    it('removes a non-active branch, pruning its exclusive checkpoints but keeping shared ancestry', () => {
-      const sid = startSession();
-      const c1 = api().recordCheckpoint('origin')!;
-      const c2 = api().recordCheckpoint('briefing')!;     // main head
-      const mainId = session(sid).active_branch_id!;
-      api().forkBranch(c1.id);                              // active = fork (head c1)
-      const c3 = api().recordCheckpoint('briefing')!;       // fork sails → head c3 (parent c1)
-      const forkId = session(sid).active_branch_id!;
-      api().switchBranch(mainId);                           // leave the fork
-
-      api().deleteBranch(forkId);
-      const s = session(sid);
-      expect(s.branches).toHaveLength(1);
-      expect(s.branches![0].id).toBe(mainId);
-      expect(s.checkpoints!.find(c => c.id === c3.id)).toBeUndefined(); // exclusive → pruned
-      expect(s.checkpoints!.find(c => c.id === c1.id)).toBeDefined();   // shared → kept
-      expect(s.checkpoints!.find(c => c.id === c2.id)).toBeDefined();   // main's own → kept
-    });
-
-    it('refuses to delete the active branch or the last remaining branch', () => {
-      const sid = startSession();
-      const c1 = api().recordCheckpoint('origin')!;
-      api().forkBranch(c1.id);
-      const activeId = session(sid).active_branch_id!;
-      api().deleteBranch(activeId);                         // active → no-op
-      expect(session(sid).branches!.some(b => b.id === activeId)).toBe(true);
-
-      // collapse to a single branch, then try to delete it
-      const other = session(sid).branches!.find(b => b.id !== activeId)!.id;
-      api().deleteBranch(other);
-      expect(session(sid).branches).toHaveLength(1);
-      api().deleteBranch(session(sid).branches![0].id);     // last → no-op
-      expect(session(sid).branches).toHaveLength(1);
-    });
-  });
-
-  describe('renameBranch', () => {
-    it('renames a course, trims, ignores empty, and caps length', () => {
-      const sid = startSession();
-      api().recordCheckpoint('origin');
-      const id = session(sid).active_branch_id!;
-      const name = () => session(sid).branches!.find(b => b.id === id)!.name;
-
-      api().renameBranch(id, '  챗봇 직접 제작  ');
-      expect(name()).toBe('챗봇 직접 제작'); // trimmed
-
-      api().renameBranch(id, '   ');
-      expect(name()).toBe('챗봇 직접 제작'); // empty ignored — keeps previous
-
-      api().renameBranch(id, 'x'.repeat(80));
-      expect(name().length).toBe(60); // capped
     });
   });
 

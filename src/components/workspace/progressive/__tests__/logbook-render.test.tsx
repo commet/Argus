@@ -29,8 +29,8 @@ const checkpoints: VoyageCheckpoint[] = [
   { id: 'c2', parent_id: 'c1', stage: 'briefing', label: 'b', created_at: '2026-01-01T00:00:02.000Z', state_snapshot: c2State() },
 ];
 const branches: VoyageBranch[] = [
-  { id: 'b-main', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'x' },
-  { id: 'b-fork', name: '챗봇 분기', head_checkpoint_id: 'c1', forked_from_checkpoint_id: 'c1', status: 'sailing', color: '#8b6914', created_at: 'y' },
+  { id: 'b-main', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, color: '#2d4a7c', created_at: 'x' },
+  { id: 'b-fork', name: '챗봇 분기', head_checkpoint_id: 'c1', forked_from_checkpoint_id: 'c1', color: '#8b6914', created_at: 'y' },
 ];
 const waypoints: Waypoint[] = [
   { id: 'w1', checkpoint_id: 'c1', type: 'departure', headline: '경쟁사처럼 챗봇 만들기', created_at: 'x' },
@@ -55,8 +55,8 @@ const session: ProgressiveSession = {
 vi.mock('@/stores/useProgressiveStore', () => ({
   useProgressiveStore: (selector: (s: unknown) => unknown) => selector({
     sessions: [session], currentSessionId: 's1',
-    switchBranch: () => {}, anchorBranch: () => {}, forkBranch: () => null,
-    deleteBranch: () => {}, isBranchingLocked: () => false,
+    switchBranch: () => {}, forkBranch: () => null,
+    isBranchingLocked: () => false,
   }),
 }));
 vi.mock('@/hooks/useLocale', () => ({ useLocale: () => 'ko' }));
@@ -74,15 +74,17 @@ describe('Logbook render', () => {
 
   it('renders typed waypoints with their headlines', () => {
     expect(html).toContain('출항');
-    expect(html).toContain('침로 변경');
+    expect(html).toContain('항로 변경');
     expect(html).toContain('경쟁사처럼 챗봇 만들기');
     expect(html).toContain('이탈의 진짜 원인은?');
   });
 
-  it('renders branch chips for both course-lines + the anchor verb', () => {
-    expect(html).toContain('본 항로');
-    expect(html).toContain('챗봇 분기');
-    expect(html).toContain('이 항로로 확정');
+  it('is read-only narration of the active course — no branch chips / anchor (step 3a)', () => {
+    // Managing named courses (switch / anchor / delete) moved out of the log: it
+    // now only narrates the active course. Returning to an explored course lives
+    // in the 해도; exploring a road-not-taken keeps its own "이 길 가보기" below.
+    expect(html).not.toContain('챗봇 분기');      // non-active course chip gone
+    expect(html).not.toContain('이 항로로 확정');   // anchor verb gone
   });
 
   it('renders the road-not-taken with a fork affordance on the open course-change', () => {

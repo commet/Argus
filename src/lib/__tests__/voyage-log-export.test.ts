@@ -17,7 +17,7 @@ const session = (waypoints: unknown[]): ProgressiveSession => ({
   workers: [], worker_deploy_phase: 'none', mix: null, dm_feedback: null, final_deliverable: 'doc',
   checkpoints: [cp('c1', null, 't1'), cp('c2', 'c1', 't2')],
   active_checkpoint_id: 'c2',
-  branches: [{ id: 'm', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#000', created_at: 'a' }],
+  branches: [{ id: 'm', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, color: '#000', created_at: 'a' }],
   active_branch_id: 'm',
   waypoints: waypoints as never,
   created_at: 'a', updated_at: 'b',
@@ -41,7 +41,7 @@ describe('voyageLogToMarkdown', () => {
     expect(md).toContain('## 항해일지');
     expect(md).toContain('출항');
     expect(md).toContain('경쟁사처럼 챗봇');
-    expect(md).toContain('침로 변경');
+    expect(md).toContain('항로 변경');
     expect(md).toContain('이탈의 진짜 원인은?');
     expect(md).toContain('계기: CFO');
     expect(md).toContain('의미: ROI 근거가 필요하다');

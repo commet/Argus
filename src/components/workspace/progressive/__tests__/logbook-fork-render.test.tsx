@@ -30,15 +30,15 @@ const session: ProgressiveSession = {
   phase: 'conversing', round: 0, max_rounds: 5, questions: [], answers: [], snapshots: [], workers: [],
   worker_deploy_phase: 'none', mix: null, dm_feedback: null, final_deliverable: null,
   checkpoints, active_checkpoint_id: 'c2', waypoints,
-  branches: [{ id: 'm', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'a' }],
+  branches: [{ id: 'm', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, color: '#2d4a7c', created_at: 'a' }],
   active_branch_id: 'm', created_at: 'a', updated_at: 'b',
 };
 
 vi.mock('@/stores/useProgressiveStore', () => ({
   useProgressiveStore: (selector: (s: unknown) => unknown) => selector({
     sessions: [session], currentSessionId: 's1',
-    switchBranch: () => {}, anchorBranch: () => {}, forkBranch: () => null,
-    deleteBranch: () => {}, isBranchingLocked: () => false,
+    switchBranch: () => {}, forkBranch: () => null,
+    isBranchingLocked: () => false,
   }),
 }));
 vi.mock('@/hooks/useLocale', () => ({ useLocale: () => 'ko' }));
