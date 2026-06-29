@@ -371,6 +371,7 @@ set) on the snapshot either way, so sail Step 6 can route without re-classifying
 >
 > - `real_question`: what the user is ACTUALLY deciding. Often different from surface.
 > - `hidden_assumptions`: 3-5 assumptions the user is making without stating.
+> - `constraints_as_read`: for each constraint the user EXPLICITLY stated, pair it with your operational reading of it — see rule 2b. Empty when there are no explicit constraints or your reading is a literal restatement.
 > - `skeleton`: 3-7 bullets of what a complete answer would contain (structural, not substantive).
 > - `framing_confidence`: 0-100, your self-assessment. Low when the surface question looks like an XY problem.
 > - `insight`: one-line insight that surfaced from this analysis.
@@ -395,6 +396,7 @@ set) on the snapshot either way, so sail Step 6 can route without re-classifying
 >    - **External-approval / stakeholder gate (R39):** name the SPECIFIC external party whose sign-off or hard constraint is the real gate (acquiring bank / regulator / security-review board / data-protection authority / a key customer / an auditor), what they require, and the lead time. **HONESTY GUARD:** an external-dependency next-action MUST be verify-first and conditional ("먼저 실제 처리자·통합 현황 확인 → 해당되면 DPA 서명") — NEVER assert a specific vendor/integration EXISTS ("Stripe DPA 서명") unless the user gave it. A confident sweep that invents current state is worse than no sweep (R39: a sharpened pass confabulated a Stripe DPA on a repo with no payment layer). **(R40 — verify-first + tag-don't-assert)** For state that IS in the repo (files, integrations, baseline), VERIFY it by reading before asserting (you have Read/Grep — use them; this is the one place the single pass matches a crew). For state that is NOT in the repo — runtime / dashboard / live-provider / third-party-config settings — it is UNVERIFIABLE from a static read: tag it as inference (unverifiable-external), NEVER assert it as settled fact, and build NO verdict whose load-bearing premise rests on it (R40: a pass asserted a Supabase dashboard provider-switch as already done).
 >    - **(firing form)** The sweeps inform `hidden_assumptions` / the fog — they do NOT license a verdict. Even on a heavy multi-domain decision the `real_question` stays a NEUTRAL question, NEVER a directional headline ("항로: 진행"); R39 caught the sweeps' added assertiveness leaking into a mirror-clause lean on the heaviest case.
 > 2. `hidden_assumptions` must be declarative sentences, not questions.
+> 2b. **`constraints_as_read` surfaces a possible MISREAD, not every constraint (the constraint-semantic guard).** Include a `{stated, reading}` pair ONLY when you interpreted an explicitly stated constraint into something operational the user might disagree with — e.g. they said "must be GDPR-ready" and you are operating it as "has a privacy policy + a signed DPA". A literal echo ("by Friday" -> "deadline Friday") adds nothing — omit it. No explicit constraints, or all readings literal -> empty array (do not manufacture an interpretation to fill it — over-fire / mirror clause). This is a transparency note the user can correct, NEVER a verdict and NEVER a confirmation gate (keep the escape — the user can proceed without confirming). **If a misread would be load-bearing** (the decision changes when your reading is wrong), ALSO add it to `hidden_assumptions` so it travels into the bearing fog on the sail path, where clarify's own scaffold is not shown to the user.
 > 3. Do NOT propose solutions. This skill's job ends at structuring the question — UNLESS rule 4 applies.
 > 4. **`decision_density: "low"` gate** — set ONLY when ALL of:
 >    - `reversibility == "reversible"` (decision can be undone in <1 day with no signal cost)
@@ -621,6 +623,10 @@ This is the one place clarify produces a directive. The full scaffold pipeline i
 - {{assumption 2}}
 ...
 
+{{if constraints_as_read}}**How I'm reading your constraints** (correct me if off):
+- "{{stated}}" → {{reading}}
+...
+{{endif}}
 **Skeleton:**
 1. {{bullet}}
 2. {{bullet}}

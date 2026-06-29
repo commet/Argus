@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Heading. Invoked as `/argus:verify`.
+description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Heading. Use after /argus:team writes its scaffold, when /argus:sail chains a medium/high decision, or when the user asks whether the crew output can be trusted — "믿어도 되나", "근거 확인해줘", "can we trust this output". NOT for grading future outcomes (that is /argus:settle), and not needed for a low-density minimal scaffold. Invoked as `/argus:verify`.
 ---
 
 # /argus:verify
@@ -63,6 +63,10 @@ written in English; translate them naturally for `ko` (labels too: 지지됨 /
    - `versions/{label}/scaffold.json`
    - optional `versions/{label}/debate.json`
    - optional `versions/{label}/repo_context.json`
+   - optional `versions/{label}/team_plan.json` — the `stages[]` map (which
+     worker ran in stage-1 vs stage-2). Needed for the cross-agent independence
+     check in Step 3 (a stage-2 critic read stage-1, so its agreement is not
+     independent corroboration). Absent → treat all workers as stage-1.
    - `.argus/config.yaml`
 3. Set `session.phase = "verifying"` while the skill runs.
 
@@ -105,6 +109,10 @@ worker(s). When a candidate cannot be traced to any worker (pure synthesis), set
 must not silently escape the flag). A claim whose `source_worker_ids` intersects
 the **Step 1 flagged-worker set** is pre-flagged: it skips Step 3 and enters Step 4
 already challenged, and cannot become `supported_claims[]` on plausibility alone.
+A `["navigator"]`-only claim (pure synthesis, no domain worker behind it) likewise
+enters Step 4 **pre-flagged** — it needs real evidence to pass. Navigator is the
+synthesizer and never appears in the flagged-worker set, so without this rule an
+untraceable synthesis claim would be structurally exempt from every flag.
 
 Keep the list short. Verification is a gate, not a second report.
 
@@ -122,10 +130,32 @@ For each claim, ask:
   merely did not argue against, fails this check. (Treating absence-of-opposition
   as support is exactly how generic prose with no second source launders itself
   into `supported`; this check exists to stop that.)
+  - **Independence (stage-2 echo guard):** the corroborating worker must be one
+    that did NOT read the first worker's output before writing — i.e. a parallel
+    **stage-1** worker (per `team_plan.json.stages`). The **stage-2** critique
+    worker (e.g. donghyuk) is *given* stage-1 results as input (team Step 6), so
+    its *agreement* is downstream restatement, not independent corroboration, and
+    does NOT count as cross-agent support. Its *challenges* still count as
+    negative signal in Step 4 — only positive corroboration is excluded. (Without
+    this, a single stage-1 claim the critic happened to echo reads as two
+    independent sources and is laundered to `moderate`/`strong`.)
 - **Framework:** Does the worker's assigned framework visibly shape the output?
 - **Action clarity:** If it proposes action, are actor and next step clear?
 
-A claim is `supported` only if it passes **at least 2 of the 5 checks above, AND one of them is Evidence or Cross-agent support** (plausibility/specificity alone is not enough — that is how generic prose sneaks in). A claim from a worker flagged in Step 1 cannot be `supported`. Assign `strength`: `strong` (Evidence + cross-agent), `moderate` (Evidence or cross-agent + one more), `weak` (passes the minimum but on softer checks). **`weak` claims do NOT count toward the headline `supported` count** shown on the final card — list them separately so the card never inflates confidence.
+A claim is `supported` only if it passes **at least 2 of the 5 checks above, AND one of them is Evidence or Cross-agent support** (plausibility/specificity alone is not enough — that is how generic prose sneaks in). **A `claim_type: fact` is stricter — it reaches `supported` only via the *Evidence* check** (a cited file, data point, or source); cross-agent agreement alone never makes a fact true (two workers asserting a fact with no source is still zero sources). A claim from a worker flagged in Step 1 cannot be `supported`. Assign `strength`: `strong` (Evidence + cross-agent), `moderate` (Evidence or cross-agent + one more), `weak` (passes the minimum but on softer checks). **`weak` claims do NOT count toward the headline `supported` count** shown on the final card — list them separately so the card never inflates confidence.
+
+**Qualifier fidelity (mix-laundering guard).** Claims were extracted from the
+*synthesized* `mix.sections[]`, not the worker's words. Before granting
+`supported` to a load-bearing or `external` claim, trace it back to the
+originating worker in `workers.json` (via the section's `contributor_worker_ids`
+/ the claim's `source_worker_ids`) and compare. If the worker attached a
+**material condition** the mix dropped — a qualifier whose absence changes
+whether the claim holds (`"if adoption holds"`, `"assuming X"`, `"pending Y"`,
+`"in the optimistic case"`) — the claim is NOT `supported` as stated. Either
+re-state it WITH the condition, or route the condition itself as a challenged
+claim / `hidden_assumption`. **Mere compression is fine** — shorter wording with
+the same meaning passes; only a dropped *material* condition fails. (verify
+already loads `workers.json` in Step 1; this is what makes that load do work.)
 
 Claims passing become `supported_claims[]`:
 
@@ -137,6 +167,39 @@ Claims passing become `supported_claims[]`:
   "evidence_refs": [{"source": "src/lib/foo.ts", "detail": "line or section"}]
 }
 ```
+
+### Step 3.5 - Grounding + Load-Bearing Pass (find the reality reef)
+
+The deepest failure this gate must catch is NOT an internal wording slip — it is
+a claim **only reality can confirm** that the conclusion rests on and that nobody
+checked against reality. The agents all agreeing proves nothing about the world.
+Two cheap, **checkable** tags per claim (no prose-inference, no graph solver):
+
+**(a) Grounding — internal vs external.** Tag each claim:
+- `internal` — the agents can confirm it: logic, arithmetic, code/in-repo
+  citation, a source they can read.
+- `external` — only reality confirms it: market size, a regulator's actual
+  position, a customer's actual want, performance at real scale, a third party's
+  behavior. **Cross-agent agreement is NOT confirmation of an `external` claim**
+  (the second agent is the same model restating the first).
+
+**(b) Load-bearing — STRUCTURAL anchors only.** A claim is load-bearing iff a
+`scaffold.next_actions[]` entry lists it in `rests_on`, or `current_course`
+rests on it. Record those anchors:
+
+```json
+"depended_on_by": ["action:eu-rollout", "action:eu-payment"]
+```
+
+**Do NOT infer claim-to-claim dependencies from prose** — the model
+co-generated both claims, so "X assumes Y" is always *plausible* and never
+*checkable*. Only a structural anchor (an action's `rests_on`, the course)
+counts. No anchor → `depended_on_by: []`. This is what stops a fabricated edge
+from silently escalating severity (the over-fire failure, mirror clause).
+
+The reef = a claim that is **`external` AND load-bearing AND not confirmed by a
+real-world source**. That intersection — not "most-depended-on claim" — is where
+a real decision actually goes wrong.
 
 ### Step 4 - Negative Validation
 
@@ -168,6 +231,41 @@ Severity:
 - `important`: must be visible in the Current Heading or fixed.
 - `minor`: note it; do not block by itself.
 
+**Grounding-driven handling — generate first, then flag, gate only when it must.**
+Being `external` is NOT a reason to withhold the answer. Argus's spine is *maximum
+generation*: still give the substantive read — the estimate, base rate, indirect
+evidence, the likely answer — and let Step 3 support it on that basis, labeled
+`external` (reality-pending). Tagging `external` marks *who can finally confirm
+it*, not *whether Argus may help with it*. Then key handling off the checkable
+tags, never an inferred prose edge:
+
+- **`external` + load-bearing.** This is the one the conclusion rests on that
+  only reality settles, so it does NOT route as an agent-fixable
+  `challenged_claim`. It always becomes a **`human_required_checks[]` entry**, but
+  whether it **GATES depends on stakes × reversibility**:
+  - **high-stakes AND hard-to-reverse** (an irreversible commit, regulated
+    exposure, money/legal/safety that can't be unwound) → `blocks:
+    "final_signoff"` / `"execution"`, recorded as the `root_crack` (Step 9). The
+    agents' agreement must never let this read as `verified`.
+  - **reversible / low-stakes** → `blocks: "none"` (proceed-aware). Surface
+    Argus's best read + the one cheap check; do NOT block a decision the user can
+    walk back. Blocking the reversible is over-fire (mirror clause).
+  - Either way the entry is **armed, not a referral**: name *who/what* confirms,
+    *what a "yes" looks like*, and Argus's *best estimate meanwhile* (Step 6 /
+    Step 9 fields). "Go verify GDPR" is a cop-out; "ask the DPO whether the signed
+    DPA + RoPA exist; absent in 48h, treat readiness as incomplete — base rate
+    says self-declared compliance is wrong ~X% of the time" is help.
+- **`internal` + load-bearing** (a logic/code/math claim an action rests on):
+  the agents *can* check it, so do — floor it at `important` and demand the
+  Evidence check actually pass. Not a reality gate; a verify-harder item.
+- **leaf claims** (no structural anchor): judged on their own merits; a weak leaf
+  stays `minor`.
+
+Asymmetric and bounded: only a *structural* anchor escalates, only an *external +
+high-stakes-irreversible* anchor gates. A fabricated dependency can't manufacture
+a block, a reversible call isn't walled off, and a real external premise on a
+big irreversible bet can't hide as a note.
+
 **Do not manufacture minor challenges to fill the ledger.** A genuinely clean,
 reversible decision can verify with zero challenges — that is a valid `verified`
 outcome, not a failure to find something. Inventing nitpick challenges so the
@@ -193,6 +291,19 @@ Create `human_required_checks[]` from:
 - challenged claims with a human-only cause
 - external checks such as legal counsel, customer interview, budget owner,
   production telemetry, deploy access, or sales data
+- **named-but-not-run checks (missed-check).** A worker explicitly named a
+  verification as a *precondition for relying on a claim* — "load-test before
+  trusting this", "confirm with legal", "benchmark before quoting the number" —
+  and no `supported_claims[]` evidence shows it was actually run. Surface it with
+  `why_ai_cannot_verify: "named by the crew as needed but not run"`.
+  **Tightly scoped (mirror clause — do not turn every 'should' into a wall):**
+  only when (a) a worker framed it as a *precondition*, not a vague "might also
+  consider," AND (b) it is tied to a load-bearing claim or a `next_action`. A soft
+  suggestion on a leaf is NOT surfaced. **Default `blocks: "none"`** (a worth-doing
+  to-do, not a gate); escalate to `final_signoff`/`execution` only when the unrun
+  check sits on a load-bearing claim whose failure is unsafe or irreversible (there
+  it coincides with the reality reef / a critical gate). On a routine or reversible
+  decision a missed soft check stays unsurfaced.
 
 Each check must say why AI cannot verify it:
 
@@ -220,7 +331,7 @@ unsigned legal review really does.)
 1. **else-if** any human check has `blocks: "execution"` → `stop_for_human_check`. (Highest priority: an execution blocker must never be overridable by a "proceed" choice downstream.)
 2. **else-if** any `critical` challenged claim exists → `ask_user`. (Or, under `--no-prompt` where the user can't be asked, escalate to `revise_team` if the repair is agent-owned, otherwise `stop_for_human_check` — never silently `proceed_to_boss` on a critical challenge.)
 3. **else-if** `--strict` and any `important` challenged claim exists → `ask_user`.
-4. **else-if** there is an agent-owned repair worth a loop — a challenged claim of severity **`important` or above** with an `owner_agent_id` and no human data needed — **AND the revise loop has not converged-out**: `session.revise_cycles < session.max_revise_cycles` (default 3) AND this claim is **not a repeat** of one already challenged in the immediately-prior verification on this lineage → `revise_team`. `minor` challenged claims NEVER trigger this route, owner or not (their own definition says they don't block; re-running the whole team over a wording nit is the loop-forever failure mode). **If the only agent-owned repair is a repeat claim, or `revise_cycles` has reached the cap → `stop_for_human_check`** and write that claim to `human_required_checks[]` with `reason: "unconverged_after_revision"` (cap reached → `reason: "max_revisions_reached"`). Re-looping the team on a claim it already failed to fix is wasted ceremony; escalation to a human is the honest exit, not another auto-pass.
+4. **else-if** there is an agent-owned repair worth a loop — a challenged claim of severity **`important` or above** with an `owner_agent_id` and no human data needed — **AND the revise loop has not converged-out**: `session.revise_cycles < session.max_revise_cycles` (default 3) AND this claim is **not a repeat** of one already challenged in the immediately-prior verification on this lineage → `revise_team`. `minor` challenged claims NEVER trigger this route, owner or not (their own definition says they don't block; re-running the whole team over a wording nit is the loop-forever failure mode). **If the only agent-owned repair is a repeat claim, or `revise_cycles` has reached the cap → `stop_for_human_check`** and write that claim to `human_required_checks[]` with `reason: "unconverged_after_revision"` (cap reached → `reason: "max_revisions_reached"`). Re-looping the team on a claim it already failed to fix is wasted ceremony; escalation to a human is the honest exit, not another auto-pass. **When the unconverged claim was `critical`, the escalated `human_required_checks[]` entry MUST gate** — set `blocks: "final_signoff"` (or `"execution"` if acting before the check is unsafe), never `"none"`. A never-fixed critical claim must not land as a non-gating note; a `blocks: "none"` check would leave `overall_status` off `blocked` and let the bearing read as proceedable.
 5. **else** (challenged claims all minor, no blocking human checks) → `proceed_to_boss`. Minor claims travel forward as visible caveats, not as work orders.
 
 Overall status (also ordered, first match wins):
@@ -229,7 +340,7 @@ Overall status (also ordered, first match wins):
 - `mixed`: usable with `important` caveats visible.
 - `verified`: no challenged claims above `minor` and no blocking checks.
 
-**Compute `confidence` (0-100), a REQUIRED ledger field — do not leave it unset** (boss and the final card read it; an absent value becomes a fabricated number). Derive it, e.g.: start at 100; subtract per challenged claim weighted by severity (critical −30, important −15, minor −5); subtract for each unresolved human-required execution blocker (−20); floor at 0. This is confidence in the verification result, not in the business decision. Record the formula inputs in `claim_tests[]` if helpful.
+**Compute `confidence` (0-100), a REQUIRED ledger field — do not leave it unset** (boss and the final card read it; an absent value becomes a fabricated number). Derive it, e.g.: start at 100; subtract per challenged claim weighted by severity (critical −30, important −15, minor −5); subtract for each unresolved human-required blocker that **gates — `execution` OR `final_signoff`** (−20 each); floor at 0. **And when `overall_status == blocked`, cap `confidence` at 50** — a blocked result must never read as near-trustworthy (the bug this closes: `blocked (85/100)`, where a `final_signoff` blocker subtracted nothing). This is confidence in the verification result, not in the business decision. Record the formula inputs in `claim_tests[]` if helpful.
 
 ### Step 8 - Ask Human When Needed
 
@@ -262,6 +373,37 @@ Write `versions/{label}/verification.json` conforming to
 `${CLAUDE_PLUGIN_ROOT}/data/schemas/verification-ledger.json`. Include `generated_at`
 (current ISO-8601 timestamp) — it is a required field and a downstream validator
 rejects a ledger without it.
+
+**Compute `root_crack`** — set it ONLY for the **gating** reality reef: the
+load-bearing, `external`, unconfirmed claim on a **high-stakes, hard-to-reverse**
+decision (Step 4). It carries *armed help*, never a bare referral:
+
+```json
+"root_crack": {
+  "claim_id": "c-1",
+  "claim": "GDPR readiness is already complete",
+  "grounding": "external",
+  "depended_on_by": ["action:eu-payment", "action:eu-rollout"],
+  "why": "Payment go-live and the EU rollout rest on this; only counsel/regulator can confirm it",
+  "best_read": "Self-declared 'done' with no DPA/RoPA/DPIA cited usually means a checklist was run, not production data-flows signed off — treat as likely-incomplete until shown otherwise.",
+  "cheapest_check": "Ask the DPO/counsel for the signed DPA + RoPA + DPIA. A 'yes' = those three documents exist and cover payment processing. Absent within 48h, treat readiness as incomplete."
+}
+```
+
+**`root_crack` is `null`** when no load-bearing external claim sits on a
+high-stakes irreversible decision — a reversible call or an internal-only
+decision has no gating reef (the external check still ships as a non-gating armed
+note, just not here). Do NOT promote an `internal` claim, a leaf, or a reversible
+external claim here (over-fire / mirror clause).
+
+**Connection to the seal→settle loop (timing matters).** A *gating* reef does NOT
+itself seed a contract — a blocked decision is not yet a commitment, so there is
+nothing to seal. It surfaces as `fog_or_reef` + the gating human check (sail
+Assembly Priority handles this). The seal happens on the **proceed** path: once
+the reef is resolved (or when a *reversible* external load-bearing assumption is
+carried on a proceeding course), that external claim is the natural
+`contract_seed` predicate — sail Step 7 prefers it. Same insight (only reality
+settles it), correct timing (seal when you commit, not when you are blocked).
 
 Update `versions/{label}/scaffold.json`:
 
@@ -312,7 +454,10 @@ Supported:
 Challenged:
 - [{{severity}}] {{claim}}
   -> {{suggested_fix}}
-
+{{if root_crack}}
+Reality check needed (the course rests on this; only reality confirms it):
+  {{root_crack.claim}} — {{root_crack.why}}
+{{endif}}
 Unresolved tensions:
 - {{topic}} - tie-breaker: {{tie_breaking_condition}}
 

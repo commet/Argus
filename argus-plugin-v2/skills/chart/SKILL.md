@@ -1,6 +1,6 @@
 ---
 name: chart
-description: Display the chart of the current Argus decision voyage — version tree, active draft, Current Heading summary, verification state, open concerns, and next route. Read-only by default; supports checkout, promote, delete, and json flags. Invoked as `/argus:chart`.
+description: Display the chart of the current Argus decision voyage — version tree, active draft, Current Heading summary, verification state, open concerns, and next route. Use when the user asks where they are in a decision, wants to see or switch between drafts/branches, or needs the next useful command — "지금 어디까지 왔지", "버전 트리 보여줘", "show the branches", "where am I". Read-only by default; checkout/promote/delete/json flags can mutate or export. NOT for generating new analysis — no LLM runs. Invoked as `/argus:chart`.
 ---
 
 # /argus:chart
@@ -51,7 +51,7 @@ Flags that mutate state are mutually exclusive.
 ### Default (no flags) — show current session
 
 1. Find the latest session: the session directory whose `session.json` has the newest `updated_at`; if `updated_at` is missing or tied, fall back to directory mtime. Read its `session.json`.
-2. Read these per-version files for the active draft: `versions/{label}/current_bearing.json` (the Current Heading block — course, fog/reef, next helm), `scaffold.json` (reframed_question, assumptions, checkpoints), `verification.json` (read `routing_decision` + `overall_status`), `boss_feedback.json` (boss status). **Missing vs corrupt are different states:** treat a *missing* file as "not run" (render the dash, route to the skill that produces it). Treat a file that exists but *fails to parse* as **corrupt, not absent** — render `⚠ <name> unreadable (recover: rerun /argus:<skill>)` for that line and quarantine it to `<name>.corrupt.<ts>`; do NOT silently collapse a corrupt `verification.json` into "not run," which would route the user past a verification that actually ran (and may have blocked).
+2. Read these per-version files for the active draft: `versions/{label}/current_bearing.json` (the Current Heading block — course, fog/reef, next helm), `scaffold.json` (reframed_question, assumptions, checkpoints), `verification.json` (read `routing_decision` + `overall_status` + `root_crack`), `boss_feedback.json` (boss status). **Missing vs corrupt are different states:** treat a *missing* file as "not run" (render the dash, route to the skill that produces it). Treat a file that exists but *fails to parse* as **corrupt, not absent** — render `⚠ <name> unreadable (recover: rerun /argus:<skill>)` for that line and quarantine it to `<name>.corrupt.<ts>`; do NOT silently collapse a corrupt `verification.json` into "not run," which would route the user past a verification that actually ran (and may have blocked).
 3. Parse draft tree from `session.drafts[]`, then **reconcile against the version directories on disk — the dirs are authoritative** (session-layout → Concurrency): for any `versions/{label}/` dir with no matching `drafts[]` entry, add it to the rendered tree (a concurrent writer may have created the dir before its `drafts[]` index write landed). If `drafts[]` is empty entirely (session predates draft persistence, or only clarify ran), build the whole tree from the dirs present instead of rendering blank. Never show fewer drafts than there are version dirs.
 4. Render a one-screen map:
 
@@ -73,6 +73,7 @@ v0.1 (initial bearing)
 
 Open Checks:
 - Verification: {{overall_status or "not run"}}
+{{if root_crack}}- Reality check: "{{root_crack.claim clipped 50}}" (course rests on it; only reality confirms) -> /argus:settle when known{{endif}}
 - Human checks: {{first human check or "none"}}
 - Boss condition: {{approval_condition or "none"}}
 {{if contract past check-by}}- Contract: "{{predicate clipped 50}}" was due {{check_by}} -> /argus:settle{{endif}}
@@ -104,13 +105,17 @@ Algorithm:
 6. Mark a draft with `boss_reviewed == true` with `[reviewed]` (this is the flag's
    one consumer — boss sets it precisely so the tree can show which drafts a
    stakeholder has already reacted to).
-7. Include `change_summary` when present.
+7. Include `change_summary` when present — render it verbatim. A revise-born
+   draft carries a neutral record of what changed (e.g. `"addressed: rollout
+   kill-criteria · awaiting reality check: GDPR readiness"`); that is where the
+   navigation layer (which fork the human took) shows *what changed and what is
+   still open*. Render it as written — never a "most-wrong claim" verdict.
 
 ASCII example:
 
 ```text
 v0.1 (initial scaffold)
-  |- v0.2 (verification repair) [active]
+  |- v0.2 (addressed: kill-criteria · awaiting reality check: GDPR readiness) [active]
   `- v0.1.1 (lower-scope branch) [released]
 ```
 

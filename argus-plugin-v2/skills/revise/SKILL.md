@@ -49,6 +49,13 @@ Build a list of concrete things to fix, each tied to an owner:
 
 - From `boss_feedback.json.concerns[]`: every concern with `applied == true` (critical ones default applied). Each → `{ source: "boss_concern", text, suggested_fix, owner_agent_id, severity }`. **Boss concerns carry no owner — revise resolves it here** (the boss reviews the scaffold, not a specific worker). See §Resolving the owner below; the resolved `owner_agent_id` is required, never left blank.
 - From `verification.json.challenged_claims[]`: every `critical` / `important` challenge. Each → `{ source: "challenged_claim", text: claim, suggested_fix, owner_agent_id, severity }`. Verify already attributes these to the originating worker.
+- **`verification.json.root_crack`** (if non-null): the **reality reef** — an
+  `external`, load-bearing claim only reality can confirm. Re-running the team
+  CANNOT settle it (the agents would just re-agree), so do **NOT** add it to
+  `items[]`. Instead carry it into the child scaffold's
+  `human_required_checkpoints[]` (`reason: "reality_reef"`) so the next draft
+  still surfaces the real-world check. revise repairs only the *agent-fixable*
+  (internal) challenged claims; the reef stays a human/external check.
 - Any free-text directive the user typed in the invocation. Owner = `navigator` (synthesis pass).
 
 **§Resolving the owner for a boss concern (so none is silently lost).** Each
@@ -84,13 +91,17 @@ Write `.argus/sessions/{id}/pending_revision.json` (a transient hand-off file, c
 {
   "parent_draft_id": "{parent_draft_id}",
   "parent_label": "{parent_label}",
-  "directive_text": "Address: GDPR evidence gap; tighten the rollout kill-criteria.",
+  "directive_text": "Address: rollout kill-criteria; tighten the cost model.",
+  "reality_reef": "GDPR readiness is already complete",
   "items": [
-    { "source": "boss_concern", "text": "...", "suggested_fix": "...", "owner_agent_id": "donghyuk", "severity": "critical" },
-    { "source": "challenged_claim", "text": "...", "suggested_fix": "...", "owner_agent_id": "taejun", "severity": "important" }
+    { "source": "challenged_claim", "text": "...", "suggested_fix": "...", "owner_agent_id": "donghyuk", "severity": "important" }
   ]
 }
 ```
+
+`reality_reef` is the claim string from `verification.json.root_crack` (omit the
+key when it was null) — it is preserved as a human check, NOT an `items[]` entry
+to be re-run. `items[]` holds only the agent-fixable (internal) challenged claims.
 
 Set `session.phase = "team_deploying"` and `updated_at`.
 
@@ -100,6 +111,7 @@ Invoke `/argus:team --revise` (and `--invoked-via-sail` if this skill was). Team
 - Branch from `pending_revision.parent_draft_id` (the resolved parent — NOT necessarily `session.active_draft_id`) → compute the child label via `nextChildLabel` from `parent_label` (e.g. revising `v0.1` while `v0.2` exists → `v0.1.1`; revising the latest → `v0.2`). (team Step 1.4)
 - Read `pending_revision.json` and inject each item into its `owner_agent_id` worker's prompt ("Your prior output was challenged on X; the suggested fix is Y — produce a revised analysis that addresses it"). Workers without a targeted item carry their prior output forward unchanged where possible.
 - Write the new `versions/{child_label}/` artifacts and append a child Draft with `directive = directive_text`, `reviewing_agent_id = "navigator"`, `parent_draft_id` set, and `set session.active_draft_id` to it.
+  - **`change_summary`**: a NEUTRAL record of what this draft changed — name the items addressed, e.g. `"반영: 출시 kill-criteria, 비용 모델"` (ko) / `"addressed: rollout kill-criteria, cost model"` (en). When a `reality_reef` was carried forward, append `"· 현실 확인 대기: {reef}"` / `"· awaiting reality check: {reef}"`. Do NOT label it "첫 균열/first crack/wrongest" or any ranking verdict — the tree records *what changed and what's still open*, never a judgment about which claim was most wrong (spine: no laundered verdict in a persistent label).
 - Delete `pending_revision.json`.
 
 ### Step 5 — Re-verify the revision
