@@ -41,6 +41,19 @@ import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { DAILY_LIMIT } from '@/lib/quota-config';
 
+/* ─── Fresh-intent entry params (SINGLE SOURCE) ───
+ * Each of these is consumed INSIDE HeroFlow, which only mounts when there is no
+ * current project. currentProjectId is a module-singleton that survives SPA
+ * navigation, so a stale open project would render instead — HeroFlow never
+ * mounts, the param is silently dropped, and the whole entry flow breaks
+ * (hero ?q= bug; hollow-shell audit C11). Arriving with ANY of these therefore
+ * clears the stale project first (see the clearing effect below).
+ *
+ * ⚠️ Adding a NEW entry param that HeroFlow reads (from searchParams or a prop
+ *    derived from one)? ADD IT HERE — that is the whole fix. (?step= is NOT here
+ *    on purpose: it resumes into a legacy tool on the *current* project.) */
+const FRESH_INTENT_PARAMS = ['q', 'demo', 'reviewer'] as const;
+
 /* ─── Step-level error fallback ─── */
 function StepErrorFallback() {
   const locale = useLocale();
@@ -1026,13 +1039,14 @@ function WorkspaceContent() {
   // Boss에서 넘어온 경우 reviewer agent ID
   const reviewerParam = searchParams.get('reviewer');
 
-  // Boss handoff must land on a FRESH HeroFlow: with currentProjectId now
-  // persisted, an open project would render instead and ?reviewer= was read
-  // by nothing — the promise silently failed (hollow-shell audit C11).
+  // Clear a stale singleton project so any fresh-intent entry lands on a FRESH
+  // HeroFlow (see FRESH_INTENT_PARAMS at module scope for the full rationale).
+  const heroQueryParam = searchParams.get('q');
+  const freshIntent = FRESH_INTENT_PARAMS.some((p) => searchParams.get(p));
   useEffect(() => {
-    if (reviewerParam) setCurrentProjectId(null);
+    if (freshIntent) setCurrentProjectId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviewerParam]);
+  }, [freshIntent]);
 
   useEffect(() => {
     loadProjects();
@@ -1063,8 +1077,9 @@ function WorkspaceContent() {
     return () => window.removeEventListener('popstate', onPop);
   }, [setActiveStep]);
 
-  // Pick up ?q= param (from landing Hero inline input) — HeroFlow handles the streaming flow
-  const queryProblem = searchParams.get('q');
+  // ?q= (from landing Hero inline input) — HeroFlow handles the streaming flow.
+  // Read once above as heroQueryParam (the clear-stale-project effect needs it too).
+  const queryProblem = heroQueryParam;
 
   const handleNavigate = (step: string) => {
     const stepId = step.replace('/tools/', '') as StepId;
