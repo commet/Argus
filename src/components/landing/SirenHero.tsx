@@ -160,9 +160,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>Argus는 그것을 살아 있는 항로로 남깁니다 —<br />갈림길, 검증된 주장, 현재 방향,<br />그리고 현실이 답할 때의 귀환까지.</>
+            <>Argus는 결정을 살아 있는 항로로 남깁니다.<br />선택지는 남고, 근거는 검증되며,<br />상태는 보존되고, 마지막 판정은 현실이 합니다.</>
           ) : (
-            <>Argus keeps them alive as courses —<br />with forks, checked claims, a current direction,<br />and a return when reality answers.</>
+            <>Argus keeps decisions alive as courses:<br />alternatives remain visible, claims are checked,<br />state is preserved, and reality gets the final word.</>
           )}
         </p>
 

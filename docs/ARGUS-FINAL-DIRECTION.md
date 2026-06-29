@@ -8,9 +8,9 @@ Important decisions should not end as answers. Argus keeps them alive as courses
 until reality can answer.
 
 It is not a multi-agent showcase, a generic risk machine, or a prettier ChatGPT
-answer. The product is a decision voyage: clarify the destination, gather crew
-work, preserve forks, verify claims, choose the current direction, and leave behind
-an auditable log that can later be checked against reality.
+answer. The product is a decision voyage: keep alternatives visible, check the
+claims the decision depends on, preserve state, and leave behind an auditable log
+that can later be checked against reality.
 
 ## What Argus Sells
 
@@ -22,8 +22,8 @@ Argus sells the feeling of:
 That is broader than "make my decision less risky" and broader than "find my
 hidden assumptions." Risk reduction and assumption-finding are effects. The more
 complete promise is that a decision becomes a living course: a durable state with
-forks, checked claims, current direction, and a future reality check. A good Argus
-run should give the user current coordinates inside a decision that might
+visible alternatives, checked claims, preserved state, and a future reality check.
+A good Argus run should give the user current coordinates inside a decision that might
 otherwise blur into analysis, advice, and second thoughts.
 
 ## Product Identity
