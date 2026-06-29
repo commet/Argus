@@ -25,75 +25,10 @@
 
 const fs = require("fs");
 const path = require("path");
-const os = require("os");
+const { configDir, hasDoneSignal, readTail, lastUserText } = require("./lib/decision-signals");
 
-function configDir() {
-  return process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
-}
 const anchoredMarker = (id) => path.join(configDir(), "argus-anchored", String(id));
 const wakedMarker = (id) => path.join(configDir(), "argus-waked", String(id));
-
-// ── Layer-1 COMPLETION signal — the user just CLOSED a weigh-up. Conservative. ──
-const DONE_PATTERNS = [
-  // Korean — landing on a choice
-  /(그걸로|이걸로|그쪽으로|이쪽으로|저쪽으로)\s*(하자|가자|할게|할래|하기로|진행|간다|갈게)/,
-  /(그렇게|이렇게)\s*하자/,
-  /(정했|결정했|결정함|하기로\s*했|가는\s*걸로|진행하자)/,
-  /(으로|로)\s*(가자|하자|결정|확정)/,
-  // English — landing on a choice
-  /\blet'?s\s+(go\s+with|do)\b/i,
-  /\b(going|i'?ll\s+go)\s+with\b/i,
-  /\bdecided\s+(to|on)\b/i,
-  /\b(settle|settled)\s+on\b/i,
-  /\bgo\s+with\s+(it|that|this|the)\b/i,
-];
-
-function hasDoneSignal(text) {
-  if (typeof text !== "string" || text.length < 6) return false;
-  return DONE_PATTERNS.some((re) => re.test(text));
-}
-
-// Read only the tail of the transcript (decisions close at the end; reading the
-// whole JSONL of a long session would be wasteful). 64 KiB covers many turns.
-function readTail(p, maxBytes) {
-  let fd;
-  try {
-    fd = fs.openSync(p, "r");
-    const { size } = fs.fstatSync(fd);
-    const start = Math.max(0, size - maxBytes);
-    const len = size - start;
-    const buf = Buffer.alloc(len);
-    fs.readSync(fd, buf, 0, len, start);
-    return { text: buf.toString("utf8"), partial: start > 0 };
-  } catch {
-    return { text: "", partial: false };
-  } finally {
-    if (fd !== undefined) try { fs.closeSync(fd); } catch {}
-  }
-}
-
-// The most recent REAL user utterance (skip tool_results, meta, slash-commands).
-function lastUserText(tail, partial) {
-  const lines = tail.split("\n");
-  if (partial && lines.length) lines.shift(); // drop the (likely broken) first line
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const ln = lines[i].trim();
-    if (!ln) continue;
-    let o;
-    try { o = JSON.parse(ln); } catch { continue; }
-    const role = o.type || (o.message && o.message.role);
-    if (role !== "user" || o.isMeta) continue;
-    const c = o.message ? o.message.content : o.content;
-    let txt = typeof c === "string"
-      ? c
-      : Array.isArray(c) ? c.filter((x) => x && x.type === "text").map((x) => x.text).join(" ") : "";
-    txt = (txt || "").trim();
-    if (!txt) continue; // tool_result / empty → not an utterance
-    if (/^<(command|local-command|user-prompt|system)/i.test(txt)) continue; // slash/meta
-    return txt;
-  }
-  return "";
-}
 
 const NUDGE = [
   "[Argus] The user seems to have just closed a decision. If they set an ANCHOR (a",

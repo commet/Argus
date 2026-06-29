@@ -17,8 +17,8 @@
 |---|---|
 | seal 재정의 + 정산 2개 (개념) | ✅ 합의 (§2) |
 | **1차 정산 WakeReturn** (webapp + plugin sail Step 7.5) | ✅ **구현·커밋됨** `5d28d60` |
-| 닻 = 추적 스위치 — §13-1 닻 진입(anchor-signal) + §13-2/3 항적(wake-signal) | ✅ **구현됨** (hooks, token-zero) |
-| 나머지(§13-1 SessionStart 회고, §13-4 다음-시작 회고, §13-5 늦은 닻) | 🔲 대기 |
+| 닻 = 추적 스위치 — §13 전체: anchor/wake/recall hooks (`scripts/lib/decision-signals.js` 공유) | ✅ **구현됨** (token-zero) |
+| 정교화(1층 신호목록 · 2층 위임 카피 · 늦은닻 톤) | dogfood 튜닝 대상 |
 
 이 문서는 **구현 전 기준 문서**다. §13 구현 순서대로 짓되, 각 단계는 dogfood로
 검증하며 진행한다.
@@ -278,8 +278,18 @@ grep)이 신호를 잡으면 `additionalContext`로 **메인 Claude에게 위임
    - **첫 UserPromptSubmit**: 1층 시작 신호 → 결정 맥락이면 자연스럽게 닻(before) 제안.
 2. **Stop 1층 신호** (닻 ON 세션, grep 어휘 + git 상태) — 공짜.
 3. **Stop 2층 항적** (1층 완결 신호 통과 시 LLM 1콜) — 비용 게이트, 결정 닫히면 항적 + seal.
-4. **다음-시작 회고** (닻 없던 세션 마지막 확인) — 놓침 방지.
-5. **늦은 닻** (시작 신호 누적 시 자연 시작, 모드②).
+4. **다음-시작 회고** (닻 없던 세션 마지막 확인) — 놓침 방지. → `recall-signal.js`
+   (SessionStart): 직전 OFF 세션 transcript tail에 완결 신호가 있으면 메인 Claude에게
+   "지난번 그거 어떻게 됐어요?"를 귀띔. readdir + tail grep, LLM 0, 직전 세션당 1회.
+5. **늦은 닻** — 별도 코드 불필요(anchor-signal에 내재): 세션당 1회 마커이므로, 첫
+   프롬프트에 신호가 없으면 마커를 안 쓰고 → 이후 어느 프롬프트의 첫 시작 신호에서 제안.
+
+**구현 메모:** 1층 grep 패턴·transcript 읽기는 `scripts/lib/decision-signals.js` 단일
+소스(anchor/wake/recall 공유, CLAUDE.md "두 번째 위치엔 추출"). hook은 출력 잘림 방지로
+`process.exit()`를 두지 않는다(자연 종료가 stdout flush 보장). 경로 주의: hook input의
+transcript_path/CLAUDE_CONFIG_DIR은 실전에서 OS 절대경로(Windows면 `C:\...`)라 node가
+바로 읽지만, git-bash 테스트는 `/tmp`를 stdin JSON으로 주면 win-node가 못 읽으니
+`cygpath -m`로 변환해 검증한다.
 
 각 단계는 webapp ↔ plugin 형태 통일 유지(메모리: drift 경고). lean_after {text,changed}
 스키마 일치, ledger `wake` 이벤트 형태 일치.

@@ -25,42 +25,11 @@
 
 const fs = require("fs");
 const path = require("path");
-const os = require("os");
-
-function configDir() {
-  return process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
-}
+const { configDir, hasStartSignal } = require("./lib/decision-signals");
 
 // Per-(Claude)session marker dir, so the nudge fires at most once per session.
 function markerPath(sessionId) {
   return path.join(configDir(), "argus-anchored", String(sessionId));
-}
-
-// ── Layer-1 START signal — deterministic, conservative. ─────────────────────
-// A START signal = the user is OPENING a weigh-up ("할까/말까", "A vs B", "어느
-// 쪽"). Kept tight on purpose: bare "or"/"or so" is too noisy and is NOT included.
-// Word-boundary / spacing guards avoid matching inside unrelated words.
-const START_PATTERNS = [
-  // Korean — weighing / choosing / deciding
-  /할까\s*말까/,
-  /(말까|할까)\s*(고민|고민이|싶|망설)/,
-  /어느\s*쪽/,
-  /둘\s*중(에|에서)?/,
-  /(결정|선택)(을|해야|하기|이|할지)/,
-  /(가는|하는)\s*게\s*(맞을까|나을까|좋을까)/,
-  /(해야\s*할지|말지)/,
-  // English — weighing / choosing / deciding
-  /\bshould\s+i\b/i,
-  /\bwhich\s+(one|option|way|approach)\b/i,
-  /\bdecide\s+(between|whether)\b/i,
-  /\b(\w[\w./-]*)\s+vs\.?\s+(\w)/i,        // "X vs Y"
-  /\btrade[\s-]?offs?\b/i,
-  /\bweigh(ing)?\s+(up|the\s+options)\b/i,
-];
-
-function hasStartSignal(text) {
-  if (typeof text !== "string" || text.length < 8) return false;
-  return START_PATTERNS.some((re) => re.test(text));
 }
 
 // The context handed to the main Claude agent. NOT shown verbatim to the user —
