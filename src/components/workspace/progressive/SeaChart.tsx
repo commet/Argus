@@ -206,34 +206,46 @@ export function SeaChart({
     // (primary near one wave per ~6 turns) for a true serpentine sea route.
     const wander = (row: number) => amp * (0.7 * Math.sin(row * 0.95) + 0.3 * Math.sin(row * 2.2));
     const baseX = sideL + amp;            // natural trunk centre
-    const H = padTop + maxRow * rowGap + padBottom;
+    let H = padTop + maxRow * rowGap + padBottom;
     // Place every node. The active course winds down the centre; forks peel into
-    // the open sea on ALTERNATING sides (odd lane → left, even → right), each
-    // step pair one notch farther out. Fanning both ways keeps the spread
-    // balanced and ~halves its width vs. piling every fork onto one side.
+    // the open sea on ALTERNATING sides (odd lane → left, even → right). Two
+    // refinements so a many-branch fan doesn't blow out wide:
+    //   • distance grows with √tier, not linearly — far forks pack closer
+    //     instead of marching ever outward.
+    //   • a per-branch hash jitter scatters them off the two clean diagonals so
+    //     the fan reads organic, not like ruled lines (jitter < the side gap, so
+    //     a fork never crosses to the wrong side).
+    const jitterOf = (seed: string) => ((hash(seed) % 1000) / 1000 - 0.5) * forkSpread * 0.6;
     const placed0 = nodes.map((n, i) => {
       const isActive = n.branchId === activeBranchId;
       const rank = Math.max(1, n.lane);
       const side = rank % 2 === 1 ? -1 : 1;
+      const dist = forkSpread * Math.sqrt(Math.ceil(rank / 2));
       const px = isActive
         ? baseX + wander(rows[i])
-        : baseX + side * forkSpread * Math.ceil(rank / 2) + wander(rows[i]) * 0.3;
+        : baseX + side * dist + jitterOf(n.branchId || n.id) + wander(rows[i]) * 0.3;
       return { ...n, px, py: padTop + rows[i] * rowGap, row: rows[i], isActive };
     });
-    // …then size the viewBox to ENCLOSE them all. Without this, many forks marched
-    // off the left edge onto white (the route-only width ignored the leftward
-    // spread). Shift so the leftmost node sits at padX; in compact, widen to a
-    // near-square when the spread is narrow so a short route doesn't letterbox.
+    // …then size the viewBox to ENCLOSE every node (forks would otherwise march
+    // off the parchment onto white), and PAD it to roughly the container's aspect
+    // so the parchment fills the frame without white letterboxing — short routes
+    // would otherwise sit in a narrow strip, and the √-compressed fork fan is
+    // narrower than the wide full-chart box. Right margin is wider on the full
+    // chart to fit the waypoint labels that extend right of a node.
     let minPx = baseX, maxPx = baseX;
     for (const p of placed0) { if (p.px < minPx) minPx = p.px; if (p.px > maxPx) maxPx = p.px; }
-    // Right margin is wider on the full chart to fit the waypoint labels that
-    // extend right of the active route.
     const padL = full ? 60 : 16;
     const padR = full ? 200 : 16;
     let W = (maxPx - minPx) + padL + padR;
     let offsetX = padL - minPx;
-    if (!full && W < H * 0.94) { offsetX += (H * 0.94 - W) / 2; W = H * 0.94; }
-    const placed = placed0.map(p => ({ ...p, px: p.px + offsetX }));
+    let offsetY = 0;
+    const targetAspect = full ? 1.45 : 0.95;  // ≈ the SeaChart container's W/H
+    if (W < H * targetAspect) {                 // too narrow → pad open sea L/R
+      const want = H * targetAspect; offsetX += (want - W) / 2; W = want;
+    } else if (W > H * targetAspect) {          // too wide → pad sea top/bottom
+      const wantH = W / targetAspect; offsetY = (wantH - H) / 2; H = wantH;
+    }
+    const placed = placed0.map(p => ({ ...p, px: p.px + offsetX, py: p.py + offsetY }));
     const byId = new Map(placed.map(p => [p.id, p]));
     // Walk the FULL active-branch lineage (head → root), not just root → current.
     // When the user has rewound to a past point, the checkpoints AHEAD of them
