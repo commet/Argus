@@ -26,6 +26,7 @@
 
 import {
   Sailboat, Milestone, AlertTriangle, Eye, Wind, Anchor, ChevronDown, GitBranch, Hand,
+  CornerDownRight, Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -53,37 +54,46 @@ export function WaypointDetail({
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const notTaken = (waypoint.alternatives || []).filter(a => !a.taken);
+  const hasNarration = !!(waypoint.significance || waypoint.trigger);
+  const hasMore = notTaken.length > 0 || assumptions.length > 0;
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
+      {/* Narration — the meaning of the turn, then the trigger that handed it */}
       {waypoint.significance && (
-        <p className="text-[11px] leading-[1.5] text-[var(--text-secondary)]">{waypoint.significance}</p>
+        <p className="text-[11.5px] leading-[1.55] text-[var(--text-secondary)]">{waypoint.significance}</p>
       )}
       {waypoint.trigger && (
-        <p className="text-[11px] leading-[1.5] text-[var(--text-secondary)]">
-          <span className="font-semibold">{L('계기', 'Trigger')}:</span> {waypoint.trigger}
+        <p className="flex items-start gap-1.5 text-[11px] leading-[1.5] text-[var(--text-tertiary)]">
+          <Zap size={11} className="mt-[1.5px] shrink-0 text-[var(--text-tertiary)]" />
+          <span><span className="font-semibold text-[var(--text-secondary)]">{L('계기', 'Trigger')}</span> · {waypoint.trigger}</span>
         </p>
       )}
+
+      {/* Divider between "what happened" and the branch handle / drill-down */}
+      {hasNarration && hasMore && <div className="h-px bg-[var(--border-subtle)]/70" />}
+
+      {/* Roads not taken — each a distinct inset affordance: the option you were
+          offered, why it was set aside, and a real button to go sail it now. */}
       {notTaken.map((alt, j) => (
-        <div
-          key={j}
-          className="text-[11px] leading-[1.5] text-[var(--text-secondary)] pl-2 border-l border-dashed"
-          style={{ borderColor: 'var(--border)' }}
-        >
-          <div>
-            <span className="font-medium text-[var(--text-tertiary)]">↘ {L('가지 않은 길', 'Road not taken')}:</span>{' '}
-            <span className="italic">{alt.label}</span>
-            {alt.why_abandoned && <span className="text-[var(--text-tertiary)]"> — {alt.why_abandoned}</span>}
+        <div key={j} className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] px-2.5 py-2">
+          <div className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+            <CornerDownRight size={10} /> {L('가지 않은 길', 'Road not taken')}
           </div>
+          <p className="text-[11px] leading-[1.45] text-[var(--text-secondary)]">
+            <span className="font-medium italic text-[var(--text-primary)]">{alt.label}</span>
+            {alt.why_abandoned && <span className="text-[var(--text-tertiary)]"> — {alt.why_abandoned}</span>}
+          </p>
           <button
             onClick={() => onTakeRoad(waypoint.checkpoint_id, alt.label)}
             disabled={locked}
-            className={`mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+            className={`mt-2 inline-flex items-center gap-1 rounded-md border border-[var(--accent)]/35 px-2 py-1 text-[10px] font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/10 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
-            <GitBranch size={9} /> {L('이 길 가보기', 'Sail this path')}
+            <GitBranch size={10} /> {L('이 길 가보기', 'Sail this path')}
           </button>
         </div>
       ))}
+
       {assumptions.length > 0 && (
         <details className="group/d">
           <summary className="text-[10px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--accent)] list-none flex items-center gap-1">
