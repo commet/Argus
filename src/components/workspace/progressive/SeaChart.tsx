@@ -224,12 +224,21 @@ export function SeaChart({
       return { ...n, px, py: padTop + rows[i] * rowGap, row: rows[i], isActive };
     });
     const byId = new Map(placed.map(p => [p.id, p]));
-    const activePath: typeof placed = [];
-    let cursor = activeCheckpointId ? byId.get(activeCheckpointId) : undefined;
+    // Walk the FULL active-branch lineage (head → root), not just root → current.
+    // When the user has rewound to a past point, the checkpoints AHEAD of them
+    // (current → head, already sailed) must still ink onto the route — otherwise
+    // they float as disconnected dots. Split at the current checkpoint:
+    //   behind (root → current) = solid course; ahead (current → head) = faded.
+    const headId = branches.find(b => b.id === activeBranchId)?.head_checkpoint_id ?? activeCheckpointId;
+    const fullPath: typeof placed = [];
+    let cursor = headId ? byId.get(headId) : undefined;
     const guard = new Set<string>();
-    while (cursor && !guard.has(cursor.id)) { guard.add(cursor.id); activePath.unshift(cursor); cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined; }
-    return { placed, byId, W, H, baseX, activePath };
-  }, [nodes, full, activeCheckpointId, activeBranchId]);
+    while (cursor && !guard.has(cursor.id)) { guard.add(cursor.id); fullPath.unshift(cursor); cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined; }
+    const curIdx = fullPath.findIndex(n => n.id === activeCheckpointId);
+    const activePath = curIdx >= 0 ? fullPath.slice(0, curIdx + 1) : fullPath;
+    const aheadPath = curIdx >= 0 ? fullPath.slice(curIdx) : []; // current..head (incl. current for spline continuity)
+    return { placed, byId, W, H, baseX, activePath, aheadPath };
+  }, [nodes, full, activeCheckpointId, activeBranchId, branches]);
 
   const wpByCp = useMemo(() => { const m = new Map<string, Waypoint>(); for (const w of waypoints) m.set(w.checkpoint_id, w); return m; }, [waypoints]);
 
@@ -247,7 +256,7 @@ export function SeaChart({
     );
   }
 
-  const { placed, byId, W, H, activePath } = layout;
+  const { placed, byId, W, H, activePath, aheadPath } = layout;
 
   // ── Zoom / pan plumbing (full only) ──
   const clientToSvg = (clientX: number, clientY: number) => {
@@ -292,6 +301,9 @@ export function SeaChart({
   const roseCx = full ? roseR + 30 : W - roseR - 4;
   const roseCy = full ? H - roseR - 26 : roseR + 5;
   const activeCourse = spline(activePath.map(n => ({ x: n.px, y: n.py })));
+  // The already-sailed stretch AHEAD of a rewound position — a faded trail so
+  // those checkpoints sit on the route instead of floating as loose dots.
+  const aheadCourse = aheadPath.length > 1 ? spline(aheadPath.map(n => ({ x: n.px, y: n.py }))) : '';
 
   const stains = [
     { x: W * 0.18, y: H * 0.32, r: full ? 48 : 22 },
@@ -458,6 +470,12 @@ export function SeaChart({
             </g>
           );
         })}
+
+        {/* The already-sailed stretch ahead of a rewound position — faint dashed
+            ink, so checkpoints past "here" stay on the route, not floating. */}
+        {aheadCourse && (
+          <path d={aheadCourse} fill="none" stroke={PAPER.ink} strokeWidth={full ? 1.5 : 1} strokeLinecap="round" strokeLinejoin="round" opacity={0.3} strokeDasharray={full ? '1.5 4' : '1 3'} />
+        )}
 
         {/* ── The inked main course — one winding spline + ink-bleed wobble ── */}
         {activePath.length > 1 && (
