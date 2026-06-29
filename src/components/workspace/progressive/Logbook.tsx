@@ -18,26 +18,14 @@
 
 import { useMemo, useState } from 'react';
 import {
-  Sailboat, Milestone, AlertTriangle, Eye, Wind, Anchor, ChevronDown, ChevronUp,
-  Map as MapIcon, GitBranch, Compass, X, Hand,
+  ChevronDown, ChevronUp, Map as MapIcon, Compass, X,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
 import { getActivePath } from '@/lib/version-tree';
 import { Modal } from '@/components/ui/Modal';
 import { VoyageChart } from '@/components/workspace/progressive/VoyageChart';
-import type { WaypointType } from '@/stores/types';
-
-const WP_META: Record<WaypointType, { Icon: LucideIcon; color: string; ko: string; en: string }> = {
-  departure:     { Icon: Sailboat,      color: 'var(--text-secondary)', ko: '출항',      en: 'Departure' },
-  course_change: { Icon: Milestone,     color: 'var(--accent)',         ko: '침로 변경',  en: 'Course change' },
-  reef:          { Icon: AlertTriangle, color: '#b4541e',               ko: '암초',      en: 'Reef' },
-  sighting:      { Icon: Eye,           color: '#2d6b8a',               ko: '관측',      en: 'Sighting' },
-  headwind:      { Icon: Wind,          color: '#6b4c9a',               ko: '역풍',      en: 'Headwind' },
-  helm:          { Icon: Hand,          color: '#8a6d2d',               ko: '선장의 키',  en: 'Helm' },
-  anchorage:     { Icon: Anchor,        color: '#2d6b2d',               ko: '정박',      en: 'Anchorage' },
-};
+import { WP_META, WaypointDetail } from '@/components/workspace/progressive/shared/WaypointCard';
 
 export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean } = {}) {
   const locale = useLocale();
@@ -145,7 +133,6 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
           const isOpen = openEntry === w.id;
           const isLast = i === waypoints.length - 1;
           const emphasize = w.type === 'course_change';
-          const notTaken = (w.alternatives || []).filter(a => !a.taken);
           const assumptions = assumptionsByCp.get(w.checkpoint_id) || [];
 
           return (
@@ -194,58 +181,19 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
               </button>
 
               {isOpen && (
-                <div className="mt-1.5 space-y-1.5 animate-fade-in">
-                  {w.significance && (
-                    <p className="text-[11px] leading-[1.5] text-[var(--text-secondary)]">{w.significance}</p>
-                  )}
-                  {w.trigger && (
-                    <p className="text-[11px] leading-[1.5] text-[var(--text-secondary)]">
-                      <span className="font-semibold">{L('계기', 'Trigger')}:</span> {w.trigger}
-                    </p>
-                  )}
-                  {notTaken.map((alt, j) => (
-                    <div
-                      key={j}
-                      className="text-[11px] leading-[1.5] text-[var(--text-secondary)] pl-2 border-l border-dashed"
-                      style={{ borderColor: 'var(--border)' }}
-                    >
-                      <div>
-                        <span className="font-medium text-[var(--text-tertiary)]">↘ {L('가지 않은 길', 'Road not taken')}:</span>{' '}
-                        <span className="italic">{alt.label}</span>
-                        {alt.why_abandoned && <span className="text-[var(--text-tertiary)]"> — {alt.why_abandoned}</span>}
-                      </div>
-                      <button
-                        onClick={() => takeRoad(w.checkpoint_id, alt.label)}
-                        disabled={locked}
-                        className={`mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                      >
-                        <GitBranch size={9} /> {L('이 길 가보기', 'Sail this path')}
-                      </button>
-                    </div>
-                  ))}
-                  {/* Drill-down — the hidden assumptions in play at this turn. */}
-                  {assumptions.length > 0 && (
-                    <details className="group/d">
-                      <summary className="text-[10px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--accent)] list-none flex items-center gap-1">
-                        <ChevronDown size={9} className="transition-transform group-open/d:rotate-180" />
-                        {L(`이 시점의 가정 ${assumptions.length}`, `${assumptions.length} assumptions in play`)}
-                      </summary>
-                      <ul className="mt-1 space-y-0.5 pl-2">
-                        {assumptions.map((a, k) => (
-                          <li key={k} className="text-[10.5px] leading-[1.5] text-[var(--text-secondary)] flex gap-1">
-                            <span className="text-[var(--text-tertiary)] shrink-0">·</span><span>{a}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                  {/* (Removed) the generic per-row "fork a new course here" CTA on
-                      waypoints with NO road-not-taken. Offering a fork on a point
-                      that has no real alternative is a manufactured fork on a flat
-                      decision (spine: zero-judgment / mirror clause — don't invent
-                      a branch the analysis didn't surface). Rewind-from-anywhere
-                      lives in the chart (이 지점에서 항해); real roads-not-taken keep
-                      their own "이 길 가보기" above. */}
+                <div className="mt-1.5 animate-fade-in">
+                  {/* Narration body shared with the rail/chart WaypointCard, so a
+                      turn's story reads identically wherever it surfaces (single
+                      source of truth). The generic per-row "fork here" CTA on a
+                      turn with NO road-not-taken stays removed — manufacturing a
+                      fork on a flat decision violates the mirror clause; real
+                      roads-not-taken keep their own "이 길 가보기" inside the body. */}
+                  <WaypointDetail
+                    waypoint={w}
+                    assumptions={assumptions}
+                    locked={locked}
+                    onTakeRoad={takeRoad}
+                  />
                 </div>
               )}
             </li>
