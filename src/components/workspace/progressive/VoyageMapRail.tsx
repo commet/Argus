@@ -81,6 +81,10 @@ function VoyageMapHero() {
   const activeId = session?.active_checkpoint_id ?? null;
   const hasChart = checkpoints.length > 0;
   const multiBranch = branches.length > 1;
+  // The wordless compact chart gets ONE line of context: what the current
+  // position actually is (its waypoint headline) — the rest of the words live
+  // in the 항해일지 below and the full 해도.
+  const currentWp = waypoints.find(w => w.checkpoint_id === activeId) ?? null;
 
   return (
     <div className="px-4 pt-4">
@@ -127,6 +131,17 @@ function VoyageMapHero() {
         </div>
       ) : (
         <EmptyChart />
+      )}
+
+      {/* Current-position caption — gives the wordless compact chart one line of
+          meaning: where "지금" actually is. */}
+      {hasChart && currentWp && (
+        <p className="mt-2 px-0.5 text-[10.5px] leading-[1.45] text-[var(--text-secondary)] flex items-baseline gap-1.5">
+          <span className="shrink-0 text-[8.5px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+            {L('지금', 'Now')}
+          </span>
+          <span className="min-w-0 line-clamp-2">{currentWp.headline}</span>
+        </p>
       )}
 
       {/* Compact legend — the SVG marks can't explain themselves */}

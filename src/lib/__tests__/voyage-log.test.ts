@@ -79,6 +79,35 @@ describe('deriveWaypoint — Chronicler salience gate', () => {
     expect(wp?.alternatives?.find(x => x.taken)?.label).toContain('churn');
   });
 
+  it('briefing resolving a strategic_fork → unchosen options become roads not taken (precedence over framing diff)', () => {
+    const q = {
+      id: 'q-fork', text: '어느 방향으로?', type: 'select', engine_phase: 'reframe',
+      options: ['유료 구독으로 간다', '무료로 풀고 나중에 과금', 'B2B 리셀러 경로'],
+      typed: {
+        tag: 'strategic_fork',
+        options: [
+          { label: '유료 구독으로 간다', effect: { decisionLine: '유료 구독', rationale: '현금흐름 빠름' } },
+          { label: '무료로 풀고 나중에 과금', effect: { decisionLine: '무료 선공개', rationale: '도달 우선' } },
+          { label: 'B2B 리셀러 경로', effect: { decisionLine: '리셀러', rationale: '영업 레버리지' } },
+        ],
+      },
+    } as unknown as FlowQuestion;
+    const a: FlowAnswer = { question_id: 'q-fork', value: '유료 구독으로 간다' };
+    const cur = baseState({
+      questions: [q], answers: [a],
+      snapshots: [snap({ real_question: '유료로 갈 때 가격을 어떻게?' })],
+    });
+    const prev = baseState({ snapshots: [snap({ real_question: '가격 모델을 어떻게?' })] });
+    const wp = deriveWaypoint({ newCheckpoint: cp('briefing', cur), prevState: prev, problemText: 'x' });
+    expect(wp?.type).toBe('course_change');
+    // all three options captured (not the 2-item framing diff) — fork wins
+    expect(wp?.alternatives).toHaveLength(3);
+    const notTaken = (wp?.alternatives || []).filter(x => !x.taken).map(x => x.label);
+    expect(notTaken).toContain('무료로 풀고 나중에 과금');
+    expect(notTaken).toContain('B2B 리셀러 경로');
+    expect(wp?.alternatives?.find(x => x.taken)?.label).toContain('유료 구독');
+  });
+
   it('briefing with an unchanged real_question → suppressed (null)', () => {
     const same = snap({ real_question: 'Same question' });
     const wp = deriveWaypoint({
