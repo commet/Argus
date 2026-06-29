@@ -249,6 +249,32 @@ describe('Voyage branch layer', () => {
       expect(results.every(Boolean)).toBe(true);           // none refused
     });
 
+    it('scale: 15+ accumulated forks never throw and keep every branch head valid', () => {
+      const sid = startSession();
+      const c1 = api().recordCheckpoint('origin')!;
+      api().recordCheckpoint('briefing');
+      const forkIds: string[] = [];
+      // Fork repeatedly off the same early point, each advancing a checkpoint —
+      // the worst case for the chart's leftward lane spread.
+      expect(() => {
+        for (let i = 0; i < 15; i++) {
+          const id = api().forkBranch(c1.id, `갈래 ${i}`);
+          expect(id).toBeTruthy();
+          forkIds.push(id!);
+          api().recordCheckpoint('briefing');
+        }
+        // Hop across them — switch + chart-style navigation must stay consistent.
+        api().switchBranch(forkIds[0]);
+        api().navigateToCheckpoint(c1.id);
+        api().switchBranch(forkIds[7]);
+      }).not.toThrow();
+      const s = session(sid);
+      expect(s.branches!.length).toBeGreaterThanOrEqual(16); // main + 15 forks
+      // No corruption: every branch points at a checkpoint that actually exists.
+      const cpIds = new Set(s.checkpoints!.map(c => c.id));
+      for (const b of s.branches!) expect(cpIds.has(b.head_checkpoint_id)).toBe(true);
+    });
+
     it('strips transient stream_text from checkpoint snapshots', () => {
       const sid = startSession();
       // Seed a worker carrying heavy streaming text directly (initWorkers needs

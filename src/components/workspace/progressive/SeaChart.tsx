@@ -200,29 +200,35 @@ export function SeaChart({
     // labels read to the RIGHT (wide margin), and the not-taken forks peel into
     // the open "unknown" sea on the LEFT.
     const sideL = full ? 120 : 24;
-    const sideR = full ? 196 : 24;
     const padTop = full ? 50 : 28;
     const padBottom = full ? 46 : 26;
     // zero-phase wander → starts dead-centre, then swings RIGHT and back LEFT
     // (primary near one wave per ~6 turns) for a true serpentine sea route.
     const wander = (row: number) => amp * (0.7 * Math.sin(row * 0.95) + 0.3 * Math.sin(row * 2.2));
-    const baseX0 = sideL + amp;           // natural trunk centre
-    const naturalW = baseX0 + amp + sideR;
+    const baseX = sideL + amp;            // natural trunk centre
     const H = padTop + maxRow * rowGap + padBottom;
-    // Compact fills a near-square rail box (fit-to-box 'meet'). A tall/narrow
-    // route would letterbox onto white side-margins — a parchment strip floating
-    // on the page. Widen the viewBox to the box aspect so the parchment fills it
-    // and the route threads down the middle with open sea on either side; shift
-    // the trunk to re-centre in the wider frame.
-    const W = full ? naturalW : Math.max(naturalW, H * 0.94);
-    const baseX = baseX0 + (W - naturalW) / 2;
-    const placed = nodes.map((n, i) => {
+    // Place every node first (forks peel LEFT, unbounded by lane count)…
+    const placed0 = nodes.map((n, i) => {
       const isActive = n.branchId === activeBranchId;
       const px = isActive
         ? baseX + wander(rows[i])
         : baseX - forkSpread * Math.max(1, n.lane) + wander(rows[i]) * 0.3;
       return { ...n, px, py: padTop + rows[i] * rowGap, row: rows[i], isActive };
     });
+    // …then size the viewBox to ENCLOSE them all. Without this, many forks marched
+    // off the left edge onto white (the route-only width ignored the leftward
+    // spread). Shift so the leftmost node sits at padX; in compact, widen to a
+    // near-square when the spread is narrow so a short route doesn't letterbox.
+    let minPx = baseX, maxPx = baseX;
+    for (const p of placed0) { if (p.px < minPx) minPx = p.px; if (p.px > maxPx) maxPx = p.px; }
+    // Right margin is wider on the full chart to fit the waypoint labels that
+    // extend right of the active route.
+    const padL = full ? 60 : 16;
+    const padR = full ? 200 : 16;
+    let W = (maxPx - minPx) + padL + padR;
+    let offsetX = padL - minPx;
+    if (!full && W < H * 0.94) { offsetX += (H * 0.94 - W) / 2; W = H * 0.94; }
+    const placed = placed0.map(p => ({ ...p, px: p.px + offsetX }));
     const byId = new Map(placed.map(p => [p.id, p]));
     // Walk the FULL active-branch lineage (head → root), not just root → current.
     // When the user has rewound to a past point, the checkpoints AHEAD of them
@@ -237,7 +243,7 @@ export function SeaChart({
     const curIdx = fullPath.findIndex(n => n.id === activeCheckpointId);
     const activePath = curIdx >= 0 ? fullPath.slice(0, curIdx + 1) : fullPath;
     const aheadPath = curIdx >= 0 ? fullPath.slice(curIdx) : []; // current..head (incl. current for spline continuity)
-    return { placed, byId, W, H, baseX, activePath, aheadPath };
+    return { placed, byId, W, H, activePath, aheadPath };
   }, [nodes, full, activeCheckpointId, activeBranchId, branches]);
 
   const wpByCp = useMemo(() => { const m = new Map<string, Waypoint>(); for (const w of waypoints) m.set(w.checkpoint_id, w); return m; }, [waypoints]);
