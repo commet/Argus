@@ -130,7 +130,7 @@ function LoginContent() {
     return (
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-[400px] text-center">
-          <div className="w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center shadow-[var(--shadow-sm)]" style={{ background: 'var(--gradient-gold)' }}>
+          <div className="w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center border border-[var(--accent)]/20 shadow-[0_2px_8px_rgba(184,150,62,0.18),0_6px_16px_rgba(184,150,62,0.08),inset_0_1px_0_rgba(255,255,255,0.5)]" style={{ background: 'var(--gradient-gold)' }}>
             <MailCheck size={26} className="text-white" />
           </div>
           <h1 className="text-[20px] font-bold text-[var(--text-primary)] mb-2">{L('확인 메일을 보냈어요', 'Check your email')}</h1>
@@ -249,7 +249,7 @@ function LoginContent() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={L('어떻게 불러드릴까요? (선택)', 'What should we call you? (optional)')}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
                 />
                 <p className="mt-1 px-1 text-[11px] text-[var(--text-tertiary)] leading-snug">
                   {L('정산할 때 이 이름으로 인사하고, 결정 기록에 함께 남겨요.', 'We greet you by this name and keep it with your decision log.')}
@@ -291,7 +291,7 @@ function LoginContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={L('이메일', 'Email')}
-                className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                className="w-full px-4 py-2.5 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
               />
             </div>
             {!isReset && (
@@ -304,7 +304,7 @@ function LoginContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={L('비밀번호 (8자 이상)', 'Password (8+ characters)')}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
                 />
               </div>
             )}

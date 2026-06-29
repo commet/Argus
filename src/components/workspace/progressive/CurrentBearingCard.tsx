@@ -235,7 +235,7 @@ function Section({ title, icon, children }: { title: string; icon?: ReactNode; c
     <div>
       <div className="mb-1.5 flex items-center gap-1.5">
         {icon}
-        <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">
+        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
           {title}
         </p>
       </div>
