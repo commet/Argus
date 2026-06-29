@@ -970,14 +970,21 @@ function WorkspaceContent() {
 
   // Boss에서 넘어온 경우 reviewer agent ID
   const reviewerParam = searchParams.get('reviewer');
+  // "Start a fresh decision" signals: the hero input (?q=…) and the
+  // "내 결정으로 직접 해보기" CTA (?new=1).
+  const queryProblem = searchParams.get('q');
+  const forceNew = searchParams.get('new') === '1';
 
-  // Boss handoff must land on a FRESH HeroFlow: with currentProjectId now
-  // persisted, an open project would render instead and ?reviewer= was read
-  // by nothing — the promise silently failed (hollow-shell audit C11).
+  // Any fresh-start entry must land on a FRESH HeroFlow, not the persisted
+  // recent project. currentProjectId is persisted (restored by loadProjects), so
+  // without clearing it a returning user's open project renders and the fresh
+  // intent — the Boss handoff (?reviewer), the typed problem (?q), or the CTA's
+  // new start (?new) — is silently dropped. Clearing also wipes the stored id,
+  // and this effect is declared BEFORE loadProjects so the restore finds nothing.
   useEffect(() => {
-    if (reviewerParam) setCurrentProjectId(null);
+    if (reviewerParam || forceNew || queryProblem) setCurrentProjectId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviewerParam]);
+  }, [reviewerParam, forceNew, queryProblem]);
 
   useEffect(() => {
     loadProjects();
@@ -1007,9 +1014,6 @@ function WorkspaceContent() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, [setActiveStep]);
-
-  // Pick up ?q= param (from landing Hero inline input) — HeroFlow handles the streaming flow
-  const queryProblem = searchParams.get('q');
 
   const handleNavigate = (step: string) => {
     const stepId = step.replace('/tools/', '') as StepId;
@@ -1045,7 +1049,14 @@ function WorkspaceContent() {
   if (!currentProjectId) {
     return (
       <HeroFlow
-        onReady={(pid) => setCurrentProjectId(pid)}
+        onReady={(pid) => {
+          setCurrentProjectId(pid);
+          // Strip the fresh-start params so a later reload of /workspace resumes
+          // THIS new project instead of the clear-effect wiping it again.
+          if ((forceNew || queryProblem) && typeof window !== 'undefined') {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        }}
         projects={projects}
         user={user}
         reviewerAgentId={reviewerParam || undefined}
