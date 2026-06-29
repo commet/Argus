@@ -2448,7 +2448,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               {/* "나" as a small label, not a chip-in-a-box — marks the user's
                   own words without another bordered pill. */}
               <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)] shrink-0 mt-[3px]">{L('나', 'Me')}</span>
-              <p className={`text-[13px] text-[var(--text-secondary)] leading-[1.55] group-hover:text-[var(--text-primary)] transition-colors ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
+              {/* min-w-0: without it this flex child's min-content (the full
+                  one-line problem, since `truncate` sets white-space:nowrap)
+                  refuses to shrink — blowing the whole column past the viewport
+                  on mobile (horizontal overflow → forced zoom-out). */}
+              <p className={`min-w-0 text-[13px] text-[var(--text-secondary)] leading-[1.55] group-hover:text-[var(--text-primary)] transition-colors ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
                 {session.problem_text}
               </p>
             </motion.button>
