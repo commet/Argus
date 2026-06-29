@@ -74,7 +74,7 @@ describe('Logbook render', () => {
 
   it('renders typed waypoints with their headlines', () => {
     expect(html).toContain('출항');
-    expect(html).toContain('침로 변경');
+    expect(html).toContain('항로 변경');
     expect(html).toContain('경쟁사처럼 챗봇 만들기');
     expect(html).toContain('이탈의 진짜 원인은?');
   });

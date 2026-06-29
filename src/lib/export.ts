@@ -14,7 +14,7 @@ const actorLabels: Record<string, string> = {
  */
 const WP_EXPORT: Record<WaypointType, { ko: string; en: string; glyph: string }> = {
   departure:     { ko: '출항',      en: 'Departure',     glyph: '⚓' },
-  course_change: { ko: '침로 변경',  en: 'Course change', glyph: '↻' },
+  course_change: { ko: '항로 변경',  en: 'Course change', glyph: '↻' },
   reef:          { ko: '암초',      en: 'Reef',          glyph: '⚠' },
   sighting:      { ko: '관측',      en: 'Sighting',      glyph: '👁' },
   headwind:      { ko: '역풍',      en: 'Headwind',      glyph: '🜨' },

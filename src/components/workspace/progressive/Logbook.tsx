@@ -91,7 +91,7 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
             </span>
           </div>
           <p className="text-[10.5px] leading-[1.5] text-[var(--text-tertiary)]">
-            {L('분석이 진행되면 결정의 흐름 — 침로를 바꾼 순간들 — 이 여기 차곡차곡 쌓여요.',
+            {L('분석이 진행되면 결정의 흐름 — 항로를 바꾼 순간들 — 이 여기 차곡차곡 쌓여요.',
                'As the analysis unfolds, your decision trail — the moments you changed course — collects here.')}
           </p>
         </div>

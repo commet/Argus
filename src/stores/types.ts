@@ -1202,7 +1202,7 @@ export interface VoyageBranch {
  */
 export type WaypointType =
   | 'departure'     // ⚓ 출항 — the original ask, as given
-  | 'course_change' // ↻ 침로 변경 — the real question / framing turned
+  | 'course_change' // ↻ 항로 변경 — the real question / framing turned
   | 'reef'          // ⚠ 암초 — a hidden assumption surfaced (confirmed or killed)
   | 'sighting'      // 👁 관측 — a worker/finding surfaced material intelligence
   | 'headwind'      // 🜨 역풍 — a stakeholder concern / risk forced an adjustment

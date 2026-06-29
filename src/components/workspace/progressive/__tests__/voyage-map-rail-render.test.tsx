@@ -93,7 +93,7 @@ describe('VoyageMapRail — collapsed spine', () => {
     state.workers = [{ id: 'wk1', status: 'running' } as WorkerTask];
     state.session = { ...charted, waypoints: [
       { id: 'w1', checkpoint_id: 'c1', type: 'departure', headline: '출항', created_at: 'x' },
-      { id: 'w2', checkpoint_id: 'c1', type: 'course_change', headline: '침로', created_at: 'y' },
+      { id: 'w2', checkpoint_id: 'c1', type: 'course_change', headline: '항로', created_at: 'y' },
     ] };
     const html = renderToStaticMarkup(createElement(VoyageMapRail));
     expect(html).toContain('항해 지도');        // vertical label

@@ -41,7 +41,7 @@ describe('voyageLogToMarkdown', () => {
     expect(md).toContain('## 항해일지');
     expect(md).toContain('출항');
     expect(md).toContain('경쟁사처럼 챗봇');
-    expect(md).toContain('침로 변경');
+    expect(md).toContain('항로 변경');
     expect(md).toContain('이탈의 진짜 원인은?');
     expect(md).toContain('계기: CFO');
     expect(md).toContain('의미: ROI 근거가 필요하다');

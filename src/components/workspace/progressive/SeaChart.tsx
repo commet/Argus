@@ -12,13 +12,16 @@
  * ship, or dissolve into uncharted fog. Period typography via `--font-chart`
  * (Cormorant Garamond → Nanum Myeongjo).
  *
- * Ornament diet (redesign step 5): the founder kept parchment + ship but asked
- * to cut excess. Meaningless cartographer flourishes were removed (depth
- * soundings = random numerals, isobaths, drifting phantom sails), and the heavy
- * aged texture — ink stains, the grain/scorch turbulence filters, and the
- * road-not-taken island/fog/ship endpoints — is now FULL-CHART ONLY, so the
- * always-visible rail hero stays clean and cheap. Kept everywhere: parchment,
- * cool water wash, graticule, vignette, the inked course, waypoints, the ship.
+ * Ornament diet (redesign step 5, refined): the founder kept parchment + ship
+ * but asked to cut excess. Meaningless cartographer flourishes were removed
+ * everywhere (depth soundings = random numerals, isobaths, drifting phantom
+ * sails). The genuinely heavy bits stay FULL-ONLY (the scorch displacement
+ * filter, the road-not-taken island/fog/ship endpoints, rhumb lines). But the
+ * compact rail chart KEEPS its craft — subtle stains, a faint grain, a single
+ * neatline frame, a near-whisper graticule, and a WARM (sepia, not muddy navy)
+ * compass — because stripping those made the small chart read as flat
+ * graph-paper fill ("짜친다"). Kept everywhere: parchment, cool wash, vignette,
+ * the inked course, waypoints, the ship.
  *
  * Self-contained parchment palette so it reads as a physical chart object in
  * both light and dark themes.
@@ -64,7 +67,7 @@ interface SeaChartProps {
 
 const WP_LABEL: Record<WaypointType, { ko: string; en: string }> = {
   departure:     { ko: '출항',     en: 'Departure' },
-  course_change: { ko: '침로 변경', en: 'Course change' },
+  course_change: { ko: '항로 변경', en: 'Course change' },
   reef:          { ko: '암초',     en: 'Reef' },
   sighting:      { ko: '관측',     en: 'Sighting' },
   headwind:      { ko: '역풍',     en: 'Headwind' },
@@ -127,8 +130,12 @@ function Ship({ cx, cy, s, color, phantom = false, angle = 0 }: { cx: number; cy
   );
 }
 
-/** 16-point compass rose. */
-function CompassRose({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+/** 16-point compass rose. `warm` tints the long points sepia instead of navy
+ *  ink — at the low opacity it sits at in the compact rail, navy went muddy
+ *  grey-blue (read as cheap clip-art); warm keeps it a tonal parchment mark. */
+function CompassRose({ cx, cy, r, warm = false }: { cx: number; cy: number; r: number; warm?: boolean }) {
+  const longFill = warm ? PAPER.sepia : PAPER.ink;
+  const nFill = warm ? PAPER.sepia : PAPER.ink;
   const pts: React.ReactNode[] = [];
   for (let i = 0; i < 16; i++) {
     const a = (i * Math.PI) / 8;
@@ -140,7 +147,7 @@ function CompassRose({ cx, cy, r }: { cx: number; cy: number; r: number }) {
     const lX = cx + Math.cos(a) * w, lY = cy + Math.sin(a) * w;
     const rX = cx - Math.cos(a) * w, rY = cy - Math.sin(a) * w;
     pts.push(<path key={i} d={`M ${cx} ${cy} L ${lX} ${lY} L ${tipX} ${tipY} L ${rX} ${rY} Z`}
-      fill={long ? PAPER.ink : i % 4 === 2 ? PAPER.sepia : 'none'} stroke={PAPER.sepia} strokeWidth={0.4}
+      fill={long ? longFill : i % 4 === 2 ? PAPER.sepia : 'none'} stroke={PAPER.sepia} strokeWidth={0.4}
       opacity={long ? 0.85 : mid ? 0.5 : 0.33} />);
   }
   return (
@@ -149,7 +156,7 @@ function CompassRose({ cx, cy, r }: { cx: number; cy: number; r: number }) {
       <circle cx={cx} cy={cy} r={r * 0.66} fill="none" stroke={PAPER.sepia} strokeWidth={0.4} opacity={0.4} />
       {pts}
       <circle cx={cx} cy={cy} r={r * 0.07} fill={PAPER.gold} />
-      <text x={cx} y={cy - r * 1.12} textAnchor="middle" fontSize={r * 0.32} fill={PAPER.ink} fontWeight={600} fontFamily={CHART_FONT} style={{ letterSpacing: '0.04em' }}>N</text>
+      <text x={cx} y={cy - r * 1.12} textAnchor="middle" fontSize={r * 0.32} fill={nFill} fontWeight={600} fontFamily={CHART_FONT} style={{ letterSpacing: '0.04em' }}>N</text>
     </g>
   );
 }
@@ -199,9 +206,16 @@ export function SeaChart({
     // zero-phase wander → starts dead-centre, then swings RIGHT and back LEFT
     // (primary near one wave per ~6 turns) for a true serpentine sea route.
     const wander = (row: number) => amp * (0.7 * Math.sin(row * 0.95) + 0.3 * Math.sin(row * 2.2));
-    const baseX = sideL + amp;            // trunk centre
-    const W = baseX + amp + sideR;        // = centre is baseX
+    const baseX0 = sideL + amp;           // natural trunk centre
+    const naturalW = baseX0 + amp + sideR;
     const H = padTop + maxRow * rowGap + padBottom;
+    // Compact fills a near-square rail box (fit-to-box 'meet'). A tall/narrow
+    // route would letterbox onto white side-margins — a parchment strip floating
+    // on the page. Widen the viewBox to the box aspect so the parchment fills it
+    // and the route threads down the middle with open sea on either side; shift
+    // the trunk to re-centre in the wider frame.
+    const W = full ? naturalW : Math.max(naturalW, H * 0.94);
+    const baseX = baseX0 + (W - naturalW) / 2;
     const placed = nodes.map((n, i) => {
       const isActive = n.branchId === activeBranchId;
       const px = isActive
@@ -291,9 +305,9 @@ export function SeaChart({
   const treatOf = (id: string): Treat => (['island', 'ship', 'fog'] as Treat[])[hash(id) % 3];
 
   return (
-    <div className={`relative w-full overflow-hidden rounded-[10px] shadow-[inset_0_0_46px_rgba(78,56,16,0.15)]${full ? ' h-full' : ''}`}>
-      <svg ref={svgRef} width="100%" height={full ? '100%' : undefined}
-        viewBox={`0 0 ${W} ${H}`} preserveAspectRatio={full ? 'xMidYMid meet' : 'xMinYMin meet'} role="img"
+    <div className="relative w-full h-full overflow-hidden rounded-[10px] shadow-[inset_0_0_46px_rgba(78,56,16,0.15)]">
+      <svg ref={svgRef} width="100%" height="100%"
+        viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"
         aria-label={L('결정 항해 해도', 'Decision voyage chart')}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp} onWheel={onWheel}
@@ -349,15 +363,26 @@ export function SeaChart({
             turbulence filters are GPU-costly on an always-visible hero). The
             parchment gradient, cool wash, graticule and vignette already carry
             the "양피지" feel in compact. */}
-        {full && stains.map((s, i) => <ellipse key={i} cx={s.x} cy={s.y} rx={s.r} ry={s.r * 0.78} fill={`url(#stain-${uid})`} />)}
-        <rect x="0" y="0" width={W} height={H} fill={`url(#grat-${uid})`} opacity={full ? 0.17 : 0.13} />
-        {full && <rect x="0" y="0" width={W} height={H} filter={`url(#grain-${uid})`} opacity={0.06} />}
+        {/* Aged stains + a faint grain give the paper its craft. They're subtle
+            in compact (and the heavy scorch displacement stays full-only for
+            cost), but WITHOUT them the small chart read as flat graph-paper fill
+            — the founder's "짜친다". The graticule is dropped to a near-whisper in
+            compact so it stops reading as a wireframe grid. */}
+        {stains.map((s, i) => <ellipse key={i} cx={s.x} cy={s.y} rx={s.r} ry={s.r * 0.78} fill={`url(#stain-${uid})`} opacity={full ? 1 : 0.7} />)}
+        <rect x="0" y="0" width={W} height={H} fill={`url(#grat-${uid})`} opacity={full ? 0.17 : 0.06} />
+        <rect x="0" y="0" width={W} height={H} filter={`url(#grain-${uid})`} opacity={full ? 0.06 : 0.05} />
 
-        {/* Scorched, irregular edge (full only) */}
+        {/* Scorched, irregular edge (full only — heavy displacement filter) */}
         {full && <rect x={6} y={6} width={W - 12} height={H - 12} fill="none" stroke="rgba(68,42,12,0.34)" strokeWidth={9} filter={`url(#scorch-${uid})`} opacity={0.55} />}
 
-        {/* Neatline */}
-        {full && (<><rect x="9" y="9" width={W - 18} height={H - 18} fill="none" stroke={PAPER.sepia} strokeWidth={1} opacity={0.55} /><rect x="13" y="13" width={W - 26} height={H - 26} fill="none" stroke={PAPER.sepia} strokeWidth={0.5} opacity={0.4} /></>)}
+        {/* Neatline frame — full gets a double rule; compact a single light one,
+            so the small chart reads as a contained chart OBJECT, not a bleed of
+            flat colour. */}
+        {full ? (
+          <><rect x="9" y="9" width={W - 18} height={H - 18} fill="none" stroke={PAPER.sepia} strokeWidth={1} opacity={0.55} /><rect x="13" y="13" width={W - 26} height={H - 26} fill="none" stroke={PAPER.sepia} strokeWidth={0.5} opacity={0.4} /></>
+        ) : (
+          <rect x={4} y={4} width={W - 8} height={H - 8} fill="none" stroke={PAPER.sepia} strokeWidth={0.6} opacity={0.5} />
+        )}
 
         {/* Rhumb lines from the compass */}
         {full && Array.from({ length: 16 }).map((_, i) => { const a = (i * Math.PI) / 8; return <line key={i} x1={roseCx} y1={roseCy} x2={roseCx + Math.sin(a) * (W + H)} y2={roseCy - Math.cos(a) * (W + H)} stroke={PAPER.sepia} strokeWidth={0.4} opacity={0.12} />; })}
@@ -437,7 +462,7 @@ export function SeaChart({
         {/* ── The inked main course — one winding spline + ink-bleed wobble ── */}
         {activePath.length > 1 && (
           <g filter={`url(#bleed-${uid})`}>
-            <path d={activeCourse} pathLength={1} fill="none" stroke={PAPER.ink} strokeWidth={full ? 2.1 : 1.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.9}
+            <path d={activeCourse} pathLength={1} fill="none" stroke={PAPER.ink} strokeWidth={full ? 2.1 : 1.25} strokeLinecap="round" strokeLinejoin="round" opacity={0.9}
               strokeDasharray={animate ? 1 : undefined} strokeDashoffset={animate ? 1 : undefined}>
               {animate && <animate attributeName="stroke-dashoffset" from="1" to="0" dur="1.5s" begin="0.15s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.45 0 0.2 1" />}
             </path>
@@ -529,8 +554,9 @@ export function SeaChart({
           );
         })}
 
-        {/* Compass rose — bottom-left in the full chart; a faint corner watermark in compact */}
-        <g opacity={full ? 1 : 0.3}><CompassRose cx={roseCx} cy={roseCy} r={roseR} /></g>
+        {/* Compass rose — bottom-left in the full chart; a faint WARM corner
+            watermark in compact (navy went muddy grey at low opacity). */}
+        <g opacity={full ? 1 : 0.4}><CompassRose cx={roseCx} cy={roseCy} r={roseR} warm={!full} /></g>
 
         <rect x="0" y="0" width={W} height={H} fill={`url(#vig-${uid})`} pointerEvents="none" />
         </g>

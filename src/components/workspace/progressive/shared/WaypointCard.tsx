@@ -33,7 +33,7 @@ import type { Waypoint, WaypointType } from '@/stores/types';
 
 export const WP_META: Record<WaypointType, { Icon: LucideIcon; color: string; ko: string; en: string }> = {
   departure:     { Icon: Sailboat,      color: 'var(--text-secondary)', ko: '출항',      en: 'Departure' },
-  course_change: { Icon: Milestone,     color: 'var(--accent)',         ko: '침로 변경',  en: 'Course change' },
+  course_change: { Icon: Milestone,     color: 'var(--accent)',         ko: '항로 변경',  en: 'Course change' },
   reef:          { Icon: AlertTriangle, color: '#b4541e',               ko: '암초',      en: 'Reef' },
   sighting:      { Icon: Eye,           color: '#2d6b8a',               ko: '관측',      en: 'Sighting' },
   headwind:      { Icon: Wind,          color: '#6b4c9a',               ko: '역풍',      en: 'Headwind' },
@@ -118,43 +118,37 @@ export function WaypointCard({
   const locale = useLocale();
   const meta = WP_META[waypoint.type];
   const { Icon } = meta;
-  const emphasize = waypoint.type === 'course_change';
 
   return (
-    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5">
-      <div className="flex items-start gap-2">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3.5 py-3">
+      {/* Meta row — a tinted type chip (icon + label) on the left, a solid
+          "지금" status pill on the right. Clear, distinct roles instead of two
+          cramped micro-labels. */}
+      <div className="flex items-center justify-between gap-2 mb-2">
         <span
-          className="shrink-0 flex items-center justify-center rounded-full mt-0.5"
-          style={{
-            width: 19, height: 19,
-            background: 'var(--bg)',
-            boxShadow: emphasize ? `0 0 0 2px ${meta.color}40` : `0 0 0 1px ${meta.color}30`,
-          }}
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1"
+          style={{ background: `color-mix(in srgb, ${meta.color} 13%, transparent)`, color: meta.color }}
         >
-          <Icon size={emphasize ? 13 : 12} style={{ color: meta.color }} strokeWidth={2} />
+          <Icon size={12} strokeWidth={2.2} />
+          <span className="text-[10px] font-bold tracking-tight">{locale === 'ko' ? meta.ko : meta.en}</span>
         </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-1.5">
-            {eyebrow && (
-              <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
-                {eyebrow}
-              </span>
-            )}
-            <span className="text-[9px] font-bold uppercase tracking-[0.1em]" style={{ color: meta.color }}>
-              {locale === 'ko' ? meta.ko : meta.en}
-            </span>
-          </div>
-          <div className={`mt-0.5 text-[13px] leading-[1.45] text-[var(--text-primary)] ${emphasize ? 'font-semibold' : ''}`}>
-            {waypoint.headline}
-          </div>
-        </div>
+        {eyebrow && (
+          <span className="shrink-0 inline-flex items-center rounded-full bg-[var(--accent)] px-2 py-[3px] text-[9px] font-bold uppercase tracking-[0.12em] text-white">
+            {eyebrow}
+          </span>
+        )}
       </div>
 
-      <div className="mt-2">
+      {/* Headline — the focal point of the card */}
+      <div className="text-[14px] leading-[1.4] font-semibold text-[var(--text-primary)]">
+        {waypoint.headline}
+      </div>
+
+      <div className="mt-2.5">
         <WaypointDetail waypoint={waypoint} assumptions={assumptions} locked={locked} onTakeRoad={onTakeRoad} />
       </div>
 
-      {action && <div className="mt-2.5">{action}</div>}
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 }

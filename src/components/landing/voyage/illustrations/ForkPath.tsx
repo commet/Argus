@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * ForkPath → "The Bearing Fan" (침로 부채꼴) — the SirenHero's hero diagram.
+ * ForkPath → "The Bearing Fan" (항로 부채꼴) — the SirenHero's hero diagram.
  *
  * ONE plan (your course, the bold line) enters from the left and is read by FOUR
  * eyes that AGREE CHEAPLY — they ride it as a tight bundle — then FAN OPEN, wide,

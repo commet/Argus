@@ -36,7 +36,7 @@ describe('WaypointCard', () => {
 
   it('renders the type chip, eyebrow, and headline', () => {
     expect(html).toContain('지금');          // eyebrow
-    expect(html).toContain('침로 변경');       // type label (course_change, ko)
+    expect(html).toContain('항로 변경');       // type label (course_change, ko)
     expect(html).toContain('이탈의 진짜 원인은?'); // headline
   });
 
@@ -65,6 +65,6 @@ describe('WaypointCard', () => {
     }));
     expect(body).toContain('가지 않은 길');
     expect(body).not.toContain('지금');       // no eyebrow
-    expect(body).not.toContain('침로 변경');    // no type chip
+    expect(body).not.toContain('항로 변경');    // no type chip
   });
 });

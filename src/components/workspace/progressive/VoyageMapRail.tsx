@@ -61,7 +61,7 @@ function EmptyChart() {
         <Compass size={26} strokeWidth={1.4} />
       </motion.div>
       <p className="text-[11px] leading-[1.55] text-[var(--text-tertiary)] max-w-[180px]">
-        {L('이 결정의 갈림길이 여기 해도로 그려져요. 답을 고르고 침로를 바꿀 때마다 길이 이어져요.',
+        {L('이 결정의 갈림길이 여기 해도로 그려져요. 답을 고르고 항로를 바꿀 때마다 길이 이어져요.',
            "This decision's forks chart here. Each answer and course-change extends the route.")}
       </p>
     </div>
@@ -134,9 +134,13 @@ function VoyageMapHero() {
 
       {/* The chart card — an antique sea-chart (SeaChart self-frames: parchment +
           neatline + shadow). Tapping a node picks that turn for the card below;
-          the eyebrow "전체 해도" opens the full pan/zoom/rewind surface. */}
+          the eyebrow "전체 해도" opens the full pan/zoom/rewind surface.
+          Fixed height + fit-to-box (SeaChart fills it with preserveAspect
+          'meet'), so the WHOLE voyage — crucially the current ship — is always
+          in view; before, a route taller than the box scrolled "you are here"
+          off the bottom. */}
       {hasChart ? (
-        <div className="relative block w-full max-h-[300px] overflow-y-auto rounded-[10px] ring-1 ring-[rgba(120,90,30,0.20)]">
+        <div className="relative block w-full h-[300px] rounded-[10px] ring-1 ring-[rgba(120,90,30,0.20)]">
           <SeaChart
             variant="compact"
             checkpoints={checkpoints}
