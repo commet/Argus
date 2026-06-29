@@ -135,7 +135,7 @@ export function SirenHero() {
         {/* Headline — candidate 1, verbatim (FRAMEWORK §7). The focal point. */}
         <h1
           id="siren-heading"
-          className={`bp-fade-up ${locale === 'ko' ? 'break-keep sm:whitespace-nowrap' : ''}`}
+          className={`bp-fade-up ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             fontFamily: 'var(--font-display)',
             color: 'var(--bp-ink)',
