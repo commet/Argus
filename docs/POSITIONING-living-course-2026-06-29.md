@@ -20,7 +20,7 @@ H1
 Important decisions shouldn't end as answers.
 
 Sub
-Argus keeps them alive as courses — with forks, checked claims, a current bearing,
+Argus keeps them alive as courses — with forks, checked claims, a current direction,
 and a return when reality answers.
 ```
 
@@ -34,7 +34,7 @@ H1
 중요한 결정은 답으로 끝나면 안 됩니다.
 
 Sub
-Argus는 그것을 살아 있는 항로로 남깁니다 — 갈림길, 검증된 주장, 현재 방위,
+Argus는 그것을 살아 있는 항로로 남깁니다 — 갈림길, 검증된 주장, 현재 방향,
 그리고 현실이 답할 때의 귀환까지.
 ```
 
@@ -50,7 +50,7 @@ Argus's stronger claim is that a decision becomes a durable object with state:
 - the hidden assumptions,
 - the forks and roads not taken,
 - verified, challenged, and human-required claims,
-- the current bearing,
+- the current direction,
 - and a future reality check.
 
 Normal AI gives an answer. Argus keeps the decision alive long enough for

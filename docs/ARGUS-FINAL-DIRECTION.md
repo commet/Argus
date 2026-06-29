@@ -9,7 +9,7 @@ until reality can answer.
 
 It is not a multi-agent showcase, a generic risk machine, or a prettier ChatGPT
 answer. The product is a decision voyage: clarify the destination, gather crew
-work, preserve forks, verify claims, choose the current bearing, and leave behind
+work, preserve forks, verify claims, choose the current direction, and leave behind
 an auditable log that can later be checked against reality.
 
 ## What Argus Sells
@@ -22,7 +22,7 @@ Argus sells the feeling of:
 That is broader than "make my decision less risky" and broader than "find my
 hidden assumptions." Risk reduction and assumption-finding are effects. The more
 complete promise is that a decision becomes a living course: a durable state with
-forks, checked claims, current bearing, and a future reality check. A good Argus
+forks, checked claims, current direction, and a future reality check. A good Argus
 run should give the user current coordinates inside a decision that might
 otherwise blur into analysis, advice, and second thoughts.
 
