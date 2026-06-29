@@ -30,7 +30,7 @@ function buildLlmProviders(L: (ko: string, en: string) => string) {
 
 function buildLlmModes(L: (ko: string, en: string) => string) {
   return [
-    { value: 'proxy' as LLMMode, label: L('프록시', 'Proxy'), description: L('API 키 없이 바로 사용 (권장)', 'Use without API key (recommended)'), available: true },
+    { value: 'proxy' as LLMMode, label: L('프록시', 'Proxy'), description: L('API 키 없이 바로 써요 (권장)', 'No API key needed (recommended)'), available: true },
     { value: 'direct' as LLMMode, label: L('직접 키', 'Direct Key'), description: L('본인의 API 키 사용. 제한 없음', 'Use your own API key. No limits'), available: true },
     { value: 'local' as LLMMode, label: L('로컬', 'Local'), description: L('Ollama 로컬 엔드포인트', 'Ollama local endpoint'), available: false },
   ];
@@ -187,7 +187,7 @@ export default function SettingsPage() {
           <h3 className="text-[15px] font-bold">{L('내 프로필', 'My Profile')}</h3>
         </div>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4">
-          {L('검토 피드백(상사 시점 리뷰)의 톤과 깊이에 반영돼요.', 'Used to tune the tone and depth of review feedback (boss-perspective reviews).')}
+          {L('검토 피드백(상사 시점)의 톤과 깊이를 정하는 데 써요.', 'Tunes the tone and depth of your review feedback.')}
         </p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -451,7 +451,7 @@ export default function SettingsPage() {
           ))}
         </div>
         <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
-          {L('일부 UI 텍스트는 아직 한국어로만 제공됩니다.', 'Partial English support. Some UI text may still appear in Korean.')}
+          {L('일부 UI는 아직 한국어로만 나와요.', 'Some UI text is still Korean-only.')}
         </p>
 
         {/* Sound */}
@@ -937,7 +937,7 @@ function ObservationsBlock({ locale }: { locale: string }) {
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-[var(--text-tertiary)] mt-2">{L('사용할수록 AI가 나에게 맞는 피드백을 줍니다.', 'The more you use it, the better AI adapts to you.')}</p>
+      <p className="text-[10px] text-[var(--text-tertiary)] mt-2">{L('쓸수록 피드백이 점점 나에게 맞춰져요.', 'The more you use it, the more the feedback fits you.')}</p>
     </div>
   );
 }

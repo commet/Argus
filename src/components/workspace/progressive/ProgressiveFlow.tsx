@@ -100,7 +100,7 @@ function ReviewerBadge({ reviewerId }: { reviewerId: string | null }) {
         background: 'linear-gradient(135deg, rgba(91,33,182,0.06) 0%, rgba(30,58,138,0.06) 100%)',
         border: '1px dashed rgba(91,33,182,0.25)',
       }}
-      title={L('이해관계자 관점으로 이 기획을 검토합니다', 'Stakeholder review is active for this plan')}
+      title={L('이해관계자 입장에서 이 기획을 봅니다', 'Reviewing this plan as the stakeholder would')}
     >
       <motion.span
         className="text-[14px] leading-none"
@@ -205,7 +205,7 @@ function AnsweredPills({ qaPairs, canRevisit, onRevisit }: {
             </div>
           ) : (
             <p className="text-[10.5px] text-[var(--text-tertiary)] pt-1">
-              {locale === 'ko' ? '이 지점은 답 이후 흐름이 많이 진행돼 직접 수정 대신 새 질문으로 반영하는 게 안전해요.' : 'This point is past safe rewind — fold changes in via a new answer instead.'}
+              {locale === 'ko' ? '여기서 되돌리긴 이미 늦었어요 — 직접 고치는 대신 새 답으로 반영하는 게 안전해요.' : 'This point is past safe rewind — fold changes in via a new answer instead.'}
             </p>
           )}
         </motion.div>
@@ -689,7 +689,7 @@ function VoyagePrepSummary({
               {topAssumption && (
                 <div className="mt-3 pt-2.5 border-t border-dashed border-[var(--border-subtle)]">
                   <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-                    <span className="text-[var(--text-secondary)] font-medium">{L('전제 조건  ', 'Premise · ')}</span>
+                    <span className="text-[var(--text-secondary)] font-medium">{L('전제 · ', 'Premise · ')}</span>
                     {topAssumption}
                   </p>
                 </div>
@@ -849,7 +849,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
               vocabulary — describe the state instead (P1 zero-verdict). */}
           <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
             {isLowConfidence
-              ? L('이 문제는 여러 방향으로 읽힐 수 있어요 — 해석이 흔들릴 여지가 있어요.', 'This problem reads in more than one way — the framing could still shift.')
+              ? L('이 문제는 여러 갈래로 읽혀요 — 방향이 더 바뀔 수 있어요.', 'This problem reads more than one way — the heading could still shift.')
               : L('분석 방향을 확인하고 다음으로 넘어가요.', 'Confirm the analysis direction to proceed.')}
           </p>
         </div>
@@ -903,7 +903,7 @@ function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
   const trend = metrics.trend === 'improving'
     ? { icon: <TrendingUp size={11} className="text-emerald-500" />, label: L('좋아지는 중', 'improving') }
     : metrics.trend === 'declining'
-      ? { icon: <TrendingDown size={11} className="text-[var(--text-tertiary)]" />, label: L('흔들리는 중', 'unsettled') }
+      ? { icon: <TrendingDown size={11} className="text-[var(--text-tertiary)]" />, label: L('흔들리는 중', 'wavering') }
       : metrics.trend === 'stable'
         ? { icon: <Minus size={11} className="text-[var(--text-tertiary)]" />, label: L('안정적', 'stable') }
         : null;
@@ -964,7 +964,7 @@ function PipelineExitOptions({ onReframe, onRehearse }: {
         <button onClick={onRehearse}
           className="flex-1 text-left px-3 py-2 rounded-xl bg-[var(--bg)]/60 hover:bg-[var(--accent)]/5 border border-transparent hover:border-[var(--accent)]/10 cursor-pointer transition-colors duration-300">
           <p className="text-[11px] font-medium text-[var(--text-secondary)]">{L('→ 피드백 먼저', '→ Feedback First')}</p>
-          <p className="text-[9px] text-[var(--text-tertiary)]">{L('이해관계자 반응 시뮬레이션', 'Simulate stakeholder reactions')}</p>
+          <p className="text-[9px] text-[var(--text-tertiary)]">{L('이해관계자가 어떻게 반응할지 미리보기', 'See how stakeholders would react')}</p>
         </button>
       </div>
     </div>
@@ -1516,7 +1516,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     ).catch((err) => {
       console.error('[Worker orchestration error]', err);
       if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : L('에이전트 작업 중 오류가 발생했습니다.', 'Agent task error occurred.'));
+        setError(err instanceof Error ? err.message : L('에이전트 작업 중 문제가 생겼어요.', 'Something went wrong during the agent’s work.'));
       }
     });
   };
@@ -2021,7 +2021,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         useAgentAttentionStore.getState().ping('mix_done');
         scrollToRef(mixPreviewRef, 'bottom');
       }
-    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('초안 생성 실패', 'Draft creation failed')); store.setPhase('conversing'); scrollToRef(statusBarRef); }
+    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('초안을 만들지 못했어요', 'Draft creation failed')); store.setPhase('conversing'); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -2184,7 +2184,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       ...(mix.next_steps.length ? [`## ${L('다음 단계', 'Next Steps')}`, '', ...mix.next_steps.map(s => `- ${s}`), ''] : [])].join('\n');
     // Skip keeps the original mix intact → attribution survives for FinalCard.
     store.setFinalDeliverable(md, mix);
-    store.recordCheckpoint('anchor', L('정박 (피드백 건너뜀)', 'Anchor (skipped review)'));
+    store.recordCheckpoint('anchor', L('정박 (검토 건너뜀)', 'Anchor (review skipped)'));
     setError(null);
     useAgentAttentionStore.getState().ping('final_done');
     scrollToRef(finalRef, 'top');
@@ -2918,7 +2918,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <textarea
                 value={session?.user_notes || ''}
                 onChange={(e) => store.setUserNotes(e.target.value || null)}
-                placeholder={L('팀 분석에 빠진 것, 강조할 점, 방향 수정 등', 'What the team missed, what to emphasize, direction changes...')}
+                placeholder={L('팀 분석에 빠진 것, 강조할 점, 방향 수정 등', 'What the team missed, what to emphasize, course corrections…')}
                 rows={3} maxLength={500}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border-subtle)] text-base md:text-[13px] text-[var(--text-primary)] leading-relaxed resize-none focus:outline-none focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-tertiary)]"
               />
@@ -3462,7 +3462,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     {L('항해장에게 수정 요청', 'Ask Navigator to revise')}
                   </h3>
                   <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-                    {L('항해장은 팀 결과를 통합한 에이전트예요', 'The navigator integrates the whole team’s work')} · {L('현재 버전', 'Current version')} <span className="font-semibold">{activeDraft.version_label}</span>
+                    {L('항해장은 팀 전체의 작업을 하나로 모은 에이전트예요', 'The navigator pulls the whole team’s work together')} · {L('현재 버전', 'Current version')} <span className="font-semibold">{activeDraft.version_label}</span>
                   </p>
                 </div>
               </div>
@@ -3478,7 +3478,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </header>
             <div className="flex-1 px-5 py-4">
               <p className="text-[12px] text-[var(--text-secondary)] mb-2">
-                {L('어떻게 고치면 좋을까? 구체적인 지시일수록 좋아요.', 'How should it change? More specific is better.')}
+                {L('어디를 어떻게 고칠까요? 구체적으로 적을수록 좋아요.', 'What should change, and how? The more specific, the better.')}
               </p>
               <textarea
                 value={iterationDirective}

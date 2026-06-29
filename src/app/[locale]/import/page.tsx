@@ -69,8 +69,8 @@ export default function ImportPage() {
             {L('플러그인 기록 가져오기', 'Import plugin records')}
           </h1>
           <p className="text-[14px] text-[var(--text-secondary)] mb-5">
-            {L('플러그인에서 봉인한 결정을 계정에 불러오려면 먼저 로그인하세요. 가져온 기록은 본인 계정에만 저장됩니다.',
-               'Log in first to pull decisions sealed in the plugin into your account. Imported records are stored only under your account.')}
+            {L('플러그인에서 봉인한 결정을 계정으로 불러오려면 먼저 로그인하세요. 가져온 기록은 내 계정에만 저장돼요.',
+               'Log in first to pull decisions sealed in the plugin into your account. Imported records are saved only to your account.')}
           </p>
           <Link href="/login?redirect=/import">
             <Button variant="accent">{L('로그인', 'Log in')}</Button>

@@ -65,7 +65,7 @@ export default function TeamsPage() {
       setInviteEmail('');
       setTimeout(() => setInviteSuccess(''), 3000);
     } else {
-      setInviteError(L('초대를 보내지 못했습니다. 이메일을 확인해주세요.', "Couldn't send the invite. Please check the email address."));
+      setInviteError(L('초대를 보내지 못했어요. 이메일을 확인해 주세요.', "Couldn't send the invite. Please check the email address."));
       setTimeout(() => setInviteError(''), 4000);
     }
   };
@@ -94,7 +94,7 @@ export default function TeamsPage() {
       <div>
         <h1 className="text-[22px] font-bold tracking-tight text-[var(--text-primary)]">{L('팀', 'Teams')}</h1>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-          {L('팀원들과 함께 전략적 판단을 내릴 수 있습니다.', 'Make strategic decisions together with your teammates.')}
+          {L('팀원과 함께 결정을 내려요.', 'Make decisions together with your team.')}
         </p>
       </div>
 
@@ -135,9 +135,9 @@ export default function TeamsPage() {
         {teams.length === 0 && !showCreate ? (
           <Card className="text-center py-16">
             <Users size={28} className="mx-auto text-[var(--text-tertiary)] mb-4" />
-            <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">{L('아직 팀이 없습니다', 'No teams yet')}</p>
+            <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">{L('아직 팀이 없어요', 'No teams yet')}</p>
             <p className="text-[13px] text-[var(--text-secondary)] max-w-xs mx-auto mb-6">
-              {L('팀을 만들면 프로젝트를 공유하고, 팀원들의 구조화된 피드백을 받을 수 있습니다.', 'Create a team to share projects and get structured feedback from your teammates.')}
+              {L('팀을 만들면 프로젝트를 공유하고, 팀원들의 피드백을 받을 수 있어요.', 'Make a team to share projects and get your teammates’ feedback.')}
             </p>
             <Button onClick={() => setShowCreate(true)}>
               <Plus size={14} /> {L('첫 팀 만들기', 'Create your first team')}

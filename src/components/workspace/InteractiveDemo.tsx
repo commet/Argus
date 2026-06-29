@@ -191,7 +191,7 @@ function TeamEntrance({ scenario, onDone, locale = 'ko' }: { scenario: DemoScena
       ))}
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.4 }}
         className="text-[11px] text-[var(--text-tertiary)] pt-1">
-        {locale === 'ko' ? '팀이 구성되었습니다. 상황을 분석합니다...' : 'Team assembled. Analyzing the situation...'}
+        {locale === 'ko' ? '팀이 모였어요. 상황을 살펴볼게요...' : 'Team assembled. Analyzing the situation...'}
       </motion.p>
     </motion.div>
   );
@@ -736,7 +736,7 @@ function DemoDraftCardV2({
                       <span className="font-semibold text-[var(--accent)] mr-1.5">Q2</span>
                       <span className="font-medium text-[var(--text-primary)]">{q2Answer}</span>
                       <span className="text-[var(--text-tertiary)] ml-1">
-                        → {L('다음 3일과 약한 가정이 정해졌어요', 'shaped next 3 days + weakest assumption')}
+                        → {L('다음 3일과 약한 가정이 정해졌어요', 'set your next 3 days + the weakest assumption')}
                       </span>
                     </div>
                   </div>

@@ -493,7 +493,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
       <div>
         <h1 className="text-[22px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>{L('리허설', 'Rehearse')} <span className="text-[16px] font-normal text-[var(--text-secondary)]" style={{ fontFamily: 'var(--font-display)' }}>| {L('사전 검증', 'Pre-validation')}</span></h1>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-          {L('보내기 전에, 보고 대상의 시점에서 미리 피드백을 받습니다.', 'Get feedback in advance from your audience\'s perspective before sending.')}
+          {L('보내기 전에, 받는 사람 입장에서 미리 들어봐요.', 'Before you send it, hear it from the receiver\'s side first.')}
         </p>
         <div className="mt-2">
           <NavigatorInline step="rehearse" />
@@ -674,9 +674,9 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
       {phase === 'running' && (
         <Card>
           <LoadingSteps steps={[
-            L('이해관계자가 문서를 읽고 있습니다...', 'Stakeholders are reading the document...'),
-            L('잘한 점과 고칠 점을 정리하고 있습니다...', 'Organizing strengths and areas to improve...'),
-            L('통과 조건을 확인하고 있습니다...', 'Checking approval conditions...'),
+            L('이해관계자가 문서를 읽는 중이에요...', 'Stakeholders are reading the document...'),
+            L('잘한 점과 고칠 점을 정리하는 중이에요...', 'Organizing strengths and areas to improve...'),
+            L('통과 조건을 확인하는 중이에요...', 'Checking approval conditions...'),
           ]} />
         </Card>
       )}

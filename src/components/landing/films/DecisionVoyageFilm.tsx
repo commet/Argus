@@ -54,7 +54,7 @@ function buildSessions(L: (ko: string, en: string) => string): [Session, Session
       prem: L('“지금 몰려든 사람들은 계속 남는다”', '"The users flooding in now will stay."'),
       premSub: L('이 가정부터 따져봐야 한다.', 'That assumption is the first thing to test.'),
       s: [L('광고비 회수 24개월', 'CAC payback 24 mo'), L('신규 가입 3.2배 ↑', 'New signups 3.2x ↑'), L('한 주 뒤 8%만 남음', 'Only 8% left after a week')],
-      a: { eye: L('아니오 · 전제가 틀리다', 'No · the premise is wrong'), t: L('이탈부터 막고 키운다', 'Stop the leaving first, then grow'), i: L('느리지만 안전 · 빠져나감을 먼저.', 'Slower but safe · churn first.') },
+      a: { eye: L('아니오 · 전제가 틀리다', 'No · the premise is wrong'), t: L('이탈부터 막고 키운다', 'Stop the leaving first, then grow'), i: L('느리지만 안전 · 빠져나감을 먼저.', 'Slower but safe · stop the leaving first.') },
       b: { eye: L('예 · 전제가 맞다', 'Yes · the premise holds'), t: L('예산 2배 증액', 'Double the budget'), i: L('빠르지만 위험 · 밑 빠진 독.', 'Fast but risky · a leaky bucket.') },
       c: null,
       three: false,
@@ -69,7 +69,7 @@ function buildSessions(L: (ko: string, en: string) => string): [Session, Session
       premSub: L('모두가 당연하게 믿는 가정.', 'The assumption everyone takes for granted.'),
       s: [L('기능 더 만들어도 효과 0.4배', 'New-feature ROI 0.4x'), L('가입 첫날 62%가 떠남', 'Day-1 churn 62%'), L('“쓸 이유” 느끼면 3배 더 남음', '3x retention once value lands')],
       a: { eye: L('A · 첫 사용 경험 개선', 'A · redesign onboarding'), t: L('첫날 이탈부터 잡기', 'Stop the day-1 drop-off'), i: L('효과는 빠르지만 표면적.', 'Fast effect, but surface-level.') },
-      b: { eye: L('B · “쓸 이유”를 체감하게', 'B · make the core value land'), t: L('“쓸 이유”를 먼저 느끼게', 'Feel the "why use it" first'), i: L('근본적 · 느끼면 3배 더 남음.', 'Fundamental · 3x retention once it lands.') },
+      b: { eye: L('B · “쓸 이유”를 체감하게', 'B · make the core value land'), t: L('“쓸 이유”를 먼저 느끼게', 'Let them feel the "why" first'), i: L('근본적 · 느끼면 3배 더 남음.', 'Fundamental · 3x retention once it lands.') },
       c: { eye: L('C · 기능 더 추가', 'C · add more features'), t: L('요구는 많지만', 'Much-requested, but'), i: L('정작 이탈엔 영향이 적다.', 'barely moves retention.') },
       three: true,
       chosen: 'b',
@@ -432,8 +432,8 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
     [6500, 10000, act === 0 ? L('갈림길 · 예 / 아니오', 'Fork · yes / no') : L('갈림길 · 세 갈래', 'Fork · three ways')],
     [10000, 13000, L('선택 · 당신이 정한다', 'Choice · you decide')],
     [13000, 16400, L('전진 · 배가 나아간다', 'Advance · the ship moves')],
-    [16400, 19400, L('현재 방위 · 결정의 의미', 'Current Heading · what the decision means')],
-    [19400, 22000, L('다음 세션으로', 'On to the next session')],
+    [16400, 19400, L('현재 방위 · 이 결정의 의미', 'Current Heading · what this decision means')],
+    [19400, 22000, L('다음 결정으로', 'On to the next decision')],
   ];
   let pc = 6;
   for (let i = 0; i < ph.length; i++) {

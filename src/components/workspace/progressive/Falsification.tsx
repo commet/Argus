@@ -212,7 +212,7 @@ export function Falsification({
 
             <div>
               <label className="block text-[12.5px] font-semibold text-[var(--text-secondary)] mb-1.5">
-                {L('이 계획이 정말 기대고 있는 한 가지를, 당신의 말로 적어주세요', 'In your own words, what is this plan really resting on?')}
+                {L('이 계획이 정말로 기대고 있는 한 가지를 당신의 말로 적어주세요', 'In your own words — what is this plan really betting on?')}
               </label>
               <textarea
                 value={realBet}
@@ -248,7 +248,7 @@ export function Falsification({
                   onClick={() => { if (surfaced) onResolve({ claims, flinched_id: noFlinch ? null : flinched!.id, surfaced_constraint: surfaced, real_bet: surfaced, real_bet_authored: 'ai_surfaced', no_flinch_fallback: noFlinch }); }}
                   className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                 >
-                  {L('이대로 두고 문서만 받을게요', 'Skip writing — just give me the document')}
+                  {L('이건 건너뛰고 문서만 받을게요', 'Skip this — just give me the document')}
                 </button>
               </div>
             </div>

@@ -246,7 +246,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
                       {L('워크스페이스에서 리뷰받기', 'Get reviewed in workspace')}
                     </p>
                     <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
-                      {L('이 팀장이 워크스페이스에서 피드백을 줍니다', 'This boss gives feedback in your workspace')}
+                      {L('이 팀장이 워크스페이스에서 피드백을 줘요', 'This boss reviews your work in the workspace')}
                     </p>
                   </div>
                   <ArrowRight size={12} style={{ color: 'var(--text-tertiary)' }} />
@@ -294,7 +294,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
             <section>
               <SectionLabel>{L('관찰', 'Observations')}</SectionLabel>
               <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-                {L('아직 축적된 관찰이 없습니다. 작업을 수행할수록 사용자에 대한 이해가 쌓입니다.', 'No observations yet. Understanding accumulates as work is done.')}
+                {L('아직 쌓인 관찰이 없어요. 같이 일할수록 점점 더 잘 알게 돼요.', 'No observations yet — it gets to know you as you work together.')}
               </p>
             </section>
           )}
@@ -436,7 +436,7 @@ function InnerMonologueArchiveList({ entries, color }: { entries: InnerMonologue
                           color: 'rgb(109,40,217)',
                         }}
                       >
-                        {L('속마음', 'Inner thoughts')}
+                        {L('속마음', 'Inner monologue')}
                       </span>
                     </div>
                     <p
@@ -463,7 +463,7 @@ function InnerMonologueArchiveList({ entries, color }: { entries: InnerMonologue
                           borderTop: '1px dotted var(--border-subtle)',
                         }}
                       >
-                        {L('당시 판정 근거:', 'Verdict reasoning at the time:')} {entry.verdict_reason}
+                        {L('그때 판정 이유:', 'Why it ruled that way:')} {entry.verdict_reason}
                       </p>
                     )}
                   </div>

@@ -390,7 +390,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
             <textarea
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
-              placeholder={L('이 팀장에 대해 알게 된 것을 한 문장으로...', 'One sentence on what you learned about this manager...')}
+              placeholder={L('이 팀장에 대해 알게 된 것을 한 문장으로...', 'One sentence on what you learned about this boss...')}
               maxLength={120}
               rows={2}
               className="pr-textarea"
@@ -475,7 +475,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
         </div>
       ) : (
         <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6, margin: 0 }}>
-          {L('아직 이 팀장에 대한 관찰이 없어요. 대화를 하면 자동으로 쌓이고, 직접 기입할 수도 있어요.', 'No observations about this manager yet. They build up automatically as you talk, and you can also add them manually.')}
+          {L('아직 이 팀장에 대한 관찰이 없어요. 대화를 하면 자동으로 쌓이고, 직접 적을 수도 있어요.', 'No observations about this boss yet. They build up automatically as you talk, and you can add them by hand too.')}
         </p>
       )}
     </section>

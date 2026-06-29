@@ -262,7 +262,7 @@ export function VoyageMapFilm() {
               <g transform="translate(252 212)" fill="#7d8a4e"><circle cx="0" cy="0" r="8" /><circle cx="11" cy="3" r="6" /></g>
               <g transform="translate(234 258)" fill="#86934f"><circle cx="0" cy="0" r="7" /></g>
             </svg>
-            <span style={{ position: 'absolute', left: 150, top: 300, whiteSpace: 'nowrap', font: `700 11px/1.3 ${MONO}`, letterSpacing: '.04em', color: '#5d6b2e' }}>{L('정박 · 안정 성장 항구', 'Made port · steady growth')}<span style={{ display: 'block', fontWeight: 400, fontSize: 10, color: '#7d8a4e' }}>{L('긴 항해의 도착지', "the long voyage's end")}</span></span>
+            <span style={{ position: 'absolute', left: 150, top: 300, whiteSpace: 'nowrap', font: `700 11px/1.3 ${MONO}`, letterSpacing: '.04em', color: '#5d6b2e' }}>{L('정박 · 안정 성장', 'Made port · steady growth')}<span style={{ display: 'block', fontWeight: 400, fontSize: 10, color: '#7d8a4e' }}>{L('긴 항해의 도착지', "the long voyage's end")}</span></span>
           </div></div>
 
           {/* ===== ROUTES ===== */}

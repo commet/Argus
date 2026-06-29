@@ -13,6 +13,7 @@
 
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
+import { useProjectStore } from '@/stores/useProjectStore';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { PlateLabel } from './ui/PlateLabel';
 import { DecisionVoyageFilm } from '@/components/landing/films/DecisionVoyageFilm';
@@ -68,7 +69,7 @@ export function Act2DecisionVoyage() {
         >
           {L(
             'AI가 답을 주는 게 아니라 — 당신이 못 본 것을 짚고, 왜 방향을 바꿨는지 남깁니다.',
-            'Not an answer handed down — it flags what you missed, and keeps why you changed course.',
+            'Not an answer handed down — it points to what you missed, and records why you changed course.',
           )}
         </p>
 
@@ -96,6 +97,11 @@ export function Act2DecisionVoyage() {
               and an arrow that slides on hover. */}
           <LocaleLink
             href="/workspace"
+            onClick={() => {
+              // Start CTA — always begin a fresh hero, never resume the
+              // last-open project (currentProjectId survives SPA nav).
+              useProjectStore.getState().setCurrentProjectId(null);
+            }}
             className="group inline-flex items-center gap-2 text-[var(--bp-ink)] hover:text-[var(--bp-gold-deep)] transition-colors"
             style={{ fontWeight: 700, fontSize: 'clamp(15px, 1.5vw, 17px)', letterSpacing: '0.01em', minHeight: 44 }}
           >

@@ -934,12 +934,12 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
           <span className="text-[14px] text-[var(--text-secondary)]">{t('tool.reframe.subtitle')}</span>
         </div>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-          {L('전략기획의 핵심 — 숨은 가정을 찾고, 진짜 질문을 재정의합니다.', 'The core of strategy — find hidden assumptions, redefine the real question.')}
+          {L('전략의 핵심 — 숨은 가정을 찾고, 진짜 질문을 다시 세웁니다.', 'The heart of strategy — surface the hidden assumptions, reframe the real question.')}
         </p>
         {hasLearning && (
           <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)] mt-2">
             <Brain size={12} />
-            <span>{L(`이전 ${judgments.length}건의 판단이 반영되고 있습니다`, `${judgments.length} prior judgments are being applied`)}</span>
+            <span>{L(`지난 판단 ${judgments.length}번이 반영돼요`, `Your last ${judgments.length} calls are factored in`)}</span>
           </div>
         )}
       </div>
@@ -1216,7 +1216,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                   <Card>
                     <LoadingSteps steps={[
                       L('당신의 가정 평가를 분석하고 있습니다', 'Analyzing your assumption evaluations'),
-                      L('의심된 가정을 기반으로 질문을 재구성합니다', 'Restructuring the question around doubtful assumptions'),
+                      L('의심스러운 가정을 중심으로 질문을 다시 짭니다', 'Rebuilding the question around the doubtful assumptions'),
                       L('새로운 방향을 도출하고 있습니다', 'Deriving a new direction'),
                     ]} />
                   </Card>
@@ -1308,7 +1308,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                     {analysis.why_reframing_matters && (
                       <div className="px-5 py-4 bg-[var(--surface)] border-t border-[var(--border-subtle)]">
                         <p className="text-[11px] font-semibold text-[var(--text-tertiary)] mb-0.5">{L('분석 근거', 'Rationale')}</p>
-                        <p className="text-[10px] text-[var(--text-tertiary)] mb-2">{L('가정 · 목적 · 시간 · 범위 · 문제 성격을 종합', 'Integrating assumptions, purpose, time, scope, and problem type')}</p>
+                        <p className="text-[10px] text-[var(--text-tertiary)] mb-2">{L('가정·목적·시간·범위·문제 성격을 모두 따져봤어요', 'Weighed together: assumptions, purpose, time, scope, and problem type')}</p>
                         <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">
                           {analysis.why_reframing_matters}
                         </p>
@@ -1450,7 +1450,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                   <Check size={14} />
                   <span>{L('항로 재설정 완료', 'Reframe complete')}</span>
                   <ChartEdge height={16} className="ml-2" />
-                  <span className="text-[var(--text-tertiary)] font-normal ml-1">{L('핵심 질문이 정의되었습니다', 'Core question defined')}</span>
+                  <span className="text-[var(--text-tertiary)] font-normal ml-1">{L('핵심 질문이 잡혔어요', 'The core question is set')}</span>
                 </div>
 
                 <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[var(--text-tertiary)] mb-1.5">
@@ -1468,7 +1468,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                 {/* ── Reward: 질문의 변화 ── */}
                 {analysis.surface_task && (current.selected_question || analysis.reframed_question) !== analysis.surface_task && (
                   <div className="mt-5 pt-4 border-t border-[var(--success)]/20 reward-entrance">
-                    <p className="text-[11px] font-semibold text-[var(--text-secondary)] mb-2.5">{L('당신의 질문이 바뀌었습니다', 'Your question has changed')}</p>
+                    <p className="text-[11px] font-semibold text-[var(--text-secondary)] mb-2.5">{L('질문이 이렇게 바뀌었어요', 'Here’s how your question changed')}</p>
                     <div className="space-y-2">
                       <p className="text-[13px] text-[var(--text-tertiary)] line-through decoration-[var(--text-tertiary)]/30">
                         {analysis.surface_task}

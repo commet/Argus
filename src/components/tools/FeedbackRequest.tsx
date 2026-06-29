@@ -121,7 +121,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-[15px] font-bold text-[var(--text-primary)]">{L('검증 대상', 'What to review')}</h3>
-            <p className="text-[12px] text-[var(--text-secondary)]">{L('이해관계자 앞에서 리허설할 자료', 'The material to rehearse in front of stakeholders')}</p>
+            <p className="text-[12px] text-[var(--text-secondary)]">{L('이해관계자 앞에서 리허설할 자료', 'What you’ll rehearse in front of stakeholders')}</p>
           </div>
           {relatedRecast && !useCustomDoc && (
             <button
@@ -230,7 +230,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
 
       {/* ── 2. Pick stakeholders ── */}
       <div>
-        <h3 className="text-[15px] font-bold text-[var(--text-primary)] mb-1">{L('누구의 시선으로?', 'From whose perspective?')}</h3>
+        <h3 className="text-[15px] font-bold text-[var(--text-primary)] mb-1">{L('누구 입장에서 볼까요?', 'From whose perspective?')}</h3>
         <p className="text-[12px] text-[var(--text-secondary)] mb-3">{
           selectedIds.length === 0
             ? L('가장 관련 높은 1명을 선택하세요', 'Pick the most relevant one')

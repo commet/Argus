@@ -127,11 +127,11 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                     {/* Honest preview of what's next: the believability check,
                         not an instant finish ("흔들어보기" meant nothing to a
                         novice — say what actually happens). */}
-                    {busy ? <Loader2 size={16} className="animate-spin" /> : L('마무리 전에, 어디까지 믿어지는지 확인하기 →', 'Before wrapping up — see how far you believe it →')}
+                    {busy ? <Loader2 size={16} className="animate-spin" /> : L('마무리 전에, 어디까지 믿어지는지 확인하기 →', 'Before wrapping up — test how much holds up →')}
                   </motion.button>
                   <button onClick={onDM} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
                     style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>
-                    {L(`${dm || '이해관계자'} 시점 검토 한번 받아보기 (선택)`, `Optional: review as ${dm || 'a stakeholder'}`)}
+                    {L(`${dm || '이해관계자'} 입장에서 한번 검토받기 (선택)`, `Optional: review from ${dm || 'a stakeholder'}'s view`)}
                   </button>
                 </>
               ) : (
@@ -150,7 +150,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                     <motion.button onClick={onDM} disabled={busy} whileTap={{ scale: 0.98 }}
                       className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                       style={{ background: 'var(--gradient-gold)' }}>
-                      {busy ? <><Loader2 size={16} className="animate-spin" /> {L(`${dm || '리뷰어'}이(가) 읽고 있어요...`, `${dm || 'Reviewer'} is reading...`)}</> : <><UserCheck size={16} /> {L('검토 받기', 'Get Review')}</>}
+                      {busy ? <><Loader2 size={16} className="animate-spin" /> {L(`${dm || '리뷰어'} 님이 읽고 있어요...`, `${dm || 'Reviewer'} is reading...`)}</> : <><UserCheck size={16} /> {L('검토 받기', 'Get Review')}</>}
                     </motion.button>
                   </div>
                   <button onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"

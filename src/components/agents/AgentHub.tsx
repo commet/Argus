@@ -50,7 +50,7 @@ export function AgentHub() {
     return (
       <div className="agent-hub" aria-busy="true" aria-live="polite">
         <h1 className="agent-hub-title">{L('선원 명부', 'Crew Roster')}</h1>
-        <p className="agent-hub-subtitle">{L('항해를 함께한 선원들의 기록입니다. 모두 첫 항해부터 함께해요.', 'The crew who sail with you — all aboard from your first voyage.')}</p>
+        <p className="agent-hub-subtitle">{L('함께 항해해 온 선원들이에요. 모두 첫 항해부터 함께했어요.', 'Your crew — all aboard since the first voyage.')}</p>
         <div className="mt-6 space-y-8">
           {[0, 1, 2].map((sectionIdx) => (
             <section key={sectionIdx} className="space-y-3">
@@ -93,7 +93,7 @@ export function AgentHub() {
           crew sail from the first voyage; XP/level is progression flavor. */}
       <h1 className="agent-hub-title">{L('선원 명부', 'Crew Roster')}</h1>
       <p className="agent-hub-subtitle">
-        {L('항해를 함께한 선원들의 기록입니다. 모두 첫 항해부터 함께해요.', 'The crew who sail with you — all aboard from your first voyage.')}
+        {L('함께 항해해 온 선원들이에요. 모두 첫 항해부터 함께했어요.', 'Your crew — all aboard since the first voyage.')}
       </p>
 
       {/* 체인 에이전트: 리서치 */}

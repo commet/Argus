@@ -42,8 +42,8 @@ function getFormats(locale: 'ko' | 'en'): OutputFormat[] {
       icon: <Scale size={18} />,
       label: ko ? '판단 근거서 · Decision Rationale' : 'Decision Rationale · 판단 근거서',
       description: ko
-        ? '각 단계에서 왜 이렇게 판단했는지, 설계 세계관을 공유합니다.'
-        : 'Shares the reasoning and worldview behind each decision.',
+        ? '각 단계에서 왜 그렇게 판단했는지, 그 배경까지 담아요.'
+        : 'The reasoning and thinking behind each decision.',
       generator: generateDecisionRationale,
       fileExt: 'md',
     },
@@ -155,7 +155,7 @@ export function OutputSelector({ project }: OutputSelectorProps) {
   return (
     <div className="space-y-3">
       <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{L('산출물 — 가져가실 것', 'Outputs — yours to take')}</h3>
-      <p className="text-[12px] text-[var(--text-secondary)]">{L('같은 항해에서 목적에 맞는 형식으로 내보냅니다.', 'From the same voyage, export in the format that fits your destination.')}</p>
+      <p className="text-[12px] text-[var(--text-secondary)]">{L('한 번의 항해에서, 필요한 형식으로 골라 내보내요.', 'One voyage, exported in whatever format you need.')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {formats.map((format) => (
@@ -221,16 +221,16 @@ export function OutputSelector({ project }: OutputSelectorProps) {
           <div className="mt-4 space-y-4 animate-fade-in">
             <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
               {L(
-                '항해가 끝났습니다. 이 항로를 되돌아보는 것은 다음 항해를 위한 가장 좋은 준비입니다.',
-                "The voyage has ended. Reflecting on the route is the best preparation for the next one.",
+                '항해가 끝났어요. 지나온 항로를 한 번 짚어보면 다음 항해가 한결 수월해져요.',
+                "The voyage is done. Looking back at the route makes the next one easier.",
               )}
             </p>
             <div className="space-y-3">
               <div>
                 <label className="text-[12px] font-semibold text-[var(--text-primary)] block mb-1">
                   {L(
-                    '1. 처음 지시를 받았을 때의 이해와 지금의 이해가 어떻게 달라졌습니까?',
-                    '1. How has your understanding shifted from when you first received the brief?',
+                    '1. 처음 일을 받았을 때랑 지금, 생각이 어떻게 달라졌나요?',
+                    '1. How has your thinking changed since you first got the brief?',
                   )}
                 </label>
                 <Field
@@ -253,8 +253,8 @@ export function OutputSelector({ project }: OutputSelectorProps) {
               <div>
                 <label className="text-[12px] font-semibold text-[var(--text-primary)] block mb-1">
                   {L(
-                    '2. 이 과정에서 가장 놀라운 발견은 무엇이었습니까?',
-                    '2. What was the most surprising discovery along the way?',
+                    '2. 하면서 가장 뜻밖이었던 발견은 뭐였나요?',
+                    '2. What surprised you most along the way?',
                   )}
                 </label>
                 <Field
@@ -277,7 +277,7 @@ export function OutputSelector({ project }: OutputSelectorProps) {
               <div>
                 <label className="text-[12px] font-semibold text-[var(--text-primary)] block mb-1">
                   {L(
-                    '3. 다음에 비슷한 과제를 만나면 무엇을 다르게 하겠습니까?',
+                    '3. 다음에 비슷한 일을 또 만나면 뭘 다르게 해볼까요?',
                     '3. What would you do differently next time?',
                   )}
                 </label>

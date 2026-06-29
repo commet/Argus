@@ -15,6 +15,7 @@
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
 import { track } from '@/lib/analytics';
+import { useProjectStore } from '@/stores/useProjectStore';
 import { PaperGrain } from './atmosphere/PaperGrain';
 import { LegBreadcrumb } from './ui/LegBreadcrumb';
 import { VoyageMapFilm } from '@/components/landing/films/VoyageMapFilm';
@@ -92,7 +93,7 @@ export function Act3OnDeck() {
           <span
             style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, fontWeight: 600, letterSpacing: '0.02em' }}
           >
-            {L('당신 차례 — 첫 한 걸음', 'Your turn — the first move')}
+            {L('당신 차례 — 첫 한 걸음', 'Your turn — the first step')}
           </span>
           <LegBreadcrumb active="bind" />
         </div>
@@ -100,7 +101,12 @@ export function Act3OnDeck() {
         <div className="bp-fade-up flex flex-col items-center mt-6 md:mt-7" style={{ animationDelay: '520ms' }}>
           <LocaleLink
             href="/workspace"
-            onClick={() => track('landing_cta_click', { cta: 'voyage_close' })}
+            onClick={() => {
+              // "출항" is a START button — always land on a fresh hero, never
+              // resume the last-open project (currentProjectId survives SPA nav).
+              useProjectStore.getState().setCurrentProjectId(null);
+              track('landing_cta_click', { cta: 'voyage_close' });
+            }}
             className="bp-btn-primary"
             style={{
               padding: '17px 38px',

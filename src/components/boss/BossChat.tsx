@@ -430,11 +430,11 @@ export function BossChat() {
           if (msg.includes('LOGIN_REQUIRED') || msg.includes('로그인')) {
             updateStreamingText(ko
               ? '로그인이 필요해요. 무료 체험 횟수를 다 썼을 수 있어요.'
-              : "Please sign in — your free trial may be used up.");
+              : "Please sign in — you may have used up your free tries.");
           } else if (msg.includes('사용량') || msg.includes('429') || msg.includes('한도') || msg.toLowerCase().includes('rate')) {
             updateStreamingText(ko
               ? '오늘 사용량을 다 썼어요. 설정에서 API 키를 입력하면 계속 쓸 수 있어요.'
-              : "You've hit today's usage. Enter your own API key in Settings to keep going.");
+              : "You've used up today's quota. Add your API key in Settings to keep going.");
           } else {
             updateStreamingText(ko
               ? '연결 오류가 발생했어요. 잠시 후 다시 시도해주세요.'
@@ -593,7 +593,7 @@ export function BossChat() {
                 <LocaleLink
                   href="/login"
                   style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
-                  title={L('로그인하면 다른 기기에서도 이 팀장과 다시 대화할 수 있어요', 'Sign in to keep this boss across devices')}
+                  title={L('로그인하면 다른 기기에서도 이 팀장을 다시 만날 수 있어요', 'Sign in to keep this boss on all your devices')}
                 >
                   {L('로그인하면 영구 저장', 'Sign in to keep')}
                 </LocaleLink>
@@ -601,9 +601,9 @@ export function BossChat() {
               <LocaleLink
                 href={`/workspace?reviewer=${loadedAgentId || ''}`}
                 style={{ fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
-                title={L('이 팀장이 리뷰어로 활용됩니다', 'This boss will be used as a reviewer')}
+                title={L('이 팀장이 리뷰어가 돼요', 'This boss becomes your reviewer')}
               >
-                {L('워크스페이스로 데려가기 →', 'Take them to your workspace →')}
+                {L('워크스페이스로 데려가기 →', 'Bring them into your workspace →')}
               </LocaleLink>
             </div>
           )}
@@ -860,7 +860,7 @@ export function BossChat() {
                   setCalibrationStep('done');
                 }}
                 className="bc-cal-btn"
-              >{L('실제로 더 직설적', 'They\'re more direct')}</button>
+              >{L('실제 팀장은 더 직설적', 'The real one\'s more direct')}</button>
               <button
                 onClick={() => {
                   if (loadedAgentId) applyExplicitCalibration(loadedAgentId, 'more_soft');
@@ -868,7 +868,7 @@ export function BossChat() {
                   setCalibrationStep('done');
                 }}
                 className="bc-cal-btn"
-              >{L('실제로 더 부드러움', 'They\'re softer')}</button>
+              >{L('실제 팀장은 더 부드러움', 'The real one\'s softer')}</button>
               <button
                 onClick={() => {
                   if (loadedAgentId) applyExplicitCalibration(loadedAgentId, 'different_tone');

@@ -200,7 +200,7 @@ export function SirenHero() {
           {locale === 'ko' ? (
             <>Argus는 답을 먼저 건네지 않아요.<br />당신의 계획을 진짜로 읽고, 당신이 놓친 한 가지를 비춰줄 뿐이에요.</>
           ) : (
-            <>Argus doesn’t hand you an answer.<br />It reads your plan, for real — and mirrors back the one thing you missed.</>
+            <>Argus doesn’t hand you an answer.<br />It actually reads your plan — and shows you the one thing you missed.</>
           )}
         </p>
 
@@ -329,7 +329,7 @@ export function SirenHero() {
                   borderRadius: 0,
                 }}
               >
-                {L('읽어봐 주세요', 'Have it read')}
+                {L('읽어보기', 'Have it read')}
               </button>
             </div>
           </div>

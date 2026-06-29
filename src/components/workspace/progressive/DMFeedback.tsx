@@ -78,7 +78,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                       onClick={() => { if (!busy) fb.concerns.forEach((c, i) => { if (c.applied) onToggle(i); }); }}
                       disabled={busy || fb.concerns.every(c => !c.applied)}
                       className="text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-30 disabled:cursor-default">
-                      {L('모두 해제', 'Skip all')}
+                      {L('모두 해제', 'Clear all')}
                     </button>
                   </div>
                 )}
@@ -95,7 +95,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                     </div>
                     <p className="text-[12px] text-[var(--accent)] leading-relaxed mb-3 pl-1">→ {c.fix_suggestion}</p>
                     <div className="flex items-center justify-end gap-2">
-                      <span className="text-[10px] text-[var(--text-tertiary)]">{c.applied ? L('반영', 'Applied') : L('스킵', 'Skip')}</span>
+                      <span className="text-[10px] text-[var(--text-tertiary)]">{c.applied ? L('반영', 'Applied') : L('제외', 'Skipped')}</span>
                       <button onClick={() => onToggle(i)} className={`relative w-11 h-6 rounded-full cursor-pointer ${c.applied ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`}
                         style={{ transitionProperty: 'background', transitionDuration: '400ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>
                         <motion.div className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm" animate={{ left: c.applied ? 24 : 4 }} transition={SPRING} />

@@ -76,7 +76,7 @@ export function buildAssignmentReason(
   );
   const runnerName = runner ? agentsById.get(runner.agentId)?.name : undefined;
   if (runnerName) {
-    return ko ? `${core} · 다음 후보 ${runnerName}` : `${core} · runner-up ${runnerName}`;
+    return ko ? `${core} · 차순위 ${runnerName}` : `${core} · runner-up ${runnerName}`;
   }
   return core;
 }
