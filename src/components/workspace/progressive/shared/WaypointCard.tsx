@@ -136,7 +136,7 @@ export function WaypointCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-1.5">
             {eyebrow && (
-              <span className="shrink-0 text-[8.5px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+              <span className="shrink-0 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
                 {eyebrow}
               </span>
             )}
@@ -144,7 +144,7 @@ export function WaypointCard({
               {locale === 'ko' ? meta.ko : meta.en}
             </span>
           </div>
-          <div className={`mt-0.5 text-[12px] leading-[1.4] text-[var(--text-primary)] ${emphasize ? 'font-semibold' : ''}`}>
+          <div className={`mt-0.5 text-[13px] leading-[1.45] text-[var(--text-primary)] ${emphasize ? 'font-semibold' : ''}`}>
             {waypoint.headline}
           </div>
         </div>

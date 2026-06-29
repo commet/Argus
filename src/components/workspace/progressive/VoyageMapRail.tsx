@@ -190,7 +190,7 @@ function VoyageMapHero() {
 
       {/* Single-course nudge → toward the product's core "take another path". */}
       {hasChart && !multiBranch && waypoints.length > 0 && (
-        <p className="mt-2 px-0.5 text-[9.5px] leading-[1.5] text-[var(--text-tertiary)]">
+        <p className="mt-2 px-0.5 text-[10px] leading-[1.5] text-[var(--text-tertiary)]">
           {L('아직 한 갈래예요. 위 해도에서 갈림길로 돌아가 다른 길을 내볼 수 있어요.',
              'One course so far. Step back to a fork on the chart above to try another path.')}
         </p>
