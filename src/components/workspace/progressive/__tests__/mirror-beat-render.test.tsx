@@ -1,10 +1,18 @@
 // @vitest-environment jsdom
 /**
- * MirrorBeat (North-Star B) — the recognition moment moved to the FRONT of the
- * voyage. Proves the spine-critical shape: it surfaces the AI-filled premise,
- * frames the crux as a NEUTRAL QUESTION (never a directional verdict), tags
- * provenance honestly (AI-filled, not the user's words), and is non-blocking —
- * the dismiss fires onDismiss so the user keeps answering below.
+ * MirrorBeat (North-Star B) — the recognition moment at the FRONT of the voyage.
+ *
+ * The 2026-06-29 "pure recognition" redesign (ProgressiveFlow.tsx) deliberately
+ * dropped two things this test used to assert, and the test was not updated with
+ * it (it lagged the component by 6 days). Per the component's own docstring:
+ *   - the "맞나요?" QUESTION form was removed — it "expected a reply the card gave
+ *     nowhere to make"; the card now hands control back ("correct it below").
+ *   - the explicit dismiss button / onDismiss was removed — answering below
+ *     dismisses it, so the card carries no buttons at all.
+ *
+ * This proves the CURRENT spine-aligned shape: it names ONE AI-filled premise
+ * with honest provenance and returns the handle — neutral recognition, never a
+ * question, a directional verdict, or a two-pole fork.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -41,37 +49,28 @@ afterEach(() => {
   container.remove();
 });
 
-const click = (el: Element | null | undefined) =>
-  act(() => el?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-const byText = (text: string): HTMLElement | undefined =>
-  (Array.from(container.querySelectorAll('button')) as HTMLElement[])
-    .find(e => (e.textContent || '').includes(text));
-
 describe('MirrorBeat — front-of-voyage recognition (North-Star B)', () => {
-  it('surfaces the AI-filled premise with honest provenance and a neutral crux question', () => {
-    act(() => root.render(createElement(MirrorBeat, {
-      assumption: '이탈은 가격 때문이다',
-      onDismiss: vi.fn(),
-    })));
+  it('names the AI-filled premise with honest provenance and hands control back', () => {
+    act(() => root.render(createElement(MirrorBeat, { assumption: '이탈은 가격 때문이다' })));
     const text = container.textContent || '';
     // The surfaced premise itself.
     expect(text).toContain('이탈은 가격 때문이다');
     // Honest provenance — marked as the machine's read, not the user's words.
     expect(text).toContain('AI가 채운 전제');
-    // The crux is a QUESTION, not a verdict/lean. (Spine: bare neutral question.)
-    expect(text).toContain('정말 맞나요?');
-    // Guard against verdict-shaped copy creeping in.
-    expect(text).not.toContain('가장 위험');
-    expect(text).not.toContain('틀렸');
+    // Hands control back — recognition that returns the handle, not a verdict.
+    expect(text).toContain('바로잡으면');
   });
 
-  it('is non-blocking — the dismiss fires onDismiss', () => {
-    const onDismiss = vi.fn();
-    act(() => root.render(createElement(MirrorBeat, {
-      assumption: '챗봇이 이탈을 막는다',
-      onDismiss,
-    })));
-    click(byText('확인했어요'));
-    expect(onDismiss).toHaveBeenCalledTimes(1);
+  it('is neutral recognition — no question, no verdict, no fork, no buttons', () => {
+    act(() => root.render(createElement(MirrorBeat, { assumption: '챗봇이 이탈을 막는다' })));
+    const text = container.textContent || '';
+    // The "맞나요?" question form was deliberately removed (it asked for a reply
+    // the card had nowhere to capture).
+    expect(text).not.toContain('맞나요');
+    // No directional verdict / weighted pole creeping into the copy.
+    expect(text).not.toContain('가장 위험');
+    // Pure recognition is non-blocking with NO controls — answering below
+    // dismisses it, so the card renders no buttons.
+    expect(container.querySelectorAll('button').length).toBe(0);
   });
 });
