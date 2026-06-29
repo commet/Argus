@@ -21,6 +21,18 @@
       "items": { "type": "string" },
       "description": "Assumptions the user is making without stating. Each phrased as a declarative sentence."
     },
+    "constraints_as_read": {
+      "type": "array",
+      "description": "Constraint-semantic guard: each constraint the user EXPLICITLY stated, paired with Argus's operational reading of it, so a misread is visible to the user instead of silently propagating downstream (e.g. 'must be GDPR-ready' read as 'has a privacy policy'). Included ONLY when the reading is a non-trivial interpretation that could be wrong — a literal restatement ('by Friday' -> 'deadline Friday') is omitted. Empty when no explicit constraints or all readings are literal. A transparency note the user can correct, never a verdict or a confirmation gate.",
+      "items": {
+        "type": "object",
+        "required": ["stated", "reading"],
+        "properties": {
+          "stated": { "type": "string", "description": "The user's explicit constraint, verbatim or close." },
+          "reading": { "type": "string", "description": "Argus's operational interpretation — what it will treat the constraint as meaning." }
+        }
+      }
+    },
     "skeleton": {
       "type": "array",
       "items": { "type": "string" },
