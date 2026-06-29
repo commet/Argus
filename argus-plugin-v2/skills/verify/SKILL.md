@@ -396,10 +396,14 @@ decision has no gating reef (the external check still ships as a non-gating arme
 note, just not here). Do NOT promote an `internal` claim, a leaf, or a reversible
 external claim here (over-fire / mirror clause).
 
-**Carry it to the contract seed.** A gating reef is exactly a predicate to seal
-and settle later — set `current_bearing.contract_seed` (sail Step 7) from it so
-the same claim becomes a falsifiable check against reality, closing the
-seal -> reality -> settle loop instead of dying as a note.
+**Connection to the seal→settle loop (timing matters).** A *gating* reef does NOT
+itself seed a contract — a blocked decision is not yet a commitment, so there is
+nothing to seal. It surfaces as `fog_or_reef` + the gating human check (sail
+Assembly Priority handles this). The seal happens on the **proceed** path: once
+the reef is resolved (or when a *reversible* external load-bearing assumption is
+carried on a proceeding course), that external claim is the natural
+`contract_seed` predicate — sail Step 7 prefers it. Same insight (only reality
+settles it), correct timing (seal when you commit, not when you are blocked).
 
 Update `versions/{label}/scaffold.json`:
 
