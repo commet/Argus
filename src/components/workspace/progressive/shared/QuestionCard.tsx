@@ -56,7 +56,10 @@ export function QuestionCard({
       initial={{ opacity: 0, y: 12, scale: 0.99 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.5, ease: EASE }}
-      className="rounded-xl bg-[var(--accent)]/[0.03] border border-[var(--accent)]/15 p-5 md:p-6">
+      // The ONE elevated card on the screen — the thing to act on. A real
+      // surface + soft shadow lifts it above the flat margin-notes around it
+      // (course / premise / crew), so the eye lands on the question to answer.
+      className="rounded-xl bg-[var(--surface)] border border-[var(--accent)]/20 p-5 md:p-6 shadow-[var(--shadow-sm)]">
       {/* Question */}
       <div className="flex items-start gap-2.5 mb-4">
         <div className="w-6 h-6 rounded-full bg-[var(--accent)]/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -66,7 +69,7 @@ export function QuestionCard({
           {meta && (
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]/70 mb-1">{meta}</p>
           )}
-          <p className="text-[16px] md:text-[17px] font-bold text-[var(--text-primary)] leading-snug tracking-tight">
+          <p className="text-[17px] md:text-[19px] font-semibold text-[var(--text-primary)] leading-[1.4] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
             {question.text}
           </p>
           {question.subtext && (

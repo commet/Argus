@@ -47,7 +47,7 @@ import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
-import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, Eye } from 'lucide-react';
+import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useT } from '@/contexts/LocaleProvider';
 import { personaName, personaRole } from './shared/persona-format';
@@ -881,39 +881,32 @@ export function MirrorBeat({ assumption, onDismiss }: { assumption: string; onDi
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.5, ease: EASE }}
-      className="mb-4 rounded-2xl bg-[var(--ai)] border border-[var(--border-subtle)] p-4 md:p-5"
+      // Editorial logbook treatment: not a boxed card but a margin note — a gold
+      // hairline left-rule + serif premise, the way a captain's log annotates.
+      // (Design vision §3: semantic emphasis = hairline left-border, never a
+      // four-sided box; serif for the line that matters; gold = the one accent.)
+      className="mb-6 pl-4 border-l-2 border-[var(--accent)]/40"
     >
-      <div className="flex items-start gap-3">
-        <div className="w-6 h-6 rounded-full bg-[var(--accent)]/10 flex items-center justify-center shrink-0 mt-0.5">
-          <Eye size={12} className="text-[var(--accent)]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          {/* Provenance tag — this is the machine's read, not the user's words. */}
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-1.5">
-            {L('AI가 채운 전제', 'A premise the AI filled in')}
-          </p>
-          {/* The surfaced premise. */}
-          <p className="text-[14.5px] md:text-[15px] text-[var(--text-primary)] leading-[1.55] font-medium">
-            {assumption}
-          </p>
-          {/* Recognition, not a question to answer. Name the premise and hand
-              control back — "fix it in your next answer" — instead of a 맞나요?
-              that expects a reply with nowhere to give one. No lean, no fork. */}
-          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] mt-2">
-            {L('당신이 말한 게 아니라 분석이 대신 깔아둔 거예요. 틀렸다면 아래 답에서 바로잡으면 돼요.',
-               'You didn\'t say this — the analysis laid it down. If it\'s off, just correct it in your next answer.')}
-          </p>
-          <div className="mt-2.5">
-            <button
-              type="button"
-              onClick={onDismiss}
-              className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[44px] md:min-h-0 -my-2 md:my-0"
-            >
-              {L('알아둘게요', 'Got it')}
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Provenance label — small-caps marginalia tag in gold. */}
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]/85 mb-2">
+        {L('AI가 채운 전제', 'A premise the AI filled in')}
+      </p>
+      {/* The surfaced premise — serif display, a line in the log. */}
+      <p className="text-[16px] md:text-[17px] text-[var(--text-primary)] leading-[1.5]" style={{ fontFamily: 'var(--font-display)' }}>
+        {assumption}
+      </p>
+      {/* Recognition, not a question. Hand control back; no 맞나요?, no fork. */}
+      <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.6] mt-2.5">
+        {L('당신이 말한 게 아니라 분석이 대신 깔아둔 거예요. 틀렸다면 아래 답에서 바로잡으면 돼요.',
+           'You didn\'t say this — the analysis laid it down. If it\'s off, just correct it in your next answer.')}
+      </p>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="mt-3 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[44px] md:min-h-0 -my-2 md:my-0"
+      >
+        {L('알아둘게요', 'Got it')}
+      </button>
     </motion.div>
   );
 }
