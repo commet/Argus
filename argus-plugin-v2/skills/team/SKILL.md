@@ -448,6 +448,8 @@ Prompt yourself:
 > - `next_steps[]`: concrete actions.
 >
 > Do NOT collapse contradictions. If section prose MUST reference a tension, phrase it as "X says A, Y says B, unresolved."
+>
+> Do NOT strip a load-bearing claim's **condition**. If a worker stated "X holds IF Y" / "X, assuming Z" / "X in the optimistic case", the mix MUST carry that qualifier with the claim — dropping "if adoption holds" from "ROI 24mo if adoption holds" turns a conditional into a false certainty that verify will then validate as fact. Keep the condition in the section text, or record it in `key_assumptions[]` tied to that claim. Compress wording freely; never drop a qualifier that changes whether the claim is true.
 
 Write result to `versions/{label}/mix.json`.
 

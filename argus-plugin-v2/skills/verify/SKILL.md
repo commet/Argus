@@ -63,6 +63,10 @@ written in English; translate them naturally for `ko` (labels too: 지지됨 /
    - `versions/{label}/scaffold.json`
    - optional `versions/{label}/debate.json`
    - optional `versions/{label}/repo_context.json`
+   - optional `versions/{label}/team_plan.json` — the `stages[]` map (which
+     worker ran in stage-1 vs stage-2). Needed for the cross-agent independence
+     check in Step 3 (a stage-2 critic read stage-1, so its agreement is not
+     independent corroboration). Absent → treat all workers as stage-1.
    - `.argus/config.yaml`
 3. Set `session.phase = "verifying"` while the skill runs.
 
@@ -105,6 +109,10 @@ worker(s). When a candidate cannot be traced to any worker (pure synthesis), set
 must not silently escape the flag). A claim whose `source_worker_ids` intersects
 the **Step 1 flagged-worker set** is pre-flagged: it skips Step 3 and enters Step 4
 already challenged, and cannot become `supported_claims[]` on plausibility alone.
+A `["navigator"]`-only claim (pure synthesis, no domain worker behind it) likewise
+enters Step 4 **pre-flagged** — it needs real evidence to pass. Navigator is the
+synthesizer and never appears in the flagged-worker set, so without this rule an
+untraceable synthesis claim would be structurally exempt from every flag.
 
 Keep the list short. Verification is a gate, not a second report.
 
@@ -122,10 +130,32 @@ For each claim, ask:
   merely did not argue against, fails this check. (Treating absence-of-opposition
   as support is exactly how generic prose with no second source launders itself
   into `supported`; this check exists to stop that.)
+  - **Independence (stage-2 echo guard):** the corroborating worker must be one
+    that did NOT read the first worker's output before writing — i.e. a parallel
+    **stage-1** worker (per `team_plan.json.stages`). The **stage-2** critique
+    worker (e.g. donghyuk) is *given* stage-1 results as input (team Step 6), so
+    its *agreement* is downstream restatement, not independent corroboration, and
+    does NOT count as cross-agent support. Its *challenges* still count as
+    negative signal in Step 4 — only positive corroboration is excluded. (Without
+    this, a single stage-1 claim the critic happened to echo reads as two
+    independent sources and is laundered to `moderate`/`strong`.)
 - **Framework:** Does the worker's assigned framework visibly shape the output?
 - **Action clarity:** If it proposes action, are actor and next step clear?
 
-A claim is `supported` only if it passes **at least 2 of the 5 checks above, AND one of them is Evidence or Cross-agent support** (plausibility/specificity alone is not enough — that is how generic prose sneaks in). A claim from a worker flagged in Step 1 cannot be `supported`. Assign `strength`: `strong` (Evidence + cross-agent), `moderate` (Evidence or cross-agent + one more), `weak` (passes the minimum but on softer checks). **`weak` claims do NOT count toward the headline `supported` count** shown on the final card — list them separately so the card never inflates confidence.
+A claim is `supported` only if it passes **at least 2 of the 5 checks above, AND one of them is Evidence or Cross-agent support** (plausibility/specificity alone is not enough — that is how generic prose sneaks in). **A `claim_type: fact` is stricter — it reaches `supported` only via the *Evidence* check** (a cited file, data point, or source); cross-agent agreement alone never makes a fact true (two workers asserting a fact with no source is still zero sources). A claim from a worker flagged in Step 1 cannot be `supported`. Assign `strength`: `strong` (Evidence + cross-agent), `moderate` (Evidence or cross-agent + one more), `weak` (passes the minimum but on softer checks). **`weak` claims do NOT count toward the headline `supported` count** shown on the final card — list them separately so the card never inflates confidence.
+
+**Qualifier fidelity (mix-laundering guard).** Claims were extracted from the
+*synthesized* `mix.sections[]`, not the worker's words. Before granting
+`supported` to a load-bearing or `external` claim, trace it back to the
+originating worker in `workers.json` (via the section's `contributor_worker_ids`
+/ the claim's `source_worker_ids`) and compare. If the worker attached a
+**material condition** the mix dropped — a qualifier whose absence changes
+whether the claim holds (`"if adoption holds"`, `"assuming X"`, `"pending Y"`,
+`"in the optimistic case"`) — the claim is NOT `supported` as stated. Either
+re-state it WITH the condition, or route the condition itself as a challenged
+claim / `hidden_assumption`. **Mere compression is fine** — shorter wording with
+the same meaning passes; only a dropped *material* condition fails. (verify
+already loads `workers.json` in Step 1; this is what makes that load do work.)
 
 Claims passing become `supported_claims[]`:
 
@@ -288,7 +318,7 @@ unsigned legal review really does.)
 1. **else-if** any human check has `blocks: "execution"` → `stop_for_human_check`. (Highest priority: an execution blocker must never be overridable by a "proceed" choice downstream.)
 2. **else-if** any `critical` challenged claim exists → `ask_user`. (Or, under `--no-prompt` where the user can't be asked, escalate to `revise_team` if the repair is agent-owned, otherwise `stop_for_human_check` — never silently `proceed_to_boss` on a critical challenge.)
 3. **else-if** `--strict` and any `important` challenged claim exists → `ask_user`.
-4. **else-if** there is an agent-owned repair worth a loop — a challenged claim of severity **`important` or above** with an `owner_agent_id` and no human data needed — **AND the revise loop has not converged-out**: `session.revise_cycles < session.max_revise_cycles` (default 3) AND this claim is **not a repeat** of one already challenged in the immediately-prior verification on this lineage → `revise_team`. `minor` challenged claims NEVER trigger this route, owner or not (their own definition says they don't block; re-running the whole team over a wording nit is the loop-forever failure mode). **If the only agent-owned repair is a repeat claim, or `revise_cycles` has reached the cap → `stop_for_human_check`** and write that claim to `human_required_checks[]` with `reason: "unconverged_after_revision"` (cap reached → `reason: "max_revisions_reached"`). Re-looping the team on a claim it already failed to fix is wasted ceremony; escalation to a human is the honest exit, not another auto-pass.
+4. **else-if** there is an agent-owned repair worth a loop — a challenged claim of severity **`important` or above** with an `owner_agent_id` and no human data needed — **AND the revise loop has not converged-out**: `session.revise_cycles < session.max_revise_cycles` (default 3) AND this claim is **not a repeat** of one already challenged in the immediately-prior verification on this lineage → `revise_team`. `minor` challenged claims NEVER trigger this route, owner or not (their own definition says they don't block; re-running the whole team over a wording nit is the loop-forever failure mode). **If the only agent-owned repair is a repeat claim, or `revise_cycles` has reached the cap → `stop_for_human_check`** and write that claim to `human_required_checks[]` with `reason: "unconverged_after_revision"` (cap reached → `reason: "max_revisions_reached"`). Re-looping the team on a claim it already failed to fix is wasted ceremony; escalation to a human is the honest exit, not another auto-pass. **When the unconverged claim was `critical`, the escalated `human_required_checks[]` entry MUST gate** — set `blocks: "final_signoff"` (or `"execution"` if acting before the check is unsafe), never `"none"`. A never-fixed critical claim must not land as a non-gating note; a `blocks: "none"` check would leave `overall_status` off `blocked` and let the bearing read as proceedable.
 5. **else** (challenged claims all minor, no blocking human checks) → `proceed_to_boss`. Minor claims travel forward as visible caveats, not as work orders.
 
 Overall status (also ordered, first match wins):
@@ -297,7 +327,7 @@ Overall status (also ordered, first match wins):
 - `mixed`: usable with `important` caveats visible.
 - `verified`: no challenged claims above `minor` and no blocking checks.
 
-**Compute `confidence` (0-100), a REQUIRED ledger field — do not leave it unset** (boss and the final card read it; an absent value becomes a fabricated number). Derive it, e.g.: start at 100; subtract per challenged claim weighted by severity (critical −30, important −15, minor −5); subtract for each unresolved human-required execution blocker (−20); floor at 0. This is confidence in the verification result, not in the business decision. Record the formula inputs in `claim_tests[]` if helpful.
+**Compute `confidence` (0-100), a REQUIRED ledger field — do not leave it unset** (boss and the final card read it; an absent value becomes a fabricated number). Derive it, e.g.: start at 100; subtract per challenged claim weighted by severity (critical −30, important −15, minor −5); subtract for each unresolved human-required blocker that **gates — `execution` OR `final_signoff`** (−20 each); floor at 0. **And when `overall_status == blocked`, cap `confidence` at 50** — a blocked result must never read as near-trustworthy (the bug this closes: `blocked (85/100)`, where a `final_signoff` blocker subtracted nothing). This is confidence in the verification result, not in the business decision. Record the formula inputs in `claim_tests[]` if helpful.
 
 ### Step 8 - Ask Human When Needed
 
