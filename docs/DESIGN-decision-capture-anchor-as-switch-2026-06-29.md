@@ -221,6 +221,11 @@ grep)이 신호를 잡으면 `additionalContext`로 **메인 Claude에게 위임
 | **SessionStart** | 새로/resume/clear/compact | ✅ 안정적 | source로 필터 가능 |
 
 - **모든 hook이 transcript(JSONL 전체 대화)에 접근** 가능(stdin의 transcript_path).
+- **출력(중요·ultracode가 잡은 버그):** 평문 stdout이 메인 에이전트 컨텍스트로 주입되는
+  건 **UserPromptSubmit·SessionStart뿐**(anchor·recall은 OK). **Stop·PostToolUse는
+  JSON `{hookSpecificOutput:{hookEventName, additionalContext}}`가 필수** — 평문은 debug
+  log로만 가서 모델이 못 본다. wake(Stop)·commit(PostToolUse)이 평문이라 *조용히 무용*이던
+  걸 적대 검증으로 발견·수정(HIGH). 신규 Stop/PostToolUse hook은 반드시 JSON 출력.
 - **hook은 LLM을 부를 수 있다:** `type:"prompt"`(단발) / `type:"agent"`(Read·Grep
   서브에이전트). 단 별도 빠른-모델 API 콜 = 비용 → 1층 값싼 필터가 필수.
 - **hook은 skill/슬래시명령을 직접 못 부른다.** 대신 `additionalContext`로 Claude에게

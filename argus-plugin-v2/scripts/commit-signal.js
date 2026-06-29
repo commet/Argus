@@ -60,7 +60,11 @@ function main() {
     return;
   }
 
-  process.stdout.write(NUDGE + "\n");
+  // PostToolUse is NOT in the plain-stdout-to-context exception list. It must return
+  // JSON with hookSpecificOutput.additionalContext for the nudge to reach the main
+  // agent — plain stdout would go to the debug log only (the hook would silently no-op).
+  const out = { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: NUDGE } };
+  process.stdout.write(JSON.stringify(out) + "\n");
 }
 
 // No process.exit(): let the runtime drain stdout and exit 0 naturally.

@@ -89,12 +89,12 @@ function main() {
   // Self-improvement loop: feed a past track record into this decision's entry, but
   // ONLY as a sample-size-scaled frequency fact (>=2 settled), never a verdict/tier.
   let out = NUDGE;
-  const tr = trackRecord(data.cwd);
+  const tr = trackRecord(data.cwd || process.cwd());
   if (tr && tr.settled >= 2) {
-    out += " [Prior track record — surface ONLY as a sample-size-scaled frequency fact,"
-      + " never a verdict on them: " + tr.sealed + " sealed, " + tr.settled + " settled, "
-      + tr.held + " held" + (tr.luck ? ", " + tr.luck + " held on luck" : "")
-      + ". Let it inform the lean question if relevant; do not lecture.]";
+    out += " [Prior track record — you MAY state it as a bare frequency fact, but NEVER use"
+      + " it to shape or lead the lean question, and never a verdict/tier: "
+      + tr.sealed + " sealed, " + tr.settled + " settled, " + tr.held + " held"
+      + (tr.luck ? ", " + tr.luck + " held on luck" : "") + ".]";
   }
   process.stdout.write(out + "\n");
 }

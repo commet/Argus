@@ -21,8 +21,8 @@ function configDir() {
 const START_PATTERNS = [
   /할까\s*말까/,
   /(말까|할까)\s*(고민|고민이|싶|망설)/,
-  /어느\s*쪽/,
-  /둘\s*중(에|에서)?/,
+  /어느\s*쪽.{0,12}(나을까|좋을까|맞을까|할까|갈까|할지|골라|선택|나아)/,
+  /둘\s*중.{0,12}(뭐|무엇|어느|하나|골라|선택|나아|나을까|좋을까)/,
   /(결정|선택)(을|해야|하기|이|할지)/,
   /(가는|하는)\s*게\s*(맞을까|나을까|좋을까)/,
   /(해야\s*할지|말지)/,
@@ -40,7 +40,7 @@ const DONE_PATTERNS = [
   /(그렇게|이렇게)\s*하자/,
   /(정했|결정했|결정함|하기로\s*했|가는\s*걸로|진행하자)/,
   /(으로|로)\s*(가자|하자|결정|확정)/,
-  /\blet'?s\s+(go\s+with|do)\b/i,
+  /\blet'?s\s+go\s+with\b/i,
   /\b(going|i'?ll\s+go)\s+with\b/i,
   /\bdecided\s+(to|on)\b/i,
   /\b(settle|settled)\s+on\b/i,
@@ -66,8 +66,10 @@ function readTail(p, maxBytes) {
     const start = Math.max(0, size - maxBytes);
     const len = size - start;
     const buf = Buffer.alloc(len);
-    fs.readSync(fd, buf, 0, len, start);
-    return { text: buf.toString("utf8"), partial: start > 0 };
+    // Use the actual byte count — a short read would otherwise leave NUL padding
+    // that corrupts the trailing line.
+    const n = fs.readSync(fd, buf, 0, len, start);
+    return { text: buf.subarray(0, n).toString("utf8"), partial: start > 0 };
   } catch {
     return { text: "", partial: false };
   } finally {
@@ -123,7 +125,12 @@ function trackRecord(cwd) {
   let sealed = 0, settled = 0, held = 0, luck = 0;
   for (const c of st.values()) {
     sealed++;
-    if (c.settled) { settled++; if (c.outcome === "happened") held++; if (c.basis === "luck") luck++; }
+    if (c.settled) {
+      settled++;
+      // luck counts ONLY among held bets, so "held on luck" is a true statement
+      // (an avoided/did-not-hold bet is not a hold, regardless of basis).
+      if (c.outcome === "happened") { held++; if (c.basis === "luck") luck++; }
+    }
   }
   return { sealed, settled, held, luck };
 }

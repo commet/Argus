@@ -69,7 +69,11 @@ function main() {
     return;
   }
 
-  process.stdout.write(NUDGE + "\n");
+  // Stop is NOT in the plain-stdout-to-context exception list (only UserPromptSubmit /
+  // SessionStart are). A Stop hook must return JSON with hookSpecificOutput.additionalContext
+  // for the nudge to reach the main agent — plain stdout would go to the debug log only.
+  const out = { hookSpecificOutput: { hookEventName: "Stop", additionalContext: NUDGE } };
+  process.stdout.write(JSON.stringify(out) + "\n");
 }
 
 // No process.exit(): let the runtime drain stdout and exit 0 naturally — a forced
