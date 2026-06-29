@@ -23,7 +23,6 @@ import {
 import { VersionHistoryDrawer, type VersionTreeItem } from '@/components/workspace/VersionHistoryDrawer';
 import { getActivePath, isOnBranch } from '@/lib/version-tree';
 import { buildLeadDecompositionContext, type LeadAgentConfig } from '@/lib/lead-agent';
-import { assessConvergence, assessConvergenceWithWorkers } from '@/lib/progressive-convergence';
 import { exportProgressiveAsReframe, exportProgressiveAsRecast } from '@/lib/progressive-handoff';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
@@ -39,7 +38,7 @@ import { getCompletionNote } from '@/lib/worker-personas';
 import { track } from '@/lib/analytics';
 import { recordSignal } from '@/lib/signal-recorder';
 import { CrisisConcernBanner } from './CrisisConcernBanner';
-import type { FlowQuestion, FlowAnswer, AnalysisSnapshot, DMConcern, MixResult, ConvergenceMetrics, WorkerTask, LeadSynthesisResult, Draft, LoadBearingClaim, Falsification as FalsificationResult } from '@/stores/types';
+import type { FlowQuestion, FlowAnswer, AnalysisSnapshot, DMConcern, MixResult, WorkerTask, LeadSynthesisResult, Draft, LoadBearingClaim, Falsification as FalsificationResult } from '@/stores/types';
 import { findEffectForAnswer, applySnapshotPatch } from '@/lib/question-types';
 import type { StrategicForkEffect, WeaknessCheckEffect } from '@/lib/question-types';
 import { WorkerReportBlock } from './WorkerCard';
@@ -48,7 +47,7 @@ import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
-import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, TrendingUp, TrendingDown, Minus, Eye } from 'lucide-react';
+import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useT } from '@/contexts/LocaleProvider';
 import { personaName, personaRole } from './shared/persona-format';
@@ -865,13 +864,15 @@ function VoyagePrepSummary({
  * never stated — right after the streamed analysis, alongside the first
  * questions, before crew/mix/DM-feedback.
  *
- * Spine (CLAUDE.md zero-judgment): it is a NEUTRAL CRUX QUESTION, never a
- * directional statement and never a two-pole fork. Provenance is honest — the
+ * Spine (CLAUDE.md zero-judgment): NEUTRAL recognition — it names the premise
+ * and hands control back ("correct it in your next answer"), never a directional
+ * statement and never a two-pole fork. Not phrased as a "맞나요?" question, which
+ * expected a reply the card gave nowhere to make. Provenance is honest — the
  * `--ai` register + "AI가 채운 전제" tag mark it as machine-surfaced, not the
  * user's own words. It is NON-BLOCKING: the user keeps answering below and can
  * dismiss it. No answer is captured here (the deep restatement stays at the
  * single Falsification commitment) — this is recognition, not a verdict. */
-export function MirrorBeat({ assumption, onDismiss }: { assumption: string; onDismiss: () => void }) {
+export function MirrorBeat({ assumption }: { assumption: string }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   return (
@@ -880,37 +881,26 @@ export function MirrorBeat({ assumption, onDismiss }: { assumption: string; onDi
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.5, ease: EASE }}
-      className="mb-4 rounded-2xl bg-[var(--ai)] border border-[var(--border-subtle)] p-4 md:p-5"
+      // No line, no box — grouped by whitespace alone (the one principle worth
+      // taking from Reflect: dividing lines → generous spacing). Hierarchy comes
+      // from type scale + serif, not a device repeated on every block. The gold
+      // sits only on the small provenance label.
+      className="mb-8"
     >
-      <div className="flex items-start gap-3">
-        <div className="w-6 h-6 rounded-full bg-[var(--accent)]/10 flex items-center justify-center shrink-0 mt-0.5">
-          <Eye size={12} className="text-[var(--accent)]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          {/* Provenance tag — this is the machine's read, not the user's words. */}
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-1.5">
-            {L('AI가 채운 전제', 'A premise the AI filled in')}
-          </p>
-          {/* The surfaced premise. */}
-          <p className="text-[14.5px] md:text-[15px] text-[var(--text-primary)] leading-[1.55] font-medium">
-            {assumption}
-          </p>
-          {/* The crux — a bare neutral question, never a lean. */}
-          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] mt-2">
-            {L('이건 당신이 말한 게 아니라, 분석이 대신 깔아둔 전제예요. 정말 맞나요?',
-               'You didn\'t say this — the analysis laid it down for you. Is it actually true?')}
-          </p>
-          <div className="mt-3">
-            <button
-              type="button"
-              onClick={onDismiss}
-              className="text-[12px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[44px] md:min-h-0 -my-2 md:my-0"
-            >
-              {L('확인했어요 — 계속할게요', 'Noted — keep going')}
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Provenance label — the only gold here, small-caps. */}
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]/80 mb-2.5">
+        {L('AI가 채운 전제', 'A premise the AI filled in')}
+      </p>
+      {/* The surfaced premise — serif, sized BELOW the question but above the
+          fine print, so scale alone places it in the hierarchy. */}
+      <p className="text-[16px] md:text-[17px] text-[var(--text-primary)] leading-[1.5] max-w-[60ch]" style={{ fontFamily: 'var(--font-display)' }}>
+        {assumption}
+      </p>
+      {/* Recognition, not a question. Hand control back; no 맞나요?, no fork. */}
+      <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.6] mt-2.5">
+        {L('당신이 말한 게 아니라 분석이 대신 깔아둔 거예요. 틀렸다면 아래 답에서 바로잡으면 돼요.',
+           'You didn\'t say this — the analysis laid it down. If it\'s off, just correct it in your next answer.')}
+      </p>
     </motion.div>
   );
 }
@@ -976,71 +966,11 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
   );
 }
 
-/* ═══ Convergence Status (Weakness C fix) ═══ */
-function ConvergenceStatus({ metrics }: { metrics: ConvergenceMetrics }) {
-  const locale = useLocale();
-  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  // Map the 3 states to design tokens. This bar was the one spot still wearing
-  // the pre-token palette (raw emerald/amber/red Tailwind), which read as "old
-  // design" next to the gold/parchment system. --success/--warning/--danger
-  // already exist (light + dark), so use them.
-  const tone = metrics.score >= 75
-    ? { text: 'text-[var(--success)]', bg: 'bg-[var(--success)]/12', bar: 'bg-[var(--success)]' }
-    : metrics.score >= 50
-      ? { text: 'text-[var(--warning)]', bg: 'bg-[var(--warning)]/12', bar: 'bg-[var(--warning)]' }
-      : { text: 'text-[var(--danger)]', bg: 'bg-[var(--danger)]/10', bar: 'bg-[var(--danger)]' };
-  // Descriptive state, not a grade — "명확도 87%" was score vocabulary (P1).
-  const stateLabel = metrics.score >= 75
-    ? L('거의 정리됐어요', 'Nearly settled')
-    : metrics.score >= 50
-      ? L('정리되는 중', 'Coming together')
-      : L('아직 갈래가 많아요', 'Still forking');
-
-  // Trend — answers "is this getting clearer?"
-  const trend = metrics.trend === 'improving'
-    ? { icon: <TrendingUp size={13} className="text-[var(--success)]" />, label: L('좋아지는 중', 'improving') }
-    : metrics.trend === 'declining'
-      ? { icon: <TrendingDown size={13} className="text-[var(--danger)]" />, label: L('흔들리는 중', 'unsettled') }
-      : metrics.trend === 'stable'
-        ? { icon: <Minus size={13} className="text-[var(--text-tertiary)]" />, label: L('안정적', 'stable') }
-        : null;
-
-  // "When do I stop?" — rounds left / ready
-  const roundsLabel = metrics.is_converged
-    ? L('준비됨 — 다음 단계로 넘어가도 좋아요', 'Ready — good to move on')
-    : metrics.estimated_rounds_left <= 1
-      ? L('약 한 라운드 더', '~1 more round')
-      : L(`약 ${metrics.estimated_rounds_left}라운드 더`, `~${metrics.estimated_rounds_left} more rounds`);
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: EASE }}
-      className="flex items-center gap-4 px-4 py-3.5 rounded-xl bg-[var(--bg)]/60 border border-[var(--border-subtle)]">
-      <div className="flex-1">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="flex items-center gap-2 text-[12px] font-semibold text-[var(--text-secondary)]">
-            {L('명확도', 'Clarity')}
-            {trend && <span className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-tertiary)]">{trend.icon}{trend.label}</span>}
-          </span>
-          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${tone.text} ${tone.bg}`}>{stateLabel}</span>
-        </div>
-        {/* progress bar with a 75% "ready to move on" threshold marker */}
-        <div className="relative h-2 rounded-full bg-[var(--border-subtle)]">
-          <div className="absolute inset-0 rounded-full overflow-hidden">
-            <motion.div className={`h-full rounded-full ${tone.bar}`}
-              initial={{ width: 0 }} animate={{ width: `${metrics.score}%` }} transition={{ duration: 0.8, ease: EASE }} />
-          </div>
-          <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-[9px] rounded-full bg-[var(--text-tertiary)]/55"
-            style={{ left: '75%' }} title={L('75%면 다음 단계로 넘어가도 좋아요', 'At 75% you can move on')} />
-        </div>
-        <div className="mt-1.5 flex items-center gap-1.5">
-          {metrics.is_converged && <Check size={12} className="shrink-0 text-[var(--success)]" />}
-          <span className={`text-[11px] font-medium ${metrics.is_converged ? 'text-[var(--success)]' : 'text-[var(--text-tertiary)]'}`}>{roundsLabel}</span>
-        </div>
-      </div>
-      <p className="text-[11px] text-[var(--text-secondary)] max-w-[170px] leading-snug">{metrics.guidance}</p>
-    </motion.div>
-  );
-}
+/* Convergence Status (명확도 게이지) removed — it surfaced an uncalibrated score
+   and leaned on the model's self-confidence as a user-facing verdict. Its two
+   real jobs are owned elsewhere now: "when to stop" = the standing 그만 묻고 초안
+   CTA, "what the AI assumed" = the MirrorBeat. assessConvergence still runs in
+   progressive-engine for internal routing only — never rendered. */
 
 /* ═══ Pipeline Exit Buttons (Weakness D fix) ═══ */
 function PipelineExitOptions({ onReframe, onRehearse }: {
@@ -1724,6 +1654,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const onAnswer = async (value: string) => {
     if (!curQ || busy || !latest) return;
     const ans: FlowAnswer = { question_id: curQ.id, value };
+    // Answering dismisses the MirrorBeat — recognition needs no "got it" button;
+    // reading the premise then answering IS the whole interaction.
+    if (!mirrorSeen) { setMirrorSeen(true); track('mirror_seen', { round }); }
 
     // ── W2.3b: probe-question turns are zero-LLM ──
     if (newArcEnabled) {
@@ -2510,12 +2443,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               type="button"
               onClick={() => setProblemExpanded((o) => !o)}
               title={problemExpanded ? undefined : L('눌러서 전체 보기', 'Tap to expand')}
-              className={`flex items-start gap-3 px-5 py-3 bg-[var(--bg)] border border-[var(--border-subtle)] max-w-full text-left cursor-pointer hover:border-[var(--accent)]/30 transition-colors ${problemExpanded ? 'rounded-2xl' : 'rounded-full'}`}
+              className="flex items-start gap-2.5 max-w-full text-left cursor-pointer group"
             >
-              <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0">
-                <span className="text-[var(--bg)] text-[9px] font-bold">{L('나', 'Me')}</span>
-              </div>
-              <p className={`text-[13px] text-[var(--text-secondary)] leading-[1.55] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
+              {/* "나" as a small label, not a chip-in-a-box — marks the user's
+                  own words without another bordered pill. */}
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)] shrink-0 mt-[3px]">{L('나', 'Me')}</span>
+              <p className={`text-[13px] text-[var(--text-secondary)] leading-[1.55] group-hover:text-[var(--text-primary)] transition-colors ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
                 {session.problem_text}
               </p>
             </motion.button>
@@ -2580,19 +2513,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </motion.div>
           )}
 
-          {/* ③ 계기판 — convergence (명확도) at the TOP, out of the record gate.
-              A glanceable "어디쯤 왔나" read above the body, so the user checks
-              progress with a side-glance and keeps focus on 항로·질문. Was hidden
-              behind "지금까지의 기록 ▾". */}
-          {snapshots.length >= 2 && !mix && !final_ && phase === 'conversing' && (
-            <div className="mb-3">
-              <ConvergenceStatus metrics={
-                workers.length > 0
-                  ? assessConvergenceWithWorkers(snapshots, workers.map(w => ({ validationScore: w.validation_score, approved: w.approved })))
-                  : assessConvergence(snapshots)
-              } />
-            </div>
-          )}
+          {/* 명확도(convergence) 게이지 제거 — it surfaced an uncalibrated score
+              (and leaned on the model's self-confidence, which the engine is not
+              supposed to trust) as a user-facing verdict. The two real jobs it
+              pretended to do are owned elsewhere: "when to stop" = the standing
+              "그만 묻고 초안" CTA on the question card; "what the AI assumed for
+              you" = the MirrorBeat. assessConvergence stays for internal routing
+              only (progressive-engine), never shown. */}
 
           {/* Update summary chip — surfaces "what changed" at the user's eye level
               (right above the next question). AnalysisCard lives further down,
@@ -2634,7 +2561,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <MirrorBeat
                 key="mirror-beat"
                 assumption={latest.hidden_assumptions[0]}
-                onDismiss={() => { setMirrorSeen(true); track('mirror_seen', { round }); }}
               />
             )}
           </AnimatePresence>
@@ -2646,7 +2572,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               It used to hide behind "지금까지의 기록 ▾" — the one piece the user
               called "important" was invisible by default. */}
           {latest && !final_ && !crisisBlocking && phase === 'conversing' && (
-            <div ref={analysisCardRef} className="mb-3">
+            <div ref={analysisCardRef} className="mb-7">
               <AnalysisCard
                 snapshot={latest}
                 prevSnapshot={snapshots.length > 1 ? snapshots[snapshots.length - 2] : null}

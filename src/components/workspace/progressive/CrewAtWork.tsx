@@ -70,7 +70,10 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4"
+      // ④ 보조 — no line, no box. Background work while the user answers; set off
+      // by spacing alone, collapsed. The full theater (its own surfaces) only
+      // appears on expand.
+      className="pt-1"
     >
       {/* Header — tap to expand the full theater. Avatars + a live count keep the
           "team is working" signal without the whole crew list taking over the

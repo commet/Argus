@@ -71,17 +71,20 @@ export function AnalysisCard({
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: EASE }}
-        className="w-full text-left flex items-start gap-3 px-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/[0.02] transition-colors cursor-pointer group"
+        // No line, no box — whitespace-grouped. The course is something you READ;
+        // it sits a step down the type scale from the question and is set off by
+        // spacing alone. Hover dims slightly to signal it opens.
+        className="w-full text-left flex items-start gap-3 py-1 cursor-pointer group transition-opacity hover:opacity-70"
       >
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1">
+          <div className="text-[10px] font-semibold text-[var(--accent)]/85 uppercase tracking-[0.14em] mb-1.5">
             {L('우리가 잡은 항로', 'Course we plotted')}
           </div>
-          <p className="text-[13px] text-[var(--text-primary)] leading-snug line-clamp-2">
+          <p className="text-[14px] md:text-[15px] text-[var(--text-primary)] leading-[1.45] line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>
             {renderText(summaryLine)}
           </p>
           {(stepCount > 0 || assumeCount > 0) && (
-            <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
+            <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--text-tertiary)] tabular-nums">
               {stepCount > 0 && <span>{L(`${stepCount}단계 계획`, `${stepCount}-step plan`)}</span>}
               {stepCount > 0 && assumeCount > 0 && <span aria-hidden>·</span>}
               {assumeCount > 0 && <span>{L(`가정 ${assumeCount}개`, `${assumeCount} assumptions`)}</span>}

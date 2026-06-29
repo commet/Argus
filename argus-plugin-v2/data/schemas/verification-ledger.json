@@ -60,8 +60,35 @@
           "challenge": { "type": "string" },
           "severity": { "enum": ["critical", "important", "minor"] },
           "suggested_fix": { "type": "string" },
-          "owner_agent_id": { "type": "string" }
+          "owner_agent_id": { "type": "string" },
+          "grounding": {
+            "enum": ["internal", "external"],
+            "description": "internal = the agents can confirm it (logic, arithmetic, code/in-repo citation, a checkable source). external = ONLY reality confirms it (market size, a regulator's actual position, a customer's actual want, performance at real scale, a third party's behavior). The agents' own cross-agreement is NOT confirmation of an external claim."
+          },
+          "depended_on_by": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "STRUCTURAL anchors that rest on this claim — next_action ids (via their rests_on) or the literal 'current_course'. NOT sibling claims: claim-to-claim prose inference is unreliable (the model co-generated both) and is forbidden here. Non-empty => load-bearing."
+          }
         }
+      }
+    },
+    "root_crack": {
+      "type": ["object", "null"],
+      "description": "The GATING reality reef: the load-bearing AND external AND unconfirmed claim on a HIGH-STAKES, HARD-TO-REVERSE decision — the one that, if false, burns the user, and that no internal cross-agent agreement can validate. It blocks final_signoff/execution and seeds a decision-contract predicate (seal -> reality -> settle). NULL when no such claim exists: a reversible or low-stakes external claim is NOT a root_crack (it still ships as a non-gating armed note in human_required_checks — blocking the reversible is over-fire/mirror-clause), and an internal claim is never a reef. Being external is never a reason to withhold help — the entry must be armed (best_read + cheapest_check), never a bare 'go verify' referral.",
+      "required": ["claim", "grounding", "depended_on_by", "why", "best_read", "cheapest_check"],
+      "properties": {
+        "claim_id": { "type": "string", "description": "Step 2 claim id (e.g. c-2)." },
+        "claim": { "type": "string" },
+        "grounding": { "const": "external", "description": "Always 'external' — an internal claim is never a reality reef; the agents can just check it." },
+        "depended_on_by": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Structural anchors (next_action ids / 'current_course') that rest on this claim — the blast radius."
+        },
+        "why": { "type": "string", "description": "One neutral line: what rests on it and why only reality can settle it." },
+        "best_read": { "type": "string", "description": "Argus's best substantive answer DESPITE the uncertainty — estimate, base rate, indirect evidence, likely direction. Maximum generation: do not withhold the read just because reality has the final word." },
+        "cheapest_check": { "type": "string", "description": "The armed, concrete check: WHO/WHAT confirms it, what a 'yes' looks like, and a fallback if no answer arrives. Turns a referral into help." }
       }
     },
     "unresolved_tensions": {

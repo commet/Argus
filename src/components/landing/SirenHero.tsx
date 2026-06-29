@@ -127,7 +127,7 @@ export function SirenHero() {
               fontWeight: 500,
             }}
           >
-            {L('THINK BEFORE YOU COMMIT', 'THINK BEFORE YOU COMMIT')}
+            {L('유창한 답이 결정을 끝내게 하지 마세요', "Don't let a fluent answer end the decision")}
           </span>
           <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
         </div>
@@ -135,7 +135,7 @@ export function SirenHero() {
         {/* Headline — candidate 1, verbatim (FRAMEWORK §7). The focal point. */}
         <h1
           id="siren-heading"
-          className={`bp-fade-up ${locale === 'ko' ? 'break-keep sm:whitespace-nowrap' : ''}`}
+          className={`bp-fade-up ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             fontFamily: 'var(--font-display)',
             color: 'var(--bp-ink)',
@@ -146,14 +146,10 @@ export function SirenHero() {
             animationDelay: '60ms',
           }}
         >
-          {locale === 'ko' ? (
-            <>AI에 묻기 전에, 당신&nbsp;판단부터.</>
-          ) : (
-            'Before you ask AI — your own call first.'
-          )}
+          {L('중요한 결정은 매끈한 답변에 묻히면 안 됩니다.', "Important decisions shouldn't end as answers.")}
         </h1>
 
-        {/* 30초 피치 v2, 첫 두 문장 — 원전 그대로. The problem / empathy hook. */}
+        {/* Product promise first; the film below deepens it through the Siren voyage. */}
         <p
           className={`bp-fade-up mx-auto mt-4 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
@@ -164,9 +160,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>AI는 무엇이든 답해줘요 — 빠르고, 그럴듯하게.<br />그런데 그 답을 듣는 순간, 내 생각은 슬그머니 흐려집니다.<br />내가 정한 건지, 그냥 휩쓸린 건지도 모른 채로.</>
+            <>Argus는 결정을 살아 있는 항로로 남깁니다.<br />선택지는 남고, 근거는 검증되며,<br />상태는 보존되고, 마지막 판정은 현실이 합니다.</>
           ) : (
-            <>Ask anything, and AI answers — fast, and convincing.<br />But the moment you hear it, your own thinking quietly blurs.<br />And you can’t tell — did you choose, or just get swept?</>
+            <>Argus keeps decisions alive as courses:<br />alternatives remain visible, claims are checked,<br />state is preserved, and reality gets the final word.</>
           )}
         </p>
 
@@ -302,7 +298,7 @@ export function SirenHero() {
               <span style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.005em', lineHeight: 1.4 }}>
                 {text.trim()
                   ? L('⏎ 로 보내기 · Shift+⏎ 줄바꿈', '⏎ to send · Shift+⏎ for newline')
-                  : L('⏎ 한 줄이면 충분해요 · 적은 내용은 저장하지 않아요', '⏎ one line is enough · we don’t store what you write')}
+                  : L('⏎ 한 줄이면 충분해요', '⏎ one line is enough')}
               </span>
               <button
                 onClick={sail}

@@ -468,7 +468,15 @@ Use artifacts in this order:
    repair, human check, source pull, spike, or promotion.
 6. **Contract seed:** include only when the current course is `proceed`, `fork`,
    or `anchor` and the predicate can be checked later. For blocked or early
-   evidence-collection courses, use `null`.
+   evidence-collection courses, use `null`. **When the course proceeds/anchors AND
+   a load-bearing `external` assumption remains** — an unconfirmed reality claim
+   the user is proceeding past, or a `verification.json.root_crack` reef that was
+   resolved and is now a bet on the world — **prefer it as the predicate.** It is
+   exactly the external claim reality will settle (its `cheapest_check` /
+   `why` give the pass/fail and check-by), so seeding it closes the
+   seal→reality→settle loop. (A *gating* reef on a blocked course is surfaced as
+   `fog_or_reef` instead, never seeded — a blocked decision is not yet a
+   commitment, so there is nothing to seal.)
 
 ### Status Mapping
 

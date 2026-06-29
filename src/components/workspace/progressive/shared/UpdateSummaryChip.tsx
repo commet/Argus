@@ -56,13 +56,13 @@ export function UpdateSummaryChip({
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
-      className="rounded-xl bg-[var(--accent)]/[0.04] border border-[var(--accent)]/12 px-4 py-2.5 flex items-center justify-between gap-x-4 gap-y-1.5 flex-wrap"
+      // No rule, no box — the faintest line in the hierarchy. Smallest type,
+      // grouped by spacing; it's a quiet "your answer moved it" footnote, not a
+      // bordered strip.
+      className="flex items-center justify-between gap-x-4 gap-y-1 flex-wrap py-1"
       aria-label={L('팀 분석 업데이트 요약', 'Team analysis update summary')}
     >
-      {/* The real_question itself now lives ONLY in the course card (the 접힌 1줄
-          right below). This chip carries just the "your answer moved it" feedback
-          so the same question isn't printed three times (chip + course + Q card). */}
-      <div className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--accent)] shrink-0">
+      <div className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[var(--accent)]/85 shrink-0">
         {L('답 반영해서 다시 봤어요', 'Refined with your answer')}
       </div>
 

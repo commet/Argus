@@ -448,6 +448,8 @@ Prompt yourself:
 > - `next_steps[]`: concrete actions.
 >
 > Do NOT collapse contradictions. If section prose MUST reference a tension, phrase it as "X says A, Y says B, unresolved."
+>
+> Do NOT strip a load-bearing claim's **condition**. If a worker stated "X holds IF Y" / "X, assuming Z" / "X in the optimistic case", the mix MUST carry that qualifier with the claim — dropping "if adoption holds" from "ROI 24mo if adoption holds" turns a conditional into a false certainty that verify will then validate as fact. Keep the condition in the section text, or record it in `key_assumptions[]` tied to that claim. Compress wording freely; never drop a qualifier that changes whether the claim is true.
 
 Write result to `versions/{label}/mix.json`.
 
@@ -458,6 +460,7 @@ This is the PLUGIN-SPECIFIC divergence from webapp. Webapp produces a markdown d
 Construct a candidate `FinalScaffold` (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/final-scaffold.json`). Candidate means it is not yet trusted; `/argus:verify` owns final verification state.
 - `reframed_question`: from snapshot
 - `key_trade_offs[]`: extract from team outputs + debate. Each trade-off = axis + side_a + side_b.
+  - **Candidate-scope (missed-option) disclosure.** If the crew examined essentially ONE course (no debate, no opposing stances, every worker assumed the same direction) AND stakes are `important`+ AND a *concrete plausible alternative the crew never analyzed* is nameable, add it as a trade-off: side_a = the examined course, side_b = that alternative with its label stating it was NOT analyzed (e.g. `"<alternative> — not evaluated by the crew"`). The bearing's `road_not_taken` derives from `key_trade_offs`, so this surfaces narrow scope as an honest coverage note. **Gate (mirror clause):** only when a concrete alternative is nameable — if none is, the decision is genuinely flat, so leave it out; never manufacture an alternative to look thorough.
 - `hidden_assumptions[]`: from mix.key_assumptions, with `evaluation` (likely_true / uncertain / doubtful) based on team's validation
 - `team_contradictions[]`: populated from debate.json if ran; else empty array
 - `human_required_checkpoints[]`: extract from worker outputs where agents flagged "AI cannot decide this" or "human judgment needed". **Also append**: every entry from `classification.json:dropped_steps[]` (from Step 3.5(c)) as a checkpoint with `checkpoint: "<original task>", why: "dropped from automated pipeline — over_agent_budget. Manual coverage needed."`. This is mandatory per M4 transparency.
