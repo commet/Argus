@@ -69,9 +69,22 @@ Three concrete rules that follow (full rationale in
 
 ## Principle: Single Source of Truth for Prompts
 
-Never copy-paste a system prompt to a second location. If the same persona prompt is needed in both PersonaFeedbackStep and RefinementLoopStep, extract it to a shared function in a lib file.
+Never copy-paste a system prompt to a second location. Extract it to a shared
+function in a lib file so the two surfaces can't drift.
 
-Current violation: FEEDBACK_SYSTEM exists separately in PersonaFeedbackStep and a similar version in RefinementLoopStep. These MUST be kept in sync.
+Resolved: the former `FEEDBACK_SYSTEM` duplication (PersonaFeedbackStep /
+RefinementLoopStep) is centralized in `src/lib/persona-prompt.ts`
+(`buildFeedbackSystemPrompt`). The positive pattern to copy: `reframeSystemPrompt()`
+(`src/lib/reframe-core.ts`) is the single brain shared by the web ReframeStep AND
+the Telegram bot, so it can't drift.
+
+Deliberate NON-violation (do not "fix" this): `recastSystemPrompt()`
+(`src/lib/recast-core.ts`) and `RecastStep.tsx`'s prompt look like duplicates but
+are intentionally separate brains — the bot emits a minimal `RecastStepLite`
+(task/actor/why) sized for a chat message, while the web step emits a full
+`RecastAnalysis` (storyline, suggested_reviewers, ratios, …). They share the
+actor-split *thesis*, not the output shape; delegating RecastStep to the bot's
+prompt would feed the rich web UI a 3-field object and break it.
 
 ## Principle: Persistence Declaration (2026-06-13 근원 분석에서 추가)
 
