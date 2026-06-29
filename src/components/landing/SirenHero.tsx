@@ -146,7 +146,7 @@ export function SirenHero() {
             animationDelay: '60ms',
           }}
         >
-          {L('중요한 결정은 답으로 끝나면 안 됩니다.', "Important decisions shouldn't end as answers.")}
+          {L('중요한 결정은 매끈한 답변에 묻히면 안 됩니다.', "Important decisions shouldn't end as answers.")}
         </h1>
 
         {/* Product promise first; the film below deepens it through the Siren voyage. */}
