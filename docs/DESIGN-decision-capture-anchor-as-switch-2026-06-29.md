@@ -19,6 +19,8 @@
 | **1차 정산 WakeReturn** (webapp + plugin sail Step 7.5) | ✅ **구현·커밋됨** `5d28d60` |
 | 닻 = 추적 스위치 — §13 전체: anchor/wake/recall hooks (`scripts/lib/decision-signals.js` 공유) | ✅ **구현됨** (token-zero) |
 | 행동 신호 hook(`commit-signal.js`, PostToolUse git commit) + 자기개선 loop(`trackRecord`) | ✅ **구현됨** |
+| helm-preuse 위험op 경고(`keel-signal.js`, PreToolUse, block 금지) | ✅ **구현됨** |
+| 마커 상태머신 보완(once-per-decision 재무장·nudged↔anchored 분리·dedupe·prune) | ✅ **구현됨** |
 | 정교화(1층 신호목록 · 2층 위임 카피 · 늦은닻 톤) | dogfood 튜닝 대상 |
 
 이 문서는 **구현 전 기준 문서**다. §13 구현 순서대로 짓되, 각 단계는 dogfood로
@@ -297,13 +299,31 @@ grep)이 신호를 잡으면 `additionalContext`로 **메인 Claude에게 위임
    `{sealed, settled, held, luck}` 집계(카운트만, tier/판정 금지 — 스파인). anchor-signal이
    `settled≥2`일 때 NUDGE에 **frequency 사실로** 주입 → 과거 정산이 다음 결정 진입에
    피드백. **seal→settle→다음 결정 순환이 닫힌다.** 데이터 0이면 조용(쌓이면 자동 작동).
+8. **helm-preuse (위험op 경고)** — `keel-signal.js` (PreToolUse): 비가역 op(force-push /
+   rm-rf / migration / deploy / delete, 또는 위험 MCP 도구 apply_migration 등)을 결정론으로
+   감지 → JSON `hookSpecificOutput.additionalContext` + `permissionDecision:"allow"`로 메인에
+   "근거 확인 + check-by 제안"을 위임. **절대 block 안 함**(deny/exit2 금지 — Argus는 실행
+   여부를 정하지 않고 질문만 띄운다). 세션당 1회. 비가역 아니면 무출력(=기본 allow). PreToolUse도
+   평문 stdout은 모델에 안 닿으니 JSON 필수.
 
 **구현 메모:** 1층 grep 패턴·transcript 읽기는 `scripts/lib/decision-signals.js` 단일
-소스(anchor/wake/recall 공유, CLAUDE.md "두 번째 위치엔 추출"). hook은 출력 잘림 방지로
-`process.exit()`를 두지 않는다(자연 종료가 stdout flush 보장). 경로 주의: hook input의
-transcript_path/CLAUDE_CONFIG_DIR은 실전에서 OS 절대경로(Windows면 `C:\...`)라 node가
-바로 읽지만, git-bash 테스트는 `/tmp`를 stdin JSON으로 주면 win-node가 못 읽으니
+소스(anchor/wake/recall/commit 공유, CLAUDE.md "두 번째 위치엔 추출"). hook은 출력 잘림
+방지로 `process.exit()`를 두지 않는다(자연 종료가 stdout flush 보장). 경로 주의: hook
+input의 transcript_path/CLAUDE_CONFIG_DIR은 실전에서 OS 절대경로(Windows면 `C:\...`)라
+node가 바로 읽지만, git-bash 테스트는 `/tmp`를 stdin JSON으로 주면 win-node가 못 읽으니
 `cygpath -m`로 변환해 검증한다.
+
+**마커 상태머신 (ultracode 보완):** 두 마커로 nudged↔anchored를 분리한다.
+`CLAUDE_CONFIG_DIR/argus-anchored/<session>` = **현재 무장된 결정 1개** (anchor가 set,
+wake/commit이 결정을 닫으며 **소비**). 소비 = (a) once-per-DECISION 재무장 — 다음 강한
+START가 다시 무장하므로 한 세션 여러 결정(②③)을 다 잡고, (b) wake↔commit **dedupe** —
+먼저 닫는 쪽이 슬롯을 소비해 중복 발화 0. `argus-seen/<session>` = **영구** "이 세션은
+nudge됨"; recall이 직전 세션의 ON/OFF를 이걸로 판정(소비되는 anchored로는 판정 불가).
+`pruneMarkers(>30d)`는 recall(SessionStart)이 1회 호출해 마커 디렉토리 누적을 막는다.
+**남는 한계(hook 근본):** hook은 사용자가 실제로 닻을 *답했는지*(consent)는 모른다 —
+false-positive START 하나가 그 세션을 무장시킬 수 있다. once-per-decision이 피해를 한
+결정 범위로 가두지만, wake가 없으면 무장이 남는다(해는 작음: wake는 닻 없으면 메인이
+skip). 완전 해소는 hook이 메인 판단을 못 받는 한 불가 → 신호 정밀도로 완화한다.
 
 각 단계는 webapp ↔ plugin 형태 통일 유지(메모리: drift 경고). lean_after {text,changed}
 스키마 일치, ledger `wake` 이벤트 형태 일치.

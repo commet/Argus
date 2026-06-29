@@ -135,6 +135,46 @@ function trackRecord(cwd) {
   return { sealed, settled, held, luck };
 }
 
+// Opportunistic cleanup so the per-session marker dirs don't grow forever. Called once
+// from the SessionStart hook (recall). mtime-based; every failure is ignored (best-effort).
+function pruneMarkers(maxAgeMs) {
+  const base = configDir();
+  const cutoff = Date.now() - maxAgeMs;
+  for (const name of ["argus-anchored", "argus-seen", "argus-waked", "argus-recalled"]) {
+    const dir = path.join(base, name);
+    let entries;
+    try { entries = fs.readdirSync(dir); } catch { continue; }
+    for (const e of entries) {
+      const p = path.join(dir, e);
+      try { if (fs.statSync(p).mtimeMs < cutoff) fs.unlinkSync(p); } catch {}
+    }
+  }
+}
+
+// helm's keel scan as a deterministic pre-flight (keel-signal, PreToolUse): operations
+// reality will later judge and that can't be cheaply undone. Conservative — clearly
+// destructive only, so routine Bash (status/test/commit/push) stays silent.
+const IRREVERSIBLE_PATTERNS = [
+  /\bgit\s+push\b[^\n]*(--force\b|--force-with-lease\b|(?:^|\s)-f\b)/,
+  /\bgit\s+push\b[^\n]*\s:\S/,                // push :branch (delete a remote branch)
+  /\bgit\s+reset\s+--hard\b/,
+  /\brm\s+-[rf]{1,2}\b/,
+  /\b(drop|truncate)\s+(table|database|schema)\b/i,
+  /\bdelete\s+from\b/i,
+  /\bmigrat\w*\s+(up|deploy|run|dev)\b/i,
+  /\b(vercel|netlify|wrangler|flyctl|fly)\s+deploy\b/i,
+  /\bsupabase\s+(db\s+push|functions\s+deploy|migration\s+up)\b/i,
+];
+function isIrreversible(cmd) {
+  if (typeof cmd !== "string") return false;
+  return IRREVERSIBLE_PATTERNS.some((re) => re.test(cmd));
+}
+const DANGEROUS_TOOLS = ["apply_migration", "deploy_edge_function", "delete_branch", "pause_project", "restore_project"];
+function isDangerousTool(name) {
+  if (typeof name !== "string") return false;
+  return DANGEROUS_TOOLS.some((t) => name === t || name.endsWith("_" + t) || name.endsWith("__" + t));
+}
+
 module.exports = {
   configDir,
   START_PATTERNS,
@@ -144,4 +184,7 @@ module.exports = {
   readTail,
   lastUserText,
   trackRecord,
+  pruneMarkers,
+  isIrreversible,
+  isDangerousTool,
 };

@@ -28,7 +28,6 @@ const path = require("path");
 const { configDir, hasDoneSignal, readTail, lastUserText } = require("./lib/decision-signals");
 
 const anchoredMarker = (id) => path.join(configDir(), "argus-anchored", String(id));
-const wakedMarker = (id) => path.join(configDir(), "argus-waked", String(id));
 
 const NUDGE = [
   "[Argus] The user seems to have just closed a decision. If they set an ANCHOR (a",
@@ -50,24 +49,18 @@ function main() {
   const transcriptPath = data && data.transcript_path;
   if (!sessionId || !transcriptPath) return;
 
-  // GATE 1: off session (no anchor nudge this session) → zero work, silence.
+  // Off session (not armed) → zero work, silence. The armed marker is BOTH the gate and
+  // the once-per-decision guard: consumed on fire so a later strong START re-arms, and so
+  // wake & commit can't both fire for one decision (whichever closes first consumes it).
   try { if (!fs.existsSync(anchoredMarker(sessionId))) return; } catch { return; }
-  // GATE 2: already waked this session → silence (once per session).
-  try { if (fs.existsSync(wakedMarker(sessionId))) return; } catch { return; }
 
   const { text, partial } = readTail(transcriptPath, 64 * 1024);
   if (!text) return;
   const utter = lastUserText(text, partial);
   if (!hasDoneSignal(utter)) return; // no COMPLETION signal → silence (default)
 
-  // Claim the once-per-session slot BEFORE printing (write-fail → silence).
-  const marker = wakedMarker(sessionId);
-  try {
-    fs.mkdirSync(path.dirname(marker), { recursive: true });
-    fs.writeFileSync(marker, "");
-  } catch {
-    return;
-  }
+  // Consume the armed slot BEFORE printing (re-arm next decision; dedupe wake/commit).
+  try { fs.unlinkSync(anchoredMarker(sessionId)); } catch { return; }
 
   // Stop is NOT in the plain-stdout-to-context exception list (only UserPromptSubmit /
   // SessionStart are). A Stop hook must return JSON with hookSpecificOutput.additionalContext

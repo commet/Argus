@@ -22,7 +22,6 @@ const path = require("path");
 const { configDir } = require("./lib/decision-signals");
 
 const anchoredMarker = (id) => path.join(configDir(), "argus-anchored", String(id));
-const wakedMarker = (id) => path.join(configDir(), "argus-waked", String(id));
 
 const NUDGE = [
   "[Argus] The user just committed in an anchored decision session — the decision is now",
@@ -47,18 +46,13 @@ function main() {
   const sessionId = data.session_id;
   if (!sessionId) return;
 
-  // Off session (no anchor) → routine commit, silence. ON-session gate = no over-fire.
+  // Off session (not armed) → routine commit, silence. The armed marker is the gate AND
+  // the once-per-decision guard: consumed on fire (re-arm next decision; dedupe with the
+  // language wake — whichever closes the decision first consumes the slot).
   try { if (!fs.existsSync(anchoredMarker(sessionId))) return; } catch { return; }
-  // Already waked this session (language wake or an earlier commit) → silence.
-  try { if (fs.existsSync(wakedMarker(sessionId))) return; } catch { return; }
 
-  const marker = wakedMarker(sessionId);
-  try {
-    fs.mkdirSync(path.dirname(marker), { recursive: true });
-    fs.writeFileSync(marker, "");
-  } catch {
-    return;
-  }
+  // Consume the armed slot BEFORE printing.
+  try { fs.unlinkSync(anchoredMarker(sessionId)); } catch { return; }
 
   // PostToolUse is NOT in the plain-stdout-to-context exception list. It must return
   // JSON with hookSpecificOutput.additionalContext for the nudge to reach the main

@@ -6,7 +6,7 @@
  * Temp dirs are made by node (OS-absolute paths), so hooks read them directly —
  * no shell path-mapping involved. Run: node scripts/test-decision-signals.mjs
  */
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -22,6 +22,7 @@ const ANCHOR = join(DIR, "anchor-signal.js");
 const WAKE = join(DIR, "wake-signal.js");
 const RECALL = join(DIR, "recall-signal.js");
 const COMMIT = join(DIR, "commit-signal.js");
+const KEEL = join(DIR, "keel-signal.js");
 
 const tmps = [];
 function tmp(prefix) { const d = mkdtempSync(join(tmpdir(), prefix)); tmps.push(d); return d; }
@@ -49,6 +50,10 @@ function ledger(cwd, events) {
   writeFileSync(join(cwd, ".argus", "ledger", "ledger.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n");
 }
 function commitInput(sid, cmd) { return { tool_name: "Bash", tool_input: { command: cmd }, session_id: sid }; }
+function seenOn(configDir, sessionId) {
+  mkdirSync(join(configDir, "argus-seen"), { recursive: true });
+  writeFileSync(join(configDir, "argus-seen", sessionId), "");
+}
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -144,11 +149,11 @@ test("recall: prev OFF + DONE → nudge", () => {
   const cur = transcript(td, "cur.jsonl", [userMsg("hi")]);
   assert.match(runHook(RECALL, { session_id: "cur", transcript_path: cur }), /\[Argus\]/);
 });
-test("recall: prev ON (anchored) → silent", () => {
+test("recall: prev ON (seen) → silent", () => {
   const cfg = tmp("argus-ds-cfg-"); const td = tmp("argus-ds-t-");
   transcript(td, "prev.jsonl", [userMsg("Redis로 가자 결정했어")]);
   const cur = transcript(td, "cur.jsonl", [userMsg("hi")]);
-  anchorOn(cfg, "prev");
+  seenOn(cfg, "prev"); // prev session was nudged → recall skips (handled in-session)
   assert.equal(runHook(RECALL, { session_id: "cur", transcript_path: cur }, cfg).trim(), "");
 });
 test("recall: prev has no DONE → silent", () => {
@@ -270,9 +275,83 @@ test("anchor: survives missing cwd (process.cwd fallback, no crash)", () => {
   assert.match(out, /\[Argus\]/); // base nudge still emitted, no crash
 });
 
+// ── marker state machine: once-per-decision re-arm, dedupe, permanent seen, prune ──
+test("once-per-decision: armed → silent re-nudge; wake consumes → re-arms", () => {
+  const cfg = tmp("argus-ds-cfg-"); const td = tmp("argus-ds-t-");
+  assert.match(runHook(ANCHOR, { session_id: "d1", user_message: "A 할까 말까 고민" }, cfg), /\[Argus\]/);
+  // already armed → a second START is silent (one decision at a time)
+  assert.equal(runHook(ANCHOR, { session_id: "d1", user_message: "또 둘 중에 뭐가 나아" }, cfg).trim(), "");
+  // wake closes the decision → consumes the armed marker
+  const tp = transcript(td, "s.jsonl", [userMsg("그걸로 가자 결정했어")]);
+  JSON.parse(runHook(WAKE, { session_id: "d1", transcript_path: tp }, cfg));
+  // a fresh START now re-arms
+  assert.match(runHook(ANCHOR, { session_id: "d1", user_message: "B 할까 말까 고민" }, cfg), /\[Argus\]/);
+});
+test("wake & commit dedupe: whichever closes first consumes the slot", () => {
+  const cfg = tmp("argus-ds-cfg-"); const td = tmp("argus-ds-t-"); anchorOn(cfg, "dd");
+  const tp = transcript(td, "s.jsonl", [userMsg("그걸로 가자 결정했어")]);
+  JSON.parse(runHook(WAKE, { session_id: "dd", transcript_path: tp }, cfg)); // consumes
+  assert.equal(runHook(COMMIT, commitInput("dd", "git commit -m x"), cfg).trim(), ""); // slot gone
+});
+test("recall keys off permanent seen (survives wake consuming anchored)", () => {
+  const cfg = tmp("argus-ds-cfg-"); const td = tmp("argus-ds-t-");
+  seenOn(cfg, "prev"); // ON session: seen written; its anchored was already consumed by wake
+  transcript(td, "prev.jsonl", [userMsg("그걸로 가자 결정했어")]);
+  const cur = transcript(td, "cur.jsonl", [userMsg("hi")]);
+  assert.equal(runHook(RECALL, { session_id: "cur", transcript_path: cur }, cfg).trim(), "");
+});
+test("pruneMarkers (via recall): removes >30d stale, keeps fresh", () => {
+  const cfg = tmp("argus-ds-cfg-"); const td = tmp("argus-ds-t-");
+  mkdirSync(join(cfg, "argus-anchored"), { recursive: true });
+  const stale = join(cfg, "argus-anchored", "stale"); writeFileSync(stale, "");
+  const fresh = join(cfg, "argus-anchored", "fresh"); writeFileSync(fresh, "");
+  const past = Date.now() / 1000 - 40 * 86400; // 40 days ago, in seconds
+  utimesSync(stale, past, past);
+  const cur = transcript(td, "only.jsonl", [userMsg("hi")]); // no prev → recall just prunes
+  runHook(RECALL, { session_id: "only", transcript_path: cur }, cfg);
+  assert.ok(!existsSync(stale), "stale marker pruned");
+  assert.ok(existsSync(fresh), "fresh marker kept");
+});
+
+// ── keel-signal: irreversible-op pre-flight warning (PreToolUse) ────────────
+test("isIrreversible: detects destructive, ignores routine", () => {
+  for (const c of ["git push --force origin main", "git push -f", "rm -rf node_modules",
+    "DROP TABLE users", "supabase db push", "git reset --hard HEAD~1", "DELETE FROM logs"])
+    assert.ok(sig.isIrreversible(c), "should flag: " + c);
+  for (const c of ["git status", "npm test", "git push origin main", "ls -la", "git commit -m x", "rm file.txt"])
+    assert.ok(!sig.isIrreversible(c), "should ignore: " + c);
+});
+test("isDangerousTool: matches MCP danger tools by suffix", () => {
+  assert.ok(sig.isDangerousTool("mcp__claude_ai_Supabase__apply_migration"));
+  assert.ok(sig.isDangerousTool("delete_branch"));
+  assert.ok(!sig.isDangerousTool("Read"));
+  assert.ok(!sig.isDangerousTool("mcp__x__execute_sql"));
+});
+test("keel: irreversible Bash → non-blocking advisory (allow + additionalContext)", () => {
+  const cfg = tmp("argus-ds-cfg-");
+  const o = JSON.parse(runHook(KEEL, { session_id: "k1", tool_name: "Bash", tool_input: { command: "git push --force origin main" } }, cfg));
+  assert.equal(o.hookSpecificOutput.hookEventName, "PreToolUse");
+  assert.equal(o.hookSpecificOutput.permissionDecision, "allow"); // NEVER blocks
+  assert.match(o.hookSpecificOutput.additionalContext, /irreversible/i);
+});
+test("keel: dangerous MCP tool → advisory", () => {
+  const cfg = tmp("argus-ds-cfg-");
+  const o = JSON.parse(runHook(KEEL, { session_id: "k2", tool_name: "mcp__claude_ai_Supabase__apply_migration", tool_input: {} }, cfg));
+  assert.equal(o.hookSpecificOutput.permissionDecision, "allow");
+});
+test("keel: routine Bash → silent", () =>
+  assert.equal(runHook(KEEL, { session_id: "k3", tool_name: "Bash", tool_input: { command: "git status" } }).trim(), ""));
+test("keel: non-irreversible tool (Read) → silent", () =>
+  assert.equal(runHook(KEEL, { session_id: "k4", tool_name: "Read", tool_input: {} }).trim(), ""));
+test("keel: once per session", () => {
+  const cfg = tmp("argus-ds-cfg-");
+  runHook(KEEL, { session_id: "k5", tool_name: "Bash", tool_input: { command: "rm -rf build" } }, cfg);
+  assert.equal(runHook(KEEL, { session_id: "k5", tool_name: "Bash", tool_input: { command: "git push -f" } }, cfg).trim(), "");
+});
+
 // ── integration: robustness ─────────────────────────────────────────────────
 test("all hooks: broken stdin → silent, exit 0", () => {
-  for (const s of [ANCHOR, WAKE, RECALL, COMMIT]) {
+  for (const s of [ANCHOR, WAKE, RECALL, COMMIT, KEEL]) {
     const r = spawnSync(process.execPath, [s], { input: "not json", encoding: "utf8" });
     assert.equal(r.status, 0);
     assert.equal(r.stdout.trim(), "");

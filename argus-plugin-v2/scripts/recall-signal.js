@@ -23,9 +23,12 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { configDir, hasDoneSignal, readTail, lastUserText } = require("./lib/decision-signals");
+const { configDir, hasDoneSignal, readTail, lastUserText, pruneMarkers } = require("./lib/decision-signals");
 
-const anchoredMarker = (id) => path.join(configDir(), "argus-anchored", String(id));
+// seen (permanent) = "this session was nudged/anchored". recall uses it to tell an ON
+// session (handled in-session) from an OFF one — the live argus-anchored marker is
+// consumed by wake/commit, so it can't be the signal here.
+const seenMarker = (id) => path.join(configDir(), "argus-seen", String(id));
 const recalledMarker = (id) => path.join(configDir(), "argus-recalled", String(id));
 
 function clip(t, n) {
@@ -69,10 +72,13 @@ function main() {
   const transcriptPath = data && data.transcript_path;
   if (!transcriptPath) return;
 
+  // Opportunistic cleanup of stale per-session markers (>30 days), once per session start.
+  try { pruneMarkers(30 * 24 * 60 * 60 * 1000); } catch {}
+
   const prev = prevSession(transcriptPath);
   if (!prev) return;
-  // Prev was an ON (anchored) session → its wake was handled in-session. Skip.
-  try { if (fs.existsSync(anchoredMarker(prev.id))) return; } catch { return; }
+  // Prev was an ON session (it was nudged → its wake was handled in-session). Skip.
+  try { if (fs.existsSync(seenMarker(prev.id))) return; } catch { return; }
   // Already recalled this previous session → silence (once).
   try { if (fs.existsSync(recalledMarker(prev.id))) return; } catch { return; }
 
