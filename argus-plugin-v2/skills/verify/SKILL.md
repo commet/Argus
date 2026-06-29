@@ -291,6 +291,19 @@ Create `human_required_checks[]` from:
 - challenged claims with a human-only cause
 - external checks such as legal counsel, customer interview, budget owner,
   production telemetry, deploy access, or sales data
+- **named-but-not-run checks (missed-check).** A worker explicitly named a
+  verification as a *precondition for relying on a claim* — "load-test before
+  trusting this", "confirm with legal", "benchmark before quoting the number" —
+  and no `supported_claims[]` evidence shows it was actually run. Surface it with
+  `why_ai_cannot_verify: "named by the crew as needed but not run"`.
+  **Tightly scoped (mirror clause — do not turn every 'should' into a wall):**
+  only when (a) a worker framed it as a *precondition*, not a vague "might also
+  consider," AND (b) it is tied to a load-bearing claim or a `next_action`. A soft
+  suggestion on a leaf is NOT surfaced. **Default `blocks: "none"`** (a worth-doing
+  to-do, not a gate); escalate to `final_signoff`/`execution` only when the unrun
+  check sits on a load-bearing claim whose failure is unsafe or irreversible (there
+  it coincides with the reality reef / a critical gate). On a routine or reversible
+  decision a missed soft check stays unsurfaced.
 
 Each check must say why AI cannot verify it:
 
