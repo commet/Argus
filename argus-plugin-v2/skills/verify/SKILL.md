@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Heading. Invoked as `/argus:verify`.
+description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Heading. Use after /argus:team writes its scaffold, when /argus:sail chains a medium/high decision, or when the user asks whether the crew output can be trusted — "믿어도 되나", "근거 확인해줘", "can we trust this output". NOT for grading future outcomes (that is /argus:settle), and not needed for a low-density minimal scaffold. Invoked as `/argus:verify`.
 ---
 
 # /argus:verify
@@ -138,6 +138,39 @@ Claims passing become `supported_claims[]`:
 }
 ```
 
+### Step 3.5 - Grounding + Load-Bearing Pass (find the reality reef)
+
+The deepest failure this gate must catch is NOT an internal wording slip — it is
+a claim **only reality can confirm** that the conclusion rests on and that nobody
+checked against reality. The agents all agreeing proves nothing about the world.
+Two cheap, **checkable** tags per claim (no prose-inference, no graph solver):
+
+**(a) Grounding — internal vs external.** Tag each claim:
+- `internal` — the agents can confirm it: logic, arithmetic, code/in-repo
+  citation, a source they can read.
+- `external` — only reality confirms it: market size, a regulator's actual
+  position, a customer's actual want, performance at real scale, a third party's
+  behavior. **Cross-agent agreement is NOT confirmation of an `external` claim**
+  (the second agent is the same model restating the first).
+
+**(b) Load-bearing — STRUCTURAL anchors only.** A claim is load-bearing iff a
+`scaffold.next_actions[]` entry lists it in `rests_on`, or `current_course`
+rests on it. Record those anchors:
+
+```json
+"depended_on_by": ["action:eu-rollout", "action:eu-payment"]
+```
+
+**Do NOT infer claim-to-claim dependencies from prose** — the model
+co-generated both claims, so "X assumes Y" is always *plausible* and never
+*checkable*. Only a structural anchor (an action's `rests_on`, the course)
+counts. No anchor → `depended_on_by: []`. This is what stops a fabricated edge
+from silently escalating severity (the over-fire failure, mirror clause).
+
+The reef = a claim that is **`external` AND load-bearing AND not confirmed by a
+real-world source**. That intersection — not "most-depended-on claim" — is where
+a real decision actually goes wrong.
+
 ### Step 4 - Negative Validation
 
 For each claim, ask:
@@ -167,6 +200,41 @@ Severity:
 - `critical`: final signoff or execution would be unsafe.
 - `important`: must be visible in the Current Heading or fixed.
 - `minor`: note it; do not block by itself.
+
+**Grounding-driven handling — generate first, then flag, gate only when it must.**
+Being `external` is NOT a reason to withhold the answer. Argus's spine is *maximum
+generation*: still give the substantive read — the estimate, base rate, indirect
+evidence, the likely answer — and let Step 3 support it on that basis, labeled
+`external` (reality-pending). Tagging `external` marks *who can finally confirm
+it*, not *whether Argus may help with it*. Then key handling off the checkable
+tags, never an inferred prose edge:
+
+- **`external` + load-bearing.** This is the one the conclusion rests on that
+  only reality settles, so it does NOT route as an agent-fixable
+  `challenged_claim`. It always becomes a **`human_required_checks[]` entry**, but
+  whether it **GATES depends on stakes × reversibility**:
+  - **high-stakes AND hard-to-reverse** (an irreversible commit, regulated
+    exposure, money/legal/safety that can't be unwound) → `blocks:
+    "final_signoff"` / `"execution"`, recorded as the `root_crack` (Step 9). The
+    agents' agreement must never let this read as `verified`.
+  - **reversible / low-stakes** → `blocks: "none"` (proceed-aware). Surface
+    Argus's best read + the one cheap check; do NOT block a decision the user can
+    walk back. Blocking the reversible is over-fire (mirror clause).
+  - Either way the entry is **armed, not a referral**: name *who/what* confirms,
+    *what a "yes" looks like*, and Argus's *best estimate meanwhile* (Step 6 /
+    Step 9 fields). "Go verify GDPR" is a cop-out; "ask the DPO whether the signed
+    DPA + RoPA exist; absent in 48h, treat readiness as incomplete — base rate
+    says self-declared compliance is wrong ~X% of the time" is help.
+- **`internal` + load-bearing** (a logic/code/math claim an action rests on):
+  the agents *can* check it, so do — floor it at `important` and demand the
+  Evidence check actually pass. Not a reality gate; a verify-harder item.
+- **leaf claims** (no structural anchor): judged on their own merits; a weak leaf
+  stays `minor`.
+
+Asymmetric and bounded: only a *structural* anchor escalates, only an *external +
+high-stakes-irreversible* anchor gates. A fabricated dependency can't manufacture
+a block, a reversible call isn't walled off, and a real external premise on a
+big irreversible bet can't hide as a note.
 
 **Do not manufacture minor challenges to fill the ledger.** A genuinely clean,
 reversible decision can verify with zero challenges — that is a valid `verified`
@@ -263,6 +331,33 @@ Write `versions/{label}/verification.json` conforming to
 (current ISO-8601 timestamp) — it is a required field and a downstream validator
 rejects a ledger without it.
 
+**Compute `root_crack`** — set it ONLY for the **gating** reality reef: the
+load-bearing, `external`, unconfirmed claim on a **high-stakes, hard-to-reverse**
+decision (Step 4). It carries *armed help*, never a bare referral:
+
+```json
+"root_crack": {
+  "claim_id": "c-1",
+  "claim": "GDPR readiness is already complete",
+  "grounding": "external",
+  "depended_on_by": ["action:eu-payment", "action:eu-rollout"],
+  "why": "Payment go-live and the EU rollout rest on this; only counsel/regulator can confirm it",
+  "best_read": "Self-declared 'done' with no DPA/RoPA/DPIA cited usually means a checklist was run, not production data-flows signed off — treat as likely-incomplete until shown otherwise.",
+  "cheapest_check": "Ask the DPO/counsel for the signed DPA + RoPA + DPIA. A 'yes' = those three documents exist and cover payment processing. Absent within 48h, treat readiness as incomplete."
+}
+```
+
+**`root_crack` is `null`** when no load-bearing external claim sits on a
+high-stakes irreversible decision — a reversible call or an internal-only
+decision has no gating reef (the external check still ships as a non-gating armed
+note, just not here). Do NOT promote an `internal` claim, a leaf, or a reversible
+external claim here (over-fire / mirror clause).
+
+**Carry it to the contract seed.** A gating reef is exactly a predicate to seal
+and settle later — set `current_bearing.contract_seed` (sail Step 7) from it so
+the same claim becomes a falsifiable check against reality, closing the
+seal -> reality -> settle loop instead of dying as a note.
+
 Update `versions/{label}/scaffold.json`:
 
 ```json
@@ -312,7 +407,10 @@ Supported:
 Challenged:
 - [{{severity}}] {{claim}}
   -> {{suggested_fix}}
-
+{{if root_crack}}
+Reality check needed (the course rests on this; only reality confirms it):
+  {{root_crack.claim}} — {{root_crack.why}}
+{{endif}}
 Unresolved tensions:
 - {{topic}} - tie-breaker: {{tie_breaking_condition}}
 
