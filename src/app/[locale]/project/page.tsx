@@ -19,6 +19,7 @@ import { LocaleLink } from '@/components/ui/LocaleLink';
 import { Layers, Map as MapIcon, Users, Check, ArrowRight, Download, Sparkles, Plus, Search, GitBranch, Scale, AlertTriangle, MessageSquare, Trash2 } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
+import { ChartPlate } from '@/components/ui/ChartPlate';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
@@ -418,23 +419,11 @@ export default function ProjectPage() {
       {!currentProject && (
         <div className="space-y-5">
           {projects.length === 0 ? (
-            // The empty dashboard, rendered as a sea-chart sheet — the landing's
-            // blueprint material carried inside, so a first-time harbor reads as "an
-            // uncharted plate, ship moored & ready to sail" instead of a generic empty
-            // card. --bp-* tokens are theme-paired (light: parchment+navy ink / dark:
-            // charcoal+cream ink), so this stays legible in both modes.
-            <div className="relative overflow-hidden rounded-2xl border border-[var(--bp-ink)]/15 bg-[var(--bp-paper)] shadow-[var(--shadow-md)]">
-              <Graticule opacity={0.08} spacing={26} />
-              {/* registration ticks — the chart-plate corner marks (landing signature) */}
-              <span className="absolute top-2.5 left-2.5 w-3 h-3 border-t border-l border-[var(--bp-ink)]/30" aria-hidden />
-              <span className="absolute top-2.5 right-2.5 w-3 h-3 border-t border-r border-[var(--bp-ink)]/30" aria-hidden />
-              <span className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b border-l border-[var(--bp-ink)]/30" aria-hidden />
-              <span className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b border-r border-[var(--bp-ink)]/30" aria-hidden />
-              {/* plate label + coordinate — the blueprint register */}
-              <span className="absolute top-3 left-5 text-[9px] font-mono uppercase tracking-[0.22em] text-[var(--bp-ink-soft)]/70">{L('미개척 · UNCHARTED', 'UNCHARTED')}</span>
-              <span className="absolute top-3 right-5 hidden sm:block text-[9px] font-mono tracking-[0.12em] text-[var(--bp-ink-soft)]/55 tabular-nums">37°34′N · 126°58′E</span>
-
-              <div className="relative px-6 py-14 md:py-16 flex flex-col items-center text-center">
+            // The empty dashboard, rendered as a sea-chart sheet (ChartPlate) — the
+            // landing's blueprint material carried inside, so a first-time harbor reads
+            // as "an uncharted plate, ship moored & ready to sail", coherent with every
+            // other empty interior.
+            <ChartPlate label={L('미개척 · UNCHARTED', 'UNCHARTED')} coordinate="37°34′N · 126°58′E">
                 <VoyageShip state="docked" size={116} title={L('출항 전 — 정박 중', 'Before sailing — moored')} className="mb-1" />
                 <div className="w-24 h-px bg-[var(--bp-ink)]/20 mb-6" />
                 <h2 className="text-[21px] md:text-[23px] font-bold text-[var(--bp-ink)] tracking-tight leading-snug" style={{ fontFamily: 'var(--font-display)' }}>
@@ -464,8 +453,7 @@ export default function ProjectPage() {
                     {L('플러그인 결정 가져오기 →', 'Import your plugin decisions →')}
                   </LocaleLink>
                 </p>
-              </div>
-            </div>
+            </ChartPlate>
           ) : (
             <>
               {/* 자차표 — the user's accumulating record of closed loops.
@@ -619,9 +607,20 @@ export default function ProjectPage() {
 
               {/* Project grid — rich cards */}
               {filteredProjects.length === 0 ? (
-                <div className="text-center py-10 text-[13px] text-[var(--text-tertiary)]">
-                  {L('일치하는 프로젝트가 없어요.', 'No matching projects.')}
-                </div>
+                <ChartPlate compact label={L('항로 밖 · NO BEARING', 'NO BEARING')}>
+                  <p className="text-[15px] font-bold text-[var(--bp-ink)] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                    {L('이 조건에 맞는 항해가 없어요', 'No voyages on this bearing')}
+                  </p>
+                  <p className="mt-1.5 text-[12.5px] leading-[1.65] text-[var(--bp-ink-soft)] max-w-xs">
+                    {L('필터나 검색어를 바꿔 보세요.', 'Try a different filter or search.')}
+                  </p>
+                  <button
+                    onClick={() => { setStatusFilter('all'); setQuery(''); }}
+                    className="mt-4 text-[12px] font-semibold text-[var(--bp-gold)] hover:underline cursor-pointer"
+                  >
+                    {L('필터 지우기', 'Clear filters')}
+                  </button>
+                </ChartPlate>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredProjects.map((project) => {

@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import type { TeamInvite } from '@/stores/types';
 import { useTeamStore } from '@/stores/useTeamStore';
-import { Card } from '@/components/ui/Card';
+import { ChartPlate } from '@/components/ui/ChartPlate';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Plus, Users, Mail, Check, X, Crown, Shield, User, Trash2, Copy, ArrowRight } from 'lucide-react';
+import { Plus, Users, Mail, Check, X, Crown, Shield, User, Trash2 } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 
 export default function TeamsPage() {
@@ -133,16 +133,21 @@ export default function TeamsPage() {
       {/* ── Team list ── */}
       <div className="space-y-3">
         {teams.length === 0 && !showCreate ? (
-          <Card className="text-center py-16">
-            <Users size={28} className="mx-auto text-[var(--text-tertiary)] mb-4" />
-            <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">{L('아직 팀이 없어요', 'No teams yet')}</p>
-            <p className="text-[13px] text-[var(--text-secondary)] max-w-xs mx-auto mb-6">
+          <ChartPlate label={L('정박지 없음 · NO PORT', 'NO PORT')}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[var(--bp-ink)]/[0.06] border border-[var(--bp-ink)]/15">
+              <Users size={22} className="text-[var(--bp-ink-soft)]" />
+            </div>
+            <div className="w-20 h-px bg-[var(--bp-ink)]/20 my-5" />
+            <p className="text-[19px] md:text-[20px] font-bold text-[var(--bp-ink)] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{L('아직 팀이 없어요', 'No teams yet')}</p>
+            <p className="mt-2 text-[13px] leading-[1.7] text-[var(--bp-ink-soft)] max-w-xs">
               {L('팀을 만들면 프로젝트를 공유하고, 팀원들의 피드백을 받을 수 있어요.', 'Make a team to share projects and get your teammates’ feedback.')}
             </p>
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus size={14} /> {L('첫 팀 만들기', 'Create your first team')}
-            </Button>
-          </Card>
+            <div className="mt-6">
+              <Button variant="accent" onClick={() => setShowCreate(true)}>
+                <Plus size={14} /> {L('첫 팀 만들기', 'Create your first team')}
+              </Button>
+            </div>
+          </ChartPlate>
         ) : (
           <>
             <div className="flex items-center justify-between">
