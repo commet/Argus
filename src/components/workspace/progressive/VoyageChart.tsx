@@ -34,10 +34,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Compass, X as XIcon, RotateCcw, ChevronRight } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
-import type { VoyageStage } from '@/stores/types';
+import type { VoyageStage, Waypoint } from '@/stores/types';
 import { getActivePath } from '@/lib/version-tree';
 import { resolveCheckpointNav } from '@/lib/voyage-nav';
 import { SeaChart } from './SeaChart';
+import { WaypointCard } from './shared/WaypointCard';
 import { EASE } from './shared/constants';
 
 // Stage order — denominator for the header's "reached / total" waypoint count.
@@ -51,17 +52,40 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
   const session = useProgressiveStore(s => s.sessions.find(ss => ss.id === s.currentSessionId));
   const navigateToCheckpoint = useProgressiveStore(s => s.navigateToCheckpoint);
   const switchBranch = useProgressiveStore(s => s.switchBranch);
+  const forkBranch = useProgressiveStore(s => s.forkBranch);
   const locked = useProgressiveStore(s => s.isBranchingLocked());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const checkpoints = useMemo(() => session?.checkpoints || [], [session?.checkpoints]);
+  const waypoints = useMemo(() => session?.waypoints || [], [session?.waypoints]);
   const activeId = session?.active_checkpoint_id ?? null;
   const activePath = useMemo(() => getActivePath(checkpoints, activeId), [checkpoints, activeId]);
   const branches = useMemo(() => session?.branches ?? [], [session?.branches]);
   const activeBranch = branches.find(b => b.id === session?.active_branch_id) ?? null;
 
+  // A tapped node resolves to its logged turn (if any), so the selection panel
+  // shows the SAME WaypointCard the rail uses — one home for a turn's narration.
+  const wpByCp = useMemo(() => {
+    const m = new Map<string, Waypoint>();
+    for (const w of waypoints) m.set(w.checkpoint_id, w);
+    return m;
+  }, [waypoints]);
+  const parentOf = useMemo(() => new Map(checkpoints.map(c => [c.id, c.parent_id])), [checkpoints]);
+  const assumptionsByCp = useMemo(
+    () => new Map(checkpoints.map(c => [c.id, c.state_snapshot?.snapshots?.slice(-1)?.[0]?.hidden_assumptions || []])),
+    [checkpoints],
+  );
+
   if (!session || checkpoints.length === 0) return null;
+
+  // Take a road not taken — fork from the point before the turn (same rule as
+  // the trail/rail). Closing the modal surfaces the rewound flow underneath.
+  const takeRoad = (cpId: string, label: string) => {
+    if (locked) return;
+    forkBranch(parentOf.get(cpId) ?? cpId, label);
+    onNavigated?.();
+  };
 
   const handleNodeClick = (id: string) => {
     setSelectedId(prev => prev === id ? null : id);
@@ -184,12 +208,29 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
         )}
       </div>
 
-      {/* Selection popover (slides in below the chart for the picked
-          waypoint). Active-waypoint clicks just close — no empty popover. */}
+      {/* Selection panel (slides in below the chart for the picked node). The
+          picked turn's full story renders in the SAME WaypointCard the rail
+          uses, plus a "이 지점에서 항해" rewind action. Active-node clicks just
+          close — no empty panel. */}
       <AnimatePresence>
         {selectedId && (() => {
           const cp = checkpoints.find(c => c.id === selectedId);
           if (!cp || cp.id === activeId) return null;
+          const wp = wpByCp.get(cp.id) ?? null;
+          const dateStr = new Date(cp.created_at).toLocaleString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+          });
+          const rewindBtn = (
+            <button
+              type="button"
+              onClick={() => handleRestoreRequest(cp.id)}
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[11px] font-semibold text-[var(--accent)] border border-[var(--accent)]/35 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer min-h-[36px]"
+            >
+              <RotateCcw size={11} />
+              {L('이 지점에서 항해', 'Sail from here')}
+              <ChevronRight size={10} />
+            </button>
+          );
           return (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -199,8 +240,8 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
               className="overflow-hidden border-t border-[var(--accent)]/20 bg-[var(--accent)]/[0.04]"
             >
               <div className="px-4 py-3">
-                <div className="flex items-baseline justify-between gap-2 mb-1">
-                  <span className="text-[11.5px] font-semibold text-[var(--text-primary)]">{cp.label}</span>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[10px] text-[var(--text-tertiary)]">{dateStr}</span>
                   <button
                     type="button"
                     onClick={() => setSelectedId(null)}
@@ -210,20 +251,21 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
                     <XIcon size={11} />
                   </button>
                 </div>
-                <div className="text-[10px] text-[var(--text-tertiary)] mb-2.5">
-                  {new Date(cp.created_at).toLocaleString(locale === 'ko' ? 'ko-KR' : 'en-US', {
-                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                  })}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleRestoreRequest(cp.id)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded text-[11px] font-semibold text-[var(--accent)] border border-[var(--accent)]/35 hover:bg-[var(--accent)]/10 transition-colors cursor-pointer min-h-[36px]"
-                >
-                  <RotateCcw size={11} />
-                  {L('이 지점에서 항해', 'Sail from here')}
-                  <ChevronRight size={10} />
-                </button>
+                {wp ? (
+                  <WaypointCard
+                    waypoint={wp}
+                    assumptions={assumptionsByCp.get(cp.id) || []}
+                    locked={locked}
+                    onTakeRoad={takeRoad}
+                    action={rewindBtn}
+                  />
+                ) : (
+                  // A checkpoint with no logged turn — just its label + rewind.
+                  <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2.5">
+                    <div className="text-[12px] font-semibold text-[var(--text-primary)] mb-2.5">{cp.label}</div>
+                    {rewindBtn}
+                  </div>
+                )}
               </div>
             </motion.div>
           );
