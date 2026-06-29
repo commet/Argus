@@ -240,15 +240,14 @@ describe('Voyage branch layer', () => {
     });
   });
 
-  describe('quota guards (Phase 6)', () => {
-    it('caps branches per session at 8 and refuses further forks', () => {
+  describe('snapshot interning', () => {
+    it('no branch cap — forking past the old MAX_BRANCHES=8 still succeeds', () => {
       const sid = startSession();
       const c1 = api().recordCheckpoint('origin')!; // main = 1 branch
       const results = Array.from({ length: 10 }, () => api().forkBranch(c1.id));
       const s = session(sid);
-      expect(s.branches!.length).toBe(8);                       // capped
-      expect(results.filter(Boolean).length).toBe(7);          // 1 main + 7 forks = 8
-      expect(results[7]).toBeNull();                            // the 8th fork is blocked
+      expect(s.branches!.length).toBe(11);                 // 1 main + 10 forks, uncapped
+      expect(results.every(Boolean)).toBe(true);           // none refused
     });
 
     it('strips transient stream_text from checkpoint snapshots', () => {

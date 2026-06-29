@@ -36,6 +36,7 @@ import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
 import type { VoyageStage } from '@/stores/types';
 import { getActivePath } from '@/lib/version-tree';
+import { resolveCheckpointNav } from '@/lib/voyage-nav';
 import { SeaChart } from './SeaChart';
 import { EASE } from './shared/constants';
 
@@ -248,6 +249,25 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
         {confirmId && (() => {
           const target = checkpoints.find(c => c.id === confirmId);
           if (!target) return null;
+          // Reuse the store's exact fork-vs-switch decision so the copy below
+          // tells the truth: returning to a course already sailed (switch) vs.
+          // diverging into a fresh line (fork).
+          const nav = resolveCheckpointNav(
+            checkpoints, branches, session.active_branch_id, activeId, confirmId,
+          );
+          const isSwitch = nav.action === 'switch';
+          const title = isSwitch
+            ? L('가봤던 이 길로 돌아갈까요?', 'Return to this course?')
+            : L('여기서 새 항로 잡을까요?', 'Set a new course from here?');
+          const body = isSwitch
+            ? L(
+                `이미 가봤던 '${target.label}' 시점으로 돌아갑니다. 지금 작업은 따로 보존돼요.`,
+                `Returns to '${target.label}', a course you already sailed. Your current work is preserved separately.`,
+              )
+            : L(
+                `'${target.label}' 시점으로 돌아갑니다. 현재 진행한 작업은 다른 항로로 보존돼요.`,
+                `Rewinds to '${target.label}'. Your current work is preserved as a separate course.`,
+              );
           return (
             <>
               <motion.div
@@ -271,13 +291,10 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">
-                        {L('여기서 새 항로 잡을까요?', 'Set a new course from here?')}
+                        {title}
                       </h3>
                       <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
-                        {L(
-                          `'${target.label}' 시점으로 돌아갑니다. 현재 진행한 작업은 다른 항로로 보존돼요.`,
-                          `Rewinds to '${target.label}'. Your current work is preserved as a separate course.`,
-                        )}
+                        {body}
                       </p>
                     </div>
                     <button
@@ -300,7 +317,7 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
                       className="flex-1 px-3 py-2.5 rounded-lg text-[12.5px] font-semibold text-white shadow-[var(--shadow-sm)] cursor-pointer"
                       style={{ background: 'var(--gradient-gold)' }}
                     >
-                      {L('이 항로로', 'Set course')}
+                      {isSwitch ? L('이 길로', 'Go') : L('이 항로로', 'Set course')}
                     </button>
                   </div>
                 </div>

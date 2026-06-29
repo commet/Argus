@@ -15,6 +15,7 @@ import { computeQualityXP } from '@/lib/agent-quality';
 import { nextChildLabel, promoteToMajor, ROOT_LABEL } from '@/lib/version-numbering';
 import { getCurrentLanguage } from '@/lib/i18n';
 import { getActivePath as getActivePathGeneric, overallLatest } from '@/lib/version-tree';
+import { resolveCheckpointNav } from '@/lib/voyage-nav';
 import { deriveWaypoint } from '@/lib/voyage-log';
 import type {
   ProgressiveSession,
@@ -42,10 +43,6 @@ import type {
 
 /** Course-line colors, cycled as new branches fork off the tree. */
 const BRANCH_COLORS = ['#2d4a7c', '#8b6914', '#6b4c9a', '#2d6b2d', '#9b5de5', '#b5651d'];
-
-/** Hard cap on branches per session — guards localStorage (each branch's
- *  checkpoints are full-state copies) and keeps the chart legible. */
-const MAX_BRANCHES = 8;
 
 /** Locale-aware name for the auto-created trunk branch. */
 function defaultMainBranchName(): string {
@@ -1549,18 +1546,11 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     const fromCp = (session.checkpoints || []).find(c => c.id === fromCheckpointId);
     if (!fromCp) return null;
 
-    // Cap branch count — refuse to fork past the limit (callers treat null as a
-    // no-op). Checked before any side effect (safety checkpoint) below.
-    if ((session.branches || []).length >= MAX_BRANCHES) {
-      track('voyage_fork_blocked', { reason: 'max_branches' });
-      // Surface the cap — a silent null here meant "fork a new course" did
-      // nothing visible. A window CustomEvent (no component import from the
-      // store) drives a global toast, mirroring the storage-error pattern.
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('argus:fork-blocked', { detail: { max: MAX_BRANCHES } }));
-      }
-      return null;
-    }
+    // No branch cap. The old MAX_BRANCHES=8 gate belonged to the named-course
+    // "playground"; in the simplified model forking is a rare, deliberate
+    // "go back and try differently", so an arbitrary ceiling (and the silent
+    // null / toast it forced) only got in the user's way. Growth is bounded by
+    // human action, and the chart already collapses sibling overflow into "+N".
 
     // Preserve in-progress work on the current branch before leaving it. The
     // safety checkpoint advances the *current* branch head (active_branch_id is
@@ -1640,22 +1630,14 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
   navigateToCheckpoint: (checkpointId) => {
     const session = get().currentSession();
     if (!session) return;
-    if (checkpointId === session.active_checkpoint_id) return; // already here
-    const checkpoints = session.checkpoints || [];
-    const branches = session.branches || [];
-    const active = branches.find(b => b.id === session.active_branch_id) ?? null;
-    const activeIds = active
-      ? new Set(getActivePathGeneric(checkpoints, active.head_checkpoint_id).map(c => c.id))
-      : new Set<string>();
-    // On the current course (including shared ancestry) → fork to diverge here.
-    if (activeIds.has(checkpointId)) { get().forkBranch(checkpointId); return; }
-    // Belongs to another existing course → switch to that branch.
-    const owning = branches.find(b =>
-      b.id !== session.active_branch_id &&
-      getActivePathGeneric(checkpoints, b.head_checkpoint_id).some(c => c.id === checkpointId));
-    if (owning) { get().switchBranch(owning.id); return; }
-    // Unowned point → fork.
-    get().forkBranch(checkpointId);
+    // Resolve fork-vs-switch through the shared pure helper so the chart's
+    // confirm dialog and this action never disagree about what a tap does.
+    const nav = resolveCheckpointNav(
+      session.checkpoints || [], session.branches || [],
+      session.active_branch_id, session.active_checkpoint_id, checkpointId,
+    );
+    if (nav.action === 'switch') { get().switchBranch(nav.branchId); return; }
+    if (nav.action === 'fork') { get().forkBranch(nav.fromCheckpointId); return; }
   },
 
   enrichWaypoint: (waypointId, patch) => {
