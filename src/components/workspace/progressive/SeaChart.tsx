@@ -5,13 +5,20 @@
  *
  * The voyage's checkpoints/branches are positioned by the pure geometry in
  * lib/branch-map-layout, then RE-DRAWN as a charted sea route on aged parchment:
- * a graticule, ink stains and a scorched edge, a 16-point compass rose with
- * rhumb lines, the chosen course threading a WINDING multi-harmonic spline (with
- * an ink-bleed wobble), my ship at the current position, and the roads-not-taken
- * rendered as UNKNOWN routes — fading dashed courses that variously end at an
- * island, a phantom ship, or dissolve into uncharted fog. A few phantom sails
- * drift in the empty sea to hint at the wider unknown. Period typography via
- * `--font-chart` (Cormorant Garamond → Nanum Myeongjo).
+ * a graticule, a 16-point compass rose with rhumb lines, the chosen course
+ * threading a WINDING multi-harmonic spline (with an ink-bleed wobble), my ship
+ * at the current position, and the roads-not-taken rendered as UNKNOWN routes —
+ * fading dashed courses that (in the full chart) end at an island, a phantom
+ * ship, or dissolve into uncharted fog. Period typography via `--font-chart`
+ * (Cormorant Garamond → Nanum Myeongjo).
+ *
+ * Ornament diet (redesign step 5): the founder kept parchment + ship but asked
+ * to cut excess. Meaningless cartographer flourishes were removed (depth
+ * soundings = random numerals, isobaths, drifting phantom sails), and the heavy
+ * aged texture — ink stains, the grain/scorch turbulence filters, and the
+ * road-not-taken island/fog/ship endpoints — is now FULL-CHART ONLY, so the
+ * always-visible rail hero stays clean and cheap. Kept everywhere: parchment,
+ * cool water wash, graticule, vignette, the inked course, waypoints, the ship.
  *
  * Self-contained parchment palette so it reads as a physical chart object in
  * both light and dark themes.
@@ -283,21 +290,6 @@ export function SeaChart({
   type Treat = 'island' | 'ship' | 'fog';
   const treatOf = (id: string): Treat => (['island', 'ship', 'fog'] as Treat[])[hash(id) % 3];
 
-  // Phantom sails drifting in the open sea (full) — one in the far-right margin,
-  // one in the unknown sea to the left, hinting at the wider unknown.
-  const driftShips = full ? [
-    { x: W * 0.91, y: H * 0.18, s: 6.5, a: -16 },
-    { x: W * 0.12, y: H * 0.5, s: 5.5, a: 14 },
-  ] : [];
-
-  // Depth soundings scattered over open water (full) — a cartographer's detail,
-  // kept clear of the centred course and its right-hand labels.
-  const soundings = full ? [
-    { x: W * 0.93, y: H * 0.36, n: 9 }, { x: W * 0.9, y: H * 0.52, n: 14 },
-    { x: W * 0.95, y: H * 0.68, n: 6 }, { x: W * 0.1, y: H * 0.3, n: 23 },
-    { x: W * 0.07, y: H * 0.7, n: 31 }, { x: W * 0.16, y: H * 0.86, n: 18 },
-  ] : [];
-
   return (
     <div className={`relative w-full overflow-hidden rounded-[10px] shadow-[inset_0_0_46px_rgba(78,56,16,0.15)]${full ? ' h-full' : ''}`}>
       <svg ref={svgRef} width="100%" height={full ? '100%' : undefined}
@@ -352,17 +344,17 @@ export function SeaChart({
         {/* Parchment + cool water wash + depth contours + stains + graticule + grain */}
         <rect x="0" y="0" width={W} height={H} fill={`url(#paper-${uid})`} />
         <rect x="0" y="0" width={W} height={H} fill={`url(#cool-${uid})`} />
-        {/* faint isobaths in the deep water toward the bottom */}
-        {full && [0, 1, 2, 3].map((i) => (
-          <path key={`bath-${i}`} d={`M ${W * 0.04} ${H * (0.74 + i * 0.066)} Q ${W * 0.5} ${H * (0.66 + i * 0.066)} ${W * 0.96} ${H * (0.76 + i * 0.066)}`}
-            fill="none" stroke="#54708a" strokeWidth={0.6} opacity={0.14} />
-        ))}
-        {stains.map((s, i) => <ellipse key={i} cx={s.x} cy={s.y} rx={s.r} ry={s.r * 0.78} fill={`url(#stain-${uid})`} />)}
+        {/* Aged stains + grain + scorched edge are full-chart only — in the
+            narrow rail they muddied a small surface (and the grain/scorch
+            turbulence filters are GPU-costly on an always-visible hero). The
+            parchment gradient, cool wash, graticule and vignette already carry
+            the "양피지" feel in compact. */}
+        {full && stains.map((s, i) => <ellipse key={i} cx={s.x} cy={s.y} rx={s.r} ry={s.r * 0.78} fill={`url(#stain-${uid})`} />)}
         <rect x="0" y="0" width={W} height={H} fill={`url(#grat-${uid})`} opacity={full ? 0.17 : 0.13} />
-        <rect x="0" y="0" width={W} height={H} filter={`url(#grain-${uid})`} opacity={full ? 0.06 : 0.05} />
+        {full && <rect x="0" y="0" width={W} height={H} filter={`url(#grain-${uid})`} opacity={0.06} />}
 
-        {/* Scorched, irregular edge */}
-        <rect x={full ? 6 : 3} y={full ? 6 : 3} width={W - (full ? 12 : 6)} height={H - (full ? 12 : 6)} fill="none" stroke="rgba(68,42,12,0.34)" strokeWidth={full ? 9 : 5} filter={`url(#scorch-${uid})`} opacity={0.55} />
+        {/* Scorched, irregular edge (full only) */}
+        {full && <rect x={6} y={6} width={W - 12} height={H - 12} fill="none" stroke="rgba(68,42,12,0.34)" strokeWidth={9} filter={`url(#scorch-${uid})`} opacity={0.55} />}
 
         {/* Neatline */}
         {full && (<><rect x="9" y="9" width={W - 18} height={H - 18} fill="none" stroke={PAPER.sepia} strokeWidth={1} opacity={0.55} /><rect x="13" y="13" width={W - 26} height={H - 26} fill="none" stroke={PAPER.sepia} strokeWidth={0.5} opacity={0.4} /></>)}
@@ -380,8 +372,10 @@ export function SeaChart({
             stroke={`url(#fade-${uid})`} strokeWidth={1.5} strokeLinecap="round" strokeDasharray="2 5" />;
         })}
 
-        {/* Unknown-route endpoints: island / phantom ship / fog */}
-        {ghostHeads.map((n, i) => {
+        {/* Unknown-route endpoints: island / phantom ship / fog. Full only — in
+            the rail the dashed branch lines already read as "다른 길"; these tiny
+            islands/fog blobs only clutter a small chart. */}
+        {full && ghostHeads.map((n, i) => {
           const t = treatOf(n.branchId!);
           // a faint tail continuing past the head toward the nearer side (into the unknown)
           const dir = n.px > W / 2 ? 1 : -1;
@@ -439,14 +433,6 @@ export function SeaChart({
             </g>
           );
         })}
-
-        {/* Depth soundings — faint italic numerals over the open sea */}
-        {soundings.map((s, i) => (
-          <text key={`snd-${i}`} x={s.x} y={s.y} fontSize={6.5} fill={PAPER.sepia} fontFamily={CHART_FONT} fontStyle="italic" opacity={0.42} textAnchor="middle">{s.n}</text>
-        ))}
-
-        {/* Drifting phantom sails in the open sea (full) */}
-        {driftShips.map((d, i) => <Ship key={`drift-${i}`} cx={d.x} cy={d.y} s={d.s} color={PAPER.sepiaSoft} phantom angle={d.a} />)}
 
         {/* ── The inked main course — one winding spline + ink-bleed wobble ── */}
         {activePath.length > 1 && (
