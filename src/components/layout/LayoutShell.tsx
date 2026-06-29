@@ -45,9 +45,15 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
   const content = needsAuth ? <AuthGuard>{children}</AuthGuard> : children;
 
   // Full-width, no sidebar (workspace, boss)
+  // min-w-0: this is a flex item in the row `<div className="flex flex-1">`
+  // (layout.tsx). A flex item defaults to min-width:auto, so it refuses to
+  // shrink below its content's min-content width — any wide descendant (a
+  // nowrap/truncate line, a long option) then pushes the whole page past the
+  // viewport, which iOS Safari resolves by zooming out. min-w-0 lets it shrink
+  // to the viewport so descendants wrap/clip instead of overflowing.
   const isBoss = pathname.startsWith('/boss');
   if (isWorkspace || isBoss) {
-    return <div className="flex-1">{content}</div>;
+    return <div className="flex-1 min-w-0">{content}</div>;
   }
 
   return (
