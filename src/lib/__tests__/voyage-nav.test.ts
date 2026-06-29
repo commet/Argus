@@ -12,7 +12,7 @@ const cp = (id: string, parent: string | null): VoyageCheckpoint => ({
 });
 const br = (id: string, head: string, forkedFrom: string | null): VoyageBranch => ({
   id, name: id, head_checkpoint_id: head, forked_from_checkpoint_id: forkedFrom,
-  status: 'sailing', color: '#000', created_at: id,
+  color: '#000', created_at: id,
 });
 
 // main: c1 → c2 → c3 (active, head c3). fork: c1 → f1 (head f1).

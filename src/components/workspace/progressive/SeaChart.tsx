@@ -211,7 +211,6 @@ export function SeaChart({
   }, [nodes, full, activeCheckpointId, activeBranchId]);
 
   const wpByCp = useMemo(() => { const m = new Map<string, Waypoint>(); for (const w of waypoints) m.set(w.checkpoint_id, w); return m; }, [waypoints]);
-  const statusByBranch = useMemo(() => new Map(branches.map(b => [b.id, b.status])), [branches]);
 
   // Reset the view whenever the voyage's shape or the current position changes,
   // so a freshly opened / updated chart always starts fully framed.
@@ -266,7 +265,6 @@ export function SeaChart({
     ? (id: string) => { if (suppressPick.current) { suppressPick.current = false; return; } onPick(id); }
     : undefined;
 
-  const dim = (branchId: string | null) => (branchId && statusByBranch.get(branchId) === 'abandoned' ? 0.4 : 1);
   const roseR = full ? Math.min(58, W * 0.11) : 11;
   // compass tucks into the bottom-left open sea (the right side carries labels);
   // in the narrow rail it's a faint top-right corner watermark, clear of the route
@@ -379,7 +377,7 @@ export function SeaChart({
           if (!p) return null;
           const my = (p.py + n.py) / 2;
           return <path key={`g-${n.id}`} d={`M ${p.px} ${p.py} C ${p.px} ${my}, ${n.px} ${my}, ${n.px} ${n.py}`} fill="none"
-            stroke={`url(#fade-${uid})`} strokeWidth={1.5} strokeLinecap="round" strokeDasharray="2 5" opacity={dim(n.branchId)} />;
+            stroke={`url(#fade-${uid})`} strokeWidth={1.5} strokeLinecap="round" strokeDasharray="2 5" />;
         })}
 
         {/* Unknown-route endpoints: island / phantom ship / fog */}
@@ -389,7 +387,7 @@ export function SeaChart({
           const dir = n.px > W / 2 ? 1 : -1;
           const tail = `M ${n.px} ${n.py} q ${dir * (full ? 26 : 12)} ${full ? 14 : 7}, ${dir * (full ? 52 : 24)} ${full ? 8 : 4}`;
           return (
-            <g key={`gt-${n.id}`} opacity={dim(n.branchId)}>
+            <g key={`gt-${n.id}`}>
               <path d={tail} fill="none" stroke={PAPER.ghost} strokeWidth={1.1} strokeDasharray="1.5 5" opacity={0.5} />
               {t === 'fog' && (
                 <>
@@ -469,14 +467,13 @@ export function SeaChart({
           const wp = wpByCp.get(n.id);
           const isActiveCp = n.id === activeCheckpointId;
           const isActiveBranch = n.branchId === activeBranchId;
-          const anchored = n.isHead && n.branchId && statusByBranch.get(n.branchId) === 'anchored';
           const isReef = wp?.type === 'reef';
           const baseColor = isReef ? PAPER.reef : isActiveBranch ? PAPER.ink : PAPER.sepia;
           const r = full ? (wp ? 4 : 2.4) : (wp ? 3 : 1.9);
 
           return (
             <g key={`n-${n.id}`}>
-             <g opacity={dim(n.branchId)} className={onPick ? 'cursor-pointer' : undefined} onClick={handlePick ? () => handlePick(n.id) : undefined}>
+             <g className={onPick ? 'cursor-pointer' : undefined} onClick={handlePick ? () => handlePick(n.id) : undefined}>
               {/* a whisper-thin halo only on waypoints, to lift them off the sea
                   without the old "target" heaviness */}
               {wp && !isActiveCp && <circle cx={n.px} cy={n.py} r={r + (full ? 2.4 : 1.8)} fill="none" stroke={baseColor} strokeWidth={0.4} opacity={0.18} />}
@@ -524,13 +521,6 @@ export function SeaChart({
               ) : (
                 // a plain logged checkpoint — a small hollow dot
                 <circle cx={n.px} cy={n.py} r={r} fill={PAPER.paper0} stroke={baseColor} strokeWidth={0.8} opacity={0.85} />
-              )}
-
-              {anchored && !isActiveCp && (
-                <g stroke={PAPER.gold} strokeWidth={1.1} fill="none">
-                  <line x1={n.px + r + 2} y1={n.py - r - 5} x2={n.px + r + 2} y2={n.py + 2} />
-                  <path d={`M ${n.px + r + 2} ${n.py - r - 5} L ${n.px + r + 8} ${n.py - r - 2.5} L ${n.px + r + 2} ${n.py - r} Z`} fill={PAPER.gold} />
-                </g>
               )}
 
               {full && wp && (() => {

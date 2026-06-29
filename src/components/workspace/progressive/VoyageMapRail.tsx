@@ -33,7 +33,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Compass, Map as MapIcon, Maximize2, PanelLeftClose, PanelLeftOpen,
-  Milestone, GitBranch, Anchor,
+  Milestone, GitBranch,
 } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
@@ -155,11 +155,6 @@ function VoyageMapHero() {
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)', outline: '1px solid var(--accent)', outlineOffset: '1.5px' }} />
             {L('현재', 'Here')}
           </span>
-          {branches.some(b => b.status === 'anchored') && (
-            <span className="inline-flex items-center gap-1">
-              <Anchor size={9} className="text-[var(--accent)]" /> {L('확정', 'Anchored')}
-            </span>
-          )}
         </div>
       )}
 

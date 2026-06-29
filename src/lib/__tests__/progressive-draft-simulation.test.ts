@@ -654,7 +654,7 @@ describe('navigateToCheckpoint forks + rewinds (chart fork mechanism)', () => {
       { id: 'c2', parent_id: 'c1', stage: 'briefing', label: '준비', created_at: '2026-01-01T00:00:02.000Z', state_snapshot: cpState() },
     ],
     active_checkpoint_id: 'c2',
-    branches: [{ id: 'b1', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'a' }],
+    branches: [{ id: 'b1', name: '본 항로', head_checkpoint_id: 'c2', forked_from_checkpoint_id: null, color: '#2d4a7c', created_at: 'a' }],
     active_branch_id: 'b1',
   });
 

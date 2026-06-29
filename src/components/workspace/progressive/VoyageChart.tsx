@@ -31,7 +31,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, X as XIcon, RotateCcw, ChevronRight, Flag } from 'lucide-react';
+import { Compass, X as XIcon, RotateCcw, ChevronRight } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { useLocale } from '@/hooks/useLocale';
 import type { VoyageStage } from '@/stores/types';
@@ -103,7 +103,6 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
         <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[var(--border-subtle)]/40 text-[10px]">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: activeBranch.color }} />
           <span className="font-semibold text-[var(--text-primary)] truncate max-w-[130px]">{activeBranch.name}</span>
-          {activeBranch.status === 'anchored' && <Flag size={9} className="text-[var(--accent)] shrink-0" />}
           <span className="ml-auto text-[var(--text-tertiary)]">{L(`항로 ${branches.length}개`, `${branches.length} courses`)}</span>
         </div>
       )}
@@ -137,16 +136,6 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--accent)', outline: '1px solid var(--accent)', outlineOffset: '1.5px' }} />
             {L('현재 위치', 'Current')}
           </span>
-          <span className="inline-flex items-center gap-1">
-            <Flag size={9} className="text-[var(--accent)] shrink-0" />
-            {L('확정 항로', 'Anchored')}
-          </span>
-          {branches.some(b => b.status === 'abandoned') && (
-            <span className="inline-flex items-center gap-1 opacity-50">
-              <span className="w-2 h-2 rounded-full border shrink-0" style={{ borderColor: 'var(--text-tertiary)' }} />
-              {L('포기한 항로', 'Abandoned')}
-            </span>
-          )}
         </div>
 
         {/* Footer hint — how to step back along the route. Journey language:
@@ -168,15 +157,13 @@ export function VoyageChart({ onNavigated }: { onNavigated?: () => void } = {}) 
             {branches.map(b => {
               const isActive = b.id === activeBranch?.id;
               const count = getActivePath(checkpoints, b.head_checkpoint_id).length;
-              const abandoned = b.status === 'abandoned';
               return (
                 <div
                   key={b.id}
-                  className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''} ${abandoned ? 'opacity-50' : ''}`}
+                  className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''}`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: b.color }} />
                   <span className="text-[11px] text-[var(--text-primary)] truncate flex-1 min-w-0" title={b.name}>{b.name}</span>
-                  {b.status === 'anchored' && <Flag size={9} className="text-[var(--accent)] shrink-0" />}
                   <span className="text-[9px] text-[var(--text-tertiary)] tabular-nums shrink-0">{count}</span>
                   {isActive ? (
                     <span className="text-[9px] text-[var(--accent)] font-semibold shrink-0 ml-0.5">{L('지금 이 길', 'current')}</span>

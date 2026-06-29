@@ -444,7 +444,6 @@ function migrateBranches(sessions: ProgressiveSession[]): ProgressiveSession[] {
       name: defaultMainBranchName(),
       head_checkpoint_id: headId,
       forked_from_checkpoint_id: null,
-      status: 'sailing',
       color: BRANCH_COLORS[0],
       created_at: s.created_at || new Date().toISOString(),
     };
@@ -1503,7 +1502,6 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
           name: defaultMainBranchName(),
           head_checkpoint_id: checkpoint.id,
           forked_from_checkpoint_id: null,
-          status: 'sailing',
           color: BRANCH_COLORS[0],
           created_at: checkpoint.created_at,
         };
@@ -1577,7 +1575,6 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       name,
       head_checkpoint_id: fromCheckpointId,
       forked_from_checkpoint_id: fromCheckpointId,
-      status: 'sailing',
       color: BRANCH_COLORS[branches.length % BRANCH_COLORS.length],
       created_at: new Date().toISOString(),
     };

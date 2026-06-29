@@ -1173,12 +1173,6 @@ export interface VoyageCheckpoint {
 
 // ─── Voyage branches (first-class course-lines over the checkpoint tree) ───
 
-/** Lifecycle of a branch (course-line) within a voyage. */
-export type BranchStatus =
-  | 'sailing'    // open — active, or paused-but-resumable
-  | 'anchored'   // chosen as the final course
-  | 'abandoned'; // a road not taken / superseded — preserved, never deleted
-
 /**
  * A named, first-class course-line layered over the checkpoint tree.
  *
@@ -1194,7 +1188,6 @@ export interface VoyageBranch {
   name: string;                              // "본 항로" | "분기: 챗봇 직접 제작" ...
   head_checkpoint_id: string;                // leaf of this branch's lineage
   forked_from_checkpoint_id: string | null;  // null only for the main branch
-  status: BranchStatus;
   color: string;                             // course-line color on the chart
   created_at: string;
 }

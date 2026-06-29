@@ -54,7 +54,7 @@ const charted: Partial<ProgressiveSession> = {
   active_branch_id: 'b-main',
   active_checkpoint_id: 'c1',
   checkpoints: [{ id: 'c1', parent_id: null, stage: 'origin', label: 'o', created_at: 'x', state_snapshot: {} as never }],
-  branches: [{ id: 'b-main', name: '본 항로', head_checkpoint_id: 'c1', forked_from_checkpoint_id: null, status: 'sailing', color: '#2d4a7c', created_at: 'x' }],
+  branches: [{ id: 'b-main', name: '본 항로', head_checkpoint_id: 'c1', forked_from_checkpoint_id: null, color: '#2d4a7c', created_at: 'x' }],
   waypoints: [{ id: 'w1', checkpoint_id: 'c1', type: 'departure', headline: '출항', created_at: 'x' }],
 };
 

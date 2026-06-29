@@ -8,12 +8,10 @@
  * Visual encoding:
  *   - line/node color = owning branch color
  *   - active branch = brighter + thicker; active checkpoint = ringed
- *   - anchored branch head = ⚑; abandoned branch = dimmed
  *   - a node that carries a ship's-log waypoint is filled (vs hollow)
  */
 
 import { useMemo, useId } from 'react';
-import { Flag } from 'lucide-react';
 import { layoutBranchMap, BM } from '@/lib/branch-map-layout';
 import type { VoyageBranch, VoyageCheckpoint, Waypoint } from '@/stores/types';
 
@@ -49,13 +47,10 @@ export function BranchMap({
   const gridId = 'bmgrid-' + useId().replace(/:/g, '');
 
   const byId = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
-  const statusByBranch = useMemo(() => new Map(branches.map(b => [b.id, b.status])), [branches]);
   const waypointCps = useMemo(() => new Set(waypoints.map(w => w.checkpoint_id)), [waypoints]);
 
   if (nodes.length === 0) return null;
 
-  const dim = (branchId: string | null) =>
-    branchId && statusByBranch.get(branchId) === 'abandoned' ? 0.4 : 1;
   // Floor the viewBox width so a 1–2 lane voyage doesn't get upscaled into
   // giant nodes when the SVG stretches to the container.
   const vbW = Math.max(width, BM.MIN_VIEW_W);
@@ -90,7 +85,7 @@ export function BranchMap({
             stroke={n.color}
             strokeWidth={isActiveBranch ? 1.6 : 1.1}
             strokeLinecap="round"
-            opacity={dim(n.branchId) * (isActiveBranch ? 1 : 0.75)}
+            opacity={isActiveBranch ? 1 : 0.75}
           />
         );
       })}
@@ -101,9 +96,8 @@ export function BranchMap({
         const isActiveCp = n.id === activeCheckpointId;
         const hasWaypoint = waypointCps.has(n.id);
         const r = hasWaypoint ? BM.NODE_R : BM.NODE_R - 2;
-        const anchored = n.isHead && n.branchId && statusByBranch.get(n.branchId) === 'anchored';
         return (
-          <g key={`n-${n.id}`} opacity={dim(n.branchId)} className="cursor-pointer" onClick={() => onPick(n.id)}>
+          <g key={`n-${n.id}`} className="cursor-pointer" onClick={() => onPick(n.id)}>
             {/* active checkpoint ring */}
             {isActiveCp && (
               <circle cx={n.x} cy={n.y} r={r + 3.5} fill="none" stroke={n.color} strokeWidth="1.2" opacity="0.5" />
@@ -116,13 +110,6 @@ export function BranchMap({
               stroke={n.color}
               strokeWidth={isActiveBranch ? 1.6 : 1.2}
             />
-            {anchored && (
-              <foreignObject x={n.x + r + 1} y={n.y - 6} width={12} height={12}>
-                <div className="w-full h-full flex items-center justify-center">
-                  <Flag size={9} className="text-[var(--accent)]" />
-                </div>
-              </foreignObject>
-            )}
             {/* invisible larger hit area */}
             <circle cx={n.x} cy={n.y} r={BM.NODE_R + 7} fill="transparent" />
           </g>

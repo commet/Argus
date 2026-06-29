@@ -122,7 +122,6 @@ describe('Voyage branch layer', () => {
       expect(s.branches).toHaveLength(1);
       const main = s.branches![0];
       expect(main.forked_from_checkpoint_id).toBeNull();
-      expect(main.status).toBe('sailing');
       expect(main.head_checkpoint_id).toBe(cp!.id);
       expect(s.active_branch_id).toBe(main.id);
       expect(s.active_checkpoint_id).toBe(cp!.id);
