@@ -220,7 +220,7 @@ export function Falsification({
                 <button
                   type="button"
                   onClick={() => setRealBet(surfaced)}
-                  className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                  className="inline-flex items-center min-h-[40px] text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
                 >
                   {L('이 문장 그대로 쓰기', 'Use this sentence as-is')}
                 </button>
@@ -240,7 +240,7 @@ export function Falsification({
                 <button
                   type="button"
                   onClick={() => { if (surfaced) onResolve({ claims, flinched_id: noFlinch ? null : flinched!.id, surfaced_constraint: surfaced, real_bet: surfaced, real_bet_authored: 'ai_surfaced', no_flinch_fallback: noFlinch }); }}
-                  className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
+                  className="inline-flex items-center min-h-[40px] px-2 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                 >
                   {L('이대로 두고 문서만 받을게요', 'Skip writing — just give me the document')}
                 </button>

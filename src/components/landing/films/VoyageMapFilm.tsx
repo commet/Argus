@@ -195,7 +195,10 @@ export function VoyageMapFilm() {
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
-    const io = new IntersectionObserver((e) => setInView(!!e[0]?.isIntersecting), { threshold: 0.3 });
+    // threshold 0 + rootMargin: target sits inside a transform:scale wrapper
+    // (ScaleToFit) so a strict fraction can never be met on a short phone band —
+    // the loop would never start. Fire as soon as it nears the viewport.
+    const io = new IntersectionObserver((e) => setInView(!!e[0]?.isIntersecting), { threshold: 0, rootMargin: '200px 0px 200px 0px' });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -213,11 +216,15 @@ export function VoyageMapFilm() {
     if (!inView) { setT(REST_LO); return; }
     const reduced = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     if (reduced) { setT(REST_LO); return; }              // static — honour reduce-motion
+    // Decide phone-vs-desktop LIVE (not from the `narrow` state, which inits
+    // false and may not have committed when inView first flips) — a stale false
+    // runs the desktop branch and parks on one static frame (frozen-film bug).
+    const phone = narrow || (typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 640px)')?.matches);
     const HOOK = 1800;                                    // hold the finished map before rewinding
     const start = performance.now();
     let last = start, acc = 0, raf = 0;
     const tick = (now: number) => {
-      if (narrow) {                                       // phone: continuous voyage loop
+      if (phone) {                                        // phone: continuous voyage loop
         acc += now - last; last = now;
         setT(acc % TOTAL);
       } else {                                            // desktop: finished → rewind → build once → settle + ambient

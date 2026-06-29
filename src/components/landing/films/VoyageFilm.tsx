@@ -231,11 +231,11 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
   // Both stay on a single line in the wide layout (the box is now wide enough).
   const tail = (
     <motion.div initial={rm ? { opacity: 1 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.36, delay: rm ? 0 : clusterDelay, ease }} style={{ marginTop: 16 }}>
-      <p className={bk} style={{ margin: 0, fontStyle: 'italic', fontWeight: 600, fontSize: 'clamp(12.5px, 1.2vw, 14.5px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink)', opacity: 0.9, letterSpacing: '0.01em', whiteSpace: narrow ? 'normal' : 'nowrap', textShadow: bodyHalo }}>
+      <p className={bk} style={{ margin: 0, fontStyle: 'italic', fontWeight: 600, fontSize: 'clamp(12.5px, 1.2vw, 14.5px)', color: lure ? 'var(--bp-lure)' : 'var(--bp-ink)', opacity: 0.9, letterSpacing: '0.01em', whiteSpace: 'normal', textShadow: bodyHalo }}>
         — {L(active.attrKo, active.attrEn)}
       </p>
       <div aria-hidden="true" style={{ height: 1, width: 30, background: 'var(--bp-ink-faint)', margin: '11px 0' }} />
-      <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(15.5px, 1.9vw, 20px)', lineHeight: 1.42, color: 'var(--bp-azure)', letterSpacing: '-0.004em', whiteSpace: narrow ? 'normal' : 'nowrap', textShadow: bodyHalo }}>
+      <p className={bk} style={{ margin: 0, fontWeight: 600, fontSize: 'clamp(15.5px, 1.9vw, 20px)', lineHeight: 1.42, color: 'var(--bp-azure)', letterSpacing: '-0.004em', whiteSpace: 'normal', textShadow: bodyHalo }}>
         <b style={{ fontWeight: 800, color: 'var(--bp-azure)' }}>Argus:</b>{' '}
         <Lines text={L(active.lineKo, active.lineEn)} />
       </p>
@@ -357,7 +357,7 @@ export function VoyageFilm() {
             tallest chapter, measured ~196px of text) so chapter swaps never shift
             the page below. Caption is vertically centered; progress dots pinned
             bottom-left. */}
-        <div style={{ position: 'relative', flex: 'none', height: 256, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '14px 18px 34px' }}>
+        <div style={{ position: 'relative', flex: 'none', minHeight: 256, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '14px 18px 34px' }}>
           <AnimatePresence mode="wait">
             {introMode ? (
               <motion.div key="intro" style={{ textAlign: 'left' }} initial={rm ? { opacity: 1 } : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }} aria-live="polite">

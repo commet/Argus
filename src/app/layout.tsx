@@ -1,9 +1,19 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { headers, cookies } from 'next/headers';
 import { buildLocaleAlternates } from '@/lib/locale-path';
 import './globals.css';
 
 const SITE_URL = 'https://argus.voyage';
+
+// viewport-fit=cover is what makes iOS report real env(safe-area-inset-*) values
+// (they resolve to 0 without it) — required for the fixed bottom bars / input bar
+// to clear the home indicator and notch. Zoom is left enabled (no maximumScale /
+// userScalable) for accessibility.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 type Lang = 'ko' | 'en';
 

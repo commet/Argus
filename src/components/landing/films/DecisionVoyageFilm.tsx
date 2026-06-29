@@ -538,7 +538,10 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
     if (!el) return;
     const io = new IntersectionObserver(
       (entries) => setInView(!!entries[0]?.isIntersecting),
-      { threshold: 0.25 },
+      // threshold 0 + rootMargin: the film sits inside a transform:scale wrapper
+      // (ScaleToFit), so a strict fraction can never be met on a short phone band
+      // and the loop would never start. Fire as soon as it nears the viewport.
+      { threshold: 0, rootMargin: '200px 0px 200px 0px' },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -558,11 +561,17 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
     const reduced = !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     if (reduced) { setT(REDUCED_T); return; }                   // static — honour reduce-motion
     const sp = Number(speed) || 1;
+    // Decide phone-vs-desktop LIVE at effect run, not from the `narrow` state:
+    // `narrow` inits false and is corrected by a separate matchMedia effect that
+    // may not have committed when inView first flips true — the stale `false`
+    // would run the desktop branch, which parks on one static frame (the "frozen
+    // film" bug). matchMedia is authoritative the moment we read it here.
+    const phone = narrow || (typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 640px)')?.matches);
     const HOOK = 1800;                                          // hold the resolved frame before rewinding
     const start = performance.now();
     let last = start, acc = 0, raf = 0;
     const tick = (now: number) => {
-      if (narrow) {                                            // phone: continuous walkthrough loop
+      if (phone) {                                             // phone: continuous walkthrough loop
         acc += (now - last) * sp; last = now;
         setT(acc % TOTAL);
       } else {                                                 // desktop: resolved → rewind → play once → settle

@@ -259,7 +259,7 @@ export default function TeamsPage() {
           {/* Invite */}
           <div>
             <p className="text-[14px] font-bold text-[var(--text-primary)] mb-3">{L('팀원 초대', 'Invite teammates')}</p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
                 value={inviteEmail}

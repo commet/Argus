@@ -783,7 +783,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0">
                   <span className="text-[var(--bg)] text-[9px] font-bold">{L('나', 'Me')}</span>
                 </div>
-                <p className="text-[13px] text-[var(--text-secondary)] truncate">{problemInput}</p>
+                <p className="min-w-0 text-[13px] text-[var(--text-secondary)] truncate">{problemInput}</p>
               </motion.div>
 
               {/* 팀 등장 */}
@@ -829,7 +829,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 {/* 상단: 팀 아바타 + 문제 echo */}
                 <div className="flex items-center gap-3 mb-5">
                   <AvatarRow personas={previewPersonas} />
-                  <p className="text-[13px] text-[var(--text-secondary)] truncate flex-1">{problemInput}</p>
+                  <p className="min-w-0 text-[13px] text-[var(--text-secondary)] truncate flex-1">{problemInput}</p>
                 </div>
 
                 {/* 현재 단계 표시 + 소요 시간 안내 (멈춘 게 아니라는 신호).
@@ -1206,8 +1206,8 @@ function WorkspaceContent() {
       {/* Navigator strip */}
       <NavigatorStrip />
 
-      {/* Mobile bottom nav */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--surface)] border-t border-[var(--border)] z-40">
+      {/* Mobile bottom nav — pb safe-area so the tabs clear the home indicator */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--surface)] border-t border-[var(--border)] z-40 pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center justify-around px-1 py-1.5">
           {STEPS.map((step) => (
             <button

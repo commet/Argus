@@ -273,7 +273,7 @@ function AnsweredPills({ qaPairs, canRevisit, onRevisit }: {
           <motion.button key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05, ...SPRING }}
             onClick={() => setOpenIdx(openIdx === i ? null : i)}
             aria-expanded={openIdx === i}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[var(--surface)] border text-[12px] cursor-pointer transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] md:min-h-0 rounded-full bg-[var(--surface)] border text-[12px] cursor-pointer transition-colors ${
               openIdx === i ? 'border-[var(--accent)]/50' : 'border-[var(--border-subtle)] hover:border-[var(--accent)]/30'
             }`}>
             <Check size={12} className="text-[var(--accent)]" />
@@ -300,7 +300,7 @@ function AnsweredPills({ qaPairs, canRevisit, onRevisit }: {
               </span>
               <button
                 onClick={() => { onRevisit(openIdx!); setOpenIdx(null); }}
-                className="shrink-0 px-3 py-1.5 rounded-lg border border-[var(--accent)]/40 text-[11.5px] font-medium text-[var(--accent)] hover:bg-[var(--ai)] transition-colors cursor-pointer">
+                className="shrink-0 px-3 py-1.5 min-h-[44px] md:min-h-0 rounded-lg border border-[var(--accent)]/40 text-[11.5px] font-medium text-[var(--accent)] hover:bg-[var(--ai)] transition-colors cursor-pointer">
                 {locale === 'ko' ? '이 답부터 다시 →' : 'Redo from this answer →'}
               </button>
             </div>
@@ -3250,7 +3250,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         >
           <div
             role="dialog" aria-modal="true" aria-label={L('버전 미리보기', 'Version preview')}
-            className="relative w-full max-w-2xl max-h-[85vh] bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
+            className="relative w-full max-w-2xl max-h-[85dvh] bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <header className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">

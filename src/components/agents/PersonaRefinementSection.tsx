@@ -372,7 +372,7 @@ export function PersonaRefinementSection({ agent }: PersonaRefinementSectionProp
             exit={{ opacity: 0, height: 0 }}
             className="pr-add-form"
           >
-            <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', rowGap: 6, gap: 6, marginBottom: 6 }}>
               {(Object.keys(CATEGORY_META) as Category[])
                 .sort((a, b) => CATEGORY_META[a].order - CATEGORY_META[b].order)
                 .map(cat => (

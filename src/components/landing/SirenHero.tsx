@@ -308,7 +308,7 @@ export function SirenHero() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 7,
-                  minHeight: 42,
+                  minHeight: 44,
                   padding: '9px 18px',
                   border: '1px solid',
                   borderColor: text.trim() ? 'var(--bp-gold)' : 'var(--bp-ink-soft)',

@@ -48,15 +48,15 @@ function HitReactionBar({ workerId, agentId, taskType }: { workerId: string; age
     <div className="flex items-center gap-1.5 mt-2.5">
       <span className="text-[10px] text-[var(--text-tertiary)] mr-1">{L('이 분석이', 'This analysis was')}</span>
       <button onClick={() => react('hit')}
-        className="px-2.5 py-1 text-[10px] rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer transition-colors">
+        className="px-2.5 py-2 min-h-[36px] text-[11px] rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer transition-colors">
         {L('새로웠다', 'New insight')}
       </button>
       <button onClick={() => react('miss')}
-        className="px-2.5 py-1 text-[10px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
+        className="px-2.5 py-2 min-h-[36px] text-[11px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
         {L('이미 알았다', 'Already knew')}
       </button>
       <button onClick={() => react('irrelevant')}
-        className="px-2.5 py-1 text-[10px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
+        className="px-2.5 py-2 min-h-[36px] text-[11px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
         {L('중요하지 않다', 'Not important')}
       </button>
     </div>

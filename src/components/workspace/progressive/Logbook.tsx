@@ -235,7 +235,7 @@ export function LogbookDrawer({ offset }: { offset?: boolean }) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className={`fixed inset-x-0 z-40 flex items-center justify-between px-4 py-3 bg-[var(--surface)] border-t border-[var(--border-subtle)] min-h-[52px] cursor-pointer ${offset ? 'bottom-[56px]' : 'bottom-0'}`}
+          className={`fixed inset-x-0 z-40 flex items-center justify-between px-4 py-3 bg-[var(--surface)] border-t border-[var(--border-subtle)] min-h-[52px] cursor-pointer ${offset ? 'bottom-[calc(56px+env(safe-area-inset-bottom))]' : 'bottom-0 pb-[env(safe-area-inset-bottom)]'}`}
         >
           <span className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
             <Compass size={15} className="text-[var(--accent)]" />
@@ -248,7 +248,7 @@ export function LogbookDrawer({ offset }: { offset?: boolean }) {
       {open && (
         <>
           <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setOpen(false)} aria-hidden />
-          <div className="fixed bottom-0 inset-x-0 z-50 max-h-[82vh] rounded-t-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-y-auto">
+          <div className="fixed bottom-0 inset-x-0 z-50 max-h-[82dvh] pb-[env(safe-area-inset-bottom)] rounded-t-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-y-auto">
             <div className="sticky top-0 z-10 flex items-center justify-end px-2 py-1.5 bg-[var(--surface)] border-b border-[var(--border-subtle)]">
               <button
                 onClick={() => setOpen(false)}

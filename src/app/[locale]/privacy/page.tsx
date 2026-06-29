@@ -21,6 +21,7 @@ export default function PrivacyPage() {
       <div className="prose prose-sm max-w-none space-y-6 text-[14px] text-[var(--text-primary)] leading-relaxed">
         <section>
           <h2 className="text-[16px] font-bold mb-2">{L('1. 수집하는 개인정보 항목', '1. Information We Collect')}</h2>
+          <div className="overflow-x-auto -mx-1 px-1">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr className="border-b border-[var(--border)]">
@@ -47,6 +48,7 @@ export default function PrivacyPage() {
               </tr>
             </tbody>
           </table>
+          </div>
         </section>
 
         <section>
@@ -83,6 +85,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-[16px] font-bold mb-2">{L('5. 개인정보 처리 위탁', '5. Data Processing Subcontractors')}</h2>
+          <div className="overflow-x-auto -mx-1 px-1">
           <table className="w-full text-[13px] border-collapse">
             <thead>
               <tr className="border-b border-[var(--border)]">
@@ -105,6 +108,7 @@ export default function PrivacyPage() {
               </tr>
             </tbody>
           </table>
+          </div>
         </section>
 
         <section>

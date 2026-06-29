@@ -108,7 +108,7 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-[12px] font-semibold text-[var(--text-primary)]">{L('팀원 설정', 'Team Settings')}</span>
-        <button onClick={onClose} className="text-[10px] text-[var(--accent)] cursor-pointer">{L('완료', 'Done')}</button>
+        <button onClick={onClose} className="inline-flex items-center min-h-[40px] px-2 text-[12px] font-medium text-[var(--accent)] cursor-pointer">{L('완료', 'Done')}</button>
       </div>
 
       {/* Built-in persona names */}
@@ -398,7 +398,7 @@ export function WorkerDrawer({ className }: { className?: string }) {
       {/* Sticky bottom bar — height: ~56px (py-3.5 × 2 + content) */}
       <motion.button
         onClick={() => setOpen(true)}
-        className={`fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3.5 bg-[var(--surface)] border-t cursor-pointer min-h-[56px] transition-colors duration-500 ${
+        className={`fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3.5 pb-[max(14px,env(safe-area-inset-bottom))] bg-[var(--surface)] border-t cursor-pointer min-h-[56px] transition-colors duration-500 ${
           celebrate
             ? 'border-t-[var(--accent)]/70 shadow-[0_-8px_24px_-6px_rgba(180,160,100,0.35)]'
             : waitingCount > 0
@@ -436,7 +436,7 @@ export function WorkerDrawer({ className }: { className?: string }) {
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed bottom-0 inset-x-0 z-50 max-h-[75vh] rounded-t-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col"
+              className="fixed bottom-0 inset-x-0 z-50 max-h-[75dvh] pb-[env(safe-area-inset-bottom)] rounded-t-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col"
             >
               <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--border-subtle)] shrink-0">
                 <div className="flex items-center gap-2">

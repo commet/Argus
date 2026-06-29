@@ -215,6 +215,33 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* iOS Safari force-zooms the viewport whenever a focused input/textarea/select
+   has a computed font-size below 16px, then leaves the page zoomed AND
+   horizontally scrolled (the "줌아웃해야 보임" report). Pin form controls to 16px
+   at phone widths so focus never triggers the zoom. `!important` is intentional:
+   it overrides the many `text-[13px]`/`text-[14px]` utilities on these fields
+   (only on-screen text size changes on mobile; layout is unaffected). Checkbox/
+   radio/range/color excluded — font-size there can affect the control's box. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Touch ergonomics: give the small pill controls (persona refinement chips, boss
+   calibration / force-verdict buttons) a comfortable tap height on coarse-pointer
+   (touch) devices only — desktop stays compact. */
+@media (pointer: coarse) {
+  .pr-mini-btn,
+  .pr-cat-btn,
+  .bc-cal-btn,
+  .bc-force-verdict-btn {
+    min-height: 40px;
+  }
+}
+
 /* ── Voyage ship motion — restrained, captain's-chart gravitas ── */
 .voyage-anim {
   animation-duration: 6s;
@@ -988,7 +1015,7 @@ button, a, input, textarea {
 }
 
 .bs-gen-btn {
-  padding: 7px 18px;
+  padding: 11px 18px;
   font-size: 13px;
   font-weight: 700;
   border: none;
@@ -1226,8 +1253,8 @@ button, a, input, textarea {
 }
 
 .bc-reset {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1542,8 +1569,8 @@ button, a, input, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--text-primary);
   color: var(--bg);
@@ -2276,6 +2303,9 @@ button, a, input, textarea {
   max-width: 960px;
   margin: 0 auto;
   padding: 40px 24px 80px;
+}
+@media (max-width: 480px) {
+  .agent-hub { padding: 24px 16px 64px; }
 }
 .agent-hub-title {
   font-family: 'Noto Serif KR', serif;

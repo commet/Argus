@@ -608,15 +608,15 @@ export function SeaChart({
       {full && (
         <div className="absolute right-2 top-2 flex flex-col rounded-lg overflow-hidden border border-[rgba(120,90,30,0.3)] bg-[rgba(246,238,219,0.85)] backdrop-blur-sm shadow-sm">
           <button type="button" onClick={() => zoomAt(1.3, W / 2, H / 2)} title={L('확대', 'Zoom in')} aria-label={L('확대', 'Zoom in')}
-            className="w-7 h-7 flex items-center justify-center text-[#3a2c12] hover:bg-[rgba(173,131,39,0.18)] transition-colors cursor-pointer">
+            className="w-9 h-9 flex items-center justify-center text-[#3a2c12] hover:bg-[rgba(173,131,39,0.18)] transition-colors cursor-pointer">
             <Plus size={14} />
           </button>
           <button type="button" onClick={() => zoomAt(0.77, W / 2, H / 2)} title={L('축소', 'Zoom out')} aria-label={L('축소', 'Zoom out')}
-            className="w-7 h-7 flex items-center justify-center text-[#3a2c12] hover:bg-[rgba(173,131,39,0.18)] transition-colors cursor-pointer border-t border-[rgba(120,90,30,0.25)]">
+            className="w-9 h-9 flex items-center justify-center text-[#3a2c12] hover:bg-[rgba(173,131,39,0.18)] transition-colors cursor-pointer border-t border-[rgba(120,90,30,0.25)]">
             <Minus size={14} />
           </button>
           <button type="button" onClick={() => setView({ k: 1, x: 0, y: 0 })} title={L('전체 보기', 'Fit chart')} aria-label={L('전체 보기', 'Fit chart')}
-            className="w-7 h-7 flex items-center justify-center text-[#3a2c12] hover:bg-[rgba(173,131,39,0.18)] transition-colors cursor-pointer border-t border-[rgba(120,90,30,0.25)]">
+            className="w-9 h-9 flex items-center justify-center text-[#3a2c12] hover:bg-[rgba(173,131,39,0.18)] transition-colors cursor-pointer border-t border-[rgba(120,90,30,0.25)]">
             <Maximize size={12} />
           </button>
         </div>
