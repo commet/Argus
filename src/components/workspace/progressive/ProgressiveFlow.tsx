@@ -872,7 +872,7 @@ function VoyagePrepSummary({
  * user's own words. It is NON-BLOCKING: the user keeps answering below and can
  * dismiss it. No answer is captured here (the deep restatement stays at the
  * single Falsification commitment) — this is recognition, not a verdict. */
-export function MirrorBeat({ assumption, onDismiss }: { assumption: string; onDismiss: () => void }) {
+export function MirrorBeat({ assumption }: { assumption: string }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   return (
@@ -881,18 +881,19 @@ export function MirrorBeat({ assumption, onDismiss }: { assumption: string; onDi
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.5, ease: EASE }}
-      // Editorial logbook treatment: not a boxed card but a margin note — a gold
-      // hairline left-rule + serif premise, the way a captain's log annotates.
-      // (Design vision §3: semantic emphasis = hairline left-border, never a
-      // four-sided box; serif for the line that matters; gold = the one accent.)
-      className="mb-6 pl-4 border-l-2 border-[var(--accent)]/40"
+      // No line, no box — grouped by whitespace alone (the one principle worth
+      // taking from Reflect: dividing lines → generous spacing). Hierarchy comes
+      // from type scale + serif, not a device repeated on every block. The gold
+      // sits only on the small provenance label.
+      className="mb-8"
     >
-      {/* Provenance label — small-caps marginalia tag in gold. */}
-      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]/85 mb-2">
+      {/* Provenance label — the only gold here, small-caps. */}
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]/80 mb-2.5">
         {L('AI가 채운 전제', 'A premise the AI filled in')}
       </p>
-      {/* The surfaced premise — serif display, a line in the log. */}
-      <p className="text-[16px] md:text-[17px] text-[var(--text-primary)] leading-[1.5]" style={{ fontFamily: 'var(--font-display)' }}>
+      {/* The surfaced premise — serif, sized BELOW the question but above the
+          fine print, so scale alone places it in the hierarchy. */}
+      <p className="text-[16px] md:text-[17px] text-[var(--text-primary)] leading-[1.5] max-w-[60ch]" style={{ fontFamily: 'var(--font-display)' }}>
         {assumption}
       </p>
       {/* Recognition, not a question. Hand control back; no 맞나요?, no fork. */}
@@ -900,13 +901,6 @@ export function MirrorBeat({ assumption, onDismiss }: { assumption: string; onDi
         {L('당신이 말한 게 아니라 분석이 대신 깔아둔 거예요. 틀렸다면 아래 답에서 바로잡으면 돼요.',
            'You didn\'t say this — the analysis laid it down. If it\'s off, just correct it in your next answer.')}
       </p>
-      <button
-        type="button"
-        onClick={onDismiss}
-        className="mt-3 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer min-h-[44px] md:min-h-0 -my-2 md:my-0"
-      >
-        {L('알아둘게요', 'Got it')}
-      </button>
     </motion.div>
   );
 }
@@ -1660,6 +1654,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const onAnswer = async (value: string) => {
     if (!curQ || busy || !latest) return;
     const ans: FlowAnswer = { question_id: curQ.id, value };
+    // Answering dismisses the MirrorBeat — recognition needs no "got it" button;
+    // reading the premise then answering IS the whole interaction.
+    if (!mirrorSeen) { setMirrorSeen(true); track('mirror_seen', { round }); }
 
     // ── W2.3b: probe-question turns are zero-LLM ──
     if (newArcEnabled) {
@@ -2446,12 +2443,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               type="button"
               onClick={() => setProblemExpanded((o) => !o)}
               title={problemExpanded ? undefined : L('눌러서 전체 보기', 'Tap to expand')}
-              className={`flex items-start gap-3 px-5 py-3 bg-[var(--bg)] border border-[var(--border-subtle)] max-w-full text-left cursor-pointer hover:border-[var(--accent)]/30 transition-colors ${problemExpanded ? 'rounded-2xl' : 'rounded-full'}`}
+              className="flex items-start gap-2.5 max-w-full text-left cursor-pointer group"
             >
-              <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0">
-                <span className="text-[var(--bg)] text-[9px] font-bold">{L('나', 'Me')}</span>
-              </div>
-              <p className={`text-[13px] text-[var(--text-secondary)] leading-[1.55] ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
+              {/* "나" as a small label, not a chip-in-a-box — marks the user's
+                  own words without another bordered pill. */}
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-tertiary)] shrink-0 mt-[3px]">{L('나', 'Me')}</span>
+              <p className={`text-[13px] text-[var(--text-secondary)] leading-[1.55] group-hover:text-[var(--text-primary)] transition-colors ${problemExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>
                 {session.problem_text}
               </p>
             </motion.button>
@@ -2564,7 +2561,6 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <MirrorBeat
                 key="mirror-beat"
                 assumption={latest.hidden_assumptions[0]}
-                onDismiss={() => { setMirrorSeen(true); track('mirror_seen', { round }); }}
               />
             )}
           </AnimatePresence>
@@ -2576,7 +2572,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               It used to hide behind "지금까지의 기록 ▾" — the one piece the user
               called "important" was invisible by default. */}
           {latest && !final_ && !crisisBlocking && phase === 'conversing' && (
-            <div ref={analysisCardRef} className="mb-3">
+            <div ref={analysisCardRef} className="mb-7">
               <AnalysisCard
                 snapshot={latest}
                 prevSnapshot={snapshots.length > 1 ? snapshots[snapshots.length - 2] : null}

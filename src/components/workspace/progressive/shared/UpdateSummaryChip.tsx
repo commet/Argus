@@ -56,10 +56,10 @@ export function UpdateSummaryChip({
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
-      // Not a card — a hairline-ruled status line. The real_question lives only
-      // in the course card below; this row carries just the "your answer moved
-      // it" feedback, so it reads as a margin note, not another box.
-      className="flex items-center justify-between gap-x-4 gap-y-1 flex-wrap py-2 border-t border-[var(--border-subtle)]/50"
+      // No rule, no box — the faintest line in the hierarchy. Smallest type,
+      // grouped by spacing; it's a quiet "your answer moved it" footnote, not a
+      // bordered strip.
+      className="flex items-center justify-between gap-x-4 gap-y-1 flex-wrap py-1"
       aria-label={L('팀 분석 업데이트 요약', 'Team analysis update summary')}
     >
       <div className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[var(--accent)]/85 shrink-0">

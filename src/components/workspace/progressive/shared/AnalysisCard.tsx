@@ -71,9 +71,10 @@ export function AnalysisCard({
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: EASE }}
-        // Not a card — a logbook entry on a hairline left-rule. The course is
-        // something you READ, so it flows in the margin, not a four-sided box.
-        className="w-full text-left flex items-start gap-3 pl-4 py-1 border-l-2 border-[var(--border-subtle)] hover:border-[var(--accent)]/55 transition-colors cursor-pointer group"
+        // No line, no box — whitespace-grouped. The course is something you READ;
+        // it sits a step down the type scale from the question and is set off by
+        // spacing alone. Hover dims slightly to signal it opens.
+        className="w-full text-left flex items-start gap-3 py-1 cursor-pointer group transition-opacity hover:opacity-70"
       >
         <div className="flex-1 min-w-0">
           <div className="text-[10px] font-semibold text-[var(--accent)]/85 uppercase tracking-[0.14em] mb-1.5">
