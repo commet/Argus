@@ -21,6 +21,7 @@ const sig = require("./lib/decision-signals.js");
 const ANCHOR = join(DIR, "anchor-signal.js");
 const WAKE = join(DIR, "wake-signal.js");
 const RECALL = join(DIR, "recall-signal.js");
+const COMMIT = join(DIR, "commit-signal.js");
 
 const tmps = [];
 function tmp(prefix) { const d = mkdtempSync(join(tmpdir(), prefix)); tmps.push(d); return d; }
@@ -43,6 +44,11 @@ function anchorOn(configDir, sessionId) {
   mkdirSync(join(configDir, "argus-anchored"), { recursive: true });
   writeFileSync(join(configDir, "argus-anchored", sessionId), "");
 }
+function ledger(cwd, events) {
+  mkdirSync(join(cwd, ".argus", "ledger"), { recursive: true });
+  writeFileSync(join(cwd, ".argus", "ledger", "ledger.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n");
+}
+function commitInput(sid, cmd) { return { tool_name: "Bash", tool_input: { command: cmd }, session_id: sid }; }
 
 let pass = 0, fail = 0;
 function test(name, fn) {
@@ -164,9 +170,68 @@ test("recall: once per previous session", () => {
   assert.equal(runHook(RECALL, { session_id: "cur", transcript_path: cur }, cfg).trim(), "");
 });
 
+// ── unit: trackRecord (self-improvement loop) ───────────────────────────────
+test("trackRecord: no ledger → null", () =>
+  assert.equal(sig.trackRecord(tmp("argus-ds-cwd-")), null));
+test("trackRecord: counts sealed/settled/held/luck", () => {
+  const cwd = tmp("argus-ds-cwd-");
+  ledger(cwd, [
+    { event: "seal", id: "a", predicate: "x" },
+    { event: "seal", id: "b", predicate: "y" },
+    { event: "settle", id: "a", outcome: "happened", basis: "reasoned" },
+    { event: "settle", id: "b", outcome: "happened", basis: "luck" },
+  ]);
+  assert.deepEqual(sig.trackRecord(cwd), { sealed: 2, settled: 2, held: 2, luck: 1 });
+});
+test("trackRecord: dismiss removes a bet", () => {
+  const cwd = tmp("argus-ds-cwd-");
+  ledger(cwd, [{ event: "seal", id: "a" }, { event: "dismiss", id: "a" }]);
+  assert.deepEqual(sig.trackRecord(cwd), { sealed: 0, settled: 0, held: 0, luck: 0 });
+});
+
+// ── integration: commit-signal (action signal) ──────────────────────────────
+test("commit: anchored + git commit → nudge", () => {
+  const cfg = tmp("argus-ds-cfg-"); anchorOn(cfg, "c1");
+  assert.match(runHook(COMMIT, commitInput("c1", "git commit -m 'x'"), cfg), /\[Argus\]/);
+});
+test("commit: off session → silent", () =>
+  assert.equal(runHook(COMMIT, commitInput("c2", "git commit -m 'x'")).trim(), ""));
+test("commit: non-Bash tool → silent", () => {
+  const cfg = tmp("argus-ds-cfg-"); anchorOn(cfg, "c3");
+  assert.equal(runHook(COMMIT, { tool_name: "Read", tool_input: {}, session_id: "c3" }, cfg).trim(), "");
+});
+test("commit: Bash non-commit → silent", () => {
+  const cfg = tmp("argus-ds-cfg-"); anchorOn(cfg, "c4");
+  assert.equal(runHook(COMMIT, commitInput("c4", "git status"), cfg).trim(), "");
+});
+test("commit: once per session (shared waked marker)", () => {
+  const cfg = tmp("argus-ds-cfg-"); anchorOn(cfg, "c5");
+  runHook(COMMIT, commitInput("c5", "git commit -m a"), cfg);
+  assert.equal(runHook(COMMIT, commitInput("c5", "git commit -m b"), cfg).trim(), "");
+});
+
+// ── integration: anchor self-improvement injection ──────────────────────────
+test("anchor: injects track record when settled>=2", () => {
+  const cfg = tmp("argus-ds-cfg-"); const cwd = tmp("argus-ds-cwd-");
+  ledger(cwd, [
+    { event: "seal", id: "a" }, { event: "seal", id: "b" },
+    { event: "settle", id: "a", outcome: "happened", basis: "reasoned" },
+    { event: "settle", id: "b", outcome: "avoided", basis: "luck" },
+  ]);
+  const out = runHook(ANCHOR, { session_id: "loop1", user_message: "할까 말까 고민", cwd }, cfg);
+  assert.match(out, /track record/i);
+  assert.match(out, /2 sealed/);
+});
+test("anchor: no track record when settled<2", () => {
+  const cfg = tmp("argus-ds-cfg-"); const cwd = tmp("argus-ds-cwd-");
+  ledger(cwd, [{ event: "seal", id: "a" }, { event: "settle", id: "a", outcome: "happened" }]);
+  const out = runHook(ANCHOR, { session_id: "loop2", user_message: "둘 중에 뭐가", cwd }, cfg);
+  assert.ok(!/track record/i.test(out));
+});
+
 // ── integration: robustness ─────────────────────────────────────────────────
 test("all hooks: broken stdin → silent, exit 0", () => {
-  for (const s of [ANCHOR, WAKE, RECALL]) {
+  for (const s of [ANCHOR, WAKE, RECALL, COMMIT]) {
     const r = spawnSync(process.execPath, [s], { input: "not json", encoding: "utf8" });
     assert.equal(r.status, 0);
     assert.equal(r.stdout.trim(), "");

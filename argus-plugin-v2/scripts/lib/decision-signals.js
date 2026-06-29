@@ -99,6 +99,35 @@ function lastUserText(tail, partial) {
   return "";
 }
 
+// Self-improvement loop (§13 loop): replay the LOCAL ledger to a track record so a
+// past settlement can feed the next decision. Counts only — sealed/settled/held/luck —
+// NEVER a tier or verdict (spine: meaning-language is sample-size-scaled frequency, not
+// a score). Returns null if no ledger / unreadable. cwd is the project dir holding .argus.
+function trackRecord(cwd) {
+  if (!cwd) return null;
+  let raw;
+  try { raw = fs.readFileSync(path.join(cwd, ".argus", "ledger", "ledger.jsonl"), "utf8"); }
+  catch { return null; }
+  const st = new Map();
+  for (const line of raw.split("\n")) {
+    if (!line.trim()) continue;
+    let e;
+    try { e = JSON.parse(line); } catch { continue; }
+    if (!e.id) continue;
+    if (e.event === "seal") { if (!st.has(e.id)) st.set(e.id, { settled: false, outcome: null, basis: null }); }
+    else if (e.event === "settle") {
+      const c = st.get(e.id) || { settled: false };
+      c.settled = true; c.outcome = e.outcome; c.basis = e.basis; st.set(e.id, c);
+    } else if (e.event === "dismiss") { st.delete(e.id); }
+  }
+  let sealed = 0, settled = 0, held = 0, luck = 0;
+  for (const c of st.values()) {
+    sealed++;
+    if (c.settled) { settled++; if (c.outcome === "happened") held++; if (c.basis === "luck") luck++; }
+  }
+  return { sealed, settled, held, luck };
+}
+
 module.exports = {
   configDir,
   START_PATTERNS,
@@ -107,4 +136,5 @@ module.exports = {
   hasDoneSignal,
   readTail,
   lastUserText,
+  trackRecord,
 };

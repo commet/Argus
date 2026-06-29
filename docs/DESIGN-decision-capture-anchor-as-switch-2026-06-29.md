@@ -18,6 +18,7 @@
 | seal 재정의 + 정산 2개 (개념) | ✅ 합의 (§2) |
 | **1차 정산 WakeReturn** (webapp + plugin sail Step 7.5) | ✅ **구현·커밋됨** `5d28d60` |
 | 닻 = 추적 스위치 — §13 전체: anchor/wake/recall hooks (`scripts/lib/decision-signals.js` 공유) | ✅ **구현됨** (token-zero) |
+| 행동 신호 hook(`commit-signal.js`, PostToolUse git commit) + 자기개선 loop(`trackRecord`) | ✅ **구현됨** |
 | 정교화(1층 신호목록 · 2층 위임 카피 · 늦은닻 톤) | dogfood 튜닝 대상 |
 
 이 문서는 **구현 전 기준 문서**다. §13 구현 순서대로 짓되, 각 단계는 dogfood로
@@ -283,6 +284,14 @@ grep)이 신호를 잡으면 `additionalContext`로 **메인 Claude에게 위임
    "지난번 그거 어떻게 됐어요?"를 귀띔. readdir + tail grep, LLM 0, 직전 세션당 1회.
 5. **늦은 닻** — 별도 코드 불필요(anchor-signal에 내재): 세션당 1회 마커이므로, 첫
    프롬프트에 신호가 없으면 마커를 안 쓰고 → 이후 어느 프롬프트의 첫 시작 신호에서 제안.
+6. **행동 신호 hook** — `commit-signal.js` (PostToolUse, matcher Bash): git commit =
+   코드로 실현된 결정(완결 *행동*; 말 안 해도 잡힘). 닻 ON 세션에서만, wake와 같은
+   `argus-waked` 마커 공유 → 언어 wake와 둘 중 먼저가 항적, 중복 0. 일상 commit(닻 OFF)은
+   침묵. (§12.5 "구조 신호"의 첫 구현.)
+7. **자기개선 loop** — `lib/decision-signals.trackRecord(cwd)`: 로컬 ledger를 replay해
+   `{sealed, settled, held, luck}` 집계(카운트만, tier/판정 금지 — 스파인). anchor-signal이
+   `settled≥2`일 때 NUDGE에 **frequency 사실로** 주입 → 과거 정산이 다음 결정 진입에
+   피드백. **seal→settle→다음 결정 순환이 닫힌다.** 데이터 0이면 조용(쌓이면 자동 작동).
 
 **구현 메모:** 1층 grep 패턴·transcript 읽기는 `scripts/lib/decision-signals.js` 단일
 소스(anchor/wake/recall 공유, CLAUDE.md "두 번째 위치엔 추출"). hook은 출력 잘림 방지로

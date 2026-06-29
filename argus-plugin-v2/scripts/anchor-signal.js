@@ -25,7 +25,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { configDir, hasStartSignal } = require("./lib/decision-signals");
+const { configDir, hasStartSignal, trackRecord } = require("./lib/decision-signals");
 
 // Per-(Claude)session marker dir, so the nudge fires at most once per session.
 function markerPath(sessionId) {
@@ -86,7 +86,17 @@ function main() {
     return; // could not claim the once-per-session slot → stay silent
   }
 
-  process.stdout.write(NUDGE + "\n");
+  // Self-improvement loop: feed a past track record into this decision's entry, but
+  // ONLY as a sample-size-scaled frequency fact (>=2 settled), never a verdict/tier.
+  let out = NUDGE;
+  const tr = trackRecord(data.cwd);
+  if (tr && tr.settled >= 2) {
+    out += " [Prior track record — surface ONLY as a sample-size-scaled frequency fact,"
+      + " never a verdict on them: " + tr.sealed + " sealed, " + tr.settled + " settled, "
+      + tr.held + " held" + (tr.luck ? ", " + tr.luck + " held on luck" : "")
+      + ". Let it inform the lean question if relevant; do not lecture.]";
+  }
+  process.stdout.write(out + "\n");
 }
 
 // No process.exit(): let the runtime drain stdout and exit 0 naturally — a forced
