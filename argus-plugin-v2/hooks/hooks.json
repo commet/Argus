@@ -12,7 +12,27 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/anchor-signal.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/wake-signal.js\"",
+            "timeout": 5
+          }
+        ]
+      },
       {
         "hooks": [
           {
