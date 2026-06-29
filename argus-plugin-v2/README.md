@@ -2,8 +2,8 @@
 
 [**English**](./README.md) | [한국어](./README.ko.md)
 
-**Ask Argus a hard decision. It checks the weak claims behind the scenes and
-returns one screen that tells you where the decision actually stands.**
+**Important decisions shouldn't end as answers. Argus keeps them alive as
+courses until reality can answer.**
 
 ```text
 /plugin marketplace add commet/Argus
