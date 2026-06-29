@@ -76,6 +76,8 @@ import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/l
 import { AnalysisCard } from './shared/AnalysisCard';
 import { UpdateSummaryChip } from './shared/UpdateSummaryChip';
 import { QuestionCard } from './shared/QuestionCard';
+import { toDisplayError, isAuthError } from '@/lib/error-display';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 /* Reviewer 배지 — 저장된 팀장이 있으면 세션 내내 노출 */
 function ReviewerBadge({ reviewerId }: { reviewerId: string | null }) {
@@ -813,7 +815,7 @@ function VoyagePrepSummary({
             {/* Primary CTA — gradient gold, "set sail" with Navigation
                 arrow tilted like a sail. */}
             <motion.button onClick={onMix} disabled={busy} whileTap={{ scale: 0.98 }}
-              className="group/sail w-full flex items-center justify-center gap-2.5 px-6 py-4 text-white rounded-xl text-[15px] font-semibold shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all cursor-pointer disabled:opacity-50"
+              className="group/sail w-full flex items-center justify-center gap-2.5 px-6 py-4 text-[#3a2a10] rounded-xl text-[15px] font-semibold shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all cursor-pointer disabled:opacity-50"
               style={{ background: 'var(--gradient-gold)' }}>
               {busy
                 ? <><Loader2 size={16} className="animate-spin" /> {L('초안 만드는 중...', 'Drafting...')}</>
@@ -923,9 +925,9 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
-      className={`rounded-xl border p-4 md:p-5 ${isLowConfidence ? 'bg-amber-50/50 border-amber-200' : 'bg-[var(--accent)]/[0.02] border-[var(--accent)]/10'}`}>
+      className={`rounded-xl border p-4 md:p-5 ${isLowConfidence ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-700/30' : 'bg-[var(--accent)]/[0.02] border-[var(--accent)]/10'}`}>
       <div className="flex items-start gap-3 mb-3">
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isLowConfidence ? 'bg-amber-100' : 'bg-[var(--accent)]/10'}`}>
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isLowConfidence ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-[var(--accent)]/10'}`}>
           {isLowConfidence ? <AlertTriangle size={11} className="text-amber-600" /> : <Check size={11} className="text-[var(--accent)]" />}
         </div>
         <div>
@@ -943,7 +945,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
       {!rejectMode ? (
         <div className="flex gap-2 pl-9">
           <motion.button onClick={onConfirm} disabled={busy} whileTap={{ scale: 0.98 }}
-            className="px-4 py-2 rounded-xl text-[12px] font-semibold text-white cursor-pointer disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-[12px] font-semibold text-[#3a2a10] cursor-pointer disabled:opacity-50"
             style={{ background: 'var(--gradient-gold)' }}>{L('맞아요', 'Correct')}</motion.button>
           <motion.button onClick={() => setRejectMode(true)} disabled={busy} whileTap={{ scale: 0.98 }}
             className="px-4 py-2 rounded-xl text-[12px] font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 cursor-pointer">
@@ -956,7 +958,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
             onKeyDown={e => { if (e.key === 'Enter' && reason.trim()) { e.preventDefault(); onReject(reason.trim()); } }} autoFocus />
           <div className="flex gap-2">
             <motion.button onClick={() => reason.trim() && onReject(reason.trim())} disabled={busy || !reason.trim()} whileTap={{ scale: 0.98 }}
-              className="px-4 py-2 rounded-xl text-[12px] font-semibold text-white cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 rounded-xl text-[12px] font-semibold text-[#3a2a10] cursor-pointer disabled:opacity-50"
               style={{ background: 'var(--gradient-gold)' }}>{L('재분석', 'Re-analyze')}</motion.button>
             <button onClick={() => setRejectMode(false)} className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] cursor-pointer">{L('취소', 'Cancel')}</button>
           </div>
@@ -1074,6 +1076,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // Chronicler — enriches log waypoints with narration once the stream settles.
   useChronicler(session, !busy);
   const [error, setError] = useState<string | null>(null);
+  // Localize a caught error for the banner. The LLM layer throws hardcoded-Korean
+  // messages (parse/validation/overloaded/circuit-breaker); printing e.message raw
+  // dumped Korean onto English users at the exact moment something already failed.
+  // toDisplayError maps LLMError categories to i18n strings; LOGIN_REQUIRED keeps
+  // its prefix so the banner's login-CTA routing still fires. (en rateLimit contains
+  // "limit", ko contains "한도" → the banner's quota branch survives both locales.)
+  const errText = (e: unknown, fallback: string) =>
+    isAuthError(e) ? 'LOGIN_REQUIRED' : (toDisplayError(e).message || fallback);
   const [showMix, setShowMix] = useState(false);
   // North-Star B: the early mirror beat is shown once per session, then the
   // user dismisses it. Parent-owned so it stays gone across re-renders/rounds
@@ -1324,6 +1334,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const previewDraft = previewDraftId
     ? drafts.find((d) => d.id === previewDraftId) ?? null
     : null;
+
+  // These two dialogs are hand-rolled (not the shared <Modal>), so keyboard users
+  // could Tab straight out behind the backdrop and Escape did nothing. Attach the
+  // same trap (Tab-cycle + Escape + focus restore) without touching their layout.
+  const previewDialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(previewDialogRef, { active: !!previewDraft, onClose: () => setPreviewDraftId(null) });
+  const reviseDialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(reviseDialogRef, {
+    active: iterationOpen && !!activeDraft,
+    onClose: () => { if (!isIterating) { setIterationOpen(false); setIterationDirective(''); } },
+  });
+
   // Defensive: existing sessions may already hold the literal string "null"
   // (stored before setDecisionMaker filtered it) — never surface that as a name.
   const rawDm = session?.decision_maker ?? null;
@@ -1796,7 +1818,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       // the expected "go back to where I was".
       store.rollbackAnswer(curQ.id);
       if (!(e instanceof DOMException && e.name === 'AbortError')) {
-        setError(e instanceof Error ? e.message : L('분석에 실패했어요. 다시 시도해 주세요.', 'Analysis failed. Please try again.'));
+        setError(errText(e, L('분석에 실패했어요. 다시 시도해 주세요.', 'Analysis failed. Please try again.')));
       }
       store.setPhase('conversing');
       scrollToRef(statusBarRef);
@@ -1838,6 +1860,22 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         // results as a single block with sub-bullets.
         taskGroupId: w.taskGroupId,
       }));
+
+      // Honest-failure guard: a crew WAS deployed but every worker came back empty
+      // (provider 529 flood, parse failures, circuit open). Mixing on an empty
+      // result set silently produces a generic draft presented as if the team did
+      // the work — the user never learns their crew produced nothing. Stop here and
+      // say so, instead of shipping a hollow draft. (Zero deployed workers is the
+      // legitimate "draft solo" path and is NOT blocked.)
+      if ((session?.workers.length ?? 0) > 0 && workerResults.length === 0) {
+        setBusy(false);
+        setSubstage(null);
+        store.setPhase('conversing');
+        setError(L('크루가 모두 빈손으로 돌아왔어요 (일시적 과부하일 수 있어요). 잠시 후 다시 시도해 주세요.', 'The whole crew came back empty (likely a temporary overload). Please try again in a moment.'));
+        scrollToRef(statusBarRef);
+        track('mix_blocked_empty_crew', { workers: session?.workers.length ?? 0 });
+        return;
+      }
 
       // 항해장 메타 리뷰 + debate (해금 시만, 비차단)
       // Debate is STARTED here but awaited later: it used to serially block
@@ -1982,7 +2020,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         useAgentAttentionStore.getState().ping('mix_done');
         scrollToRef(mixPreviewRef, 'bottom');
       }
-    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('초안 생성 실패', 'Draft creation failed')); store.setPhase('conversing'); scrollToRef(statusBarRef); }
+    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(errText(e, L('초안 생성 실패', 'Draft creation failed'))); store.setPhase('conversing'); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -2031,7 +2069,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         useAgentStore.getState().recordActivity(reviewerAgent.id, 'review_given', session!.problem_text.slice(0, 100));
       }
     }
-    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('DM 피드백 실패', 'DM feedback failed')); scrollToRef(statusBarRef); }
+    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(errText(e, L('DM 피드백 실패', 'DM feedback failed'))); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -2058,7 +2096,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       scrollToRef(dmFeedbackRef, 'bottom');
       track('flow_deepen', { has_boss: !!reviewerAgent });
     }
-    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('심화 검토 실패', 'Deep review failed')); scrollToRef(statusBarRef); }
+    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(errText(e, L('심화 검토 실패', 'Deep review failed'))); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -2088,7 +2126,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       const r = await runDeepening(session!.problem_text, latest, qa, round, round + 2, snapshots, (text) => setStreamingText(text), abortRef.current.signal, moreLeadCtx, personas2.length > 0 ? personas2 : undefined, onTypedUpgrade);
       setStreamingText(null);
       r.question ? (store.addQuestion(r.question), store.setPhase('conversing')) : (setShowMix(true), store.setPhase('conversing'));
-    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('실패', 'Failed')); store.setPhase('conversing'); setShowMix(true); }
+    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(errText(e, L('실패', 'Failed'))); store.setPhase('conversing'); setShowMix(true); }
     finally { setBusy(false); abortRef.current = null; scroll(); }
   };
 
@@ -2130,7 +2168,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       scrollToRef(finalRef, 'top');
       track('flow_done', { project_id: projectId, rounds: round });
     }
-    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('최종본 실패', 'Finalization failed')); scrollToRef(statusBarRef); }
+    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(errText(e, L('최종본 실패', 'Finalization failed'))); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -2227,7 +2265,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       track('progressive_revision_done', { directive_length: directive.length });
       scroll('top');
     } catch (e) {
-      setError(e instanceof Error ? e.message : L('수정 요청 실패', 'Revision failed'));
+      setError(errText(e, L('수정 요청 실패', 'Revision failed')));
       // Keep the modal open so the user can read the inline error and retry.
     } finally {
       setIsIterating(false);
@@ -2403,7 +2441,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-5">
                   <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
                   <p className="text-[12.5px] text-[var(--text-secondary)] mb-3">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있어요.`, `Sign in to get up to ${DAILY_LIMIT} free calls per day.`)}</p>
-                  <a href="/login" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={13} /></a>
+                  <a href="/login" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[#3a2a10] text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={13} /></a>
                 </div>
               ) : (() => {
                 const isQuota = error.includes('한도') || error.includes('rate') || error.includes('limit') || error.includes('429');
@@ -2413,12 +2451,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     <div className="flex-1 min-w-0">
                       <p className="text-[12.5px] text-[var(--text-primary)] leading-[1.5]">
                         {isQuota
-                          ? L('오늘의 무료 사용 한도에 닿았어요. Settings에서 본인의 API 키를 등록하면 계속 쓸 수 있어요.', "You've hit today's free allowance. Register your own API key in Settings to keep going.")
+                          ? L('오늘 무료 한도를 다 썼어요. 내일 다시 채워져요. 지금 더 쓰고 싶다면 설정에서 직접 API 키를 연결할 수 있어요.', "You've used today's free allowance. It refills tomorrow — to keep going now, connect your own API key in Settings.")
                           : error}
                       </p>
                       {isQuota && (
                         <a href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
-                          {L('Settings에서 API 키 등록하기 →', 'Register API key in Settings →')}
+                          {L('설정에서 API 키 연결하기 →', 'Connect your API key in Settings →')}
                         </a>
                       )}
                     </div>
@@ -2919,7 +2957,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   if (r.detectedDM) store.setDecisionMaker(r.detectedDM);
                   store.replaceLatestQuestion(r.question);
                   track('framing_rejected', { reason });
-                } catch (e) { setStreamingText(null); setError(e instanceof Error ? e.message : L('재분석 실패', 'Re-analysis failed')); }
+                } catch (e) { setStreamingText(null); setError(errText(e, L('재분석 실패', 'Re-analysis failed'))); }
                 finally { setBusy(false); scroll(); }
               }}
               busy={busy}
@@ -2945,7 +2983,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   }
                   track('progressive_exit_to_reframe', { round });
                   window.location.href = `/workspace?step=reframe&handoff=progressive&itemId=${item.id}`;
-                } catch (e) { setError(e instanceof Error ? e.message : L('전환 실패', 'Switch failed')); }
+                } catch (e) { setError(errText(e, L('전환 실패', 'Switch failed'))); }
               }}
               onRehearse={() => {
                 try {
@@ -2960,7 +2998,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   }
                   track('progressive_exit_to_rehearse', { round });
                   window.location.href = `/workspace?step=rehearse&handoff=progressive&itemId=${item.id}`;
-                } catch (e) { setError(e instanceof Error ? e.message : L('전환 실패', 'Switch failed')); }
+                } catch (e) { setError(errText(e, L('전환 실패', 'Switch failed'))); }
               }}
             />
           )}
@@ -3180,7 +3218,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   useProjectStore.getState().setCurrentProjectId(null);
                   window.location.assign('/workspace');
                 }}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white text-[13px] font-semibold cursor-pointer"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[#3a2a10] text-[13px] font-semibold cursor-pointer"
                   style={{ background: 'var(--gradient-gold)' }}>{L('새 프로젝트 시작', 'Start New Project')} <ArrowRight size={12} /></button>
                 <button onClick={() => { setIterationOpen(true); setIterationDirective(''); }}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] border border-[var(--accent)]/30 bg-[var(--gold-muted)]/30 hover:bg-[var(--gold-muted)]/50 cursor-pointer transition-colors">
@@ -3249,6 +3287,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           onClick={() => setPreviewDraftId(null)}
         >
           <div
+            ref={previewDialogRef}
             role="dialog" aria-modal="true" aria-label={L('버전 미리보기', 'Version preview')}
             className="relative w-full max-w-2xl max-h-[85vh] bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
@@ -3301,6 +3340,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           onClick={() => { if (!isIterating) { setIterationOpen(false); setIterationDirective(''); } }}
         >
           <div
+            ref={reviseDialogRef}
             role="dialog" aria-modal="true" aria-label={L('수정 요청', 'Revise request')}
             className="relative w-full max-w-xl bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
@@ -3351,7 +3391,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 </div>
               )}
               {!isIterating && error && (
-                <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-[12px] text-red-700">
+                <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-[12px] text-red-700 dark:text-red-300">
                   <AlertTriangle size={13} className="shrink-0 mt-0.5" />
                   <span className="flex-1">{error}</span>
                   <button

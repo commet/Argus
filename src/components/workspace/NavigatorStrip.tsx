@@ -370,9 +370,12 @@ export function NavigatorStrip() {
                       </p>
                     )}
                   </div>
+                  {/* Hover-reveal on mouse devices, but ALWAYS visible where there's
+                      no hover (touch laptops / iPad in desktop mode) — otherwise the
+                      dismiss control, and its persistence, is unreachable there. */}
                   <button
                     onClick={() => dismissInsight(insight.id)}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-opacity"
+                    className="opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 p-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-opacity"
                     title={t('navigator.close')}
                   >
                     <X size={12} />

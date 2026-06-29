@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { generateId } from '@/lib/uuid';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
-import { upsertToSupabase, loadAndMerge } from '@/lib/db';
+import { upsertToSupabase, loadAndMerge, deleteFromSupabase } from '@/lib/db';
 import { track } from '@/lib/analytics';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { agentToWorkerPersona } from '@/lib/agent-adapters';
@@ -326,6 +326,7 @@ interface ProgressiveState {
 
   // Cleanup
   deleteSession: (id: string) => void;
+  deleteSessionsForProject: (projectId: string) => void;
 }
 
 /**
@@ -338,6 +339,47 @@ interface ProgressiveState {
  * checkpoint copies — easily hundreds of KB) over and over.
  */
 const _pendingSyncs = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Push the freshest copy of one session to Supabase. Reads from localStorage (the
+ *  source of truth) so a flush always uploads the latest, not a stale closure. */
+function uploadSession(id: string) {
+  const latest = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []).find(ss => ss.id === id);
+  if (!latest) return;
+  upsertToSupabase('progressive_sessions', {
+    id: latest.id,
+    project_id: latest.project_id,
+    data: latest,
+    phase: latest.phase,
+    has_pending_humans: (latest.workers || []).some(
+      w => w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response')
+    ),
+    updated_at: latest.updated_at || new Date().toISOString(),
+  }).catch(() => { /* fire-and-forget — localStorage is primary */ });
+}
+
+/** Fire every still-pending trailing sync RIGHT NOW. Without this, a user who
+ *  finishes generating and closes the tab (or hits "Start New Project", a full
+ *  document navigation) within the 3s debounce window loses the cloud copy of
+ *  their voyage document — it looks fine on THIS device but is missing on the
+ *  next one (the whole point of being logged in). Runs on tab-hide/unload. */
+function flushPendingSyncs() {
+  for (const [id, timer] of _pendingSyncs) {
+    clearTimeout(timer);
+    uploadSession(id);
+  }
+  _pendingSyncs.clear();
+}
+
+if (typeof window !== 'undefined') {
+  // visibilitychange→hidden fires on tab switch / app background / most closes and
+  // (unlike beforeunload) leaves the in-flight request time to complete; pagehide
+  // is the belt for the remaining hard-navigation cases.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushPendingSyncs();
+  });
+  window.addEventListener('pagehide', flushPendingSyncs);
+}
+
 function persist(sessions: ProgressiveSession[]) {
   setStorage(STORAGE_KEYS.PROGRESSIVE_SESSIONS, sessions);
 
@@ -349,18 +391,7 @@ function persist(sessions: ProgressiveSession[]) {
     if (existing) clearTimeout(existing);
     _pendingSyncs.set(s.id, setTimeout(() => {
       _pendingSyncs.delete(s.id);
-      const latest = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []).find(ss => ss.id === s.id);
-      if (!latest) return;
-      upsertToSupabase('progressive_sessions', {
-        id: latest.id,
-        project_id: latest.project_id,
-        data: latest,
-        phase: latest.phase,
-        has_pending_humans: (latest.workers || []).some(
-          w => w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response')
-        ),
-        updated_at: latest.updated_at || new Date().toISOString(),
-      }).catch(() => { /* fire-and-forget — localStorage is primary */ });
+      uploadSession(s.id);
     }, 3000));
   }
 }
@@ -1769,5 +1800,24 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
     persist(sessions);
     const currentSessionId = get().currentSessionId === id ? null : get().currentSessionId;
     set({ sessions, currentSessionId });
+    // A local-only filter let loadSessions resurrect this row from Supabase on the
+    // next device/login — a "delete that doesn't delete" on the user's own decision
+    // history (the product's core promise). progressive_sessions is append-style with
+    // no soft-delete column, so a hard cloud-delete is correct. No-op when logged out.
+    deleteFromSupabase('progressive_sessions', id);
+  },
+
+  // Cascade: removing a project must also erase its voyage documents (problem text,
+  // AI orientation, final deliverable, worker outputs) both locally and in the cloud —
+  // otherwise the project disappears from the list while its sessions live on and
+  // resurrect. Called from useProjectStore.deleteProject.
+  deleteSessionsForProject: (projectId) => {
+    const toDelete = get().sessions.filter(s => s.project_id === projectId).map(s => s.id);
+    if (toDelete.length === 0) return;
+    const sessions = get().sessions.filter(s => s.project_id !== projectId);
+    persist(sessions);
+    const currentSessionId = toDelete.includes(get().currentSessionId ?? '') ? null : get().currentSessionId;
+    set({ sessions, currentSessionId });
+    toDelete.forEach(id => deleteFromSupabase('progressive_sessions', id));
   },
 }));

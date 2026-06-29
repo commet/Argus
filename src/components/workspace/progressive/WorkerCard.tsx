@@ -277,14 +277,14 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
               {persona?.name || 'AI'}
               <span className="text-[var(--text-tertiary)] font-normal ml-1.5 text-[11px]">{persona?.role}</span>
             </p>
-            <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-              <p className="text-[12px] font-semibold text-amber-900 mb-1">{L('품질 확인이 필요해요', 'Quality check needed')}</p>
-              {worker.validation_feedback && <p className="text-[12px] text-amber-800 mb-2.5 leading-relaxed">{worker.validation_feedback}</p>}
+            <div className="mt-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/30">
+              <p className="text-[12px] font-semibold text-amber-900 dark:text-amber-300 mb-1">{L('품질 확인이 필요해요', 'Quality check needed')}</p>
+              {worker.validation_feedback && <p className="text-[12px] text-amber-800 dark:text-amber-400 mb-2.5 leading-relaxed">{worker.validation_feedback}</p>}
               <div className="flex gap-2">
                 {onRetry && <button onClick={() => onRetry(worker.id)}
-                  className="text-[11px] px-3 py-1.5 min-h-[36px] rounded-lg bg-white border border-amber-200 text-amber-800 cursor-pointer hover:bg-amber-50">{L('다시 생성', 'Regenerate')}</button>}
+                  className="text-[11px] px-3 py-1.5 min-h-[36px] rounded-lg bg-[var(--surface)] border border-amber-200 dark:border-amber-700/40 text-amber-800 dark:text-amber-300 cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20">{L('다시 생성', 'Regenerate')}</button>}
                 <button onClick={() => store.updateWorker(worker.id, { status: 'done', completed_at: new Date().toISOString() })}
-                  className="text-[11px] px-3 py-1.5 min-h-[36px] rounded-lg text-amber-700 cursor-pointer hover:text-amber-900">{L('그냥 사용', 'Use anyway')}</button>
+                  className="text-[11px] px-3 py-1.5 min-h-[36px] rounded-lg text-amber-700 dark:text-amber-400 cursor-pointer hover:text-amber-900 dark:hover:text-amber-200">{L('그냥 사용', 'Use anyway')}</button>
               </div>
             </div>
           </div>

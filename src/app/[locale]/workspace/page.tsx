@@ -111,6 +111,14 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   const switchBranch = useProgressiveStore(s => s.switchBranch);
   const branchingLocked = useProgressiveStore(s => s.isBranchingLocked());
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+  // The click-away backdrop is mouse-only; without this a keyboard user who opens
+  // the course dropdown can't dismiss it except by Tabbing through every option.
+  useEffect(() => {
+    if (!branchMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setBranchMenuOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [branchMenuOpen]);
 
   return (
     <div className="relative min-h-[calc(100vh-64px)] overflow-hidden">
@@ -261,6 +269,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   // so the bind card can be shown WHILE the analysis runs and finalize after the rope.
   const analysisRef = React.useRef<Promise<{ result?: Awaited<ReturnType<typeof runInitialAnalysis>>; error?: unknown }> | null>(null);
   const pendingTextRef = React.useRef<string>('');
+  // When a proceed errors (rate-limit/network) the user's hand-typed lean+date —
+  // the most deliberate "rope" the whole spine is built around — would vanish.
+  // Stash it (scoped to the same problem text) so a retry re-hydrates the BindCard.
+  const lastBindRef = React.useRef<{ text: string; bind: BindResult } | null>(null);
   const searchParams = useSearchParams();
 
   // Keep ref in sync for use inside async callback
@@ -275,12 +287,23 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     };
   }, []);
 
-  // Auto-select demo scenario from ?demo= query param
+  // Auto-select demo scenario from ?demo= query param.
+  // Consume the param the instant it's matched (mirror the ?q= path) and guard
+  // with a ref. Leaving ?demo= in the URL meant onStartReal/onBack (which only
+  // null the scenario) re-fired this effect and bounced the user STRAIGHT BACK
+  // into the demo — a roach-motel loop at the exact "I'm convinced, let me try"
+  // moment. Once consumed, nulling demoScenario reaches the real input.
+  const demoStartedRef = React.useRef(false);
   React.useEffect(() => {
+    if (demoStartedRef.current) return;
     const demoId = searchParams.get('demo');
     if (demoId && !demoScenario) {
       const matched = demoScenarios.find(s => s.id === demoId);
-      if (matched) setDemoScenario(matched);
+      if (matched) {
+        demoStartedRef.current = true;
+        window.history.replaceState(null, '', window.location.pathname);
+        setDemoScenario(matched);
+      }
     }
   }, [searchParams, demoScenarios, demoScenario]);
 
@@ -410,6 +433,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       progressiveStore.addQuestion(result.question);
       progressiveStore.setPhase('conversing');
 
+      lastBindRef.current = null; // rope landed safely — don't leak it into a future card
       setPhase('ready');
       onReady(pid);
     } catch (err) {
@@ -429,6 +453,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       const needsLogin = errMsg.startsWith('LOGIN_REQUIRED');
       const isRateLimit = !needsLogin && (errMsg.includes('한도') || errMsg.includes('rate') || errMsg.includes('limit') || errMsg.includes('429'));
 
+      // Preserve the user's typed rope so a retry doesn't make them re-author the
+      // most deliberate thing on the screen (the lean+date are gone once binding
+      // unmounts). Scoped to this exact problem text so it never leaks elsewhere.
+      if (bind) lastBindRef.current = { text, bind };
       // errMsg 그대로 setError — 렌더 쪽에서 prefix로 분기해 login CTA vs generic 배너 결정.
       // 세션은 아직 생성 안 했으므로 정리 로직 불필요.
       setError(errMsg || L('분석에 실패했습니다. 다시 시도해주세요.', 'Analysis failed. Please try again.'));
@@ -601,7 +629,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   <div className="mt-3 p-4 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/20">
                     <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
                     <p className="text-[12px] text-[var(--text-secondary)] mb-3 leading-relaxed">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있습니다.`, `Sign in to get up to ${DAILY_LIMIT} free uses per day.`)}</p>
-                    <LocaleLink href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-[12px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>
+                    <LocaleLink href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[#3a2a10] text-[12px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>
                       {L('로그인', 'Sign In')} <ChevronRight size={12} />
                     </LocaleLink>
                   </div>
@@ -615,9 +643,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   const msg = isQuota
                     // Disambiguate anon "trial" from a logged-in user's daily quota —
                     // a signed-in user hasn't hit a "trial", they've used today's allowance.
+                    // Lead with the reassurance that matters to the 99% who have no API
+                    // key (it refills tomorrow), and use the menu's real name (설정, not
+                    // the untranslated "Settings"). The API-key path is demoted to the link.
                     ? (user
-                        ? L(`오늘의 무료 사용 한도(하루 ${DAILY_LIMIT}회)를 다 썼어요. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.`, `You've used today's free allowance (${DAILY_LIMIT}/day). Register your own API key in Settings for unlimited use.`)
-                        : L('무료 체험 한도에 도달했어요. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.', 'Free trial limit reached. Register your own API key in Settings for unlimited use.'))
+                        ? L(`오늘 무료 한도(하루 ${DAILY_LIMIT}회)를 다 썼어요. 내일 다시 채워져요. 지금 바로 더 쓰고 싶다면 설정에서 직접 API 키를 연결할 수 있어요.`, `You've used today's free allowance (${DAILY_LIMIT}/day). It refills tomorrow. To keep going right now, you can connect your own API key in Settings.`)
+                        : L('무료 체험 한도에 도달했어요. 잠시 후 다시 채워지고, 로그인하면 매일 더 넉넉하게 쓸 수 있어요.', 'You\'ve reached the free trial limit. It refills shortly, and signing in gives you more each day.'))
                     : isNetwork
                       ? L('네트워크 연결이 불안정해요. 연결을 확인하고 다시 시도해주세요.', 'Network looks unstable. Check your connection and try again.')
                       : isTimeout
@@ -637,7 +668,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                           {/* Quota → settings; everything else → an explicit retry. */}
                           {isQuota ? (
                             <LocaleLink href="/settings" className="text-[12px] text-[var(--accent)] font-medium hover:underline">
-                              {L('Settings에서 API 키 등록하기 →', 'Register your API key in Settings →')}
+                              {L('설정에서 API 키 연결하기 →', 'Connect your API key in Settings →')}
                             </LocaleLink>
                           ) : (
                             <button onClick={() => handleSubmit()}
@@ -769,7 +800,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
           {phase === 'binding' && (
             <motion.div key="binding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: EASE }} className="pt-8 md:pt-16">
-              <BindCard problem={pendingTextRef.current} onProceed={proceedAfterBind} />
+              <BindCard
+                problem={pendingTextRef.current}
+                onProceed={proceedAfterBind}
+                initial={lastBindRef.current?.text === pendingTextRef.current ? lastBindRef.current.bind : null}
+              />
             </motion.div>
           )}
 

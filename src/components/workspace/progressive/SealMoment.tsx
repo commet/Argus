@@ -88,6 +88,11 @@ export function SealMoment({
   const { user } = useAuth();
 
   const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_INTERVAL);
+  // A specific known date (yyyy-mm-dd), overriding the relative interval. Real
+  // outcomes often land on a fixed day (a launch, an exam result) that isn't
+  // 1w/2w/1m; forcing the nearest relative bucket made the seal fire 'due' early,
+  // training the user to ignore the badge. Empty = use the interval.
+  const [customDate, setCustomDate] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dropped, setDropped] = useState<Set<string>>(new Set());
   // Tracks a seal performed in THIS session, so we show the calm confirmation
@@ -123,6 +128,11 @@ export function SealMoment({
     return d.toLocaleDateString(ko ? 'ko-KR' : 'en-US', opts);
   }
   const dateFor = (iv: CheckInInterval) => fmtDate(Date.now() + CHECK_IN_MS[iv]);
+  // What the seal will actually promise — the picked fixed date if set, else the
+  // relative interval. Drives the pre-seal "I'll ask on X" copy so it never lies.
+  const checkInLabel = customDate && !Number.isNaN(Date.parse(customDate))
+    ? fmtDate(new Date(customDate).getTime())
+    : dateFor(interval);
 
   // The COMMITTED check-in date (ms) — what was actually sealed, not the chip
   // currently selected in the drawer (selection no longer re-seals).
@@ -156,10 +166,15 @@ export function SealMoment({
     // If an EARLY rope already exists (Phase 1 BIND at project-OPEN), AUGMENT it —
     // merge onto it, preserving id/created_at and the user's own user_lean predicate,
     // and re-confirm the check-in. Never clobber ("bind tighter at peak temptation").
-    const next = existing
+    const base = existing
       ? augmentContract(existing, toSeal, now, iv)
       : (() => { const f = contractFromPredicates(project.id, toSeal, now); return f ? withCheckIn(f, iv, now) : null; })();
-    if (!next) return;
+    if (!base) return;
+    // A picked fixed date overrides the relative check-in. due/settle already key
+    // off check_in_at, so a known-date promise is honest end-to-end.
+    const next = customDate && !Number.isNaN(Date.parse(customDate))
+      ? { ...base, check_in_at: new Date(customDate).toISOString() }
+      : base;
     updateProject(project.id, { decision_contract: next });
     setInterval(iv);
     setJustSealed(true);
@@ -268,7 +283,14 @@ export function SealMoment({
               <div className="pt-4 text-left">
                 {/* Selection-only — one control, one contract: the explicit
                     "이대로 다시 봉인" button below is the single commit point. */}
-                <DateChips interval={interval} onPick={setInterval} dateFor={dateFor} L={L} />
+                <DateChips
+                  interval={interval}
+                  onPick={(iv) => { setInterval(iv); setCustomDate(''); }}
+                  customDate={customDate}
+                  onPickDate={setCustomDate}
+                  dateFor={dateFor}
+                  L={L}
+                />
                 <div className="mt-4">
                   <PredicateEditor
                     predicates={Array.isArray(predicates) ? predicates : []}
@@ -291,7 +313,7 @@ export function SealMoment({
                 <button
                   onClick={() => seal()}
                   disabled={kept.length === 0}
-                  className="mt-4 w-full py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-50 cursor-pointer"
+                  className="mt-4 w-full py-2.5 rounded-xl text-[13px] font-semibold text-[#3a2a10] disabled:opacity-50 cursor-pointer"
                   style={{ background: 'var(--gradient-gold)' }}
                 >
                   {L('이대로 다시 약속', 'Save the new promise')}
@@ -339,8 +361,8 @@ export function SealMoment({
         </div>
         <h3 className="mt-5 text-[19px] md:text-[21px] font-bold text-[var(--text-primary)] leading-[1.4] max-w-md mx-auto">
           {L(
-            `이 결정, ${dateFor(interval)}에 어떻게 됐는지 물어봐 드릴까요?`,
-            `Want me to ask you on ${dateFor(interval)} how this decision turned out?`,
+            `이 결정, ${checkInLabel}에 어떻게 됐는지 물어봐 드릴까요?`,
+            `Want me to ask you on ${checkInLabel} how this decision turned out?`,
           )}
         </h3>
         <p className="mt-3 text-[13.5px] text-[var(--text-secondary)] leading-[1.6] max-w-md mx-auto">
@@ -368,11 +390,11 @@ export function SealMoment({
           <button
             onClick={() => seal()}
             disabled={kept.length === 0}
-            className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-white text-[14px] font-semibold disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-[#3a2a10] text-[14px] font-semibold disabled:opacity-50 cursor-pointer"
             style={{ background: 'var(--gradient-gold)' }}
           >
             <Check size={15} />
-            {L(`네 — ${dateFor(interval)}에 물어봐 주세요`, `Yes — ask me on ${dateFor(interval)}`)}
+            {L(`네 — ${checkInLabel}에 물어봐 주세요`, `Yes — ask me on ${checkInLabel}`)}
           </button>
           <button
             onClick={() => {
@@ -407,7 +429,14 @@ export function SealMoment({
               className="overflow-hidden"
             >
               <div className="pt-5 text-left max-w-md mx-auto">
-                <DateChips interval={interval} onPick={setInterval} dateFor={dateFor} L={L} />
+                <DateChips
+                  interval={interval}
+                  onPick={(iv) => { setInterval(iv); setCustomDate(''); }}
+                  customDate={customDate}
+                  onPickDate={setCustomDate}
+                  dateFor={dateFor}
+                  L={L}
+                />
                 <div className="mt-4">
                   <PredicateEditor
                     predicates={Array.isArray(predicates) ? predicates : []}
@@ -439,11 +468,16 @@ export function SealMoment({
 function DateChips({
   interval,
   onPick,
+  customDate,
+  onPickDate,
   dateFor,
   L,
 }: {
   interval: CheckInInterval;
   onPick: (iv: CheckInInterval) => void;
+  /** A specific picked date (yyyy-mm-dd), overriding the relative interval. */
+  customDate: string;
+  onPickDate: (date: string) => void;
   dateFor: (iv: CheckInInterval) => string;
   L: (k: string, e: string) => string;
 }) {
@@ -452,13 +486,13 @@ function DateChips({
       <p className="text-[12px] font-semibold text-[var(--text-secondary)] mb-2">
         {L('언제 물어볼까요?', 'When should I ask?')}
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {INTERVALS.map((iv) => (
           <button
             key={iv.value}
             onClick={() => onPick(iv.value)}
             className={`px-3 py-1.5 rounded-lg text-[12.5px] font-medium border transition-colors cursor-pointer ${
-              interval === iv.value
+              interval === iv.value && !customDate
                 ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
                 : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]/40'
             }`}
@@ -466,6 +500,20 @@ function DateChips({
             {L(iv.ko, iv.en)} · {dateFor(iv.value)}
           </button>
         ))}
+        {/* A specific known day (a launch, a result) — outcomes rarely land exactly
+            on 1w/2w/1m, and a too-early relative check trains the user to ignore it. */}
+        <input
+          type="date"
+          value={customDate}
+          min={new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)}
+          onChange={(e) => onPickDate(e.target.value)}
+          title={L('직접 고르기', 'Pick a date')}
+          className={`px-2.5 py-1.5 rounded-lg text-[12.5px] font-medium border bg-[var(--surface)] cursor-pointer transition-colors ${
+            customDate
+              ? 'border-[var(--accent)] text-[var(--accent)]'
+              : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]/40'
+          }`}
+        />
       </div>
     </div>
   );

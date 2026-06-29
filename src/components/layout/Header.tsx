@@ -22,7 +22,12 @@ export function Header() {
   // inside the workspace (crew-roster row), just no longer top-level doors.
   const navItems: Array<{ href: string; label: string; primary?: boolean; requiresAuth?: boolean }> = [
     { href: '/workspace', label: L('워크스페이스', 'Workspace'), primary: true },
-    { href: '/project', label: L('프로젝트', 'Projects'), requiresAuth: true },
+    // NOT auth-gated: /project is in PUBLIC_PATHS so the anonymous cohort (the
+    // largest) can return to settle. A padlock here flatly contradicts the seal's
+    // promise ("come to the projects page on [date] and I'll ask first") and made
+    // anon sealers conclude the return was walled off — killing the settle half of
+    // the loop. The honest "log in to keep across devices" nudge lives in-page.
+    { href: '/project', label: L('프로젝트', 'Projects') },
     { href: '/settings', label: L('설정', 'Settings') },
   ];
 

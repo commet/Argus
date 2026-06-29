@@ -162,6 +162,31 @@ function recordFailure(provider = 'anthropic'): void {
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504, 529]);
 
+/** Per-attempt ceiling for a NON-streaming call. The streaming path has its own
+ *  idle/hard-cap watchdog (IDLE_MS/HARD_CAP_MS); a plain fetch had none, so a
+ *  half-open connection (socket up, no body) spun the UI forever with no error
+ *  and no retry. 60s is well above a real JSON call (max_tokens-capped, ~10–30s). */
+const FETCH_TIMEOUT_MS = 60_000;
+
+/** fetch() with a per-attempt timeout that still honors the caller's abort signal.
+ *  Aborts via our own controller on timeout; the caller's signal is forwarded so a
+ *  user cancel still works. The catch in fetchWithRetry distinguishes the two by
+ *  inspecting whether the CALLER's signal is the one that aborted. */
+async function fetchWithTimeout(input: RequestInfo, init: RequestInit): Promise<Response> {
+  const userSignal = init.signal ?? undefined;
+  if (userSignal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  const ctrl = new AbortController();
+  const onAbort = () => ctrl.abort();
+  userSignal?.addEventListener('abort', onAbort, { once: true });
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+    userSignal?.removeEventListener('abort', onAbort);
+  }
+}
+
 async function fetchWithRetry(
   input: RequestInfo,
   init: RequestInit,
@@ -172,7 +197,7 @@ async function fetchWithRetry(
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const res = await fetch(input, init);
+      const res = await fetchWithTimeout(input, init);
 
       if (res.ok) {
         recordSuccess(provider);
@@ -205,8 +230,12 @@ async function fetchWithRetry(
       await new Promise(r => setTimeout(r, delay));
     } catch (error) {
       if (error instanceof LLMError) throw error;
-      // AbortError: 사용자 취소 — 재시도하지 않음
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      // AbortError from the CALLER's signal → genuine user cancel, never retry.
+      // An AbortError when the caller's signal is NOT aborted means OUR per-attempt
+      // timeout fired (a dead/half-open connection) — fall through and retry it like
+      // any other network failure instead of mistaking it for a user cancellation.
+      const userAborted = init.signal?.aborted === true;
+      if (userAborted && error instanceof DOMException && error.name === 'AbortError') {
         throw new LLMError('요청이 취소되었습니다.', {
           category: 'network', retryable: false, cause: error,
         });

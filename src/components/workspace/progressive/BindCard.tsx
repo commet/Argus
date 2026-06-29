@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -42,19 +42,40 @@ const MAX_LEAN = 140;
 export function BindCard({
   onProceed,
   problem,
+  initial,
 }: {
   /** null = full skip (no rope, write nothing). A BindResult = tie the rope. */
   onProceed: (bind: BindResult | null) => void;
   /** The problem the user just submitted — shown small, for orientation only. */
   problem?: string;
+  /** Re-hydrate the rope the user already typed when a prior attempt errored —
+   *  the lean/date is the most deliberate thing they authored; never silently lose it. */
+  initial?: BindResult | null;
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
 
-  const [lean, setLean] = useState('');
-  const [interval, setInterval] = useState<CheckInInterval | null>(null);
-  const [customDate, setCustomDate] = useState(''); // a specific picked date (yyyy-mm-dd)
+  const [lean, setLean] = useState(initial?.lean ?? '');
+  const [interval, setInterval] = useState<CheckInInterval | null>(
+    initial?.check_in_at ? null : (initial?.interval ?? null),
+  );
+  const [customDate, setCustomDate] = useState(
+    initial?.check_in_at ? initial.check_in_at.slice(0, 10) : '',
+  ); // a specific picked date (yyyy-mm-dd)
+
+  // Mobile soft keyboards have no Shift+Enter, so committing on Enter ejects a
+  // user mid-way through a multi-line lean. Detect coarse pointers after mount
+  // (avoids an SSR hydration mismatch) and (a) skip auto-focus so the keyboard
+  // doesn't pop over a skip-dominant card, (b) let Enter insert newlines there —
+  // the explicit buttons stay the touch commit path. Desktop keeps Enter=skip/tie.
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isTouch, setIsTouch] = useState(false);
+  useEffect(() => {
+    const touch = typeof window !== 'undefined' && window.matchMedia('(pointer:coarse)').matches;
+    setIsTouch(touch);
+    if (!touch) textareaRef.current?.focus();
+  }, []);
 
   const trimmed = lean.trim();
   const hasCommitment = trimmed.length > 0 || interval !== null || customDate !== '';
@@ -92,6 +113,11 @@ export function BindCard({
           {L('안 적어도 됩니다. 적어두면 나중에 “그래서 어떻게 됐는지” 같이 맞춰봐요.',
              "Optional. If you jot it down, we'll check back later on how it actually went.")}
         </p>
+        {/* Reassure that value is already in flight — this beat is a worthwhile
+            pause, not a homework gate the user must clear before anything happens. */}
+        <p className="text-[12px] text-[var(--text-tertiary)] mt-1.5 leading-snug opacity-70">
+          {L('분석은 이미 시작됐어요 — 천천히 적어도 돼요.', 'Your analysis is already running — no rush.')}
+        </p>
 
         {problem && (
           <p className="mt-3 text-[12px] text-[var(--text-secondary)] line-clamp-2 border-l-2 border-[var(--border-subtle)] pl-2.5">
@@ -101,12 +127,13 @@ export function BindCard({
 
         {/* One neutral optional line — never prefilled, never a fork. */}
         <textarea
-          autoFocus
+          ref={textareaRef}
           value={lean}
           maxLength={MAX_LEAN}
           onChange={(e) => setLean(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            // Touch devices: let Enter insert a newline (no Shift+Enter on phones).
+            if (e.key === 'Enter' && !e.shiftKey && !isTouch) {
               e.preventDefault();
               // Enter never blocks: with no commitment it skips; with one it ties.
               hasCommitment ? tie() : skip();

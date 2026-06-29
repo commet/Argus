@@ -3,6 +3,7 @@ import type { Project, ProjectRef } from '@/stores/types';
 import { STORAGE_KEYS, getStorage, setStorage, removeStorage } from '@/lib/storage';
 import { generateId, loadItems, addNewItem, updateItem, deleteItem, updateNestedField } from './createItemStore';
 import { track } from '@/lib/analytics';
+import { useProgressiveStore } from '@/stores/useProgressiveStore';
 
 const TABLE = 'projects' as const;
 const KEY = STORAGE_KEYS.PROJECTS;
@@ -53,10 +54,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   updateProject: (id, data) => updateItem(KEY, TABLE, () => get().projects, (projects) => set({ projects }), id, data),
-  deleteProject: (id) => deleteItem(KEY, TABLE, () => get().projects, (projects) => set({ projects }), () => get().currentProjectId, (cid) => {
-    set({ currentProjectId: cid });
-    if (cid === null) removeStorage(CURRENT_PROJECT_KEY); // deleted the current project — clear the stored id too
-  }, id),
+  deleteProject: (id) => {
+    // Cascade FIRST: erase the project's voyage documents locally + in the cloud,
+    // else the project vanishes from the list while its sessions survive in Supabase
+    // and resurrect on the next load (a delete that doesn't delete).
+    useProgressiveStore.getState().deleteSessionsForProject(id);
+    deleteItem(KEY, TABLE, () => get().projects, (projects) => set({ projects }), () => get().currentProjectId, (cid) => {
+      set({ currentProjectId: cid });
+      if (cid === null) removeStorage(CURRENT_PROJECT_KEY); // deleted the current project — clear the stored id too
+    }, id);
+  },
 
   addRef: (projectId, ref) =>
     updateNestedField(KEY, TABLE, () => get().projects, (projects) => set({ projects }), projectId, (p) => {
