@@ -207,12 +207,17 @@ export function SeaChart({
     const wander = (row: number) => amp * (0.7 * Math.sin(row * 0.95) + 0.3 * Math.sin(row * 2.2));
     const baseX = sideL + amp;            // natural trunk centre
     const H = padTop + maxRow * rowGap + padBottom;
-    // Place every node first (forks peel LEFT, unbounded by lane count)…
+    // Place every node. The active course winds down the centre; forks peel into
+    // the open sea on ALTERNATING sides (odd lane → left, even → right), each
+    // step pair one notch farther out. Fanning both ways keeps the spread
+    // balanced and ~halves its width vs. piling every fork onto one side.
     const placed0 = nodes.map((n, i) => {
       const isActive = n.branchId === activeBranchId;
+      const rank = Math.max(1, n.lane);
+      const side = rank % 2 === 1 ? -1 : 1;
       const px = isActive
         ? baseX + wander(rows[i])
-        : baseX - forkSpread * Math.max(1, n.lane) + wander(rows[i]) * 0.3;
+        : baseX + side * forkSpread * Math.ceil(rank / 2) + wander(rows[i]) * 0.3;
       return { ...n, px, py: padTop + rows[i] * rowGap, row: rows[i], isActive };
     });
     // …then size the viewBox to ENCLOSE them all. Without this, many forks marched
