@@ -95,7 +95,7 @@ export function Act2DecisionVoyage() {
               clearly tappable: larger/bolder, an ink underline that warms to gold
               and an arrow that slides on hover. */}
           <LocaleLink
-            href="/workspace"
+            href="/workspace?new=1"
             className="group inline-flex items-center gap-2 text-[var(--bp-ink)] hover:text-[var(--bp-gold-deep)] transition-colors"
             style={{ fontWeight: 700, fontSize: 'clamp(15px, 1.5vw, 17px)', letterSpacing: '0.01em', minHeight: 44 }}
           >
