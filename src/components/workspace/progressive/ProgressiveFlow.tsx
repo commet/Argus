@@ -2380,7 +2380,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             page. Sticky lives on the wrapper, not the bar itself, so the
             wrapper provides the scroll travel room (its bottom is the body
             of the page). */}
-        <div ref={statusBarRef} className="sticky top-16 z-30 mb-6 pt-2 pb-1 bg-[var(--bg)]/85 backdrop-blur-sm">
+        {/* Sticky scroll-mask. A flat bg-[var(--bg)]/85 band drew a hard-edged
+            rectangle BEHIND the rounded status pill ("box on a box"); fade it to
+            transparent at the bottom so it masks the nav seam up top but leaves no
+            visible edge under the pill (which carries its own surface + blur). */}
+        <div ref={statusBarRef} className="sticky top-16 z-30 mb-6 pt-2 pb-1 bg-gradient-to-b from-[var(--bg)] via-[var(--bg)] to-transparent">
           <PhaseStatusBar
             phase={phase} busy={busy}
             hasQuestion={!!curQ && !busy && phase === 'conversing'}
