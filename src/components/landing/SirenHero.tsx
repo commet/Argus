@@ -164,9 +164,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>Argus는 그것을 살아 있는 항로로 남깁니다 — 갈림길, 검증된 주장, 현재 방위, 그리고 현실이 답할 때의 귀환까지.</>
+            <>Argus는 그것을 살아 있는 항로로 남깁니다.<br />갈림길, 검증된 주장, 현재 방위, 그리고 현실이 답할 때의 귀환까지.</>
           ) : (
-            <>Argus keeps them alive as courses — with forks, checked claims, a current bearing, and a return when reality answers.</>
+            <>Argus keeps them alive as courses.<br />With forks, checked claims, a current bearing, and a return when reality answers.</>
           )}
         </p>
 
