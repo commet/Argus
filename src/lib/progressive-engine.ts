@@ -58,6 +58,11 @@ interface InitialAnalysisResponse {
   why_this_matters?: string;
   hidden_assumptions: string[];
   skeleton: string[];
+  /** The one-line answer the model is asked to produce (prompt JSON: "insight").
+   *  For a non-open route (flat/vent/info/validation/…) this IS the deliverable —
+   *  skeleton is empty by design, so the insight carries the whole answer. Was
+   *  missing from this interface, so it was silently dropped from every snapshot. */
+  insight?: string;
   /** R31 — the model's own STEP-0 classification, surfaced so the RUNTIME can
    *  enforce the structural contract (only `open` builds a plan). Optional: an
    *  older/weaker model may omit it, in which case the guard no-ops (safe). */
@@ -431,6 +436,10 @@ export async function runInitialAnalysis(
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
     skeleton: result.skeleton || [],
+    // Carry the one-line answer through. For a non-open route this is the only
+    // deliverable (empty skeleton by design); dropping it left the terminal card
+    // blank and tripped the "empty result" failure guard downstream.
+    insight: result.insight,
     framing_confidence: framingConfidence,
     framing_locked: false,
     // R32 — wire the model's STEP-0 classification onto the snapshot so the flow
@@ -555,6 +564,7 @@ export async function refineInitialFraming(
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
     skeleton: result.skeleton || [],
+    insight: result.insight,
     framing_confidence: framingConfidence,
     framing_locked: false,
     framing_override_reason: rejectionReason,

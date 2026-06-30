@@ -382,9 +382,19 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
 
       // ADD-4: 스트림은 정상 종료됐지만 파싱 결과가 비어있는 경우(첫 상호작용의 malformed JSON 등).
       // skeleton·hidden_assumptions가 모두 비면 분석이 사실상 실패한 것 — 재시도 가능한 에러로 표면화.
-      // 단, 위기 백업이 발동한 스냅샷은 의도적으로 비어 있는 VALID 종착 상태이므로 에러로 튕기지 않는다.
+      // 단, 의도적으로 비어 있는 VALID 종착 상태는 에러로 튕기지 않는다:
+      //   - 위기 백업(crisis): skeleton 억제가 설계.
+      //   - 비-open 경로(flat/vent/info/validation/resistance/self_profiling) 또는 flat 프레임:
+      //     STEP-0 분류상 plan을 만들지 않는 게 정상이고, 한 줄 답(insight)이 곧 결과물이다.
+      //     이 경우 ProgressiveFlow가 terminal 분석 카드로 insight를 렌더하므로, skeleton이
+      //     비어도 실패가 아니다. (insight조차 없으면 진짜 빈 결과이므로 아래 가드가 잡는다.)
+      const rt = result.snapshot.request_type;
+      const isDeliberatelyTerminal =
+        result.snapshot.crisis?.isCrisis ||
+        (((rt && rt !== 'open') || result.snapshot.frame_status === 'flat') &&
+          !!result.snapshot.insight?.trim());
       if (
-        !result.snapshot.crisis?.isCrisis &&
+        !isDeliberatelyTerminal &&
         result.snapshot.skeleton.length === 0 &&
         result.snapshot.hidden_assumptions.length === 0
       ) {
