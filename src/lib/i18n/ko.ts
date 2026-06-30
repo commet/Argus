@@ -92,8 +92,8 @@ export const ko = {
   'coaching.recast.demoBalanced': '데모에서 AI와 사람의 역할을 균형 있게 배분하셨습니다.',
   'coaching.recast.demoBalancedDetail': '이번에도 "이 단계는 누가 해야 가장 효과적인가?"를 기준으로 배치해보세요.',
   'coaching.recast.overrideHigh': 'AI 제안을 자주 수정하고 있습니다 ({pct}%). 이 패턴이 반영됩니다.',
-  'coaching.recast.prefersHuman': '사람이 직접 하는 것을 선호하는 패턴입니다.',
-  'coaching.recast.prefersAi': 'AI에 많이 위임하는 편입니다. 체크포인트를 충분히 두세요.',
+  'coaching.recast.prefersHuman': '최근 행위자 분담 {total}건 중 {human}건에서 일을 사람에게 맡겼어요.',
+  'coaching.recast.prefersAi': '최근 행위자 분담 {total}건 중 {ai}건에서 일을 AI에 맡겼어요.',
   'coaching.recast.uncertainAssumptions': '항로 재설정에서 불확실한 가정 {count}건 — 실행 설계에 검증 단계를 포함하세요.',
 
   // Coaching — Rehearse
@@ -141,7 +141,7 @@ export const ko = {
   'navigator.defaultProject': '프로젝트',
   'navigator.evalSummary': '{count}회 분석, 평균 활용률 {pct}%',
   'navigator.evalLow': '{name}이 {pct}%로 낮습니다',
-  'navigator.overrideHighMessage': 'AI 제안 수정률 {pct}% — 자기 판단이 강한 패턴입니다.',
+  'navigator.overrideHighMessage': '최근 결정 {count}건에서 AI 제안의 {pct}%를 직접 수정했어요.',
   'navigator.overrideHighDetail': '이 패턴이 향후 AI 제안에 반영됩니다.',
   'navigator.overrideLowMessage': 'AI 제안을 거의 그대로 수용하고 있습니다 (수정률 {pct}%).',
   'navigator.overrideLowDetail': 'AI 제안을 비판적으로 검토하면 더 나은 결과를 얻을 수 있습니다.',

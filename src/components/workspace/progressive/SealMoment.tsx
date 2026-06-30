@@ -37,7 +37,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
-import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, CHECK_IN_MS } from '@/lib/decision-contract';
+import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS } from '@/lib/decision-contract';
 import { recordSignal } from '@/lib/signal-recorder';
 import { syncSealToTelegram } from '@/lib/telegram-sync';
 import { track } from '@/lib/analytics';
@@ -99,17 +99,27 @@ export function SealMoment({
   // Defensive: legacy sessions may carry a malformed contract.
   const contract = project?.decision_contract ?? null;
 
-  // §D.2 restraint observability: the seal renders null on zero predicates in
+  // A genuinely flat decision (routine + reversible) is where NOT sealing is the
+  // correct, spine-mandated restraint (P3 / over-fire clause). Everything else is a
+  // "non-trivial frame": a consequential decision where reaching the seal with zero
+  // predicates means the loop BROKE, not that restraint fired. Absent gate inputs
+  // default to the safe non-trivial side (same default as the seal ceremony itself).
+  const flatDecision =
+    (gate?.stakes ?? 'important') === 'routine' &&
+    (gate?.reversibility ?? 'partial') === 'reversible';
+
+  // §D.2 restraint observability: the seal used to render null on zero predicates in
   // BOTH the "correctly silent on a flat decision" case AND the "engine produced
-  // nothing" case — restraint and a broken loop look identical. Emit a signal so
-  // analytics can SEE how often a completed flow reaches the seal with nothing to
-  // arm (internal routing only — never surfaced to the user).
+  // nothing" case — restraint and a broken loop looked identical, laundering the
+  // broken-loop rate into restraint. Split the signal by reason so the broken loop
+  // is measurable (internal routing only — never surfaced to the user).
   const silentNoSeal = !contract && (Array.isArray(predicates) ? predicates.length : 0) === 0;
   useEffect(() => {
     if (!silentNoSeal) return;
-    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_not_armed', signal_data: { predicates: 0 } });
-    track('seal_not_armed', { project_id: project.id });
-  }, [silentNoSeal, project.id]);
+    const reason = flatDecision ? 'flat' : 'extraction_empty';
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_not_armed', signal_data: { predicates: 0, reason } });
+    track('seal_not_armed', { project_id: project.id, reason });
+  }, [silentNoSeal, flatDecision, project.id]);
 
   const kept = useMemo(
     () => (Array.isArray(predicates) ? predicates : []).filter((p) => !dropped.has(p.id)),
@@ -188,6 +198,34 @@ export function SealMoment({
     }
   }
 
+  // Recovery seal for the extraction_empty case: a consequential decision reached
+  // the seal with zero machine-derived predicates (the loop would silently break).
+  // Seal the user's OWN one-line decision summary as the sole predicate, authored
+  // 'user' (buildEarlyContract's user_lean path) — lossless, and never offered on a
+  // genuinely flat decision (see the render gate below). Mirrors seal()'s side
+  // effects so the artifact behaves identically downstream.
+  function manualSeal(iv: CheckInInterval = interval) {
+    const summary = (typeof project?.name === 'string' ? project.name : '').trim();
+    if (!summary) return;
+    const c = buildEarlyContract(project.id, { lean: summary, interval: iv }, Date.now());
+    if (!c) return;
+    updateProject(project.id, { decision_contract: c });
+    const sharp = c.predicates[0]?.text;
+    if (user && session?.access_token && c.check_in_at && sharp) {
+      syncSealToTelegram({
+        accessToken: session.access_token,
+        projectId: project.id,
+        decision: summary,
+        predicate: sharp,
+        checkInAt: c.check_in_at,
+      });
+    }
+    setInterval(iv);
+    setJustSealed(true);
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: c.predicates.length, mode: 'manual_recovery' } });
+    track('decision_sealed', { interval: iv, predicates: c.predicates.length, mode: 'manual_recovery' });
+  }
+
   // ── 캘린더에 약속 넣기 — a client-built .ics, because there is no outbound
   //    channel yet: the calendar is the user's own reminder, honestly framed. ──
   function downloadIcs() {
@@ -225,8 +263,59 @@ export function SealMoment({
     return <DecisionContractCard project={project} livePredicates={predicates} />;
   }
 
-  // Nothing falsifiable → silence is the output (P3).
-  if ((Array.isArray(predicates) ? predicates.length : 0) === 0) return null;
+  // Zero machine-derived predicates. Two very different worlds (see flatDecision):
+  //  - FLAT decision → silence IS the output (P3 / over-fire spine). Render nothing.
+  //  - NON-FLAT frame → the loop would silently break: a consequential decision with
+  //    no return-hook. Offer ONE quiet, skippable manual seal of the user's own
+  //    summary. Not a forced gate, not a fork — just a way to not lose the artifact.
+  if ((Array.isArray(predicates) ? predicates.length : 0) === 0 && !justSealed) {
+    if (flatDecision || dismissed) return null;
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: EASE }}
+        className="mt-12"
+      >
+        <div className="flex items-center gap-3 mb-8 text-[var(--text-tertiary)]/50">
+          <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+          <span className="text-[11px] font-medium tracking-wide uppercase">{L('마지막으로', 'One last thing')}</span>
+          <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+        </div>
+        <div className="rounded-3xl border border-[var(--accent)]/30 bg-[var(--surface)] px-6 py-8 md:px-10 md:py-10 text-center">
+          <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-[var(--ai)] text-[var(--accent)]">
+            <Anchor size={22} />
+          </div>
+          <h3 className="mt-5 text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-[1.4] max-w-md mx-auto">
+            {L(`이 결정, ${dateFor(interval)}에 어떻게 됐는지 확인해 드릴까요?`, `Want me to check back on this on ${dateFor(interval)}?`)}
+          </h3>
+          <p className="mt-3 text-[13.5px] text-[var(--text-secondary)] leading-[1.6] max-w-md mx-auto">
+            {L('따로 잡아둔 예측은 없지만, 그날 이 결정으로 돌아와 어떻게 됐는지 직접 확인할 수 있어요.', "There's no separate prediction to track, but you can still return to this decision that day and see, for yourself, how it went.")}
+          </p>
+          <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => manualSeal()}
+              className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-white text-[14px] font-semibold cursor-pointer"
+              style={{ background: 'var(--gradient-gold)' }}
+            >
+              <Check size={15} />
+              {L(`네 — ${dateFor(interval)}에 확인해 주세요`, `Yes — check back on ${dateFor(interval)}`)}
+            </button>
+            <button
+              onClick={() => {
+                setDismissed(true);
+                recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_declined', signal_data: { predicates: 0, mode: 'manual_recovery' } });
+                track('decision_seal_declined', { predicates: 0, mode: 'manual_recovery' });
+              }}
+              className="inline-flex items-center justify-center px-7 py-3 rounded-2xl text-[14px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--text-secondary)]/40 cursor-pointer transition-colors"
+            >
+              {L('아니요, 괜찮아요', 'No, thanks')}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   // ════ SEALED — the calm confirmation, with an optional edit drawer ════
   if (justSealed) {
