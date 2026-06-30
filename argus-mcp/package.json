@@ -1,26 +1,48 @@
 {
   "name": "argus-mcp",
-  "version": "0.1.0",
-  "description": "Argus decision-navigation MCP server — works with any AI",
+  "version": "1.0.0",
+  "description": "Argus decision-accountability MCP server — seal a falsifiable prediction, settle it against reality. Works with any MCP host (Claude, ChatGPT, Gemini).",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "argus-mcp": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "decision-making",
+    "accountability",
+    "claude",
+    "ai-tools"
+  ],
+  "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "js-yaml": "^4.1.0",
-    "ajv": "^8.17.1"
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.0.0",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
   }
 }

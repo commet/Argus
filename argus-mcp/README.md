@@ -1,116 +1,110 @@
 # argus-mcp
 
-> Your decisions have a check-in date. Argus makes sure you come back.
+> **Your AI gives you an answer. Argus gives you a receipt — and checks it against reality on the date you set.**
 
-MCP server that works with any AI — Claude, GPT, Gemini, or any MCP-compatible client.
+Argus is an MCP server for **decision accountability**. Instead of grading your
+choices, it makes you write down a *falsifiable prediction* and a *check-by
+date*, then brings you back on that date to compare what you predicted against
+what actually happened. The artifact it produces — a **Judgment Receipt** —
+carries one line no other AI tool will: `AI VERDICT … NONE`. The model never
+graded you. Reality did.
 
-## What it does
+Works with any MCP host — Claude, ChatGPT, Gemini, or any MCP-compatible client.
 
-Argus tracks consequential decisions, seals falsifiable predictions, and surfaces overdue contracts when you return. Unlike a calendar reminder, it brings back *what you assumed* when you made the decision — so you can learn, not just remember.
+```
+┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐
+  Sealed 2026-04-02      Settled 2026-06-30
 
-## One-line install (after npm publish)
+  THE REAL QUESTION
+    Can we cut over without a maintenance window users notice?
+  THE UNVERIFIED ASSUMPTION
+    The index rebuild fits inside the replication lag budget.
+  HUMAN-ONLY CALL   Whether a 5-minute blip is acceptable.
+  …made by          Me. (not the model)
 
-```bash
-npx argus-mcp
+  YOU PREDICTED   "Cutover downtime is under 5 minutes"   (check-by 2026-06-30)
+  WHAT HAPPENED   Cutover took 3 minutes, no customer reports.
+  ─────────────────────────────────────────────────────────
+  AI VERDICT ON THIS DECISION ······················  NONE
+  The model never graded you. Reality did.
+└──────────────────────────────────  argus · seal → settle ─┘
 ```
 
-Or add directly to your AI client:
+## Why it's different
 
-```json
+Most decision tools compete on a *better answer*, a *score*, a *confidence*.
+Argus does the opposite, and the opposite is enforced **structurally**, not
+promised in prose:
+
+- **There is no verdict tool.** The model cannot grade your decision because no
+  `argus_verdict` / `argus_score` tool exists to call. `grep dist/` and see.
+- **You can't settle what you never sealed.** `argus_settle` hard-errors without
+  a prior `argus_seal` — "no judgment without a falsifiable bet" is a
+  precondition, not a suggestion.
+- **State is the ledger, not a flag.** A decision's status is the fold of an
+  append-only event log, so it can't be faked by calling tools out of order.
+
+## Install
+
+Claude Code:
+
+```bash
+claude mcp add argus -- npx -y argus-mcp
+```
+
+Or add to your host's MCP config:
+
+```jsonc
 {
   "mcpServers": {
     "argus": {
       "command": "npx",
-      "args": ["argus-mcp"]
+      "args": ["-y", "argus-mcp"],
+      "env": {
+        // Claude Code expands this. On other hosts, pass an absolute path,
+        // or just call argus_init with an absolute argus_dir on first use.
+        "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus"
+      }
     }
   }
 }
 ```
 
-## Manual install
+> Every tool also takes an explicit `argus_dir` argument, so Argus works on any
+> host even when env-variable interpolation doesn't.
+
+## The loop
+
+| Tool | What it does |
+|------|--------------|
+| `argus_open_decision` | Opens a consequential decision. Runs a restraint gate first — on a flat / low-stakes / reversible / already-closed call it tells you to leave it as is. If it fires, it surfaces **one** neutral question, never a fork or a lean. |
+| `argus_seal` | Seals a falsifiable prediction (`predicate` + `check_by`) and captures the receipt's real-question / unverified-assumption / human-only / your-call fields. Refuses an empty predicate or a non-future date. |
+| `argus_settle` | On the check-by date, records what reality did and issues the Judgment Receipt. Hard-errors without a prior seal. |
+| `argus_check_in` | Returns contracts past their check-by date. If nothing is due, it says so and stops — it doesn't manufacture engagement. |
+| `argus_recall` | Reads your own history: a receipt, the open contracts, or a sample-size-caveated track record (never a tier or score). |
+| `argus_init` / `argus_config` | Initialize the `.argus` directory; read/write non-spine settings. |
+
+## Data
+
+Everything is local, under `.argus/` in your project (gitignored by default).
+No telemetry — `npm ls --prod` is two packages (`@modelcontextprotocol/sdk`,
+`js-yaml`). See [SECURITY.md](SECURITY.md).
+
+## An honest limit
+
+Argus removes the verdict from its *tool surface* and walls off settling a bet
+that was never made. It cannot stop a model from typing an opinion in free chat
+between tool calls — no MCP server can. So Argus doesn't claim "zero judgment";
+it surfaces one question, names any faint lean as a known limit, and lets
+reality do the grading. `zero judgment` is an asymptote, disclosed — not a badge.
+
+## Develop
 
 ```bash
-git clone https://github.com/Q00/argus
-cd argus/argus-mcp
-npm install && npm run build
+npm install
+npm run build
+npm test          # deterministic spine + state-machine + path-safety gates
+npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
-Then add to `~/.claude/settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "argus": {
-      "command": "node",
-      "args": ["/path/to/argus-mcp/dist/index.js"]
-    }
-  }
-}
-```
-
-## Usage with other AI clients
-
-Any MCP-compatible client (Continue.dev, OpenAI function calls, etc.) can point to `node dist/index.js`. The server speaks MCP over stdio.
-
-### Tools available
-
-| Tool | Description |
-|------|-------------|
-| `argus_init` | Initialize .argus/ directory |
-| `argus_config_read` | Read locale, boss, team settings |
-| `argus_config_write` | Write config |
-| `argus_session_create` | Create a decision session |
-| `argus_session_read` | Read a session |
-| `argus_session_update` | Update session fields |
-| `argus_session_list` | List all sessions |
-| `argus_version_write` | Write a versioned artifact |
-| `argus_version_read` | Read a versioned artifact |
-| `argus_version_list` | List versions for a session |
-| `argus_bearing_write` | Write current bearing + contract |
-| `argus_bearing_read` | Read current bearing |
-| `argus_ledger_append` | Append events to the ledger |
-| `argus_ledger_replay` | Replay all contract states |
-| `argus_contracts_due` | Get overdue decision contracts |
-
-## System Prompt
-
-Paste this into any AI's system prompt to make it Argus-aware:
-
-```
-You have access to Argus — a decision-navigation tool that helps you track consequential decisions, make predictions, and return later to check reality against expectation.
-
-On every session start:
-1. Call argus_contracts_due with the project's argus_dir
-2. If any contracts are due, surface them: "Argus: {N} decision contract(s) past check-by ({date}) — '{predicate}' — time to settle"
-3. If none are due, stay silent
-
-When the user makes a consequential decision:
-1. argus_session_create — create a session (id = slug from title + date)
-2. Analyze: surface assumptions, risks, recommendation
-3. argus_bearing_write — write bearing with contract_seed (predicate + check_by)
-4. argus_ledger_append — record harvest then seal events
-
-When user says "settle":
-1. argus_contracts_due — show what's due
-2. For each contract: "What actually happened? Did '{predicate}' turn out to be true?"
-3. argus_ledger_append — record settle events
-4. argus_session_update — mark status settled
-
-The argus_dir is the .argus/ folder inside the project root (e.g. /project/.argus).
-```
-
-## .argus/ directory structure
-
-```
-.argus/
-  config.yaml          # locale, boss, team settings
-  ledger/
-    ledger.jsonl       # append-only event log
-  sessions/
-    {id}/
-      session.json     # session metadata
-      versions/
-        {label}/
-          current_bearing.json   # recommendation + contract
-          analysis.json          # optional analysis artifact
-```
+MIT licensed.
