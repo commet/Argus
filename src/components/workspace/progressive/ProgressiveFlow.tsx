@@ -51,7 +51,7 @@ import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, Arrow
 import { useLocale } from '@/hooks/useLocale';
 import { useT } from '@/contexts/LocaleProvider';
 import { personaName, personaRole } from './shared/persona-format';
-import { MixPreview } from './MixPreview';
+import { MixPreview, mixToMarkdown } from './MixPreview';
 import { DMFeedback } from './DMFeedback';
 import { VerificationGate } from './VerificationGate';
 import { TeamDeployBanner } from './TeamDeployBanner';
@@ -2117,9 +2117,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
   const onSkip = () => {
     if (!mix) return;
-    const md = [`# ${mix.title}`, '', `> ${mix.executive_summary}`, '', ...mix.sections.flatMap(s => [`## ${s.heading}`, '', s.content, '']),
-      ...(mix.key_assumptions.length ? [`## ${L('전제 조건', 'Assumptions')}`, '', ...mix.key_assumptions.map(a => `- ${a}`), ''] : []),
-      ...(mix.next_steps.length ? [`## ${L('다음 단계', 'Next Steps')}`, '', ...mix.next_steps.map(s => `- ${s}`), ''] : [])].join('\n');
+    const md = mixToMarkdown(mix, locale === 'ko');
     // Skip keeps the original mix intact → attribution survives for FinalCard.
     store.setFinalDeliverable(md, mix);
     store.recordCheckpoint('anchor', L('정박 (피드백 건너뜀)', 'Anchor (skipped review)'));

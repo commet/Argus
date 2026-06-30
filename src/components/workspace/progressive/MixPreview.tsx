@@ -10,6 +10,19 @@ import type { DebateResult } from '@/lib/debate-engine';
 import { AttributedSection } from './AttributedSection';
 import { renderInline } from './shared/renderMd';
 import { EASE } from './shared/constants';
+import { Copy as CopyIcon, Check as CheckIcon, Download } from 'lucide-react';
+
+/** Serialize a draft (MixResult) to markdown — single source shared by the draft
+ *  export affordance here AND ProgressiveFlow.onSkip's finalize, so the two can't
+ *  drift. */
+export function mixToMarkdown(mix: MixResult, ko: boolean): string {
+  return [
+    `# ${mix.title}`, '', `> ${mix.executive_summary}`, '',
+    ...mix.sections.flatMap((s) => [`## ${s.heading}`, '', s.content, '']),
+    ...(mix.key_assumptions.length ? [`## ${ko ? '전제 조건' : 'Assumptions'}`, '', ...mix.key_assumptions.map((a) => `- ${a}`), ''] : []),
+    ...(mix.next_steps.length ? [`## ${ko ? '다음 단계' : 'Next Steps'}`, '', ...mix.next_steps.map((s) => `- ${s}`), ''] : []),
+  ].join('\n');
+}
 
 /* ═══ Mix Preview ═══ */
 export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult, primary = 'review' }: { mix: MixResult; dm: string | null; onDM: () => void; onSkip: () => void; busy: boolean; cmReview?: NavigatorReview | null; debateResult?: DebateResult | null;
@@ -24,6 +37,22 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
   // is reachable WITHOUT scrolling a full document (E-23). Title + executive
   // summary stay — they ARE the preview; sections/next-steps live behind 전문.
   const [bodyOpen, setBodyOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  // Export is available HERE, at the draft — the user shouldn't have to pass the
+  // (now optional) review/falsification step just to take the document they like.
+  const draftMd = () => mixToMarkdown(mix, locale === 'ko');
+  const copyDraft = async () => {
+    try { await navigator.clipboard.writeText(draftMd()); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* clipboard blocked — ignore */ }
+  };
+  const downloadDraft = () => {
+    const blob = new Blob([draftMd()], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(mix.title || 'argus-draft').replace(/[^\w가-힣\- ]+/g, '').trim().slice(0, 60) || 'argus-draft'}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: EASE }}>
       <div className="rounded-2xl p-[1px] bg-gradient-to-b from-[var(--accent)]/20 to-[var(--accent)]/5">
@@ -35,16 +64,29 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-5 text-[15px] text-[var(--text-secondary)] italic leading-relaxed">{renderInline(mix.executive_summary)}</blockquote>
 
             {/* Collapsed by default — the CTA must not hide below a full document. */}
-            <button
-              onClick={() => setBodyOpen((o) => !o)}
-              aria-expanded={bodyOpen}
-              className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
-            >
-              {bodyOpen
-                ? L('본문 접기', 'Collapse body')
-                : L(`전문 보기 — ${mix.sections.length}개 섹션${mix.next_steps.length ? ' · 다음 단계' : ''}`, `Read full draft — ${mix.sections.length} section${mix.sections.length === 1 ? '' : 's'}`)}
-              <ChevronDown size={13} className={`transition-transform ${bodyOpen ? 'rotate-180' : ''}`} />
-            </button>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <button
+                onClick={() => setBodyOpen((o) => !o)}
+                aria-expanded={bodyOpen}
+                className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              >
+                {bodyOpen
+                  ? L('본문 접기', 'Collapse body')
+                  : L(`전문 보기 — ${mix.sections.length}개 섹션${mix.next_steps.length ? ' · 다음 단계' : ''}`, `Read full draft — ${mix.sections.length} section${mix.sections.length === 1 ? '' : 's'}`)}
+                <ChevronDown size={13} className={`transition-transform ${bodyOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {/* Take the draft NOW — before the optional review/falsification step. */}
+              <div className="flex items-center gap-1">
+                <button onClick={copyDraft}
+                  className="inline-flex items-center gap-1 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer">
+                  {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />} {copied ? L('복사됨', 'Copied') : L('초안 복사', 'Copy draft')}
+                </button>
+                <button onClick={downloadDraft}
+                  className="inline-flex items-center gap-1 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer">
+                  <Download size={12} /> .md
+                </button>
+              </div>
+            </div>
 
             {bodyOpen && (
               <>
