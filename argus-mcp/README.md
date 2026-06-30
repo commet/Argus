@@ -90,6 +90,23 @@ Everything is local, under `.argus/` in your project (gitignored by default).
 No telemetry — `npm ls --prod` is two packages (`@modelcontextprotocol/sdk`,
 `js-yaml`). See [SECURITY.md](SECURITY.md).
 
+## Measured
+
+The structural claims are tested, not asserted — `npm test` runs deterministic
+gates (no verdict tool exists, settle-without-seal refused, path traversal
+blocked, receipts carry `ai_verdict: null`). A model-in-the-loop spine eval
+(`npm run eval`, 12 scenarios, opus judge) measured, across Sonnet 4.6 and
+Haiku 4.5:
+
+| | over-fire on flat cases | crux carries a lean | free-text verdict leak |
+|---|---|---|---|
+| Sonnet 4.6 | 0 / 6 | 0 / 12 | 0 / 12 |
+| Haiku 4.5 | 0 / 6 | 0 / 12 | 1 / 12 |
+
+Tool-surface verdict leak is **0 by construction**. The one free-text leak
+(Haiku, on "salad or sandwich") is exactly the limit below — a model can still
+type an opinion in chat, and Argus reports that number rather than hiding it.
+
 ## An honest limit
 
 Argus removes the verdict from its *tool surface* and walls off settling a bet
