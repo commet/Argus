@@ -187,6 +187,16 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                   <Icon size={13} className="text-[var(--text-tertiary)] mt-0.5 shrink-0" />
                   <p className="text-[13px] text-[var(--text-primary)] leading-[1.5] flex-1 min-w-0">
                     {predicateQuestion(p, ko)}
+                    {/* Honest provenance at the re-verification moment (CLAUDE.md A1):
+                        an ai_surfaced bet (the express/skip path keeps the AI's
+                        constraint as the governing premise) must NOT read as the
+                        user's own confirmed judgment. Quiet shade, no extra friction —
+                        it's a pure read of the already-tracked `authored` field. */}
+                    {p.authored === 'ai_surfaced' && (
+                      <span className="ml-1.5 inline-block align-middle text-[10px] font-semibold text-[var(--text-tertiary)] border border-[var(--border)] rounded px-1 py-px">
+                        {ko ? 'AI가 짚은 전제' : 'AI-surfaced'}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2 pl-[21px]">

@@ -113,7 +113,9 @@ describe('Falsification', () => {
     const onResolve = vi.fn();
     mount({ strength: 's', claims, onResolve, onRequestHighestLoad: vi.fn() });
     click(buttonByText('Bolder win'));
-    click(buttonByText('just give me the document'));
+    // Skip-writing link copy is now provenance-honest ("keep the AI's version,
+    // not counted as my bet") — match on its stable fragment.
+    click(buttonByText("keep the AI's version"));
     expect(onResolve).toHaveBeenCalledTimes(1);
     expect(onResolve.mock.calls[0][0]).toMatchObject({
       flinched_id: 'c2',

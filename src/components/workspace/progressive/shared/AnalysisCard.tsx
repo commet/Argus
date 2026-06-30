@@ -77,10 +77,13 @@ export function AnalysisCard({
         className="w-full text-left flex items-start gap-3 py-1 cursor-pointer group transition-opacity hover:opacity-70"
       >
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-semibold text-[var(--accent)]/85 uppercase tracking-[0.14em] mb-1.5">
+          <div className={`text-[10px] font-semibold text-[var(--accent)]/85 mb-1.5 ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.14em]'}`}>
             {L('우리가 잡은 항로', 'Course we plotted')}
           </div>
-          <p className="text-[14px] md:text-[15px] text-[var(--text-primary)] leading-[1.45] line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>
+          {/* This is the screen's MAIN line (the course). It was 14-15px — smaller
+              than the question below it. Anchor it a step up so it reads as the
+              deliverable, and don't clamp a single sentence mid-word. */}
+          <p className="text-[16px] md:text-[17px] text-[var(--text-primary)] leading-[1.5] line-clamp-3" style={{ fontFamily: 'var(--font-display)' }}>
             {renderText(summaryLine)}
           </p>
           {(stepCount > 0 || assumeCount > 0) && (
@@ -124,7 +127,7 @@ export function AnalysisCard({
                 user knows what they're looking at; metaphor labels carry
                 the new "voyage" framing without overcommitting. */}
             <div className="flex items-start justify-between gap-3 mb-1.5">
-              <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em]">
+              <div className={`text-[10px] font-bold text-[var(--accent)] ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
                 {L('우리가 잡은 항로', 'Course we plotted')}
               </div>
               {defaultCollapsed && (

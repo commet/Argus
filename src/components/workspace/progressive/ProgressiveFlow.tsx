@@ -1376,6 +1376,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const shouldMix = (showMix || (phase === 'conversing' && snapshots.length > 0 && !curQ && !mix && !busy)) && !frameIsFlat;
   const deployPhase = session?.worker_deploy_phase ?? 'none';
   const workers = session?.workers ?? [];
+  // True when the crew is genuinely finished (or was never deployed). The
+  // "팀 분석 완료" divider + the 내 생각 추가 note box must wait for this — otherwise
+  // they render a FALSE "done" at 0/4 and ask the user to react to crew output that
+  // isn't visible yet. (Same terminal set as the workers-done ping above.)
+  const crewSettled = workers.length === 0 ||
+    workers.every(w => w.status === 'done' || w.status === 'error' || w.status === 'waiting_input' || w.status === 'validation_failed');
 
   /* W1.6 재구성 ② 팀 자동 출항 — focus mode skips the HR-approval screen.
    * The crew assembling and working is THEATER the user watches while
@@ -2817,13 +2823,15 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             ) : null;
           })()}
 
-          {/* PhaseDivider: Team analysis complete → create draft */}
-          {shouldMix && !busy && phase === 'conversing' && !curQ && (
+          {/* PhaseDivider: Team analysis complete → create draft. Gated on crewSettled
+              so it never claims "팀 분석 완료" while workers are still running (0/4). */}
+          {shouldMix && !busy && phase === 'conversing' && !curQ && crewSettled && (
             <PhaseDivider done={L('팀 분석 완료', 'Team analysis done')} next={L('초안 작성 시작', 'Create draft')} yourTurn />
           )}
 
-          {/* UserNotesInput — add your thoughts before mixing */}
-          {shouldMix && !busy && phase === 'conversing' && !curQ && (
+          {/* UserNotesInput — add your thoughts AFTER the crew finishes (so there's
+              actually something to react to), not while they're still working. */}
+          {shouldMix && !busy && phase === 'conversing' && !curQ && crewSettled && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: EASE }}
               className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 md:p-5">
               <div className="flex items-center gap-2 mb-3">
@@ -2843,7 +2851,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </motion.div>
           )}
 
-          {shouldMix && !busy && phase === 'conversing' && !curQ && latest && (
+          {shouldMix && !busy && phase === 'conversing' && !curQ && crewSettled && latest && (
             <VoyagePrepSummary
               snapshot={latest}
               onMix={onMix}

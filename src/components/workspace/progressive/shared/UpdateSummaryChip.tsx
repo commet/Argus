@@ -62,7 +62,11 @@ export function UpdateSummaryChip({
       className="flex items-center justify-between gap-x-4 gap-y-1 flex-wrap py-1"
       aria-label={L('팀 분석 업데이트 요약', 'Team analysis update summary')}
     >
-      <div className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[var(--accent)]/85 shrink-0">
+      {/* De-emphasized: this is a transient "your answer moved it" footnote, NOT a
+          peer of the gold "우리가 잡은 항로" card eyebrow below it. Drop the accent
+          gold + uppercase so the two stacked eyebrows don't read as one ambiguous
+          block (and so the persistent course card clearly outranks this chip). */}
+      <div className="text-[10px] font-semibold tracking-normal text-[var(--text-tertiary)] shrink-0">
         {L('답 반영해서 다시 봤어요', 'Refined with your answer')}
       </div>
 

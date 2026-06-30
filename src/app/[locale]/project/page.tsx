@@ -908,7 +908,12 @@ export default function ProjectPage() {
             const forming = sealedCount > 0 && settled === 0; // sealed, no outcome graded yet
             return (
               <Card className="!bg-[var(--bg)]">
-                <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">{L('나의 판단 패턴', 'Your judgment patterns')}</h3>
+                {/* "패턴(patterns)" over-claimed — the body is seal/settle COUNTS,
+                    and getUserPatterns().commonThemes is hardcoded []. No recurring-
+                    theme detection or calibration trend exists yet, so name it for
+                    what it honestly is: a record. (Real cross-decision aggregation is
+                    tracked as deeper work in the audit.) */}
+                <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">{L('나의 기록', 'My record')}</h3>
                 <div className="space-y-2 text-[12px] text-[var(--text-secondary)]">
                   {sealedCount > 0 && (forming ? (
                     <p>
