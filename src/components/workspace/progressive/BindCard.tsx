@@ -36,11 +36,17 @@ const MAX_LEAN = 140;
 export function BindCard({
   onProceed,
   problem,
+  recognition,
 }: {
   /** null = full skip (no rope, write nothing). A BindResult = tie the rope. */
   onProceed: (bind: BindResult | null) => void;
   /** The problem the user just submitted — shown small, for orientation only. */
   problem?: string;
+  /** First-run only (#9): the buffered analysis's reframed crux question, shown as a
+   *  READ-ONLY mirror so a cold first-timer gets recognition BEFORE the commitment
+   *  ask. It is a neutral QUESTION (the user's own navigation words), NOT a verdict,
+   *  and it NEVER seeds the lean field — spine invariants above hold unchanged. */
+  recognition?: string | null;
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
@@ -63,11 +69,24 @@ export function BindCard({
       className="mx-auto w-full max-w-xl"
     >
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] px-6 py-7 shadow-sm">
+        {/* First-run recognition mirror — read-only, never seeds the lean. */}
+        {recognition && (
+          <div className="mb-5 rounded-xl border border-[var(--accent)]/20 bg-[var(--ai)]/40 px-4 py-3">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] mb-1.5">
+              {L('우리가 읽은 진짜 질문', 'The real question we read')}
+            </p>
+            <p className="text-[14.5px] font-semibold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+              {recognition}
+            </p>
+          </div>
+        )}
         <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-tertiary)] mb-2">
           {L('출항 전 · 밧줄 묶기', 'Before you sail · tie the rope')}
         </p>
         <h2 className="text-[19px] font-bold leading-snug text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
-          {L('답을 듣기 전에 — 지금 마음은 어디로 기울어요?', 'Before you hear the answer — where are you leaning right now?')}
+          {recognition
+            ? L('이게 진짜 질문이라면 — 지금 마음은 어디로 기울어요?', "If that's the real question — where are you leaning right now?")
+            : L('답을 듣기 전에 — 지금 마음은 어디로 기울어요?', 'Before you hear the answer — where are you leaning right now?')}
         </h2>
         <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5 leading-snug">
           {L('안 적어도 됩니다. 적어두면 나중에 “그래서 어떻게 됐는지” 같이 맞춰봐요.',
