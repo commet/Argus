@@ -374,10 +374,24 @@ function getSettings(): Settings {
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const { supabase } = await import('./supabase');
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`;
+  try {
+    const { supabase } = await import('./supabase');
+    // Defense in depth: getSession() sits in the critical path of every proxied
+    // LLM call. If token retrieval ever stalls (a hung refresh, a contended auth
+    // lock), we must NOT freeze the whole pipeline behind an infinite await —
+    // that's the "spinner forever / session won't start" failure. Cap it: on
+    // timeout we proceed WITHOUT the bearer token. The proxy then either serves
+    // the anonymous free tier or returns a clean 401/429 the UI can surface,
+    // instead of the analysis hanging.
+    const session = await Promise.race([
+      supabase.auth.getSession().then(r => r.data.session),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 4000)),
+    ]);
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+  } catch {
+    // Token unavailable — proceed unauthenticated rather than blocking the call.
   }
   return headers;
 }

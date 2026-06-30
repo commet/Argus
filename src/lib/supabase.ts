@@ -1,9 +1,25 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, processLock } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Use the in-memory promise-chain lock instead of the default Web Locks API
+    // (navigator.locks) lock. The navigator lock is keyed on a single name
+    // ("lock:sb-…-auth-token") and is meant to coordinate token refresh ACROSS
+    // browser tabs — but under React Strict Mode's mount→unmount→mount it gets
+    // orphaned, so every getSession()/getUser() then waits 5s for the steal
+    // recovery and the loser rejects with `AbortError: Lock broken by another
+    // request with the 'steal' option`. Because getSession() sits in the
+    // critical path of every proxied LLM call (getAuthHeaders), an orphaned
+    // lock froze the whole "session start" with the analysis spinner stuck.
+    // processLock is per-JS-context (no cross-tab coordination — acceptable for
+    // this localStorage-first SPA) and cannot orphan, which removes the
+    // deadlock at the source.
+    lock: processLock,
+  },
+});
 
 /**
  * Get the current user ID with caching.
