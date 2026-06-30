@@ -399,9 +399,6 @@ export function VoyageFilm() {
         <source src="/voyage/voyage-film.mp4" type="video/mp4" />
       </video>
 
-      {/* delogo — covers the AI-generator watermark in the bottom-right corner */}
-      <div aria-hidden="true" style={{ position: 'absolute', right: 0, bottom: 0, width: '18%', height: '12%', background: 'var(--bp-paper)', zIndex: 3 }} />
-
       {/* gold top rule */}
       <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 3 }} />
 
