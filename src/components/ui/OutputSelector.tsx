@@ -171,9 +171,9 @@ export function OutputSelector({ project }: OutputSelectorProps) {
             <div className={`mt-0.5 shrink-0 ${selectedKey === format.key ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
               {format.icon}
             </div>
-            <div>
-              <p className="text-[13px] font-semibold text-[var(--text-primary)]">{format.label}</p>
-              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{format.description}</p>
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-[var(--text-primary)] break-words">{format.label}</p>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 break-words">{format.description}</p>
             </div>
           </button>
         ))}

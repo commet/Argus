@@ -631,7 +631,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                   {p.is_example && (
                     <span className="absolute top-2 left-3 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--ai)] text-[var(--accent)]">{L('예시', 'Example')}</span>
                   )}
-                  <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <div className="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
                     <button onClick={() => { setEditingPersona(p); setShowPersonaForm(true); }}
                       className="p-1.5 bg-[var(--surface)] rounded-lg shadow-sm border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors">
                       <Pencil size={11} />

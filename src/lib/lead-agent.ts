@@ -55,7 +55,7 @@ const DEFAULT_LEAD = 'hyunwoo'; // Nathan — generalist business strategist
 // ─── Synthesis Directives (domain-specific instructions for lead synthesis) ───
 
 const SYNTHESIS_DIRECTIVES: Record<string, string> = {
-  strategy: 'Synthesize into a coherent strategic narrative. Identify the governing strategic logic across all analyses. Where workers disagree, choose the stronger argument and explain why.',
+  strategy: 'Synthesize into a coherent strategic narrative. Identify the governing strategic logic across all analyses. Where workers disagree, surface the disagreement as an open tension — name both sides, do NOT pick a winner.',
   research: 'Synthesize research findings into actionable insights. Cross-validate sources between workers. Separate confirmed facts from interpretations.',
   numbers: 'Unify all quantitative findings into a consistent financial picture. Cross-check assumptions between workers. Flag conflicting numbers explicitly.',
   finance: 'Build a coherent financial analysis from the pieces. Reconcile any conflicting assumptions. Present the numbers as a CFO would — precise, sourced, with caveats.',
@@ -196,10 +196,10 @@ Rules:
 - This is NOT a summary of each worker's output. It's YOUR expert synthesis — an integrated view that creates meaning no single worker could produce alone.
 - Identify connections between workers' findings that they couldn't see individually.
 - A task labeled "(N perspectives — intentional team diversity)" means the user deliberately assigned multiple personas to that task; the sub-bullets are different lenses on the SAME task. Synthesize where they agree and surface where they meaningfully diverge — but treat it as one task in your integrated analysis, not N tasks.
-- If workers contradict each other (across DIFFERENT tasks), make a judgment call and explain your reasoning.
+- If workers contradict each other (across DIFFERENT tasks), surface it as an unresolved tension ("X says A, Y says B") and add it to unresolved_tensions — do NOT pick a winner or collapse it into a consensus. The user resolves it.
 - Be specific. Use actual numbers, names, and facts from the worker results.
 - 3-5 key findings. Each must be a genuine insight, not a restatement.
-- State your recommendation direction clearly — the decision maker should know what you'd advise.
+- Do NOT state which option you'd choose or what you'd advise (no verdict, no lean). Instead, name the single open question this decision turns on — the one unresolved thing that, once known, would settle it. A neutral question, never a recommendation.
 Always respond in ${lang}.`,
 
     user: `Project: <user-data>${sanitize(problemText)}</user-data>
@@ -214,8 +214,8 @@ JSON:
 {
   "integrated_analysis": "Your expert synthesis — 1-2 substantive paragraphs weaving all findings together",
   "key_findings": ["Genuine insight 1 (not a restatement)", "Insight 2", "Insight 3"],
-  "unresolved_tensions": ["Contradictions or gaps that remain (if any)"],
-  "recommendation_direction": "One clear sentence: what you'd recommend and why"
+  "unresolved_tensions": ["Contradictions or gaps that remain (if any) — including any cross-task worker disagreements, phrased 'X says A, Y says B'"],
+  "open_question": "The single unresolved question this decision turns on — a neutral question, not advice or a recommendation"
 }`,
   };
 }

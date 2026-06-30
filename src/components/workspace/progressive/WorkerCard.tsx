@@ -45,18 +45,18 @@ function HitReactionBar({ workerId, agentId, taskType }: { workerId: string; age
   };
 
   return (
-    <div className="flex items-center gap-1.5 mt-2.5">
+    <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
       <span className="text-[10px] text-[var(--text-tertiary)] mr-1">{L('이 분석이', 'This analysis was')}</span>
       <button onClick={() => react('hit')}
-        className="px-2.5 py-1 text-[10px] rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer transition-colors">
+        className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[10px] rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer transition-colors">
         {L('새로웠다', 'New insight')}
       </button>
       <button onClick={() => react('miss')}
-        className="px-2.5 py-1 text-[10px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
+        className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[10px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
         {L('이미 알았다', 'Already knew')}
       </button>
       <button onClick={() => react('irrelevant')}
-        className="px-2.5 py-1 text-[10px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
+        className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[10px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
         {L('중요하지 않다', 'Not important')}
       </button>
     </div>
@@ -86,7 +86,7 @@ function ResultModal({ worker, content, onClose, onApprove, onReject }: {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10 }}
         transition={{ duration: 0.3, ease: EASE }}
-        className="relative w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[80vh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col"
+        className="relative w-full sm:max-w-2xl max-h-[85dvh] sm:max-h-[80dvh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 sm:px-6 py-4 border-b border-[var(--border-subtle)] shrink-0">
@@ -399,7 +399,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                 {decisionOptions.map((opt, j) => (
                   <button key={j}
                     onClick={() => setInputVal(opt)}
-                    className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border cursor-pointer transition-all ${
+                    className={`inline-flex items-center justify-center min-h-[44px] px-3 py-2.5 rounded-lg text-[12px] font-medium border cursor-pointer transition-all ${
                       inputVal === opt
                         ? 'border-amber-500 bg-amber-500 text-white'
                         : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-amber-400 hover:text-amber-700'
@@ -592,13 +592,13 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                 <div className="flex items-center gap-2.5">
                   {onReject && !isRejected && (
                     <button onClick={() => { onReject(worker.id); onAdvance?.(); }}
-                      className="flex items-center gap-1.5 px-4 py-2 text-[12px] text-red-600 hover:bg-red-50 rounded-xl border border-red-200 hover:border-red-400 cursor-pointer transition-colors">
+                      className="flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 text-[12px] text-red-600 hover:bg-red-50 rounded-xl border border-red-200 hover:border-red-400 cursor-pointer transition-colors">
                       {L('제외', 'Exclude')}
                     </button>
                   )}
                   {onApprove && !isApproved && (
                     <button onClick={() => { onApprove(worker.id); onAdvance?.(); }}
-                      className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold text-white rounded-xl cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow"
+                      className="flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 text-[12px] font-semibold text-white rounded-xl cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow"
                       style={{ background: 'var(--gradient-gold)' }}>
                       <Check size={12} /> {onAdvance ? L('반영 → 다음', 'Apply → Next') : L('반영', 'Apply')}
                     </button>

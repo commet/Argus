@@ -22,6 +22,7 @@ import {
   argus_contracts_due,
 } from './tools/ledger.js';
 import { argus_bearing_write, argus_bearing_read } from './tools/bearing.js';
+import { argus_receipt_write, argus_receipt_read } from './tools/receipt.js';
 
 const TOOLS = [
   {
@@ -264,6 +265,47 @@ const TOOLS = [
       required: ['argus_dir'],
     },
   },
+  {
+    name: 'argus_receipt_write',
+    description: 'Write or patch a Judgment Receipt for a session. Call at seal time with real_question/unverified_assumption/human_only/human_judgment/check_by. Call again at settle time to add settled_at/what_happened/assumption_held.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        argus_dir: { type: 'string' },
+        session_id: { type: 'string' },
+        label: { type: 'string', description: 'Version label (e.g. "v1")' },
+        receipt: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'Same as session_id' },
+            real_question: { type: 'string', description: 'The real question behind the AI answer' },
+            unverified_assumption: { type: 'string', description: 'Core assumption that has not been verified' },
+            human_only: { type: 'string', description: 'What only a human can judge here' },
+            human_judgment: { type: 'string', description: "User's one-line judgment at seal time" },
+            check_by: { type: 'string', description: 'ISO date when reality will answer (e.g. 2026-07-07)' },
+            settled_at: { type: 'string', description: 'ISO timestamp of settlement (fill at settle time)' },
+            what_happened: { type: 'string', description: 'What actually happened (fill at settle time)' },
+            assumption_held: { type: ['boolean', 'null'], description: 'Did the assumption hold? (fill at settle time)' },
+          },
+          required: ['id'],
+        },
+      },
+      required: ['argus_dir', 'session_id', 'label', 'receipt'],
+    },
+  },
+  {
+    name: 'argus_receipt_read',
+    description: 'Read the Judgment Receipt for a session version.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        argus_dir: { type: 'string' },
+        session_id: { type: 'string' },
+        label: { type: 'string' },
+      },
+      required: ['argus_dir', 'session_id', 'label'],
+    },
+  },
 ] as const;
 
 type ToolName = typeof TOOLS[number]['name'];
@@ -323,6 +365,10 @@ export async function createServer(): Promise<Server> {
           return await argus_ledger_replay(a as { argus_dir: string });
         case 'argus_contracts_due':
           return await argus_contracts_due(a as { argus_dir: string });
+        case 'argus_receipt_write':
+          return await argus_receipt_write(a as never);
+        case 'argus_receipt_read':
+          return await argus_receipt_read(a as { argus_dir: string; session_id: string; label: string });
         default:
           return {
             content: [{ type: 'text', text: JSON.stringify({ error: `Unknown tool: ${name}` }) }],

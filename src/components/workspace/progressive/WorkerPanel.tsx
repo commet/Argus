@@ -398,7 +398,7 @@ export function WorkerDrawer({ className }: { className?: string }) {
       {/* Sticky bottom bar — height: ~56px (py-3.5 × 2 + content) */}
       <motion.button
         onClick={() => setOpen(true)}
-        className={`fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3.5 bg-[var(--surface)] border-t cursor-pointer min-h-[56px] transition-colors duration-500 ${
+        className={`fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))] bg-[var(--surface)] border-t cursor-pointer min-h-[56px] transition-colors duration-500 ${
           celebrate
             ? 'border-t-[var(--accent)]/70 shadow-[0_-8px_24px_-6px_rgba(180,160,100,0.35)]'
             : waitingCount > 0
@@ -436,7 +436,7 @@ export function WorkerDrawer({ className }: { className?: string }) {
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed bottom-0 inset-x-0 z-50 max-h-[75vh] rounded-t-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col"
+              className="fixed bottom-0 inset-x-0 z-50 max-h-[75dvh] rounded-t-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col"
             >
               <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--border-subtle)] shrink-0">
                 <div className="flex items-center gap-2">
@@ -452,7 +452,7 @@ export function WorkerDrawer({ className }: { className?: string }) {
               </div>
 
               {/* Full-richness content — reuse desktop sidebar exactly so mobile has parity */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
                 <AgentSidebar />
               </div>
             </motion.div>

@@ -51,7 +51,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }}
         transition={{ duration: 0.3, ease: EASE }}
-        className="relative w-full sm:max-w-lg max-h-[85vh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col">
+        className="relative w-full sm:max-w-lg max-h-[85dvh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-5 py-4 border-b border-[var(--border-subtle)] shrink-0">
           <div className="flex items-start gap-3">
@@ -68,7 +68,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
                   : L(`팀원 ${remaining}명의 결과를 아직 안 봤어요. 반영할지 빼고 갈지 한 번씩만 정해주세요 — 그대로 다 반영하고 가도 돼요.`, `You haven't looked at ${remaining} result${remaining > 1 ? 's' : ''} yet. Mark each as keep or skip — or just include them all and go.`)}
               </p>
             </div>
-            <button onClick={onClose} className="shrink-0 p-2 rounded-lg hover:bg-[var(--bg)] cursor-pointer" aria-label={L('닫기', 'Close')}>
+            <button onClick={onClose} className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg hover:bg-[var(--bg)] cursor-pointer" aria-label={L('닫기', 'Close')}>
               <XIcon size={16} className="text-[var(--text-tertiary)]" />
             </button>
           </div>
@@ -88,17 +88,17 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
                 {finding && <p className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-[1.55] line-clamp-3">{finding}</p>}
                 <div className="flex items-center gap-2 mt-2.5">
                   <button onClick={() => onApprove(w.id)}
-                    className="px-3 py-1.5 text-[12px] font-semibold text-white rounded-lg cursor-pointer shadow-[var(--shadow-sm)]"
+                    className="inline-flex items-center justify-center min-h-[44px] px-3 py-2.5 text-[12px] font-semibold text-white rounded-lg cursor-pointer shadow-[var(--shadow-sm)]"
                     style={{ background: 'var(--gradient-gold)' }}>
                     {L('반영', 'Apply')}
                   </button>
                   <button onClick={() => onReject(w.id)}
-                    className="px-3 py-1.5 text-[12px] text-red-600 hover:bg-red-50 rounded-lg border border-red-200 cursor-pointer transition-colors">
+                    className="inline-flex items-center justify-center min-h-[44px] px-3 py-2.5 text-[12px] text-red-600 hover:bg-red-50 rounded-lg border border-red-200 cursor-pointer transition-colors">
                     {L('제외', 'Exclude')}
                   </button>
                   {onRetry && (
                     <button onClick={() => onRetry(w.id)}
-                      className="ml-auto inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] rounded-lg cursor-pointer transition-colors"
+                      className="ml-auto inline-flex items-center justify-center gap-1 min-h-[44px] px-2.5 py-2.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] rounded-lg cursor-pointer transition-colors"
                       title={L('이 분석을 다시 실행', 'Re-run this analysis')}>
                       <RotateCw size={11} /> {L('다시', 'Redo')}
                     </button>

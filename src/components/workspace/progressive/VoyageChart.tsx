@@ -181,7 +181,7 @@ export function VoyageChart() {
               return (
                 <div
                   key={b.id}
-                  className={`flex items-center gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''} ${abandoned ? 'opacity-50' : ''}`}
+                  className={`flex items-center flex-wrap gap-1.5 px-1.5 py-1 rounded-lg ${isActive ? 'bg-[var(--accent)]/8' : ''} ${abandoned ? 'opacity-50' : ''}`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: b.color }} />
                   {editingId === b.id ? (
@@ -203,7 +203,7 @@ export function VoyageChart() {
                       <button
                         onClick={() => { setEditingId(b.id); setDraftName(b.name); }}
                         title={L('이름 변경', 'Rename')}
-                        className="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 cursor-pointer"
+                        className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 cursor-pointer"
                       >
                         <Pencil size={10} />
                       </button>
@@ -218,7 +218,7 @@ export function VoyageChart() {
                       onClick={() => !locked && switchBranch(b.id)}
                       disabled={locked}
                       title={L('이 항로로 전환', 'Switch to this course')}
-                      className={`text-[9px] font-medium text-[var(--accent)] hover:underline shrink-0 ml-0.5 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      className={`text-[12px] font-medium text-[var(--accent)] hover:underline shrink-0 ml-0.5 px-2 py-1.5 min-h-[36px] inline-flex items-center cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       {L('전환', 'Switch')}
                     </button>
@@ -228,7 +228,7 @@ export function VoyageChart() {
                       onClick={() => !locked && anchorBranch(b.id)}
                       disabled={locked}
                       title={L('이 항로로 확정', 'Anchor this course')}
-                      className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      className={`min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--accent)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                     >
                       <Anchor size={11} />
                     </button>
@@ -237,25 +237,25 @@ export function VoyageChart() {
                     <button
                       onClick={() => setCompareId(prev => (prev === b.id ? null : b.id))}
                       title={L('활성 항로와 비교', 'Compare with active course')}
-                      className={`p-0.5 shrink-0 cursor-pointer ${compareId === b.id ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--accent)]'}`}
+                      className={`min-w-[44px] min-h-[44px] inline-flex items-center justify-center shrink-0 cursor-pointer ${compareId === b.id ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--accent)]'}`}
                     >
                       <GitCompare size={11} />
                     </button>
                   )}
                   {!isActive && (
                     deleteConfirmId === b.id ? (
-                      <span className="inline-flex items-center gap-1 shrink-0">
+                      <span className="inline-flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={() => { setDeleteConfirmId(null); if (!locked) deleteBranch(b.id); }}
                           disabled={locked}
-                          className={`text-[9px] font-semibold text-[var(--danger)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          className={`text-[12px] font-semibold text-[var(--danger)] px-2 py-1.5 min-h-[36px] inline-flex items-center rounded-md bg-[var(--danger)]/8 hover:bg-[var(--danger)]/15 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                         >
                           {L('삭제', 'Delete')}
                         </button>
                         <button
                           onClick={() => setDeleteConfirmId(null)}
                           aria-label={L('취소', 'Cancel')}
-                          className="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer"
+                          className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer"
                         >
                           <XIcon size={11} />
                         </button>
@@ -265,7 +265,7 @@ export function VoyageChart() {
                         onClick={() => setDeleteConfirmId(b.id)}
                         disabled={locked}
                         title={L('항로 삭제', 'Delete course')}
-                        className={`p-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        className={`min-w-[44px] min-h-[44px] inline-flex items-center justify-center ml-0.5 text-[var(--text-tertiary)] hover:text-[var(--danger)] shrink-0 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
                         <XIcon size={11} />
                       </button>

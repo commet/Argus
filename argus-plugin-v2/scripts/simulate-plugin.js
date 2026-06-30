@@ -16,6 +16,7 @@ const cases = [
     id: "pr-auth-middleware",
     userInput: "/argus:sail @PR#42",
     targetRequiresSource: true,
+    developerTarget: true,
     bearing: {
       label: "v0.1",
       current_course: {
@@ -53,6 +54,45 @@ const cases = [
       blocked: true,
       detail_path: ".argus/sessions/2026-06-10-pr-auth-middleware/versions/v0.1/",
       generated_at: "2026-06-10T00:00:00.000Z"
+    }
+  },
+  {
+    id: "dev-billing-plan",
+    userInput: "/argus:sail \"Claude made a billing refactor plan; can I run it?\"",
+    targetRequiresSource: true,
+    developerTarget: true,
+    bearing: {
+      label: "v0.1",
+      current_course: {
+        status: "hold",
+        summary: "Do not run the full billing refactor plan yet; first isolate the invoice write path and lock it with one regression test."
+      },
+      why_this_course: [
+        {
+          point: "The plan changes invoice creation and webhook settlement in the same move, so rollback would mix money-state and event-state failures.",
+          source: "src/lib/billing/invoices.ts + src/app/api/stripe/webhook/route.ts"
+        },
+        {
+          point: "No worker found a test that proves duplicate webhook delivery cannot double-write an invoice.",
+          source: "verification.json: challenged_claims[0]"
+        }
+      ],
+      fog_or_reef: {
+        issue: "Duplicate Stripe webhook delivery may still create or settle the same invoice twice.",
+        why_it_matters: "A successful local refactor could still corrupt billing state under production retry behavior.",
+        required_check: "Add a duplicate-webhook regression test around invoice idempotency before executing the refactor."
+      },
+      road_not_taken: [
+        {
+          option: "Run the full AI-generated plan now",
+          why_not_now: "It bundles two money-state surfaces before the idempotency invariant is pinned."
+        }
+      ],
+      next_helm: "Add a duplicate-webhook idempotency test for src/app/api/stripe/webhook/route.ts, then rerun /argus:sail --resume.",
+      contract_seed: null,
+      blocked: true,
+      detail_path: ".argus/sessions/2026-06-30-billing-refactor/versions/v0.1/",
+      generated_at: "2026-06-30T00:00:00.000Z"
     }
   },
   {
@@ -250,6 +290,36 @@ function validateBearing(testCase) {
   if (testCase.targetRequiresSource && !bearing.why_this_course.some((reason) => reason.source)) {
     fail(id, "file/PR/document cases require at least one source reference");
   }
+  if (testCase.developerTarget) {
+    const sourceCount = bearing.why_this_course.filter((reason) => reason.source).length;
+    if (sourceCount < 2) {
+      fail(id, "developer target bearings require at least two source-backed reasons");
+    }
+    const developerText = [
+      bearing.current_course.summary,
+      ...bearing.why_this_course.map((reason) => `${reason.point} ${reason.source || ""}`),
+      bearing.fog_or_reef?.issue || "",
+      bearing.fog_or_reef?.required_check || "",
+      bearing.next_helm
+    ].join(" ");
+    const hasConcreteArtifact = /(?:src\/|app\/|lib\/|test|spec|PR#?\d+|route\.ts|\.ts|\.tsx|\.js|\.py|migration|verification\.json)/i.test(developerText);
+    if (!hasConcreteArtifact) {
+      fail(id, "developer target bearing must name a concrete file/test/PR/artifact");
+    }
+    const hasFailureMode = /(regression|leak|rollback|double-write|duplicate|corrupt|incident|bypass|break|fail|unsafe)/i.test(developerText);
+    if (!hasFailureMode) {
+      fail(id, "developer target bearing must name a concrete failure mode");
+    }
+    const hasSmallNextCheck = /(test|rerun|inspect|split|add|run|check|route|file|PR|\/argus:sail --resume|\/argus:verify)/i.test(bearing.next_helm);
+    if (!hasSmallNextCheck) {
+      fail(id, "developer target next_helm must be a small executable engineering check");
+    }
+    for (const vague of ["be careful", "consider edge cases", "ensure correctness", "monitor closely", "review further"]) {
+      if (developerText.toLowerCase().includes(vague)) {
+        fail(id, `developer target bearing contains vague review language: ${vague}`);
+      }
+    }
+  }
 
   // v2.6.0 under-fire: 0-2 items. Empty is legitimate on a flat decision.
   if (!Array.isArray(bearing.road_not_taken) || bearing.road_not_taken.length > 2) {
@@ -350,4 +420,34 @@ for (const testCase of cases) {
   validateBearing(testCase);
 }
 
-console.log(`Argus plugin simulations passed (${cases.length} cases).`);
+const negativeCases = [
+  {
+    id: "bad-generic-dev-review",
+    targetRequiresSource: true,
+    developerTarget: true,
+    bearing: {
+      label: "v0.1",
+      current_course: { status: "proceed", summary: "Proceed carefully after reviewing the edge cases." },
+      why_this_course: [{ point: "There may be implementation risks." }],
+      fog_or_reef: { issue: "Potential regressions.", why_it_matters: "It could break things.", required_check: "Consider edge cases." },
+      road_not_taken: [],
+      next_helm: "Review further and monitor closely.",
+      contract_seed: null,
+      blocked: false,
+      detail_path: ".argus/sessions/bad/versions/v0.1/",
+      generated_at: "2026-06-30T00:00:00.000Z"
+    }
+  }
+];
+
+for (const testCase of negativeCases) {
+  let failed = false;
+  try {
+    validateBearing(testCase);
+  } catch {
+    failed = true;
+  }
+  if (!failed) fail(testCase.id, "negative fixture unexpectedly passed");
+}
+
+console.log(`Argus plugin simulations passed (${cases.length} cases, ${negativeCases.length} negative).`);

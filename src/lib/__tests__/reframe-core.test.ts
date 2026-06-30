@@ -16,11 +16,13 @@ describe('reframe-core', () => {
       expect(reframeSystemPrompt('ko')).toBe(ASSUMPTION_PROMPT_KO);
       expect(reframeSystemPrompt('en')).toBe(ASSUMPTION_PROMPT_EN);
     });
-    it('keeps the 4-axis instruction (the brain, not a stub)', () => {
-      expect(ASSUMPTION_PROMPT_KO).toContain('4축');
+    it('keeps the 4-lens instruction (the brain, not a stub) + domain-adaptiveness', () => {
+      expect(ASSUMPTION_PROMPT_KO).toContain('렌즈');
       expect(ASSUMPTION_PROMPT_KO).toContain('hidden_assumptions');
-      expect(ASSUMPTION_PROMPT_EN).toContain('4-axis');
+      expect(ASSUMPTION_PROMPT_KO).toContain('개인'); // domain-adaptive note (don't force business jargon)
+      expect(ASSUMPTION_PROMPT_EN.toLowerCase()).toContain('lens');
       expect(ASSUMPTION_PROMPT_EN).toContain('hidden_assumptions');
+      expect(ASSUMPTION_PROMPT_EN.toLowerCase()).toContain('personal');
     });
     it('deeperSuffix differs by locale and asks for the load-bearing one', () => {
       expect(deeperSuffix('ko')).toContain('하중');
@@ -85,14 +87,14 @@ describe('reframe-core', () => {
       const md = reframeToMarkdown(r, 'ko');
       expect(md).toContain('표면 과제');
       expect(md).toContain('**사용자가 돈을 낼 것**');
-      expect(md).toContain('(사업성)');
+      expect(md).toContain('(대가·지속)');
       expect(md).toContain('틀리면: 매출 0');
       expect(md).toContain('핵심 베팅을 가른다.');
     });
     it('uses English labels for en locale', () => {
       const md = reframeToMarkdown(r, 'en');
       expect(md).toContain('Surface task');
-      expect(md).toContain('(Business)');
+      expect(md).toContain('(Cost & durability)');
       expect(md).toContain('if false:');
     });
   });

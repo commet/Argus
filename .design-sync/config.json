@@ -55,7 +55,12 @@
 
     "Graticule": "src/components/ui/VoyageElements.tsx",
     "ChartEdge": "src/components/ui/VoyageElements.tsx",
-    "VoyageShip": "src/components/ui/VoyageElements.tsx"
+    "VoyageShip": "src/components/ui/VoyageElements.tsx",
+
+    "WorkspaceHome": ".design-sync/_screens/WorkspaceHome.tsx",
+    "WorkspaceHomeA": ".design-sync/_screens/WorkspaceHomeA.tsx",
+    "WorkspaceHomeB": ".design-sync/_screens/WorkspaceHomeB.tsx",
+    "WorkspaceHomeC": ".design-sync/_screens/WorkspaceHomeC.tsx"
   },
   "overrides": {
     "Modal": { "cardMode": "single", "viewport": "680x460" },
@@ -68,6 +73,10 @@
     "Act1Voyage": { "cardMode": "column" },
     "Act2DecisionVoyage": { "cardMode": "column" },
     "Act3OnDeck": { "cardMode": "column" },
-    "SlackChannelPicker": { "cardMode": "single", "viewport": "440x520" }
+    "SlackChannelPicker": { "cardMode": "single", "viewport": "440x520" },
+    "WorkspaceHome": { "cardMode": "column" },
+    "WorkspaceHomeA": { "cardMode": "column" },
+    "WorkspaceHomeB": { "cardMode": "column" },
+    "WorkspaceHomeC": { "cardMode": "column" }
   }
 }

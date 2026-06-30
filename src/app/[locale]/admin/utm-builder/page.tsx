@@ -275,7 +275,7 @@ export default function UtmBuilderPage() {
               <button
                 type="button"
                 onClick={handleSaveToHistory}
-                className="text-[11px] text-[var(--accent)] hover:underline"
+                className="min-h-[44px] inline-flex items-center py-2 px-1 text-[12px] text-[var(--accent)] hover:underline"
               >
                 최근 목록에 저장
               </button>
@@ -317,7 +317,7 @@ export default function UtmBuilderPage() {
                   <button
                     type="button"
                     onClick={() => handleCopyHistory(h.url)}
-                    className="flex-shrink-0 p-1.5 rounded-md hover:bg-[var(--border-subtle)] transition-colors"
+                    className="flex-shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md hover:bg-[var(--border-subtle)] transition-colors"
                     title="복사"
                   >
                     {justCopied === h.url ? (
@@ -329,7 +329,7 @@ export default function UtmBuilderPage() {
                   <button
                     type="button"
                     onClick={() => handleDeleteHistory(h.url)}
-                    className="flex-shrink-0 p-1.5 rounded-md hover:bg-red-50 transition-colors"
+                    className="flex-shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md hover:bg-red-50 transition-colors"
                     title="삭제"
                   >
                     <Trash2 size={14} className="text-[var(--text-tertiary)] hover:text-red-500" />

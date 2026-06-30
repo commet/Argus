@@ -42,6 +42,7 @@ import { recordSignal } from '@/lib/signal-recorder';
 import { syncSealToTelegram } from '@/lib/telegram-sync';
 import { track } from '@/lib/analytics';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
+import { JudgmentReceipt, deriveReceiptFields } from '@/components/projects/JudgmentReceipt';
 import { EASE } from './shared/constants';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
@@ -95,6 +96,7 @@ export function SealMoment({
   // here instead of falling through to the grading card on the same render.
   const [justSealed, setJustSealed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [humanJudgment, setHumanJudgment] = useState('');
 
   // Defensive: legacy sessions may carry a malformed contract.
   const contract = project?.decision_contract ?? null;
@@ -171,7 +173,12 @@ export function SealMoment({
       ? augmentContract(existing, toSeal, now, iv)
       : (() => { const f = contractFromPredicates(project.id, toSeal, now); return f ? withCheckIn(f, iv, now) : null; })();
     if (!next) return;
-    updateProject(project.id, { decision_contract: next });
+    const receiptFields = deriveReceiptFields(toSeal, typeof project.name === 'string' ? project.name : '');
+    const check_by = next.check_in_at ? new Date(next.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
+    const judgment_receipt = humanJudgment.trim()
+      ? { ...receiptFields, human_judgment: humanJudgment.trim(), check_by }
+      : undefined;
+    updateProject(project.id, { decision_contract: { ...next, ...(judgment_receipt ? { judgment_receipt } : {}) } });
     // Cross-surface return loop: if this logged-in user connected Telegram, mirror
     // the sealed contract into the one push channel that actually fires on the date
     // (the daily cron reads telegram_decisions, which web seals never wrote). Server
@@ -209,7 +216,11 @@ export function SealMoment({
     if (!summary) return;
     const c = buildEarlyContract(project.id, { lean: summary, interval: iv }, Date.now());
     if (!c) return;
-    updateProject(project.id, { decision_contract: c });
+    const check_by = c.check_in_at ? new Date(c.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
+    const judgment_receipt = humanJudgment.trim()
+      ? { real_question: summary, unverified_assumption: '', human_only: '', human_judgment: humanJudgment.trim(), check_by }
+      : undefined;
+    updateProject(project.id, { decision_contract: { ...c, ...(judgment_receipt ? { judgment_receipt } : {}) } });
     const sharp = c.predicates[0]?.text;
     if (user && session?.access_token && c.check_in_at && sharp) {
       syncSealToTelegram({
@@ -488,6 +499,27 @@ export function SealMoment({
                'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Seal it, then sign in and it moves to your account, reachable anywhere.')}
           </p>
         )}
+
+        {/* Judgment Receipt — seal과 settle을 하나의 오브젝트로 묶는 진입점.
+            사용자가 human_judgment를 작성하면 봉인 시 함께 저장된다. */}
+        {kept.length > 0 && (() => {
+          const rf = deriveReceiptFields(kept, typeof project.name === 'string' ? project.name : '');
+          const check_by = dateFor(interval);
+          return (rf.real_question || rf.unverified_assumption || rf.human_only) ? (
+            <div className="mt-6 text-left">
+              <JudgmentReceipt
+                mode="seal"
+                real_question={rf.real_question}
+                unverified_assumption={rf.unverified_assumption}
+                human_only={rf.human_only}
+                check_by={check_by}
+                humanJudgment={humanJudgment}
+                onJudgmentChange={setHumanJudgment}
+                locale={ko ? 'ko' : 'en'}
+              />
+            </div>
+          ) : null;
+        })()}
 
         <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
           <button

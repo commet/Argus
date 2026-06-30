@@ -57,10 +57,22 @@ function reframeKeyboard(locale: 'ko' | 'en') {
   };
 }
 
-/** Keyboard under the Stage-2 question output — sealing is the natural next step. */
+/** Keyboard shown under a tool output (question/rehearse/recast) — keeps the
+ *  other tools reachable so the user can keep exploring without re-sending. */
 function questionKeyboard(locale: 'ko' | 'en') {
+  const ko = locale === 'ko';
   return {
-    inline_keyboard: [[{ text: locale === 'ko' ? '🔒 이 결정 봉인' : '🔒 Seal this decision', callback_data: 'rf:seal' }]],
+    inline_keyboard: [
+      [
+        { text: ko ? '🎯 진짜 질문' : '🎯 Real question', callback_data: 'rf:question' },
+        { text: ko ? '🎭 리허설' : '🎭 Rehearse', callback_data: 'rf:rehearse' },
+      ],
+      [
+        { text: ko ? '🤝 역할 나누기' : '🤝 Split roles', callback_data: 'rf:recast' },
+        { text: ko ? '🌐 웹앱에서' : '🌐 In the webapp', callback_data: 'rf:handoff' },
+      ],
+      [{ text: ko ? '🔒 이 결정 봉인' : '🔒 Seal this decision', callback_data: 'rf:seal' }],
+    ],
   };
 }
 
@@ -130,6 +142,36 @@ async function userForChat(chatId: number | string): Promise<string | null> {
     .limit(1)
     .single();
   return data?.user_id ?? null;
+}
+
+// ── Cross-surface bearing — the bot has the user's identity but used it only to
+//    gate/write; it never READ the user's decisions on other surfaces. A connected
+//    user decides on web, plugin, AND here, yet each surface saw one silo. This is
+//    the passive bridge: pure cross-table COUNTS (telegram_decisions now also holds
+//    web-mirrored seals; plugin_decisions holds plugin pushes). Spine-safe — a
+//    frequency statement, never an inference or a "related decision?" nudge (those
+//    must stay behind an explicit user tap per the zero-judgment gate).
+async function crossSurfaceBearing(userId: string): Promise<{ open: number; dueThisWeek: number }> {
+  const admin = adminClient();
+  const weekEnd = kstDatePlus(7); // YYYY-MM-DD, one week out (overdue counts as due)
+  const [tg, pg] = await Promise.all([
+    admin.from('telegram_decisions').select('check_by').eq('user_id', userId).eq('status', 'sealed'),
+    admin.from('plugin_decisions').select('check_by').eq('user_id', userId).eq('status', 'sealed'),
+  ]);
+  const rows = [...(tg.data ?? []), ...(pg.data ?? [])];
+  return {
+    open: rows.length,
+    dueThisWeek: rows.filter((r) => typeof r.check_by === 'string' && !!r.check_by && r.check_by <= weekEnd).length,
+  };
+}
+
+/** One spine-safe line; null when there's nothing open (no noise for fresh users). */
+function bearingLine(open: number, dueThisWeek: number, locale: 'ko' | 'en'): string | null {
+  if (open <= 0) return null;
+  if (locale === 'ko') {
+    return `🧭 웹·플러그인·텔레그램 통틀어 열린 결정 **${open}**건${dueThisWeek > 0 ? `, 이번 주 안에 정산할 게 **${dueThisWeek}**건 있어요` : ''}.`;
+  }
+  return `🧭 **${open}** open decision(s) across web · plugin · Telegram${dueThisWeek > 0 ? `, **${dueThisWeek}** due this week` : ''}.`;
 }
 
 /** Per-account daily cap on bot LLM calls (cost guard). Logs to share_log. */
@@ -227,7 +269,13 @@ async function showRecord(chatId: number | string, userId: string): Promise<void
     avoided: rows.filter((r) => r.outcome === 'avoided').length,
     partial: rows.filter((r) => r.outcome === 'partial').length,
   };
-  await sendMessage(chatId, lightHtml(recordSummaryMarkdown(counts, 'ko')));
+  // Cross-surface bearing on top: surfaces decisions sealed on web/plugin that the
+  // telegram-only record below would otherwise miss (explicitly labeled "across …"
+  // so the wider count never reads as a contradiction of the telegram record).
+  const bearing = await crossSurfaceBearing(userId);
+  const line = bearingLine(bearing.open, bearing.dueThisWeek, 'ko');
+  const body = recordSummaryMarkdown(counts, 'ko');
+  await sendMessage(chatId, lightHtml(line ? `${line}\n\n${body}` : body));
 }
 
 function recordButton(locale: 'ko' | 'en') {
@@ -538,6 +586,15 @@ async function handleStart(chat: { id: number; title?: string; first_name?: stri
     return;
   }
   await sendMessage(chat.id, '<b>Argus에 연결됐어요.</b>\n이제 결정·고민을 그냥 메시지로 보내면, 숨은 전제를 짚어 드려요. 결과 화면에서 “보내기 → Telegram”으로 받을 수도 있어요.');
+  // If they already have decisions in flight elsewhere, name it once — a connect
+  // is the moment cross-surface continuity becomes real (spine-safe: counts only).
+  try {
+    const bearing = await crossSurfaceBearing(pending.user_id);
+    const line = bearingLine(bearing.open, bearing.dueThisWeek, 'ko');
+    if (line) await sendMessage(chat.id, lightHtml(line));
+  } catch (err) {
+    console.error('[telegram/webhook] bearing on connect failed:', err);
+  }
 }
 
 export async function POST(req: NextRequest) {

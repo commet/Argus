@@ -64,6 +64,10 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     'why_this_course', 'fog_or_reef', 'road_not_taken', 'next_helm', 'contract_seed',
     'blocked', 'generated_at', 'raw', 'imported_at', 'created_at', 'updated_at',
   ],
+  plugin_events: [
+    'id', 'user_id', 'plugin_decision_id', 'ledger_id', 'event_id', 'event',
+    'payload', 'source', 'applied_at', 'created_at',
+  ],
   // ← 2026-06-19 backend audit: the guard covered only 7 of 18 synced interfaces,
   // which is exactly why the agents *En drift went live. Cover the rest.
   agents: [
@@ -116,6 +120,7 @@ const LOCAL_ONLY: Record<string, Record<string, string>> = {
   synthesize_items: {},
   plugin_decisions: {},
   plugin_bearings: {},
+  plugin_events: {},
 };
 
 /** types.ts에서 한 인터페이스의 최상위 필드명만 추출 (중첩 객체는 brace-depth로 건너뜀). */
@@ -163,6 +168,7 @@ describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 �
     ['synthesize_items', 'SynthesizeItem'],
     ['plugin_decisions', 'PluginDecision'],
     ['plugin_bearings', 'PluginBearing'],
+    ['plugin_events', 'PluginEvent'],
     // ← 2026-06-19 backend audit: cover the remaining synced interfaces.
     ['agents', 'Agent'],
     ['agent_chains', 'AgentChain'],

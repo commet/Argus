@@ -411,7 +411,7 @@ export function buildMixPrompt(
 A domain expert (${leadSynthesis.lead_agent_name}) has already synthesized the team's findings into an integrated analysis. Your job is to format this into a polished, professional document for ${sanitize(dmLabel)}.
 
 Rules:
-- The lead expert's synthesis is your PRIMARY source. Preserve their strategic logic and recommendations.
+- The lead expert's synthesis is your PRIMARY source. Preserve their strategic logic and the open question / unresolved tensions they surfaced. The lead does NOT pick a side — do not manufacture one.
 - Executive summary: 2-3 sentences derived from the lead's integrated analysis.
 - 4-6 sections. Structure the lead's analysis into clear sections with supporting evidence from worker results.
 - Include the assumptions explicitly — this shows intellectual honesty.
@@ -421,7 +421,7 @@ Rules:
 - DO NOT use markdown headers in section content — just flowing text with emphasis where needed.
 - Use **bold** for key terms and critical numbers.
 - Include a "${riskSectionName}" section based on the lead's unresolved tensions and risk analysis.
-- DO NOT override the lead's recommendations with your own judgment. You format, they strategize.
+- DO NOT add a recommendation, verdict, or "what I'd do" — neither yours nor a stronger version of the lead's. You format the analysis and surface its open question; you never tell the user which option to pick.
 - NARRATIVE FLOW: Each section must connect to the next. The document should read as one continuous argument, not separate blocks. Weave the lead's insights with specific worker evidence to create depth.`
     : `You are assembling a final draft document. Always respond in ${lang}.
 ${locale === 'ko' ? 'Tone: 해요체 (polite but warm). Not a formal report — more like a well-structured brief that a smart colleague would write. Confident but honest.' : 'Tone: warm, professional. Not a formal corporate report — more like a well-structured brief from a smart colleague. Confident but honest about uncertainties.'}
@@ -471,7 +471,7 @@ ${leadSynthesis.integrated_analysis}
 Key findings:
 ${leadSynthesis.key_findings.map(f => `- ${f}`).join('\n')}
 
-Recommendation: ${leadSynthesis.recommendation_direction}
+Open question this turns on: ${leadSynthesis.open_question}
 ${leadSynthesis.unresolved_tensions.length > 0 ? `\nUnresolved tensions:\n${leadSynthesis.unresolved_tensions.map(t => `- ${t}`).join('\n')}` : ''}`
     : '';
 

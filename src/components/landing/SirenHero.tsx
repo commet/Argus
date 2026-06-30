@@ -127,7 +127,7 @@ export function SirenHero() {
               fontWeight: 500,
             }}
           >
-            {L('실행은 AI가, 판단은 당신이', 'AI does the doing · you do the deciding')}
+            {L('유창한 답이 결정을 끝내게 하지 마세요', "Don't let a fluent answer end the decision")}
           </span>
           <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
         </div>
@@ -146,10 +146,14 @@ export function SirenHero() {
             animationDelay: '60ms',
           }}
         >
-          {L('"그래서, 어떻게 됐어요?"', '"So — how did it go?"')}
+          {locale === 'ko' ? (
+            <>AI가 실행을 가져간다.<br />판단은 어디에 쌓이나?</>
+          ) : (
+            <>Decisions pass.<br />Judgment compounds.</>
+          )}
         </h1>
 
-        {/* 30초 피치 v2, 첫 두 문장 — 원전 그대로. The problem / empathy hook. */}
+        {/* Product promise first; the film below deepens it through the Siren voyage. */}
         <p
           className={`bp-fade-up mx-auto mt-4 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
@@ -160,9 +164,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>중요한 결정일수록 혼자 들고 있게 됩니다.<br />사람들에게 보여주면 “좋아 보여요”가 돌아오고,<br />AI에게 물으면 더 유창한 “좋아 보여요”가 돌아옵니다.</>
+            <>Argus는 그것을 살아 있는 항로로 남깁니다 —<br />갈림길, 검증된 주장, 현재 방위,<br />그리고 현실이 답할 때의 귀환까지.</>
           ) : (
-            <>The bigger the decision, the more alone you hold it.<br />Show people and you get “looks good” — ask an AI and you get a more fluent “looks good.”</>
+            <>Argus keeps them alive as courses —<br />with forks, checked claims, a current bearing,<br />and a return when reality answers.</>
           )}
         </p>
 
@@ -190,9 +194,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>칭찬도 반박도 하지 않아요.<br />“좋아 보여요” 대신, 당신의 계획을 진짜로 읽어요.</>
+            <>칭찬도 반박도 하지 않아요.<br />당신의 계획을 읽고, 지금의 방위를 남깁니다.</>
           ) : (
-            <>It won’t flatter you or argue.<br />Instead of “looks good,” it actually reads your plan.</>
+            <>It won’t flatter you or argue.<br />It reads your plan and leaves a current bearing.</>
           )}
         </p>
 
@@ -294,7 +298,7 @@ export function SirenHero() {
               <span style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.005em', lineHeight: 1.4 }}>
                 {text.trim()
                   ? L('⏎ 로 보내기 · Shift+⏎ 줄바꿈', '⏎ to send · Shift+⏎ for newline')
-                  : L('⏎ 한 줄이면 충분해요 · 적은 내용은 저장하지 않아요', '⏎ one line is enough · we don’t store what you write')}
+                  : L('⏎ 한 줄이면 충분해요', '⏎ one line is enough')}
               </span>
               <button
                 onClick={sail}
@@ -304,7 +308,7 @@ export function SirenHero() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 7,
-                  minHeight: 42,
+                  minHeight: 44,
                   padding: '9px 18px',
                   border: '1px solid',
                   borderColor: text.trim() ? 'var(--bp-gold)' : 'var(--bp-ink-soft)',

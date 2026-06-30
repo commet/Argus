@@ -66,15 +66,10 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             {cmReview && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.6 }}
                 className="pt-5 border-t border-dashed border-[var(--accent)]/20">
-                <div className="flex items-center gap-2 mb-1">
-                  <span style={{ fontSize: 18 }}>🧭</span>
-                  <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em]">{L('항해장의 한마디', 'Navigator Note')}</p>
-                </div>
-                {/* One-line intro — the navigator shows up only here/at revision,
-                    so say who they are the first time the user meets them. */}
-                <p className="text-[11px] text-[var(--text-tertiary)] mb-3 leading-snug">
-                  {L('항해장은 팀 전체의 결과를 통합해 검토하는 에이전트예요.', 'The navigator is the agent who reviews the whole team’s work.')}
-                </p>
+                {/* Spine: surface the synthesis as work, not as a character. No
+                    agent-persona label, no "meet the navigator" machinery intro —
+                    the plugin forbids machinery-selling and the webapp must match. */}
+                <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] mb-3">{L('통합 검토', 'Integrated check')}</p>
                 <p className="text-[13px] text-[var(--text-primary)] leading-relaxed mb-2">{cmReview.overall}</p>
                 {cmReview.contradictions.length > 0 && (
                   <div className="mb-2">
@@ -93,9 +88,11 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             {debateResult && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.6 }}
                 className="pt-5 border-t border-dashed border-[var(--danger)]/20">
+                {/* Spine: an unresolved tension in the draft, surfaced — NOT a
+                    named agent "losing" a debate. No agent attribution, no 💀
+                    weakest-claim drama; the claim stands on its own. */}
                 <div className="flex items-center gap-2 mb-3">
-                  <span style={{ fontSize: 18 }}>⚔️</span>
-                  <p className="text-[9px] font-bold text-[var(--danger)] uppercase tracking-[0.2em]">{L('팀 내 반론', 'Team Dissent')}</p>
+                  <p className="text-[9px] font-bold text-[var(--danger)] uppercase tracking-[0.2em]">{L('미해결 긴장', 'Unresolved tension')}</p>
                   {/* Localized — the raw English enum used to leak into Korean UI */}
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${debateResult.severity === 'critical' ? 'bg-[var(--danger)]/10 text-[var(--danger)]' : debateResult.severity === 'important' ? 'bg-[var(--warning)]/10 text-[var(--warning)]' : 'bg-[var(--text-tertiary)]/10 text-[var(--text-tertiary)]'}`}>
                     {debateResult.severity === 'critical' ? L('필수', 'Critical') : debateResult.severity === 'important' ? L('권장', 'Important') : L('참고', 'Minor')}
@@ -104,13 +101,13 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                 <p className="text-[13px] text-[var(--text-primary)] leading-relaxed mb-2">{debateResult.challenge}</p>
                 {debateResult.weakestClaim && (
                   <p className="text-[12px] text-[var(--danger)] flex items-start gap-2 mb-1">
-                    <span className="shrink-0 mt-0.5">💀</span>
-                    <span><strong>{debateResult.targetAgent}</strong>{L('의 약점: ', "'s weakness: ")}{debateResult.weakestClaim}</span>
+                    <span className="shrink-0 mt-0.5">·</span>
+                    <span>{L('가장 약한 지점: ', 'Weakest point: ')}{debateResult.weakestClaim}</span>
                   </p>
                 )}
                 {debateResult.alternativeView && (
                   <p className="text-[12px] text-[var(--text-secondary)] flex items-start gap-2 mt-2">
-                    <span className="shrink-0 mt-0.5">💡</span>
+                    <span className="shrink-0 mt-0.5">·</span>
                     <span>{debateResult.alternativeView}</span>
                   </p>
                 )}

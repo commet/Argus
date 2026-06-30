@@ -164,7 +164,7 @@ export function VersionHistoryDrawer({
         className="absolute inset-0 bg-black/10 pointer-events-auto"
         onClick={onClose}
       />
-      <aside className="absolute right-0 top-0 h-full w-[360px] bg-[var(--bg)] border-l border-[var(--border)] shadow-[var(--shadow-lg)] pointer-events-auto flex flex-col">
+      <aside className="absolute right-0 top-0 h-full w-[min(360px,calc(100vw-44px))] bg-[var(--bg)] border-l border-[var(--border)] shadow-[var(--shadow-lg)] pointer-events-auto flex flex-col">
         <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <div>
             <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{L('버전 히스토리', 'Version History')}</h3>
@@ -176,7 +176,7 @@ export function VersionHistoryDrawer({
             <X className="w-4 h-4" />
           </Button>
         </header>
-        <div className="flex-1 overflow-y-auto px-4 py-3">
+        <div className="flex-1 overflow-y-auto px-4 py-3 pb-[env(safe-area-inset-bottom)]">
           {tree.length === 0 ? (
             <div className="text-[12px] text-[var(--text-tertiary)] text-center py-8">
               {L('아직 저장된 버전이 없습니다.', 'No saved versions yet.')}

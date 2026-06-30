@@ -22,7 +22,7 @@ export function Tab({ tabs, activeKey, onChange }: TabProps) {
           key={tab.key}
           onClick={() => onChange(tab.key)}
           className={`
-            relative px-4 py-2 text-[13px] whitespace-nowrap rounded-lg
+            relative px-4 py-2 min-h-[44px] text-[13px] whitespace-nowrap rounded-lg
             transition-colors duration-200 cursor-pointer z-10
             ${
               activeKey === tab.key

@@ -51,7 +51,7 @@ if (manifest) {
   check(typeof manifest.version === "string" && manifest.version.length > 0, "manifest must declare a version");
 }
 
-const SKILLS = ["sail", "clarify", "team", "verify", "boss", "revise", "chart", "helm", "help", "settle", "log"];
+const SKILLS = ["sail", "scan", "seal", "clarify", "team", "verify", "boss", "revise", "chart", "helm", "help", "settle", "log", "connect", "push", "pull", "sync"];
 for (const skill of SKILLS) {
   const skillPath = path.join(root, "skills", skill, "SKILL.md");
   check(fs.existsSync(skillPath), `missing skills/${skill}/SKILL.md (auto-discovered as /argus:${skill})`);
@@ -108,6 +108,7 @@ if (fs.existsSync(clarifySkillPath)) {
   // the answer — the ~60% over-fire the validated stress test measured.
   check(/frame_status/.test(clarify), "clarify must set frame_status (flat|load_bearing) — the under-fire dial (v2.6.0)");
   check(/load-bearing/i.test(clarify) && /\bflat\b/i.test(clarify), "clarify Step 2 must require a reframe to be LOAD-BEARING or not made (no manufactured reframe on a flat decision)");
+  check(/AI-generated plan/.test(clarify) && /current-conversation-plan/.test(clarify), "clarify must detect AI-generated/current Claude Code plans as first-class developer approval targets");
 }
 
 const agentFiles = fs.existsSync(path.join(root, "agents"))
@@ -202,6 +203,14 @@ if (currentBearing) {
     currentBearing.properties?.current_course?.properties?.status?.enum?.includes("collect_evidence"),
     "CurrentBearing current_course.status must include collect_evidence"
   );
+  check(
+    ["predicate", "check_by", "pass_condition", "fail_condition"].every((field) => currentBearing.properties?.contract_seed?.required?.includes(field)),
+    "CurrentBearing contract_seed must require predicate/check_by/pass_condition/fail_condition"
+  );
+  check(
+    !("author" in (currentBearing.properties?.contract_seed?.properties || {})),
+    "CurrentBearing contract_seed must not include author; absence is the AI-surfaced provenance signal"
+  );
 }
 
 const sailSkillPath = path.join(root, "skills", "sail", "SKILL.md");
@@ -222,6 +231,25 @@ if (fs.existsSync(sailSkillPath)) {
   // Privacy regression guard: the ledger holds verbatim predictions/outcomes,
   // and settle/helm both assert that sail's gitignore covers it.
   check(/^ledger\/$/m.test(sail), "sail Step 0 .argus/.gitignore block must include a ledger/ line (privacy default for the settlement ledger)");
+  check(/Developer Decision Contract/.test(sail), "sail must keep the Developer Decision Contract (file/PR/test/failure-mode/next-patch standard)");
+  check(/failure mode/i.test(sail) && /smallest useful engineering move/i.test(sail), "sail Developer Decision Contract must require concrete failure mode + smallest engineering next step");
+  check(!/- `author`: `"?ai_surfaced"?`/.test(sail), "sail must not tell current_bearing.contract_seed to include author (schema rejects it; absence means AI-surfaced)");
+}
+
+const teamSkillPath = path.join(root, "skills", "team", "SKILL.md");
+if (fs.existsSync(teamSkillPath)) {
+  const team = fs.readFileSync(teamSkillPath, "utf8");
+  check(/developer payload/i.test(team), "team worker prompt must require a developer payload for code decisions");
+  check(/affected surface/i.test(team) && /missing test\/check/i.test(team), "team developer payload must include affected surface and missing test/check");
+  check(/target_type` in `\{pr, file, branch, issue, design_doc, plan\}`/.test(team), "team explicit-target path must include plan targets");
+  check(/target_context\.kind == "plan"/.test(team), "team must treat target_context.kind == plan as the artifact under review");
+}
+
+const verifySkillPath = path.join(root, "skills", "verify", "SKILL.md");
+if (fs.existsSync(verifySkillPath)) {
+  const verify = fs.readFileSync(verifySkillPath, "utf8");
+  check(/Developer-output gate/.test(verify), "verify must keep the Developer-output gate for repo/PR claims");
+  check(/concrete repo artifact/i.test(verify), "verify Developer-output gate must require concrete repo artifacts for headline support");
 }
 
 // Settlement is reality-only (v2.6.0): settle must NOT auto-offer /argus:sail on
@@ -240,6 +268,14 @@ if (draft) {
   check(draft.properties?.boss_reviewed?.type === "boolean", "Draft.boss_reviewed must be a boolean flag");
   check(!draft.properties?.final_scaffold && !draft.properties?.final_mix && !draft.properties?.dm_feedback,
     "Draft must not embed final_scaffold/final_mix/dm_feedback (they belong in the version dir, not the session skeleton)");
+}
+
+const sessionSchema = readJson(path.join(root, "data", "schemas", "session.json"));
+if (sessionSchema) {
+  check(
+    sessionSchema.properties?.invoking_context?.properties?.target_type?.enum?.includes("plan"),
+    "Session invoking_context.target_type must include plan (AI-generated plan approval path)"
+  );
 }
 
 const statusline = path.join(root, "statusline", "index.js");
@@ -261,6 +297,20 @@ check(fs.existsSync(contractsScript), "missing scripts/check-contracts.js (refer
 if (fs.existsSync(contractsScript)) {
   const result = spawnSync(process.execPath, ["--check", contractsScript], { encoding: "utf8" });
   check(result.status === 0, `check-contracts syntax check failed: ${result.stderr || result.stdout}`);
+}
+
+const pushScript = path.join(root, "scripts", "push-webapp.js");
+check(fs.existsSync(pushScript), "missing scripts/push-webapp.js (used by /argus:connect, /argus:push, /argus:pull, and /argus:sync)");
+if (fs.existsSync(pushScript)) {
+  const result = spawnSync(process.execPath, ["--check", pushScript], { encoding: "utf8" });
+  check(result.status === 0, `push-webapp syntax check failed: ${result.stderr || result.stdout}`);
+}
+
+const decisionLedgerScript = path.join(root, "scripts", "decision-ledger.js");
+check(fs.existsSync(decisionLedgerScript), "missing scripts/decision-ledger.js (used by /argus:scan and /argus:seal)");
+if (fs.existsSync(decisionLedgerScript)) {
+  const result = spawnSync(process.execPath, ["--check", decisionLedgerScript], { encoding: "utf8" });
+  check(result.status === 0, `decision-ledger syntax check failed: ${result.stderr || result.stdout}`);
 }
 
 const simulation = path.join(root, "scripts", "simulate-plugin.js");

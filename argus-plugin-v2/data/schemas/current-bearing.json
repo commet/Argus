@@ -89,6 +89,7 @@
     "contract_seed": {
       "type": ["object", "null"],
       "description": "A falsifiable prediction candidate to seal later as a Decision Contract.",
+      "required": ["predicate", "check_by", "pass_condition", "fail_condition"],
       "properties": {
         "predicate": { "type": "string", "maxLength": 240 },
         "check_by": { "type": "string", "maxLength": 120 },

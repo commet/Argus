@@ -784,10 +784,10 @@ export async function runLeadSynthesis(
     integrated_analysis: string;
     key_findings: string[];
     unresolved_tensions: string[];
-    recommendation_direction: string;
+    open_question: string;
   }>(
     [{ role: 'user', content: user }],
-    { system, maxTokens: 3000, signal, shape: { integrated_analysis: 'string', key_findings: 'array', unresolved_tensions: 'array', recommendation_direction: 'string' } },
+    { system, maxTokens: 3000, signal, shape: { integrated_analysis: 'string', key_findings: 'array', unresolved_tensions: 'array', open_question: 'string' } },
   );
 
   // Record XP for the lead agent
@@ -801,7 +801,7 @@ export async function runLeadSynthesis(
     integrated_analysis: result.integrated_analysis || '',
     key_findings: result.key_findings || [],
     unresolved_tensions: result.unresolved_tensions || [],
-    recommendation_direction: result.recommendation_direction || '',
+    open_question: result.open_question || '',
   };
 }
 

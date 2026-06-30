@@ -4,8 +4,8 @@
  * the Supabase IO on top of these.
  *
  *  - parseLedger: folds .argus/ledger/ledger.jsonl (harvest→seal→amend→settle/
- *    dismiss) into one decision per id. Direct port of loadLedger in
- *    tools/argus-watch/lib/ledger.mjs — keep in sync if that fold changes.
+ *    dismiss) into one decision per id. Mirrors the plugin's decision-ledger
+ *    replay rules — keep in sync if that fold changes.
  *  - parseBearing: a current_bearing.json object → bearing row.
  *  - classify: decide whether a file is a ledger, a bearing, or neither.
  */

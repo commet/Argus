@@ -73,8 +73,9 @@ improvise a crew without it.
 
 **Three paths:**
 
-**(A) Explicit target** — `session.invoking_context.target_type` in `{pr, file, branch, issue, design_doc}`:
-- **Primary source:** read `versions/v0.1/meta.json` → `target_context` (written by `/argus:clarify` when it expanded the target — see clarify Inputs). This is the single source of truth for the diff/contents/body the team must work ON. Use `target_context.diff` / `.contents` / `.body` / `.files_changed` directly.
+**(A) Explicit target** — `session.invoking_context.target_type` in `{pr, file, branch, issue, design_doc, plan}`:
+- **Primary source:** read `versions/v0.1/meta.json` → `target_context` (written by `/argus:clarify` when it expanded the target — see clarify Inputs). This is the single source of truth for the diff/contents/body/plan the team must work ON. Use `target_context.diff` / `.contents` / `.body` / `.files_changed` directly.
+  - If `target_context.kind == "plan"`, treat the plan as the artifact under review and the repo as the environment it would mutate. Workers must map plan steps to likely files/surfaces, identify unsafe bundled changes, and decide run/split/revise/hold.
 - **If `target_context` is absent or has an `error` field** (clarify ran before this field existed, or `gh` failed): re-fetch live as a fallback —
   - `pr` → `gh pr view <N> --json title,body,files,state` + `gh pr diff <N>`
   - `file` → re-read the file contents + `git log -5 <file>`
@@ -104,7 +105,7 @@ improvise a crew without it.
   "mode": "explicit_target" | "repo_scan" | "document" | "hypothetical",
   // "document" = no repo, non-code decision (reason from problem text / a referenced doc) — a normal path.
   // "hypothetical" = a code question was asked but no codebase is reachable — degraded; warn.
-  "target_type": "pr" | "file" | "branch" | "issue" | "design_doc" | "ad_hoc" | null,
+  "target_type": "pr" | "file" | "branch" | "issue" | "design_doc" | "plan" | "ad_hoc" | null,
   "target_ref": "...",
   "target_content": "...",        // when mode is explicit_target
   "repo_sketch": {                  // when mode is repo_scan
@@ -294,6 +295,11 @@ For each worker in stage-1, use the **Task / Agent tool** to spawn a sub-agent.
   </user-data>
   
   Read this artifact directly. You may Grep/Glob the repo for additional files if needed.
+  For developer/code targets, your output must be code-native: cite the exact
+  changed files or nearby owners, name the likely failure mode, name the missing
+  or decisive test, and propose the smallest useful patch or check. A generic
+  risk sentence ("could affect auth", "watch for regressions") is a failed
+  worker result unless it is tied to a concrete file/path/behavior.
   {{endif}}
   
   {{if mode == "repo_scan"}}
@@ -305,6 +311,8 @@ For each worker in stage-1, use the **Task / Agent tool** to spawn a sub-agent.
   - Entry files: {{repo_sketch.entry_files_joined}}
   
   You have Read/Grep/Glob tools. **Use them** to find and read the files relevant to YOUR task before producing output. Do not rely on the sketch alone — it's a starting map, not the answer. Cite specific file paths + line numbers in your output when relevant.
+  If you cannot find relevant files for a code decision, say that explicitly and
+  mark your confidence low. Do not fill the gap with architecture boilerplate.
   {{endif}}
   
   {{if mode == "document"}}
@@ -329,6 +337,9 @@ For each worker in stage-1, use the **Task / Agent tool** to spawn a sub-agent.
   - Do NOT critique other workers; they run in parallel and you don't see their work.
   - Do NOT summarize the whole problem; you handle YOUR task.
   - Cite specific files/lines when working from `explicit_target` or `repo_scan`.
+  - For developer decisions, include a compact "developer payload": affected surface,
+    likely failure mode, decisive evidence, missing test/check, smallest next patch.
+    If any of those are unknown, say which one is unknown instead of smoothing it over.
   - **Speak this problem's domain.** Your persona examples are software-flavored, but your expertise is general — if this is a market/hiring/finance/legal decision, use that domain's vocabulary, not code analogies. Frame risk as that domain's risk, not DB-lock time.
   - {{locale-specific concluding line: ko="~이내로 간결하게 작성하세요." en="Keep under {{word_budget}} words."}}
   

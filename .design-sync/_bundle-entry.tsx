@@ -54,3 +54,9 @@ export { SlackChannelPicker } from '../src/components/ui/SlackChannelPicker';
 
 // --- chart/voyage illustration primitives from VoyageElements.tsx (added 2026-06-18) ---
 export { Graticule, ChartEdge, VoyageShip } from '../src/components/ui/VoyageElements';
+
+// --- screen compositions (design-sync-only, NOT production code; added 2026-06-25) ---
+export { WorkspaceHome } from './_screens/WorkspaceHome';
+export { WorkspaceHomeA } from './_screens/WorkspaceHomeA';
+export { WorkspaceHomeB } from './_screens/WorkspaceHomeB';
+export { WorkspaceHomeC } from './_screens/WorkspaceHomeC';

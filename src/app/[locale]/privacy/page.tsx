@@ -21,7 +21,7 @@ export default function PrivacyPage() {
       <div className="prose prose-sm max-w-none space-y-6 text-[14px] text-[var(--text-primary)] leading-relaxed">
         <section>
           <h2 className="text-[16px] font-bold mb-2">{L('1. 수집하는 개인정보 항목', '1. Information We Collect')}</h2>
-          <table className="w-full text-[13px] border-collapse">
+          <table className="w-full text-[13px] border-collapse block overflow-x-auto">
             <thead>
               <tr className="border-b border-[var(--border)]">
                 <th className="text-left py-2 pr-4 font-semibold">{L('구분', 'Type')}</th>
@@ -72,8 +72,8 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-[16px] font-bold mb-2">{L('4. 개인정보의 제3자 제공', '4. Third-Party Sharing')}</h2>
           <p>{L(
-            'SAYU(이하 "회사")는 이용자의 동의 없이 개인정보를 제3자에게 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다.',
-            'SAYU (hereinafter "the Company") does not share personal information with third parties without the user\'s consent. The following are exceptions.',
+            'Argus(이하 "회사")는 이용자의 동의 없이 개인정보를 제3자에게 제공하지 않습니다. 다만, 다음의 경우에는 예외로 합니다.',
+            'Argus (hereinafter "the Company") does not share personal information with third parties without the user\'s consent. The following are exceptions.',
           )}</p>
           <ul className="list-disc pl-5 space-y-1 mt-2">
             <li>{L('법령에 의해 요구되는 경우', 'When required by law')}</li>
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-[16px] font-bold mb-2">{L('5. 개인정보 처리 위탁', '5. Data Processing Subcontractors')}</h2>
-          <table className="w-full text-[13px] border-collapse">
+          <table className="w-full text-[13px] border-collapse block overflow-x-auto">
             <thead>
               <tr className="border-b border-[var(--border)]">
                 <th className="text-left py-2 pr-4 font-semibold">{L('수탁 업체', 'Subcontractor')}</th>
@@ -145,7 +145,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-[16px] font-bold mb-2">{L('9. 개인정보 보호책임자', '9. Data Protection Officer')}</h2>
           <p>{L('개인정보 관련 문의는 아래 연락처로 접수해주세요.', 'For privacy-related inquiries, please use the contact below.')}</p>
-          <p className="mt-2 text-[var(--text-secondary)]">{L('회사명: SAYU', 'Company: SAYU')}</p>
+          <p className="mt-2 text-[var(--text-secondary)]">{L('회사명: Argus', 'Company: Argus')}</p>
           <p className="text-[var(--text-secondary)]">{L('이메일: sayu.curator@gmail.com', 'Email: sayu.curator@gmail.com')}</p>
         </section>
       </div>

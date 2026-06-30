@@ -1,20 +1,19 @@
 /**
  * Ledger schema convention — the unified decision object (W1.2).
  *
- * ONE loop, THREE doors (web deep session · helm plan-approval · watch CLI
+ * ONE loop, THREE doors (web deep session · helm plan-approval · plugin scan
  * harvest) — and the only thing they share, by founder decision, is THIS
  * SCHEMA. No shared tables, no sync plumbing until H5 (one person actually
  * uses two doors) is proven. Each surface keeps its own storage:
  *
  *   web    projects.decision_contract jsonb  (DecisionContract, stores/types.ts)
- *   watch  .argus/ledger/ledger.jsonl        (tools/argus-watch/lib/ledger.mjs)
- *   helm   .argus/ledger/ (reuses watch's)   (W2.4, not yet built)
+ *   plugin .argus/ledger/ledger.jsonl        (/argus:scan, /argus:seal, /argus:settle)
+ *   helm   .argus/ledger/ (reuses plugin ledger semantics)
  *
  * This file is the single source of truth for the SHAPE those surfaces agree
- * on. watch is plain .mjs and cannot import TS, so the contract is enforced by
- * a shape-match test (src/lib/__tests__/ledger-schema.test.ts) that reads
- * ledger.mjs source and checks every canonical field name appears in its
- * replay materialization — change a field on either side and the test fails.
+ * on. The plugin ledger is plain JSONL, so the contract is enforced by
+ * shape-match tests and import parsers — change a field on either side and the
+ * tests fail.
  *
  * ── Field map: canonical ⇄ watch (ledger.mjs replay state) ──
  *   id            id              sha256(session|quote).slice(0,8) on watch;

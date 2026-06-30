@@ -127,9 +127,9 @@ export function StepIntro({ stepKey }: StepIntroProps) {
         <button
           onClick={dismiss}
           aria-label={L('닫기', 'Dismiss')}
-          className="absolute top-2.5 right-2.5 p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
+          className="absolute top-2.5 right-2.5 p-2.5 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
         >
-          <X size={14} />
+          <X size={18} />
         </button>
         <div className="flex items-start gap-3 pr-6">
           <div className="w-10 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-center text-[18px] shrink-0">

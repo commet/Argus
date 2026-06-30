@@ -1,0 +1,73 @@
+
+> argus@0.1.0 build
+> next build
+
+▲ Next.js 16.2.2 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.9s
+  Running TypeScript ...
+  Finished TypeScript in 18.3s ...
+  Collecting page data using 11 workers ...
+⚠ Using edge runtime on a page currently disables static generation for that page
+  Generating static pages using 11 workers (0/63) ...
+  Generating static pages using 11 workers (15/63) 
+  Generating static pages using 11 workers (31/63) 
+  Generating static pages using 11 workers (47/63) 
+✓ Generating static pages using 11 workers (63/63) in 665ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /_not-found
+├ ƒ /[locale]
+├ ƒ /[locale]/admin
+├ ƒ /[locale]/admin/utm-builder
+├ ƒ /[locale]/agents
+├ ƒ /[locale]/auth/callback
+├ ƒ /[locale]/boss
+├ ƒ /-/boss/opengraph-image
+├ ƒ /-/boss/twitter-image
+├ ƒ /[locale]/design/foundry
+├ ƒ /[locale]/design/workspace
+├ ƒ /[locale]/guide
+├ ƒ /[locale]/import
+├ ƒ /[locale]/login
+├ ƒ /[locale]/privacy
+├ ƒ /[locale]/project
+├ ƒ /[locale]/settings
+├ ƒ /[locale]/teams
+├ ƒ /[locale]/terms
+├ ƒ /[locale]/tools/recast
+├ ƒ /[locale]/tools/refine
+├ ƒ /[locale]/tools/reframe
+├ ƒ /[locale]/tools/rehearse
+├ ƒ /[locale]/tools/synthesize
+├ ƒ /[locale]/workspace
+├ ƒ /api/boss/saju
+├ ƒ /api/cron/daily-report
+├ ƒ /api/cron/expire-tokens
+├ ƒ /api/email/inbound
+├ ƒ /api/email/send-question
+├ ƒ /api/llm
+├ ƒ /api/llm/direct
+├ ƒ /api/llm/gemini
+├ ƒ /api/llm/openai
+├ ƒ /api/search
+├ ƒ /api/slack/callback
+├ ƒ /api/slack/channels
+├ ƒ /api/slack/events
+├ ƒ /api/slack/oauth
+├ ƒ /api/slack/send
+├ ƒ /apple-icon
+├ ƒ /icon
+├ ○ /manifest.webmanifest
+├ ƒ /opengraph-image
+└ ○ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

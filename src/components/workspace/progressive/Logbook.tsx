@@ -136,9 +136,9 @@ export function Logbook() {
         </h3>
         <button
           onClick={() => setChartOpen(true)}
-          className="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1 py-2.5 min-h-[44px] text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
         >
-          <MapIcon size={11} /> {L('전체 해도', 'Full chart')}
+          <MapIcon size={12} /> {L('전체 해도', 'Full chart')}
         </button>
       </div>
 
@@ -151,7 +151,7 @@ export function Logbook() {
               return (
                 <span
                   key={b.id}
-                  className={`inline-flex items-center rounded-full text-[10.5px] font-medium max-w-[150px] transition-all ${
+                  className={`inline-flex items-center rounded-full text-[12px] font-medium max-w-[150px] transition-all ${
                     isActive
                       ? 'text-white shadow-[var(--shadow-xs)]'
                       : 'text-[var(--text-secondary)] bg-[var(--bg)] border border-[var(--border-subtle)]'
@@ -162,27 +162,27 @@ export function Logbook() {
                     onClick={() => !isActive && !locked && switchBranch(b.id)}
                     disabled={locked && !isActive}
                     title={b.name}
-                    className={`inline-flex items-center gap-1 pl-2 ${isActive ? 'pr-2' : 'pr-1'} py-1 min-w-0 cursor-pointer ${locked && !isActive ? 'opacity-40 cursor-not-allowed' : ''} ${isActive ? '' : 'hover:text-[var(--text-primary)]'}`}
+                    className={`inline-flex items-center gap-1 pl-2 ${isActive ? 'pr-2' : 'pr-1'} py-2.5 min-h-[44px] min-w-0 cursor-pointer ${locked && !isActive ? 'opacity-40 cursor-not-allowed' : ''} ${isActive ? '' : 'hover:text-[var(--text-primary)]'}`}
                   >
                     {b.status === 'anchored' ? <Flag size={9} className="shrink-0" /> : <GitBranch size={9} className="shrink-0" />}
                     <span className="truncate">{b.name}</span>
                   </button>
                   {!isActive && (
                     confirmDeleteId === b.id ? (
-                      <span className="inline-flex items-center gap-1 pr-1.5 pl-1">
-                        <button
-                          onClick={() => { setConfirmDeleteId(null); if (!locked) deleteBranch(b.id); }}
-                          disabled={locked}
-                          className={`text-[9.5px] font-semibold text-[var(--danger)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
-                        >
-                          {L('삭제', 'Delete')}
-                        </button>
+                      <span className="inline-flex items-center gap-2 pr-1.5 pl-1">
                         <button
                           onClick={() => setConfirmDeleteId(null)}
                           aria-label={L('취소', 'Cancel')}
-                          className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer"
+                          className="px-3 min-h-[44px] inline-flex items-center justify-center text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
                         >
-                          <X size={9} />
+                          {L('취소', 'Cancel')}
+                        </button>
+                        <button
+                          onClick={() => { setConfirmDeleteId(null); if (!locked) deleteBranch(b.id); }}
+                          disabled={locked}
+                          className={`px-3 min-h-[44px] inline-flex items-center justify-center text-[12px] font-semibold text-[var(--danger)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                          {L('삭제', 'Delete')}
                         </button>
                       </span>
                     ) : (
@@ -190,9 +190,9 @@ export function Logbook() {
                         onClick={() => setConfirmDeleteId(b.id)}
                         disabled={locked}
                         aria-label={L('항로 삭제', 'Delete course')}
-                        className={`pr-1.5 pl-0.5 py-1 text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        className={`p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
-                        <X size={9} />
+                        <X size={14} />
                       </button>
                     )
                   )}
@@ -208,9 +208,9 @@ export function Logbook() {
             <button
               onClick={() => !locked && anchorBranch(activeBranch.id)}
               disabled={locked}
-              className={`inline-flex items-center gap-1 text-[10.5px] font-medium text-[var(--accent)] hover:underline cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
+              className={`inline-flex items-center justify-center gap-1.5 px-4 min-h-[44px] rounded-lg text-[12px] font-semibold text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent)]/8 cursor-pointer ${locked ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
-              <Anchor size={10} /> {L('이 항로로 확정', 'Anchor this course')}
+              <Anchor size={12} /> {L('이 항로로 확정', 'Anchor this course')}
             </button>
           )}
         </div>
@@ -363,7 +363,7 @@ export function LogbookDrawer({ offset }: { offset?: boolean }) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className={`fixed inset-x-0 z-40 flex items-center justify-between px-4 py-3 bg-[var(--surface)] border-t border-[var(--border-subtle)] min-h-[52px] cursor-pointer ${offset ? 'bottom-[56px]' : 'bottom-0'}`}
+          className={`fixed inset-x-0 z-40 flex items-center justify-between px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-[var(--surface)] border-t border-[var(--border-subtle)] min-h-[52px] cursor-pointer ${offset ? 'bottom-[calc(56px+env(safe-area-inset-bottom))]' : 'bottom-0'}`}
         >
           <span className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
             <Compass size={15} className="text-[var(--accent)]" />
@@ -376,7 +376,7 @@ export function LogbookDrawer({ offset }: { offset?: boolean }) {
       {open && (
         <>
           <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setOpen(false)} aria-hidden />
-          <div className="fixed bottom-0 inset-x-0 z-50 max-h-[82vh] rounded-t-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-y-auto">
+          <div className="fixed bottom-0 inset-x-0 z-50 max-h-[82dvh] rounded-t-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
             <div className="sticky top-0 z-10 flex items-center justify-end px-2 py-1.5 bg-[var(--surface)] border-b border-[var(--border-subtle)]">
               <button
                 onClick={() => setOpen(false)}

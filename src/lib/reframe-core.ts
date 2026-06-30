@@ -24,12 +24,20 @@ export interface ReframeCoreResult {
 }
 
 /* ── Stage 1: 전제 도출 프롬프트 (가설 기반 사고) ── */
-export const ASSUMPTION_PROMPT_KO = `당신은 전략기획 전문가입니다. 주어진 과제의 숨겨진 전제를 찾으세요.
+export const ASSUMPTION_PROMPT_KO = `당신은 의사결정을 돕는 사고 파트너입니다. 주어진 결정의 숨겨진 전제를 찾으세요.
 
-[사고 방식: 가설 기반 사고 + 4축 전제 점검]
-- 이 과제가 나온 진짜 이유는 무엇인가? 가설을 세우세요.
-- 이 과제가 의미 있으려면 참이어야 하는 전제를 찾으세요.
-- 네 가지 축으로 점검: (1) 고객 가치 (2) 실행 가능성 (3) 사업성 (4) 조직 역량
+[사고 방식: 가설 기반 사고 + 4가지 렌즈로 전제 점검]
+- 이 결정이 나온 진짜 이유는 무엇인가? 가설을 세우세요.
+- 이 결정이 의미 있으려면 참이어야 하는 전제를 찾으세요.
+- 네 가지 렌즈로 점검:
+  (1) 가치(customer_value): 이 결정이 누구에게 어떤 가치를 주는가
+  (2) 실행 가능성(feasibility): 실제로 해낼 수 있는가
+  (3) 대가·지속가능성(business): 치러야 할 비용과 오래 지속될 수 있는가
+  (4) 역량·준비(org_capacity): 그것을 감당할 역량과 준비가 되어 있는가
+
+[결정의 성격에 맞춰라 — 매우 중요]
+- 업무·사업 결정이면 사업 언어로, 개인·인생·관계 결정이면 그 사람의 삶의 언어로 해석하세요.
+- 사람을 '고객', 인생을 '사업', 자신을 '조직'이라 부르는 식의 어색한 비즈니스 용어를 개인 결정에 강요하지 마세요. 렌즈는 같되, 표현은 결정의 결에 맞게.
 
 [다양성 원칙]
 - 전제 3-4개는 반드시 서로 다른 축에서 나와야 합니다. 같은 축에서 2개 이상 나오면 안 됩니다.
@@ -45,12 +53,20 @@ export const ASSUMPTION_PROMPT_KO = `당신은 전략기획 전문가입니다. 
 
 반드시 JSON만 응답하세요.`;
 
-export const ASSUMPTION_PROMPT_EN = `You are a strategy expert. Find the hidden assumptions behind the given task.
+export const ASSUMPTION_PROMPT_EN = `You are a thinking partner for decisions. Find the hidden assumptions behind the given decision.
 
-[Mindset: hypothesis-based thinking + 4-axis assumption check]
-- What is the real reason this task came up? Form a hypothesis.
-- Find the assumptions that must be true for this task to be meaningful.
-- Check across four axes: (1) customer value (2) feasibility (3) business viability (4) organizational capacity
+[Mindset: hypothesis-based thinking + 4-lens assumption check]
+- What is the real reason this decision came up? Form a hypothesis.
+- Find the assumptions that must be true for this decision to be meaningful.
+- Check across four lenses:
+  (1) value (customer_value): who does this create value for, and what value
+  (2) feasibility (feasibility): can it actually be done
+  (3) cost & durability (business): what must be paid, and will it last
+  (4) capacity & readiness (org_capacity): is there the capability and readiness to carry it
+
+[Fit the nature of the decision — important]
+- For work/business decisions use business language; for personal/life/relationship decisions use the language of that person's life.
+- Don't force cold business jargon (calling a person a 'customer', a life a 'business', a self an 'organization') onto a personal decision. Same lenses, but phrase them to fit the decision.
 
 [Diversity principle]
 - The 3-4 assumptions must come from different axes. No more than one from the same axis.
@@ -205,10 +221,10 @@ export function questionToMarkdown(q: ReframeQuestion, locale: 'ko' | 'en'): str
 }
 
 const AXIS_LABEL: Record<string, { ko: string; en: string }> = {
-  customer_value: { ko: '고객 가치', en: 'Customer value' },
+  customer_value: { ko: '가치', en: 'Value' },
   feasibility: { ko: '실행 가능성', en: 'Feasibility' },
-  business: { ko: '사업성', en: 'Business' },
-  org_capacity: { ko: '조직 역량', en: 'Org capacity' },
+  business: { ko: '대가·지속', en: 'Cost & durability' },
+  org_capacity: { ko: '역량·준비', en: 'Capacity' },
 };
 
 /** Render a reframe result as Telegram-ready markdown (fed to markdownToTelegramHtml). */

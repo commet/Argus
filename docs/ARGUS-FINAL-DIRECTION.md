@@ -4,7 +4,8 @@ Date: 2026-06-10
 
 ## One Sentence
 
-Argus helps a person navigate important decisions without losing the trail of why.
+Important decisions should not end as answers. Argus keeps them alive as courses
+until reality can answer.
 
 It is not a multi-agent showcase, a generic risk machine, or a prettier ChatGPT
 answer. The product is a decision voyage: clarify the destination, gather crew
@@ -18,10 +19,12 @@ Argus sells the feeling of:
 > "I know where this decision currently stands, why that bearing is justified,
 > what remains foggy, what path I am not taking, and what must happen next."
 
-That is broader than "make my decision less risky." Risk reduction is one
-effect. The more complete promise is orientation. A good Argus run should give
-the user current coordinates inside a decision that might otherwise blur into
-analysis, advice, and second thoughts.
+That is broader than "make my decision less risky" and broader than "find my
+hidden assumptions." Risk reduction and assumption-finding are effects. The more
+complete promise is that a decision becomes a living course: a durable state with
+forks, checked claims, current bearing, and a future reality check. A good Argus
+run should give the user current coordinates inside a decision that might
+otherwise blur into analysis, advice, and second thoughts.
 
 ## Product Identity
 

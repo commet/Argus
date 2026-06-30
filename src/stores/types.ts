@@ -603,6 +603,19 @@ export interface ContractAmendment {
   amended_at: string;
 }
 
+/** One-object artifact that spans seal → settle.
+ *  Created at seal; patched at settle. The diff between human_judgment and
+ *  what_happened is the learning — and the moat. */
+export interface JudgmentReceipt {
+  real_question: string;
+  unverified_assumption: string;
+  human_only: string;
+  human_judgment: string;
+  what_happened?: string;
+  assumption_held?: boolean | null;
+  settled_at?: string;
+}
+
 export interface DecisionContract {
   id: string;
   project_id: string;
@@ -622,6 +635,9 @@ export interface DecisionContract {
    *  instrument than another, so a miss graded later can be attributed to
    *  judgment vs a since-changed generator. Absent on legacy contracts. */
   provenance?: ContractProvenance;
+  /** Judgment Receipt — seal과 settle을 하나의 오브젝트로 묶는다.
+   *  Absent on legacy contracts — read as contract.judgment_receipt ?? undefined. */
+  judgment_receipt?: JudgmentReceipt;
 }
 
 /** Run provenance for a sealed contract (dim8) — auditable reproducibility, not
@@ -705,6 +721,18 @@ export interface PluginDecision {
   imported_at?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface PluginEvent {
+  id: string;
+  plugin_decision_id?: string | null;
+  ledger_id: string;
+  event_id: string;
+  event: 'amend' | 'settle' | 'dismiss';
+  payload: Record<string, unknown>;
+  source: 'webapp';
+  applied_at?: string | null;
+  created_at: string;
 }
 
 export interface PluginBearing {
@@ -1359,7 +1387,10 @@ export interface LeadSynthesisResult {
   integrated_analysis: string;
   key_findings: string[];
   unresolved_tensions: string[];
-  recommendation_direction: string;
+  /** The single open question the decision turns on — a neutral crux, NOT a
+   *  recommendation/verdict (spine: never surface a directional lean to the user).
+   *  Renamed from `recommendation_direction` (2026-06-24 spine pass). */
+  open_question: string;
 }
 
 export interface ProgressiveSession {

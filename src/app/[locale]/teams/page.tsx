@@ -236,7 +236,7 @@ export default function TeamsPage() {
                   {member.role !== 'owner' && (
                     <button
                       onClick={() => removeMember(member.id)}
-                      className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                      className="-m-1.5 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -249,14 +249,14 @@ export default function TeamsPage() {
           {/* Invite */}
           <div>
             <p className="text-[14px] font-bold text-[var(--text-primary)] mb-3">{L('팀원 초대', 'Invite teammates')}</p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <input
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="teammate@company.com"
                 maxLength={254}
-                className="flex-1 px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]"
+                className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]"
                 onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
               />
               <select

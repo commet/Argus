@@ -24,7 +24,7 @@
  * auto-escaped.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, AlertTriangle, GitBranch, Check } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -42,6 +42,7 @@ import { Modal } from '@/components/ui/Modal';
 import { recordSignal } from '@/lib/signal-recorder';
 import { track } from '@/lib/analytics';
 import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
+import { JudgmentReceipt } from './JudgmentReceipt';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
   governing_idea: Target,
@@ -63,6 +64,7 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   const updateProject = useProjectStore((s) => s.updateProject);
   const projects = useProjectStore((s) => s.projects);
 
+  const [whatHappened, setWhatHappened] = useState('');
   const contract = project.decision_contract ?? null;
   const predicates: Predicate[] = useMemo(
     () => (Array.isArray(contract?.predicates) ? contract!.predicates : []),
@@ -82,11 +84,25 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
     return { ...rec, loops: Math.max(1, rec.loops) };
   }, [allResolved, projects]);
 
+  function saveWhatHappened(text: string) {
+    const existingReceipt = contract?.judgment_receipt;
+    if (!existingReceipt || !text.trim()) return;
+    updateProject(project.id, {
+      decision_contract: {
+        ...contract!,
+        judgment_receipt: {
+          ...existingReceipt,
+          what_happened: text.trim(),
+          settled_at: new Date().toISOString(),
+        },
+      },
+    });
+  }
+
   function grade(predicateId: string, verdict: PredicateVerdict) {
     if (!contract) return;
-    updateProject(project.id, {
-      decision_contract: gradePredicate(contract, predicateId, verdict, Date.now()),
-    });
+    const graded = gradePredicate(contract, predicateId, verdict, Date.now());
+    updateProject(project.id, { decision_contract: graded });
     // Learning signal — settlement is the return half of the loop; its verdict
     // is the ground truth the product is built to accumulate (2026-06-13 fix).
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict } });
@@ -141,12 +157,26 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   return (
     <Modal open onClose={onClose} title={L('그래서, 어떻게 됐어요?', 'So, how did it go?')}>
       <div className="space-y-4">
-        <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.5] -mt-1">
-          {sealedOn
-            ? L(`${sealedOn}에 봉인한 결정이에요 — `, `You sealed this decision on ${sealedOn} — `)
-            : L('그때 이 결정을 봉인하셨어요 — ', 'You sealed this decision — ')}
-          <span className="font-semibold text-[var(--text-primary)]">{project.name}</span>
-        </p>
+        {/* Judgment Receipt — 그때의 판단을 꺼내 보여준다. */}
+        {contract.judgment_receipt && (
+          <JudgmentReceipt
+            mode="settle"
+            receipt={contract.judgment_receipt}
+            sealedOn={sealedOn}
+            whatHappened={whatHappened}
+            onWhatHappenedChange={setWhatHappened}
+            onSave={saveWhatHappened}
+            locale={ko ? 'ko' : 'en'}
+          />
+        )}
+        {!contract.judgment_receipt && (
+          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.5] -mt-1">
+            {sealedOn
+              ? L(`${sealedOn}에 봉인한 결정이에요 — `, `You sealed this decision on ${sealedOn} — `)
+              : L('그때 이 결정을 봉인하셨어요 — ', 'You sealed this decision — ')}
+            <span className="font-semibold text-[var(--text-primary)]">{project.name}</span>
+          </p>
+        )}
 
         <div className="space-y-2.5">
           {predicates.map((p) => {

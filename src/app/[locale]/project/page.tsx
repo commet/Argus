@@ -23,6 +23,7 @@ import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus, summarizeRecord, recordDisclosure } from '@/lib/decision-contract';
+import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
 
@@ -583,20 +584,9 @@ export default function ProjectPage() {
                           </span>
                         </div>
 
-                        {/* Decision Contract check-in nudge — the return hook */}
-                        {(() => {
-                          if (!project.decision_contract) return null;
-                          const cs = contractStatus(project.decision_contract, Date.now());
-                          if (!cs.checkInDue) return null;
-                          return (
-                            <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 normal-case tracking-normal">
-                              <Sparkles size={10} />
-                              {locale === 'ko'
-                                ? `물어볼 게 ${cs.pending}개 있어요`
-                                : `${cs.pending} question${cs.pending === 1 ? '' : 's'} for you`}
-                            </span>
-                          );
-                        })()}
+                        {/* Voyage ETA / arrival — the return hook. Lively countdown
+                            (도착 예정 D-N) → due (지금 정산) → arrived. Single source: VoyageEta. */}
+                        <VoyageEta contract={project.decision_contract} className="self-start normal-case tracking-normal" />
 
                         {/* Title */}
                         <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-[1.35] line-clamp-2 group-hover:text-[var(--accent)] transition-colors">

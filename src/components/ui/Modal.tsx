@@ -105,7 +105,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       />
       <div
         ref={dialogRef}
-        className="relative bg-[var(--surface)] rounded-[20px] shadow-[var(--shadow-xl)] border border-[var(--border-subtle)] w-full max-w-lg mx-4 max-h-[85vh] overflow-hidden animate-fade-in"
+        className="relative bg-[var(--surface)] rounded-[20px] shadow-[var(--shadow-xl)] border border-[var(--border-subtle)] w-full max-w-lg mx-4 max-h-[85dvh] overflow-hidden animate-fade-in"
       >
         <div className="h-[2px] w-full" style={{ background: 'var(--gradient-gold)' }} />
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)]">
@@ -114,12 +114,12 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
             ref={closeBtnRef}
             onClick={onClose}
             aria-label="Close"
-            className="p-1.5 hover:bg-[var(--bg)] rounded-lg transition-colors cursor-pointer"
+            className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center -m-2 hover:bg-[var(--bg)] rounded-lg transition-colors cursor-pointer"
           >
             <X size={16} strokeWidth={1.5} />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto max-h-[calc(85vh-60px)]">{children}</div>
+        <div className="p-6 overflow-y-auto max-h-[calc(85dvh-60px)]">{children}</div>
       </div>
     </div>,
     document.body,
