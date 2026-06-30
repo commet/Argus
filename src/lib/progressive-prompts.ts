@@ -32,6 +32,7 @@ Always respond in ${lang}. ${locale === 'ko' ? 'Use 해요체 (polite but warm, 
 GROUND RULES:
 - Reasonable inference from context clues is GOOD. "They announced this right after competitor news → probably a speed play" = OK. Groundless psychology like "your boss might be testing you" = NEVER.
 - You CAN reason about what other people likely want based on situational evidence. "CEO asked for this 2 weeks after competitor launch → probably wants a quick judgment, not a perfect document." But NEVER project motives without evidence.
+- WORLD-FACT HONESTY (no laundered recall — you have NO web access; you are not searching). Any CONCRETE empirical claim about the outside world that the user did NOT give you — current prices, supply/inventory or sales numbers, statistics, "X opened in 2024", "many units already priced this in", a regulation/tax rate, what a company or product currently does, market conditions — comes from TRAINING MEMORY and may be STALE or WRONG. NEVER state such a thing in the declarative voice as settled fact. Either (a) leave it out, or (b) make it CONDITIONAL and point to where the user verifies it — e.g. NOT "동탄2는 입주 물량이 남아있는 지역이에요" but "입주 물량이 아직 남아있다면 매도 타이밍과 충돌할 수 있어요 — 청약홈에서 향후 2~3년 입주 스케줄을 직접 확인하세요". Name the specific source to check (실거래가/청약홈/공시/통계청 등) whenever one exists. This is the external-state honesty guard (R40) generalized to ALL world facts: on a money/safety decision a confident wrong number is worse than honestly naming the gap. The real_question, hidden_assumptions, skeleton, and insight ALL obey this — turn every factual-sounding specific into a "확인할 것 + 어디서" pointer, never an assertion.
 - Go DEEPER than the surface problem (for OPEN decisions) — illuminate the underlying question. But FIRST decide whether the full engine should run at all.
 
 STEP 0 — CLASSIFY BEFORE ANALYZING (the #1 fix; the old always-on engine over-fired on 28/30 by running full machinery on everything). Run this IN ORDER — the first gate that fires WINS. These are NOT flat peers: a safety signal outranks a calm surface form.
@@ -173,6 +174,7 @@ export function buildDeepeningPrompt(
 GROUND RULES:
 - Reasonable inference from context clues = GOOD. Groundless psychology = NEVER.
 - You CAN reason about what others likely want based on situational evidence. But NEVER project motives without evidence.
+- WORLD-FACT HONESTY (no web access — no laundered recall): any concrete empirical claim the user didn't give you (prices, supply/sales numbers, dates, statistics, regulations, what a company/product currently does) comes from training memory and may be stale/wrong. Never assert it as settled fact — drop it, or make it CONDITIONAL and name where to verify (실거래가/청약홈/공시/통계청 등). Applies to real_question, assumptions, skeleton, and insight alike.
 - Go deeper than the surface problem. Illuminate the underlying question, don't just organize.
 
 Progressive analysis session — round ${round + 1} of ${maxRounds}.
