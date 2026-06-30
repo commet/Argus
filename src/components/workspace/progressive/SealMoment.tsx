@@ -37,10 +37,12 @@ import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
-import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, CHECK_IN_MS } from '@/lib/decision-contract';
+import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS } from '@/lib/decision-contract';
 import { recordSignal } from '@/lib/signal-recorder';
+import { syncSealToTelegram } from '@/lib/telegram-sync';
 import { track } from '@/lib/analytics';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
+import { JudgmentReceipt, deriveReceiptFields } from '@/components/projects/JudgmentReceipt';
 import { EASE } from './shared/constants';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
@@ -85,7 +87,7 @@ export function SealMoment({
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
   const updateProject = useProjectStore((s) => s.updateProject);
-  const { user } = useAuth();
+  const { user, session, signInWithGoogle } = useAuth();
 
   const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_INTERVAL);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -94,21 +96,32 @@ export function SealMoment({
   // here instead of falling through to the grading card on the same render.
   const [justSealed, setJustSealed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [humanJudgment, setHumanJudgment] = useState('');
 
   // Defensive: legacy sessions may carry a malformed contract.
   const contract = project?.decision_contract ?? null;
 
-  // §D.2 restraint observability: the seal renders null on zero predicates in
+  // A genuinely flat decision (routine + reversible) is where NOT sealing is the
+  // correct, spine-mandated restraint (P3 / over-fire clause). Everything else is a
+  // "non-trivial frame": a consequential decision where reaching the seal with zero
+  // predicates means the loop BROKE, not that restraint fired. Absent gate inputs
+  // default to the safe non-trivial side (same default as the seal ceremony itself).
+  const flatDecision =
+    (gate?.stakes ?? 'important') === 'routine' &&
+    (gate?.reversibility ?? 'partial') === 'reversible';
+
+  // §D.2 restraint observability: the seal used to render null on zero predicates in
   // BOTH the "correctly silent on a flat decision" case AND the "engine produced
-  // nothing" case — restraint and a broken loop look identical. Emit a signal so
-  // analytics can SEE how often a completed flow reaches the seal with nothing to
-  // arm (internal routing only — never surfaced to the user).
+  // nothing" case — restraint and a broken loop looked identical, laundering the
+  // broken-loop rate into restraint. Split the signal by reason so the broken loop
+  // is measurable (internal routing only — never surfaced to the user).
   const silentNoSeal = !contract && (Array.isArray(predicates) ? predicates.length : 0) === 0;
   useEffect(() => {
     if (!silentNoSeal) return;
-    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_not_armed', signal_data: { predicates: 0 } });
-    track('seal_not_armed', { project_id: project.id });
-  }, [silentNoSeal, project.id]);
+    const reason = flatDecision ? 'flat' : 'extraction_empty';
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_not_armed', signal_data: { predicates: 0, reason } });
+    track('seal_not_armed', { project_id: project.id, reason });
+  }, [silentNoSeal, flatDecision, project.id]);
 
   const kept = useMemo(
     () => (Array.isArray(predicates) ? predicates : []).filter((p) => !dropped.has(p.id)),
@@ -160,7 +173,26 @@ export function SealMoment({
       ? augmentContract(existing, toSeal, now, iv)
       : (() => { const f = contractFromPredicates(project.id, toSeal, now); return f ? withCheckIn(f, iv, now) : null; })();
     if (!next) return;
-    updateProject(project.id, { decision_contract: next });
+    const receiptFields = deriveReceiptFields(toSeal, typeof project.name === 'string' ? project.name : '');
+    const check_by = next.check_in_at ? new Date(next.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
+    const judgment_receipt = humanJudgment.trim()
+      ? { ...receiptFields, human_judgment: humanJudgment.trim(), check_by }
+      : undefined;
+    updateProject(project.id, { decision_contract: { ...next, ...(judgment_receipt ? { judgment_receipt } : {}) } });
+    // Cross-surface return loop: if this logged-in user connected Telegram, mirror
+    // the sealed contract into the one push channel that actually fires on the date
+    // (the daily cron reads telegram_decisions, which web seals never wrote). Server
+    // no-ops for unconnected users; fire-and-forget so it never blocks the seal.
+    const sharp = next.predicates[0]?.text;
+    if (user && session?.access_token && next.check_in_at && sharp) {
+      syncSealToTelegram({
+        accessToken: session.access_token,
+        projectId: project.id,
+        decision: typeof project.name === 'string' ? project.name : '',
+        predicate: sharp,
+        checkInAt: next.check_in_at,
+      });
+    }
     setInterval(iv);
     setJustSealed(true);
     // Learning signal (2026-06-13 data-wiring fix) — the new flow recorded
@@ -171,6 +203,38 @@ export function SealMoment({
       // Also in the main funnel (user_events) — this is the activation north-star.
       track('decision_sealed', { interval: iv, predicates: next.predicates.length, augmented: !!existing, mode: decision.mode });
     }
+  }
+
+  // Recovery seal for the extraction_empty case: a consequential decision reached
+  // the seal with zero machine-derived predicates (the loop would silently break).
+  // Seal the user's OWN one-line decision summary as the sole predicate, authored
+  // 'user' (buildEarlyContract's user_lean path) — lossless, and never offered on a
+  // genuinely flat decision (see the render gate below). Mirrors seal()'s side
+  // effects so the artifact behaves identically downstream.
+  function manualSeal(iv: CheckInInterval = interval) {
+    const summary = (typeof project?.name === 'string' ? project.name : '').trim();
+    if (!summary) return;
+    const c = buildEarlyContract(project.id, { lean: summary, interval: iv }, Date.now());
+    if (!c) return;
+    const check_by = c.check_in_at ? new Date(c.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
+    const judgment_receipt = humanJudgment.trim()
+      ? { real_question: summary, unverified_assumption: '', human_only: '', human_judgment: humanJudgment.trim(), check_by }
+      : undefined;
+    updateProject(project.id, { decision_contract: { ...c, ...(judgment_receipt ? { judgment_receipt } : {}) } });
+    const sharp = c.predicates[0]?.text;
+    if (user && session?.access_token && c.check_in_at && sharp) {
+      syncSealToTelegram({
+        accessToken: session.access_token,
+        projectId: project.id,
+        decision: summary,
+        predicate: sharp,
+        checkInAt: c.check_in_at,
+      });
+    }
+    setInterval(iv);
+    setJustSealed(true);
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: c.predicates.length, mode: 'manual_recovery' } });
+    track('decision_sealed', { interval: iv, predicates: c.predicates.length, mode: 'manual_recovery' });
   }
 
   // ── 캘린더에 약속 넣기 — a client-built .ics, because there is no outbound
@@ -210,8 +274,59 @@ export function SealMoment({
     return <DecisionContractCard project={project} livePredicates={predicates} />;
   }
 
-  // Nothing falsifiable → silence is the output (P3).
-  if ((Array.isArray(predicates) ? predicates.length : 0) === 0) return null;
+  // Zero machine-derived predicates. Two very different worlds (see flatDecision):
+  //  - FLAT decision → silence IS the output (P3 / over-fire spine). Render nothing.
+  //  - NON-FLAT frame → the loop would silently break: a consequential decision with
+  //    no return-hook. Offer ONE quiet, skippable manual seal of the user's own
+  //    summary. Not a forced gate, not a fork — just a way to not lose the artifact.
+  if ((Array.isArray(predicates) ? predicates.length : 0) === 0 && !justSealed) {
+    if (flatDecision || dismissed) return null;
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: EASE }}
+        className="mt-12"
+      >
+        <div className="flex items-center gap-3 mb-8 text-[var(--text-tertiary)]/50">
+          <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+          <span className="text-[11px] font-medium tracking-wide uppercase">{L('마지막으로', 'One last thing')}</span>
+          <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+        </div>
+        <div className="rounded-3xl border border-[var(--accent)]/30 bg-[var(--surface)] px-6 py-8 md:px-10 md:py-10 text-center">
+          <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-[var(--ai)] text-[var(--accent)]">
+            <Anchor size={22} />
+          </div>
+          <h3 className="mt-5 text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-[1.4] max-w-md mx-auto">
+            {L(`이 결정, ${dateFor(interval)}에 어떻게 됐는지 확인해 드릴까요?`, `Want me to check back on this on ${dateFor(interval)}?`)}
+          </h3>
+          <p className="mt-3 text-[13.5px] text-[var(--text-secondary)] leading-[1.6] max-w-md mx-auto">
+            {L('따로 잡아둔 예측은 없지만, 그날 이 결정으로 돌아와 어떻게 됐는지 직접 확인할 수 있어요.', "There's no separate prediction to track, but you can still return to this decision that day and see, for yourself, how it went.")}
+          </p>
+          <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => manualSeal()}
+              className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-white text-[14px] font-semibold cursor-pointer"
+              style={{ background: 'var(--gradient-gold)' }}
+            >
+              <Check size={15} />
+              {L(`네 — ${dateFor(interval)}에 확인해 주세요`, `Yes — check back on ${dateFor(interval)}`)}
+            </button>
+            <button
+              onClick={() => {
+                setDismissed(true);
+                recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_declined', signal_data: { predicates: 0, mode: 'manual_recovery' } });
+                track('decision_seal_declined', { predicates: 0, mode: 'manual_recovery' });
+              }}
+              className="inline-flex items-center justify-center px-7 py-3 rounded-2xl text-[14px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--text-secondary)]/40 cursor-pointer transition-colors"
+            >
+              {L('아니요, 괜찮아요', 'No, thanks')}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   // ════ SEALED — the calm confirmation, with an optional edit drawer ════
   if (justSealed) {
@@ -234,6 +349,27 @@ export function SealMoment({
         <p className="mt-1.5 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
           {L('"그래서, 어떻게 됐어요?" — 그날 이 결정으로 돌아옵니다.', '"So, how did it go?" — this decision comes back to you that day.')}
         </p>
+
+        {/* Peak-ownership conversion: the artifact was just minted on THIS device.
+            For an anon user this is the one moment they have something worth keeping,
+            so offer the durable path here — not as resignation copy, but as one tap.
+            The contract is already in localStorage (updateProject above), so the
+            full-page OAuth round-trip preserves it and auth.tsx runs
+            migrateLocalToAccount on SIGNED_IN return — the just-sealed decision
+            follows them into the account. Local seal stays lossless either way. */}
+        {!user && (
+          <button
+            onClick={() => {
+              track('seal_signin_cta', { placement: 'sealed' });
+              signInWithGoogle('/workspace');
+            }}
+            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white cursor-pointer transition-transform hover:scale-[1.02]"
+            style={{ background: 'var(--gradient-gold)' }}
+          >
+            <Anchor size={14} />
+            {L('로그인하고 어디서나 이어보기', 'Sign in to keep this everywhere')}
+          </button>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
           <LocaleLink href="/project" className="text-[12.5px] font-medium text-[var(--accent)] hover:underline">
@@ -352,17 +488,38 @@ export function SealMoment({
         {/* Channel disclosure BEFORE consent — a suspicious user won't say yes
             without knowing HOW the asking happens ("이메일? 스팸?"). */}
         <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] max-w-md mx-auto">
-          {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요 — 메일이나 알림은 보내지 않아요.', "On that day, I'll ask first when you open the projects page — no emails, no notifications.")}
+          {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면, 그날 메시지로도 가볍게 알려드려요 — 광고성 메일은 보내지 않아요.', "On that day, I'll ask first when you open the projects page. If you've connected Telegram, I'll send a gentle nudge there too on the day — never marketing email.")}
         </p>
         {/* P2-6 honesty: an anonymous seal lives in localStorage only. Don't let the
             "comes back to you" promise read as a lie when it can vanish on this device.
             Not a gate — they can still seal locally; just told the truth + the way out. */}
         {!user && (
           <p className="mt-1.5 text-[11.5px] text-[var(--accent)]/90 max-w-md mx-auto">
-            {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 로그인하면 계정으로 옮겨가 어디서나 돌아올 수 있어요.',
-               'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Log in and it moves to your account, reachable anywhere.')}
+            {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 봉인한 다음 로그인하면 계정으로 옮겨가 어디서나 돌아올 수 있어요.',
+               'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Seal it, then sign in and it moves to your account, reachable anywhere.')}
           </p>
         )}
+
+        {/* Judgment Receipt — seal과 settle을 하나의 오브젝트로 묶는 진입점.
+            사용자가 human_judgment를 작성하면 봉인 시 함께 저장된다. */}
+        {kept.length > 0 && (() => {
+          const rf = deriveReceiptFields(kept, typeof project.name === 'string' ? project.name : '');
+          const check_by = dateFor(interval);
+          return (rf.real_question || rf.unverified_assumption || rf.human_only) ? (
+            <div className="mt-6 text-left">
+              <JudgmentReceipt
+                mode="seal"
+                real_question={rf.real_question}
+                unverified_assumption={rf.unverified_assumption}
+                human_only={rf.human_only}
+                check_by={check_by}
+                humanJudgment={humanJudgment}
+                onJudgmentChange={setHumanJudgment}
+                locale={ko ? 'ko' : 'en'}
+              />
+            </div>
+          ) : null;
+        })()}
 
         <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
           <button

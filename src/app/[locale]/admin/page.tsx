@@ -92,7 +92,7 @@ export default function AdminPage() {
           )}
         </div>
         <button onClick={load} disabled={loading}
-          className="inline-flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50">
+          className="inline-flex items-center gap-1.5 py-2 px-2 -mx-2 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />{L('새로고침', 'Refresh')}
         </button>
       </div>
@@ -187,11 +187,11 @@ export default function AdminPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-6">
             {Object.entries(metrics.tables).map(([name, count]) => (
               <div key={name} className="flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-3 py-2">
-                <span className="text-[12px] text-[var(--text-secondary)] truncate flex items-center gap-1.5">
-                  {name.startsWith('plugin_') && <Compass size={11} className="text-[var(--accent)]" />}
+                <span className="min-w-0 text-[12px] text-[var(--text-secondary)] truncate flex items-center gap-1.5">
+                  {name.startsWith('plugin_') && <Compass size={11} className="text-[var(--accent)] shrink-0" />}
                   {name}
                 </span>
-                <span className="text-[13px] font-semibold text-[var(--text-primary)]">{count}</span>
+                <span className="shrink-0 text-[13px] font-semibold text-[var(--text-primary)]">{count}</span>
               </div>
             ))}
           </div>

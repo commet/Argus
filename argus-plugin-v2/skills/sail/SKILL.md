@@ -420,10 +420,11 @@ Build:
   - `pass_condition`: the observable that confirms the predicate (≤180 chars).
   - `fail_condition`: the observable that falsifies it (≤180 chars). If you
     cannot name one, the seed is not falsifiable — write `null` instead.
-  - `author`: `"ai_surfaced"` — this seed is the ENGINE's belief, not a prediction
-    the user made (vs the user's own BIND lean from clarify Step 3.4, which seals
-    with `author:"user"`). Honest provenance so `log`'s calibration quarantines a
-    held AI seed from the user's skill claim (R57/R58 — parity with the webapp).
+  Do NOT include `author` in `current_bearing.contract_seed`: the schema rejects
+  extra fields. When this AI-surfaced seed is later sealed, absence of `author`
+  is the provenance signal; `author:"user"` is reserved for the user's own BIND
+  lean from clarify Step 3.4. This keeps `log`'s calibration from counting an
+  AI-surfaced held seed as the user's skill claim.
 - `blocked`: true when verification routes to `revise_team` or
   `stop_for_human_check`.
 - `detail_path`: `.argus/sessions/{id}/versions/{label}/`
@@ -431,6 +432,37 @@ Build:
 If the user provided a file/PR/document and `why_this_course[]` contains no
 source reference, treat the bearing as failed. Rebuild from artifacts or mark the
 answer as not ready.
+
+### Developer Decision Contract
+
+When the target is a PR, file, branch, repo-wide code question, migration,
+generated plan, or implementation decision, the Current Heading must be useful to
+a working developer, not merely "sensible." Apply this stricter contract before
+rendering:
+
+- `current_course.summary` names the actual action and scope: merge/hold/split,
+  patch first, add a test, run a spike, or collect a named missing fact. Avoid
+  vague summaries like "proceed carefully" or "review further."
+- `why_this_course[]` must include concrete evidence. Prefer two source-backed
+  reasons when a code artifact was provided; at least one source-backed reason
+  is mandatory. Sources should be file paths, PR refs, test names, routes,
+  migrations, config files, or verification ledger refs.
+- `fog_or_reef`, when present, is a failure mode or missing fact a developer can
+  test. Name the behavior that could break, not a generic category such as
+  "auth risk" or "performance risk."
+- `next_helm` is the smallest useful engineering move, ideally under 30 minutes:
+  add/adjust a named test, inspect a named file/path, split a named PR surface,
+  run a named command, or ask a named owner for the one fact AI cannot know.
+- If Argus could not read the relevant code/PR/document, do not pretend. Set
+  `status: "collect_evidence"` or `hold`, say which artifact was missing, and
+  make `next_helm` the retrieval step.
+- Strip generic review language. Phrases like "consider edge cases", "monitor
+  closely", "ensure correctness", or "be careful with regressions" are not final
+  output unless immediately followed by the exact file/test/check.
+
+If the card fails this developer contract, do not render it as a completed
+Current Heading. Rebuild from `workers.json` / `verification.json`, route to
+`revise`, or mark the course as `collect_evidence`.
 
 ### Assembly Priority
 

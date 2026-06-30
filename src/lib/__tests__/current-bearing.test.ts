@@ -156,7 +156,8 @@ describe('deriveCurrentBearing', () => {
     expect(b?.road_not_taken).toEqual([]);
   });
 
-  it('sets status collect_evidence on a critical concern, else proceed, and never blocks', () => {
+  it('status ladder is restraint-first: proceed is EARNED, never the flat default (spine)', () => {
+    // critical concern → collect evidence before committing
     const critical = deriveCurrentBearing({
       mix: mix({}),
       dm_feedback: dm({ concerns: [concern('fatal', 'critical')] }),
@@ -164,12 +165,25 @@ describe('deriveCurrentBearing', () => {
     expect(critical?.current_course.status).toBe('collect_evidence');
     expect(critical?.blocked).toBe(false);
 
-    const calm = deriveCurrentBearing({
+    // an open IMPORTANT concern → hold (a real thing to weigh) — NOT "proceed"
+    const important = deriveCurrentBearing({
       mix: mix({}),
       dm_feedback: dm({ concerns: [concern('small', 'important')] }),
     });
-    expect(calm?.current_course.status).toBe('proceed');
-    expect(calm?.blocked).toBe(false);
+    expect(important?.current_course.status).toBe('hold');
+    expect(important?.blocked).toBe(false);
+
+    // a review endorsed something AND nothing important is open → proceed (earned)
+    const endorsed = deriveCurrentBearing({
+      mix: mix({}),
+      dm_feedback: dm({ good_parts: ['the rollback plan is solid'], concerns: [] }),
+    });
+    expect(endorsed?.current_course.status).toBe('proceed');
+
+    // genuinely flat — no endorsement, no concern → anchor (neutral, no verdict)
+    const flat = deriveCurrentBearing({ mix: mix({}) });
+    expect(flat?.current_course.status).toBe('anchor');
+    expect(flat?.blocked).toBe(false);
   });
 
   it('takes next_helm from the first non-empty next step, falling back to approval_condition', () => {

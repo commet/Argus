@@ -416,7 +416,7 @@ export function PersonaPoolModal({
             transition={{ duration: 0.28, ease: EASE }}
             className="fixed inset-0 z-[61] flex items-center justify-center p-3 md:p-6 pointer-events-none"
           >
-            <div className="pointer-events-auto w-full max-w-xl max-h-[85vh] flex flex-col rounded-2xl bg-[var(--surface)] border border-[var(--border-subtle)] shadow-[var(--shadow-xl)] overflow-hidden">
+            <div className="pointer-events-auto w-full max-w-xl max-h-[85dvh] flex flex-col rounded-2xl bg-[var(--surface)] border border-[var(--border-subtle)] shadow-[var(--shadow-xl)] overflow-hidden">
               {/* Header */}
               <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-start gap-3">
                 <div className="flex-1 min-w-0">
@@ -434,7 +434,7 @@ export function PersonaPoolModal({
                 </div>
                 <button
                   onClick={onClose}
-                  className="shrink-0 p-2 rounded-lg hover:bg-[var(--bg)] transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  className="shrink-0 p-2 rounded-lg hover:bg-[var(--bg)] transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
                   aria-label={L('닫기', 'Close')}
                 >
                   <XIcon size={16} className="text-[var(--text-tertiary)]" />

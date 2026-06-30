@@ -383,7 +383,7 @@ export function DecisionContractCard({
                           <button
                             key={v.value}
                             onClick={() => grade(p.id, selected ? 'pending' : v.value)}
-                            className={`px-2.5 py-1 rounded-md text-[11.5px] font-semibold border transition-colors cursor-pointer ${
+                            className={`px-3 py-2.5 min-h-[44px] rounded-md text-[13px] font-semibold border transition-colors cursor-pointer ${
                               selected
                                 ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                                 : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
@@ -409,7 +409,7 @@ export function DecisionContractCard({
                                 key={b.value}
                                 onClick={() => setBasis(p.id, b.value, on)}
                                 aria-pressed={on}
-                                className={`px-2 py-0.5 rounded-md text-[11.5px] font-medium border transition-colors cursor-pointer ${
+                                className={`px-2.5 py-2 min-h-[40px] rounded-md text-[12.5px] font-medium border transition-colors cursor-pointer ${
                                   on
                                     ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                                     : 'border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--accent)]/40'

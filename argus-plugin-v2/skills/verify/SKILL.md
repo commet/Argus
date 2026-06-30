@@ -212,6 +212,9 @@ For each claim, ask:
 - Does it require customer, legal, finance, owner, production, or stakeholder
   confirmation?
 - In repo/file/PR mode, did workers fail to cite the relevant artifact?
+- In repo/file/PR mode, is the claim specific enough for a developer to act on:
+  a named file/path, changed surface, failure mode, missing/decisive test, or
+  concrete next patch? If not, challenge it as generic even if it sounds true.
 
 Claims failing checks become `challenged_claims[]`:
 
@@ -230,6 +233,15 @@ Severity:
 - `critical`: final signoff or execution would be unsafe.
 - `important`: must be visible in the Current Heading or fixed.
 - `minor`: note it; do not block by itself.
+
+**Developer-output gate.** For `repo_context.mode` in `explicit_target` or
+`repo_scan`, a claim cannot be promoted to headline support unless at least one
+`evidence_refs[]` item names a concrete repo artifact (file path, PR ref, test,
+route, migration, API endpoint, config file, or command output). Worker prose
+such as "the auth flow may regress" is not support; it must become a challenged
+claim with a repair like "read `<file>` and add/check `<test>`." If the team
+looked at a PR/file but the verifier cannot name the affected surface, route to
+`revise_team` or `stop_for_human_check` instead of emitting a confident bearing.
 
 **Grounding-driven handling — generate first, then flag, gate only when it must.**
 Being `external` is NOT a reason to withhold the answer. Argus's spine is *maximum

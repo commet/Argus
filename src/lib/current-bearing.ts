@@ -185,10 +185,22 @@ export function deriveCurrentBearing(s: BearingInput): CurrentBearing | null {
   const concerns = [...(s.dm_feedback?.concerns ?? [])].sort(
     (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity],
   );
-  // A critical unresolved concern means "go get evidence before full commit";
-  // otherwise the honest default is proceed. We never hard-block (blocked=false):
-  // the fog stays surfaced and the user consciously chooses to sail.
-  const status: CourseStatus = concerns[0]?.severity === 'critical' ? 'collect_evidence' : 'proceed';
+  // Spine (mirror clause): never auto-stamp a green "proceed" VERDICT on a flat
+  // decision — "proceed" is a directional call ("go"), so it must be EARNED, not
+  // the default. The status ladder, restraint-first:
+  //   critical concern   → collect_evidence (go get evidence before committing)
+  //   open important concern → hold (there's a real thing to weigh; don't say "go")
+  //   a review endorsed something, nothing important open → proceed (earned)
+  //   genuinely flat (no endorsement, no concern) → anchor (neutral; no verdict)
+  // We still never hard-block (blocked=false): the fog stays surfaced and the
+  // user consciously chooses to sail.
+  const goodParts = (s.dm_feedback?.good_parts ?? []).filter(Boolean);
+  const hasImportant = concerns.some((c) => c.severity === 'important');
+  const status: CourseStatus =
+    concerns[0]?.severity === 'critical' ? 'collect_evidence'
+    : hasImportant ? 'hold'
+    : goodParts.length > 0 ? 'proceed'
+    : 'anchor';
 
   const nextRaw =
     (finalMix.next_steps ?? []).map((x) => (typeof x === 'string' ? x.trim() : '')).find(Boolean) ??

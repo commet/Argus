@@ -1017,7 +1017,7 @@ function AnswerChip({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-1 left-0 min-w-[280px] max-w-[360px] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-2xl z-50 py-1.5 overflow-hidden"
+            className="absolute top-full mt-1 left-0 min-w-[min(280px,calc(100vw-2rem))] max-w-[min(360px,calc(100vw-2rem))] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] shadow-2xl z-50 py-1.5 overflow-hidden"
           >
             {options.map((opt) => {
               const isCurrent = opt === currentValue;

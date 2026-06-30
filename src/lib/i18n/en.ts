@@ -85,8 +85,8 @@ export const en: Record<TranslationKey, string> = {
   'coaching.recast.demoBalanced': 'You balanced AI and human roles well in the demo.',
   'coaching.recast.demoBalancedDetail': 'Apply the same question here: "Who should do this step for the best outcome?"',
   'coaching.recast.overrideHigh': 'You frequently modify AI suggestions ({pct}%). This pattern is being reflected.',
-  'coaching.recast.prefersHuman': 'You tend to prefer human execution.',
-  'coaching.recast.prefersAi': 'You delegate heavily to AI. Make sure you have enough checkpoints.',
+  'coaching.recast.prefersHuman': 'In {human} of your last {total} actor splits, you assigned the work to a person.',
+  'coaching.recast.prefersAi': 'In {ai} of your last {total} actor splits, you assigned the work to AI.',
   'coaching.recast.uncertainAssumptions': '{count} uncertain assumptions from reframing — include verification steps in your design.',
 
   // Coaching — Rehearse
@@ -134,7 +134,7 @@ export const en: Record<TranslationKey, string> = {
   'navigator.defaultProject': 'Project',
   'navigator.evalSummary': '{count} analyses, average utilization {pct}%',
   'navigator.evalLow': '{name} is low at {pct}%',
-  'navigator.overrideHighMessage': 'AI override rate {pct}% — strong independent judgment.',
+  'navigator.overrideHighMessage': 'You modified {pct}% of AI suggestions across {count} decisions.',
   'navigator.overrideHighDetail': 'This pattern will be reflected in future AI suggestions.',
   'navigator.overrideLowMessage': 'Accepting AI suggestions almost as-is (override rate {pct}%).',
   'navigator.overrideLowDetail': 'Critically reviewing AI suggestions can lead to better results.',

@@ -1,6 +1,6 @@
 ---
 name: boss
-description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Boss is not the verification gate; it reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the Current Heading. Invoked as `/argus:boss`.
+description: Stakeholder pressure-check of a verified Argus scaffold in the voice of a configured MBTI personality. Reacts to the verified/mixed scaffold and contributes approval conditions or concerns to the Current Heading. Use after /argus:verify passes, or when the user asks how a stakeholder would receive the work — "임원회의 가져가도 되나", "보스가 뭐라 할까", "will my boss/stakeholders approve this". NOT the verification gate — /argus:verify checks claims, boss checks reception; do not run before verification. Invoked as `/argus:boss`.
 ---
 
 # /argus:boss

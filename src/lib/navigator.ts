@@ -223,7 +223,7 @@ export function buildNavigatorInsights(profile: NavigatorProfile): NavigatorInsi
         insights.push({
           id: 'override_rate_high',
           category: 'pattern',
-          message: t('navigator.overrideHighMessage', { pct }),
+          message: t('navigator.overrideHighMessage', { pct, count: profile.totalJudgments }),
           detail: t('navigator.overrideHighDetail'),
           tier: 2,
           priority: priority++,
@@ -509,19 +509,22 @@ function getRecastCoaching(profile: NavigatorProfile): StepCoaching[] {
     });
   }
 
-  // Actor preference — challenge tone for extreme patterns
+  // Actor preference — a sample-explicit frequency statement, NOT a character
+  // verdict (CLAUDE.md Zero-Judgment rule 2: meaning-language only via
+  // sample-size-scaled frequency statements). The copy names the raw count so it
+  // stays honestly calibrated at small n; no trait noun, no evaluative tone.
   if (actorOverrides.length >= 3) {
     const humanPrefs = actorOverrides.filter((j) => j.decision === 'human').length;
     const aiPrefs = actorOverrides.filter((j) => j.decision === 'ai').length;
+    const total = actorOverrides.length;
     if (humanPrefs > aiPrefs * 1.5) {
       results.push({
-        message: t('coaching.recast.prefersHuman'),
+        message: t('coaching.recast.prefersHuman', { human: humanPrefs, total }),
       });
     }
     if (aiPrefs > humanPrefs * 1.5) {
       results.push({
-        message: t('coaching.recast.prefersAi'),
-        tone: 'challenge',
+        message: t('coaching.recast.prefersAi', { ai: aiPrefs, total }),
       });
     }
   }

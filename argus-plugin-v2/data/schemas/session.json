@@ -26,7 +26,7 @@
       "type": "object",
       "description": "What the user was working on when they invoked argus.",
       "properties": {
-        "target_type": { "enum": ["task", "pr", "file", "branch", "issue", "design_doc", "ad_hoc"] },
+        "target_type": { "enum": ["task", "pr", "file", "branch", "issue", "design_doc", "plan", "ad_hoc"] },
         "target_ref": { "type": "string", "description": "PR#, file path, branch name, etc." }
       }
     },

@@ -236,11 +236,11 @@ function main() {
   const locale = detectLocale(argusDir);
   if (locale === "ko") {
     process.stdout.write(
-      "Argus: 준비 완료 — 고민되는 결정이 있으면 그냥 말하거나 /argus:sail 로 시작하세요. 전체 안내는 /argus:help (이 메시지는 한 번만 표시돼요)."
+      "Argus 준비 완료: 결정을 정리하고, 나중에 확인할 기준을 남기고, 시간이 지난 뒤 실제로 어땠는지 묻습니다. 시작은 /argus:sail, 전체 안내는 /argus:help."
     );
   } else {
     process.stdout.write(
-      "Argus: ready — when a decision matters, just ask (or /argus:sail). Full map: /argus:help (you'll only see this once)."
+      "Argus ready: make a decision, save the check for later, then come back to reality. Start with /argus:sail. Full map: /argus:help."
     );
   }
 }

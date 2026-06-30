@@ -10,7 +10,7 @@ import { downloadJson } from '@/lib/export';
 import { exportAccountData, deleteAccount } from '@/lib/api-account';
 import { useAuth } from '@/lib/auth';
 import type { LLMMode, LLMProvider } from '@/stores/types';
-import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, Volume2, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, Link2 } from 'lucide-react';
+import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, Link2 } from 'lucide-react';
 import { getObservationsSummary } from '@/lib/user-context';
 import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAmbientPlaying } from '@/lib/audio';
 import { useSlackStore } from '@/stores/useSlackStore';
@@ -227,7 +227,7 @@ export default function SettingsPage() {
                   key={opt.value}
                   type="button"
                   onClick={() => updateSettings({ user_seniority: settings.user_seniority === opt.value ? undefined : opt.value })}
-                  className={`flex-1 py-2 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
+                  className={`flex-1 min-h-[44px] py-3 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
                     settings.user_seniority === opt.value
                       ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
                       : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)]'
@@ -269,7 +269,7 @@ export default function SettingsPage() {
             <button
               key={provider.value}
               onClick={() => handleProviderChange(provider.value)}
-              className={`flex-1 py-2 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
+              className={`flex-1 min-h-[44px] py-3 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
                 (settings.llm_provider || 'anthropic') === provider.value
                   ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)]'
@@ -292,7 +292,7 @@ export default function SettingsPage() {
                 <button
                   key={mode.value}
                   onClick={() => handleModeChange(mode.value)}
-                  className={`flex-1 py-2 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
+                  className={`flex-1 min-h-[44px] py-3 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
                     settings.llm_mode === mode.value
                       ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
                       : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)]'
@@ -439,7 +439,7 @@ export default function SettingsPage() {
             <button
               key={lang.value}
               onClick={() => switchTo(lang.value)}
-              className={`flex-1 py-2 rounded-lg text-[13px] font-medium border text-center transition-colors cursor-pointer ${
+              className={`flex-1 min-h-[44px] py-3 rounded-lg text-[13px] font-medium border text-center transition-colors cursor-pointer ${
                 locale === lang.value
                   ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)]'
@@ -471,7 +471,7 @@ export default function SettingsPage() {
                 playTransitionTone(settings.audio_volume);
               }
             }}
-            className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+            className={`relative w-11 h-6 box-content py-2.5 -my-2.5 bg-clip-content rounded-full transition-colors cursor-pointer ${
               settings.audio_enabled ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
             }`}
           >
@@ -683,7 +683,7 @@ export default function SettingsPage() {
                   role="switch"
                   aria-checked={on}
                   onClick={() => updateSettings({ [lab.key]: !on })}
-                  className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${
+                  className={`relative w-11 h-6 box-content py-2.5 -my-2.5 bg-clip-content rounded-full transition-colors cursor-pointer shrink-0 ${
                     on ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
                   }`}
                 >
@@ -794,6 +794,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
   const [issued, setIssued] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState(false);
   const [error, setError] = useState('');
 
   const load = async () => {
@@ -831,8 +832,8 @@ function PluginTokenBlock({ locale }: { locale: string }) {
     <div>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[14px] font-medium flex items-center gap-1.5"><KeyRound size={14} className="text-[var(--accent)]" /> {L('플러그인 푸시 토큰', 'Plugin push token')}</p>
-          <p className="text-[12px] text-[var(--text-secondary)]">{L('Claude Code 플러그인에서 argus-watch push로 결과를 자동 전송', 'Auto-send plugin results via argus-watch push')}</p>
+          <p className="text-[14px] font-medium flex items-center gap-1.5"><KeyRound size={14} className="text-[var(--accent)]" /> {L('플러그인 동기화 토큰', 'Plugin sync token')}</p>
+          <p className="text-[12px] text-[var(--text-secondary)]">{L('토큰 발급 후 플러그인에서 /argus:connect, 평소에는 /argus:sync를 실행하세요.', 'After issuing a token, run /argus:connect in the plugin; use /argus:sync day to day.')}</p>
         </div>
         <Button variant="secondary" size="sm" onClick={issue} disabled={busy}>
           {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} {L('새 토큰 발급', 'Issue token')}
@@ -849,7 +850,28 @@ function PluginTokenBlock({ locale }: { locale: string }) {
               {copied ? <Check size={13} /> : <Copy size={13} />}
             </Button>
           </div>
-          <p className="text-[11px] text-[var(--text-tertiary)] mt-2 font-mono">argus-watch connect --token {issued.slice(0, 14)}…</p>
+          <div className="mt-3 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] p-2.5">
+            <p className="text-[11px] text-[var(--text-tertiary)] mb-1">{L('플러그인에서 먼저 실행', 'Run first in the plugin')}</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-[11.5px] font-mono break-all">/argus:connect {issued}</code>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(`/argus:connect ${issued}`);
+                  setCopiedCommand(true);
+                  setTimeout(() => setCopiedCommand(false), 2000);
+                }}
+              >
+                {copiedCommand ? <Check size={13} /> : <Copy size={13} />} {L('명령 복사', 'Copy')}
+              </Button>
+            </div>
+            <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
+              {L('그 다음부터는 로컬에서 ', 'Then use ')}
+              <code className="font-mono">/argus:sync</code>
+              {L('로 웹앱과 로컬 ledger를 맞추면 됩니다.', ' to keep the webapp and local ledger aligned.')}
+            </p>
+          </div>
         </div>
       )}
 

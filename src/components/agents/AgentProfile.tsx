@@ -106,7 +106,7 @@ export function AgentProfile({ agent, onClose }: AgentProfileProps) {
         <div className="relative px-6 pt-6 pb-4 shrink-0" style={{ borderBottom: `3px solid ${agent.color}` }}>
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2.5 hover:bg-[var(--bg)] rounded-lg cursor-pointer transition-colors"
+            className="absolute top-4 right-4 p-2.5 min-w-[44px] min-h-[44px] inline-flex items-center justify-center hover:bg-[var(--bg)] rounded-lg cursor-pointer transition-colors"
             aria-label={L('닫기', 'Close')}
           >
             <X size={18} className="text-[var(--text-tertiary)]" />

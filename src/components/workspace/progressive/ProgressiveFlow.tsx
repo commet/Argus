@@ -616,10 +616,15 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                   </ul>
                 </div>
               )}
-              {synthesis.recommendation_direction && (
-                <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-4 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
-                  {synthesis.recommendation_direction}
-                </blockquote>
+              {synthesis.open_question && (
+                <div>
+                  {/* Spine: the crux this turns on — a neutral question, not a
+                      "what you'd advise" verdict (renamed from recommendation_direction). */}
+                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('이 결정이 갈리는 지점', 'The open question')}</p>
+                  <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-4 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
+                    {synthesis.open_question}
+                  </blockquote>
+                </div>
               )}
             </div>
           </motion.div>
@@ -1862,7 +1867,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         // Critical stakes: Cross-Agent Debate (mix 전에 결과를 반영)
         const stages = session?.stages;
         if (stages && stages.length > 1) {
-          setSubstage(L('팀 내 반론 검토 중', 'Running team-internal debate'));
+          setSubstage(L('미해결 긴장 점검 중', 'Checking for unresolved tensions'));
           const debateWorkers = cmWorkers.map(w => ({ ...w, framework: session!.workers.find(ww => ww.persona?.name === w.agentName)?.framework || null }));
           debatePromise = runDebate(session!.problem_text, debateWorkers).catch(() => null);
         }
@@ -1923,7 +1928,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         workerResults.push({
           workerId: '',
           name: undefined,
-          task: locale === 'ko' ? `[팀 내 반론] ${debateRes.targetAgent}의 분석에 대한 비판` : `[Team Dissent] Critique of ${debateRes.targetAgent}'s analysis`,
+          task: locale === 'ko' ? `[미해결 긴장] 초안에서 가장 약한 지점` : `[Unresolved tension] The draft's weakest point`,
           result: locale === 'ko' ? `${debateRes.challenge}\n\n약점: ${debateRes.weakestClaim}\n\n대안: ${debateRes.alternativeView}` : `${debateRes.challenge}\n\nWeakness: ${debateRes.weakestClaim}\n\nAlternative: ${debateRes.alternativeView}`,
           taskGroupId: 'debate',
         });
@@ -2403,7 +2408,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-5">
                   <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
                   <p className="text-[12.5px] text-[var(--text-secondary)] mb-3">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있어요.`, `Sign in to get up to ${DAILY_LIMIT} free calls per day.`)}</p>
-                  <a href="/login" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={13} /></a>
+                  {/* Mid-voyage wall: a project already exists, so loadProjects()
+                      auto-restores it on return — we only need to send the user back
+                      to the workspace (not a blank default) after auth. */}
+                  <a href="/login?redirect=/workspace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={13} /></a>
                 </div>
               ) : (() => {
                 const isQuota = error.includes('한도') || error.includes('rate') || error.includes('limit') || error.includes('429');
@@ -3148,9 +3156,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               <CurrentBearingCard bearing={currentBearing} label={activeDraft?.version_label ?? null} />
             </div>
 
-            {/* (The standalone 팀 내 반론 card was removed: the bearing's
+            {/* (The standalone dissent card was removed: the bearing's
                 "가지 않은 길" + "안개·암초" rows render the SAME debate_result
-                in compressed form — two surfaces, one fact. The full dissent
+                in compressed form — two surfaces, one fact. The full tension
                 text remains reachable in the Logbook record.) */}
 
             {/* ③ 봉인 종막 — the voyage's last interaction. A standalone,
@@ -3250,7 +3258,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         >
           <div
             role="dialog" aria-modal="true" aria-label={L('버전 미리보기', 'Version preview')}
-            className="relative w-full max-w-2xl max-h-[85vh] bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
+            className="relative w-full max-w-2xl max-h-[85dvh] bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <header className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">

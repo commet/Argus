@@ -988,7 +988,7 @@ button, a, input, textarea {
 }
 
 .bs-gen-btn {
-  padding: 7px 18px;
+  padding: 11px 18px;
   font-size: 13px;
   font-weight: 700;
   border: none;
@@ -1226,8 +1226,8 @@ button, a, input, textarea {
 }
 
 .bc-reset {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1542,8 +1542,8 @@ button, a, input, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--text-primary);
   color: var(--bg);
@@ -2276,6 +2276,9 @@ button, a, input, textarea {
   max-width: 960px;
   margin: 0 auto;
   padding: 40px 24px 80px;
+}
+@media (max-width: 480px) {
+  .agent-hub { padding: 24px 16px 64px; }
 }
 .agent-hub-title {
   font-family: 'Noto Serif KR', serif;
@@ -3184,4 +3187,19 @@ button, a, input, textarea {
   .ds-showcase button:not(:disabled), .ds-showcase .ds-lift { transition: none; }
   .ds-showcase button:not(:disabled):hover, .ds-showcase button:not(:disabled):active,
   .ds-showcase .ds-lift:hover { transform: none; }
+}
+
+/* ━━━ iOS auto-zoom guard ━━━
+   Mobile Safari zooms the page whenever a focused text field has a computed
+   font-size below 16px. Many of our fields use Tailwind utilities (text-[13px])
+   or component classes (.bs-num at 15px) whose specificity beats a bare element
+   rule — so this guard needs !important to actually win and lift every mobile
+   form control to the 16px no-zoom floor. Scoped to <=767px so desktop keeps its
+   intended typography. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }

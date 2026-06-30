@@ -126,7 +126,7 @@ function ActorToggle({
   // Legacy 'both' → highlight 'human→ai' as closest match
   const effectiveCurrent = current === 'both' ? 'human→ai' : current;
   return (
-    <div className="inline-flex items-center rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)]/80 p-0.5">
+    <div className="inline-flex flex-wrap items-center rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)]/80 p-0.5">
       {options.map((actor) => {
         const a = ACTORS[actor];
         const active = effectiveCurrent === actor;

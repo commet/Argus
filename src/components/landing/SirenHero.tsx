@@ -146,7 +146,11 @@ export function SirenHero() {
             animationDelay: '60ms',
           }}
         >
-          {L('중요한 결정은 매끈한 답변에 묻히면 안 됩니다.', "Important decisions shouldn't end as answers.")}
+          {locale === 'ko' ? (
+            <>AI가 실행을 가져간다.<br />판단은 어디에 쌓이나?</>
+          ) : (
+            <>Decisions pass.<br />Judgment compounds.</>
+          )}
         </h1>
 
         {/* Product promise first; the film below deepens it through the Siren voyage. */}
@@ -160,9 +164,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>Argus는 결정을 살아 있는 항로로 남깁니다.<br />선택지는 남고, 근거는 검증되며,<br />상태는 보존되고, 마지막 판정은 현실이 합니다.</>
+            <>Argus는 그것을 살아 있는 항로로 남깁니다 —<br />갈림길, 검증된 주장, 현재 방위,<br />그리고 현실이 답할 때의 귀환까지.</>
           ) : (
-            <>Argus keeps decisions alive as courses:<br />alternatives remain visible, claims are checked,<br />state is preserved, and reality gets the final word.</>
+            <>Argus keeps them alive as courses —<br />with forks, checked claims, a current bearing,<br />and a return when reality answers.</>
           )}
         </p>
 
@@ -194,9 +198,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>Argus는 답을 먼저 건네지 않아요.<br />당신의 계획을 진짜로 읽고, 당신이 놓친 한 가지를 비춰줄 뿐이에요.</>
+            <>칭찬도 반박도 하지 않아요.<br />당신의 계획을 읽고, 지금의 방위를 남깁니다.</>
           ) : (
-            <>Argus doesn’t hand you an answer.<br />It reads your plan, for real — and mirrors back the one thing you missed.</>
+            <>It won’t flatter you or argue.<br />It reads your plan and leaves a current bearing.</>
           )}
         </p>
 
@@ -308,7 +312,7 @@ export function SirenHero() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 7,
-                  minHeight: 42,
+                  minHeight: 44,
                   padding: '9px 18px',
                   border: '1px solid',
                   borderColor: text.trim() ? 'var(--bp-gold)' : 'var(--bp-ink-soft)',

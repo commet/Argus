@@ -1,9 +1,19 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { headers, cookies } from 'next/headers';
 import { buildLocaleAlternates } from '@/lib/locale-path';
 import './globals.css';
 
 const SITE_URL = 'https://argus.voyage';
+
+// viewportFit:'cover' is what makes env(safe-area-inset-*) resolve to real
+// values on notched iOS devices — without it the insets are 0 and our fixed
+// bottom bars sit under the home indicator. width/initial-scale restate the
+// Next.js default so this export fully replaces (not merges with) it.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 type Lang = 'ko' | 'en';
 

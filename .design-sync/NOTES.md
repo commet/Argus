@@ -149,3 +149,30 @@ in `docs/PLAN_design_vision.md` (editorial "Logbook" / dawn-harbour system).
   preview, or add a fetch/auth shim. Low priority — disconnected is a real, polished state.
 - If a landing section is renamed/restructured in `src/components/landing/`, its preview's
   `matchMedia`/`bp-fade-up` neutralizer may need updating (re-check the captured trail).
+
+## ⛔ STALE-SUBSET HAZARD — do NOT run a full re-sync from this config (2026-06-25)
+
+`config.json` `componentSrcMap` maps **43** components, but the live project
+(`1d812d28-…`, "Argus Design System") indexes **117** (groups: agents, boss,
+progressive, workspace, shared, tools, projects, layout, … — authored in other
+sessions/elsewhere, NOT reproducible from this config). So this local config is a
+**stale SUBSET of the remote**, and the standard re-sync path is DESTRUCTIVE:
+
+- The atomic/incremental **reconciliation deletes** every remote `components/**`,
+  `_preview/**`, etc. path not in the local build → would **delete ~74 live
+  components**.
+- It would also overwrite the shared `_ds_bundle.js` / `_ds_bundle.css` /
+  `styles.css` / `_ds_manifest.json` with 43-component versions → the other ~74
+  cards stop rendering (their `window.ArgusDS.<Name>` vanishes from the bundle).
+
+**Until the FULL 117-component config is recovered** (find the larger config/entry
+that built the remote — likely another branch/machine; it is NOT in this checkout),
+treat re-sync as unsafe. Adding a single screen/component must go via the
+**self-contained card** method used for `WorkspaceHome` on 2026-06-25:
+- A `.design-sync/_screens/<Name>.tsx` composition + `_snippet-entry.tsx` built by
+  `node .design-sync/_screens/build-snippet.mjs` (React external → `window.React`).
+- Card HTML loads its OWN sibling `_bundle.js` + `_styles.css` (NOT shared
+  `_ds_bundle.js`), so it touches zero shared assets.
+- Push only the card folder + a **superset-merged** `_ds_manifest.json` (remote N + 1).
+- Never put `_ds_bundle.js` / `styles.css` / shared files in the write plan, and
+  never use the reconciliation-delete globs against this project.

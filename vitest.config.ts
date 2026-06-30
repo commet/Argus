@@ -8,7 +8,10 @@ export default defineConfig({
     // The plugin (argus-plugin-v2) ships its own standalone Node test harness
     // (run directly + in CI). Its *.test.mjs files call process.exit and are not
     // vitest suites, so keep vitest's discovery to the webapp only.
-    exclude: [...configDefaults.exclude, 'argus-plugin-v2/**'],
+    // .claude/worktrees/** are isolated git worktrees with their own (often
+    // stale) node_modules — a duplicate React there throws "useState of null"
+    // and would fail the gate on code that isn't even on this branch.
+    exclude: [...configDefaults.exclude, 'argus-plugin-v2/**', '**/.claude/worktrees/**'],
   },
   resolve: {
     alias: {

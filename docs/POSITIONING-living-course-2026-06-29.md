@@ -8,35 +8,19 @@ Date: 2026-06-29
 
 Korean:
 
-> 중요한 결정은 매끈한 답변에 묻히면 안 됩니다. Argus는 그것을 살아 있는 항로로 남깁니다.
+> 중요한 결정은 답으로 끝나면 안 됩니다. Argus는 그것을 살아 있는 항로로 남깁니다.
 
-Hero structure:
+Expanded form:
 
-```text
-Kicker
-Don't let a fluent answer end the decision.
-
-H1
-Important decisions shouldn't end as answers.
-
-Sub
-Argus keeps decisions alive as courses: alternatives remain visible, claims are
-checked, state is preserved, and reality gets the final word.
-```
+> Argus turns important decisions into living courses: it sharpens the question,
+> preserves the forks, checks the claims, shows the current bearing, and returns
+> when reality can answer.
 
 Korean:
 
-```text
-Kicker
-유창한 답이 결정을 끝내게 하지 마세요.
-
-H1
-중요한 결정은 매끈한 답변에 묻히면 안 됩니다.
-
-Sub
-Argus는 결정을 살아 있는 항로로 남깁니다. 선택지는 남고, 근거는 검증되며,
-상태는 보존되고, 마지막 판정은 현실이 합니다.
-```
+> Argus는 중요한 결정을 살아 있는 항로로 바꿉니다. 질문을 다시 세우고,
+> 갈림길을 남기고, 주장을 검증하고, 현재 방위를 보여주며, 현실이 답할 때
+> 다시 돌아옵니다.
 
 ## Why This Is Stronger
 
@@ -48,10 +32,10 @@ Argus's stronger claim is that a decision becomes a durable object with state:
 - the original question,
 - the sharpened question,
 - the hidden assumptions,
-- the alternatives and roads not taken,
-- claims that can be checked or challenged,
-- preserved state,
-- and the later reality check.
+- the forks and roads not taken,
+- verified, challenged, and human-required claims,
+- the current bearing,
+- and a future reality check.
 
 Normal AI gives an answer. Argus keeps the decision alive long enough for
 judgment, revision, memory, and reality to touch it.
@@ -80,3 +64,4 @@ it appears in real work: a PR, repo, document, plan, or hard question.
 Both surfaces should converge on the same truth:
 
 > Argus is where important decisions stay alive until reality answers.
+

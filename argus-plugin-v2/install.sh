@@ -201,7 +201,7 @@ if [ "$LINK_MODE" = false ] && [ -n "$TEMP_DIR" ]; then
 fi
 
 ERRORS=0
-for required in sail clarify team verify boss revise chart helm help settle log; do
+for required in sail scan seal clarify team verify boss revise chart helm help settle log connect push pull sync; do
   if [ ! -f "$CLAUDE_DIR/skills/$required/SKILL.md" ]; then
     fail "Missing: $required"
     ERRORS=$((ERRORS + 1))
@@ -247,8 +247,8 @@ if [ "$ERRORS" -eq 0 ]; then
   echo ""
   echo -e "    ${BOLD}/argus:sail${NC} \"A decision I'm stuck on\""
   echo ""
-  echo -e "  ${DIM}Medium/high decisions return a compressed Current Heading.${NC}"
-  echo -e "  ${DIM}Full reasoning is saved in .argus/sessions/ (git-ignored by default).${NC}"
+  echo -e "  ${DIM}Argus helps you make a decision, save the check for later, and come back to reality.${NC}"
+  echo -e "  ${DIM}Webapp sync is optional: /argus:connect <token>, then /argus:sync.${NC}"
 else
   fail "Installation incomplete."
   exit 1
