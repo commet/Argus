@@ -5,6 +5,7 @@ import { resolveToday } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { overfireGate, type Stakes, type Reversibility } from '../lib/overfire-gate.js';
 import { validateCrux } from '../lib/validate-crux.js';
+import { computeContinuity } from '../lib/continuity.js';
 import { appendLedger } from '../lib/ledger-append.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
@@ -27,6 +28,7 @@ const inputSchema = {
     user_question: { type: 'string', maxLength: 600 },
     crux_question: { type: 'string', maxLength: 400, description: 'The ONE neutral load-bearing question, phrased as a question. Never a fork, never a lean.' },
     load_bearing_assumption: { type: 'string', maxLength: 400, description: 'The single assumption the decision rests on (neutral).' },
+    related_to: { type: 'array', items: { type: 'string', pattern: '^[A-Za-z0-9._-]+$' }, maxItems: 20, description: 'Ids of past decisions the user considers similar — surfaces a frequency-only track record, never a verdict.' },
     today_override: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
   },
 } as const;
@@ -98,6 +100,9 @@ export const openDecision: ToolModule = {
       await appendLedger(dir, [{ id, event: 'harvest', decision: a['decision'] as string }], now);
 
       const crux = (a['crux_question'] as string | undefined) ?? null;
+      const relatedIds = Array.isArray(a['related_to']) ? (a['related_to'] as string[]) : [];
+      const continuity = relatedIds.length ? computeContinuity(dir, relatedIds) : undefined;
+
       return envelope({
         ok: true, tool: 'argus_open_decision',
         surface: crux
@@ -113,6 +118,7 @@ export const openDecision: ToolModule = {
           restraint_option: a['status_quo'],
           fork_emitted: false,
           harvest_written: true,
+          continuity,
           lean_disclosure: 'Naming the load-bearing question points faintly at the flip; that residual lean is a known limit, not a verdict.',
         },
       });

@@ -2,8 +2,15 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { TOOLS, TOOL_MAP } from './tools/index.js';
+import { listResources, listResourceTemplates, readResource } from './resources.js';
+import { listPrompts, getPrompt } from './prompts.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
 import { logError } from './lib/log.js';
 
@@ -19,10 +26,21 @@ export async function createServer(): Promise<Server> {
   const server = new Server(
     { name: 'argus-mcp', version: '1.0.0' },
     {
-      capabilities: { tools: {} },
+      // Capabilities are declared only for primitives whose handlers exist, so
+      // a host never probes a no-op (addendum J).
+      capabilities: { tools: {}, resources: {}, prompts: {} },
       instructions: SERVER_INSTRUCTIONS,
     },
   );
+
+  // Resources — read-only context (blueprint §4.3).
+  server.setRequestHandler(ListResourcesRequestSchema, async () => listResources());
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => listResourceTemplates());
+  server.setRequestHandler(ReadResourceRequestSchema, async (req) => readResource(req.params.uri));
+
+  // Prompts — user-triggered discipline rituals (blueprint §4.2).
+  server.setRequestHandler(ListPromptsRequestSchema, async () => listPrompts());
+  server.setRequestHandler(GetPromptRequestSchema, async (req) => getPrompt(req.params.name, req.params.arguments));
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOLS.map((t) => ({
