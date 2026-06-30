@@ -5,23 +5,31 @@ import { USER_DATA_TABLES } from '../user-data-tables';
  * Erasure-coverage drift guard (mirrors schema-drift.test.ts's TABLE_COLUMNS contract).
  *
  * LIVE_USER_SCOPED_TABLES is a hand-mirrored copy of every public table that has a
- * `user_id` column on the live DB (overture-db), captured 2026-06-23 via:
+ * `user_id` column on the live DB (overture-db), re-captured 2026-06-30 via:
  *   SELECT table_name FROM information_schema.columns
  *   WHERE table_schema='public' AND column_name='user_id' ... (BASE TABLEs only)
  *
  * If a migration adds a new user-scoped table, this test fails until the table is
  * added to BOTH this list and USER_DATA_TABLES — so account deletion/export can
  * never again silently skip a table (the bug that left 13 of 29 tables un-erased).
+ *
+ * KNOWN LIMIT of a hand-mirror: a table missing from BOTH this list AND
+ * USER_DATA_TABLES escapes the guard (the two lists agree with each other, not
+ * with the DB) — exactly how telegram_decisions/telegram_sessions slipped through
+ * export+deletion until 2026-06-30. Defence: whenever a migration adds a table
+ * with a `user_id` column, re-run the SELECT above and reconcile BOTH lists, and
+ * keep the re-capture date current so a stale snapshot is visible at a glance.
  */
 const LIVE_USER_SCOPED_TABLES = [
   'accuracy_ratings', 'agent_activities', 'agent_chains', 'agents',
   'decision_quality_scores', 'feedback_records', 'human_agent_messages',
   'judgment_records', 'outcome_records', 'personas', 'plugin_bearings',
-  'plugin_decisions', 'plugin_tokens', 'progressive_sessions', 'projects',
+  'plugin_decisions', 'plugin_events', 'plugin_tokens', 'progressive_sessions', 'projects',
   'quality_signals', 'rate_limits', 'recast_items', 'reframe_items',
   'retrospective_answers', 'share_log', 'shared_links', 'slack_connections',
   'synthesize_items', 'team_members', 'team_review_inputs',
-  'telegram_connect_codes', 'telegram_connections', 'user_events',
+  'telegram_connect_codes', 'telegram_connections', 'telegram_decisions',
+  'telegram_sessions', 'user_events',
 ].sort();
 
 describe('account erasure / export coverage (drift guard)', () => {

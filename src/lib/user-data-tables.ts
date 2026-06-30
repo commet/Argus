@@ -26,6 +26,7 @@ export const USER_DATA_TABLES = [
   'personas',
   'plugin_bearings',
   'plugin_decisions',
+  'plugin_events',
   'plugin_tokens',
   'progressive_sessions',
   'projects',
@@ -42,6 +43,8 @@ export const USER_DATA_TABLES = [
   'team_review_inputs',
   'telegram_connect_codes',
   'telegram_connections',
+  'telegram_decisions',
+  'telegram_sessions',
   'user_events',
 ] as const;
 

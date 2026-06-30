@@ -39,6 +39,7 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
 import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, CHECK_IN_MS } from '@/lib/decision-contract';
 import { recordSignal } from '@/lib/signal-recorder';
+import { syncSealToTelegram } from '@/lib/telegram-sync';
 import { track } from '@/lib/analytics';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { EASE } from './shared/constants';
@@ -85,7 +86,7 @@ export function SealMoment({
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
   const updateProject = useProjectStore((s) => s.updateProject);
-  const { user } = useAuth();
+  const { user, session, signInWithGoogle } = useAuth();
 
   const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_INTERVAL);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -161,6 +162,20 @@ export function SealMoment({
       : (() => { const f = contractFromPredicates(project.id, toSeal, now); return f ? withCheckIn(f, iv, now) : null; })();
     if (!next) return;
     updateProject(project.id, { decision_contract: next });
+    // Cross-surface return loop: if this logged-in user connected Telegram, mirror
+    // the sealed contract into the one push channel that actually fires on the date
+    // (the daily cron reads telegram_decisions, which web seals never wrote). Server
+    // no-ops for unconnected users; fire-and-forget so it never blocks the seal.
+    const sharp = next.predicates[0]?.text;
+    if (user && session?.access_token && next.check_in_at && sharp) {
+      syncSealToTelegram({
+        accessToken: session.access_token,
+        projectId: project.id,
+        decision: typeof project.name === 'string' ? project.name : '',
+        predicate: sharp,
+        checkInAt: next.check_in_at,
+      });
+    }
     setInterval(iv);
     setJustSealed(true);
     // Learning signal (2026-06-13 data-wiring fix) — the new flow recorded
@@ -234,6 +249,27 @@ export function SealMoment({
         <p className="mt-1.5 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
           {L('"그래서, 어떻게 됐어요?" — 그날 이 결정으로 돌아옵니다.', '"So, how did it go?" — this decision comes back to you that day.')}
         </p>
+
+        {/* Peak-ownership conversion: the artifact was just minted on THIS device.
+            For an anon user this is the one moment they have something worth keeping,
+            so offer the durable path here — not as resignation copy, but as one tap.
+            The contract is already in localStorage (updateProject above), so the
+            full-page OAuth round-trip preserves it and auth.tsx runs
+            migrateLocalToAccount on SIGNED_IN return — the just-sealed decision
+            follows them into the account. Local seal stays lossless either way. */}
+        {!user && (
+          <button
+            onClick={() => {
+              track('seal_signin_cta', { placement: 'sealed' });
+              signInWithGoogle('/workspace');
+            }}
+            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white cursor-pointer transition-transform hover:scale-[1.02]"
+            style={{ background: 'var(--gradient-gold)' }}
+          >
+            <Anchor size={14} />
+            {L('로그인하고 어디서나 이어보기', 'Sign in to keep this everywhere')}
+          </button>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
           <LocaleLink href="/project" className="text-[12.5px] font-medium text-[var(--accent)] hover:underline">
@@ -352,15 +388,15 @@ export function SealMoment({
         {/* Channel disclosure BEFORE consent — a suspicious user won't say yes
             without knowing HOW the asking happens ("이메일? 스팸?"). */}
         <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] max-w-md mx-auto">
-          {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요 — 메일이나 알림은 보내지 않아요.', "On that day, I'll ask first when you open the projects page — no emails, no notifications.")}
+          {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면, 그날 메시지로도 가볍게 알려드려요 — 광고성 메일은 보내지 않아요.', "On that day, I'll ask first when you open the projects page. If you've connected Telegram, I'll send a gentle nudge there too on the day — never marketing email.")}
         </p>
         {/* P2-6 honesty: an anonymous seal lives in localStorage only. Don't let the
             "comes back to you" promise read as a lie when it can vanish on this device.
             Not a gate — they can still seal locally; just told the truth + the way out. */}
         {!user && (
           <p className="mt-1.5 text-[11.5px] text-[var(--accent)]/90 max-w-md mx-auto">
-            {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 로그인하면 계정으로 옮겨가 어디서나 돌아올 수 있어요.',
-               'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Log in and it moves to your account, reachable anywhere.')}
+            {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 봉인한 다음 로그인하면 계정으로 옮겨가 어디서나 돌아올 수 있어요.',
+               'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Seal it, then sign in and it moves to your account, reachable anywhere.')}
           </p>
         )}
 

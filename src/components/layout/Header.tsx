@@ -125,8 +125,12 @@ export function Header() {
             <nav className="flex items-center gap-0.5 bg-[var(--surface)] rounded-full px-1.5 py-1 border border-[var(--border-subtle)] shadow-[var(--shadow-xs)]">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
-                const showLock = item.requiresAuth && !user && !loading;
                 const showReturnBadge = item.href === '/project' && dueCount > 0;
+                // Don't padlock the door the return badge is inviting them through:
+                // /project renders for anon from localStorage, so on a return day the
+                // lock ("Requires sign-in") contradicts the gold "decision to revisit"
+                // badge on the same nav item. Suppress the lock whenever the badge fires.
+                const showLock = item.requiresAuth && !user && !loading && !showReturnBadge;
                 return (
                   <LocaleLink
                     key={item.href}
@@ -258,7 +262,7 @@ export function Header() {
 
           {/* Mobile menu button */}
           <button
-            className="md:hidden p-2.5 hover:bg-[var(--surface)] rounded-lg cursor-pointer transition-colors"
+            className="md:hidden min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2.5 hover:bg-[var(--surface)] rounded-lg cursor-pointer transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? L('메뉴 닫기', 'Close menu') : L('메뉴 열기', 'Open menu')}
             aria-expanded={mobileMenuOpen}
@@ -273,14 +277,15 @@ export function Header() {
         <nav className="md:hidden border-t border-[var(--border-subtle)] bg-[var(--surface)] animate-slide-down">
           <div className="px-4 py-2 space-y-0.5">
             {navItems.map((item) => {
-              const showLock = item.requiresAuth && !user && !loading;
               const showReturnBadge = item.href === '/project' && dueCount > 0;
+              // Same as desktop: the return badge must not share a node with a lock.
+              const showLock = item.requiresAuth && !user && !loading && !showReturnBadge;
               return (
                 <LocaleLink
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[14px] font-medium transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-lg text-[14px] font-medium transition-colors ${
                     pathname === item.href
                       ? 'bg-[var(--bg)] text-[var(--primary)]'
                       : 'text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)]'
@@ -308,7 +313,7 @@ export function Header() {
               <div className="flex items-center rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] overflow-hidden ml-auto">
                 <button
                   onClick={() => handleLocaleChange('ko')}
-                  className={`px-3 py-1.5 text-[12px] font-bold transition-colors cursor-pointer ${
+                  className={`px-4 min-h-[44px] inline-flex items-center text-[12px] font-bold transition-colors cursor-pointer ${
                     locale === 'ko' ? 'bg-[var(--primary)] text-[var(--bg)]' : 'text-[var(--text-secondary)]'
                   }`}
                   aria-pressed={locale === 'ko'}
@@ -317,7 +322,7 @@ export function Header() {
                 </button>
                 <button
                   onClick={() => handleLocaleChange('en')}
-                  className={`px-3 py-1.5 text-[12px] font-bold transition-colors cursor-pointer ${
+                  className={`px-4 min-h-[44px] inline-flex items-center text-[12px] font-bold transition-colors cursor-pointer ${
                     locale === 'en' ? 'bg-[var(--primary)] text-[var(--bg)]' : 'text-[var(--text-secondary)]'
                   }`}
                   aria-pressed={locale === 'en'}

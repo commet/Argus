@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { USER_DATA_TABLES } from '@/lib/user-data-tables';
 
 /**
- * Complete server-side export — every user-scoped row across all 29 tables as one
- * portable JSON. The old Settings "export" only dumped localStorage, so server-only
+ * Complete server-side export — every user-scoped row across all USER_DATA_TABLES
+ * as one portable JSON. The old Settings "export" only dumped localStorage, so server-only
  * data (synced history, plugin imports, analytics) was invisible to the user who
  * owns it. Data ownership/portability is a trust dimension: you can take it with you.
  */
