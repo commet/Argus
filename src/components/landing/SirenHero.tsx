@@ -180,8 +180,8 @@ export function SirenHero() {
             so the band sizes to video+gutter. ≥640px keeps the fixed 16:9 band the
             cinematic lower-left overlay was composed for (capped on tall viewports). */}
         <div
-          className="bp-fade-up h-auto sm:h-[56.25vw] sm:max-h-[82vh]"
-          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 32, marginBottom: 20, animationDelay: '200ms' }}
+          className="bp-fade-up h-auto sm:h-[56.25vw] sm:max-h-[66vh]"
+          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 20, marginBottom: 16, animationDelay: '200ms' }}
         >
           <VoyageFilm />
         </div>
