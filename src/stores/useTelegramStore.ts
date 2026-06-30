@@ -14,6 +14,11 @@ export interface TelegramConnection {
 interface TelegramState {
   connections: TelegramConnection[];
   sending: boolean;
+  /** False until loadConnections has resolved once. Lets the UI tell "still
+   *  fetching" apart from "loaded and genuinely empty" — without it, the panel
+   *  flashed "아직 연결되지 않았어요" during the Supabase round-trip even for users
+   *  who ARE connected. */
+  loaded: boolean;
 
   loadConnections: () => Promise<void>;
   startConnect: () => Promise<{ ok: boolean; link?: string; error?: string }>;
@@ -34,16 +39,19 @@ async function getAuthToken(): Promise<string | null> {
 export const useTelegramStore = create<TelegramState>((set, get) => ({
   connections: [],
   sending: false,
+  loaded: false,
 
   loadConnections: async () => {
     const userId = await getCurrentUserId();
-    if (!userId) return;
+    // Anonymous → no connections, but the query DID resolve: mark loaded so the
+    // UI shows the login hint, not a perpetual "not connected" or a spinner.
+    if (!userId) { set({ connections: [], loaded: true }); return; }
     const { data } = await supabase
       .from('telegram_connections')
       .select('id, chat_id, chat_title, chat_type, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
-    if (data) set({ connections: data });
+    set({ connections: data || [], loaded: true });
   },
 
   startConnect: async () => {

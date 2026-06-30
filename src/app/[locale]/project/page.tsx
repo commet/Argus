@@ -131,6 +131,18 @@ export default function ProjectPage() {
     riskCount: number;
     lastActivityStepIdx: number;
     lastActivityAt: string;
+    // Progressive-voyage + contract truth. The legacy hasProgress/isDone read ONLY
+    // the dead 4-tool stores; a progressive voyage (the real flow) + seal/settle
+    // write to decision_contract / the progressive session, so status MUST derive
+    // from these or a sealed+settled project reads as "출항 전" forever.
+    hasVoyage: boolean;
+    voyageComplete: boolean;
+    contractSealed: boolean;
+    contractAllGraded: boolean;
+    /** started ∪ progressive ∪ sealed — the honest "underway" signal. */
+    startedEff: boolean;
+    /** legacy-done ∪ voyage-complete ∪ settled — the honest "done" signal. */
+    doneEff: boolean;
   }
 
   const projectMetricsMap = useMemo(() => {
@@ -154,6 +166,16 @@ export default function ProjectPage() {
       const completedSteps = statuses.filter((s) => s === 'done').length;
       const isDone = completedSteps === 4;
       const hasProgress = completedSteps > 0 || statuses.some((s) => s === 'in-progress');
+
+      // Progressive + contract truth (the real flow). allGraded is time-independent
+      // (total>0 && pending===0), so a constant `now` is safe inside this memo.
+      const voyageSession = progressiveSessions.find((s) => s.project_id === p.id);
+      const contractSealed = !!p.decision_contract;
+      const contractAllGraded = p.decision_contract ? contractStatus(p.decision_contract, 0).allGraded : false;
+      const voyageComplete = voyageSession?.phase === 'complete';
+      const hasVoyage = !!voyageSession || contractSealed;
+      const startedEff = hasProgress || hasVoyage;
+      const doneEff = isDone || voyageComplete || contractAllGraded;
 
       // Content excerpt — what the user is actually working on
       const questionExcerpt =
@@ -208,10 +230,16 @@ export default function ProjectPage() {
         riskCount,
         lastActivityStepIdx,
         lastActivityAt,
+        hasVoyage,
+        voyageComplete,
+        contractSealed,
+        contractAllGraded,
+        startedEff,
+        doneEff,
       });
     }
     return map;
-  }, [projects, reframeItems, recastItems, synthesizeItems, feedbackHistory]);
+  }, [projects, reframeItems, recastItems, synthesizeItems, feedbackHistory, progressiveSessions]);
 
   const stats = useMemo(() => {
     let inProgress = 0;
@@ -220,8 +248,8 @@ export default function ProjectPage() {
     for (const p of projects) {
       const m = projectMetricsMap.get(p.id);
       if (!m) continue;
-      if (m.isDone) done++;
-      else if (m.hasProgress) inProgress++;
+      if (m.doneEff) done++;
+      else if (m.startedEff) inProgress++;
       else untouched++;
     }
     return { total: projects.length, inProgress, done, untouched };
@@ -257,9 +285,9 @@ export default function ProjectPage() {
       list = list.filter((p) => {
         const m = projectMetricsMap.get(p.id);
         if (!m) return false;
-        if (statusFilter === 'active') return m.hasProgress && !m.isDone;
-        if (statusFilter === 'done') return m.isDone;
-        if (statusFilter === 'new') return !m.hasProgress;
+        if (statusFilter === 'active') return m.startedEff && !m.doneEff;
+        if (statusFilter === 'done') return m.doneEff;
+        if (statusFilter === 'new') return !m.startedEff;
         return true;
       });
     }
@@ -340,9 +368,17 @@ export default function ProjectPage() {
     ? progressiveSessions.find((s) => s.project_id === currentProject.id)
     : undefined;
   const currentHasVoyage = !!currentVoyageSession || !!currentProject?.decision_contract;
-  const currentVoyageDone = currentVoyageSession
+  // Settled (all predicates graded) → the voyage is VERIFIED, which outranks the
+  // top pill saying "진행 중" next to a "검증된 항해" card just below it.
+  const currentContractAllGraded = currentProject?.decision_contract
+    ? contractStatus(currentProject.decision_contract, Date.now()).allGraded
+    : false;
+  const currentVoyageDone = currentContractAllGraded || (currentVoyageSession
     ? currentVoyageSession.phase === 'complete'
-    : !!currentProject?.decision_contract;
+    : !!currentProject?.decision_contract);
+  const currentVoyageStatusLabel = currentContractAllGraded
+    ? L('검증된 항해', 'Verified voyage')
+    : currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way');
   // The decision's CONTENT — until now this page showed only process chrome
   // (progress %, steps, formats) and never WHAT was decided. The bearing is
   // the one-screen answer; it replaces the bare "항해 완료" status card.
@@ -523,23 +559,21 @@ export default function ProjectPage() {
                       m.stepCount > 0 || m.aiRatio !== null || m.reviewerCount > 0 || m.riskCount > 0;
 
                     // ── Voyage state (single source of truth: lib/voyage-state) ──
+                    // Feed the PROGRESSIVE + contract signals, not the dead 4-tool
+                    // stores: a settled contract → verified, a sealed/complete voyage
+                    // → sailing, so a finished decision never reads as "출항 전".
+                    // (getVoyageState only checks outcomeVerdict !== 'pending' to pick
+                    // verified vs arrived, so 'mixed' stands in for "settled".)
+                    const isDue = dueIds.has(project.id);
                     const voyageState = getVoyageState({
-                      started: m.hasProgress,
-                      completedAllLegs: m.isDone,
+                      started: m.startedEff,
+                      completedAllLegs: m.doneEff,
                       lastActivityAt: m.lastActivityAt || project.updated_at || project.created_at || '',
-                      hasCoda: !!project.meta_reflection,
+                      hasCoda: !!project.meta_reflection || m.contractAllGraded,
                       lastLeg: m.lastActivityStepIdx >= 0 ? STEP_IDX_TO_LEG[m.lastActivityStepIdx] : null,
-                      outcomeVerdict: project.outcome?.verdict,
+                      outcomeVerdict: m.contractAllGraded ? 'mixed' : project.outcome?.verdict,
                     }, Date.now());
                     const vMeta = VOYAGE_STATE_META[voyageState];
-
-                    // Progressive voyage — runs write nothing to the legacy
-                    // 4-tool stores, so don't show "아직 재정의 전" next to a
-                    // sealed contract (self-contradiction).
-                    const isDue = dueIds.has(project.id);
-                    const voyageSession = progressiveSessions.find((s) => s.project_id === project.id);
-                    const hasVoyage = !!voyageSession || !!project.decision_contract;
-                    const voyageDone = voyageSession ? voyageSession.phase === 'complete' : !!project.decision_contract;
 
                     return (
                       <button
@@ -548,9 +582,9 @@ export default function ProjectPage() {
                         className={`group text-left bg-[var(--surface)] border rounded-xl p-4 hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col gap-3 ${
                           isDue
                             ? 'border-amber-500/50 hover:border-amber-500/80 hover:shadow-[var(--shadow-md)]'
-                            : m.isDone
+                            : m.doneEff
                             ? 'border-[var(--success)]/30 hover:border-[var(--success)]/60 hover:shadow-[var(--shadow-md)]'
-                            : m.hasProgress
+                            : m.startedEff
                             ? 'border-[var(--accent)]/25 hover:border-[var(--accent)]/55 hover:shadow-[var(--shadow-md)]'
                             : 'border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/30 hover:shadow-[var(--shadow-sm)]'
                         }`}
@@ -578,7 +612,8 @@ export default function ProjectPage() {
                           </span>
                           <span className="text-[var(--text-tertiary)] normal-case tracking-normal font-normal tabular-nums">
                             {relativeDate(m.lastActivityAt || project.updated_at, locale)}
-                            {lastStepLabel && m.hasProgress && !m.isDone ? (
+                            {/* Legacy leg label is a false coordinate for voyage projects — suppress it there. */}
+                            {lastStepLabel && m.hasProgress && !m.isDone && !m.hasVoyage ? (
                               <span className="text-[var(--text-tertiary)]/70"> · {lastStepLabel}</span>
                             ) : null}
                           </span>
@@ -593,18 +628,17 @@ export default function ProjectPage() {
                           {project.name}
                         </h3>
 
-                        {/* Content excerpt — what they're actually working on */}
+                        {/* Content excerpt — what they're actually working on.
+                            The status itself lives in the badge (single source); a
+                            redundant "항해 진행 중" body line was contradicting it, so
+                            we only show CONTENT here, or the not-started nudge. */}
                         {m.questionExcerpt ? (
                           <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] line-clamp-2 border-l-2 border-[var(--accent)]/30 pl-2.5">
                             {m.questionExcerpt}
                           </p>
-                        ) : hasVoyage ? (
-                          <p className="text-[12px] text-[var(--text-secondary)] leading-[1.55]">
-                            {voyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
-                          </p>
-                        ) : !m.hasProgress ? (
+                        ) : !m.startedEff ? (
                           <p className="text-[12px] text-[var(--text-tertiary)] italic leading-[1.55]">
-                            {L('아직 재정의 전 — 작업을 시작해 보세요.', 'Not yet reframed — start when ready.')}
+                            {L('아직 출항 전 — 워크스페이스에서 시작해 보세요.', 'Not yet under way — start in the workspace.')}
                           </p>
                         ) : null}
 
@@ -640,7 +674,11 @@ export default function ProjectPage() {
                           </div>
                         )}
 
-                        {/* 4-step progress with current-step emphasis */}
+                        {/* 4-step progress — legacy 4-tool route ONLY. A voyage
+                            project writes nothing to those stores, so this bar would
+                            render 4 empty grey segments (재정의/설계/검증/종합 the user
+                            never walked) and reinforce the false "출항 전". Hide it. */}
+                        {!m.hasVoyage && (
                         <div className="space-y-1.5 mt-auto pt-1">
                           <div className="flex items-center gap-1">
                             {m.statuses.map((s, i) => (
@@ -680,6 +718,7 @@ export default function ProjectPage() {
                             })}
                           </div>
                         </div>
+                        )}
                       </button>
                     );
                   })}
@@ -722,7 +761,7 @@ export default function ProjectPage() {
               <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{currentProject.name}</h2>
               {currentHasVoyage && (
                 <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
-                  {currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
+                  {currentVoyageStatusLabel}
                 </span>
               )}
             </div>
@@ -762,7 +801,7 @@ export default function ProjectPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[13px] font-bold text-[var(--text-primary)]">
-                      {currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way')}
+                      {currentVoyageStatusLabel}
                     </p>
                     <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
                       {L('이 프로젝트는 워크스페이스 항해로 진행됐어요.', 'This project ran as a workspace voyage.')}

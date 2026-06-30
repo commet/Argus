@@ -43,7 +43,9 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
   const [copied, setCopied] = useState(false);
 
   const slackConnected = useSlackStore((s) => s.isConnected());
+  const slackLoaded = useSlackStore((s) => s.loaded);
   const tgConnected = useTelegramStore((s) => s.isConnected());
+  const tgLoaded = useTelegramStore((s) => s.loaded);
   const loadTg = useTelegramStore((s) => s.loadConnections);
   const loadSlackConns = useSlackStore((s) => s.loadConnections);
 
@@ -167,6 +169,8 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
         {active === 'slack' && (
           <SlackPanel
             connected={slackConnected}
+            loaded={slackLoaded}
+            user={!!user}
             title={title}
             text={text}
             onSent={() => { trackShare('slack'); setSentVia('slack'); }}
@@ -175,6 +179,8 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
         {active === 'telegram' && (
           <TelegramPanel
             connected={tgConnected}
+            loaded={tgLoaded}
+            user={!!user}
             title={title}
             text={text}
             context={shareContext}
@@ -334,7 +340,7 @@ function EmailPanel({ user, title, text, context, onSent }: { user: boolean; tit
 }
 
 /* ── Slack ── */
-function SlackPanel({ connected, title, text, onSent }: { connected: boolean; title: string; text: string; onSent: () => void }) {
+function SlackPanel({ connected, loaded, user, title, text, onSent }: { connected: boolean; loaded: boolean; user: boolean; title: string; text: string; onSent: () => void }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const { channels, channelsLoading, sending, loadChannels, sendToSlack } = useSlackStore();
@@ -343,6 +349,28 @@ function SlackPanel({ connected, title, text, onSent }: { connected: boolean; ti
 
   useEffect(() => { if (connected) loadChannels(); }, [connected, loadChannels]);
 
+  // 3-state in order (same fix as Telegram): anon → login, in-flight → spinner,
+  // loaded-empty → connect hint. Prevents a false "not connected" flash.
+  if (!user) {
+    return (
+      <div className="rounded-xl border border-[var(--border-subtle)] p-3.5 animate-fade-in">
+        <p className="text-[12px] text-[var(--text-secondary)] mb-2">
+          {L('로그인하면 연결해 둔 Slack으로 바로 보낼 수 있어요.', 'Log in to send to your connected Slack.')}
+        </p>
+        <Link href="/login" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
+          {L('로그인', 'Log in')} <ExternalLink size={12} />
+        </Link>
+      </div>
+    );
+  }
+  if (!loaded) {
+    return (
+      <div className="rounded-xl border border-[var(--border-subtle)] p-3.5 flex items-center gap-2 animate-fade-in">
+        <Loader2 size={14} className="animate-spin text-[var(--text-tertiary)]" />
+        <span className="text-[12px] text-[var(--text-tertiary)]">{L('연결 확인 중…', 'Checking connection…')}</span>
+      </div>
+    );
+  }
   if (!connected) return <ConnectHint L={L} />;
 
   const filtered = channels.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
@@ -390,12 +418,36 @@ function SlackPanel({ connected, title, text, onSent }: { connected: boolean; ti
 }
 
 /* ── Telegram ── */
-function TelegramPanel({ connected, title, text, context, onSent }: { connected: boolean; title: string; text: string; context: string; onSent: () => void }) {
+function TelegramPanel({ connected, loaded, user, title, text, context, onSent }: { connected: boolean; loaded: boolean; user: boolean; title: string; text: string; context: string; onSent: () => void }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const { connections, sending, sendToTelegram } = useTelegramStore();
   const [error, setError] = useState('');
 
+  // 3-state, in order — the old binary (connected?) showed "아직 연결되지 않았어요"
+  // both while the query was still in flight AND to anonymous users who can't even
+  // have a connection, so a genuinely-connected user hit a false "not connected".
+  if (!user) {
+    return (
+      <div className="rounded-xl border border-[var(--border-subtle)] p-3.5 animate-fade-in">
+        <p className="text-[12px] text-[var(--text-secondary)] mb-2">
+          {L('로그인하면 연결해 둔 Telegram으로 바로 보낼 수 있어요.',
+             'Log in to send to your connected Telegram.')}
+        </p>
+        <Link href="/login" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
+          {L('로그인', 'Log in')} <ExternalLink size={12} />
+        </Link>
+      </div>
+    );
+  }
+  if (!loaded) {
+    return (
+      <div className="rounded-xl border border-[var(--border-subtle)] p-3.5 flex items-center gap-2 animate-fade-in">
+        <Loader2 size={14} className="animate-spin text-[var(--text-tertiary)]" />
+        <span className="text-[12px] text-[var(--text-tertiary)]">{L('연결 확인 중…', 'Checking connection…')}</span>
+      </div>
+    );
+  }
   if (!connected) return <ConnectHint L={L} />;
 
   const send = async (chatId: string) => {

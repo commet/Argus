@@ -53,7 +53,9 @@ export function VoyageEta({
   }
 
   // SCHEDULED — the lively ETA countdown (days remaining until the promised date).
-  if (cs.daysUntilCheckIn != null && cs.daysUntilCheckIn > 0) {
+  // Guard on !allGraded: settling EARLY (before check_in_at) leaves a future date,
+  // and without this an already-reckoned decision would advertise "도착 예정 D-N".
+  if (cs.daysUntilCheckIn != null && cs.daysUntilCheckIn > 0 && !cs.allGraded) {
     const n = cs.daysUntilCheckIn;
     return (
       <span

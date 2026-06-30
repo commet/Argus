@@ -22,6 +22,9 @@ interface SlackState {
   channels: SlackChannel[];
   channelsLoading: boolean;
   sending: boolean;
+  /** False until loadConnections resolves once — distinguishes "still fetching"
+   *  from "loaded and empty" so the panel doesn't flash a false "not connected". */
+  loaded: boolean;
 
   loadConnections: () => Promise<void>;
   disconnect: (connectionId: string) => Promise<void>;
@@ -40,10 +43,11 @@ export const useSlackStore = create<SlackState>((set, get) => ({
   channels: [],
   channelsLoading: false,
   sending: false,
+  loaded: false,
 
   loadConnections: async () => {
     const userId = await getCurrentUserId();
-    if (!userId) return;
+    if (!userId) { set({ connections: [], loaded: true }); return; }
 
     const { data } = await supabase
       .from('slack_connections')
@@ -51,7 +55,7 @@ export const useSlackStore = create<SlackState>((set, get) => ({
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (data) set({ connections: data });
+    set({ connections: data || [], loaded: true });
   },
 
   disconnect: async (connectionId: string) => {

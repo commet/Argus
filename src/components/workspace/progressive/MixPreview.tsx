@@ -117,19 +117,19 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             <div className="pt-6 border-t border-[var(--border-subtle)] space-y-3">
               {primary === 'wrap' ? (
                 <>
-                  {/* Forward is primary: 마무리(→ 사다리). Review is the quiet opt-in. */}
-                  <motion.button onClick={onSkip} disabled={busy} whileTap={{ scale: 0.98 }}
+                  {/* Persona/stakeholder review is the prominent pre-finish step
+                      (gold). The falsification ladder ("부풀린 시나리오") is a real but
+                      OPTIONAL extra, demoted to the quiet link below — per the
+                      founder's call that getting a virtual reader's review matters
+                      more here, and the ladder is effectively opt-in. */}
+                  <motion.button onClick={onDM} disabled={busy} whileTap={{ scale: 0.98 }}
                     className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                     style={{ background: 'var(--gradient-gold)' }}>
-                    {/* Honest preview of what's next: the step finds the ONE
-                        load-bearing assumption the plan rests on (so reality can
-                        check it later) — not a vague "how far do you believe it".
-                        Name the actual outcome. */}
-                    {busy ? <Loader2 size={16} className="animate-spin" /> : L('마무리 전에 — 이 계획이 기대고 있는 한 가지 짚기 →', 'Before wrapping up — name the one bet this rests on →')}
+                    {busy ? <Loader2 size={16} className="animate-spin" /> : <><UserCheck size={16} /> {L(`마무리 전에 — ${dm || '이해관계자'} 시점에서 검토 받아보기 →`, `Before wrapping up — get a review as ${dm || 'a stakeholder'} →`)}</>}
                   </motion.button>
-                  <button onClick={onDM} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
+                  <button onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
                     style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>
-                    {L(`${dm || '이해관계자'} 시점 검토 한번 받아보기 (선택)`, `Optional: review as ${dm || 'a stakeholder'}`)}
+                    {L('한 번 더 — 이 계획이 기대고 있는 한 가지 짚어보기 (선택)', 'Optional: name the one bet this rests on')}
                   </button>
                 </>
               ) : (

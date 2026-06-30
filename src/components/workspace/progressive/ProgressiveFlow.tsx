@@ -783,12 +783,6 @@ function VoyagePrepSummary({
           <div className="absolute top-3 right-3 md:top-5 md:right-5 text-[var(--accent)] opacity-[0.07] pointer-events-none select-none">
             <CompassRose size={108} />
           </div>
-          {/* Bearing micro-coordinate — small detail nodding to nautical
-              charts. Pure flavor; no functional meaning. */}
-          <div className="absolute top-4 right-4 md:top-6 md:right-7 text-[9px] tracking-[0.18em] uppercase text-[var(--accent)]/55 font-mono pointer-events-none select-none">
-            N · {L('새 방향', 'New direction')}
-          </div>
-
           <div className="relative p-6 md:p-8">
             <h2 className="text-[20px] md:text-[24px] font-bold text-[var(--text-primary)] leading-[1.3] tracking-tight mb-5 pr-20"
               style={{ fontFamily: 'var(--font-display)' }}>
@@ -798,18 +792,30 @@ function VoyagePrepSummary({
             {/* Course summary — focal sentence framed with a Compass icon
                 eyebrow. Keeps the metaphor consistent without leaning on
                 emoji. */}
+            {/* Provenance-honest, grammar-matched eyebrow. The old "정한 방향"
+                (a DECISION the user set) sat over snapshot.real_question, which is
+                ALWAYS a question — so the card "ended on a question" labelled as a
+                settled direction, AND presented machine text as the user's bearing
+                with no tag (MirrorBeat 90 lines away tags the same data honestly).
+                Fix: prefer the declarative insight as the bearing; otherwise show
+                the question under a label that says it's the question the ANALYSIS
+                narrowed to (not one the user decided). Escape links stay below. */}
             <div className="mb-5 pl-4 border-l-[2px] border-[var(--accent)]/45">
               <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5">
                 <Compass size={11} className="shrink-0" />
-                {L('정한 방향', 'Direction set')}
+                {snapshot.insight
+                  ? L('분석이 잡은 방향', 'The direction analysis landed on')
+                  : L('분석이 좁힌 질문', 'The question analysis narrowed to')}
               </div>
               <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-relaxed font-medium">
-                {snapshot.real_question}
+                {snapshot.insight || snapshot.real_question}
               </p>
               {topAssumption && (
                 <div className="mt-3 pt-2.5 border-t border-dashed border-[var(--border-subtle)]">
                   <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-                    <span className="text-[var(--text-secondary)] font-medium">{L('전제 조건  ', 'Premise · ')}</span>
+                    {/* Tag provenance — this premise was filled in by the AI, not
+                        stated by the user (same honesty as MirrorBeat). */}
+                    <span className="text-[var(--text-secondary)] font-medium">{L('AI가 깔아둔 전제 · ', 'AI-supplied premise · ')}</span>
                     {topAssumption}
                   </p>
                 </div>

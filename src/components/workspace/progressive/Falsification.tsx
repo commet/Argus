@@ -99,6 +99,25 @@ export function Falsification({
       transition={{ duration: 0.5, ease: EASE }}
       className="rounded-2xl border border-[var(--accent)]/25 bg-[var(--surface)] p-5 md:p-6 space-y-4"
     >
+      {/* Top orientation — this mechanic is UNFAMILIAR; without a "what is this"
+          beat the user meets an inflated ladder cold and half read the rungs as
+          the AI's real forecast. Name the exercise + its purpose first, THEN the
+          action instruction (which is now action-only). */}
+      {!resolved && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]/80 mb-1.5">
+            {L('계획 시험', 'Stress-test')}
+          </p>
+          <h3 className="text-[16px] md:text-[17px] font-bold text-[var(--text-primary)] leading-[1.35]" style={{ fontFamily: 'var(--font-display)' }}>
+            {L('이 계획을 한 번 시험해볼게요', "Let's stress-test this plan")}
+          </h3>
+          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.6] mt-1.5">
+            {L('어디까지 믿어지는지가, 이 계획이 진짜 기대고 있는 전제를 드러내요. 30초면 돼요.',
+               'Where your belief runs out reveals the premise this plan is really resting on. Takes 30 seconds.')}
+          </p>
+        </div>
+      )}
+
       {/* Strength acknowledgement — earns the right to push. */}
       {strength && (
         <div className="flex items-start gap-2.5">
@@ -119,7 +138,7 @@ export function Falsification({
       <p className="text-[13px] font-semibold text-[var(--accent)] leading-[1.55]">
         {L(
           '아래는 일부러 점점 크게 부풀린 성공 시나리오예요. 위에서부터 읽다가, 처음으로 "에이, 이건 아니다" 싶은 줄을 눌러 주세요.',
-          'Below are success scenarios deliberately inflated step by step. Read from the top and tap the first line that makes you go "no, not that far."',
+          'These are success scenarios, deliberately inflated step by step. Read from the top and tap the first line that makes you go "no, not that far."',
         )}
       </p>
 
@@ -128,6 +147,14 @@ export function Falsification({
         {claims.map((c, i) => {
           const isFlinch = flinched?.id === c.id && !noFlinch;
           const dimmed = resolved && !isFlinch;
+          // Visual escalation — the ladder's whole premise is "growing bolder",
+          // but every rung used to be identical 13px, so rung 1 and rung 4 looked
+          // the same and the "where does it stop being believable" sense was flat.
+          // Ramp size + accent tint monotonically with depth. Subtle, NOT danger-red
+          // (which would read as a verdict that the bold rungs are "wrong").
+          const t = claims.length > 1 ? i / (claims.length - 1) : 0;
+          const fontSize = 13 + t * 2.5; // 13px → 15.5px
+          const tintAlpha = (0.12 + t * 0.33).toFixed(2); // border deepens with the claim
           return (
             <li key={c.id}>
               <button
@@ -135,17 +162,18 @@ export function Falsification({
                 onClick={() => flinch(c)}
                 disabled={busy || resolved}
                 aria-pressed={isFlinch}
-                className={`w-full text-left rounded-xl border px-3.5 py-2.5 text-[13px] leading-[1.5] transition-colors ${
+                style={!isFlinch && !dimmed ? { fontSize: `${fontSize}px`, borderColor: `color-mix(in srgb, var(--accent) ${Number(tintAlpha) * 100}%, var(--border))` } : { fontSize: `${fontSize}px` }}
+                className={`w-full text-left rounded-xl border px-3.5 py-2.5 leading-[1.5] transition-colors ${
                   isFlinch
                     ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                     : dimmed
                     ? 'border-[var(--border)] text-[var(--text-tertiary)] opacity-60'
-                    : 'border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)]/50 cursor-pointer'
+                    : 'text-[var(--text-primary)] hover:border-[var(--accent)]/70 cursor-pointer'
                 }`}
               >
                 <span className="inline-flex items-baseline gap-2">
                   <span className="text-[10px] font-bold tabular-nums opacity-60">{i + 1}</span>
-                  <span>{c.text}</span>
+                  <span style={{ fontWeight: 400 + Math.round(t * 200) }}>{c.text}</span>
                 </span>
               </button>
               {i < claims.length - 1 && !resolved && (
@@ -205,6 +233,14 @@ export function Falsification({
             </div>
 
             <div>
+              {/* WHY this step exists — without it "방금 AI가 말했는데 왜 또 적어?"
+                  reads as busywork. The point: typing it in your words makes it YOUR
+                  bet (not the AI's), and that's exactly the line we bring back on the
+                  check-in date to compare against what actually happened. */}
+              <p className="text-[11.5px] text-[var(--text-tertiary)] leading-[1.55] mb-1.5">
+                {L('여기까진 AI가 짚은 거예요. 당신 말로 적으면 이게 당신의 베팅이 되고, 확인일에 실제 결과랑 같이 맞춰볼 수 있어요.',
+                   "Up to here it's what the AI surfaced. Put it in your own words and it becomes YOUR bet — the one we bring back on the check-in date to compare with what actually happened.")}
+              </p>
               <label className="block text-[12.5px] font-semibold text-[var(--text-secondary)] mb-1.5">
                 {L('이 계획이 정말 기대고 있는 한 가지를, 당신의 말로 적어주세요', 'In your own words, what is this plan really resting on?')}
               </label>
@@ -242,7 +278,7 @@ export function Falsification({
                   onClick={() => { if (surfaced) onResolve({ claims, flinched_id: noFlinch ? null : flinched!.id, surfaced_constraint: surfaced, real_bet: surfaced, real_bet_authored: 'ai_surfaced', no_flinch_fallback: noFlinch }); }}
                   className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                 >
-                  {L('이대로 두고 문서만 받을게요', 'Skip writing — just give me the document')}
+                  {L('직접 안 적을게요 — AI가 짚은 걸로 둘게요 (내 베팅으로는 안 세요)', "I won't write it — keep the AI's version (not counted as my bet)")}
                 </button>
               </div>
             </div>

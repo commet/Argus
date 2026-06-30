@@ -175,10 +175,15 @@ export function SealMoment({
     if (!next) return;
     const receiptFields = deriveReceiptFields(toSeal, typeof project.name === 'string' ? project.name : '');
     const check_by = next.check_in_at ? new Date(next.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
-    const judgment_receipt = humanJudgment.trim()
-      ? { ...receiptFields, human_judgment: humanJudgment.trim(), check_by }
-      : undefined;
-    updateProject(project.id, { decision_contract: { ...next, ...(judgment_receipt ? { judgment_receipt } : {}) } });
+    // ALWAYS attach the receipt. The machine-derived fields (그때의 진짜 질문 /
+    // 검증 안 된 가정) are computed regardless; only human_judgment is optional.
+    // Previously the whole receipt was gated on the user typing a line, so the
+    // express 1-tap path (the default) saved NO receipt → settlement collapsed to a
+    // bare date + verdict chip with no then↔now to re-verify against. Empty
+    // human_judgment renders nothing in JudgmentReceipt, so this costs the user
+    // zero extra work while keeping the premise recall alive at settlement.
+    const judgment_receipt = { ...receiptFields, human_judgment: humanJudgment.trim(), check_by };
+    updateProject(project.id, { decision_contract: { ...next, judgment_receipt } });
     // Cross-surface return loop: if this logged-in user connected Telegram, mirror
     // the sealed contract into the one push channel that actually fires on the date
     // (the daily cron reads telegram_decisions, which web seals never wrote). Server
