@@ -223,16 +223,22 @@ function ProgressLine({ phase, crewDeployed = false }: { phase: string; crewDepl
           );
         })}
       </div>
-      <div className="grid grid-cols-5">
+      {/* Labels are absolutely positioned at the SAME % as their node
+          (i/(N-1)), not spread across equal grid columns — otherwise the dots
+          sit at 0/25/50/75/100% while grid-centered labels sit at 10/30/50/70/90%,
+          so the middle labels (질문/검토) visibly drift off their dots. Edges are
+          pinned (first left-aligned, last right-aligned) so they don't clip. */}
+      <div className="relative h-4">
         {STAGES.map((label, i) => {
+          const left = (i / (N - 1)) * 100;
           const done = i < idx || (isComplete && i <= N - 1);
           const active = !isComplete && i === idx;
+          const transform = i === 0 ? 'translateX(0)' : i === N - 1 ? 'translateX(-100%)' : 'translateX(-50%)';
           return (
             <span
               key={label}
-              className={`text-[11px] truncate transition-colors duration-500 ${
-                i === 0 ? 'text-left' : i === N - 1 ? 'text-right' : 'text-center'
-              } ${
+              style={{ left: `${left}%`, transform }}
+              className={`absolute top-0 text-[11px] whitespace-nowrap transition-colors duration-500 ${
                 done
                   ? 'text-[var(--accent)]/80 font-medium'
                   : active
