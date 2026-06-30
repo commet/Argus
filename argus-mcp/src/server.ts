@@ -52,6 +52,16 @@ export async function createServer(): Promise<Server> {
     })),
   }));
 
+  // Serialize tool calls so concurrent invocations can't interleave a
+  // read-replay-then-append against the same ledger (real hosts already wait
+  // for each response; this removes the foot-gun for batched/parallel clients).
+  let chain: Promise<unknown> = Promise.resolve();
+  const serialize = <T>(fn: () => Promise<T>): Promise<T> => {
+    const run = chain.then(fn, fn);
+    chain = run.then(() => undefined, () => undefined);
+    return run;
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   server.setRequestHandler(CallToolRequestSchema, async (request): Promise<any> => {
     const { name, arguments: args } = request.params;
@@ -63,7 +73,7 @@ export async function createServer(): Promise<Server> {
       };
     }
     try {
-      return await tool.handler((args || {}) as Record<string, unknown>);
+      return await serialize(() => tool.handler((args || {}) as Record<string, unknown>));
     } catch (e) {
       // Last-resort guard — individual handlers already map their own errors.
       logError(`[${name}] escaped handler`, e);
