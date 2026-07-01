@@ -168,7 +168,10 @@ export function Falsification({
                     ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                     : dimmed
                     ? 'border-[var(--border)] text-[var(--text-tertiary)] opacity-60'
-                    : 'text-[var(--text-primary)] hover:border-[var(--accent)]/70 cursor-pointer'
+                    // Keep border-[var(--border)] as a fallback — the inline color-mix
+                    // borderColor overrides it where supported, but if color-mix isn't
+                    // available the rung still has a visible border instead of none.
+                    : 'border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)]/70 cursor-pointer'
                 }`}
               >
                 <span className="inline-flex items-baseline gap-2">

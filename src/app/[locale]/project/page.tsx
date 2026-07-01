@@ -567,7 +567,12 @@ export default function ProjectPage() {
                     const isDue = dueIds.has(project.id);
                     const voyageState = getVoyageState({
                       started: m.startedEff,
-                      completedAllLegs: m.doneEff,
+                      // A SEALED contract (decision committed, awaiting its check-in
+                      // date weeks out) must count as "reached port" so it can never
+                      // drift/wreck on idleness — the user isn't expected to touch it
+                      // while it waits. Without contractSealed here a sealed-but-not-
+                      // settled project would flip to 표류/난파 after 14/30 idle days.
+                      completedAllLegs: m.doneEff || m.contractSealed,
                       lastActivityAt: m.lastActivityAt || project.updated_at || project.created_at || '',
                       hasCoda: !!project.meta_reflection || m.contractAllGraded,
                       lastLeg: m.lastActivityStepIdx >= 0 ? STEP_IDX_TO_LEG[m.lastActivityStepIdx] : null,

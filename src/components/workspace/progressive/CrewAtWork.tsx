@@ -159,26 +159,36 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
                   const isOpen = expandedId === w.id;
                   // Only offer expansion when there's genuinely more than the peek.
                   const hasMore = full.length > firstLine(w).replace(/…$/, '').length + 8;
+                  // Toggle control and the full report are SEPARATE — reading/scrolling
+                  // the open report must not collapse it (which a text-inside-button
+                  // accordion would do on any tap).
                   return (
                     <div className="mt-1">
-                      <button
-                        type="button"
-                        onClick={hasMore ? () => setExpandedId(isOpen ? null : w.id) : undefined}
-                        aria-expanded={hasMore ? isOpen : undefined}
-                        className={`w-full text-left group/rep ${hasMore ? 'cursor-pointer' : 'cursor-default'}`}
-                      >
-                        {isOpen ? (
+                      {isOpen ? (
+                        <>
                           <p className="text-[11.5px] text-[var(--text-secondary)] leading-[1.6] whitespace-pre-wrap max-h-[240px] overflow-y-auto pr-1">{full}</p>
-                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedId(null)}
+                            className="mt-1 inline-flex items-center gap-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                          >
+                            {L('접기', 'Collapse')} <ChevronDown size={11} className="rotate-180" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={hasMore ? () => setExpandedId(w.id) : undefined}
+                          className={`w-full text-left group/rep ${hasMore ? 'cursor-pointer' : 'cursor-default'}`}
+                        >
                           <p className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5] line-clamp-2">{firstLine(w)}</p>
-                        )}
-                        {hasMore && (
-                          <span className="mt-0.5 inline-flex items-center gap-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)] group-hover/rep:text-[var(--accent)] transition-colors">
-                            {isOpen ? L('접기', 'Collapse') : L('열어보기', 'Open report')}
-                            <ChevronDown size={11} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                          </span>
-                        )}
-                      </button>
+                          {hasMore && (
+                            <span className="mt-0.5 inline-flex items-center gap-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)] group-hover/rep:text-[var(--accent)] transition-colors">
+                              {L('열어보기', 'Open report')} <ChevronDown size={11} />
+                            </span>
+                          )}
+                        </button>
+                      )}
                     </div>
                   );
                 })() : w.status === 'error' ? (
