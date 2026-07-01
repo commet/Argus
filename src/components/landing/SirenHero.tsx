@@ -182,11 +182,27 @@ export function SirenHero() {
           className="bp-fade-up"
           style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 20, marginBottom: 16, display: 'flex', justifyContent: 'center', animationDelay: '200ms' }}
         >
+          {/* Matted, framed antique-plate treatment: a warm paper mat + a fine
+              ink plate-mark hairline + a deep grounded shadow, so the film reads
+              as a museum-matted engraving lifted off the page — presence without
+              gaudiness. The mat is the padding; the film sits inside the hairline. */}
           <div
-            className="w-full sm:w-[min(92vw,1160px)] sm:aspect-[16/9]"
-            style={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 10px 44px rgba(60,45,20,0.18), 0 2px 8px rgba(60,45,20,0.10)' }}
+            className="w-full sm:w-[min(92vw,1160px)]"
+            style={{
+              padding: 'clamp(7px, 1vw, 15px)',
+              background: 'linear-gradient(180deg, #f7f1e2 0%, #efe6d1 100%)',
+              borderRadius: 5,
+              border: '1px solid rgba(176,141,87,0.35)',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.55), 0 22px 55px -14px rgba(48,34,14,0.38), 0 6px 16px rgba(48,34,14,0.15)',
+            }}
           >
-            <VoyageFilm />
+            <div
+              className="sm:aspect-[16/9]"
+              style={{ overflow: 'hidden', borderRadius: 2, boxShadow: '0 0 0 1px rgba(70,50,20,0.38)' }}
+            >
+              <VoyageFilm />
+            </div>
           </div>
         </div>
 
