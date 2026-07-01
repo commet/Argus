@@ -122,7 +122,10 @@ export function SirenHero() {
             style={{
               color: 'var(--bp-ink-soft)',
               fontSize: 11,
-              letterSpacing: '0.22em',
+              // Latin small-caps want wide tracking; Hangul does NOT (wide
+              // tracking on 한글 reads amateurish). Locale-aware, shared by every
+              // micro-label in the hero (eyebrow / LOG ENTRY / scroll cue).
+              letterSpacing: locale === 'ko' ? '0.1em' : '0.22em',
               textTransform: 'uppercase',
               fontWeight: 500,
             }}
@@ -158,8 +161,8 @@ export function SirenHero() {
           className={`bp-fade-up mx-auto mt-4 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             color: 'var(--bp-ink-soft)',
-            fontSize: 'clamp(13.5px, 1.5vw, 15.5px)',
-            lineHeight: 1.7,
+            fontSize: 'clamp(14px, 1.55vw, 16px)',
+            lineHeight: 1.65,
             animationDelay: '140ms',
           }}
         >
@@ -222,9 +225,9 @@ export function SirenHero() {
           className={`bp-fade-up mx-auto mt-9 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             color: 'var(--bp-ink)',
-            fontSize: 'clamp(15px, 1.7vw, 17px)',
+            fontSize: 'clamp(14px, 1.55vw, 16px)',
             fontWeight: 500,
-            lineHeight: 1.55,
+            lineHeight: 1.65,
             animationDelay: '260ms',
           }}
         >
@@ -242,7 +245,7 @@ export function SirenHero() {
           {/* persistent label — purpose never depends on the disappearing placeholder */}
           <div className="flex items-center gap-2" style={{ marginBottom: 11 }}>
             <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
-            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11.5, letterSpacing: locale === 'ko' ? '0.06em' : '0.14em', textTransform: 'uppercase' }}>
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
               {L('LOG ENTRY · 들고 계신 결정', 'LOG ENTRY · the decision you carry')}
             </span>
           </div>
@@ -395,7 +398,7 @@ export function SirenHero() {
             aria-label={L('결정 하나를 끝까지 항해하는 과정 보기', 'Watch one decision navigated end to end')}
             className="bp-sounding inline-flex flex-col items-center gap-2"
           >
-            <span className="bp-mono" style={{ color: 'var(--bp-ink)', opacity: 0.72, fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.08em' : '0.26em', textTransform: 'uppercase' }}>
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
               {L('실제로 어떻게 되는지', 'See it work')}
             </span>
             <span aria-hidden="true" className="bp-sounding-line" />
