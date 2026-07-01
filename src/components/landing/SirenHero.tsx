@@ -232,9 +232,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>이제 당신 차례예요.<br />칭찬도 반박도 없이, 지금의 방위만 남길게요.</>
+            <>이제 당신 차례예요.<br />칭찬도 반박도 없이, 지금 서 있는 자리를 비춰드릴게요.</>
           ) : (
-            <>Now it’s your turn.<br />No flattery, no argument — just your current bearing.</>
+            <>Now it’s your turn.<br />No flattery, no argument — just a clear read on where you stand.</>
           )}
         </p>
 
