@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useReviewStore } from '@/stores/useReviewStore';
 import { ReceiptView } from './ReceiptView';
+import { SealModal } from './SealModal';
 import {
   ingest,
   runDocumentReview,
@@ -51,6 +52,7 @@ export function ReviewFlow() {
   const [worry, setWorry] = useState('');
   const [job, setJob] = useState<ReviewJob | null>(null);
   const [receipt, setReceipt] = useState<JudgmentReceipt | null>(null);
+  const [sealing, setSealing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const onFile = async (file: File) => {
@@ -117,8 +119,17 @@ export function ReviewFlow() {
   const canRun = text.trim().length > 20 || pendingBinary !== null;
 
   if (phase === 'done' && receipt) {
+    const sealed = receipt.state === 'sealed';
     return (
       <div className="max-w-2xl mx-auto w-full">
+        {sealed && (
+          <Card variant="success" className="mb-4">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-green-700 mb-1">봉인됨</div>
+            <p className="text-[13px] text-[var(--text-primary)]">
+              예측을 봉인했습니다. 확인일에 현실이 답할 때까지 이 판단은 살아 있습니다.
+            </p>
+          </Card>
+        )}
         <ReceiptView
           receipt={receipt}
           onOwn={(o, owned) => {
@@ -126,12 +137,25 @@ export function ReviewFlow() {
             const updated = store.getReceipt(receipt.receipt_id);
             if (updated) setReceipt(updated);
           }}
+          onSeal={() => setSealing(true)}
         />
         <div className="mt-6">
           <Button variant="ghost" size="sm" onClick={reset}>
             다른 문서 검수하기
           </Button>
         </div>
+        {sealing && receipt.falsifiable_followups.length > 0 && (
+          <SealModal
+            followups={receipt.falsifiable_followups}
+            onClose={() => setSealing(false)}
+            onSeal={(followupId, patch) => {
+              store.sealFollowup(receipt.receipt_id, followupId, patch);
+              const updated = store.getReceipt(receipt.receipt_id);
+              if (updated) setReceipt(updated);
+              setSealing(false);
+            }}
+          />
+        )}
       </div>
     );
   }

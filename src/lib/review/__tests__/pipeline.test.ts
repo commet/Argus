@@ -146,6 +146,26 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(r.provenance.lens_versions[errored[0].id]).toBeUndefined();
   });
 
+  it('scrubs internal unit ids the model leaks into user-facing prose', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const uid = artifact.units[0].unit_id;
+    const base = mockLLM(artifact);
+    const llm: ReviewLLM = {
+      model_name: base.model_name, model_provider: base.model_provider,
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (args.system.includes('렌즈다')) {
+          return { findings: [{ title: `${uid}의 결론에 근거 없음`, detail: `${uid} 문장이 문제`, severity: 'critical', confidence: 'high', suggested_action: '확인', unit_ids: [uid] }] } as T;
+        }
+        return base.json<T>(args);
+      },
+    };
+    const { receipt } = await runDocumentReview(artifact, { llm, today: '2026-07-01' });
+    const f = receipt!.findings[0];
+    expect(f.title).not.toContain('u_');
+    expect(f.detail).not.toContain('u_');
+    expect(f.anchors.length).toBeGreaterThan(0); // anchor still resolved from the array
+  });
+
   it('returns needs_context for an unsupported artifact without calling the model', async () => {
     const artifact = ingest({ source_kind: 'pdf', title: 'scan.pdf' });
     let called = false;

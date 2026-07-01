@@ -10,7 +10,15 @@
 
 import { create } from 'zustand';
 import { STORAGE_KEYS, getStorage, setStorage } from '@/lib/storage';
-import { type JudgmentReceipt, type ReceiptState } from '@/lib/review';
+import { type JudgmentReceipt, type ReceiptState, type FalsifiableFollowup } from '@/lib/review';
+
+/** Fields the user owns when sealing a prediction (design doc §Ownership Modal). */
+export interface SealPatch {
+  predicate: string;
+  pass_condition: string;
+  fail_condition: string;
+  check_by: string;
+}
 
 interface ReviewState {
   receipts: JudgmentReceipt[];
@@ -21,6 +29,8 @@ interface ReviewState {
   /** toggle a judgment obligation as user-owned; flips receipt state to owned. */
   setObligationOwned: (receiptId: string, obligationId: string, owned: boolean) => void;
   setReceiptState: (receiptId: string, state: ReceiptState) => void;
+  /** Seal a falsifiable follow-up: the user owns the predicate; receipt→sealed. */
+  sealFollowup: (receiptId: string, followupId: string, patch: SealPatch) => void;
   remove: (receiptId: string) => void;
 }
 
@@ -64,6 +74,29 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     const next = get().receipts.map((r) =>
       r.receipt_id === receiptId ? { ...r, state, updated_at: new Date().toISOString() } : r,
     );
+    set({ receipts: next });
+    persist(next);
+  },
+
+  sealFollowup: (receiptId, followupId, patch) => {
+    const now = new Date().toISOString();
+    const next = get().receipts.map((r) => {
+      if (r.receipt_id !== receiptId) return r;
+      const followups: FalsifiableFollowup[] = r.falsifiable_followups.map((f) =>
+        f.followup_id === followupId
+          ? {
+              ...f,
+              predicate: patch.predicate.trim() || f.predicate,
+              pass_condition: patch.pass_condition,
+              fail_condition: patch.fail_condition,
+              check_by: patch.check_by,
+              predicate_owner: 'user', // the user now owns it — no longer ai_surfaced
+              sealed_at: now,
+            }
+          : f,
+      );
+      return { ...r, falsifiable_followups: followups, state: 'sealed' as ReceiptState, updated_at: now };
+    });
     set({ receipts: next });
     persist(next);
   },

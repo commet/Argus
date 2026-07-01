@@ -247,12 +247,12 @@ function normalizeMap(raw: Record<string, unknown>, resolve: (ids: unknown) => S
     implicit_recommendation: s(raw['implicit_recommendation']) || undefined,
     main_claims: arr(raw['main_claims']).map((c) => ({
       claim_id: stableId('claim', s(c['text'])),
-      text: s(c['text']),
+      text: scrubIds(s(c['text'])),
       status: (['supported', 'weak', 'unsupported', 'human_check', 'contradicted'].includes(String(c['status']))
         ? c['status']
         : 'weak') as Claim['status'],
       anchors: resolve(c['unit_ids']),
-      rationale: s(c['rationale']),
+      rationale: scrubIds(s(c['rationale'])),
     })).filter((c) => c.text),
     evidence_items: arr(raw['evidence_items']).map((e) => ({
       evidence_id: stableId('ev', s(e['text'])),
@@ -263,9 +263,9 @@ function normalizeMap(raw: Record<string, unknown>, resolve: (ids: unknown) => S
     })).filter((e) => e.text),
     assumptions: arr(raw['assumptions']).map((a) => ({
       assumption_id: stableId('asm', s(a['text'])),
-      text: s(a['text']),
+      text: scrubIds(s(a['text'])),
       anchors: resolve(a['unit_ids']),
-      if_false: s(a['if_false']),
+      if_false: scrubIds(s(a['if_false'])),
     })).filter((a) => a.text),
     tradeoffs: arr(raw['tradeoffs']).map((t) => ({
       tradeoff_id: stableId('to', s(t['text'])),
@@ -300,11 +300,11 @@ function normalizeFindings(raw: unknown, lensId: LensId, resolve: (ids: unknown)
       return {
         finding_id: stableId('find', lensId, s(f['title'])),
         lens_id: lensId,
-        title: s(f['title']),
-        detail: s(f['detail']),
+        title: scrubIds(s(f['title'])),
+        detail: scrubIds(s(f['detail'])),
         severity: (['minor', 'caution', 'critical'].includes(String(f['severity'])) ? f['severity'] : 'caution') as Finding['severity'],
         confidence,
-        suggested_action: s(f['suggested_action']) || undefined,
+        suggested_action: s(f['suggested_action']) ? scrubIds(s(f['suggested_action'])) : undefined,
         anchors,
         provenance: 'ai_surfaced' as const,
       };
@@ -319,11 +319,11 @@ function normalizeObligations(raw: unknown, resolve: (ids: unknown) => SourceAnc
     .filter((o): o is Record<string, unknown> => !!o && typeof o === 'object')
     .map((o) => ({
       obligation_id: stableId('obl', s(o['statement'])),
-      statement: s(o['statement']),
+      statement: scrubIds(s(o['statement'])),
       owner: s(o['owner'], '사용자'),
-      why_human: s(o['why_human']),
+      why_human: scrubIds(s(o['why_human'])),
       decision_needed_by: s(o['decision_needed_by']) || undefined,
-      evidence_needed: s(o['evidence_needed']) || undefined,
+      evidence_needed: s(o['evidence_needed']) ? scrubIds(s(o['evidence_needed'])) : undefined,
       anchors: resolve(o['unit_ids']),
       owned_by_user: false,
     }))
@@ -468,6 +468,20 @@ function relevantUnits(units: ArtifactUnit[], lens: { id: LensId }, limit: numbe
 // ---------------------------------------------------------------------------
 // Small pure utils
 // ---------------------------------------------------------------------------
+
+/**
+ * Belt-and-suspenders: strip any internal unit id (u_abc123) the model leaked
+ * into user-facing prose, so the receipt never shows raw identifiers. The
+ * prompt already forbids this; this is the fallback. Anchors still come from the
+ * unit_ids arrays, untouched.
+ */
+function scrubIds(s: string): string {
+  return s
+    .replace(/\bu_[0-9a-f]{4,12}\b/gi, '해당 부분')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\(\s*[·,]\s*/g, '(')
+    .trim();
+}
 
 function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0.5;
