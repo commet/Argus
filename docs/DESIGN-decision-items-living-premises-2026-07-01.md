@@ -375,17 +375,21 @@ CLAUDE.md single-source: **두뇌(lib) 하나 공유, 표현만 분리.**
   삭제(reject)·전제별 알림 종 토글(off↔on_change). project/page.tsx에 배선. tsc 클린.
 - ⬜ override 신호 → `/argus:principles`/patterns 비준 흐름 연결 (다음).
 
-### Phase 3 — 살아있는 전제 알림 (전달층)
+### Phase 3 — 살아있는 전제 알림 ✅ **온디맨드 루프 완료 (2026-07-01)**
 - ✅ drift 판정 코어(`premise-drift.ts`).
 - ✅ 항목별 알림 on/off UI: 웹 종 토글(DecisionItemsCard) + 플러그인 토글(track).
-- ⬜ web 재확인 실행: 웹 edge function 스케줄 / 플러그인 `check-contracts` 확장
-  (`isDueForRecheck` → WebSearch → `evaluateDrift` → `shouldFireAlert`).
-- ⬜ 전달: 공유 허브(이메일·텔레그램·푸시) / SessionStart 훅.
-- ⬜ 미결 재고(예시 함께) 인터랙션.
+- ✅ **재확인 실행 + 알림 전달 (온디맨드): `/argus:track check`** — 감시 대상
+  전제를 골라 WebSearch로 현재 사실을 확인, `premise-drift`와 같은 규칙으로 drift
+  판정, 바뀐 것만 알림(전제 수정 / 알림 끄기 / 넘어가기=후퇴). `recheck` 이벤트로
+  baseline 갱신. 인프라 불필요, 지금 작동.
+- ⬜ **(선택, 인프라 의존) 자동 스케줄** — 온디맨드를 자동으로: 웹 edge function
+  cron / SessionStart 훅에 "재확인할 전제 N개" 한 줄. 훅은 strict-contract·테스트
+  대상이라 별도 신중 작업으로 분리.
+- ⬜ 미결(open_question) 재고(예시 함께) 인터랙션.
 
-**요약:** Phase 1·1b·2 완료 — 공유 두뇌, 마이그레이션 적용, 플러그인 vertical,
-웹앱 편집 카드까지. 남은 것은 Phase 3의 **재확인 실행·전달층**(전제 drift를 실제로
-web에서 확인해 알림을 쏘는 스케줄/훅)과 override 비준 연결.
+**요약:** Phase 1·1b·2·3(온디맨드) 완료 — 스키마·추출·편집신호·알림설정·drift코어·
+편집 UI(플러그인+웹)·재확인 실행/전달까지 **결정 루프가 끝에서 끝까지 작동**. 남은
+것은 선택적 자동 스케줄(인프라)과 override 비준(`/principles`) 연결뿐.
 
 **검증 메모(2026-07-01):** tsc 클린 + 유닛 1579 green + 실DB 왕복. 웹 카드의 브라우저
 실행 렌더 검증은 이 워크트리에 `.env.local`(supabaseUrl)이 없어 앱이 Supabase 초기화

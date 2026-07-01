@@ -38,6 +38,8 @@ Events:
   (action ∈ accept | refine | replace | reject).
 - `alert` — the user sets an item's alert mode: `{event:"alert", id, mode, at}`
   (mode ∈ off | on_change | weekly | monthly).
+- `recheck` — a premise was re-checked against reality: `{event:"recheck", id,
+  last_value, at}` (updates the drift baseline + last-checked time).
 - `dismiss` — the user dismissed an item's alert: `{event:"dismiss", id, at}`.
 
 State = replay by id. `reject` retires an item (keep it, mark retired). Two
@@ -78,7 +80,7 @@ Phenomena
 Open questions
   [Q1] {{text}}
 
-Edit: /argus:track edit P1 · Alert: /argus:track alert P1 off
+Edit: /argus:track edit P1 · Alert: /argus:track alert P1 off · Re-check: /argus:track check
 ```
 Show at most ~12 items; note if more.
 
@@ -99,6 +101,33 @@ re-summarize it. This is the authorship transfer; the item becomes `ai_edited_by
 For `alert <ref> <mode>`, append `{event:"alert", id, mode, at}`. Confirm in one line:
 `{{ref}} 알림: {{mode}}.` For an external premise, `on_change` means "re-check the
 fact periodically and tell you only if it actually changed."
+
+### Step 5 — Re-check monitored premises (`/argus:track check`)
+The living-premises alert: re-check whether a premise's fact still holds, and pull
+the user back in ONLY when it actually changed. This is on-demand (no infra) — the
+firing threshold is high, so silence is the common result.
+
+1. **Select** premises to re-check: `type == premise` AND `external == true` AND
+   `alert.mode == on_change` AND fewer than 2 `dismiss` events (not backed off) AND
+   due (no `recheck` yet, or the last `recheck` is >7 days old). Cap at 3 per run
+   (oldest-checked first). If none: print `재확인할 전제가 없어요.` and stop.
+2. For each, **WebSearch** the premise's fact and write ONE short, factual,
+   comparable line for its CURRENT state (e.g. premise "금리가 올해 동결된다" →
+   current "한국은행 기준금리 3.50%, 이번 달 0.25%p 인상"). Keep it literal.
+3. **Decide drift** (mechanical, mirrors `src/lib/premise-drift.ts` — do NOT
+   free-judge): numeric facts drift when they move ≥10% or the sign flips; text
+   facts drift when the summary changed. First-ever check = baseline only (never
+   alerts). Append `{event:"recheck", id, last_value:"<current line>", at}` either
+   way (updates the baseline + last-checked).
+4. **If drifted → fire ONE alert** (literal, a fact + a question, never a verdict):
+   > 전제가 된 사실이 바뀜: "{{premise}}" → {{what changed}}.
+   > 이 결정 다시 볼래요?  [전제 수정] [이 알림 끄기] [넘어가기]
+   - `전제 수정` → `edit` event (`replace`, user's wording).
+   - `이 알림 끄기` → `alert` event (`off`).
+   - `넘어가기` → `dismiss` event (2 of these auto-quiet the alert — restraint
+     learned from behavior).
+   **If not drifted → stay silent** for that premise (the `recheck` event is still
+   written; do not report "no change" as noise).
 
 ---
 
