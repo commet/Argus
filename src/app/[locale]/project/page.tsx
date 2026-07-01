@@ -629,7 +629,7 @@ export default function ProjectPage() {
                         <VoyageEta contract={project.decision_contract} className="self-start normal-case tracking-normal" />
 
                         {/* Title */}
-                        <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-[1.35] line-clamp-2 group-hover:text-[var(--accent)] transition-colors">
+                        <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-[1.35] line-clamp-2 break-words min-w-0 group-hover:text-[var(--accent)] transition-colors">
                           {project.name}
                         </h3>
 
@@ -763,7 +763,7 @@ export default function ProjectPage() {
               stores), so it only renders for legacy-tool projects. */}
           <Card>
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{currentProject.name}</h2>
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)] break-words min-w-0">{currentProject.name}</h2>
               {currentHasVoyage && (
                 <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
                   {currentVoyageStatusLabel}

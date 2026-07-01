@@ -78,6 +78,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, synced: false, reason: 'no_telegram' });
   }
 
+  // IDOR guard: `id` is a CLIENT-supplied PK and this upsert runs under the
+  // service role (RLS-bypassing). If a row with this id already exists under a
+  // DIFFERENT user, upserting would re-attribute it — overwriting their user_id /
+  // decision / check_by and killing/redirecting their reminder. Refuse instead of
+  // clobbering someone else's sealed decision. (New id → no row → proceeds.)
+  const { data: existing } = await admin
+    .from('telegram_decisions')
+    .select('user_id')
+    .eq('id', projectId)
+    .maybeSingle();
+  if (existing && existing.user_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+  }
+
   // Upsert keyed on the web project id (a uuid) so re-sealing the same decision
   // updates the row in place and RE-ARMS the reminder (reminded_at=null) for the
   // new date — rather than stacking a duplicate reminder per re-seal.
