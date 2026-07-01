@@ -29,6 +29,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
 import { VoyageFilm } from './films/VoyageFilm';
 
@@ -382,6 +383,46 @@ export function SirenHero() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* The other door — a decision already written down. Surfaced right
+            under the log entry (not buried in the nav) so a first-timer sees
+            both ways in: write a fresh one, OR bring an existing doc for review.
+            Understated ink + a dashed chart-field border — never gold (gold is
+            spent once, on the CTA above). */}
+        <div className="bp-fade-up mx-auto" style={{ animationDelay: '360ms', maxWidth: 600, marginTop: 18 }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
+            <span aria-hidden="true" style={{ flex: 1, height: 1, background: 'var(--bp-ink-faint)' }} />
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
+              {L('또는', 'or')}
+            </span>
+            <span aria-hidden="true" style={{ flex: 1, height: 1, background: 'var(--bp-ink-faint)' }} />
+          </div>
+          <LocaleLink
+            href="/tools/review"
+            className="group block text-left transition-colors hover:bg-[var(--bp-paper-deep)]"
+            style={{ border: '1px dashed var(--bp-ink-faint)', borderRadius: 4, padding: '14px 18px' }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className={locale === 'ko' ? 'break-keep' : ''}>
+                <div style={{ color: 'var(--bp-ink)', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>
+                  {L('이미 써둔 전략안·기획안이 있나요?', 'Already wrote the strategy or plan?')}
+                </div>
+                <div style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
+                  {L(
+                    '전략안·기획안·PDF·PPT를 그대로 올리면, 사람이 책임질 판단과 근거 약한 주장을 원문 위치까지 짚어드려요.',
+                    'Upload a strategy memo, plan, PDF or deck — Argus surfaces the judgment calls and weak evidence, anchored to the source.',
+                  )}
+                </div>
+              </div>
+              <span
+                className="bp-mono shrink-0 transition-transform group-hover:translate-x-0.5"
+                style={{ color: 'var(--bp-ink)', fontSize: 11.5, letterSpacing: locale === 'ko' ? '0.02em' : '0.14em', whiteSpace: 'nowrap' }}
+              >
+                {L('검수받기 →', 'Review →')}
+              </span>
+            </div>
+          </LocaleLink>
         </div>
 
         {/* The film above already SHOWS the mechanic (separate reads → the fork
