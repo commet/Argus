@@ -192,4 +192,28 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(seen).toContain('synthesizing');
     expect(seen[seen.length - 1]).toBe('ready');
   });
+
+  it('forwards the abort signal to the model and turns a cancel into a failed job (never throws)', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const controller = new AbortController();
+    let sawSignal = false;
+    // Mirror the real adapter: honor the caller's abort by throwing, exactly as
+    // the /api/llm client does. The pipeline must catch it and resolve to a
+    // 'failed' job so ReviewFlow's cancel returns cleanly instead of rejecting.
+    const llm: ReviewLLM = {
+      model_name: 'mock', model_provider: 'local',
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (args.signal) sawSignal = true;
+        if (args.signal?.aborted) throw new Error('요청이 취소되었습니다.');
+        return {} as T;
+      },
+    };
+    controller.abort();
+    const result = await runDocumentReview(artifact, {
+      llm, today: '2026-07-01', signal: controller.signal,
+    });
+    expect(sawSignal).toBe(true);        // signal reached the model call
+    expect(result.job.status).toBe('failed'); // abort surfaced as failure, not a throw
+    expect(result.receipt).toBeUndefined();
+  });
 });

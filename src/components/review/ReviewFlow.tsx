@@ -63,7 +63,11 @@ export function ReviewFlow() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sealing, setSealing] = useState(false);
   const [settlingId, setSettlingId] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Lets the user cancel an in-flight review. Without it a long extraction on a
+  // large document reads as a frozen "분석 중" screen with no way out.
+  const abortRef = useRef<AbortController | null>(null);
 
   // Load persisted receipts once; open on the list when any exist, else import.
   useEffect(() => {
@@ -71,6 +75,14 @@ export function ReviewFlow() {
     const has = useReviewStore.getState().receipts.length > 0;
     setPhase(has ? 'list' : 'import');
   }, []);
+
+  // Elapsed counter while a review runs — turns the otherwise static spinner
+  // into live feedback (and gates the "오래 걸리고 있어요" reassurance below).
+  useEffect(() => {
+    if (phase !== 'running') { setElapsed(0); return; }
+    const t = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [phase]);
 
   // Derive the active receipt from the store so seal/settle/own reflect live.
   const receipt = useMemo(
@@ -141,11 +153,25 @@ export function ReviewFlow() {
       extraction_quality: preExtracted?.quality,
       extraction_notes: preExtracted?.note ? [preExtracted.note] : undefined,
     });
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setElapsed(0);
     setPhase('running');
     const { job: finalJob, receipt: r } = await runDocumentReview(artifact, {
       context: ctx,
       onProgress: setJob,
+      signal: controller.signal,
     });
+    abortRef.current = null;
+    // User cancelled mid-run → return to the import screen quietly (their text
+    // is still there), no error card. The pipeline swallows the abort into a
+    // 'failed' job, so check the signal rather than the job status.
+    if (controller.signal.aborted) {
+      setJob(null);
+      setPhase('import');
+      track('review_cancelled', { elapsed_s: elapsed });
+      return;
+    }
     setJob(finalJob);
     if (r && (finalJob.status === 'ready' || finalJob.status === 'needs_context')) {
       // store_source: keep the original for the side-by-side workspace on return.
@@ -318,10 +344,18 @@ export function ReviewFlow() {
   }
 
   if (phase === 'running') {
+    const longWait = elapsed >= 25;
+    const mm = Math.floor(elapsed / 60);
+    const ss = String(elapsed % 60).padStart(2, '0');
     return (
       <div className="max-w-2xl mx-auto w-full">
         <Card variant="elevated">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-2">검수 중</div>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">검수 중</div>
+            <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]">
+              {mm > 0 ? `${mm}:${ss}` : `${elapsed}초`}
+            </span>
+          </div>
           <p className="text-[15px] text-[var(--text-primary)]">{job?.progress_label ?? '문서를 읽는 중'}…</p>
           <div className="mt-3 flex gap-1">
             {['profiling', 'mapping', 'routing', 'reviewing', 'synthesizing'].map((s) => (
@@ -332,6 +366,18 @@ export function ReviewFlow() {
                 }`}
               />
             ))}
+          </div>
+          {/* Long-wait reassurance — a big real document can take a while to
+              read. Says it's still working (not stuck) and offers a way out. */}
+          {longWait && (
+            <p className="mt-3 text-[12px] text-[var(--text-secondary)] leading-[1.6]">
+              긴 문서라 평소보다 오래 걸리고 있어요 — 계속 읽는 중입니다. 너무 길면 취소하고 더 짧게 나눠서 검수해 보세요.
+            </p>
+          )}
+          <div className="mt-4">
+            <Button variant="ghost" size="sm" onClick={() => abortRef.current?.abort()}>
+              취소
+            </Button>
           </div>
         </Card>
       </div>
