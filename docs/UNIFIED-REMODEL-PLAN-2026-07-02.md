@@ -118,6 +118,9 @@
 - **신규 ③** 워크스페이스 ON FILE 도어(→/tools/review) — hero와 여정 일관.
 - **P1:** 금색 규칙 롤아웃(CurrentBearingCard/FinalCard/Falsification), 다크모드 토큰 parity(--ai-fg 등 페어드 토큰 + Badge/Card/Synthesize/RecastLoader), Synthesize judgment 디바운스, SealMoment stakes 게이트, VoyageFilm reduced-motion 포스터 게이트 + aria-live 트랩 제거, plateTitle 리워딩. (Playwright: 토큰 remap + reduced-motion 포스터 게이트 통과.)
 - **P2/P3 안전 슬라이스:** Footer © 아이덴티티 + 44px 링크; Logbook 토글 44px.
+- **P3 추가분(재시작 후):** Boss calibration 5s auto-fire 제거→저장 시에만(미러 조항); Synthesize/Reframe bg-transparent 입력 focus ring(WCAG 2.4.7); Boss verdict `role=heading`+`role=status aria-live`; Boss verdict/calibration pill 44px + wrap.
+
+> **머지 상태:** 위 전부 `origin/main`에 반영됨(`d45f218` 대규모 머지 + `552eb7d` a11y 배치 FF). 각 배치 tsc/eslint/vitest/build 그린 확인 후 머지.
 
 ### ⏳ 남은 P2/P3 (후속 — 설계 반복이 필요해 야간 blind 구현에서 제외, main 그린 유지 목적)
 - **설정 화면 IA:** 좌측 section-nav + 우측 panel, danger zone 격리, 폼 밀도.
