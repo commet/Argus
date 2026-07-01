@@ -23,6 +23,7 @@ export const STORAGE_KEYS = {
   EXECUTION_TRANSCRIPTS: 'sot_execution_transcripts',
   BOSS_COLLECTION: 'sot_boss_collection',
   DECISION_ITEMS: 'sot_decision_items',
+  REVIEW_RECEIPTS: 'sot_review_receipts',
 } as const;
 
 export function getStorage<T>(key: string, fallback: T): T {

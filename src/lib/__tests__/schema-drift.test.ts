@@ -68,6 +68,14 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     'id', 'user_id', 'plugin_decision_id', 'ledger_id', 'event_id', 'event',
     'payload', 'source', 'applied_at', 'created_at',
   ],
+  // ← 2026-07-01 Judgment Review: the rich JudgmentReceipt rides in `data` jsonb
+  // (drift-proof), so this table is NOT a field-by-field synced interface — it is
+  // absent from the it.each list below on purpose. Only the lifted query columns
+  // + the soft-delete column are asserted here.
+  review_receipts: [
+    'id', 'user_id', 'state', 'source_title', 'source_kind', 'next_check_by',
+    'data', 'created_at', 'updated_at', 'deleted_at', 'companion_notified_at',
+  ],
   // ← 2026-06-19 backend audit: the guard covered only 7 of 18 synced interfaces,
   // which is exactly why the agents *En drift went live. Cover the rest.
   agents: [
@@ -215,7 +223,7 @@ describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 �
 
   it('소프트삭제 대상 테이블은 deleted_at 컬럼을 갖는다 (부활 버그 회귀 방지)', () => {
     // SoftDeletableTable 중 실제 컬럼을 매니페스트로 검증 가능한 것만.
-    for (const table of ['projects', 'personas', 'reframe_items', 'recast_items', 'synthesize_items']) {
+    for (const table of ['projects', 'personas', 'reframe_items', 'recast_items', 'synthesize_items', 'review_receipts']) {
       expect(TABLE_COLUMNS[table], `${table}: soft-delete가 쓰는 deleted_at 컬럼 누락`).toContain('deleted_at');
     }
   });

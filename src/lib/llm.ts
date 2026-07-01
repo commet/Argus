@@ -171,8 +171,20 @@ async function fetchWithRetry(
   checkCircuit(provider);
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // Hard ceiling on each non-streaming attempt. Without it a dead socket / 529
+    // overload leaves a user-facing call spinning for the SDK/browser default
+    // (~minutes), and the caller's finally-loading-reset never runs. Mirrors the
+    // streaming HARD_CAP watchdog. Combine with any caller-supplied abort signal.
+    const timeoutCtl = new AbortController();
+    const to = setTimeout(() => timeoutCtl.abort(), 120_000);
+    const callerSignal = init.signal;
+    if (callerSignal) {
+      if (callerSignal.aborted) timeoutCtl.abort();
+      else callerSignal.addEventListener('abort', () => timeoutCtl.abort(), { once: true });
+    }
     try {
-      const res = await fetch(input, init);
+      const res = await fetch(input, { ...init, signal: timeoutCtl.signal });
+      clearTimeout(to);
 
       if (res.ok) {
         recordSuccess(provider);
@@ -204,12 +216,25 @@ async function fetchWithRetry(
       }
       await new Promise(r => setTimeout(r, delay));
     } catch (error) {
+      clearTimeout(to);
       if (error instanceof LLMError) throw error;
-      // AbortError: 사용자 취소 — 재시도하지 않음
+      // AbortError: distinguish a real user-cancel (caller signal aborted) from
+      // OUR hard-cap timeout. User cancel → don't retry. Timeout → treat as a
+      // retryable network error so the loop can try again, then surface a clear
+      // failure instead of "요청이 취소되었습니다" (which would be a lie on timeout).
       if (error instanceof DOMException && error.name === 'AbortError') {
-        throw new LLMError('요청이 취소되었습니다.', {
-          category: 'network', retryable: false, cause: error,
-        });
+        if (callerSignal?.aborted) {
+          throw new LLMError('요청이 취소되었습니다.', {
+            category: 'network', retryable: false, cause: error,
+          });
+        }
+        if (attempt === maxRetries) {
+          throw new LLMError('요청이 시간 내에 완료되지 않았어요. 잠시 후 다시 시도해 주세요.', {
+            category: 'network', retryable: true, cause: error,
+          });
+        }
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+        continue;
       }
       if (attempt === maxRetries) {
         recordFailure(provider);

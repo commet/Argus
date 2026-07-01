@@ -795,6 +795,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedCommand, setCopiedCommand] = useState(false);
+  const [copiedEnv, setCopiedEnv] = useState(false);
   const [error, setError] = useState('');
 
   const load = async () => {
@@ -832,8 +833,8 @@ function PluginTokenBlock({ locale }: { locale: string }) {
     <div>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[14px] font-medium flex items-center gap-1.5"><KeyRound size={14} className="text-[var(--accent)]" /> {L('플러그인 동기화 토큰', 'Plugin sync token')}</p>
-          <p className="text-[12px] text-[var(--text-secondary)]">{L('토큰 발급 후 플러그인에서 /argus:connect, 평소에는 /argus:sync를 실행하세요.', 'After issuing a token, run /argus:connect in the plugin; use /argus:sync day to day.')}</p>
+          <p className="text-[14px] font-medium flex items-center gap-1.5"><KeyRound size={14} className="text-[var(--accent)]" /> {L('터미널 동기화 토큰 (플러그인 · MCP)', 'Terminal sync token (plugin · MCP)')}</p>
+          <p className="text-[12px] text-[var(--text-secondary)]">{L('플러그인: /argus:connect 후 /argus:sync. MCP: 아래 ARGUS_TOKEN을 설정에 넣으면 봉인한 예측이 이메일과 대시보드로 돌아옵니다.', 'Plugin: /argus:connect then /argus:sync. MCP: put ARGUS_TOKEN below in your config so sealed predictions return by email + dashboard.')}</p>
         </div>
         <Button variant="secondary" size="sm" onClick={issue} disabled={busy}>
           {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} {L('새 토큰 발급', 'Issue token')}
@@ -871,6 +872,24 @@ function PluginTokenBlock({ locale }: { locale: string }) {
               <code className="font-mono">/argus:sync</code>
               {L('로 웹앱과 로컬 ledger를 맞추면 됩니다.', ' to keep the webapp and local ledger aligned.')}
             </p>
+          </div>
+          {/* MCP: env var for argus-mcp config */}
+          <div className="mt-2 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] p-2.5">
+            <p className="text-[11px] text-[var(--text-tertiary)] mb-1">{L('MCP 사용 시 — 설정 env에 붙여넣기', 'Using MCP — paste into your config env')}</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-[11.5px] font-mono break-all">{`"ARGUS_TOKEN": "${issued}"`}</code>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(`"ARGUS_TOKEN": "${issued}"`);
+                  setCopiedEnv(true);
+                  setTimeout(() => setCopiedEnv(false), 2000);
+                }}
+              >
+                {copiedEnv ? <Check size={13} /> : <Copy size={13} />} {L('복사', 'Copy')}
+              </Button>
+            </div>
           </div>
         </div>
       )}

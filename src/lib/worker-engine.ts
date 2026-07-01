@@ -439,16 +439,24 @@ export async function runPipeline(
 // ─── Web Search ───
 
 async function fetchSearchResults(query: string, locale?: 'ko' | 'en'): Promise<SearchResult[]> {
+  // Hard cap: web search runs BEFORE the streaming watchdog is armed, so a hung
+  // Brave/socket would leave the worker 'running' forever with no recovery but a
+  // reload. Best-effort — timeout degrades to no results, never blocks the worker.
+  const ctl = new AbortController();
+  const to = setTimeout(() => ctl.abort(), 8000);
   try {
     const res = await fetch('/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: query.slice(0, 300), locale: locale ?? getCurrentLanguage() }),
+      signal: ctl.signal,
     });
     if (!res.ok) return [];
     const { results } = await res.json();
     return results || [];
   } catch {
     return [];
+  } finally {
+    clearTimeout(to);
   }
 }

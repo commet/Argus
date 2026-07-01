@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, RotateCw, Loader2, ExternalLink, X, Repeat } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -75,6 +75,21 @@ function ResultModal({ worker, content, onClose, onApprove, onReject }: {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const body = content ?? worker.result ?? '';
+  // a11y: this was a bare overlay (no dialog role, no Escape, focus leaked behind
+  // it and was lost on close). Give it the same baseline the shared Modal has —
+  // Escape to close, focus the panel on open, restore focus to the opener on close.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const prevFocus = typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const raf = requestAnimationFrame(() => panelRef.current?.focus());
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      cancelAnimationFrame(raf);
+      prevFocus?.focus?.();
+    };
+  }, [onClose]);
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -82,11 +97,15 @@ function ResultModal({ worker, content, onClose, onApprove, onReject }: {
     >
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <motion.div
+        ref={panelRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10 }}
         transition={{ duration: 0.3, ease: EASE }}
-        className="relative w-full sm:max-w-2xl max-h-[85dvh] sm:max-h-[80dvh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col"
+        className="relative w-full sm:max-w-2xl max-h-[85dvh] sm:max-h-[80dvh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col focus:outline-none"
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 sm:px-6 py-4 border-b border-[var(--border-subtle)] shrink-0">

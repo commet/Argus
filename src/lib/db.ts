@@ -20,9 +20,9 @@ type TableName = 'projects' | 'personas' | 'reframe_items' | 'recast_items'
   | 'synthesize_items'
   | 'progressive_sessions'
   | 'plugin_decisions' | 'plugin_bearings' | 'plugin_events'
-  | 'decision_items';
+  | 'decision_items' | 'review_receipts';
 
-type SoftDeletableTable = 'projects' | 'personas' | 'reframe_items' | 'recast_items' | 'synthesize_items';
+type SoftDeletableTable = 'projects' | 'personas' | 'reframe_items' | 'recast_items' | 'synthesize_items' | 'review_receipts';
 
 /**
  * Strip fields that must only be set by the server/database.

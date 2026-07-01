@@ -29,6 +29,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
 import { VoyageFilm } from './films/VoyageFilm';
 
@@ -38,6 +39,7 @@ export function SirenHero() {
   const router = useLocaleRouter();
   const [text, setText] = useState('');
   const [focused, setFocused] = useState(false);
+  const [reviewHover, setReviewHover] = useState(false);
 
   // Cold-start cure: rotate the empty field through real held-decision
   // examples so a first-timer is never staring at a blank canvas wondering
@@ -122,7 +124,10 @@ export function SirenHero() {
             style={{
               color: 'var(--bp-ink-soft)',
               fontSize: 11,
-              letterSpacing: '0.22em',
+              // Latin small-caps want wide tracking; Hangul does NOT (wide
+              // tracking on 한글 reads amateurish). Locale-aware, shared by every
+              // micro-label in the hero (eyebrow / LOG ENTRY / scroll cue).
+              letterSpacing: locale === 'ko' ? '0.1em' : '0.22em',
               textTransform: 'uppercase',
               fontWeight: 500,
             }}
@@ -158,15 +163,15 @@ export function SirenHero() {
           className={`bp-fade-up mx-auto mt-4 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             color: 'var(--bp-ink-soft)',
-            fontSize: 'clamp(13.5px, 1.5vw, 15.5px)',
-            lineHeight: 1.7,
+            fontSize: 'clamp(14px, 1.55vw, 16px)',
+            lineHeight: 1.65,
             animationDelay: '140ms',
           }}
         >
           {locale === 'ko' ? (
-            <>Argus는 그것을 살아 있는 항로로 남깁니다.<br />갈림길, 검증된 주장, 현재 방위, 그리고 현실이 답할 때의 귀환까지.</>
+            <>지나간 결정도, 그 근거까지 남으면 자산이 돼요.<br />Argus가 당신의 판단을 항로로 남겨, 다음 결정을 도와요.</>
           ) : (
-            <>Argus keeps them alive as courses.<br />With forks, checked claims, a current bearing, and a return when reality answers.</>
+            <>A decision compounds only when its reasoning is kept too.<br />Argus keeps your judgment as a course, to steer what comes next.</>
           )}
         </p>
 
@@ -180,63 +185,89 @@ export function SirenHero() {
             Mobile (<640px): VoyageFilm's content-driven stack (video + caption). */}
         <div
           className="bp-fade-up"
-          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 20, marginBottom: 16, display: 'flex', justifyContent: 'center', animationDelay: '200ms' }}
+          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 24, marginBottom: 16, display: 'flex', justifyContent: 'center', animationDelay: '200ms' }}
         >
           {/* Matted, framed antique-plate treatment: a warm paper mat + a fine
               ink plate-mark hairline + a deep grounded shadow, so the film reads
               as a museum-matted engraving lifted off the page — presence without
               gaudiness. The mat is the padding; the film sits inside the hairline. */}
+          {/* Museum-matted engraving. Refinements that separate "framed plate"
+              from "default web card": SHARP corners (radius 0 — real mats/plate
+              marks are square), a FLAT warm mat (no gradient, no faux bevel), a
+              fine French-mat keyline set into the mat (outline + offset), a crisp
+              plate-mark hairline at the image edge, and a tight grounded shadow
+              (contact + short ambient, not a big blurry float). */}
           <div
             className="w-full sm:w-[min(92vw,1160px)]"
             style={{
-              padding: 'clamp(7px, 1vw, 15px)',
-              background: 'linear-gradient(180deg, #f7f1e2 0%, #efe6d1 100%)',
-              borderRadius: 5,
-              border: '1px solid rgba(176,141,87,0.35)',
+              padding: 'clamp(10px, 1.4vw, 20px)',
+              background: '#f3ead5',
               boxShadow:
-                'inset 0 1px 0 rgba(255,255,255,0.55), 0 22px 55px -14px rgba(48,34,14,0.38), 0 6px 16px rgba(48,34,14,0.15)',
+                '0 1px 2px rgba(48,34,14,0.12), 0 16px 34px -18px rgba(48,34,14,0.30)',
             }}
           >
             <div
               className="sm:aspect-[16/9]"
-              style={{ overflow: 'hidden', borderRadius: 2, boxShadow: '0 0 0 1px rgba(70,50,20,0.38)' }}
+              style={{
+                overflow: 'hidden',
+                boxShadow: '0 0 0 1px rgba(42,30,12,0.55)',
+                outline: '1px solid rgba(42,30,12,0.20)',
+                outlineOffset: 'clamp(6px, 0.8vw, 11px)',
+              }}
             >
               <VoyageFilm />
             </div>
           </div>
         </div>
 
-        {/* Resolving line — the pitch must not end on the problem. */}
+        {/* Bridge line — hands off from the film (which showed the mechanic) to
+            the field below, inviting the reader to write. Not a closing statement
+            but an invitation that points down into the log entry. */}
         <p
-          className={`bp-fade-up mx-auto mt-4 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
+          className={`bp-fade-up mx-auto mt-8 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             color: 'var(--bp-ink)',
-            fontSize: 'clamp(15px, 1.7vw, 17px)',
+            fontSize: 'clamp(14px, 1.55vw, 16px)',
             fontWeight: 500,
-            lineHeight: 1.55,
+            lineHeight: 1.65,
             animationDelay: '260ms',
           }}
         >
           {locale === 'ko' ? (
-            <>칭찬도 반박도 하지 않아요.<br />당신의 계획을 읽고, 지금의 방위를 남깁니다.</>
+            <>이제 당신 차례예요.<br />칭찬도 반박도 없이, 지금 서 있는 자리를 비춰드릴게요.</>
           ) : (
-            <>It won’t flatter you or argue.<br />It reads your plan and leaves a current bearing.</>
+            <>Now it’s your turn.<br />No flattery, no argument — just a clear read on where you stand.</>
           )}
         </p>
 
         {/* The single entry point — a logbook "chart field": a persistent
             marginalia label + corner ticks + a ruled baseline, no rectangle.
             Focus = pen meets paper (ink inks in from the left); never a gold box. */}
-        <div className="bp-fade-up mt-7 mx-auto text-left" style={{ animationDelay: '320ms', maxWidth: 600 }}>
+        <div className="bp-fade-up mt-6 mx-auto text-left" style={{ animationDelay: '320ms', maxWidth: 600 }}>
           {/* persistent label — purpose never depends on the disappearing placeholder */}
           <div className="flex items-center gap-2" style={{ marginBottom: 11 }}>
             <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
-            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11.5, letterSpacing: locale === 'ko' ? '0.06em' : '0.14em', textTransform: 'uppercase' }}>
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
               {L('LOG ENTRY · 들고 계신 결정', 'LOG ENTRY · the decision you carry')}
             </span>
           </div>
 
-          <div className="relative" style={{ background: 'var(--bp-paper-deep)', padding: '16px 20px 0' }}>
+          {/* Lifted like a log-slip pinned below the framed plate above — same
+              warm-paper material + a soft grounded shadow, so it has presence
+              next to the bolder film. Stays a chart FIELD (corner ticks + ruled
+              baseline), never a gold box. */}
+          <div
+            className="relative"
+            style={{
+              background: 'linear-gradient(180deg, var(--bp-paper) 0%, var(--bp-paper-deep) 100%)',
+              padding: '18px 22px 0',
+              borderRadius: 4,
+              boxShadow: focused
+                ? '0 14px 38px -12px rgba(48,34,14,0.28), inset 0 1px 0 rgba(255,255,255,0.5)'
+                : '0 9px 30px -12px rgba(48,34,14,0.20), inset 0 1px 0 rgba(255,255,255,0.45)',
+              transition: 'box-shadow 260ms ease',
+            }}
+          >
             {/* corner registration ticks — darken & lengthen on focus */}
             {([
               { k: 'tl', s: { top: -1, left: -1, borderTopStyle: 'solid', borderTopWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
@@ -251,13 +282,13 @@ export function SirenHero() {
                   aria-hidden="true"
                   style={{
                     position: 'absolute',
-                    width: focused ? 15 : 10,
-                    height: focused ? 15 : 10,
+                    width: focused ? 16 : 12,
+                    height: focused ? 16 : 12,
                     borderTopColor: tick,
                     borderRightColor: tick,
                     borderBottomColor: tick,
                     borderLeftColor: tick,
-                    opacity: focused ? 0.95 : 0.5,
+                    opacity: focused ? 0.95 : 0.68,
                     transition: 'width 220ms ease, height 220ms ease, border-color 220ms ease, opacity 220ms ease',
                     zIndex: 1,
                     ...s,
@@ -304,7 +335,7 @@ export function SirenHero() {
             />
             {/* baseline rule: static faint hairline + an ink rule that inks-in from the left on focus */}
             <div style={{ position: 'relative', height: 1.5, marginTop: 4 }}>
-              <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'var(--bp-ink-faint)' }} />
+              <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'var(--bp-ink-soft)', opacity: 0.5 }} />
               <span
                 aria-hidden="true"
                 style={{
@@ -355,6 +386,109 @@ export function SirenHero() {
           </div>
         </div>
 
+        {/* The other door — a decision already written down. Surfaced right
+            under the log entry (not buried in the nav). Built in the SAME
+            chart-field language as the input above (warm-paper material, corner
+            registration ticks, a shadow that lifts on interaction) so the two
+            read as two entries on one log page: LOG ENTRY (write) vs ON FILE
+            (bring a doc). Ticks darken on hover instead of focus; never gold —
+            gold is spent once, on the CTA above. */}
+        <div className="bp-fade-up mx-auto" style={{ animationDelay: '360ms', maxWidth: 600, marginTop: 16 }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
+            <span aria-hidden="true" style={{ flex: 1, height: 1, background: 'var(--bp-ink-faint)' }} />
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
+              {L('또는', 'or')}
+            </span>
+            <span aria-hidden="true" style={{ flex: 1, height: 1, background: 'var(--bp-ink-faint)' }} />
+          </div>
+
+          {/* persistent label — sibling to "LOG ENTRY ·" above */}
+          <div className="flex items-center gap-2" style={{ marginBottom: 11 }}>
+            <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
+              {L('ON FILE · 이미 써둔 문서', 'ON FILE · a document you wrote')}
+            </span>
+          </div>
+
+          <LocaleLink
+            href="/tools/review"
+            onMouseEnter={() => setReviewHover(true)}
+            onMouseLeave={() => setReviewHover(false)}
+            onFocus={() => setReviewHover(true)}
+            onBlur={() => setReviewHover(false)}
+            className="group relative block text-left"
+            style={{
+              background: 'linear-gradient(180deg, var(--bp-paper) 0%, var(--bp-paper-deep) 100%)',
+              padding: '15px 20px',
+              borderRadius: 4,
+              boxShadow: reviewHover
+                ? '0 12px 32px -14px rgba(48,34,14,0.24), inset 0 1px 0 rgba(255,255,255,0.5)'
+                : '0 8px 26px -14px rgba(48,34,14,0.15), inset 0 1px 0 rgba(255,255,255,0.42)',
+              transition: 'box-shadow 260ms ease',
+            }}
+          >
+            {/* corner registration ticks — same motif as the input, darkening on
+                hover the way the input's darken on focus. Slightly smaller so the
+                field reads as the quieter, secondary sibling. */}
+            {([
+              { k: 'tl', s: { top: -1, left: -1, borderTopStyle: 'solid', borderTopWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
+              { k: 'tr', s: { top: -1, right: -1, borderTopStyle: 'solid', borderTopWidth: 1.5, borderRightStyle: 'solid', borderRightWidth: 1.5 } },
+              { k: 'bl', s: { bottom: -1, left: -1, borderBottomStyle: 'solid', borderBottomWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
+              { k: 'br', s: { bottom: -1, right: -1, borderBottomStyle: 'solid', borderBottomWidth: 1.5, borderRightStyle: 'solid', borderRightWidth: 1.5 } },
+            ] as const).map(({ k, s }) => {
+              const tick = reviewHover ? 'var(--bp-ink)' : 'var(--bp-ink-soft)';
+              return (
+                <span
+                  key={k}
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    width: reviewHover ? 13 : 10,
+                    height: reviewHover ? 13 : 10,
+                    borderTopColor: tick,
+                    borderRightColor: tick,
+                    borderBottomColor: tick,
+                    borderLeftColor: tick,
+                    opacity: reviewHover ? 0.9 : 0.55,
+                    transition: 'width 220ms ease, height 220ms ease, border-color 220ms ease, opacity 220ms ease',
+                    ...s,
+                  }}
+                />
+              );
+            })}
+
+            <div className="flex items-center justify-between gap-4">
+              <div className={locale === 'ko' ? 'break-keep' : ''}>
+                <div style={{ color: 'var(--bp-ink)', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>
+                  {L('이 결정, 이미 문서로 써두셨나요?', 'Already written this decision down?')}
+                </div>
+                <div style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
+                  {L(
+                    '전략안·기획안·PDF·PPT를 그대로 올리면, 사람이 책임질 판단과 근거 약한 주장을 원문 위치까지 짚어드려요.',
+                    'Bring a strategy memo, plan, PDF or deck — Argus surfaces the judgment calls and weak evidence, anchored to the source.',
+                  )}
+                </div>
+              </div>
+              <span
+                className={`shrink-0 ${locale === 'ko' ? '' : 'bp-mono'}`}
+                style={{
+                  color: 'var(--bp-ink)',
+                  fontSize: locale === 'ko' ? 12.5 : 11.5,
+                  fontWeight: locale === 'ko' ? 600 : undefined,
+                  letterSpacing: locale === 'ko' ? '0.01em' : '0.14em',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                {L('검수받기', 'Review')}
+                <span aria-hidden="true" className="transition-transform group-hover:translate-x-1" style={{ transition: 'transform 220ms ease' }}>→</span>
+              </span>
+            </div>
+          </LocaleLink>
+        </div>
+
         {/* The film above already SHOWS the mechanic (separate reads → the fork
             → the return), so the old "how it works" paragraph and the secondary
             demo link were cut — show, don't tell. The input footer keeps the
@@ -369,7 +503,7 @@ export function SirenHero() {
             aria-label={L('결정 하나를 끝까지 항해하는 과정 보기', 'Watch one decision navigated end to end')}
             className="bp-sounding inline-flex flex-col items-center gap-2"
           >
-            <span className="bp-mono" style={{ color: 'var(--bp-ink)', opacity: 0.72, fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.08em' : '0.26em', textTransform: 'uppercase' }}>
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
               {L('실제로 어떻게 되는지', 'See it work')}
             </span>
             <span aria-hidden="true" className="bp-sounding-line" />

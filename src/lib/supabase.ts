@@ -35,8 +35,15 @@ export async function getCurrentUserId(): Promise<string | null> {
   if (_cachedUserId && now - _cacheTs < _CACHE_TTL) return _cachedUserId;
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) {
+    // Timeout-guard getUser() the same way getAuthHeaders guards getSession():
+    // it sits in the DB write critical path (via withUser), so a hung auth call
+    // must NOT wedge sync forever. On timeout, treat as anonymous (local-first
+    // fast-fail) rather than hanging the promise.
+    const user = await Promise.race([
+      supabase.auth.getUser().then(r => (r.error ? null : r.data.user)),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 4000)),
+    ]);
+    if (!user) {
       _cachedUserId = null;
       return null;
     }

@@ -1063,7 +1063,10 @@ function WorkspaceContent() {
           setCurrentProjectId(pid);
           // Strip the fresh-start params so a later reload of /workspace resumes
           // THIS new project instead of the clear-effect wiping it again.
-          if ((forceNew || queryProblem) && typeof window !== 'undefined') {
+          // reviewerParam MUST be here too: the clear-effect fires on all three,
+          // but the strip omitted reviewer → reloading /workspace?reviewer=<id>
+          // re-cleared the just-created reviewer session and landed on empty Hero.
+          if ((forceNew || queryProblem || reviewerParam) && typeof window !== 'undefined') {
             window.history.replaceState(null, '', window.location.pathname);
           }
         }}

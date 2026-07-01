@@ -50,6 +50,7 @@ const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   WORKER_PERSONAS: { localOnly: '세션 내 파생 캐시 — 세션 data에 동승' },
   EXECUTION_TRANSCRIPTS: { localOnly: '대용량 실행 로그 — 로컬 전용 (용량)' },
   BOSS_COLLECTION: { localOnly: '코스메틱 수집 상태 — 유실 무해' },
+  REVIEW_RECEIPTS: { table: 'review_receipts' },
 };
 
 /** 등록부 밖에서 발견됐지만 사유와 함께 허용된 키. 새 항목 추가는 곧

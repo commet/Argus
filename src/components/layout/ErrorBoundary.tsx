@@ -61,7 +61,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                 {ko ? '다시 시도' : 'Try again'}
               </button>
               {/* Always-safe escape: if retry keeps re-throwing the same broken
-                  subtree, a full nav to /workspace remounts the app cleanly. */}
+                  subtree, a full nav to /workspace remounts the app cleanly. A
+                  client-side <Link> would keep the broken React tree, so a raw
+                  <a> (full reload) is intentional here. */}
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
                 href="/workspace"
                 className="text-xs text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors"

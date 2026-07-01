@@ -22,6 +22,11 @@ export const PUBLIC_PATHS = [
   // and the SettlementModal for anon; AuthGuard previously walled it, so the
   // seal made a dated promise to a surface the sealer was then locked out of.
   '/project',
+  // /tools/review is the low-friction document-review wedge (design doc
+  // subtask-b): it is localStorage-first like /workspace and anon LLM calls are
+  // rate-limited, so a signed-out visitor can drop in a strategy doc and get a
+  // Judgment Receipt. The other /tools/* routes stay protected.
+  '/tools/review',
 ] as const;
 
 export const PUBLIC_PREFIXES = ['/api/', '/_next/', '/favicon.ico'] as const;

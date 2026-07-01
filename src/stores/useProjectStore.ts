@@ -6,9 +6,28 @@ import { track } from '@/lib/analytics';
 
 const TABLE = 'projects' as const;
 const KEY = STORAGE_KEYS.PROJECTS;
-/** Persisted current-project id — a mid-voyage refresh shouldn't dump the user
- *  back to the idle hero. Restored in loadProjects() only if the id still exists. */
+/** Persisted current-project id — a mid-voyage F5 refresh shouldn't dump the
+ *  user back to the idle hero. Restored in loadProjects() ONLY on a genuine
+ *  page reload (see isTabReload); every other entry (cold start, new tab, typed
+ *  URL, in-app navigation) lands on HeroFlow instead. (User pref: "새로고침만 유지") */
 const CURRENT_PROJECT_KEY = 'argus-current-project';
+
+/** True only for a real F5/reload of the current document — NOT a fresh
+ *  navigation, new tab, typed URL, or external link. Uses the Navigation Timing
+ *  Level 2 API with a legacy fallback. */
+function isTabReload(): boolean {
+  if (typeof performance === 'undefined') return false;
+  const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+  if (nav) return nav.type === 'reload';
+  // Legacy fallback for browsers without the Level 2 entry.
+  const legacy = (performance as unknown as { navigation?: { type?: number } }).navigation;
+  return legacy?.type === 1; // PerformanceNavigation.TYPE_RELOAD
+}
+
+/** The reload-resume is a one-shot per document load: consume it on the first
+ *  restore so a later in-app nav to /workspace (navType still reads 'reload'
+ *  for the whole document lifetime) doesn't resurrect a project. */
+let reloadResumeAvailable = true;
 
 interface ProjectState {
   projects: Project[];
@@ -30,12 +49,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loadProjects: () =>
     loadItems(KEY, TABLE, () => get().projects, (projects) => {
       set({ projects });
-      // Restore the persisted current project AFTER projects load — only if it
-      // still exists, and never clobber a selection made in the meantime.
+      // Restore the persisted current project AFTER projects load — but ONLY on
+      // a genuine F5 reload, and never clobber a selection made in the meantime.
+      // On any other entry we drop the stale id so a subsequent reload of the
+      // idle hero doesn't resurrect it. (User pref: "새로고침만 유지")
       if (get().currentProjectId === null) {
         const savedId = getStorage<string | null>(CURRENT_PROJECT_KEY, null);
         if (savedId && projects.some((p) => p.id === savedId)) {
-          set({ currentProjectId: savedId });
+          if (isTabReload() && reloadResumeAvailable) {
+            reloadResumeAvailable = false;
+            set({ currentProjectId: savedId });
+          } else {
+            removeStorage(CURRENT_PROJECT_KEY);
+          }
         }
       }
     }),

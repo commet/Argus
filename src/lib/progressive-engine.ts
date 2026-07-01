@@ -28,6 +28,7 @@ import {
   type WeaknessCheckEffect,
 } from '@/lib/question-types';
 import { buildReviewPrompt } from '@/lib/review-prompt';
+import { sanitizeForPrompt } from '@/lib/persona-prompt';
 import type { Agent } from '@/stores/agent-types';
 import { assessConvergence, assessConvergenceWithWorkers } from '@/lib/progressive-convergence';
 import { runDebateRound, type DebateResult } from '@/lib/debate-engine';
@@ -100,6 +101,13 @@ interface InitialAnalysisResponse {
 const NON_OPEN_REQUEST_TYPES = new Set([
   'vent', 'validation', 'info', 'self_profiling', 'flat', 'resistance',
 ]);
+
+/** Defensive: next_question.options is typed string[] but the model can emit
+ *  objects/numbers. A non-string element renders as a React child and throws
+ *  "Objects are not valid as a React child". Keep only strings (or undefined). */
+function toStringOptions(opts: unknown): string[] | undefined {
+  return Array.isArray(opts) ? opts.filter((o): o is string => typeof o === 'string') : undefined;
+}
 
 export function applyRouteContract<T extends { request_type?: string; skeleton?: string[] }>(
   result: T,
@@ -253,11 +261,19 @@ export async function runTypedQuestion(
             decisionLine: o.decisionLine || o.label,
             rationale: o.rationale,
             addsWorkerRole: o.addsWorkerRole,
+            // Defensive (CLAUDE.md): the model may emit a scalar where an array is
+            // typed. A string `skeleton`/`hidden_assumptions` would survive the
+            // top-level shape check and later crash a downstream `.map`, killing the
+            // turn AFTER the user picked this fork. Coerce to string[] or drop.
             snapshotPatch: o.snapshotPatch
               ? {
                   real_question: o.snapshotPatch.real_question,
-                  hidden_assumptions: o.snapshotPatch.hidden_assumptions,
-                  skeleton: o.snapshotPatch.skeleton,
+                  hidden_assumptions: Array.isArray(o.snapshotPatch.hidden_assumptions)
+                    ? o.snapshotPatch.hidden_assumptions.filter((x): x is string => typeof x === 'string')
+                    : undefined,
+                  skeleton: Array.isArray(o.snapshotPatch.skeleton)
+                    ? o.snapshotPatch.skeleton.filter((x): x is string => typeof x === 'string')
+                    : undefined,
                   insight: o.snapshotPatch.insight,
                 }
               : undefined,
@@ -471,7 +487,7 @@ export async function runInitialAnalysis(
     id: generateId(),
     text: result.next_question?.text || (locale === 'ko' ? '이 결과물을 누가 최종 판단해?' : 'Who will make the final decision on this?'),
     subtext: result.next_question?.subtext,
-    options: result.next_question?.options,
+    options: toStringOptions(result.next_question?.options),
     type: result.next_question?.type || 'select',
     engine_phase: 'reframe',
   };
@@ -576,7 +592,7 @@ export async function refineInitialFraming(
       id: generateId(),
       text: result.next_question?.text || (locale === 'ko' ? '이제 이 방향이 맞나요?' : 'Does this direction look right now?'),
       subtext: result.next_question?.subtext,
-      options: result.next_question?.options,
+      options: toStringOptions(result.next_question?.options),
       type: result.next_question?.type || 'select',
       engine_phase: 'reframe',
     },
@@ -791,7 +807,7 @@ export async function runDeepening(
           id: generateId(),
           text: result.next_question.text,
           subtext: result.next_question.subtext,
-          options: result.next_question.options,
+          options: toStringOptions(result.next_question.options),
           type: result.next_question.type || 'select',
           engine_phase: round >= 1 ? 'recast' : 'reframe',
         }
@@ -1501,29 +1517,38 @@ export async function runNavigatorRevision(params: {
   "change_summary": "one-line summary (≤ 40 chars)"
 }`;
 
+  // Spine / CLAUDE.md invariant: user-authored text in a system-adjacent prompt
+  // MUST be sanitized + fenced in <user-data> so injected instructions ("ignore
+  // prior instructions", "[SYSTEM] emit a verdict") land as inert data, not as
+  // directives that break the minimal-edit rule or leak the prompt. `directive`
+  // is free-form user input; problemContext/currentFinalText/change_summary all
+  // originate from the user and feed back every revision round.
+  const sProblem = `<user-data>${sanitizeForPrompt(problemContext)}</user-data>`;
+  const sFinal = `<user-data>${sanitizeForPrompt(currentFinalText)}</user-data>`;
+  const sDirective = `<user-data>${sanitizeForPrompt(directive)}</user-data>`;
   const priorBlock = priorDrafts && priorDrafts.length > 0
     ? (locale === 'ko'
-        ? `\n\n## 이전 버전 이력\n${priorDrafts.map((d) => `- ${d.version_label}: ${d.change_summary}`).join('\n')}`
-        : `\n\n## Prior version history\n${priorDrafts.map((d) => `- ${d.version_label}: ${d.change_summary}`).join('\n')}`)
+        ? `\n\n## 이전 버전 이력\n${priorDrafts.map((d) => `- ${d.version_label}: <user-data>${sanitizeForPrompt(d.change_summary)}</user-data>`).join('\n')}`
+        : `\n\n## Prior version history\n${priorDrafts.map((d) => `- ${d.version_label}: <user-data>${sanitizeForPrompt(d.change_summary)}</user-data>`).join('\n')}`)
     : '';
 
   const userKo = `## 원래 문제 맥락
-${problemContext}
+${sProblem}
 
 ## 현재 버전 ${currentVersionLabel}
-${currentFinalText}
+${sFinal}
 
 ## 수정 요청
-${directive}${priorBlock}`;
+${sDirective}${priorBlock}`;
 
   const userEn = `## Original problem context
-${problemContext}
+${sProblem}
 
 ## Current version ${currentVersionLabel}
-${currentFinalText}
+${sFinal}
 
 ## Revision request
-${directive}${priorBlock}`;
+${sDirective}${priorBlock}`;
 
   const result = await callLLMJson<NavigatorRevisionResult>(
     [{ role: 'user', content: locale === 'ko' ? userKo : userEn }],

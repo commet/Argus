@@ -22,6 +22,9 @@ describe('public path classification', () => {
     // /project is public so the anon cohort that SEALED a decision can reach
     // their promised return (seal + .ics point here). See public-paths.ts.
     '/project',
+    // low-friction document-review wedge (design doc subtask-b)
+    '/tools/review',
+    '/tools/review/anything',
     '/api/llm',
     '/api/llm/direct',
     '/_next/static/chunk.js',

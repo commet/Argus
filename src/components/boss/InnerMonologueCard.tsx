@@ -110,7 +110,7 @@ export function InnerMonologueCard({ verdict }: InnerMonologueCardProps) {
         },
       },
     );
-  }, [typeData, sajuProfile, yearMonthProfile, zodiacProfile, gender, locale, loadedAgentId, verdict,
+  }, [t, typeData, sajuProfile, yearMonthProfile, zodiacProfile, gender, locale, loadedAgentId, verdict,
       innerLoading, innerMonologue, startInnerMonologue, updateInnerStreamingText, commitInnerMonologue]);
 
   // ─── Locked state ───
