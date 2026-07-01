@@ -186,29 +186,40 @@ export function SirenHero() {
               ink plate-mark hairline + a deep grounded shadow, so the film reads
               as a museum-matted engraving lifted off the page — presence without
               gaudiness. The mat is the padding; the film sits inside the hairline. */}
+          {/* Museum-matted engraving. Refinements that separate "framed plate"
+              from "default web card": SHARP corners (radius 0 — real mats/plate
+              marks are square), a FLAT warm mat (no gradient, no faux bevel), a
+              fine French-mat keyline set into the mat (outline + offset), a crisp
+              plate-mark hairline at the image edge, and a tight grounded shadow
+              (contact + short ambient, not a big blurry float). */}
           <div
             className="w-full sm:w-[min(92vw,1160px)]"
             style={{
-              padding: 'clamp(7px, 1vw, 15px)',
-              background: 'linear-gradient(180deg, #f7f1e2 0%, #efe6d1 100%)',
-              borderRadius: 5,
-              border: '1px solid rgba(176,141,87,0.35)',
+              padding: 'clamp(10px, 1.4vw, 20px)',
+              background: '#f3ead5',
               boxShadow:
-                'inset 0 1px 0 rgba(255,255,255,0.55), 0 22px 55px -14px rgba(48,34,14,0.38), 0 6px 16px rgba(48,34,14,0.15)',
+                '0 1px 2px rgba(48,34,14,0.12), 0 16px 34px -18px rgba(48,34,14,0.30)',
             }}
           >
             <div
               className="sm:aspect-[16/9]"
-              style={{ overflow: 'hidden', borderRadius: 2, boxShadow: '0 0 0 1px rgba(70,50,20,0.38)' }}
+              style={{
+                overflow: 'hidden',
+                boxShadow: '0 0 0 1px rgba(42,30,12,0.55)',
+                outline: '1px solid rgba(42,30,12,0.20)',
+                outlineOffset: 'clamp(6px, 0.8vw, 11px)',
+              }}
             >
               <VoyageFilm />
             </div>
           </div>
         </div>
 
-        {/* Resolving line — the pitch must not end on the problem. */}
+        {/* Bridge line — hands off from the film (which showed the mechanic) to
+            the field below, inviting the reader to write. Not a closing statement
+            but an invitation that points down into the log entry. */}
         <p
-          className={`bp-fade-up mx-auto mt-4 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
+          className={`bp-fade-up mx-auto mt-9 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             color: 'var(--bp-ink)',
             fontSize: 'clamp(15px, 1.7vw, 17px)',
@@ -218,9 +229,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>칭찬도 반박도 하지 않아요.<br />당신의 계획을 읽고, 지금의 방위를 남깁니다.</>
+            <>이제 당신 차례예요. 지금 들고 있는 결정을 아래에 적어보세요.<br />칭찬도 반박도 없이, 지금의 방위만 남길게요.</>
           ) : (
-            <>It won’t flatter you or argue.<br />It reads your plan and leaves a current bearing.</>
+            <>Your turn — write the decision you’re carrying, below.<br />No flattery, no argument. Just your current bearing.</>
           )}
         </p>
 
