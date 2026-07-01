@@ -71,8 +71,10 @@ export function AttributedSection({ section, index }: {
           : ''
       }`}
     >
-      <div className="flex items-center gap-2 mb-1.5">
-        <h3 className="text-[14px] font-bold text-[var(--text-primary)] flex-1">{section.heading}</h3>
+      <div className="flex items-center gap-2 mb-2">
+        {/* Section heading was only 1px above body — no skim anchor in a long brief.
+            Lift it a clear step (16px) so headings scan as headings. */}
+        <h3 className="text-[16px] md:text-[17px] font-bold text-[var(--text-primary)] leading-[1.35] flex-1 tracking-tight">{section.heading}</h3>
         {contributors.length > 0 && (
           <div className="flex -space-x-1.5 shrink-0">
             {contributors.map(w => (
@@ -92,7 +94,7 @@ export function AttributedSection({ section, index }: {
       {hasSentences ? (
         <SentenceStream section={section} sectionIndex={index} workers={workers} />
       ) : (
-        <p className="text-[13px] text-[var(--text-primary)] leading-[1.8]">{renderInline(section.content)}</p>
+        <p className="text-[14px] text-[var(--text-primary)] leading-[1.75]">{renderInline(section.content)}</p>
       )}
 
       {contributors.length > 0 && (
@@ -120,7 +122,7 @@ function SentenceStream({ section, sectionIndex, workers }: {
   const sentences = section.sentences || [];
 
   return (
-    <p className="text-[13px] text-[var(--text-primary)] leading-[1.9]">
+    <p className="text-[14px] text-[var(--text-primary)] leading-[1.8]">
       {sentences.map((sent, sIdx) => {
         const ids = sent.contributor_worker_ids || [];
         const dots = ids

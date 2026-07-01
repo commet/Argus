@@ -46,6 +46,11 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
   // user answers the question above. The header keeps the live "team working"
   // signal (avatars + count); the full theater opens on tap.
   const [open, setOpen] = useState(false);
+  // Per-worker report expansion — a single-open accordion (efficient: one report
+  // in view at a time, not a wall of text). A DONE row's 2-line takeaway is the
+  // peek; tapping opens that worker's full result inline. This is the "눌러도
+  // 정보가 안 보인다" fix — progressive disclosure, no separate stepper hunt.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   if (workers.length === 0) return null;
 
   const ordered = [...workers].sort((a, b) => a.step_index - b.step_index);
@@ -149,9 +154,34 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
                     {streamTail(w.stream_text)}
                     <span className="inline-block w-[6px] h-[12px] ml-0.5 align-text-bottom bg-[var(--accent)]/70 animate-pulse" />
                   </p>
-                ) : w.status === 'done' && firstLine(w) ? (
-                  <p className="text-[11.5px] text-[var(--text-secondary)] mt-1 leading-[1.5] line-clamp-2">{firstLine(w)}</p>
-                ) : w.status === 'error' ? (
+                ) : w.status === 'done' && firstLine(w) ? (() => {
+                  const full = (w.result || w.completion_note || '').trim();
+                  const isOpen = expandedId === w.id;
+                  // Only offer expansion when there's genuinely more than the peek.
+                  const hasMore = full.length > firstLine(w).replace(/…$/, '').length + 8;
+                  return (
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        onClick={hasMore ? () => setExpandedId(isOpen ? null : w.id) : undefined}
+                        aria-expanded={hasMore ? isOpen : undefined}
+                        className={`w-full text-left group/rep ${hasMore ? 'cursor-pointer' : 'cursor-default'}`}
+                      >
+                        {isOpen ? (
+                          <p className="text-[11.5px] text-[var(--text-secondary)] leading-[1.6] whitespace-pre-wrap max-h-[240px] overflow-y-auto pr-1">{full}</p>
+                        ) : (
+                          <p className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5] line-clamp-2">{firstLine(w)}</p>
+                        )}
+                        {hasMore && (
+                          <span className="mt-0.5 inline-flex items-center gap-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)] group-hover/rep:text-[var(--accent)] transition-colors">
+                            {isOpen ? L('접기', 'Collapse') : L('열어보기', 'Open report')}
+                            <ChevronDown size={11} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })() : w.status === 'error' ? (
                   <p className="text-[11.5px] text-[var(--text-tertiary)] mt-1 leading-[1.5]">
                     {L('이 선원의 작업이 닿지 않았어요.', "This crew member's work didn't land.")}
                     {onRetry && (

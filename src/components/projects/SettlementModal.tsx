@@ -26,7 +26,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, AlertTriangle, GitBranch, Check } from 'lucide-react';
+import { Target, AlertTriangle, GitBranch, Check, Anchor } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, PredicateVerdict, PredicateBasis, CheckInInterval } from '@/stores/types';
@@ -157,6 +157,25 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
   return (
     <Modal open onClose={onClose} title={L('그래서, 어떻게 됐어요?', 'So, how did it go?')}>
       <div className="space-y-4">
+        {/* Settlement ceremony — this is the PAYOFF of the seal (the loop closing,
+            the product's moat), but it used to read like a throwaway form. Give the
+            moment weight: a medallion + a line that names what's happening, so the
+            settle feels like arriving in port, not filling a dialog. Mirrors the
+            SealMoment scene at the other end of the loop. */}
+        <div className="flex flex-col items-center text-center gap-2 pb-1">
+          <div className="w-11 h-11 rounded-full flex items-center justify-center shadow-[var(--shadow-sm)]" style={{ background: 'var(--gradient-gold)' }}>
+            <Anchor size={19} className="text-white" />
+          </div>
+          <p className="text-[15px] md:text-[16px] font-bold text-[var(--text-primary)] leading-[1.35]" style={{ fontFamily: 'var(--font-display)' }}>
+            {L('그때 건 예측을, 이제 현실과 맞춰봐요', 'Time to check your prediction against what happened')}
+          </p>
+          <p className="text-[12px] text-[var(--text-secondary)] leading-[1.5] max-w-[36ch]">
+            {sealedOn
+              ? L(`${sealedOn}에 봉인한 결정의 확인일이에요. 고리를 닫는 순간이에요.`, `The check-in day for the decision you sealed on ${sealedOn}. This is the loop closing.`)
+              : L('봉인했던 결정의 확인일이에요. 고리를 닫는 순간이에요.', 'The check-in day for the decision you sealed. This is the loop closing.')}
+          </p>
+        </div>
+
         {/* Judgment Receipt — 그때의 판단을 꺼내 보여준다. */}
         {contract.judgment_receipt && (
           <JudgmentReceipt
