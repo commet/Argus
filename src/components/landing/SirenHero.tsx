@@ -179,16 +179,17 @@ export function SirenHero() {
             video above a paper caption gutter (text never overlaps the engraving),
             so the band sizes to video+gutter. ≥640px keeps the fixed 16:9 band the
             cinematic lower-left overlay was composed for (capped on tall viewports). */}
+        {/* Full-bleed 16:9: the engraving bleeds edge-to-edge (impact), and its
+            baked-in plate border + paper margins run off-screen instead of
+            sitting inside the frame as a visible "bar". object-fit:cover keeps
+            the vertically-centered figures; the height cap only bites on very
+            tall/large viewports so nothing important is cropped on phones or
+            laptops. Mobile (<640px) uses VoyageFilm's content-driven stack. */}
         <div
-          className="bp-fade-up"
-          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 20, marginBottom: 16, display: 'flex', justifyContent: 'center', animationDelay: '200ms' }}
+          className="bp-fade-up h-auto sm:h-[56.25vw] sm:max-h-[85vh]"
+          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 20, marginBottom: 16, animationDelay: '200ms' }}
         >
-          {/* Constrain the film's WIDTH (not height) so the whole 16:9 engraving
-              shows — smaller and centered on paper — instead of height-capping,
-              which cropped the top (Siren's face) via object-fit:cover. */}
-          <div className="w-full sm:aspect-[16/9] sm:w-[min(100vw,117vh)]">
-            <VoyageFilm />
-          </div>
+          <VoyageFilm />
         </div>
 
         {/* Resolving line — the pitch must not end on the problem. */}

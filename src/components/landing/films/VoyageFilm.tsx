@@ -391,10 +391,11 @@ export function VoyageFilm() {
         autoPlay muted loop playsInline preload="metadata"
         poster="/voyage/voyage-poster.jpg"
         aria-label={L('오디세우스의 항해 — 묶기, 듣기, 닿기, 그리고 알아봄', "Odysseus's voyage — bind, listen, land, and recognition")}
-        // cover, but the band itself is now 16:9 (SirenHero), so cover fills the
-        // width edge-to-edge with no crop and no margins — full-bleed AND whole.
-        // (It only crops a sliver on very tall viewports where max-h caps it.)
-        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', background: 'var(--bp-paper)' }}
+        // Full-bleed cover. Where the max-h cap makes the band shorter than 16:9
+        // (short/large viewports), bias the crop toward the BOTTOM (water/deck/
+        // feet) so the height cap never cuts a face — figures sit upper-center in
+        // every scene.
+        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 35%', background: 'var(--bp-paper)' }}
       >
         <source src="/voyage/voyage-film.mp4" type="video/mp4" />
       </video>
