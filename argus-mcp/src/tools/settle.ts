@@ -4,6 +4,7 @@ import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger } from '../lib/ledger-append.js';
 import { writeSettleReceipt } from '../lib/receipt.js';
+import { pushToAccount } from '../lib/push-account.js';
 import { renderReceipt } from '../lib/render-receipt.js';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
@@ -53,6 +54,13 @@ export const settle: ToolModule = {
       await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string }], now);
       const receipt = await writeSettleReceipt(dir, id, { what_happened: String(a['what_happened']), outcome, settled_at: now });
 
+      // Mirror the outcome to the account (opt-in) so a synced prediction stops
+      // being "due" — otherwise the Companion Brief would keep re-nudging it.
+      // No-op when there's no token or the id was never synced.
+      const sync = await pushToAccount({
+        action: 'settle', id, outcome, what_happened: String(a['what_happened']), settled_at: now,
+      });
+
       return envelope({
         ok: true, tool: 'argus_settle',
         surface: 'Settled. The receipt records what you predicted and what reality did — no grade.',
@@ -61,6 +69,7 @@ export const settle: ToolModule = {
           id, outcome, outcome_source: 'user_stated',
           assumption_held: receipt.assumption_held,
           ai_verdict: null,
+          account_synced: sync.synced,
           receipt,
           receipt_text: renderReceipt(receipt),
         },

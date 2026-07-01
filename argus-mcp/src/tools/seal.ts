@@ -7,6 +7,7 @@ import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
 import { appendLedger, type LedgerEventInput } from '../lib/ledger-append.js';
 import { writeSealReceipt } from '../lib/receipt.js';
+import { pushToAccount } from '../lib/push-account.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -85,14 +86,26 @@ export const seal: ToolModule = {
         ? ''
         : ' You sealed without naming the assumption it rests on — that\'s recorded as skipped, not hidden. You can still name it.';
 
+      // Opt-in: mirror the prediction to the user's account so the Companion
+      // Brief can email it at check-by. No token ⇒ silent local-only no-op;
+      // failure never affects the seal that already succeeded locally.
+      const sync = await pushToAccount({
+        action: 'seal', id, predicate, check_by: checkBy, sealed_at: now,
+        source_title: predicate.slice(0, 80),
+        real_question: a['real_question'] as string | undefined,
+        human_judgment: a['human_judgment'] as string | undefined,
+      });
+      const syncLine = sync.synced ? ' Synced to your account — you\'ll get an email when it comes due.' : '';
+
       return envelope({
         ok: true, tool: 'argus_seal',
-        surface: `Sealed. "${predicate}" — reality answers on ${checkBy}. Come back then with argus_settle.${nudge}`,
+        surface: `Sealed. "${predicate}" — reality answers on ${checkBy}. Come back then with argus_settle.${nudge}${syncLine}`,
         next_actions: ['argus_check_in', 'stop'],
         data: {
           id, predicate, check_by: checkBy, predicate_owner: a['predicate_owner'],
           status: 'sealed', ledger_events_written: events.map((e) => e.event),
           skipped: receipt.skipped,
+          account_synced: sync.synced,
           falsifiability_note: vErr ? 'weak heuristic passed' : undefined,
         },
       });

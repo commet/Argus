@@ -63,7 +63,13 @@ Or add to your host's MCP config:
       "env": {
         // Claude Code expands this. On other hosts, pass an absolute path,
         // or just call argus_init with an absolute argus_dir on first use.
-        "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus"
+        "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus",
+        // OPTIONAL — connect to your Argus account so sealed predictions get an
+        // email at their check-by date (the Companion Brief) and show up in the
+        // web dashboard. Issue the token in the web app. Leave it unset to stay
+        // fully local (the privacy-preserving default).
+        "ARGUS_TOKEN": "argus_pat_…"
+        // "ARGUS_API_URL": "https://argus.voyage"  // override only for self-host
       }
     }
   }
@@ -78,7 +84,8 @@ Or add to your host's MCP config:
 | Tool | What it does |
 |------|--------------|
 | `argus_open_decision` | Opens a consequential decision. Runs a restraint gate first — on a flat / low-stakes / reversible / already-closed call it tells you to leave it as is. If it fires, it surfaces **one** neutral question, never a fork or a lean. |
-| `argus_seal` | Seals a falsifiable prediction (`predicate` + `check_by`) and captures the receipt's real-question / unverified-assumption / human-only / your-call fields. Refuses an empty predicate or a non-future date. If you seal without naming the assumption, it's recorded as an explicit **skip** — never a forced gate (which would just eject the tiredest user), never a silent blank. |
+| `argus_review` | Reviews an existing document (strategy memo / PRD / deck text / AI answer) for judgment risk: reviewability score, routed lenses, source units with anchors, and the extraction prompt — then hands the analysis to you. Degrades honestly on unextractable input; never a verdict. End by sealing one follow-up. |
+| `argus_seal` | Seals a falsifiable prediction (`predicate` + `check_by`) and captures the receipt's real-question / unverified-assumption / human-only / your-call fields. Refuses an empty predicate or a non-future date. If you seal without naming the assumption, it's recorded as an explicit **skip** — never a forced gate (which would just eject the tiredest user), never a silent blank. With `ARGUS_TOKEN` set, the prediction also syncs to your account so the Companion Brief can email you at its check-by date. |
 | `argus_settle` | On the check-by date, records what reality did and issues the Judgment Receipt. Hard-errors without a prior seal. |
 | `argus_check_in` | Returns contracts past their check-by date. If nothing is due, it says so and stops — it doesn't manufacture engagement. |
 | `argus_recall` | Reads your own history: a receipt, the open contracts, or a sample-size-caveated track record (never a tier or score). |
@@ -87,8 +94,10 @@ Or add to your host's MCP config:
 ## Data
 
 Everything is local, under `.argus/` in your project (gitignored by default).
-No telemetry — `npm ls --prod` is two packages (`@modelcontextprotocol/sdk`,
-`js-yaml`). See [SECURITY.md](SECURITY.md).
+No telemetry. The **only** network call Argus ever makes is the opt-in account
+sync: if — and only if — you set `ARGUS_TOKEN`, a sealed/settled prediction is
+POSTed to your own Argus account so it can email you at its check-by date. Unset
+the token and Argus never touches the network. See [SECURITY.md](SECURITY.md).
 
 ## Measured
 
