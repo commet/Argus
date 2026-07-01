@@ -32,6 +32,13 @@ describe('argus_review', () => {
     expect(res.structuredContent?.next_actions).toContain('argus_seal');
   });
 
+  it('does not dump the source units twice (they ride in extraction_prompt only)', async () => {
+    const d = data(await review.handler({ text: DOC, source_kind: 'markdown' }));
+    expect(d.extraction_prompt).toBeTruthy();
+    expect('units' in d).toBe(false); // no standalone duplicate of the heavy text
+    expect(typeof d.units_total).toBe('number');
+  });
+
   it('surfaces no verdict and leaks no internal unit_id into prose', async () => {
     const res = await review.handler({ text: DOC });
     const surface = String(res.structuredContent?.surface ?? '');

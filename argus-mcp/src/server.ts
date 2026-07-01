@@ -39,11 +39,18 @@ export async function createServer(): Promise<Server> {
   // Elicitation — structured user choices for spine-SAFE inputs (settlement
   // outcome etc.), text-fallback when the host lacks support. Wired to the SDK's
   // elicitInput; capability is advertised so a supporting host offers a picker.
-  setElicitor(async (message, requestedSchema) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await (server as any).elicitInput({ message, requestedSchema });
-    return res as { action: 'accept' | 'decline' | 'cancel'; content?: Record<string, unknown> };
-  });
+  // The SDK's Server exposes elicitInput; type just that method rather than
+  // casting the whole server to `any`. If the running SDK/host lacks it, the
+  // call throws and lib/elicit.ts catches it → text fallback.
+  type ElicitCapableServer = {
+    elicitInput(params: { message: string; requestedSchema: Record<string, unknown> }): Promise<{
+      action: 'accept' | 'decline' | 'cancel';
+      content?: Record<string, unknown>;
+    }>;
+  };
+  setElicitor((message, requestedSchema) =>
+    (server as unknown as ElicitCapableServer).elicitInput({ message, requestedSchema }),
+  );
 
   // Resources — read-only context (blueprint §4.3).
   server.setRequestHandler(ListResourcesRequestSchema, async () => listResources());

@@ -12,11 +12,15 @@ import { fetchAccountReceipts } from '../lib/push-account.js';
  * Read-only and opt-in; with no token it explains how to connect.
  */
 
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 200;
+
 const inputSchema = {
   type: 'object',
   additionalProperties: false,
   properties: {
     due_only: { type: 'boolean', default: false, description: 'List only receipts whose check-by date has arrived.' },
+    limit: { type: 'integer', minimum: 1, maximum: MAX_LIMIT, default: DEFAULT_LIMIT, description: `Max receipts to list (default ${DEFAULT_LIMIT}). Due items are ordered first.` },
   },
 } as const;
 
@@ -26,7 +30,7 @@ export const sync: ToolModule = {
     'Pull your Argus account receipts into the terminal — live judgments and what is due — so you can settle here. Seals/settles already push to the account automatically; this is the read side. Requires ARGUS_TOKEN.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   handler: async (a) => {
     try {
       const pull = await fetchAccountReceipts();
@@ -46,8 +50,12 @@ export const sync: ToolModule = {
       }
 
       const dueOnly = a['due_only'] === true;
-      const receipts = dueOnly ? pull.receipts.filter((r) => r.due) : pull.receipts;
+      const rawLimit = typeof a['limit'] === 'number' ? Math.floor(a['limit'] as number) : DEFAULT_LIMIT;
+      const limit = Math.max(1, Math.min(MAX_LIMIT, rawLimit));
+      const matched = dueOnly ? pull.receipts.filter((r) => r.due) : pull.receipts;
+      const receipts = matched.slice(0, limit);
       const dueCount = pull.receipts.filter((r) => r.due).length;
+      const truncated = matched.length > receipts.length;
 
       return envelope({
         ok: true, tool: 'argus_sync',
@@ -58,6 +66,9 @@ export const sync: ToolModule = {
         data: {
           total: pull.receipts.length,
           due: dueCount,
+          count: receipts.length,
+          has_more: truncated,
+          ...(truncated ? { truncation_note: `${matched.length}개 중 ${receipts.length}개만 표시. limit을 올리거나 due_only로 좁히세요.` } : {}),
           receipts: receipts.map((r) => ({
             id: r.id,
             title: r.source_title,

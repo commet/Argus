@@ -7,7 +7,6 @@ import {
   scoreReviewability,
   routeLenses,
   buildExtractionPrompt,
-  renderUnits,
   reviewabilityBand,
   LENSES,
   LENS_VERSION,
@@ -68,7 +67,7 @@ export const review: ToolModule = {
     'Review an existing document (strategy memo / PRD / deck text / AI answer) for judgment risk. Returns a reviewability score, the routed review lenses, the source units with anchors, and the extraction prompt — then hands YOU (the model) the analysis to run. Anchor every finding to a unit; never deliver a verdict. End by sealing ONE falsifiable follow-up via argus_seal.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
       const filePath = typeof a['file_path'] === 'string' ? (a['file_path'] as string) : '';
@@ -177,13 +176,19 @@ export const review: ToolModule = {
           structure: artifact.detected_structure,
           routing: { selected: routing.selected, disclosure: routing.disclosure, note: '라우팅은 기본 프로파일 기준의 제안입니다 — 추출 단계에서 문서 프로파일을 확정하면 렌즈를 조정하세요.' },
           lenses,
-          // The SSOT extraction prompt — run this on the units first to build the
-          // judgment map, then apply each lens, then synthesize.
+          // The SSOT extraction prompt already embeds the anchored units + the
+          // output schema — the agent works off THIS single block for every
+          // stage (no separate units dump; the source text is heavy and should
+          // not be sent twice).
           extraction_prompt: extraction,
-          units: renderUnits(artifact.units, UNIT_LIMIT),
+          units_shown: Math.min(artifact.units.length, UNIT_LIMIT),
+          units_total: artifact.units.length,
+          ...(artifact.units.length > UNIT_LIMIT
+            ? { units_truncated_note: `문서 단위 ${artifact.units.length}개 중 앞 ${UNIT_LIMIT}개만 실었습니다. 더 검수하려면 뒷부분을 따로 넣으세요.` }
+            : {}),
           protocol: [
-            '1) extraction_prompt를 units에 적용해 문서 판단 지도(profile + claims/assumptions/decision_points)를 만든다.',
-            '2) lenses의 각 렌즈로 검토한다 — 모든 finding은 unit을 근거로 하고, 산문에는 unit_id를 노출하지 않는다.',
+            '1) extraction_prompt(그 안의 units + 출력 스키마)를 적용해 문서 판단 지도(profile + claims/assumptions/decision_points)를 만든다.',
+            '2) lenses의 각 렌즈로 그 units를 근거로 검토한다 — 모든 finding은 unit을 근거로 하고, 산문에는 unit_id를 노출하지 않는다.',
             '3) 사람이 직접 판단해야 할 항목(judgment obligations)을 분리한다. 평결하지 않는다.',
             '4) 현실이 pass/fail로 답할 반증 가능한 예측 1개를 뽑아 argus_seal로 봉인한다 — 예측·pass/fail 조건·check_by는 사용자의 것이다.',
           ],

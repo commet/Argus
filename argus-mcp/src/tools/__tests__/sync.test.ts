@@ -28,6 +28,19 @@ describe('argus_sync', () => {
     expect(res.structuredContent?.next_actions).toContain('argus_settle');
   });
 
+  it('limits the listing and reports has_more when the account has more', async () => {
+    process.env.ARGUS_TOKEN = 'argus_pat_x';
+    const many = Array.from({ length: 5 }, (_, i) => ({ id: `r${i}`, source_title: `T${i}`, state: 'sealed', next_check_by: null, due: false, core_question: '', open_predicates: [] }));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true, receipts: many }), { status: 200 }));
+    const res = await sync.handler({ limit: 2 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const d = res.structuredContent?.data as any;
+    expect(d.count).toBe(2);
+    expect(d.total).toBe(5);
+    expect(d.has_more).toBe(true);
+    expect(d.truncation_note).toBeTruthy();
+  });
+
   it('due_only filters to just the due receipts', async () => {
     process.env.ARGUS_TOKEN = 'argus_pat_x';
     const receipts = [
