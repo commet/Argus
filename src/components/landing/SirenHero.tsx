@@ -167,7 +167,7 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>지나간 결정도, 왜 그랬는지까지 남으면 자산이 돼요.<br />Argus가 당신의 판단을 항로로 남겨, 다음 결정을 도와요.</>
+            <>지나간 결정도, 그 근거까지 남으면 자산이 돼요.<br />Argus가 당신의 판단을 항로로 남겨, 다음 결정을 도와요.</>
           ) : (
             <>A decision compounds only when its reasoning is kept too.<br />Argus keeps your judgment as a course, to steer what comes next.</>
           )}
