@@ -1,4 +1,4 @@
-import { requireArgusDir } from '../lib/argus-dir.js';
+import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveContract } from '../lib/resolve-contract.js';
@@ -25,7 +25,7 @@ export const recall: ToolModule = {
   annotations: { title: 'Recall your history', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
-      const dir = requireArgusDir(a['argus_dir']);
+      const dir = resolveToolArgusDir(a['argus_dir']);
       const today = resolveToday({ override: a['today_override'] as string | undefined });
       const view = String(a['view']);
 

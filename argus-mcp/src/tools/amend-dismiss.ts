@@ -1,6 +1,6 @@
 import { atomicWriteJson } from '../lib/atomic-write.js';
 import { bearingPath } from '../lib/layout.js';
-import { requireArgusDir } from '../lib/argus-dir.js';
+import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
@@ -27,7 +27,7 @@ export const amend: ToolModule = {
   annotations: { title: 'Amend a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async (a) => {
     try {
-      const dir = requireArgusDir(a['argus_dir']);
+      const dir = resolveToolArgusDir(a['argus_dir']);
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
       const current = resolveContract(dir, id, today);
@@ -71,7 +71,7 @@ export const dismiss: ToolModule = {
   annotations: { title: 'Dismiss a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
-      const dir = requireArgusDir(a['argus_dir']);
+      const dir = resolveToolArgusDir(a['argus_dir']);
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
       const current = resolveContract(dir, id, today);

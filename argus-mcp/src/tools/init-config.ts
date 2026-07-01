@@ -4,7 +4,7 @@ import yaml from 'js-yaml';
 import { configPath, sessionsRoot, ledgerDir } from '../lib/layout.js';
 import { atomicWriteText } from '../lib/atomic-write.js';
 import { detectLocale } from '../lib/locale.js';
-import { requireArgusDir, writeBoundMarker } from '../lib/argus-dir.js';
+import { resolveToolArgusDir, writeBoundMarker } from '../lib/argus-dir.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday } from '../lib/resolve-today.js';
@@ -38,7 +38,7 @@ export const init: ToolModule = {
   annotations: { title: 'Initialize Argus', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
-      const dir = requireArgusDir(a['argus_dir']);
+      const dir = resolveToolArgusDir(a['argus_dir']);
       await fs.mkdir(sessionsRoot(dir), { recursive: true });
       await fs.mkdir(ledgerDir(dir), { recursive: true });
       await ensurePrivacyGitignore(dir);
@@ -79,7 +79,7 @@ export const config: ToolModule = {
   annotations: { title: 'Read/update settings', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
-      const dir = requireArgusDir(a['argus_dir']);
+      const dir = resolveToolArgusDir(a['argus_dir']);
       const writeKeys = ['locale', 'boss', 'team', 'archive'].filter((k) => k in a);
 
       const existing = readConfig(dir) ?? { schema_version: SCHEMA_VERSION, locale: detectLocale(dir), boss: null, team: null, archive: null };

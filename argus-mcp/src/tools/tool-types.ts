@@ -28,7 +28,13 @@ export interface ToolModule {
 }
 
 // ── Shared field builders (DRY — argus_dir / id / date recur on every tool) ──
-export const zArgusDir = z.string().describe('Absolute path to the .argus directory. No "..".');
+// argus_dir is OPTIONAL: omit it to use the ARGUS_DIR env var from your MCP
+// config (the ergonomic default — set once, never pass again). A per-call value
+// still wins. Resolution + validation live in resolveToolArgusDir.
+export const zArgusDir = z
+  .string()
+  .describe('Absolute path to the .argus directory (no ".."). Omit to use the ARGUS_DIR env var from your MCP config.')
+  .optional();
 export const zId = z.string().regex(/^[A-Za-z0-9._-]+$/, 'id may only contain A-Z a-z 0-9 . _ -');
 export const zDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD');
 

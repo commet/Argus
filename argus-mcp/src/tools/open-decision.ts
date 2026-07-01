@@ -1,6 +1,6 @@
 import { atomicWriteJson } from '../lib/atomic-write.js';
 import { sessionFilePath } from '../lib/layout.js';
-import { requireArgusDir } from '../lib/argus-dir.js';
+import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { overfireGate, type Stakes, type Reversibility } from '../lib/overfire-gate.js';
@@ -38,7 +38,7 @@ export const openDecision: ToolModule = {
   annotations: { title: 'Open a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async (a) => {
     try {
-      const dir = requireArgusDir(a['argus_dir']);
+      const dir = resolveToolArgusDir(a['argus_dir']);
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
 

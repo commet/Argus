@@ -39,6 +39,22 @@ export function requireArgusDir(callArg: unknown): string {
   return resolved;
 }
 
+/**
+ * Resolve argus_dir for a TOOL call, implementing the full precedence the
+ * blueprint promised (§4.0): a per-call `argus_dir` wins, else the `ARGUS_DIR`
+ * env var. This is the ergonomic win — set ARGUS_DIR once in the MCP config and
+ * never pass the path again. Both channels get the same path-safety validation;
+ * omitting both yields one clear, actionable error.
+ */
+export function resolveToolArgusDir(callArg: unknown): string {
+  if (typeof callArg === 'string' && callArg.length > 0) return requireArgusDir(callArg);
+  const env = process.env['ARGUS_DIR'];
+  if (typeof env === 'string' && env.length > 0) return requireArgusDir(env);
+  throw new ArgusDirError(
+    'No argus_dir given and ARGUS_DIR is not set. Pass an absolute argus_dir, or set "ARGUS_DIR" in your MCP config env (then you can omit it every call).',
+  );
+}
+
 /** Record the bound dir so Resources (which get no args) can find it later. */
 export function writeBoundMarker(argusDir: string): void {
   try {

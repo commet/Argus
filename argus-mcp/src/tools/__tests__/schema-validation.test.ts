@@ -16,9 +16,20 @@ describe('Zod source → JSON Schema (tools/list)', () => {
 
   it('marks required vs optional correctly (seal)', () => {
     const json = toolJsonSchema(seal.inputSchema) as { required?: string[]; additionalProperties?: boolean };
-    expect(json.required).toEqual(expect.arrayContaining(['argus_dir', 'id', 'predicate', 'check_by', 'predicate_owner']));
+    expect(json.required).toEqual(expect.arrayContaining(['id', 'predicate', 'check_by', 'predicate_owner']));
     expect(json.required).not.toContain('basis'); // optional
+    // argus_dir is intentionally OPTIONAL — resolves from the ARGUS_DIR env var.
+    expect(json.required).not.toContain('argus_dir');
     expect(json.additionalProperties).toBe(false); // strict
+  });
+
+  it('argus_dir is optional on every tool that takes it (ARGUS_DIR env fallback)', () => {
+    for (const t of TOOLS) {
+      const json = toolJsonSchema(t.inputSchema) as { properties?: Record<string, unknown>; required?: string[] };
+      if (json.properties && 'argus_dir' in json.properties) {
+        expect(json.required ?? []).not.toContain('argus_dir');
+      }
+    }
   });
 });
 

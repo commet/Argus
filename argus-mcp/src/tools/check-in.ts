@@ -1,4 +1,4 @@
-import { requireArgusDir } from '../lib/argus-dir.js';
+import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
 import { z } from 'zod';
@@ -21,7 +21,7 @@ export const checkIn: ToolModule = {
   annotations: { title: 'Check what is due', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
-      const dir = requireArgusDir(a['argus_dir']);
+      const dir = resolveToolArgusDir(a['argus_dir']);
       const today = resolveToday({ override: a['today_override'] as string | undefined });
       const ledger = replayLedger(dir, today);
       const seeds = bearingContracts(dir, today, ledger);

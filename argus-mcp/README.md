@@ -61,8 +61,9 @@ Or add to your host's MCP config:
       "command": "npx",
       "args": ["-y", "argus-mcp"],
       "env": {
-        // Claude Code expands this. On other hosts, pass an absolute path,
-        // or just call argus_init with an absolute argus_dir on first use.
+        // Set this ONCE and you never pass argus_dir again — every tool falls
+        // back to it. Claude Code expands ${CLAUDE_PROJECT_DIR}; on other hosts
+        // put an absolute path here (or pass argus_dir per call).
         "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus",
         // OPTIONAL — connect to your Argus account so sealed predictions get an
         // email at their check-by date (the Companion Brief) and show up in the
@@ -76,8 +77,9 @@ Or add to your host's MCP config:
 }
 ```
 
-> Every tool also takes an explicit `argus_dir` argument, so Argus works on any
-> host even when env-variable interpolation doesn't.
+> `argus_dir` is **optional** on every tool: omit it and it resolves from
+> `ARGUS_DIR`. A per-call `argus_dir` still wins — so Argus works on any host
+> even when env-variable interpolation doesn't.
 
 ## The loop
 

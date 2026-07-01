@@ -57,7 +57,10 @@ const inputSchema = z.strictObject({
 export const review: ToolModule = {
   name: 'argus_review',
   description:
-    'Review an existing document (strategy memo / PRD / deck text / AI answer) for judgment risk. Returns a reviewability score, the routed review lenses, the source units with anchors, and the extraction prompt — then hands YOU (the model) the analysis to run. Anchor every finding to a unit; never deliver a verdict. End by sealing ONE falsifiable follow-up via argus_seal.',
+    'Review an EXISTING document (strategy memo / PRD / deck text / AI answer) for judgment risk. ' +
+    'Returns: a reviewability score+band, the routed review lenses, and the extraction prompt (which embeds the anchored source units + output schema) — then hands YOU (the model) the analysis to run. ' +
+    'Anchor every finding to the source; never deliver a verdict on the document. End by sealing ONE falsifiable follow-up via argus_seal. ' +
+    'Use for a document the user already wrote; to open a FRESH decision use argus_open_decision instead. Binary decks/PDFs degrade honestly — paste their text.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Review a document', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },

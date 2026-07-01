@@ -24,7 +24,9 @@ const inputSchema = z.strictObject({
 export const sync: ToolModule = {
   name: 'argus_sync',
   description:
-    'Pull your Argus account receipts into the terminal — live judgments and what is due — so you can settle here. Seals/settles already push to the account automatically; this is the read side. Requires ARGUS_TOKEN.',
+    'Pull your Argus account receipts into the terminal — live judgments and what is due — so you can settle here. ' +
+    'Returns: receipts (id, title, state, next_check_by, due, open_predicates) with due items first, plus total/due/has_more. ' +
+    'Seals/settles already push to the account automatically; this is the READ side. Use due_only:true to see just what needs settling. Requires ARGUS_TOKEN (Settings → sync token).',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Sync account receipts', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
