@@ -29,7 +29,7 @@ function isTableSeparator(line: string): boolean {
 function renderLine(l: string, k: number): React.ReactNode {
   if (l.startsWith('# ')) return <h1 key={k} className="text-[24px] md:text-[28px] font-bold text-[var(--text-primary)] mt-1 mb-3 tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{l.slice(2)}</h1>;
   if (l.startsWith('### ')) return <h3 key={k} className="text-[15px] font-bold text-[var(--text-primary)] mt-5 mb-1.5 tracking-tight">{l.slice(4)}</h3>;
-  if (l.startsWith('## ')) return <h2 key={k} className="text-[15px] md:text-[16px] font-bold text-[var(--text-primary)] mt-7 mb-2.5 tracking-tight">{l.slice(3)}</h2>;
+  if (l.startsWith('## ')) return <h2 key={k} className="text-[16px] md:text-[17px] font-bold text-[var(--text-primary)] mt-7 mb-2.5 tracking-tight">{l.slice(3)}</h2>;
   if (l.startsWith('> ')) return <blockquote key={k} className="border-l-[3px] border-[var(--accent)]/30 pl-4 py-1 text-[14px] text-[var(--text-secondary)] italic my-3 leading-[1.65]">{renderInline(l.slice(2))}</blockquote>;
   if (l.startsWith('- ')) return <div key={k} className="flex items-start gap-2.5 text-[14px] text-[var(--text-primary)] ml-1 leading-[1.75]"><span className="w-1 h-1 rounded-full bg-[var(--accent)]/60 mt-2.5 shrink-0" /><span>{renderInline(l.slice(2))}</span></div>;
   if (l.startsWith('---')) return <hr key={k} className="border-[var(--border-subtle)] my-4" />;

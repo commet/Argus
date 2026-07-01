@@ -157,8 +157,11 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
                 ) : w.status === 'done' && firstLine(w) ? (() => {
                   const full = (w.result || w.completion_note || '').trim();
                   const isOpen = expandedId === w.id;
-                  // Only offer expansion when there's genuinely more than the peek.
-                  const hasMore = full.length > firstLine(w).replace(/…$/, '').length + 8;
+                  // Offer expansion only when the full report is substantially longer
+                  // than the ~2-line peek. A fixed threshold (not a cross-source length
+                  // subtraction) avoids misfiring when the peek and full come from
+                  // different fields (completion_note-first vs result-first).
+                  const hasMore = full.length > 160;
                   // Toggle control and the full report are SEPARATE — reading/scrolling
                   // the open report must not collapse it (which a text-inside-button
                   // accordion would do on any tap).

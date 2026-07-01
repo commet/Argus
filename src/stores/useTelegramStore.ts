@@ -46,12 +46,19 @@ export const useTelegramStore = create<TelegramState>((set, get) => ({
     // Anonymous → no connections, but the query DID resolve: mark loaded so the
     // UI shows the login hint, not a perpetual "not connected" or a spinner.
     if (!userId) { set({ connections: [], loaded: true }); return; }
-    const { data } = await supabase
-      .from('telegram_connections')
-      .select('id, chat_id, chat_title, chat_type, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    set({ connections: data || [], loaded: true });
+    // ALWAYS set loaded, even if the fetch REJECTS (network/DNS failure throws
+    // rather than resolving with {error}). Without the try/catch a rejected query
+    // would leave loaded=false forever → a permanent "연결 확인 중…" spinner.
+    try {
+      const { data } = await supabase
+        .from('telegram_connections')
+        .select('id, chat_id, chat_title, chat_type, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      set({ connections: data || [], loaded: true });
+    } catch {
+      set({ loaded: true });
+    }
   },
 
   startConnect: async () => {

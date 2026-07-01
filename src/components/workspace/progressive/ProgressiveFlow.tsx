@@ -1381,7 +1381,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // they render a FALSE "done" at 0/4 and ask the user to react to crew output that
   // isn't visible yet. (Same terminal set as the workers-done ping above.)
   const crewSettled = workers.length === 0 ||
-    workers.every(w => w.status === 'done' || w.status === 'error' || w.status === 'waiting_input' || w.status === 'validation_failed');
+    workers.every(w => w.status === 'done' || w.status === 'error' || w.status === 'waiting_input' || w.status === 'validation_failed' ||
+      // A HUMAN worker out for an external reply sits at 'sent'/'waiting_response'
+      // — possibly for days, or never. It must NOT block the AI-crew "analysis
+      // done → draft" path (which would strand the user with no route to the
+      // document once questions are exhausted). Count it as settled for gating.
+      (w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response')));
 
   /* W1.6 재구성 ② 팀 자동 출항 — focus mode skips the HR-approval screen.
    * The crew assembling and working is THEATER the user watches while

@@ -49,13 +49,18 @@ export const useSlackStore = create<SlackState>((set, get) => ({
     const userId = await getCurrentUserId();
     if (!userId) { set({ connections: [], loaded: true }); return; }
 
-    const { data } = await supabase
-      .from('slack_connections')
-      .select('id, team_id, team_name, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    set({ connections: data || [], loaded: true });
+    // ALWAYS set loaded, even on a rejected fetch (see useTelegramStore) — else a
+    // network failure leaves loaded=false forever and the panel spins indefinitely.
+    try {
+      const { data } = await supabase
+        .from('slack_connections')
+        .select('id, team_id, team_name, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      set({ connections: data || [], loaded: true });
+    } catch {
+      set({ loaded: true });
+    }
   },
 
   disconnect: async (connectionId: string) => {

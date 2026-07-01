@@ -222,10 +222,10 @@ export function SealMoment({
     const c = buildEarlyContract(project.id, { lean: summary, interval: iv }, Date.now());
     if (!c) return;
     const check_by = c.check_in_at ? new Date(c.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
-    const judgment_receipt = humanJudgment.trim()
-      ? { real_question: summary, unverified_assumption: '', human_only: '', human_judgment: humanJudgment.trim(), check_by }
-      : undefined;
-    updateProject(project.id, { decision_contract: { ...c, ...(judgment_receipt ? { judgment_receipt } : {}) } });
+    // ALWAYS attach the receipt (match the main seal path) so this recovery seal
+    // also keeps a then↔now anchor at settlement; human_judgment stays optional.
+    const judgment_receipt = { real_question: summary, unverified_assumption: '', human_only: '', human_judgment: humanJudgment.trim(), check_by };
+    updateProject(project.id, { decision_contract: { ...c, judgment_receipt } });
     const sharp = c.predicates[0]?.text;
     if (user && session?.access_token && c.check_in_at && sharp) {
       syncSealToTelegram({
