@@ -172,24 +172,22 @@ export function SirenHero() {
 
         {/* The living anchor — Odysseus's voyage past the Sirens as one
             continuous moving engraving (출항 → 묶기 → 듣기 → 닿기 → 알아봄), the
-            myth that names the product. Full-bleed AND at the film's true 16:9
-            height (capped only on very tall viewports), so it fills the width
-            edge-to-edge — overwhelming — while nothing gets cropped. */}
-        {/* Mobile (<640px): height is CONTENT-driven — VoyageFilm stacks the 16:9
-            video above a paper caption gutter (text never overlaps the engraving),
-            so the band sizes to video+gutter. ≥640px keeps the fixed 16:9 band the
-            cinematic lower-left overlay was composed for (capped on tall viewports). */}
-        {/* Full-bleed 16:9: the engraving bleeds edge-to-edge (impact), and its
-            baked-in plate border + paper margins run off-screen instead of
-            sitting inside the frame as a visible "bar". object-fit:cover keeps
-            the vertically-centered figures; the height cap only bites on very
-            tall/large viewports so nothing important is cropped on phones or
-            laptops. Mobile (<640px) uses VoyageFilm's content-driven stack. */}
+            myth that names the product. Presented as a deliberate framed PLATE:
+            contained width, centered on the paper, whole 16:9 shown (no crop, so
+            no face is ever cut), lifted by a soft shadow so the engraving's own
+            printed border reads as an intentional plate edge — not a stray bar.
+            Centered via a flex parent (NOT transform, which bp-fade-up animates).
+            Mobile (<640px): VoyageFilm's content-driven stack (video + caption). */}
         <div
-          className="bp-fade-up h-auto sm:h-[56.25vw] sm:max-h-[85vh]"
-          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 20, marginBottom: 16, animationDelay: '200ms' }}
+          className="bp-fade-up"
+          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 20, marginBottom: 16, display: 'flex', justifyContent: 'center', animationDelay: '200ms' }}
         >
-          <VoyageFilm />
+          <div
+            className="w-full sm:w-[min(92vw,1160px)] sm:aspect-[16/9]"
+            style={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 10px 44px rgba(60,45,20,0.18), 0 2px 8px rgba(60,45,20,0.10)' }}
+          >
+            <VoyageFilm />
+          </div>
         </div>
 
         {/* Resolving line — the pitch must not end on the problem. */}
