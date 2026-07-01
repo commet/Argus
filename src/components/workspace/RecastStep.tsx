@@ -264,12 +264,14 @@ function RecastLoader() {
     L('검증 포인트를 설계합니다', 'Designing checkpoints'),
   ];
 
+  // Theme tokens (not raw hex) so the loader stays on-brand and dark-mode-correct,
+  // and the assembling bars mean something — the ai / human / both actor colors.
   const bars = [
-    { w: '72%', c: '#3b6dcc' },
-    { w: '45%', c: '#2d6b2d' },
-    { w: '58%', c: '#b8860b' },
-    { w: '84%', c: '#3b6dcc' },
-    { w: '36%', c: '#2d6b2d' },
+    { w: '72%', c: 'var(--ai-fg)' },
+    { w: '45%', c: 'var(--both-fg)' },
+    { w: '58%', c: 'var(--accent)' },
+    { w: '84%', c: 'var(--ai-fg)' },
+    { w: '36%', c: 'var(--both-fg)' },
   ];
 
   return (

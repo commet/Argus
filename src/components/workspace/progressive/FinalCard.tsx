@@ -74,16 +74,18 @@ export function FinalCard({
   const [bodyOpen, setBodyOpen] = useState(!defaultCollapsed);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.9, ease: EASE }}>
-      <div className="rounded-2xl md:rounded-[2rem] p-[2px] bg-gradient-to-b from-[var(--accent)]/30 via-[var(--accent)]/10 to-transparent shadow-[var(--shadow-xl)]">
-        <div className="rounded-[calc(1rem-2px)] md:rounded-[calc(2rem-2px)] bg-[var(--surface)] shadow-[inset_0_2px_4px_rgba(255,255,255,0.6)] overflow-hidden">
-          {/* The gradient BORDER + the gold check medallion already carry the gold;
-              a third floating h-[3px] gold bar here was a redundant "line on a line"
-              (the awkward seam above 완성된 문서). Removed. */}
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
+      <div className="rounded-2xl md:rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-lg)] overflow-hidden">
+        <div className="overflow-hidden">
+          {/* The document is the deliverable, so it stays distinguished — but the
+              victory affect (gold gradient border + gold check medallion +
+              scale-up entrance) was a verdict the *settlement* moment should own,
+              not the freshly generated draft. Neutral hairline + a quiet "ready"
+              mark instead; celebratory gold is saved for real reality-contact. */}
           <div className="px-5 md:px-7 py-4 flex items-center justify-between border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--gradient-gold)' }}>
-                <Check size={13} className="text-white" />
+              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[var(--bg)] border border-[var(--border-subtle)]">
+                <Check size={13} className="text-[var(--text-secondary)]" />
               </div>
               <div>
                 <span className="text-[14px] font-semibold text-[var(--text-primary)]">{L('완성된 문서', 'Final Document')}</span>

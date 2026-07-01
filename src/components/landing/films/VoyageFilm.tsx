@@ -321,11 +321,34 @@ export function VoyageFilm() {
     const evs = ['timeupdate', 'seeked', 'loadeddata', 'play'] as const;
     evs.forEach((e) => v.addEventListener(e, onTime));
     return () => evs.forEach((e) => v.removeEventListener(e, onTime));
+    // NOTE: reduced-motion enforcement lives in its own effect below.
     // Re-run on `narrow`: the mobile and desktop layouts render SEPARATE <video>
     // elements (the gutter stacks, the desktop overlays), so when the viewport
     // crosses 640px the element behind `vref` is swapped. Without `narrow` here,
     // the listeners stay bound to the old (now-unmounted) video and the caption
     // freezes — the film keeps playing but the chapter sync stops.
+  }, [narrow]);
+
+  // Reduced-motion enforcement (WCAG 2.2.2). framer's useReducedMotion can lag
+  // the media query on first paint, and React won't reliably reflect
+  // autoPlay={false} onto an already-mounted <video>. So gate autoplay directly
+  // off the media query: a reduced-motion visitor gets the static poster, never
+  // the looping film. Re-runs on `narrow` because the mounted <video> swaps.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => {
+      const v = vref.current;
+      if (!v) return;
+      if (mq.matches) {
+        v.autoplay = false;
+        v.removeAttribute('autoplay');
+        try { v.pause(); } catch { /* ignore */ }
+      }
+    };
+    apply();
+    mq.addEventListener?.('change', apply);
+    return () => mq.removeEventListener?.('change', apply);
   }, [narrow]);
 
   // ── MOBILE (<640px): stack the video (16:9) ABOVE a paper caption gutter, so
@@ -344,7 +367,7 @@ export function VoyageFilm() {
           <video
             ref={vref}
             className="bp-voyage-video"
-            autoPlay muted loop playsInline preload="metadata"
+            autoPlay={!rm} muted loop playsInline preload="metadata"
             poster="/voyage/voyage-poster.jpg"
             aria-label={L('오디세우스의 항해 — 묶기, 듣기, 닿기, 그리고 알아봄', "Odysseus's voyage — bind, listen, land, and recognition")}
             style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', background: 'var(--bp-paper)' }}
@@ -360,14 +383,14 @@ export function VoyageFilm() {
         <div style={{ position: 'relative', flex: 'none', height: 256, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '14px 18px 34px' }}>
           <AnimatePresence mode="wait">
             {introMode ? (
-              <motion.div key="intro" style={{ textAlign: 'left' }} initial={rm ? { opacity: 1 } : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }} aria-live="polite">
+              <motion.div key="intro" style={{ textAlign: 'left' }} initial={rm ? { opacity: 1 } : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }}>
                 <span className="bp-mono" style={{ display: 'block', marginBottom: 9, fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)' }}>{L(INTRO.eyebrowKo, INTRO.eyebrowEn)}</span>
                 <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 4vw, 17px)', lineHeight: 1.5, letterSpacing: '-0.006em', textWrap: 'pretty' }}>
                   <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
                 </p>
               </motion.div>
             ) : gChapter ? (
-              <motion.div key={gChapter.num} style={{ textAlign: 'left' }} initial={rm ? { opacity: 1 } : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }} aria-live="polite">
+              <motion.div key={gChapter.num} style={{ textAlign: 'left' }} initial={rm ? { opacity: 1 } : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }}>
                 <PlateFolioCard active={gChapter} L={L} locale={locale} rm={rm} narrow={true} />
               </motion.div>
             ) : null}
@@ -388,7 +411,7 @@ export function VoyageFilm() {
       <video
         ref={vref}
         className="bp-voyage-video"
-        autoPlay muted loop playsInline preload="metadata"
+        autoPlay={!rm} muted loop playsInline preload="metadata"
         poster="/voyage/voyage-poster.jpg"
         aria-label={L('오디세우스의 항해 — 묶기, 듣기, 닿기, 그리고 알아봄', "Odysseus's voyage — bind, listen, land, and recognition")}
         // Full-bleed cover. Where the max-h cap makes the band shorter than 16:9
@@ -468,7 +491,6 @@ export function VoyageFilm() {
             transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
             className="absolute left-0 right-0 flex flex-col items-center text-center"
             style={{ bottom: 'clamp(30px, 9%, 64px)', padding: '0 28px', zIndex: 2 }}
-            aria-live="polite"
           >
             <motion.div className="flex flex-col items-center" initial={rm ? { opacity: 1 } : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}>
               <span className="bp-mono" style={{ marginBottom: 11, fontSize: 'clamp(10px, 1.05vw, 11.5px)', letterSpacing: locale === 'ko' ? '0.13em' : '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}>
@@ -487,7 +509,6 @@ export function VoyageFilm() {
             exit={rm ? { opacity: 0 } : { opacity: 0, x: -12 }}
             transition={{ duration: 0.42, ease: [0.22, 0.61, 0.36, 1] }}
             style={{ position: 'absolute', left: narrow ? 'clamp(16px, 5vw, 24px)' : 'clamp(24px, 6vw, 84px)', bottom: narrow ? 'clamp(28px, 9%, 56px)' : 'clamp(36px, 11%, 84px)', right: 'auto', textAlign: 'left', maxWidth: narrow ? '90vw' : 'min(82ch, 880px)', zIndex: 2 }}
-            aria-live="polite"
           >
             <PlateFolioCard active={active} L={L} locale={locale} rm={rm} narrow={narrow} />
           </motion.div>

@@ -58,7 +58,7 @@ function buildSessions(L: (ko: string, en: string) => string): [Session, Session
       c: null,
       three: false,
       chosen: 'a',
-      plate: L('전제 교정 — 빠져나감부터 막고 키운다', 'Premise corrected — stop the leaving before growing'),
+      plate: L('여기서 항로를 바꿨어요 — 성장보다 이탈부터라면?', 'You changed course here — what if churn comes before growth?'),
       plateSub: L('다음 갈림길: 이탈을 어디서 막을지.', 'Next fork: where to stop the churn.'),
     },
     {
@@ -72,7 +72,7 @@ function buildSessions(L: (ko: string, en: string) => string): [Session, Session
       c: { eye: L('C · 기능 더 추가', 'C · add more features'), t: L('요구는 많지만', 'Much-requested, but'), i: L('정작 이탈엔 영향이 적다.', 'barely moves retention.') },
       three: true,
       chosen: 'b',
-      plate: L('전제 교정 — 기능이 아니라 “쓸 이유”가 사람을 남게 한다', 'Premise corrected — not features but the "why" keeps people'),
+      plate: L('여기서 항로를 바꿨어요 — 기능이 아니라 “쓸 이유”였다면?', 'You changed course here — what if it was the "why," not features?'),
       plateSub: L('다음: “쓸 이유”를 느끼기까지의 단계를 설계.', 'Next: design the steps until the value lands.'),
     },
   ];

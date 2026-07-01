@@ -77,7 +77,8 @@ export function CurrentBearingCard({
     ? road_not_taken.filter((r) => r && typeof r.option === 'string' && r.option)
     : [];
   const status = STATUS_META[current_course.status] ?? STATUS_META.proceed;
-  const tone = status.caution ? 'var(--gold)' : 'var(--accent)';
+  // The course state is a neutral wayfinding descriptor, NOT a color-coded
+  // verdict on the user's decision — no accent/gold "approve vs caution" split.
   const showActions = !!onShowEvidence || (canSeal && !!onSeal);
 
   return (
@@ -90,7 +91,7 @@ export function CurrentBearingCard({
       <div className="px-5 pb-4 pt-4 md:px-6">
         <div className="mb-2.5 flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-            <Compass size={15} style={{ color: tone }} />
+            <Compass size={15} className="text-[var(--text-tertiary)]" />
             <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
               {L('현재 항로', 'Current Heading')}
             </span>
@@ -109,10 +110,7 @@ export function CurrentBearingCard({
               {copied ? <Check size={11} className="text-[var(--success)]" /> : <Copy size={11} />}
               {copied ? L('복사됨', 'Copied') : L('복사', 'Copy')}
             </button>
-            <span
-              className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-              style={{ color: tone, background: `color-mix(in srgb, ${tone} 12%, transparent)` }}
-            >
+            <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
               {L(status.ko, status.en)}
             </span>
           </div>

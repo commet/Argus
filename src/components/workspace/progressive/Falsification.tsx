@@ -230,7 +230,7 @@ export function Falsification({
                     leverage ??tilt), so we still NAME it ??but the crux is a bare
                     neutral QUESTION, never a verdict about which belief is riskiest
                     or what it decides. Ask; don't conclude. */}
-                <p className="text-[11.5px] text-[var(--accent)] leading-[1.5] mt-1.5">
+                <p className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5] mt-1.5">
                   {L('?닿쾶 ?뺣쭚 留욌굹??', 'Is it actually true?')}
                 </p>
               </div>

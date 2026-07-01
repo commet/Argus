@@ -30,6 +30,14 @@
   --success: #1d7d3f;
   --danger: #dc3545;
 
+  /* Badge/Card foregrounds — paired with the fills above so BOTH remap in dark.
+     Previously the text was hardcoded hex (#2d4a7c …) on a fill that remapped,
+     giving dark-on-dark AI/Human provenance labels in Warm Charcoal mode. */
+  --ai-fg: #2d4a7c;
+  --human-fg: #8b6914;
+  --both-fg: #2d6b2d;
+  --checkpoint-fg: #8b7114;
+
   /* Risk classification (Philosophy v2 §6.1) */
   --risk-critical: #E24B4A;
   --risk-manageable: #EF9F27;
@@ -120,6 +128,12 @@
   --checkpoint: #2a2518;
   --success: #4ade80;
   --danger: #f87171;
+
+  /* Light-on-dark badge/card foregrounds (see :root note) — AA on the dark fills */
+  --ai-fg: #a9c2e6;
+  --human-fg: #e0c074;
+  --both-fg: #8fd39b;
+  --checkpoint-fg: #e2cd82;
 
   --risk-critical: #f87171;
   --risk-manageable: #fbbf24;

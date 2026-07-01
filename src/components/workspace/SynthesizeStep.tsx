@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSynthesizeStore } from '@/stores/useSynthesizeStore';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -147,6 +147,11 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const [error, setError] = useState('');
   const [mode, setMode] = useState<InputMode>('interview');
+  // Carry the interview's importance answer to SealMoment so the mirror-clause
+  // restraint gate can fire: a "low" call should get a quiet single-check, not
+  // the full seal ceremony. Default 'important' (full ceremony) is the safe
+  // fallback when the answer is absent (e.g. paste mode, or after reload).
+  const [sealStakes, setSealStakes] = useState<'routine' | 'important' | 'critical'>('important');
 
   useEffect(() => {
     loadItems();
@@ -220,6 +225,17 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
     }
   };
 
+  // Debounce timers per conflict — the persisted judgment record must NOT be
+  // written on every keystroke (it floods the judgment store that patterns /
+  // vitality read from, distorting the frequency stats the spine relies on).
+  // ReframeStep already debounces the same way. The UI updates immediately;
+  // only the RECORD waits ~1s after typing stops.
+  const judgmentTimerRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  useEffect(() => {
+    const timers = judgmentTimerRef.current;
+    return () => { Object.values(timers).forEach(clearTimeout); };
+  }, []);
+
   const handleJudgment = (conflictId: string, judgment: string) => {
     if (!current || !currentId || !current.analysis) return;
     const conflict = current.analysis.conflicts.find(c => c.id === conflictId);
@@ -228,16 +244,20 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
     );
     updateItem(currentId, { analysis: { ...current.analysis, conflicts } });
 
+    if (judgmentTimerRef.current[conflictId]) clearTimeout(judgmentTimerRef.current[conflictId]);
     if (conflict && judgment.trim()) {
-      addJudgment({
-        type: 'conflict_resolution',
-        context: conflict.topic,
-        decision: judgment,
-        original_ai_suggestion: `${conflict.side_a.source}: ${conflict.side_a.position}`,
-        user_changed: true,
-        project_id: current.project_id,
-        tool: 'synthesize',
-      });
+      judgmentTimerRef.current[conflictId] = setTimeout(() => {
+        addJudgment({
+          type: 'conflict_resolution',
+          context: conflict.topic,
+          decision: judgment,
+          original_ai_suggestion: `${conflict.side_a.source}: ${conflict.side_a.position}`,
+          user_changed: true,
+          project_id: current.project_id,
+          tool: 'synthesize',
+        });
+        delete judgmentTimerRef.current[conflictId];
+      }, 1000);
     }
   };
 
@@ -409,7 +429,13 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
               <InterviewInput
                 steps={SYNTHESIZE_INTERVIEW}
                 submitLabel={L('AI 분석 시작', 'Start AI analysis')}
-                onSubmit={(answers) => handleAnalyze(buildInterviewPrompt(SYNTHESIZE_INTERVIEW, answers))}
+                onSubmit={(answers) => {
+                  // Map the importance chip to the seal gate's stakes so a light
+                  // decision gets a quiet single-check instead of full ceremony.
+                  const imp = answers.importance;
+                  setSealStakes(imp === 'low' ? 'routine' : imp === 'critical' ? 'critical' : 'important');
+                  handleAnalyze(buildInterviewPrompt(SYNTHESIZE_INTERVIEW, answers));
+                }}
               />
               {error && (
                 <div className="flex items-center gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2 mt-3">
@@ -438,13 +464,13 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
           {/* Sources summary */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Bot size={14} className="text-[#2d4a7c]" />
+              <Bot size={14} className="text-[var(--ai-fg)]" />
               <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('소스별 핵심 주장', 'Core claims by source')}</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {current.analysis.sources_summary.map((s, i) => (
                 <Card key={i} className="!bg-[var(--ai)] !p-3">
-                  <p className="text-[12px] font-bold text-[#2d4a7c] mb-1">{s.name}</p>
+                  <p className="text-[12px] font-bold text-[var(--ai-fg)] mb-1">{s.name}</p>
                   <p className="text-[13px] text-[var(--text-primary)]">{s.core_claim}</p>
                 </Card>
               ))}
@@ -454,10 +480,10 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
           {/* Agreements */}
           {current.analysis.agreements.length > 0 && (
             <Card className="!bg-[var(--collab)]">
-              <h3 className="text-[14px] font-bold text-[#2d6b2d] mb-2">{L('합의점', 'Agreements')}</h3>
+              <h3 className="text-[14px] font-bold text-[var(--both-fg)] mb-2">{L('합의점', 'Agreements')}</h3>
               <ul className="space-y-1">
                 {current.analysis.agreements.map((a, i) => (
-                  <li key={i} className="text-[13px] text-[#2d6b2d]">✓ {a}</li>
+                  <li key={i} className="text-[13px] text-[var(--both-fg)]">✓ {a}</li>
                 ))}
               </ul>
             </Card>
@@ -481,13 +507,17 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                     {conflict.user_judgment && <Check size={14} className="text-[var(--success)]" />}
                   </div>
                   {/* Two sides */}
+                  {/* Two external sources the user judges between — kept visually
+                      EQUAL (no color implying which side Argus prefers) and on
+                      semantic tokens so they don't turn into near-white boxes in
+                      dark mode. Distinguished by the source label, not by hue. */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="bg-blue-50 rounded-lg p-3">
-                      <p className="text-[11px] font-bold text-blue-600 mb-1">{conflict.side_a.source}</p>
+                    <div className="bg-[var(--bg)] border border-[var(--border-subtle)] rounded-lg p-3">
+                      <p className="text-[11px] font-bold text-[var(--text-secondary)] mb-1">{conflict.side_a.source}</p>
                       <p className="text-[13px] text-[var(--text-primary)]">{conflict.side_a.position}</p>
                     </div>
-                    <div className="bg-purple-50 rounded-lg p-3">
-                      <p className="text-[11px] font-bold text-purple-600 mb-1">{conflict.side_b.source}</p>
+                    <div className="bg-[var(--bg)] border border-[var(--border-subtle)] rounded-lg p-3">
+                      <p className="text-[11px] font-bold text-[var(--text-secondary)] mb-1">{conflict.side_b.source}</p>
                       <p className="text-[13px] text-[var(--text-primary)]">{conflict.side_b.position}</p>
                     </div>
                   </div>
@@ -580,6 +610,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
             <SealMoment
               project={sealProject}
               predicates={extractPredicatesFromSynthesis(current.analysis.conflicts)}
+              gate={{ stakes: sealStakes, reversibility: sealStakes === 'routine' ? 'reversible' : 'partial' }}
             />
           )}
 
