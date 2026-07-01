@@ -39,6 +39,7 @@ The crew, individually (sail chains these for you):
   /argus:log       voyage log across ALL sessions + your prediction record
   /argus:settle    check past predictions against reality (the contract loop)
   /argus:principles codify a recurring pattern in your settled record as your own rule
+  /argus:track     view/correct a decision's premises & phenomena; toggle change-alerts
   /argus:connect   pair this project with your webapp account using a push token
   /argus:push      send local Argus records to the paired webapp account
   /argus:pull      bring webapp settle/defer actions back into the local ledger

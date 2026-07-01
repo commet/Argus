@@ -340,25 +340,42 @@ CLAUDE.md single-source: **두뇌(lib) 하나 공유, 표현만 분리.**
 
 ---
 
-## 10. 구현 단계 (의존 순서)
+## 10. 구현 단계 (의존 순서) + 현황
 
-### Phase 1 — 스키마 + 공유 추출 + 편집 이력 (토대)
-- `src/lib/decision-items.ts` (스키마, id, 불변식 헬퍼).
-- `src/lib/item-extract-core.ts` (공유 추출 프롬프트 — clarify/webapp 공용).
-- Supabase 테이블/컬럼 + 마이그레이션 + schema-drift 갱신.
-- 편집 이력 기록(`recordEdit`)과 override 신호 집계(`summarizeOverrides`).
-- **이유:** Phase 2·3이 전부 이 위에 올라간다.
+### Phase 1 — 스키마 + 공유 추출 + 편집 이력 + drift 코어 ✅ **구현·테스트 완료 (2026-07-01)**
+- ✅ `src/lib/decision-items.ts` — 스키마, 안정 id, `createItem`, `recordEdit`,
+  `summarizeOverrides`(override 신호), 알림 기본값(opt-out), 적응형 후퇴.
+- ✅ `src/lib/item-extract-core.ts` — 공유 추출 프롬프트(KO/EN, 직설 규칙) +
+  `toDecisionItems` 정규화. (reframe-core처럼 프롬프트만, LLM 호출은 호출자.)
+- ✅ `src/lib/premise-drift.ts` — drift 판정(수치 임계/텍스트) + `shouldFireAlert`
+  (mode·빈도상한·후퇴) + `isDueForRecheck`. 순수, 네트워크는 호출자 seam.
+- ✅ 테스트 3파일 34케이스 green (`decision-items`/`premise-drift`/`item-extract-core`).
+- ✅ `supabase/migrations/20260701_decision_items.sql` — 테이블 준비 (아직 미적용).
+- **의도적 미결:** 아직 synced 스토어(Project/Persona)에 안 엮음 — 마이그레이션
+  적용 전에 엮으면 PGRST204로 조용히 sync 실패하므로. 아래 Phase 1b에서 함께.
+
+### Phase 1b — 웹앱 sync 배선 (마이그레이션 적용 필요, 사용자 DB)
+- `20260701_decision_items.sql` 적용(`apply_migration`).
+- `schema-drift.test`의 `TABLE_COLUMNS`에 `decision_items` 추가.
+- 스토어(신규 `useDecisionItemsStore` 또는 project 확장) + db.ts 경로 + 저장 선언.
 
 ### Phase 2 — 편집 UI를 1급으로
-- 웹앱: 결정 후 **항목 편집 뷰가 주(主) 화면**. 인라인 편집·삭제·추가.
-- 플러그인: `/argus:track` — 항목 목록·편집.
-- override 신호 → `/argus:principles`/patterns로 비준 흐름 연결.
+- ✅ 플러그인: `argus-plugin-v2/skills/track/SKILL.md` (`/argus:track`) —
+  `.argus/items.jsonl`(append-only) 위 항목 목록·편집·알림토글. help에 등록.
+- ⬜ 플러그인: clarify/sail이 봉인 시 `extract` 이벤트로 항목을 실제 생성(배선).
+- ⬜ 웹앱: 결정 후 **항목 편집 뷰가 주(主) 화면**. 인라인 편집·삭제·추가 (React).
+- ⬜ override 신호 → `/argus:principles`/patterns 비준 흐름 연결.
 
-### Phase 3 — 살아있는 전제 알림
-- 항목별 알림 on/off UI(웹 종 토글 / 플러그인 토글).
-- `src/lib/premise-drift.ts` (web 재확인 + drift 판정, 기계적).
-- 전달: 웹 edge function 스케줄 + 허브 / 플러그인 SessionStart 훅 확장.
-- 미결 재고(예시 함께) 인터랙션.
+### Phase 3 — 살아있는 전제 알림 (전달층)
+- ✅ drift 판정 코어(`premise-drift.ts`).
+- ⬜ 항목별 알림 on/off UI(웹 종 토글 — 플러그인 토글은 track에 구현됨).
+- ⬜ web 재확인 실행: 웹 edge function 스케줄 / 플러그인 `check-contracts` 확장
+  (`isDueForRecheck` → WebSearch → `evaluateDrift` → `shouldFireAlert`).
+- ⬜ 전달: 공유 허브(이메일·텔레그램·푸시) / SessionStart 훅.
+- ⬜ 미결 재고(예시 함께) 인터랙션.
+
+**요약:** 공유 두뇌(순수 로직)와 플러그인 편집 표면은 구현·검증 완료. 남은 것은
+배선(clarify 추출 emit, 웹앱 스토어+React UI, 재확인 실행·전달)과 마이그레이션 적용.
 
 ---
 
