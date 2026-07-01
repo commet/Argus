@@ -39,6 +39,7 @@ export function SirenHero() {
   const router = useLocaleRouter();
   const [text, setText] = useState('');
   const [focused, setFocused] = useState(false);
+  const [reviewHover, setReviewHover] = useState(false);
 
   // Cold-start cure: rotate the empty field through real held-decision
   // examples so a first-timer is never staring at a blank canvas wondering
@@ -386,11 +387,13 @@ export function SirenHero() {
         </div>
 
         {/* The other door — a decision already written down. Surfaced right
-            under the log entry (not buried in the nav) so a first-timer sees
-            both ways in: write a fresh one, OR bring an existing doc for review.
-            Understated ink + a dashed chart-field border — never gold (gold is
-            spent once, on the CTA above). */}
-        <div className="bp-fade-up mx-auto" style={{ animationDelay: '360ms', maxWidth: 600, marginTop: 18 }}>
+            under the log entry (not buried in the nav). Built in the SAME
+            chart-field language as the input above (warm-paper material, corner
+            registration ticks, a shadow that lifts on interaction) so the two
+            read as two entries on one log page: LOG ENTRY (write) vs ON FILE
+            (bring a doc). Ticks darken on hover instead of focus; never gold —
+            gold is spent once, on the CTA above. */}
+        <div className="bp-fade-up mx-auto" style={{ animationDelay: '360ms', maxWidth: 600, marginTop: 16 }}>
           <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
             <span aria-hidden="true" style={{ flex: 1, height: 1, background: 'var(--bp-ink-faint)' }} />
             <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
@@ -398,28 +401,89 @@ export function SirenHero() {
             </span>
             <span aria-hidden="true" style={{ flex: 1, height: 1, background: 'var(--bp-ink-faint)' }} />
           </div>
+
+          {/* persistent label — sibling to "LOG ENTRY ·" above */}
+          <div className="flex items-center gap-2" style={{ marginBottom: 11 }}>
+            <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
+              {L('ON FILE · 이미 써둔 문서', 'ON FILE · a document you wrote')}
+            </span>
+          </div>
+
           <LocaleLink
             href="/tools/review"
-            className="group block text-left transition-colors hover:bg-[var(--bp-paper-deep)]"
-            style={{ border: '1px dashed var(--bp-ink-faint)', borderRadius: 4, padding: '14px 18px' }}
+            onMouseEnter={() => setReviewHover(true)}
+            onMouseLeave={() => setReviewHover(false)}
+            onFocus={() => setReviewHover(true)}
+            onBlur={() => setReviewHover(false)}
+            className="group relative block text-left"
+            style={{
+              background: 'linear-gradient(180deg, var(--bp-paper) 0%, var(--bp-paper-deep) 100%)',
+              padding: '15px 20px',
+              borderRadius: 4,
+              boxShadow: reviewHover
+                ? '0 12px 32px -14px rgba(48,34,14,0.24), inset 0 1px 0 rgba(255,255,255,0.5)'
+                : '0 8px 26px -14px rgba(48,34,14,0.15), inset 0 1px 0 rgba(255,255,255,0.42)',
+              transition: 'box-shadow 260ms ease',
+            }}
           >
-            <div className="flex items-center justify-between gap-3">
+            {/* corner registration ticks — same motif as the input, darkening on
+                hover the way the input's darken on focus. Slightly smaller so the
+                field reads as the quieter, secondary sibling. */}
+            {([
+              { k: 'tl', s: { top: -1, left: -1, borderTopStyle: 'solid', borderTopWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
+              { k: 'tr', s: { top: -1, right: -1, borderTopStyle: 'solid', borderTopWidth: 1.5, borderRightStyle: 'solid', borderRightWidth: 1.5 } },
+              { k: 'bl', s: { bottom: -1, left: -1, borderBottomStyle: 'solid', borderBottomWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
+              { k: 'br', s: { bottom: -1, right: -1, borderBottomStyle: 'solid', borderBottomWidth: 1.5, borderRightStyle: 'solid', borderRightWidth: 1.5 } },
+            ] as const).map(({ k, s }) => {
+              const tick = reviewHover ? 'var(--bp-ink)' : 'var(--bp-ink-soft)';
+              return (
+                <span
+                  key={k}
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    width: reviewHover ? 13 : 10,
+                    height: reviewHover ? 13 : 10,
+                    borderTopColor: tick,
+                    borderRightColor: tick,
+                    borderBottomColor: tick,
+                    borderLeftColor: tick,
+                    opacity: reviewHover ? 0.9 : 0.55,
+                    transition: 'width 220ms ease, height 220ms ease, border-color 220ms ease, opacity 220ms ease',
+                    ...s,
+                  }}
+                />
+              );
+            })}
+
+            <div className="flex items-center justify-between gap-4">
               <div className={locale === 'ko' ? 'break-keep' : ''}>
                 <div style={{ color: 'var(--bp-ink)', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>
-                  {L('이미 써둔 전략안·기획안이 있나요?', 'Already wrote the strategy or plan?')}
+                  {L('이 결정, 이미 문서로 써두셨나요?', 'Already written this decision down?')}
                 </div>
                 <div style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
                   {L(
                     '전략안·기획안·PDF·PPT를 그대로 올리면, 사람이 책임질 판단과 근거 약한 주장을 원문 위치까지 짚어드려요.',
-                    'Upload a strategy memo, plan, PDF or deck — Argus surfaces the judgment calls and weak evidence, anchored to the source.',
+                    'Bring a strategy memo, plan, PDF or deck — Argus surfaces the judgment calls and weak evidence, anchored to the source.',
                   )}
                 </div>
               </div>
               <span
-                className="bp-mono shrink-0 transition-transform group-hover:translate-x-0.5"
-                style={{ color: 'var(--bp-ink)', fontSize: 11.5, letterSpacing: locale === 'ko' ? '0.02em' : '0.14em', whiteSpace: 'nowrap' }}
+                className={`shrink-0 ${locale === 'ko' ? '' : 'bp-mono'}`}
+                style={{
+                  color: 'var(--bp-ink)',
+                  fontSize: locale === 'ko' ? 12.5 : 11.5,
+                  fontWeight: locale === 'ko' ? 600 : undefined,
+                  letterSpacing: locale === 'ko' ? '0.01em' : '0.14em',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
               >
-                {L('검수받기 →', 'Review →')}
+                {L('검수받기', 'Review')}
+                <span aria-hidden="true" className="transition-transform group-hover:translate-x-1" style={{ transition: 'transform 220ms ease' }}>→</span>
               </span>
             </div>
           </LocaleLink>
