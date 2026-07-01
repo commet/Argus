@@ -22,6 +22,7 @@ export const STORAGE_KEYS = {
   AGENT_ACTIVITIES: 'sot_agent_activities',
   EXECUTION_TRANSCRIPTS: 'sot_execution_transcripts',
   BOSS_COLLECTION: 'sot_boss_collection',
+  DECISION_ITEMS: 'sot_decision_items',
   REVIEW_RECEIPTS: 'sot_review_receipts',
 } as const;
 

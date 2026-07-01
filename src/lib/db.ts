@@ -20,7 +20,7 @@ type TableName = 'projects' | 'personas' | 'reframe_items' | 'recast_items'
   | 'synthesize_items'
   | 'progressive_sessions'
   | 'plugin_decisions' | 'plugin_bearings' | 'plugin_events'
-  | 'review_receipts';
+  | 'decision_items' | 'review_receipts';
 
 type SoftDeletableTable = 'projects' | 'personas' | 'reframe_items' | 'recast_items' | 'synthesize_items' | 'review_receipts';
 

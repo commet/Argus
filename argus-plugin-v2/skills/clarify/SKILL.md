@@ -420,6 +420,28 @@ set) on the snapshot either way, so sail Step 6 can route without re-classifying
 
 Write result to `versions/v0.1/analysis.json`.
 
+**Step 3.5 — Emit decision items (living-premises layer).** After writing
+analysis.json, project the assumptions you ALREADY computed into trackable items
+so `/argus:track` and the premise-alert layer have data (design:
+`docs/DESIGN-decision-items-living-premises-2026-07-01.md`). Reuse
+`hidden_assumptions` — do NOT run a second extraction (that would drift from the
+webapp's `item-extract-core`). Append one line per item to `.argus/items.jsonl`
+(project root, append-only), event `extract`:
+
+`{"event":"extract","id":"item_{session_id}_p{n}","decision_id":"{session_id}","type":"premise","text":"{assumption}","external":{true|false},"load_bearing":{true|false},"ai_original":"{assumption}","at":"{ISO}"}`
+
+Rules (keep it restrained):
+- One `premise` item per `hidden_assumptions` entry (`ai_original` = the same text).
+- `external`: true when reality can later verify the fact (rates, supply, a date,
+  an external party's decision); false for a value/preference/internal judgment.
+- `load_bearing`: true ONLY for the 1-2 assumptions that would flip the decision if
+  wrong (the ones that went into the fog). These are the ones the alert layer will
+  watch by default (on_change) — so mark sparingly.
+- **Append-only, emit once:** if `.argus/items.jsonl` already has an `extract` line
+  for this `decision_id`, do NOT re-emit (a later deepening round leaves the items
+  alone — the user's edits via `/argus:track` are the authority, never overwritten).
+- Do not print anything about this to the user — it is a silent side-write.
+
 ### Step 3 — Framing validation (conditional)
 
 If `framing_confidence < 70`:
