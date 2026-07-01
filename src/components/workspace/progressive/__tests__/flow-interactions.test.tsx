@@ -29,7 +29,7 @@ vi.mock('@/lib/export', () => ({ voyageLogToMarkdown: () => 'LOGSTUB' }));
 vi.mock('@/stores/useProgressiveStore', () => ({ useProgressiveStore: (sel: (s: unknown) => unknown) => sel({ sessions: [] }) }));
 
 import { QuestionCard } from '@/components/workspace/progressive/shared/QuestionCard';
-import { VerificationGate, TeamDeployBanner, DMFeedback, FinalCard } from '@/components/workspace/progressive/ProgressiveFlow';
+import { VerificationGate, TeamDeployBanner, DMFeedback, FinalCard, TerminalRouteCard } from '@/components/workspace/progressive/ProgressiveFlow';
 import type { WorkerTask, WorkerPersona, DMFeedbackResult } from '@/stores/types';
 
 // ── jsdom harness ──
@@ -82,6 +82,27 @@ describe('QuestionCard — meta + skip', () => {
     render(createElement(QuestionCard, { question: { id: 'q', text: 'x' }, onAnswer: vi.fn(), locale: 'ko' }));
     expect(container.textContent).not.toContain('건너뛰기');
     expect(container.textContent).not.toContain('건너뛰고');
+  });
+});
+
+describe('TerminalRouteCard — closure + forward action on a terminal route', () => {
+  it('shows route-aware closure and wires both exits (draft + dig-in)', () => {
+    const onDraft = vi.fn();
+    const onContinue = vi.fn();
+    render(createElement(TerminalRouteCard, { route: 'flat', busy: false, locale: 'ko', onDraft, onContinue }));
+    // Names why the flow landed here (measurement language, not a verdict) and
+    // gives closure — the session is no longer a silent dead-end.
+    expect(container.textContent).toContain('여기서 마쳐도 돼요');
+    expect(container.textContent).toContain('크게 갈리지 않는');
+    click(byText('이대로 문서로 정리하기'));
+    expect(onDraft).toHaveBeenCalledTimes(1);
+    click(byText('그래도 더 짚어볼래요'));
+    expect(onContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the dig-in exit while busy so the draft is not double-fired', () => {
+    render(createElement(TerminalRouteCard, { route: 'vent', busy: true, locale: 'ko', onDraft: vi.fn(), onContinue: vi.fn() }));
+    expect(container.textContent).not.toContain('그래도 더 짚어볼래요');
   });
 });
 

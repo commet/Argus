@@ -923,6 +923,92 @@ export function MirrorBeat({ assumption }: { assumption: string }) {
   );
 }
 
+/* ═══ TerminalRouteCard — closure + forward action for a terminal route ═══
+ * R32/R60 make a non-open route (vent/validation/info/…) or a flat frame
+ * TERMINAL: the inline insight (rendered by the AnalysisCard above) IS the
+ * deliverable, so the fabricated follow-up question is suppressed. But the
+ * suppression alone read as a frozen session — no question, no button, no
+ * progress (user report: "질문을 안 하고 세션 진행이 안 됨"). This card closes
+ * that gap: it names WHY the flow landed here (measurement language about the
+ * INPUT's shape — never a verdict about the user, per the zero-judgment spine),
+ * and returns the handle with two honest, opt-in exits:
+ *   1. Draft the deliverable as-is (the natural next artifact).
+ *   2. Keep digging — re-open the full Q&A flow (restraint default = off).
+ * No engine-weighted fork, no directional lean — just closure + the handle. */
+const TERMINAL_ROUTE_COPY: Record<string, { ko: string; en: string }> = {
+  flat: {
+    ko: '어느 쪽을 골라도 결과가 크게 갈리지 않는 결정이에요. 억지로 갈림길을 만들기보다, 지금 정리된 내용을 그대로 남겨둘 수 있어요.',
+    en: 'This decision lands about the same whichever way you go. Rather than manufacture a fork, you can keep what\'s already laid out.',
+  },
+  vent: {
+    ko: '지금은 무언가를 결정하기보다 상황을 정리하는 쪽에 가까워 보여요. 아래 정리를 그대로 두거나, 원하면 더 파고들 수 있어요.',
+    en: 'This reads more like laying the situation out than deciding something. Keep the summary below as-is, or dig deeper if you want.',
+  },
+  validation: {
+    ko: '방향은 이미 잡혀 있고, 확인이 필요한 상황으로 보여요. 아래 정리로 마무리하거나 더 짚어볼 수 있어요.',
+    en: 'The direction already looks set — this reads as needing confirmation. Wrap up with the summary below, or press further.',
+  },
+  info: {
+    ko: '결정이라기보다 정보를 정리하는 요청에 가까워요. 아래 정리가 그 답이에요.',
+    en: 'This is closer to organizing information than making a decision — the summary below is that answer.',
+  },
+};
+
+export function TerminalRouteCard({
+  route, onDraft, onContinue, busy, locale,
+}: {
+  route: string;
+  onDraft: () => void;
+  onContinue: () => void;
+  busy: boolean;
+  locale: 'ko' | 'en';
+}) {
+  const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const copy = TERMINAL_ROUTE_COPY[route] ?? {
+    ko: '이 입력은 여러 갈래로 갈리지 않아서, 굳이 더 캐묻지 않고 위 내용으로 정리했어요.',
+    en: 'This input doesn\'t branch into competing paths, so we summarized it above instead of probing further.',
+  };
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: EASE }}
+      className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 md:p-6"
+    >
+      <div className="flex items-center gap-2 mb-2.5">
+        <Check size={13} className="text-[var(--accent)] shrink-0" />
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
+          {L('여기서 마쳐도 돼요', 'You can stop here')}
+        </span>
+      </div>
+      <p className="text-[13.5px] text-[var(--text-secondary)] leading-[1.6] mb-4 max-w-[62ch]">
+        {locale === 'ko' ? copy.ko : copy.en}
+      </p>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <motion.button
+          onClick={onDraft}
+          disabled={busy}
+          whileTap={{ scale: 0.98 }}
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] text-white rounded-xl text-[13.5px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
+          style={{ background: 'var(--gradient-gold)' }}
+        >
+          {busy
+            ? <><Loader2 size={15} className="animate-spin" /> {L('정리하는 중...', 'Wrapping up...')}</>
+            : <>{L('이대로 문서로 정리하기', 'Turn this into a document')} <ArrowRight size={14} /></>}
+        </motion.button>
+        {!busy && (
+          <button
+            onClick={onContinue}
+            className="text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer self-center sm:self-auto"
+          >
+            {L('그래도 더 짚어볼래요', 'I\'d still like to dig in')}
+          </button>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 /* ═══ Framing Confirmation (Weakness A fix) ═══ */
 function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
   snapshot: AnalysisSnapshot;
@@ -1093,6 +1179,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   useChronicler(session, !busy);
   const [error, setError] = useState<string | null>(null);
   const [showMix, setShowMix] = useState(false);
+  // R32/R60 terminal-route escape: a non-open/flat route is terminal by default
+  // (the inline insight is the deliverable), so the fabricated question is
+  // suppressed. But the user can opt back INTO the full Q&A flow if they feel it
+  // landed too soon — this neutralizes the terminal gating on demand (restraint
+  // default stays: nothing re-engages unless the user asks). Session-local.
+  const [continueAnyway, setContinueAnyway] = useState(false);
   // North-Star B: the early mirror beat is shown once per session, then the
   // user dismisses it. Parent-owned so it stays gone across re-renders/rounds
   // (restraint > engagement — never re-nag the same premise).
@@ -1367,14 +1459,20 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // decisions. The terminal analysis card (the suppressQuestion branch in render) is
   // the deliverable, so a flat decision never dead-ends.
   const frameIsFlat = snapshots.some((s) => s.frame_status === 'flat');
-  const suppressQuestion = !!nonOpenRoute || frameIsFlat;
+  // Terminal by default; `continueAnyway` (user opt-in from the terminal card)
+  // re-opens the normal Q&A flow so the route is never a silent dead-end.
+  const isTerminalRoute = !!nonOpenRoute || frameIsFlat;
+  const suppressQuestion = isTerminalRoute && !continueAnyway;
 
   const qaPairs = useMemo(() => questions.map((q, i) => ({ question: q, answer: answers[i] || null })), [questions, answers]);
   const curQ = questions.length > answers.length ? questions[questions.length - 1] : null;
   const latest = snapshots[snapshots.length - 1] || null;
   // R60 — never deploy the crew on a flat decision (the highest-measured over-fire
   // harm, ~60% in the stress test). It terminates with the analysis card instead.
-  const shouldMix = (showMix || (phase === 'conversing' && snapshots.length > 0 && !curQ && !mix && !busy)) && !frameIsFlat;
+  // R60 — never deploy the crew on a flat decision UNLESS the user opted back in
+  // via the terminal card (`continueAnyway`); otherwise it terminates with the
+  // analysis card / terminal deliverable instead.
+  const shouldMix = (showMix || (phase === 'conversing' && snapshots.length > 0 && !curQ && !mix && !busy)) && (!frameIsFlat || continueAnyway);
   const deployPhase = session?.worker_deploy_phase ?? 'none';
   const workers = session?.workers ?? [];
   // True when the crew is genuinely finished (or was never deployed). The
@@ -2617,7 +2715,26 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 isActive={!mix}
                 showExecutionPlan
                 locale={locale}
-                defaultCollapsed={phase === 'conversing' && !mix}
+                // On a terminal route the insight IS the deliverable, so show it
+                // in full rather than as a background peek behind the (now
+                // hidden) question.
+                defaultCollapsed={phase === 'conversing' && !mix && !suppressQuestion}
+              />
+            </div>
+          )}
+
+          {/* Terminal route closure — a non-open/flat route suppresses the
+              follow-up question (R32/R60). Without this the screen froze on a
+              collapsed peek with no forward action. This names why the flow
+              landed here and returns the handle (draft it / dig in anyway). */}
+          {suppressQuestion && !busy && !crisisBlocking && phase === 'conversing' && !mix && !final_ && latest && (
+            <div className="mb-7">
+              <TerminalRouteCard
+                route={nonOpenRoute ?? 'flat'}
+                busy={busy}
+                locale={locale}
+                onDraft={() => { track('terminal_route_draft', { route: nonOpenRoute ?? 'flat' }); onMix(); }}
+                onContinue={() => { track('terminal_route_continue', { route: nonOpenRoute ?? 'flat' }); setContinueAnyway(true); }}
               />
             </div>
           )}
