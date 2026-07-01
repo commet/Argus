@@ -236,7 +236,22 @@ export function SirenHero() {
             </span>
           </div>
 
-          <div className="relative" style={{ background: 'var(--bp-paper-deep)', padding: '16px 20px 0' }}>
+          {/* Lifted like a log-slip pinned below the framed plate above — same
+              warm-paper material + a soft grounded shadow, so it has presence
+              next to the bolder film. Stays a chart FIELD (corner ticks + ruled
+              baseline), never a gold box. */}
+          <div
+            className="relative"
+            style={{
+              background: 'linear-gradient(180deg, var(--bp-paper) 0%, var(--bp-paper-deep) 100%)',
+              padding: '18px 22px 0',
+              borderRadius: 4,
+              boxShadow: focused
+                ? '0 14px 38px -12px rgba(48,34,14,0.28), inset 0 1px 0 rgba(255,255,255,0.5)'
+                : '0 9px 30px -12px rgba(48,34,14,0.20), inset 0 1px 0 rgba(255,255,255,0.45)',
+              transition: 'box-shadow 260ms ease',
+            }}
+          >
             {/* corner registration ticks — darken & lengthen on focus */}
             {([
               { k: 'tl', s: { top: -1, left: -1, borderTopStyle: 'solid', borderTopWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
@@ -251,13 +266,13 @@ export function SirenHero() {
                   aria-hidden="true"
                   style={{
                     position: 'absolute',
-                    width: focused ? 15 : 10,
-                    height: focused ? 15 : 10,
+                    width: focused ? 16 : 12,
+                    height: focused ? 16 : 12,
                     borderTopColor: tick,
                     borderRightColor: tick,
                     borderBottomColor: tick,
                     borderLeftColor: tick,
-                    opacity: focused ? 0.95 : 0.5,
+                    opacity: focused ? 0.95 : 0.68,
                     transition: 'width 220ms ease, height 220ms ease, border-color 220ms ease, opacity 220ms ease',
                     zIndex: 1,
                     ...s,
@@ -304,7 +319,7 @@ export function SirenHero() {
             />
             {/* baseline rule: static faint hairline + an ink rule that inks-in from the left on focus */}
             <div style={{ position: 'relative', height: 1.5, marginTop: 4 }}>
-              <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'var(--bp-ink-faint)' }} />
+              <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'var(--bp-ink-soft)', opacity: 0.5 }} />
               <span
                 aria-hidden="true"
                 style={{
