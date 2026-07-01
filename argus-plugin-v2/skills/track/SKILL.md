@@ -84,6 +84,20 @@ Edit: /argus:track edit P1 · Alert: /argus:track alert P1 off · Re-check: /arg
 ```
 Show at most ~12 items; note if more.
 
+### Step 2b — Extraction feedback (tool-calibration, NOT a user verdict)
+The edit history is the strongest signal Argus gets, but it is about the TOOL's
+extraction quality for this user — NOT the user's judgment. Surface it ONLY as
+tool-calibration, and ONLY when it is strong: replay the edits and count AI-sourced
+items (`source:"ai"`) vs how many the user overturned (an `edit` with action
+`refine`/`replace`/`reject`). If there are **≥4 AI items AND the user overturned
+≥half**, print ONE neutral line (locale), never more:
+> AI가 뽑은 전제를 {{overturned}}/{{ai}} 고쳤어요 — 추출이 과하게 해석하는 것 같으면
+> 한마디 남겨줘요, 그쪽을 손볼게요. [피드백] [괜찮아요]
+
+This calibrates the *extraction*, not the person. It is NOT a principle (principles
+draw only from settled reality — `/argus:principles` §Reality is the source) and
+NOT a statement about who the user is. Below the threshold: say nothing.
+
 ### Step 3 — Edit (on request)
 For `edit <ref>`, one `AskUserQuestion`:
 - Title: `Fix this item` (ko: `항목 수정`)
@@ -136,8 +150,11 @@ firing threshold is high, so silence is the common result.
 - **Editing is the default posture** — present items as drafts to fix, not as verdicts.
 - **Edits are append-only** — never rewrite a prior line; the edit history IS the signal.
 - **User wording wins** — refine/replace text is the user's, verbatim, never re-summarized.
-- **No verdict about the user** — you may note "you overturned 6 of 8" as a ratifiable
-  question (→ `/argus:principles`), never "you are an X thinker" (Zero-Judgment gate).
+- **No verdict about the user** — a high overturn rate is TOOL-calibration (Step 2b:
+  "is the extraction too aggressive?"), never a user principle (override is a
+  self-report, not settled reality — routing it to `/argus:principles` would break
+  that skill's reality-source invariant) and never "you are an X thinker"
+  (Zero-Judgment gate).
 
 ## Forbidden patterns
 
