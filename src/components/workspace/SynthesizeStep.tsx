@@ -387,7 +387,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                             value={source.name}
                             onChange={(e) => updateIndividualSource(i, 'name', e.target.value)}
                             placeholder={L(`소스 ${i + 1} (예: ChatGPT, Claude, 리서치팀)`, `Source ${i + 1} (e.g., ChatGPT, Claude, Research team)`)}
-                            className="flex-1 bg-transparent text-[14px] font-semibold placeholder:text-[var(--text-secondary)] focus:outline-none"
+                            className="flex-1 bg-transparent text-[14px] font-semibold placeholder:text-[var(--text-secondary)] rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                           />
                           {individualSources.length > 2 && (
                             <button onClick={() => removeIndividualSource(i)} className="p-1 hover:text-red-500 cursor-pointer">

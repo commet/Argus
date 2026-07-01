@@ -1332,7 +1332,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                               <input type="text" autoFocus value={customQuestion}
                                 onChange={(e) => { setCustomQuestion(e.target.value); handleSelectQuestion(e.target.value); }}
                                 placeholder={L('직접 질문을 작성하세요...', 'Write your own question...')}
-                                className="w-full bg-transparent text-[14px] font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
+                                className="w-full bg-transparent text-[14px] font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50"
                                 maxLength={500}
                               />
                             ) : (

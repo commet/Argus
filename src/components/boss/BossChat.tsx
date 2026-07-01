@@ -294,23 +294,13 @@ export function BossChat() {
     return () => document.removeEventListener('keydown', handler);
   }, [calibrationStep]);
 
-  // Anon-friendly calibration prompt: previously the "얼마나 비슷해?" rating
-  // only appeared after the user clicked Save. Anonymous visitors (the bulk of
-  // share-link traffic) often never save, so we collected zero similarity
-  // signals from them. Now the prompt also surfaces ~3.5s after a verdict
-  // lands, regardless of save state. Reinforcement logic stays gated on
-  // loadedAgentId — anon clicks only fire the analytics event, no agent
-  // mutation.
-  useEffect(() => {
-    if (!verdict) return;
-    if (saved) return; // Save flow already triggered calibration
-    if (loadedAgentId) return; // Loaded boss — already calibrated previously
-    if (calibrationStep !== 'none') return;
-    // 5s gives the user time to read the verdict before the rating prompt
-    // pops in. Anything shorter feels like an interrupt on mobile readers.
-    const t = setTimeout(() => setCalibrationStep('similarity'), 5000);
-    return () => clearTimeout(t);
-  }, [verdict, saved, loadedAgentId, calibrationStep]);
+  // Calibration ("얼마나 비슷해?") is NOT auto-fired. Pushing a rating prompt in
+  // on a 5s timer right as the verdict lands grades the user at the emotional
+  // peak — the mirror-clause over-fire the spine forbids (don't push engagement
+  // when "do nothing" is right). It now surfaces only on the user's explicit
+  // Save action (which sets calibrationStep). Anon visitors who don't save
+  // simply aren't interrupted — losing that analytics signal is the correct
+  // trade against the spine.
 
   // 컴포넌트 언마운트 시 패시브 교정 자동 적용
   useEffect(() => {
@@ -703,8 +693,8 @@ export function BossChat() {
             <div className="bc-verdict-icon">
               {verdict.verdict === 'approved' ? '✅' : verdict.verdict === 'conditional' ? '🤔' : '❌'}
             </div>
-            <div className="bc-verdict-body">
-              <p className="bc-verdict-label">
+            <div className="bc-verdict-body" role="status" aria-live="polite">
+              <p className="bc-verdict-label" role="heading" aria-level={3}>
                 {verdict.verdict === 'approved'
                   ? t('boss.verdict.approved')
                   : verdict.verdict === 'conditional'
