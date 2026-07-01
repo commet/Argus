@@ -157,7 +157,7 @@ export function Logbook({ hideChartButton = false }: { hideChartButton?: boolean
 
               <button
                 onClick={() => toggle(w.id)}
-                className="w-full text-left flex items-start gap-1.5 group cursor-pointer min-h-[20px]"
+                className="w-full text-left flex items-start gap-1.5 group cursor-pointer min-h-[44px] py-2 -my-1"
               >
                 <div className="flex-1 min-w-0">
                   <div
