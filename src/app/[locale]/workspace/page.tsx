@@ -490,7 +490,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       <Graticule opacity={0.03} spacing={14} />
 
       <div className="relative max-w-2xl mx-auto px-5 md:px-6 pt-8 md:pt-16 pb-16">
-        <AnimatePresence mode="wait">
+        {/* initial={false}: the first-mounted phase renders at its visible
+            `animate` state with no enter animation, so the required idle input
+            screen can never get stuck at opacity:0 if the entrance animation
+            fails to fire (P0 render trap). Phase-to-phase transitions after the
+            initial mount still animate normally. */}
+        <AnimatePresence mode="wait" initial={false}>
           {/* ═══ IDLE: 시나리오 선택 + 입력 ═══ */}
           {phase === 'idle' && (
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }}

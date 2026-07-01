@@ -90,11 +90,6 @@ const bezel = (): React.CSSProperties => ({
   border: '1px solid #e7dcc1',
   boxShadow: '0 1px 2px rgba(60,44,18,.05),0 10px 26px rgba(60,44,18,.10)',
 });
-const dim = (): React.CSSProperties => ({
-  background: '#f4ecd9',
-  border: '1px solid #e3d6b6',
-  boxShadow: '0 1px 2px rgba(60,44,18,.05),0 6px 16px rgba(60,44,18,.07)',
-});
 const card = (l: number, tp: number | string, w: number, r: number | string, extra: React.CSSProperties): React.CSSProperties =>
   Object.assign(
     {
@@ -259,14 +254,17 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
   const cR = er(lt, 7300, 800);
   const pickA = Dn.chosen === 'a' ? er(lt, 12000, 700) : 0;
   const pickB = Dn.chosen === 'b' ? er(lt, 12000, 700) : 0;
-  const ringW = (p: number) => (p > 0.05 ? '1.5px solid #c2933f' : '1px solid #e0cfa6');
-  const ringS = (p: number) => `0 3px 6px rgba(60,44,18,.16),0 18px 36px rgba(60,44,18,.22),0 0 0 ${(p * 4).toFixed(1)}px rgba(194,147,63,${(0.18 * p).toFixed(3)})`;
+  // Selected route reads via a plain neutral border, NOT a gold glow — gold on
+  // this screen is reserved for the user's real action, never for the machine
+  // spotlighting an option. ringS keeps the base card shadow only (no gold spread).
+  const ringW = (p: number) => (p > 0.05 ? '1.5px solid #a8935f' : '1px solid #e0cfa6');
+  const ringS = `0 3px 6px rgba(60,44,18,.16),0 18px 36px rgba(60,44,18,.22)`;
   const aTop = Dn.three ? '104px' : '150px';
   R.cA = Object.assign(card(640, 0, 232, (aR * clr).toFixed(3), bezel()), {
     top: aTop,
     border: ringW(pickA),
-    boxShadow: ringS(pickA),
-    transform: `translateY(${((1 - aR) * 14).toFixed(1)}px) scale(${(1 + 0.03 * pickA).toFixed(3)})`,
+    boxShadow: ringS,
+    transform: `translateY(${((1 - aR) * 14).toFixed(1)}px)`,
   });
   R.aEye = Dn.a.eye;
   R.aEyeColor = '#a87d31';
@@ -274,20 +272,24 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
   R.aImpl = Dn.a.i;
   const bTop = Dn.three ? '208px' : '330px';
   const bChosen = Dn.chosen === 'b';
-  R.cB = Object.assign(card(640, 0, 232, (bR * clr).toFixed(3), bChosen ? bezel() : dim()), {
+  // Unchosen routes stay full-opacity, full-scale and same material as the
+  // chosen one — the beat reads "here were the reads, you steered", never
+  // "the losers faded and the winner lit up". Only a neutral border marks
+  // the user's pick.
+  R.cB = Object.assign(card(640, 0, 232, (bR * clr).toFixed(3), bezel()), {
     top: bTop,
     border: bChosen ? ringW(pickB) : '1px solid #ddccaa',
-    boxShadow: bChosen ? ringS(pickB) : '0 2px 3px rgba(60,44,18,.12),0 12px 24px rgba(60,44,18,.16)',
-    opacity: ((bChosen ? bR : bR * (1 - 0.5 * er(lt, 12200, 800))) * clr).toFixed(3),
-    transform: `translateY(${((1 - bR) * 14).toFixed(1)}px) scale(${(bChosen ? 1 + 0.03 * pickB : 1 - 0.04 * er(lt, 12200, 800)).toFixed(3)})`,
+    boxShadow: bChosen ? ringS : '0 2px 3px rgba(60,44,18,.12),0 12px 24px rgba(60,44,18,.16)',
+    opacity: (bR * clr).toFixed(3),
+    transform: `translateY(${((1 - bR) * 14).toFixed(1)}px)`,
   });
   R.bEye = Dn.b.eye;
-  R.bEyeColor = bChosen ? '#a87d31' : '#9a917f';
+  R.bEyeColor = '#a87d31';
   R.bTitle = Dn.b.t;
   R.bImpl = Dn.b.i;
   if (Dn.three && Dn.c) {
-    R.cC = Object.assign(card(648, 352, 214, (cR * (1 - 0.5 * er(lt, 12200, 800)) * clr).toFixed(3), dim()), {
-      transform: `translateY(${((1 - cR) * 14).toFixed(1)}px) scale(${(1 - 0.04 * er(lt, 12200, 800)).toFixed(3)})`,
+    R.cC = Object.assign(card(648, 352, 214, (cR * clr).toFixed(3), bezel()), {
+      transform: `translateY(${((1 - cR) * 14).toFixed(1)}px)`,
     });
     R.cEye = Dn.c.eye;
     R.cTitle = Dn.c.t;
@@ -313,6 +315,8 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
     transform: `scale(${(1.5 - 0.5 * er(lt, 14200, 800)).toFixed(3)})`,
     transformOrigin: 'center right',
   });
+  // The chosen route is the USER's pick, not a machine verdict: a quiet warm-ink
+  // marker in the paper/ink family — no saturated green, no ✓ approval glyph.
   const pickBadge = (p: boolean): React.CSSProperties => {
     const r = er(lt, 12200, 500);
     return {
@@ -321,11 +325,11 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
       gap: '7px',
       marginTop: '3px',
       font: `700 10.5px/1 ${MONO}`,
-      color: '#15724a',
+      color: '#5c4f30',
       padding: '5px 10px',
       borderRadius: '20px',
-      background: 'rgba(31,138,91,.14)',
-      border: '1.5px solid rgba(31,138,91,.42)',
+      background: 'rgba(140,101,38,.10)',
+      border: '1.5px solid rgba(140,101,38,.30)',
       whiteSpace: 'nowrap',
       opacity: r.toFixed(3),
       transform: `translateY(${((1 - r) * 6).toFixed(1)}px)`,
@@ -745,7 +749,7 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
             <h4 style={{ margin: 0, font: `600 15px ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('aTitle')}</h4>
             <p style={{ margin: 0, fontSize: 11, lineHeight: 1.45, color: '#6b5c38', wordBreak: 'keep-all' }}>{txt('aImpl')}</p>
             <span style={s('aPick')}>
-              <span style={{ flex: 'none', display: 'grid', placeItems: 'center', width: 15, height: 15, borderRadius: '50%', background: '#1f8a5b', color: '#fff', font: `700 10px/1 ${MONO}` }}>✓</span>{L('선택됨 · Argus 추천', "Chosen · Argus's pick")}
+              {L('여기로 정함 · 당신의 선택', 'You set the heading here')}
             </span>
           </div>
           {/* choice card B */}
@@ -757,7 +761,7 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
             <h4 style={{ margin: 0, font: `600 15px ${SERIF}`, color: '#1c1812', wordBreak: 'keep-all' }}>{txt('bTitle')}</h4>
             <p style={{ margin: 0, fontSize: 11, lineHeight: 1.45, color: '#6b5c38', wordBreak: 'keep-all' }}>{txt('bImpl')}</p>
             <span style={s('bPick')}>
-              <span style={{ flex: 'none', display: 'grid', placeItems: 'center', width: 15, height: 15, borderRadius: '50%', background: '#1f8a5b', color: '#fff', font: `700 10px/1 ${MONO}` }}>✓</span>{L('선택됨 · Argus 추천', "Chosen · Argus's pick")}
+              {L('여기로 정함 · 당신의 선택', 'You set the heading here')}
             </span>
           </div>
           {/* choice card C (act 2 only) */}

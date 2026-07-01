@@ -33,6 +33,7 @@ import { useRecastStore } from '@/stores/useRecastStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useAgentAttentionStore, useAttributionClickOutside } from '@/stores/useAgentAttentionStore';
 import { PingToast } from './PingToast';
+import { VoyagePhaseRail } from './VoyagePhaseRail';
 import { runAllAIWorkers, runPipeline, type WorkerContext } from '@/lib/worker-engine';
 import { withTranscript } from '@/lib/execution-transcript';
 import { getCompletionNote } from '@/lib/worker-personas';
@@ -142,119 +143,10 @@ function getParticle(name: string): string {
  *   1. Where am I? (big stage label + N/4)
  *   2. What happens next? (one-line guide that updates per phase/state)
  */
-// Single top stepper — unified to plain functional stage names so it speaks
-// the same language as the rest of the flow (the old voyage labels
-// "항해 준비/항해/보고/정박" diverged from the bottom milestone row, which
-// already used these words). One source of truth for stage order + labels.
-const STAGE_PHASES = ['analyzing', 'conversing', 'mixing', 'dm_feedback', 'complete'] as const;
-const STAGES_KO = ['분석', '질문', '팀 작업', '검토', '완성'] as const;
-const STAGES_EN = ['Analysis', 'Questions', 'Team work', 'Review', 'Done'] as const;
-
-function stageIdx(phase: string, crewDeployed = false): number {
-  // refining belongs to the review stage; lead_synthesizing to team work —
-  // neither is in STAGE_PHASES, so map them explicitly before the lookup.
-  if (phase === 'refining' || phase === 'testing') return 3;
-  if (phase === 'lead_synthesizing') return 2;
-  // The crew theater (CrewAtWork) actually runs DURING 'conversing' — once
-  // workers are deployed the screen shows team work, so the stepper must too,
-  // or the user watches the theater under a header that still says "질문".
-  if (phase === 'conversing' && crewDeployed) return 2;
-  const i = STAGE_PHASES.indexOf(phase as typeof STAGE_PHASES[number]);
-  return i < 0 ? 0 : i;
-}
-
-function ProgressLine({ phase, crewDeployed = false }: { phase: string; crewDeployed?: boolean }) {
-  const locale = useLocale();
-  const STAGES = locale === 'ko' ? STAGES_KO : STAGES_EN;
-  const N = STAGES.length;
-  const idx = stageIdx(phase, crewDeployed);
-  const isComplete = phase === 'complete';
-  const pct = (idx / (N - 1)) * 100;
-  const currentLabel = STAGES[idx];
-
-  // Compact stepper with a tiny "N/5 · stage" eyebrow up top — keeps the
-  // user oriented ("어디에 와있지?") without the heavy hero card the
-  // first iteration had.
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: EASE }}
-      className="mb-6 px-1 mt-1"
-    >
-      <div className="flex items-baseline justify-between mb-2 px-0.5">
-        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] tabular-nums">
-          {idx + 1}/{N}
-          <span className="ml-1.5 text-[var(--text-primary)] normal-case tracking-normal">
-            {currentLabel}
-          </span>
-        </span>
-      </div>
-      <div className="relative h-[4px] rounded-full bg-[var(--border-subtle)]/70 mb-2.5">
-        <motion.div
-          className="absolute inset-y-0 left-0 rounded-full"
-          style={{ background: 'var(--gradient-gold)' }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.9, ease: EASE }}
-        />
-        {STAGES.map((_, i) => {
-          const left = (i / (N - 1)) * 100;
-          const done = i < idx || (isComplete && i <= N - 1);
-          const active = !isComplete && i === idx;
-          return (
-            <div
-              key={i}
-              className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full ring-[2px] transition-all duration-500 ${
-                done
-                  ? 'bg-[var(--accent)] ring-[var(--bg)]'
-                  : active
-                    ? 'bg-[var(--surface)] ring-[var(--accent)] shadow-[0_0_0_3px_rgba(180,160,100,0.28)]'
-                    : 'bg-[var(--border)] ring-[var(--bg)]'
-              }`}
-              style={{ left: `calc(${left}% - 6px)` }}
-            >
-              {active && (
-                <motion.div
-                  className="absolute inset-0 rounded-full bg-[var(--accent)]/45"
-                  animate={{ scale: [1, 2, 1], opacity: [0.75, 0, 0.75] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-      {/* Labels are absolutely positioned at the SAME % as their node
-          (i/(N-1)), not spread across equal grid columns — otherwise the dots
-          sit at 0/25/50/75/100% while grid-centered labels sit at 10/30/50/70/90%,
-          so the middle labels (질문/검토) visibly drift off their dots. Edges are
-          pinned (first left-aligned, last right-aligned) so they don't clip. */}
-      <div className="relative h-4">
-        {STAGES.map((label, i) => {
-          const left = (i / (N - 1)) * 100;
-          const done = i < idx || (isComplete && i <= N - 1);
-          const active = !isComplete && i === idx;
-          const transform = i === 0 ? 'translateX(0)' : i === N - 1 ? 'translateX(-100%)' : 'translateX(-50%)';
-          return (
-            <span
-              key={label}
-              style={{ left: `${left}%`, transform }}
-              className={`absolute top-0 text-[11px] whitespace-nowrap transition-colors duration-500 ${
-                done
-                  ? 'text-[var(--accent)]/80 font-medium'
-                  : active
-                    ? 'text-[var(--text-primary)] font-semibold'
-                    : 'text-[var(--text-tertiary)]'
-              }`}
-            >
-              {label}
-            </span>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-}
+// Progress indicator: the 3-phase voyage skeleton (묶기/듣기/닿기) lives in
+// VoyagePhaseRail. It replaced the old flat 5-step `ProgressLine` (removed
+// here) because a first-time user couldn't tell which of Argus's three
+// narrative phases they were in. See VoyagePhaseRail.tsx.
 
 /* LiveAnalysis + VersionPills → replaced by shared AnalysisCard */
 
@@ -2486,7 +2378,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         {/* Hidden once complete — a finished stepper is dead chrome competing
             with the one-screen bearing (compression audit B-1). */}
         {phase !== 'complete' && (
-          <ProgressLine phase={phase} crewDeployed={deployPhase === 'deployed' && workers.length > 0} />
+          <VoyagePhaseRail phase={phase} crewDeployed={deployPhase === 'deployed' && workers.length > 0} />
         )}
 
         {/* PhaseStatusBar + StreamSnippet — sticky wrapper so progress info
@@ -3368,7 +3260,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               the bottom-of-page banner that used to live here was invisible
               on long pages (every failure handler scrolls to the status bar).
               The bottom milestone row was likewise removed earlier; the top
-              ProgressLine is the single progress indicator. */}
+              VoyagePhaseRail is the single progress indicator. */}
         </div>
       </motion.div>
 

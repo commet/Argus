@@ -217,7 +217,11 @@ export function BossSetup() {
     <motion.div
       className="bs"
       variants={stagger}
-      initial="hidden"
+      // initial={false}: mount directly at the visible "show" state instead of
+      // "hidden" (opacity:0). This is a required screen — if the staggered
+      // enter animation fails to propagate to the fadeUp children they must
+      // never be left invisible (P0 render trap). Exit animation is preserved.
+      initial={false}
       animate="show"
       exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.3 } }}
     >
