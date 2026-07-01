@@ -167,9 +167,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>Argus는 그것을 살아 있는 항로로 남깁니다.<br />갈림길, 검증된 주장, 현재 방위, 그리고 현실이 답할 때의 귀환까지.</>
+            <>지나간 결정도, 왜 그랬는지까지 남으면 자산이 돼요.<br />Argus가 당신의 판단을 항로로 남겨, 다음 결정을 도와요.</>
           ) : (
-            <>Argus keeps them alive as courses.<br />With forks, checked claims, a current bearing, and a return when reality answers.</>
+            <>A decision compounds only when its reasoning is kept too.<br />Argus keeps your judgment as a course, to steer what comes next.</>
           )}
         </p>
 
