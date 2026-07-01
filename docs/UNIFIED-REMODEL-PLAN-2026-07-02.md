@@ -102,3 +102,33 @@
 - 이번 작업은 `codex/align-3phase-main` 위 `claude/design-remodel-czftet`에서 진행 → 최종 main 병합 대상.
 - **정렬 머지가 드롭한 3phase 자산 주의:** `VoyagePhaseRail`은 이번에 복원했으나, 정렬이 "workspace/voyage UI 충돌은 main 우선"으로 처리했으므로 3phase의 **다른 UI 자산도 유사하게 드롭됐을 수 있음** — feat/3phase-integration과 diff로 재점검 필요(후속 P1).
 - Claude 정적 감사(`DESIGN-AUDIT-2026-07-01.md`)는 main 기반이라, content-fit 발견 일부는 이 브랜치에서 코드가 다를 수 있음 — 구현 전 표면별 재검증 전제(예: 이 브랜치 SirenHero docstring은 이미 "CTA navy ink"를 표방 → 재확인 후 P1 진행).
+
+---
+
+## 5. 구현 로그 — 2026-07-02 야간 세션 (autonomous)
+
+브랜치 `claude/design-remodel-czftet` (← `codex/align-3phase-main`)에서 아래를 **각각 검증 후 커밋**. 검증 = tsc + eslint(0 errors) + vitest(164 files/1867 tests) + next build + (해당 시) Playwright 실브라우저 게이트.
+
+### ✅ 완료 (구현+검증+커밋+푸시)
+- **P0 렌더링:** `/workspace` HeroFlow, `/boss` BossSetup의 `opacity:0` 트랩 → `AnimatePresence initial={false}` / `initial={false}` (Playwright 실픽셀 게이트 통과).
+- **P0 척추:** Trail 필름 "Argus 추천"+초록✓+금테 제거·극 등가화; VerificationGate Apply/Exclude 대칭 중립화.
+- **drop 자산 복원:** `VoyagePhaseRail`(3단계 항해 레일) 재배선, 옛 `ProgressLine`+헬퍼 제거.
+- **신규 ①** 히어로 통합 split A/B 입력창(쓰기 | 올리기, divider 슬라이드) — Playwright 상호작용 게이트 통과(포커스 시 슬라이드, Enter→/workspace).
+- **신규 ②** UseCases 밴드(구체 사용사례 4 + 정직한 3단계 효용).
+- **신규 ③** 워크스페이스 ON FILE 도어(→/tools/review) — hero와 여정 일관.
+- **P1:** 금색 규칙 롤아웃(CurrentBearingCard/FinalCard/Falsification), 다크모드 토큰 parity(--ai-fg 등 페어드 토큰 + Badge/Card/Synthesize/RecastLoader), Synthesize judgment 디바운스, SealMoment stakes 게이트, VoyageFilm reduced-motion 포스터 게이트 + aria-live 트랩 제거, plateTitle 리워딩. (Playwright: 토큰 remap + reduced-motion 포스터 게이트 통과.)
+- **P2/P3 안전 슬라이스:** Footer © 아이덴티티 + 44px 링크; Logbook 토글 44px.
+
+### ⏳ 남은 P2/P3 (후속 — 설계 반복이 필요해 야간 blind 구현에서 제외, main 그린 유지 목적)
+- **설정 화면 IA:** 좌측 section-nav + 우측 panel, danger zone 격리, 폼 밀도.
+- **재질 언어 앱 전체 승격 / 세리머니 게이트:** `--bp-*`를 `:root`→`.bp-root` 스코프, `.bp-seal-stamp`류 stakes 게이트.
+- **Card/Button 규율:** 기본 반경 10–12px, `active:scale-[0.96]` 통일, radius 토큰 이름 충돌(rounded-2xl=16 vs --radius-2xl=24) 정리.
+- **Boss:** inner-monologue를 앱 토큰으로(점술 문법 강등) + "재미로" 가시 caveat; calibration auto-fire(5s 타이머)→opt-in; verdict를 h3+aria-live status로.
+- **잔여 a11y:** 나머지 44px(SealMoment predicate rows, `.bc-*` pills, CrisisConcern escape), bg-transparent 입력 focus ring, 전역 focus 규칙 중복 정리, 헤딩 위계(`<h1>`), SeaChart step-back 키보드 경로, 차트 색맹 안전.
+- **스트리밍 프리뷰 렌더 or 제거**(RecastStep/ReframeStep canned 로더).
+- **재점검:** 정렬 머지가 `VoyagePhaseRail` 외 다른 3phase UI 자산도 드롭했는지 `feat/3phase-integration` diff 대조.
+
+### 검증 하네스 메모 (후속 세션용)
+- 실브라우저 검증: `.env.local`에 더미 Supabase 넣고 `next build` → `next start` (dev는 Next16 `allowedDevOrigins`가 cross-origin 자산을 막아 hydration 안 됨).
+- Playwright는 `executablePath: /opt/pw-browsers/chromium-1194/chrome-linux/chrome`, 그리고 프록시 우회 위해 `env -u HTTPS_PROXY -u HTTP_PROXY NO_PROXY="*"`로 실행 (안 그러면 localhost 청크가 프록시 터널 실패로 hydration 불가).
+- 셸에서 foreground `sleep` 금지(차단됨) — 서버 대기는 `curl --retry --retry-connrefused`.
