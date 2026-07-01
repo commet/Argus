@@ -183,7 +183,7 @@ export function SirenHero() {
             Mobile (<640px): VoyageFilm's content-driven stack (video + caption). */}
         <div
           className="bp-fade-up"
-          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 20, marginBottom: 16, display: 'flex', justifyContent: 'center', animationDelay: '200ms' }}
+          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 24, marginBottom: 16, display: 'flex', justifyContent: 'center', animationDelay: '200ms' }}
         >
           {/* Matted, framed antique-plate treatment: a warm paper mat + a fine
               ink plate-mark hairline + a deep grounded shadow, so the film reads
@@ -222,7 +222,7 @@ export function SirenHero() {
             the field below, inviting the reader to write. Not a closing statement
             but an invitation that points down into the log entry. */}
         <p
-          className={`bp-fade-up mx-auto mt-9 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
+          className={`bp-fade-up mx-auto mt-8 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
           style={{
             color: 'var(--bp-ink)',
             fontSize: 'clamp(14px, 1.55vw, 16px)',
@@ -232,16 +232,16 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>이제 당신 차례예요. 지금 들고 있는 결정을 아래에 적어보세요.<br />칭찬도 반박도 없이, 지금의 방위만 남길게요.</>
+            <>이제 당신 차례예요.<br />칭찬도 반박도 없이, 지금의 방위만 남길게요.</>
           ) : (
-            <>Your turn — write the decision you’re carrying, below.<br />No flattery, no argument. Just your current bearing.</>
+            <>Now it’s your turn.<br />No flattery, no argument — just your current bearing.</>
           )}
         </p>
 
         {/* The single entry point — a logbook "chart field": a persistent
             marginalia label + corner ticks + a ruled baseline, no rectangle.
             Focus = pen meets paper (ink inks in from the left); never a gold box. */}
-        <div className="bp-fade-up mt-7 mx-auto text-left" style={{ animationDelay: '320ms', maxWidth: 600 }}>
+        <div className="bp-fade-up mt-6 mx-auto text-left" style={{ animationDelay: '320ms', maxWidth: 600 }}>
           {/* persistent label — purpose never depends on the disappearing placeholder */}
           <div className="flex items-center gap-2" style={{ marginBottom: 11 }}>
             <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
