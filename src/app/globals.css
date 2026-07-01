@@ -1457,7 +1457,12 @@ button, a, input, textarea {
   background: var(--bg);
   border: 1px dashed var(--border);
   border-radius: 999px;
-  padding: 6px 14px;
+  /* 44px min tap target (was ~30px): primary decision affordance, mobile-first */
+  padding: 8px 14px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
@@ -1480,11 +1485,17 @@ button, a, input, textarea {
 }
 .bc-cal-options {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   justify-content: center;
 }
 .bc-cal-btn {
-  padding: 6px 14px;
+  /* 44px min tap target (was ~30px); wraps at 375px via .bc-cal-options */
+  padding: 8px 14px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 99px;
   border: 1px solid var(--border);
   background: var(--surface);
