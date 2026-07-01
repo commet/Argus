@@ -10,7 +10,12 @@
 
 import { create } from 'zustand';
 import { STORAGE_KEYS, getStorage, setStorage } from '@/lib/storage';
-import { type JudgmentReceipt, type ReceiptState, type FalsifiableFollowup } from '@/lib/review';
+import {
+  type JudgmentReceipt,
+  type ReceiptState,
+  type FalsifiableFollowup,
+  type FollowupOutcome,
+} from '@/lib/review';
 
 /** Fields the user owns when sealing a prediction (design doc §Ownership Modal). */
 export interface SealPatch {
@@ -31,6 +36,8 @@ interface ReviewState {
   setReceiptState: (receiptId: string, state: ReceiptState) => void;
   /** Seal a falsifiable follow-up: the user owns the predicate; receipt→sealed. */
   sealFollowup: (receiptId: string, followupId: string, patch: SealPatch) => void;
+  /** Settle a sealed follow-up against reality; receipt→settled. Argus records, never grades. */
+  settleFollowup: (receiptId: string, followupId: string, outcome: FollowupOutcome, whatHappened: string) => void;
   remove: (receiptId: string) => void;
 }
 
@@ -96,6 +103,24 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
           : f,
       );
       return { ...r, falsifiable_followups: followups, state: 'sealed' as ReceiptState, updated_at: now };
+    });
+    set({ receipts: next });
+    persist(next);
+  },
+
+  settleFollowup: (receiptId, followupId, outcome, whatHappened) => {
+    const now = new Date().toISOString();
+    const next = get().receipts.map((r) => {
+      if (r.receipt_id !== receiptId) return r;
+      const followups: FalsifiableFollowup[] = r.falsifiable_followups.map((f) =>
+        f.followup_id === followupId ? { ...f, outcome, what_happened: whatHappened, settled_at: now } : f,
+      );
+      // Receipt is settled once every sealed follow-up has an outcome.
+      const allSealedSettled = followups
+        .filter((f) => f.sealed_at)
+        .every((f) => f.settled_at);
+      const state: ReceiptState = allSealedSettled ? 'settled' : r.state;
+      return { ...r, falsifiable_followups: followups, state, updated_at: now };
     });
     set({ receipts: next });
     persist(next);

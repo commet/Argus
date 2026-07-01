@@ -34,6 +34,16 @@ const BAND_COPY: Record<ReturnType<typeof reviewabilityBand>, string> = {
   insufficient: '검수 가능성 낮음 — 부족한 맥락 우선',
 };
 
+function settlementLabel(outcome?: string): string {
+  const map: Record<string, string> = {
+    happened: '그렇게 됐다',
+    avoided: '피했다 / 안 그랬다',
+    partial: '부분적으로',
+    unclear: '아직 불분명',
+  };
+  return outcome ? map[outcome] ?? outcome : '기록됨';
+}
+
 function anchorLabel(a?: SourceAnchor): string {
   if (!a) return '';
   if (a.slide !== undefined) return `슬라이드 ${a.slide}`;
@@ -46,10 +56,12 @@ export function ReceiptView({
   receipt,
   onOwn,
   onSeal,
+  onSettle,
 }: {
   receipt: JudgmentReceipt;
   onOwn?: (obligation: JudgmentObligation, owned: boolean) => void;
   onSeal?: (receipt: JudgmentReceipt) => void;
+  onSettle?: (followupId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
@@ -213,13 +225,25 @@ export function ReceiptView({
               <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
                 현실이 답할 후속 예측
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {receipt.falsifiable_followups.map((f) => (
-                  <div key={f.followup_id} className="text-[13px]">
+                  <div key={f.followup_id} className="text-[13px] border-b border-[var(--border-subtle)] last:border-0 pb-2.5 last:pb-0">
                     <p className="text-[var(--text-primary)]">{f.predicate}</p>
                     <p className="text-[11px] text-[var(--text-tertiary)]">
                       확인일 {f.check_by} · 맞음: {f.pass_condition || '—'} · 틀림: {f.fail_condition || '—'}
+                      {f.predicate_owner === 'user' && ' · 내가 봉인함'}
                     </p>
+                    {f.settled_at ? (
+                      <p className="mt-1 text-[12px] text-green-700">
+                        정산됨: {settlementLabel(f.outcome)}{f.what_happened ? ` — ${f.what_happened}` : ''}
+                      </p>
+                    ) : f.sealed_at && onSettle ? (
+                      <div className="mt-1.5">
+                        <Button variant="secondary" size="sm" onClick={() => onSettle(f.followup_id)}>
+                          정산하기 (현실 기록)
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>

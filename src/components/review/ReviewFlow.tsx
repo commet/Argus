@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { useReviewStore } from '@/stores/useReviewStore';
 import { ReceiptView } from './ReceiptView';
 import { SealModal } from './SealModal';
+import { SettleModal } from './SettleModal';
 import {
   ingest,
   runDocumentReview,
@@ -53,6 +54,7 @@ export function ReviewFlow() {
   const [job, setJob] = useState<ReviewJob | null>(null);
   const [receipt, setReceipt] = useState<JudgmentReceipt | null>(null);
   const [sealing, setSealing] = useState(false);
+  const [settlingId, setSettlingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const onFile = async (file: File) => {
@@ -138,6 +140,7 @@ export function ReviewFlow() {
             if (updated) setReceipt(updated);
           }}
           onSeal={() => setSealing(true)}
+          onSettle={(followupId) => setSettlingId(followupId)}
         />
         <div className="mt-6">
           <Button variant="ghost" size="sm" onClick={reset}>
@@ -156,6 +159,21 @@ export function ReviewFlow() {
             }}
           />
         )}
+        {settlingId && (() => {
+          const fu = receipt.falsifiable_followups.find((f) => f.followup_id === settlingId);
+          return fu ? (
+            <SettleModal
+              followup={fu}
+              onClose={() => setSettlingId(null)}
+              onSettle={(outcome, whatHappened) => {
+                store.settleFollowup(receipt.receipt_id, settlingId, outcome, whatHappened);
+                const updated = store.getReceipt(receipt.receipt_id);
+                if (updated) setReceipt(updated);
+                setSettlingId(null);
+              }}
+            />
+          ) : null;
+        })()}
       </div>
     );
   }

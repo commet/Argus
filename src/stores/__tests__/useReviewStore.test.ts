@@ -70,4 +70,19 @@ describe('useReviewStore', () => {
     expect(sealed.predicate).toBe('내 말로 다시 쓴 예측');
     expect(sealed.sealed_at).toBeTruthy();
   });
+
+  it('settling a sealed follow-up records reality and moves state to settled', async () => {
+    const r = await makeReceipt();
+    const s = useReviewStore.getState();
+    s.saveReceipt(r);
+    const fuId = r.falsifiable_followups[0].followup_id;
+    s.sealFollowup(r.receipt_id, fuId, { predicate: 'p', pass_condition: 'a', fail_condition: 'b', check_by: '2027-02-01' });
+    s.settleFollowup(r.receipt_id, fuId, 'partial', '절반만 확보됨');
+    const after = useReviewStore.getState().getReceipt(r.receipt_id)!;
+    const f = after.falsifiable_followups[0];
+    expect(after.state).toBe('settled');
+    expect(f.outcome).toBe('partial');
+    expect(f.what_happened).toBe('절반만 확보됨');
+    expect(f.settled_at).toBeTruthy();
+  });
 });
