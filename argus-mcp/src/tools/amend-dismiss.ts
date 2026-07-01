@@ -7,24 +7,22 @@ import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
 import { appendLedger } from '../lib/ledger-append.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
+import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
-import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
 export const amend: ToolModule = {
   name: 'argus_amend',
   description:
     'Adjust an open or not-yet-due sealed decision\'s predicate or check-by date. Refused once the check-by date has arrived (no moving the goalpost after the fact).',
-  inputSchema: {
-    type: 'object', additionalProperties: false, required: ['argus_dir', 'id'],
-    properties: {
-      argus_dir: { type: 'string' },
-      id: { type: 'string', pattern: '^[A-Za-z0-9._-]+$' },
-      predicate: { type: 'string', minLength: 8, maxLength: 400 },
-      check_by: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
-      today_override: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
-    },
-  },
+  inputSchema: z.strictObject({
+    argus_dir: zArgusDir,
+    id: zId,
+    predicate: z.string().min(8).max(400).optional(),
+    check_by: zDate.optional(),
+    today_override: zDate.optional(),
+  }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { readOnlyHint: false, idempotentHint: false, openWorldHint: false },
   handler: async (a) => {
@@ -62,16 +60,13 @@ export const amend: ToolModule = {
 export const dismiss: ToolModule = {
   name: 'argus_dismiss',
   description: 'Close a decision without settling it — the user moved on, decided elsewhere, or it became irrelevant. Terminal; not reopened.',
-  inputSchema: {
-    type: 'object', additionalProperties: false, required: ['argus_dir', 'id', 'dismiss_reason'],
-    properties: {
-      argus_dir: { type: 'string' },
-      id: { type: 'string', pattern: '^[A-Za-z0-9._-]+$' },
-      dismiss_reason: { type: 'string', enum: ['became_irrelevant', 'decided_elsewhere', 'changed_mind', 'other'] },
-      note: { type: 'string', maxLength: 300 },
-      today_override: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
-    },
-  },
+  inputSchema: z.strictObject({
+    argus_dir: zArgusDir,
+    id: zId,
+    dismiss_reason: z.enum(['became_irrelevant', 'decided_elsewhere', 'changed_mind', 'other']),
+    note: z.string().max(300).optional(),
+    today_override: zDate.optional(),
+  }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {

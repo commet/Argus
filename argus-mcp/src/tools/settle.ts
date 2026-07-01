@@ -7,23 +7,19 @@ import { writeSettleReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { elicit, canElicit } from '../lib/elicit.js';
 import { renderReceipt } from '../lib/render-receipt.js';
+import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
-import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
-const inputSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['argus_dir', 'id', 'outcome_source', 'what_happened'],
-  properties: {
-    argus_dir: { type: 'string' },
-    id: { type: 'string', pattern: '^[A-Za-z0-9._-]+$' },
-    outcome: { type: 'string', enum: ['held', 'avoided', 'partial', 'still_pending'], description: "What reality did to the prediction. Record the user's words — never infer. If omitted, Argus asks the user directly (elicitation) on hosts that support it." },
-    outcome_source: { type: 'string', enum: ['user_stated'], description: 'Single value "user_stated". An AI-inferred outcome cannot be expressed.' },
-    what_happened: { type: 'string', minLength: 1, maxLength: 600 },
-    today_override: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
-  },
-} as const;
+const inputSchema = z.strictObject({
+  argus_dir: zArgusDir,
+  id: zId,
+  outcome: z.enum(['held', 'avoided', 'partial', 'still_pending']).describe("What reality did to the prediction. Record the user's words — never infer. If omitted, Argus asks the user directly (elicitation) on hosts that support it.").optional(),
+  outcome_source: z.literal('user_stated').describe('Single value "user_stated". An AI-inferred outcome cannot be expressed.'),
+  what_happened: z.string().min(1).max(600),
+  today_override: zDate.optional(),
+});
 
 export const settle: ToolModule = {
   name: 'argus_settle',

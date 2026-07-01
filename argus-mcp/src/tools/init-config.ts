@@ -9,8 +9,9 @@ import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
+import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
-import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
 interface ArgusConfig {
@@ -32,10 +33,7 @@ function readConfig(dir: string): ArgusConfig | null {
 export const init: ToolModule = {
   name: 'argus_init',
   description: 'Initialize the .argus directory (sessions, ledger, config, privacy .gitignore) and bind it for resource reads. Call once before other tools. Safe to call again.',
-  inputSchema: {
-    type: 'object', additionalProperties: false, required: ['argus_dir'],
-    properties: { argus_dir: { type: 'string', description: 'Absolute path to the .argus directory.' } },
-  },
+  inputSchema: z.strictObject({ argus_dir: zArgusDir }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
@@ -70,16 +68,13 @@ export const init: ToolModule = {
 export const config: ToolModule = {
   name: 'argus_config',
   description: 'Read or update non-spine settings (locale, boss, team, archive). Passing only argus_dir reads; passing fields merges and writes. There is no setting that turns off falsifiability, seal-before-settle, or honest provenance — the spine is not configurable.',
-  inputSchema: {
-    type: 'object', additionalProperties: false, required: ['argus_dir'],
-    properties: {
-      argus_dir: { type: 'string' },
-      locale: { type: 'string', enum: ['ko', 'en'] },
-      boss: { type: 'string' },
-      team: { type: 'string' },
-      archive: { type: 'boolean' },
-    },
-  },
+  inputSchema: z.strictObject({
+    argus_dir: zArgusDir,
+    locale: z.enum(['ko', 'en']).optional(),
+    boss: z.string().optional(),
+    team: z.string().optional(),
+    archive: z.boolean().optional(),
+  }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { idempotentHint: true, openWorldHint: false },
   handler: async (a) => {

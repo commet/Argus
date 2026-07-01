@@ -10,28 +10,24 @@ import { writeSealReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
+import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
-import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
-const inputSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['argus_dir', 'id', 'predicate', 'check_by', 'predicate_owner'],
-  properties: {
-    argus_dir: { type: 'string' },
-    id: { type: 'string', pattern: '^[A-Za-z0-9._-]+$', description: 'The id from argus_open_decision.' },
-    predicate: { type: 'string', minLength: 8, maxLength: 400, description: 'A prediction reality can mark true/false. Good: "cutover downtime < 5 min". Bad: "it will go well".' },
-    check_by: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$', description: 'YYYY-MM-DD, a real future date — when you will come back to settle.' },
-    predicate_owner: { type: 'string', enum: ['user', 'ai_surfaced'], description: 'Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed.' },
-    basis: { type: 'string', enum: ['judgment', 'luck', 'mixed', 'unsure'] },
-    real_question: { type: 'string', maxLength: 400, description: 'The real question behind the answer (receipt).' },
-    unverified_assumption: { type: 'string', maxLength: 400, description: 'The core assumption not yet verified (receipt).' },
-    human_only: { type: 'string', maxLength: 400, description: 'What only a human can judge here (receipt).' },
-    human_judgment: { type: 'string', maxLength: 400, description: "The user's one-line call. MUST be the user's words — never an Argus-drafted line relabeled." },
-    today_override: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
-  },
-} as const;
+const inputSchema = z.strictObject({
+  argus_dir: zArgusDir,
+  id: zId.describe('The id from argus_open_decision.'),
+  predicate: z.string().min(8).max(400).describe('A prediction reality can mark true/false. Good: "cutover downtime < 5 min". Bad: "it will go well".'),
+  check_by: zDate.describe('YYYY-MM-DD, a real future date — when you will come back to settle.'),
+  predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed.'),
+  basis: z.enum(['judgment', 'luck', 'mixed', 'unsure']).optional(),
+  real_question: z.string().max(400).describe('The real question behind the answer (receipt).').optional(),
+  unverified_assumption: z.string().max(400).describe('The core assumption not yet verified (receipt).').optional(),
+  human_only: z.string().max(400).describe('What only a human can judge here (receipt).').optional(),
+  human_judgment: z.string().max(400).describe("The user's one-line call. MUST be the user's words — never an Argus-drafted line relabeled.").optional(),
+  today_override: zDate.optional(),
+});
 
 export const seal: ToolModule = {
   name: 'argus_seal',

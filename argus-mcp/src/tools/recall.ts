@@ -4,21 +4,17 @@ import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { readReceipt } from '../lib/receipt.js';
 import { renderReceipt } from '../lib/render-receipt.js';
+import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
-import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
-const inputSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['argus_dir', 'view'],
-  properties: {
-    argus_dir: { type: 'string' },
-    view: { type: 'string', enum: ['bearing', 'contracts', 'receipt', 'track_record'] },
-    id: { type: 'string', pattern: '^[A-Za-z0-9._-]+$', description: 'Required when view = "receipt".' },
-    today_override: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
-  },
-} as const;
+const inputSchema = z.strictObject({
+  argus_dir: zArgusDir,
+  view: z.enum(['bearing', 'contracts', 'receipt', 'track_record']),
+  id: zId.describe('Required when view = "receipt".').optional(),
+  today_override: zDate.optional(),
+});
 
 export const recall: ToolModule = {
   name: 'argus_recall',

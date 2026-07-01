@@ -9,6 +9,7 @@ import {
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { TOOLS, TOOL_MAP } from './tools/index.js';
+import { toolJsonSchema } from './tools/tool-types.js';
 import { listResources, listResourceTemplates, readResource } from './resources.js';
 import { listPrompts, getPrompt } from './prompts.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
@@ -65,7 +66,8 @@ export async function createServer(): Promise<Server> {
     tools: TOOLS.map((t) => ({
       name: t.name,
       description: t.description,
-      inputSchema: t.inputSchema,
+      // JSON Schema generated from the Zod source of truth (no hand-kept copy).
+      inputSchema: toolJsonSchema(t.inputSchema),
       ...(t.outputSchema ? { outputSchema: t.outputSchema } : {}),
       ...(t.annotations ? { annotations: t.annotations } : {}),
     })),
@@ -91,8 +93,20 @@ export async function createServer(): Promise<Server> {
         isError: true,
       };
     }
+    // Runtime input validation from the Zod source (mcp-builder best-practices).
+    // A schema failure is a client bug → a clean, actionable tool-result error
+    // (not a protocol crash); the handler only ever sees validated, default-
+    // applied args.
+    const parsed = tool.inputSchema.safeParse(args ?? {});
+    if (!parsed.success) {
+      const issues = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify({ ok: false, tool: name, error_code: 'INVALID_INPUT', message: `Invalid arguments — ${issues}` }) }],
+        isError: true,
+      };
+    }
     try {
-      return await serialize(() => tool.handler((args || {}) as Record<string, unknown>));
+      return await serialize(() => tool.handler(parsed.data as Record<string, unknown>));
     } catch (e) {
       // Last-resort guard — individual handlers already map their own errors.
       logError(`[${name}] escaped handler`, e);

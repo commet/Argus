@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
@@ -15,14 +16,10 @@ import { fetchAccountReceipts } from '../lib/push-account.js';
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
-const inputSchema = {
-  type: 'object',
-  additionalProperties: false,
-  properties: {
-    due_only: { type: 'boolean', default: false, description: 'List only receipts whose check-by date has arrived.' },
-    limit: { type: 'integer', minimum: 1, maximum: MAX_LIMIT, default: DEFAULT_LIMIT, description: `Max receipts to list (default ${DEFAULT_LIMIT}). Due items are ordered first.` },
-  },
-} as const;
+const inputSchema = z.strictObject({
+  due_only: z.boolean().default(false).describe('List only receipts whose check-by date has arrived.'),
+  limit: z.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT).describe(`Max receipts to list (default ${DEFAULT_LIMIT}). Due items are ordered first.`),
+});
 
 export const sync: ToolModule = {
   name: 'argus_sync',

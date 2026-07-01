@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
@@ -32,34 +33,23 @@ import {
 const MAX_DOC_BYTES = 400_000;
 const UNIT_LIMIT = 160;
 
-const CONCERNS: ReviewConcern[] = [
-  'strategic_fit',
-  'evidence',
-  'stakeholder_objection',
-  'execution_risk',
-  'ai_answer_trust',
-  'full_judgment_review',
-];
+const CONCERNS = ['strategic_fit', 'evidence', 'stakeholder_objection', 'execution_risk', 'ai_answer_trust', 'full_judgment_review'] as const;
 
 const EXT_KIND: Record<string, SourceKind> = {
   md: 'markdown', markdown: 'markdown', txt: 'txt', text: 'txt',
   pdf: 'pdf', docx: 'docx', pptx: 'pptx',
 };
 
-const inputSchema = {
-  type: 'object',
-  additionalProperties: false,
-  properties: {
-    text: { type: 'string', maxLength: MAX_DOC_BYTES, description: 'The document body to review (paste). Provide this OR file_path.' },
-    file_path: { type: 'string', maxLength: 1024, description: 'Absolute path to a TEXT document (.md/.txt). Binary decks/PDFs degrade honestly — paste their text instead.' },
-    source_kind: { type: 'string', enum: ['paste', 'markdown', 'txt', 'pdf', 'docx', 'pptx', 'transcript', 'llm_answer', 'pr_diff'], description: 'Override the inferred source kind.' },
-    title: { type: 'string', maxLength: 300 },
-    concerns: { type: 'array', items: { type: 'string', enum: CONCERNS }, maxItems: 3, description: 'What to weight — drives lens routing.' },
-    audience_hint: { type: 'string', maxLength: 200 },
-    biggest_worry: { type: 'string', maxLength: 300 },
-    stakes: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Optional stakes hint for lens routing (default medium).' },
-  },
-} as const;
+const inputSchema = z.strictObject({
+  text: z.string().max(MAX_DOC_BYTES).describe('The document body to review (paste). Provide this OR file_path.').optional(),
+  file_path: z.string().max(1024).describe('Absolute path to a TEXT document (.md/.txt). Binary decks/PDFs degrade honestly — paste their text instead.').optional(),
+  source_kind: z.enum(['paste', 'markdown', 'txt', 'pdf', 'docx', 'pptx', 'transcript', 'llm_answer', 'pr_diff']).describe('Override the inferred source kind.').optional(),
+  title: z.string().max(300).optional(),
+  concerns: z.array(z.enum(CONCERNS)).max(3).describe('What to weight — drives lens routing.').optional(),
+  audience_hint: z.string().max(200).optional(),
+  biggest_worry: z.string().max(300).optional(),
+  stakes: z.enum(['low', 'medium', 'high']).describe('Optional stakes hint for lens routing (default medium).').optional(),
+});
 
 export const review: ToolModule = {
   name: 'argus_review',

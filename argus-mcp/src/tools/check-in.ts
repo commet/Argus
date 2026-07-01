@@ -1,20 +1,16 @@
 import { requireArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
+import { z } from 'zod';
 import { envelope } from '../lib/envelope.js';
-import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
-const inputSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['argus_dir'],
-  properties: {
-    argus_dir: { type: 'string' },
-    include_upcoming_days: { type: 'integer', minimum: 0, maximum: 30, default: 0, description: 'Also list contracts due within N days.' },
-    today_override: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
-  },
-} as const;
+const inputSchema = z.strictObject({
+  argus_dir: zArgusDir,
+  include_upcoming_days: z.number().int().min(0).max(30).default(0).describe('Also list contracts due within N days.'),
+  today_override: zDate.optional(),
+});
 
 export const checkIn: ToolModule = {
   name: 'argus_check_in',
