@@ -30,7 +30,7 @@ import {
 
 // ─── Builtin Agent Definitions ───
 
-const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_at' | 'created_at' | 'updated_at'>[] = [
+export const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_at' | 'created_at' | 'updated_at'>[] = [
   // ── 리서치 체인 ──
   {
     id: 'hayoon', name: '하윤', nameEn: 'Riley', role: '리서치 인턴', roleEn: 'Research Intern', emoji: '📝', color: '#06B6D4',
@@ -233,12 +233,14 @@ const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last_used_a
 
   // ── 특수: 항해장 ──
   {
-    id: 'navigator', name: '항해장', nameEn: 'Navigator', role: 'Navigator', roleEn: 'Navigator', emoji: '🧭', color: '#D97706',
+    id: 'navigator', name: '항해장', nameEn: 'Navigator', role: '종합 검토자', roleEn: 'Chief Reviewer', emoji: '🧭', color: '#D97706',
     origin: 'builtin', capabilities: ['review'],
     group: 'special', chain_id: null,
     unlock_condition: { type: 'always', required: 0 }, unlocked: true,
     expertise: '메타 관찰, 품질 체크, 팀 간 모순 발견, 사용자 성장 미션 제안.',
+    expertiseEn: 'Meta-observation, quality checks, surfacing contradictions across the team, and proposing growth missions.',
     tone: '관조적이고 때로 보수적. 놓치고 있는 관점을 짚어줍니다.',
+    toneEn: 'Observational, at times conservative; points out the perspective being missed.',
     keywords: [],
     is_builtin: true, archived: false,
   },

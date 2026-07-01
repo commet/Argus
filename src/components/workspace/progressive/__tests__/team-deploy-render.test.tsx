@@ -66,20 +66,18 @@ describe("captain's-seat render (TeamDeployBanner)", () => {
     expect(html).toContain('시장 분석에 가장 적합 · 다음 후보 마커스');
   });
 
-  it('shows the 교체 (swap) control for AI workers', () => {
-    expect(html).toContain('이 팀원 교체');
+  it('keeps advanced controls behind the "팀 손보기" toggle by default (Hick’s Law)', () => {
+    // Collapsed default: the team composition (names, roles, rationale) is visible,
+    // but swap/remove and the per-group track selector stay hidden until the captain
+    // opens "Adjust team". The expanded state is exercised in flow-interactions.
+    expect(html).toContain('팀 손보기');
+    expect(html).not.toContain('이 팀원 교체');
+    expect(html).not.toContain('누가 맡을까요?');
   });
 
-  it('still renders the self-judgment track and the start CTA', () => {
+  it('still renders the self-judgment row and the start CTA in the preview', () => {
     expect(html).toContain('내 판단');
     expect(html).toContain('팀 투입');
-  });
-
-  it('surfaces the per-group track selector (discoverable human collaboration)', () => {
-    expect(html).toContain('누가 맡을까요?');
-    expect(html).toContain('AI 팀원');
-    expect(html).toContain('내가 직접');
-    expect(html).toContain('사람에게');
   });
 
   it('does not attach a rationale line to the self worker', () => {

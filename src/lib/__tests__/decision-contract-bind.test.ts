@@ -46,6 +46,21 @@ describe('buildEarlyContract — Phase 1 BIND (rope at OPEN)', () => {
     expect(c.predicates).toHaveLength(1);
     expect(c.check_in_at).toBeUndefined();
   });
+
+  it('a custom check_in_at date wins over a relative interval', () => {
+    const iso = new Date('2026-07-08T00:00:00Z').toISOString();
+    const c = buildEarlyContract('p5', { lean: '출시', interval: '1w', check_in_at: iso }, T0)!;
+    expect(c.check_in_at).toBe(iso); // the picked date, not now+1w
+    expect(c.predicates).toHaveLength(1);
+  });
+
+  it('date-only via a custom date (no lean, no interval) is still a valid rope', () => {
+    const iso = new Date('2026-07-01T00:00:00Z').toISOString();
+    const c = buildEarlyContract('p6', { check_in_at: iso }, T0)!;
+    expect(c).not.toBeNull();
+    expect(c.predicates).toHaveLength(0);
+    expect(c.check_in_at).toBe(iso);
+  });
 });
 
 describe('augmentContract — "bind tighter": merge, never clobber the rope', () => {

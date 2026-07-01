@@ -99,7 +99,7 @@ export function FinalCard({
           {viewingBranchDraft && (
             <div className="px-5 md:px-7 py-2 border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
               <span className="text-[11px] text-[var(--text-tertiary)]">
-                {L(`출시본 ${releasedLabel}을 복사해요`, `Copy shares the released ${releasedLabel}`)}
+                {L(`복사하면 ${releasedLabel} 출시본이 나가요`, `Copy gives you the released ${releasedLabel}`)}
               </span>
               <button
                 onClick={copyVisibleDraft}
@@ -131,7 +131,10 @@ export function FinalCard({
             // without expanding — the bearing card below is the orientation.
             <div className="px-5 md:px-8 py-5">
               {hasStructured && (
-                <h2 className="text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
+                <>
+                  <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-2">{L('최종 결과물', 'Final output')}</p>
+                  <h2 className="text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
+                </>
               )}
               <button
                 onClick={() => setBodyOpen(true)}

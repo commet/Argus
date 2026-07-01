@@ -23,7 +23,7 @@ export interface AgentIdentity {
 
 // ─── Registry ───
 
-export const AGENT_REGISTRY: AgentIdentity[] = [
+export const AGENT_REGISTRY = [
   // Research chain
   { agentId: 'hayoon',             personaId: 'intern',              frameworkKey: 'intern',              name: '하윤',  nameEn: 'Riley' },
   { agentId: 'sujin',              personaId: 'researcher',          frameworkKey: 'researcher',          name: '다은',  nameEn: 'Sophie' },
@@ -46,7 +46,17 @@ export const AGENT_REGISTRY: AgentIdentity[] = [
   { agentId: 'taejun',             personaId: 'legal',               frameworkKey: 'legal',               name: '윤석',  nameEn: 'Arthur' },
   // Special
   { agentId: 'navigator',      personaId: 'navigator',       frameworkKey: 'navigator',       name: '항해장',  nameEn: 'Navigator' },
-];
+] as const satisfies readonly AgentIdentity[];
+
+/**
+ * 정본에서 도출한 에이전트 ID 유니온. 다른 "공책"(lens/capabilities/BUILTIN)이
+ * 이 타입으로 키잉되면, 등록 에이전트가 한 명이라도 빠질 때 *테스트가 아니라
+ * 컴파일이* 거부한다 — minseo 누락이 구조적으로 불가능해진다.
+ */
+export type AgentId = typeof AGENT_REGISTRY[number]['agentId'];
+
+/** 정본에서 도출한 personaId 유니온 (skills/personas/completion notes 키). */
+export type PersonaId = typeof AGENT_REGISTRY[number]['personaId'];
 
 // ─── Lookup Maps (lazy-init) ───
 

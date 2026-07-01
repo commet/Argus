@@ -9,16 +9,17 @@
  */
 
 import type { TaskType, ContextDomain, OutputType } from './task-classifier';
+import type { AgentId } from './agent-registry';
 import { getCapabilityDelta } from './capability-tuner';
 
 /* ─── Types ─── */
 
 export interface AgentCapabilityProfile {
-  agentId: string;
-  taskTypes: TaskType[];         // 순서 = 숙련도 (첫번째가 핵심)
-  domains: ContextDomain[];      // 순서 = 친화도
-  outputTypes: OutputType[];     // 순서 = 생산 능력
-  antiPatterns: TaskType[];      // 이 에이전트가 하면 안 되는 것
+  agentId: AgentId;                       // 정본 타입 — 오타/유령 id는 컴파일이 거부
+  readonly taskTypes: readonly TaskType[];      // 순서 = 숙련도 (첫번째가 핵심)
+  readonly domains: readonly ContextDomain[];   // 순서 = 친화도
+  readonly outputTypes: readonly OutputType[];  // 순서 = 생산 능력
+  readonly antiPatterns: readonly TaskType[];   // 이 에이전트가 하면 안 되는 것
 }
 
 /* ─── Scoring Constants ─── */
@@ -37,7 +38,7 @@ const WEIGHTS = {
 
 /* ─── 17 Agent Profiles ─── */
 
-export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
+export const AGENT_CAPABILITIES = [
   // ━━━ Research Chain ━━━
   {
     agentId: 'hayoon',  // 인턴
@@ -54,8 +55,8 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
     antiPatterns: ['legal_review', 'design'],
   },
   {
-    agentId: 'research_director',  // 리서치 디렉터 (도윤)
-    taskTypes: ['analysis', 'synthesis', 'research'],
+    agentId: 'research_director',  // 리서치 디렉터 (도윤) — 종합(synthesis) 전담: 여러 결과를 한 결론으로
+    taskTypes: ['synthesis', 'analysis', 'research'],  // synthesis-first: fills the synthesis gap; analysis now sole-owned by junseo
     domains: ['market', 'product', 'finance'],
     outputTypes: ['report', 'document', 'comparison'],
     antiPatterns: ['design', 'legal_review'],
@@ -86,10 +87,10 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
 
   // ━━━ Production ━━━
   {
-    agentId: 'minjae',  // 숫자 전문가
+    agentId: 'minjae',  // 숫자 전문가 — 추정·시장규모·유닛이코노믹스·시나리오 (vs 혜연=재무제표·밸류에이션)
     taskTypes: ['calculation', 'analysis'],
-    domains: ['finance', 'market', 'ops'],
-    outputTypes: ['numbers', 'report', 'comparison'],
+    domains: ['market', 'finance', 'ops'],   // market-first (sizing); finance still 2nd so minjae stays the general calc agent
+    outputTypes: ['numbers', 'comparison', 'report'],  // comparison-first: scenario/sensitivity tables
     antiPatterns: ['writing', 'design', 'legal_review'],
   },
   {
@@ -139,9 +140,9 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
 
   // ━━━ New: Finance, Marketing, HR ━━━
   {
-    agentId: 'hyeyeon',  // 재무·회계
+    agentId: 'hyeyeon',  // 재무·회계 — 재무제표 분석·밸류에이션·감사 (vs 규민=추정·시장)
     taskTypes: ['calculation', 'analysis', 'critique'],
-    domains: ['finance', 'market', 'ops'],
+    domains: ['finance', 'ops', 'market'],   // finance-only-first; wins finance via domain, not by demoting minjae's calc
     outputTypes: ['numbers', 'report', 'risk_assessment'],
     antiPatterns: ['design', 'writing'],
   },
@@ -153,9 +154,9 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
     antiPatterns: ['legal_review', 'calculation'],
   },
   {
-    agentId: 'sujin_hr',  // 사람·문화
+    agentId: 'sujin_hr',  // 사람·문화 — people 도메인 전담 (PM 예린의 ops와 분리)
     taskTypes: ['planning', 'writing', 'analysis', 'synthesis'],
-    domains: ['ops', 'product'],
+    domains: ['people', 'ops', 'product'],
     outputTypes: ['plan', 'document', 'checklist'],
     antiPatterns: ['calculation', 'legal_review', 'design'],
   },
@@ -168,7 +169,17 @@ export const AGENT_CAPABILITIES: AgentCapabilityProfile[] = [
     outputTypes: ['report', 'document', 'risk_assessment'],
     antiPatterns: [],
   },
-];
+] as const satisfies readonly AgentCapabilityProfile[];
+
+/**
+ * 완전성 컴파일 가드: AGENT_REGISTRY의 모든 AgentId가 위 배열에 존재해야 한다.
+ * 한 명이라도 빠지면 _CapMissing이 never가 아니게 되어 아래 줄이 컴파일 에러(TS2322)다.
+ * = lens의 Record<AgentId>와 동급의 "누락이 빌드를 멈춘다"를, 배열 형태 그대로 강제.
+ * (양방향 테스트 가드보다 한 단계 근본 — 검사를 돌리기 전에 빌드가 거부한다.)
+ */
+type _CapMissing = Exclude<AgentId, typeof AGENT_CAPABILITIES[number]['agentId']>;
+const _capComplete: [_CapMissing] extends [never] ? true : ['MISSING agentId in AGENT_CAPABILITIES', _CapMissing] = true;
+void _capComplete;
 
 /* ─── Capability Lookup ─── */
 
@@ -181,9 +192,18 @@ export function getCapability(agentId: string): AgentCapabilityProfile | undefin
   return capabilityMap.get(agentId);
 }
 
+/** Single source of truth for "is this the critic agent" — its primary task type
+ *  is critique. Used by selectAgents (critic guarantee), buildStages (stage-2
+ *  critic), and runDebate, so all three pick the SAME agent instead of three
+ *  different keyword/capability heuristics that could disagree. */
+export function isCriticAgentId(agentId: string): boolean {
+  const cap = capabilityMap.get(agentId);
+  return !!cap && cap.taskTypes[0] === 'critique';
+}
+
 /* ─── Scoring Engine ─── */
 
-function rankScore(item: string, ranked: string[]): number {
+function rankScore(item: string, ranked: readonly string[]): number {
   const idx = ranked.indexOf(item);
   if (idx === -1) return DEFAULT_SCORE;
   return RANK_SCORES[idx] ?? RANK_SCORES[RANK_SCORES.length - 1];

@@ -51,7 +51,7 @@ describe('buildAssignmentReason', () => {
 
   it('ko: states task fit and names the runner-up', () => {
     const agents = new Map([['a', mockAgent('a', '소피')], ['b', mockAgent('b', '마커스')]]);
-    expect(buildAssignmentReason(trace(), agents)).toBe('시장 분석에 가장 적합 · 다음 후보 마커스');
+    expect(buildAssignmentReason(trace(), agents)).toBe('시장 분석에 가장 적합 · 차순위 마커스');
   });
 
   it('en: localized prose, no Korean leakage', () => {

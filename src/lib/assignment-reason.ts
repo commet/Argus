@@ -40,6 +40,7 @@ const DOMAIN_LABELS: Record<ContextDomain, [string, string]> = {
   legal: ['법률', 'legal'],
   ux: ['UX', 'UX'],
   ops: ['운영', 'ops'],
+  people: ['조직·인사', 'people'],
   product: ['제품', 'product'],
   brand: ['브랜드', 'brand'],
 };
@@ -75,7 +76,7 @@ export function buildAssignmentReason(
   );
   const runnerName = runner ? agentsById.get(runner.agentId)?.name : undefined;
   if (runnerName) {
-    return ko ? `${core} · 다음 후보 ${runnerName}` : `${core} · runner-up ${runnerName}`;
+    return ko ? `${core} · 차순위 ${runnerName}` : `${core} · runner-up ${runnerName}`;
   }
   return core;
 }

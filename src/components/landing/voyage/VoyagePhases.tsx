@@ -161,7 +161,7 @@ export function VoyagePhases() {
         >
           {L(
             'AI가 답을 건네는 게 아니에요. 당신이 먼저 판단을 묶고, 크루의 항해를 듣고, 정한 날 현실에 닿습니다.',
-            'The AI doesn’t hand down an answer. You bind your judgment first, listen to the crew’s voyage, and land on reality on your date.',
+            'The AI doesn’t hand down an answer. You bind your call first, hear the crew out, and meet reality on the day you set.',
           )}
         </p>
 

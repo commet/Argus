@@ -214,7 +214,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
       if (isAuthError(err)) {
         setError('LOGIN_REQUIRED');
       } else {
-        setError(de.message || L('AI 분석에 실패했습니다.', 'AI analysis failed.'));
+        setError(de.message || L('분석에 실패했어요. 다시 시도해 주세요.', 'Analysis failed — please try again.'));
       }
       updateItem(id, { status: 'input' });
     }
@@ -282,7 +282,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
           <p className="text-[13px] text-[var(--text-secondary)] mt-1">
             {mode === 'direct'
               ? L('결과물을 붙여넣으면 쟁점이 도출되고, 당신은 판단만 합니다.', 'Paste the outputs, we surface the conflicts — you only judge.')
-              : L('질문에 답한 후 내용을 붙여넣으면 더 정확하게 분석합니다.', 'Answer the questions first, then paste for a more accurate analysis.')}
+              : L('질문에 답하고 붙여넣으면 더 정확해요.', 'Answer first, then paste — sharper read.')}
           </p>
         </div>
         <ModeToggle mode={mode} onChange={setMode} />
@@ -304,7 +304,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
               }`}
             >
               <FileText size={14} />
-              {(item.analysis?.sources_summary[0]?.name || L('합성', 'Synthesis')).slice(0, 20)}
+              {(item.analysis?.sources_summary[0]?.name || L('조율', 'Synthesis')).slice(0, 20)}
               <span onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }} className="ml-1 p-0.5 hover:text-red-500 cursor-pointer">
                 <Trash2 size={12} />
               </span>
@@ -320,7 +320,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
             <Card className="space-y-3">
               <div>
                 <h2 className="text-[16px] font-bold text-[var(--text-primary)] mb-1">{L('비교할 결과물을 붙여넣으세요', 'Paste the outputs you want to compare')}</h2>
-                <p className="text-[12px] text-[var(--text-secondary)]">{L('여러 AI 답변이나 의견을 한 번에 붙여넣으면 공통점과 차이를 구조화합니다.', 'Paste multiple AI answers or opinions at once — we structure the agreements and differences.')}</p>
+                <p className="text-[12px] text-[var(--text-secondary)]">{L('여러 AI 답변이나 의견을 한꺼번에 붙여넣으면 공통점과 차이를 정리해드려요.', 'Paste several AI answers or opinions — we lay out what they agree on and where they differ.')}</p>
               </div>
               <div className="flex gap-2 mb-2">
                 <button
@@ -471,7 +471,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                 <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('쟁점', 'Conflicts')}</h3>
               </div>
               <p className="text-[13px] text-[var(--text-secondary)]">
-                {L('각 쟁점에서 당신의 판단을 입력하세요. AI가 아니라 당신의 맥락에서 결정해야 합니다.', 'Enter your judgment for each conflict. You — not the AI — decide from your own context.')}
+                {L('쟁점마다 당신의 판단을 적어주세요. AI가 아니라 당신 상황에서 결정하는 거예요.', 'Make your call on each point — you decide from your situation, not the AI’s.')}
               </p>
               {current.analysis.conflicts.map((conflict) => (
                 <Card key={conflict.id} className={`space-y-3 ${conflict.user_judgment ? '!border-[var(--success)]' : '!border-amber-300'}`}>
@@ -585,7 +585,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
 
           <div className="flex items-center justify-between">
             <Button variant="secondary" size="sm" onClick={() => { setCurrentId(null); setBulkInput(''); }}>
-              <ArrowRight size={14} /> {L('새 합성', 'New synthesis')}
+              <ArrowRight size={14} /> {L('새 조율', 'New synthesis')}
             </Button>
             <div className="flex gap-2">
               <Button

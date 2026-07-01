@@ -24,7 +24,8 @@
 import type { Agent, AgentObservation } from '@/stores/agent-types';
 import type { InputClassification } from './orchestrator-classify';
 import { classifySteps, type TaskClassification } from './task-classifier';
-import { scoreAgentForTask, getCapability } from './agent-capabilities';
+import { scoreAgentForTask, getCapability, isCriticAgentId } from './agent-capabilities';
+import { lensOf, type Lens } from './agent-lens';
 import { getAgentHitRate } from './hit-rate';
 
 /* ─── Types ─── */
@@ -60,6 +61,7 @@ function computeExperienceBoost(
 
   // 3b. 관찰 기반 보정
   const relevantObs = observations.filter(o => o.confidence >= 0.3);
+  let skillGapBoost = 0;
   for (const obs of relevantObs) {
     const obsLower = obs.observation.toLowerCase();
     const taskDomain = taskClassification.contextDomain;
@@ -68,7 +70,7 @@ function computeExperienceBoost(
       // 사용자에게 이 도메인의 skill gap이 있음 → 해당 도메인 에이전트 부스트
       const cap = getCapability(agent.id);
       if (cap && cap.domains.includes(taskDomain)) {
-        boost += 0.05 * obs.confidence;
+        skillGapBoost += 0.05 * obs.confidence;
       }
     } else if (obs.category === 'preference') {
       // 사용자가 특정 패턴을 선호 → 에이전트 이름이 관찰에 있으면 부스트
@@ -77,6 +79,10 @@ function computeExperienceBoost(
       }
     }
   }
+  // Cap accrued skill_gap boost so observation pile-up can't overwhelm the
+  // taskType match (50% weight; 1st↔2nd-rank gap is only 0.10). Was unbounded —
+  // a timebomb that flips routing once observation data accrues.
+  boost += Math.min(skillGapBoost, 0.10);
 
   // 3c. 히트레이트 반영 (5건 이상 데이터가 있을 때만)
   const hitRate = getAgentHitRate(agent.id);
@@ -115,6 +121,7 @@ export function selectAgents(
 ): Map<number, Agent> {
   const result = new Map<number, Agent>();
   const usedAgentIds = new Set<string>();
+  const usedLenses = new Set<Lens>();   // 7-lens diversity: at most one worker per lens
   const traces: SelectionTrace[] = [];
 
   // ── Layer 1: Task Classification (모든 step을 한 번에, 문맥 포함) ──
@@ -125,10 +132,7 @@ export function selectAgents(
 
   // ── critical stakes → Critic 예약 ──
   const criticAgent = classification.stakes === 'critical'
-    ? unlockedAgents.find(a => {
-        const cap = getCapability(a.id);
-        return cap && cap.taskTypes[0] === 'critique';
-      })
+    ? unlockedAgents.find(a => isCriticAgentId(a.id))
     : null;
 
   // ── 각 step에 에이전트 배정 ──
@@ -137,7 +141,21 @@ export function selectAgents(
     const tc = taskClassifications[i];
     if (!tc) continue;
 
-    const available = unlockedAgents.filter(a => !usedAgentIds.has(a.id) && !a.archived);
+    // One worker per lens: a lens already filled is unavailable, so the chain-
+    // hierarchy near-ties (e.g. hayoon~sujin, both Scout) resolve to the higher
+    // scorer and the rest of the run diversifies to other lenses.
+    let available = unlockedAgents.filter(a => {
+      if (usedAgentIds.has(a.id) || a.archived) return false;
+      const lens = lensOf(a.id);
+      return !(lens && usedLenses.has(lens));
+    });
+    // All lenses filled (9+ AI steps) → relax the one-per-lens rule and keep
+    // routing by CAPABILITY score (anti-patterns still respected), rather than
+    // letting initWorkers drop to the keyword fallback, which ignores capability
+    // AND anti-patterns entirely (an intern could get a legal step).
+    if (available.length === 0) {
+      available = unlockedAgents.filter(a => !usedAgentIds.has(a.id) && !a.archived);
+    }
     if (available.length === 0) break;
 
     // ── Layer 2: Capability Scoring ──
@@ -177,6 +195,8 @@ export function selectAgents(
     if (best && best.totalScore > 0) {
       result.set(i, best.agent);
       usedAgentIds.add(best.agent.id);
+      const bestLens = lensOf(best.agent.id);
+      if (bestLens) usedLenses.add(bestLens);
 
       traces.push({
         stepIndex: i,
@@ -214,8 +234,20 @@ export function selectAgents(
     // stakes).
     const targetStep = bestCritiqueStep >= 0 ? bestCritiqueStep : steps.length - 1;
     if (targetStep >= 0) {
+      // If we overwrite an already-assigned step, release the displaced agent's
+      // id/lens claim — otherwise that lens stays "used" but unfilled (orphaned)
+      // and the run silently loses a perspective.
+      const displaced = result.get(targetStep);
+      if (displaced && displaced.id !== criticAgent.id) {
+        usedAgentIds.delete(displaced.id);
+        const dl = lensOf(displaced.id);
+        if (dl) usedLenses.delete(dl);
+      }
       result.set(targetStep, criticAgent);
       usedAgentIds.add(criticAgent.id);
+      // critic도 lens를 점유 — force-add가 lens 가드를 우회해 같은 렌즈 중복을 만들지 않게.
+      const criticLens = lensOf(criticAgent.id);
+      if (criticLens) usedLenses.add(criticLens);
       // Record the rationale so the why-this-agent line shows for the Critic —
       // and REPLACE any stale trace if we overwrote an already-assigned step
       // (otherwise the line would describe the agent we just displaced).

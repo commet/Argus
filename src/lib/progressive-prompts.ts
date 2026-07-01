@@ -300,7 +300,7 @@ JSON:
 
 // ─── 2.5. Worker Task (individual agent work) ───
 
-import { getSkillSet, getFrameworkSkill, LEVEL_CONFIGS, numericLevelToAgentLevel } from '@/lib/agent-skills';
+import { getSkillSet, getFrameworkSkill, LEVEL_CONFIGS, effectiveWorkerLevel } from '@/lib/agent-skills';
 import type { AgentLevel } from '@/stores/types';
 import type { Agent } from '@/stores/agent-types';
 import { buildAgentContext } from '@/lib/agent-prompt-builder';
@@ -320,7 +320,7 @@ export function buildWorkerTaskPrompt(
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
   // Agent level: use agent's numeric level -> AgentLevel conversion if available
-  const effectiveLevel = agent ? numericLevelToAgentLevel(agent.level) : level;
+  const effectiveLevel = agent ? effectiveWorkerLevel(agent.level, agent.id) : level;
   const levelConfig = LEVEL_CONFIGS[effectiveLevel];
   // Skill lookup: agent ID first, fallback to persona ID
   const skillLookupId = agent?.id || persona?.id;
@@ -355,7 +355,7 @@ ${p.tone}`);
   //    if none assigned, inject only framework NAMES (not full descriptions) to save tokens
   if (focusedSkill) {
     systemParts.push(`\n[Assigned Framework: ${focusedSkill.framework}]
-Use this framework for your analysis.`);
+Use this framework for your analysis. Keep the answer scoped to the assigned framework instead of expanding into unrelated methods.`);
   } else if (skills) {
     const frameworkNames = skills.frameworks.map(f => {
       const colonIdx = f.indexOf(':');
@@ -382,8 +382,10 @@ ${checkpointSource.checkpoints.map(c => `\u2610 ${c}`).join('\n')}`);
   // 5. Output format
   const outputSource = focusedSkill || skills;
   if (outputSource) {
+    const wordBudget = Math.round(levelConfig.maxTokens * 0.6);
     systemParts.push(`\nOutput format:
-${outputSource.outputFormat}`);
+${outputSource.outputFormat}
+Keep the deliverable within roughly ${wordBudget} words instead of padding for completeness.`);
   }
 
   // 6. Core rules
@@ -940,8 +942,23 @@ export function buildNavigatorReviewPrompt(
   problemText: string,
   workerResults: Array<{ agentName: string; agentRole: string; task: string; result: string; taskGroupId?: string }>,
   locale: Locale = 'en',
+  verifyDepth?: 'light' | 'standard' | 'deep',
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
+  const depthInstruction = verifyDepth === 'light'
+    ? `
+
+LIGHT CHECK:
+- Name only the single most load-bearing concern or crux if one exists.
+- If the work is already enough for this decision, say so.
+- Do NOT manufacture concerns, forks, or warnings just to sound thorough.`
+    : verifyDepth === 'deep'
+      ? `
+
+DEEP CHECK:
+- Be exhaustive. Stress-test assumptions, contradictions, missing evidence, incentives, edge cases, and implementation risks.
+- Still do not invent issues unsupported by the material.`
+      : '';
 
   // Same task_group sub-bullet form as Mix \u2014 keeps the Navigator from
   // flagging intentional multi-persona diversity as a contradiction.
@@ -976,7 +993,9 @@ Rules:
 - A task labeled "(N perspectives \u2014 intentional team diversity)" is the user's deliberate multi-lens setup. Don't flag in-group emphasis differences as contradictions unless they materially undermine the conclusion.
 - If a perspective was missed by everyone, flag it.
 - Overall quality judgment: "Is this ready to show the decision maker?"
+- Never assert a verdict or recommendation; identify readiness, gaps, and cruxes without choosing for the user.
 - 3-5 sentences. No rambling.
+${depthInstruction}
 Always respond in ${lang}.`,
 
     user: `Project: <user-data>${sanitize(problemText)}</user-data>

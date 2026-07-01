@@ -14,6 +14,8 @@ import type { SelectionTrace } from './orchestrator-select';
 import { assignFramework } from './orchestrator-framework';
 import { classifySteps } from './task-classifier';
 import { buildAssignmentReason } from './assignment-reason';
+import { planOrchestration, type OrchestrationPlan } from './orchestration-pattern';
+import { isCriticAgentId } from './agent-capabilities';
 
 /* ─── Types ─── */
 
@@ -40,20 +42,28 @@ export interface OrchestratorResult {
   classification: InputClassification;
   workers: PlannedWorker[];
   stages: PipelineStage[];
+  orchestrationPlan: OrchestrationPlan;   // chosen collaboration pattern + verify depth
 }
 
 /* ─── Stage Builder ─── */
 
 /**
- * 워커를 스테이지로 배치.
- * - routine/important: 단일 스테이지 (전부 병렬)
- * - critical: 2스테이지 — Stage 1(도메인 전문가 병렬) → Stage 2(Critic이 Stage 1 결과 검토)
+ * 워커를 스테이지로 배치. 패턴은 planOrchestration이 결정한다:
+ * - single / parallel: 단일 스테이지 (전부 병렬) — navigator review가 경량 검증을 담당
+ * - review_loop: 2스테이지 — Stage 1(병렬) → Stage 2(Critic이 검토) — deep 검증 + debate 점화
+ *   (review_loop는 critical에 더해 on_fire(위기)·확증편향 케이스까지 포함 — 기존 critical보다 넓음)
  */
 function buildStages(
   workers: PlannedWorker[],
   classification: InputClassification,
-): { workers: PlannedWorker[]; stages: PipelineStage[] } {
-  if (classification.stakes !== 'critical' || workers.length < 2) {
+  userLeaning = false,
+): { workers: PlannedWorker[]; stages: PipelineStage[]; plan: OrchestrationPlan } {
+  // Pattern/verify gates key off the AI worker count, not the raw step count —
+  // self/human confirmation steps must not inflate single/light into parallel/standard.
+  const aiCount = workers.filter(w => w.agentType === 'ai').length;
+  const plan = planOrchestration(classification, aiCount, { userLeaning });
+
+  if (plan.pattern !== 'review_loop' || aiCount < 2) {
     // 단일 스테이지: 전부 병렬
     const stageId = 'stage_1';
     const updated = workers.map(w => ({ ...w, stageId }));
@@ -64,19 +74,22 @@ function buildStages(
       workerIds: updated.map((_, i) => `w_${i}`), // 실제 ID는 initWorkers에서 부여
       status: 'pending',
     }];
-    return { workers: updated, stages };
+    return { workers: updated, stages, plan };
   }
 
-  // Critical: Critic을 Stage 2로 분리
-  const criticIdx = workers.findIndex(w => {
-    // validation group의 리스크 관련 에이전트
-    const kws = ['리스크', '위험', '실패', '비판', 'risk', 'danger', 'failure', 'critique', 'review', 'validate'];
-    const focusLower = w.focus.toLowerCase();
-    return kws.some(kw => focusLower.includes(kw)) || w.framework?.includes('Pre-mortem') || w.framework?.includes('Red Team');
-  });
+  // review_loop: Critic을 Stage 2로 분리. critic은 반드시 AI 워커여야 한다 —
+  // self/human 워커가 critic으로 뽑히면 worker-engine이 stage_2를 0개 실행하고
+  // (aiWorkers.length===0) "검증" 스테이지가 에러 없이 침묵 속에 증발한다.
+  // Single source of truth (isCriticAgentId) — same agent the selector reserved
+  // as the critic and the same one runDebate will run, so UI stage-2 = actual
+  // reviewer. (Was a separate focus-keyword heuristic that could pick a different
+  // worker — e.g. a "고객 리뷰 분석" step matched 'review'.)
+  const criticIdx = workers.findIndex(w => w.agentType === 'ai' && isCriticAgentId(w.agentId));
 
-  // Critic이 명확하지 않으면 마지막 워커를 Stage 2로
-  const stage2Idx = criticIdx >= 0 ? criticIdx : workers.length - 1;
+  // Critic이 명확하지 않으면 마지막 AI 워커를 Stage 2로 (self/human은 검증 못 함)
+  let lastAiIdx = -1;
+  for (let i = workers.length - 1; i >= 0; i--) { if (workers[i].agentType === 'ai') { lastAiIdx = i; break; } }
+  const stage2Idx = criticIdx >= 0 ? criticIdx : lastAiIdx;
 
   const stage1Workers = workers.filter((_, i) => i !== stage2Idx).map(w => ({ ...w, stageId: 'stage_1' }));
   // Stage 2 critic depends on all Stage 1 workers
@@ -101,7 +114,7 @@ function buildStages(
     },
   ];
 
-  return { workers: [...stage1Workers, ...stage2Workers], stages };
+  return { workers: [...stage1Workers, ...stage2Workers], stages, plan };
 }
 
 /* ─── Main ─── */
@@ -111,6 +124,9 @@ export function planWorkers(
   signals: InterviewSignals | undefined,
   unlockedAgents: Agent[],
   observations: AgentObservation[],
+  /** The user already typed a pre-AI lean (Bind rope) — confirmation-bias risk,
+   *  feeds verify depth via planOrchestration. Default false = unchanged behavior. */
+  userLeaning = false,
 ): OrchestratorResult {
   // 1. 입력 분류
   const problemText = steps.map(s => s.task).join(' ');
@@ -190,8 +206,8 @@ export function planWorkers(
     };
   });
 
-  // 4. 스테이지 배치
-  const { workers, stages } = buildStages(rawWorkers, classification);
+  // 4. 스테이지 배치 (패턴 + 검증 깊이 결정)
+  const { workers, stages, plan } = buildStages(rawWorkers, classification, userLeaning);
 
-  return { classification, workers, stages };
+  return { classification, workers, stages, orchestrationPlan: plan };
 }

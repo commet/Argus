@@ -359,7 +359,7 @@ export function PersonaPoolModal({
             <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[var(--accent)] line-clamp-1">
               <ArrowRight size={10} className="shrink-0" />
               <span className="truncate">
-                <span className="text-[var(--text-tertiary)]">{L('이 task에 추가:', 'Goes to:')}</span> {p.matchedTask}
+                <span className="text-[var(--text-tertiary)]">{L('이 작업에 추가:', 'Goes to:')}</span> {p.matchedTask}
               </span>
             </div>
           )}
@@ -376,15 +376,15 @@ export function PersonaPoolModal({
 
   // Header content varies by mode
   const headerEyebrow = mode === 'task'
-    ? L('이 task에 추가할 팀원', 'Add to this task')
+    ? L('이 작업에 추가할 팀원', 'Add to this task')
     : mode === 'replace'
       ? L('이 팀원과 교체', 'Replace this member')
       : L('새 팀원 추가', 'Add a team member');
   const headerTitle = mode === 'task'
-    ? (targetGroup?.task || L('task', 'task'))
+    ? (targetGroup?.task || L('작업', 'task'))
     : mode === 'replace'
-      ? (replaceInfo?.task || L('task', 'task'))
-      : L('어떤 분을 모실지 골라주세요. 어울리는 task에 자동으로 배정됩니다.', "Pick someone — we'll match them to the most fitting task automatically.");
+      ? (replaceInfo?.task || L('작업', 'task'))
+      : L('어떤 분을 모실지 골라주세요. 어울리는 작업에 자동으로 배정돼요.', "Pick someone — we'll match them to the most fitting task automatically.");
   const headerSub = mode === 'task'
     ? targetGroup?.aiScope || null
     : mode === 'replace'
@@ -456,12 +456,12 @@ export function PersonaPoolModal({
                 </div>
                 {targetGroupFull && mode === 'task' && (
                   <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-2 leading-snug">
-                    {L('한 task에 최대 5명까지 추가할 수 있어요. 일부를 빼고 다시 추가하세요.', 'Up to 5 personas per task. Remove one to add another.')}
+                    {L('한 작업에 최대 5명까지 추가할 수 있어요. 일부를 빼고 다시 추가하세요.', 'Up to 5 per task. Remove one to add another.')}
                   </p>
                 )}
                 {allGroupsFull && (
                   <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-2 leading-snug">
-                    {L('모든 task에 5명이 차 있어요. 어딘가에서 한 명 빼고 다시 시도하세요.', 'Every task is at 5 personas. Remove one somewhere first.')}
+                    {L('모든 작업에 5명이 다 찼어요. 어딘가에서 한 명 빼고 다시 시도하세요.', 'Every task is full. Remove one somewhere first.')}
                   </p>
                 )}
               </div>
@@ -491,7 +491,7 @@ export function PersonaPoolModal({
                           <Sparkles size={11} className="text-[var(--accent)]" />
                           <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
                             {mode === 'task' || mode === 'replace'
-                              ? L('이 task에 잘 맞는 팀원', 'Recommended for this task')
+                              ? L('이 작업에 잘 맞는 팀원', 'Recommended for this task')
                               : L('지금 팀에 잘 어울릴 팀원', 'Recommended for your team')}
                           </span>
                         </div>

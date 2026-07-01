@@ -109,7 +109,7 @@ export function VersionHistoryDrawer({
             )}
             {isReleased && (
               <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
-                <Crown className="w-2.5 h-2.5" /> released
+                <Crown className="w-2.5 h-2.5" /> {L('정식 버전', 'released')}
               </span>
             )}
             <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">

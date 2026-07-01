@@ -100,7 +100,7 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
           </div>
           <p className="text-[16px] font-bold text-[var(--text-primary)]">{L('보냈어요', 'Sent')}</p>
           <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-            {channelMeta[sentVia].label}{L('(으)로 전달했어요.', ' delivered.')}
+            {L('보낸 곳: ', 'Sent via: ')}{channelMeta[sentVia].label}
           </p>
           <Button variant="secondary" size="sm" className="mt-5" onClick={onClose}>{L('닫기', 'Done')}</Button>
         </div>

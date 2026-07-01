@@ -13,7 +13,7 @@ import { getCurrentLanguage } from '@/lib/i18n';
 import { validateWorkerOutput, checkSpecificity, type ValidationResult } from '@/lib/worker-quality';
 import { validateByFramework } from '@/lib/guard-rails';
 import type { WorkerTask, PipelineStage } from '@/stores/types';
-import { LEVEL_CONFIGS, numericLevelToAgentLevel } from '@/lib/agent-skills';
+import { LEVEL_CONFIGS, effectiveWorkerLevel } from '@/lib/agent-skills';
 import { useAgentStore } from '@/stores/useAgentStore';
 import { XP_REWARDS } from '@/stores/agent-types';
 import { buildSearchContext, type SearchResult } from '@/lib/agent-prompt-builder';
@@ -56,8 +56,8 @@ export async function runWorkerTask(
     ? useAgentStore.getState().getAgent(task.agent_id)
     : undefined;
 
-  // Agent 레벨을 반영한 effective level
-  const level = agent ? numericLevelToAgentLevel(agent.level) : baseLevel;
+  // Agent 레벨을 반영한 effective level (base skill always on: junior floors to senior)
+  const level = agent ? effectiveWorkerLevel(agent.level, agent.id) : baseLevel;
 
   // ─── Agent 자율 계획 (Planning Gate) ───
   // Level 3+ 에이전트 + 복합 task → 다단계 계획 후 실행

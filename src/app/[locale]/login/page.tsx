@@ -8,7 +8,7 @@ import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
-import { Zap, FolderOpen, Users, MessageSquare } from 'lucide-react';
+import { Zap, FolderOpen, Users, MessageSquare, MailCheck } from 'lucide-react';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -49,6 +49,7 @@ function LoginContent() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
+  const [signupSentTo, setSignupSentTo] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -95,7 +96,7 @@ function LoginContent() {
         turnstileRef.current?.reset();
         setCaptchaToken('');
       } else {
-        setMessage(L('확인 메일을 보냈어요. 이메일을 확인해 주세요.', 'Confirmation email sent. Please check your email.'));
+        setSignupSentTo(email);
       }
     } else {
       const { error } = await signInWithEmail(email, password);
@@ -120,6 +121,31 @@ function LoginContent() {
         <div className="text-center">
           <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-[13px] text-[var(--text-secondary)]">{L('워크스페이스로 이동 중...', 'Taking you to the workspace...')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (signupSentTo) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-[400px] text-center">
+          <div className="w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center border border-[var(--accent)]/20 shadow-[0_2px_8px_rgba(184,150,62,0.18),0_6px_16px_rgba(184,150,62,0.08),inset_0_1px_0_rgba(255,255,255,0.5)]" style={{ background: 'var(--gradient-gold)' }}>
+            <MailCheck size={26} className="text-white" />
+          </div>
+          <h1 className="text-[20px] font-bold text-[var(--text-primary)] mb-2">{L('확인 메일을 보냈어요', 'Check your email')}</h1>
+          <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed">
+            {L(`${signupSentTo}로 보낸 메일의 링크를 누르면 가입이 끝나요.`, `Click the link in the email we sent to ${signupSentTo} to finish signing up.`)}
+          </p>
+          <p className="text-[12.5px] text-[var(--text-tertiary)] mt-3 leading-relaxed">
+            {L('메일이 안 보이면 스팸함도 확인해 주세요 — 도착까지 1~2분 걸릴 수 있어요.', 'Don’t see it? Check your spam folder — it can take a minute or two.')}
+          </p>
+          <button
+            onClick={() => { setSignupSentTo(null); setMessage(''); }}
+            className="mt-6 text-[13px] font-medium text-[var(--accent)] hover:underline cursor-pointer"
+          >
+            {L('다른 이메일로 다시 시도', 'Use a different email')}
+          </button>
         </div>
       </div>
     );
@@ -223,7 +249,7 @@ function LoginContent() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={L('어떻게 불러드릴까요? (선택)', 'What should we call you? (optional)')}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
                 />
                 <p className="mt-1 px-1 text-[11px] text-[var(--text-tertiary)] leading-snug">
                   {L('정산할 때 이 이름으로 인사하고, 결정 기록에 함께 남겨요.', 'We greet you by this name and keep it with your decision log.')}
@@ -233,7 +259,7 @@ function LoginContent() {
             {isSignUp && (
               <div>
                 <p className="mb-1.5 px-1 text-[12px] text-[var(--text-secondary)]">
-                  {L('무슨 일을 하세요? (선택)', 'What do you do? (optional)')}
+                  {L('무슨 일을 하세요? (선택 — 건너뛰어도 돼요)', 'What do you do? (optional — feel free to skip)')}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {SIGNUP_ROLES.map((r) => {
@@ -265,7 +291,7 @@ function LoginContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={L('이메일', 'Email')}
-                className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                className="w-full px-4 py-2.5 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
               />
             </div>
             {!isReset && (
@@ -278,7 +304,7 @@ function LoginContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={L('비밀번호 (8자 이상)', 'Password (8+ characters)')}
-                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
                 />
               </div>
             )}

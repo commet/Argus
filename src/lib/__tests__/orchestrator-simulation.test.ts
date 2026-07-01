@@ -291,6 +291,53 @@ describe('planWorkers', () => {
     expect(result.classification.stakes).toBe('critical');
   });
 
+  it('on_fire 위기 → review_loop 패턴 + 2 스테이지 (irreversible 아니어도 검증 점화)', () => {
+    const steps = [
+      { task: '시장 조사', who: 'ai', output: '보고서' },
+      { task: '비용 추정', who: 'ai', output: '수치' },
+      { task: '리스크 검토', who: 'ai', output: '리스크' },
+    ];
+    const result = planWorkers(steps, { nature: 'on_fire' } as never, MOCK_AGENTS, []);
+    expect(result.orchestrationPlan.pattern).toBe('review_loop');
+    expect(result.orchestrationPlan.verifyDepth).toBe('deep');
+    expect(result.stages.length).toBe(2);
+  });
+
+  it('orchestrationPlan을 항상 노출하고 검증 깊이는 비어있지 않다 (검증 상수)', () => {
+    const result = planWorkers(
+      [{ task: '시장 조사', who: 'ai', output: '보고서' }],
+      undefined, MOCK_AGENTS, [],
+    );
+    expect(result.orchestrationPlan).toBeDefined();
+    expect(['light', 'standard', 'deep']).toContain(result.orchestrationPlan.verifyDepth);
+  });
+
+  it('userLeaning + important → deep verify / review_loop (확증편향 가드)', () => {
+    const steps = [
+      { task: '시장 조사', who: 'ai', output: '보고서' },
+      { task: '비용 추정', who: 'ai', output: '수치' },
+      { task: '리스크 검토', who: 'ai', output: '리스크' },
+    ];
+    const neutral = planWorkers(steps, { stakes: 'important' } as never, MOCK_AGENTS, [], false);
+    const leaning = planWorkers(steps, { stakes: 'important' } as never, MOCK_AGENTS, [], true);
+    expect(neutral.orchestrationPlan.verifyDepth).toBe('standard');
+    expect(leaning.orchestrationPlan.verifyDepth).toBe('deep');
+    expect(leaning.orchestrationPlan.pattern).toBe('review_loop');
+  });
+
+  it('non-AI steps do NOT inflate the pattern gate (workerCount = AI count)', () => {
+    // 1 AI worker + 2 human confirmation steps on a routine call must stay
+    // single/light — the humans must not push it to parallel/standard.
+    const steps = [
+      { task: 'AI가 분석', who: 'ai', output: '보고서' },
+      { task: '사람이 확인', who: 'human', output: '확인' },
+      { task: '사람이 결재', who: 'human', output: '결재' },
+    ];
+    const r = planWorkers(steps, { stakes: 'experiment' } as never, MOCK_AGENTS, []);
+    expect(r.orchestrationPlan.pattern).toBe('single');
+    expect(r.orchestrationPlan.verifyDepth).toBe('light');
+  });
+
   it('서로 다른 에이전트가 배정됨', () => {
     const steps = [
       { task: '시장 조사', who: 'ai', output: '보고서' },

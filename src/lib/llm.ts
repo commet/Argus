@@ -27,6 +27,8 @@ export interface StreamCallbacks {
   onError: (error: Error) => void;
 }
 
+const STREAM_MAX_TOKENS_CAP = 8192;
+
 // ━━━ Error System (Claude Code 패턴: 에러 분류 + 재시도 가능 여부 판단) ━━━
 
 export type LLMErrorCategory =
@@ -253,6 +255,54 @@ async function fetchWithRetry(
 
 const MAX_JSON_LENGTH = 200_000;
 
+export function repairTruncatedJSON(text: string): unknown {
+  const start = text.indexOf('{');
+  if (start < 0) return null;
+  const s = text.slice(start);
+  let inStr = false;
+  let esc = false;
+  const stack: string[] = [];
+  let cut = -1;
+  let cutStack: string[] = [];
+  const mark = (idx: number) => {
+    cut = idx;
+    cutStack = [...stack];
+  };
+
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === '"') {
+        inStr = false;
+        if (stack[stack.length - 1] === ']') mark(i + 1);
+      }
+      continue;
+    }
+    if (c === '"') inStr = true;
+    else if (c === '{') stack.push('}');
+    else if (c === '[') stack.push(']');
+    else if (c === '}' || c === ']') {
+      stack.pop();
+      mark(i + 1);
+    } else if (c === ',') {
+      mark(i);
+    }
+  }
+
+  if (cut < 0) return null;
+  let candidate = s.slice(0, cut);
+  for (let k = cutStack.length - 1; k >= 0; k--) {
+    candidate += cutStack[k];
+  }
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    return null;
+  }
+}
+
 export function parseJSON<T = unknown>(text: string): T {
   if (text.length > MAX_JSON_LENGTH) {
     throw new LLMError('LLM 응답이 너무 큽니다.', { category: 'parse_failure' });
@@ -282,6 +332,10 @@ export function parseJSON<T = unknown>(text: string): T {
       if (arrMatch) {
         try { parsed = JSON.parse(arrMatch[0]); } catch { /* fall through */ }
       }
+    }
+
+    if (!parsed) {
+      parsed = repairTruncatedJSON(text);
     }
 
     if (!parsed) {

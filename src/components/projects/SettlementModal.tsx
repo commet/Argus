@@ -150,7 +150,49 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
 
   // Defensive: a malformed contract (or one with zero predicates) has nothing
   // to ask about — render nothing instead of an empty shell with extend chips.
-  if (!contract || predicates.length === 0) return null;
+  if (!contract) return null;
+
+  if (predicates.length === 0) {
+    const closeDateOnlyLoop = () => {
+      updateProject(project.id, {
+        decision_contract: {
+          ...contract,
+          outcome_note: whatHappened.trim(),
+          graded_at: new Date().toISOString(),
+          check_in_at: undefined,
+          check_in_interval: undefined,
+        },
+      });
+      onClose();
+    };
+
+    return (
+      <Modal open onClose={onClose} title={L('洹몃옒?? ?대뼸寃??먯뼱??', 'So, how did it go?')}>
+        <div className="space-y-4">
+          <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+            {L('遊됱씤???뺤씤?쇱씠 ?ㅼ븯?듬땲?? ?뚯깭瑜?媛꾨떒??湲곕줉?섍퀬 怨좊━瑜??ル뼱二쇱꽭??', 'This sealed decision is due. Capture what happened and close the loop.')}
+          </p>
+          <textarea
+            value={whatHappened}
+            onChange={(e) => setWhatHappened(e.target.value)}
+            rows={4}
+            maxLength={1200}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-[13px] text-[var(--text-primary)] leading-[1.5] resize-none focus:outline-none focus:border-[var(--accent)]/60"
+            placeholder={L('臾댁뾿???대뼸寃??섏뼱?섏슂?', 'What happened?')}
+          />
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={closeDateOnlyLoop}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold cursor-pointer"
+            >
+              {L('?뚭퀬 怨좊━ ?リ린', 'Looked back and closed')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   const sealedOn = fmtDate(contract.created_at);
 

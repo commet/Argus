@@ -47,6 +47,7 @@ import {
   generateDecisionContract,
   contractFromPredicates,
   withCheckIn,
+  amendCheckIn,
   gradePredicate,
   setPredicateBasis,
   contractStatus,
@@ -156,6 +157,7 @@ export function DecisionContractCard({
   const [checkIn, setCheckIn] = useState<CheckInInterval>('2w');
   const [sealOpen, setSealOpen] = useState(false);
   const [gradeOpen, setGradeOpen] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false); // change the check-in date before it's due
 
   const contract = project.decision_contract ?? null;
 
@@ -238,12 +240,12 @@ export function DecisionContractCard({
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-[15px] font-bold text-[var(--text-primary)]">
-              {L('이 결정을 예측으로 봉인하기', 'Seal this decision as predictions')}
+              {L('이 결정, 나중에 어떻게 됐는지 물어봐 드릴까요?', 'Want me to ask you later how this turned out?')}
             </h3>
             <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-[1.55]">
               {L(
-                `이번 항해에서 ${candidate.predicates.length}가지를 예측했어요. 정한 날짜에 다시 와서, 실제로 맞았는지 직접 확인해 보세요 — 판단의 고리를 닫는 일이에요.`,
-                `You made ${candidate.predicates.length} predictions this voyage. Come back on your chosen date and check, for yourself, whether they held — closing the loop on your own call.`,
+                '정한 날에 이 결정으로 한 번 돌아와, 실제로 어떻게 됐는지 직접 확인하는 거예요 — 판단의 고리를 닫는 일이죠.',
+                "On the day you choose, you'll come back to this decision and check, for yourself, how it actually went — closing the loop on your own call.",
               )}
             </p>
 
@@ -252,7 +254,7 @@ export function DecisionContractCard({
                 onClick={() => setSealOpen(true)}
                 className="mt-3 text-[12.5px] font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
-                {L('예측 보기 & 봉인', 'Review & seal')} <ChevronDown size={14} />
+                {L('그날 물어볼 것들 보기', 'See what I’ll ask')} <ChevronDown size={14} />
               </button>
             ) : (
               <div className="mt-3 space-y-3">
@@ -278,7 +280,7 @@ export function DecisionContractCard({
                   </div>
                 </div>
                 <Button variant="primary" size="sm" onClick={seal}>
-                  {L('약속하고 봉인', 'Commit & seal')}
+                  {L('네 — 그날 물어봐 주세요', "Yes — ask me that day")}
                 </Button>
               </div>
             )}
@@ -291,7 +293,10 @@ export function DecisionContractCard({
   const predicates = Array.isArray(contract!.predicates) ? contract!.predicates : [];
 
   // ════ State 4: VERIFIED ════
-  if (status!.allGraded) {
+  // P2: allow re-grading a mistaken verdict — when gradeOpen, fall through to the
+  // grade panel below instead of the read-only verified card (gradePredicate already
+  // supports re-grading back to pending).
+  if (status!.allGraded && !gradeOpen) {
     const g = summarizeGrades(contract!);
     const parts = [
       g.risksAvoided > 0 && L(`위험 ${g.risksAvoided}개 회피`, `${g.risksAvoided} risk${g.risksAvoided === 1 ? '' : 's'} avoided`),
@@ -299,6 +304,8 @@ export function DecisionContractCard({
       g.betsHeld > 0 && L(`가설 ${g.betsHeld}개 적중`, `${g.betsHeld} bet${g.betsHeld === 1 ? '' : 's'} held`),
       // The user's own read — a lucky win isn't a judgment win (R17).
       g.goodOutcomesOnLuck > 0 && L(`그중 운 ${g.goodOutcomesOnLuck}개`, `${g.goodOutcomesOnLuck} on luck`),
+      // Draft-accepted verdicts disclosed — a rubber-stamped win isn't self-verified.
+      (g.betsHeldAiDrafted + g.risksAvoidedAiDrafted) > 0 && L(`그중 초안 ${g.betsHeldAiDrafted + g.risksAvoidedAiDrafted}개`, `${g.betsHeldAiDrafted + g.risksAvoidedAiDrafted} from a draft`),
       g.unknown > 0 && L(`${g.unknown}개 미정`, `${g.unknown} unresolved`),
     ].filter(Boolean);
     return (
@@ -319,6 +326,12 @@ export function DecisionContractCard({
             <div className="mt-3">
               <PredicateList predicates={predicates} ko={ko} showVerdict />
             </div>
+            <button
+              onClick={() => setGradeOpen(true)}
+              className="mt-2 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+            >
+              {L('잘못 표시했어요 — 고치기', 'Marked one wrong — edit')}
+            </button>
           </div>
         </div>
       </Card>
@@ -355,13 +368,62 @@ export function DecisionContractCard({
               : L(`예측 ${predicates.length}개 · 언제든 확인`, `${predicates.length} predictions · check anytime`)}
           </p>
 
+          {/* Change the check-in date BEFORE it's due (was only possible as an
+              "아직"-extend AFTER the date arrived). amendCheckIn keeps the old date in
+              history (변침도 기록이다). */}
+          {!due && !showGrades && (
+            <div className="mt-2">
+              {!rescheduleOpen ? (
+                <button
+                  onClick={() => setRescheduleOpen(true)}
+                  className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                >
+                  {L('날짜 바꾸기', 'Change the date')}
+                </button>
+              ) : (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {INTERVALS.map((iv) => (
+                    <button
+                      key={iv.value}
+                      onClick={() => {
+                        updateProject(project.id, { decision_contract: amendCheckIn(contract!, iv.value, Date.now()) });
+                        setRescheduleOpen(false);
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 cursor-pointer transition-colors"
+                    >
+                      {L(iv.ko, iv.en)}
+                    </button>
+                  ))}
+                  <button onClick={() => setRescheduleOpen(false)} className="text-[11.5px] text-[var(--text-tertiary)] hover:underline cursor-pointer">
+                    {L('취소', 'Cancel')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {!showGrades && (
-            <button
-              onClick={() => setGradeOpen(true)}
-              className="mt-3 text-[12.5px] font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer"
-            >
-              {L('지금 확인하기', 'Check now')} <ChevronDown size={14} />
-            </button>
+            <div className="mt-3 flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => setGradeOpen(true)}
+                className="text-[12.5px] font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                {L('지금 확인하기', 'Check now')} <ChevronDown size={14} />
+              </button>
+              {/* Unseal — cancel the whole commitment so it can be re-edited / re-sealed
+                  (distinct from delete, which removes the decision entirely). The card
+                  falls back to its SEAL state if predicates are still derivable. */}
+              <button
+                onClick={() => {
+                  if (window.confirm(L('봉인을 취소할까요? 예측·확인일이 지워지고 다시 봉인할 수 있어요.', 'Unseal this? Its predictions & check-in date clear, and you can seal again.'))) {
+                    updateProject(project.id, { decision_contract: undefined });
+                  }
+                }}
+                className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+              >
+                {L('봉인 취소', 'Unseal')}
+              </button>
+            </div>
           )}
 
           {showGrades && (
@@ -429,6 +491,14 @@ export function DecisionContractCard({
                 <p className="text-[11.5px] text-[var(--text-tertiary)] pt-0.5">
                   {L(`${status!.graded}/${status!.total} 확인했어요`, `${status!.graded}/${status!.total} checked`)}
                 </p>
+              )}
+              {gradeOpen && !due && (
+                <button
+                  onClick={() => setGradeOpen(false)}
+                  className="text-[11.5px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
+                >
+                  {L('완료', 'Done')}
+                </button>
               )}
             </div>
           )}

@@ -543,7 +543,7 @@ export async function GET(req: Request) {
 
   try {
     await resend.emails.send({
-      from: 'Argus <onboarding@resend.dev>',
+      from: `Argus <hello@${process.env.EMAIL_FROM_DOMAIN || 'argus.voyage'}>`,
       to: REPORT_EMAIL,
       subject: `[Argus] ${kstDate} — 유저 ${usersY.size} · 신규 ${signupDetails.length} · 누적 완주 ${cumulativeCompletions}`,
       html,

@@ -730,7 +730,7 @@ export function ArgusHeroDemo({
                 </div>
                 <div style={{ padding: '15px 18px', borderRadius: '4px 14px 14px 14px', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
                   <span style={{ font: `600 9px/1 ${MONO}`, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>{L('현우 · 전략', 'Nathan · Strategy')}</span>
-                  <p style={{ margin: '6px 0 0', font: `600 16px/1.5 ${DISPLAY}`, color: 'var(--text-primary)', wordBreak: 'keep-all' }}>{L('이 기획안, 경영진 설득용인가요 실행 계획용인가요?', 'Is this proposal to win over the executives, or an execution plan?')}</p>
+                  <p style={{ margin: '6px 0 0', font: `600 16px/1.5 ${DISPLAY}`, color: 'var(--text-primary)', wordBreak: 'keep-all' }}>{L('이 기획안, 경영진 설득용인가요 아니면 실행 계획용인가요?', 'Is this proposal to win over execs, or an execution plan?')}</p>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
@@ -777,9 +777,9 @@ export function ArgusHeroDemo({
                 <div>
                   <Badge variant="gold">{L('현재 방위', 'Current Heading')}</Badge>
                 </div>
-                <h3 style={{ margin: 0, font: `600 23px/1.28 ${DISPLAY}`, color: '#1c1812', letterSpacing: '-.01em', wordBreak: 'keep-all' }}>{L('1차 진입 기획안, 완성', 'First-entry plan, ready')}</h3>
+                <h3 style={{ margin: 0, font: `600 23px/1.28 ${DISPLAY}`, color: '#1c1812', letterSpacing: '-.01em', wordBreak: 'keep-all' }}>{L('1차 진입 기획안 완성', 'First entry plan, ready')}</h3>
                 <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.65, color: 'var(--text-secondary)', wordBreak: 'keep-all' }}>
-                  {L('5인 · 2주로 검증할 ', 'Down to a ')}<span style={{ color: 'var(--accent)', fontWeight: 600 }}>{L('단일 카테고리 파일럿', 'single-category pilot')}</span>{L('까지 — 갈 길이 한 장에 잡혔습니다.', ' five people can validate in 2 weeks — the path ahead, on one page.')}
+                  {L('5인 · 2주로 검증할 ', 'A ')}<span style={{ color: 'var(--accent)', fontWeight: 600 }}>{L('단일 카테고리 파일럿', 'single-category pilot')}</span>{L('까지 — 갈 길이 한 장에 잡혔습니다.', ' five people can validate in 2 weeks — the path ahead, on one page.')}
                 </p>
               </div>
               <div style={{ flex: 'none', width: 236, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)', padding: '16px 16px 18px', transform: 'rotate(-1.2deg)' }}>
