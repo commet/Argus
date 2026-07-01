@@ -314,6 +314,83 @@ t("corrupt bearing json → silence, exit 0", () => {
   assert(run(r) === "", "corrupt bearing must degrade to silence");
 });
 
+// ─── Living-premises re-check reminder (.argus/items.jsonl) ──────────────────
+
+function items(root, events) {
+  mkdirSync(join(root, ".argus"), { recursive: true });
+  writeFileSync(join(root, ".argus", "items.jsonl"), events.map(e => JSON.stringify(e)).join("\n") + "\n");
+}
+function premise(id, extra = {}) {
+  return { event: "extract", id, decision_id: "d", type: "premise", text: "금리 동결", external: true, load_bearing: true, ...extra };
+}
+
+t("due monitored premise → one line with /argus:track check", () => {
+  const r = repo();
+  items(r, [premise("item_p1")]); // never re-checked → due
+  const out = run(r);
+  assert(out.includes("/argus:track check"), `missing re-check hint: ${out}`);
+  assert(!out.includes("\n"), `must be one line: ${out}`);
+});
+
+t("non-load-bearing premise (mode off) → silence", () => {
+  const r = repo();
+  items(r, [premise("item_p1", { load_bearing: false })]);
+  assert(run(r) === "", "opt-out default: non-monitored premise stays silent");
+});
+
+t("non-external premise → silence", () => {
+  const r = repo();
+  items(r, [premise("item_p1", { external: false })]);
+  assert(run(r) === "", "a non-external premise is not reality-checkable → silent");
+});
+
+t("premise re-checked recently (<7d) → silence", () => {
+  const r = repo();
+  items(r, [premise("item_p1"), { event: "recheck", id: "item_p1", last_value: "v", at: iso(-2) }]);
+  assert(run(r) === "", "recently re-checked premise is not due");
+});
+
+t("premise re-checked 8+ days ago → fires", () => {
+  const r = repo();
+  items(r, [premise("item_p1"), { event: "recheck", id: "item_p1", last_value: "v", at: iso(-8) }]);
+  assert(run(r).includes("/argus:track check"), "a stale re-check is due again");
+});
+
+t("premise dismissed twice (back-off) → silence", () => {
+  const r = repo();
+  items(r, [premise("item_p1"), { event: "dismiss", id: "item_p1" }, { event: "dismiss", id: "item_p1" }]);
+  assert(run(r) === "", "backed-off premise must go quiet");
+});
+
+t("alert turned off → silence", () => {
+  const r = repo();
+  items(r, [premise("item_p1"), { event: "alert", id: "item_p1", mode: "off" }]);
+  assert(run(r) === "", "explicitly muted premise must be silent");
+});
+
+t("rejected premise → silence", () => {
+  const r = repo();
+  items(r, [premise("item_p1"), { event: "edit", id: "item_p1", action: "reject" }]);
+  assert(run(r) === "", "retired premise must be silent");
+});
+
+t("overdue contract beats premise reminder — one line, settle only", () => {
+  const r = repo();
+  ledger(r, bet("aaaa0001", iso(-1), "지난 결정"));
+  items(r, [premise("item_p1")]);
+  const out = run(r);
+  assert(out.includes("/argus:settle") && !out.includes("/argus:track check"), `settle must win: ${out}`);
+  assert(!out.includes("\n"), `must be one line: ${out}`);
+});
+
+t("premise reminder respects ko locale", () => {
+  const r = repo();
+  items(r, [premise("item_p1")]);
+  writeFileSync(join(r, ".argus", "config.yaml"), "locale: ko\n");
+  const out = run(r);
+  assert(out.includes("재확인할 전제") && out.includes("/argus:track check"), `expected ko premise line: ${out}`);
+});
+
 // ─── Cleanup & verdict ──────────────────────────────────
 
 for (const d of repos) { try { rmSync(d, { recursive: true, force: true }); } catch {} }

@@ -2,15 +2,18 @@
 /**
  * Argus SessionStart hook — overdue decision-contract check + one-time greeting.
  *
- * Contract: SILENCE IS THE DEFAULT. Exactly two exceptions, never combined:
+ * Contract: SILENCE IS THE DEFAULT. Three exceptions, never combined (each path
+ * returns), in priority order:
  *   1. At least one decision contract is past its check-by date → one line.
- *   2. The very first session after install (no marker file yet) → one
+ *   2. No overdue contract, but a monitored premise is due to be re-checked
+ *      (.argus/items.jsonl) → one line pointing at /argus:track check.
+ *   3. The very first session after install (no marker file yet) → one
  *      orientation line, once per machine, ever. Marketplace installs drop
  *      the user back at the prompt with zero guidance — this is the bridge
  *      to /argus:help. The marker (<config dir>/argus-greeted) is written
  *      BEFORE printing, so a write failure means silence, not a greeting
- *      that repeats forever. An overdue line also writes the marker: a user
- *      with contracts to settle plainly doesn't need an introduction.
+ *      that repeats forever. An overdue line (or a premise re-check line) also
+ *      writes the marker: a user with things to check doesn't need an intro.
  * Never throws, never exits non-zero — a broken hook must not tax the session.
  *
  * Sources scanned (project-scoped, relative to cwd):
@@ -172,6 +175,52 @@ function bearingContracts(argusDir, today, ledger) {
   return out;
 }
 
+/**
+ * Count monitored premises due for a re-check (the living-premises return-loop;
+ * design: docs/DESIGN-decision-items-living-premises). Replays `.argus/items.jsonl`
+ * (append-only, same shape as /argus:track). A premise is DUE when it is an active,
+ * external, on_change premise that has NOT backed off (fewer than 2 dismisses) and
+ * was either never re-checked or last re-checked 7+ days ago. Fast + defensive:
+ * missing file or bad lines → 0, never throws.
+ */
+function duePremises(argusDir, today) {
+  let raw;
+  try { raw = deBom(fs.readFileSync(path.join(argusDir, "items.jsonl"), "utf8")); }
+  catch { return 0; }
+  const map = new Map();
+  for (const line of raw.split("\n")) {
+    if (!line.trim()) continue;
+    let ev;
+    try { ev = JSON.parse(line); } catch { continue; }
+    if (!ev.id) continue;
+    const cur = map.get(ev.id);
+    switch (ev.event) {
+      case "extract":
+      case "add": {
+        const external = ev.external === true;
+        const load = ev.load_bearing === true;
+        // Mirror decision-items.ts defaultAlertMode: only a load-bearing external
+        // premise starts monitored; everything else off (opt-out).
+        const mode = ev.type === "premise" && external && load ? "on_change" : "off";
+        map.set(ev.id, { type: ev.type, external, mode, dismissals: 0, status: "active", last: null });
+        break;
+      }
+      case "alert": if (cur && typeof ev.mode === "string") cur.mode = ev.mode; break;
+      case "recheck": if (cur) cur.last = asDate(ev.at) || cur.last; break;
+      case "dismiss": if (cur) cur.dismissals++; break;
+      case "edit": if (cur && ev.action === "reject") cur.status = "retired"; break;
+    }
+  }
+  const dueBefore = new Date(Date.parse(today) - 7 * 86400000).toISOString().slice(0, 10);
+  let count = 0;
+  for (const it of map.values()) {
+    if (it.type !== "premise" || !it.external || it.mode !== "on_change") continue;
+    if (it.status !== "active" || it.dismissals >= 2) continue;
+    if (!it.last || it.last <= dueBefore) count++;
+  }
+  return count;
+}
+
 function detectLocale(argusDir) {
   try {
     const cfg = fs.readFileSync(path.join(argusDir, "config.yaml"), "utf8");
@@ -228,6 +277,24 @@ function main() {
       );
     }
     return;
+  }
+
+  // Living-premises re-check reminder — a third, lower-priority exception, only
+  // when no contract is overdue (the overdue block above returns first, so this
+  // never combines with it — the one-line contract holds). Fires when a monitored
+  // premise is due to be re-checked against reality.
+  if (hasArgus) {
+    const nPrem = duePremises(argusDir, today);
+    if (nPrem > 0) {
+      markGreeted(); // a user with premises to re-check doesn't need an intro
+      const locale = detectLocale(argusDir);
+      process.stdout.write(
+        locale === "ko"
+          ? `Argus: 재확인할 전제 ${nPrem}개 — 결정의 근거가 된 사실이 아직 맞는지 확인할 때가 됐어요 (/argus:track check).`
+          : `Argus: ${nPrem} premise${nPrem > 1 ? "s" : ""} to re-check — time to see if the facts your decision rests on still hold (/argus:track check).`,
+      );
+      return;
+    }
   }
 
   // First session after install: one orientation line, once per machine.
