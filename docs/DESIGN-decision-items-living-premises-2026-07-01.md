@@ -382,18 +382,30 @@ CLAUDE.md single-source: **두뇌(lib) 하나 공유, 표현만 분리.**
   전제를 골라 WebSearch로 현재 사실을 확인, `premise-drift`와 같은 규칙으로 drift
   판정, 바뀐 것만 알림(전제 수정 / 알림 끄기 / 넘어가기=후퇴). `recheck` 이벤트로
   baseline 갱신. 인프라 불필요, 지금 작동.
-- ⬜ **(선택, 인프라 의존) 자동 스케줄** — 온디맨드를 자동으로: 웹 edge function
-  cron / SessionStart 훅에 "재확인할 전제 N개" 한 줄. 훅은 strict-contract·테스트
-  대상이라 별도 신중 작업으로 분리.
+- ✅ **되불러오는 트리거(플러그인): SessionStart 훅** — `.argus/items.jsonl`을 스캔해
+  overdue 계약이 없을 때 "재확인할 전제 N개 → /argus:track check" 한 줄. 세 번째
+  예외로 안전 삽입(overdue가 먼저 return → 결합 안 됨, 한 줄 계약 유지), fixture 10건.
+- ⬜ (선택, 인프라 의존) 웹 자동 스케줄 — edge function cron. 웹 알림 전달(허브)은 미구현.
 - ⬜ 미결(open_question) 재고(예시 함께) 인터랙션.
 
 **요약:** Phase 1·1b·2·3(온디맨드) 완료 — 스키마·추출·편집신호·알림설정·drift코어·
 편집 UI(플러그인+웹)·재확인 실행/전달까지 **결정 루프가 끝에서 끝까지 작동**. 남은
 것은 선택적 자동 스케줄(인프라)과 override 비준(`/principles`) 연결뿐.
 
-**검증 메모(2026-07-01):** tsc 클린 + 유닛 1579 green + 실DB 왕복. 웹 카드의 브라우저
-실행 렌더 검증은 이 워크트리에 `.env.local`(supabaseUrl)이 없어 앱이 Supabase 초기화
-에러바운더리에 걸려 막힘 — 환경 문제이며 신규 모듈을 가리키는 콘솔 에러는 0건.
+**검증 메모(2026-07-01):** tsc 클린 + 유닛 green + 실DB 왕복. 웹 카드의 브라우저
+실행 렌더 검증은 이 워크트리에 `.env.local`(supabaseUrl)이 없어 막힘(환경 문제, 신규
+모듈 콘솔 에러 0).
+
+**자가리뷰 후속 수정(2026-07-01, 자가감사 "놓친 것" 확인 후):**
+- **#2 (실제 버그였음) 수정** — 웹 카드가 reframe hidden_assumptions만 읽어서, 정상
+  봉인된 progressive 결정에선 **빈 채**(reframe 항목은 mix 이전 이탈 시에만 생성).
+  → progressive 세션의 `final_mix.key_assumptions`(+flinch real_bet)에서 채우도록 수정,
+  reframe는 fallback. 순수 `lib/derive-premise-texts.ts`로 추출 + 유닛 7건.
+- **#5 수정** — 위 SessionStart 훅 트리거.
+- **잔여(정직):** (a) 플러그인 재확인 루프(`/argus:track check`의 WebSearch·drift 발화)는
+  이 환경에서 **런타임 실행 미검증** — 구조/카운트 로직만 테스트됨. (b) override 신호
+  → `/principles` 비준 연결 미구현. (c) open_question 재고 미구현. (d) `item-extract-core.ts`는
+  아직 TS 호출자 없음(웹은 derive-premise-texts, 플러그인은 clarify 재사용).
 
 ---
 

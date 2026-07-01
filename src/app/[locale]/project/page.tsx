@@ -830,7 +830,7 @@ export default function ProjectPage() {
 
           {/* Decision items — editable premises/phenomena + per-item change alerts
               (living-premises layer, DESIGN-decision-items-living-premises). */}
-          <DecisionItemsCard project={currentProject} />
+          <DecisionItemsCard project={currentProject} session={currentVoyageSession} />
 
           {/* Settlement modal — "그래서, 어떻게 됐어요?" Auto-opens when the
               check-in date arrives (W1.2). "아직" extends via history-preserving
