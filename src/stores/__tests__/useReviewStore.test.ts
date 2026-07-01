@@ -1,4 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// The store persists to Supabase via review-sync (which pulls in the supabase
+// client). Stub it so this stays a pure store-logic unit test — anon users hit
+// the same no-op path in production.
+vi.mock('@/lib/review-sync', () => ({
+  loadReceiptsMerged: vi.fn((local: unknown) => Promise.resolve(local)),
+  pushReceipt: vi.fn(),
+  deleteReceiptRemote: vi.fn(),
+}));
+
 import { useReviewStore } from '../useReviewStore';
 import { ingest, runDocumentReview, type JudgmentReceipt } from '@/lib/review';
 import { type ReviewLLM, type ReviewLLMArgs } from '@/lib/review';
@@ -33,7 +43,7 @@ async function makeReceipt(): Promise<JudgmentReceipt> {
 }
 
 beforeEach(() => {
-  useReviewStore.setState({ receipts: [], loaded: false });
+  useReviewStore.setState({ receipts: [], loaded: false, synced: false });
 });
 
 describe('useReviewStore', () => {

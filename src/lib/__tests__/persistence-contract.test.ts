@@ -49,7 +49,7 @@ const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   WORKER_PERSONAS: { localOnly: '세션 내 파생 캐시 — 세션 data에 동승' },
   EXECUTION_TRANSCRIPTS: { localOnly: '대용량 실행 로그 — 로컬 전용 (용량)' },
   BOSS_COLLECTION: { localOnly: '코스메틱 수집 상태 — 유실 무해' },
-  REVIEW_RECEIPTS: { localOnly: 'Judgment Review MVP(subtask-b slice) — Supabase 동기화는 receipt 테이블 마이그레이션 이후 슬라이스로 미룸. 현재 receipt_only 로컬 저장' },
+  REVIEW_RECEIPTS: { table: 'review_receipts' },
 };
 
 /** 등록부 밖에서 발견됐지만 사유와 함께 허용된 키. 새 항목 추가는 곧

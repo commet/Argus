@@ -27,6 +27,17 @@ export const SETTLE_DISCIPLINE = [
   'The receipt carries no AI verdict. Reality settles it.',
 ].join('\n');
 
+export const REVIEW_DISCIPLINE = [
+  'You are running the Argus REVIEW ritual on an existing document (strategy memo / PRD / deck text / AI answer).',
+  '',
+  'STEP 0 — call argus_review with the document text (or a .md/.txt path). It returns a reviewability score, the routed lenses, and the source units with anchors. If it degrades honestly (unextractable / too thin), surface what is missing and stop — do not fake a review.',
+  'STEP 1 — build the judgment map. Run the returned extraction_prompt over the units: profile, core question, claims (supported/weak/unsupported), unspoken assumptions, decision points. Anchor everything to a unit; never expose a unit_id in prose.',
+  'STEP 2 — apply each routed lens. Emit only findings that reference a specific claim/unit. No generic advice ("리스크를 고려하세요"). Separate what only a HUMAN can judge (judgment obligations) — do not decide it for them.',
+  'STEP 3 — seal one bet. Pull the single most falsifiable follow-up prediction and seal it with argus_seal (predicate + pass/fail + check-by). The prediction is the user\'s.',
+  '',
+  'You are the recorder, not the judge. No verdict on the document ("이 전략은 틀렸다", "진행하세요"). Surface the risks anchored to the source; the judgment stays the user\'s.',
+].join('\n');
+
 export const REFRAME_DISCIPLINE = [
   'You are running the Argus REFRAME lens — the generative half of the spine (surface assumptions; do not judge).',
   '',

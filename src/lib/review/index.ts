@@ -11,4 +11,11 @@ export { routeLenses, applies } from './routing';
 export { runDocumentReview, type RunReviewOptions, type ReviewResult } from './pipeline';
 export { defaultReviewLLM, type ReviewLLM, type ReviewLLMArgs } from './llm-adapter';
 export { receiptToMarkdown } from './render';
+export {
+  summarizeReceipt,
+  sortByUrgency,
+  daysBetween,
+  type ReceiptStatus,
+  type DerivedStatus,
+} from './status';
 export { fingerprint, stableId, djb2 } from './ids';

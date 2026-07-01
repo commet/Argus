@@ -63,14 +63,21 @@ describe('resources', () => {
 });
 
 describe('prompts', () => {
-  it('lists the three rituals and renders bind from the single discipline source', () => {
+  it('lists the rituals and renders bind from the single discipline source', () => {
     const names = listPrompts().prompts.map((p) => p.name);
-    expect(names).toEqual(['argus-bind', 'argus-settle', 'argus-reframe']);
+    expect(names).toEqual(['argus-bind', 'argus-settle', 'argus-reframe', 'argus-review']);
     const bind = getPrompt('argus-bind', { decision: 'migrate the db' });
     expect(bind.messages[0].content.text).toContain('fire or not');
     expect(bind.messages[0].content.text).toContain('migrate the db');
     // the bind ritual never tells the model to give a verdict
     expect(bind.messages[0].content.text.toLowerCase()).toContain('not the judge');
+  });
+
+  it('renders the review ritual pointed at argus_review, no verdict', () => {
+    const r = getPrompt('argus-review', { file_path: 'docs/strategy.md' });
+    expect(r.messages[0].content.text).toContain('argus_review');
+    expect(r.messages[0].content.text).toContain('docs/strategy.md');
+    expect(r.messages[0].content.text.toLowerCase()).toContain('not the judge');
   });
 
   it('bakes due contracts into the settle prompt', async () => {

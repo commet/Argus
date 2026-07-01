@@ -23,8 +23,8 @@ import {
   type PrivacyMode,
   type ExtractionQuality,
   type SourceAnchor,
-} from './schema';
-import { fingerprint, stableId } from './ids';
+} from './schema.js';
+import { fingerprint, stableId } from './ids.js';
 
 export interface IngestInput {
   source_kind: SourceKind;

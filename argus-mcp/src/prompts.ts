@@ -1,4 +1,4 @@
-import { BIND_DISCIPLINE, SETTLE_DISCIPLINE, REFRAME_DISCIPLINE } from './lib/discipline.js';
+import { BIND_DISCIPLINE, SETTLE_DISCIPLINE, REFRAME_DISCIPLINE, REVIEW_DISCIPLINE } from './lib/discipline.js';
 import { resolveArgusDirForResource } from './lib/argus-dir.js';
 import { resolveToday } from './lib/resolve-today.js';
 import { replayLedger, bearingContracts } from './lib/ledger-replay.js';
@@ -13,6 +13,7 @@ export const PROMPTS = [
   { name: 'argus-bind', title: 'Argus: bind a decision', description: 'Run the fire-gate → one neutral question → seal a falsifiable bet ritual.', arguments: [{ name: 'decision', description: 'The decision you are facing.', required: false }] },
   { name: 'argus-settle', title: 'Argus: settle against reality', description: 'Check decisions whose check-by date has arrived against what actually happened.', arguments: [] },
   { name: 'argus-reframe', title: 'Argus: reframe the question', description: 'Surface the hidden assumptions in your question before you ask the AI.', arguments: [{ name: 'question', description: 'The question or problem to sharpen.', required: false }] },
+  { name: 'argus-review', title: 'Argus: review a document', description: 'Review an existing strategy memo / PRD / deck text / AI answer for judgment risk, anchored to the source.', arguments: [{ name: 'file_path', description: 'Path to a .md/.txt document to review (optional).', required: false }] },
 ] as const;
 
 export function listPrompts() {
@@ -37,6 +38,14 @@ export function getPrompt(name: string, args: Record<string, string> | undefined
     return {
       description: 'Argus reframe lens',
       messages: [userText(REFRAME_DISCIPLINE + (question ? `\n\nThe question: ${question}` : ''))],
+    };
+  }
+
+  if (name === 'argus-review') {
+    const filePath = args?.['file_path'];
+    return {
+      description: 'Argus review ritual',
+      messages: [userText(REVIEW_DISCIPLINE + (filePath ? `\n\nThe document: ${filePath}` : ''))],
     };
   }
 

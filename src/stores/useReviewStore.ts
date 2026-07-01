@@ -1,15 +1,17 @@
 /**
- * Judgment Review receipts — localStorage-backed store (MVP slice).
+ * Judgment Review receipts — localStorage-first, Supabase-synced store.
  *
- * Persistence: receipt_only, local-only for now. Supabase sync is deferred to a
- * later slice that adds the `judgment_review_receipts` table + migration (see
- * persistence-contract.test.ts REVIEW_RECEIPTS). Keeping it local avoids the
- * PGRST204 silent-reject trap (CLAUDE.md §Schema Sync) until the column set is
- * locked. The receipt object itself already carries provenance for that move.
+ * Persistence: local write is instant; the cloud copy lives in `review_receipts`
+ * (whole receipt in a `data` jsonb column, see lib/review-sync.ts). Anonymous
+ * users stay local-only (getCurrentUserId → null makes every sync helper a
+ * no-op); logging in merges and pushes. Ownership fields ride inside the receipt
+ * and are never server-set, so the spine's honest-authorship invariant holds
+ * across the sync boundary.
  */
 
 import { create } from 'zustand';
 import { STORAGE_KEYS, getStorage, setStorage } from '@/lib/storage';
+import { loadReceiptsMerged, pushReceipt, deleteReceiptRemote } from '@/lib/review-sync';
 import {
   type JudgmentReceipt,
   type ReceiptState,
@@ -28,7 +30,11 @@ export interface SealPatch {
 interface ReviewState {
   receipts: JudgmentReceipt[];
   loaded: boolean;
+  synced: boolean;
+  /** local-first hydrate; also kicks off a one-time cloud merge when logged in. */
   load: () => void;
+  /** merge the cloud copy into local state (called by load; safe to await). */
+  syncCloud: () => Promise<void>;
   saveReceipt: (r: JudgmentReceipt) => void;
   getReceipt: (id: string) => JudgmentReceipt | undefined;
   /** toggle a judgment obligation as user-owned; flips receipt state to owned. */
@@ -48,17 +54,33 @@ function persist(receipts: JudgmentReceipt[]): void {
 export const useReviewStore = create<ReviewState>((set, get) => ({
   receipts: [],
   loaded: false,
+  synced: false,
 
   load: () => {
-    if (get().loaded) return;
-    const local = getStorage<JudgmentReceipt[]>(STORAGE_KEYS.REVIEW_RECEIPTS, []);
-    set({ receipts: local, loaded: true });
+    if (!get().loaded) {
+      const local = getStorage<JudgmentReceipt[]>(STORAGE_KEYS.REVIEW_RECEIPTS, []);
+      set({ receipts: local, loaded: true });
+    }
+    if (!get().synced) void get().syncCloud();
+  },
+
+  syncCloud: async () => {
+    if (get().synced) return;
+    set({ synced: true }); // guard first so concurrent mounts don't double-fetch
+    try {
+      const merged = await loadReceiptsMerged(get().receipts);
+      set({ receipts: merged });
+      persist(merged);
+    } catch {
+      set({ synced: false }); // let a later mount retry on transient failure
+    }
   },
 
   saveReceipt: (r) => {
     const next = [r, ...get().receipts.filter((x) => x.receipt_id !== r.receipt_id)];
     set({ receipts: next });
     persist(next);
+    pushReceipt(r);
   },
 
   getReceipt: (id) => get().receipts.find((r) => r.receipt_id === id),
@@ -75,6 +97,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     });
     set({ receipts: next });
     persist(next);
+    pushUpdated(next, receiptId);
   },
 
   setReceiptState: (receiptId, state) => {
@@ -83,6 +106,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     );
     set({ receipts: next });
     persist(next);
+    pushUpdated(next, receiptId);
   },
 
   sealFollowup: (receiptId, followupId, patch) => {
@@ -106,6 +130,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     });
     set({ receipts: next });
     persist(next);
+    pushUpdated(next, receiptId);
   },
 
   settleFollowup: (receiptId, followupId, outcome, whatHappened) => {
@@ -124,11 +149,19 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     });
     set({ receipts: next });
     persist(next);
+    pushUpdated(next, receiptId);
   },
 
   remove: (receiptId) => {
     const next = get().receipts.filter((r) => r.receipt_id !== receiptId);
     set({ receipts: next });
     persist(next);
+    deleteReceiptRemote(receiptId);
   },
 }));
+
+/** Push the just-mutated receipt to the cloud (no-op when logged out). */
+function pushUpdated(receipts: JudgmentReceipt[], receiptId: string): void {
+  const r = receipts.find((x) => x.receipt_id === receiptId);
+  if (r) pushReceipt(r);
+}

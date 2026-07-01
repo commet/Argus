@@ -2,29 +2,32 @@
 
 /**
  * Document Review flow (design doc §"제품 루프" + §"UI 화면 / 상태").
- * Import → progress → Judgment Receipt. The wedge is "기존 문서 검수하기": paste
- * or upload a strategy doc / plan / AI answer, get a receipt whose findings are
- * anchored to the source. Binary formats degrade honestly instead of faking.
+ * Import → progress → Judgment Receipt, plus the Active Course list that lets a
+ * user *return* to a saved receipt to seal/settle it. The wedge is "기존 문서
+ * 검수하기": paste or upload a strategy doc / plan / AI answer, get a receipt
+ * whose findings are anchored to the source. Binary formats extract when a
+ * parser is available and degrade honestly when not.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useReviewStore } from '@/stores/useReviewStore';
 import { ReceiptView } from './ReceiptView';
+import { ReceiptList } from './ReceiptList';
 import { SealModal } from './SealModal';
 import { SettleModal } from './SettleModal';
+import { extractFile, type ExtractedText } from '@/lib/review/extract-file';
 import {
   ingest,
   runDocumentReview,
-  type JudgmentReceipt,
   type ReviewJob,
   type SourceKind,
   type ReviewConcern,
   type UserReviewContext,
 } from '@/lib/review';
 
-type Phase = 'import' | 'running' | 'done' | 'failed';
+type Phase = 'list' | 'import' | 'running' | 'receipt' | 'failed';
 
 const CONCERN_CHIPS: { id: ReviewConcern; label: string }[] = [
   { id: 'full_judgment_review', label: '전체 판단 검수' },
@@ -40,36 +43,68 @@ const BINARY_EXT: Record<string, SourceKind> = { pdf: 'pdf', docx: 'docx', pptx:
 
 export function ReviewFlow() {
   const store = useReviewStore();
-  // Load persisted receipts once on mount (load() is idempotent via its guard).
-  useEffect(() => { useReviewStore.getState().load(); }, []);
-
-  const [phase, setPhase] = useState<Phase>('import');
+  const [phase, setPhase] = useState<Phase>('list');
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
   const [sourceKind, setSourceKind] = useState<SourceKind>('paste');
   const [pendingBinary, setPendingBinary] = useState<SourceKind | null>(null);
+  const [extractNote, setExtractNote] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [preExtracted, setPreExtracted] = useState<ExtractedText | null>(null);
   const [concerns, setConcerns] = useState<ReviewConcern[]>(['full_judgment_review']);
   const [audienceHint, setAudienceHint] = useState('');
   const [worry, setWorry] = useState('');
   const [job, setJob] = useState<ReviewJob | null>(null);
-  const [receipt, setReceipt] = useState<JudgmentReceipt | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [sealing, setSealing] = useState(false);
   const [settlingId, setSettlingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Load persisted receipts once; open on the list when any exist, else import.
+  useEffect(() => {
+    useReviewStore.getState().load();
+    const has = useReviewStore.getState().receipts.length > 0;
+    setPhase(has ? 'list' : 'import');
+  }, []);
+
+  // Derive the active receipt from the store so seal/settle/own reflect live.
+  const receipt = useMemo(
+    () => (activeId ? store.receipts.find((r) => r.receipt_id === activeId) ?? null : null),
+    [activeId, store.receipts],
+  );
+
   const onFile = async (file: File) => {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
     setTitle(file.name);
+    setExtractNote(null);
+    setPreExtracted(null);
     if (TEXT_EXT.includes(ext)) {
       const content = await file.text();
       setText(content);
       setSourceKind(ext.startsWith('md') ? 'markdown' : 'txt');
       setPendingBinary(null);
     } else if (BINARY_EXT[ext]) {
-      // No in-browser parser yet — keep the format, degrade honestly on submit.
-      setText('');
       setSourceKind(BINARY_EXT[ext]);
-      setPendingBinary(BINARY_EXT[ext]);
+      setExtracting(true);
+      setText('');
+      try {
+        const extracted = await extractFile(file, BINARY_EXT[ext]);
+        if (extracted.text.trim().length > 20) {
+          // Parser succeeded — feed structured text straight into the pipeline.
+          setPreExtracted(extracted);
+          setPendingBinary(null);
+          setExtractNote(extracted.note ?? null);
+        } else {
+          // Parser ran but got nothing usable (scanned PDF, image-only deck).
+          setPendingBinary(BINARY_EXT[ext]);
+          setExtractNote(extracted.note ?? '텍스트를 거의 추출하지 못했습니다.');
+        }
+      } catch {
+        setPendingBinary(BINARY_EXT[ext]);
+        setExtractNote('이 파일에서 텍스트를 추출하지 못했습니다.');
+      } finally {
+        setExtracting(false);
+      }
     } else {
       setText('');
       setSourceKind('txt');
@@ -91,9 +126,17 @@ export function ReviewFlow() {
       biggest_worry: worry.trim() || undefined,
       concerns,
     };
-    const artifact = ingest({ source_kind: sourceKind, title, text, privacy_mode: 'receipt_only' });
+    const artifact = ingest({
+      source_kind: sourceKind,
+      title,
+      text,
+      privacy_mode: 'receipt_only',
+      pre_extracted: preExtracted?.text,
+      pre_extracted_units: preExtracted?.units,
+      extraction_quality: preExtracted?.quality,
+      extraction_notes: preExtracted?.note ? [preExtracted.note] : undefined,
+    });
     setPhase('running');
-    setReceipt(null);
     const { job: finalJob, receipt: r } = await runDocumentReview(artifact, {
       context: ctx,
       onProgress: setJob,
@@ -101,29 +144,40 @@ export function ReviewFlow() {
     setJob(finalJob);
     if (r && (finalJob.status === 'ready' || finalJob.status === 'needs_context')) {
       store.saveReceipt(r);
-      setReceipt(r);
-      setPhase('done');
+      setActiveId(r.receipt_id);
+      setPhase('receipt');
     } else {
       setPhase('failed');
     }
   };
 
-  const reset = () => {
-    setPhase('import');
+  const resetImport = () => {
     setText('');
     setTitle('');
     setSourceKind('paste');
     setPendingBinary(null);
+    setExtractNote(null);
+    setPreExtracted(null);
     setJob(null);
-    setReceipt(null);
+    setPhase('import');
   };
 
-  const canRun = text.trim().length > 20 || pendingBinary !== null;
+  const backToList = () => {
+    setActiveId(null);
+    setJob(null);
+    setPhase('list');
+  };
 
-  if (phase === 'done' && receipt) {
+  const canRun = text.trim().length > 20 || pendingBinary !== null || Boolean(preExtracted);
+
+  // ---- receipt view (freshly reviewed OR reopened from the list) ----
+  if (phase === 'receipt' && receipt) {
     const sealed = receipt.state === 'sealed';
     return (
       <div className="max-w-2xl mx-auto w-full">
+        <button onClick={backToList} className="mb-3 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
+          ← 내 판단 항로
+        </button>
         {sealed && (
           <Card variant="success" className="mb-4">
             <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-green-700 mb-1">봉인됨</div>
@@ -134,17 +188,16 @@ export function ReviewFlow() {
         )}
         <ReceiptView
           receipt={receipt}
-          onOwn={(o, owned) => {
-            store.setObligationOwned(receipt.receipt_id, o.obligation_id, owned);
-            const updated = store.getReceipt(receipt.receipt_id);
-            if (updated) setReceipt(updated);
-          }}
+          onOwn={(o, owned) => store.setObligationOwned(receipt.receipt_id, o.obligation_id, owned)}
           onSeal={() => setSealing(true)}
           onSettle={(followupId) => setSettlingId(followupId)}
         />
-        <div className="mt-6">
-          <Button variant="ghost" size="sm" onClick={reset}>
+        <div className="mt-6 flex gap-2">
+          <Button variant="ghost" size="sm" onClick={resetImport}>
             다른 문서 검수하기
+          </Button>
+          <Button variant="ghost" size="sm" onClick={backToList}>
+            목록으로
           </Button>
         </div>
         {sealing && receipt.falsifiable_followups.length > 0 && (
@@ -153,8 +206,6 @@ export function ReviewFlow() {
             onClose={() => setSealing(false)}
             onSeal={(followupId, patch) => {
               store.sealFollowup(receipt.receipt_id, followupId, patch);
-              const updated = store.getReceipt(receipt.receipt_id);
-              if (updated) setReceipt(updated);
               setSealing(false);
             }}
           />
@@ -167,8 +218,6 @@ export function ReviewFlow() {
               onClose={() => setSettlingId(null)}
               onSettle={(outcome, whatHappened) => {
                 store.settleFollowup(receipt.receipt_id, settlingId, outcome, whatHappened);
-                const updated = store.getReceipt(receipt.receipt_id);
-                if (updated) setReceipt(updated);
                 setSettlingId(null);
               }}
             />
@@ -210,24 +259,50 @@ export function ReviewFlow() {
           {job?.error?.recovery && (
             <p className="mt-2 text-[13px] text-[var(--text-secondary)]">{job.error.recovery}</p>
           )}
-          <div className="mt-4">
-            <Button variant="accent" size="sm" onClick={reset}>
+          <div className="mt-4 flex gap-2">
+            <Button variant="accent" size="sm" onClick={resetImport}>
               본문 붙여넣어 다시 검수
             </Button>
+            {store.receipts.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={backToList}>
+                목록으로
+              </Button>
+            )}
           </div>
         </Card>
       </div>
     );
   }
 
+  if (phase === 'list') {
+    return (
+      <ReceiptList
+        receipts={store.receipts}
+        onOpen={(id) => {
+          setActiveId(id);
+          setPhase('receipt');
+        }}
+        onNew={resetImport}
+        onRemove={(id) => store.remove(id)}
+      />
+    );
+  }
+
   // import screen
   return (
     <div className="max-w-2xl mx-auto w-full flex flex-col gap-4">
-      <div>
-        <h1 className="text-[20px] font-bold text-[var(--text-primary)]">기존 문서 검수하기</h1>
-        <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
-          전략안·기획안·PRD·AI 답변을 넣으면, 사람이 책임져야 할 판단과 근거 약한 주장을 원문 위치와 함께 짚어드립니다.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[20px] font-bold text-[var(--text-primary)]">기존 문서 검수하기</h1>
+          <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
+            전략안·기획안·PRD·AI 답변을 넣으면, 사람이 책임져야 할 판단과 근거 약한 주장을 원문 위치와 함께 짚어드립니다.
+          </p>
+        </div>
+        {store.receipts.length > 0 && (
+          <Button variant="ghost" size="sm" onClick={backToList}>
+            내 항로
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -237,6 +312,8 @@ export function ReviewFlow() {
             setText(e.target.value);
             if (sourceKind !== 'paste' && sourceKind !== 'markdown') setSourceKind('paste');
             setPendingBinary(null);
+            setPreExtracted(null);
+            setExtractNote(null);
           }}
           maxLength={60000}
           placeholder="검수할 문서를 붙여넣으세요. (전략 메모, 기획안, Claude/ChatGPT 답변 등)"
@@ -250,15 +327,21 @@ export function ReviewFlow() {
             className="hidden"
             onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
           />
-          <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
-            파일 업로드 (md · txt · pdf · docx · pptx)
+          <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()} disabled={extracting}>
+            {extracting ? '텍스트 추출 중…' : '파일 업로드 (md · txt · pdf · docx · pptx)'}
           </Button>
           <span className="text-[11px] text-[var(--text-tertiary)]">{text.length > 0 ? `${text.length}자` : ''}</span>
         </div>
+        {preExtracted && (
+          <p className="mt-2 text-[12px] text-green-700">
+            {sourceKind.toUpperCase()}에서 텍스트를 추출했습니다{extractNote ? ` — ${extractNote}` : ''}. 그대로 검수를 시작할 수 있습니다.
+          </p>
+        )}
         {pendingBinary && (
           <p className="mt-2 text-[12px] text-amber-700">
-            {pendingBinary.toUpperCase()} 파일은 아직 자동 텍스트 추출을 지원하지 않습니다. 그대로 검수하면 “무엇이 빠졌는지”를
-            먼저 보여주고, 본문을 붙여넣으면 정식 검수합니다.
+            {extractNote ? `${extractNote} ` : ''}
+            {pendingBinary.toUpperCase()} 파일에서 충분한 텍스트를 얻지 못했습니다. 그대로 검수하면 “무엇이 빠졌는지”를 먼저
+            보여주고, 본문을 붙여넣으면 정식 검수합니다.
           </p>
         )}
       </Card>

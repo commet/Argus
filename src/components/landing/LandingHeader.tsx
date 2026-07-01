@@ -93,6 +93,24 @@ export function LandingHeader() {
               </button>
             </div>
 
+            {/* Document-review wedge — the low-friction entry the design doc
+                calls for ("기존 문서 검수하기"). Kept as a single nav link so it
+                stays out of the way of the cinematic hero's own CTA. */}
+            <LocaleLink
+              href="/tools/review"
+              className="bp-mono transition-opacity hover:opacity-70 inline-flex items-center"
+              style={{
+                color: 'var(--bp-ink)',
+                fontSize: 11,
+                letterSpacing: locale === 'ko' ? '0.04em' : '0.16em',
+                textTransform: 'uppercase',
+                padding: '12px 6px',
+                minHeight: 44,
+              }}
+            >
+              {L('문서 검수', 'Review')}
+            </LocaleLink>
+
             {/* Auth area — min 44px tap area */}
             {!loading && (
               user ? (
