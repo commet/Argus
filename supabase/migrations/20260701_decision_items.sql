@@ -6,15 +6,14 @@
 -- Mirrors src/lib/decision-items.ts DecisionItem. `edits` and `alert` are jsonb
 -- so the shared lib's shapes carry over without a second schema.
 --
--- NOTE: not yet wired into the webapp sync path. When the store starts upserting
--- items, add this table's columns to src/lib/__tests__/schema-drift.test.ts
--- TABLE_COLUMNS (the guard that stops a synced field without a column from
--- silently rejecting the row).
+-- `id` is the decision-scoped stable id (stableItemId(decision_id, type, text)),
+-- used directly as the row key so db.ts upsert onConflict:'id' + mergeByTimestamp
+-- work unchanged. updated_at is bumped by the shared update_updated_at() trigger
+-- so cross-device merge keeps the latest edit.
 
 CREATE TABLE IF NOT EXISTS public.decision_items (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            text PRIMARY KEY,              -- stableItemId(decision_id, type, text)
   user_id       uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  item_id       text NOT NULL,                 -- stable id (type + normalized text)
   decision_id   text NOT NULL,                 -- owning project/session
   type          text NOT NULL,                 -- premise|phenomenon|conclusion|open_question|prediction
   text          text NOT NULL,
@@ -26,8 +25,7 @@ CREATE TABLE IF NOT EXISTS public.decision_items (
   alert         jsonb NOT NULL DEFAULT '{"mode":"off"}'::jsonb,  -- ItemAlert
   status        text NOT NULL DEFAULT 'active', -- active | resolved | retired
   created_at    timestamptz NOT NULL DEFAULT now(),
-  updated_at    timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, decision_id, item_id)
+  updated_at    timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE public.decision_items ENABLE ROW LEVEL SECURITY;
@@ -40,6 +38,9 @@ CREATE POLICY "Users can update own decision_items"
   ON public.decision_items FOR UPDATE USING ((select auth.uid()) = user_id);
 CREATE POLICY "Users can delete own decision_items"
   ON public.decision_items FOR DELETE USING ((select auth.uid()) = user_id);
+
+CREATE TRIGGER decision_items_updated_at BEFORE UPDATE ON public.decision_items
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE INDEX IF NOT EXISTS decision_items_decision_idx
   ON public.decision_items (user_id, decision_id);

@@ -26,10 +26,13 @@ function aiPremise(text: string, opts?: { external?: boolean; load_bearing?: boo
 
 describe('stableItemId', () => {
   it('is deterministic and normalizes whitespace/case', () => {
-    expect(stableItemId('premise', '  Rates  stay FLAT ')).toBe(stableItemId('premise', 'rates stay flat'));
+    expect(stableItemId('d', 'premise', '  Rates  stay FLAT ')).toBe(stableItemId('d', 'premise', 'rates stay flat'));
   });
   it('differs by type', () => {
-    expect(stableItemId('premise', 'x')).not.toBe(stableItemId('phenomenon', 'x'));
+    expect(stableItemId('d', 'premise', 'x')).not.toBe(stableItemId('d', 'phenomenon', 'x'));
+  });
+  it('is decision-scoped — same text in two decisions gets different ids', () => {
+    expect(stableItemId('d1', 'premise', 'x')).not.toBe(stableItemId('d2', 'premise', 'x'));
   });
 });
 

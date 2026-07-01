@@ -64,12 +64,19 @@ export interface DecisionItem {
   alert: ItemAlert;
   status: 'active' | 'resolved' | 'retired';
   created_at: string;
+  /** Sync-layer field (stamped by the store on every write) so cross-device
+   *  merge keeps the latest edit. Stripped by db.ts sanitizeItem on upsert; the DB
+   *  trigger is authoritative server-side. */
+  updated_at?: string;
 }
 
-/** Deterministic, stable id from an item's identity (type + normalized text). djb2.
- *  Stable across re-extraction so an edit/alert config is never orphaned. */
-export function stableItemId(type: ItemType, text: string): string {
-  const key = `${type}:${text.trim().toLowerCase().replace(/\s+/g, ' ')}`;
+/** Deterministic, stable id from an item's identity (decision + type + normalized
+ *  text). djb2. Decision-scoped so it is globally unique (two decisions may hold a
+ *  premise with the same text) — this id IS the Supabase row key (db.ts upserts
+ *  onConflict:'id'), so it must not collide across decisions. Stable across
+ *  re-extraction so an edit/alert config is never orphaned. */
+export function stableItemId(decisionId: string, type: ItemType, text: string): string {
+  const key = `${decisionId}:${type}:${text.trim().toLowerCase().replace(/\s+/g, ' ')}`;
   let h = 5381;
   for (let i = 0; i < key.length; i++) h = ((h << 5) + h + key.charCodeAt(i)) >>> 0;
   return `item_${h.toString(36)}`;
@@ -116,7 +123,7 @@ export function createItem(input: NewItemInput, now: number): DecisionItem {
       ? [{ at: iso, action: 'add', from: '', to: text }]
       : [];
   return {
-    id: stableItemId(input.type, text),
+    id: stableItemId(input.decision_id, input.type, text),
     decision_id: input.decision_id,
     type: input.type,
     text,
@@ -128,6 +135,7 @@ export function createItem(input: NewItemInput, now: number): DecisionItem {
     alert: { mode: defaultAlertMode(base), dismissals: 0 },
     status: 'active',
     created_at: iso,
+    updated_at: iso,
   };
 }
 

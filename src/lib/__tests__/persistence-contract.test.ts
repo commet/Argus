@@ -41,6 +41,7 @@ const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   AGENTS: { table: 'agents' },
   AGENT_CHAINS: { table: 'agent_chains' },
   AGENT_ACTIVITIES: { table: 'agent_activities' },
+  DECISION_ITEMS: { table: 'decision_items' },
 
   SETTINGS: { localOnly: 'API 키 포함 — 서버 전송 금지 (보안)' },
   EVAL_RECAST: { localOnly: '로컬 평가 픽스처 — 개인 데이터, 동기화 대상 아님' },

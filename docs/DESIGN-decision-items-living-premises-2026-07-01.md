@@ -354,10 +354,16 @@ CLAUDE.md single-source: **두뇌(lib) 하나 공유, 표현만 분리.**
 - **의도적 미결:** 아직 synced 스토어(Project/Persona)에 안 엮음 — 마이그레이션
   적용 전에 엮으면 PGRST204로 조용히 sync 실패하므로. 아래 Phase 1b에서 함께.
 
-### Phase 1b — 웹앱 sync 배선 (마이그레이션 적용 필요, 사용자 DB)
-- `20260701_decision_items.sql` 적용(`apply_migration`).
-- `schema-drift.test`의 `TABLE_COLUMNS`에 `decision_items` 추가.
-- 스토어(신규 `useDecisionItemsStore` 또는 project 확장) + db.ts 경로 + 저장 선언.
+### Phase 1b — 웹앱 sync 배선 ✅ **구현·검증 완료 (2026-07-01)**
+- ✅ `20260701_decision_items.sql` **적용됨** (overture-db, text PK + updated_at 트리거
+  + RLS). 실DB 왕복(삽입→확인→삭제) 검증 완료.
+- ✅ `id`를 decision-scoped stable id로 리팩터 → db.ts `onConflict:'id'`와 정합.
+- ✅ `DecisionItem`에 sync용 `updated_at` 추가; `db.ts` TableName에 `decision_items`;
+  `STORAGE_KEYS.DECISION_ITEMS`.
+- ✅ 신규 `src/stores/useDecisionItemsStore.ts` (loadData·addItems·editItem·setAlert·
+  dismissAlert·itemsForDecision·overrideSummary).
+- ✅ 가드 갱신: `schema-drift`(decision_items + DecisionItem 인터페이스 소스 추가),
+  `persistence-contract`(DECISION_ITEMS→decision_items). 전체 스위트 green.
 
 ### Phase 2 — 편집 UI를 1급으로
 - ✅ 플러그인: `argus-plugin-v2/skills/track/SKILL.md` (`/argus:track`) —

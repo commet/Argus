@@ -109,6 +109,12 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     'clear_values', 'sound_reasoning', 'commitment_to_action', 'initial_framing_challenged',
     'blind_spots_surfaced', 'user_changed_mind', 'overall_dq', 'created_at',
   ],
+  // ← 2026-07-01: decision items (premise/phenomenon/… tracked objects). Interface
+  //   lives in src/lib/decision-items.ts (the shared brain), not types.ts.
+  decision_items: [
+    'id', 'user_id', 'decision_id', 'type', 'text', 'source', 'authored', 'edits',
+    'external', 'load_bearing', 'alert', 'status', 'created_at', 'updated_at',
+  ],
 };
 
 /** 인터페이스엔 있으나 컬럼이 아닌(보내지지 않거나 sanitize로 제거되는) 필드. */
@@ -151,11 +157,15 @@ function topLevelFields(src: string, ifaceName: string): string[] {
 
 const TYPES_SRC = readFileSync(join(process.cwd(), 'src/stores/types.ts'), 'utf8');
 const AGENT_TYPES_SRC = readFileSync(join(process.cwd(), 'src/stores/agent-types.ts'), 'utf8');
+const DECISION_ITEMS_SRC = readFileSync(join(process.cwd(), 'src/lib/decision-items.ts'), 'utf8');
 const DB_SRC = readFileSync(join(process.cwd(), 'src/lib/db.ts'), 'utf8');
 
 /** Resolve an interface's fields from whichever source file declares it. */
 function fieldsOf(iface: string): string[] {
-  const src = TYPES_SRC.includes(`export interface ${iface} {`) ? TYPES_SRC : AGENT_TYPES_SRC;
+  const src = [TYPES_SRC, AGENT_TYPES_SRC, DECISION_ITEMS_SRC].find((s) =>
+    s.includes(`export interface ${iface} {`),
+  );
+  if (!src) throw new Error(`interface ${iface} not found`);
   return topLevelFields(src, iface);
 }
 
@@ -180,6 +190,7 @@ describe('스키마 드리프트: 동기화 인터페이스 필드 ⊆ 실제 �
     ['outcome_records', 'OutcomeRecord'],
     ['retrospective_answers', 'RetrospectiveAnswer'],
     ['decision_quality_scores', 'DecisionQualityScore'],
+    ['decision_items', 'DecisionItem'],
   ])('%s: 모든 %s 필드가 컬럼 또는 LOCAL_ONLY로 선언돼 있다', (table, iface) => {
     const cols = new Set(TABLE_COLUMNS[table]);
     const localOnly = LOCAL_ONLY[table] ?? {};
