@@ -15,6 +15,8 @@ import {
   getAllAgentIds,
 } from '@/lib/agent-registry';
 import { AGENT_CAPABILITIES } from '@/lib/agent-capabilities';
+import { LENS_BY_AGENT } from '@/lib/agent-lens';
+import { BUILTIN_AGENTS } from '@/stores/useAgentStore';
 import { AGENT_SKILLS } from '@/lib/agent-skills-data';
 import { getSkillSet } from '@/lib/agent-skills';
 import { assignFramework } from '@/lib/orchestrator-framework';
@@ -148,5 +150,37 @@ describe('Agent Registry', () => {
     const ids = getAllAgentIds();
     expect(ids.length).toBe(17);
     expect(new Set(ids).size).toBe(17);
+  });
+
+  // ── 역방향 가드: registry의 모든 에이전트가 다른 "공책"에도 빠짐없이 있는가 ──
+  // minseo가 LENS_BY_AGENT에서 누락됐던 사건을 구조적으로 차단한다. 기존 교차
+  // 검증은 한 방향(X ⊆ registry)만 봐서, registry엔 있는데 X에서 빠진 누락을
+  // 못 잡았다. 아래는 양방향(= 정확히 같은 집합) — 새 에이전트가 어느 공책에서
+  // 빠져도, 또는 어느 공책에 유령 에이전트가 남아도 red. (이전엔 누락을 사람이
+  // 손으로 메꿔야 했지, 가드가 잡은 게 아니었다.)
+
+  const expectSameSet = (a: string[], b: string[]) => {
+    const sa = new Set(a), sb = new Set(b);
+    expect([...sa].filter(id => !sb.has(id))).toEqual([]); // a엔 있는데 b에 없음(누락)
+    expect([...sb].filter(id => !sa.has(id))).toEqual([]); // b엔 있는데 a에 없음(유령)
+  };
+
+  it('registry ↔ LENS_BY_AGENT: 양방향 정확히 일치 (라우팅 렌즈 공책)', () => {
+    expectSameSet(getAllAgentIds(), Object.keys(LENS_BY_AGENT));
+  });
+
+  it('registry ↔ AGENT_CAPABILITIES: 양방향 정확히 일치 (역량 공책)', () => {
+    expectSameSet(getAllAgentIds(), AGENT_CAPABILITIES.map(c => c.agentId));
+  });
+
+  it('registry ↔ BUILTIN_AGENTS: 양방향 정확히 일치 (UI 표시 공책)', () => {
+    expectSameSet(getAllAgentIds(), BUILTIN_AGENTS.map(a => a.id));
+  });
+
+  // AGENT_SKILLS는 이전엔 단방향(skills ⊆ registry)만 검사돼, registry에 추가됐는데
+  // 스킬셋에서 빠지면 getSkillSet=undefined로 프레임워크 0 주입이 조용히 일어났다.
+  // 양방향으로 닫는다. (personaId는 AgentSkillSet 타입이 PersonaId라 오타/유령은 이미 컴파일강제)
+  it('registry ↔ AGENT_SKILLS: personaId 양방향 정확히 일치 (단방향이던 구멍)', () => {
+    expectSameSet(AGENT_REGISTRY.map(a => a.personaId), AGENT_SKILLS.map(s => s.personaId));
   });
 });

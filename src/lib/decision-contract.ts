@@ -559,6 +559,8 @@ export interface GradeSummary {
    *  so its holding is NOT their judgment — counted here, not as a skill-win, the
    *  same separation principle as goodOutcomesOnLuck. */
   betsHeldAiSurfaced: number;
+  betsHeldAiDrafted: number;
+  risksAvoidedAiDrafted: number;
   /** Predicates graded but outcome unknown — not scored either way. */
   unknown: number;
   /** Total predicates with any verdict (incl. unknown/partial). */
@@ -581,6 +583,8 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
     rolesConfirmed: 0,
     goodOutcomesOnLuck: 0,
     betsHeldAiSurfaced: 0,
+    betsHeldAiDrafted: 0,
+    risksAvoidedAiDrafted: 0,
     unknown: 0,
     resolved: 0,
     total: preds.length,
@@ -593,12 +597,23 @@ export function summarizeGrades(contract: DecisionContract): GradeSummary {
       continue;
     }
     if (p.source === 'risk') {
-      if (p.verdict === 'avoided') { s.risksAvoided++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; }
+      if (p.verdict === 'avoided') {
+        s.risksAvoided++;
+        if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++;
+        if (p.authored === 'ai_surfaced') s.risksAvoidedAiDrafted++;
+      }
       else if (p.verdict === 'happened') s.risksHappened++;
     } else if (p.source === 'governing_idea' || p.source === 'user_lean') {
       // user_lean is the user's own pre-AI bet; it grades like a governing bet
       // (held → betsHeld). It is authored:'user', so it never counts as ai_surfaced.
-      if (p.verdict === 'happened') { s.betsHeld++; if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++; if (p.authored === 'ai_surfaced') s.betsHeldAiSurfaced++; }
+      if (p.verdict === 'happened') {
+        s.betsHeld++;
+        if (isLuckBasis(p.basis)) s.goodOutcomesOnLuck++;
+        if (p.authored === 'ai_surfaced') {
+          s.betsHeldAiSurfaced++;
+          s.betsHeldAiDrafted++;
+        }
+      }
       else if (p.verdict === 'avoided') s.betsBroke++;
     } else if (p.source === 'actor') {
       if (p.verdict === 'happened') s.rolesConfirmed++;

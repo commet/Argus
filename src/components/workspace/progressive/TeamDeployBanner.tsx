@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Repeat, X as XIcon, Compass, Sparkles, Brain, UserCheck, Pencil, ChevronRight } from 'lucide-react';
+import { Plus, Repeat, X as XIcon, Compass, Sparkles, Brain, UserCheck, Pencil, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { getAgentStats } from '@/lib/agent-stats';
 import type { WorkerTask } from '@/stores/types';
@@ -38,6 +38,12 @@ export function TeamDeployBanner({
   // on enter, committed on blur/Enter, discarded on Escape.
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  // Hick's Law: a task group exposed 8–12 simultaneous controls (edit · add lens ·
+  // per-member replace/remove · 3-way track toggle · add member · deploy) at the
+  // exact moment the user just wants to start. Default to a clean preview (team
+  // composition + one deploy CTA); all customization lives behind this toggle.
+  // Nothing is removed — every control is one tap away (spine: friction escape kept).
+  const [adjusting, setAdjusting] = useState(false);
 
   // Group workers by task_group_id so users can see which personas are
   // tackling the same task. Legacy sessions without group ids fall back to
@@ -68,6 +74,8 @@ export function TeamDeployBanner({
   })();
   const total = workers.length;
   const staggerDelay = 0.07;
+  // Whether any customization affordance exists at all — gates the "Adjust team" toggle.
+  const canAdjust = !!(onOpenPool || onRemoveWorker || onUpdateTask || onOpenFreePool || onReplaceWorker || onSetGroupTrack);
 
   const renderRow = (w: WorkerTask, i: number, groupSize: number) => {
     const displayName = w.agent_type === 'human'
@@ -196,29 +204,30 @@ export function TeamDeployBanner({
             </div>
           )}
         </div>
-        {/* Row controls — swap (AI only) + remove. Revealed on hover for
-            desktop, always visible on touch. Swap lets the captain override
-            the auto-cast even on a sole-member task (where remove is blocked). */}
-        {(canReplace || canRemove) && (
-          <div className="shrink-0 mt-0.5 flex items-center gap-0.5">
+        {/* Row controls — swap (AI only) + remove. Only in "Adjust team" mode, so
+            they are always-visible (not hover-gated — that failed on touch and hid
+            the affordance) and sized for Fitt's Law (36px). Swap lets the captain
+            override the auto-cast even on a sole-member task (where remove is blocked). */}
+        {adjusting && (canReplace || canRemove) && (
+          <div className="shrink-0 mt-0.5 flex items-center gap-1">
             {canReplace && (
               <button
                 onClick={() => onReplaceWorker!(w.id)}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/[0.08] transition-colors cursor-pointer opacity-60 group-hover/row:opacity-100"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/[0.08] transition-colors cursor-pointer"
                 aria-label={L('이 팀원 교체', 'Replace this member')}
                 title={L('이 팀원 교체', 'Replace this member')}
               >
-                <Repeat size={13} />
+                <Repeat size={15} />
               </button>
             )}
             {canRemove && (
               <button
                 onClick={() => onRemoveWorker!(w.id)}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer opacity-60 group-hover/row:opacity-100"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                 aria-label={L('이 팀원 빼기', 'Remove this member')}
                 title={L('이 팀원 빼기', 'Remove this member')}
               >
-                <XIcon size={13} />
+                <XIcon size={15} />
               </button>
             )}
           </div>
@@ -234,7 +243,7 @@ export function TeamDeployBanner({
       {/* Header — quiet eyebrow + count. The hint line is intentionally
           terse; the row CTAs ("+ 다른 시각" / "+ 새 팀원") communicate
           the actions themselves. */}
-      <div className="flex items-baseline justify-between mb-4 gap-3">
+      <div className="flex items-start justify-between mb-4 gap-3">
         <div className="min-w-0">
           <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.14em] mb-1">
             {L('투입할 팀', 'Your team')}
@@ -243,9 +252,26 @@ export function TeamDeployBanner({
             {L(`${total}명이 분석할 준비가 됐어요`, `${total} teammates ready to work`)}
           </p>
           <p className="text-[12px] text-[var(--text-tertiary)] mt-1 leading-relaxed">
-            {L('그대로 시작해도 되고, 누가 어느 일을 맡을지 바꾼 뒤 시작해도 돼요.', 'Start as-is, or change who handles what first.')}
+            {adjusting
+              ? L('맡을 사람을 바꾸거나, 빼거나, 더할 수 있어요.', 'Swap, remove, or add who handles what.')
+              : L('그대로 시작해도 되고, 손보고 시작해도 돼요.', 'Start as-is, or adjust the team first.')}
           </p>
         </div>
+        {canAdjust && (
+          <button
+            type="button"
+            onClick={() => setAdjusting((v) => !v)}
+            aria-pressed={adjusting}
+            className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
+              adjusting
+                ? 'border-[var(--accent)]/40 text-[var(--accent)] bg-[var(--accent)]/[0.06]'
+                : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]/40 hover:bg-[var(--bg)]'
+            }`}
+          >
+            <SlidersHorizontal size={12} />
+            {adjusting ? L('완료', 'Done') : L('팀 손보기', 'Adjust team')}
+          </button>
+        )}
       </div>
 
       {/* Groups — each task gets its own block with members + add button */}
@@ -320,18 +346,18 @@ export function TeamDeployBanner({
                   ) : (
                     <p
                       onClick={() => {
-                        if (!onUpdateTask) return;
+                        if (!adjusting || !onUpdateTask) return;
                         setEditingGroupId(g.groupId);
                         setEditText(g.seed.task);
                       }}
-                      className={`text-[13px] text-[var(--text-primary)] leading-snug line-clamp-2 ${onUpdateTask ? 'cursor-text hover:bg-[var(--bg)]/50 -mx-1 px-1 rounded transition-colors' : ''}`}
-                      title={onUpdateTask ? L('클릭해서 수정', 'Click to edit') : undefined}
+                      className={`text-[13px] text-[var(--text-primary)] leading-snug line-clamp-2 ${adjusting && onUpdateTask ? 'cursor-text hover:bg-[var(--bg)]/50 -mx-1 px-1 rounded transition-colors' : ''}`}
+                      title={adjusting && onUpdateTask ? L('클릭해서 수정', 'Click to edit') : undefined}
                     >
                       {g.seed.task}
                     </p>
                   )}
                 </div>
-                {onOpenPool && (
+                {adjusting && onOpenPool && (
                   <button
                     onClick={() => canAdd && onOpenPool(g.groupId)}
                     disabled={!canAdd}
@@ -358,7 +384,7 @@ export function TeamDeployBanner({
                   collaboration tracks (내가 직접 / 사람에게) that were otherwise
                   fixed by the planner. AI is the default; switching to a person
                   reveals the contact / self-input flow downstream. */}
-              {onSetGroupTrack && (() => {
+              {adjusting && onSetGroupTrack && (() => {
                 const opts: { key: 'ai' | 'self' | 'human'; label: string; icon: typeof Sparkles }[] = [
                   { key: 'ai', label: L('AI 팀원', 'AI teammate'), icon: Sparkles },
                   { key: 'self', label: L('내가 직접', 'I decide'), icon: Brain },
@@ -402,7 +428,7 @@ export function TeamDeployBanner({
 
       {/* Free-mode "+ 새 팀원 추가" — agent-centric. The pool modal computes
           the best-matching task per persona and adds them directly. */}
-      {onOpenFreePool && (() => {
+      {adjusting && onOpenFreePool && (() => {
         const everyGroupFull = groups.length > 0 && groups.every(g => g.members.length >= MAX_PERSONAS_PER_GROUP);
         return (
           <button

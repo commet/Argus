@@ -2,6 +2,7 @@
 // taxonomy (its CRISIS_CATEGORIES const + CrisisSignal); referencing the type
 // here is erased at compile time, so this adds no runtime dependency or cycle.
 import type { CrisisSignal } from '@/lib/crisis-gate';
+import type { CurrentBearing } from '@/lib/current-bearing';
 
 // ─── Reframe (항로 재설정 | 문제 재정의) ───
 
@@ -625,8 +626,21 @@ export interface DecisionContract {
   check_in_interval?: CheckInInterval;
   /** ISO timestamp derived from check_in_interval at commit time. */
   check_in_at?: string;
+  /** Explicit opt-in for outbound email reminders. */
+  email_reminder?: boolean;
+  /** Last email reminder send timestamp, used for cron dedupe. */
+  reminder_sent_at?: string;
+  /** Last Telegram reminder send timestamp, used for cron dedupe. */
+  telegram_reminder_sent_at?: string;
   /** Set once every predicate carries a non-pending verdict. */
   graded_at?: string;
+  /** Date-only / freeform check-in outcome when no predicates were generated. */
+  outcome_note?: string;
+  /** User's post-answer lean, mirrored without scoring judgment movement. */
+  lean_after?: {
+    changed?: boolean;
+    text?: string;
+  };
   /** Superseded check-ins, oldest first. Absent on legacy contracts — always
    *  read as `contract.history || []`. */
   history?: ContractAmendment[];
@@ -1392,6 +1406,16 @@ export interface LeadSynthesisResult {
   open_question: string;
 }
 
+export interface BearingLedgerEntry {
+  id: string;
+  created_at: string;
+  source: 'finalize' | 'draft_revision' | 'branch_switch' | 'manual';
+  draft_id?: string | null;
+  version_label?: string | null;
+  snapshot_version?: number;
+  bearing: CurrentBearing;
+}
+
 export interface ProgressiveSession {
   id: string;
   project_id: string;
@@ -1451,6 +1475,8 @@ export interface ProgressiveSession {
   active_draft_id?: string | null;
   /** Draft marked as the released v1.0+. Used by ShareBar/export preference. */
   released_draft_id?: string | null;
+  /** Ledger of current-bearing summaries across draft revisions. */
+  bearing_entries?: BearingLedgerEntry[];
 
   // ─── Voyage chart (pre-anchor decision checkpoints) ───
   /**

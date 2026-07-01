@@ -56,13 +56,32 @@ function stakesToAgentCount(stakes: Stakes, stepCount: number): number {
 
 /* ─── Domain Extraction ─── */
 
+// Ambient vocabulary: words that appear in almost any product/decision text and
+// therefore carry little discriminating domain signal. Counted at a low weight
+// so a launch/strategy decision that merely says "사용자/user" a lot no longer
+// ranks UX first — the canonical keyword false-positive ("I implemented a policy
+// at work" → code agent). domains[0] feeds the synthesis focus lens, so a
+// trustworthy ranking still matters even though the synthesizer is now neutral.
+const AMBIENT_KEYWORDS = new Set(['사용자', 'user', '데이터', 'data', '현황']);
+const AMBIENT_WEIGHT = 0.3;
+
 function extractDomains(texts: string[]): Domain[] {
   const combined = texts.join(' ').toLowerCase();
   const scores: [Domain, number][] = [];
 
   for (const [domain, keywords] of Object.entries(DOMAIN_KEYWORDS) as [Domain, string[]][]) {
-    const count = keywords.filter(kw => combined.includes(kw.toLowerCase())).length;
-    if (count > 0) scores.push([domain, count]);
+    let score = 0;
+    for (const kw of keywords) {
+      const k = kw.toLowerCase();
+      // Short ASCII abbreviations (hr/ux/ui/api/pr/it...) must match on a WORD
+      // BOUNDARY — plain substring gave false positives that flipped the whole
+      // domain (through→hr, luxury→ux, capital→api, build→ui).
+      const present = /^[a-z]{2,3}$/.test(k)
+        ? new RegExp(`\\b${k}\\b`).test(combined)
+        : combined.includes(k);
+      if (present) score += AMBIENT_KEYWORDS.has(k) ? AMBIENT_WEIGHT : 1;
+    }
+    if (score > 0) scores.push([domain, score]);
   }
 
   scores.sort((a, b) => b[1] - a[1]);

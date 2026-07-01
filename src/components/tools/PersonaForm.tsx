@@ -548,7 +548,7 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
       {/* ── METHOD SELECTION ── */}
       {step === 'method' && (
         <div className="space-y-3">
-          <h3 className="text-[15px] font-bold text-[var(--text-primary)]">{L('어떤 방법으로 만드시겠어요?', 'How would you like to create it?')}</h3>
+          <h3 className="text-[15px] font-bold text-[var(--text-primary)]">{L('어떻게 만들까요?', 'How should we build it?')}</h3>
 
           <button onClick={() => setStep('preset')}
             className="w-full flex items-center gap-3 p-4 rounded-xl border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--ai)]/30 transition-all text-left cursor-pointer group">

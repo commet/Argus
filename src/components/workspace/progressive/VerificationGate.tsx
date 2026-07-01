@@ -86,14 +86,19 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
                   <span className="text-[11px] text-[var(--text-tertiary)] truncate">· {w.task}</span>
                 </div>
                 {finding && <p className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-[1.55] line-clamp-3">{finding}</p>}
+                {/* Apply and Exclude are symmetric neutral affordances: the
+                    machine must not weight "trust my output" (gold) over a normal
+                    editorial "skip" (red-as-danger). Both are plain outlines;
+                    gold is reserved for the user's actual commit (Create draft,
+                    below). Apply carries slightly more weight only via text
+                    primary + medium, never a color verdict. */}
                 <div className="flex items-center gap-2 mt-2.5">
                   <button onClick={() => onApprove(w.id)}
-                    className="inline-flex items-center justify-center min-h-[44px] px-3 py-2.5 text-[12px] font-semibold text-white rounded-lg cursor-pointer shadow-[var(--shadow-sm)]"
-                    style={{ background: 'var(--gradient-gold)' }}>
+                    className="inline-flex items-center justify-center min-h-[44px] px-3 py-2.5 text-[12px] font-medium text-[var(--text-primary)] rounded-lg border border-[var(--border)] hover:bg-[var(--bg-hover)] cursor-pointer transition-colors">
                     {L('반영', 'Apply')}
                   </button>
                   <button onClick={() => onReject(w.id)}
-                    className="inline-flex items-center justify-center min-h-[44px] px-3 py-2.5 text-[12px] text-red-600 hover:bg-red-50 rounded-lg border border-red-200 cursor-pointer transition-colors">
+                    className="inline-flex items-center justify-center min-h-[44px] px-3 py-2.5 text-[12px] text-[var(--text-secondary)] rounded-lg border border-[var(--border)] hover:bg-[var(--bg-hover)] cursor-pointer transition-colors">
                     {L('제외', 'Exclude')}
                   </button>
                   {onRetry && (

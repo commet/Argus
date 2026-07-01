@@ -6,15 +6,20 @@ import { useLocale } from '@/hooks/useLocale';
 export function Footer() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const year = new Date().getFullYear();
   return (
-    <footer className="border-t border-[var(--border-subtle)] py-10 px-4 text-center space-y-2">
+    <footer className="border-t border-[var(--border-subtle)] py-10 px-4 text-center">
       <p className="text-[12px] text-[var(--text-tertiary)] tracking-wide">
-        Argus — Think before you commit
+        Argus — {L('내기 전에, 판단부터', 'Think before you commit')}
       </p>
-      <div className="flex items-center justify-center gap-3 text-[11px] text-[var(--text-tertiary)]">
-        <LocaleLink href="/terms" className="hover:text-[var(--text-secondary)] transition-colors">{L('이용약관', 'Terms')}</LocaleLink>
-        <span>|</span>
-        <LocaleLink href="/privacy" className="hover:text-[var(--text-secondary)] transition-colors">{L('개인정보처리방침', 'Privacy')}</LocaleLink>
+      {/* Identity + legal, one quiet row. Each link gets a 44px tap height and
+          12px text (was 11px, sub-44px). Middot separators are aria-hidden. */}
+      <div className="mt-1 flex flex-wrap items-center justify-center gap-x-1 text-[12px] text-[var(--text-tertiary)]">
+        <span>© {year} Argus</span>
+        <span aria-hidden="true" className="opacity-50">·</span>
+        <LocaleLink href="/terms" className="inline-flex items-center min-h-[44px] px-2 hover:text-[var(--text-secondary)] transition-colors">{L('이용약관', 'Terms')}</LocaleLink>
+        <span aria-hidden="true" className="opacity-50">·</span>
+        <LocaleLink href="/privacy" className="inline-flex items-center min-h-[44px] px-2 hover:text-[var(--text-secondary)] transition-colors">{L('개인정보처리방침', 'Privacy')}</LocaleLink>
       </div>
     </footer>
   );

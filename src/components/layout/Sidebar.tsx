@@ -5,7 +5,7 @@ import { LocaleLink } from '@/components/ui/LocaleLink';
 import { usePathname } from 'next/navigation';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
-import { Users, Settings, BookOpen, FolderOpen, User, Download, BarChart3 } from 'lucide-react';
+import { Users, BookOpen, FolderOpen, User, Download, BarChart3 } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { stripLocale } from '@/lib/locale-path';
 import { useAuth } from '@/lib/auth';
@@ -18,12 +18,16 @@ export function Sidebar() {
   const { user } = useAuth();
   const isOperator = !!user?.email && OPERATOR_EMAILS.has(user.email);
 
+  // IA split (Jakob's Law): the Header is the GLOBAL nav (워크스페이스·프로젝트·설정);
+  // the Sidebar is the CONTEXTUAL toolkit. 프로젝트·설정 used to live in BOTH — on a
+  // desktop /project view the Header + Sidebar rendered together, so "Projects" and
+  // "Settings" appeared twice, leaving no single answer for where a destination lives.
+  // They are removed here (still reachable via the global Header); the Sidebar now
+  // carries only the secondary tools.
   const utilityItems = [
-    { href: '/project', label: L('프로젝트', 'Projects'), icon: FolderOpen },
     { href: '/import', label: L('가져오기', 'Import'), icon: Download },
     { href: '/teams', label: L('팀', 'Teams'), icon: Users },
     { href: '/guide', label: L('사용 가이드', 'Guide'), icon: BookOpen },
-    { href: '/settings', label: L('설정', 'Settings'), icon: Settings },
     ...(isOperator ? [{ href: '/admin', label: L('계기판', 'Dashboard'), icon: BarChart3 }] : []),
   ];
 

@@ -17,6 +17,12 @@ interface QuestionCardProps {
   /** When provided, renders a tertiary skip action with `skipLabel`. */
   onSkip?: () => void;
   skipLabel?: string;
+  /** Seed the free-text box — used to restore a draft after an error remount so a
+   *  typed answer isn't lost when the turn fails and the card re-renders. */
+  initialValue?: string;
+  /** Report the current free-text draft up so the parent can preserve it across
+   *  an error/rollback remount. */
+  onDraftChange?: (value: string) => void;
 }
 
 export function QuestionCard({
@@ -28,11 +34,14 @@ export function QuestionCard({
   meta,
   onSkip,
   skipLabel,
+  initialValue,
+  onDraftChange,
 }: QuestionCardProps) {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(initialValue ?? '');
   const [submitted, setSubmitted] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const updateInput = (v: string) => { setInput(v); onDraftChange?.(v); };
 
   const go = (v: string) => {
     if (disabled || submitted) return;
@@ -110,7 +119,7 @@ export function QuestionCard({
             <div className="flex gap-2 mt-2">
               <input
                 value={input}
-                onChange={e => setInput(e.target.value)}
+                onChange={e => updateInput(e.target.value)}
                 placeholder={L('또는 직접 입력...', 'Or type your own...')}
                 disabled={disabled || submitted}
                 className="flex-1 px-3.5 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-base md:text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30 disabled:opacity-30"
@@ -134,7 +143,7 @@ export function QuestionCard({
         <div className="flex gap-2 pl-8.5">
           <input
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => updateInput(e.target.value)}
             placeholder={L('입력...', 'Type here...')}
             autoFocus
             disabled={disabled || submitted}

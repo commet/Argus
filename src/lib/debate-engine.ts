@@ -49,18 +49,19 @@ function buildDebatePromptKo(input: DebateInput): { system: string; user: string
 
 규칙:
 - "아무 계획에나 붙일 수 있는 말"은 금지. 이 계획만의 구체적 약점을 찾아야 합니다.
-- 가장 취약한 주장 1개를 골라서 왜 위험한지 설명하세요.
+- 계획이 정말 견고하면 억지로 약점을 만들지 마세요 — 치명적 맹점이 없으면 severity를 "none"으로 두고 challenge에 "치명적 맹점 없음"이라고 정직하게 답하세요. (없는 우려·모순을 thorough해 보이려 제조하면 안 됩니다.)
+- 약점이 있으면 가장 취약한 주장 1개를 골라 왜 위험한지 설명하세요.
 - 대안적 관점을 제시하세요.
-- severity: 이 문제가 계획을 망칠 수 있으면 critical, 수정하면 되면 important, 개선 수준이면 minor.
-- Always respond in Korean. 간결하게.
+- severity: critical(계획 망침) | important(수정 요) | minor(개선) | none(치명적 맹점 없음).
+- Always respond in Korean. 존댓말(해요체)로 간결하게, 사람을 비난하지 말고 분석의 약점만 짚으세요.
 
 JSON으로 응답:
 {
-  "challenge": "핵심 반론 (3줄 이내)",
+  "challenge": "핵심 반론 (3줄 이내, 맹점 없으면 그렇게)",
   "target_agent": "가장 약한 분석을 낸 팀원 이름",
   "weakest_claim": "그 팀원의 가장 약한 주장",
   "alternative_view": "대안적 관점",
-  "severity": "critical | important | minor"
+  "severity": "critical | important | minor | none"
 }`;
 
   const resultsText = input.stage1Results
@@ -84,18 +85,19 @@ Read your teammates' analyses and find the most dangerous blind spot.
 
 Rules:
 - No generic critiques ("this could fail"). Find a specific weakness that applies ONLY to this plan.
-- Pick the single weakest claim and explain why it's dangerous.
+- If the plan is genuinely solid, do NOT manufacture a weakness — set severity to "none" and say "no critical blind spot" in challenge. (Never invent a concern/contradiction to look thorough.)
+- If there is a weakness, pick the single weakest claim and explain why it's dangerous.
 - Offer an alternative viewpoint.
-- severity: "critical" if this would break the plan, "important" if fixable, "minor" if cosmetic.
-- Always respond in English, concisely.
+- severity: "critical" (breaks the plan) | "important" (fixable) | "minor" (cosmetic) | "none" (no critical blind spot).
+- Always respond in English, concisely; critique the analysis, not the person.
 
 Respond with JSON only:
 {
-  "challenge": "Core counter-argument (≤ 3 lines)",
+  "challenge": "Core counter-argument (≤ 3 lines; if none, say so)",
   "target_agent": "Name of the teammate whose analysis is weakest",
   "weakest_claim": "Their weakest specific claim",
   "alternative_view": "An alternative view",
-  "severity": "critical | important | minor"
+  "severity": "critical | important | minor | none"
 }`;
 
   const resultsText = input.stage1Results

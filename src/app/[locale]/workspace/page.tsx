@@ -22,7 +22,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract } from '@/lib/decision-contract';
-import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, Bot, Users, BookOpen, History, Compass } from 'lucide-react';
+import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, Bot, Users, BookOpen, History, Compass, FileText } from 'lucide-react';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { LocaleLink } from '@/components/ui/LocaleLink';
@@ -490,7 +490,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       <Graticule opacity={0.03} spacing={14} />
 
       <div className="relative max-w-2xl mx-auto px-5 md:px-6 pt-8 md:pt-16 pb-16">
-        <AnimatePresence mode="wait">
+        {/* initial={false}: the first-mounted phase renders at its visible
+            `animate` state with no enter animation, so the required idle input
+            screen can never get stuck at opacity:0 if the entrance animation
+            fails to fire (P0 render trap). Phase-to-phase transitions after the
+            initial mount still animate normally. */}
+        <AnimatePresence mode="wait" initial={false}>
           {/* ═══ IDLE: 시나리오 선택 + 입력 ═══ */}
           {phase === 'idle' && (
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -20 }}
@@ -583,6 +588,29 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     </div>
                   </div>
                 </div>
+
+                {/* ON FILE — the second door, mirroring the landing hero's two
+                    entry modes (write vs upload) so the journey stays consistent:
+                    if the decision is already written up, bring the doc to Review.
+                    Secondary to the primary write input above; ink, never gold. */}
+                <LocaleLink
+                  href="/tools/review"
+                  className="group mt-3 flex items-center justify-between gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 min-h-[44px] hover:border-[var(--accent)]/40 hover:shadow-[var(--shadow-sm)] transition-all"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <FileText size={13} className="text-[var(--text-tertiary)] shrink-0" />
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{L('ON FILE · 이미 써둔 문서', 'ON FILE · a document you wrote')}</span>
+                    </div>
+                    <div className="text-[13.5px] text-[var(--text-secondary)] leading-snug">
+                      {L('전략안·기획안·PDF·PPT가 있다면, 올려서 검수받으세요.', 'Got a strategy memo, plan, PDF or deck? Upload it for review.')}
+                    </div>
+                  </div>
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--text-primary)]">
+                    {L('검수받기', 'Review')}
+                    <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </LocaleLink>
 
                 {/* Secondary entries — previously near-invisible tertiary text links
                     (G-design: "눈에 전혀 안 들어와"). Now tappable chips: an icon + label

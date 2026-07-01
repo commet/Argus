@@ -16,6 +16,11 @@ const eslintConfig = defineConfig([
     // the app's lint config shouldn't parse them.
     "argus-plugin/**",
     "argus-plugin-v2/**",
+    // Generated design-sync artifacts are not part of the app source.
+    ".design-sync/**",
+    ".ds-sync/**",
+    "ds-bundle/**",
+    ".shots/**",
   ]),
   {
     rules: {

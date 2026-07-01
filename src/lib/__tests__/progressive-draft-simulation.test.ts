@@ -166,6 +166,10 @@ describe('ProgressiveStore Draft Tree', () => {
       expect(d0.final_text).toBe('# Plan v1\nBody.');
       expect(session.active_draft_id).toBe(d0.id);
       expect(session.phase).toBe('complete');
+      expect(session.bearing_entries).toHaveLength(1);
+      expect(session.bearing_entries![0].draft_id).toBe(d0.id);
+      expect(session.bearing_entries![0].version_label).toBe('v0.1');
+      expect(session.bearing_entries![0].bearing.current_course.summary).toContain('summary');
     });
 
     it('does NOT create a draft when text is null (reset flow from "이해관계자 검증 다시 하기")', () => {
@@ -174,6 +178,7 @@ describe('ProgressiveStore Draft Tree', () => {
       useProgressiveStore.getState().setFinalDeliverable('first', stubMix('first'));
       const afterFirst = useProgressiveStore.getState().sessions.find(s => s.id === sid)!;
       expect(afterFirst.drafts).toHaveLength(1);
+      expect(afterFirst.bearing_entries).toHaveLength(1);
 
       // The reset path: code calls setFinalDeliverable with null text hack.
       useProgressiveStore.getState().setFinalDeliverable(null as unknown as string, null);
@@ -182,6 +187,7 @@ describe('ProgressiveStore Draft Tree', () => {
       expect(afterReset.final_deliverable).toBeNull();
       // active_draft_id is preserved across the reset
       expect(afterReset.active_draft_id).toBe(afterFirst.drafts![0].id);
+      expect(afterReset.bearing_entries).toHaveLength(1);
     });
 
     it('appends a dm_reroll draft on second non-null completion (re-run flow)', () => {
@@ -204,6 +210,9 @@ describe('ProgressiveStore Draft Tree', () => {
       expect(d1.reviewing_agent_id).toBe('dm_reroll');
       expect(d1.change_summary).toContain('이해관계자');
       expect(session.active_draft_id).toBe(d1.id);
+      expect(session.bearing_entries).toHaveLength(2);
+      expect(session.bearing_entries![1].draft_id).toBe(d1.id);
+      expect(session.bearing_entries![1].source).toBe('draft_revision');
     });
   });
 
@@ -236,6 +245,9 @@ describe('ProgressiveStore Draft Tree', () => {
       expect(session.active_draft_id).toBe(child.id);
       // final_deliverable is updated so FinalCard renders the new draft
       expect(session.final_deliverable).toBe('root + tighter finances');
+      expect(session.bearing_entries).toHaveLength(2);
+      expect(session.bearing_entries![1].draft_id).toBe(child.id);
+      expect(session.bearing_entries![1].source).toBe('draft_revision');
     });
 
     it('computes branch label (v0.1.1) when parent already has a main-line child', () => {
@@ -344,6 +356,7 @@ describe('ProgressiveStore Draft Tree', () => {
       const promoted = session.drafts!.find((d) => d.id === v02.id)!;
       expect(promoted.version_label).toBe('v1.0');
       expect(session.released_draft_id).toBe(v02.id);
+      expect(session.bearing_entries!.find((entry) => entry.draft_id === v02.id)?.version_label).toBe('v1.0');
     });
 
     it('next main-line child after promotion becomes v1.1', () => {

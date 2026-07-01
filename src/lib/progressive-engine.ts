@@ -73,6 +73,8 @@ interface InitialAnalysisResponse {
    *  full sealing ceremony (CLAUDE.md mirror clause). Optional/safe-default. */
   stakes?: 'routine' | 'important' | 'critical';
   reversibility?: 'reversible' | 'partial' | 'irreversible';
+  decision_density?: 'low' | 'medium' | 'high';
+  decision_density_reasoning?: string;
   next_question: {
     text: string;
     subtext?: string;
@@ -573,6 +575,9 @@ export async function refineInitialFraming(
         { system, maxTokens: 2000, signal, shape: { real_question: 'string', hidden_assumptions: 'array', skeleton: 'array', next_question: 'object' } },
       );
 
+  const { result: contractResult } = applyRouteContract(result);
+  Object.assign(result, contractResult);
+
   const framingConfidence = Math.min(100, Math.max(0, result.framing_confidence ?? 70));
 
   const snapshot: AnalysisSnapshot = {
@@ -584,6 +589,16 @@ export async function refineInitialFraming(
     framing_confidence: framingConfidence,
     framing_locked: false,
     framing_override_reason: rejectionReason,
+    request_type: result.request_type,
+    frame_status: assessFrameStatus({
+      surfaceQuestion: problemText,
+      realQuestion: result.real_question || '',
+      assumptions: result.hidden_assumptions || [],
+    }),
+    stakes: result.stakes === 'routine' || result.stakes === 'critical' ? result.stakes : 'important',
+    reversibility: result.reversibility === 'reversible' || result.reversibility === 'irreversible' ? result.reversibility : 'partial',
+    decision_density: result.decision_density,
+    decision_density_reasoning: result.decision_density_reasoning,
   };
 
   return {

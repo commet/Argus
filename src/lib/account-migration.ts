@@ -49,9 +49,14 @@ export async function migrateLocalToAccount(): Promise<number> {
   if (_ranForUser === userId) return 0;
 
   let localCount = 0;
+  // P2: the toast must report the user's UNIT (decisions/projects), not the sum of
+  // every internal row (quality_signals, dq_scores…). "23건 saved" for one decision
+  // reads as a bug. Track the projects count separately for the toast.
+  let projectCount = 0;
   for (const { key, table } of SYNC_MAP) {
     const local = getStorage<unknown[]>(key, []);
     if (Array.isArray(local) && local.length > 0) localCount += local.length;
+    if (table === 'projects' && Array.isArray(local)) projectCount = local.length;
     try {
       await loadAndMerge(table, key); // pulls remote + pushes local-only (correct per-table)
     } catch {
@@ -98,5 +103,6 @@ export async function migrateLocalToAccount(): Promise<number> {
   }
 
   _ranForUser = userId; // mark done only after a full pass (allows retry on earlier throw)
-  return localCount;
+  void localCount; // (kept for potential future telemetry; the toast reports projects)
+  return projectCount; // the user's unit — decisions/projects, not internal signal rows
 }

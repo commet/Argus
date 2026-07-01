@@ -264,12 +264,14 @@ function RecastLoader() {
     L('검증 포인트를 설계합니다', 'Designing checkpoints'),
   ];
 
+  // Theme tokens (not raw hex) so the loader stays on-brand and dark-mode-correct,
+  // and the assembling bars mean something — the ai / human / both actor colors.
   const bars = [
-    { w: '72%', c: '#3b6dcc' },
-    { w: '45%', c: '#2d6b2d' },
-    { w: '58%', c: '#b8860b' },
-    { w: '84%', c: '#3b6dcc' },
-    { w: '36%', c: '#2d6b2d' },
+    { w: '72%', c: 'var(--ai-fg)' },
+    { w: '45%', c: 'var(--both-fg)' },
+    { w: '58%', c: 'var(--accent)' },
+    { w: '84%', c: 'var(--ai-fg)' },
+    { w: '36%', c: 'var(--both-fg)' },
   ];
 
   return (
@@ -475,7 +477,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
       if (isAuthError(err)) {
         setError('LOGIN_REQUIRED');
       } else {
-        setError(de.message || L('항로를 잡을 수 없었습니다. 다시 시도하거나 더 구체적으로 입력해보세요.', 'Could not assign the crew. Try again or be more specific.'));
+        setError(de.message || L('역할을 나누지 못했어요. 다시 시도하거나 조금 더 구체적으로 적어보세요.', 'Could not assign the crew. Try again or be more specific.'));
       }
       updateItem(id, { status: 'input' });
     }
@@ -549,13 +551,13 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
         <div>
           <h1 className="text-[22px] font-bold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>{t('tool.recast')} <span className="text-[16px] font-normal text-[var(--text-secondary)]">| {t('tool.recast.subtitle')}</span></h1>
           <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-            {L('AI와 사람의 역할을 나누고, 실행 단계를 설계합니다.', 'Divide roles between AI and humans, and design execution steps.')}
+            {L('AI가 할 일과 사람이 할 일을 나누고, 실행 순서를 짭니다.', 'Decide what AI does and what people do, then lay out the steps.')}
           </p>
           {(() => {
             const signals = getSignals({ tool: 'recast' });
             return signals.length > 0 ? (
               <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
-                {L(`이전 ${signals.length}건의 선원 배치 이력이 학습에 반영되고 있습니다`, `${signals.length} prior recast sessions are informing the analysis`)}
+                {L(`지난 선원 배치 ${signals.length}번이 이번 분석에 반영돼요`, `Your last ${signals.length} crew assignments are shaping this analysis`)}
               </p>
             ) : null;
           })()}
@@ -593,12 +595,12 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
         <Card>
           {reframeCtx && (
             <div className="flex items-center gap-1.5 text-[11px] text-[var(--accent)] mb-3">
-              <Check size={12} /> {L('항로 재설정 맥락이 반영되고 있습니다', 'Reframe context is being applied')}
+              <Check size={12} /> {L('항로 재설정에서 가져온 맥락이 반영됐어요', 'Context carried over from your reframe')}
             </div>
           )}
           <StepEntry
             steps={RECAST_ENTRY_STEPS}
-            textLabel={L('추가로 알려줄 맥락이 있나요?', 'Any extra context to share?')}
+            textLabel={L('더 알려줄 게 있나요?', 'Anything else to add?')}
             textPlaceholder={L("예: 지난 분기 실적 데이터를 반드시 포함해야 함 / 마케팅팀과 병렬 진행 중 / 대표가 '고객 관점'을 강조했음", "e.g., Must include last quarter's results / running in parallel with marketing / CEO emphasized 'customer perspective'")}
             animatedPlaceholders={[
               L('예: 지난 분기 실적 데이터를 반드시 포함해야 함', "e.g., Must include last quarter's results"),
@@ -607,7 +609,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
               L('예: 3주 내 경영회의 발표 예정, 실행안 수준 필요', 'e.g., Exec meeting in 3 weeks — needs execution-level plan'),
               L('예: 기술팀 리소스 2명만 투입 가능, 외주 고려 중', 'e.g., Only 2 engineers available — considering outsourcing'),
             ]}
-            textHint={L('위에서 선택한 내용만으로도 충분합니다. 특수한 조건이나 배경이 있다면 자유롭게 적어주세요.', 'The selections above are enough. Feel free to add any unique conditions or background.')}
+            textHint={L('위 선택만으로도 충분해요. 특별한 조건이 있으면 더 적어주세요.', 'The choices above are enough — add anything special if there’s more.')}
             submitLabel={L('워크플로우 설계', 'Design workflow')}
             initialText={inputText}
             contextPanel={reframeCtx ? (
@@ -699,7 +701,7 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
                 </p>
                 {/* Honest provenance: governing_idea is AI-drafted, not the user's settled call. */}
                 <p className="text-[10px] text-white/45 mt-2">
-                  {locale === 'ko' ? 'AI가 정리한 방향 — 당신이 손볼 수 있어요' : 'AI-drafted direction — yours to adjust'}
+                  {locale === 'ko' ? 'AI가 잡아본 방향 — 고쳐도 돼요' : 'AI’s first draft — yours to change'}
                 </p>
               </div>
 
@@ -910,7 +912,7 @@ function QuickRehearsalCard({
         <p className="text-[14px] font-bold text-[var(--text-primary)]">{L('이 계획을 검증할 이해관계자', 'Stakeholders to verify this plan')}</p>
       </div>
       <p className="text-[12px] text-[var(--text-secondary)] mb-3">
-        {L('프로젝트 맥락에서 이해관계자를 도출했습니다. 선택 후 바로 리허설을 시작하세요.', 'Stakeholders derived from project context. Pick any and start a rehearsal.')}
+        {L('프로젝트 맥락에서 이해관계자를 뽑아봤어요. 골라서 바로 리허설을 시작하세요.', 'Pulled these stakeholders from your project. Pick any and start a rehearsal.')}
       </p>
 
       <div className="space-y-2.5">

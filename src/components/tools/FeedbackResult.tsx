@@ -412,7 +412,7 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
           {/* Accuracy Rating */}
           {!ratingState[selectedPersona.id]?.saved ? (
             <Card className="!bg-[var(--bg)] !border-dashed mt-4">
-              <p className="text-[13px] font-bold text-[var(--text-primary)] mb-3">{L('이 피드백의 정확도를 평가해주세요', 'Rate the accuracy of this feedback')}</p>
+              <p className="text-[13px] font-bold text-[var(--text-primary)] mb-3">{L('이 피드백, 얼마나 맞았나요?', 'How accurate was this feedback?')}</p>
               <div className="flex items-center gap-1 mb-3">
                 {[1, 2, 3, 4, 5].map((score) => (
                   <button key={score} onClick={() => setRatingScore(selectedPersona.id, score)} className="cursor-pointer p-0.5">

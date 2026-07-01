@@ -1,14 +1,15 @@
 import { create } from 'zustand';
 import type { Settings } from '@/stores/types';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
+import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL } from '@/lib/llm-models';
 
 const DEFAULT_SETTINGS: Settings = {
   anthropic_api_key: '',
   openai_api_key: '',
   gemini_api_key: '',
   llm_provider: 'anthropic',
-  openai_model: 'gpt-4o',
-  gemini_model: 'gemini-2.5-flash',
+  openai_model: DEFAULT_OPENAI_MODEL,
+  gemini_model: DEFAULT_GEMINI_MODEL,
   llm_mode: 'proxy',
   local_endpoint: '',
   // en-first: the source language. A returning user's stored choice wins via

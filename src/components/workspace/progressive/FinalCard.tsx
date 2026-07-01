@@ -74,16 +74,18 @@ export function FinalCard({
   const [bodyOpen, setBodyOpen] = useState(!defaultCollapsed);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.9, ease: EASE }}>
-      <div className="rounded-2xl md:rounded-[2rem] p-[2px] bg-gradient-to-b from-[var(--accent)]/30 via-[var(--accent)]/10 to-transparent shadow-[var(--shadow-xl)]">
-        <div className="rounded-[calc(1rem-2px)] md:rounded-[calc(2rem-2px)] bg-[var(--surface)] shadow-[inset_0_2px_4px_rgba(255,255,255,0.6)] overflow-hidden">
-          {/* The gradient BORDER + the gold check medallion already carry the gold;
-              a third floating h-[3px] gold bar here was a redundant "line on a line"
-              (the awkward seam above 완성된 문서). Removed. */}
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
+      <div className="rounded-2xl md:rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-lg)] overflow-hidden">
+        <div className="overflow-hidden">
+          {/* The document is the deliverable, so it stays distinguished — but the
+              victory affect (gold gradient border + gold check medallion +
+              scale-up entrance) was a verdict the *settlement* moment should own,
+              not the freshly generated draft. Neutral hairline + a quiet "ready"
+              mark instead; celebratory gold is saved for real reality-contact. */}
           <div className="px-5 md:px-7 py-4 flex items-center justify-between border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--gradient-gold)' }}>
-                <Check size={13} className="text-white" />
+              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[var(--bg)] border border-[var(--border-subtle)]">
+                <Check size={13} className="text-[var(--text-secondary)]" />
               </div>
               <div>
                 <span className="text-[14px] font-semibold text-[var(--text-primary)]">{L('완성된 문서', 'Final Document')}</span>
@@ -99,7 +101,7 @@ export function FinalCard({
           {viewingBranchDraft && (
             <div className="px-5 md:px-7 py-2 border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
               <span className="text-[11px] text-[var(--text-tertiary)]">
-                {L(`출시본 ${releasedLabel}을 복사해요`, `Copy shares the released ${releasedLabel}`)}
+                {L(`복사하면 ${releasedLabel} 출시본이 나가요`, `Copy gives you the released ${releasedLabel}`)}
               </span>
               <button
                 onClick={copyVisibleDraft}
@@ -131,7 +133,10 @@ export function FinalCard({
             // without expanding — the bearing card below is the orientation.
             <div className="px-5 md:px-8 py-5">
               {hasStructured && (
-                <h2 className="text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
+                <>
+                  <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-2">{L('최종 결과물', 'Final output')}</p>
+                  <h2 className="text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
+                </>
               )}
               <button
                 onClick={() => setBodyOpen(true)}

@@ -48,6 +48,7 @@ const DECISION_STYLE_MAP: Record<string, string> = {
 
 const RISK_TOLERANCE_MAP: Record<string, string> = {
   low: '안전 우선. 실패 가능성에 예민',
+  medium: '균형적. 위험과 기회를 함께 저울질',
   high: '기회 포착 우선. 리스크를 감수할 의향',
 };
 

@@ -143,7 +143,7 @@ export default function GuidePage() {
                 },
                 {
                   q: 'How does "coming back to ask" work?',
-                  a: "Visit your project page on the date you set and Argus asks first — no emails or notifications are sent. If you like, you can add the appointment as a calendar file.",
+                  a: "Visit your project page on the date you set and Argus asks first. You can add the appointment as a calendar file, and logged-in users can opt into a one-time email reminder.",
                 },
                 {
                   q: 'What is a Current Heading?',
@@ -170,7 +170,7 @@ export default function GuidePage() {
         <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-4">
           {L(
             '워크스페이스에 고민을 입력하는 순간 자동으로 흐릅니다. 중간에 멈추고 손볼 수 있고, 결정이 필요한 곳에서는 알아서 잠깐 멈춰줍니다.',
-            "It runs automatically the moment you drop in a problem. You can stop and edit anytime, and it pauses on its own where a human decision is needed.",
+            "It starts the moment you type your problem. You can stop and edit anytime, and it pauses on its own wherever a human decision is needed.",
           )}
         </p>
         <div className="space-y-2.5 mb-5">

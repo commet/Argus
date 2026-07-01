@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Cloud, CloudOff, Loader2 } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 
-type SyncState = 'synced' | 'syncing' | 'offline' | 'error';
+type SyncState = 'synced' | 'syncing' | 'offline' | 'error' | 'backup_pending';
 
 /**
  * Sync status indicator — shows Supabase sync health.
@@ -47,14 +47,16 @@ export function SyncStatus() {
     };
   }, [handleSyncEvent]);
 
-  // Auto-recover from a transient sync-write failure so the badge never sticks red.
-  // (For a localStorage-first app a failed cloud write isn't fatal — data is local —
-  // so the error is a transient signal, not a permanent state.)
+  // P2 honesty: a failed cloud write must NOT auto-flip to a green "Synced" — that's
+  // a lie about the user's most important data (the sealed contract may not be in the
+  // cloud at all). After the transient window, downgrade red→amber "backup pending"
+  // (honest: saved locally, not yet backed up). A real success event clears it to
+  // synced; offline is detected separately.
   useEffect(() => {
     if (state !== 'error') return;
     const t = setTimeout(() => {
-      setState(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'synced');
-      setLastError(null);
+      if (typeof navigator !== 'undefined' && !navigator.onLine) { setState('offline'); setLastError(null); }
+      else setState('backup_pending');
     }, 8000);
     return () => clearTimeout(t);
   }, [state, lastError]);
@@ -87,6 +89,13 @@ export function SyncStatus() {
       bg: 'bg-red-50',
       border: 'border-red-200',
       label: L('동기화 실패', 'Sync failed'),
+    },
+    backup_pending: {
+      icon: <CloudOff size={12} />,
+      color: 'text-amber-600',
+      bg: 'bg-amber-50',
+      border: 'border-amber-200',
+      label: L('이 기기에 저장됨 · 백업 보류', 'Saved locally · backup pending'),
     },
   }[state];
 

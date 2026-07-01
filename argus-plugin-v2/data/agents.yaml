@@ -143,7 +143,7 @@ agents:
       ko: "큰 그림과 세부 데이터를 연결하며, 가장 중요한 발견을 앞에 내세웁니다."
       en: "Connects big picture with detail; leads with the most important finding."
     capabilities:
-      task_types: [analysis, synthesis, research]
+      task_types: [synthesis, analysis, research]
       domains: [market, product, finance]
       output_types: [report, document, comparison]
       anti_patterns: [design, legal_review]
@@ -390,8 +390,8 @@ agents:
       en: "Leads with quantitative evidence; adds interpretation. Uses tables actively."
     capabilities:
       task_types: [calculation, analysis]
-      domains: [finance, market, ops]
-      output_types: [numbers, report, comparison]
+      domains: [market, finance, ops]
+      output_types: [numbers, comparison, report]
       anti_patterns: [writing, design, legal_review]
     frameworks:
       on_fire: ["Break-even", "Sensitivity"]
@@ -440,7 +440,7 @@ agents:
       en: "Presents conservative baseline and optimistic scenarios; flags assumption breakpoints."
     capabilities:
       task_types: [calculation, analysis, critique]
-      domains: [finance, market, ops]
+      domains: [finance, ops, market]
       output_types: [numbers, report, risk_assessment]
       anti_patterns: [design, writing]
     frameworks:
@@ -523,9 +523,9 @@ agents:
     persona_id: people_culture
     framework_key: people_culture
     name: { ko: "수진", en: "Harper" }
-    role: { ko: "조직·문화 전문가", en: "People & Culture Specialist" }
+    role: { ko: "사람·문화 전략가", en: "People & Culture Strategist" }
     emoji: "🤝"
-    color: "#DB2777"
+    color: "#F472B6"
     chain: production
     chain_position: 5
     expertise:
@@ -536,7 +536,7 @@ agents:
       en: "Reads people's perspective first; proposes both structural solutions and short-term actions."
     capabilities:
       task_types: [planning, writing, analysis, synthesis]
-      domains: [ops, product]
+      domains: [people, ops, product]   # synced to webapp agent-capabilities (was [ops, product] — people 증발)
       output_types: [plan, document, checklist]
       anti_patterns: [calculation, legal_review, design]
     frameworks:
