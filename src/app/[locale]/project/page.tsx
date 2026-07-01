@@ -21,6 +21,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
+import { DecisionItemsCard } from '@/components/projects/DecisionItemsCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus, summarizeRecord, recordDisclosure } from '@/lib/decision-contract';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
@@ -826,6 +827,10 @@ export default function ProjectPage() {
           {/* Decision Contract — falsifiable closed loop (§0 KICK).
               Seal only offered once the voyage is finished (all legs done). */}
           <DecisionContractCard project={currentProject} sealable={completedSteps === steps.length} />
+
+          {/* Decision items — editable premises/phenomena + per-item change alerts
+              (living-premises layer, DESIGN-decision-items-living-premises). */}
+          <DecisionItemsCard project={currentProject} />
 
           {/* Settlement modal — "그래서, 어떻게 됐어요?" Auto-opens when the
               check-in date arrives (W1.2). "아직" extends via history-preserving

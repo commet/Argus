@@ -365,23 +365,31 @@ CLAUDE.md single-source: **두뇌(lib) 하나 공유, 표현만 분리.**
 - ✅ 가드 갱신: `schema-drift`(decision_items + DecisionItem 인터페이스 소스 추가),
   `persistence-contract`(DECISION_ITEMS→decision_items). 전체 스위트 green.
 
-### Phase 2 — 편집 UI를 1급으로
+### Phase 2 — 편집 UI를 1급으로 ✅ **구현 완료 (2026-07-01)**
 - ✅ 플러그인: `argus-plugin-v2/skills/track/SKILL.md` (`/argus:track`) —
   `.argus/items.jsonl`(append-only) 위 항목 목록·편집·알림토글. help에 등록.
-- ⬜ 플러그인: clarify/sail이 봉인 시 `extract` 이벤트로 항목을 실제 생성(배선).
-- ⬜ 웹앱: 결정 후 **항목 편집 뷰가 주(主) 화면**. 인라인 편집·삭제·추가 (React).
-- ⬜ override 신호 → `/argus:principles`/patterns 비준 흐름 연결.
+- ✅ 플러그인: clarify Step 3.5가 `hidden_assumptions`를 `extract` 이벤트로 emit
+  (append-only, emit-once). vertical: clarify → items.jsonl → /argus:track.
+- ✅ 웹앱: `src/components/projects/DecisionItemsCard.tsx` — 결정 결과 카드(프로젝트
+  페이지) 옆. reframe `hidden_assumptions`를 불러와 항목화 → 인라인 수정(refine)·
+  삭제(reject)·전제별 알림 종 토글(off↔on_change). project/page.tsx에 배선. tsc 클린.
+- ⬜ override 신호 → `/argus:principles`/patterns 비준 흐름 연결 (다음).
 
 ### Phase 3 — 살아있는 전제 알림 (전달층)
 - ✅ drift 판정 코어(`premise-drift.ts`).
-- ⬜ 항목별 알림 on/off UI(웹 종 토글 — 플러그인 토글은 track에 구현됨).
+- ✅ 항목별 알림 on/off UI: 웹 종 토글(DecisionItemsCard) + 플러그인 토글(track).
 - ⬜ web 재확인 실행: 웹 edge function 스케줄 / 플러그인 `check-contracts` 확장
   (`isDueForRecheck` → WebSearch → `evaluateDrift` → `shouldFireAlert`).
 - ⬜ 전달: 공유 허브(이메일·텔레그램·푸시) / SessionStart 훅.
 - ⬜ 미결 재고(예시 함께) 인터랙션.
 
-**요약:** 공유 두뇌(순수 로직)와 플러그인 편집 표면은 구현·검증 완료. 남은 것은
-배선(clarify 추출 emit, 웹앱 스토어+React UI, 재확인 실행·전달)과 마이그레이션 적용.
+**요약:** Phase 1·1b·2 완료 — 공유 두뇌, 마이그레이션 적용, 플러그인 vertical,
+웹앱 편집 카드까지. 남은 것은 Phase 3의 **재확인 실행·전달층**(전제 drift를 실제로
+web에서 확인해 알림을 쏘는 스케줄/훅)과 override 비준 연결.
+
+**검증 메모(2026-07-01):** tsc 클린 + 유닛 1579 green + 실DB 왕복. 웹 카드의 브라우저
+실행 렌더 검증은 이 워크트리에 `.env.local`(supabaseUrl)이 없어 앱이 Supabase 초기화
+에러바운더리에 걸려 막힘 — 환경 문제이며 신규 모듈을 가리키는 콘솔 에러는 0건.
 
 ---
 
