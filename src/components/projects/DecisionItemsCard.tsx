@@ -44,7 +44,7 @@ export function DecisionItemsCard({ project }: { project: Project }) {
   const loadData = useDecisionItemsStore((s) => s.loadData);
   const addItems = useDecisionItemsStore((s) => s.addItems);
   const editItem = useDecisionItemsStore((s) => s.editItem);
-  const setAlert = useDecisionItemsStore((s) => s.setAlert);
+  const toggleMonitoring = useDecisionItemsStore((s) => s.toggleMonitoring);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -128,7 +128,7 @@ export function DecisionItemsCard({ project }: { project: Project }) {
                   <ul className="space-y-1.5">
                     {list.map((item) => {
                       const editing = editingId === item.id;
-                      const alertOn = item.alert.mode === 'on_change';
+                      const alertOn = item.alert?.mode === 'on_change';
                       const edited = item.authored === 'ai_edited_by_user';
                       return (
                         <li
@@ -141,6 +141,7 @@ export function DecisionItemsCard({ project }: { project: Project }) {
                                 value={draft}
                                 onChange={(e) => setDraft(e.target.value)}
                                 rows={2}
+                                maxLength={500}
                                 autoFocus
                                 className="w-full text-[13px] text-[var(--text-primary)] bg-[var(--bg)] border border-[var(--accent)]/40 rounded-md p-2 leading-[1.5] resize-none focus:outline-none focus:border-[var(--accent)]"
                               />
@@ -172,7 +173,7 @@ export function DecisionItemsCard({ project }: { project: Project }) {
                               <div className="flex items-center gap-0.5 shrink-0">
                                 {item.type === 'premise' && (
                                   <button
-                                    onClick={() => setAlert(item.id, alertOn ? 'off' : 'on_change')}
+                                    onClick={() => toggleMonitoring(item.id)}
                                     title={alertOn ? L('바뀌면 알림 켜짐', 'Alert on change: on') : L('알림 꺼짐', 'Alert off')}
                                     aria-pressed={alertOn}
                                     className={`p-1.5 rounded-md cursor-pointer transition-colors ${

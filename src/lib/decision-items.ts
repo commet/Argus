@@ -254,7 +254,7 @@ export function summarizeOverrides(items: DecisionItem[]): OverrideSummary {
 /** Set an item's alert mode (immutable). Resets the dismissal counter when the
  *  user re-enables an alert (an explicit re-enable clears prior back-off). */
 export function setAlertMode(item: DecisionItem, mode: AlertMode): DecisionItem {
-  const dismissals = mode === 'off' ? item.alert.dismissals : 0;
+  const dismissals = mode === 'off' ? item.alert?.dismissals : 0;
   return { ...item, alert: { ...item.alert, mode, dismissals } };
 }
 
@@ -270,7 +270,7 @@ export function registerDismissal(item: DecisionItem, now: number): DecisionItem
 }
 
 export function shouldBackOff(item: DecisionItem): boolean {
-  return (item.alert.dismissals ?? 0) >= ALERT_BACKOFF_DISMISSALS;
+  return (item.alert?.dismissals ?? 0) >= ALERT_BACKOFF_DISMISSALS;
 }
 
 /** Active items only (not retired/resolved). Defensive against malformed data. */
@@ -282,6 +282,6 @@ export function activeItems(items: DecisionItem[] | undefined): DecisionItem[] {
  *  alert is on_change and which have not backed off. */
 export function monitoredPremises(items: DecisionItem[] | undefined): DecisionItem[] {
   return activeItems(items).filter(
-    (i) => i.type === 'premise' && i.external && i.alert.mode === 'on_change' && !shouldBackOff(i),
+    (i) => i.type === 'premise' && i.external && i.alert?.mode === 'on_change' && !shouldBackOff(i),
   );
 }

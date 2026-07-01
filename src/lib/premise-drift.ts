@@ -107,11 +107,11 @@ export interface FireDecision {
  */
 export function shouldFireAlert(item: DecisionItem, drift: DriftResult, now: number): FireDecision {
   if (item.status !== 'active') return { fire: false, reason: 'item not active' };
-  if (item.alert.mode !== 'on_change') return { fire: false, reason: `mode is ${item.alert.mode}` };
+  if (item.alert?.mode !== 'on_change') return { fire: false, reason: `mode is ${item.alert?.mode}` };
   if (shouldBackOff(item)) return { fire: false, reason: 'backed off (dismissed too often)' };
   if (drift.baseline_only) return { fire: false, reason: 'baseline recorded, no prior value' };
   if (!drift.drifted) return { fire: false, reason: 'no material drift' };
-  const last = item.alert.last_checked ? Date.parse(item.alert.last_checked) : NaN;
+  const last = item.alert?.last_checked ? Date.parse(item.alert.last_checked) : NaN;
   if (!Number.isNaN(last) && now - last < RECHECK_MIN_INTERVAL_DAYS * DAY_MS) {
     return { fire: false, reason: 'within frequency cap' };
   }
@@ -122,9 +122,9 @@ export function shouldFireAlert(item: DecisionItem, drift: DriftResult, now: num
  *  elapsed, or never checked). Callers use this to decide whether to spend a
  *  web lookup. Pure; `now` injected. */
 export function isDueForRecheck(item: DecisionItem, now: number): boolean {
-  if (item.alert.mode !== 'on_change' || item.status !== 'active') return false;
+  if (item.alert?.mode !== 'on_change' || item.status !== 'active') return false;
   if (shouldBackOff(item)) return false;
-  const last = item.alert.last_checked ? Date.parse(item.alert.last_checked) : NaN;
+  const last = item.alert?.last_checked ? Date.parse(item.alert.last_checked) : NaN;
   if (Number.isNaN(last)) return true;
   return now - last >= RECHECK_MIN_INTERVAL_DAYS * DAY_MS;
 }

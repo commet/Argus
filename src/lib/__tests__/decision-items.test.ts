@@ -139,6 +139,15 @@ describe('alerts: dismissal back-off', () => {
   });
 });
 
+describe('defensive: malformed item with no alert (Supabase-merge data)', () => {
+  it('alert accessors do not throw and behave as "off"', () => {
+    const bad = { ...aiPremise('x', { external: true, load_bearing: true }), alert: undefined } as unknown as DecisionItem;
+    expect(shouldBackOff(bad)).toBe(false);
+    expect(() => setAlertMode(bad, 'off')).not.toThrow();
+    expect(monitoredPremises([bad])).toEqual([]);
+  });
+});
+
 describe('monitoredPremises', () => {
   it('includes only active on_change external premises that have not backed off', () => {
     const on = aiPremise('rates', { external: true, load_bearing: true }); // on_change by default

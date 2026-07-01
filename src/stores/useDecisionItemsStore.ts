@@ -35,6 +35,11 @@ interface DecisionItemsState {
   /** Record a user edit to an AI-extracted item (the signal). */
   editItem: (id: string, action: EditAction, newText: string, note?: string) => void;
   setAlert: (id: string, mode: AlertMode) => void;
+  /** Bell toggle for a premise: turning ON also marks it `external` (the user is
+   *  asserting this is a real-world fact worth watching) — otherwise the alert
+   *  would be a no-op, since monitoredPremises / the plugin re-check require
+   *  `external === true`. Turning OFF just sets mode off. */
+  toggleMonitoring: (id: string) => void;
   dismissAlert: (id: string) => void;
   itemsForDecision: (decisionId: string) => DecisionItem[];
   overrideSummary: (decisionId: string) => OverrideSummary;
@@ -89,6 +94,13 @@ export const useDecisionItemsStore = create<DecisionItemsState>((set, get) => {
       mutate(id, (item) => recordEdit(item, action, newText, Date.now(), note)),
 
     setAlert: (id, mode) => mutate(id, (item) => setAlertMode(item, mode)),
+
+    toggleMonitoring: (id) =>
+      mutate(id, (item) =>
+        item.alert?.mode === 'on_change'
+          ? setAlertMode(item, 'off')
+          : { ...setAlertMode(item, 'on_change'), external: true },
+      ),
 
     dismissAlert: (id) => mutate(id, (item) => registerDismissal(item, Date.now())),
 
