@@ -180,10 +180,15 @@ export function SirenHero() {
             so the band sizes to video+gutter. ≥640px keeps the fixed 16:9 band the
             cinematic lower-left overlay was composed for (capped on tall viewports). */}
         <div
-          className="bp-fade-up h-auto sm:h-[56.25vw] sm:max-h-[66vh]"
-          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 20, marginBottom: 16, animationDelay: '200ms' }}
+          className="bp-fade-up"
+          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 20, marginBottom: 16, display: 'flex', justifyContent: 'center', animationDelay: '200ms' }}
         >
-          <VoyageFilm />
+          {/* Constrain the film's WIDTH (not height) so the whole 16:9 engraving
+              shows — smaller and centered on paper — instead of height-capping,
+              which cropped the top (Siren's face) via object-fit:cover. */}
+          <div className="w-full sm:aspect-[16/9] sm:w-[min(100vw,117vh)]">
+            <VoyageFilm />
+          </div>
         </div>
 
         {/* Resolving line — the pitch must not end on the problem. */}
