@@ -2,6 +2,7 @@
 
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import {
@@ -2436,7 +2437,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   {/* Mid-voyage wall: a project already exists, so loadProjects()
                       auto-restores it on return — we only need to send the user back
                       to the workspace (not a blank default) after auth. */}
-                  <a href="/login?redirect=/workspace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={13} /></a>
+                  <Link href="/login?redirect=/workspace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={13} /></Link>
                 </div>
               ) : (() => {
                 const isQuota = error.includes('한도') || error.includes('rate') || error.includes('limit') || error.includes('429');
@@ -2450,9 +2451,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                           : error}
                       </p>
                       {isQuota && (
-                        <a href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
+                        <Link href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
                           {L('Settings에서 API 키 등록하기 →', 'Register API key in Settings →')}
-                        </a>
+                        </Link>
                       )}
                     </div>
                     <button onClick={() => setError(null)} aria-label={L('닫기', 'Dismiss')}
