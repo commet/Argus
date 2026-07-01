@@ -4,6 +4,14 @@ description: "Analyze your decision-making patterns from the Argus journal. Show
 allowed-tools: Read
 ---
 
+> **⚠ Deprecated — superseded by `/argus:log`.** This skill reads only
+> `.argus/journal.md` (self-graded *analysis* scores), so it cannot see whether
+> your predictions actually came true. `/argus:log` reads the real settled
+> outcomes in `.argus/ledger/` and scales every claim to how many have settled —
+> it is the honest successor. **If `/argus:log` is available, recommend it and
+> use it instead of this skill.** Run patterns only as a fallback when the v2
+> `/argus:*` pipeline is not installed.
+
 ## When to use
 
 - ✓ After 3+ Argus runs — enough data for meaningful patterns
@@ -108,16 +116,23 @@ Patterns where you consistently miss something. E.g., "You haven't explored timi
 
 Include assumption axis analysis: "You tend to catch [value] and [feasibility] assumptions but rarely question [capacity] — your plans assume teams can execute without checking if they actually can."
 
-**3. DQ trajectory**
-If multiple /argus runs exist, show the score trend with attribution. What's improving and why.
+**3. DQ trajectory (analysis quality — NOT validated outcomes)**
+If multiple /argus runs exist, show the score trend with attribution. But label it honestly: a DQ score is the engine grading its OWN analysis — it measures how well a decision was *framed*, never whether it turned out right. Never present it as "your decisions are getting better." Only settled contract outcomes (in `.argus/ledger/`, graded at the promised check-in date) measure that, and this skill does not read them. If you have no settled outcomes to show, say so plainly: "이건 분석 점수예요 — 실제 결과가 맞았는지는 아직 정산 안 됨."
 
-**4. Thinking profile**
-A one-paragraph characterization of their decision-making style based on signal patterns, assumption ratings, and strategy preferences. E.g., "You're an analytical thinker who prefers structured approaches (nature=needs_analysis in 70% of runs). You tend to be cautious with assumptions (60% rated uncertain) which gives you thorough analysis but may slow decision speed."
+**4. Patterns worth naming (evidence-first, 1-3)**
+Present ONLY the recurring structure and its count — NEVER a characterization of who the user is. The machine does the synthesis (finding the structure across scattered runs); the user assigns the meaning.
+- ✗ "You're an analytical thinker" — a verdict about who they are. Forbidden.
+- ✓ "In 7 of your 9 runs you rated first-pass assumptions 'confirmed'." — structure + count, no interpretation.
+- Framing confidence is a count too: "avg framing confidence [N]/100" — state the number, do not interpret it into a trait.
+Do not say what the pattern *means about them*. State what recurs; the meaning is theirs to assign in #5.
 
-Include framing confidence profile: "Your average framing confidence is [N]/100, suggesting [interpretation]."
-
-**5. Growth recommendation**
-One specific, actionable suggestion for their next run. Not generic advice but tailored to their pattern data.
+**5. Ratification — the user authors the meaning, not the machine**
+For the 1-2 strongest patterns from #4, present the evidence and ask ONE plain question, then record the simple answer. This is the whole point: the machine assembles the evidence (the hard part a person can't easily do across scattered runs), and the user presses the button that makes it theirs (the authorship the machine must not take).
+- Ask (locale-matched): "이런 게 반복돼요: [근거 한 줄]. 이거 당신 패턴 맞아요?" — answerable with 맞아요 / 아니에요 / 잘 모르겠어요.
+- 맞아요 → write it to `.argus/journal.md` as a **user-authored** principle (their confirmation, tagged `authored: user`). They wrote the rule; Argus did not.
+- 아니에요 → discard it and note the read was off (this calibrates the *tool*, not the user).
+- 잘 모르겠어요 → leave it open; resurface after more runs.
+NEVER prescribe a next move ("do X next time"). NEVER declare a trait ("you are X"). Pose the structure as a question; the user makes the call.
 
 ## Output
 
@@ -160,15 +175,20 @@ Worst: [element] — [why]
 
 ---
 
-**Your thinking profile**
+**Patterns worth naming**
 
-[one paragraph characterization — including framing confidence interpretation]
+- [recurring structure 1 — with run count, no interpretation]
+- [recurring structure 2 — with run count, no interpretation]
 
 ---
 
-**Next run**
+**Is this yours?**
 
-> 💡 [specific, actionable recommendation]
+> [strongest pattern, one line of evidence]
+>
+> 이거 당신 패턴 맞아요?  → 맞아요 / 아니에요 / 잘 모르겠어요
+>
+> (맞으면 당신 언어로 기록해둘게요 — 규칙을 쓰는 건 당신이지, Argus가 아니에요.)
 
 ---
 
@@ -192,9 +212,9 @@ Scale ALL claims to sample size. Never overstate:
 
 | Entries | Tier | Language | What you can say |
 |---------|------|----------|-----------------|
-| 3-5 | Early impressions | "appears to", "early pattern" | Frequency counts only. No trends. No profile. |
-| 6-10 | Pattern forming | "tendency toward", "repeated" | Trends visible. Blind spots if 3+ occurrences. Profile tentative. |
-| 11-20 | Pattern confirmed | "consistent pattern", "confirmed strength" | Full analysis. DQ trajectory meaningful. Profile confident. |
+| 3-5 | Early impressions | "appears to", "early pattern" | Frequency counts only. No trends. No named patterns to ratify yet. |
+| 6-10 | Pattern forming | "tendency toward", "repeated" | Trends visible. Blind spots if 3+ occurrences. Name patterns tentatively; ask to ratify. |
+| 11-20 | Pattern confirmed | "consistent pattern", "confirmed strength" | Full analysis. DQ trajectory meaningful. Name patterns; ask to ratify. |
 | 20+ | Established | "established pattern", "verified strength" | Statistical claims, correlations, comparisons across periods. |
 
 **At 3-5 entries:** Skip DQ trajectory table (not enough data points). Show "DQ: [score1], [score2], [score3] — too early for trends." instead.
@@ -227,4 +247,6 @@ Archive header format:
 - **Be specific.** "You missed timing in 5/8 runs" not "You sometimes miss things."
 - **Be honest but constructive.** Blind spots are stated directly, not softened. But always pair with a concrete suggestion.
 - **Respect the data.** Scale confidence to sample size (see Confidence Tiers above).
-- **The thinking profile is descriptive, not prescriptive.** Don't tell them to change their style — describe it and note its trade-offs.
+- **DQ is self-graded, not reality.** The DQ score measures the framing quality of the analysis, produced by the same engine — it is NOT a track record. Never let a DQ trend imply the user's real-world outcomes improved; that claim requires settled contracts (`.argus/ledger/`), which this skill does not read. Label DQ as analysis-quality, and when in doubt, undersell.
+- **Never characterize who the user is.** No "you are an X thinker" / "your style is Y." Present the recurring structure with its count; the user assigns the meaning. This is the Zero-Judgment gate — a machine verdict about the user is forbidden even when it's the most tempting, "valuable"-feeling output. A machine-authored verdict gets adopted without being tested (the exact failure the tool exists to fight), and on a small sample it is overfit noise dressed as insight.
+- **Never prescribe the next move.** Pose the pattern as a question the user answers (맞아요 / 아니에요 / 잘 모르겠어요); if they ratify it, record it in THEIR words as a user-authored principle. The synthesis is the machine's job; the authorship is the user's.

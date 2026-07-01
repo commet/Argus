@@ -132,6 +132,11 @@ Close with ONE quiet scoping line (the irreducible small-n residual, disclosed n
 hidden): "당신 자신의 (아직 적은) 기록에 대한 관찰이에요 — 법칙이 아니라 참고고,
 건수에 맞춰 말했어요."
 
+If an observation genuinely recurs and the user might want to keep it, add ONE
+optional pointer (not a nudge, no verb-in-Argus's-voice): "이 중 하나를 당신
+원칙으로 남기고 싶으면 → /argus:principles." Omit it entirely when `pattern_strength`
+is `counts_only` or nothing recurred — there is nothing worth codifying yet.
+
 ---
 
 ## Meta-check gates

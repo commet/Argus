@@ -38,6 +38,7 @@ The crew, individually (sail chains these for you):
   /argus:chart     see one voyage's version tree, promote, branch, resume
   /argus:log       voyage log across ALL sessions + your prediction record
   /argus:settle    check past predictions against reality (the contract loop)
+  /argus:principles codify a recurring pattern in your settled record as your own rule
   /argus:connect   pair this project with your webapp account using a push token
   /argus:push      send local Argus records to the paired webapp account
   /argus:pull      bring webapp settle/defer actions back into the local ledger
@@ -78,6 +79,7 @@ for the list, answer with the ONE command that fits, plus one sentence why:
 - wants to dig into the current voyage → `/argus:chart`
 - asks "what have I decided here" / "my track record" → `/argus:log`
 - a contract reminder fired / "how did that bet go?" → `/argus:settle`
+- wants to keep a repeated lesson as their own rule → `/argus:principles`
 - wants plugin results in the webapp → `/argus:connect <token>` once, then `/argus:sync`
 - settled/deferred plugin records in the webapp → `/argus:pull`
 - wants a silent pre-approval scan of a generated plan → `/argus:helm`
