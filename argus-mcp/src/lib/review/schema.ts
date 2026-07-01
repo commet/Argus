@@ -224,6 +224,10 @@ export interface Claim {
   anchors: SourceAnchor[];
   /** why this status — must reference the document, not generic advice. */
   rationale: string;
+  /** what evidence would settle this claim's status (design doc §Claim Ledger). */
+  evidence_needed?: string;
+  /** a concrete fix for THIS claim — secondary to judgment review, never a rewrite. */
+  fix_suggestion?: string;
 }
 
 export interface EvidenceItem {
@@ -395,10 +399,18 @@ export interface FalsifiableFollowup {
   fail_condition: string;
   check_by: string; // YYYY-MM-DD
   sealed_at?: string;
+  // --- seal-time, user-owned (Ownership Modal §890). The user writes these;
+  //     Argus never fills a lean or an assumption for them. ---
+  lean?: string;
+  key_assumption?: string;
   // --- settlement (user-owned, pipeline never fills these) ---
   settled_at?: string;
   outcome?: FollowupOutcome;
   what_happened?: string;
+  /** what the user took away — Settlement View §937 "배운 점". */
+  learned?: string;
+  /** number of times the user pushed the check date via "revise". */
+  revise_count?: number;
 }
 
 export interface Fork {
@@ -438,6 +450,9 @@ export interface JudgmentReceipt {
   source_kind: SourceKind;
   source_title: string;
   source_fingerprint: string;
+  /** original text — ONLY kept when privacy_mode is store_source (§252). Enables
+   *  the side-by-side Review Workspace on return; omitted under receipt_only. */
+  source_text?: string;
 
   // profile + reviewability (surfaced on the first screen)
   profile: DocumentProfile;
@@ -457,6 +472,12 @@ export interface JudgmentReceipt {
 
   // liveness
   companion_thread: CompanionNote[];
+
+  // version drift (Retention Loop B §747): a re-review of the same source links
+  // back to the prior receipt so "what changed" can be shown.
+  previous_receipt_id?: string;
+  version?: number;
+  drift_note?: string;
 
   provenance: ReviewProvenance;
   created_at: string;

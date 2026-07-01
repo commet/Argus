@@ -87,12 +87,41 @@ describe('useReviewStore', () => {
     s.saveReceipt(r);
     const fuId = r.falsifiable_followups[0].followup_id;
     s.sealFollowup(r.receipt_id, fuId, { predicate: 'p', pass_condition: 'a', fail_condition: 'b', check_by: '2027-02-01' });
-    s.settleFollowup(r.receipt_id, fuId, 'partial', '절반만 확보됨');
+    s.settleFollowup(r.receipt_id, fuId, 'partial', '절반만 확보됨', '다음엔 데이터부터 본다');
     const after = useReviewStore.getState().getReceipt(r.receipt_id)!;
     const f = after.falsifiable_followups[0];
     expect(after.state).toBe('settled');
     expect(f.outcome).toBe('partial');
     expect(f.what_happened).toBe('절반만 확보됨');
+    expect(f.learned).toBe('다음엔 데이터부터 본다');
     expect(f.settled_at).toBeTruthy();
+  });
+
+  it('sealing carries the user-owned lean + key assumption', async () => {
+    const r = await makeReceipt();
+    const s = useReviewStore.getState();
+    s.saveReceipt(r);
+    const fuId = r.falsifiable_followups[0].followup_id;
+    s.sealFollowup(r.receipt_id, fuId, {
+      predicate: 'p', lean: '그래도 지금이 맞다', key_assumption: '이탈 원인은 온보딩',
+      pass_condition: 'a', fail_condition: 'b', check_by: '2027-02-01',
+    });
+    const f = useReviewStore.getState().getReceipt(r.receipt_id)!.falsifiable_followups[0];
+    expect(f.lean).toBe('그래도 지금이 맞다');
+    expect(f.key_assumption).toBe('이탈 원인은 온보딩');
+  });
+
+  it('revise pushes the check date and counts, without settling', async () => {
+    const r = await makeReceipt();
+    const s = useReviewStore.getState();
+    s.saveReceipt(r);
+    const fuId = r.falsifiable_followups[0].followup_id;
+    s.sealFollowup(r.receipt_id, fuId, { predicate: 'p', pass_condition: 'a', fail_condition: 'b', check_by: '2027-02-01' });
+    s.reviseFollowup(r.receipt_id, fuId, '2027-03-15');
+    const after = useReviewStore.getState().getReceipt(r.receipt_id)!;
+    expect(after.falsifiable_followups[0].check_by).toBe('2027-03-15');
+    expect(after.falsifiable_followups[0].revise_count).toBe(1);
+    expect(after.falsifiable_followups[0].settled_at).toBeUndefined();
+    expect(after.state).toBe('sealed'); // revise does not settle
   });
 });

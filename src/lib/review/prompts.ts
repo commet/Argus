@@ -80,7 +80,7 @@ ${concerns}
   "core_question": "이 문서가 실제로 결정해야 하는 질문",
   "explicit_recommendation": "문서가 겉으로 미는 결론(없으면 생략)",
   "implicit_recommendation": "은연중 미는 결론(없으면 생략)",
-  "main_claims": [ { "text": "...", "status": "supported|weak|unsupported|human_check|contradicted", "unit_ids": ["..."], "rationale": "이 상태로 판단한 근거(원문 기준)" } ],
+  "main_claims": [ { "text": "...", "status": "supported|weak|unsupported|human_check|contradicted", "unit_ids": ["..."], "rationale": "이 상태로 판단한 근거(원문 기준)", "evidence_needed": "이 주장을 확정하려면 무엇을 확인해야 하는가(없으면 생략)", "fix_suggestion": "이 문장 자체를 어떻게 보강할지 한 줄(선택, 없으면 생략)" } ],
   "evidence_items": [ { "text": "...", "unit_ids": ["..."], "kind": "internal|external_cited|asserted" } ],
   "assumptions": [ { "text": "말하지 않은 가정", "unit_ids": ["..."], "if_false": "틀리면 무너지는 것" } ],
   "tradeoffs": [ { "text": "...", "unit_ids": ["..."] } ],

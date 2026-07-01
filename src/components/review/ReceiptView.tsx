@@ -52,22 +52,43 @@ function anchorLabel(a?: SourceAnchor): string {
   return '';
 }
 
+const CLAIM_STATUS_LABEL: Record<string, string> = {
+  supported: '근거 있음',
+  weak: '근거 약함',
+  unsupported: '근거 없음',
+  human_check: '사람 확인',
+  contradicted: '모순',
+};
+
 export function ReceiptView({
   receipt,
   onOwn,
   onSeal,
   onSettle,
+  onReReview,
 }: {
   receipt: JudgmentReceipt;
   onOwn?: (obligation: JudgmentObligation, owned: boolean) => void;
   onSeal?: (receipt: JudgmentReceipt) => void;
   onSettle?: (followupId: string) => void;
+  /** "더 검증하기" — re-run the review (design doc §Receipt Summary 3 actions). */
+  onReReview?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
+  const [showFixes, setShowFixes] = useState(false);
+  const [claimFilter, setClaimFilter] = useState<string>('all');
   const band = reviewabilityBand(receipt.reviewability.score);
   const topFindings = receipt.findings.slice(0, 3);
   const topObligations = receipt.judgment_obligations.slice(0, 3);
+
+  // "문서 수정안" — collected concrete fixes, never a full rewrite (§MVP 금지 10).
+  const fixes = [
+    ...receipt.claim_ledger.filter((c) => c.fix_suggestion).map((c) => ({ where: anchorLabel(c.anchors[0]) || c.text.slice(0, 24), text: c.fix_suggestion! })),
+    ...receipt.findings.filter((f) => f.suggested_action).map((f) => ({ where: anchorLabel(f.anchors[0]) || f.title.slice(0, 24), text: f.suggested_action! })),
+  ];
+  const filteredClaims = claimFilter === 'all' ? receipt.claim_ledger : receipt.claim_ledger.filter((c) => c.status === claimFilter);
+  const claimStatuses = Array.from(new Set(receipt.claim_ledger.map((c) => c.status)));
 
   const copy = async () => {
     try {
@@ -170,11 +191,22 @@ export function ReceiptView({
       {/* applied lenses disclosure */}
       <div className="text-[12px] text-[var(--text-tertiary)] leading-[1.6]">{receipt.routing.disclosure}</div>
 
-      {/* actions */}
+      {/* actions — up to 3 primary (design doc §Receipt Summary): own is on the
+          obligation above; here: seal / 문서 수정안 / 더 검증하기 */}
       <div className="flex flex-wrap gap-2">
         {receipt.falsifiable_followups.length > 0 && onSeal && (
           <Button variant="primary" size="sm" onClick={() => onSeal(receipt)}>
             후속 예측 봉인하기
+          </Button>
+        )}
+        {fixes.length > 0 && (
+          <Button variant="secondary" size="sm" onClick={() => setShowFixes((v) => !v)}>
+            {showFixes ? '수정안 접기' : `문서 수정안 보기 (${fixes.length})`}
+          </Button>
+        )}
+        {onReReview && (
+          <Button variant="ghost" size="sm" onClick={onReReview}>
+            더 검증하기
           </Button>
         )}
         <Button variant="ghost" size="sm" onClick={() => setExpanded((v) => !v)}>
@@ -182,21 +214,63 @@ export function ReceiptView({
         </Button>
       </div>
 
+      {/* 문서 수정안 — concrete per-claim fixes, secondary to judgment review */}
+      {showFixes && fixes.length > 0 && (
+        <Card variant="muted">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">
+            문서 수정안 (제안 — 판단은 당신의 몫)
+          </div>
+          <ul className="space-y-1.5">
+            {fixes.map((f, i) => (
+              <li key={i} className="text-[12px] text-[var(--text-primary)]">
+                <span className="text-[var(--text-tertiary)]">{f.where}:</span> {f.text}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {/* expanded detail */}
       {expanded && (
         <div className="flex flex-col gap-4 pt-1">
           {receipt.claim_ledger.length > 0 && (
             <Card>
               <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)] mb-2">주장 원장</div>
-              <div className="space-y-2">
-                {receipt.claim_ledger.map((c) => (
-                  <div key={c.claim_id} className="text-[13px]">
-                    <span className="inline-block px-1.5 py-0.5 mr-2 text-[10px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)]">
-                      {c.status}
-                    </span>
-                    <span className="text-[var(--text-primary)]">{c.text}</span>
-                    {anchorLabel(c.anchors[0]) && (
-                      <span className="ml-1 text-[11px] text-[var(--text-tertiary)]">({anchorLabel(c.anchors[0])})</span>
+              {/* status filter (design doc §Claim Ledger) */}
+              {claimStatuses.length > 1 && (
+                <div className="flex flex-wrap gap-1 mb-2.5">
+                  {['all', ...claimStatuses].map((st) => (
+                    <button
+                      key={st}
+                      onClick={() => setClaimFilter(st)}
+                      className={`px-2 py-0.5 text-[10px] rounded-full border ${
+                        claimFilter === st
+                          ? 'border-[var(--accent)] text-[var(--accent)]'
+                          : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'
+                      }`}
+                    >
+                      {st === 'all' ? '전체' : CLAIM_STATUS_LABEL[st] ?? st}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="space-y-2.5">
+                {filteredClaims.map((c) => (
+                  <div key={c.claim_id} className="text-[13px] border-b border-[var(--border-subtle)] last:border-0 pb-2 last:pb-0">
+                    <div>
+                      <span className="inline-block px-1.5 py-0.5 mr-2 text-[10px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)]">
+                        {CLAIM_STATUS_LABEL[c.status] ?? c.status}
+                      </span>
+                      <span className="text-[var(--text-primary)]">{c.text}</span>
+                      {anchorLabel(c.anchors[0]) && (
+                        <span className="ml-1 text-[11px] text-[var(--text-tertiary)]">({anchorLabel(c.anchors[0])})</span>
+                      )}
+                    </div>
+                    {c.evidence_needed && (
+                      <p className="mt-1 text-[11px] text-[var(--text-secondary)]">확인할 근거: {c.evidence_needed}</p>
+                    )}
+                    {c.fix_suggestion && (
+                      <p className="mt-0.5 text-[11px] text-[var(--accent)]">수정 제안: {c.fix_suggestion}</p>
                     )}
                   </div>
                 ))}
@@ -232,10 +306,14 @@ export function ReceiptView({
                     <p className="text-[11px] text-[var(--text-tertiary)]">
                       확인일 {f.check_by} · 맞음: {f.pass_condition || '—'} · 틀림: {f.fail_condition || '—'}
                       {f.predicate_owner === 'user' && ' · 내가 봉인함'}
+                      {f.revise_count ? ` · ${f.revise_count}회 미룸` : ''}
                     </p>
+                    {f.lean && <p className="mt-0.5 text-[11px] text-[#8b6914]">내 lean: {f.lean}</p>}
+                    {f.key_assumption && <p className="text-[11px] text-[var(--text-tertiary)]">핵심 가정: {f.key_assumption}</p>}
                     {f.settled_at ? (
                       <p className="mt-1 text-[12px] text-green-700">
                         정산됨: {settlementLabel(f.outcome)}{f.what_happened ? ` — ${f.what_happened}` : ''}
+                        {f.learned ? <span className="block text-[var(--text-secondary)]">배운 점: {f.learned}</span> : null}
                       </p>
                     ) : f.sealed_at && onSettle ? (
                       <div className="mt-1.5">

@@ -30,4 +30,21 @@ describe('buildCompanionBrief', () => {
     const two: DueReceiptBrief = { ...item, predicates: [item.predicates[0], { ...item.predicates[0], predicate: 'p2' }] };
     expect(buildCompanionBrief([two]).subject).toContain('2가지');
   });
+
+  it('includes a concrete Suggestion (a check action, not a verdict)', () => {
+    const md = buildCompanionBrief([item]).markdown;
+    expect(md).toContain('지금 확인할 것');
+    expect(md).toContain('+5%p'); // the suggestion references the pass condition
+  });
+
+  it('surfaces the Delta line when the receipt changed since sealing', () => {
+    const md = buildCompanionBrief([{ ...item, delta: '해소 2건 · 새로 발견 1건.' }]).markdown;
+    expect(md).toContain('그 사이 바뀐 것');
+    expect(md).toContain('해소 2건');
+  });
+
+  it('offers the settle/revise choices', () => {
+    const md = buildCompanionBrief([item]).markdown;
+    expect(md).toContain('날짜만 미루기');
+  });
 });

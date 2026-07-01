@@ -21,14 +21,20 @@ const OUTCOMES: { id: FollowupOutcome; label: string }[] = [
 export function SettleModal({
   followup,
   onSettle,
+  onRevise,
   onClose,
 }: {
   followup: FalsifiableFollowup;
-  onSettle: (outcome: FollowupOutcome, whatHappened: string) => void;
+  onSettle: (outcome: FollowupOutcome, whatHappened: string, learned: string) => void;
+  onRevise?: (newCheckBy: string) => void;
   onClose: () => void;
 }) {
   const [outcome, setOutcome] = useState<FollowupOutcome | null>(null);
   const [what, setWhat] = useState('');
+  const [learned, setLearned] = useState('');
+  const [revising, setRevising] = useState(false);
+  const [newDate, setNewDate] = useState('');
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
@@ -77,16 +83,43 @@ export function SettleModal({
             className="w-full h-20 resize-y px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
           />
 
-          <div className="flex gap-2 mt-5">
+          {/* 배운 점 — Settlement View §937 "아래: 배운 점" */}
+          <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 mt-3">배운 점 (선택)</label>
+          <textarea
+            value={learned}
+            onChange={(e) => setLearned(e.target.value)}
+            maxLength={500}
+            placeholder="다음 판단에 가져갈 한 줄 — 없어도 됩니다"
+            className="w-full h-16 resize-y px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
+          />
+
+          {/* revise = push the date instead of settling now (§933 choice) */}
+          {revising && (
+            <div className="mt-3 flex items-center gap-2">
+              <input type="date" value={newDate} min={today} onChange={(e) => setNewDate(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none" />
+              <Button variant="secondary" size="sm" disabled={!(newDate > today)} style={newDate > today ? undefined : { opacity: 0.5 }}
+                onClick={() => onRevise?.(newDate)}>
+                날짜 미루기
+              </Button>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2 mt-5">
             <Button
               variant="accent"
               size="md"
-              onClick={() => outcome && onSettle(outcome, what)}
+              onClick={() => outcome && onSettle(outcome, what, learned)}
               disabled={!outcome}
               style={outcome ? undefined : { opacity: 0.5 }}
             >
               정산하기
             </Button>
+            {onRevise && (
+              <Button variant="ghost" size="md" onClick={() => setRevising((v) => !v)}>
+                {revising ? '미루기 취소' : '아직 이르다 (날짜 미루기)'}
+              </Button>
+            )}
             <Button variant="ghost" size="md" onClick={onClose}>
               나중에
             </Button>

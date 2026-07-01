@@ -15,7 +15,9 @@ export {
   summarizeReceipt,
   sortByUrgency,
   daysBetween,
+  diffReceipts,
   type ReceiptStatus,
   type DerivedStatus,
+  type ReceiptDiff,
 } from './status';
 export { fingerprint, stableId, djb2 } from './ids';

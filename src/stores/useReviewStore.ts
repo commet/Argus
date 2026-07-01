@@ -22,6 +22,9 @@ import {
 /** Fields the user owns when sealing a prediction (design doc §Ownership Modal). */
 export interface SealPatch {
   predicate: string;
+  /** user-owned lean + assumption (Ownership Modal §890) — never Argus-filled. */
+  lean?: string;
+  key_assumption?: string;
   pass_condition: string;
   fail_condition: string;
   check_by: string;
@@ -43,7 +46,9 @@ interface ReviewState {
   /** Seal a falsifiable follow-up: the user owns the predicate; receipt→sealed. */
   sealFollowup: (receiptId: string, followupId: string, patch: SealPatch) => void;
   /** Settle a sealed follow-up against reality; receipt→settled. Argus records, never grades. */
-  settleFollowup: (receiptId: string, followupId: string, outcome: FollowupOutcome, whatHappened: string) => void;
+  settleFollowup: (receiptId: string, followupId: string, outcome: FollowupOutcome, whatHappened: string, learned?: string) => void;
+  /** Revise: push the check date instead of settling (Settlement View §933 choice). */
+  reviseFollowup: (receiptId: string, followupId: string, newCheckBy: string) => void;
   remove: (receiptId: string) => void;
 }
 
@@ -118,6 +123,8 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
           ? {
               ...f,
               predicate: patch.predicate.trim() || f.predicate,
+              lean: patch.lean?.trim() || undefined,
+              key_assumption: patch.key_assumption?.trim() || undefined,
               pass_condition: patch.pass_condition,
               fail_condition: patch.fail_condition,
               check_by: patch.check_by,
@@ -133,12 +140,14 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     pushUpdated(next, receiptId);
   },
 
-  settleFollowup: (receiptId, followupId, outcome, whatHappened) => {
+  settleFollowup: (receiptId, followupId, outcome, whatHappened, learned) => {
     const now = new Date().toISOString();
     const next = get().receipts.map((r) => {
       if (r.receipt_id !== receiptId) return r;
       const followups: FalsifiableFollowup[] = r.falsifiable_followups.map((f) =>
-        f.followup_id === followupId ? { ...f, outcome, what_happened: whatHappened, settled_at: now } : f,
+        f.followup_id === followupId
+          ? { ...f, outcome, what_happened: whatHappened, learned: learned?.trim() || undefined, settled_at: now }
+          : f,
       );
       // Receipt is settled once every sealed follow-up has an outcome.
       const allSealedSettled = followups
@@ -146,6 +155,23 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
         .every((f) => f.settled_at);
       const state: ReceiptState = allSealedSettled ? 'settled' : r.state;
       return { ...r, falsifiable_followups: followups, state, updated_at: now };
+    });
+    set({ receipts: next });
+    persist(next);
+    pushUpdated(next, receiptId);
+  },
+
+  reviseFollowup: (receiptId, followupId, newCheckBy) => {
+    const now = new Date().toISOString();
+    const next = get().receipts.map((r) => {
+      if (r.receipt_id !== receiptId) return r;
+      const followups: FalsifiableFollowup[] = r.falsifiable_followups.map((f) =>
+        f.followup_id === followupId
+          ? { ...f, check_by: newCheckBy, revise_count: (f.revise_count ?? 0) + 1 }
+          : f,
+      );
+      // Pushing the date keeps it sealed/active — it does not settle.
+      return { ...r, falsifiable_followups: followups, updated_at: now };
     });
     set({ receipts: next });
     persist(next);

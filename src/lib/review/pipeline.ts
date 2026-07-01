@@ -95,7 +95,7 @@ export async function runDocumentReview(
 
   try {
     // --- Stage 1: extraction → profile + judgment map ---------------------
-    emit('profiling', '문서 프로파일과 판단 지도를 만드는 중');
+    emit('profiling', '주장을 분석하는 중');
     const exPrompt = buildExtractionPrompt(artifact.units, ctx, budget.max_units);
     promptParts.push(exPrompt.system);
     const raw = await llm.json<Record<string, unknown>>({
@@ -115,7 +115,7 @@ export async function runDocumentReview(
     const profile = normalizeProfile(raw['profile'], ctx);
     const map = normalizeMap(raw, resolveAnchors);
 
-    emit('mapping', '핵심 주장과 판단 지점을 정리하는 중');
+    emit('mapping', '사람이 판단할 지점을 찾는 중');
 
     // --- Stage 2: reviewability + routing ---------------------------------
     const reviewability = scoreReviewability(artifact, map);
@@ -138,7 +138,7 @@ export async function runDocumentReview(
     }
 
     // --- Stage 3: lens reviews (parallel) ---------------------------------
-    emit('reviewing', '선택한 렌즈로 문서를 검수하는 중');
+    emit('reviewing', '근거가 약한 곳을 확인하는 중');
     const mapSummary = summarizeMap(map);
     const lensResults = await Promise.allSettled(
       routing.selected.map(async (lensId) => {
@@ -173,7 +173,7 @@ export async function runDocumentReview(
     }
 
     // --- Stage 4: synthesis → receipt fields ------------------------------
-    emit('synthesizing', 'Judgment Receipt를 종합하는 중');
+    emit('synthesizing', 'Judgment Receipt를 만드는 중');
     const synPrompt = buildSynthesisPrompt(mapSummary, summarizeFindings(findings), ctx, today);
     promptParts.push(synPrompt.system);
     const syn = await llm.json<Record<string, unknown>>({
@@ -253,6 +253,8 @@ function normalizeMap(raw: Record<string, unknown>, resolve: (ids: unknown) => S
         : 'weak') as Claim['status'],
       anchors: resolve(c['unit_ids']),
       rationale: scrubIds(s(c['rationale'])),
+      evidence_needed: s(c['evidence_needed']) ? scrubIds(s(c['evidence_needed'])) : undefined,
+      fix_suggestion: s(c['fix_suggestion']) ? scrubIds(s(c['fix_suggestion'])) : undefined,
     })).filter((c) => c.text),
     evidence_items: arr(raw['evidence_items']).map((e) => ({
       evidence_id: stableId('ev', s(e['text'])),

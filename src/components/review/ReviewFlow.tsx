@@ -18,9 +18,11 @@ import { ReceiptList } from './ReceiptList';
 import { SealModal } from './SealModal';
 import { SettleModal } from './SettleModal';
 import { extractFile, type ExtractedText } from '@/lib/review/extract-file';
+import { track } from '@/lib/analytics';
 import {
   ingest,
   runDocumentReview,
+  diffReceipts,
   type ReviewJob,
   type SourceKind,
   type ReviewConcern,
@@ -54,6 +56,9 @@ export function ReviewFlow() {
   const [concerns, setConcerns] = useState<ReviewConcern[]>(['full_judgment_review']);
   const [audienceHint, setAudienceHint] = useState('');
   const [worry, setWorry] = useState('');
+  const [storeSource, setStoreSource] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [sessionSource, setSessionSource] = useState<{ id: string; text: string } | null>(null);
   const [job, setJob] = useState<ReviewJob | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sealing, setSealing] = useState(false);
@@ -130,7 +135,7 @@ export function ReviewFlow() {
       source_kind: sourceKind,
       title,
       text,
-      privacy_mode: 'receipt_only',
+      privacy_mode: storeSource ? 'store_source' : 'receipt_only',
       pre_extracted: preExtracted?.text,
       pre_extracted_units: preExtracted?.units,
       extraction_quality: preExtracted?.quality,
@@ -143,8 +148,34 @@ export function ReviewFlow() {
     });
     setJob(finalJob);
     if (r && (finalJob.status === 'ready' || finalJob.status === 'needs_context')) {
+      // store_source: keep the original for the side-by-side workspace on return.
+      const effectiveText = preExtracted?.text || text;
+      if (storeSource) r.source_text = effectiveText;
+
+      // Version drift (Loop B §747): link a re-review of the same source.
+      const prev = store.receipts.find(
+        (x) => x.source_fingerprint === r.source_fingerprint && x.receipt_id !== r.receipt_id,
+      );
+      if (prev) {
+        r.previous_receipt_id = prev.receipt_id;
+        r.version = (prev.version ?? 1) + 1;
+        r.drift_note = diffReceipts(prev, r).note;
+      } else {
+        r.version = 1;
+      }
+
       store.saveReceipt(r);
+      setSessionSource({ id: r.receipt_id, text: effectiveText });
       setActiveId(r.receipt_id);
+      setShowOriginal(false);
+      track('review_completed', {
+        source_kind: r.source_kind,
+        reviewability: r.reviewability.score,
+        findings: r.findings.length,
+        obligations: r.judgment_obligations.length,
+        version: r.version,
+        needs_context: finalJob.status === 'needs_context',
+      });
       setPhase('receipt');
     } else {
       setPhase('failed');
@@ -173,11 +204,21 @@ export function ReviewFlow() {
   // ---- receipt view (freshly reviewed OR reopened from the list) ----
   if (phase === 'receipt' && receipt) {
     const sealed = receipt.state === 'sealed';
-    return (
-      <div className="max-w-2xl mx-auto w-full">
-        <button onClick={backToList} className="mb-3 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
-          ← 내 판단 항로
-        </button>
+    const original = receipt.source_text || (sessionSource?.id === receipt.receipt_id ? sessionSource.text : '');
+    const reReview = () => {
+      if (original) setText(original);
+      resetImport();
+    };
+    const receiptPane = (
+      <>
+        {receipt.version && receipt.version > 1 && receipt.drift_note && (
+          <Card variant="checkpoint" className="mb-4">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700 mb-1">
+              버전 {receipt.version} · 재검수
+            </div>
+            <p className="text-[13px] text-[var(--text-primary)]">{receipt.drift_note}</p>
+          </Card>
+        )}
         {sealed && (
           <Card variant="success" className="mb-4">
             <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-green-700 mb-1">봉인됨</div>
@@ -188,10 +229,51 @@ export function ReviewFlow() {
         )}
         <ReceiptView
           receipt={receipt}
-          onOwn={(o, owned) => store.setObligationOwned(receipt.receipt_id, o.obligation_id, owned)}
+          onOwn={(o, owned) => {
+            store.setObligationOwned(receipt.receipt_id, o.obligation_id, owned);
+            if (owned) track('judgment_obligation_selected', { receipt_id: receipt.receipt_id });
+          }}
           onSeal={() => setSealing(true)}
           onSettle={(followupId) => setSettlingId(followupId)}
+          onReReview={reReview}
         />
+      </>
+    );
+
+    return (
+      <div className={original ? 'max-w-6xl mx-auto w-full' : 'max-w-2xl mx-auto w-full'}>
+        <div className="mb-3 flex items-center justify-between">
+          <button onClick={backToList} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
+            ← 내 판단 항로
+          </button>
+          {original && (
+            <button
+              onClick={() => setShowOriginal((v) => !v)}
+              className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] md:hidden"
+            >
+              {showOriginal ? '원문 숨기기' : '원문 보기'}
+            </button>
+          )}
+        </div>
+
+        {original ? (
+          <div className="flex flex-col md:flex-row gap-5">
+            {/* left: original document (Review Workspace §837) */}
+            <div className={`md:w-1/2 ${showOriginal ? '' : 'hidden md:block'}`}>
+              <Card variant="muted" className="md:sticky md:top-4">
+                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-tertiary)] mb-2">원문</div>
+                <pre className="whitespace-pre-wrap break-words text-[12px] leading-[1.7] text-[var(--text-secondary)] max-h-[70vh] overflow-y-auto font-sans">
+                  {original}
+                </pre>
+              </Card>
+            </div>
+            {/* right: receipt */}
+            <div className="md:w-1/2">{receiptPane}</div>
+          </div>
+        ) : (
+          receiptPane
+        )}
+
         <div className="mt-6 flex gap-2">
           <Button variant="ghost" size="sm" onClick={resetImport}>
             다른 문서 검수하기
@@ -200,12 +282,14 @@ export function ReviewFlow() {
             목록으로
           </Button>
         </div>
+
         {sealing && receipt.falsifiable_followups.length > 0 && (
           <SealModal
             followups={receipt.falsifiable_followups}
             onClose={() => setSealing(false)}
             onSeal={(followupId, patch) => {
               store.sealFollowup(receipt.receipt_id, followupId, patch);
+              track('receipt_sealed', { receipt_id: receipt.receipt_id });
               setSealing(false);
             }}
           />
@@ -216,8 +300,14 @@ export function ReviewFlow() {
             <SettleModal
               followup={fu}
               onClose={() => setSettlingId(null)}
-              onSettle={(outcome, whatHappened) => {
-                store.settleFollowup(receipt.receipt_id, settlingId, outcome, whatHappened);
+              onSettle={(outcome, whatHappened, learned) => {
+                store.settleFollowup(receipt.receipt_id, settlingId, outcome, whatHappened, learned);
+                track('settled', { receipt_id: receipt.receipt_id, outcome });
+                setSettlingId(null);
+              }}
+              onRevise={(newCheckBy) => {
+                store.reviseFollowup(receipt.receipt_id, settlingId, newCheckBy);
+                track('reopened_or_revised', { receipt_id: receipt.receipt_id, kind: 'revise' });
                 setSettlingId(null);
               }}
             />
@@ -280,7 +370,9 @@ export function ReviewFlow() {
         receipts={store.receipts}
         onOpen={(id) => {
           setActiveId(id);
+          setShowOriginal(false);
           setPhase('receipt');
+          track('return_opened', { receipt_id: id, source: 'active_course' });
         }}
         onNew={resetImport}
         onRemove={(id) => store.remove(id)}
@@ -386,6 +478,19 @@ export function ReviewFlow() {
           />
         </div>
       </details>
+
+      {/* storage privacy (design doc §저장 원칙) — receipt_only is the default */}
+      <label className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)] cursor-pointer">
+        <input type="checkbox" checked={storeSource} onChange={(e) => setStoreSource(e.target.checked)} className="mt-0.5" />
+        <span>
+          원문도 함께 저장하기
+          <span className="block text-[11px] text-[var(--text-tertiary)]">
+            {storeSource
+              ? '원문을 저장해 검수 결과 옆에서 나란히 볼 수 있습니다.'
+              : '기본은 원문을 저장하지 않습니다 — 판단과 확인 조건만 남깁니다. (receipt_only)'}
+          </span>
+        </span>
+      </label>
 
       <div>
         <Button variant="accent" size="md" onClick={run} disabled={!canRun} style={canRun ? undefined : { opacity: 0.5 }}>

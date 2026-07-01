@@ -89,6 +89,8 @@ export async function GET(req: Request) {
       source_title: row.data.source_title || '제목 없는 문서',
       core_question: row.data.core_question || '',
       predicates: preds,
+      // Delta: if this receipt was itself a re-review, surface what changed.
+      delta: (row.data.version && row.data.version > 1 && row.data.drift_note) ? row.data.drift_note : undefined,
     });
     byUser.set(row.user_id, bucket);
   }

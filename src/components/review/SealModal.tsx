@@ -30,6 +30,8 @@ export function SealModal({
   const selected = followups.find((f) => f.followup_id === selectedId) ?? followups[0];
 
   const [predicate, setPredicate] = useState(selected?.predicate ?? '');
+  const [lean, setLean] = useState(selected?.lean ?? '');
+  const [assumption, setAssumption] = useState(selected?.key_assumption ?? '');
   const [pass, setPass] = useState(selected?.pass_condition ?? '');
   const [fail, setFail] = useState(selected?.fail_condition ?? '');
   const [checkBy, setCheckBy] = useState(selected?.check_by ?? '');
@@ -37,6 +39,8 @@ export function SealModal({
   const pickFollowup = (f: FalsifiableFollowup) => {
     setSelectedId(f.followup_id);
     setPredicate(f.predicate);
+    setLean(f.lean ?? '');
+    setAssumption(f.key_assumption ?? '');
     setPass(f.pass_condition);
     setFail(f.fail_condition);
     setCheckBy(f.check_by);
@@ -87,6 +91,27 @@ export function SealModal({
             className="w-full h-20 resize-y px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
           />
 
+          {/* The user writes their own lean + assumption. Argus never fills a
+              pole here — that would tilt the judgment (spine §Ownership Modal). */}
+          <div className="grid grid-cols-1 gap-2 mt-3">
+            <div>
+              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
+                지금 내 lean <span className="text-[var(--text-tertiary)] font-normal">(내 판단 — 당신이 직접)</span>
+              </label>
+              <input value={lean} onChange={(e) => setLean(e.target.value)} maxLength={200}
+                placeholder="예: 그래도 이번 분기엔 리빌드가 맞다고 본다"
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]" />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
+                내가 믿고 있는 핵심 가정
+              </label>
+              <input value={assumption} onChange={(e) => setAssumption(e.target.value)} maxLength={200}
+                placeholder="예: 이탈의 주원인이 온보딩 복잡도라는 것"
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]" />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-2 mt-3">
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">맞았다고 볼 조건</label>
@@ -109,7 +134,7 @@ export function SealModal({
             <Button
               variant="accent"
               size="md"
-              onClick={() => onSeal(selected.followup_id, { predicate, pass_condition: pass, fail_condition: fail, check_by: checkBy })}
+              onClick={() => onSeal(selected.followup_id, { predicate, lean, key_assumption: assumption, pass_condition: pass, fail_condition: fail, check_by: checkBy })}
               disabled={!canSeal}
               style={canSeal ? undefined : { opacity: 0.5 }}
             >

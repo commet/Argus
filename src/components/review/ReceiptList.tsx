@@ -11,6 +11,7 @@
 
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import {
   type JudgmentReceipt,
   summarizeReceipt,
@@ -47,18 +48,23 @@ export function ReceiptList({
 
   return (
     <div className="max-w-2xl mx-auto w-full flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[20px] font-bold text-[var(--text-primary)]">내 판단 항로</h1>
-          <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
-            {dueCount > 0
-              ? `확인할 차례가 된 예측이 ${dueCount}개 있습니다.`
-              : '검수하고 봉인한 판단들이 여기 모입니다. 확인일이 오면 위로 올라옵니다.'}
-          </p>
+      <div>
+        <h1 className="text-[20px] font-bold text-[var(--text-primary)]">내 판단 항로</h1>
+        <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
+          {dueCount > 0
+            ? `확인할 차례가 된 예측이 ${dueCount}개 있습니다.`
+            : '검수하고 봉인한 판단들이 여기 모입니다. 확인일이 오면 위로 올라옵니다.'}
+        </p>
+        {/* Workbench entry — two doors (design doc §Home/Workbench). The wedge is
+            "기존 문서 검수하기"; "초안 만들기" is the low-barrier secondary entry. */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="accent" size="sm" onClick={onNew}>
+            기존 문서 검수하기
+          </Button>
+          <LocaleLink href="/workspace">
+            <Button variant="secondary" size="sm">초안 만들기</Button>
+          </LocaleLink>
         </div>
-        <Button variant="accent" size="sm" onClick={onNew}>
-          새 문서 검수
-        </Button>
       </div>
 
       {ordered.length === 0 ? (

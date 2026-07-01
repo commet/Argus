@@ -88,6 +88,7 @@ Or add to your host's MCP config:
 | `argus_seal` | Seals a falsifiable prediction (`predicate` + `check_by`) and captures the receipt's real-question / unverified-assumption / human-only / your-call fields. Refuses an empty predicate or a non-future date. If you seal without naming the assumption, it's recorded as an explicit **skip** — never a forced gate (which would just eject the tiredest user), never a silent blank. With `ARGUS_TOKEN` set, the prediction also syncs to your account so the Companion Brief can email you at its check-by date. |
 | `argus_settle` | On the check-by date, records what reality did and issues the Judgment Receipt. Hard-errors without a prior seal. |
 | `argus_check_in` | Returns contracts past their check-by date. If nothing is due, it says so and stops — it doesn't manufacture engagement. |
+| `argus_sync` | Pulls your account receipts into the terminal (live judgments + what's due) so you can settle here. Seals push automatically; this is the read side. Requires `ARGUS_TOKEN`. |
 | `argus_recall` | Reads your own history: a receipt, the open contracts, or a sample-size-caveated track record (never a tier or score). |
 | `argus_init` / `argus_config` | Initialize the `.argus` directory; read/write non-spine settings. |
 

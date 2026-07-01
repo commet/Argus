@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { summarizeReceipt, sortByUrgency, daysBetween } from '../status';
-import type { JudgmentReceipt, FalsifiableFollowup } from '../schema';
+import { summarizeReceipt, sortByUrgency, daysBetween, diffReceipts } from '../status';
+import type { JudgmentReceipt, FalsifiableFollowup, Finding } from '../schema';
 
 function followup(over: Partial<FalsifiableFollowup>): FalsifiableFollowup {
   return {
@@ -90,6 +90,22 @@ describe('summarizeReceipt', () => {
     });
     const s = summarizeReceipt(r, '2026-07-21');
     expect(s.derived).toBe('settled');
+  });
+});
+
+describe('diffReceipts', () => {
+  const f = (title: string): Finding => ({
+    finding_id: title, lens_id: 'claim_evidence', title, detail: '', severity: 'caution',
+    confidence: 'medium', anchors: [], provenance: 'ai_surfaced',
+  });
+  it('reports resolved and newly-added findings across versions', () => {
+    const prev = receipt({ findings: [f('A'), f('B')] });
+    const next = receipt({ findings: [f('B'), f('C')] });
+    const d = diffReceipts(prev, next);
+    expect(d.resolved).toEqual(['A']);
+    expect(d.added).toEqual(['C']);
+    expect(d.note).toContain('해소 1건');
+    expect(d.note).toContain('새로 발견 1건');
   });
 });
 

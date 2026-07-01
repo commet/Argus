@@ -42,6 +42,44 @@ export interface PushResult {
 
 const TIMEOUT_MS = 5000;
 
+export interface AccountReceipt {
+  id: string;
+  source_title: string;
+  state: string;
+  next_check_by: string | null;
+  due: boolean;
+  core_question: string;
+  open_predicates: { predicate: string; check_by: string }[];
+}
+
+export interface PullResult {
+  ok: boolean;
+  reason?: string;
+  receipts: AccountReceipt[];
+}
+
+/** Pull the account's receipts (the sync's read side). No token ⇒ empty. */
+export async function fetchAccountReceipts(): Promise<PullResult> {
+  const token = (process.env.ARGUS_TOKEN || '').trim();
+  if (!token || !token.startsWith('argus_pat_')) return { ok: false, reason: 'no_token', receipts: [] };
+  const base = (process.env.ARGUS_API_URL || 'https://argus.voyage').replace(/\/+$/, '');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`${base}/api/mcp/receipts`, {
+      headers: { authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    });
+    if (!res.ok) return { ok: false, reason: `http_${res.status}`, receipts: [] };
+    const body = (await res.json()) as { receipts?: AccountReceipt[] };
+    return { ok: true, receipts: Array.isArray(body.receipts) ? body.receipts : [] };
+  } catch {
+    return { ok: false, reason: 'network', receipts: [] };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function pushToAccount(payload: SealPush | SettlePush): Promise<PushResult> {
   const token = (process.env.ARGUS_TOKEN || '').trim();
   if (!token) return { synced: false, reason: 'no_token' }; // local-only (default)

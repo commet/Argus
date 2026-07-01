@@ -12,6 +12,7 @@ import { TOOLS, TOOL_MAP } from './tools/index.js';
 import { listResources, listResourceTemplates, readResource } from './resources.js';
 import { listPrompts, getPrompt } from './prompts.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
+import { setElicitor } from './lib/elicit.js';
 import { logError } from './lib/log.js';
 
 /**
@@ -27,11 +28,22 @@ export async function createServer(): Promise<Server> {
     { name: 'argus-mcp', version: '1.0.0' },
     {
       // Capabilities are declared only for primitives whose handlers exist, so
-      // a host never probes a no-op (addendum J).
+      // a host never probes a no-op (addendum J). `elicitation` is a client
+      // capability we USE, not a server one we serve — advertised so the SDK
+      // permits elicitInput; tools degrade to text when the host lacks it.
       capabilities: { tools: {}, resources: {}, prompts: {} },
       instructions: SERVER_INSTRUCTIONS,
     },
   );
+
+  // Elicitation — structured user choices for spine-SAFE inputs (settlement
+  // outcome etc.), text-fallback when the host lacks support. Wired to the SDK's
+  // elicitInput; capability is advertised so a supporting host offers a picker.
+  setElicitor(async (message, requestedSchema) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await (server as any).elicitInput({ message, requestedSchema });
+    return res as { action: 'accept' | 'decline' | 'cancel'; content?: Record<string, unknown> };
+  });
 
   // Resources — read-only context (blueprint §4.3).
   server.setRequestHandler(ListResourcesRequestSchema, async () => listResources());

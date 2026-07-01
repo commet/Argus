@@ -10,6 +10,29 @@
 
 import type { JudgmentReceipt, FalsifiableFollowup, ReceiptState } from './schema';
 
+// ---------------------------------------------------------------------------
+// Version drift (Retention Loop B §747): diff a re-review against the prior one.
+// ---------------------------------------------------------------------------
+
+export interface ReceiptDiff {
+  resolved: string[]; // finding titles present before, gone now
+  added: string[]; // finding titles new this version
+  note: string; // one-line human summary
+}
+
+/** Compare two receipts of the same source by finding titles (cheap, pure). */
+export function diffReceipts(prev: JudgmentReceipt, next: JudgmentReceipt): ReceiptDiff {
+  const prevTitles = new Set((prev.findings || []).map((f) => f.title.trim()));
+  const nextTitles = new Set((next.findings || []).map((f) => f.title.trim()));
+  const resolved = [...prevTitles].filter((t) => !nextTitles.has(t));
+  const added = [...nextTitles].filter((t) => !prevTitles.has(t));
+  const note =
+    resolved.length || added.length
+      ? `이전 검수 대비 해소 ${resolved.length}건 · 새로 발견 ${added.length}건.`
+      : '이전 검수와 발견 항목이 크게 다르지 않습니다.';
+  return { resolved, added, note };
+}
+
 export type DerivedStatus = 'reviewed' | 'owned' | 'sealed' | 'due' | 'settled';
 
 export interface ReceiptStatus {

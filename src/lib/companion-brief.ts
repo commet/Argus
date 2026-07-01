@@ -22,6 +22,8 @@ export interface DueReceiptBrief {
   source_title: string;
   core_question: string;
   predicates: DuePredicate[];
+  /** Delta — what changed since the seal (e.g. a newer version exists). Optional. */
+  delta?: string;
 }
 
 export interface CompanionBriefEmail {
@@ -51,18 +53,25 @@ export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https:/
 
   for (const it of items) {
     blocks.push(`## ${it.source_title}`);
-    if (it.core_question) blocks.push(`_${it.core_question}_`);
+    if (it.core_question) blocks.push(`_${it.core_question}_`); // Recall
     blocks.push('');
     for (const p of it.predicates) {
+      // Recall + Reality Check
       blocks.push(`- **봉인한 예측:** ${p.predicate}`);
       if (p.pass_condition) blocks.push(`  - 맞음: ${p.pass_condition}`);
       if (p.fail_condition) blocks.push(`  - 틀림: ${p.fail_condition}`);
       blocks.push(`  - 확인일: ${p.check_by}`);
+      // Suggestion — a concrete check action, never a verdict (§Companion Brief)
+      const check = p.pass_condition || p.fail_condition;
+      if (check) blocks.push(`  - 지금 확인할 것: "${check}"가 실제로 그런지 데이터/사실 하나만 보세요.`);
     }
+    // Delta — what changed since the seal
+    if (it.delta) blocks.push(`\n_그 사이 바뀐 것: ${it.delta}_`);
     blocks.push('');
   }
 
-  blocks.push('아직 결과를 모르겠으면 "아직 불분명"도 답이에요. 그대로 기록해두면 다음에 다시 물어볼게요.');
+  // Choice
+  blocks.push('답할 수 있는 것: 그렇게 됐다 / 피했다 / 부분적으로 / 아직 불분명 — 또는 날짜만 미루기. 아직 모르겠으면 "아직 불분명"도 답이에요.');
   blocks.push('');
   blocks.push(`[내 판단 항로에서 정산하기 →](${url})`);
 

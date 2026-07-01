@@ -64,6 +64,19 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
     .filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p))
     .sort((a, b) => slideNum(a) - slideNum(b));
 
+  // Speaker notes live in ppt/notesSlides/notesSlideN.xml. N is not guaranteed
+  // to equal the slide number, but on decks authored linearly it usually does —
+  // good enough for a thin slice, and better than dropping notes entirely.
+  const notesByNum = new Map<number, string[]>();
+  for (const p of Object.keys(zip.files)) {
+    const m = /^ppt\/notesSlides\/notesSlide(\d+)\.xml$/.exec(p);
+    if (!m) continue;
+    const xml = await zip.files[p].async('string');
+    // notes XML repeats the slide number placeholder; keep only real note text.
+    const paras = paragraphsFromSlideXml(xml).filter((t) => t.trim() && !/^\d+$/.test(t.trim()));
+    if (paras.length) notesByNum.set(Number(m[1]), paras);
+  }
+
   const units: ArtifactUnit[] = [];
   let slideNo = 0;
   for (const path of slidePaths) {
@@ -81,6 +94,17 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
         text: para,
         source_anchor: { slide: slideNo },
         confidence: 0.85,
+      });
+    }
+    // speaker notes → their own units, still anchored to the slide.
+    for (const note of notesByNum.get(slideNo) ?? []) {
+      if (units.length >= MAX_UNITS) break;
+      units.push({
+        unit_id: stableId('u', 'note', slideNo, note.slice(0, 40)),
+        kind: 'speaker_note',
+        text: note,
+        source_anchor: { slide: slideNo },
+        confidence: 0.75,
       });
     }
   }
