@@ -11,9 +11,12 @@
  * about the user; the alert toggle is per-item and opt-out (mostly off). Copy is
  * literal — no metaphor (DESIGN §2).
  *
- * Population: reuses the reframe step's hidden_assumptions (the same assumptions the
- * user already saw) rather than a second extraction — so it can't drift, and there
- * is no surprise LLM call. The user imports them, then corrects.
+ * Population: reuses assumptions the user already saw — no second extraction, no
+ * surprise LLM call. Primary source is the progressive decision's own
+ * `final_mix.key_assumptions` (+ the user's flinch bet); the legacy reframe
+ * hidden_assumptions is a fallback (it only exists if the user exited to reframe
+ * mid-flow, so it is empty for a normal sealed decision). The user imports, then
+ * corrects.
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -24,7 +27,8 @@ import { Button } from '@/components/ui/Button';
 import { getStorage, STORAGE_KEYS } from '@/lib/storage';
 import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
 import { createItem, type ItemType } from '@/lib/decision-items';
-import type { Project, ReframeItem } from '@/stores/types';
+import { derivePremiseTexts } from '@/lib/derive-premise-texts';
+import type { Project, ReframeItem, ProgressiveSession } from '@/stores/types';
 
 const TYPE_ORDER: ItemType[] = ['premise', 'phenomenon', 'open_question'];
 const TYPE_LABEL: Record<ItemType, { ko: string; en: string }> = {
@@ -35,7 +39,15 @@ const TYPE_LABEL: Record<ItemType, { ko: string; en: string }> = {
   prediction: { ko: '예측', en: 'Predictions' },
 };
 
-export function DecisionItemsCard({ project }: { project: Project }) {
+export function DecisionItemsCard({
+  project,
+  session,
+}: {
+  project: Project;
+  /** The progressive voyage session for this project, if any — its
+   *  final_mix.key_assumptions are the primary premise source. */
+  session?: ProgressiveSession | null;
+}) {
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
@@ -58,16 +70,17 @@ export function DecisionItemsCard({ project }: { project: Project }) {
     [items, project.id],
   );
 
-  // Derive premise texts from the reframe step's already-surfaced assumptions.
+  // Derive premise texts. Primary: the progressive decision's own key assumptions
+  // (present for a normally-sealed voyage). Fallback: legacy reframe handoff.
   const derivable = useMemo(() => {
     if (mine.length > 0) return [] as string[];
     const rfs = getStorage<ReframeItem[]>(STORAGE_KEYS.REFRAME_LIST, []).filter(
       (r) => r.project_id === project.id,
     );
     const latest = rfs[rfs.length - 1];
-    const assumptions = latest?.analysis?.hidden_assumptions || [];
-    return assumptions.map((a) => a?.assumption).filter((t): t is string => !!t && !!t.trim());
-  }, [mine.length, project.id]);
+    const reframeTexts = (latest?.analysis?.hidden_assumptions || []).map((a) => a?.assumption);
+    return derivePremiseTexts(session, reframeTexts);
+  }, [mine.length, project.id, session]);
 
   function importPremises() {
     const now = Date.now();
