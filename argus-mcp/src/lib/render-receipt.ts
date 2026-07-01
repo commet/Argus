@@ -13,18 +13,15 @@ export function renderReceipt(r: Receipt): string {
 
   L.push('┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐');
   L.push(`  Sealed ${sealed}      Settled ${settled}`);
+  const skipped = new Set(r.skipped ?? []);
+  const show = (v: string, field: string): string => (skipped.has(field) ? '— (you skipped naming this)' : wrap(v));
+
   L.push('');
-  if (r.real_question) {
-    L.push('  THE REAL QUESTION');
-    L.push(`    ${wrap(r.real_question)}`);
-  }
-  if (r.unverified_assumption) {
-    L.push('  THE UNVERIFIED ASSUMPTION');
-    L.push(`    ${wrap(r.unverified_assumption)}`);
-  }
-  if (r.human_only) {
-    L.push(`  HUMAN-ONLY CALL   ${wrap(r.human_only)}`);
-  }
+  L.push('  THE REAL QUESTION');
+  L.push(`    ${show(r.real_question, 'real_question')}`);
+  L.push('  THE UNVERIFIED ASSUMPTION');
+  L.push(`    ${show(r.unverified_assumption, 'unverified_assumption')}`);
+  L.push(`  HUMAN-ONLY CALL   ${show(r.human_only, 'human_only')}`);
   L.push('  …made by          Me. (not the model)');
   if (r.basis) {
     L.push(`  …called as        ${r.basis}`);

@@ -60,7 +60,7 @@ export const seal: ToolModule = {
       await ensurePrivacyGitignore(dir);
 
       // seal-time receipt (the rich fields that make the receipt not blank)
-      await writeSealReceipt(dir, {
+      const receipt = await writeSealReceipt(dir, {
         id, predicate, check_by: checkBy,
         real_question: a['real_question'] as string | undefined,
         unverified_assumption: a['unverified_assumption'] as string | undefined,
@@ -80,13 +80,19 @@ export const seal: ToolModule = {
       events.push({ id, event: 'seal', predicate, check_by: checkBy, basis: a['basis'] as string | undefined });
       await appendLedger(dir, events, now);
 
+      const namedAssumption = !receipt.skipped.includes('unverified_assumption');
+      const nudge = namedAssumption
+        ? ''
+        : ' You sealed without naming the assumption it rests on — that\'s recorded as skipped, not hidden. You can still name it.';
+
       return envelope({
         ok: true, tool: 'argus_seal',
-        surface: `Sealed. "${predicate}" — reality answers on ${checkBy}. Come back then with argus_settle.`,
+        surface: `Sealed. "${predicate}" — reality answers on ${checkBy}. Come back then with argus_settle.${nudge}`,
         next_actions: ['argus_check_in', 'stop'],
         data: {
           id, predicate, check_by: checkBy, predicate_owner: a['predicate_owner'],
           status: 'sealed', ledger_events_written: events.map((e) => e.event),
+          skipped: receipt.skipped,
           falsifiability_note: vErr ? 'weak heuristic passed' : undefined,
         },
       });

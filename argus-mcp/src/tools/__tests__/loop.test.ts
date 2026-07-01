@@ -90,6 +90,21 @@ describe('structural spine enforcement', () => {
   });
 });
 
+describe('explicit skip trace (spine: escape kept, omission honest)', () => {
+  it('seals without an assumption but records it as skipped, not blank', async () => {
+    const dir = tmpArgusDir();
+    const s = body(await seal.handler({ argus_dir: dir, id: 'bare', predicate: 'Signups exceed 100 in a month', check_by: FUTURE, predicate_owner: 'user' }));
+    expect(s['ok']).toBe(true);
+    expect((s['data'] as Record<string, unknown>)['skipped']).toContain('unverified_assumption');
+    expect(String(s['surface'])).toContain('skipped');
+
+    const settled = body(await settle.handler({ argus_dir: dir, id: 'bare', outcome: 'held', outcome_source: 'user_stated', what_happened: 'got 140' }));
+    const receipt = (settled['data'] as Record<string, unknown>)['receipt'] as Record<string, unknown>;
+    expect(receipt['unverified_assumption']).toBe('(skipped)');
+    expect(String((settled['data'] as Record<string, unknown>)['receipt_text'])).toContain('you skipped naming this');
+  });
+});
+
 describe('over-fire restraint writes no harvest', () => {
   it('low-stakes decision returns leave_as_is and never opens', async () => {
     const dir = tmpArgusDir();
