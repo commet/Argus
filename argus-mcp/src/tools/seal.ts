@@ -35,7 +35,8 @@ export const seal: ToolModule = {
     'Seal a falsifiable prediction (predicate + check-by date) for an open decision. Captures the seal-time Judgment Receipt fields. Refuses an empty/non-falsifiable predicate or a non-future date.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: false, idempotentHint: false, openWorldHint: false },
+  // openWorldHint: true — with ARGUS_TOKEN set, sealing also mirrors to the account.
+  annotations: { title: 'Seal a prediction', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   handler: async (a) => {
     try {
       const dir = requireArgusDir(a['argus_dir']);

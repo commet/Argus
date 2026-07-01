@@ -24,6 +24,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "eval": "node evals/run.mjs",
+    "eval:review": "node evals/run-review.mjs",
     "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [

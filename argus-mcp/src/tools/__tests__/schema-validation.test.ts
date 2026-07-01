@@ -22,6 +22,26 @@ describe('Zod source → JSON Schema (tools/list)', () => {
   });
 });
 
+describe('tool annotations are complete (mcp-builder §Annotations)', () => {
+  it.each(TOOLS.map((t) => [t.name, t] as const))('%s declares a title + all four hints', (_name, tool) => {
+    const a = tool.annotations ?? {};
+    expect(typeof a.title).toBe('string');
+    expect(typeof a.readOnlyHint).toBe('boolean');
+    expect(typeof a.destructiveHint).toBe('boolean');
+    expect(typeof a.idempotentHint).toBe('boolean');
+    expect(typeof a.openWorldHint).toBe('boolean');
+  });
+
+  it('no argus tool is destructive (append-only ledger, no deletes)', () => {
+    for (const t of TOOLS) expect(t.annotations?.destructiveHint).toBe(false);
+  });
+
+  it('the two network-touching tools (seal, settle) declare openWorldHint', () => {
+    expect(seal.annotations?.openWorldHint).toBe(true);
+    expect(settle.annotations?.openWorldHint).toBe(true);
+  });
+});
+
 describe('runtime input validation (what the server dispatch enforces)', () => {
   it('seal: rejects a too-short predicate and a bad date', () => {
     const bad = seal.inputSchema.safeParse({ argus_dir: '/x', id: 'd1', predicate: 'short', check_by: 'soon', predicate_owner: 'user' });

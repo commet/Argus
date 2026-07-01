@@ -22,7 +22,7 @@ export const recall: ToolModule = {
     "Read your own decision history: a single receipt, the open contracts, or your track record. Read-only. Track record reports sample-size-scaled frequency only — never a tier, score, or verdict about who you are.",
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: true, openWorldHint: false },
+  annotations: { title: 'Recall your history', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = requireArgusDir(a['argus_dir']);

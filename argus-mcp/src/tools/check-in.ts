@@ -18,7 +18,7 @@ export const checkIn: ToolModule = {
     'Return decision contracts whose check-by date has arrived (and optionally upcoming ones). A return nudge — reads and routes to argus_settle. If nothing is due, it says so and stops; it does not manufacture engagement.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: true, openWorldHint: false },
+  annotations: { title: 'Check what is due', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = requireArgusDir(a['argus_dir']);

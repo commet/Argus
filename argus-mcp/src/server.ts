@@ -83,6 +83,10 @@ export async function createServer(): Promise<Server> {
     return run;
   };
 
+  // The low-level SDK handler's expected return is a broad ServerResult union
+  // (incl. a task-augmented variant) our envelope type isn't nominally part of —
+  // `any` is the sanctioned boundary here; every return below is a real
+  // McpToolResult, built by the typed helpers.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   server.setRequestHandler(CallToolRequestSchema, async (request): Promise<any> => {
     const { name, arguments: args } = request.params;

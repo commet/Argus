@@ -27,7 +27,8 @@ export const settle: ToolModule = {
     'Settle a sealed decision against reality and issue a Judgment Receipt with zero AI verdict. Hard-errors if there is no prior seal. The outcome is the user\'s — recorded, never inferred.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },
+  // openWorldHint: true — with ARGUS_TOKEN set, settling also mirrors to the account.
+  annotations: { title: 'Settle against reality', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   handler: async (a) => {
     try {
       const dir = requireArgusDir(a['argus_dir']);

@@ -35,7 +35,7 @@ export const openDecision: ToolModule = {
     'Open a consequential decision. Runs a fire-or-not restraint gate FIRST; if it fires, surfaces at most one neutral crux question and a "leave as is" option. Never a fork, never a verdict, never a lean. On flat/low-stakes/reversible/closed decisions it returns restraint.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: false, idempotentHint: false, openWorldHint: false },
+  annotations: { title: 'Open a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = requireArgusDir(a['argus_dir']);

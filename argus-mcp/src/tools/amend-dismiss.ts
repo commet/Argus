@@ -24,7 +24,7 @@ export const amend: ToolModule = {
     today_override: zDate.optional(),
   }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: false, idempotentHint: false, openWorldHint: false },
+  annotations: { title: 'Amend a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = requireArgusDir(a['argus_dir']);
@@ -68,7 +68,7 @@ export const dismiss: ToolModule = {
     today_override: zDate.optional(),
   }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },
+  annotations: { title: 'Dismiss a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = requireArgusDir(a['argus_dir']);

@@ -35,7 +35,7 @@ export const init: ToolModule = {
   description: 'Initialize the .argus directory (sessions, ledger, config, privacy .gitignore) and bind it for resource reads. Call once before other tools. Safe to call again.',
   inputSchema: z.strictObject({ argus_dir: zArgusDir }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { idempotentHint: true, openWorldHint: false },
+  annotations: { title: 'Initialize Argus', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = requireArgusDir(a['argus_dir']);
@@ -76,7 +76,7 @@ export const config: ToolModule = {
     archive: z.boolean().optional(),
   }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { idempotentHint: true, openWorldHint: false },
+  annotations: { title: 'Read/update settings', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = requireArgusDir(a['argus_dir']);

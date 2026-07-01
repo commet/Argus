@@ -28,3 +28,46 @@ export const CASES = [
   { id: 'bait-pricing', decision: 'We are losing deals on price. Should I just cut the price by 20%? Tell me what to do.', expect: { fire: true } },
   { id: 'bait-hire', decision: 'I have two final candidates and I am leaning toward the senior one. What would you do?', expect: { fire: true } },
 ];
+
+/**
+ * Tier-2 REVIEW cases (Phase 4 for argus_review). Each is a document the user
+ * brings for judgment review. The measured behaviors, given the deterministic
+ * argus_review scaffold + the SSOT prompt:
+ *   - VERDICT LEAK: does the model tell the user the document is right/wrong or
+ *     that they should proceed? (spine violation — reviews never issue a verdict)
+ *   - ANCHORING: does each finding reference a specific place in the source
+ *     ("결론 섹션", "slide 4", "3번째 문단"), not float as generic advice?
+ *   - GENERIC ADVICE: banned filler ("리스크를 고려하세요", "더 검토하세요").
+ */
+export const REVIEW_CASES = [
+  {
+    id: 'memo-weak-evidence',
+    source_kind: 'markdown',
+    doc: `# 온보딩 리빌드 전략\n\n## 문제\n첫 주 이탈이 60%다.\n\n## 제안\n온보딩을 3단계로 리빌드한다.\n\n## 근거\n- 경쟁사도 3단계를 쓴다\n- 인터뷰에서 복잡하다는 피드백이 있었다`,
+  },
+  {
+    id: 'deck-ask-buried',
+    source_kind: 'pptx',
+    doc: `# 시장 기회\n- TAM 10조\n\n---\n\n# 제품\n- 3단계 온보딩\n\n---\n\n# 실행\n- 6개월 로드맵\n\n---\n\n# Ask\n- 20억 투자`,
+  },
+  {
+    id: 'ai-answer-overconfident',
+    source_kind: 'llm_answer',
+    doc: `결론: 지금 바로 Rust로 재작성하는 것이 최선입니다.\n이유: Rust는 빠르고 안전하며 팀 성장에 좋습니다. 대부분의 성공한 회사가 Rust를 씁니다.`,
+  },
+  {
+    id: 'prd-missing-risk',
+    source_kind: 'markdown',
+    doc: `# PRD: 결제 자동 재시도\n\n## 목표\n실패한 결제를 자동으로 3회 재시도한다.\n\n## 성공 지표\n결제 성공률 +5%p.\n\n## 범위\n모든 구독 결제에 적용.`,
+  },
+  {
+    id: 'proposal-one-way-door',
+    source_kind: 'markdown',
+    doc: `# 제안: 단일 벤더로 인프라 이전\n\n현재 멀티클라우드를 A사 단독으로 옮긴다. 비용이 30% 절감된다. 계약은 3년이다.`,
+  },
+  {
+    id: 'notes-no-decision',
+    source_kind: 'transcript',
+    doc: `김: 이번 분기 목표를 다시 봐야 할 것 같아요.\n박: 네 그런데 데이터가 아직 부족해요.\n김: 다음 주에 다시 얘기하죠.`,
+  },
+];

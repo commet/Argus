@@ -32,6 +32,9 @@ import {
 
 const MAX_DOC_BYTES = 400_000;
 const UNIT_LIMIT = 160;
+// Cap the units block so a large doc can't return a giant tool response
+// (mcp-builder §CHARACTER_LIMIT). Whichever bound hits first — count or chars.
+const CHAR_BUDGET = 20_000;
 
 const CONCERNS = ['strategic_fit', 'evidence', 'stakeholder_objection', 'execution_risk', 'ai_answer_trust', 'full_judgment_review'] as const;
 
@@ -57,7 +60,7 @@ export const review: ToolModule = {
     'Review an existing document (strategy memo / PRD / deck text / AI answer) for judgment risk. Returns a reviewability score, the routed review lenses, the source units with anchors, and the extraction prompt — then hands YOU (the model) the analysis to run. Anchor every finding to a unit; never deliver a verdict. End by sealing ONE falsifiable follow-up via argus_seal.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  annotations: { title: 'Review a document', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
       const filePath = typeof a['file_path'] === 'string' ? (a['file_path'] as string) : '';
@@ -143,7 +146,16 @@ export const review: ToolModule = {
         biggest_worry: typeof a['biggest_worry'] === 'string' ? (a['biggest_worry'] as string) : undefined,
         concerns,
       };
-      const extraction = buildExtractionPrompt(artifact.units, ctx, UNIT_LIMIT);
+      // Effective unit count: min of UNIT_LIMIT and however many fit the char budget.
+      let charAcc = 0;
+      let effLimit = 0;
+      for (const u of artifact.units) {
+        if (effLimit >= UNIT_LIMIT) break;
+        charAcc += u.text.length + 48; // rough per-rendered-line overhead (id + kind + loc)
+        if (charAcc > CHAR_BUDGET && effLimit > 0) break;
+        effLimit++;
+      }
+      const extraction = buildExtractionPrompt(artifact.units, ctx, effLimit);
 
       const lenses = routing.selected.map((id) => ({
         id,
@@ -171,10 +183,10 @@ export const review: ToolModule = {
           // stage (no separate units dump; the source text is heavy and should
           // not be sent twice).
           extraction_prompt: extraction,
-          units_shown: Math.min(artifact.units.length, UNIT_LIMIT),
+          units_shown: Math.min(artifact.units.length, effLimit),
           units_total: artifact.units.length,
-          ...(artifact.units.length > UNIT_LIMIT
-            ? { units_truncated_note: `문서 단위 ${artifact.units.length}개 중 앞 ${UNIT_LIMIT}개만 실었습니다. 더 검수하려면 뒷부분을 따로 넣으세요.` }
+          ...(artifact.units.length > effLimit
+            ? { units_truncated_note: `문서 단위 ${artifact.units.length}개 중 앞 ${effLimit}개만 실었습니다(응답 크기 제한). 더 검수하려면 뒷부분을 따로 넣으세요.` }
             : {}),
           protocol: [
             '1) extraction_prompt(그 안의 units + 출력 스키마)를 적용해 문서 판단 지도(profile + claims/assumptions/decision_points)를 만든다.',

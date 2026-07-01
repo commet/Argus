@@ -27,7 +27,7 @@ export const sync: ToolModule = {
     'Pull your Argus account receipts into the terminal — live judgments and what is due — so you can settle here. Seals/settles already push to the account automatically; this is the read side. Requires ARGUS_TOKEN.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  annotations: { title: 'Sync account receipts', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   handler: async (a) => {
     try {
       const pull = await fetchAccountReceipts();
