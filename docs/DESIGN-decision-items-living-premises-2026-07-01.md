@@ -402,10 +402,20 @@ CLAUDE.md single-source: **두뇌(lib) 하나 공유, 표현만 분리.**
   → progressive 세션의 `final_mix.key_assumptions`(+flinch real_bet)에서 채우도록 수정,
   reframe는 fallback. 순수 `lib/derive-premise-texts.ts`로 추출 + 유닛 7건.
 - **#5 수정** — 위 SessionStart 훅 트리거.
-- **잔여(정직):** (a) 플러그인 재확인 루프(`/argus:track check`의 WebSearch·drift 발화)는
-  이 환경에서 **런타임 실행 미검증** — 구조/카운트 로직만 테스트됨. (b) override 신호
-  → `/principles` 비준 연결 미구현. (c) open_question 재고 미구현. (d) `item-extract-core.ts`는
-  아직 TS 호출자 없음(웹은 derive-premise-texts, 플러그인은 clarify 재사용).
+**후속 2차(2026-07-01, "남은 것 다 해" — 정직한 결과):**
+- **#3 (닫을 수 있는 부분 완결)** — 재확인 drift 로직(플러그인이 프로즈로 미러)을
+  end-to-end 시나리오로 검증(`premise-drift-scenario.test.ts`: baseline→빈도캡→실드리프트
+  발화→무드리프트 침묵→후퇴, +텍스트 flip). **런타임 LLM+WebSearch 실행만** env로 여전히
+  미검증(닫을 수 없음, 환경 한계). 위험했던 로직은 이제 pin됨.
+- **#6 (스파인-correct로 수정)** — override 신호를 `/principles`로 보내는 건 **스파인 위반**
+  (principles=현실-소스 불변식; override는 자기보고). 대신 `/argus:track` Step 2b에
+  **도구-보정 노트**(추출이 과한지 묻기, 사용자 판정 아님)로 넣음. 겸사겸사 track의
+  meta-check가 override를 /principles로 잘못 라우팅하던 **잠복 스파인 버그 정정**.
+- **#7 (의도적 미구현)** — open_question 재고: **깨끗한 소스가 없음**(crux 질문? 사용자-표시
+  미정? 거부된 전제?)이 제품 결정 사안이라, 소스 결정 없이 짓는 건 speculative dead code.
+  소스 확정 후 착수 — 사용자 선택 대기.
+- **잔여:** `item-extract-core.ts`는 여전히 TS 호출자 없음(웹=derive-premise-texts, 플러그인=
+  clarify 재사용). 웹 알림 전달(허브)·edge cron 미구현.
 
 ---
 
