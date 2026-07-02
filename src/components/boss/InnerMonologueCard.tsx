@@ -180,6 +180,14 @@ export function InnerMonologueCard({ verdict }: InnerMonologueCardProps) {
           </span>
         )}
       </div>
+      {/* Honest-provenance: the "just for fun" caveat was tooltip-only (invisible
+          on touch). Surface it as a visible, quiet line so no one mistakes the
+          saju flavor for a real read on someone's nature. */}
+      {hasHiddenLayer && (
+        <p style={{ margin: '2px 0 0', fontSize: 10.5, lineHeight: 1.5, opacity: 0.72, fontStyle: 'italic' }}>
+          {t('boss.innerSajuTooltip')}
+        </p>
+      )}
       <AnimatePresence mode="wait">
         <motion.p
           key={isStreaming ? 'streaming' : 'final'}
