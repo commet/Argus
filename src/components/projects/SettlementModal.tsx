@@ -24,11 +24,14 @@
  * auto-escaped.
  */
 
-import { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Target, AlertTriangle, GitBranch, Check, Anchor } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useProjectStore } from '@/stores/useProjectStore';
+import { useReviewStore } from '@/stores/useReviewStore';
+import { summarizeReviewRecord, shouldShowThirdLoop } from '@/lib/record-summary';
+import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import type { Project, Predicate, PredicateSource, PredicateVerdict, PredicateBasis, CheckInInterval } from '@/stores/types';
 import {
   gradePredicate,
@@ -96,6 +99,24 @@ export function SettlementModal({
     const rec = summarizeRecord(projects, Date.now());
     return { ...rec, loops: Math.max(1, rec.loops) };
   }, [allResolved, projects]);
+
+  // 3고리 의식 (P1-A5 = 08 S5): fires exactly when the MERGED settled count
+  // (project loops + review settles — the same number RecordStrip gates on)
+  // first reaches SETTLED_THRESHOLD. Lifetime-once via a local flag; the copy
+  // below names a sample-size fact and carries "여전히 점수는 아니에요" so it
+  // can never read as a grade. Strict equality: a user already past the
+  // threshold never gets a late ceremony.
+  const receipts = useReviewStore((s) => s.receipts);
+  const reducedMotion = useReducedMotion();
+  const [thirdLoop, setThirdLoop] = useState(false);
+  useEffect(() => {
+    if (!record) return;
+    const merged = record.loops + summarizeReviewRecord(receipts || []).settled;
+    if (shouldShowThirdLoop(merged, getStorage(STORAGE_KEYS.THIRD_LOOP_SEEN, false))) {
+      setThirdLoop(true);
+      setStorage(STORAGE_KEYS.THIRD_LOOP_SEEN, true);
+    }
+  }, [record, receipts]);
 
   function saveWhatHappened(text: string) {
     const existingReceipt = contract?.judgment_receipt;
@@ -378,6 +399,32 @@ export function SettlementModal({
                     {record.goodOutcomesOnLuck > 0 &&
                       ' ' + L(`그중 ${record.goodOutcomesOnLuck}개는 운이었다고 보셨고요.`, `You marked ${record.goodOutcomesOnLuck} of those as luck.`)}
                   </p>
+                )}
+                {/* 3고리 의식 (P1-A5): one gold hairline (same ink-line family
+                    as the seal ceremony, 2s draw — static under reduced
+                    motion) + one sentence. The threshold is the product's own
+                    codified sample-size constant (dim9), the copy describes
+                    what the RECORD becomes and disclaims the score reading in
+                    the same breath. Never a user-evaluation word, never
+                    repeated (lifetime flag), never extended into a "we don't
+                    judge" purity claim (§4 채택 조건). */}
+                {thirdLoop && (
+                  <div className="pt-0.5">
+                    <motion.div
+                      aria-hidden
+                      initial={reducedMotion ? false : { scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ duration: 2, ease: 'easeOut' }}
+                      className="h-px w-full"
+                      style={{ transformOrigin: 'left', background: 'var(--gradient-gold)' }}
+                    />
+                    <p className="mt-2 text-[12.5px] leading-[1.55] text-[var(--text-secondary)]">
+                      {L(
+                        '세 번째 고리를 닫았어요. 이제 이 기록의 빈도가 의미를 갖기 시작해요 — 여전히 점수는 아니에요.',
+                        "That's the third loop closed. The frequencies in this record start to mean something now — still not a score.",
+                      )}
+                    </p>
+                  </div>
                 )}
                 <div className="flex items-center justify-between gap-3">
                   {/* 재봉인 온램프 (P1-A1, 리뷰1): the ONE quiet door out of a

@@ -35,6 +35,11 @@ export const STORAGE_KEYS = {
   // anonymous visitor ("free trial"). clearAllStorage() removes it on explicit
   // sign-out, so a deliberate sign-out never reads as an expiry.
   KNEW_YOU: 'argus:knew-you',
+  // 3고리 의식 (P1-A5 = 08 S5) — true once the merged settled count first
+  // reached SETTLED_THRESHOLD and the one-time line was shown. Lifetime-once
+  // guard for the ONLY threshold the spine can mark (a sample-size fact the
+  // product already codified, dim9) — never repeats, never becomes a streak.
+  THIRD_LOOP_SEEN: 'argus:third-loop-seen',
 } as const;
 
 export function getStorage<T>(key: string, fallback: T): T {
