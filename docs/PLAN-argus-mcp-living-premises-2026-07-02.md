@@ -1,203 +1,270 @@
-# PLAN v2 — Living Premises for argus-mcp (the model-agnostic surface)
+# PLAN v3 — Living Premises for argus-mcp (실행 플레이북)
 
-- 날짜: 2026-07-02 (v2 — devils-advocate 10건 + 자체 리뷰 반영해 전면 보완)
-- 상태: **계획 확정본** — 착수 트리거 대기(§10 코디네이션).
+- 날짜: 2026-07-02 (v3 — PM·디자인·풀스택 3렌즈 최종 리뷰 반영; v2는 적대 리뷰 10건 반영본)
+- 상태: **실행 플레이북 확정** — 착수 트리거 대기(§10).
 - 왜: decision-items/living-premises를 **`argus-mcp`(MCP 서버, 모델-무관)** 에 짓는다.
-  어떤 MCP 호스트(Claude/ChatGPT/Gemini)에서도 돌게.
-- 근거: argus-mcp 심층 맵 + mcp-builder Phase 1 + **적대 리뷰**(devils-advocate; 치명 2건 —
-  reconsider의 two-pole fork, 수동 서버의 return-loop 부재 — 이 문서가 그 수정본).
+- 근거: argus-mcp 심층 맵 → mcp-builder Phase 1 → devils-advocate 10건(v2) → 3렌즈 최종
+  리뷰(v3: drift 숫자파싱 버그 부류·서수 안정성·플러그인 공존·주입 방어·MVP 분리·실행 절차).
 - 관련: `docs/DESIGN-decision-items-living-premises-2026-07-01.md`(개념·스파인), `argus-mcp/README.md`.
 
 ---
 
 ## 0. 원칙
 
-1. **이식 아님 — 컨셉으로 재설계.** 순수 drift 알고리즘만 이식, 저장·툴 계층은 argus-mcp
-   모델(원장 fold·상태기계·envelope)에 맞춰 새로.
-2. **겹침 회피 + 단일 소스.** 기존 단수 `unverified_assumption`을 전제 집합으로 **일반화**하되,
-   **전제 엔티티가 canonical** — 영수증 헤드라인은 fold에서 렌더(§5). 이중 저장 금지.
-3. **기존 스타일 일치.** 저수준 `Server`+JSON Schema, 수동검증(`isOneOf`/`GuardError`), envelope
-   출력, `argus_` snake_case, **`spine.ts` 불변식**(`ai_verdict:null`, `FORBIDDEN_FORK_KEYS`,
-   닫힌 NEXT_ACTIONS) 전부 유지. drift-guard 테스트가 심판.
-4. **정직한 기대치.** MCP 서버는 수동적 — "재확인 안 된 전제"가 **기본 상태**다. liveness를
-   연기하지 않고 staleness를 보여준다(§4).
+1. **이식 아님 — 컨셉으로 재설계.** 순수 수치-드리프트 계산만 이식, 나머지는 argus-mcp 모델
+   (원장 fold·상태기계·envelope·spine drift-guard)에 맞춰 새로.
+2. **겹침 회피 + 단일 소스.** 단수 `unverified_assumption`을 전제 집합으로 일반화, **전제
+   엔티티가 canonical**, 영수증 헤드라인은 settle-시점 fold 렌더.
+3. **기존 스타일 일치.** 저수준 `Server`+JSON Schema, 수동검증(`isOneOf`/`GuardError`),
+   envelope, `argus_` snake_case, locale.ts, **spine.ts 불변식**(`ai_verdict:null`,
+   `FORBIDDEN_FORK_KEYS`, 닫힌 NEXT_ACTIONS) 전부 유지.
+4. **정직한 기대치.** MCP 서버는 수동적 — "재확인 안 된 전제"가 기본 상태. staleness를
+   보여주고 liveness를 연기하지 않는다.
 
 ---
 
-## 1. 사용자 여정 → 툴 매핑 (v2: 2툴로 축소)
+## 1. PM 렌즈 — 제품 적합성 · MVP · 지표
+
+### 1.1 이 기능이 제품을 강화하는 이유 (희석이 아니라)
+argus-mcp의 정체성 = Judgment Receipt, 그중 가장 독특한 줄이 **"THE UNVERIFIED
+ASSUMPTION"**. 지금은 seal 때 한 번 적고 끝나는 **죽은 줄**이다. Living premises는 정확히
+그 줄을 **살아있는 객체**로 만든다: 여러 개가 되고, 편집되고(저작권 추적), 현실과
+재확인되고, settle 때 "그 전제는 어떻게 됐나"가 영수증에 남는다. 새 제품 방향이 아니라
+**영수증의 가장 강한 줄을 완성하는 것** — 이게 스코프 정당화다. 이 문장이 흔들리면 기능을
+줄인다(늘리지 않는다).
+
+### 1.2 MVP 3단 (각각 독립 배포 가능 — 한 번에 다 안 짓는다)
+- **A. Trackable(정적 추적):** step 0(하위호환) + `argus_premises`(add/amend) + recall
+  view:premises + seal/open 승격 + 영수증 fold 렌더. → "전제가 보이고 고쳐진다."
+- **B. Living(재확인):** `argus_recheck` + check_in due 전제 + 전 툴 piggyback due_note.
+  → "전제가 현실과 재확인된다."
+- **C. Closure(미결·평가):** resolve op + eval-1/eval-2 + README/CHANGELOG.
+A만 배포해도 가치가 성립(영수증 강화). B가 차별점. C가 완성도.
+
+### 1.3 지표 (행수 규칙)
+- `premise_add`가 있는 결정 / 전체 seal 비율 (채택).
+- **`premise_recheck` / `premise_add` 비율** (write-only ceremony 감시 — §5-5).
+- amend가 있는 결정 비율 (편집=신호가 실제로 쓰이나).
+관찰 방법: 원장은 로컬이므로 자동 수집 없음 — README에 "행수 확인" 셀프체크 명령 제공
+(`argus_recall view:track_record`에 premise 카운트 포함).
+
+---
+
+## 2. 사용자 여정 → 툴 (2개)
 
 ```
-open_decision ─▶ argus_premises(op:add) ─▶ argus_premises(op:amend) ─▶ seal(전제 승격 연결)
-  (결정 염)      (전제 N개 등록, AI/사용자)   (편집=provenance 신호)         │
-                                                                          ▼
-settle(영수증=fold 렌더) ◀─ argus_premises(op:resolve) ◀─ argus_recheck ◀─ check_in(+due 전제)
-                              (미결에 사용자 결정 기록)      (현실 재확인)      (piggyback 표면)
+open_decision ─▶ argus_premises(add) ─▶ argus_premises(amend) ─▶ seal(승격 알리아스)
+                                                                     │
+settle(영수증=fold) ◀─ argus_premises(resolve) ◀─ argus_recheck ◀─ check_in(+due) / due_note
 ```
 
-**v1의 4툴 → 2툴로 축소한 이유 (적대 리뷰 8):** `reconsider`는 `recall`과 이름 근접(호스트
-혼동), `amend_premise`는 `argus_amend`와 충돌. 또 opaque `premise_id`를 멀티턴으로 스레딩하면
-모델이 id를 mangle → 정확히 "귀환의 순간"에 `NO_SUCH_PREMISE`. 해결: 툴 2개 + **서수 참조**.
-
-## 2. 신규 툴 (2개)
-
-### `argus_premises` — 전제 집합의 쓰기 (op 파라미터)
-| op | 뜻 | 비고 |
+### `argus_premises` — 전제 집합 쓰기
+| op | 입력 | 규칙 |
 |---|---|---|
-| `add` | 전제 N개 등록 | `premises[]`{text(≤400), kind(premise\|open_question), external:bool, load_bearing:bool, source(ai\|user), ai_original?(source=ai면 **필수**)}. **cap: 결정당 활성 전제 5, load_bearing 2, 배열 ≤5** |
-| `amend` | 전제 1개 편집=신호 | `ref`, `action`(accept\|refine\|replace\|retire), `text?`, `note?`. AI 항목 편집 시 `ai_original` 보존 |
-| `resolve` | **미결(open_question)에 사용자 결정 기록** | `ref`, `decision`(사용자 자신의 말, ≤400). **elicitation only — 서버는 예시/선택지/lean을 절대 생성하지 않는다**(§3 스파인) |
+| `add` | `premises[]`{text≤400, kind(premise\|open_question), external:bool, load_bearing:bool, source(ai\|user), ai_original?(source=ai면 **필수**)} | **cap: 활성 5·load_bearing 2·배열 ≤5** → 초과 `PREMISE_CAP` |
+| `amend` | `ref`, `action`(accept\|refine\|replace\|retire), `text?≤400`, `note?≤300` | AI 항목 편집 시 ai_original 보존 |
+| `resolve` | `ref`, `decision≤400`(사용자 자신의 말) | open_question만(`NOT_AN_OPEN_QUESTION`). **elicitation only — 서버는 예시·선택지·lean 생성 금지**(§4) |
 
-- `ref` = premise_id 전체 **또는 서수(“P1”)/앞 8자** — 서버가 해석(멀티턴 id-mangling 방어).
-  모호하면 `AMBIGUOUS_REF` + 후보 목록 recovery.
-- annotations: readOnly:false, idempotent:false. destructiveHint:false (retire도 기록 보존).
+### `argus_recheck` — 살아있는 재확인 (v3에서 판정 재설계 — §7.1)
+입력: `argus_dir`, `id`, `ref`, `finding`(현재 사실 요약 ≤400), `numeric_value?`(number),
+`changed?`(bool — 텍스트 전제일 때 호스트의 **사실 단언**), `source`(**필수**:
+url\|user_stated\|host_reported), `source_detail?≤300`, `today_override?`.
+- 툴은 네트워크 안 함. 판정: `numeric_value` 있으면 **기계적**(±10%/부호반전 vs 저장된 이전
+  numeric); 없으면 `changed` **필수**(없으면 `RECHECK_NEEDS_ASSERTION` + recovery).
+- 첫 재확인 = baseline만(정상 경로, drifted:false·baseline_only:true).
+- annotations 둘 다: readOnly:false, idempotent:false, destructiveHint:false, openWorldHint:false.
 
-### `argus_recheck` — 살아있는 재확인 (순수 판정 + 무장된 provenance)
-- 입력: `argus_dir`, `id`, `ref`, `current_value`(≤400), **`source`(필수: url\|user_stated\|host_reported)**,
-  `source_detail?`(URL 등, ≤300), `today_override?`.
-- 툴은 **네트워크 안 함** — 호스트가 조사, 툴은 순수 drift 판정(수치 ≥10%/부호반전, 텍스트 변화).
-- **provenance 무장(적대 리뷰 6):** `source`는 이벤트에 기록·recall에 렌더. `host_reported`는
-  surface에 "재확인 출처: 호스트 보고(미인용)"로 정직 표기 — AI의 반기억이 현실기록에 fiction으로
-  들어가는 걸 provenance로 막는다(verify reality-grounding 원칙).
-- 첫 재확인 = baseline만(`RECHECK_NO_BASELINE` 아님 — 정상 경로, drifted:false·baseline_only:true).
-  발화 캡: 같은 전제 재확인은 `RECHECK_MIN_INTERVAL_DAYS=7` 경과 시 due.
-- annotations: readOnly:false(이벤트 기록), idempotent:false.
+### 확장(신규 툴 아님)
+- `argus_recall` view:'premises' — 서수+id·상태·provenance(ai_original↔최종)·마지막 재확인
+  (시각·출처)·**staleness**. 빈 상태 카피: "추적 중인 전제 없음 — argus_premises(add)로 등록".
+- `argus_check_in` — due 전제 필드 추가(계약과 별개).
+- NEXT_ACTIONS에 `argus_premises`·`argus_recheck` 2개 추가 + drift-guard 스냅샷 갱신.
 
-### 확장 (신규 툴 아님)
-- **`argus_recall` view:'premises'** — 전제 목록(서수+id), 상태, provenance(ai_original↔최종),
-  마지막 재확인 시각·출처, **staleness**("28일째 재확인 없음") 정직 표시.
-- **`argus_check_in`** — due 전제 포함(overdue 계약과 별개 필드, envelope 한 줄).
-- **`argus_open_decision`/`argus_seal` 승격 연결(§5).**
-- **NEXT_ACTIONS**(닫힌 enum): `argus_premises`, `argus_recheck` 2개만 추가(4개 아님 — enum
-  오염 최소). drift-guard 스냅샷 갱신 동반.
+---
 
-## 3. 스파인 수정 (치명 1 — two-pole fork 제거)
+## 3. UX 스펙 (디자인 렌즈 — 대화가 UI다)
 
-v1의 `argus_reconsider`("예시 lean 2개 A/B")는 **CLAUDE.md 규칙 4 직접 위반** — "never a
-two-pole fork… you cannot launder a verdict by tagging it". 사용자 호출이어도 엔진이 고른 두
-프레이밍이 곧 tilt(rounds 1–4: 태깅으로 중화 불가). `spine.ts`의 `FORBIDDEN_FORK_KEYS =
-['options','poles','lean','tilt','recommendation']`가 이미 구조적으로 금지.
+### 3.1 surface 카피 (envelope의 한 줄 — locale.ts, 직설·비유 금지)
+| 상황 | ko surface |
+|---|---|
+| add 성공 | `전제 {n}개 등록 (P{a}–P{b}). 틀린 건 argus_premises(amend)로 고치세요.` |
+| amend refine | `P{n} 수정됨 — 당신 문장으로 기록.` |
+| recheck baseline | `P{n} 기준값 기록: "{finding}" ({source}). 다음 재확인 7일 후.` |
+| recheck 무변화 | `P{n} 변화 없음 ({source}).` |
+| **recheck drift** | `전제가 된 사실이 바뀜 — P{n}: "{prev}" → "{finding}" ({source}). 이 결정을 다시 볼지는 당신 판단.` |
+| resolve | `미결 P{n}에 당신 결정 기록: "{decision}".` |
+| due_note (piggyback) | data 필드로만: `{"due_note":"재확인할 전제 2 · 정산할 계약 1"}` — surface는 호출된 툴 것 유지(나그냄 방지) |
+drift 카피 주의: "다시 보세요"(지시) 금지 — "다시 볼지는 당신 판단"(핸들 반환)까지만.
 
-**v2 형태:** `resolve`는 **elicitation only** — 미결 질문을 seal-시점 맥락과 함께 그대로 재제시
-(recall이 담당)하고, **사용자의 현재 결정을 그들의 말로 기록**한다. 서버는 옵션·예시·lean을
-생성하지 않는다. 예시가 필요하면 **사용자가 과거에 직접 쓴 것(source:user 항목)만** 인용 가능.
-envelope에 lean-형 키 신설 금지(drift-guard 통과 조건).
+### 3.2 서수 안정성 (v3 신규 — 오편집 사고 방지)
+서수(P1, P2…)는 **등록순 영구 부여, 재사용·재번호 금지.** retire된 P2는 영원히 P2(recall에
+retired로 표시), 새 전제는 P{max+1}. 이유: P2 은퇴 후 재번호하면 호스트가 다음 턴에 "P3
+고쳐줘"로 **엉뚱한 전제를 수정**한다. `ref` 허용: 서수 | premise_id 전체 | id 앞 8자.
+모호·불일치 → `AMBIGUOUS_REF`/`NO_SUCH_PREMISE` + 현재 목록 recovery에 동봉.
 
-**⚠️ 파킹(플러그인 동일 결함):** `argus-plugin-v2/skills/track` `reconsider`의 "균형 예시 lean
-2개"도 같은 위반 — 플러그인 수리 목록에 추가(이번 범위 아님, 기록만).
-
-## 4. Return-loop — 정직한 설계 (치명 2 — 수동 서버)
-
-MCP 서버는 **수동적**: cron·훅·push 없음. 아무 호스트도 몇 주 뒤 스스로 `check_in`을 부르지
-않는다. v2는 이걸 숨기지 않는다:
-
-1. **Piggyback이 1차 트리거** — **모든 argus_* 툴 응답**(read 제외 아님, 전부)에 due 카운트를
-   조용히 동봉: `data.due_note`("재확인할 전제 2 · 정산할 계약 1") + next_actions에
-   `argus_check_in`. 사용자가 argus를 쓰는 순간마다 표면화(statusline의 MCP 버전).
-2. **SERVER_INSTRUCTIONS** — "이 서버를 쓰는 대화 시작 시 argus_check_in을 한 번 호출하라"를
-   instructions 필드에 명시(호스트가 읽는 유일한 상시 문서).
-3. **staleness 정직 표시** — recall(view:premises)이 "마지막 재확인 N일 전/없음"을 항상 보여줌.
-   liveness를 연기하지 않는다.
-4. **호스트 밖 케이던스는 문서로** — README에 "주기 재확인은 호스트/사용자 습관/외부 스케줄러
-   소관"임을 명시(Claude Code 사용자는 기존 플러그인 훅이 이 역할).
-5. **성공지표(행수 규칙):** 출시 후 관찰 지표 = `premise_recheck` 이벤트 수 / `premise_add` 수.
-   재확인이 0에 머물면 이 기능은 write-only ceremony — §9 eval-2가 이걸 감시.
-
-## 5. 저장 모델 (v2: 상태기계·하위호환·단일소스 확정)
-
-### 5.1 원장 이벤트 4종 (append-only, 같은 ledger.jsonl)
+### 3.3 영수증 렌더 (settle-시점 fold 스냅샷)
 ```
-premise_add     {id, premise_id, kind, text, external, load_bearing, source, ai_original?, ts}
+  THE UNVERIFIED ASSUMPTION
+    Rates stay flat this year          ← 활성 load_bearing 첫 전제
+    (+2 premises tracked · 1 recheck: changed 2026-06-12 — argus_recall view=premises)
+```
+- 전제 0개(또는 전부 skipped): 기존 "(you skipped naming this)" 유지.
+- 여러 개: 헤드라인 1 + 요약 1줄. 영수증은 settle 후 불변(기존 불변식).
+
+### 3.4 due_note 절제 (mirror clause)
+- count 0이면 필드 자체를 생략(빈 알림 금지). 있어도 **data 필드**이고 surface를 침범 안 함
+  — 표면화 여부는 호스트 재량. next_actions에 `argus_check_in` 추가는 due>0일 때만.
+
+---
+
+## 4. 스파인 (v2 확정 유지 + v3 보강)
+
+- **two-pole fork 금지 확정:** resolve는 elicitation only. 서버는 옵션·예시·lean 생성 금지.
+  예시가 필요하면 사용자의 과거 source:user 항목 인용만. envelope에 lean-형 키 신설 금지
+  (`FORBIDDEN_FORK_KEYS` drift-guard 통과 조건). *(파킹: 플러그인 track reconsider의 "예시
+  lean 2개"도 같은 위반 — 플러그인 수리 목록.)*
+- **host-asserted `changed`의 스파인 합법성(v3):** 이것은 **외부 현실에 대한 연구 결과 단언**
+  이지 사용자 판단에 대한 판정이 아니다(verify의 external claim과 동일 부류). provenance
+  (`source`) 필수로 무장. 사용자의 결정을 평가하는 어떤 필드도 아니다.
+- **ai_verdict:null·판정 동사 금지** 불변. drift-guard가 심판.
+
+## 5. Return-loop — 정직한 설계 (v2 유지)
+
+1. **piggyback due_note**(전 툴, §3.4 절제 규칙) = 1차 트리거.
+2. SERVER_INSTRUCTIONS: "대화 시작 시 argus_check_in 1회" 지시.
+3. recall staleness 상시 표시.
+4. 주기 케이던스는 호스트/사용자/외부 스케줄러 소관 — README 명시(Claude Code 사용자는
+   기존 플러그인 훅이 담당).
+5. recheck/add 비율 지표(§1.3)로 write-only ceremony 감시.
+
+## 6. 저장 모델 (v2 확정 유지)
+
+### 6.1 원장 이벤트 4종 (같은 ledger.jsonl, append-only)
+```
+premise_add     {id, premise_id, ordinal, kind, text, external, load_bearing, source, ai_original?, ts}
 premise_amend   {id, premise_id, action, from, to, note?, ts}
-premise_recheck {id, premise_id, current_value, prev_value?, drifted, baseline_only, source, source_detail?, ts}
+premise_recheck {id, premise_id, finding, numeric_value?, prev_numeric?, drifted, baseline_only, source, source_detail?, ts}
 premise_resolve {id, premise_id, decision, ts}
 ```
-`premise_id` = 안정 해시(decision id + kind + 정규화 텍스트). 재-add 시 dedup(멱등).
+- `premise_id` = 안정 해시(decision id+kind+정규화 텍스트). 재-add 멱등(dedup). 32-bit 충돌은
+  이 규모(결정당 ≤5)에서 무시 가능 — 충돌 시 같은 전제로 취급됨을 주석으로 명시.
+- `ordinal`은 add 이벤트에 기록(fold 재현성 — 재번호 불가의 근거 데이터).
+- fold: contract별 `premises: Map<premise_id, PremiseState>`; recheck는 **최신값+횟수만**
+  상태로 유지(전체 이력은 원장에 있음 — fold 메모리 억제).
 
-### 5.2 상태기계 확장 — 명시 (적대 리뷰 3: 소급 전제심기 방지)
+### 6.2 상태기계 행렬 (guardTransition 확장)
 | 이벤트 | opened | sealed | due | settled/dismissed |
 |---|---|---|---|---|
-| premise_add | ✅ | ✅ | ❌ `PREMISE_LOCKED`("소급 전제 등록 불가 — calibration 보호") | ❌ `DECISION_CLOSED` |
-| premise_amend | ✅ | ✅ | ❌ `PREMISE_LOCKED`(goalpost 아날로그 — 틀리기 직전 전제 은퇴 방지) | ❌ `DECISION_CLOSED` |
-| premise_recheck | ❌(전제는 seal 전 확인 무의미 아님—✅ 허용) | ✅ | ✅ | ❌ `DECISION_CLOSED` |
-| premise_resolve | ✅ | ✅ | ✅(미결을 정하는 건 goalpost 아님) | ❌ `DECISION_CLOSED` |
-`guardTransition`에 위 행렬 추가. 전부 recovery 힌트 동봉.
+| premise_add | ✅ | ✅ | ❌ `PREMISE_LOCKED`(소급 전제심기 금지) | ❌ `DECISION_CLOSED` |
+| premise_amend | ✅ | ✅ | ❌ `PREMISE_LOCKED`(goalpost 아날로그) | ❌ `DECISION_CLOSED` |
+| premise_recheck | ✅ | ✅ | ✅ | ❌ `DECISION_CLOSED` |
+| premise_resolve | ✅ | ✅ | ✅ | ❌ `DECISION_CLOSED` |
 
-### 5.3 하위호환 — **step 0, 선행 릴리스** (적대 리뷰 4)
-현행 `ledger-replay.ts`는 미지 이벤트를 `dropped++`(=corruption 신호)로 센다. premise_* 이벤트가
-구버전 설치본(npx 배포됨!)에서 **가짜 무결성 경보**를 울리게 된다. 순서:
-- **0-a:** replay의 미지 이벤트 처리를 "잘 형성된 versioned 이벤트(v 필드 있음) → 조용히 skip
-  (`skipped_unknown` 카운트)" vs "파싱 불가 라인 → dropped"로 분리.
-- **0-b:** 이 관용을 **자체 패치 릴리스로 먼저 배포**(구 바이너리가 대비되게).
-- **0-c:** 그 다음 premise 이벤트 도입. SCHEMA_VERSION minor bump + CHANGELOG.
+### 6.3 하위호환 — step 0, 선행 패치 릴리스
+- 0-a: replay 미지 이벤트를 "v 필드 있는 정상 이벤트 → `skipped_unknown`으로 조용히 skip"
+  vs "파싱불가 → dropped(무결성)"로 분리.
+- 0-b: **1.0.x 패치로 먼저 배포**(npx 구 바이너리 대비). ⚠️ npm publish는 **사용자 계정
+  권한 필요** — §8 사용자 액션.
+- 0-c: 이후 premise 이벤트 도입(1.1.0 minor). SCHEMA_VERSION(spine.ts)은 이벤트 v 필드
+  유지 — 관용 replay가 전제조건이므로 bump 불필요(구현 시 재확인).
+- **롤백 스토리:** 원장은 append-only + 관용 replay → 패키지를 1.0.x로 되돌려도 premise
+  이벤트 낀 원장이 그대로 읽힘(skip). 데이터 마이그레이션 없음 = 롤백 안전.
 
-### 5.4 단일 소스 확정 (적대 리뷰 7)
-- **전제 엔티티가 canonical.** `argus_seal`의 `unverified_assumption` 입력은 **premise_add의
-  입력 알리아스**가 된다(내부적으로 premise_add 이벤트 생성, source:'user', load_bearing:true).
-  skipped면 승격 없음. `open_decision.load_bearing_assumption` 동일(source: crux provenance 따름).
-- **영수증 헤드라인 = settle 시점 fold 스냅샷** — "THE UNVERIFIED ASSUMPTION" 줄은 settle 때
-  활성 load_bearing 전제 중 첫 번째를 렌더(없으면 기존 skipped 표기). settle 후 영수증 불변
-  (기존 불변식 유지). 전제가 여러 개면 영수증엔 헤드라인 1 + "외 N개 — recall view=premises".
+### 6.4 단일 소스 + reader (v2 확정)
+- seal의 `unverified_assumption`·open의 `load_bearing_assumption` = **premise_add 입력
+  알리아스**(source:'user', load_bearing:true; skipped면 승격 없음; stable id로 멱등).
+- 영수증 헤드라인 = settle-시점 fold(§3.3).
+- `ai_original`의 reader = **recall provenance 렌더 + 영수증 authorship** (도구-보정 용도
+  없음 — MCP엔 튜닝할 엔진 없음).
 
-### 5.5 ai_original의 reader 명명 (적대 리뷰 10-b, signal-recorder 재발 방지)
-`ai_original`의 **선언된 소비자 = recall(view:premises)의 provenance 렌더**("AI가 뽑음 → 내가
-고침" 표시)와 **영수증의 authorship 정직성**. MCP엔 튜닝할 추출 엔진이 없으므로 v1의
-"도구-보정" 용도는 **삭제** — reader 없는 신호를 쌓지 않는다(Persistence Declaration 원칙).
+## 7. 기술 심화 (v3 신규)
 
-## 6. 재사용 vs 새로 짓기
-| 조각 | 처리 |
-|---|---|
-| drift 판정 순수함수 | ✅ 이식(`argus-mcp/src/lib/premise-drift.ts`, 의존성 0) |
-| 발화 게이트(빈도캡·후퇴) | ♻️ 원장 recheck 이벤트 기반으로 재구성 — **구체 규칙:** due = `last recheck ts + 7d ≤ today`; 후퇴 = resolve/retire가 명시 행동이므로 dismissal-카운트 후퇴는 **도입 안 함**(MCP에선 무시가 기본이라 카운트 불가 — 정직하게 생략) |
-| 전제 스키마 개념·스파인 원칙·직설 카피 | ✅ 개념 적용, 저장은 이벤트로 재설계 |
-| webapp/플러그인 코드 | ❌ 이식 안 함 |
+### 7.1 drift 판정 재설계 — 첫-숫자 파싱 버그 제거
+웹앱 `premise-drift.ts`의 `parseNumber`는 **첫 번째 숫자**를 잡는다 → `"2026년 기준금리
+3.5%"`에서 **2026**을 파싱, 가짜 drift. 이식 금지. v3 설계:
+- **수치 전제:** 호스트가 `numeric_value`를 **명시적으로** 넘김(정규식 추출 안 함). 툴은
+  이전 `numeric_value`와 기계 비교(±10%/부호반전). 이전 numeric 없으면 baseline.
+- **텍스트 전제:** 문자열 비교는 패러프레이즈에 취약(매번 가짜 drift) → 호스트가 `changed`
+  를 사실 단언(스파인 합법성 §4). 툴은 기록·게이트(빈도캡·상태기계)·provenance만 기계 담당.
+- 정직성 가드: `changed:true`인데 정규화 finding == 저장 baseline이면 envelope에
+  `integrity_note`("단언과 기록이 상충") 동봉 — 기록은 하되 표시.
+- 이식 범위 축소: `numericDrift(prev, next)` 순수 함수만 새로 작성(±10%/부호반전, 유닛
+  포함). 후퇴(dismissal-count)는 MCP에서 도입 안 함(무시를 셀 수 없음 — v2 확정).
 
-## 7. 스타일·검증·에러
-- 수동검증 + `GuardError(code, message, recovery)`. **에러코드:** `NO_SUCH_PREMISE`,
-  `AMBIGUOUS_REF`, `PREMISE_LOCKED`, `DECISION_CLOSED`, `PREMISE_CAP`(활성 5 초과),
-  `NOT_AN_OPEN_QUESTION`(resolve 대상 아님).
-- envelope + text 미러 + ENVELOPE_OUTPUT_SCHEMA. surface는 locale(config) 존중, 직설 카피.
-- 기존 serialize 체인. `argus_dir` 경로검증(PathSafetyError) 기존 헬퍼 재사용.
+### 7.2 piggyback 구현
+공유 헬퍼 `withDueNote(envelope, state, today)` — 각 툴 핸들러 마지막에 1회 호출. replay는
+이미 대부분 툴이 수행하므로 추가 비용 미미(로컬 jsonl). due 정의: 계약(check_by≤today) +
+전제(on_change·활성·마지막 recheck 7일 경과 or 없음, sealed 상태에서만).
 
-## 8. 테스트 (vitest — write 여정은 여기서)
-- 각 op happy+에러 / 상태기계 행렬 전체(특히 settled에 add 거부, due에 amend 거부) /
-  drift 시나리오(baseline→캡→발화→침묵→텍스트 flip) / 서수 ref 해석·모호 케이스 /
-  승격 알리아스 멱등(dedup) / 영수증 fold 렌더 / **하위호환**(premise 이벤트 낀 원장을 구
-  fold가 skip, 신 fold가 fold) / drift-guard(`ai_verdict:null`·FORBIDDEN_FORK_KEYS·NEXT_ACTIONS
-  스냅샷) green.
+### 7.3 플러그인 공존 (확인 완료)
+- 같은 `.argus/`를 플러그인(Claude Code)과 MCP가 공유해도 안전: 플러그인 훅
+  `check-contracts.js`의 replay switch는 **미지 이벤트를 조용히 무시**(확인함), MCP는
+  items.jsonl을 안 읽음.
+- **단, 전제 저장소 이중화 발생**(플러그인 items.jsonl vs MCP ledger 이벤트). 선언:
+  **MCP ledger가 canonical.** 플러그인 track/items.jsonl은 legacy — 향후 플러그인이 ledger
+  premise 이벤트를 읽도록 마이그레이션(파킹, 이번 범위 아님). README에 공존 절 1개.
 
-## 9. Eval — 2단 분리 (적대 리뷰 9: read-only eval의 한계 인정)
-- **eval-1 (mcp-builder식, read-only QA 10문항):** 시딩된 fixture 원장(전제 add→amend→recheck→
-  settle이 미리 기록됨) 위에서 `recall`/`check_in`만으로 답하는 질문. 커버: provenance 읽기,
-  staleness, due 계산, 영수증 헤드라인.
-- **eval-2 (행동, 기존 evals/cases.mjs 스타일):** 스파인-임계 경로 — (a) resolve 흐름에서
-  모델이 lean을 생성하도록 유도하는 케이스: 서버 응답에 lean-형 키가 없고 surface가 중립인지
-  스코어. (b) piggyback due_note가 실제로 나오는지. (c) §4-5의 write-only ceremony 감시:
-  fixture 시나리오에서 recheck/add 비율 리포트.
-- write 여정 자체는 vitest가 커버(§8) — eval은 이해·스파인·귀환 검증에 집중.
+### 7.4 주입 방어
+전제 텍스트는 사용자/호스트 입력이고 envelope surface·영수증으로 흘러 호스트 LLM이 읽는다.
+규칙: (a) 모든 텍스트 캡(≤400/300) 스키마 강제, (b) surface에 삽입되는 사용자 텍스트는
+따옴표로 감싸 **데이터임을 표시**, (c) 서버는 어떤 입력 텍스트도 지시로 해석하지 않음(구조상
+자연 충족 — 명시 주석), (d) 렌더는 기존 render-receipt wrap 재사용.
 
-## 10. 코디네이션 — 순서 조율 확정 (Option B)
-사용자 결정: **그 다른 세션의 argus-mcp 작업이 main에 머지된 후 착수.** 적대 리뷰 10-a의
-지적(NEXT_ACTIONS 닫힌 enum + drift-guard 스냅샷은 append여도 **의미 충돌**)이 정확히 B를
-고른 이유 — 최신 main 위에서 enum·스냅샷·상태기계를 한 손으로 고친다. 착수 전 체크:
-`git log origin/main -- argus-mcp/` 로 그 세션 머지 확인 + spine.ts/state-machine.ts 최신
-형태 재확인(맵 갱신).
+## 8. 실행 플레이북 (커밋 단위·게이트·릴리스)
 
-## 11. 구현 순서 (v2)
-0. **하위호환 선행**(§5.3: replay 관용 + 패치 릴리스) ← 다른 무엇보다 먼저.
-1. `lib/premise-drift.ts` 이식 + 유닛.
-2. 원장 이벤트 4종 + fold + **상태기계 행렬** + 유닛.
-3. `argus_premises`(add|amend|resolve) + 서수 ref 해석 + 유닛.
-4. `argus_recheck`(순수판정 + provenance 무장) + 유닛.
-5. recall(view:premises·staleness) + check_in(due 전제) + **piggyback due_note(전 툴)**.
-6. seal/open 승격 알리아스(§5.4) + 영수증 fold 렌더 + 유닛.
-7. NEXT_ACTIONS(2개)·TOOLS 등록·drift-guard 스냅샷·SERVER_INSTRUCTIONS 갱신.
-8. eval-1(fixture QA 10) + eval-2(행동) + 전체 게이트(build/typecheck/test/eval) green.
-9. README·CHANGELOG·버전(minor) — return-loop의 정직한 한계(§4-4) 포함.
+> 전제: §10 착수 트리거 충족 후, **최신 main에서 새 브랜치**. 커밋마다
+> `npm run build && npm run typecheck && npm test` green 게이트(마지막에 `npm run eval`).
 
-## 12. 착수 전 확정된 기본값 (v1 §9 열린 결정의 답)
-- 툴 수: **2** (argus_premises + argus_recheck). reconsider 폐기(→resolve).
-- 영수증: 헤드라인 1 = settle-시점 fold 첫 load_bearing 전제, 나머지는 recall.
-- kind: **premise | open_question 2종**(phenomenon은 premise+external로 흡수 — MCP 최소주의,
-  웹앱 5종과의 차이는 의도적).
-- webapp↔MCP 동기화: 지금은 각자 로컬. 공유 허브 연결은 별도 계획.
-- 모드: off | on_change 2종(monthly 등 주기는 YAGNI). 기본 = load_bearing·external → on_change.
+| # | 커밋 (MVP) | 파일 | 내용 |
+|---|---|---|---|
+| 0 | `fix(ledger): tolerant replay …` (A) | `lib/ledger-replay.ts`+테스트 | 미지 versioned 이벤트 skip vs 파싱불가 dropped 분리. **→ 1.0.x 패치 릴리스(사용자: npm publish)** |
+| 1 | `feat(premises): ledger events + fold + state matrix` (A) | `lib/spine.ts`(이벤트타입)·`state-machine.ts`·`ledger-replay.ts`+테스트 | 4 이벤트·fold(PremiseState·ordinal)·§6.2 행렬·에러코드 |
+| 2 | `feat(premises): argus_premises tool` (A) | `tools/premises.ts`(신규)·`tools/index.ts`·`lib/envelope.ts`(NEXT_ACTIONS)·drift-guard 스냅샷+테스트 | add/amend/resolve·서수 ref 해석·cap·surface 카피(locale) |
+| 3 | `feat(premises): recall view + seal/open promotion + receipt` (A) | `tools/recall.ts`·`seal.ts`·`open-decision.ts`·`lib/receipt.ts`·`render-receipt.ts`+테스트 | view:premises(staleness·provenance)·승격 알리아스 멱등·영수증 fold 렌더 §3.3 |
+| 4 | `feat(premises): argus_recheck` (B) | `tools/recheck.ts`(신규)·`lib/numeric-drift.ts`(신규)+테스트 | §7.1 판정·provenance 필수·integrity_note·baseline 경로 |
+| 5 | `feat(premises): due surfacing` (B) | `tools/check-in.ts`·`lib/envelope.ts`(withDueNote)·전 툴 1줄+테스트 | due 전제 필드·piggyback §7.2·§3.4 절제 |
+| 6 | `feat(premises): resolve + instructions` (C) | `tools/premises.ts`·`server.ts`(SERVER_INSTRUCTIONS) | (resolve는 #2에 포함되면 스킵) instructions에 check_in 지시+여정 요약 |
+| 7 | `test(evals): premises fixtures + behavioral` (C) | `evals/fixtures/`(도구 dogfood로 temp dir에서 생성해 커밋)·`evals/cases.mjs` | eval-1 read-only QA 10문항 + eval-2 행동(§9) |
+| 8 | `docs: README/CHANGELOG + 1.1.0` (C) | README(툴 문서·공존 절·return-loop 한계·행수 셀프체크)·CHANGELOG·package.json | **→ 1.1.0 릴리스(사용자: npm publish)** |
+
+**사용자 액션 (내가 못 하는 것):** npm publish 2회(#0 패치, #8 minor) — 자격증명 필요.
+그 외 전부 내가 실행. 각 MVP 단(A/B/C) 끝마다 PR→main 머지(작게 자주).
+
+## 9. 테스트 · Eval (v2 유지 + fixture 생성법)
+- vitest: 각 op happy+에러 / §6.2 행렬 전체 / §7.1 판정(숫자·단언·integrity_note·baseline·
+  빈도캡) / 서수 안정성(retire 후 번호 유지·모호 ref) / 승격 멱등 / 영수증 fold / 하위호환
+  (구 fold skip·신 fold fold) / drift-guard 스냅샷.
+- eval-1: fixture 원장(도구 자체로 temp dir에서 생성 → 파일 커밋) 위 read-only QA 10문항
+  (provenance·staleness·due 계산·영수증 헤드라인).
+- eval-2: 행동 — resolve에서 lean 생성 유도 → lean-형 키 부재·중립 surface 스코어,
+  due_note 발화 확인, recheck/add 비율 리포트.
+
+## 10. 코디네이션 (v2 확정 — Option B)
+그 세션의 argus-mcp 작업 main 머지 후 착수. 착수 체크:
+`git fetch origin main && git log --oneline origin/main -- argus-mcp/ | head` 로 머지 확인 →
+spine.ts(FORBIDDEN_FORK_KEYS·SCHEMA_VERSION)·state-machine.ts(ALLOWED)·envelope.ts
+(NEXT_ACTIONS)·locale.ts 최신 형태 재확인(맵 갱신) → 새 브랜치.
+
+## 11. 손 시뮬레이션 (6턴 — id 스레딩·카피 검증, regret test 이행)
+```
+T1 user: "동탄 집 살지 고민" → host: argus_open_decision → argus_premises(add, 3개
+   [P1 금리동결(external,load_bearing,ai) P2 공급과잉(external,ai) P3 전세vs실거주(open_question,user)])
+   surface: "전제 3개 등록 (P1–P3). 틀린 건 argus_premises(amend)로 고치세요."
+T2 user: "P1은 '2026년 내 동결'로 좁혀줘" → amend(ref:"P1", refine) — 서수로 해석, id 스레딩 불필요 ✓
+T3 user: (seal — unverified_assumption 입력 생략: P1이 이미 승격 대상과 dedup) ✓
+T4 (2주 뒤) user: "argus 상태?" → 아무 툴이든 due_note:"재확인할 전제 1" → host: check_in
+   → recheck(ref:"P1", finding:"기준금리 0.25%p 인상", numeric_value:3.75, source:"url",…)
+   → drift ✓ surface: "…이 결정을 다시 볼지는 당신 판단."
+T5 user: "P3 정했어, 실거주로" → resolve(ref:"P3", decision:"실거주로 간다") — 서버는 어떤
+   선택지도 제시한 적 없음 ✓ (스파인)
+T6 (check-by) settle → 영수증: 헤드라인 P1 + "(+2 premises tracked · 1 recheck: changed …)" ✓
+```
+검증 포인트: 서수만으로 전 여정 스레딩 가능(opaque id 불필요), retire 없어도 T2 amend 후
+서수 불변, drift 카피가 핸들 반환형, resolve가 elicitation only.
+
+## 12. 확정 기본값 (누적)
+- 툴 2개(argus_premises + argus_recheck) · kind 2종(premise|open_question) · 모드 2종
+  (off|on_change, 기본 = load_bearing·external → on_change) · 재확인 캡 7d · cap 5/2/400자.
+- 서수 영구 부여(§3.2). drift 판정 = 명시 numeric_value 기계 비교 or 호스트 사실 단언(§7.1).
+- MCP ledger가 전제의 canonical 저장소(§7.3). 영수증 헤드라인 = settle-시점 fold(§3.3).
+- webapp↔MCP 동기화·플러그인 ledger-읽기 마이그레이션 = 별도 계획(파킹).
