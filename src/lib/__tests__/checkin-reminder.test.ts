@@ -63,6 +63,27 @@ describe('check-in reminder selection', () => {
     expect(html).toContain('</a>');
   });
 
+  it('renders the Korean body in one voice with the Korean subject (02 P0-2)', () => {
+    const html = renderCheckInReminderEmail({
+      projectName: '런칭 결정',
+      lean: '이번 분기에 승부를 건다',
+      link: 'https://argus.voyage/project?from=checkin',
+      locale: 'ko',
+    });
+
+    expect(html).toContain('그래서, 어떻게 됐어요?');
+    expect(html).toContain('런칭 결정의 확인일이 왔어요');
+    expect(html).toContain('그때 적어둔 방향: <strong>이번 분기에 승부를 건다</strong>');
+    expect(html).toContain('돌아와서 정산하기');
+    expect(html).toContain('직접 켜둔 1회성 알림이에요');
+    expect(html).toContain('href="https://argus.voyage/project?from=checkin"');
+    expect(html).not.toContain('So, how did it go?');
+    // Final wave says so honestly (10 S3), and only then.
+    expect(html).not.toContain('이번이 마지막이에요');
+    expect(renderCheckInReminderEmail({ projectName: '런칭', link: 'x', locale: 'ko', isFinal: true }))
+      .toContain('이번이 마지막이에요');
+  });
+
   it('detects Resend error payloads so failed sends are not stamped as sent', () => {
     expect(resendEmailErrorMessage({ data: { id: 'email_1' }, error: null })).toBeNull();
     expect(resendEmailErrorMessage({ error: { message: 'domain is not verified' } })).toBe('domain is not verified');

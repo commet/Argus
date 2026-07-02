@@ -117,13 +117,17 @@ export async function GET(req: Request) {
         const email = u?.user?.email;
         if (email) {
           const lean = c.predicates?.find((p) => p.source === 'user_lean')?.text;
-          const link = `${origin}/project`;
-          const html = renderCheckInReminderEmail({ projectName: name, lean, link });
+          // ?from=checkin: /project greets a logged-out device honestly
+          // ("봉인할 때 쓴 계정으로 로그인하면 바로 보여요") instead of the
+          // new-user empty state (03 S5).
+          const link = `${origin}/project?from=checkin`;
+          const emailLocale = detectSettlementLocale(name, selectOpenPredicate(c)?.text);
+          const html = renderCheckInReminderEmail({ projectName: name, lean, link, locale: emailLocale, isFinal: isFinalWave });
           const emailResult = await resend.emails.send({
             from: `Argus <hello@${fromDomain}>`,
             replyTo,
             to: email,
-            subject: `그래서, 어떻게 됐어요? — ${name}`,
+            subject: emailLocale === 'ko' ? `그래서, 어떻게 됐어요? — ${name}` : `So — how did it go? — ${name}`,
             html,
           });
           const emailError = resendEmailErrorMessage(emailResult);

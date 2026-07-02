@@ -82,6 +82,13 @@ export default function ProjectPage() {
   const { sessions: progressiveSessions, loadSessions: loadProgressive } = useProgressiveStore();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  // ?from=checkin — arrived via a check-in reminder email. On a logged-out /
+  // fresh device the generic new-user empty state would read as "your sealed
+  // decision is gone"; greet the returner honestly instead (03 S5 / P1-B2).
+  const [fromCheckin, setFromCheckin] = useState(false);
+  useEffect(() => {
+    setFromCheckin(new URLSearchParams(window.location.search).get('from') === 'checkin');
+  }, []);
   // Settlement modal (W1.2 귀환 표면) — derived at render from contractStatus,
   // gated by a per-visit dismissed set. Deriving (instead of a getState()
   // snapshot in an effect) means the modal still opens when the async Supabase
@@ -425,7 +432,24 @@ export default function ProjectPage() {
       {/* Project selector */}
       {!currentProject && (
         <div className="space-y-5">
-          {projects.length === 0 ? (
+          {projects.length === 0 && fromCheckin ? (
+            <Card className="text-center py-12">
+              <FileText size={24} className="mx-auto text-[var(--text-secondary)] mb-3" />
+              <p className="text-[14px] text-[var(--text-secondary)] font-medium">
+                {L('봉인해 둔 결정이 이 기기엔 없어요', 'Your sealed decision isn’t on this device')}
+              </p>
+              <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-xs mx-auto">
+                {L('봉인할 때 쓴 계정으로 로그인하면 바로 보여요.', 'Sign in with the account you sealed it with and it’s right here.')}
+              </p>
+              <div className="mt-4 flex items-center justify-center">
+                <LocaleLink href="/login?redirect=/project">
+                  <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all cursor-pointer">
+                    {L('로그인', 'Sign in')} <ArrowRight size={14} />
+                  </button>
+                </LocaleLink>
+              </div>
+            </Card>
+          ) : projects.length === 0 ? (
             <Card className="text-center py-12">
               <FileText size={24} className="mx-auto text-[var(--text-secondary)] mb-3" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 프로젝트가 없습니다', 'No projects yet')}</p>
