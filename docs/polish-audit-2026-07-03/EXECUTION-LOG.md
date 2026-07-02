@@ -81,3 +81,49 @@
 - **파일**: `src/lib/telegram-settlement.ts`, `src/app/api/telegram/webhook/route.ts`, `src/app/api/cron/checkin-due/route.ts`, `src/lib/__tests__/telegram-settlement.test.ts`
 - **검증**: tsc 0 · telegram-settlement+checkin-reminder 17/17 통과(한국어 문안·토큰 잔존·구 기계문 부재 단언 추가). 실발송 없음(코드+테스트만).
 - **커밋**: f40a43d
+
+### [P1-B1] 재알림 3회 상한 + "그만 물어봐 주세요" 버튼
+
+- **무엇을**: checkin-due의 7일 무한 재발송에 상한 3회(`reminder_count`, decision_contract jsonb 내부 — 마이그 0)를 달고, 봇 키보드에 5번째 버튼 "🌙 그만 물어봐 주세요"(mute)를 추가.
+- **왜**: 무한 반복 알림이야말로 거울 조항(개입 여부를 대신 판단) 위반 — 이 항목은 개입 축소 방향(10 S3). 웹 due 표면은 유지하고 리마인더만 정지.
+- **어떻게**: `REMINDER_MAX_SENDS=3`을 checkin-reminder.ts에 성문화. 크론은 count>=3이면 해당 계약 건너뜀, 발송된 웨이브마다(채널 무관 1회) +1, 3번째 웨이브 문안 끝에 정직한 마지막 고지("이제 조용히 열어둘게요…" — 10 S3 문안). mute는 `applyTelegramSettlement`에서 reminder_count를 상한으로 세팅(check_in_at·predicate 무접촉 = 아무것도 정산 안 됨), 웹훅은 미러 행도 안 건드리고 "알겠어요, 더 묻지 않을게요…" 응답. 콜백 코드 'u'(stl1)·'mute'(stl 레거시).
+- **파일**: `src/stores/types.ts`(reminder_count 필드 — jsonb 내부라 PGRST204 무관), `src/lib/checkin-reminder.ts`, `src/lib/telegram-settlement.ts`, `src/app/api/telegram/webhook/route.ts`, `src/app/api/cron/checkin-due/route.ts`, 테스트.
+- **검증**: 키보드 5버튼 단언(부록 회귀 가드)·mute 무정산 단언·마지막 웨이브 문안 단언 추가, 20/20 통과 · tsc 0.
+- **커밋**: 0afd4dc
+
+### [P1-B2 크론 조각] 이메일 귀환로 — 본문 한국어화 + ?from=checkin + 로그아웃 분기
+
+- **무엇을**: 한국어 제목("그래서, 어떻게 됐어요? — {프로젝트}")에 영어 본문이 오던 귀환 이메일을 locale 분기로 한 목소리화(02 P0-2 제안 문안 그대로: "맞았는지 틀렸는지는 제가 정하지 않아요 — 어땠는지만, 1분이면 기록할 수 있어요" / "그때 적어둔 방향" / [돌아와서 정산하기] / "직접 켜둔 1회성 알림이에요"). 링크에 `?from=checkin`을 달고, /project 빈 화면이 이 파라미터를 보면 신규자 카피 대신 "봉인해 둔 결정이 이 기기엔 없어요. 봉인할 때 쓴 계정으로 로그인하면 바로 보여요." + [로그인 → /login?redirect=/project].
+- **주의**: SealMoment 옵트인 체크박스 조각은 웨이브6 소관(P1-A3과 같은 파일 구간)이라 여기서 안 건드림. locale 판정은 P0-2의 `detectSettlementLocale` 재사용(02 S1 "같은 locale 판정 재사용"). en 본문·기존 XSS 이스케이프 테스트 보존(locale 기본값 'en').
+- **파일**: `src/lib/checkin-reminder.ts`, `src/app/api/cron/checkin-due/route.ts`, `src/app/[locale]/project/page.tsx`, `src/lib/__tests__/checkin-reminder.test.ts`.
+- **검증**: ko 본문·마지막 웨이브 고지 단언 추가 21/21 통과 · tsc 0 · 한국어 UTF-8 확인.
+- **커밋**: e6ee219
+- **⚠️ 아침에 창업자가 확인할 것(§3.5-2)**: 이메일 실발송 검증은 헌장 안전경계로 이번 실행 밖 — 옵트인 UI(웨이브6 체크박스)까지 붙은 뒤 실계약 1건으로 수신·링크 동작(로그아웃 기기에서 ?from=checkin 분기)을 눈으로 확인할 것.
+
+### [P1-B3] 검수 이메일(Companion Brief) 사전 고지 + 수신 중단 안내
+
+- **무엇을**: SealModal 설명문 아래 한 줄("확인일이 오면 이 예측을 이메일로 돌려드려요 — 정산을 위한 한 통이고, 그 외 메일은 없어요") + Companion Brief 본문 하단 수신 중단 안내("더 받고 싶지 않으면 이 메일에 답장으로 알려주세요 — 바로 멈출게요").
+- **왜**: "no emails unless you ask"의 최소 이행(04 S5) — 보내기 전에 말하고, 메일 자체에 출구를 싣는다.
+- **파일**: `src/components/review/SealModal.tsx`, `src/lib/companion-brief.ts`, `src/lib/__tests__/companion-brief.test.ts`(옵트아웃 단언 1건 추가).
+- **검증**: companion-brief 7/7 통과 · tsc 0. **커밋**: e475366
+
+### [P1-B5] 전제 벨 정직화 (단기만)
+
+- **무엇을**: DecisionItemsCard 벨 툴팁 "바뀌면 알림 켜짐" → "주시 표시 켜짐 — 자동 알림은 아직 준비 중이에요" / off "주시 꺼짐" (en 대칭). premise-drift.ts 헤더에 정직성 노트 박제(재확인 크론 부재 사실 + 크론을 지으면 같은 커밋에서 약속 복원하라는 지시 + §5-2 보류 근거).
+- **왜**: 크론이 없는데 "알림"을 약속하는 벨은 약속-실제 어긋남(04 P1-2). 장기 크론은 §5-2에서 보류(과발화 위험).
+- **파일**: `src/components/projects/DecisionItemsCard.tsx`, `src/lib/premise-drift.ts`. **검증**: tsc 0. **커밋**: 09f948c
+
+### [P1-E4] [MCP] 동기화 실패 발화 + upcoming 이행 + 계정 힌트
+
+- **무엇을**: ① seal/settle의 syncLine 3-상태화 — 성공은 말하고, no_token은 침묵(선택된 기본값이지 실패가 아님), 토큰 있는 실패는 반드시 발화("Account sync didn't go through — {reason}. … the email reminder won't fire until it syncs. Try argus_sync later.") + `data.account_sync_reason`. settle도 동일 패턴(계정이 계속 due로 조를 수 있음을 고지). ② `include_upcoming_days`를 진짜 구현 — sealed 계약 중 today<check_by<=today+N을 `data.upcoming[]`으로, surface에 "K coming due within N day(s) — informational, nothing to settle yet." ③ due 0건 + ARGUS_TOKEN 설정 시 surface 끝에 정적 한 줄("This reads the local ledger only — judgments sealed in your account: argus_sync shows them.") — 네트워크 호출 0(테스트로 fetch 미호출 단언), check_in의 로컬 결정성 유지(§5-18).
+- **파일**: `argus-mcp/src/tools/seal.ts`, `settle.ts`, `check-in.ts` + loop/integration-simulation 테스트. 전부 argus-mcp/ 내부 — 웹앱 무접촉.
+- **검증**: MCP typecheck 0 · 17파일 167/167 통과(신규: upcoming 왕복, 토큰 힌트+무네트워크, http_500 실패 발화 seal/settle).
+- **커밋**: 9f3829f
+
+### 웨이브 2 경계 검증 (완료)
+
+- 웹앱: `npx tsc --noEmit` 0 · telegram-settlement + checkin-reminder + companion-brief 3파일 28/28 통과.
+- MCP: `cd argus-mcp && npm run typecheck` 0 · `npm test` 17파일 167/167 통과.
+- 실발송 0건 확인: checkin-due는 CRON_SECRET 게이트 뒤(호출 안 함), Resend/Telegram API는 코드·테스트에서 실호출 없음(테스트는 fetch mock).
+- 한국어 문자열 mojibake 육안 확인(그만 물어봐 주세요·주시 표시·봉인해 둔 결정이 — 전부 정상).
+- 커밋: P0-2=f40a43d · P1-B1=0afd4dc · P1-B2크론조각=e6ee219 · P1-B3=e475366 · P1-B5=09f948c · P1-E4=9f3829f.
