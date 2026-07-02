@@ -6,6 +6,7 @@ import { fetchAccountReceipts } from '../lib/push-account.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger, type ContractEntry } from '../lib/ledger-replay.js';
+import { surfacesFor } from '../lib/surfaces.js';
 
 /**
  * argus_sync — the explicit, bidirectional bridge (design doc §연결 방식).
@@ -70,12 +71,16 @@ export const sync: ToolModule = {
       // (recording an outcome without the user's own words would be a machine
       // settlement on an append-only ledger; the user runs argus_settle).
       let localContracts: Map<string, ContractEntry> | null = null;
+      let boundDir: string | null = null;
       try {
-        const dir = resolveToolArgusDir(a['argus_dir']);
-        localContracts = replayLedger(dir, resolveToday({})).contracts;
+        boundDir = resolveToolArgusDir(a['argus_dir']);
+        localContracts = replayLedger(boundDir, resolveToday({})).contracts;
       } catch {
         localContracts = null; // no local dir bound — account-only listing, skip the cross-check
       }
+      // Locale brain (P1-E1): surface strings come from the {ko,en} dictionary,
+      // picked by the config's locale. No bound dir / no config → base 'en'.
+      const S = surfacesFor(boundDir).sync;
       const settledInAccount = (accountId: string, accountState: string): boolean => {
         if (!localContracts || accountState !== 'settled' || !accountId.startsWith('mcp_')) return false;
         const entry = localContracts.get(accountId.slice(4));
@@ -84,11 +89,10 @@ export const sync: ToolModule = {
       const settledInAccountCount = pull.receipts.filter((r) => settledInAccount(r.id, r.state)).length;
 
       const baseSurface = dueCount > 0
-        ? `계정에 살아 있는 판단 ${pull.receipts.length}개 · 확인할 차례 ${dueCount}개. ` +
-          '이 터미널에서 봉인한 것은 local_id로 argus_settle, 웹에서 봉인한 것은 웹 대시보드에서 정산하세요.'
-        : `계정에 살아 있는 판단 ${pull.receipts.length}개. 확인할 차례가 된 것은 없습니다.`;
+        ? S.live_with_due(pull.receipts.length, dueCount)
+        : S.live_no_due(pull.receipts.length);
       const crossCheckLine = settledInAccountCount > 0
-        ? ` 웹에서 이미 정산된 것 ${settledInAccountCount}건 — 로컬 원장에도 남기려면 argus_settle로 같은 outcome을 기록하세요.`
+        ? S.settled_on_web(settledInAccountCount)
         : '';
 
       return envelope({
@@ -100,7 +104,7 @@ export const sync: ToolModule = {
           due: dueCount,
           count: receipts.length,
           has_more: truncated,
-          ...(truncated ? { truncation_note: `${matched.length}개 중 ${receipts.length}개만 표시. limit을 올리거나 due_only로 좁히세요.` } : {}),
+          ...(truncated ? { truncation_note: S.truncation(receipts.length, matched.length) } : {}),
           receipts: receipts.map((r) => {
             // Terminal-sealed judgments live in the account under an `mcp_` prefix
             // (webapp api/mcp/seal rowId). Settling with the ACCOUNT id always

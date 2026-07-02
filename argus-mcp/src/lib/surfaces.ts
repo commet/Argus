@@ -1,0 +1,110 @@
+import fs from 'fs';
+import { configPath } from './layout.js';
+
+/**
+ * surfaces.ts — the ONE locale brain for user-facing surface strings
+ * (P1-E1, polish audit 2026-07-03; 11 S5 = 12 P2-4 merged).
+ *
+ * Before this file the `locale` config was a dead switch: argus_config
+ * accepted 'ko'|'en' and nothing read it, while the voice was split by tool
+ * (seal/settle/open spoke English regardless, sync/review spoke Korean
+ * regardless). Surface strings move HERE, into one {ko,en} dictionary, and
+ * each tool picks via the config — the MCP twin of the webapp's
+ * "Single Source of Truth for Prompts" principle.
+ *
+ * Adoption policy (deliberately incremental — master P1-E1 scope guard):
+ *   - Strings the NEW renders need (E2 seal_text, E3 check_in anchor mirror,
+ *     E7 wake_text) enter here first.
+ *   - Already-diverged voices (sync's hardcoded Korean) are unified here.
+ *   - Everything else migrates tool-by-tool WHEN a tool is touched — do not
+ *     bulk-move all 13 tools' strings in one pass.
+ *   - `argus-mcp/src/lib/review/*` (8 files) is byte-drift-guarded against
+ *     the webapp core (review-mcp-drift.test.ts) — NEVER move its strings
+ *     here. tools/review.ts (a tool file) may adopt later.
+ *
+ * Locale resolution is CONFIG-ONLY and deterministic: argus_init seeds
+ * config.yaml with detectLocale (env/Intl sniffing lives there, at write
+ * time); tools read the config. No config → 'en' (the MCP's base voice),
+ * so tests and fresh dirs behave the same on every machine.
+ */
+
+export type SurfaceLocale = 'ko' | 'en';
+
+export function surfaceLocale(argusDir?: string | null): SurfaceLocale {
+  if (!argusDir) return 'en';
+  try {
+    const cfg = fs.readFileSync(configPath(argusDir), 'utf8');
+    const m = cfg.match(/^locale:\s*(ko|en)\b/m);
+    if (m) return m[1] as SurfaceLocale;
+  } catch { /* no config yet → base voice */ }
+  return 'en';
+}
+
+/** Shape shared by both locales — a key added to one MUST exist in the other
+ *  (TypeScript enforces the parity; no drift between the two voices). */
+export interface SurfaceStrings {
+  checkin: {
+    nothing_due: string;
+    /** appended when ARGUS_TOKEN is set and nothing is due locally (P1-E4 ③). */
+    account_hint: string;
+    upcoming: (n: number, days: number) => string;
+    /** count-only due line (fallback when no seal-time words exist). */
+    due_contracts: (n: number) => string;
+    /** the anchor mirror (P1-E3): date arithmetic + the user's OWN words back.
+     *  Recognition is day-math only — no welcome greetings, no verdict. */
+    anchor_mirror: (daysSinceSeal: number, dueCount: number, words: string) => string;
+    due_premises: (n: number) => string;
+  };
+  sync: {
+    live_with_due: (total: number, due: number) => string;
+    live_no_due: (total: number) => string;
+    settled_on_web: (n: number) => string;
+    truncation: (shown: number, matched: number) => string;
+  };
+}
+
+export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
+  en: {
+    checkin: {
+      nothing_due: 'Nothing is due. Nothing to nudge.',
+      account_hint: ' This reads the local ledger only — judgments sealed in your account: argus_sync shows them.',
+      upcoming: (n, days) => ` ${n} coming due within ${days} day(s) — informational, nothing to settle yet.`,
+      due_contracts: (n) => `${n} decision contract(s) past check-by — time to check them against reality (argus_settle).`,
+      anchor_mirror: (days, n, words) =>
+        `${days} day(s) since you sealed — ${n} contract(s) past check-by. Your words then: '${words}' All that's left is to record what reality did (argus_settle).`,
+      due_premises: (n) => `${n} premise fact(s) due for a reality re-check (argus_recheck).`,
+    },
+    sync: {
+      live_with_due: (total, due) =>
+        `${total} live judgment(s) in your account · ${due} past check-by. ` +
+        'Terminal-sealed ones settle here via argus_settle with local_id; web-sealed ones settle in the web dashboard.',
+      live_no_due: (total) => `${total} live judgment(s) in your account. Nothing past its check-by.`,
+      settled_on_web: (n) => ` ${n} already settled on the web — to keep them in this ledger too, record the same outcome with argus_settle.`,
+      truncation: (shown, matched) => `Showing ${shown} of ${matched}. Raise limit or narrow with due_only.`,
+    },
+  },
+  ko: {
+    checkin: {
+      nothing_due: '확인할 차례가 된 것은 없습니다. 조를 것도 없습니다.',
+      account_hint: ' 이건 로컬 원장만 읽습니다 — 계정에 봉인한 판단은 argus_sync로 볼 수 있습니다.',
+      upcoming: (n, days) => ` ${days}일 안에 확인일이 오는 것 ${n}건 — 참고용이고, 아직 정산할 건 아닙니다.`,
+      due_contracts: (n) => `계약 ${n}건이 확인일을 지났습니다 — 현실과 대조할 차례입니다 (argus_settle).`,
+      anchor_mirror: (days, n, words) =>
+        `봉인 후 ${days}일 — 계약 ${n}건이 확인일을 지났습니다. 그때 당신은 이렇게 적었습니다: '${words}' 현실이 어떻게 답했는지만 기록하면 됩니다 (argus_settle).`,
+      due_premises: (n) => `전제 사실 ${n}건이 현실 재확인 차례입니다 (argus_recheck).`,
+    },
+    sync: {
+      live_with_due: (total, due) =>
+        `계정에 살아 있는 판단 ${total}개 · 확인할 차례 ${due}개. ` +
+        '이 터미널에서 봉인한 것은 local_id로 argus_settle, 웹에서 봉인한 것은 웹 대시보드에서 정산하세요.',
+      live_no_due: (total) => `계정에 살아 있는 판단 ${total}개. 확인할 차례가 된 것은 없습니다.`,
+      settled_on_web: (n) => ` 웹에서 이미 정산된 것 ${n}건 — 로컬 원장에도 남기려면 argus_settle로 같은 outcome을 기록하세요.`,
+      truncation: (shown, matched) => `${matched}개 중 ${shown}개만 표시. limit을 올리거나 due_only로 좁히세요.`,
+    },
+  },
+};
+
+/** Convenience: resolve the dictionary for a dir in one call. */
+export function surfacesFor(argusDir?: string | null): SurfaceStrings {
+  return SURFACES[surfaceLocale(argusDir)];
+}

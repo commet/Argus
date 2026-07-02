@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import { sync } from '../sync.js';
 import { seal } from '../seal.js';
 import { tmpArgusDir } from '../../test-helpers.js';
@@ -46,9 +48,23 @@ describe('argus_sync', () => {
     expect(d.receipts[0].settle_path).toBe('argus_settle (use local_id)');
     expect(d.receipts[1].local_id).toBeNull();
     expect(d.receipts[1].settle_path).toBe('webapp');
-    // the surface routes both kinds instead of "정산은 argus_settle로" (which broke 100% of settles)
+    // the surface routes both kinds instead of a blanket "settle with argus_settle" (which broke 100% of settles)
+    // (no argus_dir → no config → base 'en' voice; the ko voice is covered below)
     expect(String(res.structuredContent?.surface)).toContain('local_id');
+    expect(String(res.structuredContent?.surface)).toContain('web dashboard');
+  });
+
+  it('P1-E1: the locale config drives the surface voice (ko config → Korean surface)', async () => {
+    process.env.ARGUS_TOKEN = 'argus_pat_x';
+    const dir = tmpArgusDir();
+    fs.writeFileSync(path.join(dir, 'config.yaml'), 'schema_version: 1\nlocale: ko\n');
+    const receipts = [
+      { id: 'mcp_a', source_title: 'A', state: 'sealed', next_check_by: '2020-01-01', due: true, core_question: 'q', open_predicates: [] },
+    ];
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true, receipts }), { status: 200 }));
+    const res = await sync.handler({ argus_dir: dir });
     expect(String(res.structuredContent?.surface)).toContain('웹 대시보드');
+    expect(String(res.structuredContent?.surface)).toContain('local_id');
   });
 
   it('limits the listing and reports has_more when the account has more', async () => {
@@ -87,7 +103,8 @@ describe('argus_sync', () => {
     expect(d.receipts[0].settled_in_account).toBe(true);
     expect(d.receipts[1].settled_in_account).toBeUndefined();
     // Surface tells the user; the local ledger is NOT auto-settled (user runs argus_settle).
-    expect(String(res.structuredContent?.surface)).toContain('웹에서 이미 정산된 것 1건');
+    // (tmp dir has no config → base 'en' voice)
+    expect(String(res.structuredContent?.surface)).toContain('1 already settled on the web');
     expect(String(res.structuredContent?.surface)).toContain('argus_settle');
   });
 
