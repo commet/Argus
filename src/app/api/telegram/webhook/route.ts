@@ -4,6 +4,9 @@ import { reframeSystemPrompt, deeperSuffix, coerceReframe, reframeToMarkdown, RE
 import { sealSystemPrompt, coerceSealDraft, sealPreviewMarkdown, formatCheckBy, parseCheckBy, SEAL_TOOL_NAME, SEAL_TOOL_SCHEMA } from '@/lib/seal-core';
 import { rehearseSystemPrompt, buildRehearseUser, coerceRehearse, rehearseToMarkdown, REHEARSE_PRESETS, REHEARSE_TOOL_NAME, REHEARSE_TOOL_SCHEMA } from '@/lib/rehearse-core';
 import { recordSummaryMarkdown } from '@/lib/record-core';
+import { parseSettlementIntent, applyTelegramSettlement, detectSettlementLocale, type TelegramSettlementIntent } from '@/lib/telegram-settlement';
+import { amendCheckIn } from '@/lib/decision-contract';
+import type { DecisionContract } from '@/stores/types';
 import { recastSystemPrompt, coerceRecast, recastToMarkdown, RECAST_TOOL_NAME, RECAST_TOOL_SCHEMA } from '@/lib/recast-core';
 import { callAnthropicJson } from '@/lib/llm-server';
 import { markdownToTelegramHtml, markdownToTelegramLight as lightHtml } from '@/lib/telegram-format';
@@ -122,6 +125,13 @@ const PRESET_DAYS: Record<string, number> = { '3d': 3, '1w': 7, '2w': 14, '1m': 
  *  notion of "today"). */
 function kstDatePlus(days: number): string {
   return new Date(Date.now() + 9 * 3600 * 1000 + days * 86400 * 1000).toISOString().slice(0, 10);
+}
+/** An ISO timestamp as a YYYY-MM-DD string in KST (matches telegram-sync's check_by). */
+function kstDateOf(iso: string | undefined): string | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  return new Date(t + 9 * 3600 * 1000).toISOString().slice(0, 10);
 }
 /** A friendly month/day label from a YYYY-MM-DD string (TZ-safe: built from parts). */
 function dateLabel(iso: string, locale: 'ko' | 'en'): string {
@@ -495,13 +505,126 @@ async function handleSealConfirm(chatId: number | string, userId: string, action
     : `🔒 Sealed. On **${dateLabel(p.check_by, locale)}** I’ll come back first and ask, “So — how did it go?”`));
 }
 
+// ── WEB-contract settlement (P0-2): the checkin-due cron sends stl1|/stl|
+//    buttons and an ARGUS_SETTLE reply token for contracts sealed in the WEB
+//    voyage (projects.decision_contract). Until now nothing consumed them — the
+//    product's one outbound promise ("정한 날 물어봐 드려요") asked and could
+//    not hear the answer. The parser was already complete; this is the wiring. ──
+async function handleContractSettlement(
+  chatId: number | string,
+  userId: string,
+  intent: TelegramSettlementIntent,
+): Promise<void> {
+  const admin = adminClient();
+  const { data: row } = await admin
+    .from('projects')
+    .select('id, user_id, name, decision_contract')
+    .eq('id', intent.projectId)
+    .single();
+  const contract = (row?.decision_contract ?? null) as DecisionContract | null;
+  // Ownership check first — callback/token payloads are attacker-typable.
+  if (!row || row.user_id !== userId || !contract || (intent.contractId && contract.id && contract.id !== intent.contractId)) {
+    await sendMessage(chatId, '그 결정을 찾을 수 없어요.');
+    return;
+  }
+  const locale = detectSettlementLocale(row.name, ...(Array.isArray(contract.predicates) ? contract.predicates : []).map((p) => p?.text));
+  const now = Date.now();
+
+  // Already closed? (freeform contracts re-close silently otherwise)
+  const preds = Array.isArray(contract.predicates) ? contract.predicates : [];
+  const alreadyClosed = !!contract.graded_at && (preds.length === 0 || !contract.check_in_at);
+  const result = applyTelegramSettlement(contract, intent, now);
+  if (alreadyClosed || (result.alreadySettled && !result.deferred)) {
+    await sendMessage(chatId, locale === 'ko' ? '이미 정산된 결정이에요.' : 'Already settled.');
+    return;
+  }
+
+  const { error } = await admin
+    .from('projects')
+    .update({ decision_contract: result.contract })
+    .eq('id', row.id);
+  if (error) {
+    console.error('[telegram/webhook] contract settlement update failed:', error.message);
+    await sendMessage(chatId, '기록 저장에 실패했어요. 잠시 후 다시 시도해 주세요.');
+    return;
+  }
+
+  // Mirror-row sync: telegram-sync plants a telegram_decisions row with
+  // id=projectId (source='web'). Settle/extend BOTH so the warm daily cron and
+  // every web surface (badge, /project, email re-nag) go quiet in one answer.
+  try {
+    if (result.deferred) {
+      const newCheckBy = kstDateOf(result.contract.check_in_at);
+      if (newCheckBy) {
+        await admin.from('telegram_decisions')
+          .update({ check_by: newCheckBy, reminded_at: null })
+          .eq('id', row.id).eq('user_id', userId).eq('status', 'sealed');
+      }
+    } else {
+      await admin.from('telegram_decisions')
+        .update({ status: 'settled', outcome: intent.outcome, settled_at: new Date(now).toISOString() })
+        .eq('id', row.id).eq('user_id', userId).eq('status', 'sealed');
+    }
+  } catch (err) {
+    console.error('[telegram/webhook] mirror-row sync failed:', err);
+  }
+
+  if (result.deferred) {
+    const nextDate = kstDateOf(result.contract.check_in_at);
+    await sendMessage(chatId, lightHtml(locale === 'ko'
+      ? `알겠어요. **${nextDate ? dateLabel(nextDate, locale) : '다음 확인일'}**에 다시 물어볼게요.`
+      : `Got it. I’ll ask again on **${nextDate ? dateLabel(nextDate, locale) : 'the next check-in'}**.`));
+    return;
+  }
+  const label = locale === 'ko'
+    ? (intent.outcome === 'happened' ? '잘 됨' : intent.outcome === 'avoided' ? '안 됨' : '반반')
+    : intent.outcome;
+  await sendMessage(chatId, lightHtml(locale === 'ko'
+    ? `기록했어요 — **${label}**. 고리를 닫았어요.`
+    : `Recorded — **${label}**. The loop is closed.`), recordButton(locale));
+}
+
+/** Apply a settlement/extension to the WEB contract behind a mirrored
+ *  telegram_decisions row (row id == project id). Best-effort: a failure here
+ *  never blocks the Telegram-side answer that already landed. */
+async function bridgeWebContract(
+  projectId: string,
+  userId: string,
+  intent: Pick<TelegramSettlementIntent, 'outcome' | 'note'>,
+): Promise<void> {
+  try {
+    const admin = adminClient();
+    const { data: row } = await admin
+      .from('projects')
+      .select('id, user_id, decision_contract')
+      .eq('id', projectId)
+      .single();
+    const contract = (row?.decision_contract ?? null) as DecisionContract | null;
+    if (!row || row.user_id !== userId || !contract) return;
+    const preds = Array.isArray(contract.predicates) ? contract.predicates : [];
+    if (contract.graded_at && (preds.length === 0 || !contract.check_in_at)) return; // already closed
+    // "later" on this path extends the Telegram row by 2 weeks — keep the web
+    // contract on the same date instead of applyTelegramSettlement's 1-week default.
+    const next = intent.outcome === 'pending'
+      ? amendCheckIn(contract, '2w', Date.now())
+      : applyTelegramSettlement(contract, intent, Date.now()).contract;
+    const { error } = await admin
+      .from('projects')
+      .update({ decision_contract: next })
+      .eq('id', row.id);
+    if (error) console.error('[telegram/webhook] web-contract bridge failed:', error.message);
+  } catch (err) {
+    console.error('[telegram/webhook] web-contract bridge failed:', err);
+  }
+}
+
 // ── Settle flow (the check-in answer: 잘 됐어요/안 됐어요/반반/아직) ──
 async function handleSettle(chatId: number | string, userId: string, payload: string): Promise<void> {
   const [id, outcome] = payload.split(':');
   const admin = adminClient();
   const { data: dec } = await admin
     .from('telegram_decisions')
-    .select('id, user_id, decision, check_by, status, history')
+    .select('id, user_id, decision, check_by, status, history, source')
     .eq('id', id).single();
   if (!dec || dec.user_id !== userId) {
     await sendMessage(chatId, '그 결정을 찾을 수 없어요.');
@@ -523,6 +646,9 @@ async function handleSettle(chatId: number | string, userId: string, payload: st
       reminded_at: null,
       history: [...history, { check_by: dec.check_by, amended_at: new Date().toISOString() }],
     }).eq('id', id);
+    // Half-settlement fix (P0-2 ③): a web-mirrored row (telegram-sync, row id ==
+    // project id) must extend the WEB contract too, or the web keeps nagging.
+    if (dec.source === 'web') await bridgeWebContract(id, userId, { outcome: 'pending' });
     await sendMessage(chatId, lightHtml(locale === 'ko'
       ? `알겠어요. **${dateLabel(newCheck, locale)}**에 다시 물어볼게요.`
       : `Got it. I’ll ask again on **${dateLabel(newCheck, locale)}**.`));
@@ -536,6 +662,11 @@ async function handleSettle(chatId: number | string, userId: string, payload: st
   await admin.from('telegram_decisions').update({
     status: 'settled', outcome, settled_at: new Date().toISOString(),
   }).eq('id', id);
+  // Half-settlement fix (P0-2 ③): answering here must also close the web
+  // contract, so the badge · /project · email re-nag all go dark in one answer.
+  if (dec.source === 'web') {
+    await bridgeWebContract(id, userId, { outcome: outcome as 'happened' | 'avoided' | 'partial' });
+  }
 
   const { count } = await admin
     .from('telegram_decisions').select('id', { count: 'exact', head: true })
@@ -626,6 +757,13 @@ export async function POST(req: NextRequest) {
       const userId = await userForChat(chatId);
       if (!userId) { await sendMessage(chatId, '먼저 웹앱 설정에서 Telegram을 연결해 주세요.'); return NextResponse.json({ ok: true }); }
 
+      // Web-contract settle buttons (stl1|/stl|) — first, before the reframe chain.
+      const contractIntent = parseSettlementIntent({ callbackData: data });
+      if (contractIntent) {
+        await handleContractSettlement(chatId, userId, contractIntent);
+        return NextResponse.json({ ok: true });
+      }
+
       if (data === 'rf:deep' || data === 'rf:redo') {
         const { data: sess } = await adminClient()
           .from('telegram_sessions').select('last_input').eq('chat_id', String(chatId)).single();
@@ -677,7 +815,7 @@ export async function POST(req: NextRequest) {
 
   // ── Messages ──
   const message = (update.message ?? update.edited_message) as
-    | { text?: string; chat?: { id: number; title?: string; first_name?: string; type?: string } }
+    | { text?: string; chat?: { id: number; title?: string; first_name?: string; type?: string }; reply_to_message?: { text?: string } }
     | undefined;
   const text = message?.text?.trim() ?? '';
   const chat = message?.chat;
@@ -707,6 +845,27 @@ export async function POST(req: NextRequest) {
     ].join('\n')));
     return NextResponse.json({ ok: true });
   }
+  // Web-contract settlement by reply or /settle (P0-2): the reminder's last
+  // line carries an ARGUS_SETTLE token; a reply like "잘 됐어" against it (or an
+  // explicit /settle command) settles the web contract. Runs BEFORE the
+  // slash-command ignore and the reframe path — a plain message with no token
+  // reply parses to null and falls through untouched.
+  const settlementIntent = parseSettlementIntent({ text, replyText: message?.reply_to_message?.text });
+  if (settlementIntent) {
+    try {
+      const userId = await userForChat(chat.id);
+      if (!userId) {
+        await sendMessage(chat.id, '먼저 웹앱 설정에서 Telegram을 연결해 주세요.');
+      } else {
+        await handleContractSettlement(chat.id, userId, settlementIntent);
+      }
+    } catch (err) {
+      console.error('[telegram/webhook] settlement reply failed:', err);
+      await sendMessage(chat.id, '잠깐 막혔어요. 잠시 후 다시 보내 주세요.');
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   // Ignore other slash-commands quietly.
   if (text.startsWith('/')) return NextResponse.json({ ok: true });
 

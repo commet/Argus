@@ -90,8 +90,29 @@ describe('telegram settlement intent parsing', () => {
       projectId: 'p1',
       contractId: 'c1',
       predicate: 'Activation holds',
+      locale: 'en',
     })).toContain('ARGUS_SETTLE:p1:c1');
     expect(settlementReplyMarkup('p1').inline_keyboard.flat().map((b) => b.callback_data)).toContain('stl|pending|p1');
+  });
+
+  it('speaks the seal-core Korean voice by default (one reminder brain, 02 P0-1)', () => {
+    const ko = settlementReminderText({
+      projectName: '런칭 결정',
+      projectId: 'p1',
+      contractId: 'c1',
+      predicate: '활성화 지표가 유지된다',
+    });
+    expect(ko).toContain('그래서, 어떻게 됐어요?');
+    expect(ko).toContain('「런칭 결정」');
+    expect(ko).toContain('확인할 것: 활성화 지표가 유지된다');
+    expect(ko).toContain('ARGUS_SETTLE:p1:c1'); // reply-matching token stays, last line only
+    expect(ko).not.toContain('Argus check-in'); // the cold machine voice is gone
+
+    const en = settlementReminderText({ projectName: 'Launch', projectId: 'p1', locale: 'en' });
+    expect(en).toContain('So — how did it go?');
+
+    const koButtons = settlementReplyMarkup('p1', undefined, 'ko').inline_keyboard.flat().map((b) => b.text);
+    expect(koButtons).toEqual(expect.arrayContaining(['✅ 잘 됐어요', '✋ 안 됐어요', '〰 반반', '⏳ 아직']));
   });
 
   it('packs project and contract ids into inline callbacks when ids are UUIDs', () => {

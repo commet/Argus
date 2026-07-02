@@ -47,44 +47,69 @@ const CALLBACK_CODE_OUTCOME: Record<string, TelegramSettlementOutcome> = {
   p: 'pending',
 };
 
-export function settlementReplyMarkup(projectId: string, contractId?: string) {
+/** Locale detection for outbound settlement copy — one brain shared by the
+ *  checkin-due cron and the webhook (same rule telegram-reminders uses). */
+export function detectSettlementLocale(...parts: Array<string | undefined>): 'ko' | 'en' {
+  return /[가-힣]/.test(parts.filter(Boolean).join(' ')) ? 'ko' : 'en';
+}
+
+export function settlementReplyMarkup(projectId: string, contractId?: string, locale: 'ko' | 'en' = 'ko') {
   const callbackTarget = contractId ? encodeCallbackTarget(projectId, contractId) : null;
   const callbackData = (outcome: TelegramSettlementOutcome) =>
     callbackTarget
       ? `${CALLBACK_PREFIX}|${CALLBACK_OUTCOME_CODE[outcome]}|${callbackTarget}`
       : `stl|${outcome}|${projectId}`;
+  const ko = locale === 'ko';
 
+  // One brain with seal-core's settleKeyboard vocabulary (잘 됐어요/안 됐어요/반반/아직).
   return {
     inline_keyboard: [
       [
-        { text: 'Happened', callback_data: callbackData('happened') },
-        { text: 'Avoided', callback_data: callbackData('avoided') },
+        { text: ko ? '✅ 잘 됐어요' : '✅ It happened', callback_data: callbackData('happened') },
+        { text: ko ? '✋ 안 됐어요' : '✋ It didn’t', callback_data: callbackData('avoided') },
       ],
       [
-        { text: 'Partial', callback_data: callbackData('partial') },
-        { text: 'Still pending', callback_data: callbackData('pending') },
+        { text: ko ? '〰 반반' : '〰 Partly', callback_data: callbackData('partial') },
+        { text: ko ? '⏳ 아직' : '⏳ Not yet', callback_data: callbackData('pending') },
       ],
     ],
   };
 }
 
+/** The check-in question for a WEB-sealed contract. Same voice as seal-core's
+ *  settleQuestionMarkdown ("그래서, 어떻게 됐어요?") — the two reminder brains
+ *  must not drift apart in tone (03 S1 / 02 P0-1). The raw token stays as the
+ *  LAST line only, for reply matching; the buttons are the primary path. */
 export function settlementReminderText(args: {
   projectName: string;
   projectId: string;
   contractId?: string;
   predicate?: string;
+  locale?: 'ko' | 'en';
 }): string {
   const token = settlementToken(args.projectId, args.contractId);
-  const predicate = args.predicate
-    ? `\n\nCheck: ${args.predicate.slice(0, 220)}`
-    : '';
+  const locale = args.locale ?? 'ko';
+  const name = escapeTelegramHtml(args.projectName || (locale === 'ko' ? '제목 없는 결정' : 'Untitled'));
+  const predicate = args.predicate ? escapeTelegramHtml(args.predicate.slice(0, 220)) : '';
+
+  if (locale === 'ko') {
+    return [
+      '<b>그래서, 어떻게 됐어요?</b>',
+      '',
+      `「${name}」 — 봉인할 때 이날 물어봐 달라고 하셨어요.`,
+      predicate ? `확인할 것: ${predicate}` : '',
+      '',
+      '아래 버튼으로 답하거나, 이 메시지에 답장해 주세요. 아직 모르겠으면 "아직"도 답이에요.',
+      `<code>${token}</code>`,
+    ].filter(Boolean).join('\n');
+  }
   return [
-    '<b>Argus check-in</b>',
+    '<b>So — how did it go?</b>',
     '',
-    `Project: ${escapeTelegramHtml(args.projectName || 'Untitled')}`,
-    predicate ? escapeTelegramHtml(predicate) : '',
+    `“${name}” — you asked to be asked on this day when you sealed it.`,
+    predicate ? `The check: ${predicate}` : '',
     '',
-    'Tap a button, or reply with: happened / avoided / partial / still pending.',
+    'Tap a button, or just reply to this message. “Not yet” is a valid answer too.',
     `<code>${token}</code>`,
   ].filter(Boolean).join('\n');
 }

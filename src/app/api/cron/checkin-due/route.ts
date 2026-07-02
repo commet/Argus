@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { settlementReminderText, settlementReplyMarkup } from '@/lib/telegram-settlement';
+import { settlementReminderText, settlementReplyMarkup, detectSettlementLocale } from '@/lib/telegram-settlement';
 import { isCheckInReminderDue, renderCheckInReminderEmail, resendEmailErrorMessage, selectOpenPredicate } from '@/lib/checkin-reminder';
 import type { DecisionContract } from '@/stores/types';
 
@@ -127,20 +127,34 @@ export async function GET(req: Request) {
         }
       }
 
-      const telegramDue =
+      let telegramDue =
         !!botToken &&
         (!c.telegram_reminder_sent_at || now - new Date(c.telegram_reminder_sent_at).getTime() >= RESEND_DUP_WINDOW_MS);
+      if (telegramDue) {
+        // Double-send guard (P0-2 ②): web seals with a Telegram connection are
+        // mirrored into telegram_decisions (telegram-sync, row id == project id)
+        // and the warm daily cron (telegram-reminders) owns THAT reminder. This
+        // bridge stays only as the safety net for un-mirrored legacy contracts.
+        const { count: mirrored } = await supabase
+          .from('telegram_decisions')
+          .select('id', { count: 'exact', head: true })
+          .eq('id', r.id)
+          .eq('status', 'sealed');
+        if ((mirrored ?? 0) > 0) telegramDue = false;
+      }
       if (telegramDue) {
         const { data: conns } = await supabase
           .from('telegram_connections')
           .select('chat_id')
           .eq('user_id', r.user_id);
         const openPredicate = selectOpenPredicate(c);
+        const locale = detectSettlementLocale(name, openPredicate?.text);
         const text = settlementReminderText({
           projectName: name,
           projectId: r.id,
           contractId: c.id,
           predicate: openPredicate?.text,
+          locale,
         });
         let delivered = 0;
         for (const conn of conns ?? []) {
@@ -148,7 +162,7 @@ export async function GET(req: Request) {
             botToken,
             chatId: String(conn.chat_id),
             text,
-            replyMarkup: settlementReplyMarkup(r.id, c.id),
+            replyMarkup: settlementReplyMarkup(r.id, c.id, locale),
           })) delivered++;
         }
         if (delivered > 0) {
