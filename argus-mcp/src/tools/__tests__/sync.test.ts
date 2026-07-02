@@ -28,6 +28,27 @@ describe('argus_sync', () => {
     expect(res.structuredContent?.next_actions).toContain('argus_settle');
   });
 
+  it('P0-8: hands back local_id (mcp_ prefix stripped) and the settle path per receipt', async () => {
+    process.env.ARGUS_TOKEN = 'argus_pat_x';
+    const receipts = [
+      // terminal-sealed: account id carries the mcp_ prefix → settle locally with the bare id
+      { id: 'mcp_migrate-db', source_title: 'A', state: 'sealed', next_check_by: '2020-01-01', due: true, core_question: 'q', open_predicates: [] },
+      // web-sealed: no prefix → settles in the web dashboard, never via argus_settle
+      { id: 'rcpt_web1', source_title: 'B', state: 'sealed', next_check_by: '2020-01-02', due: true, core_question: 'q', open_predicates: [] },
+    ];
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true, receipts }), { status: 200 }));
+    const res = await sync.handler({});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const d = res.structuredContent?.data as any;
+    expect(d.receipts[0].local_id).toBe('migrate-db');
+    expect(d.receipts[0].settle_path).toBe('argus_settle (use local_id)');
+    expect(d.receipts[1].local_id).toBeNull();
+    expect(d.receipts[1].settle_path).toBe('webapp');
+    // the surface routes both kinds instead of "정산은 argus_settle로" (which broke 100% of settles)
+    expect(String(res.structuredContent?.surface)).toContain('local_id');
+    expect(String(res.structuredContent?.surface)).toContain('웹 대시보드');
+  });
+
   it('limits the listing and reports has_more when the account has more', async () => {
     process.env.ARGUS_TOKEN = 'argus_pat_x';
     const many = Array.from({ length: 5 }, (_, i) => ({ id: `r${i}`, source_title: `T${i}`, state: 'sealed', next_check_by: null, due: false, core_question: '', open_predicates: [] }));

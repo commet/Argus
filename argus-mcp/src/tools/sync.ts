@@ -24,8 +24,10 @@ const inputSchema = z.strictObject({
 export const sync: ToolModule = {
   name: 'argus_sync',
   description:
-    'Pull your Argus account receipts into the terminal — live judgments and what is due — so you can settle here. ' +
-    'Returns: receipts (id, title, state, next_check_by, due, open_predicates) with due items first, plus total/due/has_more. ' +
+    'Pull your Argus account receipts into the terminal — live judgments and what is due. ' +
+    'Returns: receipts (id, local_id, settle_path, title, state, next_check_by, due, open_predicates) with due items first, plus total/due/has_more. ' +
+    'Account ids carry an mcp_ prefix for terminal-sealed judgments: settle those with argus_settle using local_id (NOT the account id). ' +
+    'Web-sealed judgments (local_id null) settle in the web dashboard. ' +
     'Seals/settles already push to the account automatically; this is the READ side. Use due_only:true to see just what needs settling. Requires ARGUS_TOKEN (Settings → sync token).',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
@@ -59,7 +61,8 @@ export const sync: ToolModule = {
       return envelope({
         ok: true, tool: 'argus_sync',
         surface: dueCount > 0
-          ? `계정에 살아 있는 판단 ${pull.receipts.length}개 · 확인할 차례 ${dueCount}개. 정산은 argus_settle로.`
+          ? `계정에 살아 있는 판단 ${pull.receipts.length}개 · 확인할 차례 ${dueCount}개. ` +
+            '이 터미널에서 봉인한 것은 local_id로 argus_settle, 웹에서 봉인한 것은 웹 대시보드에서 정산하세요.'
           : `계정에 살아 있는 판단 ${pull.receipts.length}개. 확인할 차례가 된 것은 없습니다.`,
         next_actions: dueCount > 0 ? ['argus_settle', 'stop'] : ['stop'],
         data: {
@@ -68,14 +71,24 @@ export const sync: ToolModule = {
           count: receipts.length,
           has_more: truncated,
           ...(truncated ? { truncation_note: `${matched.length}개 중 ${receipts.length}개만 표시. limit을 올리거나 due_only로 좁히세요.` } : {}),
-          receipts: receipts.map((r) => ({
-            id: r.id,
-            title: r.source_title,
-            state: r.state,
-            next_check_by: r.next_check_by,
-            due: r.due,
-            open_predicates: r.open_predicates,
-          })),
+          receipts: receipts.map((r) => {
+            // Terminal-sealed judgments live in the account under an `mcp_` prefix
+            // (webapp api/mcp/seal rowId). Settling with the ACCOUNT id always
+            // fails (NO_PRIOR_SEAL: the local ledger knows the unprefixed id), so
+            // hand the caller the exact id argus_settle expects — or route
+            // web-sealed rows to the web dashboard.
+            const localId = r.id.startsWith('mcp_') ? r.id.slice(4) : null;
+            return {
+              id: r.id,
+              local_id: localId,
+              settle_path: localId ? 'argus_settle (use local_id)' : 'webapp',
+              title: r.source_title,
+              state: r.state,
+              next_check_by: r.next_check_by,
+              due: r.due,
+              open_predicates: r.open_predicates,
+            };
+          }),
         },
       });
     } catch (e) {

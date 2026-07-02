@@ -72,7 +72,8 @@ export function guardTransition(
       throw new GuardError(
         'NO_PRIOR_SEAL',
         'Cannot settle a decision that was never sealed.',
-        'Call argus_seal with a falsifiable predicate and a check-by date first.',
+        'Call argus_seal with a falsifiable predicate and a check-by date first. ' +
+          "(If this id came from argus_sync and starts with 'mcp_', use the id without that prefix — see the receipt's local_id; a web-sealed prediction settles in the web app, not here.)",
       );
     }
     if (current === 'settled') {
