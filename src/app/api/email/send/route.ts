@@ -5,6 +5,10 @@ import { validateContentType, validateContentLength, validateOrigin } from '@/li
 import { markdownToEmailHtml } from '@/lib/email-html';
 import { recordAndCheckShare } from '@/lib/share-guard';
 
+// 09 S8: explicit server budget instead of the platform default — a stuck
+// upstream (Resend) call must terminate, not hold the client's 15s abort alone.
+export const maxDuration = 30;
+
 /**
  * Share an Argus deliverable to an email recipient. Unlike send-question (which
  * wires a reply loop for human-agent answers), this is a one-way share: the full

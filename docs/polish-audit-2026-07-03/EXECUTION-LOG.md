@@ -481,3 +481,19 @@
 - MCP: `npm run typecheck` 0 + spine-drift 13/13 (전체 스위트 185/185는 커밋 직전 실행).
 - mojibake: 접촉 한국어 파일(record-core·record-summary·RecordStrip·SettlementModal·storage·persistence-contract 등) U+FFFD 스캔 0건.
 - 커밋: A2=a08220d · A5=ded4078 · E7=dc3fabd
+
+---
+
+## 웨이브 8 — 소품·거취·최종 검증 (2026-07-03)
+
+### [거취 판정] WakeReturn·DecisionReplayTimeline — Clean Removal 삭제
+
+- **무엇을**: 프로덕션 import 0인 두 죽은 컴포넌트를 재사용 판정 후 삭제.
+  - 삭제: `WakeReturn.tsx` · `DecisionReplayTimeline.tsx` · `decision-replay-timeline-render.test.tsx`(그 컴포넌트 전용 렌더 테스트) + `DecisionContract.lean_after` 타입 필드(types.ts:644 — WakeReturn만 읽고, 쓰는 코드는 한 번도 배선된 적 없음 = 실데이터 0행 확정이라 하위호환 문제 없음).
+- **왜 (재사용 판정 먼저 — 마스터 지시)**:
+  - 08 S6 교차-결정 연대기 재사용안: 그 항목 자체가 §3.5-3에서 "다음 단계 후보"로 이번 실행 밖. 게다가 스펙이 요구하는 건 **교차-결정** 세로 원장(LOG ENTRY register)인데 DecisionReplayTimeline은 **단일 결정**의 snapshots/questions/answers 재생용 — 데이터 모양이 달라 미래 재사용도 부적합.
+  - 03 S8 (a)안(SettlementModal 항적 블록 배선): W6 P1-A1 판단 액자가 같은 자리(정산 완료 화면)에 같은 문법(봉인 인용↔정산 서사)을 이미 출하 — 08 S6 스스로 "항적 블록 문법은 S1 액자와 겹친다 — 흡수 후 삭제가 유력" 판정. 흡수 완료 상태이므로 (b)안(삭제) 채택.
+  - Clean Removal 전수 grep: `WakeReturn|DecisionReplayTimeline|lean_after|leanAfter|wake_return` — 잔존 참조 0 확인. i18n 키는 인라인 L()이라 없음.
+- **파일**: 삭제 3 + `src/stores/types.ts`
+- **검증**: `npx tsc --noEmit` 0.
+- **커밋**: 5d428ea

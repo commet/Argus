@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { supabase, getCurrentUserId } from '@/lib/supabase';
+import { timeoutSignal } from '@/lib/timeout-signal';
 
 export interface TelegramConnection {
   id: string;
@@ -72,6 +73,7 @@ export const useTelegramStore = create<TelegramState>((set, get) => ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({}),
+        signal: timeoutSignal(),
       });
       const data = await res.json();
       if (res.ok && data.link) return { ok: true, link: data.link };
@@ -98,6 +100,7 @@ export const useTelegramStore = create<TelegramState>((set, get) => ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ chatId: opts.chatId, title, content, context: opts.context }),
+        signal: timeoutSignal(),
       });
       const data = await res.json();
       if (data.ok) return { ok: true };

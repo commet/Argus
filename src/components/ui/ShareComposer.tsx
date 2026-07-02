@@ -10,6 +10,7 @@ import { Button } from './Button';
 import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { getSessionWithTimeout } from '@/lib/supabase';
+import { timeoutSignal } from '@/lib/timeout-signal';
 import { useSlackStore } from '@/stores/useSlackStore';
 import { useTelegramStore } from '@/stores/useTelegramStore';
 import { copyToClipboard, composeMailtoLink } from '@/lib/export';
@@ -229,6 +230,7 @@ function LinkPanel({ user, title, text, context, onCreated }: { user: boolean; t
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ title, content: text, context }),
+        signal: timeoutSignal(),
       });
       const json = await res.json();
       if (json.ok && json.path) {
@@ -309,6 +311,7 @@ function EmailPanel({ user, title, text, context, onSent }: { user: boolean; tit
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ to, title, content: text, context }),
+        signal: timeoutSignal(),
       });
       const json = await res.json();
       if (json.ok) onSent();

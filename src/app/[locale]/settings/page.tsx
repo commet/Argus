@@ -17,6 +17,7 @@ import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAm
 import { useSlackStore } from '@/stores/useSlackStore';
 import { useTelegramStore } from '@/stores/useTelegramStore';
 import { supabase } from '@/lib/supabase';
+import { timeoutSignal } from '@/lib/timeout-signal';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 
@@ -939,6 +940,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ label: 'CLI' }),
+        signal: timeoutSignal(),
       });
       const json = await res.json();
       if (json.token) { setIssued(json.token); await load(); }

@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/supabase';
+import { timeoutSignal } from '@/lib/timeout-signal';
 
 export interface SlackConnection {
   id: string;
@@ -84,6 +85,7 @@ export const useSlackStore = create<SlackState>((set, get) => ({
 
       const res = await fetch('/api/slack/channels', {
         headers: { Authorization: `Bearer ${token}` },
+        signal: timeoutSignal(),
       });
       const data = await res.json();
       if (data.channels) {
@@ -112,6 +114,7 @@ export const useSlackStore = create<SlackState>((set, get) => ({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ channelId, title, content }),
+        signal: timeoutSignal(),
       });
 
       const data = await res.json();

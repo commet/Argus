@@ -145,3 +145,10 @@
 - **무엇이 애매했나**: 12 §3.5 시그니처는 `renderWake(contracts, stats, today, locale)` 4인자인데, "기록 시작" 줄의 소스(가장 오래된 원장 이벤트 ts)는 contracts/stats 어디에도 없음 — 스펙 자신이 요구한 마지막 줄을 스펙 시그니처로는 못 그린다.
 - **내린 판단**: fold에 `LedgerState.oldest_ts`(additive optional)를 추가하고 renderWake에 5번째 옵션 인자 `recordSince?`로 전달. stats에 끼워 넣는 것보다 정직한 형태(stats는 정산 집계라는 단일 의미 유지).
 - **되돌리는 법**: 인자 제거 + footer의 record_since 분기 삭제 — 렌더는 대시 레일로 자연 폴백.
+
+### W8-1. lean_after 타입 필드까지 삭제할 것인가
+
+- **애매했던 것**: 마스터 문면은 "WakeReturn·DecisionReplayTimeline 거취 판정"만 말하고 `DecisionContract.lean_after` 필드는 언급하지 않음. 남겨두면 "반쯤 존재하는 코드"(03 S8이 인용한 Clean Removal 원칙 위반), 지우면 스코프 확대.
+- **창업자라면**: CLAUDE.md Clean Removal 원칙이 "imports, state variables, i18n keys, **type fields** 제거"를 명시. 또한 wake-return 메모리(2026-06-29)의 lean_after는 jsonb 내부(마이그 0)이고 **쓰는 코드가 한 번도 출하된 적 없어** 실데이터 0행이 확정 — 하위호환 리스크 0. 창업자의 과거 판단(반쯤 존재하는 코드가 제일 비싸다)대로 함께 제거.
+- **내린 판단**: 타입 필드 포함 전체 Clean Removal (커밋 5d428ea).
+- **되돌리는 법**: `git revert 5d428ea` — 컴포넌트·테스트·타입 필드가 한 커밋이라 원자적 복원.

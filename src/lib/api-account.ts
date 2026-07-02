@@ -4,6 +4,7 @@
  * Settings "export"/"reset" only touched localStorage, missing synced + server-only data.
  */
 import { getSessionWithTimeout } from './supabase';
+import { timeoutSignal } from './timeout-signal';
 
 async function bearer(): Promise<string> {
   // 4s cap (shared helper): a hung auth call must fail fast as "login required"
@@ -19,6 +20,8 @@ export async function exportAccountData(): Promise<void> {
   const token = await bearer();
   const res = await fetch('/api/account/export', {
     headers: { Authorization: `Bearer ${token}` },
+    // 60s: the export file can be large — everything else uses the 15s default.
+    signal: timeoutSignal(60_000),
   });
   if (!res.ok) throw new Error(`export-failed-${res.status}`);
   const blob = await res.blob();
@@ -42,6 +45,7 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
   const res = await fetch('/api/account/delete', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
+    signal: timeoutSignal(),
   });
   const json = (await res.json()) as Partial<DeleteAccountResult> & { error?: string };
   if (!res.ok && !json.receipt) throw new Error(json.error || `delete-failed-${res.status}`);
