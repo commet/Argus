@@ -145,11 +145,12 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
             </span>
             {branchInfo && (
               <span className="relative min-w-0 pl-2 ml-0.5 border-l border-[var(--border-subtle)]">
+                {/* '현재 방위'(결과 카드)와의 동음이의 해소 — 이 칩은 세션 갈래 전환기다 (06 S1) */}
                 <button
                   onClick={() => setBranchMenuOpen((o) => !o)}
                   aria-expanded={branchMenuOpen}
                   aria-haspopup="listbox"
-                  title={L(`현재 항로 · 총 ${branchInfo.count}개 — 눌러서 갈아타기`, `Current course · ${branchInfo.count} total — tap to switch`)}
+                  title={L(`지금 가는 갈래 · 총 ${branchInfo.count}개 — 눌러서 갈아타기`, `Current branch · ${branchInfo.count} total — tap to switch`)}
                   className="flex items-center gap-1 text-[12px] text-[var(--text-secondary)] min-w-0 hover:text-[var(--text-primary)] cursor-pointer min-h-[44px]"
                 >
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: branchInfo.color }} />

@@ -117,7 +117,7 @@ export function DecisionReplayTimeline({
       tone: bearing.current_course.status === 'collect_evidence' || bearing.current_course.status === 'hold'
         ? 'warning'
         : 'success',
-      label: L('현재 항로', 'Current bearing'),
+      label: L('현재 방위', 'Current bearing'),
       title: bearing.current_course.summary,
       meta: bearing.next_helm
         ? L(`다음: ${bearing.next_helm}`, `Next: ${bearing.next_helm}`)

@@ -98,7 +98,7 @@ export function CurrentBearingCard({
           <div className="flex min-w-0 items-center gap-2">
             <Compass size={15} className="text-[var(--text-tertiary)]" />
             <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
-              {L('현재 항로', 'Current Heading')}
+              {L('현재 방위', 'Current Heading')}
             </span>
             {label && (
               <span className="tabular-nums text-[10px] text-[var(--text-tertiary)]">
@@ -109,7 +109,7 @@ export function CurrentBearingCard({
           <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={copyBearing}
-              aria-label={L('현재 항로 복사', 'Copy current heading')}
+              aria-label={L('현재 방위 복사', 'Copy current heading')}
               className="inline-flex min-h-8 cursor-pointer items-center gap-1 px-1.5 text-[10.5px] font-medium text-[var(--text-tertiary)] transition-[color,scale] duration-150 hover:text-[var(--accent)] active:scale-[0.96]"
             >
               {copied ? <Check size={11} className="text-[var(--success)]" /> : <Copy size={11} />}
