@@ -227,3 +227,10 @@
 - **파일**: `src/lib/llm.ts`, `src/components/workspace/progressive/ProgressiveFlow.tsx`(retryRef+이벤트 소비+배너 버튼), `src/app/[locale]/workspace/page.tsx`(문구)
 - **검증**: tsc 0 · llm 4개 스위트 56/56 통과.
 - **커밋**: 8f6f2c7
+
+### [P1-C4] OAuth 콜백 10초 타임아웃 + 텔레그램 연결 try/catch (영구 스피너 2곳 수리)
+
+- **무엇을**: ① auth/callback의 `exchangeCodeForSession`을 10초 Promise.race로 — 왕복이 걸리면 "로그인 중..."이 영원했다. 타임아웃 시 기존 `?error=auth_failed` 경로 재사용(로그인 페이지가 이미 표시). ② useTelegramStore.startConnect 본문 try/catch — fetch가 throw하면 호출부의 setPending(false)를 건너뛰어 버튼이 영구 스피너였다. `{ok:false, error:'network'}` 리턴값으로 전환. ③ settings TelegramBlock의 setPending(false)를 finally로 이동 + network 분기 문구("연결을 시작하지 못했어요 — 인터넷 연결을 확인하고 다시 눌러 주세요").
+- **파일**: `src/app/[locale]/auth/callback/page.tsx`, `src/stores/useTelegramStore.ts`, `src/app/[locale]/settings/page.tsx`
+- **검증**: tsc 0.
+- **커밋**: 4ff4b1d
