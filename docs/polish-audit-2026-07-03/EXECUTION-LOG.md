@@ -258,3 +258,125 @@
 - 한국어 문자열 파일 mojibake 검사(U+FFFD 카운트): ko.ts·SessionExpiredToast·workspace·AuthGuard·settings·LoadingSteps 전부 0.
 - 변경 파일(SyncStatus·LoadingSteps·useTelegramStore·auth·sync-health)을 참조하는 기존 테스트 없음을 grep으로 확인 — 회귀 표면 없음.
 - 커밋: P0-5+P1-C1=cf44598 · P1-C7=0847c09 · P1-C2+C3=8f6f2c7 · P1-C4=4ff4b1d · P1-C6최소=72fd4b5 · P1-C5=2df8d2b · docs=71f20e2. push 완료(origin/claude/pensive-almeida-9d3f27).
+
+## 웨이브 5 — 목소리 대청소 (P1-D1~D8 · P1-B4 · P1-B6 · P2 카피 소품 · P1-E5 · P1-E6 · MCP 소품 목소리분)
+
+### [P1-D1] 토막 에러 9곳 + ErrorBoundary + 공용 사전 — "{어디가} 막혔어요 — 작업물은 그대로 — 손잡이 하나" 패턴 통일
+
+- **무엇을**: ① ProgressiveFlow의 명사형 토막 fallback 9곳("초안 생성 실패"·"DM 피드백 실패"·"심화 검토 실패"·"실패"(두 글자)·"최종본 실패"·"수정 요청 실패"·"재분석 실패"·"전환 실패"×2)을 02 S4 제안 문안 계열로 교체 — err.message 우선 구조는 유지, fallback만 교체. ② ErrorBoundary 관공서 말투("문제가 발생했습니다")를 error.tsx의 암초 목소리로("여기서 암초에 걸렸어요 / 이 구역만 잠깐 멈춘 거예요. 작업 내용은 이 브라우저에 그대로 남아 있어요."). ③ 공용 사전 ko.ts/en.ts: common.error·rateLimit.exceeded·errorDisplay.unknown/generic·progressive.sendFailed·quickChat.failure — 02 P1-5 표 문안 그대로. ④ ShareComposer 링크/전송 토막 4곳, workspace:463 합쇼체 이질 문장. 전부 ko/en 대칭.
+- **왜**: 최상급(암초 404/500)과 최하급("실패" 두 글자)이 공존 — 사용자가 20분 쏟은 뒤 만나는 문장이 가장 차가웠다(02 P1-2/P1-3/P1-5). localStorage-first라 "작업물은 그대로"가 참말인 제품에서 그 말을 안 하고 있었다.
+- **파일**: `src/components/workspace/progressive/ProgressiveFlow.tsx`, `src/components/layout/ErrorBoundary.tsx`, `src/components/ui/ShareComposer.tsx`, `src/app/[locale]/workspace/page.tsx`, `src/lib/i18n/ko.ts`, `src/lib/i18n/en.ts`
+- **검증**: tsc 0 · mojibake 0 (웨이브 경계에서 카피 테스트 일괄 재실행 예정).
+- **커밋**: f935fa6
+
+### [P1-D6] 귀환 항구·빈 화면 카피 — 부재 통보("~없습니다") → 모항 문안 (02 기준 채택)
+
+- **무엇을**: ① /project 헤더 부제 2곳 "사고 프로세스의 전체 여정을 한눈에 확인합니다" → "떠난 결정과 돌아올 결정을 한눈에." ② 빈 화면 "아직 프로젝트가 없습니다 / 4단계 프로세스…" → "아직 항해 전이에요 / 워크스페이스에서 첫 결정을 적으면, 여기가 그 결정이 돌아올 모항이 돼요. 확인일이 오면 이 페이지가 먼저 물어요 — 그래서, 어떻게 됐어요?" ③ 검색 빈결과 "일치하는 프로젝트가 없습니다." → "그 이름의 항해는 안 보여요 — 철자를 바꾸거나 필터를 '전체'로 돌려보세요." ④ ReceiptList 빈 화면(10 S6a 문안: "…봉인한 판단은 확인일에 여기로 돌아와요") ⑤ import 빈 화면(10 S6b: "플러그인·텔레그램에서 봉인한 결정이 이 계정으로 모여요"). "4단계 프로세스" 어휘 이 커밋에서 소멸 확인(잔여 grep 2건은 recast 예시·내부 eval 설명 — 무관 문맥).
+- **왜**: 귀환 항구의 첫 문장이 부재 통보면 "돌아온 사람을 알아봐주는" 목소리가 죽는다(02 P1-6, 05 P2-7, 10 P2-2 — 취지 동일, 02 기준).
+- **파일**: `src/app/[locale]/project/page.tsx`, `src/components/review/ReceiptList.tsx`, `src/app/[locale]/import/page.tsx`
+- **검증**: tsc 0 · mojibake 0 (3파일 U+FFFD 카운트 0).
+- **커밋**: 02cc83d
+
+### [P1-B6] 지각 라벨 전멸 — "확인 지남 (N일)" 계열 → "확인할 차례" 계열
+
+- **무엇을**: ① `review/status.ts` due 라벨의 날수 분기 삭제 — "확인 지남 (N일)" → "확인할 차례"(같은 파일 :72의 기존 좋은 톤으로 통일). `days_until`은 정렬용 내부 유지(사실은 남고 판정만 뺌 — 확인 날짜는 ReceiptList가 계속 보여줌). ② `import/page.tsx` 배지 "기한 지남" → "확인할 차례", 안내문 "확인일이 지났습니다. 실제로 어떻게 됐나요?" → "그래서, 어떻게 됐어요? 지금 기록해도, 나중에 해도 돼요."(10 S2b 문안 그대로) ③ OVERDUE 수입 금지 주석 박제: "웹앱 사용자 표면에는 지각 집계(OVERDUE/N일 지남)를 쓰지 않는다 — 플러그인 statusline은 개발자 표면이라 예외"(§5-6 판정 그대로 — 플러그인 statusline은 무접촉). ④ status.test.ts에 부재 단언 추가(라벨에 날수·"지남" 부재).
+- **왜**: 날짜라는 사실은 이미 화면에 있으므로 날수 집계는 순수한 죄책감 장치 — 사용자에 대한 평결(스파인 규칙2). 02의 "현실이 N일째 기다려요" 문안은 §5-1 기각 판정 준수(온기로 포장해도 집계는 집계).
+- **파일**: `src/lib/review/status.ts`, `src/app/[locale]/import/page.tsx`, `src/lib/review/__tests__/status.test.ts`
+- **검증**: tsc 0 · status.test 통과 · mojibake 0.
+- **커밋**: 00833cc
+
+### [P1-B4] 가이드 FAQ 약속 정합 — "메일·알림은 보내지 않아요" 거짓 제거
+
+- **무엇을**: guide FAQ ko(:124)·en(:155)의 "메일·알림은 보내지 않아요"(실제로는 텔레그램 연결 사용자에게 확인일 메시지가 감 — 적게 약속하는 것도 약속 위반)를 SealMoment:496의 정직한 문장으로 교체("정한 날짜에 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면 그날 메시지로도 가볍게 알려드려요 — 광고성 메일은 보내지 않아요."). 두 표면(guide ↔ SealMoment)에 "알림 채널이 늘면 두 곳을 같이 고친다" parity 주석을 양쪽에 박제(02 S5 지시).
+- **왜**: 같은 약속이 두 화면에서 다른 말을 하면 안 된다(목소리 원칙4: 약속은 실제 동작만큼만 — 숨기지도, 부풀리지도 않기).
+- **파일**: `src/app/[locale]/guide/page.tsx`, `src/components/workspace/progressive/SealMoment.tsx`
+- **검증**: tsc 0 · mojibake 0.
+- **커밋**: 45ae842
+
+### [P1-D2] 용어 통일 — KO "현재 방위" + 갈래 칩 "지금 가는 갈래" 개명
+
+- **무엇을**: ① 결과 카드 눈썹·복사 aria-label(CurrentBearingCard) "현재 항로" → "현재 방위" ② DecisionReplayTimeline 라벨 동일 ③ manifest 설명 "현재 항로 한 화면" → "현재 방위 한 화면" ④ 갈래 전환 칩(workspace:152) "현재 항로 · 총 N개" → "지금 가는 갈래 · 총 N개"(+동음이의 해소 주석, EN도 Current course→Current branch). 커밋 후 `현재 항로` 전수 grep 0건.
+- **왜**: 랜딩 영상·3단계 안내·가이드·내보내기 전부 "현재 방위"를 가르치는데 정작 도착지 카드가 "현재 항로"였고, 같은 말이 갈래 전환 칩에서 전혀 다른 뜻으로 이중 사용(06 P1-1). EN은 이미 통일돼 있어 KO만 수술.
+- **재량 판단**: 06 S1-6의 부제 교체는 미실행 — 현행 부제("이 결정이 지금 향하는 방향입니다…")가 이미 제안 문안과 같은 취지의 다리이고, 마스터 §2 P1-D2 문면(정본)의 대상은 카드·타임라인·manifest·갈래 칩 4곳. JUDGMENT-CALLS W5-1.
+- **파일**: `src/components/workspace/progressive/CurrentBearingCard.tsx`, `DecisionReplayTimeline.tsx`, `src/app/manifest.ts`, `src/app/[locale]/workspace/page.tsx`
+- **검증**: tsc 0 (JSX 속성 자리 주석 오류 1회 즉시 수정) · mojibake 0.
+- **커밋**: 6b84284
+
+### [P1-D3] 히어로 기대설정 1줄 — 30초 실측 조건 이행 후 시간절 유지
+
+- **무엇을**: SirenHero WRITE 문 하단(⏎ 힌트 줄 아래)에 마르지널리아 1줄 — KO "로그인 없이 무료 · 30초 안팎이면 첫 읽기가 와요 · 내용은 분석에만 쓰여요" / EN 대응. --bp-ink-soft 12px, 골드 0 (히어로 골드 1회 원칙 유지).
+- **30초 실측(리뷰5 정직성 조건)**: ① Supabase 텔레메트리로 먼저 시도 — llm_usage 이벤트에 duration 없음 + first_analysis_start와 같은 세션의 llm_usage 0건이라 측정 불가 ② 스펙 처방대로 스모크 실행: 실제 첫 읽기 호출을 그대로 재현(`buildInitialAnalysisPrompt(ko)` + maxTokens 2000 + stream)해 프로덕션 https://argus.voyage/api/llm 에 3회 발사. 결과 = 첫 스트리밍 토큰 ~2.8초, 첫 읽기 완주 16.2초(계측 run)·~30초(1회차 테스트 총시간) → "30초 안팎" 참말 판정, 시간절 유지. 측정 근거를 코드 주석에 박제. (부수: 익명 무료 쿼터 3회 소모 — 스펙이 처방한 스모크.)
+- **부수 효과**: SirenHero 헤더 주석의 "marginal privacy note" 드리프트(06 P2-8)가 이 줄 추가로 다시 참이 됨.
+- **파일**: `src/components/landing/SirenHero.tsx`
+- **검증**: tsc 0 · mojibake 0.
+- **커밋**: 27dce7e
+
+### [P1-D4] BindCard 첫 만남 다리 2줄 — SPINE INVARIANTS 무접촉
+
+- **무엇을**: ① 진행 신호 — 버튼 영역 아래 조용한 상태 줄 "적어주신 내용은 그동안 뒤에서 이미 읽고 있어요 — 이 다음 화면에서 결과가 나와요."(기계 상태 서술만, 스피너 없음 — buffered 설계 유지) ② 은유 다리 — 부제 앞에 반 문장 결합 "세이렌 앞에서 몸을 묶은 오디세우스처럼 — 듣기 전에 내 판단을 한 줄 남겨두는 거예요." ③ 버튼 "묶고 계속"은 06 S3-3 최소 변경 권고대로 유지. SPINE INVARIANTS(스킵 지배·프리필 금지·포크 금지, :16-21) 코드 무접촉 — 카피 추가만.
+- **왜**: "읽어봐 주세요"를 누른 사람이 읽기가 진행 중이라는 신호 0 + 무설명 밧줄 은유의 이중 공백(06 P1-3).
+- **파일**: `src/components/workspace/progressive/BindCard.tsx`
+- **검증**: tsc 0 · mojibake 0 · BindCard 참조 테스트 없음 확인.
+- **커밋**: 7bb7dd6
+
+### [P1-D5] 봉인 버튼 곁 캡션 — 47/0 지점에 SealModal 반 토막 이식
+
+- **무엇을**: ① CurrentBearingCard 봉인 버튼 행 아래(canSeal일 때만) "봉인 = 이 결정을 여기 남겨두고, 정한 날에 '그래서, 어떻게 됐어요?'를 물어드리는 거예요." ② ReceiptView "후속 예측 봉인하기" 버튼 위 "봉인하면 확인일에 현실과 대조해요"(기존 "(현실 기록)" 괄호 문법과 동일 결).
+- **왜**: '봉인'은 일상어에서 "잠근다/못 바꾼다" 어감이라 조심스러운 사람일수록 안 누르는데, 이 버튼이 정확히 47 열림/0 봉인 깔때기의 그 지점(06 P1-4).
+- **파일**: `src/components/workspace/progressive/CurrentBearingCard.tsx`, `src/components/review/ReceiptView.tsx`
+- **검증**: tsc 0 · mojibake 0.
+- **커밋**: 8b44a1b
+
+### [P1-D6·P1-B6·P1-B4] — 이전 세션에서 커밋 완료 (02cc83d·00833cc·45ae842), 이번 세션은 로그만 보완
+
+### [P1-D7] 레거시 문 봉쇄 + 가이드 항해 4박자
+
+- **무엇을**: ① guide "고급 — 단계별로 직접 사용" details 블록(LegacyChip 4개 + ?step= 설명) 전체 삭제 + LegacyChip 헬퍼·Settings2 import Clean Removal(grep 전수 0건) — 라우트는 전부 유지(§5-4), 새 유입 광고만 중단, 자리 주석 박제 ② quickStartSteps를 항해 4박자(05 S4 문안)로 교체: 적는다 → 밧줄 묶는다 → 갈리는 자리를 본다 → 정한 날 돌아와 답한다 (기존 4줄은 밧줄·귀환 박자가 빠진 구형 흐름이었음).
+- **재량 판단 2건**: (a) 레벨/XP 블록은 감사 시점과 달리 이미 접힌 details("선원 성장 시스템 (선택)")로 강등돼 있어 05 S4의 "삭제하거나 접힘 강등" 조건 기충족 — 무접촉. (b) NextStepGuide 링크 교체 안 함 — 사용처 전수 grep 결과 ReframeStep/RecastStep/RehearseStep(레거시 스텝 컴포넌트)에서만 렌더 = 스펙 자신의 조건 "레거시 전용이면 그대로 두는 것도 가능 / 레거시 안에서는 레거시 링크 허용" 적용. JUDGMENT-CALLS W5-2.
+- **파일**: `src/app/[locale]/guide/page.tsx`
+- **검증**: tsc 0 · LegacyChip grep 0 · mojibake 0.
+- **커밋**: a2126fc
+
+### [P1-D8] /design/* 비공개화
+
+- **무엇을**: public-paths.ts PUBLIC_PATHS에서 '/design' 제거(사유 주석 박제) → AuthGuard 뒤로. 라우트 자체는 유지(내부 레퍼런스 가치). Header/LayoutShell의 /design 분기는 05 S5 지시대로 무접촉("그대로 둬도 무해"). /design을 단언하는 테스트 없음 확인.
+- **파일**: `src/lib/public-paths.ts`
+- **검증**: tsc 0 · public 관련 테스트 통과.
+- **커밋**: 033cdd9
+
+### [P2 카피 소품 묶음] 일괄 스윕
+
+- **무엇을**: ① "지금 내 lean"→"지금 내 예상"(SealModal), "내 lean"→"내 예상"(ReceiptView) ② 검수 버튼 "내 항로"→"내 검수 기록", "← 내 판단 항로"→"← 내 검수 기록"(ReviewFlow — '항로'는 항해 표면에 보존) ③ ko.ts demo.analysisDone 'Analysis done'→'분석 끝'(소비처 grep 0 = dead key — 주석 박제하고 값만 수리) ④ "Settings에서"→"설정에서" 5곳(workspace 3 + ProgressiveFlow 2, KO만 — EN은 Settings 유지) ⑤ UnlockToast "{역할} 해금!"→"새 선원이 승선했어요 — {역할}"(EN "came aboard") ⑥ common.loading '로딩 중...'→'펼치는 중...', workspace 스피너 "워크스페이스 준비 중..."→"항해 준비 중..." ⑦ Slack 토막 3키 ko/en 온기 보강(failed·sendFailed·loadFailed) ⑧ llm.ts 맨몸 서버 에러 3곳(529 과부하·5xx "서버 오류 (N)"·차단기)을 10 S7 문안으로 — llm-network-simulation.test.ts 단언 동반 갱신 ⑨ KO 로케일 모노 마이크로라벨 한국어 우선: 히어로 "LOG ENTRY·"→"기록 ·", "ON FILE·"→"서류 ·"(2곳) + workspace ON FILE 행(EN은 전부 원형 유지 — 정체성 모노 활자 보존).
+- **파일**: `SealModal.tsx`, `ReceiptView.tsx`, `ReviewFlow.tsx`, `ko.ts`, `en.ts`, `workspace/page.tsx`, `ProgressiveFlow.tsx`, `UnlockToast.tsx`, `SirenHero.tsx`, `llm.ts`, `llm-network-simulation.test.ts`
+- **검증**: tsc 0 · llm 스위트 53/53 · sed 치환부 육안 재확인(UTF-8 무손상) · mojibake 0.
+- **커밋**: 46c5f3f
+
+### [P1-E5] MCP 한국어 검증기 2건 — 회귀 테스트 동반
+
+- **무엇을**: ① validate-crux LEAN 정규식의 `i('| w)?d`(맨몸 단어 "id"까지 매칭 — "Will the user id migration finish before Q3?"가 CRUX_CARRIES_LEAN 오발) → `i'd|i would`로 분해 ② validate-seal에 VIBE_KO 추가(12 §3.4 정규식 그대로 — 한글에는 \b가 안 통해 무경계) + 매칭 시 ko 에러 문안("이건 기분이지 확인 가능한 예측이 아닙니다…(휴리스틱 — 놓칠 수 있음)"). 두 건 모두 weak:true 유지 — 하드 게이트 승격 금지(§5-14) 준수. ③ 신규 `argus-mcp/src/lib/__tests__/validators.test.ts` 6건: user-id 통과 회귀 + I'd/I would 여전히 검거 + 한국어 vibe 검거(weak·ko 문안) + 정상 한국어 술어 통과 + 영어 vibe 유지.
+- **파일**: `argus-mcp/src/lib/validate-crux.ts`, `validate-seal.ts`, `__tests__/validators.test.ts`(신규)
+- **검증**: MCP tsc 0 · validators 6/6 · 전체 177/177 (기존 171 + 신규 6).
+- **커밋**: 1626946
+
+### [P1-E6] ARGUS_TZ 가시화 — 기본값 UTC 유지, 문서화+노출만
+
+- **무엇을**: ① README 설치 스니펫 env에 `"ARGUS_TZ": "Asia/Seoul"` + 정직 한 줄("미설정 = UTC — 한국 사용자는 오전 9시(KST)까지 어제로 계산") ② argus_init 응답 data에 `today`·`tz`(`'UTC (set ARGUS_TZ to change)'` 형) 노출 — 설치 직후 "오늘이 어제네?"를 스스로 발견. 기본값 변경 없음(§5-13, 청사진 M4 결정성 논거 유지).
+- **파일**: `argus-mcp/README.md`, `argus-mcp/src/tools/init-config.ts`
+- **검증**: MCP tsc 0 · 전체 177/177 (스키마 테스트 무영향 확인).
+- **커밋**: d633aef
+
+### [MCP 소품 목소리분] REASON_LINE + 원장 손상 발화
+
+- **무엇을**: ① open_decision restraint surface의 내부 enum 노출(`This looks like a "reversible_low_stakes" case.`) → REASON_LINE 사전(11 S6 문안 그대로, 6사유)으로 사람 문장화, 모든 문장 끝은 "Leaving it as is stays a real option."(§4 계약: 핸들 반환, 지시 금지). overfire 게이트의 crux 생성 前 실행 구조(open-decision.ts:59) 무접촉. 'flat'은 현행 게이트가 안 내지만 전방 호환으로 사전에 유지. ② check_in에 원장 손상 고지: `integrity.dropped_lines > 0`이면 surface 한 줄("원장에서 읽지 못한 줄 N개…append-only라 나머지는 안전…ledger.jsonl 백업") — 숫자로만 세고 침묵하던 것(11 P2-8)을 발화. surfaces.ts {ko,en} 사전 경유(P1-E1 구조 재사용, 타입 패리티 강제).
+- **범위 판단**: MCP 소품 10건 중 "목소리분"은 이 2건으로 판정 — 나머지(idempotentHint·server 버전·README 도구표·영수증 폴백·wrap·gate_input·SERVER_INSTRUCTIONS 2줄)는 구조/정합 소품이라 웨이브8 "MCP 소품 잔여" 소관. JUDGMENT-CALLS W5-3.
+- **파일**: `argus-mcp/src/tools/open-decision.ts`, `check-in.ts`, `src/lib/surfaces.ts`
+- **검증**: MCP tsc 0 · 전체 177/177 · restraint surface를 단언하는 기존 테스트 없음 grep 확인 · mojibake 0.
+- **커밋**: 063b684
+
+### 웨이브 5 경계 검증 (완료)
+
+- 웹앱 `npx tsc --noEmit` 0 (커밋마다 + 최종 1회).
+- 카피 테스트 일괄: seal-core·record-core·checkin-reminder·telegram-settlement·navigator-content·navigator-simulation·review/status·llm-network-simulation·llm-simulation·persistence-contract = **10파일 181/181 통과** (`--exclude "**/.claude/**"`).
+- MCP: `npm run typecheck` 0 + `npx vitest run` **18파일 177/177** (신규 validators 6건 포함).
+- mojibake: 이 웨이브에서 바뀐 전 파일(웹 17 + MCP 8) U+FFFD 스캔 0건 + sed 치환부("설정에서" 5곳) 육안 재확인.
+- 커밋: D2=6b84284 · D3=27dce7e · D4=7bb7dd6 · D5=8b44a1b · D7=a2126fc · D8=033cdd9 · P2카피=46c5f3f · E5=1626946 · E6=d633aef · MCP목소리=063b684 (+이전 세션분 D1=f935fa6 · D6=02cc83d · B6=00833cc · B4=45ae842).
