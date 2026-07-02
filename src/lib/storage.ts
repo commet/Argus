@@ -29,6 +29,12 @@ export const STORAGE_KEYS = {
   // Never a permanent dismiss (a lantern that goes out forever kills the
   // return loop the product promises).
   LANTERN_SNOOZE: 'argus:lantern-snooze',
+  // Session-expiry honesty (P0-5) — set to '1' once this browser completes a
+  // sign-in. A single boolean (no name/email). Lets logged-out surfaces tell a
+  // returning account-holder ("session expired") apart from a first-time
+  // anonymous visitor ("free trial"). clearAllStorage() removes it on explicit
+  // sign-out, so a deliberate sign-out never reads as an expiry.
+  KNEW_YOU: 'argus:knew-you',
 } as const;
 
 export function getStorage<T>(key: string, fallback: T): T {

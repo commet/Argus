@@ -146,7 +146,7 @@ export const en: Record<TranslationKey, string> = {
   'errorDisplay.overloaded': 'The server is temporarily busy. Retrying automatically in a moment.',
   'errorDisplay.contextTooLong': 'Input is too long. Please shorten it and try again.',
   'errorDisplay.loginRequired': 'Please log in to continue.',
-  'errorDisplay.authFailed': 'Authentication failed. Please log in again.',
+  'errorDisplay.authFailed': 'Your sign-in lapsed — sign in again to continue. Your work is safe on this device.',
   'errorDisplay.parseFailure': 'Could not process the AI response. Retrying usually resolves this.',
   'errorDisplay.network': 'Please check your network connection.',
   'errorDisplay.validation': 'The AI response format is invalid. Please try again.',

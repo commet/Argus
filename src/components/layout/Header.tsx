@@ -9,6 +9,7 @@ import { useDueCount } from '@/hooks/useDueCount';
 import { RateLimitBadge } from '@/components/ui/RateLimitBadge';
 import { SyncStatus } from '@/components/ui/SyncStatus';
 import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
+import { SessionExpiredToast } from '@/components/ui/SessionExpiredToast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { stripLocale } from '@/lib/locale-path';
 
@@ -250,14 +251,16 @@ export function Header() {
               >
                 {darkMode ? <Sun size={16} /> : <Moon size={16} />}
               </button>
-              {user && (
-                <>
-                  <SyncStatus />
-                  <RateLimitBadge />
-                </>
-              )}
+              {/* SyncStatus is UNGATED (P0-5/P1-C1): it tells a signed-out
+                  returning user "saving to this device only" and shows offline
+                  to everyone; first-time anonymous visitors get no badge (it
+                  renders null for them internally). */}
+              <SyncStatus />
+              {user && <RateLimitBadge />}
               {/* Ungated: storage write failures (e.g. quota) affect anonymous users too */}
               <StorageErrorToast />
+              {/* One-time "sign-in lapsed" lantern — fires from AuthProvider (P0-5) */}
+              <SessionExpiredToast />
             </div>
 
             {/* User area */}

@@ -2,7 +2,7 @@ import { supabase, getCurrentUserId } from './supabase';
 import { getStorage, setStorage } from './storage';
 import { handleError } from './error-handler';
 import { log } from './logger';
-import { reportSyncFailure } from './sync-health';
+import { reportSyncFailure, reportSyncSuccess } from './sync-health';
 
 /**
  * Database abstraction layer.
@@ -174,7 +174,7 @@ export async function syncToSupabase(table: TableName, localItems: any[]): Promi
       // Surface to the user via the SyncStatus badge — this path carries agents/
       // XP/boss personas and was the only write helper not reporting failures.
       reportSyncFailure(`sync:${table}`, { message: error.message });
-    }
+    } else { reportSyncSuccess(); } // P1-C1: green badge only after a confirmed write
   } catch (err) {
     log.error(`sync to ${table} error`, { context: 'db', data: err });
     reportSyncFailure(`sync:${table}`, { message: err instanceof Error ? err.message : 'unknown' });
@@ -230,7 +230,7 @@ export async function upsertToSupabase(table: TableName, item: any): Promise<voi
       // reaches the cloud, with zero signal (insert/loadAndMerge already report;
       // this path was the one omission). 2026-06-13 data-wiring audit.
       reportSyncFailure(`upsert:${table}`, { message: error.message });
-    }
+    } else { reportSyncSuccess(); } // P1-C1: green badge only after a confirmed write
   } catch (err) {
     handleError(err, `db.upsert:${table}`);
   }

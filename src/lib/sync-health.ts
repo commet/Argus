@@ -20,6 +20,18 @@ export function getSyncFailureCount(): number {
 }
 
 /**
+ * Report a CONFIRMED successful user-data write. The SyncStatus badge starts
+ * 'idle' (no badge) and only turns green after this fires — "synced" is a
+ * verified fact, never an optimistic default. Called from db.ts success
+ * branches (P1-C1); also clears a lingering error/backup_pending state.
+ */
+export function reportSyncSuccess(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('argus:sync', { detail: { status: 'synced' } }));
+  }
+}
+
+/**
  * @param context  short tag of the failing write, e.g. `insert:signals`.
  * @param opts.surface  whether to flip the SyncStatus badge (true for user-data
  *   writes; false for non-critical telemetry, which only increments the counter).

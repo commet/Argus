@@ -154,7 +154,7 @@ export const ko = {
   'errorDisplay.overloaded': '서버가 일시적으로 바쁩니다. 잠시 후 자동 재시도됩니다.',
   'errorDisplay.contextTooLong': '입력이 너무 깁니다. 내용을 줄여서 다시 시도해주세요.',
   'errorDisplay.loginRequired': '로그인이 필요합니다.',
-  'errorDisplay.authFailed': '인증에 실패했습니다. 다시 로그인해주세요.',
+  'errorDisplay.authFailed': '로그인이 잠시 풀렸어요 — 다시 로그인하면 이어서 쓸 수 있어요. 작업물은 이 기기에 그대로 있어요.',
   'errorDisplay.parseFailure': 'AI 응답을 처리하지 못했습니다. 다시 시도하면 대부분 해결됩니다.',
   'errorDisplay.network': '네트워크 연결을 확인해주세요.',
   'errorDisplay.validation': 'AI 응답 형식이 올바르지 않습니다. 다시 시도해주세요.',

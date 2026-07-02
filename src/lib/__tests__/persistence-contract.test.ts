@@ -52,6 +52,7 @@ const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   BOSS_COLLECTION: { localOnly: '코스메틱 수집 상태 — 유실 무해' },
   REVIEW_RECEIPTS: { table: 'review_receipts' },
   LANTERN_SNOOZE: { localOnly: '워크스페이스 등불 당일 스누즈 날짜 — 기기별 UI 상태, 유실 무해(다음날 재렌더)' },
+  KNEW_YOU: { localOnly: '세션 만료 인식용 부울 1개(개인정보 없음) — 기기별 상태, 유실 무해(다음 로그인 때 재설정)' },
 };
 
 /** 등록부 밖에서 발견됐지만 사유와 함께 허용된 키. 새 항목 추가는 곧

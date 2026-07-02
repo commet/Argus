@@ -2,7 +2,7 @@
 
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/auth';
+import { useAuth, hasKnownUser } from '@/lib/auth';
 import { useLocale } from '@/hooks/useLocale';
 import { stripLocale } from '@/lib/locale-path';
 import { Lock, ChevronRight } from 'lucide-react';
@@ -21,8 +21,19 @@ function detectPage(pathname: string): PageKey {
   return 'other';
 }
 
-function getCopy(page: PageKey, ko: boolean) {
+function getCopy(page: PageKey, ko: boolean, knewYou: boolean) {
   const L = (k: string, e: string) => (ko ? k : e);
+  // P0-5: a returning account-holder (knew-you flag) isn't a stranger to
+  // pitch — recognize the return and just ask for the sign-in.
+  if (knewYou) {
+    return {
+      title: L('다시 오셨네요 — 로그인만 다시 해주세요', 'Welcome back — just sign in again'),
+      description: L(
+        '기록은 계정에 그대로 있어요. 로그인하면 봉인해 둔 결정들과 다시 만나요.',
+        'Your records are safe in your account. Sign in to meet the decisions you sealed.',
+      ),
+    };
+  }
   switch (page) {
     case 'project':
       return {
@@ -76,7 +87,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     const page = detectPage(stripLocale(pathname || '/'));
-    const { title, description } = getCopy(page, ko);
+    const { title, description } = getCopy(page, ko, hasKnownUser());
     // Keep the full locale-prefixed path so login returns the user to it.
     const redirectTo = encodeURIComponent(pathname || '/');
 

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, clearUserCache, getSessionWithTimeout } from './supabase';
-import { clearAllStorage } from './storage';
+import { clearAllStorage, STORAGE_KEYS } from './storage';
 import { setAnalyticsUser, track } from './analytics';
 import { getCurrentLanguage } from './i18n';
 import { migrateLocalToAccount } from './account-migration';
@@ -53,6 +53,23 @@ const AUTH_ERRORS: Array<{ match: string; ko: string; en: string }> = [
   },
 ];
 
+/**
+ * True when this browser has completed a sign-in before — a single local
+ * boolean, no name/email stored. Lets logged-out surfaces tell a returning
+ * account-holder ("session expired, work still saved here") apart from a
+ * first-time anonymous visitor ("free trial") without a server round-trip.
+ * Cleared by clearAllStorage() on explicit sign-out, so a deliberate
+ * sign-out never reads as an expiry. (P0-5 session-expiry honesty.)
+ */
+export function hasKnownUser(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(STORAGE_KEYS.KNEW_YOU) === '1';
+  } catch {
+    return false;
+  }
+}
+
 function translateError(msg: string): string {
   const ko = getCurrentLanguage() === 'ko';
   for (const entry of AUTH_ERRORS) {
@@ -83,6 +100,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       setAnalyticsUser(session?.user?.id ?? null);
       setLoading(false);
+
+      // P0-5 session-expiry honesty: remember (boolean only) that this browser
+      // has signed in; when the session later drops while the flag is still set
+      // (token expiry — explicit sign-out clears the flag FIRST via
+      // clearAllStorage), announce it once so the silence doesn't read as
+      // "everything is still backing up". Consumed by SessionExpiredToast.
+      try {
+        if (session?.user) {
+          localStorage.setItem(STORAGE_KEYS.KNEW_YOU, '1');
+        } else if (localStorage.getItem(STORAGE_KEYS.KNEW_YOU) === '1') {
+          window.dispatchEvent(new CustomEvent('argus:session-expired'));
+        }
+      } catch { /* storage unavailable — skip the courtesy signal */ }
 
       // On a genuine sign-in, eagerly migrate local-first work into the account
       // and confirm it (local-first → "your thinking follows you when you sign up").

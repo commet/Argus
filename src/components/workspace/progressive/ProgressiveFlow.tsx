@@ -1,6 +1,7 @@
 'use client';
 
 import { DAILY_LIMIT } from '@/lib/quota-config';
+import { hasKnownUser } from '@/lib/auth';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -2436,12 +2437,24 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             {error && <motion.div key="flow-error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-2">
               {error.startsWith('LOGIN_REQUIRED') ? (
                 <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-5">
-                  <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
-                  <p className="text-[12.5px] text-[var(--text-secondary)] mb-3">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있어요.`, `Sign in to get up to ${DAILY_LIMIT} free calls per day.`)}</p>
+                  {/* P0-5: a returning account-holder whose session lapsed mid-voyage
+                      is not an anon who "used up the trial" — knew-you flag picks
+                      the honest copy. */}
+                  {hasKnownUser() ? (
+                    <>
+                      <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('로그인이 잠시 풀렸어요', 'Your sign-in lapsed')}</p>
+                      <p className="text-[12.5px] text-[var(--text-secondary)] mb-3">{L('적어주신 내용은 그대로 있어요. 다시 로그인하면 하던 자리에서 이어져요.', 'What you wrote is still here. Sign in again and pick up right where you were.')}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
+                      <p className="text-[12.5px] text-[var(--text-secondary)] mb-3">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있어요.`, `Sign in to get up to ${DAILY_LIMIT} free calls per day.`)}</p>
+                    </>
+                  )}
                   {/* Mid-voyage wall: a project already exists, so loadProjects()
                       auto-restores it on return — we only need to send the user back
                       to the workspace (not a blank default) after auth. */}
-                  <Link href="/login?redirect=/workspace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{L('로그인', 'Sign In')} <ChevronRight size={13} /></Link>
+                  <Link href="/login?redirect=/workspace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{hasKnownUser() ? L('다시 로그인하고 이어가기', 'Sign in and continue') : L('로그인', 'Sign In')} <ChevronRight size={13} /></Link>
                 </div>
               ) : (() => {
                 const isQuota = error.includes('한도') || error.includes('rate') || error.includes('limit') || error.includes('429');
