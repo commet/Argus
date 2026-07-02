@@ -70,7 +70,7 @@ import { forksToQuestions, forkQuestionId } from '@/lib/fork-to-question';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { Falsification } from './Falsification';
 import { Button } from '@/components/ui/Button';
-import { extractPredicatesFromSession } from '@/lib/decision-contract';
+import { extractPredicatesFromSession, contractStatus } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
@@ -1030,6 +1030,21 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     const s = snaps[snaps.length - 1];
     return { stakes: s?.stakes, reversibility: s?.reversibility, framingConfidence: s?.framing_confidence };
   }, [session?.snapshots]);
+  // 귀환 재구성 (P0-6 ③): reopening a completed voyage whose contract check-in
+  // has arrived is a RETURN, not a re-read — the settle question leads the
+  // scene and the headline anchors on the promised DATE (a fact), never on
+  // absence length ("오랜만이에요" counting is forbidden — master §4).
+  const contractDue = !!(
+    contractProject?.decision_contract &&
+    contractStatus(contractProject.decision_contract, Date.now()).checkInDue
+  );
+  const contractDueDateLabel = (() => {
+    const iso = contractProject?.decision_contract?.check_in_at;
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' });
+  })();
   // The Current Bearing — the compressed one-screen orientation that sits ABOVE
   // the final document (ARGUS-FINAL-DIRECTION §"The Surface Principle"). Derived
   // from the same session artifacts as the contract; null until there's a draft.
@@ -3169,11 +3184,26 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 <Check size={16} className="text-white" />
               </div>
               <p className="text-[16px] font-semibold text-[var(--text-primary)]">
-                {dmFb && dmFb.concerns.filter((c: DMConcern) => c.applied).length > 0
-                  ? locale === 'ko' ? `피드백 ${dmFb.concerns.filter((c: DMConcern) => c.applied).length}건이 반영된 최종 문서예요` : `Final document with ${dmFb.concerns.filter((c: DMConcern) => c.applied).length} feedback item(s) applied`
-                  : L('최종 문서가 완성됐어요', 'Your document is complete')}
+                {/* P0-6 ③: on a return day the headline is the return — a
+                    date-anchored fact ("{날짜}에 물어보기로 한 게 있어요"),
+                    never an absence-length greeting. */}
+                {contractDue
+                  ? (contractDueDateLabel
+                      ? L(`돌아오셨네요 — ${contractDueDateLabel}에 물어보기로 한 게 있어요`, `You're back — there's something you asked to be asked on ${contractDueDateLabel}`)
+                      : L('돌아오셨네요 — 물어보기로 한 게 있어요', "You're back — there's something you asked to be asked about"))
+                  : dmFb && dmFb.concerns.filter((c: DMConcern) => c.applied).length > 0
+                    ? locale === 'ko' ? `피드백 ${dmFb.concerns.filter((c: DMConcern) => c.applied).length}건이 반영된 최종 문서예요` : `Final document with ${dmFb.concerns.filter((c: DMConcern) => c.applied).length} feedback item(s) applied`
+                    : L('최종 문서가 완성됐어요', 'Your document is complete')}
               </p>
             </motion.div>
+            {/* P0-6 ③: on a return day the settle question outranks the
+                document — the DecisionContractCard's due state (inside
+                SealMoment) leads the scene instead of hiding below the fold. */}
+            {contractDue && contractProject && (
+              <div className="mb-4">
+                <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} />
+              </div>
+            )}
             {/* ① 산출물 ("가져가실 것") — the document is what the user takes
                 with them; it leads the complete scene (W1.1 봉인 종막 order). */}
             <FinalCard
@@ -3218,7 +3248,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 used to sit between the bearing and this question, so users left
                 before ever seeing it — the closing scene must come before the
                 exits, never compete with them. */}
-            {contractProject && (
+            {contractProject && !contractDue && (
               <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} />
             )}
 
