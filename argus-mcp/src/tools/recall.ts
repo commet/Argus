@@ -4,6 +4,7 @@ import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { readReceipt } from '../lib/receipt.js';
 import { renderReceipt } from '../lib/render-receipt.js';
+import { isMonitored, isDueForRecheck, receiptPremisesInfo } from '../lib/premises.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -11,8 +12,8 @@ import { handleToolException } from './errors.js';
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
-  view: z.enum(['bearing', 'contracts', 'receipt', 'track_record']),
-  id: zId.describe('Required when view = "receipt".').optional(),
+  view: z.enum(['bearing', 'contracts', 'receipt', 'track_record', 'premises']),
+  id: zId.describe('Required when view = "receipt" or "premises".').optional(),
   today_override: zDate.optional(),
 });
 
@@ -38,13 +39,59 @@ export const recall: ToolModule = {
         if (!r) {
           return toolError({ ok: false, tool: 'argus_recall', error_code: 'RECEIPT_NOT_FOUND', message: `No receipt for "${id}".`, recovery: 'Check the id, or seal the decision first.' });
         }
+        // The premise set is canonical — the receipt renders its summary from the fold (plan v5 §3.3).
+        const pInfo = receiptPremisesInfo(replayLedger(dir, today).contracts.get(id));
         return envelope({
           ok: true, tool: 'argus_recall', surface: 'Receipt recalled.',
-          next_actions: ['stop'], data: { receipt: r, receipt_text: renderReceipt(r) },
+          next_actions: ['stop'], data: { receipt: r, receipt_text: renderReceipt(r, pInfo) },
         });
       }
 
       const ledger = replayLedger(dir, today);
+
+      if (view === 'premises') {
+        const id = a['id'];
+        if (typeof id !== 'string' || !id) {
+          return toolError({ ok: false, tool: 'argus_recall', error_code: 'PREMISES_NEEDS_ID', message: 'view "premises" requires an id.', recovery: 'Pass the decision id.' });
+        }
+        const entry = ledger.contracts.get(id);
+        const list = entry?.premises ?? [];
+        if (list.length === 0) {
+          return envelope({
+            ok: true, tool: 'argus_recall',
+            surface: 'No premises tracked on this decision. Record the facts it rests on with argus_premises (op=add).',
+            next_actions: ['leave_as_is'],
+            data: { id, premises: [], today },
+          });
+        }
+        const rows = list.map((p) => {
+          const last = p.last_recheck?.ts ? p.last_recheck.ts.slice(0, 10) : null;
+          const daysStale = last ? Math.round((Date.parse(today) - Date.parse(last)) / 86400000) : null;
+          return {
+            ref: `P${p.ordinal}`, premise_id: p.premise_id, kind: p.kind, text: p.text,
+            status: p.status, external: p.external, load_bearing: p.load_bearing,
+            monitored: isMonitored(p),
+            // provenance — the declared reader of ai_original (plan v5 §6.4)
+            source: p.source,
+            ...(p.ai_original && p.ai_original !== p.text ? { ai_original: p.ai_original, edited_by_user: true } : {}),
+            edits: p.amend_history.length,
+            // staleness, honestly (plan v5 §5-3): never pretend liveness
+            last_checked: last,
+            staleness: last === null ? 'never re-checked' : `${daysStale}d since last re-check`,
+            ...(p.last_recheck ? { last_finding: p.last_recheck.finding, last_source: p.last_recheck.source, last_drifted: p.last_recheck.drifted } : {}),
+            due_for_recheck: isDueForRecheck(p, today),
+            ...(p.resolved_decision ? { resolved_decision: p.resolved_decision } : {}),
+          };
+        });
+        const monitored = rows.filter((r) => r.monitored).length;
+        const due = rows.filter((r) => r.due_for_recheck).length;
+        return envelope({
+          ok: true, tool: 'argus_recall',
+          surface: `${rows.length} premise(s) on this decision — ${monitored} monitored, ${due} due for a reality re-check${due > 0 ? ' (argus_recheck)' : ''}.`,
+          next_actions: due > 0 ? ['argus_check_in', 'leave_as_is'] : ['leave_as_is'],
+          data: { id, premises: rows, today },
+        });
+      }
 
       if (view === 'bearing') {
         const open = [...ledger.contracts.values()].filter((c) => c.status === 'sealed').map((c) => ({ id: c.id, predicate: c.predicate, check_by: c.check_by }));

@@ -7,6 +7,7 @@ import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
 import { appendLedger, type LedgerEventInput } from '../lib/ledger-append.js';
 import { writeSealReceipt } from '../lib/receipt.js';
+import { premiseId, MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING } from '../lib/premises.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
@@ -76,6 +77,32 @@ export const seal: ToolModule = {
       const events: LedgerEventInput[] = [];
       if (current.state === 'absent') events.push({ id, event: 'harvest', decision: predicate });
       events.push({ id, event: 'seal', predicate, check_by: checkBy, basis: a['basis'] as string | undefined });
+
+      // Promotion (plan v5 §5.4): the named unverified_assumption IS the first
+      // premise — the premise set is canonical, the seal field is its input
+      // alias. source='user' (receipt judgment fields are user-named),
+      // external=false until the user marks it (honest default: we cannot infer
+      // reality-checkability), load_bearing=true (it is the receipt headline).
+      // Skipped field ⇒ no promotion. Dedup + cap-safe: never fails the seal.
+      let promotedRef: string | null = null;
+      const ua = a['unverified_assumption'] as string | undefined;
+      if (ua && ua.trim()) {
+        const existingPrems = current.entry?.premises ?? [];
+        const pid = premiseId(id, 'premise', ua);
+        const lbCount = existingPrems.filter((p) => p.status === 'active' && p.load_bearing).length;
+        const activeCount = existingPrems.filter((p) => p.status === 'active').length;
+        const isDup = existingPrems.some((p) => p.premise_id === pid);
+        if (!isDup && activeCount < MAX_ACTIVE_PREMISES) {
+          const ordinal = existingPrems.reduce((m, p) => Math.max(m, p.ordinal), 0) + 1;
+          events.push({
+            id, event: 'premise_add', premise_id: pid, ordinal,
+            kind: 'premise', text: ua.trim(),
+            external: false, load_bearing: lbCount < MAX_LOAD_BEARING,
+            source: 'user',
+          });
+          promotedRef = `P${ordinal}`;
+        }
+      }
       await appendLedger(dir, events, now);
 
       const namedAssumption = !receipt.skipped.includes('unverified_assumption');
@@ -103,6 +130,9 @@ export const seal: ToolModule = {
           status: 'sealed', ledger_events_written: events.map((e) => e.event),
           skipped: receipt.skipped,
           account_synced: sync.synced,
+          // The named assumption now lives as a tracked premise (canonical set).
+          // Marking it external (argus_premises op=amend) arms reality re-checks.
+          ...(promotedRef ? { premise_promoted: promotedRef } : {}),
           falsifiability_note: vErr ? 'weak heuristic passed' : undefined,
         },
       });

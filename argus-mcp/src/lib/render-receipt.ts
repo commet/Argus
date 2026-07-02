@@ -5,8 +5,19 @@ import type { Receipt } from './receipt.js';
  * §5.2 + addendum M6). No ✗ grade stamp — a "YOU PREDICTED / WHAT HAPPENED"
  * diff. Reality is shown; the user is never graded. The AI-VERDICT … NONE line
  * is always present and always NONE.
+ *
+ * `premises` (optional, plan v5 §3.3): the living-premises summary computed
+ * from the ledger fold at render time — the premise set is canonical, the
+ * receipt renders from it. headline stands in when the seal-time assumption
+ * field was skipped but a load-bearing premise exists.
  */
-export function renderReceipt(r: Receipt): string {
+export interface ReceiptPremisesInfo {
+  headline?: string;
+  tracked: number;
+  changed_at_recheck: number;
+}
+
+export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo): string {
   const L: string[] = [];
   const sealed = r.created_at ? r.created_at.slice(0, 10) : '—';
   const settled = r.settled_at ? r.settled_at.slice(0, 10) : '(open)';
@@ -20,7 +31,17 @@ export function renderReceipt(r: Receipt): string {
   L.push('  THE REAL QUESTION');
   L.push(`    ${show(r.real_question, 'real_question')}`);
   L.push('  THE UNVERIFIED ASSUMPTION');
-  L.push(`    ${show(r.unverified_assumption, 'unverified_assumption')}`);
+  const assumptionSkipped = skipped.has('unverified_assumption');
+  if (assumptionSkipped && premises?.headline) {
+    // The premise set is canonical — a tracked load-bearing premise stands in
+    // for a skipped seal-time field (plan v5 §5.4).
+    L.push(`    ${wrap(premises.headline)}`);
+  } else {
+    L.push(`    ${show(r.unverified_assumption, 'unverified_assumption')}`);
+  }
+  if (premises && premises.tracked > 0) {
+    L.push(`    (+${premises.tracked} premise(s) tracked · ${premises.changed_at_recheck} changed at re-check — argus_recall view=premises)`);
+  }
   L.push(`  HUMAN-ONLY CALL   ${show(r.human_only, 'human_only')}`);
   L.push('  …made by          Me. (not the model)');
   if (r.basis) {

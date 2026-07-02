@@ -1,4 +1,5 @@
 import type { ContractEntry, LedgerState } from './ledger-replay.js';
+import type { ReceiptPremisesInfo } from './render-receipt.js';
 import { deriveState } from './state-machine.js';
 import { GuardError } from './state-machine.js';
 
@@ -191,6 +192,19 @@ export function groupDuePremises(due: DuePremise[]): DuePremiseGroup[] {
     else byText.set(key, { text: d.text, premises: [d] });
   }
   return [...byText.values()];
+}
+
+/** The living-premises summary a receipt renders from (plan v5 §3.3): the
+ *  premise set is canonical — headline = first active load-bearing premise. */
+export function receiptPremisesInfo(entry: ContractEntry | undefined): ReceiptPremisesInfo | undefined {
+  const list = entry?.premises ?? [];
+  if (list.length === 0) return undefined;
+  const headline = list.find((p) => p.status === 'active' && p.load_bearing && p.kind === 'premise')?.text;
+  return {
+    ...(headline ? { headline } : {}),
+    tracked: list.length,
+    changed_at_recheck: list.filter((p) => p.last_recheck?.drifted === true).length,
+  };
 }
 
 /** Active monitored premises across OTHER decisions whose normalized text matches
