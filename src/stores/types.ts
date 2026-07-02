@@ -640,11 +640,6 @@ export interface DecisionContract {
   graded_at?: string;
   /** Date-only / freeform check-in outcome when no predicates were generated. */
   outcome_note?: string;
-  /** User's post-answer lean, mirrored without scoring judgment movement. */
-  lean_after?: {
-    changed?: boolean;
-    text?: string;
-  };
   /** Superseded check-ins, oldest first. Absent on legacy contracts — always
    *  read as `contract.history || []`. */
   history?: ContractAmendment[];
