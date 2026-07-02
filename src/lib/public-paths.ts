@@ -15,7 +15,8 @@ export const PUBLIC_PATHS = [
   '/settings',
   '/privacy',
   '/terms',
-  '/design',
+  // '/design' removed (05 S5): orphan internal-reference routes (zero inbound
+  // links) — kept alive behind AuthGuard, just not public.
   // /project is public so the anonymous cohort that SEALED a decision can reach
   // their promised return (the seal + .ics both point here). The page is
   // localStorage-first — it renders the user's local projects, the due strip,
