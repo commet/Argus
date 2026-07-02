@@ -1,4 +1,5 @@
 import type { Receipt } from './receipt.js';
+import { SURFACES, type SurfaceLocale } from './surfaces.js';
 
 /**
  * Renders a settled Judgment Receipt as shareable monospace text (blueprint
@@ -56,6 +57,61 @@ export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo): strin
   L.push('  AI VERDICT ON THIS DECISION ······················  NONE');
   L.push('  The model never graded you. Reality did.');
   L.push('└──────────────────────────────────  argus · seal → settle ─┘');
+  return L.join('\n');
+}
+
+/**
+ * renderSeal — the sealing confirmation `data.seal_text` (P1-E2 = 12 §3.1).
+ *
+ * The terminal twin of the webapp's seal certificate plate (P1-A3 S4): the
+ * user's predicate as a quote block, an HONEST provenance line, the two date
+ * rows, and the "not a grade" closing — same copy family, text stage.
+ *
+ * Spine rules baked in:
+ *  - provenance is a FACT statement: 'user' → "these words are yours";
+ *    'ai_surfaced' → "Argus drafted these words — you have not yet made them
+ *    yours". Never a false ownership narrative, and never a gate (sealing
+ *    as-is stays possible).
+ *  - zero emoji, zero hype — "anchor down" is the only worldbuilding flourish.
+ *  - the day diff comes from resolveToday's `today`, not a fresh wall clock.
+ */
+export function renderSeal(opts: {
+  predicate: string;
+  predicate_owner: 'user' | 'ai_surfaced';
+  /** YYYY-MM-DD — the seal date. */
+  sealed_on: string;
+  /** YYYY-MM-DD — when reality answers. */
+  check_by: string;
+  /** YYYY-MM-DD from resolveToday (deterministic — no new Date() here). */
+  today: string;
+  locale: SurfaceLocale;
+}): string {
+  const S = SURFACES[opts.locale].seal;
+  const L: string[] = [];
+
+  const top = '┌─ ' + S.header + ' ' + '─'.repeat(Math.max(2, 56 - S.header.length)) + '┐';
+  const bottom = '└' + '─'.repeat(Math.max(2, 54 - S.footer.length)) + '  ' + S.footer + ' ─┘';
+
+  L.push(top);
+  L.push('');
+  // the quote block — the user's own falsifiable sentence (continuation lines
+  // sit inside the opening quote)
+  L.push(`  "${wrap(opts.predicate, 50).split('\n    ').join('\n   ')}"`);
+  L.push('');
+  const ownerLine = `  ${opts.predicate_owner === 'user' ? S.owner_user : S.owner_ai}`;
+  const ownerTag = `(predicate_owner: ${opts.predicate_owner})`;
+  L.push(ownerLine.length >= 40 ? `${ownerLine}   ${ownerTag}` : ownerLine.padEnd(40) + ownerTag);
+  L.push('');
+  const labelWidth = Math.max(S.sealed_label.length, S.answers_label.length) + 4;
+  const days = Math.round((Date.parse(opts.check_by) - Date.parse(opts.today)) / 86400000);
+  const daysOut = Number.isFinite(days) && days > 0 ? `   ${S.days_out(days)}` : '';
+  L.push(`  ${S.sealed_label.padEnd(labelWidth)}${opts.sealed_on}`);
+  L.push(`  ${S.answers_label.padEnd(labelWidth)}${opts.check_by}${daysOut}`);
+  L.push('');
+  L.push(`  ${S.closing[0]}`);
+  L.push(`  ${S.closing[1]}`);
+  L.push('');
+  L.push(bottom);
   return L.join('\n');
 }
 

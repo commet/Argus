@@ -63,6 +63,23 @@ export interface SurfaceStrings {
     settled_on_web: (n: number) => string;
     truncation: (shown: number, matched: number) => string;
   };
+  /** seal_text — the terminal twin of the webapp's seal certificate plate
+   *  (P1-E2 = 12 §3.1; same concept, same copy family as P1-A3 S4: quote +
+   *  two date rows + the "not a grade" line). */
+  seal: {
+    header: string;
+    /** honest provenance line — predicate_owner:'user' (헌법 규칙1). */
+    owner_user: string;
+    /** honest provenance line — 'ai_surfaced': drafted, not yet affirmed.
+     *  Sealing as-is stays possible (no forced-typing gate). */
+    owner_ai: string;
+    sealed_label: string;
+    answers_label: string;
+    days_out: (n: number) => string;
+    /** the closing fact: what gets recorded is reality, never a grade. */
+    closing: [string, string];
+    footer: string;
+  };
 }
 
 export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
@@ -86,6 +103,19 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settled_on_web: (n) => ` ${n} already settled on the web — to keep them in this ledger too, record the same outcome with argus_settle.`,
       truncation: (shown, matched) => `Showing ${shown} of ${matched}. Raise limit or narrow with due_only.`,
     },
+    seal: {
+      header: 'ARGUS · SEALED',
+      owner_user: 'These words are yours.',
+      owner_ai: 'Argus drafted these words — you have not yet made them yours.',
+      sealed_label: 'Sealed',
+      answers_label: 'Reality answers',
+      days_out: (n) => `(${n} day${n === 1 ? '' : 's'} out)`,
+      closing: [
+        'This stays shut until then. What gets written next is not',
+        'a grade — it is what actually happened.',
+      ],
+      footer: 'argus · anchor down',
+    },
   },
   ko: {
     checkin: {
@@ -106,6 +136,19 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       live_no_due: (total) => `계정에 살아 있는 판단 ${total}개. 확인할 차례가 된 것은 없습니다.`,
       settled_on_web: (n) => ` 웹에서 이미 정산된 것 ${n}건 — 로컬 원장에도 남기려면 argus_settle로 같은 outcome을 기록하세요.`,
       truncation: (shown, matched) => `${matched}개 중 ${shown}개만 표시. limit을 올리거나 due_only로 좁히세요.`,
+    },
+    seal: {
+      header: 'ARGUS · 봉인',
+      owner_user: '이 문장은 당신의 것입니다.',
+      owner_ai: 'Argus가 초안한 문장입니다 — 아직 당신이 확언하지 않았습니다.',
+      sealed_label: '봉인',
+      answers_label: '현실의 답',
+      days_out: (n) => `(${n}일 뒤)`,
+      closing: [
+        '그날까지 이 봉인은 닫혀 있습니다. 날짜가 오면 여기 기록될',
+        '것은 평가가 아니라 — 실제로 일어난 일입니다.',
+      ],
+      footer: 'argus · 닻 내림',
     },
   },
 };

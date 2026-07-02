@@ -10,6 +10,8 @@ import { writeSealReceipt } from '../lib/receipt.js';
 import { premiseId, MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING } from '../lib/premises.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
+import { renderSeal } from '../lib/render-receipt.js';
+import { surfaceLocale } from '../lib/surfaces.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -33,7 +35,7 @@ const inputSchema = z.strictObject({
 export const seal: ToolModule = {
   name: 'argus_seal',
   description:
-    'Seal a falsifiable prediction (predicate + check-by date) for an open decision. Captures the seal-time Judgment Receipt fields. Refuses an empty/non-falsifiable predicate or a non-future date.',
+    'Seal a falsifiable prediction (predicate + check-by date) for an open decision. Captures the seal-time Judgment Receipt fields. Refuses an empty/non-falsifiable predicate or a non-future date. On success, data.seal_text is the sealing confirmation rendered for the user — show it to them verbatim.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   // openWorldHint: true — with ARGUS_TOKEN set, sealing also mirrors to the account.
@@ -128,12 +130,25 @@ export const seal: ToolModule = {
           ? ''
           : ` (Account sync didn't go through — ${sync.reason}. Your seal is safe locally; the email reminder won't fire until it syncs. Try argus_sync later.)`;
 
+      // The sealing confirmation (P1-E2): the terminal twin of the webapp's
+      // seal certificate. surface stays the short model-facing line; seal_text
+      // is FOR THE USER (the tool description says: show it verbatim).
+      const seal_text = renderSeal({
+        predicate,
+        predicate_owner: a['predicate_owner'] as 'user' | 'ai_surfaced',
+        sealed_on: now.slice(0, 10),
+        check_by: checkBy,
+        today,
+        locale: surfaceLocale(dir),
+      });
+
       return envelope({
         ok: true, tool: 'argus_seal',
         surface: `Sealed. "${predicate}" — reality answers on ${checkBy}. Come back then with argus_settle.${nudge}${syncLine}`,
         next_actions: ['argus_check_in', 'stop'],
         data: {
           id, predicate, check_by: checkBy, predicate_owner: a['predicate_owner'],
+          seal_text,
           status: 'sealed', ledger_events_written: events.map((e) => e.event),
           skipped: receipt.skipped,
           account_synced: sync.synced,
