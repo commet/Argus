@@ -16,6 +16,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useReviewStore } from '@/stores/useReviewStore';
 import { ReceiptView } from './ReceiptView';
 import { ReceiptList } from './ReceiptList';
+import { SealStamp } from '@/components/workspace/progressive/SealStamp';
 import { SealModal } from './SealModal';
 import { SettleModal } from './SettleModal';
 import { extractFile, type ExtractedText } from '@/lib/review/extract-file';
@@ -294,17 +295,31 @@ export function ReviewFlow() {
             <p className="text-[13px] text-[var(--text-primary)]">{receipt.drift_note}</p>
           </Card>
         )}
-        {sealed && (
-          <Card variant="success" className="mb-4">
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-green-700 mb-1">{L('봉인됨', 'Sealed')}</div>
-            <p className="text-[13px] text-[var(--text-primary)]">
-              {L(
-                '예측을 봉인했습니다. 확인일에 현실이 답할 때까지 이 판단은 살아 있습니다.',
-                'Your prediction is sealed. This judgment stays live until reality answers on the check-in date.',
-              )}
-            </p>
-          </Card>
-        )}
+        {sealed && (() => {
+          // Certificate miniature (P1-A3 S5): the same ink seal as the voyage's
+          // sealing ceremony, small stage — one aesthetic across both surfaces
+          // (the green form-saved badge used to read like a different product).
+          const sealedFu = receipt.falsifiable_followups.find((f) => f.sealed_at) ?? receipt.falsifiable_followups[0];
+          const stampDate = sealedFu?.check_by
+            ? `${Number(sealedFu.check_by.slice(5, 7))}.${Number(sealedFu.check_by.slice(8, 10))}`
+            : '';
+          return (
+            <Card variant="elevated" className="mb-4">
+              <div className="flex items-center gap-3">
+                {stampDate && <SealStamp date={stampDate} size={44} className="shrink-0" />}
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1">{L('봉인됨', 'Sealed')}</div>
+                  <p className="text-[13px] text-[var(--text-primary)]">
+                    {L(
+                      '예측을 봉인했습니다. 확인일에 현실이 답할 때까지 이 판단은 살아 있습니다.',
+                      'Your prediction is sealed. This judgment stays live until reality answers on the check-in date.',
+                    )}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          );
+        })()}
         <ReceiptView
           receipt={receipt}
           onOwn={(o, owned) => {

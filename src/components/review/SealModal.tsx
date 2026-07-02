@@ -11,9 +11,11 @@
  *  - No verdict, no "proceed". The user owns the lean, the conditions, the date.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { SealStamp } from '@/components/workspace/progressive/SealStamp';
 import { useLocale } from '@/hooks/useLocale';
 import { type FalsifiableFollowup } from '@/lib/review';
 import { type SealPatch } from '@/stores/useReviewStore';
@@ -52,11 +54,30 @@ export function SealModal({
   const today = new Date().toISOString().slice(0, 10);
   const canSeal = predicate.trim().length > 5 && /^\d{4}-\d{2}-\d{2}$/.test(checkBy) && checkBy > today;
 
+  // Abbreviated ceremony (P1-A3 S5): the modal doesn't just vanish — the same
+  // ink stamp as the voyage seal presses in for 480ms before the commit.
+  // reduced-motion (or an unmount mid-press) commits immediately/cleans up.
+  const [stamping, setStamping] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+  const stampDate = /^\d{4}-\d{2}-\d{2}$/.test(checkBy)
+    ? `${Number(checkBy.slice(5, 7))}.${Number(checkBy.slice(8, 10))}`
+    : '';
+
   if (!selected) return null;
 
+  const commitSeal = () =>
+    onSeal(selected.followup_id, { predicate, lean, key_assumption: assumption, pass_condition: pass, fail_condition: fail, check_by: checkBy });
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={stamping ? undefined : onClose}>
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        {stamping && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-[var(--surface)]/85">
+            <SealStamp animate date={stampDate} />
+          </div>
+        )}
         <Card variant="elevated">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('이 판단을 봉인하기', 'Seal this judgment')}</h3>
@@ -148,13 +169,19 @@ export function SealModal({
             <Button
               variant="accent"
               size="md"
-              onClick={() => onSeal(selected.followup_id, { predicate, lean, key_assumption: assumption, pass_condition: pass, fail_condition: fail, check_by: checkBy })}
-              disabled={!canSeal}
+              className="transition-transform duration-150 active:scale-[0.96]"
+              onClick={() => {
+                if (stamping) return;
+                if (reducedMotion) { commitSeal(); return; }
+                setStamping(true);
+                timerRef.current = setTimeout(commitSeal, 480);
+              }}
+              disabled={!canSeal || stamping}
               style={canSeal ? undefined : { opacity: 0.5 }}
             >
               {L('봉인하기', 'Seal')}
             </Button>
-            <Button variant="ghost" size="md" onClick={onClose}>
+            <Button variant="ghost" size="md" onClick={onClose} disabled={stamping}>
               {L('취소', 'Cancel')}
             </Button>
           </div>
