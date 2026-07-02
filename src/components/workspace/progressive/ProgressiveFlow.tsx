@@ -3223,11 +3223,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               </div>
             )}
 
-            {/* Completion moment */}
+            {/* Completion moment — P1-A3 S6 hierarchy: doc completion is a
+                waypoint, the SEAL below is the voyage's final scene. Gold and
+                the stamp belong to the seal only (copy unchanged, color only). */}
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: EASE }}
               className="flex flex-col items-center justify-center gap-2 py-6">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--gradient-gold)' }}>
-                <Check size={16} className="text-white" />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--surface-2)] border border-[var(--border)]">
+                <Check size={16} className="text-[var(--accent)]" />
               </div>
               <p className="text-[16px] font-semibold text-[var(--text-primary)]">
                 {/* P0-6 ③: on a return day the headline is the return — a
