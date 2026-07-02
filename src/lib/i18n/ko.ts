@@ -6,7 +6,7 @@ export const ko = {
   'common.delete': '삭제',
   'common.save': '저장',
   'common.loading': '로딩 중...',
-  'common.error': '오류가 발생했습니다',
+  'common.error': '여기서 잠깐 막혔어요',
   'common.newStart': '새로 시작',
 
   // Tools
@@ -45,7 +45,7 @@ export const ko = {
 
   // Rate limit
   'rateLimit.remaining': '{remaining}/{total} 남음',
-  'rateLimit.exceeded': '일일 무료 사용량을 초과했습니다',
+  'rateLimit.exceeded': '오늘 몫의 무료 항해를 다 썼어요 — 내일 다시 채워져요',
   'rateLimit.useApiKey': 'API 키를 입력하면 제한 없이 사용할 수 있습니다',
 
   // Errors
@@ -158,8 +158,8 @@ export const ko = {
   'errorDisplay.parseFailure': 'AI 응답을 처리하지 못했습니다. 다시 시도하면 대부분 해결됩니다.',
   'errorDisplay.network': '네트워크 연결을 확인해주세요.',
   'errorDisplay.validation': 'AI 응답 형식이 올바르지 않습니다. 다시 시도해주세요.',
-  'errorDisplay.unknown': '알 수 없는 오류가 발생했습니다.',
-  'errorDisplay.generic': '오류가 발생했습니다.',
+  'errorDisplay.unknown': '원인을 짚지 못한 문제가 있었어요 — 작업물은 그대로 있어요. 다시 시도해 주세요.',
+  'errorDisplay.generic': '잠깐 막혔어요. 다시 시도해 주세요.',
   'errorDisplay.retry': '다시 시도',
   'errorDisplay.login': '로그인',
 
@@ -264,7 +264,7 @@ export const ko = {
   'progressive.phaseTeamwork': '팀 작업',
   'progressive.phaseFeedback': '피드백',
   'progressive.phaseDone': '완성',
-  'progressive.sendFailed': '발송 실패: {reason}',
+  'progressive.sendFailed': '발송이 닿지 못했어요: {reason}',
   'progressive.unknownError': '알 수 없는 오류',
   'progressive.networkError': '네트워크 오류로 발송하지 못했습니다',
   'progressive.humanQTitle': '질문: {task}',
@@ -280,7 +280,7 @@ export const ko = {
   'quickChat.placeholderRecast': '"Step 3을 사람으로 바꿔줘" 또는 "리뷰 단계 추가해줘"',
   'quickChat.placeholderReframe': '"2번 질문을 선택해줘" 또는 "다음 단계로"',
   'quickChat.placeholderGeneric': '"다음 단계로" 또는 수정 요청...',
-  'quickChat.failure': '요청을 처리하지 못했습니다.',
+  'quickChat.failure': '그 요청은 제가 못 알아들었어요 — 다르게 한번 적어 주세요.',
 
   // Boss
   'boss.heroTitle': '팀장한테',

@@ -46,12 +46,12 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           <div className="max-w-md text-center space-y-4">
             <div className="text-4xl">⚠</div>
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-              {ko ? '문제가 발생했습니다' : 'Something went wrong'}
+              {ko ? '여기서 암초에 걸렸어요' : 'We hit a reef here'}
             </h2>
             <p className="text-sm text-[var(--text-secondary)]">
               {ko
-                ? '예기치 않은 오류가 발생했습니다. 새로고침 후 다시 시도해주세요.'
-                : 'An unexpected error occurred. Please refresh and try again.'}
+                ? '이 구역만 잠깐 멈춘 거예요. 작업 내용은 이 브라우저에 그대로 남아 있어요.'
+                : 'Only this section paused. Your work is still right here in this browser.'}
             </p>
             <div className="flex flex-col items-center gap-2.5">
               <button

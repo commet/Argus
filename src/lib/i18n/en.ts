@@ -7,7 +7,7 @@ export const en: Record<TranslationKey, string> = {
   'common.delete': 'Delete',
   'common.save': 'Save',
   'common.loading': 'Loading...',
-  'common.error': 'An error occurred',
+  'common.error': 'Hit a brief snag',
   'common.newStart': 'Start Over',
 
   'tool.reframe': 'Set the Heading',
@@ -40,7 +40,7 @@ export const en: Record<TranslationKey, string> = {
   'ensemble.improvement': 'Improvements',
 
   'rateLimit.remaining': '{remaining}/{total} remaining',
-  'rateLimit.exceeded': 'Daily free usage exceeded',
+  'rateLimit.exceeded': "Today's free voyages are used up — they refill tomorrow",
   'rateLimit.useApiKey': 'Enter your API key for unlimited access',
 
   'error.network': 'Please check your network connection',
@@ -150,8 +150,8 @@ export const en: Record<TranslationKey, string> = {
   'errorDisplay.parseFailure': 'Could not process the AI response. Retrying usually resolves this.',
   'errorDisplay.network': 'Please check your network connection.',
   'errorDisplay.validation': 'The AI response format is invalid. Please try again.',
-  'errorDisplay.unknown': 'An unknown error occurred.',
-  'errorDisplay.generic': 'Something went wrong.',
+  'errorDisplay.unknown': "Something went wrong that we couldn't pin down — your work is safe. Please try again.",
+  'errorDisplay.generic': 'Hit a snag. Please try again.',
   'errorDisplay.retry': 'Retry',
   'errorDisplay.login': 'Log in',
 
@@ -250,7 +250,7 @@ export const en: Record<TranslationKey, string> = {
   'progressive.phaseTeamwork': 'Team Work',
   'progressive.phaseFeedback': 'Feedback',
   'progressive.phaseDone': 'Done',
-  'progressive.sendFailed': 'Send failed: {reason}',
+  'progressive.sendFailed': "The send didn't land: {reason}",
   'progressive.unknownError': 'Unknown error',
   'progressive.networkError': 'Could not send due to a network error',
   'progressive.humanQTitle': 'Question: {task}',
@@ -265,7 +265,7 @@ export const en: Record<TranslationKey, string> = {
   'quickChat.placeholderRecast': '"Change Step 3 to human" or "Add a review step"',
   'quickChat.placeholderReframe': '"Select question 2" or "Go to next step"',
   'quickChat.placeholderGeneric': '"Go to next step" or ask for an edit...',
-  'quickChat.failure': 'Could not process the request.',
+  'quickChat.failure': "I couldn't make that out — try phrasing it another way.",
 
   'boss.heroTitle': 'Got something',
   'boss.heroAccent': 'to tell your manager?',

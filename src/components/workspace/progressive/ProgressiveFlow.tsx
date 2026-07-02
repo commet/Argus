@@ -2033,7 +2033,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         useAgentAttentionStore.getState().ping('mix_done');
         scrollToRef(mixPreviewRef, 'bottom');
       }
-    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('초안 생성 실패', 'Draft creation failed')); store.setPhase('conversing'); scrollToRef(statusBarRef); }
+    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('초안을 만들다 막혔어요 — 지금까지 작업은 그대로 있어요. 다시 시도해 주세요.', 'Hit a snag while drafting — your work so far is safe. Please try again.')); store.setPhase('conversing'); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -2087,7 +2087,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         useAgentStore.getState().recordActivity(reviewerAgent.id, 'review_given', session!.problem_text.slice(0, 100));
       }
     }
-    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('DM 피드백 실패', 'DM feedback failed')); scrollToRef(statusBarRef); }
+    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('피드백을 받다 막혔어요 — 지금까지 작업은 그대로 있어요. 다시 시도해 주세요.', 'Hit a snag getting feedback — your work so far is safe. Please try again.')); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -2114,7 +2114,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       scrollToRef(dmFeedbackRef, 'bottom');
       track('flow_deepen', { has_boss: !!reviewerAgent });
     }
-    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('심화 검토 실패', 'Deep review failed')); scrollToRef(statusBarRef); }
+    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('심화 검토가 끝까지 가지 못했어요 — 지금까지 작업은 그대로 있어요. 다시 시도해 주세요.', "The deep review didn't finish — your work so far is safe. Please try again.")); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -2144,7 +2144,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       const r = await runDeepening(session!.problem_text, latest, qa, round, round + 2, snapshots, (text) => setStreamingText(text), abortRef.current.signal, moreLeadCtx, personas2.length > 0 ? personas2 : undefined, onTypedUpgrade);
       setStreamingText(null);
       r.question ? (store.addQuestion(r.question), store.setPhase('conversing')) : (setShowMix(true), store.setPhase('conversing'));
-    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('실패', 'Failed')); store.setPhase('conversing'); setShowMix(true); }
+    } catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('여기서 잠깐 막혔어요 — 지금까지 작업은 그대로 있어요. 다시 시도해 주세요.', 'Hit a brief snag — your work so far is safe. Please try again.')); store.setPhase('conversing'); setShowMix(true); }
     finally { setBusy(false); abortRef.current = null; scroll(); }
   };
 
@@ -2184,7 +2184,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       scrollToRef(finalRef, 'top');
       track('flow_done', { project_id: projectId, rounds: round });
     }
-    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('최종본 실패', 'Finalization failed')); scrollToRef(statusBarRef); }
+    catch (e) { setStreamingText(null); if (!(e instanceof DOMException && e.name === 'AbortError')) setError(e instanceof Error ? e.message : L('최종 문서를 만들다 막혔어요 — 팀 분석은 그대로 있으니, 다시 시도하면 이어서 만들어요.', "Hit a snag building the final document — the team's analysis is safe; try again and it picks up from there.")); scrollToRef(statusBarRef); }
     finally { setBusy(false); setSubstage(null); abortRef.current = null; }
   };
 
@@ -2281,7 +2281,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       track('progressive_revision_done', { directive_length: directive.length });
       scroll('top');
     } catch (e) {
-      setError(e instanceof Error ? e.message : L('수정 요청 실패', 'Revision failed'));
+      setError(e instanceof Error ? e.message : L('수정 요청이 끝까지 가지 못했어요 — 문서는 그대로 있어요. 다시 시도해 주세요.', "The revision didn't go through — your document is unchanged. Please try again."));
       // Keep the modal open so the user can read the inline error and retry.
     } finally {
       setIsIterating(false);
@@ -3024,7 +3024,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   if (r.detectedDM) store.setDecisionMaker(r.detectedDM);
                   store.replaceLatestQuestion(r.question);
                   track('framing_rejected', { reason });
-                } catch (e) { setStreamingText(null); setError(e instanceof Error ? e.message : L('재분석 실패', 'Re-analysis failed')); }
+                } catch (e) { setStreamingText(null); setError(e instanceof Error ? e.message : L('다시 읽다 막혔어요 — 기존 분석은 그대로 있어요. 다시 시도해 주세요.', 'Hit a snag re-reading — the existing analysis is safe. Please try again.')); }
                 finally { setBusy(false); scroll(); }
               }}
               busy={busy}
@@ -3058,7 +3058,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   const { useWorkspaceStore } = await import('@/stores/useWorkspaceStore');
                   useWorkspaceStore.getState().setActiveStep('reframe');
                   window.history.pushState(null, '', `/${locale}/workspace?step=reframe`);
-                } catch (e) { setError(e instanceof Error ? e.message : L('전환 실패', 'Switch failed')); }
+                } catch (e) { setError(e instanceof Error ? e.message : L('화면을 바꾸다 막혔어요 — 내용은 그대로예요. 한 번 더 눌러 주세요.', 'Hit a snag switching views — nothing was lost. Please tap once more.')); }
               }}
               onRehearse={async () => {
                 try {
@@ -3076,7 +3076,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   const { useWorkspaceStore } = await import('@/stores/useWorkspaceStore');
                   useWorkspaceStore.getState().setActiveStep('rehearse');
                   window.history.pushState(null, '', `/${locale}/workspace?step=rehearse`);
-                } catch (e) { setError(e instanceof Error ? e.message : L('전환 실패', 'Switch failed')); }
+                } catch (e) { setError(e instanceof Error ? e.message : L('화면을 바꾸다 막혔어요 — 내용은 그대로예요. 한 번 더 눌러 주세요.', 'Hit a snag switching views — nothing was lost. Please tap once more.')); }
               }}
             />
           )}

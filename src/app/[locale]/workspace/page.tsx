@@ -463,7 +463,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
 
       // errMsg 그대로 setError — 렌더 쪽에서 prefix로 분기해 login CTA vs generic 배너 결정.
       // 세션은 아직 생성 안 했으므로 정리 로직 불필요.
-      setError(errMsg || L('분석에 실패했습니다. 다시 시도해주세요.', 'Analysis failed. Please try again.'));
+      setError(errMsg || L('분석이 끝까지 가지 못했어요. 적어주신 내용은 그대로 있어요 — 다시 시도해 주세요.', "The analysis didn't finish. What you wrote is still here — please try again."));
       setPhase('idle');
       setStreamingText('');
       track('workspace_start_error', { error: errMsg, is_rate_limit: isRateLimit, needs_login: needsLogin });
