@@ -80,8 +80,12 @@
      broken fallback. */
   --font-mono: 'JetBrains Mono', 'Menlo', 'SF Mono', ui-monospace, 'Pretendard Variable', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 
-  /* Blueprint palette — landing-scoped. Paper + navy ink + gold leaf.
-     Designed to avoid the AI-dark aesthetic while staying distinctive. */
+  /* Blueprint palette — the landing "logbook" register. Paper + navy ink +
+     gold leaf. TWO-REGISTER RULE (UNIFIED-REMODEL-PLAN C2): the MATERIAL half
+     (--bp-paper*, --bp-ink*) may be borrowed by sanctioned app surfaces; the
+     CEREMONY half (--bp-gold*, --bp-azure, .bp-seal-stamp) is landing-only —
+     working surfaces stay restrained. Enforced by
+     src/lib/__tests__/design-register-contract.test.ts (whitelist + CI). */
   --bp-paper: #f4ede0;          /* Aged parchment — warmer than --bg */
   --bp-paper-deep: #ebe2d0;     /* Secondary surface, section alternation */
   --bp-ink: #1a2a3a;            /* Navy ink — historical blueprint line */
