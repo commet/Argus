@@ -21,7 +21,8 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useLocale } from '@/hooks/useLocale';
 import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { runInitialAnalysis } from '@/lib/progressive-engine';
-import { buildEarlyContract } from '@/lib/decision-contract';
+import { buildEarlyContract, summarizeRecord } from '@/lib/decision-contract';
+import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText, Anchor } from 'lucide-react';
 import { useDueCount } from '@/hooks/useDueCount';
 import { shouldShowLantern, localYMD } from '@/lib/lantern';
@@ -39,7 +40,7 @@ import { InteractiveDemo } from '@/components/workspace/InteractiveDemo';
 import { getDemoScenarios } from '@/lib/demo-data';
 import type { DemoScenario } from '@/lib/demo-data';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { WorkerPersona } from '@/stores/types';
+import type { WorkerPersona, DecisionContract } from '@/stores/types';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { DAILY_LIMIT } from '@/lib/quota-config';
@@ -236,7 +237,7 @@ type HeroPhase = 'idle' | 'binding' | 'assembling' | 'analyzing' | 'ready';
 
 function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: {
   onReady: (projectId: string) => void;
-  projects: Array<{ id: string; name: string; updated_at?: string; created_at?: string }>;
+  projects: Array<{ id: string; name: string; updated_at?: string; created_at?: string; decision_contract?: DecisionContract }>;
   user: unknown;
   reviewerAgentId?: string;
   initialProblem?: string;
@@ -271,7 +272,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   // dueCount via the shared hook (Header / /project / here — one number).
   // "나중에 할게요" = same-day snooze in localStorage (argus:lantern-snooze),
   // re-renders the next day; a permanent dismiss is forbidden (master §4).
-  const { dueCount } = useDueCount();
+  const { dueCount, dueProjects } = useDueCount();
   const [lanternSnoozedYMD, setLanternSnoozedYMD] = useState<string | null>(null);
   React.useEffect(() => {
     // Read in an effect (SSR-safe) — getStorage returns the fallback on the server.
@@ -738,12 +739,28 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   primary input so the workspace opens on "what's the situation?" not
                   on a history list; past projects stay reachable in the middle. */}
               {projects.length > 0 && (() => {
+                // P1-A4: due voyages surface first (same due-first rule as
+                // /project) so a promised return isn't buried under fold #4.
+                const dueIdSet = new Set(dueProjects.map((d) => d.id));
                 const sorted = [...projects].sort((a, b) => {
+                  const ad = dueIdSet.has(a.id) ? 1 : 0;
+                  const bd = dueIdSet.has(b.id) ? 1 : 0;
+                  if (ad !== bd) return bd - ad;
                   const aT = a.updated_at || a.created_at || '';
                   const bT = b.updated_at || b.created_at || '';
                   return bT.localeCompare(aT);
                 });
                 const shown = showAllProjects ? sorted : sorted.slice(0, 3);
+                // P1-A4: the quiet accumulation line — counts only, never a
+                // score. Lives INSIDE the existing header (no new section:
+                // the same screen just lost four chips to P0-7's subtraction).
+                const rec = summarizeRecord(projects, Date.now());
+                const sealedCount = projects.filter((p) => p.decision_contract).length;
+                const accumulation = rec.loops > 0
+                  ? L(`⚓ 닫은 고리 ${rec.loops}개`, `⚓ ${rec.loops} loop${rec.loops === 1 ? '' : 's'} closed`)
+                  : sealedCount > 0
+                    ? L(`⚓ 봉인 ${sealedCount}개 — 첫 확인일이 오면 기록이 시작돼요`, `⚓ ${sealedCount} sealed — the record starts on the first check-in day`)
+                    : null;
                 const relTime = (iso?: string) => {
                   if (!iso) return '';
                   const ms = Date.now() - new Date(iso).getTime();
@@ -760,12 +777,15 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   // own work" away from the input above and the demos below, so the
                   // three zones read as three, not one continuous list.
                   <div className="mt-9 pt-7 border-t border-[var(--border-subtle)]/60">
-                    <div className="flex items-baseline justify-between mb-3">
-                      <p className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--text-secondary)]">
+                    <div className="flex items-baseline justify-between gap-3 mb-3">
+                      <p className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--text-secondary)] shrink-0">
                         <History size={14} className="text-[var(--accent)]" />
                         {L('이어서 작업', 'Continue where you left off')}
                       </p>
-                      <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums">{L(`${sorted.length}개`, `${sorted.length}`)}</span>
+                      <span className="flex items-baseline gap-2.5 min-w-0 text-[11px] text-[var(--text-tertiary)]">
+                        {accumulation && <span className="truncate">{accumulation}</span>}
+                        <span className="tabular-nums shrink-0">{L(`${sorted.length}개`, `${sorted.length}`)}</span>
+                      </span>
                     </div>
                     {/* Each past voyage rests as a real, bordered surface (not a bare
                         hover-row) so the list reads as a stack of openable cards. */}
@@ -775,7 +795,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                           className="w-full text-left flex items-center gap-2.5 px-3.5 py-3 md:py-2.5 min-h-[44px] rounded-xl border border-[var(--border-subtle)]/70 bg-[var(--surface)]/50 hover:bg-[var(--surface)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-sm)] cursor-pointer transition-all group">
                           <FolderOpen size={14} className="text-[var(--accent)] shrink-0" />
                           <span className="text-[14px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">{p.name}</span>
-                          <span className="text-[11px] text-[var(--text-tertiary)] shrink-0 ml-auto tabular-nums">{relTime(p.updated_at || p.created_at)}</span>
+                          <span className="ml-auto flex items-center gap-2 shrink-0">
+                            {/* P1-A4: the voyage-state chip this component's header
+                                comment always promised (ETA D-N / 지금 정산 / 도착). */}
+                            <VoyageEta contract={p.decision_contract} showArrived />
+                            <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums">{relTime(p.updated_at || p.created_at)}</span>
+                          </span>
                           {/* Chevron stays visible on touch (no hover there) */}
                           <ChevronRight size={12} className="text-[var(--text-tertiary)] shrink-0 opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
                         </button>
