@@ -234,6 +234,13 @@ export function ReceiptView({
 
       {/* actions — up to 3 primary (design doc §Receipt Summary): own is on the
           obligation above; here: seal / 문서 수정안 / 더 검증하기 */}
+      {/* First-meeting caption (06 S4) — same grammar as the existing "(현실 기록)"
+          parenthetical: say what sealing does before the tap. */}
+      {receipt.falsifiable_followups.length > 0 && onSeal && (
+        <p className="text-[11px] leading-snug text-[var(--text-tertiary)]">
+          {L('봉인하면 확인일에 현실과 대조해요', 'Seal it and we check it against reality on the date you pick')}
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         {receipt.falsifiable_followups.length > 0 && onSeal && (
           <Button variant="primary" size="sm" onClick={() => onSeal(receipt)}>
