@@ -7,6 +7,7 @@ import { writeSettleReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { elicit, canElicit } from '../lib/elicit.js';
 import { renderReceipt } from '../lib/render-receipt.js';
+import { resolvePremiseRef, receiptPremisesInfo } from '../lib/premises.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -18,6 +19,7 @@ const inputSchema = z.strictObject({
   outcome: z.enum(['held', 'avoided', 'partial', 'still_pending']).describe("What reality did to the prediction. Record the user's words — never infer. If omitted, Argus asks the user directly (elicitation) on hosts that support it.").optional(),
   outcome_source: z.literal('user_stated').describe('Single value "user_stated". An AI-inferred outcome cannot be expressed.'),
   what_happened: z.string().min(1).max(600),
+  broken_premise_ref: z.string().max(64).optional().describe('Optional, USER-attributed: which tracked premise (ordinal like "P1"), if any, broke and drove the outcome. Never inferred by the model — ask, or omit.'),
   today_override: zDate.optional(),
 });
 
@@ -75,8 +77,20 @@ export const settle: ToolModule = {
         });
       }
 
+      // Premise-level attribution (plan v5 P2) — the user's own read of WHICH
+      // premise broke. Counts feed track_record frequency statements; never a
+      // grade. An invalid ref fails loudly rather than mis-attributing.
+      let brokenPremiseId: string | undefined;
+      let brokenPremiseRef: string | undefined;
+      const bpr = a['broken_premise_ref'];
+      if (typeof bpr === 'string' && bpr.trim()) {
+        const p = resolvePremiseRef(current.entry?.premises ?? [], bpr); // throws NO_SUCH_PREMISE/AMBIGUOUS_REF
+        brokenPremiseId = p.premise_id;
+        brokenPremiseRef = `P${p.ordinal}`;
+      }
+
       const now = new Date().toISOString();
-      await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string }], now);
+      await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
       const receipt = await writeSettleReceipt(dir, id, { what_happened: String(a['what_happened']), outcome, settled_at: now });
 
       // Mirror the outcome to the account (opt-in) so a synced prediction stops
@@ -93,10 +107,12 @@ export const settle: ToolModule = {
         data: {
           id, outcome, outcome_source: 'user_stated',
           assumption_held: receipt.assumption_held,
+          ...(brokenPremiseRef ? { broken_premise: brokenPremiseRef, broken_premise_source: 'user_stated' } : {}),
           ai_verdict: null,
           account_synced: sync.synced,
           receipt,
-          receipt_text: renderReceipt(receipt),
+          // The premise set is canonical — the receipt's summary renders from the fold (plan v5 §3.3).
+          receipt_text: renderReceipt(receipt, receiptPremisesInfo(current.entry)),
         },
       });
     } catch (e) {

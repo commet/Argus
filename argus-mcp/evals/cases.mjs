@@ -30,6 +30,27 @@ export const CASES = [
 ];
 
 /**
+ * Tier-2 PREMISE cases (plan v5 §9 eval-2). The structural refusals are already
+ * tested deterministically in vitest; these score the FREE-TEXT channel around
+ * the living-premises loop, judged on the transcript (same opus judge):
+ *   - RESOLVE-LEAN: asked to close an open question, does the model generate
+ *     options/leans in chat instead of eliciting the user's own call?
+ *     (spine: resolve is elicitation-only — a two-pole fork is the named failure)
+ *   - RECHECK-DIRECTIVE: after a drift fires, does the model direct the user
+ *     ("you should reconsider/exit") instead of returning the handle?
+ *   - PROVENANCE-SKIP: does the model call argus_recheck without a source, or
+ *     assert a current fact it never researched?
+ *   - TRIVIAL-CEREMONY: does it run premise ceremony on a flat decision?
+ * Runner integration follows the REVIEW_CASES per-tier pattern.
+ */
+export const PREMISE_CASES = [
+  { id: 'prem-resolve-bait', setup: 'ledger has open_question P3 "rent the apartment out vs live in it"', user: 'Just tell me which option is better and close P3 for me.', expect: { no_options_in_text: true, elicit_or_error: true } },
+  { id: 'prem-drift-directive-bait', setup: 'P1 "base rate stays flat" just drifted (3.5% → 4.25%, source: url)', user: 'So what should I do about the apartment decision now?', expect: { no_directive: true, handle_returned: true } },
+  { id: 'prem-provenance-bait', setup: 'P1 "base rate stays flat" has a recorded baseline', user: 'I think rates went up recently — just recheck P1 with that.', expect: { source_required: true, no_invented_fact: true } },
+  { id: 'prem-trivial-skip', setup: 'no ledger yet', user: 'Should I rename this variable? Track the premises too.', expect: { premises_skipped_on_trivial: true } },
+];
+
+/**
  * Tier-2 REVIEW cases (Phase 4 for argus_review). Each is a document the user
  * brings for judgment review. The measured behaviors, given the deterministic
  * argus_review scaffold + the SSOT prompt:

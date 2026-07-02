@@ -1,6 +1,7 @@
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
+import { duePremises, groupDuePremises } from '../lib/premises.js';
 import { z } from 'zod';
 import { envelope } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
@@ -35,20 +36,38 @@ export const checkIn: ToolModule = {
       }
       const due = Array.from(dueMap.values()).sort((x, y) => x.check_by < y.check_by ? -1 : 1);
 
-      if (due.length === 0) {
+      // Living premises: monitored facts due for a reality re-check, grouped so
+      // the same fact under several decisions is ONE re-check (plan v5 P1/P5).
+      const TOP = 5;
+      const premiseGroups = groupDuePremises(duePremises(ledger));
+      const duePrem = premiseGroups.slice(0, TOP).map((g) => ({
+        fact: g.text,
+        decisions: g.premises.map((p) => ({ decision_id: p.decision_id, decision: p.decision_text, ref: `P${p.ordinal}`, staleness: p.days_stale === null ? 'never re-checked' : `${p.days_stale}d` })),
+      }));
+
+      if (due.length === 0 && premiseGroups.length === 0) {
         return envelope({
           ok: true, tool: 'argus_check_in',
           surface: 'Nothing is due. Nothing to nudge.',
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, today },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, today },
         });
       }
 
+      const parts: string[] = [];
+      if (due.length > 0) parts.push(`${due.length} decision contract(s) past check-by — time to check them against reality (argus_settle).`);
+      if (premiseGroups.length > 0) parts.push(`${premiseGroups.length} premise fact(s) due for a reality re-check (argus_recheck).`);
+
       return envelope({
         ok: true, tool: 'argus_check_in',
-        surface: `${due.length} decision contract(s) past check-by. Time to check them against reality.`,
-        next_actions: ['argus_settle'],
-        data: { due, due_count: due.length, today, integrity: ledger.integrity },
+        surface: parts.join(' '),
+        next_actions: due.length > 0 ? ['argus_settle'] : ['argus_recall'],
+        data: {
+          due, due_count: due.length,
+          due_premises: duePrem, due_premise_count: premiseGroups.length,
+          ...(premiseGroups.length > TOP ? { due_premises_truncated: `${premiseGroups.length} groups, showing ${TOP}` } : {}),
+          today, integrity: ledger.integrity,
+        },
       });
     } catch (e) {
       return handleToolException('argus_check_in', e);

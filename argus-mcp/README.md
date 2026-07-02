@@ -88,19 +88,42 @@ Or add to your host's MCP config:
 | `argus_open_decision` | Opens a consequential decision. Runs a restraint gate first — on a flat / low-stakes / reversible / already-closed call it tells you to leave it as is. If it fires, it surfaces **one** neutral question, never a fork or a lean. |
 | `argus_review` | Reviews an existing document (strategy memo / PRD / deck text / AI answer) for judgment risk: reviewability score, routed lenses, source units with anchors, and the extraction prompt — then hands the analysis to you. Degrades honestly on unextractable input; never a verdict. End by sealing one follow-up. |
 | `argus_seal` | Seals a falsifiable prediction (`predicate` + `check_by`) and captures the receipt's real-question / unverified-assumption / human-only / your-call fields. Refuses an empty predicate or a non-future date. If you seal without naming the assumption, it's recorded as an explicit **skip** — never a forced gate (which would just eject the tiredest user), never a silent blank. With `ARGUS_TOKEN` set, the prediction also syncs to your account so the Companion Brief can email you at its check-by date. |
-| `argus_settle` | On the check-by date, records what reality did and issues the Judgment Receipt. Hard-errors without a prior seal. |
-| `argus_check_in` | Returns contracts past their check-by date. If nothing is due, it says so and stops — it doesn't manufacture engagement. |
+| `argus_premises` | Tracks the **premises** a decision rests on — the facts and open questions behind it. `add` records them (echoed back in full); `amend` takes your correction verbatim (the AI's original stays on the record — the edit is the signal); `resolve` closes an open question **in your own words** (it cannot offer options or leans — that shape doesn't exist here). Premises lock once the check-by arrives: no retroactive premise-planting, no retiring the one about to be proven wrong. |
+| `argus_recheck` | Re-checks one premise against reality between seal and settle. The host researches the current fact; the tool compares **explicit numbers** mechanically (never regex-parses prose) or records the host's provenance-tagged `changed` assertion for text facts. First check is a baseline and never alerts. When the fact drifted: it says so and returns the handle — whether to revisit the decision stays your call. `apply_to_matching` re-checks the same fact under your other decisions at once. |
+| `argus_settle` | On the check-by date, records what reality did and issues the Judgment Receipt. Hard-errors without a prior seal. Optionally records **which premise broke** (your attribution, never inferred) — over time your track record can say "3 of your 4 missed bets traced to a broken external premise": a frequency, never a diagnosis. |
+| `argus_check_in` | Returns contracts past their check-by date **and premise facts due for a re-check** (the same fact under several decisions is one re-check). If nothing is due, it says so and stops — it doesn't manufacture engagement. |
 | `argus_sync` | Pulls your account receipts into the terminal (live judgments + what's due) so you can settle here. Seals push automatically; this is the read side. Requires `ARGUS_TOKEN`. |
 | `argus_recall` | Reads your own history: a receipt, the open contracts, or a sample-size-caveated track record (never a tier or score). |
 | `argus_init` / `argus_config` | Initialize the `.argus` directory; read/write non-spine settings. |
 
+## Living premises
+
+The receipt's sharpest line — `THE UNVERIFIED ASSUMPTION` — used to be written
+once at seal and then go dead. Now it's a **tracked object**: name the premises
+a decision rests on, correct the ones the model got wrong (your edit is part of
+the record), and re-check the load-bearing external facts against reality while
+the bet is still open. When a rate hike breaks the premise under three of your
+decisions, that's **one** re-check, not three.
+
+Honest limits, stated up front: an MCP server is passive — nothing wakes it
+between seal and settle. The return loop rides four levers: every tool response
+carries a quiet `due_note`; `argus_check_in` reports due premises;
+the `argus://premises/due` resource lets hosts auto-inject them; and the
+`/argus-settle` ritual includes the re-check choreography. Anything more
+periodic (cron, reminders) belongs to your host or habits, not this server.
+A premise that never gets re-checked shows up honestly as `never re-checked` —
+Argus does not pretend liveness.
+
 ## Data
 
-Everything is local, under `.argus/` in your project (gitignored by default).
-No telemetry. The **only** network call Argus ever makes is the opt-in account
-sync: if — and only if — you set `ARGUS_TOKEN`, a sealed/settled prediction is
-POSTed to your own Argus account so it can email you at its check-by date. Unset
-the token and Argus never touches the network. See [SECURITY.md](SECURITY.md).
+Everything is local, under `.argus/` in your project (gitignored by default) —
+an append-only `ledger.jsonl` **you own**: plain JSON lines, no lock-in,
+receipts render to shareable text. No telemetry. The **only** network call
+Argus ever makes is the opt-in account sync: if — and only if — you set
+`ARGUS_TOKEN`, a sealed/settled prediction is POSTed to your own Argus account
+so it can email you at its check-by date. **Premise data never leaves your
+machine** — it is not part of the sync payload. Unset the token and Argus never
+touches the network. See [SECURITY.md](SECURITY.md).
 
 ## Measured
 
