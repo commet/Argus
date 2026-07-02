@@ -5,7 +5,7 @@ import { USER_DATA_TABLES } from '../user-data-tables';
  * Erasure-coverage drift guard (mirrors schema-drift.test.ts's TABLE_COLUMNS contract).
  *
  * LIVE_USER_SCOPED_TABLES is a hand-mirrored copy of every public table that has a
- * `user_id` column on the live DB (overture-db), re-captured 2026-06-30 via:
+ * `user_id` column on the live DB (overture-db), re-captured 2026-07-03 via:
  *   SELECT table_name FROM information_schema.columns
  *   WHERE table_schema='public' AND column_name='user_id' ... (BASE TABLEs only)
  *
@@ -22,11 +22,11 @@ import { USER_DATA_TABLES } from '../user-data-tables';
  */
 const LIVE_USER_SCOPED_TABLES = [
   'accuracy_ratings', 'agent_activities', 'agent_chains', 'agents',
-  'decision_quality_scores', 'feedback_records', 'human_agent_messages',
+  'decision_items', 'decision_quality_scores', 'feedback_records', 'human_agent_messages',
   'judgment_records', 'outcome_records', 'personas', 'plugin_bearings',
   'plugin_decisions', 'plugin_events', 'plugin_tokens', 'progressive_sessions', 'projects',
   'quality_signals', 'rate_limits', 'recast_items', 'reframe_items',
-  'retrospective_answers', 'share_log', 'shared_links', 'slack_connections',
+  'retrospective_answers', 'review_receipts', 'share_log', 'shared_links', 'slack_connections',
   'synthesize_items', 'team_members', 'team_review_inputs',
   'telegram_connect_codes', 'telegram_connections', 'telegram_decisions',
   'telegram_sessions', 'user_events',

@@ -135,6 +135,10 @@ When removing a feature:
 3. 새 동기화 테이블을 `TableName`에 추가하면 그 테이블이 실DB에 **존재하는지**
    확인 — reframe/recast/synthesize는 TableName에만 있고 테이블이 없어 전부
    localStorage-only였다 (조용히).
+4. `user_id` 컬럼이 있는 새 테이블 = `user-data-tables.ts`(USER_DATA_TABLES) +
+   `erasure-coverage.test.ts`(LIVE_USER_SCOPED_TABLES) **동시 갱신** — 안 하면
+   계정 삭제·내보내기가 그 테이블을 영영 건너뛴다 (2026-07-03: decision_items·
+   review_receipts가 정확히 이렇게 누락됐던 사례).
 
 확인 SQL:
 ```sql
