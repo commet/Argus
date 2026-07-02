@@ -501,6 +501,30 @@ export function SealMoment({
             </button>
           </div>
 
+          {/* Email return-path opt-in (P1-B2 / 03 S5): the seal moment is the ONE
+              moment a user picks their way back, so the switch lives here in the
+              same "돌아오는 길" bundle as the .ics button. Writes the existing
+              decision_contract.email_reminder flag (jsonb-internal, checkin-due
+              cron already gates on it) — the flag simply had no UI until now.
+              Logged-in only: the cron mails the account address. Anonymous users
+              keep the login CTA above as their durable path (§5-20: no new
+              channel for anonymous sealers). */}
+          {user && contract && (
+            <label className="mt-3 inline-flex items-center justify-center gap-2 text-[12px] text-[var(--text-secondary)] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={!!contract.email_reminder}
+                onChange={(e) =>
+                  updateProject(project.id, { decision_contract: { ...contract, email_reminder: e.target.checked } })
+                }
+                className="w-3.5 h-3.5 accent-[var(--accent)] cursor-pointer"
+              />
+              {user.email
+                ? L(`그날 이메일로도 물어봐 주세요 (${user.email})`, `Ask me by email that day too (${user.email})`)
+                : L('그날 이메일로도 물어봐 주세요', 'Ask me by email that day too')}
+            </label>
+          )}
+
           <button
             onClick={() => setDrawerOpen((o) => !o)}
             className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
