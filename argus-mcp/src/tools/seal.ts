@@ -119,7 +119,14 @@ export const seal: ToolModule = {
         real_question: a['real_question'] as string | undefined,
         human_judgment: a['human_judgment'] as string | undefined,
       });
-      const syncLine = sync.synced ? ' Synced to your account — you\'ll get an email when it comes due.' : '';
+      // 3-state sync voice (11 S3): success speaks, no-token stays silent
+      // (local-only is the chosen default, not a failure), and a FAILURE with a
+      // token set must speak — the user believes an email is coming.
+      const syncLine = sync.synced
+        ? ' Synced to your account — you\'ll get an email when it comes due.'
+        : sync.reason === 'no_token'
+          ? ''
+          : ` (Account sync didn't go through — ${sync.reason}. Your seal is safe locally; the email reminder won't fire until it syncs. Try argus_sync later.)`;
 
       return envelope({
         ok: true, tool: 'argus_seal',
@@ -130,6 +137,7 @@ export const seal: ToolModule = {
           status: 'sealed', ledger_events_written: events.map((e) => e.event),
           skipped: receipt.skipped,
           account_synced: sync.synced,
+          ...(sync.synced ? {} : { account_sync_reason: sync.reason }),
           // The named assumption now lives as a tracked premise (canonical set).
           // Marking it external (argus_premises op=amend) arms reality re-checks.
           ...(promotedRef ? { premise_promoted: promotedRef } : {}),

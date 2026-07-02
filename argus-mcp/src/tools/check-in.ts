@@ -1,5 +1,5 @@
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
 import { duePremises, groupDuePremises } from '../lib/premises.js';
 import { z } from 'zod';
@@ -9,7 +9,7 @@ import { handleToolException } from './errors.js';
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
-  include_upcoming_days: z.number().int().min(0).max(30).default(0).describe('Also list contracts due within N days.'),
+  include_upcoming_days: z.number().int().min(0).max(30).default(0).describe('Also list sealed contracts coming due within N days (informational — nothing to settle yet).'),
   today_override: zDate.optional(),
 });
 
@@ -36,6 +36,28 @@ export const checkIn: ToolModule = {
       }
       const due = Array.from(dueMap.values()).sort((x, y) => x.check_by < y.check_by ? -1 : 1);
 
+      // include_upcoming_days, actually implemented (11 S2 — an accepted-then-
+      // discarded argument is a silent lie in the schema). Sealed contracts whose
+      // check-by falls within the window: informational only, nothing to settle.
+      const upDays = typeof a['include_upcoming_days'] === 'number'
+        ? Math.max(0, Math.min(30, Math.floor(a['include_upcoming_days'] as number)))
+        : 0;
+      const upcoming: Array<{ id: string; predicate: string; check_by: string }> = [];
+      if (upDays > 0) {
+        const horizon = addDays(today, upDays);
+        for (const [cid, entry] of ledger.contracts.entries()) {
+          if (entry.status !== 'sealed' || dueMap.has(cid)) continue;
+          const date = asDate(entry.check_by);
+          if (date && date > today && date <= horizon) {
+            upcoming.push({ id: cid, predicate: entry.text || '', check_by: date });
+          }
+        }
+        upcoming.sort((x, y) => (x.check_by < y.check_by ? -1 : 1));
+      }
+      const upcomingLine = upcoming.length > 0
+        ? ` ${upcoming.length} coming due within ${upDays} day(s) — informational, nothing to settle yet.`
+        : '';
+
       // Living premises: monitored facts due for a reality re-check, grouped so
       // the same fact under several decisions is ONE re-check (plan v5 P1/P5).
       const TOP = 5;
@@ -46,11 +68,18 @@ export const checkIn: ToolModule = {
       }));
 
       if (due.length === 0 && premiseGroups.length === 0) {
+        // Static hint, no network (P1-E4 ③ / master §5-18): check_in stays a
+        // local, deterministic read — but a token means the user ALSO seals in
+        // their account (web), and "nothing" here must not read as "nothing
+        // anywhere". One sentence, argus_sync is the one place that looks.
+        const accountHint = (process.env.ARGUS_TOKEN || '').trim()
+          ? ' This reads the local ledger only — judgments sealed in your account: argus_sync shows them.'
+          : '';
         return envelope({
           ok: true, tool: 'argus_check_in',
-          surface: 'Nothing is due. Nothing to nudge.',
+          surface: 'Nothing is due. Nothing to nudge.' + accountHint + upcomingLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, today },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, ...(upDays > 0 ? { upcoming } : {}), today },
         });
       }
 
@@ -60,12 +89,13 @@ export const checkIn: ToolModule = {
 
       return envelope({
         ok: true, tool: 'argus_check_in',
-        surface: parts.join(' '),
+        surface: parts.join(' ') + upcomingLine,
         next_actions: due.length > 0 ? ['argus_settle'] : ['argus_recall'],
         data: {
           due, due_count: due.length,
           due_premises: duePrem, due_premise_count: premiseGroups.length,
           ...(premiseGroups.length > TOP ? { due_premises_truncated: `${premiseGroups.length} groups, showing ${TOP}` } : {}),
+          ...(upDays > 0 ? { upcoming } : {}),
           today, integrity: ledger.integrity,
         },
       });
@@ -80,4 +110,10 @@ function daysBetween(from: string, to: string): number {
   const b = Date.parse(to + 'T00:00:00Z');
   if (Number.isNaN(a) || Number.isNaN(b)) return 0;
   return Math.round((b - a) / 86400000);
+}
+
+function addDays(day: string, days: number): string {
+  const t = Date.parse(day + 'T00:00:00Z');
+  if (Number.isNaN(t)) return day;
+  return new Date(t + days * 86400000).toISOString().slice(0, 10);
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { tmpArgusDir, body, isError } from '../../test-helpers.js';
 import { init } from '../init-config.js';
 import { openDecision } from '../open-decision.js';
@@ -123,6 +123,44 @@ describe('check_in and today override', () => {
     expect(due['due_count']).toBe(1);
     const none = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-15' }))['data'] as Record<string, unknown>;
     expect(none['due_count']).toBe(0);
+  });
+
+  it('include_upcoming_days actually returns upcoming contracts (P1-E4: no accepted-then-discarded argument)', async () => {
+    const dir = tmpArgusDir();
+    await seal.handler({ argus_dir: dir, id: 'soon', predicate: 'Launch ships before the date', check_by: '2026-08-01', predicate_owner: 'user', today_override: '2026-07-01' });
+    const r = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-25', include_upcoming_days: 14 }));
+    const data = r['data'] as Record<string, unknown>;
+    expect(data['due_count']).toBe(0);
+    const upcoming = data['upcoming'] as Array<Record<string, unknown>>;
+    expect(upcoming).toHaveLength(1);
+    expect(upcoming[0]['id']).toBe('soon');
+    expect(upcoming[0]['check_by']).toBe('2026-08-01');
+    expect(String(r['surface'])).toContain('coming due within 14 day(s)');
+    expect(String(r['surface'])).toContain('informational');
+
+    // Outside the window → no upcoming, no line.
+    const far = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-01', include_upcoming_days: 7 }));
+    expect((far['data'] as Record<string, unknown>)['upcoming']).toEqual([]);
+    expect(String(far['surface'])).not.toContain('coming due');
+  });
+
+  it('hints at account-sealed judgments when nothing is due locally but a token is set (P1-E4 ③, no network)', async () => {
+    const dir = tmpArgusDir();
+    const orig = process.env.ARGUS_TOKEN;
+    try {
+      process.env.ARGUS_TOKEN = 'argus_pat_test';
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const r = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-01' }));
+      expect(String(r['surface'])).toContain('argus_sync shows them');
+      expect(fetchSpy).not.toHaveBeenCalled(); // check_in stays local and deterministic
+
+      delete process.env.ARGUS_TOKEN;
+      const silent = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-01' }));
+      expect(String(silent['surface'])).toBe('Nothing is due. Nothing to nudge.');
+    } finally {
+      if (orig === undefined) delete process.env.ARGUS_TOKEN; else process.env.ARGUS_TOKEN = orig;
+      vi.restoreAllMocks();
+    }
   });
 });
 

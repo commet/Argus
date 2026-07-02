@@ -99,10 +99,18 @@ export const settle: ToolModule = {
       const sync = await pushToAccount({
         action: 'settle', id, outcome, what_happened: String(a['what_happened']), settled_at: now,
       });
+      // 3-state sync voice (11 S3, same pattern as seal): silence is only honest
+      // for the no-token default — a failed mirror means the account keeps
+      // listing this as due (and may re-email it), so say so.
+      const syncLine = sync.synced
+        ? ''
+        : sync.reason === 'no_token'
+          ? ''
+          : ` (Account sync didn't go through — ${sync.reason}. Your settlement is safe locally; the account may keep listing this as due until it syncs. Try argus_sync later.)`;
 
       return envelope({
         ok: true, tool: 'argus_settle',
-        surface: 'Settled. The receipt records what you predicted and what reality did — no grade.',
+        surface: 'Settled. The receipt records what you predicted and what reality did — no grade.' + syncLine,
         next_actions: ['argus_recall', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',
@@ -110,6 +118,7 @@ export const settle: ToolModule = {
           ...(brokenPremiseRef ? { broken_premise: brokenPremiseRef, broken_premise_source: 'user_stated' } : {}),
           ai_verdict: null,
           account_synced: sync.synced,
+          ...(sync.synced ? {} : { account_sync_reason: sync.reason }),
           receipt,
           // The premise set is canonical — the receipt's summary renders from the fold (plan v5 §3.3).
           receipt_text: renderReceipt(receipt, receiptPremisesInfo(current.entry)),

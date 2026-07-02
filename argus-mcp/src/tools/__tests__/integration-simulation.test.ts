@@ -67,6 +67,34 @@ describe('MCP simulation — full loop with account sync', () => {
     const res = await seal.handler({ argus_dir: dir, id: 'local1', predicate: '무언가 참이 된다 반드시', check_by: '2027-01-01', predicate_owner: 'user' });
     expect((body(res).data as Record<string, unknown>).account_synced).toBe(false);
     expect(fetchSpy).not.toHaveBeenCalled();
+    // no_token is the chosen default, not a failure — the surface stays silent.
+    expect(String(body(res).surface)).not.toContain('sync');
+  });
+
+  it('a FAILED sync with a token set speaks up on seal and settle (P1-E4: the email will not come)', async () => {
+    process.env.ARGUS_TOKEN = 'argus_pat_sim';
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 500 }));
+    const dir = tmpArgusDir();
+    const id = 'sync-fail';
+
+    const sealed = await seal.handler({
+      argus_dir: dir, id, predicate: 'cutover 다운타임 5분 미만', check_by: '2027-01-01', predicate_owner: 'user',
+    });
+    expect(isError(sealed)).toBe(false); // the local seal stands
+    const sealData = body(sealed).data as Record<string, unknown>;
+    expect(sealData.account_synced).toBe(false);
+    expect(sealData.account_sync_reason).toBe('http_500');
+    expect(String(body(sealed).surface)).toContain("Account sync didn't go through");
+    expect(String(body(sealed).surface)).toContain("the email reminder won't fire");
+
+    const settled = await settle.handler({
+      argus_dir: dir, id, outcome: 'held', outcome_source: 'user_stated', what_happened: '4분 다운타임',
+    });
+    expect(isError(settled)).toBe(false);
+    const settleData = body(settled).data as Record<string, unknown>;
+    expect(settleData.account_synced).toBe(false);
+    expect(settleData.account_sync_reason).toBe('http_500');
+    expect(String(body(settled).surface)).toContain("Account sync didn't go through");
   });
 });
 
