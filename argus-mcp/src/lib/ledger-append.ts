@@ -21,6 +21,26 @@ export interface LedgerEventInput {
   dismiss_reason?: string;
   /** gate audit (over-fire inputs) — meta event, ignored by replay (N3 counts unknowns; gate_input is known-meta) */
   gate?: Record<string, unknown>;
+  // ── living premises (plan v5 §6.1) ──
+  premise_id?: string;
+  ordinal?: number;
+  kind?: string;
+  text?: string;
+  external?: boolean;
+  load_bearing?: boolean;
+  source?: string;
+  ai_original?: string;
+  action?: string;
+  from?: string;
+  to?: string;
+  note?: string;
+  finding?: string;
+  numeric_value?: number;
+  drifted?: boolean;
+  baseline_only?: boolean;
+  source_detail?: string;
+  /** settle-time, user-attributed broken premise (plan v5 P2) */
+  broken_premise_id?: string;
   ts?: string;
 }
 

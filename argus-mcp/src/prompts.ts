@@ -2,6 +2,7 @@ import { BIND_DISCIPLINE, SETTLE_DISCIPLINE, REFRAME_DISCIPLINE, REVIEW_DISCIPLI
 import { resolveArgusDirForResource } from './lib/argus-dir.js';
 import { resolveToday } from './lib/resolve-today.js';
 import { replayLedger, bearingContracts } from './lib/ledger-replay.js';
+import { duePremises, groupDuePremises } from './lib/premises.js';
 
 /**
  * MCP Prompts (blueprint §4.2). The discipline shipped as user-triggered
@@ -63,6 +64,15 @@ export function getPrompt(name: string, args: Record<string, string> | undefined
       context = due.length
         ? '\n\nDue now:\n' + due.map((d) => `- [${d.id}] "${d.predicate}" (check-by ${d.check_by})`).join('\n')
         : '\n\nNothing is due right now.';
+
+      // Living premises (plan v5 §0.6-U2): the settle ritual also covers the
+      // facts open decisions rest on — the recheck choreography lives HERE:
+      // research the current fact, then record it with provenance.
+      const premGroups = groupDuePremises(duePremises(l));
+      if (premGroups.length > 0) {
+        context += '\n\nPremises due for a reality re-check — for each: research the CURRENT fact (a web search, or ask the user), then call argus_recheck with the finding, an explicit numeric_value when the fact is a number, and its source (url | user_stated | host_reported):\n'
+          + premGroups.slice(0, 5).map((g) => `- "${g.text}" — under: ${g.premises.map((p) => `[${p.decision_id}] P${p.ordinal}`).join(', ')}${g.premises.length > 1 ? ' (one fact — re-check once with apply_to_matching)' : ''}`).join('\n');
+      }
     }
     return { description: 'Argus settle ritual', messages: [userText(SETTLE_DISCIPLINE + context)] };
   }

@@ -1,6 +1,6 @@
 {
   "name": "argus-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Argus decision-accountability MCP server — seal a falsifiable prediction, settle it against reality. Works with any MCP host (Claude, ChatGPT, Gemini).",
   "type": "module",
   "main": "dist/index.js",
