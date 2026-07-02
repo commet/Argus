@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import { tmpArgusDir, body, isError } from '../../test-helpers.js';
 import { init } from '../init-config.js';
 import { openDecision } from '../open-decision.js';
@@ -142,6 +144,60 @@ describe('check_in and today override', () => {
     const far = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-01', include_upcoming_days: 7 }));
     expect((far['data'] as Record<string, unknown>)['upcoming']).toEqual([]);
     expect(String(far['surface'])).not.toContain('coming due');
+  });
+
+  it('P1-E3 anchor mirror: a due contract carries its seal date and the user\'s own words back', async () => {
+    const dir = tmpArgusDir();
+    await seal.handler({
+      argus_dir: dir, id: 'mirror1', predicate: 'Churn stays under 3 percent', check_by: '2026-08-01',
+      predicate_owner: 'user', human_judgment: 'I hire now; waiting kills the H2 roadmap',
+      today_override: '2026-07-01',
+    });
+    const TODAY = '2026-08-16';
+    const r = body(await checkIn.handler({ argus_dir: dir, today_override: TODAY }));
+    const due = (r['data'] as Record<string, unknown>)['due'] as Array<Record<string, unknown>>;
+    // sealed_at is the receipt's real wall-clock seal date (not today_override) —
+    // assert the derived arithmetic, not a hardcoded date.
+    const sealedAt = String(due[0]['sealed_at']);
+    expect(sealedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const expectedDays = Math.round((Date.parse(TODAY + 'T00:00:00Z') - Date.parse(sealedAt + 'T00:00:00Z')) / 86400000);
+    expect(due[0]['days_since_seal']).toBe(expectedDays);
+    expect(due[0]['your_words_then']).toBe('I hire now; waiting kills the H2 roadmap');
+    // The surface mirrors the words — date arithmetic, no welcome greeting.
+    const surface = String(r['surface']);
+    expect(surface).toContain(`${expectedDays} day(s) since you sealed`);
+    expect(surface).toContain('I hire now; waiting kills the H2 roadmap');
+    expect(surface).toContain('argus_settle');
+    expect(surface).not.toMatch(/welcome back|great to see/i);
+  });
+
+  it('P1-E3: a skipped judgment falls back to the count line — no invented quote', async () => {
+    const dir = tmpArgusDir();
+    await seal.handler({
+      argus_dir: dir, id: 'mirror2', predicate: 'Signups exceed 100 in a month', check_by: '2026-08-01',
+      predicate_owner: 'user', today_override: '2026-07-01',
+    });
+    const r = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-08-16' }));
+    const due = (r['data'] as Record<string, unknown>)['due'] as Array<Record<string, unknown>>;
+    expect(due[0]['your_words_then']).toBeUndefined();
+    expect(String(due[0]['sealed_at'])).toMatch(/^\d{4}-\d{2}-\d{2}$/); // the date fact still lands
+    expect(String(r['surface'])).toContain('past check-by');
+    expect(String(r['surface'])).not.toContain('(skipped)');
+  });
+
+  it('P1-E3/E1: the ko locale config renders the Korean anchor mirror', async () => {
+    const dir = tmpArgusDir();
+    await seal.handler({
+      argus_dir: dir, id: 'mirror3', predicate: 'Churn stays under 3 percent', check_by: '2026-08-01',
+      predicate_owner: 'user', human_judgment: '지금 뽑는다. 늦추면 하반기 로드맵이 전부 밀린다',
+      today_override: '2026-07-01',
+    });
+    fs.writeFileSync(path.join(dir, 'config.yaml'), 'schema_version: 1\nlocale: ko\n');
+    const r = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-08-16' }));
+    const surface = String(r['surface']);
+    expect(surface).toMatch(/봉인 후 \d+일/);
+    expect(surface).toContain('그때 당신은 이렇게 적었습니다');
+    expect(surface).toContain('지금 뽑는다');
   });
 
   it('hints at account-sealed judgments when nothing is due locally but a token is set (P1-E4 ③, no network)', async () => {

@@ -2,6 +2,8 @@ import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
 import { duePremises, groupDuePremises } from '../lib/premises.js';
+import { readReceipt, SKIPPED } from '../lib/receipt.js';
+import { surfacesFor } from '../lib/surfaces.js';
 import { z } from 'zod';
 import { envelope } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
@@ -36,6 +38,32 @@ export const checkIn: ToolModule = {
       }
       const due = Array.from(dueMap.values()).sort((x, y) => x.check_by < y.check_by ? -1 : 1);
 
+      // Locale brain (P1-E1): all check_in surface strings come from the
+      // {ko,en} dictionary, picked by the config's locale.
+      const S = surfacesFor(dir).checkin;
+
+      // 닻 거울 (P1-E3): each due item carries its seal date + the user's OWN
+      // seal-time words (receipt.human_judgment; omitted when skipped). The
+      // mirror is recognition by date arithmetic, never a welcome greeting —
+      // and the quote is the user's sentence, not a machine verdict.
+      const dueEnriched: Array<typeof due[number] & { sealed_at?: string; days_since_seal?: number; your_words_then?: string }> =
+        due.map((d) => {
+          const receipt = readReceipt(dir, d.id);
+          if (!receipt?.created_at) return d;
+          const sealed_at = String(receipt.created_at).slice(0, 10);
+          const words = typeof receipt.human_judgment === 'string' &&
+            receipt.human_judgment.trim().length > 0 &&
+            receipt.human_judgment !== SKIPPED
+            ? receipt.human_judgment.trim()
+            : undefined;
+          return {
+            ...d,
+            sealed_at,
+            days_since_seal: daysBetween(sealed_at, today),
+            ...(words ? { your_words_then: words } : {}),
+          };
+        });
+
       // include_upcoming_days, actually implemented (11 S2 — an accepted-then-
       // discarded argument is a silent lie in the schema). Sealed contracts whose
       // check-by falls within the window: informational only, nothing to settle.
@@ -55,7 +83,7 @@ export const checkIn: ToolModule = {
         upcoming.sort((x, y) => (x.check_by < y.check_by ? -1 : 1));
       }
       const upcomingLine = upcoming.length > 0
-        ? ` ${upcoming.length} coming due within ${upDays} day(s) — informational, nothing to settle yet.`
+        ? S.upcoming(upcoming.length, upDays)
         : '';
 
       // Living premises: monitored facts due for a reality re-check, grouped so
@@ -73,26 +101,36 @@ export const checkIn: ToolModule = {
         // their account (web), and "nothing" here must not read as "nothing
         // anywhere". One sentence, argus_sync is the one place that looks.
         const accountHint = (process.env.ARGUS_TOKEN || '').trim()
-          ? ' This reads the local ledger only — judgments sealed in your account: argus_sync shows them.'
+          ? S.account_hint
           : '';
         return envelope({
           ok: true, tool: 'argus_check_in',
-          surface: 'Nothing is due. Nothing to nudge.' + accountHint + upcomingLine,
+          surface: S.nothing_due + accountHint + upcomingLine,
           next_actions: ['stop'],
           data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, ...(upDays > 0 ? { upcoming } : {}), today },
         });
       }
 
       const parts: string[] = [];
-      if (due.length > 0) parts.push(`${due.length} decision contract(s) past check-by — time to check them against reality (argus_settle).`);
-      if (premiseGroups.length > 0) parts.push(`${premiseGroups.length} premise fact(s) due for a reality re-check (argus_recheck).`);
+      if (due.length > 0) {
+        // 닻 거울: the OLDEST due item's seal-time words lead the surface
+        // (one quote only — the rest stay in data, no surface bloat). Falls
+        // back to the count-only line when there are no words to mirror.
+        const oldest = dueEnriched[0];
+        parts.push(
+          oldest?.your_words_then && typeof oldest.days_since_seal === 'number'
+            ? S.anchor_mirror(oldest.days_since_seal, due.length, clip(oldest.your_words_then, 200))
+            : S.due_contracts(due.length),
+        );
+      }
+      if (premiseGroups.length > 0) parts.push(S.due_premises(premiseGroups.length));
 
       return envelope({
         ok: true, tool: 'argus_check_in',
         surface: parts.join(' ') + upcomingLine,
         next_actions: due.length > 0 ? ['argus_settle'] : ['argus_recall'],
         data: {
-          due, due_count: due.length,
+          due: dueEnriched, due_count: due.length,
           due_premises: duePrem, due_premise_count: premiseGroups.length,
           ...(premiseGroups.length > TOP ? { due_premises_truncated: `${premiseGroups.length} groups, showing ${TOP}` } : {}),
           ...(upDays > 0 ? { upcoming } : {}),
@@ -110,6 +148,11 @@ function daysBetween(from: string, to: string): number {
   const b = Date.parse(to + 'T00:00:00Z');
   if (Number.isNaN(a) || Number.isNaN(b)) return 0;
   return Math.round((b - a) / 86400000);
+}
+
+/** Keep the mirrored quote a quote, not a wall — the full text stays in data. */
+function clip(s: string, max: number): string {
+  return s.length <= max ? s : s.slice(0, max - 1) + '…';
 }
 
 function addDays(day: string, days: number): string {
