@@ -9,7 +9,7 @@ import { Modal } from './Modal';
 import { Button } from './Button';
 import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { getSessionWithTimeout } from '@/lib/supabase';
 import { useSlackStore } from '@/stores/useSlackStore';
 import { useTelegramStore } from '@/stores/useTelegramStore';
 import { copyToClipboard, composeMailtoLink } from '@/lib/export';
@@ -222,8 +222,8 @@ function LinkPanel({ user, title, text, context, onCreated }: { user: boolean; t
     setError('');
     setBusy(true);
     try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
+      const session = await getSessionWithTimeout(); // 4s cap — never wedge the share button on a hung auth call
+      const token = session?.access_token;
       if (!token) { setError(L('인증이 필요해요.', 'Authentication required.')); return; }
       const res = await fetch('/api/share/link', {
         method: 'POST',
@@ -302,8 +302,8 @@ function EmailPanel({ user, title, text, context, onSent }: { user: boolean; tit
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { setError(L('올바른 이메일 주소를 입력해주세요.', 'Enter a valid email address.')); return; }
     setBusy(true);
     try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
+      const session = await getSessionWithTimeout(); // 4s cap — never wedge the send button on a hung auth call
+      const token = session?.access_token;
       if (!token) { setError(L('인증이 필요해요.', 'Authentication required.')); return; }
       const res = await fetch('/api/email/send', {
         method: 'POST',

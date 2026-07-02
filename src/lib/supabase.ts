@@ -1,4 +1,5 @@
 import { createClient, processLock } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -20,6 +21,28 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     lock: processLock,
   },
 });
+
+/**
+ * getSession() with a hard wall-clock cap (same pattern as llm.ts getAuthHeaders).
+ *
+ * Defense in depth: getSession() sits in critical paths (app-shell auth boot,
+ * account export/delete bearer, share/email token fetch). If token retrieval
+ * ever stalls (a hung refresh, a contended auth lock), we must NOT freeze the
+ * screen behind an infinite await — that's the "73s spinner / session won't
+ * start" failure class. On timeout we resolve null (treat as signed-out); if a
+ * real session exists, onAuthStateChange fires moments later and fills it in,
+ * so the cost of a false negative is near zero.
+ */
+export async function getSessionWithTimeout(ms = 4000): Promise<Session | null> {
+  try {
+    return await Promise.race([
+      supabase.auth.getSession().then(r => r.data.session),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), ms)),
+    ]);
+  } catch {
+    return null; // auth unavailable — treat as signed-out rather than blocking
+  }
+}
 
 /**
  * Get the current user ID with caching.

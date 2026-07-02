@@ -3,11 +3,13 @@
  * These guarantee COMPLETE export/erasure across all user-scoped tables — the old
  * Settings "export"/"reset" only touched localStorage, missing synced + server-only data.
  */
-import { supabase } from './supabase';
+import { getSessionWithTimeout } from './supabase';
 
 async function bearer(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+  // 4s cap (shared helper): a hung auth call must fail fast as "login required"
+  // instead of freezing the export/delete button forever.
+  const session = await getSessionWithTimeout();
+  const token = session?.access_token;
   if (!token) throw new Error('login-required');
   return token;
 }

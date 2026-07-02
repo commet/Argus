@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, clearUserCache } from './supabase';
+import { supabase, clearUserCache, getSessionWithTimeout } from './supabase';
 import { clearAllStorage } from './storage';
 import { setAnalyticsUser, track } from './analytics';
 import { getCurrentLanguage } from './i18n';
@@ -67,12 +67,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // 4s cap on the front-door session read: if auth stalls, open the app as
+    // signed-out instead of an endless boot spinner. onAuthStateChange below is
+    // the safety net — a real session re-fills user/session moments later.
+    getSessionWithTimeout().then((session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setAnalyticsUser(session?.user?.id ?? null);
-      setLoading(false);
-    }).catch(() => {
       setLoading(false);
     });
 
