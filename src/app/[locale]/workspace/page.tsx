@@ -485,6 +485,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
 
   return (
     <div className="relative min-h-[calc(100vh-64px)] overflow-hidden">
+      {/* Top heading rung for the document outline — the shell was built from
+          spans + h2s with no h1, so screen-reader heading nav started mid-level.
+          Visually hidden; the real orientation stays the on-screen h2 below. */}
+      <h1 className="sr-only">{L('워크스페이스 — 결정 항해', 'Workspace — decision voyage')}</h1>
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-warm-vignette)' }} />
       <Graticule opacity={0.03} spacing={14} />
