@@ -33,6 +33,21 @@ describe('spine drift guard', () => {
     }
   });
 
+  it('no tool input or output schema can express a fork or a lean', () => {
+    // plan v5 §3/§4: resolve is elicitation-only; recheck returns the handle.
+    // If a future edit adds an options/lean-shaped field anywhere, this fails.
+    for (const t of TOOLS) {
+      const out = JSON.stringify(t.outputSchema ?? {});
+      for (const key of FORBIDDEN_FORK_KEYS) {
+        expect(JSON.parse(out).properties?.[key], `${t.name} output declares "${key}"`).toBeUndefined();
+      }
+      const input = t.inputSchema ? JSON.stringify((t.inputSchema as { shape?: Record<string, unknown> }).shape ? Object.keys((t.inputSchema as unknown as { shape: Record<string, unknown> }).shape) : []) : '[]';
+      for (const key of FORBIDDEN_FORK_KEYS) {
+        expect(input.includes(`"${key}"`), `${t.name} input declares "${key}"`).toBe(false);
+      }
+    }
+  });
+
   it('every tool declares an input schema and a name', () => {
     for (const t of TOOLS) {
       expect(t.name).toMatch(/^argus_/);

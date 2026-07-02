@@ -3,6 +3,7 @@ import { deBom } from './deBom.js';
 import { ledgerPath, sessionsRoot, bearingPath } from './layout.js';
 import { asDate } from './resolve-today.js';
 import { safeSegment } from './safe-path.js';
+import type { PremiseState, PremiseKind, PremiseSource, PremiseAmendAction } from './premises.js';
 
 /**
  * Append-only ledger replay (blueprint §3.0/§3.2). Decision STATE is never a
@@ -26,6 +27,12 @@ export interface ContractEntry {
   basis?: string;
   amend_history: Array<{ predicate?: string; check_by?: string; ts?: string }>;
   dismiss_reason?: string;
+  /** Living premises (plan v5) — ordinal order preserved; ≤ MAX_ACTIVE_PREMISES
+   *  active. Optional so pre-premise ContractEntry literals (tests, old callers)
+   *  stay valid; the fold always initializes it via freshEntry. */
+  premises?: PremiseState[];
+  /** Settle-time, user-attributed: which premise (if any) broke (plan v5 P2). */
+  broken_premise_id?: string;
 }
 
 export interface LedgerState {
@@ -42,11 +49,18 @@ export interface LedgerState {
     partial: number;
     still_pending: number;
   };
-  integrity: { dropped_lines: number };
+  integrity: {
+    dropped_lines: number;
+    /** Well-formed, versioned events of a type this binary doesn't know (written
+     *  by a NEWER argus-mcp, e.g. future premise_* events). Skipped, not corrupt
+     *  — kept separate from dropped_lines so forward-compat never reads as a
+     *  false integrity alarm (plan v5 §6.3). */
+    skipped_unknown: number;
+  };
 }
 
 function freshEntry(id: string): ContractEntry {
-  return { id, status: 'candidate', text: '', amend_history: [] };
+  return { id, status: 'candidate', text: '', amend_history: [], premises: [] };
 }
 
 /**
@@ -62,12 +76,13 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
     held: 0, avoided: 0, partial: 0, still_pending: 0,
   };
   let dropped = 0;
+  let skippedUnknown = 0;
 
   let raw: string;
   try {
     raw = deBom(fs.readFileSync(ledgerPath(argusDir), 'utf8'));
   } catch {
-    return { today, overdue: [], ids, sealedPredicates, contracts: map, stats, integrity: { dropped_lines: 0 } };
+    return { today, overdue: [], ids, sealedPredicates, contracts: map, stats, integrity: { dropped_lines: 0, skipped_unknown: 0 } };
   }
 
   for (const line of raw.split('\n')) {
@@ -130,6 +145,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         stats.total_settled++;
         const outcome = ev['outcome'] as string | undefined;
         cur.outcome = outcome;
+        if (typeof ev['broken_premise_id'] === 'string') cur.broken_premise_id = ev['broken_premise_id'];
         if (outcome === 'held') stats.held++;
         else if (outcome === 'avoided') stats.avoided++;
         else if (outcome === 'partial') stats.partial++;
@@ -137,11 +153,86 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         break;
       }
 
+      // ── living premises (plan v5 §6.1). The fold is not a validator — the
+      //    write-time guard is; replay stays defensive and never throws. ──
+      case 'premise_add': {
+        if (!cur) { cur = freshEntry(id); map.set(id, cur); } // defensive only; the guard refuses absent at write time
+        const pid = ev['premise_id'];
+        if (typeof pid !== 'string' || typeof ev['text'] !== 'string') { dropped++; break; }
+        const list = (cur.premises ??= []);
+        if (list.some((p) => p.premise_id === pid)) break; // idempotent re-add
+        list.push({
+          premise_id: pid,
+          ordinal: typeof ev['ordinal'] === 'number' ? ev['ordinal'] : list.length + 1,
+          kind: (ev['kind'] === 'open_question' ? 'open_question' : 'premise') as PremiseKind,
+          text: ev['text'],
+          external: ev['external'] === true,
+          load_bearing: ev['load_bearing'] === true,
+          source: (ev['source'] === 'user' ? 'user' : 'ai') as PremiseSource,
+          ...(typeof ev['ai_original'] === 'string' ? { ai_original: ev['ai_original'] } : {}),
+          status: 'active',
+          amend_history: [],
+          recheck_count: 0,
+        });
+        break;
+      }
+
+      case 'premise_amend': {
+        const p = cur?.premises?.find((x) => x.premise_id === ev['premise_id']);
+        if (!p) break; // amend of an unknown premise: write-time guard prevents; replay tolerates
+        const action = ev['action'] as PremiseAmendAction;
+        p.amend_history.push({
+          action,
+          from: ev['from'] as string | undefined,
+          to: ev['to'] as string | undefined,
+          note: ev['note'] as string | undefined,
+          ts: ev['ts'] as string | undefined,
+        });
+        if ((action === 'refine' || action === 'replace') && typeof ev['to'] === 'string') p.text = ev['to'];
+        if (action === 'retire') p.status = 'retired';
+        // Flags may be corrected post-add (e.g. marking a promoted premise external
+        // so monitoring can arm) — monitoring stays DERIVED from these flags.
+        if (typeof ev['external'] === 'boolean') p.external = ev['external'];
+        if (typeof ev['load_bearing'] === 'boolean') p.load_bearing = ev['load_bearing'];
+        break;
+      }
+
+      case 'premise_recheck': {
+        const p = cur?.premises?.find((x) => x.premise_id === ev['premise_id']);
+        if (!p) break;
+        if (typeof ev['finding'] !== 'string' || typeof ev['source'] !== 'string') break;
+        p.last_recheck = {
+          finding: ev['finding'],
+          ...(typeof ev['numeric_value'] === 'number' ? { numeric_value: ev['numeric_value'] } : {}),
+          drifted: ev['drifted'] === true,
+          baseline_only: ev['baseline_only'] === true,
+          source: ev['source'],
+          ...(typeof ev['source_detail'] === 'string' ? { source_detail: ev['source_detail'] } : {}),
+          ts: ev['ts'] as string | undefined,
+        };
+        p.recheck_count++;
+        break;
+      }
+
+      case 'premise_resolve': {
+        const p = cur?.premises?.find((x) => x.premise_id === ev['premise_id']);
+        if (!p) break;
+        p.status = 'resolved';
+        if (typeof ev['decision'] === 'string') p.resolved_decision = ev['decision'];
+        break;
+      }
+
       case 'gate_input':
         break; // known meta event (over-fire gate audit) — not a state change, not corrupt
 
       default:
-        dropped++; // unknown event type
+        // Forward-compat tolerance (plan v5 §6.3): a well-formed, VERSIONED event
+        // whose type this binary doesn't know was written by a newer argus-mcp —
+        // skip it silently (like gate_input) instead of counting it as corruption,
+        // so an old install never raises a false integrity alarm on a new ledger.
+        // Only unversioned/structurally-broken events still count as dropped.
+        if (typeof ev['event'] === 'string' && typeof ev['v'] === 'number') skippedUnknown++;
+        else dropped++;
         break;
     }
   }
@@ -154,7 +245,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   }
   overdue.sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  return { today, overdue, ids, sealedPredicates, contracts: map, stats, integrity: { dropped_lines: dropped } };
+  return { today, overdue, ids, sealedPredicates, contracts: map, stats, integrity: { dropped_lines: dropped, skipped_unknown: skippedUnknown } };
 }
 
 /**

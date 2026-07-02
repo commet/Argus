@@ -14,6 +14,7 @@ import { listResources, listResourceTemplates, readResource } from './resources.
 import { listPrompts, getPrompt } from './prompts.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
 import { setElicitor } from './lib/elicit.js';
+import { appendDueNote } from './lib/due-note.js';
 import { logError } from './lib/log.js';
 
 /**
@@ -110,7 +111,8 @@ export async function createServer(): Promise<Server> {
       };
     }
     try {
-      return await serialize(() => tool.handler(parsed.data as Record<string, unknown>));
+      const result = await serialize(() => tool.handler(parsed.data as Record<string, unknown>));
+      return appendDueNote(name, parsed.data as Record<string, unknown>, result);
     } catch (e) {
       // Last-resort guard — individual handlers already map their own errors.
       logError(`[${name}] escaped handler`, e);
