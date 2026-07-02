@@ -120,6 +120,9 @@
 - **P2/P3 안전 슬라이스:** Footer © 아이덴티티 + 44px 링크; Logbook 토글 44px.
 - **P3 추가분(재시작 후):** Boss calibration 5s auto-fire 제거→저장 시에만(미러 조항); Synthesize/Reframe bg-transparent 입력 focus ring(WCAG 2.4.7); Boss verdict `role=heading`+`role=status aria-live`; Boss verdict/calibration pill 44px + wrap.
 
+- **B 배치(정답형 잔여, 재개 후):** SeaChart/BranchMap 키보드 픽(role=button+Enter/Space, svg role img→group), Recast/Reframe 스트리밍 프리뷰("초안 작성 중…" provisional 렌더), SealMoment predicate rows 44px, Testimonials 단수화+면책 대비, 전역 focus 규칙 중복 제거, 워크스페이스 sr-only h1.
+- **C1 종결:** 정렬 머지 드롭 자산 = ForkLimitToast 1개뿐이며, main이 포크 한도(MAX_BRANCHES) 자체를 의도 제거해 무의미 → 복원 불필요. **손실 0 확정.**
+
 > **머지 상태:** 위 전부 `origin/main`에 반영됨(`d45f218` 대규모 머지 + `552eb7d` a11y 배치 FF). 각 배치 tsc/eslint/vitest/build 그린 확인 후 머지.
 
 ### ⏳ 남은 P2/P3 (후속 — 설계 반복이 필요해 야간 blind 구현에서 제외, main 그린 유지 목적)
