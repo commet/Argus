@@ -156,7 +156,6 @@ export const seal: ToolModule = {
           // The named assumption now lives as a tracked premise (canonical set).
           // Marking it external (argus_premises op=amend) arms reality re-checks.
           ...(promotedRef ? { premise_promoted: promotedRef } : {}),
-          falsifiability_note: vErr ? 'weak heuristic passed' : undefined,
         },
       });
     } catch (e) {

@@ -49,7 +49,7 @@ export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo): strin
     L.push(`  …called as        ${r.basis}`);
   }
   L.push('');
-  L.push(`  YOU PREDICTED   "${r.predicate}"   (check-by ${r.check_by})`);
+  L.push(`  YOU PREDICTED   "${wrap(r.predicate)}"   (check-by ${r.check_by})`);
   if (r.what_happened) {
     L.push(`  WHAT HAPPENED   ${wrap(r.what_happened)}`);
   }

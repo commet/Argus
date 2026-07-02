@@ -91,13 +91,16 @@ export async function writeSettleReceipt(
   argusDir: string,
   id: string,
   patch: { what_happened: string; outcome: Receipt['outcome']; settled_at: string },
+  /** Ledger-replay fallback when the seal-time receipt file was lost (11 S7):
+   *  without it the rebuilt receipt printed empty quotes for the prediction. */
+  fallback?: { predicate?: string; check_by?: string },
 ): Promise<Receipt> {
   const existing = readReceipt(argusDir, id);
   const base: Receipt = existing ?? {
     v: SCHEMA_VERSION, id, created_at: patch.settled_at,
     real_question: SKIPPED, unverified_assumption: SKIPPED, human_only: SKIPPED, human_judgment: SKIPPED,
     human_judgment_owner: 'user', skipped: ['real_question', 'unverified_assumption', 'human_only', 'human_judgment'],
-    predicate: '', check_by: '',
+    predicate: fallback?.predicate ?? '', check_by: fallback?.check_by ?? '',
     ai_verdict: SPINE_INVARIANTS.aiVerdict,
   };
   const assumption_held =

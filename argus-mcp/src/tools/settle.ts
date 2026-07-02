@@ -30,7 +30,9 @@ export const settle: ToolModule = {
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   // openWorldHint: true — with ARGUS_TOKEN set, settling also mirrors to the account.
-  annotations: { title: 'Settle against reality', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  // idempotentHint:false (11 S7) — a repeat settle is NOT a no-op: it hard-errors
+  // ALREADY_SETTLED (append-only ledger), so the hint was a false signal to hosts.
+  annotations: { title: 'Settle against reality', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   handler: async (a) => {
     try {
       const dir = resolveToolArgusDir(a['argus_dir']);
@@ -91,7 +93,7 @@ export const settle: ToolModule = {
 
       const now = new Date().toISOString();
       await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
-      const receipt = await writeSettleReceipt(dir, id, { what_happened: String(a['what_happened']), outcome, settled_at: now });
+      const receipt = await writeSettleReceipt(dir, id, { what_happened: String(a['what_happened']), outcome, settled_at: now }, { predicate: current.predicate, check_by: current.check_by });
 
       // Mirror the outcome to the account (opt-in) so a synced prediction stops
       // being "due" — otherwise the Companion Brief would keep re-nudging it.

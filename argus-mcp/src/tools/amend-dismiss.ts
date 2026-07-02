@@ -68,7 +68,8 @@ export const dismiss: ToolModule = {
     today_override: zDate.optional(),
   }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { title: 'Dismiss a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  // idempotentHint:false (11 S7) — a repeat dismiss hard-errors DECISION_CLOSED.
+  annotations: { title: 'Dismiss a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = resolveToolArgusDir(a['argus_dir']);

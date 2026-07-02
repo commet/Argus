@@ -103,7 +103,10 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
     }
     if (!ev['id'] || typeof ev['id'] !== 'string') { dropped++; continue; }
     const id = ev['id'];
-    ids.add(id);
+    // gate_input is an over-fire-gate audit record, not a decision the user
+    // opened — counting it made the first-use greeting vanish after a single
+    // restrained argus_open_decision call (11 S7).
+    if (ev['event'] !== 'gate_input') ids.add(id);
     // Record inception (P1-E7): ISO timestamps compare lexicographically.
     if (typeof ev['ts'] === 'string' && ev['ts'] && (!oldestTs || ev['ts'] < oldestTs)) oldestTs = ev['ts'];
 
