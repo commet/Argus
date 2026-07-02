@@ -26,3 +26,29 @@
 - **창업자라면**: 취지(웹 봉인자가 "아무것도 없다"로 오독 방지)가 계약이지 문자열이 계약이 아님 — 단 새 문장에 판정·과장 금지.
 - **내린 판단**: "This reads the local ledger only — judgments sealed in your account: argus_sync shows them." (사실 진술만, argus_sync 지시 부분은 마스터 그대로). 기존 문구 무접촉, 테스트로 고정.
 - **되돌리는 법**: check-in.ts accountHint 문자열을 마스터 원문으로 교체.
+
+## W3 (귀환 한 집) 판단 기록
+
+### 1. P1-E1 범위 — tools/review.ts:173 surface의 사전 편입 보류
+- **애매했던 것**: 마스터 P1-E1이 "갈라진 목소리 통일(seal/settle/open 영어 ↔ sync/review 한국어 하드코딩)"을 들며 review.ts:173을 파일:줄에 포함하되, 괄호로 "(tools/review.ts:173의 surface는 도구 파일이라 안전)"이라고만 적음 — 필수인지 허용인지 문면이 갈림. 또 review surface는 한 줄이 아니라 data 안 protocol·routing note 등 다수의 한국어 지시문과 한 몸.
+- **나(창업자)라면**: "최소 범위 — 신규 렌더가 쓸 문자열 + 이미 갈라진 목소리의 surface만"이 리뷰4에서 명시한 자름선이고, review는 W1에서 방금 봉합한 MCP parity(byte drift 가드) 인접 지역 — 밤샘 자율 세션이 굳이 인접 지뢰밭을 넓게 밟을 이유가 없다. "나머지는 도구를 고칠 때마다 점진 편입"이 정확히 이 경우.
+- **내린 판단**: sync만 편입(갈라진 목소리의 대표 사례이자 P0-8 동선의 연장), review.ts는 surfaces.ts 헤더의 점진 편입 정책 주석에 명시적으로 남김.
+- **되돌리는 법**: review.ts surface 문자열을 SurfaceStrings에 review 섹션으로 추가하고 handler에서 surfacesFor 호출 — 구조는 이미 깔려 있음.
+
+### 2. P1-E1 locale 해석 — config-only 결정론 (detectLocale 폴백 배제)
+- **애매했던 것**: 스펙 문구는 "readConfig(dir).locale로 선택"인데 기존 detectLocale은 config→env(LANG)→Intl 순 폴백. 도구 런타임에서 env 폴백을 살리면 창업자의 한국어 Windows와 CI가 다른 문장을 내놓아 테스트가 기계마다 갈림.
+- **나라면**: MCP 청사진 M4가 결정성(UTC 기본)을 논거로 박제돼 있고, §5-13이 같은 이유로 기본 시간대 변경을 기각 — locale도 같은 결: 스니핑은 init이 config에 **쓸 때** 한 번(detectLocale 유지), 도구는 config만 **읽는다**. config 없으면 base 'en'.
+- **내린 판단**: surfaceLocale은 config.yaml만 읽음. 한국어 사용자는 argus_init 시점에 detectLocale이 ko를 config에 심으므로 실사용 경험은 동일.
+- **되돌리는 법**: surfaceLocale에서 catch 시 detectLocale(argusDir) 반환으로 한 줄 교체.
+
+### 3. P1-A4 — 08 S3의 2번 항목(검증 프로젝트 FolderOpen→금색 깃발) 미구현
+- **애매했던 것**: 출처 보고서 08 S3에는 3개 항목(칩·금색 깃발·축적 한 줄)이 있는데 마스터 §2 P1-A4 문면은 "VoyageEta 칩 + due 최상단 정렬 + 축적 한 줄"만 명시.
+- **나라면**: "§2의 항목 스펙 전문이 정본 — 요약과 다르면 00-MASTER가 이긴다"가 실행 지침이고, 리뷰5가 이 항목에 범위 가드(뺄셈과 상쇄 금지)까지 달았다 — 마스터가 판정 결과라면 깃발은 판정에서 떨어진 것.
+- **내린 판단**: 마스터 문면 3요소만 구현. 깃발은 미래 소품 후보로만 기록.
+- **되돌리는 법**: HeroFlow 행의 FolderOpen을 allGraded 조건부로 VoyageShip verified 금색 계열 아이콘으로 교체하는 4줄.
+
+### 4. P0-6③ — check_in_at 없는 due 계약의 헤드라인 폴백
+- **애매했던 것**: 스펙은 "날짜 앵커 필수"인데 contractStatus는 check_in_at 없이도(미정산 predicates만으로) due를 낸다 — 그 경우 앵커로 쓸 날짜 자체가 없음.
+- **나라면**: 날짜를 지어내는 것(Defensive Data Access 위반)보다 날짜절만 뺀 사실문("돌아오셨네요 — 물어보기로 한 게 있어요")이 정직. "날짜 앵커 필수"의 취지는 부재-길이 집계 금지의 대구이지, 날짜 없는 데이터에 날짜를 강요하라는 게 아님.
+- **내린 판단**: check_in_at 있으면 날짜 포함, 없으면(구버전 계약) 날짜절 없는 동일 문형. 부재-길이 어휘는 양쪽 다 0.
+- **되돌리는 법**: contractDueDateLabel null 분기 제거하고 due 헤드라인을 날짜 있는 경우로만 한정(else 기존 완성 헤드라인).

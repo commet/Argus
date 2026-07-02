@@ -127,3 +127,72 @@
 - 실발송 0건 확인: checkin-due는 CRON_SECRET 게이트 뒤(호출 안 함), Resend/Telegram API는 코드·테스트에서 실호출 없음(테스트는 fetch mock).
 - 한국어 문자열 mojibake 육안 확인(그만 물어봐 주세요·주시 표시·봉인해 둔 결정이 — 전부 정상).
 - 커밋: P0-2=f40a43d · P1-B1=0afd4dc · P1-B2크론조각=e6ee219 · P1-B3=e475366 · P1-B5=09f948c · P1-E4=9f3829f.
+
+---
+
+## 웨이브 3 — 귀환 한 집 (W3)
+
+### [P0-6①+④] Header 목적지 고정 + /project 검수 합류 + dueCount 공용 훅
+
+- **무엇을**: "돌아올 것"의 정의를 공용 훅 `useDueCount`(src/hooks/useDueCount.ts) 하나로 모았다 — 프로젝트 계약 due(contractStatus.checkInDue) + 검수 영수증 due(summarizeReceipt.urgent) 합산. Header 배지·/project 스트립·워크스페이스 등불 셋이 전부 이 훅을 읽는다(Single Source — 두 화면 드리프트 방지). Header의 `dueTarget` 분기(검수만 due면 /tools/review로 보내던 것)를 삭제하고 항상 `/project`로 고정. /project due 스트립에 검수 due 영수증을 같은 앰버 톤 칩(FileText 아이콘)으로 합류시키고 클릭 시 `/tools/review`로(ReceiptList가 urgent 최상단 정렬이라 목적지에서 길 안 잃음). 스트립의 N도 합산 숫자로.
+- **왜**: 귀환의 모이는 항구는 /project 하나(§5-11 — 새 정산 UI 금지, 정산 종착지는 기존 두 표면). 돌아온 사용자가 착륙하는 곳마다 다른 숫자·다른 목적지를 보면 47/0 깔때기의 정확히 그 지점이 갈라진다.
+- **구현 메모**: 훅은 의도적으로 무메모 계산(Header의 기존 주석 계승 — memo가 Date.now()를 얼려 자정 넘긴 탭이 어제 카운트를 유지하던 문제). /project의 정렬 useMemo는 due id 문자열 키(dueKey)로 안정화.
+- **파일**: `src/hooks/useDueCount.ts`(신설), `src/components/layout/Header.tsx`, `src/app/[locale]/project/page.tsx`
+- **검증**: tsc 0. **커밋**: 314a5bc
+
+### [P0-6②] 워크스페이스 착륙 등불 — 당일 스누즈, 영구 dismiss 금지
+
+- **무엇을**: /workspace 착륙(HeroFlow idle) 입력 카드 바로 위에 due 스트립 한 줄 — "⚓ 그래서, 어떻게 됐어요? — 돌아올 결정 N건" + [지금 답하기 → /project] + [나중에 할게요]. /project due 스트립과 동일 앰버 계열(두 화면이 같은 사건을 같은 얼굴로).
+- **스누즈 계약(리뷰5 반영)**: [나중에 할게요]는 `argus:lantern-snooze`에 **로컬 날짜**(localYMD — contractStatus와 같은 로컬 자정 기준)를 기록하는 **당일 스누즈** — 다음날 재렌더. 영구 dismiss로 구현 금지(등불이 영영 꺼지면 귀환 고리 자멸). 03 원 스펙의 sessionStorage 안이 아니라 마스터의 localStorage 날짜 안을 따름.
+- **절제 계약(§4)**: due 0건이면 렌더 0(부재 통보 금지) · 부재-길이 인사("오랜만이에요") 없음 — 게이트를 순수 함수 `shouldShowLantern`(src/lib/lantern.ts)으로 빼서 **테스트로 고정**(due 0 → 항상 false, 스누즈는 당일만, 옛 스누즈 무효).
+- **Persistence 선언**: `STORAGE_KEYS.LANTERN_SNOOZE` 등록(끝 append) + persistence-contract CONTRACT에 localOnly 선언(끝 append — 병렬 세션 규칙 준수).
+- **파일**: `src/lib/storage.ts`, `src/lib/lantern.ts`(신설), `src/lib/__tests__/lantern.test.ts`(신설), `src/lib/__tests__/persistence-contract.test.ts`, `src/app/[locale]/workspace/page.tsx`
+- **검증**: tsc 0 · lantern 4/4 + persistence-contract 4/4 통과.
+- **커밋**: f314095
+
+### [P0-6③] 완료 화면 귀환 재구성 — 날짜 앵커
+
+- **무엇을**: ProgressiveFlow complete 씬에서 계약이 due면 ① 헤드라인을 "돌아오셨네요 — {날짜}에 물어보기로 한 게 있어요"로 교체(check_in_at을 locale 날짜로 포맷 — **날짜 앵커**; 날짜가 없는 구계약은 날짜절 없는 사실문으로 폴백) ② SealMoment(→DecisionContractCard due 상태) 블록을 FinalCard **위**로 이동(정산 질문이 접힌 문서 아래 숨지 않게), due 아니면 기존 순서 유지.
+- **스파인(리뷰2 판정 준수)**: "돌아오셨네요"는 부재 길이를 집계하지 않는 날짜-앵커 사실 진술이라 §5-16 금지(부재-길이 인사)에 안 걸림 — 감정 수사·"N일 만이에요" 류는 넣지 않았다.
+- **파일**: `src/components/workspace/progressive/ProgressiveFlow.tsx`
+- **검증**: tsc 0. **커밋**: 61a68f0
+
+### [P0-7] 워크스페이스 옆길 칩 4개 제거 + /boss Header 이사
+
+- **무엇을**: idle 입력창 아래 /agents·/boss·/teams·/guide 칩 블록 전체 삭제. /boss만 Header utilityItems(더보기 메뉴)에 한 줄 추가(UserCheck 아이콘, "보고 상대 설정"). teams·guide는 이미 더보기에 있어 순수 중복이었고, /agents는 항해 중 크루가 이미 보임(VoyageMapRail/CrewAtWork)이라 별도 문 불요(05 S1 권고대로 더보기에도 안 넣음). 라우트는 전부 유지(§5-4 — 북마크·옛 세션 보존).
+- **Clean Removal**: Bot·Users·BookOpen import 제거(grep 전수 — UserCheck는 레거시 스텝 아이콘으로 잔존 사용이라 유지).
+- **파일**: `src/app/[locale]/workspace/page.tsx`, `src/components/layout/Header.tsx`
+- **검증**: tsc 0. **커밋**: 9f9e1fd
+
+### [P1-A4] 대문 축적 신호 — VoyageEta 칩 + 축적 한 줄 + due 최상단
+
+- **무엇을**: "이어서 작업" 각 행에 `<VoyageEta contract={p.decision_contract} showArrived />`(컴포넌트 주석이 애초에 약속한 사용처 — 도착 예정 D-N / 지금 정산 / 도착 완료), due 프로젝트를 목록 최상단 정렬(/project와 같은 due-first 규칙 — 4번째 이후로 접힌 due가 떠오름), 섹션 헤더 N개 카운터 옆에 축적 한 줄: 정산≥1이면 "⚓ 닫은 고리 N개", forming(봉인≥1·정산 0)이면 "⚓ 봉인 N개 — 첫 확인일이 오면 기록이 시작돼요". 전부 summarizeRecord(기존 단일 소스) 기반 사실 서술, 점수·판정 0.
+- **범위 가드(리뷰5)**: 전부 기존 행·기존 헤더 내부 — 새 섹션·새 칩 블록 0(P0-7의 뺄셈과 상쇄 안 됨). 08 S3의 2번 항목(FolderOpen→금색 깃발 교체)은 마스터 §2 스펙 문면에 없어 구현하지 않음(JUDGMENT-CALLS 기록).
+- **파일**: `src/app/[locale]/workspace/page.tsx` (HeroFlow props에 decision_contract 추가)
+- **검증**: tsc 0. **커밋**: 315cc6a
+
+### [P1-E1] [MCP] locale 한 뇌 — surfaces.ts {ko,en} 사전 뼈대 (최소 범위)
+
+- **무엇을**: `argus-mcp/src/lib/surfaces.ts` 신설 — `SurfaceStrings` 인터페이스(ko/en 키 드리프트를 타입으로 차단) + `SURFACES: Record<'ko'|'en', SurfaceStrings>` + `surfaceLocale(dir)`(config.yaml의 locale만 읽는 결정론적 해석 — env 스니핑은 init의 detectLocale이 config에 쓸 때만) + `surfacesFor(dir)`. 죽은 스위치 소생: argus_config의 locale이 이제 실제로 check_in·sync의 출력을 바꾼다.
+- **최소 범위(리뷰4 준수)**: 편입한 것 = E3 check_in 문자열 전부 + 이미 갈라진 목소리였던 sync surface(한국어 하드코딩 → ko 원문 보존 + en 신규 저술). 13개 도구 전면 이주 아님 — 파일 헤더에 점진 편입 정책 주석 박제(도구를 고칠 때 편입, E2/E7이 자기 문자열 추가). **review 코어 8파일 무접촉**(drift 가드 대상 — tools/review.ts surface도 이번엔 보류, JUDGMENT-CALLS 기록).
+- **테스트 계약(리뷰3 준수)**: en 기존 문구 byte 보존(loop.test 'Nothing is due. Nothing to nudge.' 등 기존 단언 무수정 통과). sync는 dir/config 없는 호출이 base 'en'이 되므로 해당 단언 2건을 en으로 갱신 + ko config로 한국어가 나오는 신규 테스트 1건(스위치 소생 증명).
+- **파일**: `argus-mcp/src/lib/surfaces.ts`(신설), `argus-mcp/src/tools/sync.ts`, `argus-mcp/src/tools/__tests__/sync.test.ts`
+- **검증**: MCP tsc 0 · sync 8/8.
+- **커밋**: 6d34dbd
+
+### [P1-E3] [MCP] check_in 닻 거울 — "그래서, 어떻게 됐어요?" 계열
+
+- **무엇을**: due 항목마다 `sealed_at`(receipt.created_at 날짜)·`days_since_seal`·`your_words_then`(receipt.human_judgment — skipped·부재면 필드 자체 생략, 빈 인용 지어내지 않음)을 추가. surface는 가장 오래된 due 1건의 거울로 리드: en "N day(s) since you sealed — your words then: '…' All that's left is to record what reality did (argus_settle)." / ko "봉인 후 N일 — 그때 당신은 이렇게 적었습니다: '…' 현실이 어떻게 답했는지만 기록하면 됩니다 (argus_settle)." 나머지 due는 data로만(surface 비대화 방지). 인용은 200자 클립(전체는 data에).
+- **스파인(§4 E3 행 준수)**: 인식은 날짜 산수만 — 환영 인사·감정 표현 0(테스트로 welcome-greeting 부재 단언). due 0건 침묵("Nothing to nudge.") 현행 유지. 인용은 기계 평결이 아니라 사용자 자신의 문장(1차 정산: 생각↔생각).
+- **웹앱 문안 계열 일치**: 같은 웨이브의 웹 등불("그래서, 어떻게 됐어요?")과 같은 컨셉 — 부록의 두 표면 문안 계약대로 웹앱 커밋(등불) 먼저, MCP가 같은 취지로 이식.
+- **파일**: `argus-mcp/src/tools/check-in.ts`, `argus-mcp/src/tools/__tests__/loop.test.ts`(신규 3건: 거울 왕복·skipped 폴백·ko locale)
+- **검증**: MCP tsc 0 · 전체 17파일 171/171 통과. 함정 하나 잡음: receipt.created_at은 실제 벽시계라 테스트의 sealed_at 하드코딩이 비결정적 → 파생 산술 단언으로 교정.
+- **커밋**: dd0ee2a
+
+### 웨이브 3 경계 검증 (완료)
+
+- 웹앱: `npx tsc --noEmit` 0 · lantern + persistence-contract + schema-drift 3파일 30/30 통과.
+- **등불 due 0 렌더 0**: 게이트가 순수 함수(shouldShowLantern)로 분리돼 있고 lantern.test.ts가 due 0 → false(스누즈 상태 무관 4케이스)를 단언 — 렌더 조건은 `{lanternOn && …}` 단일 게이트라 due 0이면 DOM에 아무것도 없음.
+- MCP: `cd argus-mcp && npm run typecheck` 0 · `npm test` 17파일 171/171 통과.
+- 한국어 mojibake 육안 확인(등불·축적 한 줄·돌아오셨네요·surfaces.ts ko 사전 — 전부 정상).
+- 커밋: P0-6①=314a5bc · P0-6②=f314095 · P0-6③=61a68f0 · P0-7=9f9e1fd · P1-A4=315cc6a · P1-E1=6d34dbd · P1-E3=dd0ee2a.
