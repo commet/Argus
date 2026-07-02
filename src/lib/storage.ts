@@ -24,6 +24,11 @@ export const STORAGE_KEYS = {
   BOSS_COLLECTION: 'sot_boss_collection',
   DECISION_ITEMS: 'sot_decision_items',
   REVIEW_RECEIPTS: 'sot_review_receipts',
+  // Workspace landing lantern (P0-6 ②) — the local date (YYYY-MM-DD) the user
+  // tapped "나중에 할게요". Same-day snooze ONLY: it re-renders the next day.
+  // Never a permanent dismiss (a lantern that goes out forever kills the
+  // return loop the product promises).
+  LANTERN_SNOOZE: 'argus:lantern-snooze',
 } as const;
 
 export function getStorage<T>(key: string, fallback: T): T {

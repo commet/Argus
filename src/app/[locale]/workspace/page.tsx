@@ -22,7 +22,10 @@ import { useLocale } from '@/hooks/useLocale';
 import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract } from '@/lib/decision-contract';
-import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, Bot, Users, BookOpen, History, Compass, FileText } from 'lucide-react';
+import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, Bot, Users, BookOpen, History, Compass, FileText, Anchor } from 'lucide-react';
+import { useDueCount } from '@/hooks/useDueCount';
+import { shouldShowLantern, localYMD } from '@/lib/lantern';
+import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { LocaleLink } from '@/components/ui/LocaleLink';
@@ -263,6 +266,23 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   const analysisRef = React.useRef<Promise<{ result?: Awaited<ReturnType<typeof runInitialAnalysis>>; error?: unknown }> | null>(null);
   const pendingTextRef = React.useRef<string>('');
   const searchParams = useSearchParams();
+
+  // 착륙 등불 (P0-6 ②) — the landing surface finally knows about the return.
+  // dueCount via the shared hook (Header / /project / here — one number).
+  // "나중에 할게요" = same-day snooze in localStorage (argus:lantern-snooze),
+  // re-renders the next day; a permanent dismiss is forbidden (master §4).
+  const { dueCount } = useDueCount();
+  const [lanternSnoozedYMD, setLanternSnoozedYMD] = useState<string | null>(null);
+  React.useEffect(() => {
+    // Read in an effect (SSR-safe) — getStorage returns the fallback on the server.
+    setLanternSnoozedYMD(getStorage<string | null>(STORAGE_KEYS.LANTERN_SNOOZE, null));
+  }, []);
+  const lanternOn = shouldShowLantern(dueCount, lanternSnoozedYMD, localYMD());
+  const snoozeLantern = () => {
+    const today = localYMD();
+    setStorage(STORAGE_KEYS.LANTERN_SNOOZE, today);
+    setLanternSnoozedYMD(today);
+  };
 
   // Keep ref in sync for use inside async callback
   phaseRef.current = phase;
@@ -545,6 +565,39 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   ))}
                 </div>
               </div>
+
+              {/* 착륙 등불 (P0-6 ②) — one amber line when decisions wait for
+                  their return answer. Same face as /project's due strip (the
+                  two screens speak of the same event in the same tone).
+                  Renders NOTHING at due 0; "나중에 할게요" snoozes for today
+                  only. No absence-length greetings — the waiting decision is
+                  the only recognition. */}
+              {lanternOn && (
+                <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] min-w-0 flex-1">
+                    <Anchor size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>
+                      {locale === 'ko'
+                        ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueCount}건`
+                        : `So, how did it go? — ${dueCount} decision${dueCount === 1 ? '' : 's'} to return to`}
+                    </span>
+                  </p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <LocaleLink
+                      href="/project"
+                      className="px-3 py-1.5 rounded-lg text-[12px] font-semibold border border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 transition-colors"
+                    >
+                      {L('지금 답하기', 'Answer now')}
+                    </LocaleLink>
+                    <button
+                      onClick={snoozeLantern}
+                      className="px-2.5 py-1.5 rounded-lg text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+                    >
+                      {L('나중에 할게요', 'Later')}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* PRIMARY: Direct input — the workspace's hero. Big, prominent,
                   immediately actionable. Marketing copy lives below or
