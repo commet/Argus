@@ -2,7 +2,7 @@
 
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3 } from 'lucide-react';
+import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3, UserCheck } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useDueCount } from '@/hooks/useDueCount';
@@ -43,6 +43,9 @@ export function Header() {
   const utilityItems: Array<{ href: string; label: string; icon: typeof Download }> = [
     { href: '/import', label: L('가져오기', 'Import'), icon: Download },
     { href: '/teams', label: L('팀', 'Teams'), icon: Users },
+    // /boss moved here from the workspace idle chips (P0-7) — the route lives on,
+    // only the extra doorway on the landing was removed.
+    { href: '/boss', label: L('보고 상대 설정', 'Set your reviewer'), icon: UserCheck },
     { href: '/guide', label: L('사용 가이드', 'Guide'), icon: BookOpen },
     ...(isOperator ? [{ href: '/admin', label: L('계기판', 'Dashboard'), icon: BarChart3 }] : []),
   ];

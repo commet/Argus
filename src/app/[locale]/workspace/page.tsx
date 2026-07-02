@@ -22,7 +22,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract } from '@/lib/decision-contract';
-import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, Bot, Users, BookOpen, History, Compass, FileText, Anchor } from 'lucide-react';
+import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText, Anchor } from 'lucide-react';
 import { useDueCount } from '@/hooks/useDueCount';
 import { shouldShowLantern, localYMD } from '@/lib/lantern';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
@@ -672,28 +672,12 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   </span>
                 </LocaleLink>
 
-                {/* Secondary entries — previously near-invisible tertiary text links
-                    (G-design: "눈에 전혀 안 들어와"). Now tappable chips: an icon + label
-                    with a real border and hover lift, so they read as "places you can go"
-                    without boxing the whole row into a heavy panel. Still secondary to the
-                    input above. */}
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {[
-                    { href: '/agents', icon: Bot, label: L('AI 팀 소개', 'Meet the AI crew') },
-                    { href: '/boss', icon: UserCheck, label: L('보고 상대 설정', 'Set your reviewer') },
-                    { href: '/teams', icon: Users, label: L('팀', 'Teams') },
-                    { href: '/guide', icon: BookOpen, label: L('가이드', 'Guide') },
-                  ].map(({ href, icon: Icon, label }) => (
-                    <LocaleLink
-                      key={href}
-                      href={href}
-                      className="group inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] pl-2.5 pr-3 py-1.5 min-h-[36px] text-[12px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] hover:shadow-[var(--shadow-sm)] transition-all"
-                    >
-                      <Icon size={13} className="text-[var(--text-tertiary)] group-hover:text-[var(--accent)] transition-colors" />
-                      {label}
-                    </LocaleLink>
-                  ))}
-                </div>
+                {/* (P0-7) The 4 side-path chips (/agents /boss /teams /guide)
+                    are gone: teams·guide were pure duplicates of the Header
+                    overflow, /boss moved there too, and the crew is already
+                    visible during the voyage (VoyageMapRail/CrewAtWork). The
+                    routes all survive — only this extra doorway is removed so
+                    the landing keeps one job: the input above. */}
 
                 {error && error.startsWith('LOGIN_REQUIRED') && (
                   <div className="mt-3 p-4 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/20">
