@@ -497,3 +497,70 @@
 - **파일**: 삭제 3 + `src/stores/types.ts`
 - **검증**: `npx tsc --noEmit` 0.
 - **커밋**: 5d428ea
+
+### [P2 대기 소품] 침묵의 원 2곳 + fetch 타임아웃 공용화 (09 S7·S8)
+
+- **무엇을**:
+  - AuthGuard(:80)·login(:109) 문구 없는 스피너에 "세션을 확인하는 중이에요…" 1줄 (기계 상태 사실 서술만 — 09 스파인 검토의 "침묵 속에 갇히는 것을 없애라" 방향).
+  - `src/lib/timeout-signal.ts` 신설(`timeoutSignal(ms=15_000)` = AbortSignal.timeout) → 9개 통합 fetch에 적용: api-account 내보내기(60초 — 파일 큼)/삭제, ShareComposer 링크/이메일, useSlackStore 채널/발송, useTelegramStore 연결/발송, settings 플러그인 토큰. 기존 각 호출부 catch 문구가 실패 안내를 담당(카피 추가 없음 — 스펙 그대로).
+  - `email/send/route.ts`에 `export const maxDuration = 30` (플랫폼 기본 대신 명시 상한).
+- **파일**: AuthGuard.tsx · login/page.tsx · timeout-signal.ts(신설) · api-account.ts · ShareComposer.tsx · useSlackStore.ts · useTelegramStore.ts · settings/page.tsx · email/send/route.ts
+- **검증**: tsc 0 · 접촉 한국어 파일 U+FFFD 0.
+- **커밋**: e4ec912
+
+### [P2 화면 소품] title·truncate·터치타깃·Hick 게이트·설정 재배치 (05 S7·S8 + §4)
+
+- **무엇을**:
+  - workspace 프로젝트명 span(160px truncate)에 `title={projectName}` — 마우스오버 전체 확인.
+  - /project due 프로젝트 칩에 `max-w-full truncate` — 긴 이름 화면 넘침 수리(검수 칩은 이미 있었음).
+  - 검수 concern 칩 `min-h-[36px]` 터치 타깃.
+  - /project 필터 칩+검색을 `stats.total >= FILTER_TOOLS_MIN(7)`일 때만 렌더 (상수+Hick 주석 — 05 S7 문면 그대로).
+  - 설정 재배치(리뷰5 구속 스펙 준수 — **순서·접기만, 기능 삭제 0**): NAV_ITEMS·섹션 DOM을 AI 엔진 → 연동·데이터 → 프로필 → 환경설정 → 실험실 → 위험구역으로; 소리 소절·Slack·Labs 토글을 `<details>` 접힘 기본. Slack은 OAuth 콜백 복귀(slackStatus)·연결 존재 시 열림 유지(연결 직후 상태 배너가 접혀 안 보이는 배신 방지). 섹션 번호 주석도 재순번.
+- **파일**: workspace/page.tsx · project/page.tsx · ReviewFlow.tsx · settings/page.tsx
+- **검증**: tsc 0 · mojibake-guard 592/592.
+- **커밋**: a15e661
+
+### [P2 정합 소품] 이주 토스트 정직화·랜딩 골드 점·히어로 주석·항해일지 라벨 (04 S8 + 03 S7 + 06 S8 + 08 P2-3)
+
+- **무엇을**:
+  - `migrateLocalToAccount`가 `getSyncFailureCount()` 전후 비교로 `partial`을 보고(fire-and-forget push가 앉을 1초 대기 후 샘플링 — 더 늦은 실패는 토스트가 가리키는 SyncStatus 배지가 담당) → auth.tsx 이벤트 detail에 `partial` 탑재 → AccountSyncToast가 partial이면 "결정 N건을 계정으로 옮기는 중이에요 — 상태는 상단 동기화 표시에서 확인돼요."(04 S8 문안 그대로). 전부 성공 시 기존 "저장했어요" 유지.
+  - LandingHeader "워크스페이스 →"에 due>0일 때 숫자 없는 골드 점 1개(`var(--bp-gold)` — bp 토큰은 랜딩 플레이트라 합법) — W3의 `useDueCount` 공용 훅 재사용(03 S7의 "훅 추출 공유" 요구는 이미 충족돼 있었음).
+  - SirenHero 상단 주석(:3-27)을 현재 구조(영상 스틸+라이트박스 → 다리 줄 → 두 문 차트필드 → 기대설정 소문구)로 갱신 — ForkPath 시대 서술은 드리프트였음.
+  - OutputSelector:217 "항해일지 · 되돌아보기" → "이 항해 돌아보기"(en "Look back on this voyage") — 항해일지 어휘를 배의 로그 레일에 예약(08 P2-3).
+- **파일**: account-migration.ts · auth.tsx · AccountSyncToast.tsx · LandingHeader.tsx · SirenHero.tsx · OutputSelector.tsx
+- **검증**: tsc 0 · mojibake-guard 592/592 · migrateLocalToAccount 호출자 전수 grep(auth.tsx 1곳뿐 — 반환형 변경 안전).
+- **커밋**: c0fece1
+
+### [P2 MCP 소품 잔여] 8건 일괄 (11 S7 + 12 §3.6 — W5가 목소리분만 하고 남긴 비목소리분)
+
+- **무엇을**:
+  1. seal.ts 죽은 `falsifiability_note` 삭제 — vErr는 위(:53)에서 이미 return하므로 항상 undefined(전수 grep: 참조 0).
+  2. `writeSettleReceipt`에 fallback 인자(predicate/check_by) — 봉인 영수증 파일 유실 시 원장 replay의 `current.predicate/check_by`를 주입, "YOU PREDICTED """ 빈 따옴표 인쇄 수리.
+  3. settle·dismiss `idempotentHint: false` — 재호출은 no-op이 아니라 ALREADY_SETTLED/DECISION_CLOSED 하드에러이므로 현행 true는 호스트에 거짓 신호.
+  4. server.ts 버전을 package.json에서 읽기(readPackageVersion, 실패 시 0.0.0 폴백) — 1.0.0↔1.3.0 드리프트 봉합, src/·dist/ 모두 ../package.json이라 동일 경로.
+  5. ledger-replay: `gate_input` 이벤트는 `ids`에 미추가 — 절제 게이트 감사 기록 하나로 첫-사용 인사가 사라지던 것 수리 (ids 소비처 3곳 전수 확인: init-config 첫-사용·recall 빈 인사·bearingContracts는 contracts 엔트리 동반 시만 의미 → 안전).
+  6. README 도구표에 argus_amend·argus_dismiss 2행(13개 중 11개만 실려 있었음) — dismiss 행에 "No verdict is recorded" 명시.
+  7. render-receipt `YOU PREDICTED` 줄에 wrap() — CJK 술어 프레임 넘침 수리.
+  8. SERVER_INSTRUCTIONS에 related_to·broken_premise_ref 안내 2줄(12 §3.6 문안 그대로) — 축적의 알맹이가 옵션 인자인데 미안내였던 것.
+- **파일**: argus-mcp/src/tools/seal.ts·settle.ts·amend-dismiss.ts · src/lib/receipt.ts·ledger-replay.ts·render-receipt.ts·spine.ts · src/server.ts · README.md
+- **검증**: MCP typecheck 0 · 전체 18파일 185/185.
+- **커밋**: 6be3741
+
+## 최종 검증 (웨이브 8 — 2026-07-03)
+
+① **웹앱 typecheck**: `npx tsc --noEmit` → **0 에러** (커밋마다 + 최종 1회).
+
+② **웹앱 전체 테스트**: `npx vitest run --exclude "**/.claude/**"` → **195파일 2746/2746 전부 통과** (중첩 워크트리 제외 플래그 이중 안전벨트 적용).
+
+③ **MCP**: `cd argus-mcp && npm run typecheck` → 0 에러 · `npm test` → **18파일 185/185 전부 통과**.
+
+④ **MCP 7-호출 완주 스모크** (12 §1 시나리오 재현 — 서버 디스패치와 동일 경로(zod safeParse → handler → appendDueNote), 임시 데이터 디렉토리 `%TEMP%\argus-smoke-*/.argus` 격리):
+   - 1 `argus_init` PASS → 2 `argus_open_decision`(stakes=high, fire, 크럭스 1개) PASS → 3 `argus_seal`(**seal_text 존재 확인 — P1-E2**) PASS → 4 `argus_check_in`(당일) "확인할 차례가 된 것은 없습니다" PASS → 5 `argus_check_in`(today_override 7/18) **due 1건 + 닻 거울(your_words_then·days_since_seal — P1-E3)**: "봉인 후 16일 — 그때 당신은 이렇게 적었습니다: '지금 뽑는다 …'" PASS → 6 `argus_settle`(partial, **receipt_text에 AI VERDICT NONE 라인 확인**) PASS → 7 `argus_recall view=receipt` PASS.
+   - 보너스: `view=bearing` wake_text 부착 + 금지 어휘(%·tier·score·streak) 부재 PASS.
+   - 가드 경로: NO_PRIOR_SEAL·ALREADY_SETTLED 정확 에러 PASS.
+   - **행수 확인(Persistence 원칙)**: 원장 ledger.jsonl **5행**(gate_input+harvest+seal+settle+…), `sessions/{id}/receipt.json` 실존.
+   - 스모크 스크립트는 실행 후 삭제(리포 미포함). 관찰 노트: seal surface는 영어, check_in surface는 한국어 — P1-E1의 "점진 편입" 설계 그대로(전면 이주는 계획 밖).
+
+⑤ **P0-8 왕복 (sync→settle)**: 환경에 `ARGUS_TOKEN` 없음(실계정 왕복 불가) → **웨이브 지시의 대체 경로대로 로컬 완주(④)+단위 테스트로 갈음**: `argus-mcp/src/tools/__tests__/sync.test.ts` **8/8 통과** — "P0-8: local_id(mcp_ 접두사 제거)와 settle_path를 receipt마다 반환"(:35-53), "P0-8④: 웹에서 정산된 것을 settled_in_account로 표시"(:83-124, 로컬 자동 정산 없음 단언 포함). local_id = 로컬 원장 id 그 자체이므로 ④의 seal→settle 완주가 같은 id 해석 경로를 실증. **아침 확인 항목**: 실토큰으로 argus_sync 1회 → 반환된 local_id로 argus_settle 왕복 + 교차 여정 2건(MCP봉인→웹정산→settled_in_account / 웹봉인→check_in 토큰 힌트) 실계정 확인.
+
+**웨이브 8 커밋**: 5d428ea(거취 판정 Clean Removal) · e4ec912(대기 소품) · a15e661(화면 소품) · c0fece1(정합 소품) · 6be3741(MCP 소품 잔여).
