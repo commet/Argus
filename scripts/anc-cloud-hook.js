@@ -27,8 +27,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const https = require('https');
-const http = require('http');
+const { execFile } = require('child_process');
 
 // Never block the session: hard-exit after 5s, and always exit 0.
 const HARD_TIMEOUT = setTimeout(() => process.exit(0), 5000);
@@ -135,36 +134,31 @@ function enqueue(data) {
   } catch {}
 }
 
+// POST via curl instead of Node's https module: the cloud sandbox only allows
+// egress through the HTTPS_PROXY CONNECT proxy (with a re-terminating CA), which
+// curl honors automatically and Node's https does not (direct requests get 403).
 function submit(data, callback) {
-  let url;
-  try {
-    url = new URL(API_URL + '/api/usage/submit');
-  } catch {
-    return callback(false);
-  }
-  const mod = url.protocol === 'https:' ? https : http;
-  const req = mod.request(
-    {
-      hostname: url.hostname,
-      port: url.port || (url.protocol === 'https:' ? 443 : 80),
-      path: url.pathname,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + TOKEN,
-        'Content-Length': Buffer.byteLength(data),
-      },
-      timeout: 3000,
-    },
-    (res) => {
-      res.resume();
-      res.on('end', () => callback(res.statusCode >= 200 && res.statusCode < 300));
+  const child = execFile(
+    'curl',
+    [
+      '-sS',
+      '-o', '/dev/null',
+      '-w', '%{http_code}',
+      '--max-time', '3',
+      '-X', 'POST',
+      '-H', 'Content-Type: application/json',
+      '-H', 'Authorization: Bearer ' + TOKEN,
+      '--data-binary', '@-',
+      API_URL + '/api/usage/submit',
+    ],
+    { timeout: 4000 },
+    (err, stdout) => {
+      const status = parseInt(stdout, 10);
+      callback(!err && status >= 200 && status < 300);
     }
   );
-  req.on('timeout', () => req.destroy());
-  req.on('error', () => callback(false));
-  req.write(data);
-  req.end();
+  child.stdin.on('error', () => {});
+  child.stdin.end(data);
 }
 
 function removeFromQueue(data) {
