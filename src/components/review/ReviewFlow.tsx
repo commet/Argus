@@ -582,7 +582,7 @@ export function ReviewFlow() {
             <button
               key={c.id}
               onClick={() => toggleConcern(c.id)}
-              className={`px-2.5 py-1 text-[12px] rounded-full border transition-colors ${
+              className={`min-h-[36px] px-2.5 py-1 text-[12px] rounded-full border transition-colors ${
                 concerns.includes(c.id)
                   ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)]'

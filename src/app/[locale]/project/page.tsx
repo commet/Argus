@@ -30,6 +30,10 @@ import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
 
+// Hick's law (05 S7): filter chips + search only earn their place once the
+// list outgrows a single screen.
+const FILTER_TOOLS_MIN = 7;
+
 const STEP_LABELS_KO = ['재정의', '설계', '검증', '종합'] as const;
 const STEP_LABELS_EN = ['Reframe', 'Recast', 'Rehearse', 'Synth'] as const;
 
@@ -507,7 +511,7 @@ export default function ProjectPage() {
                           });
                           setCurrentProjectId(p.id);
                         }}
-                        className="px-2.5 py-1 rounded-lg text-[12px] font-medium border border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 transition-colors cursor-pointer"
+                        className="max-w-full truncate px-2.5 py-1 rounded-lg text-[12px] font-medium border border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 transition-colors cursor-pointer"
                       >
                         {p.name}
                       </button>
@@ -526,7 +530,9 @@ export default function ProjectPage() {
                 </div>
               )}
 
-              {/* Filter chips + search */}
+              {/* Filter chips + search — Hick (05 S7): below FILTER_TOOLS_MIN the
+                  whole fleet fits one screen, so the tools would only add choices. */}
+              {stats.total >= FILTER_TOOLS_MIN && (
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {([
@@ -565,6 +571,7 @@ export default function ProjectPage() {
                   />
                 </div>
               </div>
+              )}
 
               {/* Project grid — rich cards */}
               {filteredProjects.length === 0 ? (

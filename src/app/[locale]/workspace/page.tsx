@@ -141,7 +141,10 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
         <div className="max-w-2xl mx-auto mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <FolderOpen size={14} className="text-[var(--accent)] shrink-0" />
-            <span className="text-[13px] font-semibold text-[var(--text-secondary)] truncate max-w-[160px] shrink-0">
+            <span
+              className="text-[13px] font-semibold text-[var(--text-secondary)] truncate max-w-[160px] shrink-0"
+              title={projectName} /* 05 §4: the 160px truncation needs a hover escape */
+            >
               {projectName}
             </span>
             {branchInfo && (

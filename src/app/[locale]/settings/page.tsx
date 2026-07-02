@@ -189,11 +189,13 @@ export default function SettingsPage() {
     updateSettings({ llm_mode: mode });
   };
 
+  // 05 S8: frequency order — the AI engine (where people come when blocked) and
+  // integrations/data first; identity and ambience after. Order/fold only.
   const NAV_ITEMS = [
-    { id: 'profile', label: L('프로필', 'Profile') },
     { id: 'engine', label: L('AI 엔진', 'AI Engine') },
-    { id: 'prefs', label: L('환경 설정', 'Preferences') },
     { id: 'integrations', label: L('연동 · 데이터', 'Integrations') },
+    { id: 'profile', label: L('프로필', 'Profile') },
+    { id: 'prefs', label: L('환경 설정', 'Preferences') },
     { id: 'labs', label: L('실험실', 'Labs') },
     { id: 'danger', label: L('위험 구역', 'Danger zone'), danger: true },
   ];
@@ -213,87 +215,8 @@ export default function SettingsPage() {
         <SettingsNav items={NAV_ITEMS} ariaLabel={L('설정 섹션', 'Settings sections')} />
         <div className="space-y-6 min-w-0 mt-4 lg:mt-0">
 
-      <section id="profile" className="scroll-mt-28">
-      {/* ── 1. My Profile ── */}
-      <Card>
-        <div className="flex items-center gap-2 mb-4">
-          <User size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('내 프로필', 'My Profile')}</h3>
-        </div>
-        <p className="text-[12px] text-[var(--text-secondary)] mb-4">
-          {L('검토 피드백(상사 시점)의 톤과 깊이를 정하는 데 써요.', 'Tunes the tone and depth of your review feedback.')}
-        </p>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('이름', 'Name')}</label>
-              <input
-                type="text"
-                value={settings.user_name || ''}
-                onChange={(e) => updateSettings({ user_name: e.target.value })}
-                placeholder={L('홍길동', 'Your name')}
-                maxLength={30}
-                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[14px] focus:outline-none focus:border-[var(--accent)]"
-              />
-            </div>
-            <div>
-              <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('역할', 'Role')}</label>
-              <input
-                type="text"
-                value={settings.user_role || ''}
-                onChange={(e) => updateSettings({ user_role: e.target.value })}
-                placeholder={L('마케터, 개발자, 기획자...', 'Marketer, Developer...')}
-                maxLength={50}
-                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[14px] focus:outline-none focus:border-[var(--accent)]"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('경력', 'Experience')}</label>
-            <div className="flex gap-1.5">
-              {([
-                { value: 'junior' as const, label: L('1-3년차', '1-3 yrs') },
-                { value: 'mid' as const, label: L('4-7년차', '4-7 yrs') },
-                { value: 'senior' as const, label: L('8년차+', '8+ yrs') },
-                { value: 'lead' as const, label: L('팀장/리드', 'Lead') },
-              ]).map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => updateSettings({ user_seniority: settings.user_seniority === opt.value ? undefined : opt.value })}
-                  className={`flex-1 min-h-[44px] py-3 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
-                    settings.user_seniority === opt.value
-                      ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
-                      : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)]'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('자유 소개', 'About me')}</label>
-            <textarea
-              value={settings.user_context || ''}
-              onChange={(e) => updateSettings({ user_context: e.target.value })}
-              placeholder={L('예: 스타트업에서 B2B SaaS 마케팅을 담당하고 있어요. 데이터 분석은 좀 약한 편이라 숫자 근거를 잘 챙겨주면 좋겠어요.', 'e.g., I handle B2B SaaS marketing at a startup. I\'m not great with data analysis, so I appreciate help with numbers.')}
-              maxLength={300}
-              rows={3}
-              className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2.5 text-[14px] leading-relaxed focus:outline-none focus:border-[var(--accent)] resize-none"
-            />
-          </div>
-        </div>
-
-        {/* AI Observations — read-only */}
-        <ObservationsBlock locale={locale} />
-      </Card>
-      </section>
-
       <section id="engine" className="scroll-mt-28">
-      {/* ── 2. AI Engine (provider + mode + key merged) ── */}
+      {/* ── 1. AI Engine (provider + mode + key merged) ── */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <Server size={16} className="text-[var(--accent)]" />
@@ -458,8 +381,199 @@ export default function SettingsPage() {
       </Card>
       </section>
 
+      <section id="integrations" className="scroll-mt-28">
+      {/* ── 2. Integrations & Data ── */}
+      <Card>
+        <div className="flex items-center gap-2 mb-4">
+          <MessageSquare size={16} className="text-[var(--accent)]" />
+          <h3 className="text-[15px] font-bold">{L('연동 & 데이터', 'Integrations & Data')}</h3>
+        </div>
+
+        {/* Slack — folded by default (05 S8); held open when returning from the
+            OAuth callback or when a workspace is already connected. */}
+        <details open={slackStatus !== null || slackConnections.length > 0}>
+          <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-primary)]">Slack</summary>
+          <div className="mt-3">
+        {slackStatus === 'connected' && (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--collab)] border border-[var(--success)]/20">
+            <p className="text-[13px] text-[var(--success)] font-medium flex items-center gap-1.5"><Check size={14} /> {L('Slack에 연결되었습니다!', 'Connected to Slack!')}</p>
+          </div>
+        )}
+        {slackStatus === 'error' && (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/25">
+            <p className="text-[13px] text-[var(--danger)] font-medium">{L('Slack 연결에 실패했습니다. 다시 시도해주세요.', 'Slack connection failed. Please try again.')}</p>
+          </div>
+        )}
+        {slackStatus === 'unconfigured' && (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
+            <p className="text-[13px] text-[var(--text-secondary)]">{L('Slack 연동이 아직 설정되지 않은 배포예요 — 운영자가 SLACK_* 환경변수를 등록하면 켜져요.', 'Slack integration isn\'t configured on this deployment yet — it turns on once the operator sets the SLACK_* environment variables.')}</p>
+          </div>
+        )}
+        {slackConnections.length > 0 ? (
+          <div className="space-y-2">
+            {slackConnections.map((conn: { id: string; team_name: string }) => (
+              <div key={conn.id} className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg">
+                <div>
+                  <p className="text-[14px] font-medium flex items-center gap-1.5">
+                    <Check size={14} className="text-[var(--success)]" /> {conn.team_name}
+                  </p>
+                  <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 Slack 채널로 바로 보낼 수 있습니다', 'You can send results directly to Slack channels')}</p>
+                </div>
+                <Button variant="danger" size="sm" onClick={() => disconnectSlack(conn.id)}>
+                  <Unlink size={14} /> {L('연결 해제', 'Disconnect')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg">
+            <div>
+              <p className="text-[14px] font-medium">{L('Slack에 연결하기', 'Connect to Slack')}</p>
+              <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 팀 Slack 채널로 직접 공유', 'Share results directly to your team Slack channel')}</p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={async () => {
+              const { data } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+              const token = data.session?.access_token;
+              if (token) {
+                window.location.href = `/api/slack/oauth?token=${token}`;
+              } else {
+                window.location.href = '/login?redirect=/settings';
+              }
+            }}>
+              <MessageSquare size={14} /> {L('연결하기', 'Connect')}
+            </Button>
+          </div>
+        )}
+          </div>
+        </details>
+
+        {/* Telegram */}
+        <div className="border-t border-[var(--border-subtle)] my-4" />
+        <TelegramBlock locale={locale} />
+
+        {/* Plugin push token */}
+        <div className="border-t border-[var(--border-subtle)] my-4" />
+        <PluginTokenBlock locale={locale} />
+
+        {/* Public share links */}
+        <div className="border-t border-[var(--border-subtle)] my-4" />
+        <SharedLinksBlock locale={locale} />
+
+        {/* Data & account */}
+        <div className="border-t border-[var(--border-subtle)] my-4" />
+        <div className="space-y-2">
+          {/* Export */}
+          <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium">{L('내 데이터 내보내기', 'Export my data')}</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">
+                {user
+                  ? L('서버에 저장된 모든 데이터를 JSON 한 파일로', 'Every row stored on the server, as one JSON file')
+                  : L('이 브라우저의 데이터를 JSON으로', 'This browser’s data, as JSON')}
+              </p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={user ? handleServerExport : handleExport} disabled={exporting}>
+              {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {L('내보내기', 'Export')}
+            </Button>
+          </div>
+          {/* Import */}
+          <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium">{L('백업 가져오기', 'Import backup')}</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">{L('내보낸 JSON 파일에서 복원', 'Restore from an exported JSON file')}</p>
+            </div>
+            <label className="cursor-pointer shrink-0">
+              <span className="inline-flex items-center justify-center gap-2 rounded-[10px] font-medium transition-all duration-150 active:scale-[0.98] bg-transparent border-[1.5px] border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg)] px-3 py-1.5 text-[13px]">
+                <Upload size={14} /> {L('가져오기', 'Import')}
+              </span>
+              <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+            </label>
+          </div>
+        </div>
+      </Card>
+      </section>
+
+      <section id="profile" className="scroll-mt-28">
+      {/* ── 3. My Profile ── */}
+      <Card>
+        <div className="flex items-center gap-2 mb-4">
+          <User size={16} className="text-[var(--accent)]" />
+          <h3 className="text-[15px] font-bold">{L('내 프로필', 'My Profile')}</h3>
+        </div>
+        <p className="text-[12px] text-[var(--text-secondary)] mb-4">
+          {L('검토 피드백(상사 시점)의 톤과 깊이를 정하는 데 써요.', 'Tunes the tone and depth of your review feedback.')}
+        </p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('이름', 'Name')}</label>
+              <input
+                type="text"
+                value={settings.user_name || ''}
+                onChange={(e) => updateSettings({ user_name: e.target.value })}
+                placeholder={L('홍길동', 'Your name')}
+                maxLength={30}
+                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[14px] focus:outline-none focus:border-[var(--accent)]"
+              />
+            </div>
+            <div>
+              <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('역할', 'Role')}</label>
+              <input
+                type="text"
+                value={settings.user_role || ''}
+                onChange={(e) => updateSettings({ user_role: e.target.value })}
+                placeholder={L('마케터, 개발자, 기획자...', 'Marketer, Developer...')}
+                maxLength={50}
+                className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[14px] focus:outline-none focus:border-[var(--accent)]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('경력', 'Experience')}</label>
+            <div className="flex gap-1.5">
+              {([
+                { value: 'junior' as const, label: L('1-3년차', '1-3 yrs') },
+                { value: 'mid' as const, label: L('4-7년차', '4-7 yrs') },
+                { value: 'senior' as const, label: L('8년차+', '8+ yrs') },
+                { value: 'lead' as const, label: L('팀장/리드', 'Lead') },
+              ]).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => updateSettings({ user_seniority: settings.user_seniority === opt.value ? undefined : opt.value })}
+                  className={`flex-1 min-h-[44px] py-3 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
+                    settings.user_seniority === opt.value
+                      ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
+                      : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)]'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1 block">{L('자유 소개', 'About me')}</label>
+            <textarea
+              value={settings.user_context || ''}
+              onChange={(e) => updateSettings({ user_context: e.target.value })}
+              placeholder={L('예: 스타트업에서 B2B SaaS 마케팅을 담당하고 있어요. 데이터 분석은 좀 약한 편이라 숫자 근거를 잘 챙겨주면 좋겠어요.', 'e.g., I handle B2B SaaS marketing at a startup. I\'m not great with data analysis, so I appreciate help with numbers.')}
+              maxLength={300}
+              rows={3}
+              className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2.5 text-[14px] leading-relaxed focus:outline-none focus:border-[var(--accent)] resize-none"
+            />
+          </div>
+        </div>
+
+        {/* AI Observations — read-only */}
+        <ObservationsBlock locale={locale} />
+      </Card>
+      </section>
+
       <section id="prefs" className="scroll-mt-28">
-      {/* ── 3. Preferences (Language + Sound) ── */}
+      {/* ── 4. Preferences (Language + Sound) ── */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <Globe size={16} className="text-[var(--accent)]" />
@@ -492,8 +606,11 @@ export default function SettingsPage() {
           {L('일부 UI는 아직 한국어로만 나와요.', 'Some UI text is still Korean-only.')}
         </p>
 
-        {/* Sound */}
+        {/* Sound — folded by default (05 S8: order/fold only, no feature change) */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
+        <details>
+          <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-primary)]">{L('소리', 'Sound')}</summary>
+          <div className="mt-3">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[13px] font-medium">{L('전환음', 'Transition Sound')}</p>
@@ -562,112 +679,8 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
-      </Card>
-      </section>
-
-      <section id="integrations" className="scroll-mt-28">
-      {/* ── 4. Integrations & Data ── */}
-      <Card>
-        <div className="flex items-center gap-2 mb-4">
-          <MessageSquare size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('연동 & 데이터', 'Integrations & Data')}</h3>
-        </div>
-
-        {/* Slack */}
-        {slackStatus === 'connected' && (
-          <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--collab)] border border-[var(--success)]/20">
-            <p className="text-[13px] text-[var(--success)] font-medium flex items-center gap-1.5"><Check size={14} /> {L('Slack에 연결되었습니다!', 'Connected to Slack!')}</p>
           </div>
-        )}
-        {slackStatus === 'error' && (
-          <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/25">
-            <p className="text-[13px] text-[var(--danger)] font-medium">{L('Slack 연결에 실패했습니다. 다시 시도해주세요.', 'Slack connection failed. Please try again.')}</p>
-          </div>
-        )}
-        {slackStatus === 'unconfigured' && (
-          <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
-            <p className="text-[13px] text-[var(--text-secondary)]">{L('Slack 연동이 아직 설정되지 않은 배포예요 — 운영자가 SLACK_* 환경변수를 등록하면 켜져요.', 'Slack integration isn\'t configured on this deployment yet — it turns on once the operator sets the SLACK_* environment variables.')}</p>
-          </div>
-        )}
-        {slackConnections.length > 0 ? (
-          <div className="space-y-2">
-            {slackConnections.map((conn: { id: string; team_name: string }) => (
-              <div key={conn.id} className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg">
-                <div>
-                  <p className="text-[14px] font-medium flex items-center gap-1.5">
-                    <Check size={14} className="text-[var(--success)]" /> {conn.team_name}
-                  </p>
-                  <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 Slack 채널로 바로 보낼 수 있습니다', 'You can send results directly to Slack channels')}</p>
-                </div>
-                <Button variant="danger" size="sm" onClick={() => disconnectSlack(conn.id)}>
-                  <Unlink size={14} /> {L('연결 해제', 'Disconnect')}
-                </Button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg">
-            <div>
-              <p className="text-[14px] font-medium">{L('Slack에 연결하기', 'Connect to Slack')}</p>
-              <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 팀 Slack 채널로 직접 공유', 'Share results directly to your team Slack channel')}</p>
-            </div>
-            <Button variant="secondary" size="sm" onClick={async () => {
-              const { data } = await (await import('@/lib/supabase')).supabase.auth.getSession();
-              const token = data.session?.access_token;
-              if (token) {
-                window.location.href = `/api/slack/oauth?token=${token}`;
-              } else {
-                window.location.href = '/login?redirect=/settings';
-              }
-            }}>
-              <MessageSquare size={14} /> {L('연결하기', 'Connect')}
-            </Button>
-          </div>
-        )}
-
-        {/* Telegram */}
-        <div className="border-t border-[var(--border-subtle)] my-4" />
-        <TelegramBlock locale={locale} />
-
-        {/* Plugin push token */}
-        <div className="border-t border-[var(--border-subtle)] my-4" />
-        <PluginTokenBlock locale={locale} />
-
-        {/* Public share links */}
-        <div className="border-t border-[var(--border-subtle)] my-4" />
-        <SharedLinksBlock locale={locale} />
-
-        {/* Data & account */}
-        <div className="border-t border-[var(--border-subtle)] my-4" />
-        <div className="space-y-2">
-          {/* Export */}
-          <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
-            <div className="min-w-0">
-              <p className="text-[13px] font-medium">{L('내 데이터 내보내기', 'Export my data')}</p>
-              <p className="text-[11px] text-[var(--text-secondary)]">
-                {user
-                  ? L('서버에 저장된 모든 데이터를 JSON 한 파일로', 'Every row stored on the server, as one JSON file')
-                  : L('이 브라우저의 데이터를 JSON으로', 'This browser’s data, as JSON')}
-              </p>
-            </div>
-            <Button variant="secondary" size="sm" onClick={user ? handleServerExport : handleExport} disabled={exporting}>
-              {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} {L('내보내기', 'Export')}
-            </Button>
-          </div>
-          {/* Import */}
-          <div className="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg gap-3">
-            <div className="min-w-0">
-              <p className="text-[13px] font-medium">{L('백업 가져오기', 'Import backup')}</p>
-              <p className="text-[11px] text-[var(--text-secondary)]">{L('내보낸 JSON 파일에서 복원', 'Restore from an exported JSON file')}</p>
-            </div>
-            <label className="cursor-pointer shrink-0">
-              <span className="inline-flex items-center justify-center gap-2 rounded-[10px] font-medium transition-all duration-150 active:scale-[0.98] bg-transparent border-[1.5px] border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg)] px-3 py-1.5 text-[13px]">
-                <Upload size={14} /> {L('가져오기', 'Import')}
-              </span>
-              <input type="file" accept=".json" onChange={handleImport} className="hidden" />
-            </label>
-          </div>
-        </div>
+        </details>
       </Card>
       </section>
 
@@ -678,10 +691,11 @@ export default function SettingsPage() {
           <FlaskConical size={16} className="text-[var(--accent)]" />
           <h3 className="text-[15px] font-bold">{L('실험실 (Labs)', 'Labs')}</h3>
         </div>
-        <p className="text-[12px] text-[var(--text-secondary)] mb-4">
-          {L('아직 다듬는 중인 기능이에요. 언제든 켜고 끌 수 있어요.', 'Features still being polished. Toggle anytime.')}
-        </p>
-        <div className="space-y-3">
+        <details>
+          <summary className="cursor-pointer text-[12px] text-[var(--text-secondary)]">
+            {L('아직 다듬는 중인 기능이에요. 언제든 켜고 끌 수 있어요.', 'Features still being polished. Toggle anytime.')}
+          </summary>
+          <div className="space-y-3 mt-4">
           {([
             {
               key: 'new_arc_enabled' as const,
@@ -721,7 +735,8 @@ export default function SettingsPage() {
               </div>
             );
           })}
-        </div>
+          </div>
+        </details>
       </Card>
       </section>
 
