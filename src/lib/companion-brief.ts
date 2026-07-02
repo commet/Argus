@@ -74,6 +74,10 @@ export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https:/
   blocks.push('답할 수 있는 것: 그렇게 됐다 / 피했다 / 부분적으로 / 아직 불분명 — 또는 날짜만 미루기. 아직 모르겠으면 "아직 불분명"도 답이에요.');
   blocks.push('');
   blocks.push(`[내 판단 항로에서 정산하기 →](${url})`);
+  // Opt-out notice (04 S5): the seal modal promised "one email for the
+  // settlement, nothing else" — the email itself carries the exit too.
+  blocks.push('');
+  blocks.push('_이 메일은 검수에서 예측을 봉인해서 받는 정산용 한 통이에요. 더 받고 싶지 않으면 이 메일에 답장으로 알려주세요 — 바로 멈출게요._');
 
   return { subject, markdown: blocks.join('\n'), url };
 }

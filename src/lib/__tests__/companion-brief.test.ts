@@ -47,4 +47,10 @@ describe('buildCompanionBrief', () => {
     const md = buildCompanionBrief([item]).markdown;
     expect(md).toContain('날짜만 미루기');
   });
+
+  it('carries the opt-out notice — one settlement email, an exit included (04 S5)', () => {
+    const md = buildCompanionBrief([item]).markdown;
+    expect(md).toContain('정산용 한 통');
+    expect(md).toContain('답장으로 알려주세요');
+  });
 });

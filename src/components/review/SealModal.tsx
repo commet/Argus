@@ -62,10 +62,18 @@ export function SealModal({
             <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('이 판단을 봉인하기', 'Seal this judgment')}</h3>
             <button onClick={onClose} className="text-[var(--text-tertiary)] text-[18px] leading-none">×</button>
           </div>
-          <p className="text-[12px] text-[var(--text-secondary)] mb-4">
+          <p className="text-[12px] text-[var(--text-secondary)] mb-1.5">
             {L(
               '나중에 현실이 맞다/틀리다로 답할 예측을 하나 봉인합니다. Argus가 판단하지 않습니다 — 확인일에 당신이 정산합니다.',
               "Seal one prediction that reality will later answer as right or wrong. Argus does not judge — you settle it on the check-in date.",
+            )}
+          </p>
+          {/* Email disclosure (04 S5): the Companion Brief mails this prediction on
+              its check-in date — say so BEFORE the seal, not after the send. */}
+          <p className="text-[11.5px] text-[var(--text-tertiary)] mb-4">
+            {L(
+              '확인일이 오면 이 예측을 이메일로 돌려드려요 — 정산을 위한 한 통이고, 그 외 메일은 없어요.',
+              'When the check-in date arrives, this prediction comes back to you by email — one message for the settlement, nothing else.',
             )}
           </p>
 
