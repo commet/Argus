@@ -259,6 +259,49 @@ body {
   .voyage-anim, .voyage-fog { animation: none; }
 }
 
+/* ── 봉인 의식 (앱 레지스터, P1-A3 / 07 S1) — 작업 화면이 허용하는 유일한 의식.
+   사용자 자신의 약속을 찍는 압인이지, AI 평결의 장식이 아니다.
+   어떤 결정이든 똑같이 1회 재생 — 내용·방향에 따라 달라지지 않는다.
+   네임스페이스는 seal-* 만 (bp-* 는 랜딩 전용 — design-register-contract). */
+@keyframes seal-press {
+  0%   { opacity: 0; transform: scale(0.35) rotate(-11deg); }
+  62%  { opacity: 1; transform: scale(1.10) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.seal-press { animation: seal-press 560ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* 소리 없는 '쿵' — 인장이 닿는 프레임에 종이(카드 전체)가 2px 눌렸다 돌아온다 */
+@keyframes seal-thud {
+  0% { transform: translateY(0); }
+  55% { transform: translateY(2px); }
+  100% { transform: translateY(0); }
+}
+.seal-thud { animation: seal-thud 180ms ease-out 340ms both; }
+
+/* 압인 자리에서 먹이 번지는 링 — 1회 확산 후 소멸 */
+@keyframes seal-ink-ring {
+  from { opacity: 0.45; transform: scale(0.55); }
+  to   { opacity: 0; transform: scale(1.55); }
+}
+.seal-ink-ring { animation: seal-ink-ring 700ms cubic-bezier(0.22, 0.61, 0.36, 1) 380ms both; }
+
+/* 날짜 문장이 왼→오로 '쓰여지는' 잉크 획 */
+@keyframes seal-line-write {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+.seal-line-write { animation: seal-line-write 700ms cubic-bezier(0.16, 0.84, 0.44, 1) 950ms both; }
+
+/* 안착 후의 숨 — 인장 위 희미한 광택 하나만 살아 있는다 */
+@keyframes seal-glint-app { 0%, 100% { opacity: 0; } 50% { opacity: 0.4; } }
+.seal-glint-app { animation: seal-glint-app 4.8s ease-in-out 1.8s infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .seal-press, .seal-thud, .seal-ink-ring, .seal-glint-app { animation: none; }
+  .seal-press { opacity: 1; }
+  .seal-line-write { animation: none; clip-path: none; }
+}
+
 /* Focus ring is defined once above (:focus-visible, line ~212). The former
    duplicate *:focus-visible here forced an 8px border-radius onto
    EVERY ring — an 8px-cornered outline floating around round controls (pill

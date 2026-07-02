@@ -31,7 +31,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { LocaleLink } from '@/components/ui/LocaleLink';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBranch } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
@@ -43,6 +43,8 @@ import { syncSealToTelegram } from '@/lib/telegram-sync';
 import { track } from '@/lib/analytics';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { JudgmentReceipt, deriveReceiptFields } from '@/components/projects/JudgmentReceipt';
+import { SealStamp } from './SealStamp';
+import { Graticule } from '@/components/ui/VoyageElements';
 import { EASE } from './shared/constants';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
@@ -92,11 +94,25 @@ export function SealMoment({
   const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_INTERVAL);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dropped, setDropped] = useState<Set<string>>(new Set());
-  // Tracks a seal performed in THIS session, so we show the calm confirmation
-  // here instead of falling through to the grading card on the same render.
-  const [justSealed, setJustSealed] = useState(false);
+  // Scene machine for a seal performed in THIS session (P1-A3 / 07 S3):
+  //   'ask'     — nothing sealed here yet (delegates to the contract card if a
+  //               contract already exists from a previous session).
+  //   'sealing' — the 2.6s press ceremony. Identical for EVERY seal (no
+  //               content/direction variation — spine §4), tap anywhere to
+  //               skip, and prefers-reduced-motion jumps straight past it.
+  //   'sealed'  — the certificate plate + actions.
+  const [scene, setScene] = useState<'ask' | 'sealing' | 'sealed'>('ask');
+  const reducedMotion = useReducedMotion();
   const [dismissed, setDismissed] = useState(false);
   const [humanJudgment, setHumanJudgment] = useState('');
+
+  // Ceremony clock — the press lands ~380ms, the ink line finishes ~1650ms,
+  // the certificate crossfades in at 1700ms. Cleanup guards unmount mid-scene.
+  useEffect(() => {
+    if (scene !== 'sealing') return;
+    const t = setTimeout(() => setScene('sealed'), 1700);
+    return () => clearTimeout(t);
+  }, [scene]);
 
   // Defensive: legacy sessions may carry a malformed contract.
   const contract = project?.decision_contract ?? null;
@@ -199,11 +215,15 @@ export function SealMoment({
       });
     }
     setInterval(iv);
-    setJustSealed(true);
+    // First seal this session → play the ceremony (or skip it under
+    // reduced-motion). A re-seal from the sealed drawer stays calmly on the
+    // certificate — the ceremony plays once per session, not per adjustment.
+    const firstSeal = scene === 'ask';
+    setScene((s) => (s === 'sealed' ? 'sealed' : reducedMotion ? 'sealed' : 'sealing'));
     // Learning signal (2026-06-13 data-wiring fix) — the new flow recorded
     // nothing. Accepting the seal is the strongest engagement signal the
     // product has. Not already sealed → only count the first seal.
-    if (!justSealed) {
+    if (firstSeal) {
       recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: next.predicates.length } });
       // Also in the main funnel (user_events) — this is the activation north-star.
       track('decision_sealed', { interval: iv, predicates: next.predicates.length, augmented: !!existing, mode: decision.mode });
@@ -237,7 +257,7 @@ export function SealMoment({
       });
     }
     setInterval(iv);
-    setJustSealed(true);
+    setScene(reducedMotion ? 'sealed' : 'sealing');
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: c.predicates.length, mode: 'manual_recovery' } });
     track('decision_sealed', { interval: iv, predicates: c.predicates.length, mode: 'manual_recovery' });
   }
@@ -275,7 +295,7 @@ export function SealMoment({
   // ── Already-sealed loop (reload / waiting / due / verified): single source of
   //    truth lives in DecisionContractCard. We only own the fresh ASK + the
   //    just-sealed confirmation. ──
-  if (contract && !justSealed) {
+  if (contract && scene === 'ask') {
     return <DecisionContractCard project={project} livePredicates={predicates} />;
   }
 
@@ -284,7 +304,7 @@ export function SealMoment({
   //  - NON-FLAT frame → the loop would silently break: a consequential decision with
   //    no return-hook. Offer ONE quiet, skippable manual seal of the user's own
   //    summary. Not a forced gate, not a fork — just a way to not lose the artifact.
-  if ((Array.isArray(predicates) ? predicates.length : 0) === 0 && !justSealed) {
+  if ((Array.isArray(predicates) ? predicates.length : 0) === 0 && scene === 'ask') {
     if (flatDecision || dismissed) return null;
     return (
       <motion.div
@@ -333,118 +353,6 @@ export function SealMoment({
     );
   }
 
-  // ════ SEALED — the calm confirmation, with an optional edit drawer ════
-  if (justSealed) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: EASE }}
-        className="mt-10 rounded-3xl border border-[var(--accent)]/30 bg-[var(--surface)] p-6 md:p-8 text-center"
-      >
-        <div className="w-11 h-11 rounded-2xl mx-auto flex items-center justify-center" style={{ background: 'var(--gradient-gold)' }}>
-          <Anchor size={20} className="text-white" />
-        </div>
-        <p className="mt-4 text-[16px] font-semibold text-[var(--text-primary)] leading-[1.5]">
-          {L(
-            `좋아요. ${sealedAtMs ? fmtDate(sealedAtMs) : dateFor(interval)}에 물어볼게요 — 프로젝트 페이지에 오시면 제가 먼저 물어요.`,
-            `Done. I'll ask on ${sealedAtMs ? fmtDate(sealedAtMs) : dateFor(interval)} — come to the project page and I'll bring it up first.`,
-          )}
-        </p>
-        <p className="mt-1.5 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
-          {L('"그래서, 어떻게 됐어요?" — 그날 이 결정으로 돌아옵니다.', '"So, how did it go?" — this decision comes back to you that day.')}
-        </p>
-
-        {/* Peak-ownership conversion: the artifact was just minted on THIS device.
-            For an anon user this is the one moment they have something worth keeping,
-            so offer the durable path here — not as resignation copy, but as one tap.
-            The contract is already in localStorage (updateProject above), so the
-            full-page OAuth round-trip preserves it and auth.tsx runs
-            migrateLocalToAccount on SIGNED_IN return — the just-sealed decision
-            follows them into the account. Local seal stays lossless either way. */}
-        {!user && (
-          <button
-            onClick={() => {
-              track('seal_signin_cta', { placement: 'sealed' });
-              signInWithGoogle('/workspace');
-            }}
-            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white cursor-pointer transition-transform hover:scale-[1.02]"
-            style={{ background: 'var(--gradient-gold)' }}
-          >
-            <Anchor size={14} />
-            {L('로그인하고 어디서나 이어보기', 'Sign in to keep this everywhere')}
-          </button>
-        )}
-
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-          <LocaleLink href="/project" className="text-[12.5px] font-medium text-[var(--accent)] hover:underline">
-            {L('프로젝트 페이지 보기 →', 'See the project page →')}
-          </LocaleLink>
-          <button
-            onClick={downloadIcs}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors cursor-pointer"
-          >
-            <CalendarPlus size={13} />
-            {L('캘린더에 약속 넣기', 'Add to my calendar')}
-          </button>
-        </div>
-
-        <button
-          onClick={() => setDrawerOpen((o) => !o)}
-          className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
-        >
-          {L('날짜·예측 손보기', 'Adjust date & predictions')}
-          <ChevronDown size={13} className={`transition-transform ${drawerOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        <AnimatePresence>
-          {drawerOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.25, ease: EASE }}
-              className="overflow-hidden"
-            >
-              <div className="pt-4 text-left">
-                {/* Selection-only — one control, one contract: the explicit
-                    "이대로 다시 봉인" button below is the single commit point. */}
-                <DateChips interval={interval} onPick={setInterval} dateFor={dateFor} L={L} />
-                <div className="mt-4">
-                  <PredicateEditor
-                    predicates={Array.isArray(predicates) ? predicates : []}
-                    dropped={dropped}
-                    onToggle={(id) => {
-                      setDropped((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(id)) next.delete(id); else next.add(id);
-                        return next;
-                      });
-                    }}
-                    L={L}
-                  />
-                </div>
-                {kept.length === 0 && (
-                  <p className="mt-2 text-[11.5px] text-amber-600 dark:text-amber-400">
-                    {L('최소 1개는 남겨야 물어볼 수 있어요.', 'Keep at least one so I have something to ask about.')}
-                  </p>
-                )}
-                <button
-                  onClick={() => seal()}
-                  disabled={kept.length === 0}
-                  className="mt-4 w-full py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-50 cursor-pointer"
-                  style={{ background: 'var(--gradient-gold)' }}
-                >
-                  {L('이대로 다시 약속', 'Save the new promise')}
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    );
-  }
-
   // ════ DISMISSED — rejected, lossless. A quiet way back, nothing forced. ════
   if (dismissed) {
     return (
@@ -459,11 +367,201 @@ export function SealMoment({
     );
   }
 
-  // ════ ASK — the standalone closing question (the last interaction) ════
+  // ── Certificate / ceremony derived facts (all reads defensive — legacy
+  //    contracts may lack the receipt; empty strings simply don't render). ──
+  const checkDateStr = sealedAtMs ? fmtDate(sealedAtMs) : dateFor(interval);
+  const stampD = new Date(sealedAtMs ?? Date.now() + CHECK_IN_MS[interval]);
+  const stampDate = `${stampD.getMonth() + 1}.${stampD.getDate()}`;
+  const sealedOnStr = fmtDate(Date.now());
+  // The screenshot's heart: the user's OWN line (human_judgment). Falls back to
+  // the sharpest predicate WITH the honest ai_surfaced label — never silently
+  // promoted to look user-authored (CLAUDE.md rule 1).
+  const certQuote = (contract?.judgment_receipt?.human_judgment || humanJudgment).trim();
+  const certPredicate = (contract?.predicates?.[0]?.text || kept[0]?.text || '').trim();
+
+  // ════ ASK → SEALING → SEALED — one keyed scene under AnimatePresence, so the
+  //      ask card exits like paper being pressed away instead of vanishing. ════
   return (
+    <AnimatePresence mode="wait">
+    {scene === 'sealing' ? (
+      // ════ SEALING — the 2.6s press ceremony (07 S3). One identical play for
+      //      every seal; tap (or Enter/Space) anywhere = skip immediately.
+      //      reduced-motion never reaches this scene (seal() jumps to 'sealed').
+      <motion.div
+        key="sealing"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.18 }}
+        role="button"
+        tabIndex={0}
+        aria-label={L('건너뛰기', 'Skip')}
+        onClick={() => setScene('sealed')}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setScene('sealed'); } }}
+        className="seal-thud mt-10 rounded-3xl border border-[var(--accent)]/30 bg-[var(--surface)] px-6 py-12 md:py-14 text-center cursor-pointer"
+      >
+        <div className="flex justify-center">
+          <SealStamp animate date={stampDate} />
+        </div>
+        <p className="seal-line-write mt-7 text-[15px] font-semibold text-[var(--text-primary)] leading-[1.5]">
+          {L(`봉인했어요 — ${checkDateStr}에 제가 먼저 물어볼게요.`, `Sealed — I'll ask you first on ${checkDateStr}.`)}
+        </p>
+      </motion.div>
+    ) : scene === 'sealed' ? (
+      // ════ SEALED — the seal certificate (07 S4): the plate above is the
+      //      screenshot object (graticule texture + the user's own line in
+      //      serif), the actions below arrive late so the moment stays quiet.
+      <motion.div
+        key="sealed"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: EASE }}
+        className="mt-10"
+      >
+        {/* ── 증서 플레이트 — the object worth keeping ── */}
+        <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 md:p-8 text-left">
+          <Graticule opacity={0.05} spacing={26} />
+          <div className="absolute top-4 right-4 md:top-5 md:right-5">
+            <SealStamp date={stampDate} size={64} />
+          </div>
+          <div className="relative pr-16 md:pr-20">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
+              {L('항해 기록 — 봉인', 'Voyage log — sealed')} · {sealedOnStr}
+            </p>
+            {typeof project?.name === 'string' && project.name.trim() && (
+              <p className="mt-2 text-[15px] font-semibold text-[var(--text-primary)] leading-[1.4]">{project.name}</p>
+            )}
+            {certQuote ? (
+              <p className="mt-3 text-[16px] text-[var(--text-primary)] leading-[1.6]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
+                &ldquo;{certQuote}&rdquo;
+              </p>
+            ) : certPredicate ? (
+              <div className="mt-3">
+                <p className="text-[10.5px] text-[var(--text-tertiary)]">{L('AI가 대신 적어둔 확인 질문', 'A check question Argus drafted for you')}</p>
+                <p className="mt-1 text-[14px] text-[var(--text-secondary)] leading-[1.6]" style={{ fontFamily: 'var(--font-voice, serif)' }}>
+                  &ldquo;{certPredicate}&rdquo;
+                </p>
+              </div>
+            ) : null}
+          </div>
+          <p className="relative mt-5 pt-3 border-t border-[var(--border)] text-[13px] text-[var(--text-secondary)] leading-[1.6]">
+            {L(`이 판단의 답은 이제 현실만 갖고 있어요 — ${checkDateStr}, 「그래서, 어떻게 됐어요?」`,
+               `Only reality holds the answer now — ${checkDateStr}, "So, how did it go?"`)}
+          </p>
+        </div>
+
+        {/* ── 아래 = 행동. 기존 요소 그대로, 의식이 끝나기 전 붐비지 않게 늦게 등장. ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+          className="mt-5 text-center"
+        >
+          <p className="text-[14px] font-semibold text-[var(--text-primary)] leading-[1.5]">
+            {L(
+              `좋아요. ${checkDateStr}에 물어볼게요 — 프로젝트 페이지에 오시면 제가 먼저 물어요.`,
+              `Done. I'll ask on ${checkDateStr} — come to the project page and I'll bring it up first.`,
+            )}
+          </p>
+          <p className="mt-1.5 text-[13px] text-[var(--text-secondary)] leading-[1.55]">
+            {L('"그래서, 어떻게 됐어요?" — 그날 이 결정으로 돌아옵니다.', '"So, how did it go?" — this decision comes back to you that day.')}
+          </p>
+
+          {/* Peak-ownership conversion: the artifact was just minted on THIS device.
+              For an anon user this is the one moment they have something worth keeping,
+              so offer the durable path here — not as resignation copy, but as one tap.
+              The contract is already in localStorage (updateProject above), so the
+              full-page OAuth round-trip preserves it and auth.tsx runs
+              migrateLocalToAccount on SIGNED_IN return — the just-sealed decision
+              follows them into the account. Local seal stays lossless either way. */}
+          {!user && (
+            <button
+              onClick={() => {
+                track('seal_signin_cta', { placement: 'sealed' });
+                signInWithGoogle('/workspace');
+              }}
+              className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white cursor-pointer transition-transform hover:scale-[1.02]"
+              style={{ background: 'var(--gradient-gold)' }}
+            >
+              <Anchor size={14} />
+              {L('로그인하고 어디서나 이어보기', 'Sign in to keep this everywhere')}
+            </button>
+          )}
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <LocaleLink href="/project" className="text-[12.5px] font-medium text-[var(--accent)] hover:underline">
+              {L('프로젝트 페이지 보기 →', 'See the project page →')}
+            </LocaleLink>
+            <button
+              onClick={downloadIcs}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors cursor-pointer"
+            >
+              <CalendarPlus size={13} />
+              {L('캘린더에 약속 넣기', 'Add to my calendar')}
+            </button>
+          </div>
+
+          <button
+            onClick={() => setDrawerOpen((o) => !o)}
+            className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+          >
+            {L('날짜·예측 손보기', 'Adjust date & predictions')}
+            <ChevronDown size={13} className={`transition-transform ${drawerOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          <AnimatePresence>
+            {drawerOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: EASE }}
+                className="overflow-hidden"
+              >
+                <div className="pt-4 text-left">
+                  {/* Selection-only — one control, one contract: the explicit
+                      "이대로 다시 봉인" button below is the single commit point. */}
+                  <DateChips interval={interval} onPick={setInterval} dateFor={dateFor} L={L} />
+                  <div className="mt-4">
+                    <PredicateEditor
+                      predicates={Array.isArray(predicates) ? predicates : []}
+                      dropped={dropped}
+                      onToggle={(id) => {
+                        setDropped((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(id)) next.delete(id); else next.add(id);
+                          return next;
+                        });
+                      }}
+                      L={L}
+                    />
+                  </div>
+                  {kept.length === 0 && (
+                    <p className="mt-2 text-[11.5px] text-amber-600 dark:text-amber-400">
+                      {L('최소 1개는 남겨야 물어볼 수 있어요.', 'Keep at least one so I have something to ask about.')}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => seal()}
+                    disabled={kept.length === 0}
+                    className="mt-4 w-full py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-50 cursor-pointer"
+                    style={{ background: 'var(--gradient-gold)' }}
+                  >
+                    {L('이대로 다시 약속', 'Save the new promise')}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+    ) : (
+    // ════ ASK — the standalone closing question (the last interaction) ════
     <motion.div
+      key="ask"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.985, transition: { duration: 0.22 } }}
       transition={{ duration: 0.6, ease: EASE }}
       className="mt-12"
     >
@@ -597,6 +695,8 @@ export function SealMoment({
         </AnimatePresence>
       </div>
     </motion.div>
+    )}
+    </AnimatePresence>
   );
 }
 
