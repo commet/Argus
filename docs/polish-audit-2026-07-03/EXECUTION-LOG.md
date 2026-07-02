@@ -380,3 +380,59 @@
 - MCP: `npm run typecheck` 0 + `npx vitest run` **18파일 177/177** (신규 validators 6건 포함).
 - mojibake: 이 웨이브에서 바뀐 전 파일(웹 17 + MCP 8) U+FFFD 스캔 0건 + sed 치환부("설정에서" 5곳) 육안 재확인.
 - 커밋: D2=6b84284 · D3=27dce7e · D4=7bb7dd6 · D5=8b44a1b · D7=a2126fc · D8=033cdd9 · P2카피=46c5f3f · E5=1626946 · E6=d633aef · MCP목소리=063b684 (+이전 세션분 D1=f935fa6 · D6=02cc83d · B6=00833cc · B4=45ae842).
+
+---
+
+## 웨이브 6 — 봉인 의식 (P1-A3 → P1-B2 조각 → P1-A1 → P1-E2)
+
+### [P1-A3] 봉인 의식 2.6초 — S1~S4 한 몸 커밋 + S5·S6 독립 소커밋
+
+- **무엇을**: 봉인이 "상태 갱신"(한 프레임 카드 스왑)이던 것을 항해의 종막 의식으로 승격.
+  - **S1 (globals.css)**: `seal-press`(압인, 오버슈트 이징)·`seal-thud`(카드가 2px 받아내는 소리 없는 쿵)·`seal-ink-ring`(먹 번짐 1회)·`seal-line-write`(날짜 문장이 왼→오로 쓰임)·`seal-glint-app`(안착 후 광택 숨 하나) 키프레임을 앱 애니메이션 구역(voyage-* 옆)에 추가. `prefers-reduced-motion` 블록이 5종 전부 정지 + line-write는 `clip-path:none`으로 최종 프레임 고정. 네임스페이스는 `seal-*`만 — `bp-seal-stamp`(랜딩 자산)는 07 지시대로 무접촉 보존.
+  - **S2 (SealStamp.tsx 신규)**: 76px 이중 링 잉크 인장 SVG — 상단 호 ARGUS, 하단 호 확인일(tabular-nums), 중앙 앵커 글리프(lucide 경로), -8° 고정 회전, 전부 `var(--accent)` 앱 토큰. 인장에는 이름과 날짜뿐 — 평가 어휘 0 (테스트로 고정). `animate` prop이 압인+잉크 링을 게이트.
+  - **S3 (SealMoment 장면 전환)**: `justSealed:boolean` → `scene:'ask'|'sealing'|'sealed'` 상태기계. seal()/manualSeal()이 스토어 갱신 직후 'sealing' 진입, 1700ms 후 'sealed' 크로스페이드(타이머 cleanup 포함). `useReducedMotion()`이면 의식 장면을 아예 건너뛰고 곧장 'sealed'. ASK/SEALING/SEALED를 하나의 `AnimatePresence mode="wait"` 아래 keyed motion.div로 — ASK 카드가 220ms에 눌리며 퇴장(scale 0.985). 'sealing' 장면은 어디를 눌러도(또는 Enter/Space) 즉시 스킵(role="button"+aria-label 건너뛰기). 재봉인(sealed 서랍의 "이대로 다시 약속")은 의식 재생 없이 증서에 머무름 — 의식은 세션당 1회.
+  - **S4 (봉인 증서)**: SEALED 화면을 두 층으로 — 위 = 증서 플레이트(Graticule 0.05 격자 질감 + 정지 인장 + "항해 기록 — 봉인"·봉인일 라벨 + 프로젝트명 + **사용자의 human_judgment 세리프 인용**(스크린샷의 심장) + 경계선 위 "이 판단의 답은 이제 현실만 갖고 있어요 — {날짜}, 「그래서, 어떻게 됐어요?」"), 아래 = 기존 행동 요소 전부(문안 무변경: 확인 문장 2줄·로그인 CTA·프로젝트 링크·.ics·손보기 서랍) 0.25s 늦게 등장. human_judgment 없으면 대표 술어를 "AI가 대신 적어둔 확인 질문" 라벨과 함께(정직 표기, 무단 승격 금지) — 둘 다 없으면 인용부 미렌더.
+  - **S5 (검수 정합, 독립 커밋 479c05f)**: ReviewFlow 초록 success 카드 → elevated + 44px 정지 인장 + accent 라벨(문안 유지). SealModal "봉인하기"가 즉시 닫히는 대신 480ms 인장 압인 재생 후 커밋(reduced-motion이면 즉시, 언마운트 시 타이머 cleanup, 압인 중 backdrop/취소 잠금) + active:scale-[0.96].
+  - **S6 (위계 수리, 독립 커밋 6fcc5d8)**: ProgressiveFlow "문서 완성" 금색 원 → 중립(`--surface-2` + accent 체크) — 금색과 인장은 이 화면에서 봉인만 갖는다. SealMoment 금색 봉인 버튼 2개(주 ASK + 수동 복구)에 active:scale-[0.96] 이식(CurrentBearingCard 기존 패턴).
+- **§4 채택 조건 이행**: 동일 1회(내용·방향 무관 같은 재생 — 인장은 이름+날짜뿐) · 탭 스킵(+키보드) · reduced-motion 정지 프레임 · 거절 경로 무의식·무변경(dismissed 분기 무접촉) · BindCard 무접촉 · `seal-*` 네임스페이스만(design-register-contract 통과) · 금색 위 텍스트는 기존 버튼의 고정 white 유지, 신규 요소는 금 그라디언트 배경 자체를 안 씀(인장 = accent 스트로크).
+- **왜**: 07 감사 — 제품 어원의 동작이 목록 새로고침과 같은 렌더였고, 사용자가 쓴 한 줄이 봉인 순간 화면에서 증발했으며, 문서 완성이 봉인보다 화려한 위계 역전.
+- **시각 검증 갈음**: preview 대신 신규 `src/lib/__tests__/seal-ceremony.test.ts` 6건 — 키프레임 5종 존재 + reduced-motion 전멸 + clip-path:none + 탭 스킵 존재 + bp-* 누출 0 + ai_surfaced 정직 라벨 + 인장 평가어휘 0. (P1-A3 태그의 명시 대체 경로)
+- **파일**: `src/app/globals.css`, `src/components/workspace/progressive/SealStamp.tsx`(신규), `SealMoment.tsx`, `ProgressiveFlow.tsx`, `src/components/review/ReviewFlow.tsx`, `SealModal.tsx`, `src/lib/__tests__/seal-ceremony.test.ts`(신규)
+- **검증**: tsc 0 · seal-ceremony + mojibake-guard + design-register-contract 599/599 통과 (mojibake 픽스처 4문장 전부 보존 확인).
+- **커밋**: S1~S4=`af6d7ce` · S5=`479c05f` · S6=`6fcc5d8`
+
+### [P1-B2 조각] SealMoment 이메일 옵트인 체크박스 — 돌아오는 길 묶음
+
+- **무엇을**: 봉인 증서의 "돌아오는 길" 묶음(.ics 버튼 행 바로 아래)에 로그인 사용자 전용 체크박스 "그날 이메일로도 물어봐 주세요 ({email})" — 기존 `decision_contract.email_reminder` jsonb 플래그(checkin-due 크론이 이미 게이트)를 켜는 유일한 UI. 익명은 기존 로그인 CTA가 그 자리 담당(§5-20 신규 채널 금지). 웨이브2가 만든 크론 조각(한국어 본문·?from=checkin)과 이제 한 몸. 발송 트리거 없음 — 플래그 쓰기뿐.
+- **왜 지금**: 웨이브2에서 이 조각만 W6으로 보류(P1-A3이 같은 파일 :365-389 구간을 만지므로) — 의식 커밋 직후 실행하라는 웨이브 정의 그대로.
+- **파일**: `src/components/workspace/progressive/SealMoment.tsx`
+- **검증**: tsc 0 · seal-ceremony·mojibake 597/597.
+- **커밋**: ccef1aa
+
+### [P1-A1] 판단 액자 + 재봉인 온램프
+
+- **무엇을**:
+  - **JudgmentFrame 신규 컴포넌트**(`src/components/projects/JudgmentFrame.tsx`) — write-only였던 사용자 자신의 두 문장(봉인 때 `human_judgment`, 정산 때 `what_happened`)을 봉인 증서와 같은 register(Graticule 미세 격자 + 세리프 인용)로 영구 전시. "봉인 당시 — {날짜}" / "돌아와서 — {날짜}" 라벨 + 원문 인용 + 날짜 스탬프**만** — 요약·평가·해설 문장 0(두 인용의 diff를 읽는 것은 사용자 몫, 해설하는 순간 판정). 인용은 전부 JSX 텍스트 노드(auto-escape, XSS 부록 준수).
+  - **스파인 계약 이행**: 1급 인용은 human_judgment(사용자 타이핑 전용 필드)만 — `authored:'ai_surfaced'` 술어의 액자 승격 없음. human_judgment 부재(스킵 봉인·레거시 계약) → 액자 블록 전체 미렌더(빈 액자·placeholder 금지). what_happened 부재(텔레그램 버튼 정산 등) → 봉인 인용만. SettlementModal 쪽은 **저장된** what_happened만 각인(미저장 초안은 액자에 안 걸림).
+  - **배치 2곳**: ① DecisionContractCard "검증된 항해" 카드(PredicateList 위) ② SettlementModal "고리를 닫았어요" 완료 화면(닫는 순간 = 액자가 걸리는 순간).
+  - **재봉인 온램프(리뷰1)**: 정산 완료 화면 하단, [확인] 버튼 옆에 조용한 텍스트 링크 1개 — 남은 due>0이면 "다음 확인할 것 N건 →"(모달 닫기 — 스트립이 바로 뒤에 있음), 0이면 "새 결정 적기 →"(/workspace LocaleLink). N은 **부모(/project)의 useDueCount 수를 prop(`remainingDue`)으로 내려받음** — 모달이 자체 due 산수를 갖지 않아 스트립과 드리프트 불가. 버튼 위계 승격·자동 이동·연쇄 모달 없음(§5-19).
+- **검증**: tsc 0 · settlement-modal-freeform(기존 컴포넌트 테스트, 신규 prop 옵셔널이라 무수정 통과)·mojibake·seal-ceremony 599/599 → 이후 4파일 601/601 · **preview 실기동 확인**: dev 서버 + localStorage 시드(graded 계약 + judgment_receipt)로 /ko/project 상세 진입 → `봉인 당시`·`돌아와서`·두 인용 원문 전부 DOM 렌더 확인(스크린샷 도구는 30s 타임아웃 — 기존 확정 사실이라 eval 검증으로 갈음).
+- **커밋**: 68b6477
+
+### [P1-E2] MCP seal_text — 봉인 확인문 (웹 증서의 텍스트 판)
+
+- **무엇을**: `renderSeal()` 신설(`argus-mcp/src/lib/render-receipt.ts`) → argus_seal 성공 envelope의 `data.seal_text`. 도구 description에 "show it to the user verbatim" 명시(12 §3.1의 필드 설명 요구). 구성 = 술어 인용 블록(wrap, 이어지는 줄 들여쓰기) + **provenance 사실 진술 분기**(user → "이 문장은 당신의 것입니다." / ai_surfaced → "Argus가 초안한 문장입니다 — 아직 당신이 확언하지 않았습니다." — 거짓 소유 서사 금지, 강제 타이핑 게이트 없음: 그대로 봉인 가능) + 봉인/현실의 답 날짜 2행(N일 뒤 diff는 `resolveToday` 결과로 계산 — 벽시계 새로 안 읽음) + "기록될 것은 평가가 아니라 — 실제로 일어난 일입니다" 마무리(웹 증서 P1-A3 S4와 같은 문안 계열, 같은 세션 이식 — 두 표면 문안 계약 이행). 이모지 0, "닻 내림/anchor down"이 유일한 장식.
+  - locale은 웨이브3의 P1-E1 구조 그대로: surfaces.ts에 `seal` 섹션 {ko,en} 추가(타입 패리티 강제) + `surfaceLocale(dir)` 선택. review 코어 8파일 무접촉.
+  - ai_surfaced 소유줄이 길어 provenance 태그와 붙는 시각 결함을 스모크에서 발견 → 간격 로직 수정. tsx 스모크로 ko/en 실렌더 육안 확인(박스 정렬 OK).
+- **회귀 가드**: spine-drift.test.ts에 renderSeal 단언 3건 추가 — ① 4조합(ko/en × user/ai) 전부 %·tier·score·streak·점수·등급·연속 부재 ② 두 소유 분기의 정직성(user 문장이 ai 분기에 누출되지 않음, ko/en) ③ 인용·날짜 2행·day diff·"평가가 아니라" 존재.
+- **검증**: MCP `npm run typecheck` 0 · `npx vitest run` **18파일 180/180**(기존 177 + 신규 3).
+- **커밋**: f5e0a5c
+
+### 웨이브 6 경계 검증 (완료)
+
+- 웹앱 `npx tsc --noEmit` 0 (커밋마다 실행).
+- 웹 테스트: seal-ceremony(신규 6건)·mojibake-guard·design-register-contract·settlement-modal-freeform = **4파일 601/601**.
+- MCP: `npm run typecheck` 0 + 전체 **18파일 180/180**.
+- **preview 시도 결과**: dev 서버 기동 성공, `preview_screenshot`은 30s 타임아웃 반복(과거 세션에서도 확정된 환경 한계 — MEMORY "preview_screenshot 타임아웃→eval로 검증") → 태그의 대체 경로 이행: ① eval로 seal-* 애니메이션 5종이 **서빙된 CSS에 실재**(computed animationName/duration 확인: press 0.56s·thud 0.18s·ink 0.7s·write 0.7s·glint 4.8s) ② 판단 액자 실DOM 렌더(위 A1 항목) ③ 클래스·reduced-motion 단위 테스트(seal-ceremony.test.ts).
+- mojibake: 이번 웨이브 접촉 한국어 파일 8개 U+FFFD 스캔 0건 + mojibake-guard 픽스처(SealMoment 4문장) 보존 통과.
+- 커밋: A3(S1~S4)=af6d7ce · A3(S5)=479c05f · A3(S6)=6fcc5d8 · B2조각=ccef1aa · A1=68b6477 · E2=f5e0a5c
