@@ -256,12 +256,11 @@ body {
   .voyage-anim, .voyage-fog { animation: none; }
 }
 
-/* ── Focus ring ── */
-*:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
+/* Focus ring is defined once above (:focus-visible, line ~212). The former
+   duplicate *:focus-visible here forced border-radius: var(--radius-sm) onto
+   EVERY ring — an 8px-cornered outline floating around round controls (pill
+   nav, KO/EN toggle, round avatar/theme buttons). Removed so the modern
+   outline hugs each element's own border-box shape. */
 
 /* ── Selection ── */
 ::selection {
