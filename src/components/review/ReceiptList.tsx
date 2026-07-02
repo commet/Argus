@@ -78,11 +78,11 @@ export function ReceiptList({
 
       {ordered.length === 0 ? (
         <Card variant="muted">
-          <p className="text-[14px] text-[var(--text-primary)]">{L('아직 검수한 문서가 없습니다.', 'No documents reviewed yet.')}</p>
+          <p className="text-[14px] text-[var(--text-primary)]">{L('아직 검수한 문서가 없어요.', 'No documents reviewed yet.')}</p>
           <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
             {L(
-              '전략안·기획안·AI 답변을 넣으면 첫 Judgment Receipt가 만들어집니다.',
-              'Drop in a strategy doc, proposal, or AI answer to create your first Judgment Receipt.',
+              '전략안·기획안·AI 답변을 넣으면 첫 검수가 시작돼요 — 봉인한 판단은 확인일에 여기로 돌아와요.',
+              'Drop in a strategy doc, proposal, or AI answer to start your first review — sealed judgments return here on their check-in day.',
             )}
           </p>
           <div className="mt-3">

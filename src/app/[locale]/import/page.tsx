@@ -224,7 +224,7 @@ export default function ImportPage() {
           </p>
         )}
         {loaded && decisions.length === 0 ? (
-          <p className="text-[13px] text-[var(--text-tertiary)]">{L('아직 가져온 결정이 없습니다.', 'No decisions imported yet.')}</p>
+          <p className="text-[13px] text-[var(--text-tertiary)]">{L('아직 가져온 결정이 없어요. 플러그인·텔레그램에서 봉인한 결정이 이 계정으로 모여요.', 'No decisions imported yet. Decisions sealed in the plugin or Telegram gather into this account here.')}</p>
         ) : (
           <div className="space-y-2.5">
             {decisions.map((d) => (

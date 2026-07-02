@@ -409,7 +409,7 @@ export default function ProjectPage() {
           <div>
             <h1 className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight">{L('프로젝트', 'Projects')}</h1>
             <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-              {L('사고 프로세스의 전체 여정을 한눈에 확인합니다.', 'See your full thinking journey at a glance.')}
+              {L('떠난 결정과 돌아올 결정을 한눈에.', 'Decisions that set out, and decisions coming back — at a glance.')}
             </p>
           </div>
           {projects.length > 0 && (
@@ -429,7 +429,7 @@ export default function ProjectPage() {
         <div>
           <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('프로젝트 오버뷰', 'Project Overview')}</h1>
           <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-            {L('사고 프로세스의 전체 여정을 한눈에 확인합니다.', 'See your full thinking journey at a glance.')}
+            {L('떠난 결정과 돌아올 결정을 한눈에.', 'Decisions that set out, and decisions coming back — at a glance.')}
           </p>
         </div>
       )}
@@ -457,9 +457,9 @@ export default function ProjectPage() {
           ) : projects.length === 0 ? (
             <Card className="text-center py-12">
               <FileText size={24} className="mx-auto text-[var(--text-secondary)] mb-3" />
-              <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 프로젝트가 없습니다', 'No projects yet')}</p>
+              <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 항해 전이에요', 'Before the first voyage')}</p>
               <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-xs mx-auto">
-                {L('워크스페이스에서 프로젝트를 만들면, 4단계 프로세스의 진행 상황을 여기서 한눈에 확인할 수 있습니다.', 'Create a project in your workspace and track the 4-stage process progress here at a glance.')}
+                {L('워크스페이스에서 첫 결정을 적으면, 여기가 그 결정이 돌아올 모항이 돼요. 확인일이 오면 이 페이지가 먼저 물어요 — 그래서, 어떻게 됐어요?', "Write your first decision in the workspace and this becomes its home port. When the check-in day comes, this page asks first — so, how did it go?")}
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
                 <LocaleLink href="/workspace">
@@ -591,7 +591,7 @@ export default function ProjectPage() {
               {/* Project grid — rich cards */}
               {filteredProjects.length === 0 ? (
                 <div className="text-center py-10 text-[13px] text-[var(--text-tertiary)]">
-                  {L('일치하는 프로젝트가 없습니다.', 'No matching projects.')}
+                  {L("그 이름의 항해는 안 보여요 — 철자를 바꾸거나 필터를 '전체'로 돌려보세요.", 'No voyage by that name — try a different spelling, or set the filter back to All.')}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
