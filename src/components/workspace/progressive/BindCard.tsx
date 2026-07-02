@@ -107,9 +107,11 @@ export function BindCard({
             ? L('이게 진짜 질문이라면 — 지금 마음은 어디로 기울어요?', "If that's the real question — where are you leaning right now?")
             : L('답을 듣기 전에 — 지금 마음은 어디로 기울어요?', 'Before you hear the answer — where are you leaning right now?')}
         </h2>
+        {/* First-meeting metaphor bridge (06 S3) — half a sentence tying '밧줄/묶기'
+            to its reason. Copy only; the SPINE INVARIANTS above are untouched. */}
         <p className="text-[12.5px] text-[var(--text-tertiary)] mt-1.5 leading-snug">
-          {L('안 적어도 됩니다. 적어두면 나중에 “그래서 어떻게 됐는지” 같이 맞춰봐요.',
-             "Optional. If you jot it down, we'll check back later on how it actually went.")}
+          {L('세이렌 앞에서 몸을 묶은 오디세우스처럼 — 듣기 전에 내 판단을 한 줄 남겨두는 거예요. 안 적어도 됩니다. 적어두면 나중에 “그래서 어떻게 됐는지” 같이 맞춰봐요.',
+             "Like Odysseus tied to the mast — you leave one line of your own before you listen. Optional. If you jot it down, we'll check back later on how it actually went.")}
         </p>
 
         {problem && (
@@ -191,6 +193,14 @@ export function BindCard({
             <ArrowRight size={15} />
           </button>
         </div>
+
+        {/* Progress signal (06 S3) — the read the user asked for IS running behind
+            this card (buffered by design); say so in one machine-status sentence.
+            No spinner: the analysis stays buffered, this is orientation only. */}
+        <p className="mt-4 text-[11.5px] leading-snug text-[var(--text-tertiary)]">
+          {L('적어주신 내용은 그동안 뒤에서 이미 읽고 있어요 — 이 다음 화면에서 결과가 나와요.',
+             "We're already reading what you wrote — the result comes right after this.")}
+        </p>
       </div>
     </motion.div>
   );
