@@ -3,6 +3,7 @@ import { tmpArgusDir, body, isError } from '../../test-helpers.js';
 import { premises } from '../premises.js';
 import { recheck } from '../recheck.js';
 import { seal } from '../seal.js';
+import { settle } from '../settle.js';
 import { checkIn } from '../check-in.js';
 import { recall } from '../recall.js';
 import { appendDueNote } from '../../lib/due-note.js';
@@ -112,6 +113,41 @@ describe('resources: argus://premises/*', () => {
     } finally {
       delete process.env['ARGUS_DIR'];
     }
+  });
+});
+
+describe('settle premise attribution (P2 — where accumulation compounds)', () => {
+  it('records the user-attributed broken premise and surfaces it as frequency in track_record', async () => {
+    const dir = tmpArgusDir();
+    await sealedWithMonitored(dir, 'd1');
+    const r = await settle.handler({
+      argus_dir: dir, id: 'd1', outcome: 'avoided', outcome_source: 'user_stated',
+      what_happened: 'rates were hiked twice; the migration cost blew past the budget',
+      broken_premise_ref: 'P1', today_override: '2026-09-02',
+    });
+    expect(isError(r)).toBe(false);
+    const d = body(r)['data'] as Record<string, unknown>;
+    expect(d['broken_premise']).toBe('P1');
+    expect(d['broken_premise_source']).toBe('user_stated');
+    expect(d['ai_verdict']).toBeNull();
+
+    const tr = await recall.handler({ argus_dir: dir, view: 'track_record', today_override: '2026-09-03' });
+    const td = body(tr)['data'] as Record<string, unknown>;
+    const counts = td['premise_attribution_counts'] as Record<string, unknown>;
+    expect(counts['with_named_broken_premise']).toBe(1);
+    expect(String(td['premise_attribution'])).toContain('you attributed 1');
+    expect(td['judgment_tier']).toBeNull(); // still no tier, no score
+  });
+
+  it('an invalid broken_premise_ref fails loudly instead of mis-attributing', async () => {
+    const dir = tmpArgusDir();
+    await sealedWithMonitored(dir, 'd1');
+    const r = await settle.handler({
+      argus_dir: dir, id: 'd1', outcome: 'avoided', outcome_source: 'user_stated',
+      what_happened: 'it went sideways', broken_premise_ref: 'P9', today_override: '2026-09-02',
+    });
+    expect(isError(r)).toBe(true);
+    expect(body(r)['error_code']).toBe('NO_SUCH_PREMISE');
   });
 });
 

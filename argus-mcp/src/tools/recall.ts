@@ -112,13 +112,25 @@ export const recall: ToolModule = {
       const freq = n === 0
         ? 'No settled decisions yet — nothing to summarize.'
         : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial.`;
+
+      // Premise-level attribution (plan v5 P2) — where accumulation compounds:
+      // COUNTS of settles where the user themselves named a broken premise.
+      // A frequency statement, never a diagnosis of the person.
+      const settled = [...ledger.contracts.values()].filter((c) => c.status === 'settled');
+      const missedOrPartial = settled.filter((c) => c.outcome === 'avoided' || c.outcome === 'partial');
+      const withBroken = missedOrPartial.filter((c) => c.broken_premise_id);
+      const premiseAttribution = withBroken.length > 0
+        ? `Of ${missedOrPartial.length} settle(s) that did not hold, you attributed ${withBroken.length} to a named broken premise.`
+        : undefined;
+
       return envelope({
         ok: true, tool: 'argus_recall',
-        surface: freq,
+        surface: premiseAttribution ? `${freq} ${premiseAttribution}` : freq,
         next_actions: ['stop'],
         data: {
           judgment_tier: null, judgment_score: null, // drift-guard asserts these stay null
           frequency_statement: freq,
+          ...(premiseAttribution ? { premise_attribution: premiseAttribution, premise_attribution_counts: { not_held: missedOrPartial.length, with_named_broken_premise: withBroken.length } } : {}),
           sample_size: n,
           sample_size_caveat: n < 10 ? 'Sample is small — read this as history, not a pattern about you.' : undefined,
           stats: s,
