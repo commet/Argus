@@ -60,6 +60,7 @@ export function DecisionItemsCard({
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [newQ, setNewQ] = useState('');
 
   useEffect(() => {
     loadData();
@@ -102,6 +103,16 @@ export function DecisionItemsCard({
     if (next) editItem(id, 'refine', next);
     setEditingId(null);
     setDraft('');
+  }
+  // Open questions on the web are user-created only (never auto-derived from a
+  // sealed decision — that would reopen a closed call; mirror clause).
+  function addOpenQuestion() {
+    const text = newQ.trim();
+    if (!text) return;
+    addItems([
+      createItem({ decision_id: project.id, type: 'open_question', text, source: 'user' }, Date.now()),
+    ]);
+    setNewQ('');
   }
 
   // Nothing to show and nothing to import → render nothing (no empty ceremony).
@@ -219,6 +230,25 @@ export function DecisionItemsCard({
                   </ul>
                 </div>
               ))}
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <input
+                  value={newQ}
+                  onChange={(e) => setNewQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addOpenQuestion();
+                  }}
+                  maxLength={200}
+                  placeholder={L('아직 안 정한 것 추가…', "Add something you haven't decided…")}
+                  className="flex-1 min-w-0 text-[12.5px] text-[var(--text-primary)] bg-[var(--surface)] border border-[var(--border)] rounded-md px-2.5 py-1.5 focus:outline-none focus:border-[var(--accent)]/50 placeholder:text-[var(--text-tertiary)]"
+                />
+                <button
+                  onClick={addOpenQuestion}
+                  disabled={!newQ.trim()}
+                  className="px-2.5 py-1.5 rounded-md text-[12.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-default"
+                >
+                  {L('미결 추가', 'Add')}
+                </button>
+              </div>
               <p className="text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
                 {L(
                   '전제 옆 종을 켜면, 그 사실이 바뀔 때만 알려드려요.',

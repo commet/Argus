@@ -411,9 +411,11 @@ CLAUDE.md single-source: **두뇌(lib) 하나 공유, 표현만 분리.**
   (principles=현실-소스 불변식; override는 자기보고). 대신 `/argus:track` Step 2b에
   **도구-보정 노트**(추출이 과한지 묻기, 사용자 판정 아님)로 넣음. 겸사겸사 track의
   meta-check가 override를 /principles로 잘못 라우팅하던 **잠복 스파인 버그 정정**.
-- **#7 (의도적 미구현)** — open_question 재고: **깨끗한 소스가 없음**(crux 질문? 사용자-표시
-  미정? 거부된 전제?)이 제품 결정 사안이라, 소스 결정 없이 짓는 건 speculative dead code.
-  소스 확정 후 착수 — 사용자 선택 대기.
+- **#7 (구현 — 소스 = 사용자 명시 미결만)** — 사용자 결정: open_question은 **사용자가
+  명시로 남긴 것만**(닫은 결정을 자동 재소환하면 mirror-clause 위반이므로). 플러그인
+  `/argus:track open "…"`(생성) + `reconsider <ref>`(2개 균형 예시 lean과 함께 재고, 사용자
+  저작). 웹 카드에 "미결 추가" 입력(maxLength 200). 자동 판별(clarify emit)은 스파인 위험이라
+  채택 안 함.
 - **잔여:** `item-extract-core.ts`는 여전히 TS 호출자 없음(웹=derive-premise-texts, 플러그인=
   clarify 재사용). 웹 알림 전달(허브)·edge cron 미구현.
 
