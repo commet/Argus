@@ -64,3 +64,20 @@
 - 웹앱 테스트: erasure-coverage + navigator-content + navigator-simulation + navigator → 4파일 98/98 통과.
 - MCP: `cd argus-mcp && npm run typecheck` → 0 · `npm test` → 17파일 164/164 통과 (sync·schema-validation 포함).
 - 커밋: P0-1=5d5dead · P0-4=41019b0 · P0-3=f80de8c · P0-8=9e825fe+fadfc09. push 완료.
+
+---
+
+## 웨이브 2 — 알림 채널 한 뇌 (W2)
+
+### [P0-2] 텔레그램 귀환 정산의 죽은 버튼 + 두 뇌 + 반쪽 정산 (한 커밋)
+
+- **무엇을**: 지금까지 실발송된 유일한 귀환 알림(checkin-due 크론의 웹 계약 리마인더)의 답장 버튼이 죽어 있었다 — `stl1|`/`stl|` 콜백과 `ARGUS_SETTLE:` 토큰 답장을 받는 분기가 웹훅에 아예 없었음(파서 `parseSettlementIntent`는 한국어까지 완비된 채 미배선). 게다가 카피는 차가운 영어 기계문("Argus check-in"), 미러 행이 있으면 두 크론이 같은 결정을 이중 발송, 텔레그램 네이티브 정산은 웹 계약을 안 닫는 반쪽 정산.
+- **왜**: "정한 날 물어봐 드려요"는 이 제품의 단 하나의 약속인데, 물어놓고 대답을 못 받는 상태(03 P0-1). 귀환 순간의 목소리가 자동응답기(02 P0-1). 같은 수술 부위라 한 커밋.
+- **어떻게**:
+  - **① 배선**: webhook 콜백 분기 맨 앞에 `parseSettlementIntent({callbackData})` → `handleContractSettlement()` 신설(소유 검증 → `applyTelegramSettlement` → projects.decision_contract 갱신 → telegram_decisions 미러 행 동기(정산이면 settled, 아직이면 check_by 연장+reminded_at=null) → 한국어 확인 답장 "기록했어요 — {잘 됨/안 됨/반반}. 고리를 닫았어요." / "알겠어요. {날짜}에 다시 물어볼게요."). 메시지 핸들러에도 슬래시 무시·리프레임 분기 **앞**에 `parseSettlementIntent({text, replyText})` 시도(토큰 답장·/settle 명령 수용) — 일반 메시지는 null 반환으로 무접촉.
+  - **② 이중 발송 차단**: checkin-due의 telegramDue에 "telegram_decisions에 같은 id의 sealed 행이 존재하면 건너뜀" 가드 — 미러 있는 결정은 따뜻한 telegram-reminders 크론(1회 발송)이 담당, 이 다리는 미러 없는 레거시 계약의 안전망으로만.
+  - **③ 양방향 정산**: `handleSettle`(네이티브 st: 콜백)이 `source==='web'` 행이면 `bridgeWebContract()`로 projects.decision_contract도 함께 닫기/연장(연장은 텔레그램 행과 같은 2주 — applyTelegramSettlement의 1주 기본 대신 amendCheckIn '2w'). 실패해도 텔레그램 쪽 답은 이미 착지(best-effort + console.error).
+  - **④ 한국어 한 뇌**: `settlementReminderText`/`settlementReplyMarkup`에 locale 인자, ko 문안은 seal-core 결("그래서, 어떻게 됐어요?" / 「{프로젝트}」 — 봉인할 때 이날 물어봐 달라고 하셨어요 / 확인할 것: {predicate} / 아직 모르겠으면 "아직"도 답이에요), 버튼은 seal-core settleKeyboard 어휘(✅ 잘 됐어요/✋ 안 됐어요/〰 반반/⏳ 아직). 원시 토큰은 답장 매칭용으로 마지막 줄 `<code>`로 강등. locale 판정은 `detectSettlementLocale()`(프로젝트명+predicate 한글 검사)로 공용화 — checkin-due가 사용.
+- **파일**: `src/lib/telegram-settlement.ts`, `src/app/api/telegram/webhook/route.ts`, `src/app/api/cron/checkin-due/route.ts`, `src/lib/__tests__/telegram-settlement.test.ts`
+- **검증**: tsc 0 · telegram-settlement+checkin-reminder 17/17 통과(한국어 문안·토큰 잔존·구 기계문 부재 단언 추가). 실발송 없음(코드+테스트만).
+- **커밋**: f40a43d
