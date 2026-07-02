@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 — Living premises
+## 1.3.0 — Living premises
 
 The receipt's `THE UNVERIFIED ASSUMPTION` line becomes a tracked object.
 
@@ -23,7 +23,7 @@ The receipt's `THE UNVERIFIED ASSUMPTION` line becomes a tracked object.
   about to be proven wrong), closed decisions refuse premise events.
 - **Privacy:** premise data is never part of the account-sync payload.
 
-## 1.0.1 — Forward-compatible ledger replay
+## 1.2.1 — Forward-compatible ledger replay
 
 - Unknown-but-versioned ledger events (written by a newer argus-mcp) are now
   skipped silently (`integrity.skipped_unknown`) instead of being counted as

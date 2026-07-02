@@ -1,0 +1,126 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { tmpArgusDir } from '../../test-helpers.js';
+
+/**
+ * REAL MCP protocol round-trip (plan v5 §8 release smoke, automated): spawns the
+ * BUILT server over stdio exactly as a host would (`node dist/index.js`), speaks
+ * the actual protocol via the SDK client, and walks the living-premises journey
+ * end to end — initialize → tools/list → tools/call → resources/read →
+ * prompts/get. This is what the MCP Inspector would verify by hand, pinned in CI.
+ */
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const DIST = path.join(ROOT, 'dist', 'index.js');
+const TODAY = '2026-07-02';
+
+let client: Client;
+let dir: string;
+
+beforeAll(async () => {
+  if (!fs.existsSync(DIST)) {
+    execSync('npm run build', { cwd: ROOT, stdio: 'ignore' });
+  }
+  dir = tmpArgusDir();
+  const env: Record<string, string> = {};
+  for (const [k, v] of Object.entries(process.env)) if (typeof v === 'string') env[k] = v;
+  env['ARGUS_DIR'] = dir; // resources resolve the project from the env, like a real host config
+
+  client = new Client({ name: 'roundtrip-test', version: '0.0.0' });
+  await client.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));
+}, 30000);
+
+afterAll(async () => {
+  await client?.close();
+});
+
+function structured(res: unknown): Record<string, unknown> {
+  return (res as { structuredContent: Record<string, unknown> }).structuredContent;
+}
+
+describe('MCP protocol round-trip (built server, stdio)', () => {
+  it('advertises the premises tools with generated JSON schemas', async () => {
+    const { tools } = await client.listTools();
+    const names = tools.map((t) => t.name);
+    expect(names).toContain('argus_premises');
+    expect(names).toContain('argus_recheck');
+    expect(tools).toHaveLength(13);
+    const prem = tools.find((t) => t.name === 'argus_premises')!;
+    const schema = JSON.stringify(prem.inputSchema);
+    expect(schema).toContain('"add"'); // op enum made it through z.toJSONSchema
+    expect(schema).toContain('ai_original');
+  });
+
+  it('walks the journey: seal(+promotion) → add → due_note piggyback → recheck baseline → recall', async () => {
+    // seal with a named assumption → promoted premise P1
+    const sealRes = structured(await client.callTool({
+      name: 'argus_seal',
+      arguments: {
+        argus_dir: dir, id: 'rt1', predicate: 'the cutover ships with no visible outage',
+        check_by: '2026-09-01', predicate_owner: 'user',
+        unverified_assumption: 'the index rebuild fits the replication lag budget',
+        today_override: TODAY,
+      },
+    }));
+    expect(sealRes['ok']).toBe(true);
+    expect((sealRes['data'] as Record<string, unknown>)['premise_promoted']).toBe('P1');
+
+    // add a monitored premise
+    const addRes = structured(await client.callTool({
+      name: 'argus_premises',
+      arguments: {
+        argus_dir: dir, id: 'rt1', op: 'add', today_override: TODAY,
+        premises: [{ text: 'base rate stays at 3.5%', kind: 'premise', external: true, load_bearing: true, source: 'ai', ai_original: 'base rate stays at 3.5%' }],
+      },
+    }));
+    expect(addRes['ok']).toBe(true);
+
+    // an unrelated later call carries the dispatcher-level due_note (the return loop)
+    const bearing = structured(await client.callTool({ name: 'argus_recall', arguments: { argus_dir: dir, view: 'bearing', today_override: TODAY } }));
+    expect(String((bearing['data'] as Record<string, unknown>)['due_note'])).toContain('premise fact(s) to re-check');
+    expect(bearing['next_actions']).toContain('argus_check_in');
+
+    // recheck: baseline, provenance-tagged
+    const rc = structured(await client.callTool({
+      name: 'argus_recheck',
+      arguments: { argus_dir: dir, id: 'rt1', ref: 'P2', finding: 'base rate 3.5%', numeric_value: 3.5, source: 'url', source_detail: 'https://bok.example', today_override: TODAY },
+    }));
+    expect((rc['data'] as Record<string, unknown>)['baseline_only']).toBe(true);
+
+    // recall premises: both premises, provenance + staleness rendered
+    const prems = structured(await client.callTool({ name: 'argus_recall', arguments: { argus_dir: dir, view: 'premises', id: 'rt1', today_override: TODAY } }));
+    const rows = (prems['data'] as Record<string, unknown>)['premises'] as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r['ref'])).toEqual(['P1', 'P2']);
+  });
+
+  it('serves argus://premises/due as an auto-injectable resource', async () => {
+    const res = await client.readResource({ uri: 'argus://premises/due' });
+    const payload = JSON.parse((res.contents[0] as { text: string }).text) as Record<string, unknown>;
+    // P1 (promoted, external=false) is not monitored; P2 was baselined today → not due yet.
+    expect(payload['group_count']).toBe(0);
+    expect(payload).toHaveProperty('groups');
+  });
+
+  it('the settle ritual prompt carries the recheck choreography when premises are due', async () => {
+    // a second decision with a never-checked monitored premise → due
+    await client.callTool({ name: 'argus_seal', arguments: { argus_dir: dir, id: 'rt2', predicate: 'second bet holds through the quarter', check_by: '2026-10-01', predicate_owner: 'user', today_override: TODAY } });
+    await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'rt2', op: 'add', today_override: TODAY, premises: [{ text: 'supply stays constrained', kind: 'premise', external: true, load_bearing: true, source: 'user' }] } });
+
+    const prompt = await client.getPrompt({ name: 'argus-settle', arguments: {} });
+    const text = (prompt.messages[0].content as { text: string }).text;
+    expect(text).toContain('argus_recheck');
+    expect(text).toContain('supply stays constrained');
+  });
+
+  it('schema violations come back as clean tool errors over the wire', async () => {
+    const res = await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'rt1', op: 'nonsense' } });
+    expect(res.isError).toBe(true);
+    expect((res.content as Array<{ text: string }>)[0].text).toContain('INVALID_INPUT');
+  });
+});
