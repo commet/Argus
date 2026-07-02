@@ -12,7 +12,9 @@ vi.mock('@/lib/error-handler', () => ({
   handleError: vi.fn(),
 }));
 
-import { mergeByTimestamp } from '@/lib/db';
+import { mergeByTimestamp, loadAndMerge } from '@/lib/db';
+import { supabase, getCurrentUserId } from '@/lib/supabase';
+import { getStorage, setStorage } from '@/lib/storage';
 
 interface TestItem {
   id: string;
@@ -143,5 +145,57 @@ describe('mergeByTimestamp', () => {
     expect(result.find(i => i.id === '2')?.name).toBe('Local only');
     expect(result.find(i => i.id === '3')?.name).toBe('Local newer');
     expect(result.find(i => i.id === '4')?.name).toBe('Remote only');
+  });
+});
+
+/* ── P1-C7 regression: delete propagation via remote tombstones ──
+ *
+ * A row soft-deleted on another device (deleted_at set) used to survive as a
+ * local ghost forever: the client filtered tombstones AFTER the fetch, so the
+ * ghost's id was missing from remoteIds, got classified as "local-only", and
+ * was re-pushed on EVERY load (the upsert payload has no deleted_at, so the
+ * server stayed deleted — but the futile push looped for good).
+ */
+describe('loadAndMerge — tombstone propagation (P1-C7)', () => {
+  afterEach(() => {
+    vi.mocked(getCurrentUserId).mockImplementation(() => Promise.resolve(null));
+    vi.mocked(getStorage).mockImplementation((_key: string, fallback: unknown) => fallback);
+    vi.mocked(setStorage).mockClear();
+    vi.mocked(supabase.from).mockReset();
+  });
+
+  it('removes remote-tombstoned rows locally and does NOT re-push them as local-only', async () => {
+    vi.mocked(getCurrentUserId).mockImplementation(() => Promise.resolve('user-1'));
+    vi.mocked(getStorage).mockImplementation(() => ([
+      { id: 'ghost', name: 'deleted on another device', updated_at: '2025-01-01T00:00:00Z' },
+      { id: 'offline-new', name: 'created offline here', updated_at: '2025-01-02T00:00:00Z' },
+      { id: 'alive', name: 'local copy', updated_at: '2025-01-01T00:00:00Z' },
+    ]));
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const order = vi.fn().mockResolvedValue({
+      data: [
+        // Tombstone is NEWER than the local ghost — must still be removed, not merged back.
+        { id: 'ghost', name: 'deleted on another device', updated_at: '2025-06-01T00:00:00Z', deleted_at: '2025-06-01T00:00:00Z' },
+        // A live row WITHOUT a deleted_at field (older table / no column) stays alive — backward-safe.
+        { id: 'alive', name: 'remote copy', updated_at: '2025-01-01T00:00:00Z' },
+      ],
+      error: null,
+    });
+    const eq = vi.fn(() => ({ order }));
+    const select = vi.fn(() => ({ eq }));
+    vi.mocked(supabase.from).mockReturnValue({ select, upsert } as never);
+
+    const result = await loadAndMerge<TestItem>('projects', 'sot_projects');
+
+    // Ghost is gone from the merge result AND from what gets saved locally.
+    expect(result.map(i => i.id).sort()).toEqual(['alive', 'offline-new']);
+    const saved = vi.mocked(setStorage).mock.calls.find(c => c[0] === 'sot_projects')?.[1] as TestItem[];
+    expect(saved.map(i => i.id).sort()).toEqual(['alive', 'offline-new']);
+
+    // The ghost must NOT be re-pushed as "local-only" (the eternal futile push);
+    // the genuinely-offline item still uploads.
+    expect(upsert).toHaveBeenCalledTimes(1);
+    const pushed = upsert.mock.calls[0][0] as Array<{ id: string }>;
+    expect(pushed.map(p => p.id)).toEqual(['offline-new']);
   });
 });

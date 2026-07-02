@@ -196,3 +196,17 @@
 - MCP: `cd argus-mcp && npm run typecheck` 0 · `npm test` 17파일 171/171 통과.
 - 한국어 mojibake 육안 확인(등불·축적 한 줄·돌아오셨네요·surfaces.ts ko 사전 — 전부 정상).
 - 커밋: P0-6①=314a5bc · P0-6②=f314095 · P0-6③=61a68f0 · P0-7=9f9e1fd · P1-A4=315cc6a · P1-E1=6d34dbd · P1-E3=dd0ee2a.
+
+---
+
+## 웨이브 4 — 상태 정직화 (P0-5 → C1 · C2·C3 · C4 · C7 · C6최소 · C5)
+
+### [P0-5 + P1-C1] 세션 만료 삼중 침묵 + SyncStatus 양방향 정직화 (한 커밋 — 마스터 지시)
+
+- **무엇을**: ① `argus:knew-you` 로컬 플래그(부울 1개, 개인정보 0) — STORAGE_KEYS 끝에 append + persistence-contract CONTRACT에 localOnly 선언(공유 등록부 append-only 규칙 준수). `clearAllStorage()`가 STORAGE_KEYS 전체를 지우므로 **명시적 로그아웃은 플래그가 먼저 지워져 만료로 오인되지 않음**(별도 코드 없이 구조로 성립). ② auth.tsx onAuthStateChange: 세션 있으면 플래그 '1', 세션이 null로 떨어졌는데 플래그가 남아 있으면 `argus:session-expired` CustomEvent 1회 발신. ③ 신규 `SessionExpiredToast`(StorageErrorToast 패턴): "로그인이 잠시 풀렸어요. 작업은 이 기기에 계속 저장되고 있어요 — 다시 로그인하면 클라우드 백업이 이어져요." + [다시 로그인](`/login?redirect=현재경로`). 탭 세션당 1회(sessionStorage dedupe — 지속 상태는 앰버 배지가 담당), /login 위에서는 미표시. ④ "무료 체험" 오인 수리: workspace/page.tsx·ProgressiveFlow.tsx의 LOGIN_REQUIRED 카드가 `user || hasKnownUser()`면 "로그인이 잠시 풀렸어요 / 적어주신 내용은 그대로 있어요" + [다시 로그인하고 이어가기]로 분기 — 진짜 익명에게만 기존 "무료 체험" 유지. ⑤ AuthGuard 귀환자 분기("다시 오셨네요 — 로그인만 다시 해주세요"). ⑥ errorDisplay.authFailed ko/en 재작성(막힘은 배의 사정 + 작업물 보존 사실 + 손잡이).
+- **P1-C1**: `reportSyncSuccess()`를 **sync-health.ts에 신설**(마스터 리뷰3 지시 — db.ts diff 최소화), db.ts는 syncToSupabase·upsertToSupabase 성공 분기에 `else { reportSyncSuccess(); }` 1줄씩 + import 1줄만. SyncStatus 초기 상태 `'idle'`(배지 미렌더) — 초록 "동기화됨"은 실제 성공 이벤트 후에만. 온라인 복귀도 'synced'가 아니라 'idle'로(확인 안 한 초록 금지). 로그인 게이트 밖으로: 로그아웃+knew-you=앰버 "이 기기에만 저장 중", 첫 방문 익명=무배지(소음 금지), 오프라인=전원 표시. RateLimitBadge는 user 게이트 유지.
+- **main 최신화 확인**: `git fetch origin main` — origin/main이 브랜치 베이스(83a8878) 그대로, 병렬 세션 드리프트 0. db.ts는 HEAD와 main 간 diff 없음을 확인 후 최소 diff로 진행.
+- **왜**: 만료가 ①백업 중단 무표시 ②회원을 "무료 체험" 취급 ③신규자용 카피 — 삼중으로 침묵/거짓이었다(10 P0-1). SyncStatus는 무근거 초록(낙관 기본값)과 영구 앰버(성공 이벤트 발신자 부재) 양방향 부정직(09 P1-4).
+- **파일**: `src/lib/storage.ts`, `src/lib/__tests__/persistence-contract.test.ts`, `src/lib/auth.tsx`(hasKnownUser export), `src/components/ui/SessionExpiredToast.tsx`(신설), `src/components/ui/SyncStatus.tsx`, `src/components/layout/Header.tsx`, `src/components/layout/AuthGuard.tsx`, `src/app/[locale]/workspace/page.tsx`, `src/components/workspace/progressive/ProgressiveFlow.tsx`, `src/lib/i18n/ko.ts`·`en.ts`, `src/lib/sync-health.ts`, `src/lib/db.ts`
+- **검증**: tsc 0 · persistence-contract + db.test 14/14 · 한국어 mojibake 검사(U+FFFD 0) 통과.
+- **커밋**: cf44598

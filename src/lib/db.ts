@@ -127,8 +127,19 @@ async function loadAndMergeUncached<T extends Timestamped>(
     if (error || !data) return local;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const remote = ((data || []) as any[]).filter((r) => !r.deleted_at) as T[];
-    const merged = mergeByTimestamp(local, remote);
+    const rows = (data || []) as any[];
+    // P1-C7 delete propagation: collect tombstoned ids BEFORE filtering them
+    // out. A row soft-deleted on another device must (a) drop its local ghost
+    // copy here and (b) NOT be classified as local-only — otherwise this loop
+    // re-pushed the ghost on every load, forever (the upsert payload carries
+    // no deleted_at so the server stayed deleted, but the futile push looped).
+    // Removing ghosts BEFORE the localOnly computation fixes both in one cut.
+    // Tables without a deleted_at column yield undefined → treated as alive
+    // (backward-safe; no schema check needed). Items created on this device
+    // and not yet uploaded are never in the tombstone set — safe.
+    const tombstoned = new Set(rows.filter((r) => r.deleted_at).map((r) => r.id as string));
+    const remote = rows.filter((r) => !r.deleted_at) as T[];
+    const merged = mergeByTimestamp(local, remote).filter((m) => !tombstoned.has(m.id));
 
     // Save merged back to localStorage
     setStorage(storageKey, merged);
