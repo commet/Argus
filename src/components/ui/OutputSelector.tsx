@@ -214,7 +214,9 @@ export function OutputSelector({ project }: OutputSelectorProps) {
           className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors w-full"
         >
           {codaOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          {L('항해일지 · 되돌아보기', 'Logbook · Reflect')}
+          {/* 08 P2-3: '항해일지' is reserved for the ship's-log rail — this legacy
+              coda only looks back on ONE voyage, so its label says exactly that. */}
+          {L('이 항해 돌아보기', 'Look back on this voyage')}
           {codaSaved && <span className="text-[10px] text-[var(--success)] font-medium ml-1">{L('저장됨', 'Saved')}</span>}
         </button>
         {codaOpen && (

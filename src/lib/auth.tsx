@@ -118,9 +118,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // and confirm it (local-first → "your thinking follows you when you sign up").
       if (_event === 'SIGNED_IN' && session?.user) {
         migrateLocalToAccount()
-          .then((count) => {
-            if (count > 0 && typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('argus:account-synced', { detail: { count } }));
+          .then(({ projects, partial }) => {
+            if (projects > 0 && typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('argus:account-synced', { detail: { count: projects, partial } }));
             }
           })
           .catch(() => { /* migration is best-effort; never block auth */ });

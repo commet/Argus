@@ -4,17 +4,20 @@
  * SirenHero — the single first screen (W1.3 세이렌 1화면).
  *
  * The money screen, and therefore the strongest expression of the logbook
- * identity — not the most templated. Hero grammar, top to bottom:
- *   kicker → headline (the lonely question, verbatim) → the verbatim problem
- *   pitch → the ForkPath motif (the page literally forks, and a dashed arc
- *   returns) → the resolving line → a ruled chart-field input (the single
- *   entry to the voyage) → one how-it-works line → a marginal privacy note →
- *   a demoted demo path → scroll cue. Marginalia frame it like a plate.
+ * identity — not the most templated. Hero grammar, top to bottom (2026-07-03,
+ * 06 S8 — comment kept current with the built structure):
+ *   kicker → headline (the lonely question, verbatim) → the product film as a
+ *   resting still (VoyageFilm — tap to open a dimmed lightbox where it plays
+ *   large) → a bridge line handing off from the film to the act → the unified
+ *   entry: ONE chart-field with TWO doors (WRITE a decision / open what's ON
+ *   FILE), the divider gliding toward whichever door the visitor leans into →
+ *   the expectation-setting quiet line (free · ~30s to a first read · content
+ *   used for analysis only) → scroll cue. Marginalia frame it like a plate.
  *
- * Gold is spent exactly once on this screen — the ForkPath divergence node —
- * because the value moment is recognition (the fork), not the click. The CTA
- * is navy ink (bp-btn-primary), the input a ruled field with corner ticks; no
- * drop shadows, no fat radii, no second gold — ink physics, not screen glass.
+ * Gold is spent exactly once on this screen — on the WRITE submit, a user
+ * action — because the value moment is recognition, not the click. The ON
+ * FILE door stays ink; the input is a ruled field with corner ticks; no drop
+ * shadows, no fat radii, no second gold — ink physics, not screen glass.
  *
  * Copy rules (FRAMEWORK §7): measurement is never the headline — 알아봄 and
  * 귀환 are. No scores, no verdict vocabulary, no 내기/반증 on the surface. The

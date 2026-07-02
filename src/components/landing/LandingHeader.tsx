@@ -4,11 +4,16 @@ import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
+import { useDueCount } from '@/hooks/useDueCount';
 
 export function LandingHeader() {
   const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const { user, loading } = useAuth();
+  // 03 S7: the landing's one quiet recognition — a single gold dot (no number)
+  // when a sealed decision is waiting. Same hook as every return surface, so
+  // the landing can never disagree with the app about "something is due".
+  const { dueCount } = useDueCount();
 
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -108,6 +113,19 @@ export function LandingHeader() {
                     minHeight: 44,
                   }}
                 >
+                  {dueCount > 0 && (
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 999,
+                        background: 'var(--bp-gold)',
+                        marginRight: 7,
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
                   {L('워크스페이스 →', 'Workspace →')}
                 </LocaleLink>
               ) : (

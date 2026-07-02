@@ -18,12 +18,13 @@ const VISIBLE_MS = 5000;
 export function AccountSyncToast() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
-  const [toast, setToast] = useState<{ at: number; count: number } | null>(null);
+  const [toast, setToast] = useState<{ at: number; count: number; partial: boolean } | null>(null);
 
   useEffect(() => {
     const handler = (e: Event) => {
       const count = (e as CustomEvent).detail?.count ?? 0;
-      if (count > 0) setToast({ at: Date.now(), count });
+      const partial = !!(e as CustomEvent).detail?.partial;
+      if (count > 0) setToast({ at: Date.now(), count, partial });
     };
     window.addEventListener('argus:account-synced', handler);
     return () => window.removeEventListener('argus:account-synced', handler);
@@ -49,8 +50,13 @@ export function AccountSyncToast() {
         >
           <Check size={14} className="mt-0.5 shrink-0 text-[var(--primary)]" />
           <span className="text-[12px] leading-snug text-[var(--text-primary)]">
-            {L(`결정 ${toast.count}건을 계정에 저장했어요 — 이제 어디서나 이어서.`,
-               `Saved ${toast.count} decision${toast.count === 1 ? '' : 's'} to your account — continue anywhere now.`)}
+            {toast.partial
+              ? /* 04 S8: at least one push failed — don't claim "saved"; point at the
+                   sync badge, which owns the honest state. */
+                L(`결정 ${toast.count}건을 계정으로 옮기는 중이에요 — 상태는 상단 동기화 표시에서 확인돼요.`,
+                  `Moving ${toast.count} decision${toast.count === 1 ? '' : 's'} to your account — the sync indicator up top shows the status.`)
+              : L(`결정 ${toast.count}건을 계정에 저장했어요 — 이제 어디서나 이어서.`,
+                  `Saved ${toast.count} decision${toast.count === 1 ? '' : 's'} to your account — continue anywhere now.`)}
           </span>
         </motion.div>
       )}

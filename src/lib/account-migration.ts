@@ -13,6 +13,7 @@
  * (own sync path) are deliberately excluded — their own stores migrate them.
  */
 import { getCurrentUserId, supabase } from './supabase';
+import { getSyncFailureCount } from './sync-health';
 import { getStorage, STORAGE_KEYS } from './storage';
 import { loadAndMerge } from './db';
 import type { ProgressiveSession } from '@/stores/types';
@@ -39,15 +40,25 @@ const SYNC_MAP: Array<{ key: string; table: SyncTable }> = [
 // a successful pass so a transient failure can retry.
 let _ranForUser: string | null = null;
 
+export interface MigrateResult {
+  /** The user's unit — decisions/projects, not internal signal rows. */
+  projects: number;
+  /** True when at least one push failed this pass (04 S8) — the toast must not
+   *  claim "saved" for work that may still be local-only. */
+  partial: boolean;
+}
+
 /**
  * Push local-only rows to the signed-in account; returns the number of local
- * items now backed by the account (0 if not signed in or already run for this user).
+ * projects now backed by the account (0 if not signed in or already run for this
+ * user) plus whether any push failed, so the confirmation toast can stay honest.
  */
-export async function migrateLocalToAccount(): Promise<number> {
+export async function migrateLocalToAccount(): Promise<MigrateResult> {
   const userId = await getCurrentUserId();
-  if (!userId) return 0;            // not truly signed in yet — allow a later retry
-  if (_ranForUser === userId) return 0;
+  if (!userId) return { projects: 0, partial: false }; // not truly signed in yet — allow a later retry
+  if (_ranForUser === userId) return { projects: 0, partial: false };
 
+  const failuresBefore = getSyncFailureCount();
   let localCount = 0;
   // P2: the toast must report the user's UNIT (decisions/projects), not the sum of
   // every internal row (quality_signals, dq_scores…). "23건 saved" for one decision
@@ -104,5 +115,11 @@ export async function migrateLocalToAccount(): Promise<number> {
 
   _ranForUser = userId; // mark done only after a full pass (allows retry on earlier throw)
   void localCount; // (kept for potential future telemetry; the toast reports projects)
-  return projectCount; // the user's unit — decisions/projects, not internal signal rows
+
+  // loadAndMerge's local-only push is fire-and-forget, so give the async writes a
+  // moment to land before sampling the failure counter (best-effort — a slower
+  // failure still surfaces through the SyncStatus badge the toast points at).
+  await new Promise((r) => setTimeout(r, 1_000));
+  const partial = getSyncFailureCount() > failuresBefore;
+  return { projects: projectCount, partial };
 }
