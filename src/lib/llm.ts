@@ -164,6 +164,25 @@ function recordFailure(provider = 'anthropic'): void {
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504, 529]);
 
+// P1-C2 wall-clock ceiling across ALL attempts. Each attempt already caps at
+// 120s, but 4 attempts × 120s + backoff waits could stack past 8 minutes.
+// 180s sits in the same magnitude as ReviewFlow's 150s rationale and below
+// the streaming HARD_CAP (300s) — non-streaming calls are shorter, structured.
+const TOTAL_BUDGET_MS = 180_000;
+
+/**
+ * P1-C2 retry visibility: dispatched right before each backoff wait so the
+ * 5–15s silent gap reads as "retrying (2/3)" in PhaseStatusBar / LoadingSteps
+ * instead of a stalled spinner. Fact-only machine state — no drama.
+ */
+function emitRetryEvent(attempt: number, max: number, status?: number): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('argus:llm-retry', {
+      detail: { attempt, max, status },
+    }));
+  }
+}
+
 async function fetchWithRetry(
   input: RequestInfo,
   init: RequestInit,
@@ -172,7 +191,24 @@ async function fetchWithRetry(
 ): Promise<Response> {
   checkCircuit(provider);
 
+  // P1-C3 offline honesty: when the device KNOWS it's offline, fail here in
+  // 0ms instead of burning ~7s of futile retries. Single source — every
+  // non-streaming caller passes through this function.
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    throw new LLMError('지금 오프라인이에요. 적어주신 내용은 이 기기에 그대로 있어요 — 연결이 돌아오면 다시 시도해 주세요.', {
+      category: 'network', retryable: true,
+    });
+  }
+
+  const startedAt = Date.now();
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0 && Date.now() - startedAt > TOTAL_BUDGET_MS) {
+      recordFailure(provider);
+      throw new LLMError('요청이 시간 내에 완료되지 않았어요. 잠시 후 다시 시도해 주세요.', {
+        category: 'network', retryable: true,
+      });
+    }
     // Hard ceiling on each non-streaming attempt. Without it a dead socket / 529
     // overload leaves a user-facing call spinning for the SDK/browser default
     // (~minutes), and the caller's finally-loading-reset never runs. Mirrors the
@@ -216,6 +252,7 @@ async function fetchWithRetry(
       if (process.env.NODE_ENV === 'development') {
         console.warn(`[llm] 재시도 ${attempt + 1}/${maxRetries} (status ${res.status}, ${Math.round(delay)}ms 후)`);
       }
+      emitRetryEvent(attempt + 1, maxRetries, res.status);
       await new Promise(r => setTimeout(r, delay));
     } catch (error) {
       clearTimeout(to);
@@ -235,6 +272,7 @@ async function fetchWithRetry(
             category: 'network', retryable: true, cause: error,
           });
         }
+        emitRetryEvent(attempt + 1, maxRetries);
         await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
         continue;
       }
@@ -244,6 +282,7 @@ async function fetchWithRetry(
           category: 'network', retryable: true, cause: error,
         });
       }
+      emitRetryEvent(attempt + 1, maxRetries);
       await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
     }
   }

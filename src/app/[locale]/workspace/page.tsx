@@ -716,7 +716,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                         ? L(`오늘의 무료 사용 한도(하루 ${DAILY_LIMIT}회)를 다 썼어요. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.`, `You've used today's free allowance (${DAILY_LIMIT}/day). Register your own API key in Settings for unlimited use.`)
                         : L('무료 체험 한도에 도달했어요. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.', 'Free trial limit reached. Register your own API key in Settings for unlimited use.'))
                     : isNetwork
-                      ? L('네트워크 연결이 불안정해요. 연결을 확인하고 다시 시도해주세요.', 'Network looks unstable. Check your connection and try again.')
+                      ? L('연결이 끊겼거나 불안정해요 — 적어주신 내용은 그대로 있어요. 연결을 확인하고 다시 시도해 주세요.', "Connection lost or unstable — what you wrote is still here. Check your connection and try again.")
                       : isTimeout
                         ? L('응답이 평소보다 오래 걸렸어요. 다시 시도하면 대개 해결돼요.', 'That took longer than usual. Trying again usually fixes it.')
                         : L('분석에 실패했어요. 잠시 후 다시 시도해주세요.', 'Analysis failed. Please try again in a moment.');

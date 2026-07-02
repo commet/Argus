@@ -210,3 +210,11 @@
 - **파일**: `src/lib/storage.ts`, `src/lib/__tests__/persistence-contract.test.ts`, `src/lib/auth.tsx`(hasKnownUser export), `src/components/ui/SessionExpiredToast.tsx`(신설), `src/components/ui/SyncStatus.tsx`, `src/components/layout/Header.tsx`, `src/components/layout/AuthGuard.tsx`, `src/app/[locale]/workspace/page.tsx`, `src/components/workspace/progressive/ProgressiveFlow.tsx`, `src/lib/i18n/ko.ts`·`en.ts`, `src/lib/sync-health.ts`, `src/lib/db.ts`
 - **검증**: tsc 0 · persistence-contract + db.test 14/14 · 한국어 mojibake 검사(U+FFFD 0) 통과.
 - **커밋**: cf44598
+
+### [P1-C7] 삭제 tombstone 전파 — 기기 간 삭제 + 영구 헛 push 루프 봉합
+
+- **무엇을**: loadAndMergeUncached가 원격 응답에서 deleted_at 행을 **필터 전에** 수집(`tombstoned` Set — 추가 쿼리 0)하고, merge 결과에서 유령을 **localOnly 계산 앞에서** 제거. 이 한 수술로 ① 다른 기기에서 삭제한 행의 로컬 유령 사본이 다음 로드 때 사라지고 ② 그 유령이 localOnly로 분류돼 **매 로드마다 재-upsert되던 영구 헛 push 루프**(리뷰3 실배관 확인 — upsert payload에 deleted_at이 없어 서버는 삭제 유지, push만 무한 반복)가 같이 끊긴다. ③ deleted_at 컬럼 없는 테이블은 undefined → 산 것으로 취급(하위호환 자동 안전, 스키마 검사 불필요). 이 기기에서 방금 만들어 업로드 전인 항목은 tombstone에 없어 안전. 서버 삭제가 한 번이라도 성공했다면 "실패한 삭제 부활"(04 P2-3)도 자가 치유.
+- **구현 제약 4개(리뷰3) 전부 이행**: ①필터 전 수집 ②localOnly 계산 앞 제거 ③하위호환 ④db.test.ts 회귀 테스트("tombstone 행은 로컬에서 제거되고 재푸시되지 않는다" — tombstone이 로컬보다 최신이어도 merge로 부활하지 않음 + 진짜 오프라인 생성 항목은 여전히 업로드됨 단언 포함).
+- **파일**: `src/lib/db.ts`(loadAndMergeUncached), `src/lib/__tests__/db.test.ts`(loadAndMerge tombstone describe 신설 — supabase from/select/eq/order/upsert 체인 mock)
+- **검증**: db.test 11/11 (신규 1건 포함) · tsc 0.
+- **커밋**: 0847c09

@@ -50,7 +50,7 @@ import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
-import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation } from 'lucide-react';
+import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, RefreshCw } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useT } from '@/contexts/LocaleProvider';
 import { personaName, personaRole } from './shared/persona-format';
@@ -1086,6 +1086,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // Chronicler — enriches log waypoints with narration once the stream settles.
   useChronicler(session, !busy);
   const [error, setError] = useState<string | null>(null);
+  // P1-C3: the last user-triggered LLM action, kept so the error banner can
+  // offer an explicit "try again" handle instead of stranding the user with a
+  // message. Only handlers that are SAFE to re-enter set this (onAnswer rolls
+  // its answer back in its catch, so re-entry is clean; onTest self-recovers
+  // by falling through to finalize, so it doesn't need one).
+  const retryRef = useRef<(() => void) | null>(null);
   const [showMix, setShowMix] = useState(false);
   // R32/R60 terminal-route escape: a non-open/flat route is terminal by default
   // (the inline insight is the deliverable), so the fabricated question is
@@ -1114,6 +1120,20 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // PhaseStatusBar's substage so the user sees "gathering → debate → drafting"
   // instead of 30s of "Drafting the document".
   const [substage, setSubstage] = useState<string | null>(null);
+  // P1-C2: llm.ts dispatches argus:llm-retry before each backoff wait — a
+  // silent 5–15s gap that used to read as a stalled spinner. Surface it in the
+  // substage line. Fact-only machine state ("retrying 2/3"), no drama.
+  useEffect(() => {
+    const onRetry = (e: Event) => {
+      const d = (e as CustomEvent).detail as { attempt?: number; max?: number } | undefined;
+      if (!d?.attempt || !d?.max) return;
+      setSubstage(locale === 'ko'
+        ? `일시적인 오류가 있어 다시 시도하는 중 (${d.attempt}/${d.max})…`
+        : `Hit a temporary error — retrying (${d.attempt}/${d.max})…`);
+    };
+    window.addEventListener('argus:llm-retry', onRetry);
+    return () => window.removeEventListener('argus:llm-retry', onRetry);
+  }, [locale]);
   const [cmReview, setCmReview] = useState<NavigatorReview | null>(null);
   const debateResult = session?.debate_result as DebateResult | null ?? null;
   // ── Post-complete draft tree UI state ──
@@ -1708,6 +1728,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
     // No scroll here — the question card unmounts and the sticky status bar is
     // already in view; jumping now AND again on arrival was two jolts per turn.
+    retryRef.current = () => onAnswer(value); // safe: catch rolls the answer back
     store.addAnswer(ans); store.setPhase('analyzing'); track('flow_answer', { round }); setBusy(true); setError(null);
     // Tell the sidebar agents "new input just landed" — triggers flash
     useAgentAttentionStore.getState().ping('answer');
@@ -1834,6 +1855,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   };
 
   const runMixCore = async () => {
+    retryRef.current = runMixCore;
     setBusy(true); setError(null); store.setPhase('mixing'); scrollToRef(statusBarRef);
     setSubstage(L('팀 결과 모으는 중', 'Gathering team results'));
     abortRef.current = new AbortController();
@@ -2031,7 +2053,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   };
 
   const onDM = async () => {
-    if (!mix) return; setBusy(true); setError(null); scrollToRef(statusBarRef);
+    if (!mix) return; retryRef.current = onDM; setBusy(true); setError(null); scrollToRef(statusBarRef);
     abortRef.current = new AbortController();
     try {
       // Boss agent가 연결되어 있으면 Boss 성격 DM 피드백
@@ -2070,7 +2092,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   };
 
   const onDeepen = async () => {
-    if (!mix) return; setBusy(true); setError(null); scrollToRef(statusBarRef);
+    if (!mix) return; retryRef.current = onDeepen; setBusy(true); setError(null); scrollToRef(statusBarRef);
     abortRef.current = new AbortController();
     try {
       const reviewerAgent = session?.reviewer_agent_id
@@ -2097,7 +2119,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   };
 
   const onMore = async () => {
-    if (!latest) return; setShowMix(false); setBusy(true); store.setPhase('analyzing'); scrollToRef(statusBarRef);
+    if (!latest) return; retryRef.current = onMore; setShowMix(false); setBusy(true); store.setPhase('analyzing'); scrollToRef(statusBarRef);
     try {
       const qa = qaPairs.filter(q => q.answer).map(q => ({ question: q.question, answer: q.answer! }));
       qa.push({ question: { id: 's', text: locale === 'ko' ? '더?' : 'More?', type: 'select', engine_phase: 'recast' }, answer: { question_id: 's', value: t('progressive.oneMore') } });
@@ -2142,7 +2164,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     // (and the sealed-prediction "최종 문서 다시 만들기" recovery) with NO DM
     // feedback. Requiring it here made that button a silent no-op. Only the mix
     // (the draft) is actually required; runFinalDeliverable tolerates a null dmFb.
-    if (!mix) return; setBusy(true); setError(null); scrollToRef(statusBarRef);
+    if (!mix) return; retryRef.current = onFinalize; setBusy(true); setError(null); scrollToRef(statusBarRef);
     setSubstage(L('피드백 반영 + 최종본 다듬는 중', 'Applying feedback + polishing'));
     setStreamKind('doc');
     setStreamingText('');
@@ -2471,6 +2493,17 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                         <Link href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
                           {L('Settings에서 API 키 등록하기 →', 'Register API key in Settings →')}
                         </Link>
+                      )}
+                      {/* P1-C3: an explicit retry handle — the failed action is
+                          kept in retryRef by each safe-to-re-enter handler.
+                          Quota errors route to Settings instead (retry can't fix them). */}
+                      {!isQuota && retryRef.current && (
+                        <button
+                          onClick={() => { const r = retryRef.current; setError(null); r?.(); }}
+                          className="inline-flex items-center gap-1 mt-1 text-[12px] text-[var(--accent)] font-semibold hover:underline cursor-pointer"
+                        >
+                          <RefreshCw size={11} /> {L('다시 시도', 'Try again')}
+                        </button>
                       )}
                     </div>
                     <button onClick={() => setError(null)} aria-label={L('닫기', 'Dismiss')}
