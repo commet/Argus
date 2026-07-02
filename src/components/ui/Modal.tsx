@@ -116,7 +116,7 @@ export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg' 
       />
       <div
         ref={dialogRef}
-        className={`relative bg-[var(--surface)] rounded-[20px] shadow-[var(--shadow-xl)] border border-[var(--border-subtle)] w-full ${widthClass} mx-4 max-h-[85vh] overflow-hidden animate-fade-in`}
+        className={`relative bg-[var(--surface)] rounded-2xl shadow-[var(--shadow-xl)] border border-[var(--border-subtle)] w-full ${widthClass} mx-4 max-h-[85vh] overflow-hidden animate-fade-in`}
       >
         <div className="h-[2px] w-full" style={{ background: 'var(--gradient-gold)' }} />
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)]">

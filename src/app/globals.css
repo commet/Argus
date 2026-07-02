@@ -102,12 +102,11 @@
   --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-wave: cubic-bezier(0.32, 0.72, 0, 1);
 
-  /* Radius scale */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
+  /* Radius: Tailwind's rounded-* scale is the single source of truth.
+     The old custom --radius-sm..2xl tokens are retired — their names collided
+     with Tailwind's (rounded-2xl = 16px vs --radius-2xl = 24px: same name,
+     two values — an active drift trap, A3). Use rounded-lg/xl/2xl utilities
+     or explicit px. */
 }
 
 /* ── Dark mode — Warm Charcoal "Performance Mode" ── */
@@ -261,7 +260,7 @@ body {
 }
 
 /* Focus ring is defined once above (:focus-visible, line ~212). The former
-   duplicate *:focus-visible here forced border-radius: var(--radius-sm) onto
+   duplicate *:focus-visible here forced an 8px border-radius onto
    EVERY ring — an 8px-cornered outline floating around round controls (pill
    nav, KO/EN toggle, round avatar/theme buttons). Removed so the modern
    outline hugs each element's own border-box shape. */
@@ -1040,7 +1039,7 @@ button, a, input, textarea {
   width: 100%;
   padding: 20px;
   border: 2px solid var(--border);
-  border-radius: var(--radius-xl);
+  border-radius: 16px; /* rounded-2xl (snapped from the off-scale 20px token) */
   background: var(--surface);
   font-size: 16px;
   line-height: 1.6;
@@ -1608,7 +1607,7 @@ button, a, input, textarea {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-radius: var(--radius-md);
+  border-radius: 12px; /* rounded-xl */
   background: var(--bg);
   border: 1px solid var(--border-subtle);
 }
@@ -2364,7 +2363,7 @@ button, a, input, textarea {
 .agent-card {
   position: relative;
   padding: 20px;
-  border-radius: var(--radius-lg);
+  border-radius: 16px; /* rounded-2xl */
   background: var(--surface);
   border: 1px solid var(--border);
   cursor: pointer;

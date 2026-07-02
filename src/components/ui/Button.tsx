@@ -17,6 +17,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * it adapts to light/dark instead of hardcoding parchment hexes. Hover/active
  * are transform + brightness (kept in className) so they don't fight the inline
  * resting shadow.
+ *
+ * ROLE SEPARATION (A3 / gold rule): `primary` = ink, the everyday action.
+ * `accent` = gold — reserved for the USER's commit moments (확정·봉인·최종
+ * 커밋), never for the machine spotlighting its own output. `secondary` =
+ * quiet outline support, `ghost` = tertiary, `danger` = isolated destructive
+ * hue. Press feedback is the unified tactile `active:scale-[0.96]`.
  */
 const variantDepth: Record<Variant, React.CSSProperties> = {
   primary: {
@@ -71,8 +77,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           inline-flex items-center justify-center gap-2 font-semibold
           transition-[transform,filter] duration-150
           hover:-translate-y-[1px] hover:brightness-[1.04]
-          active:translate-y-[1px] active:brightness-[0.98]
-          disabled:opacity-40 disabled:pointer-events-none disabled:translate-y-0
+          active:scale-[0.96] active:translate-y-0 active:brightness-[0.98]
+          disabled:opacity-40 disabled:pointer-events-none disabled:translate-y-0 disabled:scale-100
           cursor-pointer
           ${sizeStyles[size]}
           ${className}

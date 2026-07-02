@@ -35,7 +35,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={`
-          border rounded-2xl p-4 md:p-6
+          border rounded-xl p-4 md:p-6
           ${variantStyles[variant]}
           ${hoverable ? 'transition-all duration-300 hover:shadow-[var(--shadow-lg)] hover:-translate-y-1.5 hover:border-[var(--accent-light)]/30 cursor-pointer' : ''}
           ${className}
