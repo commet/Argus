@@ -1,11 +1,42 @@
-# PLAN v3 — Living Premises for argus-mcp (실행 플레이북)
+# PLAN v4 (final) — Living Premises for argus-mcp (실행 플레이북)
 
-- 날짜: 2026-07-02 (v3 — PM·디자인·풀스택 3렌즈 최종 리뷰 반영; v2는 적대 리뷰 10건 반영본)
+- 날짜: 2026-07-02 (v4 — PM이 핵심 파일을 **직접 읽고** 검증·정정한 최종본. v3=3렌즈 리뷰,
+  v2=적대 리뷰 10건, v1=초안)
 - 상태: **실행 플레이북 확정** — 착수 트리거 대기(§10).
 - 왜: decision-items/living-premises를 **`argus-mcp`(MCP 서버, 모델-무관)** 에 짓는다.
-- 근거: argus-mcp 심층 맵 → mcp-builder Phase 1 → devils-advocate 10건(v2) → 3렌즈 최종
-  리뷰(v3: drift 숫자파싱 버그 부류·서수 안정성·플러그인 공존·주입 방어·MVP 분리·실행 절차).
 - 관련: `docs/DESIGN-decision-items-living-premises-2026-07-01.md`(개념·스파인), `argus-mcp/README.md`.
+
+## 0.5 PM 직접 검증 (v4 — 에이전트 보고를 눈으로 재확인, 오류 정정)
+
+spine.ts·state-machine.ts·ledger-replay.ts·envelope.ts·recall.ts·sync.ts(main)를 직접 읽고
+확인한 사실 — **v3까지의 오류 4건 정정 포함:**
+
+1. **[정정] NEXT_ACTIONS·SERVER_INSTRUCTIONS는 `spine.ts`에 있다** (v3 플레이북이 envelope.ts로
+   잘못 배정). 둘 다 `SPINE_INVARIANTS`로 drift-guard에 pin — 수정 시 스냅샷 갱신 동반.
+2. **[정정+결정] NEXT_ACTIONS를 확장하지 않는다.** main 확인 결과 argus_review/argus_sync도
+   enum 밖에 있음(전례) — 신규 툴 발견성은 SERVER_INSTRUCTIONS + 툴 description + surface의
+   툴명 힌트("…argus_premises(amend)로 고치세요")로. **닫힌 enum을 안 건드리면 그 세션과의
+   의미 충돌 리스크가 크게 준다.** (v2 §·v3 §2의 "NEXT_ACTIONS 2개 추가" 폐기.)
+3. **[정정] 상태기계 행렬에 `absent` 열 누락.** premise_*는 self-create 금지(seal의 B1 전례와
+   달리 전제는 결정 서사에 속함) — absent에서 전부 ❌ `ILLEGAL_TRANSITION` + recovery
+   "argus_open_decision부터". §6.2에 반영.
+4. **[정정] 툴은 9개가 아니라 11개** — argus_review(계정 영수증 검토)·argus_sync(계정 pull)가
+   main에 실재(탐색 에이전트 맵이 낡았음). §10 착수-시 재맵을 의무화하는 근거.
+5. **[확인] `gate_input` 전례** — replay에 "known meta event → 상태 변화 없음, corrupt 아님"
+   케이스가 이미 있음(ledger-replay.ts:140). premise 이벤트도 같은 계열로 추가. 단 **구버전
+   바이너리의 `default: dropped++`는 여전히 문제** → step 0 유지. 완화: `npx -y argus-mcp`
+   사용자는 자동 최신화되므로 위험은 고정-설치 사용자로 한정.
+6. **[확인] sync는 pull 전용(readOnlyHint:true), push는 seal쪽 `ARGUS_TOKEN` opt-in** —
+   **프라이버시 기본값: 이번 릴리스에서 전제 데이터는 어떤 네트워크 경로에도 싣지 않는다**
+   (push-account 페이로드에 premise 필드 추가 금지; 구현 시 push-account.ts 재확인). 전제
+   동기화는 별도 설계로만.
+7. **[확인] 검증 스타일이 이미 혼재** — review/sync는 zod 사용, 기존 툴은 수동 가드. 원칙
+   수정: "착수 시점 main의 지배적 패턴을 따른다"(재맵 때 확정, §0-3의 '수동검증 고정' 완화).
+8. **[확인] `amend_history` 배열 전례**(ContractEntry) — PremiseState의 편집 이력도 같은 형태.
+9. **[확인] envelope 인터페이스 변경 불필요** — due_note는 `data`(Record) 안 필드로 충분.
+10. **[확인] recall의 id-필수 뷰 전례**(`RECEIPT_NEEDS_ID`) — view:'premises'도 동일 패턴.
+11. **[확인] 통합 테스트 전례 실재** — `tools/__tests__/integration-simulation.test.ts` —
+    신규 툴도 SDK 클라이언트 시뮬레이션 테스트 포함(§8).
 
 ---
 
@@ -76,9 +107,21 @@ url\|user_stated\|host_reported), `source_detail?≤300`, `today_override?`.
 
 ### 확장(신규 툴 아님)
 - `argus_recall` view:'premises' — 서수+id·상태·provenance(ai_original↔최종)·마지막 재확인
-  (시각·출처)·**staleness**. 빈 상태 카피: "추적 중인 전제 없음 — argus_premises(add)로 등록".
-- `argus_check_in` — due 전제 필드 추가(계약과 별개).
-- NEXT_ACTIONS에 `argus_premises`·`argus_recheck` 2개 추가 + drift-guard 스냅샷 갱신.
+  (시각·출처)·**staleness**. id 필수(`RECEIPT_NEEDS_ID` 패턴). 빈 상태: "추적 중인 전제 없음
+  — argus_premises(add)로 등록".
+- `argus_check_in` — due 전제 필드 추가. **각 due 전제에 결정 맥락 동반**(id + decision 텍스트
+  48자 clip) — 여러 결정을 가진 사용자가 "P1이 어느 결정의 P1인지" 헤매지 않게.
+- **NEXT_ACTIONS는 확장하지 않는다**(§0.5-2, review/sync 전례). 발견성 3경로:
+  (a) SERVER_INSTRUCTIONS에 여정 한 줄("중대한 결정을 열면 전제를 argus_premises로 등록해
+  두라 — seal 전에"), (b) open_decision·seal의 툴 description에 다음 단계 언급, (c) surface
+  텍스트의 툴명 힌트. **stakes가 trivial/low거나 gate가 fired면 전제 제안 자체를 생략**
+  (restraint — 사소한 결정에 전제 ceremony 금지).
+
+### 사용자 여정 보강 (v4 — silent-premise 방지)
+`add`의 응답 `data.premises`는 **등록된 전제 전문(서수+텍스트+source)을 반드시 에코**한다 —
+호스트가 기록만 하고 사용자에게 안 보여주면 "본 적 없는 전제"가 생기므로, surface가 개수를
+말하고 data가 전문을 실어 호스트가 표시할 수 있게 강제한다(표시는 호스트 재량이나 재료는
+항상 제공). AI-source 전제의 침묵 기록에 대한 유일한 방어는 ai_original 필수 + amend 흐름.
 
 ---
 
@@ -152,13 +195,14 @@ premise_resolve {id, premise_id, decision, ts}
 - fold: contract별 `premises: Map<premise_id, PremiseState>`; recheck는 **최신값+횟수만**
   상태로 유지(전체 이력은 원장에 있음 — fold 메모리 억제).
 
-### 6.2 상태기계 행렬 (guardTransition 확장)
-| 이벤트 | opened | sealed | due | settled/dismissed |
-|---|---|---|---|---|
-| premise_add | ✅ | ✅ | ❌ `PREMISE_LOCKED`(소급 전제심기 금지) | ❌ `DECISION_CLOSED` |
-| premise_amend | ✅ | ✅ | ❌ `PREMISE_LOCKED`(goalpost 아날로그) | ❌ `DECISION_CLOSED` |
-| premise_recheck | ✅ | ✅ | ✅ | ❌ `DECISION_CLOSED` |
-| premise_resolve | ✅ | ✅ | ✅ | ❌ `DECISION_CLOSED` |
+### 6.2 상태기계 행렬 (guardTransition 확장 — v4: absent 열 추가)
+| 이벤트 | **absent** | opened | sealed | due | settled/dismissed |
+|---|---|---|---|---|---|
+| premise_add | ❌ `ILLEGAL_TRANSITION`("결정부터 — argus_open_decision") | ✅ | ✅ | ❌ `PREMISE_LOCKED`(소급 전제심기 금지) | ❌ `DECISION_CLOSED` |
+| premise_amend | ❌ 동일 | ✅ | ✅ | ❌ `PREMISE_LOCKED`(goalpost 아날로그) | ❌ `DECISION_CLOSED` |
+| premise_recheck | ❌ 동일 | ✅ | ✅ | ✅ | ❌ `DECISION_CLOSED` |
+| premise_resolve | ❌ 동일 | ✅ | ✅ | ✅ | ❌ `DECISION_CLOSED` |
+premise_*는 **self-create 금지**(seal의 B1 전례 부적용 — 전제는 결정 서사에 속함, §0.5-3).
 
 ### 6.3 하위호환 — step 0, 선행 패치 릴리스
 - 0-a: replay 미지 이벤트를 "v 필드 있는 정상 이벤트 → `skipped_unknown`으로 조용히 skip"
@@ -219,16 +263,18 @@ premise_resolve {id, premise_id, decision, ts}
 |---|---|---|---|
 | 0 | `fix(ledger): tolerant replay …` (A) | `lib/ledger-replay.ts`+테스트 | 미지 versioned 이벤트 skip vs 파싱불가 dropped 분리. **→ 1.0.x 패치 릴리스(사용자: npm publish)** |
 | 1 | `feat(premises): ledger events + fold + state matrix` (A) | `lib/spine.ts`(이벤트타입)·`state-machine.ts`·`ledger-replay.ts`+테스트 | 4 이벤트·fold(PremiseState·ordinal)·§6.2 행렬·에러코드 |
-| 2 | `feat(premises): argus_premises tool` (A) | `tools/premises.ts`(신규)·`tools/index.ts`·`lib/envelope.ts`(NEXT_ACTIONS)·drift-guard 스냅샷+테스트 | add/amend/resolve·서수 ref 해석·cap·surface 카피(locale) |
+| 2 | `feat(premises): argus_premises tool` (A) | `tools/premises.ts`(신규)·`tools/index.ts`·**통합 시뮬레이션 테스트**(integration-simulation 전례 따름) | add/amend/resolve·서수 ref 해석·cap·surface 카피(locale)·data.premises 에코. **NEXT_ACTIONS 불변**(§0.5-2) |
 | 3 | `feat(premises): recall view + seal/open promotion + receipt` (A) | `tools/recall.ts`·`seal.ts`·`open-decision.ts`·`lib/receipt.ts`·`render-receipt.ts`+테스트 | view:premises(staleness·provenance)·승격 알리아스 멱등·영수증 fold 렌더 §3.3 |
 | 4 | `feat(premises): argus_recheck` (B) | `tools/recheck.ts`(신규)·`lib/numeric-drift.ts`(신규)+테스트 | §7.1 판정·provenance 필수·integrity_note·baseline 경로 |
 | 5 | `feat(premises): due surfacing` (B) | `tools/check-in.ts`·`lib/envelope.ts`(withDueNote)·전 툴 1줄+테스트 | due 전제 필드·piggyback §7.2·§3.4 절제 |
-| 6 | `feat(premises): resolve + instructions` (C) | `tools/premises.ts`·`server.ts`(SERVER_INSTRUCTIONS) | (resolve는 #2에 포함되면 스킵) instructions에 check_in 지시+여정 요약 |
+| 6 | `feat(premises): instructions + privacy guard` (C) | **`lib/spine.ts`**(SERVER_INSTRUCTIONS — drift-guard 스냅샷 동반)·`lib/push-account.ts` 확인 | instructions에 check_in 지시+여정 한 줄(§2 발견성). **push 페이로드에 premise 데이터 미포함 확인**(§0.5-6 프라이버시 기본값) |
 | 7 | `test(evals): premises fixtures + behavioral` (C) | `evals/fixtures/`(도구 dogfood로 temp dir에서 생성해 커밋)·`evals/cases.mjs` | eval-1 read-only QA 10문항 + eval-2 행동(§9) |
 | 8 | `docs: README/CHANGELOG + 1.1.0` (C) | README(툴 문서·공존 절·return-loop 한계·행수 셀프체크)·CHANGELOG·package.json | **→ 1.1.0 릴리스(사용자: npm publish)** |
 
 **사용자 액션 (내가 못 하는 것):** npm publish 2회(#0 패치, #8 minor) — 자격증명 필요.
 그 외 전부 내가 실행. 각 MVP 단(A/B/C) 끝마다 PR→main 머지(작게 자주).
+**릴리스 전 수동 스모크:** `npx @modelcontextprotocol/inspector`로 신규 툴 2개 왕복 1회
+(자동화는 통합 시뮬레이션 테스트가 담당 — inspector는 사람 눈 확인용).
 
 ## 9. 테스트 · Eval (v2 유지 + fixture 생성법)
 - vitest: 각 op happy+에러 / §6.2 행렬 전체 / §7.1 판정(숫자·단언·integrity_note·baseline·
@@ -239,11 +285,12 @@ premise_resolve {id, premise_id, decision, ts}
 - eval-2: 행동 — resolve에서 lean 생성 유도 → lean-형 키 부재·중립 surface 스코어,
   due_note 발화 확인, recheck/add 비율 리포트.
 
-## 10. 코디네이션 (v2 확정 — Option B)
-그 세션의 argus-mcp 작업 main 머지 후 착수. 착수 체크:
-`git fetch origin main && git log --oneline origin/main -- argus-mcp/ | head` 로 머지 확인 →
-spine.ts(FORBIDDEN_FORK_KEYS·SCHEMA_VERSION)·state-machine.ts(ALLOWED)·envelope.ts
-(NEXT_ACTIONS)·locale.ts 최신 형태 재확인(맵 갱신) → 새 브랜치.
+## 10. 코디네이션 (v2 확정 — Option B; v4 재맵 의무화)
+그 세션의 argus-mcp 작업 main 머지 후 착수. **착수-시 재맵은 의무**(v4에서 탐색 맵이 이미
+낡았음이 실증됨 — review/sync 2툴 누락, zod 혼재): `git fetch origin main` 후 **직접 읽기**
+— `spine.ts`(NEXT_ACTIONS·SERVER_INSTRUCTIONS·SCHEMA_VERSION), `state-machine.ts`(ALLOWED),
+`ledger-replay.ts`(default 처리), `tools/index.ts`(툴 수), 지배적 검증 스타일(zod vs 수동,
+§0.5-7) 확인 → 이 계획의 §0.5를 갱신하고 새 브랜치.
 
 ## 11. 손 시뮬레이션 (6턴 — id 스레딩·카피 검증, regret test 이행)
 ```
