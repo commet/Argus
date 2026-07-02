@@ -353,6 +353,18 @@ export function SirenHero() {
                   {L('읽어봐 주세요', 'Have it read')}
                 </button>
               </div>
+              {/* Expectation-setting marginalia (06 S2): free/no-login/time/privacy in
+                  one quiet line. "30초 안팎" is measured, not aspirational — 2026-07-03
+                  production smoke: first streamed token ~2.8s, full first read 16–30s. */}
+              <p
+                className={locale === 'ko' ? 'break-keep' : ''}
+                style={{ margin: '7px 0 0', color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.5, letterSpacing: '0.005em' }}
+              >
+                {L(
+                  '로그인 없이 무료 · 30초 안팎이면 첫 읽기가 와요 · 내용은 분석에만 쓰여요',
+                  'Free, no login · first read in ~30s · your text is used for the analysis only',
+                )}
+              </p>
             </div>
 
             {/* DIVIDER — a hairline with an "또는 / or" chip. On desktop it is the
