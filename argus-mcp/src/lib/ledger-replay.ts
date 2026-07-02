@@ -42,7 +42,14 @@ export interface LedgerState {
     partial: number;
     still_pending: number;
   };
-  integrity: { dropped_lines: number };
+  integrity: {
+    dropped_lines: number;
+    /** Well-formed, versioned events of a type this binary doesn't know (written
+     *  by a NEWER argus-mcp, e.g. future premise_* events). Skipped, not corrupt
+     *  — kept separate from dropped_lines so forward-compat never reads as a
+     *  false integrity alarm (plan v5 §6.3). */
+    skipped_unknown: number;
+  };
 }
 
 function freshEntry(id: string): ContractEntry {
@@ -62,12 +69,13 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
     held: 0, avoided: 0, partial: 0, still_pending: 0,
   };
   let dropped = 0;
+  let skippedUnknown = 0;
 
   let raw: string;
   try {
     raw = deBom(fs.readFileSync(ledgerPath(argusDir), 'utf8'));
   } catch {
-    return { today, overdue: [], ids, sealedPredicates, contracts: map, stats, integrity: { dropped_lines: 0 } };
+    return { today, overdue: [], ids, sealedPredicates, contracts: map, stats, integrity: { dropped_lines: 0, skipped_unknown: 0 } };
   }
 
   for (const line of raw.split('\n')) {
@@ -141,7 +149,13 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         break; // known meta event (over-fire gate audit) — not a state change, not corrupt
 
       default:
-        dropped++; // unknown event type
+        // Forward-compat tolerance (plan v5 §6.3): a well-formed, VERSIONED event
+        // whose type this binary doesn't know was written by a newer argus-mcp —
+        // skip it silently (like gate_input) instead of counting it as corruption,
+        // so an old install never raises a false integrity alarm on a new ledger.
+        // Only unversioned/structurally-broken events still count as dropped.
+        if (typeof ev['event'] === 'string' && typeof ev['v'] === 'number') skippedUnknown++;
+        else dropped++;
         break;
     }
   }
@@ -154,7 +168,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   }
   overdue.sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  return { today, overdue, ids, sealedPredicates, contracts: map, stats, integrity: { dropped_lines: dropped } };
+  return { today, overdue, ids, sealedPredicates, contracts: map, stats, integrity: { dropped_lines: dropped, skipped_unknown: skippedUnknown } };
 }
 
 /**
