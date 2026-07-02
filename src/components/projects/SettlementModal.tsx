@@ -39,10 +39,12 @@ import {
   CHECK_IN_MS,
 } from '@/lib/decision-contract';
 import { Modal } from '@/components/ui/Modal';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { recordSignal } from '@/lib/signal-recorder';
 import { track } from '@/lib/analytics';
 import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
 import { JudgmentReceipt } from './JudgmentReceipt';
+import { JudgmentFrame } from './JudgmentFrame';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
   governing_idea: Target,
@@ -57,7 +59,18 @@ const EXTEND_OPTIONS: { value: CheckInInterval; ko: string; en: string }[] = [
   { value: '1m', ko: '1달 뒤', en: 'in 1 month' },
 ];
 
-export function SettlementModal({ project, onClose }: { project: Project; onClose: () => void }) {
+export function SettlementModal({
+  project,
+  onClose,
+  remainingDue,
+}: {
+  project: Project;
+  onClose: () => void;
+  /** Remaining due count from the parent's useDueCount (the ONE number the
+   *  strip already shows) — passed down so the modal never grows its own
+   *  drifting due arithmetic. Absent → the new-decision door shows instead. */
+  remainingDue?: number;
+}) {
   const locale = useLocale();
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
@@ -340,6 +353,19 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                   <Check size={14} strokeWidth={2.5} />
                   {L('고리를 닫았어요.', 'Loop closed.')}
                 </p>
+                {/* 판단 액자 (P1-A1): the moment the loop closes is the moment
+                    the frame goes up — the user's own two sentences, verbatim,
+                    with date stamps. The diff between them is theirs to read;
+                    no summary, no commentary. Only the SAVED narrative shows
+                    (an unsaved draft isn't engraved). Renders nothing without
+                    a human_judgment. */}
+                <JudgmentFrame
+                  humanJudgment={contract.judgment_receipt?.human_judgment}
+                  whatHappened={contract.judgment_receipt?.what_happened}
+                  sealedOn={sealedOn}
+                  settledOn={contract.judgment_receipt?.settled_at ? fmtDate(contract.judgment_receipt.settled_at) : undefined}
+                  ko={ko}
+                />
                 {record && (
                   <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
                     {record.loops === 1
@@ -353,7 +379,26 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
                       ' ' + L(`그중 ${record.goodOutcomesOnLuck}개는 운이었다고 보셨고요.`, `You marked ${record.goodOutcomesOnLuck} of those as luck.`)}
                   </p>
                 )}
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between gap-3">
+                  {/* 재봉인 온램프 (P1-A1, 리뷰1): the ONE quiet door out of a
+                      closed loop. A text link only — no button promotion, no
+                      auto-navigation, no chained modal (§5-19). The count is a
+                      plain fact the due strip already shows. */}
+                  {typeof remainingDue === 'number' && remainingDue > 0 ? (
+                    <button
+                      onClick={onClose}
+                      className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline underline-offset-2 cursor-pointer transition-colors"
+                    >
+                      {L(`다음 확인할 것 ${remainingDue}건 →`, `${remainingDue} more to check →`)}
+                    </button>
+                  ) : (
+                    <LocaleLink
+                      href="/workspace"
+                      className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline underline-offset-2 transition-colors"
+                    >
+                      {L('새 결정 적기 →', 'Write a new decision →')}
+                    </LocaleLink>
+                  )}
                   <button
                     onClick={onClose}
                     className="px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white cursor-pointer"

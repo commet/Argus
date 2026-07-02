@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/Button';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { getStorage, STORAGE_KEYS } from '@/lib/storage';
+import { JudgmentFrame } from './JudgmentFrame';
 import type {
   Project,
   RecastItem,
@@ -323,6 +324,18 @@ export function DecisionContractCard({
                 ? parts.join(' · ')
                 : L(`예측 ${predicates.length}개 확인 완료`, `${predicates.length} predictions checked`)}
             </p>
+            {/* 판단 액자 (P1-A1): the user's own seal-time line + settlement
+                narrative on permanent display — verbatim quotes + date stamps
+                only, the diff is the user's to read. Renders nothing without a
+                human_judgment (skip-sealed / legacy contracts). */}
+            <JudgmentFrame
+              className="mt-3"
+              humanJudgment={contract!.judgment_receipt?.human_judgment}
+              whatHappened={contract!.judgment_receipt?.what_happened}
+              sealedOn={fmtDate(contract!.created_at)}
+              settledOn={fmtDate(contract!.judgment_receipt?.settled_at)}
+              ko={ko}
+            />
             <div className="mt-3">
               <PredicateList predicates={predicates} ko={ko} showVerdict />
             </div>

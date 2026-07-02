@@ -882,6 +882,9 @@ export default function ProjectPage() {
           {settleOpen && currentProject.decision_contract && (
             <SettlementModal
               project={currentProject}
+              /* P1-A1 재봉인 온램프: the modal's quiet next-handle shows the same
+                 number the due strip shows — one source (useDueCount), no drift. */
+              remainingDue={dueProjects.length + dueReceipts.length}
               onClose={() => {
                 setSettleOpenId(null);
                 setSettleDismissed((prev) => new Set(prev).add(currentProject.id));
