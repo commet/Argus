@@ -216,7 +216,12 @@ export function buildNavigatorInsights(profile: NavigatorProfile): NavigatorInsi
       });
     }
 
-    // Override rate interpretation
+    // Override rate interpretation — frequency-fact only.
+    // The low-override branch ("critically reviewing AI suggestions would get
+    // you better results") was REMOVED 2026-07-03 (P0-3): lecturing the user
+    // about how they use AI is a verdict about the user, not a fact about the
+    // record (CLAUDE.md Zero-Judgment rule 2). Do not re-add a coaching branch
+    // here — only sample-size-explicit frequency statements are allowed.
     if (profile.totalJudgments >= 3) {
       const pct = Math.round(profile.overrideRate * 100);
       if (profile.overrideRate > 0.4) {
@@ -225,15 +230,6 @@ export function buildNavigatorInsights(profile: NavigatorProfile): NavigatorInsi
           category: 'pattern',
           message: t('navigator.overrideHighMessage', { pct, count: profile.totalJudgments }),
           detail: t('navigator.overrideHighDetail'),
-          tier: 2,
-          priority: priority++,
-        });
-      } else if (profile.overrideRate < 0.1 && profile.totalJudgments >= 5) {
-        insights.push({
-          id: 'override_rate_low',
-          category: 'coaching',
-          message: t('navigator.overrideLowMessage', { pct }),
-          detail: t('navigator.overrideLowDetail'),
           tier: 2,
           priority: priority++,
         });
@@ -435,17 +431,10 @@ function getReframeCoaching(profile: NavigatorProfile): StepCoaching[] {
     }
   }
 
-  // Assumptions engagement failure — compensate
-  if (profile.tier >= 2) {
-    const worstEvals = getWorstPerformingEvals();
-    const assumptionFail = worstEvals.find((m) => m.evalId === 'assumptions_engaged');
-    if (assumptionFail) {
-      results.push({
-        message: t('coaching.reframe.assumptionEngage'),
-        detail: t('coaching.reframe.assumptionEngageDetail'),
-      });
-    }
-  }
+  // (Removed 2026-07-03, P0-3) Assumptions-engagement nudge ("가정 평가를 더
+  // 적극적으로 해보세요") — directive coaching that tells the user what to do
+  // is a spine violation (CLAUDE.md Zero-Judgment: no coaching sentences that
+  // push the user). Handles are buttons/links, never sentences.
 
   // High pass rate — specific acknowledgment
   if (results.length === 0 && profile.avgPassRate >= 0.75 && profile.sessionCount >= 3) {
@@ -653,48 +642,11 @@ function getRefineCoaching(profile: NavigatorProfile): StepCoaching[] {
     return results;
   }
 
-  // Cross-stage: DQ trend from previous projects
-  const dqScores = data.dqScores();
-  if (dqScores.length >= 2) {
-    const sorted = [...dqScores].sort((a, b) => a.created_at.localeCompare(b.created_at));
-    const prev = sorted[sorted.length - 2];
-    const last = sorted[sorted.length - 1];
-    const dqElements = [
-      { key: 'appropriate_frame' as const, label: t('dq.element.appropriateFrame') },
-      { key: 'creative_alternatives' as const, label: t('dq.element.creativeAlternatives') },
-      { key: 'relevant_information' as const, label: t('dq.element.relevantInformation') },
-      { key: 'clear_values' as const, label: t('dq.element.clearValues') },
-      { key: 'sound_reasoning' as const, label: t('dq.element.soundReasoning') },
-      { key: 'commitment_to_action' as const, label: t('dq.element.commitmentToAction') },
-    ];
-    if (last.overall_dq > prev.overall_dq) {
-      let biggestGainLabel = '';
-      let biggestDelta = 0;
-      for (const { key, label } of dqElements) {
-        const delta = (last[key] || 0) - (prev[key] || 0);
-        if (delta > biggestDelta) { biggestDelta = delta; biggestGainLabel = label; }
-      }
-      const detail = biggestGainLabel ? t('coaching.refine.biggestGain', { element: biggestGainLabel }) : undefined;
-      results.push({
-        message: t('coaching.refine.dqImproving', { prev: prev.overall_dq, current: last.overall_dq }),
-        detail,
-        tone: 'positive',
-      });
-    } else if (last.overall_dq < prev.overall_dq * 0.85) {
-      let biggestDropLabel = '';
-      let biggestDelta = 0;
-      for (const { key, label } of dqElements) {
-        const delta = (prev[key] || 0) - (last[key] || 0);
-        if (delta > biggestDelta) { biggestDelta = delta; biggestDropLabel = label; }
-      }
-      const detail = biggestDropLabel ? t('coaching.refine.biggestDrop', { element: biggestDropLabel }) : undefined;
-      results.push({
-        message: t('coaching.refine.dqDeclining', { prev: prev.overall_dq, current: last.overall_dq }),
-        detail,
-        tone: 'challenge',
-      });
-    }
-  }
+  // (Removed 2026-07-03, P0-3) DQ-trend coaching ("판단 품질이 개선/하락했습니다")
+  // — telling the user their decision quality went up OR down is a verdict about
+  // who the user is (CLAUDE.md Zero-Judgment rule 2). Praise is the same verdict
+  // as blame: if improvement gets announced, silence becomes a bad report card.
+  // The DQ data itself stays internal (buildLearningCurve) for routing only.
 
   // (Removed) Active refine loops coaching — legacy path gone.
 
@@ -713,18 +665,9 @@ function getSynthesizeCoaching(profile: NavigatorProfile): StepCoaching[] {
     return results;
   }
 
-  // Override rate coaching — prompts based on how often the user rewrites AI suggestions
-  if (profile.overrideRate > 0.5 && profile.totalJudgments >= 5) {
-    results.push({
-      message: t('coaching.synthesize.overrideHigh'),
-      tone: 'positive',
-    });
-  } else if (profile.overrideRate < 0.1 && profile.totalJudgments >= 5) {
-    results.push({
-      message: t('coaching.synthesize.overrideLow'),
-      tone: 'challenge',
-    });
-  }
+  // (Removed 2026-07-03, P0-3) Override-rate coaching ("당신은 … 그 판단력이
+  // 핵심입니다" / "두 소스 모두 틀릴 수도 있습니다") — character praise and
+  // lecturing are both user-verdicts (CLAUDE.md Zero-Judgment rule 2).
 
   return results;
 }

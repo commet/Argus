@@ -92,10 +92,8 @@ vi.mock('@/lib/i18n', () => ({
       'axis.business': '비즈니스',
       'axis.orgCapacity': '조직 역량',
       'navigator.defaultProject': '프로젝트',
-      'coaching.refine.biggestGain': '가장 큰 개선: {element}',
-      'coaching.refine.biggestDrop': '하락 원인: {element}',
-      'coaching.refine.dqImproving': '판단 품질이 개선되고 있습니다 ({prev} → {current}).',
-      'coaching.refine.dqDeclining': '판단 품질이 하락했습니다 ({prev} → {current}). 이번엔 가정 검토를 더 꼼꼼히 해보세요.',
+      // dqImproving/dqDeclining/biggestGain/biggestDrop fixtures removed 2026-07-03
+      // (P0-3): DQ-trend verdict generation was deleted from navigator.ts.
     };
     let text = map[key] ?? key;
     if (params) {
@@ -560,20 +558,14 @@ describe('Navigator Simulation', () => {
       expect(curve.dq_points[2].overall_dq).toBe(72);
     });
 
-    it('refine: DQ 상승 코칭이 나와야 한다', () => {
+    // P0-3 (2026-07-03): "개선되고 있습니다" 칭찬도 평결(스파인 규칙2) —
+    // DQ가 실제로 상승 중이어도 평결 코칭이 나오면 안 된다.
+    it('refine: DQ 상승이어도 평결 코칭을 생성하지 않는다 (스파인 규칙2)', () => {
       const profile = buildNavigatorProfile();
       const coaching = getStepCoaching('refine', profile);
-      const dqMsg = coaching.find(c => c.message.includes('판단 품질이 개선'));
-      expect(dqMsg).toBeDefined();
-      expect(dqMsg!.tone).toBe('positive');
-    });
-
-    it('refine: 가장 큰 개선 요소가 detail에 있어야 한다', () => {
-      const profile = buildNavigatorProfile();
-      const coaching = getStepCoaching('refine', profile);
-      const dqMsg = coaching.find(c => c.message.includes('판단 품질이 개선'));
-      // detail is from t('coaching.refine.biggestGain', { element }) which contains the element param
-      expect(dqMsg?.detail).toContain('프레이밍');
+      const dqMsg = coaching.find(c =>
+        c.message.includes('판단 품질이 개선') || c.message.includes('coaching.refine.dqImproving'));
+      expect(dqMsg).toBeUndefined();
     });
   });
 

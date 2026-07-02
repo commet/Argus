@@ -64,15 +64,13 @@ export const en: Record<TranslationKey, string> = {
   'coaching.reframe.firstUseDetail': 'Try asking yourself "What am I taking for granted in this question?" before you begin. It leads to sharper assumptions.',
   'coaching.reframe.demoAllAccepted': 'You accepted all premises in the demo.',
   'coaching.reframe.demoAllAcceptedDetail': 'This time, try questioning at least one assumption. Doubting a premise can reshape the entire question.',
-  'coaching.reframe.demoAllDoubted': 'You doubted all {total} premises in the demo — strong critical thinking.',
-  'coaching.reframe.demoAllDoubtedDetail': 'Apply that same sharpness here. Mark which assumptions are most risky — they\'ll carry into the execution design.',
+  'coaching.reframe.demoAllDoubted': 'You doubted all {total} premises in the demo.',
+  'coaching.reframe.demoAllDoubtedDetail': 'Mark which assumptions are most risky — they\'ll carry into the execution design.',
   'coaching.reframe.demoPartialDoubted': 'You doubted {doubted} of {total} premises in the demo.',
   'coaching.reframe.demoPartialDoubtedDetail': 'Apply the same standard here. Mark doubtful assumptions and they\'ll be verified in later steps.',
   'coaching.reframe.assumptionGrowth': 'Assumption discovery is increasing (avg {old} → {new}).',
   'coaching.reframe.assumptionGrowthDetail': 'You\'re developing a habit of digging deeper into problems.',
   'coaching.reframe.strategyRepetition': 'You\'ve been using \'{strategy}\' frequently. Try a different angle.',
-  'coaching.reframe.assumptionEngage': 'Try evaluating assumptions more actively.',
-  'coaching.reframe.assumptionEngageDetail': 'Marking assumptions as "confirmed" or "doubtful" improves analysis quality.',
   'coaching.reframe.highPassRate': 'Analysis utilization at {pct}% — you\'re actively using the results.',
 
   // Coaching — Recast
@@ -100,17 +98,13 @@ export const en: Record<TranslationKey, string> = {
   // Coaching — Refine
   'coaching.refine.firstUse': 'This is the convergence phase.',
   'coaching.refine.firstUseDetail': 'When making changes, ask: "How does this affect other steps?" Thinking holistically increases the chance of converging in one iteration.',
-  'coaching.refine.dqImproving': 'Decision quality is improving ({prev} → {current}).',
-  'coaching.refine.dqDeclining': 'Decision quality has declined ({prev} → {current}). Review assumptions more carefully this time.',
-  'coaching.refine.biggestGain': 'Biggest improvement: {element}',
-  'coaching.refine.biggestDrop': 'Decline cause: {element}',
+  // (Removed 2026-07-03, P0-3) coaching.refine.dqImproving/dqDeclining/biggestGain/biggestDrop
+  // — DQ-trend verdicts (praise AND blame) violate spine rule 2. Do not re-add.
   'coaching.refine.iterationStatus': 'Currently on iteration {count}. If threats are decreasing, convergence is near.',
 
   // Coaching — Synthesize
   'coaching.synthesize.firstUse': 'When issues surface, don\'t rush to compromise. First understand what assumptions each position rests on.',
   'coaching.synthesize.firstUseDetail': 'Consensus comes from a "better question," not the "midpoint."',
-  'coaching.synthesize.overrideHigh': 'You modify more than half of AI suggestions. That judgment is the key to synthesis too.',
-  'coaching.synthesize.overrideLow': 'Choosing one side in a conflict is judgment. Both sources could also be wrong.',
 
   // Persona aspect accuracy
   'coaching.rehearse.accurateAt': 'Accurate on {best}',
@@ -136,16 +130,9 @@ export const en: Record<TranslationKey, string> = {
   'navigator.evalLow': '{name} is low at {pct}%',
   'navigator.overrideHighMessage': 'You modified {pct}% of AI suggestions across {count} decisions.',
   'navigator.overrideHighDetail': 'This pattern will be reflected in future AI suggestions.',
-  'navigator.overrideLowMessage': 'Accepting AI suggestions almost as-is (override rate {pct}%).',
-  'navigator.overrideLowDetail': 'Critically reviewing AI suggestions can lead to better results.',
   'navigator.strategyBest': '"{name}" strategy has the highest utilization at {pct}%',
 
-  // Learning Curve
-  'learning.trendImproving': 'Improving',
-  'learning.trendStable': 'Stable',
-  'learning.trendDeclining': 'Declining',
-  'learning.trendNoData': 'Collecting data',
-  'learning.dqTrend': 'Decision Quality Trend',
+  // Learning Curve — trend/score/tier labels removed 2026-07-03 (P0-3, spine rule 2)
   'learning.exploredAxes': 'Explored Perspectives',
   'learning.axisGap': '{axis} perspective hasn\'t been explored yet',
   'learning.tierLabel': 'Tier {tier}',
@@ -250,15 +237,11 @@ export const en: Record<TranslationKey, string> = {
   'exec.action.addPersona': 'Add personas in Rehearsal and collect feedback',
   'exec.action.addOneMorePersona': 'Adding one more stakeholder is recommended',
 
-  'navigator.dqScore': 'Decision Quality',
-  'navigator.avgSuffix': 'avg {n}',
+  // dqScore/avgSuffix/tier labels removed 2026-07-03 (P0-3)
   'strategy.challengeExistence': 'Challenge existence',
   'strategy.narrowScope': 'Narrow scope',
   'strategy.diagnoseRoot': 'Diagnose root',
   'strategy.redirectAngle': 'Redirect angle',
-  'learning.tierBeginner': 'Beginner',
-  'learning.tierSkilled': 'Skilled',
-  'learning.tierMaster': 'Master',
 
   'progressive.reviewerSaved': 'Your saved manager will review this plan',
   'progressive.sees': 'will review this plan',

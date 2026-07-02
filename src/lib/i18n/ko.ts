@@ -71,15 +71,13 @@ export const ko = {
   'coaching.reframe.firstUseDetail': '만약 문제를 입력하기 전에 "이 질문에서 내가 당연하게 여기는 것은 무엇인가?"를 먼저 떠올려보면, 더 날카로운 가정을 발견할 수 있습니다.',
   'coaching.reframe.demoAllAccepted': '데모에서 전제를 모두 수락하셨습니다.',
   'coaching.reframe.demoAllAcceptedDetail': '이번에는 "정말 그런가?"라고 전제 하나를 의심해보세요. 전제를 의심하면 질문 자체가 달라집니다.',
-  'coaching.reframe.demoAllDoubted': '데모에서 전제 {total}개를 모두 의심하셨습니다 — 비판적 관점이 강합니다.',
-  'coaching.reframe.demoAllDoubtedDetail': '이번에도 그 날카로움을 적용해보세요. 어떤 전제가 가장 위험한지 표시하면 실행 설계에 반영됩니다.',
+  'coaching.reframe.demoAllDoubted': '데모에서 전제 {total}개를 모두 의심하셨습니다.',
+  'coaching.reframe.demoAllDoubtedDetail': '어떤 전제가 가장 위험한지 표시하면 실행 설계에 반영됩니다.',
   'coaching.reframe.demoPartialDoubted': '데모에서 전제 {total}개 중 {doubted}개를 의심하셨습니다.',
   'coaching.reframe.demoPartialDoubtedDetail': '이번에도 같은 기준을 적용해보세요. 의심스러운 가정을 "의심됨"으로 마킹하면 이후 단계에서 검증됩니다.',
   'coaching.reframe.assumptionGrowth': '가정 발견 수가 증가하고 있습니다 (평균 {old}건 → {new}건).',
   'coaching.reframe.assumptionGrowthDetail': '문제를 더 깊이 파고드는 습관이 형성되고 있습니다.',
   'coaching.reframe.strategyRepetition': '\'{strategy}\' 접근을 자주 사용하고 있습니다. 다른 관점도 시도해보세요.',
-  'coaching.reframe.assumptionEngage': '가정 평가를 더 적극적으로 해보세요.',
-  'coaching.reframe.assumptionEngageDetail': '가정에 "확인됨" 마킹을 하면 분석 품질이 올라갑니다.',
   'coaching.reframe.highPassRate': '분석 활용률 {pct}% — 분석 결과를 실제로 활용하고 있습니다.',
 
   // Coaching — Recast
@@ -107,17 +105,13 @@ export const ko = {
   // Coaching — Refine
   'coaching.refine.firstUse': '피드백을 반영하며 수렴하는 단계입니다.',
   'coaching.refine.firstUseDetail': '만약 수정할 때 "이 변경이 다른 단계에 어떤 영향을 주는가?"를 함께 생각하면, 1회 반복으로 수렴할 가능성이 높아집니다.',
-  'coaching.refine.dqImproving': '판단 품질이 개선되고 있습니다 ({prev} → {current}).',
-  'coaching.refine.dqDeclining': '판단 품질이 하락했습니다 ({prev} → {current}). 이번엔 가정 검토를 더 꼼꼼히 해보세요.',
-  'coaching.refine.biggestGain': '가장 큰 개선: {element}',
-  'coaching.refine.biggestDrop': '하락 원인: {element}',
+  // (Removed 2026-07-03, P0-3) coaching.refine.dqImproving/dqDeclining/biggestGain/biggestDrop
+  // — DQ-trend verdicts (praise AND blame) violate spine rule 2. Do not re-add.
   'coaching.refine.iterationStatus': '현재 {count}회 반복. 위협이 줄어들고 있다면 수렴에 가까워지고 있습니다.',
 
   // Coaching — Synthesize
   'coaching.synthesize.firstUse': '쟁점을 발견하면 성급하게 절충하지 마세요. 각 입장이 어떤 가정 위에 서 있는지 먼저 파악하세요.',
   'coaching.synthesize.firstUseDetail': '합의는 "중간값"이 아니라 "더 나은 질문"에서 나옵니다.',
-  'coaching.synthesize.overrideHigh': '당신은 AI 제안의 절반 이상을 수정합니다. 항로 수정에서도 그 판단력이 핵심입니다.',
-  'coaching.synthesize.overrideLow': '소스 간 충돌에서 한쪽을 선택하는 건 판단입니다. 두 소스 모두 틀릴 수도 있습니다.',
 
   // Persona aspect accuracy
   'coaching.rehearse.accurateAt': '{best}에서 정확',
@@ -143,16 +137,9 @@ export const ko = {
   'navigator.evalLow': '{name}이 {pct}%로 낮습니다',
   'navigator.overrideHighMessage': '최근 결정 {count}건에서 AI 제안의 {pct}%를 직접 수정했어요.',
   'navigator.overrideHighDetail': '이 패턴이 향후 AI 제안에 반영됩니다.',
-  'navigator.overrideLowMessage': 'AI 제안을 거의 그대로 수용하고 있습니다 (수정률 {pct}%).',
-  'navigator.overrideLowDetail': 'AI 제안을 비판적으로 검토하면 더 나은 결과를 얻을 수 있습니다.',
   'navigator.strategyBest': '"{name}" 전략의 활용률이 {pct}%로 가장 높습니다',
 
-  // Learning Curve
-  'learning.trendImproving': '향상',
-  'learning.trendStable': '안정',
-  'learning.trendDeclining': '하락',
-  'learning.trendNoData': '데이터 수집 중',
-  'learning.dqTrend': '판단 품질 추이',
+  // Learning Curve — trend/score/tier labels removed 2026-07-03 (P0-3, spine rule 2)
   'learning.exploredAxes': '탐색된 관점',
   'learning.axisGap': '{axis} 관점이 아직 탐색되지 않았습니다',
   'learning.tierLabel': 'Tier {tier}',
@@ -263,16 +250,11 @@ export const ko = {
   'exec.action.addPersona': '리허설에서 페르소나를 등록하고 피드백을 받으세요',
   'exec.action.addOneMorePersona': '이해관계자 1명 추가를 권장합니다',
 
-  // Navigator (additional)
-  'navigator.dqScore': '판단 품질',
-  'navigator.avgSuffix': '평균 {n}',
+  // Navigator (additional) — dqScore/avgSuffix/tier labels removed 2026-07-03 (P0-3)
   'strategy.challengeExistence': '존재 의심',
   'strategy.narrowScope': '범위 집중',
   'strategy.diagnoseRoot': '원인 진단',
   'strategy.redirectAngle': '관점 전환',
-  'learning.tierBeginner': '초보',
-  'learning.tierSkilled': '숙련',
-  'learning.tierMaster': '마스터',
 
   // Progressive flow common
   'progressive.reviewerSaved': '저장된 팀장이 이 기획을 리뷰합니다',

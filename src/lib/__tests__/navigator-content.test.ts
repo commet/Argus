@@ -85,10 +85,8 @@ vi.mock('@/lib/i18n', () => ({
       'axis.business': '비즈니스',
       'axis.orgCapacity': '조직 역량',
       'navigator.defaultProject': '프로젝트',
-      'coaching.refine.biggestGain': '가장 큰 개선: {element}',
-      'coaching.refine.biggestDrop': '하락 원인: {element}',
-      'coaching.refine.dqImproving': '판단 품질이 개선되고 있습니다 ({prev} → {current}).',
-      'coaching.refine.dqDeclining': '판단 품질이 하락했습니다 ({prev} → {current}). 이번엔 가정 검토를 더 꼼꼼히 해보세요.',
+      // dqImproving/dqDeclining/biggestGain/biggestDrop fixtures removed 2026-07-03
+      // (P0-3): DQ-trend verdict generation was deleted from navigator.ts.
     };
     let text = map[key] ?? key;
     if (params) {
@@ -295,19 +293,14 @@ describe('Scenario E: DQ 하락 사용자', () => {
     });
   });
 
-  it('refine 코칭: 하락을 경고하고 원인을 짚어야 한다', () => {
+  // P0-3 (2026-07-03): DQ 하락 "경고"는 사용자에 대한 평결(스파인 규칙2)이라
+  // 생성 자체가 제거됐다 — 하락 상황에서도 평결 코칭이 나오면 안 된다.
+  it('refine 코칭: DQ 하락 평결을 생성하지 않는다 (스파인 규칙2)', () => {
     const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('refine', profile);
-    const warnMsg = coaching.find(c => c.message.includes('판단 품질이 하락'));
-    expect(warnMsg).toBeDefined();
-    expect(warnMsg!.tone).toBe('challenge');
-  });
-
-  it('refine 코칭: 하락 원인(프레이밍)이 detail에 있어야 한다', () => {
-    const profile = buildNavigatorProfile();
-    const coaching = getStepCoaching('refine', profile);
-    const warnMsg = coaching.find(c => c.message.includes('판단 품질이 하락'));
-    expect(warnMsg?.detail).toContain('프레이밍');
+    const warnMsg = coaching.find(c =>
+      c.message.includes('판단 품질이 하락') || c.message.includes('coaching.refine.dqDeclining'));
+    expect(warnMsg).toBeUndefined();
   });
 
   it('learning curve: declining 트렌드', () => {
@@ -368,12 +361,13 @@ describe('Scenario G: 가정 미평가 사용자', () => {
     ]);
   });
 
-  it('reframe 코칭: 가정 평가를 독려하는 메시지가 나와야 한다', () => {
+  // P0-3 (2026-07-03): "가정 평가를 더 적극적으로 해보세요"는 지시형 코칭
+  // (스파인 위반)이라 생성 자체가 제거됐다.
+  it('reframe 코칭: 가정 평가 독려(지시형 코칭)를 생성하지 않는다', () => {
     const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('reframe', profile);
     const engageMsg = coaching.find(c => c.message.includes('coaching.reframe.assumptionEngage'));
-    expect(engageMsg).toBeDefined();
-    expect(engageMsg!.detail).toContain('coaching.reframe.assumptionEngageDetail');
+    expect(engageMsg).toBeUndefined();
   });
 });
 
@@ -779,7 +773,9 @@ describe('Scenario O: 코칭 i18n 키 품질', () => {
 // ══════════════════════════════════════
 
 describe('Scenario P: DQ 하락 후 회복', () => {
-  it('하락→회복 시 positive 코칭이 나와야 한다', () => {
+  // P0-3 (2026-07-03): "개선되고 있습니다" 칭찬도 같은 평결이다(칭찬을 남기면
+  // 침묵이 곧 나쁜 성적표) — 회복 상황에서도 평결 코칭이 나오면 안 된다.
+  it('하락→회복이어도 DQ 평결 코칭을 생성하지 않는다 (스파인 규칙2)', () => {
     const scores = makeDQScores([
       { dq: 70, frame: 4, date: '2026-01-01' },
       { dq: 45, frame: 2, date: '2026-02-01' }, // 하락
@@ -800,10 +796,9 @@ describe('Scenario P: DQ 하락 후 회복', () => {
 
     const profile = buildNavigatorProfile();
     const coaching = getStepCoaching('refine', profile);
-    const recoveryMsg = coaching.find(c => c.message.includes('판단 품질이 개선'));
-    expect(recoveryMsg).toBeDefined();
-    expect(recoveryMsg!.tone).toBe('positive');
-    expect(recoveryMsg!.detail).toContain('프레이밍');
+    const recoveryMsg = coaching.find(c =>
+      c.message.includes('판단 품질이 개선') || c.message.includes('coaching.refine.dqImproving'));
+    expect(recoveryMsg).toBeUndefined();
   });
 });
 
