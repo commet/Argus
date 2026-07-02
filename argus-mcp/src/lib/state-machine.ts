@@ -9,7 +9,10 @@ import { asDate } from './resolve-today.js';
  */
 export type DecisionState = 'absent' | 'opened' | 'sealed' | 'due' | 'settled' | 'dismissed';
 
-export type LedgerEventType = 'harvest' | 'seal' | 'amend' | 'dismiss' | 'settle';
+export type LedgerEventType =
+  | 'harvest' | 'seal' | 'amend' | 'dismiss' | 'settle'
+  // living premises (plan v5): the facts/open questions a decision rests on
+  | 'premise_add' | 'premise_amend' | 'premise_recheck' | 'premise_resolve';
 
 export function deriveState(entry: ContractEntry | undefined, today: string): DecisionState {
   if (!entry) return 'absent';
@@ -27,10 +30,15 @@ export function deriveState(entry: ContractEntry | undefined, today: string): De
 
 /** Which events each state accepts. `harvest` from `absent` opens; re-harvest is an idempotent no-op handled by the caller. */
 const ALLOWED: Record<DecisionState, Set<LedgerEventType>> = {
+  // premise_* NEVER self-creates (unlike seal's B1) — a premise belongs to a
+  // decision's narrative, so absent refuses it (plan v5 §6.2).
   absent: new Set<LedgerEventType>(['harvest', 'seal', 'settle']), // seal/settle self-create (B1); settle then still needs a seal (see guard)
-  opened: new Set<LedgerEventType>(['seal', 'amend', 'dismiss']),
-  sealed: new Set<LedgerEventType>(['amend', 'dismiss', 'settle']),
-  due: new Set<LedgerEventType>(['dismiss', 'settle']), // no amend once due — goalpost guard (m4)
+  opened: new Set<LedgerEventType>(['seal', 'amend', 'dismiss', 'premise_add', 'premise_amend', 'premise_recheck', 'premise_resolve']),
+  sealed: new Set<LedgerEventType>(['amend', 'dismiss', 'settle', 'premise_add', 'premise_amend', 'premise_recheck', 'premise_resolve']),
+  // due: no premise_add (retroactive premise-planting rigs calibration) and no
+  // premise_amend (retiring the premise that's about to be proven wrong is the
+  // goalpost guard one level down) — recheck/resolve stay open (plan v5 §6.2).
+  due: new Set<LedgerEventType>(['dismiss', 'settle', 'premise_recheck', 'premise_resolve']), // no amend once due — goalpost guard (m4)
   settled: new Set<LedgerEventType>([]), // terminal — no reopen (mirror clause)
   dismissed: new Set<LedgerEventType>([]), // terminal
 };
@@ -80,6 +88,17 @@ export function guardTransition(
     throw new GuardError('GOALPOST_MOVED', 'Cannot move the check-by date once it has arrived.', 'Settle the decision against reality instead.');
   }
 
+  // Premise writes lock once the check-by has arrived: adding a premise after
+  // the fact plants retroactive support, and editing/retiring one right before
+  // settlement is the goalpost guard one level down (plan v5 §6.2).
+  if ((event === 'premise_add' || event === 'premise_amend') && current === 'due') {
+    throw new GuardError(
+      'PREMISE_LOCKED',
+      'Premises are locked once the check-by date has arrived.',
+      'Settle the decision against reality first (argus_settle); the premise record stays as it was when you committed.',
+    );
+  }
+
   if ((current === 'settled' || current === 'dismissed')) {
     throw new GuardError('DECISION_CLOSED', `This decision is ${current}; it cannot accept a ${event}.`, 'Open a new decision instead — closed decisions are not reopened.');
   }
@@ -88,7 +107,9 @@ export function guardTransition(
     throw new GuardError(
       'ILLEGAL_TRANSITION',
       `A '${event}' is not allowed from state '${current}'.`,
-      event === 'seal' ? 'Open the decision first with argus_open_decision.' : undefined,
+      event === 'seal' || event.startsWith('premise_')
+        ? 'Open the decision first with argus_open_decision.'
+        : undefined,
     );
   }
 }

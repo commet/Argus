@@ -25,7 +25,8 @@ describe('replay tolerance for unknown versioned events', () => {
     const dir = tmpArgusDir();
     writeLedger(dir, [
       seal('d1'),
-      JSON.stringify({ v: 2, ts: '2026-07-01T00:00:00Z', id: 'd1', event: 'premise_add', premise_id: 'p1', text: 'rates stay flat' }),
+      // an event type from a FUTURE argus-mcp this binary has never heard of
+      JSON.stringify({ v: 2, ts: '2026-07-01T00:00:00Z', id: 'd1', event: 'premise_supersede', premise_id: 'p1' }),
     ]);
     const s = replayLedger(dir, '2026-07-02');
     expect(s.integrity.dropped_lines).toBe(0);
