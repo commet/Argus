@@ -182,48 +182,19 @@ export function SirenHero() {
           )}
         </p>
 
-        {/* The living anchor — Odysseus's voyage past the Sirens as one
-            continuous moving engraving (출항 → 묶기 → 듣기 → 닿기 → 알아봄), the
-            myth that names the product. Presented as a deliberate framed PLATE:
-            contained width, centered on the paper, whole 16:9 shown (no crop, so
-            no face is ever cut), lifted by a soft shadow so the engraving's own
-            printed border reads as an intentional plate edge — not a stray bar.
-            Centered via a flex parent (NOT transform, which bp-fade-up animates).
-            Mobile (<640px): VoyageFilm's content-driven stack (video + caption). */}
+        {/* The living anchor — Odysseus's voyage past the Sirens (출항 → 묶기 →
+            듣기 → 닿기 → 알아봄), the myth that names the product. At rest this is
+            a small framed still with a play control + a static intro caption; the
+            page no longer autoplays a large plate on load. Pressing play lifts the
+            film into a dimmed lightbox (portalled to <body>) where it plays large
+            with its live chaptered captions, and collapses on close/end. Centered
+            via a flex parent (NOT transform, which bp-fade-up animates). */}
         <div
-          className="bp-fade-up"
-          style={{ position: 'relative', width: '100vw', left: '50%', marginLeft: '-50vw', marginTop: 24, marginBottom: 16, display: 'flex', justifyContent: 'center', animationDelay: '200ms' }}
+          className="bp-fade-up flex justify-center"
+          style={{ position: 'relative', marginTop: 24, marginBottom: 16, animationDelay: '200ms' }}
         >
-          {/* Matted, framed antique-plate treatment: a warm paper mat + a fine
-              ink plate-mark hairline + a deep grounded shadow, so the film reads
-              as a museum-matted engraving lifted off the page — presence without
-              gaudiness. The mat is the padding; the film sits inside the hairline. */}
-          {/* Museum-matted engraving. Refinements that separate "framed plate"
-              from "default web card": SHARP corners (radius 0 — real mats/plate
-              marks are square), a FLAT warm mat (no gradient, no faux bevel), a
-              fine French-mat keyline set into the mat (outline + offset), a crisp
-              plate-mark hairline at the image edge, and a tight grounded shadow
-              (contact + short ambient, not a big blurry float). */}
-          <div
-            className="w-full sm:w-[min(92vw,1160px)]"
-            style={{
-              padding: 'clamp(10px, 1.4vw, 20px)',
-              background: '#f3ead5',
-              boxShadow:
-                '0 1px 2px rgba(48,34,14,0.12), 0 16px 34px -18px rgba(48,34,14,0.30)',
-            }}
-          >
-            <div
-              className="sm:aspect-[16/9]"
-              style={{
-                overflow: 'hidden',
-                boxShadow: '0 0 0 1px rgba(42,30,12,0.55)',
-                outline: '1px solid rgba(42,30,12,0.20)',
-                outlineOffset: 'clamp(6px, 0.8vw, 11px)',
-              }}
-            >
-              <VoyageFilm />
-            </div>
+          <div className="w-full" style={{ maxWidth: 600 }}>
+            <VoyageFilm />
           </div>
         </div>
 

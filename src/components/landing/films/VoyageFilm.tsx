@@ -21,6 +21,7 @@
  */
 
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useLocale } from '@/hooks/useLocale';
 
@@ -285,7 +286,13 @@ function PlateFolioCard({ active, L, locale, rm, narrow }: { active: Chapter; L:
   );
 }
 
-export function VoyageFilm() {
+// The film itself — the moving engraving + its time-synced chaptered captions.
+// The hero mounts this ONLY inside the lightbox (on explicit play), so it always
+// plays on user action; that's why the former reduced-motion autoplay gate is
+// gone — a click-to-play control satisfies WCAG 2.2.2 by design, and the resting
+// poster (VoyagePosterCard) is static for everyone. `onEnded` lets the overlay
+// auto-close when the film finishes (loop is off in the lightbox).
+function VoyageFilmStage({ onEnded }: { onEnded?: () => void }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const vref = useRef<HTMLVideoElement | null>(null);
@@ -329,28 +336,6 @@ export function VoyageFilm() {
     // freezes — the film keeps playing but the chapter sync stops.
   }, [narrow]);
 
-  // Reduced-motion enforcement (WCAG 2.2.2). framer's useReducedMotion can lag
-  // the media query on first paint, and React won't reliably reflect
-  // autoPlay={false} onto an already-mounted <video>. So gate autoplay directly
-  // off the media query: a reduced-motion visitor gets the static poster, never
-  // the looping film. Re-runs on `narrow` because the mounted <video> swaps.
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const apply = () => {
-      const v = vref.current;
-      if (!v) return;
-      if (mq.matches) {
-        v.autoplay = false;
-        v.removeAttribute('autoplay');
-        try { v.pause(); } catch { /* ignore */ }
-      }
-    };
-    apply();
-    mq.addEventListener?.('change', apply);
-    return () => mq.removeEventListener?.('change', apply);
-  }, [narrow]);
-
   // ── MOBILE (<640px): stack the video (16:9) ABOVE a paper caption gutter, so
   // the plate-folio text never covers the engraving. The phone band is too short
   // for the desktop lower-left overlay — its frost box swallowed most of the
@@ -373,7 +358,8 @@ export function VoyageFilm() {
           <video
             ref={vref}
             className="bp-voyage-video"
-            autoPlay={!rm} muted loop playsInline preload="metadata"
+            autoPlay muted playsInline preload="metadata"
+            loop={!onEnded} onEnded={onEnded}
             poster="/voyage/voyage-poster.jpg"
             aria-label={L('오디세우스의 항해 — 묶기, 듣기, 닿기, 그리고 알아봄', "Odysseus's voyage — bind, listen, land, and recognition")}
             style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', background: 'var(--bp-paper)' }}
@@ -419,7 +405,8 @@ export function VoyageFilm() {
       <video
         ref={vref}
         className="bp-voyage-video"
-        autoPlay={!rm} muted loop playsInline preload="metadata"
+        autoPlay muted playsInline preload="metadata"
+        loop={!onEnded} onEnded={onEnded}
         poster="/voyage/voyage-poster.jpg"
         aria-label={L('오디세우스의 항해 — 묶기, 듣기, 닿기, 그리고 알아봄', "Odysseus's voyage — bind, listen, land, and recognition")}
         // Full-bleed cover. Where the max-h cap makes the band shorter than 16:9
@@ -548,5 +535,162 @@ export function VoyageFilm() {
         })}
       </div>
     </figure>
+  );
+}
+
+// ── Resting state: a small framed still, NOT the autoplaying film. Poster (the
+// plate) + a centered play control + a static caption teaser below (the intro),
+// so the chaptered captions are present at rest without anything playing on
+// load. The whole poster is the play affordance; pressing it lifts the film into
+// the lightbox (VoyageFilm orchestrator). ──
+function VoyagePosterCard({ onPlay }: { onPlay: () => void }) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  return (
+    <figure className="relative w-full" style={{ margin: 0, background: 'var(--bp-paper)', display: 'flex', flexDirection: 'column' }}>
+      {/* poster (16:9) — the play affordance, lifted like a matted plate */}
+      <button
+        type="button"
+        onClick={onPlay}
+        aria-label={L('항해 영상 재생 — 크게 보기', 'Play the voyage film — view larger')}
+        className="bp-voyage-play relative block w-full"
+        style={{
+          aspectRatio: '16 / 9', overflow: 'hidden', background: 'var(--bp-paper)', padding: 0, cursor: 'pointer',
+          border: '1px solid color-mix(in srgb, var(--bp-ink) 22%, transparent)',
+          boxShadow: '0 1px 2px rgba(48,34,14,0.12), 0 14px 30px -18px rgba(48,34,14,0.32)',
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- decorative still that
+            carries the .bp-voyage-video dark-mode invert filter; a plain <img> keeps
+            parity with the <video> poster and avoids next/image's wrapper. */}
+        <img
+          src="/voyage/voyage-poster.jpg"
+          alt=""
+          aria-hidden="true"
+          className="bp-voyage-video"
+          style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 35%' }}
+        />
+        {/* gold top rule — same signature as the film */}
+        <span aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)' }} />
+        {/* soft center scrim so the control reads over any frame */}
+        <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(closest-side at 50% 50%, color-mix(in srgb, var(--bp-paper) 42%, transparent), transparent 72%)' }} />
+        {/* play control */}
+        <span
+          aria-hidden="true"
+          className="bp-voyage-play-btn"
+          style={{
+            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 'clamp(52px, 9vw, 66px)', height: 'clamp(52px, 9vw, 66px)', borderRadius: '50%',
+            border: '1.5px solid var(--bp-ink)',
+            background: 'color-mix(in srgb, var(--bp-paper) 82%, transparent)',
+            backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+            transition: 'background 220ms ease, border-color 220ms ease, transform 220ms cubic-bezier(.22,.61,.36,1)',
+          }}
+        >
+          <svg width="20" height="22" viewBox="0 0 20 22" fill="none" aria-hidden="true" style={{ marginLeft: 3 }}>
+            <path d="M2 1.8L18 11L2 20.2V1.8Z" fill="var(--bp-ink)" stroke="var(--bp-ink)" strokeWidth="1.4" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </button>
+      {/* caption teaser — the intro, static (captions present at rest) */}
+      <div style={{ padding: '13px 2px 2px' }}>
+        <span className="bp-mono" style={{ display: 'block', marginBottom: 7, fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.13em' : '0.24em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink-soft)' }}>
+          {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
+        </span>
+        <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: 0, fontWeight: 500, color: 'var(--bp-ink-soft)', fontSize: 'clamp(12.5px, 1.4vw, 14px)', lineHeight: 1.62, letterSpacing: '-0.004em', textWrap: 'pretty' }}>
+          <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
+        </p>
+      </div>
+    </figure>
+  );
+}
+
+// ── The hero film, orchestrated: a small resting card that expands into a
+// dimmed lightbox on play, and collapses (unmounting the film → it stops) on
+// X / backdrop / Esc / the film ending. The lightbox is portalled to <body>
+// because the hero's `bp-fade-up` leaves a sticky `transform`, which would trap
+// a nested `position: fixed`. Rendered only while expanded, so close is a clean
+// unmount (no lingering AnimatePresence exit inside the portal). ──
+export function VoyageFilm() {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const rm = !!useReducedMotion();
+  const narrow = useIsNarrow();
+  const [expanded, setExpanded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // While open: Esc closes and the page underneath is locked from scrolling.
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false); };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [expanded]);
+
+  const close = () => setExpanded(false);
+
+  // Box sizes to the film: a fixed 16:9 frame on desktop (cinematic overlay),
+  // content-driven on mobile (the stacked video + caption gutter is taller).
+  const boxStyle = narrow
+    ? { width: '94vw', maxHeight: '88vh', overflowY: 'auto' as const }
+    : { width: 'min(1100px, 92vw, 153vh)', aspectRatio: '16 / 9' as const };
+
+  return (
+    <>
+      <VoyagePosterCard onPlay={() => setExpanded(true)} />
+
+      {mounted && expanded && createPortal(
+        <motion.div
+          className="fixed inset-0 flex items-center justify-center"
+          style={{ zIndex: 90, background: 'rgba(12,14,16,0.66)', padding: 'clamp(12px, 4vw, 40px)' }}
+          onClick={close}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: rm ? 0 : 0.24, ease: [0.22, 0.61, 0.36, 1] }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={L('오디세우스의 항해 영상', "Odysseus's voyage film")}
+        >
+          <motion.div
+            className="relative"
+            style={{ ...boxStyle, background: 'var(--bp-paper)', boxShadow: '0 24px 80px -24px rgba(0,0,0,0.6)' }}
+            onClick={(e) => e.stopPropagation()}
+            initial={rm ? { opacity: 0 } : { opacity: 0, scale: 0.92, y: 10 }}
+            animate={rm ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: rm ? 0 : 0.34, ease: [0.22, 0.61, 0.36, 1] }}
+          >
+            <VoyageFilmStage onEnded={close} />
+            <button
+              type="button"
+              onClick={close}
+              aria-label={L('닫기', 'Close')}
+              className="bp-voyage-close"
+              style={{
+                position: 'absolute', top: 10, right: 10, zIndex: 5,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 34, height: 34, borderRadius: '50%',
+                border: '1px solid color-mix(in srgb, var(--bp-ink) 55%, transparent)',
+                background: 'color-mix(in srgb, var(--bp-paper) 80%, transparent)',
+                backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
+                color: 'var(--bp-ink)', cursor: 'pointer',
+                transition: 'background 200ms ease, border-color 200ms ease',
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                <path d="M3 3L12 12M12 3L3 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            </button>
+          </motion.div>
+        </motion.div>,
+        document.body,
+      )}
+    </>
   );
 }
