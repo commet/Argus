@@ -1,6 +1,11 @@
 import type { DecisionContract, Predicate } from '@/stores/types';
 import { contractStatus, isResolved } from './decision-contract';
 
+/** Reminder ceiling (10 S3): a due contract is nudged at most this many times,
+ *  then the cron goes quiet — the decision stays visible on the web due
+ *  surfaces, waiting instead of nagging. The mute button jumps straight here. */
+export const REMINDER_MAX_SENDS = 3;
+
 export function isCheckInReminderDue(
   contract: DecisionContract | null | undefined,
   now: number,

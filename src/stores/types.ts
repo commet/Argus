@@ -632,6 +632,10 @@ export interface DecisionContract {
   reminder_sent_at?: string;
   /** Last Telegram reminder send timestamp, used for cron dedupe. */
   telegram_reminder_sent_at?: string;
+  /** Reminder waves sent so far (jsonb-internal, no migration). Capped at
+   *  REMINDER_MAX_SENDS — after that the cron goes quiet and the decision waits
+   *  on the web due surfaces only. "그만 물어봐 주세요" sets this to the cap. */
+  reminder_count?: number;
   /** Set once every predicate carries a non-pending verdict. */
   graded_at?: string;
   /** Date-only / freeform check-in outcome when no predicates were generated. */

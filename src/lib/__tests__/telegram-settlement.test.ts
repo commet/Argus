@@ -7,6 +7,7 @@ import {
   settlementReplyMarkup,
   settlementToken,
 } from '../telegram-settlement';
+import { REMINDER_MAX_SENDS } from '../checkin-reminder';
 
 const contract = (): DecisionContract => ({
   id: 'c1',
@@ -115,6 +116,35 @@ describe('telegram settlement intent parsing', () => {
     expect(koButtons).toEqual(expect.arrayContaining(['✅ 잘 됐어요', '✋ 안 됐어요', '〰 반반', '⏳ 아직']));
   });
 
+  it('keyboard carries five buttons — the fifth is the mute escape hatch (10 S3)', () => {
+    const buttons = settlementReplyMarkup('p1', undefined, 'ko').inline_keyboard.flat();
+    expect(buttons).toHaveLength(5);
+    expect(buttons[4].text).toBe('🌙 그만 물어봐 주세요');
+    expect(buttons[4].callback_data).toBe('stl|mute|p1');
+    expect(parseSettlementIntent({ callbackData: 'stl|mute|p1' })).toEqual({
+      projectId: 'p1',
+      outcome: 'mute',
+      source: 'callback',
+    });
+
+    // Packed (uuid) callbacks carry mute too, still under Telegram's 64-byte cap.
+    const packed = settlementReplyMarkup(uuidProjectId, uuidContractId).inline_keyboard.flat();
+    expect(packed).toHaveLength(5);
+    expect(packed.every((b) => b.callback_data.length <= 64)).toBe(true);
+    expect(parseSettlementIntent({ callbackData: packed[4].callback_data })).toEqual({
+      projectId: uuidProjectId,
+      contractId: uuidContractId,
+      outcome: 'mute',
+      source: 'callback',
+    });
+  });
+
+  it('announces the last wave honestly when isFinal is set', () => {
+    const text = settlementReminderText({ projectName: '런칭', projectId: 'p1', isFinal: true });
+    expect(text).toContain('이제 조용히 열어둘게요');
+    expect(settlementReminderText({ projectName: '런칭', projectId: 'p1' })).not.toContain('이제 조용히 열어둘게요');
+  });
+
   it('packs project and contract ids into inline callbacks when ids are UUIDs', () => {
     const callbacks = settlementReplyMarkup(uuidProjectId, uuidContractId).inline_keyboard.flat().map((b) => b.callback_data);
     expect(callbacks.every((data) => data.length <= 64)).toBe(true);
@@ -145,6 +175,17 @@ describe('applyTelegramSettlement', () => {
     expect(result.freeformClosed).toBe(false);
     expect(result.contract.history?.length).toBe(1);
     expect(result.contract.check_in_at).toBe('2026-01-16T00:00:00.000Z');
+  });
+
+  it('mute stops the reminders without settling anything (escape hatch, 10 S3)', () => {
+    const result = applyTelegramSettlement(contract(), { outcome: 'mute' }, Date.UTC(2026, 0, 9));
+    expect(result.muted).toBe(true);
+    expect(result.graded).toBe(0);
+    expect(result.contract.reminder_count).toBe(REMINDER_MAX_SENDS);
+    // The decision stays OPEN: check-in date untouched, no predicate graded.
+    expect(result.contract.check_in_at).toBe('2026-01-08T00:00:00.000Z');
+    expect(result.contract.predicates[0].verdict).toBeUndefined();
+    expect(result.contract.graded_at).toBeUndefined();
   });
 
   it('closes predicate-less date-only contracts like the web look-back path', () => {

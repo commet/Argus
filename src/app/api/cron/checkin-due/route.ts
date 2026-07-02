@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { settlementReminderText, settlementReplyMarkup, detectSettlementLocale } from '@/lib/telegram-settlement';
-import { isCheckInReminderDue, renderCheckInReminderEmail, resendEmailErrorMessage, selectOpenPredicate } from '@/lib/checkin-reminder';
+import { isCheckInReminderDue, renderCheckInReminderEmail, resendEmailErrorMessage, selectOpenPredicate, REMINDER_MAX_SENDS } from '@/lib/checkin-reminder';
 import type { DecisionContract } from '@/stores/types';
 
 export const runtime = 'nodejs';
@@ -102,6 +102,13 @@ export async function GET(req: Request) {
       let nextContract = c;
       let changed = false;
 
+      // Reminder ceiling (10 S3): at most REMINDER_MAX_SENDS waves per contract,
+      // then the cron goes quiet — the decision keeps waiting on the web due
+      // surfaces instead of nagging. "그만 물어봐 주세요" jumps the count to the cap.
+      const reminderCount = typeof c.reminder_count === 'number' ? c.reminder_count : 0;
+      if (reminderCount >= REMINDER_MAX_SENDS) continue;
+      const isFinalWave = reminderCount + 1 >= REMINDER_MAX_SENDS;
+
       const emailDue =
         c.email_reminder === true &&
         (!c.reminder_sent_at || now - new Date(c.reminder_sent_at).getTime() >= RESEND_DUP_WINDOW_MS);
@@ -155,6 +162,7 @@ export async function GET(req: Request) {
           contractId: c.id,
           predicate: openPredicate?.text,
           locale,
+          isFinal: isFinalWave,
         });
         let delivered = 0;
         for (const conn of conns ?? []) {
@@ -173,6 +181,8 @@ export async function GET(req: Request) {
       }
 
       if (changed) {
+        // One wave = one count, whichever channels fired in it.
+        nextContract = { ...nextContract, reminder_count: reminderCount + 1 };
         const { error: updateError } = await supabase
           .from('projects')
           .update({ decision_contract: nextContract })

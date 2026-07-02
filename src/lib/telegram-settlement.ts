@@ -1,7 +1,11 @@
 import type { DecisionContract, PredicateVerdict } from '@/stores/types';
 import { amendCheckIn, gradePredicate, isResolved } from './decision-contract';
+import { REMINDER_MAX_SENDS } from './checkin-reminder';
 
-export type TelegramSettlementOutcome = Extract<PredicateVerdict, 'happened' | 'avoided' | 'partial'> | 'pending';
+/** 'mute' = "그만 물어봐 주세요": stops the reminder cron (reminder_count → cap)
+ *  while the decision stays open on every web due surface. An escape hatch, not
+ *  a settlement. */
+export type TelegramSettlementOutcome = Extract<PredicateVerdict, 'happened' | 'avoided' | 'partial'> | 'pending' | 'mute';
 
 export interface TelegramSettlementIntent {
   projectId: string;
@@ -18,6 +22,8 @@ export interface TelegramSettlementResult {
   alreadySettled: boolean;
   deferred: boolean;
   freeformClosed: boolean;
+  /** True when the user asked to stop the reminders (nothing settled). */
+  muted?: boolean;
 }
 
 const TOKEN_PREFIX = 'ARGUS_SETTLE';
@@ -39,12 +45,14 @@ const CALLBACK_OUTCOME_CODE: Record<TelegramSettlementOutcome, string> = {
   avoided: 'a',
   partial: 'm',
   pending: 'p',
+  mute: 'u',
 };
 const CALLBACK_CODE_OUTCOME: Record<string, TelegramSettlementOutcome> = {
   h: 'happened',
   a: 'avoided',
   m: 'partial',
   p: 'pending',
+  u: 'mute',
 };
 
 /** Locale detection for outbound settlement copy — one brain shared by the
@@ -72,6 +80,9 @@ export function settlementReplyMarkup(projectId: string, contractId?: string, lo
         { text: ko ? '〰 반반' : '〰 Partly', callback_data: callbackData('partial') },
         { text: ko ? '⏳ 아직' : '⏳ Not yet', callback_data: callbackData('pending') },
       ],
+      // The escape hatch (10 S3): stops the reminders, keeps the decision open
+      // on the web due surfaces. Intervention-reducing — mirror-clause aligned.
+      [{ text: ko ? '🌙 그만 물어봐 주세요' : '🌙 Stop asking me', callback_data: callbackData('mute') }],
     ],
   };
 }
@@ -86,6 +97,8 @@ export function settlementReminderText(args: {
   contractId?: string;
   predicate?: string;
   locale?: 'ko' | 'en';
+  /** True on the REMINDER_MAX_SENDS-th (last) send — says so honestly. */
+  isFinal?: boolean;
 }): string {
   const token = settlementToken(args.projectId, args.contractId);
   const locale = args.locale ?? 'ko';
@@ -100,6 +113,7 @@ export function settlementReminderText(args: {
       predicate ? `확인할 것: ${predicate}` : '',
       '',
       '아래 버튼으로 답하거나, 이 메시지에 답장해 주세요. 아직 모르겠으면 "아직"도 답이에요.',
+      args.isFinal ? '이제 조용히 열어둘게요. 언제든 돌아오시면 그때 물어볼게요 — 프로젝트 페이지에 그대로 있어요.' : '',
       `<code>${token}</code>`,
     ].filter(Boolean).join('\n');
   }
@@ -110,6 +124,7 @@ export function settlementReminderText(args: {
     predicate ? `The check: ${predicate}` : '',
     '',
     'Tap a button, or just reply to this message. “Not yet” is a valid answer too.',
+    args.isFinal ? 'This is the last nudge — I’ll keep it quietly open. Whenever you come back, it’s right there on your project page.' : '',
     `<code>${token}</code>`,
   ].filter(Boolean).join('\n');
 }
@@ -144,6 +159,21 @@ export function applyTelegramSettlement(
   intent: Pick<TelegramSettlementIntent, 'outcome' | 'note'>,
   now: number,
 ): TelegramSettlementResult {
+  // "그만 물어봐 주세요" — stop the reminder cron, settle nothing. check_in_at
+  // stays, so every web due surface keeps showing the open decision (10 S3:
+  // the reminders stop, the door stays open).
+  if (intent.outcome === 'mute') {
+    return {
+      contract: { ...contract, reminder_count: REMINDER_MAX_SENDS },
+      outcome: intent.outcome,
+      graded: 0,
+      alreadySettled: false,
+      deferred: false,
+      freeformClosed: false,
+      muted: true,
+    };
+  }
+
   if (intent.outcome === 'pending') {
     return {
       contract: amendCheckIn({ ...contract, outcome_note: cleanNote(intent.note) ?? contract.outcome_note }, '1w', now),
@@ -209,7 +239,7 @@ function parseCallbackData(data?: string): TelegramSettlementIntent | null {
     return { ...target, outcome, source: 'callback' };
   }
   if (parts.length !== 3 || parts[0] !== 'stl') return null;
-  const outcome = parseOutcome(parts[1]);
+  const outcome = parts[1] === 'mute' ? 'mute' : parseOutcome(parts[1]);
   if (!outcome || !parts[2]) return null;
   return { projectId: parts[2], outcome, source: 'callback' };
 }

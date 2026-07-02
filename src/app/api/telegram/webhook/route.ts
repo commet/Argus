@@ -549,6 +549,15 @@ async function handleContractSettlement(
     return;
   }
 
+  // Mute settles nothing and touches no mirror row — the reminders stop
+  // (reminder_count → cap), the decision stays open on every web due surface.
+  if (result.muted) {
+    await sendMessage(chatId, locale === 'ko'
+      ? '알겠어요, 더 묻지 않을게요. 이 결정은 프로젝트 페이지에 열린 채로 있어요 — 돌아오면 그 자리예요.'
+      : 'Understood — I’ll stop asking. The decision stays open on your project page, right where you left it.');
+    return;
+  }
+
   // Mirror-row sync: telegram-sync plants a telegram_decisions row with
   // id=projectId (source='web'). Settle/extend BOTH so the warm daily cron and
   // every web surface (badge, /project, email re-nag) go quiet in one answer.
