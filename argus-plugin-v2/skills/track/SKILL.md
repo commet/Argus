@@ -81,6 +81,7 @@ Open questions
   [Q1] {{text}}
 
 Edit: /argus:track edit P1 · Alert: /argus:track alert P1 off · Re-check: /argus:track check
+Open question: /argus:track open "…" · Reconsider: /argus:track reconsider Q1
 ```
 Show at most ~12 items; note if more.
 
@@ -142,6 +143,24 @@ firing threshold is high, so silence is the common result.
      learned from behavior).
    **If not drifted → stay silent** for that premise (the `recheck` event is still
    written; do not report "no change" as noise).
+
+### Step 6 — Open questions: add + reconsider (`open` / `reconsider`)
+Open questions are things the user EXPLICITLY left undecided. Argus NEVER invents
+one from a sealed decision — re-opening a closed call is a mirror-clause violation.
+The only source is the user:
+
+- `/argus:track open "<text>"` → append `{"event":"add","id":"item_{decision}_q{n}",
+  "decision_id":"{decision}","type":"open_question","text":"<text>","source":"user","at":"{ISO}"}`.
+- `/argus:track reconsider <ref>` for an `open_question` item:
+  1. Present the question verbatim.
+  2. Offer **2 short, balanced example leans (A / B)** — concrete starting points to
+     think against, each naming a real cost. These are OPTIONS, never a recommendation.
+  3. `AskUserQuestion` — "지금 다시 본다면?" → `[A로 기운다] [B로 기운다] [아직 미정]
+     [내 말로 정리]`.
+  4. On a lean, append an `edit` (`refine`) whose text is the USER's decision (their
+     words on "내 말로", else the chosen lean) → the item becomes theirs (authored:user).
+     `아직 미정` leaves it open to resurface later. NEVER record Argus's example as the
+     answer, and never nudge toward A or B.
 
 ---
 
