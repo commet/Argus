@@ -662,7 +662,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <FileText size={13} className="text-[var(--text-tertiary)] shrink-0" />
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{L('ON FILE · 이미 써둔 문서', 'ON FILE · a document you wrote')}</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)]">{L('서류 · 이미 써둔 문서', 'ON FILE · a document you wrote')}</span>
                     </div>
                     <div className="text-[13.5px] text-[var(--text-secondary)] leading-snug">
                       {L('전략안·기획안·PDF·PPT가 있다면, 올려서 검수받으세요.', 'Got a strategy memo, plan, PDF or deck? Upload it for review.')}
@@ -714,8 +714,8 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     // Disambiguate anon "trial" from a logged-in user's daily quota —
                     // a signed-in user hasn't hit a "trial", they've used today's allowance.
                     ? (user
-                        ? L(`오늘의 무료 사용 한도(하루 ${DAILY_LIMIT}회)를 다 썼어요. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.`, `You've used today's free allowance (${DAILY_LIMIT}/day). Register your own API key in Settings for unlimited use.`)
-                        : L('무료 체험 한도에 도달했어요. Settings에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.', 'Free trial limit reached. Register your own API key in Settings for unlimited use.'))
+                        ? L(`오늘의 무료 사용 한도(하루 ${DAILY_LIMIT}회)를 다 썼어요. 설정에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.`, `You've used today's free allowance (${DAILY_LIMIT}/day). Register your own API key in Settings for unlimited use.`)
+                        : L('무료 체험 한도에 도달했어요. 설정에서 본인의 API 키를 등록하면 무제한 사용이 가능합니다.', 'Free trial limit reached. Register your own API key in Settings for unlimited use.'))
                     : isNetwork
                       ? L('연결이 끊겼거나 불안정해요 — 적어주신 내용은 그대로 있어요. 연결을 확인하고 다시 시도해 주세요.', "Connection lost or unstable — what you wrote is still here. Check your connection and try again.")
                       : isTimeout
@@ -735,7 +735,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                           {/* Quota → settings; everything else → an explicit retry. */}
                           {isQuota ? (
                             <LocaleLink href="/settings" className="text-[12px] text-[var(--accent)] font-medium hover:underline">
-                              {L('Settings에서 API 키 등록하기 →', 'Register your API key in Settings →')}
+                              {L('설정에서 API 키 등록하기 →', 'Register your API key in Settings →')}
                             </LocaleLink>
                           ) : (
                             <button onClick={() => handleSubmit()}
@@ -1363,7 +1363,7 @@ function SuspenseFallback() {
     <div className="min-h-[60vh] flex items-center justify-center">
       <div className="text-center space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin mx-auto" />
-        <p className="text-[13px] text-[var(--text-secondary)]">{L('워크스페이스 준비 중...', 'Preparing workspace...')}</p>
+        <p className="text-[13px] text-[var(--text-secondary)]">{L('항해 준비 중...', 'Preparing the voyage...')}</p>
       </div>
     </div>
   );

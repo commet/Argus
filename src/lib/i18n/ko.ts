@@ -5,7 +5,7 @@ export const ko = {
   'common.cancel': '취소',
   'common.delete': '삭제',
   'common.save': '저장',
-  'common.loading': '로딩 중...',
+  'common.loading': '펼치는 중...',
   'common.error': '여기서 잠깐 막혔어요',
   'common.newStart': '새로 시작',
 
@@ -170,7 +170,8 @@ export const ko = {
   'demo.thirdTeammateHint': '당신의 Q1 답에 따라 누가 합류할지 정해져요',
   'demo.pendingJoin': '{count}명 더 합류 예정',
   'demo.analyzing': '{count}명 분석 중',
-  'demo.analysisDone': 'Analysis done',
+  // dead key at the moment (no t() consumer) — fixed anyway: English in the ko dictionary.
+  'demo.analysisDone': '분석 끝',
   'demo.reflectedBelow': '아래 기획안에 반영됨',
 
   // Shared UI labels
@@ -212,8 +213,8 @@ export const ko = {
   'slack.send': '전송',
   'slack.sending': '전송 중...',
   'slack.sent': '전송 완료',
-  'slack.failed': '전송 실패',
-  'slack.loadFailed': '채널을 불러오지 못했습니다',
+  'slack.failed': '전송이 닿지 못했어요 — 다시 시도해 주세요.',
+  'slack.loadFailed': '채널 목록을 가져오다 막혔어요 — 재연결이 필요할 수 있어요.',
   'slack.close': '닫기',
   'slack.retry': '다시 시도',
   'slack.preview': '미리보기',
@@ -223,7 +224,7 @@ export const ko = {
   'slack.sentHint': 'Slack에서 확인하세요.',
   'slack.searchNoResult': '검색 결과 없음',
   'slack.channelsNotFound': '채널을 찾을 수 없습니다',
-  'slack.sendFailed': '전송에 실패했습니다.',
+  'slack.sendFailed': '전송이 닿지 못했어요 — 다시 시도해 주세요.',
 
   // Execution Readiness
   'exec.hiddenPremise': '숨겨진 전제 발견',

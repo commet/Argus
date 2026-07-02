@@ -275,7 +275,8 @@ export function SirenHero() {
               <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
                 <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
                 <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
-                  {L('LOG ENTRY · 결정을 적는다', 'LOG ENTRY · write it')}
+                  {/* KO leads with Korean (06 P2-6) — mono register stays, first glance lands on 한국어. */}
+                  {L('기록 · 결정을 적는다', 'LOG ENTRY · write it')}
                 </span>
               </div>
 
@@ -404,7 +405,7 @@ export function SirenHero() {
               <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
                 <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
                 <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
-                  {L('ON FILE · 문서를 올린다', 'ON FILE · upload it')}
+                  {L('서류 · 문서를 올린다', 'ON FILE · upload it')}
                 </span>
               </div>
               <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink)', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>

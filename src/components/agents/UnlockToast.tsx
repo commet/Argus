@@ -44,7 +44,8 @@ export function UnlockToast() {
         {queue.map((agent, i) => {
           const displayName = locale === 'en' && agent.nameEn ? agent.nameEn : agent.name;
           const displayRole = locale === 'en' && agent.roleEn ? agent.roleEn : agent.role;
-          const unlockLine = locale === 'ko' ? `${displayRole} 해금!` : `${displayRole} unlocked!`;
+          // Recognition, not game reward (02 P2-3): a crew member comes aboard.
+          const unlockLine = locale === 'ko' ? `새 선원이 승선했어요 — ${displayRole}` : `${displayRole} came aboard`;
           return (
             <motion.button
               key={agent.id}

@@ -110,7 +110,7 @@ export function SealModal({
           <div className="grid grid-cols-1 gap-2 mt-3">
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {L('지금 내 lean', 'My lean right now')} <span className="text-[var(--text-tertiary)] font-normal">{L('(내 판단 — 당신이 직접)', '(your judgment — in your own words)')}</span>
+                {L('지금 내 예상', 'My lean right now')} <span className="text-[var(--text-tertiary)] font-normal">{L('(내 판단 — 당신이 직접)', '(your judgment — in your own words)')}</span>
               </label>
               <input value={lean} onChange={(e) => setLean(e.target.value)} maxLength={200}
                 placeholder={L('예: 그래도 이번 분기엔 리빌드가 맞다고 본다', 'e.g. I still think the rebuild is right this quarter')}

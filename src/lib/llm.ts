@@ -88,7 +88,7 @@ function buildLlmError(status: number, body?: Record<string, unknown>): LLMError
     });
   }
   if (status === 529 || status === 503) {
-    return new LLMError('서버가 일시적으로 과부하 상태입니다.', {
+    return new LLMError('지금 서버가 붐비고 있어요 — 저희 쪽 사정이에요. 잠시 후 자동으로 다시 시도해요.', {
       category: 'overloaded', status, retryable: true, retryAfterMs: 3000,
     });
   }
@@ -103,7 +103,7 @@ function buildLlmError(status: number, body?: Record<string, unknown>): LLMError
     return new LLMError(msg, { category: 'auth', status, retryable: false });
   }
   if (status >= 500) {
-    return new LLMError(`서버 오류 (${status})`, {
+    return new LLMError(`서버가 잠깐 말을 잇지 못했어요 (오류 ${status}) — 저희 쪽 문제예요. 잠시 후 자동으로 다시 시도해요.`, {
       category: 'overloaded', status, retryable: true, retryAfterMs: 2000,
     });
   }
@@ -140,7 +140,7 @@ function checkCircuit(provider = 'anthropic'): void {
     c.failures = 0;
     return;
   }
-  throw new LLMError('연속 실패로 잠시 중단되었습니다. 30초 후 자동 복구됩니다.', {
+  throw new LLMError('연달아 막혀서 30초 쉬어가요. 자동으로 다시 이어져요 — 작업물은 그대로 있어요.', {
     category: 'overloaded', retryable: false,
   });
 }

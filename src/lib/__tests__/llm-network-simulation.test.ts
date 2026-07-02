@@ -398,6 +398,7 @@ describe('callLLMStream', () => {
     });
 
     expect(caughtError).not.toBeNull();
-    expect(caughtError!.message).toBe('서버 오류 (500)');
+    // Voice sweep (10 S7): 5xx surfaces the where-safe-handle sentence, not a bare code.
+    expect(caughtError!.message).toBe('서버가 잠깐 말을 잇지 못했어요 (오류 500) — 저희 쪽 문제예요. 잠시 후 자동으로 다시 시도해요.');
   });
 });

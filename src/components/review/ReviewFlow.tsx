@@ -322,7 +322,7 @@ export function ReviewFlow() {
       <div className={original ? 'max-w-6xl mx-auto w-full' : 'max-w-2xl mx-auto w-full'}>
         <div className="mb-3 flex items-center justify-between">
           <button onClick={backToList} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
-            {L('← 내 판단 항로', '← My judgment course')}
+            {L('← 내 검수 기록', '← My review record')}
           </button>
           {original && (
             <button
@@ -496,7 +496,7 @@ export function ReviewFlow() {
         </div>
         {store.receipts.length > 0 && (
           <Button variant="ghost" size="sm" onClick={backToList}>
-            {L('내 항로', 'My course')}
+            {L('내 검수 기록', 'My review record')}
           </Button>
         )}
       </div>

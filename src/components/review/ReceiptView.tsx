@@ -358,7 +358,7 @@ export function ReceiptView({
                       {f.predicate_owner === 'user' && ` · ${L('내가 봉인함', 'Sealed by me')}`}
                       {f.revise_count ? ` · ${L(`${f.revise_count}회 미룸`, `Postponed ${f.revise_count} time${f.revise_count === 1 ? '' : 's'}`)}` : ''}
                     </p>
-                    {f.lean && <p className="mt-0.5 text-[11px] text-[#8b6914]">{L('내 lean', 'My lean')}: {f.lean}</p>}
+                    {f.lean && <p className="mt-0.5 text-[11px] text-[#8b6914]">{L('내 예상', 'My lean')}: {f.lean}</p>}
                     {f.key_assumption && <p className="text-[11px] text-[var(--text-tertiary)]">{L('핵심 가정', 'Key assumption')}: {f.key_assumption}</p>}
                     {f.settled_at ? (
                       <p className="mt-1 text-[12px] text-green-700">

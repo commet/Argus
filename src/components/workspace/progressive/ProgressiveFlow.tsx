@@ -2486,12 +2486,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     <div className="flex-1 min-w-0">
                       <p className="text-[12.5px] text-[var(--text-primary)] leading-[1.5]">
                         {isQuota
-                          ? L('오늘의 무료 사용 한도에 닿았어요. Settings에서 본인의 API 키를 등록하면 계속 쓸 수 있어요.', "You've hit today's free allowance. Register your own API key in Settings to keep going.")
+                          ? L('오늘의 무료 사용 한도에 닿았어요. 설정에서 본인의 API 키를 등록하면 계속 쓸 수 있어요.', "You've hit today's free allowance. Register your own API key in Settings to keep going.")
                           : error}
                       </p>
                       {isQuota && (
                         <Link href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
-                          {L('Settings에서 API 키 등록하기 →', 'Register API key in Settings →')}
+                          {L('설정에서 API 키 등록하기 →', 'Register API key in Settings →')}
                         </Link>
                       )}
                       {/* P1-C3: an explicit retry handle — the failed action is
