@@ -250,3 +250,11 @@
 - **파일**: `src/components/ui/LoadingSteps.tsx`
 - **검증**: tsc 0 · mojibake 0.
 - **커밋**: 2df8d2b
+
+### 웨이브 4 경계 검증 (완료)
+
+- `npx tsc --noEmit` 0 (커밋마다 + 최종 1회).
+- `npx vitest run --exclude "**/.claude/**"` — db.test.ts 11/11(**tombstone 회귀 신규 1건 포함**) + persistence-contract 4/4(KNEW_YOU 선언 포함) + llm-network-simulation·llm-simulation 등 68/68. llm 4개 스위트 별도 실행 56/56.
+- 한국어 문자열 파일 mojibake 검사(U+FFFD 카운트): ko.ts·SessionExpiredToast·workspace·AuthGuard·settings·LoadingSteps 전부 0.
+- 변경 파일(SyncStatus·LoadingSteps·useTelegramStore·auth·sync-health)을 참조하는 기존 테스트 없음을 grep으로 확인 — 회귀 표면 없음.
+- 커밋: P0-5+P1-C1=cf44598 · P1-C7=0847c09 · P1-C2+C3=8f6f2c7 · P1-C4=4ff4b1d · P1-C6최소=72fd4b5 · P1-C5=2df8d2b · docs=71f20e2. push 완료(origin/claude/pensive-almeida-9d3f27).
