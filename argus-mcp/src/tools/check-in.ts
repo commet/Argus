@@ -86,6 +86,13 @@ export const checkIn: ToolModule = {
         ? S.upcoming(upcoming.length, upDays)
         : '';
 
+      // Ledger-corruption disclosure (11 P2-8): dropped_lines was counted in
+      // data.integrity but never SAID. Silence is not kindness — one factual
+      // sentence + the backup handle. No blame, no gate.
+      const integrityLine = ledger.integrity.dropped_lines > 0
+        ? S.dropped_lines(ledger.integrity.dropped_lines)
+        : '';
+
       // Living premises: monitored facts due for a reality re-check, grouped so
       // the same fact under several decisions is ONE re-check (plan v5 P1/P5).
       const TOP = 5;
@@ -105,7 +112,7 @@ export const checkIn: ToolModule = {
           : '';
         return envelope({
           ok: true, tool: 'argus_check_in',
-          surface: S.nothing_due + accountHint + upcomingLine,
+          surface: S.nothing_due + accountHint + upcomingLine + integrityLine,
           next_actions: ['stop'],
           data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, ...(upDays > 0 ? { upcoming } : {}), today },
         });
@@ -127,7 +134,7 @@ export const checkIn: ToolModule = {
 
       return envelope({
         ok: true, tool: 'argus_check_in',
-        surface: parts.join(' ') + upcomingLine,
+        surface: parts.join(' ') + upcomingLine + integrityLine,
         next_actions: due.length > 0 ? ['argus_settle'] : ['argus_recall'],
         data: {
           due: dueEnriched, due_count: due.length,

@@ -29,6 +29,18 @@ const inputSchema = z.strictObject({
   today_override: zDate.optional(),
 });
 
+// Restraint reasons → human sentences (11 P2-1/S6). Each names WHY no fork is
+// manufactured; the caller appends the fixed handle-return coda. 'flat' is kept
+// for forward-compat even though the current gate never emits it.
+const REASON_LINE: Record<string, string> = {
+  vent: 'This reads like something to say out loud, not a fork to force.',
+  factual: 'This is a question with an answer, not a decision to open.',
+  already_closed: 'You already made this call. Argus does not reopen it.',
+  flat: 'The options are close to even — no load-bearing question to manufacture.',
+  reversible_low_stakes: 'Cheap to undo and little at stake — trying it IS the test.',
+  low_stakes: 'Little rides on this — the steady move is to leave it as is.',
+};
+
 export const openDecision: ToolModule = {
   name: 'argus_open_decision',
   description:
@@ -75,7 +87,10 @@ export const openDecision: ToolModule = {
       if (!gate.fire) {
         return envelope({
           ok: true, tool: 'argus_open_decision',
-          surface: `This looks like a "${gate.reason}" case. The steady move is to leave it as is — no fork to manufacture here.`,
+          // Human sentence, not a snake_case enum (11 P2-1). Contract (§4): the
+          // line ENDS by naming the option and returning the handle — never a
+          // directive ("leave it") issued in the user's stead.
+          surface: `${REASON_LINE[gate.reason] ?? 'No fork to manufacture here.'} Leaving it as is stays a real option.`,
           next_actions: ['leave_as_is', 'skip'],
           over_fire_gate: { fired: false, reason: gate.reason },
           data: { id, crux_question: null, restraint_option: a['status_quo'], fork_emitted: false, harvest_written: false },

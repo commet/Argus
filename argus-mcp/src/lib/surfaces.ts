@@ -54,6 +54,8 @@ export interface SurfaceStrings {
      *  Recognition is day-math only — no welcome greetings, no verdict. */
     anchor_mirror: (daysSinceSeal: number, dueCount: number, words: string) => string;
     due_premises: (n: number) => string;
+    /** ledger-corruption disclosure (11 P2-8): counted silently before — say it. */
+    dropped_lines: (n: number) => string;
   };
   sync: {
     live_with_due: (total: number, due: number) => string;
@@ -73,6 +75,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       anchor_mirror: (days, n, words) =>
         `${days} day(s) since you sealed — ${n} contract(s) past check-by. Your words then: '${words}' All that's left is to record what reality did (argus_settle).`,
       due_premises: (n) => `${n} premise fact(s) due for a reality re-check (argus_recheck).`,
+      dropped_lines: (n) =>
+        ` ${n} ledger line(s) could not be read (possibly a crash artifact). The record is append-only, so the rest is intact — keep a backup of ledger.jsonl.`,
     },
     sync: {
       live_with_due: (total, due) =>
@@ -92,6 +96,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       anchor_mirror: (days, n, words) =>
         `봉인 후 ${days}일 — 계약 ${n}건이 확인일을 지났습니다. 그때 당신은 이렇게 적었습니다: '${words}' 현실이 어떻게 답했는지만 기록하면 됩니다 (argus_settle).`,
       due_premises: (n) => `전제 사실 ${n}건이 현실 재확인 차례입니다 (argus_recheck).`,
+      dropped_lines: (n) =>
+        ` 원장에서 읽지 못한 줄이 ${n}개 있습니다(크래시 흔적일 수 있음). 기록은 append-only라 나머지는 안전합니다 — ledger.jsonl을 백업해 두세요.`,
     },
     sync: {
       live_with_due: (total, due) =>
