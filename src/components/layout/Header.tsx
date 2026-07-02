@@ -5,10 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { useProjectStore } from '@/stores/useProjectStore';
-import { useReviewStore } from '@/stores/useReviewStore';
-import { summarizeReceipt } from '@/lib/review/status';
-import { contractStatus } from '@/lib/decision-contract';
+import { useDueCount } from '@/hooks/useDueCount';
 import { RateLimitBadge } from '@/components/ui/RateLimitBadge';
 import { SyncStatus } from '@/components/ui/SyncStatus';
 import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
@@ -50,40 +47,14 @@ export function Header() {
     ...(isOperator ? [{ href: '/admin', label: L('계기판', 'Dashboard'), icon: BarChart3 }] : []),
   ];
 
-  // Return badge — projects whose decision contract check-in is due.
-  const projects = useProjectStore((s) => s.projects);
-  const loadProjects = useProjectStore((s) => s.loadProjects);
-  // localStorage-first: load for EVERYONE (anon included). The seal->return loop
-  // promises the anonymous cohort a dated return, so the due badge must light up
-  // for them too — it was gated behind `if (user)`, leaving anon's badge always
-  // dead. Reruns when a user logs in so the remote merge lands.
-  useEffect(() => {
-    loadProjects();
-  }, [user, loadProjects]);
-  // Computed every render (no memo): a memo keyed on [projects] froze
-  // Date.now(), so a tab left open past midnight kept yesterday's count.
-  // The list is small — recomputing is free.
-  const projectDueCount = (projects || []).filter(
-    (p) => p.decision_contract && contractStatus(p.decision_contract, Date.now()).checkInDue,
-  ).length;
-
-  // Review-wedge predictions join the same return loop (H1-B5). A prediction
-  // sealed at /tools/review used to be invisible here — the check-in date came
-  // and nothing anywhere lit up, breaking "정한 날 돌아와 물어요" for the exact
-  // funnel the landing page pushes.
-  const receipts = useReviewStore((s) => s.receipts);
-  const loadReceipts = useReviewStore((s) => s.load);
-  useEffect(() => {
-    loadReceipts();
-  }, [user, loadReceipts]);
-  const reviewDueCount = (receipts || []).filter(
-    (r) => summarizeReceipt(r, new Date().toISOString().slice(0, 10)).urgent,
-  ).length;
-
-  const dueCount = projectDueCount + reviewDueCount;
-  // The badge routes to where the due thing actually lives: project dues win
-  // (that page hosts settlement); review-only dues land on the receipt list.
-  const dueTarget = projectDueCount > 0 ? '/project' : '/tools/review';
+  // Return badge — projects whose contract check-in is due + review receipts
+  // past check-by, one number via the shared hook (P0-6 ④ — Header, /project
+  // and the workspace lantern all read useDueCount so they can never drift).
+  const { dueCount } = useDueCount();
+  // The return home is ONE house (P0-6 ①): /project hosts settlement AND shows
+  // the review dues as chips routing to /tools/review. The old branch sent
+  // review-only dues to a different page, splitting the harbor in two.
+  const dueTarget = '/project';
 
   // Landing page renders its own minimal header (LandingHeader). This bail
   // exists because <Header /> is rendered globally from layout.tsx; the

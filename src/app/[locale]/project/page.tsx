@@ -24,6 +24,7 @@ import { DecisionContractCard } from '@/components/projects/DecisionContractCard
 import { DecisionItemsCard } from '@/components/projects/DecisionItemsCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus, summarizeRecord, recordDisclosure } from '@/lib/decision-contract';
+import { useDueCount } from '@/hooks/useDueCount';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
@@ -263,16 +264,20 @@ export default function ProjectPage() {
     return { total: projects.length, inProgress, done, untouched };
   }, [projects, projectMetricsMap]);
 
-  // Projects whose contract check-in is due — the 귀환 (return) surface.
-  const dueProjects = useMemo(() => {
-    const now = Date.now();
-    return projects.filter(
-      (p) => p.decision_contract && contractStatus(p.decision_contract, now).checkInDue,
-    );
-  }, [projects]);
-  const dueIds = useMemo(() => new Set(dueProjects.map((p) => p.id)), [dueProjects]);
+  // What is due for the user's return — the 귀환 (return) surface. Shared hook
+  // (P0-6 ④): Header badge, this strip and the workspace lantern all read
+  // useDueCount, so the numbers can never drift. Review receipts past their
+  // check-by join the same strip (P0-6 ① — one harbor), rendered as chips that
+  // route to /tools/review where ReceiptList already sorts urgent first.
+  const { dueProjects, dueReceipts } = useDueCount();
+  // Recomputed per render on purpose (the hook is un-memoized so midnight
+  // flips the count) — cheap on a small list; memos below key on a stable id
+  // string so they don't re-sort every render.
+  const dueIds = new Set(dueProjects.map((p) => p.id));
+  const dueKey = dueProjects.map((p) => p.id).sort().join('|');
 
   const sortedProjects = useMemo(() => {
+    const dueIds = new Set(dueKey.split('|').filter(Boolean));
     return [...projects].sort((a, b) => {
       // Due contracts surface first — the product's promise is the return.
       const ad = dueIds.has(a.id) ? 1 : 0;
@@ -284,7 +289,7 @@ export default function ProjectPage() {
       const bt = bm?.lastActivityAt || b.updated_at || b.created_at || '';
       return bt.localeCompare(at);
     });
-  }, [projects, projectMetricsMap, dueIds]);
+  }, [projects, projectMetricsMap, dueKey]);
 
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -498,13 +503,18 @@ export default function ProjectPage() {
                 </div>
               )}
 
-              {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환. */}
-              {dueProjects.length > 0 && (
+              {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환.
+                  Review receipts past check-by join the SAME strip (P0-6 ① —
+                  one harbor): same amber tone, a FileText mark to tell them
+                  apart, routing to /tools/review (ReceiptList sorts urgent
+                  first, so the destination doesn't lose them). No new
+                  settlement UI — the two existing surfaces stay (§5-11). */}
+              {dueProjects.length + dueReceipts.length > 0 && (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <p className="text-[13px] font-semibold text-[var(--text-primary)] shrink-0">
                     {locale === 'ko'
-                      ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueProjects.length}건`
-                      : `So, how did it go? — ${dueProjects.length} decision${dueProjects.length === 1 ? '' : 's'} to return to`}
+                      ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueProjects.length + dueReceipts.length}건`
+                      : `So, how did it go? — ${dueProjects.length + dueReceipts.length} decision${dueProjects.length + dueReceipts.length === 1 ? '' : 's'} to return to`}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {dueProjects.map((p) => (
@@ -523,6 +533,16 @@ export default function ProjectPage() {
                       >
                         {p.name}
                       </button>
+                    ))}
+                    {(dueReceipts || []).map((r) => (
+                      <LocaleLink
+                        key={r.receipt_id}
+                        href="/tools/review"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-medium border border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 transition-colors cursor-pointer max-w-full"
+                      >
+                        <FileText size={12} className="shrink-0" />
+                        <span className="truncate">{r.source_title || L('검수한 문서', 'Reviewed document')}</span>
+                      </LocaleLink>
                     ))}
                   </div>
                 </div>
