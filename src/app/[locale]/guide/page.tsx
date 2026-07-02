@@ -14,7 +14,6 @@ import {
   Edit3,
   Check,
   Workflow,
-  Settings2,
   HelpCircle,
 } from 'lucide-react';
 import { LocaleLink } from '@/components/ui/LocaleLink';
@@ -63,18 +62,20 @@ export default function GuidePage() {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const flowSteps = getFlowSteps(locale);
 
+  // The voyage's four beats (05 S4) — the quick start teaches the CURRENT flow:
+  // write → tie the rope → see where it forks → return and answer.
   const quickStartSteps = locale === 'ko'
     ? [
-        '결정이나 고민을 그대로 입력 → 진짜 질문과 숨은 가정이 드러납니다',
-        '질문 2~3개에 답변 → 선원(에이전트) 팀이 자동으로 꾸려집니다',
-        '선원들이 병렬로 작업 → 필요한 곳만 수정 요청',
-        '의사결정자 시뮬레이션으로 약점 점검 → 현재 방위 완성',
+        '상황을 한 줄 적어요 → 진짜 질문과 숨은 가정이 드러납니다',
+        '듣기 전에 내 예상을 밧줄로 묶어요 → 안 적어도 됩니다. 적어두면 나중에 같이 맞춰봐요',
+        'AI 팀이 어디서 갈리는지 보여줘요 → 필요한 곳만 수정 요청, 현재 방위 한 화면으로',
+        '정한 날 돌아와 “그래서 어떻게 됐는지” 답해요 → 기록이 쌓입니다',
       ]
     : [
-        'Write your decision as-is → the real question and hidden assumptions surface',
-        'Answer 2–3 questions → your crew of agents assembles automatically',
-        'The crew works in parallel → request changes only where needed',
-        'Simulate decision-maker reactions → arrive at your Current Heading',
+        'Write the situation in one line → the real question and hidden assumptions surface',
+        "Tie your own lean before you listen → optional; jot it down and we'll check back together",
+        'The AI crew shows where things fork → request changes only where needed, one Current Heading',
+        'Come back on the date you set and answer "so, how did it go?" → the record accrues',
       ];
 
   const lv2Xp = AGENT_LEVELS.find(l => l.level === 2)?.xp ?? 100;
@@ -419,39 +420,9 @@ export default function GuidePage() {
         </LocaleLink>
       </Card>
 
-      {/* ── 5. Advanced ── */}
-      <details className="group rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] open:shadow-[var(--shadow-sm)] transition-shadow">
-        <summary className="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer list-none">
-          <span className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--bg)] border border-[var(--border-subtle)]">
-              <Settings2 size={15} className="text-[var(--text-secondary)]" />
-            </span>
-            <span className="flex flex-col">
-              <span className="text-[15px] font-bold text-[var(--text-primary)]">
-                {L('고급 — 단계별로 직접 사용', 'Advanced — use stages standalone')}
-              </span>
-              <span className="text-[12px] text-[var(--text-tertiary)] mt-0.5">
-                {L('대부분은 빠른 시작만으로 충분합니다.', "Most users won't need this — Quick Start covers it.")}
-              </span>
-            </span>
-          </span>
-          <ArrowRight size={14} className="text-[var(--text-tertiary)] transition-transform group-open:rotate-90 shrink-0" />
-        </summary>
-        <div className="px-5 pb-5 pt-1 space-y-3">
-          <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-            {L(
-              '워크스페이스 URL에 ?step=… 을 붙이면 단계별 인터페이스로 진입합니다. 한 단계만 따로 돌려서 결과를 다른 도구에 붙여넣고 싶을 때 유용합니다.',
-              'Append ?step=… to the workspace URL to run a single stage on its own. Useful when you want to paste the result elsewhere.',
-            )}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <LegacyChip href="/workspace?step=reframe" label={L('문제 재정의', 'Reframe')} />
-            <LegacyChip href="/workspace?step=recast" label={L('실행 설계', 'Recast')} />
-            <LegacyChip href="/workspace?step=rehearse" label={L('사전 검증', 'Rehearse')} />
-            <LegacyChip href="/workspace?step=synthesize" label={L('종합', 'Synthesize')} />
-          </div>
-        </div>
-      </details>
+      {/* Legacy door closed (05 S3): the old "Advanced — ?step=…" section funneled
+          new readers into the legacy 4-tab flow. Routes stay alive for bookmarks
+          and old projects; the guide just stops advertising them. */}
     </div>
   );
 }
@@ -478,14 +449,3 @@ function ChainRow({ tone, label, agents }: { tone: 'ai' | 'strategy' | 'executio
   );
 }
 
-function LegacyChip({ href, label }: { href: string; label: string }) {
-  return (
-    <LocaleLink
-      href={href}
-      className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-sm)] transition-all text-[12.5px] text-[var(--text-primary)] font-medium group/chip"
-    >
-      <span className="truncate">{label}</span>
-      <ArrowRight size={11} className="text-[var(--text-tertiary)] group-hover/chip:text-[var(--accent)] transition-colors shrink-0" />
-    </LocaleLink>
-  );
-}
