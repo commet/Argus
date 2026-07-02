@@ -198,7 +198,9 @@ export function DecisionItemsCard({
                                 {item.type === 'premise' && (
                                   <button
                                     onClick={() => toggleMonitoring(item.id)}
-                                    title={alertOn ? L('바뀌면 알림 켜짐', 'Alert on change: on') : L('알림 꺼짐', 'Alert off')}
+                                    // Honest promise (04 S3): no recheck cron exists yet, so the bell
+                                    // must not promise an "alert" — it marks the premise as watched.
+                                    title={alertOn ? L('주시 표시 켜짐 — 자동 알림은 아직 준비 중이에요', 'Watch mark on — automatic alerts are still on the way') : L('주시 꺼짐', 'Watch off')}
                                     aria-pressed={alertOn}
                                     className={`p-1.5 rounded-md cursor-pointer transition-colors ${
                                       alertOn ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'

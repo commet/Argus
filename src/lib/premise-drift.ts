@@ -11,6 +11,13 @@
  * Firing threshold is HIGH by design: enabling monitoring is not over-firing;
  * over-firing is manufacturing a fork on a flat decision. An alert fires only when
  * a premise ACTUALLY changed.
+ *
+ * HONESTY NOTE (2026-07-03 audit, 04 S3): no webapp recheck cron exists yet —
+ * nothing calls evaluateDrift/shouldFireAlert on a schedule, so the bell in
+ * DecisionItemsCard is a WATCH MARK, not a live alert. Its tooltip says so
+ * ("자동 알림은 아직 준비 중이에요"). If you build the cron (deliberately
+ * deferred: cost + structural over-fire risk, master plan §5-2), restore the
+ * alert promise in the same commit — the two surfaces must not drift.
  */
 
 import type { DecisionItem } from './decision-items';
