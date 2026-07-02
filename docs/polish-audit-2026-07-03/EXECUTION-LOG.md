@@ -57,3 +57,10 @@
 - **파일**: `argus-mcp/src/tools/sync.ts`, `argus-mcp/src/lib/state-machine.ts`, `argus-mcp/src/tools/__tests__/sync.test.ts` (+ package-lock 버전 드리프트 정리 1.0.0→1.3.0). 전부 argus-mcp/ 내부 — 웹앱 무접촉(src/app/api/mcp/*는 읽기만).
 - **검증**: MCP `npm run typecheck` 0 · 전체 스위트 17파일 164/164 통과 (sync 7/7, schema-validation, state-machine, integration-simulation 포함).
 - **커밋**: 커밋1 9e825fe, 커밋2 (아래 해시)
+
+### 웨이브 1 경계 검증 (완료)
+
+- 웹앱: `npx tsc --noEmit` → 0 오류.
+- 웹앱 테스트: erasure-coverage + navigator-content + navigator-simulation + navigator → 4파일 98/98 통과.
+- MCP: `cd argus-mcp && npm run typecheck` → 0 · `npm test` → 17파일 164/164 통과 (sync·schema-validation 포함).
+- 커밋: P0-1=5d5dead · P0-4=41019b0 · P0-3=f80de8c · P0-8=9e825fe+fadfc09. push 완료.
