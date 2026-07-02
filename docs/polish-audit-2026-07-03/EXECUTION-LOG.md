@@ -436,3 +436,48 @@
 - **preview 시도 결과**: dev 서버 기동 성공, `preview_screenshot`은 30s 타임아웃 반복(과거 세션에서도 확정된 환경 한계 — MEMORY "preview_screenshot 타임아웃→eval로 검증") → 태그의 대체 경로 이행: ① eval로 seal-* 애니메이션 5종이 **서빙된 CSS에 실재**(computed animationName/duration 확인: press 0.56s·thud 0.18s·ink 0.7s·write 0.7s·glint 4.8s) ② 판단 액자 실DOM 렌더(위 A1 항목) ③ 클래스·reduced-motion 단위 테스트(seal-ceremony.test.ts).
 - mojibake: 이번 웨이브 접촉 한국어 파일 8개 U+FFFD 스캔 0건 + mojibake-guard 픽스처(SealMoment 4문장) 보존 통과.
 - 커밋: A3(S1~S4)=af6d7ce · A3(S5)=479c05f · A3(S6)=6fcc5d8 · B2조각=ccef1aa · A1=68b6477 · E2=f5e0a5c
+
+## 웨이브 7 — 보물 합산 (P1-A2 → P1-A5 · P1-E7)
+
+### [P1-A2] 자차표 한 뇌 — RecordStrip 공용 컴포넌트 + 검수 합산
+
+- **무엇을**:
+  - **`src/lib/record-summary.ts` 신설** — 자차표 표시 계층의 단일 두뇌. `summarizeReviewRecord(receipts)`(useReviewStore.settleFollowup가 쓰는 sealed_at/settled_at/outcome 필드 기준, 08 S2-1) + `recordStripLine`(스트립 문장 — 0인 절은 생략, 얇은 기록을 0으로 부풀리지 않음) + `recordCompactLine`(워크스페이스 헤더 초압축형 — W3의 P1-A4가 만든 문장을 이 두뇌로 이사) + `recordStartDate`(기록 시작 각인 — 날짜 사실, 기간 아님) + `shouldShowThirdLoop`(A5 게이트). **테이블·타입 통합 없음**(§5-12: 표시 계층 합산만, 병렬 세션 등록부 무접촉).
+  - **`<RecordStrip/>` 신설·3곳 배치**: ① /project 목록(기존 인라인 스트립을 컴포넌트로 추출·교체) ② /tools/review 목록 상단(ReceiptList 헤더 아래 — ON FILE 문으로 들어온 코호트가 처음으로 합산됨) ③ /workspace 헤더 한 줄(recordCompactLine 경유 — 같은 두뇌, 드리프트 불가). 마운트 시 두 스토어 load(로컬 우선 멱등 머지)로 어느 문으로 들어와도 양쪽 절반이 로딩됨.
+  - **dim9 게이트는 병합 카운트에**: recordDisclosure를 (project loops + review settled) 합산 수에 적용 — 검수 정산 몇 건이 문턱을 우회해 "기록" 주장을 밀수하지 못함. 문턱 아래는 기존 이탤릭("아직 확정된 기록은 아님"), 이상은 사실 각인("기록 시작 YYYY-MM-DD" — A5 스펙의 이탤릭 자리 교체 조각).
+  - **텔레그램 어휘 통일(08 S2-5)**: record-core.ts 정산 결과 줄 "잘됨/안됨" → "적중/빗나감"(웹 "적중한 가설/빗나간 가설" 계열과 동일 단어족). 장기 통합 TODO 주석 박제. 정산 **답변 버튼**("✅ 잘 됐어요")은 W2의 정산 질문 카피라 무접촉.
+  - **교차 테스트(08 S8)**: 신규 `src/lib/__tests__/record-summary.test.ts` — 같은 가짜 데이터에서 웹 스트립 문장과 텔레그램 마크다운의 **숫자**가 일치해야 통과(정산 자릿수 추출 비교 + ReviewRecordCounts를 RecordCounts 자리에 그대로 넘기는 호출 자체가 형태 계약 증명). 양쪽 다 % 부재 단언(스파인).
+- **파일**: `src/lib/record-summary.ts`(신규), `src/components/ui/RecordStrip.tsx`(신규), `src/lib/record-core.ts`, `src/app/[locale]/project/page.tsx`, `src/app/[locale]/workspace/page.tsx`, `src/components/review/ReceiptList.tsx`, `src/lib/__tests__/record-summary.test.ts`(신규), `record-core.test.ts`
+- **검증**: tsc 0 · record-summary(신규 12)+record-core+record-disclosure+predicate-basis+sanitize-injection 5파일 37/37 · mojibake-guard 594/594 + 접촉 한국어 파일 7개 U+FFFD 0.
+- **커밋**: a08220d
+
+### [P1-A5] 3고리 의식 — 문턱의 순간에 조용한 한 줄
+
+- **무엇을**:
+  - 정산 모달 완료 화면("고리를 닫았어요")에서 **병합 정산 수가 SETTLED_THRESHOLD(3)에 처음 도달하는 정확히 그 순간** 1회: 금색 실선(2초 draw, `prefers-reduced-motion`이면 정지 — framer useReducedMotion) + 한 줄 **"세 번째 고리를 닫았어요. 이제 이 기록의 빈도가 의미를 갖기 시작해요 — 여전히 점수는 아니에요."** 점수-부정을 문장 안에 내장(§4 채택 조건). 사용자 평가 어휘 0 · "우리는 판단하지 않아요" 류 무결 선언 확장 0(§5-10).
+  - **평생 1회**: `argus:third-loop-seen` 로컬 플래그 — STORAGE_KEYS·persistence-contract CONTRACT **둘 다 끝에 append만**(localOnly 사유 기재, 병렬 세션 규칙). 게이트는 `shouldShowThirdLoop`의 **엄격 동치**(=== 3): 이 기능 이전에 이미 문턱을 넘은 사용자가 5번째 고리에서 뒤늦은 "세 번째" 인사를 받지 않음 — 단위 테스트 고정.
+  - 이탤릭 자리→사실 각인 교체는 A2의 RecordStrip에서 이행됨(위 항목).
+- **파일**: `src/components/projects/SettlementModal.tsx`, `src/lib/storage.ts`, `src/lib/__tests__/persistence-contract.test.ts`
+- **검증**: tsc 0 · persistence-contract+record-summary+settlement-modal-freeform+mojibake 4파일 609/609 · 접촉 파일 U+FFFD 0.
+- **커밋**: ded4078
+
+### [P1-E7] MCP wake_text — 항적 렌더 (축적이 보이는 구조)
+
+- **무엇을**:
+  - **`renderWake(contracts, stats, today, locale, recordSince?)`** 신설(render-receipt.ts) → `argus_recall view=bearing`/`view=contracts`의 `data.wake_text`. 구조 = 12 §3.5 목표 출력 그대로: 3그룹(확인일 지남 → 현실을 기다리는 중 → 정산됨), 그룹 내 check_by 오름차순, 그룹당 5줄+`… (+N)` 접기(check_in TOP=5 관례), 헤더 카운트(`결정 N · 봉인 중 M · 정산 K`), 마지막 줄 `기록 시작 YYYY-MM-DD 부터`(가장 오래된 원장 이벤트 ts). 빈 그룹은 통째로 생략(속 빈 프레임 금지), 봉인·정산 0건이면 wake_text 자체 미부착. 스모크 실렌더로 ko/en 육안 확인(스펙 목표 출력과 동형).
+  - **원장 fold 최소 확장(전부 additive optional)**: `LedgerState.oldest_ts`(ISO 사전순 min) + `ContractEntry.settled_on`(settle 이벤트 ts 날짜 — 정산됨 줄의 날짜 칸). 기존 리터럴·테스트 무수정 호환.
+  - **문자열은 surfaces.ts `{ko,en}` wake 섹션**(P1-E1 구조 — 타입 패리티가 두 목소리 드리프트를 컴파일에서 막음).
+  - **JSON 측도 정직(12 §3.6)**: bearing `open`·contracts 배열 check_by 오름차순 정렬(기한 지난 건이 8월 계약 사이에 묻히던 실측 수리) + contracts 60건 컷 & `truncated: N`.
+  - **spine-drift.test 단언 추가(마스터 부록 요구)**: 신규 5테스트 — ①ko/en 전부 %·비율(`\d/\d`)·tier·score·streak·점수·등급·연속·적중률 부재 ②정산 헤더는 개수 나열만(`held 1 · avoided 1 · partial 1` — user_stated outcome 단어라 판결 아님) ③3그룹+접기+`← argus_settle` 핸들+기록 시작 ④check_by 정렬 ⑤빈 그룹 소멸.
+  - **지각 어휘 거취**: "확인일 지남 (N) · N일 경과"는 §5-6 개발자-표면 판정대로 터미널 허용 — surfaces.ts 주석에 "웹 수입 금지" 박제(P1-B6과 짝).
+- **파일**: `argus-mcp/src/lib/render-receipt.ts`, `surfaces.ts`, `ledger-replay.ts`, `src/tools/recall.ts`, `src/lib/__tests__/spine-drift.test.ts`
+- **검증**: MCP `npm run typecheck` 0 · 전체 **18파일 185/185**(기존 180 + 신규 5) · 스모크 실렌더 ko/en.
+- **커밋**: dc3fabd
+
+### 웨이브 7 경계 검증 (완료)
+
+- 웹앱 `npx tsc --noEmit` 0 (커밋마다).
+- record-core 숫자 일치: record-summary.test.ts CROSS 테스트(같은 데이터 → 웹 스트립·텔레그램 마크다운 자릿수 동일) 통과 — record-summary·record-core·record-disclosure·persistence-contract·mojibake·seal-ceremony·projects 컴포넌트 = **7파일 624/624**.
+- MCP: `npm run typecheck` 0 + spine-drift 13/13 (전체 스위트 185/185는 커밋 직전 실행).
+- mojibake: 접촉 한국어 파일(record-core·record-summary·RecordStrip·SettlementModal·storage·persistence-contract 등) U+FFFD 스캔 0건.
+- 커밋: A2=a08220d · A5=ded4078 · E7=dc3fabd
