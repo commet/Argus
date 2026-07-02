@@ -173,13 +173,31 @@ export default function SettingsPage() {
     updateSettings({ llm_mode: mode });
   };
 
+  const NAV_ITEMS = [
+    { id: 'profile', label: L('프로필', 'Profile') },
+    { id: 'engine', label: L('AI 엔진', 'AI Engine') },
+    { id: 'prefs', label: L('환경 설정', 'Preferences') },
+    { id: 'integrations', label: L('연동 · 데이터', 'Integrations') },
+    { id: 'labs', label: L('실험실', 'Labs') },
+    { id: 'danger', label: L('위험 구역', 'Danger zone'), danger: true },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div>
       <div>
         <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('설정', 'Settings')}</h1>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1">{L('프로필, AI 엔진, 환경 설정', 'Profile, AI engine, preferences')}</p>
       </div>
 
+      {/* A1 IA: left sticky section-nav (desktop) / sticky horizontal chip row
+          (mobile) + right panel. Section internals are unchanged — only the
+          shell is restructured, and the destructive action moves out of the
+          integrations card into its own isolated danger zone at the bottom. */}
+      <div className="mt-5 lg:grid lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-10 lg:items-start">
+        <SettingsNav items={NAV_ITEMS} ariaLabel={L('설정 섹션', 'Settings sections')} />
+        <div className="space-y-6 min-w-0 mt-4 lg:mt-0">
+
+      <section id="profile" className="scroll-mt-28">
       {/* ── 1. My Profile ── */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
@@ -256,7 +274,9 @@ export default function SettingsPage() {
         {/* AI Observations — read-only */}
         <ObservationsBlock locale={locale} />
       </Card>
+      </section>
 
+      <section id="engine" className="scroll-mt-28">
       {/* ── 2. AI Engine (provider + mode + key merged) ── */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
@@ -420,7 +440,9 @@ export default function SettingsPage() {
           </div>
         )}
       </Card>
+      </section>
 
+      <section id="prefs" className="scroll-mt-28">
       {/* ── 3. Preferences (Language + Sound) ── */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
@@ -525,7 +547,9 @@ export default function SettingsPage() {
           </div>
         )}
       </Card>
+      </section>
 
+      <section id="integrations" className="scroll-mt-28">
       {/* ── 4. Integrations & Data ── */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
@@ -627,25 +651,11 @@ export default function SettingsPage() {
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
           </div>
-          {/* Delete / reset */}
-          <div className="flex items-center justify-between p-3 bg-[var(--danger)]/10 rounded-lg gap-3">
-            <div className="min-w-0">
-              <p className="text-[13px] font-medium text-[var(--danger)]">
-                {user ? L('계정 완전 삭제', 'Delete my account') : L('데이터 초기화', 'Reset data')}
-              </p>
-              <p className="text-[11px] text-[var(--danger)]/70">
-                {user
-                  ? L('모든 데이터와 계정을 영구 삭제 — 되돌릴 수 없어요', 'Permanently erase all data + your account — cannot be undone')
-                  : L('이 브라우저의 모든 데이터를 삭제', 'Delete all data in this browser')}
-              </p>
-            </div>
-            <Button variant="danger" size="sm" onClick={() => setResetModal(true)}>
-              <Trash2 size={14} /> {user ? L('계정 삭제', 'Delete') : L('초기화', 'Reset')}
-            </Button>
-          </div>
         </div>
       </Card>
+      </section>
 
+      <section id="labs" className="scroll-mt-28">
       {/* ── 5. Labs ── */}
       <Card>
         <div className="flex items-center gap-2 mb-1">
@@ -697,6 +707,30 @@ export default function SettingsPage() {
           })}
         </div>
       </Card>
+      </section>
+
+      {/* ── Danger zone — deliberately isolated at the bottom, never mixed
+          with everyday settings (A1). ── */}
+      <section id="danger" className="scroll-mt-28">
+        <Card variant="danger">
+          <h3 className="text-[15px] font-bold text-[var(--danger)] mb-3">{L('위험 구역', 'Danger zone')}</h3>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium text-[var(--danger)]">
+                {user ? L('계정 완전 삭제', 'Delete my account') : L('데이터 초기화', 'Reset data')}
+              </p>
+              <p className="text-[11px] text-[var(--danger)]/70">
+                {user
+                  ? L('모든 데이터와 계정을 영구 삭제 — 되돌릴 수 없어요', 'Permanently erase all data + your account — cannot be undone')
+                  : L('이 브라우저의 모든 데이터를 삭제', 'Delete all data in this browser')}
+              </p>
+            </div>
+            <Button variant="danger" size="sm" onClick={() => setResetModal(true)}>
+              <Trash2 size={14} /> {user ? L('계정 삭제', 'Delete') : L('초기화', 'Reset')}
+            </Button>
+          </div>
+        </Card>
+      </section>
 
       <Modal open={resetModal} onClose={() => { if (!deleting) setResetModal(false); }} title={user ? L('계정 완전 삭제', 'Delete my account') : L('데이터 초기화', 'Reset data')}>
         <p className="text-[14px] text-[var(--text-primary)] mb-2">
@@ -716,7 +750,69 @@ export default function SettingsPage() {
           </Button>
         </div>
       </Modal>
+        </div>
+      </div>
     </div>
+  );
+}
+
+/* ── A1: section navigation — sticky rail on desktop, sticky chip row on
+   mobile. Active section tracked with an IntersectionObserver so "where am I"
+   stays visible while scrolling. Wayfinding only — quiet seated chip, no gold. */
+function SettingsNav({ items, ariaLabel }: {
+  items: Array<{ id: string; label: string; danger?: boolean }>;
+  ariaLabel: string;
+}) {
+  const [active, setActive] = useState(items[0]?.id ?? '');
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const vis = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (vis[0]) setActive(vis[0].target.id);
+      },
+      { rootMargin: '-15% 0px -70% 0px' },
+    );
+    for (const { id } of items) {
+      const el = document.getElementById(id);
+      if (el) obs.observe(el);
+    }
+    return () => obs.disconnect();
+    // section ids are static per mount; labels (locale) don't affect observation
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <nav
+      aria-label={ariaLabel}
+      className="sticky top-16 lg:top-24 z-10 -mx-4 px-4 lg:mx-0 lg:px-0 bg-[var(--bg)]/95 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none"
+    >
+      <ul className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible whitespace-nowrap py-2 lg:py-0">
+        {items.map((it) => {
+          const on = active === it.id;
+          return (
+            <li key={it.id} className="shrink-0">
+              <a
+                href={`#${it.id}`}
+                aria-current={on ? 'true' : undefined}
+                className={`flex items-center rounded-lg px-3 min-h-[40px] text-[13px] font-medium transition-colors ${
+                  it.danger
+                    ? on
+                      ? 'text-[var(--danger)] bg-[var(--danger)]/10'
+                      : 'text-[var(--danger)]/75 hover:bg-[var(--danger)]/8'
+                    : on
+                      ? 'text-[var(--text-primary)] bg-[var(--bg-hover)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]/60'
+                }`}
+              >
+                {it.label}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 
