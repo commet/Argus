@@ -3,12 +3,26 @@ import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { readReceipt } from '../lib/receipt.js';
-import { renderReceipt } from '../lib/render-receipt.js';
+import { renderReceipt, renderWake, type WakeContractRow } from '../lib/render-receipt.js';
+import { surfaceLocale } from '../lib/surfaces.js';
+import type { LedgerState } from '../lib/ledger-replay.js';
 import { isMonitored, isDueForRecheck, receiptPremisesInfo } from '../lib/premises.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
+
+/** check_by ascending; rows without a date sink to the end. */
+const byCheckBy = (a: { check_by?: string }, b: { check_by?: string }) =>
+  (a.check_by || '9999-99-99') < (b.check_by || '9999-99-99') ? -1 : 1;
+
+/** wake_text (P1-E7 = 12 §3.5) — rendered only when a wake exists (at least
+ *  one sealed or settled contract); candidates/dismissed never fill the frame. */
+function wakeText(ledger: LedgerState, today: string, dir: string): string | undefined {
+  const rows = [...ledger.contracts.values()] as WakeContractRow[];
+  if (!rows.some((c) => c.status === 'sealed' || c.status === 'settled')) return undefined;
+  return renderWake(rows, ledger.stats, today, surfaceLocale(dir), ledger.oldest_ts?.slice(0, 10));
+}
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
@@ -94,16 +108,30 @@ export const recall: ToolModule = {
       }
 
       if (view === 'bearing') {
-        const open = [...ledger.contracts.values()].filter((c) => c.status === 'sealed').map((c) => ({ id: c.id, predicate: c.predicate, check_by: c.check_by }));
+        // JSON side sorted too (P1-E7 / 12 §3.6): check_by ascending, so a
+        // past-due contract can never hide between far-future ones.
+        const open = [...ledger.contracts.values()]
+          .filter((c) => c.status === 'sealed')
+          .map((c) => ({ id: c.id, predicate: c.predicate, check_by: c.check_by }))
+          .sort(byCheckBy);
         const surface = ledger.ids.size === 0
           ? 'Argus does not answer. It records a prediction + a check-by date, and meets reality on that date. Open your first decision with argus_open_decision.'
           : `${open.length} open bearing(s).`;
-        return envelope({ ok: true, tool: 'argus_recall', surface, next_actions: open.length ? ['argus_check_in'] : ['argus_open_decision'], data: { open, today } });
+        const wake = wakeText(ledger, today, dir);
+        return envelope({ ok: true, tool: 'argus_recall', surface, next_actions: open.length ? ['argus_check_in'] : ['argus_open_decision'], data: { open, today, ...(wake ? { wake_text: wake } : {}) } });
       }
 
       if (view === 'contracts') {
-        const all = [...ledger.contracts.values()].map((c) => ({ id: c.id, status: c.status, predicate: c.predicate, check_by: c.check_by, outcome: c.outcome, dismiss_reason: c.dismiss_reason }));
-        return envelope({ ok: true, tool: 'argus_recall', surface: `${all.length} decision(s) on record.`, next_actions: ['stop'], data: { contracts: all, today } });
+        const all = [...ledger.contracts.values()]
+          .map((c) => ({ id: c.id, status: c.status, predicate: c.predicate, check_by: c.check_by, outcome: c.outcome, dismiss_reason: c.dismiss_reason }))
+          .sort(byCheckBy);
+        // 60-row cap (12 §3.6) — the JSON stays a summary, not a wall.
+        const shown = all.slice(0, 60);
+        const wake = wakeText(ledger, today, dir);
+        return envelope({
+          ok: true, tool: 'argus_recall', surface: `${all.length} decision(s) on record.`, next_actions: ['stop'],
+          data: { contracts: shown, ...(all.length > shown.length ? { truncated: all.length - shown.length } : {}), today, ...(wake ? { wake_text: wake } : {}) },
+        });
       }
 
       // track_record — frequency only, sample-size caveated. No tier, no score (spine rule 2).

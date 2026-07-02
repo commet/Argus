@@ -33,6 +33,9 @@ export interface ContractEntry {
   premises?: PremiseState[];
   /** Settle-time, user-attributed: which premise (if any) broke (plan v5 P2). */
   broken_premise_id?: string;
+  /** YYYY-MM-DD of the settle event's ts — the wake render's settled column
+   *  (P1-E7). Optional: pre-existing literals stay valid. */
+  settled_on?: string;
 }
 
 export interface LedgerState {
@@ -49,6 +52,9 @@ export interface LedgerState {
     partial: number;
     still_pending: number;
   };
+  /** ts of the OLDEST well-formed ledger event — "기록 시작 YYYY-MM-DD" in the
+   *  wake render (P1-E7). A date fact, never a duration. */
+  oldest_ts?: string;
   integrity: {
     dropped_lines: number;
     /** Well-formed, versioned events of a type this binary doesn't know (written
@@ -77,6 +83,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   };
   let dropped = 0;
   let skippedUnknown = 0;
+  let oldestTs: string | undefined;
 
   let raw: string;
   try {
@@ -97,6 +104,8 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
     if (!ev['id'] || typeof ev['id'] !== 'string') { dropped++; continue; }
     const id = ev['id'];
     ids.add(id);
+    // Record inception (P1-E7): ISO timestamps compare lexicographically.
+    if (typeof ev['ts'] === 'string' && ev['ts'] && (!oldestTs || ev['ts'] < oldestTs)) oldestTs = ev['ts'];
 
     let cur = map.get(id);
     switch (ev['event']) {
@@ -145,6 +154,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         stats.total_settled++;
         const outcome = ev['outcome'] as string | undefined;
         cur.outcome = outcome;
+        if (typeof ev['ts'] === 'string' && ev['ts'].length >= 10) cur.settled_on = ev['ts'].slice(0, 10);
         if (typeof ev['broken_premise_id'] === 'string') cur.broken_premise_id = ev['broken_premise_id'];
         if (outcome === 'held') stats.held++;
         else if (outcome === 'avoided') stats.avoided++;
@@ -245,7 +255,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   }
   overdue.sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  return { today, overdue, ids, sealedPredicates, contracts: map, stats, integrity: { dropped_lines: dropped, skipped_unknown: skippedUnknown } };
+  return { today, overdue, ids, sealedPredicates, contracts: map, stats, oldest_ts: oldestTs, integrity: { dropped_lines: dropped, skipped_unknown: skippedUnknown } };
 }
 
 /**

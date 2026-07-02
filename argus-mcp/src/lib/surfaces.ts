@@ -80,6 +80,27 @@ export interface SurfaceStrings {
     closing: [string, string];
     footer: string;
   };
+  /** wake_text — the accumulation landscape (P1-E7 = 12 §3.5): three groups
+   *  on a time axis, counts and facts ONLY. No %, no tier, no streak — the
+   *  spine-drift test pins this. The overdue vocabulary ("확인일 지남 · N일
+   *  경과") is the DEVELOPER-surface ruling (master §5-6): allowed in the
+   *  terminal, forbidden to import into the webapp. */
+  wake: {
+    header: string;
+    counts: (total: number, sealed: number, settled: number) => string;
+    overdue_group: (n: number) => string;
+    /** the settle handle, returned — never an instruction sentence. */
+    overdue_hint: string;
+    days_past: (n: number) => string;
+    waiting_group: (n: number) => string;
+    answer_on: (date: string) => string;
+    /** counts-only settled header: `held 1 · avoided 1 · partial 1` — outcome
+     *  words are the user's own picks (user_stated), so naming them is not a
+     *  verdict; a ratio or % here would be. */
+    settled_group: (n: number, held: number, avoided: number, partial: number) => string;
+    more: (n: number) => string;
+    record_since: (date: string) => string;
+  };
 }
 
 export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
@@ -116,6 +137,18 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       ],
       footer: 'argus · anchor down',
     },
+    wake: {
+      header: 'ARGUS · WAKE',
+      counts: (total, sealed, settled) => `decisions ${total} · sealed ${sealed} · settled ${settled}`,
+      overdue_group: (n) => `past check-by (${n})`,
+      overdue_hint: '← argus_settle',
+      days_past: (n) => `${n}d past`,
+      waiting_group: (n) => `waiting on reality (${n})`,
+      answer_on: (date) => `due ${date}`,
+      settled_group: (n, held, avoided, partial) => `settled (${n}) — held ${held} · avoided ${avoided} · partial ${partial}`,
+      more: (n) => `… (+${n})`,
+      record_since: (date) => `on record since ${date}`,
+    },
   },
   ko: {
     checkin: {
@@ -149,6 +182,18 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         '것은 평가가 아니라 — 실제로 일어난 일입니다.',
       ],
       footer: 'argus · 닻 내림',
+    },
+    wake: {
+      header: 'ARGUS · 항적',
+      counts: (total, sealed, settled) => `결정 ${total} · 봉인 중 ${sealed} · 정산 ${settled}`,
+      overdue_group: (n) => `확인일 지남 (${n})`,
+      overdue_hint: '← argus_settle',
+      days_past: (n) => `${n}일 경과`,
+      waiting_group: (n) => `현실을 기다리는 중 (${n})`,
+      answer_on: (date) => `답 ${date}`,
+      settled_group: (n, held, avoided, partial) => `정산됨 (${n}) — held ${held} · avoided ${avoided} · partial ${partial}`,
+      more: (n) => `… (+${n})`,
+      record_since: (date) => `기록 시작 ${date} 부터`,
     },
   },
 };

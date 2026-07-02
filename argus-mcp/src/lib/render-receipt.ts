@@ -115,6 +115,93 @@ export function renderSeal(opts: {
   return L.join('\n');
 }
 
+/**
+ * renderWake — the accumulation landscape `wake_text` (P1-E7 = 12 §3.5).
+ *
+ * argus_recall view=bearing/contracts returns this in data: the whole record
+ * on ONE time axis, three groups (past check-by → waiting → settled), five
+ * lines per group + a `(+N)` fold (check_in's TOP=5 convention), and a final
+ * "on record since YYYY-MM-DD" line from the oldest ledger event.
+ *
+ * Spine (§4, pinned by spine-drift.test.ts): counts, dates and the user's own
+ * outcome words ONLY — no accuracy %, no "1/3" ratio, no tier/score/streak.
+ * The overdue vocabulary ("확인일 지남 · N일 경과") is terminal-allowed per
+ * master §5-6 (developer surface); importing it into the webapp stays banned.
+ */
+export interface WakeContractRow {
+  id: string;
+  status: 'candidate' | 'sealed' | 'settled' | 'dismissed';
+  predicate?: string;
+  text?: string;
+  check_by?: string;
+  outcome?: string;
+  settled_on?: string;
+}
+
+const WAKE_TOP = 5; // per-group visible lines — the due_premises TOP=5 convention
+
+export function renderWake(
+  contracts: WakeContractRow[],
+  stats: { held: number; avoided: number; partial: number },
+  today: string,
+  locale: SurfaceLocale,
+  /** YYYY-MM-DD of the oldest ledger event (LedgerState.oldest_ts). */
+  recordSince?: string,
+): string {
+  const W = SURFACES[locale].wake;
+  const WIDTH = 60;
+
+  const byCheckBy = (a: WakeContractRow, b: WakeContractRow) =>
+    (a.check_by || '9999-99-99') < (b.check_by || '9999-99-99') ? -1 : 1;
+  const sealed = contracts.filter((c) => c.status === 'sealed').sort(byCheckBy);
+  const settled = contracts.filter((c) => c.status === 'settled').sort(byCheckBy);
+  const overdue = sealed.filter((c) => c.check_by && c.check_by <= today);
+  const waiting = sealed.filter((c) => !c.check_by || c.check_by > today);
+
+  const mmdd = (d?: string) => (d && d.length >= 10 ? d.slice(5, 10) : d || '—');
+  const label = (c: WakeContractRow) => {
+    const raw = (c.predicate || c.text || '').replace(/\s+/g, ' ').trim();
+    return raw.length > 24 ? raw.slice(0, 23) + '…' : raw;
+  };
+  const idCol = (id: string) => (id.length > 10 ? id.slice(0, 9) + '…' : id).padEnd(10);
+
+  const L: string[] = [];
+  const headText = W.header + ' ';
+  const countText = ' ' + W.counts(contracts.length, sealed.length, settled.length) + ' ';
+  L.push('┌─ ' + headText + '─'.repeat(Math.max(2, WIDTH - 5 - headText.length - countText.length)) + countText + '─┐');
+
+  const pushGroup = (rows: WakeContractRow[], head: string, line: (c: WakeContractRow) => string, hint?: string) => {
+    if (rows.length === 0) return;
+    L.push('');
+    L.push(hint ? `  ${head}`.padEnd(WIDTH - 2 - hint.length) + hint : `  ${head}`);
+    for (const c of rows.slice(0, WAKE_TOP)) L.push(`    ${line(c)}`);
+    if (rows.length > WAKE_TOP) L.push(`    ${W.more(rows.length - WAKE_TOP)}`);
+  };
+
+  pushGroup(
+    overdue,
+    W.overdue_group(overdue.length),
+    (c) => {
+      const days = Math.max(0, Math.round((Date.parse(today) - Date.parse(c.check_by!)) / 86400000));
+      return `${idCol(c.id)} "${label(c)}"   ${mmdd(c.check_by)} · ${W.days_past(days)}`;
+    },
+    W.overdue_hint,
+  );
+
+  pushGroup(waiting, W.waiting_group(waiting.length), (c) => `${idCol(c.id)} "${label(c)}"   ${W.answer_on(mmdd(c.check_by))}`);
+
+  pushGroup(
+    settled,
+    W.settled_group(settled.length, stats.held, stats.avoided, stats.partial),
+    (c) => `${idCol(c.id)} ${(c.outcome || '—').padEnd(9)} ${mmdd(c.settled_on || c.check_by)}   "${label(c)}"`,
+  );
+
+  L.push('');
+  const foot = recordSince ? ' ' + W.record_since(recordSince) + ' ' : '';
+  L.push('└' + '─'.repeat(Math.max(2, WIDTH - 2 - foot.length)) + foot + '─┘');
+  return L.join('\n');
+}
+
 function wrap(s: string, width = 54): string {
   const words = s.split(/\s+/);
   const lines: string[] = [];
