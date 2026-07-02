@@ -260,10 +260,14 @@ function renderVals(t: number, L: (ko: string, en: string) => string) {
   const ringW = (p: number) => (p > 0.05 ? '1.5px solid #a8935f' : '1px solid #e0cfa6');
   const ringS = `0 3px 6px rgba(60,44,18,.16),0 18px 36px rgba(60,44,18,.22)`;
   const aTop = Dn.three ? '104px' : '150px';
+  const aChosen = Dn.chosen === 'a';
+  // Mirror cB exactly: only the chosen route carries the heavier ringS lift +
+  // neutral border. A non-chosen A must sit on the same base material as the
+  // other losers (equal weight) — never lifted like the winner.
   R.cA = Object.assign(card(640, 0, 232, (aR * clr).toFixed(3), bezel()), {
     top: aTop,
-    border: ringW(pickA),
-    boxShadow: ringS,
+    border: aChosen ? ringW(pickA) : '1px solid #ddccaa',
+    boxShadow: aChosen ? ringS : '0 2px 3px rgba(60,44,18,.12),0 12px 24px rgba(60,44,18,.16)',
     transform: `translateY(${((1 - aR) * 14).toFixed(1)}px)`,
   });
   R.aEye = Dn.a.eye;
