@@ -44,3 +44,16 @@
 - **파일**: `src/components/workspace/NavigatorStrip.tsx`, `src/lib/navigator.ts`, `src/lib/i18n/ko.ts`, `src/lib/i18n/en.ts`, `src/lib/__tests__/navigator-content.test.ts`, `src/lib/__tests__/navigator-simulation.test.ts`
 - **검증**: navigator-content + navigator-simulation + navigator 3파일 95/95 통과 · `npx tsc --noEmit` 0 · 제거 어휘 잔존 grep 0(주석 제외) · ko.ts 한국어 UTF-8 정상 확인.
 - **커밋**: (아래 해시)
+
+### [P0-8] [MCP] argus_sync → argus_settle 동선 100% 파손 봉합 (①②③ 한 커밋 → ④ 역대조)
+
+- **무엇을**: sync가 "정산은 argus_settle로"라며 계정 행 id(`mcp_` 접두사)를 그대로 주는데, 로컬 원장은 접두사 없는 id만 알아서 그 id로 settle하면 항상 NO_PRIOR_SEAL — 게다가 복구 힌트("seal부터 하라")를 따르면 이중 봉인. 이 유일한 MCP P0를 4단계로 봉합.
+- **어떻게**:
+  - **① (커밋1)** sync 응답 receipt마다 `local_id`(`mcp_` 벗긴 값, 웹 봉인이면 null)·`settle_path`("argus_settle (use local_id)" | "webapp") 추가 + 도구 description에 라우팅 규칙 명시.
+  - **② (커밋1)** surface 교체: "이 터미널에서 봉인한 것은 local_id로 argus_settle, 웹에서 봉인한 것은 웹 대시보드에서 정산하세요."
+  - **③ (커밋1)** state-machine.ts NO_PRIOR_SEAL recovery에 mcp_ 접두사/웹 봉인 분기 한 줄 — 에러 자체가 이중 봉인을 더는 유도하지 않음.
+  - **④ (커밋2)** 역방향 대조: sync에 optional `argus_dir` 입력 추가(없으면 ARGUS_DIR env, 둘 다 없으면 대조 조용히 생략 — 기존 무인자 호출 하위호환), replayLedger로 로컬 원장을 읽어 `mcp_` 행이 계정에서 settled인데 로컬은 sealed면 receipt에 `settled_in_account:true` + surface "웹에서 이미 정산된 것 K건 — 로컬 원장에도 남기려면 argus_settle로 같은 outcome을 기록하세요." **로컬 자동 정산은 구현하지 않음**(§4 채택 조건 — 사용자 확언 없는 대리 기록 금지, 표시+안내까지만). 이게 없으면 E3 닻 거울·E7 항적이 이미 정산한 결정을 계속 due로 인용.
+  - **회귀 가드**: sync.test.ts에 local_id/settle_path 단언 1건 + ④ 긍정/부재 2건(실제 tmpArgusDir 봉인으로 로컬 원장 구성, no-dir 시 조용한 강등) 추가. schema-validation은 optional 필드라 기존 단언 그대로 통과.
+- **파일**: `argus-mcp/src/tools/sync.ts`, `argus-mcp/src/lib/state-machine.ts`, `argus-mcp/src/tools/__tests__/sync.test.ts` (+ package-lock 버전 드리프트 정리 1.0.0→1.3.0). 전부 argus-mcp/ 내부 — 웹앱 무접촉(src/app/api/mcp/*는 읽기만).
+- **검증**: MCP `npm run typecheck` 0 · 전체 스위트 17파일 164/164 통과 (sync 7/7, schema-validation, state-machine, integration-simulation 포함).
+- **커밋**: 커밋1 9e825fe, 커밋2 (아래 해시)

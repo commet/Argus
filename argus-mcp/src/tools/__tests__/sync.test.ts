@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { sync } from '../sync.js';
+import { seal } from '../seal.js';
+import { tmpArgusDir } from '../../test-helpers.js';
 
 const ORIG = process.env.ARGUS_TOKEN;
 beforeEach(() => { delete process.env.ARGUS_TOKEN; vi.restoreAllMocks(); });
@@ -60,6 +62,52 @@ describe('argus_sync', () => {
     expect(d.total).toBe(5);
     expect(d.has_more).toBe(true);
     expect(d.truncation_note).toBeTruthy();
+  });
+
+  it('P0-8④: flags settled_in_account when the web settled what the local ledger still holds sealed', async () => {
+    // Local ledger: seal 'migrate-db' (no token yet → purely local, no push).
+    const dir = tmpArgusDir();
+    await seal.handler({
+      argus_dir: dir, id: 'migrate-db',
+      predicate: 'Cutover downtime is under 5 minutes', check_by: '2027-01-01', predicate_owner: 'user',
+    });
+
+    // Account: the same judgment (mcp_ prefix) was settled on the WEB.
+    process.env.ARGUS_TOKEN = 'argus_pat_x';
+    const receipts = [
+      { id: 'mcp_migrate-db', source_title: 'A', state: 'settled', next_check_by: null, due: false, core_question: 'q', open_predicates: [] },
+      // still live in both places → no flag
+      { id: 'mcp_other', source_title: 'B', state: 'sealed', next_check_by: '2999-01-01', due: false, core_question: 'q', open_predicates: [] },
+    ];
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true, receipts }), { status: 200 }));
+
+    const res = await sync.handler({ argus_dir: dir });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const d = res.structuredContent?.data as any;
+    expect(d.receipts[0].settled_in_account).toBe(true);
+    expect(d.receipts[1].settled_in_account).toBeUndefined();
+    // Surface tells the user; the local ledger is NOT auto-settled (user runs argus_settle).
+    expect(String(res.structuredContent?.surface)).toContain('웹에서 이미 정산된 것 1건');
+    expect(String(res.structuredContent?.surface)).toContain('argus_settle');
+  });
+
+  it('P0-8④: cross-check degrades silently when no local dir is bound', async () => {
+    const origDir = process.env.ARGUS_DIR;
+    delete process.env.ARGUS_DIR;
+    try {
+      process.env.ARGUS_TOKEN = 'argus_pat_x';
+      const receipts = [
+        { id: 'mcp_x', source_title: 'X', state: 'settled', next_check_by: null, due: false, core_question: 'q', open_predicates: [] },
+      ];
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true, receipts }), { status: 200 }));
+      const res = await sync.handler({});
+      expect(res.isError).toBeFalsy();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const d = res.structuredContent?.data as any;
+      expect(d.receipts[0].settled_in_account).toBeUndefined(); // cannot claim what the local ledger says
+    } finally {
+      if (origDir === undefined) delete process.env.ARGUS_DIR; else process.env.ARGUS_DIR = origDir;
+    }
   });
 
   it('due_only filters to just the due receipts', async () => {
