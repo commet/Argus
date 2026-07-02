@@ -123,6 +123,12 @@
 - **B 배치(정답형 잔여, 재개 후):** SeaChart/BranchMap 키보드 픽(role=button+Enter/Space, svg role img→group), Recast/Reframe 스트리밍 프리뷰("초안 작성 중…" provisional 렌더), SealMoment predicate rows 44px, Testimonials 단수화+면책 대비, 전역 focus 규칙 중복 제거, 워크스페이스 sr-only h1.
 - **C1 종결:** 정렬 머지 드롭 자산 = ForkLimitToast 1개뿐이며, main이 포크 한도(MAX_BRANCHES) 자체를 의도 제거해 무의미 → 복원 불필요. **손실 0 확정.**
 
+- **A 배치(사용자 승인 A1-①·A2-①·A3-①·A4-① 구현):**
+  - **A2** 물리적 `.bp-root` 스코핑 대신(정식 앱 소비자 4곳이 깨짐) `design-register-contract.test.ts` 가드로 경계 강제 — 세리머니(gold/seal) 어휘는 랜딩 밖 금지, 재질(paper/ink)은 명시적 whitelist만.
+  - **A4** boss 속마음 카드: 보라 점술 문법 → 앱 gold-leaf/잉크 "사적 메모" 톤. 상시 glow keyframe·Lock 흔들림·Sparkles 펄스 정지(정지형), 보라 다크 오버라이드 5개 삭제(토큰이 자체 remap).
+  - **A3** 커스텀 --radius-* 스케일 폐기(rounded-2xl=16 vs 토큰 24 이름 충돌 함정), Tailwind rounded-*가 단일 라디우스 언어. 소비처 3곳 스냅, Modal 20→16, 로고 10→8. Card 기본 16→12px 다이어트. Button press `active:scale-[0.96]` 통일 + 역할 문서화(gold=사용자 커밋 전용).
+  - **A1** 설정 IA 재구축: 좌측 sticky 섹션 내비(모바일 가로 칩) + IntersectionObserver 활성 추적, 섹션 앵커화, 파괴 액션을 연동 카드에서 분리해 최하단 danger zone Card로 격리. Playwright 게이트 통과.
+
 > **머지 상태:** 위 전부 `origin/main`에 반영됨(`d45f218` 대규모 머지 + `552eb7d` a11y 배치 FF). 각 배치 tsc/eslint/vitest/build 그린 확인 후 머지.
 
 ### ⏳ 남은 P2/P3 (후속 — 설계 반복이 필요해 야간 blind 구현에서 제외, main 그린 유지 목적)
