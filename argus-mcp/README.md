@@ -69,7 +69,11 @@ Or add to your host's MCP config:
         // email at their check-by date (the Companion Brief) and show up in the
         // web dashboard. Issue the token in the web app. Leave it unset to stay
         // fully local (the privacy-preserving default).
-        "ARGUS_TOKEN": "argus_pat_…"
+        "ARGUS_TOKEN": "argus_pat_…",
+        // OPTIONAL — the timezone that decides when a check-by date becomes
+        // "today". Unset = UTC, which for Korean users means the day flips at
+        // 9am KST (a due decision won't show until then). Set your zone:
+        "ARGUS_TZ": "Asia/Seoul"
         // "ARGUS_API_URL": "https://argus.voyage"  // override only for self-host
       }
     }

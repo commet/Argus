@@ -51,13 +51,17 @@ export const init: ToolModule = {
 
       const today = resolveToday({});
       const empty = replayLedger(dir, today).ids.size === 0;
+      // TZ visibility (12 §3.3): expose today + tz so an install in KST notices
+      // "today is yesterday" immediately instead of at the first missed check-in.
+      // Default stays UTC (blueprint M4 determinism) — this is disclosure only.
+      const tz = process.env['ARGUS_TZ'] || 'UTC (set ARGUS_TZ to change)';
       return envelope({
         ok: true, tool: 'argus_init',
         surface: empty
           ? 'Argus is ready. It does not give answers — it records a prediction + a check-by date and meets reality on that date. Open your first decision with argus_open_decision.'
           : 'Argus is ready.',
         next_actions: empty ? ['argus_open_decision'] : ['argus_check_in'],
-        data: { initialized: true, argus_dir: dir },
+        data: { initialized: true, argus_dir: dir, today, tz },
       });
     } catch (e) {
       return handleToolException('argus_init', e);
