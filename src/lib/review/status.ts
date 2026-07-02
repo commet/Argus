@@ -101,10 +101,11 @@ export function summarizeReceipt(r: JudgmentReceipt, todayYMD: string): ReceiptS
     derived = 'reviewed';
   }
 
+  // 웹앱 사용자 표면에는 지각 집계(OVERDUE/"N일 지남")를 쓰지 않는다 — 늦음을 세는 라벨은
+  // 사용자에 대한 판정이다(스파인 규칙2). 플러그인 statusline의 OVERDUE는 개발자 표면이라 예외 —
+  // 그 어휘를 여기로 수입하지 말 것. days_until은 정렬용 사실로만 내부 유지.
   let label = LABELS[derived];
-  if (derived === 'due' && days_until !== undefined && days_until < 0) {
-    label = `확인 지남 (${-days_until}일)`;
-  } else if (derived === 'sealed' && days_until !== undefined) {
+  if (derived === 'sealed' && days_until !== undefined) {
     label = `${days_until}일 뒤 확인`;
   }
 

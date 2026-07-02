@@ -238,7 +238,7 @@ export default function ImportPage() {
                     style={{ color: STATUS_TONE[d.status ?? 'candidate'], borderColor: 'var(--border-subtle)' }}
                   >
                     {isOverdue(d)
-                      ? L('기한 지남', 'overdue')
+                      ? L('확인할 차례', 'time to check')
                       : d.status
                         ? STATUS_LABELS[locale === 'ko' ? 'ko' : 'en'][d.status]
                         : ''}
@@ -259,7 +259,7 @@ export default function ImportPage() {
                   <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
                     <p className="text-[11.5px] text-[var(--text-tertiary)] mb-2">
                       {isOverdue(d)
-                        ? L('확인일이 지났습니다. 실제로 어떻게 됐나요?', 'This is due. How did it go?')
+                        ? L('그래서, 어떻게 됐어요? 지금 기록해도, 나중에 해도 돼요.', 'So, how did it go? You can record it now, or later.')
                         : L('아직 확인일 전입니다. 필요하면 지금 정산하거나 2주 뒤로 미룰 수 있습니다.', 'Not due yet. You can settle now or push it two weeks.')}
                     </p>
                     <div className="flex flex-wrap gap-1.5">

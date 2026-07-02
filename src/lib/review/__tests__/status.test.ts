@@ -78,7 +78,10 @@ describe('summarizeReceipt', () => {
     const s = summarizeReceipt(r, '2026-07-01');
     expect(s.derived).toBe('due');
     expect(s.urgent).toBe(true);
-    expect(s.label).toContain('지남');
+    // 지각 집계 라벨("확인 지남 (N일)")은 스파인 규칙2 위반이라 전멸 —
+    // due는 날수 없이 "확인할 차례"로만 말한다 (P1-B6).
+    expect(s.label).toBe('확인할 차례');
+    expect(s.label).not.toContain('지남');
   });
 
   it('all sealed follow-ups settled → settled', () => {
