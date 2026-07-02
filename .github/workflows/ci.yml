@@ -19,12 +19,10 @@ jobs:
 
       - run: npm ci
 
-      # argus-mcp has its own package.json; the root vitest run includes its
-      # tests, and protocol-roundtrip.test.ts imports @modelcontextprotocol/sdk
-      # from that tree — without this install the suite fails on every branch
-      # (it broke main the moment PR #71 landed).
-      - name: Install argus-mcp deps
-        run: npm ci --prefix argus-mcp
+      # argus-mcp is a separate package (not an npm workspace); its tests run from
+      # the root vitest sweep, so its deps (@modelcontextprotocol/sdk) must be
+      # installed too or suites like protocol-roundtrip fail with ERR_MODULE_NOT_FOUND.
+      - run: npm ci --prefix argus-mcp
 
       - name: TypeScript
         run: npx tsc --noEmit
