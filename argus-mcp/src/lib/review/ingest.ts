@@ -23,6 +23,7 @@ import {
   type PrivacyMode,
   type ExtractionQuality,
   type SourceAnchor,
+  type SourceCaps,
 } from './schema.js';
 import { fingerprint, stableId } from './ids.js';
 
@@ -43,6 +44,9 @@ export interface IngestInput {
   extraction_quality?: ExtractionQuality;
   /** extra honesty notes from the parser, merged with the ingest defaults. */
   extraction_notes?: string[];
+  /** extractor-side caps (pages/units dropped) → carried onto the artifact so the
+   *  pipeline can compute honest coverage. */
+  source_caps?: SourceCaps;
   privacy_mode?: PrivacyMode;
 }
 
@@ -107,6 +111,7 @@ export function ingest(input: IngestInput): CanonicalArtifact {
       is_deck: isDeck,
     },
     extraction_notes: notes,
+    source_caps: input.source_caps,
   };
 }
 
@@ -151,6 +156,7 @@ function fromUnits(input: IngestInput, title: string, privacy_mode: PrivacyMode)
       is_deck: isDeck,
     },
     extraction_notes: notes,
+    source_caps: input.source_caps,
   };
 }
 

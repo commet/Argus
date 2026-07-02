@@ -43,6 +43,13 @@ const CONCERN_CHIPS: { id: ReviewConcern; label: string }[] = [
 const TEXT_EXT = ['md', 'markdown', 'txt', 'text'];
 const BINARY_EXT: Record<string, SourceKind> = { pdf: 'pdf', docx: 'docx', pptx: 'pptx' };
 
+/** Paste cap — matched to the server's MAX_MESSAGE_LENGTH (50_000, lib/llm-validation.ts)
+ *  so a large paste degrades honestly (coverage note) instead of a hard 400. */
+const PASTE_CHAR_CAP = 50_000;
+/** Review-level wall-clock budget. The pipeline is internally bounded per call,
+ *  but serial stages compound; this caps the worst case a user can wait. */
+const REVIEW_DEADLINE_MS = 150_000;
+
 export function ReviewFlow() {
   const store = useReviewStore();
   const [phase, setPhase] = useState<Phase>('list');
@@ -68,6 +75,10 @@ export function ReviewFlow() {
   // Lets the user cancel an in-flight review. Without it a long extraction on a
   // large document reads as a frozen "분석 중" screen with no way out.
   const abortRef = useRef<AbortController | null>(null);
+  // Why the current run was aborted: 'user' (cancel button → back to import) vs
+  // 'deadline' (wall-clock budget → a clear failure). Distinguishing them keeps
+  // a genuine cancel silent and a timeout honest.
+  const abortReasonRef = useRef<'user' | 'deadline' | null>(null);
 
   // Load persisted receipts once; open on the list when any exist, else import.
   useEffect(() => {
@@ -152,21 +163,53 @@ export function ReviewFlow() {
       pre_extracted_units: preExtracted?.units,
       extraction_quality: preExtracted?.quality,
       extraction_notes: preExtracted?.note ? [preExtracted.note] : undefined,
+      // Carry the extractor's page/slide/unit caps so the receipt discloses how
+      // much of the source was actually reviewed (honest coverage).
+      source_caps: preExtracted
+        ? {
+            pages_total: preExtracted.pages_total,
+            pages_read: preExtracted.pages_read,
+            slides_total: preExtracted.slides_total,
+            slides_read: preExtracted.slides_read,
+            units_capped: preExtracted.units_capped,
+          }
+        : undefined,
     });
     const controller = new AbortController();
     abortRef.current = controller;
+    abortReasonRef.current = null;
     setElapsed(0);
     setPhase('running');
+    // Wall-clock budget: the pipeline is internally bounded (120s × retries per
+    // call) but that compounds across serial stages into many minutes. A single
+    // review-level deadline caps the worst case to ~REVIEW_DEADLINE_MS.
+    const deadline = setTimeout(() => {
+      if (abortRef.current) { abortReasonRef.current = 'deadline'; abortRef.current.abort(); }
+    }, REVIEW_DEADLINE_MS);
     const { job: finalJob, receipt: r } = await runDocumentReview(artifact, {
       context: ctx,
       onProgress: setJob,
       signal: controller.signal,
     });
+    clearTimeout(deadline);
     abortRef.current = null;
-    // User cancelled mid-run → return to the import screen quietly (their text
-    // is still there), no error card. The pipeline swallows the abort into a
-    // 'failed' job, so check the signal rather than the job status.
     if (controller.signal.aborted) {
+      if (abortReasonRef.current === 'deadline') {
+        // Timed out → an honest failure with a way forward, not a silent hang.
+        setJob({
+          job_id: finalJob.job_id, artifact_id: finalJob.artifact_id, status: 'failed',
+          progress_label: '검수 시간 초과',
+          error: {
+            kind: 'model_error',
+            message: '검수가 예상보다 오래 걸려 중단했어요.',
+            recovery: '문서를 더 짧게 나눠서 넣거나, 핵심 부분만 붙여넣어 다시 시도해 주세요.',
+          },
+        });
+        setPhase('failed');
+        track('review_timeout', { elapsed_s: elapsed });
+        return;
+      }
+      // User cancelled → return to import quietly (their text is preserved).
       setJob(null);
       setPhase('import');
       track('review_cancelled', { elapsed_s: elapsed });
@@ -375,7 +418,7 @@ export function ReviewFlow() {
             </p>
           )}
           <div className="mt-4">
-            <Button variant="ghost" size="sm" onClick={() => abortRef.current?.abort()}>
+            <Button variant="ghost" size="sm" onClick={() => { abortReasonRef.current = 'user'; abortRef.current?.abort(); }}>
               취소
             </Button>
           </div>
@@ -453,7 +496,7 @@ export function ReviewFlow() {
             setPreExtracted(null);
             setExtractNote(null);
           }}
-          maxLength={60000}
+          maxLength={PASTE_CHAR_CAP}
           placeholder="검수할 문서를 붙여넣으세요. (전략 메모, 기획안, Claude/ChatGPT 답변 등)"
           className="w-full h-52 resize-y bg-transparent text-[14px] leading-[1.6] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
         />
@@ -468,7 +511,11 @@ export function ReviewFlow() {
           <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()} disabled={extracting}>
             {extracting ? '텍스트 추출 중…' : '파일 업로드 (md · txt · pdf · docx · pptx)'}
           </Button>
-          <span className="text-[11px] text-[var(--text-tertiary)]">{text.length > 0 ? `${text.length}자` : ''}</span>
+          <span className={`text-[11px] ${text.length >= PASTE_CHAR_CAP ? 'text-amber-700 font-semibold' : 'text-[var(--text-tertiary)]'}`}>
+            {text.length >= PASTE_CHAR_CAP
+              ? `최대 ${PASTE_CHAR_CAP.toLocaleString()}자 — 초과분은 잘립니다`
+              : text.length > 0 ? `${text.length.toLocaleString()}자` : ''}
+          </span>
         </div>
         {preExtracted && (
           <p className="mt-2 text-[12px] text-green-700">

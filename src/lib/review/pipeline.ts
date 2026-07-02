@@ -34,6 +34,7 @@ import {
   reviewabilityBand,
 } from './schema';
 import { scoreReviewability } from './reviewability';
+import { packUnitsForPrompt, computeCoverage } from './coverage';
 import { routeLenses } from './routing';
 import { LENSES, LENS_VERSION } from './lenses';
 import { buildExtractionPrompt, buildLensPrompt, buildSynthesisPrompt } from './prompts';
@@ -95,8 +96,14 @@ export async function runDocumentReview(
 
   try {
     // --- Stage 1: extraction → profile + judgment map ---------------------
+    // Pack units ONCE under both the count cap and the prompt char budget, so a
+    // large document degrades to "fewer units + a coverage note" instead of
+    // hard-failing the server's per-message limit — and so coverage is honest.
     emit('profiling', '주장을 분석하는 중');
-    const exPrompt = buildExtractionPrompt(artifact.units, ctx, budget.max_units);
+    const packed = packUnitsForPrompt(artifact.units, budget.max_units);
+    const unitsReviewed = packed.units.length;
+    const coverage = computeCoverage(artifact, unitsReviewed);
+    const exPrompt = buildExtractionPrompt(packed.units, ctx, packed.units.length);
     promptParts.push(exPrompt.system);
     const raw = await llm.json<Record<string, unknown>>({
       system: exPrompt.system,
@@ -131,6 +138,7 @@ export async function runDocumentReview(
         artifact, profile, reviewability, routing, map,
         findings: [], obligations: [], followups: [],
         currentHeading: '이 문서는 지금 상태로는 충분히 검수하기 어렵습니다. 무엇이 빠졌는지부터 봅니다.',
+        coverage,
         rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
       });
       receipt.state = 'draft';
@@ -138,22 +146,32 @@ export async function runDocumentReview(
     }
 
     // --- Stage 3: lens reviews (parallel) ---------------------------------
-    emit('reviewing', '근거가 약한 곳을 확인하는 중');
+    // This is the longest stage (N parallel model calls). Emit a completion
+    // counter as each lens settles so the UI shows honest movement ("렌즈 3/7")
+    // instead of a frozen bar — never a fabricated linear %.
+    const lensTotal = routing.selected.length;
+    let lensDone = 0;
+    emit('reviewing', lensTotal > 0 ? `근거 확인 중 (렌즈 0/${lensTotal})` : '근거가 약한 곳을 확인하는 중');
     const mapSummary = summarizeMap(map);
     const lensResults = await Promise.allSettled(
       routing.selected.map(async (lensId) => {
         const lens = LENSES[lensId];
-        const lp = buildLensPrompt(lens, mapSummary, relevantUnits(artifact.units, lens, budget.max_units), budget.max_units);
+        const lp = buildLensPrompt(lens, mapSummary, relevantUnits(packed.units, lens, packed.units.length), packed.units.length);
         promptParts.push(lp.system);
-        const out = await llm.json<{ findings?: unknown[] }>({
-          system: lp.system,
-          user: lp.user,
-          maxTokens: 2000,
-          model: 'default',
-          signal: options.signal,
-          shape: { findings: { type: 'array', default: [] } },
-        });
-        return normalizeFindings(out.findings, lensId, resolveAnchors);
+        try {
+          const out = await llm.json<{ findings?: unknown[] }>({
+            system: lp.system,
+            user: lp.user,
+            maxTokens: 2000,
+            model: 'default',
+            signal: options.signal,
+            shape: { findings: { type: 'array', default: [] } },
+          });
+          return normalizeFindings(out.findings, lensId, resolveAnchors);
+        } finally {
+          lensDone++;
+          emit('reviewing', `근거 확인 중 (렌즈 ${lensDone}/${lensTotal})`);
+        }
       }),
     );
     const findings: Finding[] = lensResults
@@ -199,6 +217,7 @@ export async function runDocumentReview(
       artifact, profile, reviewability, routing,
       map: { ...map, core_question: coreQuestion },
       findings, obligations, followups, currentHeading,
+      coverage,
       rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
     });
 
@@ -369,6 +388,7 @@ function assembleReceipt(args: {
   obligations: JudgmentObligation[];
   followups: FalsifiableFollowup[];
   currentHeading: string;
+  coverage: JudgmentReceipt['coverage'];
   rootMode: 'create' | 'review';
   today: string;
   llm: ReviewLLM;
@@ -398,6 +418,7 @@ function assembleReceipt(args: {
     // "no issues" ≠ "not reviewed". The insufficient-reviewability path
     // overrides this back to 'draft' after assembly.
     state: 'reviewed',
+    coverage: args.coverage,
     artifact_id: artifact.artifact_id,
     source_kind: artifact.source_kind,
     source_title: artifact.source_title,

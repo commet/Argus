@@ -115,6 +115,24 @@ export function ReceiptView({
         </Button>
       </div>
 
+      {/* coverage — honest disclosure BEFORE the findings: this receipt only
+          covers part of the source, so it must not read as a full review. */}
+      {receipt.coverage && receipt.coverage.band !== 'full' && receipt.coverage.notes.length > 0 && (
+        <Card variant={receipt.coverage.band === 'low' ? 'danger' : 'muted'}>
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700 mb-1">
+            {receipt.coverage.band === 'low' ? '일부만 검수됨' : '부분 검수'}
+          </div>
+          <ul className="space-y-0.5">
+            {receipt.coverage.notes.map((n, i) => (
+              <li key={i} className="text-[13px] text-[var(--text-primary)]">· {n}</li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[11px] text-[var(--text-secondary)]">
+            이 영수증은 위 범위에 한정된 판단입니다. 전체를 검수하려면 문서를 나눠 넣거나 핵심 부분을 붙여넣어 주세요.
+          </p>
+        </Card>
+      )}
+
       {/* reviewability */}
       <Card variant={band === 'insufficient' ? 'danger' : band === 'limited' ? 'muted' : 'default'}>
         <div className="flex items-center justify-between gap-3">

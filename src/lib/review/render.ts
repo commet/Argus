@@ -13,6 +13,11 @@ export function receiptToMarkdown(r: JudgmentReceipt): string {
   L.push('');
   L.push(`- 상태: ${r.state} · 검수 가능성: ${r.reviewability.score}/100`);
   L.push(`- 문서 유형: ${r.profile.document_type} · 이해관계: ${r.profile.stakes}`);
+  // Coverage travels with the shared receipt — a partial review must never read
+  // as a full one, even when copied out of the app.
+  if (r.coverage && r.coverage.band !== 'full' && r.coverage.notes.length) {
+    L.push(`- 검수 범위: ${r.coverage.notes.join(' ')}`);
+  }
   L.push('');
   L.push('## 핵심 판단');
   L.push(r.core_question || '(핵심 질문 미검출)');
