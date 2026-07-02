@@ -36,9 +36,16 @@ export function recordSummaryMarkdown(c: RecordCounts, locale: 'ko' | 'en'): str
     : `Open (awaiting check-in): **${c.open}** · Settled: **${c.settled}**`);
 
   if (c.settled > 0) {
+    // Vocabulary unified with the web 자차표 (P1-A2 = 08 S2-5): "적중/빗나감"
+    // matches RecordStrip's "적중한 가설/빗나간 가설" family, so the same
+    // outcome never reads as two different words on two surfaces.
+    // TODO(08 S2-5 long-term): feed these counts through record-summary's
+    // merged display brain instead of a parallel path — the shapes already
+    // match (ReviewRecordCounts === RecordCounts), guarded by the cross test
+    // in record-summary.test.ts.
     out.push('', ko
-      ? `정산 결과 — 잘됨 ${c.happened} · 안됨 ${c.avoided} · 반반 ${c.partial}`
-      : `Outcomes — went well ${c.happened} · didn’t ${c.avoided} · partial ${c.partial}`);
+      ? `정산 결과 — 적중 ${c.happened} · 빗나감 ${c.avoided} · 반반 ${c.partial}`
+      : `Outcomes — held ${c.happened} · missed ${c.avoided} · partial ${c.partial}`);
   }
 
   // Honest maturity line (localized; the showStats gate is the enforceable part).

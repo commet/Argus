@@ -12,6 +12,7 @@
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LocaleLink } from '@/components/ui/LocaleLink';
+import { RecordStrip } from '@/components/ui/RecordStrip';
 import { useLocale } from '@/hooks/useLocale';
 import {
   type JudgmentReceipt,
@@ -75,6 +76,11 @@ export function ReceiptList({
           </LocaleLink>
         </div>
       </div>
+
+      {/* 자차표 — the same <RecordStrip/> as /project (P1-A2, one display
+          brain): review settles and project loops are one record, whichever
+          door the user returns through. Renders nothing while empty. */}
+      <RecordStrip />
 
       {ordered.length === 0 ? (
         <Card variant="muted">

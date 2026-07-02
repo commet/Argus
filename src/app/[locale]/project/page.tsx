@@ -23,7 +23,8 @@ import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { DecisionItemsCard } from '@/components/projects/DecisionItemsCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
-import { contractStatus, summarizeRecord, recordDisclosure } from '@/lib/decision-contract';
+import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
+import { RecordStrip } from '@/components/ui/RecordStrip';
 import { useDueCount } from '@/hooks/useDueCount';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
@@ -398,8 +399,6 @@ export default function ProjectPage() {
   const currentBearing = currentVoyageSession ? deriveCurrentBearing(currentVoyageSession) : null;
   // 자차표 — the user's accumulating record across all projects. Quiet, factual.
   const crossRecord = summarizeRecord(projects, Date.now());
-  // Dim9 — below the settled threshold this is counts, not a proven track record.
-  const recordReveal = recordDisclosure(crossRecord);
 
   return (
     <div className="space-y-6">
@@ -476,32 +475,11 @@ export default function ProjectPage() {
             <>
               {/* 자차표 — the user's accumulating record of closed loops.
                   Until now this only flashed once inside the settlement modal
-                  and vanished; this is where it LIVES. Facts, never a score. */}
-              {/* 자차표 — North-Star D: raised from a 12px tertiary-gray line to a
-                  quiet bordered strip with a label, so the moat the user is
-                  accruing is actually visible. Still counts-only, never a score. */}
-              {crossRecord.loops > 0 && (
-                <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-2.5 flex items-baseline gap-2.5">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-tertiary)] shrink-0">{L('나의 기록', 'Your record')}</span>
-                  <span className="text-[13px] text-[var(--text-secondary)] leading-snug">
-                    {locale === 'ko'
-                      ? `닫은 고리 ${crossRecord.loops}개` +
-                        (crossRecord.betsHeld > 0 ? ` · 적중한 가설 ${crossRecord.betsHeld}개` : '') +
-                        (crossRecord.risksAvoided > 0 ? ` · 비켜 간 위험 ${crossRecord.risksAvoided}개` : '') +
-                        (crossRecord.goodOutcomesOnLuck > 0 ? ` · 그중 운으로 본 게 ${crossRecord.goodOutcomesOnLuck}개` : '')
-                      : `${crossRecord.loops} loop${crossRecord.loops === 1 ? '' : 's'} closed` +
-                        (crossRecord.betsHeld > 0 ? ` · ${crossRecord.betsHeld} bet${crossRecord.betsHeld === 1 ? '' : 's'} held` : '') +
-                        (crossRecord.risksAvoided > 0 ? ` · ${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '') +
-                        (crossRecord.goodOutcomesOnLuck > 0 ? ` · ${crossRecord.goodOutcomesOnLuck} marked as luck` : '')}
-                  </span>
-                  {/* Dim9 — don't let a handful of settled loops read as a proven track record. */}
-                  {!recordReveal.showStats && (
-                    <span className="text-[11px] text-[var(--text-tertiary)] italic shrink-0">
-                      {L('아직 확정된 기록은 아님', 'not yet a track record')}
-                    </span>
-                  )}
-                </div>
-              )}
+                  and vanished; this is where it LIVES. Facts, never a score.
+                  P1-A2 (08 S2): extracted to the shared <RecordStrip/> (one
+                  display brain — /tools/review renders the SAME component, and
+                  review-receipt settles now join the count). */}
+              <RecordStrip />
 
               {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환.
                   Review receipts past check-by join the SAME strip (P0-6 ① —

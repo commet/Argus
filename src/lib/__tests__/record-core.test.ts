@@ -34,7 +34,7 @@ describe('record-core', () => {
   it(`at/above ${SETTLED_THRESHOLD} settled → shows the building line + outcome frequencies (still no score)`, () => {
     const md = recordSummaryMarkdown({ open: 2, settled: 5, happened: 3, avoided: 1, partial: 1 }, 'ko');
     expect(md).toContain('정산 완료: **5**');
-    expect(md).toContain('잘됨 3');
+    expect(md).toContain('적중 3'); // vocabulary unified with the web strip (08 S2-5)
     expect(md).toContain('쌓이고 있어요');
     expect(md).toContain('점수가 아니'); // explicitly disclaims it's a score
     expect(md).not.toMatch(/\d+%/);

@@ -22,6 +22,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { playTransitionTone, resumeAudioContext } from '@/lib/audio';
 import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract, summarizeRecord } from '@/lib/decision-contract';
+import { recordCompactLine } from '@/lib/record-summary';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText, Anchor } from 'lucide-react';
 import { useDueCount } from '@/hooks/useDueCount';
@@ -769,13 +770,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 // P1-A4: the quiet accumulation line — counts only, never a
                 // score. Lives INSIDE the existing header (no new section:
                 // the same screen just lost four chips to P0-7's subtraction).
+                // Copy comes from record-summary (P1-A2) — the same brain as
+                // the /project·/tools/review RecordStrip, so numbers can't drift.
                 const rec = summarizeRecord(projects, Date.now());
                 const sealedCount = projects.filter((p) => p.decision_contract).length;
-                const accumulation = rec.loops > 0
-                  ? L(`⚓ 닫은 고리 ${rec.loops}개`, `⚓ ${rec.loops} loop${rec.loops === 1 ? '' : 's'} closed`)
-                  : sealedCount > 0
-                    ? L(`⚓ 봉인 ${sealedCount}개 — 첫 확인일이 오면 기록이 시작돼요`, `⚓ ${sealedCount} sealed — the record starts on the first check-in day`)
-                    : null;
+                const accumulation = recordCompactLine(rec, sealedCount, locale);
                 const relTime = (iso?: string) => {
                   if (!iso) return '';
                   const ms = Date.now() - new Date(iso).getTime();
