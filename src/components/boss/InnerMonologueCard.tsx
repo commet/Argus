@@ -128,13 +128,11 @@ export function InnerMonologueCard({ verdict }: InnerMonologueCardProps) {
       >
         <div className="bc-inner-locked-glow" />
         <div className="bc-inner-locked-row">
-          <motion.div
-            className="bc-inner-locked-icon"
-            animate={{ rotate: [0, -8, 8, -4, 0] }}
-            transition={{ repeat: Infinity, duration: 3.5, ease: 'easeInOut', delay: 1 }}
-          >
+          {/* A4 retheme: the wiggling lock + pulsing sparkle were divination
+              theater; the sealed memo sits still (hover/tap feedback remains). */}
+          <div className="bc-inner-locked-icon">
             <Lock size={18} strokeWidth={2} />
-          </motion.div>
+          </div>
           <div className="bc-inner-locked-copy">
             <span className="bc-inner-locked-title">
               {t('boss.insideReveal', { name: typeData?.name || '' })}
@@ -145,13 +143,9 @@ export function InnerMonologueCard({ verdict }: InnerMonologueCardProps) {
                 : t('boss.innerLockedNoHidden')}
             </span>
           </div>
-          <motion.span
-            className="bc-inner-locked-sparkle"
-            animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.15, 1] }}
-            transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
-          >
+          <span className="bc-inner-locked-sparkle">
             <Sparkles size={14} />
-          </motion.span>
+          </span>
         </div>
       </motion.button>
     );

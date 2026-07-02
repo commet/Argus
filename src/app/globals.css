@@ -1677,30 +1677,30 @@ button, a, input, textarea {
   position: relative;
 }
 
-/* Locked state — pulsing mystery button */
+/* Locked state — a quiet sealed memo, not a mystery button (A4 retheme:
+   the violet/indigo divination grammar read as "the machine sees your
+   essence"; the boss's private note now wears the app's own gold-leaf/ink) */
 .bc-inner-locked {
   display: block;
   width: calc(100% - 32px);
   padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(91, 33, 182, 0.08) 0%, rgba(30, 58, 138, 0.08) 100%);
-  border: 1.5px solid rgba(91, 33, 182, 0.22);
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border: 1.5px solid color-mix(in srgb, var(--accent) 24%, transparent);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.2s, transform 0.15s;
 }
 .bc-inner-locked:hover {
-  border-color: rgba(91, 33, 182, 0.45);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 .bc-inner-locked-glow {
+  /* Perpetual pulse demoted (restraint + it was the one CSS loop with no
+     reduced-motion cover): a still, faint warm wash instead. */
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 50%, rgba(139, 92, 246, 0.12), transparent 60%);
+  background: radial-gradient(circle at 30% 50%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%);
   pointer-events: none;
-  animation: inner-glow 4s ease-in-out infinite;
-}
-@keyframes inner-glow {
-  0%, 100% { opacity: 0.5; transform: translateX(0); }
-  50% { opacity: 0.9; transform: translateX(10%); }
+  opacity: 0.6;
 }
 .bc-inner-locked-row {
   position: relative;
@@ -1716,8 +1716,8 @@ button, a, input, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(91, 33, 182, 0.15);
-  color: rgb(109, 40, 217);
+  background: var(--gold-muted);
+  color: var(--accent);
   flex-shrink: 0;
 }
 .bc-inner-locked-copy {
@@ -1735,10 +1735,7 @@ button, a, input, textarea {
 }
 .bc-inner-locked-title em {
   font-style: normal;
-  background: linear-gradient(135deg, rgb(109, 40, 217) 0%, rgb(37, 99, 235) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--accent);
   font-weight: 800;
 }
 .bc-inner-locked-sub {
@@ -1749,16 +1746,16 @@ button, a, input, textarea {
 .bc-inner-locked-sparkle {
   display: flex;
   align-items: center;
-  color: rgb(139, 92, 246);
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 
-/* Revealed state — diary-like voice */
+/* Revealed state — the boss's private memo, on warm checkpoint paper */
 .bc-inner-revealed {
   padding: 16px 18px;
-  background: linear-gradient(155deg, rgba(30, 27, 75, 0.04) 0%, rgba(15, 23, 42, 0.08) 100%);
-  border: 1.5px solid rgba(91, 33, 182, 0.25);
-  box-shadow: 0 6px 18px rgba(30, 27, 75, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  background: var(--checkpoint);
+  border: 1.5px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .bc-inner-revealed-header {
   display: flex;
@@ -1766,7 +1763,7 @@ button, a, input, textarea {
   gap: 10px;
   margin-bottom: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px dashed rgba(91, 33, 182, 0.2);
+  border-bottom: 1px dashed color-mix(in srgb, var(--accent) 28%, transparent);
 }
 .bc-inner-revealed-emoji {
   font-size: 20px;
@@ -1785,19 +1782,19 @@ button, a, input, textarea {
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgb(109, 40, 217);
+  color: var(--accent);
 }
 .bc-inner-revealed-sub {
   font-size: 11px;
   color: var(--text-tertiary);
 }
 .bc-inner-revealed-saju {
-  color: rgb(139, 92, 246);
+  color: var(--accent);
   display: flex;
   align-items: center;
   padding: 4px;
   border-radius: 6px;
-  background: rgba(139, 92, 246, 0.1);
+  background: var(--gold-muted);
 }
 .bc-inner-text {
   font-size: 13px;
@@ -1815,7 +1812,7 @@ button, a, input, textarea {
   height: 1em;
   margin-left: 2px;
   vertical-align: text-bottom;
-  background: rgb(139, 92, 246);
+  background: var(--accent);
 }
 
 /* ── Persona Refinement Section (AgentProfile 내) ── */
@@ -2177,7 +2174,8 @@ button, a, input, textarea {
 }
 
 /* ── BossSetup meta (생년월/성별) — accent-tinted CTA (was purple; §3 Batch 5
-   pulled it onto --accent so purple stays contained to the .bc-inner-* reveal) ── */
+   pulled it onto --accent. A4 then retired purple from .bc-inner-* too — the
+   whole boss surface now speaks the app's gold-leaf/ink) ── */
 .bs-persona-meta {
   display: flex;
   flex-direction: column;
@@ -2247,23 +2245,9 @@ button, a, input, textarea {
 }
 
 /* ── Dark overrides ── */
-[data-theme="dark"] .bc-inner-locked {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%);
-  border-color: rgba(139, 92, 246, 0.35);
-}
-[data-theme="dark"] .bc-inner-locked-title em {
-  background: linear-gradient(135deg, rgb(196, 181, 253) 0%, rgb(147, 197, 253) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-[data-theme="dark"] .bc-inner-revealed {
-  background: linear-gradient(155deg, rgba(139, 92, 246, 0.08) 0%, rgba(15, 23, 42, 0.25) 100%);
-  border-color: rgba(139, 92, 246, 0.3);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-[data-theme="dark"] .bc-inner-revealed-label { color: rgb(196, 181, 253); }
-[data-theme="dark"] .bc-inner-caret { background: rgb(196, 181, 253); }
+/* .bc-inner-* dark overrides removed — the A4 retheme put the card on app
+   tokens (--accent/--gold-muted/--checkpoint/--surface), which remap in dark
+   mode on their own. */
 [data-theme="dark"] .bs-persona-meta {
   background: color-mix(in srgb, var(--accent) 6%, transparent);
   border-color: color-mix(in srgb, var(--accent) 22%, transparent);
