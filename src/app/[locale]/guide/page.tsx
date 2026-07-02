@@ -127,6 +127,13 @@ export default function GuidePage() {
                   q: '현재 방위가 뭔가요?',
                   a: '이 결정이 지금 향하는 방향을 한 장으로 압축한 요약이에요 — 결론·이유·남은 확인거리·다음 할 일.',
                 },
+                // The one product-level faint-lean disclosure (spine rule 4,
+                // rounds 5–8): name the limit here, once — never as a
+                // per-output tag, never as an absolute "we don't judge" claim.
+                {
+                  q: 'AI가 은근히 한쪽으로 밀지는 않나요?',
+                  a: '저희가 아는 한계예요. 결정을 가장 크게 좌우하는 가정을 짚는 일에는 그 자체로 희미한 기울기가 남아요. 그래서 결론 대신 질문으로 돌려드리고 판정 어휘를 피하도록 설계했지만, 기울기가 완전히 사라지진 않아요 — 최종 판단은 언제나 당신 몫이에요.',
+                },
               ]
             : [
                 {
@@ -143,11 +150,17 @@ export default function GuidePage() {
                 },
                 {
                   q: 'How does "coming back to ask" work?',
-                  a: "Visit your project page on the date you set and Argus asks first. You can add the appointment as a calendar file, and logged-in users can opt into a one-time email reminder.",
+                  // Honesty: there is no email-reminder UI yet (the cron
+                  // requires an opt-in flag nothing sets) — don't promise one.
+                  a: 'Visit your project page on the date you set and Argus asks first — no emails or notifications. You can add the appointment as a calendar file if you like.',
                 },
                 {
                   q: 'What is a Current Heading?',
                   a: "A one-page summary of where this decision is headed right now — conclusion, reasoning, what's left to check, and what to do next.",
+                },
+                {
+                  q: "Doesn't the AI quietly lean one way?",
+                  a: "A limit we own. Surfacing the assumption a decision most rests on carries a faint lean by its nature. That's why Argus hands back questions instead of conclusions and avoids verdict language — but the lean never fully disappears, so the final call stays yours.",
                 },
               ]
           ).map((item, i) => (

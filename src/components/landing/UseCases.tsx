@@ -24,7 +24,10 @@ export function UseCases() {
   const CASES: Array<{ q: string; help: string; door: string }> = [
     {
       q: L('받은 이직 제안, 받아들여도 될까?', 'Take the job offer I just got?'),
-      help: L('결정이 걸린 숨은 전제 하나를 짚어줘요 — 답을 대신 정하진 않아요.', 'It surfaces the one hidden assumption the call rests on — it never decides for you.'),
+      // Spine rule 4 (rounds 5–8): never sell the absolute "it never decides
+      // for you" claim — hand the call back and own the faint-lean limit.
+      // The single product-level disclosure lives in the guide FAQ.
+      help: L('결정이 걸린 숨은 전제 하나를 짚어, 판단을 당신에게 돌려드려요. 희미한 기울기까지 지우진 못해요 — 저희가 아는 한계예요.', 'It surfaces the one hidden assumption the call rests on, then hands the call back to you. No engine is perfectly neutral — a limit we own.'),
       door: L('쓰기', 'write'),
     },
     {

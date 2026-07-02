@@ -56,7 +56,11 @@ function recallPastWork(agentId: string, currentTask: string, maxResults: number
   for (const session of sessions) {
     for (const worker of session.workers) {
       if (worker.agent_id !== agentId) continue;
-      if (worker.approved !== true || !worker.result) continue;
+      // Align with the mix policy (mixableWorkerResults): only an explicit
+      // captain rejection excludes work. approved === null is the normal state
+      // for focus-mode results — skipping those made every focus session
+      // invisible to recall.
+      if (worker.approved === false || !worker.result) continue;
 
       const workerWords = new Set(
         worker.task.replace(/[?.!,]/g, '').split(/\s+/).filter(w => w.length >= 2)

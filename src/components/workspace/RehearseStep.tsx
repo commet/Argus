@@ -391,6 +391,17 @@ export function RehearseStep({ onNavigate }: RehearseStepProps) {
 
       const record = usePersonaStore.getState().feedbackHistory.find((r) => r.id === recordId);
       if (record) setLatestFeedback(record);
+      // Register the rehearsal on the project (recast already does this at
+      // creation) — without the ref, /project never lists this leg and the
+      // chain's work stays invisible to the seal→settle loop (H1-B2).
+      if (pendingProjectId) {
+        const { useProjectStore } = await import('@/stores/useProjectStore');
+        useProjectStore.getState().addRef(pendingProjectId, {
+          tool: 'rehearse',
+          itemId: recordId,
+          label: data.documentTitle || L('리허설', 'Rehearsal'),
+        });
+      }
       setPhase('results');
       const criticalCount = results.flatMap(r => (r.classified_risks || []).filter(cr => cr.category === 'critical')).length;
       const unspokenCount = results.flatMap(r => (r.classified_risks || []).filter(cr => cr.category === 'unspoken')).length;

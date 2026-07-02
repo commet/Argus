@@ -199,8 +199,6 @@ export const en: Record<TranslationKey, string> = {
   'nextStep.toRehearse.reason': "Your execution design is ready. Now perform it in front of stakeholders — verify core assumptions and catch missed risks.",
   'nextStep.toRefine.label': 'Go to Course Correction',
   'nextStep.toRefine.reason': "You've seen stakeholder reactions. Turn their feedback into constraints and iterate until the course holds.",
-  'nextStep.toSynthesize.label': 'Go to Synthesize',
-  'nextStep.toSynthesize.reason': "You've seen stakeholder reactions. Fold their feedback in and merge the perspectives into one conclusion.",
   'nextStep.toPerform.label': 'Set Sail — Toward Ithaca',
   'nextStep.toPerform.reason': "The course is set. Generate the deliverable that captures your full line of thinking.",
   'nextStep.rehearseAgain.label': 'Rehearse Again',

@@ -6,6 +6,8 @@ import { Menu, X, LogOut, Sun, Moon, Lock } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
+import { useReviewStore } from '@/stores/useReviewStore';
+import { summarizeReceipt } from '@/lib/review/status';
 import { contractStatus } from '@/lib/decision-contract';
 import { RateLimitBadge } from '@/components/ui/RateLimitBadge';
 import { SyncStatus } from '@/components/ui/SyncStatus';
@@ -48,9 +50,27 @@ export function Header() {
   // Computed every render (no memo): a memo keyed on [projects] froze
   // Date.now(), so a tab left open past midnight kept yesterday's count.
   // The list is small — recomputing is free.
-  const dueCount = (projects || []).filter(
+  const projectDueCount = (projects || []).filter(
     (p) => p.decision_contract && contractStatus(p.decision_contract, Date.now()).checkInDue,
   ).length;
+
+  // Review-wedge predictions join the same return loop (H1-B5). A prediction
+  // sealed at /tools/review used to be invisible here — the check-in date came
+  // and nothing anywhere lit up, breaking "정한 날 돌아와 물어요" for the exact
+  // funnel the landing page pushes.
+  const receipts = useReviewStore((s) => s.receipts);
+  const loadReceipts = useReviewStore((s) => s.load);
+  useEffect(() => {
+    loadReceipts();
+  }, [user, loadReceipts]);
+  const reviewDueCount = (receipts || []).filter(
+    (r) => summarizeReceipt(r, new Date().toISOString().slice(0, 10)).urgent,
+  ).length;
+
+  const dueCount = projectDueCount + reviewDueCount;
+  // The badge routes to where the due thing actually lives: project dues win
+  // (that page hosts settlement); review-only dues land on the receipt list.
+  const dueTarget = projectDueCount > 0 ? '/project' : '/tools/review';
 
   // Landing page renders its own minimal header (LandingHeader). This bail
   // exists because <Header /> is rendered globally from layout.tsx; the
@@ -151,7 +171,8 @@ export function Header() {
                     {showReturnBadge && (
                       <span
                         aria-label={L(`돌아올 결정 ${dueCount}건`, `${dueCount} decision(s) to revisit`)}
-                        className="absolute -top-0.5 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/${locale}${dueTarget}`); }}
+                        className="absolute -top-0.5 -right-1 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none cursor-pointer"
                         style={{ background: 'var(--gold)' }}
                       >
                         {dueCount}
@@ -298,7 +319,8 @@ export function Header() {
                     {showReturnBadge && (
                       <span
                         aria-label={L(`돌아올 결정 ${dueCount}건`, `${dueCount} decision(s) to revisit`)}
-                        className="absolute -top-1.5 -right-4 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMobileMenuOpen(false); router.push(`/${locale}${dueTarget}`); }}
+                        className="absolute -top-1.5 -right-4 min-w-[14px] h-[14px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none cursor-pointer"
                         style={{ background: 'var(--gold)' }}
                       >
                         {dueCount}

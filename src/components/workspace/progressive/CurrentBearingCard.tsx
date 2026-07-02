@@ -23,13 +23,18 @@ import { bearingToMarkdown } from '@/lib/current-bearing';
 import type { CourseStatus, CurrentBearing } from '@/lib/current-bearing';
 import { EASE } from './shared/constants';
 
+/* Spine rule 4(a): the pill describes the REVIEW STATE, never a directional
+ * call. "진행/Proceed" reads as "go" — a machine verdict stamped above the
+ * user's decision — so each label states what the review found and leaves the
+ * going to the captain. The "리뷰 기준/review" word doubles as the one-word
+ * provenance tag: this is what the AI review saw, not what you decided. */
 const STATUS_META: Record<CourseStatus, { ko: string; en: string; caution: boolean }> = {
-  proceed: { ko: '진행', en: 'Proceed', caution: false },
+  proceed: { ko: '이의 없음 · 리뷰 기준', en: 'No open objections · review', caution: false },
   anchor: { ko: '정박', en: 'Anchor', caution: false },
   fork: { ko: '분기', en: 'Fork', caution: false },
-  collect_evidence: { ko: '근거 먼저', en: 'Collect evidence', caution: true },
-  hold: { ko: '보류', en: 'Hold', caution: true },
-  revise: { ko: '수정', en: 'Revise', caution: true },
+  collect_evidence: { ko: '확인 필요 항목 있음 · 리뷰 기준', en: 'Needs evidence · review', caution: true },
+  hold: { ko: '미해결 쟁점 있음 · 리뷰 기준', en: 'Open issue · review', caution: true },
+  revise: { ko: '수정 제안 있음 · 리뷰 기준', en: 'Revision suggested · review', caution: true },
 };
 
 export function CurrentBearingCard({

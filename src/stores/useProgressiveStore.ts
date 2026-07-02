@@ -340,7 +340,46 @@ interface ProgressiveState {
  * checkpoint copies — easily hundreds of KB) over and over.
  */
 const _pendingSyncs = new Map<string, ReturnType<typeof setTimeout>>();
-function persist(sessions: ProgressiveSession[]) {
+
+/** Push one session's latest localStorage copy to Supabase right now. */
+function syncSessionNow(id: string) {
+  const latest = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []).find(ss => ss.id === id);
+  if (!latest) return;
+  upsertToSupabase('progressive_sessions', {
+    id: latest.id,
+    project_id: latest.project_id,
+    data: latest,
+    phase: latest.phase,
+    has_pending_humans: (latest.workers || []).some(
+      w => w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response')
+    ),
+    updated_at: latest.updated_at || new Date().toISOString(),
+  }).catch(() => { /* fire-and-forget — localStorage is primary */ });
+}
+
+/** Fire every debounced sync immediately (H1-B4). The 3s trailing debounce had
+ *  no unload hook, so finishing a voyage and closing the tab inside the window
+ *  meant the final deliverable never reached the server — while every screen
+ *  still looked fine (localStorage-first hides exactly this failure). */
+function flushPendingSyncs() {
+  for (const [id, timer] of _pendingSyncs) {
+    clearTimeout(timer);
+    _pendingSyncs.delete(id);
+    syncSessionNow(id);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  // pagehide covers close/navigate (fetch is best-effort there); the
+  // visibilitychange→hidden flush is the reliable one — the tab is still
+  // alive, so the request completes normally.
+  window.addEventListener('pagehide', flushPendingSyncs);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushPendingSyncs();
+  });
+}
+
+function persist(sessions: ProgressiveSession[], opts?: { immediate?: string }) {
   setStorage(STORAGE_KEYS.PROGRESSIVE_SESSIONS, sessions);
 
   // Supabase async sync — find sessions that changed (heuristic: any with workers or non-input phase)
@@ -349,20 +388,19 @@ function persist(sessions: ProgressiveSession[]) {
 
     const existing = _pendingSyncs.get(s.id);
     if (existing) clearTimeout(existing);
+
+    // Terminal mutations (final deliverable / seal) skip the debounce — the
+    // moment right after the climax is when users leave, i.e. exactly when a
+    // 3s window loses data.
+    if (opts?.immediate === s.id) {
+      _pendingSyncs.delete(s.id);
+      syncSessionNow(s.id);
+      continue;
+    }
+
     _pendingSyncs.set(s.id, setTimeout(() => {
       _pendingSyncs.delete(s.id);
-      const latest = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []).find(ss => ss.id === s.id);
-      if (!latest) return;
-      upsertToSupabase('progressive_sessions', {
-        id: latest.id,
-        project_id: latest.project_id,
-        data: latest,
-        phase: latest.phase,
-        has_pending_humans: (latest.workers || []).some(
-          w => w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response')
-        ),
-        updated_at: latest.updated_at || new Date().toISOString(),
-      }).catch(() => { /* fire-and-forget — localStorage is primary */ });
+      syncSessionNow(s.id);
     }, 3000));
   }
 }
@@ -877,7 +915,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       }
     }
 
-    persist(sessions);
+    persist(sessions, { immediate: currentSessionId });
     set({ sessions });
   },
 
