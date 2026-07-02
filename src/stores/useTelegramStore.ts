@@ -62,17 +62,24 @@ export const useTelegramStore = create<TelegramState>((set, get) => ({
   },
 
   startConnect: async () => {
-    const token = await getAuthToken();
-    if (!token) return { ok: false, error: 'Not authenticated' };
-    const res = await fetch('/api/telegram/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({}),
-    });
-    const data = await res.json();
-    if (res.ok && data.link) return { ok: true, link: data.link };
-    if (res.status === 503) return { ok: false, error: 'unconfigured' };
-    return { ok: false, error: data.error || 'Could not start connect flow' };
+    // P1-C4: a network throw here used to propagate to the caller and skip
+    // its setPending(false) — one failed fetch meant a permanent spinner.
+    // Always resolve with a value; the caller maps 'network' to honest copy.
+    try {
+      const token = await getAuthToken();
+      if (!token) return { ok: false, error: 'Not authenticated' };
+      const res = await fetch('/api/telegram/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (res.ok && data.link) return { ok: true, link: data.link };
+      if (res.status === 503) return { ok: false, error: 'unconfigured' };
+      return { ok: false, error: data.error || 'Could not start connect flow' };
+    } catch {
+      return { ok: false, error: 'network' };
+    }
   },
 
   disconnect: async (id: string) => {

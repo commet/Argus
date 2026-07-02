@@ -830,18 +830,26 @@ function TelegramBlock({ locale }: { locale: string }) {
   const handleConnect = async () => {
     setNote(null);
     setPending(true);
-    const r = await startConnect();
-    if (r.ok && r.link) {
-      window.open(r.link, '_blank', 'noopener');
-      setNote(L('텔레그램이 열리면 “시작/Start”을 눌러 주세요. 연결되면 아래에 표시돼요.',
-                'When Telegram opens, tap “Start”. Once connected it appears below.'));
-    } else if (r.error === 'unconfigured') {
-      setNote(L('이 배포에는 아직 Telegram 봇이 설정되지 않았어요(운영자가 TELEGRAM_* 환경변수 등록 필요).',
-                'Telegram bot isn’t configured on this deployment yet (operator must set TELEGRAM_* env vars).'));
-    } else {
-      setNote(r.error || L('연결을 시작할 수 없어요.', 'Could not start connect.'));
+    // P1-C4: setPending(false) lives in finally — a thrown startConnect used
+    // to skip it and leave the button spinning forever.
+    try {
+      const r = await startConnect();
+      if (r.ok && r.link) {
+        window.open(r.link, '_blank', 'noopener');
+        setNote(L('텔레그램이 열리면 “시작/Start”을 눌러 주세요. 연결되면 아래에 표시돼요.',
+                  'When Telegram opens, tap “Start”. Once connected it appears below.'));
+      } else if (r.error === 'unconfigured') {
+        setNote(L('이 배포에는 아직 Telegram 봇이 설정되지 않았어요(운영자가 TELEGRAM_* 환경변수 등록 필요).',
+                  'Telegram bot isn’t configured on this deployment yet (operator must set TELEGRAM_* env vars).'));
+      } else if (r.error === 'network') {
+        setNote(L('연결을 시작하지 못했어요 — 인터넷 연결을 확인하고 다시 눌러 주세요.',
+                  'Could not start the connection — check your internet and tap again.'));
+      } else {
+        setNote(r.error || L('연결을 시작할 수 없어요.', 'Could not start connect.'));
+      }
+    } finally {
+      setPending(false);
     }
-    setPending(false);
   };
 
   return (

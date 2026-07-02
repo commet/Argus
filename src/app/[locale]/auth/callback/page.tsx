@@ -22,8 +22,16 @@ export default function AuthCallbackPage() {
 
       const code = params.get('code');
       if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
+        // P1-C4: the code exchange is a real network round-trip with NO
+        // timeout — a hung request pinned '로그인 중...' forever. 10s race
+        // (generous: it's a full round-trip); on timeout reuse the existing
+        // ?error=auth_failed path the login page already renders.
+        const exchanged = await Promise.race([
+          supabase.auth.exchangeCodeForSession(code),
+          new Promise<{ error: Error }>((resolve) =>
+            setTimeout(() => resolve({ error: new Error('timeout') }), 10_000)),
+        ]);
+        if (exchanged.error) {
           router.replace('/login?error=auth_failed');
           return;
         }

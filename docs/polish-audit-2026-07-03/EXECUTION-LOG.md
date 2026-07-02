@@ -218,3 +218,12 @@
 - **파일**: `src/lib/db.ts`(loadAndMergeUncached), `src/lib/__tests__/db.test.ts`(loadAndMerge tombstone describe 신설 — supabase from/select/eq/order/upsert 체인 mock)
 - **검증**: db.test 11/11 (신규 1건 포함) · tsc 0.
 - **커밋**: 0847c09
+
+### [P1-C2 + P1-C3] LLM 총예산 180초 + 재시도 가시화 + 오프라인 정직화 (둘 다 llm.ts — 한 자리)
+
+- **무엇을(C2)**: fetchWithRetry에 벽시계 데드라인 `TOTAL_BUDGET_MS=180_000` — 시도당 120초 상한은 있었지만 4시도+백오프가 8분 넘게 쌓일 수 있었다. 재시도 진입 시(attempt>0) 예산 초과면 network/retryable로 즉시 종료(스펙 문안 그대로). + `argus:llm-retry` CustomEvent를 **3곳 모두**의 대기 직전에 발신(상태코드 재시도·하드캡 타임아웃 재시도·네트워크 오류 재시도 — 스펙은 1곳 지목이지만 나머지 두 대기도 같은 침묵이라 동일 처리). ProgressiveFlow가 이벤트를 받아 PhaseStatusBar substage에 "일시적인 오류가 있어 다시 시도하는 중 (2/3)…" 표시 — 기계 상태 사실만.
+- **무엇을(C3)**: ① fetchWithRetry 시작부에 `navigator.onLine === false` 선검사(Single Source — 모든 비스트리밍 호출부가 이 관문 통과): 오프라인이면 헛 재시도 ~7초 대신 0ms에 "지금 오프라인이에요. 적어주신 내용은 이 기기에 그대로 있어요 — 연결이 돌아오면 다시 시도해 주세요." ② workspace 네트워크 분기 문구를 "연결이 끊겼거나 불안정해요 — 적어주신 내용은 그대로 있어요…"로 교체(작업물 보존 고지 추가). ③ ProgressiveFlow 에러 배너에 [다시 시도] 버튼 — 재진입 안전한 핸들러만 `retryRef`에 자기 자신을 보관(onAnswer는 catch에서 rollbackAnswer로 되돌리므로 안전 확인 후 배선, runMixCore·onDM·onDeepen·onMore·onFinalize 동일; onTest는 실패 시 스스로 finalize로 폴백하는 구조라 불필요). 쿼터 에러는 재시도가 못 고치므로 기존 Settings 링크 유지, 버튼 미표시.
+- **왜**: 비스트리밍 호출은 총예산이 없고 재시도가 침묵해 "멈춘 스피너"로 읽혔다(09 P1-3). 오프라인 제출은 "불안정" + 헛 재시도 + "작업물 안전" 미고지 삼중 부정직(10 P1-4).
+- **파일**: `src/lib/llm.ts`, `src/components/workspace/progressive/ProgressiveFlow.tsx`(retryRef+이벤트 소비+배너 버튼), `src/app/[locale]/workspace/page.tsx`(문구)
+- **검증**: tsc 0 · llm 4개 스위트 56/56 통과.
+- **커밋**: 8f6f2c7
