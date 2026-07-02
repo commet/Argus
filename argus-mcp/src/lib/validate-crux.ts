@@ -15,8 +15,10 @@ export interface CruxError {
   recovery: string;
 }
 
-// Directional / recommendation tells.
-const LEAN = /\b(you should|i('| w)?d|i would|the (stronger|better|safer|smarter) (case|choice|option|move|bet)|most (teams|people|founders)|the right (call|move|choice)|go with|lean(s)? toward|my (recommendation|advice|take)|honestly,? (i|you)|if i were you)\b/i;
+// Directional / recommendation tells. NOTE: the old `i('| w)?d` alternation
+// also matched the bare word "id" ("user id" flagged a neutral question as
+// CRUX_CARRIES_LEAN — 11 P1-3); decomposed to the two real tells.
+const LEAN = /\b(you should|i'd|i would|the (stronger|better|safer|smarter) (case|choice|option|move|bet)|most (teams|people|founders)|the right (call|move|choice)|go with|lean(s)? toward|my (recommendation|advice|take)|honestly,? (i|you)|if i were you)\b/i;
 // Two-pole fork tell ("A or B?" framed as the question).
 const FORK = /\b(a or b|option (a|b|1|2)|either\b.*\bor\b.*\?)/i;
 

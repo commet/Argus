@@ -18,6 +18,10 @@ export interface SealValidationError {
 
 // Obvious non-falsifiable vibes. Weak/advisory only.
 const VIBE = /\b(go well|be fine|be good|be great|work out|feel right|be successful|do better|improve somehow)\b/i;
+// Korean vibe-predicates (12 P1-4): "잘 될 것 같다 아마도" sealed — and was
+// congratulated — because the list was English-only. Same weak/advisory status;
+// no \b (word boundaries don't work for Hangul). NOT a hard gate (§5-14).
+const VIBE_KO = /(잘\s*될|잘\s*풀릴|괜찮을|좋아질|나아질)\s*(것|거)\s*(같|이)|아마도|어떻게든\s*(될|되)/;
 
 export function validateSeal(predicate: unknown, checkBy: unknown, today: string): SealValidationError | null {
   if (typeof predicate !== 'string' || predicate.trim().length < 8) {
@@ -44,6 +48,14 @@ export function validateSeal(predicate: unknown, checkBy: unknown, today: string
     };
   }
 
+  if (VIBE_KO.test(predicate)) {
+    return {
+      code: 'NOT_FALSIFIABLE',
+      message: '이건 기분이지 확인 가능한 예측이 아닙니다.',
+      recovery: '숫자·임계값·관찰 가능한 사건으로 다시 적어주세요. (휴리스틱 — 놓칠 수 있음)',
+      weak: true,
+    };
+  }
   if (VIBE.test(predicate)) {
     return {
       code: 'NOT_FALSIFIABLE',
