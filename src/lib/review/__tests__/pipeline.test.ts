@@ -192,4 +192,49 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(seen).toContain('synthesizing');
     expect(seen[seen.length - 1]).toBe('ready');
   });
+
+  it('attaches full coverage to a small document that fits entirely', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const { receipt } = await runDocumentReview(artifact, { llm: mockLLM(artifact), today: '2026-07-01' });
+    expect(receipt!.coverage).toBeTruthy();
+    expect(receipt!.coverage!.band).toBe('full');
+    expect(receipt!.coverage!.units_reviewed).toBe(receipt!.coverage!.units_total);
+    expect(receipt!.coverage!.notes).toEqual([]);
+  });
+
+  it('attaches partial/low coverage + a disclosure note when the doc exceeds the unit budget', async () => {
+    // A long markdown doc → far more than max_units (160) paragraphs.
+    const bigText = Array.from({ length: 400 }, (_, i) => `문단 ${i}: 이건 검수 대상 문장입니다.`).join('\n\n');
+    const artifact = ingest({ source_kind: 'markdown', text: bigText });
+    const { receipt } = await runDocumentReview(artifact, { llm: mockLLM(artifact), today: '2026-07-01' });
+    const cov = receipt!.coverage!;
+    expect(cov.units_total).toBeGreaterThan(160);
+    expect(cov.units_reviewed).toBeLessThanOrEqual(160);
+    expect(cov.band).not.toBe('full');
+    expect(cov.notes.some((n) => n.includes('앞') && n.includes('개만 검수'))).toBe(true);
+  });
+
+  it('forwards the abort signal to the model and turns a cancel into a failed job (never throws)', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const controller = new AbortController();
+    let sawSignal = false;
+    // Mirror the real adapter: honor the caller's abort by throwing, exactly as
+    // the /api/llm client does. The pipeline must catch it and resolve to a
+    // 'failed' job so ReviewFlow's cancel returns cleanly instead of rejecting.
+    const llm: ReviewLLM = {
+      model_name: 'mock', model_provider: 'local',
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (args.signal) sawSignal = true;
+        if (args.signal?.aborted) throw new Error('요청이 취소되었습니다.');
+        return {} as T;
+      },
+    };
+    controller.abort();
+    const result = await runDocumentReview(artifact, {
+      llm, today: '2026-07-01', signal: controller.signal,
+    });
+    expect(sawSignal).toBe(true);        // signal reached the model call
+    expect(result.job.status).toBe('failed'); // abort surfaced as failure, not a throw
+    expect(result.receipt).toBeUndefined();
+  });
 });

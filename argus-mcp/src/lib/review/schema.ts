@@ -90,6 +90,22 @@ export interface ArtifactStructure {
   is_deck: boolean;
 }
 
+/**
+ * What the EXTRACTOR could not fully ingest — the raw totals it saw vs what it
+ * actually kept, so downstream coverage stays honest. A binary extractor that
+ * caps pages/units (pdf 120p, MAX_UNITS) fills this; full-text inputs leave it
+ * undefined. This is the source-side half of `ReviewCoverage`; the prompt-side
+ * unit cap is the other half (see lib/review/coverage.ts).
+ */
+export interface SourceCaps {
+  pages_total?: number;
+  pages_read?: number;
+  slides_total?: number;
+  slides_read?: number;
+  /** true when the extractor hit its hard unit cap (MAX_UNITS) and dropped the rest. */
+  units_capped?: boolean;
+}
+
 export interface CanonicalArtifact {
   artifact_id: string;
   source_kind: SourceKind;
@@ -103,6 +119,8 @@ export interface CanonicalArtifact {
   detected_profile?: DocumentProfile;
   /** honest notes surfaced to the user, e.g. "표/이미지 일부는 빠질 수 있습니다." */
   extraction_notes: string[];
+  /** extractor-side caps (pages/units dropped before the pipeline ever ran). */
+  source_caps?: SourceCaps;
 }
 
 // ---------------------------------------------------------------------------
@@ -439,11 +457,35 @@ export interface ReviewProvenance {
   created_at: string;
 }
 
+/**
+ * How much of the source was actually reviewed — a FIRST-CLASS, honest field.
+ * Argus caps input at several layers (extractor page/unit caps, the per-call
+ * prompt char/unit budget). Every layer that drops data records it here, and the
+ * receipt/UI disclose it. This is the structural fix for silent truncation: a
+ * receipt can no longer claim "검수 완료" over a document it only half-read.
+ * (CLAUDE.md spine: no silent caps; degrade honestly, never fake confidence.)
+ */
+export interface ReviewCoverage {
+  units_total: number;
+  units_reviewed: number;
+  pages_total?: number;
+  pages_read?: number;
+  slides_total?: number;
+  slides_read?: number;
+  /** 'full' = whole source reviewed; 'partial' = a majority; 'low' = a minority. */
+  band: 'full' | 'partial' | 'low';
+  /** human-readable caveats, e.g. "이 PDF는 320쪽 중 앞 120쪽만 읽었습니다." */
+  notes: string[];
+}
+
 export interface JudgmentReceipt {
   receipt_id: string;
   /** which entry mode produced it — Create vs Review stay distinct. */
   root_mode: 'create' | 'review';
   state: ReceiptState;
+  /** how much of the source this receipt actually covers (optional for back-compat
+   *  with receipts saved before coverage existed — always set by the pipeline now). */
+  coverage?: ReviewCoverage;
 
   // source
   artifact_id: string;

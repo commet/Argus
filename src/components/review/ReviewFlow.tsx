@@ -43,6 +43,13 @@ const CONCERN_CHIPS: { id: ReviewConcern; label: string }[] = [
 const TEXT_EXT = ['md', 'markdown', 'txt', 'text'];
 const BINARY_EXT: Record<string, SourceKind> = { pdf: 'pdf', docx: 'docx', pptx: 'pptx' };
 
+/** Paste cap — matched to the server's MAX_MESSAGE_LENGTH (50_000, lib/llm-validation.ts)
+ *  so a large paste degrades honestly (coverage note) instead of a hard 400. */
+const PASTE_CHAR_CAP = 50_000;
+/** Review-level wall-clock budget. The pipeline is internally bounded per call,
+ *  but serial stages compound; this caps the worst case a user can wait. */
+const REVIEW_DEADLINE_MS = 150_000;
+
 export function ReviewFlow() {
   const store = useReviewStore();
   const [phase, setPhase] = useState<Phase>('list');
@@ -63,7 +70,15 @@ export function ReviewFlow() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sealing, setSealing] = useState(false);
   const [settlingId, setSettlingId] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Lets the user cancel an in-flight review. Without it a long extraction on a
+  // large document reads as a frozen "분석 중" screen with no way out.
+  const abortRef = useRef<AbortController | null>(null);
+  // Why the current run was aborted: 'user' (cancel button → back to import) vs
+  // 'deadline' (wall-clock budget → a clear failure). Distinguishing them keeps
+  // a genuine cancel silent and a timeout honest.
+  const abortReasonRef = useRef<'user' | 'deadline' | null>(null);
 
   // Load persisted receipts once; open on the list when any exist, else import.
   useEffect(() => {
@@ -71,6 +86,14 @@ export function ReviewFlow() {
     const has = useReviewStore.getState().receipts.length > 0;
     setPhase(has ? 'list' : 'import');
   }, []);
+
+  // Elapsed counter while a review runs — turns the otherwise static spinner
+  // into live feedback (and gates the "오래 걸리고 있어요" reassurance below).
+  useEffect(() => {
+    if (phase !== 'running') { setElapsed(0); return; }
+    const t = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [phase]);
 
   // Derive the active receipt from the store so seal/settle/own reflect live.
   const receipt = useMemo(
@@ -140,12 +163,58 @@ export function ReviewFlow() {
       pre_extracted_units: preExtracted?.units,
       extraction_quality: preExtracted?.quality,
       extraction_notes: preExtracted?.note ? [preExtracted.note] : undefined,
+      // Carry the extractor's page/slide/unit caps so the receipt discloses how
+      // much of the source was actually reviewed (honest coverage).
+      source_caps: preExtracted
+        ? {
+            pages_total: preExtracted.pages_total,
+            pages_read: preExtracted.pages_read,
+            slides_total: preExtracted.slides_total,
+            slides_read: preExtracted.slides_read,
+            units_capped: preExtracted.units_capped,
+          }
+        : undefined,
     });
+    const controller = new AbortController();
+    abortRef.current = controller;
+    abortReasonRef.current = null;
+    setElapsed(0);
     setPhase('running');
+    // Wall-clock budget: the pipeline is internally bounded (120s × retries per
+    // call) but that compounds across serial stages into many minutes. A single
+    // review-level deadline caps the worst case to ~REVIEW_DEADLINE_MS.
+    const deadline = setTimeout(() => {
+      if (abortRef.current) { abortReasonRef.current = 'deadline'; abortRef.current.abort(); }
+    }, REVIEW_DEADLINE_MS);
     const { job: finalJob, receipt: r } = await runDocumentReview(artifact, {
       context: ctx,
       onProgress: setJob,
+      signal: controller.signal,
     });
+    clearTimeout(deadline);
+    abortRef.current = null;
+    if (controller.signal.aborted) {
+      if (abortReasonRef.current === 'deadline') {
+        // Timed out → an honest failure with a way forward, not a silent hang.
+        setJob({
+          job_id: finalJob.job_id, artifact_id: finalJob.artifact_id, status: 'failed',
+          progress_label: '검수 시간 초과',
+          error: {
+            kind: 'model_error',
+            message: '검수가 예상보다 오래 걸려 중단했어요.',
+            recovery: '문서를 더 짧게 나눠서 넣거나, 핵심 부분만 붙여넣어 다시 시도해 주세요.',
+          },
+        });
+        setPhase('failed');
+        track('review_timeout', { elapsed_s: elapsed });
+        return;
+      }
+      // User cancelled → return to import quietly (their text is preserved).
+      setJob(null);
+      setPhase('import');
+      track('review_cancelled', { elapsed_s: elapsed });
+      return;
+    }
     setJob(finalJob);
     if (r && (finalJob.status === 'ready' || finalJob.status === 'needs_context')) {
       // store_source: keep the original for the side-by-side workspace on return.
@@ -318,10 +387,18 @@ export function ReviewFlow() {
   }
 
   if (phase === 'running') {
+    const longWait = elapsed >= 25;
+    const mm = Math.floor(elapsed / 60);
+    const ss = String(elapsed % 60).padStart(2, '0');
     return (
       <div className="max-w-2xl mx-auto w-full">
         <Card variant="elevated">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-2">검수 중</div>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">검수 중</div>
+            <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]">
+              {mm > 0 ? `${mm}:${ss}` : `${elapsed}초`}
+            </span>
+          </div>
           <p className="text-[15px] text-[var(--text-primary)]">{job?.progress_label ?? '문서를 읽는 중'}…</p>
           <div className="mt-3 flex gap-1">
             {['profiling', 'mapping', 'routing', 'reviewing', 'synthesizing'].map((s) => (
@@ -332,6 +409,18 @@ export function ReviewFlow() {
                 }`}
               />
             ))}
+          </div>
+          {/* Long-wait reassurance — a big real document can take a while to
+              read. Says it's still working (not stuck) and offers a way out. */}
+          {longWait && (
+            <p className="mt-3 text-[12px] text-[var(--text-secondary)] leading-[1.6]">
+              긴 문서라 평소보다 오래 걸리고 있어요 — 계속 읽는 중입니다. 너무 길면 취소하고 더 짧게 나눠서 검수해 보세요.
+            </p>
+          )}
+          <div className="mt-4">
+            <Button variant="ghost" size="sm" onClick={() => { abortReasonRef.current = 'user'; abortRef.current?.abort(); }}>
+              취소
+            </Button>
           </div>
         </Card>
       </div>
@@ -407,7 +496,7 @@ export function ReviewFlow() {
             setPreExtracted(null);
             setExtractNote(null);
           }}
-          maxLength={60000}
+          maxLength={PASTE_CHAR_CAP}
           placeholder="검수할 문서를 붙여넣으세요. (전략 메모, 기획안, Claude/ChatGPT 답변 등)"
           className="w-full h-52 resize-y bg-transparent text-[14px] leading-[1.6] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
         />
@@ -422,7 +511,11 @@ export function ReviewFlow() {
           <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()} disabled={extracting}>
             {extracting ? '텍스트 추출 중…' : '파일 업로드 (md · txt · pdf · docx · pptx)'}
           </Button>
-          <span className="text-[11px] text-[var(--text-tertiary)]">{text.length > 0 ? `${text.length}자` : ''}</span>
+          <span className={`text-[11px] ${text.length >= PASTE_CHAR_CAP ? 'text-amber-700 font-semibold' : 'text-[var(--text-tertiary)]'}`}>
+            {text.length >= PASTE_CHAR_CAP
+              ? `최대 ${PASTE_CHAR_CAP.toLocaleString()}자 — 초과분은 잘립니다`
+              : text.length > 0 ? `${text.length.toLocaleString()}자` : ''}
+          </span>
         </div>
         {preExtracted && (
           <p className="mt-2 text-[12px] text-green-700">

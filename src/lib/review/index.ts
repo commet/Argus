@@ -6,6 +6,13 @@
 export * from './schema';
 export { ingest, type IngestInput } from './ingest';
 export { scoreReviewability } from './reviewability';
+export {
+  packUnitsForPrompt,
+  computeCoverage,
+  PROMPT_CHAR_BUDGET,
+  PER_UNIT_CHAR_CAP,
+  type PackedUnits,
+} from './coverage';
 export { LENSES, getLens, ALL_LENS_IDS, LENS_VERSION } from './lenses';
 export { routeLenses, applies } from './routing';
 export { runDocumentReview, type RunReviewOptions, type ReviewResult } from './pipeline';

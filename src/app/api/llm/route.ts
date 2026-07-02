@@ -5,6 +5,12 @@ import { validateMessages, validateSystemPrompt, validateRequest, normalizeMaxTo
 import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
 import { logServerEvent } from '@/lib/server-events';
 
+// The review pipeline is the one NON-streaming consumer: a large-document
+// extraction can generate for 60–100s with no bytes until done. Without an
+// explicit ceiling the platform's default function timeout can 504 mid-call
+// (and the client retries the doomed call). Give non-streaming calls real room.
+export const maxDuration = 300;
+
 /**
  * Verify Supabase auth token from request.
  * Returns { userId, token } if valid, null otherwise.

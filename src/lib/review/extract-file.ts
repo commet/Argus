@@ -23,6 +23,13 @@ export interface ExtractedText {
   quality: ExtractionQuality;
   /** honest one-liner shown to the user. */
   note?: string;
+  /** extractor-side caps → feeds ReviewCoverage so a page/unit-capped file can't
+   *  masquerade as fully reviewed (see lib/review/coverage.ts). */
+  pages_total?: number;
+  pages_read?: number;
+  slides_total?: number;
+  slides_read?: number;
+  units_capped?: boolean;
 }
 
 const MAX_UNITS = 400;
@@ -79,13 +86,15 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
 
   const units: ArtifactUnit[] = [];
   let slideNo = 0;
+  let capped = false;
   for (const path of slidePaths) {
+    if (units.length >= MAX_UNITS) { capped = true; break; }
     slideNo++;
     const xml = await zip.files[path].async('string');
     const paras = paragraphsFromSlideXml(xml);
     let first = true;
     for (const para of paras) {
-      if (units.length >= MAX_UNITS) break;
+      if (units.length >= MAX_UNITS) { capped = true; break; }
       const kind = first ? ('slide_title' as const) : ('slide_body' as const);
       first = false;
       units.push({
@@ -98,7 +107,7 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
     }
     // speaker notes → their own units, still anchored to the slide.
     for (const note of notesByNum.get(slideNo) ?? []) {
-      if (units.length >= MAX_UNITS) break;
+      if (units.length >= MAX_UNITS) { capped = true; break; }
       units.push({
         unit_id: stableId('u', 'note', slideNo, note.slice(0, 40)),
         kind: 'speaker_note',
@@ -109,9 +118,12 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
     }
   }
 
+  // slides actually turned into units (capped runs stop mid-deck).
+  const slidesRead = new Set(units.map((u) => u.source_anchor.slide)).size;
+  const caps = { slides_total: slidePaths.length, slides_read: slidesRead, units_capped: capped };
   const total = units.reduce((n, u) => n + u.text.length, 0);
-  if (total < 40) return { text: '', units: [], quality: 'low', note: '슬라이드에서 텍스트를 거의 찾지 못했습니다 (이미지 위주의 deck일 수 있습니다).' };
-  return { text: units.map((u) => u.text).join('\n'), units, quality: 'medium' };
+  if (total < 40) return { text: '', units: [], quality: 'low', note: '슬라이드에서 텍스트를 거의 찾지 못했습니다 (이미지 위주의 deck일 수 있습니다).', ...caps };
+  return { text: units.map((u) => u.text).join('\n'), units, quality: 'medium', ...caps };
 }
 
 function slideNum(path: string): number {
@@ -159,17 +171,21 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
 
   const doc = await pdfjs.getDocument({ data: buf }).promise;
   const units: ArtifactUnit[] = [];
-  const pageCount = Math.min(doc.numPages, 120);
+  const PAGE_CAP = 120;
+  const pageCount = Math.min(doc.numPages, PAGE_CAP);
+  let pagesRead = 0;
+  let capped = false;
 
   for (let p = 1; p <= pageCount; p++) {
-    if (units.length >= MAX_UNITS) break;
+    if (units.length >= MAX_UNITS) { capped = true; break; }
+    pagesRead = p;
     const page = await doc.getPage(p);
     const content = await page.getTextContent();
     const lines = reconstructLines(content.items as PdfItem[]);
     // group lines into paragraph-ish blocks separated by blank/short gaps
     const blocks = groupBlocks(lines);
     for (const block of blocks) {
-      if (units.length >= MAX_UNITS) break;
+      if (units.length >= MAX_UNITS) { capped = true; break; }
       const t = block.trim();
       if (t.length < 2) continue;
       units.push({
@@ -182,15 +198,23 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
     }
   }
 
+  // `units_capped` folds the >120-page limit in too: a longer PDF was truncated
+  // to `pagesRead` pages, which computeCoverage discloses ("N쪽 중 앞 M쪽").
+  const caps = {
+    pages_total: doc.numPages,
+    pages_read: pagesRead,
+    units_capped: capped || doc.numPages > PAGE_CAP,
+  };
   const total = units.reduce((n, u) => n + u.text.length, 0);
   if (total < 40) {
-    return { text: '', units: [], quality: 'low', note: '이 PDF에서 텍스트를 거의 추출하지 못했습니다 (스캔 이미지 PDF일 수 있습니다).' };
+    return { text: '', units: [], quality: 'low', note: '이 PDF에서 텍스트를 거의 추출하지 못했습니다 (스캔 이미지 PDF일 수 있습니다).', ...caps };
   }
   return {
     text: units.map((u) => u.text).join('\n'),
     units,
     quality: 'medium',
     note: total < 400 ? '추출된 텍스트가 적습니다. 핵심 본문은 붙여넣으면 더 정확합니다.' : undefined,
+    ...caps,
   };
 }
 
