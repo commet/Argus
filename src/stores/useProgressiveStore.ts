@@ -345,7 +345,9 @@ const _pendingSyncs = new Map<string, ReturnType<typeof setTimeout>>();
 function syncSessionNow(id: string) {
   const latest = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []).find(ss => ss.id === id);
   if (!latest) return;
-  upsertToSupabase('progressive_sessions', {
+  // Promise.resolve: test mocks stub upsertToSupabase as a void fn, and unlike
+  // the old debounced path this now runs synchronously inside store actions.
+  Promise.resolve(upsertToSupabase('progressive_sessions', {
     id: latest.id,
     project_id: latest.project_id,
     data: latest,
@@ -354,7 +356,7 @@ function syncSessionNow(id: string) {
       w => w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response')
     ),
     updated_at: latest.updated_at || new Date().toISOString(),
-  }).catch(() => { /* fire-and-forget — localStorage is primary */ });
+  })).catch(() => { /* fire-and-forget — localStorage is primary */ });
 }
 
 /** Fire every debounced sync immediately (H1-B4). The 3s trailing debounce had

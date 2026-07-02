@@ -14,6 +14,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { useLocale } from '@/hooks/useLocale';
 import { type FalsifiableFollowup } from '@/lib/review';
 import { type SealPatch } from '@/stores/useReviewStore';
 
@@ -26,6 +27,8 @@ export function SealModal({
   onSeal: (followupId: string, patch: SealPatch) => void;
   onClose: () => void;
 }) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [selectedId, setSelectedId] = useState(followups[0]?.followup_id ?? '');
   const selected = followups.find((f) => f.followup_id === selectedId) ?? followups[0];
 
@@ -56,11 +59,14 @@ export function SealModal({
       <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <Card variant="elevated">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[16px] font-bold text-[var(--text-primary)]">이 판단을 봉인하기</h3>
+            <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('이 판단을 봉인하기', 'Seal this judgment')}</h3>
             <button onClick={onClose} className="text-[var(--text-tertiary)] text-[18px] leading-none">×</button>
           </div>
           <p className="text-[12px] text-[var(--text-secondary)] mb-4">
-            나중에 현실이 맞다/틀리다로 답할 예측을 하나 봉인합니다. Argus가 판단하지 않습니다 — 확인일에 당신이 정산합니다.
+            {L(
+              '나중에 현실이 맞다/틀리다로 답할 예측을 하나 봉인합니다. Argus가 판단하지 않습니다 — 확인일에 당신이 정산합니다.',
+              "Seal one prediction that reality will later answer as right or wrong. Argus does not judge — you settle it on the check-in date.",
+            )}
           </p>
 
           {followups.length > 1 && (
@@ -82,7 +88,7 @@ export function SealModal({
           )}
 
           <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-            내가 책임질 예측 {selected.predicate_owner === 'ai_surfaced' && <span className="text-[var(--text-tertiary)] font-normal">(Argus 초안 — 당신 말로 고쳐 쓰세요)</span>}
+            {L('내가 책임질 예측', 'The prediction I own')} {selected.predicate_owner === 'ai_surfaced' && <span className="text-[var(--text-tertiary)] font-normal">{L('(Argus 초안 — 당신 말로 고쳐 쓰세요)', "(Argus draft — rewrite it in your own words)")}</span>}
           </label>
           <textarea
             value={predicate}
@@ -96,35 +102,35 @@ export function SealModal({
           <div className="grid grid-cols-1 gap-2 mt-3">
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                지금 내 lean <span className="text-[var(--text-tertiary)] font-normal">(내 판단 — 당신이 직접)</span>
+                {L('지금 내 lean', 'My lean right now')} <span className="text-[var(--text-tertiary)] font-normal">{L('(내 판단 — 당신이 직접)', '(your judgment — in your own words)')}</span>
               </label>
               <input value={lean} onChange={(e) => setLean(e.target.value)} maxLength={200}
-                placeholder="예: 그래도 이번 분기엔 리빌드가 맞다고 본다"
+                placeholder={L('예: 그래도 이번 분기엔 리빌드가 맞다고 본다', 'e.g. I still think the rebuild is right this quarter')}
                 className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]" />
             </div>
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                내가 믿고 있는 핵심 가정
+                {L('내가 믿고 있는 핵심 가정', 'The key assumption I am relying on')}
               </label>
               <input value={assumption} onChange={(e) => setAssumption(e.target.value)} maxLength={200}
-                placeholder="예: 이탈의 주원인이 온보딩 복잡도라는 것"
+                placeholder={L('예: 이탈의 주원인이 온보딩 복잡도라는 것', 'e.g. that onboarding complexity is the main cause of churn')}
                 className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none placeholder:text-[var(--text-tertiary)]" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-2 mt-3">
             <div>
-              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">맞았다고 볼 조건</label>
+              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">{L('맞았다고 볼 조건', 'What counts as right')}</label>
               <input value={pass} onChange={(e) => setPass(e.target.value)} maxLength={200}
                 className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none" />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">틀렸다고 볼 조건</label>
+              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">{L('틀렸다고 볼 조건', 'What counts as wrong')}</label>
               <input value={fail} onChange={(e) => setFail(e.target.value)} maxLength={200}
                 className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none" />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">확인 날짜</label>
+              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">{L('확인 날짜', 'Check-in date')}</label>
               <input type="date" value={checkBy} min={today} onChange={(e) => setCheckBy(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none" />
             </div>
@@ -138,10 +144,10 @@ export function SealModal({
               disabled={!canSeal}
               style={canSeal ? undefined : { opacity: 0.5 }}
             >
-              봉인하기
+              {L('봉인하기', 'Seal')}
             </Button>
             <Button variant="ghost" size="md" onClick={onClose}>
-              취소
+              {L('취소', 'Cancel')}
             </Button>
           </div>
         </Card>

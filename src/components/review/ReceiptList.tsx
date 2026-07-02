@@ -12,6 +12,7 @@
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LocaleLink } from '@/components/ui/LocaleLink';
+import { useLocale } from '@/hooks/useLocale';
 import {
   type JudgmentReceipt,
   summarizeReceipt,
@@ -42,6 +43,8 @@ export function ReceiptList({
   onNew: () => void;
   onRemove?: (id: string) => void;
 }) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const today = todayYMD();
   const ordered = sortByUrgency(receipts, today);
   const dueCount = ordered.filter((r) => summarizeReceipt(r, today).urgent).length;
@@ -49,33 +52,42 @@ export function ReceiptList({
   return (
     <div className="max-w-2xl mx-auto w-full flex flex-col gap-4">
       <div>
-        <h1 className="text-[20px] font-bold text-[var(--text-primary)]">내 판단 항로</h1>
+        <h1 className="text-[20px] font-bold text-[var(--text-primary)]">{L('내 판단 항로', 'My judgment course')}</h1>
         <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
           {dueCount > 0
-            ? `확인할 차례가 된 예측이 ${dueCount}개 있습니다.`
-            : '검수하고 봉인한 판단들이 여기 모입니다. 확인일이 오면 위로 올라옵니다.'}
+            ? L(
+                `확인할 차례가 된 예측이 ${dueCount}개 있습니다.`,
+                `${dueCount} prediction${dueCount === 1 ? ' is' : 's are'} due for a check-in.`,
+              )
+            : L(
+                '검수하고 봉인한 판단들이 여기 모입니다. 확인일이 오면 위로 올라옵니다.',
+                'Judgments you review and seal collect here. When a check-in date arrives, they rise to the top.',
+              )}
         </p>
         {/* Workbench entry — two doors (design doc §Home/Workbench). The wedge is
             "기존 문서 검수하기"; "초안 만들기" is the low-barrier secondary entry. */}
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="accent" size="sm" onClick={onNew}>
-            기존 문서 검수하기
+            {L('기존 문서 검수하기', 'Review an existing document')}
           </Button>
           <LocaleLink href="/workspace">
-            <Button variant="secondary" size="sm">초안 만들기</Button>
+            <Button variant="secondary" size="sm">{L('초안 만들기', 'Create a draft')}</Button>
           </LocaleLink>
         </div>
       </div>
 
       {ordered.length === 0 ? (
         <Card variant="muted">
-          <p className="text-[14px] text-[var(--text-primary)]">아직 검수한 문서가 없습니다.</p>
+          <p className="text-[14px] text-[var(--text-primary)]">{L('아직 검수한 문서가 없습니다.', 'No documents reviewed yet.')}</p>
           <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
-            전략안·기획안·AI 답변을 넣으면 첫 Judgment Receipt가 만들어집니다.
+            {L(
+              '전략안·기획안·AI 답변을 넣으면 첫 Judgment Receipt가 만들어집니다.',
+              'Drop in a strategy doc, proposal, or AI answer to create your first Judgment Receipt.',
+            )}
           </p>
           <div className="mt-3">
             <Button variant="accent" size="sm" onClick={onNew}>
-              첫 문서 검수하기
+              {L('첫 문서 검수하기', 'Review your first document')}
             </Button>
           </div>
         </Card>
@@ -93,7 +105,7 @@ export function ReceiptList({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[14px] font-semibold text-[var(--text-primary)] truncate">
-                      {r.source_title || '제목 없는 문서'}
+                      {r.source_title || L('제목 없는 문서', 'Untitled document')}
                     </p>
                     <p className="mt-0.5 text-[12px] text-[var(--text-secondary)] line-clamp-2">
                       {r.core_question}
@@ -106,10 +118,13 @@ export function ReceiptList({
                   </span>
                 </div>
                 <div className="mt-2 flex items-center gap-3 text-[11px] text-[var(--text-tertiary)]">
-                  {s.next_check_by && <span>확인일 {s.next_check_by}</span>}
+                  {s.next_check_by && <span>{L(`확인일 ${s.next_check_by}`, `Check by ${s.next_check_by}`)}</span>}
                   {s.sealed_count > 0 && (
                     <span>
-                      예측 {s.settled_count}/{s.sealed_count} 정산
+                      {L(
+                        `예측 ${s.settled_count}/${s.sealed_count} 정산`,
+                        `${s.settled_count}/${s.sealed_count} predictions settled`,
+                      )}
                     </span>
                   )}
                   <span>{(r.updated_at || r.created_at || '').slice(0, 10)}</span>
@@ -118,10 +133,10 @@ export function ReceiptList({
                       className="ml-auto text-[var(--text-tertiary)] hover:text-red-600"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm('이 검수 기록을 지울까요?')) onRemove(r.receipt_id);
+                        if (confirm(L('이 검수 기록을 지울까요?', 'Delete this review record?'))) onRemove(r.receipt_id);
                       }}
                     >
-                      삭제
+                      {L('삭제', 'Delete')}
                     </button>
                   )}
                 </div>

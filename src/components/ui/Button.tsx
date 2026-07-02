@@ -62,6 +62,21 @@ const variantDepth: Record<Variant, React.CSSProperties> = {
   },
 };
 
+/**
+ * Disabled = solid desaturation, NOT transparency (Argus 2.0 H1-C3). The old
+ * `opacity-40` made a disabled primary CTA vanish into the page — users read
+ * "no next action" instead of "this action, once you type". The button keeps
+ * its full shape, padding, and hit area; only the affect drains out.
+ * Acceptance bar: a disabled button still reads as a button in under a second.
+ */
+const disabledDepth: React.CSSProperties = {
+  background: 'var(--bg-hover)',
+  border: '1px solid var(--border)',
+  color: 'var(--text-tertiary)',
+  boxShadow: 'none',
+  textShadow: 'none',
+};
+
 const sizeStyles: Record<string, string> = {
   sm: 'px-3.5 py-1.5 text-[13px] rounded-lg',
   md: 'px-5 py-2.5 text-[14px] rounded-xl',
@@ -78,12 +93,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           transition-[transform,filter] duration-150
           hover:-translate-y-[1px] hover:brightness-[1.04]
           active:scale-[0.96] active:translate-y-0 active:brightness-[0.98]
-          disabled:opacity-40 disabled:pointer-events-none disabled:translate-y-0 disabled:scale-100
+          disabled:pointer-events-none disabled:translate-y-0 disabled:scale-100
           cursor-pointer
           ${sizeStyles[size]}
           ${className}
         `}
-        style={{ ...variantDepth[variant], ...props.style }}
+        style={{ ...(props.disabled ? disabledDepth : variantDepth[variant]), ...props.style }}
         {...props}
       >
         {children}

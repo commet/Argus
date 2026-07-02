@@ -2,7 +2,7 @@
 
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LogOut, Sun, Moon, Lock } from 'lucide-react';
+import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
@@ -14,6 +14,8 @@ import { SyncStatus } from '@/components/ui/SyncStatus';
 import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { stripLocale } from '@/lib/locale-path';
+
+const OPERATOR_EMAILS = new Set(['time22say@gmail.com', 'yclee913@gmail.com']);
 
 export function Header() {
   const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
@@ -36,6 +38,17 @@ export function Header() {
   const pathname = stripLocale(usePathname());
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
+
+  // Secondary tools that used to live in the (mostly empty) 224px sidebar —
+  // the aside is gone (H1-C4), so they move into an overflow menu here. The
+  // operator dashboard keeps its email gate, moved verbatim from Sidebar.
+  const isOperator = !!user?.email && OPERATOR_EMAILS.has(user.email);
+  const utilityItems: Array<{ href: string; label: string; icon: typeof Download }> = [
+    { href: '/import', label: L('가져오기', 'Import'), icon: Download },
+    { href: '/teams', label: L('팀', 'Teams'), icon: Users },
+    { href: '/guide', label: L('사용 가이드', 'Guide'), icon: BookOpen },
+    ...(isOperator ? [{ href: '/admin', label: L('계기판', 'Dashboard'), icon: BarChart3 }] : []),
+  ];
 
   // Return badge — projects whose decision contract check-in is due.
   const projects = useProjectStore((s) => s.projects);
@@ -81,8 +94,21 @@ export function Header() {
   const isLanding = pathname === '/';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close the overflow menu on outside click (same pattern as the user menu).
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Theme initialization + cross-tab sync
   useEffect(() => {
@@ -181,6 +207,36 @@ export function Header() {
                   </LocaleLink>
                 );
               })}
+              {/* Overflow — the sidebar's former utility links (H1-C4) */}
+              <div className="relative" ref={moreMenuRef}>
+                <button
+                  onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                  className="px-2.5 py-1.5 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer flex items-center"
+                  aria-label={L('더보기 메뉴', 'More menu')}
+                  aria-haspopup="menu"
+                  aria-expanded={moreMenuOpen}
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+                {moreMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-[var(--shadow-lg)] overflow-hidden animate-fade-in py-1">
+                    {utilityItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <LocaleLink
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMoreMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)] transition-colors"
+                        >
+                          <Icon size={14} strokeWidth={1.75} />
+                          {item.label}
+                        </LocaleLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </nav>
 
             {/* Locale toggle + Theme toggle + Status badges */}
@@ -331,6 +387,23 @@ export function Header() {
                 </LocaleLink>
               );
             })}
+            {/* Former sidebar utilities (H1-C4) — same list as the desktop overflow */}
+            <div className="pt-1 mt-1 border-t border-[var(--border-subtle)]">
+              {utilityItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <LocaleLink
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2.5 min-h-[44px] rounded-lg text-[14px] text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    <Icon size={15} strokeWidth={1.75} />
+                    {item.label}
+                  </LocaleLink>
+                );
+              })}
+            </div>
             {/* Mobile locale toggle */}
             <div className="pt-2 mt-1 border-t border-[var(--border-subtle)] flex items-center gap-2 px-4">
               <span className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{L('언어', 'Language')}</span>
