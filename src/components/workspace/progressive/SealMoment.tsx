@@ -491,7 +491,9 @@ export function SealMoment({
           )}
         </p>
         {/* Channel disclosure BEFORE consent — a suspicious user won't say yes
-            without knowing HOW the asking happens ("이메일? 스팸?"). */}
+            without knowing HOW the asking happens ("이메일? 스팸?").
+            Promise parity (P1-B4): the guide FAQ ("'물어봐 준다'는 게 어떻게 오나요?",
+            guide/page.tsx) mirrors this sentence — if channels change, update both. */}
         <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] max-w-md mx-auto">
           {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면, 그날 메시지로도 가볍게 알려드려요 — 광고성 메일은 보내지 않아요.', "On that day, I'll ask first when you open the projects page. If you've connected Telegram, I'll send a gentle nudge there too on the day — never marketing email.")}
         </p>

@@ -121,7 +121,9 @@ export default function GuidePage() {
                 },
                 {
                   q: "'물어봐 준다'는 게 어떻게 오나요?",
-                  a: '정한 날짜에 프로젝트 페이지에 오시면 제가 먼저 물어요 — 메일·알림은 보내지 않아요. 원하면 캘린더 파일로 약속을 넣을 수 있어요.',
+                  // 약속 정합(P1-B4): 이 답은 SealMoment의 채널 고지 문장과 복사 일치 —
+                  // 알림 채널이 늘거나 줄면 SealMoment.tsx와 여기(ko/en)를 같이 고칠 것.
+                  a: '정한 날짜에 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면 그날 메시지로도 가볍게 알려드려요 — 광고성 메일은 보내지 않아요. 원하면 캘린더 파일로 약속을 넣을 수 있어요.',
                 },
                 {
                   q: '현재 방위가 뭔가요?',
@@ -150,9 +152,10 @@ export default function GuidePage() {
                 },
                 {
                   q: 'How does "coming back to ask" work?',
-                  // Honesty: there is no email-reminder UI yet (the cron
-                  // requires an opt-in flag nothing sets) — don't promise one.
-                  a: 'Visit your project page on the date you set and Argus asks first — no emails or notifications. You can add the appointment as a calendar file if you like.',
+                  // Promise parity (P1-B4): this answer mirrors the SealMoment channel
+                  // disclosure — if notification channels change, update SealMoment.tsx
+                  // and both locales here together.
+                  a: "Visit your project page on the date you set and Argus asks first. If you've connected Telegram, a light message arrives that day too — no marketing emails, ever. You can add the appointment as a calendar file if you like.",
                 },
                 {
                   q: 'What is a Current Heading?',
