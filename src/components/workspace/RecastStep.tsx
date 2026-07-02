@@ -673,6 +673,20 @@ export function RecastStep({ onNavigate }: RecastStepProps) {
       {current?.status === 'analyzing' && (
         <Card>
           <RecastLoader />
+          {/* Live provisional preview: the streaming tokens were being paid for
+              and discarded (canned loader only for 15–30s). Render the tail,
+              clearly marked as drafting — faint + italic so a half-formed field
+              is never mistaken for the surfaced conclusion (honest provenance). */}
+          {streamingText && (
+            <div className="mt-3 px-1" aria-hidden="true">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-1">
+                {L('초안 작성 중…', 'Drafting…')}
+              </p>
+              <p className="text-[11.5px] leading-[1.6] text-[var(--text-tertiary)] italic line-clamp-3 break-all opacity-80">
+                {streamingText.slice(-360)}
+              </p>
+            </div>
+          )}
         </Card>
       )}
 

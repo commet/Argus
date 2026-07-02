@@ -1073,6 +1073,19 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
             L('숨은 질문을 찾고 있습니다', 'Finding the hidden question'),
             L('진짜 주제를 읽어내고 있습니다', 'Reading the real subject'),
           ]} />
+          {/* Live provisional preview of the streamed tokens (previously paid
+              for and discarded). Faint + italic + "drafting" label so a
+              half-formed reframe is never read as the surfaced conclusion. */}
+          {streamingText && (
+            <div className="mt-3 px-1" aria-hidden="true">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-1">
+                {L('초안 작성 중…', 'Drafting…')}
+              </p>
+              <p className="text-[11.5px] leading-[1.6] text-[var(--text-tertiary)] italic line-clamp-3 break-all opacity-80">
+                {streamingText.slice(-360)}
+              </p>
+            </div>
+          )}
         </Card>
       )}
 

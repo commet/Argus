@@ -660,7 +660,7 @@ function PredicateEditor({
             <li key={p.id}>
               <button
                 onClick={() => onToggle(p.id)}
-                className={`w-full flex items-start gap-2 text-left rounded-lg border px-3 py-2 transition-colors cursor-pointer ${
+                className={`w-full flex items-start gap-2 text-left rounded-lg border px-3 py-2.5 min-h-[44px] transition-colors cursor-pointer ${
                   off
                     ? 'border-[var(--border)] opacity-45 line-through'
                     : 'border-[var(--border)] hover:border-[var(--accent)]/40'

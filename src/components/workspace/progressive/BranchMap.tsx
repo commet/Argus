@@ -61,7 +61,9 @@ export function BranchMap({
       viewBox={`0 0 ${vbW} ${height}`}
       className="overflow-visible"
       preserveAspectRatio="xMinYMin meet"
-      role="img"
+      // Nodes are interactive (pick to jump) — role="img" would prune them
+      // from the a11y tree, so expose the chart as a group instead.
+      role="group"
       aria-label="Voyage course chart"
     >
       <defs>
@@ -97,7 +99,10 @@ export function BranchMap({
         const hasWaypoint = waypointCps.has(n.id);
         const r = hasWaypoint ? BM.NODE_R : BM.NODE_R - 2;
         return (
-          <g key={`n-${n.id}`} className="cursor-pointer" onClick={() => onPick(n.id)}>
+          <g key={`n-${n.id}`} className="cursor-pointer" onClick={() => onPick(n.id)}
+            role="button" tabIndex={0}
+            aria-label={`waypoint ${n.id}`}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(n.id); } }}>
             {/* active checkpoint ring */}
             {isActiveCp && (
               <circle cx={n.x} cy={n.y} r={r + 3.5} fill="none" stroke={n.color} strokeWidth="1.2" opacity="0.5" />

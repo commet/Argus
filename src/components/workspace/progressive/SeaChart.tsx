@@ -342,7 +342,10 @@ export function SeaChart({
   return (
     <div className="relative w-full h-full overflow-hidden rounded-[10px] shadow-[inset_0_0_46px_rgba(78,56,16,0.15)]">
       <svg ref={svgRef} width="100%" height="100%"
-        viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" role="img"
+        viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet"
+        // role="img" prunes children from the a11y tree — correct for the
+        // glanceable chart, wrong when nodes are interactive (keyboard pick).
+        role={onPick ? 'group' : 'img'}
         aria-label={L('결정 항해 해도', 'Decision voyage chart')}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp} onWheel={onWheel}
@@ -525,7 +528,17 @@ export function SeaChart({
 
           return (
             <g key={`n-${n.id}`}>
-             <g className={onPick ? 'cursor-pointer' : undefined} onClick={handlePick ? () => handlePick(n.id) : undefined}>
+             {/* Keyboard access: the step-back/fork pick was mouse-only (bare
+                 onClick on an SVG <g>). Focusable button semantics + Enter/Space
+                 make the chart's core interaction reachable without a pointer. */}
+             <g className={onPick ? 'cursor-pointer' : undefined}
+                onClick={handlePick ? () => handlePick(n.id) : undefined}
+                role={handlePick ? 'button' : undefined}
+                tabIndex={handlePick ? 0 : undefined}
+                aria-label={handlePick ? (wp?.headline || L('항로 지점으로 이동', 'Go to this waypoint')) : undefined}
+                onKeyDown={handlePick ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePick(n.id); }
+                } : undefined}>
               {/* a whisper-thin halo only on waypoints, to lift them off the sea
                   without the old "target" heaviness */}
               {wp && !isActiveCp && <circle cx={n.px} cy={n.py} r={r + (full ? 2.4 : 1.8)} fill="none" stroke={baseColor} strokeWidth={0.4} opacity={0.18} />}
