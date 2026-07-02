@@ -26,6 +26,12 @@ export function AttributedSection({ section, index }: {
     .map(id => workers.find(w => w.id === id))
     .filter((w): w is NonNullable<typeof w> => !!w && !!w.persona);
 
+  // Honest provenance (spine rule 1): focus mode lets crew work flow into the
+  // draft without a captain click, so approved stays null there. Disclose it —
+  // neutrally, this is provenance, not a warning — instead of letting the
+  // section read as captain-reviewed.
+  const hasUnreviewed = contributors.some(w => w.approved == null);
+
   const hasSentences = Array.isArray(section.sentences) && section.sentences.length > 0;
 
   // Section-level highlight/dim — matches any hover kind that touches this section.
@@ -75,6 +81,14 @@ export function AttributedSection({ section, index }: {
         {/* Section heading was only 1px above body — no skim anchor in a long brief.
             Lift it a clear step (16px) so headings scan as headings. */}
         <h3 className="text-[16px] md:text-[17px] font-bold text-[var(--text-primary)] leading-[1.35] flex-1 tracking-tight">{section.heading}</h3>
+        {hasUnreviewed && (
+          <span
+            title={L('이 부분에 기여한 선원 보고를 아직 직접 확인하지 않았어요. 위 "열어보기"에서 반영/제외할 수 있어요.', "You haven't reviewed the crew reports behind this section yet — open the reports above to apply/exclude them.")}
+            className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] border border-[var(--border)] rounded-full px-1.5 py-0.5"
+          >
+            {L('검토 전', 'unreviewed')}
+          </span>
+        )}
         {contributors.length > 0 && (
           <div className="flex -space-x-1.5 shrink-0">
             {contributors.map(w => (

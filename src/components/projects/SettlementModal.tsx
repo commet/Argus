@@ -167,10 +167,10 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
     };
 
     return (
-      <Modal open onClose={onClose} title={L('洹몃옒?? ?대뼸寃??먯뼱??', 'So, how did it go?')}>
+      <Modal open onClose={onClose} title={L('그래서, 어떻게 됐어요?', 'So, how did it go?')}>
         <div className="space-y-4">
           <p className="text-[13px] text-[var(--text-secondary)] leading-[1.6]">
-            {L('遊됱씤???뺤씤?쇱씠 ?ㅼ븯?듬땲?? ?뚯깭瑜?媛꾨떒??湲곕줉?섍퀬 怨좊━瑜??ル뼱二쇱꽭??', 'This sealed decision is due. Capture what happened and close the loop.')}
+            {L('봉인한 결정의 확인일이 왔어요. 어땠는지 간단히 기록하고 고리를 닫아주세요.', 'This sealed decision is due. Capture what happened and close the loop.')}
           </p>
           <textarea
             value={whatHappened}
@@ -178,7 +178,7 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
             rows={4}
             maxLength={1200}
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-[13px] text-[var(--text-primary)] leading-[1.5] resize-none focus:outline-none focus:border-[var(--accent)]/60"
-            placeholder={L('臾댁뾿???대뼸寃??섏뼱?섏슂?', 'What happened?')}
+            placeholder={L('무엇이 어떻게 되었나요?', 'What happened?')}
           />
           <div className="flex justify-end">
             <button
@@ -186,7 +186,7 @@ export function SettlementModal({ project, onClose }: { project: Project; onClos
               onClick={closeDateOnlyLoop}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold cursor-pointer"
             >
-              {L('?뚭퀬 怨좊━ ?リ린', 'Looked back and closed')}
+              {L('돌아보고 고리 닫기', 'Looked back and closed')}
             </button>
           </div>
         </div>

@@ -152,19 +152,27 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
   // the full seal ceremony. Default 'important' (full ceremony) is the safe
   // fallback when the answer is absent (e.g. paste mode, or after reload).
   const [sealStakes, setSealStakes] = useState<'routine' | 'important' | 'critical'>('important');
+  // Project carried in from the tools chain (same pattern as RecastStep) —
+  // applied to the item at creation so the seal terminus has a home.
+  const [pendingProjectId, setPendingProjectId] = useState<string | undefined>();
 
   useEffect(() => {
     loadItems();
     loadJudgments();
   }, [loadItems, loadJudgments]);
 
-  // Inbound handoff: Refine 결과를 bulk input에 pre-fill
+  // Inbound handoff: 앞 단계 결과를 bulk input에 pre-fill.
+  // Accept any tools-chain sender (rehearse hands off here today; 'refine' was
+  // a receiver with no producer) and carry projectId through — without it the
+  // synthesize terminus can never reach SealMoment (F2: seal→settle was
+  // structurally unreachable for tool-path decisions).
   useEffect(() => {
     const handoff = useHandoffStore.getState().handoff;
-    if (handoff?.from === 'refine' && handoff.content) {
+    if ((handoff?.from === 'refine' || handoff?.from === 'rehearse' || handoff?.from === 'recast') && handoff.content) {
       setBulkInput(handoff.content);
       setMode('direct');
       setInputMode('bulk');
+      if (handoff.projectId) setPendingProjectId(handoff.projectId);
       useHandoffStore.getState().clearHandoff();
     }
   }, []);
@@ -206,7 +214,17 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
     }
 
     const id = createItem();
-    updateItem(id, { raw_input: userContent, sources, status: 'analyzing' });
+    // Attach the decision's project at creation: handoff first, else the
+    // workspace's current project, else a fresh one named after the input —
+    // exactly the ReframeStep pattern. Without a project_id the SealMoment
+    // below can never render and the decision exits the seal→settle loop.
+    const projectStore = useProjectStore.getState();
+    const projectId =
+      pendingProjectId ||
+      projectStore.currentProjectId ||
+      projectStore.getOrCreateProject(userContent.replace(/\s+/g, ' ').trim().slice(0, 30));
+    updateItem(id, { raw_input: userContent, sources, status: 'analyzing', project_id: projectId });
+    if (pendingProjectId) setPendingProjectId(undefined);
 
     try {
       const analysis = await callLLMJson<SynthesizeAnalysis>(

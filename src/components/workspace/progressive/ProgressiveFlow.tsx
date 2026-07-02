@@ -1395,20 +1395,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusMode, deployPhase, workers.length]);
 
-  /* W1.6 재구성 ③ 선원 보고 자동 반영 — focus mode doesn't make the user grade
-   * the crew's homework (the #1 "최악" screen, G-W1 #1). Reports auto-apply
-   * when done; the full review stepper retreats behind "열어보기" and 반영/제외
-   * stays available there for whoever wants it. */
-  useEffect(() => {
-    if (!focusMode || deployPhase !== 'deployed' || workers.length === 0) return;
-    const allSettled = workers.every((w) => w.status === 'done' || w.status === 'error');
-    const anyUnapproved = workers.some((w) => w.status === 'done' && w.approved == null);
-    if (allSettled && anyUnapproved) {
-      track('focus_auto_approve', { count: workers.filter((w) => w.status === 'done' && w.approved == null).length });
-      store.approveAllPending();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusMode, deployPhase, workers]);
+  /* W1.6 재구성 ③ — focus mode still doesn't make the user grade the crew's
+   * homework: the review stepper stays behind "열어보기" and unreviewed reports
+   * flow into the mix as before (mixableWorkerResults keeps approved !== false).
+   * But we no longer stamp captain approval on work the captain never saw
+   * (spine rule 1: approved === true must mean a real click — the old
+   * approveAllPending call here polluted XP/observation signals and the
+   * convergence worker-quality score with fake approvals). approved stays
+   * null = "선장 미판정", and AttributedSection shades those sections. */
   const workerContext = useWorkerContext();
   const workerActions = useWorkerActions(workerContext);
 
@@ -2011,7 +2005,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // hard block; an explicit override always exists).
   const onMix = () => {
     const pending = store.unreviewedWorkers().length;
-    if (pending > 0) { track('verify_gate_shown', { pending }); setVerifyGateOpen(true); return; }
+    // Focus mode never saw this gate before (auto-approve pre-empted it) and
+    // its whole point is that crew work is theater, not paperwork — so it keeps
+    // sailing straight into the mix. The honesty fix lives in the record:
+    // those workers stay approved=null and the draft shades them as unreviewed.
+    if (pending > 0 && !focusMode) { track('verify_gate_shown', { pending }); setVerifyGateOpen(true); return; }
+    if (pending > 0) track('focus_mix_unreviewed', { pending });
     runMixCore();
   };
 
@@ -2977,7 +2976,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           {/* Pipeline Exit — 라운드 1+ 후 4R로 분기 가능 (Weakness D) */}
           {showRecord && latest && snapshots.length >= 1 && !mix && !final_ && phase === 'conversing' && !busy && (
             <PipelineExitOptions
-              onReframe={() => {
+              onReframe={async () => {
                 try {
                   const item = exportProgressiveAsReframe(session);
                   // 실제 store에 저장 + 프로젝트 연결
@@ -2989,10 +2988,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     });
                   }
                   track('progressive_exit_to_reframe', { round });
-                  window.location.href = `/workspace?step=reframe&handoff=progressive&itemId=${item.id}`;
+                  // SPA switch (H1-B3): the old full-page navigation reloaded
+                  // the app, dropping all in-memory state; its &handoff=/&itemId=
+                  // params had zero consumers. addItem above already set the
+                  // reframe store's currentId, so flipping the step is enough —
+                  // and Next syncs pushState into useSearchParams, which flips
+                  // the workspace page into legacy mode without a reload.
+                  const { useWorkspaceStore } = await import('@/stores/useWorkspaceStore');
+                  useWorkspaceStore.getState().setActiveStep('reframe');
+                  window.history.pushState(null, '', `/${locale}/workspace?step=reframe`);
                 } catch (e) { setError(e instanceof Error ? e.message : L('전환 실패', 'Switch failed')); }
               }}
-              onRehearse={() => {
+              onRehearse={async () => {
                 try {
                   const item = exportProgressiveAsRecast(session);
                   // 실제 store에 저장 + 프로젝트 연결
@@ -3004,7 +3011,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     });
                   }
                   track('progressive_exit_to_rehearse', { round });
-                  window.location.href = `/workspace?step=rehearse&handoff=progressive&itemId=${item.id}`;
+                  // SPA switch — see onReframe above (H1-B3).
+                  const { useWorkspaceStore } = await import('@/stores/useWorkspaceStore');
+                  useWorkspaceStore.getState().setActiveStep('rehearse');
+                  window.history.pushState(null, '', `/${locale}/workspace?step=rehearse`);
                 } catch (e) { setError(e instanceof Error ? e.message : L('전환 실패', 'Switch failed')); }
               }}
             />

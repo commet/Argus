@@ -26,6 +26,7 @@ import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, F
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { LocaleLink } from '@/components/ui/LocaleLink';
+import { Button } from '@/components/ui/Button';
 import { Graticule } from '@/components/ui/VoyageElements';
 import { EASE } from '@/components/workspace/progressive/shared/constants';
 import { getPersonaPool } from '@/lib/worker-personas';
@@ -584,11 +585,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                         : <span className="text-[11px] text-[var(--text-tertiary)]">
                             {L('한 줄만 적어도 시작할 수 있어요', 'A sentence is enough to begin')}
                           </span>}
-                      <button onClick={() => { setJustFromDemo(false); handleSubmit(); }} disabled={!problemInput.trim()}
-                        className={`shrink-0 inline-flex items-center gap-1.5 px-5 py-3 md:py-2.5 text-white rounded-xl text-[13px] font-semibold disabled:opacity-30 cursor-pointer min-h-[44px] md:min-h-[40px] transition-shadow hover:shadow-[var(--shadow-md)] ${justFromDemo ? 'animate-pulse' : ''}`}
-                        style={{ background: 'var(--gradient-gold)' }}>
+                      {/* Shared Button, accent variant (H1-C3): the raw inline-gold
+                          button had no active/hover depth and its disabled state
+                          (opacity-30) visually erased the page's one next action. */}
+                      <Button variant="accent" size="md" onClick={() => { setJustFromDemo(false); handleSubmit(); }} disabled={!problemInput.trim()}
+                        className={`shrink-0 min-h-[44px] md:min-h-[40px] ${justFromDemo ? 'animate-pulse' : ''}`}>
                         {L('시작', 'Start')} <ChevronRight size={12} />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>

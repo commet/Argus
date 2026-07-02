@@ -7,7 +7,6 @@ import { useAuth } from '@/lib/auth';
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
-import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
 import { Zap, FolderOpen, Users, MessageSquare, MailCheck } from 'lucide-react';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -186,9 +185,12 @@ function LoginContent() {
             <ul className="space-y-2 text-[13px] text-[var(--text-primary)]">
               <li className="flex items-start gap-2">
                 <Zap size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />
+                {/* Quota copy speaks in DECISIONS, the unit users actually think
+                    in — raw call counts are an internal metric (H1-C6). The
+                    call→decision conversion note lives in quota-config.ts. */}
                 <span>{locale === 'ko'
-                  ? <>하루 <strong>{DAILY_LIMIT}회</strong> 무료 사용 (비회원 {ANON_LIMIT}회)</>
-                  : <><strong>{DAILY_LIMIT} free calls per day</strong> (vs {ANON_LIMIT} for guests)</>}</span>
+                  ? <>하루 <strong>결정 4~5개 분량</strong> 무료 (로그인 없이는 2~3개)</>
+                  : <><strong>About 4–5 decisions a day</strong> free (2–3 without login)</>}</span>
               </li>
               <li className="flex items-start gap-2">
                 <FolderOpen size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />
@@ -418,7 +420,7 @@ function LoginContent() {
             href="/workspace"
             className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors"
           >
-            {L(`로그인 없이 계속 → 하루 ${ANON_LIMIT}회 무료`, `Continue without login → ${ANON_LIMIT} free calls/day`)}
+            {L('로그인 없이 계속 → 하루 결정 2~3개 분량 무료', 'Continue without login → about 2–3 decisions/day free')}
           </LocaleLink>
         </div>
       </div>

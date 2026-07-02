@@ -1,0 +1,23 @@
+# Normalize line endings and pin source files to UTF-8.
+#
+# Why this file exists: commit 964271c and merge fc4e1c7 were produced on a
+# machine whose editor/merge tool round-tripped UTF-8 source through CP949,
+# silently garbling every Korean string in Falsification.tsx and
+# SettlementModal.tsx (see src/lib/__tests__/mojibake-guard.test.ts for the
+# runtime defense). git can't validate encodings by itself, but declaring
+# text+eol here stops CRLF/encoding-transparent tools from rewriting whole
+# files, which is how the corruption slipped past review as a "changed file".
+* text=auto eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+
+# Binary assets — never normalize.
+*.png binary
+*.jpg binary
+*.mp4 binary
+*.webm binary
+*.ico binary
+*.woff2 binary

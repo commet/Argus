@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
-import { Sidebar } from './Sidebar';
 import { AuthGuard } from './AuthGuard';
 import { isPublicPath } from '@/lib/public-paths';
 import { stripLocale } from '@/lib/locale-path';
@@ -56,12 +55,14 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
     return <div className="flex-1 min-w-0">{content}</div>;
   }
 
+  // The 224px <Sidebar /> that used to render here is gone (Argus 2.0 H1-C4):
+  // on every one of these pages it was an almost-empty white column that read
+  // as "unfinished". Its contents moved — utility links + operator dashboard
+  // into the Header overflow menu, personas to /teams via that menu, and the
+  // current-project label to the /project page itself.
   return (
-    <>
-      <Sidebar />
-      <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto w-full animate-fade-in">
-        {content}
-      </main>
-    </>
+    <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-5xl mx-auto w-full animate-fade-in">
+      {content}
+    </main>
   );
 }

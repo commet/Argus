@@ -356,7 +356,13 @@ export function VoyageFilm() {
   // for the desktop lower-left overlay — its frost box swallowed most of the
   // picture. The desktop cinematic overlay (below) is unchanged. ──
   if (narrow) {
-    const introMode = intro && !active;
+    // Fallback (H1-C1): before playback ever reaches the intro window — slow
+    // connection, load failure, or reduced-motion keeping the poster — intro/
+    // active/shownIdx are all at their initial values and the fixed 256px
+    // gutter rendered as pure blank, which read as a broken page (the top
+    // mobile bounce point). Show the intro caption by default instead; the
+    // video clock takes over the moment it actually plays.
+    const introMode = (intro && !active) || (!active && shownIdx < 0);
     // Persist the most recent chapter through the ~1.5s gaps between windows so
     // the gutter never flashes empty (desktop just shows the engraving in gaps).
     const gChapter = active ?? (shownIdx >= 0 ? CHAPTERS[shownIdx] : null);
@@ -372,7 +378,9 @@ export function VoyageFilm() {
             aria-label={L('오디세우스의 항해 — 묶기, 듣기, 닿기, 그리고 알아봄', "Odysseus's voyage — bind, listen, land, and recognition")}
             style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', background: 'var(--bp-paper)' }}
           >
-            <source src="/voyage/voyage-film.mp4" type="video/mp4" />
+            {/* Mobile band gets the 360p encode (~2MB vs 5.6MB) — this branch
+                renders its own <video>, so no <source media> queries needed. */}
+            <source src="/voyage/voyage-film-mobile.mp4" type="video/mp4" />
           </video>
           <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 3 }} />
         </div>

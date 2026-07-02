@@ -64,12 +64,15 @@ describe('CurrentBearingCard', () => {
     expect(text).toContain('plugin DAU stays above X after 30 days');
   });
 
-  it('maps the course status to its chip label', () => {
+  it('maps the course status to a state description, never a directional verdict', () => {
     mount({ bearing: full });
-    expect(container.textContent).toContain('Collect evidence');
+    expect(container.textContent).toContain('Needs evidence · review');
 
+    // Spine rule 4(a): the chip must describe the review state ("no open
+    // objections"), not stamp a "go" call above the user's decision.
     mount({ bearing: { ...full, current_course: { status: 'proceed', summary: 'go' } } });
-    expect(container.textContent).toContain('Proceed');
+    expect(container.textContent).toContain('No open objections · review');
+    expect(container.textContent).not.toContain('Proceed');
   });
 
   it('omits optional sections that are empty without crashing', () => {

@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { useLocale } from '@/hooks/useLocale';
 import { useReviewStore } from '@/stores/useReviewStore';
 import { ReceiptView } from './ReceiptView';
 import { ReceiptList } from './ReceiptList';
@@ -31,15 +32,6 @@ import {
 
 type Phase = 'list' | 'import' | 'running' | 'receipt' | 'failed';
 
-const CONCERN_CHIPS: { id: ReviewConcern; label: string }[] = [
-  { id: 'full_judgment_review', label: '전체 판단 검수' },
-  { id: 'strategic_fit', label: '전략 적합성' },
-  { id: 'evidence', label: '근거/주장 검증' },
-  { id: 'stakeholder_objection', label: '이해관계자 반론' },
-  { id: 'execution_risk', label: '실행 리스크' },
-  { id: 'ai_answer_trust', label: 'AI 답변 신뢰성' },
-];
-
 const TEXT_EXT = ['md', 'markdown', 'txt', 'text'];
 const BINARY_EXT: Record<string, SourceKind> = { pdf: 'pdf', docx: 'docx', pptx: 'pptx' };
 
@@ -51,6 +43,8 @@ const PASTE_CHAR_CAP = 50_000;
 const REVIEW_DEADLINE_MS = 150_000;
 
 export function ReviewFlow() {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const store = useReviewStore();
   const [phase, setPhase] = useState<Phase>('list');
   const [text, setText] = useState('');
@@ -79,6 +73,15 @@ export function ReviewFlow() {
   // 'deadline' (wall-clock budget → a clear failure). Distinguishing them keeps
   // a genuine cancel silent and a timeout honest.
   const abortReasonRef = useRef<'user' | 'deadline' | null>(null);
+
+  const CONCERN_CHIPS: { id: ReviewConcern; label: string }[] = [
+    { id: 'full_judgment_review', label: L('전체 판단 검수', 'Full judgment review') },
+    { id: 'strategic_fit', label: L('전략 적합성', 'Strategic fit') },
+    { id: 'evidence', label: L('근거/주장 검증', 'Evidence & claims') },
+    { id: 'stakeholder_objection', label: L('이해관계자 반론', 'Stakeholder objections') },
+    { id: 'execution_risk', label: L('실행 리스크', 'Execution risk') },
+    { id: 'ai_answer_trust', label: L('AI 답변 신뢰성', 'AI answer reliability') },
+  ];
 
   // Load persisted receipts once; open on the list when any exist, else import.
   useEffect(() => {
@@ -125,11 +128,11 @@ export function ReviewFlow() {
         } else {
           // Parser ran but got nothing usable (scanned PDF, image-only deck).
           setPendingBinary(BINARY_EXT[ext]);
-          setExtractNote(extracted.note ?? '텍스트를 거의 추출하지 못했습니다.');
+          setExtractNote(extracted.note ?? L('텍스트를 거의 추출하지 못했습니다.', 'Almost no text could be extracted.'));
         }
       } catch {
         setPendingBinary(BINARY_EXT[ext]);
-        setExtractNote('이 파일에서 텍스트를 추출하지 못했습니다.');
+        setExtractNote(L('이 파일에서 텍스트를 추출하지 못했습니다.', 'Could not extract text from this file.'));
       } finally {
         setExtracting(false);
       }
@@ -198,11 +201,14 @@ export function ReviewFlow() {
         // Timed out → an honest failure with a way forward, not a silent hang.
         setJob({
           job_id: finalJob.job_id, artifact_id: finalJob.artifact_id, status: 'failed',
-          progress_label: '검수 시간 초과',
+          progress_label: L('검수 시간 초과', 'Review timed out'),
           error: {
             kind: 'model_error',
-            message: '검수가 예상보다 오래 걸려 중단했어요.',
-            recovery: '문서를 더 짧게 나눠서 넣거나, 핵심 부분만 붙여넣어 다시 시도해 주세요.',
+            message: L('검수가 예상보다 오래 걸려 중단했어요.', 'The review took longer than expected, so we stopped it.'),
+            recovery: L(
+              '문서를 더 짧게 나눠서 넣거나, 핵심 부분만 붙여넣어 다시 시도해 주세요.',
+              'Try splitting the document into shorter pieces, or paste just the key section and run it again.',
+            ),
           },
         });
         setPhase('failed');
@@ -283,16 +289,19 @@ export function ReviewFlow() {
         {receipt.version && receipt.version > 1 && receipt.drift_note && (
           <Card variant="checkpoint" className="mb-4">
             <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700 mb-1">
-              버전 {receipt.version} · 재검수
+              {L(`버전 ${receipt.version} · 재검수`, `Version ${receipt.version} · Re-review`)}
             </div>
             <p className="text-[13px] text-[var(--text-primary)]">{receipt.drift_note}</p>
           </Card>
         )}
         {sealed && (
           <Card variant="success" className="mb-4">
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-green-700 mb-1">봉인됨</div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-green-700 mb-1">{L('봉인됨', 'Sealed')}</div>
             <p className="text-[13px] text-[var(--text-primary)]">
-              예측을 봉인했습니다. 확인일에 현실이 답할 때까지 이 판단은 살아 있습니다.
+              {L(
+                '예측을 봉인했습니다. 확인일에 현실이 답할 때까지 이 판단은 살아 있습니다.',
+                'Your prediction is sealed. This judgment stays live until reality answers on the check-in date.',
+              )}
             </p>
           </Card>
         )}
@@ -313,14 +322,14 @@ export function ReviewFlow() {
       <div className={original ? 'max-w-6xl mx-auto w-full' : 'max-w-2xl mx-auto w-full'}>
         <div className="mb-3 flex items-center justify-between">
           <button onClick={backToList} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)]">
-            ← 내 판단 항로
+            {L('← 내 판단 항로', '← My judgment course')}
           </button>
           {original && (
             <button
               onClick={() => setShowOriginal((v) => !v)}
               className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] md:hidden"
             >
-              {showOriginal ? '원문 숨기기' : '원문 보기'}
+              {showOriginal ? L('원문 숨기기', 'Hide original') : L('원문 보기', 'Show original')}
             </button>
           )}
         </div>
@@ -330,7 +339,7 @@ export function ReviewFlow() {
             {/* left: original document (Review Workspace §837) */}
             <div className={`md:w-1/2 ${showOriginal ? '' : 'hidden md:block'}`}>
               <Card variant="muted" className="md:sticky md:top-4">
-                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-tertiary)] mb-2">원문</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-tertiary)] mb-2">{L('원문', 'Original')}</div>
                 <pre className="whitespace-pre-wrap break-words text-[12px] leading-[1.7] text-[var(--text-secondary)] max-h-[70vh] overflow-y-auto font-sans">
                   {original}
                 </pre>
@@ -345,10 +354,10 @@ export function ReviewFlow() {
 
         <div className="mt-6 flex gap-2">
           <Button variant="ghost" size="sm" onClick={resetImport}>
-            다른 문서 검수하기
+            {L('다른 문서 검수하기', 'Review another document')}
           </Button>
           <Button variant="ghost" size="sm" onClick={backToList}>
-            목록으로
+            {L('목록으로', 'Back to list')}
           </Button>
         </div>
 
@@ -394,12 +403,12 @@ export function ReviewFlow() {
       <div className="max-w-2xl mx-auto w-full">
         <Card variant="elevated">
           <div className="flex items-center justify-between gap-3 mb-2">
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">검수 중</div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{L('검수 중', 'Reviewing')}</div>
             <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]">
-              {mm > 0 ? `${mm}:${ss}` : `${elapsed}초`}
+              {mm > 0 ? `${mm}:${ss}` : L(`${elapsed}초`, `${elapsed}s`)}
             </span>
           </div>
-          <p className="text-[15px] text-[var(--text-primary)]">{job?.progress_label ?? '문서를 읽는 중'}…</p>
+          <p className="text-[15px] text-[var(--text-primary)]">{job?.progress_label ?? L('문서를 읽는 중', 'Reading the document')}…</p>
           <div className="mt-3 flex gap-1">
             {['profiling', 'mapping', 'routing', 'reviewing', 'synthesizing'].map((s) => (
               <div
@@ -414,12 +423,15 @@ export function ReviewFlow() {
               read. Says it's still working (not stuck) and offers a way out. */}
           {longWait && (
             <p className="mt-3 text-[12px] text-[var(--text-secondary)] leading-[1.6]">
-              긴 문서라 평소보다 오래 걸리고 있어요 — 계속 읽는 중입니다. 너무 길면 취소하고 더 짧게 나눠서 검수해 보세요.
+              {L(
+                '긴 문서라 평소보다 오래 걸리고 있어요 — 계속 읽는 중입니다. 너무 길면 취소하고 더 짧게 나눠서 검수해 보세요.',
+                "This is a long document, so it's taking longer than usual — still reading. If it feels too long, cancel and review it in smaller pieces.",
+              )}
             </p>
           )}
           <div className="mt-4">
             <Button variant="ghost" size="sm" onClick={() => { abortReasonRef.current = 'user'; abortRef.current?.abort(); }}>
-              취소
+              {L('취소', 'Cancel')}
             </Button>
           </div>
         </Card>
@@ -431,20 +443,20 @@ export function ReviewFlow() {
     return (
       <div className="max-w-2xl mx-auto w-full">
         <Card variant="danger">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-red-700 mb-2">검수 어려움</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-red-700 mb-2">{L('검수 어려움', 'Unable to review')}</div>
           <p className="text-[14px] text-[var(--text-primary)]">
-            {job?.error?.message ?? '이 문서는 지금 상태로는 검수하기 어렵습니다.'}
+            {job?.error?.message ?? L('이 문서는 지금 상태로는 검수하기 어렵습니다.', 'This document is hard to review in its current form.')}
           </p>
           {job?.error?.recovery && (
             <p className="mt-2 text-[13px] text-[var(--text-secondary)]">{job.error.recovery}</p>
           )}
           <div className="mt-4 flex gap-2">
             <Button variant="accent" size="sm" onClick={resetImport}>
-              본문 붙여넣어 다시 검수
+              {L('본문 붙여넣어 다시 검수', 'Paste the text and retry')}
             </Button>
             {store.receipts.length > 0 && (
               <Button variant="ghost" size="sm" onClick={backToList}>
-                목록으로
+                {L('목록으로', 'Back to list')}
               </Button>
             )}
           </div>
@@ -474,14 +486,17 @@ export function ReviewFlow() {
     <div className="max-w-2xl mx-auto w-full flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-[20px] font-bold text-[var(--text-primary)]">기존 문서 검수하기</h1>
+          <h1 className="text-[20px] font-bold text-[var(--text-primary)]">{L('기존 문서 검수하기', 'Review an existing document')}</h1>
           <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
-            전략안·기획안·PRD·AI 답변을 넣으면, 사람이 책임져야 할 판단과 근거 약한 주장을 원문 위치와 함께 짚어드립니다.
+            {L(
+              '전략안·기획안·PRD·AI 답변을 넣으면, 사람이 책임져야 할 판단과 근거 약한 주장을 원문 위치와 함께 짚어드립니다.',
+              'Drop in a strategy doc, proposal, PRD, or AI answer — Argus points out the judgments a human must own and the weakly supported claims, anchored to where they appear in the source.',
+            )}
           </p>
         </div>
         {store.receipts.length > 0 && (
           <Button variant="ghost" size="sm" onClick={backToList}>
-            내 항로
+            {L('내 항로', 'My course')}
           </Button>
         )}
       </div>
@@ -497,7 +512,10 @@ export function ReviewFlow() {
             setExtractNote(null);
           }}
           maxLength={PASTE_CHAR_CAP}
-          placeholder="검수할 문서를 붙여넣으세요. (전략 메모, 기획안, Claude/ChatGPT 답변 등)"
+          placeholder={L(
+            '검수할 문서를 붙여넣으세요. (전략 메모, 기획안, Claude/ChatGPT 답변 등)',
+            'Paste the document to review. (Strategy memo, proposal, Claude/ChatGPT answer, etc.)',
+          )}
           className="w-full h-52 resize-y bg-transparent text-[14px] leading-[1.6] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-tertiary)]"
         />
         <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-2">
@@ -509,31 +527,41 @@ export function ReviewFlow() {
             onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
           />
           <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()} disabled={extracting}>
-            {extracting ? '텍스트 추출 중…' : '파일 업로드 (md · txt · pdf · docx · pptx)'}
+            {extracting
+              ? L('텍스트 추출 중…', 'Extracting text…')
+              : L('파일 업로드 (md · txt · pdf · docx · pptx)', 'Upload a file (md · txt · pdf · docx · pptx)')}
           </Button>
           <span className={`text-[11px] ${text.length >= PASTE_CHAR_CAP ? 'text-amber-700 font-semibold' : 'text-[var(--text-tertiary)]'}`}>
             {text.length >= PASTE_CHAR_CAP
-              ? `최대 ${PASTE_CHAR_CAP.toLocaleString()}자 — 초과분은 잘립니다`
-              : text.length > 0 ? `${text.length.toLocaleString()}자` : ''}
+              ? L(
+                  `최대 ${PASTE_CHAR_CAP.toLocaleString()}자 — 초과분은 잘립니다`,
+                  `Max ${PASTE_CHAR_CAP.toLocaleString()} characters — anything over is cut off`,
+                )
+              : text.length > 0 ? L(`${text.length.toLocaleString()}자`, `${text.length.toLocaleString()} characters`) : ''}
           </span>
         </div>
         {preExtracted && (
           <p className="mt-2 text-[12px] text-green-700">
-            {sourceKind.toUpperCase()}에서 텍스트를 추출했습니다{extractNote ? ` — ${extractNote}` : ''}. 그대로 검수를 시작할 수 있습니다.
+            {L(
+              `${sourceKind.toUpperCase()}에서 텍스트를 추출했습니다${extractNote ? ` — ${extractNote}` : ''}. 그대로 검수를 시작할 수 있습니다.`,
+              `Extracted text from the ${sourceKind.toUpperCase()}${extractNote ? ` — ${extractNote}` : ''}. You can start the review as is.`,
+            )}
           </p>
         )}
         {pendingBinary && (
           <p className="mt-2 text-[12px] text-amber-700">
             {extractNote ? `${extractNote} ` : ''}
-            {pendingBinary.toUpperCase()} 파일에서 충분한 텍스트를 얻지 못했습니다. 그대로 검수하면 “무엇이 빠졌는지”를 먼저
-            보여주고, 본문을 붙여넣으면 정식 검수합니다.
+            {L(
+              `${pendingBinary.toUpperCase()} 파일에서 충분한 텍스트를 얻지 못했습니다. 그대로 검수하면 “무엇이 빠졌는지”를 먼저 보여주고, 본문을 붙여넣으면 정식 검수합니다.`,
+              `Not enough text could be read from the ${pendingBinary.toUpperCase()} file. Review it as is and Argus will first show what's missing; paste the text for a full review.`,
+            )}
           </p>
         )}
       </Card>
 
       {/* concern chips */}
       <div>
-        <div className="text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">어떤 검수를 원하세요?</div>
+        <div className="text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">{L('어떤 검수를 원하세요?', 'What kind of review do you want?')}</div>
         <div className="flex flex-wrap gap-1.5">
           {CONCERN_CHIPS.map((c) => (
             <button
@@ -553,41 +581,49 @@ export function ReviewFlow() {
 
       {/* optional minimal context */}
       <details className="text-[13px]">
-        <summary className="cursor-pointer text-[var(--text-tertiary)]">맥락 3가지 (선택 — 비워도 됩니다)</summary>
+        <summary className="cursor-pointer text-[var(--text-tertiary)]">
+          {L('맥락 3가지 (선택 — 비워도 됩니다)', 'A little context (optional — fine to leave blank)')}
+        </summary>
         <div className="mt-2 flex flex-col gap-2">
           <input
             value={audienceHint}
             onChange={(e) => setAudienceHint(e.target.value)}
             maxLength={120}
-            placeholder="누구에게 보여줄 문서인가요? (예: 경영진, 투자자)"
+            placeholder={L('누구에게 보여줄 문서인가요? (예: 경영진, 투자자)', 'Who will see this document? (e.g. leadership, investors)')}
             className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
           />
           <input
             value={worry}
             onChange={(e) => setWorry(e.target.value)}
             maxLength={200}
-            placeholder="지금 가장 불안한 부분은 무엇인가요?"
+            placeholder={L('지금 가장 불안한 부분은 무엇인가요?', 'What worries you most right now?')}
             className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
           />
         </div>
       </details>
 
-      {/* storage privacy (design doc §저장 원칙) — receipt_only is the default */}
+      {/* storage privacy (design doc §저장 원칙) — receipt-only storage is the default */}
       <label className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)] cursor-pointer">
         <input type="checkbox" checked={storeSource} onChange={(e) => setStoreSource(e.target.checked)} className="mt-0.5" />
         <span>
-          원문도 함께 저장하기
+          {L('원문도 함께 저장하기', 'Also store the original text')}
           <span className="block text-[11px] text-[var(--text-tertiary)]">
             {storeSource
-              ? '원문을 저장해 검수 결과 옆에서 나란히 볼 수 있습니다.'
-              : '기본은 원문을 저장하지 않습니다 — 판단과 확인 조건만 남깁니다. (receipt_only)'}
+              ? L(
+                  '원문을 저장해 검수 결과 옆에서 나란히 볼 수 있습니다.',
+                  'The original is stored so you can view it side by side with the review.',
+                )
+              : L(
+                  '기본은 결과 요약만 저장해요(원문은 저장 안 함) — 판단과 확인 조건만 남깁니다.',
+                  'By default only the receipt is stored — never your document text. Just the judgments and check conditions remain.',
+                )}
           </span>
         </span>
       </label>
 
       <div>
-        <Button variant="accent" size="md" onClick={run} disabled={!canRun} style={canRun ? undefined : { opacity: 0.5 }}>
-          검수 시작
+        <Button variant="accent" size="md" onClick={run} disabled={!canRun}>
+          {L('검수 시작', 'Start review')}
         </Button>
       </div>
     </div>
