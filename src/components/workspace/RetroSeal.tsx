@@ -47,9 +47,13 @@ const MAX_OUTCOME = 1200;
 
 type Step = 'lean' | 'outcome' | 'settle';
 
-export function RetroSeal({ onExit }: {
+export function RetroSeal({ onExit, onRealSeal }: {
   /** Return to the idle workspace (skip / done / close). */
   onExit: () => void;
+  /** [C3] 실전 온램프 — 회고 정산이 닫히면 완료 화면이 이 링크 하나를 제공한다:
+   *  "이제 진짜 …". 눈먼(결과 모르는) 새 결정을 시작한다(setCurrentProjectId(null)
+   *  + 메인 입력으로). 미전달 시 온램프는 onExit로 폴백(연습만 닫고 워크스페이스). */
+  onRealSeal?: () => void;
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
@@ -148,6 +152,12 @@ export function RetroSeal({ onExit }: {
         project={project}
         draftVerdicts={draftVerdicts}
         onClose={onExit}
+        onRealSeal={() => {
+          // [C4/활성화] retro loop → real seal handoff. Fire the transition
+          // event first (item 10), then hand off to the real-decision entry.
+          track('retro_to_real_onramp_clicked', {});
+          (onRealSeal ?? onExit)();
+        }}
       />
     );
   }

@@ -24,6 +24,7 @@
  */
 
 import { Graticule } from '@/components/ui/VoyageElements';
+import { RetroBadge } from './RetroBadge';
 
 export function JudgmentFrame({
   humanJudgment,
@@ -31,6 +32,7 @@ export function JudgmentFrame({
   sealedOn,
   settledOn,
   ko,
+  retro = false,
   className = '',
 }: {
   /** The user's seal-time one-liner. Empty/absent → the frame does not render. */
@@ -42,6 +44,9 @@ export function JudgmentFrame({
   /** Formatted settle date stamp (fact only). */
   settledOn?: string;
   ko: boolean;
+  /** [C2] Retrospective (practice) frame → show the 「연습 · 회고」 badge so the
+   *  frame never reads as a real, blind-made judgment. Default false (real). */
+  retro?: boolean;
   className?: string;
 }) {
   const quote = (humanJudgment || '').trim();
@@ -52,6 +57,12 @@ export function JudgmentFrame({
     <div className={`relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-left ${className}`}>
       <Graticule opacity={0.04} spacing={26} />
       <div className="relative">
+        {/* [C2] 판단 액자 표면의 「연습 · 회고」 상시 배지 — retro일 때만. */}
+        {retro && (
+          <div className="mb-2">
+            <RetroBadge ko={ko} />
+          </div>
+        )}
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-tertiary)]">
           {ko ? '봉인 당시' : 'At the seal'}
           {sealedOn ? ` — ${sealedOn}` : ''}

@@ -25,6 +25,7 @@ import { DecisionItemsCard } from '@/components/projects/DecisionItemsCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
 import { RecordStrip } from '@/components/ui/RecordStrip';
+import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
 import { useDueCount } from '@/hooks/useDueCount';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
@@ -484,6 +485,11 @@ export default function ProjectPage() {
                   display brain — /tools/review renders the SAME component, and
                   review-receipt settles now join the count). */}
               <RecordStrip />
+
+              {/* [C4·항목7] 회고만 한 사용자용 빈 자차표 안내 — RecordStrip이 null인
+                  (실 record 0) 상태에서 정산한 회고가 있을 때만. 빈 자차표가
+                  배신처럼 안 보이게 하고, 실 봉인으로 한 번 가리킨다. */}
+              <RetroOnlyNotice />
 
               {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환.
                   Review receipts past check-by join the SAME strip (P0-6 ① —

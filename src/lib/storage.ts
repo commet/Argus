@@ -40,6 +40,12 @@ export const STORAGE_KEYS = {
   // guard for the ONLY threshold the spine can mark (a sample-size fact the
   // product already codified, dim9) — never repeats, never becomes a streak.
   THIRD_LOOP_SEEN: 'argus:third-loop-seen',
+  // 회고→실봉인 전환 계측 플래그 (베팅③ C4 / W3 항목 10). 회고(연습) 고리를
+  // 한 번이라도 정산해 닫으면 '1'. SealMoment가 이 플래그를 읽어, 회고 이후
+  // 첫 진짜 봉인 때 first_real_seal_after_retro를 정확히 한 번 발화한다("3분
+  // 완주=병목 해소" 주장의 유일한 실증 신호). 기기별 부울 1개, 유실 무해
+  // (계측이 한 번 덜 잡힐 뿐 — 사용자 데이터 아님).
+  RETRO_SETTLED: 'argus:retro-settled',
 } as const;
 
 export function getStorage<T>(key: string, fallback: T): T {

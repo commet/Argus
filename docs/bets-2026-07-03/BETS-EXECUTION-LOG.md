@@ -122,3 +122,90 @@ record (W1). (9 files, 항목 1·2·9·11 + 두 로그 + PLAN 3건 최초 트래
   `CheckInInterval`·`CHECK_IN_MS`에 `'3d'` 실재(types.ts:596, decision-contract.ts:60).
 - **파일:** `src/components/workspace/progressive/SealMoment.tsx` (INTERVALS 1줄 + 근거 주석).
 - **검증:** tsc 0. 근거는 순수 동등 옵션(rule4 거울조항 — 과잉발화 아님).
+
+---
+
+## W3 회고 배지·가드 (③ 항목 5·6·7·9·10)
+
+### [항목 5·C2] 「연습·회고」 배지 3표면 (SealMoment·SettlementModal·판단액자)
+
+- **무엇:** `origin === 'retro'`인 계약을 보여주는 3표면 모두에 상시 「연습 · 회고」
+  배지를 노출. 공유 컴포넌트 신규 `RetroBadge.tsx` 하나로 3표면의 shade를 단일화.
+- **왜:** C2(정직 provenance, rule1) — 회고(연습)임을 절대 숨기지 않는다. 봉인증서·
+  정산모달·판단액자 어디서 보든 "이건 결과 알고 되짚은 연습"이라고 조용히 표시해야
+  진짜 봉인(눈먼)으로 오인되지 않는다.
+- **어떻게:** 신규 `src/components/projects/RetroBadge.tsx` — `ai_surfaced` 배지와
+  **동일 shade**(text-tertiary + subtle border, 색·강조 0, History 아이콘). 점수·%·
+  등급·비교 문구 0(스파인). 세 표면 배선:
+  - **SealMoment(봉인증서):** 증서 플레이트 헤더에 `contract?.origin === 'retro'`일 때 렌더.
+  - **SettlementModal(정산모달):** `isRetro = contract?.origin === 'retro'` 파생, 정산
+    의식 헤더에 렌더.
+  - **JudgmentFrame(판단액자):** `retro?: boolean` prop 신설, SettlementModal이
+    `retro={isRetro}` 전달, 액자 상단에 렌더.
+- **스파인:** provenance 태그는 조용한 사실 1개 — 평결·경보·칭찬 아님(CLAUDE.md 규칙2).
+  단일 컴포넌트라 3표면 drift 불가(Single Source of Truth).
+- **파일:** `RetroBadge.tsx`(신규), `SealMoment.tsx`, `SettlementModal.tsx`, `JudgmentFrame.tsx`.
+- **검증:** tsc 0. retro-isolation.test에 3표면 배지 커버리지 4건 추가(항목9) 통과.
+
+### [항목 6·C3] 실전 온램프 텍스트 링크 (회고 완료 화면)
+
+- **무엇:** 회고 정산이 닫히면(SettlementModal done 화면) 실전 온램프 텍스트 링크 1개
+  ("이제 진짜 — 결과를 아직 모르는 결정 하나 걸어볼까요?") → 새(눈먼) 결정 시작.
+- **왜:** C3(절제, rule4) — 연습을 닫은 직후가 진짜를 걸어볼 유일한 문. 단, 조름·버튼
+  승격·자동 네비 금지. 텍스트 링크 하나만.
+- **어떻게:** SettlementModal에 `onRealSeal?: () => void` 옵셔널 prop 신설. `isRetro &&
+  onRealSeal`일 때 done 화면의 재봉인 온램프를 이 링크로 **대체**(중복 문 방지). RetroSeal이
+  `onRealSeal`을 SettlementModal에 배선, 워크스페이스가 `setCurrentProjectId(null)` +
+  `setPhase('idle')`(메인 입력=새 결정)으로 처리. 정상 /project 정산은 prop 미전달 →
+  기존 온램프 그대로.
+- **파일:** `SettlementModal.tsx`, `RetroSeal.tsx`, `workspace/page.tsx`.
+- **검증:** tsc 0. prop 미전달 시 기존 done 화면 무변(settlement-modal 테스트 통과).
+
+### [항목 7·C4] 빈 자차표 안내 카피 (회고만 한 사용자)
+
+- **무엇:** 신규 `RetroOnlyNotice.tsx` — 실 record가 0(RecordStrip null)인데 정산한
+  회고가 있을 때만 뜨는 안내 스트립. `/project` 자차표 자리(RecordStrip 아래)에 배치.
+- **왜:** C4 — 회고는 자차표에서 격리(C1)되므로 회고만 한 사용자는 RecordStrip이 통째
+  사라진다. 그 빈칸이 "고리 닫았는데 왜 아무것도 없지?"라는 배신감으로 읽히지 않게,
+  "연습 고리는 여기 안 쌓임 + 실 기록은 진짜 봉인부터" 한 줄로 정직하게 잇는다.
+- **어떻게:** RecordStrip의 null 조건(merged settled === 0)과 **같은 수**를 계산해
+  실 record가 0일 때만 렌더, 정산된 회고 계약(origin==='retro' + 전 predicate resolved)이
+  있어야 렌더. 실 고리가 하나라도 닫히면 RecordStrip이 이어받고 이 스트립은 null.
+  카운트·점수 0(스파인). project/page.tsx:486(RecordStrip) 직후 배치.
+- **파일:** `src/components/ui/RetroOnlyNotice.tsx`(신규), `project/page.tsx`.
+- **검증:** tsc 0. 실 record>0 시 null(RecordStrip에 위임), 회고 정산 전엔 null.
+
+### [항목 10·활성화 계측] retro_settled · first_real_seal_after_retro
+
+- **무엇:** 회고→실봉인 전환 퍼널 2 이벤트. `retro_settled`(회고 고리 정산 완료),
+  `first_real_seal_after_retro`(회고 이후 첫 진짜 봉인). +부수 `retro_seal_started`
+  (W2 기존)·`retro_to_real_onramp_clicked`(온램프 클릭).
+- **왜:** "3분 완주=병목 해소" 주장의 유일한 실증 신호. 계측 없으면 회고가 종착역인지
+  온램프인지 실DB에서 판독 불가(창업자 버튼 §6-3).
+- **어떻게:** 신규 STORAGE_KEY `RETRO_SETTLED`(`argus:retro-settled`, 부울 1개) 등록
+  (STORAGE_KEYS + persistence-contract localOnly 선언). SettlementModal이 `isRetro &&
+  allResolved`에서 플래그 set + `track('retro_settled')`(기기당 1회). SealMoment의 두
+  실봉인 경로(seal·manualSeal 첫 봉인)가 플래그를 **소비**(consume-and-clear)해
+  `track('first_real_seal_after_retro')`를 정확히 1회 발화. 회고 계약은 SealMoment를
+  거치지 않으므로(RetroSeal이 직접 buildEarlyContract) retro-vs-real 오발화 없음.
+- **파일:** `storage.ts`(키), `persistence-contract.test.ts`(선언), `SettlementModal.tsx`
+  (retro_settled), `SealMoment.tsx`(first_real_seal_after_retro helper + 2경로 호출),
+  `RetroSeal.tsx`(retro_to_real_onramp_clicked).
+- **검증:** tsc 0. persistence-contract 테스트 통과(새 키 선언·우회키 가드 무변 —
+  `argus:` 콜론 키는 sot_/argus_ 스네이크 정규식 밖).
+
+### [항목 9·C1/C2 가드] retro-격리 테스트 확장 (3표면 배지 커버리지)
+
+- **무엇:** 기존 `retro-isolation.test.ts`(W1의 summarizeRecord 격리 3건)에 「연습·회고」
+  배지 3표면 소스레벨 커버리지 4건 추가.
+- **왜:** C2 회귀 방지 — 어느 표면이 배지를 떨어뜨리면 회고가 진짜로 오인된다.
+  enum-literal-copy류 소스 검사로 각 표면이 (a) RetroBadge를 렌더하고 (b)
+  origin==='retro'(또는 isRetro/retro 파생)로 게이트하는지 강제.
+- **어떻게:** RetroBadge 존재·문구·무평결 검사 + SealMoment/SettlementModal/JudgmentFrame
+  각각 소스 grep. JudgmentFrame은 prop 게이트 + SettlementModal의 `retro={isRetro}` 배선까지 확인.
+- **파일:** `src/lib/__tests__/retro-isolation.test.ts`.
+- **검증:** vitest 11/11 통과(W1 격리 3 + W3 배지 4 + describe 헤더).
+
+**W3 종합 검증:** `npx tsc --noEmit` 0 에러 · retro-isolation 11/11 · persistence-contract
+통과 · decision-contract/schema-drift/components 117/117 · mojibake-guard+record-disclosure
+599/599 · 한국어 mojibake 없음. 마이그레이션 0(origin은 W1의 jsonb 확장, 새 컬럼 0).

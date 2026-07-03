@@ -57,6 +57,7 @@ const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   LANTERN_SNOOZE: { localOnly: '워크스페이스 등불 당일 스누즈 날짜 — 기기별 UI 상태, 유실 무해(다음날 재렌더)' },
   KNEW_YOU: { localOnly: '세션 만료 인식용 부울 1개(개인정보 없음) — 기기별 상태, 유실 무해(다음 로그인 때 재설정)' },
   THIRD_LOOP_SEEN: { localOnly: '3고리 의식 평생 1회 플래그(부울 1개) — 기기별 UI 상태, 유실 시 의식이 한 번 더 보일 뿐 무해' },
+  RETRO_SETTLED: { localOnly: '회고→실봉인 전환 계측 플래그(부울 1개, 베팅③ 항목10) — 기기별 상태, 유실 시 first_real_seal_after_retro가 한 번 덜 잡힐 뿐 무해(사용자 데이터 아님)' },
 };
 
 /** 등록부 밖에서 발견됐지만 사유와 함께 허용된 키. 새 항목 추가는 곧

@@ -15,8 +15,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { summarizeRecord } from '../decision-contract';
 import type { DecisionContract, Predicate } from '@/stores/types';
+
+const read = (rel: string) => readFileSync(join(process.cwd(), rel), 'utf8');
 
 const T0 = new Date('2026-07-01T00:00:00Z').getTime();
 
@@ -64,5 +68,50 @@ describe('[C1·P0] summarizeRecord excludes retro (practice) loops', () => {
     const realOnly = summarizeRecord([real], T0 + 1);
     // Adding a settled retro loop leaves every count identical to the real-only record.
     expect(withRetro).toEqual(realOnly);
+  });
+});
+
+/**
+ * [C2 가드] 「연습 · 회고」 배지 3표면 커버리지 (W3 항목 9).
+ *
+ * Honest provenance (rule 1) requires the retro label on EVERY surface that
+ * shows a retro contract: the seal certificate (SealMoment), the settlement
+ * modal, and the 판단 액자 (JudgmentFrame). One shared component (RetroBadge)
+ * is the single source of the shade — a source-level check that each surface
+ * (a) renders RetroBadge and (b) gates it on origin==='retro' (directly or via
+ * an isRetro/retro derivation). If a surface drops the badge, this fails, so a
+ * retro seal can never quietly pass as a real one.
+ */
+describe('[C2] 연습·회고 배지 3표면 커버리지', () => {
+  it('shared RetroBadge exists and carries no score/comparison language', () => {
+    const src = read('src/components/projects/RetroBadge.tsx');
+    expect(src).toContain('export function RetroBadge');
+    expect(src).toContain('연습 · 회고');
+    // Spine: a provenance tag is never a verdict — no score/%/tier/comparison.
+    expect(src).not.toMatch(/점수|등급|정확도|\bscore\b|\btier\b|%/);
+  });
+
+  it('SealMoment (봉인증서) renders RetroBadge gated on origin===retro', () => {
+    const src = read('src/components/workspace/progressive/SealMoment.tsx');
+    expect(src).toContain('RetroBadge');
+    expect(src).toContain("origin === 'retro'");
+  });
+
+  it('SettlementModal (정산모달) renders RetroBadge gated on a retro origin', () => {
+    const src = read('src/components/projects/SettlementModal.tsx');
+    expect(src).toContain('RetroBadge');
+    // isRetro is derived once from contract?.origin === 'retro'.
+    expect(src).toContain("origin === 'retro'");
+    expect(src).toMatch(/isRetro\s*&&\s*<RetroBadge/);
+  });
+
+  it('JudgmentFrame (판단 액자) renders RetroBadge behind a retro prop, wired from SettlementModal', () => {
+    const frame = read('src/components/projects/JudgmentFrame.tsx');
+    expect(frame).toContain('RetroBadge');
+    // The frame gates the badge on its `retro` prop.
+    expect(frame).toMatch(/retro\s*&&/);
+    // SettlementModal passes isRetro down into the frame's retro prop.
+    const modal = read('src/components/projects/SettlementModal.tsx');
+    expect(modal).toMatch(/retro=\{isRetro\}/);
   });
 });

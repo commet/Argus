@@ -488,7 +488,15 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
         <Graticule opacity={0.02} spacing={18} />
         <div className="relative">
-          <RetroSeal onExit={() => setPhase('idle')} />
+          <RetroSeal
+            onExit={() => setPhase('idle')}
+            onRealSeal={() => {
+              // [C3] real-decision onramp: clear the just-closed retro project so
+              // the idle main input starts a fresh, blind decision (not the retro).
+              useProjectStore.getState().setCurrentProjectId(null);
+              setPhase('idle');
+            }}
+          />
         </div>
       </div>
     );

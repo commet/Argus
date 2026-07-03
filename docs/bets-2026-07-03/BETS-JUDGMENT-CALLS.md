@@ -79,3 +79,43 @@ _스펙과 실코드가 어긋나거나 재량이 필요했던 지점. 무엇이
   동형). 재촉·기본선택·긴급 카피 0.
 - **되돌리는 법:** 창업자가 "첫 봉인자만"을 원하면, projects 중 decision_contract 보유 수를
   세어 0일 때만 '3d' 칩을 렌더하는 조건을 INTERVALS 렌더 지점에 추가하면 된다(1줄).
+
+---
+
+## W3 회고 배지·가드 재량 판단
+
+### [재량] 항목7 빈 자차표 카피 — page.tsx:500 인라인이 아니라 자립 컴포넌트로
+
+- **무엇이 애매:** PLAN 항목7은 위치를 "project/page.tsx:500 (`loops===0` 블록)"이라
+  못박았다. 그런데 실코드에서 그 자리(500번대)는 자차표가 `<RecordStrip/>`(486)로 이미
+  추출돼 있고, RecordStrip은 merged settled === 0이면 **통째 null**을 반환한다. 즉
+  page.tsx에 `loops===0` 인라인 블록이 실재하지 않는다(옛 인라인 자차표가 컴포넌트로
+  이주됨).
+- **나라면 근거:** PLAN 부록의 좌표는 2026-07-03 스냅샷이고, 그 사이/이전 리팩토링으로
+  자차표가 컴포넌트화됐다. "loops===0일 때 회고-only 안내"라는 **의도**를 지키되, 그
+  판정을 page.tsx 본문에 인라인하면 review 스토어까지 threading해야 하고 RecordStrip의
+  null 조건과 두 곳에서 같은 수를 재계산하는 drift 위험이 생긴다. RecordStrip이 이미
+  자립 컴포넌트인 패턴을 그대로 따라 `RetroOnlyNotice`를 만들어 RecordStrip 직후에 두면,
+  같은 스토어·같은 merged 수 계산을 한 곳에 캡슐화하고 page.tsx는 한 줄만 는다.
+- **내린 판단:** 신규 `src/components/ui/RetroOnlyNotice.tsx` 자립 컴포넌트로 구현하고
+  `project/page.tsx`의 `<RecordStrip/>` 직후에 배치. RecordStrip의 null 조건(merged
+  settled===0)과 **동일한 수**를 계산하고, 정산된 retro 계약이 있을 때만 렌더. 실 고리가
+  하나라도 닫히면 null(RecordStrip에 위임).
+- **되돌리는 법:** 창업자가 인라인을 원하면 RetroOnlyNotice 내용을 page.tsx의 RecordStrip
+  자리로 옮기고 review 스토어를 threading. 지금은 import 1줄 + JSX 1줄 제거하면 원복.
+
+### [재량] C4 완료-화면 안내 위치 — RetroSeal이 아니라 SettlementModal done 블록
+
+- **무엇이 애매:** C4는 "회고만 한 사용자엔 완료 화면에서만 '연습 고리를 닫아봤어요 —
+  실제 기록은 진짜 봉인부터' 별도 안내"라 했다. 완료 화면이 RetroSeal의 자체 종료 UI인지
+  SettlementModal의 done 블록인지 스펙이 명시하지 않음.
+- **나라면 근거:** RetroSeal step3은 SettlementModal을 **직접 렌더**하고 그 자체 종료
+  화면이 없다(정산 완료=SettlementModal의 allResolved done 블록). done 블록은 이미
+  판단액자·record 카운트·3고리 의식을 그리는 "완료 화면"의 정본이다. 회고 안내를 여기
+  `isRetro` 분기로 넣으면 (a) 실계약 카운트 문장을 retro에서 정확히 대체할 수 있고(같은
+  자리), (b) /project에서 옛 retro 계약을 다시 열어 정산해도 동일하게 뜬다(RetroSeal
+  밖에서도 일관). RetroSeal에 별도 종료 화면을 새로 만들면 done 블록과 중복.
+- **내린 판단:** SettlementModal done 블록에서 `isRetro`면 실카운트 문장(`!isRetro &&
+  record`)을 C4 안내 문장으로 대체. 회상편향 태생인 회고엔 운/위험 카운트 절대 안 붙임(C4).
+- **되돌리는 법:** RetroSeal 자체 종료 화면을 원하면 SettlementModal에 `onSettled`
+  콜백을 더해 RetroSeal이 4번째 스텝을 그리게 하고 done 블록의 isRetro 분기를 제거.
