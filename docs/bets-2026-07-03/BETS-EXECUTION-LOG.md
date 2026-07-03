@@ -259,3 +259,67 @@ record (W1). (9 files, 항목 1·2·9·11 + 두 로그 + PLAN 3건 최초 트래
 **W4 종합 검증:** `npx tsc --noEmit` 0 에러 · fleet-chart 7/7 · retro-isolation + record-summary
 + projects 스위트 25/25(회귀 0) · 한국어 mojibake 없음(첫 항해/함대/펼치기/접기 확인) ·
 마이그레이션 0 · 새 localStorage 키 0(접기=useState). 실 dogfood 렌더는 창업자 버튼(§6-2).
+
+---
+
+## W5 항해일지·인용벽 (B4~B8) — 2026-07-03 · 커밋 3ae3ff9
+
+### [B6] 형태2 기념일 각인 확장 — 순수 경과 사실, 연속성 조건 0
+- **무엇:** `src/lib/record-summary.ts`에 `firstVoyageInscription(since, now, locale)` 신설.
+  `첫 항해 {날짜} · 오늘로 N주째`(en: `First voyage {date} · week N today`)를 반환.
+- **왜:** B6 스펙이 `recordStartDate`(기존 순수 날짜 사실)의 경과일 파생을 "오늘로 N주째"로
+  확장하라고 지시. 스트릭·연속성·푸시 절대 금지 — 빈 구간(몇 주 봉인 없음)에도 동일 문자열이
+  렌더돼야 "유지 실패"로 안 읽힘. 그래서 함수는 `since`와 `now`만 받는 순수 경과 계산이고,
+  연속성 상태를 어디서도 참조하지 않는다. `since` 없으면 undefined(각인 안 함).
+- **어떻게:** `Math.max(0, Math.floor((now-then)/주ms))`. 같은 날 봉인=`0주째`.
+  `FleetChart.tsx`가 인라인 `weeksSince`+인라인 문자열을 이 공유 함수로 교체 —
+  "오늘로 N주째" 어휘가 항해일지와 함대 해도에서 단일 뇌(드리프트 불가).
+- **파일:** record-summary.ts(+firstVoyageInscription), FleetChart.tsx(공유 함수 사용, weeksSince 제거).
+- **검증:** tsc 0. fleet-chart 가드의 각인 regex를 새 어휘(`오늘로 \d+주째`)로 갱신(같은 웨이브
+  경계 — B6가 어휘를 바꿨으니 가드가 추종). 7/7.
+
+### [B4] S6 항해일지 — 교차-결정 세로 원장 (신규 컴포넌트)
+- **무엇:** 신규 `src/components/projects/Logbook.tsx`. `contract.created_at`(봉인)·
+  `history[]`(변침)·`graded_at`(정산)을 시간순 병합한 세로 원장(최신 위). 한 줄:
+  `M/D 봉인 — 「프로젝트명」` / `M/D 변침 — 확인일 {날짜}로` / `M/D 정산 — 가설 적중 2 · 위험 비켜감 1 · 그중 운 1`.
+- **왜:** bet1 PLAN B4 — 봉인·변침·정산 이벤트를 다시 보여주는 화면 부재(감사 S6 잔여).
+  `/project` 그리드 아래 접힌 보조 뷰, 새 라우트 금지.
+- **어떻게:** ChartPlate(라벨 `항해일지 · LOGBOOK`) 위 `<ol>` 단일 세로 컬럼. 정산 카운트는
+  `summarizeGrades`(자차표와 동일 뇌)로 파생 — 총합·점수 아님, 순수 카운트. 이벤트 2개 미만이면
+  스스로 미렌더. 접기 기본 true(보조 뷰). **회고(origin:'retro') 계약 전면 제외** — 축적의 얼굴은
+  눈먼 결정의 기록이고 회고는 W1 불변식으로 record 전 표면에서 격리됨. project/page.tsx 그리드 직후 mount.
+- **파일:** Logbook.tsx(신규), project/page.tsx(import+mount).
+
+### [B5] "문장만 보기" 토글 = 인용벽 흡수
+- **무엇:** Logbook 내부 `문장만 보기` 토글. 켜면 이벤트 원장을 숨기고 각 결정의 `JudgmentFrame`
+  (봉인 문장/돌아온 문장)만 봉인일 역순 세리프 누적.
+- **왜:** 제안2 형태1(인용벽)을 별도 컴포넌트로 신설하면 CLAUDE.md 단일소스 위반→드리프트.
+  그래서 S6 필터로 흡수, `JudgmentFrame`(기존 = 유일 원문 인용 렌더 경로) 재사용.
+- **어떻게:** `quoteFrames` = human_judgment 있는 계약만(JudgmentFrame 자체 규칙). 액자 2개 미만이면
+  토글 자체를 안 보임(canShowQuotes). JudgmentFrame이 JSX 텍스트노드로 렌더=React 자동 이스케이프
+  (XSS 방어 상속). retro=미전달(기본 real).
+- **파일:** Logbook.tsx.
+
+### [B7] OutputSelector 어휘 좁힘 (이미 트리에 반영됨)
+- **확인:** OutputSelector.tsx:219가 이미 `이 항해 돌아보기`/`Look back on this voyage`
+  (레거시 `항해일지 · 되돌아보기` → 좁힘). src/에 구 라벨 리터럴 0건(docs만 잔존). 추가 변경 불요.
+
+### [B8] 드리프트 가드 — 항해일지 카운트 = RecordStrip = 텔레그램 숫자
+- **무엇:** 신규 `src/lib/__tests__/logbook-drift.test.ts`. 하나의 픽스처(실 계약 2 + 회고 1)에서
+  (a) Logbook의 계약별 정산 카운트(summarizeGrades) 합 == summarizeRecord 총합(RecordStrip이 렌더),
+  (b) 텔레그램 recordSummaryMarkdown의 정산 완료 숫자 == 닫은 고리 수. 회고 루프는 전 표면에서 제외.
+  스파인 sweep: Logbook 정산 줄에 %/점수/등급/tier/streak/비교 0.
+- **왜:** bet1 PLAN B8 — 문장은 표면별로 달라도 숫자는 한 뇌.
+- **어떻게:** Logbook의 `settleCountsLine`을 export해 렌더 없이 순수 검증. 픽스처는 betsHeld 2/
+  risksAvoided 1/betsBroke 1/risksHappened 1/goodOutcomesOnLuck 1(실측으로 기대값 교정). 5 단언.
+- **파일:** logbook-drift.test.ts(신규), Logbook.tsx(settleCountsLine export).
+
+### W5 종합 검증 (경계)
+- `npx tsc --noEmit` 0 에러.
+- vitest(--exclude .claude): logbook-drift 5/5 · record-summary 9/9 · fleet-chart 7/7 ·
+  schema-drift + persistence-contract 통과 = 5 파일 47/47(회귀 0).
+- XSS: Logbook `dangerouslySetInnerHTML` 0건 — 프로젝트명·인용 전부 JSX 텍스트노드(자동 이스케이프),
+  인용벽은 JudgmentFrame 기존 방어 상속.
+- 한국어 mojibake 없음(봉인/변침/정산/항해일지/문장만 보기/오늘로 확인).
+- 마이그레이션 0(기존 decision_contract jsonb 필드만 판독) · 새 localStorage 키 0(접기/토글=useState).
+- 실 dogfood 렌더 육안(2척+ 계정으로 항해일지·인용벽 확인)은 창업자 버튼(§6-2).
