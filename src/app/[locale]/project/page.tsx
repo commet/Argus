@@ -26,6 +26,7 @@ import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
 import { RecordStrip } from '@/components/ui/RecordStrip';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
+import { FleetChart } from '@/components/projects/FleetChart';
 import { useDueCount } from '@/hooks/useDueCount';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
@@ -490,6 +491,20 @@ export default function ProjectPage() {
                   (실 record 0) 상태에서 정산한 회고가 있을 때만. 빈 자차표가
                   배신처럼 안 보이게 하고, 실 봉인으로 한 번 가리킨다. */}
               <RetroOnlyNotice />
+
+              {/* 함대 해도 (S4 최소형 · B1) — 봉인한 항해들이 한 폭의 해도 위에
+                  봉인일 순으로 늘어선다. 2척 미만이면 스스로 미렌더. 상태별 그룹핑·
+                  강조·카운트 배지 없이 시간축 하나만이 정렬키 (거울 조항 게이트). */}
+              <FleetChart
+                projects={projects}
+                reframeItems={reframeItems}
+                recastItems={recastItems}
+                synthesizeItems={synthesizeItems}
+                feedbackHistory={feedbackHistory}
+                progressiveSessions={progressiveSessions}
+                locale={locale}
+                onSelect={setCurrentProjectId}
+              />
 
               {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환.
                   Review receipts past check-by join the SAME strip (P0-6 ① —
