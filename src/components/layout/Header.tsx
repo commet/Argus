@@ -85,28 +85,37 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Theme initialization + cross-tab sync
+  // Theme sync. The pre-paint script in layout.tsx already resolved the theme
+  // (route- and OS-aware, option C) — reflect that here and keep tabs in sync.
   useEffect(() => {
-    const saved = localStorage.getItem('argus-theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const isDark = saved === 'dark' || (!saved && prefersDark);
-    setDarkMode(isDark);
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    const apply = (dark: boolean) => {
+      setDarkMode(dark);
+      if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+      else document.documentElement.removeAttribute('data-theme');
+    };
+    // Mirror what the pre-paint script decided (don't recompute the route default).
+    setDarkMode(document.documentElement.getAttribute('data-theme') === 'dark');
 
+    const resolve = (v: string): boolean =>
+      v === 'dark' ? true
+      : v === 'light' ? false
+      : v === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : document.documentElement.getAttribute('data-theme') === 'dark';
     const handleStorage = (e: StorageEvent) => {
-      if (e.key !== 'argus-theme' || e.newValue == null) return;
-      const nextDark = e.newValue === 'dark';
-      setDarkMode(nextDark);
-      document.documentElement.setAttribute('data-theme', nextDark ? 'dark' : 'light');
+      if (e.key !== 'argus-theme') return;
+      apply(resolve(e.newValue || ''));
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  // Header quick-toggle is binary (light ↔ dark) and writes an explicit choice,
+  // which then wins on every surface. "System" is offered in Settings.
   const toggleTheme = () => {
     const next = !darkMode;
     setDarkMode(next);
-    document.documentElement.setAttribute('data-theme', next ? 'dark' : 'light');
+    if (next) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
     localStorage.setItem('argus-theme', next ? 'dark' : 'light');
   };
 
