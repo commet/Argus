@@ -209,3 +209,53 @@ record (W1). (9 files, 항목 1·2·9·11 + 두 로그 + PLAN 3건 최초 트래
 **W3 종합 검증:** `npx tsc --noEmit` 0 에러 · retro-isolation 11/11 · persistence-contract
 통과 · decision-contract/schema-drift/components 117/117 · mojibake-guard+record-disclosure
 599/599 · 한국어 mojibake 없음. 마이그레이션 0(origin은 W1의 jsonb 확장, 새 컬럼 0).
+
+---
+
+## W4 — 함대 해도 (bet1 §2 · B1/B2/B3) · 커밋 a180ecf
+
+### [항목 B1] S4 함대 해도 (최소형) — 신규 FleetChart.tsx + /project 배치
+
+- **무엇:** 봉인한(decision_contract 있는) 프로젝트들을 한 폭의 ChartPlate 해도 위에
+  VoyageShip(size 34)으로 늘어놓는 신규 컴포넌트. 봉인일(created_at) 오름차순 점선 항로.
+  상태=기존 `getVoyageState` 그대로, verified만 VoyageShip 자체 규칙으로 금색 깃발.
+  배 클릭=`onSelect(id)`(page가 `setCurrentProjectId` 배선). hover/aria=이름+봉인일.
+  좌측 각인 `첫 항해 {날짜} · N주째`(순수 경과 사실). `/project` 목록 상단, RecordStrip·
+  RetroOnlyNotice 아래에 mount(`projects.length>0` 브랜치, 봉인 목록만).
+- **왜:** 감사 08의 잔여 조각 S4. Argus의 얼굴=축적인데 쌓인 배를 한 장에 보여주는 화면이
+  없었다. ChartPlate는 프로덕션 import 0곳(부활 대상), VoyageShip·getVoyageState는 기존
+  단일 뇌 — 새 그림/팔레트 0개, 100% 기존 잉크 자산 합성.
+- **어떻게:** ChartPlate `!py-0`로 중앙정렬 컬럼을 풀폭 밴드로 덮음. 점선 항로=정적 SVG rule.
+  각 배는 `role="listitem"` 버튼(shrink-0, 가로 스크롤 overflow-x-auto)이라 모바일 겹침 없음.
+- **파일:** 신규 `src/components/projects/FleetChart.tsx`, `src/app/[locale]/project/page.tsx`(import+mount).
+- **검증:** tsc 0. fleet-chart 가드 7/7(순서·크기·클릭·스파인).
+
+### [항목 B2] 함대 해도 파생 캐시
+
+- **무엇:** `ships` 배열을 `useMemo`로 파생 캐시. 의존=projects + 5개 원장(reframe/recast/
+  synthesize/feedback/progressive). `getVoyageState`는 저장 안 하는 파생 상태라 매 렌더 N개
+  재계산 → 원장이 실제로 바뀔 때만 재빌드.
+- **왜:** project/page.tsx의 `projectMetricsMap`과 동일 신호 파생을 한 뇌로 복제(드리프트 방지).
+- **어떻게:** 봉인 안 된 프로젝트는 `continue`로 제외(축적 얼굴=봉인 기록만). 정렬은
+  created_at 오름차순 단 하나.
+- **파일:** `FleetChart.tsx` 내부.
+- **검증:** tsc 0. (memo 의존은 projectMetricsMap과 동형).
+
+### [항목 B3] S4 합성-레벨 판정 게이트 (거울 조항) — 코드로 못박음
+
+- **무엇:** (a) 2척 미만 `return null`. (b) 정렬키=created_at 단 하나, 상태별 그룹핑/재정렬/
+  카운트 배지 0(ChartPlate coordinate의 `N {count}`도 스코어보드 오독 우려로 제거). (c) rigOf
+  무변경·per-ship 확대/흐림/강조 0(모두 동일 size 34). (d) 접기 토글(useState only, 새 키 0).
+  (e) VoyageShip이 글로벌 `prefers-reduced-motion` 일시정지 상속 + 항로선은 정적. (f) 배에 CTA
+  버튼 0 — 클릭=프로젝트 열기만.
+- **왜:** 한 폭에 난파·verified를 나란히 놓은 "구도 자체"가 성적표로 읽힐 수 있다(honest
+  provenance는 필요조건이지 충분조건 아님). rigOf 보존만으로 이 공간적 판정을 못 막으므로
+  코드 게이트로 명문화.
+- **어떻게:** 위 6조를 컴포넌트에 내장 + 가드 테스트로 회귀 봉인.
+- **파일:** `FleetChart.tsx`, 신규 `src/components/projects/__tests__/fleet-chart.test.tsx`.
+- **검증:** fleet-chart 7/7 — 2척 문턱·오름차순 유일 정렬·상태 무그룹핑·균일 배 크기·
+  클릭열기(중첩 CTA 0)·스파인 sweep(%/점수/등급/tier/streak/비교 0, 허용된 N주째 사실만).
+
+**W4 종합 검증:** `npx tsc --noEmit` 0 에러 · fleet-chart 7/7 · retro-isolation + record-summary
++ projects 스위트 25/25(회귀 0) · 한국어 mojibake 없음(첫 항해/함대/펼치기/접기 확인) ·
+마이그레이션 0 · 새 localStorage 키 0(접기=useState). 실 dogfood 렌더는 창업자 버튼(§6-2).
