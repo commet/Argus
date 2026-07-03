@@ -1,5 +1,9 @@
 # argus-decision-mcp
 
+[![npm version](https://img.shields.io/npm/v/argus-decision-mcp.svg)](https://www.npmjs.com/package/argus-decision-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/argus-decision-mcp.svg)](https://www.npmjs.com/package/argus-decision-mcp)
+[![license](https://img.shields.io/npm/l/argus-decision-mcp.svg)](./LICENSE)
+
 > **Your AI gives you an answer. Argus gives you a receipt — and checks it against reality on the date you set.**
 
 Argus is an MCP server for **decision accountability**. Instead of grading your
