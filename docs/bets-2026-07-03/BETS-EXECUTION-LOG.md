@@ -67,3 +67,58 @@ record-disclosure/persistence-contract 27/27 통과 · schema-drift+mojibake-gua
 
 **커밋:** `fda2948` — feat(bet3): isolate retrospective seals from the cross-project
 record (W1). (9 files, 항목 1·2·9·11 + 두 로그 + PLAN 3건 최초 트래킹.)
+
+---
+
+## W2 회고 플로우 (③ 항목 3·4·8)
+
+### [항목 4] RetroSeal 3스텝 컴포넌트 (신규)
+
+- **무엇:** 신규 `src/components/workspace/RetroSeal.tsx` — 지난 결정 하나로 봉인→정산
+  고리를 첫 세션에 완주하게 하는 3스텝 컴포넌트. HeroFlow 내부에서 렌더(새 라우트 없음).
+- **왜:** 병목이 "47 열림 / 0 정산"이라, 진짜 moat인 정산을 2~3주 안 기다리고 첫 세션에
+  맛보게 하는 게 목적(PLAN §0). 이미 결과를 아는 지난 결정을 써서 즉시 정산까지 간다.
+- **어떻게 (3스텝):**
+  1. **lean:** 지난 결정+그때 내 판단 한 줄 → `buildEarlyContract`의 lean 경로로 봉인
+     (`authored:'user'` — 진짜 자기 말, 가짜 소유권 아님). `check_in_at`=오늘로 심어
+     `contractStatus.checkInDue`가 로컬 자정 기준 즉시 참. `origin:'retro'` 박아 자차표
+     완전 격리(W1의 summarizeRecord 필터가 잡음). `judgment_receipt.human_judgment`에
+     lean 저장 → 판단 액자 "봉인 당시" 인용.
+  2. **outcome:** 어떻게 됐는지 한 문단 → 기존 `alignOutcome`(settle-align) 재사용해
+     non-binding draft만 산출. 문단은 `judgment_receipt.what_happened`로 저장(판단 액자
+     "돌아와서"). LLM 실패는 조용히 삼키고 수동 탭으로 폴백(C5·방어적 접근).
+  3. **settle:** 기존 `<SettlementModal>`을 직접 렌더. 사용자가 발생/회피/부분 자기채점 +
+     판단 액자(그때↔실제). draft는 점선 pre-highlight로만 전달, 절대 선택 안 됨(C5).
+- **스파인:** lean=사용자 본인 말(rule1), AI draft는 미리 강조만·최종은 사용자 탭(rule2·C5),
+  진입은 데모 동급 옵션·그만두기 상시(rule4). 모든 텍스트 JSX auto-escape.
+- **파일:** `src/components/workspace/RetroSeal.tsx` (신규), `src/components/projects/
+  SettlementModal.tsx` (`draftVerdicts?` 옵셔널 prop 추가 — 점선 초안 링, 비구속).
+- **검증:** tsc 0. settle-align/retro-isolation/settlement-modal-freeform/decision-contract
+  25/25 통과. `check_in_at`=오늘 → checkInDue 즉시 참(decision-contract.ts:534 로컬 date
+  경계, 코드 확인). SettlementModal은 checkInDue 게이트 없이 넘긴 project를 바로 렌더 =
+  즉시 오픈 보장.
+
+### [항목 3] 회고 봉인 진입 카드 (워크스페이스 빈 상태)
+
+- **무엇:** `workspace/page.tsx` 빈 상태(`projects.length === 0`) 데모 시나리오 섹션
+  아래에 회고 진입 카드 1개 + HeroPhase에 `'retro'` 추가 + phase==='retro'일 때 RetroSeal
+  전체화면 렌더(demoScenario early-return과 동형).
+- **왜:** 회고 플로우로 들어가는 조용한 문. 데모 동급 옵션이며 강제 아님(PLAN 1-A) —
+  주 입력(무엇이 상황인가요?)이 항상 메인 문이고, 이 카드는 데모 옆 절제된 선택지.
+- **어떻게:** 데모 grid 직후 `projects.length === 0`에서만 카드 렌더(귀환 사용자는 자기
+  기록이 있으므로 제외). 클릭 → `setPhase('retro')`. `--bp-*` 안 씀(버튼 배경 금물 규칙),
+  기존 --accent/--surface 토큰만. `History` 아이콘은 기존 import 재사용.
+- **파일:** `src/app/[locale]/workspace/page.tsx` (import·HeroPhase·retro early-return·카드).
+- **검증:** tsc 0. 빈 상태에서만 노출, 새 결정/데모 상시 도달(로치모텔 없음).
+
+### [항목 8] SealMoment '3d' 확인일 순수 동등 옵션 노출
+
+- **무엇:** `SealMoment.tsx`의 `INTERVALS`에 `'3d'`(3일 뒤) 칩 추가.
+- **왜:** [1-B] 첫 봉인자가 2주를 기다리다 안 돌아오는 걸 막되, 재촉 없이 정산을 더 빨리
+  맛볼 수 있게. 짧은 확인일이 필요한 결정용 순수 동등 옵션.
+- **어떻게:** BindCard는 이미 4개(3d 포함)를 모두에게 노출 중이나 SealMoment INTERVALS는
+  1w/2w/1m만 있었다 → `'3d'` 칩 1개 추가. 다른 칩과 완전 동일한 중립 date chip, 재촉
+  어휘·긴급 카피·기본 선택 0. 먼 지평(2w/1m) 그대로, 인위적 단축 없음(가짜 정산 방지).
+  `CheckInInterval`·`CHECK_IN_MS`에 `'3d'` 실재(types.ts:596, decision-contract.ts:60).
+- **파일:** `src/components/workspace/progressive/SealMoment.tsx` (INTERVALS 1줄 + 근거 주석).
+- **검증:** tsc 0. 근거는 순수 동등 옵션(rule4 거울조항 — 과잉발화 아님).

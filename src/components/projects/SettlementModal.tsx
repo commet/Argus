@@ -66,6 +66,7 @@ export function SettlementModal({
   project,
   onClose,
   remainingDue,
+  draftVerdicts,
 }: {
   project: Project;
   onClose: () => void;
@@ -73,6 +74,12 @@ export function SettlementModal({
    *  strip already shows) — passed down so the modal never grows its own
    *  drifting due arithmetic. Absent → the new-decision door shows instead. */
   remainingDue?: number;
+  /** NON-BINDING pre-highlights from settle-align (베팅③ 회고 봉인 step 2).
+   *  Maps predicate id → a drafted verdict. A matching verdict button gets a
+   *  dashed "초안" ring, but is NEVER selected — the user still taps to commit
+   *  (verdict_via:'ai_draft' in spirit; C5 — no AI verdict as the conclusion).
+   *  Absent on the normal /project settle path — the ring simply never renders. */
+  draftVerdicts?: Record<string, 'happened' | 'avoided' | 'partial'>;
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
@@ -273,6 +280,16 @@ export function SettlementModal({
           </p>
         )}
 
+        {/* 회고 봉인 초안 안내 (베팅③): the dashed rings are AI-read drafts, not
+            verdicts. One quiet line so a first-timer knows to tap-confirm. Only
+            renders on the retro path (draftVerdicts present). */}
+        {draftVerdicts && Object.keys(draftVerdicts).length > 0 && (
+          <p className="text-[11.5px] text-[var(--text-tertiary)] leading-[1.5] -mt-1">
+            {L('점선으로 미리 짚어둔 건 AI가 읽어본 초안이에요 — 최종은 직접 눌러서 확정하세요.',
+               'The dashed marks are the AI-read draft — you confirm the final call by tapping.')}
+          </p>
+        )}
+
         <div className="space-y-2.5">
           {predicates.map((p) => {
             const Icon = SOURCE_ICON[p.source] ?? AlertTriangle;
@@ -301,15 +318,22 @@ export function SettlementModal({
                     .filter((v) => v.value !== 'unknown')
                     .map((v) => {
                       const selected = p.verdict === v.value;
+                      // NON-BINDING draft pre-highlight (베팅③ step 2): a dashed ring
+                      // on the drafted verdict while the predicate is still ungraded.
+                      // Cleared the instant the user commits anything (verdict set).
+                      const isDraft = !isResolved(p) && draftVerdicts?.[p.id] === v.value;
                       return (
                         <button
                           key={v.value}
                           onClick={() => grade(p.id, selected ? 'pending' : v.value)}
                           aria-pressed={selected}
+                          title={isDraft ? L('AI가 미리 짚은 초안 — 눌러서 확정하세요', 'AI-drafted — tap to confirm') : undefined}
                           className={`px-2.5 py-1 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
                             selected
                               ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                              : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
+                              : isDraft
+                                ? 'border-dashed border-[var(--accent)]/60 text-[var(--accent)] bg-[var(--accent)]/[0.06]'
+                                : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
                           }`}
                         >
                           {v.label}
