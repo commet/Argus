@@ -85,6 +85,10 @@ export function FleetChart({
     const now = Date.now();
     const list: FleetShip[] = [];
     for (const p of projects) {
+      // Retro (practice) voyages are isolated from the accumulation face, the
+      // same W1 origin:'retro' invariant summarizeRecord and the Logbook honour:
+      // the fleet chart is the record of decisions made blind, not rehearsals.
+      if (p.decision_contract?.origin === 'retro') continue;
       const r = reframeItems.filter((d) => d.project_id === p.id);
       const rc = recastItems.filter((o) => o.project_id === p.id);
       const sy = synthesizeItems.filter((s) => s.project_id === p.id);
