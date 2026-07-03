@@ -63,5 +63,7 @@ _각 웨이브가 완료한 항목을 append. 무엇을·왜·어떻게·파일�
 
 **W1 종합 검증:** `npx tsc --noEmit` 0 에러 · retro-isolation/decision-contract/
 record-disclosure/persistence-contract 27/27 통과 · schema-drift+mojibake-guard 615/615
-통과 · 한국어 문자열 mojibake 없음(grep 확인). 마이그레이션 0. 커밋 해시는 push 후 이 줄
-아래에 기재.
+통과 · 한국어 문자열 mojibake 없음(grep 확인). 마이그레이션 0.
+
+**커밋:** `fda2948` — feat(bet3): isolate retrospective seals from the cross-project
+record (W1). (9 files, 항목 1·2·9·11 + 두 로그 + PLAN 3건 최초 트래킹.)
