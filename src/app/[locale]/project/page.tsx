@@ -27,6 +27,7 @@ import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
 import { RecordStrip } from '@/components/ui/RecordStrip';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
 import { FleetChart } from '@/components/projects/FleetChart';
+import { Logbook } from '@/components/projects/Logbook';
 import { useDueCount } from '@/hooks/useDueCount';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
@@ -780,6 +781,11 @@ export default function ProjectPage() {
                   })}
                 </div>
               )}
+
+              {/* 항해일지 (S6 · B4/B5) — 봉인·변침·정산을 시간순 세로 원장으로.
+                  '문장만 보기' 토글이 인용벽(제안2 형태1)을 흡수한다. 이벤트 2개
+                  미만이면 스스로 미렌더. 그리드 아래 접힌 보조 뷰. */}
+              <Logbook projects={projects} locale={locale} />
             </>
           )}
         </div>

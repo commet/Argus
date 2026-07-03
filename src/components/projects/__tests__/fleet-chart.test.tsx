@@ -140,8 +140,9 @@ describe('FleetChart — spine gate (거울 조항)', () => {
     expect(text).not.toMatch(/%/);
     expect(text).not.toMatch(/점수|등급|score|grade|tier|rank|streak|연속/i);
     expect(text).not.toMatch(/better|worse|더 나|보다/i);
-    // The permitted engraving is a pure elapsed fact: 첫 항해 {date} · N주째.
-    expect(text).toMatch(/첫 항해 2026-01-05 · \d+주째/);
+    // The permitted engraving is a pure elapsed fact (B6 shared wording via
+    // firstVoyageInscription): 첫 항해 {date} · 오늘로 N주째.
+    expect(text).toMatch(/첫 항해 2026-01-05 · 오늘로 \d+주째/);
   });
 
   it('opens a project on ship click (no CTA, click-to-open only — B3f)', () => {

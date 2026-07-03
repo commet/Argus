@@ -5,6 +5,7 @@ import { ChartPlate } from '@/components/ui/ChartPlate';
 import { VoyageShip } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { contractStatus } from '@/lib/decision-contract';
+import { firstVoyageInscription } from '@/lib/record-summary';
 import type {
   Project,
   ReframeItem,
@@ -53,12 +54,6 @@ interface FleetShip {
 
 // Project-list step index → voyage leg (page order: reframe, recast, rehearse, synthesize)
 const STEP_IDX_TO_LEG: ReadonlyArray<VoyageLeg> = ['reframe', 'recast', 'rehearse', 'synthesize'];
-
-function weeksSince(iso: string, now: number): number {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return 0;
-  return Math.max(0, Math.floor((now - then) / (7 * 86_400_000)));
-}
 
 export function FleetChart({
   projects,
@@ -168,13 +163,9 @@ export function FleetChart({
   if (ships.length < 2) return null;
 
   const firstDate = ships[0]?.sealedDate || '';
-  const weeks = firstDate ? weeksSince(firstDate, Date.now()) : 0;
-  // Pure elapsed fact — NOT a streak. Identical across empty gaps.
-  const inscription =
-    firstDate &&
-    (locale === 'ko'
-      ? `첫 항해 ${firstDate} · ${weeks}주째`
-      : `First voyage ${firstDate} · week ${weeks}`);
+  // Pure elapsed fact — NOT a streak. Identical across empty gaps. Shared brain
+  // (record-summary) so the "오늘로 N주째" wording can't drift from the Logbook.
+  const inscription = firstVoyageInscription(firstDate || undefined, Date.now(), locale);
 
   return (
     <ChartPlate
