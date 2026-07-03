@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Music2 } from 'lucide-react';
+import { Compass } from 'lucide-react';
+import { Graticule } from '@/components/ui/VoyageElements';
 import { getStepCoaching, buildNavigatorProfile } from '@/lib/navigator';
 import type { CoachingStep, StepCoaching } from '@/lib/navigator';
 
@@ -9,34 +10,38 @@ interface NavigatorInlineProps {
   step: CoachingStep;
 }
 
-const TONE_STYLES = {
-  neutral: { bg: 'bg-[var(--gold-muted)]', border: 'border-[var(--gold)]/20', icon: 'text-[var(--gold)]', pill: 'bg-[var(--gold-muted)] text-[var(--gold)]' },
-  positive: { bg: 'bg-emerald-500/5', border: 'border-emerald-500/20', icon: 'text-emerald-500', pill: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' },
-  counterfactual: { bg: 'bg-blue-500/5', border: 'border-blue-500/20', icon: 'text-blue-500', pill: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-  challenge: { bg: 'bg-amber-500/5', border: 'border-amber-500/20', icon: 'text-amber-500', pill: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
+/* The compass glyph is the Navigator's constant mark (voyage language, echoing
+   Graticule/ChartEdge). Tone is carried by the compass color, not by a colored
+   left rail (that callout-rail is a generic-AI cliché). */
+const TONE_ACCENT: Record<string, string> = {
+  neutral: 'var(--accent)',
+  positive: '#10b981',
+  counterfactual: '#3b82f6',
+  challenge: '#f59e0b',
 };
 
 function CoachingItem({ coaching }: { coaching: StepCoaching }) {
   const tone = coaching.tone || 'neutral';
-  const s = TONE_STYLES[tone];
+  const accent = TONE_ACCENT[tone] || TONE_ACCENT.neutral;
   const isLong = !!coaching.detail;
 
   if (!isLong) {
     return (
-      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] ${s.pill}`}>
-        <Music2 size={11} />
+      <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--ai)] px-3 py-1.5 text-[12px] text-[var(--text-primary)]">
+        <Compass size={12} style={{ color: accent }} aria-hidden="true" />
         <span>{coaching.message}</span>
       </div>
     );
   }
 
   return (
-    <div className={`rounded-2xl border ${s.border} ${s.bg} p-3`}>
-      <div className="flex items-start gap-2">
-        <Music2 size={13} className={`${s.icon} mt-0.5 shrink-0`} />
+    <div className="relative overflow-hidden rounded-[14px] border border-[var(--border-subtle)] bg-[var(--ai)] p-3.5">
+      <Graticule opacity={0.05} spacing={20} />
+      <div className="relative flex items-start gap-3">
+        <Compass size={22} style={{ color: accent }} className="mt-0.5 shrink-0" aria-hidden="true" />
         <div>
-          <p className="text-[12px] font-medium text-[var(--text-primary)]">{coaching.message}</p>
-          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{coaching.detail}</p>
+          <p className="text-[12.5px] font-semibold text-[var(--text-primary)] leading-snug">{coaching.message}</p>
+          <p className="text-[11.5px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">{coaching.detail}</p>
         </div>
       </div>
     </div>
