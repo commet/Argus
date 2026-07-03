@@ -30,6 +30,9 @@ const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   RECAST_LIST: { table: 'recast_items' },
   PERSONAS: { table: 'personas' },
   FEEDBACK_HISTORY: { table: 'feedback_records' },
+  // PROJECTS → projects 테이블에 동기화. DecisionContract.origin('retro',
+  // 베팅③ 회고 봉인)은 단일 decision_contract jsonb 컬럼 안에 실려 이 계약에
+  // 동승한다 — 새 STORAGE_KEYS 키·마이그레이션 없음, PROJECTS 동기화의 일부.
   PROJECTS: { table: 'projects' },
   JUDGMENTS: { table: 'judgment_records' },
   ACCURACY_RATINGS: { table: 'accuracy_ratings' },
