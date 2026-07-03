@@ -249,3 +249,39 @@ _스펙과 실코드가 어긋나거나 재량이 필요했던 지점. 무엇이
   --package-lock-only`로 name/bin만 동기(의존성 churn 0 — diff 5줄 확인). 발사 위생의 일부.
 - **내린 판단:** lockfile 재생성. diff는 정확히 name×2 + bin키 1 = 5줄, 의존성 무변경.
 - **되돌리는 법:** git checkout package-lock.json(발사 시 npm ci 실패 감수).
+
+## W7 — 최종 검증
+
+### 재량 1: FleetChart 가 retro 계약을 배로 그리는 것 — 스코프 밖으로 판단
+- **무엇이 애매:** W1/bet3의 회고-격리 불변식은 "retro 를 모든 record 표면에서
+  격리"인데, W4의 FleetChart(축적의 얼굴·bet1)는 `contractSealed` 만 게이트하고
+  `origin === 'retro'` 필터가 없어 회고 연습 봉인도 실항해와 동일한 배로 해도에
+  올라온다. 이걸 W7에서 고쳐야 하는가?
+- **나라면 근거:** (a) 회고-격리 불변식의 정본 범위는 `summarizeRecord`(자차표 **카운트**)
+  이고 — bet3 PLAN 43/149줄이 명시 — FleetChart 는 카운트/점수/평결을 0 표시하고
+  배를 위치로만 그림(카운트 표면 아님). (b) bet1 PLAN B1~B8 스펙은 "프로젝트별
+  VoyageShip"에 `contractSealed` 게이트만 규정, retro 필터를 요구하지 않음. (c) W7
+  명령은 "신규 구현 금지, 최종 검증만" — FleetChart 에 retro 필터를 새로 넣는 건
+  검증이 아니라 신규 구현이고 bet1 스펙에도 없는 확장. (d) 다만 FleetChart 는
+  "축적의 얼굴"이라 회고 배가 실항해처럼 보이는 건 불변식 **정신**과는 마찰이 있음 —
+  숨기지 않고 기록해 창업자/후속 웨이브 판단에 넘김.
+- **내린 판단:** W7에서 **구현하지 않음**(검증 웨이브 스코프 밖 + 스펙 미요구). 대신
+  이 마찰을 명시 기록. 후속 조치 후보 = FleetChart 배 loop(line 133 `!contractSealed`
+  continue 옆)에 `|| p.decision_contract?.origin === 'retro'` 를 추가해 회고 배를
+  해도에서 빼거나, RetroBadge 를 배 툴팁에 붙이는 것. 창업자/bet 소유 웨이브 결정 사항.
+- **되돌리는 법:** 위 한 줄을 추가(제외) 또는 미추가(현행 유지) — 어느 쪽도 1줄.
+
+### 재량 2: design-register 가드 실패 = 목록추가 vs 토큰교체
+- **무엇이 애매:** FleetChart/Logbook 이 `--bp-ink*` material 토큰을 써서
+  design-register-contract 테스트가 실패. (a) 두 파일을 앱 토큰(`--text-*`/`--surface`)으로
+  교체할지 (b) MATERIAL_SANCTIONED 에 등재할지.
+- **나라면 근거:** 테스트 파일 자체가 정규 경로를 문서화함(32~43줄): "MATERIAL 토큰은
+  landing 밖에서도 sanctioned 목록 파일엔 허용 — 새 consumer 는 의도적 행위, 사유와
+  함께 추가하거나 앱 토큰 사용". 두 컴포넌트는 이미 sanctioned 인 project 페이지 위
+  ChartPlate 레지스터에 얹히는 해도-언어라 material 차용이 **의도**(W4/W5 로그가 --bp-*
+  의도 사용 명시). ceremony(gold/seal) 는 0(같은 테스트의 ceremony 단언 통과). 토큰
+  교체는 W4/W5 의 디자인 의도를 사후 뒤집는 신규 구현이고, 등재는 가드 갱신(정규 경로).
+- **내린 판단:** MATERIAL_SANCTIONED 에 두 파일 + 사유 주석 등재. 가드 목록 갱신이지
+  프로덕션 코드 변경 아님.
+- **되돌리는 법:** 목록에서 두 줄 제거(그러면 테스트가 다시 offender 로 검출 → 토큰
+  교체 강제).

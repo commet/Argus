@@ -382,3 +382,48 @@ record (W1). (9 files, 항목 1·2·9·11 + 두 로그 + PLAN 3건 최초 트래
 - 마이그레이션 0(argus-mcp는 파일기반, DB 무관) · 새 localStorage 키 0 · 한국어 문자열 무관.
 - 스킵(창업자 버튼, 비가역 외부행위): npm login/publish·mcp-publisher login/publish·
   clean-install 실측 왕복·30초 데모녹화·awesome-mcp-servers PR. PLAN §6 명시.
+
+## 최종 검증 (W7)
+
+전체 세 베팅 통합 최종 검증. 신규 구현 없이 검증만 수행하되, 웨이브 경계
+검증 실패 1건을 W7 안에서 수리함.
+
+### 검증 결과 요약
+1. **웹앱 `npx tsc --noEmit`** = **0 에러**.
+2. **웹앱 `npx vitest run --exclude "**/.claude/**"` 전체** = **181 파일 / 2611 테스트 전부 통과**.
+   - (jsdom "Not implemented: Window's scrollTo()" 는 정보성 stderr 한 줄일 뿐 실패 아님.)
+3. **`cd argus-mcp && npm run typecheck`** = **0 에러**, **`npm test`** = **18 파일 / 185 테스트 전부 통과**.
+4. **MCP 사용자향 옛이름(argus-mcp) 0건 재확인** — package.json name/bin/mcpName,
+   README 제목·설치명령 2줄, server.ts 서버식별자, server.json name/identifier 모두
+   `argus-decision-mcp` / `io.github.commet/argus-decision-mcp`. 잔존하는 `argus-mcp`
+   문자열은 (a) 내부 회피설명 주석(log.ts stderr·ledger-replay·surfaces·eval fixture·
+   CHANGELOG 이력 — PLAN §3.1 선택항목이라 유지) + (b) package.json `directory` /
+   server.json `subfolder` 의 **GitHub 저장소 하위폴더 경로**(폴더명이 실제로
+   `argus-mcp/` 이므로 정확한 값)뿐. 사용자향/설치향 표면엔 0건.
+5. **회고 격리 수동확인** — `summarizeRecord`(decision-contract.ts:662)에
+   `if (c.origin === 'retro') continue;` 가 `rec.loops++` 및 모든 grade 집계 **앞**에
+   위치. 이 함수가 자차표의 유일 집계원(project/page.tsx strip · SettlementModal ·
+   RecordStrip · RetroOnlyNotice 전부 이 함수 경유). Logbook 은 별도로 line 108에서
+   `origin !== 'retro'` 필터. retro 계약이 어떤 record-count loop에도 들어가지 않음을
+   소스로 확인.
+
+### 수리한 웨이브 경계 실패 (W7 내 수선)
+- **증상:** `src/lib/__tests__/design-register-contract.test.ts` 의 "material bp tokens
+  outside landing appear only in sanctioned files" 단언 실패. W4/W5가 만든
+  `components/projects/FleetChart.tsx` · `components/projects/Logbook.tsx` 가 `--bp-ink` /
+  `--bp-ink-soft`(MATERIAL 토큰)를 쓰는데 `MATERIAL_SANCTIONED` 목록에 없어 offender로
+  검출됨.
+- **원인 판단:** 두 파일 모두 CEREMONY 토큰(`--bp-gold`/`--bp-azure`/seal-stamp/
+  bp-btn-primary)은 0(같은 파일의 ceremony 단언은 통과). 순수 material 차용이며,
+  이미 sanctioned 인 project 페이지 위에 얹히는 해도-언어 표면(ChartPlate/VoyageElements와
+  동일 레지스터). 테스트가 문서화한 정규 경로 = "새 consumer는 의도적 행위, MATERIAL_SANCTIONED에
+  사유와 함께 추가".
+- **수리:** `MATERIAL_SANCTIONED` 에 두 파일 + 사유 주석 추가(신규 구현 아님, 가드 목록
+  갱신). 파일: `src/lib/__tests__/design-register-contract.test.ts` (+6줄).
+- **검증:** design-register-contract 2/2 통과 → 전체 2611/2611 통과. 회귀 0.
+- **커밋:** (아래 해시)
+
+### 스킵(창업자 버튼 — 비가역 외부행위)
+검증 웨이브 범위 밖: npm login/publish, mcp-publisher login/publish, clean-install
+실측 왕복, 데모 녹화, awesome-mcp-servers PR, 실 dogfood 육안, 실DB 행수 판독.
+전부 각 PLAN §6 창업자 버튼.
