@@ -56,19 +56,30 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
   const ordered = [...workers].sort((a, b) => a.step_index - b.step_index);
   const doneCount = ordered.filter((w) => w.status === 'done').length;
   const errorCount = ordered.filter((w) => w.status === 'error').length;
-  const allDone = ordered.every((w) => w.status === 'done' || w.status === 'error');
+  // Terminal set MUST match `crewSettled` in ProgressiveFlow — otherwise a crew
+  // with no AI work (all 'waiting_input') or a user-actionable failure keeps this
+  // header saying "일하고 있어요" forever while the flow has already moved on.
+  // That mismatch is the "선원 0/N 영구 고정" bug. A human worker out for an
+  // external reply ('sent'/'waiting_response') is settled for this AI header too.
+  const isTerminal = (w: (typeof ordered)[number]) =>
+    w.status === 'done' || w.status === 'error' || w.status === 'waiting_input' || w.status === 'validation_failed' ||
+    (w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response'));
+  const allDone = ordered.every(isTerminal);
 
   // Honest headline: a failed crew member's share does NOT flow into the
   // draft — "전부 초안에 들어갑니다" over a failure would be failure≠silence
-  // in miniature.
+  // in miniature. And when no AI actually produced anything (doneCount 0), don't
+  // claim crew output flowed in — this is a human-judgment item.
   const headline = !allDone
     ? L('선원들이 일하고 있어요', 'The crew is at work')
-    : errorCount === 0
-      ? L(`선원 ${doneCount}명의 작업이 끝났어요 — 전부 초안에 들어갑니다`, `${doneCount} crew finished — everything flows into the draft`)
-      : L(
-          `선원 ${ordered.length}명 중 ${doneCount}명 완료 · ${errorCount}명은 닿지 않았어요 — 실패한 몫은 빼고 갑니다`,
-          `${doneCount} of ${ordered.length} finished · ${errorCount} didn't land — the draft goes on without that share`,
-        );
+    : doneCount === 0
+      ? L('이 건은 사람이 판단할 항목이에요 — AI가 대신 정하지 않아요', "This one is yours to judge — AI doesn't decide it for you")
+      : errorCount === 0
+        ? L(`선원 ${doneCount}명의 작업이 끝났어요 — 전부 초안에 들어갑니다`, `${doneCount} crew finished — everything flows into the draft`)
+        : L(
+            `선원 ${ordered.length}명 중 ${doneCount}명 완료 · ${errorCount}명은 닿지 않았어요 — 실패한 몫은 빼고 갑니다`,
+            `${doneCount} of ${ordered.length} finished · ${errorCount} didn't land — the draft goes on without that share`,
+          );
 
   return (
     <motion.div
