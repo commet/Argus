@@ -18,11 +18,11 @@
  *      tools/argus-watch/lib/ledger.mjs (the contract): harvest opens a
  *      candidate, seal makes it a bet, amend updates check_by/predicate
  *      (a pushed date must stop the reminder), dismiss/settle close it.
- *   2. .argus/sessions/* /versions/* /current_bearing.json (and the legacy
- *      hyphen spelling) → contract_seed.check_by — SKIPPED when the seed's
- *      synthesized id (bearing:<session-id>:<label>, per settle Step 3) or its
+ *   2. .argus/sessions/* /versions/* /current_course.json (and the legacy
+ *      hyphen spelling) → prediction_to_check.check_by — SKIPPED when the seed's
+ *      synthesized id (course:<session-id>:<label>, per settle Step 3) or its
  *      verbatim predicate already appears in the ledger: once a seed is
- *      imported, the ledger is the single replayable source and the bearing
+ *      imported, the ledger is the single replayable source and the course
  *      file (which settle never mutates) must not re-trigger the reminder.
  */
 
@@ -30,7 +30,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 
-const BEARING_NAMES = ["current_bearing.json", "current-bearing.json"];
+const COURSE_NAMES = ["current_course.json", "current-course.json"];
 
 // Claude Code's user config dir; CLAUDE_CONFIG_DIR overrides ~/.claude
 // (also what the fixture tests use to isolate the greeting marker).
@@ -59,7 +59,7 @@ function clip(text, max) {
 
 // Strip a UTF-8 BOM: PowerShell 5.1's `Out-File -Encoding utf8` writes one,
 // Node's "utf8" read keeps it, and JSON.parse then throws — which on Windows
-// silently disappears every bearing/ledger a user ever touched with PS
+// silently disappears every course/ledger a user ever touched with PS
 // tooling (no reminder, no statusline, and the greeting fires instead).
 function deBom(s) {
   return s.charCodeAt(0) === 0xfeff ? s.slice(1) : s;
@@ -132,17 +132,17 @@ function replayLedger(argusDir, today) {
   return { overdue, ids, sealedPredicates };
 }
 
-function bearingContracts(argusDir, today, ledger) {
+function courseContracts(argusDir, today, ledger) {
   const out = [];
 
   // One dir's seed, deduped against the ledger by import id and by verbatim
-  // predicate (root/session-level bearings have no version label, so their
+  // predicate (root/session-level courses have no version label, so their
   // synthesized id may differ — the predicate is the universal key).
   function collectSeed(dir, importId) {
     if (importId && ledger.ids.has(importId)) return; // imported → ledger owns it
-    for (const name of BEARING_NAMES) {
-      const bearing = readJson(path.join(dir, name));
-      const seed = bearing && bearing.contract_seed;
+    for (const name of COURSE_NAMES) {
+      const course = readJson(path.join(dir, name));
+      const seed = course && course.prediction_to_check;
       if (!seed) continue;
       if (typeof seed.predicate === "string" && ledger.sealedPredicates.has(seed.predicate)) return;
       const date = asDate(seed.check_by);
@@ -153,7 +153,7 @@ function bearingContracts(argusDir, today, ledger) {
     }
   }
 
-  // Root-level bearing (legacy/webapp emission) — same coverage as the
+  // Root-level course (legacy/webapp emission) — same coverage as the
   // statusline, so a seed can never light one surface and not the other.
   collectSeed(argusDir, null);
 
@@ -166,7 +166,7 @@ function bearingContracts(argusDir, today, ledger) {
     let labels = [];
     try { labels = fs.readdirSync(versions); } catch { continue; }
     for (const label of labels) {
-      collectSeed(path.join(versions, label), `bearing:${id}:${label}`);
+      collectSeed(path.join(versions, label), `course:${id}:${label}`);
     }
   }
   return out;
@@ -210,7 +210,7 @@ function main() {
   const ledger = hasArgus ? replayLedger(argusDir, today) : null;
   const overdue = hasArgus
     ? ledger.overdue
-        .concat(bearingContracts(argusDir, today, ledger))
+        .concat(courseContracts(argusDir, today, ledger))
         .sort((a, b) => (a.date < b.date ? -1 : 1))
     : [];
 

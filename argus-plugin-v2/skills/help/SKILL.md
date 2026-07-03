@@ -12,10 +12,10 @@ sail Step 0 but do NOT create any files — help must stay read-only).
 Render this (translate naturally for ko; keep the command names verbatim):
 
 ```text
-## Argus — decision-voyage harness
+## Argus — decision orientation for Claude Code
 
 Give Argus a decision; it checks the weak claims behind the scenes and returns
-one screen: current course, why, fog/reef, road not taken, next helm.
+one screen: current course, why, open risk, set-aside option, next step.
 
 Start here — just say it (quotes optional); if you name a PR, file, or
 document (pdf/pptx/docx/hwpx included), Argus reads it:
@@ -26,23 +26,23 @@ No command needed either — "review this plan before I send it" triggers Argus.
 
 Flags: --quick (framing only) · --full (force full pipeline) · --resume <id> · --no-boss
 
-The crew, individually (sail chains these for you):
+Commands, individually (sail chains these for you):
   /argus:clarify   sharpen the real question before any work
-  /argus:team      crew agents work the artifact in parallel
+  /argus:team      worker agents work the artifact in parallel
   /argus:verify    split claims: supported / challenged / human-required
   /argus:boss      stakeholder pressure-check (MBTI persona from .argus/config.yaml)
   /argus:revise    apply the feedback into a new child draft, re-verify
-  /argus:chart     see one voyage's version tree, promote, branch, resume
-  /argus:log       voyage log across ALL sessions + your prediction record
+  /argus:chart     see one decision's version tree, promote, branch, resume
+  /argus:log       decision log across ALL sessions + your prediction record
   /argus:settle    check past predictions against reality (the contract loop)
   /argus:helm      (experimental) silent pre-approval scan of an agent plan
   /argus:configure set the language + your Boss persona (writes .argus/config.yaml)
 
 Where things live:
   .argus/config.yaml      locale + boss persona (auto-created, or set via /argus:configure)
-  .argus/sessions/<id>/   the full voyage (git-ignored by default)
+  .argus/sessions/<id>/   the full decision trail (git-ignored by default)
 
-Lost mid-voyage? /argus:chart shows where you are and names the next command.
+Lost in a run? /argus:chart shows where you are and names the next command.
 ```
 
 **Situational routing** — if the user described a situation instead of asking
@@ -50,13 +50,13 @@ for the list, answer with the ONE command that fits, plus one sentence why:
 
 - has a fuzzy/important decision → `/argus:sail "<it>"`
 - wants only sharper framing, no pipeline → `/argus:sail --quick`
-- got a bearing and wants to act on concerns → `/argus:revise`
-- wants to dig into the current voyage → `/argus:chart`
+- got a course and wants to act on concerns → `/argus:revise`
+- wants to dig into the current decision trail → `/argus:chart`
 - asks "what have I decided here" / "my track record" → `/argus:log`
 - a contract reminder fired / "how did that bet go?" → `/argus:settle`
 - about to approve a generated plan → `/argus:helm`
 - wants to change the language or set up the Boss persona → `/argus:configure`
-- result felt thin / wants the full crew → `/argus:sail --full`
+- result felt thin / wants the full agent pass → `/argus:sail --full`
 
 ## Forbidden patterns
 

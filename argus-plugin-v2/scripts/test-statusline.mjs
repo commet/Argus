@@ -58,16 +58,16 @@ function bet(id, checkBy, decision, extraEvents = []) {
   ];
 }
 
-function bearing(root, overrides = {}, ageDays = 0) {
+function course(root, overrides = {}, ageDays = 0) {
   mkdirSync(join(root, ".argus"), { recursive: true });
-  writeFileSync(join(root, ".argus", "current-bearing.json"), JSON.stringify({
+  writeFileSync(join(root, ".argus", "current-course.json"), JSON.stringify({
     label: "v0.1",
     current_course: { status: "proceed", summary: "4시간 마이그레이션 스파이크로 진행" },
     why_this_course: [{ point: "x" }],
-    fog_or_reef: { issue: "DAU 근거 없음" },
-    road_not_taken: [{ option: "a", why_not_now: "b" }],
-    next_helm: "surface별 DAU 뽑기",
-    contract_seed: null,
+    open_risk: { issue: "DAU 근거 없음" },
+    set_aside_options: [{ option: "a", why_not_now: "b" }],
+    next_step: "surface별 DAU 뽑기",
+    prediction_to_check: null,
     blocked: false,
     detail_path: ".",
     generated_at: new Date(Date.now() - ageDays * DAY).toISOString(),
@@ -175,143 +175,143 @@ t("amend pushes check_by out of overdue", () => {
   assert(lines(run(r)).length === 1, "amended date should not be overdue");
 });
 
-t("fresh bearing → status + summary + fog", () => {
+t("fresh course → status + summary + open risk", () => {
   const r = repo();
-  bearing(r, {}, 0.1);
+  course(r, {}, 0.1);
   const l2 = lines(run(r))[1];
   assert(l2.includes("proceed"), `no status: ${l2}`);
   assert(l2.includes("마이그레이션"), `no summary: ${l2}`);
-  assert(l2.includes("DAU 근거 없음"), `no fog: ${l2}`);
+  assert(l2.includes("DAU 근거 없음"), `no uncertainty: ${l2}`);
 });
 
-t("underscore spelling (v2 skills write current_bearing.json) is read too", () => {
+t("underscore spelling (v2 skills write current_course.json) is read too", () => {
   const r = repo();
   const dir = join(r, ".argus", "sessions", "s1", "versions", "v0.1");
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "current_bearing.json"), JSON.stringify({
+  writeFileSync(join(dir, "current_course.json"), JSON.stringify({
     label: "v0.1",
     current_course: { status: "proceed", summary: "언더스코어 파일도 읽힌다" },
     why_this_course: [{ point: "x" }],
-    fog_or_reef: null,
-    road_not_taken: [{ option: "a", why_not_now: "b" }],
-    next_helm: "n",
-    contract_seed: null,
+    open_risk: null,
+    set_aside_options: [{ option: "a", why_not_now: "b" }],
+    next_step: "n",
+    prediction_to_check: null,
     blocked: false,
     detail_path: ".",
     generated_at: new Date(Date.now() - 0.1 * DAY).toISOString(),
   }));
   const l2 = lines(run(r))[1];
-  assert(l2 && l2.includes("언더스코어 파일도 읽힌다"), `underscore bearing not read: ${l2}`);
+  assert(l2 && l2.includes("언더스코어 파일도 읽힌다"), `underscore course not read: ${l2}`);
 });
 
-t("blocked bearing → ⛔", () => {
+t("blocked course → ⛔", () => {
   const r = repo();
-  bearing(r, { blocked: true, current_course: { status: "hold", summary: "멈춤" } }, 0.1);
+  course(r, { blocked: true, current_course: { status: "hold", summary: "멈춤" } }, 0.1);
   const l2 = lines(run(r))[1];
   assert(l2.includes("⛔") && l2.includes("hold"), `no blocked marker: ${l2}`);
 });
 
-t("9-day-old bearing → decayed glyph with age", () => {
+t("9-day-old course → decayed glyph with age", () => {
   const r = repo();
-  bearing(r, {}, 9);
+  course(r, {}, 9);
   const l2 = lines(run(r))[1];
   assert(/9d ago/.test(l2), `no decay age: ${l2}`);
-  assert(!l2.includes("마이그레이션"), `decayed bearing must drop summary: ${l2}`);
+  assert(!l2.includes("마이그레이션"), `decayed course must drop summary: ${l2}`);
 });
 
-t("20-day-old bearing → silent", () => {
+t("20-day-old course → silent", () => {
   const r = repo();
-  bearing(r, {}, 20);
-  assert(lines(run(r)).length === 1, "old bearing should disappear");
+  course(r, {}, 20);
+  assert(lines(run(r)).length === 1, "old course should disappear");
 });
 
-t("contract seed past check_by → OVERDUE seed (no ledger needed)", () => {
+t("prediction to check past check_by → OVERDUE seed (no ledger needed)", () => {
   const r = repo();
-  bearing(r, { contract_seed: { predicate: "plugin DAU가 X 이상", check_by: iso(-1) } }, 0.1);
+  course(r, { prediction_to_check: { predicate: "plugin DAU가 X 이상", check_by: iso(-1) } }, 0.1);
   const l2 = lines(run(r))[1];
   assert(l2.includes("OVERDUE"), `seed overdue not shown: ${l2}`);
   assert(l2.includes("seed:"), `seed not marked: ${l2}`);
 });
 
-// A version-dir bearing whose seed was imported into the ledger by /argus:settle
-// (id bearing:<session>:<label>). settle never mutates the bearing file, so the
+// A version-dir course whose seed was imported into the ledger by /argus:settle
+// (id course:<session>:<label>). settle never mutates the course file, so the
 // statusline must defer to the ledger replay or it flashes OVERDUE forever.
 function importedSeedRepo(extraEvents) {
   const r = repo();
   const dir = join(r, ".argus", "sessions", "s1", "versions", "v0.1");
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "current_bearing.json"), JSON.stringify({
+  writeFileSync(join(dir, "current_course.json"), JSON.stringify({
     label: "v0.1",
     current_course: { status: "proceed", summary: "시드 임포트 케이스" },
     why_this_course: [{ point: "x" }],
-    fog_or_reef: null,
-    road_not_taken: [{ option: "a", why_not_now: "b" }],
-    next_helm: "n",
-    contract_seed: { predicate: "임포트된 예측", check_by: iso(-3) },
+    open_risk: null,
+    set_aside_options: [{ option: "a", why_not_now: "b" }],
+    next_step: "n",
+    prediction_to_check: { predicate: "임포트된 예측", check_by: iso(-3) },
     blocked: false,
     detail_path: ".",
     generated_at: new Date(Date.now() - 0.1 * DAY).toISOString(),
   }));
   ledger(r, [
-    { event: "harvest", id: "bearing:s1:v0.1", decision: "시드 임포트 케이스", quote: "임포트된 예측" },
-    { event: "seal", id: "bearing:s1:v0.1", predicate: "임포트된 예측", check_by: iso(-3) },
+    { event: "harvest", id: "course:s1:v0.1", decision: "시드 임포트 케이스", quote: "임포트된 예측" },
+    { event: "seal", id: "course:s1:v0.1", predicate: "임포트된 예측", check_by: iso(-3) },
     ...extraEvents,
   ]);
   return r;
 }
 
-t("seed imported + settled in ledger → no OVERDUE, bearing renders", () => {
-  const r = importedSeedRepo([{ event: "settle", id: "bearing:s1:v0.1", outcome: "happened" }]);
+t("prediction imported + settled in ledger → no OVERDUE, course renders", () => {
+  const r = importedSeedRepo([{ event: "settle", id: "course:s1:v0.1", outcome: "happened" }]);
   const l2 = lines(run(r))[1];
   assert(l2 && !l2.includes("OVERDUE"), `settled imported seed must not be overdue: ${l2}`);
-  assert(l2.includes("proceed"), `fresh bearing should render instead: ${l2}`);
+  assert(l2.includes("proceed"), `fresh course should render instead: ${l2}`);
 });
 
-t("seed imported + pushed via amend → no OVERDUE", () => {
-  const r = importedSeedRepo([{ event: "amend", id: "bearing:s1:v0.1", check_by: iso(30) }]);
+t("prediction imported + pushed via amend → no OVERDUE", () => {
+  const r = importedSeedRepo([{ event: "amend", id: "course:s1:v0.1", check_by: iso(30) }]);
   const l2 = lines(run(r))[1];
   assert(l2 && !l2.includes("OVERDUE"), `pushed imported seed must not be overdue: ${l2}`);
 });
 
-t("seed imported but still open → counted once, not twice", () => {
+t("prediction imported but still open → counted once, not twice", () => {
   const r = importedSeedRepo([]);
   const l2 = lines(run(r))[1];
   assert(l2.includes("OVERDUE"), `open imported seed is still due: ${l2}`);
   assert(!l2.includes("×2"), `must not double-count seed + ledger bet: ${l2}`);
 });
 
-t("root-level seed settled in ledger (predicate match) → no OVERDUE", () => {
+t("root-level prediction settled in ledger (predicate match) → no OVERDUE", () => {
   const r = repo();
-  bearing(r, { contract_seed: { predicate: "루트 시드 예측", check_by: iso(-1) } }, 0.1);
+  course(r, { prediction_to_check: { predicate: "루트 시드 예측", check_by: iso(-1) } }, 0.1);
   ledger(r, [
     { event: "harvest", id: "ffff0001", decision: "d", quote: "루트 시드 예측" },
     { event: "seal", id: "ffff0001", predicate: "루트 시드 예측", check_by: iso(-1) },
     { event: "settle", id: "ffff0001", outcome: "partial" },
   ]);
   const l2 = lines(run(r))[1];
-  assert(l2 && !l2.includes("OVERDUE"), `root seed sealed under another id must dedup by predicate: ${l2}`);
+  assert(l2 && !l2.includes("OVERDUE"), `root prediction sealed under another id must dedup by predicate: ${l2}`);
 });
 
-t("non-ISO seed check_by → ignored, bearing renders", () => {
+t("non-ISO seed check_by → ignored, course renders", () => {
   const r = repo();
-  bearing(r, { contract_seed: { predicate: "p", check_by: "런칭 30일 후" } }, 0.1);
+  course(r, { prediction_to_check: { predicate: "p", check_by: "런칭 30일 후" } }, 0.1);
   const l2 = lines(run(r))[1];
   assert(l2.includes("proceed"), `free-text date must not break render: ${l2}`);
   assert(!l2.includes("OVERDUE"), `free-text date must not be due: ${l2}`);
 });
 
-t("overdue beats fresh bearing", () => {
+t("overdue beats fresh course", () => {
   const r = repo();
-  bearing(r, {}, 0.1);
+  course(r, {}, 0.1);
   ledger(r, bet("aaaa0001", iso(-1), "기한 지난 결정"));
   const out = lines(run(r));
   assert(out.length === 2, "still one Argus line max");
   assert(out[1].includes("OVERDUE"), `overdue must win: ${out[1]}`);
 });
 
-t("live session beats due-soon and bearing", () => {
+t("live session beats due-soon and course", () => {
   const r = repo();
-  bearing(r, {}, 0.1);
+  course(r, {}, 0.1);
   ledger(r, bet("aaaa0001", iso(3), "사흘 뒤"));
   liveSession(r, "team_working");
   const l2 = lines(run(r))[1];
@@ -342,16 +342,16 @@ t("round shown only in question phases", () => {
 
 t("narrow terminal → Korean text clipped, line fits budget", () => {
   const r = repo();
-  bearing(r, {
+  course(r, {
     current_course: { status: "proceed", summary: "아주 길고 긴 한국어 요약 문장이 여기에 들어가서 터미널 폭을 훨씬 초과하게 되는 경우를 시험한다" },
-    fog_or_reef: { issue: "이것도 매우 긴 안개 설명으로 잘려야만 하는 문장이다 그렇지 않으면 줄이 넘친다" },
+    open_risk: { issue: "이것도 매우 긴 안개 설명으로 잘려야만 하는 문장이다 그렇지 않으면 줄이 넘친다" },
   }, 0.1);
   const l2 = lines(run(r, { COLUMNS: "80" }))[1];
   assert(l2.includes("…"), `expected clipping: ${l2}`);
-  assert(l2.includes("🌫"), `fog must survive truncation: ${l2}`);
+  assert(l2.includes("🌫"), `uncertainty must survive truncation: ${l2}`);
 });
 
-t("UTF-8 BOM bearing/ledger (PS 5.1 Out-File) → still read", () => {
+t("UTF-8 BOM course/ledger (PS 5.1 Out-File) → still read", () => {
   const r = repo();
   mkdirSync(join(r, ".argus", "ledger"), { recursive: true });
   writeFileSync(join(r, ".argus", "ledger", "ledger.jsonl"),
@@ -370,11 +370,11 @@ t("corrupt ledger lines → skipped, no crash", () => {
   assert(l2 && l2.includes("OVERDUE"), `valid events must survive corrupt lines: ${l2}`);
 });
 
-t("corrupt bearing json → silent, no crash", () => {
+t("corrupt course json → silent, no crash", () => {
   const r = repo();
   mkdirSync(join(r, ".argus"), { recursive: true });
-  writeFileSync(join(r, ".argus", "current-bearing.json"), "{not valid");
-  assert(lines(run(r)).length === 1, "corrupt bearing must degrade to line 1");
+  writeFileSync(join(r, ".argus", "current-course.json"), "{not valid");
+  assert(lines(run(r)).length === 1, "corrupt course must degrade to line 1");
 });
 
 t("session opened in a subdirectory → .argus found at repo root", () => {

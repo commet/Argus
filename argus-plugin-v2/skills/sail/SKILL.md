@@ -1,6 +1,6 @@
 ---
 name: sail
-description: Top-level Argus orchestrator. Routes a decision through clarify, crew work, verification, optional stakeholder review, and a compressed Current Heading. Use whenever the user weighs a consequential decision or wants something pressure-checked before committing — even without the slash command. Triggers — "이거 해도 되나?", "머지해도 될까?", "A랑 B 중 뭐가 낫지?", "이 보고서/기획안 검토해줘", "임원회의 가져가도 되나?", "should we ship/migrate/hire?", "review this deck/plan". Handles repo decisions (PR, design doc, architecture) and non-code ones (market entry, hiring, vendor, pricing, a PPT/report). Targets may be named in plain prose (PR, issue, file, branch, document — office files extracted per clarify §Document Extraction); no syntax needed. NOT for trivial reversible choices or pure execution tasks. Output is one practical bearing, not a multi-agent report. Invoked as `/argus:sail`.
+description: Top-level Argus orchestrator. Routes a decision through clarify, agent work, verification, optional stakeholder review, and a compressed Current Course. Use whenever the user weighs a consequential decision or wants something pressure-checked before committing — even without the slash command. Triggers — "이거 해도 되나?", "머지해도 될까?", "A랑 B 중 뭐가 낫지?", "이 보고서/기획안 검토해줘", "임원회의 가져가도 되나?", "should we ship/migrate/hire?", "review this deck/plan". Handles repo decisions (PR, design doc, architecture) and non-code ones (market entry, hiring, vendor, pricing, a PPT/report). Targets may be named in plain prose (PR, issue, file, branch, document — office files extracted per clarify §Document Extraction); no syntax needed. NOT for trivial reversible choices or pure execution tasks. Output is one practical course, not a multi-agent report. Invoked as `/argus:sail`.
 argument-hint: "[your decision — may mention a PR, issue, file, branch, or document]"
 ---
 
@@ -10,19 +10,19 @@ argument-hint: "[your decision — may mention a PR, issue, file, branch, or doc
 
 Argus must not feel like a complex multi-agent machine. Internally it may run
 clarify, team, verify, boss, and revise. Externally it gives the user their
-current coordinates in a decision voyage:
+current coordinates in a decision trail:
 
-> "I know the current course, why that course is justified, what remains foggy,
+> "I know the current course, why that course is justified, what remains unresolved,
 > what path I am not taking, what to do next, and what future claim could be
 > checked against reality."
 
 The default user-facing output is either:
 
 - a MinimalScaffold for low-density reversible decisions, or
-- a Current Heading for medium/high decisions.
+- a Current Course for medium/high decisions.
 
 Do not expose worker counts, ledger counts, schemas, model names, or phase names
-in the default bearing. Those details live in `.argus/sessions/` and
+in the default course. Those details live in `.argus/sessions/` and
 `/argus:chart`.
 
 ---
@@ -189,7 +189,7 @@ extended to a readable-but-stale phase, which is the more common crash shape.
 | `verifying` or team complete with no `verification.json` | `/argus:verify` |
 | `dm_feedback` pending | `/argus:boss` |
 | `refining` | `/argus:revise` (apply boss concerns / verify challenges → child draft + re-verify) |
-| `complete` | show Current Heading/chart via `/argus:chart`; `/argus:revise` to iterate or `--promote` to finalize |
+| `complete` | show Current Course/chart via `/argus:chart`; `/argus:revise` to iterate or `--promote` to finalize |
 
 ---
 
@@ -200,14 +200,14 @@ For `--full`, run sequentially:
 1. `/argus:clarify --no-minimal --invoked-via-sail` (until ready for mix, or max rounds). `--no-minimal` suppresses Step 6a auto-collapse (`--full` is an explicit user override); `--invoked-via-sail` makes clarify suppress its own scaffold print + "run /argus:team" hint and emit a one-line ack only — sail Step 7 renders the consolidated card. Without it, clarify double-renders under sail.
 2. `/argus:team --invoked-via-sail` (on the snapshot's execution_plan). The `--invoked-via-sail` flag tells team to suppress its own verbose Step 11 print block; sail's Step 7 will render the consolidated card.
 3. `/argus:verify --invoked-via-sail` (on the team output). This is the core gate: supported/challenged/human-check claims become visible before any stakeholder review.
-4. `/argus:boss --invoked-via-sail` (unless `--no-boss` OR verify's `routing_decision` is `revise_team` / `stop_for_human_check` / **`ask_user`**). `ask_user` means verify could not resolve the route (e.g. a `critical` challenged claim under `--no-prompt`); boss must NOT run on an unresolved critical challenge. Same flag otherwise — suppresses boss's verbose narration; sail Step 7 surfaces the bearing only.
-5. Step 7 Current Heading (see below).
+4. `/argus:boss --invoked-via-sail` (unless `--no-boss` OR verify's `routing_decision` is `revise_team` / `stop_for_human_check` / **`ask_user`**). `ask_user` means verify could not resolve the route (e.g. a `critical` challenged claim under `--no-prompt`); boss must NOT run on an unresolved critical challenge. Same flag otherwise — suppresses boss's verbose narration; sail Step 7 surfaces the course only.
+5. Step 7 Current Course (see below).
 
 Transitions must describe value, not machinery:
 
 - en: "Narrowed the decision. Checking evidence..."
 - en: "Separating weak claims from usable evidence..."
-- en: "Setting the current bearing..."
+- en: "Setting the current course..."
 - ko: Translate the same meanings naturally.
 
 Forbidden transition strings:
@@ -224,8 +224,8 @@ Forbidden transition strings:
 
 `--quick` runs `/argus:clarify --no-minimal` and stops.
 
-Use this when the user wants problem framing, not a full bearing. Do not run
-team, verify, or boss. Do not render Current Heading.
+Use this when the user wants problem framing, not a full course. Do not run
+team, verify, or boss. Do not render Current Course.
 
 **Droppings rule for `--quick`.** `--quick` is explicit, but if clarify resolves
 to `decision_density: low` (an inline-only framing with no persisted scaffold),
@@ -253,11 +253,11 @@ clarify has already given the user the right inline answer — sail must NOT
 escalate:
 
 - `validation` / `vent` / `info` → exit silently after clarify's inline answer.
-  Do not run team, verify, or boss; do not render a Current Heading. (Escalating
-  a closed decision into the full crew is the precise harm Step 1.7 exists to
-  stop.) A `validation` request that produced a `contract_seed` may still seal it
+  Do not run team, verify, or boss; do not render a Current Course. (Escalating
+  a closed decision into the full agent pass is the precise harm Step 1.7 exists to
+  stop.) A `validation` request that produced a `prediction_to_check` may still seal it
   via the normal settle loop — but that is the user's move, not an auto-escalation.
-- `open_decision` with `readiness == "resistance"` → do not deploy the crew;
+- `open_decision` with `readiness == "resistance"` → do not deploy the agents;
   surface clarify's resistance prompt and the settle-loop test. Continue only if
   the user explicitly asks to keep working the decision.
 - `open_decision` + `ready` (or `request_type` absent — legacy) → continue to
@@ -267,7 +267,7 @@ escalate:
 
 Validated finding (`docs/STRESS-SYNTHESIS-rounds1-4`): a find-the-leverage engine
 over-fires on ~60% of FLAT decisions — it manufactures a fork where none is
-load-bearing, runs crew ceremony on a reversible coin-flip, and emits a tilted
+load-bearing, runs agent ceremony on a reversible coin-flip, and emits a tilted
 pole. `decision_density: low` (Step 6a) and the request-type gate (Step 6·0)
 do NOT catch a **medium/high-stakes decision that is nonetheless flat** (no
 load-bearing fork — e.g. an all-axes-satisfied choice where any branch lands the
@@ -276,20 +276,20 @@ inherit the discipline (copy the silence-default, NOT helm's irreversible-only
 trigger — sail's orientation job is broader).
 
 Read `frame_status` from the snapshot (clarify Step 2). The bar is on FIRING the
-crew, not on staying flat:
+agent pass, not on staying flat:
 
 - `frame_status == "flat"` → do **NOT** deploy team/verify/boss. The probe found
-  no load-bearing fork. Render a **restraint bearing** directly (Step 7, FLAT
+  no load-bearing fork. Render a **restraint course** directly (Step 7, FLAT
   course): name at most ONE assumption the user is resting on (or none), state
   plainly that the axes line up so any reasonable branch lands the same, and
-  return the handle. No manufactured road-not-taken, no manufactured fog. This is
+  return the handle. No manufactured set-aside option, no manufactured uncertainty. This is
   the default, and it is a complete, honest answer — not a degraded one.
 - `frame_status == "load_bearing"` (or absent — legacy) → a reframe/fork that
   actually changes the answer survived clarify's positive-threshold check.
-  Continue to Step 6b/6c and deploy the crew.
+  Continue to Step 6b/6c and deploy the agents.
 
 Restraint here is not under-fire: the user still gets oriented (the one
-assumption + the handle). Firing the full crew on a flat decision is the
+assumption + the handle). Firing the full agent pass on a flat decision is the
 over-fire the mirror clause forbids. When genuinely unsure between flat and
 load-bearing, clarify defaults to load_bearing (it is the safe direction there —
 see clarify Step 2); sail trusts that signal.
@@ -315,7 +315,7 @@ Options (each maps to a DIFFERENT path — the answer must change behavior, or t
 question is theater):
 
 - "Light framing only"
-- "Current Heading"
+- "Current Course"
 - "Treat as high-stakes"
 
 After the user answers, persist `stakes_user_confirmed = true` and set
@@ -324,14 +324,14 @@ uncertain; without this reset Step 6c would re-see `< 75` and stall). Then
 **branch on the chosen option** — the three are NOT the same path:
 
 - **"Light framing only"** → the user chose restraint. Do **NOT** deploy
-  team/verify/boss and do **NOT** render a Current Heading. Treat exactly like
+  team/verify/boss and do **NOT** render a Current Course. Treat exactly like
   `--quick`: clarify's framing (the MinimalScaffold / light analysis already
   produced) is the terminal deliverable. Persist `session.classification.stakes`
   as the lighter of the detected guesses (or `low`), mark the session `complete`,
-  and exit. Running the full crew here after the user explicitly asked for "light"
+  and exit. Running the full agent pass here after the user explicitly asked for "light"
   is the mirror-clause over-fire the spine forbids (see Forbidden Patterns).
-- **"Current Heading"** → set `session.classification.stakes = "important"` and
-  continue to Step 6c (team/verify/boss → bearing).
+- **"Current Course"** → set `session.classification.stakes = "important"` and
+  continue to Step 6c (team/verify/boss → course).
 - **"Treat as high-stakes"** → set `session.classification.stakes = "critical"`
   and continue to Step 6c (critical stakes raises agent budget + the critic
   mandate per team's classification rules).
@@ -349,7 +349,7 @@ becomes a multi-minute run — `~4-8 min` for important, `~8-12 min` for critica
 honest numbers from a measured run, not aspirations — and print it BEFORE any
 probe/extraction work begins, not after the user has already waited):
 
-- en: "Checking evidence and weak claims, then returning the current bearing (~{{time_range}}). (Ctrl-C to halt)"
+- en: "Checking evidence and weak claims, then returning the current course (~{{time_range}}). (Ctrl-C to halt)"
 - ko: Translate naturally.
 
 Run:
@@ -357,21 +357,21 @@ Run:
 1. `/argus:team --invoked-via-sail`
 2. `/argus:verify --invoked-via-sail`
 3. `/argus:boss --invoked-via-sail`, unless skipped or blocked
-4. Step 7 Current Heading
+4. Step 7 Current Course
 
 ---
 
-## Step 7 - Current Heading
+## Step 7 - Current Course
 
-Current Heading is the default consumable artifact. It hides the internal
-pipeline but preserves the voyage shape: course, evidence, fog, road not taken,
-next helm action, and an optional decision-contract seed.
+Current Course is the default consumable artifact. It hides the internal
+pipeline but preserves the decision shape: course, evidence, open risk, set-aside option,
+next step action, and an optional decision-prediction to check.
 
 **Coverage-gap guard:** read `workers.json` and count any `status: "error"` /
-`verification_failed` entries. If any worker failed, the bearing MUST open with a
+`verification_failed` entries. If any worker failed, the course MUST open with a
 visible warning (ko: `⚠ 워커 {{M}}/{{N}} 실패 — 일부 도메인 분석 누락` · en:
 `⚠ {{M}}/{{N}} workers failed — some domain analysis is missing`). Never present
-a bearing assembled from survivors as if coverage were complete.
+a course assembled from survivors as if coverage were complete.
 
 Read:
 
@@ -384,15 +384,15 @@ Read:
 
 Write:
 
-- `versions/{label}/current_bearing.json`, conforming to
-  `${CLAUDE_PLUGIN_ROOT}/data/schemas/current-bearing.json` (include the required
-  `generated_at` ISO-8601 timestamp — a bearing without it fails schema validation)
-- `session.json`: set `phase: "complete"` after the bearing is rendered. Boss
+- `versions/{label}/current_course.json`, conforming to
+  `${CLAUDE_PLUGIN_ROOT}/data/schemas/current-course.json` (include the required
+  `generated_at` ISO-8601 timestamp — a course without it fails schema validation)
+- `session.json`: set `phase: "complete"` after the course is rendered. Boss
   leaves the phase at `refining` and nothing else ever closes it — without
   this line no session in the default flow EVER reaches `complete`, and a
   later `--resume` misroutes a finished voyage into `/argus:revise`.
 
-### Current Heading Mapping
+### Current Course Mapping
 
 Build:
 
@@ -400,15 +400,15 @@ Build:
 - `current_course.status`: one of `proceed`, `hold`, `fork`, `anchor`,
   `revise`, or `collect_evidence`.
 - `current_course.summary`: what the user should understand as the current
-  bearing.
+  course.
 - `why_this_course[]`: 1-3 concrete reasons tied to the user's repo/file/PR/
   document/session evidence.
-- `fog_or_reef`: the biggest unsupported claim, contradiction, blocker, or
-  human-only check. Use `null` only when there is no meaningful remaining fog.
-- `road_not_taken[]`: up to 2 plausible alternatives and why they are not the
+- `open_risk`: the biggest unsupported claim, contradiction, blocker, or
+  human-only check. Use `null` only when there is no meaningful unresolved point.
+- `set_aside_options[]`: up to 2 plausible alternatives and why they are not the
   current course.
-- `next_helm`: one concrete next action.
-- `contract_seed`: a falsifiable future predicate when the decision is close to
+- `next_step`: one concrete next action.
+- `prediction_to_check`: a falsifiable future predicate when the decision is close to
   anchor. Use `null` for early framing or missing evidence. When present it has
   FOUR required parts (all four, per the schema — a seed without pass/fail
   conditions cannot be graded later):
@@ -426,7 +426,7 @@ Build:
 - `detail_path`: `.argus/sessions/{id}/versions/{label}/`
 
 If the user provided a file/PR/document and `why_this_course[]` contains no
-source reference, treat the bearing as failed. Rebuild from artifacts or mark the
+source reference, treat the course as failed. Rebuild from artifacts or mark the
 answer as not ready.
 
 ### Assembly Priority
@@ -441,29 +441,29 @@ Use artifacts in this order:
      confidence and remaining tensions
 2. **Reasons:** take strongest source-specific supported claims first. Then add
    boss approval condition only when it changes the course.
-3. **Fog/Reef:** surface ONE item ONLY when it is genuinely load-bearing —
+3. **Open risk:** surface ONE item ONLY when it is genuinely load-bearing —
    it would change the course or block sign-off. In priority:
    - critical challenged claim
    - blocking human-required check
    - unresolved tension with no tie-breaker result
    - critical boss concern
-   **If none of those exist, `fog_or_reef` is `null`.** Do NOT fall back to
+   **If none of those exist, `open_risk` is `null`.** Do NOT fall back to
    "the strongest remaining assumption" to fill the slot — every decision has a
    weakest-supported assumption, and surfacing it when it is not load-bearing
-   manufactures fog (over-fire, mirror clause). A clean, well-supported
-   decision honestly has no reef.
-4. **Road not taken:** derive ONLY from real, evidence-backed alternatives —
+   manufactures uncertainty (over-fire, mirror clause). A clean, well-supported
+   decision honestly has no open risk.
+4. **Set-aside option:** derive ONLY from real, evidence-backed alternatives —
    `scaffold.key_trade_offs[]`, `verification.unresolved_tensions[]`, or explicit
    boss concerns. **If no evidence-backed alternative exists, leave
-   `road_not_taken` empty (`[]`) — do NOT fabricate one from "the rejected
-   obvious alternative."** A flat decision legitimately has no road not taken;
+   `set_aside_options` empty (`[]`) — do NOT fabricate one from "the rejected
+   obvious alternative."** A flat decision legitimately has no set-aside option;
    inventing one to fill a medium/high slot is manufactured divergence
    (over-fire, the exact failure the validated stress test measured at ~60% on
-   flat cases). When two real poles DO exist, render them at parity (see Bearing
+   flat cases). When two real poles DO exist, render them at parity (see Course
    Rules — no engine-weighted pole).
-5. **Next helm:** choose the smallest concrete action that moves the voyage:
+5. **Next step:** choose the smallest concrete action that moves the decision:
    repair, human check, source pull, spike, or promotion.
-6. **Contract seed:** include only when the current course is `proceed`, `fork`,
+6. **Prediction to check:** include only when the current course is `proceed`, `fork`,
    or `anchor` and the predicate can be checked later. For blocked or early
    evidence-collection courses, use `null`.
 
@@ -474,17 +474,17 @@ Use artifacts in this order:
 - `fork`: two **genuinely viable** paths remain and the next action is to choose
   or test one. Use ONLY when both poles are real — never to dramatize a flat
   decision. When `fork` is the status, render the two poles at parity and name
-  the crux that decides them; do not pick for the user (see Bearing Rules).
+  the crux that decides them; do not pick for the user (see Course Rules).
 - `anchor`: this draft can be promoted or sealed.
-- `revise`: agent-owned claims need repair before the bearing is usable.
+- `revise`: agent-owned claims need repair before the course is usable.
 - `collect_evidence`: a human or external source must provide missing evidence.
 
 **FLAT course (the restraint default — Step 6·0.5).** When the decision is flat
-(no load-bearing fork), the bearing uses `proceed` or `anchor`, with
-`road_not_taken: []` and usually `fog_or_reef: null`. `current_course.summary`
+(no load-bearing fork), the course uses `proceed` or `anchor`, with
+`set_aside_options: []` and usually `open_risk: null`. `current_course.summary`
 states plainly that the axes line up so any reasonable branch lands the same;
 `why_this_course` names at most the ONE assumption the user is resting on (or a
-single supporting reason); `next_helm` may be a **done-handle** — "nothing else
+single supporting reason); `next_step` may be a **done-handle** — "nothing else
 to decide here — go ahead" / "이 결정은 여기서 닫혀요 — 그대로 진행하세요" — which
 is a first-class next action, not a failure to find work. Returning the handle on
 a flat decision is the product working correctly, not under-delivering.
@@ -498,7 +498,7 @@ Render in the user's locale. Keep the labels natural, but preserve this
 information order:
 
 ```text
-## Argus - Current Heading - {{label}}
+## Argus - Current Course - {{label}}
 
 Current course: {{current_course.summary}}
 
@@ -507,17 +507,17 @@ Why this course:
 {{if why_this_course[1]}}- ...{{endif}}
 {{if why_this_course[2]}}- ...{{endif}}
 
-{{if fog_or_reef}}Fog / reef: {{fog_or_reef.issue}}
-Why it matters: {{fog_or_reef.why_it_matters}}
-{{if fog_or_reef.required_check}}Required check: {{fog_or_reef.required_check}}{{endif}}{{endif}}
+{{if open_risk}}Open risk: {{open_risk.issue}}
+Why it matters: {{open_risk.why_it_matters}}
+{{if open_risk.required_check}}Required check: {{open_risk.required_check}}{{endif}}{{endif}}
 
-{{if road_not_taken[0]}}Road not taken: {{road_not_taken[0].option}} - {{road_not_taken[0].why_not_now}}{{endif}}
-{{if road_not_taken[1]}}Road not taken: {{road_not_taken[1].option}} - {{road_not_taken[1].why_not_now}}{{endif}}
+{{if set_aside_options[0]}}Set-aside option: {{set_aside_options[0].option}} - {{set_aside_options[0].why_not_now}}{{endif}}
+{{if set_aside_options[1]}}Set-aside option: {{set_aside_options[1].option}} - {{set_aside_options[1].why_not_now}}{{endif}}
 
-Next helm: {{next_helm}}
+Next step: {{next_step}}
 
-{{if contract_seed}}Contract seed: {{contract_seed.predicate}}
-Check by: {{contract_seed.check_by}}{{endif}}
+{{if prediction_to_check}}Prediction to check: {{prediction_to_check.predicate}}
+Check by: {{prediction_to_check.check_by}}{{endif}}
 
 {{if blocked}}Status: do not execute/sign off yet. The repair or check above comes first.{{endif}}
 Details: {{detail_path}}
@@ -525,18 +525,18 @@ Details: {{detail_path}}
 
 Target length: 10-16 lines. Never exceed one terminal screen.
 
-**First-voyage hint:** if this is the project's FIRST session (exactly one
-directory under `.argus/sessions/`), append one line after the bearing —
+**First-run hint:** if this is the project's FIRST session (exactly one
+directory under `.argus/sessions/`), append one line after the course —
 ko: `첫 항해가 기록됐어요. /argus:chart 로 언제든 돌아올 수 있고, /argus:help 가 지도예요.`
-en: `Your first voyage is logged. /argus:chart returns here anytime; /argus:help shows the map.`
+en: `Your first run is logged. /argus:chart returns here anytime; /argus:help shows the map.`
 Never print it again after the first session.
 
 ### Step 7.5 - Wake (1차 정산: 닻이 어디로 움직였나)
 
-The webapp mirrors the pre-AI BIND lean back the moment the bearing is revealed and
+The webapp mirrors the pre-AI BIND lean back the moment the course is revealed and
 asks "still holds?" (`WakeReturn` / `lean_after`). This is the SAME pass on the plugin
 surface — the bind from clarify Step 3.4 finally pays off **in-session**, making the
-crew's pull on the user's own read visible immediately, not weeks later at settle.
+agent work's pull on the user's own read visible immediately, not weeks later at settle.
 It is the on-ramp that sells the later reality settlement (`/argus:settle`).
 
 **Run ONLY when a real rope exists, and only in an interactive run.** Read
@@ -547,7 +547,7 @@ It is the on-ramp that sells the later reality settlement (`/argus:settle`).
   the moment (mirror clause).
 - **A `wake` event already exists for that id** → already settled once; skip (no re-ask).
 - **`--no-prompt` / non-interactive** → skip (cannot ask); the next interactive
-  voyage or settle still has the rope.
+  run or settle still has the thread.
 
 When the rope exists, ONE `AskUserQuestion` (a measurement, not a quiz — neutral tone):
 
@@ -560,11 +560,11 @@ When the rope exists, ONE `AskUserQuestion` (a measurement, not a quiz — neutr
   - `건너뛰기` (en: `Skip`) → write nothing
 
 **Spine (do not regress):**
-- `lean_after` is PURE user-authored — NEVER prefilled from the bearing or any model
+- `lean_after` is PURE user-authored — NEVER prefilled from the course or any model
   output (no borrowed rope; identical floor to BindCard / clarify Step 3.4).
 - argus passes NO verdict on the move. Surface the two points the user wrote; the
   bare label (`단단함` held / `마음이 움직였어요` moved) is a FACT, never "wiser" /
-  "the crew was right" / "you were wrong". The crew are deaf rowers — they do not
+  "the agents were right" / "you were wrong". The agents — they do not
   judge whether your read should have moved.
 - Skip is one tap, lossless, never re-asked.
 
@@ -587,16 +587,16 @@ shape mirrors the webapp `lean_after {text, changed}`):
 - held: `단단함 — 들은 뒤에도 닻은 그대로예요.` (en: `It held — the anchor didn't move.`)
 - moved: `출발: {{lean_before}} → 지금: {{lean_after}}` (en: `Set out: {{lean_before}} → now: {{lean_after}}`)
 
-### Bearing Rules
+### Course Rules
 
 - Do not render counts like "4 supported / 2 challenged" in the default
-  bearing.
+  course.
 - Do not mention agent count, model names, schemas, or internal phase.
-- Do not show both a fog/reef item and a stakeholder concern if they are the
+- Do not show both a open risk item and a stakeholder concern if they are the
   same issue. Merge them.
 - If evidence is thin, set the course to `hold` or `collect_evidence` instead
   of writing a longer report.
-- **Road not taken is load-bearing-gated, not mandatory.** Include 1-2 items
+- **Set-aside option is load-bearing-gated, not mandatory.** Include 1-2 items
   ONLY when real, evidence-backed alternatives exist; on a flat decision leave it
   empty. Never fabricate an alternative to satisfy a slot (over-fire).
 - **Default fork format = let the USER write the poles (R14 — the real tilt fix).**
@@ -620,11 +620,11 @@ shape mirrors the webapp `lean_after {text, changed}`):
   must surface a pole yourself (e.g. a buried fact the user cannot see) — never
   as the default.
 - **Never emit an engine-weighted pole.** When two poles are shown (status
-  `fork`, or two road-not-taken items), render them at PARITY: comparable depth
+  `fork`, or two set-aside option items), render them at PARITY: comparable depth
   and word-count, no caveat stacked on only one side, do not "melt" one pole's
   cost while loading the other's, no verdict tone ("X is right" vs "is Y even
   worth it"). Present the poles + the crux that decides them; the user picks.
-  A tilting bearing is a disguised verdict (validated as the modal harm).
+  A tilting course is a disguised verdict (validated as the modal harm).
   **Swap-test before rendering:** if swapping the two poles' labels would change
   which one reads as favored, the asymmetry is engine tilt — flatten it. (Honest
   note: this lint is a floor; the stress test proved tilt can live below
@@ -649,17 +649,17 @@ shape mirrors the webapp `lean_after {text, changed}`):
   fork (this guards must-fire value).
 - **Refuse identity/moral verdicts.** Do not render — or seal as a contract — a
   verdict about who the user is ("you're not selfish", "you're a bad partner if
-  you don't"). A contract seed is a falsifiable claim about the WORLD, not a
+  you don't"). A prediction to check is a falsifiable claim about the WORLD, not a
   judgment of the user; if the decision was framed as "am I a [bad/selfish]
-  person", convert it to a behavioral/world predicate or set `contract_seed:
+  person", convert it to a behavioral/world predicate or set `prediction_to_check:
   null`. Then **boomerang-scan the closing lines** (`current_course.summary`,
-  `next_helm`): strip any soft re-issuance of a refused verdict (implicit
+  `next_step`): strip any soft re-issuance of a refused verdict (implicit
   absolution or condemnation). This is qualitative — hold the line by hand.
-- Contract seed must be falsifiable. If it cannot be checked later, omit it.
+- Prediction to check must be falsifiable. If it cannot be checked later, omit it.
 - The detail path is a quiet escape hatch, not the main product.
 
 **Verification routing override:** If `verification.routing_decision` is
-`revise_team` or `stop_for_human_check`, Step 7 still renders the bearing but
+`revise_team` or `stop_for_human_check`, Step 7 still renders the course but
 MUST set the course to `revise` / `collect_evidence` and not imply completion.
 Append a resume next-line:
 - ko: `다음: {{routing_decision == "revise_team" ? "/argus:sail --resume " + session.id + " (팀이 반박 항목을 반영해 재작업 후 재검증)" : "사람 확인 항목을 처리한 뒤 /argus:sail --resume " + session.id}}`
@@ -674,7 +674,7 @@ challenged_claims injected — see Step 3.)
 ## Boss Skip Handling
 
 `--no-boss`, `boss = null`, or user choice can skip stakeholder review. Still
-render Current Heading. Do not mention that boss was skipped in the bearing.
+render Current Course. Do not mention that boss was skipped in the course.
 
 ---
 
@@ -684,7 +684,7 @@ render Current Heading. Do not mention that boss was skipped in the bearing.
 |---|---|
 | Low density | MinimalScaffold |
 | Quick | Clarify scaffold |
-| Medium/high | Current Heading |
+| Medium/high | Current Course |
 
 No JSON dumps. No path-only summaries. No internal pipeline report unless the
 user explicitly asks for `/argus:chart` or opens session files.
@@ -694,18 +694,18 @@ user explicitly asks for `/argus:chart` or opens session files.
 ## Meta-Check Gates
 
 - **Surface compression:** default output fits one screen and contains only
-  current course, why, fog/reef, road not taken, next helm, optional contract
+  current course, why, open risk, set-aside option, next step, optional contract
   seed, and detail path.
-- **Voyage continuity:** output preserves at least one alternate course OR
+- **Decision-trail continuity:** output preserves at least one alternate course OR
   explicitly states the decision is flat (no real alternative). An empty
-  `road_not_taken` with a one-line "the axes line up — any reasonable branch
+  `set_aside_options` with a one-line "the axes line up — any reasonable branch
   lands the same" SATISFIES this gate; it is not a failure to find an
-  alternative. Do not manufacture a road-not-taken to pass this check.
-- **Under-fire default (the mirror clause):** the bearing must not over-fire —
-  no manufactured fork on a flat decision, no fabricated fog, no engine-weighted
+  alternative. Do not manufacture a set-aside option to pass this check.
+- **Under-fire default (the mirror clause):** the course must not over-fire —
+  no manufactured fork on a flat decision, no fabricated uncertainty, no engine-weighted
   pole, no reflexive push to re-engage when "you're done" is the honest answer.
   Restraint (one assumption + handle) is the default; depth is user-pulled.
-- **Evidence feel:** when user gave a file/PR/document, the bearing must prove
+- **Evidence feel:** when user gave a file/PR/document, the course must prove
   it read that artifact through source-specific reasons.
 - **No false completion:** blocked or challenged output must not sound approved.
 - **Analysis primacy:** clarify always runs first.
@@ -730,7 +730,7 @@ user explicitly asks for `/argus:chart` or opens session files.
 
 - Running team before clarify.
 - Skipping verify on medium/high paths.
-- Printing worker/ledger/boss internals in the default bearing.
+- Printing worker/ledger/boss internals in the default course.
 - Asking "how should we proceed?" when confidence is high.
 - Letting sub-skills print their full reports when `--invoked-via-sail` is set.
 - Calling the final output SurfaceCard.
@@ -738,8 +738,8 @@ user explicitly asks for `/argus:chart` or opens session files.
   `request_type`) into team/verify/boss, or re-opening a decision the user
   already made. Only `open_decision` flows the full pipeline.
 - **Over-firing on a flat decision (the mirror clause — spine violation).**
-  Manufacturing a fork / road-not-taken / fog where none is load-bearing,
-  running the crew on a `frame_status: flat` decision, emitting an
+  Manufacturing a fork / set-aside option / open risk where none is load-bearing,
+  running the agents on a `frame_status: flat` decision, emitting an
   engine-weighted pole, or reflexively pushing `/argus:revise` / re-engagement
   when the honest answer is "you're done." Restraint is the default.
 - **Running team/verify/boss after the user chose "Light framing only"** in the

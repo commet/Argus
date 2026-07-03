@@ -58,13 +58,13 @@ function bet(id, checkBy, decision, extraEvents = []) {
   ];
 }
 
-function seedBearing(root, sessionId, label, seed, name = "current_bearing.json") {
+function seedCourse(root, sessionId, label, seed, name = "current_course.json") {
   const dir = join(root, ".argus", "sessions", sessionId, "versions", label);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, name), JSON.stringify({
     label,
     current_course: { status: "proceed", summary: "s" },
-    contract_seed: seed,
+    prediction_to_check: seed,
     generated_at: new Date().toISOString(),
   }));
 }
@@ -158,64 +158,64 @@ t("corrupt ledger lines → skipped, valid events survive", () => {
   assert(run(r).includes("/argus:settle"), "valid events must survive corrupt lines");
 });
 
-// ─── Bearing seeds ──────────────────────────────────────
+// ─── Course predictions ──────────────────────────────────────
 
-t("overdue bearing seed → fires", () => {
+t("overdue course prediction → fires", () => {
   const r = repo();
-  seedBearing(r, "s1", "v0.1", { predicate: "시드 예측", check_by: iso(-2) });
+  seedCourse(r, "s1", "v0.1", { predicate: "시드 예측", check_by: iso(-2) });
   const out = run(r);
   assert(out.includes("시드 예측") && out.includes("/argus:settle"), `seed must fire: ${out}`);
 });
 
 t("legacy hyphen spelling seed → fires", () => {
   const r = repo();
-  seedBearing(r, "s1", "v0.1", { predicate: "하이픈 시드", check_by: iso(-2) }, "current-bearing.json");
-  assert(run(r).includes("하이픈 시드"), "hyphen-spelled bearing must be read too");
+  seedCourse(r, "s1", "v0.1", { predicate: "하이픈 시드", check_by: iso(-2) }, "current-course.json");
+  assert(run(r).includes("하이픈 시드"), "hyphen-spelled course must be read too");
 });
 
 t("prose check_by → silence (not mechanically comparable)", () => {
   const r = repo();
-  seedBearing(r, "s1", "v0.1", { predicate: "p", check_by: "런칭 30일 후" });
+  seedCourse(r, "s1", "v0.1", { predicate: "p", check_by: "런칭 30일 후" });
   assert(run(r) === "", "prose dates must be skipped");
 });
 
-t("seed imported + settled in ledger → silence", () => {
+t("prediction imported + settled in ledger → silence", () => {
   const r = repo();
-  seedBearing(r, "s1", "v0.1", { predicate: "임포트된 예측", check_by: iso(-3) });
+  seedCourse(r, "s1", "v0.1", { predicate: "임포트된 예측", check_by: iso(-3) });
   ledger(r, [
-    { event: "harvest", id: "bearing:s1:v0.1", decision: "d", quote: "임포트된 예측" },
-    { event: "seal", id: "bearing:s1:v0.1", predicate: "임포트된 예측", check_by: iso(-3) },
-    { event: "settle", id: "bearing:s1:v0.1", outcome: "happened" },
+    { event: "harvest", id: "course:s1:v0.1", decision: "d", quote: "임포트된 예측" },
+    { event: "seal", id: "course:s1:v0.1", predicate: "임포트된 예측", check_by: iso(-3) },
+    { event: "settle", id: "course:s1:v0.1", outcome: "happened" },
   ]);
-  assert(run(r) === "", "settled imported seed must not re-trigger from the bearing file");
+  assert(run(r) === "", "settled imported seed must not re-trigger from the course file");
 });
 
-t("seed imported + pushed via amend → silence", () => {
+t("prediction imported + pushed via amend → silence", () => {
   const r = repo();
-  seedBearing(r, "s1", "v0.1", { predicate: "미룬 시드", check_by: iso(-3) });
+  seedCourse(r, "s1", "v0.1", { predicate: "미룬 시드", check_by: iso(-3) });
   ledger(r, [
-    { event: "harvest", id: "bearing:s1:v0.1", decision: "d", quote: "미룬 시드" },
-    { event: "seal", id: "bearing:s1:v0.1", predicate: "미룬 시드", check_by: iso(-3) },
-    { event: "amend", id: "bearing:s1:v0.1", check_by: iso(14) },
+    { event: "harvest", id: "course:s1:v0.1", decision: "d", quote: "미룬 시드" },
+    { event: "seal", id: "course:s1:v0.1", predicate: "미룬 시드", check_by: iso(-3) },
+    { event: "amend", id: "course:s1:v0.1", check_by: iso(14) },
   ]);
-  assert(run(r) === "", "pushed imported seed must not nag with the bearing's stale date");
+  assert(run(r) === "", "pushed imported seed must not nag with the course's stale date");
 });
 
-t("seed imported but still open → fires ONCE (ledger owns it)", () => {
+t("prediction imported but still open → fires ONCE (ledger owns it)", () => {
   const r = repo();
-  seedBearing(r, "s1", "v0.1", { predicate: "열린 시드", check_by: iso(-3) });
+  seedCourse(r, "s1", "v0.1", { predicate: "열린 시드", check_by: iso(-3) });
   ledger(r, [
-    { event: "harvest", id: "bearing:s1:v0.1", decision: "d", quote: "열린 시드" },
-    { event: "seal", id: "bearing:s1:v0.1", predicate: "열린 시드", check_by: iso(-3) },
+    { event: "harvest", id: "course:s1:v0.1", decision: "d", quote: "열린 시드" },
+    { event: "seal", id: "course:s1:v0.1", predicate: "열린 시드", check_by: iso(-3) },
   ]);
   const out = run(r);
   assert(out.includes("/argus:settle"), `open imported seed is still due: ${out}`);
   assert(!/2|외/.test(out.replace(iso(-3), "")), `must not double-count: ${out}`);
 });
 
-t("seed sealed under a foreign id (same predicate) → deduped", () => {
+t("prediction sealed under a foreign id (same predicate) → deduped", () => {
   const r = repo();
-  seedBearing(r, "s1", "v0.1", { predicate: "수동 봉인 예측", check_by: iso(-3) });
+  seedCourse(r, "s1", "v0.1", { predicate: "수동 봉인 예측", check_by: iso(-3) });
   ledger(r, bet("dddd0001", iso(-3), "수동", [{ event: "settle", outcome: "partial" }])
     .map(e => (e.event === "seal" ? { ...e, predicate: "수동 봉인 예측" } : e)));
   assert(run(r) === "", "predicate-matched seed must defer to the ledger");
@@ -232,14 +232,14 @@ t("locale ko in config.yaml → Korean line", () => {
   assert(out.includes("정산할 때") && out.includes("/argus:settle"), `expected ko line: ${out}`);
 });
 
-t("UTF-8 BOM bearing (PS 5.1 Out-File) → still fires", () => {
+t("UTF-8 BOM course (PS 5.1 Out-File) → still fires", () => {
   const r = repo();
   const dir = join(r, ".argus", "sessions", "s1", "versions", "v0.1");
   mkdirSync(dir, { recursive: true });
-  const json = JSON.stringify({ label: "v0.1", contract_seed: { predicate: "BOM 시드", check_by: iso(-2) } });
-  writeFileSync(join(dir, "current_bearing.json"), "﻿" + json);
+  const json = JSON.stringify({ label: "v0.1", prediction_to_check: { predicate: "BOM 시드", check_by: iso(-2) } });
+  writeFileSync(join(dir, "current_course.json"), "﻿" + json);
   const out = run(r);
-  assert(out.includes("BOM 시드"), `BOM-prefixed bearing must still be read: ${out}`);
+  assert(out.includes("BOM 시드"), `BOM-prefixed course must still be read: ${out}`);
 });
 
 t("UTF-8 BOM ledger → still replayed", () => {
@@ -250,24 +250,24 @@ t("UTF-8 BOM ledger → still replayed", () => {
   assert(run(r).includes("/argus:settle"), "BOM-prefixed ledger must still fire");
 });
 
-t("root-level bearing seed → fires (statusline coverage parity)", () => {
+t("root-level course prediction → fires (statusline coverage parity)", () => {
   const r = repo();
   mkdirSync(join(r, ".argus"), { recursive: true });
-  writeFileSync(join(r, ".argus", "current-bearing.json"), JSON.stringify({
-    label: "v0.1", contract_seed: { predicate: "루트 시드", check_by: iso(-1) },
+  writeFileSync(join(r, ".argus", "current-course.json"), JSON.stringify({
+    label: "v0.1", prediction_to_check: { predicate: "루트 시드", check_by: iso(-1) },
   }));
   assert(run(r).includes("루트 시드"), "root-level seed must alert like the statusline does");
 });
 
-t("root-level seed sealed by predicate → silence", () => {
+t("root-level prediction sealed by predicate → silence", () => {
   const r = repo();
   mkdirSync(join(r, ".argus"), { recursive: true });
-  writeFileSync(join(r, ".argus", "current-bearing.json"), JSON.stringify({
-    label: "v0.1", contract_seed: { predicate: "루트 봉인 시드", check_by: iso(-1) },
+  writeFileSync(join(r, ".argus", "current-course.json"), JSON.stringify({
+    label: "v0.1", prediction_to_check: { predicate: "루트 봉인 시드", check_by: iso(-1) },
   }));
   ledger(r, bet("eeee0001", iso(-1), "x", [{ event: "settle", outcome: "happened" }])
     .map(e => (e.event === "seal" ? { ...e, predicate: "루트 봉인 시드" } : e)));
-  assert(run(r) === "", "root seed settled under any id must be silent");
+  assert(run(r) === "", "root prediction settled under any id must be silent");
 });
 
 // ─── First-session greeting (once per machine) ──────────
@@ -306,12 +306,12 @@ t("config dir not writable → silence, never a repeating greeting", () => {
 
 // ─── Robustness ─────────────────────────────────────────
 
-t("corrupt bearing json → silence, exit 0", () => {
+t("corrupt course json → silence, exit 0", () => {
   const r = repo();
   const dir = join(r, ".argus", "sessions", "s1", "versions", "v0.1");
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "current_bearing.json"), "{not valid");
-  assert(run(r) === "", "corrupt bearing must degrade to silence");
+  writeFileSync(join(dir, "current_course.json"), "{not valid");
+  assert(run(r) === "", "corrupt course must degrade to silence");
 });
 
 // ─── Cleanup & verdict ──────────────────────────────────

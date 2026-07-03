@@ -47,26 +47,26 @@ changeset that called string-presence "verified" would repeat the Round-3 mistak
   irreversible-only trigger.
 - **negative-control regression fixtures** — three R4 flat over-fire cases
   (folder-rename, satisfied-incumbent, working-Express-stack) baked into
-  `simulate-plugin.js` as expected restraint bearings (empty `road_not_taken`,
-  null `fog_or_reef`, proceed/anchor), plus an over-fire-shape lint (no
+  `simulate-plugin.js` as expected restraint courses (empty `set_aside_options`,
+  null `open_risk`, proceed/anchor), plus an over-fire-shape lint (no
   manufactured fork on flat; gross pole-asymmetry floor). Manual Round-5 protocol
   added to `TEST_PLAN.md`.
 
 ### Changed
-- **sail Current Heading is no longer a forced-fork generator.** The mandates
-  "Always include 1-2 road-not-taken items" and "if none exists, create one from
-  the rejected obvious alternative" are removed — `road_not_taken` is now
-  load-bearing-gated (empty on a flat decision), and `fog_or_reef` no longer
+- **sail Current Course is no longer a forced-fork generator.** The mandates
+  "Always include 1-2 set-aside option items" and "if none exists, create one from
+  the rejected obvious alternative" are removed — `set_aside_options` is now
+  load-bearing-gated (empty on a flat decision), and `open_risk` no longer
   falls back to "the strongest remaining assumption" (a clean decision has no
-  reef). The `current-bearing.json` schema relaxes `road_not_taken.minItems`
+  open risk).. The `current-course.json` schema relaxes `set_aside_options.minItems`
   1→0, and the `validate-plugin.js` guard that *enforced* the over-fire is
   flipped to match.
 - **No engine-weighted pole.** When two poles are shown (`fork` status or two
   roads), they render at parity (comparable depth/word-count, no caveat stacked
   on one side, no "melting" one pole's cost, no verdict tone) + the crux; a
-  swap-test self-check flattens tilt. A tilting bearing is a disguised verdict.
+  swap-test self-check flattens tilt. A tilting course is a disguised verdict.
 - **Refuse identity/moral verdicts as contracts + boomerang scan.** A
-  `contract_seed` is a falsifiable claim about the world, never a verdict about
+  `prediction_to_check` is a falsifiable claim about the world, never a verdict about
   the user; closing lines are scanned for soft re-issuance of a refused verdict
   (the R4 absolution-boomerang).
 - **boss** no longer manufactures concerns on a clean reversible scaffold
@@ -74,7 +74,7 @@ changeset that called string-presence "verified" would repeat the Round-3 mistak
   `/argus:revise` when something is actually worth applying.
 - **verify** must not manufacture minor challenges to look busy — zero challenges
   is a valid `verified`. (Asymmetric: a critical/important challenge is ALWAYS
-  surfaced; this never licenses burying a real reef.)
+  surfaced; this never licenses burying a real blocker.)
 - **settle** is reality-only — a missed/partial outcome no longer auto-offers
   `/argus:sail` (reopen-on-settle was over-fire); re-deciding is the user's move.
 - The mirror clause (over-fire = spine violation) is now in the Forbidden
@@ -88,7 +88,7 @@ changeset that called string-presence "verified" would repeat the Round-3 mistak
   synthesis warns against; it is deferred and, if ever added, is honesty-only.
 - **No port of the webapp P0/P1 plan verbatim.** Those target `src/lib/*` files;
   the plugin's over-fire lived in different surfaces (sail render contract,
-  current-bearing schema, verify/boss/settle). The byte-locked
+  current-course schema, verify/boss/settle). The byte-locked
   `data/prompts/probe-prompts.md` was left untouched (parity with the web engine).
 
 ## 2.5.0 — 2026-06-17
@@ -148,7 +148,7 @@ simulated runs (PM pptx voyage, full settlement loop). Both survived; one
 real bug and eleven spec gaps fell out.
 
 ### Fixed (from the simulated runs)
-- **Windows BOM bug (the big one):** a bearing/ledger ever touched by PS 5.1
+- **Windows BOM bug (the big one):** a course/ledger ever touched by PS 5.1
   `Out-File -Encoding utf8` carries a UTF-8 BOM; `JSON.parse` threw, the file
   silently vanished from the reminder hook AND the statusline (no overdue
   alert, ever — the calibration flywheel never starts), and the miss burned
@@ -159,7 +159,7 @@ real bug and eleven spec gaps fell out.
   re-running the whole team over a wording nit. Now requires severity ≥
   important; minors travel as caveats.
 - **verify over-blocking:** prose examples only ever showed gating `blocks`
-  values; a model following them flips the bearing to `collect_evidence` on
+  values; a model following them flips the course to `collect_evidence` on
   merely-worth-doing checks. The four-value semantics (`none`/`boss_review`
   don't gate) are now stated.
 - **team self-escalation trap:** the critic mandate could append a critique
@@ -168,18 +168,18 @@ real bug and eleven spec gaps fell out.
   Only plan-native critique steps count now.
 - **No session ever reached `complete`:** boss leaves `refining` and nothing
   closed it; `--resume` misrouted finished voyages into revise. sail Step 7
-  now sets `complete` after rendering the bearing.
+  now sets `complete` after rendering the course.
 - **Probe was structurally silent on document runs:** "the brief" was
   undefined for document targets — anchors quoted a 6-word problem text and
   every fork failed the post-filters. Brief = problem_text + extracted
   target contents, now stated.
 - **Extraction scratch dir** pinned to OS temp (extracting into cwd would
-  break zero-droppings); hook now scans root/session-level bearings (parity
+  break zero-droppings); hook now scans root/session-level courses (parity
   with the statusline — a seed can no longer alert on one surface while
   settle can't reach it); settle Step 1 scans the same three levels.
 - settle Step 4's 안개-line data path specified (parse the contract id back
-  into the bearing path); seed-import no longer fabricates `stakes:"high"`;
-  log renders bearing-only voyages instead of "Voyages: 0 / Contracts: 1";
+  into the course path); seed-import no longer fabricates `stakes:"high"`;
+  log renders course-only voyages instead of "Voyages: 0 / Contracts: 1";
   boss demands embedded in `first_reaction` route like any other demand;
   time previews and README cost table updated to measured numbers (~4–8 min
   standard); track-record line shows "(인사이트까지 N건)" before T=3.
@@ -211,8 +211,8 @@ real bug and eleven spec gaps fell out.
   JSON-parse the new line — every reader silently skips corrupt lines, so a
   malformed seal is a prediction that silently ceases to exist; now it gets
   corrected at write time.
-- **Settle #1 payoff**: when a settled contract came from a bearing seed, the
-  report quotes the bearing's fog/reef next to the outcome ("당시 짚었던
+- **Settle #1 payoff**: when a settled contract came from a course prediction, the
+  report quotes the course's open risk next to the outcome ("당시 짚었던
   안개: … — 현실의 답: …") — the earliest visible proof that the harness saw
   a real risk, and the only moment cheap enough to buy settle #2.
 
@@ -277,19 +277,19 @@ statusline) now follow the same ledger contract as the skills.
   date" writes `amend`) kept firing the session-start reminder with the stale
   date for the whole extension, and a dismissed contract nagged forever. The
   hook now replays the full event set per `ledger.mjs` (the contract).
-- **Settled bearing seeds flashed OVERDUE forever** — settle imports a seed
-  into the ledger (id `bearing:<session>:<label>`) and never mutates the
-  bearing file, but the hook and the statusline both counted `contract_seed`
+- **Settled course predictions flashed OVERDUE forever** — settle imports a seed
+  into the ledger (id `course:<session>:<label>`) and never mutates the
+  course file, but the hook and the statusline both counted `prediction_to_check`
   unconditionally. After settling, both surfaces pointed at `/argus:settle`
   while settle itself correctly said "no contracts due." Both now skip seeds
-  whose id — or verbatim predicate, for root-level bearings — already appears
+  whose id — or verbatim predicate, for root-level courses — already appears
   in the ledger.
 - **Ledger was not actually gitignored** — settle claimed "the ledger inherits
   the privacy default," but sail Step 0's `.argus/.gitignore` only covered
   `sessions/` and `errors.log`; verbatim predictions were committed by
   default. sail now writes a `ledger/` line, and settle/helm append it to
   older gitignores that predate the settlement loop.
-- Hook now reads the legacy `current-bearing.json` spelling too (parity with
+- Hook now reads the legacy `current-course.json` spelling too (parity with
   the statusline).
 
 ### Added
@@ -302,7 +302,7 @@ statusline) now follow the same ledger contract as the skills.
 
 ### Changed
 - README ko/en document `/argus:log --insights` and `--all`; marketplace
-  listing text updated from the pre-Current-Bearing "decision scaffold"
+  listing text updated from the pre-Current-Course "decision scaffold"
   wording to the voyage/settlement loop.
 - install.sh warns that the legacy copy install does not ship the
   contract-reminder hook (plugin install is the supported path for it).
@@ -315,7 +315,7 @@ visible and useful.
 ### Added
 - **`/argus:settle`** — settle contracts past their check-by date: one neutral
   question per contract (held / missed / partial / push the date), outcome
-  appended to the append-only ledger. Bearing seeds are imported into the
+  appended to the append-only ledger. Course predictions are imported into the
   ledger on first settle so it stays the single replayable source. This was
   the missing back half of the loop — the 2.2.0 reminder hook pointed at a
   command that couldn't act.
@@ -327,7 +327,7 @@ visible and useful.
   voyages inject ONE reference-only line (counts + the most recently missed
   prediction) into the initial analysis. Scoped, never directive, never
   fewer-than-2 anecdotes.
-- **First-voyage hint** — after the project's first-ever bearing, one line
+- **First-voyage hint** — after the project's first-ever course, one line
   pointing to `/argus:chart` and `/argus:help`. Never repeats.
 
 ### Changed
@@ -350,7 +350,7 @@ Plugin-spec alignment + first-run friction removal.
   fallbacks (legacy `install.sh` copy dirs → repo-local). Previously every
   skill pointed at `~/.claude/argus-data/`, which only existed after running
   the copy installer — the documented marketplace path broke on first run.
-- `contract_seed` is now a full four-part falsifiable contract
+- `prediction_to_check` is now a full four-part falsifiable contract
   (predicate / check_by / pass_condition / fail_condition), matching the
   schema and the simulation gate.
 - Error messages are bilingual (ko/en) and point to plugin reinstall instead
@@ -359,8 +359,8 @@ Plugin-spec alignment + first-run friction removal.
   generic-stakeholder fallback is now fully specified (`mbti_type: null`).
 - Orphan session phases (`team_working`, `mixing`) removed from the schema and
   the sail routing table; interrupted-mid-team sessions now resume cleanly.
-- Statusline reads both `current_bearing.json` (v2 skills) and the legacy
-  `current-bearing.json` spelling.
+- Statusline reads both `current_course.json` (v2 skills) and the legacy
+  `current-course.json` spelling.
 
 ### Added
 - **`/argus:help`** — in-product orientation: command map, flags, situational
@@ -381,7 +381,7 @@ Plugin-spec alignment + first-run friction removal.
   routing (`proceed_to_boss` / `revise_team` / `stop_for_human_check` /
   `ask_user`); `/argus:revise` iteration loop with child drafts;
   `/argus:chart` version tree with checkout/promote.
-- Current Heading as the default surface (machinery hidden by default).
+- Current Course as the default surface (machinery hidden by default).
 - Trial-sail probe (clarify Step 3.5) with mechanical post-filters.
 
 ## 2.0.0 — 2026-04-24

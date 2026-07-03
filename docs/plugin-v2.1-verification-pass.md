@@ -47,7 +47,7 @@ clarify -> team -> boss -> final card
 to:
 
 ```text
-clarify -> team -> verify -> boss -> Current Bearing
+clarify -> team -> verify -> boss -> Current Course
 ```
 
 Low-density decisions still skip the full pipeline and return a minimal scaffold.
@@ -104,9 +104,9 @@ Skills:
   explicitly overrides.
 - `skills/revise/SKILL.md` closes the repair loop by creating child drafts after
   verification, boss feedback, or user directives.
-- `skills/sail/SKILL.md` now treats Current Bearing as the default product
-  surface: one screen with current course, evidence, fog/reef, road not taken,
-  next helm, and an optional decision-contract seed.
+- `skills/sail/SKILL.md` now treats Current Course as the default product
+  surface: one screen with current course, evidence, open risk, set-aside option,
+  next step, and an optional decision-prediction to check.
 - `skills/chart/SKILL.md` shows verification status and next steps.
 - `skills/clarify/SKILL.md` now marks minimal routes as skipping team, verify,
   boss, and debate.

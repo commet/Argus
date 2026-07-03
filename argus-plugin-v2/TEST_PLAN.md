@@ -167,17 +167,17 @@ review because it includes checked claims and preserved tension.
 
 FAIL: it reads like a normal markdown review with extra fields.
 
-### #5.5 Current Heading Compression
+### #5.5 Current Course Compression
 
 PASS: default `/argus:sail` output is one screen and does not make the user think
 about agents, ledgers, schemas, or workflow phases.
 
 FAIL: output sells the multi-agent machinery instead of showing the current
-course, why, fog/reef, road not taken, next helm, and optional contract seed.
+course, why, open risk, set-aside option, next step, and optional prediction to check.
 
 ### #5.6 Voyage Continuity
 
-PASS: the output preserves at least one meaningful road-not-taken or explicitly
+PASS: the output preserves at least one meaningful set-aside option or explicitly
 states why the decision is too small for an alternate course.
 
 FAIL: the output is just a recommendation plus reasons, indistinguishable from a
@@ -217,7 +217,7 @@ Write results to `.argus/test-observations.md`:
 - #3 verification: N/A - minimal route skipped verification as expected
 - #4 human gate: N/A
 - #5 commodity: PASS - [evidence]
-- #5.5 current bearing compression: PASS - [evidence]
+- #5.5 current course compression: PASS - [evidence]
 - #5.6 voyage continuity: PASS - [evidence]
 - #6 use intent: PASS - [evidence]
 - #7 revision integrity: N/A - no revision path in TC1
@@ -258,14 +258,14 @@ node ./argus-plugin-v2/scripts/test-check-contracts.mjs
 - GDPR/EU launch decision
 - low-density rename route
 
-The simulation fails when a Current Heading:
+The simulation fails when a Current Course:
 
 - lacks source references for file/PR/document cases,
-- has no road-not-taken for medium/high decisions,
+- has no set-aside option for medium/high decisions,
 - leaks machinery terms such as agent counts, schemas, or SurfaceCard,
 - exceeds one terminal screen,
 - marks blocked output with a proceed/anchor course,
-- includes a non-falsifiable contract seed.
+- includes a non-falsifiable prediction to check.
 
 ---
 
@@ -333,10 +333,10 @@ helm을 훅에 연결하지 마라.
 **FAIL** = 결과를 스킬이 추론해서 기록, 기존 줄 재작성, 점수/평가 어휘.
 
 ### TC-ST-2 — 베어링 시드 임포트 정산
-사전 조건: ledger 없음, `sessions/<id>/versions/<label>/current_bearing.json`에
-check_by 지난 `contract_seed`만 존재.
+사전 조건: ledger 없음, `sessions/<id>/versions/<label>/current_course.json`에
+check_by 지난 `prediction_to_check`만 존재.
 `/argus:settle` 실행 → 정산.
-**PASS** = ① ledger에 `bearing:<session-id>:<label>` id로 harvest+seal 임포트
+**PASS** = ① ledger에 `course:<session-id>:<label>` id로 harvest+seal 임포트
 후 settle ② 베어링 파일은 바이트 단위로 미변경 ③ 직후 `/argus:settle` 재실행
 시 "No contracts due" ④ (플러그인 설치 환경) 다음 세션 시작 훅 침묵 +
 스테이터스라인 OVERDUE 없음 — 2.3.0의 영구 OVERDUE 루프 회귀 체크.
@@ -421,12 +421,12 @@ due 계약 0 상태에서 `/argus:settle`.
 > 평결 (b) — find-the-leverage 엔진은 **평탄한 결정에서 발산을 제조**한다
 > (negative control 60% over-fire, asymmetric_steer가 modal harm). v2.6.0은
 > dial을 **under-fire 디폴트**로 고정했다 (clarify FLAT 분기, sail Step 6·0.5
-> flatness gate + no-tilt bearing, boss/verify/settle 절제).
+> flatness gate + no-tilt course, boss/verify/settle 절제).
 
 ### 정직한 한계 — 구조 가드는 *회귀 바닥*이지 *안전 증명*이 아니다
 
 플러그인은 프롬프트 기반이고 CI에 실행 LLM이 없다. `validate-plugin.js`(문자열·
-스키마 가드)와 `simulate-plugin.js`(손수 작성한 bearing fixture + over-fire-shape
+스키마 가드)와 `simulate-plugin.js`(손수 작성한 course fixture + over-fire-shape
 lint)는 **gross shape만** 잡는다 — 라운드 4가 증명했듯 *tilt는 구조 체크 아래에
 산다*(D1 ledger를 통과한 asymmetric_steer). 그래서 아래 자동 가드가 통과해도
 "over-fire 고쳤다"가 아니라 "**명백한 형태의 과발화는 회귀하지 않는다**"까지만
@@ -437,10 +437,10 @@ lint)는 **gross shape만** 잡는다 — 라운드 4가 증명했듯 *tilt는 �
 `node scripts/validate-plugin.js && node scripts/simulate-plugin.js`.
 **PASS** = ① clarify가 `frame_status` + load-bearing 테스트를 명시 ② sail에
 flatness gate(Step 6·0.5) 존재 + "create one from the rejected obvious
-alternative" 부재 + engine-weighted pole/swap-test 명문화 ③ current-bearing
-스키마 `road_not_taken.minItems == 0` ④ settle가 missed/partial에 `/argus:sail`
+alternative" 부재 + engine-weighted pole/swap-test 명문화 ③ current-course
+스키마 `set_aside_options.minItems == 0` ④ settle가 missed/partial에 `/argus:sail`
 자동 제안 안 함 ⑤ R4 평탄 fixture 3건(folder-rename·incumbent·express)이 빈
-road_not_taken·null fog·proceed/anchor로 통과, fork fixture가 parity floor 통과.
+set_aside_options·null fog·proceed/anchor로 통과, fork fixture가 parity floor 통과.
 
 ### TC-OF-2 — 수동 라운드 5 (엄격 5-vote + negative control, 분기별 1회)
 엔진 프롬프트(clarify/sail/boss/verify)를 의미 있게 바꿀 때마다 1회:

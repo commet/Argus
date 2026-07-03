@@ -213,8 +213,8 @@ if [ ! -f "$CLAUDE_DIR/argus-data/schemas/verification-ledger.json" ]; then
   ERRORS=$((ERRORS + 1))
 fi
 
-if [ ! -f "$CLAUDE_DIR/argus-data/schemas/current-bearing.json" ]; then
-  fail "Missing: current-bearing.json"
+if [ ! -f "$CLAUDE_DIR/argus-data/schemas/current-course.json" ]; then
+  fail "Missing: current-course.json"
   ERRORS=$((ERRORS + 1))
 fi
 
@@ -247,7 +247,7 @@ if [ "$ERRORS" -eq 0 ]; then
   echo ""
   echo -e "    ${BOLD}/argus:sail${NC} \"A decision I'm stuck on\""
   echo ""
-  echo -e "  ${DIM}Medium/high decisions return a compressed Current Heading.${NC}"
+  echo -e "  ${DIM}Medium/high decisions return a compressed Current Course.${NC}"
   echo -e "  ${DIM}Full reasoning is saved in .argus/sessions/ (git-ignored by default).${NC}"
 else
   fail "Installation incomplete."

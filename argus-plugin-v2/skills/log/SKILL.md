@@ -30,11 +30,11 @@ was predicted, and how those predictions fared.
 
 1. **Sessions:** for each `.argus/sessions/<id>/`, read `session.json`
    (defensive-parse; skip corrupt) → id, `problem_text`, `phase`,
-   `updated_at`. From the newest version dir read `current_bearing.json` →
+   `updated_at`. From the newest version dir read `current_course.json` →
    `current_course.status` + summary, or `minimal_scaffold.json` →
-   "minimal". Missing both → "in progress". **A session dir with a bearing
+   "minimal". Missing both → "in progress". **A session dir with a course
    but no readable `session.json`** (webapp emission, partial sync) still
-   counts as a voyage — render it degraded from the bearing
+   counts as a voyage — render it degraded from the course
    (`current_course.summary` in place of `problem_text`, date from
    `generated_at`); never show "Voyages: 0" next to "Contracts: 1 sealed".
 2. **Ledger:** replay `.argus/ledger/ledger.jsonl` by id (`seal` opens,
@@ -80,7 +80,7 @@ Reopen a voyage: /argus:chart --session <id> · /argus:sail --resume <id>
 ```
 
 Keep it under one terminal screen. No worker counts, no schema names, no
-machinery — same surface rules as the Current Heading.
+machinery — same surface rules as the Current Course.
 
 ## Step 3 — `--insights` (optional, the only LLM use)
 
@@ -96,15 +96,15 @@ the moat is *over-sold* the moment a 4-7-entry correlation is stated as a rule:
   경향") — never a law.
 - `rule` (11+): may be stated as a pattern, still scoped to the user's own log.
 
-Prompt yourself with the settled predicates + outcomes + recent fog/reef items
-**plus the `basis` (reasoned/luck/external) and fog/reef tags VERBATIM** — do NOT
+Prompt yourself with the settled predicates + outcomes + recent open risk items
+**plus the `basis` (reasoned/luck/external) and open risk tags VERBATIM** — do NOT
 re-infer or relabel a tag the user/engine already set (R33: weak models relabel a
-`luck`/`mixed` win as a skill-win, or a `fog` as a `reef`; the ledger tag is
+`luck`/`mixed` win as a skill-win, or an open risk as a verdict; the ledger tag is
 ground truth — quote it). Wrap all in `<user-data>`. Produce AT MOST 3 lines,
 each grounded in a SPECIFIC entry, at the strength `pattern_strength` allows:
 
 - one observation in held-vs-missed (cite entries, not vibes);
-- one fog/reef theme **only if it genuinely recurs** (a single occurrence is not
+- one open risk theme **only if it genuinely recurs** (a single occurrence is not
   a theme — stay silent rather than inflate one entry);
 - one suggestion as reference, not directive ("worth one extra check when X" —
   never "be more conservative").

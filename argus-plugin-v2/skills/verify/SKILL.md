@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Heading. Invoked as `/argus:verify`.
+description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Course. Invoked as `/argus:verify`.
 ---
 
 # /argus:verify
@@ -10,7 +10,7 @@ description: Verify Argus crew output before it is promoted. Splits claims into 
 outcome grading.
 
 **Why this matters:** Argus must not let fluent crew output become a false
-bearing. Verification names what can be trusted, what is weak, what remains in
+course. Verification names what can be trusted, what is weak, what remains in
 tension, and what only a human/external source can check.
 
 ---
@@ -165,7 +165,7 @@ Claims failing checks become `challenged_claims[]`:
 Severity:
 
 - `critical`: final signoff or execution would be unsafe.
-- `important`: must be visible in the Current Heading or fixed.
+- `important`: must be visible in the Current Course or fixed.
 - `minor`: note it; do not block by itself.
 
 **Do not manufacture minor challenges to fill the ledger.** A genuinely clean,
@@ -175,7 +175,7 @@ gate "did work" is over-fire (the mirror clause, CLAUDE.md): it manufactures
 ceremony and downstream pushes a needless revise loop. **This restraint is
 asymmetric and never applies upward:** a `critical` or `important` challenge is
 ALWAYS surfaced — verify's reason to exist is catching the fluent-but-wrong
-claim, and burying a real reef to look tidy is the opposite, under-fire failure.
+claim, and burying a real blocker to look tidy is the opposite, under-fire failure.
 Suppress only the manufactured *minor*, never a real material challenge.
 
 ### Step 5 - Preserve Tensions
@@ -208,7 +208,7 @@ Each check must say why AI cannot verify it:
 `blocks` takes FOUR values (per the schema): `"execution"` and
 `"final_signoff"` gate; `"boss_review"` and `"none"` do NOT. A check that is
 merely worth doing is `"none"` and must not flip the overall status to
-`blocked` (or the bearing to `collect_evidence`). Most human checks are
+`blocked` (or the course to `collect_evidence`). Most human checks are
 `"none"` or `"boss_review"` — reserve the gating values for checks whose
 failure genuinely invalidates the course. (The example above gates because
 unsigned legal review really does.)
@@ -293,11 +293,11 @@ Update `session.json`:
 If `--invoked-via-sail`, print one line only:
 
 ```text
-Evidence checked. Any fog, reef, or human-only check will be folded into the current bearing.
+Evidence checked. Any open risk, or human-only check will be folded into the current course.
 ```
 
 Do not print claim counts, ledger counts, routing internals, or agent names.
-Sail owns the consolidated Current Heading.
+Sail owns the consolidated Current Course.
 
 For direct invocation:
 
@@ -336,8 +336,8 @@ Keep this to one terminal screen. Full detail stays in `verification.json`.
 - **No contradiction averaging:** unresolved tensions remain visible.
 - **Human agency:** material routing changes use `AskUserQuestion` unless
   `--no-prompt` was explicitly passed.
-- **Current Heading readiness:** the ledger must identify one best fog/reef item
-  that sail can carry into `current_bearing.json`.
+- **Current Course readiness:** the ledger must identify one best open risk item
+  that sail can carry into `current_course.json`.
 
 ---
 

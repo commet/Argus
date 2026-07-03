@@ -23,11 +23,10 @@ Argus is built to not do that. Before it answers, it sharpens what you're
 really deciding, puts a small team of agents to work on your actual code,
 PR, or document, and **verifies their claims** — separating what's supported
 by evidence from what merely sounds plausible. Only then does it answer, in
-one screen called a **Current Heading**: the current course, why, what's still
-unverified, which alternative was set aside and why, and the next concrete
+one screen called a **Current Course**: the current course, why, what's still unverified, which alternative was set aside and why, and the next concrete
 step.
 
-Agents are crew, not the show. The product is orientation, not a workflow
+Agents are workers behind the scenes, not the show. The product is orientation, not a workflow
 report.
 
 ---
@@ -56,7 +55,7 @@ A consequential question gets the full pipeline — but the output stays one
 screen:
 
 ```text
-## Argus - Current Heading - v0.1
+## Argus - Current Course - v0.1
 
 Current course: run a 4-hour migration spike before deciding on consolidation.
 
@@ -64,25 +63,25 @@ Why this course:
 - The product-identity upside is real, but cost savings alone do not justify the move.
 - The plugin/webapp depth gap is still unproven from usage data.
 
-Fog / reef: "plugin Boss can match webapp depth in 6 months" has no evidence yet.
+Open risk: "plugin Boss can match webapp depth in 6 months" has no evidence yet.
 Why it matters: that claim would make the migration look safer than it is.
 Required check: pull DAU split by surface.
 
-Road not taken: full consolidation now - it spends migration cost before proving demand.
+Set-aside option: full consolidation now - it spends migration cost before proving demand.
 
-Next helm: pull DAU split, then run the spike.
+Next step: pull DAU split, then run the spike.
 
-Contract seed: if plugin DAU is below X after 30 days, do not absorb the webapp path.
+Prediction to check: if plugin DAU is below X after 30 days, do not absorb the webapp path.
 Check by: 30 days after plugin release.
 
 Details: .argus/sessions/2026-04-29-boss-absorption/versions/v0.1/
 ```
 
 Reading the card, top to bottom: **where you're headed** (current course),
-**the evidence for it**, **the riskiest unverified claim** (fog/reef), **the
+**the evidence for it**, **the riskiest unresolved point** (open risk), **the
 alternative you're consciously not taking**, **the next concrete action**
-(next helm), and **a prediction you can later check against reality**
-(contract seed). The full reasoning — every agent's work, every verified and
+(next step), and **a prediction you can later check against reality**
+(prediction to check). The full reasoning — every agent's work, every verified and
 challenged claim — is preserved on disk under `.argus/sessions/`.
 
 ---
@@ -162,15 +161,15 @@ Works on macOS, Linux, and Windows.
 
 | Command | What it does |
 |---|---|
-| `/argus:sail` | **Start here.** Runs the whole flow and renders the Current Heading. |
+| `/argus:sail` | **Start here.** Runs the whole flow and renders the Current Course. |
 | `/argus:help` | Command map; tells you which command fits your situation. |
-| `/argus:chart` | Where am I in this voyage? Version tree, open checks, next step. Also promote/branch. |
-| `/argus:log` | Voyage log across all sessions: past decisions, sealed contracts, your prediction record. `--insights` adds pattern notes once ≥3 contracts are settled; `--all` lists every session. |
+| `/argus:chart` | Where does this decision stand? Version tree, open checks, next step. Also promote/branch. |
+| `/argus:log` | Decision log across all sessions: past decisions, sealed contracts, your prediction record. `--insights` adds pattern notes once ≥3 contracts are settled; `--all` lists every session. |
 | `/argus:settle` | Check predictions whose date arrived against reality; builds your calibration history. |
 | `/argus:revise` | Apply review feedback into a new draft and re-verify — the iteration loop. |
 | `/argus:clarify` | Sharpen the real question before any work (sail runs this first). |
-| `/argus:team` | Put the agent crew to work on the artifact (sail chains this). |
-| `/argus:verify` | Split crew claims into supported / challenged / human-required (sail chains this). |
+| `/argus:team` | Put the worker agents on the artifact on the artifact (sail chains this). |
+| `/argus:verify` | Split agent claims into supported / challenged / human-required (sail chains this). |
 | `/argus:boss` | Stakeholder pressure-check in a configurable persona (sail chains this). |
 | `/argus:helm` | *Experimental.* Silent pre-approval scan of an agent plan; speaks only when an unverified claim props up an irreversible action. |
 
@@ -190,7 +189,7 @@ Flags for `sail`:
 For consequential decisions, sail runs this pipeline behind the scenes:
 
 ```text
-clarify ──→ crew work ──→ verify ──→ stakeholder review ──→ Current Heading
+clarify ──→ agent work ──→ verify ──→ stakeholder review ──→ Current Course
 (real        (agents work    (claims:      (optional,           (one screen)
  question)    the artifact)   supported /   persona-based)
                               challenged /
@@ -200,7 +199,7 @@ clarify ──→ crew work ──→ verify ──→ stakeholder review ──
 Three properties worth knowing:
 
 - **Verification is a gate, not decoration.** If a critical claim has no
-  evidence, the bearing says *hold* or *collect evidence* — it will not hide
+  evidence, the course says *hold* or *collect evidence* — it will not hide
   an unverified claim inside polished language. When only a human can check
   something, Argus asks you directly instead of guessing.
 - **Disagreement is preserved.** When agents genuinely conflict, the card
@@ -211,7 +210,7 @@ Three properties worth knowing:
 
 ### The settlement loop
 
-A Current Heading close to a final decision ends with a **contract seed**: a
+A Current Course close to a final decision ends with a **prediction to check**: a
 falsifiable prediction with a check-by date ("if plugin DAU is below X after
 30 days, do not absorb the webapp path"). The loop then closes itself:
 
@@ -221,7 +220,7 @@ falsifiable prediction with a check-by date ("if plugin DAU is below X after
 2. `/argus:settle` asks what reality did (held / missed / partial / push the
    date) and records it in an append-only ledger.
 3. `/argus:log` shows the running record — and once enough contracts are
-   settled, new voyages quietly take your track record into account when
+   settled, new runs quietly take your track record into account when
    surfacing hidden assumptions.
 
 This is the part that compounds: over time `.argus/` becomes a record of what
@@ -283,7 +282,7 @@ the marketplace install above is the supported path.
 
 - Changelog: `CHANGELOG.md`
 - Agent roster: `data/agents.yaml` · Boss personas: `data/boss-types.yaml`
-- Schemas: `data/schemas/*.json` (Current Heading: `current-bearing.json`,
+- Schemas: `data/schemas/*.json` (Current Course: `current-course.json`,
   verification ledger: `verification-ledger.json`)
 - Version-tree mechanics: `lib/session/version-numbering.md`
 - Design direction: `../docs/ARGUS-FINAL-DIRECTION.md` ·

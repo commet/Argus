@@ -20,7 +20,8 @@
       "Skill(blindspot:*)",
       "Bash(npm run:*)",
       "Bash(npm test:*)",
-      "Bash(cd C:/Users/SAMSUNG/Documents/GitHub/commet/argus-main-map && ls -la)"
+      "Bash(cd C:/Users/SAMSUNG/Documents/GitHub/commet/argus-main-map && ls -la)",
+      "Workflow(deep-research)"
     ]
   }
 }

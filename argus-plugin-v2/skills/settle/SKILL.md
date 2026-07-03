@@ -36,14 +36,14 @@ Two sources, merged and deduped by id:
    (`predicate`, `falsified_if`, `check_by`), `amend` updates fields,
    `settle`/`dismiss` closes it. Keep contracts still open whose `check_by`
    (ISO date) ≤ today.
-2. **Bearing seeds:** every `current_bearing.json` (or legacy hyphen
-   spelling) with a `contract_seed` whose `check_by` contains an ISO date ≤
+2. **Course predictions:** every `current_course.json` (or legacy hyphen
+   spelling) with a `prediction_to_check` whose `check_by` contains an ISO date ≤
    today — scan the same three levels the statusline and reminder hook scan,
    so no surface can alert on a seed settle can't reach:
-   `.argus/sessions/*/versions/*/` (id `bearing:<session-id>:<label>`),
-   `.argus/sessions/*/` (id `bearing:<session-id>:<bearing.label or "v0">`),
-   and `.argus/` root (id `bearing:root:<bearing.label or "v0">`).
-   Synthesize a stable id: `bearing:<session-id>:<label>`. Skip seeds whose id
+   `.argus/sessions/*/versions/*/` (id `course:<session-id>:<label>`),
+   `.argus/sessions/*/` (id `course:<session-id>:<course.label or "v0">`),
+   and `.argus/` root (id `course:root:<course.label or "v0">`).
+   Synthesize a stable id: `course:<session-id>:<label>`. Skip seeds whose id
    already appears in the ledger (they were settled or already imported) — or
    whose verbatim predicate was already sealed under another id (e.g., sealed
    manually via argus-watch); the reminder hook and statusline dedup the same
@@ -97,11 +97,11 @@ is exactly what lets concurrent in-process writers AND git merges both converge 
 this rule applies to every ledger writer (settle, helm, watch), not just here.
 
 
-- For a **bearing seed not yet in the ledger**, first import it as two events,
+- For a **course prediction not yet in the ledger**, first import it as two events,
   then settle — so the ledger stays the single replayable source:
 
 ```json
-{"event":"harvest","id":"bearing:<session-id>:<label>","project":"<name of the directory containing .argus>","session":"<session-id>","decided_at":"<bearing generated_at>","quote":"<predicate>","decision":"<current_course.summary>","type":"adopt","stakes":"<from the session's classification.json if readable; omit the field otherwise — never fabricate>","at":"<now ISO>"}
+{"event":"harvest","id":"course:<session-id>:<label>","project":"<name of the directory containing .argus>","session":"<session-id>","decided_at":"<course generated_at>","quote":"<predicate>","decision":"<current_course.summary>","type":"adopt","stakes":"<from the session's classification.json if readable; omit the field otherwise — never fabricate>","at":"<now ISO>"}
 {"event":"seal","id":"<same id>","predicate":"<predicate>","falsified_if":"<fail_condition or 'opposite observed'>","check_by":"<ISO date>","at":"<now ISO>"}
 ```
 
@@ -145,8 +145,8 @@ ledger (verbatim predicates and outcomes) stays local by default.
 ## Argus - Settle
 
 ✓ "{{predicate clipped 70}}" → {{outcome}}
-{{if contract came from a bearing seed AND that bearing has fog_or_reef}}
-  당시 짚었던 안개: "{{fog_or_reef.issue clipped 60}}" — 현실의 답: {{outcome}}
+{{if contract came from a course prediction AND that course has open_risk}}
+  당시 짚었던 안개: "{{open_risk.issue clipped 60}}" — 현실의 답: {{outcome}}
 {{endif}}
 {{...per settled contract}}
 {{if pending}}→ "{{predicate}}" pushed to {{new check_by}}{{endif}}
@@ -165,12 +165,12 @@ the request-type gate (clarify Step 1.7) refuses to fork a vent. The 안개-line
 above already surfaces "what you flagged vs what reality did" honestly; let that
 stand on its own. If the user wants to re-decide, they will say so.
 
-**Recovering `fog_or_reef` for the 안개 line:** parse the contract id back
-into a path — `bearing:<session-id>:<label>` →
-`.argus/sessions/<session-id>/versions/<label>/current_bearing.json` (try the
-hyphen spelling too; `bearing:root:<label>` → the root bearing). This works
+**Recovering `open_risk` for the 안개 line:** parse the contract id back
+into a path — `course:<session-id>:<label>` →
+`.argus/sessions/<session-id>/versions/<label>/current_course.json` (try the
+hyphen spelling too; `course:root:<label>` → the root course). This works
 for ledger-origin contracts settled in a later run, where the id is the only
-link back to the source bearing. If the bearing is gone, skip the line —
+link back to the source course. If the course is gone, skip the line —
 never reconstruct the fog from memory.
 
 The track-record line is computed mechanically from the full ledger replay.
@@ -194,7 +194,7 @@ for settle #2 — it quotes, it never editorializes.
   `happened`/`avoided` from git state or argument.
 - **No nagging:** one pass per invocation; skipping is one tap and is never
   questioned.
-- **Id stability:** the same bearing seed must always produce the same id, or
+- **Id stability:** the same course prediction must always produce the same id, or
   it will be double-settled.
 
 ## Forbidden patterns

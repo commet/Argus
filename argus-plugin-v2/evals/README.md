@@ -4,8 +4,8 @@
 rules are a *floor*, not enforcement — under token pressure a model skips its own
 required steps (Superpowers #528; Argus R29 found 25–44% prose-enforcement
 failure). The old `scripts/simulate-plugin.js` validated *hand-authored ideal
-bearings* against the schema — it never scored what the model actually generates.
-This harness closes that gap: it generates bearings from the **real sail
+courses* against the schema — it never scored what the model actually generates.
+This harness closes that gap: it generates courses from the **real sail
 SKILL.md** and measures whether the spine ("maximum generation, zero judgment")
 actually holds — as a number, on every change, instead of a manual stress round.
 
@@ -14,7 +14,7 @@ actually holds — as a number, on every change, instead of a manual stress roun
 | Layer | File | Needs key? | Catches |
 |---|---|---|---|
 | 1. Generate | `run.mjs` → `generate()` | yes | — (produces model output from the real skill prompt) |
-| 2. Static gate | `static-gate.mjs` | no | gross shapes: over-fire (flat→fork/fog), machinery leak, disclaimed lean, crisis verdict, asymmetric fork |
+| 2. Static gate | `static-gate.mjs` | no | gross shapes: over-fire (flat→fork/uncertainty), machinery leak, disclaimed lean, crisis verdict, asymmetric fork |
 | 3. LLM judge | `run.mjs` → `judge()` | yes | the subtle **tilt** the static layer can't see (charity asymmetry, melted poles, soft leans) — rounds 5–8 proved tilt lives below structural checks |
 
 ## Run it

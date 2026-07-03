@@ -24,65 +24,65 @@ function run(files) {
   return out;
 }
 
-const cleanBearing = {
+const cleanCourse = {
   label: 'v0.1',
   current_course: { status: 'proceed', summary: 'Keep the current stack — nothing argues for a change.' },
   why_this_course: [{ point: 'Works with no stated pain.' }],
-  fog_or_reef: null, road_not_taken: [], next_helm: 'Keep going.',
-  contract_seed: null, blocked: false, detail_path: '.argus/x', generated_at: '2026-06-23T00:00:00.000Z',
+  open_risk: null, set_aside_options: [], next_step: 'Keep going.',
+  prediction_to_check: null, blocked: false, detail_path: '.argus/x', generated_at: '2026-06-23T00:00:00.000Z',
 };
 
-// 1. No bearing → nothing to enforce.
-check('no bearing passes', run({}).length === 0);
+// 1. No course → nothing to enforce.
+check('no course passes', run({}).length === 0);
 
-// 2. Clean flat bearing with a flat analysis passes.
-check('clean flat passes', run({ 'current_bearing.json': cleanBearing, 'analysis.json': { frame_status: 'flat', request_type: 'open_decision' } }).length === 0);
+// 2. Clean flat course with a flat analysis passes.
+check('clean flat passes', run({ 'current_course.json': cleanCourse, 'analysis.json': { frame_status: 'flat', request_type: 'open_decision' } }).length === 0);
 
-// 3. VERIFY: blocked verification + executable bearing FAILS.
-check('blocked verification + executable bearing fails', run({
-  'current_bearing.json': { ...cleanBearing, blocked: false },
+// 3. VERIFY: blocked verification + executable course FAILS.
+check('blocked verification + executable course fails', run({
+  'current_course.json': { ...cleanCourse, blocked: false },
   'verification-ledger.json': { overall_status: 'blocked', routing_decision: 'stop_for_human_check', challenged_claims: [], human_required_checks: [] },
 }).some((m) => m.startsWith('VERIFY')));
 
-// 4. VERIFY: blocked verification but bearing correctly blocked:true PASSES.
-check('blocked verification + blocked bearing passes', run({
-  'current_bearing.json': { ...cleanBearing, blocked: true, current_course: { status: 'hold', summary: 'Hold until counsel classifies the gap.' } },
+// 4. VERIFY: blocked verification but course correctly blocked:true PASSES.
+check('blocked verification + blocked course passes', run({
+  'current_course.json': { ...cleanCourse, blocked: true, current_course: { status: 'hold', summary: 'Hold until counsel classifies the gap.' } },
   'verification-ledger.json': { overall_status: 'blocked', routing_decision: 'stop_for_human_check', challenged_claims: [], human_required_checks: [] },
 }).length === 0);
 
 // 5. VERIFY: critical challenged claim proceeding to boss with no user_choice FAILS.
 check('critical claim → boss w/o user_choice fails', run({
-  'current_bearing.json': cleanBearing,
+  'current_course.json': cleanCourse,
   'verification-ledger.json': { overall_status: 'mixed', routing_decision: 'proceed_to_boss', challenged_claims: [{ claim: 'x', challenge: 'unsupported', severity: 'critical', suggested_fix: 'test it' }], human_required_checks: [], user_choice: null },
 }).some((m) => m.startsWith('VERIFY')));
 
-// 6. VERIFY: human-required check blocking execution + executable bearing FAILS.
-check('exec-blocking human check + executable bearing fails', run({
-  'current_bearing.json': { ...cleanBearing, blocked: false },
+// 6. VERIFY: human-required check blocking execution + executable course FAILS.
+check('exec-blocking human check + executable course fails', run({
+  'current_course.json': { ...cleanCourse, blocked: false },
   'verification-ledger.json': { overall_status: 'mixed', routing_decision: 'ask_user', challenged_claims: [], human_required_checks: [{ check: 'legal sign-off', why_ai_cannot_verify: 'needs counsel', blocks: 'execution' }] },
 }).some((m) => m.startsWith('VERIFY')));
 
-// 7. ROUTE-CONTRACT: vent that produced a bearing FAILS.
-check('vent + bearing fails', run({
-  'current_bearing.json': cleanBearing,
+// 7. ROUTE-CONTRACT: vent that produced a course FAILS.
+check('vent + course fails', run({
+  'current_course.json': cleanCourse,
   'analysis.json': { request_type: 'vent', frame_status: 'flat' },
 }).some((m) => m.startsWith('ROUTE-CONTRACT')));
 
 // 8. ROUTE-CONTRACT: validation request with a manufactured fork FAILS.
 check('validation + fork fails', run({
-  'current_bearing.json': { ...cleanBearing, current_course: { status: 'fork', summary: 'A vs B' }, road_not_taken: [{ option: 'B', why_not_now: 'later' }] },
+  'current_course.json': { ...cleanCourse, current_course: { status: 'fork', summary: 'A vs B' }, set_aside_options: [{ option: 'B', why_not_now: 'later' }] },
   'analysis.json': { request_type: 'validation', frame_status: 'load_bearing' },
 }).some((m) => m.startsWith('ROUTE-CONTRACT')));
 
 // 9. FRAME-FLAT: flat analysis + manufactured fork FAILS.
 check('flat + manufactured fork fails', run({
-  'current_bearing.json': { ...cleanBearing, current_course: { status: 'fork', summary: 'A vs B' }, road_not_taken: [{ option: 'B', why_not_now: 'later' }] },
+  'current_course.json': { ...cleanCourse, current_course: { status: 'fork', summary: 'A vs B' }, set_aside_options: [{ option: 'B', why_not_now: 'later' }] },
   'analysis.json': { frame_status: 'flat', request_type: 'open_decision' },
 }).some((m) => m.startsWith('FRAME-FLAT')));
 
-// 10. FRAME-FLAT: flat analysis + fabricated fog FAILS.
-check('flat + fabricated fog fails', run({
-  'current_bearing.json': { ...cleanBearing, fog_or_reef: { issue: 'naming convention unclear', why_it_matters: 'future confusion', required_check: 'survey team' } },
+// 10. FRAME-FLAT: flat analysis + fabricated uncertainty FAILS.
+check('flat + fabricated uncertainty fails', run({
+  'current_course.json': { ...cleanCourse, open_risk: { issue: 'naming convention unclear', why_it_matters: 'future confusion', required_check: 'survey team' } },
   'analysis.json': { frame_status: 'flat', request_type: 'open_decision' },
 }).some((m) => m.startsWith('FRAME-FLAT')));
 

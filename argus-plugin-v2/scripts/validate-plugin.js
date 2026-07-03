@@ -119,7 +119,7 @@ for (const schema of [
   "analysis-snapshot.json",
   "worker-result.json",
   "verification-ledger.json",
-  "current-bearing.json",
+  "current-course.json",
   "mix-result.json",
   "dm-feedback.json",
   "final-scaffold.json",
@@ -177,47 +177,47 @@ if (finalScaffold) {
   );
 }
 
-const currentBearing = readJson(path.join(root, "data", "schemas", "current-bearing.json"));
-if (currentBearing) {
+const currentCourse = readJson(path.join(root, "data", "schemas", "current-course.json"));
+if (currentCourse) {
   for (const field of [
     "label",
     "current_course",
     "why_this_course",
-    "fog_or_reef",
-    "road_not_taken",
-    "next_helm",
-    "contract_seed",
+    "open_risk",
+    "set_aside_options",
+    "next_step",
+    "prediction_to_check",
     "blocked",
     "detail_path"
   ]) {
-    check(currentBearing.required?.includes(field), `CurrentBearing must require ${field}`);
+    check(currentCourse.required?.includes(field), `CurrentCourse must require ${field}`);
   }
-  check(currentBearing.properties?.why_this_course?.maxItems === 3, "CurrentBearing why_this_course[] must be capped at 3 items");
-  // v2.6.0 under-fire: road_not_taken must be ALLOWED to be empty on a flat
+  check(currentCourse.properties?.why_this_course?.maxItems === 3, "CurrentCourse why_this_course[] must be capped at 3 items");
+  // v2.6.0 under-fire: set_aside_options must be ALLOWED to be empty on a flat
   // decision. minItems:1 previously ENFORCED the over-fire (a manufactured
   // alternative to fill the slot) — flipped to 0. maxItems stays 2.
-  check(currentBearing.properties?.road_not_taken?.minItems === 0, "CurrentBearing road_not_taken[] must allow empty (minItems 0) — a flat decision has no road not taken (v2.6.0 under-fire default)");
-  check(currentBearing.properties?.road_not_taken?.maxItems === 2, "CurrentBearing road_not_taken[] must be capped at 2 items");
+  check(currentCourse.properties?.set_aside_options?.minItems === 0, "CurrentCourse set_aside_options[] must allow empty (minItems 0) — a flat decision has no set-aside option (v2.6.0 under-fire default)");
+  check(currentCourse.properties?.set_aside_options?.maxItems === 2, "CurrentCourse set_aside_options[] must be capped at 2 items");
   check(
-    currentBearing.properties?.current_course?.properties?.status?.enum?.includes("collect_evidence"),
-    "CurrentBearing current_course.status must include collect_evidence"
+    currentCourse.properties?.current_course?.properties?.status?.enum?.includes("collect_evidence"),
+    "CurrentCourse current_course.status must include collect_evidence"
   );
 }
 
 const sailSkillPath = path.join(root, "skills", "sail", "SKILL.md");
 if (fs.existsSync(sailSkillPath)) {
   const sail = fs.readFileSync(sailSkillPath, "utf8");
-  check(sail.includes("Current Heading"), "sail skill must define Current Heading rendering");
+  check(sail.includes("Current Course"), "sail skill must define Current Course rendering");
   check(!sail.includes("## Step 7 - SurfaceCard"), "sail skill must not use SurfaceCard as the Step 7 output");
   check(sail.includes("No machinery selling"), "sail skill must forbid machinery selling");
   // Step-0 gate routing (v2.5.0): sail must read request_type and refuse to
   // escalate a non-open request into the crew pipeline.
   check(sail.includes("request_type"), "sail must route on request_type — only open_decision flows team/verify/boss (clarify Step 1.7)");
   // Under-fire default (v2.6.0): sail must have a flatness gate, must NOT mandate
-  // a forced/fabricated road-not-taken, and must forbid the engine-weighted pole.
+  // a forced/fabricated set-aside option, and must forbid the engine-weighted pole.
   check(/frame_status/.test(sail) && /[Ff]latness gate/.test(sail), "sail must have a flatness gate (Step 6·0.5) keyed on frame_status — the under-fire default (v2.6.0)");
-  check(!/create one from the rejected obvious alternative/.test(sail), "sail must NOT mandate fabricating a road-not-taken ('create one from the rejected obvious alternative') — that clause manufactured the ~60% flat-decision over-fire (v2.6.0)");
-  check(!/Always include 1-2 road-not-taken items for medium\/high decisions\./.test(sail), "sail must not force 1-2 road-not-taken on every medium/high decision — load-bearing-gated, empty on flat (v2.6.0)");
+  check(!/create one from the rejected obvious alternative/.test(sail), "sail must NOT mandate fabricating a set-aside option ('create one from the rejected obvious alternative') — that clause manufactured the ~60% flat-decision over-fire (v2.6.0)");
+  check(!/Always include 1-2 set-aside option items for medium\/high decisions\./.test(sail), "sail must not force 1-2 set-aside option on every medium/high decision — load-bearing-gated, empty on flat (v2.6.0)");
   check(/engine-weighted pole/i.test(sail) && /[Ss]wap-test/.test(sail), "sail must forbid the engine-weighted pole and apply the swap-test parity check (asymmetric_steer was the modal harm — v2.6.0)");
   // Privacy regression guard: the ledger holds verbatim predictions/outcomes,
   // and settle/helm both assert that sail's gitignore covers it.

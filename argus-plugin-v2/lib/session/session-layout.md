@@ -24,7 +24,7 @@ root.
 │       │   │   ├── debate.json         # Critical stakes only
 │       │   │   ├── mix.json
 │       │   │   ├── verification.json   # From /argus:verify
-│       │   │   ├── current_bearing.json # Compressed Current Heading from /argus:sail
+│       │   │   ├── current_course.json # Compressed Current Course from /argus:sail
 │       │   │   ├── boss_feedback.json  # From /argus:boss
 │       │   │   └── scaffold.json       # FinalScaffold
 │       │   ├── v0.2/
@@ -199,10 +199,10 @@ surface view reflects the active draft's scaffold.
 | `/argus:clarify` | `analysis.json`, `questions_and_answers.json`, `meta.json` (incl. `target_context` when a target was expanded), `minimal_scaffold.json` (only when `decision_density == "low"`) |
 | `/argus:team` | `classification.json`, `team_plan.json`, `repo_context.json` (M1 code-native context), `workers.json`, optional `debate.json`, `mix.json`, candidate `scaffold.json`; appends a Draft to `session.drafts[]` and sets `active_draft_id` |
 | `/argus:verify` | `verification.json`, updated `scaffold.json` verification summary, updated `session.json` verification state |
-| `/argus:sail` Step 7 | `current_bearing.json` for medium/high paths |
+| `/argus:sail` Step 7 | `current_course.json` for medium/high paths |
 | `/argus:boss` | `boss_feedback.json`, updated `scaffold.json` with applied/rejected concerns; in session.json only the active draft's `boss_reviewed: true` flag + `phase` (boss does NOT touch `reviewing_agent_id` — that marks who produced a draft, not who reviewed it) |
 | `/argus:revise` | writes a transient `pending_revision.json` (session level, consumed by team), then via `/argus:team --revise` creates a new **child** version dir (full artifacts, write-once) and appends a child Draft (`directive`, `reviewing_agent_id: navigator`); then `/argus:verify` re-verifies. The parent draft is untouched. |
-| `/argus:settle` | appends `harvest`/`seal` (bearing-seed import), `settle`, or `amend` events to `.argus/ledger/ledger.jsonl` — append-only, never touches session dirs |
+| `/argus:settle` | appends `harvest`/`seal` (course-seed import), `settle`, or `amend` events to `.argus/ledger/ledger.jsonl` — append-only, never touches session dirs |
 | `/argus:log`, `/argus:help`, `/argus:chart` (default) | read-only — write nothing |
 
 ## Phase Is Derived From Artifacts, Not Declared
@@ -222,7 +222,7 @@ actually complete wins:
 
 | Artifact present & complete (active version dir) | Derived phase / next |
 |---|---|
-| `current_bearing.json` | bearing rendered → `complete` (chart) |
+| `current_course.json` | course rendered → `complete` (chart) |
 | `boss_feedback.json` | boss done → `refining`/`complete` per routing |
 | `verification.json` | verify done → `dm_feedback` (boss next) or per `routing_decision` |
 | `scaffold.json` + `mix.json` + `workers.json` (full set per `team_plan.json`) | team done → `verifying` (verify next) |

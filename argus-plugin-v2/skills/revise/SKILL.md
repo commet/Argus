@@ -64,7 +64,7 @@ schema. Resolve in order:
    cannot be resolved by re-running any worker (e.g. "needs real legal sign-off",
    "the market data doesn't exist yet"), do NOT add it to `items[]`. Append it to
    the scaffold's `human_required_checkpoints[]` with `reason: "boss_concern_unrouted"`
-   so it survives into the bearing. Surfacing it is the honest outcome; dropping it
+   so it survives into the course. Surfacing it is the honest outcome; dropping it
    is the bug this rule closes.
 
 Every applied boss concern ends as exactly one of: an owned `items[]` entry, or a

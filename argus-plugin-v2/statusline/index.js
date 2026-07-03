@@ -4,25 +4,25 @@
  *
  * Line 1 (always): model, context bar, session duration, git branch.
  * Line 2 (at most ONE, absent by default), by priority:
- *   1. OVERDUE contract checks — sealed bets strictly past check_by (+ bearing seeds)
+ *   1. OVERDUE contract checks — sealed bets strictly past check_by (+ course predictions)
  *   2. checks due TODAY        — same urgency, honest label
  *   3. live session progress   — session.json touched < 15 min ago, phase != complete
  *   4. checks due within 7 days
- *   5. fresh Current Heading   — generated < 48 h ago: status + summary + fog
- *   6. decaying bearing        — 2–14 days old: glyph + age only
+ *   5. fresh Current Course   — generated < 48 h ago: status + summary + open risk
+ *   6. decaying course        — 2–14 days old: glyph + age only
  *   7. nothing
  *
  * Why this hierarchy: of everything Argus produces, only a contract check date
- * stays true and behavior-changing weeks after it was written. A bearing is
+ * stays true and behavior-changing weeks after it was written. A course is
  * orientation the day it is generated and noise two weeks later — so it decays
  * and disappears. Machinery (agent counts, claim counts, boss persona) never
  * appears here; that is the webapp voyage view's job.
  *
  * Data sources (all optional; absence = silence, never an error):
  *   .argus/ledger/ledger.jsonl                       — argus-watch append-only event log
- *   .argus/current-bearing.json                      — bearing emitted at repo root
- *   .argus/sessions/<id>/current-bearing.json        — per-session bearing
- *   .argus/sessions/<id>/versions/<v>/current-bearing.json
+ *   .argus/current-course.json                      — course emitted at repo root
+ *   .argus/sessions/<id>/current-course.json        — per-session course
+ *   .argus/sessions/<id>/versions/<v>/current-course.json
  *   .argus/sessions/<id>/session.json                — live phase, only while fresh
  *
  * Zero dependencies — pure Node.js (CommonJS). Must never throw: a statusline
@@ -181,15 +181,15 @@ function loadLedger(root) {
   return empty;
 }
 
-// ─── Current Heading ─────────────────────────────────────
+// ─── Current Course ─────────────────────────────────────
 
-function bearingCandidates(root) {
-  // Both spellings: the v2 skills write current_bearing.json (underscore,
+function courseCandidates(root) {
+  // Both spellings: the v2 skills write current_course.json (underscore,
   // per sail Step 7 / session-layout.md); the hyphen form is the legacy/webapp
   // emission. Missing files cost one failed stat each — cheap.
-  // seedId is the settle-skill import id (bearing:<session-id>:<label>) when
+  // seedId is the settle-skill import id (course:<session-id>:<label>) when
   // the path carries enough context to synthesize it; null at root/session level.
-  const names = ["current_bearing.json", "current-bearing.json"];
+  const names = ["current_course.json", "current-course.json"];
   const out = names.map(n => ({ path: join(root, ".argus", n), seedId: null }));
   const sessions = join(root, ".argus", "sessions");
   let ids = [];
@@ -200,15 +200,15 @@ function bearingCandidates(root) {
     let vs = [];
     try { vs = fs.readdirSync(versions); } catch { continue; }
     for (const v of vs) for (const n of names) {
-      out.push({ path: join(versions, v, n), seedId: `bearing:${id}:${v}` });
+      out.push({ path: join(versions, v, n), seedId: `course:${id}:${v}` });
     }
   }
   return out;
 }
 
-function loadBearing(root) {
+function loadCourse(root) {
   let best = null;
-  for (const c of bearingCandidates(root)) {
+  for (const c of courseCandidates(root)) {
     let st;
     try { st = fs.statSync(c.path); } catch { continue; }
     let b;
@@ -254,9 +254,9 @@ function loadLiveSession(root) {
   };
 }
 
-// ─── Contract checks (ledger bets + bearing seed) ────────
+// ─── Contract checks (ledger bets + course prediction) ────────
 
-function collectChecks(root, bearing, today) {
+function collectChecks(root, course, today) {
   const ledger = loadLedger(root);
   const items = ledger.bets.map(d => ({
     date: d.check_by,
@@ -265,11 +265,11 @@ function collectChecks(root, bearing, today) {
   }));
 
   // A seed already imported into the ledger (by /argus:settle) is owned by the
-  // ledger replay above — counting the bearing file too would keep flashing
-  // OVERDUE forever after settling, since settle never mutates the bearing.
-  const seed = bearing && bearing.contract_seed;
+  // ledger replay above — counting the course file too would keep flashing
+  // OVERDUE forever after settling, since settle never mutates the course.
+  const seed = course && course.prediction_to_check;
   const imported = seed && (
-    (bearing._seedId && ledger.ids.has(bearing._seedId)) ||
+    (course._seedId && ledger.ids.has(course._seedId)) ||
     (typeof seed.predicate === "string" && ledger.sealedPredicates.has(seed.predicate))
   );
   if (seed && !imported && seed.check_by && ISO_DATE.test(seed.check_by)) {
@@ -308,8 +308,8 @@ function courseColor(status, blocked) {
 
 function argusLine(root, budget) {
   const today = localToday();
-  const bearing = loadBearing(root);
-  const { overdue, dueToday, dueSoon } = collectChecks(root, bearing, today);
+  const course = loadCourse(root);
+  const { overdue, dueToday, dueSoon } = collectChecks(root, course, today);
 
   // 1. Overdue: never decays, beats everything.
   if (overdue.length) {
@@ -347,21 +347,21 @@ function argusLine(root, budget) {
     return `📜 ${C.y}due ${mmdd(d0.date)}${R}${SEP}${DIM}${text}${R}${more}`;
   }
 
-  // 5–6. Bearing: full while fresh, then decays, then disappears.
-  if (!bearing) return null;
-  const days = bearing._ageMs / DAY;
+  // 5–6. Course: full while fresh, then decays, then disappears.
+  if (!course) return null;
+  const days = course._ageMs / DAY;
   if (days > 14) return null;
 
-  const status = (bearing.current_course && bearing.current_course.status) || "?";
-  const sc = courseColor(status, bearing.blocked);
+  const status = (course.current_course && course.current_course.status) || "?";
+  const sc = courseColor(status, course.blocked);
 
   if (days > 2) {
     return `${DIM}⚓ ${status} · ${Math.round(days)}d ago${R}`;
   }
 
-  const segs = [`⚓ ${sc}${bearing.blocked ? "⛔ " : ""}${BOLD}${status}${R}`];
-  const summary = bearing.current_course && bearing.current_course.summary;
-  const fog = bearing.fog_or_reef && bearing.fog_or_reef.issue;
+  const segs = [`⚓ ${sc}${course.blocked ? "⛔ " : ""}${BOLD}${status}${R}`];
+  const summary = course.current_course && course.current_course.summary;
+  const fog = course.open_risk && course.open_risk.issue;
 
   // Fixed overhead: glyphs, separators, age tag. Fog keeps a reserved share —
   // it is the highest-value token and must survive truncation.
@@ -370,7 +370,7 @@ function argusLine(root, budget) {
   const sumMax = Math.max(16, budget - fixed - fogMax);
   if (summary) segs.push(clip(summary, sumMax));
   if (fog) segs.push(`🌫 ${C.y}${clip(fog, fogMax)}${R}`);
-  if (bearing._ageMs > DAY) segs.push(`${C.d}${Math.round(bearing._ageMs / 3600000)}h${R}`);
+  if (course._ageMs > DAY) segs.push(`${C.d}${Math.round(course._ageMs / 3600000)}h${R}`);
   return segs.join(SEP);
 }
 

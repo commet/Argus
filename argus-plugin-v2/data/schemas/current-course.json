@@ -1,17 +1,17 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "argus:current-bearing",
-  "title": "CurrentBearing",
-  "description": "The compressed user-facing Argus output. It shows the user's current decision course, evidence, fog, road not taken, next helm action, and optional decision-contract seed.",
+  "$id": "argus:current-course",
+  "title": "CurrentCourse",
+  "description": "The compressed user-facing Argus output. It shows the user's current decision course, evidence, open risk, set-aside option, next step action, and optional decision-prediction to check.",
   "type": "object",
   "required": [
     "label",
     "current_course",
     "why_this_course",
-    "fog_or_reef",
-    "road_not_taken",
-    "next_helm",
-    "contract_seed",
+    "open_risk",
+    "set_aside_options",
+    "next_step",
+    "prediction_to_check",
     "blocked",
     "detail_path",
     "generated_at"
@@ -33,7 +33,7 @@
         "summary": {
           "type": "string",
           "maxLength": 240,
-          "description": "One sentence explaining the current bearing."
+          "description": "One sentence explaining the current course."
         }
       },
       "additionalProperties": false
@@ -56,7 +56,7 @@
         "additionalProperties": false
       }
     },
-    "fog_or_reef": {
+    "open_risk": {
       "type": ["object", "null"],
       "description": "The biggest remaining uncertainty, contradiction, unsupported claim, or human-only check.",
       "properties": {
@@ -66,11 +66,11 @@
       },
       "additionalProperties": false
     },
-    "road_not_taken": {
+    "set_aside_options": {
       "type": "array",
       "minItems": 0,
       "maxItems": 2,
-      "description": "Evidence-backed alternate courses that were genuinely considered but should not be the current course. EMPTY on a flat decision (no real fork) — never fabricate an alternative to fill the slot; a manufactured road-not-taken is over-fire (mirror clause, v2.6.0). Each pole must be rendered at parity with the chosen course (no charity asymmetry, no caveat stacking, no 'melting' one side's cost) — a tilting road-not-taken is a disguised verdict.",
+      "description": "Evidence-backed alternate courses that were genuinely considered but should not be the current course. EMPTY on a flat decision (no real fork) — never fabricate an alternative to fill the slot; a manufactured set-aside option is over-fire (mirror clause, v2.6.0). Each pole must be rendered at parity with the chosen course (no charity asymmetry, no caveat stacking, no 'melting' one side's cost) — a tilting set-aside option is a disguised verdict.",
       "items": {
         "type": "object",
         "required": ["option", "why_not_now"],
@@ -81,12 +81,12 @@
         "additionalProperties": false
       }
     },
-    "next_helm": {
+    "next_step": {
       "type": "string",
       "maxLength": 220,
       "description": "The next concrete action, ideally under 30 minutes unless the decision truly requires more."
     },
-    "contract_seed": {
+    "prediction_to_check": {
       "type": ["object", "null"],
       "description": "A falsifiable prediction candidate to seal later as a Decision Contract.",
       "properties": {

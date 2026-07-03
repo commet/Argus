@@ -8,12 +8,12 @@
 // actually wrote and flags violations — something the model cannot "skip".
 //
 // Gates checked, per session's latest version (reads analysis.json +
-// verification-ledger.json + current_bearing.json):
+// verification-ledger.json + current_course.json):
 //   VERIFY        — a blocked / critical-unresolved verification must NOT be
-//                   surfaced as an executable bearing (blocked:false).
+//                   surfaced as an executable course (blocked:false).
 //   ROUTE-CONTRACT— a non-open request (validation/vent/info) must NOT produce a
 //                   manufactured fork (vent especially never forks). [over-fire]
-//   FRAME-FLAT    — a flat decision must NOT manufacture a fork/fog. [over-fire]
+//   FRAME-FLAT    — a flat decision must NOT manufacture a fork/uncertainty. [over-fire]
 //
 // Usage:
 //   node validate-gates.mjs                 # walk all sessions under ./.argus, exit 2 on any violation (CI gate)
@@ -32,7 +32,7 @@ const LATEST = args.includes('--latest');
 const rootIdx = args.indexOf('--root');
 const argusDir = rootIdx !== -1 ? args[rootIdx + 1] : path.join(process.cwd(), '.argus');
 
-const BEARING_NAMES = ['current_bearing.json', 'current-bearing.json'];
+const COURSE_NAMES = ['current_course.json', 'current-course.json'];
 const VERIF_NAMES = ['verification-ledger.json', 'verification_ledger.json', 'verification.json'];
 const ANALYSIS_NAMES = ['analysis.json', 'analysis-snapshot.json'];
 
@@ -68,19 +68,19 @@ function collectVersions() {
 // Apply the gates to one version dir. Returns string[] of violations.
 export function checkVersion(dir) {
   const v = [];
-  const bearing = firstExisting(dir, BEARING_NAMES);
-  if (!bearing) return v; // no bearing produced → nothing to enforce against
+  const course = firstExisting(dir, COURSE_NAMES);
+  if (!course) return v; // no course produced → nothing to enforce against
   const verif = firstExisting(dir, VERIF_NAMES);
   const analysis = firstExisting(dir, ANALYSIS_NAMES);
 
-  const status = bearing.current_course?.status;
-  const road = Array.isArray(bearing.road_not_taken) ? bearing.road_not_taken : [];
-  const executable = bearing.blocked !== true; // bearing presented as something to act on
+  const status = course.current_course?.status;
+  const road = Array.isArray(course.set_aside_options) ? course.set_aside_options : [];
+  const executable = course.blocked !== true; // course presented as something to act on
 
   // ── VERIFY GATE
   if (verif) {
     if (verif.overall_status === 'blocked' && executable) {
-      v.push('VERIFY: verification overall_status=blocked but bearing is executable (blocked!=true) — an unverified-blocked decision was surfaced as actionable');
+      v.push('VERIFY: verification overall_status=blocked but course is executable (blocked!=true) — an unverified-blocked decision was surfaced as actionable');
     }
     const criticalChallenged = (verif.challenged_claims || []).some((c) => c.severity === 'critical');
     if (criticalChallenged && verif.routing_decision === 'proceed_to_boss' && !verif.user_choice) {
@@ -88,7 +88,7 @@ export function checkVersion(dir) {
     }
     const execBlockingHuman = (verif.human_required_checks || []).some((h) => h.blocks === 'execution' || h.blocks === 'final_signoff');
     if (execBlockingHuman && executable) {
-      v.push('VERIFY: a human_required_check that blocks execution/final_signoff exists but bearing is executable (blocked!=true)');
+      v.push('VERIFY: a human_required_check that blocks execution/final_signoff exists but course is executable (blocked!=true)');
     }
   }
 
@@ -96,17 +96,17 @@ export function checkVersion(dir) {
   const reqType = analysis?.request_type;
   if (reqType && reqType !== 'open_decision') {
     if (status === 'fork' || road.length > 0) {
-      v.push(`ROUTE-CONTRACT: request_type=${reqType} (non-open) but bearing manufactured a fork (status=${status}, road_not_taken=${road.length}) — over-fire`);
+      v.push(`ROUTE-CONTRACT: request_type=${reqType} (non-open) but course manufactured a fork (status=${status}, set_aside_options=${road.length}) — over-fire`);
     }
     if (reqType === 'vent') {
-      v.push('ROUTE-CONTRACT: request_type=vent produced a decision bearing at all — vent must off-ramp, never decide');
+      v.push('ROUTE-CONTRACT: request_type=vent produced a decision course at all — vent must off-ramp, never decide');
     }
   }
 
   // ── FRAME-FLAT GATE (over-fire on flat decisions)
   if (analysis?.frame_status === 'flat') {
-    if (road.length > 0) v.push('FRAME-FLAT: flat decision has a non-empty road_not_taken — manufactured fork (over-fire)');
-    if (bearing.fog_or_reef !== null && bearing.fog_or_reef !== undefined) v.push('FRAME-FLAT: flat decision has non-null fog_or_reef — manufactured fog (over-fire)');
+    if (road.length > 0) v.push('FRAME-FLAT: flat decision has a non-empty set_aside_options — manufactured fork (over-fire)');
+    if (course.open_risk !== null && course.open_risk !== undefined) v.push('FRAME-FLAT: flat decision has non-null open_risk — manufactured uncertainty (over-fire)');
     if (status && !['proceed', 'anchor'].includes(status)) v.push(`FRAME-FLAT: flat decision uses status=${status} (must be proceed/anchor)`);
   }
 
