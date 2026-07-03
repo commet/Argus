@@ -323,3 +323,62 @@ record (W1). (9 files, 항목 1·2·9·11 + 두 로그 + PLAN 3건 최초 트래
 - 한국어 mojibake 없음(봉인/변침/정산/항해일지/문장만 보기/오늘로 확인).
 - 마이그레이션 0(기존 decision_contract jsonb 필드만 판독) · 새 localStorage 키 0(접기/토글=useState).
 - 실 dogfood 렌더 육안(2척+ 계정으로 항해일지·인용벽 확인)은 창업자 버튼(§6-2).
+
+---
+
+## W6 — ② MCP 유통 코드준비 (페이즈1~3, 이름=argus-decision-mcp)
+
+### 페이즈1 — 이름 치환 + 발사 위생
+- **무엇:** npm 패키지 이름을 타인 소유 `argus-mcp` → 사용가능 `argus-decision-mcp`로 전면 치환
+  하고, dist에서 테스트 산출물을 제거.
+- **왜:** npm의 `argus-mcp`는 이미 타인(adesmet, playwright 도구) 소유라 우리가 publish 불가
+  (403). README 옛 설치명령을 그대로 실행하면 **남의 패키지가 깔림** → 첫인상 파탄. PLAN이
+  지목한 BLOCKER. 또 dist에 테스트 18파일이 실려 README의 "grep dist/ — no verdict tool"
+  자기증명이 오염됨.
+- **어떻게:**
+  - `package.json`: `name` → argus-decision-mcp, `version` 1.3.0 → **1.0.0 리셋**(옛 서사 폐기),
+    `bin` 키 → argus-decision-mcp, `mcpName: io.github.commet/argus-decision-mcp` 신설,
+    `author`(commet)·`homepage`(argus.voyage)·`repository`(github+directory)·`bugs` 보강.
+  - `src/server.ts:42`: 서버 식별자 name → argus-decision-mcp(호스트에 뜨는 이름).
+  - `README.md`: 제목(1)·설치명령 2줄(52,62) 치환. README 내 `argus-mcp` **0건** 확인.
+  - `CONTRIBUTING.md:1`: 프로젝트명 제목 치환(기여자향).
+  - `tsconfig.json`: exclude 추가(`src/**/__tests__/**`,`src/**/*.test.ts`,`src/test-helpers.ts`
+    — PLAN의 `src/lib/test-helpers.ts`는 오기, 실경로로 교정).
+  - `package-lock.json`: `npm install --package-lock-only`로 name/bin 동기(의존성 churn 0).
+- **파일:** argus-mcp/package.json · src/server.ts · README.md · CONTRIBUTING.md · tsconfig.json ·
+  package-lock.json.
+- **검증:** `rm -rf dist && npm run build` → `find dist -name "*.test.js" -o -name "*test-helpers*"`
+  = **0건**. tsc 0 · npm test **185/185**(18파일). 사용자향 install/identifier grep: README 0건,
+  package.json name/bin/mcpName·server.json name/identifier 전부 신이름.
+
+### 페이즈2 — PUBLISH.md 전면 재작성
+- **무엇:** 옛 런북(1.2.1 tolerant-replay FIRST → 1.3.0 서사)을 폐기하고 새 이름·1.0.0·
+  clean-install 왕복 런북으로 교체.
+- **왜:** 옛 런북은 "우리가 1.0.0~1.2.0을 게시했다"를 전제하나 그건 **adesmet 소유** = 허구.
+  그대로 따르면 `npm publish` 403. 손상될 공유 ledger 0건이라 "tolerant-replay FIRST" Step도 무의미.
+- **어떻게:** 이름 변경 이유(실측)·버전 lockstep 규칙(package.json/server.json/git tag 동일 커밋)·
+  npm login·build/test/publish(무스코프=`--access` 불필요)·**빈 폴더 clean-install 왕복**(우리
+  서버가 뜨는가·AI VERDICT NONE 확인)·mcp-publisher(선택). 전 스텝을 창업자 버튼으로 명시.
+- **파일:** argus-mcp/PUBLISH.md(전면 재작성).
+- **검증:** 남은 `argus-mcp` 문자열은 (a)"타인 소유라 못 쓴다" 설명 문장, (b)repo 서브폴더 경로뿐
+  — 설치명령·매니페스트 침해 0.
+
+### 페이즈3 — server.json 신규(공식 MCP 레지스트리)
+- **무엇:** `argus-mcp/server.json` 신규 작성. Smithery/mcp.so/glama가 크롤링하는 단일 원천.
+- **왜:** 레지스트리 미노출(WebSearch 확인). server.json 등재 1회로 다수 디렉토리 자동 노출.
+- **어떻게:** 현행 MCP 레지스트리 스키마(2025-12-11, WebFetch로 실물 검증) 준수 —
+  `name: io.github.commet/argus-decision-mcp`·description·version 1.0.0·repository(github,
+  subfolder argus-mcp)·websiteUrl·`packages[{registryType:npm, identifier:argus-decision-mcp,
+  version:1.0.0, transport:stdio, environmentVariables:ARGUS_DIR/ARGUS_TOKEN(secret)/ARGUS_TZ}]`.
+  packages identifier가 신이름을 가리키는지 재확인. 스파인: description은 "AI VERDICT NONE=모델이
+  채점 안 함, 현실이 함"을 **루프의 사실**로만(우월성 주장 0, 뱃지 프레임 미상속).
+- **파일:** argus-mcp/server.json(신규).
+- **검증:** node로 JSON 파싱 유효. mcp-publisher login/publish는 창업자 버튼(비가역 외부공개).
+
+### 경계검증 종합
+- `cd argus-mcp && npm run build && npm test` = tsc 0 · 185/185.
+- `find dist -name "*.test.js" -o -name "*test-helpers*"` = 0건.
+- 사용자향 설치명령/매니페스트 식별자에 옛이름 argus-mcp = 0건(잔존은 회피설명+폴더경로만).
+- 마이그레이션 0(argus-mcp는 파일기반, DB 무관) · 새 localStorage 키 0 · 한국어 문자열 무관.
+- 스킵(창업자 버튼, 비가역 외부행위): npm login/publish·mcp-publisher login/publish·
+  clean-install 실측 왕복·30초 데모녹화·awesome-mcp-servers PR. PLAN §6 명시.

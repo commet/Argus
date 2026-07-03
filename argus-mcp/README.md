@@ -1,4 +1,4 @@
-# argus-mcp
+# argus-decision-mcp
 
 > **Your AI gives you an answer. Argus gives you a receipt — and checks it against reality on the date you set.**
 
@@ -49,7 +49,7 @@ promised in prose:
 Claude Code:
 
 ```bash
-claude mcp add argus -- npx -y argus-mcp
+claude mcp add argus -- npx -y argus-decision-mcp
 ```
 
 Or add to your host's MCP config:
@@ -59,7 +59,7 @@ Or add to your host's MCP config:
   "mcpServers": {
     "argus": {
       "command": "npx",
-      "args": ["-y", "argus-mcp"],
+      "args": ["-y", "argus-decision-mcp"],
       "env": {
         // Set this ONCE and you never pass argus_dir again — every tool falls
         // back to it. Claude Code expands ${CLAUDE_PROJECT_DIR}; on other hosts

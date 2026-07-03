@@ -201,3 +201,51 @@ _스펙과 실코드가 어긋나거나 재량이 필요했던 지점. 무엇이
   중립 사실만 허용. "고리를 닫음"(loop closed)은 순수 사실.
 - **내린 판단:** `settleCountsLine`이 parts 비면 `고리를 닫음`/`loop closed` 반환.
 - **되돌리는 법:** settleCountsLine의 `if (parts.length === 0)` 분기 제거(빈 줄 위험 감수).
+
+---
+
+## W6 (② MCP 유통 코드준비, 페이즈1~3)
+
+### 1. 새 npm 이름 = `argus-decision-mcp` 대리확정
+- **애매한 점:** bet2 PLAN 페이즈0(0.1)은 이름 확정을 "⚠️ 창업자 결정(브랜드 판단)"으로
+  두고, 확정 전 페이즈1~5 착수 금지라 못박음. 그런데 W6 웨이브 지시는 페이즈1~3(이름 치환)을
+  당장 실행하라 요구 — 이름이 없으면 실행 불가.
+- **나라면 근거:** PLAN이 이미 `argus-decision-mcp`를 1순위로 강력 권고하고(§채택A) 근거를
+  실측으로 못박음: (a) 실측 사용가능 E404, (b) 무스코프라 조직생성/`--access` 실수 함정 없음,
+  (c) `argus` 단독은 디렉토리에서 이미 경합(ironclawdevs27/argus) → 검색 변별 유리,
+  (d) verdict/판정 암시 이름은 Zero-Judgment 스파인 위반이라 금지. 창업자 과거 패턴(비개발자,
+  함정 회피 우선)과 정합. 되돌리기 비용이 극히 낮음(한 단어 치환).
+- **내린 판단:** `argus-decision-mcp`로 코드 전체에 박음(package.json name/bin/mcpName,
+  server.ts, README, server.json, PUBLISH.md). 단 npm publish/login·mcp-publisher·데모녹화·
+  awesome PR = 비가역 외부행위라 **파일 작성까지만**, 실행은 창업자 버튼(PLAN §6).
+- **되돌리는 법:** 창업자가 다른 이름을 말하면 전 파일에서 `argus-decision-mcp` → 새 이름
+  일괄 치환(sed 한 줄). 발사 전이면 무비용 override.
+
+### 2. tsconfig exclude 경로가 PLAN과 실제 디스크가 어긋남
+- **애매한 점:** PLAN 1.9는 exclude에 `src/lib/test-helpers.ts`를 적었으나, 실제 파일은
+  `src/test-helpers.ts`(lib 하위 아님)에 있음.
+- **나라면 근거:** 목적은 "dist에서 테스트 헬퍼 제거". PLAN의 경로는 오기이고 실제 경로가 정본.
+  test-helpers는 `__tests__/*` 테스트에서만 import됨(grep 확인) → 제외 안전.
+- **내린 판단:** exclude를 실제 경로 `src/test-helpers.ts`로 씀(+`src/**/__tests__/**`,
+  `src/**/*.test.ts`). 빌드 후 `find dist -name "*.test.js" -o -name "*test-helpers*"` = 0건 확인.
+- **되돌리는 법:** exclude 배열 원복(테스트파일 dist 재유입 감수).
+
+### 3. 사용자향 grep에 남은 `argus-mcp`는 전부 의도된 잔존(디렉토리 경로 or 회피설명)
+- **애매한 점:** 경계검증 "사용자향에 옛이름 0건" 규칙 vs PUBLISH.md/package.json/server.json에
+  남은 `argus-mcp` 문자열.
+- **나라면 근거:** PLAN §3.1이 "설치명령·매니페스트는 필수 치환, 그 외는 선택"으로 구분. 남은 건
+  두 종류뿐: (a) PUBLISH.md가 "`argus-mcp`는 타인 소유라 못 쓴다"고 **설명하는 문장**(치환하면
+  문서가 뜻을 잃음), (b) repo 서브폴더 **경로** `argus-mcp/`(package.json directory,
+  server.json subfolder, PUBLISH cd 경로 — 폴더명이 실제로 그러함). 설치명령·npm identifier·
+  mcpName·server name은 전부 `argus-decision-mcp`로 치환 확인됨.
+- **내린 판단:** 잔존 유지. 침해 대상(install command / manifest identifier)은 0건임을 별도 grep으로
+  확증(README 0건, package.json name/bin/mcpName·server.json name/identifier 전부 신이름).
+- **되돌리는 법:** 폴더를 실제로 리네임하면 경로 잔존도 사라지나, 이는 웨이브 밖(대규모 이동).
+
+### 4. package-lock.json name/bin 동기화
+- **애매한 점:** 공유 등록부 append-only 규칙 밖의 파일이나, package.json name 변경 시 lockfile
+  루트 name/bin이 stale → 창업자 런북의 `npm ci`가 mismatch로 실패할 위험.
+- **나라면 근거:** lockfile은 자동생성 산출물(공유 등록부 4종에 해당 없음). `npm install
+  --package-lock-only`로 name/bin만 동기(의존성 churn 0 — diff 5줄 확인). 발사 위생의 일부.
+- **내린 판단:** lockfile 재생성. diff는 정확히 name×2 + bin키 1 = 5줄, 의존성 무변경.
+- **되돌리는 법:** git checkout package-lock.json(발사 시 npm ci 실패 감수).

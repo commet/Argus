@@ -39,7 +39,7 @@ function readPackageVersion(): string {
  */
 export async function createServer(): Promise<Server> {
   const server = new Server(
-    { name: 'argus-mcp', version: readPackageVersion() },
+    { name: 'argus-decision-mcp', version: readPackageVersion() },
     {
       // Capabilities are declared only for primitives whose handlers exist, so
       // a host never probes a no-op (addendum J). `elicitation` is a client

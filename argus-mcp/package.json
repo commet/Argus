@@ -1,11 +1,12 @@
 {
-  "name": "argus-mcp",
-  "version": "1.3.0",
+  "name": "argus-decision-mcp",
+  "version": "1.0.0",
   "description": "Argus decision-accountability MCP server — seal a falsifiable prediction, settle it against reality. Works with any MCP host (Claude, ChatGPT, Gemini).",
   "type": "module",
   "main": "dist/index.js",
+  "mcpName": "io.github.commet/argus-decision-mcp",
   "bin": {
-    "argus-mcp": "dist/index.js"
+    "argus-decision-mcp": "dist/index.js"
   },
   "files": [
     "dist",
@@ -37,6 +38,16 @@
     "ai-tools"
   ],
   "license": "MIT",
+  "author": "commet",
+  "homepage": "https://argus.voyage",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/commet/argus.git",
+    "directory": "argus-mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/commet/argus/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "js-yaml": "^4.1.0",
