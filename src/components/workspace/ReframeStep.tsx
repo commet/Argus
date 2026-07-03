@@ -451,6 +451,28 @@ function normalizeAnalysis(raw: ReframeAnalysis): ReframeAnalysis {
   };
 }
 
+/** Strip JSON scaffolding from a mid-stream token buffer so the live "drafting"
+ *  preview shows only human prose — never raw keys, braces, quotes, or internal
+ *  enum values (risk_if_false / axis / org_capacity leaked to the user before). */
+export function cleanStreamPreview(raw: string): string {
+  return raw
+    .replace(/"[a-zA-Z_][\w]*"\s*:/g, ' ')   // drop JSON keys: "risk_if_false":
+    .replace(/\b[a-z]+(?:_[a-z]+)+\b/g, ' ')  // drop snake_case enum values: org_capacity
+    .replace(/[{}[\]"]/g, ' ')                // drop structural chars + stray quotes
+    .replace(/\s*,\s*/g, ' ')                 // commas → space
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** A chip/label-safe title: strip the [맥락]…[과제] context wrapper and any
+ *  [bracketed] scaffolding so history tabs never show raw prompt plumbing. */
+export function cleanTaskLabel(item: ReframeItem): string {
+  const raw = item.analysis?.surface_task || item.input_text || '';
+  const taskMatch = raw.match(/\[(?:과제|Task)\]\s*([\s\S]*)/);
+  const body = taskMatch ? taskMatch[1] : raw;
+  return body.replace(/\[[^\]]*\]/g, '').replace(/\s+/g, ' ').trim();
+}
+
 /* ───────────────────────────────────────────
    Component
    ─────────────────────────────────────────── */
@@ -918,7 +940,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
               }`}
             >
               <FileText size={14} />
-              {(item.analysis?.surface_task || item.input_text || '').slice(0, 25) || L('분석 중...', 'Analyzing...')}
+              {cleanTaskLabel(item).slice(0, 25) || L('분석 중...', 'Analyzing...')}
               <span
                 onClick={(e) => { e.stopPropagation(); deleteItem(item.id); }}
                 className="ml-1 p-0.5 hover:text-red-500 cursor-pointer"
@@ -1068,24 +1090,47 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
          ═══════════════════════════════════════ */}
       {current?.status === 'analyzing' && (
         <Card>
-          <LoadingSteps steps={[
-            L('과제의 가정을 점검하고 있습니다', 'Checking the task\'s assumptions'),
-            L('숨은 질문을 찾고 있습니다', 'Finding the hidden question'),
-            L('진짜 주제를 읽어내고 있습니다', 'Reading the real subject'),
-          ]} />
-          {/* Live provisional preview of the streamed tokens (previously paid
-              for and discarded). Faint + italic + "drafting" label so a
-              half-formed reframe is never read as the surfaced conclusion. */}
-          {streamingText && (
-            <div className="mt-3 px-1" aria-hidden="true">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-tertiary)] mb-1">
-                {L('초안 작성 중…', 'Drafting…')}
+          {/* Skeleton of the assumption cards that are forming — previews the
+              result's shape (less perceived wait) instead of a generic spinner. */}
+          <div className="flex items-center gap-2 mb-4 text-[13px] font-medium text-[var(--accent)]">
+            <Loader2 size={14} className="animate-spin" />
+            <span>{L('숨은 가정을 세우고 있어요…', 'Surfacing the hidden assumptions…')}</span>
+          </div>
+          <div className="space-y-3" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 md:p-5"
+                style={{ opacity: 1 - i * 0.28 }}
+              >
+                <div className="flex items-start gap-2.5 mb-3">
+                  <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-[var(--bg)] animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 rounded bg-[var(--bg)] animate-pulse" style={{ width: '85%' }} />
+                    <div className="h-3 rounded bg-[var(--bg)] animate-pulse" style={{ width: '55%' }} />
+                  </div>
+                </div>
+                <div className="mb-3 ml-[30px] h-8 rounded-lg bg-[var(--bg)] animate-pulse opacity-70" />
+                <div className="flex gap-1.5">
+                  <div className="h-9 flex-1 rounded-lg bg-[var(--bg)] animate-pulse" />
+                  <div className="h-9 flex-1 rounded-lg bg-[var(--bg)] animate-pulse" />
+                  <div className="h-9 flex-1 rounded-lg bg-[var(--bg)] animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Subtle live draft — real streamed prose (JSON scaffolding stripped),
+              subordinate to the skeleton so a half-formed reframe never reads as
+              the surfaced conclusion. */}
+          {(() => {
+            const preview = cleanStreamPreview(streamingText).slice(-200);
+            if (!preview) return null;
+            return (
+              <p className="mt-4 text-[11px] italic leading-relaxed text-[var(--text-tertiary)] line-clamp-2 opacity-70 break-words" aria-hidden="true">
+                {preview}
               </p>
-              <p className="text-[11.5px] leading-[1.6] text-[var(--text-tertiary)] italic line-clamp-3 break-all opacity-80">
-                {streamingText.slice(-360)}
-              </p>
-            </div>
-          )}
+            );
+          })()}
         </Card>
       )}
 
@@ -1114,32 +1159,43 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                     {analysis.surface_task}
                   </p>
                   {analysis.reasoning_narrative && (
-                    <p className="text-[12px] text-[var(--text-secondary)] mt-2 italic leading-relaxed">
-                      {analysis.reasoning_narrative}
-                    </p>
+                    <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)] mb-1.5">{L('분석 노트', 'Analyst note')}</p>
+                      <p className="text-[13px] text-[var(--text-secondary)] leading-[1.75]">
+                        {analysis.reasoning_narrative}
+                      </p>
+                    </div>
                   )}
                 </div>
 
                 {/* 전제 평가 */}
                 <div>
                   <div className="mb-3">
-                    <p className="text-[14px] font-bold text-[var(--text-primary)]">{L('이 과제의 숨은 가정', "This task's hidden assumptions")}</p>
+                    <p className="text-[14px] font-bold text-[var(--text-primary)]">
+                      {L('이 과제의 숨은 가정', "This task's hidden assumptions")}
+                      <span className="ml-1.5 text-[var(--text-tertiary)] font-medium tabular-nums">{analysis.hidden_assumptions.length}</span>
+                    </p>
                     <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
                       {L('이것이 맞아야 과제가 성립합니다. 당신의 경험으로 판단해주세요.', 'These must hold for the task to make sense. Judge with your experience.')}
                     </p>
                   </div>
-                  <div className="space-y-2.5">
+                  <div className="space-y-3">
                     {analysis.hidden_assumptions.map((a, i) => {
                       const ev = a.evaluation || 'uncertain';
                       return (
-                        <div key={i} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4">
-                          <p className="text-[14px] font-semibold text-[var(--text-primary)] leading-snug mb-1.5">
-                            {a.assumption}
-                          </p>
-                          {a.risk_if_false && (
-                            <p className="text-[12px] text-[var(--text-secondary)] mb-3">
-                              {L('만약 아니라면', 'If not')} &rarr; {a.risk_if_false}
+                        <div key={i} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 md:p-5">
+                          <div className="flex items-start gap-2.5 mb-2">
+                            <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-[var(--bg)] border border-[var(--border-subtle)] flex items-center justify-center text-[11px] font-semibold text-[var(--text-tertiary)] tabular-nums">{i + 1}</span>
+                            <p className="text-[14px] font-semibold text-[var(--text-primary)] leading-snug">
+                              {a.assumption}
                             </p>
+                          </div>
+                          {a.risk_if_false && (
+                            <div className="mb-3 ml-[30px] rounded-lg bg-[var(--bg)] px-3 py-2">
+                              <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
+                                <span className="font-semibold text-[var(--text-tertiary)]">{L('만약 아니라면', 'If not')} &rarr; </span>{a.risk_if_false}
+                              </p>
+                            </div>
                           )}
                           {/* 3-way evaluation toggle */}
                           <div className="flex gap-1.5">
@@ -1152,7 +1208,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                                 key={value}
                                 onClick={() => handleEvaluateAssumption(i, value)}
                                 className={`
-                                  flex-1 py-2 rounded-lg text-[12px] font-medium text-center
+                                  flex-1 min-h-[38px] flex items-center justify-center px-1 rounded-lg text-[12px] font-medium text-center leading-tight
                                   transition-all duration-200 cursor-pointer border
                                   ${ev === value
                                     ? color === 'emerald' ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
