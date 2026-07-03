@@ -503,6 +503,10 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [interviewSelections, setInterviewSelections] = useState<Record<string, string>>({});
   const dynamicSteps = computeInterviewSteps(interviewSelections, L);
+  // Which assumption cards the user has actively rated. Default is 'uncertain'
+  // (an honest resting state), but the "why?" input only opens once a card is
+  // touched — so the list loads calm instead of 4 pre-opened inputs.
+  const [touchedAssumptions, setTouchedAssumptions] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     loadItems();
@@ -530,6 +534,9 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
 
   const current = getCurrentItem();
   const hasLearning = judgments.length >= 3;
+
+  // Reset "touched" tracking whenever we switch to a different item.
+  useEffect(() => { setTouchedAssumptions(new Set()); }, [currentId]);
 
   useEffect(() => {
     if (!inputText || inputText.length < 8) {
@@ -874,6 +881,7 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
 
   const handleEvaluateAssumption = (index: number, evaluation: 'likely_true' | 'uncertain' | 'doubtful') => {
     if (!current || !currentId || !current.analysis) return;
+    setTouchedAssumptions((prev) => new Set(prev).add(index));
     const assumptions = [...current.analysis.hidden_assumptions];
     assumptions[index] = { ...assumptions[index], evaluation };
     // Clear reason when switching to likely_true
@@ -1222,8 +1230,9 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                               </button>
                             ))}
                           </div>
-                          {/* Reason input — appears for doubtful/uncertain */}
-                          {(ev === 'doubtful' || ev === 'uncertain') && (
+                          {/* Reason input — only once the card is actively rated
+                              (or already has a reason), so the list loads calm. */}
+                          {(touchedAssumptions.has(i) || a.evaluation_reason) && (ev === 'doubtful' || ev === 'uncertain') && (
                             <input
                               type="text"
                               placeholder={ev === 'doubtful' ? L('왜 의심하나요? (선택)', 'Why doubtful? (optional)') : L('왜 불확실한가요? (선택)', 'Why uncertain? (optional)')}
@@ -1252,17 +1261,19 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
                 )}
 
                 {!reframing && (
-                  <div className="pt-2 space-y-2">
-                    <p className="text-[11px] text-[var(--text-tertiary)] text-right">
-                      {L('당신의 평가를 바탕으로 질문을 재정의합니다', 'Redefining the question based on your evaluation')}
-                    </p>
-                    <div className="flex items-center justify-between">
+                  <div className="sticky bottom-0 z-10 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-3 bg-[var(--bg)] border-t border-[var(--border-subtle)] shadow-[0_-6px_16px_-10px_rgba(0,0,0,0.18)]">
+                    <div className="flex items-center justify-between gap-3">
                       <Button variant="secondary" onClick={handleReanalyze} size="sm">
                         <RotateCcw size={14} /> {L('가정 재분석', 'Re-analyze assumptions')}
                       </Button>
-                      <Button onClick={handleReframe}>
-                        {t('reframe.reframe')} &rarr;
-                      </Button>
+                      <div className="flex items-center gap-3">
+                        <span className="hidden sm:inline text-[11px] text-[var(--text-tertiary)] tabular-nums">
+                          {L(`${analysis.hidden_assumptions.length}개 중 ${touchedAssumptions.size}개 살펴봤어요`, `${touchedAssumptions.size} of ${analysis.hidden_assumptions.length} reviewed`)}
+                        </span>
+                        <Button onClick={handleReframe}>
+                          {t('reframe.reframe')} &rarr;
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1447,17 +1458,19 @@ export function ReframeStep({ onNavigate }: ReframeStepProps) {
               )
             )}
 
-            {/* ─── Actions (Stage 2 only) ─── */}
+            {/* ─── Actions (Stage 2 only) — sticky so 확정/보내기 stays reachable ─── */}
             {reviewStage === 'reframe' && (
-              <div className="flex items-center justify-between pt-1">
-                <Button variant="secondary" onClick={() => setReviewStage('evaluate')} size="sm">
-                  <RotateCcw size={14} /> {L('가정 다시 평가', 'Re-evaluate assumptions')}
-                </Button>
-                <div className="flex gap-2">
-                  <ShareBar getText={() => reframeToMarkdown(current)} getTitle={() => L('항로 재설정 | ', 'Reframe | ') + (current.analysis?.surface_task || '')} />
-                  <Button onClick={handleConfirm} disabled={!current.selected_question}>
-                    <Check size={14} /> {t('common.confirm')}
+              <div className="sticky bottom-0 z-10 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-3 bg-[var(--bg)] border-t border-[var(--border-subtle)] shadow-[0_-6px_16px_-10px_rgba(0,0,0,0.18)]">
+                <div className="flex items-center justify-between gap-2">
+                  <Button variant="secondary" onClick={() => setReviewStage('evaluate')} size="sm">
+                    <RotateCcw size={14} /> {L('가정 다시 평가', 'Re-evaluate assumptions')}
                   </Button>
+                  <div className="flex gap-2">
+                    <ShareBar getText={() => reframeToMarkdown(current)} getTitle={() => L('항로 재설정 | ', 'Reframe | ') + (current.analysis?.surface_task || '')} />
+                    <Button onClick={handleConfirm} disabled={!current.selected_question}>
+                      <Check size={14} /> {t('common.confirm')}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
