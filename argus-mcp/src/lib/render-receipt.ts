@@ -56,7 +56,7 @@ export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo): strin
   L.push('  ─────────────────────────────────────────────────────────');
   L.push('  AI VERDICT ON THIS DECISION ······················  NONE');
   L.push('  The model never graded you. Reality did.');
-  L.push('└──────────────────────────────────  argus · seal → settle ─┘');
+  L.push('└────────────────────────────────  argus · seal → settle ⚓ ─┘');
   return L.join('\n');
 }
 
@@ -72,7 +72,9 @@ export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo): strin
  *    'ai_surfaced' → "Argus drafted these words — you have not yet made them
  *    yours". Never a false ownership narrative, and never a gate (sealing
  *    as-is stays possible).
- *  - zero emoji, zero hype — "anchor down" is the only worldbuilding flourish.
+ *  - zero hype, and one signature: the closing anchor ⚓ at the footer — the
+ *    founder's "period mark" (2026-07-03), stamped only where a loop is tied
+ *    (seal footer, settle receipt footer). Never sprinkled elsewhere.
  *  - the day diff comes from resolveToday's `today`, not a fresh wall clock.
  */
 export function renderSeal(opts: {

@@ -135,7 +135,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         'This stays shut until then. What gets written next is not',
         'a grade — it is what actually happened.',
       ],
-      footer: 'argus · anchor down',
+      footer: 'argus · anchor down ⚓',
     },
     wake: {
       header: 'ARGUS · WAKE',
@@ -181,7 +181,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         '그날까지 이 봉인은 닫혀 있습니다. 날짜가 오면 여기 기록될',
         '것은 평가가 아니라 — 실제로 일어난 일입니다.',
       ],
-      footer: 'argus · 닻 내림',
+      footer: 'argus · 닻 내림 ⚓',
     },
     wake: {
       header: 'ARGUS · 항적',

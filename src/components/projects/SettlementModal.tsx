@@ -372,7 +372,7 @@ export function SettlementModal({
               >
                 <p className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--success)]">
                   <Check size={14} strokeWidth={2.5} />
-                  {L('고리를 닫았어요.', 'Loop closed.')}
+                  {L('고리를 닫았어요. ⚓', 'Loop closed. ⚓')}
                 </p>
                 {/* 판단 액자 (P1-A1): the moment the loop closes is the moment
                     the frame goes up — the user's own two sentences, verbatim,

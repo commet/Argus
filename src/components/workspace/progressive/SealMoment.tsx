@@ -445,8 +445,8 @@ export function SealMoment({
             ) : null}
           </div>
           <p className="relative mt-5 pt-3 border-t border-[var(--border)] text-[13px] text-[var(--text-secondary)] leading-[1.6]">
-            {L(`이 판단의 답은 이제 현실만 갖고 있어요 — ${checkDateStr}, 「그래서, 어떻게 됐어요?」`,
-               `Only reality holds the answer now — ${checkDateStr}, "So, how did it go?"`)}
+            {L(`이 판단의 답은 이제 현실만 갖고 있어요 — ${checkDateStr}, 「그래서, 어떻게 됐어요?」 ⚓`,
+               `Only reality holds the answer now — ${checkDateStr}, "So, how did it go?" ⚓`)}
           </p>
         </div>
 

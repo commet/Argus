@@ -589,8 +589,8 @@ async function handleContractSettlement(
     ? (intent.outcome === 'happened' ? '잘 됨' : intent.outcome === 'avoided' ? '안 됨' : '반반')
     : intent.outcome;
   await sendMessage(chatId, lightHtml(locale === 'ko'
-    ? `기록했어요 — **${label}**. 고리를 닫았어요.`
-    : `Recorded — **${label}**. The loop is closed.`), recordButton(locale));
+    ? `기록했어요 — **${label}**. 고리를 닫았어요. ⚓`
+    : `Recorded — **${label}**. The loop is closed. ⚓`), recordButton(locale));
 }
 
 /** Apply a settlement/extension to the WEB contract behind a mirrored
