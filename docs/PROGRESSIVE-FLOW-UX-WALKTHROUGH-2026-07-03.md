@@ -99,6 +99,30 @@ seal→settle 루프 · flinch-to-seal · CEO검토(→최종 문서 실제 반�
 
 ---
 
+## 4.5 실행 로그 (2026-07-03 — root-cause 에이전트 + 착수)
+
+Tier 0 root-cause를 조사 에이전트로 정밀 확인 후 착수. 검증 가능한 것부터 실제 구현·커밋·푸시.
+
+- **✅ Q2 — 스텝 크래시 (`fix(progressive) fc186c6`).** persisted/legacy/remote `session.mix`의
+  `sections/key_assumptions/next_steps` 무방비 `.map`이 ErrorBoundary로 크래시. 스토어 하이드레이션
+  경계에 `migrateMix` 추가(로컬+원격 병합 둘 다) + 엔진 포맷터에 `|| []`. tsc/eslint 0, 관련 테스트 38 통과.
+- **✅ Q1 — 선원 0/N 영구 고정 (`fix(progressive) 575a6a7`).** `CrewAtWork.allDone`가 done/error만 세서
+  AI 없는 크루(전부 `waiting_input`)면 헤더가 "일하고 있어요"를 영원히 표시(플로우는 이미 넘어감).
+  `crewSettled`와 종결 집합 정렬 + doneCount 0 케이스 정직 헤더. render 테스트 19 통과.
+- **○ Q3 — 수정 불필요.** "다시 실행"은 이미 완료 워커를 건너뛰고 재개(토큰 재소모 없음, `worker-engine.ts:219`).
+- **○ Q5 — 코드 불필요.** focus 자동날인은 이미 제거됨(`ProgressiveFlow.tsx:1434-1441`); focus는 게이트만
+  건너뛰고 `approved`는 null 유지(정직). **TODO: 회귀 테스트** (focus mix 시 approved !== true 단언).
+- **⏸ Q4 — 봉인 서버-도달 (band-aid 금지, 스펙만 남김).** 봉인 계약은 project-store upsert(`db.ts:232`,
+  fire-and-forget, keepalive/unload flush 없음). 순진한 keepalive는 **64KB 상한**에 걸림 — 봉인이 프로젝트
+  *전체*(큰 문서)를 upsert하므로 큰 프로젝트에서 조용히 실패 = 또 다른 하자보수. **제대로 된 fix:**
+  (a) 계약만 담는 소형 전용 write 경로(decision_contract only) + keepalive, 또는 (b) cookie-auth라면
+  `/api/…` 엔드포인트로 `sendBeacon`. **실제 auth/deploy 환경 검증 필수**(로컬 시크릿으로 검증 불가) →
+  전용 sub-task로. 참고: 같은-기기 재방문 시 localStorage 병합으로 복구되므로 손실 범위는 "봉인 직후
+  닫고 즉시 타기기 전환"으로 좁음.
+
+**남은 대공사 (다음 세션):** Q1 심화(리로드 시 auto-resume — 현재는 "다시 실행" 배너로 커버) ·
+**Tier 1 정보구조(진짜 progressive disclosure — 최대 레버, 다음)** · Tier 2 합성 정량 디폴트 · Tier 3 폴리시.
+
 ## 5. 기존 문서와의 관계 (참고, 종속 아님)
 - `ARGUS-2.0-PLAN-2026-07-02.md`: seal-flush(F13)·자동날인(F10)·legacy 종점(F1·F2)·전환 풀리로드(F3/B3)·
   모지바케를 **정밀 기술** — 위 1.4/OVERLAP 항목의 **사실 보강용**으로 인용. 단, 부분 실행됐는데도 코어가
