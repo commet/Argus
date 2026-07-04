@@ -48,6 +48,7 @@ import { track } from '@/lib/analytics';
 import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
 import { JudgmentReceipt } from './JudgmentReceipt';
 import { JudgmentFrame } from './JudgmentFrame';
+import { RetroBadge } from './RetroBadge';
 
 const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
   governing_idea: Target,
@@ -66,6 +67,8 @@ export function SettlementModal({
   project,
   onClose,
   remainingDue,
+  draftVerdicts,
+  onRealSeal,
 }: {
   project: Project;
   onClose: () => void;
@@ -73,6 +76,18 @@ export function SettlementModal({
    *  strip already shows) — passed down so the modal never grows its own
    *  drifting due arithmetic. Absent → the new-decision door shows instead. */
   remainingDue?: number;
+  /** NON-BINDING pre-highlights from settle-align (베팅③ 회고 봉인 step 2).
+   *  Maps predicate id → a drafted verdict. A matching verdict button gets a
+   *  dashed "초안" ring, but is NEVER selected — the user still taps to commit
+   *  (verdict_via:'ai_draft' in spirit; C5 — no AI verdict as the conclusion).
+   *  Absent on the normal /project settle path — the ring simply never renders. */
+  draftVerdicts?: Record<string, 'happened' | 'avoided' | 'partial'>;
+  /** [C3] 실전 온램프 (베팅③ 회고 봉인 완료 화면). Present ONLY on the retro
+   *  path (RetroSeal). When a retro loop closes, the done screen offers a single
+   *  TEXT LINK — "이제 진짜 …" — that starts a real (blind) decision instead of
+   *  the generic "새 결정 적기". A text link only: no button promotion, no auto-
+   *  navigation (§C3 절제). Absent → the normal onramp shows unchanged. */
+  onRealSeal?: () => void;
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
@@ -82,6 +97,9 @@ export function SettlementModal({
 
   const [whatHappened, setWhatHappened] = useState('');
   const contract = project.decision_contract ?? null;
+  // 회고(연습) 계약인가 — 이 표면 전체에서 「연습 · 회고」 배지를 상시 노출하는
+  // 근거(C2). 정상 계약은 origin 부재 → false → 배지 미렌더(무영향).
+  const isRetro = contract?.origin === 'retro';
   const predicates: Predicate[] = useMemo(
     () => (Array.isArray(contract?.predicates) ? contract!.predicates : []),
     [contract],
@@ -117,6 +135,18 @@ export function SettlementModal({
       setStorage(STORAGE_KEYS.THIRD_LOOP_SEEN, true);
     }
   }, [record, receipts]);
+
+  // [활성화 계측 · 항목10] retro_settled — a practice (회고) loop closed. Fires
+  // exactly when a retro contract reaches allResolved, and flips the persistent
+  // RETRO_SETTLED flag so SealMoment can later fire first_real_seal_after_retro
+  // on the user's first REAL blind seal. This is the "3분 완주=병목 해소" onramp
+  // signal. Once per device: the flag guards the re-fire on re-open.
+  useEffect(() => {
+    if (!isRetro || !allResolved) return;
+    if (getStorage(STORAGE_KEYS.RETRO_SETTLED, false)) return;
+    setStorage(STORAGE_KEYS.RETRO_SETTLED, true);
+    track('retro_settled', { predicates: predicates.length });
+  }, [isRetro, allResolved, predicates.length]);
 
   function saveWhatHappened(text: string) {
     const existingReceipt = contract?.judgment_receipt;
@@ -245,6 +275,8 @@ export function SettlementModal({
           <p className="text-[15px] md:text-[16px] font-bold text-[var(--text-primary)] leading-[1.35]" style={{ fontFamily: 'var(--font-display)' }}>
             {L('그때 건 예측을, 이제 현실과 맞춰봐요', 'Time to check your prediction against what happened')}
           </p>
+          {/* [C2] 정산모달 표면의 「연습 · 회고」 상시 배지 — retro일 때만. */}
+          {isRetro && <RetroBadge ko={ko} />}
           <p className="text-[12px] text-[var(--text-secondary)] leading-[1.5] max-w-[36ch]">
             {sealedOn
               ? L(`${sealedOn}에 봉인한 결정의 확인일이에요. 고리를 닫는 순간이에요.`, `The check-in day for the decision you sealed on ${sealedOn}. This is the loop closing.`)
@@ -270,6 +302,16 @@ export function SettlementModal({
               ? L(`${sealedOn}에 봉인한 결정이에요 — `, `You sealed this decision on ${sealedOn} — `)
               : L('그때 이 결정을 봉인하셨어요 — ', 'You sealed this decision — ')}
             <span className="font-semibold text-[var(--text-primary)]">{project.name}</span>
+          </p>
+        )}
+
+        {/* 회고 봉인 초안 안내 (베팅③): the dashed rings are AI-read drafts, not
+            verdicts. One quiet line so a first-timer knows to tap-confirm. Only
+            renders on the retro path (draftVerdicts present). */}
+        {draftVerdicts && Object.keys(draftVerdicts).length > 0 && (
+          <p className="text-[11.5px] text-[var(--text-tertiary)] leading-[1.5] -mt-1">
+            {L('점선으로 미리 짚어둔 건 AI가 읽어본 초안이에요 — 최종은 직접 눌러서 확정하세요.',
+               'The dashed marks are the AI-read draft — you confirm the final call by tapping.')}
           </p>
         )}
 
@@ -301,15 +343,22 @@ export function SettlementModal({
                     .filter((v) => v.value !== 'unknown')
                     .map((v) => {
                       const selected = p.verdict === v.value;
+                      // NON-BINDING draft pre-highlight (베팅③ step 2): a dashed ring
+                      // on the drafted verdict while the predicate is still ungraded.
+                      // Cleared the instant the user commits anything (verdict set).
+                      const isDraft = !isResolved(p) && draftVerdicts?.[p.id] === v.value;
                       return (
                         <button
                           key={v.value}
                           onClick={() => grade(p.id, selected ? 'pending' : v.value)}
                           aria-pressed={selected}
+                          title={isDraft ? L('AI가 미리 짚은 초안 — 눌러서 확정하세요', 'AI-drafted — tap to confirm') : undefined}
                           className={`px-2.5 py-1 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
                             selected
                               ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                              : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
+                              : isDraft
+                                ? 'border-dashed border-[var(--accent)]/60 text-[var(--accent)] bg-[var(--accent)]/[0.06]'
+                                : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
                           }`}
                         >
                           {v.label}
@@ -386,8 +435,20 @@ export function SettlementModal({
                   sealedOn={sealedOn}
                   settledOn={contract.judgment_receipt?.settled_at ? fmtDate(contract.judgment_receipt.settled_at) : undefined}
                   ko={ko}
+                  retro={isRetro}
                 />
-                {record && (
+                {/* [C4] 회고 완료 화면의 별도 안내 — retro는 자차표에서 격리돼
+                    record가 null이라 위 카운트 문장이 안 뜬다. 빈 자차표가
+                    배신처럼 안 보이게, "연습 고리를 닫았다 + 실제 기록은 진짜
+                    봉인부터" 한 줄로 정직하게 잇는다. record 클로즈(운/위험 카운트)는
+                    회상편향이 태생적인 회고엔 절대 안 붙인다(C4). */}
+                {isRetro && (
+                  <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
+                    {L('연습 고리를 한 번 닫아봤어요 — 봉인부터 정산까지 어떤 느낌인지 보셨죠. 실제 기록은 결과를 모르는 채로 거는 진짜 봉인부터 쌓여요.',
+                       "You closed a practice loop — you've felt the seal-through-settle shape. Your real record starts building from the first real seal, one made before you know how it turns out.")}
+                  </p>
+                )}
+                {!isRetro && record && (
                   <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
                     {record.loops === 1
                       ? L('첫 고리예요 — 결정이 어떻게 됐는지 끝까지 확인한 거, 이번이 처음이에요.', 'Your first loop — the first decision you followed all the way to how it turned out.')
@@ -427,11 +488,18 @@ export function SettlementModal({
                   </div>
                 )}
                 <div className="flex items-center justify-between gap-3">
-                  {/* 재봉인 온램프 (P1-A1, 리뷰1): the ONE quiet door out of a
-                      closed loop. A text link only — no button promotion, no
-                      auto-navigation, no chained modal (§5-19). The count is a
-                      plain fact the due strip already shows. */}
-                  {typeof remainingDue === 'number' && remainingDue > 0 ? (
+                  {/* [C3] 회고 실전 온램프 — retro 완료 화면에서만. 연습을 닫은
+                      직후가 진짜를 걸어볼 유일한 문. 텍스트 링크 1개(버튼 승격·
+                      자동 네비 금지, §C3 절제). onRealSeal이 setCurrentProjectId(null)
+                      류로 새(눈먼) 결정을 연다. 재봉인 온램프(아래)를 대체한다. */}
+                  {isRetro && onRealSeal ? (
+                    <button
+                      onClick={onRealSeal}
+                      className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline underline-offset-2 cursor-pointer transition-colors text-left"
+                    >
+                      {L('이제 진짜 — 결과를 아직 모르는 결정 하나 걸어볼까요? →', 'Now for real — want to seal one whose outcome you don’t know yet? →')}
+                    </button>
+                  ) : typeof remainingDue === 'number' && remainingDue > 0 ? (
                     <button
                       onClick={onClose}
                       className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline underline-offset-2 cursor-pointer transition-colors"

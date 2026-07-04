@@ -125,6 +125,33 @@ export function recordStartDate(
 }
 
 /**
+ * 형태2 기념일 각인 (08 B6) — the anniversary inscription: `첫 항해 {date} ·
+ * 오늘로 N주째`. A PURE elapsed FACT built only on the record's oldest seal date
+ * and the current clock. There is NO continuity condition anywhere in here — an
+ * empty gap (weeks with no seal) renders the identical string, so it can never be
+ * read as a "streak kept" or "streak broken". Not a streak, not a push, and it
+ * only exists while the surface is on screen.
+ *
+ * Returns undefined when there is no start date (nothing to inscribe). The date
+ * source is recordStartDate (the same oldest-seal fact the strip already uses),
+ * so the inscription and the strip's "기록 시작" can never disagree.
+ */
+export function firstVoyageInscription(
+  since: string | undefined,
+  now: number,
+  locale: 'ko' | 'en',
+): string | undefined {
+  if (!since) return undefined;
+  const then = new Date(since).getTime();
+  if (Number.isNaN(then)) return undefined;
+  // Whole elapsed weeks — floor, clamped at 0 (a same-day seal reads "0주째").
+  const weeks = Math.max(0, Math.floor((now - then) / (7 * 86_400_000)));
+  return locale === 'ko'
+    ? `첫 항해 ${since} · 오늘로 ${weeks}주째`
+    : `First voyage ${since} · week ${weeks} today`;
+}
+
+/**
  * 3고리 의식 gate (P1-A5 = 08 S5): fires EXACTLY at the moment the merged
  * settled count first reaches SETTLED_THRESHOLD, once per lifetime (the caller
  * persists `alreadySeen` via STORAGE_KEYS.THIRD_LOOP_SEEN). Strict equality on

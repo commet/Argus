@@ -1,4 +1,4 @@
-# Contributing to argus-mcp
+# Contributing to argus-decision-mcp
 
 ## The one rule
 

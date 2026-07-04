@@ -654,6 +654,12 @@ export function summarizeRecord(
   for (const p of projects) {
     const c = p?.decision_contract;
     if (!c || !contractStatus(c, now).allGraded) continue;
+    // [C1·P0] Retrospective (practice) loops are EXCLUDED from the 자차표. A
+    // retro seal closes the loop on an already-known outcome — hindsight bias is
+    // native, so counting it would inflate the record and read as a verdict on
+    // the user (goalpost-guard invariant). This is the single aggregation source
+    // (project strip + SettlementModal), so this one filter isolates all surfaces.
+    if (c.origin === 'retro') continue;
     rec.loops++;
     const g = summarizeGrades(c);
     rec.betsHeld += g.betsHeld;

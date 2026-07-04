@@ -38,6 +38,7 @@ import { getPersonaPool } from '@/lib/worker-personas';
 import { WorkerAvatar, AvatarRow } from '@/components/workspace/progressive/WorkerAvatar';
 import { BindCard, type BindResult } from '@/components/workspace/progressive/BindCard';
 import { InteractiveDemo } from '@/components/workspace/InteractiveDemo';
+import { RetroSeal } from '@/components/workspace/RetroSeal';
 import { getDemoScenarios } from '@/lib/demo-data';
 import type { DemoScenario } from '@/lib/demo-data';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -238,7 +239,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
 /* EASE — imported from shared/constants */
 
 /* ─── HeroFlow: idle → assembling → analyzing → ready ─── */
-type HeroPhase = 'idle' | 'binding' | 'assembling' | 'analyzing' | 'ready';
+type HeroPhase = 'idle' | 'retro' | 'binding' | 'assembling' | 'analyzing' | 'ready';
 
 function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: {
   onReady: (projectId: string) => void;
@@ -477,6 +478,29 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
       }
     }
   };
+
+  // 회고 봉인 온보딩 (베팅③, W2) — a first-session run of the seal→settle loop on
+  // an already-known past decision. Rendered inside HeroFlow (no new route); exit
+  // returns to idle, lossless. Demo-equal option, entered from the empty state.
+  if (phase === 'retro') {
+    return (
+      <div className="relative min-h-[calc(100vh-64px)] overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'var(--gradient-concert-hall)' }} />
+        <Graticule opacity={0.02} spacing={18} />
+        <div className="relative">
+          <RetroSeal
+            onExit={() => setPhase('idle')}
+            onRealSeal={() => {
+              // [C3] real-decision onramp: clear the just-closed retro project so
+              // the idle main input starts a fresh, blind decision (not the retro).
+              useProjectStore.getState().setCurrentProjectId(null);
+              setPhase('idle');
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   // Demo mode — show showcase
   if (demoScenario) {
@@ -876,6 +900,32 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   );
                 })()}
               </div>
+
+              {/* 회고 봉인 진입 (베팅③ 1-A, W2) — a DEMO-EQUAL option in the empty
+                  state: run the seal→settle loop once on a past decision you already
+                  know the outcome of, so the moat (settle) is felt in the first
+                  session instead of 2–3 weeks later. Never forced — sits quietly
+                  beside the demos, and the primary input above is always the main
+                  door. Empty state only (a returning user has their own record). */}
+              {projects.length === 0 && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => setPhase('retro')}
+                    className="w-full text-left rounded-xl border border-[var(--accent)]/20 bg-[var(--surface)]/60 p-4 cursor-pointer transition-all duration-200 hover:bg-[var(--surface)] hover:border-[var(--accent)]/40 hover:shadow-[var(--shadow-md)] group"
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <History size={16} className="text-[var(--accent)]" />
+                      <span className="text-[13px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
+                        {L('연습으로 — 지난 결정 하나로 고리를 돌려보기', "Practice — run the loop on a past decision")}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
+                      {L('데모가 아니라 당신의 진짜 지난 결정으로, 봉인부터 정산까지 3분 안에 한 번 돌려봐요. 이미 결과를 아는 결정이라 지금 바로 맞춰볼 수 있어요.',
+                         'Your own real past decision — not a demo — run seal to settle in 3 minutes. You already know how it turned out, so you can check it right now.')}
+                    </p>
+                  </button>
+                </div>
+              )}
 
               {/* TERTIARY: Marketing copy — only for absolute first-time users
                   (no recent projects). Returning users skip this entirely. */}

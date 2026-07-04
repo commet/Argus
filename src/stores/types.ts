@@ -659,6 +659,15 @@ export interface DecisionContract {
   /** Judgment Receipt — seal과 settle을 하나의 오브젝트로 묶는다.
    *  Absent on legacy contracts — read as contract.judgment_receipt ?? undefined. */
   judgment_receipt?: JudgmentReceipt;
+  /** Retrospective-seal marker (베팅③ 회고 봉인 온보딩). When 'retro' the contract
+   *  is a PRACTICE loop closed on an already-known past outcome — a first-session
+   *  taste of seal→settle, not a real prediction made blind. It is fully EXCLUDED
+   *  from `summarizeRecord` (the 자차표's only aggregation source) so a practice
+   *  loop can never inflate loops/betsHeld/risksAvoided (goalpost-guard invariant,
+   *  hindsight bias is native to retro accuracy). Absent = a normal, real contract.
+   *  Lives inside the single `decision_contract` jsonb column — no migration,
+   *  schema-drift unaffected. */
+  origin?: 'retro';
 }
 
 /** Run provenance for a sealed contract (dim8) — auditable reproducibility, not

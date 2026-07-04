@@ -41,8 +41,10 @@ import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContrac
 import { recordSignal } from '@/lib/signal-recorder';
 import { syncSealToTelegram } from '@/lib/telegram-sync';
 import { track } from '@/lib/analytics';
+import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { JudgmentReceipt, deriveReceiptFields } from '@/components/projects/JudgmentReceipt';
+import { RetroBadge } from '@/components/projects/RetroBadge';
 import { SealStamp } from './SealStamp';
 import { Graticule } from '@/components/ui/VoyageElements';
 import { EASE } from './shared/constants';
@@ -55,12 +57,31 @@ const SOURCE_ICON: Record<PredicateSource, typeof Target> = {
 };
 
 const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
+  // '3d' is a PURE EQUAL option (베팅③ 1-B): a short check-in for decisions whose
+  // answer lands in a day or two, so a first sealer who'd otherwise wait 2 weeks
+  // (and maybe never return) can taste the settle sooner. No nudge, no urgency
+  // copy, no default preselection — it's just another neutral date chip. Far
+  // horizons keep 2w/1m; nothing is artificially shortened (no fake settlement).
+  { value: '3d', ko: '3일 뒤', en: 'in 3 days' },
   { value: '1w', ko: '1주 뒤', en: 'in 1 week' },
   { value: '2w', ko: '2주 뒤', en: 'in 2 weeks' },
   { value: '1m', ko: '1달 뒤', en: 'in 1 month' },
 ];
 
 const DEFAULT_INTERVAL: CheckInInterval = '2w';
+
+/** [활성화 계측 · 항목10] first_real_seal_after_retro — fires exactly once, on
+ *  the user's first REAL (blind) seal AFTER a retro practice loop was settled.
+ *  Consumes the RETRO_SETTLED flag (set by SettlementModal when a retro loop
+ *  closes) so this can never double-fire. Every seal reaching SealMoment is a
+ *  real seal (retro contracts are built by RetroSeal, never through this path),
+ *  so there's no retro-vs-real ambiguity here. Silent no-op when no retro was
+ *  ever settled — the normal seal is unaffected. */
+function fireFirstRealSealAfterRetro() {
+  if (!getStorage(STORAGE_KEYS.RETRO_SETTLED, false)) return;
+  setStorage(STORAGE_KEYS.RETRO_SETTLED, false);
+  track('first_real_seal_after_retro', {});
+}
 
 /** RFC 5545 TEXT escaping — commas/semicolons/backslashes/newlines. */
 function icsEscape(s: string): string {
@@ -237,6 +258,8 @@ export function SealMoment({
       recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: next.predicates.length } });
       // Also in the main funnel (user_events) — this is the activation north-star.
       track('decision_sealed', { interval: iv, predicates: next.predicates.length, augmented: !!existing, mode: decision.mode });
+      // Retro→real conversion signal (항목10): only if a retro loop was settled first.
+      fireFirstRealSealAfterRetro();
     }
   }
 
@@ -278,6 +301,8 @@ export function SealMoment({
     setScene(reducedMotion ? 'sealed' : 'sealing');
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_accepted', signal_data: { interval: iv, predicates: c.predicates.length, mode: 'manual_recovery' } });
     track('decision_sealed', { interval: iv, predicates: c.predicates.length, mode: 'manual_recovery' });
+    // Retro→real conversion signal (항목10): only if a retro loop was settled first.
+    fireFirstRealSealAfterRetro();
   }
 
   // ── 캘린더에 약속 넣기 — a client-built .ics, because there is no outbound
@@ -449,6 +474,13 @@ export function SealMoment({
             <SealStamp date={stampDate} size={64} />
           </div>
           <div className="relative pr-16 md:pr-20">
+            {/* [C2] 봉인증서 표면의 「연습 · 회고」 상시 배지 — retro 계약일 때만.
+                정상 봉인은 origin 부재 → 미렌더(무영향). */}
+            {contract?.origin === 'retro' && (
+              <div className="mb-2">
+                <RetroBadge ko={ko} />
+              </div>
+            )}
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
               {L('항해 기록 — 봉인', 'Voyage log — sealed')} · {sealedOnStr}
             </p>
