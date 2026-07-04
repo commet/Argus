@@ -187,11 +187,16 @@ describe('due premises', () => {
     expect(due[0].decision_text.length).toBeGreaterThan(0); // decision context rides along
   });
 
-  it('cap gates due-ness only: recent recheck → not due; 8d old → due again', () => {
+  it('cadence gates due-ness: recent recheck → not due; past the cadence → due again', () => {
+    // Rule-less default cadence is 14 days (M1 §1.2). 2 days ago = not due;
+    // 20 days ago (> 14) = due again.
     const recent = mkPremise({ last_recheck: { finding: 'x', drifted: false, baseline_only: true, source: 'url', ts: '2026-06-30T00:00:00Z' }, recheck_count: 1 });
-    const stale = mkPremise({ last_recheck: { finding: 'x', drifted: false, baseline_only: true, source: 'url', ts: '2026-06-20T00:00:00Z' }, recheck_count: 1 });
+    const stale = mkPremise({ last_recheck: { finding: 'x', drifted: false, baseline_only: true, source: 'url', ts: '2026-06-12T00:00:00Z' }, recheck_count: 1 });
     expect(isDueForRecheck(recent, TODAY)).toBe(false);
     expect(isDueForRecheck(stale, TODAY)).toBe(true);
+    // a pinned short cadence brings the recent one due again (user control)
+    const recentTight = mkPremise({ recheck_cadence_days: 7, last_recheck: { finding: 'x', drifted: false, baseline_only: true, source: 'url', ts: '2026-06-20T00:00:00Z' }, recheck_count: 1 });
+    expect(isDueForRecheck(recentTight, TODAY)).toBe(true); // 12d > 7d cadence
   });
 
   it('groups due premises across decisions by normalized text (P1)', () => {

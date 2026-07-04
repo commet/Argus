@@ -79,6 +79,18 @@ export function resolveResponseLocale(argusDir: string | null | undefined, text?
 /** Shape shared by both locales — a key added to one MUST exist in the other
  *  (TypeScript enforces the parity; no drift between the two voices). */
 export interface SurfaceStrings {
+  /** M1 §1.3 — the in-session ambient due-line: one FACT sentence appended to
+   *  the very end of any tool's surface so a due item is never forgotten mid-
+   *  session. Counts + handle only, never a directive; silent at zero (rendered
+   *  by the caller only when at least one count is > 0). */
+  ambient: {
+    /** both kinds due. */
+    both: (contracts: number, premises: number) => string;
+    /** only contracts past check-by. */
+    contracts_only: (contracts: number) => string;
+    /** only premise facts due for re-check. */
+    premises_only: (premises: number) => string;
+  };
   checkin: {
     nothing_due: string;
     /** appended when ARGUS_TOKEN is set and nothing is due locally (P1-E4 ③). */
@@ -171,7 +183,7 @@ export interface SurfaceStrings {
       sync_failed: (reason: string) => string;
     };
     recheck: {
-      baseline: (ref: number, finding: string, source: string) => string;
+      baseline: (ref: number, finding: string, source: string, cadenceDays: number) => string;
       /** material drift — the fact moved; return the handle, never a directive. */
       material: (ref: number, before: string, after: string, source: string) => string;
       /** uncertain — surface the FACT only, no handle (M2 §4). Already ko in the
@@ -193,6 +205,11 @@ export interface SurfaceStrings {
 
 export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
   en: {
+    ambient: {
+      both: (c, p) => ` By the way — ${c} to settle · ${p} to re-check when you have a moment (argus_check_in).`,
+      contracts_only: (c) => ` By the way — ${c} past check-by when you have a moment (argus_check_in).`,
+      premises_only: (p) => ` By the way — ${p} premise fact(s) to re-check when you have a moment (argus_check_in).`,
+    },
     checkin: {
       nothing_due: 'Nothing is due. Nothing to nudge.',
       account_hint: ' This reads the local ledger only — judgments sealed in your account: argus_sync shows them.',
@@ -264,7 +281,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         sync_failed: (reason) => ` (Account sync didn't go through — ${reason}. Your settlement is safe locally; the account may keep listing this as due until it syncs. Try argus_sync later.)`,
       },
       recheck: {
-        baseline: (ref, finding, source) => `Baseline recorded for P${ref}: "${finding}" (${source}). Re-check suggested again in 7 days.`,
+        baseline: (ref, finding, source, cadenceDays) => `Baseline recorded for P${ref}: "${finding}" (${source}). Re-check suggested again in ${cadenceDays} days.`,
         material: (ref, before, after, source) => `The fact under P${ref} changed: "${before}" → "${after}" (${source}). Whether to revisit this decision is your call.`,
         uncertain: (ref, reason) => `P${ref}: this change is too close to call automatically under the rule (${reason}). Only the fact the host confirmed is recorded — whether to set a rule or leave it is your call.`,
         uncertain_heuristic_note: ' No rule was set for this premise, so a default heuristic was used — pinning which move matters here makes it sharper.',
@@ -279,6 +296,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
   },
   ko: {
+    ambient: {
+      both: (c, p) => ` 그나저나 — 정산할 것 ${c}건 · 재확인할 것 ${p}건, 여유 될 때 보세요 (argus_check_in).`,
+      contracts_only: (c) => ` 그나저나 — 확인일 지난 것 ${c}건, 여유 될 때 보세요 (argus_check_in).`,
+      premises_only: (p) => ` 그나저나 — 재확인할 전제 사실 ${p}건, 여유 될 때 보세요 (argus_check_in).`,
+    },
     checkin: {
       nothing_due: '확인할 차례가 된 것은 없습니다. 조를 것도 없습니다.',
       account_hint: ' 이건 로컬 원장만 읽습니다 — 계정에 봉인한 판단은 argus_sync로 볼 수 있습니다.',
@@ -350,7 +372,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다 — ${reason}. 정산은 로컬에 안전합니다. 동기화되기 전까지 계정은 이걸 계속 "확인 필요"로 표시할 수 있습니다. 나중에 argus_sync를 시도하세요.)`,
       },
       recheck: {
-        baseline: (ref, finding, source) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). 7일 뒤에 다시 확인하길 권합니다.`,
+        baseline: (ref, finding, source, cadenceDays) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). ${cadenceDays}일 뒤에 다시 확인하길 권합니다.`,
         material: (ref, before, after, source) => `P${ref}이 기댄 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 이 결정을 다시 볼지는 당신 몫입니다.`,
         uncertain: (ref, reason) => `P${ref}: 규칙상 자동 판정이 애매한 변화예요 (${reason}). host가 확인한 사실만 적어뒀어요 — 규칙을 정할지, 그냥 둘지는 당신 몫이에요.`,
         uncertain_heuristic_note: ' 규칙을 따로 정하지 않아 기본값(휴리스틱)으로 봤어요 — 이 전제에서 어떤 움직임이 중요한지 정해두면 더 정확해요.',

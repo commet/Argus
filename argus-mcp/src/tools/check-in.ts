@@ -95,6 +95,10 @@ export const checkIn: ToolModule = {
 
       // Living premises: monitored facts due for a reality re-check, grouped so
       // the same fact under several decisions is ONE re-check (plan v5 P1/P5).
+      // groupDuePremises(duePremises()) is the SAME primitive the ambient
+      // due-line reads via ambient-due.ts — so the "N to re-check" the session
+      // sees on any tool can never disagree with check_in (M1 §1.3, single-source
+      // rule; a test pins the equality).
       const TOP = 5;
       const premiseGroups = groupDuePremises(duePremises(ledger));
       const duePrem = premiseGroups.slice(0, TOP).map((g) => ({

@@ -32,6 +32,8 @@ export interface LedgerEventInput {
   ai_original?: string;
   /** M2 materiality rule (jsonb-nested on premise_add) — no schema migration. */
   materiality_rule?: unknown;
+  /** M1 re-check cadence in days (jsonb-nested on premise_add/amend) — no migration. */
+  recheck_cadence_days?: number;
   action?: string;
   from?: string;
   to?: string;

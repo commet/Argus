@@ -6,7 +6,7 @@ import { readReceipt } from '../lib/receipt.js';
 import { renderReceipt, renderWake, type WakeContractRow } from '../lib/render-receipt.js';
 import { surfaceLocale } from '../lib/surfaces.js';
 import type { LedgerState } from '../lib/ledger-replay.js';
-import { isMonitored, isDueForRecheck, receiptPremisesInfo } from '../lib/premises.js';
+import { isMonitored, isDueForRecheck, receiptPremisesInfo, recheckCadenceDays, nextRecheckDue } from '../lib/premises.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -93,6 +93,9 @@ export const recall: ToolModule = {
             last_checked: last,
             staleness: last === null ? 'never re-checked' : `${daysStale}d since last re-check`,
             ...(p.last_recheck ? { last_finding: p.last_recheck.finding, last_source: p.last_recheck.source, last_drifted: p.last_recheck.drifted } : {}),
+            // M1 §1.2 — the formalized cadence: effective interval + the next due
+            // date (null = due now / not monitored). Data only, never a nag.
+            ...(isMonitored(p) ? { recheck_cadence_days: recheckCadenceDays(p), next_recheck_due: nextRecheckDue(p) } : {}),
             due_for_recheck: isDueForRecheck(p, today),
             ...(p.resolved_decision ? { resolved_decision: p.resolved_decision } : {}),
           };

@@ -20,6 +20,10 @@ interface ArgusConfig {
   boss: string | null;
   team: string | null;
   archive: boolean | null;
+  /** M1 §1.3 — when true, silence the in-session ambient due-line (the surface
+   *  tail). The machine due_note count channel is unaffected. The escape hatch;
+   *  never affects the spine. Absent/false → the ambient line may fire once. */
+  ambient_mute?: boolean | null;
 }
 
 function readConfig(dir: string): ArgusConfig | null {
@@ -78,13 +82,14 @@ export const config: ToolModule = {
     boss: z.string().optional(),
     team: z.string().optional(),
     archive: z.boolean().optional(),
+    ambient_mute: z.boolean().optional().describe('Silence the in-session ambient due-line (the "by the way — N to settle" surface tail). The machine due_note count is unaffected.'),
   }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Read/update settings', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = resolveToolArgusDir(a['argus_dir']);
-      const writeKeys = ['locale', 'boss', 'team', 'archive'].filter((k) => k in a);
+      const writeKeys = ['locale', 'boss', 'team', 'archive', 'ambient_mute'].filter((k) => k in a);
 
       const existing = readConfig(dir) ?? { schema_version: SCHEMA_VERSION, locale: detectLocale(dir), boss: null, team: null, archive: null };
 
@@ -103,6 +108,7 @@ export const config: ToolModule = {
         ...(('boss' in a) ? { boss: a['boss'] as string } : {}),
         ...(('team' in a) ? { team: a['team'] as string } : {}),
         ...(('archive' in a) ? { archive: a['archive'] as boolean } : {}),
+        ...(('ambient_mute' in a) ? { ambient_mute: a['ambient_mute'] as boolean } : {}),
       };
       await atomicWriteText(configPath(dir), yaml.dump(merged));
       return envelope({ ok: true, tool: 'argus_config', surface: 'Config updated.', next_actions: ['stop'], data: { config: merged } });

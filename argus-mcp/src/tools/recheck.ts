@@ -4,7 +4,7 @@ import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger } from '../lib/ledger-replay.js';
 import { deriveState, guardTransition } from '../lib/state-machine.js';
 import { appendLedger, type LedgerEventInput } from '../lib/ledger-append.js';
-import { resolvePremiseRef, matchingMonitoredPremises, normalizePremiseText } from '../lib/premises.js';
+import { resolvePremiseRef, matchingMonitoredPremises, normalizePremiseText, recheckCadenceDays } from '../lib/premises.js';
 import { evaluateMateriality, type MaterialityRule, type Materiality } from '../lib/numeric-drift.js';
 import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -147,7 +147,7 @@ export const recheck: ToolModule = {
         : '';
 
       const surface = baselineOnly
-        ? T.baseline(premise.ordinal, finding, source)
+        ? T.baseline(premise.ordinal, finding, source, recheckCadenceDays(premise))
         : status === 'material'
           ? T.material(premise.ordinal, prior!.finding, finding, source)
           : status === 'uncertain'

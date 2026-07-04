@@ -20,9 +20,50 @@ export type PremiseAmendAction = 'accept' | 'refine' | 'replace' | 'retire';
 /** Hard caps (plan v5 §2): a decision is 5 premises, not a wiki. */
 export const MAX_ACTIVE_PREMISES = 5;
 export const MAX_LOAD_BEARING = 2;
-/** Re-check cadence: gates DUE-COMPUTATION ONLY — an explicit recheck is always
- *  writable (the mistake-correction path, plan v5 P3). */
+/** Re-check cadence FLOOR: the minimum interval before a premise is nudged again.
+ *  Gates DUE-COMPUTATION ONLY — an explicit recheck is always writable (the
+ *  mistake-correction path, plan v5 P3). A premise's own `recheck_cadence_days`
+ *  (M1 §1.2) can widen this but never narrows below the floor. */
 export const RECHECK_MIN_INTERVAL_DAYS = 7;
+
+/** M1 §1.2 — the default re-check cadence when the user pins none. Volatility is
+ *  inferred from the premise's materiality-rule type (the only volatility signal
+ *  we have at add-time): a `threshold`/`relative`/`delta`/`band` fact is a moving
+ *  number (high volatility → check often); `step`/`map`/`stateful` describe
+ *  slower-moving ordinal/nominal state; no rule → a neutral middle. Bounded to
+ *  [floor, 180] so the cadence is always a sane, non-nagging interval.
+ *
+ *  This is a *suggestion* the user overrides — never a verdict about the fact. */
+export const DEFAULT_RECHECK_CADENCE_DAYS = 14;
+const HIGH_VOLATILITY_CADENCE_DAYS = 7;
+const SLOW_STATE_CADENCE_DAYS = 30;
+const MAX_RECHECK_CADENCE_DAYS = 180;
+
+export function defaultRecheckCadenceDays(rule?: { type?: string } | null): number {
+  switch (rule?.type) {
+    case 'threshold':
+    case 'relative':
+    case 'delta':
+    case 'band':
+      return HIGH_VOLATILITY_CADENCE_DAYS;
+    case 'step':
+    case 'map':
+    case 'stateful':
+      return SLOW_STATE_CADENCE_DAYS;
+    default:
+      return DEFAULT_RECHECK_CADENCE_DAYS;
+  }
+}
+
+/** The effective cadence for a premise: its pinned value if any, else the
+ *  rule-derived default — clamped to [floor, 180]. One source for both the
+ *  due-computation and the "re-check again in N days" surface line. */
+export function recheckCadenceDays(p: PremiseState): number {
+  const raw = typeof p.recheck_cadence_days === 'number' && Number.isFinite(p.recheck_cadence_days)
+    ? p.recheck_cadence_days
+    : defaultRecheckCadenceDays(p.materiality_rule as { type?: string } | undefined);
+  return Math.max(RECHECK_MIN_INTERVAL_DAYS, Math.min(MAX_RECHECK_CADENCE_DAYS, Math.round(raw)));
+}
 
 export interface PremiseRecheck {
   finding: string;
@@ -52,6 +93,11 @@ export interface PremiseState {
   /** M2 materiality rule declared at add-time (jsonb-nested, no migration).
    *  Absent → the under-fire default heuristic decides drift (M2 §2, §10.2). */
   materiality_rule?: MaterialityRule;
+  /** M1 §1.2 — how many days between reality re-checks for this fact. Optional
+   *  and jsonb-nested (no migration): absent → derived from the rule type
+   *  (defaultRecheckCadenceDays). The user pins it at add-time or amends it; it
+   *  only moves the DUE nudge cadence, never blocks an explicit recheck. */
+  recheck_cadence_days?: number;
   status: PremiseStatus;
   amend_history: Array<{ action: PremiseAmendAction; from?: string; to?: string; note?: string; ts?: string }>;
   /** Latest re-check only — full history lives in the ledger (fold stays small). */
@@ -142,13 +188,32 @@ function daysBetween(from: string, to: string): number {
 }
 
 /** Is this premise due for a re-check as of `today`? Monitored + never checked,
- *  or last checked ≥ RECHECK_MIN_INTERVAL_DAYS ago. (Writing a recheck is never
- *  blocked by this — it gates the nudge, not the pen.) */
+ *  or last checked ≥ the premise's cadence ago (M1 §1.2: the pinned
+ *  recheck_cadence_days, else the rule-derived default, clamped to the floor).
+ *  (Writing a recheck is never blocked by this — it gates the nudge, not the
+ *  pen.) */
 export function isDueForRecheck(p: PremiseState, today: string): boolean {
   if (!isMonitored(p)) return false;
   const last = dateOnly(p.last_recheck?.ts);
   if (!last) return true;
-  return daysBetween(last, today) >= RECHECK_MIN_INTERVAL_DAYS;
+  return daysBetween(last, today) >= recheckCadenceDays(p);
+}
+
+/** The YYYY-MM-DD a monitored premise next comes due for re-check — the
+ *  formalized twin of the old free-text "re-check suggested in 7 days" string
+ *  (M1 §1.2, data model §5). null when never checked (it is due now) or the
+ *  premise isn't monitored. Pure date arithmetic, no clock read. */
+export function nextRecheckDue(p: PremiseState): string | null {
+  if (!isMonitored(p)) return null;
+  const last = dateOnly(p.last_recheck?.ts);
+  if (!last) return null; // due now
+  return addDays(last, recheckCadenceDays(p));
+}
+
+function addDays(day: string, days: number): string {
+  const t = Date.parse(day + 'T00:00:00Z');
+  if (Number.isNaN(t)) return day;
+  return new Date(t + days * 86400000).toISOString().slice(0, 10);
 }
 
 /**

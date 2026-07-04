@@ -59,6 +59,7 @@ const zPremiseInput = z.strictObject({
   source: z.enum(['ai', 'user']).describe('Provenance. Never forge: "user" = the user\'s own words; "ai" = model-drafted (requires ai_original).'),
   ai_original: z.string().max(400).optional().describe('REQUIRED when source="ai": the model\'s original wording, preserved verbatim across later edits.'),
   materiality_rule: zMaterialityRule.optional().describe('Optional: how re-checks decide "did this materially change?". Absent → an under-fire default heuristic (silence when unsure). Define it to be precise (e.g. threshold "drops below 4.0", step "any one-notch credit downgrade").'),
+  recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional: how many days between reality re-checks for this fact (M1). Absent → a default derived from the rule type (a moving number is checked more often than slow-moving state). The user pins this; it only moves the DUE nudge, never blocks a recheck.'),
 });
 
 const inputSchema = z.strictObject({
@@ -72,6 +73,7 @@ const inputSchema = z.strictObject({
   note: z.string().max(300).optional().describe('op=amend: optional why (never required).'),
   external: z.boolean().optional().describe('op=amend: correct the external flag (true lets re-checking arm for a load-bearing premise).'),
   load_bearing: z.boolean().optional().describe('op=amend: correct the load-bearing flag.'),
+  recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend: re-set how often (days) this fact is re-checked (M1). Widens or narrows the DUE nudge; never blocks an explicit recheck.'),
   decision: z.string().min(1).max(400).optional().describe('op=resolve: the user\'s own closing call. MUST be the user\'s words — never an Argus-drafted line.'),
   today_override: zDate.optional(),
 });
@@ -150,6 +152,7 @@ async function opAdd(
     source: p.source,
     ...(p.ai_original ? { ai_original: p.ai_original } : {}),
     ...(p.materiality_rule ? { materiality_rule: p.materiality_rule } : {}),
+    ...(typeof p.recheck_cadence_days === 'number' ? { recheck_cadence_days: p.recheck_cadence_days } : {}),
   }));
   if (events.length > 0) await appendLedger(dir, events, now);
 
@@ -211,6 +214,7 @@ async function opAmend(
     ...(typeof a['note'] === 'string' ? { note: a['note'] as string } : {}),
     ...(typeof a['external'] === 'boolean' ? { external: a['external'] as boolean } : {}),
     ...(typeof loadBearing === 'boolean' ? { load_bearing: loadBearing as boolean } : {}),
+    ...(typeof a['recheck_cadence_days'] === 'number' ? { recheck_cadence_days: a['recheck_cadence_days'] as number } : {}),
   };
   await appendLedger(dir, [ev], now);
 
