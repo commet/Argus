@@ -13,7 +13,9 @@ what actually happened. The artifact it produces — a **Judgment Receipt** —
 carries one line no other AI tool will: `AI VERDICT … NONE`. The model never
 graded you. Reality did.
 
-Works with any MCP host — Claude, ChatGPT, Gemini, or any MCP-compatible client.
+Runs on any MCP host that supports local **stdio** servers — Claude Desktop,
+Claude Code, and other clients that launch a local process. (Remote-only
+connectors that require an HTTP transport aren't supported yet — see the roadmap.)
 
 ```
 ┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐

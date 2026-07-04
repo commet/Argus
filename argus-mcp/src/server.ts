@@ -78,6 +78,9 @@ export async function createServer(): Promise<Server> {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOLS.map((t) => ({
       name: t.name,
+      // top-level human-readable title (2025-06-18 spec; display priority
+      // title > annotations.title > name). Reuse the annotation we already set.
+      ...(t.annotations?.title ? { title: t.annotations.title } : {}),
       description: t.description,
       // JSON Schema generated from the Zod source of truth (no hand-kept copy).
       inputSchema: toolJsonSchema(t.inputSchema),

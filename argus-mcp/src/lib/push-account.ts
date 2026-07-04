@@ -58,11 +58,30 @@ export interface PullResult {
   receipts: AccountReceipt[];
 }
 
+/**
+ * Resolve the account API base, enforcing https so the Bearer token never
+ * travels in cleartext (MCP compliance audit F2). `ARGUS_API_URL` is a
+ * self-host override; a non-https override (except localhost, for local dev)
+ * returns null → callers skip the send rather than leak the token over http.
+ */
+function resolveApiBase(): string | null {
+  const raw = (process.env.ARGUS_API_URL || 'https://argus.voyage').replace(/\/+$/, '');
+  try {
+    const u = new URL(raw);
+    const localhost = u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '::1';
+    if (u.protocol !== 'https:' && !localhost) return null;
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
 /** Pull the account's receipts (the sync's read side). No token ⇒ empty. */
 export async function fetchAccountReceipts(): Promise<PullResult> {
   const token = (process.env.ARGUS_TOKEN || '').trim();
   if (!token || !token.startsWith('argus_pat_')) return { ok: false, reason: 'no_token', receipts: [] };
-  const base = (process.env.ARGUS_API_URL || 'https://argus.voyage').replace(/\/+$/, '');
+  const base = resolveApiBase();
+  if (!base) return { ok: false, reason: 'insecure_api_url', receipts: [] };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -85,7 +104,8 @@ export async function pushToAccount(payload: SealPush | SettlePush): Promise<Pus
   if (!token) return { synced: false, reason: 'no_token' }; // local-only (default)
   if (!token.startsWith('argus_pat_')) return { synced: false, reason: 'bad_token_format' };
 
-  const base = (process.env.ARGUS_API_URL || 'https://argus.voyage').replace(/\/+$/, '');
+  const base = resolveApiBase();
+  if (!base) return { synced: false, reason: 'insecure_api_url' }; // never leak the token over http (F2)
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
