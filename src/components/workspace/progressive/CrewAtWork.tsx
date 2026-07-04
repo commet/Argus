@@ -242,9 +242,11 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
                       )}
                     </div>
                   );
-                })() : w.status === 'error' ? (
+                })() : (w.status === 'error' || w.status === 'validation_failed') ? (
                   <p className="text-[11.5px] text-[var(--text-tertiary)] mt-1 leading-[1.5]">
-                    {L('이 선원의 작업이 닿지 않았어요.', "This crew member's work didn't land.")}
+                    {w.status === 'validation_failed'
+                      ? L('이 선원의 결과가 확인을 통과하지 못했어요.', "This crew member's result didn't pass the check.")
+                      : L('이 선원의 작업이 닿지 않았어요.', "This crew member's work didn't land.")}
                     {onRetry && (
                       <button
                         onClick={() => onRetry(w.id)}
@@ -259,7 +261,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
               <span className="shrink-0 mt-0.5">
                 {w.status === 'done' ? (
                   <Check size={13} className="text-[var(--success)]" strokeWidth={2.5} />
-                ) : w.status === 'error' ? (
+                ) : (w.status === 'error' || w.status === 'validation_failed') ? (
                   <AlertTriangle size={13} className="text-amber-500" />
                 ) : running ? (
                   <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse mt-1" />
