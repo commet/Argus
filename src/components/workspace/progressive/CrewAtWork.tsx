@@ -118,9 +118,19 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
         <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
           {!allDone && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" aria-hidden />}
           <span className="tabular-nums">{doneCount}/{ordered.length}</span>
+          {/* Learn-more cue so the row reads as "tap to understand", not passive status. */}
+          {!open && <span className="text-[var(--accent)]">{L('이게 뭐예요?', 'What is this?')}</span>}
           <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </span>
       </button>
+
+      {/* Always-visible orienting line (NOT gated by expand): a novice meets the
+          crew cold, so state what/why + the honest boundary in ONE tertiary line
+          at first contact — the definition used to be trapped inside the collapsed
+          panel. One line only, to respect the ④보조 / "진행 막대 수준" constraint. */}
+      <p className="mt-2 text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
+        {L('AI 팀원들이 이 결정을 각자 다른 눈으로 대신 살펴봐요 · 판단은 당신 몫이에요.', 'A team of AI reviewers is looking at this from different angles — the call stays yours.')}
+      </p>
 
       {!open ? null : (
       <div className="mt-3 space-y-2.5">
@@ -133,10 +143,11 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
           {reportsOpen ? L('보고 접기 ▴', 'Hide reports ▴') : L('선원 보고 열어보기 ▾', 'Open crew reports ▾')}
         </button>
       )}
-      {/* First-use definition — a novice meets "선원" cold here. One line, once:
-          they're AI teammates, and the brief stays inside the analysis. */}
+      {/* Privacy recap only — the always-visible orienting line above now teaches
+          what/why at first contact, so this in-panel line keeps just the privacy
+          reassurance (no longer teaching the same thing twice). */}
       <p className="text-[11px] text-[var(--text-tertiary)]">
-        {L('선원은 이 건을 각자 따로 검토하는 AI 팀원이에요 — 입력하신 내용은 분석에만 쓰여요.', 'Crew members are AI teammates each reviewing this separately — your input is used for analysis only.')}
+        {L('입력하신 내용은 이 분석에만 쓰여요.', 'What you typed is used only for this analysis.')}
       </p>
 
       <div className="space-y-1.5">
@@ -144,6 +155,15 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
           const name = (locale === 'en' ? w.persona?.nameEn : w.persona?.name) || w.persona?.name || L('선원', 'Crew');
           const emoji = w.persona?.emoji || '⚓';
           const running = w.status === 'running' || w.status === 'ai_preparing';
+          // Purpose-first: shade AI vs human by MEANING (verb phrase), not just
+          // emoji — surfaces the split in focus mode. Derive agent_type the same
+          // way deployWorkers does so legacy 'who'-only sessions still resolve.
+          const at = w.agent_type || (w.who === 'both' ? 'ai' : w.who === 'human' ? 'self' : 'ai');
+          const purpose = at === 'ai'
+            ? L('AI가 대신 봐요', 'Handled by AI')
+            : at === 'self'
+              ? L('이건 당신이 정해요', "Yours to decide")
+              : L('사람에게 물어봐요', 'Asking a person');
           return (
             <motion.div
               key={w.id}
@@ -158,6 +178,23 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
                   <span className="text-[12px] font-semibold text-[var(--text-primary)]">{name}</span>
                   <span className="text-[11px] text-[var(--text-tertiary)] truncate">{w.task}</span>
                 </div>
+                {/* Purpose lead-in — what this crew member is FOR (routing is real
+                    even without the scope wiring). Honest provenance: AI is the
+                    subject of AI-authored work; the human half names ownership. */}
+                <p className="text-[11px] text-[var(--accent)]/85 mt-0.5">{purpose}</p>
+                {/* The human-judgment boundary the user owns — describes what they
+                    were asked to decide (true regardless of AI internals). Never
+                    truncated: the "you decide" half is load-bearing. */}
+                {at === 'self' && w.self_scope && (
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 leading-[1.5]">
+                    {L('당신이 정해요', 'You decide')}: {w.self_scope}
+                  </p>
+                )}
+                {/* Why THIS lens was assigned (router rationale) — quiet, guarded;
+                    absent → render nothing (never fabricate). */}
+                {at === 'ai' && w.assignment_reason && (
+                  <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-[1.5]">↳ {w.assignment_reason}</p>
+                )}
                 {/* The theater: live stream tail while running; takeaway when done;
                     an honest line + inline retry when the work didn't land. */}
                 {running && w.stream_text ? (
