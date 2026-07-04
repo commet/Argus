@@ -9,6 +9,7 @@ import { configPath } from '../layout.js';
 import { ambientDue } from '../ambient-due.js';
 import { appendDueNote, resetAmbientSession } from '../due-note.js';
 import { replayLedger } from '../ledger-replay.js';
+import { appendLedger } from '../ledger-append.js';
 import {
   reponderCadenceDays, nextReponderDue, isDueForReconsider, isReconsiderable, dueOpenQuestions,
   DEFAULT_REPONDER_CADENCE_DAYS, REPONDER_MIN_INTERVAL_DAYS,
@@ -173,16 +174,18 @@ describe('open_question reconsider — end to end (M3)', () => {
     }
   });
 
-  it("regression (coordinator repro): add with today_override anchors the clock — recall AND check_in agree it's due", async () => {
-    // The exact deterministic repro: op=add at 2026-07-03 (today_override),
-    // sealed, then read at 2026-07-26. Before the fix, recall said due=true but
-    // check_in returned []. Now both must see the ONE due question.
+  it("regression (coordinator repro, exact dates): add(today_override) anchors the clock — recall AND check_in agree", async () => {
+    // The exact deterministic repro: add at 2026-07-03 (today_override), sealed,
+    // read at 2026-07-26. Before the fix, recall said due=true but check_in
+    // returned []. Now both must see the ONE due question. (sealWithOpenQ uses
+    // seal's self-create so the entry is sealed — the full open_decision→seal
+    // dispatch path is pinned in protocol-roundtrip.test.ts, which also exercises
+    // the over-fire gate + zod validation this direct path cannot.)
     const dir = tmpArgusDir();
     await seal.handler({ argus_dir: dir, id: 'd', predicate: 'we ship under five minutes downtime', check_by: '2026-10-03', predicate_owner: 'user', today_override: '2026-07-03' });
     await premises.handler({
       argus_dir: dir, id: 'd', op: 'add', today_override: '2026-07-03',
-      // NOTE: no explicit external/load_bearing — exactly the coordinator's args
-      premises: [{ text: '지분 미정 상태', kind: 'open_question', source: 'user' } as unknown as never],
+      premises: [{ text: '지분 미정 상태', kind: 'open_question', external: false, load_bearing: false, source: 'user' }],
     });
 
     const rec = body(await recall.handler({ argus_dir: dir, view: 'premises', id: 'd', today_override: '2026-07-26' }));
@@ -203,13 +206,14 @@ describe('open_question reconsider — end to end (M3)', () => {
   it("single-source gate: an opened-but-NOT-sealed question is due to NEITHER recall nor check_in", async () => {
     // Sealing arms the nudge (plan v5 P4). recall must not claim due_for_reconsider
     // on an unsealed decision when check_in/ambient (which gate on sealed|due)
-    // stay silent — that mismatch WAS the recall↔check_in drift.
+    // stay silent — that mismatch WAS the recall↔check_in drift. Build the
+    // opened-not-sealed state directly on the ledger (a harvest with no seal) so
+    // the assertion does not depend on the over-fire gate firing.
     const dir = tmpArgusDir();
-    const { openDecision } = await import('../../tools/open-decision.js');
-    await openDecision.handler({ argus_dir: dir, id: 'd', decision: '지분 어떻게 나눌지', today_override: '2026-07-03' });
+    await appendLedger(dir, [{ id: 'd', event: 'harvest', decision: '지분 어떻게 나눌지' }], '2026-07-03T00:00:00Z');
     await premises.handler({
       argus_dir: dir, id: 'd', op: 'add', today_override: '2026-07-03',
-      premises: [{ text: '지분 미정 상태', kind: 'open_question', source: 'user' } as unknown as never],
+      premises: [{ text: '지분 미정 상태', kind: 'open_question', external: false, load_bearing: false, source: 'user' }],
     });
     const rec = body(await recall.handler({ argus_dir: dir, view: 'premises', id: 'd', today_override: '2026-07-26' }));
     const q = ((rec['data'] as Record<string, unknown>)['premises'] as Array<Record<string, unknown>>)[0];

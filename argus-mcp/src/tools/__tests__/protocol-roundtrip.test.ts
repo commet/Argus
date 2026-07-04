@@ -123,4 +123,70 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     expect(res.isError).toBe(true);
     expect((res.content as Array<{ text: string }>)[0].text).toContain('INVALID_INPUT');
   });
+
+  // M3 acceptance (coordinator repro): the FULL open_question reconsider journey
+  // through the REAL dispatch — zod validation + the over-fire gate + replay —
+  // NOT the direct-handler path (which bypasses both). This is the path that
+  // actually failed the dist smoke: open_decision must FIRE (write the harvest)
+  // for premise_add to be legal, then the anchored reconsider clock must make
+  // check_in AND recall agree the question is due weeks later.
+  it('M3: open_decision(fires) → add open_question → seal → check_in surfaces the reconsider (count==1, == recall)', async () => {
+    // A high-stakes, one-way-door decision so the restraint gate FIRES and the
+    // harvest is written (a low-stakes/reversible one returns restraint, writes
+    // no harvest, and premise_add would then be ILLEGAL_TRANSITION from absent).
+    const od = structured(await client.callTool({
+      name: 'argus_open_decision',
+      arguments: {
+        argus_dir: dir, id: 'm3', decision: '지분 어떻게 나눌지 결정',
+        stakes: 'high', reversibility: 'one_way_door', status_quo: '현행 지분 유지',
+        today_override: '2026-07-03',
+      },
+    }));
+    expect(od['ok']).toBe(true);
+    expect((od['data'] as Record<string, unknown>)['harvest_written']).toBe(true);
+
+    // add the open_question the user leaves unresolved (anchor = today_override)
+    const add = structured(await client.callTool({
+      name: 'argus_premises',
+      arguments: {
+        argus_dir: dir, id: 'm3', op: 'add', today_override: '2026-07-03',
+        premises: [{ text: '지분 미정 상태', kind: 'open_question', source: 'user' }],
+      },
+    }));
+    expect(add['ok']).toBe(true);
+
+    // seal the decision (arms the nudge)
+    const sl = structured(await client.callTool({
+      name: 'argus_seal',
+      arguments: { argus_dir: dir, id: 'm3', predicate: '3개월 내 지분 합의 완료', check_by: '2026-10-03', predicate_owner: 'user', today_override: '2026-07-03' },
+    }));
+    expect(sl['ok']).toBe(true);
+
+    // 23 days later: recall says due, and check_in MUST agree (count == 1) with
+    // the user's own words in the surface. This is the exact assertion that was
+    // failing against the dist smoke.
+    const rec = structured(await client.callTool({ name: 'argus_recall', arguments: { argus_dir: dir, view: 'premises', id: 'm3', today_override: '2026-07-26' } }));
+    const q = ((rec['data'] as Record<string, unknown>)['premises'] as Array<Record<string, unknown>>)[0];
+    expect(q['next_reponder_due']).toBe('2026-07-24'); // 2026-07-03 + 21d
+    expect(q['due_for_reconsider']).toBe(true);
+
+    const ci = structured(await client.callTool({ name: 'argus_check_in', arguments: { argus_dir: dir, today_override: '2026-07-26' } }));
+    expect((ci['data'] as Record<string, unknown>)['due_open_question_count']).toBe(1);
+    expect(String(ci['surface'])).toContain('지분 미정 상태');
+    expect(String(ci['surface'])).toContain('argus_premises');
+
+    // still_open defers: silent the next day, re-emerges after the cadence.
+    const so = structured(await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'm3', op: 'still_open', ref: 'P1', today_override: '2026-07-26' } }));
+    expect(so['ok']).toBe(true);
+    const quiet = structured(await client.callTool({ name: 'argus_check_in', arguments: { argus_dir: dir, today_override: '2026-07-27' } }));
+    expect((quiet['data'] as Record<string, unknown>)['due_open_question_count']).toBe(0);
+    const back = structured(await client.callTool({ name: 'argus_check_in', arguments: { argus_dir: dir, today_override: '2026-08-17' } }));
+    expect((back['data'] as Record<string, unknown>)['due_open_question_count']).toBe(1);
+
+    // resolve closes it for good — gone from both surfaces.
+    const rs = structured(await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'm3', op: 'resolve', ref: 'P1', decision: '창업자 60/40', today_override: '2026-08-17' } }));
+    expect(rs['ok']).toBe(true);
+    const gone = structured(await client.callTool({ name: 'argus_check_in', arguments: { argus_dir: dir, today_override: '2026-09-01' } }));
+    expect((gone['data'] as Record<string, unknown>)['due_open_question_count']).toBe(0);
+  }, 20000);
 });
