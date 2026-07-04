@@ -356,7 +356,7 @@ function PhaseStatusBar({
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           onClick={onCancel}
-          className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[32px] rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
+          className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] md:min-h-[32px] rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
             showLongWait
               ? 'text-amber-700 dark:text-amber-300 border border-amber-300/50 hover:bg-amber-100/60 dark:hover:bg-amber-900/30'
               : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border border-transparent hover:border-[var(--border)]'
@@ -1525,6 +1525,20 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       store.recordCheckpoint('crew_done');
     }
   }, [workers, deployPhase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Escape closes the open draft-preview / revision modal (a11y — the modal
+  // backdrops are pointer-only; keyboard users had no dismiss path). Revision
+  // won't close mid-run (isIterating guards it), matching its backdrop rule.
+  useEffect(() => {
+    if (!previewDraftId && !iterationOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (previewDraftId) { setPreviewDraftId(null); return; }
+      if (iterationOpen && !isIterating) { setIterationOpen(false); setIterationDirective(''); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [previewDraftId, iterationOpen, isIterating]);
 
   if (!session) return null;
 

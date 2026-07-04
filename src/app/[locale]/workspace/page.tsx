@@ -764,10 +764,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     // Failures wear the danger tone; gold is this product's reward
                     // color and was making errors read like promotions. Quota
                     // guidance (an FYI, not a failure) keeps the accent tone.
-                    <div className={`mt-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--text-primary)] flex items-start gap-2 border ${
+                    <div role="alert" className={`mt-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--text-primary)] flex items-start gap-2 border ${
                       isQuota ? 'bg-[var(--accent)]/5 border-[var(--accent)]/15' : 'bg-[var(--danger)]/5 border-[var(--danger)]/25'
                     }`}>
-                      <AlertTriangle size={14} className={`shrink-0 mt-0.5 ${isQuota ? 'text-[var(--accent)]' : 'text-[var(--danger)]'}`} />
+                      <AlertTriangle size={14} aria-hidden="true" className={`shrink-0 mt-0.5 ${isQuota ? 'text-[var(--accent)]' : 'text-[var(--danger)]'}`} />
                       <div className="flex-1">
                         <span>{msg}</span>
                         <div className="mt-1.5 flex items-center gap-3">
