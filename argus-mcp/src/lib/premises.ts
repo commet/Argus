@@ -165,6 +165,17 @@ export function isMonitored(p: PremiseState): boolean {
   return p.kind === 'premise' && p.status === 'active' && p.external && p.load_bearing;
 }
 
+/** Is a decision ARMED for nudging as of `today`? Sealing arms the return loop
+ *  (plan v5 P4): only a sealed|due decision's premises/open-questions are nudged.
+ *  This is the ONE gate duePremises, dueOpenQuestions AND recall's due flags all
+ *  share, so "due" can never mean one thing to check_in and another to recall
+ *  (the single-source rule — M1 §1.3, extended to recall by M3). */
+export function isNudgeArmed(entry: ContractEntry | undefined, today: string): boolean {
+  if (!entry) return false;
+  const s = deriveState(entry, today);
+  return s === 'sealed' || s === 'due';
+}
+
 // ── ref resolution (ordinals beat opaque ids across turns) ────────────────
 
 /**
@@ -306,8 +317,7 @@ export interface DueOpenQuestion {
 export function dueOpenQuestions(state: LedgerState): DueOpenQuestion[] {
   const out: DueOpenQuestion[] = [];
   for (const entry of state.contracts.values()) {
-    const dState = deriveState(entry, state.today);
-    if (dState !== 'sealed' && dState !== 'due') continue;
+    if (!isNudgeArmed(entry, state.today)) continue; // shared gate — recall reads it too
     for (const p of entry.premises ?? []) {
       if (!isDueForReconsider(p, state.today)) continue;
       const anchor = reconsiderAnchor(p);
@@ -334,8 +344,7 @@ export function dueOpenQuestions(state: LedgerState): DueOpenQuestion[] {
 export function duePremises(state: LedgerState): DuePremise[] {
   const out: DuePremise[] = [];
   for (const entry of state.contracts.values()) {
-    const dState = deriveState(entry, state.today);
-    if (dState !== 'sealed' && dState !== 'due') continue;
+    if (!isNudgeArmed(entry, state.today)) continue; // shared gate — recall reads it too
     for (const p of entry.premises ?? []) {
       if (!isDueForRecheck(p, state.today)) continue;
       const last = dateOnly(p.last_recheck?.ts);

@@ -151,7 +151,7 @@ describe('open_question reconsider — end to end (M3)', () => {
     expect(String(ci['surface'])).toMatch(/nothing is due|확인할 차례/i);
   });
 
-  it('single source: ambient count == check_in count == dueOpenQuestions', async () => {
+  it('single source: ambient == check_in == dueOpenQuestions == recall-premises', async () => {
     const dir = tmpArgusDir();
     await sealWithOpenQ(dir, 'd1');
     await sealWithOpenQ(dir, 'd2');
@@ -163,6 +163,61 @@ describe('open_question reconsider — end to end (M3)', () => {
     expect(shared.openQuestionsDue).toBe(2);
     expect(ci['due_open_question_count']).toBe(shared.openQuestionsDue);
     expect(raw).toBe(shared.openQuestionsDue);
+
+    // recall view=premises must agree per-decision: due_for_reconsider === the
+    // question being counted by check_in (the drift the coordinator caught).
+    for (const id of ['d1', 'd2']) {
+      const rec = body(await recall.handler({ argus_dir: dir, view: 'premises', id, today_override: LATER }));
+      const q = ((rec['data'] as Record<string, unknown>)['premises'] as Array<Record<string, unknown>>)[0];
+      expect(q['due_for_reconsider']).toBe(true);
+    }
+  });
+
+  it("regression (coordinator repro): add with today_override anchors the clock — recall AND check_in agree it's due", async () => {
+    // The exact deterministic repro: op=add at 2026-07-03 (today_override),
+    // sealed, then read at 2026-07-26. Before the fix, recall said due=true but
+    // check_in returned []. Now both must see the ONE due question.
+    const dir = tmpArgusDir();
+    await seal.handler({ argus_dir: dir, id: 'd', predicate: 'we ship under five minutes downtime', check_by: '2026-10-03', predicate_owner: 'user', today_override: '2026-07-03' });
+    await premises.handler({
+      argus_dir: dir, id: 'd', op: 'add', today_override: '2026-07-03',
+      // NOTE: no explicit external/load_bearing — exactly the coordinator's args
+      premises: [{ text: '지분 미정 상태', kind: 'open_question', source: 'user' } as unknown as never],
+    });
+
+    const rec = body(await recall.handler({ argus_dir: dir, view: 'premises', id: 'd', today_override: '2026-07-26' }));
+    const q = ((rec['data'] as Record<string, unknown>)['premises'] as Array<Record<string, unknown>>)[0];
+    expect(q['next_reponder_due']).toBe('2026-07-24'); // 2026-07-03 + 21d
+    expect(q['due_for_reconsider']).toBe(true);
+
+    const ci = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-26' }));
+    expect((ci['data'] as Record<string, unknown>)['due_open_question_count']).toBe(1);
+    expect(String(ci['surface'])).toContain('지분 미정 상태');
+
+    // still_open at 2026-07-26 → silent at 2026-07-27, re-emerges at 2026-08-17.
+    await premises.handler({ argus_dir: dir, id: 'd', op: 'still_open', ref: 'P1', today_override: '2026-07-26' });
+    expect(dueOpenQuestions(replayLedger(dir, '2026-07-27')).length).toBe(0);
+    expect(dueOpenQuestions(replayLedger(dir, '2026-08-17')).length).toBe(1); // 2026-07-26 + 21d = 08-16
+  });
+
+  it("single-source gate: an opened-but-NOT-sealed question is due to NEITHER recall nor check_in", async () => {
+    // Sealing arms the nudge (plan v5 P4). recall must not claim due_for_reconsider
+    // on an unsealed decision when check_in/ambient (which gate on sealed|due)
+    // stay silent — that mismatch WAS the recall↔check_in drift.
+    const dir = tmpArgusDir();
+    const { openDecision } = await import('../../tools/open-decision.js');
+    await openDecision.handler({ argus_dir: dir, id: 'd', decision: '지분 어떻게 나눌지', today_override: '2026-07-03' });
+    await premises.handler({
+      argus_dir: dir, id: 'd', op: 'add', today_override: '2026-07-03',
+      premises: [{ text: '지분 미정 상태', kind: 'open_question', source: 'user' } as unknown as never],
+    });
+    const rec = body(await recall.handler({ argus_dir: dir, view: 'premises', id: 'd', today_override: '2026-07-26' }));
+    const q = ((rec['data'] as Record<string, unknown>)['premises'] as Array<Record<string, unknown>>)[0];
+    expect(q['due_for_reconsider']).toBe(false); // gated by `armed` — agrees with check_in
+    const ci = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-26' }));
+    expect((ci['data'] as Record<string, unknown>)['due_open_question_count']).toBe(0);
+    // the cadence date is still shown (a fact about the premise), just not "due now"
+    expect(q['next_reponder_due']).toBe('2026-07-24');
   });
 
   it('ambient line names the reconsider fragment when a question is due (both locales)', async () => {

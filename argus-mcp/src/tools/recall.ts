@@ -6,7 +6,7 @@ import { readReceipt } from '../lib/receipt.js';
 import { renderReceipt, renderWake, type WakeContractRow } from '../lib/render-receipt.js';
 import { surfaceLocale } from '../lib/surfaces.js';
 import type { LedgerState } from '../lib/ledger-replay.js';
-import { isMonitored, isDueForRecheck, receiptPremisesInfo, recheckCadenceDays, nextRecheckDue, isReconsiderable, isDueForReconsider, reponderCadenceDays, nextReponderDue } from '../lib/premises.js';
+import { isMonitored, isDueForRecheck, receiptPremisesInfo, recheckCadenceDays, nextRecheckDue, isReconsiderable, isDueForReconsider, reponderCadenceDays, nextReponderDue, isNudgeArmed } from '../lib/premises.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -70,6 +70,11 @@ export const recall: ToolModule = {
         }
         const entry = ledger.contracts.get(id);
         const list = entry?.premises ?? [];
+        // Sealing arms the nudge (plan v5 P4). recall applies the SAME gate as
+        // check_in/ambient (isNudgeArmed) so a premise on an unsealed decision
+        // never reports due_for_* that check_in won't honor — the single-source
+        // rule extended to this read (M3: was the recall↔check_in drift).
+        const armed = isNudgeArmed(entry, today);
         if (list.length === 0) {
           return envelope({
             ok: true, tool: 'argus_recall',
@@ -96,9 +101,13 @@ export const recall: ToolModule = {
             // M1 §1.2 — the formalized cadence: effective interval + the next due
             // date (null = due now / not monitored). Data only, never a nag.
             ...(isMonitored(p) ? { recheck_cadence_days: recheckCadenceDays(p), next_recheck_due: nextRecheckDue(p) } : {}),
-            due_for_recheck: isDueForRecheck(p, today),
+            // due_for_* is gated by `armed` (sealing arms the nudge) so it agrees
+            // with check_in/ambient exactly. The cadence dates above are shown
+            // unconditionally (they are facts about the premise, not a claim that
+            // it is due now).
+            due_for_recheck: armed && isDueForRecheck(p, today),
             // M3 — open_question reconsider cadence: same shape, data only.
-            ...(isReconsiderable(p) ? { reponder_cadence_days: reponderCadenceDays(p), next_reponder_due: nextReponderDue(p), due_for_reconsider: isDueForReconsider(p, today) } : {}),
+            ...(isReconsiderable(p) ? { reponder_cadence_days: reponderCadenceDays(p), next_reponder_due: nextReponderDue(p), due_for_reconsider: armed && isDueForReconsider(p, today) } : {}),
             ...(p.resolved_decision ? { resolved_decision: p.resolved_decision } : {}),
           };
         });
