@@ -7,6 +7,7 @@ import { writeSettleReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { elicit, canElicit } from '../lib/elicit.js';
 import { renderReceipt } from '../lib/render-receipt.js';
+import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
 import { resolvePremiseRef, receiptPremisesInfo } from '../lib/premises.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -91,6 +92,9 @@ export const settle: ToolModule = {
         brokenPremiseRef = `P${p.ordinal}`;
       }
 
+      // Response voice follows what-happened (M4): config > text > env.
+      const T = SURFACES[resolveResponseLocale(dir, a['what_happened'] as string | undefined)].tools.settle;
+
       const now = new Date().toISOString();
       await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
       const receipt = await writeSettleReceipt(dir, id, { what_happened: String(a['what_happened']), outcome, settled_at: now }, { predicate: current.predicate, check_by: current.check_by });
@@ -108,11 +112,11 @@ export const settle: ToolModule = {
         ? ''
         : sync.reason === 'no_token'
           ? ''
-          : ` (Account sync didn't go through — ${sync.reason}. Your settlement is safe locally; the account may keep listing this as due until it syncs. Try argus_sync later.)`;
+          : T.sync_failed(String(sync.reason));
 
       return envelope({
         ok: true, tool: 'argus_settle',
-        surface: 'Settled. The receipt records what you predicted and what reality did — no grade.' + syncLine,
+        surface: T.settled + syncLine,
         next_actions: ['argus_recall', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',

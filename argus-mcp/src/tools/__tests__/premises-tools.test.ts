@@ -235,7 +235,9 @@ describe('argus_recheck — M2 materiality (§4 3-value wiring, mirror clause)',
     expect((b['data'] as Record<string, unknown>)['materiality']).toBe('uncertain');
     expect((b['data'] as Record<string, unknown>)['drifted']).toBe(false);
     expect(b['next_actions']).not.toContain('argus_recall'); // the spine: no auto-fork
-    expect(String(b['surface'])).toContain('당신 몫'); // fact only, handle stays with the user
+    // M4: finding is Latin/numeric ("-0.3") ⇒ English surface. The spine proxy
+    // is the returned-handle phrase in the resolved locale ("your call").
+    expect(String(b['surface'])).toContain('your call'); // fact only, handle stays with the user
   });
 
   it('unchanged stays quiet, no handle', async () => {

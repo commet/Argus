@@ -6,6 +6,7 @@ import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
 import { appendLedger } from '../lib/ledger-append.js';
+import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -45,9 +46,11 @@ export const amend: ToolModule = {
       if (predicate && checkBy) {
         await atomicWriteJson(bearingPath(dir, id), { v: SCHEMA_VERSION, id, contract_seed: { predicate, check_by: checkBy } });
       }
+      // Response voice follows the (new or existing) predicate (M4).
+      const T = SURFACES[resolveResponseLocale(dir, predicate)].tools.amend;
       return envelope({
         ok: true, tool: 'argus_amend',
-        surface: `Amended. Now: "${predicate}" — check-by ${checkBy}.`,
+        surface: T.amended(predicate, checkBy),
         next_actions: ['argus_check_in', 'stop'],
         data: { id, predicate, check_by: checkBy },
       });
@@ -80,9 +83,11 @@ export const dismiss: ToolModule = {
 
       const now = new Date().toISOString();
       await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: a['dismiss_reason'] as string, decision: a['note'] as string | undefined }], now);
+      // Response voice follows the note when present (M4); else config/env.
+      const T = SURFACES[resolveResponseLocale(dir, a['note'] as string | undefined)].tools.dismiss;
       return envelope({
         ok: true, tool: 'argus_dismiss',
-        surface: 'Dismissed. Closed without a verdict.',
+        surface: T.dismissed,
         next_actions: ['stop'],
         data: { id, dismiss_reason: a['dismiss_reason'] },
       });

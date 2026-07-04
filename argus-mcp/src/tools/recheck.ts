@@ -6,6 +6,7 @@ import { deriveState, guardTransition } from '../lib/state-machine.js';
 import { appendLedger, type LedgerEventInput } from '../lib/ledger-append.js';
 import { resolvePremiseRef, matchingMonitoredPremises, normalizePremiseText } from '../lib/premises.js';
 import { evaluateMateriality, type MaterialityRule, type Materiality } from '../lib/numeric-drift.js';
+import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
 import { envelope, toolError } from '../lib/envelope.js';
 import type { NextAction } from '../lib/spine.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -69,6 +70,8 @@ export const recheck: ToolModule = {
       }
 
       const finding = String(a['finding']);
+      // Response voice follows the finding sentence (M4): config > text > env.
+      const T = SURFACES[resolveResponseLocale(dir, String(a['finding']))].tools.recheck;
       const source = String(a['source']);
       const sourceDetail = a['source_detail'] as string | undefined;
       const numericValue = a['numeric_value'] as number | undefined;
@@ -140,18 +143,18 @@ export const recheck: ToolModule = {
       // heuristic-fallback notice (M2 §7): only when no rule was declared AND the
       // engine leaned on the under-fire default (low_confidence).
       const heuristicNote = lowConfidence && !premise.materiality_rule
-        ? ' 규칙을 따로 정하지 않아 기본값(휴리스틱)으로 봤어요 — 이 전제에서 어떤 움직임이 중요한지 정해두면 더 정확해요.'
+        ? T.uncertain_heuristic_note
         : '';
 
       const surface = baselineOnly
-        ? `Baseline recorded for P${premise.ordinal}: "${finding}" (${source}). Re-check suggested again in 7 days.`
+        ? T.baseline(premise.ordinal, finding, source)
         : status === 'material'
-          ? `The fact under P${premise.ordinal} changed: "${prior!.finding}" → "${finding}" (${source}). Whether to revisit this decision is your call.`
+          ? T.material(premise.ordinal, prior!.finding, finding, source)
           : status === 'uncertain'
             // M2 §4/§7: uncertain surfaces the FACT only — no handle, no fork. The
             // user decides whether to define a rule or leave it.
-            ? `P${premise.ordinal}: 규칙상 자동 판정이 애매한 변화예요 (${reason}). host가 확인한 사실만 적어뒀어요 — 규칙을 정할지, 그냥 둘지는 당신 몫이에요.${heuristicNote}`
-            : `P${premise.ordinal} unchanged (${source}).`;
+            ? `${T.uncertain(premise.ordinal, reason)}${heuristicNote}`
+            : T.unchanged(premise.ordinal, source);
 
       // ── SPINE (M2 §4, mirror clause): the handle auto-attaches ONLY on
       //    `material`. `uncertain` (depends / boundary / rule-uncovered) NEVER

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import { configPath } from './layout.js';
+import { detectLocaleFromText } from './locale.js';
 
 /**
  * surfaces.ts — the ONE locale brain for user-facing surface strings
@@ -31,12 +32,47 @@ import { configPath } from './layout.js';
 export type SurfaceLocale = 'ko' | 'en';
 
 export function surfaceLocale(argusDir?: string | null): SurfaceLocale {
-  if (!argusDir) return 'en';
+  return configLocale(argusDir) ?? 'en';
+}
+
+/** The explicit config locale, or null when no config.yaml declares one.
+ *  Distinct from surfaceLocale so the response-locale chain can tell an
+ *  EXPLICIT `locale: en` (config wins, never overridden) apart from the
+ *  bare 'en' base voice (a mere default, which text detection may override). */
+function configLocale(argusDir?: string | null): SurfaceLocale | null {
+  if (!argusDir) return null;
   try {
     const cfg = fs.readFileSync(configPath(argusDir), 'utf8');
     const m = cfg.match(/^locale:\s*(ko|en)\b/m);
     if (m) return m[1] as SurfaceLocale;
   } catch { /* no config yet → base voice */ }
+  return null;
+}
+
+/**
+ * resolveResponseLocale — the M4 detection chain (spec §4):
+ *   explicit config > input-text detection > env/Intl > 'en'.
+ *
+ * Each tool passes the CALL'S representative user-authored text (the decision
+ * sentence, the predicate, the finding, …). If the user has pinned a locale in
+ * config.yaml, that ALWAYS wins — an explicit setting is an escape hatch the
+ * detector never overrides. With no explicit config, a confident text sniff
+ * decides; a null/low-confidence sniff falls through to env/Intl, then 'en'.
+ *
+ * This never writes config. It only chooses the VOICE of one response, so a
+ * bilingual user gets Korean surfaces on Korean input and English on English
+ * without touching their saved preference.
+ */
+export function resolveResponseLocale(argusDir: string | null | undefined, text?: string | null): SurfaceLocale {
+  const explicit = configLocale(argusDir);
+  if (explicit) return explicit;
+  const fromText = detectLocaleFromText(text);
+  if (fromText) return fromText;
+  const env = process.env['LANG'] || process.env['LC_ALL'] || '';
+  if (/^ko/i.test(env)) return 'ko';
+  try {
+    if (/^ko/i.test(Intl.DateTimeFormat().resolvedOptions().locale)) return 'ko';
+  } catch { /* Intl unavailable */ }
   return 'en';
 }
 
@@ -101,6 +137,58 @@ export interface SurfaceStrings {
     more: (n: number) => string;
     record_since: (date: string) => string;
   };
+  /** happy-path one-liners for the 6 tools that still spoke English regardless
+   *  of locale (dogfood FINDINGS-2 §2: open_decision/seal/settle/recheck/amend/
+   *  dismiss). Rich receipts, errors and nudges were already localized; only
+   *  these terminal `surface` lines remained EN. en byte-preserves the pre-M4
+   *  strings (the 324-test baseline verifies them); ko is the new parity half. */
+  tools: {
+    open_decision: {
+      /** restraint reasons — the fire-or-not gate said don't manufacture a fork.
+       *  Keyed by overfireGate reason; the coda naming "leave as is" is appended
+       *  by the caller. Contract (§4): a WHY sentence, never a directive. */
+      reason: Record<'vent' | 'factual' | 'already_closed' | 'flat' | 'reversible_low_stakes' | 'low_stakes', string>;
+      reason_fallback: string;
+      /** the coda: names the status-quo option, returns the handle. */
+      leave_coda: string;
+      reconfirm: string;
+      /** FIRE, crux supplied: name the one question. */
+      opened_with_crux: (crux: string) => string;
+      /** FIRE, no crux: instruct exactly ONE neutral crux question. */
+      opened_bare: string;
+    };
+    seal: {
+      /** the core confirmation: quote + check-by + come-back handle. */
+      sealed: (predicate: string, checkBy: string) => string;
+      /** appended when the assumption was skipped (recorded, not hidden). */
+      nudge_assumption: string;
+      /** account-sync voice (3-state): success speaks, no_token stays silent. */
+      synced: string;
+      sync_failed: (reason: string) => string;
+    };
+    settle: {
+      settled: string;
+      sync_failed: (reason: string) => string;
+    };
+    recheck: {
+      baseline: (ref: number, finding: string, source: string) => string;
+      /** material drift — the fact moved; return the handle, never a directive. */
+      material: (ref: number, before: string, after: string, source: string) => string;
+      /** uncertain — surface the FACT only, no handle (M2 §4). Already ko in the
+       *  live code; carried here for parity + so `en` gets a real translation. */
+      uncertain: (ref: number, reason: string) => string;
+      uncertain_heuristic_note: string;
+      unchanged: (ref: number, source: string) => string;
+    };
+    amend: {
+      /** predicate/check-by may be undefined on an amend that only touched the
+       *  other field — matches the pre-M4 template-literal tolerance. */
+      amended: (predicate: string | undefined, checkBy: string | undefined) => string;
+    };
+    dismiss: {
+      dismissed: string;
+    };
+  };
 }
 
 export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
@@ -149,6 +237,46 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       more: (n) => `… (+${n})`,
       record_since: (date) => `on record since ${date}`,
     },
+    tools: {
+      open_decision: {
+        reason: {
+          vent: 'This reads like something to say out loud, not a fork to force.',
+          factual: 'This is a question with an answer, not a decision to open.',
+          already_closed: 'You already made this call. Argus does not reopen it.',
+          flat: 'The options are close to even — no load-bearing question to manufacture.',
+          reversible_low_stakes: 'Cheap to undo and little at stake — trying it IS the test.',
+          low_stakes: 'Little rides on this — the steady move is to leave it as is.',
+        },
+        reason_fallback: 'No fork to manufacture here.',
+        leave_coda: 'Leaving it as is stays a real option.',
+        reconfirm: 'These signals look contradictory (high stakes yet easily reversible). Re-confirm stakes and reversibility before going further.',
+        opened_with_crux: (crux) => `Opened. The one question that decides this: ${crux}`,
+        opened_bare: 'Opened. Surface exactly ONE neutral crux question (a question, not a fork or a lean), then seal a falsifiable prediction.',
+      },
+      seal: {
+        sealed: (predicate, checkBy) => `Sealed. "${predicate}" — reality answers on ${checkBy}. Come back then with argus_settle.`,
+        nudge_assumption: ' You sealed without naming the assumption it rests on — that\'s recorded as skipped, not hidden. You can still name it.',
+        synced: ' Synced to your account — you\'ll get an email when it comes due.',
+        sync_failed: (reason) => ` (Account sync didn't go through — ${reason}. Your seal is safe locally; the email reminder won't fire until it syncs. Try argus_sync later.)`,
+      },
+      settle: {
+        settled: 'Settled. The receipt records what you predicted and what reality did — no grade.',
+        sync_failed: (reason) => ` (Account sync didn't go through — ${reason}. Your settlement is safe locally; the account may keep listing this as due until it syncs. Try argus_sync later.)`,
+      },
+      recheck: {
+        baseline: (ref, finding, source) => `Baseline recorded for P${ref}: "${finding}" (${source}). Re-check suggested again in 7 days.`,
+        material: (ref, before, after, source) => `The fact under P${ref} changed: "${before}" → "${after}" (${source}). Whether to revisit this decision is your call.`,
+        uncertain: (ref, reason) => `P${ref}: this change is too close to call automatically under the rule (${reason}). Only the fact the host confirmed is recorded — whether to set a rule or leave it is your call.`,
+        uncertain_heuristic_note: ' No rule was set for this premise, so a default heuristic was used — pinning which move matters here makes it sharper.',
+        unchanged: (ref, source) => `P${ref} unchanged (${source}).`,
+      },
+      amend: {
+        amended: (predicate, checkBy) => `Amended. Now: "${predicate}" — check-by ${checkBy}.`,
+      },
+      dismiss: {
+        dismissed: 'Dismissed. Closed without a verdict.',
+      },
+    },
   },
   ko: {
     checkin: {
@@ -194,6 +322,46 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settled_group: (n, held, avoided, partial) => `정산됨 (${n}) — held ${held} · avoided ${avoided} · partial ${partial}`,
       more: (n) => `… (+${n})`,
       record_since: (date) => `기록 시작 ${date} 부터`,
+    },
+    tools: {
+      open_decision: {
+        reason: {
+          vent: '이건 소리 내어 말할 일이지, 억지로 만들 갈림길이 아닙니다.',
+          factual: '이건 답이 있는 질문이지, 열어둘 결정이 아닙니다.',
+          already_closed: '이미 내린 결정입니다. Argus는 이걸 다시 열지 않습니다.',
+          flat: '선택지가 거의 대등합니다 — 없는 핵심 질문을 지어낼 이유가 없습니다.',
+          reversible_low_stakes: '되돌리기 쉽고 걸린 것도 적습니다 — 해보는 것 자체가 검증입니다.',
+          low_stakes: '걸린 게 별로 없습니다 — 그대로 두는 것이 무난한 선택입니다.',
+        },
+        reason_fallback: '여기서 지어낼 갈림길은 없습니다.',
+        leave_coda: '그대로 두는 것도 여전히 진짜 선택지입니다.',
+        reconfirm: '신호가 서로 어긋납니다(걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 stakes와 reversibility를 다시 확인하세요.',
+        opened_with_crux: (crux) => `열었습니다. 이걸 가르는 단 하나의 질문: ${crux}`,
+        opened_bare: '열었습니다. 중립적인 핵심 질문 딱 하나만 꺼내세요(갈림길도 기울임도 아닌 질문). 그다음 반증 가능한 예측을 봉인하세요.',
+      },
+      seal: {
+        sealed: (predicate, checkBy) => `봉인했습니다. "${predicate}" — 현실은 ${checkBy}에 답합니다. 그날 argus_settle로 돌아오세요.`,
+        nudge_assumption: ' 무엇을 전제로 두는지 이름 붙이지 않고 봉인했습니다 — 숨긴 게 아니라 "생략"으로 기록됐습니다. 지금이라도 이름 붙일 수 있습니다.',
+        synced: ' 계정에 동기화했습니다 — 확인일이 오면 이메일로 알려드립니다.',
+        sync_failed: (reason) => ` (계정 동기화가 안 됐습니다 — ${reason}. 봉인은 로컬에 안전합니다. 동기화되기 전까지 이메일 알림은 오지 않습니다. 나중에 argus_sync를 시도하세요.)`,
+      },
+      settle: {
+        settled: '정산했습니다. 영수증에는 당신이 예측한 것과 현실이 한 일이 남습니다 — 평가는 없습니다.',
+        sync_failed: (reason) => ` (계정 동기화가 안 됐습니다 — ${reason}. 정산은 로컬에 안전합니다. 동기화되기 전까지 계정은 이걸 계속 "확인 필요"로 표시할 수 있습니다. 나중에 argus_sync를 시도하세요.)`,
+      },
+      recheck: {
+        baseline: (ref, finding, source) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). 7일 뒤에 다시 확인하길 권합니다.`,
+        material: (ref, before, after, source) => `P${ref}이 기댄 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 이 결정을 다시 볼지는 당신 몫입니다.`,
+        uncertain: (ref, reason) => `P${ref}: 규칙상 자동 판정이 애매한 변화예요 (${reason}). host가 확인한 사실만 적어뒀어요 — 규칙을 정할지, 그냥 둘지는 당신 몫이에요.`,
+        uncertain_heuristic_note: ' 규칙을 따로 정하지 않아 기본값(휴리스틱)으로 봤어요 — 이 전제에서 어떤 움직임이 중요한지 정해두면 더 정확해요.',
+        unchanged: (ref, source) => `P${ref}은 그대로입니다 (${source}).`,
+      },
+      amend: {
+        amended: (predicate, checkBy) => `수정했습니다. 이제: "${predicate}" — 확인일 ${checkBy}.`,
+      },
+      dismiss: {
+        dismissed: '접었습니다. 평결 없이 닫혔습니다.',
+      },
     },
   },
 };

@@ -84,8 +84,11 @@ describe('MCP simulation — full loop with account sync', () => {
     const sealData = body(sealed).data as Record<string, unknown>;
     expect(sealData.account_synced).toBe(false);
     expect(sealData.account_sync_reason).toBe('http_500');
-    expect(String(body(sealed).surface)).toContain("Account sync didn't go through");
-    expect(String(body(sealed).surface)).toContain("the email reminder won't fire");
+    // M4: the surface follows the predicate's language — Korean predicate ⇒
+    // Korean sync-failure line. The FACT it must convey is unchanged: sync
+    // failed + the reason + the email won't fire until it syncs.
+    expect(String(body(sealed).surface)).toContain('계정 동기화가 안 됐습니다');
+    expect(String(body(sealed).surface)).toContain('이메일 알림은 오지 않습니다');
 
     const settled = await settle.handler({
       argus_dir: dir, id, outcome: 'held', outcome_source: 'user_stated', what_happened: '4분 다운타임',
@@ -94,7 +97,7 @@ describe('MCP simulation — full loop with account sync', () => {
     const settleData = body(settled).data as Record<string, unknown>;
     expect(settleData.account_synced).toBe(false);
     expect(settleData.account_sync_reason).toBe('http_500');
-    expect(String(body(settled).surface)).toContain("Account sync didn't go through");
+    expect(String(body(settled).surface)).toContain('계정 동기화가 안 됐습니다'); // Korean what_happened ⇒ Korean line
   });
 });
 

@@ -6,6 +6,7 @@ import { resolveContract } from '../lib/resolve-contract.js';
 import { overfireGate, type Stakes, type Reversibility } from '../lib/overfire-gate.js';
 import { validateCrux } from '../lib/validate-crux.js';
 import { computeContinuity } from '../lib/continuity.js';
+import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
 import { appendLedger } from '../lib/ledger-append.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
@@ -29,17 +30,11 @@ const inputSchema = z.strictObject({
   today_override: zDate.optional(),
 });
 
-// Restraint reasons → human sentences (11 P2-1/S6). Each names WHY no fork is
-// manufactured; the caller appends the fixed handle-return coda. 'flat' is kept
-// for forward-compat even though the current gate never emits it.
-const REASON_LINE: Record<string, string> = {
-  vent: 'This reads like something to say out loud, not a fork to force.',
-  factual: 'This is a question with an answer, not a decision to open.',
-  already_closed: 'You already made this call. Argus does not reopen it.',
-  flat: 'The options are close to even — no load-bearing question to manufacture.',
-  reversible_low_stakes: 'Cheap to undo and little at stake — trying it IS the test.',
-  low_stakes: 'Little rides on this — the steady move is to leave it as is.',
-};
+// Restraint reasons → human sentences (11 P2-1/S6) now live in the surfaces
+// dictionary (SURFACES[locale].tools.open_decision.reason) so ko/en share one
+// source. Each names WHY no fork is manufactured; the caller appends the fixed
+// handle-return coda. 'flat' is kept for forward-compat even though the current
+// gate never emits it.
 
 export const openDecision: ToolModule = {
   name: 'argus_open_decision',
@@ -53,6 +48,8 @@ export const openDecision: ToolModule = {
       const dir = resolveToolArgusDir(a['argus_dir']);
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
+      // Response voice follows the decision sentence (M4): config > text > env.
+      const T = SURFACES[resolveResponseLocale(dir, a['decision'] as string | undefined)].tools.open_decision;
 
       const current = resolveContract(dir, id, today);
       if (a['already_decided'] === true && (current.state === 'sealed' || current.state === 'due' || current.state === 'settled')) {
@@ -77,7 +74,7 @@ export const openDecision: ToolModule = {
       if (gate.response === 'reconfirm') {
         return envelope({
           ok: true, tool: 'argus_open_decision',
-          surface: 'These signals look contradictory (high stakes yet easily reversible). Re-confirm stakes and reversibility before going further.',
+          surface: T.reconfirm,
           next_actions: ['argus_open_decision', 'leave_as_is'],
           over_fire_gate: { fired: false, reason: gate.reason },
           data: { id, crux_question: null, restraint_option: a['status_quo'], fork_emitted: false, harvest_written: false },
@@ -90,7 +87,7 @@ export const openDecision: ToolModule = {
           // Human sentence, not a snake_case enum (11 P2-1). Contract (§4): the
           // line ENDS by naming the option and returning the handle — never a
           // directive ("leave it") issued in the user's stead.
-          surface: `${REASON_LINE[gate.reason] ?? 'No fork to manufacture here.'} Leaving it as is stays a real option.`,
+          surface: `${T.reason[gate.reason as keyof typeof T.reason] ?? T.reason_fallback} ${T.leave_coda}`,
           next_actions: ['leave_as_is', 'skip'],
           over_fire_gate: { fired: false, reason: gate.reason },
           data: { id, crux_question: null, restraint_option: a['status_quo'], fork_emitted: false, harvest_written: false },
@@ -116,9 +113,7 @@ export const openDecision: ToolModule = {
 
       return envelope({
         ok: true, tool: 'argus_open_decision',
-        surface: crux
-          ? `Opened. The one question that decides this: ${crux}`
-          : 'Opened. Surface exactly ONE neutral crux question (a question, not a fork or a lean), then seal a falsifiable prediction.',
+        surface: crux ? T.opened_with_crux(crux) : T.opened_bare,
         next_actions: ['argus_seal', 'leave_as_is', 'skip'],
         over_fire_gate: { fired: true, reason: gate.reason },
         data: {

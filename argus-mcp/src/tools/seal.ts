@@ -11,7 +11,7 @@ import { premiseId, MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING } from '../lib/premise
 import { pushToAccount } from '../lib/push-account.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { renderSeal } from '../lib/render-receipt.js';
-import { surfaceLocale } from '../lib/surfaces.js';
+import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -57,6 +57,9 @@ export const seal: ToolModule = {
       const predicate = String(a['predicate']);
       const checkBy = String(a['check_by']);
       const now = new Date().toISOString();
+      // Response voice follows the predicate (M4): config > text > env.
+      const locale = resolveResponseLocale(dir, predicate);
+      const T = SURFACES[locale].tools.seal;
 
       await ensurePrivacyGitignore(dir);
 
@@ -108,9 +111,7 @@ export const seal: ToolModule = {
       await appendLedger(dir, events, now);
 
       const namedAssumption = !receipt.skipped.includes('unverified_assumption');
-      const nudge = namedAssumption
-        ? ''
-        : ' You sealed without naming the assumption it rests on — that\'s recorded as skipped, not hidden. You can still name it.';
+      const nudge = namedAssumption ? '' : T.nudge_assumption;
 
       // Opt-in: mirror the prediction to the user's account so the Companion
       // Brief can email it at check-by. No token ⇒ silent local-only no-op;
@@ -125,10 +126,10 @@ export const seal: ToolModule = {
       // (local-only is the chosen default, not a failure), and a FAILURE with a
       // token set must speak — the user believes an email is coming.
       const syncLine = sync.synced
-        ? ' Synced to your account — you\'ll get an email when it comes due.'
+        ? T.synced
         : sync.reason === 'no_token'
           ? ''
-          : ` (Account sync didn't go through — ${sync.reason}. Your seal is safe locally; the email reminder won't fire until it syncs. Try argus_sync later.)`;
+          : T.sync_failed(String(sync.reason));
 
       // The sealing confirmation (P1-E2): the terminal twin of the webapp's
       // seal certificate. surface stays the short model-facing line; seal_text
@@ -139,12 +140,12 @@ export const seal: ToolModule = {
         sealed_on: now.slice(0, 10),
         check_by: checkBy,
         today,
-        locale: surfaceLocale(dir),
+        locale,
       });
 
       return envelope({
         ok: true, tool: 'argus_seal',
-        surface: `Sealed. "${predicate}" — reality answers on ${checkBy}. Come back then with argus_settle.${nudge}${syncLine}`,
+        surface: `${T.sealed(predicate, checkBy)}${nudge}${syncLine}`,
         next_actions: ['argus_check_in', 'stop'],
         data: {
           id, predicate, check_by: checkBy, predicate_owner: a['predicate_owner'],
