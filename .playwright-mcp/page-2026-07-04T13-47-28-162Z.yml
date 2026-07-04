@@ -1,0 +1,238 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - banner [ref=f2e3]:
+      - generic [ref=f2e5]:
+        - link "A Argus" [ref=f2e6] [cursor=pointer]:
+          - /url: /en
+          - generic [ref=f2e8]: A
+          - generic [ref=f2e9]: Argus
+        - generic [ref=f2e10]:
+          - navigation [ref=f2e11]:
+            - link "Workspace" [ref=f2e12] [cursor=pointer]:
+              - /url: /en/workspace
+            - link "Projects" [ref=f2e13] [cursor=pointer]:
+              - /url: /en/project
+            - link "Settings" [ref=f2e14] [cursor=pointer]:
+              - /url: /en/settings
+            - button "More menu" [ref=f2e16] [cursor=pointer]:
+              - img [ref=f2e17]
+          - generic [ref=f2e21]:
+            - group "Language" [ref=f2e22]:
+              - button "KO" [ref=f2e23] [cursor=pointer]
+              - button "EN" [pressed] [ref=f2e24] [cursor=pointer]
+            - button "Switch to dark mode" [ref=f2e25] [cursor=pointer]:
+              - img [ref=f2e26]
+          - link "Sign In" [ref=f2e28] [cursor=pointer]:
+            - /url: /en/login
+    - generic [ref=f2e145]:
+      - generic [ref=f2e147]:
+        - generic [ref=f2e148]:
+          - generic [ref=f2e149]:
+            - img [ref=f2e150]
+            - generic "Our B2B SaaS (40 customers, $120K MRR) i" [ref=f2e152]
+          - button "New Project" [ref=f2e153] [cursor=pointer]
+        - generic [ref=f2e154]:
+          - generic:
+            - generic:
+              - generic:
+                - img
+              - generic: Draft ready
+          - 'group "Voyage phase 2/3: Listen · Review" [ref=f2e751]':
+            - generic [ref=f2e157]:
+              - text: 2/3Listen
+              - generic [ref=f2e158]: · Review
+            - generic [ref=f2e165]:
+              - generic [ref=f2e166]:
+                - img [ref=f2e168]
+                - generic [ref=f2e173]: Bind
+                - img [ref=f2e500]
+              - generic [ref=f2e174]:
+                - img [ref=f2e176]
+                - generic [ref=f2e180]: Listen
+              - generic [ref=f2e181]:
+                - img [ref=f2e183]
+                - generic [ref=f2e186]: Land
+            - paragraph [ref=f2e502]: Review·AI can't decide for you — you confirm.
+          - generic [ref=f2e620]:
+            - generic [ref=f2e621]:
+              - img [ref=f2e623]
+              - generic [ref=f2e628]: Writing summary
+              - generic [ref=f2e739]: · sections 7
+            - generic [ref=f2e629]: The surprising finding here is that your go/no-go decision isn't a 3-month strategic exercise — it's a 2-week experiment that your existing customer relationships make possible right now, and if you can't get 2 conditional written commitments from accounts you speak to weekly, that's a clear signal the market isn't ready regardless of how strong the product is. The single biggest hidden risk isn't customer enthusiasm — it's that legal re-papering (new DPA clauses for LLM sub-processors like OpenAI and model training inputs) can independently collapse your 2-3 week timeline even when customer intent is high. Run the legal review in parallel this week, not after you get a 'yes.'
+          - generic [ref=f2e190]:
+            - button "Me Our B2B SaaS (40 customers, $120K MRR) is deciding whether to launch a new AI analytics add-on next quarter. It touches finance (pricing, margins), engineering (we'd need to hire 2 people and it delays our core roadmap), go-to-market (positioning vs an incumbent), and legal (we'd process customer data). I need to decide go/no-go and how to sequence it." [ref=f2e192] [cursor=pointer]:
+              - generic [ref=f2e193]: Me
+              - paragraph [ref=f2e194]: Our B2B SaaS (40 customers, $120K MRR) is deciding whether to launch a new AI analytics add-on next quarter. It touches finance (pricing, margins), engineering (we'd need to hire 2 people and it delays our core roadmap), go-to-market (positioning vs an incumbent), and legal (we'd process customer data). I need to decide go/no-go and how to sequence it.
+            - button "ClaireIntegrated Analysis A 'conditional signed commitment' is not a binary signal — it has at least three legal states (non-binding LOI, amendment in-progress, fully executed DPA addendum), and only the third actually de-risks a hiring decision. The conversation threshold framework must specify which state counts, or the green-light metric is undefined." [ref=f2e741] [cursor=pointer]:
+              - img [ref=f2e743]
+              - generic [ref=f2e746]:
+                - generic [ref=f2e747]: ClaireIntegrated Analysis
+                - paragraph [ref=f2e748]: A 'conditional signed commitment' is not a binary signal — it has at least three legal states (non-binding LOI, amendment in-progress, fully executed DPA addendum), and only the third actually de-risks a hiring decision. The conversation threshold framework must specify which state counts, or the green-light metric is undefined.
+              - img [ref=f2e749]
+            - generic [ref=f2e634]:
+              - generic [ref=f2e635]:
+                - generic [ref=f2e636]: Course we plotted
+                - button "Collapse" [ref=f2e752]:
+                  - img [ref=f2e753]
+                  - generic [ref=f2e755]: Collapse
+              - heading "Given you can have real conversations this week with your best accounts, what specific outcome from those conversations — conditional signed commitment, strong verbal, or polite interest — would actually be enough for you to pull the trigger on hiring and delaying the core roadmap?" [level=2] [ref=f2e638]
+              - generic [ref=f2e640]:
+                - generic [ref=f2e641]: Key Insight
+                - paragraph [ref=f2e642]: Regular access plus relationship trust means your go/no-go decision isn't a 3-month process — it's a 2-3 week experiment you can run right now, and if you can't get 2 pre-commitments from customers you talk to weekly, the add-on isn't ready regardless of how good the product is.
+              - generic:
+                - generic [ref=f2e643]: −
+                - generic [ref=f2e644]: You're assuming you need to build a competitive feature to earn the sale — but if it's a relationship buy, a rough early-access version may close just as well as a polished one, and you're over-indexing on engineering quality at the expense of speed.
+              - generic:
+                - generic [ref=f2e645]: −
+                - generic [ref=f2e646]: You're assuming the incumbent is the main threat — but for a relationship-driven buy, the real risk is that customers say 'yes in principle' during conversations and then quietly don't adopt it post-launch. Verbal trust doesn't automatically convert to usage.
+              - generic:
+                - generic [ref=f2e647]: −
+                - generic [ref=f2e648]: You're assuming your existing customer data agreements cover this new processing use case — they may not. Check your current MSAs/DPAs for scope before any public announcement, or you may need to re-paper contracts before you can legally launch. Verify with counsel before go/no-go.
+              - generic [ref=f2e649]:
+                - generic [ref=f2e651]: Worth knowing
+                - generic [ref=f2e652]:
+                  - generic [ref=f2e653]:
+                    - generic [ref=f2e654]: "1"
+                    - paragraph [ref=f2e655]: You're assuming regular contact makes the pre-commitment ask easy — but 'trust us for the core product' and 'pay us now for something unbuilt' are different asks. Even warm relationships can deflect a conditional commitment with 'sounds great, let's talk when it's ready.' You need a specific ask, not a temperature check.
+                  - generic [ref=f2e656]:
+                    - generic [ref=f2e657]: "2"
+                    - paragraph [ref=f2e658]: You're assuming the 2-3 week fast path is low-risk — but if those conversations surface even one 'we'd need our legal/procurement to review a new data agreement,' your timeline assumption collapses. Legal re-papering can independently block the schedule even if customer intent is high.
+                  - generic [ref=f2e659]:
+                    - generic [ref=f2e660]: "3"
+                    - paragraph [ref=f2e661]: "You're assuming the core roadmap delay is an acceptable trade-off — but you haven't yet stress-tested whether the existing 40 customers would notice or churn if the core product slips. Relationship trust cuts both ways: they expect the core to keep improving too."
+              - generic:
+                - generic [ref=f2e662]: −
+                - generic [ref=f2e663]: "First — run 5 conversations this week, but reframe the ask: since it's a relationship buy, go further than probing pain. Ask directly whether they'd sign a lightweight early-access agreement at a specific price point (e.g., $X/month) before it's built. A 'yes' in conversation is weak signal; a conditional commitment is strong signal."
+              - generic:
+                - generic [ref=f2e664]: −
+                - generic [ref=f2e665]: "Then — check your legal exposure before touching engineering: have counsel review your existing MSAs and DPAs to confirm whether this data processing use case is in scope. This is a hard gate, not a formality — a re-papering requirement adds weeks and can block launch."
+              - generic:
+                - generic [ref=f2e666]: −
+                - generic [ref=f2e667]: "Next — because the buy is relationship-driven, your positioning against the incumbent should be 'already inside your workflow' not 'better analytics.' That changes your GTM entirely: you don't need a feature comparison, you need a one-pager that says 'no new vendor, no new contract, no new login.'"
+              - generic:
+                - generic [ref=f2e668]: −
+                - generic [ref=f2e669]: "Set your financial threshold before you decide: what MRR does this add-on need to generate in 12 months to justify hire cost, delay cost, and opportunity cost? Work backward from a break-even month. The relationship dynamic means attach rate could be high — but only if you price for value, not for 'they already trust us so let's keep it cheap.'"
+              - generic:
+                - generic [ref=f2e670]: −
+                - generic [ref=f2e671]: "Only after steps 1-4 do you sequence the build. If you go: legal clearance → signed early-access commitments from 2-3 customers → then hire. The relationship asset means you can sell before you build — use it."
+              - generic [ref=f2e672]:
+                - generic [ref=f2e674]:
+                  - generic [ref=f2e675]: "1"
+                  - generic [ref=f2e676]:
+                    - heading "This week" [level=4] [ref=f2e677]
+                    - paragraph [ref=f2e678]: "have 5 conversations, but make them count: bring a one-pager with a specific price point and ask for a conditional early-access commitment in writing, not just enthusiasm. The ask separates genuine buyers from supporters. Two signed commitments = green light; fewer = the market isn't ready yet."
+                - generic [ref=f2e680]:
+                  - generic [ref=f2e681]: "2"
+                  - generic [ref=f2e682]:
+                    - heading "Simultaneous gate" [level=4] [ref=f2e683]
+                    - paragraph [ref=f2e684]: before or during those conversations, have counsel review your MSAs/DPAs for this data processing use case. Don't wait for customer 'yes' before checking legal clearance; a re-papering requirement can kill a 2-3 week timeline regardless of customer intent.
+                - generic [ref=f2e686]:
+                  - generic [ref=f2e687]: "3"
+                  - generic [ref=f2e688]:
+                    - heading "Then" [level=4] [ref=f2e689]
+                    - paragraph [ref=f2e690]: "set your financial threshold now, before you hear 'yes' from a customer and get anchored by momentum: what MRR does the add-on need to hit by month 12 to justify two hires plus core roadmap delay? Work backward to a break-even month and decide in advance what number is a go."
+                - generic [ref=f2e692]:
+                  - generic [ref=f2e693]: "4"
+                  - generic [ref=f2e694]:
+                    - heading "Next" [level=4] [ref=f2e695]
+                    - paragraph [ref=f2e696]: "if you get 2+ commitments and legal clearance, your positioning is already written by your customers' words: 'no new vendor, no new contract, no new login.' Use that language verbatim in your GTM one-pager. You don't need a feature battle against the incumbent."
+                - generic [ref=f2e698]:
+                  - generic [ref=f2e699]: "5"
+                  - generic [ref=f2e700]:
+                    - heading "Only then" [level=4] [ref=f2e701]
+                    - paragraph [ref=f2e702]: "sequence the build: legal clearance → 2 signed early-access agreements → hire → build. The relationship asset means you can sell before you build, but only if the pre-commitment ask is real, not a vibe check."
+              - generic [ref=f2e705]:
+                - generic [ref=f2e706]: Execution Plan
+                - generic [ref=f2e707]:
+                  - generic [ref=f2e708]: Tool
+                  - generic [ref=f2e709]: Build a one-pager with a specific price point and a conditional early-access commitment template to bring into customer conversations this week
+                - generic [ref=f2e710]:
+                  - generic [ref=f2e711]: Tool
+                  - generic [ref=f2e712]: Get legal counsel to review existing MSAs and DPAs for the new data processing use case — before customer conversations conclude
+                - generic [ref=f2e713]:
+                  - generic [ref=f2e714]: Tool
+                  - generic [ref=f2e715]: Set the financial go/no-go threshold before customer conversations anchor you to momentum
+                - generic [ref=f2e716]:
+                  - generic [ref=f2e717]: Tool
+                  - generic [ref=f2e718]: Run 5 customer conversations this week using the one-pager and commitment template — evaluate results against your pre-set threshold
+                - generic [ref=f2e719]:
+                  - generic [ref=f2e720]: Tool
+                  - generic [ref=f2e721]: "If green light: translate customers' own words into a GTM positioning one-pager and sequence the build plan"
+                - generic [ref=f2e722]: ↓ In progress below
+            - generic [ref=f2e725]:
+              - button "What is the They trust us and want everything in one place — it's a relationship buy, not a feature buy" [ref=f2e726] [cursor=pointer]:
+                - img [ref=f2e727]
+                - generic [ref=f2e729]: What is the
+                - generic [ref=f2e730]: They trust us and want everything in one place — it's a relationship buy, not a feature buy
+              - button "Since customers are We're in regular contact — I could have a real conversation this week (fast pre-commitment path, go/no-go in 2-3 weeks)" [ref=f2e731] [cursor=pointer]:
+                - img [ref=f2e732]
+                - generic [ref=f2e734]: Since customers are
+                - generic [ref=f2e735]: We're in regular contact — I could have a real conversation this week (fast pre-commitment path, go/no-go in 2-3 weeks)
+              - generic [ref=f2e736]:
+                - img [ref=f2e737]
+                - text: sent to team
+            - generic [ref=f2e756]:
+              - generic [ref=f2e757]:
+                - img [ref=f2e758]
+                - generic [ref=f2e760]: Draft ready
+              - generic [ref=f2e762]:
+                - generic [ref=f2e763]: Review
+                - img [ref=f2e764]
+            - generic [ref=f2e770]:
+              - generic [ref=f2e771]: Draft
+              - 'heading "AI Analytics Add-On: Go/No-Go Decision Framework — A 2-Week Experiment You Can Run Right Now" [level=2] [ref=f2e772]'
+              - blockquote [ref=f2e773]: The surprising finding here is that your go/no-go decision isn't a 3-month strategic exercise — it's a 2-week experiment that your existing customer relationships make possible right now, and if you can't get 2 conditional written commitments from accounts you speak to weekly, that's a clear signal the market isn't ready regardless of how strong the product is. The single biggest hidden risk isn't customer enthusiasm — it's that legal re-papering (new DPA clauses for LLM sub-processors like OpenAI and model training inputs) can independently collapse your 2-3 week timeline even when customer intent is high. Run the legal review in parallel this week, not after you get a 'yes.'
+              - generic [ref=f2e774]:
+                - button "Read full draft — 7 sections" [ref=f2e775] [cursor=pointer]:
+                  - text: Read full draft — 7 sections
+                  - img [ref=f2e776]
+                - generic [ref=f2e778]:
+                  - button "Copy draft" [ref=f2e779] [cursor=pointer]:
+                    - img [ref=f2e780]
+                    - text: Copy draft
+                  - button ".md" [ref=f2e783] [cursor=pointer]:
+                    - img [ref=f2e784]
+                    - text: .md
+              - generic [ref=f2e787]:
+                - paragraph [ref=f2e788]: Integrated check
+                - paragraph [ref=f2e789]: "Team has correctly sequenced the decision: commit to financial thresholds before customer conversations, use conversations to validate positioning, then formalize via commitment template. Ready for decision-maker input, but missing one critical sequencing detail."
+                - paragraph [ref=f2e791]:
+                  - generic [ref=f2e792]: ⚡
+                  - text: "Marcus frames the commitment template as the go/no-go instrument (implying: start conversations immediately), while Ethan explicitly says set financial thresholds *before* customer conversations to avoid anchor bias. These aren't incompatible, but the order matters operationally and the team didn't resolve it."
+                - generic [ref=f2e793]:
+                  - paragraph [ref=f2e794]:
+                    - generic [ref=f2e795]: 👁
+                    - text: No one surfaced the legal/data-handling risk profile or how it affects go/no-go timing — legal constraints could narrow your addressable customer pool (< 26) or delay launch, colliding with Ethan's break-even math.
+                  - paragraph [ref=f2e796]:
+                    - generic [ref=f2e797]: 👁
+                    - text: "Engineering's core roadmap delay is acknowledged as a constraint but not quantified: how much does a 1-quarter slip to core product affect retention or competitive position? This could flip the math if it costs 3+ customer churn."
+                  - paragraph [ref=f2e798]:
+                    - generic [ref=f2e799]: 👁
+                    - text: No one stress-tested the 10-customer minimum against your 40-customer base realistically — is 25% attach rate (Ethan's base case) achievable, or is the real threshold lower/higher?
+                - paragraph [ref=f2e800]: Conditionally ready. Clarify the sequencing (set Ethan's thresholds → validate with customers per Marcus → build positioning per Stella) and resolve legal/engineering collision before greenlight; otherwise you risk wasting customer goodwill or finding out Month 6 that margins don't work.
+              - generic [ref=f2e801]:
+                - button "Before wrapping up — get a review as CEO →" [ref=f2e802] [cursor=pointer]:
+                  - img [ref=f2e803]
+                  - text: Before wrapping up — get a review as CEO →
+                - 'button "Optional: name the one bet this rests on" [ref=f2e807] [cursor=pointer]'
+      - button "Ship's log 4" [ref=f2e577] [cursor=pointer]:
+        - generic [ref=f2e242]:
+          - img [ref=f2e243]
+          - text: Ship's log
+          - generic [ref=f2e246]: "4"
+        - img [ref=f2e247]
+      - button "도윤 · 리서치 디렉터 ? 규민 · 숫자 분석가 +2 Team 0/5 Input 5" [ref=f2e608] [cursor=pointer]:
+        - generic [ref=f2e579]:
+          - generic [ref=f2e580]:
+            - img "도윤 · 리서치 디렉터" [ref=f2e582]:
+              - generic [ref=f2e583]: 도
+              - generic [ref=f2e584]: 🧠
+            - generic [ref=f2e587]: "?"
+            - img "규민 · 숫자 분석가" [ref=f2e589]:
+              - generic [ref=f2e590]: 규
+              - generic [ref=f2e591]: 📊
+            - generic [ref=f2e592]: "+2"
+          - generic [ref=f2e593]: Team 0/5
+          - generic [ref=f2e602]: Input 5
+        - img [ref=f2e599]
+  - alert [ref=f2e119]

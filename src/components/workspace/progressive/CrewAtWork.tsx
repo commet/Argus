@@ -63,6 +63,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
   // external reply ('sent'/'waiting_response') is settled for this AI header too.
   const isTerminal = (w: (typeof ordered)[number]) =>
     w.status === 'done' || w.status === 'error' || w.status === 'waiting_input' || w.status === 'validation_failed' ||
+    w.status === 'blocked' ||
     (w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response'));
   const allDone = ordered.every(isTerminal);
 
@@ -256,6 +257,14 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
                       </button>
                     )}
                   </p>
+                ) : w.status === 'blocked' ? (
+                  // Layer 0: honest "waiting on a human input" — NOT fabricated output.
+                  <p className="text-[11.5px] text-[var(--text-secondary)] mt-1 leading-[1.5]">
+                    {(w.blocked_on && w.blocked_on.length > 0)
+                      ? L(`입력 대기: ${w.blocked_on.join(', ')} — 그 답이 있어야 이 부분을 지어내지 않고 채울 수 있어요.`,
+                          `Waiting on: ${w.blocked_on.join(', ')} — that answer is needed so this part isn't made up.`)
+                      : L('입력을 기다리는 중이에요.', 'Waiting on an input.')}
+                  </p>
                 ) : null}
               </div>
               <span className="shrink-0 mt-0.5">
@@ -263,6 +272,8 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
                   <Check size={13} className="text-[var(--success)]" strokeWidth={2.5} />
                 ) : (w.status === 'error' || w.status === 'validation_failed') ? (
                   <AlertTriangle size={13} className="text-amber-500" />
+                ) : w.status === 'blocked' ? (
+                  <span className="text-[10px] text-[var(--text-tertiary)]">{L('대기', 'waiting')}</span>
                 ) : running ? (
                   <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse mt-1" />
                 ) : (

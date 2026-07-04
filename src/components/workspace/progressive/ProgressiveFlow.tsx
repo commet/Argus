@@ -1443,6 +1443,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // isn't visible yet. (Same terminal set as the workers-done ping above.)
   const crewSettled = workers.length === 0 ||
     workers.every(w => w.status === 'done' || w.status === 'error' || w.status === 'waiting_input' || w.status === 'validation_failed' ||
+      // 'blocked' = gated on a human/self input that hasn't arrived (Layer 0).
+      // Settled for gating (like waiting_input): the draft path stays reachable;
+      // the blocked worker honestly contributes nothing rather than fabricating.
+      w.status === 'blocked' ||
       // A HUMAN worker out for an external reply sits at 'sent'/'waiting_response'
       // — possibly for days, or never. It must NOT block the AI-crew "analysis
       // done → draft" path (which would strand the user with no route to the
@@ -1510,8 +1514,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     const isTerminal = (s: WorkerTask['status']) =>
       // 'validation_failed' is user-actionable (retry / use-anyway), not
       // auto-working — count it as settled so the "team done" ping isn't
-      // blocked forever.
-      s === 'done' || s === 'error' || s === 'waiting_input' || s === 'validation_failed';
+      // blocked forever. 'blocked' = gated on a missing human input (Layer 0),
+      // also settled for the ping (it won't auto-progress).
+      s === 'done' || s === 'error' || s === 'waiting_input' || s === 'validation_failed' || s === 'blocked';
     const stillWorking = workers.some(w => !isTerminal(w.status));
     if (stillWorking) {
       sawWorkingRef.current = true;
@@ -1593,6 +1598,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         } else {
           store.updateWorker(id, { status: 'error', error, stream_text: '' });
         }
+      },
+      // Layer 0 gate: a worker whose human/self dependency has no input yet is
+      // blocked rather than run on empty input (which fabricated the GTM
+      // placeholder). 'blocked' is the honest, visible "waiting on X" handle.
+      onBlocked: (id: string, blockedOn: string[]) => {
+        store.updateWorker(id, { status: 'blocked', blocked_on: blockedOn, stream_text: '' });
       },
     };
 
