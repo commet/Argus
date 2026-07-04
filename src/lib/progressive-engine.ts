@@ -1201,12 +1201,15 @@ export async function runBossDMFeedback(
 // ── Helpers ──
 
 function formatMixForReview(mix: MixResult): string {
+  // Defensive: a persisted/legacy/remote-merged mix may lack these arrays even
+  // though the type says otherwise (CLAUDE.md Defensive Data Access) — a bare
+  // `.map` here throws into the step ErrorBoundary.
   return [
     `# ${mix.title}`,
     `> ${mix.executive_summary}`,
-    ...mix.sections.map(s => `## ${s.heading}\n${s.content}`),
-    `## ${getCurrentLanguage() === 'ko' ? '핵심 가정' : 'Key Assumptions'}\n${mix.key_assumptions.map(a => `- ${a}`).join('\n')}`,
-    `## ${getCurrentLanguage() === 'ko' ? '다음 단계' : 'Next Steps'}\n${mix.next_steps.map(s => `- ${s}`).join('\n')}`,
+    ...(mix.sections || []).map(s => `## ${s.heading}\n${s.content}`),
+    `## ${getCurrentLanguage() === 'ko' ? '핵심 가정' : 'Key Assumptions'}\n${(mix.key_assumptions || []).map(a => `- ${a}`).join('\n')}`,
+    `## ${getCurrentLanguage() === 'ko' ? '다음 단계' : 'Next Steps'}\n${(mix.next_steps || []).map(s => `- ${s}`).join('\n')}`,
   ].join('\n\n');
 }
 
@@ -1294,11 +1297,11 @@ export async function runFinalDeliverable(
 
   // Build heading → original section lookup for attribution transplant.
   const originalByHeading = new Map<string, MixResult['sections'][number]>();
-  for (const s of mix.sections) {
+  for (const s of (mix.sections || [])) {
     originalByHeading.set(normalizeHeading(s.heading), s);
   }
 
-  const rewrittenSections = (result.sections || mix.sections).map(newSec => {
+  const rewrittenSections = (result.sections || mix.sections || []).map(newSec => {
     const key = normalizeHeading(newSec.heading || '');
     const orig = originalByHeading.get(key);
     if (orig) {
@@ -1363,21 +1366,21 @@ function formatMixAsMarkdown(mix: MixResult, changes?: string[], locale: 'ko' | 
     '',
   ];
 
-  for (const section of mix.sections) {
+  for (const section of (mix.sections || [])) {
     lines.push(`## ${section.heading}`, '', section.content, '');
   }
 
-  if (mix.key_assumptions.length > 0) {
+  if ((mix.key_assumptions || []).length > 0) {
     lines.push(locale === 'ko' ? '## 전제 조건' : '## Key Assumptions', '');
-    for (const a of mix.key_assumptions) {
+    for (const a of (mix.key_assumptions || [])) {
       lines.push(`- ${a}`);
     }
     lines.push('');
   }
 
-  if (mix.next_steps.length > 0) {
+  if ((mix.next_steps || []).length > 0) {
     lines.push(locale === 'ko' ? '## 다음 단계' : '## Next Steps', '');
-    for (const s of mix.next_steps) {
+    for (const s of (mix.next_steps || [])) {
       lines.push(`- ${s}`);
     }
     lines.push('');

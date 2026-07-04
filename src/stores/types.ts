@@ -638,6 +638,14 @@ export interface DecisionContract {
   reminder_count?: number;
   /** Set once every predicate carries a non-pending verdict. */
   graded_at?: string;
+  /** Stamped when the CLOSING seal ceremony runs at the arrive phase (닫는 봉인).
+   *  An early rope (Phase-1 BIND) creates a contract at OPEN; without this flag
+   *  the closing SealMoment would short-circuit straight to the plain contract
+   *  card and never play the stamp→certificate ceremony — the engaged user (who
+   *  bound early) lost the emotional close. `closing && !closed_at` plays the
+   *  ceremony once; once stamped, reloads show the calm card. Absent on legacy /
+   *  never-closed contracts — always read as `contract.closed_at ?? undefined`. */
+  closed_at?: string;
   /** Date-only / freeform check-in outcome when no predicates were generated. */
   outcome_note?: string;
   /** Superseded check-ins, oldest first. Absent on legacy contracts — always

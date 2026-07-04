@@ -55,6 +55,21 @@ export default function SettingsPage() {
   const [ambientOn, setAmbientOn] = useState(false);
   useEffect(() => { setAmbientOn(isAmbientPlaying()); }, []);
 
+  // Theme preference (option C): 'light' | 'dark' | 'system'. Unset defaults to
+  // 'system' here since settings is an in-app route. An explicit pick wins everywhere.
+  const [themePref, setThemePref] = useState<'light' | 'dark' | 'system'>('system');
+  useEffect(() => {
+    const t = localStorage.getItem('argus-theme');
+    setThemePref(t === 'light' || t === 'dark' ? t : 'system');
+  }, []);
+  const applyTheme = (pref: 'light' | 'dark' | 'system') => {
+    setThemePref(pref);
+    localStorage.setItem('argus-theme', pref);
+    const dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  };
+
   // Slack
   const slackConnections = useSlackStore(s => s.connections);
   const loadSlack = useSlackStore(s => s.loadConnections);
@@ -604,6 +619,34 @@ export default function SettingsPage() {
         </div>
         <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
           {L('일부 UI는 아직 한국어로만 나와요.', 'Some UI text is still Korean-only.')}
+        </p>
+
+        {/* Appearance / theme (option C) */}
+        <div className="border-t border-[var(--border-subtle)] my-4" />
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[13px] font-medium text-[var(--text-primary)]">{L('화면 테마', 'Appearance')}</span>
+        </div>
+        <div className="flex gap-2">
+          {[
+            { value: 'light' as const, label: L('라이트', 'Light') },
+            { value: 'dark' as const, label: L('다크', 'Dark') },
+            { value: 'system' as const, label: L('시스템', 'System') },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => applyTheme(opt.value)}
+              className={`flex-1 min-h-[44px] py-3 rounded-lg text-[13px] font-medium border text-center transition-colors cursor-pointer ${
+                themePref === opt.value
+                  ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
+                  : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
+          {L('시스템은 기기 설정을 따라가요. 첫 방문(홈)은 라이트로 시작합니다.', 'System follows your device. The landing page starts in light.')}
         </p>
 
         {/* Sound — folded by default (05 S8: order/fold only, no feature change) */}

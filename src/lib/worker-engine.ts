@@ -117,6 +117,8 @@ export async function runWorkerTask(
     task.framework,
     task.task_type,
     locale,
+    task.ai_scope,
+    task.self_scope,
   );
 
   // 에이전트 도구 컨텍스트 (메모리 회상, 관찰 요약 등)

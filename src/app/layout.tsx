@@ -130,7 +130,11 @@ export default async function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap"
         />
-        <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('argus-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.setAttribute('data-theme','dark')}}catch(e){}})()` }} />
+        {/* Theme resolution (pre-paint, no FOUC). Stored 'argus-theme' is
+            'light' | 'dark' | 'system'. When UNSET the default is surface-aware
+            (option C): the landing '/' — the brand's first impression — forces
+            light, while the app follows the OS. An explicit choice always wins. */}
+        <script suppressHydrationWarning nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('argus-theme');var p=location.pathname.replace(/^\\/(ko|en)(?=\\/|$)/,'')||'/';var sys=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches;var d;if(t==='dark')d=true;else if(t==='light')d=false;else if(t==='system')d=!!sys;else d=(p==='/')?false:!!sys;if(d)document.documentElement.setAttribute('data-theme','dark');else document.documentElement.removeAttribute('data-theme');}catch(e){}})()` }} />
       </head>
       <body>{children}</body>
     </html>
