@@ -77,6 +77,35 @@
 
 ---
 
+## D. 선원 배치(deployWorkers) UX + 배선 — ultracode 워크플로우 결과 (2026-07-04)
+
+7-에이전트 워크플로우(조사 3 + 설계 3 + 심사 1)로 다각도 감사. 채택 설계 = 접근3(목적-우선 카드) 뼈대 +
+접근1(provenance 태그·assignment_reason) + 접근2의 경계 문장, 전부 `CrewAtWork.tsx` 안(새 화면/게이팅 변경 없음).
+
+**핵심 감사 발견:** focus 모드(기본)는 설명형 `TeamDeployBanner`를 스킵 → 사용자는 `CrewAtWork`(기본 접힘)의
+이모지 아바타 + "선원들이 일하고 있어요 0/N"만 봄(낯설다). 그리고 `ai_scope/self_scope`(AI/사람 분담)가
+**AI 프롬프트에 미주입**(장식) — `buildWorkerTaskPrompt`에 scope 파라미터 없음, mix에도 미전달.
+
+**✅ 구현·검증·푸시 완료:**
+- UI(`CrewAtWork.tsx`, `a65f839`): 항상 보이는 오리엔팅 줄 + "이게 뭐예요?" 큐 + 목적 리드인(AI가 대신 봐요/
+  이건 당신이 정해요/사람에게 물어봐요) + self_scope "당신이 정해요: …" + assignment_reason "↳ …" + 정의를
+  프라이버시 recap으로 강등. **시드 세션으로 라이브 렌더 검증**(전 항목 렌더, 옛 묻힌 정의 제거).
+- 배선 A(`bf332b0`): `ai_scope/self_scope`를 `buildWorkerTaskPrompt` 유저 프롬프트에 주입 + 두 호출부
+  (worker-engine, agent-planner) 전달. **AI가 실제로 분담 경계를 봄.** 유닛테스트로 주입/미주입(무-fabrication) 고정.
+
+**남은 배선 (다음 세션, 스파인 안전):**
+- **배선 B (mix 반영):** `mixableWorkerResults`(useProgressiveStore.ts ~1812-1820)의 `base`에 `self_scope`(있으면
+  `user_decision`)를 추가하고, `buildMixPrompt`(progressive-prompts.ts ~438)의 workerResults 타입에 `selfScope?`를
+  받아 해당 섹션을 "이 부분은 사용자가 소유한 판단에 기댐: {selfScope}"로 태깅 → 초안이 사람-판단 경계를 반영,
+  provenance 정직 유지. 유닛테스트로 mix 입력에 selfScope 포함 확인.
+- **배선 C (칩 영속, 선택):** `WorkerCard.tsx:420`의 decision 칩 클릭이 `setInputVal(opt)`만 해서 자유텍스트와
+  구분 안 됨(편집 시 유실). 기존 `user_decision`(types.ts:136) 필드에 선택을 별도 저장.
+- **ai_scope UI 클로즈(이제 정직):** 배선 A가 들어갔으니 카드에 "AI가 봐요: {ai_scope}"를 추가해도 과-claim 아님.
+  `CrewAtWork` 카드에 `at==='ai' && w.ai_scope` 가드로 한 줄 추가 + 시드 재검증.
+
+**미해결(라이브 필요):** LLM 로컬 503이라 "AI가 scope대로 *더 나은* 산출을 내는가"는 런타임 검증 불가 —
+프롬프트가 scope를 담는다는 사실(정직성 핵심)만 유닛테스트로 확정. 배포 환경에서 산출 품질 확인 권장.
+
 ## 실행 원칙 (이 스펙 전체)
 - 각 슬라이스는 **독립 커밋 + tsc/eslint/테스트 통과 후 push.**
 - 흐름 로직(봉인 라우팅·워커 실행)은 **라이브 재현으로 검증한 뒤에만** 변경. 눈 감고 지르지 않는다(하자보수 금지).
