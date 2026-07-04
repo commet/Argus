@@ -317,6 +317,12 @@ export function buildWorkerTaskPrompt(
   framework?: string,
   taskType?: string,  // TaskType from task-classifier (determines context strategy)
   locale: Locale = 'en',
+  // The planner-assigned AI/human division of labor. Previously generated + shown
+  // in the UI but NEVER injected here, so the model never saw the boundary the UI
+  // advertised (the split was decorative to the AI). Feeding it in makes the split
+  // real: the AI works its scope and leaves the human's call to the human.
+  aiScope?: string,
+  selfScope?: string,
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
   // Agent level: use agent's numeric level -> AgentLevel conversion if available
@@ -415,7 +421,7 @@ ${who === 'both' ? 'Note: This is a human-AI collaboration task. Aim for 80% com
     user: `${contextText}
 
 \u2550\u2550\u2550 YOUR TASK \u2550\u2550\u2550
-Task: ${task}
+Task: ${task}${aiScope ? `\nYour scope (the part the AI handles): ${aiScope}` : ''}${selfScope ? `\nA human will SEPARATELY judge this part \u2014 analyze to inform their call, but do NOT make the decision for them: ${selfScope}` : ''}
 Expected output: ${expectedOutput}
 
 You are part of a team working on this problem together. Other members are handling related tasks in parallel.

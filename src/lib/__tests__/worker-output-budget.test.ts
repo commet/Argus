@@ -38,6 +38,28 @@ describe('worker outputFormat budgeting', () => {
     expect(system).toContain('within roughly 480 words');
   });
 
+  // The AI/human role split (ai_scope/self_scope) used to be generated + shown in
+  // the UI but never reached the prompt — the split was decorative to the model.
+  // These lock the wiring: the AI now SEES its scope and the human's boundary.
+  it('injects ai_scope + self_scope into the worker user prompt when provided', () => {
+    const { user } = buildWorkerTaskPrompt(
+      'decide the launch', 'a memo', 'human', ctx, undefined, 'junior', undefined, undefined, undefined, 'en',
+      'gather and summarize the migration data', 'the final go/no-go call',
+    );
+    expect(user).toContain('gather and summarize the migration data');
+    expect(user).toContain('the final go/no-go call');
+    // The human-boundary instruction must be present so the AI doesn't decide it.
+    expect(user).toContain('do NOT make the decision for them');
+  });
+
+  it('adds no scope lines when ai_scope/self_scope are absent (no fabrication)', () => {
+    const { user } = buildWorkerTaskPrompt(
+      'do X', 'out', 'ai', ctx, undefined, 'junior', undefined, undefined, undefined, 'en',
+    );
+    expect(user).not.toContain('the part the AI handles');
+    expect(user).not.toContain('will SEPARATELY judge');
+  });
+
   it('adds the framework-focus note only when a framework is assigned', () => {
     const unfocused = buildWorkerTaskPrompt(
       'do X', 'out', 'ai', ctx, undefined, 'junior', mkAgent('minjae'), undefined, undefined, 'en',
