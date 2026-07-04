@@ -1,5 +1,6 @@
 import type { ContractEntry, LedgerState } from './ledger-replay.js';
 import type { ReceiptPremisesInfo } from './render-receipt.js';
+import type { MaterialityRule } from './numeric-drift.js';
 import { deriveState } from './state-machine.js';
 import { GuardError } from './state-machine.js';
 
@@ -48,6 +49,9 @@ export interface PremiseState {
    *  receipt's authorship honesty rests on. Its declared reader is the recall
    *  premises view (plan v5 §6.4). */
   ai_original?: string;
+  /** M2 materiality rule declared at add-time (jsonb-nested, no migration).
+   *  Absent → the under-fire default heuristic decides drift (M2 §2, §10.2). */
+  materiality_rule?: MaterialityRule;
   status: PremiseStatus;
   amend_history: Array<{ action: PremiseAmendAction; from?: string; to?: string; note?: string; ts?: string }>;
   /** Latest re-check only — full history lives in the ledger (fold stays small). */

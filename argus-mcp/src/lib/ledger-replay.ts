@@ -183,6 +183,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           load_bearing: ev['load_bearing'] === true,
           source: (ev['source'] === 'user' ? 'user' : 'ai') as PremiseSource,
           ...(typeof ev['ai_original'] === 'string' ? { ai_original: ev['ai_original'] } : {}),
+          ...(isMaterialityRule(ev['materiality_rule']) ? { materiality_rule: ev['materiality_rule'] as PremiseState['materiality_rule'] } : {}),
           status: 'active',
           amend_history: [],
           recheck_count: 0,
@@ -302,6 +303,16 @@ function readJson(file: string): unknown {
   } catch {
     return null;
   }
+}
+
+const KNOWN_RULE_TYPES = new Set(['threshold', 'step', 'delta', 'relative', 'band', 'map', 'stateful']);
+
+/** Defensive shape check for a persisted materiality_rule (jsonb from the ledger).
+ *  Replay never throws — a malformed rule is simply ignored (heuristic fallback). */
+function isMaterialityRule(v: unknown): boolean {
+  if (!v || typeof v !== 'object') return false;
+  const r = v as Record<string, unknown>;
+  return typeof r['type'] === 'string' && KNOWN_RULE_TYPES.has(r['type']) && typeof r['params'] === 'object' && r['params'] !== null;
 }
 
 // Re-export for callers that imported these from here historically.

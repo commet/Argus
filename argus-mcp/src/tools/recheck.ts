@@ -5,8 +5,9 @@ import { replayLedger } from '../lib/ledger-replay.js';
 import { deriveState, guardTransition } from '../lib/state-machine.js';
 import { appendLedger, type LedgerEventInput } from '../lib/ledger-append.js';
 import { resolvePremiseRef, matchingMonitoredPremises, normalizePremiseText } from '../lib/premises.js';
-import { numericDrift } from '../lib/numeric-drift.js';
+import { evaluateMateriality, type MaterialityRule, type Materiality } from '../lib/numeric-drift.js';
 import { envelope, toolError } from '../lib/envelope.js';
+import type { NextAction } from '../lib/spine.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
@@ -73,23 +74,31 @@ export const recheck: ToolModule = {
       const numericValue = a['numeric_value'] as number | undefined;
       const changed = a['changed'] as boolean | undefined;
 
-      // ── drift decision (mechanical or host-asserted; plan v5 §7.1) ──
+      // ── drift decision (mechanical or host-asserted; plan v5 §7.1, M2 §4) ──
       const prior = premise.last_recheck;
       const baselineOnly = !prior;
+      // M2 3-valued materiality: 'material' | 'uncertain' | 'unchanged'. `drifted`
+      // stays on the record for back-compat (material → true) but the SPINE wiring
+      // (next_actions) reads `status`: only `material` auto-attaches the handle.
+      let status: Materiality | 'baseline' = 'baseline';
       let drifted = false;
       let reason = 'baseline recorded';
+      let lowConfidence = false;
       let integrityNote: string | undefined;
 
       if (!baselineOnly) {
         const prevNum = prior.numeric_value;
         if (typeof numericValue === 'number' && typeof prevNum === 'number') {
-          const d = numericDrift(prevNum, numericValue);
-          drifted = d.drifted;
-          reason = d.reason;
-          if (typeof changed === 'boolean' && changed !== drifted) {
-            integrityNote = `numeric comparison (${reason}) disagrees with the asserted changed=${changed} — the numbers win; both are on the record.`;
+          const m = evaluateMateriality(prevNum, numericValue, premise.materiality_rule as MaterialityRule | undefined);
+          status = m.status;
+          drifted = m.status === 'material';
+          reason = m.reason;
+          lowConfidence = m.low_confidence === true;
+          if (typeof changed === 'boolean' && changed !== drifted && status !== 'uncertain') {
+            integrityNote = `numeric materiality (${reason}) disagrees with the asserted changed=${changed} — the numbers win; both are on the record.`;
           }
         } else if (typeof changed === 'boolean') {
+          status = changed ? 'material' : 'unchanged';
           drifted = changed;
           reason = changed ? 'the host asserts the fact changed (see source)' : 'the host asserts the fact is unchanged';
           if (changed && normalizePremiseText(finding) === normalizePremiseText(prior.finding)) {
@@ -128,21 +137,41 @@ export const recheck: ToolModule = {
 
       await appendLedger(dir, events, now);
 
+      // heuristic-fallback notice (M2 §7): only when no rule was declared AND the
+      // engine leaned on the under-fire default (low_confidence).
+      const heuristicNote = lowConfidence && !premise.materiality_rule
+        ? ' 규칙을 따로 정하지 않아 기본값(휴리스틱)으로 봤어요 — 이 전제에서 어떤 움직임이 중요한지 정해두면 더 정확해요.'
+        : '';
+
       const surface = baselineOnly
         ? `Baseline recorded for P${premise.ordinal}: "${finding}" (${source}). Re-check suggested again in 7 days.`
-        : drifted
+        : status === 'material'
           ? `The fact under P${premise.ordinal} changed: "${prior!.finding}" → "${finding}" (${source}). Whether to revisit this decision is your call.`
-          : `P${premise.ordinal} unchanged (${source}).`;
+          : status === 'uncertain'
+            // M2 §4/§7: uncertain surfaces the FACT only — no handle, no fork. The
+            // user decides whether to define a rule or leave it.
+            ? `P${premise.ordinal}: 규칙상 자동 판정이 애매한 변화예요 (${reason}). host가 확인한 사실만 적어뒀어요 — 규칙을 정할지, 그냥 둘지는 당신 몫이에요.${heuristicNote}`
+            : `P${premise.ordinal} unchanged (${source}).`;
+
+      // ── SPINE (M2 §4, mirror clause): the handle auto-attaches ONLY on
+      //    `material`. `uncertain` (depends / boundary / rule-uncovered) NEVER
+      //    auto-attaches argus_recall — that would manufacture a fork on a flat
+      //    or reversible decision. The user calls the handle; the tool doesn't.
+      const next_actions: NextAction[] = status === 'material'
+        ? ['argus_recall', 'leave_as_is']
+        : ['leave_as_is', 'stop'];
 
       return envelope({
         ok: true, tool: 'argus_recheck',
         surface,
         // NEXT_ACTIONS is a closed enum (v4 §0.5-2: not extended) — tool
         // discovery rides the surface text and descriptions instead.
-        next_actions: drifted ? ['argus_recall', 'leave_as_is'] : ['leave_as_is', 'stop'],
+        next_actions,
         data: {
           id, ref: `P${premise.ordinal}`, premise_id: premise.premise_id,
           finding, drifted, baseline_only: baselineOnly, reason,
+          ...(baselineOnly ? {} : { materiality: status }),
+          ...(lowConfidence ? { low_confidence: true } : {}),
           source, ...(sourceDetail ? { source_detail: sourceDetail } : {}),
           ...(integrityNote ? { integrity_note: integrityNote } : {}),
           ...(appliedTo.length ? { applied_to_matching: appliedTo } : {}),

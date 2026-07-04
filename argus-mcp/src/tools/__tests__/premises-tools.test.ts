@@ -203,6 +203,70 @@ describe('argus_recheck', () => {
   });
 });
 
+// ── M2 materiality wiring: 3-valued status + the mirror-clause spine ──────────
+
+describe('argus_recheck — M2 materiality (§4 3-value wiring, mirror clause)', () => {
+  async function withRuledPremise(dir: string, rule?: Record<string, unknown>): Promise<void> {
+    await sealedDecision(dir);
+    await premises.handler({
+      argus_dir: dir, id: 'd1', op: 'add', today_override: TODAY,
+      premises: [{ text: 'base rate stays at 3.5%', kind: 'premise', external: true, load_bearing: true, source: 'ai', ai_original: 'base rate stays at 3.5%', ...(rule ? { materiality_rule: rule } : {}) }],
+    });
+  }
+
+  it('material → surface says changed AND auto-attaches the handle (argus_recall)', async () => {
+    const dir = tmpArgusDir();
+    await withRuledPremise(dir); // no rule → scale-free heuristic
+    await recheck.handler({ argus_dir: dir, id: 'd1', ref: 'P1', finding: '3.5%', numeric_value: 3.5, source: 'url', today_override: TODAY });
+    const r = await recheck.handler({ argus_dir: dir, id: 'd1', ref: 'P1', finding: '4.2%', numeric_value: 4.2, source: 'url', today_override: TODAY });
+    const b = body(r);
+    expect((b['data'] as Record<string, unknown>)['materiality']).toBe('material');
+    expect((b['data'] as Record<string, unknown>)['drifted']).toBe(true);
+    expect(b['next_actions']).toContain('argus_recall');
+  });
+
+  it('MIRROR CLAUSE: uncertain NEVER auto-attaches argus_recall (no manufactured fork)', async () => {
+    const dir = tmpArgusDir();
+    // a bare sign flip with zero_meaningful undeclared → uncertain (under-fire)
+    await withRuledPremise(dir);
+    await recheck.handler({ argus_dir: dir, id: 'd1', ref: 'P1', finding: '+0.5', numeric_value: 0.5, source: 'url', today_override: TODAY });
+    const r = await recheck.handler({ argus_dir: dir, id: 'd1', ref: 'P1', finding: '-0.3', numeric_value: -0.3, source: 'url', today_override: TODAY });
+    const b = body(r);
+    expect((b['data'] as Record<string, unknown>)['materiality']).toBe('uncertain');
+    expect((b['data'] as Record<string, unknown>)['drifted']).toBe(false);
+    expect(b['next_actions']).not.toContain('argus_recall'); // the spine: no auto-fork
+    expect(String(b['surface'])).toContain('당신 몫'); // fact only, handle stays with the user
+  });
+
+  it('unchanged stays quiet, no handle', async () => {
+    const dir = tmpArgusDir();
+    await withRuledPremise(dir);
+    await recheck.handler({ argus_dir: dir, id: 'd1', ref: 'P1', finding: '3.50%', numeric_value: 3.5, source: 'url', today_override: TODAY });
+    const r = await recheck.handler({ argus_dir: dir, id: 'd1', ref: 'P1', finding: '3.52%', numeric_value: 3.52, source: 'url', today_override: TODAY });
+    const b = body(r);
+    expect((b['data'] as Record<string, unknown>)['materiality']).toBe('unchanged');
+    expect(b['next_actions']).not.toContain('argus_recall');
+  });
+
+  it('a declared step rule fires material where the global-10% heuristic would stay silent', async () => {
+    const dir = tmpArgusDir();
+    await withRuledPremise(dir, { type: 'step', params: { S: 0.25, N: 1 } });
+    await recheck.handler({ argus_dir: dir, id: 'd1', ref: 'P1', finding: '3.50%', numeric_value: 3.5, source: 'url', today_override: TODAY });
+    // 3.50 → 3.25 is a 7% move (heuristic: silent) but a full policy notch (step: material)
+    const r = await recheck.handler({ argus_dir: dir, id: 'd1', ref: 'P1', finding: '3.25%', numeric_value: 3.25, source: 'url', today_override: TODAY });
+    expect((body(r)['data'] as Record<string, unknown>)['materiality']).toBe('material');
+  });
+
+  it('the materiality_rule survives ledger replay (jsonb-nested, no migration)', async () => {
+    const dir = tmpArgusDir();
+    await withRuledPremise(dir, { type: 'threshold', params: { line: 4.0, direction: 'below' }, modifiers: { boundary: 'inclusive' } });
+    await recheck.handler({ argus_dir: dir, id: 'd1', ref: 'P1', finding: '4.30%', numeric_value: 4.3, source: 'url', today_override: TODAY });
+    // crossing below 4.0 fires via the persisted threshold rule
+    const r = await recheck.handler({ argus_dir: dir, id: 'd1', ref: 'P1', finding: '3.95%', numeric_value: 3.95, source: 'url', today_override: TODAY });
+    expect((body(r)['data'] as Record<string, unknown>)['materiality']).toBe('material');
+  });
+});
+
 // ── the 6-turn hand simulation (plan v5 §11) as a living integration test ──
 
 describe('journey: open → premises → amend → seal-side recheck → resolve → drift', () => {

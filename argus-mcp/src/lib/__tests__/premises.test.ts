@@ -213,13 +213,28 @@ describe('due premises', () => {
 
 // ── numeric drift ──
 
-describe('numericDrift', () => {
-  it('fires on >=10% moves and sign flips, stays quiet under threshold', () => {
-    expect(numericDrift(3.5, 4.5).drifted).toBe(true);
-    expect(numericDrift(3.5, 3.52).drifted).toBe(false);
-    expect(numericDrift(0.1, -0.1).drifted).toBe(true);
+describe('numericDrift (legacy shim over M2 evaluateMateriality)', () => {
+  // M2 §10.5: the old "global 10% + sign-flip-always" behavior is intentionally
+  // re-estimated to the axis-aware, UNDER-fire default. `drifted` now means
+  // status==='material'. The sign-flip-always over-fire is removed: a bare sign
+  // flip with no zero_meaningful declared is `uncertain` (drifted=false), NOT a
+  // manufactured alert. Full matrix lives in evaluate-materiality.test.ts.
+  it('material on a clear scale-free >10% move', () => {
+    expect(numericDrift(3.5, 4.5).drifted).toBe(true); // 28.6%
+  });
+  it('quiet under the relative threshold', () => {
+    expect(numericDrift(3.5, 3.52).drifted).toBe(false); // 0.6%
+  });
+  it('a bare sign flip no longer auto-fires (under-fire: zero_meaningful undeclared → uncertain)', () => {
+    expect(numericDrift(0.1, -0.1).drifted).toBe(false);
+  });
+  it('a large move off a near-zero base is material (≥2x multiplier, no safety_floor)', () => {
     expect(numericDrift(0, 2).drifted).toBe(true);
+  });
+  it('unchanged stays quiet', () => {
     expect(numericDrift(5, 5).drifted).toBe(false);
+  });
+  it('non-finite input is not comparable', () => {
     expect(numericDrift(Number.NaN, 3).drifted).toBe(false);
   });
 });

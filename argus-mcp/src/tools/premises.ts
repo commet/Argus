@@ -29,6 +29,28 @@ import { handleToolException } from './errors.js';
  * (data.premises) so the host can always show the user what was recorded.
  */
 
+const zRuleModifiers = z.strictObject({
+  direction: z.enum(['harmful_only', 'either', 'sign_flip']).optional(),
+  harmful_dir: z.enum(['up', 'down']).optional(),
+  unit_axis: z.enum(['absolute', 'ratio', 'percentage_point', 'complement']).optional(),
+  boundary: z.enum(['inclusive', 'exclusive']).optional(),
+  scale: z.string().max(64).optional(),
+  resolution: z.number().optional(),
+  zero_meaningful: z.boolean().optional(),
+  safety_floor: z.number().optional(),
+  near_zero_cut: z.number().optional(),
+}).optional();
+
+// M2 materiality rule — how "did this fact materially change?" is decided for
+// this premise. Optional: absent → the under-fire default heuristic (M2 §2).
+const zMaterialityRule = z.strictObject({
+  type: z.enum(['threshold', 'step', 'delta', 'relative', 'band', 'map', 'stateful'])
+    .describe('threshold=crosses a line; step=moves N notches on a grid/ordinal; delta=absolute move; relative=% move; band=leaves [lo,hi]; map=enters a named material-state set (nominal); stateful=path/volatility (opt-in, v2).'),
+  params: z.record(z.string(), z.union([z.number(), z.string(), z.array(z.string())]))
+    .describe('Rule params: line/S/N/D/P/lo/hi/material_states…'),
+  modifiers: zRuleModifiers,
+});
+
 const zPremiseInput = z.strictObject({
   text: z.string().min(3).max(400).describe('One literal, factual sentence. No metaphor. Good: "base rate stays at 3.5% through 2026". Bad: "the ground this rests on".'),
   kind: z.enum(['premise', 'open_question']).default('premise').describe('premise = a fact/belief the decision rests on. open_question = something the user explicitly left undecided.'),
@@ -36,6 +58,7 @@ const zPremiseInput = z.strictObject({
   load_bearing: z.boolean().default(false).describe(`Would the decision flip if this is wrong? Mark sparingly — max ${MAX_LOAD_BEARING} per decision.`),
   source: z.enum(['ai', 'user']).describe('Provenance. Never forge: "user" = the user\'s own words; "ai" = model-drafted (requires ai_original).'),
   ai_original: z.string().max(400).optional().describe('REQUIRED when source="ai": the model\'s original wording, preserved verbatim across later edits.'),
+  materiality_rule: zMaterialityRule.optional().describe('Optional: how re-checks decide "did this materially change?". Absent → an under-fire default heuristic (silence when unsure). Define it to be precise (e.g. threshold "drops below 4.0", step "any one-notch credit downgrade").'),
 });
 
 const inputSchema = z.strictObject({
@@ -126,6 +149,7 @@ async function opAdd(
     external: p.external, load_bearing: p.load_bearing,
     source: p.source,
     ...(p.ai_original ? { ai_original: p.ai_original } : {}),
+    ...(p.materiality_rule ? { materiality_rule: p.materiality_rule } : {}),
   }));
   if (events.length > 0) await appendLedger(dir, events, now);
 
