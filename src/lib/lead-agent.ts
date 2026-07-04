@@ -62,7 +62,7 @@ const SYNTHESIS_DIRECTIVES: Record<string, string> = {
   marketing: 'Weave findings into a coherent go-to-market or marketing plan. Ensure channel strategy, budget, and messaging align. Identify the primary growth lever.',
   hr: 'Integrate all people-related analyses into a coherent organizational strategy. Ensure hiring, culture, and change management elements align with business goals.',
   legal: 'Consolidate legal analyses into a clear risk/compliance picture. Distinguish must-do from nice-to-do. Flag areas requiring professional counsel.',
-  ux: 'Synthesize UX analyses into a prioritized improvement roadmap. Connect user pain points to business metrics. Ensure recommendations are feasible.',
+  ux: 'Synthesize UX analyses into a prioritized set of observations tying user pain points to business metrics. Note which improvements are feasible vs. blocked — without prescribing which one to do (that call is the user\'s).',
   tech: 'Synthesize technical analyses into a coherent architecture recommendation. Identify integration points and dependency conflicts between proposals.',
   copy: 'Unify the document sections into a cohesive narrative. Ensure consistent tone, logical flow, and that each section builds on the previous.',
   pm: 'Synthesize into a realistic execution plan. Ensure timeline, resources, and dependencies are consistent. Flag any scheduling conflicts between workers.',

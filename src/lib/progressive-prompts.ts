@@ -1013,10 +1013,10 @@ Review the team's outputs holistically and share your assessment.
 
 JSON:
 {
-  "overall": "One-line quality judgment",
+  "overall": "One line on what the team's work establishes and what it does NOT yet settle — an observation, not a quality grade",
   "contradictions": ["Contradictions between agents (if any)"],
   "blind_spots": ["Perspectives no one covered (if any)"],
-  "verdict": "One-line conclusion on whether to proceed as-is"
+  "open_question": "The single unresolved crux this decision now turns on — phrased as a neutral question. NEVER a proceed/no-proceed conclusion or a recommendation."
 }`,
   };
 }
@@ -1081,24 +1081,24 @@ ${locale === 'ko' ? `BAD options (카테고리 — 절대 금지):
   ✗ "경쟁사 분석 중심"
 
 GOOD options (상사가 사인할 1줄 결정):
-  ✓ "경쟁사가 못 하는 한 가지를, 4주 뒤에 증명하겠습니다."
-  ✓ "기존 사업 +12% vs 신사업 +35%. 6개월 후 신사업이 우위입니다."
-  ✓ "Week 1~4 마일스톤으로, '이게 진짜 되는가'를 4주 뒤에 증명합니다."
-  ✓ "방향 확정 3일 + 본격 기획 11일. 2주 뒤 한 장으로 가져오겠습니다."
+  ✓ "경쟁사가 못 하는 한 가지를, 4주 뒤에 증명하겠습니다." (정량 결정)
+  ✓ "기존 사업 +12% vs 신사업 +35%. 6개월 후 신사업이 우위입니다." (정량 결정)
+  ✓ "채용은 컬처핏 우선 — 스택을 이미 아는 사람 말고, 3개월 안에 배울 수 있는 사람을 뽑습니다." (정성 결정 — 숫자 대신 명확한 기준)
+  ✓ "방향 확정부터 하고 기획은 그다음 — 2주 뒤 한 장으로 가져오겠습니다."
 
-The pattern: VERB + 구체적 숫자/기간 + 결과. 막연한 전략 카테고리가 아니라, "이거 할게요"라고 약속하는 문장.` : `BAD options (categories — NEVER):
+The pattern: VERB + 구체적 약속 + 결과. 결정이 수치형이면 숫자/기간을, 아니면 뽑을/버릴 기준이나 마일스톤을 담아라 — 억지로 %를 지어내지 말 것. 막연한 전략 카테고리가 아니라 "이거 할게요"라고 약속하는 문장이면 된다.` : `BAD options (categories — NEVER):
   ✗ "Prioritize speed"
   ✗ "Prioritize quality"
   ✗ "Minimize risk"
   ✗ "Focus on competitive analysis"
 
 GOOD options (1-line decisions a boss could sign):
-  ✓ "Prove one thing the competitor can't do, in 4 weeks."
-  ✓ "Current product +12% vs new bet +35%. New bet wins at 6 months."
-  ✓ "Week 1–4 milestones. Demo 'it actually works' in 4 weeks."
-  ✓ "3 days to lock direction + 11 days to plan. One-pager in 2 weeks."
+  ✓ "Prove one thing the competitor can't do, in 4 weeks." (quantitative)
+  ✓ "Current product +12% vs new bet +35%. New bet wins at 6 months." (quantitative)
+  ✓ "Hire for culture-fit first — take the candidate who can learn the stack in 3 months, not the one who already knows it." (qualitative — a clear criterion, not a number)
+  ✓ "Lock the direction first, plan second — one-pager in 2 weeks."
 
-The pattern: VERB + concrete numbers/timeline + outcome. Not vague strategy categories — a specific promise.`}
+The pattern: VERB + a concrete commitment + outcome. When the decision is quantitative, use numbers/timeline; when it isn't (hiring, positioning, wording), use a specific criterion or milestone instead — do NOT manufacture percentages. Not a vague strategy category — a sentence that promises "I'll do this."`}
 
 ═══ QUESTION TEXT RULES ═══
 - Question must dig into the SITUATION, not admin details.

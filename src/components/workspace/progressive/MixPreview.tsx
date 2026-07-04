@@ -123,7 +123,14 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                     {cmReview.blind_spots.map((b, i) => <p key={i} className="text-[12px] text-[var(--text-secondary)] flex items-start gap-2 mb-1"><span className="shrink-0 mt-0.5">👁</span>{b}</p>)}
                   </div>
                 )}
-                <p className="text-[12px] text-[var(--text-tertiary)] italic mt-2">{cmReview.verdict}</p>
+                {/* Spine: the crux this turns on — a neutral question, not a
+                    proceed/no-proceed verdict (renamed from `verdict`, 2026-07-04). */}
+                {cmReview.open_question && (
+                  <div className="mt-3 pt-3 border-t border-dashed border-[var(--accent)]/15">
+                    <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] mb-1.5">{L('아직 갈리는 지점', 'Still open')}</p>
+                    <p className="text-[12.5px] text-[var(--text-secondary)] italic leading-relaxed">{cmReview.open_question}</p>
+                  </div>
+                )}
               </motion.div>
             )}
 

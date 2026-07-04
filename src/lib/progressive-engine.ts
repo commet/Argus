@@ -1402,7 +1402,11 @@ export interface NavigatorReview {
   overall: string;
   contradictions: string[];
   blind_spots: string[];
-  verdict: string;
+  /** The unresolved crux the decision turns on — a NEUTRAL question, never a
+   *  proceed/no-proceed conclusion (renamed from `verdict`, 2026-07-04 spine
+   *  pass: a field literally named "verdict" pulled the model toward the exact
+   *  directional lean the prompt forbids; mirrors LeadSynthesisResult.open_question). */
+  open_question: string;
 }
 
 export async function runNavigatorReview(
@@ -1423,7 +1427,7 @@ export async function runNavigatorReview(
     // and this rides alongside the user-blocking mix pipeline.
     const result = await callLLMJson<NavigatorReview>(
       [{ role: 'user', content: user }],
-      { system, maxTokens: 500, signal, model: 'fast', shape: { overall: 'string', contradictions: 'array', blind_spots: 'array', verdict: 'string' } },
+      { system, maxTokens: 500, signal, model: 'fast', shape: { overall: 'string', contradictions: 'array', blind_spots: 'array', open_question: 'string' } },
     );
 
     // 항해장 XP 적립
