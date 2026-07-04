@@ -977,7 +977,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
         </div>
       ) : (
         <div className="pl-9 space-y-2">
-          <input value={reason} onChange={e => setReason(e.target.value)} placeholder={L('어떤 방향이 더 맞나요? (예: 이건 투자용이 아니라 내부 보고용이야)', 'What direction fits better? (e.g., This is for internal reporting, not investors)')}
+          <input value={reason} onChange={e => setReason(e.target.value)} maxLength={500} placeholder={L('어떤 방향이 더 맞나요? (예: 이건 투자용이 아니라 내부 보고용이야)', 'What direction fits better? (e.g., This is for internal reporting, not investors)')}
             className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-base md:text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
             onKeyDown={e => { if (e.key === 'Enter' && reason.trim()) { e.preventDefault(); onReject(reason.trim()); } }} autoFocus />
           <div className="flex gap-2">
@@ -1184,6 +1184,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const mountedRef = useRef(true);
   const workerAbortRef = useRef<AbortController | null>(null);
   const workersRef = useRef<Promise<void> | null>(null);
+  // True while a crew orchestration is in flight. Guards startWorkerExecution
+  // against re-entrancy: a double-tap on the "다시 실행" resume banner (or any
+  // overlapping deploy/resume/auto-resume) would otherwise abort the partial run
+  // and restart it — re-billing every worker's LLM call. Cleared when the run settles.
+  const workersInFlightRef = useRef(false);
   // Scroll refs for targeted navigation
   const statusBarRef = useRef<HTMLDivElement>(null);
   const questionRef = useRef<HTMLDivElement>(null);
@@ -1525,6 +1530,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
 
   /* Shared worker execution — used by both deploy and resume */
   const startWorkerExecution = (ws: WorkerTask[]) => {
+    // Re-entrancy guard (U1): never tear down an in-flight run and re-bill it.
+    if (workersInFlightRef.current) return;
+    workersInFlightRef.current = true;
     const qa = qaPairs.filter(q => q.answer).map(q => ({ question: q.question, answer: q.answer! }));
     const ctx: WorkerContext = {
       problemText: session.problem_text,
@@ -1588,6 +1596,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : L('에이전트 작업 중 오류가 발생했습니다.', 'Agent task error occurred.'));
       }
+    }).finally(() => {
+      // Release the re-entrancy guard so a genuine later resume/retry can run.
+      workersInFlightRef.current = false;
     });
   };
 
@@ -1643,8 +1654,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // Once the draft (mix) exists the team phase is over — its results were already
   // consumed into the draft — so a "resume workers" banner above the draft is
   // stale clutter that competes with the deliverable. Gate it on !mix too.
+  // Resumable if any worker is stranded pending OR errored (R6): a reload after
+  // every AI worker already failed leaves no 'pending' worker, so pending-only
+  // never showed the banner and an all-error crew had no crew-level restart.
+  // startWorkerExecution's filter re-picks non-done workers, so Restart re-runs them.
   const isResumable = deployPhase === 'deployed' && !final_ && !mix
-    && workers.some(w => w.status === 'pending');
+    && workers.some(w => w.status === 'pending' || w.status === 'error');
   const onResumeWorkers = () => {
     const ws = store.currentSession()?.workers ?? [];
     startWorkerExecution(ws);
@@ -2639,10 +2654,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   </span>
                 </div>
                 <button onClick={onResumeWorkers}
-                  className="px-3 py-2 min-h-[44px] md:min-h-0 md:py-1.5 text-[13px] font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer">
-                  {workers.some(w => w.status === 'done')
-                    ? L('이어서 실행', 'Resume')
-                    : L('다시 실행', 'Restart')}
+                  disabled={workers.some(w => w.status === 'running' || w.status === 'ai_preparing')}
+                  className="px-3 py-2 min-h-[44px] md:min-h-0 md:py-1.5 text-[13px] font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  {workers.some(w => w.status === 'running' || w.status === 'ai_preparing')
+                    ? L('실행 중…', 'Running…')
+                    : workers.some(w => w.status === 'done')
+                      ? L('이어서 실행', 'Resume')
+                      : L('다시 실행', 'Restart')}
                 </button>
               </div>
             </motion.div>
