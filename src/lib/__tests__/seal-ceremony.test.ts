@@ -85,3 +85,31 @@ describe('seal ceremony — component contract (07 S2~S4)', () => {
     }
   });
 });
+
+// The CLOSING seal (닫는 봉인, 2026-07-04). An early rope tied at OPEN makes a
+// contract, and the closing SealMoment used to short-circuit straight to the
+// plain DecisionContractCard — the engaged user who bound early never saw the
+// stamp→certificate ceremony. These pin the fix so it can't silently regress.
+describe('seal ceremony — closing scene (닫는 봉인)', () => {
+  it('accepts a `closing` prop', () => {
+    expect(sealMoment).toMatch(/closing\??\s*[:=]/);
+  });
+
+  it('a not-yet-closed contract in the closing scene plays the ceremony instead of delegating', () => {
+    // The 298 delegate-to-card gate must be conditioned on NOT playing the closing ceremony.
+    expect(sealMoment).toContain('closing && !contract?.closed_at');
+    expect(sealMoment).toMatch(/scene === 'ask' && !playClosingCeremony/);
+  });
+
+  it('stamps closed_at when closing so a reload shows the calm card, not a replay', () => {
+    // Both seal paths (main + manual recovery) must stamp closed_at under closing.
+    const stamps = sealMoment.match(/closing \? new Date\(now\)\.toISOString\(\)/g) || [];
+    expect(stamps.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('the closing recovery seal augments an existing rope — never clobbers it', () => {
+    // manualSeal must augmentContract when a contract already exists (preserve the
+    // user's early lean) rather than rebuilding a fresh one.
+    expect(sealMoment).toMatch(/existing\s*\?\s*augmentContract\(existing, \[\], now, iv\)/);
+  });
+});

@@ -56,19 +56,30 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
   const ordered = [...workers].sort((a, b) => a.step_index - b.step_index);
   const doneCount = ordered.filter((w) => w.status === 'done').length;
   const errorCount = ordered.filter((w) => w.status === 'error').length;
-  const allDone = ordered.every((w) => w.status === 'done' || w.status === 'error');
+  // Terminal set MUST match `crewSettled` in ProgressiveFlow — otherwise a crew
+  // with no AI work (all 'waiting_input') or a user-actionable failure keeps this
+  // header saying "일하고 있어요" forever while the flow has already moved on.
+  // That mismatch is the "선원 0/N 영구 고정" bug. A human worker out for an
+  // external reply ('sent'/'waiting_response') is settled for this AI header too.
+  const isTerminal = (w: (typeof ordered)[number]) =>
+    w.status === 'done' || w.status === 'error' || w.status === 'waiting_input' || w.status === 'validation_failed' ||
+    (w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response'));
+  const allDone = ordered.every(isTerminal);
 
   // Honest headline: a failed crew member's share does NOT flow into the
   // draft — "전부 초안에 들어갑니다" over a failure would be failure≠silence
-  // in miniature.
+  // in miniature. And when no AI actually produced anything (doneCount 0), don't
+  // claim crew output flowed in — this is a human-judgment item.
   const headline = !allDone
     ? L('선원들이 일하고 있어요', 'The crew is at work')
-    : errorCount === 0
-      ? L(`선원 ${doneCount}명의 작업이 끝났어요 — 전부 초안에 들어갑니다`, `${doneCount} crew finished — everything flows into the draft`)
-      : L(
-          `선원 ${ordered.length}명 중 ${doneCount}명 완료 · ${errorCount}명은 닿지 않았어요 — 실패한 몫은 빼고 갑니다`,
-          `${doneCount} of ${ordered.length} finished · ${errorCount} didn't land — the draft goes on without that share`,
-        );
+    : doneCount === 0
+      ? L('이 건은 사람이 판단할 항목이에요 — AI가 대신 정하지 않아요', "This one is yours to judge — AI doesn't decide it for you")
+      : errorCount === 0
+        ? L(`선원 ${doneCount}명의 작업이 끝났어요 — 전부 초안에 들어갑니다`, `${doneCount} crew finished — everything flows into the draft`)
+        : L(
+            `선원 ${ordered.length}명 중 ${doneCount}명 완료 · ${errorCount}명은 닿지 않았어요 — 실패한 몫은 빼고 갑니다`,
+            `${doneCount} of ${ordered.length} finished · ${errorCount} didn't land — the draft goes on without that share`,
+          );
 
   return (
     <motion.div
@@ -107,9 +118,19 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
         <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
           {!allDone && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" aria-hidden />}
           <span className="tabular-nums">{doneCount}/{ordered.length}</span>
+          {/* Learn-more cue so the row reads as "tap to understand", not passive status. */}
+          {!open && <span className="text-[var(--accent)]">{L('이게 뭐예요?', 'What is this?')}</span>}
           <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </span>
       </button>
+
+      {/* Always-visible orienting line (NOT gated by expand): a novice meets the
+          crew cold, so state what/why + the honest boundary in ONE tertiary line
+          at first contact — the definition used to be trapped inside the collapsed
+          panel. One line only, to respect the ④보조 / "진행 막대 수준" constraint. */}
+      <p className="mt-2 text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
+        {L('AI 팀원들이 이 결정을 각자 다른 눈으로 대신 살펴봐요 · 판단은 당신 몫이에요.', 'A team of AI reviewers is looking at this from different angles — the call stays yours.')}
+      </p>
 
       {!open ? null : (
       <div className="mt-3 space-y-2.5">
@@ -122,10 +143,11 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
           {reportsOpen ? L('보고 접기 ▴', 'Hide reports ▴') : L('선원 보고 열어보기 ▾', 'Open crew reports ▾')}
         </button>
       )}
-      {/* First-use definition — a novice meets "선원" cold here. One line, once:
-          they're AI teammates, and the brief stays inside the analysis. */}
+      {/* Privacy recap only — the always-visible orienting line above now teaches
+          what/why at first contact, so this in-panel line keeps just the privacy
+          reassurance (no longer teaching the same thing twice). */}
       <p className="text-[11px] text-[var(--text-tertiary)]">
-        {L('선원은 이 건을 각자 따로 검토하는 AI 팀원이에요 — 입력하신 내용은 분석에만 쓰여요.', 'Crew members are AI teammates each reviewing this separately — your input is used for analysis only.')}
+        {L('입력하신 내용은 이 분석에만 쓰여요.', 'What you typed is used only for this analysis.')}
       </p>
 
       <div className="space-y-1.5">
@@ -133,6 +155,15 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
           const name = (locale === 'en' ? w.persona?.nameEn : w.persona?.name) || w.persona?.name || L('선원', 'Crew');
           const emoji = w.persona?.emoji || '⚓';
           const running = w.status === 'running' || w.status === 'ai_preparing';
+          // Purpose-first: shade AI vs human by MEANING (verb phrase), not just
+          // emoji — surfaces the split in focus mode. Derive agent_type the same
+          // way deployWorkers does so legacy 'who'-only sessions still resolve.
+          const at = w.agent_type || (w.who === 'both' ? 'ai' : w.who === 'human' ? 'self' : 'ai');
+          const purpose = at === 'ai'
+            ? L('AI가 대신 봐요', 'Handled by AI')
+            : at === 'self'
+              ? L('이건 당신이 정해요', "Yours to decide")
+              : L('사람에게 물어봐요', 'Asking a person');
           return (
             <motion.div
               key={w.id}
@@ -147,6 +178,23 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
                   <span className="text-[12px] font-semibold text-[var(--text-primary)]">{name}</span>
                   <span className="text-[11px] text-[var(--text-tertiary)] truncate">{w.task}</span>
                 </div>
+                {/* Purpose lead-in — what this crew member is FOR (routing is real
+                    even without the scope wiring). Honest provenance: AI is the
+                    subject of AI-authored work; the human half names ownership. */}
+                <p className="text-[11px] text-[var(--accent)]/85 mt-0.5">{purpose}</p>
+                {/* The human-judgment boundary the user owns — describes what they
+                    were asked to decide (true regardless of AI internals). Never
+                    truncated: the "you decide" half is load-bearing. */}
+                {at === 'self' && w.self_scope && (
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 leading-[1.5]">
+                    {L('당신이 정해요', 'You decide')}: {w.self_scope}
+                  </p>
+                )}
+                {/* Why THIS lens was assigned (router rationale) — quiet, guarded;
+                    absent → render nothing (never fabricate). */}
+                {at === 'ai' && w.assignment_reason && (
+                  <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-[1.5]">↳ {w.assignment_reason}</p>
+                )}
                 {/* The theater: live stream tail while running; takeaway when done;
                     an honest line + inline retry when the work didn't land. */}
                 {running && w.stream_text ? (

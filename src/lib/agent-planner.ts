@@ -253,6 +253,8 @@ export async function executePlan(
       task.framework,
       task.task_type,
       locale,
+      task.ai_scope,
+      task.self_scope,
     );
 
     // Stream prefix로 현재 step 표시

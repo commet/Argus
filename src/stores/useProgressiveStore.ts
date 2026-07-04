@@ -439,6 +439,30 @@ function migrateWorkers(sessions: ProgressiveSession[]): ProgressiveSession[] {
  * stable across reloads. Idempotent: sessions that already have `drafts`
  * are returned untouched.
  */
+// Defensive Data Access (CLAUDE.md): a persisted/legacy/remote-merged mix may
+// drop its array fields even though the type says otherwise. A bare `.map` at
+// render then throws into the step ErrorBoundary ("이 단계에서 문제가 생겼어요").
+// Normalize once at the hydration boundary so every downstream reader is safe.
+function normMix<M>(mix: M): M {
+  if (!mix || typeof mix !== 'object') return mix;
+  const m = mix as { sections?: unknown; key_assumptions?: unknown; next_steps?: unknown };
+  return {
+    ...m,
+    sections: Array.isArray(m.sections) ? m.sections : [],
+    key_assumptions: Array.isArray(m.key_assumptions) ? m.key_assumptions : [],
+    next_steps: Array.isArray(m.next_steps) ? m.next_steps : [],
+  } as M;
+}
+
+function migrateMix(sessions: ProgressiveSession[]): ProgressiveSession[] {
+  return sessions.map(s => ({
+    ...s,
+    mix: normMix(s.mix),
+    final_mix: normMix(s.final_mix),
+    drafts: s.drafts ? s.drafts.map(d => ({ ...d, final_mix: normMix(d.final_mix) })) : s.drafts,
+  }));
+}
+
 function migrateSessionDrafts(sessions: ProgressiveSession[]): ProgressiveSession[] {
   return sessions.map((s) => {
     if (s.drafts && s.drafts.length > 0) return s;
@@ -573,7 +597,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
 
   loadSessions: () => {
     const local = getStorage<ProgressiveSession[]>(STORAGE_KEYS.PROGRESSIVE_SESSIONS, []);
-    const migrated = migrateSessionDrafts(migrateBranches(migrateWorkers(local)));
+    const migrated = migrateMix(migrateSessionDrafts(migrateBranches(migrateWorkers(local))));
     set({ sessions: migrated });
 
     // Async: merge with Supabase remote sessions (cross-device sync)
@@ -612,7 +636,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
             }
 
             if (changed) {
-              const merged = migrateSessionDrafts(migrateBranches(migrateWorkers(Array.from(localMap.values()))));
+              const merged = migrateMix(migrateSessionDrafts(migrateBranches(migrateWorkers(Array.from(localMap.values())))));
               setStorage(STORAGE_KEYS.PROGRESSIVE_SESSIONS, merged);
               set({ sessions: merged });
             }

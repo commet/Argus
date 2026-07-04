@@ -50,7 +50,7 @@ import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
-import { ChevronRight, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, RefreshCw } from 'lucide-react';
+import { ChevronRight, ChevronDown, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, RefreshCw } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useT } from '@/contexts/LocaleProvider';
 import { personaName, personaRole } from './shared/persona-format';
@@ -469,29 +469,43 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const [collapsed, setCollapsed] = useState(true);
+  // Tier-1 de-wall: the integrated_analysis prose tends to run long and
+  // quantitative ("매번 수학적으로 가는" — founder). It's the reasoning, not the
+  // takeaway, so it hides behind its OWN nested toggle, below the value. The
+  // decision-useful parts (핵심 발견 / 갈리는 지점) lead when the card opens.
+  const [proseOpen, setProseOpen] = useState(false);
+  // Collapsed-header teaser: the top finding (else the crux) shown as one line so
+  // the user gets the takeaway WITHOUT expanding — value up front, wall on demand.
+  const teaser = (synthesis.key_findings?.[0] || synthesis.open_question || '').trim();
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
       className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--surface)] overflow-hidden">
       <button onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center gap-3 px-5 py-3.5 cursor-pointer hover:bg-[var(--bg)]/50 transition-colors">
-        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[var(--accent)]/10 shrink-0">
+        className="w-full flex items-start gap-3 px-5 py-3.5 cursor-pointer hover:bg-[var(--bg)]/50 transition-colors">
+        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[var(--accent)]/10 shrink-0 mt-0.5">
           <Sparkles size={13} className="text-[var(--accent)]" />
         </div>
         <div className="flex-1 text-left min-w-0">
-          <span className="text-[13px] font-semibold text-[var(--text-primary)]">{synthesis.lead_agent_name}</span>
-          <span className="text-[11px] text-[var(--text-tertiary)] ml-2">{L('통합 분석', 'Integrated Analysis')}</span>
+          <div>
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{synthesis.lead_agent_name}</span>
+            <span className="text-[11px] text-[var(--text-tertiary)] ml-2">{L('통합 분석', 'Integrated Analysis')}</span>
+          </div>
+          {/* Value-first: takeaway visible while still collapsed. */}
+          {collapsed && teaser && (
+            <p className="mt-1 text-[12.5px] text-[var(--text-secondary)] leading-snug line-clamp-2">{teaser}</p>
+          )}
         </div>
-        <ChevronRight size={14} className={`text-[var(--text-tertiary)] transition-transform ${collapsed ? '' : 'rotate-90'}`} />
+        <ChevronRight size={14} className={`text-[var(--text-tertiary)] transition-transform shrink-0 mt-0.5 ${collapsed ? '' : 'rotate-90'}`} />
       </button>
       <AnimatePresence>
         {!collapsed && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: EASE }} className="overflow-hidden">
             <div className="px-5 pb-5 space-y-4 border-t border-[var(--border-subtle)]">
-              <div className="pt-4 text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">{synthesis.integrated_analysis}</div>
+              {/* ① 핵심 발견 leads — the one thing that changes the strategy. */}
               {synthesis.key_findings.length > 0 && (
-                <div>
+                <div className="pt-4">
                   <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('핵심 발견', 'Key Findings')}</p>
                   <ul className="space-y-1.5">
                     {synthesis.key_findings.map((f, i) => (
@@ -503,6 +517,18 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                   </ul>
                 </div>
               )}
+              {/* ② 갈리는 지점 — the crux this decision turns on. */}
+              {synthesis.open_question && (
+                <div className={synthesis.key_findings.length > 0 ? 'pt-1' : 'pt-4'}>
+                  {/* Spine: the crux this turns on — a neutral question, not a
+                      "what you'd advise" verdict (renamed from recommendation_direction). */}
+                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('이 결정이 갈리는 지점', 'The open question')}</p>
+                  <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-4 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
+                    {synthesis.open_question}
+                  </blockquote>
+                </div>
+              )}
+              {/* ③ 미해결 쟁점. */}
               {synthesis.unresolved_tensions.length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold text-amber-600 uppercase tracking-[0.15em] mb-2">{L('미해결 쟁점', 'Unresolved Tensions')}</p>
@@ -516,14 +542,17 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                   </ul>
                 </div>
               )}
-              {synthesis.open_question && (
-                <div>
-                  {/* Spine: the crux this turns on — a neutral question, not a
-                      "what you'd advise" verdict (renamed from recommendation_direction). */}
-                  <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('이 결정이 갈리는 지점', 'The open question')}</p>
-                  <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-4 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
-                    {synthesis.open_question}
-                  </blockquote>
+              {/* ④ 통합 분석 전문 — the reasoning wall, nested + collapsed by default. */}
+              {synthesis.integrated_analysis?.trim() && (
+                <div className="pt-1">
+                  <button onClick={() => setProseOpen((o) => !o)} aria-expanded={proseOpen}
+                    className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer">
+                    {proseOpen ? L('분석 전문 접기', 'Collapse full analysis') : L('분석 전문 보기', 'Read the full analysis')}
+                    <ChevronDown size={12} className={`transition-transform ${proseOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {proseOpen && (
+                    <div className="mt-3 text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">{synthesis.integrated_analysis}</div>
+                  )}
                 </div>
               )}
             </div>
@@ -1430,6 +1459,24 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     onDeployWorkers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusMode, deployPhase, workers.length]);
+
+  /* Self-heal after a mid-run reload — the confirmed 0/N stall root.
+   * migrateWorkers resets in-flight workers ('running'/'ai_preparing') back to
+   * 'pending' on load, but worker_deploy_phase stays 'deployed'. The auto-deploy
+   * effect above only fires on 'ready', so nobody restarts the crew: the header
+   * froze at "N/M 일하고 있어요" and ONLY the manual "다시 실행" banner recovered it.
+   * Auto-resume ONCE on mount when the crew is genuinely stranded — pending
+   * workers, no draft yet, and no orchestration already in flight this mount. */
+  const autoResumedRef = useRef(false);
+  useEffect(() => {
+    if (autoResumedRef.current || workersRef.current) return;
+    if (deployPhase !== 'deployed' || mix || final_) return;
+    if (!workers.some(w => w.status === 'pending')) return;
+    autoResumedRef.current = true;
+    track('worker_auto_resume', { pending: workers.filter(w => w.status === 'pending').length });
+    startWorkerExecution(store.currentSession()?.workers ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deployPhase, workers.length]);
 
   /* W1.6 재구성 ③ — focus mode still doesn't make the user grade the crew's
    * homework: the review stepper stays behind "열어보기" and unreviewed reports
@@ -3297,7 +3344,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 before ever seeing it — the closing scene must come before the
                 exits, never compete with them. */}
             {contractProject && !contractDue && (
-              <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} />
+              <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} closing />
             )}
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-10 pb-16">

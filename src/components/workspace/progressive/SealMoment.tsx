@@ -96,6 +96,7 @@ export function SealMoment({
   project,
   predicates,
   gate,
+  closing = false,
 }: {
   project: Project;
   /** Falsifiable predictions derived from this voyage (live path). */
@@ -105,6 +106,12 @@ export function SealMoment({
    *  full multi-predicate contract (CLAUDE.md mirror clause — don't over-fire
    *  ceremony on a low-stakes reversible call). Absent → full ceremony (safe). */
   gate?: { stakes?: 'routine' | 'important' | 'critical'; reversibility?: 'reversible' | 'partial' | 'irreversible'; framingConfidence?: number };
+  /** The voyage's CLOSING scene (arrive/닿기). When an early rope already made a
+   *  contract at OPEN, the closing SealMoment would otherwise divert straight to
+   *  the plain contract card (line ~298) and skip the stamp→certificate ceremony.
+   *  `closing` lets a not-yet-`closed_at` contract play the ceremony ONCE (the seal
+   *  augments the early rope and stamps `closed_at`); reloads then show the card. */
+  closing?: boolean;
 }) {
   const locale = useLocale();
   const ko = locale === 'ko';
@@ -220,7 +227,10 @@ export function SealMoment({
     // human_judgment renders nothing in JudgmentReceipt, so this costs the user
     // zero extra work while keeping the premise recall alive at settlement.
     const judgment_receipt = { ...receiptFields, human_judgment: humanJudgment.trim(), check_by };
-    updateProject(project.id, { decision_contract: { ...next, judgment_receipt } });
+    // Closing seal (닫는 봉인): stamp closed_at so a later reload shows the calm
+    // contract card instead of re-playing the ceremony (the 298 gate reads it).
+    const closed_at = closing ? new Date(now).toISOString() : next.closed_at;
+    updateProject(project.id, { decision_contract: { ...next, judgment_receipt, closed_at } });
     // Cross-surface return loop: if this logged-in user connected Telegram, mirror
     // the sealed contract into the one push channel that actually fires on the date
     // (the daily cron reads telegram_decisions, which web seals never wrote). Server
@@ -262,13 +272,21 @@ export function SealMoment({
   function manualSeal(iv: CheckInInterval = interval) {
     const summary = (typeof project?.name === 'string' ? project.name : '').trim();
     if (!summary) return;
-    const c = buildEarlyContract(project.id, { lean: summary, interval: iv }, Date.now());
+    const now = Date.now();
+    const existing = project.decision_contract;
+    // In the CLOSING case an early rope may already exist with zero fresh
+    // predicates — never clobber it with a rebuilt contract; augment (preserve
+    // id/created_at + the user's own lean) and re-confirm the check-in instead.
+    const c = existing
+      ? augmentContract(existing, [], now, iv)
+      : buildEarlyContract(project.id, { lean: summary, interval: iv }, now);
     if (!c) return;
     const check_by = c.check_in_at ? new Date(c.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
     // ALWAYS attach the receipt (match the main seal path) so this recovery seal
     // also keeps a then↔now anchor at settlement; human_judgment stays optional.
     const judgment_receipt = { real_question: summary, unverified_assumption: '', human_only: '', human_judgment: humanJudgment.trim(), check_by };
-    updateProject(project.id, { decision_contract: { ...c, judgment_receipt } });
+    const closed_at = closing ? new Date(now).toISOString() : c.closed_at;
+    updateProject(project.id, { decision_contract: { ...c, judgment_receipt, closed_at } });
     const sharp = c.predicates[0]?.text;
     if (user && session?.access_token && c.check_in_at && sharp) {
       syncSealToTelegram({
@@ -320,7 +338,13 @@ export function SealMoment({
   // ── Already-sealed loop (reload / waiting / due / verified): single source of
   //    truth lives in DecisionContractCard. We only own the fresh ASK + the
   //    just-sealed confirmation. ──
-  if (contract && scene === 'ask') {
+  // A contract already exists (usually an early rope tied at OPEN). Normally the
+  // already-sealed loop lives in DecisionContractCard and we delegate. EXCEPTION:
+  // the CLOSING scene on a not-yet-closed contract falls through to the ASK card
+  // so the seal augments the rope and plays the stamp→certificate ceremony ONCE.
+  // After it stamps closed_at (or on a return-day / non-closing surface), delegate.
+  const playClosingCeremony = closing && !contract?.closed_at;
+  if (contract && scene === 'ask' && !playClosingCeremony) {
     return <DecisionContractCard project={project} livePredicates={predicates} />;
   }
 

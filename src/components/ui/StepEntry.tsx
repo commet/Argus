@@ -102,17 +102,23 @@ export function StepEntry({
 
   return (
     <div className="space-y-4">
-      {/* Progress indicator */}
-      <div className="flex items-center gap-1.5">
-        {steps.map((_, i) => (
-          <div
-            key={i}
-            className={`h-1 rounded-full transition-all ${
-              i < currentStep ? 'w-6 bg-[var(--accent)]' : i === currentStep ? 'w-6 bg-[var(--accent)]/50' : 'w-3 bg-[var(--border)]'
-            }`}
-          />
-        ))}
-        <div className={`h-1 rounded-full transition-all ${isLastStep ? 'w-6 bg-[var(--accent)]/50' : 'w-3 bg-[var(--border)]'}`} />
+      {/* Progress indicator — dots + a stable "n / total" readout. `total`
+         counts every card step plus the final text step (the trailing bar). */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5">
+          {steps.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 rounded-full transition-all ${
+                i < currentStep ? 'w-6 bg-[var(--accent)]' : i === currentStep ? 'w-6 bg-[var(--accent)]/50' : 'w-3 bg-[var(--border)]'
+              }`}
+            />
+          ))}
+          <div className={`h-1 rounded-full transition-all ${isLastStep ? 'w-6 bg-[var(--accent)]/50' : 'w-3 bg-[var(--border)]'}`} />
+        </div>
+        <span className="shrink-0 text-[11px] font-medium text-[var(--text-tertiary)] tabular-nums">
+          {Math.min(currentStep + 1, steps.length + 1)} / {steps.length + 1}
+        </span>
       </div>
 
       {/* Card selection steps */}
@@ -263,7 +269,7 @@ export function StepEntry({
           onClick={() => setCurrentStep(steps.length)}
           className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
         >
-          {L('바로 입력하기 →', 'Skip to text →')}
+          {L('질문 건너뛰고 바로 쓰기 →', 'Skip the questions →')}
         </button>
       )}
     </div>
