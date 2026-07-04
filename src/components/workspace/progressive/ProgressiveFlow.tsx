@@ -1431,6 +1431,24 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusMode, deployPhase, workers.length]);
 
+  /* Self-heal after a mid-run reload — the confirmed 0/N stall root.
+   * migrateWorkers resets in-flight workers ('running'/'ai_preparing') back to
+   * 'pending' on load, but worker_deploy_phase stays 'deployed'. The auto-deploy
+   * effect above only fires on 'ready', so nobody restarts the crew: the header
+   * froze at "N/M 일하고 있어요" and ONLY the manual "다시 실행" banner recovered it.
+   * Auto-resume ONCE on mount when the crew is genuinely stranded — pending
+   * workers, no draft yet, and no orchestration already in flight this mount. */
+  const autoResumedRef = useRef(false);
+  useEffect(() => {
+    if (autoResumedRef.current || workersRef.current) return;
+    if (deployPhase !== 'deployed' || mix || final_) return;
+    if (!workers.some(w => w.status === 'pending')) return;
+    autoResumedRef.current = true;
+    track('worker_auto_resume', { pending: workers.filter(w => w.status === 'pending').length });
+    startWorkerExecution(store.currentSession()?.workers ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deployPhase, workers.length]);
+
   /* W1.6 재구성 ③ — focus mode still doesn't make the user grade the crew's
    * homework: the review stepper stays behind "열어보기" and unreviewed reports
    * flow into the mix as before (mixableWorkerResults keeps approved !== false).
@@ -3297,7 +3315,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 before ever seeing it — the closing scene must come before the
                 exits, never compete with them. */}
             {contractProject && !contractDue && (
-              <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} />
+              <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} closing />
             )}
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-10 pb-16">
