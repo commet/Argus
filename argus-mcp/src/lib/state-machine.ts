@@ -12,7 +12,8 @@ export type DecisionState = 'absent' | 'opened' | 'sealed' | 'due' | 'settled' |
 export type LedgerEventType =
   | 'harvest' | 'seal' | 'amend' | 'dismiss' | 'settle'
   // living premises (plan v5): the facts/open questions a decision rests on
-  | 'premise_add' | 'premise_amend' | 'premise_recheck' | 'premise_resolve';
+  // premise_reconsider (M3) = the user chose `still_open`: defer, not resolve.
+  | 'premise_add' | 'premise_amend' | 'premise_recheck' | 'premise_resolve' | 'premise_reconsider';
 
 export function deriveState(entry: ContractEntry | undefined, today: string): DecisionState {
   if (!entry) return 'absent';
@@ -33,12 +34,13 @@ const ALLOWED: Record<DecisionState, Set<LedgerEventType>> = {
   // premise_* NEVER self-creates (unlike seal's B1) — a premise belongs to a
   // decision's narrative, so absent refuses it (plan v5 §6.2).
   absent: new Set<LedgerEventType>(['harvest', 'seal', 'settle']), // seal/settle self-create (B1); settle then still needs a seal (see guard)
-  opened: new Set<LedgerEventType>(['seal', 'amend', 'dismiss', 'premise_add', 'premise_amend', 'premise_recheck', 'premise_resolve']),
-  sealed: new Set<LedgerEventType>(['amend', 'dismiss', 'settle', 'premise_add', 'premise_amend', 'premise_recheck', 'premise_resolve']),
+  opened: new Set<LedgerEventType>(['seal', 'amend', 'dismiss', 'premise_add', 'premise_amend', 'premise_recheck', 'premise_resolve', 'premise_reconsider']),
+  sealed: new Set<LedgerEventType>(['amend', 'dismiss', 'settle', 'premise_add', 'premise_amend', 'premise_recheck', 'premise_resolve', 'premise_reconsider']),
   // due: no premise_add (retroactive premise-planting rigs calibration) and no
   // premise_amend (retiring the premise that's about to be proven wrong is the
-  // goalpost guard one level down) — recheck/resolve stay open (plan v5 §6.2).
-  due: new Set<LedgerEventType>(['dismiss', 'settle', 'premise_recheck', 'premise_resolve']), // no amend once due — goalpost guard (m4)
+  // goalpost guard one level down) — recheck/resolve/reconsider stay open
+  // (deferring or closing an open_question is never a goalpost move; plan v5 §6.2).
+  due: new Set<LedgerEventType>(['dismiss', 'settle', 'premise_recheck', 'premise_resolve', 'premise_reconsider']), // no amend once due — goalpost guard (m4)
   settled: new Set<LedgerEventType>([]), // terminal — no reopen (mirror clause)
   dismissed: new Set<LedgerEventType>([]), // terminal
 };

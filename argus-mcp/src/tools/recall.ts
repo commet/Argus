@@ -6,7 +6,7 @@ import { readReceipt } from '../lib/receipt.js';
 import { renderReceipt, renderWake, type WakeContractRow } from '../lib/render-receipt.js';
 import { surfaceLocale } from '../lib/surfaces.js';
 import type { LedgerState } from '../lib/ledger-replay.js';
-import { isMonitored, isDueForRecheck, receiptPremisesInfo, recheckCadenceDays, nextRecheckDue } from '../lib/premises.js';
+import { isMonitored, isDueForRecheck, receiptPremisesInfo, recheckCadenceDays, nextRecheckDue, isReconsiderable, isDueForReconsider, reponderCadenceDays, nextReponderDue } from '../lib/premises.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -97,6 +97,8 @@ export const recall: ToolModule = {
             // date (null = due now / not monitored). Data only, never a nag.
             ...(isMonitored(p) ? { recheck_cadence_days: recheckCadenceDays(p), next_recheck_due: nextRecheckDue(p) } : {}),
             due_for_recheck: isDueForRecheck(p, today),
+            // M3 — open_question reconsider cadence: same shape, data only.
+            ...(isReconsiderable(p) ? { reponder_cadence_days: reponderCadenceDays(p), next_reponder_due: nextReponderDue(p), due_for_reconsider: isDueForReconsider(p, today) } : {}),
             ...(p.resolved_decision ? { resolved_decision: p.resolved_decision } : {}),
           };
         });

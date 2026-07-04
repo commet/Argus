@@ -60,12 +60,13 @@ const zPremiseInput = z.strictObject({
   ai_original: z.string().max(400).optional().describe('REQUIRED when source="ai": the model\'s original wording, preserved verbatim across later edits.'),
   materiality_rule: zMaterialityRule.optional().describe('Optional: how re-checks decide "did this materially change?". Absent → an under-fire default heuristic (silence when unsure). Define it to be precise (e.g. threshold "drops below 4.0", step "any one-notch credit downgrade").'),
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional: how many days between reality re-checks for this fact (M1). Absent → a default derived from the rule type (a moving number is checked more often than slow-moving state). The user pins this; it only moves the DUE nudge, never blocks a recheck.'),
+  reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional (kind="open_question" only): how many days between reconsider nudges — a "come back and see if you can answer this yet" timer (M3). Absent → a sensible default. Leaving the question open stays a valid answer; this only moves the nudge, never forces a resolution.'),
 });
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   id: zId.describe('The decision id from argus_open_decision.'),
-  op: z.enum(['add', 'amend', 'resolve']).describe('add = record premises; amend = correct one (user edit = signal); resolve = close an open question in the user\'s words.'),
+  op: z.enum(['add', 'amend', 'resolve', 'still_open']).describe('add = record premises; amend = correct one (user edit = signal); resolve = close an open question in the user\'s words; still_open = the user chose to leave an open question unresolved for now (defers the reconsider nudge, no verdict).'),
   premises: z.array(zPremiseInput).min(1).max(MAX_ACTIVE_PREMISES).optional().describe('op=add only.'),
   ref: z.string().max(64).optional().describe('op=amend/resolve: which premise — an ordinal ("P1"), the premise_id, or an unambiguous id prefix. Ordinals are permanent (a retired P2 stays P2).'),
   action: z.enum(['accept', 'refine', 'replace', 'retire']).optional().describe('op=amend only. accept = confirm as-is; refine/replace = correct the text; retire = remove from active tracking (stays on the record).'),
@@ -74,6 +75,7 @@ const inputSchema = z.strictObject({
   external: z.boolean().optional().describe('op=amend: correct the external flag (true lets re-checking arm for a load-bearing premise).'),
   load_bearing: z.boolean().optional().describe('op=amend: correct the load-bearing flag.'),
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend: re-set how often (days) this fact is re-checked (M1). Widens or narrows the DUE nudge; never blocks an explicit recheck.'),
+  reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend/still_open: re-set how often (days) this open question is nudged for reconsideration (M3). Only moves the nudge — never forces a resolution.'),
   decision: z.string().min(1).max(400).optional().describe('op=resolve: the user\'s own closing call. MUST be the user\'s words — never an Argus-drafted line.'),
   today_override: zDate.optional(),
 });
@@ -101,6 +103,7 @@ export const premises: ToolModule = {
 
       if (op === 'add') return await opAdd(dir, id, today, now, current.state, existing, a);
       if (op === 'amend') return await opAmend(dir, id, now, current.state, existing, a);
+      if (op === 'still_open') return await opStillOpen(dir, id, today, now, current.state, existing, a);
       return await opResolve(dir, id, now, current.state, existing, a);
     } catch (e) {
       return handleToolException('argus_premises', e);
@@ -111,7 +114,7 @@ export const premises: ToolModule = {
 // ── op=add ─────────────────────────────────────────────────────────────────
 
 async function opAdd(
-  dir: string, id: string, _today: string, now: string,
+  dir: string, id: string, today: string, now: string,
   state: Parameters<typeof guardTransition>[0], existing: PremiseState[],
   a: Record<string, unknown>,
 ) {
@@ -153,6 +156,9 @@ async function opAdd(
     ...(p.ai_original ? { ai_original: p.ai_original } : {}),
     ...(p.materiality_rule ? { materiality_rule: p.materiality_rule } : {}),
     ...(typeof p.recheck_cadence_days === 'number' ? { recheck_cadence_days: p.recheck_cadence_days } : {}),
+    ...(typeof p.reponder_cadence_days === 'number' && p.kind === 'open_question' ? { reponder_cadence_days: p.reponder_cadence_days } : {}),
+    // M3 — anchor the reconsider clock at the logical `today` (deterministic).
+    ...(p.kind === 'open_question' ? { anchor_date: today } : {}),
   }));
   if (events.length > 0) await appendLedger(dir, events, now);
 
@@ -215,6 +221,7 @@ async function opAmend(
     ...(typeof a['external'] === 'boolean' ? { external: a['external'] as boolean } : {}),
     ...(typeof loadBearing === 'boolean' ? { load_bearing: loadBearing as boolean } : {}),
     ...(typeof a['recheck_cadence_days'] === 'number' ? { recheck_cadence_days: a['recheck_cadence_days'] as number } : {}),
+    ...(typeof a['reponder_cadence_days'] === 'number' && premise.kind === 'open_question' ? { reponder_cadence_days: a['reponder_cadence_days'] as number } : {}),
   };
   await appendLedger(dir, [ev], now);
 
@@ -280,5 +287,43 @@ async function opResolve(
     surface: `Open question P${premise.ordinal} closed in your words: "${decision}".`,
     next_actions: ['argus_recall', 'leave_as_is'],
     data: { id, ref: `P${premise.ordinal}`, premise_id: premise.premise_id, decision, decision_owner: 'user' },
+  });
+}
+
+// ── op=still_open (M3 handle b: defer the reconsider nudge — NOT a resolve) ──
+// The user chose to keep the question open. It stays active and unresolved; the
+// only effect is resetting the reconsider clock so it isn't nudged again until
+// the next cadence. No verdict, no closing decision — leaving it open is a valid
+// answer, and this handle must never read as pressure to finally decide.
+
+async function opStillOpen(
+  dir: string, id: string, today: string, now: string,
+  state: Parameters<typeof guardTransition>[0], existing: PremiseState[],
+  a: Record<string, unknown>,
+) {
+  guardTransition(state, 'premise_reconsider');
+
+  const ref = a['ref'];
+  if (typeof ref !== 'string') {
+    return toolError({ ok: false, tool: 'argus_premises', error_code: 'STILL_OPEN_NEEDS_REF', message: 'op=still_open needs `ref`.', recovery: 'List open questions via argus_recall view="premises", then defer by ordinal.' });
+  }
+  const premise = resolvePremiseRef(existing, ref);
+  if (premise.kind !== 'open_question') {
+    return toolError({ ok: false, tool: 'argus_premises', error_code: 'NOT_AN_OPEN_QUESTION', message: `P${premise.ordinal} is a premise, not an open question.`, recovery: 'Only an open_question can be left open. A premise is re-checked against reality (argus_recheck).' });
+  }
+  if (premise.status !== 'active') {
+    return toolError({ ok: false, tool: 'argus_premises', error_code: 'PREMISE_RETIRED', message: `P${premise.ordinal} is already ${premise.status}.`, recovery: 'Read it via argus_recall view="premises".' });
+  }
+
+  await appendLedger(dir, [{
+    id, event: 'premise_reconsider', premise_id: premise.premise_id, anchor_date: today,
+    ...(typeof a['reponder_cadence_days'] === 'number' ? { reponder_cadence_days: a['reponder_cadence_days'] as number } : {}),
+  }], now);
+
+  return envelope({
+    ok: true, tool: 'argus_premises',
+    surface: `P${premise.ordinal} stays open — no verdict, no pressure. Argus will bring it back after a while, not before. Leaving a question open is a real choice.`,
+    next_actions: ['argus_recall', 'leave_as_is'],
+    data: { id, ref: `P${premise.ordinal}`, premise_id: premise.premise_id, deferred: true },
   });
 }

@@ -55,6 +55,28 @@ export function defaultRecheckCadenceDays(rule?: { type?: string } | null): numb
   }
 }
 
+/** M3 §3 — the reconsider cadence for an `open_question`. Distinct from recheck:
+ *  an open_question is NOT compared to reality (nobody re-checks a fact) — it is
+ *  a question the USER left explicitly unresolved, and cadence is only a "come
+ *  back and see if you can answer it yet" timer. Leaving it open stays a valid
+ *  answer, so the floor is generous (14) and the default a middle (21), bounded
+ *  to [floor, 90] so it never nags and never sleeps forever. The user pins or
+ *  amends it; it is a suggestion about the timer, never a verdict about the
+ *  question. */
+export const REPONDER_MIN_INTERVAL_DAYS = 14;
+export const DEFAULT_REPONDER_CADENCE_DAYS = 21;
+const MAX_REPONDER_CADENCE_DAYS = 90;
+
+/** The effective reconsider cadence: the pinned value if any, else the default —
+ *  clamped to [floor, 90]. One source for both the due-computation and the
+ *  "reconsider again in N days" surface line. */
+export function reponderCadenceDays(p: PremiseState): number {
+  const raw = typeof p.reponder_cadence_days === 'number' && Number.isFinite(p.reponder_cadence_days)
+    ? p.reponder_cadence_days
+    : DEFAULT_REPONDER_CADENCE_DAYS;
+  return Math.max(REPONDER_MIN_INTERVAL_DAYS, Math.min(MAX_REPONDER_CADENCE_DAYS, Math.round(raw)));
+}
+
 /** The effective cadence for a premise: its pinned value if any, else the
  *  rule-derived default — clamped to [floor, 180]. One source for both the
  *  due-computation and the "re-check again in N days" surface line. */
@@ -98,6 +120,19 @@ export interface PremiseState {
    *  (defaultRecheckCadenceDays). The user pins it at add-time or amends it; it
    *  only moves the DUE nudge cadence, never blocks an explicit recheck. */
   recheck_cadence_days?: number;
+  /** M3 §3 — how many days between reconsider nudges for an `open_question`.
+   *  Optional and jsonb-nested (no migration): absent → DEFAULT_REPONDER_CADENCE_DAYS.
+   *  The user pins it at add-time or amends it; it only moves the reconsider DUE
+   *  nudge, never blocks resolving. Meaningful only for kind='open_question'. */
+  reponder_cadence_days?: number;
+  /** M3 — the ts of this premise's own `premise_add` event, the anchor the very
+   *  first reconsider-due is measured from (an open_question has no last_recheck).
+   *  Populated by replay from the add event; absent on hand-built literals. */
+  added_ts?: string;
+  /** M3 §3 — the ts the user last chose `still_open` (deferred the question
+   *  without resolving). Resets the reconsider clock: next due = this + cadence.
+   *  Absent → the clock runs from added_ts (or "due now" if neither exists). */
+  last_reconsidered?: string;
   status: PremiseStatus;
   amend_history: Array<{ action: PremiseAmendAction; from?: string; to?: string; note?: string; ts?: string }>;
   /** Latest re-check only — full history lives in the ledger (fold stays small). */
@@ -214,6 +249,81 @@ function addDays(day: string, days: number): string {
   const t = Date.parse(day + 'T00:00:00Z');
   if (Number.isNaN(t)) return day;
   return new Date(t + days * 86400000).toISOString().slice(0, 10);
+}
+
+// ── open_question reconsider due (M3 §3) ───────────────────────────────────
+
+/** An active `open_question` is a candidate for a reconsider nudge — the twin of
+ *  isMonitored for premises. Sealing arms it (the caller gates on decision state,
+ *  same as duePremises). resolved/retired questions are closed and never nagged. */
+export function isReconsiderable(p: PremiseState): boolean {
+  return p.kind === 'open_question' && p.status === 'active';
+}
+
+/** The anchor date the reconsider clock runs from: the last time the user chose
+ *  `still_open`, else the premise's add ts. Date-only, undefined when neither is
+ *  known (then the question is treated as due now). */
+function reconsiderAnchor(p: PremiseState): string | undefined {
+  return dateOnly(p.last_reconsidered) ?? dateOnly(p.added_ts);
+}
+
+/** Is this open_question due to be surfaced for reconsideration as of `today`?
+ *  Reconsiderable + (never anchored → due now) or (anchor + cadence ≤ today).
+ *  Resolving is never blocked by this — it gates the nudge, not the user's call. */
+export function isDueForReconsider(p: PremiseState, today: string): boolean {
+  if (!isReconsiderable(p)) return false;
+  const anchor = reconsiderAnchor(p);
+  if (!anchor) return true;
+  return daysBetween(anchor, today) >= reponderCadenceDays(p);
+}
+
+/** The YYYY-MM-DD an open_question next comes due for reconsideration — the twin
+ *  of nextRecheckDue. null when not reconsiderable or when no anchor exists (it
+ *  is due now). Pure date arithmetic, no clock read. */
+export function nextReponderDue(p: PremiseState): string | null {
+  if (!isReconsiderable(p)) return null;
+  const anchor = reconsiderAnchor(p);
+  if (!anchor) return null; // due now
+  return addDays(anchor, reponderCadenceDays(p));
+}
+
+export interface DueOpenQuestion {
+  decision_id: string;
+  decision_text: string;
+  ordinal: number;
+  premise_id: string;
+  text: string;
+  /** Days since the question was left open (last still_open, else added). null =
+   *  no anchor known (due now, treated as most stale). */
+  days_open: number | null;
+}
+
+/**
+ * All open_questions across the ledger that are due for a reconsider nudge. Only
+ * decisions in sealed|due state count — an opened-never-sealed decision's
+ * questions are tracked but never nagged, mirroring duePremises (M1/M3 §4).
+ */
+export function dueOpenQuestions(state: LedgerState): DueOpenQuestion[] {
+  const out: DueOpenQuestion[] = [];
+  for (const entry of state.contracts.values()) {
+    const dState = deriveState(entry, state.today);
+    if (dState !== 'sealed' && dState !== 'due') continue;
+    for (const p of entry.premises ?? []) {
+      if (!isDueForReconsider(p, state.today)) continue;
+      const anchor = reconsiderAnchor(p);
+      out.push({
+        decision_id: entry.id,
+        decision_text: (entry.text || '').slice(0, 48),
+        ordinal: p.ordinal,
+        premise_id: p.premise_id,
+        text: p.text,
+        days_open: anchor ? daysBetween(anchor, state.today) : null,
+      });
+    }
+  }
+  // Never-anchored first (most stale), then by staleness.
+  out.sort((a, b) => (b.days_open ?? Infinity) - (a.days_open ?? Infinity));
+  return out;
 }
 
 /**

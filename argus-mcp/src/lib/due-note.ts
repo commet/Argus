@@ -64,11 +64,12 @@ export function appendDueNote(
     const today = resolveToday({ override: args['today_override'] as string | undefined });
     const state = replayLedger(dir, today);
     const due = ambientDueFromState(state); // SINGLE SOURCE (shared with check_in via ambient-due)
-    if (due.contractsDue === 0 && due.premiseFactsDue === 0) return result;
+    if (due.contractsDue === 0 && due.premiseFactsDue === 0 && due.openQuestionsDue === 0) return result;
 
     // ── channel 1: machine counts (host-choice; unchanged) ──
     const parts: string[] = [];
     if (due.premiseFactsDue > 0) parts.push(`${due.premiseFactsDue} premise fact(s) to re-check (argus_recheck)`);
+    if (due.openQuestionsDue > 0) parts.push(`${due.openQuestionsDue} open question(s) to reconsider (argus_premises)`);
     if (due.contractsDue > 0) parts.push(`${due.contractsDue} contract(s) to settle (argus_settle)`);
     const data = (sc['data'] ??= {}) as Record<string, unknown>;
     if (!('due_note' in data)) data['due_note'] = parts.join(' · ');

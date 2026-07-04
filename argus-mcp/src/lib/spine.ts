@@ -21,6 +21,7 @@ export const NEXT_ACTIONS = [
   'argus_settle',
   'argus_check_in',
   'argus_recall',
+  'argus_premises',
   'argus_config',
   'skip',
   'leave_as_is',

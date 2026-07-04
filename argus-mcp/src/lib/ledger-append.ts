@@ -34,6 +34,14 @@ export interface LedgerEventInput {
   materiality_rule?: unknown;
   /** M1 re-check cadence in days (jsonb-nested on premise_add/amend) — no migration. */
   recheck_cadence_days?: number;
+  /** M3 open_question reconsider cadence in days (jsonb-nested on premise_add/amend/
+   *  reconsider) — no migration. */
+  reponder_cadence_days?: number;
+  /** M3 — the logical `today` (YYYY-MM-DD) the reconsider clock anchors from, on
+   *  premise_add (open_question) and premise_reconsider. Distinct from the wall-
+   *  clock event `ts` so the reconsider timeline is deterministic (honors
+   *  today_override) instead of drifting with real time. */
+  anchor_date?: string;
   action?: string;
   from?: string;
   to?: string;

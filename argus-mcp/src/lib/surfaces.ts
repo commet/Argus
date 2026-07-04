@@ -84,12 +84,15 @@ export interface SurfaceStrings {
    *  session. Counts + handle only, never a directive; silent at zero (rendered
    *  by the caller only when at least one count is > 0). */
   ambient: {
-    /** both kinds due. */
-    both: (contracts: number, premises: number) => string;
-    /** only contracts past check-by. */
-    contracts_only: (contracts: number) => string;
-    /** only premise facts due for re-check. */
-    premises_only: (premises: number) => string;
+    /** fragment: contracts past check-by. */
+    frag_contracts: (contracts: number) => string;
+    /** fragment: premise facts due for re-check. */
+    frag_premises: (premises: number) => string;
+    /** fragment: open questions due for reconsideration (M3). */
+    frag_open_questions: (questions: number) => string;
+    /** wrap the joined fragments into one appended-tail line (lead space + the
+     *  argus_check_in handle). Empty fragment list is never passed. */
+    wrap: (frags: string[]) => string;
   };
   checkin: {
     nothing_due: string;
@@ -102,6 +105,13 @@ export interface SurfaceStrings {
      *  Recognition is day-math only — no welcome greetings, no verdict. */
     anchor_mirror: (daysSinceSeal: number, dueCount: number, words: string) => string;
     due_premises: (n: number) => string;
+    /** M3 — the open_question reconsider surface: a FACT (how long it has been
+     *  open + the user's own question text) + the handle. Never a directive; the
+     *  coda names that leaving it open is a valid answer (no guilt, no verdict). */
+    reconsider_one: (daysOpen: number | null, questionText: string) => string;
+    /** M3 — count line when more than one question is due (the single quote leads,
+     *  the rest stay in data — no surface wall). */
+    reconsider_more: (n: number) => string;
     /** ledger-corruption disclosure (11 P2-8): counted silently before — say it. */
     dropped_lines: (n: number) => string;
   };
@@ -206,9 +216,10 @@ export interface SurfaceStrings {
 export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
   en: {
     ambient: {
-      both: (c, p) => ` By the way — ${c} to settle · ${p} to re-check when you have a moment (argus_check_in).`,
-      contracts_only: (c) => ` By the way — ${c} past check-by when you have a moment (argus_check_in).`,
-      premises_only: (p) => ` By the way — ${p} premise fact(s) to re-check when you have a moment (argus_check_in).`,
+      frag_contracts: (c) => `${c} to settle`,
+      frag_premises: (p) => `${p} premise fact(s) to re-check`,
+      frag_open_questions: (q) => `${q} open question(s) to reconsider`,
+      wrap: (frags) => ` By the way — ${frags.join(' · ')} when you have a moment (argus_check_in).`,
     },
     checkin: {
       nothing_due: 'Nothing is due. Nothing to nudge.',
@@ -218,6 +229,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       anchor_mirror: (days, n, words) =>
         `${days} day(s) since you sealed — ${n} contract(s) past check-by. Your words then: '${words}' All that's left is to record what reality did (argus_settle).`,
       due_premises: (n) => `${n} premise fact(s) due for a reality re-check (argus_recheck).`,
+      reconsider_one: (days, q) =>
+        `${days === null ? 'Left open a while ago' : `Left open ${days} day(s) ago`}: '${q}' Can you answer it now, or is it still open? Either is fine — leaving it open is a real answer (argus_premises).`,
+      reconsider_more: (n) => `${n} open question(s) you left unresolved are up for another look (argus_premises).`,
       dropped_lines: (n) =>
         ` ${n} ledger line(s) could not be read (possibly a crash artifact). The record is append-only, so the rest is intact — keep a backup of ledger.jsonl.`,
     },
@@ -297,9 +311,10 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
   },
   ko: {
     ambient: {
-      both: (c, p) => ` 그나저나 — 정산할 것 ${c}건 · 재확인할 것 ${p}건, 여유 될 때 보세요 (argus_check_in).`,
-      contracts_only: (c) => ` 그나저나 — 확인일 지난 것 ${c}건, 여유 될 때 보세요 (argus_check_in).`,
-      premises_only: (p) => ` 그나저나 — 재확인할 전제 사실 ${p}건, 여유 될 때 보세요 (argus_check_in).`,
+      frag_contracts: (c) => `정산할 것 ${c}건`,
+      frag_premises: (p) => `재확인할 전제 사실 ${p}건`,
+      frag_open_questions: (q) => `다시 볼 미결 질문 ${q}건`,
+      wrap: (frags) => ` 그나저나 — ${frags.join(' · ')}, 여유 될 때 보세요 (argus_check_in).`,
     },
     checkin: {
       nothing_due: '확인할 차례가 된 것은 없습니다. 조를 것도 없습니다.',
@@ -309,6 +324,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       anchor_mirror: (days, n, words) =>
         `봉인 후 ${days}일 — 계약 ${n}건이 확인일을 지났습니다. 그때 당신은 이렇게 적었습니다: '${words}' 현실이 어떻게 답했는지만 기록하면 됩니다 (argus_settle).`,
       due_premises: (n) => `전제 사실 ${n}건이 현실 재확인 차례입니다 (argus_recheck).`,
+      reconsider_one: (days, q) =>
+        `${days === null ? '얼마 전 미결로 남긴 질문' : `${days}일 전 미결로 남긴 질문`}: '${q}' 지금 답할 수 있나요, 아직 열려있나요? 어느 쪽이든 괜찮습니다 — 미결로 두는 것도 정당한 답입니다 (argus_premises).`,
+      reconsider_more: (n) => `미결로 남겨둔 질문 ${n}건이 다시 볼 차례입니다 (argus_premises).`,
       dropped_lines: (n) =>
         ` 원장에서 읽지 못한 줄이 ${n}개 있습니다(크래시 흔적일 수 있음). 기록은 append-only라 나머지는 안전합니다 — ledger.jsonl을 백업해 두세요.`,
     },

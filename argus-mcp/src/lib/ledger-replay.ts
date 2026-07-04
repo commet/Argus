@@ -185,6 +185,13 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           ...(typeof ev['ai_original'] === 'string' ? { ai_original: ev['ai_original'] } : {}),
           ...(isMaterialityRule(ev['materiality_rule']) ? { materiality_rule: ev['materiality_rule'] as PremiseState['materiality_rule'] } : {}),
           ...(typeof ev['recheck_cadence_days'] === 'number' && Number.isFinite(ev['recheck_cadence_days']) ? { recheck_cadence_days: ev['recheck_cadence_days'] } : {}),
+          ...(typeof ev['reponder_cadence_days'] === 'number' && Number.isFinite(ev['reponder_cadence_days']) ? { reponder_cadence_days: ev['reponder_cadence_days'] } : {}),
+          // M3 — anchor the reconsider clock at add time (an open_question has no
+          // last_recheck; this is the date the first reconsider-due is measured
+          // from). Prefer the logical anchor_date (deterministic, honors
+          // today_override) over the wall-clock ts.
+          ...(typeof ev['anchor_date'] === 'string' ? { added_ts: ev['anchor_date'] }
+            : typeof ev['ts'] === 'string' ? { added_ts: ev['ts'] } : {}),
           status: 'active',
           amend_history: [],
           recheck_count: 0,
@@ -212,6 +219,23 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         // M1 §1.2: the user may re-set the cadence (how often to nudge). A
         // number widens/narrows the interval; nothing else touches it.
         if (typeof ev['recheck_cadence_days'] === 'number' && Number.isFinite(ev['recheck_cadence_days'])) p.recheck_cadence_days = ev['recheck_cadence_days'];
+        // M3 §3: the user may re-set the reconsider cadence for an open_question.
+        if (typeof ev['reponder_cadence_days'] === 'number' && Number.isFinite(ev['reponder_cadence_days'])) p.reponder_cadence_days = ev['reponder_cadence_days'];
+        break;
+      }
+
+      // M3 §3 — the user chose `still_open`: the question stays unresolved, but
+      // the reconsider clock resets so it is not nagged again until the next
+      // cadence. "Leaving it open" is a valid answer — this is a defer, not a
+      // resolve; no verdict, no closing decision.
+      case 'premise_reconsider': {
+        const p = cur?.premises?.find((x) => x.premise_id === ev['premise_id']);
+        if (!p) break;
+        // Prefer the logical anchor_date over wall-clock ts (deterministic reset).
+        p.last_reconsidered = (typeof ev['anchor_date'] === 'string' ? ev['anchor_date']
+          : typeof ev['ts'] === 'string' ? ev['ts'] : undefined);
+        // optionally re-set cadence at the same time (host may pass it)
+        if (typeof ev['reponder_cadence_days'] === 'number' && Number.isFinite(ev['reponder_cadence_days'])) p.reponder_cadence_days = ev['reponder_cadence_days'];
         break;
       }
 

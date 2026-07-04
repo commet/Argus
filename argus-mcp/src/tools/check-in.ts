@@ -1,10 +1,11 @@
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
-import { duePremises, groupDuePremises } from '../lib/premises.js';
+import { duePremises, groupDuePremises, dueOpenQuestions } from '../lib/premises.js';
 import { readReceipt, SKIPPED } from '../lib/receipt.js';
 import { surfacesFor } from '../lib/surfaces.js';
 import { z } from 'zod';
+import type { NextAction } from '../lib/spine.js';
 import { envelope } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
@@ -106,7 +107,17 @@ export const checkIn: ToolModule = {
         decisions: g.premises.map((p) => ({ decision_id: p.decision_id, decision: p.decision_text, ref: `P${p.ordinal}`, staleness: p.days_stale === null ? 'never re-checked' : `${p.days_stale}d` })),
       }));
 
-      if (due.length === 0 && premiseGroups.length === 0) {
+      // M3 — open questions the user left unresolved, past their reconsider
+      // cadence. Same single source (ambient-due reads dueOpenQuestions too) so
+      // the ambient count and this list can never disagree. Surface is a FACT +
+      // the handle; leaving it open stays a valid answer (restraint, §6).
+      const openQs = dueOpenQuestions(ledger);
+      const dueOpenQ = openQs.slice(0, TOP).map((q) => ({
+        question: q.text, ref: `P${q.ordinal}`, decision_id: q.decision_id, decision: q.decision_text,
+        days_open: q.days_open,
+      }));
+
+      if (due.length === 0 && premiseGroups.length === 0 && openQs.length === 0) {
         // Static hint, no network (P1-E4 ③ / master §5-18): check_in stays a
         // local, deterministic read — but a token means the user ALSO seals in
         // their account (web), and "nothing" here must not read as "nothing
@@ -118,7 +129,7 @@ export const checkIn: ToolModule = {
           ok: true, tool: 'argus_check_in',
           surface: S.nothing_due + accountHint + upcomingLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, ...(upDays > 0 ? { upcoming } : {}), today },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), today },
         });
       }
 
@@ -135,15 +146,34 @@ export const checkIn: ToolModule = {
         );
       }
       if (premiseGroups.length > 0) parts.push(S.due_premises(premiseGroups.length));
+      // M3 — the oldest due question's own words lead (one quote only; the rest
+      // stay in data). When it's the sole due thing this is the whole surface.
+      if (openQs.length > 0) {
+        parts.push(
+          openQs.length === 1
+            ? S.reconsider_one(openQs[0].days_open, clip(openQs[0].text, 200))
+            : S.reconsider_more(openQs.length),
+        );
+      }
+
+      // Route to the tool that acts on whatever is due: settle a contract first,
+      // else reconsider/recall. argus_premises closes or defers an open question.
+      const next: NextAction[] = due.length > 0
+        ? ['argus_settle']
+        : openQs.length > 0
+          ? ['argus_premises', 'argus_recall']
+          : ['argus_recall'];
 
       return envelope({
         ok: true, tool: 'argus_check_in',
         surface: parts.join(' ') + upcomingLine + integrityLine,
-        next_actions: due.length > 0 ? ['argus_settle'] : ['argus_recall'],
+        next_actions: next,
         data: {
           due: dueEnriched, due_count: due.length,
           due_premises: duePrem, due_premise_count: premiseGroups.length,
           ...(premiseGroups.length > TOP ? { due_premises_truncated: `${premiseGroups.length} groups, showing ${TOP}` } : {}),
+          due_open_questions: dueOpenQ, due_open_question_count: openQs.length,
+          ...(openQs.length > TOP ? { due_open_questions_truncated: `${openQs.length} questions, showing ${TOP}` } : {}),
           ...(upDays > 0 ? { upcoming } : {}),
           today, integrity: ledger.integrity,
         },
