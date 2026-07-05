@@ -28,12 +28,27 @@ export interface DuePremiseNudge {
   last_finding?: string;
 }
 
+/** A premise the autonomous watcher found materially changed against the recent
+ *  web. This is the proactive alert (Workstream E) — Argus checked reality for
+ *  the user. Still honest: shows the fact + source + date, asks a neutral
+ *  question, never asserts the user was wrong or that the change is certain. */
+export interface PremiseChange {
+  ordinal: number;
+  text: string;
+  /** the current fact the watcher found. */
+  fact: string;
+  source_url: string;
+  source_date?: string;
+}
+
 export interface DueReceiptBrief {
   source_title: string;
   core_question: string;
   predicates: DuePredicate[];
   /** monitored premises due for a re-check (living premises). */
   premise_nudges?: DuePremiseNudge[];
+  /** premises the watcher auto-detected as materially changed (proactive alert). */
+  changes?: PremiseChange[];
   /** Delta — what changed since the seal (e.g. a newer version exists). Optional. */
   delta?: string;
 }
@@ -51,7 +66,7 @@ export interface CompanionBriefEmail {
  */
 export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https://argus.voyage'): CompanionBriefEmail {
   const url = `${baseUrl}/tools/review`;
-  const count = items.reduce((n, it) => n + it.predicates.length + (it.premise_nudges?.length ?? 0), 0);
+  const count = items.reduce((n, it) => n + it.predicates.length + (it.premise_nudges?.length ?? 0) + (it.changes?.length ?? 0), 0);
   const lead = items[0]?.source_title?.slice(0, 40) || '그 판단';
   const subject =
     count === 1
@@ -76,6 +91,18 @@ export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https:/
       // Suggestion — a concrete check action, never a verdict (§Companion Brief)
       const check = p.pass_condition || p.fail_condition;
       if (check) blocks.push(`  - 지금 확인할 것: "${check}"가 실제로 그런지 데이터/사실 하나만 보세요.`);
+    }
+    // Proactive change alerts — the watcher checked reality and something moved.
+    // Honest: fact + source + date + a neutral question; the user is the judge.
+    if (it.changes?.length) {
+      blocks.push('');
+      blocks.push('**바뀐 것 같아요** (제가 대신 최신 웹을 확인했어요 — 맞는지 보고 정하세요):');
+      for (const c of it.changes) {
+        blocks.push(`- P${c.ordinal} ${c.text}`);
+        blocks.push(`  - 지금: ${c.fact}${c.source_date ? ` (출처 ${c.source_date})` : ''}`);
+        if (c.source_url) blocks.push(`  - 출처: ${c.source_url}`);
+        blocks.push(`  - 이 판단, 지금 다시 볼까요?`);
+      }
     }
     // Premise re-check nudges — an INVITATION to look at reality, never a claim
     // that the fact changed. Argus can't watch reality for you; you supply the

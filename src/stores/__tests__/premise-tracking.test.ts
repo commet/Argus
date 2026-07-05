@@ -94,6 +94,20 @@ describe('premise tracking — promote, re-check, caps', () => {
     expect(S().recheckPremise(r.receipt_id, pid, { finding: '경쟁사가 출시함', changed: true, source: 'user_stated' })).toBe('material');
   });
 
+  it('setAutoWatch toggles the per-premise watcher opt-in', async () => {
+    const r = await reviewInto('# 전략\n\n금리 전제.');
+    S().saveReceipt(r);
+    S().promotePremise(r.receipt_id, { text: '금리 3.5%', load_bearing: true, external: true });
+    const pid = S().getReceipt(r.receipt_id)!.tracked_premises![0].premise_id;
+    expect(S().getReceipt(r.receipt_id)!.tracked_premises![0].auto_watch).toBeFalsy(); // off by default (privacy)
+    S().setAutoWatch(r.receipt_id, pid, true, '한국 기준금리 현재');
+    const p = S().getReceipt(r.receipt_id)!.tracked_premises![0];
+    expect(p.auto_watch).toBe(true);
+    expect(p.watch_query).toBe('한국 기준금리 현재');
+    S().setAutoWatch(r.receipt_id, pid, false);
+    expect(S().getReceipt(r.receipt_id)!.tracked_premises![0].auto_watch).toBe(false);
+  });
+
   it('caps active premises at 5 and load-bearing at 2', async () => {
     const r = await reviewInto('# 전략\n\n여러 전제가 있는 문서.');
     S().saveReceipt(r);

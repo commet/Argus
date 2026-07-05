@@ -53,4 +53,19 @@ describe('buildCompanionBrief', () => {
     expect(md).toContain('정산용 한 통');
     expect(md).toContain('답장으로 알려주세요');
   });
+
+  it('renders a proactive change alert with fact + source + date + a neutral question (E)', () => {
+    const change: DueReceiptBrief = {
+      source_title: '금리 전제 메모', core_question: '지금 조달할까?', predicates: [],
+      changes: [{ ordinal: 2, text: '기준금리가 3.5% 근처', fact: '기준금리 4.0%로 인상', source_url: 'https://bok.example/x', source_date: '2026-07-02' }],
+    };
+    const md = buildCompanionBrief([change]).markdown;
+    expect(md).toContain('제가 대신 최신 웹을 확인했어요'); // honest authorship
+    expect(md).toContain('기준금리 4.0%로 인상');            // the fact
+    expect(md).toContain('출처 2026-07-02');                 // the date
+    expect(md).toContain('https://bok.example/x');            // the source
+    expect(md).toContain('이 판단, 지금 다시 볼까요?');      // neutral question, not a verdict
+    expect(md).not.toMatch(/틀렸습니다|잘못|당신이 실수/);   // never judges the user
+    expect(buildCompanionBrief([change]).subject).toContain('금리 전제 메모');
+  });
 });

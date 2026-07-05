@@ -13,6 +13,10 @@
       "schedule": "0 0 * * *"
     },
     {
+      "path": "/api/cron/premise-watch",
+      "schedule": "30 22 * * *"
+    },
+    {
       "path": "/api/cron/companion-brief",
       "schedule": "0 23 * * *"
     },

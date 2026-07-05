@@ -90,6 +90,11 @@ interface ReviewState {
    *  and returns the materiality verdict for a "fact + handle" surface (never a
    *  directive). PULL only — the system never auto-detects a change. */
   recheckPremise: (receiptId: string, premiseId: string, input: RecheckInput) => RecheckStatus;
+  /** Opt a premise in/out of the autonomous watcher (Workstream E). When on, the
+   *  server cron auto-researches it at its cadence and emails a proactive alert on
+   *  a material change. Explicit per-premise consent — its text leaves the device
+   *  only when this is on. */
+  setAutoWatch: (receiptId: string, premiseId: string, on: boolean, query?: string) => void;
   /** Stop tracking a premise (status→retired). Never deletes history. */
   retirePremise: (receiptId: string, premiseId: string) => void;
   remove: (receiptId: string) => void;
@@ -295,6 +300,22 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     persist(next);
     pushUpdated(next, receiptId);
     return status;
+  },
+
+  setAutoWatch: (receiptId, premiseId, on, query) => {
+    const now = new Date().toISOString();
+    const next = get().receipts.map((r) => {
+      if (r.receipt_id !== receiptId) return r;
+      const premises = (r.tracked_premises ?? []).map((p) =>
+        p.premise_id === premiseId
+          ? { ...p, auto_watch: on, watch_query: on ? (query?.trim() || p.watch_query) : p.watch_query }
+          : p,
+      );
+      return { ...r, tracked_premises: premises, updated_at: now };
+    });
+    set({ receipts: next });
+    persist(next);
+    pushUpdated(next, receiptId);
   },
 
   retirePremise: (receiptId, premiseId) => {

@@ -14,9 +14,11 @@
  */
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/hooks/useLocale';
+import { useAuth } from '@/lib/auth';
 import { type JudgmentReceipt } from '@/lib/review';
 import { useReviewStore, type RecheckStatus } from '@/stores/useReviewStore';
 import {
@@ -45,6 +47,7 @@ function recheckSurface(status: RecheckStatus, ordinal: number, L: LFn): { tone:
 export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
   const locale = useLocale();
   const L: LFn = (ko, en) => (locale === 'ko' ? ko : en);
+  const { user } = useAuth();
   const store = useReviewStore();
   const today = new Date().toISOString().slice(0, 10);
 
@@ -135,6 +138,27 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                     {recheckId === p.premise_id ? L('닫기', 'Close') : L('지금 현실은?', 'Reality now?')}
                   </button>
                 </div>
+
+                {/* auto-watch opt-in (Workstream E) — only monitored (load-bearing) premises. */}
+                {p.load_bearing && (
+                  <div className="mt-1.5 pl-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+                    <button
+                      onClick={() => store.setAutoWatch(receipt.receipt_id, p.premise_id, !p.auto_watch)}
+                      className={`px-2 py-0.5 rounded-full border ${p.auto_watch ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'}`}
+                    >
+                      {p.auto_watch ? L('✓ Argus가 대신 확인 중', '✓ Argus is watching') : L('Argus가 대신 확인', 'Let Argus watch')}
+                    </button>
+                    {p.auto_watch && (
+                      <span className="text-[var(--text-tertiary)]">{L('이 전제 텍스트로 최신 웹을 검색해, 바뀌면 알려드려요.', 'Searches the recent web for this and pings you if it shifts.')}</span>
+                    )}
+                    {p.auto_watch && !user && (
+                      <span className="text-amber-700">
+                        {L('알림은 이메일이 있어야 가요 — ', 'Alerts need an email — ')}
+                        <Link href="/login" className="underline hover:text-[var(--accent)]">{L('이메일 등록', 'register')}</Link>
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {recheckId === p.premise_id && (
                   <div className="mt-2 pl-7 space-y-2">

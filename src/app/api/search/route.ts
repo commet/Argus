@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { validateContentType, validateContentLength, validateOrigin } from '@/lib/api-security';
+import { parseYMD } from '@/lib/web-research';
 
 const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
 const SEARCH_DAILY_LIMIT = 100;
@@ -88,6 +89,8 @@ export async function POST(req: NextRequest) {
       title: r.title || '',
       snippet: r.description || '',
       url: r.url || '',
+      // publish date when Brave reports one (YYYY-MM-DD) — lets callers judge recency.
+      date: parseYMD(r.page_age) ?? parseYMD(r.page_fetched),
     }));
 
     return NextResponse.json({ results });

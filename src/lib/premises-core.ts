@@ -94,6 +94,9 @@ export interface PremiseRecheck {
   source: string;         // url | user_stated | host_reported
   source_detail?: string;
   ts?: string;
+  /** Workstream E — true when the server watcher (not the user) recorded this
+   *  re-check. Lets surfaces say "제가 대신 확인한 거예요" (honest authorship). */
+  auto?: boolean;
 }
 
 export interface PremiseState {
@@ -132,6 +135,13 @@ export interface PremiseState {
    *  without resolving). Resets the reconsider clock: next due = this + cadence.
    *  Absent → the clock runs from added_ts (or "due now" if neither exists). */
   last_reconsidered?: string;
+  /** Workstream E — the user opted Argus in to auto-research this premise/question
+   *  against the recent web at its cadence (server-side watcher). Default absent =
+   *  manual pull only. Sending its text out for search is gated on THIS being true
+   *  (privacy: explicit opt-in). jsonb-nested, no migration; the MCP ignores it. */
+  auto_watch?: boolean;
+  /** Optional refined web-search query for the watcher; falls back to `text`. */
+  watch_query?: string;
   status: PremiseStatus;
   amend_history: Array<{ action: PremiseAmendAction; from?: string; to?: string; note?: string; ts?: string }>;
   /** Latest re-check only — full history lives in the ledger (fold stays small). */
