@@ -2,6 +2,7 @@
 
 Date: 2026-07-06
 Status: **Execution-ready design** — supersedes `DESIGN-judgment-checkpoints-2026-07-06.md` (CODEX 초안)
+Rev: v2.1 — 심층 재검토 반영: verdict 매핑을 `expectation` 필드로 결정론화(§7.2 — 초판의 매핑 표는 자체 모순이 있었다), recheck 루프와 체크포인트의 분업 명시(§4), open_question 귀환 합류(§9.1)
 Executor: Opus/Sonnet 세션이 이 문서만 읽고 구현할 수 있게 쓴다.
 Scope: 판단 체크포인트 — 봉인(seal)에서 귀환(settle)까지의 루프 전체
 
@@ -142,6 +143,12 @@ export interface PrimaryCheckpoint {
   authorship: 'ai_suggested' | 'user_edited' | 'user_authored';
   /** checkpoint 타입은 내부 라우팅 전용 — 사용자에게 노출 금지 (§4) */
   type: 'outcome' | 'reaction' | 'evidence' | 'standard' | 'drift';
+  /** 이 체크포인트의 기대 방향 — verdict 매핑(§7.2)을 결정론으로 만드는 키.
+   *  seal 시 결정론으로 채운다: governing bet → 'occur',
+   *  risk predicate → check_prompt가 "일어나면"꼴이면 'occur', "피하면"꼴이면
+   *  'not_occur'. 판정 불가 시 'occur' 기본. 사용자에게는 필드가 아니라
+   *  expected_signal 문장으로 보인다. */
+  expectation: 'occur' | 'not_occur';
 }
 ```
 
@@ -173,6 +180,14 @@ intentional-divergence 목록(내부 문서/코드 주석은 유지 OK).
 CODEX의 5타입 분류는 좋다. 유지하되, 각 타입이 어느 기존 기계 위에서 도는지
 명시한다. **타입은 내부 라우팅 전용** — 사용자는 타입 이름이 아니라 check
 prompt 문장만 본다 (CODEX Open Q1의 답).
+
+**먼저, recheck 루프와의 분업 (premises-core 전문 검증에서 확정):**
+premises-core의 `isMonitored()`는 **external + load_bearing** 전제만 감시한다.
+즉 외부 사실("경쟁사가 이 기능을 아직 안 냈다")은 recheck 넛지가 커버하지만,
+내부·판단 전제("우리 팀이 2주 안에 만들 수 있다", "대표님은 검증안을 선호한다")
+는 recheck 루프가 **구조적으로 영원히 안 닿는다.** 판단 체크포인트가 정확히
+그 남은 절반을 덮는 기계다 — 이것이 체크포인트가 recheck의 중복이 아닌 이유고,
+두 루프를 하나로 합치려는 시도(내부 전제에 recheck 넛지)를 금지하는 이유다.
 
 ### 4.1 outcome — 구체적 결과와 대조
 기존 Predicate + 날짜형 handle 그대로. 유일한 규칙: **숫자를 제조하지 않는다.**
@@ -293,20 +308,35 @@ few-shot으로 쓴다.
 - 타입별 보조 프롬프트(CODEX §8.2)는 부제 한 줄로만.
 - drift 타입이면 첫 블록이 "그때의 프레임" (원 real_question + lean) — §4.5.
 
-### 7.2 verdict 매핑 — 저장 enum은 하나
+### 7.2 verdict 매핑 — expectation 필드로 결정론화 (v2.1에서 재작업)
 
-| 화면 라벨 (신규 표시층) | 저장 (`PredicateVerdict`) | 비고 |
-|---|---|---|
-| 대체로 맞았다 | `happened` (bet 계열) / `avoided` (risk 계열) | source에 따라 자동 — 사용자는 구분 안 봄 |
-| 빗나갔다 | `happened` (risk가 현실화) / bet 계열은 `partial` 아님 → **매핑 불가 케이스**: bet이 빗나감 = 기존 어휘에 없음 → `missed`를 enum에 **추가** | 아래 주의 참조 |
-| 섞여 있었다 | `partial` | + `AmbiguityRecord(reason:'mixed_signals')` |
-| 아직 판단하기 어렵다 | `unknown` | + `AmbiguityRecord` + 다음 손잡이 (§8) |
+초판의 매핑 표는 자체 모순이 있었다("맞았다→avoided(risk)"와
+"빗나갔다→happened(risk 현실화)"는 risk의 기대 방향을 서로 반대로 가정한다).
+근본 원인: 기존 `PredicateVerdict`는 **사건 층위**(일어났다/피했다)이고 화면
+4탭은 **판단 층위**(내 예상이 맞았다/빗나갔다)라서, 둘 사이 번역에는 "이
+체크포인트는 무엇이 일어나길 기대했나"라는 방향 정보가 필요하다. 그것이
+§3.1의 `expectation` 필드다. 매핑은 이제 결정론 순수 함수다:
 
-**주의 — enum 확장 1개는 불가피하다:** 기존 어휘는 "risk가 happened/avoided"
-중심이라 "bet이 빗나갔다"의 자리가 없다. `PredicateVerdict`에 `'missed'`를
-추가한다 (types.ts 한 곳, optional 소비처 grep 전수 — statusline·patterns·
-plugin import·admin 카운터가 verdict를 읽는다. Clean Removal의 역방향 체크).
-기존 데이터는 건드리지 않는다.
+```ts
+function verdictFromTap(tap: Tap, expectation: 'occur' | 'not_occur'): PredicateVerdict {
+  switch (tap) {
+    case '대체로 맞았다':      return expectation === 'occur' ? 'happened' : 'avoided';
+    case '빗나갔다':           return 'missed';   // 판단 층위의 miss — 방향 무관하게 균일
+    case '섞여 있었다':        return 'partial';  // + AmbiguityRecord('mixed_signals')
+    case '아직 판단하기 어렵다': return 'unknown';  // + AmbiguityRecord + 다음 손잡이 (§8)
+  }
+}
+```
+
+역방향(기존 데이터 표시)도 같은 함수의 역으로 유도 가능해야 한다 — 왕복
+테스트를 Phase 1에 포함한다.
+
+**enum 확장은 `'missed'` 하나, 이유가 선명해졌다:** 사건 층위 어휘에는 "예상이
+빗나감"의 자리가 원래 없다(사건이 안 일어난 것과 판단이 틀린 것은 다른 사실).
+`PredicateVerdict`에 `'missed'` 추가 (types.ts 한 곳, 소비처 grep 전수 —
+statusline·patterns·plugin import(`plugin-parse.ts`)·admin 카운터가 verdict를
+읽는다). 기존 데이터는 건드리지 않고, `expectation`이 없는 legacy 계약은
+'occur'로 읽는다 (Defensive Data Access).
 
 ### 7.3 "아직 판단하기 어렵다" 경로 (CODEX §8.3 계승 + 구조화)
 
@@ -362,6 +392,11 @@ reponder 수학(기본 21일, floor 14, cap 90)으로 연장. 모델이 지어�
   `recheckCadenceDays`의 [floor 7, cap 180] 클램프, "제안이지 평결 아님" 주석의
   정신 포함.
 - companion-brief: due 체크포인트를 brief에 1건까지만 포함 (이미 ambient 채널 존재).
+- clarify의 "모르겠다"가 남긴 `open_question`(reconsider due — premises-core의
+  `isDueForReconsider`)도 같은 due 표면에 실릴 수 있다. 단 **하루 1건 상한을
+  체크포인트와 공유**한다 — 체크포인트가 due면 체크포인트가 우선, open_question은
+  다음 날. 귀환 채널이 두 종류의 넛지로 붐비면 루프가 죽는다. (Phase 4에서 —
+  컷라인 밖)
 
 ### 9.2 비-날짜 handle의 만기 상한
 
@@ -441,11 +476,13 @@ CODEX §11의 티어를 채택한다. 단, **집계 티어(2건+)는 이 시스�
 
 ### Phase 1 — 귀환 화면 v2 (~3일)
 
-1. 4탭 verdict + 표시층 매핑 (§7.2) — `PredicateVerdict`에 `'missed'` 추가
-   + 소비처 전수 grep (statusline, patterns, plugin import, admin)
+1. 4탭 verdict + `verdictFromTap` 결정론 매핑 (§7.2) — `PredicateVerdict`에
+   `'missed'` 추가 + 소비처 전수 grep (statusline, patterns, plugin import,
+   admin). seal 흐름의 `expectation` 채움 로직 포함 (§3.1 — legacy는 'occur')
 2. `AmbiguityRecord` + unclear→next_handle 경로 (§7.3)
 3. 1차 정산 모드: due 전 진입 시 drift형 대조 화면 (§8) — lean_after 확장
-4. 테스트: W4 (원문 렌더), verdict 매핑 왕복, unclear가 다음 손잡이를 낳는지
+4. 테스트: W4 (원문 렌더), verdict 매핑 **왕복**(tap→verdict→표시 라벨 복원),
+   expectation 부재 legacy 계약의 열람, unclear가 다음 손잡이를 낳는지
 
 ### Phase 2 — due·트리거 접붙이기 (~2일)
 

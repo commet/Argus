@@ -2,6 +2,7 @@
 
 Date: 2026-07-06
 Status: **Execution-ready design** — supersedes `DESIGN-clarify-question-system-2026-07-06.md` (CODEX 초안)
+Rev: v2.1 — 심층 재검토 반영: premises-core 전문 검증(§3.1b), framing_confidence 자기보고 결함(§4.3b), "모르겠다"의 open_question 승격, 피로 감지 오탐 교정, validator 커버리지 확장
 Executor: Opus/Sonnet 세션이 이 문서만 읽고 구현할 수 있게 쓴다.
 Scope: Clarify 질문 시스템, 질문 품질 하한선, 전제 추적, judgment checkpoint 연결
 
@@ -106,6 +107,7 @@ checkpoint_seed 최대 1개, 그것도 gated. (§4)
 | 전제 모델 | `src/lib/premises-core.ts` (+ `src/lib/review/`, `argus-mcp/src/lib/`와 공유) | `PremiseState`, `source:'ai'\|'user'`, `status:'active'\|'retired'\|'resolved'`, MAX_ACTIVE=5, MAX_LOAD_BEARING=2, recheck cadence, materiality rule(`numeric-drift.ts`), amend 상태기계(`accept\|refine\|replace\|retire`) |
 | 전제 드리프트 가드 | `src/lib/__tests__/premises-core-drift.test.ts` | webapp↔MCP byte-for-byte 고정 |
 | Current Course | `src/lib/current-bearing.ts` + `CurrentBearingCard.tsx` | `prediction_to_check` 등 CODEX가 언급한 필드 실재 |
+| framing_confidence | LLM **자기보고** (`progressive-prompts.ts:939` "if uncertain, say so"). 누락 시 `?? 75`(engine:450) / `?? 70`(engine:581) 기본값 | **결함: 신호 부재가 확신으로 취급되어 frame_clarify 게이트(< 70)를 건너뜀** — §4.3b에서 교정. 다른 소비처(judgment-gates.ts:92의 ≥80, decision-contract.ts:729의 ≥75)도 존재하므로 기본값 변경은 라우팅 지점에 국한할 것 |
 | 정산 루프 | `src/lib/decision-contract.ts` — stable id predicates, `PredicateVerdict('happened'\|'avoided'\|'partial'\|'unknown'\|'pending')`, `basis`, `lean_after` | companion doc(§checkpoints v2)이 다룸 |
 | 소비 계약 테스트 패턴 | `src/lib/__tests__/snapshot-consumption-contract.test.ts`, `user-judgment-binding.test.ts` | F2 패턴의 선례 — 이 문서의 신규 필드도 같은 방식으로 |
 
@@ -134,6 +136,49 @@ checkpoint_seed 최대 1개, 그것도 gated. (§4)
   ("결정은 위키가 아니라 전제 5개다" — MAX_ACTIVE_PREMISES=5, MAX_LOAD_BEARING=2).
 - 판단 체크포인트(companion doc)가 전제 recheck 인프라(cadence·drift 감지)를
   그대로 승계할 수 있다.
+
+### 3.1b premises-core 비판적 검증 — 전문을 읽고 확인한 것
+
+"재사용"은 무비판 수용이 아니다. 파일 전체(246행)를 읽고 확인한 적합성과
+경계, 그리고 **의도적으로 추가하지 않기로 한 것**:
+
+**이미 있어서 그대로 쓰는 것 (재확인됨):**
+- `load_bearing: boolean` — weakness_check의 승격 대상 필드가 실재
+- `source: 'ai' | 'user'` + `ai_original`(사용자가 고쳐도 AI 원문 보존) —
+  스파인의 provenance 요구를 필드 수준에서 충족
+- `premiseId(decisionId, kind, text)` — 결정-스코프 안정 id(djb2). 재생성해도
+  고아가 안 생기고, 두 결정의 같은 문장이 충돌하지 않음. progressive에서는
+  `decisionId` 자리에 projectId를 넣는다
+- `kind: 'open_question'` + reconsider cadence(기본 21일, floor 14, cap 90) —
+  §5.5에서 "모르겠다" 답변의 저장소로 활용 (공짜 귀환 루프)
+- amend 상태기계(`accept/refine/replace/retire`) + `amend_history` —
+  ordinal은 영구·재번호 금지("은퇴한 P2는 영원히 P2")
+
+**재사용 경계 (여기를 넘지 마라):**
+- 재사용 대상은 **core 절반만**이다. ledger-bound 절반(`premises.ts`의
+  duePremises/resolvePremiseRef 등)은 MCP 대화-replay 전제라 progressive에
+  맞지 않는다. progressive는 `PremiseState[]`를 snapshot jsonb에 직접 보관하고
+  amend_history를 in-place append한다.
+- `isMonitored()` = active + load_bearing + **external**만 감시. 즉 내부 전제
+  ("우리 팀이 2주 안에 만들 수 있다")는 recheck 루프가 **영원히 안 닿는다.**
+  이것은 버그가 아니라 분업이고, 그 분업을 명시적으로 계승한다:
+  **외부 사실 → recheck 루프 / 내부·판단 전제 → 판단 체크포인트**(companion
+  doc §4). 실행 시 이 경계를 흐리는 코드(내부 전제에 recheck 넛지)를 만들지 말 것.
+- `external` 값은 LLM이 생성 시 분류한다 — 오분류가 조용히 감시를 켜고 끈다
+  (LLM-glue). **기본값 false**(감시 꺼짐 — under-fire 기본)로 두고, 사용자가
+  전제 카드에서 올릴 수 있게 한다.
+
+**없지만 추가하지 않는 것 (스키마를 굶긴다):**
+- `confidence` 없음 → **추가 금지.** weakest 후보 정렬용 확신도는 질문 생성
+  시점의 ephemeral 계산(프롬프트 내부)으로만 쓰고 저장하지 않는다 — 저장하는
+  순간 "AI의 전제 평결"이 데이터로 굳어 스파인 리스크가 된다.
+- `why_it_matters` 없음(CODEX 제안) → **추가 금지.** 질문의 subtext와
+  체크포인트의 check_prompt가 그 역할을 이미 한다.
+- CODEX의 7-타입 enum → §3.2대로 프롬프트 렌즈로만.
+
+정말 필드를 추가해야 한다면: premises-core **한 곳**에서, 세 사본
+(src/lib, src/lib/review, argus-mcp) + `premises-core-drift.test.ts`를
+같은 커밋에서 갱신한다.
 
 ### 3.2 CODEX 타입 분류(goal/causal/…)의 처분
 
@@ -241,6 +286,26 @@ export interface FrameClarifyEffect {
 - 소비 계약: `framingBoost`는 엔진의 confidence 갱신에, `chosenFrame`은
   다음 질문 프롬프트의 컨텍스트에 반드시 소비된다 — 테스트로 고정 (§9 Phase 2).
 
+### 4.3b 게이트 신호 자체의 결함 교정 — framing_confidence는 자기보고다
+
+frame_clarify 게이트(< 70)가 딛고 있는 `framing_confidence`는 LLM
+자기보고이고, Argus의 엔진 원칙은 "모델 자기확신을 신뢰하지 않는다"이다.
+자기보고를 당장 대체할 수는 없지만(대체물이 없다), 세 가지를 교정한다:
+
+1. **누락 기본값 버그 수정 (Phase 2에 포함).** 현재 LLM이 필드를 누락하면
+   `?? 75`(engine:450) / `?? 70`(engine:581)로 채워져 게이트를 건너뛴다 —
+   "신호 부재 = 확신"은 honest-gap 위반이고, 방향도 거꾸로다(모를수록
+   frame을 물어야 한다). 교정: **질문 라우팅 입력에서만** 누락 → 50으로
+   취급 (`framing_confidence_reported: boolean`을 함께 넘겨 명시). 전역
+   기본값은 건드리지 않는다 — judgment-gates(≥80)·decision-contract(≥75) 등
+   다른 소비처의 동작이 걸려 있다.
+2. **신뢰 가능한 증분은 결정론 boost뿐.** frame_clarify 답변의
+   `framingBoost`(+20~30)는 사용자 행동에서 온 신호이므로 신뢰한다.
+   LLM이 두 번째 자기보고로 confidence를 스스로 올리는 경로는 만들지 않는다.
+3. **임계값 70은 튜닝 대상으로 표시.** eval 세트(§11)에 자기보고 인플레
+   케이스를 넣고(모호한 요청인데 confidence 90 보고), 게이트 통과율을
+   회귀 관찰한다. 상수는 `question-rules.ts`에 두어 한 곳에서 조정.
+
 ### 4.4 strategic_fork (유지 + 전제 연결)
 
 현 구현의 기준(상사가 사인할 1줄 결정, 카테고리 금지, snapshotPatch로 피벗
@@ -338,6 +403,12 @@ export function pickNextQuestionType(ctx: QuestionStateContext): QuestionTypeTag
    노출 금지. 노출은 "내가 보기엔 이게 가장 불안해 보여요 — 맞나요?" 꼴의
    수정 가능한 제안뿐.
 5. **모든 질문에 escape.** "모르겠다", "나중에", 직접 입력. 강제 선택 없음.
+6. **escape는 데이터 손실이 아니라 승격이다.** 사용자가 "모르겠다"를 고르면
+   그 질문의 crux를 `kind: 'open_question'`으로 premises에 저장한다 —
+   premises-core의 reconsider cadence(기본 21일)가 **공짜로 귀환 루프를
+   무장**시킨다: "그때 답 못 했던 질문인데, 지금은 답할 수 있나요?"
+   열어두는 것이 계속 유효한 답이라는 premises-core의 원칙(M3)도 함께
+   계승한다 — reconsider 넛지는 답을 요구하지 않는다.
 
 ---
 
@@ -379,6 +450,19 @@ CODEX의 9개 hard reject 중 결정론으로 잡을 수 있는 것:
 
 의미론이 필요해 결정론으로 못 잡는 것(leading/tilted, confirmation bias,
 no-decision-effect)은 2층으로.
+
+**휴리스틱 규칙(R2, R3)의 정직한 한계와 운용:**
+- R2(길이·동사 기반 카테고리 감지)와 R3(n-gram 중복)는 근사다. 한국어는
+  조사·띄어쓰기 변이로 n-gram이 잘 어긋난다 — 비교 전에
+  `normalizePremiseText` 계열 정규화(공백 접기 + lowercase)를 거치고,
+  임계값은 상수로 두지 말고 **픽스처 20케이스로 튜닝**한다(§9 Phase 1의
+  테스트가 그 픽스처다). 오탐(좋은 질문 reject)이 미탐보다 비싸다 —
+  재생성 2회 상한을 태우기 때문. 의심스러우면 통과시키고 2층에 맡긴다.
+- **커버리지: validator는 typed 경로만이 아니라 질문이 사용자에게 나가는
+  모든 경로를 감싼다** — `free_follow_up`, legacy generic 질문 생성부,
+  deepening 질문 전부. Phase 1 배선 시 `runTypedQuestion` 밖에서 질문을
+  만드는 곳을 grep으로 전수 확인하라 (`next_question` 생산처). 한 경로라도
+  validator 밖에 있으면 품질 하한선이 아니라 품질 확률이 된다.
 
 ### 6.3 2층 — LLM judge (선택적, abstain 우선)
 
@@ -427,12 +511,20 @@ CODEX §9.2의 피로 신호를 결정론 감지로 구체화한다 (`src/lib/fa
 
 ```ts
 export function detectFatigue(recentAnswers: AnswerRecord[]): boolean {
-  // 아래 중 하나면 true:
-  // 1. 직전 답변 2개가 연속으로 5자 미만 or "모르겠"/"그냥"/"아무거나" 포함
-  // 2. 직전 질문에서 escape(모르겠다/나중에) 선택
-  // 3. 같은 세션에서 질문 3개 이미 소진
+  // 즉시 true (단독으로 충분한 신호):
+  //   A. 명시적 중단 큐: "그냥 정해줘" / "알아서 해" / "빨리" / "그만"
+  //   B. 같은 세션에서 질문 3개 이미 소진 (예산 상한)
+  // 약한 신호 — 2개 이상 겹칠 때만 true:
+  //   C. 직전 답변이 5자 미만
+  //   D. escape(모르겠다/나중에) 선택
+  //   E. 직전 2개 답변이 연속으로 짧아짐 (체감 급감)
 }
 ```
+
+**주의 — escape 1회는 피로가 아니다.** "모르겠다"는 이 시스템이 1급으로
+설계한 정직한 답(§5.6 — open_question으로 승격되는)이고, 그것을 피로로
+오분류하면 정직하게 답한 사용자가 남은 질문을 잃는다. 약한 신호는 반드시
+2개 이상 겹쳐야 발화한다.
 
 true면: 남은 질문 생략, checkpoint_seed는 자동으로 조용한 제안 모드(§4.6),
 마무리 문구는 "지금은 여기까지면 충분해요" 계열. **이것도 LLM 판단이 아니라
@@ -488,6 +580,9 @@ webapp 프롬프트·argus-plugin-v2 markdown·argus-mcp에 각각 복사되면 
 2. engine ~335행의 폴스루 제거 — frame_clarify가 실제 실행되게
 3. `pickNextQuestionType`에 `requestType` 게이트 추가 (§4.7) — **이 단계에서
    QuestionStateContext 시그니처가 바뀌므로 호출부 전수 갱신**
+3b. framing_confidence 누락 기본값 교정 (§4.3b) — 라우팅 입력에서만
+   누락→50 + `framing_confidence_reported` 플래그. 다른 소비처 불변 확인
+   테스트 포함
 4. 소비 계약 테스트: framingBoost·chosenFrame이 소비되는지
    (`snapshot-consumption-contract.test.ts` 패턴)
 5. 검증: framing_confidence < 70 세션에서 generic 질문이 아니라 frame 선택
@@ -499,6 +594,8 @@ webapp 프롬프트·argus-plugin-v2 markdown·argus-mcp에 각각 복사되면 
    Defensive Data Access). `hidden_assumptions`는 projection으로 전환 (§3.3)
 2. STEP-0·fork 프롬프트에 전제 후보 생성 추가 (§3.4, 7렌즈는 프롬프트 지침)
 3. weakness_check option에 `premiseId` 연결 (§4.5)
+3b. escape("모르겠다") → `kind:'open_question'` 저장 배선 (§5.6) +
+   external 기본값 false 확인 (§3.1b)
 4. honest gap: `premises_unavailable` 플래그 + UI 표시
 5. **CLAUDE.md 새 필드 체크리스트 전항목 수행** — types.ts, store, defaults,
    Supabase(snapshot이 저장되는 테이블 컬럼 확인 — jsonb 내부면 마이그레이션
@@ -536,7 +633,7 @@ webapp 프롬프트·argus-plugin-v2 markdown·argus-mcp에 각각 복사되면 
 | 1 | Premise Extraction: 별도 질문 vs 자동 제안? | **자동 제안.** fork 답변의 효과로 생성, weakness_check가 확인 담당. 별도 질문 금지(피로 예산) — §3.4 |
 | 2 | Checkpoint Seed를 언제 자동 제안만? | fire-gate(§4.6) 불통과 시 전부. 통과 시에만 질문 |
 | 3 | Current Course에 premise 노출량? | load-bearing 최대 2개만 문장으로 (MAX_LOAD_BEARING 상수와 일치), 나머지는 접힘 |
-| 4 | "모르겠다" 선택 시? | Argus가 가장 그럴듯한 후보 1개 + 가장 싼 확인 경로 1개를 제안하고 진행. 같은 질문 재질문 금지. 미확인 상태를 정직하게 기록 |
+| 4 | "모르겠다" 선택 시? | Argus가 가장 그럴듯한 후보 1개 + 가장 싼 확인 경로 1개를 제안하고 진행. 같은 질문 세션 내 재질문 금지. **crux는 `kind:'open_question'`으로 저장되어 reconsider 루프(기본 21일)를 탄다** (§5.6) — 미확인이 데이터 손실이 아니라 귀환 손잡이가 됨 |
 | 5 | Settle의 ambiguous reality UX? | companion doc §8–9가 소유 (구조화된 AmbiguityRecord, 4버튼) |
 | 6 | Growth feedback 최소 기록 수? | companion doc §11 (1회=insight, 2–4회=경향, 5회+=패턴) |
 | 7 | Validator: LLM vs 결정론? | **결정론 기본 + LLM judge는 abstain 가능한 증분(꺼진 채 출하 가능)** — §6 |
@@ -564,6 +661,12 @@ typed question 생성이 3회 연속 파싱 실패.
 > Argus: "이 판단은 X 전제 위에 있어 보여요" / 사용자: "아니, 그건 상관없어"
 기대: 해당 premise retire(amend 상태기계), 재주장 금지, 사용자 서술로 대체
 (source:'user').
+
+**Case M. framing confidence 인플레 (§4.3b)**
+모호한 요청("우리 팀 방향 좀 잡아줘" — 대상·기간·결정 지점 전부 불명)인데
+STEP-0가 framing_confidence 90을 자기보고.
+기대: 게이트 통과율 회귀 관찰의 대상 케이스. 자기보고 필드 누락 변형도 포함
+— 누락 시 frame_clarify가 발화해야 함(누락→50 규칙).
 
 평가 기준은 CODEX §10.2를 그대로 쓰되 두 줄 추가:
 - fallback 발동률이 측정되는가? (user_events)
