@@ -441,9 +441,12 @@ export function buildMixPrompt(
   snapshots: AnalysisSnapshot[],
   questionsAndAnswers: Array<{ question: FlowQuestion; answer: FlowAnswer }>,
   decisionMaker: string | null,
-  workerResults?: Array<{ task: string; result: string; name?: string; workerId?: string; taskGroupId?: string }>,
+  workerResults?: Array<{ task: string; result: string; name?: string; workerId?: string; taskGroupId?: string; authored?: 'user' | 'ai' }>,
   locale: Locale = 'en',
   leadSynthesis?: LeadSynthesisResult | null,
+  /** F1(3): tasks the crew was BLOCKED on (a human input never arrived). Their
+   *  sections must be marked provisional, never fabricated (Layer-0 anti-fab). */
+  blockedTasks?: string[],
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
   const snapshotSummary = compactSnapshots(snapshots, locale);
@@ -528,15 +531,36 @@ Open question this turns on: ${leadSynthesis.open_question}
 ${leadSynthesis.unresolved_tensions.length > 0 ? `\nUnresolved tensions:\n${leadSynthesis.unresolved_tensions.map(t => `- ${t}`).join('\n')}` : ''}`
     : '';
 
+  // F1 — the user's OWN decisions (self/human workers they answered) are NOT
+  // peer evidence; they are the human's calls and must outrank worker research.
+  // Render them in a distinct authoritative block, attributed to the user (never
+  // a persona), and keep them OUT of the worker-evidence + contributor lists.
+  const userCalls = (workerResults ?? []).filter(w => w.authored === 'user');
+  const aiResults = (workerResults ?? []).filter(w => w.authored !== 'user');
+  const blockedBlock = blockedTasks?.length
+    ? `
+MISSING HUMAN INPUTS (the user hasn't answered these yet — do NOT fabricate them):
+${blockedTasks.map(t => `- ${sanitize(t)}`).join('\n')}
+Any section that depends on one of these must be written provisionally and say so plainly (e.g. "${locale === 'ko' ? '[아직 입력 대기 — 확정 아님]' : '[awaiting the user\'s input — provisional]'}"). Never invent a stand-in for a missing human input.`
+    : '';
+
+  const userCallsBlock = userCalls.length
+    ? `
+THE USER'S OWN DECISIONS — the human already made these calls; they OUTRANK everything below (both the worker research AND any expert synthesis):
+${userCalls.map(w => `- On "${sanitize(w.task)}": ${sanitize(w.result)}`).join('\n')}
+
+These are the user's own judgment, not AI findings. Build the document AROUND them: treat them as settled, attribute them to the user (never to a persona or "the team"), and never override, dilute, hedge, or quietly bury them. If the worker research or the synthesis conflicts with a user decision, surface the tension honestly — do NOT overrule the user.`
+    : '';
+
   // Group worker results by task_group_id (or task text fallback) so the LLM
   // sees same-task multi-persona output as one block instead of repeated
   // unrelated entries. The "(N perspectives — intentional team diversity)"
   // header is the explicit signal that the user manually added members.
-  const workerBlock = workerResults?.length
+  const workerBlock = aiResults.length
     ? (() => {
         const groupOrder: string[] = [];
-        const groupMap = new Map<string, typeof workerResults>();
-        for (const w of workerResults) {
+        const groupMap = new Map<string, typeof aiResults>();
+        for (const w of aiResults) {
           const gid = w.taskGroupId || w.task;
           if (!groupMap.has(gid)) {
             groupMap.set(gid, []);
@@ -567,11 +591,11 @@ ${leadSynthesis
   : 'Make sure to incorporate specific numbers/facts from the worker results into the document.'}
 
 AVAILABLE CONTRIBUTOR NAMES (cite these EXACTLY in "contributors" per section):
-${workerResults.filter(w => w.name).map(w => `- ${sanitize(w.name!)}`).join('\n') || '(none)'}`;
+${aiResults.filter(w => w.name).map(w => `- ${sanitize(w.name!)}`).join('\n') || '(none)'}`;
       })()
     : '';
 
-  const sectionSchema = workerResults?.length
+  const sectionSchema = aiResults.length
     ? `{
       "heading": "Section heading",
       "content": "Flat section content (3-5 sentences) — still required for fallback",
@@ -592,7 +616,7 @@ ${snapshotSummary}
 
 Full Q&A:
 ${qaHistory}
-${leadBlock}${workerBlock}
+${userCallsBlock}${blockedBlock}${leadBlock}${workerBlock}
 
 ${leadSynthesis ? 'Format the lead expert\'s synthesis into a polished professional document.' : 'Combine all of this into a single document.'}
 

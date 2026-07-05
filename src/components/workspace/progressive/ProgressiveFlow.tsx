@@ -1049,8 +1049,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       dm_feedback: session?.dm_feedback,
       debate_result: session?.debate_result,
       falsification: session?.falsification,
+      // F1: the user's own committed direction (strategic_fork) must seal as
+      // theirs, not get laundered through the mix into an ai_surfaced assumption.
+      user_judgment: { decision_line: (session?.snapshots ?? []).slice(-1)[0]?.decision_line },
     }),
-    [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification],
+    [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification, session?.snapshots],
   );
   // §0 sealing restraint inputs from the latest analysis snapshot — lets SealMoment
   // give a routine + reversible + confident decision one light check instead of the
@@ -1975,6 +1978,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         // Pass taskGroupId so the Mix prompt can render same-task multi-persona
         // results as a single block with sub-bullets.
         taskGroupId: w.taskGroupId,
+        // F1: carry authorship so the mix renders the user's own decisions as an
+        // authoritative block, not as an AI evidence bullet.
+        authored: w.authored,
       }));
 
       // 항해장 메타 리뷰 + debate (해금 시만, 비차단)
@@ -2064,6 +2070,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           task: locale === 'ko' ? `[미해결 긴장] 초안에서 가장 약한 지점` : `[Unresolved tension] The draft's weakest point`,
           result: locale === 'ko' ? `${debateRes.challenge}\n\n약점: ${debateRes.weakestClaim}\n\n대안: ${debateRes.alternativeView}` : `${debateRes.challenge}\n\nWeakness: ${debateRes.weakestClaim}\n\nAlternative: ${debateRes.alternativeView}`,
           taskGroupId: 'debate',
+          authored: 'ai' as const,
         });
       }
 
@@ -2078,11 +2085,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       setSubstage(L('초안 본문 작성 중', 'Writing draft body'));
       setStreamKind('doc');
       setStreamingText('');
+      // F1(3): tasks the crew was BLOCKED on (a human input never arrived) — pass
+      // them so the draft marks those sections provisional instead of silently
+      // dropping them (the loss is named, per the foundational review).
+      const blockedTasks = (store.currentSession()?.workers ?? [])
+        .filter(w => w.status === 'blocked')
+        .map(w => w.task);
       const m = await runMix(
         session!.problem_text, snapshots, qa, dm,
         workerResults.length > 0 ? workerResults : undefined,
         abortRef.current.signal, leadSynthesis, session?.user_notes,
         (text) => setStreamingText(text),
+        blockedTasks.length > 0 ? blockedTasks : undefined,
       );
       setStreamingText(null);
       // Lead가 Mix보다 늦게 끝났으면 비동기로 저장 (Mix에는 미포함이지만 UI에는 표시)

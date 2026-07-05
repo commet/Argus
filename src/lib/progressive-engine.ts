@@ -902,15 +902,16 @@ export async function runMix(
   snapshots: AnalysisSnapshot[],
   questionsAndAnswers: Array<{ question: FlowQuestion; answer: FlowAnswer }>,
   decisionMaker: string | null,
-  workerResults?: Array<{ task: string; result: string; name?: string; workerId?: string }>,
+  workerResults?: Array<{ task: string; result: string; name?: string; workerId?: string; authored?: 'user' | 'ai' }>,
   signal?: AbortSignal,
   leadSynthesis?: LeadSynthesisResult | null,
   userNotes?: string | null,
   onToken?: (text: string) => void,
+  blockedTasks?: string[],
 ): Promise<MixResult> {
   const locale = getCurrentLanguage();
   const { system, user: userPrompt } = buildMixPrompt(
-    problemText, snapshots, questionsAndAnswers, decisionMaker, workerResults, locale, leadSynthesis,
+    problemText, snapshots, questionsAndAnswers, decisionMaker, workerResults, locale, leadSynthesis, blockedTasks,
   );
   // Append user notes to the user prompt if provided
   const user = userNotes?.trim()
