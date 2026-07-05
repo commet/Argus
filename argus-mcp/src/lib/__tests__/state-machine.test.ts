@@ -17,6 +17,26 @@ describe('deriveState', () => {
   });
 });
 
+describe('premise-on-absent does not dead-end (orphaned-premise trap fix)', () => {
+  it('refuses premise_add from absent but recovery points at the working seal-first path', () => {
+    try {
+      guardTransition('absent', 'premise_add');
+      throw new Error('should have thrown');
+    } catch (e) {
+      expect(e).toBeInstanceOf(GuardError);
+      const g = e as GuardError;
+      expect(g.code).toBe('ILLEGAL_TRANSITION');
+      // Must NOT dead-end at "open first" (re-opening a restraint decision just
+      // returns restraint again); it must name argus_seal, which self-creates.
+      expect(g.recovery).toMatch(/argus_seal/);
+    }
+  });
+
+  it('premise_add is allowed from sealed (the path the recovery hint sends you down)', () => {
+    expect(() => guardTransition('sealed', 'premise_add')).not.toThrow();
+  });
+});
+
 describe('guardTransition', () => {
   it('refuses settle without a prior seal', () => {
     expect(() => guardTransition('opened', 'settle')).toThrow(GuardError);

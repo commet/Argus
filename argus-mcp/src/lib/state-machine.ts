@@ -107,12 +107,21 @@ export function guardTransition(
   }
 
   if (!ALLOWED[current].has(event)) {
+    // A premise on an `absent` decision (the restraint gate returned no fork, so
+    // there is no harvest to attach to) must NOT dead-end the host: re-opening
+    // just returns restraint again. Point at the path that actually succeeds —
+    // seal self-creates the contract, and premises attach from `sealed` — so a
+    // fact the user meant to track is never lost to call order (plan v5 §6.2).
+    const recovery =
+      event === 'seal'
+        ? 'Open the decision first with argus_open_decision.'
+        : event.startsWith('premise_')
+          ? "This decision isn't open for tracking yet. If it's a consequential fork, open it with argus_open_decision; otherwise seal it first (argus_seal creates the contract), then add the premise — premises attach from the sealed state, so nothing you meant to track is lost to order."
+          : undefined;
     throw new GuardError(
       'ILLEGAL_TRANSITION',
       `A '${event}' is not allowed from state '${current}'.`,
-      event === 'seal' || event.startsWith('premise_')
-        ? 'Open the decision first with argus_open_decision.'
-        : undefined,
+      recovery,
     );
   }
 }
