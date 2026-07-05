@@ -38,6 +38,7 @@ import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
 import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS } from '@/lib/decision-contract';
+import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { recordSignal } from '@/lib/signal-recorder';
 import { syncSealToTelegram } from '@/lib/telegram-sync';
 import { track } from '@/lib/analytics';
@@ -230,7 +231,11 @@ export function SealMoment({
     // Closing seal (닫는 봉인): stamp closed_at so a later reload shows the calm
     // contract card instead of re-playing the ceremony (the 298 gate reads it).
     const closed_at = closing ? new Date(now).toISOString() : next.closed_at;
-    updateProject(project.id, { decision_contract: { ...next, judgment_receipt, closed_at } });
+    // checkpoints v2 §12 Phase 0 (W1): designate the primary checkpoint at seal —
+    // preserve a carried one, else auto-construct from the top predicate + the
+    // date handle. jsonb-nested (no migration); the return loop focuses here.
+    const primary_checkpoint = next.primary_checkpoint ?? derivePrimaryCheckpoint(next) ?? undefined;
+    updateProject(project.id, { decision_contract: { ...next, judgment_receipt, closed_at, primary_checkpoint } });
     // Cross-surface return loop: if this logged-in user connected Telegram, mirror
     // the sealed contract into the one push channel that actually fires on the date
     // (the daily cron reads telegram_decisions, which web seals never wrote). Server
@@ -286,7 +291,8 @@ export function SealMoment({
     // also keeps a then↔now anchor at settlement; human_judgment stays optional.
     const judgment_receipt = { real_question: summary, unverified_assumption: '', human_only: '', human_judgment: humanJudgment.trim(), check_by };
     const closed_at = closing ? new Date(now).toISOString() : c.closed_at;
-    updateProject(project.id, { decision_contract: { ...c, judgment_receipt, closed_at } });
+    const primary_checkpoint = c.primary_checkpoint ?? derivePrimaryCheckpoint(c) ?? undefined;
+    updateProject(project.id, { decision_contract: { ...c, judgment_receipt, closed_at, primary_checkpoint } });
     const sharp = c.predicates[0]?.text;
     if (user && session?.access_token && c.check_in_at && sharp) {
       syncSealToTelegram({

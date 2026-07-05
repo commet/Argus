@@ -554,7 +554,13 @@ export type PredicateSource = 'risk' | 'actor' | 'governing_idea' | 'user_lean';
  *  complete and the nudge clears) but is NOT scored as a hit or miss. Without
  *  it, a decision whose outcome isn't yet knowable would trap the contract
  *  open forever. `pending` = not yet answered. */
-export type PredicateVerdict = 'happened' | 'avoided' | 'partial' | 'unknown' | 'pending';
+/** `missed` (checkpoints v2 §7.2) = the JUDGMENT layer's "my read was wrong",
+ *  distinct from the event layer's happened/avoided. The event enum had no home
+ *  for "I expected X and X didn't go as I judged" (an event not happening and a
+ *  judgment being wrong are different facts), so the 4-tap return screen's
+ *  "빗나갔다" maps here. Legacy contracts never carry it; consumers treat it as a
+ *  non-held outcome (grouped with a miss, never a held bet). */
+export type PredicateVerdict = 'happened' | 'avoided' | 'partial' | 'unknown' | 'pending' | 'missed';
 
 /** The user's OWN read of WHY a good outcome went the way it did — held bet or
  *  avoided risk. A held bet on luck is NOT a held bet on judgment (R17: the one
@@ -617,11 +623,73 @@ export interface JudgmentReceipt {
   settled_at?: string;
 }
 
+// ─── Judgment Checkpoints v2 (checkpoints-v2 §3.1) ───
+// The user-facing "판단 체크포인트" is a SKIN over the existing DecisionContract,
+// not a new object/table. Exactly two structural extensions, both jsonb-nested
+// (no migration): a non-date ReturnHandle and a PrimaryCheckpoint pointer.
+
+/** A non-date return handle — the upward-compatible superset of CheckInInterval.
+ *  `auto_due` is true only for `date` (the rest are user/host-reported + a
+ *  silence cap, so "never due" is structurally impossible; §9.2). */
+export interface ReturnHandle {
+  kind: 'date' | 'event' | 'metric' | 'reaction' | 'evidence' | 'manual';
+  /** kind-specific: date=ISO, event="이사회 미팅 후", metric="전환율 확인 가능해지면"… */
+  value: string;
+  auto_due: boolean;
+  /** Silence cap for a non-date handle (ISO): past this, a soft-nudge replaces
+   *  the (impossible) auto-due so it can't sleep forever (§9.2). */
+  silence_until?: string;
+}
+
+/** The decision's representative checkpoint — the return loop focuses here
+ *  (MAX→1). Points at an existing Predicate.id; it is NOT a new scored object. */
+export interface PrimaryCheckpoint {
+  predicate_id: string;
+  check_prompt: string;
+  expected_signal?: string;
+  negative_signal?: string;
+  return_handle: ReturnHandle;
+  /** premises-core premise_ids this checkpoint leans on (evidence type). */
+  linked_premise_ids: string[];
+  authorship: 'ai_suggested' | 'user_edited' | 'user_authored';
+  /** Internal routing only — never shown to the user (§4). */
+  type: 'outcome' | 'reaction' | 'evidence' | 'standard' | 'drift';
+  /** The key that makes the 4-tap→verdict mapping deterministic (§7.2). Seal
+   *  fills it; the user sees expected_signal, not this field. Legacy contracts
+   *  without it are read as 'occur' (Defensive Data Access). */
+  expectation: 'occur' | 'not_occur';
+}
+
+/** "아직 판단하기 어렵다" is a first-class path, not a dead end (§7.3). */
+export interface AmbiguityRecord {
+  reason: 'insufficient_data' | 'mixed_signals' | 'low_confidence_interpretation'
+        | 'changed_context' | 'wrong_checkpoint' | 'not_enough_time';
+  note?: string;
+  /** unclear → a lighter next checkpoint, never a dead end. */
+  next_handle?: ReturnHandle;
+}
+
+/** Post-record structural feedback — grounded in the record just written, never
+ *  a personality verdict (§10). */
+export interface GrowthNote {
+  scope: 'single_check' | 'emerging_pattern' | 'established_pattern';
+  widened_view: string;
+  future_attention: string;
+  evidence_count: number;
+}
+
 export interface DecisionContract {
   id: string;
   project_id: string;
   predicates: Predicate[];
   created_at: string;
+  /** checkpoints v2 §3.1 — the representative checkpoint (jsonb-nested, no
+   *  migration). Absent on legacy/never-designated contracts. */
+  primary_checkpoint?: PrimaryCheckpoint;
+  /** Recorded when the user taps "아직 판단하기 어렵다" (§7.3). */
+  ambiguity?: AmbiguityRecord;
+  /** The one-line structural feedback shown right after a settle (§10). */
+  growth_note?: GrowthNote;
   /** Self-commitment: when the user promised to return and grade. */
   check_in_interval?: CheckInInterval;
   /** ISO timestamp derived from check_in_interval at commit time. */
