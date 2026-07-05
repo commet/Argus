@@ -67,6 +67,51 @@ Three concrete rules that follow (full rationale in
    product level**, not a state you claim. Never write "we don't judge"; write
    "we surface the one question, and name the faint lean as a known limit."
 
+## Principle: Honest Structure over Plausible Fabrication (the LLM-glue invariant, 2026-07-05 근원 분석)
+
+The single deepest lesson from the agent-architecture audit
+(`docs/AGENT-ARCHITECTURE-FOUNDATIONAL-2026-07-05.md`): **an LLM turns a
+*structural* bug into *silent quality degradation*.** A normal program with a
+broken wire crashes or returns null; an LLM pipeline with a broken wire returns a
+**confident, plausible, slightly-wrong** answer — because the model fills every
+gap. A dropped field, a mis-assigned agent, a missing input: none error, all look
+fine, and "plausible" is indistinguishable from "correct" without ground truth.
+This is *why* demos are easy and products take years (Karpathy) — the LLM hides
+the seams, so the gap between "looks like it works" and "works" is enormous.
+
+The fix is **not** "make the LLM smarter" (its gap-filling is intrinsic). It is:
+
+> **The structure must make "plausible" unable to masquerade as "correct."**
+> **Every gap either fails LOUD (compile/CI/crash) or is surfaced HONEST to the
+> user — it is NEVER silently filled by the model.**
+
+Five operating rules that follow (each is a shipped fix — copy the pattern):
+
+1. **Honest gap over fabrication.** A missing input / no-fit / no-answer must be
+   *named* (block, `unfilled`, "awaiting X", abstain), never papered over with an
+   invented stand-in. The model is forbidden from standing in for absent human
+   input or an absent qualified agent. (Layer-0 ready-gate; F3 `unfilled`.)
+2. **Type the verbs, not just the nouns.** The compiler guards data *shapes* but a
+   stage hand-off is a template string it can't see — so a produced field is
+   dead-on-arrival by default. Guard *consumption*: every produced field is
+   consumed or explicitly waived, enforced by a test. (F2 consumption contract.)
+3. **The human's judgment is load-bearing, not decoration.** The user's own call
+   must reach the outcome *as theirs* (provably, `authored:'user'`), or the mirror
+   is a mirror in name only. (F1.)
+4. **Deterministic structure owns routing/ordering; the LLM does creative work
+   inside the cells.** Don't put the LLM on the hot path as router/orchestrator —
+   make wiring explicit, deterministic, testable; declare dependencies, don't
+   infer them at runtime. (F3 deterministic capability router; F4 declared DAG.)
+5. **Plausible ≠ verified.** In-frame LLM agreement is never verification; only
+   reality at the settle date is. Don't let a fluent draft *feel* validated.
+
+Litmus test before shipping any agent/pipeline surface: *"If a wire here silently
+broke, would anything turn red — or would the LLM just produce a plausible wrong
+answer and everyone move on?"* If the latter, add the loud failure or the honest
+surface first. Standard patterns this rests on (not invented): Contract-Net
+no-bidder escalation, DAG/topological scheduling, classification **abstention**
+(reject-option), allow-list hard eligibility — apply them, don't reinvent.
+
 ## Principle: Single Source of Truth for Prompts
 
 Never copy-paste a system prompt to a second location. Extract it to a shared
