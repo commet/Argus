@@ -27,6 +27,7 @@ import {
   type StrategicForkEffect,
   type WeaknessCheckEffect,
 } from '@/lib/question-types';
+import { pickSafeFallbackQuestion } from '@/lib/question-fallbacks';
 import { buildReviewPrompt } from '@/lib/review-prompt';
 import { sanitizeForPrompt } from '@/lib/persona-prompt';
 import type { Agent } from '@/stores/agent-types';
@@ -487,7 +488,7 @@ export async function runInitialAnalysis(
   // 실패 시 기존 next_question으로 fallback.
   const legacyQuestion: FlowQuestion = {
     id: generateId(),
-    text: result.next_question?.text || (locale === 'ko' ? '이 결과물을 누가 최종 판단해?' : 'Who will make the final decision on this?'),
+    text: result.next_question?.text || pickSafeFallbackQuestion(locale, snapshot.real_question || problemText),
     subtext: result.next_question?.subtext,
     options: toStringOptions(result.next_question?.options),
     type: result.next_question?.type || 'select',
@@ -605,7 +606,7 @@ export async function refineInitialFraming(
     snapshot,
     question: {
       id: generateId(),
-      text: result.next_question?.text || (locale === 'ko' ? '이제 이 방향이 맞나요?' : 'Does this direction look right now?'),
+      text: result.next_question?.text || pickSafeFallbackQuestion(locale, result.real_question || problemText),
       subtext: result.next_question?.subtext,
       options: toStringOptions(result.next_question?.options),
       type: result.next_question?.type || 'select',
