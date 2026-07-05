@@ -48,17 +48,28 @@ import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { DAILY_LIMIT } from '@/lib/quota-config';
 
 /* ─── Step-level error fallback ─── */
-function StepErrorFallback() {
+function StepErrorFallback({ onRetry }: { onRetry?: () => void }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <AlertTriangle size={28} className="text-[var(--text-tertiary)] mb-3" />
+    <div className="flex flex-col items-center justify-center py-20 text-center" role="alert">
+      <AlertTriangle size={28} className="text-[var(--text-tertiary)] mb-3" aria-hidden="true" />
       <p className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">{L('이 단계에서 문제가 생겼어요', 'An error occurred in this step')}</p>
-      <p className="text-[12px] text-[var(--text-secondary)] mb-4">{L('다른 단계는 정상적으로 쓸 수 있어요.', 'Other steps are still available.')}</p>
-      <button onClick={() => window.location.reload()} className="px-4 py-2 text-[13px] font-medium rounded-lg bg-[var(--accent)] text-white hover:shadow-sm transition-all cursor-pointer">
-        {L('새로고침', 'Refresh')}
-      </button>
+      <p className="text-[12px] text-[var(--text-secondary)] mb-4">{L('작업 내용은 그대로 있어요 — 이 구역만 잠깐 멈췄어요.', 'Your work is intact — only this section paused.')}</p>
+      <div className="flex flex-col items-center gap-2">
+        {/* In-place retry first (cheap re-render, no state loss); reload is the
+            fallback only if retry keeps throwing. */}
+        {onRetry && (
+          <button onClick={onRetry} className="px-4 py-2 text-[13px] font-medium rounded-lg bg-[var(--accent)] text-white hover:shadow-sm transition-all cursor-pointer">
+            {L('다시 시도', 'Try again')}
+          </button>
+        )}
+        <button onClick={() => window.location.reload()} className={onRetry
+          ? 'text-[12px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors cursor-pointer'
+          : 'px-4 py-2 text-[13px] font-medium rounded-lg bg-[var(--accent)] text-white hover:shadow-sm transition-all cursor-pointer'}>
+          {L('새로고침', 'Refresh')}
+        </button>
+      </div>
     </div>
   );
 }
@@ -207,7 +218,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
           </button>
         </div>
 
-            <ErrorBoundary fallback={<StepErrorFallback />}>
+            <ErrorBoundary renderFallback={(reset) => <StepErrorFallback onRetry={reset} />}>
               <ProgressiveFlow projectId={projectId} />
             </ErrorBoundary>
           </div>
@@ -753,10 +764,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     // Failures wear the danger tone; gold is this product's reward
                     // color and was making errors read like promotions. Quota
                     // guidance (an FYI, not a failure) keeps the accent tone.
-                    <div className={`mt-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--text-primary)] flex items-start gap-2 border ${
+                    <div role="alert" className={`mt-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--text-primary)] flex items-start gap-2 border ${
                       isQuota ? 'bg-[var(--accent)]/5 border-[var(--accent)]/15' : 'bg-[var(--danger)]/5 border-[var(--danger)]/25'
                     }`}>
-                      <AlertTriangle size={14} className={`shrink-0 mt-0.5 ${isQuota ? 'text-[var(--accent)]' : 'text-[var(--danger)]'}`} />
+                      <AlertTriangle size={14} aria-hidden="true" className={`shrink-0 mt-0.5 ${isQuota ? 'text-[var(--accent)]' : 'text-[var(--danger)]'}`} />
                       <div className="flex-1">
                         <span>{msg}</span>
                         <div className="mt-1.5 flex items-center gap-3">
@@ -1368,7 +1379,7 @@ function WorkspaceContent() {
 
         {/* Step component */}
         <div className="relative p-4 md:p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in" key={activeStep}>
-          <ErrorBoundary fallback={<StepErrorFallback />}>
+          <ErrorBoundary renderFallback={(reset) => <StepErrorFallback onRetry={reset} />}>
             {activeStep === 'reframe' && <ReframeStep onNavigate={handleNavigate} />}
             {activeStep === 'recast' && <RecastStep onNavigate={handleNavigate} />}
             {activeStep === 'rehearse' && <RehearseStep onNavigate={handleNavigate} />}

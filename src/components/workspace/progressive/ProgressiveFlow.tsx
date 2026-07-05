@@ -356,7 +356,7 @@ function PhaseStatusBar({
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           onClick={onCancel}
-          className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[32px] rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
+          className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] md:min-h-[32px] rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
             showLongWait
               ? 'text-amber-700 dark:text-amber-300 border border-amber-300/50 hover:bg-amber-100/60 dark:hover:bg-amber-900/30'
               : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border border-transparent hover:border-[var(--border)]'
@@ -488,8 +488,14 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
         </div>
         <div className="flex-1 text-left min-w-0">
           <div>
-            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{synthesis.lead_agent_name}</span>
-            <span className="text-[11px] text-[var(--text-tertiary)] ml-2">{L('통합 분석', 'Integrated Analysis')}</span>
+            {/* Spine (F5): surface the synthesis as WORK, not as a character who
+                authored an opinion — mirror MixPreview's de-personification. The
+                work leads; the lead name is a quiet coverage signal (who pulled
+                the lenses together), never an authorial byline. */}
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('통합 분석', 'Integrated Analysis')}</span>
+            {synthesis.lead_agent_name && (
+              <span className="text-[11px] text-[var(--text-tertiary)] ml-2">· {synthesis.lead_agent_name}</span>
+            )}
           </div>
           {/* Value-first: takeaway visible while still collapsed. */}
           {collapsed && teaser && (
@@ -526,6 +532,14 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                   <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-4 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
                     {synthesis.open_question}
                   </blockquote>
+                  {/* Spine (F5): the asymptote disclosure CLAUDE.md mandates — we
+                      surface the ONE question, and name the faint lean as a known
+                      limit at the product level, rather than claiming "we don't
+                      judge". Quiet, once per card. */}
+                  <p className="mt-2 pl-4 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5]">
+                    {L('답이 아니라 결정이 갈리는 한 지점이에요. 가장 중요한 질문은 그 자체로 어느 쪽을 살짝 가리킬 수 있는데 — 그건 저희가 못 지우는 한계일 뿐, 판단은 당신 몫이에요.',
+                       "This is the one question it turns on, not an answer. The sharpest question can itself lean faintly one way — that's a limit we can't fully remove, not our verdict. The call is yours.")}
+                  </p>
                 </div>
               )}
               {/* ③ 미해결 쟁점. */}
@@ -977,7 +991,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
         </div>
       ) : (
         <div className="pl-9 space-y-2">
-          <input value={reason} onChange={e => setReason(e.target.value)} placeholder={L('어떤 방향이 더 맞나요? (예: 이건 투자용이 아니라 내부 보고용이야)', 'What direction fits better? (e.g., This is for internal reporting, not investors)')}
+          <input value={reason} onChange={e => setReason(e.target.value)} maxLength={500} placeholder={L('어떤 방향이 더 맞나요? (예: 이건 투자용이 아니라 내부 보고용이야)', 'What direction fits better? (e.g., This is for internal reporting, not investors)')}
             className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-base md:text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
             onKeyDown={e => { if (e.key === 'Enter' && reason.trim()) { e.preventDefault(); onReject(reason.trim()); } }} autoFocus />
           <div className="flex gap-2">
@@ -1049,8 +1063,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       dm_feedback: session?.dm_feedback,
       debate_result: session?.debate_result,
       falsification: session?.falsification,
+      // F1: the user's own committed direction (strategic_fork) must seal as
+      // theirs, not get laundered through the mix into an ai_surfaced assumption.
+      user_judgment: { decision_line: (session?.snapshots ?? []).slice(-1)[0]?.decision_line },
     }),
-    [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification],
+    [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification, session?.snapshots],
   );
   // §0 sealing restraint inputs from the latest analysis snapshot — lets SealMoment
   // give a routine + reversible + confident decision one light check instead of the
@@ -1184,6 +1201,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const mountedRef = useRef(true);
   const workerAbortRef = useRef<AbortController | null>(null);
   const workersRef = useRef<Promise<void> | null>(null);
+  // True while a crew orchestration is in flight. Guards startWorkerExecution
+  // against re-entrancy: a double-tap on the "다시 실행" resume banner (or any
+  // overlapping deploy/resume/auto-resume) would otherwise abort the partial run
+  // and restart it — re-billing every worker's LLM call. Cleared when the run settles.
+  const workersInFlightRef = useRef(false);
   // Scroll refs for targeted navigation
   const statusBarRef = useRef<HTMLDivElement>(null);
   const questionRef = useRef<HTMLDivElement>(null);
@@ -1438,6 +1460,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // isn't visible yet. (Same terminal set as the workers-done ping above.)
   const crewSettled = workers.length === 0 ||
     workers.every(w => w.status === 'done' || w.status === 'error' || w.status === 'waiting_input' || w.status === 'validation_failed' ||
+      // 'blocked' = gated on a human/self input that hasn't arrived (Layer 0).
+      // Settled for gating (like waiting_input): the draft path stays reachable;
+      // the blocked worker honestly contributes nothing rather than fabricating.
+      w.status === 'blocked' ||
       // A HUMAN worker out for an external reply sits at 'sent'/'waiting_response'
       // — possibly for days, or never. It must NOT block the AI-crew "analysis
       // done → draft" path (which would strand the user with no route to the
@@ -1505,8 +1531,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     const isTerminal = (s: WorkerTask['status']) =>
       // 'validation_failed' is user-actionable (retry / use-anyway), not
       // auto-working — count it as settled so the "team done" ping isn't
-      // blocked forever.
-      s === 'done' || s === 'error' || s === 'waiting_input' || s === 'validation_failed';
+      // blocked forever. 'blocked' = gated on a missing human input (Layer 0),
+      // also settled for the ping (it won't auto-progress).
+      s === 'done' || s === 'error' || s === 'waiting_input' || s === 'validation_failed' || s === 'blocked';
     const stillWorking = workers.some(w => !isTerminal(w.status));
     if (stillWorking) {
       sawWorkingRef.current = true;
@@ -1521,10 +1548,27 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     }
   }, [workers, deployPhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Escape closes the open draft-preview / revision modal (a11y — the modal
+  // backdrops are pointer-only; keyboard users had no dismiss path). Revision
+  // won't close mid-run (isIterating guards it), matching its backdrop rule.
+  useEffect(() => {
+    if (!previewDraftId && !iterationOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (previewDraftId) { setPreviewDraftId(null); return; }
+      if (iterationOpen && !isIterating) { setIterationOpen(false); setIterationDirective(''); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [previewDraftId, iterationOpen, isIterating]);
+
   if (!session) return null;
 
   /* Shared worker execution — used by both deploy and resume */
   const startWorkerExecution = (ws: WorkerTask[]) => {
+    // Re-entrancy guard (U1): never tear down an in-flight run and re-bill it.
+    if (workersInFlightRef.current) return;
+    workersInFlightRef.current = true;
     const qa = qaPairs.filter(q => q.answer).map(q => ({ question: q.question, answer: q.answer! }));
     const ctx: WorkerContext = {
       problemText: session.problem_text,
@@ -1572,6 +1616,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           store.updateWorker(id, { status: 'error', error, stream_text: '' });
         }
       },
+      // Layer 0 gate: a worker whose human/self dependency has no input yet is
+      // blocked rather than run on empty input (which fabricated the GTM
+      // placeholder). 'blocked' is the honest, visible "waiting on X" handle.
+      onBlocked: (id: string, blockedOn: string[]) => {
+        store.updateWorker(id, { status: 'blocked', blocked_on: blockedOn, stream_text: '' });
+      },
     };
 
     // Transcript wrapping — 한 번만, 최외곽에서
@@ -1588,6 +1638,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       if (mountedRef.current) {
         setError(err instanceof Error ? err.message : L('에이전트 작업 중 오류가 발생했습니다.', 'Agent task error occurred.'));
       }
+    }).finally(() => {
+      // Release the re-entrancy guard so a genuine later resume/retry can run.
+      workersInFlightRef.current = false;
     });
   };
 
@@ -1643,8 +1696,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // Once the draft (mix) exists the team phase is over — its results were already
   // consumed into the draft — so a "resume workers" banner above the draft is
   // stale clutter that competes with the deliverable. Gate it on !mix too.
+  // Resumable if any worker is stranded pending OR errored (R6): a reload after
+  // every AI worker already failed leaves no 'pending' worker, so pending-only
+  // never showed the banner and an all-error crew had no crew-level restart.
+  // startWorkerExecution's filter re-picks non-done workers, so Restart re-runs them.
   const isResumable = deployPhase === 'deployed' && !final_ && !mix
-    && workers.some(w => w.status === 'pending');
+    && workers.some(w => w.status === 'pending' || w.status === 'error');
   const onResumeWorkers = () => {
     const ws = store.currentSession()?.workers ?? [];
     startWorkerExecution(ws);
@@ -1935,6 +1992,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         // Pass taskGroupId so the Mix prompt can render same-task multi-persona
         // results as a single block with sub-bullets.
         taskGroupId: w.taskGroupId,
+        // F1: carry authorship so the mix renders the user's own decisions as an
+        // authoritative block, not as an AI evidence bullet.
+        authored: w.authored,
       }));
 
       // 항해장 메타 리뷰 + debate (해금 시만, 비차단)
@@ -2024,6 +2084,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           task: locale === 'ko' ? `[미해결 긴장] 초안에서 가장 약한 지점` : `[Unresolved tension] The draft's weakest point`,
           result: locale === 'ko' ? `${debateRes.challenge}\n\n약점: ${debateRes.weakestClaim}\n\n대안: ${debateRes.alternativeView}` : `${debateRes.challenge}\n\nWeakness: ${debateRes.weakestClaim}\n\nAlternative: ${debateRes.alternativeView}`,
           taskGroupId: 'debate',
+          authored: 'ai' as const,
         });
       }
 
@@ -2038,11 +2099,18 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       setSubstage(L('초안 본문 작성 중', 'Writing draft body'));
       setStreamKind('doc');
       setStreamingText('');
+      // F1(3): tasks the crew was BLOCKED on (a human input never arrived) — pass
+      // them so the draft marks those sections provisional instead of silently
+      // dropping them (the loss is named, per the foundational review).
+      const blockedTasks = (store.currentSession()?.workers ?? [])
+        .filter(w => w.status === 'blocked')
+        .map(w => w.task);
       const m = await runMix(
         session!.problem_text, snapshots, qa, dm,
         workerResults.length > 0 ? workerResults : undefined,
         abortRef.current.signal, leadSynthesis, session?.user_notes,
         (text) => setStreamingText(text),
+        blockedTasks.length > 0 ? blockedTasks : undefined,
       );
       setStreamingText(null);
       // Lead가 Mix보다 늦게 끝났으면 비동기로 저장 (Mix에는 미포함이지만 UI에는 표시)
@@ -2639,10 +2707,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   </span>
                 </div>
                 <button onClick={onResumeWorkers}
-                  className="px-3 py-2 min-h-[44px] md:min-h-0 md:py-1.5 text-[13px] font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer">
-                  {workers.some(w => w.status === 'done')
-                    ? L('이어서 실행', 'Resume')
-                    : L('다시 실행', 'Restart')}
+                  disabled={workers.some(w => w.status === 'running' || w.status === 'ai_preparing')}
+                  className="px-3 py-2 min-h-[44px] md:min-h-0 md:py-1.5 text-[13px] font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  {workers.some(w => w.status === 'running' || w.status === 'ai_preparing')
+                    ? L('실행 중…', 'Running…')
+                    : workers.some(w => w.status === 'done')
+                      ? L('이어서 실행', 'Resume')
+                      : L('다시 실행', 'Restart')}
                 </button>
               </div>
             </motion.div>

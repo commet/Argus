@@ -16,11 +16,17 @@ import { Copy as CopyIcon, Check as CheckIcon, Download } from 'lucide-react';
  *  export affordance here AND ProgressiveFlow.onSkip's finalize, so the two can't
  *  drift. */
 export function mixToMarkdown(mix: MixResult, ko: boolean): string {
+  // Defensive (CLAUDE.md): a `mix` rehydrated from a checkpoint restore or a
+  // Supabase merge can predate migrateMix and lack these arrays — a bare
+  // .flatMap/.map threw the same crash class the store normalizer fixed elsewhere.
+  const sections = mix.sections || [];
+  const keyAssumptions = mix.key_assumptions || [];
+  const nextSteps = mix.next_steps || [];
   return [
     `# ${mix.title}`, '', `> ${mix.executive_summary}`, '',
-    ...mix.sections.flatMap((s) => [`## ${s.heading}`, '', s.content, '']),
-    ...(mix.key_assumptions.length ? [`## ${ko ? '전제 조건' : 'Assumptions'}`, '', ...mix.key_assumptions.map((a) => `- ${a}`), ''] : []),
-    ...(mix.next_steps.length ? [`## ${ko ? '다음 단계' : 'Next Steps'}`, '', ...mix.next_steps.map((s) => `- ${s}`), ''] : []),
+    ...sections.flatMap((s) => [`## ${s.heading}`, '', s.content, '']),
+    ...(keyAssumptions.length ? [`## ${ko ? '전제 조건' : 'Assumptions'}`, '', ...keyAssumptions.map((a) => `- ${a}`), ''] : []),
+    ...(nextSteps.length ? [`## ${ko ? '다음 단계' : 'Next Steps'}`, '', ...nextSteps.map((s) => `- ${s}`), ''] : []),
   ].join('\n');
 }
 
@@ -53,6 +59,9 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
     a.click();
     URL.revokeObjectURL(url);
   };
+  // Defensive (CLAUDE.md): restore/remote-merged mix may predate migrateMix.
+  const sections = mix.sections || [];
+  const nextSteps = mix.next_steps || [];
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: EASE }}>
       <div className="rounded-2xl p-[1px] bg-gradient-to-b from-[var(--accent)]/20 to-[var(--accent)]/5">
@@ -72,7 +81,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
               >
                 {bodyOpen
                   ? L('본문 접기', 'Collapse body')
-                  : L(`전문 보기 — ${mix.sections.length}개 섹션${mix.next_steps.length ? ' · 다음 단계' : ''}`, `Read full draft — ${mix.sections.length} section${mix.sections.length === 1 ? '' : 's'}`)}
+                  : L(`전문 보기 — ${sections.length}개 섹션${nextSteps.length ? ' · 다음 단계' : ''}`, `Read full draft — ${sections.length} section${sections.length === 1 ? '' : 's'}`)}
                 <ChevronDown size={13} className={`transition-transform ${bodyOpen ? 'rotate-180' : ''}`} />
               </button>
               {/* Take the draft NOW — before the optional review/falsification step. */}
@@ -91,15 +100,15 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             {bodyOpen && (
               <>
                 <div className="space-y-5">
-                  {mix.sections.map((s, i) => (
+                  {sections.map((s, i) => (
                     <AttributedSection key={i} section={s} index={i} />
                   ))}
                 </div>
 
-                {mix.next_steps.length > 0 && (
+                {nextSteps.length > 0 && (
                   <div className="pt-5 border-t border-[var(--border-subtle)]">
                     <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-3">{L('다음 단계', 'Next Steps')}</p>
-                    {mix.next_steps.map((s, i) => <div key={i} className="flex items-start gap-2.5 text-[13px] text-[var(--text-primary)] mb-2 leading-relaxed"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] mt-2 shrink-0" /><span>{s}</span></div>)}
+                    {nextSteps.map((s, i) => <div key={i} className="flex items-start gap-2.5 text-[13px] text-[var(--text-primary)] mb-2 leading-relaxed"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] mt-2 shrink-0" /><span>{s}</span></div>)}
                   </div>
                 )}
               </>
@@ -123,7 +132,14 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                     {cmReview.blind_spots.map((b, i) => <p key={i} className="text-[12px] text-[var(--text-secondary)] flex items-start gap-2 mb-1"><span className="shrink-0 mt-0.5">👁</span>{b}</p>)}
                   </div>
                 )}
-                <p className="text-[12px] text-[var(--text-tertiary)] italic mt-2">{cmReview.verdict}</p>
+                {/* Spine: the crux this turns on — a neutral question, not a
+                    proceed/no-proceed verdict (renamed from `verdict`, 2026-07-04). */}
+                {cmReview.open_question && (
+                  <div className="mt-3 pt-3 border-t border-dashed border-[var(--accent)]/15">
+                    <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] mb-1.5">{L('아직 갈리는 지점', 'Still open')}</p>
+                    <p className="text-[12.5px] text-[var(--text-secondary)] italic leading-relaxed">{cmReview.open_question}</p>
+                  </div>
+                )}
               </motion.div>
             )}
 

@@ -41,6 +41,45 @@ export interface WorkerTaskResult {
   validation?: ValidationResult;
 }
 
+// ─── Dependency ready-gate helpers (Layer 0) ───
+
+/** Resolve a worker's effective type (agent_type first, legacy `who` fallback). */
+function workerType(w: WorkerTask): 'ai' | 'self' | 'human' {
+  return (w.agent_type || (w.who === 'both' ? 'ai' : w.who === 'human' ? 'self' : 'ai')) as 'ai' | 'self' | 'human';
+}
+
+/** A producer's output lives in a DIFFERENT field by type: an AI worker's is
+ *  `result`; a human/self worker's answer is `human_input` (never `result`).
+ *  Reading only `result` made an ANSWERED human step invisible to its dependents
+ *  (half the dependency bug). Returns the ready output text, or null if not ready. */
+function readyOutput(w: WorkerTask): string | null {
+  const t = workerType(w);
+  if (t === 'human' || t === 'self') return w.human_input?.trim() || null;
+  return w.result?.trim() || null;
+}
+
+/** Topologically order stages so a stage runs only after its dependsOnStageId
+ *  parent (F4 — supports an N-stage DAG). Parents emitted before children; a
+ *  missing/cyclic parent ref degrades to input order (no infinite loop) — real
+ *  cycles are rejected upstream in buildStages. */
+export function topoSortStages(stages: PipelineStage[]): PipelineStage[] {
+  const byId = new Map(stages.map(s => [s.id, s]));
+  const ordered: PipelineStage[] = [];
+  const done = new Set<string>();
+  const onPath = new Set<string>();
+  const visit = (s: PipelineStage) => {
+    if (done.has(s.id) || onPath.has(s.id)) return; // seen, or cycle → stop
+    onPath.add(s.id);
+    const parent = s.dependsOnStageId ? byId.get(s.dependsOnStageId) : undefined;
+    if (parent) visit(parent);
+    onPath.delete(s.id);
+    done.add(s.id);
+    ordered.push(s);
+  };
+  for (const s of stages) visit(s);
+  return ordered;
+}
+
 // ─── Single task execution ───
 
 export async function runWorkerTask(
@@ -337,6 +376,10 @@ export async function runPipeline(
     onValidationFailed?: (id: string, validation: ValidationResult) => Promise<'retry' | 'skip' | 'accept'>;
     onError: (id: string, error: string) => void;
     onStageComplete?: (stageId: string, results: Map<string, string>) => void;
+    /** Layer 0 dependency gate: a worker whose declared depends_on resolves to a
+     *  MISSING human/self input is blocked (not run) instead of fabricating on
+     *  empty input. `blockedOn` are the upstream names to surface honestly. */
+    onBlocked?: (id: string, blockedOn: string[]) => void;
   },
   signal?: AbortSignal,
 ): Promise<void> {
@@ -345,21 +388,26 @@ export async function runPipeline(
     return runAllAIWorkers(workers, context, callbacks, signal);
   }
 
-  // 스테이지 순서대로 실행 (dependsOnStageId 기반 정렬)
-  const sortedStages = [...stages].sort((a, b) => {
-    if (a.dependsOnStageId && !b.dependsOnStageId) return 1;
-    if (!a.dependsOnStageId && b.dependsOnStageId) return -1;
-    return 0;
-  });
+  // Order stages so every stage runs AFTER the one it depends on (F4: supports an
+  // N-stage DAG, not just 2). Proper topological order over dependsOnStageId —
+  // the old 2-way partition ("has-dep after no-dep") couldn't order stage_2 vs
+  // stage_3. Behavior-neutral for the 1- and 2-stage shapes. Parents are emitted
+  // before children; a broken/cyclic dependsOnStageId degrades to input order
+  // rather than looping (buildStages rejects real cycles upstream).
+  const sortedStages = topoSortStages(stages);
 
   const locale = getCurrentLanguage();
   const stageResults = new Map<string, Map<string, string>>(); // stageId → (workerId → result text)
 
-  // Crash resume: seed stageResults with already-completed workers
+  // Crash resume: seed stageResults with already-ready producers. Uses
+  // readyOutput so an ANSWERED human/self step (human_input) reseeds too — not
+  // just done AI workers (w.result). Without this an answered human step stayed
+  // invisible to its dependents on re-entry.
   for (const w of workers) {
-    if (w.status === 'done' && w.result && w.stage_id) {
+    const out = readyOutput(w);
+    if (out && w.stage_id) {
       if (!stageResults.has(w.stage_id)) stageResults.set(w.stage_id, new Map());
-      stageResults.get(w.stage_id)!.set(w.id, w.result);
+      stageResults.get(w.stage_id)!.set(w.id, out);
     }
   }
 
@@ -368,6 +416,35 @@ export async function runPipeline(
 
     const stageWorkers = workers.filter(w => w.stage_id === stage.id);
     if (stageWorkers.length === 0) continue;
+
+    // ─── Layer 0 dependency ready-gate ───
+    // Resolve each worker's declared depends_on against the full worker set:
+    //  - MISSING human/self input  → BLOCK the worker (do NOT run it): running a
+    //    step on an absent human answer fabricates authorship (the 민서/GTM
+    //    placeholder). The 'blocked' status is the honest, visible handle.
+    //  - MISSING ai output          → don't deadlock the run; note it so the model
+    //    degrades honestly ("[MISSING: …] — do not fabricate") instead of guessing.
+    const blockedIds = new Set<string>();
+    const missingAiNames = new Set<string>();
+    for (const sw of stageWorkers) {
+      const missingHuman: string[] = [];
+      for (const depId of sw.depends_on ?? []) {
+        const up = workers.find(w => w.id === depId);
+        if (!up || readyOutput(up)) continue;            // absent-ref or SATISFIED
+        if (workerType(up) === 'ai') missingAiNames.add(up.persona?.name || depId);
+        else missingHuman.push(up.persona?.name || up.question_to_human || depId);
+      }
+      if (missingHuman.length > 0) {
+        blockedIds.add(sw.id);
+        callbacks.onBlocked?.(sw.id, missingHuman);
+      }
+    }
+    const runnableWorkers = stageWorkers.filter(w => !blockedIds.has(w.id));
+    if (runnableWorkers.length === 0) {
+      stageResults.set(stage.id, new Map());
+      callbacks.onStageComplete?.(stage.id, new Map());
+      continue;
+    }
 
     // 이전 스테이지 결과를 context에 주입
     // depends_on이 있으면 해당 워커 결과만 선택적 주입, 없으면 이전 스테이지 전체
@@ -415,11 +492,24 @@ export async function runPipeline(
       }
     }
 
+    // Honest degradation for a MISSING ai upstream (no deadlock): tell the model
+    // the input is absent so it does NOT fabricate a stand-in for it.
+    if (missingAiNames.size > 0) {
+      const names = Array.from(missingAiNames).join(', ');
+      const marker = locale === 'en'
+        ? `[MISSING: ${names} produced no output — do NOT fabricate a stand-in; note the gap instead.]`
+        : `[누락: ${names}의 산출물이 없습니다 — 추정으로 지어내지 말고, 빠졌다는 사실만 남기세요.]`;
+      enrichedContext = {
+        ...enrichedContext,
+        peerResults: enrichedContext.peerResults ? `${enrichedContext.peerResults}\n\n${marker}` : marker,
+      };
+    }
+
     // 현재 스테이지의 결과 수집용
     const currentStageResults = new Map<string, string>();
 
-    // 기존 runAllAIWorkers 패턴으로 스테이지 내 병렬 실행
-    await runAllAIWorkers(stageWorkers, enrichedContext, {
+    // 기존 runAllAIWorkers 패턴으로 스테이지 내 병렬 실행 (게이트 통과한 워커만)
+    await runAllAIWorkers(runnableWorkers, enrichedContext, {
       ...callbacks,
       onComplete: (id, result, validation) => {
         currentStageResults.set(id, result);

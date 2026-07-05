@@ -13,6 +13,7 @@
 
 import { useMemo, useId } from 'react';
 import { layoutBranchMap, BM } from '@/lib/branch-map-layout';
+import { useLocale } from '@/hooks/useLocale';
 import type { VoyageBranch, VoyageCheckpoint, Waypoint } from '@/stores/types';
 
 interface BranchMapProps {
@@ -35,6 +36,8 @@ function edgePath(px: number, py: number, cx: number, cy: number): string {
 export function BranchMap({
   checkpoints, branches, waypoints, activeBranchId, activeCheckpointId, onPick,
 }: BranchMapProps) {
+  const locale = useLocale();
+  const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const { nodes, width, height } = useMemo(
     () => layoutBranchMap(checkpoints, branches),
     [checkpoints, branches],
@@ -64,7 +67,7 @@ export function BranchMap({
       // Nodes are interactive (pick to jump) — role="img" would prune them
       // from the a11y tree, so expose the chart as a group instead.
       role="group"
-      aria-label="Voyage course chart"
+      aria-label={L('항해 항로 차트', 'Voyage course chart')}
     >
       <defs>
         <pattern id={gridId} width="20" height="20" patternUnits="userSpaceOnUse">
@@ -101,7 +104,7 @@ export function BranchMap({
         return (
           <g key={`n-${n.id}`} className="cursor-pointer" onClick={() => onPick(n.id)}
             role="button" tabIndex={0}
-            aria-label={`waypoint ${n.id}`}
+            aria-label={L(`경유지 ${n.id}`, `waypoint ${n.id}`)}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(n.id); } }}>
             {/* active checkpoint ring */}
             {isActiveCp && (

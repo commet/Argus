@@ -7,6 +7,11 @@ import { getCurrentLanguage } from '@/lib/i18n';
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  /** Preferred over `fallback`: receives the boundary's own `reset` so a custom
+   *  fallback can offer IN-PLACE retry (cheap re-render, no state loss) instead
+   *  of a full reload. A bare `fallback` node can't reach `reset`, so it can only
+   *  reload — which discards typed input / streaming analysis / session position. */
+  renderFallback?: (reset: () => void) => React.ReactNode;
 }
 
 interface ErrorBoundaryState {
@@ -34,6 +39,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   render() {
     if (this.state.hasError) {
+      // Prefer the reset-aware render-prop (in-place retry, no state loss).
+      if (this.props.renderFallback) {
+        return this.props.renderFallback(this.handleRetry);
+      }
       if (this.props.fallback) {
         return this.props.fallback;
       }
@@ -42,7 +51,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       const ko = getCurrentLanguage() === 'ko';
 
       return (
-        <div className="min-h-[50vh] flex items-center justify-center p-8">
+        <div className="min-h-[50vh] flex items-center justify-center p-8" role="alert">
           <div className="max-w-md text-center space-y-4">
             <div className="text-4xl">⚠</div>
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">

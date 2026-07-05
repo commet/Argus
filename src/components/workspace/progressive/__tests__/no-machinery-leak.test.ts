@@ -61,3 +61,22 @@ describe('progressive flow: no machinery-persona leak (spine)', () => {
     );
   });
 });
+
+// F5 spine polish — two things the foundational review flagged as missing/leaking.
+describe('progressive flow: LeadSynthesisCard spine (F5)', () => {
+  const src = readFileSync(join(DIR, 'ProgressiveFlow.tsx'), 'utf8');
+  const card = src.slice(src.indexOf('function LeadSynthesisCard'), src.indexOf('function LeadSynthesisCard') + 6000);
+
+  it('surfaces the WORK as the byline, not the agent as an author (de-personified)', () => {
+    // The lead name must be demoted to a quiet "· {name}" coverage tag, and the
+    // work label ("통합 분석") must come BEFORE the name in the header (work leads).
+    expect(card).toContain('· {synthesis.lead_agent_name}');
+    expect(card.indexOf("L('통합 분석'")).toBeGreaterThan(-1);
+    expect(card.indexOf("L('통합 분석'")).toBeLessThan(card.indexOf('synthesis.lead_agent_name'));
+  });
+
+  it('renders the asymptote disclosure at the crux (CLAUDE.md-mandated, was missing)', () => {
+    // "we surface the one question, and name the faint lean as a known limit."
+    expect(card.includes('한계일 뿐') || card.includes("limit we can't fully remove")).toBe(true);
+  });
+});

@@ -216,6 +216,11 @@ export interface SessionPredicateInput {
   } | null;
   /** The overreach/flinch result — its surfaced bet becomes the TOP prediction. */
   falsification?: Falsification | null;
+  /** F1 — the user's OWN committed direction from a strategic_fork (`decision_line`).
+   *  It used to never reach the contract; if the mix echoed it into key_assumptions
+   *  it got stamped `ai_surfaced` — the user's own decision laundered as machine
+   *  authored (a Rule-1 violation). Passed in so it seals as `user_lean`/authored:'user'. */
+  user_judgment?: { decision_line?: string } | null;
 }
 
 /** The single bet the overreach/flinch step surfaced, if any. The user's own
@@ -254,6 +259,15 @@ export function extractPredicatesFromSession(s: SessionPredicateInput): Predicat
   //    Prepended + governing is composed first, so it is NEVER dropped at cap.
   const finalMix = s.final_mix ?? s.mix ?? null;
   const governing: Predicate[] = [];
+  // F1: the user's own committed direction leads and is honestly `user_lean`
+  // (authored:'user' by absence — types.ts:548-550), so their decision is sealed
+  // AS THEIRS, never laundered into an ai_surfaced key_assumption. Composed first
+  // → never dropped at cap.
+  const decisionLine = s.user_judgment?.decision_line?.trim();
+  if (decisionLine) {
+    const p = add({ text: decisionLine, source: 'user_lean' });
+    if (p) governing.push(p);
+  }
   const betText = falsificationBetText(s.falsification);
   if (betText) {
     // Carry the flinch bet's authorship (R57) so calibration can tell the user's

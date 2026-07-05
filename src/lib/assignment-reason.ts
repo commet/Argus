@@ -17,6 +17,7 @@
 import type { Agent } from '@/stores/agent-types';
 import type { TaskType, ContextDomain } from './task-classifier';
 import type { SelectionTrace } from './orchestrator-select';
+import { getCapability } from './agent-capabilities';
 import { getCurrentLanguage } from '@/lib/i18n';
 
 // [ko, en]
@@ -63,18 +64,41 @@ export function buildAssignmentReason(
     return ko ? '고위험 결정이라 검증 담당으로 합류' : 'Added as a risk reviewer for this high-stakes call';
   }
 
-  const tc = trace.taskClassification;
-  const task = TASK_TYPE_LABELS[tc.taskType]?.[ko ? 0 : 1] || tc.taskType;
-  const domain = DOMAIN_LABELS[tc.contextDomain]?.[ko ? 0 : 1] || tc.contextDomain;
+  // F3: no qualified bidder — say so honestly, never dress a weak fit as "best fit".
+  if (trace.outcome === 'unfilled') {
+    return ko ? '적합한 크루가 없어 가장 가까운 후보로 임시 배정' : 'No strong fit — assigned the closest available';
+  }
 
-  const core = ko ? `${domain} ${task}에 가장 적합` : `Best fit for ${domain} ${task}`;
-
-  // Runner-up: the next-highest scorer, if it scored at all and isn't the
-  // selected agent. Names come from the unlocked-agent map.
   const runner = trace.scores.find(
     (s) => s.agentId !== trace.selectedAgent && s.total > 0,
   );
   const runnerName = runner ? agentsById.get(runner.agentId)?.name : undefined;
+  const winnerName = agentsById.get(trace.selectedAgent)?.name;
+
+  // F3: near-tie honesty — a small winner↔runner-up margin is NOT a confident
+  // "best fit"; say it was close. (confidence is internal-routing-only — spine
+  // rule 2 — so the number itself is never shown, only the "near-tie" wording.)
+  const NEAR_TIE = 0.08;
+  if (runnerName && trace.confidence != null && trace.confidence < NEAR_TIE) {
+    return ko
+      ? `${winnerName ?? '이 담당'}·${runnerName} 접전 — ${winnerName ?? '이 담당'} 선택`
+      : `Near-tie with ${runnerName} — chose ${winnerName ?? 'this one'}`;
+  }
+
+  // F3: derive the label from the WINNER'S OWN capability profile (what actually
+  // earned the seat), NOT the router's input classification. The classification
+  // can misfire (a 'legal'+'strategy' co-occurrence printed "best fit for legal
+  // strategy" on a MARKETING task); the winner's declared strength is
+  // definitionally true and can't be falsified by a misclassification. Fall back
+  // to the classification only for a runtime agent outside AGENT_CAPABILITIES.
+  const tc = trace.taskClassification;
+  const cap = getCapability(trace.selectedAgent);
+  const strengthType = (cap?.taskTypes[0] ?? tc.taskType) as TaskType;
+  const strengthDomain = (cap?.domains[0] ?? tc.contextDomain) as ContextDomain;
+  const task = TASK_TYPE_LABELS[strengthType]?.[ko ? 0 : 1] || strengthType;
+  const domain = DOMAIN_LABELS[strengthDomain]?.[ko ? 0 : 1] || strengthDomain;
+
+  const core = ko ? `${domain} ${task}에 가장 적합` : `Best fit for ${domain} ${task}`;
   if (runnerName) {
     return ko ? `${core} · 차순위 ${runnerName}` : `${core} · runner-up ${runnerName}`;
   }

@@ -318,7 +318,7 @@ interface ProgressiveState {
   enrichWaypoint: (waypointId: string, patch: Partial<Waypoint>) => void;
   /** @deprecated Use mixableWorkerResults instead */
   approvedWorkerResults: () => Array<{ task: string; result: string; type?: string; persona: string | null; agentName: string | null; agentRole: string | null }>;
-  mixableWorkerResults: () => Array<{ workerId: string; task: string; result: string; type: 'final' | 'preliminary' | 'pending_human'; persona: string | null; agentName: string | null; agentRole: string | null; taskGroupId: string }>;
+  mixableWorkerResults: () => Array<{ workerId: string; task: string; result: string; type: 'final' | 'preliminary' | 'pending_human'; authored: 'user' | 'ai'; persona: string | null; agentName: string | null; agentRole: string | null; taskGroupId: string }>;
 
   // Lead Agent
   setLeadAgent: (agentId: string, agentName: string, domain: string) => void;
@@ -1131,10 +1131,13 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
         framework: pw.framework || undefined,
         stage_id: pw.stageId || undefined,
         task_type: pw.taskType || undefined,
-        // Why-this-agent rationale — only when the *planned* agent was used.
-        // If we fell back to assignAgentToTask, the trace describes a
-        // different pick, so we drop it rather than mislabel.
-        assignment_reason: agent ? pw.assignmentReason : undefined,
+        // Why-this-agent rationale. Keep it when the *planned* agent was used
+        // (correct), OR when NO agent was assigned at all (fallbackAgent null =
+        // the F3 'unfilled' case — the reason is the honest "no strong fit" line,
+        // which must reach the captain, especially on a sensitive/legal step).
+        // Drop it ONLY when we fell back to a DIFFERENT agent (the reason would
+        // mislabel that pick).
+        assignment_reason: agent ? pw.assignmentReason : (fallbackAgent ? undefined : pw.assignmentReason),
         stream_text: '',
         result: null,
         human_input: null,
@@ -1844,14 +1847,18 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
         };
 
         if (w.status === 'done' && w.result) {
-          return { workerId: w.id, task: w.task, result: w.result, type: 'final' as const, ...base };
+          // F1: a done worker whose result IS the human's own input (submitHumanInput
+          // sets result === human_input) is the USER's own decision — mark it so the
+          // mix renders it as an authoritative user call, not an AI evidence bullet.
+          const authored: 'user' | 'ai' = (w.human_input && w.result === w.human_input) ? 'user' : 'ai';
+          return { workerId: w.id, task: w.task, result: w.result, type: 'final' as const, authored, ...base };
         }
         if (w.ai_preliminary && (w.status === 'waiting_input' || w.status === 'ai_preparing')) {
-          return { workerId: w.id, task: w.task, result: w.ai_preliminary, type: 'preliminary' as const, ...base };
+          return { workerId: w.id, task: w.task, result: w.ai_preliminary, type: 'preliminary' as const, authored: 'ai' as const, ...base };
         }
         if (w.agent_type === 'human' && (w.status === 'waiting_response' || w.status === 'sent')) {
           const awaitingLabel = getCurrentLanguage() === 'ko' ? '[응답 대기 중]' : '[awaiting response]';
-          return { workerId: w.id, task: w.task, result: `${awaitingLabel} ${w.question_to_human || w.task}`, type: 'pending_human' as const, ...base };
+          return { workerId: w.id, task: w.task, result: `${awaitingLabel} ${w.question_to_human || w.task}`, type: 'pending_human' as const, authored: 'ai' as const, ...base };
         }
         return null;
       })

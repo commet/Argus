@@ -269,13 +269,16 @@ CRITICAL: Never write a team member's name INSIDE task/ai_scope/self_scope text.
     system: `You are a practical senior colleague turning a sharpened analysis into an actionable execution plan. Always respond in ${lang}. ${locale === 'ko' ? '해요체 (polite but warm).' : 'Warm, professional tone.'}
 
 Build an execution_plan — assign tasks to your team. 3-5 steps max. For each step:
+
+SIZE THE CREW TO THE DECISION (default to restraint). Most decisions need ONE strong AI lens, not a committee — default to a SINGLE "ai" step that reasons the question through. Add a second or third INDEPENDENT "ai" lens ONLY when the decision genuinely earns it: it is important / hard-to-reverse, OR it spans 3+ distinct domains that each need separate expertise (e.g. finance AND legal AND technical). A routine, low-stakes, or easily-reversible decision must NOT be fanned out into parallel AI perspectives — that is ceremony, not insight, and it wastes the user's time. (A sequential producer→consumer chain via depends_on is NOT a "lens" — this limit is only about independent parallel AI perspectives on the same question. "self"/"human" steps are also unaffected.)
 - agent_type: "ai" (AI executes: research, analysis, drafting) | "self" (user decides: strategy, budget, priorities) | "human" (ask someone else: tech validation, customer feedback, internal approval)
 - ai_scope: what AI does — describe the ACTION, never name a person (required for ai/self types; for human, AI prepares the question + context)
 - self_scope: what the user judges/validates — action only, no person names (required for ai/self types; empty for human)
 - decision: if self_scope involves a choice, write "질문: Option A vs Option B vs Option C" so UI renders selectable chips. Empty string if no explicit choice.
 - For "human" steps: add question_to_human (the question to send) and human_contact_hint (role like "CTO" or "고객")
 Rule: EVERY "ai" step must have self_scope — explain what the user should review about the AI result.
-Rule: EVERY "self" step should have ai_scope — how AI can help (generate options, comparison, data).${personaBlock}${leadContext ? '\n' + leadContext : ''}${teamBlock}`,
+Rule: EVERY "self" step should have ai_scope — how AI can help (generate options, comparison, data).
+- depends_on: the 0-based indices of EARLIER steps whose OUTPUT this step genuinely needs before it can run (a real producer→consumer chain — e.g. "model the unit economics" [1] truly needs "size the market" [0], so step 1 has depends_on:[0]). DEFAULT is [] — most steps are independent and should run in parallel. Declare a dependency ONLY when the later step literally cannot be written without the earlier one's result. Do NOT serialize steps that could run side by side, and never create a cycle.${personaBlock}${leadContext ? '\n' + leadContext : ''}${teamBlock}`,
 
     user: `Original problem:
 <user-data>${sanitize(problemText)}</user-data>
@@ -292,7 +295,7 @@ Turn the skeleton into a concrete execution plan assigned to the team. Respond w
 
 JSON:
 {
-  "steps": [{"task": "What to do", "agent_type": "ai|self|human", "output": "Deliverable", "ai_scope": "What AI does", "self_scope": "What user judges", "decision": "질문: A vs B vs C (or empty)", "agent_hint": "Team member name (if applicable)", "question_to_human": "Question for external person (human type only)", "human_contact_hint": "Role like CTO (human type only)"}],
+  "steps": [{"task": "What to do", "agent_type": "ai|self|human", "output": "Deliverable", "ai_scope": "What AI does", "self_scope": "What user judges", "decision": "질문: A vs B vs C (or empty)", "agent_hint": "Team member name (if applicable)", "question_to_human": "Question for external person (human type only)", "human_contact_hint": "Role like CTO (human type only)", "depends_on": []}],
   "key_assumptions": ["assumptions the plan depends on, 1-3 items"]
 }`,
   };
@@ -441,9 +444,12 @@ export function buildMixPrompt(
   snapshots: AnalysisSnapshot[],
   questionsAndAnswers: Array<{ question: FlowQuestion; answer: FlowAnswer }>,
   decisionMaker: string | null,
-  workerResults?: Array<{ task: string; result: string; name?: string; workerId?: string; taskGroupId?: string }>,
+  workerResults?: Array<{ task: string; result: string; name?: string; workerId?: string; taskGroupId?: string; authored?: 'user' | 'ai' }>,
   locale: Locale = 'en',
   leadSynthesis?: LeadSynthesisResult | null,
+  /** F1(3): tasks the crew was BLOCKED on (a human input never arrived). Their
+   *  sections must be marked provisional, never fabricated (Layer-0 anti-fab). */
+  blockedTasks?: string[],
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
   const snapshotSummary = compactSnapshots(snapshots, locale);
@@ -528,15 +534,36 @@ Open question this turns on: ${leadSynthesis.open_question}
 ${leadSynthesis.unresolved_tensions.length > 0 ? `\nUnresolved tensions:\n${leadSynthesis.unresolved_tensions.map(t => `- ${t}`).join('\n')}` : ''}`
     : '';
 
+  // F1 — the user's OWN decisions (self/human workers they answered) are NOT
+  // peer evidence; they are the human's calls and must outrank worker research.
+  // Render them in a distinct authoritative block, attributed to the user (never
+  // a persona), and keep them OUT of the worker-evidence + contributor lists.
+  const userCalls = (workerResults ?? []).filter(w => w.authored === 'user');
+  const aiResults = (workerResults ?? []).filter(w => w.authored !== 'user');
+  const blockedBlock = blockedTasks?.length
+    ? `
+MISSING HUMAN INPUTS (the user hasn't answered these yet — do NOT fabricate them):
+${blockedTasks.map(t => `- ${sanitize(t)}`).join('\n')}
+Any section that depends on one of these must be written provisionally and say so plainly (e.g. "${locale === 'ko' ? '[아직 입력 대기 — 확정 아님]' : '[awaiting the user\'s input — provisional]'}"). Never invent a stand-in for a missing human input.`
+    : '';
+
+  const userCallsBlock = userCalls.length
+    ? `
+THE USER'S OWN DECISIONS — the human already made these calls; they OUTRANK everything below (both the worker research AND any expert synthesis):
+${userCalls.map(w => `- On "${sanitize(w.task)}": ${sanitize(w.result)}`).join('\n')}
+
+These are the user's own judgment, not AI findings. Build the document AROUND them: treat them as settled, attribute them to the user (never to a persona or "the team"), and never override, dilute, hedge, or quietly bury them. If the worker research or the synthesis conflicts with a user decision, surface the tension honestly — do NOT overrule the user.`
+    : '';
+
   // Group worker results by task_group_id (or task text fallback) so the LLM
   // sees same-task multi-persona output as one block instead of repeated
   // unrelated entries. The "(N perspectives — intentional team diversity)"
   // header is the explicit signal that the user manually added members.
-  const workerBlock = workerResults?.length
+  const workerBlock = aiResults.length
     ? (() => {
         const groupOrder: string[] = [];
-        const groupMap = new Map<string, typeof workerResults>();
-        for (const w of workerResults) {
+        const groupMap = new Map<string, typeof aiResults>();
+        for (const w of aiResults) {
           const gid = w.taskGroupId || w.task;
           if (!groupMap.has(gid)) {
             groupMap.set(gid, []);
@@ -567,11 +594,11 @@ ${leadSynthesis
   : 'Make sure to incorporate specific numbers/facts from the worker results into the document.'}
 
 AVAILABLE CONTRIBUTOR NAMES (cite these EXACTLY in "contributors" per section):
-${workerResults.filter(w => w.name).map(w => `- ${sanitize(w.name!)}`).join('\n') || '(none)'}`;
+${aiResults.filter(w => w.name).map(w => `- ${sanitize(w.name!)}`).join('\n') || '(none)'}`;
       })()
     : '';
 
-  const sectionSchema = workerResults?.length
+  const sectionSchema = aiResults.length
     ? `{
       "heading": "Section heading",
       "content": "Flat section content (3-5 sentences) — still required for fallback",
@@ -592,7 +619,7 @@ ${snapshotSummary}
 
 Full Q&A:
 ${qaHistory}
-${leadBlock}${workerBlock}
+${userCallsBlock}${blockedBlock}${leadBlock}${workerBlock}
 
 ${leadSynthesis ? 'Format the lead expert\'s synthesis into a polished professional document.' : 'Combine all of this into a single document.'}
 
@@ -1013,10 +1040,10 @@ Review the team's outputs holistically and share your assessment.
 
 JSON:
 {
-  "overall": "One-line quality judgment",
+  "overall": "One line on what the team's work establishes and what it does NOT yet settle — an observation, not a quality grade",
   "contradictions": ["Contradictions between agents (if any)"],
   "blind_spots": ["Perspectives no one covered (if any)"],
-  "verdict": "One-line conclusion on whether to proceed as-is"
+  "open_question": "The single unresolved crux this decision now turns on — phrased as a neutral question. NEVER a proceed/no-proceed conclusion or a recommendation."
 }`,
   };
 }
@@ -1081,24 +1108,24 @@ ${locale === 'ko' ? `BAD options (카테고리 — 절대 금지):
   ✗ "경쟁사 분석 중심"
 
 GOOD options (상사가 사인할 1줄 결정):
-  ✓ "경쟁사가 못 하는 한 가지를, 4주 뒤에 증명하겠습니다."
-  ✓ "기존 사업 +12% vs 신사업 +35%. 6개월 후 신사업이 우위입니다."
-  ✓ "Week 1~4 마일스톤으로, '이게 진짜 되는가'를 4주 뒤에 증명합니다."
-  ✓ "방향 확정 3일 + 본격 기획 11일. 2주 뒤 한 장으로 가져오겠습니다."
+  ✓ "경쟁사가 못 하는 한 가지를, 4주 뒤에 증명하겠습니다." (정량 결정)
+  ✓ "기존 사업 +12% vs 신사업 +35%. 6개월 후 신사업이 우위입니다." (정량 결정)
+  ✓ "채용은 컬처핏 우선 — 스택을 이미 아는 사람 말고, 3개월 안에 배울 수 있는 사람을 뽑습니다." (정성 결정 — 숫자 대신 명확한 기준)
+  ✓ "방향 확정부터 하고 기획은 그다음 — 2주 뒤 한 장으로 가져오겠습니다."
 
-The pattern: VERB + 구체적 숫자/기간 + 결과. 막연한 전략 카테고리가 아니라, "이거 할게요"라고 약속하는 문장.` : `BAD options (categories — NEVER):
+The pattern: VERB + 구체적 약속 + 결과. 결정이 수치형이면 숫자/기간을, 아니면 뽑을/버릴 기준이나 마일스톤을 담아라 — 억지로 %를 지어내지 말 것. 막연한 전략 카테고리가 아니라 "이거 할게요"라고 약속하는 문장이면 된다.` : `BAD options (categories — NEVER):
   ✗ "Prioritize speed"
   ✗ "Prioritize quality"
   ✗ "Minimize risk"
   ✗ "Focus on competitive analysis"
 
 GOOD options (1-line decisions a boss could sign):
-  ✓ "Prove one thing the competitor can't do, in 4 weeks."
-  ✓ "Current product +12% vs new bet +35%. New bet wins at 6 months."
-  ✓ "Week 1–4 milestones. Demo 'it actually works' in 4 weeks."
-  ✓ "3 days to lock direction + 11 days to plan. One-pager in 2 weeks."
+  ✓ "Prove one thing the competitor can't do, in 4 weeks." (quantitative)
+  ✓ "Current product +12% vs new bet +35%. New bet wins at 6 months." (quantitative)
+  ✓ "Hire for culture-fit first — take the candidate who can learn the stack in 3 months, not the one who already knows it." (qualitative — a clear criterion, not a number)
+  ✓ "Lock the direction first, plan second — one-pager in 2 weeks."
 
-The pattern: VERB + concrete numbers/timeline + outcome. Not vague strategy categories — a specific promise.`}
+The pattern: VERB + a concrete commitment + outcome. When the decision is quantitative, use numbers/timeline; when it isn't (hiring, positioning, wording), use a specific criterion or milestone instead — do NOT manufacture percentages. Not a vague strategy category — a sentence that promises "I'll do this."`}
 
 ═══ QUESTION TEXT RULES ═══
 - Question must dig into the SITUATION, not admin details.

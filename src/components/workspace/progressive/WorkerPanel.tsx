@@ -120,6 +120,7 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
             <input
               defaultValue={customization.nameOverrides[p.id] || p.name}
               placeholder={p.name}
+              maxLength={20}
               onBlur={(e) => handleNameChange(p.id, e.target.value)}
               className="flex-1 px-2 py-1 rounded-lg bg-[var(--bg)] border border-[var(--border-subtle)] text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30"
             />
@@ -184,7 +185,7 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
             placeholder={L('말투 스타일 (e.g., 데이터 기반으로 차분하게)', 'Tone style (e.g., calm and data-driven)')} maxLength={60}
             className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px] focus:outline-none focus:border-[var(--accent)]/30" />
 
-          <input value={keywordInput} onChange={e => setKeywordInput(e.target.value)}
+          <input value={keywordInput} onChange={e => setKeywordInput(e.target.value)} maxLength={120}
             placeholder={L('매칭 키워드 (쉼표 구분: 데이터, 분석, ML)', 'Matching keywords (comma-separated: data, analysis, ML)')}
             className="w-full px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] text-[11px] focus:outline-none focus:border-[var(--accent)]/30" />
 

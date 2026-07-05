@@ -956,6 +956,12 @@ export interface AnalysisSnapshot {
       agent_hint?: string;
       question_to_human?: string;
       human_contact_hint?: string;
+      /** F4 — the step indices (into this steps[] array) whose output this step
+       *  needs BEFORE it can run. Declared by the planner LLM when it understands
+       *  a real producer→consumer chain (e.g. "size the market" before "model the
+       *  unit economics"). Absent/[] = independent (runs in the parallel wave).
+       *  Drives N-stage DAG layering in buildStages + the Layer-0 ready-gate. */
+      depends_on?: number[];
     }[];
     key_assumptions: string[];
   };
@@ -1024,7 +1030,7 @@ export interface WorkerPersona {
   color: string;          // UI accent hex
 }
 
-export type WorkerStatus = 'pending' | 'running' | 'done' | 'error' | 'waiting_input' | 'ai_preparing' | 'sent' | 'waiting_response' | 'validation_failed';
+export type WorkerStatus = 'pending' | 'running' | 'done' | 'error' | 'waiting_input' | 'ai_preparing' | 'sent' | 'waiting_response' | 'validation_failed' | 'blocked';
 
 export type AgentTaskType = 'ai' | 'self' | 'human';
 
@@ -1094,6 +1100,10 @@ export interface WorkerTask {
   stage_id?: string;                // 소속 스테이지 ID
   task_type?: string;               // task-classifier의 TaskType (context 전략 결정)
   depends_on?: string[];            // 의존하는 WorkerTask.id[] (선택적 peerResults 주입)
+  /** 의존성 게이트(Layer 0): 이 워커가 대기 중인 상류 워커 id[]. status==='blocked'일 때만
+   *  채워짐 — 사람/자기 단계의 human_input이 아직 없어 AI가 빈 입력으로 지어내지 않도록 막은 상태.
+   *  상류가 입력을 채우면 재실행 시 해제된다(transient status detail, 동기화 컬럼 아님). */
+  blocked_on?: string[];
   /**
    * "왜 이 에이전트가 배치됐는지" 한 줄 — 라우터의 SelectionTrace에서 도출.
    * ai 타입 자동 배정에만 존재. 사용자가 직접 교체하면 비워진다(직접 지정으로

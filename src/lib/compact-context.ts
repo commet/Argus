@@ -32,6 +32,8 @@ const LABELS = {
     skeleton: '뼈대',
     executionPlan: '실행계획',
     latestInsight: '최신 인사이트',
+    committedDirection: '사용자가 택한 방향',
+    nextThreeDays: '사용자가 정한 3일 계획',
   },
   en: {
     previousRounds: '[Previous rounds — summarized]',
@@ -43,6 +45,8 @@ const LABELS = {
     skeleton: 'Skeleton',
     executionPlan: 'Execution plan',
     latestInsight: 'Latest insight',
+    committedDirection: 'Direction the user committed to',
+    nextThreeDays: "User's chosen 3-day plan",
   },
 };
 
@@ -178,6 +182,15 @@ function formatSnapshot(s: AnalysisSnapshot, locale: Locale = 'ko'): string {
   }
   if (s.insight) {
     lines.push(`- ${L.latestInsight}: ${s.insight}`);
+  }
+  // The user's OWN chosen decision from a strategic_fork / weakness_check — the
+  // sharpest artifact of their judgment. Previously captured on the snapshot but
+  // never fed downstream (dead-wiring). Surface it so the draft honors it.
+  if (s.decision_line?.trim()) {
+    lines.push(`- ${L.committedDirection}: ${s.decision_line.trim()}`);
+  }
+  if (s.next_three_days && s.next_three_days.length > 0) {
+    lines.push(`- ${L.nextThreeDays}: ${s.next_three_days.join(' / ')}`);
   }
   return lines.join('\n');
 }
