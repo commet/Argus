@@ -45,6 +45,15 @@ export interface SelectionTrace {
   /** True when the agent was force-added (e.g. the critical-stakes Critic),
    *  not chosen by capability score — drives a distinct rationale string. */
   forced?: boolean;
+  /** F3 — margin between the winner and the runner-up (winner.total - second.total,
+   *  or 1.0 if the winner was the only candidate). Internal-routing-only (spine
+   *  rule 2: never a user-facing number) — it drives the HONEST reason: a small
+   *  margin → a "near-tie" line, not a false "best fit". */
+  confidence?: number;
+  /** F3 — 'awarded' (a real capability match, total > 0) vs 'unfilled' (no
+   *  qualified bidder; the best was assigned as least-bad and the reason says
+   *  "weak match" honestly, instead of degrading to a hardcoded keyword pick). */
+  outcome?: 'awarded' | 'unfilled';
 }
 
 /* ─── Layer 3: Experience Adjustment ─── */
@@ -56,8 +65,11 @@ function computeExperienceBoost(
 ): number {
   let boost = 0;
 
-  // 3a. Agent 레벨 보너스 (고레벨 = 경험 많음)
-  boost += Math.min(agent.level, 5) * 0.02; // max +0.10
+  // F3a — XP/level severed from routing. `agent.level` is declared cosmetic
+  // (useAgentStore: "must never gate capability"), but a +0.10 level boost still
+  // leaked here — a rich-get-richer loop (XP is earned by being USED) with no
+  // calibration basis, large enough (=the whole 1st↔2nd task-type gap) to flip a
+  // tie. Routing now learns only from hit-rate (3c), the legitimate signal.
 
   // 3b. 관찰 기반 보정
   const relevantObs = observations.filter(o => o.confidence >= 0.3);
@@ -91,17 +103,9 @@ function computeExperienceBoost(
     boost += (hitRate.rate - 0.5) * 0.3;
   }
 
-  // 3d. Activity 기반 승인률 (agent에 활동 기록이 있으면)
-  const activities = (agent as Agent & { activities?: { type: string }[] }).activities;
-  if (activities && activities.length >= 5) {
-    const approvals = activities.filter(a => a.type === 'task_approved').length;
-    const rejections = activities.filter(a => a.type === 'task_rejected').length;
-    const total = approvals + rejections;
-    if (total >= 5) {
-      const approvalRate = approvals / total;
-      boost += (approvalRate - 0.5) * 0.1; // -0.05 ~ +0.05
-    }
-  }
+  // (F3a removed the former "3d activity approval-rate" branch — it read
+  //  `agent.activities`, a field that doesn't exist on Agent (activities live in
+  //  the store array), so it was dead code that never fired.)
 
   return boost;
 }
@@ -188,20 +192,33 @@ export function selectAgents(
       };
     });
 
-    // 최고 점수 에이전트 선택
+    // 최고 점수 에이전트 선택. F3: selection is now TOTAL — the best candidate is
+    // always assigned (so the keyword fallback is dead code), but a non-positive
+    // best is tagged outcome:'unfilled' so the reason is honest ("weak match")
+    // instead of a false "best fit". An all-ineligible pool (-Infinity, e.g. a
+    // legal step with only anti-pattern agents) yields no finite best → left for
+    // the caller to surface as unfilled (never force a wrong fit).
     scored.sort((a, b) => b.totalScore - a.totalScore);
     const best = scored[0];
 
-    if (best && best.totalScore > 0) {
+    if (best && Number.isFinite(best.totalScore)) {
       result.set(i, best.agent);
       usedAgentIds.add(best.agent.id);
       const bestLens = lensOf(best.agent.id);
       if (bestLens) usedLenses.add(bestLens);
 
+      // Confidence = margin to the runner-up (1.0 if the winner stood alone).
+      const second = scored[1];
+      const confidence = second && Number.isFinite(second.totalScore)
+        ? Math.round((best.totalScore - second.totalScore) * 100) / 100
+        : 1.0;
+
       traces.push({
         stepIndex: i,
         taskClassification: tc,
         selectedAgent: best.agent.id,
+        confidence,
+        outcome: best.totalScore > 0 ? 'awarded' : 'unfilled',
         scores: scored.slice(0, 3).map(s => ({
           agentId: s.agent.id,
           baseScore: Math.round(s.baseScore * 100) / 100,

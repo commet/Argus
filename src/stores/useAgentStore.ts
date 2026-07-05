@@ -15,6 +15,8 @@ import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { loadAndMerge, upsertToSupabase, syncToSupabase, insertToSupabase } from '@/lib/db';
 import type { Persona } from '@/stores/types';
 import { personaToAgentInput } from '@/lib/agent-adapters';
+import { scoreAgentForTask } from '@/lib/agent-capabilities';
+import { classifySteps } from '@/lib/task-classifier';
 import {
   type Agent,
   type AgentChain,
@@ -317,7 +319,7 @@ interface AgentState {
   reinforceObservation: (agentId: string, obsId: string) => void;
 
   // 작업 배정
-  assignAgentToTask: (task: string, expectedOutput: string, usedIds: Set<string>) => Agent;
+  assignAgentToTask: (task: string, expectedOutput: string, usedIds: Set<string>) => Agent | null;
 
   // Boss 생성
   createBossAgent: (config: {
@@ -632,43 +634,29 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   // ─── 작업 배정 ───
 
+  // F3 — single dispatch brain. The former keyword-count + hardcoded-hayoon
+  // fallback (a second, worse router that ignored anti-patterns — an intern could
+  // land a legal step) is gone. This is the per-step reuse fallback for when
+  // selectAgents left a step unassigned (more steps than lenses); it uses the SAME
+  // capability scorer as the primary router. Returns null on no-qualified-bidder
+  // → the caller leaves the worker agent-less (honest "no specialist matched"),
+  // never a forced wrong fit.
   assignAgentToTask: (task, expectedOutput, usedIds) => {
-    const unlocked = get().getUnlockedAgents()
-      .filter(a => a.capabilities.includes('task_execution'));
+    const candidates = get().getUnlockedAgents()
+      .filter(a => a.capabilities.includes('task_execution') && !usedIds.has(a.id));
+    if (candidates.length === 0) return null;
 
-    const text = `${task} ${expectedOutput}`.toLowerCase();
+    const [tc] = classifySteps([{ task, output: expectedOutput }]);
+    if (!tc) return null;
 
-    // 키워드 매칭 점수 계산
-    let bestAgent: Agent | null = null;
-    let bestScore = 0;
-
-    for (const agent of unlocked) {
-      if (usedIds.has(agent.id)) continue;
-      const keywords = agent.keywords || [];
-      const score = keywords.filter(kw => text.includes(kw)).length;
-
-      // 동일 점수면 높은 레벨 우선
-      if (score > bestScore || (score === bestScore && score > 0 && agent.level > (bestAgent?.level || 0))) {
-        bestScore = score;
-        bestAgent = agent;
-      }
+    let best: Agent | null = null;
+    let bestScore = 0; // require a real match (> 0); anti-pattern/−Infinity never wins
+    for (const agent of candidates) {
+      const score = scoreAgentForTask(agent.id, tc.taskType, tc.secondaryType, tc.contextDomain, tc.outputType);
+      if (score > bestScore) { bestScore = score; best = agent; }
     }
-
-    if (bestAgent) {
-      usedIds.add(bestAgent.id);
-      return bestAgent;
-    }
-
-    // Fallback: 첫 번째 미사용 에이전트
-    const unused = unlocked.find(a => !usedIds.has(a.id));
-    if (unused) {
-      usedIds.add(unused.id);
-      return unused;
-    }
-
-    // 최종 fallback: 하윤 (중복 허용)
-    const hayoon = get().agents.find(a => a.id === 'hayoon');
-    return hayoon || unlocked[0];
+    if (best) usedIds.add(best.id);
+    return best;
   },
 
   // ─── Boss 생성 ───

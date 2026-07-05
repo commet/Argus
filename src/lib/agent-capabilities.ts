@@ -29,6 +29,12 @@ const RANK_SCORES = [1.0, 0.8, 0.6, 0.45, 0.3, 0.2];
 const DEFAULT_SCORE = 0.05;      // 목록에 없는 항목
 const ANTI_PATTERN_PENALTY = -0.4;
 
+/** F3 — task types where an anti-pattern makes an agent HARD-ineligible (not just
+ *  penalized): a wrong fit here carries real downside (legal/regulatory exposure).
+ *  Kept deliberately minimal (start with legal only) — a broad hard-filter over a
+ *  sparse roster would make 'unfilled' escalations routine instead of rare. */
+const SENSITIVE_TASK_TYPES: ReadonlySet<TaskType> = new Set<TaskType>(['legal_review']);
+
 // 매칭 차원별 가중치
 const WEIGHTS = {
   taskType: 0.50,   // task type이 가장 중요 (무엇을 하는가)
@@ -227,8 +233,14 @@ export function scoreAgentForTask(
   const cap = capabilityMap.get(agentId);
   if (!cap) return DEFAULT_SCORE;
 
-  // Anti-pattern 체크
-  if (cap.antiPatterns.includes(taskType)) return ANTI_PATTERN_PENALTY;
+  // Anti-pattern 체크. F3: for a SENSITIVE task type, an anti-pattern is a HARD
+  // ineligibility (-Infinity), not a soft -0.4 — so a junior/ill-suited agent can
+  // NEVER win a legal step even on a sparse roster (CNP anti-capability gate). The
+  // caller (selectAgents) treats a non-finite best as unfilled → escalate, never
+  // force a wrong fit onto a high-stakes task.
+  if (cap.antiPatterns.includes(taskType)) {
+    return SENSITIVE_TASK_TYPES.has(taskType) ? -Infinity : ANTI_PATTERN_PENALTY;
+  }
 
   // 주요 타입 매칭
   let taskScore = rankScore(taskType, cap.taskTypes);
