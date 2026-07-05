@@ -7,10 +7,26 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { scoreAgentForTask } from '../agent-capabilities';
 import { buildAssignmentReason } from '../assignment-reason';
 import type { SelectionTrace } from '../orchestrator-select';
 import type { Agent } from '@/stores/agent-types';
+
+describe('F3a — XP/level cannot leak back into routing (regression guard)', () => {
+  it('orchestrator-select.ts does not read agent.level (a cosmetic, gameable counter)', () => {
+    // XP is earned by being USED; feeding it into who-gets-used-next is a
+    // rich-get-richer loop with no calibration basis. Routing learns from
+    // hit-rate only. If someone re-adds a level boost, this fails.
+    const src = readFileSync(join(__dirname, '..', 'orchestrator-select.ts'), 'utf8');
+    // Strip line + block comments so a comment MENTIONING agent.level (like the
+    // F3a note explaining why it was removed) doesn't false-positive — we only
+    // fail on real code usage.
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    expect(code).not.toMatch(/agent\.level/);
+  });
+});
 
 describe('F3e — sensitive anti-pattern is hard-ineligible', () => {
   it('an agent that anti-patterns legal_review is INELIGIBLE (-Infinity) for a legal task', () => {

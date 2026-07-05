@@ -1131,10 +1131,13 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
         framework: pw.framework || undefined,
         stage_id: pw.stageId || undefined,
         task_type: pw.taskType || undefined,
-        // Why-this-agent rationale — only when the *planned* agent was used.
-        // If we fell back to assignAgentToTask, the trace describes a
-        // different pick, so we drop it rather than mislabel.
-        assignment_reason: agent ? pw.assignmentReason : undefined,
+        // Why-this-agent rationale. Keep it when the *planned* agent was used
+        // (correct), OR when NO agent was assigned at all (fallbackAgent null =
+        // the F3 'unfilled' case — the reason is the honest "no strong fit" line,
+        // which must reach the captain, especially on a sensitive/legal step).
+        // Drop it ONLY when we fell back to a DIFFERENT agent (the reason would
+        // mislabel that pick).
+        assignment_reason: agent ? pw.assignmentReason : (fallbackAgent ? undefined : pw.assignmentReason),
         stream_text: '',
         result: null,
         human_input: null,

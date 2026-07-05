@@ -192,40 +192,41 @@ export function selectAgents(
       };
     });
 
-    // 최고 점수 에이전트 선택. F3: selection is now TOTAL — the best candidate is
-    // always assigned (so the keyword fallback is dead code), but a non-positive
-    // best is tagged outcome:'unfilled' so the reason is honest ("weak match")
-    // instead of a false "best fit". An all-ineligible pool (-Infinity, e.g. a
-    // legal step with only anti-pattern agents) yields no finite best → left for
-    // the caller to surface as unfilled (never force a wrong fit).
+    // 최고 점수 에이전트 선택. F3: a POSITIVE fit is assigned; a non-positive best
+    // (a soft anti-pattern −0.4, or a sensitive-task −Infinity) is NEVER
+    // force-assigned — forcing it would inject a mismatched specialist's
+    // frameworks (worse than a generalist). Instead we record an 'unfilled' trace
+    // (no agent), so the worker runs agent-less (a neutral generalist) AND the
+    // captain sees an honest "no strong fit" reason on it — especially important
+    // for the sensitive case (a legal step with no qualified lawyer must SAY so,
+    // not silently run a generalist). The keyword fallback stays dead either way
+    // (assignAgentToTask is now capability-based and also returns null here).
     scored.sort((a, b) => b.totalScore - a.totalScore);
     const best = scored[0];
+    if (!best) continue;
 
-    if (best && Number.isFinite(best.totalScore)) {
+    // Confidence = margin to the runner-up (1.0 if the winner stood alone). Both
+    // finite-guarded so a −Infinity runner-up doesn't poison the margin.
+    const second = scored[1];
+    const confidence = second && Number.isFinite(best.totalScore) && Number.isFinite(second.totalScore)
+      ? Math.round((best.totalScore - second.totalScore) * 100) / 100
+      : 1.0;
+    const topScores = scored.slice(0, 3).map(s => ({
+      agentId: s.agent.id,
+      baseScore: Math.round(s.baseScore * 100) / 100,
+      experienceBoost: Math.round(s.experienceBoost * 100) / 100,
+      total: Number.isFinite(s.totalScore) ? Math.round(s.totalScore * 100) / 100 : s.totalScore,
+    }));
+
+    if (best.totalScore > 0) {
       result.set(i, best.agent);
       usedAgentIds.add(best.agent.id);
       const bestLens = lensOf(best.agent.id);
       if (bestLens) usedLenses.add(bestLens);
-
-      // Confidence = margin to the runner-up (1.0 if the winner stood alone).
-      const second = scored[1];
-      const confidence = second && Number.isFinite(second.totalScore)
-        ? Math.round((best.totalScore - second.totalScore) * 100) / 100
-        : 1.0;
-
-      traces.push({
-        stepIndex: i,
-        taskClassification: tc,
-        selectedAgent: best.agent.id,
-        confidence,
-        outcome: best.totalScore > 0 ? 'awarded' : 'unfilled',
-        scores: scored.slice(0, 3).map(s => ({
-          agentId: s.agent.id,
-          baseScore: Math.round(s.baseScore * 100) / 100,
-          experienceBoost: Math.round(s.experienceBoost * 100) / 100,
-          total: Math.round(s.totalScore * 100) / 100,
-        })),
-      });
+      traces.push({ stepIndex: i, taskClassification: tc, selectedAgent: best.agent.id, confidence, outcome: 'awarded', scores: topScores });
+    } else {
+      // No qualified bidder — surface it honestly; do NOT force the worst fit.
+      traces.push({ stepIndex: i, taskClassification: tc, selectedAgent: '', confidence: 0, outcome: 'unfilled', scores: topScores });
     }
   }
 
