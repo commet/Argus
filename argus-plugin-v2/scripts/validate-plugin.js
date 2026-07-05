@@ -70,6 +70,20 @@ for (const skill of SKILLS) {
       }
       check(desc.length <= 1024, `skills/${skill}/SKILL.md description is ${desc.length} chars (>1024 risks truncation)`);
     }
+    // agentskills naming conformance (agentskills.io/specification): the `name`
+    // field must exist, follow the lowercase/hyphen rules (≤64, no leading/
+    // trailing/consecutive hyphen), and MATCH the parent directory — which is
+    // also the /argus:<dir> invocation, so a mismatch is both a spec violation
+    // and a broken command. Portable-standard alignment; argument-hint /
+    // allowed-tools stay legitimate (Claude Code fields, not flagged).
+    const nameMatch = (body.split(/\r?\n---/)[0] + "\n").match(/\nname:[ \t]*(.*)\r?\n/);
+    check(nameMatch, `skills/${skill}/SKILL.md missing frontmatter name (agentskills requires name)`);
+    if (nameMatch) {
+      const name = nameMatch[1].trim().replace(/^["']|["']$/g, "");
+      check(name === skill, `skills/${skill}/SKILL.md name "${name}" must equal the skill directory "${skill}" (agentskills: name must match parent dir; also the /argus:${skill} invocation)`);
+      check(/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name), `skills/${skill}/SKILL.md name "${name}" violates agentskills naming (lowercase a-z 0-9 with single hyphens; no leading/trailing/consecutive hyphen)`);
+      check(name.length <= 64, `skills/${skill}/SKILL.md name is ${name.length} chars (>64, agentskills limit)`);
+    }
     // Path-resolution regression guard: bundled files are referenced via
     // ${CLAUDE_PLUGIN_ROOT}; only sail documents the legacy fallbacks.
     if (skill !== "sail") {
