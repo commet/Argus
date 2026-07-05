@@ -28,6 +28,8 @@ import {
   type WeaknessCheckEffect,
 } from '@/lib/question-types';
 import { pickSafeFallbackQuestion } from '@/lib/question-fallbacks';
+import { validateQuestion, OverFireError, guardQuestionText } from '@/lib/question-validator';
+import { track } from '@/lib/analytics';
 import { buildReviewPrompt } from '@/lib/review-prompt';
 import { sanitizeForPrompt } from '@/lib/persona-prompt';
 import type { Agent } from '@/stores/agent-types';
@@ -35,7 +37,7 @@ import { assessConvergence, assessConvergenceWithWorkers } from '@/lib/progressi
 import { runDebateRound, type DebateResult } from '@/lib/debate-engine';
 import { generateId } from '@/lib/uuid';
 import { useAgentStore } from '@/stores/useAgentStore';
-import { getCurrentLanguage } from '@/lib/i18n';
+import { getCurrentLanguage, type Locale } from '@/lib/i18n';
 import { classifyCrisis, type CrisisSignal } from '@/lib/crisis-gate';
 import { assessFrameStatus } from '@/lib/judgment-gates';
 import type {
@@ -242,18 +244,35 @@ interface WeaknessCheckLLMResponse {
  * Returns null on failure — caller should fall back to the legacy
  * untyped next_question from runInitialAnalysis / runDeepening.
  */
-export async function runTypedQuestion(
+/** Turn a Layer-1 reject into a one-line regen instruction appended to the
+ *  generation prompt (§6.1: "실패 사유를 프롬프트에 주입"). */
+function buildRegenHint(rule: string, locale: Locale): string {
+  const why: Record<string, [string, string]> = {
+    admin_only: ['행정적 질문(마감·형식·결정권자)은 금지입니다', 'admin questions (deadline/format/decision-maker) are banned'],
+    category_options: ['선택지가 카테고리 명사입니다 — 상사가 사인할 1줄 결정으로 바꾸세요', 'options are category nouns — make each a 1-line decision a boss could sign'],
+    reask_known: ['이미 물어본 주제를 반복하고 있습니다 — 새 각도로 파고드세요', 'this repeats a theme already asked — dig from a new angle'],
+    internal_structure: ['산출물의 내부 구조(섹션·스켈레톤)를 묻고 있습니다 — 판단을 바꾸는 전제를 물으세요', 'this asks about the deliverable structure — ask the premise that changes the judgment instead'],
+    confirmation_bias: ['확인을 유도하는 질문입니다 — 중립적인 crux 질문으로 바꾸세요', 'this is a leading confirmation — make it a neutral crux question'],
+  };
+  const [ko, en] = why[rule] ?? ['질문 품질 기준에 미달했습니다', 'the question fell below the quality floor'];
+  return locale === 'ko'
+    ? `\n\n[재생성] 직전 질문이 반려됐습니다: ${ko}. 이 문제를 피해 다시 생성하세요.`
+    : `\n\n[REGENERATE] The previous question was rejected: ${en}. Regenerate avoiding this.`;
+}
+
+/** Generate ONE typed question (no validation). regenHint, when present, is
+ *  appended to the user prompt so the model avoids the prior reject reason. */
+async function generateTypedQuestion(
   type: QuestionTypeTag,
   ctx: TypedQuestionContext,
+  locale: Locale,
   signal?: AbortSignal,
+  regenHint?: string,
 ): Promise<FlowQuestion | null> {
-  const locale = getCurrentLanguage();
-
-  try {
     if (type === 'strategic_fork') {
       const { system, user } = buildStrategicForkPrompt(ctx, locale);
       const result = await callLLMJson<StrategicForkLLMResponse>(
-        [{ role: 'user', content: user }],
+        [{ role: 'user', content: user + (regenHint ?? '') }],
         { system, maxTokens: 2500, signal, shape: { text: 'string', options: 'array' } },
       );
       if (!result.options || result.options.length < 2) return null;
@@ -297,7 +316,7 @@ export async function runTypedQuestion(
     if (type === 'weakness_check') {
       const { system, user } = buildWeaknessCheckPrompt(ctx, locale);
       const result = await callLLMJson<WeaknessCheckLLMResponse>(
-        [{ role: 'user', content: user }],
+        [{ role: 'user', content: user + (regenHint ?? '') }],
         { system, maxTokens: 2500, signal, shape: { text: 'string', options: 'array' } },
       );
       if (!result.options || result.options.length < 2) return null;
@@ -335,6 +354,62 @@ export async function runTypedQuestion(
 
     // frame_clarify / free_follow_up: not yet implemented — fall through to legacy.
     return null;
+}
+
+/**
+ * Generate a typed question through the Question Quality Gate (§6.1):
+ * generate → Layer-1 validate → on reject, regenerate with the reason injected
+ * (≤2 attempts total) → on exhaustion, return null (caller uses the safe legacy
+ * fallback, which is itself banned-guarded). Every reject/recovery/exhaustion is
+ * logged to user_events so the fallback rate is measurable (§6.1).
+ *
+ * Engine picks the TYPE (state machine); the LLM only fills CONTENT.
+ */
+export async function runTypedQuestion(
+  type: QuestionTypeTag,
+  ctx: TypedQuestionContext,
+  signal?: AbortSignal,
+): Promise<FlowQuestion | null> {
+  const locale = getCurrentLanguage();
+  const MAX_ATTEMPTS = 2;
+  let lastRejectRule: string | undefined;
+
+  try {
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const hint = lastRejectRule ? buildRegenHint(lastRejectRule, locale) : undefined;
+      const q = await generateTypedQuestion(type, ctx, locale, signal, hint);
+      if (!q) return null; // generation failure — caller uses legacy (guarded)
+
+      let res;
+      try {
+        res = validateQuestion({
+          text: q.text,
+          options: q.options,
+          tag: type,
+          locale,
+          requestType: ctx.requestType,
+          previousQA: ctx.previousQA,
+          userText: ctx.problemText,
+        });
+      } catch (e) {
+        // R5 over-fire: a non-open request reached generation (structural gate
+        // bypassed). Degrade to the legacy path, loudly in dev + telemetry.
+        if (e instanceof OverFireError) {
+          track('question_quality', { outcome: 'over_fire', tag: type, request_type: ctx.requestType });
+          return null;
+        }
+        throw e;
+      }
+
+      if (res.ok) {
+        if (attempt > 0) track('question_quality', { outcome: 'regen_recovered', tag: type });
+        return q;
+      }
+      lastRejectRule = res.rule;
+      track('question_quality', { outcome: 'reject', rule: res.rule, tag: type, attempt });
+    }
+    track('question_quality', { outcome: 'exhausted', rule: lastRejectRule, tag: type });
+    return null;
   } catch (err) {
     if (process.env.NODE_ENV === 'development') {
       console.warn('[typed-question] failed:', err instanceof Error ? err.message : err);
@@ -355,6 +430,24 @@ export async function pickAndGenerateTypedQuestion(
   const type = pickNextQuestionType(stateCtx);
   if (!type) return null;
   return runTypedQuestion(type, promptCtx, signal);
+}
+
+/**
+ * Last-line quality floor for the user-facing question on EVERY path (§6.2
+ * coverage note). Typed questions already passed the validator; this catches a
+ * banned LLM-provided legacy/generic question (e.g. next_question.text that is
+ * itself an admin-only ask) and swaps it for a safe crux, dropping now-stale
+ * options. A no-op for questions that are already clean. */
+function guardFinalQuestion(
+  q: FlowQuestion | null,
+  locale: Locale,
+  seed: string,
+): FlowQuestion | null {
+  if (!q) return q;
+  const g = guardQuestionText(q.text, locale, seed);
+  if (!g.banned) return q;
+  track('question_quality', { outcome: 'final_guard_swap', phase: q.engine_phase });
+  return { ...q, text: g.text, options: undefined, type: 'short' };
 }
 
 // ─── Engine functions ───
@@ -510,20 +603,22 @@ export async function runInitialAnalysis(
         skeleton: snapshot.skeleton,
         insight: snapshot.insight,
       },
+      requestType: snapshot.request_type,
     },
   ] as const;
 
+  const seed = snapshot.real_question || problemText;
   let question: FlowQuestion;
   if (onTypedUpgrade) {
     // Show the legacy question NOW; upgrade in the background (best-effort —
     // abort/failure leaves the legacy question standing, which is honest).
-    question = legacyQuestion;
+    question = guardFinalQuestion(legacyQuestion, locale, seed) ?? legacyQuestion;
     pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal)
       .then((t) => { if (t) onTypedUpgrade(t, legacyQuestion.id); })
       .catch(() => { /* upgrade is optional polish, never a failure */ });
   } else {
     const typed = await pickAndGenerateTypedQuestion(typedArgs[0], typedArgs[1], signal);
-    question = typed ?? legacyQuestion;
+    question = guardFinalQuestion(typed ?? legacyQuestion, locale, seed) ?? legacyQuestion;
   }
 
   return {
@@ -602,16 +697,17 @@ export async function refineInitialFraming(
     decision_density_reasoning: result.decision_density_reasoning,
   };
 
+  const refinedQuestion: FlowQuestion = {
+    id: generateId(),
+    text: result.next_question?.text || pickSafeFallbackQuestion(locale, result.real_question || problemText),
+    subtext: result.next_question?.subtext,
+    options: toStringOptions(result.next_question?.options),
+    type: result.next_question?.type || 'select',
+    engine_phase: 'reframe',
+  };
   return {
     snapshot,
-    question: {
-      id: generateId(),
-      text: result.next_question?.text || pickSafeFallbackQuestion(locale, result.real_question || problemText),
-      subtext: result.next_question?.subtext,
-      options: toStringOptions(result.next_question?.options),
-      type: result.next_question?.type || 'select',
-      engine_phase: 'reframe',
-    },
+    question: guardFinalQuestion(refinedQuestion, locale, result.real_question || problemText) ?? refinedQuestion,
     detectedDM: result.detected_decision_maker || null,
   };
 }
@@ -816,6 +912,7 @@ export async function runDeepening(
         q: qa.question.text,
         a: qa.answer.value,
       })),
+      requestType: snapshot.request_type,
     };
 
     const legacyQuestion: FlowQuestion | null = result.next_question
@@ -833,13 +930,13 @@ export async function runDeepening(
       // P1-3: the user sees the next question immediately (the deepening
       // answer already arrived); the typed upgrade lands ~5–10s later and
       // swaps in only while the question is still unanswered.
-      question = legacyQuestion;
+      question = guardFinalQuestion(legacyQuestion, locale, snapshot.real_question || problemText);
       pickAndGenerateTypedQuestion(stateCtx, genCtx, signal)
         .then((t) => { if (t) onTypedUpgrade(t, legacyQuestion.id); })
         .catch(() => { /* best-effort upgrade */ });
     } else {
       const typed = await pickAndGenerateTypedQuestion(stateCtx, genCtx, signal);
-      question = typed ?? legacyQuestion;
+      question = guardFinalQuestion(typed ?? legacyQuestion, locale, snapshot.real_question || problemText);
     }
   }
 

@@ -1072,6 +1072,10 @@ export interface TypedQuestionContext {
   previousQA?: Array<{ q: string; a: string }>;
   /** weakness_check용: 워커가 산출한 결과 요약 */
   workerSummary?: string;
+  /** snapshot.request_type — the quality validator's R5 over-fire guard reads
+   *  this. A defined non-'open' value here means the structural gate was
+   *  bypassed (clarify v2 §6.2 R5). */
+  requestType?: string;
 }
 
 /**
