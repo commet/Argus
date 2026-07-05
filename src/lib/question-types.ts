@@ -14,6 +14,7 @@
  */
 
 import type { AnalysisSnapshot, FlowQuestion } from '@/stores/types';
+import { FRAME_CLARIFY_CONFIDENCE_GATE } from '@/lib/question-rules';
 
 // ─── Type tags ───
 
@@ -56,9 +57,12 @@ export interface WeaknessCheckEffect {
 
 /**
  * frame_clarify — 모호함 해소. 답은 real_question을 재정의한다.
+ * (DESIGN-clarify-question-system-v2 §4.3)
  */
 export interface FrameClarifyEffect {
-  /** 이 답을 받으면 framing_confidence가 올라간다 (보통 +20~30) */
+  /** 선택된 frame 문장 — 다음 질문 프롬프트 컨텍스트로 소비된다. 필수(판별자). */
+  chosenFrame: string;
+  /** 이 답을 받으면 framing_confidence가 올라간다 (보통 +20~30, 엔진이 clamp) */
   framingBoost?: number;
   snapshotPatch?: SnapshotPatch;
 }
@@ -101,6 +105,15 @@ export interface QuestionStateContext {
   workerOutputsReady: boolean;
   /** 사용자가 기본 sequence 이후 "한 번 더 물어봐"를 눌렀을 때 */
   userRequestedMore?: boolean;
+  /** snapshot.request_type — the structural fire-gate (§4.7). A confirmed
+   *  non-'open' request routes to NO typed question (defense in depth over the
+   *  route contract). Undefined is treated permissively (older models omit it),
+   *  matching the validator's R5, so typed questions don't vanish silently. */
+  requestType?: string;
+  /** Whether STEP-0 actually reported framing_confidence (§4.3b). When false,
+   *  the caller passes FRAMING_CONFIDENCE_ROUTING_FALLBACK as framingConfidence
+   *  so "signal absent" fires frame_clarify instead of reading as confident. */
+  framingConfidenceReported?: boolean;
 }
 
 /**
@@ -117,11 +130,17 @@ export interface QuestionStateContext {
 export function pickNextQuestionType(
   ctx: QuestionStateContext,
 ): QuestionTypeTag | null {
+  // Structural fire-gate (§4.7): a confirmed non-open request routes to no typed
+  // question. This is defense in depth over the route contract (R32) — the gate
+  // lives in the code signature, not a prompt. Undefined request_type is treated
+  // permissively (see QuestionStateContext.requestType).
+  if (ctx.requestType && ctx.requestType !== 'open') return null;
+
   if (ctx.userRequestedMore) return 'free_follow_up';
 
   const asked = new Set(ctx.askedTypes);
 
-  if (ctx.framingConfidence < 70 && !asked.has('frame_clarify')) {
+  if (ctx.framingConfidence < FRAME_CLARIFY_CONFIDENCE_GATE && !asked.has('frame_clarify')) {
     return 'frame_clarify';
   }
   if (!asked.has('strategic_fork')) {
@@ -149,6 +168,27 @@ export function applySnapshotPatch(
     hidden_assumptions: patch.hidden_assumptions ?? snapshot.hidden_assumptions,
     skeleton: patch.skeleton ?? snapshot.skeleton,
     insight: patch.insight ?? snapshot.insight,
+  };
+}
+
+/**
+ * Consume a frame_clarify answer (§4.3 consumption contract): apply its
+ * snapshotPatch (the reframed real_question etc.) AND raise framing_confidence
+ * by framingBoost — a signal that came from the user's own choice, so it's
+ * trusted (unlike an LLM self-report). chosenFrame is recorded as the framing
+ * override reason so the next question's prompt can carry it. Clamped [0,100].
+ */
+export function applyFrameClarifyEffect(
+  snapshot: AnalysisSnapshot,
+  effect: FrameClarifyEffect,
+): AnalysisSnapshot {
+  const patched = applySnapshotPatch(snapshot, effect.snapshotPatch);
+  const boost = typeof effect.framingBoost === 'number' ? effect.framingBoost : 20;
+  const raised = Math.min(100, Math.max(0, (patched.framing_confidence ?? 50) + boost));
+  return {
+    ...patched,
+    framing_confidence: raised,
+    framing_override_reason: effect.chosenFrame || patched.framing_override_reason,
   };
 }
 

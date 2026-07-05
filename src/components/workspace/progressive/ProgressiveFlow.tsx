@@ -42,8 +42,8 @@ import { track } from '@/lib/analytics';
 import { recordSignal } from '@/lib/signal-recorder';
 import { CrisisConcernBanner } from './CrisisConcernBanner';
 import type { FlowQuestion, FlowAnswer, AnalysisSnapshot, DMConcern, MixResult, WorkerTask, LeadSynthesisResult, Draft, LoadBearingClaim, Falsification as FalsificationResult } from '@/stores/types';
-import { findEffectForAnswer, applySnapshotPatch } from '@/lib/question-types';
-import type { StrategicForkEffect, WeaknessCheckEffect } from '@/lib/question-types';
+import { findEffectForAnswer, applySnapshotPatch, applyFrameClarifyEffect } from '@/lib/question-types';
+import type { StrategicForkEffect, WeaknessCheckEffect, FrameClarifyEffect } from '@/lib/question-types';
 import { WorkerReportBlock } from './WorkerCard';
 import { PersonaPoolModal } from './PersonaPoolModal';
 import { AvatarRow } from './WorkerAvatar';
@@ -1844,9 +1844,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     const typedEffect = findEffectForAnswer(curQ, value);
     let forkEffect: StrategicForkEffect | null = null;
     let weakEffect: WeaknessCheckEffect | null = null;
+    let frameEffect: FrameClarifyEffect | null = null;
     if (typedEffect) {
       if ('decisionLine' in typedEffect) forkEffect = typedEffect as StrategicForkEffect;
       else if ('weakestAssumption' in typedEffect && 'nextThreeDays' in typedEffect) weakEffect = typedEffect as WeaknessCheckEffect;
+      else if ('chosenFrame' in typedEffect) frameEffect = typedEffect as FrameClarifyEffect;
     }
 
     try {
@@ -1892,6 +1894,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       }
       if (weakEffect?.snapshotPatch) {
         mergedSnapshot = applySnapshotPatch(mergedSnapshot, weakEffect.snapshotPatch);
+      }
+      // frame_clarify consumption (§4.3): reframe + raise framing_confidence by
+      // the user-chosen boost. The user's explicit frame beats the LLM's own
+      // reinterpretation, same precedence as fork/weakness above.
+      if (frameEffect) {
+        mergedSnapshot = applyFrameClarifyEffect(mergedSnapshot, frameEffect);
       }
       mergedSnapshot = {
         ...mergedSnapshot,

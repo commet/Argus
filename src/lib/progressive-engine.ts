@@ -12,6 +12,7 @@ import {
   buildMixPrompt,
   buildFinalDeliverablePrompt,
   buildNavigatorReviewPrompt,
+  buildFrameClarifyPrompt,
   buildStrategicForkPrompt,
   buildWeaknessCheckPrompt,
   buildOverreachPrompt,
@@ -26,8 +27,10 @@ import {
   type TypedQuestionOption,
   type StrategicForkEffect,
   type WeaknessCheckEffect,
+  type FrameClarifyEffect,
 } from '@/lib/question-types';
 import { pickSafeFallbackQuestion } from '@/lib/question-fallbacks';
+import { FRAMING_CONFIDENCE_ROUTING_FALLBACK } from '@/lib/question-rules';
 import { validateQuestion, OverFireError, guardQuestionText } from '@/lib/question-validator';
 import { track } from '@/lib/analytics';
 import { buildReviewPrompt } from '@/lib/review-prompt';
@@ -237,6 +240,19 @@ interface WeaknessCheckLLMResponse {
   options: WeaknessCheckLLMOption[];
 }
 
+interface FrameClarifyLLMOption {
+  label: string;          // the frame sentence (also chosenFrame)
+  real_question?: string; // reframed question under this frame
+  framingBoost?: number;
+  insight?: string;
+}
+
+interface FrameClarifyLLMResponse {
+  text: string;
+  subtext?: string;
+  options: FrameClarifyLLMOption[];
+}
+
 /**
  * Generate a typed question. Engine picks the TYPE (state machine);
  * LLM fills in the CONTENT within that type's schema.
@@ -352,7 +368,42 @@ async function generateTypedQuestion(
       );
     }
 
-    // frame_clarify / free_follow_up: not yet implemented — fall through to legacy.
+    if (type === 'frame_clarify') {
+      const { system, user } = buildFrameClarifyPrompt(ctx, locale);
+      const result = await callLLMJson<FrameClarifyLLMResponse>(
+        [{ role: 'user', content: user + (regenHint ?? '') }],
+        { system, maxTokens: 1800, signal, shape: { text: 'string', options: 'array' } },
+      );
+      if (!result.options || result.options.length < 2) return null;
+      const options: TypedQuestionOption[] = result.options
+        .filter(o => !!o.label)
+        .map(o => {
+          const effect: FrameClarifyEffect = {
+            chosenFrame: o.label,
+            // User-chosen signal → trusted; clamp defensively to [10,40] (§4.3b:
+            // the only confidence increment we trust is a real user action).
+            framingBoost: Math.min(40, Math.max(10, typeof o.framingBoost === 'number' ? o.framingBoost : 25)),
+            snapshotPatch: o.real_question || o.insight
+              ? {
+                  real_question: typeof o.real_question === 'string' ? o.real_question : undefined,
+                  insight: typeof o.insight === 'string' ? o.insight : undefined,
+                }
+              : undefined,
+          };
+          return { label: o.label, effect };
+        });
+      if (options.length < 2) return null;
+      return buildFlowQuestion(
+        generateId(),
+        'frame_clarify',
+        result.text,
+        result.subtext,
+        options,
+        'reframe',
+      );
+    }
+
+    // free_follow_up: not yet implemented — fall through to legacy.
     return null;
 }
 
@@ -542,6 +593,14 @@ export async function runInitialAnalysis(
   Object.assign(result, contractResult);
 
   const framingConfidence = Math.min(100, Math.max(0, result.framing_confidence ?? 75));
+  // §4.3b — the frame_clarify gate must not read "signal absent" as "confident".
+  // The snapshot keeps its 75 default (other consumers depend on it), but the
+  // QUESTION-ROUTING input treats a missing report as low (50), so an ambiguous
+  // framing that the model failed to score still fires frame_clarify.
+  const framingConfidenceReported = result.framing_confidence != null;
+  const routingFramingConfidence = framingConfidenceReported
+    ? framingConfidence
+    : FRAMING_CONFIDENCE_ROUTING_FALLBACK;
 
   const snapshot: AnalysisSnapshot = {
     version: 0,
@@ -591,9 +650,11 @@ export async function runInitialAnalysis(
   const typedArgs = [
     {
       round: 0,
-      framingConfidence,
+      framingConfidence: routingFramingConfidence,
+      framingConfidenceReported,
       askedTypes: [] as QuestionTypeTag[],
       workerOutputsReady: false,
+      requestType: snapshot.request_type,
     },
     {
       problemText,
@@ -899,6 +960,7 @@ export async function runDeepening(
       // that as "enough context to fire weakness_check" even without full
       // worker output. Real worker integration comes in a later phase.
       workerOutputsReady: round >= 1,
+      requestType: snapshot.request_type,
     };
     const genCtx = {
       problemText,

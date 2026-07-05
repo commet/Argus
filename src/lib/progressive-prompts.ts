@@ -13,6 +13,7 @@ import { compactQAHistory, shouldCompact, compactSnapshots, getKeepRecent } from
 import { localizePersona } from '@/lib/worker-personas';
 
 import { sanitizeForPrompt as sanitize } from './persona-prompt';
+import { GLOBAL_QUESTION_INSTRUCTION } from './question-rules';
 
 // ─── Locale type (matches useLocale.ts) ───
 
@@ -1076,6 +1077,87 @@ export interface TypedQuestionContext {
    *  this. A defined non-'open' value here means the structural gate was
    *  bypassed (clarify v2 §6.2 R5). */
   requestType?: string;
+}
+
+/**
+ * frame_clarify — "무엇을 정하는 문제인지"를 먼저 가른다 (DESIGN v2 §4.3).
+ *
+ * framing_confidence가 낮은(모호한) 구간에서 generic fallback으로 넘어가면
+ * 세션 전체가 잘못된 방향으로 간다. 여기서 사용자에게 *실제 frame 문장*을
+ * 고르게 해서 real_question을 재정의한다. 선택지는 문제 유형 카테고리("전략
+ * 문제"/"실행 문제")가 아니라, 지금 진짜 결정이 무엇인지를 1줄로 말하는 문장.
+ */
+export function buildFrameClarifyPrompt(
+  ctx: TypedQuestionContext,
+  locale: Locale = 'en',
+): { system: string; user: string } {
+  const lang = locale === 'ko' ? 'Korean' : 'English';
+  const qaBlock = ctx.previousQA && ctx.previousQA.length > 0
+    ? `\nPrevious Q&A (do NOT repeat these themes):\n${ctx.previousQA.map((qa, i) => `Q${i + 1}: ${sanitize(qa.q)}\nA${i + 1}: ${sanitize(qa.a)}`).join('\n')}\n`
+    : '';
+
+  return {
+    system: `You are a sharp senior colleague helping someone figure out what they are actually deciding. Always respond in ${lang}. ${locale === 'ko' ? '해요체 (warm but direct).' : 'Warm, direct tone.'}
+
+${GLOBAL_QUESTION_INSTRUCTION[locale]}
+
+Your ONLY job right now: the framing is ambiguous. Ask the ONE question that separates WHICH decision this actually is — so the whole session doesn't run in the wrong direction.
+
+═══ THE HARDEST RULE ═══
+Each option is an ACTUAL FRAME SENTENCE — a one-line statement of what the real decision is. NOT a problem-type category.
+
+${locale === 'ko' ? `BAD options (문제 유형 카테고리 — 절대 금지):
+  ✗ "전략 문제"
+  ✗ "실행 문제"
+  ✗ "커뮤니케이션 문제"
+
+GOOD options (지금 진짜 결정이 무엇인지 1줄):
+  ✓ "이 일을 할지 말지부터 정해야 한다"
+  ✓ "하기로 했고, 어떤 범위로 할지가 문제다"
+  ✓ "무엇을 할지는 정했고, 누구를 먼저 설득할지가 막혔다"` : `BAD options (problem-type categories — NEVER):
+  ✗ "A strategy problem"
+  ✗ "An execution problem"
+  ✗ "A communication problem"
+
+GOOD options (a one-line statement of what the real decision is):
+  ✓ "First I have to decide whether to do this at all"
+  ✓ "I've decided to do it; the question is what scope"
+  ✓ "I know what to do; I'm stuck on who to convince first"`}
+
+═══ QUESTION TEXT RULES ═══
+- Ask it as: "${locale === 'ko' ? '지금 진짜 정해야 하는 건 무엇인가요?' : "What are you actually deciding right now?"}" — then let the options carry the frames.
+- Offer 3 frames. Each must point the session at a genuinely different real_question.
+- For each option, also provide:
+  1. **real_question**: the reframed question under THIS frame (1 sentence, ends with ?).
+  2. **framingBoost**: how much choosing this clarifies things, 10–40 (the engine clamps).
+  3. **insight**: one sentence on what this frame reveals (optional).
+
+Respond in JSON only.`,
+
+    user: `The user's situation:
+<user-data>${sanitize(ctx.problemText)}</user-data>
+
+Current (uncertain) framing:
+- Real question so far: ${sanitize(ctx.snapshot.real_question)}
+- Hidden assumptions: ${ctx.snapshot.hidden_assumptions.map(a => sanitize(a)).join(' / ')}
+${qaBlock}
+Produce the FRAME CLARIFY question now.
+
+JSON:
+{
+  "text": "${locale === 'ko' ? '지금 진짜 정해야 하는 건 무엇인가요?' : 'What are you actually deciding right now?'}",
+  "subtext": "One line: 'this changes which question we work on'",
+  "options": [
+    {
+      "label": "An actual frame sentence (what the real decision is). NOT a category.",
+      "real_question": "the reframed question under this frame (ends with ?)",
+      "framingBoost": 25,
+      "insight": "one sentence on what this frame reveals"
+    }
+    // ... 3 total frames
+  ]
+}`,
+  };
 }
 
 /**
