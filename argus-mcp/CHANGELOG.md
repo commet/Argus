@@ -1,27 +1,47 @@
 # Changelog
 
-## 1.4.0 — Document review
+> Published on npm as **`argus-decision-mcp`**. The package was renamed from
+> `argus-mcp` (that name was already taken by an unrelated tool) and its version
+> **reset to 1.0.0** for the first release under the new name on **2026-07-03**.
+> The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
+> kept for reference — all of that work shipped inside the new-name 1.0.0.
 
-Bring an existing document to the receipt machine instead of only a typed
-decision. (The `argus_review` tool actually shipped alongside the 1.3.0 work
-but was never given its own release entry; 1.4.0 is its first published version
-— npm went straight from 1.0.0 to here, so this one catch-up release carries
-everything since.)
+## 1.1.0 — Reconsider loop, drift materiality, localization, document parsing
 
-- **New tool:** `argus_review` — reviews a document (strategy memo / PRD /
-  deck text / AI answer) for judgment risk and hands the analysis back to the
-  host model: a reviewability score, routed lenses, source units with anchors,
-  and the extraction prompt. It is **read-only** — it computes and returns,
-  never writing to `.argus`; the falsifiable follow-up it surfaces is sealed
-  through the existing `argus_seal` → `argus_settle` loop (one receipt machine,
-  no second store). Never a verdict; degrades honestly on unextractable input.
-- **Document extraction:** `.pdf` / `.docx` / `.pptx` are text-extracted with
-  page/slide anchors; two-column PDFs get gutter detection (no interleaving)
-  and table cells are preserved. Scanned or image-only files degrade honestly
-  rather than fabricating text. Response is bounded (unit + character budget)
-  so a large document can't return a giant tool result.
-- **Claim structure:** the extractor links evidence → claim and claim → claim,
-  so the review surfaces the argument's load-bearing structure, not a flat list.
+Everything since the 1.0.0 first release.
+
+- **Reconsider loop (M1/M3):** an in-session ambient due-line and a formalized
+  recheck cadence surface what's due without leaving the session; an
+  `open_question` left unresolved is nudged back periodically — a fact + a
+  handle, never a verdict, and leaving it open stays a valid answer.
+- **Drift materiality (M2):** a 3-valued drift engine with canonical unit scales,
+  so a re-checked number reports material / immaterial / unknown instead of a
+  raw diff.
+- **Localization (M4):** runtime language detection localizes the surface tools,
+  so a Korean session no longer gets English surfaces.
+- **MCP spec compliance:** https is enforced on any API-base override (the
+  account token never travels in cleartext), the 2025-06-18 top-level tool
+  `title` is emitted, and the README/description are narrowed to the hosts
+  actually supported (local **stdio** — no false ChatGPT/Gemini claim).
+- **`argus_review` document extraction:** `.pdf` / `.docx` / `.pptx` are now
+  text-extracted with page/slide anchors (previously binaries were refused);
+  two-column PDFs get gutter detection, tables keep their cells, and scanned or
+  image-only input degrades honestly. The extractor links evidence → claim and
+  claim → claim, so the review shows the argument's load-bearing structure.
+  Response is bounded so a large document can't return a giant result.
+
+## 1.0.0 — First release as `argus-decision-mcp` (2026-07-03)
+
+Rename + version reset from `argus-mcp`. Bundles the full prior surface: the
+seal → settle receipt loop whose Judgment Receipt carries `AI VERDICT … NONE`
+(the model never grades you, reality does), living premises (`argus_premises` /
+`argus_recheck`), the `argus_review` document reviewer (paste/text; binary
+extraction landed in 1.1.0), and forward-compatible ledger replay. The
+pre-rename entries below detail that work.
+
+---
+
+## Pre-rename history (`argus-mcp` — folded into 1.0.0 above)
 
 ## 1.3.0 — Living premises
 
