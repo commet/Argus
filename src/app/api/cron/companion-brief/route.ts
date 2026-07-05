@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { markdownToEmailHtml } from '@/lib/email-html';
-import { buildCompanionBrief, type DueReceiptBrief, type DuePredicate } from '@/lib/companion-brief';
+import { buildCompanionBrief, type DueReceiptBrief, type DuePredicate, type DuePremiseNudge } from '@/lib/companion-brief';
 import type { JudgmentReceipt } from '@/lib/review';
+import { isMonitored, nextRecheckDue } from '@/lib/premises-core';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,6 +48,22 @@ function duePredicates(receipt: JudgmentReceipt, todayYMD: string): DuePredicate
     }));
 }
 
+/** Monitored premises due for a re-check — only once the receipt is sealed
+ *  (mirrors the MCP's isNudgeArmed: sealed decisions arm the nudge). An
+ *  INVITATION to look at reality, never an auto-detected change. */
+function duePremiseNudges(receipt: JudgmentReceipt, todayYMD: string): DuePremiseNudge[] {
+  const armed = receipt.state === 'sealed'
+    || (receipt.falsifiable_followups || []).some((f) => f.sealed_at && !f.settled_at);
+  if (!armed) return [];
+  return (receipt.tracked_premises || [])
+    .filter((p) => isMonitored(p))
+    .filter((p) => {
+      const due = nextRecheckDue(p); // null = never checked → due now
+      return due === null || due <= todayYMD;
+    })
+    .map((p) => ({ ordinal: p.ordinal, text: p.text, last_finding: p.last_recheck?.finding }));
+}
+
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization') || '';
   const expected = `Bearer ${process.env.CRON_SECRET || ''}`;
@@ -82,13 +99,15 @@ export async function GET(req: Request) {
   const byUser = new Map<string, { rowIds: string[]; briefs: DueReceiptBrief[] }>();
   for (const row of (rows || []) as ReceiptRow[]) {
     const preds = duePredicates(row.data, today);
-    if (preds.length === 0) continue; // next_check_by stale vs the blob — skip
+    const nudges = duePremiseNudges(row.data, today);
+    if (preds.length === 0 && nudges.length === 0) continue; // next_check_by stale vs the blob — skip
     const bucket = byUser.get(row.user_id) || { rowIds: [], briefs: [] };
     bucket.rowIds.push(row.id);
     bucket.briefs.push({
       source_title: row.data.source_title || '제목 없는 문서',
       core_question: row.data.core_question || '',
       predicates: preds,
+      premise_nudges: nudges.length ? nudges : undefined,
       // Delta: if this receipt was itself a re-review, surface what changed.
       delta: (row.data.version && row.data.version > 1 && row.data.drift_note) ? row.data.drift_note : undefined,
     });

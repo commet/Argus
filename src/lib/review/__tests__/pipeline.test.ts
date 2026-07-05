@@ -96,6 +96,40 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(Object.keys(r.provenance.lens_versions).length).toBeGreaterThan(0);
   });
 
+  it('resolves the model\'s 1-based "C#" claim links into real claim_id dependencies', async () => {
+    const artifact = ingest({ source_kind: 'markdown', title: '온보딩 전략', text: DOC });
+    const uid = artifact.units[0].unit_id;
+    const base = mockLLM(artifact);
+    const llm: ReviewLLM = {
+      model_name: base.model_name, model_provider: base.model_provider,
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (args.system.includes('"추출"')) {
+          return {
+            profile: { document_type: 'strategy_memo', intent: 'decide', audience: 'team', stakes: 'high', artifact_maturity: 'working_draft', source_confidence: 0.6 },
+            core_question: '리빌드에 착수할지',
+            main_claims: [
+              { text: 'retention이 낮다', status: 'weak', unit_ids: [uid], rationale: 'r' },
+              { text: '온보딩이 원인이다', status: 'weak', unit_ids: [uid], rationale: 'r', depends_on_claim_ids: ['C1'] },
+              { text: '3주 리빌드가 옳다', status: 'weak', unit_ids: [uid], rationale: 'r', depends_on_claim_ids: ['C1', 'C2', 'C99'] },
+            ],
+            evidence_items: [{ text: '지난 분기 코호트', unit_ids: [uid], kind: 'internal', supports_claim_ids: ['C1'] }],
+            assumptions: [], decision_points: [], tradeoffs: [], stakeholders: [], open_questions: [], missing_sections: [],
+          } as T;
+        }
+        return base.json<T>(args);
+      },
+    };
+    const { receipt } = await runDocumentReview(artifact, { llm, today: '2026-07-01' });
+    const claims = receipt!.claim_ledger;
+    expect(claims.length).toBe(3);
+    // C2 rests on C1
+    expect(claims[1].depends_on_claim_ids).toEqual([claims[0].claim_id]);
+    // C3 rests on C1 + C2; the dangling "C99" is dropped, not invented
+    expect(claims[2].depends_on_claim_ids).toEqual([claims[0].claim_id, claims[1].claim_id]);
+    // C1 has no dependency → field stays absent (never a manufactured link)
+    expect(claims[0].depends_on_claim_ids).toBeUndefined();
+  });
+
   it('never fills user-owned settlement fields', async () => {
     const artifact = ingest({ source_kind: 'markdown', text: DOC });
     const { receipt } = await runDocumentReview(artifact, { llm: mockLLM(artifact), today: '2026-07-01' });

@@ -52,6 +52,9 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "js-yaml": "^4.1.0",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.0",
+    "pdfjs-dist": "^6.1.200",
     "tinyld": "^1.3.4",
     "zod": "^4.4.3"
   },

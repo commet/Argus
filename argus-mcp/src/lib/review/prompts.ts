@@ -65,7 +65,11 @@ export function buildExtractionPrompt(
 
 이번 단계는 "추출"이다. 평가/비판/추천은 하지 않는다. 문서를 판단 가능한 지도로만 바꾼다.
 document_type, intent, audience, stakes, artifact_maturity를 추론하고, 확신이 낮으면 source_confidence를 낮게 준다.
-각 항목은 반드시 관련 unit_id 배열을 포함한다.`;
+각 항목은 반드시 관련 unit_id 배열을 포함한다.
+논지들 사이의 의존 구조도 표시한다: main_claims에 나온 순서가 곧 번호다(첫 번째=C1, 두 번째=C2 …).
+어떤 논거가 특정 논지를 뒷받침하면 그 논거의 supports_claim_ids에 논지 번호(예: "C1")를 넣고,
+어떤 논지가 다른 논지가 참이어야 성립하면 그 논지의 depends_on_claim_ids에 기대는 논지 번호를 넣는다.
+확실하지 않으면 링크를 억지로 만들지 말고 생략한다(빈 배열).`;
 
   const user = `아래는 검수할 문서의 단위(unit)들이다. 각 줄은 [unit_id] (종류 · 위치) 텍스트 형식이다.
 
@@ -80,8 +84,8 @@ ${concerns}
   "core_question": "이 문서가 실제로 결정해야 하는 질문",
   "explicit_recommendation": "문서가 겉으로 미는 결론(없으면 생략)",
   "implicit_recommendation": "은연중 미는 결론(없으면 생략)",
-  "main_claims": [ { "text": "...", "status": "supported|weak|unsupported|human_check|contradicted", "unit_ids": ["..."], "rationale": "이 상태로 판단한 근거(원문 기준)", "evidence_needed": "이 주장을 확정하려면 무엇을 확인해야 하는가(없으면 생략)", "fix_suggestion": "이 문장 자체를 어떻게 보강할지 한 줄(선택, 없으면 생략)" } ],
-  "evidence_items": [ { "text": "...", "unit_ids": ["..."], "kind": "internal|external_cited|asserted" } ],
+  "main_claims": [ { "text": "...", "status": "supported|weak|unsupported|human_check|contradicted", "unit_ids": ["..."], "rationale": "이 상태로 판단한 근거(원문 기준)", "evidence_needed": "이 주장을 확정하려면 무엇을 확인해야 하는가(없으면 생략)", "fix_suggestion": "이 문장 자체를 어떻게 보강할지 한 줄(선택, 없으면 생략)", "depends_on_claim_ids": ["이 논지가 성립하려면 참이어야 하는 다른 논지 번호, 예: C2 (없으면 빈 배열)"] } ],
+  "evidence_items": [ { "text": "...", "unit_ids": ["..."], "kind": "internal|external_cited|asserted", "supports_claim_ids": ["이 논거가 뒷받침하는 논지 번호, 예: C1 (없으면 빈 배열)"] } ],
   "assumptions": [ { "text": "말하지 않은 가정", "unit_ids": ["..."], "if_false": "틀리면 무너지는 것" } ],
   "tradeoffs": [ { "text": "...", "unit_ids": ["..."] } ],
   "stakeholders": [ { "role": "...", "likely_objection": "...", "unit_ids": ["..."] } ],

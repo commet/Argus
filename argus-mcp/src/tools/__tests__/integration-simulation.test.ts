@@ -29,9 +29,10 @@ describe('MCP simulation — argus_review across shapes', () => {
     expect((d.lenses as { id: string }[]).map((l) => l.id)).toContain('deck_narrative');
   });
 
-  it('empty + binary degrade honestly instead of faking', async () => {
+  it('empty + unreadable binary degrade honestly instead of faking', async () => {
     expect(body(await review.handler({ text: '' })).error_code).toBe('EMPTY');
-    expect(body(await review.handler({ file_path: '/x/deck.pptx' })).error_code).toBe('BINARY_UNSUPPORTED');
+    // Binaries are parsed now; an unreadable path fails honestly (never a fake review).
+    expect(body(await review.handler({ file_path: '/x/deck.pptx' })).error_code).toBe('READ_FAILED');
   });
 });
 

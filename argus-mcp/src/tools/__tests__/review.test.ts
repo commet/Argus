@@ -52,9 +52,11 @@ describe('argus_review', () => {
     expect(res.structuredContent?.error_code).toBe('EMPTY');
   });
 
-  it('refuses binary files instead of faking a review', async () => {
-    const res = await review.handler({ file_path: '/tmp/deck.pptx' });
+  it('fails honestly on an unreadable binary path instead of faking a review', async () => {
+    // Binaries are now parsed (mammoth / pdf.js / jszip); a path that does not
+    // exist must still fail honestly, never fabricate a review.
+    const res = await review.handler({ file_path: '/tmp/nonexistent-deck.pptx' });
     expect(res.isError).toBe(true);
-    expect(res.structuredContent?.error_code).toBe('BINARY_UNSUPPORTED');
+    expect(res.structuredContent?.error_code).toBe('READ_FAILED');
   });
 });

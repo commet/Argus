@@ -18,10 +18,22 @@ export interface DuePredicate {
   check_by: string;
 }
 
+/** A tracked premise whose re-check cadence has come due. This is an INVITATION
+ *  to re-check reality — never a claim that the fact changed (the system cannot
+ *  auto-detect that; the user supplies the finding). Honest-limit copy. */
+export interface DuePremiseNudge {
+  ordinal: number;
+  text: string;
+  /** the finding recorded at the last re-check, if any (context, not a verdict). */
+  last_finding?: string;
+}
+
 export interface DueReceiptBrief {
   source_title: string;
   core_question: string;
   predicates: DuePredicate[];
+  /** monitored premises due for a re-check (living premises). */
+  premise_nudges?: DuePremiseNudge[];
   /** Delta — what changed since the seal (e.g. a newer version exists). Optional. */
   delta?: string;
 }
@@ -39,7 +51,7 @@ export interface CompanionBriefEmail {
  */
 export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https://argus.voyage'): CompanionBriefEmail {
   const url = `${baseUrl}/tools/review`;
-  const count = items.reduce((n, it) => n + it.predicates.length, 0);
+  const count = items.reduce((n, it) => n + it.predicates.length + (it.premise_nudges?.length ?? 0), 0);
   const lead = items[0]?.source_title?.slice(0, 40) || '그 판단';
   const subject =
     count === 1
@@ -64,6 +76,17 @@ export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https:/
       // Suggestion — a concrete check action, never a verdict (§Companion Brief)
       const check = p.pass_condition || p.fail_condition;
       if (check) blocks.push(`  - 지금 확인할 것: "${check}"가 실제로 그런지 데이터/사실 하나만 보세요.`);
+    }
+    // Premise re-check nudges — an INVITATION to look at reality, never a claim
+    // that the fact changed. Argus can't watch reality for you; you supply the
+    // finding when you come back. (honest-limit copy)
+    if (it.premise_nudges?.length) {
+      blocks.push('');
+      blocks.push('**재확인할 전제** (제가 현실을 대신 감시하진 못해요 — 잠깐 확인만 부탁드려요):');
+      for (const n of it.premise_nudges) {
+        blocks.push(`- P${n.ordinal}: ${n.text} — 지금 현실은 어때요?`);
+        if (n.last_finding) blocks.push(`  - 지난 확인: ${n.last_finding}`);
+      }
     }
     // Delta — what changed since the seal
     if (it.delta) blocks.push(`\n_그 사이 바뀐 것: ${it.delta}_`);

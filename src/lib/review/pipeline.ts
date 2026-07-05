@@ -260,28 +260,52 @@ function normalizeMap(raw: Record<string, unknown>, resolve: (ids: unknown) => S
     Array.isArray(v) ? v.filter((x): x is Record<string, unknown> => !!x && typeof x === 'object') : [];
   const s = (v: unknown, fb = ''): string => (typeof v === 'string' ? v : fb);
 
+  // Build claims first (positional, no filter yet) so the argument's dependency
+  // links can be resolved: the model references claims by their 1-based order
+  // ("C1" = the first main_claim), which we map to the real claim_id. Empty
+  // links stay undefined — we never manufacture a dependency the model omitted.
+  const rawClaims = arr(raw['main_claims']);
+  const builtClaims: Claim[] = rawClaims.map((c) => ({
+    claim_id: stableId('claim', s(c['text'])),
+    text: scrubIds(s(c['text'])),
+    status: (['supported', 'weak', 'unsupported', 'human_check', 'contradicted'].includes(String(c['status']))
+      ? c['status']
+      : 'weak') as Claim['status'],
+    anchors: resolve(c['unit_ids']),
+    rationale: scrubIds(s(c['rationale'])),
+    evidence_needed: s(c['evidence_needed']) ? scrubIds(s(c['evidence_needed'])) : undefined,
+    fix_suggestion: s(c['fix_suggestion']) ? scrubIds(s(c['fix_suggestion'])) : undefined,
+  }));
+  const resolveClaimRefs = (refs: unknown): string[] => {
+    if (!Array.isArray(refs)) return [];
+    const out: string[] = [];
+    for (const r of refs) {
+      const m = /^[Cc]?(\d+)$/.exec(String(r).trim());
+      if (!m) continue;
+      const hit = builtClaims[parseInt(m[1], 10) - 1];
+      if (hit && hit.text) out.push(hit.claim_id);
+    }
+    return [...new Set(out)];
+  };
+  builtClaims.forEach((c, i) => {
+    const deps = resolveClaimRefs(rawClaims[i]['depends_on_claim_ids']).filter((id) => id !== c.claim_id);
+    if (deps.length) c.depends_on_claim_ids = deps;
+  });
+  const mainClaims = builtClaims.filter((c) => c.text);
+  const evidenceItems = arr(raw['evidence_items']).map((e) => ({
+    evidence_id: stableId('ev', s(e['text'])),
+    text: s(e['text']),
+    anchors: resolve(e['unit_ids']),
+    supports_claim_ids: resolveClaimRefs(e['supports_claim_ids']),
+    kind: (['internal', 'external_cited', 'asserted'].includes(String(e['kind'])) ? e['kind'] : 'asserted') as 'internal' | 'external_cited' | 'asserted',
+  })).filter((e) => e.text);
+
   return {
     core_question: s(raw['core_question']),
     explicit_recommendation: s(raw['explicit_recommendation']) || undefined,
     implicit_recommendation: s(raw['implicit_recommendation']) || undefined,
-    main_claims: arr(raw['main_claims']).map((c) => ({
-      claim_id: stableId('claim', s(c['text'])),
-      text: scrubIds(s(c['text'])),
-      status: (['supported', 'weak', 'unsupported', 'human_check', 'contradicted'].includes(String(c['status']))
-        ? c['status']
-        : 'weak') as Claim['status'],
-      anchors: resolve(c['unit_ids']),
-      rationale: scrubIds(s(c['rationale'])),
-      evidence_needed: s(c['evidence_needed']) ? scrubIds(s(c['evidence_needed'])) : undefined,
-      fix_suggestion: s(c['fix_suggestion']) ? scrubIds(s(c['fix_suggestion'])) : undefined,
-    })).filter((c) => c.text),
-    evidence_items: arr(raw['evidence_items']).map((e) => ({
-      evidence_id: stableId('ev', s(e['text'])),
-      text: s(e['text']),
-      anchors: resolve(e['unit_ids']),
-      supports_claim_ids: [],
-      kind: (['internal', 'external_cited', 'asserted'].includes(String(e['kind'])) ? e['kind'] : 'asserted') as 'internal' | 'external_cited' | 'asserted',
-    })).filter((e) => e.text),
+    main_claims: mainClaims,
+    evidence_items: evidenceItems,
     assumptions: arr(raw['assumptions']).map((a) => ({
       assumption_id: stableId('asm', s(a['text'])),
       text: scrubIds(s(a['text'])),

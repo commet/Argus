@@ -1,24 +1,17 @@
 /**
- * Thin binary-format extractor (design doc §"입력 아키텍처" Tier 1/2).
+ * Node binary-format extractor — the MCP twin of the webapp's browser
+ * extract-file.ts. Same honest goal (text + one anchor per format, degrade
+ * honestly on scanned/empty input), same pure parsing helpers from extract-core
+ * (drift-pinned), but reads a file PATH into a Buffer instead of a browser File.
  *
- * Goal is NOT a perfect parser — it's honest text + the one anchor each format
- * naturally carries (docx section, pdf page, pptx slide), so a finding can take
- * the user back to the source. When a format yields too little (scanned PDF,
- * image-only deck) we return low quality and let the flow degrade honestly
- * rather than fake a confident review.
- *
- * The pure, platform-agnostic parsing helpers (pdf line/column reconstruction,
- * pptx XML parsing, shared caps) live in extract-core.ts and are shared verbatim
- * with the MCP Node extractor (drift-pinned). This file owns only the
- * browser-specific glue: File/ArrayBuffer + the dynamically-imported parsers.
- *
- * Parsers are dynamically imported so they never enter the main bundle — the
- * ~500KB of pdf.js/mammoth loads only when a user actually uploads a binary.
- * Browser-only (uses File/ArrayBuffer); never import from server code.
+ * Parsers are dynamically imported so the MCP process only pays for pdf.js /
+ * mammoth / jszip when a binary is actually reviewed. Node-only (uses fs +
+ * Buffer); the browser copy lives at src/lib/review/extract-file.ts.
  */
 
-import { type ArtifactUnit, type ExtractionQuality, type SourceKind } from './schema';
-import { stableId } from './ids';
+import fs from 'fs';
+import { type ArtifactUnit, type ExtractionQuality, type SourceKind } from './schema.js';
+import { stableId } from './ids.js';
 import {
   MAX_UNITS,
   PAGE_CAP,
@@ -27,18 +20,13 @@ import {
   groupBlocks,
   paragraphsFromSlideXml,
   slideNum,
-} from './extract-core';
+} from './extract-core.js';
 
 export interface ExtractedText {
-  /** flattened text (docx path) — fed to ingest's markdown-aware extractor. */
   text: string;
-  /** pre-anchored units (pdf/pptx) — carry page/slide numbers ingest can't recover. */
   units?: ArtifactUnit[];
   quality: ExtractionQuality;
-  /** honest one-liner shown to the user. */
   note?: string;
-  /** extractor-side caps → feeds ReviewCoverage so a page/unit-capped file can't
-   *  masquerade as fully reviewed (see lib/review/coverage.ts). */
   pages_total?: number;
   pages_read?: number;
   slides_total?: number;
@@ -46,8 +34,10 @@ export interface ExtractedText {
   units_capped?: boolean;
 }
 
-export async function extractFile(file: File, kind: SourceKind): Promise<ExtractedText> {
-  const buf = await file.arrayBuffer();
+/** Extract a binary document at `filePath`. Only pdf/docx/pptx are handled here;
+ *  text formats are read directly by the caller (review.ts). */
+export async function extractFileFromPath(filePath: string, kind: SourceKind): Promise<ExtractedText> {
+  const buf = fs.readFileSync(filePath);
   if (kind === 'docx') return extractDocx(buf);
   if (kind === 'pptx') return extractPptx(buf);
   if (kind === 'pdf') return extractPdf(buf);
@@ -55,12 +45,12 @@ export async function extractFile(file: File, kind: SourceKind): Promise<Extract
 }
 
 // --------------------------------------------------------------------------
-// DOCX — mammoth to markdown, so headings/lists become section anchors.
+// DOCX — mammoth to raw text.
 // --------------------------------------------------------------------------
 
-async function extractDocx(buf: ArrayBuffer): Promise<ExtractedText> {
+async function extractDocx(buf: Buffer): Promise<ExtractedText> {
   const mammoth = await import('mammoth');
-  const { value, messages } = await mammoth.extractRawText({ arrayBuffer: buf });
+  const { value, messages } = await mammoth.extractRawText({ buffer: buf });
   const text = (value || '').trim();
   const lost = messages.some((m: { type: string }) => m.type === 'warning');
   return {
@@ -74,24 +64,19 @@ async function extractDocx(buf: ArrayBuffer): Promise<ExtractedText> {
 // PPTX — a zip of slide XML; pull <a:t> runs per <a:p>, keep slide order.
 // --------------------------------------------------------------------------
 
-async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
+async function extractPptx(buf: Buffer): Promise<ExtractedText> {
   const JSZip = (await import('jszip')).default;
   const zip = await JSZip.loadAsync(buf);
 
-  // slide files: ppt/slides/slide1.xml, slide2.xml … — order numerically.
   const slidePaths = Object.keys(zip.files)
     .filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p))
     .sort((a, b) => slideNum(a) - slideNum(b));
 
-  // Speaker notes live in ppt/notesSlides/notesSlideN.xml. N is not guaranteed
-  // to equal the slide number, but on decks authored linearly it usually does —
-  // good enough for a thin slice, and better than dropping notes entirely.
   const notesByNum = new Map<number, string[]>();
   for (const p of Object.keys(zip.files)) {
     const m = /^ppt\/notesSlides\/notesSlide(\d+)\.xml$/.exec(p);
     if (!m) continue;
     const xml = await zip.files[p].async('string');
-    // notes XML repeats the slide number placeholder; keep only real note text.
     const paras = paragraphsFromSlideXml(xml).filter((t) => t.trim() && !/^\d+$/.test(t.trim()));
     if (paras.length) notesByNum.set(Number(m[1]), paras);
   }
@@ -117,7 +102,6 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
         confidence: 0.85,
       });
     }
-    // speaker notes → their own units, still anchored to the slide.
     for (const note of notesByNum.get(slideNo) ?? []) {
       if (units.length >= MAX_UNITS) { capped = true; break; }
       units.push({
@@ -130,7 +114,6 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
     }
   }
 
-  // slides actually turned into units (capped runs stop mid-deck).
   const slidesRead = new Set(units.map((u) => u.source_anchor.slide)).size;
   const caps = { slides_total: slidePaths.length, slides_read: slidesRead, units_capped: capped };
   const total = units.reduce((n, u) => n + u.text.length, 0);
@@ -139,18 +122,16 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
 }
 
 // --------------------------------------------------------------------------
-// PDF — pdf.js text content, reconstructed into column-aware lines per page.
+// PDF — pdf.js (legacy Node build, main-thread), column-aware line rebuild.
 // --------------------------------------------------------------------------
 
-async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
-  const pdfjs = await import('pdfjs-dist');
-  // Worker asset resolved by the bundler; new URL keeps webpack/Turbopack happy.
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString();
+async function extractPdf(buf: Buffer): Promise<ExtractedText> {
+  // Legacy build runs without a browser/worker (pdf.js falls back to a
+  // main-thread fake worker in Node) — text extraction needs no canvas.
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const data = new Uint8Array(buf);
+  const doc = await pdfjs.getDocument({ data }).promise;
 
-  const doc = await pdfjs.getDocument({ data: buf }).promise;
   const units: ArtifactUnit[] = [];
   const pageCount = Math.min(doc.numPages, PAGE_CAP);
   let pagesRead = 0;
@@ -166,7 +147,6 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
     const layout = reconstructPage(content.items as PdfItem[]);
     if (layout.multiColumn) multiColumn = true;
     if (layout.hasTable) hasTable = true;
-    // group lines into paragraph-ish blocks separated by blank/short gaps
     const blocks = groupBlocks(layout.lines);
     for (const block of blocks) {
       if (units.length >= MAX_UNITS) { capped = true; break; }
@@ -182,8 +162,6 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
     }
   }
 
-  // `units_capped` folds the >120-page limit in too: a longer PDF was truncated
-  // to `pagesRead` pages, which computeCoverage discloses ("N쪽 중 앞 M쪽").
   const caps = {
     pages_total: doc.numPages,
     pages_read: pagesRead,

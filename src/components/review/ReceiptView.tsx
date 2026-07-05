@@ -109,6 +109,10 @@ export function ReceiptView({
   ];
   const filteredClaims = claimFilter === 'all' ? receipt.claim_ledger : receipt.claim_ledger.filter((c) => c.status === claimFilter);
   const claimStatuses = Array.from(new Set(receipt.claim_ledger.map((c) => c.status)));
+  // claim_id → its 1-based number + text, so a claim's dependency links can be
+  // shown as "C2" chips (the argument's load-bearing structure).
+  const claimNumById = new Map(receipt.claim_ledger.map((c, i) => [c.claim_id, i + 1] as const));
+  const claimTextById = new Map(receipt.claim_ledger.map((c) => [c.claim_id, c.text] as const));
 
   const copy = async () => {
     try {
@@ -308,6 +312,9 @@ export function ReceiptView({
                 {filteredClaims.map((c) => (
                   <div key={c.claim_id} className="text-[13px] border-b border-[var(--border-subtle)] last:border-0 pb-2 last:pb-0">
                     <div>
+                      <span className="inline-block px-1 py-0.5 mr-1 text-[10px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)] tabular-nums">
+                        C{claimNumById.get(c.claim_id)}
+                      </span>
                       <span className="inline-block px-1.5 py-0.5 mr-2 text-[10px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)]">
                         {claimStatusLabel(c.status, L)}
                       </span>
@@ -321,6 +328,19 @@ export function ReceiptView({
                     )}
                     {c.fix_suggestion && (
                       <p className="mt-0.5 text-[11px] text-[var(--accent)]">{L('수정 제안', 'Suggested fix')}: {c.fix_suggestion}</p>
+                    )}
+                    {c.depends_on_claim_ids && c.depends_on_claim_ids.length > 0 && (
+                      <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                        {L('기대는 논지', 'Rests on')}:{' '}
+                        {c.depends_on_claim_ids
+                          .map((id) => (claimNumById.has(id) ? { n: claimNumById.get(id)!, t: claimTextById.get(id) || '' } : null))
+                          .filter((x): x is { n: number; t: string } => x !== null)
+                          .map((x, i) => (
+                            <span key={x.n} title={x.t}>
+                              {i > 0 ? ', ' : ''}C{x.n}
+                            </span>
+                          ))}
+                      </p>
                     )}
                   </div>
                 ))}

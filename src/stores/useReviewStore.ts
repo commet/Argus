@@ -18,6 +18,40 @@ import {
   type FalsifiableFollowup,
   type FollowupOutcome,
 } from '@/lib/review';
+import {
+  type PremiseState,
+  type PremiseRecheck,
+  premiseId as makePremiseId,
+  MAX_ACTIVE_PREMISES,
+  MAX_LOAD_BEARING,
+} from '@/lib/premises-core';
+import { evaluateMateriality, type MaterialityRule, type Materiality } from '@/lib/numeric-drift';
+
+/** What the user supplies to promote an extracted assumption/claim into a tracked
+ *  premise. Provenance is 'ai' with the original wording preserved (ai_original). */
+export interface PromotePremiseInput {
+  text: string;
+  load_bearing: boolean;
+  /** true = re-checkable against reality (arms the recheck-due nudge). */
+  external: boolean;
+  recheck_cadence_days?: number;
+  materiality_rule?: MaterialityRule;
+}
+
+/** The user's reality finding for one premise. The host/user supplies it — the
+ *  system never auto-detects a change (honest limit). */
+export interface RecheckInput {
+  finding: string;
+  numeric_value?: number;
+  /** text premises: the user's asserted "did the fact change?" research finding. */
+  changed?: boolean;
+  source: 'url' | 'user_stated' | 'host_reported';
+  source_detail?: string;
+}
+
+/** The materiality verdict a recheck produces — surfaced as "fact + handle",
+ *  never as a directive. 'baseline' = first check, records only. */
+export type RecheckStatus = Materiality | 'baseline';
 
 /** Fields the user owns when sealing a prediction (design doc §Ownership Modal). */
 export interface SealPatch {
@@ -49,6 +83,15 @@ interface ReviewState {
   settleFollowup: (receiptId: string, followupId: string, outcome: FollowupOutcome, whatHappened: string, learned?: string) => void;
   /** Revise: push the check date instead of settling (Settlement View §933 choice). */
   reviseFollowup: (receiptId: string, followupId: string, newCheckBy: string) => void;
+  /** Promote an extracted assumption/claim into a tracked premise (living premises).
+   *  Respects the caps (5 active / 2 load-bearing) so tracking can never nag. */
+  promotePremise: (receiptId: string, input: PromotePremiseInput) => void;
+  /** Re-check one premise against a reality finding the user supplies; records it
+   *  and returns the materiality verdict for a "fact + handle" surface (never a
+   *  directive). PULL only — the system never auto-detects a change. */
+  recheckPremise: (receiptId: string, premiseId: string, input: RecheckInput) => RecheckStatus;
+  /** Stop tracking a premise (status→retired). Never deletes history. */
+  retirePremise: (receiptId: string, premiseId: string) => void;
   remove: (receiptId: string) => void;
 }
 
@@ -172,6 +215,96 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       );
       // Pushing the date keeps it sealed/active — it does not settle.
       return { ...r, falsifiable_followups: followups, updated_at: now };
+    });
+    set({ receipts: next });
+    persist(next);
+    pushUpdated(next, receiptId);
+  },
+
+  promotePremise: (receiptId, input) => {
+    const now = new Date().toISOString();
+    const text = input.text.trim();
+    if (!text) return;
+    const next = get().receipts.map((r) => {
+      if (r.receipt_id !== receiptId) return r;
+      const existing = r.tracked_premises ?? [];
+      const pid = makePremiseId(r.receipt_id, 'premise', text);
+      if (existing.some((p) => p.premise_id === pid)) return r; // dedup
+      const active = existing.filter((p) => p.status === 'active');
+      if (active.length >= MAX_ACTIVE_PREMISES) return r; // cap → silently no-op (UI discloses)
+      const lbCount = active.filter((p) => p.load_bearing).length;
+      const load_bearing = input.load_bearing && lbCount < MAX_LOAD_BEARING;
+      const ordinal = existing.reduce((m, p) => Math.max(m, p.ordinal), 0) + 1;
+      const premise: PremiseState = {
+        premise_id: pid,
+        ordinal,
+        kind: 'premise',
+        text,
+        external: input.external,
+        load_bearing,
+        source: 'ai',
+        ai_original: text,
+        ...(input.materiality_rule ? { materiality_rule: input.materiality_rule } : {}),
+        ...(typeof input.recheck_cadence_days === 'number' ? { recheck_cadence_days: input.recheck_cadence_days } : {}),
+        status: 'active',
+        amend_history: [],
+        recheck_count: 0,
+        added_ts: now,
+      };
+      return { ...r, tracked_premises: [...existing, premise], updated_at: now };
+    });
+    set({ receipts: next });
+    persist(next);
+    pushUpdated(next, receiptId);
+  },
+
+  recheckPremise: (receiptId, premiseId, input) => {
+    const now = new Date().toISOString();
+    const finding = input.finding.trim();
+    let status: RecheckStatus = 'baseline';
+    const next = get().receipts.map((r) => {
+      if (r.receipt_id !== receiptId) return r;
+      const premises = (r.tracked_premises ?? []).map((p) => {
+        if (p.premise_id !== premiseId) return p;
+        const prior = p.last_recheck;
+        const baselineOnly = !prior;
+        if (baselineOnly) {
+          status = 'baseline';
+        } else if (typeof input.numeric_value === 'number' && typeof prior!.numeric_value === 'number') {
+          status = evaluateMateriality(prior!.numeric_value, input.numeric_value, p.materiality_rule).status;
+        } else if (typeof input.changed === 'boolean') {
+          status = input.changed ? 'material' : 'unchanged';
+        } else {
+          // no comparable value and no assertion → nothing to decide; record only.
+          status = 'unchanged';
+        }
+        const rec: PremiseRecheck = {
+          finding,
+          ...(typeof input.numeric_value === 'number' ? { numeric_value: input.numeric_value } : {}),
+          drifted: status === 'material',
+          baseline_only: baselineOnly,
+          source: input.source,
+          ...(input.source_detail ? { source_detail: input.source_detail } : {}),
+          ts: now,
+        };
+        return { ...p, last_recheck: rec, recheck_count: p.recheck_count + 1 };
+      });
+      return { ...r, tracked_premises: premises, updated_at: now };
+    });
+    set({ receipts: next });
+    persist(next);
+    pushUpdated(next, receiptId);
+    return status;
+  },
+
+  retirePremise: (receiptId, premiseId) => {
+    const now = new Date().toISOString();
+    const next = get().receipts.map((r) => {
+      if (r.receipt_id !== receiptId) return r;
+      const premises = (r.tracked_premises ?? []).map((p) =>
+        p.premise_id === premiseId ? { ...p, status: 'retired' as const } : p,
+      );
+      return { ...r, tracked_premises: premises, updated_at: now };
     });
     set({ receipts: next });
     persist(next);

@@ -16,6 +16,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useReviewStore } from '@/stores/useReviewStore';
 import { ReceiptView } from './ReceiptView';
 import { ReceiptList } from './ReceiptList';
+import { PremiseTracker } from './PremiseTracker';
 import { SealStamp } from '@/components/workspace/progressive/SealStamp';
 import { SealModal } from './SealModal';
 import { SettleModal } from './SettleModal';
@@ -330,6 +331,9 @@ export function ReviewFlow() {
           onSettle={(followupId) => setSettlingId(followupId)}
           onReReview={reReview}
         />
+        <div className="mt-4">
+          <PremiseTracker receipt={receipt} />
+        </div>
       </>
     );
 

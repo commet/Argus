@@ -12,12 +12,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-const PORTED = ['schema', 'ids', 'ingest', 'reviewability', 'lenses', 'routing', 'prompts', 'render'];
+const PORTED = ['schema', 'ids', 'ingest', 'reviewability', 'lenses', 'routing', 'prompts', 'render', 'extract-core'];
 
 /** Strip the `.js` extension the MCP copy adds to relative imports, so the only
  *  sanctioned difference doesn't register as drift. */
 function normalize(src: string): string {
-  return src.replace(/(from '\.\/[a-zA-Z0-9_-]+)\.js'/g, "$1'").replace(/\r\n/g, '\n').trimEnd();
+  // strip the `.js` NodeNext adds to relative imports — both './x.js' and '../x.js'.
+  return src.replace(/(from '\.\.?\/[a-zA-Z0-9_-]+)\.js'/g, "$1'").replace(/\r\n/g, '\n').trimEnd();
 }
 
 describe('review core: webapp ↔ MCP parity', () => {

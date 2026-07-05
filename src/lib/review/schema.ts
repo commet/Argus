@@ -17,6 +17,8 @@
  *    The pipeline never fills them — see the Zero-Judgment spine in CLAUDE.md.
  */
 
+import { type PremiseState } from '../premises-core';
+
 export const REVIEW_SCHEMA_VERSION = '1' as const;
 
 // ---------------------------------------------------------------------------
@@ -246,6 +248,10 @@ export interface Claim {
   evidence_needed?: string;
   /** a concrete fix for THIS claim — secondary to judgment review, never a rewrite. */
   fix_suggestion?: string;
+  /** other claims THIS claim rests on (claim_ids). Lets the ledger show the
+   *  argument's dependency structure — if a load-bearing claim falls, what falls
+   *  with it. Resolved by the pipeline from the model's 1-based "C#" references. */
+  depends_on_claim_ids?: string[];
 }
 
 export interface EvidenceItem {
@@ -514,6 +520,12 @@ export interface JudgmentReceipt {
 
   // liveness
   companion_thread: CompanionNote[];
+  /** Living premises promoted from this review at seal time (D — living premises).
+   *  Each is individually re-checkable against reality and drives its own
+   *  recheck-due nudge. jsonb-nested inside the receipt, no migration. Shares the
+   *  premises-core PremiseState shape with the MCP so a premise means the same
+   *  thing in the browser and the terminal. */
+  tracked_premises?: PremiseState[];
 
   // version drift (Retention Loop B §747): a re-review of the same source links
   // back to the prior receipt so "what changed" can be shown.

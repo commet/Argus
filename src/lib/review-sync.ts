@@ -13,6 +13,7 @@
 
 import { fetchFromSupabase, upsertToSupabase, softDeleteFromSupabase } from './db';
 import { type JudgmentReceipt, summarizeReceipt } from './review';
+import { isMonitored, nextRecheckDue } from './premises-core';
 
 interface ReceiptRow {
   id: string;
@@ -30,15 +31,37 @@ function todayYMD(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * The soonest date the cron should reach out — the earlier of (a) a sealed
+ * prediction's check-by (summarizeReceipt) and (b) a monitored premise's next
+ * re-check due date. Premises are armed only once the receipt is sealed, mirroring
+ * the MCP's isNudgeArmed, so tracking never nags a not-yet-sealed review.
+ */
+function nextCheckByWithPremises(receipt: JudgmentReceipt, today: string): string | null {
+  const dues: string[] = [];
+  const base = summarizeReceipt(receipt, today).next_check_by;
+  if (base) dues.push(base);
+  const armed = receipt.state === 'sealed'
+    || (receipt.falsifiable_followups || []).some((f) => f.sealed_at && !f.settled_at);
+  if (armed) {
+    for (const p of receipt.tracked_premises || []) {
+      if (!isMonitored(p)) continue;
+      const due = nextRecheckDue(p); // null = never checked → due now
+      dues.push(due ?? today);
+    }
+  }
+  if (dues.length === 0) return null;
+  return dues.reduce((a, b) => (a < b ? a : b));
+}
+
 /** Map a receipt to its storage row (lifted query columns + jsonb blob). */
 export function toReceiptRow(receipt: JudgmentReceipt): ReceiptRow {
-  const status = summarizeReceipt(receipt, todayYMD());
   return {
     id: receipt.receipt_id,
     state: receipt.state,
     source_title: receipt.source_title,
     source_kind: receipt.source_kind,
-    next_check_by: status.next_check_by ?? null,
+    next_check_by: nextCheckByWithPremises(receipt, todayYMD()),
     data: receipt,
   };
 }

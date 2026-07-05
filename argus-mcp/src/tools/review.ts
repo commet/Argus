@@ -16,7 +16,22 @@ import {
   type ReviewConcern,
   type DocumentProfile,
   type UserReviewContext,
+  type CanonicalArtifact,
+  type SourceCaps,
 } from '../lib/review/index.js';
+import { extractFileFromPath, type ExtractedText } from '../lib/review/extract-file-node.js';
+
+const BINARY_KINDS: SourceKind[] = ['pdf', 'docx', 'pptx'];
+
+function capsFrom(bx: ExtractedText): SourceCaps | undefined {
+  const caps: SourceCaps = {};
+  if (typeof bx.pages_total === 'number') caps.pages_total = bx.pages_total;
+  if (typeof bx.pages_read === 'number') caps.pages_read = bx.pages_read;
+  if (typeof bx.slides_total === 'number') caps.slides_total = bx.slides_total;
+  if (typeof bx.slides_read === 'number') caps.slides_read = bx.slides_read;
+  if (typeof bx.units_capped === 'boolean') caps.units_capped = bx.units_capped;
+  return Object.keys(caps).length ? caps : undefined;
+}
 
 /**
  * argus_review — document Judgment Review parity with the webapp (design doc
@@ -45,7 +60,7 @@ const EXT_KIND: Record<string, SourceKind> = {
 
 const inputSchema = z.strictObject({
   text: z.string().max(MAX_DOC_BYTES).describe('The document body to review (paste). Provide this OR file_path.').optional(),
-  file_path: z.string().max(1024).describe('Absolute path to a TEXT document (.md/.txt). Binary decks/PDFs degrade honestly — paste their text instead.').optional(),
+  file_path: z.string().max(1024).describe('Absolute path to a document (.md/.txt/.pdf/.docx/.pptx). PDF/DOCX/PPTX are text-extracted with page/slide anchors; scanned or image-only files degrade honestly.').optional(),
   source_kind: z.enum(['paste', 'markdown', 'txt', 'pdf', 'docx', 'pptx', 'transcript', 'llm_answer', 'pr_diff']).describe('Override the inferred source kind.').optional(),
   title: z.string().max(300).optional(),
   concerns: z.array(z.enum(CONCERNS)).max(3).describe('What to weight — drives lens routing.').optional(),
@@ -60,7 +75,7 @@ export const review: ToolModule = {
     'Review an EXISTING document (strategy memo / PRD / deck text / AI answer) for judgment risk. ' +
     'Returns: a reviewability score+band, the routed review lenses, and the extraction prompt (which embeds the anchored source units + output schema) — then hands YOU (the model) the analysis to run. ' +
     'Anchor every finding to the source; never deliver a verdict on the document. End by sealing ONE falsifiable follow-up via argus_seal. ' +
-    'Use for a document the user already wrote; to open a FRESH decision use argus_open_decision instead. Binary decks/PDFs degrade honestly — paste their text.',
+    'Use for a document the user already wrote; to open a FRESH decision use argus_open_decision instead. Accepts pasted text or a file path — PDF/DOCX/PPTX are parsed with page/slide anchors; scanned/image-only files degrade honestly.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Review a document', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -70,17 +85,11 @@ export const review: ToolModule = {
       let text = typeof a['text'] === 'string' ? (a['text'] as string) : '';
       let inferredKind: SourceKind | undefined = a['source_kind'] as SourceKind | undefined;
       let title = typeof a['title'] === 'string' ? (a['title'] as string) : '';
+      let binaryExtract: ExtractedText | null = null;
 
       if (!text && filePath) {
         const ext = (filePath.split('.').pop() || '').toLowerCase();
         inferredKind = inferredKind ?? EXT_KIND[ext] ?? 'txt';
-        if (['pdf', 'docx', 'pptx'].includes(inferredKind)) {
-          return toolError({
-            ok: false, tool: 'argus_review', error_code: 'BINARY_UNSUPPORTED',
-            message: `${inferredKind.toUpperCase()} files aren't text-extracted in the MCP.`,
-            recovery: 'Paste the document text into `text`, or convert to markdown/txt first.',
-          });
-        }
         try {
           const stat = fs.statSync(filePath);
           if (stat.size > MAX_DOC_BYTES) {
@@ -90,8 +99,6 @@ export const review: ToolModule = {
               recovery: 'Review the most decision-bearing section, or split the document.',
             });
           }
-          text = fs.readFileSync(filePath, 'utf8');
-          if (!title) title = filePath.split(/[\\/]/).pop() || '';
         } catch {
           return toolError({
             ok: false, tool: 'argus_review', error_code: 'READ_FAILED',
@@ -99,9 +106,51 @@ export const review: ToolModule = {
             recovery: 'Check the path (absolute), or paste the text into `text`.',
           });
         }
+        if (!title) title = filePath.split(/[\\/]/).pop() || '';
+
+        if (BINARY_KINDS.includes(inferredKind)) {
+          // Real Node parsing (mammoth / pdf.js / jszip), same anchored units as
+          // the webapp. Scanned/empty binaries degrade honestly below, never crash.
+          try {
+            binaryExtract = await extractFileFromPath(filePath, inferredKind);
+          } catch {
+            return toolError({
+              ok: false, tool: 'argus_review', error_code: 'EXTRACT_FAILED',
+              message: `Could not parse ${inferredKind.toUpperCase()}: ${filePath}`,
+              recovery: 'Paste the document text into `text`, or convert to markdown/txt first.',
+            });
+          }
+        } else {
+          try {
+            text = fs.readFileSync(filePath, 'utf8');
+          } catch {
+            return toolError({
+              ok: false, tool: 'argus_review', error_code: 'READ_FAILED',
+              message: `Could not read file: ${filePath}`,
+              recovery: 'Check the path (absolute), or paste the text into `text`.',
+            });
+          }
+        }
       }
 
-      if (!text.trim() || text.trim().length < 20) {
+      const concerns: ReviewConcern[] = Array.isArray(a['concerns'])
+        ? (a['concerns'] as ReviewConcern[])
+        : ['full_judgment_review'];
+
+      // Honest degrade for a binary that yielded too little (scanned PDF, image
+      // deck) — surface the parser's own note, never a confident fake review.
+      if (binaryExtract) {
+        const bx = binaryExtract;
+        const empty = !bx.units?.length && !bx.text.trim();
+        if (bx.quality === 'unsupported' || bx.quality === 'low' || empty) {
+          return envelope({
+            ok: true, tool: 'argus_review',
+            surface: bx.note || '이 문서는 지금 상태로는 전체 검수가 어렵습니다. 핵심 본문을 붙여넣으면 더 정확합니다.',
+            next_actions: ['skip'],
+            data: { needs_context: true, extraction_quality: bx.quality, notes: bx.note ? [bx.note] : [] },
+          });
+        }
+      } else if (!text.trim() || text.trim().length < 20) {
         return toolError({
           ok: false, tool: 'argus_review', error_code: 'EMPTY',
           message: 'No reviewable text was provided.',
@@ -109,10 +158,19 @@ export const review: ToolModule = {
         });
       }
 
-      const concerns: ReviewConcern[] = Array.isArray(a['concerns'])
-        ? (a['concerns'] as ReviewConcern[])
-        : ['full_judgment_review'];
-      const artifact = ingest({ source_kind: inferredKind ?? 'paste', title, text, privacy_mode: 'receipt_only' });
+      const artifact: CanonicalArtifact = binaryExtract
+        ? ingest({
+            source_kind: inferredKind ?? 'paste',
+            title,
+            ...(binaryExtract.units?.length
+              ? { pre_extracted_units: binaryExtract.units }
+              : { pre_extracted: binaryExtract.text }),
+            extraction_quality: binaryExtract.quality,
+            extraction_notes: binaryExtract.note ? [binaryExtract.note] : undefined,
+            source_caps: capsFrom(binaryExtract),
+            privacy_mode: 'receipt_only',
+          })
+        : ingest({ source_kind: inferredKind ?? 'paste', title, text, privacy_mode: 'receipt_only' });
 
       // Honest degrade — never a confident review over unextractable input.
       if (artifact.extraction_quality === 'unsupported' || artifact.units.length === 0) {
