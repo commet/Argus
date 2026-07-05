@@ -488,8 +488,14 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
         </div>
         <div className="flex-1 text-left min-w-0">
           <div>
-            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{synthesis.lead_agent_name}</span>
-            <span className="text-[11px] text-[var(--text-tertiary)] ml-2">{L('통합 분석', 'Integrated Analysis')}</span>
+            {/* Spine (F5): surface the synthesis as WORK, not as a character who
+                authored an opinion — mirror MixPreview's de-personification. The
+                work leads; the lead name is a quiet coverage signal (who pulled
+                the lenses together), never an authorial byline. */}
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('통합 분석', 'Integrated Analysis')}</span>
+            {synthesis.lead_agent_name && (
+              <span className="text-[11px] text-[var(--text-tertiary)] ml-2">· {synthesis.lead_agent_name}</span>
+            )}
           </div>
           {/* Value-first: takeaway visible while still collapsed. */}
           {collapsed && teaser && (
@@ -526,6 +532,14 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                   <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-4 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
                     {synthesis.open_question}
                   </blockquote>
+                  {/* Spine (F5): the asymptote disclosure CLAUDE.md mandates — we
+                      surface the ONE question, and name the faint lean as a known
+                      limit at the product level, rather than claiming "we don't
+                      judge". Quiet, once per card. */}
+                  <p className="mt-2 pl-4 text-[10.5px] text-[var(--text-tertiary)] leading-[1.5]">
+                    {L('답이 아니라 결정이 갈리는 한 지점이에요. 가장 중요한 질문은 그 자체로 어느 쪽을 살짝 가리킬 수 있는데 — 그건 저희가 못 지우는 한계일 뿐, 판단은 당신 몫이에요.',
+                       "This is the one question it turns on, not an answer. The sharpest question can itself lean faintly one way — that's a limit we can't fully remove, not our verdict. The call is yours.")}
+                  </p>
                 </div>
               )}
               {/* ③ 미해결 쟁점. */}
