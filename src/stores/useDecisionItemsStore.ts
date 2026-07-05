@@ -5,6 +5,7 @@ import {
   recordEdit,
   setAlertMode,
   registerDismissal,
+  markRechecked,
   summarizeOverrides,
   type DecisionItem,
   type EditAction,
@@ -41,6 +42,9 @@ interface DecisionItemsState {
    *  `external === true`. Turning OFF just sets mode off. */
   toggleMonitoring: (id: string) => void;
   dismissAlert: (id: string) => void;
+  /** Pull-based recheck confirmation: the fact still holds (or record its new
+   *  value) — resets the recheck clock without a dismissal (gap #1). */
+  markRechecked: (id: string, value?: string) => void;
   itemsForDecision: (decisionId: string) => DecisionItem[];
   overrideSummary: (decisionId: string) => OverrideSummary;
 }
@@ -103,6 +107,8 @@ export const useDecisionItemsStore = create<DecisionItemsState>((set, get) => {
       ),
 
     dismissAlert: (id) => mutate(id, (item) => registerDismissal(item, Date.now())),
+
+    markRechecked: (id, value) => mutate(id, (item) => markRechecked(item, Date.now(), value)),
 
     itemsForDecision: (decisionId) => get().items.filter((i) => i.decision_id === decisionId),
 

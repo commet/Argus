@@ -18,6 +18,14 @@
  * layer on top of the existing seal→settle loop.
  */
 
+import { DEFAULT_REPONDER_CADENCE_DAYS, DEFAULT_RECHECK_CADENCE_DAYS } from './premises-core';
+
+/** Reconsider/recheck cadences for the DecisionItem model, sourced from
+ *  premises-core so the two premise surfaces (terminal PremiseState + webapp
+ *  DecisionItem) can't drift on "how often" (clarify v2 §3.1b / checkpoints §9). */
+export const DECISION_ITEM_REPONDER_CADENCE_DAYS = DEFAULT_REPONDER_CADENCE_DAYS;
+export const DECISION_ITEM_RECHECK_CADENCE_DAYS = DEFAULT_RECHECK_CADENCE_DAYS;
+
 export type ItemType =
   | 'premise'
   | 'phenomenon'
@@ -284,4 +292,87 @@ export function monitoredPremises(items: DecisionItem[] | undefined): DecisionIt
   return activeItems(items).filter(
     (i) => i.type === 'premise' && i.external && i.alert?.mode === 'on_change' && !shouldBackOff(i),
   );
+}
+
+// ── pull-based due surfacing (webapp gaps #1/#2) ────────────────────────────
+//
+// The bell was a watch mark because no recheck cron exists — and building a
+// scheduled push is a deliberate founder cost/over-fire decision (checkpoints v2
+// §9). What DOES fit the spine now is a PULL surface: when the user opens the
+// project, show which watched premises are worth re-checking and which deferred
+// open_questions can be reconsidered — a signal that appears on return, never a
+// notification pushed at them. The cadence math is REUSED from premises-core so
+// "how often" means the same thing here and in the terminal (no drift).
+
+const DAY_MS = 86_400_000;
+
+/** Whole days between an ISO timestamp and `now` (date-level). An unparseable or
+ *  future anchor yields a large number → treated as long-ago (surfaces the nudge
+ *  rather than hiding it; the user can always defer). Pure; `now` injected. */
+export function daysSinceISO(fromISO: string | undefined, now: number): number {
+  if (!fromISO) return Number.POSITIVE_INFINITY;
+  const t = Date.parse(fromISO);
+  if (Number.isNaN(t)) return Number.POSITIVE_INFINITY;
+  return Math.floor((now - t) / DAY_MS);
+}
+
+/** The anchor a reconsider timer runs from: the last defer/recheck touch, else
+ *  the item's own last edit, else its creation. */
+function reconsiderAnchorISO(item: DecisionItem): string {
+  const lastEdit = (item.edits || []).length ? item.edits[item.edits.length - 1].at : undefined;
+  return item.alert?.last_checked ?? lastEdit ?? item.created_at;
+}
+
+/**
+ * #2 — is this open_question due to be RECONSIDERED as of `now`? Active
+ * open_question, not backed off (≥2 defers → quiet), and its anchor is at least
+ * the reconsider cadence old. The nudge never demands an answer — leaving it
+ * open stays valid (clarify v2 §5.6); it only gates whether we resurface it.
+ * Cadence reused from premises-core (DEFAULT_REPONDER_CADENCE_DAYS). Pure.
+ */
+export function isItemDueForReconsider(item: DecisionItem, now: number): boolean {
+  if (item?.type !== 'open_question' || item.status !== 'active') return false;
+  if (shouldBackOff(item)) return false;
+  return daysSinceISO(reconsiderAnchorISO(item), now) >= DECISION_ITEM_REPONDER_CADENCE_DAYS;
+}
+
+/**
+ * #1 — is this monitored premise due for a re-CHECK as of `now`? A pull nudge,
+ * not a cron: active external on_change premise, not backed off, either never
+ * checked and at least the cadence old (under-fire: a brand-new premise is not
+ * nagged), or last checked ≥ the cadence ago. Gates the nudge, never the pen.
+ * Cadence reused from premises-core (DEFAULT_RECHECK_CADENCE_DAYS). Pure.
+ */
+export function isItemDueForRecheck(item: DecisionItem, now: number): boolean {
+  if (item?.type !== 'premise' || item.status !== 'active') return false;
+  if (item.external !== true || item.alert?.mode !== 'on_change' || shouldBackOff(item)) return false;
+  const last = item.alert?.last_checked;
+  const anchor = last ?? item.created_at;
+  return daysSinceISO(anchor, now) >= DECISION_ITEM_RECHECK_CADENCE_DAYS;
+}
+
+/** Days since an open_question was last touched — for the reconsider nudge copy. */
+export function itemReconsiderDays(item: DecisionItem, now: number): number {
+  const d = daysSinceISO(reconsiderAnchorISO(item), now);
+  return Number.isFinite(d) ? d : DECISION_ITEM_REPONDER_CADENCE_DAYS;
+}
+
+/** Days since a premise was last re-checked (or created) — for the recheck nudge copy. */
+export function itemRecheckDays(item: DecisionItem, now: number): number {
+  const d = daysSinceISO(item.alert?.last_checked ?? item.created_at, now);
+  return Number.isFinite(d) ? d : DECISION_ITEM_RECHECK_CADENCE_DAYS;
+}
+
+/** Record that the user re-checked a premise and it still holds (or record the
+ *  new value) — resets the recheck clock WITHOUT counting as a dismissal (a
+ *  confirmation is not a nuisance-signal). Immutable; `now` injected. */
+export function markRechecked(item: DecisionItem, now: number, value?: string): DecisionItem {
+  return {
+    ...item,
+    alert: {
+      ...item.alert,
+      last_checked: new Date(now).toISOString(),
+      ...(value && value.trim() ? { last_value: value.trim() } : {}),
+    },
+  };
 }

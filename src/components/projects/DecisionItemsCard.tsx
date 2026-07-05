@@ -26,7 +26,14 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { getStorage, STORAGE_KEYS } from '@/lib/storage';
 import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
-import { createItem, type ItemType } from '@/lib/decision-items';
+import {
+  createItem,
+  isItemDueForReconsider,
+  isItemDueForRecheck,
+  itemReconsiderDays,
+  itemRecheckDays,
+  type ItemType,
+} from '@/lib/decision-items';
 import { derivePremiseTexts } from '@/lib/derive-premise-texts';
 import type { Project, ReframeItem, ProgressiveSession } from '@/stores/types';
 
@@ -57,6 +64,12 @@ export function DecisionItemsCard({
   const addItems = useDecisionItemsStore((s) => s.addItems);
   const editItem = useDecisionItemsStore((s) => s.editItem);
   const toggleMonitoring = useDecisionItemsStore((s) => s.toggleMonitoring);
+  const dismissAlert = useDecisionItemsStore((s) => s.dismissAlert);
+  const markRechecked = useDecisionItemsStore((s) => s.markRechecked);
+
+  // Pull-based "worth a look on return" clock (gaps #1/#2). Computed once per
+  // render; the nudges are surfaced when the user opens the project, never pushed.
+  const now = Date.now();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -224,6 +237,58 @@ export function DecisionItemsCard({
                                   <Trash2 size={14} />
                                 </button>
                               </div>
+                            </div>
+                          )}
+
+                          {/* #2 — reconsider nudge for a deferred open question (pull, never demands an answer) */}
+                          {!editing && item.type === 'open_question' && isItemDueForReconsider(item, now) && (
+                            <div className="mt-2 pt-2 border-t border-[var(--border)] flex items-center gap-2 flex-wrap">
+                              <span className="text-[11.5px] text-[var(--text-secondary)] leading-[1.4] flex-1 min-w-0">
+                                {L(
+                                  `${itemReconsiderDays(item, now)}일 전에 미뤄둔 질문이에요. 지금은 정리할 수 있나요?`,
+                                  `You set this aside ${itemReconsiderDays(item, now)} days ago. Can you settle it now?`,
+                                )}
+                              </span>
+                              <span className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={() => startEdit(item.id, item.text)}
+                                  className="px-2 py-1 rounded-md text-[11.5px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
+                                >
+                                  {L('네, 정리할게요', 'Settle it')}
+                                </button>
+                                <button
+                                  onClick={() => dismissAlert(item.id)}
+                                  className="px-2 py-1 rounded-md text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
+                                >
+                                  {L('아직 열어둘래요', 'Keep it open')}
+                                </button>
+                              </span>
+                            </div>
+                          )}
+
+                          {/* #1 — recheck nudge for a watched premise (pull, not a cron; gates the nudge, not the pen) */}
+                          {!editing && item.type === 'premise' && isItemDueForRecheck(item, now) && (
+                            <div className="mt-2 pt-2 border-t border-[var(--border)] flex items-center gap-2 flex-wrap">
+                              <span className="text-[11.5px] text-[var(--text-secondary)] leading-[1.4] flex-1 min-w-0">
+                                {L(
+                                  `마지막으로 확인한 지 ${itemRecheckDays(item, now)}일 됐어요. 이 사실, 아직 그대로인가요?`,
+                                  `Last checked ${itemRecheckDays(item, now)} days ago. Is this still true?`,
+                                )}
+                              </span>
+                              <span className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={() => markRechecked(item.id)}
+                                  className="px-2 py-1 rounded-md text-[11.5px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
+                                >
+                                  {L('그대로예요', 'Still true')}
+                                </button>
+                                <button
+                                  onClick={() => startEdit(item.id, item.text)}
+                                  className="px-2 py-1 rounded-md text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
+                                >
+                                  {L('바뀌었어요', 'It changed')}
+                                </button>
+                              </span>
                             </div>
                           )}
                         </li>
