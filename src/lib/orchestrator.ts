@@ -53,6 +53,62 @@ export interface OrchestratorResult {
  * - review_loop: 2스테이지 — Stage 1(병렬) → Stage 2(Critic이 검토) — deep 검증 + debate 점화
  *   (review_loop는 critical에 더해 on_fire(위기)·확증편향 케이스까지 포함 — 기존 critical보다 넓음)
  */
+/**
+ * F4 — layer workers into an N-stage DAG by their declared producer→consumer
+ * `dependsOn` (Kahn longest-path: layer = 1 + max(dep layers), no-deps = layer 0).
+ * Each layer becomes a stage in topological order; a stage depends on the one
+ * before it, and every worker keeps its own `dependsOn` so runPipeline injects
+ * exactly the right upstream results and the Layer-0 gate can fire. Returns null
+ * on a dependency CYCLE — the caller then falls back to the pattern logic rather
+ * than trusting a malformed plan to order execution.
+ */
+export function layerWorkersByDeps(
+  workers: PlannedWorker[],
+): { workers: PlannedWorker[]; stages: PipelineStage[] } | null {
+  const byStep = new Map(workers.map(w => [w.stepIndex, w]));
+  const layerOf = new Map<number, number>();
+  const onPath = new Set<number>();
+  const resolve = (idx: number): number | null => {
+    const cached = layerOf.get(idx);
+    if (cached !== undefined) return cached;
+    if (onPath.has(idx)) return null; // cycle
+    onPath.add(idx);
+    const deps = (byStep.get(idx)?.dependsOn ?? []).filter(d => byStep.has(d));
+    let maxDep = -1;
+    for (const d of deps) {
+      const dl = resolve(d);
+      if (dl === null) return null;   // cycle propagates up
+      if (dl > maxDep) maxDep = dl;
+    }
+    onPath.delete(idx);
+    const l = maxDep + 1;
+    layerOf.set(idx, l);
+    return l;
+  };
+  for (const w of workers) {
+    if (resolve(w.stepIndex) === null) return null; // reject cyclic plan
+  }
+
+  const maxLayer = Math.max(0, ...[...layerOf.values()]);
+  const outWorkers: PlannedWorker[] = [];
+  const stages: PipelineStage[] = [];
+  for (let l = 0; l <= maxLayer; l++) {
+    const inLayer = workers.filter(w => layerOf.get(w.stepIndex) === l);
+    if (inLayer.length === 0) continue;
+    const stageId = `stage_${l + 1}`;
+    for (const w of inLayer) outWorkers.push({ ...w, stageId });
+    stages.push({
+      id: stageId,
+      label: l === 0 ? '분석' : '이어받기',
+      labelEn: l === 0 ? 'Analysis' : 'Build on prior',
+      workerIds: inLayer.map((w) => `w_${w.stepIndex}`),
+      status: 'pending',
+      dependsOnStageId: l === 0 ? undefined : `stage_${l}`,
+    });
+  }
+  return { workers: outWorkers, stages };
+}
+
 function buildStages(
   workers: PlannedWorker[],
   classification: InputClassification,
@@ -62,6 +118,17 @@ function buildStages(
   // self/human confirmation steps must not inflate single/light into parallel/standard.
   const aiCount = workers.filter(w => w.agentType === 'ai').length;
   const plan = planOrchestration(classification, aiCount, { userLeaning });
+
+  // F4 — if the planner declared producer→consumer deps, run an N-stage DAG
+  // (topological layering) so a later lens reads the real output of the one it
+  // depends on. Skipped for the critical-stakes review_loop (its proven Critic
+  // guarantee wins there) and on a cyclic plan (layerWorkersByDeps → null →
+  // fall through). No declared deps → unchanged behavior below.
+  const hasDeclaredDeps = workers.some(w => (w.dependsOn?.length ?? 0) > 0);
+  if (hasDeclaredDeps && plan.pattern !== 'review_loop') {
+    const layered = layerWorkersByDeps(workers);
+    if (layered && layered.stages.length > 1) return { ...layered, plan };
+  }
 
   if (plan.pattern !== 'review_loop' || aiCount < 2) {
     // 단일 스테이지: 전부 병렬
@@ -120,7 +187,7 @@ function buildStages(
 /* ─── Main ─── */
 
 export function planWorkers(
-  steps: { task: string; who?: string; agent_type?: string; output: string; agent_hint?: string; ai_scope?: string; self_scope?: string; decision?: string; question_to_human?: string; human_contact_hint?: string }[],
+  steps: { task: string; who?: string; agent_type?: string; output: string; agent_hint?: string; ai_scope?: string; self_scope?: string; decision?: string; question_to_human?: string; human_contact_hint?: string; depends_on?: number[] }[],
   signals: InterviewSignals | undefined,
   unlockedAgents: Agent[],
   observations: AgentObservation[],
@@ -203,6 +270,12 @@ export function planWorkers(
       stageId: 'stage_1',
       taskType: tc?.taskType || null,
       assignmentReason: reasonByOriginalIndex.get(i),
+      // F4 — the planner-declared producer→consumer deps, sanitized against a bad
+      // LLM emission (out-of-range / self-reference dropped). buildStages layers
+      // stages from these; the Layer-0 ready-gate reads them at run time.
+      dependsOn: (step.depends_on ?? []).filter(
+        d => Number.isInteger(d) && d >= 0 && d < resolvedSteps.length && d !== i,
+      ),
     };
   });
 

@@ -956,6 +956,12 @@ export interface AnalysisSnapshot {
       agent_hint?: string;
       question_to_human?: string;
       human_contact_hint?: string;
+      /** F4 — the step indices (into this steps[] array) whose output this step
+       *  needs BEFORE it can run. Declared by the planner LLM when it understands
+       *  a real producer→consumer chain (e.g. "size the market" before "model the
+       *  unit economics"). Absent/[] = independent (runs in the parallel wave).
+       *  Drives N-stage DAG layering in buildStages + the Layer-0 ready-gate. */
+      depends_on?: number[];
     }[];
     key_assumptions: string[];
   };

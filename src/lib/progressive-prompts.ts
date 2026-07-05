@@ -275,7 +275,8 @@ Build an execution_plan — assign tasks to your team. 3-5 steps max. For each s
 - decision: if self_scope involves a choice, write "질문: Option A vs Option B vs Option C" so UI renders selectable chips. Empty string if no explicit choice.
 - For "human" steps: add question_to_human (the question to send) and human_contact_hint (role like "CTO" or "고객")
 Rule: EVERY "ai" step must have self_scope — explain what the user should review about the AI result.
-Rule: EVERY "self" step should have ai_scope — how AI can help (generate options, comparison, data).${personaBlock}${leadContext ? '\n' + leadContext : ''}${teamBlock}`,
+Rule: EVERY "self" step should have ai_scope — how AI can help (generate options, comparison, data).
+- depends_on: the 0-based indices of EARLIER steps whose OUTPUT this step genuinely needs before it can run (a real producer→consumer chain — e.g. "model the unit economics" [1] truly needs "size the market" [0], so step 1 has depends_on:[0]). DEFAULT is [] — most steps are independent and should run in parallel. Declare a dependency ONLY when the later step literally cannot be written without the earlier one's result. Do NOT serialize steps that could run side by side, and never create a cycle.${personaBlock}${leadContext ? '\n' + leadContext : ''}${teamBlock}`,
 
     user: `Original problem:
 <user-data>${sanitize(problemText)}</user-data>
@@ -292,7 +293,7 @@ Turn the skeleton into a concrete execution plan assigned to the team. Respond w
 
 JSON:
 {
-  "steps": [{"task": "What to do", "agent_type": "ai|self|human", "output": "Deliverable", "ai_scope": "What AI does", "self_scope": "What user judges", "decision": "질문: A vs B vs C (or empty)", "agent_hint": "Team member name (if applicable)", "question_to_human": "Question for external person (human type only)", "human_contact_hint": "Role like CTO (human type only)"}],
+  "steps": [{"task": "What to do", "agent_type": "ai|self|human", "output": "Deliverable", "ai_scope": "What AI does", "self_scope": "What user judges", "decision": "질문: A vs B vs C (or empty)", "agent_hint": "Team member name (if applicable)", "question_to_human": "Question for external person (human type only)", "human_contact_hint": "Role like CTO (human type only)", "depends_on": []}],
   "key_assumptions": ["assumptions the plan depends on, 1-3 items"]
 }`,
   };

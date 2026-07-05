@@ -58,6 +58,28 @@ function readyOutput(w: WorkerTask): string | null {
   return w.result?.trim() || null;
 }
 
+/** Topologically order stages so a stage runs only after its dependsOnStageId
+ *  parent (F4 — supports an N-stage DAG). Parents emitted before children; a
+ *  missing/cyclic parent ref degrades to input order (no infinite loop) — real
+ *  cycles are rejected upstream in buildStages. */
+export function topoSortStages(stages: PipelineStage[]): PipelineStage[] {
+  const byId = new Map(stages.map(s => [s.id, s]));
+  const ordered: PipelineStage[] = [];
+  const done = new Set<string>();
+  const onPath = new Set<string>();
+  const visit = (s: PipelineStage) => {
+    if (done.has(s.id) || onPath.has(s.id)) return; // seen, or cycle → stop
+    onPath.add(s.id);
+    const parent = s.dependsOnStageId ? byId.get(s.dependsOnStageId) : undefined;
+    if (parent) visit(parent);
+    onPath.delete(s.id);
+    done.add(s.id);
+    ordered.push(s);
+  };
+  for (const s of stages) visit(s);
+  return ordered;
+}
+
 // ─── Single task execution ───
 
 export async function runWorkerTask(
@@ -366,12 +388,13 @@ export async function runPipeline(
     return runAllAIWorkers(workers, context, callbacks, signal);
   }
 
-  // 스테이지 순서대로 실행 (dependsOnStageId 기반 정렬)
-  const sortedStages = [...stages].sort((a, b) => {
-    if (a.dependsOnStageId && !b.dependsOnStageId) return 1;
-    if (!a.dependsOnStageId && b.dependsOnStageId) return -1;
-    return 0;
-  });
+  // Order stages so every stage runs AFTER the one it depends on (F4: supports an
+  // N-stage DAG, not just 2). Proper topological order over dependsOnStageId —
+  // the old 2-way partition ("has-dep after no-dep") couldn't order stage_2 vs
+  // stage_3. Behavior-neutral for the 1- and 2-stage shapes. Parents are emitted
+  // before children; a broken/cyclic dependsOnStageId degrades to input order
+  // rather than looping (buildStages rejects real cycles upstream).
+  const sortedStages = topoSortStages(stages);
 
   const locale = getCurrentLanguage();
   const stageResults = new Map<string, Map<string, string>>(); // stageId → (workerId → result text)
