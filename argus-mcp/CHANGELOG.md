@@ -3,7 +3,10 @@
 ## 1.4.0 — Document review
 
 Bring an existing document to the receipt machine instead of only a typed
-decision.
+decision. (The `argus_review` tool actually shipped alongside the 1.3.0 work
+but was never given its own release entry; 1.4.0 is its first published version
+— npm went straight from 1.0.0 to here, so this one catch-up release carries
+everything since.)
 
 - **New tool:** `argus_review` — reviews a document (strategy memo / PRD /
   deck text / AI answer) for judgment risk and hands the analysis back to the
