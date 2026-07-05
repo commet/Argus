@@ -1,7 +1,7 @@
 {
   "name": "argus-decision-mcp",
-  "version": "1.0.0",
-  "description": "Argus decision-accountability MCP server — seal a falsifiable prediction, settle it against reality. Works with any MCP host (Claude, ChatGPT, Gemini).",
+  "version": "1.4.0",
+  "description": "Argus decision-accountability MCP server — seal a falsifiable prediction, settle it against reality; the receipt carries AI VERDICT: NONE (the model never grades you, reality does). Runs on MCP hosts that launch local stdio servers (Claude Desktop, Claude Code).",
   "type": "module",
   "main": "dist/index.js",
   "mcpName": "io.github.commet/argus-decision-mcp",

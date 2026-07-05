@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.4.0 — Document review
+
+Bring an existing document to the receipt machine instead of only a typed
+decision.
+
+- **New tool:** `argus_review` — reviews a document (strategy memo / PRD /
+  deck text / AI answer) for judgment risk and hands the analysis back to the
+  host model: a reviewability score, routed lenses, source units with anchors,
+  and the extraction prompt. It is **read-only** — it computes and returns,
+  never writing to `.argus`; the falsifiable follow-up it surfaces is sealed
+  through the existing `argus_seal` → `argus_settle` loop (one receipt machine,
+  no second store). Never a verdict; degrades honestly on unextractable input.
+- **Document extraction:** `.pdf` / `.docx` / `.pptx` are text-extracted with
+  page/slide anchors; two-column PDFs get gutter detection (no interleaving)
+  and table cells are preserved. Scanned or image-only files degrade honestly
+  rather than fabricating text. Response is bounded (unit + character budget)
+  so a large document can't return a giant tool result.
+- **Claim structure:** the extractor links evidence → claim and claim → claim,
+  so the review surfaces the argument's load-bearing structure, not a flat list.
+
 ## 1.3.0 — Living premises
 
 The receipt's `THE UNVERIFIED ASSUMPTION` line becomes a tracked object.
