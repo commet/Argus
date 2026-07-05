@@ -234,7 +234,7 @@ export function Header() {
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                   aria-pressed={locale === 'ko'}
-                  title="한국어"
+                  title={locale === 'ko' ? '한국어' : 'Korean'}
                 >
                   KO
                 </button>
@@ -246,7 +246,7 @@ export function Header() {
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                   aria-pressed={locale === 'en'}
-                  title="English"
+                  title={locale === 'ko' ? '영어' : 'English'}
                 >
                   EN
                 </button>

@@ -131,12 +131,6 @@ function PhaseAmbient({ phase }: { phase: string }) {
   return <motion.div className="fixed inset-0 pointer-events-none z-0" animate={{ background: bg }} transition={{ duration: 1.5, ease: EASE }} />;
 }
 
-function getParticle(name: string): string {
-  const c = name.charCodeAt(name.length - 1);
-  if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28 !== 0 ? '은' : '는';
-  return '는';
-}
-
 /* ═══ Phase Header — top-of-page orientation card ═══
  * The earlier "minimal stepper" assumed PhaseStatusBar would carry the live
  * state; in practice first-time users couldn't tell what stage they were in

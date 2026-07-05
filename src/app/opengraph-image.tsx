@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'Argus — 그래서, 어떻게 됐어요?';
+export const alt = 'Argus — So, how did it turn out?';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -93,7 +93,7 @@ export default async function Image() {
             ARGUS
           </div>
 
-          {/* Main title */}
+          {/* Main title — English primary (a shared link can land on anyone) */}
           <div
             style={{
               fontSize: '52px',
@@ -103,7 +103,7 @@ export default async function Image() {
               letterSpacing: '-0.02em',
             }}
           >
-            &ldquo;그래서,
+            &ldquo;So &mdash; how did
           </div>
           <div
             style={{
@@ -117,7 +117,7 @@ export default async function Image() {
               marginTop: '-16px',
             }}
           >
-            어떻게 됐어요?&rdquo;
+            it turn out?&rdquo;
           </div>
 
           {/* Subtitle */}
@@ -129,7 +129,18 @@ export default async function Image() {
               marginTop: '8px',
             }}
           >
-            중요한 결정을 항해처럼 — 그리고 정한 날짜에 돌아와 묻습니다.
+            Navigate a big decision like a voyage — then return, on the date you set, to ask.
+          </div>
+
+          {/* Korean brand echo — keeps the origin voice under the English hook */}
+          <div
+            style={{
+              fontSize: '17px',
+              color: 'rgba(184, 150, 62, 0.6)',
+              lineHeight: 1.5,
+            }}
+          >
+            중요한 결정을 항해처럼 — 정한 날에 돌아와 묻습니다.
           </div>
         </div>
 
