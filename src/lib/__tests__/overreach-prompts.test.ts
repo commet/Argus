@@ -7,7 +7,7 @@ vi.mock('@/lib/supabase', () => ({
   clearUserCache: () => {},
   withUser: () => Promise.resolve(null),
 }));
-import { buildOverreachPrompt, buildHighestLoadPrompt } from '../progressive-prompts';
+import { buildOverreachPrompt, buildHighestLoadPrompt, buildExecutionPlanPrompt } from '../progressive-prompts';
 import type { MixResult } from '@/stores/types';
 
 const mix: MixResult = {
@@ -86,5 +86,40 @@ describe('buildHighestLoadPrompt', () => {
   it('switches language with locale', () => {
     expect(buildHighestLoadPrompt(['c1'], snapshot, 'ko').system).toContain('Korean');
     expect(buildHighestLoadPrompt(['c1'], snapshot, 'en').system).toContain('English');
+  });
+});
+
+// F4-bar — the crew-sizing bar (mirror clause: over-firing a committee on a flat
+// routine decision is itself a spine violation). The plan-generation prompt must
+// instruct the model to default to ONE ai lens and scale up only when the decision
+// earns it. If this instruction is deleted, routine decisions silently regrow a
+// multi-lens committee (ceremony, not insight) — so guard the bar here.
+describe('buildExecutionPlanPrompt — crew-sizing bar (F4)', () => {
+  const analysis = {
+    real_question: 'Should we switch the button copy?',
+    hidden_assumptions: ['Copy drives clicks'],
+    skeleton: ['Draft variants', 'Pick one'],
+  };
+  const qa: Parameters<typeof buildExecutionPlanPrompt>[2] = [];
+
+  it('instructs restraint: default to a single AI lens', () => {
+    const { system } = buildExecutionPlanPrompt('problem', analysis, qa, 1);
+    const s = system.toLowerCase();
+    expect(s).toContain('single');
+    // the bar must name the scale-up condition (important / hard-to-reverse / 3+ domains)
+    expect(s.includes('hard-to-reverse') || s.includes('irreversible')).toBe(true);
+    expect(s).toContain('3+');
+  });
+
+  it('does not conflate a sequential dependency chain with an independent lens', () => {
+    const { system } = buildExecutionPlanPrompt('problem', analysis, qa, 1);
+    // the depends_on chain must be explicitly excluded from the lens limit
+    expect(system.toLowerCase()).toContain('depends_on');
+    expect(system).toMatch(/not a ["“]?lens/i);
+  });
+
+  it('switches language with locale (bar survives localization)', () => {
+    expect(buildExecutionPlanPrompt('p', analysis, qa, 1, undefined, 'ko').system).toContain('Korean');
+    expect(buildExecutionPlanPrompt('p', analysis, qa, 1, undefined, 'en').system).toContain('English');
   });
 });
