@@ -1,4 +1,4 @@
-# Publishing runbook — argus-decision-mcp (1.0.0, first publish under the new name)
+# Publishing runbook — argus-decision-mcp (next release: 1.1.0)
 
 > These steps need **your npm credentials** and run **irreversible external
 > actions** (npm publish, git tag). They are a founder button — code is
@@ -20,9 +20,12 @@ So the package is now **`argus-decision-mcp`**:
 - Better search distinction — an unrelated `argus` MCP server already exists in
   the directory space.
 
-The version resets to **1.0.0** — this is the first release under this name. The
-old `1.0.0 … 1.3.0` history in the registry belongs to a different package; do
-not try to continue it.
+The version was reset to **1.0.0** for the first release under this name, which
+**already shipped on 2026-07-03** (`npm view argus-decision-mcp` → only `1.0.0`
+exists). The next release is **1.1.0** — a normal semver minor continuing the
+new-name line. Do NOT resurrect the old `argus-mcp` `1.2.1 … 1.3.0` numbers:
+that history belongs to the differently-named package, and all of it already
+shipped inside the new-name 1.0.0 (see CHANGELOG.md → "Pre-rename history").
 
 ## One registry, one repo, one server.json — keep versions in lockstep
 
@@ -32,6 +35,10 @@ they can never drift:
 1. `argus-mcp/package.json` → `"version"`.
 2. `argus-mcp/server.json` → `"version"` (and each `packages[].version`).
 3. the `git tag` you push.
+
+`src/lib/__tests__/publish-metadata.test.ts` now enforces 1 and 2 (and that the
+CHANGELOG top entry names the shipped version) — so a half-done bump fails CI
+instead of shipping a wrong number, which is exactly how 1.0.0 drifted before.
 
 ## Step 1 — one-time credentials
 
@@ -48,7 +55,7 @@ npm run build && npm test          # prepublishOnly runs these again as a gate
 node evals/run-premises.mjs        # optional: needs ANTHROPIC_API_KEY
 
 npm publish                        # unscoped → public by default, no --access needed
-git tag argus-decision-mcp-v1.0.0 && git push --tags
+git tag argus-decision-mcp-v1.1.0 && git push --tags
 ```
 
 ## Step 3 — clean-install round-trip (the human-eyes final gate)
