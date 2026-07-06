@@ -107,8 +107,9 @@ export interface NewItemInput {
 /**
  * The opt-out default (DESIGN §5.1): monitoring is ON for the load-bearing
  * external premises (the return-loop driver), OFF for everything else. The user
- * tunes DOWN, not up. The firing threshold stays high (premise-drift.ts) so an
- * enabled alert is not a nag.
+ * tunes DOWN, not up. Drift materiality (whether a re-checked value ACTUALLY
+ * changed) is decided by the M2 engine in numeric-drift.ts — never a crude
+ * global threshold — so an enabled alert is not a nag.
  */
 export function defaultAlertMode(item: {
   type: ItemType;
