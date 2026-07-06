@@ -7,7 +7,7 @@
  * lifecycle is consistent everywhere:
  *
  *   scheduled  → ⚓ 도착 예정 D-N        (the lively countdown — the come-back pull)
- *   due        → 지금 정산 · N개         (check-in date arrived, still ungraded)
+ *   due        → 지금 다시 보기 · N개     (check-in date arrived, still ungraded)
  *   arrived    → ⚓ 도착 완료            (fully settled)
  *
  * ETA = contract.check_in_at (target re-open date set at seal).
@@ -46,8 +46,8 @@ export function VoyageEta({
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 ${className}`}>
         <Sparkles size={10} className="shrink-0" />
         {cs.pending > 0
-          ? L(`지금 정산 · ${cs.pending}개`, `Settle now · ${cs.pending}`)
-          : L('도착 — 확인', 'Arrived — review')}
+          ? L(`지금 다시 보기 · ${cs.pending}개`, `Look back now · ${cs.pending}`)
+          : L('도착 — 다시 보기', 'Arrived — look back')}
       </span>
     );
   }

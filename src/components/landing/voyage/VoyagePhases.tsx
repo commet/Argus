@@ -74,8 +74,8 @@ const LEGS: Leg[] = [
     leg: { ko: '제3구간', en: 'Leg III' },
     name: { ko: '닿기', en: 'Land' },
     essence: {
-      ko: '정한 날, 봉인한 판단을 현실에 대고 정산합니다.',
-      en: 'On your date, you settle the sealed call against reality.',
+      ko: '정한 날, 봉인한 판단을 현실에 대고 다시 봅니다.',
+      en: 'On your date, you check the sealed call against reality.',
     },
     detail: {
       ko: '진짜 돌이킬 수 없는 결정은 여기서 일어나요 — AI 단계가 아니라.',

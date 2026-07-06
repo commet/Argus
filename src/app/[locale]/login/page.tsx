@@ -258,7 +258,7 @@ function LoginContent() {
                   className="w-full px-4 py-2.5 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
                 />
                 <p className="mt-1 px-1 text-[11px] text-[var(--text-tertiary)] leading-snug">
-                  {L('정산할 때 이 이름으로 인사하고, 결정 기록에 함께 남겨요.', 'We greet you by this name and keep it with your decision log.')}
+                  {L('판단을 다시 볼 때 이 이름으로 인사하고, 결정 기록에 함께 남겨요.', 'We greet you by this name and keep it with your decision log.')}
                 </p>
               </div>
             )}

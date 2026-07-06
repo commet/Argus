@@ -931,7 +931,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                       </span>
                     </div>
                     <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-                      {L('데모가 아니라 당신의 진짜 지난 결정으로, 봉인부터 정산까지 3분 안에 한 번 돌려봐요. 이미 결과를 아는 결정이라 지금 바로 맞춰볼 수 있어요.',
+                      {L('데모가 아니라 당신의 진짜 지난 결정으로, 봉인부터 다시 보기까지 3분 안에 한 번 돌려봐요. 이미 결과를 아는 결정이라 지금 바로 맞춰볼 수 있어요.',
                          'Your own real past decision — not a demo — run seal to settle in 3 minutes. You already know how it turned out, so you can check it right now.')}
                     </p>
                   </button>

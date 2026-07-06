@@ -513,7 +513,7 @@ export function SettlementModal({
                     회상편향이 태생적인 회고엔 절대 안 붙인다(C4). */}
                 {isRetro && (
                   <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
-                    {L('연습 고리를 한 번 닫아봤어요 — 봉인부터 정산까지 어떤 느낌인지 보셨죠. 실제 기록은 결과를 모르는 채로 거는 진짜 봉인부터 쌓여요.',
+                    {L('연습 고리를 한 번 닫아봤어요 — 봉인부터 다시 보기까지 어떤 느낌인지 보셨죠. 실제 기록은 결과를 모르는 채로 거는 진짜 봉인부터 쌓여요.',
                        "You closed a practice loop — you've felt the seal-through-settle shape. Your real record starts building from the first real seal, one made before you know how it turns out.")}
                   </p>
                 )}

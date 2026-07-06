@@ -191,7 +191,7 @@ export function RetroSeal({ onExit, onRealSeal }: {
                 {L('이미 끝난 지난 결정 하나, 그때 어떻게 판단했어요?', 'A past decision that already played out — what was your call at the time?')}
               </h2>
               <p className="text-[12.5px] text-[var(--text-tertiary)] mt-2 leading-snug">
-                {L('데모(가짜 시나리오)가 아니라, 당신의 진짜 지난 결정이에요 — 단지 이미 결과를 아는 결정. 봉인→정산 고리를 지금 한 번 돌려봐요.',
+                {L('데모(가짜 시나리오)가 아니라, 당신의 진짜 지난 결정이에요 — 단지 이미 결과를 아는 결정. 봉인→다시 보기 고리를 지금 한 번 돌려봐요.',
                    "Not a demo — your own real past decision, just one whose outcome you already know. Let's run the seal→settle loop once, now.")}
               </p>
 

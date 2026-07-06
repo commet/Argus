@@ -277,7 +277,7 @@ export function Logbook({
                       )}
                       {e.kind === 'settle' && (
                         <>
-                          <span className="font-semibold">{L('정산', 'Settled')}</span>
+                          <span className="font-semibold">{L('다시 봄', 'Looked back')}</span>
                           {' — '}
                           <span className="text-[var(--bp-ink-soft)]">{e.settleCounts}</span>
                         </>
