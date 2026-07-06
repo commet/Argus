@@ -21,6 +21,7 @@ import {
 import {
   type PremiseState,
   type PremiseRecheck,
+  type PremiseKind,
   premiseId as makePremiseId,
   MAX_ACTIVE_PREMISES,
   MAX_LOAD_BEARING,
@@ -34,6 +35,9 @@ export interface PromotePremiseInput {
   load_bearing: boolean;
   /** true = re-checkable against reality (arms the recheck-due nudge). */
   external: boolean;
+  /** 'premise' = a fact assumption to watch; 'open_question' = a decision the user
+   *  deferred, watched for NEW info that helps them decide (trigger b). Default 'premise'. */
+  kind?: PremiseKind;
   recheck_cadence_days?: number;
   materiality_rule?: MaterialityRule;
 }
@@ -233,19 +237,21 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     const next = get().receipts.map((r) => {
       if (r.receipt_id !== receiptId) return r;
       const existing = r.tracked_premises ?? [];
-      const pid = makePremiseId(r.receipt_id, 'premise', text);
+      const kind: PremiseKind = input.kind ?? 'premise';
+      const pid = makePremiseId(r.receipt_id, kind, text);
       if (existing.some((p) => p.premise_id === pid)) return r; // dedup
       const active = existing.filter((p) => p.status === 'active');
       if (active.length >= MAX_ACTIVE_PREMISES) return r; // cap → silently no-op (UI discloses)
       const lbCount = active.filter((p) => p.load_bearing).length;
-      const load_bearing = input.load_bearing && lbCount < MAX_LOAD_BEARING;
+      // load-bearing only applies to premises; an open_question is watched for new info.
+      const load_bearing = kind === 'premise' ? input.load_bearing && lbCount < MAX_LOAD_BEARING : false;
       const ordinal = existing.reduce((m, p) => Math.max(m, p.ordinal), 0) + 1;
       const premise: PremiseState = {
         premise_id: pid,
         ordinal,
-        kind: 'premise',
+        kind,
         text,
-        external: input.external,
+        external: kind === 'open_question' ? true : input.external,
         load_bearing,
         source: 'ai',
         ai_original: text,

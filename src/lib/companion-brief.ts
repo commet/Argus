@@ -39,6 +39,9 @@ export interface PremiseChange {
   fact: string;
   source_url: string;
   source_date?: string;
+  /** 'premise' = a watched fact moved; 'open_question' = new info to help decide
+   *  a deferred question (trigger b). Drives the phrasing. Default 'premise'. */
+  kind?: 'premise' | 'open_question';
 }
 
 export interface DueReceiptBrief {
@@ -96,12 +99,13 @@ export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https:/
     // Honest: fact + source + date + a neutral question; the user is the judge.
     if (it.changes?.length) {
       blocks.push('');
-      blocks.push('**바뀐 것 같아요** (제가 대신 최신 웹을 확인했어요 — 맞는지 보고 정하세요):');
+      blocks.push('**변화가 있어요** (제가 대신 최신 웹을 확인했어요 — 맞는지 보고 정하세요):');
       for (const c of it.changes) {
+        const openQ = c.kind === 'open_question';
         blocks.push(`- P${c.ordinal} ${c.text}`);
-        blocks.push(`  - 지금: ${c.fact}${c.source_date ? ` (출처 ${c.source_date})` : ''}`);
+        blocks.push(`  - ${openQ ? '새 정보' : '지금'}: ${c.fact}${c.source_date ? ` (출처 ${c.source_date})` : ''}`);
         if (c.source_url) blocks.push(`  - 출처: ${c.source_url}`);
-        blocks.push(`  - 이 판단, 지금 다시 볼까요?`);
+        blocks.push(`  - ${openQ ? '이제 정할 수 있을까요?' : '이 판단, 지금 다시 볼까요?'}`);
       }
     }
     // Premise re-check nudges — an INVITATION to look at reality, never a claim

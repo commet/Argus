@@ -68,4 +68,15 @@ describe('buildCompanionBrief', () => {
     expect(md).not.toMatch(/틀렸습니다|잘못|당신이 실수/);   // never judges the user
     expect(buildCompanionBrief([change]).subject).toContain('금리 전제 메모');
   });
+
+  it('phrases an open_question alert as new-info-to-decide, not a change (E5 trigger b)', () => {
+    const openq: DueReceiptBrief = {
+      source_title: '규제 메모', core_question: '진출할까?', predicates: [],
+      changes: [{ ordinal: 1, text: '내년 규제 완화 여부', fact: '규제당국이 완화안 발표', source_url: 'https://reg.example/y', source_date: '2026-07-03', kind: 'open_question' }],
+    };
+    const md = buildCompanionBrief([openq]).markdown;
+    expect(md).toContain('새 정보: 규제당국이 완화안 발표'); // new-info framing
+    expect(md).toContain('이제 정할 수 있을까요?');          // decide, not "revisit"
+    expect(md).not.toContain('이 판단, 지금 다시 볼까요?');
+  });
 });

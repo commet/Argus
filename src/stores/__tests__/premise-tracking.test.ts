@@ -16,7 +16,7 @@ import {
   type CanonicalArtifact,
   type JudgmentReceipt,
 } from '@/lib/review';
-import { isMonitored, isDueForRecheck } from '@/lib/premises-core';
+import { isMonitored, isDueForRecheck, isReconsiderable } from '@/lib/premises-core';
 
 function mock(artifact: CanonicalArtifact): ReviewLLM {
   const uid = artifact.units[0]?.unit_id ?? 'u0';
@@ -92,6 +92,19 @@ describe('premise tracking — promote, re-check, caps', () => {
     const pid = S().getReceipt(r.receipt_id)!.tracked_premises![0].premise_id;
     expect(S().recheckPremise(r.receipt_id, pid, { finding: '동일', source: 'user_stated' })).toBe('baseline');
     expect(S().recheckPremise(r.receipt_id, pid, { finding: '경쟁사가 출시함', changed: true, source: 'user_stated' })).toBe('material');
+  });
+
+  it('promotes an item as an open_question (trigger b) — reconsiderable, not a monitored premise', async () => {
+    const r = await reviewInto('# 전략\n\n규제가 어떻게 될지 아직 모름.');
+    S().saveReceipt(r);
+    S().promotePremise(r.receipt_id, { text: '내년 규제가 완화될지', load_bearing: false, external: true, kind: 'open_question' });
+    const p = S().getReceipt(r.receipt_id)!.tracked_premises![0];
+    expect(p.kind).toBe('open_question');
+    expect(isReconsiderable(p)).toBe(true);   // watched for new info to decide
+    expect(isMonitored(p)).toBe(false);        // not a fact-drift premise
+    // same text can also be tracked as a premise (distinct kind → distinct id)
+    S().promotePremise(r.receipt_id, { text: '내년 규제가 완화될지', load_bearing: true, external: true });
+    expect(S().getReceipt(r.receipt_id)!.tracked_premises!.length).toBe(2);
   });
 
   it('setAutoWatch toggles the per-premise watcher opt-in', async () => {

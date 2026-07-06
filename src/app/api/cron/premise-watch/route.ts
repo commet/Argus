@@ -7,7 +7,10 @@ import { type JudgmentReceipt, summarizeReceipt } from '@/lib/review';
 import {
   isMonitored,
   isDueForRecheck,
+  isDueForReconsider,
+  isReconsiderable,
   nextRecheckDue,
+  nextReponderDue,
   normalizePremiseText,
   dateOnly,
   type PremiseRecheck,
@@ -67,6 +70,7 @@ function computeNextCheckBy(receipt: JudgmentReceipt, today: string): string | n
   if (base) dues.push(base);
   for (const p of receipt.tracked_premises || []) {
     if (isMonitored(p)) dues.push(nextRecheckDue(p) ?? today);
+    else if (isReconsiderable(p)) dues.push(nextReponderDue(p) ?? today);
   }
   return dues.length ? dues.reduce((a, b) => (a < b ? a : b)) : null;
 }
@@ -120,8 +124,11 @@ export async function GET(req: Request) {
     let mutated = false;
 
     for (const p of premises) {
-      if (p.status !== 'active' || !isMonitored(p) || !p.auto_watch) continue;
-      if (!isDueForRecheck(p, today)) continue;
+      if (p.status !== 'active' || !p.auto_watch) continue;
+      // premise → recheck cadence (isMonitored); open_question → reconsider cadence.
+      const isOpenQ = p.kind === 'open_question';
+      const due = isOpenQ ? isDueForReconsider(p, today) : isDueForRecheck(p, today);
+      if (!due) continue;
 
       const key = normalizePremiseText(p.text);
       let result = investigated.get(key);
@@ -129,7 +136,7 @@ export async function GET(req: Request) {
         if (budget <= 0) { dropped++; continue; } // per-run cost cap
         budget--;
         researched++;
-        const baselineYMD = dateOnly(p.last_recheck?.ts) ?? dateOnly(p.added_ts) ?? addDaysYMD(today, -365);
+        const baselineYMD = dateOnly(isOpenQ ? (p.last_reconsidered ?? p.added_ts) : p.last_recheck?.ts) ?? dateOnly(p.added_ts) ?? addDaysYMD(today, -365);
         result = await investigatePremise({
           text: p.text,
           watch_query: p.watch_query,
@@ -159,10 +166,11 @@ export async function GET(req: Request) {
           auto: true,
         };
         p.last_recheck = rec;
+        if (isOpenQ) p.last_reconsidered = now; // advance the reconsider clock
         p.recheck_count = (p.recheck_count || 0) + 1;
         mutated = true;
         if (result.verdict === 'material') {
-          changes.push({ ordinal: p.ordinal, text: p.text, fact: result.fact || '', source_url: result.source_url || '', source_date: result.source_date });
+          changes.push({ ordinal: p.ordinal, text: p.text, fact: result.fact || '', source_url: result.source_url || '', source_date: result.source_date, kind: p.kind });
         }
       } else {
         // no recent source → advance the clock, preserve the numeric baseline, be honest.
@@ -175,6 +183,7 @@ export async function GET(req: Request) {
           ts: now,
           auto: true,
         };
+        if (isOpenQ) p.last_reconsidered = now; // advance the reconsider clock
         p.recheck_count = (p.recheck_count || 0) + 1;
         mutated = true;
       }

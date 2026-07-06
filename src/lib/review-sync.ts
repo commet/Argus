@@ -13,7 +13,7 @@
 
 import { fetchFromSupabase, upsertToSupabase, softDeleteFromSupabase } from './db';
 import { type JudgmentReceipt, summarizeReceipt } from './review';
-import { isMonitored, nextRecheckDue } from './premises-core';
+import { isMonitored, nextRecheckDue, isReconsiderable, nextReponderDue } from './premises-core';
 
 interface ReceiptRow {
   id: string;
@@ -45,9 +45,8 @@ function nextCheckByWithPremises(receipt: JudgmentReceipt, today: string): strin
     || (receipt.falsifiable_followups || []).some((f) => f.sealed_at && !f.settled_at);
   if (armed) {
     for (const p of receipt.tracked_premises || []) {
-      if (!isMonitored(p)) continue;
-      const due = nextRecheckDue(p); // null = never checked → due now
-      dues.push(due ?? today);
+      if (isMonitored(p)) dues.push(nextRecheckDue(p) ?? today); // null = due now
+      else if (isReconsiderable(p)) dues.push(nextReponderDue(p) ?? today); // open_question (trigger b)
     }
   }
   if (dues.length === 0) return null;
