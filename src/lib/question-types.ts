@@ -114,6 +114,10 @@ export interface QuestionStateContext {
    *  the caller passes FRAMING_CONFIDENCE_ROUTING_FALLBACK as framingConfidence
    *  so "signal absent" fires frame_clarify instead of reading as confident. */
   framingConfidenceReported?: boolean;
+  /** Deterministic fatigue read (§7). When true, the router stops asking the
+   *  remaining OPTIONAL questions — a tired user isn't spent on a weakness_check.
+   *  An explicit "한 번 더"(userRequestedMore) still overrides it. */
+  fatigueDetected?: boolean;
 }
 
 /**
@@ -136,7 +140,13 @@ export function pickNextQuestionType(
   // permissively (see QuestionStateContext.requestType).
   if (ctx.requestType && ctx.requestType !== 'open') return null;
 
+  // Explicit "한 번 더" overrides everything — the user asked for it.
   if (ctx.userRequestedMore) return 'free_follow_up';
+
+  // Fatigue (§7): stop spending the remaining optional questions on a tired user.
+  // Only meaningfully true after ≥2 answers (or an explicit stop cue), so the
+  // essential early questions are never skipped by accident.
+  if (ctx.fatigueDetected) return null;
 
   const asked = new Set(ctx.askedTypes);
 

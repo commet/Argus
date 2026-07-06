@@ -31,6 +31,7 @@ import {
 } from '@/lib/question-types';
 import { pickSafeFallbackQuestion } from '@/lib/question-fallbacks';
 import { FRAMING_CONFIDENCE_ROUTING_FALLBACK } from '@/lib/question-rules';
+import { detectFatigue } from '@/lib/fatigue-signal';
 import { validateQuestion, OverFireError, guardQuestionText } from '@/lib/question-validator';
 import { track } from '@/lib/analytics';
 import { buildReviewPrompt } from '@/lib/review-prompt';
@@ -961,6 +962,8 @@ export async function runDeepening(
       // worker output. Real worker integration comes in a later phase.
       workerOutputsReady: round >= 1,
       requestType: snapshot.request_type,
+      // §7 — stop asking optional questions once the user reads as tired.
+      fatigueDetected: detectFatigue(questionsAndAnswers.map((qa) => ({ value: String(qa.answer?.value ?? '') }))),
     };
     const genCtx = {
       problemText,
