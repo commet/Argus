@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { validateMessages, validateSystemPrompt, validateRequest, normalizeMaxTokens } from '@/lib/llm-validation';
 import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
 import { logServerEvent } from '@/lib/server-events';
+import { verifyTurnstile, TURNSTILE_HEADER } from '@/lib/turnstile';
 
 // The review pipeline is the one NON-streaming consumer: a large-document
 // extraction can generate for 60–100s with no bytes until done. Without an
@@ -125,6 +126,14 @@ export async function POST(req: NextRequest) {
     // Also burn the anon quota for this IP so user can't strip auth and get extra calls
     await checkAnonRateLimit(ip);
   } else {
+    // Bot/cost-abuse defense on the anonymous paid path (inert until
+    // TURNSTILE_SECRET_KEY is set — see src/lib/turnstile.ts). Raises the cost of
+    // the IP-rotation bypass that a per-IP rate limit alone can't stop.
+    const captchaOk = await verifyTurnstile(req.headers.get(TURNSTILE_HEADER), ip);
+    if (!captchaOk) {
+      logServerEvent('server_captcha_rejected', { path: '/api/llm' }, { path: '/api/llm' });
+      return NextResponse.json({ error: 'Verification required. Please try again.', needsCaptcha: true }, { status: 403 });
+    }
     // Anonymous: ANON_LIMIT/day per IP
     const allowed = await checkAnonRateLimit(ip);
     if (!allowed) {

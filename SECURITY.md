@@ -37,7 +37,7 @@ Argus uses a **client-first architecture** with Supabase as the backend:
 
 1. **localStorage as primary storage**: Data is stored in localStorage first, then synced to Supabase asynchronously. If sync fails, data exists only in the browser. This trade-off prioritizes speed and offline capability over durability.
 
-2. **Content-Security-Policy**: CSP is configured in `middleware.ts` with per-request nonce. `script-src 'nonce-{nonce}' 'strict-dynamic'` prevents inline script injection. `style-src 'unsafe-inline'` is allowed for Tailwind CSS. Additional headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security` with preload.
+2. **Content-Security-Policy**: CSP is configured in `src/proxy.ts` with per-request nonce. `script-src 'nonce-{nonce}' 'strict-dynamic'` prevents inline script injection. `style-src 'unsafe-inline'` is allowed for Tailwind CSS. Additional headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security` with preload.
 
 3. **Client-side prompt construction**: System prompts are built client-side with user-provided data (persona names, feedback logs, etc.) interpolated directly. This is acceptable because users are constructing prompts for their own LLM calls — there is no shared prompt context between users.
 

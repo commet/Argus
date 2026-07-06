@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { adminClient } from '@/lib/share-guard';
 import { ingestPluginFiles, type FileInput } from '@/lib/plugin-ingest-core';
+import { isTokenExpired } from '@/lib/plugin-token';
 
 /**
  * Automatic plugin push target. The `argus push` CLI command POSTs the local
@@ -40,11 +41,11 @@ export async function POST(req: NextRequest) {
   const admin = adminClient();
   const { data: tokenRow } = await admin
     .from('plugin_tokens')
-    .select('id, user_id')
+    .select('id, user_id, expires_at')
     .eq('token_hash', hashToken(raw))
     .single();
-  if (!tokenRow) {
-    return NextResponse.json({ error: 'Unknown or revoked token' }, { status: 401 });
+  if (!tokenRow || isTokenExpired(tokenRow.expires_at)) {
+    return NextResponse.json({ error: 'Unknown, revoked, or expired token. Re-issue with /argus:connect.' }, { status: 401 });
   }
 
   let body: { files?: unknown };

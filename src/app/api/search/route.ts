@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { validateContentType, validateContentLength, validateOrigin } from '@/lib/api-security';
 import { parseYMD } from '@/lib/web-research';
+import { verifyTurnstile, TURNSTILE_HEADER } from '@/lib/turnstile';
 
 const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
 const SEARCH_DAILY_LIMIT = 100;
@@ -54,6 +55,11 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-real-ip')
     || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || 'unknown';
+  // Bot/cost-abuse defense (inert until TURNSTILE_SECRET_KEY is set — see
+  // src/lib/turnstile.ts). Complements the per-IP cap against IP rotation.
+  if (!(await verifyTurnstile(req.headers.get(TURNSTILE_HEADER), ip))) {
+    return NextResponse.json({ error: 'Verification required.', needsCaptcha: true }, { status: 403 });
+  }
   if (!(await checkSearchRateLimit(ip))) {
     return NextResponse.json({ error: 'Too many search requests. Please try again shortly.' }, { status: 429 });
   }

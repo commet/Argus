@@ -46,6 +46,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 
+  // Hard-delete expired plugin PATs (an expired token is useless; deleting it
+  // frees the per-user cap and removes a stale secret). Rows with a NULL
+  // expires_at (legacy, non-expiring) never match `.lt` and are preserved.
+  let expiredTokens = 0;
+  {
+    const { data: tks, error: tkErr } = await admin
+      .from('plugin_tokens')
+      .delete()
+      .lt('expires_at', new Date().toISOString())
+      .select('id');
+    if (tkErr) console.error('[cron/expire-tokens] plugin_tokens sweep failed:', tkErr.message);
+    else expiredTokens = tks?.length ?? 0;
+  }
+
   // Update has_pending_humans for affected sessions
   const sessionIds = [...new Set((expired || []).map(e => e.session_id))];
   for (const sid of sessionIds) {
@@ -68,5 +82,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, expired: expired?.length ?? 0, sessions: sessionIds.length });
+  return NextResponse.json({ ok: true, expired: expired?.length ?? 0, sessions: sessionIds.length, plugin_tokens_expired: expiredTokens });
 }
