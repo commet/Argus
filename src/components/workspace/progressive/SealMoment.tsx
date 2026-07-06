@@ -39,6 +39,9 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
 import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS } from '@/lib/decision-contract';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
+import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
+import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
+import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { recordSignal } from '@/lib/signal-recorder';
 import { syncSealToTelegram } from '@/lib/telegram-sync';
 import { track } from '@/lib/analytics';
@@ -118,7 +121,18 @@ export function SealMoment({
   const ko = locale === 'ko';
   const L = (k: string, e: string) => (ko ? k : e);
   const updateProject = useProjectStore((s) => s.updateProject);
+  const addDecisionItems = useDecisionItemsStore((s) => s.addItems);
+  const currentVoyage = useProgressiveStore((s) => s.currentSession);
   const { user, session, signInWithGoogle } = useAuth();
+
+  /** §3.4 — the decision's premises become tracked items at seal (auto, not a
+   *  manual import). Idempotent + spine-safe (external:false → alert OFF). */
+  function autoTrackPremises(now: number) {
+    const voyage = currentVoyage();
+    if (!voyage || voyage.project_id !== project.id) return; // only this project's flow
+    const items = buildAutoTrackedPremiseItems(project.id, voyage, now);
+    if (items.length > 0) addDecisionItems(items);
+  }
 
   const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_INTERVAL);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -236,6 +250,7 @@ export function SealMoment({
     // date handle. jsonb-nested (no migration); the return loop focuses here.
     const primary_checkpoint = next.primary_checkpoint ?? derivePrimaryCheckpoint(next) ?? undefined;
     updateProject(project.id, { decision_contract: { ...next, judgment_receipt, closed_at, primary_checkpoint } });
+    autoTrackPremises(now);
     // Cross-surface return loop: if this logged-in user connected Telegram, mirror
     // the sealed contract into the one push channel that actually fires on the date
     // (the daily cron reads telegram_decisions, which web seals never wrote). Server
@@ -293,6 +308,7 @@ export function SealMoment({
     const closed_at = closing ? new Date(now).toISOString() : c.closed_at;
     const primary_checkpoint = c.primary_checkpoint ?? derivePrimaryCheckpoint(c) ?? undefined;
     updateProject(project.id, { decision_contract: { ...c, judgment_receipt, closed_at, primary_checkpoint } });
+    autoTrackPremises(now);
     const sharp = c.predicates[0]?.text;
     if (user && session?.access_token && c.check_in_at && sharp) {
       syncSealToTelegram({
