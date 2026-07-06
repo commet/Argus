@@ -30,7 +30,7 @@ export interface SealPush {
 export interface SettlePush {
   action: 'settle';
   id: string;
-  outcome: 'held' | 'avoided' | 'partial' | 'still_pending';
+  outcome: 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed';
   what_happened?: string;
   settled_at?: string;
 }

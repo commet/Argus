@@ -37,7 +37,7 @@ export interface Receipt {
   // settle-time patch
   settled_at?: string;
   what_happened?: string;
-  outcome?: 'held' | 'avoided' | 'partial' | 'still_pending';
+  outcome?: 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed';
   outcome_source?: 'user_stated';
   assumption_held?: boolean | null;
 
@@ -105,7 +105,8 @@ export async function writeSettleReceipt(
   };
   const assumption_held =
     patch.outcome === 'held' ? true :
-    patch.outcome === 'avoided' || patch.outcome === 'partial' ? false :
+    // 'missed' = the sealed read was wrong → the assumption did not hold (§7.2).
+    patch.outcome === 'avoided' || patch.outcome === 'partial' || patch.outcome === 'missed' ? false :
     null;
 
   const merged: Receipt = {

@@ -17,7 +17,7 @@ import { handleToolException } from './errors.js';
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   id: zId,
-  outcome: z.enum(['held', 'avoided', 'partial', 'still_pending']).describe("What reality did to the prediction. Record the user's words — never infer. If omitted, Argus asks the user directly (elicitation) on hosts that support it.").optional(),
+  outcome: z.enum(['held', 'avoided', 'partial', 'still_pending', 'missed']).describe("What reality did to the prediction. Record the user's words — never infer. 'missed' = the sealed read was wrong (a judgment miss, distinct from 'avoided'). If omitted, Argus asks the user directly (elicitation) on hosts that support it.").optional(),
   outcome_source: z.literal('user_stated').describe('Single value "user_stated". An AI-inferred outcome cannot be expressed.'),
   what_happened: z.string().min(1).max(600),
   broken_premise_ref: z.string().max(64).optional().describe('Optional, USER-attributed: which tracked premise (ordinal like "P1"), if any, broke and drove the outcome. Never inferred by the model — ask, or omit.'),
@@ -47,27 +47,27 @@ export const settle: ToolModule = {
       // supply it, ask the USER directly with a structured choice (spine-safe:
       // this is reality, not a verdict). Falls back to requiring it on hosts
       // without elicitation.
-      let outcome = a['outcome'] as 'held' | 'avoided' | 'partial' | 'still_pending' | undefined;
+      let outcome = a['outcome'] as 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed' | undefined;
       if (!outcome && canElicit()) {
         const picked = await elicit('현실이 어떻게 답했나요? (What did reality do?)', {
           type: 'object',
           properties: {
             outcome: {
               type: 'string',
-              enum: ['held', 'avoided', 'partial', 'still_pending'],
-              enumNames: ['그렇게 됐다 (held)', '피했다 (avoided)', '부분적으로 (partial)', '아직 불분명 (still pending)'],
+              enum: ['held', 'avoided', 'partial', 'still_pending', 'missed'],
+              enumNames: ['그렇게 됐다 (held)', '피했다 (avoided)', '부분적으로 (partial)', '아직 불분명 (still pending)', '빗나갔다 (missed — my read was wrong)'],
               description: 'What reality did to your sealed prediction.',
             },
           },
           required: ['outcome'],
         });
         const v = picked?.['outcome'];
-        if (v === 'held' || v === 'avoided' || v === 'partial' || v === 'still_pending') outcome = v;
+        if (v === 'held' || v === 'avoided' || v === 'partial' || v === 'still_pending' || v === 'missed') outcome = v;
       }
       if (!outcome) {
         return toolError({
           ok: false, tool: 'argus_settle', error_code: 'OUTCOME_REQUIRED',
-          message: 'Reality has to answer: held, avoided, partial, or still_pending.',
+          message: 'Reality has to answer: held, avoided, partial, missed, or still_pending.',
           recovery: 'Ask the user what actually happened and pass it as `outcome` — never infer it.',
         });
       }

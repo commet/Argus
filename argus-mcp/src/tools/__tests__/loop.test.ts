@@ -53,6 +53,33 @@ describe('seal → settle happy path', () => {
   });
 });
 
+describe("settle outcome 'missed' — judgment-layer miss parity (checkpoints v2 §7.2)", () => {
+  it("accepts 'missed' and records assumption_held = false (the read was wrong, not a held bet)", async () => {
+    const dir = tmpArgusDir();
+    await init.handler({ argus_dir: dir });
+    await openDecision.handler({
+      argus_dir: dir, id: 'bet1', decision: 'Ship the new pricing page this sprint',
+      stakes: 'high', reversibility: 'costly_to_reverse', status_quo: 'Keep the old page',
+      crux_question: 'Will the new page actually lift conversion the way we expect?',
+    });
+    await seal.handler({
+      argus_dir: dir, id: 'bet1', predicate: 'Conversion rises within two weeks', check_by: FUTURE,
+      predicate_owner: 'user', human_judgment: 'I think the clearer tiers will land',
+    });
+    const settled = body(await settle.handler({
+      argus_dir: dir, id: 'bet1', outcome: 'missed', outcome_source: 'user_stated',
+      what_happened: 'Conversion was flat — my read was wrong',
+    }));
+    expect(settled['ok']).toBe(true);
+    const data = settled['data'] as Record<string, unknown>;
+    expect(data['outcome']).toBe('missed');
+    expect(data['ai_verdict']).toBe(null);
+    const receipt = data['receipt'] as Record<string, unknown>;
+    expect(receipt['outcome']).toBe('missed');
+    expect(receipt['assumption_held']).toBe(false); // a miss is not a held bet
+  });
+});
+
 describe('structural spine enforcement', () => {
   it('refuses settle without a prior seal (NO_PRIOR_SEAL)', async () => {
     const dir = tmpArgusDir();

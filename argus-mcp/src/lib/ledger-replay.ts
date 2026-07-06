@@ -51,6 +51,9 @@ export interface LedgerState {
     avoided: number;
     partial: number;
     still_pending: number;
+    /** checkpoints v2 §7.2 — the judgment-layer miss ("my read was wrong"),
+     *  distinct from avoided. A settled non-held outcome; never a held bet. */
+    missed: number;
   };
   /** ts of the OLDEST well-formed ledger event — "기록 시작 YYYY-MM-DD" in the
    *  wake render (P1-E7). A date fact, never a duration. */
@@ -79,7 +82,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   const map = new Map<string, ContractEntry>();
   const stats = {
     total_sealed: 0, total_settled: 0,
-    held: 0, avoided: 0, partial: 0, still_pending: 0,
+    held: 0, avoided: 0, partial: 0, still_pending: 0, missed: 0,
   };
   let dropped = 0;
   let skippedUnknown = 0;
@@ -163,6 +166,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         else if (outcome === 'avoided') stats.avoided++;
         else if (outcome === 'partial') stats.partial++;
         else if (outcome === 'still_pending') stats.still_pending++;
+        else if (outcome === 'missed') stats.missed++;
         break;
       }
 

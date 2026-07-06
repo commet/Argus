@@ -21,6 +21,27 @@ describe('validateCrux — LEAN regex (11 P1-3 regression)', () => {
   });
 });
 
+describe('validateCrux — clarify-v2 floor parity (admin-only + confirmation, ko/en)', () => {
+  it('rejects admin-only asks (en): deadline / final decision-maker / format', () => {
+    expect(validateCrux('Who is the final decision-maker here?')?.code).toBe('CRUX_ADMIN_ONLY');
+    expect(validateCrux('What is the deadline for this?')?.code).toBe('CRUX_ADMIN_ONLY');
+    expect(validateCrux('What format should the deck be?')?.code).toBe('CRUX_ADMIN_ONLY');
+  });
+  it('rejects admin-only asks (ko): 마감 / 결정권자 / 형식 / 스켈레톤', () => {
+    expect(validateCrux('마감일은 언제인가요?')?.code).toBe('CRUX_ADMIN_ONLY');
+    expect(validateCrux('최종 결정권자는 누구인가요?')?.code).toBe('CRUX_ADMIN_ONLY');
+    expect(validateCrux('스켈레톤을 먼저 어떻게 채울까요?')?.code).toBe('CRUX_ADMIN_ONLY');
+  });
+  it('rejects a leading confirmation as CARRIES_LEAN (ko/en)', () => {
+    expect(validateCrux('Does this look right?')?.code).toBe('CRUX_CARRIES_LEAN');
+    expect(validateCrux('이제 이 방향이 맞나요?')?.code).toBe('CRUX_CARRIES_LEAN');
+  });
+  it('still passes a genuine load-bearing crux (ko/en)', () => {
+    expect(validateCrux('Will the index rebuild fit inside the replication lag budget?')).toBeNull();
+    expect(validateCrux('이 판단이 틀렸다면 가장 먼저 어디에서 신호가 나타날까요?')).toBeNull();
+  });
+});
+
 describe('validateSeal — Korean vibe heuristic (12 P1-4)', () => {
   it('flags a Korean vibe-predicate as weak NOT_FALSIFIABLE with a ko message', () => {
     const err = validateSeal('잘 될 것 같다 아마도', '2026-08-01', TODAY);
