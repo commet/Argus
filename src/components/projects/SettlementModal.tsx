@@ -32,7 +32,7 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import { useReviewStore } from '@/stores/useReviewStore';
 import { summarizeReviewRecord, shouldShowThirdLoop } from '@/lib/record-summary';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
-import type { Project, Predicate, PredicateSource, PredicateVerdict, PredicateBasis, CheckInInterval } from '@/stores/types';
+import type { Project, Predicate, PredicateSource, PredicateVerdict, PredicateBasis, CheckInInterval, AmbiguityRecord, ReturnHandle } from '@/stores/types';
 import {
   gradePredicate,
   setPredicateBasis,
@@ -46,6 +46,7 @@ import { LocaleLink } from '@/components/ui/LocaleLink';
 import { recordSignal } from '@/lib/signal-recorder';
 import { track } from '@/lib/analytics';
 import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
+import { CheckpointReturnCard } from './CheckpointReturnCard';
 import { JudgmentReceipt } from './JudgmentReceipt';
 import { JudgmentFrame } from './JudgmentFrame';
 import { RetroBadge } from './RetroBadge';
@@ -106,6 +107,17 @@ export function SettlementModal({
   );
   const resolvedCount = predicates.filter(isResolved).length;
   const allResolved = predicates.length > 0 && resolvedCount === predicates.length;
+
+  // Judgment-checkpoint v2 (§7): the primary checkpoint gets the focused 4-tap
+  // card at the top; its predicate is then excluded from the per-predicate list
+  // below (no duplication). Absent primary_checkpoint (legacy contract) → the
+  // old per-predicate flow renders unchanged.
+  const primaryCheckpoint = contract?.primary_checkpoint ?? null;
+  const primaryPred = primaryCheckpoint
+    ? predicates.find((p) => p.id === primaryCheckpoint.predicate_id) ?? null
+    : null;
+  const showCheckpoint = !!(primaryCheckpoint && primaryPred);
+  const listPredicates = showCheckpoint ? predicates.filter((p) => p.id !== primaryPred!.id) : predicates;
   // How many times the user already said "아직" — the history is the receipt.
   const deferrals = Array.isArray(contract?.history) ? contract!.history.length : 0;
 
@@ -181,6 +193,21 @@ export function SettlementModal({
       decision_contract: setPredicateBasis(contract, predicateId, selected ? undefined : basis),
     });
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { basis } });
+  }
+
+  /** Checkpoint unclear path (§7.3): record WHY it's unclear + defer via a
+   *  history-preserving amend, then close. Never a penalty — leaving it open is
+   *  a first-class answer; the ambiguity note is what makes it a handle, not a
+   *  dead end. */
+  function settleUnclear(reason: AmbiguityRecord['reason']) {
+    if (!contract) return;
+    const amended = amendCheckIn(contract, '1m', Date.now());
+    const next_handle: ReturnHandle = amended.check_in_at
+      ? { kind: 'date', value: amended.check_in_at, auto_due: true }
+      : { kind: 'manual', value: '', auto_due: false };
+    updateProject(project.id, { decision_contract: { ...amended, ambiguity: { reason, next_handle } } });
+    recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { ambiguity: reason } });
+    onClose();
   }
 
   /** "아직" — extend the check-in (history-preserving amend) and close. */
@@ -315,8 +342,21 @@ export function SettlementModal({
           </p>
         )}
 
+        {/* Judgment checkpoint (§7): the focused 4-tap for the primary predicate. */}
+        {showCheckpoint && primaryCheckpoint && primaryPred && (
+          <CheckpointReturnCard
+            checkpoint={primaryCheckpoint}
+            currentVerdict={primaryPred.verdict}
+            ambiguityReason={contract.ambiguity?.reason}
+            onTap={(v) => grade(primaryPred.id, v)}
+            onUnclear={settleUnclear}
+            locale={ko ? 'ko' : 'en'}
+          />
+        )}
+
+        {listPredicates.length > 0 && (
         <div className="space-y-2.5">
-          {predicates.map((p) => {
+          {listPredicates.map((p) => {
             const Icon = SOURCE_ICON[p.source] ?? AlertTriangle;
             return (
               <div key={p.id} className="rounded-xl border border-[var(--border)] p-3 bg-[var(--surface)]">
@@ -409,6 +449,7 @@ export function SettlementModal({
             );
           })}
         </div>
+        )}
 
         <div className="pt-3 border-t border-[var(--border)]">
           <AnimatePresence mode="wait">
@@ -523,6 +564,11 @@ export function SettlementModal({
                   </button>
                 </div>
               </motion.div>
+            ) : showCheckpoint && listPredicates.length === 0 ? (
+              // The primary checkpoint IS the only thing to settle — the card's
+              // 4-tap (incl. "아직 판단하기 어렵다") drives it, so no duplicate
+              // contract-level extend chips here.
+              <motion.div key="cp-only" initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
             ) : (
               <motion.div key="extend" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <p className="text-[12px] text-[var(--text-secondary)] mb-2">

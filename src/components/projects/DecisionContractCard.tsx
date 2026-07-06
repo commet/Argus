@@ -536,12 +536,16 @@ function PredicateList({
       {predicates.map((p) => {
         const Icon = SOURCE_ICON[p.source] ?? AlertTriangle;
         const v = p.verdict ? verdictButtons(p.source, ko).find((x) => x.value === p.verdict) : undefined;
+        // 'missed' (checkpoints v2 §7.2) is a judgment-layer verdict with no
+        // button in the grading list, so fall back to a display label here or it
+        // would render blank on a settled contract card.
+        const verdictLabel = v?.label ?? (p.verdict === 'missed' ? (ko ? '빗나감' : 'Missed') : undefined);
         return (
           <li key={p.id} className="flex items-start gap-2 text-[13px] text-[var(--text-primary)] leading-[1.5]">
             <Icon size={13} className="text-[var(--text-tertiary)] mt-0.5 shrink-0" />
             <span className="flex-1 min-w-0">{predicateQuestion(p, ko)}</span>
-            {showVerdict && v && (
-              <span className="text-[11px] font-semibold text-[var(--accent)] shrink-0 whitespace-nowrap">{v.label}</span>
+            {showVerdict && verdictLabel && (
+              <span className="text-[11px] font-semibold text-[var(--accent)] shrink-0 whitespace-nowrap">{verdictLabel}</span>
             )}
           </li>
         );
