@@ -36,11 +36,41 @@ export const maxDuration = 300;
  * (1) PREMISE_WATCH_ENABLED kill-switch, (2) per-run investigation cap,
  * (3) dedup identical premise text across users, (4) only due+auto_watch+monitored
  * premises (cadence throttles), (5) results are never stored raw (only the fact +
- * URL). A monthly budget counter is a fast-follow.
+ * URL), (6) a MONTHLY investigation cap (premise_watch_usage table) auto-stops the
+ * cron before the founder's Brave/LLM bill runs away — fail-open if the table is
+ * absent, so the per-run cap + kill-switch remain the hard floors.
  */
 
 const RENUDGE_DAYS = 7;
 const MAX_PER_RUN = Number(process.env.PREMISE_WATCH_MAX_PER_RUN || 200);
+/** Hard monthly ceiling on investigations (= Brave calls = LLM calls). Founder's
+ *  automatic spend brake; each investigation is ~1 Brave + ~1 Claude call. */
+const MONTHLY_CAP = Number(process.env.PREMISE_WATCH_MONTHLY_CAP || 3000);
+
+// premise_watch_usage is added by its own migration and isn't in the generated DB
+// types, so these helpers take a loosely-typed client to access it dynamically.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Supa = any;
+
+/** This month's investigation count (0 if the row/table is absent — fail-open). */
+async function monthlyCount(supabase: Supa, monthKey: string): Promise<number> {
+  try {
+    const { data } = await supabase.from('premise_watch_usage').select('count').eq('month', monthKey).single();
+    const c = (data as { count?: number } | null)?.count;
+    return typeof c === 'number' ? c : 0;
+  } catch { return 0; }
+}
+
+/** Add `n` investigations to this month's counter (best-effort; never throws). */
+async function bumpMonthly(supabase: Supa, monthKey: string, startCount: number, n: number): Promise<void> {
+  if (n <= 0) return;
+  try {
+    await supabase.from('premise_watch_usage').upsert(
+      { month: monthKey, count: startCount + n, updated_at: new Date().toISOString() },
+      { onConflict: 'month' },
+    );
+  } catch { /* table not migrated yet → per-run cap + kill-switch still bound cost */ }
+}
 
 function safeCompare(a: string, b: string): boolean {
   const lengthMismatch = a.length !== b.length ? 1 : 0;
@@ -96,6 +126,14 @@ export async function GET(req: Request) {
   const today = new Date().toISOString().slice(0, 10);
   const renudgeCutoff = new Date(Date.now() - RENUDGE_DAYS * 86_400_000).toISOString();
 
+  // Monthly spend brake: stop before this month's investigations exceed the cap.
+  const monthKey = today.slice(0, 7); // YYYY-MM
+  const monthStart = await monthlyCount(supabase, monthKey);
+  if (monthStart >= MONTHLY_CAP) {
+    return NextResponse.json({ ok: true, budget_exhausted: true, month: monthKey, count: monthStart, cap: MONTHLY_CAP });
+  }
+  let budgetLeft = MONTHLY_CAP - monthStart; // additional guard: never exceed the monthly cap mid-run
+
   // Sealed receipts with a due next_check_by (the lift already folds premise dues in).
   const { data: rows, error } = await supabase
     .from('review_receipts')
@@ -133,8 +171,9 @@ export async function GET(req: Request) {
       const key = normalizePremiseText(p.text);
       let result = investigated.get(key);
       if (!result) {
-        if (budget <= 0) { dropped++; continue; } // per-run cost cap
+        if (budget <= 0 || budgetLeft <= 0) { dropped++; continue; } // per-run + monthly cost cap
         budget--;
+        budgetLeft--;
         researched++;
         const baselineYMD = dateOnly(isOpenQ ? (p.last_reconsidered ?? p.added_ts) : p.last_recheck?.ts) ?? dateOnly(p.added_ts) ?? addDaysYMD(today, -365);
         result = await investigatePremise({
@@ -251,12 +290,19 @@ export async function GET(req: Request) {
     emailed++;
   }
 
+  // Count the real API calls made this run (dry run still hits Brave+LLM, so it
+  // counts too) against the monthly cap. Best-effort; never blocks the response.
+  await bumpMonthly(supabase, monthKey, monthStart, researched);
+
   return NextResponse.json({
     ok: true,
     dry_run: dryRun,
     date: today,
     researched,
     dropped_over_cap: dropped,
+    month: monthKey,
+    month_used: monthStart + researched,
+    month_cap: MONTHLY_CAP,
     receipts_updated: rowUpdates.length,
     change_users: byUser.size,
     emailed,
