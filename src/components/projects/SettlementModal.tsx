@@ -24,7 +24,7 @@
  * auto-escaped.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Target, AlertTriangle, GitBranch, Check, Anchor } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -47,6 +47,7 @@ import { recordSignal } from '@/lib/signal-recorder';
 import { track } from '@/lib/analytics';
 import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
 import { CheckpointReturnCard } from './CheckpointReturnCard';
+import { generateGrowthNote } from '@/lib/growth-note';
 import { JudgmentReceipt } from './JudgmentReceipt';
 import { JudgmentFrame } from './JudgmentFrame';
 import { RetroBadge } from './RetroBadge';
@@ -159,6 +160,33 @@ export function SettlementModal({
     setStorage(STORAGE_KEYS.RETRO_SETTLED, true);
     track('retro_settled', { predicates: predicates.length });
   }, [isRetro, allResolved, predicates.length]);
+
+  // Growth note (§10): once the loop closes, generate the ONE structural
+  // reflection from the record just written. Input-contained + vocab-blocked +
+  // honest-gap in generateGrowthNote; here we only gate it (once per mount, real
+  // anchor, not a retro practice loop) and persist a successful note.
+  const growthTriedRef = useRef(false);
+  useEffect(() => {
+    if (isRetro || !allResolved || growthTriedRef.current) return;
+    if (contract?.growth_note) return;
+    const anchor = contract?.judgment_receipt?.human_judgment?.trim();
+    if (!anchor) return; // no anchor → honest gap, no note
+    growthTriedRef.current = true;
+    const primaryId = contract?.primary_checkpoint?.predicate_id;
+    const verdictWord = predicates.find((p) => p.id === primaryId)?.verdict
+      ?? predicates.find(isResolved)?.verdict ?? 'unknown';
+    generateGrowthNote(
+      {
+        originalJudgment: anchor,
+        verdict: String(verdictWord),
+        ambiguityReason: contract?.ambiguity?.reason,
+        userNote: (contract?.judgment_receipt?.what_happened ?? whatHappened).trim() || undefined,
+      },
+      ko ? 'ko' : 'en',
+    ).then((note) => {
+      if (note) updateProject(project.id, { decision_contract: { ...contract!, growth_note: note } });
+    });
+  }, [isRetro, allResolved, contract, predicates, ko, whatHappened, project.id, updateProject]);
 
   function saveWhatHappened(text: string) {
     const existingReceipt = contract?.judgment_receipt;
@@ -528,6 +556,28 @@ export function SettlementModal({
                     </p>
                   </div>
                 )}
+
+                {/* Growth note (§10): the one structural reflection, tagged
+                    ai_surfaced and dismissable. Absent when generation failed or
+                    was blocked (honest gap) — then this simply doesn't render. */}
+                {!isRetro && contract.growth_note && (
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-semibold text-[var(--text-tertiary)] border border-[var(--border)] rounded px-1 py-px">
+                        {L('AI가 비춘 한 줄', 'AI-surfaced')}
+                      </span>
+                      <button
+                        onClick={() => updateProject(project.id, { decision_contract: { ...contract, growth_note: undefined } })}
+                        className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors"
+                      >
+                        {L('지우기', 'Dismiss')}
+                      </button>
+                    </div>
+                    <p className="text-[12.5px] text-[var(--text-primary)] leading-[1.55] mt-1.5">{contract.growth_note.widened_view}</p>
+                    <p className="text-[12px] text-[var(--text-secondary)] leading-[1.5] mt-1">{contract.growth_note.future_attention}</p>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between gap-3">
                   {/* [C3] 회고 실전 온램프 — retro 완료 화면에서만. 연습을 닫은
                       직후가 진짜를 걸어볼 유일한 문. 텍스트 링크 1개(버튼 승격·

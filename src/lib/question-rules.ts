@@ -97,6 +97,29 @@ export const GLOBAL_QUESTION_INSTRUCTION: Record<RuleLocale, string> = {
 };
 
 /**
+ * Personality-verdict patterns — the vocabulary a growth note / active feedback
+ * must NEVER use (checkpoints v2 §10.2: "당신은 ~한 사람/유형/경향" is a trait
+ * verdict about the user, a spine violation). Shared so the growth-note
+ * generator and any future feedback surface block the same phrasings. ko + en.
+ */
+export const PERSONALITY_VERDICT_PATTERNS: ReadonlyArray<RegExp> = [
+  /(당신|너)(은|는|이|가)?\s*[^.?!]{0,16}(사람|유형|타입|성격|스타일)(이에요|입니다|이네요|이군요|이야|이)/,
+  /(당신|너)의?\s*성격/,
+  /(성급|신중|낙관|비관|과감|소심|완벽주의|즉흥)(한|적인)\s*(성향|사람|유형|타입|편)/,
+  /\byou(?:'re| are)\s+(a|an|the)\s+[^.?!]{0,16}(type|person|kind)\b/i,
+  /\byou\s+(tend to be|are inherently|are naturally|always)\b/i,
+  /\byour\s+personality\b/i,
+];
+
+/** Does the text attribute a personality trait to the user (a spine-banned
+ *  verdict)? Pure; NFC-normalized. A growth note that trips this is dropped
+ *  entirely (honest gap), never softened. */
+export function hasPersonalityVerdict(text: string): boolean {
+  const t = (text ?? '').normalize('NFC');
+  return PERSONALITY_VERDICT_PATTERNS.some((re) => re.test(t));
+}
+
+/**
  * Option-shape thresholds (§6.2 R2). An option is a real fork only if it reads
  * like a decision a boss could sign, not a bare category noun. Korean is terser
  * than English, so the average-length floor differs. Tuned against the Phase-1
