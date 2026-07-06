@@ -3,19 +3,24 @@
 /**
  * UseCases — the "what people actually bring to Argus" band, placed right under
  * the hero. It mirrors the hero's TWO DOORS (WRITE a decision / UPLOAD a doc):
- * left column = a decision you type, right column = a document you upload. Each
- * door is a CONCRETE worked example, walked step by step, so a first-timer who
- * isn't sure "is this for my decision?" sees exactly how each path goes.
+ * left column = a decision you type, right column = a document you upload.
  *
- * Interaction echoes the hero split-field: the two doors live in one plate, and
- * the cursor leans it — hovering one column widens it and softens the other, so
- * the visitor can focus on one path at a time. Steps reveal one line at a time
- * on scroll-in (useScrollReveal), so the process reads as a sequence, not a wall.
+ * Each door is NOT a generic "step 1 / step 2" list — it walks Argus's REAL
+ * stages (the same names the product uses live: 진짜 질문 · AI가 채운 전제 ·
+ * 갈리는 지점 · 봉인·정산 for a decision; 주장 지도 · 근거 약한 주장 · 책임질 판단
+ * for a document) and, at each stage, shows the CONCRETE output that this
+ * specific question produces. So a first-timer sees the product actually
+ * running on one real case, not a marketing checklist. Both doors converge on
+ * the same last stage — 봉인·정산 — which is the whole product thesis.
  *
- * On-spine: no invented metrics, no logos, no verdict language. Each path hands
- * the call back to the user (WRITE) or anchors flags to the source without
- * ruling (UPLOAD). The single product-level honesty — no engine is perfectly
- * neutral — is disclosed once, quietly, at the foot of the section.
+ * Interaction echoes the hero split-field: the cursor leans the plate (hovered
+ * door widens, the other softens), and the stages reveal one at a time on
+ * scroll-in, so the run reads as a sequence.
+ *
+ * On-spine: no invented metrics, no logos, no verdict language. The decision
+ * door hands the call back; the document door anchors flags to the source
+ * without ruling. The one product-level honesty — no engine is perfectly
+ * neutral — is disclosed once, quietly, at the foot.
  */
 
 import { useState } from 'react';
@@ -23,69 +28,87 @@ import { useLocale } from '@/hooks/useLocale';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
 
-type Step = { titleKo: string; titleEn: string; exKo: string; exEn: string };
+// A real Argus stage + the concrete thing it produces for THIS example.
+type Stage = { labelKo: string; labelEn: string; outKo: string; outEn: string; seal?: boolean };
 type Door = {
   key: 'write' | 'file';
   doorKo: string; doorEn: string;
   seedKo: string; seedEn: string;
-  steps: Step[];
+  stages: Stage[];
 };
 
-// Two concrete, parallel worked examples — one universal held decision (the job
-// offer) and one written artifact (a strategy memo). Same register as the hero's
-// rotating prompts and ON FILE door, so the two surfaces read as one product.
+// One universal held decision, walked through the real decision flow. The stage
+// labels are the product's own (StreamSnippet "진짜 질문", MirrorBeat "AI가 채운
+// 전제", LeadSynthesis "이 결정이 갈리는 지점", the seal→settle spine).
 const WRITE_DOOR: Door = {
   key: 'write',
   doorKo: '쓰기 · 결정을 적는다',
   doorEn: 'WRITE · a decision',
   seedKo: '받은 이직 제안, 받아들여도 될까?',
   seedEn: 'Take the job offer I just got?',
-  steps: [
+  stages: [
     {
-      titleKo: '숨은 전제를 짚어요',
-      titleEn: 'Names the hidden assumption',
-      exKo: '“지금 자리에선 더 배울 게 없다” — 이 결정은 그 전제에 걸려 있어요. 정말 그런가요?',
-      exEn: '“There’s nothing left to learn here.” The whole call rests on that. Is it actually true?',
+      labelKo: '진짜 질문',
+      labelEn: 'The real question',
+      outKo: '“이직할까?”가 아니라 — “지금 자리에서 3년 뒤 나는 어디에 있나?”가 진짜 질문이에요.',
+      outEn: 'Not “should I switch?” but “where am I in three years if I stay?” — that’s the real one.',
     },
     {
-      titleKo: '판단은 당신 몫이에요',
-      titleEn: 'You keep the call',
-      exKo: '답을 대신 내지 않아요. 당신의 결정과 그 근거를 항로로 남겨요.',
-      exEn: 'It won’t decide for you — your call and its reasoning are kept as a course.',
+      labelKo: 'AI가 채운 전제',
+      labelEn: 'A premise the AI filled in',
+      outKo: '“지금은 성장이 멈췄다”는 전제를 깔았네요. 당신은 말한 적 없어요 — 맞나요?',
+      outEn: 'It assumed “growth has stalled here.” You never said that — is it true?',
     },
     {
-      titleKo: '정산일에 돌아와요',
-      titleEn: 'Returns on your date',
-      exKo: '정한 날, “그래서 어떻게 됐어요?” 하고 결정을 현실과 대조해요.',
-      exEn: 'On the day you set: “so, how did it go?” — the call, checked against what happened.',
+      labelKo: '갈리는 지점',
+      labelEn: 'Where it turns',
+      outKo: '결국 “안정된 성장 vs 빠른 도약” 한 축에서 갈려요.',
+      outEn: 'In the end it turns on one axis: steady growth vs. a faster leap.',
+    },
+    {
+      labelKo: '봉인 · 정산',
+      labelEn: 'Seal, then settle',
+      outKo: '당신의 선택과 이유를 봉인해요. 3개월 뒤 — “그래서, 어떻게 됐어요?”',
+      outEn: 'Seal your call and your reasons. Three months on — “so, how did it go?”',
+      seal: true,
     },
   ],
 };
 
+// A written artifact, walked through the real review pipeline. Labels match the
+// product: claims + dependency map, weak-evidence flags anchored to the source
+// line, the judgment calls a human must own — converging on the same seal→settle.
 const FILE_DOOR: Door = {
   key: 'file',
   doorKo: '올리기 · 문서를 올린다',
   doorEn: 'UPLOAD · a document',
   seedKo: '3분기 전략안.pdf',
   seedEn: 'Q3-strategy-memo.pdf',
-  steps: [
+  stages: [
     {
-      titleKo: '약한 근거를 짚어요',
-      titleEn: 'Flags the weak evidence',
-      exKo: '“시장은 계속 성장한다”(p.3) — 이 주장은 뒷받침이 비어 있어요.',
-      exEn: '“The market keeps growing” (p.3) — nothing behind this claim.',
+      labelKo: '주장 지도',
+      labelEn: 'Claim map',
+      outKo: '핵심 주장을 뽑아, 무엇이 무엇에 기대고 있는지 지도로 그려요.',
+      outEn: 'Pulls the core claims and maps what rests on what.',
     },
     {
-      titleKo: '책임질 판단을 표시해요',
-      titleEn: 'Marks the judgment calls',
-      exKo: '이 예산 배분은 사람이 정할 판단이에요. (p.7)',
-      exEn: 'This budget split is a human’s call to make. (p.7)',
+      labelKo: '근거 약한 주장',
+      labelEn: 'Weak evidence',
+      outKo: '“시장은 계속 성장한다”(p.3) — 뒷받침이 비어 있어요.',
+      outEn: '“The market keeps growing” (p.3) — nothing behind it.',
     },
     {
-      titleKo: '고쳐서 다시 올려요',
-      titleEn: 'Re-upload the fix',
-      exKo: '남은 구멍만 다시 짚어, 문서가 한층 단단해져요.',
-      exEn: 'It re-checks only what’s left — and the doc gets sturdier.',
+      labelKo: '책임질 판단',
+      labelEn: 'A human’s call',
+      outKo: '이 예산 배분은 AI가 아니라 사람이 정할 판단이에요. (p.7)',
+      outEn: 'This budget split is a human’s call, not the AI’s. (p.7)',
+    },
+    {
+      labelKo: '봉인 · 정산',
+      labelEn: 'Seal, then settle',
+      outKo: '고친 문서를 봉인하고, 정한 날 결과와 대조해요.',
+      outEn: 'Seal the fixed doc, and check it against reality on your date.',
+      seal: true,
     },
   ],
 };
@@ -102,7 +125,7 @@ export function UseCases() {
   const writeGrow = hoverSide === 'file' ? 0.74 : hoverSide === 'write' ? 1.3 : 1;
   const fileGrow = hoverSide === 'file' ? 1.3 : hoverSide === 'write' ? 0.74 : 1;
 
-  // Reveal the steps one line at a time once the band scrolls into view.
+  // Reveal the stages one at a time once the band scrolls into view.
   const { ref, isVisible } = useScrollReveal<HTMLDivElement>({ threshold: 0.18 });
 
   const renderDoor = (d: Door, grow: number, dimmed: boolean) => (
@@ -125,7 +148,7 @@ export function UseCases() {
         </span>
       </div>
 
-      {/* the seed — what the user brings. Typed line reads like the hero input
+      {/* the seed — what the user brings. A typed line reads like the hero input
           (caret + italic + baseline rule); a document reads as a file chip. */}
       {d.key === 'write' ? (
         <div>
@@ -150,39 +173,47 @@ export function UseCases() {
         </div>
       )}
 
-      {/* the process — one numbered step at a time, walking a rail down the page */}
-      <div style={{ marginTop: 20, borderLeft: '1px solid var(--bp-ink-faint)', marginLeft: 7, paddingLeft: 20 }}>
-        {d.steps.map((s, i) => (
+      {/* down the rail: each REAL Argus stage, and the concrete line it produces
+          for this exact question — the product actually running, one beat at a
+          time (not an abstract numbered checklist). */}
+      <div style={{ marginTop: 18, borderLeft: '1px solid var(--bp-ink-faint)', marginLeft: 7, paddingLeft: 20 }}>
+        {d.stages.map((s, i) => (
           <div
             key={i}
             className={bk}
             style={{
               position: 'relative',
-              paddingBottom: i === d.steps.length - 1 ? 0 : 18,
+              paddingBottom: i === d.stages.length - 1 ? 0 : 17,
               opacity: isVisible ? 1 : 0,
               transform: isVisible ? 'translateY(0)' : 'translateY(6px)',
               transition: 'opacity 460ms ease, transform 460ms cubic-bezier(.22,.61,.36,1)',
               transitionDelay: `${140 + i * 150}ms`,
             }}
           >
-            {/* node on the rail — a small ink dot with the step numeral beside it */}
+            {/* node on the rail — the seal beat gets the gold node, since that is
+                where both doors converge (and where the product spends gold). */}
             <span
               aria-hidden="true"
               style={{
-                position: 'absolute', left: -25, top: 4, width: 9, height: 9, borderRadius: '50%',
-                background: 'var(--bp-paper)', border: '1.5px solid var(--bp-ink-soft)',
+                position: 'absolute', left: -25, top: 3, width: 9, height: 9, borderRadius: '50%',
+                background: s.seal ? 'var(--bp-gold)' : 'var(--bp-paper)',
+                border: s.seal ? '1.5px solid var(--bp-gold)' : '1.5px solid var(--bp-ink-soft)',
               }}
             />
-            <div className="flex items-baseline gap-2.5" style={{ marginBottom: 4 }}>
-              <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: '0.1em', fontWeight: 600 }}>
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <span style={{ color: 'var(--bp-ink)', fontSize: 14.5, fontWeight: 700, lineHeight: 1.4 }}>
-                {L(s.titleKo, s.titleEn)}
-              </span>
+            {/* the real stage name — leads the beat (no bare numerals) */}
+            <div
+              className="bp-mono"
+              style={{
+                color: s.seal ? 'var(--bp-gold-deep)' : 'var(--bp-ink-soft)',
+                fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.06em' : '0.14em',
+                textTransform: 'uppercase', fontWeight: 700, marginBottom: 4,
+              }}
+            >
+              {L(s.labelKo, s.labelEn)}
             </div>
-            <div style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, lineHeight: 1.6 }}>
-              {L(s.exKo, s.exEn)}
+            {/* the concrete output this specific question produces at that stage */}
+            <div style={{ color: 'var(--bp-ink)', fontSize: 13.5, lineHeight: 1.55 }}>
+              {L(s.outKo, s.outEn)}
             </div>
           </div>
         ))}
@@ -207,10 +238,10 @@ export function UseCases() {
         >
           {L('복잡한 결정일수록, 갈리는 자리부터.', 'The harder the call, the more it turns on one thing.')}
         </h2>
-        <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 620, marginTop: 12 }}>
+        <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 640, marginTop: 12 }}>
           {L(
-            '적어서 물어도, 이미 쓴 문서를 올려도 — 하는 일은 같아요. 커서를 올려 한쪽씩, 한 단계씩 따라가 보세요.',
-            'Type a decision or upload one you’ve written — the work is the same. Hover a side and follow it, step by step.',
+            '적어서 물어도, 이미 쓴 문서를 올려도 — 거치는 단계는 같아요. 커서를 올려 한쪽씩, 한 사례가 실제로 어떻게 흘러가는지 따라가 보세요.',
+            'Type a decision or upload one you’ve written — the stages are the same. Hover a side and watch one real case actually move through them.',
           )}
         </p>
 
@@ -238,11 +269,11 @@ export function UseCases() {
           {renderDoor(FILE_DOOR, fileGrow, hoverSide === 'write')}
         </div>
 
-        {/* One quiet product-level honesty line — the spine's disclosed limit */}
+        {/* Convergence + the one quiet product-level honesty (the disclosed limit) */}
         <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.6, marginTop: 22, opacity: 0.9 }}>
           {L(
-            '어느 쪽도 당신의 결정을 대신 내리지 않아요. 다만 희미한 기울기까지 지우진 못해요 — 저희가 아는 한계예요.',
-            'Neither door decides for you. No engine is perfectly neutral, though — a limit we own.',
+            '두 길 모두 마지막엔 봉인하고 정산하는 같은 항로로 모여요. 어느 쪽도 당신의 결정을 대신 내리지 않아요 — 다만 희미한 기울기까지 지우진 못해요, 저희가 아는 한계예요.',
+            'Both paths end at the same place — seal, then settle. Neither decides for you; no engine is perfectly neutral, though — a limit we own.',
           )}
         </p>
       </div>
