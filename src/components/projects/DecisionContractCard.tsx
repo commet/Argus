@@ -34,6 +34,7 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
 import { getStorage, STORAGE_KEYS } from '@/lib/storage';
 import { JudgmentFrame } from './JudgmentFrame';
+import { FirstSettlementCard } from './FirstSettlementCard';
 import type {
   Project,
   RecastItem,
@@ -380,6 +381,30 @@ export function DecisionContractCard({
                 )
               : L(`예측 ${predicates.length}개 · 언제든 확인`, `${predicates.length} predictions · check anytime`)}
           </p>
+
+          {/* 1차 정산 (§8): before the due date, the only answerable return is
+              the thought↔thought check. Anchor on the user's own sealed line
+              (human_judgment), else the sharpest predicate. Shown only when there
+              is a real anchor and the grades aren't already open. */}
+          {!due && !showGrades && (() => {
+            const anchor = contract!.judgment_receipt?.human_judgment?.trim() || predicates[0]?.text?.trim();
+            if (!anchor) return null;
+            return (
+              <FirstSettlementCard
+                anchor={anchor}
+                leanAfter={contract!.lean_after}
+                ko={ko}
+                onRecord={(view, note) =>
+                  updateProject(project.id, {
+                    decision_contract: {
+                      ...contract!,
+                      lean_after: { view, note, recorded_at: new Date().toISOString() },
+                    },
+                  })
+                }
+              />
+            );
+          })()}
 
           {/* Change the check-in date BEFORE it's due (was only possible as an
               "아직"-extend AFTER the date arrived). amendCheckIn keeps the old date in

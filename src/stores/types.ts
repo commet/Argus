@@ -678,6 +678,17 @@ export interface GrowthNote {
   evidence_count: number;
 }
 
+/** First settlement (checkpoints v2 §8) — the thought↔thought check that holds
+ *  BEFORE reality arrives: the user's own read of whether their view has shifted
+ *  since sealing. No AI verdict, no outcome required — it is the return on-ramp
+ *  ("1차 정산이 2차 정산을 판다"). `shifted` is not worse than `same`; a moved
+ *  view is itself judgment data. */
+export interface LeanAfter {
+  view: 'same' | 'shifted';
+  note?: string;
+  recorded_at: string;
+}
+
 export interface DecisionContract {
   id: string;
   project_id: string;
@@ -690,6 +701,9 @@ export interface DecisionContract {
   ambiguity?: AmbiguityRecord;
   /** The one-line structural feedback shown right after a settle (§10). */
   growth_note?: GrowthNote;
+  /** First settlement — the thought↔thought check recorded before the due date
+   *  (§8). Absent until the user reflects once; re-recordable. */
+  lean_after?: LeanAfter;
   /** Self-commitment: when the user promised to return and grade. */
   check_in_interval?: CheckInInterval;
   /** ISO timestamp derived from check_in_interval at commit time. */
