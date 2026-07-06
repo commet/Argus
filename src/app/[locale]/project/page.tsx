@@ -24,6 +24,7 @@ import { DecisionContractCard } from '@/components/projects/DecisionContractCard
 import { DecisionItemsCard } from '@/components/projects/DecisionItemsCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
+import { isCheckpointDue } from '@/lib/checkpoint-core';
 import { RecordStrip } from '@/components/ui/RecordStrip';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
 import { FleetChart } from '@/components/projects/FleetChart';
@@ -125,7 +126,11 @@ export default function ProjectPage() {
   const [settleOpenId, setSettleOpenId] = useState<string | null>(null);
   const settleDueNow = !!(
     currentProject?.decision_contract &&
-    contractStatus(currentProject.decision_contract, Date.now()).checkInDue
+    (contractStatus(currentProject.decision_contract, Date.now()).checkInDue ||
+      // §9.2 — a NON-date checkpoint (event/manual handle) can't ride check_in_at;
+      // it surfaces when its silence cap is reached, so "never due" is impossible.
+      (currentProject.decision_contract.primary_checkpoint &&
+        isCheckpointDue(currentProject.decision_contract.primary_checkpoint, new Date().toISOString().slice(0, 10))))
   );
   useEffect(() => {
     if (currentProject && settleDueNow && !settleDismissed.has(currentProject.id)) {

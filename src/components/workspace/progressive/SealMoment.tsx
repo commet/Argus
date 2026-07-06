@@ -248,7 +248,7 @@ export function SealMoment({
     // checkpoints v2 §12 Phase 0 (W1): designate the primary checkpoint at seal —
     // preserve a carried one, else auto-construct from the top predicate + the
     // date handle. jsonb-nested (no migration); the return loop focuses here.
-    const primary_checkpoint = next.primary_checkpoint ?? derivePrimaryCheckpoint(next) ?? undefined;
+    const primary_checkpoint = next.primary_checkpoint ?? derivePrimaryCheckpoint(next, undefined, new Date(now).toISOString().slice(0, 10)) ?? undefined;
     updateProject(project.id, { decision_contract: { ...next, judgment_receipt, closed_at, primary_checkpoint } });
     autoTrackPremises(now);
     // Cross-surface return loop: if this logged-in user connected Telegram, mirror
@@ -306,7 +306,7 @@ export function SealMoment({
     // also keeps a then↔now anchor at settlement; human_judgment stays optional.
     const judgment_receipt = { real_question: summary, unverified_assumption: '', human_only: '', human_judgment: humanJudgment.trim(), check_by };
     const closed_at = closing ? new Date(now).toISOString() : c.closed_at;
-    const primary_checkpoint = c.primary_checkpoint ?? derivePrimaryCheckpoint(c) ?? undefined;
+    const primary_checkpoint = c.primary_checkpoint ?? derivePrimaryCheckpoint(c, undefined, new Date(now).toISOString().slice(0, 10)) ?? undefined;
     updateProject(project.id, { decision_contract: { ...c, judgment_receipt, closed_at, primary_checkpoint } });
     autoTrackPremises(now);
     const sharp = c.predicates[0]?.text;

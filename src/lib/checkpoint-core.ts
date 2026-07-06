@@ -120,14 +120,18 @@ export function pickPrimaryPredicate<T extends { source: PredicateSource }>(pred
 export function derivePrimaryCheckpoint(
   contract: Pick<DecisionContract, 'predicates' | 'check_in_at'>,
   seed?: Partial<PrimaryCheckpoint> & { predicate_id?: string },
+  today?: string,
 ): PrimaryCheckpoint | null {
   const top = pickPrimaryPredicate(contract.predicates || []);
   if (!top) return null;
 
-  const handle: ReturnHandle = seed?.return_handle
+  let handle: ReturnHandle = seed?.return_handle
     ?? (contract.check_in_at
       ? { kind: 'date', value: contract.check_in_at, auto_due: true }
       : { kind: 'manual', value: '', auto_due: false });
+  // §9.2 — a non-date handle is born with a silence cap so it can never sleep
+  // forever. A date handle is untouched (it fires on its own).
+  if (today) handle = armCheckpointSilence(handle, today);
 
   const linked = seed?.linked_premise_ids ?? [];
   const type = seed?.type ?? chooseCheckpointType({
@@ -163,4 +167,52 @@ export function nextAmbiguityHandle(prev: ReturnHandle | undefined, today: strin
 /** Read a legacy contract's expectation defensively — absent → 'occur' (§7.2). */
 export function checkpointExpectation(c: Pick<DecisionContract, 'primary_checkpoint'>): CheckpointExpectation {
   return c.primary_checkpoint?.expectation ?? 'occur';
+}
+
+// ── due-ness for the return handle (§9.2 — "never due" is impossible) ────────
+
+/** Default silence cap for a non-date handle: past this, a soft nudge replaces
+ *  the (impossible) auto-due so it can't sleep forever (§9.2). */
+export const CHECKPOINT_SILENCE_CAP_DAYS = 30;
+
+function dateOnly(s?: string): string | undefined {
+  return s && s.length >= 10 ? s.slice(0, 10) : undefined;
+}
+
+/**
+ * Is this checkpoint due as of `today` (YYYY-MM-DD)? §9.2:
+ *  - a `date` auto_due handle is due when its date has arrived (the existing
+ *    check-in path already surfaces these);
+ *  - a NON-date handle can't auto-fire, so it becomes due only once its silence
+ *    cap is reached — a soft nudge, never a hard "settle now". An un-armed
+ *    non-date handle (no silence_until) is never due until armed, so it never
+ *    nags before its time. Pure.
+ */
+export function isCheckpointDue(cp: Pick<PrimaryCheckpoint, 'return_handle'>, today: string): boolean {
+  const t = dateOnly(today);
+  if (!t) return false;
+  const h = cp.return_handle;
+  if (h.kind === 'date' && h.auto_due) {
+    const d = dateOnly(h.value);
+    return !!d && d <= t;
+  }
+  const cap = dateOnly(h.silence_until);
+  return !!cap && cap <= t;
+}
+
+/**
+ * Arm the silence cap on a non-date handle so "never due" is structurally
+ * impossible (§9.2): sets silence_until = today + days. A `date` auto_due handle
+ * (it fires on its own) and an already-armed handle are returned unchanged. Pure.
+ */
+export function armCheckpointSilence(
+  handle: ReturnHandle,
+  today: string,
+  days: number = CHECKPOINT_SILENCE_CAP_DAYS,
+): ReturnHandle {
+  if (handle.kind === 'date' && handle.auto_due) return handle;
+  if (handle.silence_until) return handle;
+  const base = dateOnly(today);
+  if (!base) return handle;
+  return { ...handle, silence_until: addDays(base, days) };
 }

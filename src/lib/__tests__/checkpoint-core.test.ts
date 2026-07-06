@@ -7,9 +7,12 @@ import {
   derivePrimaryCheckpoint,
   nextAmbiguityHandle,
   checkpointExpectation,
+  isCheckpointDue,
+  armCheckpointSilence,
+  CHECKPOINT_SILENCE_CAP_DAYS,
   type ReturnTap,
 } from '../checkpoint-core';
-import type { Predicate } from '@/stores/types';
+import type { Predicate, ReturnHandle } from '@/stores/types';
 
 const TAPS: ReturnTap[] = ['mostly_right', 'missed', 'mixed', 'unclear'];
 
@@ -127,5 +130,46 @@ describe('nextAmbiguityHandle (§7.3) + defensive expectation', () => {
   });
   it('legacy contract without expectation reads as occur', () => {
     expect(checkpointExpectation({ primary_checkpoint: undefined })).toBe('occur');
+  });
+});
+
+describe('isCheckpointDue + armCheckpointSilence — non-date handles never sleep forever (§9.2)', () => {
+  const dateHandle = (v: string): ReturnHandle => ({ kind: 'date', value: v, auto_due: true });
+  const eventHandle = (): ReturnHandle => ({ kind: 'event', value: '이사회 후', auto_due: false });
+
+  it('a date handle is due when its date has arrived', () => {
+    expect(isCheckpointDue({ return_handle: dateHandle('2026-09-01') }, '2026-08-31')).toBe(false);
+    expect(isCheckpointDue({ return_handle: dateHandle('2026-09-01') }, '2026-09-01')).toBe(true);
+  });
+
+  it('an UN-armed non-date handle is never due (never nags before its time)', () => {
+    expect(isCheckpointDue({ return_handle: eventHandle() }, '2027-01-01')).toBe(false);
+  });
+
+  it('arming a non-date handle sets a silence cap; it becomes due only after the cap', () => {
+    const armed = armCheckpointSilence(eventHandle(), '2026-07-06');
+    expect(armed.silence_until).toBeTruthy();
+    // not due before the cap …
+    expect(isCheckpointDue({ return_handle: armed }, '2026-07-20')).toBe(false);
+    // … due once the cap (today + 30) is reached
+    expect(isCheckpointDue({ return_handle: armed }, '2026-08-05')).toBe(true);
+  });
+
+  it('the cap is CHECKPOINT_SILENCE_CAP_DAYS out', () => {
+    const armed = armCheckpointSilence(eventHandle(), '2026-07-06', CHECKPOINT_SILENCE_CAP_DAYS);
+    expect(armed.silence_until!.slice(0, 10)).toBe('2026-08-05'); // 2026-07-06 + 30
+  });
+
+  it('a date auto_due handle is not armed (it fires on its own); arming is idempotent', () => {
+    const d = dateHandle('2026-09-01');
+    expect(armCheckpointSilence(d, '2026-07-06')).toBe(d);          // unchanged
+    const armed = armCheckpointSilence(eventHandle(), '2026-07-06');
+    expect(armCheckpointSilence(armed, '2026-08-01')).toBe(armed);  // already armed → unchanged
+  });
+
+  it('derivePrimaryCheckpoint arms a manual handle when today is passed', () => {
+    const cp = derivePrimaryCheckpoint({ predicates: [pred()], check_in_at: undefined }, undefined, '2026-07-06');
+    expect(cp!.return_handle.kind).toBe('manual');
+    expect(cp!.return_handle.silence_until).toBeTruthy(); // born armed → will surface, never sleeps
   });
 });
