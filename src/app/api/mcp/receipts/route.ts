@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { adminClient } from '@/lib/share-guard';
+import { isTokenExpired } from '@/lib/plugin-token';
 import type { JudgmentReceipt } from '@/lib/review';
 
 /**
@@ -30,11 +31,11 @@ export async function GET(req: NextRequest) {
   const admin = adminClient();
   const { data: tokenRow } = await admin
     .from('plugin_tokens')
-    .select('user_id')
+    .select('user_id, expires_at')
     .eq('token_hash', hashToken(raw))
     .single();
-  if (!tokenRow) {
-    return NextResponse.json({ error: 'Unknown or revoked token' }, { status: 401 });
+  if (!tokenRow || isTokenExpired(tokenRow.expires_at)) {
+    return NextResponse.json({ error: 'Unknown, revoked, or expired token' }, { status: 401 });
   }
 
   const { data: rows, error } = await admin

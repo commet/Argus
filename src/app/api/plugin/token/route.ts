@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { randomBytes, createHash } from 'crypto';
 import { validateContentType, validateOrigin } from '@/lib/api-security';
 import { adminClient } from '@/lib/share-guard';
+import { pluginTokenExpiry } from '@/lib/plugin-token';
 
 /**
  * Issue a personal access token for `argus push`. The raw token is returned
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
     user_id: user.id,
     token_hash: hashToken(raw),
     label,
+    expires_at: pluginTokenExpiry(),
   });
   if (insErr) {
     console.error('[plugin/token] insert failed:', insErr.message);
