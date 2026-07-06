@@ -3129,24 +3129,25 @@ button, a, input, textarea {
 .bp-voyage-video { filter: none; transition: filter 300ms ease; }
 [data-theme="dark"] .bp-voyage-video { filter: invert(1) hue-rotate(180deg); }
 
-/* Resting play control — the poster is the affordance; on hover/focus the disc
-   fills gold and lifts slightly, and the plate shadow deepens. */
-.bp-voyage-play { -webkit-tap-highlight-color: transparent; transition: box-shadow 220ms ease, transform 220ms cubic-bezier(.22,.61,.36,1); }
-.bp-voyage-play:hover { box-shadow: 0 2px 4px rgba(48,34,14,0.16), 0 20px 40px -18px rgba(48,34,14,0.42); }
-.bp-voyage-play:hover .bp-voyage-play-btn,
+/* Resting play control — the whole matted plate is the affordance; on hover/
+   focus the disc fills gold and lifts slightly, and the plate shadow deepens. */
+.bp-voyage-plate { transition: box-shadow 240ms ease; }
+.bp-voyage-plate:hover { box-shadow: 0 2px 5px rgba(48,34,14,0.14), 0 24px 48px -22px rgba(48,34,14,0.42); }
+.bp-voyage-play { -webkit-tap-highlight-color: transparent; transition: transform 220ms cubic-bezier(.22,.61,.36,1); }
+.bp-voyage-plate:hover .bp-voyage-play-btn,
 .bp-voyage-play:focus-visible .bp-voyage-play-btn {
   background: var(--bp-gold);
   border-color: var(--bp-gold);
   transform: translate(-50%, -50%) scale(1.06);
 }
-.bp-voyage-play:hover .bp-voyage-play-btn svg path,
+.bp-voyage-plate:hover .bp-voyage-play-btn svg path,
 .bp-voyage-play:focus-visible .bp-voyage-play-btn svg path {
   fill: var(--bp-paper); stroke: var(--bp-paper);
 }
 .bp-voyage-play:focus-visible { outline: 2px solid var(--bp-gold); outline-offset: 3px; }
 .bp-voyage-close:hover { background: var(--bp-paper); border-color: var(--bp-ink); }
 @media (prefers-reduced-motion: reduce) {
-  .bp-voyage-play:hover .bp-voyage-play-btn,
+  .bp-voyage-plate:hover .bp-voyage-play-btn,
   .bp-voyage-play:focus-visible .bp-voyage-play-btn { transform: translate(-50%, -50%); }
 }
 

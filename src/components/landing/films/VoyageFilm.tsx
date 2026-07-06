@@ -538,17 +538,53 @@ function VoyageFilmStage({ onEnded }: { onEnded?: () => void }) {
   );
 }
 
-// ── Resting state: a small framed still, NOT the autoplaying film. Poster (the
-// plate) + a centered play control + a static caption teaser below (the intro),
-// so the chaptered captions are present at rest without anything playing on
-// load. The whole poster is the play affordance; pressing it lifts the film into
-// the lightbox (VoyageFilm orchestrator). ──
+// ── Resting state: a fully MATTED PLATE, not the autoplaying film. The comment
+// this component long carried ("lifted like a matted plate") was never actually
+// built — it stopped at a bordered image with a lone gold bar across the top,
+// which read as an unfinished frame. This is the intended plate: a paper mat
+// with the SAME corner-registration ticks as the entry field below, the gold
+// signature rule across the finished plate, the poster mounted inside with a
+// crisp inner frame, and the intro caption tied to the plate as its engraved
+// label. One bounded, finished object. The whole poster is the play affordance;
+// pressing it lifts the film into the lightbox (VoyageFilm orchestrator). ──
 function VoyagePosterCard({ onPlay }: { onPlay: () => void }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  // Mat inset — the paper margin that hosts the ticks and separates the mounted
+  // poster from the plate edge, so the frame reads as deliberate, not clipped.
+  const MAT = 'clamp(9px, 1.4vw, 13px)';
   return (
-    <figure className="relative w-full" style={{ margin: 0, background: 'var(--bp-paper)', display: 'flex', flexDirection: 'column' }}>
-      {/* poster (16:9) — the play affordance, lifted like a matted plate */}
+    <figure
+      className="bp-voyage-plate relative w-full"
+      style={{
+        margin: 0, position: 'relative', background: 'var(--bp-paper)',
+        border: '1px solid color-mix(in srgb, var(--bp-ink) 20%, transparent)',
+        boxShadow: '0 1px 2px rgba(48,34,14,0.10), 0 16px 34px -20px rgba(48,34,14,0.30)',
+        padding: MAT,
+      }}
+    >
+      {/* gold signature rule — across the top of the finished plate (was on the
+          bare image; on the plate edge it reads as an intentional header rule) */}
+      <span aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 4 }} />
+      {/* corner registration ticks — the exact plate signature the entry field
+          below carries, so the poster reads as the same finished logbook plate */}
+      {([
+        { k: 'tl', s: { top: 6, left: 6, borderTopStyle: 'solid', borderTopWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
+        { k: 'tr', s: { top: 6, right: 6, borderTopStyle: 'solid', borderTopWidth: 1.5, borderRightStyle: 'solid', borderRightWidth: 1.5 } },
+        { k: 'bl', s: { bottom: 6, left: 6, borderBottomStyle: 'solid', borderBottomWidth: 1.5, borderLeftStyle: 'solid', borderLeftWidth: 1.5 } },
+        { k: 'br', s: { bottom: 6, right: 6, borderBottomStyle: 'solid', borderBottomWidth: 1.5, borderRightStyle: 'solid', borderRightWidth: 1.5 } },
+      ] as const).map(({ k, s }) => (
+        <span
+          key={k}
+          aria-hidden="true"
+          style={{
+            position: 'absolute', width: 11, height: 11, zIndex: 4,
+            borderColor: 'var(--bp-ink-soft)', opacity: 0.6, ...s,
+          }}
+        />
+      ))}
+
+      {/* poster (16:9) — mounted plate + play affordance */}
       <button
         type="button"
         onClick={onPlay}
@@ -556,8 +592,7 @@ function VoyagePosterCard({ onPlay }: { onPlay: () => void }) {
         className="bp-voyage-play relative block w-full"
         style={{
           aspectRatio: '16 / 9', overflow: 'hidden', background: 'var(--bp-paper)', padding: 0, cursor: 'pointer',
-          border: '1px solid color-mix(in srgb, var(--bp-ink) 22%, transparent)',
-          boxShadow: '0 1px 2px rgba(48,34,14,0.12), 0 14px 30px -18px rgba(48,34,14,0.32)',
+          border: '1px solid color-mix(in srgb, var(--bp-ink) 26%, transparent)',
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- decorative still that
@@ -570,8 +605,6 @@ function VoyagePosterCard({ onPlay }: { onPlay: () => void }) {
           className="bp-voyage-video"
           style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 35%' }}
         />
-        {/* gold top rule — same signature as the film */}
-        <span aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)' }} />
         {/* soft center scrim so the control reads over any frame */}
         <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(closest-side at 50% 50%, color-mix(in srgb, var(--bp-paper) 42%, transparent), transparent 72%)' }} />
         {/* play control */}
@@ -593,15 +626,18 @@ function VoyagePosterCard({ onPlay }: { onPlay: () => void }) {
           </svg>
         </span>
       </button>
-      {/* caption teaser — the intro, static (captions present at rest) */}
-      <div style={{ padding: '13px 2px 2px' }}>
+
+      {/* caption teaser — the intro, static, tied to the plate by a hairline so
+          it reads as the plate's engraved label (not loose text below a frame) */}
+      <figcaption style={{ paddingTop: MAT }}>
+        <div aria-hidden="true" style={{ height: 1, background: 'var(--bp-ink-faint)', marginBottom: 11 }} />
         <span className="bp-mono" style={{ display: 'block', marginBottom: 7, fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.13em' : '0.24em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink-soft)' }}>
           {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
         </span>
         <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: 0, fontWeight: 500, color: 'var(--bp-ink-soft)', fontSize: 'clamp(12.5px, 1.4vw, 14px)', lineHeight: 1.62, letterSpacing: '-0.004em', textWrap: 'pretty' }}>
           <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
         </p>
-      </div>
+      </figcaption>
     </figure>
   );
 }
