@@ -36,10 +36,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
 
-      # Coverage is MEASURED (not yet gated) so it can't silently erode and we can
-      # agree a baseline before ratcheting a threshold — see
-      # docs/TEST-COVERAGE-ANALYSIS.md (Gap 4). Non-blocking: a report, not a wall.
-      - name: Coverage (report only)
+      # Coverage RATCHET: thresholds in vitest.config.ts sit a few points below the
+      # measured baseline, so this fails only if coverage *erodes*. Raise the floor
+      # as new tests land — see docs/TEST-COVERAGE-ANALYSIS.md (Gap 4).
+      - name: Coverage (ratchet)
         run: npx vitest run --coverage --reporter=dot
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co

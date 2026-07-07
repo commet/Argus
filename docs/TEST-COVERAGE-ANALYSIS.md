@@ -99,16 +99,19 @@
   `numeric-drift`(3-valued materiality 엔진, under-fire 기본값 고정),
   `plugin-ingest-core`(fold + round-trip 보호: stale local이 web-settle을
   못 되돌림), `review-prompt`(locale/mode + prompt-injection 방어).
-- [x] **Gap 4: 커버리지 provider 설치 + CI 배선** — `@vitest/coverage-v8` 설치,
-  `vitest.config.ts`에 coverage(v8, text·json-summary·html, `src/**` 대상) 설정,
-  CI에 **측정 전용**(비차단) 스텝 + 아티팩트 업로드 추가. 임계값 gate는
-  베이스라인 합의 후 ratchet (다음 단계).
+- [x] **Gap 4: 커버리지 provider 설치 + CI 배선 + ratchet** — `@vitest/coverage-v8`
+  설치, `vitest.config.ts`에 coverage(v8, text·json-summary·html, `src/**` 대상)
+  설정, CI 아티팩트 업로드 추가. **ratchet 활성화**: 측정 베이스라인
+  (2026-07-07 라인 32.4 / 구문 31.4 / 함수 26.5 / 분기 24.5) 약간 아래에 바닥
+  (lines 30 / statements 29 / functions 24 / branches 22)을 박아 **커버리지가
+  내려가면 CI 실패**. 목표치(80%)가 아니라 "뒤로 못 감" 바닥 — 테스트가 늘면
+  이 숫자를 같이 올린다.
 
 **합계: 13개 테스트 파일 신규, 111 케이스 추가** (웹앱 스위트 2,656 → 2,767).
 
 ### 다음 단계 (후속 PR 후보)
 
-1. 커버리지 **베이스라인 확정 → 임계값 ratchet** (지금은 report-only).
+1. 테스트가 늘 때마다 **ratchet 바닥을 같이 올린다** (지금 30/29/24/22).
 2. 남은 미테스트 스토어(`useBossStore`·`useTelegramStore`·`useSlackStore`·
    `useTeamStore`·`useSynthesizeStore`·`useWorkspaceStore` 등).
 3. 남은 lib 모듈(`persona-refiner`·`worker-personas`·`agent-planner`·
