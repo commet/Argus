@@ -264,3 +264,35 @@ export function scoreAgentForTask(
 
   return baseScore + tuningDelta;
 }
+
+/* ─── F3-spectrum: absolute fit tier ─── */
+
+/**
+ * The absolute capability-fit boundary. A `scoreAgentForTask` baseScore AT or
+ * ABOVE this is a real specialist fit ('strong'); a positive score BELOW it is a
+ * 'stretch' — the closest available agent, but not a specialist in this task.
+ *
+ * Why a spectrum matters (the F3 root gap): the router used to treat fit as
+ * binary — assigned (any positive score) or 'unfilled' (no positive score). But
+ * a 0.05 "nothing really matched" score was *assigned and described as a
+ * confident best fit*, so a weak fit masqueraded as a fit (the honest-structure
+ * failure mode). Surfacing the middle — "closest fit, not a specialist" — is the
+ * spine-safe root fix. It is NOT dynamic role fabrication: inventing an ad-hoc
+ * "expert" to fill the gap would be the model standing in for an absent
+ * qualified agent (forbidden — CLAUDE.md "Honest gap over fabrication"). We name
+ * the stretch honestly instead of faking a specialist.
+ *
+ * Threshold rationale (baseScore = taskType·0.5 + domain·0.3 + output·0.2):
+ * a primary/secondary taskType match (≥0.4) OR a primary-domain match (~0.33)
+ * clears it; only-output (~0.24), a minor rank-4+ taskType (~0.13), or a
+ * nothing-matched agent (~0.05) do not.
+ */
+export const STRONG_FIT_THRESHOLD = 0.30;
+
+/** Classify a baseScore into an absolute fit tier. `none` = no positive fit
+ *  (the caller surfaces it as 'unfilled'); 'strong'/'stretch' split the awarded
+ *  range at STRONG_FIT_THRESHOLD. */
+export function fitTier(baseScore: number): 'strong' | 'stretch' | 'none' {
+  if (!(baseScore > 0)) return 'none';
+  return baseScore >= STRONG_FIT_THRESHOLD ? 'strong' : 'stretch';
+}
