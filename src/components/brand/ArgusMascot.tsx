@@ -45,7 +45,7 @@ export function ArgusMascot({
     <span
       className={[
         'argus-mascot relative inline-flex shrink-0 overflow-hidden',
-        framed ? 'rounded-xl bg-[var(--bp-paper)] shadow-[0_1px_0_rgba(255,255,255,.65)_inset,0_8px_24px_rgba(26,20,12,.10)] ring-1 ring-[var(--border-subtle)]/70' : '',
+        framed ? 'rounded-xl bg-[var(--surface)] shadow-[0_1px_0_rgba(255,255,255,.65)_inset,0_8px_24px_rgba(26,20,12,.10)] ring-1 ring-[var(--border-subtle)]/70' : '',
         animate ? 'argus-mascot-breathe' : '',
         wrapperSize,
         className,
