@@ -39,19 +39,22 @@ for (const [skill, output] of stages) {
   const block = output ? describe : describe.skip;
 
   block(`Live: /${skill}`, () => {
-    const result = evaluateSkillOutput(skill, output!);
+    // `.argus/` holds private local dev outputs and is intentionally not committed,
+    // so in CI (clean checkout) `output` is undefined and this block is skipped.
+    // Guard the eager eval so a skipped describe never runs it on undefined input.
+    const result = output ? evaluateSkillOutput(skill, output) : null;
 
     it('structural 100%', () => {
-      const report = formatEvalReport(result);
+      const report = formatEvalReport(result!);
       console.log(report);
-      expect(result.structural.every(s => s.passed)).toBe(true);
+      expect(result!.structural.every(s => s.passed)).toBe(true);
     });
 
     it('batch judge prompt 생성', () => {
       const prompt = buildBatchJudgePrompt(skill, output!);
       expect(prompt.length).toBeGreaterThan(200);
       // Print first section for manual review
-      console.log(`\n--- /${skill} Judge (${result.content_evals.length}개 기준) ---`);
+      console.log(`\n--- /${skill} Judge (${result!.content_evals.length}개 기준) ---`);
       console.log(prompt.slice(0, 300) + '...');
     });
   });
@@ -63,7 +66,9 @@ const hasAll = Object.values(files).every(Boolean);
 const chainBlock = hasAll ? describe : describe.skip;
 
 chainBlock('Live: Pipeline Chaining', () => {
-  const chaining = evaluatePipelineChaining(files as Record<string, string>);
+  // Skipped in CI when not all `.argus/` outputs exist — guard the eager call so
+  // the skipped block never evaluates undefined inputs.
+  const chaining = hasAll ? evaluatePipelineChaining(files as Record<string, string>) : [];
 
   it('결과 보고', () => {
     console.log(`\nPipeline: ${chaining.filter(e => e.passed).length}/${chaining.length}`);
