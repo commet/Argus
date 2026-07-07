@@ -77,7 +77,7 @@ async function seed(c) {
 function genSystem(ctx) {
   return `${SERVER_INSTRUCTIONS}
 
-You are connected to the argus-mcp tools (argus_premises, argus_recheck, argus_seal, argus_settle, argus_recall...).
+You are connected to the argus-decision-mcp tools (argus_premises, argus_recheck, argus_seal, argus_settle, argus_recall...).
 Recent tool results in this session:
 ${JSON.stringify(ctx, null, 1)}
 

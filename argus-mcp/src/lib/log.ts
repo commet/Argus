@@ -5,11 +5,11 @@
  */
 export function logError(msg: string, err?: unknown): void {
   const detail = err instanceof Error ? err.stack || err.message : err !== undefined ? String(err) : '';
-  process.stderr.write(`argus-mcp ERROR ${msg}${detail ? ' :: ' + detail : ''}\n`);
+  process.stderr.write(`argus-decision-mcp ERROR ${msg}${detail ? ' :: ' + detail : ''}\n`);
 }
 
 export function logDebug(msg: string): void {
   if (process.env['ARGUS_DEBUG']) {
-    process.stderr.write(`argus-mcp DEBUG ${msg}\n`);
+    process.stderr.write(`argus-decision-mcp DEBUG ${msg}\n`);
   }
 }

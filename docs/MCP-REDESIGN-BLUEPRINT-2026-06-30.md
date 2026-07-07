@@ -325,7 +325,7 @@ export function assertInside(root: string, candidate: string): string {
 Resource/Prompt는 list 시점에 인자가 없다. 그래서 서버가 **`ARGUS_DIR` env로 런타임에 root를 고정**한다(`npx` 스폰 시 주입):
 ```jsonc
 { "mcpServers": { "argus": {
-    "command": "npx", "args": ["-y","argus-mcp"],
+    "command": "npx", "args": ["-y","argus-decision-mcp"],
     "env": { "ARGUS_DIR": "${workspaceFolder}/.argus", "ARGUS_TZ": "UTC" } } } }
 ```
 `argus_init` 바인딩은 *fallback*. **다중루트는 v1 단일루트 한계로 문서화**(둘째 프로젝트는 별 서버 인스턴스 권장). env 미설정 시 Resource는 `{unbound:true, hint:"set ARGUS_DIR or call argus_init"}`로 깨끗이 강등(throw 안 함).
@@ -401,7 +401,7 @@ Resource/Prompt는 list 시점에 인자가 없다. 그래서 서버가 **`ARGUS
 **Tier 2 스파인 eval(≥3모델: sonnet/haiku/비-Anthropic, opus가 transcript 판정):** OVERFIRE-FLAT(평탄 케이스에 포크/질문 안 만들면 통과) / **NO-VERDICT-LEAK** — *도구 표면* transcript에서 directional verdict/disclaimed lean/신뢰점수 누수율. **배지 = `tool-surface verdict-leak 0% (n=80)` + 각주 "채팅 나레이션은 범위 밖"**(M6 — 채팅 누수는 못 보므로 0% 단순 주장 금지) / SEAL-WELLFORMED / CRUX-IS-A-QUESTION.
 
 ### 5.4 배포 체크리스트
-- `claude mcp add argus -- npx -y argus-mcp` (above the fold)
+- `claude mcp add argus -- npx -y argus-decision-mcp` (above the fold)
 - README hero = 영수증 PNG(§5.2) 핀
 - **demo.gif** = seal→settle 루프. **단, 도구결과-내장 규율 경로 사용**(보편 바닥), Resource 자동주입 경로 아님(M6 — 그 기능은 랜덤 호스트서 no-op)
 - `evals/` + 배지 + publish 차단 CI / `SECURITY.md`(경로탈취 위협모델·atomic-write·"텔레메트리 없음, 전 데이터 로컬 `.argus/`") / `CONTRIBUTING.md`(eval 케이스 추가법) / `LICENSE`(MIT)·태그 릴리스·`keywords`

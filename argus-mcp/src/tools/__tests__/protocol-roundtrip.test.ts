@@ -44,6 +44,10 @@ function structured(res: unknown): Record<string, unknown> {
 }
 
 describe('MCP protocol round-trip (built server, stdio)', () => {
+  it('advertises the npm package name and version', () => {
+    expect(client.getServerVersion()).toEqual({ name: 'argus-decision-mcp', version: '1.1.0' });
+  });
+
   it('advertises the premises tools with generated JSON schemas', async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name);

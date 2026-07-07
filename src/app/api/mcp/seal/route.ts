@@ -5,7 +5,7 @@ import { isTokenExpired } from '@/lib/plugin-token';
 import type { JudgmentReceipt } from '@/lib/review';
 
 /**
- * MCP → account bridge (design: "MCP도 이메일로 귀환"). The argus-mcp `argus_seal`
+ * MCP → account bridge (design: "MCP도 이메일로 귀환"). The argus-decision-mcp `argus_seal`
  * / `argus_settle` tools POST here when the user has configured an account token
  * (opt-in — no token ⇒ the seal stays local, privacy preserved). We resolve the
  * PAT → user (same plugin_tokens table the `argus push` bridge uses) and land
@@ -92,8 +92,8 @@ function buildReceipt(p: SealPayload, now: string): JudgmentReceipt {
     }],
     companion_thread: [],
     provenance: {
-      schema_version: '1', extraction_tool: 'argus-mcp', extraction_version: '1', lens_versions: {},
-      model_provider: 'unknown', model_name: 'argus-mcp', prompt_hash: '', created_at: now,
+      schema_version: '1', extraction_tool: 'argus-decision-mcp', extraction_version: '1', lens_versions: {},
+      model_provider: 'unknown', model_name: 'argus-decision-mcp', prompt_hash: '', created_at: now,
     },
     created_at: now, updated_at: now,
   };

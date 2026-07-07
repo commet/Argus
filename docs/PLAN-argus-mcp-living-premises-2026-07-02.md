@@ -1,9 +1,9 @@
-# PLAN v5 (final) — Living Premises for argus-mcp (실행 플레이북)
+# PLAN v5 (final) — Living Premises for argus-decision-mcp (실행 플레이북)
 
 - 날짜: 2026-07-02 (v5 — 미탐 경로(Resources/Prompts/Elicitation) + 축적-사용자 렌즈.
   v4=코드 직접검증 정정 4건, v3=3렌즈 리뷰, v2=적대 리뷰 10건, v1=초안)
 - 상태: **실행 플레이북 확정** — 착수 트리거 대기(§10).
-- 왜: decision-items/living-premises를 **`argus-mcp`(MCP 서버, 모델-무관)** 에 짓는다.
+- 왜: decision-items/living-premises를 **`argus-decision-mcp`(MCP 서버, 모델-무관)** 에 짓는다.
 - 관련: `docs/DESIGN-decision-items-living-premises-2026-07-01.md`(개념·스파인), `argus-mcp/README.md`.
 
 ## 0.5 PM 직접 검증 (v4 — 에이전트 보고를 눈으로 재확인, 오류 정정)
@@ -24,7 +24,7 @@ spine.ts·state-machine.ts·ledger-replay.ts·envelope.ts·recall.ts·sync.ts(ma
    main에 실재(탐색 에이전트 맵이 낡았음). §10 착수-시 재맵을 의무화하는 근거.
 5. **[확인] `gate_input` 전례** — replay에 "known meta event → 상태 변화 없음, corrupt 아님"
    케이스가 이미 있음(ledger-replay.ts:140). premise 이벤트도 같은 계열로 추가. 단 **구버전
-   바이너리의 `default: dropped++`는 여전히 문제** → step 0 유지. 완화: `npx -y argus-mcp`
+   바이너리의 `default: dropped++`는 여전히 문제** → step 0 유지. 완화: `npx -y argus-decision-mcp`
    사용자는 자동 최신화되므로 위험은 고정-설치 사용자로 한정.
 6. **[확인] sync는 pull 전용(readOnlyHint:true), push는 seal쪽 `ARGUS_TOKEN` opt-in** —
    **프라이버시 기본값: 이번 릴리스에서 전제 데이터는 어떤 네트워크 경로에도 싣지 않는다**
@@ -85,7 +85,7 @@ v4까지 **tools만** 봤다. main엔 세 개의 스펙-네이티브 표면이 �
 
 ## 0. 원칙
 
-1. **이식 아님 — 컨셉으로 재설계.** 순수 수치-드리프트 계산만 이식, 나머지는 argus-mcp 모델
+1. **이식 아님 — 컨셉으로 재설계.** 순수 수치-드리프트 계산만 이식, 나머지는 argus-decision-mcp 모델
    (원장 fold·상태기계·envelope·spine drift-guard)에 맞춰 새로.
 2. **겹침 회피 + 단일 소스.** 단수 `unverified_assumption`을 전제 집합으로 일반화, **전제
    엔티티가 canonical**, 영수증 헤드라인은 settle-시점 fold 렌더.
@@ -100,7 +100,7 @@ v4까지 **tools만** 봤다. main엔 세 개의 스펙-네이티브 표면이 �
 ## 1. PM 렌즈 — 제품 적합성 · MVP · 지표
 
 ### 1.1 이 기능이 제품을 강화하는 이유 (희석이 아니라)
-argus-mcp의 정체성 = Judgment Receipt, 그중 가장 독특한 줄이 **"THE UNVERIFIED
+argus-decision-mcp의 정체성 = Judgment Receipt, 그중 가장 독특한 줄이 **"THE UNVERIFIED
 ASSUMPTION"**. 지금은 seal 때 한 번 적고 끝나는 **죽은 줄**이다. Living premises는 정확히
 그 줄을 **살아있는 객체**로 만든다: 여러 개가 되고, 편집되고(저작권 추적), 현실과
 재확인되고, settle 때 "그 전제는 어떻게 됐나"가 영수증에 남는다. 새 제품 방향이 아니라
@@ -334,7 +334,7 @@ premise_*는 **self-create 금지**(seal의 B1 전례 부적용 — 전제는 �
   due_note 발화 확인, recheck/add 비율 리포트.
 
 ## 10. 코디네이션 (v2 확정 — Option B; v4 재맵 의무화)
-그 세션의 argus-mcp 작업 main 머지 후 착수. **착수-시 재맵은 의무**(v4에서 탐색 맵이 이미
+그 세션의 argus-decision-mcp 작업 main 머지 후 착수. **착수-시 재맵은 의무**(v4에서 탐색 맵이 이미
 낡았음이 실증됨 — review/sync 2툴 누락, zod 혼재): `git fetch origin main` 후 **직접 읽기**
 — `spine.ts`(NEXT_ACTIONS·SERVER_INSTRUCTIONS·SCHEMA_VERSION), `state-machine.ts`(ALLOWED),
 `ledger-replay.ts`(default 처리), `tools/index.ts`(툴 수), 지배적 검증 스타일(zod vs 수동,

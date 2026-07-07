@@ -5,7 +5,7 @@ import { tmpArgusDir } from '../../test-helpers.js';
 import { replayLedger } from '../ledger-replay.js';
 
 /**
- * Forward-compat tolerance (plan v5 §6.3). A ledger written by a NEWER argus-mcp
+ * Forward-compat tolerance (plan v5 §6.3). A ledger written by a NEWER argus-decision-mcp
  * may contain event types this binary doesn't know (e.g. premise_*). Those are
  * versioned, well-formed events — skipping them must NOT raise the corruption
  * counter, or every old install reports a false integrity alarm the moment a new
@@ -25,7 +25,7 @@ describe('replay tolerance for unknown versioned events', () => {
     const dir = tmpArgusDir();
     writeLedger(dir, [
       seal('d1'),
-      // an event type from a FUTURE argus-mcp this binary has never heard of
+      // an event type from a FUTURE argus-decision-mcp this binary has never heard of
       JSON.stringify({ v: 2, ts: '2026-07-01T00:00:00Z', id: 'd1', event: 'premise_supersede', premise_id: 'p1' }),
     ]);
     const s = replayLedger(dir, '2026-07-02');

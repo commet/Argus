@@ -19,10 +19,17 @@ jobs:
 
       - run: npm ci
 
-      # argus-mcp is a separate package (not an npm workspace); its tests run from
-      # the root vitest sweep, so its deps (@modelcontextprotocol/sdk) must be
-      # installed too or suites like protocol-roundtrip fail with ERR_MODULE_NOT_FOUND.
+      # argus-decision-mcp lives under argus-mcp/ as a separate package (not an
+      # npm workspace); install it before root tests that import its MCP copy.
       - run: npm ci --prefix argus-mcp
+
+      - name: Argus decision MCP package
+        run: |
+          cd argus-mcp
+          npm run typecheck
+          npm test
+          npm audit --omit=dev
+          npm pack --dry-run
 
       - name: TypeScript
         run: npx tsc --noEmit

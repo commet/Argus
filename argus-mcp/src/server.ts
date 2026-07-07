@@ -16,18 +16,7 @@ import { SERVER_INSTRUCTIONS } from './lib/spine.js';
 import { setElicitor } from './lib/elicit.js';
 import { appendDueNote } from './lib/due-note.js';
 import { logError } from './lib/log.js';
-import { readFileSync } from 'node:fs';
-
-// Single version source — package.json (the '1.0.0' literal had drifted from
-// 1.3.0). Both src/server.ts (tests) and dist/server.js sit one level below it.
-function readPackageVersion(): string {
-  try {
-    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version?: string };
-    return pkg.version ?? '0.0.0';
-  } catch {
-    return '0.0.0'; // never block startup on a packaging quirk
-  }
-}
+import { packageMeta } from './lib/package-meta.js';
 
 /**
  * Argus MCP server (blueprint §4). v1 surface = Tools only — the universal
@@ -38,8 +27,9 @@ function readPackageVersion(): string {
  * so a host never probes a no-op.
  */
 export async function createServer(): Promise<Server> {
+  const meta = packageMeta();
   const server = new Server(
-    { name: 'argus-decision-mcp', version: readPackageVersion() },
+    { name: meta.name, version: meta.version },
     {
       // Capabilities are declared only for primitives whose handlers exist, so
       // a host never probes a no-op (addendum J). `elicitation` is a client
@@ -78,7 +68,7 @@ export async function createServer(): Promise<Server> {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOLS.map((t) => ({
       name: t.name,
-      // top-level human-readable title (2025-06-18 spec; display priority
+      // Top-level human-readable title (2025-06-18 spec; display priority
       // title > annotations.title > name). Reuse the annotation we already set.
       ...(t.annotations?.title ? { title: t.annotations.title } : {}),
       description: t.description,

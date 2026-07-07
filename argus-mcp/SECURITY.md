@@ -2,14 +2,17 @@
 
 ## Data & privacy
 
-- **All data is local.** Argus writes only under the `.argus/` directory you
-  point it at: an append-only `ledger/ledger.jsonl`, per-decision
-  `sessions/{id}/` files, and a `config.yaml`. Nothing leaves the machine.
-- **No telemetry, no network.** The runtime dependency surface is two packages
-  (`@modelcontextprotocol/sdk`, `js-yaml`). `npm ls --prod` should show no
-  analytics or network client. CI fails if the production dependency tree grows.
-- **Private by default.** `argus_init` adds `sessions/`, `ledger/`, and `.bound`
-  to `.argus/.gitignore` so your decisions are never committed.
+- **All data is local by default.** Argus writes only under the `.argus/`
+  directory you point it at: an append-only `ledger/ledger.jsonl`,
+  per-decision `sessions/{id}/` files, and a `config.yaml`. Nothing leaves the
+  machine unless you explicitly set `ARGUS_TOKEN` for account sync.
+- **No telemetry.** With no `ARGUS_TOKEN`, the server makes no network calls.
+  The runtime dependency surface is intentionally small and visible in
+  `package.json`: MCP SDK, schema/config helpers, and document parsers for
+  `argus_review`. `npm audit --omit=dev` should stay clean before publishing.
+- **Private by default.** `argus_init` adds `sessions/`, `ledger/`,
+  `config.yaml`, and `.bound` to `.argus/.gitignore` so your decisions and
+  local settings are never committed accidentally.
 
 ## Threat model
 

@@ -1,99 +1,99 @@
-# Publishing runbook — argus-decision-mcp (next release: 1.1.0)
+# Publishing runbook — argus-decision-mcp
 
-> These steps need **your npm credentials** and run **irreversible external
-> actions** (npm publish, git tag). They are a founder button — code is
-> prepared, but you run the publish yourself.
+These steps need **your npm credentials** and run irreversible external actions
+(`npm publish`, git tag, optional MCP registry publish). The code can prepare the
+release, but a human owner should press the publish button.
 
-## ⚠️ Why the name changed (read first)
+## Why the name changed
 
-The npm name `argus-mcp` is **already taken by someone else** (maintainer
-`adesmet`, a Playwright-based browser-automation tool — verified with
-`npm view argus-mcp` on 2026-07-03). We can **never** publish under `argus-mcp`
-(`npm publish` → 403 not owner), and the old README install command would have
-installed *their* package, not ours.
+The npm name `argus-mcp` is already taken by someone else (maintainer `adesmet`,
+a Playwright-based browser-automation tool). Publishing there is impossible, and
+the old install command would install the wrong package.
 
-So the package is now **`argus-decision-mcp`**:
+The public package is **`argus-decision-mcp`**.
 
-- Verified available (`npm view argus-decision-mcp` → E404).
-- **Unscoped**, so there is no npm org to create and no `--access public` flag to
-  remember (an unscoped name publishes public by default).
-- Better search distinction — an unrelated `argus` MCP server already exists in
-  the directory space.
+The first release under this name was `1.0.0` on 2026-07-03. The old
+`argus-mcp` version numbers are pre-rename history and must not be reused for
+the new package line.
 
-The version was reset to **1.0.0** for the first release under this name, which
-**already shipped on 2026-07-03** (`npm view argus-decision-mcp` → only `1.0.0`
-exists). The next release is **1.1.0** — a normal semver minor continuing the
-new-name line. Do NOT resurrect the old `argus-mcp` `1.2.1 … 1.3.0` numbers:
-that history belongs to the differently-named package, and all of it already
-shipped inside the new-name 1.0.0 (see CHANGELOG.md → "Pre-rename history").
+## Keep versions in lockstep
 
-## One registry, one repo, one server.json — keep versions in lockstep
-
-There are three places a version lives. Bump all three **in the same commit** so
-they can never drift:
+There are three places a release version lives. Bump all three in the same
+commit:
 
 1. `argus-mcp/package.json` → `"version"`.
-2. `argus-mcp/server.json` → `"version"` (and each `packages[].version`).
-3. the `git tag` you push.
+2. `argus-mcp/server.json` → `"version"` and `packages[].version`.
+3. the git tag, e.g. `argus-decision-mcp-v1.1.0`.
 
-`src/lib/__tests__/publish-metadata.test.ts` now enforces 1 and 2 (and that the
-CHANGELOG top entry names the shipped version) — so a half-done bump fails CI
-instead of shipping a wrong number, which is exactly how 1.0.0 drifted before.
+`src/lib/__tests__/publish-metadata.test.ts` enforces the package/server
+metadata and the top CHANGELOG entry.
 
-## Step 1 — one-time credentials
-
-```bash
-npm login   # 2FA; `npm whoami` must return your username (it was E401 in the build session)
-```
-
-## Step 2 — build, test, publish from current main
+## Preflight
 
 ```bash
 cd argus-mcp
 npm ci
-npm run build && npm test          # prepublishOnly runs these again as a gate
-node evals/run-premises.mjs        # optional: needs ANTHROPIC_API_KEY
-
-npm publish                        # unscoped → public by default, no --access needed
-git tag argus-decision-mcp-v1.1.0 && git push --tags
+npm run typecheck
+npm test
+npm audit --omit=dev
+npm pack --dry-run
 ```
 
-## Step 3 — clean-install round-trip (the human-eyes final gate)
+Check the dry-run output before publishing:
 
-Do this in a **fresh empty folder** so you are testing the *published* package,
-not your local checkout. This is the last gate before you tell anyone to install.
+- package name: `argus-decision-mcp`
+- binary: `argus-decision-mcp -> dist/index.js`
+- no `dist/**/__tests__/**`
+- no `dist/test-helpers.js`
+- no local `.argus/`, token, or eval output
+
+## Publish
+
+```bash
+cd argus-mcp
+npm whoami
+npm version 1.1.0 --no-git-tag-version   # or the next release version
+npm install --package-lock-only
+npm run typecheck && npm test && npm audit --omit=dev
+npm publish                              # unscoped -> public by default
+git tag argus-decision-mcp-v1.1.0
+git push --tags
+```
+
+`prepack` rebuilds `dist/` from `tsconfig.build.json`, so the tarball contains
+runtime files only. `prepublishOnly` gates the publish on typecheck, tests, and
+production audit.
+
+## Published-package smoke
+
+Do this in a fresh empty folder so you test the published package, not the local
+checkout:
 
 ```bash
 mkdir /tmp/argus-test && cd /tmp/argus-test
-npx -y argus-decision-mcp          # OUR server must start — not adesmet's playwright tool
-# then, from an MCP host or the inspector:
-#   tools list → argus_seal (a future check_by) → argus_settle → Judgment Receipt
-#   confirm the receipt line reads:  AI VERDICT … NONE
+npx -y argus-decision-mcp
 ```
+
+Then, from an MCP host or the inspector, verify:
+
+- tools list includes `argus_premises` and `argus_recheck`
+- `argus_check_in` works
+- `argus://premises/due` reads
+- `argus-settle` prompt loads
+- the receipt line reads `AI VERDICT ... NONE`
+
+The automated protocol smoke is
+`src/tools/__tests__/protocol-roundtrip.test.ts`.
+
+## MCP registry
+
+`server.json` is written for the official MCP registry:
+`io.github.commet/argus-decision-mcp`, one npm package entry, stdio transport.
 
 ```bash
-# optional manual poke with the inspector, against the built local tree:
-npx @modelcontextprotocol/inspector node dist/index.js
-# check: tools list shows argus_premises / argus_recheck; call argus_check_in;
-# read resource argus://premises/due; get prompt argus-settle.
+mcp-publisher login github
+mcp-publisher publish
 ```
 
-The automated equivalent of the protocol round-trip already runs in CI
-(`src/tools/__tests__/protocol-roundtrip.test.ts` spawns the built server over
-stdio and walks initialize → tools → journey → resources → prompts), but the
-published-package install can only be verified by hand.
-
-## Step 4 — official MCP registry (optional, but it's the single source many
-## directories crawl)
-
-`server.json` is already written (name `io.github.commet/argus-decision-mcp`,
-one npm package entry, stdio transport). Publishing it makes Smithery / mcp.so /
-glama pick us up from one place.
-
-```bash
-mcp-publisher login github          # binds the io.github.commet namespace to the commet GitHub account
-mcp-publisher publish               # npm ownership is checked via the package.json `mcpName` field
-```
-
-Verify afterward: `argus-decision-mcp` shows up at
+Verify afterward that `argus-decision-mcp` appears at
 registry.modelcontextprotocol.io.
