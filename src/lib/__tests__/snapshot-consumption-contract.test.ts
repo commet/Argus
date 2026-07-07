@@ -16,10 +16,11 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { MIX_CONTEXT_FIELDS, compactSnapshots } from '@/lib/compact-context';
+import type { AnalysisSnapshot } from '@/stores/types';
 
 const ROOT = join(__dirname, '..', '..');
 const typesSrc = readFileSync(join(ROOT, 'stores', 'types.ts'), 'utf8');
-const compactSrc = readFileSync(join(ROOT, 'lib', 'compact-context.ts'), 'utf8');
 
 /** Where each AnalysisSnapshot field is consumed. Adding a field to the type
  *  without adding it here fails the "no unclassified field" test below. */
@@ -80,9 +81,29 @@ describe('AnalysisSnapshot consumption contract', () => {
     expect(stale, `contract lists fields no longer on AnalysisSnapshot: ${stale.join(', ')}`).toEqual([]);
   });
 
-  it('every mix-context field is actually read by formatSnapshot (not silently dropped)', () => {
-    const mixFields = fields.filter(f => CONSUMPTION_CONTRACT[f] === 'mix-context');
-    const dropped = mixFields.filter(f => !compactSrc.includes(`s.${f}`));
-    expect(dropped, `declared mix-context but never read as s.<field> in compact-context.ts (generate-but-drop): ${dropped.join(', ')}`).toEqual([]);
+  it('the contract\'s mix-context set matches the typed projector (no drift)', () => {
+    // The old guard grepped compact-context source for `s.<field>` — foolable by
+    // a comment. Now compact-context exports MIX_CONTEXT_FIELDS (keyof-typed) and
+    // an exhaustive renderer Record, so a missing renderer fails to COMPILE. This
+    // asserts the test's own map agrees with that single source of truth.
+    const contractMix = fields.filter(f => CONSUMPTION_CONTRACT[f] === 'mix-context').sort();
+    expect([...MIX_CONTEXT_FIELDS].sort()).toEqual(contractMix);
+  });
+
+  it('every mix-context field\'s VALUE actually reaches the mix output (not just mentioned)', () => {
+    // Sentinel each mix field, run the real projection, assert each value appears.
+    // Stronger than the old source-grep: proves the field is rendered, not merely
+    // referenced in a comment or dead branch.
+    const snap = {
+      real_question: 'SENTINEL_real_question',
+      hidden_assumptions: ['SENTINEL_hidden_assumptions'],
+      skeleton: ['SENTINEL_skeleton'],
+      insight: 'SENTINEL_insight',
+      decision_line: 'SENTINEL_decision_line',
+      next_three_days: ['SENTINEL_next_three_days'],
+    } as unknown as AnalysisSnapshot;
+    const out = compactSnapshots([snap], 'en');
+    const missing = MIX_CONTEXT_FIELDS.filter(f => !out.includes(`SENTINEL_${f}`));
+    expect(missing, `mix-context field value never reached the output (generate-but-drop): ${missing.join(', ')}`).toEqual([]);
   });
 });
