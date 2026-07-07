@@ -24,7 +24,7 @@
 import type { Agent, AgentObservation } from '@/stores/agent-types';
 import type { InputClassification } from './orchestrator-classify';
 import { classifySteps, type TaskClassification } from './task-classifier';
-import { scoreAgentForTask, getCapability, isCriticAgentId } from './agent-capabilities';
+import { scoreAgentForTask, getCapability, isCriticAgentId, STRONG_FIT_THRESHOLD } from './agent-capabilities';
 import { lensOf, type Lens } from './agent-lens';
 import { getAgentHitRate } from './hit-rate';
 
@@ -54,6 +54,11 @@ export interface SelectionTrace {
    *  qualified bidder; the best was assigned as least-bad and the reason says
    *  "weak match" honestly, instead of degrading to a hardcoded keyword pick). */
   outcome?: 'awarded' | 'unfilled';
+  /** F3-spectrum — absolute fit of the AWARDED agent (baseScore vs
+   *  STRONG_FIT_THRESHOLD): 'strong' = a real specialist match; 'stretch' = the
+   *  closest available but not a specialist (surfaced honestly, not as a
+   *  confident "best fit"). Absent on 'unfilled'/forced traces. */
+  fit?: 'strong' | 'stretch';
 }
 
 /* ─── Layer 3: Experience Adjustment ─── */
@@ -223,7 +228,12 @@ export function selectAgents(
       usedAgentIds.add(best.agent.id);
       const bestLens = lensOf(best.agent.id);
       if (bestLens) usedLenses.add(bestLens);
-      traces.push({ stepIndex: i, taskClassification: tc, selectedAgent: best.agent.id, confidence, outcome: 'awarded', scores: topScores });
+      // F3-spectrum: grade the AWARDED fit on the CAPABILITY baseScore (not the
+      // total — experience/hint boosts are luck, not specialization). A weak
+      // absolute fit is a 'stretch', surfaced honestly downstream instead of
+      // posing as a confident best fit.
+      const fit: 'strong' | 'stretch' = best.baseScore >= STRONG_FIT_THRESHOLD ? 'strong' : 'stretch';
+      traces.push({ stepIndex: i, taskClassification: tc, selectedAgent: best.agent.id, confidence, outcome: 'awarded', fit, scores: topScores });
     } else {
       // No qualified bidder — surface it honestly; do NOT force the worst fit.
       traces.push({ stepIndex: i, taskClassification: tc, selectedAgent: '', confidence: 0, outcome: 'unfilled', scores: topScores });

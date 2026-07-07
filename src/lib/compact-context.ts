@@ -170,27 +170,56 @@ export function compactSnapshots(
   return lines.join('\n');
 }
 
+type Labels = typeof LABELS['ko'];
+
+/**
+ * F2 — the snapshot→mix handoff as a TYPED PIPELINE, not a prose template.
+ *
+ * The AnalysisSnapshot fields that MUST reach the mix prompt. `keyof`-typed, so
+ * renaming a snapshot field breaks THIS at compile time (not silently at runtime
+ * in some template string). This is the single source of truth for "mix-context"
+ * — the consumption-contract test derives the set from here.
+ *
+ * Root fix over the old guard: F2 shipped as a TEST that string-grepped
+ * compact-context.ts for `s.<field>` — foolable by a comment, and it only proved
+ * the field was *mentioned*, never that its VALUE reached the output. Now every
+ * mix field flows through an exhaustive renderer map (below), so a dropped field
+ * fails to COMPILE, and the test proves value-flow at runtime.
+ */
+export const MIX_CONTEXT_FIELDS = [
+  'real_question', 'hidden_assumptions', 'skeleton', 'insight',
+  'decision_line', 'next_three_days',
+] as const satisfies readonly (keyof AnalysisSnapshot)[];
+
+export type MixField = typeof MIX_CONTEXT_FIELDS[number];
+
+/** One renderer per mix field → a labeled line, or null to omit when empty. The
+ *  `Record<MixField, …>` mapped type is the compile-time guarantee: add a field
+ *  to MIX_CONTEXT_FIELDS and the compiler DEMANDS a renderer here — a produced
+ *  field can no longer be dead-on-arrival. */
+const MIX_RENDERERS: Record<MixField, (s: AnalysisSnapshot, L: Labels) => string | null> = {
+  real_question: (s, L) => `- ${L.realQuestion}: ${s.real_question}`,
+  hidden_assumptions: (s, L) => `- ${L.hiddenAssumptions}: ${s.hidden_assumptions.join(' / ')}`,
+  skeleton: (s, L) => `- ${L.skeleton}: ${s.skeleton.join(' → ')}`,
+  insight: (s, L) => (s.insight ? `- ${L.latestInsight}: ${s.insight}` : null),
+  // The user's OWN chosen decision from a strategic_fork / weakness_check — the
+  // sharpest artifact of their judgment (F1). Omitted only when genuinely empty.
+  decision_line: (s, L) => (s.decision_line?.trim() ? `- ${L.committedDirection}: ${s.decision_line.trim()}` : null),
+  next_three_days: (s, L) => (s.next_three_days && s.next_three_days.length > 0 ? `- ${L.nextThreeDays}: ${s.next_three_days.join(' / ')}` : null),
+};
+
 function formatSnapshot(s: AnalysisSnapshot, locale: Locale = 'ko'): string {
   const L = LABELS[locale];
-  const lines = [
-    `- ${L.realQuestion}: ${s.real_question}`,
-    `- ${L.hiddenAssumptions}: ${s.hidden_assumptions.join(' / ')}`,
-    `- ${L.skeleton}: ${s.skeleton.join(' → ')}`,
-  ];
-  if (s.execution_plan) {
-    lines.push(`- ${L.executionPlan}: ${s.execution_plan.steps.map(st => st.task).join(' → ')}`);
-  }
-  if (s.insight) {
-    lines.push(`- ${L.latestInsight}: ${s.insight}`);
-  }
-  // The user's OWN chosen decision from a strategic_fork / weakness_check — the
-  // sharpest artifact of their judgment. Previously captured on the snapshot but
-  // never fed downstream (dead-wiring). Surface it so the draft honors it.
-  if (s.decision_line?.trim()) {
-    lines.push(`- ${L.committedDirection}: ${s.decision_line.trim()}`);
-  }
-  if (s.next_three_days && s.next_three_days.length > 0) {
-    lines.push(`- ${L.nextThreeDays}: ${s.next_three_days.join(' / ')}`);
+  const lines: string[] = [];
+  // Every mix-context field flows through the exhaustive typed projector.
+  // execution_plan is 'workers'-context (not mix), but has historically shown
+  // here as orientation — keep it slotted right after the skeleton.
+  for (const field of MIX_CONTEXT_FIELDS) {
+    const line = MIX_RENDERERS[field](s, L);
+    if (line != null) lines.push(line);
+    if (field === 'skeleton' && s.execution_plan) {
+      lines.push(`- ${L.executionPlan}: ${s.execution_plan.steps.map(st => st.task).join(' → ')}`);
+    }
   }
   return lines.join('\n');
 }

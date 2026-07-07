@@ -75,6 +75,21 @@ export function buildAssignmentReason(
   const runnerName = runner ? agentsById.get(runner.agentId)?.name : undefined;
   const winnerName = agentsById.get(trace.selectedAgent)?.name;
 
+  // F3-spectrum: an honest STRETCH — the winner has a real (positive) fit but a
+  // WEAK one (baseScore below STRONG_FIT_THRESHOLD): the closest available agent,
+  // not a specialist in this task. Say that plainly instead of "best fit for X",
+  // which would dress a 0.1 match as a confident pick (the honest-structure
+  // failure mode). Distinct from 'unfilled' (no positive fit at all, handled
+  // above) and from near-tie (two close candidates). Checked FIRST because "no
+  // specialist" is the more load-bearing thing to tell the captain than "it was
+  // close" — a stretch that happens to be a near-tie is still, first, a stretch.
+  if (trace.fit === 'stretch') {
+    const w = winnerName ?? (ko ? '이 담당' : 'this one');
+    return ko
+      ? `이 분야 전문가는 없어 ${w}가 가장 근접 — 참고로 볼 것`
+      : `No specialist for this — ${w} is the closest fit; read it as such`;
+  }
+
   // F3: near-tie honesty — a small winner↔runner-up margin is NOT a confident
   // "best fit"; say it was close. (confidence is internal-routing-only — spine
   // rule 2 — so the number itself is never shown, only the "near-tie" wording.)
