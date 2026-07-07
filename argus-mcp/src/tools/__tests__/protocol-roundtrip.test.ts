@@ -126,6 +126,7 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     const res = await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'rt1', op: 'nonsense' } });
     expect(res.isError).toBe(true);
     expect((res.content as Array<{ text: string }>)[0].text).toContain('INVALID_INPUT');
+    expect((res.content as Array<{ text: string }>)[0].text).toContain('recovery');
   });
 
   // M3 acceptance (coordinator repro): the FULL open_question reconsider journey

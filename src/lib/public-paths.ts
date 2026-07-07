@@ -13,6 +13,9 @@ export const PUBLIC_PATHS = [
   '/workspace',
   '/boss',
   '/settings',
+  // /import is the MCP bridge front door. Anonymous users must see why a token
+  // is worth issuing before the login wall: terminal seal -> email -> 30s record.
+  '/import',
   '/privacy',
   '/terms',
   // '/design' removed (05 S5): orphan internal-reference routes (zero inbound

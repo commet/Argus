@@ -35,7 +35,15 @@ interface Metrics {
     plugin_settled?: number;
     verdicts: Record<string, number>;
   } | null;
+  surface_funnel?: Record<'web' | 'mcp' | 'plugin', FunnelStageCounts>;
   tables: Record<string, number>;
+}
+
+interface FunnelStageCounts {
+  opened: number;
+  sealed: number;
+  returned: number;
+  settled: number;
 }
 
 function Stat({ label, value, hint, accent }: { label: string; value: number | string; hint?: string; accent?: boolean }) {
@@ -45,6 +53,51 @@ function Stat({ label, value, hint, accent }: { label: string; value: number | s
       <p className={`mt-1 text-[28px] font-bold leading-none ${accent ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{value}</p>
       {hint && <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">{hint}</p>}
     </Card>
+  );
+}
+
+function SurfaceFunnel({ rows, L }: { rows: Record<'web' | 'mcp' | 'plugin', FunnelStageCounts>; L: (ko: string, en: string) => string }) {
+  const surfaces: Array<{ key: 'web' | 'mcp' | 'plugin'; label: string; hint: string }> = [
+    { key: 'web', label: L('웹', 'Web'), hint: L('항구·이메일 귀환', 'harbor/email returns') },
+    { key: 'mcp', label: 'MCP', hint: L('review_receipts mcp_file', 'review_receipts mcp_file') },
+    { key: 'plugin', label: L('플러그인', 'Plugin'), hint: 'plugin_decisions' },
+  ];
+  const stages: Array<{ key: keyof FunnelStageCounts; label: string }> = [
+    { key: 'opened', label: 'opened' },
+    { key: 'sealed', label: 'sealed' },
+    { key: 'returned', label: 'returned' },
+    { key: 'settled', label: 'settled' },
+  ];
+
+  return (
+    <div className="mb-6 overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)]">
+      <table className="w-full min-w-[560px] text-left">
+        <thead>
+          <tr className="border-b border-[var(--border-subtle)]">
+            <th className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{L('표면', 'Surface')}</th>
+            {stages.map((s) => (
+              <th key={s.key} className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-tertiary)]">{s.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {surfaces.map((surface) => {
+            const counts = rows[surface.key] || { opened: 0, sealed: 0, returned: 0, settled: 0 };
+            return (
+              <tr key={surface.key} className="border-b border-[var(--border-subtle)] last:border-b-0">
+                <td className="px-3 py-3">
+                  <p className="text-[13px] font-semibold text-[var(--text-primary)]">{surface.label}</p>
+                  <p className="text-[11px] text-[var(--text-tertiary)]">{surface.hint}</p>
+                </td>
+                {stages.map((s) => (
+                  <td key={s.key} className="px-3 py-3 text-[18px] font-bold tabular-nums text-[var(--text-primary)]">{counts[s.key] ?? 0}</td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -181,6 +234,15 @@ export default function AdminPage() {
               </>
             );
           })()}
+
+          {metrics.surface_funnel && (
+            <>
+              <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">
+                {L('표면별 4단 퍼널', 'Four-stage funnel by surface')}
+              </h2>
+              <SurfaceFunnel rows={metrics.surface_funnel} L={L} />
+            </>
+          )}
 
           {/* Per-table row counts — "did the data actually arrive" */}
           <h2 className="text-[12px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{L('테이블별 행수', 'Rows per table')}</h2>

@@ -71,4 +71,21 @@ describe('toReceiptRow', () => {
     );
     expect(row.next_check_by).toBeNull();
   });
+
+  it('persists missed as missed in the review_receipts jsonb row', () => {
+    const row = toReceiptRow(
+      receipt([fu({
+        sealed_at: '2026-07-01T00:00:00Z',
+        settled_at: '2026-07-20T00:00:00Z',
+        outcome: 'missed',
+        what_happened: 'The read was wrong.',
+      })], {
+        state: 'settled',
+      }),
+    );
+
+    expect(row.state).toBe('settled');
+    expect(row.next_check_by).toBeNull();
+    expect(row.data.falsifiable_followups[0].outcome).toBe('missed');
+  });
 });

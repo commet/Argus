@@ -54,6 +54,23 @@ describe('argus_sync', () => {
     expect(String(res.structuredContent?.surface)).toContain('web dashboard');
   });
 
+  it('F2: does not suggest argus_settle when every due receipt is web-sealed', async () => {
+    process.env.ARGUS_TOKEN = 'argus_pat_x';
+    const receipts = [
+      { id: 'rcpt_web1', source_title: 'Web only', state: 'sealed', next_check_by: '2020-01-01', due: true, core_question: 'q', open_predicates: [] },
+    ];
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true, receipts }), { status: 200 }));
+
+    const res = await sync.handler({});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const d = res.structuredContent?.data as any;
+    expect(d.due).toBe(1);
+    expect(d.local_settleable_due).toBe(0);
+    expect(d.receipts[0].settle_path).toBe('webapp');
+    expect(res.structuredContent?.next_actions).toEqual(['stop']);
+    expect(String(res.structuredContent?.surface)).toContain('web dashboard');
+  });
+
   it('P1-E1: the locale config drives the surface voice (ko config → Korean surface)', async () => {
     process.env.ARGUS_TOKEN = 'argus_pat_x';
     const dir = tmpArgusDir();

@@ -48,6 +48,7 @@ import { track } from '@/lib/analytics';
 import { verdictButtons, predicateQuestion, isCreditClaimingOutcome, basisOptions } from './DecisionContractCard';
 import { CheckpointReturnCard } from './CheckpointReturnCard';
 import { generateGrowthNote } from '@/lib/growth-note';
+import { applySettlementReceipt } from '@/lib/settlement-receipt';
 import { JudgmentReceipt } from './JudgmentReceipt';
 import { JudgmentFrame } from './JudgmentFrame';
 import { RetroBadge } from './RetroBadge';
@@ -205,8 +206,16 @@ export function SettlementModal({
 
   function grade(predicateId: string, verdict: PredicateVerdict) {
     if (!contract) return;
-    const graded = gradePredicate(contract, predicateId, verdict, Date.now());
-    updateProject(project.id, { decision_contract: graded });
+    const now = Date.now();
+    const graded = gradePredicate(contract, predicateId, verdict, now);
+    const withReceipt = applySettlementReceipt(
+      graded,
+      verdict,
+      new Date(now).toISOString(),
+      ko ? 'ko' : 'en',
+      whatHappened,
+    );
+    updateProject(project.id, { decision_contract: withReceipt });
     // Learning signal — settlement is the return half of the loop; its verdict
     // is the ground truth the product is built to accumulate (2026-06-13 fix).
     recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'predicate_settled', signal_data: { verdict } });
@@ -371,7 +380,7 @@ export function SettlementModal({
         )}
 
         {/* Judgment checkpoint (§7): the focused 4-tap for the primary predicate. */}
-        {showCheckpoint && primaryCheckpoint && primaryPred && (
+        {showCheckpoint && !allResolved && primaryCheckpoint && primaryPred && (
           <CheckpointReturnCard
             checkpoint={primaryCheckpoint}
             currentVerdict={primaryPred.verdict}

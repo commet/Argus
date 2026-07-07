@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCompanionBrief, type DueReceiptBrief } from '../companion-brief';
+import { buildCompanionBrief, companionBriefItemCount, type DueReceiptBrief } from '../companion-brief';
 
 const item: DueReceiptBrief = {
   source_title: '온보딩 리빌드 전략',
@@ -29,6 +29,11 @@ describe('buildCompanionBrief', () => {
   it('pluralizes the subject when multiple predicates are due', () => {
     const two: DueReceiptBrief = { ...item, predicates: [item.predicates[0], { ...item.predicates[0], predicate: 'p2' }] };
     expect(buildCompanionBrief([two]).subject).toContain('2가지');
+  });
+
+  it('counts only real brief items so the gate can silence empty briefs', () => {
+    expect(companionBriefItemCount([{ source_title: '빈 브리프', core_question: '', predicates: [] }])).toBe(0);
+    expect(companionBriefItemCount([item])).toBe(1);
   });
 
   it('includes a concrete Suggestion (a check action, not a verdict)', () => {
@@ -64,7 +69,7 @@ describe('buildCompanionBrief', () => {
     expect(md).toContain('기준금리 4.0%로 인상');            // the fact
     expect(md).toContain('출처 2026-07-02');                 // the date
     expect(md).toContain('https://bok.example/x');            // the source
-    expect(md).toContain('이 판단, 지금 다시 볼까요?');      // neutral question, not a verdict
+    expect(md).toContain('결정을 다시 볼지는 당신의 몫이에요.'); // user owns the handle
     expect(md).not.toMatch(/틀렸습니다|잘못|당신이 실수/);   // never judges the user
     expect(buildCompanionBrief([change]).subject).toContain('금리 전제 메모');
   });
@@ -76,7 +81,7 @@ describe('buildCompanionBrief', () => {
     };
     const md = buildCompanionBrief([openq]).markdown;
     expect(md).toContain('새 정보: 규제당국이 완화안 발표'); // new-info framing
-    expect(md).toContain('이제 정할 수 있을까요?');          // decide, not "revisit"
-    expect(md).not.toContain('이 판단, 지금 다시 볼까요?');
+    expect(md).toContain('지금 답이 생겼다면 적어두고, 아직이면 그대로 두세요.');
+    expect(md).not.toContain('결정을 다시 볼지는 당신의 몫이에요.');
   });
 });

@@ -62,6 +62,7 @@ export const sync: ToolModule = {
       const matched = dueOnly ? pull.receipts.filter((r) => r.due) : pull.receipts;
       const receipts = matched.slice(0, limit);
       const dueCount = pull.receipts.filter((r) => r.due).length;
+      const localSettleableDueCount = pull.receipts.filter((r) => r.due && r.id.startsWith('mcp_')).length;
       const truncated = matched.length > receipts.length;
 
       // ④ Reverse cross-check (best-effort, read-only): a judgment sealed here
@@ -98,10 +99,11 @@ export const sync: ToolModule = {
       return envelope({
         ok: true, tool: 'argus_sync',
         surface: baseSurface + crossCheckLine,
-        next_actions: dueCount > 0 ? ['argus_settle', 'stop'] : ['stop'],
+        next_actions: localSettleableDueCount > 0 ? ['argus_settle', 'stop'] : ['stop'],
         data: {
           total: pull.receipts.length,
           due: dueCount,
+          local_settleable_due: localSettleableDueCount,
           count: receipts.length,
           has_more: truncated,
           ...(truncated ? { truncation_note: S.truncation(receipts.length, matched.length) } : {}),

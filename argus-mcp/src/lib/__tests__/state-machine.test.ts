@@ -57,7 +57,13 @@ describe('guardTransition', () => {
   });
 
   it('refuses any event on a terminal decision', () => {
-    try { guardTransition('settled', 'seal'); } catch (e) { expect((e as GuardError).code).toBe('DECISION_CLOSED'); }
+    try {
+      guardTransition('settled', 'amend');
+    } catch (e) {
+      expect((e as GuardError).code).toBe('DECISION_CLOSED');
+      expect((e as GuardError).message).toContain('an amend');
+      expect((e as GuardError).message).not.toContain('a amend');
+    }
     try { guardTransition('dismissed', 'seal'); } catch (e) { expect((e as GuardError).code).toBe('DECISION_CLOSED'); }
   });
 

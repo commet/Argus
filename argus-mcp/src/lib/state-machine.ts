@@ -56,6 +56,10 @@ export class GuardError extends Error {
   }
 }
 
+function eventArticle(event: LedgerEventType): string {
+  return /^[aeiou]/i.test(event) ? 'an' : 'a';
+}
+
 /**
  * Throw if `event` is illegal from the decision's current derived state.
  * Encodes the spine's structural refusals:
@@ -103,7 +107,7 @@ export function guardTransition(
   }
 
   if ((current === 'settled' || current === 'dismissed')) {
-    throw new GuardError('DECISION_CLOSED', `This decision is ${current}; it cannot accept a ${event}.`, 'Open a new decision instead — closed decisions are not reopened.');
+    throw new GuardError('DECISION_CLOSED', `This decision is ${current}; it cannot accept ${eventArticle(event)} ${event}.`, 'Open a new decision instead — closed decisions are not reopened.');
   }
 
   if (!ALLOWED[current].has(event)) {

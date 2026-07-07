@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { markdownToEmailHtml } from '@/lib/email-html';
-import { buildCompanionBrief, type DueReceiptBrief, type PremiseChange } from '@/lib/companion-brief';
+import { buildCompanionBrief, companionBriefItemCount, type DueReceiptBrief, type PremiseChange } from '@/lib/companion-brief';
+import { notificationGateAllowsSend } from '@/lib/notification-gate';
 import { type JudgmentReceipt, summarizeReceipt } from '@/lib/review';
 import {
   isMonitored,
@@ -275,6 +276,17 @@ export async function GET(req: Request) {
     const email = userRes?.user?.email;
     if (!email) { skipped.push(userId); continue; }
     const brief = buildCompanionBrief(bucket.briefs, `https://${fromDomain}`);
+    if (!notificationGateAllowsSend({
+      type: 'T2_PREMISE_DRIFT',
+      channel: 'email',
+      userId,
+      contentCount: companionBriefItemCount(bucket.briefs),
+      materiality: 'material',
+      isStandalone: true,
+    })) {
+      skipped.push(userId);
+      continue;
+    }
     try {
       await resend.emails.send({
         from: `Argus <hello@${fromDomain}>`,

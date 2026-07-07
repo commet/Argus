@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { tgSendMessage } from '@/lib/telegram-api';
 import { markdownToTelegramLight } from '@/lib/telegram-format';
 import { settleQuestionMarkdown, settleKeyboard } from '@/lib/seal-core';
+import { notificationGateAllowsSend } from '@/lib/notification-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -65,6 +66,14 @@ export async function GET(req: Request) {
   let sent = 0;
   for (const d of due ?? []) {
     const locale = detectLocale(d.decision || '');
+    if (!notificationGateAllowsSend({
+      type: 'T1_RETURN',
+      channel: 'telegram',
+      userId: String(d.chat_id),
+      targetId: d.id,
+      reminderCount: 0,
+      contentCount: 1,
+    })) continue;
     try {
       await tgSendMessage(
         d.chat_id,

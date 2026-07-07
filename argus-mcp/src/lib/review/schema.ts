@@ -411,7 +411,7 @@ export interface JudgmentObligation {
   owned_by_user: boolean;
 }
 
-export type FollowupOutcome = 'happened' | 'avoided' | 'partial' | 'unclear';
+export type FollowupOutcome = 'happened' | 'avoided' | 'partial' | 'unclear' | 'missed';
 
 /** A falsifiable prediction reality can settle. Owned by the user once sealed. */
 export interface FalsifiableFollowup {
@@ -486,8 +486,13 @@ export interface ReviewCoverage {
 
 export interface JudgmentReceipt {
   receipt_id: string;
+  /**
+   * Discriminator for the receipt contract. Missing means legacy review receipt.
+   * `judgment` is a direct user-sealed mirror, not a document review.
+   */
+  kind?: 'review' | 'judgment';
   /** which entry mode produced it — Create vs Review stay distinct. */
-  root_mode: 'create' | 'review';
+  root_mode: 'create' | 'review' | 'judgment';
   state: ReceiptState;
   /** how much of the source this receipt actually covers (optional for back-compat
    *  with receipts saved before coverage existed — always set by the pipeline now). */
@@ -503,9 +508,9 @@ export interface JudgmentReceipt {
   source_text?: string;
 
   // profile + reviewability (surfaced on the first screen)
-  profile: DocumentProfile;
-  reviewability: ReviewabilityScore;
-  routing: LensRoutingResult;
+  profile?: DocumentProfile;
+  reviewability?: ReviewabilityScore;
+  routing?: LensRoutingResult;
 
   // the review body
   core_question: string;

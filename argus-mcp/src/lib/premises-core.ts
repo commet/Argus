@@ -12,7 +12,7 @@ import type { MaterialityRule } from './numeric-drift.js';
  */
 
 export type PremiseKind = 'premise' | 'open_question';
-export type PremiseSource = 'ai' | 'user';
+export type PremiseSource = 'ai_surfaced' | 'user_stated';
 export type PremiseStatus = 'active' | 'retired' | 'resolved';
 export type PremiseAmendAction = 'accept' | 'refine' | 'replace' | 'retire';
 

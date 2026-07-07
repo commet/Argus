@@ -100,6 +100,28 @@ describe('MCP simulation — full loop with account sync', () => {
     expect(settleData.account_sync_reason).toBe('http_500');
     expect(String(body(settled).surface)).toContain('계정 동기화가 안 됐습니다'); // Korean what_happened ⇒ Korean line
   });
+
+  it('an expired account token speaks up on seal with a one-line no-email surface', async () => {
+    process.env.ARGUS_TOKEN = 'argus_pat_expired';
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 401 }));
+    const dir = tmpArgusDir();
+
+    const sealed = await seal.handler({
+      argus_dir: dir,
+      id: 'expired-token',
+      predicate: 'cutover downtime stays under five minutes',
+      check_by: '2027-01-01',
+      predicate_owner: 'user',
+    });
+
+    expect(isError(sealed)).toBe(false);
+    const sealData = body(sealed).data as Record<string, unknown>;
+    expect(sealData.account_synced).toBe(false);
+    expect(sealData.account_sync_reason).toBe('http_401');
+    const surface = String(body(sealed).surface);
+    expect(surface).toContain('http_401');
+    expect(surface).toMatch(/email reminder won't fire/i);
+  });
 });
 
 describe('MCP simulation — settle outcome is required, never inferred', () => {

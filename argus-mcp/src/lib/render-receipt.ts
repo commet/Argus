@@ -21,7 +21,7 @@ export interface ReceiptPremisesInfo {
 export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo): string {
   const L: string[] = [];
   const sealed = r.created_at ? r.created_at.slice(0, 10) : '—';
-  const settled = r.settled_at ? r.settled_at.slice(0, 10) : '(open)';
+  const settled = r.settled_at ? r.settled_at.slice(0, 10) : 'Not yet settled';
 
   L.push('┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐');
   L.push(`  Sealed ${sealed}      Settled ${settled}`);

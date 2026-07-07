@@ -63,13 +63,23 @@ export interface CompanionBriefEmail {
   url: string;
 }
 
+export function companionBriefItemCount(items: DueReceiptBrief[]): number {
+  return items.reduce(
+    (n, it) => n
+      + it.predicates.length
+      + (it.premise_nudges?.length ?? 0)
+      + (it.changes?.length ?? 0),
+    0,
+  );
+}
+
 /**
  * Build the return email for one user's due receipts. `items` must already be
  * filtered to sealed-but-unsettled predicates whose check date has arrived.
  */
 export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https://argus.voyage'): CompanionBriefEmail {
   const url = `${baseUrl}/tools/review`;
-  const count = items.reduce((n, it) => n + it.predicates.length + (it.premise_nudges?.length ?? 0) + (it.changes?.length ?? 0), 0);
+  const count = companionBriefItemCount(items);
   const lead = items[0]?.source_title?.slice(0, 40) || '그 판단';
   const subject =
     count === 1
@@ -105,7 +115,7 @@ export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https:/
         blocks.push(`- P${c.ordinal} ${c.text}`);
         blocks.push(`  - ${openQ ? '새 정보' : '지금'}: ${c.fact}${c.source_date ? ` (출처 ${c.source_date})` : ''}`);
         if (c.source_url) blocks.push(`  - 출처: ${c.source_url}`);
-        blocks.push(`  - ${openQ ? '이제 정할 수 있을까요?' : '이 판단, 지금 다시 볼까요?'}`);
+        blocks.push(`  - ${openQ ? '지금 답이 생겼다면 적어두고, 아직이면 그대로 두세요.' : '결정을 다시 볼지는 당신의 몫이에요.'}`);
       }
     }
     // Premise re-check nudges — an INVITATION to look at reality, never a claim

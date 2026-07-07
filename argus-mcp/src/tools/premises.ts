@@ -56,8 +56,8 @@ const zPremiseInput = z.strictObject({
   kind: z.enum(['premise', 'open_question']).default('premise').describe('premise = a fact/belief the decision rests on. open_question = something the user explicitly left undecided.'),
   external: z.boolean().default(false).describe('Can reality verify this later (a rate, a date, supply, a third party)? external + load_bearing arms re-checking.'),
   load_bearing: z.boolean().default(false).describe(`Would the decision flip if this is wrong? Mark sparingly — max ${MAX_LOAD_BEARING} per decision.`),
-  source: z.enum(['ai', 'user']).describe('Provenance. Never forge: "user" = the user\'s own words; "ai" = model-drafted (requires ai_original).'),
-  ai_original: z.string().max(400).optional().describe('REQUIRED when source="ai": the model\'s original wording, preserved verbatim across later edits.'),
+  source: z.enum(['ai_surfaced', 'user_stated', 'ai', 'user']).describe('Provenance. Never forge: "user_stated" = the user\'s own words; "ai_surfaced" = model-drafted (requires ai_original). Legacy aliases "user"/"ai" are accepted and normalized.'),
+  ai_original: z.string().max(400).optional().describe('REQUIRED when source="ai_surfaced": the model\'s original wording, preserved verbatim across later edits.'),
   materiality_rule: zMaterialityRule.optional().describe('Optional: how re-checks decide "did this materially change?". Absent → an under-fire default heuristic (silence when unsure). Define it to be precise (e.g. threshold "drops below 4.0", step "any one-notch credit downgrade").'),
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional: how many days between reality re-checks for this fact (M1). Absent → a default derived from the rule type (a moving number is checked more often than slow-moving state). The user pins this; it only moves the DUE nudge, never blocks a recheck.'),
   reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional (kind="open_question" only): how many days between reconsider nudges — a "come back and see if you can answer this yet" timer (M3). Absent → a sensible default. Leaving the question open stays a valid answer; this only moves the nudge, never forces a resolution.'),
@@ -79,6 +79,10 @@ const inputSchema = z.strictObject({
   decision: z.string().min(1).max(400).optional().describe('op=resolve: the user\'s own closing call. MUST be the user\'s words — never an Argus-drafted line.'),
   today_override: zDate.optional(),
 });
+
+function normalizePremiseSource(source: unknown): 'ai_surfaced' | 'user_stated' {
+  return source === 'user' || source === 'user_stated' ? 'user_stated' : 'ai_surfaced';
+}
 
 export const premises: ToolModule = {
   name: 'argus_premises',
@@ -125,8 +129,8 @@ async function opAdd(
     return toolError({ ok: false, tool: 'argus_premises', error_code: 'PREMISES_REQUIRED', message: 'op=add needs a non-empty `premises` array.', recovery: 'Pass 1-5 premises: {text, kind, external, load_bearing, source}.' });
   }
   for (const p of inputs) {
-    if (p.source === 'ai' && !(p.ai_original && p.ai_original.trim())) {
-      return toolError({ ok: false, tool: 'argus_premises', error_code: 'PROVENANCE_REQUIRED', message: `source="ai" requires ai_original (the model's original wording): "${p.text.slice(0, 60)}"`, recovery: 'Set ai_original to the exact model-drafted sentence, or source="user" if the user wrote it.' });
+    if (normalizePremiseSource(p.source) === 'ai_surfaced' && !(p.ai_original && p.ai_original.trim())) {
+      return toolError({ ok: false, tool: 'argus_premises', error_code: 'PROVENANCE_REQUIRED', message: `source="ai_surfaced" requires ai_original (the model's original wording): "${p.text.slice(0, 60)}"`, recovery: 'Set ai_original to the exact model-drafted sentence, or source="user_stated" if the user wrote it.' });
     }
   }
 
@@ -152,7 +156,7 @@ async function opAdd(
     ordinal: nextOrdinal++,
     kind: p.kind, text: p.text,
     external: p.external, load_bearing: p.load_bearing,
-    source: p.source,
+    source: normalizePremiseSource(p.source),
     ...(p.ai_original ? { ai_original: p.ai_original } : {}),
     ...(p.materiality_rule ? { materiality_rule: p.materiality_rule } : {}),
     ...(typeof p.recheck_cadence_days === 'number' ? { recheck_cadence_days: p.recheck_cadence_days } : {}),
@@ -232,7 +236,7 @@ async function opAmend(
   const surface =
     action === 'retire' ? `P${premise.ordinal} retired — it stays on the record with its history.` :
     action === 'accept' ? `P${premise.ordinal} confirmed as-is.` :
-    `P${premise.ordinal} updated in your words.${premise.source === 'ai' ? ' The AI\'s original stays on the record for provenance.' : ''}${armed ? '' : ''}`;
+    `P${premise.ordinal} updated in your words.${premise.source === 'ai_surfaced' ? ' The AI\'s original stays on the record for provenance.' : ''}${armed ? '' : ''}`;
 
   return envelope({
     ok: true, tool: 'argus_premises',

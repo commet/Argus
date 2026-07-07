@@ -5,6 +5,7 @@ import { Resend } from 'resend';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// NOTIFICATION_GATE_EXEMPT_OWNER_REPORT: internal founder report, not a user-facing Argus notification.
 const REPORT_EMAIL = process.env.REPORT_EMAIL || '';
 const OWNER_EMAILS = (process.env.OWNER_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 

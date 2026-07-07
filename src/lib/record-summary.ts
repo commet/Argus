@@ -26,7 +26,7 @@ export interface ReviewRecordCounts {
   open: number;
   /** follow-ups settled against reality */
   settled: number;
-  /** outcome breakdown (sum ≤ settled — 'unclear' has no bucket) */
+  /** outcome breakdown (sum ≤ settled — 'unclear'/'missed' have no bucket) */
   happened: number;
   avoided: number;
   partial: number;
@@ -50,7 +50,7 @@ export function summarizeReviewRecord(receipts: JudgmentReceipt[]): ReviewRecord
       if (f.outcome === 'happened') c.happened++;
       else if (f.outcome === 'avoided') c.avoided++;
       else if (f.outcome === 'partial') c.partial++;
-      // 'unclear' counts in settled but gets no outcome bucket (sum ≤ settled).
+      // 'unclear'/'missed' count in settled but get no outcome bucket (sum ≤ settled).
     }
   }
   return c;

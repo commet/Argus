@@ -13,6 +13,7 @@ import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { renderSeal } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
+import { writeReturnCalendarEvent } from '../lib/calendar.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -77,6 +78,7 @@ export const seal: ToolModule = {
       await atomicWriteJson(bearingPath(dir, id), {
         v: SCHEMA_VERSION, id, contract_seed: { predicate, check_by: checkBy }, predicate_owner: a['predicate_owner'],
       });
+      const calendarPath = await writeReturnCalendarEvent(dir, { id, predicate, check_by: checkBy, created_at: now });
 
       // ledger: self-create harvest if the decision was sealed without an explicit open
       const events: LedgerEventInput[] = [];
@@ -103,7 +105,7 @@ export const seal: ToolModule = {
             id, event: 'premise_add', premise_id: pid, ordinal,
             kind: 'premise', text: ua.trim(),
             external: false, load_bearing: lbCount < MAX_LOAD_BEARING,
-            source: 'user',
+            source: 'user_stated',
           });
           promotedRef = `P${ordinal}`;
         }
@@ -145,10 +147,11 @@ export const seal: ToolModule = {
 
       return envelope({
         ok: true, tool: 'argus_seal',
-        surface: `${T.sealed(predicate, checkBy)}${nudge}${syncLine}`,
+        surface: `${T.sealed(predicate, checkBy)} Calendar file: ${calendarPath}${nudge}${syncLine}`,
         next_actions: ['argus_check_in', 'stop'],
         data: {
           id, predicate, check_by: checkBy, predicate_owner: a['predicate_owner'],
+          calendar_path: calendarPath,
           seal_text,
           status: 'sealed', ledger_events_written: events.map((e) => e.event),
           skipped: receipt.skipped,

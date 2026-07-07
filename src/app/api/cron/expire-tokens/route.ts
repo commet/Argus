@@ -18,6 +18,7 @@ function safeEqual(a: string, b: string): boolean {
  *
  * Schedule: daily (e.g., via Vercel Cron or Supabase pg_cron)
  * Auth: CRON_SECRET header
+ * NOTIFICATION_GATE_NO_USER_SEND: maintenance only; it does not send user notifications.
  */
 
 export async function GET(req: NextRequest) {

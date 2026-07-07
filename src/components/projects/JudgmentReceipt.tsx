@@ -115,6 +115,7 @@ export function JudgmentReceipt(props: Props) {
 
   // mode === 'settle'
   const { receipt, sealedOn, whatHappened, onWhatHappenedChange, onSave } = props;
+  const visibleWhatHappened = whatHappened || receipt.what_happened || '';
   return (
     <div className="rounded-xl border border-[var(--border)] overflow-hidden text-[13px] leading-[1.6]">
       <div className="px-4 py-2.5 bg-[var(--surface)] border-b border-[var(--border)]">
@@ -162,22 +163,28 @@ export function JudgmentReceipt(props: Props) {
         <div className="flex gap-2">
           <input
             type="text"
-            value={whatHappened}
+            value={visibleWhatHappened}
             onChange={(e) => onWhatHappenedChange(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && whatHappened.trim() && onSave) onSave(whatHappened.trim()); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && visibleWhatHappened.trim() && onSave) onSave(visibleWhatHappened.trim()); }}
             placeholder={L('한 줄로 적어주세요', 'One line summary')}
             maxLength={280}
             className="flex-1 text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
           />
-          {onSave && whatHappened.trim() && (
+          {onSave && visibleWhatHappened.trim() && visibleWhatHappened.trim() !== (receipt.what_happened || '').trim() && (
             <button
-              onClick={() => onSave(whatHappened.trim())}
+              onClick={() => onSave(visibleWhatHappened.trim())}
               className="px-3 py-2 rounded-lg text-[12px] font-medium border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors shrink-0"
             >
               {L('저장', 'Save')}
             </button>
           )}
         </div>
+        <p className="mt-2 text-[10px] font-semibold tracking-[0.14em] text-[var(--text-tertiary)]">
+          WHAT HAPPENED -- {visibleWhatHappened.trim() || (ko ? '아직 비어 있음' : 'EMPTY')}
+        </p>
+        <p className="mt-1 text-[10px] font-semibold tracking-[0.14em] text-[var(--text-tertiary)]">
+          AI VERDICT -- NONE
+        </p>
       </div>
     </div>
   );

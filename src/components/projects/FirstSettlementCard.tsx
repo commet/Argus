@@ -41,7 +41,9 @@ export function FirstSettlementCard({
           <span className="text-[12px] text-[var(--text-secondary)]">
             {leanAfter.view === 'same'
               ? L('지난번 돌아봤을 때: 그때 시야 그대로', 'Last look: same view as when you sealed')
-              : L('지난번 돌아봤을 때: 시야가 조금 바뀜', 'Last look: your view had shifted a little')}
+              : leanAfter.view === 'shifted'
+                ? L('지난번 돌아봤을 때: 시야가 조금 바뀜', 'Last look: your view had shifted a little')
+                : L('지난번 돌아봤을 때: 아직 모르겠음', 'Last look: still not sure')}
           </span>
         </div>
         {leanAfter.note && (
@@ -83,6 +85,12 @@ export function FirstSettlementCard({
           className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50 cursor-pointer transition-colors"
         >
           {L('시야가 좀 바뀌었다', 'My view has shifted')}
+        </button>
+        <button
+          onClick={() => onRecord('unknown', note.trim() || undefined)}
+          className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50 cursor-pointer transition-colors"
+        >
+          {L('아직 모르겠어요', 'Not sure yet')}
         </button>
       </div>
       <input

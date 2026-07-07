@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useReframeStore } from '@/stores/useReframeStore';
 import { useRecastStore } from '@/stores/useRecastStore';
@@ -34,6 +34,8 @@ import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
+import { track } from '@/lib/analytics';
+import { selectDueReturnProject, selectReturnProject } from '@/lib/project-return';
 
 // Hick's law (05 S7): filter chips + search only earn their place once the
 // list outgrows a single screen.
@@ -84,7 +86,7 @@ interface StepStatus {
 export default function ProjectPage() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const { projects, currentProjectId, loadProjects, setCurrentProjectId } = useProjectStore();
+  const { projects, currentProjectId, loadProjects, setCurrentProjectId, updateProject } = useProjectStore();
   const { items: reframeItems, loadItems: loadReframe } = useReframeStore();
   const { items: recastItems, loadItems: loadRecast } = useRecastStore();
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
@@ -97,8 +99,15 @@ export default function ProjectPage() {
   // fresh device the generic new-user empty state would read as "your sealed
   // decision is gone"; greet the returner honestly instead (03 S5 / P1-B2).
   const [fromCheckin, setFromCheckin] = useState(false);
+  const [returnId, setReturnId] = useState<string | null>(null);
+  const [firstSettlementView, setFirstSettlementView] = useState<'same' | 'shifted' | 'unknown' | null>(null);
   useEffect(() => {
-    setFromCheckin(new URLSearchParams(window.location.search).get('from') === 'checkin');
+    const params = new URLSearchParams(window.location.search);
+    const from = params.get('from');
+    setFromCheckin(from === 'checkin' || from === 'first-settlement');
+    setReturnId(params.get('return'));
+    const first = params.get('first');
+    setFirstSettlementView(first === 'same' || first === 'shifted' || first === 'unknown' ? first : null);
   }, []);
   // Settlement modal (W1.2 귀환 표면) — derived at render from contractStatus,
   // gated by a per-visit dismissed set. Deriving (instead of a getState()
@@ -139,6 +148,49 @@ export default function ProjectPage() {
     }
   }, [currentProject, settleDueNow, settleDismissed]);
   const settleOpen = !!currentProject && settleOpenId === currentProject.id;
+  const returnTrackedRef = useRef<Set<string>>(new Set());
+  const returnHandledRef = useRef<Set<string>>(new Set());
+  const firstSettlementHandledRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!returnId || !firstSettlementView || firstSettlementHandledRef.current.has(`${returnId}:${firstSettlementView}`)) return;
+    const project = selectReturnProject(projects, returnId);
+    const contract = project?.decision_contract;
+    if (!project || !contract) return;
+    firstSettlementHandledRef.current.add(`${returnId}:${firstSettlementView}`);
+    const now = new Date().toISOString();
+    setCurrentProjectId(project.id);
+    updateProject(project.id, {
+      decision_contract: {
+        ...contract,
+        lean_after: { view: firstSettlementView, recorded_at: now },
+      },
+    });
+    track('first_settlement_recorded', { source: 'email_cta', project_id: project.id, view: firstSettlementView });
+  }, [returnId, firstSettlementView, projects, setCurrentProjectId, updateProject]);
+
+  useEffect(() => {
+    if (!returnId || returnHandledRef.current.has(returnId)) return;
+    const project = selectDueReturnProject(projects, returnId, Date.now());
+    if (!project) return;
+    returnHandledRef.current.add(returnId);
+    setSettleDismissed((prev) => {
+      const next = new Set(prev);
+      next.delete(project.id);
+      return next;
+    });
+    setCurrentProjectId(project.id);
+    setSettleOpenId(project.id);
+    returnTrackedRef.current.add(project.id);
+    track('return_opened', { source: 'email_cta', project_id: project.id, return_id: returnId });
+  }, [returnId, projects, setCurrentProjectId]);
+
+  useEffect(() => {
+    if (!settleOpen || !currentProject) return;
+    if (returnTrackedRef.current.has(currentProject.id)) return;
+    returnTrackedRef.current.add(currentProject.id);
+    track('return_opened', { source: 'project_due', project_id: currentProject.id });
+  }, [settleOpen, currentProject]);
 
   /* ─── Per-project rich metrics (used in list view) ─── */
   interface ProjectMetrics {

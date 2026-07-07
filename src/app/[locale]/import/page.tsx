@@ -112,10 +112,15 @@ export default function ImportPage() {
           </h1>
           <p className="text-[14px] text-[var(--text-secondary)] mb-5">
             {L(
-              '플러그인에서 봉인한 결정과 항해 기록을 계정으로 가져오려면 먼저 로그인하세요. 가져온 기록은 본인 계정에만 저장됩니다.',
-              'Log in first to pull decisions sealed in the plugin into your account. Imported records are stored only under your account.',
+              '터미널에서 봉인한 판단을 계정에 연결하면, 정한 날 이메일이 먼저 오고 여기서 30초 만에 실제 결과를 기록할 수 있습니다.',
+              'Connect terminal-sealed judgments to your account, get the email first on the date you chose, then record what happened here in about 30 seconds.',
             )}
           </p>
+          <ol className="mb-5 space-y-2 text-[13px] text-[var(--text-secondary)]">
+            <li>{L('1. 터미널에서 argus_seal로 봉인합니다.', '1. Seal in the terminal with argus_seal.')}</li>
+            <li>{L('2. 정한 날 계정 이메일이 먼저 옵니다.', '2. On the date you chose, your account email arrives first.')}</li>
+            <li>{L('3. 여기서 실제 결과만 기록합니다.', '3. Come back here and record only what reality did.')}</li>
+          </ol>
           <Link href="/login?redirect=/import">
             <Button variant="accent">{L('로그인', 'Log in')}</Button>
           </Link>

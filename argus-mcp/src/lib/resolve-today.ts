@@ -3,8 +3,8 @@
  *
  * The old `localToday()` read `new Date()` local fields, so DUE computation
  * depended on the server's local timezone and ignored every override. This
- * replaces it with one source: an explicit override wins, else a fixed tz
- * (ARGUS_TZ env, default UTC) formats the wall clock once per request.
+ * replaces it with one source: an explicit override wins, else ARGUS_TZ wins,
+ * else the machine's local timezone formats the wall clock once per request.
  *
  * `Date.now()` is the only ambient time read; everything downstream takes the
  * resulting YYYY-MM-DD string so it is fully testable.
@@ -16,8 +16,16 @@ export function resolveToday(opts?: { override?: string | null; tz?: string | nu
   const override = opts?.override;
   if (typeof override === 'string' && DATE_RE.test(override)) return override;
 
-  const tz = opts?.tz || process.env['ARGUS_TZ'] || 'UTC';
+  const tz = opts?.tz || process.env['ARGUS_TZ'] || resolveDefaultTimeZone();
   return formatInTz(new Date(), tz);
+}
+
+export function resolveDefaultTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
 }
 
 function formatInTz(d: Date, tz: string): string {

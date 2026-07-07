@@ -55,6 +55,7 @@ function settlementLabel(L: LFn, outcome?: string): string {
     avoided: L('피했다 / 안 그랬다', 'Avoided / did not happen'),
     partial: L('부분적으로', 'Partially'),
     unclear: L('아직 불분명', 'Still unclear'),
+    missed: L('빗나갔다', 'Missed'),
   };
   return outcome ? map[outcome] ?? outcome : L('기록됨', 'Recorded');
 }
@@ -98,7 +99,9 @@ export function ReceiptView({
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
   const [showFixes, setShowFixes] = useState(false);
   const [claimFilter, setClaimFilter] = useState<string>('all');
-  const band = reviewabilityBand(receipt.reviewability.score);
+  const isJudgmentMirror = receipt.kind === 'judgment' || receipt.root_mode === 'judgment';
+  const reviewability = receipt.reviewability;
+  const band = reviewability ? reviewabilityBand(reviewability.score) : null;
   const topFindings = receipt.findings.slice(0, 3);
   const topObligations = receipt.judgment_obligations.slice(0, 3);
 
@@ -161,27 +164,29 @@ export function ReceiptView({
       )}
 
       {/* reviewability */}
+      {!isJudgmentMirror && reviewability && band && (
       <Card variant={band === 'insufficient' ? 'danger' : band === 'limited' ? 'muted' : 'default'}>
         <div className="flex items-center justify-between gap-3">
           <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">
             {L('검수 가능성', 'Reviewability')}
           </span>
-          <span className="text-[15px] font-bold text-[var(--text-primary)]">{receipt.reviewability.score}/100</span>
+          <span className="text-[15px] font-bold text-[var(--text-primary)]">{reviewability.score}/100</span>
         </div>
         <div className="mt-1 text-[13px] text-[var(--text-secondary)]">{bandCopy(band, L)}</div>
-        {receipt.reviewability.reasons.length > 0 && (
+        {reviewability.reasons.length > 0 && (
           <ul className="mt-2 space-y-0.5">
-            {receipt.reviewability.reasons.slice(0, 3).map((r, i) => (
+            {reviewability.reasons.slice(0, 3).map((r, i) => (
               <li key={i} className="text-[12px] text-[var(--text-tertiary)]">· {r}</li>
             ))}
           </ul>
         )}
-        {receipt.profile.source_confidence < 0.5 && (
+        {receipt.profile && receipt.profile.source_confidence < 0.5 && (
           <div className="mt-2 text-[11px] text-[var(--text-tertiary)]">
             {L('문서 유형은 추론값입니다 (inferred).', 'The document type is inferred, not declared.')}
           </div>
         )}
       </Card>
+      )}
 
       {/* core question */}
       <Card variant="premium">
@@ -234,7 +239,9 @@ export function ReceiptView({
       )}
 
       {/* applied lenses disclosure */}
-      <div className="text-[12px] text-[var(--text-tertiary)] leading-[1.6]">{receipt.routing.disclosure}</div>
+      {!isJudgmentMirror && receipt.routing && (
+        <div className="text-[12px] text-[var(--text-tertiary)] leading-[1.6]">{receipt.routing.disclosure}</div>
+      )}
 
       {/* actions — up to 3 primary (design doc §Receipt Summary): own is on the
           obligation above; here: seal / 문서 수정안 / 더 검증하기 */}

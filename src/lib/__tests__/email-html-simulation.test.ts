@@ -78,6 +78,15 @@ describe('Email HTML Simulation', () => {
       expect(html).toContain('argus.voyage');
     });
 
+    it('원장 DNA: 세리프 제목, 고정폭 표식, 얇은 괘선, 다크 대응을 포함한다', () => {
+      const html = markdownToEmailHtml('My Title', 'body');
+      expect(html).toContain("Georgia,'Times New Roman',serif");
+      expect(html).toContain("'SFMono-Regular',Consolas");
+      expect(html).toContain('border-top:1px solid');
+      expect(html).toContain('prefers-color-scheme: dark');
+      expect(html).toContain('No score. No AI verdict.');
+    });
+
     it('빈 본문도 깨지지 않는다', () => {
       const html = markdownToEmailHtml('T', '');
       expect(typeof html).toBe('string');

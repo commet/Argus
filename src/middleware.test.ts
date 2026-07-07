@@ -17,6 +17,8 @@ describe('public path classification', () => {
     '/workspace',
     '/boss',
     '/settings',
+    '/import',
+    '/import/from-mcp',
     '/privacy',
     '/terms',
     // /project is public so the anon cohort that SEALED a decision can reach

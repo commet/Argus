@@ -77,14 +77,23 @@ export function markdownToEmailHtml(title: string, markdown: string): string {
   const body = renderBody(escapeHtml(markdown.slice(0, MAX_EMAIL_CHARS)));
 
   return `
-    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:640px;margin:0 auto;padding:24px;background:#ffffff;">
-      <div style="border-bottom:2px solid #D97706;padding-bottom:14px;margin-bottom:24px;">
-        <span style="font-size:14px;font-weight:700;color:#D97706;">Argus</span>
-        <span style="font-size:12px;color:#9CA3AF;margin-left:8px;">${safeTitle}</span>
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <style>
+      @media (prefers-color-scheme: dark) {
+        .argus-ledger { background:#0f1115 !important; color:#f4f1ea !important; }
+        .argus-ledger-body p, .argus-ledger-body li { color:#d8d3c7 !important; }
+        .argus-rule { border-color:#3a342a !important; }
+      }
+    </style>
+    <div class="argus-ledger" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:640px;margin:0 auto;padding:28px;background:#fffdf8;color:#1a1a1a;">
+      <div class="argus-rule" style="border-top:1px solid #d8c7a3;border-bottom:1px solid #d8c7a3;padding:16px 0;margin-bottom:24px;">
+        <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:1.2;color:#111827;">${safeTitle}</div>
+        <div style="font-family:'SFMono-Regular',Consolas,'Liberation Mono',monospace;font-size:11px;letter-spacing:0.08em;color:#9a7b3f;margin-top:8px;">ARGUS LEDGER</div>
       </div>
-      ${body}
-      <p style="font-size:11px;color:#9CA3AF;margin-top:32px;border-top:1px solid #F3F4F6;padding-top:16px;">
-        Shared from <a href="https://argus.voyage" style="color:#D97706;text-decoration:none;">Argus</a> — Decision Harness for AI
+      <div class="argus-ledger-body">${body}</div>
+      <p class="argus-rule" style="font-size:11px;color:#9C8F7A;margin-top:32px;border-top:1px solid #eadfca;padding-top:16px;">
+        Sent by <a href="https://argus.voyage" style="color:#8a6724;text-decoration:none;">Argus</a>. No score. No AI verdict.
       </p>
     </div>
   `;

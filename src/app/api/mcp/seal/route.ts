@@ -38,7 +38,7 @@ interface SealPayload {
   real_question?: string;
   human_judgment?: string;
   // settle
-  outcome?: 'happened' | 'avoided' | 'partial' | 'unclear';
+  outcome?: 'happened' | 'avoided' | 'partial' | 'unclear' | 'missed';
   what_happened?: string;
   settled_at?: string;
 }
@@ -47,6 +47,7 @@ const OUTCOME_MAP: Record<string, JudgmentReceipt['falsifiable_followups'][numbe
   held: 'happened', happened: 'happened',
   avoided: 'avoided',
   partial: 'partial',
+  missed: 'missed',
   still_pending: 'unclear', unclear: 'unclear',
 };
 
@@ -59,25 +60,16 @@ function buildReceipt(p: SealPayload, now: string): JudgmentReceipt {
   const predicate = String(p.predicate);
   return {
     receipt_id: rowId(id),
-    root_mode: 'review',
+    kind: 'judgment',
+    root_mode: 'judgment',
     state: 'sealed',
     artifact_id: rowId(id),
     source_kind: 'mcp_file',
     source_title: (p.source_title || predicate).slice(0, 200),
     source_fingerprint: id,
-    profile: {
-      artifact_maturity: 'working_draft', document_type: 'unknown', intent: 'decide',
-      audience: 'unknown', stakes: 'medium', source_confidence: 0.3,
-      inferred: { document_type: true, intent: true, audience: true, stakes: true },
-    },
-    reviewability: {
-      score: 0, extraction: 0, structure: 0, decision_clarity: 0, evidence_availability: 0,
-      anchor_coverage: 0, reasons: ['터미널(MCP)에서 봉인된 예측입니다.'],
-    },
-    routing: { selected: [], skipped: [], disclosure: 'MCP에서 봉인된 예측 — 예측만 계정으로 동기화되었습니다.' },
     core_question: (p.real_question || p.source_title || predicate).slice(0, 400),
     judgment_obligations: p.human_judgment
-      ? [{ obligation_id: `o_${id}`, statement: p.human_judgment.slice(0, 400), owner: '사용자', why_human: '', evidence_needed: '', anchors: [], owned_by_user: true }]
+      ? [{ obligation_id: `o_${id}`, statement: p.human_judgment.slice(0, 400), owner: 'user', why_human: '', evidence_needed: '', anchors: [], owned_by_user: true }]
       : [],
     claim_ledger: [], hidden_assumptions: [], forks: [], findings: [],
     current_heading: '',

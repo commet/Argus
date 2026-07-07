@@ -17,6 +17,10 @@ import type { PremiseState, PremiseKind, PremiseSource, PremiseAmendAction } fro
 
 export type ContractStatus = 'candidate' | 'sealed' | 'settled' | 'dismissed';
 
+function normalizePremiseSource(source: unknown): PremiseSource {
+  return source === 'user' || source === 'user_stated' ? 'user_stated' : 'ai_surfaced';
+}
+
 export interface ContractEntry {
   id: string;
   status: ContractStatus;
@@ -185,7 +189,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           text: ev['text'],
           external: ev['external'] === true,
           load_bearing: ev['load_bearing'] === true,
-          source: (ev['source'] === 'user' ? 'user' : 'ai') as PremiseSource,
+          source: normalizePremiseSource(ev['source']),
           ...(typeof ev['ai_original'] === 'string' ? { ai_original: ev['ai_original'] } : {}),
           ...(isMaterialityRule(ev['materiality_rule']) ? { materiality_rule: ev['materiality_rule'] as PremiseState['materiality_rule'] } : {}),
           ...(typeof ev['recheck_cadence_days'] === 'number' && Number.isFinite(ev['recheck_cadence_days']) ? { recheck_cadence_days: ev['recheck_cadence_days'] } : {}),

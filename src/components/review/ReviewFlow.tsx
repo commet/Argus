@@ -247,7 +247,7 @@ export function ReviewFlow() {
       setShowOriginal(false);
       track('review_completed', {
         source_kind: r.source_kind,
-        reviewability: r.reviewability.score,
+        reviewability: r.reviewability?.score ?? null,
         findings: r.findings.length,
         obligations: r.judgment_obligations.length,
         version: r.version,

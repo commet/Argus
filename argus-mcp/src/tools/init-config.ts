@@ -7,7 +7,7 @@ import { detectLocale } from '../lib/locale.js';
 import { resolveToolArgusDir, writeBoundMarker } from '../lib/argus-dir.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { replayLedger } from '../lib/ledger-replay.js';
-import { resolveToday } from '../lib/resolve-today.js';
+import { resolveDefaultTimeZone, resolveToday } from '../lib/resolve-today.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -57,8 +57,8 @@ export const init: ToolModule = {
       const empty = replayLedger(dir, today).ids.size === 0;
       // TZ visibility (12 §3.3): expose today + tz so an install in KST notices
       // "today is yesterday" immediately instead of at the first missed check-in.
-      // Default stays UTC (blueprint M4 determinism) — this is disclosure only.
-      const tz = process.env['ARGUS_TZ'] || 'UTC (set ARGUS_TZ to change)';
+      // Default is system-local; ARGUS_TZ is the explicit override.
+      const tz = process.env['ARGUS_TZ'] || `${resolveDefaultTimeZone()} (system local; set ARGUS_TZ to override)`;
       return envelope({
         ok: true, tool: 'argus_init',
         surface: empty

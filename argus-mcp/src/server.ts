@@ -110,8 +110,16 @@ export async function createServer(): Promise<Server> {
     const parsed = tool.inputSchema.safeParse(args ?? {});
     if (!parsed.success) {
       const issues = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
+      const error = {
+        ok: false,
+        tool: name,
+        error_code: 'INVALID_INPUT',
+        message: `Invalid arguments — ${issues}`,
+        recovery: 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.',
+      };
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ ok: false, tool: name, error_code: 'INVALID_INPUT', message: `Invalid arguments — ${issues}` }) }],
+        content: [{ type: 'text' as const, text: JSON.stringify(error) }],
+        structuredContent: error,
         isError: true,
       };
     }

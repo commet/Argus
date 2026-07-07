@@ -166,7 +166,7 @@ describe('seal promotion (§5.4 — the assumption field is an alias into the pr
     const prems = await recall.handler({ argus_dir: dir, view: 'premises', id: 'promo', today_override: TODAY });
     const rows = (body(prems)['data'] as Record<string, unknown>)['premises'] as Array<Record<string, unknown>>;
     expect(rows).toHaveLength(1);
-    expect(rows[0]['source']).toBe('user');
+    expect(rows[0]['source']).toBe('user_stated');
     expect(rows[0]['load_bearing']).toBe(true);
     expect(rows[0]['monitored']).toBe(false); // external unset — honest default, user arms it
 

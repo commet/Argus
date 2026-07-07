@@ -253,7 +253,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
         text,
         external: kind === 'open_question' ? true : input.external,
         load_bearing,
-        source: 'ai',
+        source: 'ai_surfaced',
         ai_original: text,
         ...(input.materiality_rule ? { materiality_rule: input.materiality_rule } : {}),
         ...(typeof input.recheck_cadence_days === 'number' ? { recheck_cadence_days: input.recheck_cadence_days } : {}),

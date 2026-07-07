@@ -71,13 +71,13 @@ describe('check-in reminder selection', () => {
       locale: 'ko',
     });
 
-    expect(html).toContain('그래서, 어떻게 됐어요?');
+    expect(html).toContain('"이번 분기에 승부를 건다"');
     expect(html).toContain('런칭 결정의 확인일이 왔어요');
-    expect(html).toContain('그때 적어둔 방향: <strong>이번 분기에 승부를 건다</strong>');
-    expect(html).toContain('돌아와서 정산하기');
-    expect(html).toContain('직접 켜둔 1회성 알림이에요');
+    expect(html).toContain('30초 안에 기록하기');
+    expect(html).toContain('직접 켜둔 알림이에요');
     expect(html).toContain('href="https://argus.voyage/project?from=checkin"');
     expect(html).not.toContain('So, how did it go?');
+    expect(html).not.toContain('그래서, 어떻게 됐어요?');
     // Final wave says so honestly (10 S3), and only then.
     expect(html).not.toContain('이번이 마지막이에요');
     expect(renderCheckInReminderEmail({ projectName: '런칭', link: 'x', locale: 'ko', isFinal: true }))

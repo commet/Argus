@@ -684,7 +684,7 @@ export interface GrowthNote {
  *  ("1차 정산이 2차 정산을 판다"). `shifted` is not worse than `same`; a moved
  *  view is itself judgment data. */
 export interface LeanAfter {
-  view: 'same' | 'shifted';
+  view: 'same' | 'shifted' | 'unknown';
   note?: string;
   recorded_at: string;
 }
@@ -704,6 +704,10 @@ export interface DecisionContract {
   /** First settlement — the thought↔thought check recorded before the due date
    *  (§8). Absent until the user reflects once; re-recordable. */
   lean_after?: LeanAfter;
+  /** T4 first-settlement invitation was sent once. Jsonb-internal, no migration. */
+  first_settlement_invited_at?: string;
+  /** User muted T4 thought↔thought invitations for this decision. */
+  first_settlement_muted?: boolean;
   /** Self-commitment: when the user promised to return and grade. */
   check_in_interval?: CheckInInterval;
   /** ISO timestamp derived from check_in_interval at commit time. */

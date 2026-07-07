@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { settlementReminderText, settlementReplyMarkup, detectSettlementLocale } from '@/lib/telegram-settlement';
 import { isCheckInReminderDue, renderCheckInReminderEmail, resendEmailErrorMessage, selectOpenPredicate, REMINDER_MAX_SENDS } from '@/lib/checkin-reminder';
+import { buildProjectReturnUrl, returnEmailSubject } from '@/lib/return-email';
+import { notificationGateAllowsSend } from '@/lib/notification-gate';
+import { buildFirstSettlementEmail, firstSettlementAnchor, isFirstSettlementInviteDue } from '@/lib/first-settlement';
 import type { DecisionContract } from '@/stores/types';
 
 export const runtime = 'nodejs';
@@ -91,10 +94,11 @@ export async function GET(req: Request) {
 
   const due = (rows ?? []).filter((r: { decision_contract: DecisionContract | null }) => {
     const c = r.decision_contract;
-    return isCheckInReminderDue(c, now);
+    return isCheckInReminderDue(c, now) || isFirstSettlementInviteDue(c, now);
   });
 
   let sent = 0;
+  let firstSettlementSent = 0;
   let telegramSent = 0;
   const failures: string[] = [];
   for (const r of due as { id: string; user_id: string; name: string; decision_contract: DecisionContract }[]) {
@@ -104,44 +108,85 @@ export async function GET(req: Request) {
       const stamp = new Date(now).toISOString();
       let nextContract = c;
       let changed = false;
+      let t1WaveChanged = false;
+      const t1Due = isCheckInReminderDue(c, now);
+      const t4Due = isFirstSettlementInviteDue(c, now);
 
       // Reminder ceiling (10 S3): at most REMINDER_MAX_SENDS waves per contract,
       // then the cron goes quiet — the decision keeps waiting on the web due
       // surfaces instead of nagging. "그만 물어봐 주세요" jumps the count to the cap.
       const reminderCount = typeof c.reminder_count === 'number' ? c.reminder_count : 0;
-      if (reminderCount >= REMINDER_MAX_SENDS) continue;
       const isFinalWave = reminderCount + 1 >= REMINDER_MAX_SENDS;
 
       const emailDue =
+        t1Due &&
+        reminderCount < REMINDER_MAX_SENDS &&
         c.email_reminder === true &&
         (!c.reminder_sent_at || now - new Date(c.reminder_sent_at).getTime() >= RESEND_DUP_WINDOW_MS);
       if (emailDue) {
         const { data: u } = await supabase.auth.admin.getUserById(r.user_id);
         const email = u?.user?.email;
-        if (email) {
+        if (email && notificationGateAllowsSend({
+          type: 'T1_RETURN',
+          channel: 'email',
+          userId: r.user_id,
+          targetId: r.id,
+          reminderCount,
+          contentCount: 1,
+        })) {
           const lean = c.predicates?.find((p) => p.source === 'user_lean')?.text;
-          // ?from=checkin: /project greets a logged-out device honestly
-          // ("봉인할 때 쓴 계정으로 로그인하면 바로 보여요") instead of the
-          // new-user empty state (03 S5).
-          const link = `${origin}/project?from=checkin`;
           const emailLocale = detectSettlementLocale(name, selectOpenPredicate(c)?.text);
+          const link = buildProjectReturnUrl(origin, emailLocale, r.id);
           const html = renderCheckInReminderEmail({ projectName: name, lean, link, locale: emailLocale, isFinal: isFinalWave });
+          const subject = returnEmailSubject(lean, name || (emailLocale === 'ko' ? '그 결정' : 'that decision'));
           const emailResult = await resend.emails.send({
             from: `Argus <hello@${fromDomain}>`,
             replyTo,
             to: email,
-            subject: emailLocale === 'ko' ? `그래서, 어떻게 됐어요? — ${name}` : `So — how did it go? — ${name}`,
+            subject,
             html,
           });
           const emailError = resendEmailErrorMessage(emailResult);
           if (emailError) throw new Error(`email send failed: ${emailError}`);
           nextContract = { ...nextContract, reminder_sent_at: stamp };
           changed = true;
+          t1WaveChanged = true;
           sent++;
         }
       }
 
+      if (t4Due && c.email_reminder === true) {
+        const { data: u } = await supabase.auth.admin.getUserById(r.user_id);
+        const email = u?.user?.email;
+        const emailLocale = detectSettlementLocale(name, firstSettlementAnchor(c, name));
+        const anchor = firstSettlementAnchor(c, name || (emailLocale === 'ko' ? '그 결정' : 'that decision'));
+        if (email && notificationGateAllowsSend({
+          type: 'T4_FIRST_SETTLEMENT',
+          channel: 'email',
+          userId: r.user_id,
+          targetId: r.id,
+          contentCount: 1,
+          muted: c.first_settlement_muted,
+        })) {
+          const draft = buildFirstSettlementEmail({ anchor, projectId: r.id, baseUrl: origin, locale: emailLocale });
+          const emailResult = await resend.emails.send({
+            from: `Argus <hello@${fromDomain}>`,
+            replyTo,
+            to: email,
+            subject: draft.subject,
+            html: draft.html,
+          });
+          const emailError = resendEmailErrorMessage(emailResult);
+          if (emailError) throw new Error(`first settlement email failed: ${emailError}`);
+          nextContract = { ...nextContract, first_settlement_invited_at: stamp };
+          changed = true;
+          firstSettlementSent++;
+        }
+      }
+
       let telegramDue =
+        t1Due &&
+        reminderCount < REMINDER_MAX_SENDS &&
         !!botToken &&
         (!c.telegram_reminder_sent_at || now - new Date(c.telegram_reminder_sent_at).getTime() >= RESEND_DUP_WINDOW_MS);
       if (telegramDue) {
@@ -172,13 +217,22 @@ export async function GET(req: Request) {
           isFinal: isFinalWave,
         });
         let delivered = 0;
-        for (const conn of conns ?? []) {
-          if (await sendTelegramReminder({
-            botToken,
-            chatId: String(conn.chat_id),
-            text,
-            replyMarkup: settlementReplyMarkup(r.id, c.id, locale),
-          })) delivered++;
+        if (notificationGateAllowsSend({
+          type: 'T1_RETURN',
+          channel: 'telegram',
+          userId: r.user_id,
+          targetId: r.id,
+          reminderCount,
+          contentCount: 1,
+        })) {
+          for (const conn of conns ?? []) {
+            if (await sendTelegramReminder({
+              botToken,
+              chatId: String(conn.chat_id),
+              text,
+              replyMarkup: settlementReplyMarkup(r.id, c.id, locale),
+            })) delivered++;
+          }
         }
         if (delivered > 0) {
           nextContract = { ...nextContract, telegram_reminder_sent_at: stamp };
@@ -189,7 +243,7 @@ export async function GET(req: Request) {
 
       if (changed) {
         // One wave = one count, whichever channels fired in it.
-        nextContract = { ...nextContract, reminder_count: reminderCount + 1 };
+        if (t1WaveChanged) nextContract = { ...nextContract, reminder_count: reminderCount + 1 };
         const { error: updateError } = await supabase
           .from('projects')
           .update({ decision_contract: nextContract })
@@ -201,5 +255,5 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, candidates: due.length, sent, telegramSent, failures });
+  return NextResponse.json({ ok: true, candidates: due.length, sent, firstSettlementSent, telegramSent, failures });
 }

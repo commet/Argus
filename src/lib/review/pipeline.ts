@@ -405,8 +405,8 @@ function normalizeFollowups(raw: unknown, today: string): FalsifiableFollowup[] 
 function assembleReceipt(args: {
   artifact: CanonicalArtifact;
   profile: DocumentProfile;
-  reviewability: JudgmentReceipt['reviewability'];
-  routing: JudgmentReceipt['routing'];
+  reviewability: NonNullable<JudgmentReceipt['reviewability']>;
+  routing: NonNullable<JudgmentReceipt['routing']>;
   map: DocumentJudgmentMap;
   findings: Finding[];
   obligations: JudgmentObligation[];

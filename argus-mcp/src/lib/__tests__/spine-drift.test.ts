@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { TOOLS } from '../../tools/index.js';
 import { NEXT_ACTIONS, FORBIDDEN_VERDICT_VERBS, FORBIDDEN_FORK_KEYS } from '../spine.js';
 import { openDecision } from '../../tools/open-decision.js';
-import { renderSeal, renderWake, type WakeContractRow } from '../render-receipt.js';
+import { renderReceipt, renderSeal, renderWake, type WakeContractRow } from '../render-receipt.js';
 
 /**
  * The drift guard (blueprint §3.6). If a future edit reintroduces a verdict
@@ -100,6 +100,25 @@ describe('seal_text spine (renderSeal)', () => {
     const en = renderSeal({ ...base, predicate_owner: 'user', locale: 'en' });
     expect(en).toContain('(14 days out)');
     expect(en).toMatch(/not\s+a grade — it is what actually happened/);
+  });
+});
+
+describe('settlement receipt copy', () => {
+  it('does not label an unsettled receipt as "Settled (open)"', () => {
+    const text = renderReceipt({
+      id: 'd1',
+      predicate: 'cutover downtime stays under five minutes',
+      check_by: '2026-08-01',
+      created_at: '2026-07-07T00:00:00.000Z',
+      real_question: 'Can we cut over safely?',
+      unverified_assumption: 'traffic stays stable',
+      human_only: 'own the launch call',
+      human_judgment: 'ship',
+      skipped: [],
+    });
+
+    expect(text).toContain('Not yet settled');
+    expect(text).not.toContain('Settled (open)');
   });
 });
 

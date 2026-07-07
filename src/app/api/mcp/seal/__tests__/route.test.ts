@@ -70,9 +70,39 @@ describe('POST /api/mcp/seal', () => {
     expect(row.state).toBe('sealed');
     expect(row.next_check_by).toBe('2026-08-01');
     // whole receipt in the jsonb blob, one sealed follow-up
-    const data = row.data as { falsifiable_followups: { predicate: string; sealed_at?: string }[] };
+    const data = row.data as {
+      kind?: string;
+      root_mode?: string;
+      profile?: unknown;
+      reviewability?: unknown;
+      routing?: unknown;
+      judgment_obligations: { owner: string }[];
+      falsifiable_followups: { predicate: string; sealed_at?: string }[];
+    };
+    expect(data.kind).toBe('judgment');
+    expect(data.root_mode).toBe('judgment');
+    expect(data.profile).toBeUndefined();
+    expect(data.reviewability).toBeUndefined();
+    expect(data.routing).toBeUndefined();
     expect(data.falsifiable_followups[0].predicate).toBe('cutover under 5 min');
     expect(data.falsifiable_followups[0].sealed_at).toBeTruthy();
+  });
+
+  it('seals: keeps a human judgment as a user-owned judgment mirror field', async () => {
+    const res = await POST(req({
+      action: 'seal',
+      id: 'd2',
+      predicate: 'beta conversion beats 4%',
+      check_by: '2026-08-10',
+      human_judgment: 'Ship the beta to the finance cohort first',
+    }) as never);
+    expect(res.status).toBe(200);
+    const [row] = upsertSpy.mock.calls[0] as [Record<string, unknown>];
+    const data = row.data as { judgment_obligations: { statement: string; owner: string }[] };
+    expect(data.judgment_obligations[0]).toMatchObject({
+      statement: 'Ship the beta to the finance cohort first',
+      owner: 'user',
+    });
   });
 
   it('rejects a seal with no future date', async () => {
@@ -98,5 +128,18 @@ describe('POST /api/mcp/seal', () => {
     const [patch] = updateEqSpy.mock.calls[0] as [Record<string, unknown>];
     expect(patch.state).toBe('settled');
     expect(patch.next_check_by).toBeNull();
+  });
+
+  it('settle: preserves missed instead of falling back to unclear', async () => {
+    currentAdmin = makeAdmin('user-1', {
+      receipt_id: 'mcp_d1', state: 'sealed',
+      falsifiable_followups: [{ followup_id: 'f_d1', predicate: 'p', check_by: '2026-08-01', sealed_at: '2026-07-01T00:00:00Z' }],
+    });
+    const res = await POST(req({ action: 'settle', id: 'd1', outcome: 'missed', what_happened: 'my read was wrong' }) as never);
+    expect(res.status).toBe(200);
+    const [patch] = updateEqSpy.mock.calls[0] as [Record<string, unknown>];
+    const data = patch.data as { falsifiable_followups: Array<{ outcome?: string; what_happened?: string }> };
+    expect(data.falsifiable_followups[0].outcome).toBe('missed');
+    expect(data.falsifiable_followups[0].outcome).not.toBe('unclear');
   });
 });

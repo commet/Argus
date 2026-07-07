@@ -21,6 +21,9 @@ export const ledgerDir = (argusDir: string): string =>
 export const ledgerPath = (argusDir: string): string =>
   path.join(ledgerDir(argusDir), 'ledger.jsonl');
 
+export const calendarDir = (argusDir: string): string =>
+  path.join(argusDir, 'calendar');
+
 export const configPath = (argusDir: string): string =>
   path.join(argusDir, 'config.yaml');
 
@@ -40,6 +43,13 @@ export function bearingPath(argusDir: string, id: string): string {
 
 export function receiptPath(argusDir: string, id: string): string {
   return path.join(sessionDir(argusDir, id), 'receipt.json');
+}
+
+export function calendarPath(argusDir: string, id: string): string {
+  const root = calendarDir(argusDir);
+  const file = path.join(root, `${safeSegment(id, 'id')}.ics`);
+  assertInside(root, file);
+  return file;
 }
 
 export function sessionFilePath(argusDir: string, id: string): string {

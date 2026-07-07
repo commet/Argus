@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { markdownToEmailHtml } from '@/lib/email-html';
-import { buildCompanionBrief, type DueReceiptBrief, type DuePredicate, type DuePremiseNudge } from '@/lib/companion-brief';
+import { buildCompanionBrief, companionBriefItemCount, type DueReceiptBrief, type DuePredicate, type DuePremiseNudge } from '@/lib/companion-brief';
+import { notificationGateAllowsSend } from '@/lib/notification-gate';
 import type { JudgmentReceipt } from '@/lib/review';
 import { isMonitored, nextRecheckDue } from '@/lib/premises-core';
 
@@ -134,6 +135,16 @@ export async function GET(req: Request) {
       continue;
     }
     const brief = buildCompanionBrief(bucket.briefs, `https://${fromDomain}`);
+    if (!notificationGateAllowsSend({
+      type: 'T5_WEEKLY_BRIEF',
+      channel: 'email',
+      userId,
+      contentCount: companionBriefItemCount(bucket.briefs),
+      isStandalone: false,
+    })) {
+      skipped.push(userId);
+      continue;
+    }
 
     if (!dryRun && resend) {
       try {
