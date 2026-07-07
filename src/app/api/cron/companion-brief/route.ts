@@ -120,7 +120,9 @@ export async function GET(req: Request) {
   }
   const resend = resendKey ? new Resend(resendKey) : null;
   const fromDomain = process.env.EMAIL_FROM_DOMAIN || 'argus.voyage';
-  const replyTo = process.env.COMPANION_REPLY_TO || 'sayucurator@gmail.com';
+  // No personal inbox hard-coded in a public repo — default to a role address on
+  // the sending domain; set COMPANION_REPLY_TO in the host env to override.
+  const replyTo = process.env.COMPANION_REPLY_TO || `hello@${fromDomain}`;
 
   let sent = 0;
   const skipped: string[] = [];

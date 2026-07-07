@@ -21,7 +21,11 @@ jobs:
 
       # argus-decision-mcp lives under argus-mcp/ as a separate package (not an
       # npm workspace); install it before root tests that import its MCP copy.
-      - run: npm ci --prefix argus-mcp
+      # Fall back to `npm install` if `npm ci` trips on a floating optional native
+      # dep: a transitive `@emnapi/*` (^-ranged) can publish a new patch while the
+      # committed lock pins the prior one, so strict `npm ci` fails non-
+      # deterministically by runner npm version. `npm install` resolves it fresh.
+      - run: npm ci --prefix argus-mcp || npm install --prefix argus-mcp
 
       - name: Argus decision MCP package
         run: |

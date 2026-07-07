@@ -45,6 +45,9 @@ next-env.d.ts
 /dev.log
 /shot*.mjs
 /*-shot.mjs
+# scratch: build-log captures and Playwright MCP page snapshots (dev-only, never commit)
+/.post/
+/.playwright-mcp/
 
 # argus-watch + local working data: personal — never commit (repo is public)
 /.argus/
@@ -66,3 +69,12 @@ argus-plugin-v2/evals/sweep-report.json
 
 # scratch: bind/listen voyage shot harness output (never commit — large binaries)
 .shots/
+
+# Local-only Claude Code dev settings (per-developer; never commit)
+.claude/settings.local.json
+
+# Internal reference material (photos, third-party PDFs) — not for the public repo
+/docs/참고/
+
+# Design-sync experimentation scaffold (tool working dir)
+/.design-sync/

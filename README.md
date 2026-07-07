@@ -1,170 +1,199 @@
 # Argus
 
-**중요한 결정은 답으로 끝나면 안 됩니다.**
+*[한국어 → README.ko.md](./README.ko.md) · English (this document)*
 
-Argus는 그것을 **살아 있는 항로**로 남깁니다.
+**An important decision shouldn't end at an answer.**
 
-질문을 다시 세우고, 갈림길을 남기고, 주장을 검증하고, 현재 방위를 보여주며,
-현실이 답할 때 다시 돌아오는 판단 시스템입니다.
+Argus keeps it alive as a **living course**.
 
-**웹에서 바로 사용 → [argus.voyage](https://argus.voyage)**
+It's a judgment system that reframes the question, marks the forks, verifies the
+claims, shows your current bearing, and comes back when reality answers.
 
-**Claude Code 플러그인으로 사용** (결정 항해 하니스 — [상세 문서](./argus-plugin-v2/README.ko.md)):
+**Use it in your browser → [argus.voyage](https://argus.voyage)**
+
+**Use it as a Claude Code plugin** (a decision-voyage harness — [full docs](./argus-plugin-v2/README.md)):
 
 ```text
 /plugin marketplace add commet/Argus
 /plugin install argus@argus
 ```
 
-재시작 후 `/argus:sail "결정해야 하는 질문"` 으로 시작하세요.
+After restarting, start with `/argus:sail "the question you need to decide"`.
 
-> *Argus*는 오디세우스가 10년 만에 변장하고 돌아왔을 때, 누더기 아래 진짜 주인을 알아본 개의 이름입니다.
-> 매끄러운 표면이 아니라 그 아래의 진짜를 보는 눈 — Argus가 하는 일이 그것입니다.
+> *Argus* is the name of the dog who, after Odysseus returned in disguise ten
+> years later, recognized his true master beneath the rags. An eye that sees
+> what's really there rather than the smooth surface — that's what Argus does.
 
 ---
 
-## 왜 필요한가
+## Why it's needed
 
-ChatGPT에 "경쟁사 분석해줘"라고 바로 시키면, 결과는 그럴듯하지만 의사결정에 쓸 수 없는 경우가 많습니다. **질문 자체가 틀렸기 때문입니다.**
+If you tell ChatGPT "analyze our competitors," the result is often plausible but
+unusable for an actual decision. **Because the question itself was wrong.**
 
-LangGraph, CrewAI 같은 도구는 AI 에이전트를 **어떻게 실행할지**를 다룹니다.
-Argus는 **무엇을 실행해야 하는지**를 다룹니다.
+Tools like LangGraph and CrewAI deal with **how** to run AI agents.
+Argus deals with **what** should be run.
 
 ```
-Without Argus:   과제 → 바로 AI → 그럴듯하지만 쓸 수 없는 결과
-With Argus:      과제 → 판단의 구조 → AI 실행 → 의사결정에 쓸 수 있는 결과
+Without Argus:   task → straight to AI → plausible but unusable result
+With Argus:      task → a structure for judgment → AI execution → a decision-usable result
 ```
 
 ---
 
-## 이타카까지의 항해
+## The voyage to Ithaca
 
-항구를 떠나 이타카에 닿기까지, 네 단계.
+From leaving the harbor to reaching Ithaca — four stages.
 
-| 단계 | 이름 | 하는 일 |
-|------|------|---------|
-| 1 | **항로 재설정** · 문제 재정의 | 과제의 숨겨진 가설, 전제, 진짜 질문을 찾습니다. 사고 과정 자체가 서술됩니다. |
-| 2 | **선원 배치** · 실행 설계 | AI/사람 역할을 나누고 워크플로우를 설계합니다. 핵심 가정과 선장의 판단 포인트가 명시됩니다. |
-| 3 | **리허설** · 사전 검증 | 이해관계자 시점에서 결과물을 미리 검증합니다. 리스크를 핵심 위협 · 관리 가능 · 침묵의 리스크로 분류합니다. |
-| 4 | **항로 수정** · 피드백 반영 | 검증 결과를 반영하여 항로가 잡힐 때까지 반복합니다. 수렴 지수로 진행 상황을 추적합니다. |
+| Stage | Name | What it does |
+|-------|------|--------------|
+| 1 | **Reframe** · redefine the problem | Finds the task's hidden hypotheses, premises, and the real question. The thinking process itself gets narrated. |
+| 2 | **Crew** · design the execution | Splits AI/human roles and designs the workflow. The core assumptions and the captain's judgment points are made explicit. |
+| 3 | **Rehearsal** · pre-validation | Validates the output ahead of time from stakeholders' perspectives. Classifies risk as critical threat · manageable · silent risk. |
+| 4 | **Course correction** · fold in feedback | Iterates the course until it settles, incorporating validation results. Progress is tracked with a convergence index. |
 
-각 단계에서 발견한 맥락(가설, 전제, 가정, 리스크)은 다음 단계로 자동으로 연결됩니다.
-사용자는 이 **맥락 누적 체인**을 눈으로 확인할 수 있습니다.
-
----
-
-## 사고의 흐름이 보입니다
-
-Argus의 핵심은 AI가 생각하는 과정 자체를 사용자에게 보여주는 것입니다.
-
-- **맥락 체인 가시화**: 항로 재설정의 숨겨진 전제가 선원 배치의 핵심 가정으로, 리허설의 검증 대상으로 연결되는 체인이 UI에 표시됩니다
-- **사고의 궤적**: 산출물에 "처음 주어진 과제 → 재정의된 질문 → 핵심 방향 → 리스크 → 수렴"의 서사가 포함됩니다
-- **리스크 3분류**: 핵심 위협(🔴), 관리 가능(🟡), 침묵의 리스크(🟣)로 분류하여 아무도 말하지 않는 위험까지 드러냅니다
-- **항해일지(되돌아보기)**: 항해 후 성찰 질문으로 메타인지 자산을 축적합니다
-
-> "이 과정 자체가, AI 결과물보다 더 가치 있었네." — 이것이 Argus가 추구하는 경험입니다.
+The context found at each stage (hypotheses, premises, assumptions, risks)
+carries forward automatically to the next stage. You can watch this **accumulating
+context chain** with your own eyes.
 
 ---
 
-## 실제 사용 예시
+## You can see the thinking
 
-**상황**: 대표가 "경쟁사가 AI 챗봇 출시했으니 우리도 빨리 만들어"라고 지시했다.
+The core of Argus is showing you the AI's reasoning process itself.
 
-### 1. 항로 재설정
-카드 선택 3번 + 한 문장 입력 → AI가 분석:
-> "챗봇을 만들어야 하는가?"가 아니라
-> **"고객 이탈의 진짜 원인이 뭔가?"**가 먼저 답해야 할 질문입니다.
+- **Context-chain visibility**: the chain in which a hidden premise from Reframe
+  becomes a core assumption in Crew, then a validation target in Rehearsal, is
+  shown in the UI.
+- **A trajectory of thought**: the output carries the narrative of "the original
+  task → the redefined question → the governing idea → risks → convergence."
+- **Three-way risk classification**: critical threat (🔴), manageable (🟡), and
+  silent risk (🟣) — surfacing even the danger nobody says out loud.
+- **The log (looking back)**: post-voyage reflection questions accumulate a
+  metacognitive asset.
 
-숨겨진 가설, 검증 안 된 전제, 대안적 관점이 함께 제시되고, AI의 사고 과정이 서술됩니다.
-
-### 2. 선원 배치
-AI가 7단계 워크플로우를 자동 설계합니다. AI 트랙과 사람 트랙이 병렬로 시각화됩니다:
-
-- 🤖 AI: 시장 데이터 수집, 고객 리뷰 분석
-- 🧠 사람: 이탈 원인 해석, 최종 방향 판단
-- ⚑ 체크포인트: 3단계에서 반드시 사람이 검증
-
-핵심 방향(governing idea)이 항로 재설정의 가설에서 어떻게 도출되었는지 연결이 표시됩니다.
-선장의 판단 포인트, 핵심 가정, 크리티컬 패스가 명시됩니다.
-
-### 3. 리허설
-페르소나를 등록하고 결과물에 대한 피드백을 시뮬레이션합니다:
-
-> **김 CFO** (영향력: 높음): "ROI 추정 없이 예산 요청 불가."
-> **프리모템**: "이 계획이 실패한다면, 고객 조사 없이 솔루션을 결정했기 때문."
-> **🔴 핵심 위협**: "시장 규모 검증 없이 투자 진행"
-> **🟣 침묵의 리스크**: "기존 CS팀의 저항 — 아무도 말하지 않지만 모두가 아는 문제"
-
-영향력이 높은 이해관계자의 우려가 우선적으로 처리됩니다.
-
-### 4. 항로 수정
-리허설에서 나온 우려사항 중 해결할 것을 선택 → 제약조건으로 변환 → 1단계부터 다시 분석.
-수렴률이 SVG 차트로 추적됩니다: `0% → 45% → 78% → 92%`
-
-### 항해일지: 되돌아보기
-산출물 생성 후, 세 가지 성찰 질문에 답합니다:
-1. 처음 지시를 받았을 때의 이해와 지금의 이해가 어떻게 달라졌습니까?
-2. 이 과정에서 가장 놀라운 발견은 무엇이었습니까?
-3. 다음에 비슷한 과제를 만나면 무엇을 다르게 하겠습니까?
-
-### 산출물
-같은 사고 과정에서 목적에 맞는 4가지 형식으로 내보냅니다:
-
-- **항해일지 · Project Brief** — 사고의 궤적이 담긴 의사결정 기록
-- **선원 지시서 · Prompt Chain** — Claude/ChatGPT에 순서대로 입력할 프롬프트 세트 (맥락 주석 포함)
-- **전체 해도 · Agent Spec** — LangGraph/CrewAI 구현의 출발점이 되는 설계서 (context_chain 포함)
-- **점검표 · Execution Checklist** — 가정 검증 체크포인트가 포함된 체크리스트
+> "This process itself was worth more than the AI's output." — that's the
+> experience Argus is after.
 
 ---
 
-## 기존 도구와 다른 점
+## A worked example
+
+**Situation**: the CEO says, "A competitor launched an AI chatbot, so build one
+fast."
+
+### 1. Reframe
+Pick 3 cards + one sentence of input → the AI analyzes:
+> The question isn't "should we build a chatbot?" but
+> **"what's the real cause of customer churn?"** — that's what needs answering first.
+
+Hidden hypotheses, unverified premises, and alternative perspectives are laid out
+together, and the AI's reasoning is narrated.
+
+### 2. Crew
+The AI designs a 7-step workflow automatically. The AI track and the human track
+are visualized in parallel:
+
+- 🤖 AI: gather market data, analyze customer reviews
+- 🧠 Human: interpret churn causes, make the final call
+- ⚑ Checkpoint: a human must validate at stage 3
+
+How the governing idea was derived from Reframe's hypotheses is shown as a link.
+The captain's judgment points, core assumptions, and critical path are made explicit.
+
+### 3. Rehearsal
+Register personas and simulate feedback on the output:
+
+> **CFO Kim** (influence: high): "Can't request budget without an ROI estimate."
+> **Premortem**: "If this plan fails, it's because we decided on a solution
+> without customer research."
+> **🔴 Critical threat**: "Proceeding with investment without validating market size"
+> **🟣 Silent risk**: "Resistance from the existing CS team — nobody says it, but
+> everyone knows it."
+
+High-influence stakeholders' concerns get handled first.
+
+### 4. Course correction
+Pick which concerns from the rehearsal to resolve → convert them into constraints
+→ re-analyze from stage 1. Convergence is tracked with an SVG chart:
+`0% → 45% → 78% → 92%`
+
+### The log: looking back
+After generating the output, answer three reflection questions:
+1. How did your understanding when you first got the instruction differ from your
+   understanding now?
+2. What was the most surprising discovery in this process?
+3. What would you do differently next time you meet a similar task?
+
+### Outputs
+From the same thinking process, export into four purpose-fit formats:
+
+- **The Log · Project Brief** — a decision record carrying the trajectory of thought
+- **Crew Orders · Prompt Chain** — a set of prompts to feed Claude/ChatGPT in
+  order (with context annotations)
+- **Full Chart · Agent Spec** — a design doc that becomes the starting point for a
+  LangGraph/CrewAI implementation (includes `context_chain`)
+- **Checklist · Execution Checklist** — a checklist with assumption-validation
+  checkpoints
+
+---
+
+## How it differs from existing tools
 
 | | ChatGPT/Claude | LangGraph/CrewAI | **Argus** |
 |---|---|---|---|
-| 핵심 질문 | 바로 실행 | 어떻게 실행? | **무엇을 실행?** |
-| 질문이 틀리면? | 그럴듯한 쓸모없는 답 | 더 빠르게 잘못된 결과 | **질문부터 교정** |
-| 사고 과정 | 보이지 않음 | 로그에만 존재 | **맥락 체인으로 가시화** |
-| 리스크 검증 | 없음 | 없음 | **3분류 + 페르소나 시뮬레이션** |
-| 사용할수록? | 매번 처음부터 | 코드 수정 필요 | **자동으로 패턴 학습** |
-| 이해관계자 검증? | 없음 | 없음 | **영향력 기반 우선순위** |
+| Core question | run it now | how to run? | **what to run?** |
+| If the question is wrong? | a plausible useless answer | wrong result, faster | **corrects the question first** |
+| Reasoning process | invisible | only in the logs | **visualized as a context chain** |
+| Risk validation | none | none | **3-way classification + persona simulation** |
+| The more you use it? | from scratch every time | needs code changes | **learns your patterns automatically** |
+| Stakeholder validation? | none | none | **influence-based prioritization** |
 
 ---
 
-## 사용할수록 똑똑해집니다
+## It gets smarter the more you use it
 
-- **판단 기록**: 질문 선택, 역할 변경, 쟁점 판단이 자동으로 기록됩니다
-- **패턴 학습**: 축적된 판단 패턴이 다음 AI 분석에 자동 반영됩니다
-- **나의 판단 패턴**: "AI 제안을 42% 수정했습니다 — 주로 AI→사람으로 변경" 같은 인사이트를 제공합니다
-- **페르소나 정확도**: 실제 반응을 기록하면 시뮬레이션 정확도가 높아집니다
-- **유사 분석 추천**: 과거 프로젝트와 유사한 과제를 발견하면 참고 자료로 제시합니다
-- **항해일지 축적**: 프로젝트를 거듭할수록 메타인지 자산이 쌓입니다
+- **Judgment record**: your question choices, role changes, and issue calls are
+  recorded automatically.
+- **Pattern learning**: accumulated judgment patterns feed automatically into the
+  next AI analysis.
+- **Your judgment patterns**: it surfaces insights like "you revised 42% of the
+  AI's suggestions — mostly changing AI→human."
+- **Persona accuracy**: recording real reactions raises simulation accuracy.
+- **Similar-analysis suggestions**: when it finds a past project like your current
+  task, it offers it as reference.
+- **Log accumulation**: the more projects you run, the more your metacognitive
+  asset compounds.
 
 ---
 
-## 시작하기
+## Getting started
 
-### 웹 (바로 사용)
+### Web (use it right away)
 
-설치 없이 브라우저에서 — **[argus.voyage](https://argus.voyage)**
+No install, straight in the browser — **[argus.voyage](https://argus.voyage)**
 
-### Claude Code 플러그인
+### Claude Code plugin
 
-실제 코드베이스 안에서 결정을 구조화합니다. AI 팀이 워커로 배치되어 코드·PR·파일 위에서 **결정 스캐폴드**를 만듭니다 (코드 생성이 아니라 판단).
+Structure decisions inside a real codebase. An AI team is deployed as workers to
+build a **decision scaffold** over your code, PRs, and files (judgment, not code
+generation).
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/commet/Argus/main/argus-plugin-v2/install.sh | bash
 ```
 
-Claude Code 재시작 후, 아무 repo에서:
+After restarting Claude Code, from any repo:
 
 ```
-/argus:sail "결정해야 할 질문"
+/argus:sail "the question you need to decide"
 ```
 
-명령: `/argus:sail` (30초 판단) · `/argus:team` (에이전트 팀 배치) · `/argus:boss` (보스 시뮬레이션) · `/argus:clarify` · `/argus:chart`
-자세히 → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
+Commands: `/argus:sail` (30-second judgment) · `/argus:team` (deploy an agent team)
+· `/argus:boss` (boss simulation) · `/argus:clarify` · `/argus:chart`
+More → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
 
-### 로컬 개발
+### Local development
 
 ```bash
 git clone https://github.com/commet/Argus.git
@@ -173,59 +202,72 @@ npm install
 npm run dev
 ```
 
-`http://localhost:3000`에서 실행됩니다.
+Runs at `http://localhost:3000`. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the
+repo layout, the CI checks, and the conventions reviewers look for.
 
-### API 키 설정 (선택)
+### API key setup (optional)
 
-기본적으로 서버 프록시를 통해 작동합니다. 사용량 제한 없이 쓰려면 설정 페이지에서 "직접 API 키" 모드를 선택해 Anthropic API Key를 입력하세요. 키는 브라우저 localStorage에만 저장되며 서버로 전송되지 않습니다.
+By default it works through a server proxy. To use it without rate limits, pick
+"direct API key" mode on the settings page and enter your Anthropic API key. The
+key is stored only in your browser's localStorage and is never sent to the server.
 
 ---
 
-## 기술 스택
+## Tech stack
 
 - **Next.js 16** (App Router) + **TypeScript**
-- **Tailwind CSS v4** + **Pretendard Variable** (한국어 폰트)
-- **Zustand** (상태관리 + localStorage 자동 저장)
-- **Anthropic Claude API** (서버 프록시 또는 직접 호출)
-- **Web Audio API** (전환음 합성 — 기본 무음)
-- **Lucide React** (아이콘)
+- **Tailwind CSS v4** + **Pretendard Variable** (Korean font)
+- **Zustand** (state management + automatic localStorage persistence)
+- **Anthropic Claude API** (server proxy or direct call)
+- **Web Audio API** (transition-tone synthesis — silent by default)
+- **Lucide React** (icons)
 
 ---
 
-## 프로젝트 구조
+## Project structure
 
 ```
 src/
 ├── app/
-│   ├── workspace/       # 워크스페이스 (메인 인터페이스)
-│   ├── project/         # 프로젝트 오버뷰 + 판단 패턴 대시보드
-│   └── settings/        # 설정 (LLM, 오디오)
+│   ├── workspace/       # workspace (the main interface)
+│   ├── project/         # project overview + judgment-pattern dashboard
+│   └── settings/        # settings (LLM, audio)
 ├── components/
-│   ├── workspace/       # 4단계 Step 컴포넌트 + 워크플로우 그래프
-│   ├── ui/              # 공통 UI (StepEntry, Card, Badge, OutputSelector 등)
-│   ├── tools/           # 페르소나, 피드백 (리스크 3분류 포함)
-│   └── landing/         # 랜딩 페이지 (이타카까지의 항해)
-├── stores/              # Zustand 스토어 (12개)
-└── lib/                 # LLM 호출, 산출물 생성, 유사도 엔진, 맥락 빌더, 오디오
+│   ├── workspace/       # the stage components + workflow graph
+│   ├── ui/              # shared UI (StepEntry, Card, Badge, OutputSelector, …)
+│   ├── tools/           # personas, feedback (incl. 3-way risk classification)
+│   └── landing/         # landing page (the voyage to Ithaca)
+├── stores/              # Zustand stores
+└── lib/                 # LLM calls, output generation, similarity engine, context builders, audio
 ```
 
+For the top-level layout (the web app vs. the plugins vs. the MCP server), see
+[CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ---
 
-## 라이선스
+## License
 
-이 저장소는 **부분마다 라이선스가 다릅니다** (자세한 설명 → [LICENSING.md](./LICENSING.md)):
+Argus is **open-core**: the parts meant to spread are open source, and the product
+itself is source-available. This repo is **licensed by part** (full explanation →
+[LICENSING.md](./LICENSING.md)):
 
-| 부분 | 라이선스 | 상업적 이용 |
+| Part | License | Commercial use |
 |---|---|---|
-| `argus-plugin/`, `argus-plugin-v2/`, `argus-mcp/` (플러그인 · MCP) | **MIT** (오픈소스) | ✅ 자유롭게 가능 |
-| 그 외 전부 — **웹앱 코어** (`src/` 등) | **PolyForm Noncommercial 1.0.0** | ❌ 별도 상업 라이선스 필요 |
+| `argus-plugin-v2/`, `argus-mcp/` (plugin · MCP) | **MIT** (open source) | ✅ Freely |
+| Everything else — the **web app core** (`src/`, etc.) | **PolyForm Noncommercial 1.0.0** | ❌ Needs a separate commercial license |
 
-즉 **플러그인과 MCP는 오픈소스(MIT)** 라 상업적 사용을 포함해 자유롭게 쓸 수 있고,
-**웹앱 소스는 공개(source-available)** 되어 읽고 배우고 개인적으로 실행할 수 있지만
-**상업적 이용은 금지**됩니다. 상업 라이선스 문의는 [이슈](https://github.com/commet/Argus/issues)로.
+In other words, **the plugin and the MCP server are open source (MIT)** and can be
+used freely, including commercially. **The web app source is source-available** —
+you can read it, learn from it, and run it personally, but **commercial use is not
+permitted**. For a commercial license, open an [issue](https://github.com/commet/Argus/issues).
 
-상표: "Argus" 이름 · 로고 · argus.voyage는 상표이며 위 라이선스에 포함되지 않습니다.
+Trademarks: the "Argus" name, logo, and argus.voyage are trademarks and are not
+covered by the licenses above.
 
 ---
 
-*Argus는 전략기획이라는 직무에 숨어있던 사고방식을 누구나 사용할 수 있는 형태로 변환한 프로젝트입니다. 플러그인과 MCP는 오픈소스로, 웹앱은 소스를 공개한 형태로 공유합니다. 이 과정 자체가, AI 결과물보다 더 가치 있습니다.*
+*Argus is a project that translates a way of thinking hidden inside the strategy-
+planning craft into a form anyone can use. The plugins and MCP are shared as open
+source; the web app is shared with its source open. This process itself is worth
+more than the AI's output.*

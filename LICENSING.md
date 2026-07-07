@@ -14,8 +14,7 @@ contract.
 
 | Part of the repo | License | Can you use it commercially? |
 |---|---|---|
-| `argus-plugin/` | **MIT** | ✅ Yes |
-| `argus-plugin-v2/` | **MIT** | ✅ Yes |
+| `argus-plugin-v2/` (the Claude Code plugin) | **MIT** | ✅ Yes |
 | `argus-mcp/` (published as `argus-decision-mcp` on npm) | **MIT** | ✅ Yes |
 | **Everything else** — the web app (`src/`, server routes, DB schema, `public/`, `assets/`, `tools/`, `scripts/`, `docs/`, config) | **PolyForm Noncommercial 1.0.0** | ❌ No — needs a separate commercial license |
 

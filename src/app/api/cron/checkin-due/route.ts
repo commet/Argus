@@ -74,7 +74,10 @@ export async function GET(req: Request) {
   // (onboarding@resend.dev) only delivers to the account owner, so real users
   // never got the reminder. Replies route to the founder's inbox.
   const fromDomain = process.env.EMAIL_FROM_DOMAIN || 'argus.voyage';
-  const replyTo = process.env.EMAIL_REPLY_TO || 'sayucurator@gmail.com';
+  // Reply-to must not hard-code a personal inbox in a public repo. Default to a
+  // role address on the sending domain; set EMAIL_REPLY_TO in the host env to
+  // route replies elsewhere.
+  const replyTo = process.env.EMAIL_REPLY_TO || `hello@${fromDomain}`;
   const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
   const now = Date.now();
 

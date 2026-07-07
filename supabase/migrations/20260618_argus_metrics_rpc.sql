@@ -10,11 +10,12 @@ SECURITY DEFINER
 SET search_path = public, auth
 AS $$
 DECLARE
-  caller_email text;
   result jsonb;
 BEGIN
-  SELECT email INTO caller_email FROM auth.users WHERE id = auth.uid();
-  IF caller_email IS NULL OR caller_email NOT IN ('time22say@gmail.com', 'yclee913@gmail.com') THEN
+  -- Operator gate hardened to the server-set app_metadata.is_operator flag —
+  -- personal emails removed from source (see 20260707_argus_metrics_operator_flag.sql).
+  IF NOT coalesce((SELECT (raw_app_meta_data->>'is_operator')::boolean
+                   FROM auth.users WHERE id = auth.uid()), false) THEN
     RAISE EXCEPTION 'not authorized';
   END IF;
 
