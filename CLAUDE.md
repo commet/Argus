@@ -1,5 +1,13 @@
 # Argus — Development Guidelines
 
+## 빌드 정본 (모든 세션의 첫 규칙, 2026-07-07)
+
+빌드 순서의 정본은 `docs/ARGUS-BLUEPRINT.md`다. 세션 시작 시 그 문서의
+§6 공정표에서 **현재 공정**을 확인하고, 그 공정의 항목만 진행한다.
+새 설계 문서(DESIGN-*, 감사, 계획서) 작성 금지 — 새 아이디어는 BLUEPRINT
+§8 대기 목록에 한 줄로 추가하고 짓지 않는다. 모든 PR 본문 첫 줄:
+`공정 N · 겨냥 퍼널 단계 X→Y`.
+
 ## Checklist: Adding a New Field to a Type
 
 When adding a field to any TypeScript interface (e.g., `Persona`, `RecastStep`), check ALL of these:
