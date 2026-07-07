@@ -13,8 +13,6 @@ import { SessionExpiredToast } from '@/components/ui/SessionExpiredToast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { stripLocale } from '@/lib/locale-path';
 
-const OPERATOR_EMAILS = new Set(['time22say@gmail.com', 'yclee913@gmail.com']);
-
 export function Header() {
   const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
@@ -38,9 +36,13 @@ export function Header() {
   const { user, loading, signOut } = useAuth();
 
   // Secondary tools that used to live in the (mostly empty) 224px sidebar —
-  // the aside is gone (H1-C4), so they move into an overflow menu here. The
-  // operator dashboard keeps its email gate, moved verbatim from Sidebar.
-  const isOperator = !!user?.email && OPERATOR_EMAILS.has(user.email);
+  // the aside is gone (H1-C4), so they move into an overflow menu here. Operator
+  // status comes from the server-controlled `app_metadata.is_operator` claim
+  // (set on the operator accounts in Supabase) — never a hard-coded email list,
+  // which would ship the operators' addresses in the public client bundle. The
+  // /admin page enforces the real gate server-side via the argus_metrics RPC;
+  // this flag only decides whether to surface the menu link.
+  const isOperator = user?.app_metadata?.is_operator === true;
   const utilityItems: Array<{ href: string; label: string; icon: typeof Download }> = [
     { href: '/import', label: L('가져오기', 'Import'), icon: Download },
     { href: '/teams', label: L('팀', 'Teams'), icon: Users },

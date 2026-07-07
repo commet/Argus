@@ -3,16 +3,16 @@
 // WHY: checkin-due previously sent from Resend's sandbox address
 // (onboarding@resend.dev), which only delivers to the Resend account owner —
 // so real subscribers never got the reminder. We switched it to the verified
-// argus.voyage domain with reply-to = the founder's gmail. This proves a real
-// non-owner recipient (e.g. time22say@gmail.com) actually receives it.
+// argus.voyage domain with a role reply-to. This proves a real non-owner
+// recipient actually receives it. Pass the recipient as the first argument.
 //
 // USAGE (PowerShell):
-//   $env:RESEND_API_KEY="re_xxx"; node scripts/test-checkin-email.mjs time22say@gmail.com
+//   $env:RESEND_API_KEY="re_xxx"; node scripts/test-checkin-email.mjs you@example.com
 // USAGE (bash):
-//   RESEND_API_KEY=re_xxx node scripts/test-checkin-email.mjs time22say@gmail.com
+//   RESEND_API_KEY=re_xxx node scripts/test-checkin-email.mjs you@example.com
 //
 // Optional overrides: EMAIL_FROM_DOMAIN (default argus.voyage),
-//                     EMAIL_REPLY_TO    (default sayucurator@gmail.com)
+//                     EMAIL_REPLY_TO    (default hello@<domain>)
 
 import { Resend } from 'resend';
 
@@ -22,9 +22,13 @@ if (!apiKey) {
   process.exit(1);
 }
 
-const to = process.argv[2] || 'time22say@gmail.com';
+const to = process.argv[2];
+if (!to) {
+  console.error('✗ Pass a recipient address, e.g. node scripts/test-checkin-email.mjs you@example.com');
+  process.exit(1);
+}
 const fromDomain = process.env.EMAIL_FROM_DOMAIN || 'argus.voyage';
-const replyTo = process.env.EMAIL_REPLY_TO || 'sayucurator@gmail.com';
+const replyTo = process.env.EMAIL_REPLY_TO || `hello@${fromDomain}`;
 const from = `Argus <hello@${fromDomain}>`;
 
 console.log(`→ sending test reminder\n  from:    ${from}\n  replyTo: ${replyTo}\n  to:      ${to}\n`);
