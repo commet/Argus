@@ -368,7 +368,6 @@ function VoyageFilmStage({ onEnded }: { onEnded?: () => void }) {
                 renders its own <video>, so no <source media> queries needed. */}
             <source src="/voyage/voyage-film-mobile.mp4" type="video/mp4" />
           </video>
-          <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 3 }} />
         </div>
         {/* caption gutter — paper strip with a FIXED height (sized for the
             tallest chapter, measured ~196px of text) so chapter swaps never shift
@@ -417,9 +416,6 @@ function VoyageFilmStage({ onEnded }: { onEnded?: () => void }) {
       >
         <source src="/voyage/voyage-film.mp4" type="video/mp4" />
       </video>
-
-      {/* gold top rule */}
-      <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 3 }} />
 
       {/* Localized FROSTED reading surface — NOT a full-frame wash (that hid the
           engraving's subjects). It blurs only the caption zone's line-noise and
@@ -563,9 +559,6 @@ function VoyagePosterCard({ onPlay }: { onPlay: () => void }) {
         padding: MAT,
       }}
     >
-      {/* gold signature rule — across the top of the finished plate (was on the
-          bare image; on the plate edge it reads as an intentional header rule) */}
-      <span aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--bp-gold)', zIndex: 4 }} />
       {/* corner registration ticks — the exact plate signature the entry field
           below carries, so the poster reads as the same finished logbook plate */}
       {([
