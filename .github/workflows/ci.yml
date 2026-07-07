@@ -22,7 +22,11 @@ jobs:
       # argus-mcp is a separate package (not an npm workspace); its tests run from
       # the root vitest sweep, so its deps (@modelcontextprotocol/sdk) must be
       # installed too or suites like protocol-roundtrip fail with ERR_MODULE_NOT_FOUND.
-      - run: npm ci --prefix argus-mcp
+      # Fall back to `npm install` when `npm ci` trips on floating optional native
+      # deps: a transitive `@emnapi/*` (^-ranged) publishes a new patch and the
+      # committed lock pins the prior one, so strict `npm ci` fails non-
+      # deterministically by runner npm version. `npm install` resolves it fresh.
+      - run: npm ci --prefix argus-mcp || npm install --prefix argus-mcp
 
       - name: TypeScript
         run: npx tsc --noEmit
