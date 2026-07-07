@@ -1,5 +1,10 @@
 # Fable5 — Argus 웹앱·MCP 퀀텀 업그레이드: 주문서와 실행 계획
 
+> **2026-07-07 후속:** 창업자 브리프(MCP가 이번 공개 대상, 웹앱은 지지 표면)가
+> 도착한 뒤 `docs/ARGUS-KEYSTONE-2026-07-07.md`가 이 문서를 재조준했다.
+> **실행자는 KEYSTONE을 먼저 읽어라** — 이 문서의 Phase들은 KEYSTONE §8의
+> 매핑표에 따라 Wave 0~3으로 재배치되어 유효하다.
+
 Date: 2026-07-07
 Author: Claude (claude-fable-5), 코드베이스·문서 전수 독해 후 작성
 Status: **Execution-ready** — 실행 세션(Opus/Sonnet)이 이 문서만 읽고 구현할 수 있게 쓴다
