@@ -45,6 +45,9 @@ next-env.d.ts
 /dev.log
 /shot*.mjs
 /*-shot.mjs
+# scratch: build-log captures and Playwright MCP page snapshots (dev-only, never commit)
+/.post/
+/.playwright-mcp/
 
 # argus-watch + local working data: personal — never commit (repo is public)
 /.argus/

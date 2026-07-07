@@ -1,0 +1,46 @@
+name: Bug report
+description: Something in the web app or plugin is broken or behaves unexpectedly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please **do not** include API keys, tokens, or
+        other secrets. For security vulnerabilities, follow `SECURITY.md` instead
+        of filing a public issue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+      placeholder: I clicked X and expected Y, but Z happened.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part?
+      options:
+        - Web app (src/)
+        - Claude Code plugin (argus-plugin-v2/)
+        - MCP server (argus-mcp/)
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser / OS / Node version, and whether you're on argus.voyage or a local build.
+    validations:
+      required: false
