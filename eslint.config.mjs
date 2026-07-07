@@ -14,7 +14,6 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Claude Code plugins ship their own scripts (not part of the Next app);
     // the app's lint config shouldn't parse them.
-    "argus-plugin/**",
     "argus-plugin-v2/**",
     // Generated design-sync artifacts are not part of the app source.
     ".design-sync/**",
