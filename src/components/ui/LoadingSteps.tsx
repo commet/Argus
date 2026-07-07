@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
+import { ArgusMascot } from '@/components/brand/ArgusMascot';
 
 interface LoadingStepsProps {
   steps: string[];
@@ -70,6 +71,7 @@ export function LoadingSteps({ steps, intervalMs = 2500 }: LoadingStepsProps) {
       : elapsed >= 4
         ? L(`${elapsed}초째 항해 중`, `${elapsed}s underway`)
         : '';
+  const showCompanion = lingering || elapsed >= 12;
 
   return (
     <div className="relative overflow-hidden rounded-xl py-10">
@@ -82,6 +84,17 @@ export function LoadingSteps({ steps, intervalMs = 2500 }: LoadingStepsProps) {
         <p className="mt-1.5 text-[11px] text-[var(--text-tertiary)] min-h-[15px]" aria-live="polite">
           {note}
         </p>
+        {showCompanion && (
+          <div className="mt-4 argus-mascot-enter">
+            <ArgusMascot
+              variant="watching"
+              size="md"
+              animate
+              alt={L('기다리는 Argus', 'Argus waiting')}
+              className="opacity-90"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -33,6 +33,7 @@ import { useDueCount } from '@/hooks/useDueCount';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { CurrentBearingCard } from '@/components/workspace/progressive/CurrentBearingCard';
+import { ArgusMascot } from '@/components/brand/ArgusMascot';
 
 // Hick's law (05 S7): filter chips + search only earn their place once the
 // list outgrows a single screen.
@@ -450,7 +451,7 @@ export default function ProjectPage() {
         <div className="space-y-5">
           {projects.length === 0 && fromCheckin ? (
             <Card className="text-center py-12">
-              <FileText size={24} className="mx-auto text-[var(--text-secondary)] mb-3" />
+              <ArgusMascot variant="head" size="lg" animate className="mx-auto mb-4" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">
                 {L('봉인해 둔 결정이 이 기기엔 없어요', 'Your sealed decision isn’t on this device')}
               </p>
@@ -467,7 +468,7 @@ export default function ProjectPage() {
             </Card>
           ) : projects.length === 0 ? (
             <Card className="text-center py-12">
-              <FileText size={24} className="mx-auto text-[var(--text-secondary)] mb-3" />
+              <ArgusMascot variant="sitting" size="lg" animate className="mx-auto mb-4" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 항해 전이에요', 'Before the first voyage')}</p>
               <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-xs mx-auto">
                 {L('워크스페이스에서 첫 결정을 적으면, 여기가 그 결정이 돌아올 모항이 돼요. 확인일이 오면 이 페이지가 먼저 물어요 — 그래서, 어떻게 됐어요?', "Write your first decision in the workspace and this becomes its home port. When the check-in day comes, this page asks first — so, how did it go?")}
@@ -520,10 +521,13 @@ export default function ProjectPage() {
                   settlement UI — the two existing surfaces stay (§5-11). */}
               {dueProjects.length + dueReceipts.length > 0 && (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                  <p className="text-[13px] font-semibold text-[var(--text-primary)] shrink-0">
-                    {locale === 'ko'
-                      ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueProjects.length + dueReceipts.length}건`
-                      : `So, how did it go? — ${dueProjects.length + dueReceipts.length} decision${dueProjects.length + dueReceipts.length === 1 ? '' : 's'} to return to`}
+                  <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] shrink-0">
+                    <ArgusMascot variant="head" size="xs" animate className="ring-amber-500/25" />
+                    <span>
+                      {locale === 'ko'
+                        ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueProjects.length + dueReceipts.length}건`
+                        : `So, how did it go? — ${dueProjects.length + dueReceipts.length} decision${dueProjects.length + dueReceipts.length === 1 ? '' : 's'} to return to`}
+                    </span>
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {dueProjects.map((p) => (

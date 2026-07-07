@@ -24,7 +24,7 @@ import { runInitialAnalysis } from '@/lib/progressive-engine';
 import { buildEarlyContract, summarizeRecord } from '@/lib/decision-contract';
 import { recordCompactLine } from '@/lib/record-summary';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
-import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText, Anchor } from 'lucide-react';
+import { Sparkles, ChevronRight, MessageSquare, Sliders, UserCheck, RefreshCw, FolderOpen, ChevronDown, AlertTriangle, Layers, History, Compass, FileText } from 'lucide-react';
 import { useDueCount } from '@/hooks/useDueCount';
 import { shouldShowLantern, localYMD } from '@/lib/lantern';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
@@ -46,6 +46,8 @@ import type { WorkerPersona, DecisionContract } from '@/stores/types';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { DAILY_LIMIT } from '@/lib/quota-config';
+import { ArgusMascot } from '@/components/brand/ArgusMascot';
+import { MascotMoment } from '@/components/brand/MascotMoment';
 
 /* ─── Step-level error fallback ─── */
 function StepErrorFallback({ onRetry }: { onRetry?: () => void }) {
@@ -616,7 +618,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
               {lanternOn && (
                 <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] min-w-0 flex-1">
-                    <Anchor size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                    <ArgusMascot variant="head" size="xs" animate className="ring-amber-500/25" />
                     <span>
                       {locale === 'ko'
                         ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueCount}건`
@@ -650,6 +652,16 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                 <p className="text-[13px] text-[var(--text-secondary)] mb-3 leading-relaxed">
                   {L('분야·형식 상관없어요. 떠오르는 대로 편하게 적어주세요 — 나머지는 팀이 정리해요.', 'Any field or format — just describe it however it comes to mind. The team handles the rest.')}
                 </p>
+                {projects.length === 0 && (
+                  <MascotMoment
+                    variant="sitting"
+                    compact
+                    title={L('한 줄만 시작해도 괜찮아요', 'A sentence is enough to begin')}
+                    className="mb-3"
+                  >
+                    {L('Argus가 곁에서 갈리는 지점을 같이 찾아볼게요.', "Argus will sit with it and help find where the decision splits.")}
+                  </MascotMoment>
+                )}
                 {/* PRIMARY input — lifted off the page with a soft shadow + a faint
                     accent border so it reads as THE thing to do, not just one more
                     same-toned card among the demo tiles below. */}
