@@ -61,7 +61,7 @@ export interface LedgerState {
   integrity: {
     dropped_lines: number;
     /** Well-formed, versioned events of a type this binary doesn't know (written
-     *  by a NEWER argus-mcp, e.g. future premise_* events). Skipped, not corrupt
+     *  by a NEWER argus-decision-mcp, e.g. future premise_* events). Skipped, not corrupt
      *  — kept separate from dropped_lines so forward-compat never reads as a
      *  false integrity alarm (plan v5 §6.3). */
     skipped_unknown: number;
@@ -273,7 +273,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
 
       default:
         // Forward-compat tolerance (plan v5 §6.3): a well-formed, VERSIONED event
-        // whose type this binary doesn't know was written by a newer argus-mcp —
+        // whose type this binary doesn't know was written by a newer argus-decision-mcp —
         // skip it silently (like gate_input) instead of counting it as corruption,
         // so an old install never raises a false integrity alarm on a new ledger.
         // Only unversioned/structurally-broken events still count as dropped.

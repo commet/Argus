@@ -1055,7 +1055,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
               {L('로 웹앱과 로컬 ledger를 맞추면 됩니다.', ' to keep the webapp and local ledger aligned.')}
             </p>
           </div>
-          {/* MCP: env var for argus-mcp config */}
+          {/* MCP: env var for argus-decision-mcp config */}
           <div className="mt-2 rounded-md border border-[var(--border-subtle)] bg-[var(--bg)] p-2.5">
             <p className="text-[11px] text-[var(--text-tertiary)] mb-1">{L('MCP 사용 시 — 설정 env에 붙여넣기', 'Using MCP — paste into your config env')}</p>
             <div className="flex items-center gap-2">
@@ -1163,4 +1163,3 @@ function ObservationsBlock({ locale }: { locale: string }) {
     </div>
   );
 }
-

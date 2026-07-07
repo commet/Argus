@@ -10,7 +10,7 @@ export async function ensurePrivacyGitignore(argusDir: string): Promise<void> {
   try {
     const existing = await fs.readFile(gitignorePath, 'utf8').catch(() => '');
     const lines = new Set(existing.split('\n').map((l) => l.trim()));
-    const needed = ['sessions/', 'ledger/', '.bound'];
+    const needed = ['sessions/', 'ledger/', 'config.yaml', '.bound'];
     const toAdd = needed.filter((n) => !lines.has(n));
     if (toAdd.length) {
       await fs.mkdir(argusDir, { recursive: true });

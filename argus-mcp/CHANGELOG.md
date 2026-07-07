@@ -68,7 +68,7 @@ The receipt's `THE UNVERIFIED ASSUMPTION` line becomes a tracked object.
 
 ## 1.2.1 — Forward-compatible ledger replay
 
-- Unknown-but-versioned ledger events (written by a newer argus-mcp) are now
+- Unknown-but-versioned ledger events (written by a newer argus-decision-mcp) are now
   skipped silently (`integrity.skipped_unknown`) instead of being counted as
   corruption — an old install never raises a false integrity alarm on a new
   ledger. Ship this before adopting any release that writes new event types.

@@ -18,8 +18,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "prebuild": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
-    "build": "tsc",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
@@ -27,7 +27,8 @@
     "test:watch": "vitest",
     "eval": "node evals/run.mjs",
     "eval:review": "node evals/run-review.mjs",
-    "prepublishOnly": "npm run build && npm test",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm test && npm audit --omit=dev",
     "eval:premises": "node evals/run-premises.mjs"
   },
   "keywords": [
