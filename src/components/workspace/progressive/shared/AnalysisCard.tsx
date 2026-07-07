@@ -177,7 +177,7 @@ export function AnalysisCard({
             <AnimatePresence>
               {snapshot.insight && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden mb-7">
+                  transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden mb-6">
                   <div className="pl-4 py-2 border-l-[2px] border-[var(--accent)]/40">
                     <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5">
                       {L('핵심', 'Key Insight')}
@@ -249,6 +249,11 @@ export function AnalysisCard({
 
             {activeSkeleton.length > 0 && (
               <div>
+                {/* Quiet section label so the numbered list reads as "the plan",
+                    matching the card's existing eyebrow system (핵심 / 알아둘 것). */}
+                <div className={`text-[10px] font-bold text-[var(--text-tertiary)] mb-2 ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.15em]'}`}>
+                  {L('단계', 'Steps')}
+                </div>
                 {activeSkeleton.map((d, i) => {
                   const { prefix, body } = splitSkeleton(d.text);
                   const isLast = i === activeSkeleton.length - 1;
@@ -273,7 +278,7 @@ export function AnalysisCard({
                         <div className="flex-1 min-w-0">
                           {prefix ? (
                             <>
-                              <h4 className="text-[15px] md:text-[16px] font-bold tracking-tight text-[var(--text-primary)]">
+                              <h4 className="text-[15px] md:text-[16px] font-bold tracking-tight leading-snug text-[var(--text-primary)]">
                                 {prefix}
                               </h4>
                               {detailOpen && (
