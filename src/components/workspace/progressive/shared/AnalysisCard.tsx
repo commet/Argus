@@ -53,6 +53,13 @@ export function AnalysisCard({
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const hasChanges = prevSnapshot && snapshot.version > (prevSnapshot.version ?? 0);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  // Expanded card defaults to a SCANNABLE summary — key insight + step
+  // headlines only. The full per-step explanations, the assumptions block,
+  // and the execution plan live behind "자세히 보기". The old card dumped all
+  // of it at once, so the user started reading, the next turn arrived, and
+  // they bailed mid-paragraph every time. A summary you can absorb in one
+  // glance fixes that; depth is one tap away for anyone who wants it.
+  const [detailOpen, setDetailOpen] = useState(false);
 
   // Compact peek — used during Q&A loop so the card doesn't dominate
   // while the user is still answering. Tap to expand.
@@ -197,7 +204,7 @@ export function AnalysisCard({
               ))}
             </AnimatePresence>
 
-            {activeAssumptions.length > 0 && (
+            {detailOpen && activeAssumptions.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: EASE }}
@@ -250,7 +257,7 @@ export function AnalysisCard({
                       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.07, duration: 0.4, ease: EASE }}
                       className={`relative ${!isLast ? 'border-b border-[var(--border-subtle)]/50' : ''}`}>
-                      <div className={`flex gap-4 py-4 ${i === 0 ? 'pt-1' : ''}`}>
+                      <div className={`flex gap-4 ${detailOpen ? 'py-4' : 'py-2.5'} ${i === 0 ? 'pt-1' : ''}`}>
                         {/* Step indicator — minimal number in accent tone,
                             no box fill. Presence through typography alone. */}
                         <div className="shrink-0 pt-[2px] w-5 text-right">
@@ -260,19 +267,23 @@ export function AnalysisCard({
                             {i + 1}
                           </span>
                         </div>
-                        {/* Content */}
+                        {/* Content. Summary mode shows the step HEADLINE only
+                            (or a one-line clip when a step has no title); the
+                            explanation body appears under "자세히 보기". */}
                         <div className="flex-1 min-w-0">
                           {prefix ? (
                             <>
-                              <h4 className="text-[15px] md:text-[16px] font-bold tracking-tight mb-1 text-[var(--text-primary)]">
+                              <h4 className="text-[15px] md:text-[16px] font-bold tracking-tight text-[var(--text-primary)]">
                                 {prefix}
                               </h4>
-                              <p className="text-[13px] md:text-[14px] text-[var(--text-secondary)] leading-[1.7]">
-                                {renderText(body)}
-                              </p>
+                              {detailOpen && (
+                                <p className="text-[13px] md:text-[14px] text-[var(--text-secondary)] leading-[1.7] mt-1">
+                                  {renderText(body)}
+                                </p>
+                              )}
                             </>
                           ) : (
-                            <p className="text-[13px] md:text-[14px] text-[var(--text-primary)] leading-[1.7]">
+                            <p className={`text-[13px] md:text-[14px] text-[var(--text-primary)] leading-[1.7] ${detailOpen ? '' : 'line-clamp-1'}`}>
                               {renderText(body)}
                             </p>
                           )}
@@ -284,9 +295,36 @@ export function AnalysisCard({
               </div>
             )}
 
+            {/* Summary ⇄ detail toggle. Default is the scannable summary above;
+                this reveals the per-step bodies, the assumptions block, and the
+                execution plan. Hint the hidden assumption count so the user
+                knows there's more worth a tap. */}
+            {(activeSkeleton.length > 0 || activeAssumptions.length > 0) && (
+              <button
+                type="button"
+                onClick={() => setDetailOpen(o => !o)}
+                aria-expanded={detailOpen}
+                className="mt-4 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--accent)] hover:opacity-70 transition-opacity cursor-pointer"
+              >
+                {detailOpen ? (
+                  <>{L('요약만 보기', 'Summary only')} <ChevronUp size={13} /></>
+                ) : (
+                  <>
+                    {L('단계별 자세히 보기', 'Read the full detail')}
+                    {activeAssumptions.length > 0 && (
+                      <span className="text-[var(--text-tertiary)] font-normal">
+                        {L(`· 알아둘 것 ${activeAssumptions.length}개`, `· ${activeAssumptions.length} to know`)}
+                      </span>
+                    )}
+                    <ChevronDown size={13} />
+                  </>
+                )}
+              </button>
+            )}
+
             {/* Execution plan footer — workspace only, neutral palette */}
             <AnimatePresence>
-              {showExecutionPlan && snapshot.execution_plan && snapshot.execution_plan.steps.length > 0 && (
+              {detailOpen && showExecutionPlan && snapshot.execution_plan && snapshot.execution_plan.steps.length > 0 && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} transition={{ duration: 0.5, ease: EASE }} className="overflow-hidden">
                   <div className="pt-4 mt-4 border-t border-[var(--border-subtle)]">
                     <div className="flex items-center gap-2 flex-wrap">

@@ -289,18 +289,33 @@ function PhaseStatusBar({
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`mx-auto mb-3 flex items-center gap-3 px-5 py-3 rounded-2xl border backdrop-blur-sm transition-colors duration-500 ${
-        mode === 'ai_working'
-          ? showLongWait
-            ? 'bg-amber-50/60 dark:bg-amber-900/10 border-amber-300/25'
-            : 'bg-[var(--surface)]/90 border-[var(--accent)]/15'
-          : 'bg-[var(--accent)]/[0.06] border-[var(--accent)]/25'
+      // No box. During work the bar blends into the page (was a lighter
+      // rectangle that read as a stray panel); motion — not chrome — carries
+      // the "something is happening" signal. Long-wait keeps a faint amber
+      // wash because that state IS worth flagging.
+      className={`relative mx-auto mb-3 flex items-center gap-3 px-5 py-3 overflow-hidden transition-colors duration-500 ${
+        showLongWait ? 'rounded-2xl bg-amber-50/40 dark:bg-amber-900/10' : ''
       }`}
     >
+      {/* Indeterminate progress sweep — a gradient bar sliding across the
+          bottom edge so live work is unmistakable even without a box. */}
+      {mode === 'ai_working' && !showLongWait && (
+        <motion.div
+          aria-hidden
+          className="absolute bottom-0 left-0 h-[2px] w-2/5 rounded-full"
+          style={{ background: 'linear-gradient(90deg, transparent, var(--accent), transparent)' }}
+          animate={{ x: ['-40%', '260%'] }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
       {mode === 'ai_working' ? (
         <div className="relative w-5 h-5 flex items-center justify-center shrink-0">
           <div className={`absolute inset-0 rounded-full animate-ping ${showLongWait ? 'bg-amber-400/30' : 'bg-[var(--accent)]/20'}`} />
-          <div className={`w-2.5 h-2.5 rounded-full ${showLongWait ? 'bg-amber-500' : 'bg-[var(--accent)]'}`} />
+          <motion.div
+            className={`w-2.5 h-2.5 rounded-full ${showLongWait ? 'bg-amber-500' : 'bg-[var(--accent)]'}`}
+            animate={{ scale: [1, 1.25, 1] }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+          />
         </div>
       ) : (
         // your_turn: gentle bounce on the gold chip so the user's eye is
@@ -1694,7 +1709,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // every AI worker already failed leaves no 'pending' worker, so pending-only
   // never showed the banner and an all-error crew had no crew-level restart.
   // startWorkerExecution's filter re-picks non-done workers, so Restart re-runs them.
+  // "Interrupted" means work is STALLED — not work that is actively running.
+  // While any worker is running/preparing, the crew is mid-flight, so showing
+  // a "중단된 작업이 있어요" banner (with a disabled "실행 중…" button) was a
+  // self-contradiction the user kept hitting. Suppress it whenever the crew
+  // is live; it returns only when everything has genuinely halted.
   const isResumable = deployPhase === 'deployed' && !final_ && !mix
+    && !workers.some(w => w.status === 'running' || w.status === 'ai_preparing')
     && workers.some(w => w.status === 'pending' || w.status === 'error');
   const onResumeWorkers = () => {
     const ws = store.currentSession()?.workers ?? [];
