@@ -93,7 +93,9 @@ describe('decision-scoped selectors', () => {
   it('overrideSummary is computed over that decision only', () => {
     useDecisionItemsStore.getState().addItems([mkItem('a', 'd1'), mkItem('b', 'd2')]);
     const summary = useDecisionItemsStore.getState().overrideSummary('d1');
-    expect(summary).toBeDefined();
+    // Only d1's single AI item is counted — proves d2's item is excluded (would
+    // be aiItems: 2 if the selector leaked across decisions).
+    expect(summary).toMatchObject({ aiItems: 1, added: 0, overturned: 0 });
   });
 });
 

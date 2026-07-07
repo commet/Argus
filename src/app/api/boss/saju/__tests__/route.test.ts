@@ -42,7 +42,15 @@ describe('POST /api/boss/saju — abuse gate', () => {
   });
 
   it('413s when the declared content-length exceeds the 1KB cap', async () => {
-    const res = await POST(req({ year: 1990, month: 5, gender: 'M' }, { 'content-length': '2048' }));
+    // The route gates on the content-length HEADER (not measured body size), so
+    // build the request with a Headers object: a manually-set Content-Length on a
+    // real `Request` is a forbidden header that some fetch/undici runtimes strip,
+    // which would make this test runtime-dependent.
+    const oversized = {
+      headers: new Headers({ 'content-type': 'application/json', 'content-length': '2048' }),
+      json: async () => ({ year: 1990, month: 5, gender: 'M' }),
+    } as never;
+    const res = await POST(oversized);
     expect(res.status).toBe(413);
     expect(interpretSpy).not.toHaveBeenCalled();
   });
