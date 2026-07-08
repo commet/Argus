@@ -44,12 +44,17 @@ export const WP_META: Record<WaypointType, { Icon: LucideIcon; color: string; ko
 
 /* ── The narration body, shared by the timeline row (expanded) and the card ── */
 export function WaypointDetail({
-  waypoint, assumptions, locked, onTakeRoad,
+  waypoint, assumptions, locked, onTakeRoad, dense = false,
 }: {
   waypoint: Waypoint;
   assumptions: string[];
   locked: boolean;
   onTakeRoad: (checkpointId: string, label: string) => void;
+  /** 공정 5-5 텍스트 다이어트 — the rail is a MAP, not an essay: in the narrow
+   *  side rail the narration folds behind one details toggle so the branch
+   *  handle ("이 길 가보기") stays the visible thing. The full-chart modal keeps
+   *  the open narration (dense=false). */
+  dense?: boolean;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
@@ -57,9 +62,8 @@ export function WaypointDetail({
   const hasNarration = !!(waypoint.significance || waypoint.trigger);
   const hasMore = notTaken.length > 0 || assumptions.length > 0;
 
-  return (
-    <div className="space-y-2">
-      {/* Narration — the meaning of the turn, then the trigger that handed it */}
+  const narration = hasNarration && (
+    <>
       {waypoint.significance && (
         <p className="text-[11.5px] leading-[1.55] text-[var(--text-secondary)]">{waypoint.significance}</p>
       )}
@@ -69,9 +73,24 @@ export function WaypointDetail({
           <span><span className="font-semibold text-[var(--text-secondary)]">{L('계기', 'Trigger')}</span> · {waypoint.trigger}</span>
         </p>
       )}
+    </>
+  );
+
+  return (
+    <div className="space-y-2">
+      {/* Narration — open in the full chart; folded to one line in the rail. */}
+      {dense && hasNarration ? (
+        <details className="group/n">
+          <summary className="text-[10px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--accent)] list-none flex items-center gap-1">
+            <ChevronDown size={9} className="transition-transform group-open/n:rotate-180" />
+            {L('왜 이 갈림길인가', 'Why this turn')}
+          </summary>
+          <div className="mt-1.5 space-y-2">{narration}</div>
+        </details>
+      ) : narration}
 
       {/* Divider between "what happened" and the branch handle / drill-down */}
-      {hasNarration && hasMore && <div className="h-px bg-[var(--border-subtle)]/70" />}
+      {!dense && hasNarration && hasMore && <div className="h-px bg-[var(--border-subtle)]/70" />}
 
       {/* Roads not taken — each a distinct inset affordance: the option you were
           offered, why it was set aside, and a real button to go sail it now. */}
@@ -80,7 +99,7 @@ export function WaypointDetail({
           <div className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
             <CornerDownRight size={10} /> {L('가지 않은 길', 'Road not taken')}
           </div>
-          <p className="text-[11px] leading-[1.45] text-[var(--text-secondary)]">
+          <p className={`text-[11px] leading-[1.45] text-[var(--text-secondary)] ${dense ? 'line-clamp-2' : ''}`}>
             <span className="font-medium italic text-[var(--text-primary)]">{alt.label}</span>
             {alt.why_abandoned && <span className="text-[var(--text-tertiary)]"> — {alt.why_abandoned}</span>}
           </p>
@@ -115,7 +134,7 @@ export function WaypointDetail({
 
 /* ── A standalone, always-open card: type chip + headline + body + action ── */
 export function WaypointCard({
-  waypoint, assumptions, locked, onTakeRoad, action, eyebrow,
+  waypoint, assumptions, locked, onTakeRoad, action, eyebrow, dense = false,
 }: {
   waypoint: Waypoint;
   assumptions: string[];
@@ -124,6 +143,8 @@ export function WaypointCard({
   action?: React.ReactNode;
   /** Optional small label above the type (e.g. "지금" for the current turn). */
   eyebrow?: string;
+  /** Rail-side text diet — clamp the headline, fold the narration. */
+  dense?: boolean;
 }) {
   const locale = useLocale();
   const meta = WP_META[waypoint.type];
@@ -149,13 +170,17 @@ export function WaypointCard({
         )}
       </div>
 
-      {/* Headline — the focal point of the card */}
-      <div className="text-[14px] leading-[1.4] font-semibold text-[var(--text-primary)]">
+      {/* Headline — the focal point of the card. In the rail it clamps to two
+          lines (full text lives one tap away in the 전체 해도). */}
+      <div
+        className={`text-[14px] leading-[1.4] font-semibold text-[var(--text-primary)] ${dense ? 'line-clamp-2' : ''}`}
+        title={dense ? waypoint.headline : undefined}
+      >
         {waypoint.headline}
       </div>
 
       <div className="mt-2.5">
-        <WaypointDetail waypoint={waypoint} assumptions={assumptions} locked={locked} onTakeRoad={onTakeRoad} />
+        <WaypointDetail waypoint={waypoint} assumptions={assumptions} locked={locked} onTakeRoad={onTakeRoad} dense={dense} />
       </div>
 
       {action && <div className="mt-3">{action}</div>}

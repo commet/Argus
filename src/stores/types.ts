@@ -599,7 +599,7 @@ export interface Predicate {
   authored?: 'user' | 'ai_surfaced';
 }
 
-export type CheckInInterval = '3d' | '1w' | '2w' | '1m';
+export type CheckInInterval = '1d' | '3d' | '1w' | '2w' | '1m';
 
 /** One superseded check-in, kept when the user says "아직" and extends the
  *  date (W1.2 amend principle: 변침도 기록이다 — never silently overwrite).

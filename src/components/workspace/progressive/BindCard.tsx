@@ -29,13 +29,14 @@ export interface BindResult {
 }
 
 const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
+  { value: '1d', ko: '1일', en: '1 day' },
   { value: '3d', ko: '3일', en: '3 days' },
   { value: '1w', ko: '1주', en: '1 week' },
   { value: '2w', ko: '2주', en: '2 weeks' },
   { value: '1m', ko: '1달', en: '1 month' },
 ];
 
-const INTERVAL_DAYS: Record<CheckInInterval, number> = { '3d': 3, '1w': 7, '2w': 14, '1m': 30 };
+const INTERVAL_DAYS: Record<CheckInInterval, number> = { '1d': 1, '3d': 3, '1w': 7, '2w': 14, '1m': 30 };
 
 const MAX_LEAN = 140;
 
@@ -114,10 +115,12 @@ export function BindCard({
              "Like Odysseus tied to the mast — you leave one line of your own before you listen. Optional. If you jot it down, we'll check back later on how it actually went.")}
         </p>
 
+        {/* The user's own words are the hero of this screen (우정 1조: 네가 한 말을
+            그대로 기억한다) — quote treatment, not a footnote. */}
         {problem && (
-          <p className="mt-3 text-[12px] text-[var(--text-secondary)] line-clamp-2 border-l-2 border-[var(--border-subtle)] pl-2.5">
+          <blockquote className="mt-4 rounded-lg border-l-[3px] border-[var(--accent)] bg-[var(--ai)]/30 px-3.5 py-2.5 text-[15px] font-medium leading-snug text-[var(--text-primary)] line-clamp-3" style={{ fontFamily: 'var(--font-display)' }}>
             {problem}
-          </p>
+          </blockquote>
         )}
 
         {/* One neutral optional line — never prefilled, never a fork. */}

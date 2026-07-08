@@ -49,6 +49,8 @@ const EVIDENCE: Record<string, string[]> = {
     'src/app/api/share/link/__tests__/route.test.ts', // 기본 비공개
     'src/lib/__tests__/demo-settle-latency.test.ts', // 데모 확인일 ≤ 7일
   ],
+  // 공정 5 (첫인상 수리, 2026-07-08 신설) — 아직 체크된 exit 없음.
+  '공정 5': [],
 };
 
 function readBlueprintProcessSections(): Map<string, string> {
@@ -72,7 +74,7 @@ describe('BLUEPRINT §6 exit 체크 증거 계약', () => {
   const sections = readBlueprintProcessSections();
 
   it('§6에서 다섯 공정을 모두 찾는다', () => {
-    expect([...sections.keys()]).toEqual(['공정 0', '공정 1', '공정 2', '공정 3', '공정 4']);
+    expect([...sections.keys()]).toEqual(['공정 0', '공정 1', '공정 2', '공정 3', '공정 4', '공정 5']);
   });
 
   it.each([...sections.keys()])('%s: 체크된 exit 수 == 등록된 증거 수', (name) => {

@@ -66,6 +66,7 @@ const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
   // (and maybe never return) can taste the settle sooner. No nudge, no urgency
   // copy, no default preselection — it's just another neutral date chip. Far
   // horizons keep 2w/1m; nothing is artificially shortened (no fake settlement).
+  { value: '1d', ko: '1일 뒤', en: 'tomorrow' },
   { value: '3d', ko: '3일 뒤', en: 'in 3 days' },
   { value: '1w', ko: '1주 뒤', en: 'in 1 week' },
   { value: '2w', ko: '2주 뒤', en: 'in 2 weeks' },
