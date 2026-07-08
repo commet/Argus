@@ -37,7 +37,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
-import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS, DEFAULT_CHECK_IN_INTERVAL } from '@/lib/decision-contract';
+import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS, DEFAULT_CHECK_IN_INTERVAL, intervalFromExistingContract } from '@/lib/decision-contract';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
 import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
@@ -133,7 +133,11 @@ export function SealMoment({
     if (items.length > 0) addDecisionItems(items);
   }
 
-  const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_CHECK_IN_INTERVAL);
+  // 묶기(밧줄)에서 이미 확인일을 정했다면 그 선택이 이 카드의 시작값이다.
+  // 실주행 재실사(2026-07-08)에서 발견: 1일로 묶었는데 완료 카드가 조용히
+  // 1주 디폴트를 제안 — 사용자가 정한 날을 기계 디폴트가 덮어쓰는 배선 절단.
+  const [interval, setInterval] = useState<CheckInInterval>(() =>
+    intervalFromExistingContract(project?.decision_contract?.check_in_at) ?? DEFAULT_CHECK_IN_INTERVAL);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dropped, setDropped] = useState<Set<string>>(new Set());
   // Scene machine for a seal performed in THIS session (P1-A3 / 07 S3):

@@ -68,6 +68,26 @@ export const CHECK_IN_MS: Record<CheckInInterval, number> = {
 export const DEFAULT_CHECK_IN_INTERVAL: CheckInInterval = '1w';
 
 /**
+ * 이미 정한 확인일 → 가장 가까운 interval 칩. 묶기(밧줄)에서 사용자가 고른
+ * 확인일이 있으면 완료 화면의 봉인 카드는 거기서 시작해야 한다 — 기계
+ * 디폴트(1주)가 사용자의 선택을 조용히 덮어쓰는 것은 배선 절단이다
+ * (실주행 재실사 2026-07-08에서 발견: 1일로 묶었는데 카드가 1주를 제안).
+ * 과거이거나 파싱 불가면 null (호출부가 디폴트로 처리).
+ */
+export function intervalFromExistingContract(checkInAt: string | null | undefined): CheckInInterval | null {
+  if (!checkInAt) return null;
+  const diff = new Date(checkInAt).getTime() - Date.now();
+  if (!Number.isFinite(diff) || diff <= 0) return null;
+  let best: CheckInInterval | null = null;
+  let gap = Infinity;
+  for (const [k, ms] of Object.entries(CHECK_IN_MS) as [CheckInInterval, number][]) {
+    const g = Math.abs(ms - diff);
+    if (g < gap) { gap = g; best = k; }
+  }
+  return best;
+}
+
+/**
  * Deterministic, stable id from a predicate's identity (source + normalized
  * text). djb2. Stable across re-generation so a grade is never orphaned.
  */
