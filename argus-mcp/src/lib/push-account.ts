@@ -25,6 +25,11 @@ export interface SealPush {
   source_title?: string;
   real_question?: string;
   human_judgment?: string;
+  /** ONLY when the user opted in (`premise_sync: true`, §9.2-4): the sealed
+   *  decision's monitored premises, so the account's premise-watch (T2) can
+   *  re-check them against reality. Absent by default — premise data does not
+   *  leave the machine without this explicit switch. */
+  tracked_premises?: Array<Record<string, unknown>>;
 }
 
 export interface SettlePush {

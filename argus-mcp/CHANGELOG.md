@@ -10,6 +10,27 @@
 
 Everything since the 1.0.0 first release.
 
+**공정 M3 · 전제 개통 + 두 기기 안전 (2026-07-08, BLUEPRINT §9.5):**
+
+- **BS-1 closed — per-ledger account namespace**: every ledger now carries a
+  stable random install id (`.argus/.install`), and account rows are keyed
+  `mcp_<install8>_<slug>`. Two machines (or two projects) sealing the same
+  natural slug ("migrate-db") can no longer collide on one account row.
+  Legacy un-namespaced rows still map home; another ledger's rows are
+  honestly labeled "another terminal ledger" instead of being mis-claimed.
+- **Ledger lock — concurrent sessions can't double-settle**: the settle write
+  re-guards under a cross-process lockfile, so two simultaneous sessions
+  record exactly ONE settlement (the second sees ALREADY_SETTLED). The
+  calibration record never double-counts; a crashed lock is stolen after 5s
+  so nothing ever bricks.
+- **Premise opt-in sync (`premise_sync:true`)**: OFF by default — premise data
+  never leaves the machine otherwise (the README privacy contract, now stated
+  with the one exception). When the user opts in, a sealed decision's
+  MONITORED premises ride the seal push, and the account's autonomous
+  premise-watch re-checks them against reality — a material drift now reaches
+  the T2 email gate for terminal-sealed decisions too (the intro's third
+  routine, 돌아보기, finally covers the terminal).
+
 **공정 M2 · 승격과 다리 (2026-07-08, BLUEPRINT §9.5) — the two loops connect:**
 
 - **Promotion (`from_capture`)**: `argus_premises op=add` can promote a watch

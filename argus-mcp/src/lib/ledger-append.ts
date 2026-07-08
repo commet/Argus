@@ -61,6 +61,45 @@ export interface LedgerEventInput {
   ts?: string;
 }
 
+/**
+ * Cross-process critical section for read-check-append sequences (§9.4 두 기기
+ * 안전). The in-process dispatcher already serializes calls WITHIN one stdio
+ * server; this lockfile extends that to two concurrent sessions on one dir —
+ * without it, two settles could both replay 'sealed' and both append, double-
+ * counting the calibration record. O_EXCL create is the atomic primitive;
+ * a lock older than STALE_MS is treated as a crash leftover and stolen.
+ */
+const LOCK_STALE_MS = 5000;
+const LOCK_WAIT_MS = 25;
+const LOCK_TRIES = 120; // ~3s worst case
+
+export async function withLedgerLock<T>(argusDir: string, fn: () => Promise<T>): Promise<T> {
+  await fsP.mkdir(ledgerDir(argusDir), { recursive: true });
+  const lockPath = ledgerPath(argusDir) + '.lock';
+  let acquired = false;
+  for (let i = 0; i < LOCK_TRIES && !acquired; i++) {
+    try {
+      const fd = fs.openSync(lockPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY);
+      fs.writeSync(fd, String(process.pid), null, 'utf8');
+      fs.closeSync(fd);
+      acquired = true;
+    } catch {
+      try {
+        const st = fs.statSync(lockPath);
+        if (Date.now() - st.mtimeMs > LOCK_STALE_MS) { fs.unlinkSync(lockPath); continue; } // crash leftover
+      } catch { continue; } // lock vanished between attempts — retry immediately
+      await new Promise((r) => setTimeout(r, LOCK_WAIT_MS));
+    }
+  }
+  // Lock or no lock, the work proceeds (availability over strictness — a stuck
+  // lock must never brick the ledger; the steal above bounds the wait).
+  try {
+    return await fn();
+  } finally {
+    if (acquired) { try { fs.unlinkSync(lockPath); } catch { /* already gone */ } }
+  }
+}
+
 export async function appendLedger(argusDir: string, events: LedgerEventInput[], now: string): Promise<{ written: number }> {
   await fsP.mkdir(ledgerDir(argusDir), { recursive: true });
   const lPath = ledgerPath(argusDir);

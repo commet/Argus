@@ -177,9 +177,13 @@ an append-only `ledger.jsonl` **you own**: plain JSON lines, no lock-in,
 receipts render to shareable text. No telemetry. The **only** network call
 Argus ever makes is the opt-in account sync: if — and only if — you set
 `ARGUS_TOKEN`, a sealed/settled prediction is POSTed to your own Argus account
-so it can email you at its check-by date. **Premise data never leaves your
-machine** — it is not part of the sync payload. Unset the token and Argus never
-touches the network. See [SECURITY.md](SECURITY.md).
+so it can email you at its check-by date. **Premise data stays on your machine
+by default** — it is not part of the sync payload. There is exactly one switch
+that changes this: `argus_config premise_sync:true` (off unless you set it)
+sends a sealed decision's *monitored* premises along, so your account's
+autonomous premise-watch can re-check them against reality and email you when
+one materially moves. Unset the token and Argus never touches the network.
+See [SECURITY.md](SECURITY.md).
 
 ## Measured
 

@@ -72,7 +72,11 @@ const EVIDENCE_M: Record<string, string[]> = {
     'argus-mcp/src/tools/__tests__/m2-bridges.test.ts', // 웹 정산 발산 0 (import_settlements)
     'argus-mcp/src/tools/__tests__/m2-bridges.test.ts', // fleet 두 프로젝트 fixture
   ],
-  '공정 M3': [],
+  '공정 M3': [
+    'argus-mcp/src/tools/__tests__/m3-safety.test.ts', // BS-1 두 원장 같은 slug 충돌 0
+    'argus-mcp/src/tools/__tests__/m3-safety.test.ts', // 동시 이중 settle 한 건만
+    'src/lib/__tests__/mcp-premise-optin-journey.test.ts', // opt-in 전제 → T2 게이트 도달
+  ],
   '공정 M4': [],
 };
 
