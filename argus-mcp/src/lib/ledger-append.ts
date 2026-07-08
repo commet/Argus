@@ -55,6 +55,9 @@ export interface LedgerEventInput {
   source_detail?: string;
   /** settle-time, user-attributed broken premise (plan v5 P2) */
   broken_premise_id?: string;
+  /** watch_capture: the capture's stable id. On premise_add: the capture this
+   *  premise was PROMOTED from (§9.3 승격 — a reference, never a move). */
+  capture_id?: string;
   ts?: string;
 }
 

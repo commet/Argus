@@ -142,11 +142,16 @@ export interface SurfaceStrings {
      *  question. 세 문장 문법 — 인용, 사실(날짜), 손잡이. Never an evaluation,
      *  never a completion check. */
     watch_mirror: (date: string, text: string) => string;
+    /** M2 fleet — due counts across OTHER projects (facts + a handle, no urgency). */
+    fleet_summary: (projects: number, due: number) => string;
   };
   sync: {
     live_with_due: (total: number, due: number) => string;
     live_no_due: (total: number) => string;
     settled_on_web: (n: number) => string;
+    /** M2 귀환 봉합 — web settlements mirrored into the local ledger (the
+     *  user's own words, imported verbatim; a fact line, never a verdict). */
+    imported: (n: number) => string;
     truncation: (shown: number, matched: number) => string;
   };
   /** seal_text — the terminal twin of the webapp's seal certificate plate
@@ -299,13 +304,16 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         ` ${n} ledger line(s) could not be read (possibly a crash artifact). The record is append-only, so the rest is intact — keep a backup of ledger.jsonl.`,
       watch_mirror: (date, text) =>
         `Your line on watch ${date}: '${text}' — so, how did it go? (Today's line, if you want one: argus_watch.)`,
+      fleet_summary: (projects, due) =>
+        ` Elsewhere: ${due} due across ${projects} other project(s) — details in data.fleet; each settles in its own project.`,
     },
     sync: {
       live_with_due: (total, due) =>
         `${total} live judgment(s) in your account · ${due} past check-by. ` +
         'Terminal-sealed ones settle here via argus_settle with local_id; web-sealed ones settle in the web dashboard.',
       live_no_due: (total) => `${total} live judgment(s) in your account. Nothing past its check-by.`,
-      settled_on_web: (n) => ` ${n} already settled on the web — to keep them in this ledger too, record the same outcome with argus_settle.`,
+      settled_on_web: (n) => ` ${n} already settled on the web — run argus_sync with import_settlements:true to mirror your web record into this ledger, or record it yourself with argus_settle.`,
+      imported: (n) => ` Mirrored ${n} web settlement(s) into this ledger — your own recorded words, brought home.`,
       truncation: (shown, matched) => `Showing ${shown} of ${matched}. Raise limit or narrow with due_only.`,
     },
     seal: {
@@ -423,13 +431,16 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         ` 원장에서 읽지 못한 줄이 ${n}개 있습니다(크래시 흔적일 수 있음). 기록은 append-only라 나머지는 안전합니다 — ledger.jsonl을 백업해 두세요.`,
       watch_mirror: (date, text) =>
         `${date} 당직의 항로: '${text}' — 그래서, 어떻게 됐어요? (오늘의 항로를 적으려면 argus_watch.)`,
+      fleet_summary: (projects, due) =>
+        ` 다른 곳: 다른 프로젝트 ${projects}곳에 확인할 차례 ${due}건 — 자세한 건 data.fleet에, 정산은 각 프로젝트에서.`,
     },
     sync: {
       live_with_due: (total, due) =>
         `계정에 살아 있는 판단 ${total}개 · 확인할 차례 ${due}개. ` +
         '이 터미널에서 봉인한 것은 local_id로 argus_settle, 웹에서 봉인한 것은 웹 대시보드에서 정산하세요.',
       live_no_due: (total) => `계정에 살아 있는 판단 ${total}개. 확인할 차례가 된 것은 없습니다.`,
-      settled_on_web: (n) => ` 웹에서 이미 정산된 것 ${n}건 — 로컬 원장에도 남기려면 argus_settle로 같은 outcome을 기록하세요.`,
+      settled_on_web: (n) => ` 웹에서 이미 정산된 것 ${n}건 — argus_sync에 import_settlements:true를 주면 웹에 남긴 당신의 기록을 이 원장에도 그대로 옮겨옵니다 (직접 argus_settle로 적어도 됩니다).`,
+      imported: (n) => ` 웹 정산 ${n}건을 이 원장에 옮겨왔습니다 — 당신이 웹에 적은 그 말 그대로입니다.`,
       truncation: (shown, matched) => `${matched}개 중 ${shown}개만 표시. limit을 올리거나 due_only로 좁히세요.`,
     },
     seal: {

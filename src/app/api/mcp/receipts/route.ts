@@ -53,6 +53,11 @@ export async function GET(req: NextRequest) {
   const receipts = (rows || []).map((r) => {
     const d = r.data as JudgmentReceipt;
     const open = (d.falsifiable_followups || []).filter((f) => f.sealed_at && !f.settled_at);
+    // Settled predicates travel back with the USER's own settlement words —
+    // this is what lets argus_sync mirror a web settlement into the local
+    // ledger as the user's record, not a machine verdict (BLUEPRINT §9.4
+    // 귀환 봉합: flag-only cross-check meant permanent divergence).
+    const settled = (d.falsifiable_followups || []).filter((f) => f.settled_at && f.outcome);
     return {
       id: r.id,
       source_title: d.source_title,
@@ -61,6 +66,16 @@ export async function GET(req: NextRequest) {
       due: !!r.next_check_by && r.next_check_by <= today,
       core_question: d.core_question,
       open_predicates: open.map((f) => ({ predicate: f.predicate, check_by: f.check_by })),
+      ...(settled.length > 0
+        ? {
+            settled_predicates: settled.map((f) => ({
+              predicate: f.predicate,
+              outcome: f.outcome,
+              what_happened: f.what_happened ?? '',
+              settled_at: f.settled_at,
+            })),
+          }
+        : {}),
     };
   });
 

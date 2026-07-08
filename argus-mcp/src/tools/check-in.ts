@@ -1,4 +1,4 @@
-import { resolveToolArgusDir } from '../lib/argus-dir.js';
+import { resolveToolArgusDir, readGlobalBoundList } from '../lib/argus-dir.js';
 import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
 import { duePremises, groupDuePremises, dueOpenQuestions } from '../lib/premises.js';
@@ -13,6 +13,7 @@ import { handleToolException } from './errors.js';
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   include_upcoming_days: z.number().int().min(0).max(30).default(0).describe('Also list sealed contracts coming due within N days (informational — nothing to settle yet).'),
+  fleet: z.boolean().default(false).describe('Also report due counts across your OTHER Argus projects (every dir argus_init registered on this machine). Facts and counts only; settle each in its own project.'),
   today_override: zDate.optional(),
 });
 
@@ -114,6 +115,25 @@ export const checkIn: ToolModule = {
         ? S.upcoming(upcoming.length, upDays)
         : '';
 
+      // Fleet view (M2, §9.4): due counts across the OTHER projects the global
+      // registry knows. Counts + paths only — each project settles in its own
+      // dir; this is a lighthouse sweep, not a merged ledger.
+      let fleetRows: Array<{ argus_dir: string; due_count: number; due_premise_count: number }> = [];
+      let fleetLine = '';
+      if (a['fleet'] === true) {
+        const others = readGlobalBoundList().filter((d) => d !== dir).slice(0, 8);
+        fleetRows = others.map((d) => {
+          try {
+            const l = replayLedger(d, today);
+            return { argus_dir: d, due_count: l.overdue.length, due_premise_count: groupDuePremises(duePremises(l)).length };
+          } catch {
+            return { argus_dir: d, due_count: 0, due_premise_count: 0 };
+          }
+        }).filter((r) => r.due_count > 0 || r.due_premise_count > 0);
+        const fleetDue = fleetRows.reduce((n, r) => n + r.due_count, 0);
+        if (fleetRows.length > 0) fleetLine = S.fleet_summary(fleetRows.length, fleetDue);
+      }
+
       // Ledger-corruption disclosure (11 P2-8): dropped_lines was counted in
       // data.integrity but never SAID. Silence is not kindness — one factual
       // sentence + the backup handle. No blame, no gate.
@@ -154,9 +174,9 @@ export const checkIn: ToolModule = {
           : '';
         return envelope({
           ok: true, tool: 'argus_check_in',
-          surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + integrityLine,
+          surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), ...watchData, today },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today },
         });
       }
 
@@ -193,7 +213,7 @@ export const checkIn: ToolModule = {
 
       return envelope({
         ok: true, tool: 'argus_check_in',
-        surface: mirrorLine + parts.join(' ') + upcomingLine + integrityLine,
+        surface: mirrorLine + parts.join(' ') + upcomingLine + fleetLine + integrityLine,
         next_actions: next,
         data: {
           due: dueEnriched, due_count: dueAll.length,
@@ -203,6 +223,7 @@ export const checkIn: ToolModule = {
           due_open_questions: dueOpenQ, due_open_question_count: openQs.length,
           ...(openQs.length > TOP ? { due_open_questions_truncated: `${openQs.length} questions, showing ${TOP}` } : {}),
           ...(upDays > 0 ? { upcoming } : {}),
+          ...(a['fleet'] === true ? { fleet: fleetRows } : {}),
           ...watchData,
           today, integrity: ledger.integrity,
         },

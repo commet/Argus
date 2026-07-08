@@ -76,6 +76,35 @@ export function writeBoundMarker(argusDir: string): void {
   } catch {
     /* non-critical */
   }
+  // Global registry (M2 fleet, §9.4): every init'd project dir also lands in
+  // ~/.argus/.bound so ONE check_in can report due items across all of a
+  // user's projects. Local paths only, stays on this machine, best-effort.
+  try {
+    const home = path.join(os.homedir(), '.argus');
+    fs.mkdirSync(home, { recursive: true });
+    const reg = path.join(home, '.bound');
+    let dirs: string[] = [];
+    try {
+      const parsed = JSON.parse(fs.readFileSync(reg, 'utf8')) as { bound?: unknown };
+      dirs = Array.isArray(parsed.bound) ? (parsed.bound.filter((x) => typeof x === 'string') as string[]) : [];
+    } catch { /* fresh registry */ }
+    if (!dirs.includes(argusDir)) dirs.unshift(argusDir);
+    fs.writeFileSync(reg, JSON.stringify({ bound: dirs.slice(0, 16) }), 'utf8');
+  } catch {
+    /* non-critical */
+  }
+}
+
+/** The cross-project registry (~/.argus/.bound) — existing dirs only. */
+export function readGlobalBoundList(): string[] {
+  try {
+    const reg = path.join(os.homedir(), '.argus', '.bound');
+    const parsed = JSON.parse(fs.readFileSync(reg, 'utf8')) as { bound?: unknown };
+    const dirs = Array.isArray(parsed.bound) ? (parsed.bound.filter((x) => typeof x === 'string') as string[]) : [];
+    return dirs.filter((d) => { try { return fs.existsSync(d); } catch { return false; } });
+  } catch {
+    return [];
+  }
 }
 
 function readBoundList(argusDir: string): string[] {

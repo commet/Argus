@@ -50,6 +50,11 @@ export interface AccountReceipt {
   due: boolean;
   core_question: string;
   open_predicates: { predicate: string; check_by: string }[];
+  /** Present when the account holds a settlement — the USER's own web-stated
+   *  outcome and words, so argus_sync can mirror it into the local ledger as
+   *  their record (never a machine verdict). Web outcome vocabulary
+   *  ('happened'|'unclear'|…) — the importer maps it to the MCP enum. */
+  settled_predicates?: { predicate: string; outcome: string; what_happened: string; settled_at?: string }[];
 }
 
 export interface PullResult {
