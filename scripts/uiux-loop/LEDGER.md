@@ -76,3 +76,24 @@ RUBRIC.md 기준. 각 finding = 증상(측정값 포함) + 진단(파일:줄/프
 
 주: 남은 sub-12(복사 버튼 라벨 10.5px, 조건부 봉인 캡션 11px)은 관례적
 마이크로 라벨 — 본문 하한과 무관. 본문 단락은 전 표면 ≥12px 달성.
+
+---
+
+## Loop 4 — 자동 CHECK 도입 + 마크다운 누출 완전 봉합
+
+### 하네스: check.mjs 신설 — 스파인/마크다운/가독성/레일/커버리지 자동 검사.
+매 캡처 뒤 실행. 사람 눈은 미학에, 규칙 위반은 기계에.
+
+### F-4-1 · P1 · complete-bearing · 내용#9 렌더 · fixed
+증상: check.mjs가 방위 카드 `**[진단 선행 조건...]**` 리터럴 별표 재검출 —
+  loop2 renderInline이 요약/근거/암초만 덮고 next_helm은 샘.
+진단: CurrentBearingCard next_helm(230)·contract_seed.predicate(244)·
+  required_check(197)이 plain text.
+집도: 셋 다 renderInline. 재캡처 후 P1=0 확인.
+상태: fixed(<이 커밋>) — 자동검사가 사람이 놓칠 회귀를 잡은 첫 사례.
+
+### F-4-2 · P2 · 다표면 · UX#2 가독성 (batch)
+증상: idle·analyzing·draft·review·ladder·premise·bearing 본문 최소 11px.
+  여러 표면이 정확히 11px → 공통 컴포넌트/패턴 의심.
+집도: 다음 루프에서 공통 소스 추적 후 일괄. (P2, 회귀 아님)
+상태: open (loop 5 batch)
