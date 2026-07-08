@@ -2560,19 +2560,33 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           const crewRowing = deployPhase === 'deployed' && workers.some(w => w.status === 'running' || w.status === 'ai_preparing');
           const answered = answers.length;
           const asking = !!curQ && phase === 'conversing' && !suppressQuestion;
-          // 질문 노드 수: 답한 것 + (지금 묻는 중이면 1) — 최소 계획된 라운드까지 보여줘
-          // 앞으로 몇 번 남았는지도 보인다. probe 등으로 계획을 넘기면 실제 수를 따른다.
-          const qTotal = Math.max(answered + (asking ? 1 : 0), Math.min(maxR, 3));
+          const pastQuestions = rank > 0 || !!mix || (crewRowing && !asking);
+          // 질문 노드 수: 묻는 동안엔 계획된 라운드(기본 3)까지 미리 보여 몇 번
+          // 남았는지 말하고, "그만 묻고 초안"으로 지나갔으면 안 물은 노드는
+          // 접는다 — 영영 안 올 미래를 남겨두면 레일이 거짓말을 한다.
+          const qTotal = pastQuestions
+            ? answered
+            : Math.max(answered + (asking ? 1 : 0), Math.min(maxR, 3));
           const cps: RailCheckpoint[] = [
-            { key: 'situation', label: L('상황', 'Case'), state: 'done', group: '묶기', groupEn: 'Bind' },
-            { key: 'rope', label: L('밧줄', 'Rope'), state: 'done', group: '묶기', groupEn: 'Bind' },
+            { key: 'situation', label: L('상황', 'Case'), state: 'done', group: '묶기', groupEn: 'Bind',
+              title: L('처음 적어주신 상황으로 돌아가 보기', 'Look back at your original case') },
+            { key: 'rope', label: L('밧줄', 'Rope'), state: 'done', group: '묶기', groupEn: 'Bind',
+              title: L('듣기 전에 남긴 당신의 기울기', 'The lean you tied before listening') },
           ];
           for (let i = 0; i < qTotal; i++) {
+            const isCur = asking && i === answered;
+            // 갈림 확인(probe)은 라운드 밖의 다른 성격 — 라벨로 구분.
+            const isProbe = isCur && !!curQ?.id?.startsWith('probe-fork-');
+            const ansPreview = i < answered ? (answers[i]?.value || '').slice(0, 40) : '';
             cps.push({
               key: `q${i}`,
-              label: L(`질문${i + 1}`, `Q${i + 1}`),
-              state: i < answered ? 'done' : (asking && i === answered ? 'current' : 'future'),
+              label: isProbe ? L('갈림', 'Fork') : L(`질문${i + 1}`, `Q${i + 1}`),
+              state: i < answered ? 'done' : (isCur ? 'current' : 'future'),
               group: '묶기', groupEn: 'Bind',
+              title: i < answered
+                ? (ansPreview ? L(`그때의 답: ${ansPreview}`, `Your answer: ${ansPreview}`) : undefined)
+                : isCur ? L('지금 답하고 있는 질문', 'The question you are answering')
+                : L('남은 질문 — 답할수록 항로가 다듬어져요', 'Remaining question — each answer refines the course'),
             });
           }
           cps.push({
@@ -2580,20 +2594,30 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             label: L('초안', 'Draft'),
             state: (mix || rank >= 2) ? 'done' : (rank === 1 || (rank === 0 && crewRowing && !asking)) ? 'current' : 'future',
             group: '듣기', groupEn: 'Listen',
+            title: L('당신의 답 위에서 문서 초안을 만들어요', 'A draft is written on top of your answers'),
           });
+          // 검토를 건너뛰고 완성한 경우엔 정직하게 '건너뜀'으로 — 안 한 검토를
+          // 완료로 칠하면 레일이 거짓말을 한다.
           cps.push({
             key: 'review',
             label: L('검토', 'Review'),
-            state: rank >= 4 ? 'done' : (rank === 2 || rank === 3) ? 'current' : 'future',
+            state: rank >= 4 ? (dmFb ? 'done' : 'skipped') : (rank === 2 || rank === 3) ? 'current' : 'future',
             group: '듣기', groupEn: 'Listen',
+            title: rank >= 4 && !dmFb
+              ? L('검토 없이 진행했어요', 'Went ahead without a review')
+              : L('의사결정권자의 눈으로 초안을 검토받아요', "The draft gets a decision-maker's read"),
           });
           cps.push({
             key: 'check',
-            label: L('확인', 'Check'),
+            label: L('시험', 'Test'),
             state: rank === 4 ? 'current' : 'future',
             group: '닿기', groupEn: 'Land',
+            title: L('부풀린 성공 시나리오로 이 계획이 기대고 있는 전제를 시험해요', "Inflated success scenarios test the belief this plan leans on"),
           });
-          cps.push({ key: 'seal', label: L('봉인', 'Seal'), state: 'future', group: '닿기', groupEn: 'Land' });
+          cps.push({
+            key: 'seal', label: L('봉인', 'Seal'), state: 'future', group: '닿기', groupEn: 'Land',
+            title: L('확인일과 함께 판단을 봉인해요 — 그날 현실과 맞춰봐요', 'Seal the call with a check date — reality answers then'),
+          });
           return (
             <CheckpointRail
               checkpoints={cps}
