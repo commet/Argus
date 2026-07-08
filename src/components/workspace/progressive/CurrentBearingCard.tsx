@@ -200,7 +200,7 @@ export function CurrentBearingCard({
             {fog_or_reef.required_check && (
               <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-tertiary)]">
                 <span className="font-medium">{L('확인: ', 'Check: ')}</span>
-                {fog_or_reef.required_check}
+                {renderInline(fog_or_reef.required_check)}
               </p>
             )}
           </Section>
@@ -227,7 +227,7 @@ export function CurrentBearingCard({
             <ArrowRight size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
             <p className="text-[13px] font-medium leading-relaxed text-[var(--text-primary)]">
               <span className="font-normal text-[var(--text-tertiary)]">{L('다음 조타: ', 'Next step: ')}</span>
-              {next_helm}
+              {renderInline(next_helm)}
             </p>
           </div>
         )}
@@ -241,7 +241,7 @@ export function CurrentBearingCard({
               <span className="font-semibold text-[var(--text-primary)]">
                 {L('나중에 확인할 것: ', 'To check later: ')}
               </span>
-              {contract_seed.predicate}
+              {renderInline(contract_seed.predicate)}
             </p>
           </div>
         </div>
