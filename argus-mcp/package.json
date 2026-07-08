@@ -26,6 +26,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "loop": "npm run build && node evals/loop.mjs",
     "eval": "node evals/run.mjs",
     "eval:review": "node evals/run-review.mjs",
     "prepack": "npm run build",

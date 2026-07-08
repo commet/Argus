@@ -1,6 +1,26 @@
 # Argus evals
 
-Two tiers, matching the README's reliability claim.
+Three layers, matching the README's reliability claim.
+
+## Self-drive loop — `npm run loop` (deterministic, no API key)
+
+The web-app analog of a Playwright run, but an MCP server has no browser to
+drive — a tool "surface" is just the text it returns. So `evals/loop.mjs` spawns
+the **real built server** over stdio (`node dist/index.js`), walks it through 6
+realistic decision journeys (16 real tool calls: seal→settle, the return loop,
+restraint on a flat case, a doc review, honest error paths), and **lints every
+surface it actually returns** for spine + contract breaks via
+`src/lib/surface-lint.ts` (the same verdict-language source the crux guard uses).
+
+```bash
+npm run loop        # builds, then drives + lints the real server
+```
+
+RED = a spine/contract break (a surface with no human line, an error with no
+recovery path, or a surface that leaks a verdict) → exit 1, gates a watch loop or
+CI. yellow = a smell (surface too long, no next_actions), not a failure. It catches
+exactly the LLM-glue failure: a wire that silently breaks and returns a
+plausible-but-empty surface turns red here instead of shipping.
 
 ## Tier 1 — deterministic gates (no model, runs in CI)
 

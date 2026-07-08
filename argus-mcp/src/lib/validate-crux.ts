@@ -9,25 +9,19 @@
  * "tool-surface verdict-leak" claim rests on this plus the structural absences,
  * not on this regex being complete.
  */
+import { VERDICT_LEAN as LEAN, VERDICT_FORK as FORK, VERDICT_CONFIRM_EN as CONFIRM_EN, VERDICT_CONFIRM_KO as CONFIRM_KO } from './surface-lint.js';
+
 export interface CruxError {
   code: 'CRUX_NOT_A_QUESTION' | 'CRUX_CARRIES_LEAN' | 'CRUX_ADMIN_ONLY';
   message: string;
   recovery: string;
 }
 
-// Directional / recommendation tells. NOTE: the old `i('| w)?d` alternation
-// also matched the bare word "id" ("user id" flagged a neutral question as
-// CRUX_CARRIES_LEAN — 11 P1-3); decomposed to the two real tells.
-const LEAN = /\b(you should|i'd|i would|the (stronger|better|safer|smarter) (case|choice|option|move|bet)|most (teams|people|founders)|the right (call|move|choice)|go with|lean(s)? toward|my (recommendation|advice|take)|honestly,? (i|you)|if i were you)\b/i;
-// Two-pole fork tell ("A or B?" framed as the question).
-const FORK = /\b(a or b|option (a|b|1|2)|either\b.*\bor\b.*\?)/i;
-// Admin-only logistics a crux is never built from — parity with the webapp's
-// question-rules floor (R1 admin_only / R4 internal_structure). ko + en.
+// The directional/fork/confirmation tells are the SINGLE source in
+// surface-lint.ts (imported above), so the crux guard and the surface-lint loop
+// can never drift. Only the crux-specific admin-logistics tells stay local.
 const ADMIN_EN = /\b(final decision[-\s]?maker|deadline|what (format|tone)|which section|how many pages|fill (in|out) the (section|outline|template)|skeleton)\b/i;
 const ADMIN_KO = /최종\s*결정권자|마감(일|이|은|을|\s*시한|\s*날짜)|데드라인|어떤\s*형식|어느\s*섹션|몇\s*(페이지|장|줄)|어떤\s*톤|스켈레톤|(섹션|항목|목차)(을|를)?\s*채/;
-// Leading confirmation ("is this the right direction?") — a verdict in disguise.
-const CONFIRM_EN = /\b(does this look right|is this (the )?(right )?(direction|call|approach))\b/i;
-const CONFIRM_KO = /이\s*방향(이|으로)?\s*맞(나요|죠|습니까|을까요)|(이게|이\s*방향이)\s*맞다고\s*보(시|나요|죠)/;
 
 export function validateCrux(crux: unknown): CruxError | null {
   if (typeof crux !== 'string') return null;
