@@ -33,10 +33,34 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   표본 사슬이 첫 due 항목의 언어를 따름 — 한 원장에 ko/en 결정이 섞이면 절반은
   다른 언어 프레임. escape는 config `locale:` 고정. README에 한 줄 안내 고려.
 
-- [ ] **ambient due-note("By the way — …") EN 고정 여부 확인** (loop J1, 2026-07-09)
-  due-note.ts가 SURFACES를 타는지 확인, 안 타면 ko 추가.
+- [x] **ambient due-note("By the way — …") EN 고정** (experience loop 하은, 2026-07-09)
+  → FIXED: ambientLine이 원장 목소리(ledgerVoiceText)를 탄다. 같은 커밋에서
+  check_in을 본 세션은 ambient 예산 소진 처리(정산 직후 빚 카운트 재발화 차단).
+
+- [ ] **정산이 그 세션의 첫 argus 호출일 때는 ambient가 여전히 정산 응답에 붙음** (2026-07-09)
+  잔여 케이스. "완료의 순간에 남은 빚 세기"가 맞는가 vs 이게 귀환 루프의 유일한
+  전선인가(활성화 병목) — 창업자 판단. 아래 '결정 필요'와 연결.
 
 ## 결정 필요 (창업자) — polish 아님, 제품 판단
+
+- [ ] **빈 서랍 문제 — 자발 채택은 되는데 포획이 0** (experience loop marcus, 2026-07-09)
+  가장 큰 제품 발견. 사용자가 Argus를 한 번도 언급 안 했는데 호스트가 결정
+  순간을 알아보고 open_decision까지 감(자발 채택 ✓, 승차감 5/5). 그러나
+  "기록해둘까요?" 두 번 제안 → 사용자가 무시("그냥 가자") → 아무것도 안 남음
+  → 30일 뒤 회고에서 서랍이 비어 있음(earned_return 2/5). 판정단 평:
+  "돌아왔더니 서랍이 비어 있었다". 선택지:
+  (a) 현행 유지 — 빈 서랍도 정직한 결과(강제 포획은 spine 위반)
+  (b) seal 거절/무응답 시 zero-ceremony 강등 경로를 서버 instructions에 명시
+      (argus_watch op=anchor는 이미 존재 — 호스트가 그리로 안 감)
+  (c) 호스트가 사용자의 발화 그대로를 watch 앵커로 남기도록 유도(제안 1회,
+      provenance = 사용자 발화 인용)
+  판정단 ADD 제안은 "체크인마다 자동 포획"이었으나 이는 spine 위반 —
+  (b)/(c)가 spine-safe 번역.
+
+- [ ] **세션 범위 기억** (experience loop 하은 ADD, 2026-07-09)
+  "오늘은 하나만"이라고 사용자가 선언한 범위를 존중해 다음 항목으로 자동으로
+  안 넘어가는 것 — 대부분 호스트 행동이라 서버가 강제 못 함. instructions에
+  한 줄 반영할지 검토.
 
 - [ ] **확인 전 전제는 day 1부터 발화** (life loop, 2026-07-09)
   감시 전제는 추가 다음 날부터 "재확인 차례"로 뜸(`isDueForRecheck`: 확인

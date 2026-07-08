@@ -56,7 +56,15 @@ export function appendDueNote(
   result: McpToolResult,
 ): McpToolResult {
   try {
-    if (result.isError || SKIP_TOOLS.has(toolName)) return result;
+    if (result.isError) return result;
+    if (SKIP_TOOLS.has(toolName)) {
+      // check_in IS the due surface — a session that saw it has had its ambient
+      // budget spent. Without this mark, the tail re-fired on the NEXT call and
+      // read as a debt count at the worst moment (experience loop: it rode the
+      // settle right after a check_in triage — "one done, here are your 2 left").
+      try { ambientShownFor.add(resolveToolArgusDir(args['argus_dir'])); } catch { /* unbound → nothing to mark */ }
+      return result;
+    }
     const sc = result.structuredContent as Record<string, unknown> | undefined;
     if (!sc || sc['ok'] !== true) return result;
 
@@ -79,7 +87,7 @@ export function appendDueNote(
 
     // ── channel 2: the surface tail — session-once, mute-respecting, localized ──
     if (!ambientShownFor.has(dir) && !ambientMuted(dir)) {
-      const line = ambientLine(dir, due);
+      const line = ambientLine(dir, due, state); // state lends the ledger's own voice
       if (line && typeof sc['surface'] === 'string') {
         sc['surface'] = String(sc['surface']) + line;
         data['ambient_shown'] = true;

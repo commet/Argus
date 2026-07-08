@@ -4,7 +4,8 @@ import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { readReceipt } from '../lib/receipt.js';
 import { renderReceipt, renderWake, type WakeContractRow } from '../lib/render-receipt.js';
-import { surfaceLocale, resolveResponseLocale } from '../lib/surfaces.js';
+import { surfaceLocale, resolveResponseLocale, type SurfaceLocale } from '../lib/surfaces.js';
+import { ledgerVoiceText } from '../lib/ambient-due.js';
 import type { LedgerState } from '../lib/ledger-replay.js';
 import { isMonitored, isDueForRecheck, receiptPremisesInfo, recheckCadenceDays, nextRecheckDue, isReconsiderable, isDueForReconsider, reponderCadenceDays, nextReponderDue, isNudgeArmed } from '../lib/premises.js';
 import { z } from 'zod';
@@ -15,6 +16,15 @@ import { handleToolException } from './errors.js';
 /** check_by ascending; rows without a date sink to the end. */
 const byCheckBy = (a: { check_by?: string }, b: { check_by?: string }) =>
   (a.check_by || '9999-99-99') < (b.check_by || '9999-99-99') ? -1 : 1;
+
+/** Voice for a read view: the view's own text, else any ledger user-text, else
+ *  config-or-EN — NEVER env/Intl. (Experience-loop find: an English user on a
+ *  Korean-locale machine got a Korean "no premises" line because the textless
+ *  path fell through resolveResponseLocale's env fallback.) */
+function readVoice(dir: string, ledger: LedgerState, text?: string | null): SurfaceLocale {
+  const t = (typeof text === 'string' && text) ? text : ledgerVoiceText(ledger);
+  return t ? resolveResponseLocale(dir, t) : surfaceLocale(dir);
+}
 
 /** wake_text (P1-E7 = 12 §3.5) — rendered only when a wake exists (at least
  *  one sealed or settled contract); candidates/dismissed never fill the frame. */
@@ -79,8 +89,8 @@ export const recall: ToolModule = {
         // rule extended to this read (M3: was the recall↔check_in drift).
         const armed = isNudgeArmed(entry, today);
         // Read tools have no fresh user text to sniff, so the decision's own
-        // sealed predicate carries the voice (parity with the receipt at line 60).
-        const locale = resolveResponseLocale(dir, entry?.predicate ?? null);
+        // sealed predicate carries the voice (parity with the receipt view).
+        const locale = readVoice(dir, ledger, entry?.predicate);
         if (list.length === 0) {
           return envelope({
             ok: true, tool: 'argus_recall',
@@ -139,7 +149,7 @@ export const recall: ToolModule = {
           .filter((c) => c.status === 'sealed')
           .map((c) => ({ id: c.id, predicate: c.predicate, check_by: c.check_by }))
           .sort(byCheckBy);
-        const locale = resolveResponseLocale(dir, open[0]?.predicate ?? null);
+        const locale = readVoice(dir, ledger, open[0]?.predicate);
         const surface = ledger.ids.size === 0
           ? (locale === 'ko'
               ? 'Argus는 답을 주지 않습니다. 예측 하나와 확인일을 기록하고, 그날 현실과 만납니다. argus_open_decision으로 첫 결정을 여세요.'
@@ -155,7 +165,7 @@ export const recall: ToolModule = {
           .sort(byCheckBy);
         // 60-row cap (12 §3.6) — the JSON stays a summary, not a wall.
         const shown = all.slice(0, 60);
-        const locale = resolveResponseLocale(dir, all[0]?.predicate ?? null);
+        const locale = readVoice(dir, ledger, all[0]?.predicate);
         const wake = wakeText(ledger, today, dir);
         return envelope({
           ok: true, tool: 'argus_recall', surface: locale === 'ko' ? `기록에 남은 결정 ${all.length}건.` : `${all.length} decision(s) on record.`, next_actions: ['stop'],
@@ -166,7 +176,7 @@ export const recall: ToolModule = {
       // track_record — frequency only, sample-size caveated. No tier, no score (spine rule 2).
       const s = ledger.stats;
       const n = s.total_settled;
-      const trackLocale = resolveResponseLocale(dir, [...ledger.contracts.values()][0]?.predicate ?? null);
+      const trackLocale = readVoice(dir, ledger);
       const freq = n === 0
         ? (trackLocale === 'ko' ? '아직 정산된 결정이 없습니다 — 요약할 것이 없습니다.' : 'No settled decisions yet — nothing to summarize.')
         : (trackLocale === 'ko'

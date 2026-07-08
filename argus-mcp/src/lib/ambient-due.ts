@@ -1,6 +1,6 @@
 import { replayLedger, type LedgerState } from './ledger-replay.js';
 import { duePremises, groupDuePremises, dueOpenQuestions } from './premises.js';
-import { surfacesFor } from './surfaces.js';
+import { surfacesFor, SURFACES, resolveResponseLocale } from './surfaces.js';
 
 /**
  * ambient-due — the ONE due-count source (M1 §1.3 · M3 §3, single-source rule).
@@ -44,14 +44,36 @@ export function isSilent(due: AmbientDue): boolean {
 }
 
 /**
+ * The user's own language, read from the LEDGER's user-authored text — the
+ * one deterministic voice source for surfaces that have no fresh input (the
+ * ambient tail, recall's textless views). Chain: the latest watch anchor, an
+ * overdue predicate, a due premise's decision, a due question, else ANY
+ * contract predicate (replay order = deterministic). Never env/Intl — an
+ * English user on a Korean machine must not get a Korean frame (experience
+ * loop caught exactly that).
+ */
+export function ledgerVoiceText(state: LedgerState): string | undefined {
+  const anchors = [...state.watch.anchors.values()].sort((a, b) => (a.date < b.date ? 1 : -1));
+  return anchors[0]?.text
+    || state.overdue[0]?.text
+    || duePremises(state)[0]?.decision_text
+    || dueOpenQuestions(state)[0]?.text
+    || [...state.contracts.values()].find((c) => typeof c.predicate === 'string' && c.predicate)?.predicate;
+}
+
+/**
  * The localized one-line ambient fact for a due count, or '' when silent.
  * Leads with a space so it appends cleanly to the END of a tool's surface
  * (M1 §1.3, §6: never obscure the result — the line is last, and it is a fact
  * + the argus_check_in handle, never a directive).
+ * `state` (when the caller has one) lends the ledger's own voice — without it
+ * the tail fell back to config-or-EN and read "By the way — 2 to settle" to a
+ * user whose every decision is Korean (experience-loop worst-moment).
  */
-export function ambientLine(dir: string | null | undefined, due: AmbientDue): string {
+export function ambientLine(dir: string | null | undefined, due: AmbientDue, state?: LedgerState): string {
   if (isSilent(due)) return '';
-  const A = surfacesFor(dir).ambient;
+  const voice = state ? ledgerVoiceText(state) : undefined;
+  const A = (voice ? SURFACES[resolveResponseLocale(dir, voice)] : surfacesFor(dir)).ambient;
   const { contractsDue: c, premiseFactsDue: p, openQuestionsDue: q } = due;
   // Fragment-composed so any subset of the three due kinds reads naturally in
   // both locales (M3 adds a third kind — a fixed combo table would be 7 cases).
