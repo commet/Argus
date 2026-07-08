@@ -218,6 +218,14 @@ SELECT column_name FROM information_schema.columns WHERE table_name = 'TABLE_NAM
 - Never inject blanket behavioral changes ("be conservative") — always scope to specific contexts
 - User data in system prompts MUST be wrapped in `<user-data>` tags and passed through `sanitizeForPrompt()` (see `persona-prompt.ts`)
 
+## Design: Banned Patterns (창업자 확정, 모든 세션 적용)
+
+- **왼쪽 세로 악센트 바 금지** (2026-07-08): 텍스트 블록 왼쪽의 `border-l-[Npx]
+  border-[var(--accent)]` 세로 바(인용 바, "손톱 모양") 영구 금지 — 화면마다
+  반복되며 싸구려 장치가 됨. 인용/강조는 배경 틴트 블록(`rounded-lg
+  bg-[var(--accent)]/[0.04] px-4 py-3`, 테두리 없음)이나 활자 위계로.
+  `no-left-accent-bar.test.ts`가 CI에서 재등장을 막는다.
+
 ## XSS / User Input Security
 
 - **React JSX auto-escapes** — `{variable}` in JSX is safe. This is why we have NO XSS issues currently.

@@ -34,7 +34,7 @@ import { useRecastStore } from '@/stores/useRecastStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useAgentAttentionStore, useAttributionClickOutside } from '@/stores/useAgentAttentionStore';
 import { PingToast } from './PingToast';
-import { VoyagePhaseRail } from './VoyagePhaseRail';
+import { VoyagePhaseRail, voyagePhaseOf } from './VoyagePhaseRail';
 import { runAllAIWorkers, runPipeline, type WorkerContext } from '@/lib/worker-engine';
 import { withTranscript } from '@/lib/execution-transcript';
 import { getCompletionNote } from '@/lib/worker-personas';
@@ -537,7 +537,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                   {/* Spine: the crux this turns on — a neutral question, not a
                       "what you'd advise" verdict (renamed from recommendation_direction). */}
                   <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('이 결정이 갈리는 지점', 'The open question')}</p>
-                  <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-4 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
+                  <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-3.5 py-2.5 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
                     {synthesis.open_question}
                   </blockquote>
                   {/* Spine (F5): the asymptote disclosure CLAUDE.md mandates — we
@@ -745,7 +745,7 @@ function VoyagePrepSummary({
                 Fix: prefer the declarative insight as the bearing; otherwise show
                 the question under a label that says it's the question the ANALYSIS
                 narrowed to (not one the user decided). Escape links stay below. */}
-            <div className="mb-5 pl-4 border-l-[2px] border-[var(--accent)]/45">
+            <div className="mb-5">
               <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5">
                 <Compass size={11} className="shrink-0" />
                 {snapshot.insight
@@ -853,9 +853,10 @@ export function MirrorBeat({ assumption }: { assumption: string }) {
       <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]/80 mb-2.5">
         {L('AI가 채운 전제', 'A premise the AI filled in')}
       </p>
-      {/* The surfaced premise — serif, sized BELOW the question but above the
-          fine print, so scale alone places it in the hierarchy. */}
-      <p className="text-[16px] md:text-[17px] text-[var(--text-primary)] leading-[1.5] max-w-[60ch]" style={{ fontFamily: 'var(--font-display)' }}>
+      {/* The surfaced premise — a NOTE, not a headline. One display-serif
+          headline per screen (the question below owns it); this reads as a
+          margin annotation the user can correct in passing. */}
+      <p className="text-[13.5px] text-[var(--text-primary)] leading-[1.6] max-w-[60ch]">
         {assumption}
       </p>
       {/* Recognition, not a question. Hand control back; no 맞나요?, no fork. */}
@@ -2551,9 +2552,35 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         </AnimatePresence>
         {/* Hidden once complete — a finished stepper is dead chrome competing
             with the one-screen bearing (compression audit B-1). */}
-        {phase !== 'complete' && (
-          <VoyagePhaseRail phase={phase} crewDeployed={deployPhase === 'deployed' && workers.length > 0} />
-        )}
+        {phase !== 'complete' && (() => {
+          const crewOn = deployPhase === 'deployed' && workers.length > 0;
+          // Within-phase headway so the ship visibly ADVANCES on every turn
+          // instead of parking at one mooring for most of the session.
+          const bindProgress = phase === 'analyzing' ? 0.25
+            : phase === 'conversing' ? Math.min(0.9, 0.35 + 0.55 * (round / Math.max(1, maxR)))
+            : 0.1;
+          const done = workers.filter(w => w.status === 'done').length;
+          const listenProgress = phase === 'mixing' ? 0.7
+            : phase === 'lead_synthesizing' ? 0.78
+            : phase === 'dm_feedback' ? 0.86
+            : (phase === 'refining' || phase === 'testing') ? 0.93
+            : workers.length > 0 ? Math.min(0.6, 0.15 + 0.45 * (done / workers.length))
+            : 0.1;
+          const railProgress = voyagePhaseOf(phase, crewOn) === 'bind' ? bindProgress : listenProgress;
+          return (
+            <VoyagePhaseRail
+              phase={phase}
+              crewDeployed={crewOn}
+              progress={railProgress}
+              onPhaseClick={(key) => {
+                // 회항은 보는 것부터: 그 단계의 산출물로 스크롤 (상태 되감기 아님).
+                if (key === 'bind') scrollToRef(analysisCardRef.current ? analysisCardRef : questionRef, 'top');
+                else if (key === 'listen') scrollToRef(workerSectionRef.current ? workerSectionRef : (mixPreviewRef.current ? mixPreviewRef : questionRef), 'top');
+                else scrollToRef(finalRef.current ? finalRef : mixPreviewRef, 'top');
+              }}
+            />
+          );
+        })()}
 
         {/* PhaseStatusBar + StreamSnippet — sticky wrapper so progress info
             stays glued to the top while the user scrolls through the long

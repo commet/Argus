@@ -44,7 +44,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
             </div>
 
             {/* First reaction — impactful blockquote */}
-            <blockquote className="text-[17px] md:text-[18px] text-[var(--text-primary)] leading-[1.6] italic pl-5 border-l-[3px] border-[var(--accent)]/20">
+            <blockquote className="text-[17px] md:text-[18px] text-[var(--text-primary)] leading-[1.6] italic">
               &ldquo;{fb.first_reaction}&rdquo;
             </blockquote>
 

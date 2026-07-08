@@ -30,6 +30,15 @@ function splitSkeleton(text: string): { prefix: string | null; body: string } {
   return { prefix: null, body: text };
 }
 
+/** The first sentence of a step body. The summary row must carry CONTENT —
+ *  step prefixes are usually bare connectives ("먼저/그다음/마지막으로"), and a
+ *  list of connectives with the content amputated is not a summary (창업자
+ *  실사용 지적: "'먼저' '그다음'만 보여주는 게 요약이냐"). */
+function firstSentence(text: string): string {
+  const m = text.match(/^[\s\S]*?[.!?](?=['")\]\s]|$)/);
+  return (m ? m[0] : text).trim();
+}
+
 interface AnalysisCardProps {
   snapshot: AnalysisSnapshot;
   prevSnapshot: AnalysisSnapshot | null;
@@ -183,7 +192,7 @@ export function AnalysisCard({
               {snapshot.insight && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden mb-6">
-                  <div className="pl-4 py-2 border-l-[2px] border-[var(--accent)]/40">
+                  <div className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
                     <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5">
                       {L('핵심', 'Key Insight')}
                     </div>
@@ -277,14 +286,17 @@ export function AnalysisCard({
                             {i + 1}
                           </span>
                         </div>
-                        {/* Content. Summary mode shows the step HEADLINE only
-                            (or a one-line clip when a step has no title); the
-                            explanation body appears under "자세히 보기". */}
+                        {/* Content. Summary mode = prefix + the body's FIRST
+                            SENTENCE (a connective alone is not a summary);
+                            the full explanation appears under "자세히 보기". */}
                         <div className="flex-1 min-w-0">
                           {prefix ? (
                             <>
-                              <h4 className="text-[15px] md:text-[16px] font-bold tracking-tight leading-snug text-[var(--text-primary)]">
-                                {prefix}
+                              <h4 className={`text-[14px] md:text-[15px] tracking-tight text-[var(--text-primary)] ${detailOpen ? 'font-bold leading-snug' : 'font-normal leading-[1.6] line-clamp-2'}`}>
+                                <span className="font-bold">{prefix}</span>
+                                {!detailOpen && (
+                                  <span className="text-[var(--text-secondary)]"> — {firstSentence(body)}</span>
+                                )}
                               </h4>
                               {detailOpen && (
                                 <p className="text-[13px] md:text-[14px] text-[var(--text-secondary)] leading-[1.7] mt-1">
@@ -293,7 +305,7 @@ export function AnalysisCard({
                               )}
                             </>
                           ) : (
-                            <p className={`text-[13px] md:text-[14px] text-[var(--text-primary)] leading-[1.7] ${detailOpen ? '' : 'line-clamp-1'}`}>
+                            <p className={`text-[13px] md:text-[14px] text-[var(--text-primary)] leading-[1.7] ${detailOpen ? '' : 'line-clamp-2'}`}>
                               {renderText(body)}
                             </p>
                           )}

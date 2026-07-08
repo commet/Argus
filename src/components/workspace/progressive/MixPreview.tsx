@@ -64,13 +64,29 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
   const nextSteps = mix.next_steps || [];
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: EASE }}>
-      <div className="rounded-2xl p-[1px] bg-gradient-to-b from-[var(--accent)]/20 to-[var(--accent)]/5">
-        <div className="rounded-[calc(1rem-1px)] bg-[var(--surface)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]">
+      {/* 도착 세리머니 — 항해의 산출물이 뭍에 닿는 순간. 정산 화면의 '영수증
+          완성 모먼트'와 같은 급의 도착감: 금빛 프레임이 살짝 강해지고, 도착
+          스탬프 한 줄이 먼저 찍힌 뒤 문서가 자리에 앉는다 (게이미피케이션
+          아님 — 축하 문구·점수 없이 도착 사실만). */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, ease: EASE }}
+        className="mb-3 flex items-center gap-2.5"
+      >
+        <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold text-white" style={{ background: 'var(--gradient-gold)' }}>
+          <CheckIcon size={11} strokeWidth={3} />
+          {L('초안이 닿았어요', 'The draft has landed')}
+        </span>
+        <span className="text-[11px] text-[var(--text-tertiary)]">
+          {L(`${sections.length}개 섹션 · 당신의 답 위에서 쓰였어요`, `${sections.length} sections · built on your answers`)}
+        </span>
+      </motion.div>
+      <div className="rounded-2xl p-[1.5px] bg-gradient-to-b from-[var(--accent)]/45 via-[var(--accent)]/15 to-[var(--accent)]/5 shadow-[0_2px_16px_rgba(160,130,60,0.10)]">
+        <div className="rounded-[calc(1rem-1.5px)] bg-[var(--surface)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]">
           <div className="p-5 md:p-7 space-y-6">
-            {/* Eyebrow — text-only, matches AnalysisCard */}
-            <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em]">{L('초안', 'Draft')}</div>
             <h2 className="text-[22px] md:text-[28px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix.title}</h2>
-            <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-5 text-[15px] text-[var(--text-secondary)] italic leading-relaxed">{renderInline(mix.executive_summary)}</blockquote>
+            <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-[15px] text-[var(--text-secondary)] italic leading-relaxed">{renderInline(mix.executive_summary)}</blockquote>
 
             {/* Collapsed by default — the CTA must not hide below a full document. */}
             <div className="flex items-center justify-between gap-3 flex-wrap">

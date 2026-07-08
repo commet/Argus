@@ -113,7 +113,16 @@ export async function POST(req: NextRequest) {
     || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || 'unknown';
 
-  if (auth) {
+  // Local-dev escape hatch: with a placeholder Supabase the rate-limit RPCs
+  // fail closed (correct in prod) and every request 429s, which blocks any
+  // local end-to-end run. Explicit opt-in AND development-only — this can
+  // never relax production limits (NODE_ENV is 'production' on Vercel).
+  const devSkipRateLimit =
+    process.env.NODE_ENV === 'development' && process.env.ARGUS_DEV_SKIP_RATE_LIMIT === '1';
+
+  if (devSkipRateLimit) {
+    // fall through to the model call — quotas are a prod-abuse concern.
+  } else if (auth) {
     // Logged-in user: DAILY_LIMIT/day via Supabase RPC
     const allowed = await checkRateLimit(auth.userId, auth.token);
     if (!allowed) {

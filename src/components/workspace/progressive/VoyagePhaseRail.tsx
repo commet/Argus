@@ -162,7 +162,17 @@ const PHASES: readonly PhaseMeta[] = [
  * Footprint stays compact (eyebrow + rail + names + one caption line) — the
  * drama lives in Bind and Land; Listen is the quiet middle.
  */
-export function VoyagePhaseRail({ phase, crewDeployed = false }: { phase: string; crewDeployed?: boolean }) {
+export function VoyagePhaseRail({ phase, crewDeployed = false, progress, onPhaseClick }: {
+  phase: string;
+  crewDeployed?: boolean;
+  /** 0..1 progress WITHIN the active phase — the ship advances continuously
+   *  between moorings instead of parking at one for 80% of the session
+   *  (창업자 지적: "바가 거의 안 움직여 멈춘 것처럼 보인다"). Omit → moored. */
+  progress?: number;
+  /** Completed-phase names become handles: click sails the view back to that
+   *  phase's artifact (scroll, not state rewind — 회항은 보는 것부터). */
+  onPhaseClick?: (key: VoyagePhaseKey) => void;
+}) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const reduce = useReducedMotion();
@@ -171,6 +181,14 @@ export function VoyagePhaseRail({ phase, crewDeployed = false }: { phase: string
   const activeIdx = PHASES.findIndex(p => p.key === activeKey);
   const active = PHASES[activeIdx];
   const sub = subLabelOf(phase, crewDeployed, locale);
+
+  // Ship position: the active mooring, plus fractional headway toward the next
+  // one when the caller reports within-phase progress. Land is the last mooring.
+  const clamped = Math.max(0, Math.min(1, progress ?? 0));
+  const pct = (s: string) => parseFloat(s);
+  const here = pct(SHIP_POS[active.key]);
+  const next = activeIdx + 1 < PHASES.length ? pct(SHIP_POS[PHASES[activeIdx + 1].key]) : here;
+  const shipLeft = `${(here + (next - here) * clamped * 0.9).toFixed(1)}%`;
 
   return (
     <motion.div
@@ -207,13 +225,13 @@ export function VoyagePhaseRail({ phase, crewDeployed = false }: { phase: string
       <div className="relative mb-2.5 h-[22px]" aria-hidden>
         {/* waterline */}
         <div className="absolute inset-x-0 bottom-[5px] h-[3px] rounded-full" style={{ background: 'var(--border-subtle)' }} />
-        {/* sailed water — gold fill up to the ship's mooring. style carries the
-            SSR position (no pre-hydration flash at 0); framer tweens changes. */}
+        {/* sailed water — gold fill up to the ship. style carries the SSR
+            position (no pre-hydration flash at 0); framer tweens changes. */}
         <motion.div
           className="absolute left-0 bottom-[5px] h-[3px] rounded-full"
-          style={{ background: 'var(--gradient-gold)', width: SHIP_POS[active.key] }}
+          style={{ background: 'var(--gradient-gold)', width: shipLeft }}
           initial={false}
-          animate={{ width: SHIP_POS[active.key] }}
+          animate={{ width: shipLeft }}
           transition={{ duration: reduce ? 0 : 1.6, ease: EASE }}
         />
         {/* mooring ticks — one small buoy per phase (start / mid / end) */}
@@ -232,9 +250,9 @@ export function VoyagePhaseRail({ phase, crewDeployed = false }: { phase: string
         {/* the hull — sails to the active mooring, then bobs gently at anchor */}
         <motion.div
           className="absolute bottom-[6px]"
-          style={{ translateX: '-50%', left: SHIP_POS[active.key] }}
+          style={{ translateX: '-50%', left: shipLeft }}
           initial={false}
-          animate={{ left: SHIP_POS[active.key] }}
+          animate={{ left: shipLeft }}
           transition={{ duration: reduce ? 0 : 1.6, ease: EASE }}
         >
           <motion.div
@@ -261,16 +279,21 @@ export function VoyagePhaseRail({ phase, crewDeployed = false }: { phase: string
         {PHASES.map((p, i) => {
           const done = i < activeIdx;
           const isActive = i === activeIdx;
+          // A visited phase is a HANDLE, not a label — click sails the view back
+          // to its artifact. Future phases stay inert (no fake affordance).
+          const clickable = !!onPhaseClick && (done || isActive);
           // Glyph colour: active = gold, completed = faded gold, future = tertiary.
           const glyphColor = isActive
             ? 'text-[var(--accent)]'
             : done
               ? 'text-[var(--accent)]/70'
               : 'text-[var(--text-tertiary)]';
+          const Tag = clickable ? 'button' : 'div';
           return (
-            <div
+            <Tag
               key={p.key}
-              className={`flex items-center gap-1.5 ${i === 0 ? 'justify-start' : i === 2 ? 'justify-end' : 'justify-center'}`}
+              {...(clickable ? { type: 'button' as const, onClick: () => onPhaseClick!(p.key), title: L(`${p.ko}로 돌아가 보기`, `Look back at ${p.en}`) } : {})}
+              className={`flex items-center gap-1.5 ${i === 0 ? 'justify-start' : i === 2 ? 'justify-end' : 'justify-center'} ${clickable ? 'cursor-pointer rounded-md px-1 -mx-1 hover:bg-[var(--accent)]/[0.07] transition-colors' : ''}`}
             >
               <motion.span
                 className={`shrink-0 transition-colors duration-500 ${glyphColor}`}
@@ -297,7 +320,7 @@ export function VoyagePhaseRail({ phase, crewDeployed = false }: { phase: string
                 {L(p.ko, p.en)}
               </span>
               {done && <Check className="w-3 h-3 text-[var(--accent)]/80 shrink-0" strokeWidth={3} aria-hidden />}
-            </div>
+            </Tag>
           );
         })}
       </div>
