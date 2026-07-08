@@ -27,6 +27,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "loop": "npm run build && node evals/loop.mjs",
+    "life": "npm run build && node evals/life.mjs",
+    "eval:experience": "npm run build && node evals/experience.mjs",
     "eval": "node evals/run.mjs",
     "eval:review": "node evals/run-review.mjs",
     "prepack": "npm run build",

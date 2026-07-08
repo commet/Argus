@@ -128,7 +128,13 @@ export interface SurfaceStrings {
     /** the anchor mirror (P1-E3): date arithmetic + the user's OWN words back.
      *  Recognition is day-math only — no welcome greetings, no verdict. */
     anchor_mirror: (daysSinceSeal: number, dueCount: number, words: string) => string;
-    due_premises: (n: number) => string;
+    /** staleDays / sinceAdd (single-fact case): days since the fact was last
+     *  checked (null = never) and days since it was added. Without them the
+     *  line was byte-identical day after day — the 75-day life loop measured a
+     *  20-day verbatim streak: wallpaper that trains the eye to stop seeing
+     *  it. Aging text is honest new information; a full silence-decay cap is a
+     *  separate product decision (backlog). */
+    due_premises: (n: number, staleDays?: number | null, sinceAdd?: number | null) => string;
     /** M3 — the open_question reconsider surface: a FACT (how long it has been
      *  open + the user's own question text) + the handle. Never a directive; the
      *  coda names that leaving it open is a valid answer (no guilt, no verdict). */
@@ -296,7 +302,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       due_contracts: (n) => `${n} decision contract(s) past check-by — time to check them against reality (argus_settle).`,
       anchor_mirror: (days, n, words) =>
         `${days} day(s) since you sealed — ${n} contract(s) past check-by. Your words then: '${words}' All that's left is to record what reality did (argus_settle).`,
-      due_premises: (n) => `${n} premise fact(s) due for a reality re-check (argus_recheck).`,
+      due_premises: (n, staleDays, sinceAdd) =>
+        `${n} premise fact(s) due for a reality re-check${n === 1 && staleDays != null ? ` — last checked ${staleDays}d ago` : n === 1 && staleDays === null && sinceAdd != null ? ` — ${sinceAdd}d since it was added, first check still open` : ''} (argus_recheck).`,
       reconsider_one: (days, q) =>
         `${days === null ? 'Left open a while ago' : `Left open ${days} day(s) ago`}: '${q}' Can you answer it now, or is it still open? Either is fine — leaving it open is a real answer (argus_premises).`,
       reconsider_more: (n) => `${n} open question(s) you left unresolved are up for another look (argus_premises).`,
@@ -423,7 +430,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       due_contracts: (n) => `계약 ${n}건이 확인일을 지났습니다 — 현실과 대조할 차례입니다 (argus_settle).`,
       anchor_mirror: (days, n, words) =>
         `봉인 후 ${days}일 — 계약 ${n}건이 확인일을 지났습니다. 그때 당신은 이렇게 적었습니다: '${words}' 현실이 어떻게 답했는지만 기록하면 됩니다 (argus_settle).`,
-      due_premises: (n) => `전제 사실 ${n}건이 현실 재확인 차례입니다 (argus_recheck).`,
+      due_premises: (n, staleDays, sinceAdd) =>
+        `전제 사실 ${n}건이 현실 재확인 차례입니다${n === 1 && staleDays != null ? ` — 마지막 확인 후 ${staleDays}일` : n === 1 && staleDays === null && sinceAdd != null ? ` — 적어둔 지 ${sinceAdd}일, 아직 첫 확인 전` : ''} (argus_recheck).`,
       reconsider_one: (days, q) =>
         `${days === null ? '얼마 전 미결로 남긴 질문' : `${days}일 전 미결로 남긴 질문`}: '${q}' 지금 답할 수 있나요, 아직 열려있나요? 어느 쪽이든 괜찮습니다 — 미결로 두는 것도 정당한 답입니다 (argus_premises).`,
       reconsider_more: (n) => `미결로 남겨둔 질문 ${n}건이 다시 볼 차례입니다 (argus_premises).`,

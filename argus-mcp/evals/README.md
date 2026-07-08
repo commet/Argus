@@ -1,6 +1,38 @@
 # Argus evals
 
-Three layers, matching the README's reliability claim.
+Five layers. The first three are deterministic (no API key, no flake — CI-grade);
+the last two put a model in the loop and answer questions no unit test can:
+
+| layer | command | question it answers | model |
+|---|---|---|---|
+| contract | `npm run loop` | is every returned surface correct, honest, spine-safe? | — |
+| **life** | `npm run life` | **what is 75 days of cohabitation like — nag, silence, dignity?** | — |
+| unit/protocol | `npm test` | structural gates (433+ tests incl. real-stdio round-trip) | — |
+| spine eval | `npm run eval` / `eval:review` | do models using these tools leak verdicts? | ✓ |
+| **experience** | `npm run eval:experience` | **would a real person, mid-work, keep this?** | ✓ |
+
+## Experience loop — `npm run eval:experience` (the product-level judge)
+
+Personas (`personas.mjs`) live day-stamped work lives against the REAL server:
+the host model gets the real instructions + real schemas (exactly what Claude
+Desktop/Code sees) and freely decides when — and whether — to touch Argus.
+An opus judge then scores the transcript AS the persona: ride-along, earned
+return, dignity, restraint, clarity + exactly ONE thing to cut and ONE to add.
+Probes no unit test can see: unprompted adoption (does the host reach for Argus
+at a decision moment nobody named?), the 3-week return payoff, the
+debt-collector test on an overdue pile, restraint against a hostile skeptic.
+Results → console + `evals/out/experience-latest.json` → feed
+`POLISH-BACKLOG.md` and product decisions.
+
+## Life loop — `npm run life` (75-day cohabitation, deterministic)
+
+A Korean founder's sparse calendar simulated day by day against the real server
+(the harness owns the clock via `today_override`). Measures pressure, not
+correctness: identical-line nag streaks, quiet-day quality, overdue voice
+(information vs frozen line), post-settle silence, verdict-language on any day.
+This loop caught: a 20-day byte-identical premise nudge (fixed: the line now
+ages honestly), and the quiet-day greeting falling back to English on an
+all-Korean ledger (fixed: ledger-wide voice sample).
 
 ## Self-drive loop — `npm run loop` (deterministic, no API key)
 

@@ -67,8 +67,13 @@ export const checkIn: ToolModule = {
       // a due question came back framed in English around the user's own words.
       const premiseGroups = groupDuePremises(duePremises(ledger));
       const openQs = dueOpenQuestions(ledger);
+      // Last resort: ANY contract predicate (replay order = deterministic) —
+      // without it a quiet day on an all-Korean ledger greeted in English
+      // ("Nothing is due.") because nothing due meant nothing to sniff
+      // (75-day life loop find). Still ledger text only, never env/Intl.
+      const anyLedgerText = [...ledger.contracts.values()].find((c) => typeof c.predicate === 'string' && c.predicate)?.predicate;
       const ledgerVoiceSample = lastAnchor?.text || ledger.overdue[0]?.text || due[0]?.predicate
-        || premiseGroups[0]?.premises[0]?.decision_text || openQs[0]?.text;
+        || premiseGroups[0]?.premises[0]?.decision_text || openQs[0]?.text || anyLedgerText;
       const S = ledgerVoiceSample
         ? SURFACES[resolveResponseLocale(dir, ledgerVoiceSample)].checkin
         : SURFACES[surfaceLocale(dir)].checkin;
@@ -197,7 +202,7 @@ export const checkIn: ToolModule = {
             : S.due_contracts(dueAll.length),
         );
       }
-      if (premiseGroups.length > 0) parts.push(S.due_premises(premiseGroups.length));
+      if (premiseGroups.length > 0) parts.push(S.due_premises(premiseGroups.length, premiseGroups[0]?.premises[0]?.days_stale, premiseGroups[0]?.premises[0]?.days_since_add));
       // M3 — the oldest due question's own words lead (one quote only; the rest
       // stay in data). When it's the sole due thing this is the whole surface.
       if (openQs.length > 0) {

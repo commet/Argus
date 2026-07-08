@@ -79,6 +79,10 @@ export interface DuePremise {
   last_checked?: string;
   /** Days since the last recheck; null = never checked. */
   days_stale: number | null;
+  /** Days since the premise was added; null when the add ts is unknown. Lets a
+   *  never-checked due line AGE honestly instead of repeating verbatim (the
+   *  75-day life loop measured a 20-day byte-identical streak → wallpaper). */
+  days_since_add: number | null;
 }
 
 export interface DueOpenQuestion {
@@ -131,6 +135,7 @@ export function duePremises(state: LedgerState): DuePremise[] {
     for (const p of entry.premises ?? []) {
       if (!isDueForRecheck(p, state.today)) continue;
       const last = dateOnly(p.last_recheck?.ts);
+      const added = dateOnly(p.added_ts);
       out.push({
         decision_id: entry.id,
         decision_text: (entry.text || '').slice(0, 48),
@@ -139,6 +144,7 @@ export function duePremises(state: LedgerState): DuePremise[] {
         text: p.text,
         last_checked: last,
         days_stale: last ? daysBetween(last, state.today) : null,
+        days_since_add: added ? daysBetween(added, state.today) : null,
       });
     }
   }

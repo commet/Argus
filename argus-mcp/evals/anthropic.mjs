@@ -30,6 +30,32 @@ export async function complete({ model, system, user, maxTokens = 1024 }) {
   return json.content.map((b) => (b.type === 'text' ? b.text : '')).join('').trim();
 }
 
+/**
+ * Full Messages call with tool support — for the experience loop, where the
+ * model plays the HOST (Claude Desktop/Code) and drives the real MCP server.
+ * Returns the raw response (content blocks + stop_reason) so the caller can
+ * execute tool_use blocks and continue the conversation.
+ */
+export async function chat({ model, system, messages, tools, maxTokens = 1024 }) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error('ANTHROPIC_API_KEY not set');
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model, max_tokens: maxTokens,
+      ...(system ? { system } : {}),
+      ...(tools && tools.length ? { tools } : {}),
+      messages,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`anthropic ${res.status}: ${body.slice(0, 300)}`);
+  }
+  return res.json();
+}
+
 /** Pull the first JSON object out of a possibly-fenced model response. */
 export function extractJson(text) {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
