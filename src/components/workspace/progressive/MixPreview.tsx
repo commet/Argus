@@ -86,7 +86,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
         <div className="rounded-[calc(1rem-1.5px)] bg-[var(--surface)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]">
           <div className="p-5 md:p-7 space-y-6">
             <h2 className="text-[22px] md:text-[28px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix.title}</h2>
-            <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-5 text-[15px] text-[var(--text-secondary)] italic leading-relaxed">{renderInline(mix.executive_summary)}</blockquote>
+            <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-[15px] text-[var(--text-secondary)] italic leading-relaxed">{renderInline(mix.executive_summary)}</blockquote>
 
             {/* Collapsed by default — the CTA must not hide below a full document. */}
             <div className="flex items-center justify-between gap-3 flex-wrap">

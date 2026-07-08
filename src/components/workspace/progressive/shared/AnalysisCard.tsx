@@ -192,7 +192,7 @@ export function AnalysisCard({
               {snapshot.insight && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden mb-6">
-                  <div className="pl-4 py-2 border-l-[2px] border-[var(--accent)]/40">
+                  <div className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
                     <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5">
                       {L('핵심', 'Key Insight')}
                     </div>

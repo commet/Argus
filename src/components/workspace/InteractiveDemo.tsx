@@ -647,7 +647,7 @@ function DemoDraftCard({ draft }: { draft: DemoScenario['draft'] }) {
           <div className="p-5 md:p-8 space-y-5">
             <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/8 px-3 py-1 rounded-full">Draft</span>
             <h2 className="text-[20px] md:text-[24px] font-bold text-[var(--text-primary)] leading-tight">{draft.title}</h2>
-            <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-5 text-[14px] text-[var(--text-secondary)] italic leading-relaxed">
+            <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-[14px] text-[var(--text-secondary)] italic leading-relaxed">
               {renderInline(draft.executive_summary)}
             </blockquote>
             {draft.sections.slice(0, 3).map((s, i) => (

@@ -148,7 +148,7 @@ export function FinalCard({
           ) : hasStructured ? (
             <div className="p-5 md:p-8 space-y-5">
               <h2 className="text-[22px] md:text-[26px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
-              <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-5 text-[14px] text-[var(--text-secondary)] italic leading-relaxed">
+              <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-[14px] text-[var(--text-secondary)] italic leading-relaxed">
                 {renderInline(mix!.executive_summary)}
               </blockquote>
               <div className="space-y-5">

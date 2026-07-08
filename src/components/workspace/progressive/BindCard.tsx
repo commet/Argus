@@ -118,7 +118,7 @@ export function BindCard({
         {/* The user's own words are the hero of this screen (우정 1조: 네가 한 말을
             그대로 기억한다) — quote treatment, not a footnote. */}
         {problem && (
-          <blockquote className="mt-4 rounded-lg border-l-[3px] border-[var(--accent)] bg-[var(--ai)]/30 px-3.5 py-2.5 text-[15px] font-medium leading-snug text-[var(--text-primary)] line-clamp-3" style={{ fontFamily: 'var(--font-display)' }}>
+          <blockquote className="mt-4 rounded-lg bg-[var(--ai)]/40 px-4 py-3 text-[15px] font-medium leading-snug text-[var(--text-primary)] line-clamp-3" style={{ fontFamily: 'var(--font-display)' }}>
             {problem}
           </blockquote>
         )}

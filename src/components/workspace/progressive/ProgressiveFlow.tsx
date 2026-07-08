@@ -537,7 +537,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
                   {/* Spine: the crux this turns on — a neutral question, not a
                       "what you'd advise" verdict (renamed from recommendation_direction). */}
                   <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">{L('이 결정이 갈리는 지점', 'The open question')}</p>
-                  <blockquote className="border-l-[3px] border-[var(--accent)]/20 pl-4 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
+                  <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-3.5 py-2.5 text-[13px] text-[var(--text-secondary)] italic leading-relaxed">
                     {synthesis.open_question}
                   </blockquote>
                   {/* Spine (F5): the asymptote disclosure CLAUDE.md mandates — we
@@ -745,7 +745,7 @@ function VoyagePrepSummary({
                 Fix: prefer the declarative insight as the bearing; otherwise show
                 the question under a label that says it's the question the ANALYSIS
                 narrowed to (not one the user decided). Escape links stay below. */}
-            <div className="mb-5 pl-4 border-l-[2px] border-[var(--accent)]/45">
+            <div className="mb-5">
               <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5">
                 <Compass size={11} className="shrink-0" />
                 {snapshot.insight
