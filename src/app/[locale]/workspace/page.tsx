@@ -1054,87 +1054,65 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   </button>
                 </div>
 
-                {/* ─── Field 1: 진짜 질문 ─── */}
+                {/* ─── 무대 연출: 이 순간의 주인공은 '진짜 질문' 하나다.
+                    (기존: 같은 무게의 박스 3개가 전문을 폭포로 덤프 — 한 문장
+                    입력에 600단어 벽. 창업자 실사용 지적.) 가정·뼈대는 개수 +
+                    방금 채워진 한 줄 티커로만 살아있음을 보여주고, 전문은
+                    분석 완료 후 항로 카드에서 제 위계로 읽힌다. */}
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: hasQuestion ? 1 : 0.4, y: 0 }}
+                  animate={{ opacity: hasQuestion ? 1 : 0.5, y: 0 }}
                   transition={{ duration: 0.4, ease: EASE }}
-                  className="rounded-2xl border border-[var(--accent)]/12 bg-[var(--surface)] p-4 md:p-5 mb-3"
+                  className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--surface)] p-5 md:p-6 mb-3"
                 >
-                  <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2">
-                    {L('진짜 질문', 'Real question')}
+                  <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-2.5">
+                    {L('우리가 읽은 진짜 질문', 'The real question we read')}
                   </div>
-                  <div className="text-[15px] md:text-[16px] leading-[1.6] text-[var(--text-primary)] whitespace-pre-wrap break-words min-h-[24px]">
-                    {hasQuestion ? partial.real_question : <span className="text-[var(--text-tertiary)] text-[13px]">{L('찾는 중...', 'Searching...')}</span>}
+                  <div className="text-[17px] md:text-[19px] leading-[1.45] text-[var(--text-primary)] whitespace-pre-wrap break-words min-h-[28px]" style={{ fontFamily: 'var(--font-display)' }}>
+                    {hasQuestion ? partial.real_question : <span className="text-[var(--text-tertiary)] text-[13px]" style={{ fontFamily: 'inherit' }}>{L('찾는 중...', 'Searching...')}</span>}
                     {hasQuestion && !partial.real_question_complete && (
-                      <span className="inline-block w-[2px] h-[16px] bg-[var(--accent)] ml-0.5 animate-pulse align-middle" />
+                      <span className="inline-block w-[2px] h-[18px] bg-[var(--accent)] ml-0.5 animate-pulse align-middle" />
                     )}
                   </div>
                 </motion.div>
 
-                {/* ─── Field 2: 숨은 가정 ─── */}
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: partial.stage === 'assumptions' || hasAssumptions ? 1 : 0.35, y: 0 }}
-                  transition={{ duration: 0.4, ease: EASE }}
-                  className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 md:p-5 mb-3"
-                >
-                  <div className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.15em] mb-2">
-                    {L('숨은 가정', 'Hidden assumptions')}
-                  </div>
-                  {hasAssumptions ? (
-                    <ul className="space-y-1.5">
-                      {partial.hidden_assumptions.map((a, i) => (
-                        <motion.li
-                          key={i}
-                          initial={{ opacity: 0, x: -6 }}
-                          animate={{ opacity: 1, x: 0 }}
+                {/* 채워지는 것들 — 개수 + 방금 도착한 항목 한 줄. 벽이 아니라 맥박. */}
+                {(hasAssumptions || hasSkeleton || partial.stage === 'assumptions' || partial.stage === 'skeleton') && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.4, ease: EASE }}
+                    className="px-1.5 space-y-1"
+                  >
+                    <div className="flex items-center gap-3 text-[11.5px] text-[var(--text-tertiary)] tabular-nums">
+                      <span className={hasAssumptions ? 'text-[var(--text-secondary)]' : ''}>
+                        {L(`숨은 가정 ${partial.hidden_assumptions.length}`, `${partial.hidden_assumptions.length} assumptions`)}
+                      </span>
+                      <span aria-hidden>·</span>
+                      <span className={hasSkeleton ? 'text-[var(--text-secondary)]' : ''}>
+                        {L(`문서 뼈대 ${partial.skeleton.length}`, `${partial.skeleton.length} sections`)}
+                      </span>
+                      <span className="text-[var(--text-tertiary)]/70">{L('— 분석이 끝나면 전문이 열려요', '— full text opens when analysis lands')}</span>
+                    </div>
+                    {/* 마지막으로 도착한 항목 하나만 — 살아있다는 신호 */}
+                    {(() => {
+                      const latestItem = partial.stage === 'skeleton'
+                        ? partial.skeleton[partial.skeleton.length - 1]
+                        : partial.hidden_assumptions[partial.hidden_assumptions.length - 1];
+                      return latestItem ? (
+                        <motion.p
+                          key={latestItem.slice(0, 24)}
+                          initial={{ opacity: 0, y: 3 }}
+                          animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.3, ease: EASE }}
-                          className="text-[13px] md:text-[14px] leading-[1.55] text-[var(--text-secondary)] flex gap-2"
+                          className="text-[12px] text-[var(--text-tertiary)] leading-snug line-clamp-1"
                         >
-                          <span className="text-[var(--accent)] shrink-0">·</span>
-                          <span className="flex-1">{a}</span>
-                        </motion.li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="text-[var(--text-tertiary)] text-[13px]">
-                      {partial.stage === 'assumptions' ? L('찾는 중...', 'Searching...') : L('대기 중', 'Waiting')}
-                    </span>
-                  )}
-                </motion.div>
-
-                {/* ─── Field 3: 뼈대 ─── */}
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: partial.stage === 'skeleton' || hasSkeleton ? 1 : 0.35, y: 0 }}
-                  transition={{ duration: 0.4, ease: EASE }}
-                  className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-4 md:p-5"
-                >
-                  <div className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.15em] mb-2">
-                    {L('문서 뼈대', 'Document skeleton')}
-                  </div>
-                  {hasSkeleton ? (
-                    <ol className="space-y-1.5">
-                      {partial.skeleton.map((s, i) => (
-                        <motion.li
-                          key={i}
-                          initial={{ opacity: 0, x: -6 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, ease: EASE }}
-                          className="text-[13px] md:text-[14px] leading-[1.55] text-[var(--text-secondary)] flex gap-2"
-                        >
-                          <span className="text-[var(--accent)] shrink-0 tabular-nums">{i + 1}.</span>
-                          <span className="flex-1">{s}</span>
-                        </motion.li>
-                      ))}
-                    </ol>
-                  ) : (
-                    <span className="text-[var(--text-tertiary)] text-[13px]">
-                      {partial.stage === 'skeleton' ? L('작성 중...', 'Drafting...') : L('대기 중', 'Waiting')}
-                    </span>
-                  )}
-                </motion.div>
+                          <span className="text-[var(--accent)]">+</span> {latestItem}
+                        </motion.p>
+                      ) : null;
+                    })()}
+                  </motion.div>
+                )}
               </motion.div>
             );
           })()}

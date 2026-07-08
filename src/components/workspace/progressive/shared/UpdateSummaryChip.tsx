@@ -66,25 +66,24 @@ export function UpdateSummaryChip({
           peer of the gold "우리가 잡은 항로" card eyebrow below it. Drop the accent
           gold + uppercase so the two stacked eyebrows don't read as one ambiguous
           block (and so the persistent course card clearly outranks this chip). */}
-      <div className="text-[10px] font-semibold tracking-normal text-[var(--text-tertiary)] shrink-0">
-        {L('답 반영해서 다시 봤어요', 'Refined with your answer')}
-      </div>
+      {/* 수집의 가시화 — "+5 −5" 암호가 아니라 사람의 문장으로: 방금의 답이
+          무엇을 움직였는지가 매 턴 눈에 보여야 기록되고 있다는 감각이 생긴다
+          (MCP 당직 capture의 웹 등가물, 창업자 지시 2026-07-08). */}
+      <p className="text-[11.5px] text-[var(--text-secondary)] leading-snug">
+        <span className="font-semibold text-[var(--accent)]">{L('방금 답이 반영됐어요', 'Your answer landed')}</span>
+        <span className="text-[var(--text-tertiary)]"> — </span>
+        {[
+          hasSkDelta && (skNew > 0
+            ? L(`단계 ${skNew}개 다시 짜임${skRem > 0 ? ` (이전 ${skRem}개 정리)` : ''}`, `${skNew} steps redrawn${skRem > 0 ? ` (${skRem} folded)` : ''}`)
+            : L(`단계 ${skRem}개 정리`, `${skRem} steps folded`)),
+          hasAsDelta && (asNew > 0
+            ? L(`가정 ${asNew}개 새로 세움${asRem > 0 ? ` (${asRem}개 걷어냄)` : ''}`, `${asNew} new assumptions${asRem > 0 ? ` (${asRem} cleared)` : ''}`)
+            : L(`가정 ${asRem}개 걷어냄`, `${asRem} assumptions cleared`)),
+          questionChanged && !hasSkDelta && !hasAsDelta && L('질문 자체가 바뀜', 'the question itself moved'),
+        ].filter(Boolean).join(' · ')}
+      </p>
 
       <div className="flex items-center gap-4 text-[11px] tabular-nums">
-        {hasSkDelta && (
-          <span className="inline-flex items-baseline gap-1.5">
-            <span className="text-[var(--text-tertiary)]">{L('단계', 'Steps')}</span>
-            {skNew > 0 && <span className="font-semibold text-[var(--text-primary)]">+{skNew}</span>}
-            {skRem > 0 && <span className="text-[var(--text-tertiary)]">−{skRem}</span>}
-          </span>
-        )}
-        {hasAsDelta && (
-          <span className="inline-flex items-baseline gap-1.5">
-            <span className="text-[var(--text-tertiary)]">{L('가정', 'Assumptions')}</span>
-            {asNew > 0 && <span className="font-semibold text-[var(--text-primary)]">+{asNew}</span>}
-            {asRem > 0 && <span className="text-[var(--text-tertiary)]">−{asRem}</span>}
-          </span>
-        )}
         {onSeeDetail && (
           <button
             type="button"
