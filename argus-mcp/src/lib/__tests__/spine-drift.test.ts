@@ -83,7 +83,7 @@ describe('seal_text spine (renderSeal)', () => {
     const user = renderSeal({ ...base, predicate_owner: 'user', locale: 'en' });
     expect(user).toContain('These words are yours.');
     const ai = renderSeal({ ...base, predicate_owner: 'ai_surfaced', locale: 'en' });
-    expect(ai).toContain('you have not yet made them yours');
+    expect(ai).toContain('You have not yet made them yours');
     expect(ai).not.toContain('These words are yours.');
     const aiKo = renderSeal({ ...base, predicate_owner: 'ai_surfaced', locale: 'ko' });
     expect(aiKo).toContain('아직 당신이 확언하지 않았습니다');
@@ -99,7 +99,7 @@ describe('seal_text spine (renderSeal)', () => {
     expect(ko).toContain('평가가 아니라');
     const en = renderSeal({ ...base, predicate_owner: 'user', locale: 'en' });
     expect(en).toContain('(14 days out)');
-    expect(en).toMatch(/not\s+a grade — it is what actually happened/);
+    expect(en).toMatch(/not a grade\. It is what actually happened/);
   });
 });
 
@@ -159,9 +159,9 @@ describe('wake_text spine (renderWake)', () => {
 
   it('settled group is a count list of user-stated outcomes, never a rate', () => {
     const ko = renderWake(fixture, stats, TODAY, 'ko', '2026-07-03');
-    expect(ko).toContain('정산됨 (3) — held 1 · avoided 1 · partial 1');
+    expect(ko).toContain('정산됨 (3): held 1 · avoided 1 · partial 1');
     const en = renderWake(fixture, stats, TODAY, 'en', '2026-07-03');
-    expect(en).toContain('settled (3) — held 1 · avoided 1 · partial 1');
+    expect(en).toContain('settled (3): held 1 · avoided 1 · partial 1');
   });
 
   it('three groups on a time axis, folded at 5 lines, with the settle handle returned', () => {

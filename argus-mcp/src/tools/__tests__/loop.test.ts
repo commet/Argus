@@ -165,7 +165,7 @@ describe('check_in and today override', () => {
     expect(upcoming[0]['id']).toBe('soon');
     expect(upcoming[0]['check_by']).toBe('2026-08-01');
     expect(String(r['surface'])).toContain('coming due within 14 day(s)');
-    expect(String(r['surface'])).toContain('informational');
+    expect(String(r['surface'])).toContain('Informational');
 
     // Outside the window → no upcoming, no line.
     const far = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-01', include_upcoming_days: 7 }));
@@ -222,7 +222,7 @@ describe('check_in and today override', () => {
     fs.writeFileSync(path.join(dir, 'config.yaml'), 'schema_version: 1\nlocale: ko\n');
     const r = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-08-16' }));
     const surface = String(r['surface']);
-    expect(surface).toMatch(/봉인 후 \d+일/);
+    expect(surface).toMatch(/봉인한 지 \d+일/);
     expect(surface).toContain('그때 당신은 이렇게 적었습니다');
     expect(surface).toContain('지금 뽑는다');
   });
@@ -234,12 +234,12 @@ describe('check_in and today override', () => {
       process.env.ARGUS_TOKEN = 'argus_pat_test';
       const fetchSpy = vi.spyOn(globalThis, 'fetch');
       const r = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-01' }));
-      expect(String(r['surface'])).toContain('argus_sync shows them');
+      expect(String(r['surface'])).toContain('show up with argus_sync');
       expect(fetchSpy).not.toHaveBeenCalled(); // check_in stays local and deterministic
 
       delete process.env.ARGUS_TOKEN;
       const silent = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-01' }));
-      expect(String(silent['surface'])).toBe('Nothing is due. Nothing to nudge.');
+      expect(String(silent['surface'])).toBe('Nothing is due right now.');
     } finally {
       if (orig === undefined) delete process.env.ARGUS_TOKEN; else process.env.ARGUS_TOKEN = orig;
       vi.restoreAllMocks();

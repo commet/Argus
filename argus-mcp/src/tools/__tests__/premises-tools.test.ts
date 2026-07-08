@@ -38,7 +38,7 @@ describe('argus_premises op=add', () => {
     expect(echo[0]['ref']).toBe('P1');
     expect(echo[0]['monitored']).toBe(true);
     expect(echo[1]['monitored']).toBe(false); // open questions are never monitored
-    expect(String(b['surface'])).toContain('re-checked against reality');
+    expect(String(b['surface'])).toContain('re-checked against what actually happens');
   });
 
   it('refuses ai-sourced premises without ai_original (PROVENANCE_REQUIRED)', async () => {

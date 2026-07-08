@@ -89,7 +89,7 @@ describe('MCP simulation — full loop with account sync', () => {
     // Korean sync-failure line. The FACT it must convey is unchanged: sync
     // failed + the reason + the email won't fire until it syncs.
     expect(String(body(sealed).surface)).toContain('계정 동기화가 안 됐습니다');
-    expect(String(body(sealed).surface)).toContain('이메일 알림은 오지 않습니다');
+    expect(String(body(sealed).surface)).toContain('이메일 알림이 오지 않습니다');
 
     const settled = await settle.handler({
       argus_dir: dir, id, outcome: 'held', outcome_source: 'user_stated', what_happened: '4분 다운타임',

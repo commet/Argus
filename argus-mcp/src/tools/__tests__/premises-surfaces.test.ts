@@ -32,7 +32,7 @@ describe('argus_recall view=premises', () => {
     expect(rows[0]['edited_by_user']).toBe(true);       // provenance rendered — ai_original's reader
     expect(rows[0]['staleness']).toBe('never re-checked'); // honest staleness, no pretend liveness
     expect(rows[0]['due_for_recheck']).toBe(true);
-    expect(String(body(r)['surface'])).toContain('due for a reality re-check');
+    expect(String(body(r)['surface'])).toContain('due for a re-check');
   });
 
   it('needs an id; empty decision gets a plain empty state', async () => {
@@ -62,7 +62,7 @@ describe('argus_check_in with due premises', () => {
   it('stays fully silent when nothing at all is due', async () => {
     const dir = tmpArgusDir();
     const r = await checkIn.handler({ argus_dir: dir, today_override: TODAY });
-    expect(String(body(r)['surface'])).toBe('Nothing is due. Nothing to nudge.');
+    expect(String(body(r)['surface'])).toBe('Nothing is due right now.');
   });
 });
 

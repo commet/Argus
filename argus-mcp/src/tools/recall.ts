@@ -132,8 +132,8 @@ export const recall: ToolModule = {
         const monitored = rows.filter((r) => r.monitored).length;
         const due = rows.filter((r) => r.due_for_recheck).length;
         const surface = locale === 'ko'
-          ? `이 결정의 전제 ${rows.length}건 — ${monitored}건 감시 중, ${due}건 현실 재확인 차례${due > 0 ? ' (argus_recheck)' : ''}.`
-          : `${rows.length} premise(s) on this decision — ${monitored} monitored, ${due} due for a reality re-check${due > 0 ? ' (argus_recheck)' : ''}.`;
+          ? `이 결정에 전제 ${rows.length}건이 있습니다. ${monitored}건 감시 중, ${due}건 재확인 차례${due > 0 ? ' (argus_recheck)' : ''}.`
+          : `${rows.length} premise(s) on this decision. ${monitored} monitored, ${due} due for a re-check${due > 0 ? ' (argus_recheck)' : ''}.`;
         return envelope({
           ok: true, tool: 'argus_recall',
           surface,

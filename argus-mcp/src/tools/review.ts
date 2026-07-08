@@ -226,9 +226,12 @@ export const review: ToolModule = {
         avoid: LENSES[id].failure_modes,
       }));
 
+      // Band label in Korean for the surface (the raw English band stays in data
+      // for machines). "(caveated)" leaking into a Korean line was a copy-audit find.
+      const bandKo = ({ normal: '충분', caveated: '유의', limited: '제한적', insufficient: '부족' })[band] ?? band;
       return envelope({
         ok: true, tool: 'argus_review',
-        surface: `검수 준비 완료 — "${artifact.source_title}" · 검수 가능성 ${reviewability.score}/100 (${band}) · 렌즈 ${lenses.length}개. 아래 단위를 근거로, 렌즈별로 검토한 뒤 사람이 판단할 것과 반증 가능한 예측 하나를 뽑아 argus_seal로 봉인하세요.`,
+        surface: `검수 준비를 마쳤습니다. "${artifact.source_title}" · 검수 가능성 ${reviewability.score}/100 (${bandKo}) · 렌즈 ${lenses.length}개. 아래 단위를 근거로 렌즈별로 검토한 뒤, 사람이 판단할 부분과 반증 가능한 예측 하나를 뽑아 argus_seal로 봉인하세요.`,
         next_actions: ['argus_seal', 'skip'],
         data: {
           schema_version: REVIEW_SCHEMA_VERSION,

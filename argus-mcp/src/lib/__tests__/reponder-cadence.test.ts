@@ -108,7 +108,7 @@ describe('open_question reconsider — end to end (M3)', () => {
     expect(surface).toContain('how do we split equity');
     expect(surface).toContain('argus_premises');
     expect(surface).not.toMatch(/you should|you must|decide now/i);
-    expect(String(ci['surface'])).toMatch(/still open|leaving it open|real answer/i);
+    expect(String(ci['surface'])).toMatch(/leave it open|either is fine|still open/i);
   });
 
   it('still_open resets the reconsider clock — nudge goes quiet until the next cadence', async () => {
