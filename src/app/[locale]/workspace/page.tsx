@@ -284,6 +284,13 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
   // Phase 1 BIND: the in-flight (buffered) initial analysis and the submitted text,
   // so the bind card can be shown WHILE the analysis runs and finalize after the rope.
   const analysisRef = React.useRef<Promise<{ result?: Awaited<ReturnType<typeof runInitialAnalysis>>; error?: unknown }> | null>(null);
+  // The settled value, the moment it exists. proceedAfterBind uses this to SKIP
+  // the assembling beat when the buffered analysis already finished (usually:
+  // failed fast on a quota 429) — entering assembling and leaving it within the
+  // same beat produced back-to-back AnimatePresence(mode=wait) swaps that the
+  // production bundle wedges on (재실사 2026-07-08: 429 사용자 화면이 '팀을
+  // 꾸리는 중'에서 영구 동결). One swap, no race.
+  const analysisSettledRef = React.useRef<{ result?: Awaited<ReturnType<typeof runInitialAnalysis>>; error?: unknown } | null>(null);
   const pendingTextRef = React.useRef<string>('');
   const searchParams = useSearchParams();
 
@@ -368,7 +375,9 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     // during binding is surfaced only when the user proceeds.
     const controller = new AbortController();
     analyzeAbortRef.current = controller;
+    analysisSettledRef.current = null;
     analysisRef.current = startAnalysis(text, controller);
+    analysisRef.current.then((s) => { analysisSettledRef.current = s; });
 
     setPhase('binding');
   };
@@ -403,17 +412,25 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     // rope. Captured (data > dashboard) so the conversion tradeoff is observable.
     track('bind_resolved', { committed: !!bind, has_lean: !!bind?.lean, has_date: !!bind?.interval, anonymous: !user });
 
-    // Reveal the team-assembling → analyzing beat while we await the (often
-    // already-resolved) in-flight analysis.
-    setPhase('assembling');
-    setElapsed(0);
-    if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
-    elapsedTimerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
-    timerRef.current = setTimeout(() => {
-      if (phaseRef.current === 'assembling') setPhase('analyzing');
-    }, 2000);
+    // Reveal the team-assembling → analyzing beat ONLY while we genuinely wait.
+    // If the buffered analysis already settled (typical: a quota 429 that failed
+    // in ~1s while the user was still typing the rope), entering assembling and
+    // leaving it in the same beat fires two back-to-back AnimatePresence
+    // (mode=wait) swaps — the production bundle wedges on that race and the
+    // user freezes on '팀을 꾸리는 중' forever (재실사 2026-07-08 실증). With a
+    // settled result we jump straight to the outcome: one swap, no race.
+    const preSettled = analysisSettledRef.current;
+    if (!preSettled) {
+      setPhase('assembling');
+      setElapsed(0);
+      if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+      elapsedTimerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+      timerRef.current = setTimeout(() => {
+        if (phaseRef.current === 'assembling') setPhase('analyzing');
+      }, 2000);
+    }
 
-    const settled = await (analysisRef.current ?? Promise.resolve(
+    const settled = preSettled ?? await (analysisRef.current ?? Promise.resolve(
       { error: new Error('no analysis') } as { result?: Awaited<ReturnType<typeof runInitialAnalysis>>; error?: unknown },
     ));
 
