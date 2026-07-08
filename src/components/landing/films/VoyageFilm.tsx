@@ -10,10 +10,10 @@
  * Captions are HTML overlays synced to the video time (i18n, restyleable, not
  * burned in). Each chapter pairs the MYTH (what the scene means) with what
  * ARGUS actually does — grounded in docs/MYTH-SIRENS-design-grounding:
- *   묶기  seal/decision_contract — seal your own call before the agents run
- *   듣기  recast/persona/refinement — agents generate freely, never overwrite it
- *   닿기  settle/watch — on your date, it's checked against reality
- *   알아봄 own n=1 record — your evidence turns the AI's certainty into your reality
+ *   묶기  seal/decision_contract — write your own call before you open the AI
+ *   듣기  recast/persona/refinement — hear it, but the premises you waved past get noted beside you
+ *   닿기  watch — reality is the judge; if a premise shifts, Argus tells you
+ *   알아봄 settle — named after the dog Argos; on your day it comes back to ask how it went
  *
  * A persistent chapter rail shows progress; the active chapter's myth+meaning
  * fade in. Bottom scrim keeps it legible; in dark mode the baked-cream film
@@ -120,10 +120,10 @@ type Chapter = {
 const INTRO = {
   from: 1.0, to: 5.3,
   eyebrowKo: '호메로스 · 오디세이아', eyebrowEn: 'HOMER · THE ODYSSEY',
-  lineKo: '세이렌은 “내가 다 알려줄게” 노래로 뱃사람을 홀렸습니다 — 지금의 AI처럼.\n오디세우스는, 휩쓸리지 않고 지나는 법을 알았죠.',
+  lineKo: '“다 알려주겠다”며 뱃사람을 홀리던 세이렌의 노래.\n지금 우리가 AI 앞에서 넋 놓는 모습과 닮았죠.',
   // Break BEFORE the quote so it stays whole on its own line instead of wrapping
   // mid-phrase ("we will tell" | "you all").
-  lineEn: 'The Sirens lured sailors with a song —\n“we will tell you all.” Much like today’s AI.\nOdysseus knew how to pass without being swept away.',
+  lineEn: '“We’ll tell you all,” sang the Sirens — and sailors were lost to it.\nMuch like the AI we sit before today.',
 };
 
 // Myth lines are quoted in Homer's voice (echoing Pope's 1725 verse — public
@@ -138,39 +138,39 @@ const CHAPTERS: Chapter[] = [
     num: 'I', ko: '묶기', en: 'Bind', from: 6, to: 12.6,
     mythKo: '“나를 돛대에 묶어라.\n풀어달라 빌어도, 더 단단히.”',
     mythEn: '“Bind me to the mast —\nthough I plead, bind me tighter.”',
-    attrKo: '세이렌을 앞둔 오디세우스. 당신이 AI를 열기 직전이죠.',
-    attrEn: 'Odysseus, about to face the Sirens. You, about to open the AI.',
-    lineKo: '묻기 전에, 당신 판단부터 적어 둬요.',
-    lineEn: 'before you ask, write your own call down first.',
+    attrKo: '세이렌을 앞둔 오디세우스. AI를 열기 직전의 당신이죠.',
+    attrEn: 'Odysseus, before the Sirens. You, about to open the AI.',
+    lineKo: '묻기 전에 지금 판단을 적어둬요.\n나중에 흔들려도, 돌아올 자리가 생겨요.',
+    lineEn: 'write down your own call first —\nso a fluent answer can’t move you off it.',
   },
   {
     num: 'II', ko: '듣기', en: 'Listen', from: 14.2, to: 21, lure: true,
     mythKo: '“우리 노래를 들은 자는,\n모든 것을 알고 떠나리라.”',
     mythEn: '“Whoever hears our song\ndeparts knowing all.”',
-    attrKo: '“다 알려주겠다”는 세이렌의 노래. 그게 곧, 지금의 AI예요.',
-    attrEn: '“We’ll tell you all,” sang the Sirens. That song is today’s AI.',
-    lineKo: '칭찬 대신, 당신이 놓친 단 하나를 짚어줘요.',
-    lineEn: 'instead of praise, it names the one thing you missed.',
+    attrKo: '“다 알려주겠다”던 세이렌의 약속. 지금 AI가 그래요.',
+    attrEn: 'The Sirens’ promise to tell you all. The AI makes it now.',
+    lineKo: '듣되, 삼키진 마요.\n그냥 넘어간 전제를 옆에 적어둬요.',
+    lineEn: 'listen, but don’t swallow it —\nwhat you waved past, it notes beside you.',
   },
   {
     num: 'III', ko: '닿기', en: 'Land', from: 23, to: 30,
     mythKo: '“노래가 잦아들고,\n마침내 단단한 땅에 발을 디딘다.”',
     mythEn: '“The song fades; at last\nhe steps onto solid ground.”',
-    attrKo: '세이렌의 바다를 지나 뭍에 닿은 오디세우스. 여기서부턴 당신의 땅이에요.',
-    attrEn: 'Odysseus, ashore past the Sirens’ sea. From here, the ground is yours.',
-    lineKo: '결정은 결국, 현실의 당신 몫이에요.',
-    lineEn: 'in the end, the decision is yours — out in the world.',
+    attrKo: '세이렌의 바다를 건넌 오디세우스. 이제 당신의 땅이죠.',
+    attrEn: 'Odysseus, across the Sirens’ sea. The ground is yours now.',
+    lineKo: '결정은 결국 현실에서 판가름나요.\n전제가 바뀌면 Argus가 알려주고요.',
+    lineEn: 'in the end, reality is the judge.\nif a premise shifts, Argus tells you.',
   },
   {
     num: 'IV', ko: '알아봄', en: 'Recognition', from: 32, to: 39.4, gold: true,
     mythKo: '“스러져 가던 늙은 개만이,\n옛 주인을 알아보았다.”',
     mythEn: '“Only old Argos, failing,\nknew his master still.”',
-    attrKo: '20년을 기다려 주인을 알아본 늙은 개 아르고스. 당신의 기록이 꼭 그래요.',
-    attrEn: 'Old Argos, who knew his master after twenty years. Your record knows you just the same.',
+    attrKo: '이 도구의 이름은 그 개, 아르고스에서 왔어요.',
+    attrEn: 'This tool takes its name from that dog — Argos.',
     // Explicit break BEFORE the quote so the whole question drops to its own
     // line instead of wrapping mid-phrase (“그래서,” | “어떻게 됐어요?”).
-    lineKo: '정한 날 돌아와 물어요 —\n“그래서, 어떻게 됐어요?”',
-    lineEn: 'on your day, I return —\n“so, how did it go?”',
+    lineKo: '정한 날 다시 찾아와 물어요.\n“그래서, 어떻게 됐어요?”',
+    lineEn: 'on your day, I come back to ask,\n“so, how did it go?”',
   },
 ];
 
