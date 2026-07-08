@@ -1,4 +1,5 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { boundMarkerPath } from './layout.js';
 
@@ -29,6 +30,16 @@ export function requireArgusDir(callArg: unknown): string {
   if (typeof callArg !== 'string' || callArg.length === 0) {
     throw new ArgusDirError('argus_dir is required (absolute path to the .argus directory).');
   }
+  // An unexpanded config variable is the #1 Claude Desktop first-run failure:
+  // only Claude Code expands ${CLAUDE_PROJECT_DIR}, so Desktop passes the
+  // literal string through. Name the actual problem instead of "not absolute".
+  if (/\$\{[^}]*\}|%[A-Za-z_]+%/.test(callArg)) {
+    throw new ArgusDirError(
+      `Your MCP host did not expand the variable in "${callArg}" (only some hosts interpolate env vars). ` +
+        'Replace it with an absolute path in your MCP config (e.g. "C:\\Users\\you\\.argus" or "/Users/you/.argus"), ' +
+        'or remove ARGUS_DIR entirely to use the default ~/.argus.',
+    );
+  }
   const resolved = path.resolve(callArg);
   if (!path.isAbsolute(callArg)) {
     throw new ArgusDirError('argus_dir must be an absolute path.');
@@ -50,9 +61,10 @@ export function resolveToolArgusDir(callArg: unknown): string {
   if (typeof callArg === 'string' && callArg.length > 0) return requireArgusDir(callArg);
   const env = process.env['ARGUS_DIR'];
   if (typeof env === 'string' && env.length > 0) return requireArgusDir(env);
-  throw new ArgusDirError(
-    'No argus_dir given and ARGUS_DIR is not set. Pass an absolute argus_dir, or set "ARGUS_DIR" in your MCP config env (then you can omit it every call).',
-  );
+  // Zero-config default (blueprint §9.4 "첫 설치의 문"): a brand-new user on a
+  // host without env interpolation still gets a working home for their ledger.
+  // Per-call argus_dir and ARGUS_DIR both keep winning over this.
+  return path.join(os.homedir(), '.argus');
 }
 
 /** Record the bound dir so Resources (which get no args) can find it later. */
@@ -63,6 +75,35 @@ export function writeBoundMarker(argusDir: string): void {
     fs.writeFileSync(boundMarkerPath(argusDir), JSON.stringify({ bound: envDirs.slice(0, 8) }), 'utf8');
   } catch {
     /* non-critical */
+  }
+  // Global registry (M2 fleet, §9.4): every init'd project dir also lands in
+  // ~/.argus/.bound so ONE check_in can report due items across all of a
+  // user's projects. Local paths only, stays on this machine, best-effort.
+  try {
+    const home = path.join(os.homedir(), '.argus');
+    fs.mkdirSync(home, { recursive: true });
+    const reg = path.join(home, '.bound');
+    let dirs: string[] = [];
+    try {
+      const parsed = JSON.parse(fs.readFileSync(reg, 'utf8')) as { bound?: unknown };
+      dirs = Array.isArray(parsed.bound) ? (parsed.bound.filter((x) => typeof x === 'string') as string[]) : [];
+    } catch { /* fresh registry */ }
+    if (!dirs.includes(argusDir)) dirs.unshift(argusDir);
+    fs.writeFileSync(reg, JSON.stringify({ bound: dirs.slice(0, 16) }), 'utf8');
+  } catch {
+    /* non-critical */
+  }
+}
+
+/** The cross-project registry (~/.argus/.bound) — existing dirs only. */
+export function readGlobalBoundList(): string[] {
+  try {
+    const reg = path.join(os.homedir(), '.argus', '.bound');
+    const parsed = JSON.parse(fs.readFileSync(reg, 'utf8')) as { bound?: unknown };
+    const dirs = Array.isArray(parsed.bound) ? (parsed.bound.filter((x) => typeof x === 'string') as string[]) : [];
+    return dirs.filter((d) => { try { return fs.existsSync(d); } catch { return false; } });
+  } catch {
+    return [];
   }
 }
 

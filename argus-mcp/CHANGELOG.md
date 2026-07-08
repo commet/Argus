@@ -10,6 +10,99 @@
 
 Everything since the 1.0.0 first release.
 
+**공정 M3 · 전제 개통 + 두 기기 안전 (2026-07-08, BLUEPRINT §9.5):**
+
+- **BS-1 closed — per-ledger account namespace**: every ledger now carries a
+  stable random install id (`.argus/.install`), and account rows are keyed
+  `mcp_<install8>_<slug>`. Two machines (or two projects) sealing the same
+  natural slug ("migrate-db") can no longer collide on one account row.
+  Legacy un-namespaced rows still map home; another ledger's rows are
+  honestly labeled "another terminal ledger" instead of being mis-claimed.
+- **Ledger lock — concurrent sessions can't double-settle**: the settle write
+  re-guards under a cross-process lockfile, so two simultaneous sessions
+  record exactly ONE settlement (the second sees ALREADY_SETTLED). The
+  calibration record never double-counts; a crashed lock is stolen after 5s
+  so nothing ever bricks.
+- **Premise opt-in sync (`premise_sync:true`)**: OFF by default — premise data
+  never leaves the machine otherwise (the README privacy contract, now stated
+  with the one exception). When the user opts in, a sealed decision's
+  MONITORED premises ride the seal push, and the account's autonomous
+  premise-watch re-checks them against reality — a material drift now reaches
+  the T2 email gate for terminal-sealed decisions too (the intro's third
+  routine, 돌아보기, finally covers the terminal).
+
+**공정 M2 · 승격과 다리 (2026-07-08, BLUEPRINT §9.5) — the two loops connect:**
+
+- **Promotion (`from_capture`)**: `argus_premises op=add` can promote a watch
+  capture into a decision premise by its `wc-` id — the capture's VERBATIM
+  text and provenance carry over, the capture stays on the watch log (a
+  reference, never a move), and a captured question promotes as an
+  open_question. Promotion stays the user's verb.
+- **The web settlement comes home (`import_settlements`)**: `argus_sync` can
+  now mirror a settlement the user already recorded on the web into the local
+  ledger — their own outcome and words, verbatim (`source_detail:
+  'web_settlement_import'` on the event). The flag-only cross-check meant a
+  web-settled judgment stayed "due" in the terminal forever; the account API
+  now returns the user's settlement words to make the mirror possible. A
+  settled account row WITHOUT those words stays flag-only — never invented.
+- **Fleet check-in (`fleet: true`)**: `argus_check_in` can sweep every project
+  `argus_init` registered on this machine (~/.argus/.bound) and report due
+  counts per project — a lighthouse sweep, not a merged ledger; each project
+  settles in its own dir.
+
+**공정 M1 · 당직 루프 (2026-07-08, BLUEPRINT §9.5) — the daily watch:**
+
+- **New tool `argus_watch`** — the second, lighter orbit next to the decision
+  voyage. `op=anchor` keeps today's one-line aim (the user's words, verbatim);
+  `op=capture` notes a swallowed claim / unverified premise / deferred question
+  mid-work without opening a decision; `op=list` reads the recent log. Spine
+  rulings baked in (§9.2): an anchor is a **note, not a bet** — never
+  evaluated, never counted in ids/stats/track_record (the fold keeps watch
+  events outside contracts; a test pins it); capture provenance is never
+  forged (`ai_surfaced` requires `ai_original`); there is deliberately NO
+  separate stance field — the drift guard refuses fork-adjacent schema keys.
+- **check_in mirrors the watch**: the most recent prior day's anchor comes
+  back first — "'…' — so, how did it go?" — a question, never a completion
+  check. And check_in's frame language now follows the LEDGER's own user text
+  (anchor / oldest due predicate), so a Korean anchor no longer gets an
+  English frame.
+- **The restraint cliff has an exit**: a gated-off open_decision now offers
+  `argus_watch` — "a note, not an opened decision."
+- **Server instructions carry the watch choreography**, including the
+  over-fire guard: captures are user-initiated; volunteering "should I record
+  this?" on routine work is named as over-fire.
+- **Host snippets ship in the package** (`snippets/claude-code-watch.md`): a
+  CLAUDE.md block + a SessionStart hook so the host carries the daily rhythm a
+  passive stdio server cannot.
+- **어휘 1벌 (공정 3 상환)**: the recheck drift surface now returns the handle
+  in the same vocabulary as the web T2 email — "결정을 다시 볼지는 당신의 몫" —
+  and a vocabulary guard test covers the MCP surfaces.
+
+**공정 M0 · 문과 언어 (2026-07-08, BLUEPRINT §9.5) — the first-day repairs:**
+
+- **Zero-config default dir:** with no `argus_dir` and no `ARGUS_DIR`, every
+  tool now lands in `~/.argus` instead of erroring — a brand-new Claude Desktop
+  user seals on day one with an empty `env`. An unexpanded `${...}` /`%VAR%`
+  config variable now gets an error that names the actual problem (the host
+  didn't interpolate) instead of "must be an absolute path".
+- **The receipt speaks your language (FC-2 closed):** `renderReceipt` joined
+  the locale brain — a Korean journey now ends in a fully Korean Judgment
+  Receipt (settle and recall). The `AI VERDICT … NONE` line stays English in
+  every locale: it is brand DNA, not copy.
+- **Bounded check_in:** `data.due` caps at the 20 oldest with a
+  `due_truncated` disclosure; `due_count` keeps the true total. A three-week
+  gap no longer floods the host's context.
+- **`reconsider_cadence_days` alias:** the historically misspelled
+  `reponder_cadence_days` field now accepts the spelling a model will
+  naturally write. Either works; one is stored.
+- **Human sync-failure sentences:** a failed account sync now says "the token
+  was rejected (HTTP 401) — it may be expired…" instead of splicing the raw
+  `http_401` token into the seal confirmation. The machine enum stays in
+  `data.account_sync_reason`.
+- **README doors:** Claude Desktop (no env interpolation → absolute path or
+  zero-config), Windows (`cmd /c npx` form), and the timezone default corrected
+  (unset = your machine's local zone, not UTC).
+
 - **Reconsider loop (M1/M3):** an in-session ambient due-line and a formalized
   recheck cadence surface what's due without leaving the session; an
   `open_question` left unresolved is nudged back periodically — a fact + a

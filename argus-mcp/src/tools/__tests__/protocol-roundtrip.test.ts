@@ -53,7 +53,8 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     const names = tools.map((t) => t.name);
     expect(names).toContain('argus_premises');
     expect(names).toContain('argus_recheck');
-    expect(tools).toHaveLength(13);
+    expect(names).toContain('argus_watch'); // M1 당직 루프
+    expect(tools).toHaveLength(14);
     const prem = tools.find((t) => t.name === 'argus_premises')!;
     const schema = JSON.stringify(prem.inputSchema);
     expect(schema).toContain('"add"'); // op enum made it through z.toJSONSchema

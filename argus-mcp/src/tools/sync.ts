@@ -6,6 +6,9 @@ import { fetchAccountReceipts } from '../lib/push-account.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger, type ContractEntry } from '../lib/ledger-replay.js';
+import { appendLedger } from '../lib/ledger-append.js';
+import { writeSettleReceipt } from '../lib/receipt.js';
+import { localIdFromAccountId } from '../lib/install-id.js';
 import { surfacesFor } from '../lib/surfaces.js';
 
 /**
@@ -24,7 +27,18 @@ const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   due_only: z.boolean().default(false).describe('List only receipts whose check-by date has arrived.'),
   limit: z.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT).describe(`Max receipts to list (default ${DEFAULT_LIMIT}). Due items are ordered first.`),
+  import_settlements: z.boolean().default(false).describe(
+    'Mirror settlements the user already recorded on the WEB into this local ledger (their own outcome + words, verbatim — never an inferred outcome). Fixes the local record still listing a web-settled judgment as due. Only affects terminal-sealed (mcp_) judgments that are sealed locally but settled in the account.'),
 });
+
+/** Web outcome vocabulary → the MCP settle enum (reverse of the seal-bridge OUTCOME_MAP). */
+const WEB_TO_MCP_OUTCOME: Record<string, 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed'> = {
+  happened: 'held', held: 'held',
+  avoided: 'avoided',
+  partial: 'partial',
+  missed: 'missed',
+  unclear: 'still_pending', still_pending: 'still_pending',
+};
 
 export const sync: ToolModule = {
   name: 'argus_sync',
@@ -33,7 +47,7 @@ export const sync: ToolModule = {
     'Returns: receipts (id, local_id, settle_path, title, state, next_check_by, due, open_predicates) with due items first, plus total/due/has_more. ' +
     'Account ids carry an mcp_ prefix for terminal-sealed judgments: settle those with argus_settle using local_id (NOT the account id). ' +
     'Web-sealed judgments (local_id null) settle in the web dashboard. ' +
-    'A terminal-sealed judgment already settled on the web is flagged settled_in_account:true — record the same outcome locally with argus_settle if you want it in this ledger too. ' +
+    'A terminal-sealed judgment already settled on the web is flagged settled_in_account:true — pass import_settlements:true to mirror the user\'s own web-recorded outcome into this ledger (verbatim, never inferred), or record it with argus_settle. ' +
     'Seals/settles already push to the account automatically; this is the READ side. Use due_only:true to see just what needs settling. Requires ARGUS_TOKEN (Settings → sync token).',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
@@ -62,7 +76,6 @@ export const sync: ToolModule = {
       const matched = dueOnly ? pull.receipts.filter((r) => r.due) : pull.receipts;
       const receipts = matched.slice(0, limit);
       const dueCount = pull.receipts.filter((r) => r.due).length;
-      const localSettleableDueCount = pull.receipts.filter((r) => r.due && r.id.startsWith('mcp_')).length;
       const truncated = matched.length > receipts.length;
 
       // ④ Reverse cross-check (best-effort, read-only): a judgment sealed here
@@ -82,28 +95,67 @@ export const sync: ToolModule = {
       // Locale brain (P1-E1): surface strings come from the {ko,en} dictionary,
       // picked by the config's locale. No bound dir / no config → base 'en'.
       const S = surfacesFor(boundDir).sync;
+      // BS-1 aware mapping: our namespaced rows and legacy rows map to a local
+      // id; ANOTHER ledger's namespaced rows map to null (not ours to settle).
+      const toLocalId = (accountId: string): string | null =>
+        boundDir ? localIdFromAccountId(boundDir, accountId) : (accountId.startsWith('mcp_') ? accountId.slice(4) : null);
       const settledInAccount = (accountId: string, accountState: string): boolean => {
-        if (!localContracts || accountState !== 'settled' || !accountId.startsWith('mcp_')) return false;
-        const entry = localContracts.get(accountId.slice(4));
+        if (!localContracts || accountState !== 'settled') return false;
+        const lid = toLocalId(accountId);
+        if (!lid) return false;
+        const entry = localContracts.get(lid);
         return entry?.status === 'sealed'; // sealed locally (incl. derived-due) yet already settled in the account
       };
+      // ⑤ Settlement import (§9.4 귀환 봉합, M2): mirror what the USER already
+      // recorded on the web — their outcome enum and their own words, verbatim —
+      // into the local ledger, so check_in stops re-nudging a closed loop.
+      // This is NOT a machine settlement: the outcome stayed user_stated on the
+      // web surface; source_detail names the import path on the event.
+      const imported: Array<{ local_id: string; outcome: string }> = [];
+      if (a['import_settlements'] === true && boundDir && localContracts) {
+        const today = resolveToday({});
+        for (const r of pull.receipts) {
+          if (!settledInAccount(r.id, r.state)) continue;
+          const sp = r.settled_predicates?.[0];
+          if (!sp) continue; // account did not return the settlement words — leave flagged, never invent
+          const outcome = WEB_TO_MCP_OUTCOME[sp.outcome];
+          if (!outcome) continue;
+          const localId = toLocalId(r.id);
+          if (!localId) continue;
+          const now = sp.settled_at || new Date().toISOString();
+          await appendLedger(boundDir, [{
+            id: localId, event: 'settle', outcome,
+            decision: sp.what_happened, source_detail: 'web_settlement_import',
+          }], now);
+          const entry = localContracts.get(localId);
+          await writeSettleReceipt(boundDir, localId,
+            { what_happened: sp.what_happened, outcome, settled_at: now },
+            { predicate: entry?.predicate, check_by: entry?.check_by });
+          imported.push({ local_id: localId, outcome });
+        }
+        if (imported.length > 0) localContracts = replayLedger(boundDir, today).contracts;
+      }
+      // Count AFTER any import so the flag line only names what still diverges.
       const settledInAccountCount = pull.receipts.filter((r) => settledInAccount(r.id, r.state)).length;
+      const localSettleableDueCount = pull.receipts.filter((r) => r.due && toLocalId(r.id) !== null).length;
 
       const baseSurface = dueCount > 0
         ? S.live_with_due(pull.receipts.length, dueCount)
         : S.live_no_due(pull.receipts.length);
+      const importedLine = imported.length > 0 ? S.imported(imported.length) : '';
       const crossCheckLine = settledInAccountCount > 0
         ? S.settled_on_web(settledInAccountCount)
         : '';
 
       return envelope({
         ok: true, tool: 'argus_sync',
-        surface: baseSurface + crossCheckLine,
+        surface: baseSurface + importedLine + crossCheckLine,
         next_actions: localSettleableDueCount > 0 ? ['argus_settle', 'stop'] : ['stop'],
         data: {
           total: pull.receipts.length,
           due: dueCount,
           local_settleable_due: localSettleableDueCount,
+          ...(imported.length > 0 ? { imported } : {}),
           count: receipts.length,
           has_more: truncated,
           ...(truncated ? { truncation_note: S.truncation(receipts.length, matched.length) } : {}),
@@ -113,11 +165,12 @@ export const sync: ToolModule = {
             // fails (NO_PRIOR_SEAL: the local ledger knows the unprefixed id), so
             // hand the caller the exact id argus_settle expects — or route
             // web-sealed rows to the web dashboard.
-            const localId = r.id.startsWith('mcp_') ? r.id.slice(4) : null;
+            const localId = toLocalId(r.id);
+            const otherLedger = !localId && r.id.startsWith('mcp_');
             return {
               id: r.id,
               local_id: localId,
-              settle_path: localId ? 'argus_settle (use local_id)' : 'webapp',
+              settle_path: localId ? 'argus_settle (use local_id)' : otherLedger ? 'another terminal ledger (or webapp)' : 'webapp',
               title: r.source_title,
               state: r.state,
               next_check_by: r.next_check_by,

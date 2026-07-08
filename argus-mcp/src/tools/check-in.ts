@@ -1,9 +1,9 @@
-import { resolveToolArgusDir } from '../lib/argus-dir.js';
+import { resolveToolArgusDir, readGlobalBoundList } from '../lib/argus-dir.js';
 import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
 import { duePremises, groupDuePremises, dueOpenQuestions } from '../lib/premises.js';
 import { readReceipt, SKIPPED } from '../lib/receipt.js';
-import { surfacesFor } from '../lib/surfaces.js';
+import { SURFACES, resolveResponseLocale, surfaceLocale } from '../lib/surfaces.js';
 import { z } from 'zod';
 import type { NextAction } from '../lib/spine.js';
 import { envelope } from '../lib/envelope.js';
@@ -13,6 +13,7 @@ import { handleToolException } from './errors.js';
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   include_upcoming_days: z.number().int().min(0).max(30).default(0).describe('Also list sealed contracts coming due within N days (informational — nothing to settle yet).'),
+  fleet: z.boolean().default(false).describe('Also report due counts across your OTHER Argus projects (every dir argus_init registered on this machine). Facts and counts only; settle each in its own project.'),
   today_override: zDate.optional(),
 });
 
@@ -37,11 +38,38 @@ export const checkIn: ToolModule = {
       for (const s of seeds) {
         if (!dueMap.has(s.id)) dueMap.set(s.id, { id: s.id, predicate: s.predicate, check_by: s.check_by, days_overdue: daysBetween(s.date, today), source: 'bearing' });
       }
-      const due = Array.from(dueMap.values()).sort((x, y) => x.check_by < y.check_by ? -1 : 1);
+      const dueAll = Array.from(dueMap.values()).sort((x, y) => x.check_by < y.check_by ? -1 : 1);
+      // Bounded output (§9.4 경계 수리): after a long gap dozens can be due at
+      // once — cap what rides into the model's context (and the per-item
+      // receipt reads below), disclose the rest as a count. Oldest first stays.
+      const DUE_TOP = 20;
+      const due = dueAll.slice(0, DUE_TOP);
+      const dueTruncated = dueAll.length - due.length;
 
-      // Locale brain (P1-E1): all check_in surface strings come from the
-      // {ko,en} dictionary, picked by the config's locale.
-      const S = surfacesFor(dir).checkin;
+      // 당직 미러 (§9.1): the most recent PRIOR day's anchor comes back first,
+      // as a question — recognition, never a completion check. Today's own
+      // anchor is data-only (no need to echo what the user just wrote).
+      const priorAnchors = [...ledger.watch.anchors.values()]
+        .filter((x) => x.date < today)
+        .sort((x, y) => (x.date < y.date ? 1 : -1));
+      const lastAnchor = priorAnchors[0];
+
+      // Locale brain (P1-E1 + §9.3 언어 고정): check_in has no user-typed input,
+      // so the frame used to flip to the base voice around the user's own
+      // Korean words. Detect from the LEDGER's user text instead — the anchor
+      // being mirrored, else the oldest due predicate. An explicit config
+      // locale still always wins inside resolveResponseLocale. With NO ledger
+      // text at all, stay config-or-'en' (deterministic on every machine —
+      // never the env/Intl fallback, which would make tests machine-dependent).
+      const ledgerVoiceSample = lastAnchor?.text || ledger.overdue[0]?.text || due[0]?.predicate;
+      const S = ledgerVoiceSample
+        ? SURFACES[resolveResponseLocale(dir, ledgerVoiceSample)].checkin
+        : SURFACES[surfaceLocale(dir)].checkin;
+      const mirrorLine = lastAnchor ? S.watch_mirror(lastAnchor.date, clip(lastAnchor.text, 160)) + ' ' : '';
+      const todayAnchor = ledger.watch.anchors.get(today);
+      const watchData = (lastAnchor || todayAnchor)
+        ? { watch: { ...(lastAnchor ? { last_anchor: lastAnchor } : {}), ...(todayAnchor ? { today_anchor: todayAnchor } : {}) } }
+        : {};
 
       // 닻 거울 (P1-E3): each due item carries its seal date + the user's OWN
       // seal-time words (receipt.human_judgment; omitted when skipped). The
@@ -87,6 +115,25 @@ export const checkIn: ToolModule = {
         ? S.upcoming(upcoming.length, upDays)
         : '';
 
+      // Fleet view (M2, §9.4): due counts across the OTHER projects the global
+      // registry knows. Counts + paths only — each project settles in its own
+      // dir; this is a lighthouse sweep, not a merged ledger.
+      let fleetRows: Array<{ argus_dir: string; due_count: number; due_premise_count: number }> = [];
+      let fleetLine = '';
+      if (a['fleet'] === true) {
+        const others = readGlobalBoundList().filter((d) => d !== dir).slice(0, 8);
+        fleetRows = others.map((d) => {
+          try {
+            const l = replayLedger(d, today);
+            return { argus_dir: d, due_count: l.overdue.length, due_premise_count: groupDuePremises(duePremises(l)).length };
+          } catch {
+            return { argus_dir: d, due_count: 0, due_premise_count: 0 };
+          }
+        }).filter((r) => r.due_count > 0 || r.due_premise_count > 0);
+        const fleetDue = fleetRows.reduce((n, r) => n + r.due_count, 0);
+        if (fleetRows.length > 0) fleetLine = S.fleet_summary(fleetRows.length, fleetDue);
+      }
+
       // Ledger-corruption disclosure (11 P2-8): dropped_lines was counted in
       // data.integrity but never SAID. Silence is not kindness — one factual
       // sentence + the backup handle. No blame, no gate.
@@ -127,9 +174,9 @@ export const checkIn: ToolModule = {
           : '';
         return envelope({
           ok: true, tool: 'argus_check_in',
-          surface: S.nothing_due + accountHint + upcomingLine + integrityLine,
+          surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + fleetLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), today },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), ...(a['fleet'] === true ? { fleet: fleetRows } : {}), ...watchData, today },
         });
       }
 
@@ -141,8 +188,8 @@ export const checkIn: ToolModule = {
         const oldest = dueEnriched[0];
         parts.push(
           oldest?.your_words_then && typeof oldest.days_since_seal === 'number'
-            ? S.anchor_mirror(oldest.days_since_seal, due.length, clip(oldest.your_words_then, 200))
-            : S.due_contracts(due.length),
+            ? S.anchor_mirror(oldest.days_since_seal, dueAll.length, clip(oldest.your_words_then, 200))
+            : S.due_contracts(dueAll.length),
         );
       }
       if (premiseGroups.length > 0) parts.push(S.due_premises(premiseGroups.length));
@@ -166,15 +213,18 @@ export const checkIn: ToolModule = {
 
       return envelope({
         ok: true, tool: 'argus_check_in',
-        surface: parts.join(' ') + upcomingLine + integrityLine,
+        surface: mirrorLine + parts.join(' ') + upcomingLine + fleetLine + integrityLine,
         next_actions: next,
         data: {
-          due: dueEnriched, due_count: due.length,
+          due: dueEnriched, due_count: dueAll.length,
+          ...(dueTruncated > 0 ? { due_truncated: `${dueAll.length} due, showing ${DUE_TOP} oldest` } : {}),
           due_premises: duePrem, due_premise_count: premiseGroups.length,
           ...(premiseGroups.length > TOP ? { due_premises_truncated: `${premiseGroups.length} groups, showing ${TOP}` } : {}),
           due_open_questions: dueOpenQ, due_open_question_count: openQs.length,
           ...(openQs.length > TOP ? { due_open_questions_truncated: `${openQs.length} questions, showing ${TOP}` } : {}),
           ...(upDays > 0 ? { upcoming } : {}),
+          ...(a['fleet'] === true ? { fleet: fleetRows } : {}),
+          ...watchData,
           today, integrity: ledger.integrity,
         },
       });

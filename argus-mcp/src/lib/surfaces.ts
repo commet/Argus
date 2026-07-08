@@ -35,6 +35,30 @@ export function surfaceLocale(argusDir?: string | null): SurfaceLocale {
   return configLocale(argusDir) ?? 'en';
 }
 
+/** Turn a machine sync-failure reason (push-account.ts enum) into a human
+ *  sentence fragment — the raw token ("bad_token_format") used to be spliced
+ *  straight into the seal confirmation (§9.4 경계 수리). Unknown reasons pass
+ *  through untranslated (honest, still short). */
+export function humanizeSyncReason(reason: string, locale: SurfaceLocale): string {
+  const http = /^http_(\d+)$/.exec(reason);
+  if (locale === 'ko') {
+    if (reason === 'bad_token_format') return '토큰 형식이 잘못됐습니다 (argus_pat_로 시작해야 합니다)';
+    if (reason === 'insecure_api_url') return 'API 주소가 https가 아니라 토큰을 보내지 않았습니다';
+    if (reason === 'network') return '네트워크에 닿지 못했습니다';
+    if (http) return http[1] === '401' || http[1] === '403'
+      ? `토큰이 거부됐습니다 (HTTP ${http[1]}) — 만료됐을 수 있으니 웹 설정에서 새 토큰을 발급하세요`
+      : `서버가 ${http[1]}로 응답했습니다`;
+    return reason;
+  }
+  if (reason === 'bad_token_format') return 'the token looks malformed (it should start with argus_pat_)';
+  if (reason === 'insecure_api_url') return 'the API URL is not https, so the token was not sent';
+  if (reason === 'network') return 'the network was unreachable';
+  if (http) return http[1] === '401' || http[1] === '403'
+    ? `the token was rejected (HTTP ${http[1]}) — it may be expired; issue a new one in web Settings`
+    : `the server answered ${http[1]}`;
+  return reason;
+}
+
 /** The explicit config locale, or null when no config.yaml declares one.
  *  Distinct from surfaceLocale so the response-locale chain can tell an
  *  EXPLICIT `locale: en` (config wins, never overridden) apart from the
@@ -114,11 +138,20 @@ export interface SurfaceStrings {
     reconsider_more: (n: number) => string;
     /** ledger-corruption disclosure (11 P2-8): counted silently before — say it. */
     dropped_lines: (n: number) => string;
+    /** 당직 미러 (§9.1): the most recent PRIOR day's anchor, mirrored back as a
+     *  question. 세 문장 문법 — 인용, 사실(날짜), 손잡이. Never an evaluation,
+     *  never a completion check. */
+    watch_mirror: (date: string, text: string) => string;
+    /** M2 fleet — due counts across OTHER projects (facts + a handle, no urgency). */
+    fleet_summary: (projects: number, due: number) => string;
   };
   sync: {
     live_with_due: (total: number, due: number) => string;
     live_no_due: (total: number) => string;
     settled_on_web: (n: number) => string;
+    /** M2 귀환 봉합 — web settlements mirrored into the local ledger (the
+     *  user's own words, imported verbatim; a fact line, never a verdict). */
+    imported: (n: number) => string;
     truncation: (shown: number, matched: number) => string;
   };
   /** seal_text — the terminal twin of the webapp's seal certificate plate
@@ -159,6 +192,31 @@ export interface SurfaceStrings {
     more: (n: number) => string;
     record_since: (date: string) => string;
   };
+  /** receipt_text — the settled Judgment Receipt, the product's keepsake
+   *  artifact (FC-2: it was the ONE renderer left outside the locale brain —
+   *  a Korean user sealed and settled in Korean and got an English receipt).
+   *  The `AI VERDICT … NONE` line is brand DNA and stays English in every
+   *  locale (it is the OG image's centerpiece, same on web). */
+  receipt: {
+    header: string;
+    sealed_label: string;
+    settled_label: string;
+    not_settled: string;
+    real_question: string;
+    unverified_assumption: string;
+    human_only: string;
+    made_by_label: string;
+    made_by: string;
+    called_as: string;
+    skipped: string;
+    premises_note: (tracked: number, changed: number) => string;
+    you_predicted: string;
+    check_by: (date: string) => string;
+    what_happened: string;
+    verdict_line: string;
+    closing: string;
+    footer: string;
+  };
   /** happy-path one-liners for the 6 tools that still spoke English regardless
    *  of locale (dogfood FINDINGS-2 §2: open_decision/seal/settle/recheck/amend/
    *  dismiss). Rich receipts, errors and nudges were already localized; only
@@ -173,6 +231,9 @@ export interface SurfaceStrings {
       reason_fallback: string;
       /** the coda: names the status-quo option, returns the handle. */
       leave_coda: string;
+      /** §9.4 절벽 제거 — the restraint verdict stands, but the user who still
+       *  wants the thought KEPT gets an exit: a watch note, not an opened decision. */
+      watch_exit: string;
       reconfirm: string;
       /** FIRE, crux supplied: name the one question. */
       opened_with_crux: (crux: string) => string;
@@ -210,6 +271,13 @@ export interface SurfaceStrings {
     dismiss: {
       dismissed: string;
     };
+    /** 당직 루프 (§9.3) — anchor/capture/list confirmations. Facts + handles
+     *  only: no praise, no progress language, no streak. */
+    watch: {
+      anchored: string;
+      captured: (kind: string) => string;
+      listed: (anchors: number, captures: number) => string;
+    };
   };
 }
 
@@ -234,13 +302,18 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       reconsider_more: (n) => `${n} open question(s) you left unresolved are up for another look (argus_premises).`,
       dropped_lines: (n) =>
         ` ${n} ledger line(s) could not be read (possibly a crash artifact). The record is append-only, so the rest is intact — keep a backup of ledger.jsonl.`,
+      watch_mirror: (date, text) =>
+        `Your line on watch ${date}: '${text}' — so, how did it go? (Today's line, if you want one: argus_watch.)`,
+      fleet_summary: (projects, due) =>
+        ` Elsewhere: ${due} due across ${projects} other project(s) — details in data.fleet; each settles in its own project.`,
     },
     sync: {
       live_with_due: (total, due) =>
         `${total} live judgment(s) in your account · ${due} past check-by. ` +
         'Terminal-sealed ones settle here via argus_settle with local_id; web-sealed ones settle in the web dashboard.',
       live_no_due: (total) => `${total} live judgment(s) in your account. Nothing past its check-by.`,
-      settled_on_web: (n) => ` ${n} already settled on the web — to keep them in this ledger too, record the same outcome with argus_settle.`,
+      settled_on_web: (n) => ` ${n} already settled on the web — run argus_sync with import_settlements:true to mirror your web record into this ledger, or record it yourself with argus_settle.`,
+      imported: (n) => ` Mirrored ${n} web settlement(s) into this ledger — your own recorded words, brought home.`,
       truncation: (shown, matched) => `Showing ${shown} of ${matched}. Raise limit or narrow with due_only.`,
     },
     seal: {
@@ -268,6 +341,27 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       more: (n) => `… (+${n})`,
       record_since: (date) => `on record since ${date}`,
     },
+    receipt: {
+      header: 'ARGUS · JUDGMENT RECEIPT',
+      sealed_label: 'Sealed',
+      settled_label: 'Settled',
+      not_settled: 'Not yet settled',
+      real_question: 'THE REAL QUESTION',
+      unverified_assumption: 'THE UNVERIFIED ASSUMPTION',
+      human_only: 'HUMAN-ONLY CALL',
+      made_by_label: '…made by',
+      made_by: 'Me. (not the model)',
+      called_as: '…called as',
+      skipped: '— (you skipped naming this)',
+      premises_note: (tracked, changed) =>
+        `(+${tracked} premise(s) tracked · ${changed} changed at re-check — argus_recall view=premises)`,
+      you_predicted: 'YOU PREDICTED',
+      check_by: (date) => `(check-by ${date})`,
+      what_happened: 'WHAT HAPPENED',
+      verdict_line: 'AI VERDICT ON THIS DECISION ······················  NONE',
+      closing: 'The model never graded you. Reality did.',
+      footer: 'argus · seal → settle ⚓',
+    },
     tools: {
       open_decision: {
         reason: {
@@ -280,6 +374,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         },
         reason_fallback: 'No fork to manufacture here.',
         leave_coda: 'Leaving it as is stays a real option.',
+        watch_exit: ' If you still want this kept, argus_watch (op=anchor) records it as a note — a note, not an opened decision.',
         reconfirm: 'These signals look contradictory (high stakes yet easily reversible). Re-confirm stakes and reversibility before going further.',
         opened_with_crux: (crux) => `Opened. The one question that decides this: ${crux}`,
         opened_bare: 'Opened. Surface exactly ONE neutral crux question (a question, not a fork or a lean), then seal a falsifiable prediction.',
@@ -307,6 +402,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       dismiss: {
         dismissed: 'Dismissed. Closed without a verdict.',
       },
+      watch: {
+        anchored: "Anchored for today. Tomorrow's check_in mirrors this line back — as a question, never a grade.",
+        captured: (kind) => `Captured (${kind}). It sits on the watch log — promoting it to a decision premise is your call, whenever (argus_premises).`,
+        listed: (anchors, captures) => `Watch log: ${anchors} anchor(s) · ${captures} capture(s).`,
+      },
     },
   },
   ko: {
@@ -329,13 +429,18 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       reconsider_more: (n) => `미결로 남겨둔 질문 ${n}건이 다시 볼 차례입니다 (argus_premises).`,
       dropped_lines: (n) =>
         ` 원장에서 읽지 못한 줄이 ${n}개 있습니다(크래시 흔적일 수 있음). 기록은 append-only라 나머지는 안전합니다 — ledger.jsonl을 백업해 두세요.`,
+      watch_mirror: (date, text) =>
+        `${date} 당직의 항로: '${text}' — 그래서, 어떻게 됐어요? (오늘의 항로를 적으려면 argus_watch.)`,
+      fleet_summary: (projects, due) =>
+        ` 다른 곳: 다른 프로젝트 ${projects}곳에 확인할 차례 ${due}건 — 자세한 건 data.fleet에, 정산은 각 프로젝트에서.`,
     },
     sync: {
       live_with_due: (total, due) =>
         `계정에 살아 있는 판단 ${total}개 · 확인할 차례 ${due}개. ` +
         '이 터미널에서 봉인한 것은 local_id로 argus_settle, 웹에서 봉인한 것은 웹 대시보드에서 정산하세요.',
       live_no_due: (total) => `계정에 살아 있는 판단 ${total}개. 확인할 차례가 된 것은 없습니다.`,
-      settled_on_web: (n) => ` 웹에서 이미 정산된 것 ${n}건 — 로컬 원장에도 남기려면 argus_settle로 같은 outcome을 기록하세요.`,
+      settled_on_web: (n) => ` 웹에서 이미 정산된 것 ${n}건 — argus_sync에 import_settlements:true를 주면 웹에 남긴 당신의 기록을 이 원장에도 그대로 옮겨옵니다 (직접 argus_settle로 적어도 됩니다).`,
+      imported: (n) => ` 웹 정산 ${n}건을 이 원장에 옮겨왔습니다 — 당신이 웹에 적은 그 말 그대로입니다.`,
       truncation: (shown, matched) => `${matched}개 중 ${shown}개만 표시. limit을 올리거나 due_only로 좁히세요.`,
     },
     seal: {
@@ -363,6 +468,28 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       more: (n) => `… (+${n})`,
       record_since: (date) => `기록 시작 ${date} 부터`,
     },
+    receipt: {
+      header: 'ARGUS · 판단 영수증',
+      sealed_label: '봉인',
+      settled_label: '정산',
+      not_settled: '아직 정산 전',
+      real_question: '진짜 질문',
+      unverified_assumption: '검증 안 된 전제',
+      human_only: '사람만의 콜',
+      made_by_label: '…내린 사람',
+      made_by: '나. (모델이 아니라)',
+      called_as: '…콜한 내용',
+      skipped: '— (이름 붙이지 않고 넘어갔습니다)',
+      premises_note: (tracked, changed) =>
+        `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건 — argus_recall view=premises)`,
+      you_predicted: '당신의 예측',
+      check_by: (date) => `(확인일 ${date})`,
+      what_happened: '실제로 일어난 일',
+      // 브랜드 DNA — 웹 OG 이미지와 동일하게 이 줄만은 영문 유지 (§9.3)
+      verdict_line: 'AI VERDICT ON THIS DECISION ······················  NONE',
+      closing: '모델은 당신을 채점하지 않았습니다. 현실이 답했습니다.',
+      footer: 'argus · 봉인 → 정산 ⚓',
+    },
     tools: {
       open_decision: {
         reason: {
@@ -375,6 +502,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         },
         reason_fallback: '여기서 지어낼 갈림길은 없습니다.',
         leave_coda: '그대로 두는 것도 여전히 진짜 선택지입니다.',
+        watch_exit: ' 그래도 남겨두고 싶으면 argus_watch(op=anchor)가 메모로 적어둡니다 — 결정을 여는 게 아니라 메모입니다.',
         reconfirm: '신호가 서로 어긋납니다(걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 stakes와 reversibility를 다시 확인하세요.',
         opened_with_crux: (crux) => `열었습니다. 이걸 가르는 단 하나의 질문: ${crux}`,
         opened_bare: '열었습니다. 중립적인 핵심 질문 딱 하나만 꺼내세요(갈림길도 기울임도 아닌 질문). 그다음 반증 가능한 예측을 봉인하세요.',
@@ -391,8 +519,10 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       recheck: {
         baseline: (ref, finding, source, cadenceDays) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). ${cadenceDays}일 뒤에 다시 확인하길 권합니다.`,
-        material: (ref, before, after, source) => `P${ref}이 기댄 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 이 결정을 다시 볼지는 당신 몫입니다.`,
-        uncertain: (ref, reason) => `P${ref}: 규칙상 자동 판정이 애매한 변화예요 (${reason}). host가 확인한 사실만 적어뒀어요 — 규칙을 정할지, 그냥 둘지는 당신 몫이에요.`,
+        // 어휘 1벌 (공정 3 상환): 웹 T2 이메일(companion-brief)과 같은 문장 —
+        // "결정을 다시 볼지는 당신의 몫" — 표면 존대만 다르고 어휘는 동일하다.
+        material: (ref, before, after, source) => `P${ref}이 기댄 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 결정을 다시 볼지는 당신의 몫입니다.`,
+        uncertain: (ref, reason) => `P${ref}: 규칙상 자동 판정이 애매한 변화예요 (${reason}). host가 확인한 사실만 적어뒀어요 — 규칙을 정할지, 그냥 둘지는 당신의 몫이에요.`,
         uncertain_heuristic_note: ' 규칙을 따로 정하지 않아 기본값(휴리스틱)으로 봤어요 — 이 전제에서 어떤 움직임이 중요한지 정해두면 더 정확해요.',
         unchanged: (ref, source) => `P${ref}은 그대로입니다 (${source}).`,
       },
@@ -401,6 +531,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       dismiss: {
         dismissed: '접었습니다. 평결 없이 닫혔습니다.',
+      },
+      watch: {
+        anchored: '오늘의 항로를 적어두었습니다. 내일 check_in이 이 문장을 질문 하나로 되비춥니다 — 평가는 없습니다.',
+        captured: (kind) => `기록했습니다 (${kind}). 당직 일지에 있습니다 — 결정의 전제로 올릴지는 당신이 정할 때만 (argus_premises).`,
+        listed: (anchors, captures) => `당직 일지: 항로 ${anchors}건 · 기록 ${captures}건.`,
       },
     },
   },

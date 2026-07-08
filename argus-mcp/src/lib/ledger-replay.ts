@@ -42,12 +42,41 @@ export interface ContractEntry {
   settled_on?: string;
 }
 
+/** 당직 루프 (BLUEPRINT §9) — the daily watch fold. Anchors and captures live
+ *  OUTSIDE the decision state machine: no status, no outcome, no stats. An
+ *  anchor is a note, not a bet (§9.2-3) — nothing here feeds track_record. */
+export interface WatchAnchor {
+  date: string;
+  /** the user's whole anchor sentence, verbatim — including any stated stance.
+   *  Deliberately ONE field: a separate stance key would be a fork-adjacent
+   *  schema shape the spine drift guard (FORBIDDEN_FORK_KEYS) exists to refuse. */
+  text: string;
+  ts?: string;
+}
+export interface WatchCapture {
+  /** stable id (wc-xxxxxxxx) — the promotion reference for argus_premises from_capture. */
+  id?: string;
+  date: string;
+  kind: 'claim' | 'premise' | 'question';
+  text: string;
+  source: PremiseSource;
+  ai_original?: string;
+  ts?: string;
+}
+export interface WatchState {
+  /** by date (YYYY-MM-DD) — the latest anchor of a day wins (re-anchoring a day
+   *  is a correction, and the ledger keeps the history anyway). */
+  anchors: Map<string, WatchAnchor>;
+  captures: WatchCapture[];
+}
+
 export interface LedgerState {
   today: string;
   overdue: Array<{ id: string; date: string; text: string }>;
   ids: Set<string>;
   sealedPredicates: Set<string>;
   contracts: Map<string, ContractEntry>;
+  watch: WatchState;
   stats: {
     total_sealed: number;
     total_settled: number;
@@ -91,12 +120,13 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   let dropped = 0;
   let skippedUnknown = 0;
   let oldestTs: string | undefined;
+  const watch: WatchState = { anchors: new Map(), captures: [] };
 
   let raw: string;
   try {
     raw = deBom(fs.readFileSync(ledgerPath(argusDir), 'utf8'));
   } catch {
-    return { today, overdue: [], ids, sealedPredicates, contracts: map, stats, integrity: { dropped_lines: 0, skipped_unknown: 0 } };
+    return { today, overdue: [], ids, sealedPredicates, contracts: map, stats, watch, integrity: { dropped_lines: 0, skipped_unknown: 0 } };
   }
 
   for (const line of raw.split('\n')) {
@@ -112,8 +142,9 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
     const id = ev['id'];
     // gate_input is an over-fire-gate audit record, not a decision the user
     // opened — counting it made the first-use greeting vanish after a single
-    // restrained argus_open_decision call (11 S7).
-    if (ev['event'] !== 'gate_input') ids.add(id);
+    // restrained argus_open_decision call (11 S7). Watch events (당직, §9) are
+    // likewise NOT decisions — they must never count as one.
+    if (ev['event'] !== 'gate_input' && ev['event'] !== 'watch_anchor' && ev['event'] !== 'watch_capture') ids.add(id);
     // Record inception (P1-E7): ISO timestamps compare lexicographically.
     if (typeof ev['ts'] === 'string' && ev['ts'] && (!oldestTs || ev['ts'] < oldestTs)) oldestTs = ev['ts'];
 
@@ -275,6 +306,32 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
       case 'gate_input':
         break; // known meta event (over-fire gate audit) — not a state change, not corrupt
 
+      // ── 당직 루프 (§9) — outside the decision state machine. No contract
+      //    entry is created; nothing touches stats. Anchor is a note, not a bet.
+      case 'watch_anchor': {
+        const date = typeof ev['anchor_date'] === 'string' ? ev['anchor_date']
+          : typeof ev['ts'] === 'string' ? ev['ts'].slice(0, 10) : undefined;
+        if (!date || typeof ev['text'] !== 'string') { dropped++; break; }
+        watch.anchors.set(date, { date, text: ev['text'], ts: ev['ts'] as string | undefined });
+        break;
+      }
+
+      case 'watch_capture': {
+        const date = typeof ev['anchor_date'] === 'string' ? ev['anchor_date']
+          : typeof ev['ts'] === 'string' ? ev['ts'].slice(0, 10) : undefined;
+        if (!date || typeof ev['text'] !== 'string') { dropped++; break; }
+        watch.captures.push({
+          ...(typeof ev['capture_id'] === 'string' ? { id: ev['capture_id'] } : {}),
+          date,
+          kind: (ev['kind'] === 'claim' || ev['kind'] === 'question' ? ev['kind'] : 'premise'),
+          text: ev['text'],
+          source: normalizePremiseSource(ev['source']),
+          ...(typeof ev['ai_original'] === 'string' ? { ai_original: ev['ai_original'] } : {}),
+          ts: ev['ts'] as string | undefined,
+        });
+        break;
+      }
+
       default:
         // Forward-compat tolerance (plan v5 §6.3): a well-formed, VERSIONED event
         // whose type this binary doesn't know was written by a newer argus-decision-mcp —
@@ -295,7 +352,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
   }
   overdue.sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  return { today, overdue, ids, sealedPredicates, contracts: map, stats, oldest_ts: oldestTs, integrity: { dropped_lines: dropped, skipped_unknown: skippedUnknown } };
+  return { today, overdue, ids, sealedPredicates, contracts: map, stats, watch, oldest_ts: oldestTs, integrity: { dropped_lines: dropped, skipped_unknown: skippedUnknown } };
 }
 
 /**

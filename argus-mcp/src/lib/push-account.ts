@@ -25,6 +25,11 @@ export interface SealPush {
   source_title?: string;
   real_question?: string;
   human_judgment?: string;
+  /** ONLY when the user opted in (`premise_sync: true`, §9.2-4): the sealed
+   *  decision's monitored premises, so the account's premise-watch (T2) can
+   *  re-check them against reality. Absent by default — premise data does not
+   *  leave the machine without this explicit switch. */
+  tracked_premises?: Array<Record<string, unknown>>;
 }
 
 export interface SettlePush {
@@ -50,6 +55,11 @@ export interface AccountReceipt {
   due: boolean;
   core_question: string;
   open_predicates: { predicate: string; check_by: string }[];
+  /** Present when the account holds a settlement — the USER's own web-stated
+   *  outcome and words, so argus_sync can mirror it into the local ledger as
+   *  their record (never a machine verdict). Web outcome vocabulary
+   *  ('happened'|'unclear'|…) — the importer maps it to the MCP enum. */
+  settled_predicates?: { predicate: string; outcome: string; what_happened: string; settled_at?: string }[];
 }
 
 export interface PullResult {

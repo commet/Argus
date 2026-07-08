@@ -58,7 +58,10 @@ Claude Code:
 claude mcp add argus -- npx -y argus-decision-mcp
 ```
 
-Or add to your host's MCP config:
+Or add to your host's MCP config. **Zero config works**: with no `env` at all,
+your ledger lives in `~/.argus`.
+
+**Claude Code** (expands `${CLAUDE_PROJECT_DIR}`, so a per-project ledger works):
 
 ```jsonc
 {
@@ -67,18 +70,16 @@ Or add to your host's MCP config:
       "command": "npx",
       "args": ["-y", "argus-decision-mcp"],
       "env": {
-        // Set this ONCE and you never pass argus_dir again — every tool falls
-        // back to it. Claude Code expands ${CLAUDE_PROJECT_DIR}; on other hosts
-        // put an absolute path here (or pass argus_dir per call).
+        // OPTIONAL — per-project ledger. Omit entirely to use ~/.argus.
         "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus",
         // OPTIONAL — connect to your Argus account so sealed predictions get an
         // email at their check-by date (the Companion Brief) and show up in the
-        // web dashboard. Issue the token in the web app. Leave it unset to stay
-        // fully local (the privacy-preserving default).
+        // web dashboard. Issue the token in the web app (Settings → sync token).
+        // Leave it unset to stay fully local (the privacy-preserving default).
         "ARGUS_TOKEN": "argus_pat_…",
         // OPTIONAL — the timezone that decides when a check-by date becomes
-        // "today". Unset = UTC, which for Korean users means the day flips at
-        // 9am KST (a due decision won't show until then). Set your zone:
+        // "today". Unset = your machine's local timezone (usually right).
+        // Set it only if your machine's clock zone isn't where you live:
         "ARGUS_TZ": "Asia/Seoul"
         // "ARGUS_API_URL": "https://argus.voyage"  // override only for self-host
       }
@@ -87,14 +88,57 @@ Or add to your host's MCP config:
 }
 ```
 
+**Claude Desktop** does **not** expand `${...}` variables — a literal
+`${CLAUDE_PROJECT_DIR}` would fail on every call (Argus names this error when
+it happens). Either omit `ARGUS_DIR` (→ `~/.argus`) or use an absolute path:
+
+```jsonc
+// macOS
+"env": { "ARGUS_DIR": "/Users/you/.argus" }
+// Windows — also note the command form below
+"env": { "ARGUS_DIR": "C:\\Users\\you\\.argus" }
+```
+
+**Windows** hosts often can't launch bare `npx` (it's `npx.cmd`). If the server
+fails to start, use:
+
+```jsonc
+{
+  "command": "cmd",
+  "args": ["/c", "npx", "-y", "argus-decision-mcp"]
+}
+```
+
 > `argus_dir` is **optional** on every tool: omit it and it resolves from
-> `ARGUS_DIR`. A per-call `argus_dir` still wins — so Argus works on any host
-> even when env-variable interpolation doesn't.
+> `ARGUS_DIR`, then falls back to `~/.argus`. A per-call `argus_dir` still
+> wins — so Argus works on any host even when env-variable interpolation
+> doesn't.
+
+## Two loops
+
+Argus runs two loops side by side — the same three-routine workout its author
+uses daily (seal → surface → return):
+
+- **The daily watch** (`argus_watch`) — turns over once a *day*. In the morning
+  (or whenever a session starts) you anchor one line: today's aim, your working
+  hypothesis, where you lean. While you work, you capture the things that
+  usually evaporate: a claim you accepted without checking, a premise you
+  haven't verified, a question you're deferring. Tomorrow's `check_in` mirrors
+  yesterday's line back — *"so, how did it go?"* — as a question, never a grade.
+  An anchor is a **note, not a bet**: nothing about it is scored, counted, or
+  streaked, ever.
+- **The decision voyage** (everything below) — turns over in days-to-months.
+  When a capture turns out to be load-bearing, *you* promote it: open the
+  decision, seal a falsifiable prediction, track its premises, and let reality
+  settle it into a Judgment Receipt.
+
+The watch builds the habit; the voyage builds the record.
 
 ## The loop
 
 | Tool | What it does |
 |------|--------------|
+| `argus_watch` | The daily watch. `anchor` keeps today's one-line aim (your words, verbatim); `capture` notes a swallowed claim / unverified premise / deferred question mid-work without opening a decision; `list` reads the recent log. Anchors are mirrored back by the next `check_in` as a question — never evaluated, never counted in any record. |
 | `argus_open_decision` | Opens a consequential decision. Runs a restraint gate first — on a flat / low-stakes / reversible / already-closed call it tells you to leave it as is. If it fires, it surfaces **one** neutral question, never a fork or a lean. |
 | `argus_review` | Reviews an existing document (strategy memo / PRD / deck text / AI answer) for judgment risk: reviewability score, routed lenses, source units with anchors, and the extraction prompt — then hands the analysis to you. Degrades honestly on unextractable input; never a verdict. End by sealing one follow-up. |
 | `argus_seal` | Seals a falsifiable prediction (`predicate` + `check_by`) and captures the receipt's real-question / unverified-assumption / human-only / your-call fields. Refuses an empty predicate or a non-future date. If you seal without naming the assumption, it's recorded as an explicit **skip** — never a forced gate (which would just eject the tiredest user), never a silent blank. With `ARGUS_TOKEN` set, the prediction also syncs to your account so the Companion Brief can email you at its check-by date. |
@@ -103,7 +147,7 @@ Or add to your host's MCP config:
 | `argus_settle` | On the check-by date, records what reality did and issues the Judgment Receipt. Hard-errors without a prior seal. Optionally records **which premise broke** (your attribution, never inferred) — over time your track record can say "3 of your 4 missed bets traced to a broken external premise": a frequency, never a diagnosis. |
 | `argus_amend` | Changes the predicate or check-by date **before** reality answers — a course change, not an erasure (the original stays on the append-only ledger). Hard-errors once the decision is settled. |
 | `argus_dismiss` | Closes a decision **without settling** — it became irrelevant, was decided elsewhere, or you changed your mind. No verdict is recorded; terminal, not reopened. |
-| `argus_check_in` | Returns contracts past their check-by date **and premise facts due for a re-check** (the same fact under several decisions is one re-check). If nothing is due, it says so and stops — it doesn't manufacture engagement. |
+| `argus_check_in` | Returns contracts past their check-by date **and premise facts due for a re-check** (the same fact under several decisions is one re-check), and mirrors yesterday's watch anchor back as a question. If nothing is due, it says so and stops — it doesn't manufacture engagement. |
 | `argus_sync` | Pulls your account receipts into the terminal (live judgments + what's due) so you can settle here. Seals push automatically; this is the read side. Requires `ARGUS_TOKEN`. |
 | `argus_recall` | Reads your own history: a receipt, the open contracts, or a sample-size-caveated track record (never a tier or score). |
 | `argus_init` / `argus_config` | Initialize the `.argus` directory; read/write non-spine settings. |
@@ -133,9 +177,13 @@ an append-only `ledger.jsonl` **you own**: plain JSON lines, no lock-in,
 receipts render to shareable text. No telemetry. The **only** network call
 Argus ever makes is the opt-in account sync: if — and only if — you set
 `ARGUS_TOKEN`, a sealed/settled prediction is POSTed to your own Argus account
-so it can email you at its check-by date. **Premise data never leaves your
-machine** — it is not part of the sync payload. Unset the token and Argus never
-touches the network. See [SECURITY.md](SECURITY.md).
+so it can email you at its check-by date. **Premise data stays on your machine
+by default** — it is not part of the sync payload. There is exactly one switch
+that changes this: `argus_config premise_sync:true` (off unless you set it)
+sends a sealed decision's *monitored* premises along, so your account's
+autonomous premise-watch can re-check them against reality and email you when
+one materially moves. Unset the token and Argus never touches the network.
+See [SECURITY.md](SECURITY.md).
 
 ## Measured
 

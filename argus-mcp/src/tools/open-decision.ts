@@ -87,8 +87,10 @@ export const openDecision: ToolModule = {
           // Human sentence, not a snake_case enum (11 P2-1). Contract (§4): the
           // line ENDS by naming the option and returning the handle — never a
           // directive ("leave it") issued in the user's stead.
-          surface: `${T.reason[gate.reason as keyof typeof T.reason] ?? T.reason_fallback} ${T.leave_coda}`,
-          next_actions: ['leave_as_is', 'skip'],
+          // §9.4 절벽 제거: the restraint verdict stands, but a user who still
+          // wants the thought KEPT gets an exit — a watch note, not a decision.
+          surface: `${T.reason[gate.reason as keyof typeof T.reason] ?? T.reason_fallback} ${T.leave_coda}${T.watch_exit}`,
+          next_actions: ['leave_as_is', 'argus_watch', 'skip'],
           over_fire_gate: { fired: false, reason: gate.reason },
           data: { id, crux_question: null, restraint_option: a['status_quo'], fork_emitted: false, harvest_written: false },
         });

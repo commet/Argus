@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
+import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
@@ -52,15 +53,17 @@ const zMaterialityRule = z.strictObject({
 });
 
 const zPremiseInput = z.strictObject({
-  text: z.string().min(3).max(400).describe('One literal, factual sentence. No metaphor. Good: "base rate stays at 3.5% through 2026". Bad: "the ground this rests on".'),
+  text: z.string().min(3).max(400).optional().describe('One literal, factual sentence. No metaphor. Good: "base rate stays at 3.5% through 2026". Bad: "the ground this rests on". Optional ONLY when from_capture is given (the capture\'s verbatim text is used).'),
+  from_capture: z.string().max(64).optional().describe('Promote a watch capture (§9.3): its wc- id (or unique prefix). The capture\'s VERBATIM text/provenance carry over; the capture itself stays on the watch log — promotion is a reference, never a move. Promotion is the user\'s verb: pass this only when they chose to promote.'),
   kind: z.enum(['premise', 'open_question']).default('premise').describe('premise = a fact/belief the decision rests on. open_question = something the user explicitly left undecided.'),
   external: z.boolean().default(false).describe('Can reality verify this later (a rate, a date, supply, a third party)? external + load_bearing arms re-checking.'),
   load_bearing: z.boolean().default(false).describe(`Would the decision flip if this is wrong? Mark sparingly — max ${MAX_LOAD_BEARING} per decision.`),
-  source: z.enum(['ai_surfaced', 'user_stated', 'ai', 'user']).describe('Provenance. Never forge: "user_stated" = the user\'s own words; "ai_surfaced" = model-drafted (requires ai_original). Legacy aliases "user"/"ai" are accepted and normalized.'),
+  source: z.enum(['ai_surfaced', 'user_stated', 'ai', 'user']).optional().describe('Provenance. Never forge: "user_stated" = the user\'s own words; "ai_surfaced" = model-drafted (requires ai_original). Legacy aliases "user"/"ai" are accepted and normalized. Optional ONLY when from_capture is given (the capture\'s provenance carries over) — otherwise required.'),
   ai_original: z.string().max(400).optional().describe('REQUIRED when source="ai_surfaced": the model\'s original wording, preserved verbatim across later edits.'),
   materiality_rule: zMaterialityRule.optional().describe('Optional: how re-checks decide "did this materially change?". Absent → an under-fire default heuristic (silence when unsure). Define it to be precise (e.g. threshold "drops below 4.0", step "any one-notch credit downgrade").'),
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional: how many days between reality re-checks for this fact (M1). Absent → a default derived from the rule type (a moving number is checked more often than slow-moving state). The user pins this; it only moves the DUE nudge, never blocks a recheck.'),
   reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional (kind="open_question" only): how many days between reconsider nudges — a "come back and see if you can answer this yet" timer (M3). Absent → a sensible default. Leaving the question open stays a valid answer; this only moves the nudge, never forces a resolution.'),
+  reconsider_cadence_days: z.number().int().min(1).max(365).optional().describe('Alias of reponder_cadence_days (the historical field name) — either spelling is accepted.'),
 });
 
 const inputSchema = z.strictObject({
@@ -76,6 +79,7 @@ const inputSchema = z.strictObject({
   load_bearing: z.boolean().optional().describe('op=amend: correct the load-bearing flag.'),
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend: re-set how often (days) this fact is re-checked (M1). Widens or narrows the DUE nudge; never blocks an explicit recheck.'),
   reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend/still_open: re-set how often (days) this open question is nudged for reconsideration (M3). Only moves the nudge — never forces a resolution.'),
+  reconsider_cadence_days: z.number().int().min(1).max(365).optional().describe('Alias of reponder_cadence_days (the historical field name) — either spelling is accepted.'),
   decision: z.string().min(1).max(400).optional().describe('op=resolve: the user\'s own closing call. MUST be the user\'s words — never an Argus-drafted line.'),
   today_override: zDate.optional(),
 });
@@ -102,6 +106,70 @@ export const premises: ToolModule = {
       const op = String(a['op']);
       const now = new Date().toISOString();
 
+      // Alias normalization (§9.4 경계 수리): `reponder_cadence_days` is the
+      // historical (misspelled) field a model reasoning from the description
+      // will naturally write as `reconsider_cadence_days`. Accept both, store one.
+      if (typeof a['reconsider_cadence_days'] === 'number' && typeof a['reponder_cadence_days'] !== 'number') {
+        a = { ...a, reponder_cadence_days: a['reconsider_cadence_days'] };
+      }
+      if (Array.isArray(a['premises'])) {
+        a = {
+          ...a,
+          premises: (a['premises'] as Array<Record<string, unknown>>).map((p) =>
+            typeof p['reconsider_cadence_days'] === 'number' && typeof p['reponder_cadence_days'] !== 'number'
+              ? { ...p, reponder_cadence_days: p['reconsider_cadence_days'] }
+              : p,
+          ),
+        };
+      }
+
+      // from_capture 승격 (§9.3): resolve the watch capture and carry its
+      // VERBATIM text + provenance over. The capture stays on the watch log —
+      // this is a reference, never a move; and it is user-initiated by contract.
+      if (op === 'add' && Array.isArray(a['premises']) && (a['premises'] as Array<Record<string, unknown>>).some((p) => typeof p['from_capture'] === 'string')) {
+        const captures = replayLedger(dir, today).watch.captures;
+        const resolved: Array<Record<string, unknown>> = [];
+        for (const p of a['premises'] as Array<Record<string, unknown>>) {
+          const ref = typeof p['from_capture'] === 'string' ? p['from_capture'].trim() : '';
+          if (!ref) { resolved.push(p); continue; }
+          const hits = captures.filter((c) => c.id === ref || (c.id && c.id.startsWith(ref)) || c.text === ref);
+          if (hits.length === 0) {
+            return toolError({ ok: false, tool: 'argus_premises', error_code: 'CAPTURE_NOT_FOUND', message: `No watch capture matches "${ref}".`, recovery: 'List captures with argus_watch op=list and pass the wc- id.' });
+          }
+          if (hits.length > 1) {
+            return toolError({ ok: false, tool: 'argus_premises', error_code: 'AMBIGUOUS_REF', message: `"${ref}" matches ${hits.length} captures.`, recovery: 'Pass the full wc- id from argus_watch op=list.' });
+          }
+          const c = hits[0];
+          resolved.push({
+            ...p,
+            from_capture: c.id ?? ref, // normalize to the full id for the lineage record
+            // capture text wins unless the user re-typed it themselves
+            text: typeof p['text'] === 'string' && p['text'] ? p['text'] : c.text,
+            // a captured QUESTION promotes to an open_question unless the user
+            // explicitly said otherwise (zod defaults kind to 'premise', so the
+            // default must not shadow the capture's own kind)
+            kind: p['kind'] === 'open_question' || c.kind !== 'question' ? (p['kind'] ?? 'premise') : 'open_question',
+            source: p['source'] ?? c.source,
+            ...(c.source === 'ai_surfaced' && !p['ai_original'] ? { ai_original: c.ai_original ?? c.text } : {}),
+          });
+        }
+        a = { ...a, premises: resolved };
+      }
+      // text/source are schema-optional (to allow from_capture) — but by now
+      // every premise must have both. PRESENCE only: length/format policing
+      // stays with zod at dispatch (the pre-M2 handler contract), so the state
+      // guard (ILLEGAL_TRANSITION etc.) keeps firing in its historical order.
+      if (op === 'add' && Array.isArray(a['premises'])) {
+        for (const p of a['premises'] as Array<Record<string, unknown>>) {
+          if (!(typeof p['text'] === 'string' && p['text'].trim().length > 0)) {
+            return toolError({ ok: false, tool: 'argus_premises', error_code: 'INVALID_INPUT', message: 'Each premise needs `text` (or a resolvable `from_capture`).', recovery: 'Pass the premise sentence, or a wc- capture id from argus_watch op=list.' });
+          }
+          if (typeof p['source'] !== 'string') {
+            return toolError({ ok: false, tool: 'argus_premises', error_code: 'PROVENANCE_REQUIRED', message: `Each premise needs \`source\` (user_stated | ai_surfaced): "${String(p['text']).slice(0, 60)}"`, recovery: 'Say who said it — never forge provenance. (from_capture carries the capture\'s provenance automatically.)' });
+          }
+        }
+      }
+
       const current = resolveContract(dir, id, today);
       const existing: PremiseState[] = current.entry?.premises ?? [];
 
@@ -124,7 +192,9 @@ async function opAdd(
 ) {
   guardTransition(state, 'premise_add');
 
-  const inputs = a['premises'] as Array<z.infer<typeof zPremiseInput>> | undefined;
+  // text is guaranteed non-empty by the handler's post-resolution guard.
+  const inputs = (a['premises'] as Array<z.infer<typeof zPremiseInput>> | undefined)
+    ?.map((p) => ({ ...p, text: p.text ?? '' }));
   if (!inputs || inputs.length === 0) {
     return toolError({ ok: false, tool: 'argus_premises', error_code: 'PREMISES_REQUIRED', message: 'op=add needs a non-empty `premises` array.', recovery: 'Pass 1-5 premises: {text, kind, external, load_bearing, source}.' });
   }
@@ -158,6 +228,9 @@ async function opAdd(
     external: p.external, load_bearing: p.load_bearing,
     source: normalizePremiseSource(p.source),
     ...(p.ai_original ? { ai_original: p.ai_original } : {}),
+    // 승격 계보 (§9.3): which watch capture this premise came from — a
+    // reference on the record; the capture itself stays on the watch log.
+    ...(typeof p.from_capture === 'string' && p.from_capture ? { capture_id: p.from_capture } : {}),
     ...(p.materiality_rule ? { materiality_rule: p.materiality_rule } : {}),
     ...(typeof p.recheck_cadence_days === 'number' ? { recheck_cadence_days: p.recheck_cadence_days } : {}),
     ...(typeof p.reponder_cadence_days === 'number' && p.kind === 'open_question' ? { reponder_cadence_days: p.reponder_cadence_days } : {}),
