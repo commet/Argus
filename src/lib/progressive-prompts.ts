@@ -750,8 +750,8 @@ Produce TWO things:
 1. STRENGTH — ONE genuine, SPECIFIC strength of their plan. Real, not flattery. This earns the right to push. (1 sentence.)
 
 2. CLAIMS — 3 to 5 rungs of escalating success. Each rung is an OBJECT with two fields:
-   - "claim": one confident sentence describing the plan succeeding at this level (a concrete future, not an admitted exaggeration).
-   - "assumption": the SINGLE belief THIS rung newly requires that the rung before it did NOT — stated as a concrete, checkable thing they are betting is true (NOT a restatement of the claim, NOT a question). This is the load-bearing belief a flinch here isolates.
+   - "claim": one confident sentence describing the plan succeeding at this level (a concrete future, not an admitted exaggeration). HARD LIMIT: ${locale === 'ko' ? '60자' : '15 words'} — a single main clause, no 그리고/면서/뿐만 아니라 chains, no trailing qualifiers. Lead with the concrete actor+number ("실거래가를 조회한 매수자가 기준 하나를 정한다"), cut everything that doesn't raise the bet. A rung the user can't absorb in one glance is a rung they can't flinch at.
+   - "assumption": the SINGLE belief THIS rung newly requires that the rung before it did NOT — stated as a concrete, checkable thing they are betting is true (NOT a restatement of the claim, NOT a question). This is the load-bearing belief a flinch here isolates. Same hard limit: ${locale === 'ko' ? '60자' : '15 words'}.
 
    THE CRITICAL RULE — all rungs must climb ONE ladder: pick the plan's most load-bearing belief (anchor on the weakest_assumption hint when given) and let each rung demand STRICTLY MORE of that same belief. Do NOT switch axes (don't go from "users love it" to "we raised funding" — that's two ladders). Do NOT escalate by raw magnitude alone (10%→30%→90%); escalate by how much MORE of the belief must hold.
    - Rung 1: plausible — most reasonable people would accept both the claim and its assumption.
