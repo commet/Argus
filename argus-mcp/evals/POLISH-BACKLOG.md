@@ -61,6 +61,24 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   상태 화면 반환(에러 아님). 진짜 없는 id만 에러.
 - [x] **argus_review가 EN 문서에도 한국어로 답함** → FIXED: 문서 언어 감지 이중언어화.
 
+## 검증 배치 (2026-07-09, 수정 확인 재실행) — 확인 + 새 발견
+
+- [x] **review 점수 스파인 위반 → FIXED 확인** (reviewer 재실행): dignity 4→5,
+  스파인 위반 0. 심판 평="평결 안 내리고 내가 뭘 안 봤는지 스스로 보게 해준다".
+- [x] **basis 영어 누출 → FIXED 확인** (sujin 재실행): 용어 불만 사라짐.
+- [x] **미봉인 RECEIPT_NOT_FOUND → FIXED 확인** (bilingual 재실행): errors 1→0.
+- [ ] **읽기 도구가 현재 질문 언어를 못 받음** (bilingual, 새 발견) 영어로 봉인 후
+  한국어로 상태 물으면 영어로 답함. recall 호출엔 사용자 현재 메시지 언어 신호가
+  없어 봉인 내용의 언어를 따름(영수증=봉인 당시 언어 FC-2와도 얽힘). 근본적으로
+  어려움 — escape는 config `locale:` 고정. 순수 단일언어 사용자는 무영향.
+- [ ] **봉인일이 논리적 today 아닌 실벽시계 사용** (reviewer, 새 발견) receipt
+  created_at=`new Date()`(실시간)라 today_override 시뮬에선 봉인일이 어긋나 보임
+  (07-02 시뮬인데 07-08 표시). **실사용은 무관**(실시간==today). 시뮬 정확도만
+  영향 — seal이 resolveToday(override)로 스탬프하면 시뮬도 정확. 저우선.
+- [ ] **review "렌즈 7개" 숫자 자랑 + 봉인 전 약점 지도 부재** (reviewer) 기획자는
+  "어디가 약한지"를 원함. 개수 대신 어느 렌즈가 왜 걸리는지. 봉인 전 렌즈 read를
+  펼쳐 보이기(주로 호스트 행동, review description 한 줄로 유도 검토).
+
 ## 결정 필요 (창업자) — polish 아님, 제품 판단
 
 - [ ] **"seal all three" 했는데 아무것도 안 봉인됨 = 최대 활성화 리스크** (raj, keep=NO,
