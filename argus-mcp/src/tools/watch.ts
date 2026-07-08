@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createHash } from 'crypto';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { appendLedger } from '../lib/ledger-append.js';
@@ -26,6 +27,12 @@ import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './too
  * Promotion is the user's verb: a capture becomes a decision premise via
  * argus_premises (or a decision via argus_open_decision) only when they say so.
  */
+
+/** Stable capture id — deterministic from (date, text) so re-capturing the same
+ *  sentence the same day is idempotent, and the id survives replay. */
+export function captureId(date: string, text: string): string {
+  return 'wc-' + createHash('sha256').update(`${date}|${text}`).digest('hex').slice(0, 8);
+}
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
@@ -91,15 +98,16 @@ export const watch: ToolModule = {
           return toolError({ ok: false, tool: 'argus_watch', error_code: 'PROVENANCE_REQUIRED', message: 'source="ai_surfaced" requires `ai_original` (the model\'s original wording, verbatim).', recovery: 'Pass ai_original, or use source="user_stated" if these are the user\'s words.' });
         }
         const kind = a['kind'] === 'claim' || a['kind'] === 'question' ? a['kind'] : 'premise';
+        const cid = captureId(today, text);
         await ensurePrivacyGitignore(dir);
         await appendLedger(dir, [{
-          id: `watch-${today}`, event: 'watch_capture', text, kind, source, anchor_date: today,
+          id: `watch-${today}`, event: 'watch_capture', capture_id: cid, text, kind, source, anchor_date: today,
           ...(source === 'ai_surfaced' ? { ai_original: String(a['ai_original']).trim() } : {}),
         }], now);
         return envelope({
           ok: true, tool: 'argus_watch', surface: W.captured(kind),
           next_actions: ['argus_premises', 'stop'],
-          data: { op: 'capture', date: today, kind, text, source },
+          data: { op: 'capture', capture_id: cid, date: today, kind, text, source },
         });
       }
 

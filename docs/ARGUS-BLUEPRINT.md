@@ -586,8 +586,8 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
 **공정 M2 · 승격과 다리 (M — 2~4일)**
 - 작업: from_capture 승격 경로 + sync 웹 정산 로컬 반영 + fleet check_in +
   이메일↔터미널 왕복 여정 fixture.
-- exit: [ ] capture→봉인→정산 승격 여정 fixture [ ] 웹 정산 후 로컬 원장
-  발산 0 테스트 [ ] 두 프로젝트 due가 한 check_in에 잡히는 fixture
+- exit: [x] capture→봉인→정산 승격 여정 fixture [x] 웹 정산 후 로컬 원장
+  발산 0 테스트 [x] 두 프로젝트 due가 한 check_in에 잡히는 fixture
 - 금지: 승격 자동화(추천·자동 봉인 — 승격은 언제나 사용자의 동사다).
 
 **공정 M3 · 전제 개통 + 두 기기 안전 (M — 2~4일)**

@@ -69,7 +69,11 @@ const EVIDENCE_M: Record<string, string[]> = {
     'argus-mcp/src/tools/__tests__/m1-watch-loop.test.ts', // 앵커 비산입
     'argus-mcp/src/tools/__tests__/m1-watch-loop.test.ts', // 어휘 가드 (recheck 포함)
   ],
-  '공정 M2': [],
+  '공정 M2': [
+    'argus-mcp/src/tools/__tests__/m2-bridges.test.ts', // capture→봉인→정산 승격 여정
+    'argus-mcp/src/tools/__tests__/m2-bridges.test.ts', // 웹 정산 발산 0 (import_settlements)
+    'argus-mcp/src/tools/__tests__/m2-bridges.test.ts', // fleet 두 프로젝트 fixture
+  ],
   '공정 M3': [],
   '공정 M4': [],
 };

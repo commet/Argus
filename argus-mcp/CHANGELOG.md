@@ -10,6 +10,25 @@
 
 Everything since the 1.0.0 first release.
 
+**공정 M2 · 승격과 다리 (2026-07-08, BLUEPRINT §9.5) — the two loops connect:**
+
+- **Promotion (`from_capture`)**: `argus_premises op=add` can promote a watch
+  capture into a decision premise by its `wc-` id — the capture's VERBATIM
+  text and provenance carry over, the capture stays on the watch log (a
+  reference, never a move), and a captured question promotes as an
+  open_question. Promotion stays the user's verb.
+- **The web settlement comes home (`import_settlements`)**: `argus_sync` can
+  now mirror a settlement the user already recorded on the web into the local
+  ledger — their own outcome and words, verbatim (`source_detail:
+  'web_settlement_import'` on the event). The flag-only cross-check meant a
+  web-settled judgment stayed "due" in the terminal forever; the account API
+  now returns the user's settlement words to make the mirror possible. A
+  settled account row WITHOUT those words stays flag-only — never invented.
+- **Fleet check-in (`fleet: true`)**: `argus_check_in` can sweep every project
+  `argus_init` registered on this machine (~/.argus/.bound) and report due
+  counts per project — a lighthouse sweep, not a merged ledger; each project
+  settles in its own dir.
+
 **공정 M1 · 당직 루프 (2026-07-08, BLUEPRINT §9.5) — the daily watch:**
 
 - **New tool `argus_watch`** — the second, lighter orbit next to the decision

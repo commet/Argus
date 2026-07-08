@@ -54,6 +54,8 @@ export interface WatchAnchor {
   ts?: string;
 }
 export interface WatchCapture {
+  /** stable id (wc-xxxxxxxx) — the promotion reference for argus_premises from_capture. */
+  id?: string;
   date: string;
   kind: 'claim' | 'premise' | 'question';
   text: string;
@@ -319,6 +321,7 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           : typeof ev['ts'] === 'string' ? ev['ts'].slice(0, 10) : undefined;
         if (!date || typeof ev['text'] !== 'string') { dropped++; break; }
         watch.captures.push({
+          ...(typeof ev['capture_id'] === 'string' ? { id: ev['capture_id'] } : {}),
           date,
           kind: (ev['kind'] === 'claim' || ev['kind'] === 'question' ? ev['kind'] : 'premise'),
           text: ev['text'],
