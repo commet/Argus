@@ -22,6 +22,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { bearingToMarkdown } from '@/lib/current-bearing';
 import type { CourseStatus, CurrentBearing } from '@/lib/current-bearing';
 import { EASE } from './shared/constants';
+import { renderInline } from './shared/renderMd';
 
 /* Spine rule 4(a): the pill describes the REVIEW STATE, never a directional
  * call. "진행/Proceed" reads as "go" — a machine verdict stamped above the
@@ -95,9 +96,12 @@ export function CurrentBearingCard({
     >
       <div className="px-5 pb-4 pt-4 md:px-6">
         <div className="mb-2.5 flex items-center justify-between gap-3">
+          {/* 역할 부제 + 위계 통일 (F-1-1): '완성된 문서'와 형제로 읽히도록
+              헤더를 14px semibold로 맞추고, 이 카드가 "지금 선 자리 요약"임을
+              한 줄로 밝힌다 — 문서 카드와의 혼동 제거. */}
           <div className="flex min-w-0 items-center gap-2">
-            <Compass size={15} className="text-[var(--text-tertiary)]" />
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
+            <Compass size={15} className="text-[var(--accent)]" />
+            <span className="text-[14px] font-semibold text-[var(--text-primary)]">
               {L('현재 방위', 'Current Heading')}
             </span>
             {label && (
@@ -121,14 +125,16 @@ export function CurrentBearingCard({
           </div>
         </div>
 
-        <p className="text-[15px] font-semibold leading-snug text-[var(--text-primary)] text-balance md:text-[16px]">
-          {current_course.summary}
+        {/* 방위 카드의 정체 한 줄 (헤더 바로 아래) — 문서와 뭐가 다른지. */}
+        <p className="mb-2 text-[12px] leading-snug text-[var(--text-secondary)]">
+          {L('이 결정이 지금 서 있는 자리 — 한눈 요약이에요. 나중엔 여기서 다시 이어가요.',
+             'Where this decision stands right now — a one-glance summary. You come back to this.')}
         </p>
-        <p className="mt-1.5 text-[10.5px] leading-[1.5] text-[var(--text-tertiary)] text-pretty">
-          {L(
-            '이 결정이 지금 향하는 방향입니다. 긴 문서는 아래 근거로 접어두고, 나중에는 여기서 다시 이어갑니다.',
-            'This is where the decision is headed now. The long document is evidence below; this is the point you come back to.',
-          )}
+        {/* renderInline: 엔진이 요약에 넣는 **핵심 강조**를 실제 굵게로 렌더한다.
+            (F-2-1) 안 하면 리터럴 '**'가 노출됐고, 렌더하면 창업자 팁 —
+            긴 요약에서 하중 실린 어구가 스캔되게 — 이 자동으로 산다. */}
+        <p className="text-[15px] font-medium leading-snug text-[var(--text-primary)] text-balance md:text-[16px]">
+          {renderInline(current_course.summary)}
         </p>
 
         {showActions && (
@@ -176,7 +182,7 @@ export function CurrentBearingCard({
               {reasons.map((r, i) => (
                 <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
                   <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
-                  <span>{r.point}</span>
+                  <span>{renderInline(r.point)}</span>
                 </li>
               ))}
             </ul>
@@ -189,7 +195,7 @@ export function CurrentBearingCard({
             icon={<AlertTriangle size={12} style={{ color: 'var(--gold)' }} />}
           >
             <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
-              {fog_or_reef.issue}
+              {renderInline(fog_or_reef.issue)}
             </p>
             {fog_or_reef.required_check && (
               <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-tertiary)]">

@@ -87,9 +87,11 @@ export function FinalCard({
               <div className="w-7 h-7 rounded-full flex items-center justify-center bg-[var(--bg)] border border-[var(--border-subtle)]">
                 <Check size={13} className="text-[var(--text-secondary)]" />
               </div>
+              {/* 역할 부제 (F-1-1): '완성된 문서'와 '현재 방위'가 무슨 차이인지
+                  안 보인다는 3회 지적 — 이 카드는 "가져가는 결과물"임을 명시. */}
               <div>
                 <span className="text-[14px] font-semibold text-[var(--text-primary)]">{L('완성된 문서', 'Final Document')}</span>
-                <span className="text-[11px] text-[var(--text-tertiary)] ml-2">{L('바로 보낼 수 있어요', 'Ready to send')}</span>
+                <span className="block text-[11.5px] text-[var(--text-tertiary)] mt-0.5 leading-snug">{L('복사해서 바로 쓰는 결과물', 'The artifact you copy and use')}</span>
               </div>
             </div>
             <ShareBar
@@ -129,20 +131,23 @@ export function FinalCard({
             </div>
           )}
           {!bodyOpen ? (
-            // Collapsed: title + one tap to expand. Copy/share above work
-            // without expanding — the bearing card below is the orientation.
+            // Collapsed: title + section count + one tap to READ IT HERE. The
+            // count + "여기서 전체 읽기" kills the "진짜 문서는 딴 데 있나?" read
+            // (F-1-1): the document IS this, just folded — not a pointer elsewhere.
             <div className="px-5 md:px-8 py-5">
               {hasStructured && (
                 <>
-                  <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-2">{L('최종 결과물', 'Final output')}</p>
                   <h2 className="text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
+                  <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)] tabular-nums">
+                    {L(`${mix!.sections.length}개 섹션${mix!.next_steps.length ? ` · 다음 단계 ${mix!.next_steps.length}` : ''}`, `${mix!.sections.length} sections${mix!.next_steps.length ? ` · ${mix!.next_steps.length} next steps` : ''}`)}
+                  </p>
                 </>
               )}
               <button
                 onClick={() => setBodyOpen(true)}
-                className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                className="mt-2.5 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--accent)] hover:opacity-70 cursor-pointer transition-opacity"
               >
-                {L('전체 문서 펼치기', 'Show the full document')} <ChevronDown size={13} />
+                {L('여기서 전체 읽기', 'Read it in full here')} <ChevronDown size={13} />
               </button>
             </div>
           ) : hasStructured ? (
