@@ -546,7 +546,10 @@ export function DecisionVoyageFilm({ speed = 1 }: DecisionVoyageFilmProps) {
     if (!el) return;
     const io = new IntersectionObserver(
       (entries) => setInView(!!entries[0]?.isIntersecting),
-      { threshold: 0.25 },
+      // Fire as soon as the film edges into view (not after a quarter of the tall
+      // ~540px stage has cleared) — otherwise the build only starts once you've
+      // scrolled well past the section top, and it reads as frozen until then.
+      { threshold: 0.1, rootMargin: '0px 0px 12% 0px' },
     );
     io.observe(el);
     return () => io.disconnect();

@@ -19,14 +19,16 @@ export default function HomePage() {
       {/* Concrete use-cases + the honest three-step loop — for a first-timer
           who isn't sure "is this for my decision?" before scrolling to the proof. */}
       <UseCases />
+      {/* Real voices early — a first-timer senses the payoff (what they walk away
+          with) before the deeper product demo, so they reach the Trail already
+          wanting it, not being asked to want it. */}
+      <Testimonials />
       {/* The Trail — the one section that shows the REAL product: a single
           decision being navigated, beat by beat, into a Current Bearing. The
           old metaphor-restatement bands (Act 1 voyage + the 3-leg phases) were
           cut: the hero film now tells that story once, cinematically, so the
           page goes straight from the myth to the proof. */}
       <Act2DecisionVoyage />
-      {/* Real voices, then the closing helm + CTA. */}
-      <Testimonials />
       <Act3OnDeck />
       <Footer />
     </div>

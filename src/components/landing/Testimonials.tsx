@@ -3,10 +3,10 @@
 /**
  * Testimonials — social proof from real early testers.
  *
- * Sits between Act 2 (the concrete case) and Act 3 (the closing CTA): the
- * reader has just seen the product navigate a decision, so a real human voice
- * confirming it lands hardest here. Logbook tone, ink only — gold stays
- * reserved for the Act 3 climax.
+ * Sits right after UseCases, before the Trail (Act 2): a first-timer senses the
+ * payoff in a real human voice before the deeper product demo, so they reach the
+ * Trail already wanting it. Logbook tone, ink only — gold stays reserved for the
+ * Act 3 climax.
  *
  * The quote is a lightly-trimmed, verbatim note from an early beta tester (H),
  * kept in the tester's own voice. Built to scale: drop more entries into
