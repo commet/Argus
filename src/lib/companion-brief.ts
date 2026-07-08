@@ -150,7 +150,9 @@ export function buildPremiseDriftEmail(input: PremiseDriftEmailInput): Companion
     '',
     `[전제 살펴보기](${url})   [그대로 두기](${url})`,
     '',
-    '_이 전제 알림 끄기 · 알림 설정_',
+    // §4.1 mute 조항 — 장식이 아니라 손잡이: 끄는 스위치가 실존하는 화면으로
+    // 연결한다 (전제 화면의 "Argus가 대신 확인" 토글 / "추적 그만").
+    `_[이 전제 알림 끄기](${url}) — 전제 화면에서 'Argus가 대신 확인'을 끄면 멈춰요._`,
   ].join('\n');
 
   return { subject, markdown, url };

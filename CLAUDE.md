@@ -8,6 +8,10 @@
 §8 대기 목록에 한 줄로 추가하고 짓지 않는다. 모든 PR 본문 첫 줄:
 `공정 N · 겨냥 퍼널 단계 X→Y`.
 
+exit 체크박스 `[x]`는 같은 커밋에서 `blueprint-exit-evidence.test.ts`의
+EVIDENCE 맵 갱신과 함께만 (개수·파일 실존을 CI가 대조). 시공과 완료 판정을
+분리한다 — exit 문구를 "무엇이 이걸 빨간불로 만드는가"로 검증한 뒤 체크한다.
+
 ## Checklist: Adding a New Field to a Type
 
 When adding a field to any TypeScript interface (e.g., `Persona`, `RecastStep`), check ALL of these:
