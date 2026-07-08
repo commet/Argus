@@ -12,7 +12,9 @@ import type { LedgerEventType } from './state-machine.js';
 
 export interface LedgerEventInput {
   id: string;
-  event: LedgerEventType | 'gate_input';
+  /** watch_anchor / watch_capture are 당직-loop events (BLUEPRINT §9): outside
+   *  the decision state machine, so they bypass guardTransition by design. */
+  event: LedgerEventType | 'gate_input' | 'watch_anchor' | 'watch_capture';
   predicate?: string;
   check_by?: string;
   decision?: string;

@@ -65,7 +65,13 @@ export const init: ToolModule = {
           ? 'Argus is ready. It does not give answers — it records a prediction + a check-by date and meets reality on that date. Open your first decision with argus_open_decision.'
           : 'Argus is ready.',
         next_actions: empty ? ['argus_open_decision'] : ['argus_check_in'],
-        data: { initialized: true, argus_dir: dir, today, tz },
+        data: {
+          initialized: true, argus_dir: dir, today, tz,
+          // §9.3 — one quiet pointer, data-only, never a push: the daily-watch
+          // host snippets (CLAUDE.md block + SessionStart hook) ship in the
+          // package for users who want the watch rhythm carried by their host.
+          watch_snippets: 'optional — see snippets/claude-code-watch.md in the argus-decision-mcp package',
+        },
       });
     } catch (e) {
       return handleToolException('argus_init', e);

@@ -540,10 +540,11 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
   SERVER_INSTRUCTIONS 안무(§9.2 원칙 명문화) + snippets/ + README 두 궤도
   재포지셔닝 + 어휘 validator의 스캔 범위에 argus-mcp surfaces 편입(공정 3
   누락분 상환).
-- exit: [ ] 당직 여정 fixture(anchor→capture→다음 세션 미러) [ ] over-fire
-  eval: 플랫 작업 시나리오에서 모델 자발 capture 제안 0건 [ ] 앵커 비산입
-  테스트(track record에 앵커가 안 섞임) [ ] validator가 MCP recheck 문안
-  커버
+- exit: [x] 당직 여정 fixture(anchor→capture→다음 세션 미러) [ ] over-fire
+  eval: 플랫 작업 시나리오에서 모델 자발 capture 제안 0건 (모델 실행 필요 —
+  결정론 절반인 instructions 가드만 테스트로 고정됨, eval 실행 후 체크)
+  [x] 앵커 비산입 테스트(track record에 앵커가 안 섞임) [x] validator가 MCP
+  recheck 문안 커버
 - 금지: 앵커 통계·달성률 일체(§9.2-3). capture 자동 분류/요약(LLM이 기록을
   다듬는 것 — 사용자의 말 그대로).
 
