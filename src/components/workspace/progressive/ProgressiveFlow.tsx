@@ -34,7 +34,7 @@ import { useRecastStore } from '@/stores/useRecastStore';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useAgentAttentionStore, useAttributionClickOutside } from '@/stores/useAgentAttentionStore';
 import { PingToast } from './PingToast';
-import { VoyagePhaseRail, voyagePhaseOf } from './VoyagePhaseRail';
+import { CheckpointRail, type RailCheckpoint } from './CheckpointRail';
 import { runAllAIWorkers, runPipeline, type WorkerContext } from '@/lib/worker-engine';
 import { withTranscript } from '@/lib/execution-transcript';
 import { getCompletionNote } from '@/lib/worker-personas';
@@ -138,10 +138,10 @@ function PhaseAmbient({ phase }: { phase: string }) {
  *   1. Where am I? (big stage label + N/4)
  *   2. What happens next? (one-line guide that updates per phase/state)
  */
-// Progress indicator: the 3-phase voyage skeleton (묶기/듣기/닿기) lives in
-// VoyagePhaseRail. It replaced the old flat 5-step `ProgressLine` (removed
-// here) because a first-time user couldn't tell which of Argus's three
-// narrative phases they were in. See VoyagePhaseRail.tsx.
+// Progress indicator: CheckpointRail — 사용자가 실제로 선택하는 정거장들
+// (상황·밧줄·질문N·초안·검토·확인·봉인)이 노드로 보이고 지나온 노드는
+// 클릭 회항. 은유 3분할(VoyagePhaseRail)의 교체품 — "뭉뚱그린 바는 예쁜
+// 것에 불과하다"(창업자 3차 지적). See CheckpointRail.tsx.
 
 /* LiveAnalysis + VersionPills → replaced by shared AnalysisCard */
 
@@ -2553,29 +2553,56 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
         {/* Hidden once complete — a finished stepper is dead chrome competing
             with the one-screen bearing (compression audit B-1). */}
         {phase !== 'complete' && (() => {
-          const crewOn = deployPhase === 'deployed' && workers.length > 0;
-          // Within-phase headway so the ship visibly ADVANCES on every turn
-          // instead of parking at one mooring for most of the session.
-          const bindProgress = phase === 'analyzing' ? 0.25
-            : phase === 'conversing' ? Math.min(0.9, 0.35 + 0.55 * (round / Math.max(1, maxR)))
-            : 0.1;
-          const done = workers.filter(w => w.status === 'done').length;
-          const listenProgress = phase === 'mixing' ? 0.7
-            : phase === 'lead_synthesizing' ? 0.78
-            : phase === 'dm_feedback' ? 0.86
-            : (phase === 'refining' || phase === 'testing') ? 0.93
-            : workers.length > 0 ? Math.min(0.6, 0.15 + 0.45 * (done / workers.length))
-            : 0.1;
-          const railProgress = voyagePhaseOf(phase, crewOn) === 'bind' ? bindProgress : listenProgress;
+          // 정거장 레일 (창업자 3차 지적): 은유 3분할이 아니라 사용자가 실제로
+          // 선택하는 단계들이 노드로 보이고, 지나온 노드는 클릭해 회항한다.
+          const RANK: Record<string, number> = { mixing: 1, lead_synthesizing: 1, dm_feedback: 2, refining: 3, testing: 4 };
+          const rank = RANK[phase] ?? 0;
+          const crewRowing = deployPhase === 'deployed' && workers.some(w => w.status === 'running' || w.status === 'ai_preparing');
+          const answered = answers.length;
+          const asking = !!curQ && phase === 'conversing' && !suppressQuestion;
+          // 질문 노드 수: 답한 것 + (지금 묻는 중이면 1) — 최소 계획된 라운드까지 보여줘
+          // 앞으로 몇 번 남았는지도 보인다. probe 등으로 계획을 넘기면 실제 수를 따른다.
+          const qTotal = Math.max(answered + (asking ? 1 : 0), Math.min(maxR, 3));
+          const cps: RailCheckpoint[] = [
+            { key: 'situation', label: L('상황', 'Case'), state: 'done', group: '묶기', groupEn: 'Bind' },
+            { key: 'rope', label: L('밧줄', 'Rope'), state: 'done', group: '묶기', groupEn: 'Bind' },
+          ];
+          for (let i = 0; i < qTotal; i++) {
+            cps.push({
+              key: `q${i}`,
+              label: L(`질문${i + 1}`, `Q${i + 1}`),
+              state: i < answered ? 'done' : (asking && i === answered ? 'current' : 'future'),
+              group: '묶기', groupEn: 'Bind',
+            });
+          }
+          cps.push({
+            key: 'draft',
+            label: L('초안', 'Draft'),
+            state: (mix || rank >= 2) ? 'done' : (rank === 1 || (rank === 0 && crewRowing && !asking)) ? 'current' : 'future',
+            group: '듣기', groupEn: 'Listen',
+          });
+          cps.push({
+            key: 'review',
+            label: L('검토', 'Review'),
+            state: rank >= 4 ? 'done' : (rank === 2 || rank === 3) ? 'current' : 'future',
+            group: '듣기', groupEn: 'Listen',
+          });
+          cps.push({
+            key: 'check',
+            label: L('확인', 'Check'),
+            state: rank === 4 ? 'current' : 'future',
+            group: '닿기', groupEn: 'Land',
+          });
+          cps.push({ key: 'seal', label: L('봉인', 'Seal'), state: 'future', group: '닿기', groupEn: 'Land' });
           return (
-            <VoyagePhaseRail
-              phase={phase}
-              crewDeployed={crewOn}
-              progress={railProgress}
-              onPhaseClick={(key) => {
+            <CheckpointRail
+              checkpoints={cps}
+              onJump={(key) => {
                 // 회항은 보는 것부터: 그 단계의 산출물로 스크롤 (상태 되감기 아님).
-                if (key === 'bind') scrollToRef(analysisCardRef.current ? analysisCardRef : questionRef, 'top');
-                else if (key === 'listen') scrollToRef(workerSectionRef.current ? workerSectionRef : (mixPreviewRef.current ? mixPreviewRef : questionRef), 'top');
+                if (key === 'situation') window.scrollTo({ top: 0, behavior: 'smooth' });
+                else if (key === 'rope' || key.startsWith('q')) { setRecordOpen(true); requestAnimationFrame(() => scrollToRef(analysisCardRef.current ? analysisCardRef : questionRef, 'top')); }
+                else if (key === 'draft') scrollToRef(mixPreviewRef.current ? mixPreviewRef : (workerSectionRef.current ? workerSectionRef : questionRef), 'top');
+                else if (key === 'review') scrollToRef(dmFeedbackRef.current ? dmFeedbackRef : mixPreviewRef, 'top');
                 else scrollToRef(finalRef.current ? finalRef : mixPreviewRef, 'top');
               }}
             />
@@ -3522,7 +3549,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               the bottom-of-page banner that used to live here was invisible
               on long pages (every failure handler scrolls to the status bar).
               The bottom milestone row was likewise removed earlier; the top
-              VoyagePhaseRail is the single progress indicator. */}
+              CheckpointRail is the single progress indicator. */}
         </div>
       </motion.div>
 

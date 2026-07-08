@@ -91,12 +91,34 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                   <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.08, duration: 0.4, ease: EASE }}
                     className={`rounded-2xl border p-4 transition-all duration-500 ${c.applied ? 'border-[var(--accent)]/20 bg-[var(--accent)]/[0.02]' : 'border-[var(--border-subtle)] bg-[var(--bg)]'}`}
                     style={{ transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${c.severity === 'critical' ? 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400' : c.severity === 'important' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
-                        {c.severity === 'critical' ? L('필수', 'Required') : c.severity === 'important' ? L('권장', 'Recommended') : L('참고', 'Note')}</span>
-                      <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{c.text}</p>
-                    </div>
-                    <p className="text-[12px] text-[var(--accent)] leading-relaxed mb-3 pl-1">→ {c.fix_suggestion}</p>
+                    {/* 가독성 재구성 (창업자: "텍스트가 안 읽힘"): 첫 문장 =
+                        볼드 제목, 나머지 = 보조 본문, 해결책 = 라벨 있는 틴트
+                        블록. 벽 하나가 제목/근거/행동 세 층으로 갈라진다. */}
+                    {(() => {
+                      const m = (c.text || '').match(/^[\s\S]*?[.!?](?=['")\]\s]|$)/);
+                      const head = (m ? m[0] : c.text || '').trim();
+                      const rest = (c.text || '').slice(head.length).trim();
+                      return (
+                        <div className="mb-2.5">
+                          <div className="flex items-start gap-2">
+                            <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-[3px] ${c.severity === 'critical' ? 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400' : c.severity === 'important' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                              {c.severity === 'critical' ? L('필수', 'Required') : c.severity === 'important' ? L('권장', 'Recommended') : L('참고', 'Note')}</span>
+                            <p className="text-[13.5px] font-semibold text-[var(--text-primary)] leading-[1.5]">{head}</p>
+                          </div>
+                          {rest && (
+                            <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.65] mt-1.5 pl-1">{rest}</p>
+                          )}
+                        </div>
+                      );
+                    })()}
+                    {c.fix_suggestion && (
+                      <div className="rounded-lg bg-[var(--accent)]/[0.05] px-3 py-2 mb-3">
+                        <p className="text-[12.5px] leading-[1.6] text-[var(--text-primary)]">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--accent)] mr-1.5">{L('해결', 'Fix')}</span>
+                          {c.fix_suggestion}
+                        </p>
+                      </div>
+                    )}
                     <div className="flex items-center justify-end gap-2">
                       <span className="text-[10px] text-[var(--text-tertiary)]">{c.applied ? L('반영', 'Applied') : L('제외', 'Skipped')}</span>
                       <button onClick={() => onToggle(i)} className={`relative w-11 h-6 rounded-full cursor-pointer ${c.applied ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`}
