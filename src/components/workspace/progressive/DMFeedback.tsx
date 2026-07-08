@@ -27,25 +27,20 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
   const hasChanges = changedCount > 0;
   return (
     <div className="space-y-5">
-      {/* Transition divider — personalized */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }}
-        className="flex items-center gap-4 py-1">
-        <div className="flex-1 h-px bg-[var(--accent)]/15" />
-        <span className="text-[11px] text-[var(--text-secondary)] font-medium shrink-0">{fb.persona_name}{L('의 검토', "'s Review")}</span>
-        <div className="flex-1 h-px bg-[var(--accent)]/15" />
-      </motion.div>
-
+    {/* 공정 5-10 위계 수술: 정체성은 카드 안에서 한 번만 (divider 행 제거),
+        칭찬은 접고, 화면의 주인공은 인용 → 고칠 것 → CTA 한 줄기다. */}
     <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: EASE }}>
       <div className="rounded-2xl p-[1px] bg-[var(--border-subtle)]">
         <div className="rounded-[calc(1rem-1px)] bg-[var(--surface)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]">
-          <div className="p-5 md:p-7 space-y-6">
-            {/* Reviewer — larger avatar like demo */}
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-[var(--accent)]/8 flex items-center justify-center text-[18px] font-bold text-[var(--accent)]">{initial}</div>
-              <div>
-                <p className="text-[17px] font-bold text-[var(--text-primary)]">{fb.persona_name}</p>
-                <p className="text-[13px] text-[var(--text-tertiary)]">{fb.persona_role}</p>
-              </div>
+          <div className="p-5 md:p-6 space-y-5">
+            {/* Reviewer — one compact identity row (avatar + name·role inline) */}
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-[var(--accent)]/8 flex items-center justify-center text-[15px] font-bold text-[var(--accent)]">{initial}</div>
+              <p className="text-[14px] text-[var(--text-primary)]">
+                <span className="font-bold">{fb.persona_name}</span>
+                <span className="mx-1.5 text-[var(--text-tertiary)]">·</span>
+                <span className="text-[13px] text-[var(--text-tertiary)]">{fb.persona_role}</span>
+              </p>
             </div>
 
             {/* First reaction — impactful blockquote */}
@@ -53,12 +48,20 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
               &ldquo;{fb.first_reaction}&rdquo;
             </blockquote>
 
-            {/* Good parts — neutral palette for consistency */}
+            {/* Good parts — praise is context, not action: folded to one line so
+                the fix list below owns the screen. */}
             {fb.good_parts.length > 0 && (
-              <div className="rounded-xl bg-[var(--bg)]/50 px-4 py-3.5">
-                <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.15em] mb-2.5">{L('잘한 점', 'Strengths')}</p>
-                {fb.good_parts.map((g, i) => <p key={i} className="text-[13px] text-[var(--text-primary)] flex items-start gap-2.5 mb-2 last:mb-0 leading-relaxed"><span className="text-[var(--accent)] shrink-0 mt-0.5 text-[12px]">&#10003;</span>{g}</p>)}
-              </div>
+              <details className="group/g rounded-xl bg-[var(--bg)]/50 px-4 py-3">
+                <summary className="list-none cursor-pointer flex items-center gap-2 text-[12px] text-[var(--text-secondary)]">
+                  <span className="text-[var(--accent)] text-[12px]">&#10003;</span>
+                  <span className="font-semibold">{L(`잘한 점 ${fb.good_parts.length}가지`, `${fb.good_parts.length} strengths`)}</span>
+                  <span className="text-[var(--text-tertiary)] truncate flex-1 min-w-0">{fb.good_parts[0]}</span>
+                  <ChevronRight size={12} className="shrink-0 text-[var(--text-tertiary)] transition-transform group-open/g:rotate-90" />
+                </summary>
+                <div className="mt-2.5 space-y-2">
+                  {fb.good_parts.map((g, i) => <p key={i} className="text-[13px] text-[var(--text-primary)] flex items-start gap-2.5 leading-relaxed"><span className="text-[var(--accent)] shrink-0 mt-0.5 text-[12px]">&#10003;</span>{g}</p>)}
+                </div>
+              </details>
             )}
 
             {/* Concerns — "이것만 고치면" */}
@@ -106,12 +109,11 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
               </div>
             </div>}
 
-            {/* Approval condition */}
-            <div className="pt-4 mt-2 border-t border-[var(--border-subtle)]">
-              <div className="rounded-xl bg-[var(--accent)]/[0.04] border border-[var(--accent)]/10 px-4 py-3.5">
-                <p className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.2em] mb-2">{L('통과 조건', 'Approval Condition')}</p>
-                <p className="text-[15px] text-[var(--text-primary)] font-semibold leading-relaxed">{fb.approval_condition}</p>
-              </div>
+            {/* Approval condition — one compact line riding right above the CTA
+                (it IS the CTA's justification, not a separate chapter). */}
+            <div className="flex items-baseline gap-2.5 rounded-lg bg-[var(--accent)]/[0.04] px-3.5 py-2.5">
+              <span className="text-[9px] font-bold text-[var(--accent)] uppercase tracking-[0.18em] shrink-0">{L('통과 조건', 'To pass')}</span>
+              <p className="text-[13.5px] text-[var(--text-primary)] font-semibold leading-snug">{fb.approval_condition}</p>
             </div>
 
             {/* Deep mode extras — would_ask (shown after deep review) */}

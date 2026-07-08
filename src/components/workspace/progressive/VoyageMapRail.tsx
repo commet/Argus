@@ -180,6 +180,7 @@ function VoyageMapHero() {
             locked={locked}
             onTakeRoad={takeRoad}
             eyebrow={isCurrent ? L('지금', 'Now') : undefined}
+            dense
           />
           {!isCurrent && (
             <button

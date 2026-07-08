@@ -84,8 +84,13 @@ export function AnalysisCard({
         className="w-full text-left flex items-start gap-3 py-1 cursor-pointer group transition-opacity hover:opacity-70"
       >
         <div className="flex-1 min-w-0">
+          {/* 공정 5-3: the label names its ROLE, not just its title — a first-
+              timer must know this is a hypothesis their answers keep refining. */}
           <div className={`text-[10px] font-semibold text-[var(--accent)]/85 mb-1.5 ${locale === 'ko' ? 'tracking-[0.02em]' : 'uppercase tracking-[0.14em]'}`}>
             {L('우리가 잡은 항로', 'Course we plotted')}
+            <span className="ml-1.5 font-normal text-[var(--text-tertiary)] normal-case tracking-normal">
+              {L('· 답할수록 다듬어지는 가설', '· a hypothesis your answers refine')}
+            </span>
           </div>
           {/* This is the screen's MAIN line (the course). It was 14-15px — smaller
               than the question below it. Anchor it a step up so it reads as the

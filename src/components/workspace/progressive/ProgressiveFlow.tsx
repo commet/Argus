@@ -2845,10 +2845,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 className="flex items-start gap-2.5 px-4 py-3 mb-4 rounded-xl bg-[var(--accent)]/[0.05] border border-[var(--accent)]/20"
               >
                 <span className="text-[15px] shrink-0 leading-none mt-0.5">💬</span>
+                {/* 공정 5-3: this line is the screen's ONLY narrator — it must
+                    connect the blocks above (전제·항로) to the question below and
+                    to what comes after (team → draft), not just say "answer us". */}
                 <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55]">
                   {locale === 'ko'
-                    ? <>질문 <strong className="text-[var(--text-primary)]">두세 개</strong>만 답해주시면, 어울리는 <strong className="text-[var(--text-primary)]">팀을 꾸려서</strong> 분석을 시작해요.</>
-                    : <>Just <strong className="text-[var(--text-primary)]">a couple of questions</strong> and we&apos;ll <strong className="text-[var(--text-primary)]">assemble the right team</strong> to start.</>}
+                    ? <>방금 상황을 읽고 위에 <strong className="text-[var(--text-primary)]">임시 항로</strong>를 잡았어요. 질문 <strong className="text-[var(--text-primary)]">두세 개</strong>에 답할수록 항로가 다듬어지고, 그다음 어울리는 <strong className="text-[var(--text-primary)]">팀이 초안</strong>을 만들어요.</>
+                    : <>We read your situation and plotted a <strong className="text-[var(--text-primary)]">working course</strong> above. <strong className="text-[var(--text-primary)]">A couple of answers</strong> refine it — then the right <strong className="text-[var(--text-primary)]">team drafts</strong> from it.</>}
                 </p>
               </motion.div>
             )}
