@@ -131,6 +131,11 @@ type PhaseMeta = {
   koLine: string; enLine: string;
 };
 
+/** Where each phase's mooring sits on the sea lane (aligned with the
+ *  start/center/end-justified name columns below). The ship sails to — and
+ *  bobs at — the active phase's mooring. */
+const SHIP_POS: Record<VoyagePhaseKey, string> = { bind: '4%', listen: '50%', land: '96%' };
+
 const PHASES: readonly PhaseMeta[] = [
   {
     key: 'bind', ko: '묶기', en: 'Bind',
@@ -193,44 +198,60 @@ export function VoyagePhaseRail({ phase, crewDeployed = false }: { phase: string
         </span>
       </div>
 
-      {/* Three-segment rail — completed phases fill solid accent, the active
-          phase fills with the gold gradient (+ one subtle breathing pulse),
-          future phases stay faint. */}
-      <div className="flex items-center gap-1.5 mb-2.5">
-        {PHASES.map((p, i) => {
-          const done = i < activeIdx;
-          const isActive = i === activeIdx;
-          return (
-            <div
-              key={p.key}
-              className="relative flex-1 h-[5px] rounded-full overflow-hidden"
-              style={{ background: 'var(--border-subtle)' }}
-            >
-              {(done || isActive) && (
-                <motion.div
-                  key={done ? 'done' : 'active'}
-                  className="absolute inset-y-0 left-0 rounded-full"
-                  // Cross-fade the fill colour as a phase completes so the
-                  // gradient→solid handoff never hard-cuts.
-                  style={{ background: done ? 'var(--accent)' : 'var(--gradient-gold)' }}
-                  initial={{ width: isActive ? '18%' : '100%', opacity: isActive ? 0.6 : 0 }}
-                  animate={{ width: '100%', opacity: 1 }}
-                  transition={{ duration: 0.9, ease: EASE }}
-                />
-              )}
-              {isActive && !reduce && (
-                // Single, slow breathing glow — the calm cousin of the old
-                // node ping; reduced-motion users get the static fill only.
-                <motion.div
-                  className="absolute inset-0 rounded-full"
-                  style={{ background: 'var(--gradient-gold)', filter: 'blur(3px)' }}
-                  animate={{ opacity: [0, 0.45, 0] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              )}
-            </div>
-          );
-        })}
+      {/* The sea lane — the rail IS a voyage: a small hull sails to the
+          current phase's mooring and bobs there at anchor; sailed water fills
+          gold behind it, water ahead stays faint. Phase change = the ship
+          casts off and sails to the next mooring (slow ease, no teleport).
+          Decorative motion only — the eyebrow above carries the state for
+          screen readers, so the lane is aria-hidden. */}
+      <div className="relative mb-2.5 h-[22px]" aria-hidden>
+        {/* waterline */}
+        <div className="absolute inset-x-0 bottom-[5px] h-[3px] rounded-full" style={{ background: 'var(--border-subtle)' }} />
+        {/* sailed water — gold fill up to the ship's mooring. style carries the
+            SSR position (no pre-hydration flash at 0); framer tweens changes. */}
+        <motion.div
+          className="absolute left-0 bottom-[5px] h-[3px] rounded-full"
+          style={{ background: 'var(--gradient-gold)', width: SHIP_POS[active.key] }}
+          initial={false}
+          animate={{ width: SHIP_POS[active.key] }}
+          transition={{ duration: reduce ? 0 : 1.6, ease: EASE }}
+        />
+        {/* mooring ticks — one small buoy per phase (start / mid / end) */}
+        {PHASES.map((p, i) => (
+          <div
+            key={p.key}
+            className="absolute bottom-[3px] w-[7px] h-[7px] rounded-full border-2 transition-colors duration-500"
+            style={{
+              left: SHIP_POS[p.key],
+              transform: 'translateX(-50%)',
+              borderColor: i <= activeIdx ? 'var(--accent)' : 'var(--border-subtle)',
+              background: 'var(--surface)',
+            }}
+          />
+        ))}
+        {/* the hull — sails to the active mooring, then bobs gently at anchor */}
+        <motion.div
+          className="absolute bottom-[6px]"
+          style={{ translateX: '-50%', left: SHIP_POS[active.key] }}
+          initial={false}
+          animate={{ left: SHIP_POS[active.key] }}
+          transition={{ duration: reduce ? 0 : 1.6, ease: EASE }}
+        >
+          <motion.div
+            animate={reduce ? undefined : { y: [0, -1.5, 0, -1, 0], rotate: [-2, 1.5, -2] }}
+            transition={reduce ? undefined : {
+              y: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+              rotate: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+            }}
+            className="text-[var(--accent)]"
+          >
+            <svg width="20" height="17" viewBox="0 0 20 17" fill="none">
+              <path d="M10 1 L10 10 L3 10 Z" fill="currentColor" opacity="0.9" />
+              <path d="M10.8 3.5 L10.8 10 L16 10 Z" fill="currentColor" opacity="0.5" />
+              <path d="M2 11 L18 11 L15.5 15 L4.5 15 Z" fill="currentColor" />
+            </svg>
+          </motion.div>
+        </motion.div>
       </div>
 
       {/* Voyage names + per-phase glyph — the active phase is the clear focal
