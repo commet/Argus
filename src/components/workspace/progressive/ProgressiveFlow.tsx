@@ -50,7 +50,7 @@ import { AvatarRow } from './WorkerAvatar';
 import { useChronicler } from './useChronicler';
 import { useWorkerActions } from '@/hooks/useWorkerActions';
 import { useWorkerContext } from './WorkerPanel';
-import { ChevronRight, ChevronDown, Loader2, Check, AlertTriangle, Sparkles, UserCheck, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, RefreshCw } from 'lucide-react';
+import { ChevronRight, ChevronDown, Loader2, Check, AlertTriangle, Sparkles, ArrowRight, History, GitBranch, X as XIcon, Wand2, Compass, Navigation, RefreshCw } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useT } from '@/contexts/LocaleProvider';
 import { personaName, personaRole } from './shared/persona-format';
@@ -285,82 +285,96 @@ function PhaseStatusBar({
   if (mode === 'your_turn') return null;
 
   const showLongWait = mode === 'ai_working' && isLongWait;
+  // Everything below is the ai_working bar (your_turn returned null above).
+  const shipTone = showLongWait ? 'text-amber-500' : 'text-[var(--accent)]';
   return (
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`mx-auto mb-3 flex items-center gap-3 px-5 py-3 rounded-2xl border backdrop-blur-sm transition-colors duration-500 ${
-        mode === 'ai_working'
-          ? showLongWait
-            ? 'bg-amber-50/60 dark:bg-amber-900/10 border-amber-300/25'
-            : 'bg-[var(--surface)]/90 border-[var(--accent)]/15'
-          : 'bg-[var(--accent)]/[0.06] border-[var(--accent)]/25'
+      // No box — the bar blends into the page and lets a small ship carry the
+      // "we're under way" signal. A voyage app should look like it's sailing
+      // while it waits: the hull crossing left→right IS the progress metaphor,
+      // kept quiet (one accent tone, a gentle bob — no spectacle). Long-wait
+      // keeps a faint amber wash because that state is worth flagging.
+      className={`relative mx-auto mb-3 px-5 py-2.5 overflow-hidden transition-colors duration-500 ${
+        showLongWait ? 'rounded-2xl bg-amber-50/40 dark:bg-amber-900/10' : ''
       }`}
     >
-      {mode === 'ai_working' ? (
-        <div className="relative w-5 h-5 flex items-center justify-center shrink-0">
-          <div className={`absolute inset-0 rounded-full animate-ping ${showLongWait ? 'bg-amber-400/30' : 'bg-[var(--accent)]/20'}`} />
-          <div className={`w-2.5 h-2.5 rounded-full ${showLongWait ? 'bg-amber-500' : 'bg-[var(--accent)]'}`} />
+      {/* Row 1 — which stage is under way · elapsed time · cancel */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <span className={`text-[13px] font-semibold ${
+            showLongWait ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--text-primary)]'
+          }`}>
+            {showLongWait ? L('오래 걸리고 있어요 — 계속 진행 중', 'Taking longer than usual — still working') : label}
+          </span>
+          {!showLongWait && sub && (
+            <span className="ml-2 text-[12px] text-[var(--text-tertiary)]">{sub}</span>
+          )}
+          {substage && (
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={substage}
+                initial={{ opacity: 0, y: 3 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -3 }}
+                transition={{ duration: 0.25, ease: EASE }}
+                className="text-[11px] text-[var(--text-tertiary)] ml-2 italic"
+              >
+                · {substage}
+              </motion.span>
+            </AnimatePresence>
+          )}
         </div>
-      ) : (
-        // your_turn: gentle bounce on the gold chip so the user's eye is
-        // pulled toward "your move" without being noisy.
-        <motion.div
-          animate={{ y: [0, -1.5, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-          className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: 'var(--gradient-gold)' }}
-        >
-          <UserCheck size={11} className="text-white" />
-        </motion.div>
-      )}
-      <div className="flex-1 min-w-0">
-        <span className={`text-[13px] font-semibold ${
-          showLongWait ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--text-primary)]'
-        }`}>
-          {showLongWait ? L('오래 걸리고 있어요 — 계속 진행 중', 'Taking longer than usual — still working') : label}
-        </span>
-        {!showLongWait && sub && (
-          <span className="ml-2 text-[12px] text-[var(--text-tertiary)]">{sub}</span>
+        {elapsedLabel && (
+          <span className={`text-[11px] tabular-nums shrink-0 ${showLongWait ? 'text-amber-700 dark:text-amber-300 font-semibold' : 'text-[var(--text-tertiary)]'}`}>{elapsedLabel}</span>
         )}
-        {mode === 'ai_working' && substage && (
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={substage}
-              initial={{ opacity: 0, y: 3 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -3 }}
-              transition={{ duration: 0.25, ease: EASE }}
-              className="text-[11px] text-[var(--text-tertiary)] ml-2 italic"
-            >
-              · {substage}
-            </motion.span>
-          </AnimatePresence>
+        {/* Cancel is ALWAYS reachable while the AI works — a quiet tertiary
+            action that turns amber once the wait gets long. */}
+        {onCancel && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={onCancel}
+            className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] md:min-h-[32px] rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
+              showLongWait
+                ? 'text-amber-700 dark:text-amber-300 border border-amber-300/50 hover:bg-amber-100/60 dark:hover:bg-amber-900/30'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border border-transparent hover:border-[var(--border)]'
+            }`}
+            aria-label={L('취소', 'Cancel')}
+          >
+            <XIcon size={10} />
+            {L('취소', 'Cancel')}
+          </motion.button>
         )}
       </div>
-      {mode === 'ai_working' && elapsedLabel && (
-        <span className={`text-[11px] tabular-nums shrink-0 ${showLongWait ? 'text-amber-700 dark:text-amber-300 font-semibold' : 'text-[var(--text-tertiary)]'}`}>{elapsedLabel}</span>
-      )}
-      {/* Cancel is ALWAYS reachable while the AI works — not only after the
-          30s "long wait" promotion. The first half-minute used to offer no
-          way out at all; now it's a quiet tertiary action that turns amber
-          when the wait gets long. */}
-      {mode === 'ai_working' && onCancel && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          onClick={onCancel}
-          className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] md:min-h-[32px] rounded-full text-[11px] font-semibold transition-colors cursor-pointer ${
-            showLongWait
-              ? 'text-amber-700 dark:text-amber-300 border border-amber-300/50 hover:bg-amber-100/60 dark:hover:bg-amber-900/30'
-              : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border border-transparent hover:border-[var(--border)]'
-          }`}
-          aria-label={L('취소', 'Cancel')}
+
+      {/* Row 2 — the sea lane. A ship sails the full width on a loop with a
+          faint wake; this replaces the spinner. Decorative, so aria-hidden —
+          the stage label above carries the meaning for screen readers. */}
+      <div className="relative mt-2 h-[18px]" aria-hidden>
+        <div className="absolute inset-x-0 bottom-[3px] h-px bg-[var(--border-subtle)]" />
+        <motion.div
+          className="absolute bottom-0"
+          initial={{ left: '-6%' }}
+          animate={{ left: ['-6%', '104%'], y: [0, -1.5, 0, -1, 0], rotate: [-2.5, 1.5, -2.5] }}
+          transition={{
+            left: { duration: showLongWait ? 6 : 4, repeat: Infinity, ease: 'linear' },
+            y: { duration: 1.8, repeat: Infinity, ease: 'easeInOut' },
+            rotate: { duration: 2.6, repeat: Infinity, ease: 'easeInOut' },
+          }}
         >
-          <XIcon size={10} />
-          {L('취소', 'Cancel')}
-        </motion.button>
-      )}
+          <div className="relative">
+            {/* wake — a short fading streak trailing the hull */}
+            <div className={`absolute right-full bottom-[2px] w-8 h-px bg-gradient-to-l to-transparent ${showLongWait ? 'from-amber-400/40' : 'from-[var(--accent)]/40'}`} />
+            <svg width="20" height="17" viewBox="0 0 20 17" fill="none" className={shipTone}>
+              <path d="M10 1 L10 10 L3 10 Z" fill="currentColor" opacity="0.9" />
+              <path d="M10.8 3.5 L10.8 10 L16 10 Z" fill="currentColor" opacity="0.5" />
+              <path d="M2 11 L18 11 L15.5 15 L4.5 15 Z" fill="currentColor" />
+            </svg>
+          </div>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }
@@ -1694,7 +1708,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // every AI worker already failed leaves no 'pending' worker, so pending-only
   // never showed the banner and an all-error crew had no crew-level restart.
   // startWorkerExecution's filter re-picks non-done workers, so Restart re-runs them.
+  // "Interrupted" means work is STALLED — not work that is actively running.
+  // While any worker is running/preparing, the crew is mid-flight, so showing
+  // a "중단된 작업이 있어요" banner (with a disabled "실행 중…" button) was a
+  // self-contradiction the user kept hitting. Suppress it whenever the crew
+  // is live; it returns only when everything has genuinely halted.
   const isResumable = deployPhase === 'deployed' && !final_ && !mix
+    && !workers.some(w => w.status === 'running' || w.status === 'ai_preparing')
     && workers.some(w => w.status === 'pending' || w.status === 'error');
   const onResumeWorkers = () => {
     const ws = store.currentSession()?.workers ?? [];

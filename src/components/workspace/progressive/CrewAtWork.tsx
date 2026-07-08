@@ -153,13 +153,22 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
 
       <div className="space-y-1.5">
         {ordered.map((w, i) => {
-          const name = (locale === 'en' ? w.persona?.nameEn : w.persona?.name) || w.persona?.name || L('선원', 'Crew');
-          const emoji = w.persona?.emoji || '⚓';
           const running = w.status === 'running' || w.status === 'ai_preparing';
           // Purpose-first: shade AI vs human by MEANING (verb phrase), not just
           // emoji — surfaces the split in focus mode. Derive agent_type the same
           // way deployWorkers does so legacy 'who'-only sessions still resolve.
           const at = w.agent_type || (w.who === 'both' ? 'ai' : w.who === 'human' ? 'self' : 'ai');
+          // A self/human row has NO AI persona (persona=null by design), so the
+          // old `|| '선원'` fallback stamped meaningless "선원/Crew" on rows that
+          // are actually "당신이 정해요" / "사람에게 물어봐요". Name the row by
+          // what it IS instead — never the empty "선원" placeholder.
+          const personaName = locale === 'en' ? (w.persona?.nameEn || w.persona?.name) : w.persona?.name;
+          const name = personaName
+            || (at === 'self' ? L('나', 'You')
+              : at === 'human' ? L('외부 담당자', 'External contact')
+              : L('AI 분석가', 'AI analyst'));
+          const emoji = w.persona?.emoji
+            || (at === 'self' ? '🙋' : at === 'human' ? '✉️' : '🔍');
           const purpose = at === 'ai'
             ? L('AI가 대신 봐요', 'Handled by AI')
             : at === 'self'
