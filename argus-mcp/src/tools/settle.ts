@@ -2,12 +2,13 @@ import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
-import { appendLedger } from '../lib/ledger-append.js';
+import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
 import { writeSettleReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { elicit, canElicit } from '../lib/elicit.js';
 import { renderReceipt } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
+import { accountPushId } from '../lib/install-id.js';
 import { resolvePremiseRef, receiptPremisesInfo } from '../lib/premises.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -97,14 +98,22 @@ export const settle: ToolModule = {
       const T = SURFACES[locale].tools.settle;
 
       const now = new Date().toISOString();
-      await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
-      const receipt = await writeSettleReceipt(dir, id, { what_happened: String(a['what_happened']), outcome, settled_at: now }, { predicate: current.predicate, check_by: current.check_by });
+      // §9.4 두 기기 안전: the settle write is a read-check-append sequence —
+      // re-guard UNDER the ledger lock so two concurrent sessions can't both
+      // pass the check above and double-count the record (the loser sees
+      // ALREADY_SETTLED, exactly as if it had arrived second sequentially).
+      const receipt = await withLedgerLock(dir, async () => {
+        const fresh = resolveContract(dir, id, today);
+        guardTransition(fresh.state, 'settle');
+        await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
+        return writeSettleReceipt(dir, id, { what_happened: String(a['what_happened']), outcome, settled_at: now }, { predicate: current.predicate, check_by: current.check_by });
+      });
 
       // Mirror the outcome to the account (opt-in) so a synced prediction stops
       // being "due" — otherwise the Companion Brief would keep re-nudging it.
       // No-op when there's no token or the id was never synced.
       const sync = await pushToAccount({
-        action: 'settle', id, outcome, what_happened: String(a['what_happened']), settled_at: now,
+        action: 'settle', id: accountPushId(dir, id), outcome, what_happened: String(a['what_happened']), settled_at: now,
       });
       // 3-state sync voice (11 S3, same pattern as seal): silence is only honest
       // for the no-token default — a failed mirror means the account keeps

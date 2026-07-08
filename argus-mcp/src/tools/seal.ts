@@ -12,6 +12,8 @@ import { pushToAccount } from '../lib/push-account.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { renderSeal } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
+import { accountPushId } from '../lib/install-id.js';
+import { premiseSyncEnabled } from '../lib/premise-sync.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { writeReturnCalendarEvent } from '../lib/calendar.js';
 import { z } from 'zod';
@@ -118,11 +120,23 @@ export const seal: ToolModule = {
       // Opt-in: mirror the prediction to the user's account so the Companion
       // Brief can email it at check-by. No token ⇒ silent local-only no-op;
       // failure never affects the seal that already succeeded locally.
+      // Premise opt-in sync (M3, §9.2-4): OFF by default — premises never leave
+      // the machine unless the user set premise_sync:true. When on, only the
+      // MONITORED ones (active + premise + external + load_bearing) ride along,
+      // so the account's premise-watch (T2) can re-check them for real.
+      const monitoredPremises = premiseSyncEnabled(dir)
+        ? (current.entry?.premises ?? [])
+            .filter((p) => p.status === 'active' && p.kind === 'premise' && p.external && p.load_bearing)
+            .map((p) => ({ ...p }) as unknown as Record<string, unknown>)
+        : [];
       const sync = await pushToAccount({
-        action: 'seal', id, predicate, check_by: checkBy, sealed_at: now,
+        // BS-1 (§9.4): the account key is namespaced per ledger so two machines
+        // (or two projects) sealing the same natural slug can never collide.
+        action: 'seal', id: accountPushId(dir, id), predicate, check_by: checkBy, sealed_at: now,
         source_title: predicate.slice(0, 80),
         real_question: a['real_question'] as string | undefined,
         human_judgment: a['human_judgment'] as string | undefined,
+        ...(monitoredPremises.length > 0 ? { tracked_premises: monitoredPremises } : {}),
       });
       // 3-state sync voice (11 S3): success speaks, no-token stays silent
       // (local-only is the chosen default, not a failure), and a FAILURE with a

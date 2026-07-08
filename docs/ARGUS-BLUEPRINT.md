@@ -593,8 +593,8 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
 **공정 M3 · 전제 개통 + 두 기기 안전 (M — 2~4일)**
 - 작업: §9.4 두 기기 안전 3종 + opt-in 전제 sync 시 T2 여정(웹 premise-watch
   연동) 또는 opt-out 유지 시 한계 고지 문안.
-- exit: [ ] 두 기기 같은 slug fixture에서 계정 row 충돌 0 [ ] 동시 이중
-  settle이 한 건만 기록되는 테스트 [ ] (opt-in 시) 터미널 전제 드리프트가
+- exit: [x] 두 기기 같은 slug fixture에서 계정 row 충돌 0 [x] 동시 이중
+  settle이 한 건만 기록되는 테스트 [x] (opt-in 시) 터미널 전제 드리프트가
   T2 게이트에 도달하는 fixture
 - 금지: 전제 자동 업로드(§9.2-4).
 

@@ -24,6 +24,10 @@ interface ArgusConfig {
    *  tail). The machine due_note count channel is unaffected. The escape hatch;
    *  never affects the spine. Absent/false → the ambient line may fire once. */
   ambient_mute?: boolean | null;
+  /** M3 §9.2-4 — OPT-IN: when true, monitored premises ride along with the
+   *  seal push so the account premise-watch (T2) covers them. Absent/false →
+   *  premise data never leaves this machine. */
+  premise_sync?: boolean | null;
 }
 
 function readConfig(dir: string): ArgusConfig | null {
@@ -89,13 +93,14 @@ export const config: ToolModule = {
     team: z.string().optional(),
     archive: z.boolean().optional(),
     ambient_mute: z.boolean().optional().describe('Silence the in-session ambient due-line (the "by the way — N to settle" surface tail). The machine due_note count is unaffected.'),
+    premise_sync: z.boolean().optional().describe('OPT-IN (default off — premise data never leaves this machine otherwise): when true AND an ARGUS_TOKEN is set, a sealed decision\'s MONITORED premises ride along to your account so the autonomous premise-watch can re-check them against reality and email a material drift (T2). Turn it on only when the user explicitly chose it.'),
   }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'Read/update settings', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: async (a) => {
     try {
       const dir = resolveToolArgusDir(a['argus_dir']);
-      const writeKeys = ['locale', 'boss', 'team', 'archive', 'ambient_mute'].filter((k) => k in a);
+      const writeKeys = ['locale', 'boss', 'team', 'archive', 'ambient_mute', 'premise_sync'].filter((k) => k in a);
 
       const existing = readConfig(dir) ?? { schema_version: SCHEMA_VERSION, locale: detectLocale(dir), boss: null, team: null, archive: null };
 
@@ -115,6 +120,7 @@ export const config: ToolModule = {
         ...(('team' in a) ? { team: a['team'] as string } : {}),
         ...(('archive' in a) ? { archive: a['archive'] as boolean } : {}),
         ...(('ambient_mute' in a) ? { ambient_mute: a['ambient_mute'] as boolean } : {}),
+        ...(('premise_sync' in a) ? { premise_sync: a['premise_sync'] as boolean } : {}),
       };
       await atomicWriteText(configPath(dir), yaml.dump(merged));
       return envelope({ ok: true, tool: 'argus_config', surface: 'Config updated.', next_actions: ['stop'], data: { config: merged } });
