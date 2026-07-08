@@ -2959,6 +2959,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               onRetry={(id) => workerActions.handleRetry(id)}
               reportsOpen={reportsOpen}
               onToggleReports={() => setReportsOpen((o) => !o)}
+              // 무대 연출: 답할 질문이 없는 순간의 듣기 단계에서는 크루 극장이
+              // 화면의 주인공이다 (질문이 남아 있으면 접힌 조연 유지).
+              hero={!curQ && workers.some(w => w.status === 'running' || w.status === 'ai_preparing' || w.status === 'done')}
+              interrupted={isResumable}
             />
           )}
 

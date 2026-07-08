@@ -190,16 +190,18 @@ export function Falsification({
         })}
       </ul>
 
-      {/* Believe-all (no-flinch) escape — only while unresolved. */}
+      {/* Believe-all (no-flinch) escape — only while unresolved. 스파인상
+          탈출구는 진짜 손잡이로 보여야 한다: 흐린 한 줄 텍스트는 "움찔을
+          강요당했다"로 읽힌다 (실주행 재실사 지적). 사다리와 동급의 칩으로. */}
       {!resolved && (
         <button
           type="button"
           onClick={believeAll}
           disabled={busy}
-          className="text-[12.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+          className="mt-1 inline-flex items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-4 py-2.5 text-[13px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)] transition-colors cursor-pointer disabled:opacity-60"
         >
           {busy && <Loader2 size={13} className="animate-spin" />}
-          {L('전부 믿겠어요', 'I believe all of it')}
+          {L('전부 믿겠어요 — 그대로 진행', 'I believe all of it — carry on')}
         </button>
       )}
 
