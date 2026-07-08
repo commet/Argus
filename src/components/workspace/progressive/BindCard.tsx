@@ -200,7 +200,7 @@ export function BindCard({
         {/* Progress signal (06 S3) — the read the user asked for IS running behind
             this card (buffered by design); say so in one machine-status sentence.
             No spinner: the analysis stays buffered, this is orientation only. */}
-        <p className="mt-4 text-[11.5px] leading-snug text-[var(--text-tertiary)]">
+        <p className="mt-4 text-[12px] leading-snug text-[var(--text-secondary)]">
           {L('적어주신 내용은 그동안 뒤에서 이미 읽고 있어요 — 이 다음 화면에서 결과가 나와요.',
              "We're already reading what you wrote — the result comes right after this.")}
         </p>
