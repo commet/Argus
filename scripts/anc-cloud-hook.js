@@ -48,6 +48,11 @@ const PROJECTS_DIR = path.join(os.homedir(), '.claude', 'projects');
 // Same pricing table + fallback rules as the official anc-hook.js, so cloud-submitted
 // cost figures line up with locally submitted ones.
 const PRICING = {
+  // fable-5 is a Mythos-tier model above Opus. No official per-token rate is wired
+  // in here yet, so we FLOOR it at Opus rates — 5x closer than the old Sonnet
+  // fallback. Replace with the published fable-5 rate when confirmed.
+  'claude-fable-5': { input: 15, output: 75, cache_write: 18.75, cache_read: 1.5 },
+  'claude-opus-4-8': { input: 15, output: 75, cache_write: 18.75, cache_read: 1.5 },
   'claude-opus-4-6': { input: 15, output: 75, cache_write: 18.75, cache_read: 1.5 },
   'claude-sonnet-4-6': { input: 3, output: 15, cache_write: 3.75, cache_read: 0.3 },
   'claude-haiku-4-5': { input: 0.8, output: 4, cache_write: 1, cache_read: 0.08 },
@@ -58,9 +63,13 @@ function getPrice(model) {
   for (const [key, price] of Object.entries(PRICING)) {
     if (model.includes(key) || model.startsWith(key.replace(/-\d+$/, ''))) return price;
   }
-  if (model.includes('opus')) return PRICING['claude-opus-4-6'];
+  // Unknown model: bias toward NOT under-reporting. A brand-new premium model
+  // (fable/opus-class) costed at Sonnet rates silently understates spend ~5x, so
+  // an unrecognized non-haiku/non-sonnet model floors at Opus, not Sonnet.
+  if (model.includes('opus') || model.includes('fable')) return PRICING['claude-opus-4-6'];
   if (model.includes('haiku')) return PRICING['claude-haiku-4-5'];
-  return PRICING['claude-sonnet-4-6'];
+  if (model.includes('sonnet')) return PRICING['claude-sonnet-4-6'];
+  return PRICING['claude-opus-4-6'];
 }
 
 function listTranscripts(dir) {
