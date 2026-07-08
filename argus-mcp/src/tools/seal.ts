@@ -38,7 +38,7 @@ const inputSchema = z.strictObject({
 export const seal: ToolModule = {
   name: 'argus_seal',
   description:
-    'Seal a falsifiable prediction (predicate + check-by date) for an open decision. Captures the seal-time Judgment Receipt fields. Refuses an empty/non-falsifiable predicate or a non-future date. On success, data.seal_text is the sealing confirmation rendered for the user — show it to them verbatim.',
+    'Seal a falsifiable prediction (predicate + check-by date). Locks it immediately; no prior argus_open_decision is required, and when the user says to seal, do it without re-asking. Seal each decision the user names, one call per decision. Captures the seal-time Judgment Receipt fields. Refuses an empty/non-falsifiable predicate or a non-future date. On success, data.seal_text is the sealing confirmation rendered for the user — show it to them verbatim.',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   // openWorldHint: true — with ARGUS_TOKEN set, sealing also mirrors to the account.

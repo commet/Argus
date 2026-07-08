@@ -169,7 +169,7 @@ describe('wake_text spine (renderWake)', () => {
     expect(ko).toContain('확인일 지남 (6)');
     expect(ko).toContain('← argus_settle');
     expect(ko).toContain('… (+1)'); // 6 overdue, 5 shown
-    expect(ko).toContain('현실을 기다리는 중 (2)');
+    expect(ko).toContain('결과를 기다리는 중 (2)');
     expect(ko).toContain('11일 경과'); // 07-10 → 07-21
     expect(ko).toContain('답 08-01');
     expect(ko).toContain('결정 12 · 봉인 중 8 · 정산 3');
@@ -183,7 +183,7 @@ describe('wake_text spine (renderWake)', () => {
 
   it('empty groups vanish instead of rendering hollow frames', () => {
     const one = renderWake([row({ id: 'only-one', check_by: '2026-09-01' })], { held: 0, avoided: 0, partial: 0 }, TODAY, 'ko');
-    expect(one).toContain('현실을 기다리는 중 (1)');
+    expect(one).toContain('결과를 기다리는 중 (1)');
     expect(one).not.toContain('확인일 지남');
     expect(one).not.toContain('정산됨');
   });

@@ -198,7 +198,10 @@ async function main() {
     console.log('Run: ANTHROPIC_API_KEY=sk-... npm run eval:experience');
     process.exit(0);
   }
-  if (!fs.existsSync(DIST)) execSync('npm run build', { cwd: ROOT, stdio: 'inherit' });
+  // ALWAYS rebuild — a stale dist silently tests OLD instructions/surfaces
+  // (bit me once: a sharpened seal instruction looked like it "failed" when it
+  // simply hadn't been compiled in). Cheap insurance for a model-in-loop run.
+  execSync('npm run build', { cwd: ROOT, stdio: 'ignore' });
 
   const filter = (process.env.ARGUS_EVAL_PERSONAS || '').split(',').map((x) => x.trim()).filter(Boolean);
   const personas = filter.length ? PERSONAS.filter((p) => filter.includes(p.id)) : PERSONAS;

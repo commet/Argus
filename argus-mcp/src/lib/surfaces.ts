@@ -460,7 +460,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       owner_user: '이 문장은 당신의 것입니다.',
       owner_ai: 'Argus가 초안한 문장입니다. 아직 당신이 확언하지 않았습니다.',
       sealed_label: '봉인',
-      answers_label: '현실의 답',
+      answers_label: '실제 결과',
       days_out: (n) => `(${n}일 뒤)`,
       closing: [
         '그날까지 이 봉인은 닫혀 있습니다. 날짜가 오면 여기 기록될 것은',
@@ -474,7 +474,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       overdue_group: (n) => `확인일 지남 (${n})`,
       overdue_hint: '← argus_settle',
       days_past: (n) => `${n}일 경과`,
-      waiting_group: (n) => `현실을 기다리는 중 (${n})`,
+      waiting_group: (n) => `결과를 기다리는 중 (${n})`,
       answer_on: (date) => `답 ${date}`,
       settled_group: (n, held, avoided, partial) => `정산됨 (${n}): held ${held} · avoided ${avoided} · partial ${partial}`,
       more: (n) => `… (+${n})`,

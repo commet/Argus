@@ -41,7 +41,7 @@ const DAY0 = new Date('2026-07-02T00:00:00Z');
 const day = (n) => new Date(DAY0.getTime() + n * 86400000).toISOString().slice(0, 10);
 
 async function main() {
-  if (!fs.existsSync(DIST)) execSync('npm run build', { cwd: ROOT, stdio: 'inherit' });
+  execSync('npm run build', { cwd: ROOT, stdio: 'ignore' }); // always rebuild — stale dist tests old surfaces
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-life-'));
   const env = {};
   for (const [k, v] of Object.entries(process.env)) if (typeof v === 'string') env[k] = v;
