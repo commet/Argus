@@ -119,7 +119,10 @@ describe('MCP simulation — full loop with account sync', () => {
     expect(sealData.account_synced).toBe(false);
     expect(sealData.account_sync_reason).toBe('http_401');
     const surface = String(body(sealed).surface);
-    expect(surface).toContain('http_401');
+    // M0: the surface speaks human — the machine enum stays in data only.
+    expect(surface).toContain('HTTP 401');
+    expect(surface).toContain('expired');
+    expect(surface).not.toContain('http_401');
     expect(surface).toMatch(/email reminder won't fire/i);
   });
 });

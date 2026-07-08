@@ -58,7 +58,10 @@ Claude Code:
 claude mcp add argus -- npx -y argus-decision-mcp
 ```
 
-Or add to your host's MCP config:
+Or add to your host's MCP config. **Zero config works**: with no `env` at all,
+your ledger lives in `~/.argus`.
+
+**Claude Code** (expands `${CLAUDE_PROJECT_DIR}`, so a per-project ledger works):
 
 ```jsonc
 {
@@ -67,18 +70,16 @@ Or add to your host's MCP config:
       "command": "npx",
       "args": ["-y", "argus-decision-mcp"],
       "env": {
-        // Set this ONCE and you never pass argus_dir again — every tool falls
-        // back to it. Claude Code expands ${CLAUDE_PROJECT_DIR}; on other hosts
-        // put an absolute path here (or pass argus_dir per call).
+        // OPTIONAL — per-project ledger. Omit entirely to use ~/.argus.
         "ARGUS_DIR": "${CLAUDE_PROJECT_DIR}/.argus",
         // OPTIONAL — connect to your Argus account so sealed predictions get an
         // email at their check-by date (the Companion Brief) and show up in the
-        // web dashboard. Issue the token in the web app. Leave it unset to stay
-        // fully local (the privacy-preserving default).
+        // web dashboard. Issue the token in the web app (Settings → sync token).
+        // Leave it unset to stay fully local (the privacy-preserving default).
         "ARGUS_TOKEN": "argus_pat_…",
         // OPTIONAL — the timezone that decides when a check-by date becomes
-        // "today". Unset = UTC, which for Korean users means the day flips at
-        // 9am KST (a due decision won't show until then). Set your zone:
+        // "today". Unset = your machine's local timezone (usually right).
+        // Set it only if your machine's clock zone isn't where you live:
         "ARGUS_TZ": "Asia/Seoul"
         // "ARGUS_API_URL": "https://argus.voyage"  // override only for self-host
       }
@@ -87,9 +88,31 @@ Or add to your host's MCP config:
 }
 ```
 
+**Claude Desktop** does **not** expand `${...}` variables — a literal
+`${CLAUDE_PROJECT_DIR}` would fail on every call (Argus names this error when
+it happens). Either omit `ARGUS_DIR` (→ `~/.argus`) or use an absolute path:
+
+```jsonc
+// macOS
+"env": { "ARGUS_DIR": "/Users/you/.argus" }
+// Windows — also note the command form below
+"env": { "ARGUS_DIR": "C:\\Users\\you\\.argus" }
+```
+
+**Windows** hosts often can't launch bare `npx` (it's `npx.cmd`). If the server
+fails to start, use:
+
+```jsonc
+{
+  "command": "cmd",
+  "args": ["/c", "npx", "-y", "argus-decision-mcp"]
+}
+```
+
 > `argus_dir` is **optional** on every tool: omit it and it resolves from
-> `ARGUS_DIR`. A per-call `argus_dir` still wins — so Argus works on any host
-> even when env-variable interpolation doesn't.
+> `ARGUS_DIR`, then falls back to `~/.argus`. A per-call `argus_dir` still
+> wins — so Argus works on any host even when env-variable interpolation
+> doesn't.
 
 ## The loop
 

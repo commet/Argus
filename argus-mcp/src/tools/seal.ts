@@ -11,7 +11,7 @@ import { premiseId, MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING } from '../lib/premise
 import { pushToAccount } from '../lib/push-account.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
 import { renderSeal } from '../lib/render-receipt.js';
-import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
+import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { writeReturnCalendarEvent } from '../lib/calendar.js';
 import { z } from 'zod';
@@ -131,7 +131,7 @@ export const seal: ToolModule = {
         ? T.synced
         : sync.reason === 'no_token'
           ? ''
-          : T.sync_failed(String(sync.reason));
+          : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
 
       // The sealing confirmation (P1-E2): the terminal twin of the webapp's
       // seal certificate. surface stays the short model-facing line; seal_text

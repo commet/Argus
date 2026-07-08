@@ -10,6 +10,31 @@
 
 Everything since the 1.0.0 first release.
 
+**공정 M0 · 문과 언어 (2026-07-08, BLUEPRINT §9.5) — the first-day repairs:**
+
+- **Zero-config default dir:** with no `argus_dir` and no `ARGUS_DIR`, every
+  tool now lands in `~/.argus` instead of erroring — a brand-new Claude Desktop
+  user seals on day one with an empty `env`. An unexpanded `${...}` /`%VAR%`
+  config variable now gets an error that names the actual problem (the host
+  didn't interpolate) instead of "must be an absolute path".
+- **The receipt speaks your language (FC-2 closed):** `renderReceipt` joined
+  the locale brain — a Korean journey now ends in a fully Korean Judgment
+  Receipt (settle and recall). The `AI VERDICT … NONE` line stays English in
+  every locale: it is brand DNA, not copy.
+- **Bounded check_in:** `data.due` caps at the 20 oldest with a
+  `due_truncated` disclosure; `due_count` keeps the true total. A three-week
+  gap no longer floods the host's context.
+- **`reconsider_cadence_days` alias:** the historically misspelled
+  `reponder_cadence_days` field now accepts the spelling a model will
+  naturally write. Either works; one is stored.
+- **Human sync-failure sentences:** a failed account sync now says "the token
+  was rejected (HTTP 401) — it may be expired…" instead of splicing the raw
+  `http_401` token into the seal confirmation. The machine enum stays in
+  `data.account_sync_reason`.
+- **README doors:** Claude Desktop (no env interpolation → absolute path or
+  zero-config), Windows (`cmd /c npx` form), and the timezone default corrected
+  (unset = your machine's local zone, not UTC).
+
 - **Reconsider loop (M1/M3):** an in-session ambient due-line and a formalized
   recheck cadence surface what's due without leaving the session; an
   `open_question` left unresolved is nudged back periodically — a fact + a

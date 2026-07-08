@@ -58,6 +58,11 @@ export interface PremiseChange {
 export interface DueReceiptBrief {
   source_title: string;
   core_question: string;
+  /** 'mcp' when the judgment was sealed in the terminal (mcp_ receipt) — the
+   *  brief then also names the terminal way home, not just the web CTA
+   *  (BLUEPRINT §9.4 귀환 봉합: the email is the only channel that reaches an
+   *  absent user, and it must not route a terminal-sealed decision web-only). */
+  origin?: 'web' | 'mcp';
   predicates: DuePredicate[];
   /** monitored premises due for a re-check (living premises). */
   premise_nudges?: DuePremiseNudge[];
@@ -230,6 +235,13 @@ export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https:/
   blocks.push('답할 수 있는 것: 그렇게 됐다 / 피했다 / 부분적으로 / 아직 불분명 — 또는 날짜만 미루기. 아직 모르겠으면 "아직 불분명"도 답이에요.');
   blocks.push('');
   blocks.push(`[내 판단 항로에서 정산하기 →](${url})`);
+  // Terminal way home (§9.4): a terminal-sealed judgment must be offered the
+  // terminal route back — the local ledger diverges forever if the email only
+  // ever routes to the web.
+  if (items.some((it) => it.origin === 'mcp')) {
+    blocks.push('');
+    blocks.push('터미널에서 봉인한 판단이에요 — 터미널에서 정산하면 로컬 기록도 함께 닫혀요: Claude에서 `/argus-settle` (또는 `argus_sync` 후 `argus_settle`).');
+  }
   // Opt-out notice (04 S5): the seal modal promised "one email for the
   // settlement, nothing else" — the email itself carries the exit too.
   blocks.push('');

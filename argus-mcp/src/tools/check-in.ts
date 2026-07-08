@@ -37,7 +37,13 @@ export const checkIn: ToolModule = {
       for (const s of seeds) {
         if (!dueMap.has(s.id)) dueMap.set(s.id, { id: s.id, predicate: s.predicate, check_by: s.check_by, days_overdue: daysBetween(s.date, today), source: 'bearing' });
       }
-      const due = Array.from(dueMap.values()).sort((x, y) => x.check_by < y.check_by ? -1 : 1);
+      const dueAll = Array.from(dueMap.values()).sort((x, y) => x.check_by < y.check_by ? -1 : 1);
+      // Bounded output (§9.4 경계 수리): after a long gap dozens can be due at
+      // once — cap what rides into the model's context (and the per-item
+      // receipt reads below), disclose the rest as a count. Oldest first stays.
+      const DUE_TOP = 20;
+      const due = dueAll.slice(0, DUE_TOP);
+      const dueTruncated = dueAll.length - due.length;
 
       // Locale brain (P1-E1): all check_in surface strings come from the
       // {ko,en} dictionary, picked by the config's locale.
@@ -141,8 +147,8 @@ export const checkIn: ToolModule = {
         const oldest = dueEnriched[0];
         parts.push(
           oldest?.your_words_then && typeof oldest.days_since_seal === 'number'
-            ? S.anchor_mirror(oldest.days_since_seal, due.length, clip(oldest.your_words_then, 200))
-            : S.due_contracts(due.length),
+            ? S.anchor_mirror(oldest.days_since_seal, dueAll.length, clip(oldest.your_words_then, 200))
+            : S.due_contracts(dueAll.length),
         );
       }
       if (premiseGroups.length > 0) parts.push(S.due_premises(premiseGroups.length));
@@ -169,7 +175,8 @@ export const checkIn: ToolModule = {
         surface: parts.join(' ') + upcomingLine + integrityLine,
         next_actions: next,
         data: {
-          due: dueEnriched, due_count: due.length,
+          due: dueEnriched, due_count: dueAll.length,
+          ...(dueTruncated > 0 ? { due_truncated: `${dueAll.length} due, showing ${DUE_TOP} oldest` } : {}),
           due_premises: duePrem, due_premise_count: premiseGroups.length,
           ...(premiseGroups.length > TOP ? { due_premises_truncated: `${premiseGroups.length} groups, showing ${TOP}` } : {}),
           due_open_questions: dueOpenQ, due_open_question_count: openQs.length,

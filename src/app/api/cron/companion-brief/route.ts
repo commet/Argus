@@ -166,6 +166,9 @@ export async function GET(req: Request) {
     bucket.briefs.push({
       source_title: row.data.source_title || '제목 없는 문서',
       core_question: row.data.core_question || '',
+      // mcp_ rows were sealed in the terminal — the brief names the terminal
+      // way home for them (§9.4 귀환 봉합).
+      origin: row.id.startsWith('mcp_') ? 'mcp' : 'web',
       predicates: preds,
       premise_nudges: nudges.length ? nudges : undefined,
       open_questions: openQuestions.length ? openQuestions : undefined,
