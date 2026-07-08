@@ -10,6 +10,34 @@
 
 Everything since the 1.0.0 first release.
 
+**공정 M1 · 당직 루프 (2026-07-08, BLUEPRINT §9.5) — the daily watch:**
+
+- **New tool `argus_watch`** — the second, lighter orbit next to the decision
+  voyage. `op=anchor` keeps today's one-line aim (the user's words, verbatim);
+  `op=capture` notes a swallowed claim / unverified premise / deferred question
+  mid-work without opening a decision; `op=list` reads the recent log. Spine
+  rulings baked in (§9.2): an anchor is a **note, not a bet** — never
+  evaluated, never counted in ids/stats/track_record (the fold keeps watch
+  events outside contracts; a test pins it); capture provenance is never
+  forged (`ai_surfaced` requires `ai_original`); there is deliberately NO
+  separate stance field — the drift guard refuses fork-adjacent schema keys.
+- **check_in mirrors the watch**: the most recent prior day's anchor comes
+  back first — "'…' — so, how did it go?" — a question, never a completion
+  check. And check_in's frame language now follows the LEDGER's own user text
+  (anchor / oldest due predicate), so a Korean anchor no longer gets an
+  English frame.
+- **The restraint cliff has an exit**: a gated-off open_decision now offers
+  `argus_watch` — "a note, not an opened decision."
+- **Server instructions carry the watch choreography**, including the
+  over-fire guard: captures are user-initiated; volunteering "should I record
+  this?" on routine work is named as over-fire.
+- **Host snippets ship in the package** (`snippets/claude-code-watch.md`): a
+  CLAUDE.md block + a SessionStart hook so the host carries the daily rhythm a
+  passive stdio server cannot.
+- **어휘 1벌 (공정 3 상환)**: the recheck drift surface now returns the handle
+  in the same vocabulary as the web T2 email — "결정을 다시 볼지는 당신의 몫" —
+  and a vocabulary guard test covers the MCP surfaces.
+
 **공정 M0 · 문과 언어 (2026-07-08, BLUEPRINT §9.5) — the first-day repairs:**
 
 - **Zero-config default dir:** with no `argus_dir` and no `ARGUS_DIR`, every

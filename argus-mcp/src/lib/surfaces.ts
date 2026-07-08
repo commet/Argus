@@ -138,6 +138,10 @@ export interface SurfaceStrings {
     reconsider_more: (n: number) => string;
     /** ledger-corruption disclosure (11 P2-8): counted silently before — say it. */
     dropped_lines: (n: number) => string;
+    /** 당직 미러 (§9.1): the most recent PRIOR day's anchor, mirrored back as a
+     *  question. 세 문장 문법 — 인용, 사실(날짜), 손잡이. Never an evaluation,
+     *  never a completion check. */
+    watch_mirror: (date: string, text: string) => string;
   };
   sync: {
     live_with_due: (total: number, due: number) => string;
@@ -222,6 +226,9 @@ export interface SurfaceStrings {
       reason_fallback: string;
       /** the coda: names the status-quo option, returns the handle. */
       leave_coda: string;
+      /** §9.4 절벽 제거 — the restraint verdict stands, but the user who still
+       *  wants the thought KEPT gets an exit: a watch note, not an opened decision. */
+      watch_exit: string;
       reconfirm: string;
       /** FIRE, crux supplied: name the one question. */
       opened_with_crux: (crux: string) => string;
@@ -259,6 +266,13 @@ export interface SurfaceStrings {
     dismiss: {
       dismissed: string;
     };
+    /** 당직 루프 (§9.3) — anchor/capture/list confirmations. Facts + handles
+     *  only: no praise, no progress language, no streak. */
+    watch: {
+      anchored: string;
+      captured: (kind: string) => string;
+      listed: (anchors: number, captures: number) => string;
+    };
   };
 }
 
@@ -283,6 +297,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       reconsider_more: (n) => `${n} open question(s) you left unresolved are up for another look (argus_premises).`,
       dropped_lines: (n) =>
         ` ${n} ledger line(s) could not be read (possibly a crash artifact). The record is append-only, so the rest is intact — keep a backup of ledger.jsonl.`,
+      watch_mirror: (date, text) =>
+        `Your line on watch ${date}: '${text}' — so, how did it go? (Today's line, if you want one: argus_watch.)`,
     },
     sync: {
       live_with_due: (total, due) =>
@@ -350,6 +366,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         },
         reason_fallback: 'No fork to manufacture here.',
         leave_coda: 'Leaving it as is stays a real option.',
+        watch_exit: ' If you still want this kept, argus_watch (op=anchor) records it as a note — a note, not an opened decision.',
         reconfirm: 'These signals look contradictory (high stakes yet easily reversible). Re-confirm stakes and reversibility before going further.',
         opened_with_crux: (crux) => `Opened. The one question that decides this: ${crux}`,
         opened_bare: 'Opened. Surface exactly ONE neutral crux question (a question, not a fork or a lean), then seal a falsifiable prediction.',
@@ -377,6 +394,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       dismiss: {
         dismissed: 'Dismissed. Closed without a verdict.',
       },
+      watch: {
+        anchored: "Anchored for today. Tomorrow's check_in mirrors this line back — as a question, never a grade.",
+        captured: (kind) => `Captured (${kind}). It sits on the watch log — promoting it to a decision premise is your call, whenever (argus_premises).`,
+        listed: (anchors, captures) => `Watch log: ${anchors} anchor(s) · ${captures} capture(s).`,
+      },
     },
   },
   ko: {
@@ -399,6 +421,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       reconsider_more: (n) => `미결로 남겨둔 질문 ${n}건이 다시 볼 차례입니다 (argus_premises).`,
       dropped_lines: (n) =>
         ` 원장에서 읽지 못한 줄이 ${n}개 있습니다(크래시 흔적일 수 있음). 기록은 append-only라 나머지는 안전합니다 — ledger.jsonl을 백업해 두세요.`,
+      watch_mirror: (date, text) =>
+        `${date} 당직의 항로: '${text}' — 그래서, 어떻게 됐어요? (오늘의 항로를 적으려면 argus_watch.)`,
     },
     sync: {
       live_with_due: (total, due) =>
@@ -467,6 +491,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         },
         reason_fallback: '여기서 지어낼 갈림길은 없습니다.',
         leave_coda: '그대로 두는 것도 여전히 진짜 선택지입니다.',
+        watch_exit: ' 그래도 남겨두고 싶으면 argus_watch(op=anchor)가 메모로 적어둡니다 — 결정을 여는 게 아니라 메모입니다.',
         reconfirm: '신호가 서로 어긋납니다(걸린 것은 큰데 되돌리기는 쉽습니다). 더 나아가기 전에 stakes와 reversibility를 다시 확인하세요.',
         opened_with_crux: (crux) => `열었습니다. 이걸 가르는 단 하나의 질문: ${crux}`,
         opened_bare: '열었습니다. 중립적인 핵심 질문 딱 하나만 꺼내세요(갈림길도 기울임도 아닌 질문). 그다음 반증 가능한 예측을 봉인하세요.',
@@ -483,8 +508,10 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       recheck: {
         baseline: (ref, finding, source, cadenceDays) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). ${cadenceDays}일 뒤에 다시 확인하길 권합니다.`,
-        material: (ref, before, after, source) => `P${ref}이 기댄 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 이 결정을 다시 볼지는 당신 몫입니다.`,
-        uncertain: (ref, reason) => `P${ref}: 규칙상 자동 판정이 애매한 변화예요 (${reason}). host가 확인한 사실만 적어뒀어요 — 규칙을 정할지, 그냥 둘지는 당신 몫이에요.`,
+        // 어휘 1벌 (공정 3 상환): 웹 T2 이메일(companion-brief)과 같은 문장 —
+        // "결정을 다시 볼지는 당신의 몫" — 표면 존대만 다르고 어휘는 동일하다.
+        material: (ref, before, after, source) => `P${ref}이 기댄 사실이 바뀌었습니다: "${before}" → "${after}" (${source}). 결정을 다시 볼지는 당신의 몫입니다.`,
+        uncertain: (ref, reason) => `P${ref}: 규칙상 자동 판정이 애매한 변화예요 (${reason}). host가 확인한 사실만 적어뒀어요 — 규칙을 정할지, 그냥 둘지는 당신의 몫이에요.`,
         uncertain_heuristic_note: ' 규칙을 따로 정하지 않아 기본값(휴리스틱)으로 봤어요 — 이 전제에서 어떤 움직임이 중요한지 정해두면 더 정확해요.',
         unchanged: (ref, source) => `P${ref}은 그대로입니다 (${source}).`,
       },
@@ -493,6 +520,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       dismiss: {
         dismissed: '접었습니다. 평결 없이 닫혔습니다.',
+      },
+      watch: {
+        anchored: '오늘의 항로를 적어두었습니다. 내일 check_in이 이 문장을 질문 하나로 되비춥니다 — 평가는 없습니다.',
+        captured: (kind) => `기록했습니다 (${kind}). 당직 일지에 있습니다 — 결정의 전제로 올릴지는 당신이 정할 때만 (argus_premises).`,
+        listed: (anchors, captures) => `당직 일지: 항로 ${anchors}건 · 기록 ${captures}건.`,
       },
     },
   },

@@ -64,7 +64,11 @@ const EVIDENCE_M: Record<string, string[]> = {
     'argus-mcp/src/tools/__tests__/m0-doors-and-language.test.ts', // check_in due 상한
     'src/lib/__tests__/companion-brief.test.ts', // 이메일 페이로드에 터미널 명령
   ],
-  '공정 M1': [],
+  '공정 M1': [
+    'argus-mcp/src/tools/__tests__/m1-watch-loop.test.ts', // 당직 여정 fixture
+    'argus-mcp/src/tools/__tests__/m1-watch-loop.test.ts', // 앵커 비산입
+    'argus-mcp/src/tools/__tests__/m1-watch-loop.test.ts', // 어휘 가드 (recheck 포함)
+  ],
   '공정 M2': [],
   '공정 M3': [],
   '공정 M4': [],

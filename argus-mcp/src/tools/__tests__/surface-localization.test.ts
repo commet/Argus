@@ -90,7 +90,8 @@ describe('M4 surface localization — the 6 dogfood tools', () => {
     const bKo = await recheck.handler({ argus_dir: dirKo, id: 'd1', ref: 'P1', finding: '기준금리 3.5%', numeric_value: 3.5, source: 'url', today_override: TODAY });
     expect(surface(bKo)).toContain('기준값을 기록');
     const mKo = await recheck.handler({ argus_dir: dirKo, id: 'd1', ref: 'P1', finding: '기준금리 4.0%', numeric_value: 4.0, source: 'url', today_override: TODAY });
-    expect(surface(mKo)).toContain('당신 몫');
+    // 어휘 1벌 (공정 3 상환): 웹 T2와 같은 어휘 — "다시 볼지는 당신의 몫"
+    expect(surface(mKo)).toContain('다시 볼지는 당신의 몫');
   });
 
   it('amend — ko vs en', async () => {

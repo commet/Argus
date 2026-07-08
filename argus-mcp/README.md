@@ -114,10 +114,31 @@ fails to start, use:
 > wins — so Argus works on any host even when env-variable interpolation
 > doesn't.
 
+## Two loops
+
+Argus runs two loops side by side — the same three-routine workout its author
+uses daily (seal → surface → return):
+
+- **The daily watch** (`argus_watch`) — turns over once a *day*. In the morning
+  (or whenever a session starts) you anchor one line: today's aim, your working
+  hypothesis, where you lean. While you work, you capture the things that
+  usually evaporate: a claim you accepted without checking, a premise you
+  haven't verified, a question you're deferring. Tomorrow's `check_in` mirrors
+  yesterday's line back — *"so, how did it go?"* — as a question, never a grade.
+  An anchor is a **note, not a bet**: nothing about it is scored, counted, or
+  streaked, ever.
+- **The decision voyage** (everything below) — turns over in days-to-months.
+  When a capture turns out to be load-bearing, *you* promote it: open the
+  decision, seal a falsifiable prediction, track its premises, and let reality
+  settle it into a Judgment Receipt.
+
+The watch builds the habit; the voyage builds the record.
+
 ## The loop
 
 | Tool | What it does |
 |------|--------------|
+| `argus_watch` | The daily watch. `anchor` keeps today's one-line aim (your words, verbatim); `capture` notes a swallowed claim / unverified premise / deferred question mid-work without opening a decision; `list` reads the recent log. Anchors are mirrored back by the next `check_in` as a question — never evaluated, never counted in any record. |
 | `argus_open_decision` | Opens a consequential decision. Runs a restraint gate first — on a flat / low-stakes / reversible / already-closed call it tells you to leave it as is. If it fires, it surfaces **one** neutral question, never a fork or a lean. |
 | `argus_review` | Reviews an existing document (strategy memo / PRD / deck text / AI answer) for judgment risk: reviewability score, routed lenses, source units with anchors, and the extraction prompt — then hands the analysis to you. Degrades honestly on unextractable input; never a verdict. End by sealing one follow-up. |
 | `argus_seal` | Seals a falsifiable prediction (`predicate` + `check_by`) and captures the receipt's real-question / unverified-assumption / human-only / your-call fields. Refuses an empty predicate or a non-future date. If you seal without naming the assumption, it's recorded as an explicit **skip** — never a forced gate (which would just eject the tiredest user), never a silent blank. With `ARGUS_TOKEN` set, the prediction also syncs to your account so the Companion Brief can email you at its check-by date. |
@@ -126,7 +147,7 @@ fails to start, use:
 | `argus_settle` | On the check-by date, records what reality did and issues the Judgment Receipt. Hard-errors without a prior seal. Optionally records **which premise broke** (your attribution, never inferred) — over time your track record can say "3 of your 4 missed bets traced to a broken external premise": a frequency, never a diagnosis. |
 | `argus_amend` | Changes the predicate or check-by date **before** reality answers — a course change, not an erasure (the original stays on the append-only ledger). Hard-errors once the decision is settled. |
 | `argus_dismiss` | Closes a decision **without settling** — it became irrelevant, was decided elsewhere, or you changed your mind. No verdict is recorded; terminal, not reopened. |
-| `argus_check_in` | Returns contracts past their check-by date **and premise facts due for a re-check** (the same fact under several decisions is one re-check). If nothing is due, it says so and stops — it doesn't manufacture engagement. |
+| `argus_check_in` | Returns contracts past their check-by date **and premise facts due for a re-check** (the same fact under several decisions is one re-check), and mirrors yesterday's watch anchor back as a question. If nothing is due, it says so and stops — it doesn't manufacture engagement. |
 | `argus_sync` | Pulls your account receipts into the terminal (live judgments + what's due) so you can settle here. Seals push automatically; this is the read side. Requires `ARGUS_TOKEN`. |
 | `argus_recall` | Reads your own history: a receipt, the open contracts, or a sample-size-caveated track record (never a tier or score). |
 | `argus_init` / `argus_config` | Initialize the `.argus` directory; read/write non-spine settings. |

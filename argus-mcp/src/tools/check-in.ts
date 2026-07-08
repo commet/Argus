@@ -3,7 +3,7 @@ import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { replayLedger, bearingContracts } from '../lib/ledger-replay.js';
 import { duePremises, groupDuePremises, dueOpenQuestions } from '../lib/premises.js';
 import { readReceipt, SKIPPED } from '../lib/receipt.js';
-import { surfacesFor } from '../lib/surfaces.js';
+import { SURFACES, resolveResponseLocale, surfaceLocale } from '../lib/surfaces.js';
 import { z } from 'zod';
 import type { NextAction } from '../lib/spine.js';
 import { envelope } from '../lib/envelope.js';
@@ -45,9 +45,30 @@ export const checkIn: ToolModule = {
       const due = dueAll.slice(0, DUE_TOP);
       const dueTruncated = dueAll.length - due.length;
 
-      // Locale brain (P1-E1): all check_in surface strings come from the
-      // {ko,en} dictionary, picked by the config's locale.
-      const S = surfacesFor(dir).checkin;
+      // 당직 미러 (§9.1): the most recent PRIOR day's anchor comes back first,
+      // as a question — recognition, never a completion check. Today's own
+      // anchor is data-only (no need to echo what the user just wrote).
+      const priorAnchors = [...ledger.watch.anchors.values()]
+        .filter((x) => x.date < today)
+        .sort((x, y) => (x.date < y.date ? 1 : -1));
+      const lastAnchor = priorAnchors[0];
+
+      // Locale brain (P1-E1 + §9.3 언어 고정): check_in has no user-typed input,
+      // so the frame used to flip to the base voice around the user's own
+      // Korean words. Detect from the LEDGER's user text instead — the anchor
+      // being mirrored, else the oldest due predicate. An explicit config
+      // locale still always wins inside resolveResponseLocale. With NO ledger
+      // text at all, stay config-or-'en' (deterministic on every machine —
+      // never the env/Intl fallback, which would make tests machine-dependent).
+      const ledgerVoiceSample = lastAnchor?.text || ledger.overdue[0]?.text || due[0]?.predicate;
+      const S = ledgerVoiceSample
+        ? SURFACES[resolveResponseLocale(dir, ledgerVoiceSample)].checkin
+        : SURFACES[surfaceLocale(dir)].checkin;
+      const mirrorLine = lastAnchor ? S.watch_mirror(lastAnchor.date, clip(lastAnchor.text, 160)) + ' ' : '';
+      const todayAnchor = ledger.watch.anchors.get(today);
+      const watchData = (lastAnchor || todayAnchor)
+        ? { watch: { ...(lastAnchor ? { last_anchor: lastAnchor } : {}), ...(todayAnchor ? { today_anchor: todayAnchor } : {}) } }
+        : {};
 
       // 닻 거울 (P1-E3): each due item carries its seal date + the user's OWN
       // seal-time words (receipt.human_judgment; omitted when skipped). The
@@ -133,9 +154,9 @@ export const checkIn: ToolModule = {
           : '';
         return envelope({
           ok: true, tool: 'argus_check_in',
-          surface: S.nothing_due + accountHint + upcomingLine + integrityLine,
+          surface: mirrorLine + S.nothing_due + accountHint + upcomingLine + integrityLine,
           next_actions: ['stop'],
-          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), today },
+          data: { due: [], due_count: 0, due_premises: [], due_premise_count: 0, due_open_questions: [], due_open_question_count: 0, ...(upDays > 0 ? { upcoming } : {}), ...watchData, today },
         });
       }
 
@@ -172,7 +193,7 @@ export const checkIn: ToolModule = {
 
       return envelope({
         ok: true, tool: 'argus_check_in',
-        surface: parts.join(' ') + upcomingLine + integrityLine,
+        surface: mirrorLine + parts.join(' ') + upcomingLine + integrityLine,
         next_actions: next,
         data: {
           due: dueEnriched, due_count: dueAll.length,
@@ -182,6 +203,7 @@ export const checkIn: ToolModule = {
           due_open_questions: dueOpenQ, due_open_question_count: openQs.length,
           ...(openQs.length > TOP ? { due_open_questions_truncated: `${openQs.length} questions, showing ${TOP}` } : {}),
           ...(upDays > 0 ? { upcoming } : {}),
+          ...watchData,
           today, integrity: ledger.integrity,
         },
       });

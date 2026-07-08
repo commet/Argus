@@ -10,6 +10,7 @@
   },
   "files": [
     "dist",
+    "snippets",
     "README.md",
     "SECURITY.md",
     "LICENSE"
