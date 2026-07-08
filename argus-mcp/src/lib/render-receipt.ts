@@ -51,7 +51,7 @@ export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo, locale
   L.push(`  ${R.human_only.padEnd(labelWidth)}${show(r.human_only, 'human_only')}`);
   L.push(`  ${R.made_by_label.padEnd(labelWidth)}${R.made_by}`);
   if (r.basis) {
-    L.push(`  ${R.called_as.padEnd(labelWidth)}${r.basis}`);
+    L.push(`  ${R.called_as.padEnd(labelWidth)}${R.basis_label(r.basis)}`);
   }
   L.push('');
   L.push(`  ${R.you_predicted}   "${wrap(r.predicate)}"   ${R.check_by(r.check_by)}`);

@@ -214,6 +214,9 @@ export interface SurfaceStrings {
     made_by_label: string;
     made_by: string;
     called_as: string;
+    /** The basis enum (judgment|luck|mixed|unsure) as a word, not a raw token —
+     *  "…콜한 내용  judgment" mixed EN into a KO receipt (experience-loop find). */
+    basis_label: (v: string) => string;
     skipped: string;
     premises_note: (tracked: number, changed: number) => string;
     you_predicted: string;
@@ -359,6 +362,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       made_by_label: '…made by',
       made_by: 'Me. (not the model)',
       called_as: '…called as',
+      basis_label: (v) => ({ judgment: 'judgment', luck: 'luck', mixed: 'a mix of both', unsure: 'not sure' })[v] ?? v,
       skipped: '— (you skipped naming this)',
       premises_note: (tracked, changed) =>
         `(+${tracked} premise(s) tracked · ${changed} changed at re-check · argus_recall view=premises)`,
@@ -487,6 +491,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       made_by_label: '…내린 사람',
       made_by: '나. (모델이 아니라)',
       called_as: '…콜한 내용',
+      basis_label: (v) => ({ judgment: '판단', luck: '운', mixed: '반반', unsure: '모르겠음' })[v] ?? v,
       skipped: '— (이름 붙이지 않고 넘어갔습니다)',
       premises_note: (tracked, changed) =>
         `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건 · argus_recall view=premises)`,

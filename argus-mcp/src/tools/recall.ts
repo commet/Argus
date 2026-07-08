@@ -61,7 +61,28 @@ export const recall: ToolModule = {
         }
         const r = readReceipt(dir, id);
         if (!r) {
-          return toolError({ ok: false, tool: 'argus_recall', error_code: 'RECEIPT_NOT_FOUND', message: `No receipt for "${id}".`, recovery: 'Check the id, or seal the decision first.' });
+          // A receipt exists only once sealed/settled. If the decision is on the
+          // ledger but not there yet, that is an honest STATE, not an error —
+          // returning RECEIPT_NOT_FOUND read as "your record vanished" when the
+          // user simply hadn't sealed yet (experience loop: marcus & bilingual).
+          const contract = replayLedger(dir, today).contracts.get(id);
+          if (contract) {
+            const locale = resolveResponseLocale(dir, contract.predicate || contract.text || null);
+            const sealed = contract.status === 'sealed';
+            return envelope({
+              ok: true, tool: 'argus_recall',
+              surface: locale === 'ko'
+                ? (sealed
+                    ? `이 결정은 봉인됐고 아직 정산 전입니다 (확인일 ${contract.check_by}). 그날 argus_settle로 결과를 적으면 영수증이 완성됩니다.`
+                    : '이 결정은 아직 봉인 전입니다. argus_seal로 예측을 봉인하면 판단 영수증이 생깁니다.')
+                : (sealed
+                    ? `This decision is sealed and waiting on its check-by (${contract.check_by}). Record what happened with argus_settle then, and the receipt completes.`
+                    : 'This decision is opened but not sealed yet. Seal a prediction with argus_seal and a Judgment Receipt begins.'),
+              next_actions: sealed ? ['argus_settle', 'argus_recall'] : ['argus_seal', 'argus_recall'],
+              data: { id, status: contract.status, ...(contract.check_by ? { check_by: contract.check_by } : {}) },
+            });
+          }
+          return toolError({ ok: false, tool: 'argus_recall', error_code: 'RECEIPT_NOT_FOUND', message: `No decision found for "${id}".`, recovery: 'Check the id (argus_recall view="contracts" lists them), or open and seal it first.' });
         }
         // The premise set is canonical — the receipt renders its summary from the fold (plan v5 §3.3).
         const pInfo = receiptPremisesInfo(replayLedger(dir, today).contracts.get(id));

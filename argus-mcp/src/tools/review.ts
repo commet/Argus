@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
+import { resolveResponseLocale } from '../lib/surfaces.js';
 import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 import {
@@ -226,12 +227,25 @@ export const review: ToolModule = {
         avoid: LENSES[id].failure_modes,
       }));
 
-      // Band label in Korean for the surface (the raw English band stays in data
-      // for machines). "(caveated)" leaking into a Korean line was a copy-audit find.
-      const bandKo = ({ normal: '충분', caveated: '유의', limited: '제한적', insufficient: '부족' })[band] ?? band;
+      // Voice follows the document's own language (M4), the same way seal/settle
+      // follow the predicate. Review was ko-hardcoded, so an English draft got a
+      // Korean scaffold line (experience-loop / backlog find). Detect from the
+      // doc body, fall back to the title.
+      const docSample = (typeof a['text'] === 'string' && a['text']) || artifact.source_title || '';
+      const ko = resolveResponseLocale(null, docSample) === 'ko';
+      // The reviewability SCORE stays in data for lens routing only — surfacing
+      // "74/100" to the user read as a grade on their document (experience-loop
+      // spine find: the reviewer came to see weak spots, not be scored; the
+      // spine forbids an uncalibrated score to the user). When the material is
+      // thin, say only that THIS REVIEW's confidence is limited — a caveat about
+      // the read, never a grade of the draft.
+      const thin = band === 'limited' || band === 'insufficient';
+      const caveat = thin ? (ko ? '근거로 삼을 내용이 적어 검수가 제한적일 수 있습니다. ' : 'There is limited material to work from, so this review may be partial. ') : '';
       return envelope({
         ok: true, tool: 'argus_review',
-        surface: `검수 준비를 마쳤습니다. "${artifact.source_title}" · 검수 가능성 ${reviewability.score}/100 (${bandKo}) · 렌즈 ${lenses.length}개. 아래 단위를 근거로 렌즈별로 검토한 뒤, 사람이 판단할 부분과 반증 가능한 예측 하나를 뽑아 argus_seal로 봉인하세요.`,
+        surface: ko
+          ? `${caveat}검수 준비를 마쳤습니다. "${artifact.source_title}" · 렌즈 ${lenses.length}개. 아래 단위를 근거로 렌즈별로 검토한 뒤, 사람이 판단할 부분과 반증 가능한 예측 하나를 뽑아 argus_seal로 봉인하세요.`
+          : `${caveat}Review scaffold ready. "${artifact.source_title}" · ${lenses.length} lens(es). Using the units below, review lens by lens, then pull out what a human must judge and one falsifiable prediction to seal with argus_seal.`,
         next_actions: ['argus_seal', 'skip'],
         data: {
           schema_version: REVIEW_SCHEMA_VERSION,
