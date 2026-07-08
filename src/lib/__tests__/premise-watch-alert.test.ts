@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildPremiseWatchAlert } from '../../app/api/cron/premise-watch/route';
+import { findForbiddenNotificationVocabulary } from '../notification-copy';
 import type { JudgmentReceipt } from '../review';
 import type { PremiseState } from '../premises-core';
 import type { InvestigationResult } from '../premise-researcher';
@@ -89,7 +90,8 @@ describe('premise-watch T2 alert fixture', () => {
 
     expect(alert.email?.markdown).toContain('전제가 움직였다는 사실만 전해요.');
     expect(alert.email?.markdown).toContain('결정을 다시 볼지는 당신의 몫이에요.');
-    expect(alert.email?.markdown).not.toMatch(/권고|추천|평가|틀렸|맞았|실수|해야 합니다|재검토를 권/);
+    // 단일 소스 validator (notification-copy.ts) — §4.1 금지 어휘 전체를 검사.
+    expect(findForbiddenNotificationVocabulary(`${alert.email?.subject}\n${alert.email?.markdown}`)).toEqual([]);
   });
 
   it('sends a material fact-premise alert without requiring numeric drift', () => {

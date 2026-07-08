@@ -14,7 +14,6 @@ import {
   nextReponderDue,
   normalizePremiseText,
   dateOnly,
-  type PremiseRecheck,
 } from '@/lib/premises-core';
 import { investigatePremise, type InvestigationResult } from '@/lib/premise-researcher';
 import { webSearchEnabled } from '@/lib/web-research';
@@ -136,6 +135,63 @@ function resultMateriality(result: InvestigationResult): PremiseDriftMateriality
   if (result.verdict === 'material') return 'material';
   if (result.verdict === 'quiet' && result.materiality && result.materiality !== 'material') return 'minor';
   return 'none';
+}
+
+/**
+ * Record the watcher's finding onto the premise — the EXACT mutation the cron
+ * persists, extracted pure so the drift-journey fixture exercises the same wire
+ * the premise screen later renders (consumption contract: produced field =
+ * consumed field). material/quiet verdicts record the fact + source + confidence
+ * (and the T5 brief_pending flag when the gate demoted the alert); anything else
+ * records an honest "no recent news" line. Always advances the cadence clocks.
+ */
+export function applyWatchRecheck(
+  p: NonNullable<JudgmentReceipt['tracked_premises']>[number],
+  result: InvestigationResult,
+  opts: { now: string; queueForBrief?: boolean },
+): void {
+  const isOpenQ = p.kind === 'open_question';
+  if (result.verdict === 'material' || result.verdict === 'quiet') {
+    const previous = p.last_recheck;
+    p.last_recheck = {
+      finding: result.fact || '(확인함)',
+      ...(typeof result.current_value === 'number'
+        ? { numeric_value: result.current_value }
+        : typeof previous?.numeric_value === 'number'
+          ? { numeric_value: previous.numeric_value }
+          : {}),
+      ...(previous?.finding ? { baseline_finding: previous.finding } : {}),
+      ...(typeof previous?.numeric_value === 'number' ? { baseline_numeric_value: previous.numeric_value } : {}),
+      drifted: result.verdict === 'material',
+      baseline_only: !previous,
+      source: 'url',
+      ...(result.source_url ? { source_detail: `${result.source_url}${result.source_date ? ` (${result.source_date})` : ''}` } : {}),
+      confidence: result.confidence,
+      ...(opts.queueForBrief
+        ? {
+            brief_pending: true,
+            brief_kind: isOpenQ
+              ? 'open_question_new_info'
+              : (result.verdict === 'material' ? 'standalone_overflow' : 'premise_minor_drift'),
+          }
+        : {}),
+      ts: opts.now,
+      auto: true,
+    };
+  } else {
+    // no recent source → advance the clock, preserve the numeric baseline, be honest.
+    p.last_recheck = {
+      finding: '최근 확인 — 새 소식 없음',
+      ...(typeof p.last_recheck?.numeric_value === 'number' ? { numeric_value: p.last_recheck.numeric_value } : {}),
+      drifted: false,
+      baseline_only: !p.last_recheck,
+      source: 'host_reported',
+      ts: opts.now,
+      auto: true,
+    };
+  }
+  if (isOpenQ) p.last_reconsidered = opts.now; // advance the reconsider clock
+  p.recheck_count = (p.recheck_count || 0) + 1;
 }
 
 export function buildPremiseWatchAlert(input: PremiseWatchAlertInput): PremiseWatchAlertDecision {
@@ -284,50 +340,13 @@ export async function GET(req: Request) {
             byUser.set(row.user_id, bucket);
           }
         }
-        const queueForBrief = alert.gate.decision === 'merge_into_brief' && Boolean(alert.change);
-        const previous = p.last_recheck;
-        const rec: PremiseRecheck = {
-          finding: result.fact || '(확인함)',
-          ...(typeof result.current_value === 'number'
-            ? { numeric_value: result.current_value }
-            : typeof p.last_recheck?.numeric_value === 'number'
-              ? { numeric_value: p.last_recheck.numeric_value }
-              : {}),
-          ...(previous?.finding ? { baseline_finding: previous.finding } : {}),
-          ...(typeof previous?.numeric_value === 'number' ? { baseline_numeric_value: previous.numeric_value } : {}),
-          drifted: result.verdict === 'material',
-          baseline_only: !p.last_recheck,
-          source: 'url',
-          ...(result.source_url ? { source_detail: `${result.source_url}${result.source_date ? ` (${result.source_date})` : ''}` } : {}),
-          confidence: result.confidence,
-          ...(queueForBrief
-            ? {
-                brief_pending: true,
-                brief_kind: p.kind === 'open_question'
-                  ? 'open_question_new_info'
-                  : (result.verdict === 'material' ? 'standalone_overflow' : 'premise_minor_drift'),
-              }
-            : {}),
-          ts: now,
-          auto: true,
-        };
-        p.last_recheck = rec;
-        if (isOpenQ) p.last_reconsidered = now; // advance the reconsider clock
-        p.recheck_count = (p.recheck_count || 0) + 1;
+        applyWatchRecheck(p, result, {
+          now,
+          queueForBrief: alert.gate.decision === 'merge_into_brief' && Boolean(alert.change),
+        });
         mutated = true;
       } else {
-        // no recent source → advance the clock, preserve the numeric baseline, be honest.
-        p.last_recheck = {
-          finding: '최근 확인 — 새 소식 없음',
-          ...(typeof p.last_recheck?.numeric_value === 'number' ? { numeric_value: p.last_recheck.numeric_value } : {}),
-          drifted: false,
-          baseline_only: !p.last_recheck,
-          source: 'host_reported',
-          ts: now,
-          auto: true,
-        };
-        if (isOpenQ) p.last_reconsidered = now; // advance the reconsider clock
-        p.recheck_count = (p.recheck_count || 0) + 1;
+        applyWatchRecheck(p, result, { now });
         mutated = true;
       }
     }
