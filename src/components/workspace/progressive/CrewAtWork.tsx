@@ -12,7 +12,7 @@
  * All text renders through JSX → auto-escaped.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, AlertTriangle, RefreshCw, ChevronDown } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -31,7 +31,7 @@ function firstLine(w: WorkerTask): string {
   return line.length > 110 ? line.slice(0, 110) + '…' : line;
 }
 
-export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
+export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, hero = false, interrupted = false }: {
   workers: WorkerTask[];
   onRetry?: (workerId: string) => void;
   /** When provided, the headline carries the report-stepper toggle as a tail
@@ -39,13 +39,23 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
    *  card said the same thing twice (compression audit, worst-duplicate #2). */
   reportsOpen?: boolean;
   onToggleReports?: () => void;
+  /** 무대 연출 (공정 5, 창업자 "콩알" 지적): 질문이 남아 있는 동안 크루는
+   *  접힌 조연(④보조)이지만, 답할 것이 없고 선원들이 뛰는 순간에는 이 극장이
+   *  화면의 주인공이다 — hero면 자동 개막 + 헤더가 한 단계 큰 활자로 선다. */
+  hero?: boolean;
+  /** 크래시/새로고침으로 멈춘 상태 — 이때 "일하고 있어요"는 거짓말이다.
+   *  재개 배너(ProgressiveFlow)가 손잡이를 들고 있으니 여기선 사실만 말한다. */
+  interrupted?: boolean;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   // Collapsed by default (④ 보조): the crew works in the background while the
   // user answers the question above. The header keeps the live "team working"
   // signal (avatars + count); the full theater opens on tap.
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(hero);
+  // Becoming the hero mid-session (last question answered while the crew rows)
+  // raises the curtain once; the user can still fold it manually afterward.
+  useEffect(() => { if (hero) setOpen(true); }, [hero]);
   // Per-worker report expansion — a single-open accordion (efficient: one report
   // in view at a time, not a wall of text). A DONE row's 2-line takeaway is the
   // peek; tapping opens that worker's full result inline. This is the "눌러도
@@ -72,7 +82,9 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
   // in miniature. And when no AI actually produced anything (doneCount 0), don't
   // claim crew output flowed in — this is a human-judgment item.
   const headline = !allDone
-    ? L('선원들이 일하고 있어요', 'The crew is at work')
+    ? interrupted
+      ? L('선원 작업이 잠시 멈춰 있어요', 'The crew has paused')
+      : L('선원들이 일하고 있어요', 'The crew is at work')
     : doneCount === 0
       ? L('이 건은 사람이 판단할 항목이에요 — AI가 대신 정하지 않아요', "This one is yours to judge — AI doesn't decide it for you")
       : errorCount === 0
@@ -106,7 +118,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
             {ordered.slice(0, 5).map((w, i) => (
               <span
                 key={w.id}
-                className="w-5 h-5 rounded-full bg-[var(--bg)] border border-[var(--surface)] flex items-center justify-center text-[10px] leading-none"
+                className={`${hero ? 'w-7 h-7 text-[13px]' : 'w-5 h-5 text-[10px]'} rounded-full bg-[var(--bg)] border border-[var(--surface)] flex items-center justify-center leading-none`}
                 style={{ zIndex: 5 - i }}
                 aria-hidden
               >
@@ -114,10 +126,10 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports }: {
               </span>
             ))}
           </div>
-          <p className="text-[12.5px] font-semibold text-[var(--text-primary)] truncate">{headline}</p>
+          <p className={`${hero ? 'text-[14.5px] md:text-[15.5px] font-bold' : 'text-[12.5px] font-semibold'} text-[var(--text-primary)] truncate`}>{headline}</p>
         </div>
         <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
-          {!allDone && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" aria-hidden />}
+          {!allDone && !interrupted && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" aria-hidden />}
           <span className="tabular-nums">{doneCount}/{ordered.length}</span>
           {/* Learn-more cue so the row reads as "tap to understand", not passive status. */}
           {!open && <span className="text-[var(--accent)]">{L('이게 뭐예요?', 'What is this?')}</span>}
