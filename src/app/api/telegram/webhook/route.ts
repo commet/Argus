@@ -102,13 +102,16 @@ function sealKeyboard(locale: 'ko' | 'en') {
   return {
     inline_keyboard: [
       [
+        { text: ko ? '1일' : '1d', callback_data: 'sl:1d' },
         { text: ko ? '3일' : '3d', callback_data: 'sl:3d' },
         { text: ko ? '1주' : '1w', callback_data: 'sl:1w' },
-        { text: ko ? '2주' : '2w', callback_data: 'sl:2w' },
       ],
       [
+        { text: ko ? '2주' : '2w', callback_data: 'sl:2w' },
         { text: ko ? '1달' : '1m', callback_data: 'sl:1m' },
         { text: ko ? '3달' : '3m', callback_data: 'sl:3m' },
+      ],
+      [
         { text: ko ? '✏️ 직접' : '✏️ Custom', callback_data: 'sl:date' },
       ],
       [
@@ -119,7 +122,7 @@ function sealKeyboard(locale: 'ko' | 'en') {
   };
 }
 
-const PRESET_DAYS: Record<string, number> = { '3d': 3, '1w': 7, '2w': 14, '1m': 30, '3m': 90 };
+const PRESET_DAYS: Record<string, number> = { '1d': 1, '3d': 3, '1w': 7, '2w': 14, '1m': 30, '3m': 90 };
 
 /** "today + days" as a YYYY-MM-DD string in KST (matches the reminder cron's
  *  notion of "today"). */

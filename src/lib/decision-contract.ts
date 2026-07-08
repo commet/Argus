@@ -57,6 +57,7 @@ const MAX_ACTORS = 2;
 const MAX_LIVE_GOVERNING = 2;
 
 export const CHECK_IN_MS: Record<CheckInInterval, number> = {
+  '1d': 1 * DAY_MS,
   '3d': 3 * DAY_MS,
   '1w': 7 * DAY_MS,
   '2w': 14 * DAY_MS,
