@@ -24,7 +24,7 @@ import { Check } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { EASE } from './shared/constants';
 
-export type CheckpointState = 'done' | 'current' | 'future';
+export type CheckpointState = 'done' | 'current' | 'future' | 'skipped';
 
 export interface RailCheckpoint {
   key: string;
@@ -34,6 +34,9 @@ export interface RailCheckpoint {
   /** 묶기/듣기/닿기 그룹 (eyebrow 표기용) */
   group: '묶기' | '듣기' | '닿기';
   groupEn: 'Bind' | 'Listen' | 'Land';
+  /** hover 설명 — done이면 그때의 내용 미리보기, 미래면 그 단계가 뭘 하는지.
+   *  "이런 단계로 진행되는구나"를 라벨 두 글자 너머로 말해주는 층. */
+  title?: string;
 }
 
 export function CheckpointRail({ checkpoints, onJump }: {
@@ -127,13 +130,16 @@ export function CheckpointRail({ checkpoints, onJump }: {
         {checkpoints.map((c, i) => {
           const done = c.state === 'done';
           const currentNode = c.state === 'current';
+          const skipped = c.state === 'skipped';
           const clickable = done && !!onJump;
           const left = `${posOf(i).toFixed(1)}%`;
+          const hoverTitle = c.title
+            || (clickable ? (locale === 'ko' ? `${c.label}(으)로 돌아가 보기` : `Look back at ${c.label}`) : undefined);
           const Dot = (
             <span
               className={`block rounded-full border-2 transition-colors duration-300 ${
                 currentNode ? 'w-[11px] h-[11px]' : 'w-[8px] h-[8px]'
-              }`}
+              } ${skipped ? 'opacity-50' : ''}`}
               style={{
                 borderColor: done || currentNode ? 'var(--accent)' : 'var(--border-subtle)',
                 background: currentNode ? 'var(--accent)' : 'var(--surface)',
@@ -146,7 +152,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
                 <button
                   type="button"
                   onClick={() => onJump!(c.key)}
-                  title={locale === 'ko' ? `${c.label}(으)로 돌아가 보기` : `Look back at ${c.label}`}
+                  title={hoverTitle}
                   className="flex flex-col items-center gap-1 cursor-pointer group/cp -mt-[2px] pt-[2px] px-1 rounded-md hover:bg-[var(--accent)]/[0.07] transition-colors"
                 >
                   <span className={currentNode ? 'mt-0' : 'mt-[1.5px]'}>{Dot}</span>
@@ -156,10 +162,12 @@ export function CheckpointRail({ checkpoints, onJump }: {
                   </span>
                 </button>
               ) : (
-                <div className="flex flex-col items-center gap-1 px-1 pt-[2px] -mt-[2px]">
+                <div className="flex flex-col items-center gap-1 px-1 pt-[2px] -mt-[2px]" title={hoverTitle}>
                   <span className={currentNode ? 'mt-0' : 'mt-[1.5px]'}>{Dot}</span>
                   <span className={`text-[10px] leading-none whitespace-nowrap ${
-                    currentNode ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-tertiary)]'
+                    currentNode ? 'text-[var(--text-primary)] font-bold'
+                      : skipped ? 'text-[var(--text-tertiary)] line-through opacity-70'
+                      : 'text-[var(--text-tertiary)]'
                   }`}>
                     {c.label}
                   </span>
