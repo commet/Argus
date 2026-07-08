@@ -11,6 +11,7 @@ import {
   type PremiseState,
 } from '../lib/premises.js';
 import { elicit } from '../lib/elicit.js';
+import { resolveResponseLocale } from '../lib/surfaces.js';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
@@ -273,14 +274,32 @@ async function opAdd(
   }));
   const monitoredCount = echo.filter((p) => p.monitored).length;
 
+  // Voice follows the call's own user-authored text (M4) — the premises being
+  // written are the representative sample. Config-pinned locale still wins.
+  const ko = resolveResponseLocale(dir, inputs[0]?.text) === 'ko';
+  // The monitored note must match the actual state: on an already-sealed
+  // decision "once the decision is sealed" was a false conditional (loop find).
+  const sealedNow = state === 'sealed';
+  const refRange = events.length > 0 ? `${echo[0].ref}${echo.length > 1 ? `–${echo[echo.length - 1].ref}` : ''}` : '';
+  const monitoredNote = monitoredCount === 0 ? '' : ko
+    ? (sealedNow ? ` ${monitoredCount}건은 현실과 대조해 재확인합니다 (이미 봉인된 결정).` : ` ${monitoredCount}건은 결정을 봉인하면 현실과 대조해 재확인합니다.`)
+    : (sealedNow ? ` ${monitoredCount} will be re-checked against reality (this decision is sealed).` : ` ${monitoredCount} will be re-checked against reality once the decision is sealed.`);
+  const surface =
+    events.length === 0
+      ? (dupRetired.length > 0
+          ? (ko
+              ? `새로 적은 것 없음. ${dupRetired.join(', ')} — 예전에 은퇴시킨 전제와 같습니다. 기록에는 남아 있지만 활성은 아닙니다. 이 사실을 다시 추적하려면 표현을 조금 바꿔 새 항목으로 추가하세요.`
+              : `Nothing new written. ${dupRetired.join(', ')} match${dupRetired.length === 1 ? 'es' : ''} a premise you retired earlier — it stays on the record, not active. To track this fact again, add it with slightly different wording so it gets its own entry.`)
+          : (ko
+              ? '그 전제들은 이미 기록되어 활성 상태입니다 (새로 적은 것 없음).'
+              : 'All of those premises are already recorded and active (nothing new written).'))
+      : (ko
+          ? `전제 ${events.length}건 기록 (${refRange}). 틀린 게 있으면 op=amend로 고치세요 — 고친 것도 기록의 일부입니다.${monitoredNote}`
+          : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with op=amend — your correction is part of the record.${monitoredNote}`);
+
   return envelope({
     ok: true, tool: 'argus_premises',
-    surface:
-      events.length === 0
-        ? (dupRetired.length > 0
-            ? `Nothing new written. ${dupRetired.join(', ')} match${dupRetired.length === 1 ? 'es' : ''} a premise you retired earlier — it stays on the record, not active. To track this fact again, add it with slightly different wording so it gets its own entry.`
-            : 'All of those premises are already recorded and active (nothing new written).')
-        : `${events.length} premise(s) recorded (${echo[0].ref}${echo.length > 1 ? `–${echo[echo.length - 1].ref}` : ''}). Fix anything wrong with op=amend — your correction is part of the record.${monitoredCount > 0 ? ` ${monitoredCount} will be re-checked against reality once the decision is sealed.` : ''}`,
+    surface,
     next_actions: ['argus_seal', 'argus_recall', 'leave_as_is'],
     data: { id, premises: echo, skipped_duplicates: skippedDup, ...(dupRetired.length ? { skipped_retired: dupRetired } : {}), ledger_events_written: events.map(() => 'premise_add') },
   });
@@ -333,10 +352,16 @@ async function opAmend(
   const nowLb = typeof ev.load_bearing === 'boolean' ? ev.load_bearing : premise.load_bearing;
   const armed = action !== 'retire' && premise.kind === 'premise' && nowExternal && nowLb;
 
-  const surface =
-    action === 'retire' ? `P${premise.ordinal} retired — it stays on the record with its history.` :
-    action === 'accept' ? `P${premise.ordinal} confirmed as-is.` :
-    `P${premise.ordinal} updated in your words.${premise.source === 'ai_surfaced' ? ' The AI\'s original stays on the record for provenance.' : ''}${armed ? '' : ''}`;
+  // Voice follows the user's correction when there is one, else the premise
+  // being amended (their earlier words). Config-pinned locale still wins.
+  const ko = resolveResponseLocale(dir, (typeof text === 'string' && text) || premise.text) === 'ko';
+  const surface = ko
+    ? (action === 'retire' ? `P${premise.ordinal} — 은퇴했습니다. 이력과 함께 기록에 남습니다.` :
+       action === 'accept' ? `P${premise.ordinal} — 그대로 확정했습니다.` :
+       `P${premise.ordinal} — 당신의 말로 고쳤습니다.${premise.source === 'ai_surfaced' ? ' AI의 원래 문장은 출처 표시를 위해 기록에 남습니다.' : ''}`)
+    : (action === 'retire' ? `P${premise.ordinal} retired — it stays on the record with its history.` :
+       action === 'accept' ? `P${premise.ordinal} confirmed as-is.` :
+       `P${premise.ordinal} updated in your words.${premise.source === 'ai_surfaced' ? ' The AI\'s original stays on the record for provenance.' : ''}${armed ? '' : ''}`);
 
   return envelope({
     ok: true, tool: 'argus_premises',
@@ -386,9 +411,13 @@ async function opResolve(
 
   await appendLedger(dir, [{ id, event: 'premise_resolve', premise_id: premise.premise_id, decision }], now);
 
+  // Voice follows the user's own closing call (their words ARE the sample).
+  const ko = resolveResponseLocale(dir, decision || premise.text) === 'ko';
   return envelope({
     ok: true, tool: 'argus_premises',
-    surface: `Open question P${premise.ordinal} closed in your words: "${decision}".`,
+    surface: ko
+      ? `미결 질문 P${premise.ordinal} — 당신의 말로 닫혔습니다: "${decision}".`
+      : `Open question P${premise.ordinal} closed in your words: "${decision}".`,
     next_actions: ['argus_recall', 'leave_as_is'],
     data: { id, ref: `P${premise.ordinal}`, premise_id: premise.premise_id, decision, decision_owner: 'user' },
   });
@@ -424,9 +453,12 @@ async function opStillOpen(
     ...(typeof a['reponder_cadence_days'] === 'number' ? { reponder_cadence_days: a['reponder_cadence_days'] as number } : {}),
   }], now);
 
+  const ko = resolveResponseLocale(dir, premise.text) === 'ko';
   return envelope({
     ok: true, tool: 'argus_premises',
-    surface: `P${premise.ordinal} stays open — no verdict, no pressure. Argus will bring it back after a while, not before. Leaving a question open is a real choice.`,
+    surface: ko
+      ? `P${premise.ordinal} — 열린 채로 둡니다. 평결도 압박도 없습니다. Argus는 한참 뒤에나 다시 가져옵니다. 질문을 열어두는 것도 진짜 선택입니다.`
+      : `P${premise.ordinal} stays open — no verdict, no pressure. Argus will bring it back after a while, not before. Leaving a question open is a real choice.`,
     next_actions: ['argus_recall', 'leave_as_is'],
     data: { id, ref: `P${premise.ordinal}`, premise_id: premise.premise_id, deferred: true },
   });

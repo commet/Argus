@@ -104,10 +104,14 @@ async function main() {
     execSync('npm run build', { cwd: ROOT, stdio: 'inherit' });
   }
 
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-loop-'));
+  // One base dir for the server env, but each journey gets its OWN ledger dir —
+  // a shared dir let J1's English decisions pollute J3's Korean-journey locale
+  // detection (the ledger voice sample), which is a loop artifact, not a product
+  // behavior. Isolation makes each journey read like a real single user.
+  const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-loop-'));
   const env = {};
   for (const [k, v] of Object.entries(process.env)) if (typeof v === 'string') env[k] = v;
-  env.ARGUS_DIR = dir;
+  env.ARGUS_DIR = baseDir;
 
   const client = new Client({ name: 'argus-self-drive-loop', version: '0.0.0' });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));
@@ -117,8 +121,11 @@ async function main() {
   let yellows = 0;
   const journeyReports = [];
 
+  let jn = 0;
   for (const journey of JOURNEYS) {
-    const steps = journey.steps(dir);
+    const jdir = path.join(baseDir, `journey-${++jn}`);
+    fs.mkdirSync(jdir, { recursive: true });
+    const steps = journey.steps(jdir);
     const stepLines = [];
     let journeyRed = 0;
     let journeyYellow = 0;
@@ -190,7 +197,7 @@ async function main() {
   }
 
   await client.close();
-  fs.rmSync(dir, { recursive: true, force: true });
+  fs.rmSync(baseDir, { recursive: true, force: true });
 
   // ── report ────────────────────────────────────────────────────────────────
   process.stdout.write(`\nArgus MCP self-drive loop · ${JOURNEYS.length} journeys · ${calls} real tool calls\n`);

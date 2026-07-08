@@ -61,7 +61,14 @@ export const checkIn: ToolModule = {
       // locale still always wins inside resolveResponseLocale. With NO ledger
       // text at all, stay config-or-'en' (deterministic on every machine —
       // never the env/Intl fallback, which would make tests machine-dependent).
-      const ledgerVoiceSample = lastAnchor?.text || ledger.overdue[0]?.text || due[0]?.predicate;
+      // Extended (self-drive loop find): when the only due items are premise
+      // facts / open questions, THOSE are the ledger user-text being surfaced —
+      // without them in the chain, a Korean session whose check_in carried only
+      // a due question came back framed in English around the user's own words.
+      const premiseGroups = groupDuePremises(duePremises(ledger));
+      const openQs = dueOpenQuestions(ledger);
+      const ledgerVoiceSample = lastAnchor?.text || ledger.overdue[0]?.text || due[0]?.predicate
+        || premiseGroups[0]?.premises[0]?.decision_text || openQs[0]?.text;
       const S = ledgerVoiceSample
         ? SURFACES[resolveResponseLocale(dir, ledgerVoiceSample)].checkin
         : SURFACES[surfaceLocale(dir)].checkin;
@@ -148,7 +155,6 @@ export const checkIn: ToolModule = {
       // sees on any tool can never disagree with check_in (M1 §1.3, single-source
       // rule; a test pins the equality).
       const TOP = 5;
-      const premiseGroups = groupDuePremises(duePremises(ledger));
       const duePrem = premiseGroups.slice(0, TOP).map((g) => ({
         fact: g.text,
         decisions: g.premises.map((p) => ({ decision_id: p.decision_id, decision: p.decision_text, ref: `P${p.ordinal}`, staleness: p.days_stale === null ? 'never re-checked' : `${p.days_stale}d` })),
@@ -158,7 +164,6 @@ export const checkIn: ToolModule = {
       // cadence. Same single source (ambient-due reads dueOpenQuestions too) so
       // the ambient count and this list can never disagree. Surface is a FACT +
       // the handle; leaving it open stays a valid answer (restraint, §6).
-      const openQs = dueOpenQuestions(ledger);
       const dueOpenQ = openQs.slice(0, TOP).map((q) => ({
         question: q.text, ref: `P${q.ordinal}`, decision_id: q.decision_id, decision: q.decision_text,
         days_open: q.days_open,
