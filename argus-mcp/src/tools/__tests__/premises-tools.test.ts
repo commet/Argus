@@ -74,6 +74,22 @@ describe('argus_premises op=add', () => {
     const again = await premises.handler({ argus_dir: dir, id: 'd1', op: 'add', premises: [aiPremise('Same  FACT ')], today_override: TODAY });
     expect(isError(again)).toBe(false);
     expect((body(again)['data'] as Record<string, unknown>)['skipped_duplicates']).toBe(1);
+    // an active same-text dup must NOT be reported as retired
+    expect((body(again)['data'] as Record<string, unknown>)['skipped_retired']).toBeUndefined();
+    expect(String(body(again)['surface'])).toContain('already recorded and active');
+  });
+
+  it('re-adding a RETIRED premise is not silently swallowed as "already recorded"', async () => {
+    const dir = tmpArgusDir();
+    await sealedDecision(dir);
+    await premises.handler({ argus_dir: dir, id: 'd1', op: 'add', premises: [aiPremise('rate holds')], today_override: TODAY });
+    // retire P1, then try to add the same fact again
+    await premises.handler({ argus_dir: dir, id: 'd1', op: 'amend', ref: 'P1', action: 'retire', today_override: TODAY });
+    const readd = await premises.handler({ argus_dir: dir, id: 'd1', op: 'add', premises: [aiPremise('rate holds')], today_override: TODAY });
+    expect(isError(readd)).toBe(false);
+    const d = body(readd)['data'] as Record<string, unknown>;
+    expect(d['skipped_retired']).toEqual(['P1']);      // surfaced, not hidden
+    expect(String(body(readd)['surface'])).toContain('retired earlier'); // honest, not "already recorded"
   });
 
   it('refuses on an absent decision (premises never self-create)', async () => {

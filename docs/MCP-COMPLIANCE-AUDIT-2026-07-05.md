@@ -1,5 +1,57 @@
 # argus-mcp MCP 규격 준수 감사 (2026-07-05)
 
+## 정식 감사 + 수정 (2026-07-06, commit `70056a8` 기준 — premise-watcher 반영 후)
+
+> 사용자 요청: "우리 검수 문서 토대로 MCP 감수 제대로 한번 쭉 + 문제 있으면 수정." 이 워크트리를 최신 main(`70056a8`, judgment-checkpoint·clarify·premise-watcher 반영분)으로 ff한 뒤 전 표면을 정독하고, 아래 2건을 **실제로 수정**했다. 나머지는 상태 갱신.
+
+**수정 완료 (커밋됨, 테스트 포함):**
+
+| 항목 | 무엇을 | 어떻게 |
+|---|---|---|
+| **G3** `argus_premises op=add`가 retired 전제 재추가를 조용히 삼킴 | 스파인 위반(침묵 누락 + "already recorded" 거짓 문구) | `tools/premises.ts` opAdd dedup을 Set→Map으로 바꿔 3-케이스 분리: active 동일=idempotent skip(기존 유지) / **retired·resolved 동일=정직하게 표면화**(`skipped_retired` 데이터 + "retired earlier, add with different wording" 문구) / 회귀테스트 1건 |
+| **G4** premise_id 32비트 djb2 해시 충돌 시 다른 사실을 dup으로 침묵 삭제 | 침묵 누락(극히 드묾이나 원칙 위반) | 같은 블록에서 **id는 같은데 정규화 텍스트가 다르면** `PREMISE_ID_COLLISION` 에러로 loud fail(reword 안내). 조용히 버리지 않음 |
+
+검증: `npm run typecheck` 0, `npm test` **378/378 통과**(27파일, 빌드 + 실서버 stdio 프로토콜 왕복 포함). 새 회귀테스트 2건(active-dup은 retired로 오분류 안 됨 / retired 재추가는 `skipped_retired`로 표면화).
+
+**상태 갱신 (수정 불요 / 상향):**
+
+| 항목 | 이전 | 지금 |
+|---|---|---|
+| **F4** Inspector-in-CI | 📋 백로그 | ✅ **사실상 해결** — `tools/__tests__/protocol-roundtrip.test.ts`가 빌드된 `dist/index.js`를 SDK 클라이언트로 stdio 스폰해 initialize→tools/list→tools/call→resources/read→prompts/get 왕복을 CI에서 검증. Inspector가 수동으로 하던 걸 자동화한 것. 별도 Inspector CI 스텝은 이제 잉여 |
+| **G2** review 파싱 zip-bomb 방어 | ⚠️ 백로그 | ⚠️ 유지(수정 안 함) — 입력 파일 `MAX_DOC_BYTES=400KB` 상한이 압축원본을 제한하므로 증폭 상한이 실질적으로 묶임(400KB 압축 → 최악 수백MB, Node 처리가능). 로컬 단일사용자 stdio라 위협모델 약함. defense-in-depth로만 남김 |
+| **F1b** Streamable HTTP + OAuth | ⏸ 창업자 결정 | ⏸ 유지 — 원격 호스트 지원 여부는 여전히 제품 결정. 미착수 |
+| **F5** 페이지네이션 · **F6** logging capability | 📋 백로그 | 📋 유지 — 현 규모 무해, 스펙 위반 아님 |
+| **F1a/F2/F3/F7/G1** | ✅ | ✅ 리그레션 0 재확인(grep) |
+
+premise-watcher 관련: MCP 서버 표면엔 여전히 `premises-core.ts`의 타입 필드(`auto_watch`/`watch_query`/`PremiseRecheck.auto`) +10줄뿐 — 실제 감시·조사·네트워크는 전부 웹앱(cron)이고 **MCP는 이 필드를 읽지도 쓰지도 않음**(주석 "the MCP ignores it" 확인). 새 도구/리소스/capability 추가 0건. 즉 "특별 파트"의 위험(외부 네트워크·프라이버시)은 MCP 서버 밖에 있어 이 감사 범위에서 클린.
+
+---
+
+## 재감사 (2026-07-06, commit `e08aa6a` 기준 — 다른 세션의 "대공사" 진행 중 스냅샷)
+
+> 이 워크트리(`suspicious-lovelace-bf59f2`)를 `origin/main`으로 fast-forward한 직후 재확인. 이 시점에 별도 워크트리 `objective-shaw-1b5fbf`(브랜치 `claude/objective-shaw-1b5fbf`)에서 premise-watcher(자동 감시) 기능을 계속 얹는 중 — 이 감사는 **그 공사가 본격화되기 전의 베이스라인**이다. 약 3시간 뒤 그 브랜치를 기준으로 다시 감사해서 이 표와 diff할 것.
+
+| 항목 | 상태 | 비고 |
+|---|---|---|
+| F1a/F2/F3/F7 | ✅ 유지 | 리그레션 없음. https 강제·top-level title·README 문구·패키지명 전부 그대로 |
+| F1b/F4/F5/F6 | 📋 백로그 유지 | 코드 재확인 — grep 0건, 착수 안 됨 |
+| **G1 (신규, 긍정)** MCP 레지스트리 `server.json` 매니페스트 추가 | ✅ | `2025-12-11` 스키마, `package.json`/`server.json`/`mcpName` 버전 전부 1.1.0으로 일치. 이전 감사 시점엔 없던 항목 — 규격 준수 수준이 오히려 더 올라감 |
+| **G2 (신규 발견)** `argus_review` 문서 파싱의 압축률 공격(zip bomb) 방어 없음 | ⚠️ 낮은 우선순위 | `review.ts`의 `MAX_DOC_BYTES=400_000`은 **원본 파일 크기**만 제한. docx/pptx는 zip 포맷(jszip)이라 이론상 작은 파일이 압축해제 시 과도한 메모리를 쓸 수 있음(고전적 zip-bomb). `MAX_UNITS` 캡은 파싱 *이후* 결과물 개수만 자름 — jszip/pdfjs가 먼저 압축해제를 시도하는 건 못 막음. 로컬 단일사용자 stdio 도구라 위협모델은 약함(공격자가 이미 tool-call 인자를 통제해야 함) — defense-in-depth 백로그로 남김 |
+| **G3 (미수정 확인)** `argus_premises op=add`가 retired 전제와 같은 문구를 조용히 무시 | ⚠️ 낮은 우선순위 | 이전 감사(F1과 별개로 발견)에서 지적한 것과 동일한 코드가 `tools/premises.ts:134-135`에 그대로 있음(`known` 셋이 status 안 가림). premise 로직이 `premises-core.ts`로 리팩터(웹앱과 drift-pin 공유)됐지만 이 dedup 자체는 손 안 댐 |
+| **G4 (미수정 확인)** premise_id 32비트 해시 충돌 가능성 | ⚠️ 낮은 우선순위 | `premises-core.ts:153`의 djb2 해시 그대로. 이전 감사와 동일 |
+
+이번 재감사에서 argus-mcp 도구 수는 여전히 13개(`tools/index.ts`), 리그레션 0건. 다음 재감사(3시간 뒤)는 `objective-shaw-1b5fbf` 브랜치에서 실행해 이 표를 기준선으로 diff할 것 — 특히 새 도구/리소스가 추가됐다면 annotations·outputSchema·structuredContent·capabilities 선언이 신규 표면에도 다 따라붙었는지 확인.
+
+## 재감사 (2026-07-06, `claude/objective-shaw-1b5fbf` 기준 — 사용자가 3시간 대기 없이 즉시 실행 요청)
+
+바로 위 베이스라인 직후, 예약(3시간 뒤) 대신 **지금 바로** `objective-shaw-1b5fbf` 워크트리를 대상으로 재확인. `git log --oneline e08aa6a..HEAD -- argus-mcp` 결과 **커밋 1개**(`18e90e2` "autonomous premise watcher — Argus checks reality for you (E1-E4)")뿐이고, 그중 argus-mcp를 건드린 파일은 **`src/lib/premises-core.ts` 1개, +10줄**뿐.
+
+diff 내용: `PremiseRecheck`에 `auto?: boolean`(서버 워처가 대신 기록했음을 표시), `PremiseState`에 `auto_watch?: boolean` / `watch_query?: string`(사용자가 이 전제를 웹에서 자동 감시하도록 옵트인했는지) 추가. 주석에 명시적으로 **"jsonb-nested, no migration; the MCP ignores it"** — 즉 이 필드들은 웹앱의 cron 워처가 쓰는 것이고 **MCP 서버 자체는 읽지도 쓰지도 않음**(webapp과 drift-pin 공유하는 타입 정의만 넓힌 것).
+
+결론: **MCP 표면(도구/리소스/프롬프트/capabilities/네트워크 호출)에 실질적 변화 0건.** 새 도구·리소스 없음. F1a/F2/F3/F7/G1 재확인 결과도 grep으로 전부 동일(https 강제·top-level title·13개 도구 annotations·버전 1.1.0 일치 유지). G2/G3/G4는 손 안 댄 코드라 그대로. 예약해둔 `argus-mcp-reaudit-objective-shaw` 3시간 후 실행 작업은 지금 이 결과로 갈음 — 사용자에게 취소 여부 확인 필요(이 시점 이후 추가 변화가 있다면 여전히 유효한 재확인이 될 수 있음).
+
+---
+
 ## 실행 결과 (2026-07-05, pensive-almeida 세션 — 컴패니언 메커니즘 M1~M4 완료 후)
 
 | 항목 | 상태 | 조치 |

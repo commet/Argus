@@ -6,7 +6,7 @@ import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, type LedgerEventInput } from '../lib/ledger-append.js';
 import {
-  premiseId, resolvePremiseRef, isMonitored,
+  premiseId, resolvePremiseRef, isMonitored, normalizePremiseText,
   MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING,
   type PremiseState,
 } from '../lib/premises.js';
@@ -204,9 +204,34 @@ async function opAdd(
     }
   }
 
-  // Dedup against the ledger by stable id — re-adding is idempotent, not an error.
-  const known = new Set(existing.map((p) => p.premise_id));
-  const fresh = inputs.filter((p) => !known.has(premiseId(id, p.kind, p.text)));
+  // Dedup against the ledger by stable id. Three cases, kept distinct so a
+  // re-add is never silently swallowed behind a misleading "already recorded":
+  //  - collides with an ACTIVE premise (same text)     → true idempotent dup (skip)
+  //  - collides with a RETIRED/RESOLVED one (same text) → NOT "already recorded";
+  //    it stays on the record, and the surface says so with the recovery path
+  //  - the id collides but the TEXT differs (rare djb2 clash) → never drop it
+  //    silently; fail loudly so the fact isn't lost to a hash accident
+  const byId = new Map(existing.map((p) => [p.premise_id, p] as const));
+  const fresh: typeof inputs = [];
+  const dupRetired: string[] = [];
+  const collisions: string[] = [];
+  for (const p of inputs) {
+    const hit = byId.get(premiseId(id, p.kind, p.text));
+    if (!hit) { fresh.push(p); continue; }
+    if (normalizePremiseText(hit.text) !== normalizePremiseText(p.text)) {
+      collisions.push(p.text); // same stable id, different fact — hash collision
+      continue;
+    }
+    if (hit.status !== 'active') dupRetired.push(`P${hit.ordinal}`);
+    // else: active same-text dup → idempotent skip (counted below)
+  }
+  if (collisions.length > 0) {
+    return toolError({
+      ok: false, tool: 'argus_premises', error_code: 'PREMISE_ID_COLLISION',
+      message: `A different premise already holds the same stable id (rare hash collision): "${collisions[0].slice(0, 60)}".`,
+      recovery: 'Reword this premise slightly so it gets its own id, then add it again.',
+    });
+  }
   const skippedDup = inputs.length - fresh.length;
 
   const activeCount = existing.filter((p) => p.status === 'active').length;
@@ -252,10 +277,12 @@ async function opAdd(
     ok: true, tool: 'argus_premises',
     surface:
       events.length === 0
-        ? 'All of those premises are already recorded (nothing new written).'
+        ? (dupRetired.length > 0
+            ? `Nothing new written. ${dupRetired.join(', ')} match${dupRetired.length === 1 ? 'es' : ''} a premise you retired earlier — it stays on the record, not active. To track this fact again, add it with slightly different wording so it gets its own entry.`
+            : 'All of those premises are already recorded and active (nothing new written).')
         : `${events.length} premise(s) recorded (${echo[0].ref}${echo.length > 1 ? `–${echo[echo.length - 1].ref}` : ''}). Fix anything wrong with op=amend — your correction is part of the record.${monitoredCount > 0 ? ` ${monitoredCount} will be re-checked against reality once the decision is sealed.` : ''}`,
     next_actions: ['argus_seal', 'argus_recall', 'leave_as_is'],
-    data: { id, premises: echo, skipped_duplicates: skippedDup, ledger_events_written: events.map(() => 'premise_add') },
+    data: { id, premises: echo, skipped_duplicates: skippedDup, ...(dupRetired.length ? { skipped_retired: dupRetired } : {}), ledger_events_written: events.map(() => 'premise_add') },
   });
 }
 
