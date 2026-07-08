@@ -32,6 +32,8 @@ export interface DemoScenario {
   title: string;
   icon: string;
   desc: string;
+  /** Onboarding scenarios must be important but return a visible signal quickly. */
+  checkInDays: number;
   problemText: string;
   /** Substrings inside problemText to softly emphasize during typing animation —
    *  helps demo viewers grasp the situation faster. Keep restrained: who, what,
@@ -194,6 +196,7 @@ const scenario1: DemoScenario = {
   title: '기획안',
   icon: '📋',
   desc: '처음 맡은 기획, 어디서 시작할지',
+  checkInDays: 7,
   problemText: '대표님이 갑자기 신사업 기획안을 2주 안에 만들어오라고 했어. 백엔드 5명인데 기획은 처음이야. 경쟁사가 AI 고객 상담 서비스를 출시했다는 뉴스 직후라 타이밍이 급한 느낌. 기존 제품 유지보수도 해야 하는데.',
   problemHighlights: ['신사업 기획안', '2주', '백엔드 5명', '기획은 처음', '경쟁사', 'AI 고객 상담', '유지보수'],
 
@@ -637,6 +640,7 @@ const scenario2: DemoScenario = {
   title: '제안서',
   icon: '🎯',
   desc: '경쟁 PT에서 이기는 구조',
+  checkInDays: 7,
   problemText: '다음 주 금요일에 대형 유통사 물류 자동화 경쟁 PT야. 상대는 S사(대기업 SI)인데, 우리는 8명짜리 스타트업이야. 고객사 물류팀장이 우리 이전 프로젝트를 보고 추천해줘서 PT 기회를 받았어. 예산 3억 규모.',
   problemHighlights: ['다음 주 금요일', '물류 자동화 경쟁 PT', 'S사', '8명짜리 스타트업', '물류팀장', '추천', '예산 3억'],
 
@@ -1086,6 +1090,7 @@ const scenario3: DemoScenario = {
   title: '대응 전략',
   icon: '⚖️',
   desc: '경쟁사 가격 인하, 어떻게 대응할지',
+  checkInDays: 7,
   problemText: '경쟁사 T사가 갑자기 구독 가격을 30% 내렸어. 우리는 B2B SaaS 하는데, 월 매출 1.2억에 고객 80곳이야. 영업팀에서 벌써 "고객 3곳이 T사 가격 물어봤다"고 연락 왔어. 금요일 경영회의에 대응 전략을 올려야 해.',
   problemHighlights: ['T사', '30%', 'B2B SaaS', '월 매출 1.2억', '고객 80곳', '3곳', '금요일 경영회의'],
 

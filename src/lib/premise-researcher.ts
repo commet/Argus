@@ -45,6 +45,7 @@ export interface InvestigationResult {
   source_url?: string;
   source_date?: string; // YYYY-MM-DD
   current_value?: number;
+  confidence?: 'low' | 'medium' | 'high';
   materiality?: Materiality;
   reason?: string;
 }
@@ -139,10 +140,10 @@ ${webBlock}
   const cited: DatedResult | undefined = Number.isInteger(idx) && idx >= 1 && idx <= results.length ? results[idx - 1] : undefined;
   if (!cited) return { verdict: 'no_recent_source', reason: 'no in-list citation' };
 
-  const confidence = String(out['confidence'] || 'low');
+  const confidence = String(out['confidence'] || 'low') as 'low' | 'medium' | 'high';
   const fact = typeof out['fact'] === 'string' ? out['fact'].trim() : '';
   const mode = String(out['mode'] || '');
-  const base: InvestigationResult = { verdict: 'quiet', fact, source_url: cited.url, source_date: cited.publishedYMD };
+  const base: InvestigationResult = { verdict: 'quiet', fact, source_url: cited.url, source_date: cited.publishedYMD, confidence };
 
   if (mode === 'numeric') {
     const cur = Number(out['current_value']);

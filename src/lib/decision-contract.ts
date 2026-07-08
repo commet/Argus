@@ -63,6 +63,9 @@ export const CHECK_IN_MS: Record<CheckInInterval, number> = {
   '1m': 30 * DAY_MS,
 };
 
+/** First-seal default: a new user should feel the return loop within 7 days. */
+export const DEFAULT_CHECK_IN_INTERVAL: CheckInInterval = '1w';
+
 /**
  * Deterministic, stable id from a predicate's identity (source + normalized
  * text). djb2. Stable across re-generation so a grade is never orphaned.

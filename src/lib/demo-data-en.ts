@@ -32,6 +32,8 @@ export interface DemoScenario {
   title: string;
   icon: string;
   desc: string;
+  /** Onboarding scenarios must be important but return a visible signal quickly. */
+  checkInDays: number;
   problemText: string;
   team: WorkerPersona[];
   analysis: AnalysisSnapshot;
@@ -186,6 +188,7 @@ const scenario1: DemoScenario = {
   title: 'Business Plan',
   icon: '📋',
   desc: 'First time planning — where do you even start?',
+  checkInDays: 7,
   problemText: 'The CEO suddenly asked for a new business proposal in 2 weeks. We\'re a 5-person backend team — I\'ve never planned anything before. The timing feels urgent because a competitor just announced an AI customer support service. We also have to keep maintaining our existing product.',
 
   team: [SUJIN, HYUNWOO],
@@ -635,6 +638,7 @@ const scenario2: DemoScenario = {
   title: 'Competitive Proposal',
   icon: '🎯',
   desc: 'How to win a pitch against a big competitor',
+  checkInDays: 7,
   problemText: 'Next Friday is a competitive pitch for logistics automation at a major retailer. We\'re going up against Company S (a large SI firm) — we\'re an 8-person startup. The client\'s logistics team lead saw our past project and referred us, which is how we got the slot. Budget is around $300K.',
 
   team: [SUJIN, HYUNWOO],
@@ -1096,6 +1100,7 @@ const scenario3: DemoScenario = {
   title: 'Competitive Response',
   icon: '⚖️',
   desc: 'Competitor slashed prices — how do we respond?',
+  checkInDays: 7,
   problemText: 'Company T just cut their subscription pricing by 30% out of nowhere. We\'re a B2B SaaS — $100K monthly revenue, 80 customers. Sales already pinged me: "3 customers asked about Company T\'s price." I have to bring a response strategy to Friday\'s leadership meeting.',
 
   team: [SUJIN, HYUNWOO],

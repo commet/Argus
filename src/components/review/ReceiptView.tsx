@@ -10,8 +10,10 @@
  */
 
 import { useState } from 'react';
+import { Share2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ShareComposer } from '@/components/ui/ShareComposer';
 import { useLocale } from '@/hooks/useLocale';
 import {
   type JudgmentReceipt,
@@ -97,6 +99,7 @@ export function ReceiptView({
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [expanded, setExpanded] = useState(false);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
+  const [shareOpen, setShareOpen] = useState(false);
   const [showFixes, setShowFixes] = useState(false);
   const [claimFilter, setClaimFilter] = useState<string>('all');
   const isJudgmentMirror = receipt.kind === 'judgment' || receipt.root_mode === 'judgment';
@@ -137,10 +140,23 @@ export function ReceiptView({
           </div>
           <h2 className="text-[16px] font-bold text-[var(--text-primary)] truncate">{receipt.source_title}</h2>
         </div>
-        <Button variant="ghost" size="sm" onClick={copy}>
-          {copyState === 'ok' ? L('복사됨', 'Copied') : copyState === 'fail' ? L('복사 실패', 'Copy failed') : L('복사', 'Copy')}
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button variant="ghost" size="sm" onClick={copy}>
+            {copyState === 'ok' ? L('복사됨', 'Copied') : copyState === 'fail' ? L('복사 실패', 'Copy failed') : L('복사', 'Copy')}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setShareOpen(true)}>
+            <Share2 size={13} />
+            {L('공유', 'Share')}
+          </Button>
+        </div>
       </div>
+      <ShareComposer
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        getText={() => receiptToMarkdown(receipt)}
+        getTitle={() => receipt.source_title || L('판단 영수증', 'Judgment receipt')}
+        shareContext="review_receipt"
+      />
 
       {/* coverage — honest disclosure BEFORE the findings: this receipt only
           covers part of the source, so it must not read as a full review. */}

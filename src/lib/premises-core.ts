@@ -89,10 +89,17 @@ export function recheckCadenceDays(p: PremiseState): number {
 export interface PremiseRecheck {
   finding: string;
   numeric_value?: number;
+  /** The previous recorded baseline when this re-check compared against one. */
+  baseline_finding?: string;
+  baseline_numeric_value?: number;
   drifted: boolean;
   baseline_only: boolean;
   source: string;         // url | user_stated | host_reported
   source_detail?: string;
+  confidence?: 'low' | 'medium' | 'high';
+  /** Set by notification-gate merge decisions so T5 can carry the item once. */
+  brief_pending?: boolean;
+  brief_kind?: 'premise_minor_drift' | 'open_question_new_info' | 'standalone_overflow';
   ts?: string;
   /** Workstream E — true when the server watcher (not the user) recorded this
    *  re-check. Lets surfaces say "제가 대신 확인한 거예요" (honest authorship). */

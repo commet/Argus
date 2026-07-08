@@ -88,9 +88,25 @@ export function ReviewFlow() {
   // Load persisted receipts once; open on the list when any exist, else import.
   useEffect(() => {
     useReviewStore.getState().load();
-    const has = useReviewStore.getState().receipts.length > 0;
-    setPhase(has ? 'list' : 'import');
+    const receipts = useReviewStore.getState().receipts;
+    const params = new URLSearchParams(window.location.search);
+    const requestedReceipt = params.get('receipt');
+    if (requestedReceipt && receipts.some((r) => r.receipt_id === requestedReceipt)) {
+      setActiveId(requestedReceipt);
+      setPhase('receipt');
+      return;
+    }
+    setPhase(receipts.length > 0 ? 'list' : 'import');
   }, []);
+
+  useEffect(() => {
+    if (phase !== 'receipt') return;
+    const premiseId = new URLSearchParams(window.location.search).get('premise');
+    if (!premiseId) return;
+    window.setTimeout(() => {
+      document.getElementById(`premise-${premiseId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 50);
+  }, [phase]);
 
   // Elapsed counter while a review runs — turns the otherwise static spinner
   // into live feedback (and gates the "오래 걸리고 있어요" reassurance below).

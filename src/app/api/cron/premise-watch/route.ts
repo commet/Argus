@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { markdownToEmailHtml } from '@/lib/email-html';
-import { buildCompanionBrief, companionBriefItemCount, type DueReceiptBrief, type PremiseChange } from '@/lib/companion-brief';
-import { notificationGateAllowsSend } from '@/lib/notification-gate';
+import { buildPremiseDriftEmail, type CompanionBriefEmail, type PremiseChange } from '@/lib/companion-brief';
+import { gateNotification, notificationGateAllowsSend, type NotificationCandidate, type NotificationGateResult, type PremiseDriftMateriality } from '@/lib/notification-gate';
 import { type JudgmentReceipt, summarizeReceipt } from '@/lib/review';
 import {
   isMonitored,
@@ -114,6 +114,80 @@ interface Row {
   data: JudgmentReceipt;
 }
 
+export interface PremiseWatchAlertInput {
+  userId: string;
+  receiptId: string;
+  receipt: JudgmentReceipt;
+  premise: NonNullable<JudgmentReceipt['tracked_premises']>[number];
+  result: InvestigationResult;
+  checkedAt: string;
+  baseUrl?: string;
+  standaloneSentThisWeek?: number;
+}
+
+export interface PremiseWatchAlertDecision {
+  materiality: PremiseDriftMateriality;
+  gate: NotificationGateResult;
+  change?: PremiseChange;
+  email?: CompanionBriefEmail;
+}
+
+function resultMateriality(result: InvestigationResult): PremiseDriftMateriality {
+  if (result.verdict === 'material') return 'material';
+  if (result.verdict === 'quiet' && result.materiality && result.materiality !== 'material') return 'minor';
+  return 'none';
+}
+
+export function buildPremiseWatchAlert(input: PremiseWatchAlertInput): PremiseWatchAlertDecision {
+  const materiality = resultMateriality(input.result);
+  const hasPayload = Boolean(input.result.fact && input.result.source_url && materiality !== 'none');
+  const candidateBase: Omit<NotificationCandidate, 'type'> = {
+    channel: 'email',
+    userId: input.userId,
+    targetId: input.premise.premise_id,
+    contentCount: hasPayload ? 1 : 0,
+    materiality,
+    isStandalone: true,
+    standaloneSentThisWeek: input.standaloneSentThisWeek,
+  };
+  const candidate: NotificationCandidate = input.premise.kind === 'open_question'
+    ? { ...candidateBase, type: 'T3_OPEN_QUESTION' }
+    : { ...candidateBase, type: 'T2_PREMISE_DRIFT' };
+  const gate = gateNotification(candidate);
+
+  if (!hasPayload) return { materiality, gate };
+
+  const prior = input.premise.last_recheck;
+  const change: PremiseChange = {
+    ordinal: input.premise.ordinal,
+    premise_id: input.premise.premise_id,
+    text: input.premise.text,
+    ...(prior?.finding ? { baseline: prior.finding } : {}),
+    ...(typeof prior?.numeric_value === 'number' ? { baseline_numeric_value: prior.numeric_value } : {}),
+    fact: input.result.fact || '',
+    ...(typeof input.result.current_value === 'number' ? { current_value: input.result.current_value } : {}),
+    source_url: input.result.source_url || '',
+    source_date: input.result.source_date,
+    checked_at: input.checkedAt,
+    confidence: input.result.confidence,
+    kind: input.premise.kind,
+  };
+
+  return {
+    materiality,
+    gate,
+    change,
+    email: notificationGateAllowsSend(candidate)
+      ? buildPremiseDriftEmail({
+          decision_title: input.receipt.source_title || input.receipt.core_question || '제목 없는 문서',
+          receipt_id: input.receiptId,
+          baseUrl: input.baseUrl,
+          change,
+        })
+      : undefined,
+  };
+}
+
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization') || '';
   if (!process.env.CRON_SECRET || !safeCompare(authHeader, `Bearer ${process.env.CRON_SECRET}`)) {
@@ -153,13 +227,13 @@ export async function GET(req: Request) {
   let budget = MAX_PER_RUN;
   let dropped = 0;
   let researched = 0;
-  const byUser = new Map<string, { rowIds: string[]; briefs: DueReceiptBrief[] }>();
+  const byUser = new Map<string, { rowIds: string[]; emails: CompanionBriefEmail[] }>();
   const rowUpdates: Array<{ id: string; data: JudgmentReceipt; next_check_by: string | null }> = [];
+  let mergedIntoBrief = 0;
 
   for (const row of (rows || []) as Row[]) {
     const receipt = row.data;
     const premises = receipt.tracked_premises || [];
-    const changes: PremiseChange[] = [];
     let mutated = false;
 
     for (const p of premises) {
@@ -191,6 +265,27 @@ export async function GET(req: Request) {
 
       const now = new Date().toISOString();
       if (result.verdict === 'material' || result.verdict === 'quiet') {
+        const alert = buildPremiseWatchAlert({
+          userId: row.user_id,
+          receiptId: row.id,
+          receipt,
+          premise: p,
+          result,
+          checkedAt: now,
+          baseUrl: `https://${process.env.EMAIL_FROM_DOMAIN || 'argus.voyage'}`,
+        });
+        if (alert.gate.decision === 'merge_into_brief') mergedIntoBrief++;
+        if (alert.email) {
+          const recentlyNotified = row.companion_notified_at && row.companion_notified_at >= renudgeCutoff;
+          if (!recentlyNotified) {
+            const bucket = byUser.get(row.user_id) || { rowIds: [], emails: [] };
+            bucket.rowIds.push(row.id);
+            bucket.emails.push(alert.email);
+            byUser.set(row.user_id, bucket);
+          }
+        }
+        const queueForBrief = alert.gate.decision === 'merge_into_brief' && Boolean(alert.change);
+        const previous = p.last_recheck;
         const rec: PremiseRecheck = {
           finding: result.fact || '(확인함)',
           ...(typeof result.current_value === 'number'
@@ -198,10 +293,21 @@ export async function GET(req: Request) {
             : typeof p.last_recheck?.numeric_value === 'number'
               ? { numeric_value: p.last_recheck.numeric_value }
               : {}),
+          ...(previous?.finding ? { baseline_finding: previous.finding } : {}),
+          ...(typeof previous?.numeric_value === 'number' ? { baseline_numeric_value: previous.numeric_value } : {}),
           drifted: result.verdict === 'material',
           baseline_only: !p.last_recheck,
           source: 'url',
           ...(result.source_url ? { source_detail: `${result.source_url}${result.source_date ? ` (${result.source_date})` : ''}` } : {}),
+          confidence: result.confidence,
+          ...(queueForBrief
+            ? {
+                brief_pending: true,
+                brief_kind: p.kind === 'open_question'
+                  ? 'open_question_new_info'
+                  : (result.verdict === 'material' ? 'standalone_overflow' : 'premise_minor_drift'),
+              }
+            : {}),
           ts: now,
           auto: true,
         };
@@ -209,9 +315,6 @@ export async function GET(req: Request) {
         if (isOpenQ) p.last_reconsidered = now; // advance the reconsider clock
         p.recheck_count = (p.recheck_count || 0) + 1;
         mutated = true;
-        if (result.verdict === 'material') {
-          changes.push({ ordinal: p.ordinal, text: p.text, fact: result.fact || '', source_url: result.source_url || '', source_date: result.source_date, kind: p.kind });
-        }
       } else {
         // no recent source → advance the clock, preserve the numeric baseline, be honest.
         p.last_recheck = {
@@ -232,20 +335,6 @@ export async function GET(req: Request) {
     if (mutated) {
       receipt.updated_at = new Date().toISOString();
       rowUpdates.push({ id: row.id, data: receipt, next_check_by: computeNextCheckBy(receipt, today) });
-    }
-    if (changes.length) {
-      const recentlyNotified = row.companion_notified_at && row.companion_notified_at >= renudgeCutoff;
-      if (!recentlyNotified) {
-        const bucket = byUser.get(row.user_id) || { rowIds: [], briefs: [] };
-        bucket.rowIds.push(row.id);
-        bucket.briefs.push({
-          source_title: receipt.source_title || '제목 없는 문서',
-          core_question: receipt.core_question || '',
-          predicates: [],
-          changes,
-        });
-        byUser.set(row.user_id, bucket);
-      }
     }
   }
 
@@ -275,31 +364,24 @@ export async function GET(req: Request) {
     const { data: userRes } = await supabase.auth.admin.getUserById(userId);
     const email = userRes?.user?.email;
     if (!email) { skipped.push(userId); continue; }
-    const brief = buildCompanionBrief(bucket.briefs, `https://${fromDomain}`);
-    if (!notificationGateAllowsSend({
-      type: 'T2_PREMISE_DRIFT',
-      channel: 'email',
-      userId,
-      contentCount: companionBriefItemCount(bucket.briefs),
-      materiality: 'material',
-      isStandalone: true,
-    })) {
-      skipped.push(userId);
-      continue;
+    let failed = false;
+    for (const emailPayload of bucket.emails) {
+      try {
+        await resend.emails.send({
+          from: `Argus <hello@${fromDomain}>`,
+          replyTo,
+          to: email,
+          subject: emailPayload.subject,
+          html: markdownToEmailHtml(emailPayload.subject, emailPayload.markdown),
+        });
+      } catch (err) {
+        console.error('[premise-watch] send error:', err);
+        skipped.push(userId);
+        failed = true;
+        break;
+      }
     }
-    try {
-      await resend.emails.send({
-        from: `Argus <hello@${fromDomain}>`,
-        replyTo,
-        to: email,
-        subject: brief.subject,
-        html: markdownToEmailHtml(brief.subject, brief.markdown),
-      });
-    } catch (err) {
-      console.error('[premise-watch] send error:', err);
-      skipped.push(userId);
-      continue;
-    }
+    if (failed) continue;
     await supabase.from('review_receipts').update({ companion_notified_at: new Date().toISOString() }).in('id', bucket.rowIds);
     emailed++;
   }
@@ -320,6 +402,7 @@ export async function GET(req: Request) {
     receipts_updated: rowUpdates.length,
     change_users: byUser.size,
     emailed,
+    merged_into_brief: mergedIntoBrief,
     skipped: skipped.length,
   });
 }

@@ -37,7 +37,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
 import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
-import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS } from '@/lib/decision-contract';
+import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS, DEFAULT_CHECK_IN_INTERVAL } from '@/lib/decision-contract';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
 import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
@@ -71,8 +71,6 @@ const INTERVALS: { value: CheckInInterval; ko: string; en: string }[] = [
   { value: '2w', ko: '2주 뒤', en: 'in 2 weeks' },
   { value: '1m', ko: '1달 뒤', en: 'in 1 month' },
 ];
-
-const DEFAULT_INTERVAL: CheckInInterval = '2w';
 
 /** [활성화 계측 · 항목10] first_real_seal_after_retro — fires exactly once, on
  *  the user's first REAL (blind) seal AFTER a retro practice loop was settled.
@@ -134,7 +132,7 @@ export function SealMoment({
     if (items.length > 0) addDecisionItems(items);
   }
 
-  const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_INTERVAL);
+  const [interval, setInterval] = useState<CheckInInterval>(DEFAULT_CHECK_IN_INTERVAL);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dropped, setDropped] = useState<Set<string>>(new Set());
   // Scene machine for a seal performed in THIS session (P1-A3 / 07 S3):

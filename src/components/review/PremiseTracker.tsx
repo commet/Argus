@@ -30,6 +30,7 @@ import {
 } from '@/lib/premises-core';
 
 type LFn = (ko: string, en: string) => string;
+type RecheckConfidence = NonNullable<PremiseState['last_recheck']>['confidence'];
 
 function recheckSurface(status: RecheckStatus, ordinal: number, L: LFn): { tone: 'handle' | 'muted'; text: string } {
   switch (status) {
@@ -43,6 +44,30 @@ function recheckSurface(status: RecheckStatus, ordinal: number, L: LFn): { tone:
     default: // baseline
       return { tone: 'muted', text: L('기준값으로 기록했어요. 다음 확인 때 이것과 비교할게요.', 'Recorded as the baseline. Next check compares against this.') };
   }
+}
+
+function confidenceLabel(confidence: RecheckConfidence, L: LFn): string {
+  switch (confidence) {
+    case 'high': return L('높음', 'High');
+    case 'medium': return L('보통', 'Medium');
+    case 'low': return L('낮음', 'Low');
+    default: return L('표시 없음', 'Not shown');
+  }
+}
+
+function sourceLabel(source?: string, L?: LFn): string {
+  if (!L) return source || '';
+  switch (source) {
+    case 'url': return L('웹 출처', 'Web source');
+    case 'user_stated': return L('사용자 기록', 'User stated');
+    case 'host_reported': return L('최근 확인', 'Host reported');
+    default: return source || L('출처 표시 없음', 'No source shown');
+  }
+}
+
+function valueText(value?: number, fallback?: string): string | null {
+  if (typeof value === 'number') return String(value);
+  return fallback || null;
 }
 
 export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
@@ -114,7 +139,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
             const res = result?.id === p.premise_id ? result.status : null;
             const surface = res ? recheckSurface(res, p.ordinal, L) : null;
             return (
-              <div key={p.premise_id} className="text-[13px] border-b border-[var(--border-subtle)] last:border-0 pb-2.5 last:pb-0">
+              <div id={`premise-${p.premise_id}`} key={p.premise_id} className="text-[13px] border-b border-[var(--border-subtle)] last:border-0 pb-2.5 last:pb-0">
                 <div className="flex items-start gap-2">
                   <span className="inline-block px-1 py-0.5 mt-0.5 text-[10px] rounded border border-[var(--border-subtle)] text-[var(--text-tertiary)] tabular-nums shrink-0">P{p.ordinal}</span>
                   <div className="min-w-0 flex-1">
@@ -125,10 +150,30 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                       <span className="ml-1.5 text-[10px] px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">{L('확인할 때', 'due')}</span>
                     )}
                     {last && (
-                      <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
-                        {L('지난 확인', 'Last check')}: {last.finding}
-                        {last.drifted && <span className="text-amber-700"> · {L('바뀜', 'changed')}</span>}
-                      </p>
+                      <div className="mt-1 space-y-1 text-[11px] text-[var(--text-tertiary)]">
+                        <p>
+                          {L('지난 확인', 'Last check')}: {last.finding}
+                          {last.drifted && <span className="text-amber-700"> · {L('바뀜', 'changed')}</span>}
+                        </p>
+                        <div className="grid gap-1 sm:grid-cols-2">
+                          <p>
+                            <span className="font-semibold text-[var(--text-secondary)]">{L('봉인 당시 값', 'Sealed value')}:</span>{' '}
+                            {valueText(last.baseline_numeric_value, last.baseline_finding) ?? (last.baseline_only ? L('첫 기준값', 'First baseline') : L('표시 없음', 'Not shown'))}
+                          </p>
+                          <p>
+                            <span className="font-semibold text-[var(--text-secondary)]">{L('지금 값', 'Current value')}:</span>{' '}
+                            {valueText(last.numeric_value, last.finding) ?? L('표시 없음', 'Not shown')}
+                          </p>
+                        </div>
+                        <p className="break-words">
+                          <span className="font-semibold text-[var(--text-secondary)]">{L('출처', 'Source')}:</span>{' '}
+                          {sourceLabel(last.source, L)}
+                          {last.source_detail ? ` · ${last.source_detail}` : ''}
+                          <span className="mx-1.5">·</span>
+                          <span className="font-semibold text-[var(--text-secondary)]">{L('확신도', 'Confidence')}:</span>{' '}
+                          {confidenceLabel(last.confidence, L)}
+                        </p>
+                      </div>
                     )}
                     {surface && (
                       <p className={`mt-1 text-[12px] ${surface.tone === 'handle' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>{surface.text}</p>

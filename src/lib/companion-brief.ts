@@ -28,17 +28,28 @@ export interface DuePremiseNudge {
   last_finding?: string;
 }
 
+export interface OpenQuestionNudge {
+  ordinal: number;
+  text: string;
+}
+
 /** A premise the autonomous watcher found materially changed against the recent
  *  web. This is the proactive alert (Workstream E) — Argus checked reality for
  *  the user. Still honest: shows the fact + source + date, asks a neutral
  *  question, never asserts the user was wrong or that the change is certain. */
 export interface PremiseChange {
   ordinal: number;
+  premise_id?: string;
   text: string;
+  baseline?: string;
+  baseline_numeric_value?: number;
   /** the current fact the watcher found. */
   fact: string;
+  current_value?: number;
   source_url: string;
   source_date?: string;
+  checked_at?: string;
+  confidence?: 'low' | 'medium' | 'high';
   /** 'premise' = a watched fact moved; 'open_question' = new info to help decide
    *  a deferred question (trigger b). Drives the phrasing. Default 'premise'. */
   kind?: 'premise' | 'open_question';
@@ -50,6 +61,8 @@ export interface DueReceiptBrief {
   predicates: DuePredicate[];
   /** monitored premises due for a re-check (living premises). */
   premise_nudges?: DuePremiseNudge[];
+  /** open questions whose reconsider cadence is due; T3 is brief-only. */
+  open_questions?: OpenQuestionNudge[];
   /** premises the watcher auto-detected as materially changed (proactive alert). */
   changes?: PremiseChange[];
   /** Delta — what changed since the seal (e.g. a newer version exists). Optional. */
@@ -63,14 +76,84 @@ export interface CompanionBriefEmail {
   url: string;
 }
 
+export interface PremiseDriftEmailInput {
+  decision_title: string;
+  receipt_id?: string;
+  baseUrl?: string;
+  change: PremiseChange;
+}
+
 export function companionBriefItemCount(items: DueReceiptBrief[]): number {
   return items.reduce(
     (n, it) => n
       + it.predicates.length
       + (it.premise_nudges?.length ?? 0)
+      + (it.open_questions?.length ?? 0)
       + (it.changes?.length ?? 0),
     0,
   );
+}
+
+function clipped(text: string, n = 40): string {
+  const t = (text || '').trim();
+  return t.length > n ? `${t.slice(0, n - 1)}…` : t;
+}
+
+function confidenceLabel(confidence?: PremiseChange['confidence']): string {
+  switch (confidence) {
+    case 'high': return '높음';
+    case 'medium': return '보통';
+    case 'low': return '낮음';
+    default: return '표시 없음';
+  }
+}
+
+function valueLabel(change: PremiseChange): string {
+  if (typeof change.current_value === 'number') return String(change.current_value);
+  return change.fact || '확인된 값 없음';
+}
+
+function baselineLabel(change: PremiseChange): string {
+  if (typeof change.baseline_numeric_value === 'number') return String(change.baseline_numeric_value);
+  return change.baseline || '봉인 당시 기준값 없음';
+}
+
+export function premiseDriftDeepLink(input: PremiseDriftEmailInput): string {
+  const base = (input.baseUrl || 'https://argus.voyage').replace(/\/$/, '');
+  const params = new URLSearchParams();
+  if (input.receipt_id) params.set('receipt', input.receipt_id);
+  if (input.change.premise_id) params.set('premise', input.change.premise_id);
+  const q = params.toString();
+  return `${base}/tools/review${q ? `?${q}` : ''}`;
+}
+
+/**
+ * T2 standalone alert — one material, load-bearing premise moved.
+ * Fact + source + confidence only; no recommendation or verdict.
+ */
+export function buildPremiseDriftEmail(input: PremiseDriftEmailInput): CompanionBriefEmail {
+  const { change } = input;
+  const url = premiseDriftDeepLink(input);
+  const checkedAt = (change.checked_at || change.source_date || '').slice(0, 10) || '확인일 표시 없음';
+  const provenance = change.source_url || '출처 표시 없음';
+  const subject = `전제가 하나 움직였어요 — "${clipped(change.text)}"`;
+  const markdown = [
+    `"${input.decision_title || '제목 없는 문서'}"을 봉인할 때, 이 결정은 이 전제 위에 서 있었어요:`,
+    '',
+    `    P${change.ordinal}  "${change.text}"        (봉인 당시 값: ${baselineLabel(change)})`,
+    '',
+    `오늘 확인된 값: ${valueLabel(change)}   (출처: ${provenance}, ${checkedAt})`,
+    `확신도: ${confidenceLabel(change.confidence)}`,
+    '',
+    '전제가 움직였다는 사실만 전해요.',
+    '결정을 다시 볼지는 당신의 몫이에요.',
+    '',
+    `[전제 살펴보기](${url})   [그대로 두기](${url})`,
+    '',
+    '_이 전제 알림 끄기 · 알림 설정_',
+  ].join('\n');
+
+  return { subject, markdown, url };
 }
 
 /**
@@ -116,6 +199,13 @@ export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https:/
         blocks.push(`  - ${openQ ? '새 정보' : '지금'}: ${c.fact}${c.source_date ? ` (출처 ${c.source_date})` : ''}`);
         if (c.source_url) blocks.push(`  - 출처: ${c.source_url}`);
         blocks.push(`  - ${openQ ? '지금 답이 생겼다면 적어두고, 아직이면 그대로 두세요.' : '결정을 다시 볼지는 당신의 몫이에요.'}`);
+      }
+    }
+    if (it.open_questions?.length) {
+      blocks.push('');
+      blocks.push('**아직 열려 있는 질문**:');
+      for (const q of it.open_questions) {
+        blocks.push(`- P${q.ordinal} "${q.text}" · 지금 답이 생겼다면 적어두고, 아직이면 그대로 두세요. 이 질문 접기`);
       }
     }
     // Premise re-check nudges — an INVITATION to look at reality, never a claim

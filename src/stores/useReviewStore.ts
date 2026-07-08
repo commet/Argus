@@ -292,6 +292,8 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
         const rec: PremiseRecheck = {
           finding,
           ...(typeof input.numeric_value === 'number' ? { numeric_value: input.numeric_value } : {}),
+          ...(prior?.finding ? { baseline_finding: prior.finding } : {}),
+          ...(typeof prior?.numeric_value === 'number' ? { baseline_numeric_value: prior.numeric_value } : {}),
           drifted: status === 'material',
           baseline_only: baselineOnly,
           source: input.source,

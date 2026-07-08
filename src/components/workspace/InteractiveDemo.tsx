@@ -1840,7 +1840,9 @@ export function InteractiveDemo({ scenario, locale = 'ko', onStartReal, onBack }
         </div>
         <div className="max-w-2xl mx-auto px-5 pb-3 pt-2.5 flex items-center justify-between gap-3">
           <p className="text-[12px] text-[var(--text-secondary)]">
-            {isDone ? L('내 상황으로 해보면 어떨까요?', 'Want to try with your own situation?') : ''}
+            {isDone
+              ? L(`내 상황도 ${scenario.checkInDays}일 안에 확인할 신호까지 남겨요.`, `Your own case can leave a signal to check within ${scenario.checkInDays} days.`)
+              : ''}
           </p>
           <button onClick={onStartReal}
             className={`inline-flex items-center gap-2 px-6 py-3 text-white rounded-full text-[14px] font-semibold cursor-pointer min-h-[44px] transition-all duration-300 ${

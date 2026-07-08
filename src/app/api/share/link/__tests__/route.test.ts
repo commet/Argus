@@ -56,6 +56,7 @@ describe('POST /api/share/link — auth + share guard', () => {
   it('401s without a Bearer token', async () => {
     const res = await POST(req({ content: 'x' }, { origin: true }));
     expect(res.status).toBe(401);
+    expect(insertSpy).not.toHaveBeenCalled();
   });
 
   it('401s when the token does not resolve to a user', async () => {
@@ -86,5 +87,16 @@ describe('POST /api/share/link — auth + share guard', () => {
     expect(typeof json.token).toBe('string');
     expect(json.path).toBe(`/d/${json.token}`);
     expect(insertSpy).toHaveBeenCalledOnce();
+  });
+
+  it('stores review receipt context only after explicit authenticated share', async () => {
+    const res = await POST(req({ title: 'Receipt', content: '# Judgment Receipt', context: 'review_receipt' }, { token: 'good' }));
+    expect(res.status).toBe(200);
+    expect(insertSpy).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-1',
+      title: 'Receipt',
+      content: '# Judgment Receipt',
+      context: 'review_receipt',
+    }));
   });
 });

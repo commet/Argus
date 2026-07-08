@@ -84,4 +84,16 @@ describe('buildCompanionBrief', () => {
     expect(md).toContain('지금 답이 생겼다면 적어두고, 아직이면 그대로 두세요.');
     expect(md).not.toContain('결정을 다시 볼지는 당신의 몫이에요.');
   });
+
+  it('carries T3 open questions as a brief-only section', () => {
+    const md = buildCompanionBrief([{
+      source_title: '규제 메모',
+      core_question: '진출할까?',
+      predicates: [],
+      open_questions: [{ ordinal: 1, text: '내년 규제 완화 여부' }],
+    }]).markdown;
+    expect(md).toContain('아직 열려 있는 질문');
+    expect(md).toContain('지금 답이 생겼다면 적어두고, 아직이면 그대로 두세요.');
+    expect(md).toContain('이 질문 접기');
+  });
 });

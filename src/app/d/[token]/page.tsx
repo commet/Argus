@@ -10,10 +10,10 @@ export const dynamic = 'force-dynamic';
 async function fetchLink(token: string) {
   const { data } = await adminClient()
     .from('shared_links')
-    .select('title, content, view_count, created_at')
+    .select('title, content, context, view_count, created_at')
     .eq('token', token)
     .single();
-  return data as { title: string | null; content: string; view_count: number; created_at: string } | null;
+  return data as { title: string | null; content: string; context: string | null; view_count: number; created_at: string } | null;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
@@ -21,7 +21,25 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const row = await fetchLink(token);
   const title = row?.title ? `${row.title} — Argus` : 'Argus';
   // A share link is private-by-URL; keep it out of search indexes.
-  return { title, robots: { index: false, follow: false } };
+  return {
+    title,
+    robots: { index: false, follow: false },
+    openGraph: {
+      title,
+      description: row?.context === 'review_receipt'
+        ? 'AI VERDICT -- NONE'
+        : 'Shared Argus decision record',
+      images: [{ url: `/d/${token}/opengraph-image`, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: row?.context === 'review_receipt'
+        ? 'AI VERDICT -- NONE'
+        : 'Shared Argus decision record',
+      images: [`/d/${token}/opengraph-image`],
+    },
+  };
 }
 
 export default async function SharedDeliverablePage({ params }: { params: Promise<{ token: string }> }) {
@@ -49,18 +67,21 @@ export default async function SharedDeliverablePage({ params }: { params: Promis
           </Link>
         </header>
 
-        {/* Deliverable */}
-        <article className="space-y-1">
-          {row.title && (
-            <h1
-              className="text-[26px] sm:text-[30px] font-bold leading-tight tracking-tight mb-6"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              {row.title}
-            </h1>
-          )}
-          {renderMd(row.content)}
-        </article>
+        {row.context === 'review_receipt' ? (
+          <SharedReceipt title={row.title || 'Judgment Receipt'} content={row.content} />
+        ) : (
+          <article className="space-y-1">
+            {row.title && (
+              <h1
+                className="text-[26px] sm:text-[30px] font-bold leading-tight tracking-tight mb-6"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {row.title}
+              </h1>
+            )}
+            {renderMd(row.content)}
+          </article>
+        )}
 
         {/* Footer CTA */}
         <footer className="mt-14 pt-6 border-t border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-3">
@@ -77,4 +98,36 @@ export default async function SharedDeliverablePage({ params }: { params: Promis
       </div>
     </main>
   );
+}
+
+function SharedReceipt({ title, content }: { title: string; content: string }) {
+  return (
+    <article className="rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-[0_1px_2px_rgba(0,0,0,0.05),0_12px_32px_rgba(0,0,0,0.08)] overflow-hidden">
+      <div className="border-b border-[var(--border-subtle)] px-5 sm:px-7 py-5">
+        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
+          Judgment Receipt
+        </div>
+        <h1 className="mt-1 text-[24px] sm:text-[30px] font-bold leading-tight text-[var(--text-primary)]">
+          {title}
+        </h1>
+      </div>
+      <div className="px-5 sm:px-7 py-6 space-y-1">
+        {renderMd(stripReceiptHeading(content))}
+      </div>
+      <div className="border-t border-[var(--border-subtle)] px-5 sm:px-7 py-5 bg-[var(--bg)]">
+        <div className="font-mono text-[13px] sm:text-[14px] tracking-[0.08em] text-[var(--text-primary)]">
+          AI VERDICT -- NONE
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function stripReceiptHeading(content: string): string {
+  const lines = content.split('\n');
+  const firstLine = lines[0] || '';
+  if (/^#\s+Judgment Receipt\b/i.test(firstLine)) {
+    return lines.slice(1).join('\n').replace(/^\n+/, '');
+  }
+  return content;
 }

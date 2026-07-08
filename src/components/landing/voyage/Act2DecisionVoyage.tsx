@@ -89,6 +89,86 @@ export function Act2DecisionVoyage() {
           </div>
         </div>
 
+        <div className="bp-fade-up mt-10 md:mt-12 mx-auto max-w-2xl" style={{ animationDelay: '380ms' }}>
+          <div
+            aria-label={L('판단 영수증 예시', 'Judgment receipt example')}
+            style={{
+              border: '1px solid var(--bp-ink-faint)',
+              borderRadius: 4,
+              background: 'linear-gradient(180deg, var(--bp-paper) 0%, var(--bp-paper-deep) 100%)',
+              boxShadow: '0 18px 46px -28px rgba(48,34,14,0.42), inset 0 1px 0 rgba(255,255,255,0.5)',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid var(--bp-ink-faint)' }}>
+              <div
+                className="bp-mono"
+                style={{
+                  color: 'var(--bp-ink-soft)',
+                  fontSize: 10,
+                  letterSpacing: locale === 'ko' ? '0.1em' : '0.18em',
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                }}
+              >
+                Judgment Receipt
+              </div>
+              <h3
+                className={locale === 'ko' ? 'break-keep' : ''}
+                style={{
+                  marginTop: 6,
+                  fontFamily: 'var(--font-display)',
+                  color: 'var(--bp-ink)',
+                  fontSize: 'clamp(21px, 2.5vw, 28px)',
+                  lineHeight: 1.22,
+                  fontWeight: 700,
+                }}
+              >
+                {L('물류 자동화 PT를 어떻게 봉인했는가', 'How the logistics pitch was sealed')}
+              </h3>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: 0,
+                borderBottom: '1px solid var(--bp-ink-faint)',
+              }}
+            >
+              {[
+                [L('그때의 판단', 'The call then'), L('2주 안에 작동 영상을 보여주면 작은 팀 리스크가 줄어든다.', 'A working demo within 2 weeks lowers the small-team risk.')],
+                [L('확인할 현실', 'Reality to check'), L('물류팀장이 시연 뒤 본개발 논의를 시작했는가.', 'Did the logistics lead begin a full-build conversation after the demo?')],
+              ].map(([label, body]) => (
+                <div key={label} style={{ padding: '16px 18px', borderRight: '1px solid var(--bp-ink-faint)' }}>
+                  <div className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                    {label}
+                  </div>
+                  <p className={locale === 'ko' ? 'break-keep' : ''} style={{ marginTop: 7, color: 'var(--bp-ink)', fontSize: 14, lineHeight: 1.55 }}>
+                    {body}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '18px 20px 20px' }}>
+              <div
+                className="bp-mono"
+                style={{
+                  textAlign: 'center',
+                  color: 'var(--bp-ink)',
+                  fontSize: 'clamp(16px, 2.1vw, 22px)',
+                  letterSpacing: '0.14em',
+                  fontWeight: 700,
+                }}
+              >
+                AI VERDICT -- NONE
+              </div>
+              <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: '12px auto 0', maxWidth: 480, textAlign: 'center', color: 'var(--bp-ink-soft)', fontSize: 12.5, lineHeight: 1.55 }}>
+                {L('판정은 모델이 하지 않습니다. 봉인한 말과 나중의 현실이 한 장에 남습니다.', 'The model does not judge it. The sealed words and later reality stay on one page.')}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* The canonical input lives in the hero; here, a single quiet link. */}
         <div className="bp-fade-up mt-12 md:mt-14 text-center" style={{ animationDelay: '440ms' }}>
           {/* A prominent text-CTA — no box (keeps the logbook restraint), but
