@@ -9,6 +9,7 @@ import { usePluginStore } from '@/stores/usePluginStore';
 import { importPluginFiles, type ImportSummary } from '@/lib/plugin-import';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { McpInstallGuide } from '@/components/import/McpInstallGuide';
 import type { PluginDecision } from '@/stores/types';
 
 const STATUS_TONE: Record<string, string> = {
@@ -121,6 +122,7 @@ export default function ImportPage() {
             <li>{L('2. 정한 날 계정 이메일이 먼저 옵니다.', '2. On the date you chose, your account email arrives first.')}</li>
             <li>{L('3. 여기서 실제 결과만 기록합니다.', '3. Come back here and record only what reality did.')}</li>
           </ol>
+          <McpInstallGuide locale={locale} />
           <Link href="/login?redirect=/import">
             <Button variant="accent">{L('로그인', 'Log in')}</Button>
           </Link>
@@ -167,6 +169,8 @@ export default function ImportPage() {
           {L('입니다.', '.')}
         </p>
       </div>
+
+      <McpInstallGuide locale={locale} />
 
       <Card variant="muted" className="mb-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">

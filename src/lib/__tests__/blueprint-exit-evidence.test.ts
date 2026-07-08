@@ -77,7 +77,9 @@ const EVIDENCE_M: Record<string, string[]> = {
     'argus-mcp/src/tools/__tests__/m3-safety.test.ts', // 동시 이중 settle 한 건만
     'src/lib/__tests__/mcp-premise-optin-journey.test.ts', // opt-in 전제 → T2 게이트 도달
   ],
-  '공정 M4': [],
+  '공정 M4': [
+    'src/components/import/__tests__/McpInstallGuide.test.tsx', // /import Windows 블록 렌더
+  ],
 };
 
 function readBlueprintMTrackSections(): Map<string, string> {

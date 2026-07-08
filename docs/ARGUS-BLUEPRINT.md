@@ -566,9 +566,9 @@ Desktop은 README 설정 그대로가 전 도구 실패, 영수증 렌더러는 
 **공정 M4 · 재공개 (S~M)**
 - 작업: 버전 lockstep publish + /import에 OS별 설치(Windows `cmd /c` 포함,
   웹 시공) + 소개글↔README 카피 정합 + 외부인 검사 준비.
-- exit: [ ] npm 최신 버전 == package.json == 태그 [ ] /import에 Windows
-  블록 렌더 테스트 [ ] 신규 사용자 1명이 설치→당직 앵커→봉인→(모의)귀환을
-  외부 개입 없이 완주(manual: 검증 기록)
+- exit: [ ] npm 최신 버전 == package.json == 태그 (publish는 창업자 행동 —
+  실행 후 체크) [x] /import에 Windows 블록 렌더 테스트 [ ] 신규 사용자 1명이
+  설치→당직 앵커→봉인→(모의)귀환을 외부 개입 없이 완주(manual: 검증 기록)
 - 금지: 새 기능. 공개는 지은 것을 도달시키는 공정이다.
 
 **exit 체크 규약은 §6과 동일** — `[x]`는 같은 커밋에서
