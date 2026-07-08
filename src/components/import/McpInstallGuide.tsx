@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * MCP 설치 3걸음 — /import의 OS별 현관 안내 (BLUEPRINT §9.5 M4).
+ * MCP 설치 3걸음 + 옵트인 1줄 — /import의 OS별 현관 안내 (BLUEPRINT §9.5 M4).
+ * (설치·기본 경로·Windows 실행형이 3걸음, ARGUS_TOKEN은 선택 4번째 항목.)
  *
  * FC-5의 마지막 조각: 웹 어디에도 ARGUS_DIR·Windows·Desktop 안내가 없어
  * 터미널 사용자의 현관이 문서 없는 문이었다. 규칙: 사실과 명령만, OS별로
