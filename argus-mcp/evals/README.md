@@ -16,10 +16,19 @@ surface it actually returns** for spine + contract breaks via
 npm run loop        # builds, then drives + lints the real server
 ```
 
+Every step prints the surface the server ACTUALLY returned, so a human (or the
+agent driving the loop) can read what the user would see — the point is to look,
+not just to green/red.
+
 RED = a spine/contract break (a surface with no human line, an error with no
 recovery path, or a surface that leaks a verdict) → exit 1, gates a watch loop or
-CI. yellow = a smell (surface too long, no next_actions), not a failure. It catches
-exactly the LLM-glue failure: a wire that silently breaks and returns a
+CI. yellow = a smell, not a failure:
+- **language-drift** — a Korean-input journey got a >65%-English surface back
+  (some read tools localize, some don't yet). Measured by Hangul share of the
+  prose, so an English frame that merely quotes the user's Korean still trips it.
+- **surface-too-long / no-next-actions** — polish smells.
+
+It catches exactly the LLM-glue failure: a wire that silently breaks and returns a
 plausible-but-empty surface turns red here instead of shipping.
 
 ## Tier 1 — deterministic gates (no model, runs in CI)

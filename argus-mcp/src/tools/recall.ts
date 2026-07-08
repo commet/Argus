@@ -59,7 +59,7 @@ export const recall: ToolModule = {
         // artifact must speak the language it was sealed in.
         const receiptLocale = resolveResponseLocale(dir, r.predicate);
         return envelope({
-          ok: true, tool: 'argus_recall', surface: 'Receipt recalled.',
+          ok: true, tool: 'argus_recall', surface: receiptLocale === 'ko' ? '영수증을 불러왔습니다.' : 'Receipt recalled.',
           next_actions: ['stop'], data: { receipt: r, receipt_text: renderReceipt(r, pInfo, receiptLocale) },
         });
       }
@@ -78,10 +78,15 @@ export const recall: ToolModule = {
         // never reports due_for_* that check_in won't honor — the single-source
         // rule extended to this read (M3: was the recall↔check_in drift).
         const armed = isNudgeArmed(entry, today);
+        // Read tools have no fresh user text to sniff, so the decision's own
+        // sealed predicate carries the voice (parity with the receipt at line 60).
+        const locale = resolveResponseLocale(dir, entry?.predicate ?? null);
         if (list.length === 0) {
           return envelope({
             ok: true, tool: 'argus_recall',
-            surface: 'No premises tracked on this decision. Record the facts it rests on with argus_premises (op=add).',
+            surface: locale === 'ko'
+              ? '이 결정에 기록된 전제가 없습니다. 결정이 딛고 선 사실을 argus_premises(op=add)로 적어두세요.'
+              : 'No premises tracked on this decision. Record the facts it rests on with argus_premises (op=add).',
             next_actions: ['leave_as_is'],
             data: { id, premises: [], today },
           });
@@ -116,9 +121,12 @@ export const recall: ToolModule = {
         });
         const monitored = rows.filter((r) => r.monitored).length;
         const due = rows.filter((r) => r.due_for_recheck).length;
+        const surface = locale === 'ko'
+          ? `이 결정의 전제 ${rows.length}건 — ${monitored}건 감시 중, ${due}건 현실 재확인 차례${due > 0 ? ' (argus_recheck)' : ''}.`
+          : `${rows.length} premise(s) on this decision — ${monitored} monitored, ${due} due for a reality re-check${due > 0 ? ' (argus_recheck)' : ''}.`;
         return envelope({
           ok: true, tool: 'argus_recall',
-          surface: `${rows.length} premise(s) on this decision — ${monitored} monitored, ${due} due for a reality re-check${due > 0 ? ' (argus_recheck)' : ''}.`,
+          surface,
           next_actions: due > 0 ? ['argus_check_in', 'leave_as_is'] : ['leave_as_is'],
           data: { id, premises: rows, today },
         });
@@ -131,9 +139,12 @@ export const recall: ToolModule = {
           .filter((c) => c.status === 'sealed')
           .map((c) => ({ id: c.id, predicate: c.predicate, check_by: c.check_by }))
           .sort(byCheckBy);
+        const locale = resolveResponseLocale(dir, open[0]?.predicate ?? null);
         const surface = ledger.ids.size === 0
-          ? 'Argus does not answer. It records a prediction + a check-by date, and meets reality on that date. Open your first decision with argus_open_decision.'
-          : `${open.length} open bearing(s).`;
+          ? (locale === 'ko'
+              ? 'Argus는 답을 주지 않습니다. 예측 하나와 확인일을 기록하고, 그날 현실과 만납니다. argus_open_decision으로 첫 결정을 여세요.'
+              : 'Argus does not answer. It records a prediction + a check-by date, and meets reality on that date. Open your first decision with argus_open_decision.')
+          : (locale === 'ko' ? `봉인 중인 판단 ${open.length}건.` : `${open.length} open bearing(s).`);
         const wake = wakeText(ledger, today, dir);
         return envelope({ ok: true, tool: 'argus_recall', surface, next_actions: open.length ? ['argus_check_in'] : ['argus_open_decision'], data: { open, today, ...(wake ? { wake_text: wake } : {}) } });
       }
@@ -144,9 +155,10 @@ export const recall: ToolModule = {
           .sort(byCheckBy);
         // 60-row cap (12 §3.6) — the JSON stays a summary, not a wall.
         const shown = all.slice(0, 60);
+        const locale = resolveResponseLocale(dir, all[0]?.predicate ?? null);
         const wake = wakeText(ledger, today, dir);
         return envelope({
-          ok: true, tool: 'argus_recall', surface: `${all.length} decision(s) on record.`, next_actions: ['stop'],
+          ok: true, tool: 'argus_recall', surface: locale === 'ko' ? `기록에 남은 결정 ${all.length}건.` : `${all.length} decision(s) on record.`, next_actions: ['stop'],
           data: { contracts: shown, ...(all.length > shown.length ? { truncated: all.length - shown.length } : {}), today, ...(wake ? { wake_text: wake } : {}) },
         });
       }
@@ -154,9 +166,12 @@ export const recall: ToolModule = {
       // track_record — frequency only, sample-size caveated. No tier, no score (spine rule 2).
       const s = ledger.stats;
       const n = s.total_settled;
+      const trackLocale = resolveResponseLocale(dir, [...ledger.contracts.values()][0]?.predicate ?? null);
       const freq = n === 0
-        ? 'No settled decisions yet — nothing to summarize.'
-        : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial.`;
+        ? (trackLocale === 'ko' ? '아직 정산된 결정이 없습니다 — 요약할 것이 없습니다.' : 'No settled decisions yet — nothing to summarize.')
+        : (trackLocale === 'ko'
+            ? `정산 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial}.`
+            : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial.`);
 
       // Premise-level attribution (plan v5 P2) — where accumulation compounds:
       // COUNTS of settles where the user themselves named a broken premise.
@@ -165,7 +180,9 @@ export const recall: ToolModule = {
       const missedOrPartial = settled.filter((c) => c.outcome === 'avoided' || c.outcome === 'partial');
       const withBroken = missedOrPartial.filter((c) => c.broken_premise_id);
       const premiseAttribution = withBroken.length > 0
-        ? `Of ${missedOrPartial.length} settle(s) that did not hold, you attributed ${withBroken.length} to a named broken premise.`
+        ? (trackLocale === 'ko'
+            ? `그대로 되지 않은 정산 ${missedOrPartial.length}건 중, ${withBroken.length}건을 당신이 지목한 깨진 전제 탓으로 돌렸습니다.`
+            : `Of ${missedOrPartial.length} settle(s) that did not hold, you attributed ${withBroken.length} to a named broken premise.`)
         : undefined;
 
       return envelope({
@@ -177,7 +194,7 @@ export const recall: ToolModule = {
           frequency_statement: freq,
           ...(premiseAttribution ? { premise_attribution: premiseAttribution, premise_attribution_counts: { not_held: missedOrPartial.length, with_named_broken_premise: withBroken.length } } : {}),
           sample_size: n,
-          sample_size_caveat: n < 10 ? 'Sample is small — read this as history, not a pattern about you.' : undefined,
+          sample_size_caveat: n < 10 ? (trackLocale === 'ko' ? '표본이 작습니다 — 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small — read this as history, not a pattern about you.') : undefined,
           stats: s,
         },
       });

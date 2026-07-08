@@ -48,6 +48,7 @@ const JOURNEYS = [
   },
   {
     name: 'J2 · flat reversible decision → restraint (no manufactured fork)',
+    lang: 'ko',
     steps: (dir) => [
       { tool: 'argus_open_decision', args: { argus_dir: dir, id: 'j2', decision: '오늘 점심 뭐 먹을지', stakes: 'low', reversibility: 'easily_reversible', status_quo: '어제 먹은 김밥', today_override: TODAY },
         expect: (env) => (env.data && env.data.harvest_written === false) ? null : 'expected restraint (harvest_written=false) on a flat, reversible decision' },
@@ -55,6 +56,7 @@ const JOURNEYS = [
   },
   {
     name: 'J3 · open(fires) → open_question → seal → check_in → resolve (return loop)',
+    lang: 'ko',
     steps: (dir) => [
       { tool: 'argus_open_decision', args: { argus_dir: dir, id: 'j3', decision: '공동창업자 지분을 어떻게 나눌지', stakes: 'high', reversibility: 'one_way_door', status_quo: '현행 지분 유지', today_override: TODAY },
         expect: (env) => (env.data && env.data.harvest_written === true) ? null : 'high one-way-door decision should fire (harvest_written=true)' },
@@ -66,6 +68,7 @@ const JOURNEYS = [
   },
   {
     name: 'J4 · seal → settle(missed) → recall (the honest miss)',
+    lang: 'ko',
     steps: (dir) => [
       { tool: 'argus_seal', args: { argus_dir: dir, id: 'j4', predicate: '신규 채용이 분기 내 목표를 달성', check_by: '2026-09-01', predicate_owner: 'user', today_override: TODAY } },
       { tool: 'argus_settle', args: { argus_dir: dir, id: 'j4', outcome: 'missed', outcome_source: 'user_stated', what_happened: '목표의 절반만 채용했고 두 명이 초기 이탈함', today_override: '2026-09-15' } },
@@ -74,6 +77,7 @@ const JOURNEYS = [
   },
   {
     name: 'J5 · document review (read, never verdict)',
+    lang: 'ko',
     steps: () => [
       { tool: 'argus_review', args: { text: SAMPLE_DOC, source_kind: 'paste' } },
     ],
@@ -122,9 +126,11 @@ async function main() {
     for (const step of steps) {
       calls++;
       const flags = [];
+      let lastEnv = null;
       try {
         const res = await client.callTool({ name: step.tool, arguments: step.args });
         const { env: envlp, isError } = structured(res);
+        lastEnv = envlp;
 
         // journey-health expectations (light; the lint is the main product)
         if (step.expectError) {
@@ -140,6 +146,25 @@ async function main() {
 
         // the surface lint — runs on every response (ok OR error)
         flags.push(...lintEnvelope(envlp));
+
+        // language drift (M4): a Korean-input journey must not get an English
+        // surface back. First cut used "has any Hangul", but that let an English
+        // FRAME slip through if it merely quoted the user's Korean words ("Open
+        // question P1 closed: '창업자 55/45'"). So measure the Hangul share of the
+        // prose instead — after stripping tool names, file paths and URLs, which
+        // are legitimately Latin even in a Korean surface. Yellow (polish), never fatal.
+        if (journey.lang === 'ko' && envlp && envlp.ok === true && typeof envlp.surface === 'string') {
+          const prose = envlp.surface
+            .replace(/argus_\w+/g, ' ')
+            .replace(/[A-Za-z]:\\[^\s]+/g, ' ')
+            .replace(/https?:\/\/[^\s]+/g, ' ');
+          const hangul = (prose.match(/[가-힣]/g) || []).length;
+          const latin = (prose.match(/[A-Za-z]/g) || []).length;
+          const ratio = hangul + latin === 0 ? 1 : hangul / (hangul + latin);
+          if (ratio < 0.35) {
+            flags.push({ severity: 'yellow', rule: 'language-drift', message: `Korean journey, but this surface is ${Math.round((1 - ratio) * 100)}% English (M4 localization gap)` });
+          }
+        }
       } catch (e) {
         flags.push({ severity: 'red', rule: 'threw', message: String(e?.message ?? e) });
       }
@@ -149,7 +174,14 @@ async function main() {
       journeyRed += r;
       journeyYellow += y;
       const mark = r ? '✗' : y ? '!' : '✓';
-      stepLines.push(`    ${mark} ${step.tool.padEnd(20)} ${flags.length ? flags.map((f) => `[${f.severity === 'red' ? 'RED' : 'yellow'}] ${f.message}`).join('; ') : 'ok'}`);
+      stepLines.push(`    ${mark} ${step.tool}`);
+      // show what the user actually sees — this is the whole point of the loop
+      const shown = lastEnv ?? {};
+      const line = typeof shown.surface === 'string' ? shown.surface : (typeof shown.message === 'string' ? shown.message : '(no surface)');
+      stepLines.push(`        surface: ${JSON.stringify(line)}`);
+      if (Array.isArray(shown.next_actions)) stepLines.push(`        next:    [${shown.next_actions.join(', ')}]`);
+      if (!shown.ok && shown.error_code) stepLines.push(`        error:   ${shown.error_code}  ·  recovery: ${JSON.stringify(shown.recovery ?? shown.recovery_action ?? null)}`);
+      for (const f of flags) stepLines.push(`        ${f.severity === 'red' ? '❗RED' : '·yellow'}: ${f.message}`);
     }
 
     reds += journeyRed;
