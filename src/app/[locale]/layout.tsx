@@ -4,6 +4,7 @@ import { LayoutShell } from '@/components/layout/LayoutShell';
 import { Providers } from '@/components/layout/Providers';
 import { Analytics } from '@/components/layout/Analytics';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
+import { E2EMotionKill } from '@/components/E2EMotionKill';
 import { LocaleProvider } from '@/contexts/LocaleProvider';
 
 export function generateStaticParams() {
@@ -23,6 +24,7 @@ export default async function LocaleLayout({
   return (
     <LocaleProvider locale={locale}>
       <Providers>
+        <E2EMotionKill />
         <Analytics />
         <ErrorBoundary>
           <div className="min-h-screen flex flex-col">
