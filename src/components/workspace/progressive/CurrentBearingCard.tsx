@@ -22,6 +22,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { bearingToMarkdown } from '@/lib/current-bearing';
 import type { CourseStatus, CurrentBearing } from '@/lib/current-bearing';
 import { EASE } from './shared/constants';
+import { renderInline } from './shared/renderMd';
 
 /* Spine rule 4(a): the pill describes the REVIEW STATE, never a directional
  * call. "진행/Proceed" reads as "go" — a machine verdict stamped above the
@@ -129,8 +130,11 @@ export function CurrentBearingCard({
           {L('이 결정이 지금 서 있는 자리 — 한눈 요약이에요. 나중엔 여기서 다시 이어가요.',
              'Where this decision stands right now — a one-glance summary. You come back to this.')}
         </p>
-        <p className="text-[15px] font-semibold leading-snug text-[var(--text-primary)] text-balance md:text-[16px]">
-          {current_course.summary}
+        {/* renderInline: 엔진이 요약에 넣는 **핵심 강조**를 실제 굵게로 렌더한다.
+            (F-2-1) 안 하면 리터럴 '**'가 노출됐고, 렌더하면 창업자 팁 —
+            긴 요약에서 하중 실린 어구가 스캔되게 — 이 자동으로 산다. */}
+        <p className="text-[15px] font-medium leading-snug text-[var(--text-primary)] text-balance md:text-[16px]">
+          {renderInline(current_course.summary)}
         </p>
 
         {showActions && (
@@ -178,7 +182,7 @@ export function CurrentBearingCard({
               {reasons.map((r, i) => (
                 <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
                   <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
-                  <span>{r.point}</span>
+                  <span>{renderInline(r.point)}</span>
                 </li>
               ))}
             </ul>
@@ -191,7 +195,7 @@ export function CurrentBearingCard({
             icon={<AlertTriangle size={12} style={{ color: 'var(--gold)' }} />}
           >
             <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
-              {fog_or_reef.issue}
+              {renderInline(fog_or_reef.issue)}
             </p>
             {fog_or_reef.required_check && (
               <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-tertiary)]">
