@@ -59,6 +59,16 @@ describe('buildCompanionBrief', () => {
     expect(md).toContain('답장으로 알려주세요');
   });
 
+  it('names the terminal way home when a due judgment was sealed in the terminal (§9.4 귀환 봉합)', () => {
+    const mcpItem: DueReceiptBrief = { ...item, origin: 'mcp' };
+    const md = buildCompanionBrief([mcpItem]).markdown;
+    expect(md).toContain('/argus-settle');
+    expect(md).toContain('argus_sync');
+    // web-only briefs stay untouched — no terminal jargon for web users
+    expect(buildCompanionBrief([{ ...item, origin: 'web' }]).markdown).not.toContain('/argus-settle');
+    expect(buildCompanionBrief([item]).markdown).not.toContain('/argus-settle');
+  });
+
   it('renders a proactive change alert with fact + source + date + a neutral question (E)', () => {
     const change: DueReceiptBrief = {
       source_title: '금리 전제 메모', core_question: '지금 조달할까?', predicates: [],

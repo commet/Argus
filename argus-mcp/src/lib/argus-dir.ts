@@ -1,4 +1,5 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { boundMarkerPath } from './layout.js';
 
@@ -29,6 +30,16 @@ export function requireArgusDir(callArg: unknown): string {
   if (typeof callArg !== 'string' || callArg.length === 0) {
     throw new ArgusDirError('argus_dir is required (absolute path to the .argus directory).');
   }
+  // An unexpanded config variable is the #1 Claude Desktop first-run failure:
+  // only Claude Code expands ${CLAUDE_PROJECT_DIR}, so Desktop passes the
+  // literal string through. Name the actual problem instead of "not absolute".
+  if (/\$\{[^}]*\}|%[A-Za-z_]+%/.test(callArg)) {
+    throw new ArgusDirError(
+      `Your MCP host did not expand the variable in "${callArg}" (only some hosts interpolate env vars). ` +
+        'Replace it with an absolute path in your MCP config (e.g. "C:\\Users\\you\\.argus" or "/Users/you/.argus"), ' +
+        'or remove ARGUS_DIR entirely to use the default ~/.argus.',
+    );
+  }
   const resolved = path.resolve(callArg);
   if (!path.isAbsolute(callArg)) {
     throw new ArgusDirError('argus_dir must be an absolute path.');
@@ -50,9 +61,10 @@ export function resolveToolArgusDir(callArg: unknown): string {
   if (typeof callArg === 'string' && callArg.length > 0) return requireArgusDir(callArg);
   const env = process.env['ARGUS_DIR'];
   if (typeof env === 'string' && env.length > 0) return requireArgusDir(env);
-  throw new ArgusDirError(
-    'No argus_dir given and ARGUS_DIR is not set. Pass an absolute argus_dir, or set "ARGUS_DIR" in your MCP config env (then you can omit it every call).',
-  );
+  // Zero-config default (blueprint §9.4 "첫 설치의 문"): a brand-new user on a
+  // host without env interpolation still gets a working home for their ledger.
+  // Per-call argus_dir and ARGUS_DIR both keep winning over this.
+  return path.join(os.homedir(), '.argus');
 }
 
 /** Record the bound dir so Resources (which get no args) can find it later. */

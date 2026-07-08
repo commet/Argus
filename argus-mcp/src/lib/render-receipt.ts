@@ -18,20 +18,24 @@ export interface ReceiptPremisesInfo {
   changed_at_recheck: number;
 }
 
-export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo): string {
+export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo, locale: SurfaceLocale = 'en'): string {
+  const R = SURFACES[locale].receipt;
   const L: string[] = [];
   const sealed = r.created_at ? r.created_at.slice(0, 10) : '—';
-  const settled = r.settled_at ? r.settled_at.slice(0, 10) : 'Not yet settled';
+  const settled = r.settled_at ? r.settled_at.slice(0, 10) : R.not_settled;
 
-  L.push('┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐');
-  L.push(`  Sealed ${sealed}      Settled ${settled}`);
+  const top = '┌─ ' + R.header + ' ' + '─'.repeat(Math.max(2, 56 - R.header.length)) + '┐';
+  const bottom = '└' + '─'.repeat(Math.max(2, 52 - R.footer.length)) + '  ' + R.footer + ' ─┘';
+
+  L.push(top);
+  L.push(`  ${R.sealed_label} ${sealed}      ${R.settled_label} ${settled}`);
   const skipped = new Set(r.skipped ?? []);
-  const show = (v: string, field: string): string => (skipped.has(field) ? '— (you skipped naming this)' : wrap(v));
+  const show = (v: string, field: string): string => (skipped.has(field) ? R.skipped : wrap(v));
 
   L.push('');
-  L.push('  THE REAL QUESTION');
+  L.push(`  ${R.real_question}`);
   L.push(`    ${show(r.real_question, 'real_question')}`);
-  L.push('  THE UNVERIFIED ASSUMPTION');
+  L.push(`  ${R.unverified_assumption}`);
   const assumptionSkipped = skipped.has('unverified_assumption');
   if (assumptionSkipped && premises?.headline) {
     // The premise set is canonical — a tracked load-bearing premise stands in
@@ -41,22 +45,23 @@ export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo): strin
     L.push(`    ${show(r.unverified_assumption, 'unverified_assumption')}`);
   }
   if (premises && premises.tracked > 0) {
-    L.push(`    (+${premises.tracked} premise(s) tracked · ${premises.changed_at_recheck} changed at re-check — argus_recall view=premises)`);
+    L.push(`    ${R.premises_note(premises.tracked, premises.changed_at_recheck)}`);
   }
-  L.push(`  HUMAN-ONLY CALL   ${show(r.human_only, 'human_only')}`);
-  L.push('  …made by          Me. (not the model)');
+  const labelWidth = Math.max(R.human_only.length, R.made_by_label.length, R.called_as.length) + 3;
+  L.push(`  ${R.human_only.padEnd(labelWidth)}${show(r.human_only, 'human_only')}`);
+  L.push(`  ${R.made_by_label.padEnd(labelWidth)}${R.made_by}`);
   if (r.basis) {
-    L.push(`  …called as        ${r.basis}`);
+    L.push(`  ${R.called_as.padEnd(labelWidth)}${r.basis}`);
   }
   L.push('');
-  L.push(`  YOU PREDICTED   "${wrap(r.predicate)}"   (check-by ${r.check_by})`);
+  L.push(`  ${R.you_predicted}   "${wrap(r.predicate)}"   ${R.check_by(r.check_by)}`);
   if (r.what_happened) {
-    L.push(`  WHAT HAPPENED   ${wrap(r.what_happened)}`);
+    L.push(`  ${R.what_happened}   ${wrap(r.what_happened)}`);
   }
   L.push('  ─────────────────────────────────────────────────────────');
-  L.push('  AI VERDICT ON THIS DECISION ······················  NONE');
-  L.push('  The model never graded you. Reality did.');
-  L.push('└────────────────────────────────  argus · seal → settle ⚓ ─┘');
+  L.push(`  ${R.verdict_line}`);
+  L.push(`  ${R.closing}`);
+  L.push(bottom);
   return L.join('\n');
 }
 

@@ -53,6 +53,38 @@ const EVIDENCE: Record<string, string[]> = {
   '공정 5': [],
 };
 
+/** §9 MCP 재건축 트랙(공정 M0~M4)의 exit 증거 — 같은 계약, 같은 규약.
+ *  §9는 §6과 헤딩 형식이 다르므로(볼드 문단) 별도 파서로 감시한다 —
+ *  M-트랙을 사각지대로 두면 이 테스트가 존재하는 이유가 무색해진다. */
+const EVIDENCE_M: Record<string, string[]> = {
+  '공정 M0': [
+    'argus-mcp/src/lib/__tests__/resolve-tool-argus-dir.test.ts', // 무설정 첫 도구 호출 → ~/.argus fixture
+    'argus-mcp/src/lib/__tests__/resolve-tool-argus-dir.test.ts', // 미확장 ${...} 전용 에러
+    'argus-mcp/src/tools/__tests__/m0-doors-and-language.test.ts', // ko 여정 receipt_text 전문 한국어
+    'argus-mcp/src/tools/__tests__/m0-doors-and-language.test.ts', // check_in due 상한
+    'src/lib/__tests__/companion-brief.test.ts', // 이메일 페이로드에 터미널 명령
+  ],
+  '공정 M1': [],
+  '공정 M2': [],
+  '공정 M3': [],
+  '공정 M4': [],
+};
+
+function readBlueprintMTrackSections(): Map<string, string> {
+  const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
+  const s9Start = md.indexOf('## §9.');
+  if (s9Start === -1) return new Map(); // §9 없으면 M-트랙도 없다
+  const s9 = md.slice(s9Start, md.indexOf('## 마지막 장'));
+  const sections = new Map<string, string>();
+  const headings = [...s9.matchAll(/^\*\*(공정 M\d+)[^\n]*\*\*$/gm)];
+  for (let i = 0; i < headings.length; i++) {
+    const start = headings[i].index! + headings[i][0].length;
+    const end = i + 1 < headings.length ? headings[i + 1].index! : s9.indexOf('**exit 체크 규약');
+    sections.set(headings[i][1], s9.slice(start, end === -1 ? undefined : end));
+  }
+  return sections;
+}
+
 function readBlueprintProcessSections(): Map<string, string> {
   const md = readFileSync(join(process.cwd(), 'docs/ARGUS-BLUEPRINT.md'), 'utf8');
   const s6Start = md.indexOf('## §6.');
@@ -89,6 +121,36 @@ describe('BLUEPRINT §6 exit 체크 증거 계약', () => {
 
   it('기계 증거 경로는 전부 리포에 실존한다', () => {
     for (const [name, entries] of Object.entries(EVIDENCE)) {
+      for (const entry of entries) {
+        if (entry.startsWith('manual: ')) {
+          expect(entry.length, `${name}의 manual 증거는 무엇을/누가 확인했는지 적어야 함`).toBeGreaterThan(20);
+          continue;
+        }
+        expect(existsSync(join(process.cwd(), entry)), `${name}의 증거 파일이 없음: ${entry}`).toBe(true);
+      }
+    }
+  });
+});
+
+describe('BLUEPRINT §9 M-트랙 exit 체크 증거 계약 (같은 규약)', () => {
+  const sections = readBlueprintMTrackSections();
+
+  it('§9에서 다섯 M-공정을 모두 찾는다', () => {
+    expect([...sections.keys()]).toEqual(['공정 M0', '공정 M1', '공정 M2', '공정 M3', '공정 M4']);
+  });
+
+  it.each([...readBlueprintMTrackSections().keys()])('%s: 체크된 exit 수 == 등록된 증거 수', (name) => {
+    const body = sections.get(name)!;
+    const checked = (body.match(/\[x\]/g) || []).length;
+    const evidence = EVIDENCE_M[name] || [];
+    expect(
+      evidence.length,
+      `${name}의 [x]는 ${checked}개인데 EVIDENCE_M 맵에는 ${evidence.length}개 — 체크(또는 취소)와 같은 커밋에서 맵을 갱신할 것`,
+    ).toBe(checked);
+  });
+
+  it('M-트랙 기계 증거 경로도 전부 리포에 실존한다', () => {
+    for (const [name, entries] of Object.entries(EVIDENCE_M)) {
       for (const entry of entries) {
         if (entry.startsWith('manual: ')) {
           expect(entry.length, `${name}의 manual 증거는 무엇을/누가 확인했는지 적어야 함`).toBeGreaterThan(20);

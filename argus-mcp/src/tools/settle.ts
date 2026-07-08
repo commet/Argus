@@ -7,7 +7,7 @@ import { writeSettleReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { elicit, canElicit } from '../lib/elicit.js';
 import { renderReceipt } from '../lib/render-receipt.js';
-import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
+import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
 import { resolvePremiseRef, receiptPremisesInfo } from '../lib/premises.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -93,7 +93,8 @@ export const settle: ToolModule = {
       }
 
       // Response voice follows what-happened (M4): config > text > env.
-      const T = SURFACES[resolveResponseLocale(dir, a['what_happened'] as string | undefined)].tools.settle;
+      const locale = resolveResponseLocale(dir, a['what_happened'] as string | undefined);
+      const T = SURFACES[locale].tools.settle;
 
       const now = new Date().toISOString();
       await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
@@ -112,7 +113,7 @@ export const settle: ToolModule = {
         ? ''
         : sync.reason === 'no_token'
           ? ''
-          : T.sync_failed(String(sync.reason));
+          : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
 
       return envelope({
         ok: true, tool: 'argus_settle',
@@ -127,7 +128,7 @@ export const settle: ToolModule = {
           ...(sync.synced ? {} : { account_sync_reason: sync.reason }),
           receipt,
           // The premise set is canonical — the receipt's summary renders from the fold (plan v5 §3.3).
-          receipt_text: renderReceipt(receipt, receiptPremisesInfo(current.entry)),
+          receipt_text: renderReceipt(receipt, receiptPremisesInfo(current.entry), locale),
         },
       });
     } catch (e) {

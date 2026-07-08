@@ -35,6 +35,30 @@ export function surfaceLocale(argusDir?: string | null): SurfaceLocale {
   return configLocale(argusDir) ?? 'en';
 }
 
+/** Turn a machine sync-failure reason (push-account.ts enum) into a human
+ *  sentence fragment — the raw token ("bad_token_format") used to be spliced
+ *  straight into the seal confirmation (§9.4 경계 수리). Unknown reasons pass
+ *  through untranslated (honest, still short). */
+export function humanizeSyncReason(reason: string, locale: SurfaceLocale): string {
+  const http = /^http_(\d+)$/.exec(reason);
+  if (locale === 'ko') {
+    if (reason === 'bad_token_format') return '토큰 형식이 잘못됐습니다 (argus_pat_로 시작해야 합니다)';
+    if (reason === 'insecure_api_url') return 'API 주소가 https가 아니라 토큰을 보내지 않았습니다';
+    if (reason === 'network') return '네트워크에 닿지 못했습니다';
+    if (http) return http[1] === '401' || http[1] === '403'
+      ? `토큰이 거부됐습니다 (HTTP ${http[1]}) — 만료됐을 수 있으니 웹 설정에서 새 토큰을 발급하세요`
+      : `서버가 ${http[1]}로 응답했습니다`;
+    return reason;
+  }
+  if (reason === 'bad_token_format') return 'the token looks malformed (it should start with argus_pat_)';
+  if (reason === 'insecure_api_url') return 'the API URL is not https, so the token was not sent';
+  if (reason === 'network') return 'the network was unreachable';
+  if (http) return http[1] === '401' || http[1] === '403'
+    ? `the token was rejected (HTTP ${http[1]}) — it may be expired; issue a new one in web Settings`
+    : `the server answered ${http[1]}`;
+  return reason;
+}
+
 /** The explicit config locale, or null when no config.yaml declares one.
  *  Distinct from surfaceLocale so the response-locale chain can tell an
  *  EXPLICIT `locale: en` (config wins, never overridden) apart from the
@@ -159,6 +183,31 @@ export interface SurfaceStrings {
     more: (n: number) => string;
     record_since: (date: string) => string;
   };
+  /** receipt_text — the settled Judgment Receipt, the product's keepsake
+   *  artifact (FC-2: it was the ONE renderer left outside the locale brain —
+   *  a Korean user sealed and settled in Korean and got an English receipt).
+   *  The `AI VERDICT … NONE` line is brand DNA and stays English in every
+   *  locale (it is the OG image's centerpiece, same on web). */
+  receipt: {
+    header: string;
+    sealed_label: string;
+    settled_label: string;
+    not_settled: string;
+    real_question: string;
+    unverified_assumption: string;
+    human_only: string;
+    made_by_label: string;
+    made_by: string;
+    called_as: string;
+    skipped: string;
+    premises_note: (tracked: number, changed: number) => string;
+    you_predicted: string;
+    check_by: (date: string) => string;
+    what_happened: string;
+    verdict_line: string;
+    closing: string;
+    footer: string;
+  };
   /** happy-path one-liners for the 6 tools that still spoke English regardless
    *  of locale (dogfood FINDINGS-2 §2: open_decision/seal/settle/recheck/amend/
    *  dismiss). Rich receipts, errors and nudges were already localized; only
@@ -268,6 +317,27 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       more: (n) => `… (+${n})`,
       record_since: (date) => `on record since ${date}`,
     },
+    receipt: {
+      header: 'ARGUS · JUDGMENT RECEIPT',
+      sealed_label: 'Sealed',
+      settled_label: 'Settled',
+      not_settled: 'Not yet settled',
+      real_question: 'THE REAL QUESTION',
+      unverified_assumption: 'THE UNVERIFIED ASSUMPTION',
+      human_only: 'HUMAN-ONLY CALL',
+      made_by_label: '…made by',
+      made_by: 'Me. (not the model)',
+      called_as: '…called as',
+      skipped: '— (you skipped naming this)',
+      premises_note: (tracked, changed) =>
+        `(+${tracked} premise(s) tracked · ${changed} changed at re-check — argus_recall view=premises)`,
+      you_predicted: 'YOU PREDICTED',
+      check_by: (date) => `(check-by ${date})`,
+      what_happened: 'WHAT HAPPENED',
+      verdict_line: 'AI VERDICT ON THIS DECISION ······················  NONE',
+      closing: 'The model never graded you. Reality did.',
+      footer: 'argus · seal → settle ⚓',
+    },
     tools: {
       open_decision: {
         reason: {
@@ -362,6 +432,28 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settled_group: (n, held, avoided, partial) => `정산됨 (${n}) — held ${held} · avoided ${avoided} · partial ${partial}`,
       more: (n) => `… (+${n})`,
       record_since: (date) => `기록 시작 ${date} 부터`,
+    },
+    receipt: {
+      header: 'ARGUS · 판단 영수증',
+      sealed_label: '봉인',
+      settled_label: '정산',
+      not_settled: '아직 정산 전',
+      real_question: '진짜 질문',
+      unverified_assumption: '검증 안 된 전제',
+      human_only: '사람만의 콜',
+      made_by_label: '…내린 사람',
+      made_by: '나. (모델이 아니라)',
+      called_as: '…콜한 내용',
+      skipped: '— (이름 붙이지 않고 넘어갔습니다)',
+      premises_note: (tracked, changed) =>
+        `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건 — argus_recall view=premises)`,
+      you_predicted: '당신의 예측',
+      check_by: (date) => `(확인일 ${date})`,
+      what_happened: '실제로 일어난 일',
+      // 브랜드 DNA — 웹 OG 이미지와 동일하게 이 줄만은 영문 유지 (§9.3)
+      verdict_line: 'AI VERDICT ON THIS DECISION ······················  NONE',
+      closing: '모델은 당신을 채점하지 않았습니다. 현실이 답했습니다.',
+      footer: 'argus · 봉인 → 정산 ⚓',
     },
     tools: {
       open_decision: {

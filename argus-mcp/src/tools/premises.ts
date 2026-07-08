@@ -61,6 +61,7 @@ const zPremiseInput = z.strictObject({
   materiality_rule: zMaterialityRule.optional().describe('Optional: how re-checks decide "did this materially change?". Absent → an under-fire default heuristic (silence when unsure). Define it to be precise (e.g. threshold "drops below 4.0", step "any one-notch credit downgrade").'),
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional: how many days between reality re-checks for this fact (M1). Absent → a default derived from the rule type (a moving number is checked more often than slow-moving state). The user pins this; it only moves the DUE nudge, never blocks a recheck.'),
   reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('Optional (kind="open_question" only): how many days between reconsider nudges — a "come back and see if you can answer this yet" timer (M3). Absent → a sensible default. Leaving the question open stays a valid answer; this only moves the nudge, never forces a resolution.'),
+  reconsider_cadence_days: z.number().int().min(1).max(365).optional().describe('Alias of reponder_cadence_days (the historical field name) — either spelling is accepted.'),
 });
 
 const inputSchema = z.strictObject({
@@ -76,6 +77,7 @@ const inputSchema = z.strictObject({
   load_bearing: z.boolean().optional().describe('op=amend: correct the load-bearing flag.'),
   recheck_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend: re-set how often (days) this fact is re-checked (M1). Widens or narrows the DUE nudge; never blocks an explicit recheck.'),
   reponder_cadence_days: z.number().int().min(1).max(365).optional().describe('op=amend/still_open: re-set how often (days) this open question is nudged for reconsideration (M3). Only moves the nudge — never forces a resolution.'),
+  reconsider_cadence_days: z.number().int().min(1).max(365).optional().describe('Alias of reponder_cadence_days (the historical field name) — either spelling is accepted.'),
   decision: z.string().min(1).max(400).optional().describe('op=resolve: the user\'s own closing call. MUST be the user\'s words — never an Argus-drafted line.'),
   today_override: zDate.optional(),
 });
@@ -101,6 +103,23 @@ export const premises: ToolModule = {
       const today = resolveToday({ override: a['today_override'] as string | undefined });
       const op = String(a['op']);
       const now = new Date().toISOString();
+
+      // Alias normalization (§9.4 경계 수리): `reponder_cadence_days` is the
+      // historical (misspelled) field a model reasoning from the description
+      // will naturally write as `reconsider_cadence_days`. Accept both, store one.
+      if (typeof a['reconsider_cadence_days'] === 'number' && typeof a['reponder_cadence_days'] !== 'number') {
+        a = { ...a, reponder_cadence_days: a['reconsider_cadence_days'] };
+      }
+      if (Array.isArray(a['premises'])) {
+        a = {
+          ...a,
+          premises: (a['premises'] as Array<Record<string, unknown>>).map((p) =>
+            typeof p['reconsider_cadence_days'] === 'number' && typeof p['reponder_cadence_days'] !== 'number'
+              ? { ...p, reponder_cadence_days: p['reconsider_cadence_days'] }
+              : p,
+          ),
+        };
+      }
 
       const current = resolveContract(dir, id, today);
       const existing: PremiseState[] = current.entry?.premises ?? [];

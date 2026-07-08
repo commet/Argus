@@ -4,7 +4,7 @@ import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { readReceipt } from '../lib/receipt.js';
 import { renderReceipt, renderWake, type WakeContractRow } from '../lib/render-receipt.js';
-import { surfaceLocale } from '../lib/surfaces.js';
+import { surfaceLocale, resolveResponseLocale } from '../lib/surfaces.js';
 import type { LedgerState } from '../lib/ledger-replay.js';
 import { isMonitored, isDueForRecheck, receiptPremisesInfo, recheckCadenceDays, nextRecheckDue, isReconsiderable, isDueForReconsider, reponderCadenceDays, nextReponderDue, isNudgeArmed } from '../lib/premises.js';
 import { z } from 'zod';
@@ -55,9 +55,12 @@ export const recall: ToolModule = {
         }
         // The premise set is canonical — the receipt renders its summary from the fold (plan v5 §3.3).
         const pInfo = receiptPremisesInfo(replayLedger(dir, today).contracts.get(id));
+        // Receipt voice follows the user's own predicate (FC-2): the keepsake
+        // artifact must speak the language it was sealed in.
+        const receiptLocale = resolveResponseLocale(dir, r.predicate);
         return envelope({
           ok: true, tool: 'argus_recall', surface: 'Receipt recalled.',
-          next_actions: ['stop'], data: { receipt: r, receipt_text: renderReceipt(r, pInfo) },
+          next_actions: ['stop'], data: { receipt: r, receipt_text: renderReceipt(r, pInfo, receiptLocale) },
         });
       }
 
