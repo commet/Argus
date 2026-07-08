@@ -167,7 +167,7 @@ export function AnalysisCard({
                 what happens next. Hidden after round 1 since by then the
                 user already knows the pattern. */}
             {!prevSnapshot && (
-              <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed mb-3">
+              <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-3">
                 {L('이 방향이 맞나요? 한 번 더 짚어볼게요.', "Does this heading look right? We'll check once more.")}
               </p>
             )}

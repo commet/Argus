@@ -97,3 +97,28 @@ RUBRIC.md 기준. 각 finding = 증상(측정값 포함) + 진단(파일:줄/프
   여러 표면이 정확히 11px → 공통 컴포넌트/패턴 의심.
 집도: 다음 루프에서 공통 소스 추적 후 일괄. (P2, 회귀 아님)
 상태: open (loop 5 batch)
+
+---
+
+## Loop 5 — 가독성 공통 소스
+
+### F-4-2 부분 → fixed
+AnalysisCard.tsx:170 본문 문장 11px→12px+secondary. 이 카드가 질문·사다리·
+방위 여러 표면에 떠서 한 수정이 다표면 개선. 남은 11px는 대부분 카운트/칩/
+라벨(관례적 소형) — 본문 하한과 무관.
+
+---
+
+## ▶ 다음 세션 재개 절차 (context 압축 후 이어받기)
+
+1. `preview_start`로 dev 서버(:3000) 띄우고 200 확인.
+2. `node scripts/uiux-loop/run.mjs --scenario N --tries 4` — 완주까지 자동 재시도.
+   (N: 0=동탄매수 1=채용vs외주 2=가격대응, 시나리오 돌려가며)
+3. `node scripts/uiux-loop/check.mjs` — 스파인·마크다운·가독성·레일 자동 진단.
+   P0/P1 있으면 그 표면 gallery/*.png 읽고 집도.
+4. 이 LEDGER를 읽어 open findings 확인 → RUBRIC 순서(P0>P1>P2, 여정 앞쪽)로 집도.
+5. 한 루프 = findings 3~6개 집도 → 재캡처+check로 검증 → 커밋 → PR 머지.
+6. 1~8루프 UX, 9루프+ 내용/엔진(프롬프트) 비중↑ (RUBRIC 규율).
+
+현재 상태: P0=0, P1=0, P2=가독성 잔여(대부분 관례적 소형 라벨). 세 완성
+카드 구별·마크다운 렌더·레일 정합·손톱0 전부 green.
