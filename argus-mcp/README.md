@@ -117,7 +117,9 @@ fails to start, use:
 ## Two loops
 
 Argus runs two loops side by side — the same three-routine workout its author
-uses daily (seal → surface → return):
+uses daily: **봉인하기** (seal it before you ask the AI) · **드러내기**
+(surface what you swallowed while working) · **돌아보기** (return when
+reality has answered):
 
 - **The daily watch** (`argus_watch`) — turns over once a *day*. In the morning
   (or whenever a session starts) you anchor one line: today's aim, your working
