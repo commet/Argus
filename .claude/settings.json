@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/anc-cloud-hook.js"
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/anc-cloud-hook.js\""
           }
         ]
       }
