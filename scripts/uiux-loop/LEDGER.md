@@ -426,6 +426,43 @@ buildHonestyScanPrompt/coerceHonestyFlags/locateFlag. precision-over-recall(사�
 
 ---
 
+## Loop 18 — 보편 점수 루프(위임): 사업 3종 탈피 → 12 도메인 × 독립 다축 채점
+
+창업자 위임("더 조져·다양·참신·보편·점수로 판단·여러차례"). score-harness.ts 신설:
+보편 결정 12종(커리어·관계·건강·재정·윤리·창작·사소·육아·이주·피벗·막연·부모봉양)
+× 독립 심판 4축(usefulness/spine/honesty/fit) 0~100. 심판 type-aware(flat/vent를
+restraint 품질로, open은 날카로움으로 — 오보정 수정).
+
+### 점수 궤적: 77 → 80
+- R1(심판 오보정): flat/vent 28점 오탐 → type-aware 수정.
+- R2 baseline 77: fit 78, spine 72, usefulness 75, honesty 86. 최악-축 usefulness 8/12.
+- R3 수정후 80: fit 84(+6), usefulness 78, honesty 86, spine 75.
+
+### F-18-1 · P0 · crisis 게이트 over-fire (점수 루프 1순위 발견) · fixed
+ethical-내부고발이 crisis로 **비결정적** 오분류(1차 open/2차 crisis)→skeleton 통째
+비고 3축 폭락(28/45/38). 근원: LLM GATE A가 "무거운 커리어/재정 스테이크"를 안전
+위기로 오독(결정적 regex는 영어만이라 무발화 확인). 가드: "CRISIS=사람에게 임박한
+해악, 고-스테이크 결정 아님; 내부고발·큰투자·피벗은 OPEN; financial ruin은 실제
+사기/강요 신호 필요, '대박이래' 낙관 아님". crisis-stability-check.ts로 검증:
+내부고발·전재산투자·수술 open 4/4(안정), 진짜 위기(자해) crisis 4/4(under-fire 없음).
+
+### F-18-2 · P2 · OPEN skeleton/next_question이 generic · 부분 fixed
+usefulness 최악-축 8/12: "generic 컨설팅/범용 체크리스트". skeleton에 앵커 규칙+
+self-check("낯선 사람 같은-범주에 word-for-word면 generic") 추가, 날조 방지 실 포함.
+usefulness 75→78. 잔여: "체크리스트 느낌"은 LLM 기저 성향이라 더 밀면 수치 날조
+위험(실측: creative에서 '3개월/50%' 날조 1건) — 트레이드오프.
+
+### 잔여 타깃 (트레이드오프 있음 — 창업자 steer 유익)
+- spine 75(2순위): 감정/탐색 결정(결혼·이주)에 즉시 구조화 over-fire. restraint
+  방향이라 저-날조지만 flagship 분류 손대야.
+- vent next_question=null(설계) vs "부담없는 여는 질문 1개"(UX) 긴장.
+
+### 신설 하네스 (상시)
+score-harness.ts(보편 다축 채점) · crisis-stability-check.ts(게이트 안정성) —
+재실행으로 회귀·개선 상시 측정 가능.
+
+---
+
 ## 하네스 커버리지 현황 (loop 16 기준)
 3개 시나리오 × {라이트, 다크} × {데스크톱 960, 모바일 390} 완주 캡처 가능.
 자동 검사: 스파인·마크다운·가독성(위반문 텍스트까지)·레일·커버리지. 재시도 래퍼로
