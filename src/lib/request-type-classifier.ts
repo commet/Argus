@@ -15,20 +15,38 @@
  * NOTE: this is the webapp twin of the plugin gate; the LLM may still refine the
  * type downstream. The default is the conservative one — a false non-open ejects
  * a real decision from the engine, which is the more harmful error.
+ *
+ * ⚠ CURRENTLY UNWIRED (loop-14 audit, 2026-07-10). Unlike its sibling
+ * `classifyCrisis` — which runs deterministically IN FRONT of the LLM in
+ * runInitialAnalysis — this classifier has NO call site in src outside tests.
+ * The live STEP-0 gate for validation/vent/info is the LLM
+ * (buildInitialAnalysisPrompt); a probe (scripts/uiux-loop/step0-probe.ts)
+ * confirmed sonnet-4-6 classifies the adversarial cases correctly, so this
+ * deterministic twin is a *reference/backstop*, not the live path. Do NOT wire it
+ * as an OVERRIDE: it is cruder than the LLM (it misses "때려치우고 싶다"-style
+ * vents) and a hard override would REGRESS by ejecting real decisions the LLM
+ * handles. If wired at all, wire it as a soft PRIOR/hint (weak-tier defense per
+ * the R29 ~44%-ignore note in progressive-engine.ts), never a hard gate.
  */
 
 export type RequestType = 'open_decision' | 'validation' | 'vent' | 'info';
 export type Readiness = 'ready' | 'resistance';
 
-/** Already-decided signals: the user wants a pressure-check, not a re-frame. */
+/** Already-decided signals: the user wants a pressure-check, not a re-frame.
+ *  Includes CONCRETE completed actions (loop-14 gap: "이미 사인했어. 끝난 얘기야."
+ *  matched none of the abstract decide-verbs and leaked to open_decision, where the
+ *  engine re-opened a closed decision — the mirror-clause violation). */
 const VALIDATION_SIGNALS: RegExp[] = [
   /이미\s*(정했|결정했|정해|골랐|하기로\s*했)/,
+  /이미\s*(샀|팔았|계약했|사인했|서명했|보냈|제출했|올렸|배포했|출시했|결제했|주문했|끝냈|접수했)/,
+  /끝난\s*(얘기|일|건|거)(야|예요|입니다|다)?/,
   /하기로\s*했(는데|고|어)/,
   /(정했|결정했)(는데|고|어|음)/,
   /확인만|점검만|sanity\s*check/i,
   /\bgoing\s+with\b/i,
-  /\balready\s+(decided|chosen|set|going\s+with)\b/i,
+  /\balready\s+(decided|chosen|set|going\s+with|signed|bought|sold|sent|shipped|submitted|launched|paid|ordered)\b/i,
   /\bwe['’]?re\s+going\s+with\b/i,
+  /\bit['’]?s\s+(a\s+)?done\b|\bit['’]?s\s+done\b/i,
 ];
 
 /** Emotional processing, not a decision request. */
@@ -41,11 +59,19 @@ const VENT_SIGNALS: RegExp[] = [
   /그냥\s*(넋두리|푸념|하소연)/,
 ];
 
-/** Plain factual / how-to questions — no decision to make. */
+/** Plain factual / how-to questions — no decision to make.
+ *  Includes where/when/who + physical-quantity forms (loop-14 gap: "…가 어디야?",
+ *  "몇 도에서 끓어?" leaked to open_decision and got a fabricated crux). Units are
+ *  kept to fact-recall ones (도/층/살/%) — NOT decision-prone ones (개/명/원) — so a
+ *  real "몇 명 뽑을까" stays open. The `!hasAction` guard below is the safety net. */
 const INFO_SIGNALS: RegExp[] = [
   /^(어떻게|뭐(예요|야|지)|무엇|설명(해|좀)|원리가|차이가\s*뭐)/,
   /^(how\s+(do|does|to|can)|what\s+(is|are|does)|explain|why\s+does)/i,
   /\b(뜻이|의미가|정의가)\s*(뭐|무엇)/,
+  /(어디|언제|누구)(야|예요|이야|인가요?|입니까|니|냐)\s*\??$/,
+  /몇\s*(도|층|살|년생|퍼센트|프로|%)/,
+  /\b(where|when|who)\s+(is|are|was|were)\b/i,
+  /\bhow\s+(much|many|long|far|old)\b/i,
 ];
 
 /** Action / decision framing — distinguishes a real question from a vent/info. */
