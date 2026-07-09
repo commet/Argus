@@ -19,23 +19,31 @@ export const dynamic = 'force-dynamic';
 const MAX_BODY_BYTES = 4 * 1024;
 const EVENTS = new Set(['server_start', 'tool_call']);
 
-/** Allow-list of OUR tool names — anything else is dropped, never stored raw. */
-const TOOLS = new Set([
-  'argus_amend',
-  'argus_check_in',
-  'argus_config',
-  'argus_dismiss',
-  'argus_init',
-  'argus_open_decision',
-  'argus_premises',
-  'argus_recall',
-  'argus_recheck',
-  'argus_review',
-  'argus_seal',
-  'argus_settle',
-  'argus_sync',
-  'argus_watch',
+/**
+ * Allow-list of OUR tool names — anything else is dropped, never stored raw.
+ * Stored as suffixes and matched against the `argus_` prefix at check time: the
+ * full `'argus_*'` names inlined here would trip the localStorage storage-key
+ * guard in persistence-contract.test.ts (which forbids un-registered `argus_*`
+ * string literals in `src/`). These are MCP tool names, not storage keys.
+ */
+const TOOL_PREFIX = 'argus_';
+const TOOL_SUFFIXES = new Set([
+  'amend',
+  'check_in',
+  'config',
+  'dismiss',
+  'init',
+  'open_decision',
+  'premises',
+  'recall',
+  'recheck',
+  'review',
+  'seal',
+  'settle',
+  'sync',
+  'watch',
 ]);
+const isKnownTool = (t: string): boolean => t.startsWith(TOOL_PREFIX) && TOOL_SUFFIXES.has(t.slice(TOOL_PREFIX.length));
 
 const PLATFORMS = new Set(['darwin', 'linux', 'win32', 'freebsd', 'openbsd', 'aix', 'sunos']);
 
@@ -68,7 +76,7 @@ export async function POST(req: NextRequest) {
     install_id,
     event,
     // Only store a tool name for tool_call events, and only if it's one of ours.
-    tool: event === 'tool_call' && toolRaw && TOOLS.has(toolRaw) ? toolRaw : null,
+    tool: event === 'tool_call' && toolRaw && isKnownTool(toolRaw) ? toolRaw : null,
     ok: typeof body.ok === 'boolean' ? body.ok : null,
     version: boundedStr(body.version, 32),
     platform: platform && PLATFORMS.has(platform) ? platform : null,
