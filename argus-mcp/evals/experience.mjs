@@ -126,14 +126,22 @@ async function runPersona(persona) {
     transcript.push({ role: 'user', day: turn.day, text: turn.says });
 
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-      const res = await chat({ model: HOST_MODEL, system: hostSystem(persona), messages, tools: toolDefs, maxTokens: 1024 });
+      // 2048, not 1024: "seal all three" makes the host emit 3 parallel tool_use
+      // blocks (predicate + date each). At 1024 the response truncated mid-call,
+      // stop_reason flipped to 'max_tokens', and the old break below left those
+      // tool_use ids WITHOUT tool_results → the next turn 400'd. That harness bug
+      // masked the real result: the model WAS trying to batch-seal.
+      const res = await chat({ model: HOST_MODEL, system: hostSystem(persona), messages, tools: toolDefs, maxTokens: 2048 });
       metrics.model_calls++;
       messages.push({ role: 'assistant', content: res.content });
       const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join(' ').trim();
       if (text) transcript.push({ role: 'assistant', text });
 
+      // ANY tool_use must be answered with a tool_result, whatever the
+      // stop_reason — otherwise the next request is malformed. Only break when
+      // the model asked for nothing.
       const uses = res.content.filter((b) => b.type === 'tool_use');
-      if (res.stop_reason !== 'tool_use' || uses.length === 0) break;
+      if (uses.length === 0) break;
 
       const results = [];
       for (const u of uses) {
