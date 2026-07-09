@@ -689,10 +689,35 @@ export interface LeanAfter {
   recorded_at: string;
 }
 
+/** One unverified fact the honesty scan (loop-17) flagged in the analysis, carried
+ *  into the contract at seal so the settle screen can ask "did you check it?".
+ *  This is the mirror-not-oracle move: Argus doesn't answer the fact, it remembers
+ *  to ask you later — turning honest gaps into a revisit driver. Settings (founder,
+ *  2026-07-10): only world_fact WITH a source (`where`), cap 2, auto-carried with
+ *  one-tap drop; a fact that `broke` leaves a light learning note (never a verdict).
+ *  jsonb-nested inside the contract — no migration. */
+export interface OpenCheck {
+  /** Stable id (hash of text) — the settle-verdict join key. */
+  id: string;
+  /** The unverified world-fact, verbatim from the analysis (`ai_surfaced`, not the user's). */
+  text: string;
+  /** Where to verify it (실거래가 / 청약홈 / IR / 근로계약서 …), when the scan named one. */
+  where?: string;
+  /** Settled at check-in: 'held' = turned out true · 'broke' = turned out false ·
+   *  'skipped' = user didn't check. Absent = not yet settled. */
+  status?: 'held' | 'broke' | 'skipped';
+  /** Light learning note recorded when it `broke` (founder setting: wrong → note). */
+  note?: string;
+  settled_at?: string;
+}
+
 export interface DecisionContract {
   id: string;
   project_id: string;
   predicates: Predicate[];
+  /** loop-17 B — unverified facts to check, surfaced at settle. Absent on legacy /
+   *  when the scan found nothing carriable. Auto-derived at seal (deriveOpenChecks). */
+  open_checks?: OpenCheck[];
   created_at: string;
   /** checkpoints v2 §3.1 — the representative checkpoint (jsonb-nested, no
    *  migration). Absent on legacy/never-designated contracts. */
