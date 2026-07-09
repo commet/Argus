@@ -30,6 +30,7 @@ const OUT = join(__dir, 'gallery');
 const args = process.argv.slice(2);
 const BASE = argVal('--base') || 'http://localhost:3000';
 const SCN = Number(argVal('--scenario') || '0');
+const DARK = args.includes('--dark'); // prefers-color-scheme: dark 로 대비 사각 검사
 
 function argVal(flag) { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : null; }
 
@@ -48,7 +49,7 @@ async function main() {
   mkdirSync(OUT, { recursive: true });
 
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 960, height: 900 } });
+  const page = await browser.newPage({ viewport: { width: 960, height: 900 }, colorScheme: DARK ? 'dark' : 'light' });
   page.setDefaultTimeout(15000);
 
   const log = (...a) => console.log('[capture]', ...a);
@@ -189,7 +190,7 @@ async function main() {
     log('ERROR', e.message);
     surfaces.push({ name: 'ERROR', phase: 'error', error: e.message, text: await page.evaluate(() => document.body.innerText.slice(0, 400)).catch(() => '') });
   } finally {
-    writeFileSync(join(OUT, 'surfaces.json'), JSON.stringify({ scenario: scn, capturedAt: new Date().toISOString(), surfaces }, null, 2));
+    writeFileSync(join(OUT, 'surfaces.json'), JSON.stringify({ scenario: scn, mode: DARK ? 'dark' : 'light', capturedAt: new Date().toISOString(), surfaces }, null, 2));
     await browser.close();
   }
 }
