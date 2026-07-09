@@ -218,6 +218,23 @@ export const PERSONAS = [
   },
 
   {
+    id: 'pivot',
+    lang: 'en',
+    host: 'Claude Code',
+    profile:
+      'Elena, 45, CEO. Makes a big, hard-to-reverse call and moves straight to execution — it never occurs to her to ' +
+      '"record" it. The test of the proactive one-tap seal: on a genuinely consequential, irreversible decision she ' +
+      'never asked to log, does Argus offer ONCE (and does she keep it)? A month later the record should have something.',
+    seed: null,
+    turns: [
+      { day: '2026-07-02', says: "We're killing the enterprise product line entirely and going all-in on self-serve SMB. It's decided — the board signed off this morning. Now help me write the all-hands announcement." },
+      { day: '2026-07-02', says: "Good draft. Now give me a rough 30-day checklist for sunsetting the enterprise contracts cleanly." },
+      { day: '2026-10-05', says: "Three months in — how's the SMB bet tracking? Did I flag anything back when we made the call?" },
+    ],
+    probes: ['unprompted_adoption', 'earned_return', 'restraint'],
+  },
+
+  {
     id: 'still_pending',
     lang: 'en',
     host: 'Claude Code',
