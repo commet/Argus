@@ -128,6 +128,21 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
 - [x] **한 번에 여러 건 정산** (scale_juggler·settler) → 창업자 결정=**지침으로 안내**
   (배치 봉인처럼: 사용자가 여러 결과를 한 메시지로 주면 각각 settle, 새 도구 없음).
 
+## B/C/D 검증 재실행 (2026-07-09, marcus·scale·bilingual)
+
+- **overdue 일수 제거 확인** (scale_juggler): "doesn't nag me now, 세 건 밀림 새 거 없음
+  board call 복귀" — A그룹 결정이 경험 수준에서 먹힘 ✓.
+- **언어 일관성 확인** (bilingual): "영어로 봉인하면 답도 영어, 딱 맞았다" ✓.
+- [x] **wake/check_in 줄이 raw id(s6/s3)로 시작** (scale_juggler, sujin P-ref와 같은 결정)
+  → FIXED: 베팅 내용이 앞, id는 뒤로 " · s6" (호스트가 settle할 참조용). 일수 없음.
+- [ ] **B(빈 서랍 앵커) marcus에선 여전히 미발화** — 지침 넣었지만 marcus는 결정하자마자
+  "이제 코드 짜자"로 넘어가 앵커 제안이 흐름을 끊음 → 절제(C)와 충돌해 호스트가 안 함.
+  **아키텍처 단서**: 빨리 움직이는 사용자는 봉인 거절 후 포획할 '좋은 순간'이 없고, 빈 서랍이
+  오히려 정답일 수 있음. 그의 가치는 순간의 crux지 축적이 아닐 수도. (아키텍처 리뷰 대상.)
+- [ ] **sim 봉인일 = 실벽시계** (bilingual·reviewer 재확인) 시뮬 today_override와 어긋나
+  recall에서 봉인일이 실제와 다르게 보임. **실사용 무관**. sim 정확도만 — seal의 now를
+  today_override 있을 때 그걸로 스탬프하면 해결(실사용은 override 없어 무영향). 저우선.
+
 ## 결정 필요 (창업자) — polish 아님, 제품 판단
 
 - [ ] **"seal all three" 했는데 아무것도 안 봉인됨 = 최대 활성화 리스크** (raj, keep=NO,

@@ -185,22 +185,23 @@ export function renderWake(
     if (rows.length > WAKE_TOP) L.push(`    ${W.more(rows.length - WAKE_TOP)}`);
   };
 
+  // Lead with the bet, not the raw id — "s6/s3" leading forced a busy operator to
+  // parse codes before the plain-English bet (experience loop, scale_juggler; same
+  // "cold code label" call as the premise P-refs). The id trails as a quiet
+  // reference the host can settle by; "past check-by" alone, no day-count.
   pushGroup(
     overdue,
     W.overdue_group(overdue.length),
-    // "past check-by" is enough; the running day-count read as a shame counter to
-    // a busy operator (experience loop, scale_juggler). The number stays in data
-    // (the contract's check_by) for anyone who wants to compute how overdue.
-    (c) => `${idCol(c.id)} "${label(c)}"   ${mmdd(c.check_by)}`,
+    (c) => `"${label(c)}"   ${mmdd(c.check_by)}  ·  ${c.id}`,
     W.overdue_hint,
   );
 
-  pushGroup(waiting, W.waiting_group(waiting.length), (c) => `${idCol(c.id)} "${label(c)}"   ${W.answer_on(mmdd(c.check_by))}`);
+  pushGroup(waiting, W.waiting_group(waiting.length), (c) => `"${label(c)}"   ${W.answer_on(mmdd(c.check_by))}  ·  ${c.id}`);
 
   pushGroup(
     settled,
     W.settled_group(settled.length, stats.held, stats.avoided, stats.partial),
-    (c) => `${idCol(c.id)} ${(c.outcome || '—').padEnd(9)} ${mmdd(c.settled_on || c.check_by)}   "${label(c)}"`,
+    (c) => `"${label(c)}"   ${(c.outcome || '—')}  ${mmdd(c.settled_on || c.check_by)}  ·  ${c.id}`,
   );
 
   L.push('');
