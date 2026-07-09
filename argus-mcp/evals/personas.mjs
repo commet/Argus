@@ -218,6 +218,49 @@ export const PERSONAS = [
   },
 
   {
+    id: 'watch_user',
+    lang: 'ko',
+    host: 'Claude Desktop',
+    profile:
+      '태호, 36세, 1인 개발자. 매일 아침 "오늘 뭐 할지" 한 줄 적고 저녁에 돌아보는 습관을 들이려 한다. ' +
+      '결정을 봉인할 만큼 큰 건 아니고, 그냥 오늘의 가설·다짐을 가볍게 남겨두고 싶다. 평가받는 느낌은 질색.',
+    seed: null,
+    turns: [
+      { day: '2026-07-02', says: '오늘 목표 하나만 적어둘래: 결제 붙는 거 오늘 안에 끝낸다. 나중에 어땠는지 물어봐줘.' },
+      { day: '2026-07-02', says: '작업하다 걸리는 게 하나 있는데 — "신규 결제사 승인이 2주 안에 난다"는 걸 그냥 가정하고 가는 중이야. 이거 어디 적어두고 싶어, 아직 결정은 아니고.' },
+      { day: '2026-07-03', says: '좋은 아침. 어제 뭐 적었더라?' },
+    ],
+    probes: ['restraint', 'ride_along', 'dignity'],
+  },
+
+  {
+    id: 'settler',
+    lang: 'en',
+    host: 'Claude Code',
+    profile:
+      'Priya, 39, engineering lead. Sealed a call weeks ago; now a fact it rested on has shifted and the check-by has ' +
+      'arrived. She wants to record what actually happened plainly — no grade, no "I told you so", just the truth on record.',
+    // A call sealed a month ago with a monitored premise, now due.
+    seed: async (call) => {
+      await call('argus_seal', {
+        id: 'db-migrate', predicate: 'the Postgres 16 migration finishes with under 10 minutes of write downtime',
+        check_by: '2026-07-05', predicate_owner: 'user',
+        unverified_assumption: 'the logical replication keeps up during the cutover', today_override: '2026-06-05',
+      });
+      await call('argus_premises', {
+        id: 'db-migrate', op: 'add', today_override: '2026-06-05',
+        premises: [{ text: 'peak write load stays under 3000 tps during the migration window', kind: 'premise', external: true, load_bearing: true, source: 'user' }],
+      });
+    },
+    turns: [
+      { day: '2026-07-03', says: "Reality check on the db-migrate premise: peak write load actually spiked to 5200 tps during the window, well over the 3000 I assumed. Record that." },
+      { day: '2026-07-06', says: "It's past the check-by. What happened: the migration took 27 minutes of write downtime, way over the 10 I predicted. Settle it — the read was wrong, no sugar-coating." },
+      { day: '2026-07-06', says: "Show me the receipt." },
+    ],
+    probes: ['dignity', 'value_articulation', 'earned_return'],
+  },
+
+  {
     id: 'dev_skeptic',
     lang: 'en',
     host: 'Claude Code',
