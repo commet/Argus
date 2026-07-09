@@ -80,6 +80,26 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   "어디가 약한지"를 원함. 개수 대신 어느 렌즈가 왜 걸리는지. 봉인 전 렌즈 read를
   펼쳐 보이기(주로 호스트 행동, review description 한 줄로 유도 검토).
 
+## 경험 루프 배치 3 (2026-07-09, watch/settle/skeptic/dignity) — 4명 다 keep=YES
+
+- [x] **영수증 빈 필드의 "you skipped naming this"가 완성도 채점처럼 읽힘** (settler,
+  스파인 2건) → FIXED: 중립 표시 `— (none)` / `— (없음)`로. 판단어 제거, 사실만.
+- [x] **내부 배관(wc-캡처id, ILLEGAL_TRANSITION 등) 사용자 노출** (watch_user·dev_skeptic)
+  → 지침 한 줄 추가: 내부 id·에러코드는 tool용, 사용자엔 tool이 준 human 문구만.
+  (호스트 행동이라 지침은 advisory — 서버 surface엔 원래 없음.)
+- [ ] **check_in이 밀린 목록을 한꺼번에 다 펼침** (haeun, keep=YES지만 worst) 판정단=
+  "가장 급한 1건 + '더 있어요' 접기". **제품 결정 + 테스트 얽힘**: check_in surface는
+  anchor_mirror(loop.test)·질문텍스트(reponder-cadence)·ambient 단일소스가 걸려 있어,
+  "1건만+접기"로 바꾸면 카테고리별 표시 의미가 바뀌고 3+ 테스트 갱신 필요. 이미
+  사랑받는(5/4/5/5/5) 경험의 polish라 반쯤 고치면 위험 → 창업자 결정 후 신중히.
+- [ ] **settler ⚠ "The model never graded you. Reality did." = 브랜드어 vs 편집질** 판정단이
+  "plain truth 원하는 순간에 편집질"로 지적. 단 이건 의도된 브랜드 DNA(영수증 서명줄) —
+  제거 아닌 창업자 판단. (제품 스파인은 "판단 안 함"을 이 줄로 선언하는 게 핵심.)
+- [ ] **저녁 열림** (watch_user ADD) 아침에만 되물음 — 하루 마감 즈음 "오늘 그거 어땠어요?"
+  가볍게 한 번. MCP는 passive라 호스트/크론 경계.
+- [ ] **빗나간 결정에서 건진 것 미러 / 후속 베팅 원탭 / 깨진 전제 원탭 연결** (haeun·dev_skeptic·
+  settler ADD) 축적을 키우는 좋은 아이디어들 — 대개 호스트 행동, 창업자 우선순위.
+
 ## 결정 필요 (창업자) — polish 아님, 제품 판단
 
 - [ ] **"seal all three" 했는데 아무것도 안 봉인됨 = 최대 활성화 리스크** (raj, keep=NO,

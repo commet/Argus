@@ -363,7 +363,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       made_by: 'Me. (not the model)',
       called_as: '…called as',
       basis_label: (v) => ({ judgment: 'judgment', luck: 'luck', mixed: 'a mix of both', unsure: 'not sure' })[v] ?? v,
-      skipped: '— (you skipped naming this)',
+      // A blank field, stated neutrally — "you skipped naming this" read as a
+      // nag about the user's completeness on a receipt they wanted plain
+      // (experience loop, settler: a zero-judgment surface must not grade even
+      // the act of leaving a field empty).
+      skipped: '— (none)',
       premises_note: (tracked, changed) =>
         `(+${tracked} premise(s) tracked · ${changed} changed at re-check · argus_recall view=premises)`,
       you_predicted: 'YOU PREDICTED',
@@ -492,7 +496,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       made_by: '나. (모델이 아니라)',
       called_as: '…콜한 내용',
       basis_label: (v) => ({ judgment: '판단', luck: '운', mixed: '반반', unsure: '모르겠음' })[v] ?? v,
-      skipped: '— (이름 붙이지 않고 넘어갔습니다)',
+      // 빈 칸을 사실 그대로. "이름 붙이지 않고 넘어갔습니다"는 사용자의 완성도를
+      // 지적하는 잔소리로 읽혔다 (experience loop, settler).
+      skipped: '— (없음)',
       premises_note: (tracked, changed) =>
         `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건 · argus_recall view=premises)`,
       you_predicted: '당신의 예측',
