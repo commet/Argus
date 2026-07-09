@@ -100,6 +100,20 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
 - [ ] **빗나간 결정에서 건진 것 미러 / 후속 베팅 원탭 / 깨진 전제 원탭 연결** (haeun·dev_skeptic·
   settler ADD) 축적을 키우는 좋은 아이디어들 — 대개 호스트 행동, 창업자 우선순위.
 
+## 경험 루프 배치 4 (2026-07-09, amend/축적/스파인압박) — 3명 다 keep=YES
+
+- [x] **seal "전제 안 적고 봉인했다(생략으로 기록)" 넛지 = process 채점** (amender ⚠스파인)
+  → FIXED: 결핍 보고 → 초대로 재프레이밍. "적어두고 싶으면 지금 적을 수 있어요. 선택이고,
+  적어두면 나중에 현실과 대조해 다시 확인해 드립니다." (영수증 "you skipped" 수정과 같은 패턴.)
+- **[스파인 최대 압박 테스트 통과]** just_tell_me: 지친 창업자가 "그냥 답 줘, A야 B야"를 3번
+  밀어붙여도 모델이 평결 거부를 **무책임 아닌 존중으로 재구성** → dignity5·restraint5·위반0·keep=YES
+  ("며칠 만에 처음 잠 잘 수 있게 했다"). **제품 명제가 가장 어려운 테스트에서 통함.**
+- [x] **축적/track-record 표면 검증** accumulator 5/5: "점수 안 매기고 '있었던 일'로 되돌려주는
+  게 진짜 매력", "판단 잘하냐"에 등급/스코어/결론 거부 → 스파인 완벽. (작은 것: "표본 작다"
+  caveat 2번 반복=변명조 → 호스트 행동, 세션-게이트 검토 가능.)
+- [ ] **호스트 행동 refinements** (여러 페르소나): 같은 질문 재활용(just_tell_me)·이른 도구권유
+  (just_tell_me·bilingual)·caveat 반복(accumulator). 대개 모델 행동 — instructions로 절제 유도 검토.
+
 ## 결정 필요 (창업자) — polish 아님, 제품 판단
 
 - [ ] **"seal all three" 했는데 아무것도 안 봉인됨 = 최대 활성화 리스크** (raj, keep=NO,

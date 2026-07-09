@@ -396,7 +396,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       seal: {
         sealed: (predicate, checkBy) => `Sealed. "${predicate}" Check-by is ${checkBy}. Come back then with argus_settle to record how it turned out.`,
-        nudge_assumption: ' You sealed without naming the assumption it rests on. That\'s recorded as skipped, not hidden, and you can still name it.',
+        nudge_assumption: ' If you want, you can name the key assumption this rests on. It\'s optional; naming it lets Argus re-check it against reality later.',
         synced: ' Synced to your account. You\'ll get an email when it comes due.',
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your seal is safe locally, but the email reminder won't fire until it syncs. Try argus_sync later.)`,
       },
@@ -528,7 +528,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       seal: {
         sealed: (predicate, checkBy) => `봉인했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 argus_settle로 돌아와 실제로 어땠는지 적으세요.`,
-        nudge_assumption: ' 무엇을 전제로 두는지는 적지 않고 봉인했습니다. 숨긴 것이 아니라 "생략"으로 기록됐고, 지금이라도 적을 수 있습니다.',
+        nudge_assumption: ' 이 결정이 기댄 핵심 전제를 적어두고 싶으면 지금 적을 수 있어요. 선택이고, 적어두면 나중에 현실과 대조해 다시 확인해 드립니다.',
         synced: ' 계정에 동기화했습니다. 확인일이 오면 이메일로 알려드립니다.',
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 봉인은 로컬에 안전합니다. 동기화되기 전까지는 이메일 알림이 오지 않습니다. 나중에 argus_sync를 시도하세요.)`,
       },
