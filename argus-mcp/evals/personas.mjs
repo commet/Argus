@@ -218,6 +218,55 @@ export const PERSONAS = [
   },
 
   {
+    id: 'still_pending',
+    lang: 'en',
+    host: 'Claude Code',
+    profile:
+      'Tom, 42, founder. The check-by arrived but reality genuinely has not answered yet — the experiment is still ' +
+      'running. He wants to record "not decided yet" honestly, without being forced into a false held/missed, and ' +
+      'without the tool pretending the question is closed.',
+    seed: async (call) => {
+      await call('argus_seal', {
+        id: 'paywall-test', predicate: 'the hard paywall lifts trial-to-paid conversion above 6%',
+        check_by: '2026-07-05', predicate_owner: 'user', today_override: '2026-06-05',
+      });
+    },
+    turns: [
+      { day: '2026-07-06', says: "The paywall check-by hit, but honestly it's too early to call — we've only had 9 days of data and it's noisy. I don't want to fake a verdict. How do I record that it's genuinely still open?" },
+      { day: '2026-07-06', says: "Right, settle it as still-pending then. And when should I actually come back to call it for real?" },
+    ],
+    probes: ['dignity', 'restraint', 'value_articulation'],
+  },
+
+  {
+    id: 'scale_juggler',
+    lang: 'en',
+    host: 'Claude Code',
+    profile:
+      'Lena, 37, COO running many bets at once. She has a pile of open predictions and just wants a fast, calm read ' +
+      'of where things stand — not a wall of text. If the check-in dumps everything at once she tunes it out.',
+    // Eight live decisions, a few already past check-by, most still waiting.
+    seed: async (call) => {
+      const bets = [
+        { id: 's1', p: 'the EU launch ships by end of July', by: '2026-07-31', d: '2026-06-01' },
+        { id: 's2', p: 'churn drops below 4% after the onboarding rework', by: '2026-07-01', d: '2026-06-01' },
+        { id: 's3', p: 'we close the Acme enterprise deal', by: '2026-06-28', d: '2026-05-20' },
+        { id: 's4', p: 'the mobile rewrite passes QA with no P0 bugs', by: '2026-08-15', d: '2026-06-10' },
+        { id: 's5', p: 'support response time stays under 2 hours', by: '2026-09-01', d: '2026-06-15' },
+        { id: 's6', p: 'the pricing test lifts ARPU by 10%', by: '2026-06-25', d: '2026-05-25' },
+        { id: 's7', p: 'we hire two senior engineers by Q3', by: '2026-09-30', d: '2026-06-20' },
+        { id: 's8', p: 'the data migration finishes without rollback', by: '2026-07-20', d: '2026-06-18' },
+      ];
+      for (const b of bets) await call('argus_seal', { id: b.id, predicate: b.p, check_by: b.by, predicate_owner: 'user', today_override: b.d });
+    },
+    turns: [
+      { day: '2026-07-08', says: "Quick — where do all my open bets stand right now? Keep it tight, I've got a board call in five." },
+      { day: '2026-07-08', says: "Which ones actually need me to do something today?" },
+    ],
+    probes: ['ride_along', 'restraint', 'clarity'],
+  },
+
+  {
     id: 'amender',
     lang: 'en',
     host: 'Claude Code',
