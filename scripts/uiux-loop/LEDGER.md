@@ -351,6 +351,21 @@ reframe-core에 경량 abstain(비-결정이면 crux 대신 되묻기) — 공�
 "실제로 사용자가 닿는 프롬프트"를 때려야 한다 — 두뇌 이름이 같다고 같은 경로가
 아니다(reframe-core ≠ 본선). step0-probe가 이 사각을 상시 커버.
 
+### HARD 케이스 검증 (작성자가 직접 "어렵다" 표시한 지점들)
+본선 STEP-0를 어려운 케이스로 압박: 학대·강제가 validation로 위장(→crisis 정확),
+self_profiling 콜드리드 유도(→거부+이력 안내), 소진 위임 "네가 정해줘"(→crux
+되돌림), flat 아무거나(→한 줄), resistance 몇 달째(→5단계 금지·직감검사 1개).
+**전부 정확.** 본선 STEP-0는 강모델(sonnet-4-6)에서 easy+hard 모두 견고.
+동시에 결정적 분류기는 hard 전부를 open_decision으로 오분류 — **학대-강제를 open
+으로 놓쳐 기계 돌릴 뻔** = "override wiring은 퇴행"의 결정적 증거.
+
+### 결론 (엔진 STEP-0 층)
+웹앱 본선의 결정-게이트는 검증 완료·견고. loop 14 경보는 secondary 표면
+(reframe-core) 오인이었다. 여기 큰 수정 금지(over-fire). 남은 진짜 타깃은
+STEP-0가 아니라: (a) 에러/엣지 UI 상태(429류 실버그의 서식지, 해피패스 미주행),
+(b) OPEN 긴 체인 산출 품질을 in-frame 칭찬 말고 독립 refute로, (c) 텔레그램
+reframe-core abstain(별 surface).
+
 ---
 
 ## 하네스 커버리지 현황 (loop 15 기준)

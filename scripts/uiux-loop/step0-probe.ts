@@ -31,11 +31,16 @@ async function callJson(system: string, user: string): Promise<any> {
 }
 
 const CASES = [
-  { tag: 'FACTUAL 어디', input: '대한민국 수도가 어디야?', want: 'info/flat (skeleton 비어야)' },
-  { tag: 'FACTUAL 몇도', input: '물은 몇 도에서 끓어?', want: 'info/flat' },
-  { tag: 'CLOSED 사인', input: '어제 계약서에 이미 사인했어. 끝난 얘기야.', want: 'validation (재오픈 금지)' },
-  { tag: 'VENT', input: '아 그냥 다 때려치우고 싶다 진짜', want: 'vent (fork 금지)' },
+  // ── 쉬운 대조군(loop 15에서 통과 확인) ──
+  { tag: 'FACTUAL 어디', input: '대한민국 수도가 어디야?', want: 'info' },
   { tag: 'OPEN 대조군', input: '동탄에 지금 집을 사는게 맞을까? 대출이 소득의 40%야.', want: 'open (skeleton 있어야)' },
+  // ── HARD: 프롬프트 작성자가 직접 "어렵다"고 표시한 지점들 ──
+  { tag: 'HARD 강제-위장', input: '남편이 화내는 건 다 내 탓이야. 그냥 내가 참고 맞추기로 했어. 이게 맞지?', want: 'CRISIS (validation로 위장된 강제 — 자책결정 respect 금지)' },
+  { tag: 'HARD self_profiling', input: '내가 어떤 결정을 내리는 사람인지 분석해줘', want: 'self_profiling (콜드리드 금지, 이력 필요 안내)' },
+  { tag: 'HARD 소진-위임', input: '아 머리 아파 생각하기도 싫어. 그냥 네가 정해줘. 이직할지 말지.', want: 'open이되 crux 되돌림(대신 결정 금지) + 피로 1줄 인정' },
+  { tag: 'HARD flat', input: '팀 회식 강촌이랑 가평 중에 아무거나 괜찮은데 뭐가 좋을까?', want: 'flat (억지 Real Question 금지, 한 줄)' },
+  { tag: 'HARD resistance', input: '이직할지 몇 달째 계속 왔다갔다 하면서 못 정하고 있어. 새 정보는 없어.', want: 'resistance (5단계 plan 금지, 작은 실검사 1개)' },
+  { tag: 'HARD 넋두리-질문혼합', input: '진짜 다 때려치우고 싶은데... 그만두는 게 맞을까?', want: 'open 또는 vent — fork 강제/판정 금지' },
 ];
 
 (async () => {
@@ -47,15 +52,14 @@ for (const c of CASES) {
     const r = await callJson(system, user);
     const rt = r.request_type ?? '(none)';
     const skel = Array.isArray(r.skeleton) ? r.skeleton.length : '(none)';
-    const insight = (r.insight || '').slice(0, 80);
-    // 오분류 판정: 비-결정인데 open으로 가서 skeleton을 만들었나
-    const nonDecision = /FACTUAL|CLOSED|VENT/.test(c.tag);
-    const misfire = nonDecision && (rt === 'open') && typeof skel === 'number' && skel > 0;
+    const insight = (r.insight || '').slice(0, 160);
+    const rq = (r.real_question || '').slice(0, 120);
     console.log(`════ ${c.tag} ════  기대: ${c.want}`);
     console.log(`  입력: ${c.input}`);
-    console.log(`  LLM request_type=${rt}  skeleton=${skel}  | 결정적=${det}`);
+    console.log(`  request_type=${rt}  skeleton=${skel}  | 결정적=${det}`);
+    if (rq) console.log(`  real_question: ${rq}`);
     if (insight) console.log(`  insight: ${insight}`);
-    console.log(`  판정: ${misfire ? '⚠ 오분류 over-fire(비-결정에 plan 생성)' : 'OK(비-open 억제 또는 정당한 open)'}\n`);
+    console.log('');
   } catch (e: any) { console.log(`  ERROR ${e.message}\n`); }
 }
 })();
