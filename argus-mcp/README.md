@@ -80,7 +80,11 @@ your ledger lives in `~/.argus`.
         // OPTIONAL — the timezone that decides when a check-by date becomes
         // "today". Unset = your machine's local timezone (usually right).
         // Set it only if your machine's clock zone isn't where you live:
-        "ARGUS_TZ": "Asia/Seoul"
+        "ARGUS_TZ": "Asia/Seoul",
+        // OPTIONAL — opt in to anonymous usage telemetry (OFF by default). Sends
+        // a random install id + which tool ran + version/platform; never your
+        // decisions or token. Honors DO_NOT_TRACK. See SECURITY.md → Telemetry.
+        "ARGUS_TELEMETRY": "1"
         // "ARGUS_API_URL": "https://argus.voyage"  // override only for self-host
       }
     }
@@ -176,10 +180,13 @@ Argus does not pretend liveness.
 
 Everything is local, under `.argus/` in your project (gitignored by default) —
 an append-only `ledger.jsonl` **you own**: plain JSON lines, no lock-in,
-receipts render to shareable text. No telemetry. The **only** network call
-Argus ever makes is the opt-in account sync: if — and only if — you set
-`ARGUS_TOKEN`, a sealed/settled prediction is POSTed to your own Argus account
-so it can email you at its check-by date. **Premise data stays on your machine
+receipts render to shareable text. **No telemetry by default.** The only network
+call Argus makes out of the box is the opt-in account sync: if — and only if —
+you set `ARGUS_TOKEN`, a sealed/settled prediction is POSTed to your own Argus
+account so it can email you at its check-by date. Separately, you can opt in to
+**anonymous** usage telemetry with `ARGUS_TELEMETRY=1` (a random install id +
+which tool ran + version/platform, never your decisions or token; honors
+`DO_NOT_TRACK`) — see SECURITY.md. **Premise data stays on your machine
 by default** — it is not part of the sync payload. There is exactly one switch
 that changes this: `argus_config premise_sync:true` (off unless you set it)
 sends a sealed decision's *monitored* premises along, so your account's
