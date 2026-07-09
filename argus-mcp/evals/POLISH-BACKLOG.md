@@ -92,11 +92,14 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   "되물어 마찰(raj 혐오)" 사이 진짜 제품 긴장. **루프가 웹앱 펀넬의 활성화 병목(열림多/봉인0)을
   충실히 재현**. 창업자 결정 필요: 정직한 ai_surfaced 초안+원탭 확인 흐름? 아니면 파워유저는
   웹앱(버튼 UI)이 활성화 표면? (지침 개선은 무해해서 유지, 단 이것만으로 안 풀림을 명시.)
-  **시도 2 (2026-07-09, 검증 중)**: 진짜 걸림돌 후보 발견 — seal `id` 설명이 "The id from
-  argus_open_decision"이라 모델이 "open 안 했으니 봉인 불가"로 오해했을 수 있음(코드는 fresh
-  id로 봉인 가능). id 설명 수정 + 지침에 **구체적 변환**(비격식 문장→반증가능 예측→check-by,
-  ai_surfaced 초안 허용) 추가. **sonnet-5 vs opus-4-8 두 호스트로 raj 재실행해 "못 하는가(지침)
-  vs 안 하는가(모델역량)" 분리 중.** 결과 대기.
+  **→ 해결됨 (2026-07-09)**: 답은 "**못 했던 것**"(지침/설명 문제). 진짜 걸림돌 2개:
+  (1) seal `id` 설명이 "The id from argus_open_decision"이라 모델이 "open 안 했으니 봉인 불가"로
+  오해(코드는 fresh id로 봉인됨) → 설명 수정. (2) **하네스 버그**: "3개 봉인"에 모델이 tool_use
+  3개 병렬 발화 → maxTokens 1024서 잘림 → tool_result 누락 → 400. maxTokens 2048 + break조건 수정.
+  **결과: sonnet-5로 raj 재실행 → argus_seal×3 성공, keep NO→YES**("한 방에 봉인, 6주 정리 굿").
+  즉 창업자 결정 사안이었던 게 실제 수정으로 닫힘. (opus 확인 진행 중.)
+- [x] **배치 봉인 시 "전제 이름 붙여라" 넛지 3번 반복** (raj 재실행 새 발견) → FIXED: seal에
+  세션-1회 게이트(ambient 줄과 동일 패턴). 3개 연속 봉인해도 넛지는 한 번만.
 - [ ] **ASCII 봉인 상자가 과한 의식** (edge_inputs, "manufactured gravitas") 솔로 개발자가
   이미 내린 결정엔 무거움. 브랜드 keepsake vs 가벼움 — 컨텍스트별 on/off? 창업자 판단.
 - [ ] **P1/P2·"전제" 같은 코드성 표기가 비개발자에 차가움** (sujin) 판정단 제안=전제 내용을

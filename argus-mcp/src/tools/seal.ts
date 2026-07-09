@@ -21,6 +21,16 @@ import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
+// Session-once gate for the "name your assumption" nudge (same idea as the
+// ambient due-line). A rapid-fire batch — "seal all three" → three seals
+// without assumptions — pasted the identical nudge three times in a row, which
+// read as nagging (experience loop, raj). Show it at most once per session per
+// ledger; the count is unaffected, only the repeated prose is suppressed.
+const assumptionNudgeShownFor = new Set<string>();
+export function resetSealSession(): void {
+  assumptionNudgeShownFor.clear();
+}
+
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   id: zId.describe('A short slug you pick for this decision (e.g. "q3-cutover"). No prior argus_open_decision is needed — a fresh id starts the record on its own.'),
@@ -115,7 +125,13 @@ export const seal: ToolModule = {
       await appendLedger(dir, events, now);
 
       const namedAssumption = !receipt.skipped.includes('unverified_assumption');
-      const nudge = namedAssumption ? '' : T.nudge_assumption;
+      // Fire the nudge only on the FIRST assumption-less seal this session (per
+      // ledger); a batch of them should not repeat the identical line.
+      let nudge = '';
+      if (!namedAssumption && !assumptionNudgeShownFor.has(dir)) {
+        nudge = T.nudge_assumption;
+        assumptionNudgeShownFor.add(dir);
+      }
 
       // Opt-in: mirror the prediction to the user's account so the Companion
       // Brief can email it at check-by. No token ⇒ silent local-only no-op;
