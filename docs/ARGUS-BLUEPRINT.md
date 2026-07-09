@@ -119,7 +119,9 @@ Status: **단일 빌드 정본.** 이 리포에서 "무엇을 지을 것인가"�
 - **정본 세트 8편만 docs/ 최상위에 남긴다**: `ARGUS-BLUEPRINT.md`(이것) ·
   KEYSTONE · FIRST-CONTACT-FIELD-REPORT · checkpoints-v2 · clarify-v2 ·
   AGENT-ARCHITECTURE-FOUNDATIONAL · MCP-COMPLIANCE-AUDIT · ARGUS-REPO-MAP.
-- 나머지 전부(70여 편) `docs/archive/`로 이동. 삭제 금지, 이동만.
+- 나머지는 `docs/archive/`로 이동해 설계 이력으로 보존. 코드·정본 문서가
+  인용하는 archive 문서는 반드시 유지. 어디서도 인용되지 않는 옛 세션/STRESS
+  라운드 로그는 리포 밖으로 백업한 뒤 정리 가능(공개 리포 노이즈 축소).
 - `CLAUDE.md`에 5줄 추가: *"빌드 정본은 docs/ARGUS-BLUEPRINT.md다. 세션 시작
   시 §6 공정표의 현재 공정을 확인하고 그 공정만 진행한다. 새 설계 문서 작성
   금지 — 아이디어는 BLUEPRINT §8 대기 목록에 추가한다."* ← 이 한 줄이
