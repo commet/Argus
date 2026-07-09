@@ -283,7 +283,11 @@ async function opAdd(
   const refRange = events.length > 0 ? `${echo[0].ref}${echo.length > 1 ? `–${echo[echo.length - 1].ref}` : ''}` : '';
   const monitoredNote = monitoredCount === 0 ? '' : ko
     ? (sealedNow ? ` 그중 ${monitoredCount}건은 나중에 실제와 다시 대조해 확인합니다 (이미 봉인됨).` : ` 그중 ${monitoredCount}건은 봉인한 뒤 실제와 다시 대조해 확인합니다.`)
-    : (sealedNow ? ` ${monitoredCount} of them get re-checked against what actually happens (this decision is sealed).` : ` ${monitoredCount} of them get re-checked against what actually happens once you seal the decision.`);
+    : (sealedNow ? ` ${monitoredCount} will be re-checked against what actually happens (this decision is sealed).` : ` ${monitoredCount} will be re-checked against what actually happens once you seal the decision.`);
+  const oneLine = (s: string): string => {
+    const t = s.replace(/\s+/g, ' ').trim();
+    return t.length > 70 ? t.slice(0, 69) + '…' : t;
+  };
   const surface =
     events.length === 0
       ? (dupRetired.length > 0
@@ -293,9 +297,16 @@ async function opAdd(
           : (ko
               ? '그 전제들은 이미 기록되어 활성 상태입니다 (새로 적은 것 없음).'
               : 'All of those premises are already recorded and active (nothing new written).'))
-      : (ko
-          ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 op=amend로 고치세요. 고친 내용도 기록에 남습니다.${monitoredNote}`
-          : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with op=amend; your correction stays on the record too.${monitoredNote}`);
+      // A single premise echoes its own words back — "전제 1건 (P1)" read as a
+      // cold filing label to a non-dev (experience loop, sujin). Several keep the
+      // count + ref range (echoing five sentences would bury the confirmation).
+      : (events.length === 1
+          ? (ko
+              ? `방금 적어뒀어요: '${oneLine(echo[0]?.text ?? '')}'. 고칠 게 있으면 op=amend로 바꿀 수 있어요.${monitoredNote}`
+              : `Noted: "${oneLine(echo[0]?.text ?? '')}". Fix anything wrong with op=amend.${monitoredNote}`)
+          : (ko
+              ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 op=amend로 고치세요. 고친 내용도 기록에 남습니다.${monitoredNote}`
+              : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with op=amend; your correction stays on the record too.${monitoredNote}`));
 
   return envelope({
     ok: true, tool: 'argus_premises',

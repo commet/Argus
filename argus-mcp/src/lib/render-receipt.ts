@@ -188,10 +188,10 @@ export function renderWake(
   pushGroup(
     overdue,
     W.overdue_group(overdue.length),
-    (c) => {
-      const days = Math.max(0, Math.round((Date.parse(today) - Date.parse(c.check_by!)) / 86400000));
-      return `${idCol(c.id)} "${label(c)}"   ${mmdd(c.check_by)} · ${W.days_past(days)}`;
-    },
+    // "past check-by" is enough; the running day-count read as a shame counter to
+    // a busy operator (experience loop, scale_juggler). The number stays in data
+    // (the contract's check_by) for anyone who wants to compute how overdue.
+    (c) => `${idCol(c.id)} "${label(c)}"   ${mmdd(c.check_by)}`,
     W.overdue_hint,
   );
 

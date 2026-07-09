@@ -121,9 +121,8 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   check_in이 이미 우아하게 접고 있음. (haeun 케이스는 특정 2-카테고리 상황.)
 - **[still_pending 검증]** 새 outcome이 노이즈 데이터에 억지 held/missed 강요 안 하고
   "아직 결정 안 됨"을 정직하게 기록 → 스파인 유지, 5/4/5/4/5.
-- [ ] **overdue에 일수 카운트가 "shame counter" 느낌** (scale_juggler, "faintly nagging")
-  "past check-by"만으로 충분, 며칠 지났는지 tally는 은근한 압박. **제품 보이스** — 일수는
-  정보성이기도 함(얼마나 밀렸나). 창업자 판단.
+- [x] **overdue에 일수 카운트가 "shame counter" 느낌** (scale_juggler) → 창업자 결정=**일수 제거**.
+  wake 화면 overdue 항목이 "확인일 지남 + 날짜"만, "N일 경과" 제거(일수는 data의 check_by로 계산 가능).
 - [ ] **check_in "결과 확인 차례"가 closure 가정** (still_pending) 확인일 지난 게 곧 정산
   가능은 아님(현실이 아직 답 안 함) — 넛지에 "아직 불분명하면 still_pending" 힌트 검토. 미세.
 - [ ] **한 번에 여러 건 정산 원탭** (scale_juggler·settler ADD) 파워유저가 board call 뒤
@@ -149,11 +148,13 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   즉 창업자 결정 사안이었던 게 실제 수정으로 닫힘. (opus 확인 진행 중.)
 - [x] **배치 봉인 시 "전제 이름 붙여라" 넛지 3번 반복** (raj 재실행 새 발견) → FIXED: seal에
   세션-1회 게이트(ambient 줄과 동일 패턴). 3개 연속 봉인해도 넛지는 한 번만.
-- [ ] **ASCII 봉인 상자가 과한 의식** (edge_inputs, "manufactured gravitas") 솔로 개발자가
-  이미 내린 결정엔 무거움. 브랜드 keepsake vs 가벼움 — 컨텍스트별 on/off? 창업자 판단.
-- [ ] **P1/P2·"전제" 같은 코드성 표기가 비개발자에 차가움** (sujin) 판정단 제안=전제 내용을
-  말로 되풀이("임대료가 두 배라는 점을 적어뒀어요"). 단 P-ref는 amend/resolve 참조에 필요 —
-  기능성 vs 따뜻함 긴장. 창업자 보이스 결정.
+- [x] **ASCII 봉인 상자가 과한 의식** (edge_inputs) → 창업자 결정=**컨텍스트별**. seal
+  description을 "surface 한 줄이 확인, seal_text 상자는 선택(keepsake는 정산 영수증)"으로.
+  renderSeal 유지(하위호환·테스트), 호스트가 매 봉인마다 상자 안 띄우게 유도.
+- [x] **P1/P2·"전제" 표기가 비개발자에 차가움** (sujin) → 창업자 결정=**단수는 내용 되풀이**.
+  전제 1건이면 "방금 적어뒀어요: '...'", 여러 건이면 개수+P-ref 유지(5문장 되풀이는 매몰).
+- [x] **"모델은 당신을 채점하지 않았습니다" 영수증 서명줄** (settler) → 창업자 결정=**유지**
+  (제품 정체성·zero judgment 선언, 브랜드 DNA).
 - [ ] **봉인~정산 사이 장기 침묵이 빈 서랍처럼 느껴짐** (sujin 135일·marcus) 중간에 가벼운
   안부 1회? 단 이건 알림 push 경계(서버 크론은 웹앱 담당) — MCP는 passive라 어려움.
 - [ ] **결정 열자마자 전제·봉인 설명이 밀려옴** (bilingual) crux 질문 하나면 충분, 나머지는
