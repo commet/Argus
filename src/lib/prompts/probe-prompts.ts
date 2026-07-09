@@ -11,9 +11,8 @@
  * blocks below appear VERBATIM in the plugin file. Edit a prompt here without
  * mirroring it there (or vice versa) and the test fails — 복붙 드리프트 차단.
  *
- * 재발명 금지: changing these means re-running the lever backtest
- * (scripts/decision-watch-eval/lever-backtest-workflow.js) — G0 was measured
- * on THESE words.
+ * 재발명 금지: changing these means re-running the internal lever backtest —
+ * G0 was measured on THESE words.
  */
 
 import type { ProbeSample, ForkField } from '../probe-engine';

@@ -6,7 +6,6 @@ Author: Claude (claude-fable-5)
 Status: **단일 빌드 정본.** 이 리포에서 "무엇을 지을 것인가"에 대한 답은 이
 문서 하나다. 이전 문서들은 이 설계도의 증거·상세 부록으로 지위가 바뀐다:
 - `ARGUS-KEYSTONE-2026-07-07.md` → 공개 전 결함 판정과 수정 명세 (부록 A)
-- `ARGUS-FIRST-CONTACT-FIELD-REPORT-2026-07-07.md` → 실측 증거 (부록 B)
 - `FABLE5-QUANTUM-UPGRADE-PROMPT-AND-PLAN-2026-07-07.md` → 초기 진단 (부록 C)
 - `DESIGN-judgment-checkpoints-v2` / `DESIGN-clarify-question-system-v2` → 해당
   공정의 상세 시공도 (부록 D/E)
@@ -116,8 +115,8 @@ Status: **단일 빌드 정본.** 이 리포에서 "무엇을 지을 것인가"�
   후에만 삭제.** 확인 안 되면 대기 목록으로.
 
 ### 3.3 문서 정리 (공정 0 — "중구난방 세션"의 구조적 종결)
-- **정본 세트 8편만 docs/ 최상위에 남긴다**: `ARGUS-BLUEPRINT.md`(이것) ·
-  KEYSTONE · FIRST-CONTACT-FIELD-REPORT · checkpoints-v2 · clarify-v2 ·
+- **정본 세트 7편만 docs/ 최상위에 남긴다**: `ARGUS-BLUEPRINT.md`(이것) ·
+  KEYSTONE · checkpoints-v2 · clarify-v2 ·
   AGENT-ARCHITECTURE-FOUNDATIONAL · MCP-COMPLIANCE-AUDIT · ARGUS-REPO-MAP.
 - 나머지는 `docs/archive/`로 이동해 설계 이력으로 보존. 코드·정본 문서가
   인용하는 archive 문서는 반드시 유지. 어디서도 인용되지 않는 옛 세션/STRESS

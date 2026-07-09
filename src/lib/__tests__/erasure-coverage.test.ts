@@ -5,7 +5,7 @@ import { USER_DATA_TABLES } from '../user-data-tables';
  * Erasure-coverage drift guard (mirrors schema-drift.test.ts's TABLE_COLUMNS contract).
  *
  * LIVE_USER_SCOPED_TABLES is a hand-mirrored copy of every public table that has a
- * `user_id` column on the live DB (overture-db), re-captured 2026-07-03 via:
+ * `user_id` column on the live DB, re-captured 2026-07-03 via:
  *   SELECT table_name FROM information_schema.columns
  *   WHERE table_schema='public' AND column_name='user_id' ... (BASE TABLEs only)
  *

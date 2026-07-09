@@ -1,6 +1,6 @@
 # 결정-순간 감지 프롬프트 (argus-watch 출하용)
 
-> 이 파일이 단일 진실 원천이다. 백테스트(`scripts/decision-watch-eval/`)와 CLI(`lib/detect.mjs`)가
+> 이 파일이 단일 진실 원천이다. 내부 백테스트와 CLI(`lib/detect.mjs`)가
 > 같은 정의를 써야 한다. 수정 시 양쪽 재검증 필수. (CLAUDE.md: 프롬프트 단일 원천 원칙)
 
 ## 정의

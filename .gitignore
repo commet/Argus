@@ -52,8 +52,6 @@ next-env.d.ts
 
 # argus-watch + local working data: personal — never commit (repo is public)
 /.argus/
-/scripts/decision-watch-eval/fixtures/
-/scripts/decision-watch-eval/results/
 /scripts/validation-output/
 .ds-sync/
 ds-bundle/

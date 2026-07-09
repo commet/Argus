@@ -69,7 +69,7 @@ diff 내용: `PremiseRecheck`에 `auto?: boolean`(서버 워처가 대신 기록
 
 > **왜 지금 고치지 않고 문서로만 남기나:** 이 감사를 시작한 시점에 **다른 세션이 argus-mcp를 전방위적으로 손대고 있음**(파일/도구/스키마가 시시각각 바뀌는 중). 지금 고치면 그 세션과 정면충돌하거나, 그 세션이 이미 고치는 중인 걸 중복 작업할 위험이 크다. 그래서 이 문서는 **"지금 스냅샷 기준 발견사항 + 재확인 절차"**만 남기고, 실제 수정은 그 세션이 병합된 뒤 별도 세션에서 진행한다.
 >
-> 대상 저장소: `C:\Users\admin\Documents\GitHub\Argus-align-3phase-main\argus-mcp` (커밋 시점 미확인 — 재작업 전 반드시 `git log -1`로 이 감사 이후 변경분을 먼저 diff할 것).
+> 대상 저장소: `argus-mcp/` (커밋 시점 미확인 — 재작업 전 반드시 `git log -1`로 이 감사 이후 변경분을 먼저 diff할 것).
 > 참고 문서: [`MCP-REDESIGN-BLUEPRINT-2026-06-30.md`](MCP-REDESIGN-BLUEPRINT-2026-06-30.md), [`MCP-REDESIGN-ADDENDUM-v1.1-2026-06-30.md`](MCP-REDESIGN-ADDENDUM-v1.1-2026-06-30.md) — 이 감사는 그 문서들의 **후속 스팟체크**다. addendum의 A~N 항목 상당수(annotations 완비, outputSchema+structuredContent, capabilities 지연선언, `instructions` 필드, stderr-only 로깅)가 **이미 코드에 반영된 것을 2026-07-05 시점 직접 읽어 확인**했다 — addendum이 작성된 뒤 실제로 시공됐다는 뜻. 아래는 그 위에서 발견한 **잔여 gap**이다.
 
 ---
