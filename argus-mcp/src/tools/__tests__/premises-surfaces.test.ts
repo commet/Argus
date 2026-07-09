@@ -11,10 +11,14 @@ import { readResource } from '../../resources.js';
 
 const TODAY = '2026-07-02';
 
+// Sealed a month before TODAY so the first recheck cadence (14d) has elapsed by
+// TODAY — the first nudge now waits one cadence from the add date (founder
+// decision 2026-07-10), so same-day would no longer read as due.
+const ADDED = '2026-06-01';
 async function sealedWithMonitored(dir: string, id = 'd1'): Promise<void> {
-  await seal.handler({ argus_dir: dir, id, predicate: 'the migration ships without a visible outage', check_by: '2026-09-01', predicate_owner: 'user', today_override: TODAY });
+  await seal.handler({ argus_dir: dir, id, predicate: 'the migration ships without a visible outage', check_by: '2026-09-01', predicate_owner: 'user', today_override: ADDED });
   await premises.handler({
-    argus_dir: dir, id, op: 'add', today_override: TODAY,
+    argus_dir: dir, id, op: 'add', today_override: ADDED,
     premises: [{ text: 'base rate stays at 3.5%', kind: 'premise', external: true, load_bearing: true, source: 'ai', ai_original: 'base rate stays at 3.5%' }],
   });
 }

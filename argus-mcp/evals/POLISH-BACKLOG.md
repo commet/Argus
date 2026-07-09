@@ -202,7 +202,12 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   안 넘어가는 것 — 대부분 호스트 행동이라 서버가 강제 못 함. instructions에
   한 줄 반영할지 검토.
 
-- [ ] **확인 전 전제는 day 1부터 발화** (life loop, 2026-07-09)
+- [x] **확인 전 전제는 day 1부터 발화** (life loop) → 창업자 결정=**cadence 기다렸다 발화**.
+  isDueForRecheck/nextRecheckDue: never-checked면 added_ts + cadence 뒤에 첫 발화(미결 질문과
+  동일 시계). 부수 수정: premise_add가 전제에도 anchor_date=논리적 today 기록 → added_ts가
+  실벽시계가 아닌 today 반영(아래 sim-date도 함께 해결). 테스트 헬퍼는 전제를 한 달 전에
+  추가하도록 갱신.
+  --- (원래 메모) ---
   감시 전제는 추가 다음 날부터 "재확인 차례"로 뜸(`isDueForRecheck`: 확인
   이력 없음 = 즉시 due). 미결 질문은 같은 파일에서 **추가일 기준 cadence**로
   이미 반대로 설계돼 있음(`reconsiderAnchor` = added_ts) — 내부 비일관.

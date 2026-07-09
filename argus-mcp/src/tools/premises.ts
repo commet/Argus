@@ -260,8 +260,13 @@ async function opAdd(
     ...(p.materiality_rule ? { materiality_rule: p.materiality_rule } : {}),
     ...(typeof p.recheck_cadence_days === 'number' ? { recheck_cadence_days: p.recheck_cadence_days } : {}),
     ...(typeof p.reponder_cadence_days === 'number' && p.kind === 'open_question' ? { reponder_cadence_days: p.reponder_cadence_days } : {}),
-    // M3 — anchor the reconsider clock at the logical `today` (deterministic).
-    ...(p.kind === 'open_question' ? { anchor_date: today } : {}),
+    // Anchor the ADD date at the logical `today` (deterministic) for every
+    // premise, not just open_questions: added_ts is now what the first-recheck
+    // cadence runs from (founder decision 2026-07-10), and the open_question
+    // reconsider clock too. Without it, added_ts fell back to the real write
+    // time, which diverged from today_override in sims and would misdate a
+    // premise added under a today_override in real use.
+    anchor_date: today,
   }));
   if (events.length > 0) await appendLedger(dir, events, now);
 
