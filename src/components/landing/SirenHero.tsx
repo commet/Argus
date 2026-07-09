@@ -209,7 +209,7 @@ export function SirenHero() {
                 <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
                 <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
                   {/* KO leads with Korean (06 P2-6) — mono register stays, first glance lands on 한국어. */}
-                  {L('기록 · 결정을 적는다', 'LOG ENTRY · write it')}
+                  {L('결정을 적는다', 'WRITE · a decision')}
                 </span>
               </div>
 
@@ -263,7 +263,7 @@ export function SirenHero() {
                 <span style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.005em', lineHeight: 1.4 }}>
                   {text.trim()
                     ? L('⏎ 로 보내기 · Shift+⏎ 줄바꿈', '⏎ to send · Shift+⏎ for newline')
-                    : L('⏎ 한 줄이면 충분해요', '⏎ one line is enough')}
+                    : L('⏎ 한 줄이면 돼요', '⏎ one line is enough')}
                 </span>
                 <button
                   onClick={sail}
@@ -284,7 +284,7 @@ export function SirenHero() {
                     borderRadius: 0,
                   }}
                 >
-                  {L('읽어봐 주세요', 'Have it read')}
+                  {L('읽어볼게요', 'Read it')}
                 </button>
               </div>
               {/* Expectation-setting marginalia (06 S2): free/no-login/time/privacy in
@@ -295,8 +295,8 @@ export function SirenHero() {
                 style={{ margin: '7px 0 0', color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.5, letterSpacing: '0.005em' }}
               >
                 {L(
-                  '로그인 없이 무료 · 30초 안팎이면 첫 읽기가 와요 · 내용은 분석에만 쓰여요',
-                  'Free, no login · first read in ~30s · your text is used for the analysis only',
+                  '로그인 없이 무료 · 30초면 첫 분석 · 내용은 분석에만',
+                  'Free, no login · first read in ~30s · analysis only',
                 )}
               </p>
             </div>
@@ -338,16 +338,16 @@ export function SirenHero() {
               <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
                 <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
                 <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
-                  {L('서류 · 문서를 올린다', 'ON FILE · upload it')}
+                  {L('문서를 올린다', 'ON FILE · a document')}
                 </span>
               </div>
               <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink)', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>
-                {L('이미 문서로 써두셨나요?', 'Already written it down?')}
+                {L('이미 써둔 문서가 있나요?', 'Already written it down?')}
               </div>
               <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
                 {L(
-                  '전략안·기획안·PDF·PPT를 올리면, 사람이 책임질 판단과 근거 약한 주장을 원문 위치까지 짚어드려요.',
-                  'Drop a strategy memo, plan, PDF or deck — Argus surfaces the judgment calls and weak evidence, anchored to the source.',
+                  '전략안·PDF·기획안을 올리면, 근거 약한 주장과 사람이 판단할 대목을 원문 위치에서 짚어줘요.',
+                  'Drop a memo, plan or PDF — weak evidence and the human’s-call points, flagged right on the source.',
                 )}
               </div>
               <span
