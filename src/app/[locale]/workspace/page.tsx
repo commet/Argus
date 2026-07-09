@@ -741,7 +741,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </LocaleLink>
-                <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] leading-relaxed">
+                <p className="mt-2 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
                   {L(
                     'AI 대화 안에서 바로 남긴 판단은 MCP에서 argus_init 뒤 argus_seal로 봉인할 수 있어요.',
                     'In an AI chat, use argus_init then argus_seal in the MCP to seal the judgment there.',

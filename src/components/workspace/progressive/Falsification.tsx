@@ -217,7 +217,7 @@ export function Falsification({
             <div className="flex items-start gap-2.5 rounded-xl bg-[var(--ai)] p-3">
               <AlertTriangle size={15} className="text-[var(--accent)] mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-[11.5px] font-semibold text-[var(--text-secondary)]">
+                <p className="text-[12.5px] font-semibold text-[var(--text-secondary)]">
                   {noFlinch
                     ? L('하나도 안 멈추셨네요. 그럼 하나만 같이 볼게요 — 이 계획이 기대고 있는 전제예요.', "You didn't stop anywhere. So here's just one to look at — a premise this plan is resting on.")
                     : L('여기서 멈추셨네요 — 이 줄이 기대고 있는 전제예요', 'You stopped here — the belief this step is betting on')}
@@ -232,7 +232,7 @@ export function Falsification({
                     leverage ∝ tilt), so we still NAME it — but the crux is a bare
                     neutral QUESTION, never a verdict about which belief is riskiest
                     or what it decides. Ask; don't conclude. */}
-                <p className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5] mt-1.5">
+                <p className="text-[12px] text-[var(--text-secondary)] leading-[1.5] mt-1.5">
                   {L('이게 정말 맞나요?', 'Is it actually true?')}
                 </p>
               </div>
@@ -243,7 +243,7 @@ export function Falsification({
                   reads as busywork. The point: typing it in your words makes it YOUR
                   bet (not the AI's), and that's exactly the line we bring back on the
                   check-in date to compare against what actually happened. */}
-              <p className="text-[11.5px] text-[var(--text-tertiary)] leading-[1.55] mb-1.5">
+              <p className="text-[12px] text-[var(--text-secondary)] leading-[1.55] mb-1.5">
                 {L('여기까진 AI가 짚은 거예요. 당신 말로 적으면 이게 당신의 베팅이 되고, 확인일에 실제 결과랑 같이 맞춰볼 수 있어요.',
                    "Up to here it's what the AI surfaced. Put it in your own words and it becomes YOUR bet — the one we bring back on the check-in date to compare with what actually happened.")}
               </p>
