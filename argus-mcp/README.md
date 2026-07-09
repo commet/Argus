@@ -114,6 +114,39 @@ fails to start, use:
 > wins — so Argus works on any host even when env-variable interpolation
 > doesn't.
 
+## Your first receipt (2 minutes)
+
+You never call these tools by name. Once the server is connected, you just
+talk to your AI in plain language and it calls the right tool for you. One
+full loop — from sealing a prediction to letting reality grade it — looks like
+this:
+
+**1 · Seal a prediction** — before you commit to a decision, tell your AI:
+
+> **You:** "I'm shipping the new onboarding flow next week. Seal a prediction:
+> signups go up at least 10% by the end of the month."
+
+Argus records your predicate and a check-by date. Nothing is scored — it's a
+bet with reality, not a grade from the model.
+
+**2 · Re-check a premise** *(optional, any time before the date)* — if a fact
+your decision leaned on might have moved:
+
+> **You:** "Re-check my onboarding decision — did the weekly signup number
+> change since I sealed it?"
+
+Argus compares the new number to the baseline and tells you if it drifted. It
+returns the handle — whether to revisit the decision stays your call.
+
+**3 · Settle on the check-by date** — when the date arrives:
+
+> **You:** "Settle my onboarding prediction. Signups went up 14%."
+
+Argus prints the **Judgment Receipt** at the top of this page — with
+`AI VERDICT … NONE`. You made the call; reality graded it, not the model.
+
+That's the whole spine. Everything below is detail on top of these three steps.
+
 ## Two loops
 
 Argus runs two loops side by side — the same three-routine workout its author
@@ -137,6 +170,12 @@ reality has answered):
 The watch builds the habit; the voyage builds the record.
 
 ## The loop
+
+**The spine is three tools:** **`argus_seal`** (write the falsifiable bet) →
+optional **`argus_recheck`** (has a load-bearing premise moved?) →
+**`argus_settle`** (reality answers, on the date). If you only ever learn
+these three, Argus works. Everything else in the table supports that spine —
+reach for it when you need it, not before.
 
 | Tool | What it does |
 |------|--------------|
