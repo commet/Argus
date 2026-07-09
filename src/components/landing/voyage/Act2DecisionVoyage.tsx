@@ -90,6 +90,11 @@ export function Act2DecisionVoyage() {
         </div>
 
         <div className="bp-fade-up mt-10 md:mt-12 mx-auto max-w-2xl" style={{ animationDelay: '380ms' }}>
+          {/* Lead-in — ties the film's voyage to the artifact it leaves behind, so
+              the receipt reads as "what you walk away with," not an orphaned card. */}
+          <p className={`text-center ${locale === 'ko' ? 'break-keep' : ''}`} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13px, 1vw, 14.5px)', lineHeight: 1.6, marginBottom: 14 }}>
+            {L('그 항해가 끝나면, 이렇게 한 장이 남아요.', 'When the voyage ends, a page like this remains.')}
+          </p>
           <div
             aria-label={L('판단 영수증 예시', 'Judgment receipt example')}
             style={{
@@ -124,7 +129,7 @@ export function Act2DecisionVoyage() {
                   fontWeight: 700,
                 }}
               >
-                {L('물류 자동화 PT를 어떻게 봉인했는가', 'How the logistics pitch was sealed')}
+                {L('‘예산 2배’ 결정을 어떻게 봉인했나', 'How the “double the budget” call was sealed')}
               </h3>
             </div>
             <div
@@ -136,8 +141,8 @@ export function Act2DecisionVoyage() {
               }}
             >
               {[
-                [L('그때의 판단', 'The call then'), L('2주 안에 작동 영상을 보여주면 작은 팀 리스크가 줄어든다.', 'A working demo within 2 weeks lowers the small-team risk.')],
-                [L('확인할 현실', 'Reality to check'), L('물류팀장이 시연 뒤 본개발 논의를 시작했는가.', 'Did the logistics lead begin a full-build conversation after the demo?')],
+                [L('그때의 판단', 'The call then'), L('예산을 2배로 늘리지 않는다. 몰려든 사람부터 남게 만든 뒤에 키운다.', 'Don’t double the budget yet. Make the incoming users stay first, then grow.')],
+                [L('확인할 현실', 'Reality to check'), L('한 달 뒤, 새로 온 사용자의 잔존율이 실제로 올랐는가?', 'A month on — did retention of the newly-arrived users actually rise?')],
               ].map(([label, body]) => (
                 <div key={label} style={{ padding: '16px 18px', borderRight: '1px solid var(--bp-ink-faint)' }}>
                   <div className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
@@ -156,14 +161,14 @@ export function Act2DecisionVoyage() {
                   textAlign: 'center',
                   color: 'var(--bp-ink)',
                   fontSize: 'clamp(16px, 2.1vw, 22px)',
-                  letterSpacing: '0.14em',
+                  letterSpacing: locale === 'ko' ? '0.06em' : '0.14em',
                   fontWeight: 700,
                 }}
               >
-                AI VERDICT -- NONE
+                {L('AI 판정 —— 없음', 'AI VERDICT —— NONE')}
               </div>
               <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: '12px auto 0', maxWidth: 480, textAlign: 'center', color: 'var(--bp-ink-soft)', fontSize: 12.5, lineHeight: 1.55 }}>
-                {L('판정은 모델이 하지 않습니다. 봉인한 말과 나중의 현실이 한 장에 남습니다.', 'The model does not judge it. The sealed words and later reality stay on one page.')}
+                {L('판정은 AI가 하지 않아요. 당신이 봉인한 판단과 나중의 현실만 이 한 장에 남죠.', 'The AI renders no verdict — only your sealed call and later reality stay on this page.')}
               </p>
             </div>
           </div>

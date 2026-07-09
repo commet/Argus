@@ -44,31 +44,31 @@ const WRITE_DOOR: Door = {
   key: 'write',
   doorKo: '쓰기 · 결정을 적는다',
   doorEn: 'WRITE · a decision',
-  seedKo: '받은 이직 제안, 받아들여도 될까?',
+  seedKo: '받은 이직 제안, 받아들일까?',
   seedEn: 'Take the job offer I just got?',
   stages: [
     {
       labelKo: '진짜 질문',
       labelEn: 'The real question',
-      outKo: '“이직할까?”가 아니라 — “지금 자리에서 3년 뒤 나는 어디에 있나?”가 진짜 질문이에요.',
-      outEn: 'Not “should I switch?” but “where am I in three years if I stay?” — that’s the real one.',
+      outKo: '“이직할까?”가 아니라 — 지금 도망치고 싶은 건지, 정말 가고 싶은 건지가 먼저예요.',
+      outEn: 'Not “should I leave?” — first: am I running from here, or actually going somewhere?',
     },
     {
       labelKo: 'AI가 채운 전제',
       labelEn: 'A premise the AI filled in',
-      outKo: '“지금은 성장이 멈췄다”는 전제를 깔았네요. 당신은 말한 적 없어요 — 맞나요?',
-      outEn: 'It assumed “growth has stalled here.” You never said that — is it true?',
+      outKo: 'AI는 “지금 회사엔 미래가 없다”를 깔고 답했어요. 당신은 그런 말 한 적 없죠 — 맞아요?',
+      outEn: 'The AI answered as if “there’s no future here.” You never said that — is it true?',
     },
     {
       labelKo: '갈리는 지점',
       labelEn: 'Where it turns',
-      outKo: '결국 “안정된 성장 vs 빠른 도약” 한 축에서 갈려요.',
-      outEn: 'In the end it turns on one axis: steady growth vs. a faster leap.',
+      outKo: '연봉도 직함도 아니라 — “3년 뒤 나는 어떤 사람이 돼 있을까” 한 축에서 갈려요.',
+      outEn: 'Not the pay or the title — it turns on one axis: who am I three years from now?',
     },
     {
       labelKo: '봉인 · 정산',
       labelEn: 'Seal, then settle',
-      outKo: '당신의 선택과 이유를 봉인해요. 3개월 뒤 — “그래서, 어떻게 됐어요?”',
+      outKo: '지금의 선택과 이유를 봉인해요. 석 달 뒤 — “그래서, 어떻게 됐어요?”',
       outEn: 'Seal your call and your reasons. Three months on — “so, how did it go?”',
       seal: true,
     },
@@ -82,32 +82,32 @@ const FILE_DOOR: Door = {
   key: 'file',
   doorKo: '올리기 · 문서를 올린다',
   doorEn: 'UPLOAD · a document',
-  seedKo: '3분기 전략안.pdf',
-  seedEn: 'Q3-strategy-memo.pdf',
+  seedKo: 'AI랑 정리한 신사업 제안서.pdf',
+  seedEn: 'New-business proposal (drafted with AI).pdf',
   stages: [
     {
       labelKo: '주장 지도',
       labelEn: 'Claim map',
-      outKo: '핵심 주장을 뽑아, 무엇이 무엇에 기대고 있는지 지도로 그려요.',
-      outEn: 'Pulls the core claims and maps what rests on what.',
+      outKo: '제안서가 기댄 핵심 주장들을 뽑아, 무엇이 무엇에 얹혀 있는지 한눈에 그려요.',
+      outEn: 'Pulls the claims the proposal leans on and maps what rests on what.',
     },
     {
       labelKo: '근거 약한 주장',
       labelEn: 'Weak evidence',
-      outKo: '“시장은 계속 성장한다”(p.3) — 뒷받침이 비어 있어요.',
-      outEn: '“The market keeps growing” (p.3) — nothing behind it.',
+      outKo: '“시장은 계속 커진다”(3쪽) — 근거 칸이 비어 있어요. AI가 매끄럽게 지나간 자리죠.',
+      outEn: '“The market keeps growing” (p.3) — the evidence box is empty. A gap the AI smoothed over.',
     },
     {
       labelKo: '책임질 판단',
       labelEn: 'A human’s call',
-      outKo: '이 예산 배분은 AI가 아니라 사람이 정할 판단이에요. (p.7)',
-      outEn: 'This budget split is a human’s call, not the AI’s. (p.7)',
+      outKo: '예산을 어디에 몰지는 AI가 아니라 당신이 책임질 판단이에요. (7쪽)',
+      outEn: 'Where to concentrate the budget is your call to own, not the AI’s. (p.7)',
     },
     {
       labelKo: '봉인 · 정산',
       labelEn: 'Seal, then settle',
-      outKo: '고친 문서를 봉인하고, 정한 날 결과와 대조해요.',
-      outEn: 'Seal the fixed doc, and check it against reality on your date.',
+      outKo: '고친 제안서를 봉인하고, 정한 날 현실과 대조해요.',
+      outEn: 'Seal the fixed proposal, and check it against reality on your date.',
       seal: true,
     },
   ],
@@ -239,9 +239,10 @@ export function UseCases() {
           {L('복잡한 결정일수록, 갈리는 자리부터.', 'The harder the call, the more it turns on one thing.')}
         </h2>
         <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 640, marginTop: 12 }}>
-          {L(
-            '적어서 물어도, 이미 쓴 문서를 올려도 — 거치는 단계는 같아요. 커서를 올려 한쪽씩, 한 사례가 실제로 어떻게 흘러가는지 따라가 보세요.',
-            'Type a decision or upload one you’ve written — the stages are the same. Hover a side and watch one real case actually move through them.',
+          {locale === 'ko' ? (
+            <>적어서 묻든, 써 둔 문서를 올리든 — 거치는 길은 같아요. 한쪽에 커서를 올려, <span style={{ whiteSpace: 'nowrap' }}>한 사례가 실제로 어떻게 흘러가는지</span> 따라가 보세요.</>
+          ) : (
+            'Type a decision or upload one you’ve written — the stages are the same. Hover a side and watch one real case move through them.'
           )}
         </p>
 
@@ -272,8 +273,8 @@ export function UseCases() {
         {/* Convergence + the one quiet product-level honesty (the disclosed limit) */}
         <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.6, marginTop: 22, opacity: 0.9 }}>
           {L(
-            '두 길 모두 마지막엔 봉인하고 정산하는 같은 항로로 모여요. 어느 쪽도 당신의 결정을 대신 내리지 않아요 — 다만 희미한 기울기까지 지우진 못해요, 저희가 아는 한계예요.',
-            'Both paths end at the same place — seal, then settle. Neither decides for you; no engine is perfectly neutral, though — a limit we own.',
+            '두 길은 결국 한 곳에서 만나요 — 봉인하고, 정한 날 다시 꺼내 정산하기. 결정은 늘 당신이 내려요. (저희가 던지는 질문에도 옅은 치우침은 남아요 — 아는 한계고요.)',
+            'Both paths meet in the same place — seal it, then reopen it on your date to settle up. You always make the call. (Even our questions carry a faint lean — a limit we own.)',
           )}
         </p>
       </div>
