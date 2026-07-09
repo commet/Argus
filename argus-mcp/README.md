@@ -38,6 +38,14 @@ connectors that require an HTTP transport aren't supported yet — see the roadm
 
 ## Why it's different
 
+**It is not a receipt of what your *agent* did.** A growing set of tools now
+log an AI coding run — prompt captured, files touched, checkpoint saved, replay
+path written down. That receipt is about the *machine's* actions over one run.
+Argus receipts something no run-logger can: *your* judgment call, in your own
+words, opened again on a date you set and settled against **reality** — not
+against a model's opinion, and not against a diff. Machine-action receipts and
+judgment receipts are different primitives; you can keep both.
+
 Most decision tools compete on a *better answer*, a *score*, a *confidence*.
 Argus does the opposite, and the opposite is enforced **structurally**, not
 promised in prose:
