@@ -18,14 +18,19 @@ import { tmpArgusDir } from '../../test-helpers.js';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const DIST = path.join(ROOT, 'dist', 'index.js');
 const TODAY = '2026-07-02';
+// A monitored premise's first recheck now waits one cadence from its add date
+// (founder decision 2026-07-10), so premises are added a month before TODAY to
+// be due by the TODAY checks.
+const ADDED = '2026-06-01';
 
 let client: Client;
 let dir: string;
 
 beforeAll(async () => {
-  if (!fs.existsSync(DIST)) {
-    execSync('npm run build', { cwd: ROOT, stdio: 'ignore' });
-  }
+  // Always rebuild — this suite drives the BUILT dist directly, so a stale dist
+  // silently tests old behavior (it did: the cadence-gate looked to pass here
+  // only because dist hadn't been rebuilt).
+  execSync('npm run build', { cwd: ROOT, stdio: 'ignore' });
   dir = tmpArgusDir();
   const env: Record<string, string> = {};
   for (const [k, v] of Object.entries(process.env)) if (typeof v === 'string') env[k] = v;
@@ -69,17 +74,17 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
         argus_dir: dir, id: 'rt1', predicate: 'the cutover ships with no visible outage',
         check_by: '2026-09-01', predicate_owner: 'user',
         unverified_assumption: 'the index rebuild fits the replication lag budget',
-        today_override: TODAY,
+        today_override: ADDED,
       },
     }));
     expect(sealRes['ok']).toBe(true);
     expect((sealRes['data'] as Record<string, unknown>)['premise_promoted']).toBe('P1');
 
-    // add a monitored premise
+    // add a monitored premise (a month ago, so it's due by TODAY)
     const addRes = structured(await client.callTool({
       name: 'argus_premises',
       arguments: {
-        argus_dir: dir, id: 'rt1', op: 'add', today_override: TODAY,
+        argus_dir: dir, id: 'rt1', op: 'add', today_override: ADDED,
         premises: [{ text: 'base rate stays at 3.5%', kind: 'premise', external: true, load_bearing: true, source: 'ai', ai_original: 'base rate stays at 3.5%' }],
       },
     }));
@@ -114,8 +119,8 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
 
   it('the settle ritual prompt carries the recheck choreography when premises are due', async () => {
     // a second decision with a never-checked monitored premise → due
-    await client.callTool({ name: 'argus_seal', arguments: { argus_dir: dir, id: 'rt2', predicate: 'second bet holds through the quarter', check_by: '2026-10-01', predicate_owner: 'user', today_override: TODAY } });
-    await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'rt2', op: 'add', today_override: TODAY, premises: [{ text: 'supply stays constrained', kind: 'premise', external: true, load_bearing: true, source: 'user' }] } });
+    await client.callTool({ name: 'argus_seal', arguments: { argus_dir: dir, id: 'rt2', predicate: 'second bet holds through the quarter', check_by: '2026-10-01', predicate_owner: 'user', today_override: ADDED } });
+    await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'rt2', op: 'add', today_override: ADDED, premises: [{ text: 'supply stays constrained', kind: 'premise', external: true, load_bearing: true, source: 'user' }] } });
 
     const prompt = await client.getPrompt({ name: 'argus-settle', arguments: {} });
     const text = (prompt.messages[0].content as { text: string }).text;
