@@ -122,7 +122,7 @@ export function FinalCard({
                   <span className="block text-[12.5px] font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
                     {L('항해일지(결정 과정)도 함께 담기', 'Include the decision log (your reasoning trail)')}
                   </span>
-                  <span className="block text-[11px] text-[var(--text-tertiary)] mt-0.5 leading-snug">
+                  <span className="block text-[12px] text-[var(--text-tertiary)] mt-0.5 leading-snug">
                     {L('“왜 이렇게 결정했는지”의 기록 — 결과 문서만으로는 남지 않는, 당신만의 판단 흔적이에요.',
                        'The record of WHY you decided this — the reasoning a finished document alone leaves behind.')}
                   </span>
