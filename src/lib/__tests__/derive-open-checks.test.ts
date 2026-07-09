@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { deriveOpenChecks, stableCheckId, MAX_OPEN_CHECKS } from '../decision-contract';
 import type { HonestyFlag } from '../honesty-scan';
 
-const wf = (text: string, where?: string): HonestyFlag => ({ text, kind: 'world_fact', why: '', ...(where ? { where } : {}) });
-const fab = (text: string): HonestyFlag => ({ text, kind: 'fabricated', why: '' });
+const wf = (text: string, where?: string): HonestyFlag => ({ text, kind: 'world_fact', stake: '', ...(where ? { where } : {}) });
+const fab = (text: string): HonestyFlag => ({ text, kind: 'fabricated', stake: '' });
 
 describe('deriveOpenChecks (loop-17 B — founder settings)', () => {
   it('carries ONLY world_fact WITH a source', () => {

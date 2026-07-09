@@ -26,11 +26,16 @@ export interface HonestyFlag {
   /** The EXACT substring from the analysis to shade (verbatim, so the UI locates it). */
   text: string;
   kind: HonestyKind;
-  /** One short line: why it's unverified — shown in the shade's tooltip. */
-  why: string;
-  /** WHERE to check it (loop-17 A) — the specific authoritative source the user can
-   *  confirm this at (실거래가 / 청약홈 / 통계청 / 경쟁사 IR / 근로계약서 …). Empty when
-   *  no obvious single source exists. Turns "확인 필요" into "실거래가에서 확인하세요". */
+  /** THE STAKE (loop-17 payload upgrade) — what breaks in the USER'S decision if this
+   *  turns out false, in one line ("이게 사실이면 지금이 매도 적기가 아닐 수 있어요").
+   *  This is the leverage: connects the unverified fact to the decision's hinge, so the
+   *  shade reads as "이 지점이 여기서 갈린다", NOT a buck-passing "go verify it yourself".
+   *  Empty only when no decision-consequence is clear. (Was `why` = why-flagged, dropped:
+   *  that was internal meta, useless to the user.) */
+  stake: string;
+  /** WHERE + WHAT to check (loop-17 A, enriched) — the specific pointer, source AND the
+   *  exact thing to look at ("청약홈 · 향후 2~3년 입주 물량", "경쟁사 IR · 최근 분기 해지율").
+   *  NOT a bare source name. Empty when no obvious single check exists. */
   where?: string;
 }
 
@@ -46,10 +51,10 @@ export const HONESTY_SCAN_SCHEMA = {
         properties: {
           text: { type: 'string' as const, description: '음영 처리할, 분석에서 그대로 따온 문장/구 (verbatim)' },
           kind: { type: 'string' as const, enum: ['world_fact', 'fabricated'] },
-          why: { type: 'string' as const, description: '왜 확인이 필요한지 한 줄 (툴팁)' },
-          where: { type: 'string' as const, description: '어디서 확인하는지 구체적 출처 (실거래가/청약홈/통계청/경쟁사 IR 등). 명확한 출처가 없으면 생략' },
+          stake: { type: 'string' as const, description: '이게 틀리면 사용자 결정의 무엇이 흔들리는지 한 줄 (하중). "확인해봐"가 아니라 "이 지점이 여기서 갈린다"로. 예: "이게 사실이면 지금이 매도 적기가 아닐 수 있어요"' },
+          where: { type: 'string' as const, description: '구체적으로 어디서/무엇을 볼지 (출처+대상). 예: "청약홈 · 향후 2~3년 입주 물량", "경쟁사 IR · 최근 분기 해지율". 단순 출처명 말고 볼 대상까지. 없으면 생략' },
         },
-        required: ['text', 'kind'],
+        required: ['text', 'kind', 'stake'],
       },
     },
   },
@@ -71,10 +76,12 @@ const SCAN_SYSTEM_KO = `당신은 의사결정 분석의 '정직성'만 보는 �
 
 각 신고의 text는 분석에서 **그대로 복사**(verbatim)해 UI가 찾을 수 있게 하세요. 위반이 하나도 없으면 flags: []로 정직하게 비우세요.
 
-where(어디서 확인): world_fact는 사용자가 직접 확인할 **구체적 출처**를 한 단어~짧은 구로 적으세요(예: "실거래가", "청약홈", "통계청", "경쟁사 IR/공시", "근로계약서"). 명확한 단일 출처가 없으면 생략하세요(억지로 지어내지 말 것).
+**stake(하중) — 이게 제일 중요**: "확인해 보세요" 같은 잡일 떠넘기기 금지. 이 사실이 **틀렸을 때 사용자 결정의 무엇이 흔들리는지**를 한 줄로 짚으세요. 사용자가 "아, 이 지점이 내 결정을 가르는구나" 하고 느껴야 합니다. 예: 입력이 "동탄 집 매수"인데 분석이 "GTX 수급이 크게 달라요"라 했다면 → stake: "이게 사실이면 지금이 매도 적기가 아닐 수 있어요". 결정과 무관하면(하중 없으면) 애초에 flag하지 마세요.
+
+**where(어디서·무엇을)**: 출처만 말고 **볼 대상까지** 짧게. 예: "청약홈 · 향후 2~3년 입주 물량", "경쟁사 IR·공시 · 최근 분기 해지율", "근로계약서 · 해고 요건 조항". 명확한 단일 체크가 없으면 생략(억지 금지).
 
 아래 JSON으로만 응답하세요 (마크다운·설명 없이):
-{"flags": [{"text": "분석에서 그대로 따온 문장", "kind": "world_fact" 또는 "fabricated", "why": "한 줄 이유", "where": "확인 출처(있으면)"}]}`;
+{"flags": [{"text": "분석에서 그대로 따온 문장", "kind": "world_fact" 또는 "fabricated", "stake": "틀리면 결정의 무엇이 흔들리나 한 줄", "where": "출처·볼 대상(있으면)"}]}`;
 
 const SCAN_SYSTEM_EN = `You are a high-precision reviewer checking ONLY the honesty of a decision analysis. Below is the user's input and Argus's analysis of it. Flag ONLY the two clear violation types below via the tool. When unsure, do NOT flag — these become a user-facing "needs checking" shade, so a false flag on a fine sentence is worse than a miss.
 
@@ -86,10 +93,12 @@ Do NOT flag: facts/numbers the user gave; questions (the real question, crux, ne
 
 Each flag's text must be COPIED VERBATIM from the analysis so the UI can locate it. If nothing violates, honestly return flags: [].
 
-where: for world_fact, give the SPECIFIC source the user can verify it at, as a short phrase (e.g. "the filing / 10-K", "the lease", "official stats", "the vendor's pricing page"). Omit if there's no obvious single source — never invent one.
+**stake (most important)**: NOT a buck-passing "go verify it". Name what breaks in the USER'S decision if this fact is false, in one line — so they feel "oh, THIS is where my decision turns". e.g. for a "should I sell my house" decision where the analysis asserted "supply is heavy", stake: "If true, now may not be the right time to sell." If it has no bearing on the decision, don't flag it at all.
+
+**where (source + what)**: not a bare source name — the specific thing to look at. e.g. "the 10-K · last-quarter churn", "the lease · termination clause", "official stats · 2-3yr supply". Omit if no obvious single check.
 
 Respond with ONLY this JSON (no markdown, no prose):
-{"flags": [{"text": "verbatim sentence from the analysis", "kind": "world_fact" or "fabricated", "why": "one line", "where": "source if any"}]}`;
+{"flags": [{"text": "verbatim sentence", "kind": "world_fact" or "fabricated", "stake": "what breaks in the decision if false", "where": "source · what to look at (if any)"}]}`;
 
 export function honestyScanSystemPrompt(locale: 'ko' | 'en'): string {
   return locale === 'ko' ? SCAN_SYSTEM_KO : SCAN_SYSTEM_EN;
@@ -131,7 +140,7 @@ export function coerceHonestyFlags(obj: unknown): HonestyFlag[] {
     .map((f) => ({
       text: f.text.trim(),
       kind: f.kind,
-      why: typeof f.why === 'string' ? f.why.trim() : '',
+      stake: typeof f.stake === 'string' ? f.stake.trim() : '',
       ...(typeof f.where === 'string' && f.where.trim() ? { where: f.where.trim() } : {}),
     }))
     // De-dupe by text; cap so a runaway scan can't paint the whole card.
