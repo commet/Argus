@@ -41,6 +41,8 @@ const SCENARIOS = [
   { problem: '개발자 2명을 더 뽑을지 외주를 쓸지 고민이야', lean: '뽑는 쪽 — 장기적으로 팀 역량이 남으니까' },
   { problem: '경쟁사가 가격을 30% 내렸는데 우리도 따라내려야 하나', lean: '안 내린다 — 가치로 승부해야지' },
 ];
+// 플랫/저위험 결정의 엔진 over-fire 검증은 여정 캡처가 아니라 engine-probe.mjs가
+// 격리해서 담당(여정 하네스는 고위험 시나리오 문구에 튜닝돼 플랫 입력을 못 몬다).
 const scn = SCENARIOS[SCN % SCENARIOS.length];
 
 const surfaces = [];
