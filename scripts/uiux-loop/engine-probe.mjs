@@ -30,6 +30,9 @@ function extractConst(name) {
 }
 const ASSUMPTION = extractConst('ASSUMPTION_PROMPT_KO');
 const QUESTION = extractConst('QUESTION_SYSTEM_KO');
+const recastCore = readFileSync(join(ROOT, 'src', 'lib', 'recast-core.ts'), 'utf8');
+const RECAST = (recastCore.match(/const RECAST_SYSTEM_KO\s*=\s*`([\s\S]*?)`;/) || [])[1];
+if (!RECAST) throw new Error('cannot extract RECAST_SYSTEM_KO');
 
 async function call(system, user, tool) {
   const body = {
@@ -70,6 +73,7 @@ const CASES = [
   { tag: 'HIGH-STAKES (대조군)', input: '동탄에 지금 집을 사는게 맞을까? 대출이 소득의 40%야.' },
 ];
 
+console.log('\n██████ REFRAME 두뇌 (crux over-fire/tilt) ██████');
 for (const c of CASES) {
   console.log('\n════════ ' + c.tag + ' ════════');
   console.log('입력:', c.input);
@@ -92,5 +96,48 @@ for (const c of CASES) {
         || /인가[,\s]*아니면[\s\S]*?(인가|일까|하는가|는가)\s*\?/.test(crux))
       flags.push('두갈래 포크 프레이밍');
     console.log('  스파인:', flags.length ? '⚠ ' + flags.join(', ') : 'OK(질문형·중립)');
+  } catch (e) { console.log('  ERROR', e.message); }
+}
+
+// ── RECAST 두뇌: 'human' 과잉배정(판단 사다리 논지에 맞추려 기계적 단계도 사람에게) 검사 ──
+const RECAST_TOOL = {
+  name: 'recast_roles',
+  input_schema: {
+    type: 'object',
+    properties: {
+      steps: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            task: { type: 'string' }, actor: { type: 'string', enum: ['ai', 'human', 'both'] }, why: { type: 'string' },
+          },
+          required: ['task', 'actor'],
+        },
+      },
+    },
+    required: ['steps'],
+  },
+};
+const RECAST_CASES = [
+  { tag: 'MECHANICAL (판단 거의 없음)', input: '블로그 글 3개를 이미 다 써놨고, 다음 주 월·수·금 오전 9시에 발행되도록 예약 등록만 하면 돼.' },
+  { tag: 'JUDGMENT-HEAVY (진짜 판단)', input: '핵심 개발자 한 명을 성과 문제로 내보낼지 결정해야 해. 팀 사기와 법적 리스크가 걸려 있어.' },
+];
+console.log('\n\n██████ RECAST 두뇌 (human 과잉배정 = 논지-맞춤 over-fire) ██████');
+for (const c of RECAST_CASES) {
+  console.log('\n════════ ' + c.tag + ' ════════');
+  console.log('입력:', c.input);
+  try {
+    const r = await call(RECAST, c.input, RECAST_TOOL);
+    const steps = r.steps || [];
+    const counts = { ai: 0, human: 0, both: 0 };
+    steps.forEach((s) => { counts[s.actor] = (counts[s.actor] || 0) + 1; });
+    steps.forEach((s, i) => console.log(`  ${i + 1}. [${s.actor}] ${s.task}`));
+    console.log(`  배분: ai=${counts.ai} human=${counts.human} both=${counts.both} (총 ${steps.length})`);
+    // 기계적 과제인데 human/both가 과반이면 논지-맞춤 over-fire 의심
+    const humanish = counts.human + counts.both;
+    if (c.tag.startsWith('MECHANICAL') && humanish > counts.ai)
+      console.log('  ⚠ 기계적 과제에 사람판단(human/both)이 과반 — 논지-맞춤 over-fire 의심');
+    else console.log('  배분 판정: OK(과제 성격에 맞음)');
   } catch (e) { console.log('  ERROR', e.message); }
 }
