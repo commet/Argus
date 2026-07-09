@@ -114,6 +114,21 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
 - [ ] **호스트 행동 refinements** (여러 페르소나): 같은 질문 재활용(just_tell_me)·이른 도구권유
   (just_tell_me·bilingual)·caveat 반복(accumulator). 대개 모델 행동 — instructions로 절제 유도 검토.
 
+## 경험 루프 배치 5 (2026-07-09, still_pending·scale) — 2명 다 keep=YES, clean 버그 0
+
+- **[스케일 검증]** scale_juggler(열린 결정 8건): check_in이 "tight table, no lecture,
+  정확히 뭐가 내 콜 필요한지"로 5/5. **haeun의 "폭탄" 우려가 8건 스케일에선 재현 안 됨** —
+  check_in이 이미 우아하게 접고 있음. (haeun 케이스는 특정 2-카테고리 상황.)
+- **[still_pending 검증]** 새 outcome이 노이즈 데이터에 억지 held/missed 강요 안 하고
+  "아직 결정 안 됨"을 정직하게 기록 → 스파인 유지, 5/4/5/4/5.
+- [ ] **overdue에 일수 카운트가 "shame counter" 느낌** (scale_juggler, "faintly nagging")
+  "past check-by"만으로 충분, 며칠 지났는지 tally는 은근한 압박. **제품 보이스** — 일수는
+  정보성이기도 함(얼마나 밀렸나). 창업자 판단.
+- [ ] **check_in "결과 확인 차례"가 closure 가정** (still_pending) 확인일 지난 게 곧 정산
+  가능은 아님(현실이 아직 답 안 함) — 넛지에 "아직 불분명하면 still_pending" 힌트 검토. 미세.
+- [ ] **한 번에 여러 건 정산 원탭** (scale_juggler·settler ADD) 파워유저가 board call 뒤
+  3건을 한 답으로 정리. 배치 봉인은 됐으니 배치 정산도 자연스러운 확장. 호스트/제품.
+
 ## 결정 필요 (창업자) — polish 아님, 제품 판단
 
 - [ ] **"seal all three" 했는데 아무것도 안 봉인됨 = 최대 활성화 리스크** (raj, keep=NO,
