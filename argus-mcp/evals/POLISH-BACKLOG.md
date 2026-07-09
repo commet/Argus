@@ -125,8 +125,8 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   wake 화면 overdue 항목이 "확인일 지남 + 날짜"만, "N일 경과" 제거(일수는 data의 check_by로 계산 가능).
 - [ ] **check_in "결과 확인 차례"가 closure 가정** (still_pending) 확인일 지난 게 곧 정산
   가능은 아님(현실이 아직 답 안 함) — 넛지에 "아직 불분명하면 still_pending" 힌트 검토. 미세.
-- [ ] **한 번에 여러 건 정산 원탭** (scale_juggler·settler ADD) 파워유저가 board call 뒤
-  3건을 한 답으로 정리. 배치 봉인은 됐으니 배치 정산도 자연스러운 확장. 호스트/제품.
+- [x] **한 번에 여러 건 정산** (scale_juggler·settler) → 창업자 결정=**지침으로 안내**
+  (배치 봉인처럼: 사용자가 여러 결과를 한 메시지로 주면 각각 settle, 새 도구 없음).
 
 ## 결정 필요 (창업자) — polish 아님, 제품 판단
 
@@ -155,17 +155,21 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   전제 1건이면 "방금 적어뒀어요: '...'", 여러 건이면 개수+P-ref 유지(5문장 되풀이는 매몰).
 - [x] **"모델은 당신을 채점하지 않았습니다" 영수증 서명줄** (settler) → 창업자 결정=**유지**
   (제품 정체성·zero judgment 선언, 브랜드 DNA).
-- [ ] **봉인~정산 사이 장기 침묵이 빈 서랍처럼 느껴짐** (sujin 135일·marcus) 중간에 가벼운
-  안부 1회? 단 이건 알림 push 경계(서버 크론은 웹앱 담당) — MCP는 passive라 어려움.
-- [ ] **결정 열자마자 전제·봉인 설명이 밀려옴** (bilingual) crux 질문 하나면 충분, 나머지는
-  사용자가 진행하겠다 할 때. 주로 호스트 행동 — instructions 한 줄로 절제 유도 검토.
+- [x] **봉인~정산 사이 장기 침묵 / 저녁 열림 / 중간 안부** (sujin·marcus·watch_user)
+  → 창업자 결정=**MCP 범위 밖**. MCP는 passive(세션 사이 못 나섬), 이건 웹앱 크론/알림 담당.
+- [x] **결정 열자마자 설명 밀려옴 + 반복 질문/경고** (bilingual·just_tell_me·accumulator)
+  → 창업자 결정=**지침에 절제 한 줄**. crux 하나면 충분·이른 도구권유 금지·반복 금지.
+  (advisory — 검증 재실행으로 효과 확인.)
 - [ ] **reviewer는 봉인이 아니라 "어디가 약한지"를 원함** — 검수 후 렌즈 지적을 펼쳐 보여준 뒤
   봉인은 선택. 호스트 행동 — review description에 "봉인 전 렌즈 read를 먼저" 한 줄 검토.
 - [ ] **assumption 넛지가 한 턴에 두 번** (edge_inputs) 중복 발화 확인 필요(호스트 반복 vs
   코드 중복). 한 번이면 충분.
 
-- [ ] **빈 서랍 문제 — 자발 채택은 되는데 포획이 0** (experience loop marcus, 2026-07-09)
-  가장 큰 제품 발견. 사용자가 Argus를 한 번도 언급 안 했는데 호스트가 결정
+- [x] **빈 서랍 문제 — 자발 채택은 되는데 포획이 0** (marcus, 가장 큰 제품 발견)
+  → 창업자 결정=**가벼운 앵커 1회 제안**. 지침에: 사용자가 진짜 결정을 했는데 봉인을
+  거절하면, 그의 말 그대로 argus_watch 앵커(내기 아닌 메모)로 남길지 딱 한 번 제안, no면
+  존중(빈 기록도 정직, 두 번째 물음은 잔소리). 스파인 세이프. (검증 재실행 필요.)
+  --- 원래 분석(참고): 사용자가 Argus를 한 번도 언급 안 했는데 호스트가 결정
   순간을 알아보고 open_decision까지 감(자발 채택 ✓, 승차감 5/5). 그러나
   "기록해둘까요?" 두 번 제안 → 사용자가 무시("그냥 가자") → 아무것도 안 남음
   → 30일 뒤 회고에서 서랍이 비어 있음(earned_return 2/5). 판정단 평:
