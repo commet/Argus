@@ -11,11 +11,13 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
 
 ## 항목
 
-- [ ] **seal surface에 캘린더 절대경로가 통째로 들어감** (loop J1/J3/J4, 2026-07-09)
-  `"봉인했습니다. … Calendar file: C:\Users\…\calendar\j3.ics 무엇을 전제로…"`
-  — "한 줄 human surface" 원칙이 깨지고 기술적 냄새. 경로는 data에 이미 있는지
-  확인 후 surface에서는 "캘린더 파일도 만들어뒀습니다" 수준으로 줄이기.
-  주의: 테스트가 경로 문구를 박아뒀는지 grep 먼저.
+- [x] **seal surface에 캘린더 절대경로 + 영어 "Calendar file:" 라벨** (loop J1/J3/J4)
+  → FIXED: 경로를 표면에서 제거(data.calendar_path 유지), 짧은 로컬라이즈 안내로
+  ("달력에 넣을 .ics 파일도 만들어뒀습니다" / "A calendar file (.ics) is saved too").
+  한국어 표면의 영어 라벨 누출도 함께 해결.
+
+- [x] **INVALID_INPUT이 zod 원문 중계** (loop J6) → SCOPED: 모델-facing 에러라 zod
+  정밀함이 자가수정에 도움 → 감싸지 않고 유지, em-dash만 콜론/마침표로 정리.
 
 - [x] **argus_review 한국어 surface에 EN 밴드 토큰 누출** (loop J5, 2026-07-09)
   → FIXED(copy pass): band→ko 매핑 (normal→충분/caveated→유의/limited→제한적/
@@ -29,9 +31,8 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   = 모델이 읽고 복구하는 지시문, 사용자는 결과만 봄)의 —는 코드 주석 같은 구분자라
   스코프 밖으로 뒀다. 뒤집고 싶으면 여기 뒤집기.
 
-- [ ] **argus_review surface가 EN 문서에도 한국어로 답함** (2026-07-09)
-  review.ts surface가 ko 하드코딩. EN 초안을 검수시키면 한국어 문구가 나옴.
-  seal/settle처럼 문서 텍스트로 언어 감지해 이중언어화 필요.
+- [x] **argus_review surface가 EN 문서에도 한국어로 답함** → FIXED(8b106f9): 위 배치2에서
+  문서 언어 감지 이중언어화 완료 (중복 기재였음).
 
 - [ ] **INVALID_INPUT이 zod 원문을 그대로 중계** (loop J6, 2026-07-09)
   `"op: Invalid option: expected one of \"add\"|\"amend\"…"` — 사람이 볼 수도
@@ -91,6 +92,11 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   "되물어 마찰(raj 혐오)" 사이 진짜 제품 긴장. **루프가 웹앱 펀넬의 활성화 병목(열림多/봉인0)을
   충실히 재현**. 창업자 결정 필요: 정직한 ai_surfaced 초안+원탭 확인 흐름? 아니면 파워유저는
   웹앱(버튼 UI)이 활성화 표면? (지침 개선은 무해해서 유지, 단 이것만으로 안 풀림을 명시.)
+  **시도 2 (2026-07-09, 검증 중)**: 진짜 걸림돌 후보 발견 — seal `id` 설명이 "The id from
+  argus_open_decision"이라 모델이 "open 안 했으니 봉인 불가"로 오해했을 수 있음(코드는 fresh
+  id로 봉인 가능). id 설명 수정 + 지침에 **구체적 변환**(비격식 문장→반증가능 예측→check-by,
+  ai_surfaced 초안 허용) 추가. **sonnet-5 vs opus-4-8 두 호스트로 raj 재실행해 "못 하는가(지침)
+  vs 안 하는가(모델역량)" 분리 중.** 결과 대기.
 - [ ] **ASCII 봉인 상자가 과한 의식** (edge_inputs, "manufactured gravitas") 솔로 개발자가
   이미 내린 결정엔 무거움. 브랜드 keepsake vs 가벼움 — 컨텍스트별 on/off? 창업자 판단.
 - [ ] **P1/P2·"전제" 같은 코드성 표기가 비개발자에 차가움** (sujin) 판정단 제안=전제 내용을

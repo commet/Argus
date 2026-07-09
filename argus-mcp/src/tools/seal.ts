@@ -23,7 +23,7 @@ import { handleToolException } from './errors.js';
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
-  id: zId.describe('The id from argus_open_decision.'),
+  id: zId.describe('A short slug you pick for this decision (e.g. "q3-cutover"). No prior argus_open_decision is needed — a fresh id starts the record on its own.'),
   predicate: z.string().min(8).max(400).describe('A prediction reality can mark true/false. Good: "cutover downtime < 5 min". Bad: "it will go well".'),
   check_by: zDate.describe('YYYY-MM-DD, a real future date — when you will come back to settle.'),
   predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed.'),
@@ -159,9 +159,14 @@ export const seal: ToolModule = {
         locale,
       });
 
+      // The .ics exists (path in data.calendar_path for hosts that want it), but
+      // dumping the absolute path — and the English label "Calendar file:" — into
+      // a one-line surface was noise, and broke the Korean voice (copy-audit /
+      // loop find). Mention it briefly, localized; keep the path in data.
+      const calNote = locale === 'ko' ? ' 달력에 넣을 .ics 파일도 만들어뒀습니다.' : ' A calendar file (.ics) is saved too.';
       return envelope({
         ok: true, tool: 'argus_seal',
-        surface: `${T.sealed(predicate, checkBy)} Calendar file: ${calendarPath}${nudge}${syncLine}`,
+        surface: `${T.sealed(predicate, checkBy)}${calNote}${nudge}${syncLine}`,
         next_actions: ['argus_check_in', 'stop'],
         data: {
           id, predicate, check_by: checkBy, predicate_owner: a['predicate_owner'],

@@ -114,7 +114,7 @@ export async function createServer(): Promise<Server> {
         ok: false,
         tool: name,
         error_code: 'INVALID_INPUT',
-        message: `Invalid arguments — ${issues}`,
+        message: `Invalid arguments. ${issues}`,
         recovery: 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.',
       };
       return {
