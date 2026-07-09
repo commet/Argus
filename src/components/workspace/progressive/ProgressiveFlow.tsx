@@ -72,7 +72,7 @@ import { forksToQuestions, forkQuestionId } from '@/lib/fork-to-question';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { Falsification } from './Falsification';
 import { Button } from '@/components/ui/Button';
-import { extractPredicatesFromSession, contractStatus } from '@/lib/decision-contract';
+import { extractPredicatesFromSession, contractStatus, deriveOpenChecks } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
@@ -1092,6 +1092,14 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
       user_judgment: { decision_line: (session?.snapshots ?? []).slice(-1)[0]?.decision_line },
     }),
     [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification, session?.snapshots],
+  );
+  // loop-17 B — the unverified facts (world_fact + source) carried into the seal so
+  // the settle screen can ask "did you check it?". Derived from the latest snapshot's
+  // honesty_flags; empty until the async scan resolves, which is fine (seal reads the
+  // live value at tap time).
+  const openChecks = useMemo(
+    () => deriveOpenChecks((session?.snapshots ?? []).slice(-1)[0]?.honesty_flags),
+    [session?.snapshots],
   );
   // Post-generation honesty scan (loop-17) — NON-BLOCKING. When a snapshot settles
   // with a claims-bearing body and hasn't been scanned yet, fire scanHonesty and
@@ -3521,7 +3529,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 SealMoment) leads the scene instead of hiding below the fold. */}
             {contractDue && contractProject && (
               <div className="mb-4">
-                <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} />
+                <SealMoment project={contractProject} predicates={contractPredicates} openChecks={openChecks} gate={sealGate} />
               </div>
             )}
             {/* ① 산출물 ("가져가실 것") — the document is what the user takes
@@ -3569,7 +3577,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 before ever seeing it — the closing scene must come before the
                 exits, never compete with them. */}
             {contractProject && !contractDue && (
-              <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} closing />
+              <SealMoment project={contractProject} predicates={contractPredicates} openChecks={openChecks} gate={sealGate} closing />
             )}
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-10 pb-16">
