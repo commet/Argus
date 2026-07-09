@@ -16,7 +16,7 @@ import {
   type CanonicalArtifact,
   type JudgmentReceipt,
 } from '@/lib/review';
-import { isMonitored, isDueForRecheck, isReconsiderable } from '@/lib/premises-core';
+import { isMonitored, isDueForRecheck, isReconsiderable, addDays, DEFAULT_RECHECK_CADENCE_DAYS } from '@/lib/premises-core';
 
 function mock(artifact: CanonicalArtifact): ReviewLLM {
   const uid = artifact.units[0]?.unit_id ?? 'u0';
@@ -66,8 +66,12 @@ describe('premise tracking — promote, re-check, caps', () => {
     expect(rec.tracked_premises?.length).toBe(1);
     const p = rec.tracked_premises![0];
     expect(isMonitored(p)).toBe(true); // external + load-bearing + active
-    // armed + never checked → due now
-    expect(isDueForRecheck(p, '2026-08-01')).toBe(true);
+    // armed + never checked → NOT due the day it was added; the first re-check
+    // waits one cadence from added_ts (founder decision 2026-07-10, matching the
+    // open_question clock). Anchored to added_ts so the test isn't wall-clock-fragile.
+    const addedDay = p.added_ts!.slice(0, 10);
+    expect(isDueForRecheck(p, addedDay)).toBe(false);
+    expect(isDueForRecheck(p, addDays(addedDay, DEFAULT_RECHECK_CADENCE_DAYS))).toBe(true);
 
     // first re-check = baseline (records, never alerts)
     const s1 = S().recheckPremise(r.receipt_id, p.premise_id, { finding: '기준금리 3.5%', numeric_value: 3.5, source: 'user_stated' });
