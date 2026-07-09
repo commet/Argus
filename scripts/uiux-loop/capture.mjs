@@ -31,6 +31,8 @@ const args = process.argv.slice(2);
 const BASE = argVal('--base') || 'http://localhost:3000';
 const SCN = Number(argVal('--scenario') || '0');
 const DARK = args.includes('--dark'); // prefers-color-scheme: dark 로 대비 사각 검사
+const MOBILE = args.includes('--mobile'); // 390px 뷰포트로 레이아웃 깨짐 검사
+const VP = MOBILE ? { width: 390, height: 844 } : { width: 960, height: 900 };
 
 function argVal(flag) { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : null; }
 
@@ -49,7 +51,7 @@ async function main() {
   mkdirSync(OUT, { recursive: true });
 
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 960, height: 900 }, colorScheme: DARK ? 'dark' : 'light' });
+  const page = await browser.newPage({ viewport: VP, colorScheme: DARK ? 'dark' : 'light' });
   page.setDefaultTimeout(15000);
 
   const log = (...a) => console.log('[capture]', ...a);
@@ -145,8 +147,10 @@ async function main() {
 
     // ── 사다리 flinch (중간 rung 클릭) ──
     await page.evaluate(() => {
+      // width 문턱은 뷰포트 무관하게: rung은 카드 폭을 꽉 채우는 넓은 버튼이고
+      // 숫자로 시작 + 30자↑라 다른 버튼과 구별됨. 모바일(390px)에서도 잡히게 240.
       const rungs = [...document.querySelectorAll('button')].filter(b =>
-        b.getBoundingClientRect().width > 300 && /^[0-9]/.test(b.textContent.trim()) && b.textContent.length > 30);
+        b.getBoundingClientRect().width > 240 && /^[0-9]/.test(b.textContent.trim()) && b.textContent.length > 30);
       const target = rungs[Math.min(2, rungs.length - 1)];
       if (target) target.click();
     });

@@ -20,6 +20,8 @@ const val = (f, d) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] :
 const scenario = val('--scenario', '0');
 const base = val('--base', 'http://localhost:3000');
 const TRIES = Number(val('--tries', '5'));
+// 뷰포트/테마 플래그는 capture로 그대로 통과 (모바일·다크도 재시도 래퍼로 완주).
+const passthrough = ['--mobile', '--dark'].filter(f => args.includes(f));
 const GALLERY = join(__dir, 'gallery', 'surfaces.json');
 
 function serverUp() {
@@ -44,7 +46,7 @@ function run() {
       if (!serverUp()) { console.log('[run] 여전히 다운 — 다음 시도로'); continue; }
     }
     console.log(`\n[run] ===== 캡처 시도 ${t}/${TRIES} (scenario ${scenario}) =====`);
-    const r = spawnSync('node', [join(__dir, 'capture.mjs'), '--scenario', scenario, '--base', base],
+    const r = spawnSync('node', [join(__dir, 'capture.mjs'), '--scenario', scenario, '--base', base, ...passthrough],
       { stdio: 'inherit', timeout: 8 * 60 * 1000 });
     if (r.error) console.log('[run] capture 프로세스 오류:', r.error.message);
     if (reachedGoal()) {
