@@ -69,7 +69,7 @@ const zPremiseInput = z.strictObject({
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
-  id: zId.describe('The decision id from argus_open_decision.'),
+  id: zId.describe('The decision id — the same id you passed to argus_open_decision or argus_seal.'),
   op: z.enum(['add', 'amend', 'resolve', 'still_open']).describe('add = record premises; amend = correct one (user edit = signal); resolve = close an open question in the user\'s words; still_open = the user chose to leave an open question unresolved for now (defers the reconsider nudge, no verdict).'),
   premises: z.array(zPremiseInput).min(1).max(MAX_ACTIVE_PREMISES).optional().describe('op=add only.'),
   ref: z.string().max(64).optional().describe('op=amend/resolve: which premise — an ordinal ("P1"), the premise_id, or an unambiguous id prefix. Ordinals are permanent (a retired P2 stays P2).'),
