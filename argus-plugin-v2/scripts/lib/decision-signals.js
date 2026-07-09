@@ -2,7 +2,7 @@
  * Shared Layer-1 decision-signal helpers for the anchor-as-switch hooks
  * (anchor-signal / wake-signal / recall-signal). Single source for the cheap,
  * deterministic grep patterns and transcript reading — NO LLM here (that is the
- * main-agent delegation, §12.5). Design: docs/DESIGN-decision-capture-anchor-as-switch-2026-06-29.md
+ * main-agent delegation, §12.5). Design: internal design notes
  *
  * Conservative on purpose: better to miss a weak signal (the user can still
  * invoke /argus) than to over-fire (mirror clause). Layer 2 (the main agent)

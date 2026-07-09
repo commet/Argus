@@ -85,3 +85,6 @@ argus-plugin-v2/evals/sweep-report.json
 
 # Borrowed/vendored non-Argus skill packs — not redistributed in this repo
 /.agents/
+
+# Internal design/strategy history — kept private, not in the public repo
+/docs/archive/

@@ -946,7 +946,7 @@ export default function ProjectPage() {
           <DecisionContractCard project={currentProject} sealable={completedSteps === steps.length} />
 
           {/* Decision items — editable premises/phenomena + per-item change alerts
-              (living-premises layer, DESIGN-decision-items-living-premises). */}
+              (living-premises layer, internal design notes). */}
           <DecisionItemsCard project={currentProject} session={currentVoyageSession} />
 
           {/* Settlement modal — "그래서, 어떻게 됐어요?" Auto-opens when the

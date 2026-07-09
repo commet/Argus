@@ -3,7 +3,7 @@
 Date: 2026-07-07
 Author: Claude (claude-fable-5)
 Status: **정본 (canonical)** — MCP 공개 사이클의 판단 기준 문서
-Inputs: 창업자 브리프(`FABLE5-ARGUS-WEBAPP-MCP-DIAGNOSTIC-BRIEF-2026-07-07.md`, 업로드본) + 코드 실검증 + `docs/FABLE5-QUANTUM-UPGRADE-PROMPT-AND-PLAN-2026-07-07.md`(이하 "QUANTUM 문서")
+Inputs: 창업자 브리프(`internal design notes`, 업로드본) + 코드 실검증 + `docs/FABLE5-QUANTUM-UPGRADE-PROMPT-AND-PLAN-2026-07-07.md`(이하 "QUANTUM 문서")
 Relationship: QUANTUM 문서를 **폐기하지 않고 재조준한다.** 그 문서의 진단(뺑뺑이의 뿌리)과 Phase들은 유효하다. 이 문서는 브리프의 재프레임 — **이번 공개는 MCP이고 웹앱은 귀환 루프를 완성하는 지지 표면** — 을 받아들여, 우선순위를 "공개 전 반드시"와 "공개 후"로 다시 자르고, 브리프가 의심한 지점들을 코드로 실증한 결과를 더한다. 실행자는 이 문서를 먼저 읽고, QUANTUM 문서를 §8의 매핑표에 따라 참조하라.
 
 이 문서에 구현 코드는 없다. 진단 · 판정 · 설계 · 실행계획뿐이다. 모든 발견은
@@ -176,7 +176,7 @@ local-only 귀환 문제, silent mirror death — 전부 "약속한 날에 오�
 
 ### F6 — 웹 구세대 표면의 verdict 어휘 잔존: vitality tier가 아직 살아 있다
 - **심각도: medium (공개 전 landing 경로만, 나머지는 공개 후)** · 표면: webapp
-- 근거: `src/lib/judgment-vitality.ts:534-548` — tier `'alive' | 'coasting' |
+- 근거: `src/lib/internal design notes.ts:534-548` — tier `'alive' | 'coasting' |
   'performing' | 'dead'`, `rigidity_score`, `vitality_score`.
   `RehearseStep.tsx:33`이 lazy-load(확인됨). CLAUDE.md 규칙 2("uncalibrated
   score/tier를 사용자에게 노출 금지 — internal-routing-only or remove")의
@@ -235,7 +235,7 @@ due의 UX**(예: "이 중 이미 마음이 떠난 것들을 한 번에 놓아주
 실행한다는 뜻. (a) npm 계정 2FA/publish 토큰 관리, (b) `npm pack` 산출물에
 불필요 파일이 없는지(files 필드), (c) install 스크립트 부재 확인, (d) 의존성
 락과 provenance(`npm publish --provenance`) — 이 리포는 커밋 서명 문서
-(COMMIT-SIGNING.md)까지 있는 팀이니 여기까지 갖추면 일관된다. 확인:
+(internal design notes)까지 있는 팀이니 여기까지 갖추면 일관된다. 확인:
 `argus-mcp/package.json` files/scripts 필드 + npm 계정 설정. 코드 결함이
 아니라 운영 결함이 공개 제품을 죽이는 고전 경로.
 
@@ -419,7 +419,7 @@ QUANTUM 문서 Phase와의 관계 (실행자는 두 문서를 이 표로 잇는�
 부록 — 이번 세션에서 직접 읽어 확인한 것: `argus-mcp/src/lib/spine.ts`(전문) ·
 `argus-mcp/src/tools/sync.ts`(전문) · `argus-mcp/src/tools/{index,seal,open-decision,
 check-in}.ts`(부분) · `argus-mcp/src/lib/push-account.ts`(부분) ·
-`src/app/api/mcp/seal/route.ts`(buildReceipt 전문) · `src/lib/judgment-vitality.ts`
+`src/app/api/mcp/seal/route.ts`(buildReceipt 전문) · `src/lib/internal design notes.ts`
 (시그니처) · `src/lib/user-data-tables.ts` · 파일 인코딩(`file`) ·
 테스트 존재(route.test 8건, push-account, loop, integration-simulation) ·
 i18n 1차 grep. 나머지 주장은 "확인" 지시가 붙은 Wave 0 항목이다.

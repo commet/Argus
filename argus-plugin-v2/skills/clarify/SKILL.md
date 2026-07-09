@@ -423,7 +423,7 @@ Write result to `versions/v0.1/analysis.json`.
 **Step 3.5 — Emit decision items (living-premises layer).** After writing
 analysis.json, project the assumptions you ALREADY computed into trackable items
 so `/argus:track` and the premise-alert layer have data (design:
-`docs/DESIGN-decision-items-living-premises-2026-07-01.md`). Reuse
+`internal design notes`). Reuse
 `hidden_assumptions` — do NOT run a second extraction (that would drift from the
 webapp's `item-extract-core`). Append one line per item to `.argus/items.jsonl`
 (project root, append-only), event `extract`:
@@ -469,7 +469,7 @@ If `framing_confidence < 70`:
 ### Step 3.4 — BIND (tie the rope before the crew) — Phase 1 mirror
 
 The webapp seals the user's own lean at project-OPEN, BEFORE any generation
-("tie the rope before you hear the Sirens" — `docs/MYTH-SIRENS-design-grounding`).
+("tie the rope before you hear the Sirens" — `internal design notes`).
 Mirror it here so both surfaces share the same spine. **Run only for
 `request_type == open_decision`** (vent/info/validation/self_profiling/crisis never
 run the crew, so there is no song to tie a rope against — skip silently). **Skip on

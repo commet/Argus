@@ -2,7 +2,7 @@
 /**
  * Argus SessionStart hook — recall the PREVIOUS off-session's closed decision.
  *
- * Design: docs/DESIGN-decision-capture-anchor-as-switch-2026-06-29.md (§7, §13-4).
+ * Design: internal design notes (§7, §13-4).
  *
  * "마지막 확인" can't ride SessionEnd (unreliable — terminal close / crash skip it).
  * So the last look at a session that CLOSED a decision WITHOUT an anchor happens at

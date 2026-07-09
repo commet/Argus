@@ -35,9 +35,8 @@ surface, pass it through one gate:
 > **Does this feature generate, or does it judge the user's decision / narrate
 > ownership in their stead? If it judges, it violates the spine.**
 
-Three concrete rules that follow (full rationale in
-`docs/ARGUS-FINAL-DIRECTION.md` → Zero-Judgment Invariant, and
-`docs/ESSAY-IMPLICATIONS-judgment-ownership-2026-06-15.md`):
+Three concrete rules that follow (full rationale in the Zero-Judgment
+Invariant design notes, kept privately):
 
 1. **Never lie about authorship.** A machine-surfaced sentence must not silently
    inherit a user-owned field (`real_bet`, `governing_idea`). Tag provenance
@@ -60,10 +59,10 @@ Three concrete rules that follow (full rationale in
    (name at most one load-bearing assumption + return the handle), not a weighted
    two-pole fork — never emit an engine-weighted pole to the user. Rationale and
    evidence: the 4-round engine stress test
-   (`docs/STRESS-SYNTHESIS-rounds1-4-2026-06-16.md`) found a find-the-leverage
+   (`internal design notes`) found a find-the-leverage
    engine over-fires on 60% of flat cases and tilts forks in ways `ai_surfaced`
    tagging cannot neutralize. Honest provenance is necessary but **not** sufficient.
-   **Refinement (rounds 5–8, `docs/STRESS-SYNTHESIS-rounds5-8-2026-06-17.md`):**
+   **Refinement (rounds 5–8, `internal design notes`):**
    the restraint default *works* — flipping to an under-fire default killed flat
    over-fire (60%→0%) and the redesign halved total harm vs the old engine
    (11→6) — so the fix is real, but two rules fall out of it. (a) **Firing form =

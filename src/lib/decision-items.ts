@@ -1,7 +1,7 @@
 /**
  * Decision Items — a decision decomposed into typed, individually-tracked objects.
  *
- * Design: docs/DESIGN-decision-items-living-premises-2026-07-01.md
+ * Design: internal design notes
  *
  * A decision is not a single conclusion; it is a list of items of different
  * TYPES (premise / phenomenon / conclusion / open_question / prediction). Each

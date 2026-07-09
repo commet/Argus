@@ -13,7 +13,7 @@
  * different competence than risk/pre-mortem, so a decision needing both gets a
  * legal worker AND a risk worker instead of one-of-each-blocking-the-other.
  *
- * Mapping mirrors docs/AGENT-LENS-PATTERN-DESIGN-2026-06-26.md. Kept separate
+ * Mapping mirrors internal design notes. Kept separate
  * from agent-registry so this is additive and reversible.
  */
 

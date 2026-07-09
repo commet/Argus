@@ -1,6 +1,6 @@
 -- Decision Items — a decision decomposed into typed, individually-tracked objects
 -- (premise / phenomenon / conclusion / open_question / prediction).
--- Design: docs/DESIGN-decision-items-living-premises-2026-07-01.md
+-- Design: internal design notes
 --
 -- One row per item (normalized) so per-item alerts can be queried directly.
 -- Mirrors src/lib/decision-items.ts DecisionItem. `edits` and `alert` are jsonb

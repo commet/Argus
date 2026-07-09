@@ -45,7 +45,7 @@ jobs:
       # test, so a separate plain `vitest run` would just double CI time.
       # Coverage RATCHET: thresholds in vitest.config.ts sit a few points below the
       # measured baseline, so this fails only if coverage *erodes*. Raise the floor
-      # as new tests land — see docs/TEST-COVERAGE-ANALYSIS.md (Gap 4).
+      # as new tests land — see internal design notes (Gap 4).
       - name: Test + coverage ratchet
         run: npx vitest run --coverage --reporter=verbose
         env:

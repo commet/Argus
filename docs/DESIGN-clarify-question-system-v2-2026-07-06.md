@@ -1,7 +1,7 @@
 # Argus Clarify Question System v2 — 실행 설계서
 
 Date: 2026-07-06
-Status: **Execution-ready design** — supersedes `DESIGN-clarify-question-system-2026-07-06.md` (CODEX 초안)
+Status: **Execution-ready design** — supersedes `internal design notes` (CODEX 초안)
 Rev: v2.1 — 심층 재검토 반영: premises-core 전문 검증(§3.1b), framing_confidence 자기보고 결함(§4.3b), "모르겠다"의 open_question 승격, 피로 감지 오탐 교정, validator 커버리지 확장
 Executor: Opus/Sonnet 세션이 이 문서만 읽고 구현할 수 있게 쓴다.
 Scope: Clarify 질문 시스템, 질문 품질 하한선, 전제 추적, judgment checkpoint 연결

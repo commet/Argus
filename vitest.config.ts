@@ -22,7 +22,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       // text → console summary; json-summary → machine-readable ratchet; html →
-      // local drill-down. See docs/TEST-COVERAGE-ANALYSIS.md (Gap 4).
+      // local drill-down. See internal design notes (Gap 4).
       reporter: ['text', 'json-summary', 'html'],
       // RATCHET (not a target): a floor a few points below the measured baseline
       // (2026-07-07: lines 32.4 / stmts 31.4 / funcs 26.5 / branch 24.5). It only

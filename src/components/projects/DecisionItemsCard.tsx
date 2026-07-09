@@ -4,7 +4,7 @@
  * Decision Items card — the editable, tracked premises/phenomena/open-questions of
  * a decision, shown next to DecisionContractCard on the project page.
  *
- * Design: docs/DESIGN-decision-items-living-premises-2026-07-01.md
+ * Design: internal design notes
  *
  * Editing is the DEFAULT posture: AI-extracted items are drafts the user fixes,
  * and every correction is recorded as signal (recordEdit via the store). No verdict

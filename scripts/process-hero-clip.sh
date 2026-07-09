@@ -6,7 +6,7 @@
 #              방식으로 지운다. 박스 밖은 원본과 100% 동일 → 좌측 바/더블링
 #              같은 전역 아티팩트가 원리적으로 생길 수 없다.
 #
-# 왜 이렇게 하나 (실패에서 배운 것, 자세한 배경은 docs/HERO-VIDEO-PIPELINE.md):
+# 왜 이렇게 하나 (실패에서 배운 것, 자세한 배경은 internal design notes):
 #   - delogo    → 선화(line-art) 위에서 뭉갬(smudge). 금지.
 #   - 밝기캡    → 반짝이의 어두운 외곽 링이 마름모로 잔존. 금지.
 #   - 전체프레임 shift + pad + maskedmerge → pad의 검정이 마스크 floor(=16,

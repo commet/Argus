@@ -9,7 +9,7 @@
  *
  * Captions are HTML overlays synced to the video time (i18n, restyleable, not
  * burned in). Each chapter pairs the MYTH (what the scene means) with what
- * ARGUS actually does — grounded in docs/MYTH-SIRENS-design-grounding:
+ * ARGUS actually does — grounded in internal design notes:
  *   묶기  seal/decision_contract — write your own call before you open the AI
  *   듣기  recast/persona/refinement — hear it, but the premises you waved past get noted beside you
  *   닿기  watch — reality is the judge; if a premise shifts, Argus tells you

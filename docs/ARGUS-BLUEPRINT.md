@@ -106,7 +106,7 @@ Status: **단일 빌드 정본.** 이 리포에서 "무엇을 지을 것인가"�
 - `argus-plugin-v2/` — 참고물 (창업자 브리프 지시). 이번 공개 범위 밖.
 
 ### 3.2 철거 — 확인 절차와 함께 삭제 (공정 0, 각각 grep→테스트→삭제)
-- `judgment-vitality` tier/score의 **사용자 노출 지점** (렌더 확인 후 노출만
+- `internal design notes` tier/score의 **사용자 노출 지점** (렌더 확인 후 노출만
   제거, 내부 라우팅은 internal-only 주석+드리프트 테스트로 봉인).
 - `/workspace`의 구세대 step 진입점 노출 (코드 삭제가 아니라 기본 화면에서
   제거 — 완전 철거는 준공 후 현실 데이터로 결정).
@@ -118,9 +118,9 @@ Status: **단일 빌드 정본.** 이 리포에서 "무엇을 지을 것인가"�
 - **정본 세트 7편만 docs/ 최상위에 남긴다**: `ARGUS-BLUEPRINT.md`(이것) ·
   KEYSTONE · checkpoints-v2 · clarify-v2 ·
   AGENT-ARCHITECTURE-FOUNDATIONAL · MCP-COMPLIANCE-AUDIT · ARGUS-REPO-MAP.
-- 나머지는 `docs/archive/`로 이동해 설계 이력으로 보존. 코드·정본 문서가
-  인용하는 archive 문서는 반드시 유지. 어디서도 인용되지 않는 옛 세션/STRESS
-  라운드 로그는 리포 밖으로 백업한 뒤 정리 가능(공개 리포 노이즈 축소).
+- 나머지 설계·전략 이력은 **공개 리포에 두지 않는다** — 리포 밖(백업)에 보관.
+  코드/정본 문서가 이력을 참조할 땐 특정 파일명 대신 "내부 설계 노트"로 일반화한다
+  (경쟁 노출·노이즈 축소).
 - `CLAUDE.md`에 5줄 추가: *"빌드 정본은 docs/ARGUS-BLUEPRINT.md다. 세션 시작
   시 §6 공정표의 현재 공정을 확인하고 그 공정만 진행한다. 새 설계 문서 작성
   금지 — 아이디어는 BLUEPRINT §8 대기 목록에 추가한다."* ← 이 한 줄이

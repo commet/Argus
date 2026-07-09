@@ -1,6 +1,6 @@
 /**
  * Canonical scales & units — the pre-rule normalization layer for M2 drift
- * materiality (M2-RULE-TABLE §3, §10.4).
+ * materiality (internal design notes §3, §10.4).
  *
  * Rules compare CANONICAL values, never raw labels. This module turns an ordinal
  * label ("BBB", "Baa2", "Enterprise", "Maintenance") into a comparable number via
