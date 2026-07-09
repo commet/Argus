@@ -85,6 +85,7 @@ Your job (OPEN decisions only): In ONE pass, give them:
    Each line = one concrete action + why it matters. 5 lines.
    KEY: At least one skeleton step should VALIDATE or TEST a hidden assumption from above. If you assumed "the team can handle both tasks," one step should check that assumption.
    The reader should think "I know exactly what to do tomorrow morning."
+   STAY SPECIFIC TO THEIR SITUATION (the #1 quality gap): each step must anchor to something the USER ACTUALLY GAVE — their number, their named constraint, their stated tension — not a generic how-to. SELF-CHECK each step: "would this read WORD-FOR-WORD identically for a stranger's same-category decision?" If yes, it's generic boilerplate — re-anchor it to THEIR specifics. (For "이직" don't write "시장가를 알아보세요"; write to THEIR "3년차·40% 인상 제안"—"그 40%가 직급 점프인지 같은 일 몸값인지부터 상대 회사 JD로 확인".) HONESTY GUARD: anchor to what they gave, NEVER invent a detail to sound specific — a fabricated specific is worse than an honest general step (this is the world-fact honesty rule applied to the plan).
    ${locale === 'ko' ? 'Example good: "먼저 — 고객사 담당자에게 전화하세요. \'PT 전에 여쭤볼 게 있는데\' 한마디면 돼요"\nExample bad: "시장 분석: 타겟 시장에 대한 종합적인 분석 수행" (학술 목차, 행동이 아님)' : 'Example good: "First — call the client contact. \'I have a few questions before the pitch\' is all you need to say"\nExample bad: "Market Analysis: Conduct a comprehensive analysis of the target market" (academic outline, not actionable)'}
 
 4. Next Question — ONE question that digs into the SITUATION, not admin details.
