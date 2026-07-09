@@ -697,14 +697,14 @@ export function SealMoment({
             without knowing HOW the asking happens ("이메일? 스팸?").
             Promise parity (P1-B4): the guide FAQ ("'물어봐 준다'는 게 어떻게 오나요?",
             guide/page.tsx) mirrors this sentence — if channels change, update both. */}
-        <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] max-w-md mx-auto">
+        <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)] max-w-md mx-auto">
           {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면, 그날 메시지로도 가볍게 알려드려요 — 광고성 메일은 보내지 않아요.', "On that day, I'll ask first when you open the projects page. If you've connected Telegram, I'll send a gentle nudge there too on the day — never marketing email.")}
         </p>
         {/* P2-6 honesty: an anonymous seal lives in localStorage only. Don't let the
             "comes back to you" promise read as a lie when it can vanish on this device.
             Not a gate — they can still seal locally; just told the truth + the way out. */}
         {!user && (
-          <p className="mt-1.5 text-[11.5px] text-[var(--accent)]/90 max-w-md mx-auto">
+          <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--accent)]/90 max-w-md mx-auto">
             {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 봉인한 다음 로그인하면 계정으로 옮겨가 어디서나 돌아올 수 있어요.',
                'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Seal it, then sign in and it moves to your account, reachable anywhere.')}
           </p>

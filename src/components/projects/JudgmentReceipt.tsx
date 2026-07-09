@@ -94,7 +94,7 @@ export function JudgmentReceipt(props: Props) {
         )}
 
         <div className="px-4 py-3">
-          <p className="text-[11px] text-[var(--text-tertiary)] mb-1.5">
+          <p className="text-[12px] text-[var(--text-secondary)] mb-1.5">
             {L(`지금의 판단 — ${check_by}에 꺼냅니다`, `Your judgment — opened again on ${check_by}`)}
           </p>
           <input

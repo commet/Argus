@@ -166,7 +166,7 @@ export function CurrentBearingCard({
             careful stranger — say what it actually does before the tap. Half of
             SealModal's honest sentence, transplanted next to the 47/0-funnel button. */}
         {showActions && canSeal && onSeal && (
-          <p className="mt-2 text-[11px] leading-snug text-[var(--text-tertiary)]">
+          <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
             {L(
               '봉인 = 이 결정을 여기 남겨두고, 정한 날에 “그래서, 어떻게 됐어요?”를 물어드리는 거예요.',
               'Sealing keeps this call here — and on the date you pick, we ask "so, how did it go?"',

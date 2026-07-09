@@ -3528,7 +3528,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-10 pb-16">
               {/* (The old "복사해서 바로 사용하세요" label pointed at a copy button
                   that lives in FinalCard's header, not here — removed.) */}
-              <p className="text-[11px] text-[var(--text-tertiary)]/80 text-center mb-6">{L('새 프로젝트를 시작해도 이 결과는 저장돼요 — 언제든 다시 열 수 있어요.', 'Starting a new project keeps this one saved — you can reopen it anytime.')}</p>
+              <p className="text-[12px] text-[var(--text-secondary)] text-center mb-6">{L('새 프로젝트를 시작해도 이 결과는 저장돼요 — 언제든 다시 열 수 있어요.', 'Starting a new project keeps this one saved — you can reopen it anytime.')}</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
                 <button onClick={() => {
                   useProgressiveStore.setState({ currentSessionId: null });

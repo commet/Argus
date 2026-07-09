@@ -244,11 +244,15 @@ async function measure(page) {
       };
     }
     // 본문 단락 최소 폰트 (가독성 하한)
-    const bodyFonts = [...document.querySelectorAll('p')]
+    const bodyEls = [...document.querySelectorAll('p')]
       .filter(e => e.getBoundingClientRect().width > 0 && (e.textContent || '').trim().length > 20)
-      .map(e => parseFloat(getComputedStyle(e).fontSize)).filter(Boolean);
+      .map(e => ({ px: parseFloat(getComputedStyle(e).fontSize), text: (e.textContent || '').trim().slice(0, 70) }))
+      .filter(e => e.px);
+    const bodyFonts = bodyEls.map(e => e.px);
     measures.minBodyFontPx = bodyFonts.length ? Math.min(...bodyFonts) : null;
     measures.bodyFontCount = bodyFonts.length;
+    // Record the exact sub-12px offenders so we never have to guess which <p> it is.
+    measures.subMinBody = bodyEls.filter(e => e.px < 12).sort((a, b) => a.px - b.px);
     return { text, measures };
   });
 }

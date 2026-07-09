@@ -134,3 +134,25 @@ AnalysisCard.tsx:170 본문 문장 11px→12px+secondary. 이 카드가 질문·
 idle(MCP 안내문)·premise-extract(멈춤 안내 3개 문단)·complete(항해일지 체크
 설명) 본문 11~11.5px → 12~12.5px. 다음 캡처의 check.mjs가 자동 재검증.
 (SealMoment '마지막으로' 등 짧은 uppercase 마이크로 라벨은 관례 유지)
+
+---
+
+## Loop 7 — 가독성 whack-a-mole 구조적 종결 (하네스 자기진단화)
+
+문제 인식: loop 5·6·7 연속으로 complete-bearing이 11px를 흘림. 매번 요소
+하나를 추측 수정 → 다음 루프에 다른 11px 재등장 = 추측성 땜빵(창업자 지적).
+근원: complete 표면은 FinalCard·방위·SealMoment·JudgmentReceipt가 **동시에**
+뜨는 화면이라 위반 `<p>`가 어느 카드인지 소스만 봐선 못 짚음.
+
+### 하네스 개선 · capture.mjs measure()
+`subMinBody`: 12px 미만 본문 `<p>`의 {px, text 70자}를 전부 기록. 이제
+check가 "11px 있음"이 아니라 **정확한 문장**을 준다 → 추측 영구 제거.
+
+### F-7-1 · P2 · complete · UX#2 가독성 (batch, 근원 4곳) · fixed
+subMinBody가 지목한 4개 실문장(전부 봉인/완성 영역, 방위 카드 아님):
+- JudgmentReceipt.tsx:97 "지금의 판단 — N에 꺼냅니다" 11px→12px+secondary
+- ProgressiveFlow.tsx:3531 "새 프로젝트 시작해도 저장돼요" 11px→12px+secondary
+- SealMoment.tsx:700 "그날 프로젝트 페이지에 오시면…" 11.5px→12px+relaxed
+- SealMoment.tsx:707 "로그인 전이라 이 기기에만…"(익명 경고) 11.5px→12px
+재캡처: **P0=0 P1=0 P2=0, subMinBody=[] — 전 표면 본문 ≥12px 최초 달성.**
+방위 카드 169줄(봉인 설명문)도 11px→12px 함께 정리.
