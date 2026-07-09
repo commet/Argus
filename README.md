@@ -9,6 +9,24 @@ Argus keeps it alive as a **living course**.
 It's a judgment system that reframes the question, marks the forks, verifies the
 claims, shows your current bearing, and comes back when reality answers.
 
+## ⚡ Install the MCP server (30 seconds)
+
+Argus ships as an **MCP server** — drop it into Claude Code, Claude Desktop,
+Cursor, or any MCP host, and your AI gains a *decision-accountability* loop.
+In Claude Code, one line does it:
+
+```bash
+claude mcp add argus -- npx -y argus-decision-mcp
+```
+
+**Zero config** — no API key, no account, your data stays local in `~/.argus`.
+Then just tell your AI *"seal a prediction that … by <date>"* and it takes over.
+
+- 📦 npm: [`argus-decision-mcp`](https://www.npmjs.com/package/argus-decision-mcp)
+- 🛠️ Full setup (Claude Desktop, Windows, per-project ledger) + the tool list → **[argus-mcp/README.md](./argus-mcp/README.md)**
+
+---
+
 ### Three ways to use Argus
 
 Pick the door that fits you — each one links to its own setup guide.
