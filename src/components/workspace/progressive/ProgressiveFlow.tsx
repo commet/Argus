@@ -19,6 +19,7 @@ import {
   runNavigatorRevision,
   runDebate,
   runLeadSynthesis,
+  scanHonesty,
   type NavigatorReview,
   type DebateResult,
 } from '@/lib/progressive-engine';
@@ -77,6 +78,7 @@ import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
 import { AnalysisCard } from './shared/AnalysisCard';
+import { HonestyShaded } from './shared/HonestyShaded';
 import { UpdateSummaryChip } from './shared/UpdateSummaryChip';
 import { QuestionCard } from './shared/QuestionCard';
 
@@ -753,7 +755,9 @@ function VoyagePrepSummary({
                   : L('분석이 좁힌 질문', 'The question analysis narrowed to')}
               </div>
               <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-relaxed font-medium">
-                {snapshot.insight || snapshot.real_question}
+                {snapshot.insight
+                  ? <HonestyShaded text={snapshot.insight} flags={snapshot.honesty_flags} locale={locale} />
+                  : snapshot.real_question}
               </p>
               {topAssumption && (
                 <div className="mt-3 pt-2.5 border-t border-dashed border-[var(--border-subtle)]">
@@ -1078,6 +1082,38 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     }),
     [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification, session?.snapshots],
   );
+  // Post-generation honesty scan (loop-17) — NON-BLOCKING. When a snapshot settles
+  // with a claims-bearing body and hasn't been scanned yet, fire scanHonesty and
+  // patch snapshot.honesty_flags when it resolves, so unverified world-facts /
+  // fabricated specifics get a "확인 필요" shade a beat after the analysis renders.
+  // Guards: honesty_flags===undefined means unscanned (patching [] stops re-fire);
+  // a ref prevents duplicate in-flight fires per snapshot; the resolve re-checks the
+  // latest version before patching. Race-safe by construction — HonestyShaded uses
+  // verbatim locateFlag, so a stale flag set simply matches nothing (no false shade).
+  const honestyScanFiredRef = useRef<string>('');
+  useEffect(() => {
+    const snaps = session?.snapshots ?? [];
+    const latest = snaps[snaps.length - 1];
+    if (!latest || !session?.problem_text) return;
+    if (latest.honesty_flags !== undefined) return; // already scanned (incl. empty)
+    const key = `${session.id}:${latest.version}`;
+    if (honestyScanFiredRef.current === key) return; // in-flight for this snapshot
+    honestyScanFiredRef.current = key;
+    let cancelled = false;
+    scanHonesty(session.problem_text, {
+      real_question: latest.real_question,
+      hidden_assumptions: latest.hidden_assumptions,
+      skeleton: latest.skeleton,
+      insight: latest.insight,
+    }).then((flags) => {
+      if (cancelled) return;
+      const cur = (store.currentSession()?.snapshots ?? []).slice(-1)[0];
+      if (cur && cur.version === latest.version && cur.honesty_flags === undefined) {
+        store.updateLatestSnapshot({ honesty_flags: flags });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [session?.id, session?.problem_text, session?.snapshots, store]);
   // §0 sealing restraint inputs from the latest analysis snapshot — lets SealMoment
   // give a routine + reversible + confident decision one light check instead of the
   // full ceremony (CLAUDE.md mirror clause). Absent fields → full ceremony (safe).

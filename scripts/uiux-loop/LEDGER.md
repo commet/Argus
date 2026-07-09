@@ -401,6 +401,31 @@ provenance 태깅(확인필요 vs 근거있음)을 UI에서 음영, (c) 프롬�
 
 ---
 
+## Loop 17 — F-16 집도: 생성후 정직 스캔(비차단) 구현 (창업자 선택 방향)
+
+F-16-1/2(간판 OPEN 산출이 세계사실 단정·무근거 날조로 자기규칙 위반)를 창업자가
+고른 "생성후 정직 스캔(비차단)"으로 집도. regex로 못 고치는 LLM gap-fill이라
+구조로 잡음: 산출 후 스캔 → 위반 문장에 '확인 필요' 음영.
+
+### 코어 (17a) — honesty-scan.ts + 검증
+buildHonestyScanPrompt/coerceHonestyFlags/locateFlag. precision-over-recall(사용자
+향 음영이라 오탐>놓침). probe(honesty-scan-probe.ts): 3개 OPEN에서 케이스당 1~3개
+고정밀 검출, verbatim 100%. 단위테스트 7.
+
+### 배선 (17b) — 비차단 파이프라인 + UI 음영
+- AnalysisSnapshot.honesty_flags? 추가(progressive_sessions JSONB 블롭이라
+  schema-drift 아님). F2 consumption-contract에 'ui'로 등록(가드가 잡아서 등록).
+- progressive-engine.scanHonesty(): callLLMJson, 실패시 [](honest-empty·never throw).
+- ProgressiveFlow useEffect: 스냅샷 정착 시 fire-and-forget → updateLatestSnapshot.
+  경합 안전(verbatim locateFlag라 stale flag는 매칭 0 = 오음영 0).
+- HonestyShaded.tsx: 점선 밑줄+확인 마커+툴팁(손톱 금지 준수, 테마 대응). insight
+  표면에 적용. provenance-정직("확인 안 된 추정") — 판정 아님.
+- 검증: 타입 클린 + 96 테스트 통과 + 워크스페이스 클린 로드(콘솔 0).
+- 미검증 잔여(정직): 실제 분석 위 음영의 시각적 렌더는 전체 여정 주행 필요라 미실시.
+  다음: capture 하네스에 비-결정/OPEN 완주 후 음영 존재 어서션 추가.
+
+---
+
 ## 하네스 커버리지 현황 (loop 16 기준)
 3개 시나리오 × {라이트, 다크} × {데스크톱 960, 모바일 390} 완주 캡처 가능.
 자동 검사: 스파인·마크다운·가독성(위반문 텍스트까지)·레일·커버리지. 재시도 래퍼로

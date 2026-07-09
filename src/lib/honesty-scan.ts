@@ -64,7 +64,10 @@ const SCAN_SYSTEM_KO = `당신은 의사결정 분석의 '정직성'만 보는 �
 - 일반적 추론·논리·틀(사실 단정이 아닌 사고 방식).
 - 가치 판단이 질문으로 제시된 것.
 
-각 신고의 text는 분석에서 **그대로 복사**(verbatim)해 UI가 찾을 수 있게 하세요. 위반이 하나도 없으면 flags: []로 정직하게 비우세요.`;
+각 신고의 text는 분석에서 **그대로 복사**(verbatim)해 UI가 찾을 수 있게 하세요. 위반이 하나도 없으면 flags: []로 정직하게 비우세요.
+
+아래 JSON으로만 응답하세요 (마크다운·설명 없이):
+{"flags": [{"text": "분석에서 그대로 따온 문장", "kind": "world_fact" 또는 "fabricated", "why": "한 줄 이유"}]}`;
 
 const SCAN_SYSTEM_EN = `You are a high-precision reviewer checking ONLY the honesty of a decision analysis. Below is the user's input and Argus's analysis of it. Flag ONLY the two clear violation types below via the tool. When unsure, do NOT flag — these become a user-facing "needs checking" shade, so a false flag on a fine sentence is worse than a miss.
 
@@ -74,7 +77,10 @@ Flag ONLY:
 
 Do NOT flag: facts/numbers the user gave; questions (the real question, crux, next question — a neutral question is not a claim); already-hedged/conditional sentences; general reasoning/frameworks; value judgments posed as questions.
 
-Each flag's text must be COPIED VERBATIM from the analysis so the UI can locate it. If nothing violates, honestly return flags: [].`;
+Each flag's text must be COPIED VERBATIM from the analysis so the UI can locate it. If nothing violates, honestly return flags: [].
+
+Respond with ONLY this JSON (no markdown, no prose):
+{"flags": [{"text": "verbatim sentence from the analysis", "kind": "world_fact" or "fabricated", "why": "one line"}]}`;
 
 export function honestyScanSystemPrompt(locale: 'ko' | 'en'): string {
   return locale === 'ko' ? SCAN_SYSTEM_KO : SCAN_SYSTEM_EN;

@@ -1053,6 +1053,13 @@ export interface AnalysisSnapshot {
   };
   insight?: string;              // 이번 업데이트의 핵심 인사이트
 
+  /** Post-generation honesty scan (loop-17, non-blocking): spans of the analysis
+   *  the model asserted as settled world-fact or fabricated specifics the user
+   *  never gave. Populated ASYNC after render (scanHonesty), shaded "확인 필요" in
+   *  the UI. Optional + lives inside the progressive_sessions JSONB blob, so adding
+   *  it is NOT a schema-drift (no per-column). Absent = not scanned / nothing found. */
+  honesty_flags?: import('@/lib/honesty-scan').HonestyFlag[];
+
   // Framing validation (Weakness A fix)
   framing_confidence?: number;      // 0-100: LLM의 자기 평가
   framing_locked?: boolean;         // Round 1 질문을 사용자가 확인했는지
