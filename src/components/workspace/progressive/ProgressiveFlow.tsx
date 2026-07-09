@@ -79,6 +79,7 @@ import { diffItems } from './shared/diffItems';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
 import { AnalysisCard } from './shared/AnalysisCard';
 import { HonestyShaded } from './shared/HonestyShaded';
+import { locateFlag } from '@/lib/honesty-scan';
 import { UpdateSummaryChip } from './shared/UpdateSummaryChip';
 import { QuestionCard } from './shared/QuestionCard';
 
@@ -759,6 +760,16 @@ function VoyagePrepSummary({
                   ? <HonestyShaded text={snapshot.insight} flags={snapshot.honesty_flags} locale={locale} />
                   : snapshot.real_question}
               </p>
+              {/* Honesty-scan legend (loop-17) — one quiet line, ONLY when a flag
+                  actually matched the insight. Explains the dotted underline once so
+                  each span stays clean. Reads as an invitation to verify, never a
+                  verdict on the content. */}
+              {!!snapshot.insight && (snapshot.honesty_flags || []).some((f) => locateFlag(snapshot.insight!, f.text) >= 0) && (
+                <p className="mt-2 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
+                  {L('점선 그은 곳은 아직 확인 안 된 부분이에요 — 짚어보면 어디서 확인할지 알려드려요.',
+                     'Dotted spans are things we couldn’t verify — hover to see where to check.')}
+                </p>
+              )}
               {topAssumption && (
                 <div className="mt-3 pt-2.5 border-t border-dashed border-[var(--border-subtle)]">
                   <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">

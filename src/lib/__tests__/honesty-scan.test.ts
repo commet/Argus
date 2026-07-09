@@ -5,13 +5,14 @@ describe('coerceHonestyFlags', () => {
   it('keeps only valid flags and trims', () => {
     const out = coerceHonestyFlags({
       flags: [
-        { text: '  수급이 크게 달라요  ', kind: 'world_fact', why: '외부 사실' },
+        { text: '  수급이 크게 달라요  ', kind: 'world_fact', why: '외부 사실', where: ' 청약홈 ' },
         { text: '온보딩 1~3개월', kind: 'fabricated' },
       ],
     });
     expect(out).toHaveLength(2);
-    expect(out[0]).toEqual({ text: '수급이 크게 달라요', kind: 'world_fact', why: '외부 사실' });
+    expect(out[0]).toEqual({ text: '수급이 크게 달라요', kind: 'world_fact', why: '외부 사실', where: '청약홈' });
     expect(out[1].why).toBe('');
+    expect(out[1].where).toBeUndefined(); // omitted (not '') when absent
   });
 
   it('drops malformed/unknown-kind/empty entries', () => {

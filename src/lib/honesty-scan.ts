@@ -28,6 +28,10 @@ export interface HonestyFlag {
   kind: HonestyKind;
   /** One short line: why it's unverified — shown in the shade's tooltip. */
   why: string;
+  /** WHERE to check it (loop-17 A) — the specific authoritative source the user can
+   *  confirm this at (실거래가 / 청약홈 / 통계청 / 경쟁사 IR / 근로계약서 …). Empty when
+   *  no obvious single source exists. Turns "확인 필요" into "실거래가에서 확인하세요". */
+  where?: string;
 }
 
 export const HONESTY_SCAN_TOOL_NAME = 'honesty_flags';
@@ -43,6 +47,7 @@ export const HONESTY_SCAN_SCHEMA = {
           text: { type: 'string' as const, description: '음영 처리할, 분석에서 그대로 따온 문장/구 (verbatim)' },
           kind: { type: 'string' as const, enum: ['world_fact', 'fabricated'] },
           why: { type: 'string' as const, description: '왜 확인이 필요한지 한 줄 (툴팁)' },
+          where: { type: 'string' as const, description: '어디서 확인하는지 구체적 출처 (실거래가/청약홈/통계청/경쟁사 IR 등). 명확한 출처가 없으면 생략' },
         },
         required: ['text', 'kind'],
       },
@@ -66,8 +71,10 @@ const SCAN_SYSTEM_KO = `당신은 의사결정 분석의 '정직성'만 보는 �
 
 각 신고의 text는 분석에서 **그대로 복사**(verbatim)해 UI가 찾을 수 있게 하세요. 위반이 하나도 없으면 flags: []로 정직하게 비우세요.
 
+where(어디서 확인): world_fact는 사용자가 직접 확인할 **구체적 출처**를 한 단어~짧은 구로 적으세요(예: "실거래가", "청약홈", "통계청", "경쟁사 IR/공시", "근로계약서"). 명확한 단일 출처가 없으면 생략하세요(억지로 지어내지 말 것).
+
 아래 JSON으로만 응답하세요 (마크다운·설명 없이):
-{"flags": [{"text": "분석에서 그대로 따온 문장", "kind": "world_fact" 또는 "fabricated", "why": "한 줄 이유"}]}`;
+{"flags": [{"text": "분석에서 그대로 따온 문장", "kind": "world_fact" 또는 "fabricated", "why": "한 줄 이유", "where": "확인 출처(있으면)"}]}`;
 
 const SCAN_SYSTEM_EN = `You are a high-precision reviewer checking ONLY the honesty of a decision analysis. Below is the user's input and Argus's analysis of it. Flag ONLY the two clear violation types below via the tool. When unsure, do NOT flag — these become a user-facing "needs checking" shade, so a false flag on a fine sentence is worse than a miss.
 
@@ -79,8 +86,10 @@ Do NOT flag: facts/numbers the user gave; questions (the real question, crux, ne
 
 Each flag's text must be COPIED VERBATIM from the analysis so the UI can locate it. If nothing violates, honestly return flags: [].
 
+where: for world_fact, give the SPECIFIC source the user can verify it at, as a short phrase (e.g. "the filing / 10-K", "the lease", "official stats", "the vendor's pricing page"). Omit if there's no obvious single source — never invent one.
+
 Respond with ONLY this JSON (no markdown, no prose):
-{"flags": [{"text": "verbatim sentence from the analysis", "kind": "world_fact" or "fabricated", "why": "one line"}]}`;
+{"flags": [{"text": "verbatim sentence from the analysis", "kind": "world_fact" or "fabricated", "why": "one line", "where": "source if any"}]}`;
 
 export function honestyScanSystemPrompt(locale: 'ko' | 'en'): string {
   return locale === 'ko' ? SCAN_SYSTEM_KO : SCAN_SYSTEM_EN;
@@ -119,7 +128,12 @@ export function coerceHonestyFlags(obj: unknown): HonestyFlag[] {
       !!f && typeof f.text === 'string' && !!f.text.trim() &&
       (f.kind === 'world_fact' || f.kind === 'fabricated'),
     )
-    .map((f) => ({ text: f.text.trim(), kind: f.kind, why: typeof f.why === 'string' ? f.why.trim() : '' }))
+    .map((f) => ({
+      text: f.text.trim(),
+      kind: f.kind,
+      why: typeof f.why === 'string' ? f.why.trim() : '',
+      ...(typeof f.where === 'string' && f.where.trim() ? { where: f.where.trim() } : {}),
+    }))
     // De-dupe by text; cap so a runaway scan can't paint the whole card.
     .filter((f, i, arr) => arr.findIndex((g) => g.text === f.text) === i)
     .slice(0, 8);

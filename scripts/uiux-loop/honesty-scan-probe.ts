@@ -54,7 +54,7 @@ const CASES = [
       for (const f of flags) {
         const hit = locateFlag(rendered, f.text) >= 0;
         if (hit) located++; else missing++;
-        console.log(`   [${f.kind}] ${hit ? '📍' : '❓NOMATCH'} "${f.text.slice(0, 70)}"`);
+        console.log(`   [${f.kind}] ${hit ? '📍' : '❓NOMATCH'}${f.where ? ` 〔확인: ${f.where}〕` : ''} "${f.text.slice(0, 60)}"`);
         if (f.why) console.log(`        ↳ ${f.why.slice(0, 70)}`);
       }
       console.log(`  verbatim 매칭: ${located}/${flags.length}${missing ? ` (❓ ${missing}개 산출에 없음 — 정밀도 위험)` : ' (전부 위치 확인)'}\n`);

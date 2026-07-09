@@ -39,26 +39,33 @@ export function HonestyShaded({
   if (ranges.length === 0) return <>{text}</>;
   ranges.sort((a, b) => a.start - b.start);
 
-  const tip = (f: HonestyFlag) =>
-    (locale === 'ko'
-      ? (f.kind === 'world_fact' ? '확인 안 된 바깥 사실이에요 — 직접 확인해 보세요' : '입력에 없던 내용을 채운 부분이에요 — 사실인지 확인해 보세요')
-      : (f.kind === 'world_fact' ? "An outside fact we couldn't verify — check it yourself" : "Filled in beyond what you gave — verify it")) +
-    (f.why ? ` (${f.why})` : '');
+  // Tooltip reads as an IMPERATIVE ("you should check"), never a badge of
+  // confirmation. The where-source (loop-17 A) turns "확인 필요" into "실거래가에서
+  // 확인하세요" when a source exists.
+  const tip = (f: HonestyFlag) => {
+    const ko = locale === 'ko';
+    const lead = f.where
+      ? (ko ? `${f.where}에서 확인해 보세요` : `Check it in ${f.where}`)
+      : f.kind === 'world_fact'
+        ? (ko ? '아직 확인 안 된 바깥 사실이에요 — 직접 확인해 보세요' : "An outside fact we couldn't verify — check it yourself")
+        : (ko ? '입력에 없던 내용을 채운 부분이에요 — 사실인지 확인해 보세요' : 'Filled in beyond what you gave — verify it');
+    return lead + (f.why ? ` · ${f.why}` : '');
+  };
 
   const out: React.ReactNode[] = [];
   let cursor = 0;
   ranges.forEach((r, i) => {
     if (r.start > cursor) out.push(<React.Fragment key={`t${i}`}>{text.slice(cursor, r.start)}</React.Fragment>);
+    // Quiet dotted underline ONLY — no per-span text tail (that read as a
+    // "confirmed" badge and cluttered the line). Meaning is explained once by the
+    // legend below the card; detail + source live in the tooltip on hover/tap.
     out.push(
       <span
         key={`f${i}`}
         title={tip(r.flag)}
-        className="underline decoration-dotted decoration-[var(--accent)]/55 underline-offset-[3px] cursor-help"
+        className="underline decoration-dotted decoration-[var(--accent)]/50 underline-offset-[3px] cursor-help"
       >
         {text.slice(r.start, r.end)}
-        <sup className="ml-0.5 text-[9px] font-semibold text-[var(--accent)]/70 align-super select-none">
-          {locale === 'ko' ? '확인' : 'check'}
-        </sup>
       </span>,
     );
     cursor = r.end;
