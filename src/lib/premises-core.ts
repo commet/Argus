@@ -210,7 +210,15 @@ export function addDays(day: string, days: number): string {
 export function isDueForRecheck(p: PremiseState, today: string): boolean {
   if (!isMonitored(p)) return false;
   const last = dateOnly(p.last_recheck?.ts);
-  if (!last) return true;
+  if (!last) {
+    // Never checked: wait one cadence from when it was ADDED before the first
+    // nudge — the same clock open_questions use (reconsiderAnchor = added_ts).
+    // Firing "re-check this" the day after sealing was premature (reality hasn't
+    // moved) and left the premise/question loops internally inconsistent
+    // (founder decision, 2026-07-10). No add date known → treat as due.
+    const added = dateOnly(p.added_ts);
+    return added ? daysBetween(added, today) >= recheckCadenceDays(p) : true;
+  }
   return daysBetween(last, today) >= recheckCadenceDays(p);
 }
 
@@ -221,7 +229,12 @@ export function isDueForRecheck(p: PremiseState, today: string): boolean {
 export function nextRecheckDue(p: PremiseState): string | null {
   if (!isMonitored(p)) return null;
   const last = dateOnly(p.last_recheck?.ts);
-  if (!last) return null; // due now
+  if (!last) {
+    // Never checked: first check is due one cadence after it was added (was
+    // "due now"; founder decision 2026-07-10 to match the open_question clock).
+    const added = dateOnly(p.added_ts);
+    return added ? addDays(added, recheckCadenceDays(p)) : null;
+  }
   return addDays(last, recheckCadenceDays(p));
 }
 
