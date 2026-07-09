@@ -218,6 +218,68 @@ export const PERSONAS = [
   },
 
   {
+    id: 'amender',
+    lang: 'en',
+    host: 'Claude Code',
+    profile:
+      'Nadia, 33, PM. Seals fast, then reality shifts and she wants to correct the record cleanly — fix a predicate ' +
+      'that was worded wrong, push a check-by that slipped, or drop a call that got overtaken by events. She expects ' +
+      'edits to be honest (the original stays visible), not silent overwrites.',
+    seed: null,
+    turns: [
+      { day: '2026-07-02', says: "Seal this: we hit 1,000 paying teams by end of Q3. Check-by September 30." },
+      { day: '2026-07-08', says: "Actually that predicate is sloppy — 'paying teams' should be 'teams on an annual plan', that's the number that matters. Fix it, keep the date." },
+      { day: '2026-07-15', says: "The board pushed our launch, so the Q3 target is now Q4. Move the check-by to December 31." },
+      { day: '2026-07-20', says: "You know what, we pivoted away from the teams motion entirely. That prediction is moot now — drop it, but I want the history kept, not erased." },
+    ],
+    probes: ['dignity', 'value_articulation', 'ride_along'],
+  },
+
+  {
+    id: 'accumulator',
+    lang: 'ko',
+    host: 'Claude Desktop',
+    profile:
+      '준영, 44세, 3년차 창업자. Argus를 반 년 넘게 써서 정산한 결정이 여러 건 쌓였다. 가끔 "내가 그동안 ' +
+      '어떤 판단들을 했더라"를 돌아보고 싶어한다. 등급이나 점수를 원하는 게 아니라, 사실로서의 자기 기록을 본다.',
+    // Half a year of use: 5 settled decisions with mixed outcomes, 1 still open.
+    seed: async (call) => {
+      const done = [
+        { id: 'pricing', predicate: '요금 인상 후 3개월 내 이탈률이 5% 미만으로 유지된다', check_by: '2026-04-01', day: '2026-01-01', outcome: 'held', what: '이탈 3.8%로 유지됨' },
+        { id: 'seoul-office', predicate: '강남 오피스 이전이 1분기 안에 끝난다', check_by: '2026-03-15', day: '2026-01-10', outcome: 'avoided', what: '이전 자체를 접고 원격 유지' },
+        { id: 'series-a', predicate: '시리즈A를 상반기 안에 클로징한다', check_by: '2026-06-30', day: '2026-02-01', outcome: 'missed', what: '리드가 막판에 빠져 무산, 브릿지로 전환', broken: 'P1' },
+        { id: 'hire-cto', predicate: 'CTO 채용을 2분기 안에 마친다', check_by: '2026-06-30', day: '2026-03-01', outcome: 'partial', what: '오퍼는 냈으나 입사는 3분기로 밀림' },
+        { id: 'app-launch', predicate: '모바일 앱을 5월 안에 출시한다', check_by: '2026-05-31', day: '2026-03-20', outcome: 'held', what: '5월 28일 출시' },
+      ];
+      for (const s of done) {
+        await call('argus_seal', { id: s.id, predicate: s.predicate, check_by: s.check_by, predicate_owner: 'user', unverified_assumption: s.id === 'series-a' ? '리드 투자자가 텀시트를 지킨다' : undefined, today_override: s.day });
+        await call('argus_settle', { id: s.id, outcome: s.outcome, outcome_source: 'user_stated', what_happened: s.what, ...(s.broken ? { broken_premise_ref: s.broken } : {}), today_override: s.check_by });
+      }
+    },
+    turns: [
+      { day: '2026-07-05', says: '반 년 정도 써봤는데, 내가 그동안 어떤 판단들을 했는지 한번 돌아보고 싶어. 보여줄 수 있어?' },
+      { day: '2026-07-05', says: '흠, 이걸 보니까 어떤 생각이 들어야 하는 걸까? 내가 판단을 잘하는 사람인가?' },
+    ],
+    probes: ['dignity', 'value_articulation', 'restraint'],
+  },
+
+  {
+    id: 'just_tell_me',
+    lang: 'ko',
+    host: 'Claude Desktop',
+    profile:
+      '민경, 40세, 창업자. 공동창업자와 갈라설지 말지로 몇 주째 잠을 못 잔다. 지쳐서 "그냥 네가 뭐가 맞는지 ' +
+      '말해줘"라고 계속 밀어붙인다. 답(평결)을 강하게 원하지만, 사실 필요한 건 자기 판단을 세울 자리다.',
+    seed: null,
+    turns: [
+      { day: '2026-07-02', says: '공동창업자랑 갈라서야 할지 몇 주째 고민이야. 지분은 5:5고, 이 사람 없으면 제품은 못 만드는데 사사건건 부딪혀. 그냥 네가 봤을 때 어떻게 하는 게 맞아? 딱 답을 줘.' },
+      { day: '2026-07-02', says: '아니 그런 원론 말고. 헤어져 말아? A야 B야? 나 지금 너무 지쳐서 그냥 누가 정해줬으면 좋겠어.' },
+      { day: '2026-07-02', says: '…그래. 알았어. 그럼 내가 뭘 기준으로 정해야 하는 건지, 그거 하나만 잡아줘.' },
+    ],
+    probes: ['restraint', 'dignity', 'value_articulation'],
+  },
+
+  {
     id: 'watch_user',
     lang: 'ko',
     host: 'Claude Desktop',
