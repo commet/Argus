@@ -9,16 +9,37 @@ Argus는 그것을 **살아 있는 항로**로 남깁니다.
 질문을 다시 세우고, 갈림길을 남기고, 주장을 검증하고, 현재 방위를 보여주며,
 현실이 답할 때 다시 돌아오는 판단 시스템입니다.
 
-**웹에서 바로 사용 → [argus.voyage](https://argus.voyage)**
+## ⚡ MCP 서버 설치 (30초)
 
-**Claude Code 플러그인으로 사용** (결정 항해 하니스 — [상세 문서](./argus-plugin-v2/README.ko.md)):
+Argus는 **MCP 서버**로 제공됩니다 — Claude Code, Claude Desktop, Cursor 등
+MCP 호스트에 넣으면 AI가 *결정 책임(decision-accountability)* 루프를 갖게
+됩니다. Claude Code에서는 한 줄이면 끝:
 
-```text
-/plugin marketplace add commet/Argus
-/plugin install argus@argus
+```bash
+claude mcp add argus -- npx -y argus-decision-mcp
 ```
 
-재시작 후 `/argus:sail "결정해야 하는 질문"` 으로 시작하세요.
+**설정 불필요** — API 키도, 계정도 없이. 데이터는 `~/.argus`에 로컬로 남습니다.
+그다음 AI에게 *"<날짜>까지 …할 거라는 예측을 봉인해줘"* 라고 말하면 됩니다.
+
+- 📦 npm: [`argus-decision-mcp`](https://www.npmjs.com/package/argus-decision-mcp)
+- 🛠️ 전체 설정(Claude Desktop, Windows, 프로젝트별 원장) + 툴 목록 → **[argus-mcp/README.md](./argus-mcp/README.md)**
+
+---
+
+### Argus를 쓰는 세 가지 방법
+
+자신에게 맞는 문을 고르세요 — 각 문마다 별도 설치 가이드로 연결됩니다.
+
+| | 이런 사람에게 | 시작하기 |
+|---|---|---|
+| 🌐 **웹앱** | 누구나. 설치 불필요. | **[argus.voyage](https://argus.voyage)** 열기 |
+| 🧩 **MCP 서버** | MCP를 지원하는 모든 AI 어시스턴트 — Claude Desktop, Claude Code, Cursor 등. | `claude mcp add argus -- npx -y argus-decision-mcp` → [MCP 문서](./argus-mcp/README.md) |
+| 🔌 **Claude Code 플러그인** | 코드베이스 *안에서* 결정할 때 (PR·파일 위에서). | `/plugin marketplace add commet/Argus` → [플러그인 문서](./argus-plugin-v2/README.ko.md) |
+
+처음이라 잘 모르겠다면 **[웹앱](https://argus.voyage)부터 시작하세요** — 설치가
+필요 없습니다. AI 어시스턴트 안에서 살고, 모든 대화에서 Argus를 쓰고 싶다면
+**[MCP 서버](./argus-mcp/README.md)** 가 바로 그것입니다.
 
 > *Argus*는 오디세우스가 10년 만에 변장하고 돌아왔을 때, 누더기 아래 진짜 주인을 알아본 개의 이름입니다.
 > 매끄러운 표면이 아니라 그 아래의 진짜를 보는 눈 — Argus가 하는 일이 그것입니다.
@@ -165,6 +186,23 @@ Claude Code 재시작 후, 아무 repo에서:
 
 명령: `/argus:sail` (30초 판단) · `/argus:team` (에이전트 팀 배치) · `/argus:boss` (보스 시뮬레이션) · `/argus:clarify` · `/argus:chart`
 자세히 → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
+
+### MCP 서버
+
+MCP를 지원하는 모든 AI 어시스턴트(Claude Desktop, Claude Code, Cursor 등)에
+Argus를 붙입니다. AI에게 **결정 책임(decision-accountability)** 루프를 줍니다 —
+반증 가능한 예측을 봉인(seal)하고, 당신이 정한 날짜에 현실과 대조해 정산(settle)합니다.
+모델이 당신을 채점하지 않습니다.
+
+Claude Code에서 가장 빠른 방법:
+
+```bash
+claude mcp add argus -- npx -y argus-decision-mcp
+```
+
+설정이 전혀 필요 없습니다 — 원장(ledger)은 `~/.argus`에 저장됩니다. 전체 설정
+(Claude Desktop, Windows, 프로젝트별 원장, 선택적 계정 동기화)과 툴 목록은
+**[argus-mcp/README.md](./argus-mcp/README.md)** 를 보세요.
 
 ### 로컬 개발
 
