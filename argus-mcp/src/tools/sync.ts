@@ -2,14 +2,14 @@ import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
-import { fetchAccountReceipts, type AccountReceipt } from '../lib/push-account.js';
+import { fetchAccountReceipts, pushToAccount, type AccountReceipt, type AccountPush } from '../lib/push-account.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger, type ContractEntry } from '../lib/ledger-replay.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
-import { writeSettleReceipt } from '../lib/receipt.js';
+import { writeSettleReceipt, readReceipt } from '../lib/receipt.js';
 import { localIdFromAccountId } from '../lib/install-id.js';
 import { surfacesFor } from '../lib/surfaces.js';
 
@@ -31,6 +31,8 @@ const inputSchema = z.strictObject({
   limit: z.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT).describe(`Max receipts to list (default ${DEFAULT_LIMIT}). Due items are ordered first.`),
   import_settlements: z.boolean().default(false).describe(
     'Mirror settlements the user already recorded on the WEB into this local ledger (their own outcome + words, verbatim — never an inferred outcome). Fixes the local record still listing a web-settled judgment as due. Only affects terminal-sealed (mcp_) judgments that are sealed locally but settled in the account.'),
+  push_local: z.boolean().default(true).describe(
+    'Send local changes the account never received — a settle, a dismiss, or a moved check-by whose one push failed (offline, or the token was added later). Default true: without it the account keeps listing a closed decision as due and the Companion Brief keeps emailing it. Pass false to inspect the account without writing to it.'),
 });
 
 type McpOutcome = 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed';
@@ -217,6 +219,63 @@ export const sync: ToolModule = {
         }
         if (imported.length > 0) localContracts = replayLedger(boundDir, today).contracts;
       }
+
+      // ⑥ REVERSE reconciliation — the local record is ahead of the account.
+      //
+      // seal/settle/amend/dismiss each push to the account exactly ONCE, at the
+      // moment of the write. If that push failed (offline, or the token was added
+      // after the seal) nothing ever retried, and argus_sync only ever looked for
+      // the OPPOSITE divergence (account-settled vs local-sealed). So the account
+      // went on listing a decision the user had settled — or dismissed — as due,
+      // and the Companion Brief went on emailing it. There was no command in the
+      // product that could push a local settlement up. Sync is that command now.
+      const pushedUp: Array<{ local_id: string; as: AccountPush['action'] }> = [];
+      let pushUpFailed = 0;
+      if (a['push_local'] !== false && boundDir && localContracts) {
+        for (const r of pull.receipts) {
+          const localId = toLocalId(r.id);
+          if (!localId) continue;
+          const entry = localContracts.get(localId);
+          if (!entry) continue;
+          // Derive the push id from the row we actually read, NOT from
+          // accountPushId(): a legacy `mcp_<slug>` row and a namespaced
+          // `mcp_<install>_<slug>` row both map to this local id, and we must
+          // update the exact row that is stale, never create a second one.
+          const pushId = r.id.startsWith('mcp_') ? r.id.slice(4) : null;
+          if (!pushId) continue;
+
+          let push: AccountPush | null = null;
+          if (entry.status === 'settled' && r.state !== 'settled') {
+            // The user's own recorded outcome and words — never re-derived here.
+            const rec = readReceipt(boundDir, localId);
+            const outcome = rec?.outcome;
+            if (outcome && outcome !== 'still_pending') {
+              push = {
+                action: 'settle', id: pushId, outcome,
+                what_happened: rec?.what_happened ?? '',
+                ...(rec?.settled_at ? { settled_at: rec.settled_at } : {}),
+              };
+            }
+          } else if (entry.status === 'dismissed' && r.state !== 'archived') {
+            push = { action: 'dismiss', id: pushId };
+          } else if (entry.status === 'sealed' && entry.check_by) {
+            // A deferral or an amend moved the date here; the account would email
+            // on the old one. `defer` is the web's "revise" — it moves the date
+            // in place without overwriting the receipt.
+            const remoteCheckBy = r.open_predicates?.[0]?.check_by;
+            if (remoteCheckBy && remoteCheckBy !== entry.check_by) {
+              const note = entry.defer_history?.[entry.defer_history.length - 1]?.note;
+              push = { action: 'defer', id: pushId, check_by: entry.check_by, ...(note ? { what_happened: note } : {}) };
+            }
+          }
+          if (!push) continue;
+
+          const res = await pushToAccount(push);
+          if (res.synced) pushedUp.push({ local_id: localId, as: push.action });
+          else pushUpFailed++; // the local record still stands; say so, don't swallow it
+        }
+      }
+
       // Count AFTER any import so the flag line only names what still diverges.
       // Split the divergence: a REAL web settlement can still be imported (so the
       // "run import_settlements" handle is honest), while an `unclear` one never
@@ -237,16 +296,20 @@ export const sync: ToolModule = {
       const unclearLine = unclearInAccountCount > 0
         ? S.unclear_on_web(unclearInAccountCount)
         : '';
+      const pushedUpLine = pushedUp.length > 0 ? S.pushed_up(pushedUp.length) : '';
+      const pushFailedLine = pushUpFailed > 0 ? S.push_up_failed(pushUpFailed) : '';
 
       return envelope({
         ok: true, tool: 'argus_sync',
-        surface: baseSurface + importedLine + crossCheckLine + unclearLine,
+        surface: baseSurface + importedLine + crossCheckLine + unclearLine + pushedUpLine + pushFailedLine,
         next_actions: localSettleableDueCount > 0 ? ['argus_settle', 'stop'] : ['stop'],
         data: {
           total: pull.receipts.length,
           due: dueCount,
           local_settleable_due: localSettleableDueCount,
           ...(imported.length > 0 ? { imported } : {}),
+          ...(pushedUp.length > 0 ? { pushed_to_account: pushedUp } : {}),
+          ...(pushUpFailed > 0 ? { push_to_account_failed: pushUpFailed } : {}),
           count: receipts.length,
           has_more: truncated,
           ...(truncated ? { truncation_note: S.truncation(receipts.length, matched.length) } : {}),

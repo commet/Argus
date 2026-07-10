@@ -27,7 +27,7 @@ function hashToken(raw: string): string {
 }
 
 interface SealPayload {
-  action?: 'seal' | 'settle' | 'defer';
+  action?: 'seal' | 'settle' | 'defer' | 'dismiss';
   id?: string;
   predicate?: string;
   pass_condition?: string;
@@ -179,6 +179,37 @@ export async function POST(req: NextRequest) {
 
   admin.from('plugin_tokens').update({ last_used_at: now }).eq('id', tokenRow.id)
     .then(({ error }) => { if (error) console.error('[mcp/seal] last_used:', error.message); });
+
+  // ── DISMISS: the user set this decision aside in the terminal. The account must
+  //    stop nudging it. `archived` (not `settled`) is the honest state: nothing
+  //    reality said was recorded, and the Companion Brief only selects `sealed`.
+  //    Without this, argus_dismiss told the account nothing and the Brief kept
+  //    emailing a decision the user had explicitly killed.
+  if (action === 'dismiss') {
+    const { data: existing } = await admin
+      .from('review_receipts')
+      .select('data')
+      .eq('id', rowId(id))
+      .eq('user_id', tokenRow.user_id)
+      .is('deleted_at', null)
+      .single();
+    if (!existing?.data) {
+      return NextResponse.json({ ok: true, updated: false, reason: 'not_synced' });
+    }
+    const receipt = existing.data as JudgmentReceipt;
+    receipt.state = 'archived';
+    receipt.updated_at = now;
+    const { error } = await admin
+      .from('review_receipts')
+      .update({ state: 'archived', next_check_by: null, data: receipt })
+      .eq('id', rowId(id))
+      .eq('user_id', tokenRow.user_id);
+    if (error) {
+      console.error('[mcp/seal] dismiss update:', error.message);
+      return NextResponse.json({ error: 'dismiss failed' }, { status: 502 });
+    }
+    return NextResponse.json({ ok: true, updated: true, state: 'archived' });
+  }
 
   // ── DEFER: reality has not answered. Push the check-by; the record stays alive.
   //    Deliberately NOT an `action:'seal'` re-push: that upserts a freshly built

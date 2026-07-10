@@ -160,6 +160,11 @@ export interface SurfaceStrings {
      *  Named honestly instead of silently closing them (the sync-door twin of the
      *  still_pending → defer rule). */
     unclear_on_web: (n: number) => string;
+    /** Reverse reconciliation: local changes the account never received, now sent.
+     *  Until this existed, a settle/dismiss whose one push failed left the account
+     *  emailing a decision the user had already closed. */
+    pushed_up: (n: number) => string;
+    push_up_failed: (n: number) => string;
     /** M2 귀환 봉합 — web settlements mirrored into the local ledger (the
      *  user's own words, imported verbatim; a fact line, never a verdict). */
     imported: (n: number) => string;
@@ -290,9 +295,14 @@ export interface SurfaceStrings {
       /** predicate/check-by may be undefined on an amend that only touched the
        *  other field — matches the pre-M4 template-literal tolerance. */
       amended: (predicate: string | undefined, checkBy: string | undefined) => string;
+      /** The account still holds the OLD date, so its email would arrive on the
+       *  wrong day. Silence here would be a lie by omission. */
+      sync_failed: (reason: string) => string;
     };
     dismiss: {
       dismissed: string;
+      /** The account still thinks this decision is live and will keep emailing it. */
+      sync_failed: (reason: string) => string;
     };
     /** 당직 루프 (§9.3) — anchor/capture/list confirmations. Facts + handles
      *  only: no praise, no progress language, no streak. */
@@ -338,6 +348,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       live_no_due: (total) => `${total} live judgment(s) in your account. Nothing past its check-by.`,
       settled_on_web: (n) => ` ${n} already settled on the web. Run argus_sync with import_settlements:true to mirror your web record into this ledger, or record it yourself with argus_settle.`,
       unclear_on_web: (n) => ` ${n} marked unclear in your account — reality hasn't answered, so those are not settlements and nothing was imported. They stay due here until you settle them.`,
+      pushed_up: (n) => ` Sent ${n} change(s) your account had missed — settled, closed, or rescheduled here. It will stop nudging what you already handled.`,
+      push_up_failed: (n) => ` ${n} local change(s) still haven't reached your account, so it may keep emailing them. Your record here stands; run argus_sync again when you're online.`,
       imported: (n) => ` Mirrored ${n} web settlement(s) into this ledger, in your own recorded words.`,
       truncation: (shown, matched) => `Showing ${shown} of ${matched}. Raise limit or narrow with due_only.`,
     },
@@ -432,9 +444,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       amend: {
         amended: (predicate, checkBy) => `Amended. Now: "${predicate}" (check-by ${checkBy}).`,
+        sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. The change is safe locally, but your account still holds the old check-by and may email you on that date. Run argus_sync later to reconcile.)`,
       },
       dismiss: {
         dismissed: 'Dismissed. Closed without a verdict.',
+        sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. It is closed locally, but your account still lists it as live and may keep emailing it. Run argus_sync later to reconcile.)`,
       },
       watch: {
         anchored: "Noted for today. Tomorrow's check_in shows this line back to you as a question, never a grade.",
@@ -476,6 +490,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       live_no_due: (total) => `계정에 살아 있는 판단 ${total}개. 확인할 차례가 된 것은 없습니다.`,
       settled_on_web: (n) => ` 웹에서 이미 정산한 것이 ${n}건 있습니다. argus_sync에 import_settlements:true를 주면 웹에 남긴 기록을 이 원장으로 그대로 옮겨옵니다 (직접 argus_settle로 적어도 됩니다).`,
       unclear_on_web: (n) => ` 계정에서 ${n}건이 "불분명"으로 표시돼 있습니다 — 현실이 아직 답하지 않았으니 정산이 아니고, 가져오지도 않았습니다. 정산하기 전까지 여기서는 계속 확인 대상입니다.`,
+      pushed_up: (n) => ` 계정이 못 받은 변경 ${n}건을 올려보냈습니다 — 여기서 정산했거나, 접었거나, 날짜를 옮긴 것들입니다. 이미 처리한 건에 대해 더는 알림이 오지 않습니다.`,
+      push_up_failed: (n) => ` 로컬 변경 ${n}건이 아직 계정에 닿지 않았습니다. 그 건들에 대해 메일이 계속 올 수 있습니다. 여기 기록은 그대로 유효하니, 온라인일 때 argus_sync를 다시 실행하세요.`,
       imported: (n) => ` 웹 정산 ${n}건을 이 원장으로 옮겨왔습니다. 당신이 웹에 적은 그대로입니다.`,
       truncation: (shown, matched) => `${matched}개 중 ${shown}개만 표시합니다. limit을 올리거나 due_only로 좁히세요.`,
     },
@@ -571,9 +587,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       amend: {
         amended: (predicate, checkBy) => `수정했습니다. 이제: "${predicate}" (확인일 ${checkBy}).`,
+        sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 수정은 로컬에 안전합니다. 다만 계정에는 옛 확인일이 남아 그 날짜에 메일이 갈 수 있습니다. 나중에 argus_sync로 맞추세요.)`,
       },
       dismiss: {
         dismissed: '접었습니다. 평결 없이 닫혔습니다.',
+        sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 로컬에서는 닫혔습니다. 다만 계정은 아직 살아 있는 것으로 보고 계속 메일을 보낼 수 있습니다. 나중에 argus_sync로 맞추세요.)`,
       },
       watch: {
         anchored: '오늘 적어두었습니다. 내일 check_in이 이 문장을 질문으로 다시 보여줍니다. 평가는 없습니다.',
