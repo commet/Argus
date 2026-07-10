@@ -13,24 +13,28 @@ import { buildInitialAnalysisPrompt } from '../../src/lib/progressive-prompts';
 
 const env = readFileSync(new URL('../../.env.local', import.meta.url), 'utf8');
 const KEY = (env.match(/ANTHROPIC_API_KEY\s*=\s*(.+)/) || [])[1]?.trim().replace(/^["']|["']$/g, '');
+if (!KEY) throw new Error('ANTHROPIC_API_KEY not found in .env.local');
 
-async function call(system: string, user: string): Promise<any> {
+type AnthropicResp = { error?: { message: string }; content: { text?: string }[] };
+async function call<T = Record<string, unknown>>(system: string, user: string): Promise<T> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-api-key': KEY!, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, system, messages: [{ role: 'user', content: user }] }),
+        signal: AbortSignal.timeout(30000),
       });
-      const j: any = await r.json();
+      const j = (await r.json()) as AnthropicResp;
       if (j.error) throw new Error(j.error.message);
-      let raw = j.content.map((c: any) => c.text || '').join('').trim();
+      let raw = j.content.map((c) => c.text || '').join('').trim();
       const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (fence) raw = fence[1].trim();
       if (!raw.startsWith('{')) { const s = raw.indexOf('{'), e = raw.lastIndexOf('}'); if (s >= 0 && e > s) raw = raw.slice(s, e + 1); }
       return JSON.parse(raw);
     } catch (e) { if (attempt === 2) throw e; await new Promise((r) => setTimeout(r, 1500 * (attempt + 1))); }
   }
+  throw new Error('call: 재시도 소진');
 }
 
 // 보편 결정 12종 — 도메인·성격·난이도 다양. 사업 편중 탈피.
@@ -70,15 +74,15 @@ interface Score { tag: string; request_type: string; usefulness: number; spine: 
 async function scoreOne(s: { tag: string; input: string }): Promise<Score | null> {
   try {
     const { system, user } = buildInitialAnalysisPrompt(s.input, 'ko');
-    const a = await call(system, user);
+    const a = await call<{ request_type?: string; real_question?: string; hidden_assumptions?: unknown; skeleton?: unknown; insight?: string; next_question?: unknown }>(system, user);
     const analysis = JSON.stringify({ request_type: a.request_type, real_question: a.real_question, hidden_assumptions: a.hidden_assumptions, skeleton: a.skeleton, insight: a.insight, next_question: a.next_question }, null, 2);
-    const v = await call(JUDGE_SYSTEM, `사용자 입력: "${s.input}"\n\nArgus 분석:\n${analysis}`);
+    const v = await call<{ usefulness?: number; spine?: number; honesty?: number; fit?: number; worst_issue?: string; worst_axis?: string }>(JUDGE_SYSTEM, `사용자 입력: "${s.input}"\n\nArgus 분석:\n${analysis}`);
     return {
       tag: s.tag, request_type: a.request_type ?? '?',
-      usefulness: +v.usefulness || 0, spine: +v.spine || 0, honesty: +v.honesty || 0, fit: +v.fit || 0,
+      usefulness: Number(v.usefulness) || 0, spine: Number(v.spine) || 0, honesty: Number(v.honesty) || 0, fit: Number(v.fit) || 0,
       worst_issue: v.worst_issue ?? '', worst_axis: v.worst_axis ?? 'none',
     };
-  } catch (e: any) { console.error(`  [${s.tag}] ERROR ${e.message}`); return null; }
+  } catch (e: unknown) { console.error(`  [${s.tag}] ERROR ${e instanceof Error ? e.message : String(e)}`); return null; }
 }
 
 // 동시성 제한(4)으로 rate limit 회피
@@ -91,6 +95,7 @@ async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): Prom
 (async () => {
   console.log('██████ 보편 점수 루프 — 12 시나리오 × 독립 심판 ██████\n');
   const scores = (await pool(SCENARIOS, 4, scoreOne)).filter(Boolean) as Score[];
+  if (!scores.length) { console.error('모든 시나리오 실패 — 채점 불가'); process.exit(1); }
   const axes = ['usefulness', 'spine', 'honesty', 'fit'] as const;
   console.log('시나리오'.padEnd(22), 'type'.padEnd(12), 'use spine hon fit  | 최악');
   for (const s of scores.sort((a, b) => (a.usefulness + a.spine + a.honesty + a.fit) - (b.usefulness + b.spine + b.honesty + b.fit))) {

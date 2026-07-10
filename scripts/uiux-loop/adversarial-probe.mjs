@@ -14,8 +14,10 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dir, '..', '..');
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8');
 const KEY = (env.match(/ANTHROPIC_API_KEY\s*=\s*(.+)/) || [])[1]?.trim().replace(/^["']|["']$/g, '');
+if (!KEY) throw new Error('ANTHROPIC_API_KEY not found in .env.local');
 const core = readFileSync(join(ROOT, 'src', 'lib', 'reframe-core.ts'), 'utf8');
 const QUESTION = (core.match(/const QUESTION_SYSTEM_KO\s*=\s*`([\s\S]*?)`;/) || [])[1];
+if (!QUESTION) throw new Error('cannot extract QUESTION_SYSTEM_KO');
 
 async function call(system, user, tool) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -98,6 +100,7 @@ for (const c of INJECTION) {
 // ── C. recast가 '계획이 아닌 것'을 억지 단계로 날조하는가 ──
 const recastCore = readFileSync(join(ROOT, 'src', 'lib', 'recast-core.ts'), 'utf8');
 const RECAST = (recastCore.match(/const RECAST_SYSTEM_KO\s*=\s*`([\s\S]*?)`;/) || [])[1];
+if (!RECAST) throw new Error('cannot extract RECAST_SYSTEM_KO');
 const RECAST_TOOL = {
   name: 'recast_roles',
   input_schema: {
@@ -116,7 +119,7 @@ for (const c of RECAST_ADV) {
   console.log('\n════════ ' + c.tag + ' ════════');
   console.log('입력:', JSON.stringify(c.input));
   try {
-    const r = await call2(RECAST, c.input, RECAST_TOOL);
+    const r = await call(RECAST, c.input, RECAST_TOOL);
     const steps = r?.steps || [];
     steps.forEach((s, i) => console.log(`  ${i + 1}. [${s.actor}] ${s.task}`));
     console.log('  판정:', steps.length >= 3
@@ -124,5 +127,3 @@ for (const c of RECAST_ADV) {
       : `△ ${steps.length}단계(축소/거부 경향)`);
   } catch (e) { console.log('  ERROR', e.message); }
 }
-
-async function call2(system, user, tool) { return call(system, user, tool); }

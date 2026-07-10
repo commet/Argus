@@ -13,6 +13,7 @@ import { buildInitialAnalysisPrompt } from '../../src/lib/progressive-prompts';
 
 const env = readFileSync(new URL('../../.env.local', import.meta.url), 'utf8');
 const KEY = (env.match(/ANTHROPIC_API_KEY\s*=\s*(.+)/) || [])[1]?.trim().replace(/^["']|["']$/g, '');
+if (!KEY) throw new Error('ANTHROPIC_API_KEY not found in .env.local');
 
 async function call(system: string, user: string, json: boolean): Promise<any> {
   const r = await fetch('https://api.anthropic.com/v1/messages', {

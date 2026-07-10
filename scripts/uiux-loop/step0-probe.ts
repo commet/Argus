@@ -13,16 +13,19 @@ import { classifyRequestType } from '../../src/lib/request-type-classifier';
 
 const env = readFileSync(new URL('../../.env.local', import.meta.url), 'utf8');
 const KEY = (env.match(/ANTHROPIC_API_KEY\s*=\s*(.+)/) || [])[1]?.trim().replace(/^["']|["']$/g, '');
+if (!KEY) throw new Error('ANTHROPIC_API_KEY not found in .env.local');
 
-async function callJson(system: string, user: string): Promise<any> {
+type Step0Result = { request_type?: string; skeleton?: unknown[]; insight?: string; real_question?: string; [k: string]: unknown };
+async function callJson(system: string, user: string): Promise<Step0Result> {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': KEY!, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, system, messages: [{ role: 'user', content: user }] }),
+    signal: AbortSignal.timeout(30000),
   });
-  const j: any = await r.json();
+  const j = (await r.json()) as { error?: { message: string }; content: { text?: string }[] };
   if (j.error) throw new Error(j.error.message);
-  const text = j.content.map((c: any) => c.text || '').join('');
+  const text = j.content.map((c) => c.text || '').join('');
   let raw = text.trim();
   const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fence) raw = fence[1].trim();
@@ -60,6 +63,6 @@ for (const c of CASES) {
     if (rq) console.log(`  real_question: ${rq}`);
     if (insight) console.log(`  insight: ${insight}`);
     console.log('');
-  } catch (e: any) { console.log(`  ERROR ${e.message}\n`); }
+  } catch (e) { console.log(`  ERROR ${(e as Error).message}\n`); }
 }
 })();

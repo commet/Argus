@@ -1119,19 +1119,23 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     if (honestyScanFiredRef.current === key) return; // in-flight for this snapshot
     honestyScanFiredRef.current = key;
     let cancelled = false;
+    // Pass a real AbortSignal so a rapid snapshot change / session switch / unmount
+    // actually CANCELS the in-flight LLM call (not just discards its result → wasted
+    // tokens). cancelled still guards the late-resolve race.
+    const controller = new AbortController();
     scanHonesty(session.problem_text, {
       real_question: latest.real_question,
       hidden_assumptions: latest.hidden_assumptions,
       skeleton: latest.skeleton,
       insight: latest.insight,
-    }).then((flags) => {
+    }, controller.signal).then((flags) => {
       if (cancelled) return;
       const cur = (store.currentSession()?.snapshots ?? []).slice(-1)[0];
       if (cur && cur.version === latest.version && cur.honesty_flags === undefined) {
         store.updateLatestSnapshot({ honesty_flags: flags });
       }
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [session?.id, session?.problem_text, session?.snapshots, store]);
   // §0 sealing restraint inputs from the latest analysis snapshot — lets SealMoment
   // give a routine + reversible + confident decision one light check instead of the

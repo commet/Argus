@@ -73,6 +73,7 @@ const CASES = [
   { tag: 'HIGH-STAKES (대조군)', input: '동탄에 지금 집을 사는게 맞을까? 대출이 소득의 40%야.' },
 ];
 
+let failed = false;
 console.log('\n██████ REFRAME 두뇌 (crux over-fire/tilt) ██████');
 for (const c of CASES) {
   console.log('\n════════ ' + c.tag + ' ════════');
@@ -91,12 +92,15 @@ for (const c of CASES) {
     if (!/\?\s*$/.test(crux)) flags.push('crux가 질문형(?)이 아님');
     if (/기운다|추천|권장|바람직|하는 게 (낫|맞|좋)|해야 한다|하는 것이 (낫|맞|좋)/.test(both))
       flags.push('lean/판정 어휘 누출');
-    // 두갈래 포크: 명시 vs/택일 어휘 OR "A인가[,]? 아니면 B(인가|일까|하는가)" 문형
-    if (/\bvs\b|둘 중|택일|골라(라|야)|중 하나를 (골|선택)/.test(crux)
-        || /인가[,\s]*아니면[\s\S]*?(인가|일까|하는가|는가)\s*\?/.test(crux))
+    // 두갈래 포크: 명시 vs/택일 어휘 OR "A인가[,]? 아니면 B(인가|일까|하는가)" 문형.
+    // crux뿐 아니라 reframed_question(both)까지 검사 — 프롬프트 계약은 산출 전체에
+    // 두갈래 강제를 금지하므로 reframed에 숨은 포크도 잡아야 한다.
+    if (/\bvs\b|둘 중|택일|골라(라|야)|중 하나를 (골|선택)/.test(both)
+        || /인가[,\s]*아니면[\s\S]*?(인가|일까|하는가|는가)\s*\?/.test(both))
       flags.push('두갈래 포크 프레이밍');
+    if (flags.length) failed = true;
     console.log('  스파인:', flags.length ? '⚠ ' + flags.join(', ') : 'OK(질문형·중립)');
-  } catch (e) { console.log('  ERROR', e.message); }
+  } catch (e) { failed = true; console.log('  ERROR', e.message); }
 }
 
 // ── RECAST 두뇌: 'human' 과잉배정(판단 사다리 논지에 맞추려 기계적 단계도 사람에게) 검사 ──
@@ -136,8 +140,12 @@ for (const c of RECAST_CASES) {
     console.log(`  배분: ai=${counts.ai} human=${counts.human} both=${counts.both} (총 ${steps.length})`);
     // 기계적 과제인데 human/both가 과반이면 논지-맞춤 over-fire 의심
     const humanish = counts.human + counts.both;
-    if (c.tag.startsWith('MECHANICAL') && humanish > counts.ai)
+    if (c.tag.startsWith('MECHANICAL') && humanish > counts.ai) {
+      failed = true;
       console.log('  ⚠ 기계적 과제에 사람판단(human/both)이 과반 — 논지-맞춤 over-fire 의심');
-    else console.log('  배분 판정: OK(과제 성격에 맞음)');
-  } catch (e) { console.log('  ERROR', e.message); }
+    } else console.log('  배분 판정: OK(과제 성격에 맞음)');
+  } catch (e) { failed = true; console.log('  ERROR', e.message); }
 }
+
+// 실패(스파인 위반/에러)가 하나라도 있으면 non-zero exit — 자동화가 실패를 성공으로 오독하지 않게.
+if (failed) process.exitCode = 1;

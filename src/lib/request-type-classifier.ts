@@ -46,7 +46,7 @@ const VALIDATION_SIGNALS: RegExp[] = [
   /\bgoing\s+with\b/i,
   /\balready\s+(decided|chosen|set|going\s+with|signed|bought|sold|sent|shipped|submitted|launched|paid|ordered)\b/i,
   /\bwe['’]?re\s+going\s+with\b/i,
-  /\bit['’]?s\s+(a\s+)?done\b|\bit['’]?s\s+done\b/i,
+  /\bit['’]?s\s+(a\s+)?done\b/i,
 ];
 
 /** Emotional processing, not a decision request. */
