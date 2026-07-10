@@ -77,7 +77,9 @@ export async function POST(req: NextRequest) {
     event,
     // Only store a tool name for tool_call events, and only if it's one of ours.
     tool: event === 'tool_call' && toolRaw && isKnownTool(toolRaw) ? toolRaw : null,
-    ok: typeof body.ok === 'boolean' ? body.ok : null,
+    // Gate ok to tool_call events, same boundary as `tool` — a server_start
+    // row with ok is meaningless (client never sends it; enforce server-side).
+    ok: event === 'tool_call' && typeof body.ok === 'boolean' ? body.ok : null,
     version: boundedStr(body.version, 32),
     platform: platform && PLATFORMS.has(platform) ? platform : null,
     node_major: Number.isInteger(body.node_major) ? (body.node_major as number) : null,
