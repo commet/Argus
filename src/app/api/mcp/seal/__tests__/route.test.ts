@@ -142,4 +142,74 @@ describe('POST /api/mcp/seal', () => {
     expect(data.falsifiable_followups[0].outcome).toBe('missed');
     expect(data.falsifiable_followups[0].outcome).not.toBe('unclear');
   });
+
+  // ── The bridge's other three verbs. argus-mcp's pushToAccount() sends exactly
+  //    these bodies (SettlePush | DeferPush | DismissPush in push-account.ts).
+  //    Until now the MCP mocked `fetch` and the route was never asked to honour
+  //    defer or dismiss at all — so a settle that failed, or a decision the user
+  //    killed, left the account nudging forever.
+
+  const synced = () => makeAdmin('user-1', {
+    receipt_id: 'mcp_d1', state: 'sealed',
+    falsifiable_followups: [{ followup_id: 'f_d1', predicate: 'p', check_by: '2026-08-01', sealed_at: '2026-07-01T00:00:00Z' }],
+  });
+  const patch = () => updateEqSpy.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+  const followup = () => (patch()!.data as { falsifiable_followups: Array<Record<string, unknown>> }).falsifiable_followups[0];
+
+  it('settle: a still_pending is REFUSED — reality answering nothing is not a settlement', async () => {
+    currentAdmin = synced();
+    const res = await POST(req({ action: 'settle', id: 'd1', outcome: 'still_pending', what_happened: 'too early' }) as never);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ updated: false, reason: 'not_a_settlement' });
+    expect(updateEqSpy).not.toHaveBeenCalled(); // the row was NOT closed
+  });
+
+  it('settle: an unknown or prototype outcome is a 400, never a silent "unclear" close', async () => {
+    for (const outcome of ['sortof', 'constructor', '__proto__', 'toString']) {
+      updateEqSpy.mockClear();
+      currentAdmin = synced();
+      const res = await POST(req({ action: 'settle', id: 'd1', outcome, what_happened: 'x' }) as never);
+      expect(res.status, outcome).toBe(400);
+      expect(updateEqSpy, outcome).not.toHaveBeenCalled();
+    }
+  });
+
+  it('defer: moves the check-by in place and keeps the row alive and nudged', async () => {
+    currentAdmin = synced();
+    const res = await POST(req({ action: 'defer', id: 'd1', check_by: '2026-09-01', what_happened: 'data lands in September' }) as never);
+    expect(res.status).toBe(200);
+    expect(patch()!.state).toBe('sealed');            // still selected by the Brief cron
+    expect(patch()!.next_check_by).toBe('2026-09-01');
+    expect(followup().check_by).toBe('2026-09-01');
+    expect(followup().settled_at).toBeUndefined();    // nothing was settled
+    expect(followup().outcome).toBeUndefined();
+    expect(followup().revise_count).toBe(1);
+    expect(followup().first_check_by).toBe('2026-08-01'); // the original date, kept as a fact
+    expect(followup().defer_reason).toBe('data lands in September');
+  });
+
+  it('defer: a missing date is refused rather than guessed', async () => {
+    currentAdmin = synced();
+    const res = await POST(req({ action: 'defer', id: 'd1' }) as never);
+    expect(res.status).toBe(400);
+    expect(updateEqSpy).not.toHaveBeenCalled();
+  });
+
+  it('dismiss: archives the row so the Brief stops, and never claims a settlement', async () => {
+    currentAdmin = synced();
+    const res = await POST(req({ action: 'dismiss', id: 'd1' }) as never);
+    expect(res.status).toBe(200);
+    expect(patch()!.state).toBe('archived');           // NOT 'settled' — reality said nothing
+    expect(patch()!.next_check_by).toBeNull();
+    expect(followup().settled_at).toBeUndefined();
+    expect(followup().outcome).toBeUndefined();
+  });
+
+  it('defer/dismiss: an honest no-op when the id was never synced', async () => {
+    for (const body of [{ action: 'defer', id: 'd1', check_by: '2026-09-01' }, { action: 'dismiss', id: 'd1' }]) {
+      currentAdmin = makeAdmin('user-1', null);
+      const res = await POST(req(body) as never);
+      expect(await res.json()).toMatchObject({ ok: true, updated: false, reason: 'not_synced' });
+    }
+  });
 });

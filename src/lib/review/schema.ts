@@ -426,6 +426,18 @@ export type FollowupOutcome = 'happened' | 'avoided' | 'partial' | 'unclear' | '
  */
 export type SettledOutcome = Exclude<FollowupOutcome, 'unclear'>;
 
+/**
+ * The guard lives HERE, in source, not in a test.
+ *
+ * `tsconfig.json` excludes `**\/*.test.ts` and `**\/__tests__/**`, so a
+ * `@ts-expect-error` written inside a test file is never evaluated by anything —
+ * a type-level assertion in a test in this repo is decoration, not a guard.
+ * This line IS typechecked: if `unclear` ever becomes settleable again, the build
+ * fails, which is the whole point of naming the type in the first place.
+ */
+type Assert<T extends true> = T;
+export type _UnclearIsNeverSettleable = Assert<'unclear' extends SettledOutcome ? false : true>;
+
 /** A falsifiable prediction reality can settle. Owned by the user once sealed. */
 export interface FalsifiableFollowup {
   followup_id: string;

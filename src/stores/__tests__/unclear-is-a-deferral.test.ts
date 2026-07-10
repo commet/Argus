@@ -85,9 +85,9 @@ describe('"still unclear" defers — it never settles', () => {
     expect(summarizeReceipt(r, TODAY).next_check_by).toBeFalsy(); // correctly off the due list
   });
 
-  it('settleFollowup cannot even express "unclear" (compile-time guard)', () => {
-    // @ts-expect-error — 'unclear' is not a SettledOutcome; reality staying silent
-    // is a deferral. If this line ever stops erroring, the bug is back.
-    expect(() => useReviewStore.getState().settleFollowup('r1', 'f1', 'unclear', 'dunno')).toBeTruthy();
-  });
+  // NOTE: the "unclear can never be settled" guard is NOT here. tsconfig.json
+  // excludes **/*.test.ts and **/__tests__/**, so a @ts-expect-error inside a test
+  // file in this repo is never evaluated by anything — it reads like a guard and
+  // enforces nothing. The real, typechecked guard is `_UnclearIsNeverSettleable`
+  // in src/lib/review/schema.ts, which fails the build if the type ever widens.
 });
