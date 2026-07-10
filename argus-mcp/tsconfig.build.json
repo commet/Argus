@@ -6,6 +6,7 @@
   "exclude": [
     "src/**/*.test.ts",
     "src/**/__tests__/**",
-    "src/test-helpers.ts"
+    "src/test-helpers.ts",
+    "src/test-setup.ts"
   ]
 }
