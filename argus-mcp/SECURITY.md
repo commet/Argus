@@ -5,9 +5,18 @@
 - **All data is local by default.** Argus writes only under the `.argus/`
   directory you point it at: an append-only `ledger/ledger.jsonl`,
   per-decision `sessions/{id}/` files, and a `config.yaml`. Nothing leaves the
-  machine unless you explicitly set `ARGUS_TOKEN` for account sync.
-- **No telemetry.** With no `ARGUS_TOKEN`, the server makes no network calls.
-  The runtime dependency surface is intentionally small and visible in
+  machine unless you explicitly set `ARGUS_TOKEN` for account sync (or opt in to
+  anonymous telemetry with `ARGUS_TELEMETRY=1`; see below).
+- **No telemetry by default.** With no `ARGUS_TOKEN` and no `ARGUS_TELEMETRY=1`,
+  the server makes no network calls. Telemetry is strictly **opt-in**: set
+  `ARGUS_TELEMETRY=1` and it sends an anonymous, content-free ping — a random,
+  machine-local install id (`~/.argus/.telemetry-id`, not tied to your account
+  or token, regenerable by deleting the file), which of the built-in tools ran
+  and whether it succeeded, plus the package version, coarse OS platform, and
+  Node major. It **never** sends decision content, titles, predicates, file
+  paths, `argus_dir`, or the account token. `DO_NOT_TRACK=1` disables it even if
+  the flag is set, and the sink stores no `user_id` (nothing to identify). The
+  runtime dependency surface is intentionally small and visible in
   `package.json`: MCP SDK, schema/config helpers, and document parsers for
   `argus_review`. `npm audit --omit=dev` should stay clean before publishing.
 - **Private by default.** `argus_init` adds `sessions/`, `ledger/`,
