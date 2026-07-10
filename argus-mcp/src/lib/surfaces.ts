@@ -155,6 +155,11 @@ export interface SurfaceStrings {
     live_with_due: (total: number, due: number) => string;
     live_no_due: (total: number) => string;
     settled_on_web: (n: number) => string;
+    /** The account marked these `unclear` — reality has not answered. That is a
+     *  deferral, not a settlement, so nothing is imported and they stay due here.
+     *  Named honestly instead of silently closing them (the sync-door twin of the
+     *  still_pending → defer rule). */
+    unclear_on_web: (n: number) => string;
     /** M2 귀환 봉합 — web settlements mirrored into the local ledger (the
      *  user's own words, imported verbatim; a fact line, never a verdict). */
     imported: (n: number) => string;
@@ -332,6 +337,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         'Terminal-sealed ones settle here via argus_settle with local_id; web-sealed ones settle in the web dashboard.',
       live_no_due: (total) => `${total} live judgment(s) in your account. Nothing past its check-by.`,
       settled_on_web: (n) => ` ${n} already settled on the web. Run argus_sync with import_settlements:true to mirror your web record into this ledger, or record it yourself with argus_settle.`,
+      unclear_on_web: (n) => ` ${n} marked unclear in your account — reality hasn't answered, so those are not settlements and nothing was imported. They stay due here until you settle them.`,
       imported: (n) => ` Mirrored ${n} web settlement(s) into this ledger, in your own recorded words.`,
       truncation: (shown, matched) => `Showing ${shown} of ${matched}. Raise limit or narrow with due_only.`,
     },
@@ -469,6 +475,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         '이 터미널에서 봉인한 것은 local_id로 argus_settle, 웹에서 봉인한 것은 웹 대시보드에서 정산하세요.',
       live_no_due: (total) => `계정에 살아 있는 판단 ${total}개. 확인할 차례가 된 것은 없습니다.`,
       settled_on_web: (n) => ` 웹에서 이미 정산한 것이 ${n}건 있습니다. argus_sync에 import_settlements:true를 주면 웹에 남긴 기록을 이 원장으로 그대로 옮겨옵니다 (직접 argus_settle로 적어도 됩니다).`,
+      unclear_on_web: (n) => ` 계정에서 ${n}건이 "불분명"으로 표시돼 있습니다 — 현실이 아직 답하지 않았으니 정산이 아니고, 가져오지도 않았습니다. 정산하기 전까지 여기서는 계속 확인 대상입니다.`,
       imported: (n) => ` 웹 정산 ${n}건을 이 원장으로 옮겨왔습니다. 당신이 웹에 적은 그대로입니다.`,
       truncation: (shown, matched) => `${matched}개 중 ${shown}개만 표시합니다. limit을 올리거나 due_only로 좁히세요.`,
     },

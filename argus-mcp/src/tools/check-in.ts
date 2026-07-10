@@ -10,6 +10,24 @@ import { envelope } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
 
+/**
+ * The watch anchor is the one surface a user cannot close: a contract has
+ * settle/dismiss and an open_question has still_open, but an anchor has no ack
+ * event — so an unbounded mirror re-asks "so how did it go?" about the same
+ * note forever (the mirror-clause nag). Bound it the way the spine describes it
+ * ("TOMORROW's check_in mirrors it back"), with a small grace so an anchor
+ * written on Friday still greets the user on Monday.
+ */
+const ANCHOR_MIRROR_MAX_AGE_DAYS = 3;
+
+/** Session-once, per ledger+anchor — the same gate as the ambient due-line and
+ *  the seal assumption nudge. Two check_in calls in one session must not re-ask
+ *  the identical question. */
+const anchorMirrorShownFor = new Set<string>();
+export function resetCheckInSession(): void {
+  anchorMirrorShownFor.clear();
+}
+
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   include_upcoming_days: z.number().int().min(0).max(30).default(0).describe('Also list sealed contracts coming due within N days (informational — nothing to settle yet).'),
@@ -49,10 +67,30 @@ export const checkIn: ToolModule = {
       // 당직 미러 (§9.1): the most recent PRIOR day's anchor comes back first,
       // as a question — recognition, never a completion check. Today's own
       // anchor is data-only (no need to echo what the user just wrote).
+      //
+      // Bounded twice, because an anchor has no close/ack handle (unlike a
+      // contract's settle or an open_question's still_open) and so is the one
+      // surface a user cannot silence:
+      //  (a) AGE — the spine says "TOMORROW's check_in mirrors it back". An
+      //      anchor written 40 days ago is not yesterday's aim; re-asking "so
+      //      how did it go?" about it forever is the mirror-clause nag.
+      //  (b) SESSION-ONCE — same gate as the ambient due-line and the seal
+      //      assumption nudge: calling check_in twice in one session must not
+      //      re-ask the identical question.
       const priorAnchors = [...ledger.watch.anchors.values()]
         .filter((x) => x.date < today)
         .sort((x, y) => (x.date < y.date ? 1 : -1));
+      // The anchor stays a FACT (data.watch.last_anchor, locale sniffing); only
+      // the mirrored QUESTION is bounded by age + session-once.
       const lastAnchor = priorAnchors[0];
+      const anchorKey = lastAnchor ? dir + " " + lastAnchor.date : "";
+      const mirrorAnchor =
+        lastAnchor
+        && daysBetween(lastAnchor.date, today) <= ANCHOR_MIRROR_MAX_AGE_DAYS
+        && !anchorMirrorShownFor.has(anchorKey)
+          ? lastAnchor
+          : undefined;
+      if (mirrorAnchor) anchorMirrorShownFor.add(anchorKey);
 
       // Locale brain (P1-E1 + §9.3 언어 고정): check_in has no user-typed input,
       // so the frame used to flip to the base voice around the user's own
@@ -77,7 +115,7 @@ export const checkIn: ToolModule = {
       const S = ledgerVoiceSample
         ? SURFACES[resolveResponseLocale(dir, ledgerVoiceSample)].checkin
         : SURFACES[surfaceLocale(dir)].checkin;
-      const mirrorLine = lastAnchor ? S.watch_mirror(lastAnchor.date, clip(lastAnchor.text, 160)) + ' ' : '';
+      const mirrorLine = mirrorAnchor ? S.watch_mirror(mirrorAnchor.date, clip(mirrorAnchor.text, 160)) + ' ' : '';
       const todayAnchor = ledger.watch.anchors.get(today);
       const watchData = (lastAnchor || todayAnchor)
         ? { watch: { ...(lastAnchor ? { last_anchor: lastAnchor } : {}), ...(todayAnchor ? { today_anchor: todayAnchor } : {}) } }
@@ -87,10 +125,24 @@ export const checkIn: ToolModule = {
       // seal-time words (receipt.human_judgment; omitted when skipped). The
       // mirror is recognition by date arithmetic, never a welcome greeting —
       // and the quote is the user's sentence, not a machine verdict.
-      const dueEnriched: Array<typeof due[number] & { sealed_at?: string; days_since_seal?: number; your_words_then?: string }> =
+      // A deferred bet comes back with the user's OWN reason for deferring it —
+      // "the trial data doesn't land until March" — so the return reminds them
+      // WHY they pushed it, not merely that time passed. Without this the note
+      // was written to the ledger and never read by anything.
+      const deferInfo = (id: string): { deferred_times: number; deferred_because?: string } | undefined => {
+        const entry = ledger.contracts.get(id);
+        const times = entry?.defer_count ?? 0;
+        if (times === 0) return undefined;
+        const note = entry?.defer_history?.[entry.defer_history.length - 1]?.note;
+        return { deferred_times: times, ...(note ? { deferred_because: note } : {}) };
+      };
+
+      const dueEnriched: Array<typeof due[number] & { sealed_at?: string; days_since_seal?: number; your_words_then?: string; deferred_times?: number; deferred_because?: string }> =
         due.map((d) => {
+          const deferred = deferInfo(d.id);
+          const withDefer = deferred ? { ...d, ...deferred } : d;
           const receipt = readReceipt(dir, d.id);
-          if (!receipt?.created_at) return d;
+          if (!receipt?.created_at) return withDefer;
           const sealed_at = String(receipt.created_at).slice(0, 10);
           const words = typeof receipt.human_judgment === 'string' &&
             receipt.human_judgment.trim().length > 0 &&
@@ -98,7 +150,7 @@ export const checkIn: ToolModule = {
             ? receipt.human_judgment.trim()
             : undefined;
           return {
-            ...d,
+            ...withDefer,
             sealed_at,
             days_since_seal: daysBetween(sealed_at, today),
             ...(words ? { your_words_then: words } : {}),

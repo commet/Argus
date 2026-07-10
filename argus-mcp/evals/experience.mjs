@@ -35,7 +35,7 @@ import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { chat, complete, extractJson } from './anthropic.mjs';
+import { chat, complete, completeJson } from './anthropic.mjs';
 import { PERSONAS } from './personas.mjs';
 import { SERVER_INSTRUCTIONS } from '../dist/lib/spine.js';
 
@@ -68,8 +68,29 @@ Then commit to sharp calls:
 - add_one_thing: EXACTLY ONE missing moment/capability that would have changed the persona's verdict
 - spine_violations: array (possibly empty) of moments the assistant or the tool graded the user, pushed a verdict, or manufactured ceremony
 
-Reply ONLY with JSON:
-{"scores":{"ride_along":n,"earned_return":n,"dignity":n,"restraint":n,"clarity":n},"would_use_after_trial":bool,"one_line_review":"...","best_moment":"...","worst_moment":"...","cut_one_thing":"...","add_one_thing":"...","spine_violations":["..."]}`;
+Return your verdict by calling the \`verdict\` tool. Do not write a preamble.`;
+
+/** The judge's output shape, enforced by a forced tool call (see completeJson).
+ *  Prose-and-hope lost 2 of 17 personas to silent truncation before this. */
+const SCORE = { type: 'integer', minimum: 1, maximum: 5 };
+const JUDGE_SCHEMA = {
+  type: 'object',
+  required: ['scores', 'would_use_after_trial', 'one_line_review', 'best_moment', 'worst_moment', 'cut_one_thing', 'add_one_thing', 'spine_violations'],
+  properties: {
+    scores: {
+      type: 'object',
+      required: ['ride_along', 'earned_return', 'dignity', 'restraint', 'clarity'],
+      properties: { ride_along: SCORE, earned_return: SCORE, dignity: SCORE, restraint: SCORE, clarity: SCORE },
+    },
+    would_use_after_trial: { type: 'boolean' },
+    one_line_review: { type: 'string' },
+    best_moment: { type: 'string' },
+    worst_moment: { type: 'string' },
+    cut_one_thing: { type: 'string' },
+    add_one_thing: { type: 'string' },
+    spine_violations: { type: 'array', items: { type: 'string' } },
+  },
+};
 
 /** Render the transcript for the judge (and the console) — surfaces only, compact. */
 function renderTranscript(t) {
@@ -225,8 +246,10 @@ async function runPersona(persona) {
 
   // the judge lives the transcript as the persona
   const judgeUser = `PERSONA:\n${persona.profile}\nDesigned probes: ${persona.probes.join(', ')}\n\nTRANSCRIPT:\n${renderTranscript(transcript)}`;
-  const judgeRaw = await complete({ model: JUDGE_MODEL, system: JUDGE_SYSTEM, user: judgeUser, maxTokens: 1500 });
-  const judged = extractJson(judgeRaw);
+  const judged = await completeJson({
+    model: JUDGE_MODEL, system: JUDGE_SYSTEM, user: judgeUser,
+    toolName: 'verdict', schema: JUDGE_SCHEMA, maxTokens: 2000,
+  });
 
   return { persona: persona.id, probes: persona.probes, metrics, judged, transcript };
 }

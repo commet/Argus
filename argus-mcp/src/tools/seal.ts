@@ -5,7 +5,7 @@ import { resolveToday } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
-import { appendLedger, type LedgerEventInput } from '../lib/ledger-append.js';
+import { appendLedger, withLedgerLock, type LedgerEventInput } from '../lib/ledger-append.js';
 import { writeSealReceipt } from '../lib/receipt.js';
 import { premiseId, MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING } from '../lib/premises.js';
 import { pushToAccount } from '../lib/push-account.js';
@@ -158,7 +158,17 @@ export const seal: ToolModule = {
           promotedRef = `P${ordinal}`;
         }
       }
-      await appendLedger(dir, events, now);
+      // §9.4 두 기기 안전: seal is a read-check-append like settle, and it was the
+      // one write that skipped the lock. Two processes on one ledger both replay
+      // `absent`, both pass the guard, and both append a `seal` — replay then does
+      // stats.total_sealed++ per event, so ONE prediction counts as two, forever,
+      // on an append-only log. Re-guard under the lock: the loser sees the same
+      // ILLEGAL_TRANSITION it would have seen had it arrived second sequentially.
+      await withLedgerLock(dir, async () => {
+        const fresh = resolveContract(dir, id, today);
+        guardTransition(fresh.state, 'seal');
+        await appendLedger(dir, events, now);
+      });
 
       const namedAssumption = !receipt.skipped.includes('unverified_assumption');
       // Fire the nudge only on the FIRST assumption-less seal this session (per

@@ -2,11 +2,13 @@ import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
-import { fetchAccountReceipts } from '../lib/push-account.js';
+import { fetchAccountReceipts, type AccountReceipt } from '../lib/push-account.js';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { resolveToday } from '../lib/resolve-today.js';
 import { replayLedger, type ContractEntry } from '../lib/ledger-replay.js';
-import { appendLedger } from '../lib/ledger-append.js';
+import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
+import { resolveContract } from '../lib/resolve-contract.js';
+import { guardTransition } from '../lib/state-machine.js';
 import { writeSettleReceipt } from '../lib/receipt.js';
 import { localIdFromAccountId } from '../lib/install-id.js';
 import { surfacesFor } from '../lib/surfaces.js';
@@ -31,14 +33,61 @@ const inputSchema = z.strictObject({
     'Mirror settlements the user already recorded on the WEB into this local ledger (their own outcome + words, verbatim — never an inferred outcome). Fixes the local record still listing a web-settled judgment as due. Only affects terminal-sealed (mcp_) judgments that are sealed locally but settled in the account.'),
 });
 
-/** Web outcome vocabulary → the MCP settle enum (reverse of the seal-bridge OUTCOME_MAP). */
-const WEB_TO_MCP_OUTCOME: Record<string, 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed'> = {
-  happened: 'held', held: 'held',
-  avoided: 'avoided',
-  partial: 'partial',
-  missed: 'missed',
-  unclear: 'still_pending', still_pending: 'still_pending',
-};
+type McpOutcome = 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed';
+
+/**
+ * Web outcome vocabulary → the MCP settle enum (reverse of the seal-bridge
+ * OUTCOME_MAP).
+ *
+ * A Map, deliberately — NOT an object literal. `OBJ[sp.outcome]` with `sp` from
+ * the remote account resolves inherited keys: `outcome:"constructor"` returns a
+ * Function, which is truthy AND `!== 'still_pending'`, so it slipped past both
+ * the unknown-vocabulary guard and the still_pending guard below. It then reached
+ * appendLedger as a non-serializable value: JSON.stringify drops it, writing a
+ * `settle` event with NO outcome that replay still folds to status:'settled'.
+ * A hostile or buggy server could terminally close a user's sealed bet with a
+ * word that was never in the allowlist. Map.get() has no prototype chain.
+ */
+const WEB_TO_MCP_OUTCOME = new Map<string, McpOutcome>([
+  ['happened', 'held'], ['held', 'held'],
+  ['avoided', 'avoided'],
+  ['partial', 'partial'],
+  ['missed', 'missed'],
+  ['unclear', 'still_pending'], ['still_pending', 'still_pending'],
+]);
+
+/** argus_settle caps what_happened at 600 chars; the import must not be a way around it. */
+const MAX_IMPORTED_WHAT_HAPPENED = 600;
+/** The exact shape appendLedger writes as `ts` — anything else would corrupt the
+ *  ledger's lexicographic = chronological ordering invariant. */
+const ISO_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
+
+/**
+ * The account is a NETWORK trust boundary: `fetchAccountReceipts` validates only
+ * `Array.isArray(receipts)`, yet `import_settlements` writes this content into the
+ * local append-only ledger and the receipt. Validate it exactly as strictly as the
+ * zod schema validates a local argus_settle — enum allowlist, length cap, control
+ * chars stripped, and a well-formed timestamp (else we stamp our own clock).
+ * Anything that fails is dropped, never coerced.
+ */
+/** C0 control chars (except tab/newline/CR) and DEL. They have no place in a
+ *  receipt, and can smuggle terminal escapes or fake structure into the
+ *  model-facing surface. Built from escapes so the source stays plain ASCII. */
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+
+function safeRemoteSettlement(sp: unknown): { outcome: McpOutcome; what_happened: string; settled_at?: string } | null {
+  if (!sp || typeof sp !== 'object') return null;
+  const r = sp as Record<string, unknown>;
+  const outcome = typeof r['outcome'] === 'string' ? WEB_TO_MCP_OUTCOME.get(r['outcome']) : undefined;
+  if (!outcome) return null;
+  const raw = typeof r['what_happened'] === 'string' ? r['what_happened'] : '';
+  const what_happened = raw.replace(CONTROL_CHARS, '').trim().slice(0, MAX_IMPORTED_WHAT_HAPPENED);
+  if (!what_happened) return null; // the account returned no words — leave it flagged, never invent
+  const at = r['settled_at'];
+  const settled_at = typeof at === 'string' && ISO_TS.test(at) ? at : undefined;
+  return { outcome, what_happened, ...(settled_at ? { settled_at } : {}) };
+}
 
 export const sync: ToolModule = {
   name: 'argus_sync',
@@ -51,7 +100,12 @@ export const sync: ToolModule = {
     'Seals/settles already push to the account automatically; this is the READ side. Use due_only:true to see just what needs settling. Requires ARGUS_TOKEN (Settings → sync token).',
   inputSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { title: 'Sync account receipts', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  // readOnlyHint:false — with import_settlements:true this WRITES settle events to
+  // the append-only ledger and rewrites receipts. It claimed readOnlyHint:true,
+  // which invites a host to run it unconfirmed, speculatively, or in parallel
+  // against the user's permanent record. The read-only path is the common one, but
+  // an annotation is a contract about the worst case, not the usual case.
+  annotations: { title: 'Sync account receipts', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   handler: async (a) => {
     try {
       const pull = await fetchAccountReceipts();
@@ -106,6 +160,13 @@ export const sync: ToolModule = {
         const entry = localContracts.get(lid);
         return entry?.status === 'sealed'; // sealed locally (incl. derived-due) yet already settled in the account
       };
+      // The account's `unclear` maps to still_pending — reality has not answered.
+      // That is a DEFERRAL, not a settlement (see argus_settle → deferStillPending).
+      // Importing it as a `settle` event would terminally close a bet the user
+      // never resolved, drop it off check_in forever, and write a receipt claiming
+      // "what happened" about a thing that did not happen. Never import it — name it.
+      const unresolvedInAccount = (r: AccountReceipt): boolean =>
+        safeRemoteSettlement(r.settled_predicates?.[0])?.outcome === 'still_pending';
       // ⑤ Settlement import (§9.4 귀환 봉합, M2): mirror what the USER already
       // recorded on the web — their outcome enum and their own words, verbatim —
       // into the local ledger, so check_in stops re-nudging a closed loop.
@@ -116,27 +177,54 @@ export const sync: ToolModule = {
         const today = resolveToday({});
         for (const r of pull.receipts) {
           if (!settledInAccount(r.id, r.state)) continue;
-          const sp = r.settled_predicates?.[0];
-          if (!sp) continue; // account did not return the settlement words — leave flagged, never invent
-          const outcome = WEB_TO_MCP_OUTCOME[sp.outcome];
-          if (!outcome) continue;
+          // Everything below this line came off the network. Validate it as hard
+          // as zod validates a local argus_settle; drop what fails, never coerce.
+          const sp = safeRemoteSettlement(r.settled_predicates?.[0]);
+          if (!sp) continue; // no words, or a word outside the allowlist — leave flagged, never invent
+          const outcome = sp.outcome;
+          // `unclear` is not a settlement — importing it would terminally close an
+          // unresolved bet. Leave it live here; the surface names it honestly.
+          if (outcome === 'still_pending') continue;
           const localId = toLocalId(r.id);
           if (!localId) continue;
           const now = sp.settled_at || new Date().toISOString();
-          await appendLedger(boundDir, [{
-            id: localId, event: 'settle', outcome,
-            decision: sp.what_happened, source_detail: 'web_settlement_import',
-          }], now);
-          const entry = localContracts.get(localId);
-          await writeSettleReceipt(boundDir, localId,
-            { what_happened: sp.what_happened, outcome, settled_at: now },
-            { predicate: entry?.predicate, check_by: entry?.check_by });
+          // The import is a WRITE to the append-only ledger, so it owes the same
+          // discipline as argus_settle: take the ledger lock and re-guard against
+          // freshly-replayed state inside it. Without this, the status check above
+          // is a TOCTOU — a concurrent settle in another session lands first and
+          // this appends a SECOND settle, double-counting the calibration record
+          // (stats.total_settled and the outcome tally) with no way to undo it on
+          // an append-only log. The guard is also the spine's structural refusal
+          // (NO_PRIOR_SEAL / ALREADY_SETTLED); a raw append bypassed it entirely.
+          // One bad row must not abort the whole import: skip it and keep going.
+          const dir = boundDir;
+          try {
+            await withLedgerLock(dir, async () => {
+              const fresh = resolveContract(dir, localId, today);
+              guardTransition(fresh.state, 'settle');
+              await appendLedger(dir, [{
+                id: localId, event: 'settle', outcome,
+                decision: sp.what_happened, source_detail: 'web_settlement_import',
+              }], now);
+              await writeSettleReceipt(dir, localId,
+                { what_happened: sp.what_happened, outcome, settled_at: now },
+                { predicate: fresh.predicate, check_by: fresh.check_by });
+            });
+          } catch {
+            continue; // already settled / dismissed locally — the local record wins
+          }
           imported.push({ local_id: localId, outcome });
         }
         if (imported.length > 0) localContracts = replayLedger(boundDir, today).contracts;
       }
       // Count AFTER any import so the flag line only names what still diverges.
-      const settledInAccountCount = pull.receipts.filter((r) => settledInAccount(r.id, r.state)).length;
+      // Split the divergence: a REAL web settlement can still be imported (so the
+      // "run import_settlements" handle is honest), while an `unclear` one never
+      // can — counting it under settled_on_web would re-offer an import that
+      // imports nothing, forever. Name the two separately.
+      const divergent = pull.receipts.filter((r) => settledInAccount(r.id, r.state));
+      const unclearInAccountCount = divergent.filter(unresolvedInAccount).length;
+      const settledInAccountCount = divergent.length - unclearInAccountCount;
       const localSettleableDueCount = pull.receipts.filter((r) => r.due && toLocalId(r.id) !== null).length;
 
       const baseSurface = dueCount > 0
@@ -146,10 +234,13 @@ export const sync: ToolModule = {
       const crossCheckLine = settledInAccountCount > 0
         ? S.settled_on_web(settledInAccountCount)
         : '';
+      const unclearLine = unclearInAccountCount > 0
+        ? S.unclear_on_web(unclearInAccountCount)
+        : '';
 
       return envelope({
         ok: true, tool: 'argus_sync',
-        surface: baseSurface + importedLine + crossCheckLine,
+        surface: baseSurface + importedLine + crossCheckLine + unclearLine,
         next_actions: localSettleableDueCount > 0 ? ['argus_settle', 'stop'] : ['stop'],
         data: {
           total: pull.receipts.length,
@@ -176,9 +267,13 @@ export const sync: ToolModule = {
               next_check_by: r.next_check_by,
               due: r.due,
               open_predicates: r.open_predicates,
-              // Settled in the account (web) while the local ledger still says
-              // sealed. Flag only — the local record stays the user's to write.
-              ...(settledInAccount(r.id, r.state) ? { settled_in_account: true } : {}),
+              // Diverges from the account while the local ledger still says sealed.
+              // Flag only — the local record stays the user's to write. `unclear`
+              // in the account is NOT a settlement (reality is silent): flag it
+              // apart so no caller mistakes it for something importable.
+              ...(settledInAccount(r.id, r.state)
+                ? (unresolvedInAccount(r) ? { unresolved_in_account: true } : { settled_in_account: true })
+                : {}),
             };
           }),
         },

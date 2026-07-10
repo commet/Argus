@@ -71,6 +71,47 @@ function eventArticle(event: LedgerEventType): string {
 }
 
 /**
+ * A refusal must name a move that ACTUALLY works from this state, or the caller
+ * loops on the same advice (the dead-end class: the old premise-on-absent hint
+ * said "open it first", but re-opening a restrained decision just returns
+ * restraint again). Every branch below is derived from ALLOWED + the guards
+ * above, so the state each one addresses is the only state that can reach it.
+ */
+function illegalRecovery(current: DecisionState, event: LedgerEventType): string | undefined {
+  switch (true) {
+    // seal is legal from absent|opened, and settled|dismissed threw DECISION_CLOSED
+    // above — so we are necessarily ALREADY sealed (sealed|due). "Open it first"
+    // sent the caller to argus_open_decision, which cannot un-seal an append-only
+    // ledger: it returns the same state, and the same error, forever.
+    case event === 'seal':
+      return current === 'due'
+        ? 'This decision is already sealed and its check-by has arrived. Record what reality did with argus_settle (if reality has not answered, that is still_pending and it defers). A sealed prediction is never re-sealed.'
+        : 'This decision is already sealed. Change the predicate or the check-by with argus_amend, or record the outcome with argus_settle once the check-by arrives. Re-sealing is refused so a sealed prediction cannot be quietly rewritten.';
+
+    // premise_* can only reach here from `absent` (opened/sealed allow them all;
+    // due sends add/amend to PREMISE_LOCKED). Adding is recoverable — seal
+    // self-creates the contract — so nothing the user meant to track is lost.
+    case event === 'premise_add':
+      return "This decision isn't open for tracking yet. If it's a consequential fork, open it with argus_open_decision; otherwise seal it first (argus_seal creates the contract), then add the premise — premises attach from the sealed state, so nothing you meant to track is lost to order.";
+
+    // recheck/resolve/reconsider/amend act on a premise that must ALREADY exist,
+    // so the seal-first advice above is off-target for them.
+    case event.startsWith('premise_'):
+      return 'No decision with this id is being tracked, so it has no premises to act on. Check the id — argus_recall view=contracts lists them.';
+
+    // defer only exists to re-arm a bet whose check-by has arrived.
+    case event === 'defer':
+      return 'A decision can only be deferred once its check-by has arrived. Before then the check-by simply stands (argus_amend moves it).';
+
+    case event === 'amend' || event === 'dismiss':
+      return 'No decision with this id exists yet. Check the id — argus_recall view=contracts lists them; a decision starts with argus_open_decision or argus_seal.';
+
+    default:
+      return undefined;
+  }
+}
+
+/**
  * Throw if `event` is illegal from the decision's current derived state.
  * Encodes the spine's structural refusals:
  *  - settle without a prior seal  → NO_PRIOR_SEAL
@@ -121,21 +162,10 @@ export function guardTransition(
   }
 
   if (!ALLOWED[current].has(event)) {
-    // A premise on an `absent` decision (the restraint gate returned no fork, so
-    // there is no harvest to attach to) must NOT dead-end the host: re-opening
-    // just returns restraint again. Point at the path that actually succeeds —
-    // seal self-creates the contract, and premises attach from `sealed` — so a
-    // fact the user meant to track is never lost to call order (plan v5 §6.2).
-    const recovery =
-      event === 'seal'
-        ? 'Open the decision first with argus_open_decision.'
-        : event.startsWith('premise_')
-          ? "This decision isn't open for tracking yet. If it's a consequential fork, open it with argus_open_decision; otherwise seal it first (argus_seal creates the contract), then add the premise — premises attach from the sealed state, so nothing you meant to track is lost to order."
-          : undefined;
     throw new GuardError(
       'ILLEGAL_TRANSITION',
       `A '${event}' is not allowed from state '${current}'.`,
-      recovery,
+      illegalRecovery(current, event),
     );
   }
 }

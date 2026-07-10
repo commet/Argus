@@ -116,12 +116,19 @@ export const recheck: ToolModule = {
         }
       }
 
+      // anchor_date = the LOGICAL day, exactly as premise_add / premise_reconsider /
+      // watch_* already stamp it. The recheck cadence clock used to read the event's
+      // wall-clock UTC `ts`: under a today_override the sim timeline broke outright,
+      // and in real use a Korea (UTC+9) user re-checking at 08:00 KST stamped
+      // yesterday's UTC date — so the next re-check nudge fired a day early and
+      // `days_stale` read one too high.
       const mkEvent = (targetId: string, targetPremiseId: string): LedgerEventInput => ({
         id: targetId, event: 'premise_recheck', premise_id: targetPremiseId,
         finding,
         ...(typeof numericValue === 'number' ? { numeric_value: numericValue } : {}),
         drifted, baseline_only: baselineOnly, source,
         ...(sourceDetail ? { source_detail: sourceDetail } : {}),
+        anchor_date: today,
       });
 
       const events: LedgerEventInput[] = [mkEvent(id, premise.premise_id)];

@@ -316,7 +316,11 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           baseline_only: ev['baseline_only'] === true,
           source: ev['source'],
           ...(typeof ev['source_detail'] === 'string' ? { source_detail: ev['source_detail'] } : {}),
-          ts: ev['ts'] as string | undefined,
+          // Prefer the logical anchor_date over the wall-clock ts — the same
+          // deterministic clock premise_add (added_ts) and premise_reconsider use.
+          // The cadence math reads dateOnly(last_recheck.ts), so a UTC ts made the
+          // next nudge fire a day early for a UTC+9 user and broke sim timelines.
+          ts: (typeof ev['anchor_date'] === 'string' ? ev['anchor_date'] : ev['ts']) as string | undefined,
         };
         p.recheck_count++;
         break;
@@ -347,6 +351,13 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         const date = typeof ev['anchor_date'] === 'string' ? ev['anchor_date']
           : typeof ev['ts'] === 'string' ? ev['ts'].slice(0, 10) : undefined;
         if (!date || typeof ev['text'] !== 'string') { dropped++; break; }
+        // capture_id is sha256(date|text), and argus_watch documents re-capturing
+        // the same sentence on the same day as idempotent — but the fold used to
+        // push blindly, so a double note left TWO identical captures. The user
+        // could then never promote it: argus_premises from_capture matched both
+        // and hard-errored AMBIGUOUS_REF. Dedup here, like premise_add does.
+        const capId = typeof ev['capture_id'] === 'string' ? ev['capture_id'] : undefined;
+        if (capId && watch.captures.some((c) => c.id === capId)) break;
         watch.captures.push({
           ...(typeof ev['capture_id'] === 'string' ? { id: ev['capture_id'] } : {}),
           date,
