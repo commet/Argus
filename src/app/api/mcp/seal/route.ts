@@ -27,7 +27,7 @@ function hashToken(raw: string): string {
 }
 
 interface SealPayload {
-  action?: 'seal' | 'settle';
+  action?: 'seal' | 'settle' | 'defer';
   id?: string;
   predicate?: string;
   pass_condition?: string;
@@ -75,13 +75,23 @@ export function sanitizeTrackedPremises(raw: unknown): JudgmentReceipt['tracked_
   return out.length > 0 ? (out as JudgmentReceipt['tracked_premises']) : undefined;
 }
 
-const OUTCOME_MAP: Record<string, JudgmentReceipt['falsifiable_followups'][number]['outcome']> = {
-  held: 'happened', happened: 'happened',
-  avoided: 'avoided',
-  partial: 'partial',
-  missed: 'missed',
-  still_pending: 'unclear', unclear: 'unclear',
-};
+/**
+ * MCP outcome vocabulary → the web's.
+ *
+ * A Map, not an object literal: `OBJ[body.outcome]` with a body off the network
+ * resolves inherited keys, so `outcome:"constructor"` yielded a truthy Function
+ * that sailed past the `|| 'unclear'` fallback and was written into the receipt.
+ *
+ * `still_pending`/`unclear` mean reality has not answered. They are a DEFERRAL,
+ * never a settlement — the settle branch refuses them outright.
+ */
+const OUTCOME_MAP = new Map<string, JudgmentReceipt['falsifiable_followups'][number]['outcome']>([
+  ['held', 'happened'], ['happened', 'happened'],
+  ['avoided', 'avoided'],
+  ['partial', 'partial'],
+  ['missed', 'missed'],
+  ['still_pending', 'unclear'], ['unclear', 'unclear'],
+]);
 
 function rowId(id: string): string {
   return `mcp_${id}`;
@@ -170,8 +180,67 @@ export async function POST(req: NextRequest) {
   admin.from('plugin_tokens').update({ last_used_at: now }).eq('id', tokenRow.id)
     .then(({ error }) => { if (error) console.error('[mcp/seal] last_used:', error.message); });
 
+  // ── DEFER: reality has not answered. Push the check-by; the record stays alive.
+  //    Deliberately NOT an `action:'seal'` re-push: that upserts a freshly built
+  //    receipt over `data`, wiping any premises or edits the user made on the web.
+  if (action === 'defer') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.check_by))) {
+      return NextResponse.json({ error: 'check_by (YYYY-MM-DD) required to defer' }, { status: 400 });
+    }
+    const { data: existing } = await admin
+      .from('review_receipts')
+      .select('data')
+      .eq('id', rowId(id))
+      .eq('user_id', tokenRow.user_id)
+      .is('deleted_at', null)
+      .single();
+    if (!existing?.data) {
+      return NextResponse.json({ ok: true, updated: false, reason: 'not_synced' });
+    }
+    const receipt = existing.data as JudgmentReceipt;
+    const newCheckBy = String(body.check_by);
+    receipt.falsifiable_followups = (receipt.falsifiable_followups || []).map((f) =>
+      f.followup_id === `f_${id}`
+        ? {
+            ...f,
+            check_by: newCheckBy,
+            revise_count: (f.revise_count ?? 0) + 1,
+            first_check_by: f.first_check_by ?? f.check_by,
+            ...(body.what_happened ? { defer_reason: String(body.what_happened).slice(0, 600) } : {}),
+          }
+        : f,
+    );
+    receipt.updated_at = now;
+    const { error } = await admin
+      .from('review_receipts')
+      .update({ state: 'sealed', next_check_by: newCheckBy, data: receipt })
+      .eq('id', rowId(id))
+      .eq('user_id', tokenRow.user_id);
+    if (error) {
+      console.error('[mcp/seal] defer update:', error.message);
+      return NextResponse.json({ error: 'defer failed' }, { status: 502 });
+    }
+    return NextResponse.json({ ok: true, updated: true, state: 'sealed', check_by: newCheckBy });
+  }
+
   // ── SETTLE: reality answered. Patch the synced row; no-op if never synced. ──
   if (action === 'settle') {
+    // An unknown word must not silently become "unclear" — the old
+    // `OUTCOME_MAP[x] || 'unclear'` turned every typo, and every prototype key,
+    // into a terminal settlement. Reject what is not in the vocabulary.
+    const mapped = typeof body.outcome === 'string' ? OUTCOME_MAP.get(body.outcome) : undefined;
+    if (!mapped) {
+      return NextResponse.json({ error: 'unknown outcome' }, { status: 400 });
+    }
+    // "unclear" is reality staying silent, which is a deferral, not a settlement.
+    // Filing it stamped settled_at, flipped the receipt terminal, and dropped the
+    // decision out of the dashboard, the due badge and the Companion Brief email.
+    if (mapped === 'unclear') {
+      return NextResponse.json({
+        ok: true, updated: false, reason: 'not_a_settlement',
+        detail: 'Reality has not answered. Send action:"defer" with a new check_by instead.',
+      });
+    }
     const { data: existing } = await admin
       .from('review_receipts')
       .select('data')
@@ -186,7 +255,7 @@ export async function POST(req: NextRequest) {
     const settledAt = body.settled_at || now;
     receipt.falsifiable_followups = (receipt.falsifiable_followups || []).map((f) =>
       f.followup_id === `f_${id}`
-        ? { ...f, outcome: OUTCOME_MAP[body.outcome || 'unclear'] || 'unclear', what_happened: (body.what_happened || '').slice(0, 600), settled_at: settledAt }
+        ? { ...f, outcome: mapped, what_happened: (body.what_happened || '').slice(0, 600), settled_at: settledAt }
         : f,
     );
     receipt.state = 'settled';

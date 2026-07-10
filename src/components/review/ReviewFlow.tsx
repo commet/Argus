@@ -418,8 +418,8 @@ export function ReviewFlow() {
                 track('settled', { receipt_id: receipt.receipt_id, outcome });
                 setSettlingId(null);
               }}
-              onRevise={(newCheckBy) => {
-                store.reviseFollowup(receipt.receipt_id, settlingId, newCheckBy);
+              onRevise={(newCheckBy, reason) => {
+                store.reviseFollowup(receipt.receipt_id, settlingId, newCheckBy, reason);
                 track('reopened_or_revised', { receipt_id: receipt.receipt_id, kind: 'revise' });
                 setSettlingId(null);
               }}

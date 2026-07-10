@@ -257,12 +257,14 @@ async function deferStillPending(args: {
     await appendLedger(dir, [{ id, event: 'defer', from: oldCheckBy, check_by: newDate, ...(whatHappened && whatHappened.trim() ? { note: whatHappened } : {}) }], now);
   });
 
-  // Mirror the NEW check-by to the account (opt-in): re-push the seal with the
-  // new date so the Companion Brief nudges at the right time, not the stale one.
+  // Mirror the NEW check-by to the account (opt-in) so the Companion Brief nudges
+  // at the right time, not the stale one. A dedicated `defer` action, NOT a seal
+  // re-push: the seal endpoint upserts a freshly built receipt over the row's
+  // data, which would wipe premises or edits the user made on the web.
   // No token ⇒ silent no-op; a failure never undoes the local defer.
   const sync = await pushToAccount({
-    action: 'seal', id: accountPushId(dir, id), predicate: current.predicate ?? '', check_by: newDate, sealed_at: now,
-    source_title: (current.predicate ?? '').slice(0, 80),
+    action: 'defer', id: accountPushId(dir, id), check_by: newDate,
+    ...(whatHappened && whatHappened.trim() ? { what_happened: whatHappened } : {}),
   });
   const syncLine = sync.synced || sync.reason === 'no_token' ? '' : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
 

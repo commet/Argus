@@ -413,6 +413,19 @@ export interface JudgmentObligation {
 
 export type FollowupOutcome = 'happened' | 'avoided' | 'partial' | 'unclear' | 'missed';
 
+/**
+ * What reality can actually SETTLE a prediction with.
+ *
+ * `unclear` is deliberately excluded. "Reality hasn't answered yet" is not an
+ * outcome — it is a DEFERRAL. Recording it as a settlement stamped `settled_at`,
+ * flipped the receipt to the terminal `settled` state, and dropped the decision
+ * out of the dashboard due list, the due badge, and the Companion Brief email —
+ * permanently closing a question reality never answered, while the receipt
+ * claimed "what happened". The deferral path is `reviseFollowup` (push the date).
+ * Typing the verb is what makes the broken call unrepresentable.
+ */
+export type SettledOutcome = Exclude<FollowupOutcome, 'unclear'>;
+
 /** A falsifiable prediction reality can settle. Owned by the user once sealed. */
 export interface FalsifiableFollowup {
   followup_id: string;
@@ -435,6 +448,14 @@ export interface FalsifiableFollowup {
   learned?: string;
   /** number of times the user pushed the check date via "revise". */
   revise_count?: number;
+  /** The user's own words for why reality hadn't answered, captured when they
+   *  deferred. Returned to them at the next check-by so the return reminds them
+   *  WHY they pushed it, not merely that time passed. */
+  defer_reason?: string;
+  /** The FIRST check-by, set once on the first deferral. Lets the settled receipt
+   *  state the timeline as a neutral fact ("originally due X · deferred N×")
+   *  instead of silently pretending the final date was always the date. */
+  first_check_by?: string;
 }
 
 export interface Fork {
