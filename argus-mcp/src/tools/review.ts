@@ -2,8 +2,9 @@ import fs from 'fs';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { resolveResponseLocale } from '../lib/surfaces.js';
-import { ENVELOPE_OUTPUT_SCHEMA, type ToolModule } from './tool-types.js';
+import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
+import { resolveReviewFile, ReviewPathError } from '../lib/review-path.js';
 import {
   ingest,
   scoreReviewability,
@@ -61,7 +62,8 @@ const EXT_KIND: Record<string, SourceKind> = {
 
 const inputSchema = z.strictObject({
   text: z.string().max(MAX_DOC_BYTES).describe('The document body to review (paste). Provide this OR file_path.').optional(),
-  file_path: z.string().max(1024).describe('Absolute path to a document (.md/.txt/.pdf/.docx/.pptx). PDF/DOCX/PPTX are text-extracted with page/slide anchors; scanned or image-only files degrade honestly.').optional(),
+  file_path: z.string().max(1024).describe('Absolute path to a DOCUMENT (.md/.txt/.pdf/.docx/.pptx) inside a project Argus is allowed to read: this one, the working directory, or a project registered with argus_init. Other paths and non-document types are refused — a document cannot talk Argus into reading a key or a credentials file. PDF/DOCX/PPTX are text-extracted with page/slide anchors; scanned or image-only files degrade honestly.').optional(),
+  argus_dir: zArgusDir.describe('Optional: scope the readable root to this project.').optional(),
   source_kind: z.enum(['paste', 'markdown', 'txt', 'pdf', 'docx', 'pptx', 'transcript', 'llm_answer', 'pr_diff']).describe('Override the inferred source kind.').optional(),
   title: z.string().max(300).optional(),
   concerns: z.array(z.enum(CONCERNS)).max(3).describe('What to weight — drives lens routing.').optional(),
@@ -87,12 +89,26 @@ export const review: ToolModule = {
       let inferredKind: SourceKind | undefined = a['source_kind'] as SourceKind | undefined;
       let title = typeof a['title'] === 'string' ? (a['title'] as string) : '';
       let binaryExtract: ExtractedText | null = null;
+      /** The confined, realpath-resolved file. Reads use ONLY this, never the raw arg. */
+      let filePathSafe = '';
 
       if (!text && filePath) {
         const ext = (filePath.split('.').pop() || '').toLowerCase();
         inferredKind = inferredKind ?? EXT_KIND[ext] ?? 'txt';
+        // The path came from the MODEL, and whatever we read is spoken back into
+        // its context. Confine it to a project the user opted into, and to real
+        // document types, BEFORE any stat/read touches the filesystem.
+        let safePath: string;
         try {
-          const stat = fs.statSync(filePath);
+          safePath = resolveReviewFile(filePath, a['argus_dir'] as string | undefined);
+        } catch (e) {
+          if (e instanceof ReviewPathError) {
+            return toolError({ ok: false, tool: 'argus_review', error_code: e.code, message: e.message, recovery: e.recovery });
+          }
+          throw e;
+        }
+        try {
+          const stat = fs.statSync(safePath);
           if (stat.size > MAX_DOC_BYTES) {
             return toolError({
               ok: false, tool: 'argus_review', error_code: 'TOO_LARGE',
@@ -108,12 +124,14 @@ export const review: ToolModule = {
           });
         }
         if (!title) title = filePath.split(/[\\/]/).pop() || '';
+        // From here on, only the resolved+confined path is used.
+        filePathSafe = safePath;
 
         if (BINARY_KINDS.includes(inferredKind)) {
           // Real Node parsing (mammoth / pdf.js / jszip), same anchored units as
           // the webapp. Scanned/empty binaries degrade honestly below, never crash.
           try {
-            binaryExtract = await extractFileFromPath(filePath, inferredKind);
+            binaryExtract = await extractFileFromPath(filePathSafe, inferredKind);
           } catch {
             return toolError({
               ok: false, tool: 'argus_review', error_code: 'EXTRACT_FAILED',
@@ -123,7 +141,7 @@ export const review: ToolModule = {
           }
         } else {
           try {
-            text = fs.readFileSync(filePath, 'utf8');
+            text = fs.readFileSync(filePathSafe, 'utf8');
           } catch {
             return toolError({
               ok: false, tool: 'argus_review', error_code: 'READ_FAILED',

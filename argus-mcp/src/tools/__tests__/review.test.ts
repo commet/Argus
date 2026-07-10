@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import path from 'path';
 import { review } from '../review.js';
 
 const DOC = `# 온보딩 리빌드 전략
@@ -54,9 +55,31 @@ describe('argus_review', () => {
 
   it('fails honestly on an unreadable binary path instead of faking a review', async () => {
     // Binaries are now parsed (mammoth / pdf.js / jszip); a path that does not
-    // exist must still fail honestly, never fabricate a review.
-    const res = await review.handler({ file_path: '/tmp/nonexistent-deck.pptx' });
+    // exist must still fail honestly, never fabricate a review. The path sits
+    // INSIDE the project root so it clears the read boundary and actually
+    // exercises the read failure (an out-of-root path is a different refusal).
+    const res = await review.handler({ file_path: path.join(process.cwd(), 'nonexistent-deck.pptx') });
     expect(res.isError).toBe(true);
     expect(res.structuredContent?.error_code).toBe('READ_FAILED');
+  });
+
+  it('refuses a path outside every project the user opted into', async () => {
+    const res = await review.handler({ file_path: path.resolve('/tmp/somewhere-else/deck.pptx') });
+    expect(res.isError).toBe(true);
+    expect(res.structuredContent?.error_code).toBe('PATH_NOT_ALLOWED');
+  });
+
+  it('refuses a non-document, so a document cannot talk it into reading a secret', async () => {
+    for (const p of ['.env', '.env.local', 'id_rsa', 'key.pem', 'creds.json']) {
+      const res = await review.handler({ file_path: path.join(process.cwd(), p) });
+      expect(res.isError, p).toBe(true);
+      expect(res.structuredContent?.error_code, p).toBe('UNSUPPORTED_FILE_TYPE');
+    }
+  });
+
+  it('refuses a document inside a secrets directory even within the project', async () => {
+    const res = await review.handler({ file_path: path.join(process.cwd(), '.ssh', 'notes.md') });
+    expect(res.isError).toBe(true);
+    expect(res.structuredContent?.error_code).toBe('PATH_NOT_ALLOWED');
   });
 });

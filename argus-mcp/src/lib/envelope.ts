@@ -1,4 +1,5 @@
 import type { NextAction } from './spine.js';
+import { sanitizeOutput } from './untrusted.js';
 
 /**
  * Common tool output envelope (blueprint §2). `next_actions` is a closed enum
@@ -33,17 +34,31 @@ export interface McpToolResult {
   isError?: boolean;
 }
 
+/**
+ * Every tool's output funnels through these two functions, which makes them the
+ * one place a trust boundary can be enforced without relying on a dozen
+ * interpolation sites remembering to. Recorded text (a user's anchor, a premise
+ * lifted from a document, a `source_title` off the account API) is echoed into
+ * `surface` and `data`, and the host model reads all of it as trusted output.
+ *
+ * `sanitizeOutput` removes the MECHANICAL vectors — ANSI/terminal escapes,
+ * carriage-return overwrites, bidi overrides, zero-width smuggling — so the
+ * bytes the human sees and the bytes the model reads are the same bytes.
+ * Semantic injection is not solvable here; see lib/untrusted.ts.
+ */
 export function envelope(e: ArgusEnvelope): McpToolResult {
+  const safe = sanitizeOutput(e);
   return {
-    content: [{ type: 'text', text: JSON.stringify(e, null, 2) }],
-    structuredContent: e as unknown as Record<string, unknown>,
+    content: [{ type: 'text', text: JSON.stringify(safe, null, 2) }],
+    structuredContent: safe as unknown as Record<string, unknown>,
   };
 }
 
 export function toolError(e: ArgusErrorData): McpToolResult {
+  const safe = sanitizeOutput(e);
   return {
-    content: [{ type: 'text', text: JSON.stringify(e, null, 2) }],
-    structuredContent: e as unknown as Record<string, unknown>,
+    content: [{ type: 'text', text: JSON.stringify(safe, null, 2) }],
+    structuredContent: safe as unknown as Record<string, unknown>,
     isError: true,
   };
 }
