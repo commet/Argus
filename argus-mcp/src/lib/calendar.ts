@@ -61,7 +61,12 @@ export function renderReturnCalendarEvent(args: {
     `SUMMARY:${escapeIcs(summary)}`,
     `DESCRIPTION:${escapeIcs(description)}`,
     'BEGIN:VALARM',
-    'TRIGGER:-PT9H',
+    // DTSTART is local midnight of the check-by (an all-day event), so a POSITIVE
+    // offset lands on the morning OF the due date. `-PT9H` fired nine hours
+    // BEFORE midnight — 15:00 the previous afternoon — while the alarm text said
+    // "due today". This .ics is the only thing that brings a sealed bet back
+    // without an account, so it has to ring on the right day.
+    'TRIGGER;RELATED=START:PT9H',
     'ACTION:DISPLAY',
     `DESCRIPTION:${escapeIcs(summary)}`,
     'END:VALARM',
