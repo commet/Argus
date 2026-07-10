@@ -40,6 +40,14 @@ export interface ContractEntry {
   /** YYYY-MM-DD of the settle event's ts — the wake render's settled column
    *  (P1-E7). Optional: pre-existing literals stay valid. */
   settled_on?: string;
+  /** How many times this contract was deferred (still_pending at its check-by →
+   *  re-armed, not settled). Surfaced as a neutral FACT on the eventual receipt
+   *  ("originally due X · deferred N×"), never a grade. */
+  defer_count?: number;
+  /** Each deferral: the date it was due (from), the new check-by (to), and the
+   *  user's note on why reality had not answered yet. defer_history[0].from is
+   *  the ORIGINAL check-by — what the receipt reports as "originally due". */
+  defer_history?: Array<{ from?: string; to?: string; note?: string; ts?: string }>;
 }
 
 /** 당직 루프 (BLUEPRINT §9) — the daily watch fold. Anchors and captures live
@@ -202,6 +210,25 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         else if (outcome === 'partial') stats.partial++;
         else if (outcome === 'still_pending') stats.still_pending++;
         else if (outcome === 'missed') stats.missed++;
+        break;
+      }
+
+      case 'defer': {
+        // still_pending at the check-by → re-arm, do NOT settle. The contract
+        // moves its check_by forward and stays `sealed` (alive, will come due
+        // again). The original due date and the deferral reason are preserved so
+        // the eventual receipt can state the fact honestly.
+        if (!cur) { cur = freshEntry(id); map.set(id, cur); } // defensive; the write-time guard requires `due`
+        const to = typeof ev['check_by'] === 'string' ? ev['check_by'] : undefined;
+        const from = typeof ev['from'] === 'string' ? ev['from'] : cur.check_by;
+        if (to) cur.check_by = to;
+        cur.status = 'sealed';
+        cur.defer_count = (cur.defer_count ?? 0) + 1;
+        (cur.defer_history ??= []).push({
+          from, to,
+          ...(typeof ev['note'] === 'string' ? { note: ev['note'] } : {}),
+          ...(typeof ev['ts'] === 'string' ? { ts: ev['ts'] } : {}),
+        });
         break;
       }
 

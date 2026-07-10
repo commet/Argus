@@ -70,4 +70,14 @@ describe('guardTransition', () => {
   it('refuses seal from sealed (re-seal must be amend)', () => {
     try { guardTransition('sealed', 'seal'); } catch (e) { expect((e as GuardError).code).toBe('ILLEGAL_TRANSITION'); }
   });
+
+  it('allows defer once due (still_pending re-arm) but not before, and never on a terminal', () => {
+    // due → defer OK: the outcome is genuinely unknown, so this is NOT a goalpost move.
+    expect(() => guardTransition('due', 'defer')).not.toThrow();
+    // sealed (not yet due) → defer refused: still_pending before the check-by is PREMATURE upstream.
+    try { guardTransition('sealed', 'defer'); } catch (e) { expect((e as GuardError).code).toBe('ILLEGAL_TRANSITION'); }
+    // terminal states never re-open.
+    try { guardTransition('settled', 'defer'); } catch (e) { expect((e as GuardError).code).toBe('DECISION_CLOSED'); }
+    try { guardTransition('dismissed', 'defer'); } catch (e) { expect((e as GuardError).code).toBe('DECISION_CLOSED'); }
+  });
 });

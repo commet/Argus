@@ -11,6 +11,31 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
 
 ## 항목
 
+- [x] **still_pending가 계약을 조용히 종료시킴 → 다시 잡기(defer)** (2026-07-10, 구조적 누수)
+  확인일이 지난 뒤 "아직 몰라"(still_pending)로 답하면 `settle` 이벤트가 계약을
+  `settled`(terminal)로 보내 check_in에서 영영 사라졌고, 표면은 "정산했습니다 …
+  실제로 일어난 일"이라 **거짓**이었음(스파인 위반: 안 일어난 일을 서술). 근거:
+  ledger-replay `case 'settle'` → `cur.status='settled'` (outcome 무관), still_pending
+  예외 없음. **고침**: 새 `defer` 이벤트(due에서만, 골대 가드 안 뚫음) — check_by를
+  앞으로 재무장, 계약은 `sealed`로 살아있음. 날짜=모델이 대화에서 잡거나(`defer_to`)
+  없으면 피커(1주/1달/3달/접기)로 물음. 없고 피커도 없으면 `DEFER_DATE_REQUIRED`로
+  정직하게 되물음(절대 종료 안 함). 최종 영수증에 "원래 확인일 X · N번 미룸" 사실
+  표기. still_pending엔 what_happened 불필요(terminal만 요구). 지침에 defer 규칙 +
+  "기록은 중립 부기지 칭찬 대상 아님" + "되묻지 말고 도구 호출". 테스트 +8(444).
+  검증(sonnet-4-6): still_pending keep=YES "가짜 승/패 없이 '아직 이르다'를 말하게
+  해줌", pivot 회귀 없음(YES seal×1), 스파인 칭찬 플래그 해소.
+  --- 남은(호스트 변동성, 코드 아님) ---
+  일부 실행에서 모델이 settle을 바로 안 부르고 "언제 다시 볼까/데이터 얼마나?"를
+  **프롬프트로** 물음(활성화 때와 같은 under-invoke). 피커로 라우팅하면 한 탭인데
+  호스트가 프롬프트를 고름. 지침으로 눌렀으나 100% 아님.
+- [ ] **still_pending에 '해소 조건' 붙이기** (experience ADD 반복, 2026-07-10) — 시간뿐
+  아니라 "30일 또는 전환 500건 중 먼저"처럼 무엇이 이걸 풀지 붙여서, 귀환 때 *왜*
+  미뤘는지 상기시키기. 기능 추가라 별건.
+- [ ] **marcus over-nudge 변동성** (2026-07-10) — 가역 결정에 seal 제안을 매 턴
+  **프롬프트로** 반복한 실행 1회(NO) vs 깔끔한 실행 1회(YES, restraint 5/5). 기존
+  지침이 이미 금지("프롬프트로 seal 묻지 말 것"·"가역이면 침묵"). 호스트 비순응 —
+  코드로 못 막음(제안이 프롬프트라 서버가 안 봄). 과다-넛지 쪽 라이브 예시.
+
 - [x] **seal surface에 캘린더 절대경로 + 영어 "Calendar file:" 라벨** (loop J1/J3/J4)
   → FIXED: 경로를 표면에서 제거(data.calendar_path 유지), 짧은 로컬라이즈 안내로
   ("달력에 넣을 .ics 파일도 만들어뒀습니다" / "A calendar file (.ics) is saved too").

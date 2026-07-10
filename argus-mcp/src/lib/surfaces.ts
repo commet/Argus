@@ -219,6 +219,9 @@ export interface SurfaceStrings {
     basis_label: (v: string) => string;
     skipped: string;
     premises_note: (tracked: number, changed: number) => string;
+    /** Neutral timeline fact when the record was deferred (still_pending re-armed)
+     *  before it finally settled: "originally due X · deferred N×". Never a grade. */
+    deferred_fact: (times: number, originallyDue: string) => string;
     you_predicted: string;
     check_by: (date: string) => string;
     what_happened: string;
@@ -261,6 +264,12 @@ export interface SurfaceStrings {
     settle: {
       settled: string;
       sync_failed: (reason: string) => string;
+      /** still_pending re-arm (defer): honest "not settled — reality hasn't
+       *  answered; I'll bring it back on {date}". Never says "settled". */
+      deferred: (newDate: string) => string;
+      /** the still_pending picker's escape: the prediction no longer matters, set
+       *  aside instead of forcing a fake future date. */
+      defer_dismissed: string;
     };
     recheck: {
       baseline: (ref: number, finding: string, source: string, cadenceDays: number) => string;
@@ -370,6 +379,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       skipped: '— (none)',
       premises_note: (tracked, changed) =>
         `(+${tracked} premise(s) tracked · ${changed} changed at re-check · argus_recall view=premises)`,
+      deferred_fact: (times, originallyDue) =>
+        `Originally due ${originallyDue} · deferred ${times}×`,
       you_predicted: 'YOU PREDICTED',
       check_by: (date) => `(check-by ${date})`,
       what_happened: 'WHAT HAPPENED',
@@ -403,6 +414,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settle: {
         settled: 'Settled. The receipt records what you predicted and what actually happened. No grade.',
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your settlement is safe locally, but the account may keep listing this as due until it syncs. Try argus_sync later.)`,
+        deferred: (newDate) => `Not settled — reality hasn't answered yet, so nothing was graded. I'll bring this back on ${newDate}.`,
+        defer_dismissed: 'Set aside — this one no longer needs an answer. Nothing was graded.',
       },
       recheck: {
         baseline: (ref, finding, source, cadenceDays) => `Baseline recorded for P${ref}: "${finding}" (${source}). Worth another check in about ${cadenceDays} days.`,
@@ -501,6 +514,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       skipped: '— (없음)',
       premises_note: (tracked, changed) =>
         `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건 · argus_recall view=premises)`,
+      deferred_fact: (times, originallyDue) =>
+        `원래 확인일 ${originallyDue} · ${times}번 미룸`,
       you_predicted: '당신의 예측',
       check_by: (date) => `(확인일 ${date})`,
       what_happened: '실제로 일어난 일',
@@ -535,6 +550,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settle: {
         settled: '정산했습니다. 영수증에는 당신이 예측한 것과 실제로 일어난 일이 남습니다. 평가는 없습니다.',
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 정산은 로컬에 안전합니다. 동기화되기 전까지 계정은 이걸 계속 "확인 필요"로 표시할 수 있습니다. 나중에 argus_sync를 시도하세요.)`,
+        deferred: (newDate) => `아직 정산하지 않았습니다 — 현실이 아직 답하지 않았으니 평가한 것도 없습니다. ${newDate}에 다시 가져오겠습니다.`,
+        defer_dismissed: '접어뒀습니다 — 이건 이제 답이 필요 없어요. 평가한 것은 없습니다.',
       },
       recheck: {
         baseline: (ref, finding, source, cadenceDays) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). ${cadenceDays}일 뒤에 다시 확인하길 권합니다.`,

@@ -41,6 +41,14 @@ export interface Receipt {
   outcome_source?: 'user_stated';
   assumption_held?: boolean | null;
 
+  /** How many times reality had not answered at a check-by and the user deferred
+   *  (still_pending → re-armed). Rendered as a neutral fact, never a grade. 0/absent
+   *  ⇒ nothing shown. */
+  deferred_times?: number;
+  /** The FIRST check-by, when the record was deferred at least once — so the
+   *  receipt can say "originally due X" alongside the final settled date. */
+  originally_due?: string;
+
   ai_verdict: null;                // literal null — drift-guard asserts this
 }
 
@@ -90,7 +98,12 @@ export async function writeSealReceipt(argusDir: string, seed: ReceiptSeed, now:
 export async function writeSettleReceipt(
   argusDir: string,
   id: string,
-  patch: { what_happened: string; outcome: Receipt['outcome']; settled_at: string },
+  patch: {
+    what_happened: string; outcome: Receipt['outcome']; settled_at: string;
+    /** Deferral history from the ledger fold (still_pending re-arms). Recorded as
+     *  a neutral fact on the receipt; 0/absent ⇒ nothing shown. */
+    deferred_times?: number; originally_due?: string;
+  },
   /** Ledger-replay fallback when the seal-time receipt file was lost (11 S7):
    *  without it the rebuilt receipt printed empty quotes for the prediction. */
   fallback?: { predicate?: string; check_by?: string },
@@ -116,6 +129,9 @@ export async function writeSettleReceipt(
     outcome: patch.outcome,
     outcome_source: 'user_stated',
     assumption_held,
+    ...(patch.deferred_times && patch.deferred_times > 0
+      ? { deferred_times: patch.deferred_times, ...(patch.originally_due ? { originally_due: patch.originally_due } : {}) }
+      : {}),
     ai_verdict: SPINE_INVARIANTS.aiVerdict,
   };
   await atomicWriteJson(receiptPath(argusDir, id), merged);

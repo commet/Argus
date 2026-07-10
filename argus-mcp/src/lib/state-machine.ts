@@ -11,6 +11,12 @@ export type DecisionState = 'absent' | 'opened' | 'sealed' | 'due' | 'settled' |
 
 export type LedgerEventType =
   | 'harvest' | 'seal' | 'amend' | 'dismiss' | 'settle'
+  // defer: at the check-by, reality had not answered yet (the user said
+  // still_pending). NOT a settlement — the contract re-arms with a new check_by
+  // and stays alive. Reachable ONLY from `due` via a still_pending answer, so it
+  // cannot be used to move a goalpost on a knowable outcome (the outcome is, by
+  // definition, still unknown).
+  | 'defer'
   // living premises (plan v5): the facts/open questions a decision rests on
   // premise_reconsider (M3) = the user chose `still_open`: defer, not resolve.
   | 'premise_add' | 'premise_amend' | 'premise_recheck' | 'premise_resolve' | 'premise_reconsider';
@@ -40,7 +46,11 @@ const ALLOWED: Record<DecisionState, Set<LedgerEventType>> = {
   // premise_amend (retiring the premise that's about to be proven wrong is the
   // goalpost guard one level down) — recheck/resolve/reconsider stay open
   // (deferring or closing an open_question is never a goalpost move; plan v5 §6.2).
-  due: new Set<LedgerEventType>(['dismiss', 'settle', 'premise_recheck', 'premise_resolve', 'premise_reconsider']), // no amend once due — goalpost guard (m4)
+  // defer lives here (not in `sealed`): still_pending before the check-by is
+  // PREMATURE, so a deferral can only originate once due. It re-arms check_by
+  // forward — legitimate because the outcome is genuinely unknown, which is the
+  // one thing the goalpost guard on `amend` is NOT protecting against.
+  due: new Set<LedgerEventType>(['dismiss', 'settle', 'defer', 'premise_recheck', 'premise_resolve', 'premise_reconsider']), // no amend once due — goalpost guard (m4)
   settled: new Set<LedgerEventType>([]), // terminal — no reopen (mirror clause)
   dismissed: new Set<LedgerEventType>([]), // terminal
 };
