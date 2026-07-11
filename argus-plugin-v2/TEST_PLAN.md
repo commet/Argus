@@ -417,7 +417,7 @@ due 계약 0 상태에서 `/argus:settle`.
 
 ## TC-OVERFIRE — 과발화(over-fire) 회귀 + 수동 라운드 5 (v2.6.0)
 
-> 배경: 엔진 스트레스 테스트 라운드 1–4 (`docs/STRESS-SYNTHESIS-rounds1-4-2026-06-16.md`)
+> 배경: 엔진 스트레스 테스트 라운드 1–4 (`internal design notes`)
 > 평결 (b) — find-the-leverage 엔진은 **평탄한 결정에서 발산을 제조**한다
 > (negative control 60% over-fire, asymmetric_steer가 modal harm). v2.6.0은
 > dial을 **under-fire 디폴트**로 고정했다 (clarify FLAT 분기, sail Step 6·0.5
@@ -444,7 +444,7 @@ road_not_taken·null fog·proceed/anchor로 통과, fork fixture가 parity floor
 
 ### TC-OF-2 — 수동 라운드 5 (엄격 5-vote + negative control, 분기별 1회)
 엔진 프롬프트(clarify/sail/boss/verify)를 의미 있게 바꿀 때마다 1회:
-1. **케이스 배터리**: R4의 negative control 10건(`docs/STRESS-round4-findings`
+1. **케이스 배터리**: R4의 negative control 10건(`internal design notes`
    §1: R4-01·03·04·05·06·07·08·09·10 등 — 진짜 평탄/저-stakes/이미 닫힘) +
    적대 15건(asymmetric_steer 정조준: R4-15 매수vs전세, R4-16 죄책감 이직,
    R4-19 폭로 등).
@@ -458,6 +458,6 @@ road_not_taken·null fog·proceed/anchor로 통과, fork fixture가 parity floor
    **절반 이하**. 
    **반증**: over-fire ≥ 4/10이거나 asymmetric_steer가 안 줄면 — prompt-level
    under-fire dial로는 부족하다는 뜻 → 더 급진적 축소(순수 기록·정산 도구) 검토
-   (`STRESS-SYNTHESIS` §5).
+   (`internal design notes` §5).
 **PASS** = 정산 predicate 충족 + spine 위반 0. **FAIL** = 반증 조건 충족 →
 `docs/`에 라운드 5 findings 기록 후 재설계.

@@ -20,7 +20,7 @@ side but ship under different licenses.
 | `src/` | The Next.js 16 web application (the product) | PolyForm Noncommercial 1.0.0 |
 | `argus-plugin-v2/` | The Claude Code plugin — **the canonical plugin** | MIT |
 | `argus-mcp/` | The MCP server (published as `argus-decision-mcp` on npm) | MIT |
-| `docs/` | Design notes and architecture records. Dated files under `docs/archive/` are historical; start from `docs/README.md` | — |
+| `docs/` | Design notes and architecture records | — |
 | `supabase/` | SQL migrations for the hosted database | — |
 
 Because the two halves are licensed differently, **please keep a pull request on

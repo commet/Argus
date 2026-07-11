@@ -2,7 +2,7 @@
 /**
  * Argus Stop hook — Layer-1 COMPLETION signal → wake (1차 정산) nudge.
  *
- * Design: docs/DESIGN-decision-capture-anchor-as-switch-2026-06-29.md (§12.5, §13-2/3).
+ * Design: internal design notes (§12.5, §13-2/3).
  *
  * Runs every turn (Stop fires per response). To keep background token cost at ~0:
  *   GATE 1 — only sessions that were nudged to anchor (argus-anchored/<id> marker).

@@ -8,7 +8,7 @@
  * spine is that YOU tie your rope BEFORE the song. This band plants that mental
  * model up front: one voyage, three legs, and the drama lives in legs 1 and 3
  * (Bind / Land), never in the generation middle (Listen) — exactly the priority
- * inversion the canon argues for (docs/MYTH-SIRENS-design-grounding-2026-06-23).
+ * inversion the canon argues for (internal design notes).
  *
  * Each leg is a real public-domain engraving — John Flaxman's compositions for
  * Homer's Odyssey, engraved by A. Réveil (1805) — inked to the page through a

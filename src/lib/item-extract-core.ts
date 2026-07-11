@@ -10,7 +10,7 @@
  * Copy rule (DESIGN §2): literal, direct language — no metaphorical verbs. The
  * prompt itself instructs the model to keep item text plain and factual.
  *
- * Design: docs/DESIGN-decision-items-living-premises-2026-07-01.md
+ * Design: internal design notes
  */
 
 import { createItem, type DecisionItem, type ItemType } from './decision-items';

@@ -177,7 +177,7 @@ function bearingContracts(argusDir, today, ledger) {
 
 /**
  * Count monitored premises due for a re-check (the living-premises return-loop;
- * design: docs/DESIGN-decision-items-living-premises). Replays `.argus/items.jsonl`
+ * design: internal design notes). Replays `.argus/items.jsonl`
  * (append-only, same shape as /argus:track). A premise is DUE when it is an active,
  * external, on_change premise that has NOT backed off (fewer than 2 dismisses) and
  * was either never re-checked or last re-checked 7+ days ago. Fast + defensive:

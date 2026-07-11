@@ -2,7 +2,7 @@
 /**
  * Argus UserPromptSubmit hook — Layer-1 START signal → anchor nudge.
  *
- * Design: docs/DESIGN-decision-capture-anchor-as-switch-2026-06-29.md (§12.5, §13-1).
+ * Design: internal design notes (§12.5, §13-1).
  *
  * The anchor (a one-line pre-AI lean) is the SWITCH that turns a session into a
  * tracked one. This hook is the cheapest, most conservative entry point: a purely

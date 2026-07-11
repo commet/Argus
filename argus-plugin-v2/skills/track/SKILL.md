@@ -16,7 +16,7 @@ Correcting them is also the strongest signal Argus gets — overturning the AI t
 us the extraction was wrong for this user. So this surface makes editing central and
 records every edit.
 
-Design: `docs/DESIGN-decision-items-living-premises-2026-07-01.md`.
+Design: `internal design notes`.
 Copy rule: **literal, direct language — no metaphorical verbs.**
 
 **Default behavior:** read-only until the user edits or toggles. Locale from

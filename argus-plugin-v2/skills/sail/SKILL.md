@@ -265,7 +265,7 @@ escalate:
 
 ### Step 6·0.5 - Flatness gate (under-fire default — port helm's P0.B weight-gate)
 
-Validated finding (`docs/STRESS-SYNTHESIS-rounds1-4`): a find-the-leverage engine
+Validated finding (`internal design notes`): a find-the-leverage engine
 over-fires on ~60% of FLAT decisions — it manufactures a fork where none is
 load-bearing, runs crew ceremony on a reversible coin-flip, and emits a tilted
 pole. `decision_density: low` (Step 6a) and the request-type gate (Step 6·0)

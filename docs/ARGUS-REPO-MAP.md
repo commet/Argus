@@ -34,12 +34,8 @@ with webapp"), `plugin.json` v2.0.0, web `package.json` v0.1.0.
 - `argus-plugin/` — legacy v1, superseded, kept for history.
 
 ## 2. Philosophy / positioning docs
-- `docs/Argus_Product_Philosophy_v2.md` — "Think before you recast." Odysseus's dog (sees truth beneath disguise) + siren/harness. Judgment harness *pre*-execution, not post-code review.
-- `docs/essay-draft-siren-and-harness.md` — Odysseus tied to the mast = decision harness; listen to AI without drowning.
-- `docs/argus-name-and-philosophy.md` — Argus watches both departure (port clarity) and arrival (harbor verification).
-- `docs/argus-master-direction.md` (+ MASTER-DIRECTION v3/v4, PLAN.md) — layered strategy.
 - `ROADMAP.md` — Argus as judgment-engine, NOT prompt wrapper; 3 moats: context chain, judgment loop, execution bridge.
-- `CONTEXT.md` / `CONTEXT_v2.md` — handoff docs; the "4-step voyage" (decompose → recast → rehearse → refine).
+- Positioning, naming, and strategy rationale are kept in internal design notes (not in the public repo).
 
 ## 3. Plugin (argus-plugin-v2/)
 Skills (`skills/*/SKILL.md`):

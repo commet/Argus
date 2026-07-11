@@ -108,7 +108,7 @@ const cases = [
       why_this_course: [
         {
           point: "The webapp owns visual voyage, branch, and contract loops; the plugin owns workspace-native reading and git memory.",
-          source: "docs/ARGUS-FINAL-DIRECTION.md"
+          source: "internal design notes"
         },
         {
           point: "Absorbing the webapp path now would erase the richer decision-contract loop before plugin demand is proven.",
@@ -185,7 +185,7 @@ const cases = [
     bearing: null
   },
   // ── v2.6.0 negative-control fixtures (over-fire regression floor) ──
-  // Flat decisions from the validated stress test (docs/STRESS-round4-findings,
+  // Flat decisions from the validated stress test (internal design notes,
   // §1) where the leverage engine over-fired. The under-fire default must render
   // a restraint bearing: no manufactured fork, no fabricated fog, a done-handle.
   {

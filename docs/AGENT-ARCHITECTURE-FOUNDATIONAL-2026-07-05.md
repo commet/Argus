@@ -2,7 +2,7 @@
 
 **Status:** Foundational (first-principles) review, synthesizing 5 parallel deep audits.
 **Date:** 2026-07-05
-**Supersedes scope of:** `CREW-ORCHESTRATION-REDESIGN.md` (that doc fixed assignment+dependency; this one re-examines the whole architecture and re-frames those Layers within it).
+**Supersedes scope of:** `internal design notes` (that doc fixed assignment+dependency; this one re-examines the whole architecture and re-frames those Layers within it).
 **Method:** 5 agents each interrogated one foundation — primitive · coordination · spine coherence · judgment binding · data contracts — grounded in `file:line`, told to question whether each thing should exist at all.
 
 ---

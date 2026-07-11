@@ -22,7 +22,7 @@ import {
  * Table + column contract: supabase/migrations/20260701_decision_items.sql,
  * guarded by schema-drift.test (decision_items) and persistence-contract.test
  * (DECISION_ITEMS → decision_items). Design:
- * docs/DESIGN-decision-items-living-premises-2026-07-01.md
+ * internal design notes
  */
 
 const TABLE = 'decision_items' as const;

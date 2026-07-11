@@ -1,7 +1,7 @@
 # Judgment Checkpoints v2 — 실행 설계서
 
 Date: 2026-07-06
-Status: **Execution-ready design** — supersedes `DESIGN-judgment-checkpoints-2026-07-06.md` (CODEX 초안)
+Status: **Execution-ready design** — supersedes `internal design notes` (CODEX 초안)
 Rev: v2.1 — 심층 재검토 반영: verdict 매핑을 `expectation` 필드로 결정론화(§7.2 — 초판의 매핑 표는 자체 모순이 있었다), recheck 루프와 체크포인트의 분업 명시(§4), open_question 귀환 합류(§9.1)
 Executor: Opus/Sonnet 세션이 이 문서만 읽고 구현할 수 있게 쓴다.
 Scope: 판단 체크포인트 — 봉인(seal)에서 귀환(settle)까지의 루프 전체

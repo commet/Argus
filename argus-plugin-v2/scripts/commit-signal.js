@@ -2,7 +2,7 @@
 /**
  * Argus PostToolUse hook — a git commit is a DECISION realized in code (action signal).
  *
- * Design: docs/DESIGN-decision-capture-anchor-as-switch-2026-06-29.md (§12.5 structure
+ * Design: internal design notes (§12.5 structure
  * signals). wake-signal catches the COMPLETION *language* ("그걸로 가자"); this catches
  * the COMPLETION *action* (the user shipped it) — often more precise, since people
  * commit without narrating the decision. Shares wake's gate so the two never double-fire.

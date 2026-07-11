@@ -1,6 +1,6 @@
 /**
  * Numeric premise drift — the only MECHANICAL drift decision (plan v5 §7.1),
- * now the 3-valued MATERIALITY engine (M2-RULE-TABLE §2, §4, §10).
+ * now the 3-valued MATERIALITY engine (internal design notes §2, §4, §10).
  *
  * Deliberately takes explicit numbers / labelled ordinals, never parses them out
  * of prose: the webapp's regex-first-number approach reads "2026년 기준금리 3.5%"

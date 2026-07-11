@@ -4,7 +4,7 @@ import type { ProgressiveSession } from '@/stores/types';
  * The premise texts to offer for tracking on the web DecisionItemsCard, in
  * priority order. Pure + standalone so the population path is unit-testable
  * without a browser (the fix for "the card is empty for a normal sealed voyage",
- * DESIGN-decision-items-living-premises Phase 2 gap).
+ * internal design notes Phase 2 gap).
  *
  *   1. the progressive decision's OWN assumptions — the user's flinch bet (if any),
  *      then final_mix (preferred) / mix `key_assumptions`. These are present for a

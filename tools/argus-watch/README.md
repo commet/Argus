@@ -2,7 +2,7 @@
 
 > 결정을 입력받는 앱이 아니라, **이미 일어난 대화에서 결정을 알아보는 눈.**
 >
-> 배경: `docs/PIVOT-presence-not-place.md` · 검증: `scripts/decision-watch-eval/`
+> 배경: `internal design notes` · 검증: 내부 백테스트
 
 당신은 아무것도 쓰지 않습니다. argus-watch가 당신의 Claude Code 대화 기록을 읽고,
 결정의 순간을 알아보고("~하기로 했다", 옵션 선택, 방향 전환), 반증 가능한 내기로
@@ -66,7 +66,7 @@ prompts/detector.md   결정-순간 정의 — 백테스트와 공유
 
 ## 알려진 한계 (정직 조항)
 
-- 감지기는 백테스트로 검증되지만(`scripts/decision-watch-eval/`), 정밀도 100%가 아닙니다.
+- 감지기는 내부 백테스트로 검증되지만, 정밀도 100%가 아닙니다.
   "이건 내 결정이 아닌데" 싶으면 `dismiss` — 기각도 기록되어 보정 자료가 됩니다.
 - 세그먼트당 수십 초 (claude -p 왕복). `--concurrency`로 완화.
 - 지금은 Claude Code 트랜스크립트만 읽습니다. ChatGPT 내보내기 등 횡단은 다음 단계.
