@@ -173,26 +173,47 @@ export function foldV1(state: LedgerState, events: V1Event[], exclude: V1FoldExc
         const pid = str(ev['premise_id']);
         const text = str(ev['text']);
         if (!pid || !text || state.premises.has(pid)) break;
-        const kind = ev['kind'];
+        // v1 실스키마 대조(적대 리뷰 F4): open_question → question,
+        // recheck_cadence_days·added_on(anchor_date 우선 — v1이 UTC+9 하루
+        // 이른 버그를 고치며 도입한 논리 날짜)을 보존해야 이전된 전제가
+        // 재확인 도래를 잃지 않는다.
+        const kind = ev['kind'] === 'open_question' ? 'question' : ev['kind'];
+        const cadence = typeof ev['recheck_cadence_days'] === 'number' ? ev['recheck_cadence_days']
+          : typeof ev['reponder_cadence_days'] === 'number' ? ev['reponder_cadence_days'] : undefined;
         state.premises.set(pid, {
           id: pid, decision_id: id || undefined,
           kind: kind === 'fact' || kind === 'question' ? kind : 'premise',
           text: { value: text, provenance: ev['source'] === 'user' || ev['source'] === 'user_stated' ? HOST : 'ai_surfaced' },
-          load_bearing: ev['load_bearing'] === true, resolved: false,
+          load_bearing: ev['load_bearing'] === true,
+          ...(cadence !== undefined ? { recheck_cadence_days: cadence } : {}),
+          added_on: str(ev['anchor_date']) ?? ((str(ev.ts) ?? '').slice(0, 10) || undefined),
+          resolved: false,
         });
         break;
       }
       case 'premise_amend':
       case 'premise_reconsider': {
         const p = state.premises.get(str(ev['premise_id']) ?? '');
-        const text = str(ev['text']);
-        if (p && text) p.text = { value: text, provenance: HOST };
+        if (!p) break;
+        // v1 amend는 action + from/to로 말한다 (F4): refine/replace의 새 문장은
+        // 'to'에 있고, retire는 활성 목록에서 내리는 동사다 — 무시하면 은퇴한
+        // 전제가 부활한다.
+        if (ev['action'] === 'retire') { p.resolved = true; break; }
+        const text = str(ev['to']) ?? str(ev['text']);
+        if (text) p.text = { value: text, provenance: HOST };
+        const cadence = typeof ev['recheck_cadence_days'] === 'number' ? ev['recheck_cadence_days']
+          : typeof ev['reponder_cadence_days'] === 'number' ? ev['reponder_cadence_days'] : undefined;
+        if (cadence !== undefined) p.recheck_cadence_days = cadence;
         break;
       }
       case 'premise_recheck': {
         const p = state.premises.get(str(ev['premise_id']) ?? '');
-        const result = str(ev['result']) ?? str(ev['status']);
-        if (p) p.last_recheck = { on: (str(ev.ts) ?? '').slice(0, 10), result: result ?? 'unknown' };
+        if (!p) break;
+        // v1은 drifted:boolean + finding으로 말한다 (F4). 날짜는 anchor_date
+        // 우선 — ts.slice는 UTC라 KST에서 하루 이르다 (v1이 고친 그 버그).
+        const result = ev['drifted'] === true ? 'drifted' : ev['drifted'] === false ? 'holds'
+          : (str(ev['result']) ?? 'unknown');
+        p.last_recheck = { on: str(ev['anchor_date']) ?? (str(ev.ts) ?? '').slice(0, 10), result };
         break;
       }
       case 'premise_resolve': {
@@ -223,35 +244,52 @@ export function foldV1(state: LedgerState, events: V1Event[], exclude: V1FoldExc
 // ── 위치 이전 (정본 II-F) ─────────────────────────────────
 
 export interface MigrationResult {
-  action: 'copied' | 'refreshed' | 'already_migrated' | 'source_missing';
+  action: 'copied' | 'already_migrated' | 'source_missing';
   lines?: number;
   backup?: string;
 }
 
+/** 이전 경계 marker — "여기까지가 v1 역사"의 고정점 (근본 수리 1).
+ *  바인딩(첫 이전) 이후의 v1 성장분은 전부 미러 관문이 v2에 실시간 기록하므로
+ *  재이전이 영원히 불필요하다. marker가 있으면 이전은 no-op이다. */
+function markerPath(home: string, repositoryId: string): string {
+  return path.join(projectDir(home, repositoryId), 'v1-migration.json');
+}
+
+interface MigrationMarker {
+  source: string;
+  bytes: number;
+  migrated_at: string;
+}
+
 /** v1 원장을 v2 내구 위치로 **복사**한다. 원본은 절대 건드리지 않는다.
- *  재실행 멱등: 같은 내용이면 no-op. dual-write 시대에는 v1 원본이 계속
- *  자라므로, 기존 사본이 새 원본의 **prefix**면(append-only 성장 = 정상)
- *  스냅샷을 갱신한다('refreshed'). 진짜 발산(prefix 아님)만 명시 거절 —
- *  사람이 봐야 하는 상황을 조용히 해소하지 않는다.
+ *
+ *  경계 고정 (근본 수리 1): 이전은 바인딩 시점에 **정확히 1회**다. marker가
+ *  그 경계를 기록하고, 이후 재실행은 no-op — v1 원본이 그 뒤로 얼마나 자라든
+ *  성장분은 전부 미러 관문(mirror.ts)이 이미 v2에 실시간 기록했으므로, 다시
+ *  복사하면 오히려 같은 사건이 이중 표현된다. exclusion fold(reducer의
+ *  v2CreationIds)는 이 위에 겹치는 심층 방어다.
+ *
+ *  같은 저장소에 **다른** v1 역사(다른 source 경로)가 또 발견되면 조용히
+ *  무시하지 않고 명시 거절한다 — 두 역사의 병합은 사람의 결정이다.
  *  기존 v2 자산이 있으면 복사 전에 1회분 백업(II-F 백업 조항). */
 export function migrateV1Ledger(home: string, repositoryId: string, sourceFile: string): MigrationResult {
   if (!fs.existsSync(sourceFile)) return { action: 'source_missing' };
   const target = v1LedgerPath(home, repositoryId);
   fs.mkdirSync(path.dirname(target), { recursive: true });
 
-  let refresh = false;
-  if (fs.existsSync(target)) {
-    const tgt = fs.readFileSync(target);
-    const src = fs.readFileSync(sourceFile);
-    if (tgt.equals(src)) return { action: 'already_migrated' };
-    if (src.length > tgt.length && src.subarray(0, tgt.length).equals(tgt)) {
-      refresh = true; // 원본이 사본을 접두사로 포함 — 정상 성장, 갱신 진행
-    } else {
+  const sourceReal = fs.realpathSync(sourceFile);
+  const mPath = markerPath(home, repositoryId);
+  if (fs.existsSync(mPath)) {
+    const marker = JSON.parse(fs.readFileSync(mPath, 'utf8')) as MigrationMarker;
+    if (marker.source !== sourceReal) {
       throw new Error(
-        `MIGRATION_CONFLICT: ${target} DIVERGES from ${sourceFile} (not a prefix) — ` +
-        `refusing to overwrite. Inspect both files; the durable copy may hold a different v1 history.`,
+        `MIGRATION_CONFLICT: this repository was already migrated from ${marker.source}, ` +
+        `but a SECOND v1 ledger exists at ${sourceReal} — merging two v1 histories is a human decision. ` +
+        `Nothing was changed.`,
       );
     }
+    return { action: 'already_migrated' }; // 경계 고정 — 이후 성장은 미러가 커버했다
   }
 
   // 이전 전 백업: 대상 프로젝트 디렉토리에 이미 v2 원장이 있으면 1회분 보관.
@@ -267,7 +305,9 @@ export function migrateV1Ledger(home: string, repositoryId: string, sourceFile: 
   fs.copyFileSync(sourceFile, tmp);
   fs.renameSync(tmp, target);
   const lines = fs.readFileSync(target, 'utf8').split('\n').filter((l) => l.trim()).length;
-  return { action: refresh ? 'refreshed' : 'copied', lines, ...(backup ? { backup } : {}) };
+  const marker: MigrationMarker = { source: sourceReal, bytes: fs.statSync(target).size, migrated_at: new Date().toISOString() };
+  fs.writeFileSync(mPath, JSON.stringify(marker, null, 2) + '\n', 'utf8');
+  return { action: 'copied', lines, ...(backup ? { backup } : {}) };
 }
 
 /** 기존 설치에서 v1 원장이 살 수 있는 곳들 (정본 II-F 명시 2곳). */

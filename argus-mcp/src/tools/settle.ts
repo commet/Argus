@@ -3,7 +3,7 @@ import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
-import { dualWriteAmend, dualWriteDismiss, dualWriteSettle } from '../v2/dual-write.js';
+import { asV2WriteField } from '../v2/mirror.js';
 import { writeSettleReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { elicit, canElicit } from '../lib/elicit.js';
@@ -131,27 +131,16 @@ export const settle: ToolModule = {
       // re-guard UNDER the ledger lock so two concurrent sessions can't both
       // pass the check above and double-count the record (the loser sees
       // ALREADY_SETTLED, exactly as if it had arrived second sequentially).
-      const receipt = await withLedgerLock(dir, async () => {
+      const { receipt, v2Mirror } = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'settle');
-        await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
-        return writeSettleReceipt(dir, id, {
+        const appended = await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
+        return { v2Mirror: appended.v2_mirror, receipt: await writeSettleReceipt(dir, id, {
           what_happened: String(a['what_happened']), outcome, settled_at: now,
           ...(deferCount > 0 ? { deferred_times: deferCount, ...(originallyDue ? { originally_due: originallyDue } : {}) } : {}),
-        }, { predicate: current.predicate, check_by: current.check_by });
+        }, { predicate: current.predicate, check_by: current.check_by }) };
       });
-
-      // ── v2 dual-write (P1 수술 2단계) — v1 정산이 성공한 뒤 내구 원장에도
-      // 기록. 실패는 정산을 죽이지 않되 data.v2_write로 정직하게 노출.
-      // outcome은 사용자의 말(outcome_source: user_stated)을 모델이 전달한 것
-      // 이므로 host_reported — elicit으로 직접 받았어도 이 층에서는 구분
-      // 정보가 없어 하향이 정직하다 (위로 위조 금지, II-B).
-      const v2Write = dualWriteSettle({
-        argusDir: dir, today, decisionId: id,
-        outcome: outcome as 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed',
-        provenance: 'host_reported',
-        note: a['what_happened'] as string | undefined,
-      });
+      const v2Write = asV2WriteField(v2Mirror);
 
       // Mirror the outcome to the account (opt-in) so a synced prediction stops
       // being "due" — otherwise the Companion Brief would keep re-nudging it.
@@ -246,14 +235,12 @@ async function deferStillPending(args: {
 
   // The prediction no longer needs an answer — set aside, don't force a date.
   if (dismissChosen) {
-    await withLedgerLock(dir, async () => {
+    const mirrorDD = await withLedgerLock(dir, async () => {
       const fresh = resolveContract(dir, id, today);
       guardTransition(fresh.state, 'dismiss');
-      await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: 'no longer relevant (still_pending at check-by)' }], now);
+      return (await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: 'no longer relevant (still_pending at check-by)' }], now)).v2_mirror;
     });
-    // v2 dual-write — 이 픽커 경유 dismissal도 진짜 dismissal이다 (재검토에서
-    // 발견된 우회 경로: defer 분기가 main-path 삽입점보다 먼저 return했다).
-    const v2Write = dualWriteDismiss({ argusDir: dir, today, decisionId: id, reason: 'no longer relevant (still_pending at check-by)' });
+    const v2Write = asV2WriteField(mirrorDD);
     // Tell the account too — a dismissal via this picker is a real dismissal.
     // Without it a synced item stays sealed with its old check-by and the
     // Companion Brief keeps emailing a decision the user set aside (same gap
@@ -274,16 +261,12 @@ async function deferStillPending(args: {
 
   // Re-arm: a `defer` event moves check_by forward; the contract stays sealed.
   // Re-guard under the ledger lock (§9.4 두 기기 안전) exactly like settle.
-  await withLedgerLock(dir, async () => {
+  const mirrorDefer = await withLedgerLock(dir, async () => {
     const fresh = resolveContract(dir, id, today);
     guardTransition(fresh.state, 'defer'); // due → defer OK; terminal states refuse
-    await appendLedger(dir, [{ id, event: 'defer', from: oldCheckBy, check_by: newDate, ...(whatHappened && whatHappened.trim() ? { note: whatHappened } : {}) }], now);
+    return (await appendLedger(dir, [{ id, event: 'defer', from: oldCheckBy, check_by: newDate, ...(whatHappened && whatHappened.trim() ? { note: whatHappened } : {}) }], now)).v2_mirror;
   });
-
-  // v2 dual-write — v2에는 defer 이벤트가 없다(II-A): 재무장의 v2 의미는
-  // check_by 전진이므로 amend로 미러한다. 이게 빠지면 P2 읽기 전환 때 v2가
-  // 낡은 확인일을 보여주는 조용한 발산이 생긴다 (재검토 발견 결함의 수리).
-  const v2Write = dualWriteAmend({ argusDir: dir, today, decisionId: id, checkBy: newDate });
+  const v2Write = asV2WriteField(mirrorDefer);
 
   // Mirror the NEW check-by to the account (opt-in) so the Companion Brief nudges
   // at the right time, not the stale one. A dedicated `defer` action, NOT a seal

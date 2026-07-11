@@ -179,7 +179,15 @@ export function judgeTransition(state: LedgerState, e: ArgusEvent): 'fresh' | 'd
       if (d.state === 'dismissed') throw new TransitionError('ALREADY_DISMISSED', `decision "${d.id}" was dismissed`);
       return 'fresh';
     }
-    case 'amend':
+    case 'amend': {
+      // v1은 열려만 있는(harvested) 결정의 amend를 허용한다 — v2도 따른다
+      // (F7: 합법 연산에 NOT_SEALED 오류를 내보내던 발산 제거). settled/
+      // dismissed만 거절.
+      const d = need(state.decisions, e.decision_id, 'decision');
+      if (d.state === 'settled') throw new TransitionError('ALREADY_SETTLED', `decision "${d.id}" is settled`);
+      if (d.state === 'dismissed') throw new TransitionError('ALREADY_DISMISSED', `decision "${d.id}" was dismissed`);
+      return 'fresh';
+    }
     case 'snooze': {
       const d = need(state.decisions, e.decision_id, 'decision');
       if (d.state === 'settled') throw new TransitionError('ALREADY_SETTLED', `decision "${d.id}" is settled`);
@@ -188,6 +196,12 @@ export function judgeTransition(state: LedgerState, e: ArgusEvent): 'fresh' | 'd
       return 'fresh';
     }
     case 'settle': {
+      // still_pending은 정산이 아니다 — v1 제품 의미론(재무장)과 동일하게, v2에서
+      // 터미널로 기록되는 함정을 가드에서 봉인한다 (F10c). 재무장은 amend/snooze로.
+      if (e.outcome.value === 'still_pending') {
+        throw new TransitionError('STILL_PENDING_IS_NOT_TERMINAL',
+          'still_pending does not settle a decision — re-arm it with amend(check_by) or snooze instead');
+      }
       const d = need(state.decisions, e.decision_id, 'decision');
       if (d.state === 'settled') throw new TransitionError('ALREADY_SETTLED', `decision "${d.id}" is already settled`);
       if (d.state === 'dismissed') throw new TransitionError('ALREADY_DISMISSED', `decision "${d.id}" was dismissed`);

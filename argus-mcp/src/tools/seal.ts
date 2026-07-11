@@ -6,7 +6,7 @@ import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
 import { appendLedger, withLedgerLock, type LedgerEventInput } from '../lib/ledger-append.js';
-import { dualWriteSeal, mapSealProvenance } from '../v2/dual-write.js';
+import { asV2WriteField, mapSealProvenance } from '../v2/mirror.js';
 import { writeSealReceipt } from '../lib/receipt.js';
 import { premiseId, MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING } from '../lib/premises.js';
 import { pushToAccount } from '../lib/push-account.js';
@@ -157,7 +157,7 @@ export const seal: ToolModule = {
       // the re-guard throws and this process writes nothing; writing them earlier
       // left the loser's receipt on disk contradicting the winner's ledger (and
       // resolveContract reads the receipt back, so the user would see a mismatch).
-      const { receipt, calendarPath } = await withLedgerLock(dir, async () => {
+      const { receipt, calendarPath, v2Mirror } = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'seal');
         // seal-time receipt (the rich fields that make the receipt not blank)
@@ -174,22 +174,19 @@ export const seal: ToolModule = {
           v: SCHEMA_VERSION, id, contract_seed: { predicate, check_by: checkBy }, predicate_owner: a['predicate_owner'],
         });
         const calendarPathW = await writeReturnCalendarEvent(dir, { id, predicate, check_by: checkBy, created_at: now });
-        await appendLedger(dir, events, now);
-        return { receipt: receiptW, calendarPath: calendarPathW };
+        // 미러 힌트: 원장 이벤트에 없는 elicit 목격 여부 + 영수증 필드만 —
+        // 미러 자체는 appendLedger의 단일 관문이 수행한다 (mirror.ts).
+        const appended = await appendLedger(dir, events, now, { seal: {
+          provenance: mapSealProvenance(a['predicate_owner'], elicitedKeep),
+          realQuestion: a['real_question'] as string | undefined,
+          unverifiedAssumption: a['unverified_assumption'] as string | undefined,
+          humanOnly: a['human_only'] as string | undefined,
+          humanJudgment: a['human_judgment'] as string | undefined,
+        } });
+        return { receipt: receiptW, calendarPath: calendarPathW, v2Mirror: appended.v2_mirror };
       });
 
-      // ── v2 dual-write (P1 수술 2단계) — v1 원장이 정본인 채로, 성공한 봉인을
-      // 내구 원장(II-D)에도 기록한다. 실패는 봉인을 죽이지 않되 data.v2_write로
-      // 정직하게 노출된다 (dual-write.ts 헤더 참조).
-      const v2Write = dualWriteSeal({
-        argusDir: dir, today, decisionId: id, predicate, checkBy,
-        provenance: mapSealProvenance(a['predicate_owner'], elicitedKeep),
-        basis: a['basis'] as 'judgment' | 'luck' | 'mixed' | 'unsure' | undefined,
-        realQuestion: a['real_question'] as string | undefined,
-        unverifiedAssumption: a['unverified_assumption'] as string | undefined,
-        humanOnly: a['human_only'] as string | undefined,
-        humanJudgment: a['human_judgment'] as string | undefined,
-      });
+      const v2Write = asV2WriteField(v2Mirror);
 
       const namedAssumption = !receipt.skipped.includes('unverified_assumption');
       // Fire the nudge only on the FIRST assumption-less seal this session (per
