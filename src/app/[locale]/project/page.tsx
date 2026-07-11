@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/useProjectStore';
+import { useReviewStore } from '@/stores/useReviewStore';
 import { useReframeStore } from '@/stores/useReframeStore';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { useSynthesizeStore } from '@/stores/useSynthesizeStore';
@@ -86,8 +88,10 @@ interface StepStatus {
 
 export default function ProjectPage() {
   const locale = useLocale();
+  const router = useRouter();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const { projects, currentProjectId, loadProjects, setCurrentProjectId, updateProject } = useProjectStore();
+  const reviewReceipts = useReviewStore((s) => s.receipts);
   const { items: reframeItems, loadItems: loadReframe } = useReframeStore();
   const { items: recastItems, loadItems: loadRecast } = useRecastStore();
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
@@ -541,9 +545,11 @@ export default function ProjectPage() {
             <>
               {/* ── 항구의 위계 (구조 선언) ─────────────────────────────────
                   ① 지금   — 이벤트 스포트라이트 (드물다; 없으면 침묵)
-                  ② 행동   — 돌아올 결정 due-strip (평상시의 첫 블록 = 주인공)
-                  ③ 함대   — 필터 + 항해 중인 결정들
-                  ④ 항적   — 자차표·해도·항해일지 (기록은 인사말이 아니라 아카이브)
+                  ② 행동   — 돌아올 결정 due-strip (평상시의 첫 블록)
+                  ③ 함대   — 해도가 주인공 (창업자 확정 2026-07-11): 모든 봉인이
+                            배가 되고, 같은 전제는 수중 해류로 이어진다.
+                            그리드는 해도 아래의 명부(roster).
+                  ④ 항적   — 자차표·항해일지 (기록은 인사말이 아니라 아카이브)
                   순서가 우선순위다 — 블록 추가는 이 위계에 자리를 정하고 넣는다. */}
 
               {/* ① 같은 전제 위의 판단들 — the judgment graph's one event:
@@ -600,6 +606,23 @@ export default function ProjectPage() {
                   </div>
                 </div>
               )}
+
+              {/* ③ 함대 해도 — 주인공. 봉인한 항해들(프로젝트 + 검수/MCP 영수증)이
+                  한 폭의 바다 위에 봉인일 순으로. 같은 전제 위에 선 배들은 수중
+                  해류 아크로 이어지고, 전제가 움직이면 그 해류가 앰버로 떠오른다
+                  (판단 그래프 = 해도의 물길). 2척 미만 자기-미렌더. */}
+              <FleetChart
+                projects={projects}
+                reframeItems={reframeItems}
+                recastItems={recastItems}
+                synthesizeItems={synthesizeItems}
+                feedbackHistory={feedbackHistory}
+                progressiveSessions={progressiveSessions}
+                locale={locale}
+                onSelect={setCurrentProjectId}
+                receipts={reviewReceipts}
+                onSelectReceipt={() => router.push(`/${locale}/tools/review`)}
+              />
 
               {/* Filter chips + search — Hick (05 S7): below FILTER_TOOLS_MIN the
                   whole fleet fits one screen, so the tools would only add choices. */}
@@ -831,9 +854,9 @@ export default function ProjectPage() {
                 </div>
               )}
 
-              {/* ④ 쌓인 항적 — 자차표·해도·항해일지. 기록은 아카이브이지
-                  인사말이 아니다: 행동(②)과 함대(③) 아래로 강등 (구조 선언 참조).
-                  각 블록은 스스로 미렌더하므로(0건·2척/2건 미만) 빈 섹션 라벨을
+              {/* ④ 쌓인 항적 — 자차표·항해일지. 기록은 아카이브이지
+                  인사말이 아니다: 행동(②)과 함대(③) 아래 (구조 선언 참조).
+                  각 블록은 스스로 미렌더하므로(0건·2건 미만) 빈 섹션 라벨을
                   달지 않는다 — 부재 공지는 금지. */}
 
               {/* 자차표 — the user's accumulating record of closed loops.
@@ -846,20 +869,6 @@ export default function ProjectPage() {
                   (실 record 0) 상태에서 정산한 회고가 있을 때만. 빈 자차표가
                   배신처럼 안 보이게 하고, 실 봉인으로 한 번 가리킨다. */}
               <RetroOnlyNotice />
-
-              {/* 함대 해도 (S4 최소형 · B1) — 봉인한 항해들이 한 폭의 해도 위에
-                  봉인일 순으로 늘어선다. 2척 미만이면 스스로 미렌더. 상태별 그룹핑·
-                  강조·카운트 배지 없이 시간축 하나만이 정렬키 (거울 조항 게이트). */}
-              <FleetChart
-                projects={projects}
-                reframeItems={reframeItems}
-                recastItems={recastItems}
-                synthesizeItems={synthesizeItems}
-                feedbackHistory={feedbackHistory}
-                progressiveSessions={progressiveSessions}
-                locale={locale}
-                onSelect={setCurrentProjectId}
-              />
 
               {/* 항해일지 (S6 · B4/B5) — 봉인·변침·정산을 시간순 세로 원장으로.
                   '문장만 보기' 토글이 인용벽(제안2 형태1)을 흡수한다. 이벤트 2개

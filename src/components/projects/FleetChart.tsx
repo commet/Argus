@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChartPlate } from '@/components/ui/ChartPlate';
 import { VoyageShip } from '@/components/ui/VoyageElements';
 import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-state';
 import { contractStatus } from '@/lib/decision-contract';
 import { firstVoyageInscription } from '@/lib/record-summary';
+import { sharedGrounds } from '@/lib/judgment-graph';
+import type { JudgmentReceipt } from '@/lib/review';
 import type {
   Project,
   ReframeItem,
@@ -50,6 +52,19 @@ interface FleetShip {
   state: ReturnType<typeof getVoyageState>;
   sealedDate: string; // YYYY-MM-DD of created_at (seal), for hover
   createdAt: string;
+  /** Which harbor the vessel sailed from — a project voyage or a sealed
+   *  review/MCP receipt. One sea, one time axis; the kind only routes the
+   *  click (project detail vs /tools/review). */
+  kind: 'project' | 'receipt';
+}
+
+/** An undersea current — a shared premise literally connecting the ships that
+ *  stand on it (judgment graph, normalized-text equality; nothing inferred). */
+interface Current {
+  key: string;
+  text: string;
+  drifted: boolean;
+  shipIds: string[];
 }
 
 // Project-list step index → voyage leg (page order: reframe, recast, rehearse, synthesize)
@@ -64,6 +79,8 @@ export function FleetChart({
   progressiveSessions,
   locale,
   onSelect,
+  receipts,
+  onSelectReceipt,
 }: {
   projects: Project[];
   reframeItems: ReframeItem[];
@@ -73,6 +90,9 @@ export function FleetChart({
   progressiveSessions: ProgressiveSession[];
   locale: 'ko' | 'en';
   onSelect: (projectId: string) => void;
+  /** Sealed review/MCP receipts join the same sea (one harbor, P0-6 ①). */
+  receipts?: JudgmentReceipt[];
+  onSelectReceipt?: (receiptId: string) => void;
 }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [collapsed, setCollapsed] = useState(false);
@@ -155,13 +175,84 @@ export function FleetChart({
         state,
         sealedDate: createdAt ? String(createdAt).slice(0, 10) : '',
         createdAt,
+        kind: 'project',
       });
     }
+
+    // Sealed review/MCP receipts are vessels too — the fleet is EVERY committed
+    // decision, whichever door it sailed from. Same derived-state brain as the
+    // contracts above (started+sealed → sailing family; settled → the same
+    // outcome mapping contractAllGraded uses) — no second state machine.
+    for (const r of receipts ?? []) {
+      const sealedFollowups = (r.falsifiable_followups ?? []).filter((f) => f.sealed_at);
+      if (sealedFollowups.length === 0) continue;
+      const settled = r.state === 'settled' || sealedFollowups.every((f) => !!f.settled_at);
+      const createdAt = sealedFollowups.map((f) => f.sealed_at!).sort()[0] || r.created_at || '';
+      const state = getVoyageState(
+        {
+          started: true,
+          completedAllLegs: true,
+          lastActivityAt: r.updated_at || createdAt,
+          hasCoda: settled,
+          lastLeg: null,
+          outcomeVerdict: settled ? 'mixed' : 'pending',
+        },
+        now,
+      );
+      list.push({
+        id: r.receipt_id,
+        name: r.source_title || '',
+        state,
+        sealedDate: createdAt ? String(createdAt).slice(0, 10) : '',
+        createdAt,
+        kind: 'receipt',
+      });
+    }
+
     // The ONE ordering: seal date ascending. No state grouping, ever.
     list.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
     return list;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, reframeItems, recastItems, synthesizeItems, feedbackHistory, progressiveSessions]);
+  }, [projects, reframeItems, recastItems, synthesizeItems, feedbackHistory, progressiveSessions, receipts]);
+
+  // Undersea currents — shared ground between charted vessels (judgment graph).
+  // Drawn only between ships actually on this sheet; a current with fewer than
+  // two charted ships has nothing to connect.
+  const currents = useMemo<Current[]>(() => {
+    if (!receipts?.length) return [];
+    const charted = new Set(ships.map((s) => s.id));
+    return sharedGrounds(receipts)
+      .map((g) => ({
+        key: g.key,
+        text: g.text,
+        drifted: !!g.drift,
+        shipIds: [...new Set(g.members.map((m) => m.receipt_id))].filter((id) => charted.has(id)),
+      }))
+      .filter((c) => c.shipIds.length >= 2);
+  }, [receipts, ships]);
+
+  // Current arcs need real x-positions: ships lay out in a flex row, so we
+  // measure after paint (refs → centers relative to the row) and re-measure on
+  // resize. jsdom returns zero-rects — the arcs degenerate harmlessly in tests.
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const shipRefs = useRef(new Map<string, HTMLButtonElement>());
+  const [geom, setGeom] = useState<{ centers: Record<string, number>; width: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    if (!row || collapsed || currents.length === 0) { setGeom(null); return; }
+    const measure = () => {
+      const box = row.getBoundingClientRect();
+      const centers: Record<string, number> = {};
+      for (const [id, el] of shipRefs.current) {
+        const r = el.getBoundingClientRect();
+        centers[id] = r.left - box.left + r.width / 2;
+      }
+      setGeom({ centers, width: row.scrollWidth, height: row.getBoundingClientRect().height });
+    };
+    measure();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    ro?.observe(row);
+    return () => ro?.disconnect();
+  }, [collapsed, currents.length, ships.length]);
 
   // B3(a) — below two ships there is no fleet to chart.
   if (ships.length < 2) return null;
@@ -204,16 +295,64 @@ export function FleetChart({
 
         {!collapsed && (
           <div className="relative w-full overflow-x-auto">
-            {/* The route: a single dotted line under the fleet = the one time axis. */}
+            {/* The route: a single dotted line under the fleet = the one time axis.
+                When currents run, the row keeps extra water below the route so
+                the arcs have depth to dive into. */}
             <div
-              className="relative flex items-end gap-3 sm:gap-5 min-w-min py-3 px-1"
+              ref={rowRef}
+              className={`relative flex items-end gap-3 sm:gap-5 min-w-min py-3 px-1 ${currents.length > 0 ? 'pb-10' : ''}`}
               role="list"
             >
               {/* Dotted route rule — static (no animation to pause). */}
               <div
                 aria-hidden
-                className="absolute left-1 right-1 bottom-[30px] border-t border-dashed border-[var(--bp-ink)]/25"
+                className={`absolute left-1 right-1 ${currents.length > 0 ? 'bottom-[58px]' : 'bottom-[30px]'} border-t border-dashed border-[var(--bp-ink)]/25`}
               />
+
+              {/* 해류 — undersea currents: a shared premise drawn as an arc
+                  diving below the route between the ships that stand on it.
+                  Ink-quiet when steady; --warning when its last re-check
+                  drifted. A map of facts, never a verdict (거울 조항). */}
+              {geom && currents.length > 0 && (
+                <svg
+                  aria-hidden
+                  className="absolute inset-0 z-0 pointer-events-none"
+                  width="100%"
+                  height="100%"
+                  viewBox={`0 0 ${Math.max(1, geom.width)} ${Math.max(1, geom.height)}`}
+                  preserveAspectRatio="none"
+                >
+                  {currents.map((c, ci) => {
+                    const xs = c.shipIds
+                      .map((id) => geom.centers[id])
+                      .filter((x): x is number => typeof x === 'number')
+                      .sort((a, b) => a - b);
+                    if (xs.length < 2) return null;
+                    const routeY = geom.height - 58; // mirrors bottom-[58px]
+                    const depth = 18 + ci * 12;
+                    const d = xs
+                      .slice(0, -1)
+                      .map((x1, i) => {
+                        const x2 = xs[i + 1];
+                        return `M ${x1} ${routeY} Q ${(x1 + x2) / 2} ${routeY + depth} ${x2} ${routeY}`;
+                      })
+                      .join(' ');
+                    return (
+                      <path
+                        key={c.key}
+                        data-testid="fleet-current"
+                        data-drifted={c.drifted ? '1' : '0'}
+                        d={d}
+                        fill="none"
+                        stroke={c.drifted ? 'var(--warning)' : 'var(--bp-ink)'}
+                        strokeOpacity={c.drifted ? 0.75 : 0.22}
+                        strokeWidth={c.drifted ? 1.8 : 1.2}
+                      />
+                    );
+                  })}
+                </svg>
+              )}
+
               {ships.map((ship) => {
                 const meta = VOYAGE_STATE_META[ship.state];
                 const label = L(meta.ko, meta.en);
@@ -223,7 +362,11 @@ export function FleetChart({
                     key={ship.id}
                     type="button"
                     role="listitem"
-                    onClick={() => onSelect(ship.id)}
+                    ref={(el) => {
+                      if (el) shipRefs.current.set(ship.id, el);
+                      else shipRefs.current.delete(ship.id);
+                    }}
+                    onClick={() => (ship.kind === 'receipt' ? onSelectReceipt?.(ship.id) : onSelect(ship.id))}
                     title={hover}
                     aria-label={`${ship.name} — ${label}${ship.sealedDate ? ` (${ship.sealedDate})` : ''}`}
                     className="relative z-[1] shrink-0 flex flex-col items-center gap-0.5 rounded-lg px-1 pt-1 pb-0 hover:bg-[var(--bp-ink)]/[0.04] transition-colors cursor-pointer group"

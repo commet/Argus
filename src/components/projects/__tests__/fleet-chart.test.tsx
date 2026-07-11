@@ -168,3 +168,92 @@ describe('FleetChart — spine gate (거울 조항)', () => {
     expect(new Set(widths).size).toBe(1); // all identical
   });
 });
+
+/** ── One sea: receipt vessels + undersea currents (judgment graph) ────────
+ *  Sealed review/MCP receipts join the same time axis, and a shared premise
+ *  between charted vessels is drawn as a current arc — amber only when its
+ *  last re-check drifted (a fact), never as a verdict. */
+import type { JudgmentReceipt } from '@/lib/review';
+import type { PremiseState } from '@/lib/premises-core';
+
+let rseq = 0;
+function rPremise(text: string, over: Partial<PremiseState> = {}): PremiseState {
+  rseq += 1;
+  return {
+    premise_id: `tp_${rseq}`, ordinal: rseq, kind: 'premise', text,
+    external: true, load_bearing: true, source: 'user_stated',
+    status: 'active', amend_history: [], recheck_count: 0, ...over,
+  };
+}
+function sealedReceipt(id: string, title: string, sealedAt: string, premises: PremiseState[]): JudgmentReceipt {
+  return {
+    receipt_id: id, root_mode: 'review', state: 'sealed',
+    artifact_id: `a_${id}`, source_kind: 'pasted_text', source_title: title,
+    source_fingerprint: `fp_${id}`, core_question: 'q',
+    judgment_obligations: [], claim_ledger: [], hidden_assumptions: [],
+    forks: [], findings: [], current_heading: '',
+    falsifiable_followups: [{
+      followup_id: `f_${id}`, predicate: `${title} bet`, predicate_owner: 'user',
+      pass_condition: 'a', fail_condition: 'b', check_by: '2099-06-01', sealed_at: sealedAt,
+    }],
+    companion_thread: [], tracked_premises: premises,
+    provenance: { model: 't', lens_version: 'v', prompt_fingerprint: 'pf', reviewed_at: sealedAt },
+    created_at: sealedAt, updated_at: sealedAt,
+  } as JudgmentReceipt;
+}
+
+describe('one sea — receipt vessels and undersea currents', () => {
+  const GROUND = '금리가 3.5% 근처에 머문다';
+
+  function renderWithReceipts(receipts: JudgmentReceipt[], onSelectReceipt = vi.fn()) {
+    act(() => {
+      root.render(
+        createElement(FleetChart, {
+          projects: [sealedProject('p1', '2026-01-05T00:00:00.000Z')],
+          ...emptyLedgers,
+          locale: 'ko' as const,
+          onSelect: vi.fn(),
+          receipts,
+          onSelectReceipt,
+        }),
+      );
+    });
+    return onSelectReceipt;
+  }
+
+  it('sealed receipts join the fleet on the same time axis and route their own click', () => {
+    const onSelectReceipt = renderWithReceipts([
+      sealedReceipt('r1', '검수 결정', '2026-02-10T00:00:00.000Z', []),
+    ]);
+    const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLButtonElement[];
+    expect(items.length).toBe(2); // 1 project + 1 receipt = a fleet
+    const receiptShip = items.find((b) => (b.getAttribute('aria-label') || '').includes('검수 결정'))!;
+    expect(receiptShip).toBeTruthy();
+    act(() => receiptShip.click());
+    expect(onSelectReceipt).toHaveBeenCalledWith('r1');
+  });
+
+  it('a shared premise between charted receipts renders ONE current; drifted → data-drifted=1', () => {
+    const drifted = rPremise(GROUND, {
+      last_recheck: {
+        finding: '4.0%', numeric_value: 4, baseline_finding: '3.5%', baseline_numeric_value: 3.5,
+        drifted: true, baseline_only: false, source: 'url', ts: '2026-02-20T00:00:00Z',
+      },
+    });
+    renderWithReceipts([
+      sealedReceipt('r1', '조달', '2026-02-01T00:00:00.000Z', [drifted]),
+      sealedReceipt('r2', '가격', '2026-02-15T00:00:00.000Z', [rPremise(GROUND)]),
+    ]);
+    const currents = Array.from(container.querySelectorAll('[data-testid="fleet-current"]'));
+    expect(currents.length).toBe(1);
+    expect(currents[0].getAttribute('data-drifted')).toBe('1');
+  });
+
+  it('no shared ground → no current elements at all (nothing invented)', () => {
+    renderWithReceipts([
+      sealedReceipt('r1', '조달', '2026-02-01T00:00:00.000Z', [rPremise('전제 A')]),
+      sealedReceipt('r2', '가격', '2026-02-15T00:00:00.000Z', [rPremise('전제 B')]),
+    ]);
+    expect(container.querySelectorAll('[data-testid="fleet-current"]').length).toBe(0);
+  });
+});
