@@ -3,7 +3,7 @@ import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
-import { dualWriteSettle } from '../v2/dual-write.js';
+import { dualWriteAmend, dualWriteDismiss, dualWriteSettle } from '../v2/dual-write.js';
 import { writeSettleReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { elicit, canElicit } from '../lib/elicit.js';
@@ -251,13 +251,16 @@ async function deferStillPending(args: {
       guardTransition(fresh.state, 'dismiss');
       await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: 'no longer relevant (still_pending at check-by)' }], now);
     });
+    // v2 dual-write — 이 픽커 경유 dismissal도 진짜 dismissal이다 (재검토에서
+    // 발견된 우회 경로: defer 분기가 main-path 삽입점보다 먼저 return했다).
+    const v2Write = dualWriteDismiss({ argusDir: dir, today, decisionId: id, reason: 'no longer relevant (still_pending at check-by)' });
     // Tell the account too — a dismissal via this picker is a real dismissal.
     // Without it a synced item stays sealed with its old check-by and the
     // Companion Brief keeps emailing a decision the user set aside (same gap
     // argus_dismiss had). archived, never settled: reality said nothing.
     const sync = await pushToAccount({ action: 'dismiss', id: accountPushId(dir, id) });
     const syncLine = sync.synced || sync.reason === 'no_token' ? '' : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
-    return envelope({ ok: true, tool: 'argus_settle', surface: T.defer_dismissed + syncLine, next_actions: ['argus_recall', 'stop'], data: { id, status: 'dismissed', account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) } });
+    return envelope({ ok: true, tool: 'argus_settle', surface: T.defer_dismissed + syncLine, next_actions: ['argus_recall', 'stop'], data: { id, status: 'dismissed', v2_write: v2Write, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) } });
   }
 
   // No date and no picker → do NOT guess, and NEVER terminal-settle. Ask.
@@ -277,6 +280,11 @@ async function deferStillPending(args: {
     await appendLedger(dir, [{ id, event: 'defer', from: oldCheckBy, check_by: newDate, ...(whatHappened && whatHappened.trim() ? { note: whatHappened } : {}) }], now);
   });
 
+  // v2 dual-write — v2에는 defer 이벤트가 없다(II-A): 재무장의 v2 의미는
+  // check_by 전진이므로 amend로 미러한다. 이게 빠지면 P2 읽기 전환 때 v2가
+  // 낡은 확인일을 보여주는 조용한 발산이 생긴다 (재검토 발견 결함의 수리).
+  const v2Write = dualWriteAmend({ argusDir: dir, today, decisionId: id, checkBy: newDate });
+
   // Mirror the NEW check-by to the account (opt-in) so the Companion Brief nudges
   // at the right time, not the stale one. A dedicated `defer` action, NOT a seal
   // re-push: the seal endpoint upserts a freshly built receipt over the row's
@@ -292,7 +300,7 @@ async function deferStillPending(args: {
     ok: true, tool: 'argus_settle',
     surface: T.deferred(newDate) + syncLine,
     next_actions: ['argus_check_in', 'stop'],
-    data: { id, status: 'sealed', deferred_to: newDate, from_check_by: oldCheckBy, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
+    data: { id, status: 'sealed', deferred_to: newDate, from_check_by: oldCheckBy, v2_write: v2Write, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
   });
 }
 

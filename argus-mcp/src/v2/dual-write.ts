@@ -33,6 +33,16 @@ export type DualWriteResult =
   | { written: false; reason: string }
   | { written: false; error: string };
 
+/** UNKNOWN_DECISION은 오류가 아니라 시대 차이다: dual-write 도입 전에 봉인된
+ *  결정은 v2 원장에 없는 게 정상이다 — error로 겁주지 않고 reason으로 말한다. */
+function asResult(e: unknown): DualWriteResult {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (msg.startsWith('UNKNOWN_DECISION')) {
+    return { written: false, reason: 'decision predates the v2 durable ledger (sealed before dual-write) — recorded in v1 only' };
+  }
+  return { written: false, error: msg };
+}
+
 export function mapSealProvenance(owner: unknown, elicitedKeep: boolean): Provenance {
   if (elicitedKeep) return 'elicited_user';
   if (owner === 'ai_surfaced') return 'ai_surfaced';
@@ -88,7 +98,7 @@ export function dualWriteSeal(args: {
     });
     return { written: true, repository_id: c.ctx.repository_id };
   } catch (e) {
-    return { written: false, error: e instanceof Error ? e.message : String(e) };
+    return asResult(e);
   }
 }
 
@@ -115,7 +125,7 @@ export function dualWriteAmend(args: {
     });
     return { written: true, repository_id: c.ctx.repository_id };
   } catch (e) {
-    return { written: false, error: e instanceof Error ? e.message : String(e) };
+    return asResult(e);
   }
 }
 
@@ -135,7 +145,7 @@ export function dualWriteDismiss(args: {
     });
     return { written: true, repository_id: c.ctx.repository_id };
   } catch (e) {
-    return { written: false, error: e instanceof Error ? e.message : String(e) };
+    return asResult(e);
   }
 }
 
@@ -158,6 +168,6 @@ export function dualWriteSettle(args: {
     });
     return { written: true, repository_id: c.ctx.repository_id };
   } catch (e) {
-    return { written: false, error: e instanceof Error ? e.message : String(e) };
+    return asResult(e);
   }
 }

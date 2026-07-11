@@ -102,6 +102,48 @@ describe('argus_seal/settle → v2 dual-write (v1 정본 유지)', () => {
     expect(s.anomalies).toEqual([]);
   });
 
+  it('still_pending defer(재무장)도 v2에 amend로 미러된다 — 재검토 발견 결함의 회귀 방지', async () => {
+    await call(init, { argus_dir: argusDir });
+    const sealed = await call(seal, {
+      argus_dir: argusDir, id: 'dw-5',
+      predicate: 'data lands by friday', check_by: '2026-07-11',
+      predicate_owner: 'user', today_override: '2026-07-10', // 봉인은 전날 — check_by는 미래여야
+    });
+    const repoId = sealed.v2_write!.repository_id!;
+    const deferred = await call(settle, {
+      argus_dir: argusDir, id: 'dw-5', outcome: 'still_pending',
+      what_happened: '데이터가 아직 안 옴', defer_to: '2026-07-25', today_override: '2026-07-11', // due 당일 재무장
+    });
+    expect(deferred['status']).toBe('sealed'); // v1: 재무장, 정산 아님
+    expect(deferred.v2_write).toMatchObject({ written: true });
+    const d = loadState(home, repoId).decisions.get('dw-5')!;
+    expect(d.state).toBe('sealed'); // v2도 살아있고
+    expect(d.check_by?.value).toBe('2026-07-25'); // 새 확인일로 발산 없이 동행
+  });
+
+  it('cross-session retry with the same caller key dedupes instead of conflicting (payloadHash = 도메인만)', async () => {
+    await call(init, { argus_dir: argusDir });
+    const sealed6 = await call(seal, {
+      argus_dir: argusDir, id: 'dw-6', predicate: 'same payload twice ok', check_by: '2099-01-01', predicate_owner: 'user',
+    });
+    expect(sealed6.v2_write, JSON.stringify(sealed6.v2_write)).toMatchObject({ written: true });
+    // 같은 도메인 내용의 재시도 — v1 가드(ALREADY_SEALED)에 막히기 전에 v2를 직접 재현:
+    // dual-write와 같은 키·같은 도메인 payload지만 세션/날짜가 다른 이벤트.
+    const { appendEventGuarded } = await import('./reducer.js');
+    const initData = await call(init, { argus_dir: argusDir });
+    const repoId = (initData['v2'] as { repository_id: string }).repository_id;
+    const prior = loadState(home, repoId);
+    const original = [...prior.idempotency.values()].find((v) => v.event.event === 'seal' && (v.event as { decision_id?: string }).decision_id === 'dw-6')!.event;
+    const retry = appendEventGuarded(home, repoId, {
+      ...original,
+      event_id: '01JZXK5N8Q2W4E6R8T0Y2Z4G6H', // 다른 id
+      occurred_at: '2026-08-01T00:00:00Z',    // 다른 시각
+      session_id: 'another-session',            // 다른 세션
+      logical_date: '2026-08-01',               // 다른 날
+    });
+    expect(retry.appended).toBe(false); // duplicate — CONFLICT가 아니다
+  });
+
   it('mapSealProvenance: elicit Keep만 elicited_user, 나머지는 위로 위조 금지', () => {
     expect(mapSealProvenance('user', true)).toBe('elicited_user');
     expect(mapSealProvenance('user', false)).toBe('host_reported');

@@ -25,7 +25,6 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
 import { ledgerPath, projectDir } from './ledger.js';
 import type { LedgerState } from './reducer.js';
 
@@ -50,6 +49,17 @@ export interface V1Extras {
   captures: { id?: string; date?: string; kind?: string; text: string; source?: string }[];
   gate_inputs: number;
   defers: { id: string; from?: string; to?: string; note?: string }[];
+  /** dual-write 시대의 이중 표현 해소: v2가 이미 생성을 가진 id를 건드리는
+   *  v1 이벤트는 접지 않고 여기 계수한다 (조용한 skip 금지). */
+  overlap_skipped: number;
+}
+
+/** v1 fill에서 제외할 id들 — "v2가 그 결정/전제의 생성(harvest·seal·premise_add)을
+ *  직접 가졌다"가 기준이다. v2에 settle/amend만 있는 결정(= dual-write 도입 전에
+ *  봉인된 것)은 제외하지 않는다 — 그 봉인은 v1만이 공급할 수 있다. */
+export interface V1FoldExclusions {
+  decisions: ReadonlySet<string>;
+  premises: ReadonlySet<string>;
 }
 
 export interface V1ReadResult {
@@ -95,11 +105,20 @@ const HOST = 'host_reported' as const;
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v !== '' ? v : undefined);
 
 /** v1 이벤트들을 기존 LedgerState 위에 접는다 (v2 fold보다 먼저 호출).
- *  v1 replay와 같은 정신: fold는 검증자가 아니다 — 절대 던지지 않는다. */
-export function foldV1(state: LedgerState, events: V1Event[]): V1Extras {
-  const extras: V1Extras = { anchors: [], captures: [], gate_inputs: 0, defers: [] };
+ *  v1 replay와 같은 정신: fold는 검증자가 아니다 — 절대 던지지 않는다.
+ *  exclude(v2가 생성을 가진 id들)에 걸리는 결정/전제 이벤트는 접지 않고
+ *  overlap_skipped로 계수한다 — 이중 표현(마이그레이션된 v1 스냅샷 +
+ *  dual-write된 v2 이벤트)이 이중 fold가 되는 것을 막는다. */
+const NO_EXCLUSIONS: V1FoldExclusions = { decisions: new Set(), premises: new Set() };
+
+export function foldV1(state: LedgerState, events: V1Event[], exclude: V1FoldExclusions = NO_EXCLUSIONS): V1Extras {
+  const extras: V1Extras = { anchors: [], captures: [], gate_inputs: 0, defers: [], overlap_skipped: 0 };
+  const DECISION_EVENTS = new Set(['harvest', 'seal', 'amend', 'dismiss', 'settle', 'defer']);
+  const PREMISE_EVENTS = new Set(['premise_add', 'premise_amend', 'premise_reconsider', 'premise_recheck', 'premise_resolve']);
   for (const ev of events) {
     const id = str(ev.id) ?? '';
+    if (DECISION_EVENTS.has(ev.event) && exclude.decisions.has(id)) { extras.overlap_skipped++; continue; }
+    if (PREMISE_EVENTS.has(ev.event) && exclude.premises.has(str(ev['premise_id']) ?? '')) { extras.overlap_skipped++; continue; }
     switch (ev.event) {
       case 'harvest': {
         if (!id || state.decisions.has(id)) break;
@@ -204,28 +223,35 @@ export function foldV1(state: LedgerState, events: V1Event[]): V1Extras {
 // ── 위치 이전 (정본 II-F) ─────────────────────────────────
 
 export interface MigrationResult {
-  action: 'copied' | 'already_migrated' | 'source_missing';
+  action: 'copied' | 'refreshed' | 'already_migrated' | 'source_missing';
   lines?: number;
   backup?: string;
 }
 
-const fileSha = (p: string) => createHash('sha256').update(fs.readFileSync(p)).digest('hex');
-
 /** v1 원장을 v2 내구 위치로 **복사**한다. 원본은 절대 건드리지 않는다.
- *  재실행 멱등: 같은 내용이 이미 와 있으면 no-op, 다른 내용이 와 있으면
- *  덮어쓰지 않고 명시 거절(사람이 봐야 하는 상황을 조용히 해소하지 않는다).
+ *  재실행 멱등: 같은 내용이면 no-op. dual-write 시대에는 v1 원본이 계속
+ *  자라므로, 기존 사본이 새 원본의 **prefix**면(append-only 성장 = 정상)
+ *  스냅샷을 갱신한다('refreshed'). 진짜 발산(prefix 아님)만 명시 거절 —
+ *  사람이 봐야 하는 상황을 조용히 해소하지 않는다.
  *  기존 v2 자산이 있으면 복사 전에 1회분 백업(II-F 백업 조항). */
 export function migrateV1Ledger(home: string, repositoryId: string, sourceFile: string): MigrationResult {
   if (!fs.existsSync(sourceFile)) return { action: 'source_missing' };
   const target = v1LedgerPath(home, repositoryId);
   fs.mkdirSync(path.dirname(target), { recursive: true });
 
+  let refresh = false;
   if (fs.existsSync(target)) {
-    if (fileSha(target) === fileSha(sourceFile)) return { action: 'already_migrated' };
-    throw new Error(
-      `MIGRATION_CONFLICT: ${target} already exists with DIFFERENT content than ${sourceFile} — ` +
-      `refusing to overwrite. Inspect both files; the durable copy may hold an older v1 snapshot.`,
-    );
+    const tgt = fs.readFileSync(target);
+    const src = fs.readFileSync(sourceFile);
+    if (tgt.equals(src)) return { action: 'already_migrated' };
+    if (src.length > tgt.length && src.subarray(0, tgt.length).equals(tgt)) {
+      refresh = true; // 원본이 사본을 접두사로 포함 — 정상 성장, 갱신 진행
+    } else {
+      throw new Error(
+        `MIGRATION_CONFLICT: ${target} DIVERGES from ${sourceFile} (not a prefix) — ` +
+        `refusing to overwrite. Inspect both files; the durable copy may hold a different v1 history.`,
+      );
+    }
   }
 
   // 이전 전 백업: 대상 프로젝트 디렉토리에 이미 v2 원장이 있으면 1회분 보관.
@@ -241,7 +267,7 @@ export function migrateV1Ledger(home: string, repositoryId: string, sourceFile: 
   fs.copyFileSync(sourceFile, tmp);
   fs.renameSync(tmp, target);
   const lines = fs.readFileSync(target, 'utf8').split('\n').filter((l) => l.trim()).length;
-  return { action: 'copied', lines, ...(backup ? { backup } : {}) };
+  return { action: refresh ? 'refreshed' : 'copied', lines, ...(backup ? { backup } : {}) };
 }
 
 /** 기존 설치에서 v1 원장이 살 수 있는 곳들 (정본 II-F 명시 2곳). */
