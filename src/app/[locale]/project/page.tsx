@@ -26,6 +26,7 @@ import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
 import { isCheckpointDue } from '@/lib/checkpoint-core';
 import { RecordStrip } from '@/components/ui/RecordStrip';
+import { SharedGroundCard } from '@/components/review/SharedGroundCard';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
 import { FleetChart } from '@/components/projects/FleetChart';
 import { Logbook } from '@/components/projects/Logbook';
@@ -612,6 +613,12 @@ export default function ProjectPage() {
                   </div>
                 </div>
               )}
+
+              {/* 같은 전제 위의 판단들 — the judgment graph's one tier-1 event
+                  (shared ground drifted while live bets stand on it). Renders
+                  nothing on a flat day: the restraint default, so the due strip
+                  above stays the harbor's protagonist. */}
+              <SharedGroundCard />
 
               {/* Filter chips + search — Hick (05 S7): below FILTER_TOOLS_MIN the
                   whole fleet fits one screen, so the tools would only add choices. */}
