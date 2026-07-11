@@ -14,7 +14,7 @@
 | ② 마켓플레이스 설치 | **경로 실존 — 확정** | 워크스루 (아래 §2) |
 | ③ 실전 transcript 픽스처 | **확보** | `fixtures/session-ko.jsonl` · `session-en.jsonl` |
 | ④ 라우팅 eval 하네스 골격 | **가동 (CI red 게이트 포함)** | `routing-skeleton.ts` · `routing-eval.test.ts` |
-| ⑤ 앵커 키워드 말뭉치 | **확보 (선언형·유예형·부정 가드)** | `anchor-keywords.json` · `routing-cases.json` |
+| ⑤ 앵커 키워드 말뭉치 | **확보 (선언형·유예형·부정 가드)** | `src/v2/gate-keywords.ts`(P3-1 승격) · `routing-cases.json` |
 
 추가 실증 1건: **`${CLAUDE_PLUGIN_DATA}`는 실존한다** — 공식 문서에는 없지만
 Claude Code CLI 2.1.207 바이너리에 문자열로 존재함을 확인했다
@@ -105,7 +105,7 @@ v2.7.0). 사용자 설치 경로(공식 문서 대조 확인):
 
 ## §5 · 스파이크 ⑤ — 앵커 키워드 말뭉치
 
-`anchor-keywords.json`(검출 데이터) + `routing-cases.json`(판정 케이스, ground truth).
+`src/v2/gate-keywords.ts`(검출 데이터 — P3-1에서 JSON에서 TS 모듈로 승격) + `routing-cases.json`(판정 케이스, ground truth).
 
 - 구성: **선언형**(ko "~기로 했다/하자/함/확정", en "decided to / settled on /
   we'll go with" 류) · **유예형**(ko "보류/미루자/나중에 다시", en "hold off /
@@ -126,7 +126,7 @@ v2.7.0). 사용자 설치 경로(공식 문서 대조 확인):
 |---|---|---|
 | transcript 픽스처 | P1 원장/증거 계약 테스트 + P3 수확 테스트의 공용 픽스처 | P1 |
 | evidence-pointer 검증 로직 | `src/lib/evidence.ts` (II-C 구현의 시작점) | P1 |
-| routing-cases + anchor-keywords | P3 캡처 게이트의 eval 말뭉치 (계속 성장) | P3 |
+| routing-cases + gate-keywords | P3 캡처 게이트의 eval 말뭉치 (계속 성장) | **P3-1 졸업 완료** — 검출기=src/v2/gate.ts, 스켈레톤은 재수출 |
 | routing-skeleton | P3에서 **폐기·대체** (하네스만 존속) | P3 |
 | statusline 판정 | P2 드라이버 플러그인 시공 근거 | P2 |
 
