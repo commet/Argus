@@ -29,6 +29,7 @@
 import { createHash } from 'node:crypto';
 import type { ArgusEvent } from './events.js';
 import { appendEvent, readLedger, type LedgerReadResult } from './ledger.js';
+import { foldV1, readV1File, v1LedgerPath, type V1Extras } from './v1-reader.js';
 
 // ── 상태 모형 ─────────────────────────────────────────────
 
@@ -378,7 +379,12 @@ function apply(state: LedgerState, e: ArgusEvent): void {
  *  건너뛴다 (가드가 항상 돌았다면 anomalies는 영원히 빈 배열이다 — 비어있지
  *  않다는 것 자체가 조사 신호다). */
 export function reduce(events: ArgusEvent[]): LedgerState {
-  const state = emptyState();
+  return reduceInto(emptyState(), events);
+}
+
+/** 기존 상태 위에 이어 접기 — v1 fold(v1-reader.ts) 결과 위에 v2 이벤트를
+ *  얹을 때 쓴다 (시간상 v1 전량 → v2 전량 순서가 실제 이전 시나리오다). */
+export function reduceInto(state: LedgerState, events: ArgusEvent[]): LedgerState {
   for (const e of events) {
     try {
       const verdict = judgeTransition(state, e);
@@ -409,7 +415,11 @@ export function appendEventGuarded(home: string, repositoryId: string, event: un
   let duplicateOf: ArgusEvent | null = null;
   try {
     const appendedEvent = appendEvent(home, repositoryId, event, (prior: LedgerReadResult, next: ArgusEvent) => {
-      const state = reduce(prior.events);
+      // v1에서 봉인된 결정을 v2에서 정산할 수 있어야 한다 — 가드가 v1 상태를
+      // 못 보면 UNKNOWN_DECISION으로 이전 사용자의 연속성이 끊긴다.
+      const state = emptyState();
+      foldV1(state, readV1File(v1LedgerPath(home, repositoryId)).events);
+      reduceInto(state, prior.events);
       const verdict = judgeTransition(state, next);
       if (verdict === 'duplicate') {
         duplicateOf = state.idempotency.get(next.idempotency_key)!.event;
@@ -425,10 +435,20 @@ export function appendEventGuarded(home: string, repositoryId: string, event: un
   }
 }
 
-/** 편의: 현 원장의 상태 (projection·툴이 소비). */
+/** 편의: 현 원장의 상태 (projection·툴이 소비). 이전된 v1 원장
+ *  (ledger.v1.jsonl)이 있으면 먼저 접고 그 위에 v2를 얹는다 — 과거 이벤트는
+ *  영원히 읽힌다 (II-E). 카운터는 두 파일 합산. */
 export function loadState(home: string, repositoryId: string): LedgerState & {
-  skipped_unknown: number; dropped_corrupt: number;
+  v1_extras: V1Extras; skipped_unknown: number; dropped_corrupt: number;
 } {
+  const v1 = readV1File(v1LedgerPath(home, repositoryId));
+  const state = emptyState();
+  const v1_extras = foldV1(state, v1.events);
   const read = readLedger(home, repositoryId);
-  return { ...reduce(read.events), skipped_unknown: read.skipped_unknown, dropped_corrupt: read.dropped_corrupt };
+  reduceInto(state, read.events);
+  return {
+    ...state, v1_extras,
+    skipped_unknown: read.skipped_unknown + v1.skipped_unknown,
+    dropped_corrupt: read.dropped_corrupt + v1.dropped_corrupt,
+  };
 }
