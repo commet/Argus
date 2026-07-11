@@ -124,11 +124,11 @@ v2.7.0). 사용자 설치 경로(공식 문서 대조 확인):
 
 | 산출물 | 승격처 | 시점 |
 |---|---|---|
-| transcript 픽스처 | P1 원장/증거 계약 테스트 + P3 수확 테스트의 공용 픽스처 | P1 |
-| evidence-pointer 검증 로직 | `src/lib/evidence.ts` (II-C 구현의 시작점) | P1 |
+| transcript 픽스처 | P1 원장/증거 계약 테스트 + P3 수확 테스트의 공용 픽스처 | **이행** — routing-eval·gate.test가 소비 |
+| evidence-pointer 검증 로직 | `src/v2/evidence.ts` (II-C 구현) | **P6-1 졸업 완료** — 수확 처리 단계가 소비 |
 | routing-cases + gate-keywords | P3 캡처 게이트의 eval 말뭉치 (계속 성장) | **P3-1 졸업 완료** — 검출기=src/v2/gate.ts, 스켈레톤은 재수출 |
-| routing-skeleton | P3에서 **폐기·대체** (하네스만 존속) | P3 |
-| statusline 판정 | P2 드라이버 플러그인 시공 근거 | P2 |
+| routing-skeleton | 재수출 껍데기로 축소 (하네스가 배송 검출기를 직접 잰다) | **P3-1 완료** |
+| statusline 판정 | P2 드라이버 플러그인 시공 근거 | **P2-2·P2-4 이행** — v2 소스 개조 + argus-driver 배송 |
 
 [^1]: 바이너리 문자열 존재는 "이 버전에서 코드가 참조한다"의 증거이지 안정 API
   계약이 아니다. fallback 한 줄이 이 차이를 흡수한다.
