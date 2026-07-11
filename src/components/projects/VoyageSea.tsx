@@ -10,6 +10,8 @@ import {
   type VoyageState,
 } from '@/lib/voyage-state';
 import { contractStatus } from '@/lib/decision-contract';
+import { sharedGrounds } from '@/lib/judgment-graph';
+import type { JudgmentReceipt } from '@/lib/review';
 import type {
   Project,
   ReframeItem,
@@ -74,6 +76,9 @@ const STEP_IDX_TO_LEG: ReadonlyArray<VoyageLeg> = ['reframe', 'recast', 'rehears
 interface SeaShip {
   id: string;
   name: string;
+  /** Which harbor the vessel sailed from — a project voyage or a sealed
+   *  review/MCP receipt. One sea; the kind only routes the click. */
+  kind: 'project' | 'receipt';
   state: VoyageState;
   /** The one promised return: this ship's check-in date has arrived. */
   due: boolean;
@@ -92,8 +97,8 @@ interface SeaShip {
  *  as a chart. Order = assignment order (oldest first within a zone). */
 const SLOTS: Record<'sailing' | 'adrift' | 'wrecked' | 'harbor' | 'docked', Array<{ x: number; y: number }>> = {
   sailing: [
-    { x: 21, y: 30 }, { x: 38, y: 17 }, { x: 58, y: 27 }, { x: 30, y: 47 },
-    { x: 55, y: 48 }, { x: 72, y: 38 }, { x: 12, y: 16 },
+    { x: 21, y: 28 }, { x: 40, y: 16 }, { x: 60, y: 26 }, { x: 28, y: 52 },
+    { x: 57, y: 56 }, { x: 68, y: 62 }, { x: 13, y: 15 },
   ],
   adrift: [ { x: 8, y: 28 }, { x: 11, y: 48 }, { x: 6, y: 63 } ],
   wrecked: [ { x: 14, y: 77 }, { x: 23, y: 81 }, { x: 7, y: 82 } ],
@@ -101,6 +106,21 @@ const SLOTS: Record<'sailing' | 'adrift' | 'wrecked' | 'harbor' | 'docked', Arra
   docked: [ { x: 86, y: 86 }, { x: 92, y: 86 }, { x: 80, y: 86 } ],
 };
 const BEACON_SLOT = { x: 44, y: 36 };
+
+/** The plate's fixed aspect on sm+ (aspect-[16/7.2]) — lets current chords be
+ *  computed as pure math (angle/length from % coords), no layout measurement.
+ *  Height of the plate expressed in width-percent units: 100 / (16/7.2). */
+const PLATE_H_IN_W = 45;
+
+/** An undersea current — a shared premise literally connecting the ships that
+ *  stand on it (judgment graph, normalized-text equality; nothing inferred). */
+interface SeaCurrent {
+  key: string;
+  text: string;
+  drifted: boolean;
+  /** Chained chord segments between adjacent member ships, precomputed. */
+  segs: Array<{ x: number; y: number; len: number; deg: number }>;
+}
 
 function relativeDays(iso: string, now: number, locale: 'ko' | 'en'): string {
   const t = new Date(iso).getTime();
@@ -147,8 +167,13 @@ function ShipMark({ state, due, size }: { state: VoyageState; due: boolean; size
       {/* mast */}
       <span className="absolute block" style={{ left: '50%', bottom: '14%', width: 1.5, height: '74%', background: N.paper, transform: 'translateX(-50%)' }} />
       {furled ? (
-        // canvas struck and lashed to the boom — a ship at her moorings
-        <span className="absolute block" style={{ left: '38%', bottom: '52%', width: '26%', height: '7%', background: N.paper, opacity: 0.75, borderRadius: 2 }} />
+        // canvas struck and lashed along the boom — a ship at her moorings.
+        // Boom + gaff give her enough body that the harbor never reads as
+        // a row of bare poles.
+        <>
+          <span className="absolute block" style={{ left: '34%', bottom: '30%', width: '34%', height: '8%', background: sail, opacity: 0.9, borderRadius: 2 }} />
+          <span className="absolute block" style={{ left: '42%', bottom: '40%', width: '22%', height: '5%', background: sail, opacity: 0.6, borderRadius: 2 }} />
+        </>
       ) : (
         <>
           {/* mainsail — vertical luff on the mast, clew trailing aft */}
@@ -192,6 +217,8 @@ export function VoyageSea({
   locale,
   onSelect,
   onReview,
+  receipts,
+  onSelectReceipt,
 }: {
   projects: Project[];
   reframeItems: ReframeItem[];
@@ -206,6 +233,9 @@ export function VoyageSea({
   onSelect: (projectId: string) => void;
   /** Beacon CTA — routes to the settle surface (re-arms the settle question). */
   onReview: (projectId: string) => void;
+  /** Sealed review/MCP receipts join the same sea (one harbor, P0-6 ①). */
+  receipts?: JudgmentReceipt[];
+  onSelectReceipt?: (receiptId: string) => void;
 }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
 
@@ -313,6 +343,7 @@ export function VoyageSea({
       list.push({
         id: p.id,
         name: p.name,
+        kind: 'project',
         state,
         due,
         dueDays: cs?.daysUntilCheckIn ?? null,
@@ -322,11 +353,50 @@ export function VoyageSea({
         createdAt: p.created_at || lastActivityAt || '',
       });
     }
+
+    // Sealed review/MCP receipts are vessels too — one sea, every committed
+    // decision, whichever door it sailed from (P0-6 ①). Same derived-state
+    // brain as the contracts above (§2-1 handoff mapping) — no second state
+    // machine. Their due-ness stays on the return strip (dueReceipts); the
+    // beacon remains a project-contract promise.
+    for (const r of receipts ?? []) {
+      const sealedFollowups = (r.falsifiable_followups ?? []).filter((f) => f.sealed_at);
+      if (sealedFollowups.length === 0) continue;
+      const settled = r.state === 'settled' || sealedFollowups.every((f) => !!f.settled_at);
+      const createdAt = sealedFollowups.map((f) => f.sealed_at!).sort()[0] || r.created_at || '';
+      const state = getVoyageState(
+        {
+          started: true,
+          completedAllLegs: true,
+          lastActivityAt: r.updated_at || createdAt,
+          hasCoda: settled,
+          lastLeg: null,
+          outcomeVerdict: settled ? 'mixed' : 'pending',
+        },
+        now,
+      );
+      list.push({
+        id: r.receipt_id,
+        name: r.source_title || L('검수한 문서', 'Reviewed document'),
+        kind: 'receipt',
+        state,
+        due: false,
+        dueDays: null,
+        premise: null,
+        sub:
+          state === 'verified'
+            ? L('검수 · 정산 완료', 'review · reckoned')
+            : `${L('검수 봉인', 'review seal')} · ${relativeDays(r.updated_at || createdAt, now, locale)}`,
+        idleDays: 0,
+        createdAt,
+      });
+    }
+
     // Stable assignment order inside each zone: oldest voyage first.
     list.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, reframeItems, recastItems, synthesizeItems, feedbackHistory, progressiveSessions, dueProjectIds, locale]);
+  }, [projects, reframeItems, recastItems, synthesizeItems, feedbackHistory, progressiveSessions, dueProjectIds, receipts, locale]);
 
   // Below two ships there is no sea to chart — the page's list carries it.
   if (ships.length < 2) return null;
@@ -367,6 +437,37 @@ export function VoyageSea({
     wrecked: ships.filter((s) => s.state === 'wrecked').length,
   };
 
+  // ── undersea currents — shared ground between charted vessels (the judgment
+  //    graph made spatial). Relationship = normalizePremiseText EXACT equality
+  //    only (§4-1: a broken wire yields a missing chord, never an invented
+  //    one). Steady ground = ink-quiet; ground whose last re-check DRIFTED =
+  //    var(--warning), a fact color, not a verdict (§4-3). Chords chain
+  //    adjacent members sorted by x, computed as pure math from the plate's
+  //    fixed aspect — no layout measurement, no SVG.
+  const currents: SeaCurrent[] = [];
+  if (receipts?.length) {
+    const pos = new Map(placed.map((s) => [s.id, s]));
+    for (const g of sharedGrounds(receipts)) {
+      const members = [...new Set(g.members.map((m) => m.receipt_id))]
+        .map((id) => pos.get(id))
+        .filter((s): s is Placed => !!s)
+        .sort((a, b) => a.x - b.x);
+      if (members.length < 2) continue;
+      const segs = members.slice(0, -1).map((a, i) => {
+        const b = members[i + 1];
+        const dx = b.x - a.x;
+        const dy = (b.y - a.y) * (PLATE_H_IN_W / 100);
+        return {
+          x: a.x,
+          y: a.y,
+          len: Math.hypot(dx, dy),
+          deg: (Math.atan2(dy, dx) * 180) / Math.PI,
+        };
+      });
+      currents.push({ key: g.key, text: g.text, drifted: !!g.drift, segs });
+    }
+  }
+
   // Honest caption — plain facts in the calm register, no manufactured urgency.
   const caption = beacon
     ? L(
@@ -405,7 +506,11 @@ export function VoyageSea({
         }
       `}</style>
 
-      {/* ── the night sea plate (committed dark — a framed nocturne) ── */}
+      {/* ── the night sea plate (committed dark — a framed nocturne). The
+            beacon notice is a SIBLING of the plate: absolute over the water on
+            desktop, a normal block right below it on mobile — never mixed into
+            the ships layer (07-11 mobile-overlap fix). ── */}
+      <div className="relative">
       <div
         className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] shadow-[var(--shadow-md)] min-h-[400px] sm:min-h-0 sm:aspect-[16/7.2]"
         style={{ background: `linear-gradient(176deg, ${N.seaHi} 0%, ${N.sea} 52%, ${N.seaDeep} 100%)` }}
@@ -471,6 +576,36 @@ export function VoyageSea({
           {L(`전체 ${ships.length}척`, `${ships.length} SHIPS`)}
         </span>
 
+        {/* ── undersea currents — beneath the ships, above the water. A line
+              exists only where two charted vessels literally stand on the same
+              normalized premise. Desktop-only: at mobile density the chords
+              read as clutter, and the SharedGroundCard (①) carries the event. */}
+        {currents.length > 0 && (
+          <div aria-hidden className="absolute inset-0 z-[1] hidden sm:block">
+            {currents.map((c) =>
+              c.segs.map((s, i) => (
+                <div
+                  key={`${c.key}-${i}`}
+                  data-testid="fleet-current"
+                  data-drifted={c.drifted ? '1' : '0'}
+                  className="absolute"
+                  style={{
+                    left: `${s.x}%`,
+                    top: `${s.y}%`,
+                    width: `${s.len}%`,
+                    height: c.drifted ? 1.5 : 1,
+                    background: c.drifted
+                      ? 'linear-gradient(to right, transparent, var(--warning) 18%, var(--warning) 82%, transparent)'
+                      : `linear-gradient(to right, transparent, ${N.paper}38 22%, ${N.paper}38 78%, transparent)`,
+                    transformOrigin: '0 50%',
+                    transform: `rotate(${s.deg}deg)`,
+                  }}
+                />
+              )),
+            )}
+          </div>
+        )}
+
         {/* ── the ships ── */}
         <div role="list" className="absolute inset-0 z-[2]">
           {placed.map((s, i) => {
@@ -482,7 +617,9 @@ export function VoyageSea({
                 key={s.id}
                 type="button"
                 role="listitem"
-                onClick={() => (s.due ? onReview(s.id) : onSelect(s.id))}
+                onClick={() =>
+                  s.kind === 'receipt' ? onSelectReceipt?.(s.id) : s.due ? onReview(s.id) : onSelect(s.id)
+                }
                 title={`${s.name} — ${stateLabel}`}
                 aria-label={`${s.name} — ${stateLabel} · ${s.sub}`}
                 className="vsea-in absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-2.5 rounded-lg cursor-pointer group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-transform duration-300 hover:-translate-y-[calc(50%+3px)]"
@@ -492,7 +629,7 @@ export function VoyageSea({
                   <span
                     aria-hidden
                     className="vsea-halo absolute left-1/2 top-[34%] -z-[1] rounded-full"
-                    style={{ width: 120, height: 120, background: `radial-gradient(circle, ${N.gold}2b 0%, transparent 62%)`, transform: 'translate(-50%,-50%)' }}
+                    style={{ width: 130, height: 130, background: `radial-gradient(circle, ${N.gold}3d 0%, transparent 62%)`, transform: 'translate(-50%,-50%)' }}
                   />
                 )}
                 <span className={s.state === 'wrecked' || s.state === 'docked' ? '' : 'vsea-bob'} style={{ animationDelay: `${(i % 5) * 1.1}s` }}>
@@ -517,10 +654,13 @@ export function VoyageSea({
           )}
         </div>
 
-        {/* ── beacon notice — the sheet's single voice, only when a promised
-              check-in has actually arrived ── */}
-        {beacon && (
-          <div className="static sm:absolute sm:right-[2.5%] sm:top-[7%] z-[3] m-3 sm:m-0 sm:max-w-[300px] rounded-xl border p-4" style={{ background: `${N.seaDeep}d9`, borderColor: `${N.paper}24`, backdropFilter: 'blur(3px)' }}>
+      </div>
+
+      {/* ── beacon notice — the sheet's single voice, only when a promised
+            check-in has actually arrived. Sibling of the plate: floats over
+            the water on sm+, flows below it on mobile. ── */}
+      {beacon && (
+          <div className="static sm:absolute sm:right-[2.5%] sm:top-[7%] z-[3] mt-3 sm:mt-0 sm:max-w-[300px] rounded-xl border p-4" style={{ background: `${N.seaDeep}d9`, borderColor: `${N.paper}24`, backdropFilter: 'blur(3px)' }}>
             <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.gold }}>
               <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />
               {L('그래서, 어떻게 됐어요?', 'So, how did it go?')}
@@ -552,7 +692,7 @@ export function VoyageSea({
               </p>
             )}
           </div>
-        )}
+      )}
       </div>
 
       {/* ── under the plate: the honest caption + the chart legend ── */}

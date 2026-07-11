@@ -28,6 +28,7 @@ import {
   MAX_ACTIVE_PREMISES,
   type PremiseState,
 } from '@/lib/premises-core';
+import { sharedGroundCount } from '@/lib/judgment-graph';
 
 type LFn = (ko: string, en: string) => string;
 type RecheckConfidence = NonNullable<PremiseState['last_recheck']>['confidence'];
@@ -135,6 +136,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
           {tracked.map((p) => {
             const isOpenQ = p.kind === 'open_question';
             const due = armed && (isOpenQ ? isDueForReconsider(p, today) : isDueForRecheck(p, today));
+            const shared = isOpenQ ? 0 : sharedGroundCount(store.receipts ?? [], receipt.receipt_id, p.text);
             const last = p.last_recheck;
             const res = result?.id === p.premise_id ? result.status : null;
             const surface = res ? recheckSurface(res, p.ordinal, L) : null;
@@ -148,6 +150,13 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                     {isOpenQ && <span className="ml-1.5 text-[10px] text-[var(--text-tertiary)]">{L('미결', 'open')}</span>}
                     {due && (
                       <span className="ml-1.5 text-[10px] px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">{L('확인할 때', 'due')}</span>
+                    )}
+                    {shared > 0 && (
+                      /* Quiet cross-link (judgment graph): a count, never a nudge —
+                         the same ground literally appears under other judgments. */
+                      <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                        {L(`이 전제는 다른 판단 ${shared}개 아래에도 있어요.`, `Also under ${shared} other judgment${shared === 1 ? '' : 's'}.`)}
+                      </p>
                     )}
                     {last && (
                       <div className="mt-1 space-y-1 text-[11px] text-[var(--text-tertiary)]">
