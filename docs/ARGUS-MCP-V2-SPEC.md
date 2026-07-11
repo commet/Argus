@@ -86,7 +86,10 @@ P-1(계약 확정, Part II — 코드 전 완결) ∥ P0(스파이크 3일) → 
 (+R4-A: provenance.ts, property 2종, MCP-NOTES, 스펙-버전 규율) → P2 드라이버·Day0 →
 P3 캡처 → P4 정산 경화·outbox → P5 실사용 5명 관찰(21일, 프로토타입 신호) ∥
 COMPANION(B~F) 시공 → P6 opt-in 수확 → **Release Gate(I-3) 1회 통과 → v2.0 출시**.
-정직한 총 기간: **8~9주** (재시도 시 9~12주). 표준화 웨이브(R4-B)는 출시 후 별도 2주.
+정직한 총 기간: **9~12주** (Sol-3 채택분 — 수명주기 CLI·보안 경계·플랫폼 매트릭스·벤치마크 —
+반영 재산정; P5 재시도 시 +2주). 표준화 웨이브(R4-B)는 출시 후 별도 2주.
+**이 일정 자체를 착공일에 argus_seal로 봉인한다** (R4-D 도그푸딩 — 우리 일정 예측도
+현실이 정산한다).
 
 ## I-5 · 창업자 결정 잔여 (P0 전 필요 3건)
 
@@ -100,7 +103,7 @@ COMPANION(B~F) 시공 → P6 opt-in 수확 → **Release Gate(I-3) 1회 통과 �
 ## II-A · 이벤트 공통 envelope + 상태 전이
 
 **envelope (모든 이벤트 공통)**: `event_id`(ULID) · `v`(schema_version) ·
-`producer_version` · `project_id` · `session_id` · `occurred_at`(ISO) ·
+`producer_version` · `repository_id` · `workspace_id` · `session_id` · `occurred_at`(ISO) ·
 `logical_date`(YYYY-MM-DD, resolveToday) · `tz` · `idempotency_key`(멱등 재시도용).
 correlation/causation id는 채택하지 않는다(결정 id가 상관 축; 필요 시 백로그).
 
@@ -163,6 +166,11 @@ elicited_user, 채팅 Reword는 host_reported).
   무관하게 생존. worktree의 `.argus/`에는 projection만(`LOGBOOK.md`, binding용
   `project.json`). 기본 scope = **repository 공유**(어느 worktree에서 봉인해도 전체에서
   due), workspace 분리 scope는 명시 opt-in.
+- **발견 메커니즘**: `~/.argus/registry.json`이 `git_common_dir 실경로 → repository_id`
+  매핑을 보유(init이 생성·갱신). 어느 worktree에서든 common-dir로 조회 → 동일 내구
+  원장 도달. 매핑 부재 시 init 안내(자동 생성 금지 — 명시적 바인딩).
+- **projection 대상**: 서버는 바인딩된 workspace의 `.argus/`에만 LOGBOOK을 쓴다 —
+  다른 workspace는 각자의 커서 비교로 읽기 시 재생성(I-1 규칙).
 - waypoint에는 `repository_id + workspace_id + git_common_dir + sha` 전부 기록.
 - Resources: `argus://projects/{repository_id}/ledger | /due`. 무접두 `argus://ledger`는
   bound 프로젝트가 정확히 1개일 때만 허용, 그 외 명시적 목록 반환(자동 선택 금지).
@@ -173,7 +181,7 @@ elicited_user, 채팅 Reword는 host_reported).
 
 - 쓰기 락: 획득 실패 시 `LEDGER_BUSY` 명시 오류(재시도 안내), lock 파일에
   `{nonce, pid, started_at}`, stale 판정은 pid 생존 확인 후에만 탈취.
-- 멱등 (정밀 계약): uniqueness scope = `project_id + tool_name + idempotency_key`.
+- 멱등 (정밀 계약): uniqueness scope = `repository_id + tool_name + idempotency_key`.
   동일 key+동일 payload hash → 기존 domain 결과를 **재구성해** 반환(원 surface 문구
   보존을 약속하지 않는다 — 도메인 결과만). 동일 key+다른 payload hash →
   `IDEMPOTENCY_CONFLICT`. remote sync의 key는 sync attempt가 아니라 원본 domain
@@ -192,10 +200,12 @@ elicited_user, 채팅 Reword는 host_reported).
 
 - CLI: `argus export --bundle <path>`(원장+영수증+설정 번들) · `argus import --dry-run
   <bundle>` · `argus import <bundle>` · `argus doctor --backup` · `argus purge
-  --project <id> --confirm`.
+  --repository <id> --confirm`.
 - 플러그인 제거: 임시 상태(`${CLAUDE_PLUGIN_DATA}`)만 소멸, **원장은 보존됨을 제거
   시점에 고지**. 재설치 시 `~/.argus/projects/`를 자동 재발견.
 - schema 마이그레이션 전 자동 백업(1회분 보관), 실패 시 롤백 경로 문서화.
+- **v1 원장 위치 이전**: 기존 설치의 `<project>/.argus/ledger/` 및 `~/.argus/ledger/`를
+  발견 시 v2 내구 위치로 **복사** 안내(원본은 보존 — 이동·삭제 금지), 재실행 멱등.
 - 성능 조항: 10k·100k 이벤트 벤치마크 1회 필수(Release Matrix Performance 행).
   느려지면 원장 구조를 바꾸지 말고 `last_event_id` 기반 재생성 가능 스냅샷 캐시 추가.
 
