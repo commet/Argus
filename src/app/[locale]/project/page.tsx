@@ -543,22 +543,47 @@ export default function ProjectPage() {
             </Card>
           ) : (
             <>
-              {/* ── 항구의 위계 (구조 선언) ─────────────────────────────────
-                  ① 지금   — 이벤트 스포트라이트 (드물다; 없으면 침묵)
-                  ② 행동   — 돌아올 결정 due-strip (평상시의 첫 행동 블록)
-                  ③ 함대   — 밤바다 해도가 주인공 (창업자 확정 2026-07-10/11):
-                            모든 봉인(프로젝트 + 검수/MCP 영수증)이 배가 되고,
-                            같은 전제 위의 배들은 수중 해류로 이어진다.
-                            그리드는 해도 아래의 명부(roster).
-                  ④ 항적   — 자차표·항해일지 (기록은 인사말이 아니라 아카이브)
+              {/* ── 항구의 위계 (구조 선언, 창업자 재확정 2026-07-11:
+                  "지도가 압도적이어야") ─────────────────────────────────
+                  ① 지도   — 밤바다 해도가 첫 화면 전체. 지도가 모든 사건을
+                            직접 말한다: 확인일 도래 = 등대 카드, 전제
+                            드리프트 = 앰버 해류 + 해류 통지(같은
+                            groundSpotlight 브레인 — 사건과 통지가 어긋날
+                            수 없다). 위에는 아무것도 쌓지 않는다.
+                  ② 행동   — 돌아올 결정 due-strip (여러 건·영수증의 행동
+                            목록이자, 지도 미렌더(2척 미만) 시 유일한 귀환
+                            표면 — 삭제하면 그 경우 사건이 무표면이 된다)
+                  ③ 원장   — SharedGroundCard: 지도 해류 통지의 상세 기록
+                            (플랫한 날 침묵)
+                  ④ 명부·항적 — 필터+그리드, 자차표·항해일지 (아카이브)
                   순서가 우선순위다 — 블록 추가는 이 위계에 자리를 정하고 넣는다. */}
 
-              {/* ① 같은 전제 위의 판단들 — the judgment graph's one event:
-                  shared ground drifted while live bets stand on it. When it
-                  fires it outranks routine dues (settling those bets may hang
-                  on this ground); on every flat day it renders nothing and
-                  the due strip below stays the harbor's first block. */}
-              <SharedGroundCard />
+              {/* ① 항해 지도 — 주인공. 봉인(프로젝트 + 검수/MCP 영수증)이
+                  배가 되고, 같은 전제 위의 배들은 수중 해류로 이어진다.
+                  due 소스는 아래 strip과 동일한 useDueCount (숫자 표류 불가). */}
+              <VoyageSea
+                projects={projects}
+                reframeItems={reframeItems}
+                recastItems={recastItems}
+                synthesizeItems={synthesizeItems}
+                feedbackHistory={feedbackHistory}
+                progressiveSessions={progressiveSessions}
+                dueProjectIds={dueProjects.map((p) => p.id)}
+                locale={locale}
+                onSelect={setCurrentProjectId}
+                onReview={(id) => {
+                  // Same re-arm as the strip chips: the settle question returns
+                  // even if dismissed earlier this visit.
+                  setSettleDismissed((prev) => {
+                    const next = new Set(prev);
+                    next.delete(id);
+                    return next;
+                  });
+                  setCurrentProjectId(id);
+                }}
+                receipts={reviewReceipts}
+                onSelectReceipt={() => router.push(`/${locale}/tools/review`)}
+              />
 
               {/* ② 돌아올 결정 — the return strip. The loop's last leg: 귀환.
                   Review receipts past check-by join the SAME strip (P0-6 ① —
@@ -608,36 +633,10 @@ export default function ProjectPage() {
                 </div>
               )}
 
-              {/* ③ 항해 지도 — 주인공. 화면 상단 전체가 밤바다 해도: 위치가
-                  상태를 말하고(먼바다·표류 여백·여울·항구), 봉인 영수증도 같은
-                  바다의 배가 되며, 같은 전제 위의 배들은 수중 해류로 이어진다
-                  (전제가 움직이면 그 해류가 앰버로 — 사실 표시지 평결 아님).
-                  강조는 오직 '사용자가 약속한 확인일 도래'(등대) 하나. 2척
-                  미만이면 스스로 미렌더. due 소스는 위 strip과 동일한
-                  useDueCount (숫자 표류 불가). */}
-              <VoyageSea
-                projects={projects}
-                reframeItems={reframeItems}
-                recastItems={recastItems}
-                synthesizeItems={synthesizeItems}
-                feedbackHistory={feedbackHistory}
-                progressiveSessions={progressiveSessions}
-                dueProjectIds={dueProjects.map((p) => p.id)}
-                locale={locale}
-                onSelect={setCurrentProjectId}
-                onReview={(id) => {
-                  // Same re-arm as the strip chips: the settle question returns
-                  // even if dismissed earlier this visit.
-                  setSettleDismissed((prev) => {
-                    const next = new Set(prev);
-                    next.delete(id);
-                    return next;
-                  });
-                  setCurrentProjectId(id);
-                }}
-                receipts={reviewReceipts}
-                onSelectReceipt={() => router.push(`/${locale}/tools/review`)}
-              />
+              {/* ③ 사건의 원장 — the drifted shared ground's full record (the
+                  map's drift notice is its echo-summary; this is the detail).
+                  Self-nulls on every flat day. */}
+              <SharedGroundCard />
 
               {/* Filter chips + search — Hick (05 S7): below FILTER_TOOLS_MIN the
                   whole fleet fits one screen, so the tools would only add choices. */}

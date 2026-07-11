@@ -10,7 +10,7 @@ import {
   type VoyageState,
 } from '@/lib/voyage-state';
 import { contractStatus } from '@/lib/decision-contract';
-import { sharedGrounds } from '@/lib/judgment-graph';
+import { sharedGrounds, groundSpotlight } from '@/lib/judgment-graph';
 import type { JudgmentReceipt } from '@/lib/review';
 import type {
   Project,
@@ -468,6 +468,24 @@ export function VoyageSea({
     }
   }
 
+  // ── the drifted current's VOICE — a compact in-map notice, so the amber
+  //    line is legible without leaving the sea. Same single-event restraint
+  //    brain as SharedGroundCard (groundSpotlight: fires only when shared
+  //    ground actually drifted AND live bets stand on it; flat day → null).
+  //    The full ledger card renders below the map (창업자 07-11: 지도가
+  //    압도적, 상세는 아래). Facts only — quote · baseline→today · source.
+  const spotlight = receipts?.length ? groundSpotlight(receipts) : null;
+  const spotGauge = (() => {
+    if (!spotlight?.drift) return null;
+    const d = spotlight.drift;
+    if (d.baseline_numeric != null && d.current_numeric != null) {
+      return { from: String(d.baseline_numeric), to: String(d.current_numeric) };
+    }
+    const trim = (s?: string) => (s && s.length > 16 ? `${s.slice(0, 16)}…` : s);
+    if (d.baseline_text && d.current_text) return { from: trim(d.baseline_text)!, to: trim(d.current_text)! };
+    return { from: null, to: trim(d.finding) ?? null } as { from: string | null; to: string | null };
+  })();
+
   // Honest caption — plain facts in the calm register, no manufactured urgency.
   const caption = beacon
     ? L(
@@ -691,6 +709,51 @@ export function VoyageSea({
                 {L(`그 외 ${dueShips.length - 1}건이 더 기다려요`, `${dueShips.length - 1} more waiting below`)}
               </p>
             )}
+          </div>
+      )}
+
+      {/* ── drift notice — the amber current's voice, mirrored on the left.
+            Fires ONLY on the groundSpotlight event (drift + live bets);
+            silent on flat days. Amber is a fact color, never a verdict. ── */}
+      {spotlight && (
+          <div
+            className="static sm:absolute sm:left-[2.5%] sm:top-[11%] z-[3] mt-3 sm:mt-0 sm:max-w-[272px] rounded-xl border p-3.5"
+            style={{
+              background: `${N.seaDeep}d9`,
+              borderColor: 'color-mix(in srgb, var(--warning) 34%, transparent)',
+              backdropFilter: 'blur(3px)',
+            }}
+          >
+            <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.14em] font-semibold" style={{ color: 'var(--warning)' }}>
+              <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--warning)' }} />
+              {L('전제가 움직였어요', 'The ground moved')}
+            </p>
+            <p className="mt-2 text-[13px] font-bold leading-snug break-keep" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+              “{spotlight.text.length > 44 ? `${spotlight.text.slice(0, 44)}…` : spotlight.text}”
+            </p>
+            {spotGauge && (
+              <p className="mt-1.5 text-[11px] font-mono tabular-nums" style={{ color: `${N.paper}a1` }}>
+                {spotGauge.from != null && (
+                  <>
+                    {L('봉인 당시', 'sealed at')} {spotGauge.from}
+                    <span aria-hidden className="mx-1.5 opacity-60">→</span>
+                  </>
+                )}
+                <b style={{ color: 'var(--warning)' }}>{L('오늘', 'today')} {spotGauge.to}</b>
+              </p>
+            )}
+            <p className="mt-1.5 text-[10px] font-mono" style={{ color: `${N.paper}73` }}>
+              {L(`살아있는 판단 ${spotlight.live_bets.length}개가 그 위에`, `${spotlight.live_bets.length} live bet${spotlight.live_bets.length === 1 ? '' : 's'} stand on it`)}
+              {spotlight.drift?.source_detail ? ` · ${spotlight.drift.source_detail}` : ''}
+            </p>
+            <button
+              type="button"
+              onClick={() => onSelectReceipt?.(spotlight.members[0].receipt_id)}
+              className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-mono font-semibold cursor-pointer transition-[gap] duration-300 hover:gap-2.5"
+              style={{ color: 'var(--warning)' }}
+            >
+              {L('전체 살펴보기', 'See the full ground')} <span aria-hidden>→</span>
+            </button>
           </div>
       )}
       </div>

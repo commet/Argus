@@ -337,4 +337,38 @@ describe('one sea — receipt vessels and undersea currents', () => {
     ]);
     expect(container.querySelectorAll('[data-testid="fleet-current"]').length).toBe(0);
   });
+
+  it('the drift notice fires only on the spotlight event, quotes the ground, and routes to review', () => {
+    const drifted = rPremise(GROUND, {
+      last_recheck: {
+        finding: '4.0%', numeric_value: 4, baseline_finding: '3.5%', baseline_numeric_value: 3.5,
+        drifted: true, baseline_only: false, source: 'url', ts: '2026-02-20T00:00:00Z',
+      },
+    });
+    const onSelectReceipt = renderWithReceipts([
+      sealedReceipt('r1', '조달', '2026-02-01T00:00:00.000Z', [drifted]),
+      sealedReceipt('r2', '가격', '2026-02-15T00:00:00.000Z', [rPremise(GROUND)]),
+    ]);
+    const text = container.textContent || '';
+    expect(text).toContain('전제가 움직였어요');
+    expect(text).toContain(GROUND); // the user's own sentence, verbatim
+    expect(text).toContain('살아있는 판단');
+    const cta = Array.from(container.querySelectorAll('button')).find((b) =>
+      (b.textContent || '').includes('전체 살펴보기'),
+    )!;
+    expect(cta).toBeTruthy();
+    act(() => cta.click());
+    expect(onSelectReceipt).toHaveBeenCalledWith('r1');
+  });
+
+  it('shared ground WITHOUT drift stays silent — no notice, quiet current only (restraint)', () => {
+    renderWithReceipts([
+      sealedReceipt('r1', '조달', '2026-02-01T00:00:00.000Z', [rPremise(GROUND)]),
+      sealedReceipt('r2', '가격', '2026-02-15T00:00:00.000Z', [rPremise(GROUND)]),
+    ]);
+    expect(container.textContent).not.toContain('전제가 움직였어요');
+    const currents = Array.from(container.querySelectorAll('[data-testid="fleet-current"]'));
+    expect(currents.length).toBe(1);
+    expect(currents[0].getAttribute('data-drifted')).toBe('0');
+  });
 });
