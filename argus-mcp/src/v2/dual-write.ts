@@ -15,11 +15,15 @@
  *  - 호출자가 predicate_owner='user'를 그냥 전달 → host_reported (모델이 전한 말)
  *  - 'ai_surfaced' → ai_surfaced
  */
+import { createHash } from 'node:crypto';
 import { gitCommonDirOf } from './git-discovery.js';
 import { argusHome, lookupRepository } from './ledger.js';
-import { contextFor, sealV2, settleV2, ulid, type Provenanced } from './bridge.js';
+import { amendV2, contextFor, dismissV2, sealV2, settleV2, ulid, type Provenanced } from './bridge.js';
 import { packageMeta } from '../lib/package-meta.js';
 import type { Provenance } from './events.js';
+
+/** 멱등 key는 128자 캡(II-A) — 긴 predicate는 지문으로 줄인다. */
+const short = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex').slice(0, 12);
 
 /** stdio 프로세스 1개 = 세션 1개 (due-note의 session-once와 같은 가정). */
 const PROCESS_SESSION_ID = `mcp-${ulid()}`;
@@ -81,6 +85,53 @@ export function dualWriteSeal(args: {
       // human_judgment는 정의상 사용자의 말 — 전달 경로 provenance를 따른다(II-B).
       ...(args.humanJudgment ? { humanJudgment: p(args.humanJudgment) } : {}),
       idempotencyKey: `${args.decisionId}:${args.checkBy}`, // v1 재시도와 같은 축
+    });
+    return { written: true, repository_id: c.ctx.repository_id };
+  } catch (e) {
+    return { written: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export function dualWriteAmend(args: {
+  argusDir: string;
+  today: string;
+  decisionId: string;
+  predicate?: string;
+  checkBy?: string;
+}): DualWriteResult {
+  if (args.predicate === undefined && args.checkBy === undefined) {
+    return { written: false, reason: 'no field change — v2 amend requires at least one' };
+  }
+  try {
+    const c = contextOrReason(args.argusDir, args.today);
+    if (!c.ok) return { written: false, reason: c.reason };
+    // amend 인자는 모델이 전달한 값 — host_reported (II-B).
+    const p = (value: string): Provenanced => ({ value, provenance: 'host_reported' });
+    amendV2(c.ctx, {
+      decisionId: args.decisionId,
+      ...(args.predicate !== undefined ? { predicate: p(args.predicate) } : {}),
+      ...(args.checkBy !== undefined ? { checkBy: p(args.checkBy) } : {}),
+      idempotencyKey: `${args.decisionId}:${short(`${args.predicate ?? ''}|${args.checkBy ?? ''}`)}`,
+    });
+    return { written: true, repository_id: c.ctx.repository_id };
+  } catch (e) {
+    return { written: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export function dualWriteDismiss(args: {
+  argusDir: string;
+  today: string;
+  decisionId: string;
+  reason?: string;
+}): DualWriteResult {
+  try {
+    const c = contextOrReason(args.argusDir, args.today);
+    if (!c.ok) return { written: false, reason: c.reason };
+    dismissV2(c.ctx, {
+      decisionId: args.decisionId,
+      ...(args.reason ? { reason: args.reason.slice(0, 400) } : {}),
+      idempotencyKey: `${args.decisionId}:dismiss`,
     });
     return { written: true, repository_id: c.ctx.repository_id };
   } catch (e) {
