@@ -40,11 +40,11 @@ const MATERIAL_SANCTIONED = new Set<string>([
   // Shared chart primitives (Graticule etc.) — material by definition.
   'components/ui/ChartPlate.tsx',
   'components/ui/VoyageElements.tsx',
-  // Chart-language surfaces mounted on the (sanctioned) project page: the
-  // fleet sea-chart and the voyage logbook wear the same paper/ink material
-  // as ChartPlate they sit on. Material only — no ceremony (verified by the
-  // ceremony test above). Deliberate borrow, same register as the page.
-  'components/projects/FleetChart.tsx',
+  // Chart-language surface mounted on the (sanctioned) project page: the
+  // voyage logbook wears the same paper/ink material as ChartPlate it sits
+  // on. Material only — no ceremony (verified by the ceremony test above).
+  // (VoyageSea, the night-sea map, needs no entry: its plate palette is
+  // internal/theme-stable and everything under it uses app tokens.)
   'components/projects/Logbook.tsx',
 ]);
 

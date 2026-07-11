@@ -27,7 +27,7 @@ import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
 import { isCheckpointDue } from '@/lib/checkpoint-core';
 import { RecordStrip } from '@/components/ui/RecordStrip';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
-import { FleetChart } from '@/components/projects/FleetChart';
+import { VoyageSea } from '@/components/projects/VoyageSea';
 import { Logbook } from '@/components/projects/Logbook';
 import { useDueCount } from '@/hooks/useDueCount';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
@@ -538,6 +538,33 @@ export default function ProjectPage() {
             </Card>
           ) : (
             <>
+              {/* 항해 지도 (창업자 재결정 2026-07-10) — 화면 상단 전체가 밤바다
+                  해도가 된다. 위치가 상태를 말하고(먼바다·표류 여백·여울·항구),
+                  강조는 오직 '사용자가 약속한 확인일 도래'(등대 불빛) 하나 —
+                  성공/실패 강조는 없다. 2척 미만이면 스스로 미렌더.
+                  due 소스는 아래 strip과 동일한 useDueCount (숫자 표류 불가). */}
+              <VoyageSea
+                projects={projects}
+                reframeItems={reframeItems}
+                recastItems={recastItems}
+                synthesizeItems={synthesizeItems}
+                feedbackHistory={feedbackHistory}
+                progressiveSessions={progressiveSessions}
+                dueProjectIds={dueProjects.map((p) => p.id)}
+                locale={locale}
+                onSelect={setCurrentProjectId}
+                onReview={(id) => {
+                  // Same re-arm as the strip chips: the settle question returns
+                  // even if dismissed earlier this visit.
+                  setSettleDismissed((prev) => {
+                    const next = new Set(prev);
+                    next.delete(id);
+                    return next;
+                  });
+                  setCurrentProjectId(id);
+                }}
+              />
+
               {/* 자차표 — the user's accumulating record of closed loops.
                   Until now this only flashed once inside the settlement modal
                   and vanished; this is where it LIVES. Facts, never a score.
@@ -550,20 +577,6 @@ export default function ProjectPage() {
                   (실 record 0) 상태에서 정산한 회고가 있을 때만. 빈 자차표가
                   배신처럼 안 보이게 하고, 실 봉인으로 한 번 가리킨다. */}
               <RetroOnlyNotice />
-
-              {/* 함대 해도 (S4 최소형 · B1) — 봉인한 항해들이 한 폭의 해도 위에
-                  봉인일 순으로 늘어선다. 2척 미만이면 스스로 미렌더. 상태별 그룹핑·
-                  강조·카운트 배지 없이 시간축 하나만이 정렬키 (거울 조항 게이트). */}
-              <FleetChart
-                projects={projects}
-                reframeItems={reframeItems}
-                recastItems={recastItems}
-                synthesizeItems={synthesizeItems}
-                feedbackHistory={feedbackHistory}
-                progressiveSessions={progressiveSessions}
-                locale={locale}
-                onSelect={setCurrentProjectId}
-              />
 
               {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환.
                   Review receipts past check-by join the SAME strip (P0-6 ① —
