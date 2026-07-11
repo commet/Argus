@@ -1,0 +1,119 @@
+/**
+ * P4-3 — 수명주기 연산 4종 (정본 규칙 21 / II-F)의 수용 기준.
+ * 핵심 계약: export는 원본 무변화, import 충돌은 명시 거절(조용한 덮어쓰기
+ * 불가능), purge는 원문 confirm 강제, 왕복(export→purge→import)이 무손실.
+ */
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { lookupRepository, projectDir, registerRepository } from './ledger.js';
+import { loadState } from './reducer.js';
+import { doctorBackup, exportBundle, importBundle, purgeRepository } from './lifecycle.js';
+
+let home: string;
+let repoDir: string;
+let repoId: string;
+let bundle: string;
+
+const T0 = '2026-07-11T12:00:00.000Z';
+const LEDGER_LINE = JSON.stringify({
+  event_id: '01JZXK5N8Q2W4E6R8T0Y2Z4A6B', v: 2, producer_version: 't',
+  repository_id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301', workspace_id: '9b2fd3a1-6c7e-4a2b-8d1f-2e3a4b5c6d7e',
+  session_id: 's', occurred_at: T0, logical_date: '2026-07-11', tz: 'UTC',
+  idempotency_key: 'k1', event: 'seal',
+  decision_id: 'd1', predicate: { value: '왕복 후에도 남는다', provenance: 'elicited_user' },
+  check_by: { value: '2026-08-01', provenance: 'elicited_user' },
+}) + '\n';
+
+beforeEach(() => {
+  home = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-lc-home-'));
+  repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-lc-repo-'));
+  bundle = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-lc-bundle-'));
+  fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
+  repoId = registerRepository(home, path.join(repoDir, '.git'));
+  fs.writeFileSync(path.join(projectDir(home, repoId), 'ledger.jsonl'), LEDGER_LINE);
+});
+afterEach(() => {
+  for (const d of [home, repoDir, bundle]) fs.rmSync(d, { recursive: true, force: true });
+});
+
+describe('export → purge → import 왕복 (II-F의 본체)', () => {
+  it('왕복 후 원장 내용과 결정 상태가 동일하다 — 무손실', () => {
+    const manifest = exportBundle(home, repoId, bundle, T0);
+    expect(manifest.files.map((f) => f.name)).toEqual(['ledger.jsonl']);
+
+    const purged = purgeRepository(home, repoId, repoId);
+    expect(purged).toEqual({ removed_project_dir: true, removed_registry_entries: 1 });
+    expect(fs.existsSync(projectDir(home, repoId))).toBe(false);
+    expect(lookupRepository(home, path.join(repoDir, '.git'))).toBeNull(); // registry에서도 사라짐
+
+    const plan = importBundle(home, bundle, { dryRun: false });
+    expect(plan.applied).toBe(true);
+    expect(plan.writes).toEqual(['ledger.jsonl']);
+
+    const state = loadState(home, repoId);
+    expect(state.decisions.get('d1')?.predicate?.value).toBe('왕복 후에도 남는다');
+  });
+
+  it('export는 원본을 1바이트도 바꾸지 않는다', () => {
+    const before = fs.readFileSync(path.join(projectDir(home, repoId), 'ledger.jsonl'), 'utf8');
+    exportBundle(home, repoId, bundle, T0);
+    expect(fs.readFileSync(path.join(projectDir(home, repoId), 'ledger.jsonl'), 'utf8')).toBe(before);
+  });
+});
+
+describe('import — 충돌·파손의 명시 거절', () => {
+  it('dryRun은 계획만 — 아무것도 쓰지 않는다', () => {
+    exportBundle(home, repoId, bundle, T0);
+    purgeRepository(home, repoId, repoId);
+    const plan = importBundle(home, bundle, { dryRun: true });
+    expect(plan.writes).toEqual(['ledger.jsonl']);
+    expect(plan.applied).toBe(false);
+    expect(fs.existsSync(projectDir(home, repoId))).toBe(false);
+  });
+
+  it('대상에 다른 내용이 실존하면 conflict — 실적용을 거절하고 덮어쓰지 않는다', () => {
+    exportBundle(home, repoId, bundle, T0);
+    const target = path.join(projectDir(home, repoId), 'ledger.jsonl');
+    fs.appendFileSync(target, LEDGER_LINE.replace('k1', 'k2').replace('d1', 'd2')); // 원장이 그새 자랐다
+    const grown = fs.readFileSync(target, 'utf8');
+
+    const plan = importBundle(home, bundle, { dryRun: false });
+    expect(plan.conflicts).toEqual(['ledger.jsonl']);
+    expect(plan.applied).toBe(false);
+    expect(fs.readFileSync(target, 'utf8')).toBe(grown); // 무손상 — 자란 원장이 이긴다
+  });
+
+  it('동일 내용이 이미 있으면 충돌도 쓰기도 아니다 (멱등 재적용)', () => {
+    exportBundle(home, repoId, bundle, T0);
+    const plan = importBundle(home, bundle, { dryRun: false });
+    expect(plan).toMatchObject({ writes: [], conflicts: [], applied: true });
+  });
+
+  it('번들 파손(해시 불일치)은 corrupted로 명시 — 조용히 심지 않는다', () => {
+    exportBundle(home, repoId, bundle, T0);
+    purgeRepository(home, repoId, repoId);
+    fs.appendFileSync(path.join(bundle, 'ledger.jsonl'), '{tampered}\n');
+    const plan = importBundle(home, bundle, { dryRun: false });
+    expect(plan.corrupted).toEqual(['ledger.jsonl']);
+    expect(plan.applied).toBe(false);
+    expect(fs.existsSync(path.join(projectDir(home, repoId), 'ledger.jsonl'))).toBe(false);
+  });
+});
+
+describe('purge — confirm 원문 강제', () => {
+  it('confirm이 repository_id 원문이 아니면 거절, 아무것도 삭제 안 됨', () => {
+    expect(() => purgeRepository(home, repoId, 'yes')).toThrow('PURGE_CONFIRM_MISMATCH');
+    expect(fs.existsSync(path.join(projectDir(home, repoId), 'ledger.jsonl'))).toBe(true);
+  });
+});
+
+describe('doctorBackup — 마이그레이션 전 백업 부품', () => {
+  it('원장 사본을 backups/에 남기고 원본은 무변화', () => {
+    const p = doctorBackup(home, repoId, T0);
+    expect(p).toContain(path.join('backups', 'ledger-'));
+    expect(fs.readFileSync(p, 'utf8')).toBe(LEDGER_LINE);
+    expect(fs.readFileSync(path.join(projectDir(home, repoId), 'ledger.jsonl'), 'utf8')).toBe(LEDGER_LINE);
+  });
+});
