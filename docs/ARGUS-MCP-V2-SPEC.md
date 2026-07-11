@@ -414,3 +414,103 @@ Osaurus(macOS 로컬 AI 런타임, GitHub 트렌딩 1위)에서 이식할 것은
 
 **R3-4 · 백로그 승격 목록(§8행)**: Streamable HTTP+OAuth · resource subscription 알림 ·
 patterns의 의미 유사 결정 병합(Osaurus consolidation 차용) · Smithery/레지스트리 자동 배포
+
+
+---
+
+# 개정 R4 — 공학 헌장: 표준이 되는 코드베이스 (2026-07-11, 비평 3라운드 통과본)
+
+> **설계 과정 공개**: 초안(6기둥 헌장)을 서로 다른 렌즈의 비평 3개(OSS 교육자 /
+> 반-과잉설계 스태프 엔지니어 / MCP 생태계 저자)가 리포를 직접 열어 검증하며 공격했고,
+> 세 비평이 독립 수렴한 판정으로 초안을 크게 수정했다. 죽은 항목도 아래에 남긴다 —
+> 반-목록이 헌장의 일부다.
+
+## R4-0 · 세 비평이 수렴한 대판정 (초안을 뒤집은 것)
+
+1. **"흡수 모델"은 전복이었다.** 초안은 R4를 P1~P4의 DoD에 흡수시켰다(+30~40%).
+   세 비평 전원 기각: *"레전드 리포는 읽혀서가 아니라 쓰여서 표준이 됐다. 5명 검증
+   전에 관객(외부 개발자)을 위해 짓는 것은 관문의 전복이다."* → R4는 둘로 쪼갠다:
+   **R4-A(제품 신뢰, P1~P4 잔류, 총 2~3일)** 와 **R4-B(표준화 웨이브, P5 통과 후)**.
+   시공 기간은 6~7주로 원복된다.
+2. **손으로 유지하는 문서 7종은 자기모순이었다.** 드리프트한 정직성 카탈로그야말로
+   "그럴듯함이 정확함으로 위장"하는 것 — 이 코드베이스가 존재하는 이유의 위반.
+   → 손문서는 3개만(LEDGER / MCP-NOTES / ARCHITECTURE), 나머지는 **생성**하거나 죽인다.
+3. **읽히는 것보다 실행되는 것.** 2026년 레퍼런스가 되는 경로는 레지스트리 →
+   2분 퀵스타트 → examples/ → 베낄 수 있는 스켈레톤이다. 초안엔 실행 가능한
+   아티팩트가 0개였다. → R4-B의 중심을 runnable로 재편.
+4. **해시 체인은 P1에서 사망.** 스태프 비평이 코드로 반박: `ledger-append.ts`의
+   의도된 best-effort 락("Lock or no lock, the work proceeds")과 체인이 충돌 —
+   락 없는 병행 append가 체인을 분기시키고, torn-tail 치유가 영구 오탐("변조 흔적")을
+   만든다. ~50줄이 아니라 150~250줄 + 정책 + 영구 지원 표면. 위협 모델도 빈약
+   (자기 소유 로컬 파일). → P1에서 제거, R4-B에서 락 설계 문제를 명명한 채 재평가.
+   그 전까지 SECURITY.md의 정직한 "서명 없음"이 더 낫다.
+
+## R4-A · P1~P4에 남는 것 (제품 신뢰 직결, 총 +2~3일)
+
+| 항목 | 내용 | 근거 |
+|---|---|---|
+| **`lib/provenance.ts`** | 출처 전환 규칙(ai_surfaced→user iff 바이트-일치 인용+승인)을 단일 함수로 중앙화 + **directed 테스트 5개** (fast-check 상태머신 아님 — 비평 판정: 과잉) | 3인 만장일치 생존. CLAUDE.md 단일-소스 규칙의 적용이자 척추 임계 |
+| **property test 2종만** | (c) crash-내성 fuzz: 원장을 임의 바이트에서 절단 → replay는 절대 throw 없이 drop 계상 (실존 사고 클래스) · (d) 투영 등가: 무작위 원장에서 4개 렌더가 동일 BriefState 유도 | (a)replay 결정성·(b)전이 단조성은 구현의 재진술 — 컷 |
+| **MCP-NOTES.md (지뢰 지도)** | 위치: `argus-mcp/` 루트(npm 방문자가 보는 곳, docs/ 아님). 내용: zod `.default()`→required 함정(`{io:'input'}`) · Claude Desktop `${}` 미확장 · Windows `npx.cmd` · stdout 위생 · **툴 호출 직렬화**(read-replay-append 경합, server.ts의 serialize 체인) · SDK 타입 공백(ElicitCapableServer 캐스트, elicitation은 서버가 '쓰는' 클라이언트 능력) · `$schema` 노이즈 · `instructions` 무시 호스트 · `isError`+structuredContent 렌더 편차 · 레지스트리 server.json 스키마 변동 | 3인 만장일치 최강 항목. 지뢰는 write-once라 드리프트 면역 — 유지비 대비 북마크 가치 최대 |
+| **스펙-버전 규율** | README+server.json에 대상 MCP 프로토콜 리비전 명시, 릴리스 체크리스트에 server.json 버전 갱신, 스펙 범프 시 재감사 노트 | "무슨 리비전을 겨냥하는지 말 못하는 구현은 레퍼런스가 아니다" |
+| **모듈 헤더 규약** | 이미 우수한 문화(overfire-gate.ts, untrusted.ts 검증됨)를 CONTRIBUTING 한 문장으로 명문화 | 비용 ≈ 0 |
+
+## R4-B · 표준화 웨이브 (P5 관문 통과 후, ~2주)
+
+**Wave-B1 · 열린 계약**
+- `docs/LEDGER.md` + `schemas/`(zod에서 생성) + **conformance corpus**: 버전화된
+  골든 원장 픽스처(정상/torn-tail/미지 이벤트/변조)와 기대 replay 출력 — 서드파티가
+  이 코퍼스로 자기 구현을 검증한다. 파이썬 참조 리더(~30줄)는 코퍼스 소비자 1호로
+  CI에서 실행(방치 금지).
+- 개방성의 주력 증명은 파일 파싱이 아니라 **`argus://` Resources** — "어떤 MCP
+  클라이언트에서든 원장을 읽는다" (R2 unbound 수정이 전제).
+
+**Wave-B2 · 실행 가능한 전파물**
+- `examples/` — 호스트별 동작 설정(Claude Code/Desktop/Cursor/VS Code/Windows).
+- `template/` — `tool-types.ts`의 ToolModule 패턴(zod 단일 소스 → safeParse →
+  envelope → annotations, 이미 62줄짜리 교보재)을 "Argus 방식으로 MCP 툴 짓기"
+  스켈레톤으로 추출. **플러그인-이-MCP-내장 패턴(.mcp.json + ${CLAUDE_PLUGIN_ROOT}
+  + 버전 핸드셰이크 + 결정론 훅)이 가장 베껴질 아티팩트다** — prose가 아니라
+  스켈레톤으로 전파.
+- `npx argus-decision-mcp demo` — 픽스처 원장 위에서 봉인→정산→영수증 60초 재연.
+  낯선 이가 설치 없이 루프를 몸으로 1회전. README 첫 화면에.
+
+**Wave-B3 · 생성되는 문서층 (드리프트 면역)**
+- **INVARIANTS.md를 CI가 생성** — 모듈 헤더 + 행동-문장 테스트 제목에서 추출.
+  초안의 SPINE.md/HONEST-FAILURE.md/EVALS.md/TOUR.md 손문서 4종을 이것 하나 +
+  주력 에세이로 대체. "테스트가 곧 스펙"을 기계화.
+- 손문서는 `ARCHITECTURE.md`("봉인 한 건의 일생" 워크스루, 파일 링크 실존을 CI 검사)
+  하나만 추가.
+- **주력 에세이 1편은 자를 수 없는 산출물** (초안은 dial-down 목록에 넣었다 —
+  교육자 비평: 정확히 거꾸로다. antirez/Ben Johnson은 docs/가 아니라 voice로
+  정본이 됐다): *"프레임워크 없는 event sourcing 500줄 — 그리고 거짓말 못 하는
+  원장"*. 코드 투어는 에세이의 부록으로.
+- conformance 표(구현한 것/안 한 것과 이유 — "안 했다"를 숨기지 않는 것이 자격) ·
+  상류 기여 검토.
+
+**Wave-B4 · 재평가 항목**
+- 해시 체인: 락 설계 충돌을 명명한 채 재검토 (mandatory-lock 전환 비용 vs
+  tamper-evidence 가치. 기본 기대: 기각 유지).
+
+## R4-C · 반-목록 (이번 라운드 전사자 포함 — 이 목록 자체가 헌장이다)
+
+- 해시 체인 @P1 (락 충돌·오탐·위협모델 빈약) → B4 재평가로 강등
+- property (a)(b) (구현 재진술) · provenance fast-check 상태머신 (directed 5개면 충분)
+- 손문서 SPINE/HONEST-FAILURE/EVALS/TOUR (드리프트 부채) → 생성형 INVARIANTS + 에세이로
+- 호스트 호환 매트릭스 문서 (주 단위 부패 — nightly 픽스처 테스트가 곧 아티팩트)
+- 에러 어휘 모듈 (이미 대부분 존재 — churn) · 텔레메트리 어휘 통일 (제품 배관, 헌장 아님)
+- **자기 지명 언어 전부** ("카테고리를 만드는 자가 표준이 된다", "업계 전례 없음",
+  "레퍼런스 구현" 자칭) — 지위는 수여되는 것, 주장하는 순간 만장일치로 신뢰 하락.
+  카테고리명 "decision harness"는 유지하되 에세이와 실물로만 민다.
+- doctor 신규 제작 (플러그인에 /doctor 스킬 기실존 — v2 스펙의 이식 항목과 중복 제거)
+- (기존 유지) mutation testing · 패키지 분리 · Streamable HTTP 지금 · DSL · 벤치마크 · 배지 연극
+
+## R4-D · 수용 기준 — 내부는 DoD, 외부는 봉인
+
+- **DoD (기계 검증)**: `argus_score` 툴 추가 PR이 3중 독립 게이트(closed union /
+  금지동사 drift-guard / next_actions 검사)에서 각각 빨간불 — 이 시나리오를 테스트로
+  상설화 · conformance corpus를 파이썬 리더가 CI에서 통과 · INVARIANTS.md가 CI 산물.
+- **외부 채택 지표는 DoD가 아니라 우리 제품으로 봉인한다** (자기 도그푸딩):
+  "MCP-NOTES가 외부 이슈/글에 인용된다 — 확인일 6개월" · "evals 구조 차용 리포 등장 —
+  확인일 12개월"을 argus_seal로 기록하고 현실이 정산한다. 허영 지표를 DoD에 넣는
+  대신, 우리가 파는 바로 그 규율로 우리 야망을 기록한다.
