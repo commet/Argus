@@ -200,3 +200,20 @@ describe('연속성 — v1에서 봉인한 결정을 v2가 정산한다', () => 
     })).toThrow(/ALREADY_SETTLED/);
   });
 });
+
+describe('그물 회귀 (P4-5 재검토 발견 A): v1 미봉인 결정도 조용히 사라지지 않는다', () => {
+  it('fold된 v1 harvest는 harvested_on(ts 날짜)을 얻어 unsealed_net에 뜬다', async () => {
+    const { deriveBrief } = await import('./brief.js');
+    const state = emptyState();
+    foldV1(state, [
+      { v: 1, event: 'harvest', id: 'v1-open', decision: '옛날에 잡고 봉인 안 한 것', ts: '2026-05-01T09:00:00+09:00' },
+      { v: 1, event: 'harvest', id: 'v1-sealed', decision: '봉인된 것', ts: '2026-05-01T09:00:00+09:00' },
+      { v: 1, event: 'seal', id: 'v1-sealed', predicate: 'p', check_by: '2099-01-01' },
+    ] as unknown as V1Event[]);
+    const brief = deriveBrief(
+      { ...state, skipped_unknown: 0, dropped_corrupt: 0, last_event_id: null }, '2026-07-11');
+    expect(brief.unsealed_net).toEqual([
+      { decision_id: 'v1-open', text: '옛날에 잡고 봉인 안 한 것', harvested_on: '2026-05-01' },
+    ]);
+  });
+});
