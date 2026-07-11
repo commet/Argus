@@ -237,7 +237,13 @@ async function deferStillPending(args: {
       guardTransition(fresh.state, 'dismiss');
       await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: 'no longer relevant (still_pending at check-by)' }], now);
     });
-    return envelope({ ok: true, tool: 'argus_settle', surface: T.defer_dismissed, next_actions: ['argus_recall', 'stop'], data: { id, status: 'dismissed' } });
+    // Tell the account too — a dismissal via this picker is a real dismissal.
+    // Without it a synced item stays sealed with its old check-by and the
+    // Companion Brief keeps emailing a decision the user set aside (same gap
+    // argus_dismiss had). archived, never settled: reality said nothing.
+    const sync = await pushToAccount({ action: 'dismiss', id: accountPushId(dir, id) });
+    const syncLine = sync.synced || sync.reason === 'no_token' ? '' : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
+    return envelope({ ok: true, tool: 'argus_settle', surface: T.defer_dismissed + syncLine, next_actions: ['argus_recall', 'stop'], data: { id, status: 'dismissed', account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) } });
   }
 
   // No date and no picker → do NOT guess, and NEVER terminal-settle. Ask.

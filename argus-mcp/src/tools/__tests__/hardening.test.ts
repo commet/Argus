@@ -59,6 +59,20 @@ describe('argus_sync · the account is a network trust boundary', () => {
     expect(D(c)['due_count']).toBe(1);
   });
 
+  it('a web "unclear" with NO words is still classified as unresolved, not "settled on web"', async () => {
+    const dir = tmpArgusDir();
+    await sealedLocally(dir);
+    // outcome unclear, but what_happened empty — safeRemoteSettlement() returns
+    // null here, so classification must read the raw outcome, not the sanitized one.
+    mockAccount([accountReceipt({ state: 'settled', settled_predicates: [{ predicate: 'churn', outcome: 'unclear', what_happened: '' }] })]);
+    const r = body(await sync.handler({ argus_dir: dir, import_settlements: true }));
+    expect(String(r['surface'])).toMatch(/unclear|불분명/);            // named as unresolved
+    expect(String(r['surface'])).not.toMatch(/already settled on the web|웹에서 이미 정산/); // NOT miscounted
+    const row = (D(r)['receipts'] as Array<Record<string, unknown>>)[0];
+    expect(row['unresolved_in_account']).toBe(true);
+    expect(row['settled_in_account']).toBeUndefined();
+  });
+
   it('a prototype key ("constructor") from the account cannot close a decision', async () => {
     const dir = tmpArgusDir();
     await sealedLocally(dir);

@@ -127,7 +127,8 @@ function needsLeadingNewline(lPath: string): boolean {
 }
 
 export async function appendLedger(argusDir: string, events: LedgerEventInput[], now: string): Promise<{ written: number }> {
-  await fsP.mkdir(ledgerDir(argusDir), { recursive: true });
+  const dir = ledgerDir(argusDir);
+  await fsP.mkdir(dir, { recursive: true });
   const lPath = ledgerPath(argusDir);
 
   const body = events
@@ -137,6 +138,10 @@ export async function appendLedger(argusDir: string, events: LedgerEventInput[],
   // next event. The torn remnant still counts as dropped_lines (disclosed), but
   // the events we are writing now survive.
   const lines = (needsLeadingNewline(lPath) ? '\n' : '') + body;
+  // fsync of the file makes its CONTENTS durable, but the very first append also
+  // creates the directory ENTRY — and that entry can be lost on a crash unless
+  // the parent directory is itself synced. Only matters on first create.
+  const isFirstCreate = !fs.existsSync(lPath);
 
   await new Promise<void>((resolve, reject) => {
     let fd: number | undefined;
@@ -154,6 +159,14 @@ export async function appendLedger(argusDir: string, events: LedgerEventInput[],
       if (fd !== undefined) fs.closeSync(fd);
     }
   });
+
+  if (isFirstCreate) {
+    // Persist the new file's directory entry, consistent with the file fsync above.
+    let dfd: number | undefined;
+    try { dfd = fs.openSync(dir, fs.constants.O_RDONLY); fs.fsyncSync(dfd); }
+    catch { /* directory fsync unsupported (e.g. Windows) — best effort */ }
+    finally { if (dfd !== undefined) { try { fs.closeSync(dfd); } catch { /* already closed */ } } }
+  }
 
   return { written: events.length };
 }

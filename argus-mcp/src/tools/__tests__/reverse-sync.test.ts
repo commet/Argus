@@ -4,6 +4,7 @@ import { seal } from '../seal.js';
 import { settle } from '../settle.js';
 import { dismiss, amend } from '../amend-dismiss.js';
 import { sync } from '../sync.js';
+import { setElicitor } from '../../lib/elicit.js';
 
 /**
  * seal/settle/amend/dismiss push to the account exactly ONCE, when the write
@@ -54,6 +55,7 @@ async function sealedOffline(dir: string) {
 afterEach(() => {
   vi.restoreAllMocks();
   delete process.env.ARGUS_TOKEN;
+  setElicitor(null);
 });
 
 describe('argus_sync pushes local changes the account never received', () => {
@@ -132,6 +134,20 @@ describe('argus_sync pushes local changes the account never received', () => {
     const pushes = connectAccount([]);
     await dismiss.handler({ argus_dir: dir, id: 'bet', dismiss_reason: 'changed_mind', today_override: '2026-06-05' });
     expect(pushes.map((p) => p['action'])).toEqual(['dismiss']);
+  });
+
+  it('settling still_pending and picking "set aside" pushes a dismiss to the account', async () => {
+    const dir = tmpArgusDir();
+    await sealedOffline(dir); // due bet, sealed at 2026-06-01 / check-by 2026-07-01
+    const pushes = connectAccount([]);
+    setElicitor(async () => ({ action: 'accept', content: { when: 'dismiss' } }));
+    // due day, no defer_to → the picker fires; "dismiss" sets it aside.
+    const r = body(await settle.handler({
+      argus_dir: dir, id: 'bet', outcome: 'still_pending', outcome_source: 'user_stated',
+      what_happened: 'the feature was cut', today_override: '2026-07-02',
+    }));
+    expect(D(r)['status']).toBe('dismissed');
+    expect(pushes.map((p) => p['action'])).toEqual(['dismiss']); // account told right away
   });
 
   it('argus_amend moves the account\'s check-by right away', async () => {

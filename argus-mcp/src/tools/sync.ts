@@ -167,8 +167,15 @@ export const sync: ToolModule = {
       // Importing it as a `settle` event would terminally close a bet the user
       // never resolved, drop it off check_in forever, and write a receipt claiming
       // "what happened" about a thing that did not happen. Never import it — name it.
-      const unresolvedInAccount = (r: AccountReceipt): boolean =>
-        safeRemoteSettlement(r.settled_predicates?.[0])?.outcome === 'still_pending';
+      // Classify off the RAW outcome, not safeRemoteSettlement(): that helper
+      // returns null when what_happened is empty after sanitizing, so an account
+      // "unclear" with no words would fall through and be miscounted as
+      // settled_in_account — the user would see "settled on web" for something
+      // reality never answered. Whether it is unresolved does not depend on words.
+      const unresolvedInAccount = (r: AccountReceipt): boolean => {
+        const sp = r.settled_predicates?.[0];
+        return typeof sp?.outcome === 'string' && WEB_TO_MCP_OUTCOME.get(sp.outcome) === 'still_pending';
+      };
       // ⑤ Settlement import (§9.4 귀환 봉합, M2): mirror what the USER already
       // recorded on the web — their outcome enum and their own words, verbatim —
       // into the local ledger, so check_in stops re-nudging a closed loop.
@@ -208,8 +215,17 @@ export const sync: ToolModule = {
                 id: localId, event: 'settle', outcome,
                 decision: sp.what_happened, source_detail: 'web_settlement_import',
               }], now);
+              // Carry the LOCAL deferral history onto the imported receipt, same
+              // as argus_settle does — if the bet was deferred here before being
+              // settled on the web, the receipt should still say "originally due
+              // X · deferred N×" rather than pretend the final date was the date.
+              const deferCount = fresh.entry?.defer_count ?? 0;
+              const originallyDue = fresh.entry?.defer_history?.[0]?.from;
               await writeSettleReceipt(dir, localId,
-                { what_happened: sp.what_happened, outcome, settled_at: now },
+                {
+                  what_happened: sp.what_happened, outcome, settled_at: now,
+                  ...(deferCount > 0 ? { deferred_times: deferCount, ...(originallyDue ? { originally_due: originallyDue } : {}) } : {}),
+                },
                 { predicate: fresh.predicate, check_by: fresh.check_by });
             });
           } catch {

@@ -101,6 +101,11 @@ function illegalRecovery(current: DecisionState, event: LedgerEventType): string
 
     // defer only exists to re-arm a bet whose check-by has arrived.
     case event === 'defer':
+      // On `absent` there is no decision at all, so "argus_amend moves it" is a
+      // dead end (amend is refused on absent too). Point at the id instead.
+      if (current === 'absent') {
+        return 'No decision with this id exists yet. Check the id — argus_recall view=contracts lists them; a decision starts with argus_open_decision or argus_seal.';
+      }
       return 'A decision can only be deferred once its check-by has arrived. Before then the check-by simply stands (argus_amend moves it).';
 
     case event === 'amend' || event === 'dismiss':

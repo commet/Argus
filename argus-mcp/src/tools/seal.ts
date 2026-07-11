@@ -112,22 +112,6 @@ export const seal: ToolModule = {
 
       await ensurePrivacyGitignore(dir);
 
-      // seal-time receipt (the rich fields that make the receipt not blank)
-      const receipt = await writeSealReceipt(dir, {
-        id, predicate, check_by: checkBy,
-        real_question: a['real_question'] as string | undefined,
-        unverified_assumption: a['unverified_assumption'] as string | undefined,
-        human_only: a['human_only'] as string | undefined,
-        human_judgment: a['human_judgment'] as string | undefined,
-        basis: a['basis'] as 'judgment' | 'luck' | 'mixed' | 'unsure' | undefined,
-      }, now);
-
-      // bearing seed (so a due contract is visible even before the ledger is replayed elsewhere)
-      await atomicWriteJson(bearingPath(dir, id), {
-        v: SCHEMA_VERSION, id, contract_seed: { predicate, check_by: checkBy }, predicate_owner: a['predicate_owner'],
-      });
-      const calendarPath = await writeReturnCalendarEvent(dir, { id, predicate, check_by: checkBy, created_at: now });
-
       // ledger: self-create harvest if the decision was sealed without an explicit open
       const events: LedgerEventInput[] = [];
       if (current.state === 'absent') events.push({ id, event: 'harvest', decision: predicate });
@@ -164,10 +148,31 @@ export const seal: ToolModule = {
       // stats.total_sealed++ per event, so ONE prediction counts as two, forever,
       // on an append-only log. Re-guard under the lock: the loser sees the same
       // ILLEGAL_TRANSITION it would have seen had it arrived second sequentially.
-      await withLedgerLock(dir, async () => {
+      //
+      // The receipt / bearing / calendar files are written INSIDE the lock, after
+      // the re-guard passes — not before. If a concurrent process wins the seal,
+      // the re-guard throws and this process writes nothing; writing them earlier
+      // left the loser's receipt on disk contradicting the winner's ledger (and
+      // resolveContract reads the receipt back, so the user would see a mismatch).
+      const { receipt, calendarPath } = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'seal');
+        // seal-time receipt (the rich fields that make the receipt not blank)
+        const receiptW = await writeSealReceipt(dir, {
+          id, predicate, check_by: checkBy,
+          real_question: a['real_question'] as string | undefined,
+          unverified_assumption: a['unverified_assumption'] as string | undefined,
+          human_only: a['human_only'] as string | undefined,
+          human_judgment: a['human_judgment'] as string | undefined,
+          basis: a['basis'] as 'judgment' | 'luck' | 'mixed' | 'unsure' | undefined,
+        }, now);
+        // bearing seed (so a due contract is visible even before the ledger is replayed elsewhere)
+        await atomicWriteJson(bearingPath(dir, id), {
+          v: SCHEMA_VERSION, id, contract_seed: { predicate, check_by: checkBy }, predicate_owner: a['predicate_owner'],
+        });
+        const calendarPathW = await writeReturnCalendarEvent(dir, { id, predicate, check_by: checkBy, created_at: now });
         await appendLedger(dir, events, now);
+        return { receipt: receiptW, calendarPath: calendarPathW };
       });
 
       const namedAssumption = !receipt.skipped.includes('unverified_assumption');
