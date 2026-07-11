@@ -62,7 +62,7 @@ function writeLedgerLine(eventId: string): void {
 
 function freshLogbook(over: Partial<BriefState>): void {
   const brief: BriefState = {
-    logical_date: '2026-07-11', due: [], premise_rechecks_due: [], open_questions: [],
+    logical_date: '2026-07-11', due: [], unsealed_net: [], premise_rechecks_due: [], open_questions: [],
     candidates_active: [], candidates_expired: 0, sealed_alive: 0,
     anomalies: 0, skipped_unknown: 0, dropped_corrupt: 0,
     last_event_id: ULID, ...over,

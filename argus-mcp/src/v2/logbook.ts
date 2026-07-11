@@ -67,6 +67,17 @@ export function renderLogbook(brief: BriefState, repositoryId: string): string {
   out.push(`## 살아있는 봉인: ${brief.sealed_alive}건`);
   out.push('');
 
+  // 그물의 수동(pull) 표면 — 능동 1회 노출(pickNetOnce)과 별개로, 파일을
+  // 열어본 사람에게는 봉인 안 된 수확이 숨지 않는다 (조용한 소실 금지).
+  if (brief.unsealed_net.length > 0) {
+    out.push(`## 봉인 대기 수확 (${brief.unsealed_net.length})`);
+    out.push('');
+    for (const n of brief.unsealed_net) {
+      out.push(`- ${line(n.text)} — ${n.harvested_on} 수확 (봉인하려면 \`argus_seal\`)`);
+    }
+    out.push('');
+  }
+
   if (brief.premise_rechecks_due.length > 0) {
     out.push(`## 재확인 도래 전제 (${brief.premise_rechecks_due.length})`);
     out.push('');

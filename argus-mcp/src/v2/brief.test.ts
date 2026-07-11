@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ArgusEvent } from './events.js';
 import { reduce } from './reducer.js';
-import { deriveBrief, pickDueFairly, type DueItem } from './brief.js';
+import { deriveBrief, pickDueFairly, pickNetOnce, type DueItem } from './brief.js';
 
 let seq = 0;
 function ev(event: string, fields: Record<string, unknown>): ArgusEvent {
@@ -132,5 +132,43 @@ describe('pickDueFairly — 공정 큐 (규칙 9: 기아 방지)', () => {
 
   it('empty due → null pick, zero others (빈 잔소리는 표현 자체가 불가)', () => {
     expect(pickDueFairly([], new Map())).toEqual({ pick: null, others: 0 });
+  });
+});
+
+describe('unsealed 그물 — Matrix Capture 행: "unsealed 다음날 그물 1회 후 후보 보관"', () => {
+  it('harvest만 된 결정은 다음날부터 그물에 뜨고, 당일은 뜨지 않는다', () => {
+    const b0 = deriveBrief(loaded([
+      ev('harvest', { decision_id: 'fresh', text: u('오늘 잡은 결정') }),
+    ]), '2026-07-01'); // harvested_on 당일
+    expect(b0.unsealed_net).toEqual([]); // 당일 재촉 금지
+
+    const b1 = deriveBrief(loaded([
+      ev('harvest', { decision_id: 'fresh', text: u('오늘 잡은 결정') }),
+    ]), '2026-07-02'); // 다음날
+    expect(b1.unsealed_net).toEqual([
+      { decision_id: 'fresh', text: '오늘 잡은 결정', harvested_on: '2026-07-01' },
+    ]);
+  });
+
+  it('봉인·정산·기각된 결정은 그물에서 사라진다', () => {
+    const b = deriveBrief(loaded([
+      ...sealedDecision('sealed-one', '2026-08-01'),
+      ev('harvest', { decision_id: 'still-open', text: u('미봉인') }),
+      ev('harvest', { decision_id: 'gone', text: u('기각될 것') }),
+      ev('dismiss', { decision_id: 'gone', reason: 'obsolete' }),
+    ]), '2026-07-05');
+    expect(b.unsealed_net.map((n) => n.decision_id)).toEqual(['still-open']);
+  });
+
+  it('pickNetOnce: 표시 이력에 오른 항목은 영원히 다시 뽑히지 않는다 (1회 보장)', () => {
+    const net = deriveBrief(loaded([
+      ev('harvest', { decision_id: 'a', text: u('A') }),
+      ev('harvest', { decision_id: 'b', text: u('B') }),
+    ]), '2026-07-03').unsealed_net;
+    expect(pickNetOnce(net, new Map()).map((n) => n.decision_id)).toEqual(['a', 'b']);
+    const afterShown = pickNetOnce(net, new Map([['a', '2026-07-02']]));
+    expect(afterShown.map((n) => n.decision_id)).toEqual(['b']);
+    // 며칠이 지나도 a는 다시 안 뜬다 — 그물은 되물음 1회, 이후는 조용한 보관
+    expect(pickNetOnce(net, new Map([['a', '2026-07-02'], ['b', '2026-07-03']]))).toEqual([]);
   });
 });
