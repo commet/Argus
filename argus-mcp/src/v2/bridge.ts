@@ -330,3 +330,32 @@ export function harvestCandidateV2(ctx: V2Context, a: {
     evidence: a.evidence, source: 'harvest_sweep',
   });
 }
+
+// ── 후보 표면·행동 동사 (II-A candidate 축 — created ≠ surfaced는 별개 사건) ──
+
+export function candidateSurfacedV2(ctx: V2Context, a: {
+  candidateId: string; surface: 'brief' | 'check_in' | 'debrief' | 'logbook';
+}): IdempotentAppendResult {
+  // 노출 기록은 매 노출이 별개 사건 — caller key 불요.
+  return append(ctx, {
+    ...envelope(ctx, 'candidate_surfaced', undefined), event: 'candidate_surfaced',
+    candidate_id: a.candidateId, surface: a.surface,
+  });
+}
+
+export function candidateActionV2(ctx: V2Context, a: {
+  candidateId: string;
+  action: 'promote' | 'drop' | 'snooze';
+  snoozeUntil?: string;
+  promotedTo?: { kind: 'decision' | 'premise'; id: string };
+  idempotencyKey?: string;
+}): IdempotentAppendResult {
+  // zod refine이 promote↔promoted_to, snooze↔snooze_until 결합을 강제한다 —
+  // 여기서 재검사하지 않는다 (검증 두뇌는 스키마 하나).
+  return append(ctx, {
+    ...envelope(ctx, 'candidate_action', a.idempotencyKey), event: 'candidate_action',
+    candidate_id: a.candidateId, action: a.action,
+    ...(a.snoozeUntil ? { snooze_until: a.snoozeUntil } : {}),
+    ...(a.promotedTo ? { promoted_to: a.promotedTo } : {}),
+  });
+}

@@ -108,6 +108,35 @@ describe('argus-driver doctor (P2-6)', () => {
     expect(out).toContain('자동 탈취');
   });
 
+  it('[8] 수확 큐 — opt-in OFF면 흔적 0이 정상으로, exhausted는 ⚠로 보고된다', () => {
+    bind();
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-doc-data-'));
+    try {
+      // OFF + 큐 없음 = 정상
+      let out = execFileSync('node', [DOCTOR], {
+        cwd: repoDir, env: { ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir }, encoding: 'utf8',
+      });
+      expect(out).toContain('opt-in OFF');
+      expect(out).toContain('opt-in 전 흔적 0 (정상)');
+
+      // ON + exhausted 항목 = ⚠ 수동 재개 안내
+      fs.writeFileSync(path.join(home, 'config.json'), JSON.stringify({ harvest: { opt_in: true } }));
+      fs.writeFileSync(path.join(dataDir, 'harvest-queue.json'), JSON.stringify({
+        items: [{ item_id: 'a', kind: 'harvest', transcript_path: '/t', session_id: 's', enqueued_at: 'x', attempts: 3, exhausted: true }],
+      }));
+      fs.writeFileSync(path.join(dataDir, 'harvest-last-run.json'), JSON.stringify({ date: '2026-07-10' }));
+      out = execFileSync('node', [DOCTOR], {
+        cwd: repoDir, env: { ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir }, encoding: 'utf8',
+      });
+      expect(out).toContain('opt-in ON');
+      expect(out).toContain('큐 1건 대기');
+      expect(out).toContain('1건은 3회 실패로 자동 재시도 제외');
+      expect(out).toContain('마지막 수확 실행일: 2026-07-10');
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+
   it('v1 이전 marker 유무를 구분해 보고한다', () => {
     bind();
     expect(run()).toContain('marker 없음');

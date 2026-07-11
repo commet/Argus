@@ -137,3 +137,35 @@ describe('동사 왕복 — 툴이 부를 그대로', () => {
     expect(s.dropped_corrupt).toBe(0); // envelope가 스키마를 전부 만족했다는 뜻
   });
 });
+
+describe('candidate 동사 왕복 (P6-2) — created → surfaced → action, terminal 가드', () => {
+  it('promote는 promoted_to와 함께 접히고, terminal 후 재행동은 명시 거절된다', async () => {
+    const { candidateCreatedV2, candidateSurfacedV2, candidateActionV2 } = await import('./bridge.js');
+    const { loadState } = await import('./reducer.js');
+    const c = ctx();
+    candidateCreatedV2(c, {
+      candidateId: 'cand-1', kind: 'decision', quote: '큐는 SQLite로 가기로 했다',
+      quoteSpeaker: 'user', source: 'debrief',
+    });
+    candidateSurfacedV2(c, { candidateId: 'cand-1', surface: 'check_in' });
+    candidateActionV2(c, {
+      candidateId: 'cand-1', action: 'promote',
+      promotedTo: { kind: 'decision', id: 'd-from-cand' },
+    });
+    const rec = loadState(home, repoId).candidates.get('cand-1')!;
+    expect(rec.state).toBe('promoted');
+    expect(rec.promoted_to).toEqual({ kind: 'decision', id: 'd-from-cand' });
+
+    // terminal 후 재행동 — 조용한 무시가 아니라 가드 거절
+    expect(() => candidateActionV2(c, { candidateId: 'cand-1', action: 'drop' })).toThrow();
+  });
+
+  it('promote에 promoted_to가 없으면 스키마가 거절한다 (결합 강제는 zod 하나)', async () => {
+    const { candidateCreatedV2, candidateActionV2 } = await import('./bridge.js');
+    const c = ctx();
+    candidateCreatedV2(c, {
+      candidateId: 'cand-2', kind: 'question', quote: 'q', quoteSpeaker: 'user', source: 'user',
+    });
+    expect(() => candidateActionV2(c, { candidateId: 'cand-2', action: 'promote' })).toThrow();
+  });
+});

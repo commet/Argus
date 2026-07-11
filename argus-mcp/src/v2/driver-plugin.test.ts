@@ -33,9 +33,13 @@ describe('argus-driver 플러그인 골격 (P2-4)', () => {
     const servers = mcp['mcpServers'] as Record<string, { command: string; args: string[] }>;
     const wired = Object.values(servers);
     expect(wired.length).toBeGreaterThan(0);
-    const argus = wired.find((s) => s.args.includes('argus-decision-mcp'));
+    const argus = wired.find((s) => s.args.some((a) => a.startsWith('argus-decision-mcp')));
     expect(argus, 'argus-decision-mcp가 배선되어 있어야 한다').toBeDefined();
     expect(argus!.command).toBe('npx');
+    // 버전 핸드셰이크의 최소형: 메이저 핀 — 서버 메이저가 바뀌면 설치가
+    // 조용히 새 메이저를 받지 않는다 (Distribution 행의 환경 내 몫).
+    const pkgArg = argus!.args.find((a) => a.startsWith('argus-decision-mcp'))!;
+    expect(pkgArg).toMatch(/^argus-decision-mcp@\^\d+$/);
   });
 
   it('statusline 사본은 정본(argus-plugin-v2)과 바이트 동일 — 드리프트는 여기서 죽는다', () => {
