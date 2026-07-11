@@ -539,34 +539,21 @@ export default function ProjectPage() {
             </Card>
           ) : (
             <>
-              {/* 자차표 — the user's accumulating record of closed loops.
-                  Until now this only flashed once inside the settlement modal
-                  and vanished; this is where it LIVES. Facts, never a score.
-                  P1-A2 (08 S2): extracted to the shared <RecordStrip/> (one
-                  display brain — /tools/review renders the SAME component, and
-                  review-receipt settles now join the count). */}
-              <RecordStrip />
+              {/* ── 항구의 위계 (구조 선언) ─────────────────────────────────
+                  ① 지금   — 이벤트 스포트라이트 (드물다; 없으면 침묵)
+                  ② 행동   — 돌아올 결정 due-strip (평상시의 첫 블록 = 주인공)
+                  ③ 함대   — 필터 + 항해 중인 결정들
+                  ④ 항적   — 자차표·해도·항해일지 (기록은 인사말이 아니라 아카이브)
+                  순서가 우선순위다 — 블록 추가는 이 위계에 자리를 정하고 넣는다. */}
 
-              {/* [C4·항목7] 회고만 한 사용자용 빈 자차표 안내 — RecordStrip이 null인
-                  (실 record 0) 상태에서 정산한 회고가 있을 때만. 빈 자차표가
-                  배신처럼 안 보이게 하고, 실 봉인으로 한 번 가리킨다. */}
-              <RetroOnlyNotice />
+              {/* ① 같은 전제 위의 판단들 — the judgment graph's one event:
+                  shared ground drifted while live bets stand on it. When it
+                  fires it outranks routine dues (settling those bets may hang
+                  on this ground); on every flat day it renders nothing and
+                  the due strip below stays the harbor's protagonist. */}
+              <SharedGroundCard />
 
-              {/* 함대 해도 (S4 최소형 · B1) — 봉인한 항해들이 한 폭의 해도 위에
-                  봉인일 순으로 늘어선다. 2척 미만이면 스스로 미렌더. 상태별 그룹핑·
-                  강조·카운트 배지 없이 시간축 하나만이 정렬키 (거울 조항 게이트). */}
-              <FleetChart
-                projects={projects}
-                reframeItems={reframeItems}
-                recastItems={recastItems}
-                synthesizeItems={synthesizeItems}
-                feedbackHistory={feedbackHistory}
-                progressiveSessions={progressiveSessions}
-                locale={locale}
-                onSelect={setCurrentProjectId}
-              />
-
-              {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환.
+              {/* ② 돌아올 결정 — the return strip. The loop's last leg: 귀환.
                   Review receipts past check-by join the SAME strip (P0-6 ① —
                   one harbor): same amber tone, a FileText mark to tell them
                   apart, routing to /tools/review (ReceiptList sorts urgent
@@ -613,12 +600,6 @@ export default function ProjectPage() {
                   </div>
                 </div>
               )}
-
-              {/* 같은 전제 위의 판단들 — the judgment graph's one tier-1 event
-                  (shared ground drifted while live bets stand on it). Renders
-                  nothing on a flat day: the restraint default, so the due strip
-                  above stays the harbor's protagonist. */}
-              <SharedGroundCard />
 
               {/* Filter chips + search — Hick (05 S7): below FILTER_TOOLS_MIN the
                   whole fleet fits one screen, so the tools would only add choices. */}
@@ -849,6 +830,36 @@ export default function ProjectPage() {
                   })}
                 </div>
               )}
+
+              {/* ④ 쌓인 항적 — 자차표·해도·항해일지. 기록은 아카이브이지
+                  인사말이 아니다: 행동(②)과 함대(③) 아래로 강등 (구조 선언 참조).
+                  각 블록은 스스로 미렌더하므로(0건·2척/2건 미만) 빈 섹션 라벨을
+                  달지 않는다 — 부재 공지는 금지. */}
+
+              {/* 자차표 — the user's accumulating record of closed loops.
+                  Facts, never a score. P1-A2 (08 S2): shared <RecordStrip/>
+                  (one display brain — /tools/review renders the SAME component,
+                  and review-receipt settles join the count). */}
+              <RecordStrip />
+
+              {/* [C4·항목7] 회고만 한 사용자용 빈 자차표 안내 — RecordStrip이 null인
+                  (실 record 0) 상태에서 정산한 회고가 있을 때만. 빈 자차표가
+                  배신처럼 안 보이게 하고, 실 봉인으로 한 번 가리킨다. */}
+              <RetroOnlyNotice />
+
+              {/* 함대 해도 (S4 최소형 · B1) — 봉인한 항해들이 한 폭의 해도 위에
+                  봉인일 순으로 늘어선다. 2척 미만이면 스스로 미렌더. 상태별 그룹핑·
+                  강조·카운트 배지 없이 시간축 하나만이 정렬키 (거울 조항 게이트). */}
+              <FleetChart
+                projects={projects}
+                reframeItems={reframeItems}
+                recastItems={recastItems}
+                synthesizeItems={synthesizeItems}
+                feedbackHistory={feedbackHistory}
+                progressiveSessions={progressiveSessions}
+                locale={locale}
+                onSelect={setCurrentProjectId}
+              />
 
               {/* 항해일지 (S6 · B4/B5) — 봉인·변침·정산을 시간순 세로 원장으로.
                   '문장만 보기' 토글이 인용벽(제안2 형태1)을 흡수한다. 이벤트 2개
