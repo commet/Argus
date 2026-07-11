@@ -3,6 +3,7 @@ import { resolveToday, asDate } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
+import { dualWriteSettle } from '../v2/dual-write.js';
 import { writeSettleReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { elicit, canElicit } from '../lib/elicit.js';
@@ -140,6 +141,18 @@ export const settle: ToolModule = {
         }, { predicate: current.predicate, check_by: current.check_by });
       });
 
+      // ── v2 dual-write (P1 수술 2단계) — v1 정산이 성공한 뒤 내구 원장에도
+      // 기록. 실패는 정산을 죽이지 않되 data.v2_write로 정직하게 노출.
+      // outcome은 사용자의 말(outcome_source: user_stated)을 모델이 전달한 것
+      // 이므로 host_reported — elicit으로 직접 받았어도 이 층에서는 구분
+      // 정보가 없어 하향이 정직하다 (위로 위조 금지, II-B).
+      const v2Write = dualWriteSettle({
+        argusDir: dir, today, decisionId: id,
+        outcome: outcome as 'held' | 'avoided' | 'partial' | 'still_pending' | 'missed',
+        provenance: 'host_reported',
+        note: a['what_happened'] as string | undefined,
+      });
+
       // Mirror the outcome to the account (opt-in) so a synced prediction stops
       // being "due" — otherwise the Companion Brief would keep re-nudging it.
       // No-op when there's no token or the id was never synced.
@@ -161,6 +174,7 @@ export const settle: ToolModule = {
         next_actions: ['argus_recall', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',
+          v2_write: v2Write,
           assumption_held: receipt.assumption_held,
           ...(brokenPremiseRef ? { broken_premise: brokenPremiseRef, broken_premise_source: 'user_stated' } : {}),
           ai_verdict: null,
