@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { coerceLeanFlags, buildLeanScanPrompt, locateFlag, applyNeutral } from '../lean-scan';
+import { coerceLeanFlags, buildLeanScanPrompt, locateFlag, applyNeutral, insightMayLean } from '../lean-scan';
+
+describe('insightMayLean (과도하지 않게 pre-gate)', () => {
+  it('fires on verdict-shaped insights', () => {
+    expect(insightMayLean('지금은 안 사도 돼요.')).toBe(true);
+    expect(insightMayLean('기다리는 게 나아요.')).toBe(true);
+    expect(insightMayLean('사실 답은 이미 정해진 것 같아요.')).toBe(true);
+    expect(insightMayLean('지금이 협상 타이밍이에요.')).toBe(true);
+  });
+  it('skips a pure neutral crux (no extra call)', () => {
+    expect(insightMayLean('이건 결국 불편이 새 값만큼인지에 달렸어요 — 어떻게 느껴져요?')).toBe(false);
+    expect(insightMayLean('핵심은 회의 수가 아니라 목적이 분명한가예요.')).toBe(false);
+    expect(insightMayLean('')).toBe(false);
+  });
+});
 
 describe('coerceLeanFlags', () => {
   it('keeps only flags with both text and neutral, trims', () => {

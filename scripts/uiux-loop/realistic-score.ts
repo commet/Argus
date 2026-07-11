@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { buildInitialAnalysisPrompt } from '../../src/lib/progressive-prompts';
-import { buildLeanScanPrompt, coerceLeanFlags, applyNeutral } from '../../src/lib/lean-scan';
+import { buildLeanScanPrompt, coerceLeanFlags, applyNeutral, insightMayLean } from '../../src/lib/lean-scan';
 
 const env = readFileSync(new URL('../../.env.local', import.meta.url), 'utf8');
 const KEY = (env.match(/ANTHROPIC_API_KEY\s*=\s*(.+)/) || [])[1]?.trim().replace(/^["']|["']$/g, '');
@@ -74,7 +74,7 @@ async function scoreOne(s: { tag: string; input: string }): Promise<Score | null
     const { system, user } = buildInitialAnalysisPrompt(s.input, 'ko');
     const a = await call<{ request_type?: string; real_question?: string; hidden_assumptions?: unknown; skeleton?: unknown; insight?: string; next_question?: unknown }>(system, user);
     // 런타임 B와 동일: OPEN insight를 lean-scan으로 중립화한 뒤 채점(엔진과 같은 함수).
-    if (a.request_type === 'open' && a.insight?.trim()) {
+    if (a.request_type === 'open' && a.insight?.trim() && insightMayLean(a.insight)) {
       const ls = buildLeanScanPrompt(s.input, { insight: a.insight }, 'ko');
       const flags = coerceLeanFlags(await call(ls.system, ls.user));
       a.insight = applyNeutral(a.insight, flags);

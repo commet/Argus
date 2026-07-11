@@ -5,7 +5,7 @@
 import { callLLMJson, callLLMStreamThenParse, LLMError } from '@/lib/llm';
 import { salvageMixDoc } from '@/lib/partial-analysis';
 import { buildHonestyScanPrompt, coerceHonestyFlags, type HonestyFlag } from '@/lib/honesty-scan';
-import { buildLeanScanPrompt, coerceLeanFlags, applyNeutral } from '@/lib/lean-scan';
+import { buildLeanScanPrompt, coerceLeanFlags, applyNeutral, insightMayLean } from '@/lib/lean-scan';
 import {
   buildInitialAnalysisPrompt,
   buildInitialRefinementPrompt,
@@ -593,7 +593,9 @@ export async function neutralizeInsight(
   signal?: AbortSignal,
 ): Promise<string> {
   try {
-    if (!insight.trim()) return insight;
+    // 과도하지 않게(loop-19c): only pay the extra LLM call when the insight PLAUSIBLY
+    // leans. A pure neutral crux skips here → zero cost on most cards.
+    if (!insight.trim() || !insightMayLean(insight)) return insight;
     const locale = getCurrentLanguage();
     const { system, user } = buildLeanScanPrompt(problemText, { insight }, locale);
     const raw = await callLLMJson<{ flags?: unknown }>(

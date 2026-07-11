@@ -145,6 +145,33 @@ export function applyNeutral(insight: string, flags: LeanFlag[]): string {
   return out;
 }
 
+/**
+ * Cheap deterministic PRE-GATE (loop-19c "과도하지 않게") — only spend the LLM
+ * lean-scan when the insight PLAUSIBLY carries a verdict. A pure neutral crux
+ * ("이건 X에 달렸어요 — 어때요?") has no directive markers → skip, zero cost.
+ * Marker-recall-biased (catch the common verdict forms) but skips the clearly
+ * neutral, so most analyses pay NO extra call. False negatives are acceptable:
+ * missing a subtle lean occasionally is the price of not calling on every card.
+ */
+const LEAN_MARKERS: RegExp[] = [
+  /(하는|사는|파는|내는|가는|남는|줄이는|늘리는|바꾸는|기다리는|하시는)\s*(게|것이|쪽이|편이)\s*(나아|낫|맞|좋|답|정답|현명|안전|유리)/,
+  /안\s*\S{0,6}\s*(도|어도)\s*(돼|된다|괜찮)/,          // "안 ~해도 돼"
+  /굳이/,
+  /지금이\s*\S{0,4}\s*(타이밍|적기|때|시점|기회|시점이에요)/,
+  /(이미|사실)\s*\S{0,4}\s*(답은|답이|정해|결정)/,
+  /(낫|맞|좋)(다|아요|습니다|은|을)\b/,                 // "~낫다/맞아요"
+  /(하|가|사|팔|내|바꾸|남으|기다리|줄이)(세요|시죠|라)\b/,  // imperative advice
+  /추천(해|드려|합니다|이에요)/,
+  /~?(에요|예요)\s*$/,                                   // declarative close (weak; paired below is stronger — kept broad-recall)
+];
+export function insightMayLean(insight: string): boolean {
+  const s = (insight || '').trim();
+  if (!s) return false;
+  // A pure question with no directive marker is a neutral crux — skip.
+  const hasMarker = LEAN_MARKERS.slice(0, 8).some((re) => re.test(s)); // exclude the weak declarative-close
+  return hasMarker;
+}
+
 export function coerceLeanFlags(obj: unknown): LeanFlag[] {
   const o = (obj ?? {}) as { flags?: unknown };
   if (!Array.isArray(o.flags)) return [];
