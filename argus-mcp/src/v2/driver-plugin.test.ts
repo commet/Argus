@@ -59,6 +59,19 @@ describe('argus-driver 플러그인 골격 (P2-4)', () => {
     expect(fs.existsSync(path.join(sourceDir, '.mcp.json'))).toBe(true);
   });
 
+  it('hooks.json — 파싱되고, 가리키는 스크립트가 전부 실존한다 (P2-5)', () => {
+    const hooks = readJson(path.join(DRIVER, 'hooks', 'hooks.json'))['hooks'] as
+      Record<string, Array<{ hooks: Array<{ type: string; command: string }> }>>;
+    const commands = Object.values(hooks).flat().flatMap((m) => m.hooks);
+    expect(commands.length).toBeGreaterThan(0);
+    for (const c of commands) {
+      expect(c.type).toBe('command');
+      const m = /\$\{CLAUDE_PLUGIN_ROOT\}\/(\S+?)"/.exec(c.command);
+      expect(m, `플러그인 루트 상대 경로여야 한다: ${c.command}`).not.toBeNull();
+      expect(fs.existsSync(path.join(DRIVER, m![1]!)), `${m![1]!} 실존`).toBe(true);
+    }
+  });
+
   it('README — 설치 2줄과 "플러그인 제거가 원장을 지우지 않는다" 고지 (정본 규칙 3·21)', () => {
     const readme = fs.readFileSync(path.join(DRIVER, 'README.md'), 'utf8');
     expect(readme).toContain('/plugin marketplace add commet/Argus');
