@@ -30,6 +30,7 @@
  */
 
 const fs = require("fs");
+const os = require("os");
 const { join, resolve, isAbsolute } = require("path");
 
 // ─── ANSI ────────────────────────────────────────────────
@@ -141,17 +142,82 @@ function findArgusRoot(cwd) {
 // because the statusline ships standalone with the plugin; if the two drift,
 // the ledger event log is the contract — follow ledger.mjs.
 
+// v2 바인딩 발견 (P2-2): worktree .argus/project.json이 있으면 내구 원장
+// (~/.argus/projects/{id}/)이 정본이다 — v1 스냅샷(ledger.v1.jsonl) + v2
+// 원장(ledger.jsonl)을 차례로 접는다. 바인딩이 없으면 기존 v1 경로 그대로
+// (파괴 없는 추가). ARGUS_HOME은 MCP 서버와 같은 재지정 규약.
+function durableLedgerFiles(root) {
+  try {
+    const pj = JSON.parse(deBom(fs.readFileSync(join(root, ".argus", "project.json"), "utf8")));
+    if (!pj || typeof pj.repository_id !== "string" || !pj.repository_id) return null;
+    const home = process.env.ARGUS_HOME && process.env.ARGUS_HOME.trim()
+      ? process.env.ARGUS_HOME
+      : join(os.homedir(), ".argus");
+    const dir = join(home, "projects", pj.repository_id);
+    return [join(dir, "ledger.v1.jsonl"), join(dir, "ledger.jsonl")];
+  } catch { return null; }
+}
+
+// v2 이벤트(v:2) 한 줄을 v1 fold와 같은 bet 모형으로 접는다. provenanced
+// 필드는 .value만 취한다 (statusline은 렌더 floor — 출처는 MCP 표면의 몫).
+function applyV2Line(e, map, acc) {
+  const id = e.decision_id;
+  if (!id) return;
+  acc.ids.add(id);
+  const cur = map.get(id);
+  const val = (f) => (e[f] && typeof e[f].value === "string" ? e[f].value : undefined);
+  switch (e.event) {
+    case "harvest":
+      if (!cur) map.set(id, { status: "candidate", decision: val("text") || "" });
+      break;
+    case "seal": {
+      const rec = cur || {};
+      rec.status = "sealed";
+      if (val("predicate")) { rec.predicate = val("predicate"); acc.sealedPredicates.add(rec.predicate); }
+      if (val("check_by")) rec.check_by = val("check_by");
+      map.set(id, rec);
+      break;
+    }
+    case "amend":
+      if (cur) {
+        if (val("predicate")) cur.predicate = val("predicate");
+        if (val("check_by")) cur.check_by = val("check_by");
+      }
+      break;
+    case "snooze":
+      if (cur && typeof e.until === "string") cur.snoozed_until = e.until;
+      break;
+    case "dismiss":
+      if (cur) cur.status = "dismissed";
+      break;
+    case "settle":
+      if (cur) cur.status = "settled";
+      break;
+  }
+}
+
 function loadLedger(root) {
   const empty = { bets: [], ids: new Set(), sealedPredicates: new Set() };
-  let raw;
-  try { raw = deBom(fs.readFileSync(join(root, ".argus", "ledger", "ledger.jsonl"), "utf8")); }
-  catch { return empty; }
+  const durable = durableLedgerFiles(root);
+  const files = durable || [join(root, ".argus", "ledger", "ledger.jsonl")];
 
   const map = new Map();
+  for (const file of files) {
+    let raw;
+    try { raw = deBom(fs.readFileSync(file, "utf8")); }
+    catch { continue; } // 없는 파일(예: v1 스냅샷 미존재)은 조용히 — 침묵이 계약
+    foldLines(raw, map, empty);
+  }
+  empty.bets = [...map.values()].filter(d => d.status === "sealed" && d.check_by && ISO_DATE.test(d.check_by));
+  return empty;
+}
+
+function foldLines(raw, map, empty) {
   for (const line of raw.split("\n")) {
     if (!line.trim()) continue;
     let e;
     try { e = JSON.parse(line); } catch { continue; }
+    if (e.v === 2) { applyV2Line(e, map, empty); continue; }
     if (!e.id) continue; // malformed event — never key a bet on undefined
     empty.ids.add(e.id);
     const cur = map.get(e.id);
@@ -175,10 +241,12 @@ function loadLedger(root) {
       case "settle":
         if (cur) cur.status = "settled";
         break;
+      case "defer": { // v1 재무장 — check_by 전진, sealed 유지
+        if (cur && typeof e.check_by === "string") { cur.check_by = e.check_by; cur.status = "sealed"; }
+        break;
+      }
     }
   }
-  empty.bets = [...map.values()].filter(d => d.status === "sealed" && d.check_by && ISO_DATE.test(d.check_by));
-  return empty;
 }
 
 // ─── Current Heading ─────────────────────────────────────
@@ -258,11 +326,13 @@ function loadLiveSession(root) {
 
 function collectChecks(root, bearing, today) {
   const ledger = loadLedger(root);
-  const items = ledger.bets.map(d => ({
-    date: d.check_by,
-    text: d.decision || d.predicate || "",
-    kind: "bet",
-  }));
+  const items = ledger.bets
+    .filter(d => !(d.snoozed_until && ISO_DATE.test(d.snoozed_until) && d.snoozed_until > today)) // 잠든 항목은 그날까지 침묵
+    .map(d => ({
+      date: d.check_by,
+      text: d.decision || d.predicate || "",
+      kind: "bet",
+    }));
 
   // A seed already imported into the ledger (by /argus:settle) is owned by the
   // ledger replay above — counting the bearing file too would keep flashing
