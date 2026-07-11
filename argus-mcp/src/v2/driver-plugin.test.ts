@@ -72,6 +72,19 @@ describe('argus-driver 플러그인 골격 (P2-4)', () => {
     }
   });
 
+  it('commands/*.md — 프론트매터가 있고, 가리키는 플러그인 루트 스크립트가 실존한다 (P2-6)', () => {
+    const commandsDir = path.join(DRIVER, 'commands');
+    const files = fs.readdirSync(commandsDir).filter((f) => f.endsWith('.md'));
+    expect(files.length).toBeGreaterThan(0);
+    for (const f of files) {
+      const body = fs.readFileSync(path.join(commandsDir, f), 'utf8');
+      expect(body.startsWith('---\n'), `${f}: 프론트매터 필수`).toBe(true);
+      for (const m of body.matchAll(/\$\{CLAUDE_PLUGIN_ROOT\}\/([^\s"'`]+)/g)) {
+        expect(fs.existsSync(path.join(DRIVER, m[1]!)), `${f} → ${m[1]!} 실존`).toBe(true);
+      }
+    }
+  });
+
   it('README — 설치 2줄과 "플러그인 제거가 원장을 지우지 않는다" 고지 (정본 규칙 3·21)', () => {
     const readme = fs.readFileSync(path.join(DRIVER, 'README.md'), 'utf8');
     expect(readme).toContain('/plugin marketplace add commet/Argus');
