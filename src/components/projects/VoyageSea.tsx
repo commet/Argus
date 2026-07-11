@@ -10,6 +10,7 @@ import {
   type VoyageState,
 } from '@/lib/voyage-state';
 import { contractStatus } from '@/lib/decision-contract';
+import { firstVoyageInscription } from '@/lib/record-summary';
 import { sharedGrounds, groundSpotlight } from '@/lib/judgment-graph';
 import type { JudgmentReceipt } from '@/lib/review';
 import type {
@@ -134,16 +135,41 @@ function relativeDays(iso: string, now: number, locale: 'ko' | 'en'): string {
  *  sails). State changes posture and finish, never adds badges:
  *  sailing = full canvas · adrift = luffing, heeled, faded · wrecked = bare
  *  heeled hull, half-lost · docked/arrived = furled at moorings · verified =
- *  furled + a fleck of gold at the masthead · beacon = gold canvas + halo. */
-function ShipMark({ state, due, size }: { state: VoyageState; due: boolean; size: number }) {
+ *  furled + a fleck of gold at the masthead · beacon = gold canvas + halo.
+ *
+ *  Craft (07-12 고급화):
+ *  - Every floating ship casts a REFLECTION on the water (mirrored silhouette,
+ *    masked fade). Moored ships reflect more sharply than ships under way —
+ *    calm water against the quay. Wrecks, aground on the shoal, cast none.
+ *  - `heading` (deterministic per-ship, ±3°) breaks the stamped-fleet look.
+ *  - The ENSIGN tells the door the vessel sailed from — an honest fact, not a
+ *    grade: project voyages fly a triangular pennant, review/MCP receipts a
+ *    small rectangular flag. */
+function ShipMark({
+  state,
+  due,
+  size,
+  kind = 'project',
+  heading = 0,
+  plain = false,
+}: {
+  state: VoyageState;
+  due: boolean;
+  size: number;
+  kind?: 'project' | 'receipt';
+  heading?: number;
+  /** Key/legend usage — silhouette only, no wake and no reflection. */
+  plain?: boolean;
+}) {
   const w = size;
   const h = Math.round(size * 1.12);
   const sail = due ? N.gold : N.paper;
-  const heel = state === 'adrift' ? -11 : 0;
+  const heel = state === 'adrift' ? -11 : heading;
 
   if (state === 'wrecked') {
     // Aground on the shoal: heeled bare hull + stump of mast, sinking into the
-    // hatch. Dimmed — never enlarged, never colored as failure.
+    // hatch. Dimmed — never enlarged, never colored as failure. No reflection:
+    // she is out of the water.
     return (
       <span aria-hidden className="relative block" style={{ width: w, height: h, opacity: 0.5 }}>
         <span className="absolute block" style={{ left: '8%', right: '8%', bottom: '18%', height: '17%', background: N.paper, borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%', transform: 'rotate(21deg)' }} />
@@ -153,23 +179,14 @@ function ShipMark({ state, due, size }: { state: VoyageState; due: boolean; size
   }
 
   const furled = state === 'docked' || state === 'arrived' || state === 'verified';
-  return (
-    <span aria-hidden className="relative block" style={{ width: w, height: h, transform: heel ? `rotate(${heel}deg)` : undefined }}>
-      {/* wake — only a ship under way leaves one */}
-      {state === 'sailing' && (
-        <>
-          <span className="absolute block" style={{ left: '-52%', bottom: '9%', width: '48%', height: 1, background: `linear-gradient(to right, transparent, ${N.paper}66)` }} />
-          <span className="absolute block" style={{ left: '-34%', bottom: '3%', width: '30%', height: 1, background: `linear-gradient(to right, transparent, ${N.paper}44)` }} />
-        </>
-      )}
+  const silhouette = (
+    <>
       {/* hull */}
       <span className="absolute block" style={{ left: '6%', right: '6%', bottom: 0, height: '16%', background: N.paper, borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%' }} />
       {/* mast */}
       <span className="absolute block" style={{ left: '50%', bottom: '14%', width: 1.5, height: '74%', background: N.paper, transform: 'translateX(-50%)' }} />
       {furled ? (
         // canvas struck and lashed along the boom — a ship at her moorings.
-        // Boom + gaff give her enough body that the harbor never reads as
-        // a row of bare poles.
         <>
           <span className="absolute block" style={{ left: '34%', bottom: '30%', width: '34%', height: '8%', background: sail, opacity: 0.9, borderRadius: 2 }} />
           <span className="absolute block" style={{ left: '42%', bottom: '40%', width: '22%', height: '5%', background: sail, opacity: 0.6, borderRadius: 2 }} />
@@ -198,9 +215,44 @@ function ShipMark({ state, due, size }: { state: VoyageState; due: boolean; size
           )}
         </>
       )}
-      {/* verified — one fleck of gold at the masthead. The record's only medal. */}
-      {state === 'verified' && (
+      {/* ensign — pennant for a project voyage, rectangular flag for a receipt */}
+      {kind === 'receipt' ? (
+        <span className="absolute block" style={{ left: '52%', top: '2%', width: '26%', height: '9%', background: sail, opacity: 0.85, borderRadius: 0.5 }} />
+      ) : state === 'verified' ? (
         <span className="absolute block" style={{ left: '50%', top: 0, width: 4, height: 4, background: N.gold, borderRadius: 1 }} />
+      ) : null}
+    </>
+  );
+
+  return (
+    <span aria-hidden className="relative block" style={{ width: w, height: h, transform: heel ? `rotate(${heel}deg)` : undefined }}>
+      {/* wake — only a ship under way leaves one */}
+      {state === 'sailing' && !plain && (
+        <>
+          <span className="absolute block" style={{ left: '-52%', bottom: '9%', width: '48%', height: 1, background: `linear-gradient(to right, transparent, ${N.paper}66)` }} />
+          <span className="absolute block" style={{ left: '-34%', bottom: '3%', width: '30%', height: 1, background: `linear-gradient(to right, transparent, ${N.paper}44)` }} />
+        </>
+      )}
+      {silhouette}
+      {/* reflection — the whole silhouette mirrored below the waterline,
+          fading with depth. Calmer water at the moorings → a slightly
+          clearer image. (Mask is authored in local space so the flip lands
+          the strong edge at the waterline.) */}
+      {!plain && (
+      <span
+        className="absolute left-0 block w-full pointer-events-none"
+        style={{
+          top: '100%',
+          height: '100%',
+          transform: 'scaleY(-1)',
+          opacity: furled ? 0.17 : 0.11,
+          maskImage: 'linear-gradient(0deg, black 0%, transparent 60%)',
+          WebkitMaskImage: 'linear-gradient(0deg, black 0%, transparent 60%)',
+          filter: 'blur(0.5px)',
+        }}
+      >
+        {silhouette}
+      </span>
       )}
     </span>
   );
@@ -408,6 +460,35 @@ export function VoyageSea({
     ? [...dueShips].sort((a, b) => (a.dueDays ?? 0) - (b.dueDays ?? 0))[0]
     : null;
 
+  // ── the drifted current's VOICE — computed BEFORE placement so the slots
+  //    can clear the water under the notice. Same single-event restraint
+  //    brain as SharedGroundCard (groundSpotlight: fires only when shared
+  //    ground actually drifted AND live bets stand on it; flat day → null).
+  const spotlight = receipts?.length ? groundSpotlight(receipts) : null;
+  const spotGauge = (() => {
+    if (!spotlight?.drift) return null;
+    const d = spotlight.drift;
+    if (d.baseline_numeric != null && d.current_numeric != null) {
+      return { from: String(d.baseline_numeric), to: String(d.current_numeric) };
+    }
+    const trim = (s?: string) => (s && s.length > 16 ? `${s.slice(0, 16)}…` : s);
+    if (d.baseline_text && d.current_text) return { from: trim(d.baseline_text)!, to: trim(d.current_text)! };
+    return { from: null, to: trim(d.finding) ?? null } as { from: string | null; to: string | null };
+  })();
+
+  // On drift days the notice occupies the top-left water — the sea lanes and
+  // the drift margin shift out from under it (deterministic alternates, same
+  // composed feel). Ships behind glass are a composition bug, not a mood.
+  const sailingSlots = spotlight
+    ? [
+        { x: 37, y: 22 }, { x: 52, y: 13 }, { x: 64, y: 30 }, { x: 32, y: 54 },
+        { x: 57, y: 58 }, { x: 68, y: 64 }, { x: 46, y: 9 },
+      ]
+    : SLOTS.sailing;
+  const adriftSlots = spotlight
+    ? [ { x: 8, y: 58 }, { x: 14, y: 70 }, { x: 6, y: 46 } ]
+    : SLOTS.adrift;
+
   type Placed = SeaShip & { x: number; y: number; beacon: boolean };
   const placed: Placed[] = [];
   const overflow: Record<string, number> = {};
@@ -423,7 +504,8 @@ export function VoyageSea({
       : s.state === 'arrived' || s.state === 'verified' ? 'harbor'
       : s.state === 'docked' ? 'docked'
       : 'sailing';
-    const slot = SLOTS[zone][used[zone]];
+    const zoneSlots = zone === 'sailing' ? sailingSlots : zone === 'adrift' ? adriftSlots : SLOTS[zone];
+    const slot = zoneSlots[used[zone]];
     if (!slot) {
       overflow[zone] = (overflow[zone] || 0) + 1;
       continue;
@@ -468,23 +550,10 @@ export function VoyageSea({
     }
   }
 
-  // ── the drifted current's VOICE — a compact in-map notice, so the amber
-  //    line is legible without leaving the sea. Same single-event restraint
-  //    brain as SharedGroundCard (groundSpotlight: fires only when shared
-  //    ground actually drifted AND live bets stand on it; flat day → null).
-  //    The full ledger card renders below the map (창업자 07-11: 지도가
-  //    압도적, 상세는 아래). Facts only — quote · baseline→today · source.
-  const spotlight = receipts?.length ? groundSpotlight(receipts) : null;
-  const spotGauge = (() => {
-    if (!spotlight?.drift) return null;
-    const d = spotlight.drift;
-    if (d.baseline_numeric != null && d.current_numeric != null) {
-      return { from: String(d.baseline_numeric), to: String(d.current_numeric) };
-    }
-    const trim = (s?: string) => (s && s.length > 16 ? `${s.slice(0, 16)}…` : s);
-    if (d.baseline_text && d.current_text) return { from: trim(d.baseline_text)!, to: trim(d.current_text)! };
-    return { from: null, to: trim(d.finding) ?? null } as { from: string | null; to: string | null };
-  })();
+  // Engraved plate inscription — the pure elapsed fact (shared wording brain
+  // with the Logbook via record-summary, so it can never drift) + fleet size.
+  const firstDate = ships[0]?.createdAt ? String(ships[0].createdAt).slice(0, 10) : undefined;
+  const inscription = firstVoyageInscription(firstDate, Date.now(), locale);
 
   // Honest caption — plain facts in the calm register, no manufactured urgency.
   const caption = beacon
@@ -513,6 +582,8 @@ export function VoyageSea({
         @keyframes vsea-beam { 0%,100% { transform: translateX(-50%) rotate(-44deg) } 50% { transform: translateX(-50%) rotate(34deg) } }
         @keyframes vsea-halo { 0%,100% { opacity: .35; transform: translate(-50%,-50%) scale(.88) } 50% { opacity: .8; transform: translate(-50%,-50%) scale(1.1) } }
         @keyframes vsea-pulse { 0%,100% { opacity: .45 } 50% { opacity: 1 } }
+        @keyframes vsea-flow { to { background-position: 13px 0 } }
+        .vsea-flow { animation: vsea-flow 1.6s linear infinite }
         .vsea-in { opacity: 0; animation: vsea-in .7s cubic-bezier(.32,.72,0,1) forwards }
         .vsea-bob { animation: vsea-bob 6s ease-in-out infinite }
         .vsea-beam { animation: vsea-beam 26s ease-in-out infinite }
@@ -520,7 +591,7 @@ export function VoyageSea({
         .vsea-pulse { animation: vsea-pulse 2.6s ease-in-out infinite }
         @media (prefers-reduced-motion: reduce) {
           .vsea-in { animation: none; opacity: 1 }
-          .vsea-bob, .vsea-beam, .vsea-halo, .vsea-pulse { animation: none }
+          .vsea-bob, .vsea-beam, .vsea-halo, .vsea-pulse, .vsea-flow { animation: none }
         }
       `}</style>
 
@@ -531,25 +602,56 @@ export function VoyageSea({
       <div className="relative">
       <div
         className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] shadow-[var(--shadow-md)] min-h-[400px] sm:min-h-0 sm:aspect-[16/7.2]"
-        style={{ background: `linear-gradient(176deg, ${N.seaHi} 0%, ${N.sea} 52%, ${N.seaDeep} 100%)` }}
+        style={{
+          background: `linear-gradient(176deg, ${N.seaHi} 0%, ${N.sea} 52%, ${N.seaDeep} 100%)`,
+          // engraved plate: a whisper of an inner rule inside the outer border
+          boxShadow: `inset 0 0 0 1px ${N.paper}0f, inset 0 1px 0 ${N.paper}14`,
+        }}
       >
-        {/* swell — engraved hairlines, fading toward the horizon */}
+        {/* corner registration ticks — the plate signature */}
+        {(['top-2 left-2 border-t border-l', 'top-2 right-2 border-t border-r', 'bottom-2 left-2 border-b border-l', 'bottom-2 right-2 border-b border-r'] as const).map((pos) => (
+          <span key={pos} aria-hidden className={`absolute w-2.5 h-2.5 z-[2] pointer-events-none ${pos}`} style={{ borderColor: `${N.paper}38` }} />
+        ))}
+        {/* swell — engraved hairlines in PERSPECTIVE: tight near the horizon,
+            widening toward the foreground. Two masked layers, still paper. */}
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
-            background: `repeating-linear-gradient(180deg, transparent 0 34px, ${N.paper}0d 34px 35px)`,
-            maskImage: 'linear-gradient(180deg, transparent 0%, black 30%, black 84%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(180deg, transparent 0%, black 30%, black 84%, transparent 100%)',
+            background: `repeating-linear-gradient(180deg, transparent 0 21px, ${N.paper}0a 21px 22px)`,
+            maskImage: 'linear-gradient(180deg, transparent 6%, black 24%, black 46%, transparent 60%)',
+            WebkitMaskImage: 'linear-gradient(180deg, transparent 6%, black 24%, black 46%, transparent 60%)',
           }}
         />
-        {/* night air — a whisper of starlight, a breath of moon */}
-        <div aria-hidden className="absolute inset-0" style={{ background: `radial-gradient(42% 30% at 76% 4%, ${N.paper}0e, transparent 70%)` }} />
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background: `repeating-linear-gradient(180deg, transparent 0 42px, ${N.paper}10 42px 43.5px)`,
+            maskImage: 'linear-gradient(180deg, transparent 40%, black 58%, black 86%, transparent 98%)',
+            WebkitMaskImage: 'linear-gradient(180deg, transparent 40%, black 58%, black 86%, transparent 98%)',
+          }}
+        />
+        {/* night air — starlight, a breath of moon, and the moonglade: a
+            faint column of light lying on the water. All static. */}
+        <div aria-hidden className="absolute inset-0" style={{ background: `radial-gradient(42% 30% at 33% 0%, ${N.paper}10, transparent 70%)` }} />
+        <div
+          aria-hidden
+          className="absolute pointer-events-none"
+          style={{
+            left: '29%', top: '4%', width: '9%', height: '78%',
+            background: `linear-gradient(180deg, ${N.paper}0c, ${N.paper}05 45%, transparent 90%)`,
+            maskImage: 'linear-gradient(90deg, transparent, black 35%, black 65%, transparent)',
+            WebkitMaskImage: 'linear-gradient(90deg, transparent, black 35%, black 65%, transparent)',
+          }}
+        />
         <div
           aria-hidden
           className="absolute top-[7%] left-[12%] w-px h-px rounded-full"
-          style={{ background: `${N.paper}55`, boxShadow: `14vw 2vh 0 0 ${N.paper}33, 34vw -1vh 0 0 ${N.paper}44, 52vw 3vh 0 0 ${N.paper}2e, 63vw -2vh 0 0 ${N.paper}40, 26vw 6vh 0 0 ${N.paper}26` }}
+          style={{ background: `${N.paper}55`, boxShadow: `14vw 2vh 0 0 ${N.paper}33, 34vw -1vh 0 0 ${N.paper}44, 52vw 3vh 0 0 ${N.paper}2e, 63vw -2vh 0 0 ${N.paper}40, 26vw 6vh 0 0 ${N.paper}26, 44vw 1vh 0 0 ${N.paper}2a` }}
         />
+        {/* depth vignette — the plate darkens toward its edges */}
+        <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(115% 95% at 50% 34%, transparent 58%, rgba(0,0,0,.30) 100%)' }} />
 
         {/* the shoal — hatched shallows where wrecks lie aground */}
         <div
@@ -565,16 +667,30 @@ export function VoyageSea({
         {/* the home quay — arrived ships moor here; the pier holds the not-yet-sailed */}
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-[11%]" style={{ background: N.land, borderTop: `1px solid ${N.paper}1f` }} />
 
-        {/* the lighthouse — Argus, keeping watch. Its beam is the sheet's one
-            bold move; reduced-motion holds it still. */}
-        <div aria-hidden className="absolute" style={{ left: '75%', bottom: '11%', width: 3, height: 30, background: `${N.paper}5e`, transform: 'translateX(-50%)' }} />
-        <div aria-hidden className="absolute rounded-full" style={{ left: '75%', bottom: 'calc(11% + 29px)', width: 5, height: 5, background: N.gold, transform: 'translateX(-50%)', boxShadow: `0 0 10px 2px ${N.gold}66` }} />
+        {/* the lighthouse — Argus, keeping watch. A real silhouette now:
+            rock mole → tapered banded tower → gallery → lamp room. Its beam
+            is the sheet's one bold move; reduced-motion holds it still. */}
+        <div aria-hidden className="absolute" style={{ left: '75%', bottom: '10.2%', width: 34, height: 9, background: N.land, borderRadius: '50% 50% 0 0 / 100% 100% 0 0', transform: 'translateX(-50%)', boxShadow: `inset 0 1px 0 ${N.paper}1c` }} />
+        <div
+          aria-hidden
+          className="absolute"
+          style={{
+            left: '75%', bottom: 'calc(10.2% + 8px)', width: 9, height: 30,
+            transform: 'translateX(-50%)',
+            clipPath: 'polygon(24% 0%, 76% 0%, 100% 100%, 0% 100%)',
+            background: `repeating-linear-gradient(180deg, ${N.paper}70 0 5px, ${N.paper}3d 5px 10px)`,
+          }}
+        />
+        <div aria-hidden className="absolute" style={{ left: '75%', bottom: 'calc(10.2% + 37px)', width: 13, height: 1.5, background: `${N.paper}80`, transform: 'translateX(-50%)' }} />
+        <div aria-hidden className="absolute" style={{ left: '75%', bottom: 'calc(10.2% + 38.5px)', width: 6, height: 5, background: `${N.paper}30`, transform: 'translateX(-50%)', borderRadius: 1 }} />
+        <div aria-hidden className="absolute rounded-full" style={{ left: '75%', bottom: 'calc(10.2% + 39.5px)', width: 4, height: 4, background: N.gold, transform: 'translateX(-50%)', boxShadow: `0 0 12px 3px ${N.gold}59` }} />
+        <div aria-hidden className="absolute" style={{ left: '75%', bottom: 'calc(10.2% + 43.5px)', width: 8, height: 4, background: `${N.paper}66`, transform: 'translateX(-50%)', clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
         <div
           aria-hidden
           className="vsea-beam absolute"
           style={{
             left: '75%',
-            bottom: 'calc(11% + 30px)',
+            bottom: 'calc(10.2% + 41px)',
             width: 'min(58vw, 620px)',
             aspectRatio: '1',
             transformOrigin: '50% 100%',
@@ -590,8 +706,9 @@ export function VoyageSea({
         <span className="absolute bottom-[3%] left-[3%] text-[9px] font-mono uppercase tracking-[0.22em] pointer-events-none" style={{ color: `${N.paper}59` }}>
           {L('항구', 'HARBOR')}
         </span>
-        <span className="absolute top-[3.5%] right-[3%] text-[9px] font-mono tracking-[0.14em] tabular-nums pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
-          {L(`전체 ${ships.length}척`, `${ships.length} SHIPS`)}
+        <span className="absolute top-[3.5%] right-[3%] text-[9px] font-mono tracking-[0.12em] tabular-nums pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
+          {inscription ? `${inscription} · ` : ''}
+          {L(`${ships.length}척`, `${ships.length} ships`)}
         </span>
 
         {/* ── undersea currents — beneath the ships, above the water. A line
@@ -606,15 +723,20 @@ export function VoyageSea({
                   key={`${c.key}-${i}`}
                   data-testid="fleet-current"
                   data-drifted={c.drifted ? '1' : '0'}
-                  className="absolute"
+                  className={`absolute ${c.drifted ? 'vsea-flow' : ''}`}
                   style={{
                     left: `${s.x}%`,
                     top: `${s.y}%`,
                     width: `${s.len}%`,
                     height: c.drifted ? 1.5 : 1,
+                    // a plotted, dashed water-course; the drifted one FLOWS
+                    // (background-position drifts along the chord)
                     background: c.drifted
-                      ? 'linear-gradient(to right, transparent, var(--warning) 18%, var(--warning) 82%, transparent)'
-                      : `linear-gradient(to right, transparent, ${N.paper}38 22%, ${N.paper}38 78%, transparent)`,
+                      ? 'repeating-linear-gradient(90deg, var(--warning) 0 7px, transparent 7px 13px)'
+                      : `repeating-linear-gradient(90deg, ${N.paper}40 0 5px, transparent 5px 12px)`,
+                    opacity: c.drifted ? 0.85 : 0.8,
+                    maskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
+                    WebkitMaskImage: 'linear-gradient(90deg, transparent, black 12%, black 88%, transparent)',
                     transformOrigin: '0 50%',
                     transform: `rotate(${s.deg}deg)`,
                   }}
@@ -651,7 +773,14 @@ export function VoyageSea({
                   />
                 )}
                 <span className={s.state === 'wrecked' || s.state === 'docked' ? '' : 'vsea-bob'} style={{ animationDelay: `${(i % 5) * 1.1}s` }}>
-                  <ShipMark state={s.state} due={s.due} size={size} />
+                  <ShipMark
+                    state={s.state}
+                    due={s.due}
+                    size={size}
+                    kind={s.kind}
+                    // deterministic per-ship heading (±3°) — a fleet, not a stamp
+                    heading={s.state === 'sailing' ? (([...s.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) - 3) : 0}
+                  />
                 </span>
                 <span
                   className={`${s.beacon ? '' : 'hidden sm:block'} max-w-[96px] text-center text-[10.5px] leading-[1.3] break-keep line-clamp-2 font-medium`}
@@ -666,9 +795,15 @@ export function VoyageSea({
             );
           })}
           {overflowNote > 0 && (
-            <span className="absolute right-[3%] top-[14%] text-[9px] font-mono tabular-nums pointer-events-none" style={{ color: `${N.paper}59` }}>
-              {L(`+${overflowNote}척`, `+${overflowNote} more`)}
-            </span>
+            <button
+              type="button"
+              onClick={() => document.getElementById('fleet-roster')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="absolute right-[3%] top-[14%] text-[9.5px] font-mono tabular-nums cursor-pointer rounded px-1.5 py-0.5 transition-colors"
+              style={{ color: `${N.paper}80`, border: `1px solid ${N.paper}24` }}
+              aria-label={L(`지도에 못 실은 ${overflowNote}척 — 아래 명부로`, `${overflowNote} more ships — jump to the roster`)}
+            >
+              {L(`+${overflowNote}척 · 명부로 ↓`, `+${overflowNote} · roster ↓`)}
+            </button>
           )}
         </div>
 
@@ -758,21 +893,22 @@ export function VoyageSea({
       )}
       </div>
 
-      {/* ── under the plate: the honest caption + the chart legend ── */}
+      {/* ── under the plate: the honest caption + a quiet chart key ── */}
       <div className="mt-2.5 px-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
         <p className="text-[12px] text-[var(--text-secondary)]">{caption}</p>
-        <div aria-hidden className="hidden md:flex items-center gap-4 text-[9px] font-mono uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+        <div aria-hidden className="hidden md:flex items-center gap-4 text-[9px] font-mono uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
           {(
             [
-              ['sailing', L('항해 중', 'sailing')],
-              ['adrift', L('표류', 'adrift')],
-              ['wrecked', L('난파', 'wrecked')],
-              ['verified', L('검증됨', 'verified')],
-            ] as Array<[VoyageState, string]>
-          ).map(([st, label]) => (
-            <span key={st} className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1" style={{ background: N.sea }}>
-              <ShipMark state={st} due={false} size={13} />
-              <span style={{ color: `${N.paper}99` }}>{label}</span>
+              ['sailing', 'project', L('항해 중', 'sailing')],
+              ['adrift', 'project', L('표류', 'adrift')],
+              ['wrecked', 'project', L('난파', 'wrecked')],
+              ['verified', 'project', L('검증됨', 'verified')],
+              ['sailing', 'receipt', L('검수 봉인', 'review seal')],
+            ] as Array<[VoyageState, 'project' | 'receipt', string]>
+          ).map(([st, kind, label]) => (
+            <span key={`${st}-${kind}`} className="inline-flex items-center gap-1.5 rounded px-1 py-0.5" style={{ background: N.sea }}>
+              <ShipMark state={st} due={false} size={12} kind={kind} plain />
+              <span style={{ color: `${N.paper}8c` }}>{label}</span>
             </span>
           ))}
         </div>

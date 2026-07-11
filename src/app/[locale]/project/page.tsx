@@ -687,7 +687,7 @@ export default function ProjectPage() {
                   {L("그 이름의 항해는 안 보여요 — 철자를 바꾸거나 필터를 '전체'로 돌려보세요.", 'No voyage by that name — try a different spelling, or set the filter back to All.')}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div id="fleet-roster" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 scroll-mt-6">
                   {filteredProjects.map((project) => {
                     const m = projectMetricsMap.get(project.id);
                     if (!m) return null;
