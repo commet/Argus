@@ -12,6 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { buildInitialAnalysisPrompt } from '../../src/lib/progressive-prompts';
+import { buildLeanScanPrompt, coerceLeanFlags, applyNeutral } from '../../src/lib/lean-scan';
 
 const env = readFileSync(new URL('../../.env.local', import.meta.url), 'utf8');
 const KEY = (env.match(/ANTHROPIC_API_KEY\s*=\s*(.+)/) || [])[1]?.trim().replace(/^["']|["']$/g, '');
@@ -72,6 +73,12 @@ async function scoreOne(s: { tag: string; input: string }): Promise<Score | null
   try {
     const { system, user } = buildInitialAnalysisPrompt(s.input, 'ko');
     const a = await call<{ request_type?: string; real_question?: string; hidden_assumptions?: unknown; skeleton?: unknown; insight?: string; next_question?: unknown }>(system, user);
+    // 런타임 B와 동일: OPEN insight를 lean-scan으로 중립화한 뒤 채점(엔진과 같은 함수).
+    if (a.request_type === 'open' && a.insight?.trim()) {
+      const ls = buildLeanScanPrompt(s.input, { insight: a.insight }, 'ko');
+      const flags = coerceLeanFlags(await call(ls.system, ls.user));
+      a.insight = applyNeutral(a.insight, flags);
+    }
     const analysis = JSON.stringify({ request_type: a.request_type, real_question: a.real_question, hidden_assumptions: a.hidden_assumptions, skeleton: a.skeleton, insight: a.insight, next_question: a.next_question }, null, 2);
     const v = await call<{ level?: number; coherence?: number; soundness?: number; neutrality?: number; worst_issue?: string; worst_axis?: string }>(JUDGE_SYSTEM, `사용자 질문: "${s.input}"\n\nArgus 분석:\n${analysis}`);
     return {

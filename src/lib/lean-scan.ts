@@ -18,6 +18,7 @@
  */
 
 import { sanitizeForPrompt } from './persona-prompt';
+import { locateFlag } from './honesty-scan';
 export { locateFlag } from './honesty-scan';
 
 export interface LeanFlag {
@@ -122,6 +123,26 @@ export function buildLeanScanPrompt(
       `${label}:\n<user-data>${sanitizeForPrompt(problemText)}</user-data>\n\n` +
       `${label2}:\n<user-data>${sanitizeForPrompt(body)}</user-data>`,
   };
+}
+
+/**
+ * Replace any flagged verdict span inside `insight` with its neutral rewrite
+ * (loop-19b B — runtime insight neutralization). Verbatim-only (locateFlag), so a
+ * flag that doesn't match leaves the text untouched — a stale/wrong flag can never
+ * corrupt the insight. Returns the original when nothing matches.
+ */
+export function applyNeutral(insight: string, flags: LeanFlag[]): string {
+  if (!insight || !Array.isArray(flags) || flags.length === 0) return insight;
+  let out = insight;
+  for (const f of flags) {
+    const idx = locateFlag(out, f.text);
+    if (idx < 0) continue;
+    const matchLen = out.startsWith(f.text, idx)
+      ? f.text.length
+      : f.text.replace(/[.。!?！？…]+\s*$/u, '').trim().length;
+    out = out.slice(0, idx) + f.neutral + out.slice(idx + matchLen);
+  }
+  return out;
 }
 
 export function coerceLeanFlags(obj: unknown): LeanFlag[] {

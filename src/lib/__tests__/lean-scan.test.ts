@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { coerceLeanFlags, buildLeanScanPrompt, locateFlag } from '../lean-scan';
+import { coerceLeanFlags, buildLeanScanPrompt, locateFlag, applyNeutral } from '../lean-scan';
 
 describe('coerceLeanFlags', () => {
   it('keeps only flags with both text and neutral, trims', () => {
@@ -20,6 +20,21 @@ describe('coerceLeanFlags', () => {
     expect(coerceLeanFlags(null)).toEqual([]);
     expect(coerceLeanFlags({})).toEqual([]);
     expect(coerceLeanFlags({ flags: [{ text: 'x' }] })).toEqual([]); // missing neutral
+  });
+});
+
+describe('applyNeutral', () => {
+  const insight = '노트북은 아직 쓸 만해요 — 지금은 안 사도 돼요. 느려지면 그때 사세요.';
+  it('replaces a matched verdict span with its neutral rewrite', () => {
+    const out = applyNeutral(insight, [{ text: '지금은 안 사도 돼요', neutral: '이건 불편이 새 값만큼인지에 달렸어요' }]);
+    expect(out).toContain('이건 불편이 새 값만큼인지에 달렸어요');
+    expect(out).not.toContain('지금은 안 사도 돼요');
+    expect(out).toContain('노트북은 아직 쓸 만해요'); // rest untouched
+  });
+  it('leaves the insight UNTOUCHED when a flag does not match (no corruption from a stale flag)', () => {
+    expect(applyNeutral(insight, [{ text: '존재하지 않는 판정', neutral: 'x' }])).toBe(insight);
+    expect(applyNeutral(insight, [])).toBe(insight);
+    expect(applyNeutral('', [{ text: 'a', neutral: 'b' }])).toBe('');
   });
 });
 

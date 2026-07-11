@@ -5,6 +5,7 @@
 import { callLLMJson, callLLMStreamThenParse, LLMError } from '@/lib/llm';
 import { salvageMixDoc } from '@/lib/partial-analysis';
 import { buildHonestyScanPrompt, coerceHonestyFlags, type HonestyFlag } from '@/lib/honesty-scan';
+import { buildLeanScanPrompt, coerceLeanFlags, applyNeutral } from '@/lib/lean-scan';
 import {
   buildInitialAnalysisPrompt,
   buildInitialRefinementPrompt,
@@ -575,6 +576,36 @@ export async function scanHonesty(
   }
 }
 
+/**
+ * Runtime insight neutralization (loop-19b, founder choice B) — the fix for the
+ * realistic-question loop's #1 finding: on everyday OPEN decisions the insight
+ * leaks a directive VERDICT ("just don't buy it", "now's the time"). Runs the
+ * high-precision lean-scan on the insight; if it flags a verdict, swaps in the
+ * NEUTRAL rewrite (name the deciding variable, hand it back) — doctrine-required,
+ * since a lean cannot be laundered by tagging (CLAUDE.md mirror clause), only
+ * neutralized. Returns the insight UNCHANGED on any failure or no-verdict
+ * (verbatim-only replace → a stale flag can never corrupt it). Awaited before the
+ * snapshot is built so the settled card shows the neutral line from first view.
+ */
+export async function neutralizeInsight(
+  problemText: string,
+  insight: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  try {
+    if (!insight.trim()) return insight;
+    const locale = getCurrentLanguage();
+    const { system, user } = buildLeanScanPrompt(problemText, { insight }, locale);
+    const raw = await callLLMJson<{ flags?: unknown }>(
+      [{ role: 'user', content: user }],
+      { system, maxTokens: 1000, signal, shape: { flags: 'array' }, parseRetries: 0 },
+    );
+    return applyNeutral(insight, coerceLeanFlags(raw));
+  } catch {
+    return insight; // never block or corrupt — original insight stands
+  }
+}
+
 export async function runInitialAnalysis(
   problemText: string,
   onToken?: (text: string) => void,
@@ -623,6 +654,14 @@ export async function runInitialAnalysis(
   // tiers). Enforce the restraint structural contract the prompt already states.
   const { result: contractResult } = applyRouteContract(result);
   Object.assign(result, contractResult);
+
+  // Loop-19b B — neutralize a leaked verdict in the OPEN insight before it becomes
+  // the settled card's focal "direction" sentence. Only OPEN (flat/vent/info are
+  // allowed a direct one-liner); non-blocking-safe (returns the insight unchanged
+  // on any failure). This is the one extra call the founder accepted for spine.
+  if (result.request_type === 'open' && typeof result.insight === 'string' && result.insight.trim()) {
+    result.insight = await neutralizeInsight(problemText, result.insight, signal);
+  }
 
   const framingConfidence = Math.min(100, Math.max(0, result.framing_confidence ?? 75));
   // §4.3b — the frame_clarify gate must not read "signal absent" as "confident".
