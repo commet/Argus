@@ -55,6 +55,7 @@ PROJECTION  LOGBOOK.md · MCP Resources · check_in · export · calendar(.ics)
 | 15 | 측정 분리: `brief_injected`(기계 관측) ≠ `brief_relayed`(수동 20-cold-start 표본) — 후자를 자동 지표로 사칭 금지 |
 | 16 | R4-B(에세이·파이썬 리더·template·표준화 작업)는 **출시 차단 조건이 아니다** — 제품 runtime의 Release Gate와 분리, 출시 후 웨이브 |
 | 17 | 구현은 main에서 새 클린 브랜치로 시작, 명확한 stacked commits, 최종 통합 Release Gate 1회 통과 |
+| 18 | **파일 경로도 1급 표면**: 영수증·LOGBOOK·.ics·doctor 대상의 **절대 경로를 surface에 평문 포함** — Claude Code가 열기/컨텍스트 첨부/고정 어포던스를 자동 부여 (영수증 경로 첨부 = 복귀 캡슐의 1클릭 판). 호스트별 렌더 차이가 있으므로 진행형 강화로만 취급하고 기능 의존 금지; 클릭은 관측 불가(규칙 13과 동일) |
 
 ## I-3 · Release Readiness Matrix (단일 출시 관문 — 전 행 통과 시에만 v2.0)
 
