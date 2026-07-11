@@ -73,10 +73,41 @@ export function readRegistry(home: string): Registry {
   return parsed;
 }
 
+/** registry 쓰기 락 — read-modify-write의 lost update 방지 (적대 리뷰 F8:
+ *  두 세션이 동시에 다른 리포를 init하면 한 매핑이 조용히 증발하고, 그 리포는
+ *  재init에서 새 UUID를 받아 기존 내구 원장이 고아가 된다). 동기 API라
+ *  Atomics.wait로 잠깐 기다린다 — init은 드문 동사라 경합은 ms 단위다. */
+function withRegistryLock<T>(home: string, fn: () => T): T {
+  const lock = registryPath(home) + '.lock';
+  fs.mkdirSync(home, { recursive: true });
+  const waiter = new Int32Array(new SharedArrayBuffer(4));
+  for (let i = 0; i < 200; i++) {
+    try {
+      fs.writeFileSync(lock, String(process.pid), { flag: 'wx' });
+      try {
+        return fn();
+      } finally {
+        try { fs.unlinkSync(lock); } catch { /* 이미 정리됨 */ }
+      }
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
+      try {
+        if (Date.now() - fs.statSync(lock).mtimeMs > 5000) { fs.unlinkSync(lock); continue; } // crash 잔재
+      } catch { continue; }
+      Atomics.wait(waiter, 0, 0, 10); // 10ms 동기 대기
+    }
+  }
+  throw new Error('REGISTRY_BUSY: could not acquire registry lock — another init is stuck');
+}
+
 /** init의 동사: common dir을 실경로화해 등록한다. 이미 같은 매핑이면 no-op,
  *  같은 경로가 다른 repository_id를 가리키면 명시 거절(조용한 재바인딩 금지). */
 export function registerRepository(home: string, gitCommonDir: string, repositoryId?: string): string {
   const real = fs.realpathSync(gitCommonDir);
+  return withRegistryLock(home, () => registerLocked(home, real, repositoryId));
+}
+
+function registerLocked(home: string, real: string, repositoryId?: string): string {
   const reg = readRegistry(home);
   const existing = reg.repositories[real];
   if (existing) {
@@ -139,19 +170,33 @@ function lockFilePath(home: string, repositoryId: string): string {
   return ledgerPath(home, repositoryId) + '.lock';
 }
 
-/** O_EXCL 생성으로 락 획득. 선점자가 있으면 pid 생존 확인 — 살아 있으면
- *  LEDGER_BUSY, 죽었으면 1회 탈취 재시도. 반환된 release는 자기 nonce일 때만
- *  지운다(남의 새 락을 지우는 ABA 방지). */
+/** 락 획득 — 두 경합 결함(적대 리뷰 F3)을 봉인한 형태:
+ *
+ *  1. **빈 본문 창 제거**: 'wx' open 후 write는 두 걸음이라, 그 사이를 본
+ *     경쟁자가 "쓰다 죽은 흔적"으로 오판해 산 락을 탈취할 수 있었다.
+ *     수리: 본문을 임시 파일에 완성한 뒤 linkSync로 원자 생성 — 락 파일은
+ *     존재하는 순간부터 항상 완전한 본문을 가진다.
+ *  2. **이중 탈취 경쟁 제거**: 죽은 락을 두 프로세스가 동시에 발견하면
+ *     unlink 경쟁으로 A의 새 락을 B가 지울 수 있었다. 수리: 탈취는
+ *     rename(원자 — 정확히 한 명만 성공)으로만.
+ *
+ *  pid 재사용 방어: 보유자 pid가 살아 있어도 started_at이 10분을 넘긴 락은
+ *  탈취 대상이다 — 정상 append는 ms 단위이므로 10분 보유 = 좀비/재사용 pid.
+ *  반환된 release는 자기 nonce일 때만 지운다(ABA 방지). */
+const LOCK_HELD_TOO_LONG_MS = 10 * 60_000;
+
 export function acquireLock(home: string, repositoryId: string): { release: () => void } {
   const lockPath = lockFilePath(home, repositoryId);
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   const body: LockFileBody = { nonce: randomUUID(), pid: process.pid, started_at: new Date().toISOString() };
+  const tmp = `${lockPath}.${body.nonce}.tmp`;
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    // 본문 완성본을 먼저 — 락 파일에 빈 상태가 존재할 수 없게.
+    fs.writeFileSync(tmp, JSON.stringify(body), 'utf8');
     try {
-      const fd = fs.openSync(lockPath, 'wx'); // O_CREAT|O_EXCL — 원자적 생성
-      fs.writeSync(fd, JSON.stringify(body));
-      fs.closeSync(fd);
+      fs.linkSync(tmp, lockPath); // 원자 생성 (EEXIST면 선점자 존재)
+      fs.unlinkSync(tmp);
       return {
         release: () => {
           try {
@@ -163,22 +208,32 @@ export function acquireLock(home: string, repositoryId: string): { release: () =
         },
       };
     } catch (e) {
+      try { fs.unlinkSync(tmp); } catch { /* tmp 정리 실패는 무해 */ }
       if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
-      let holder: LockFileBody;
-      try {
-        holder = JSON.parse(fs.readFileSync(lockPath, 'utf8')) as LockFileBody;
-      } catch {
-        // 읽을 수 없는 락 파일(쓰다 죽은 흔적) = 보유자 증명 실패 → 탈취 대상
-        holder = { nonce: 'unreadable', pid: -1, started_at: 'unknown' };
-      }
-      if (holder.pid > 0 && pidAlive(holder.pid)) {
-        throw new LedgerBusyError(holder); // 명시 거절 — fail-open 금지
-      }
-      try {
-        fs.unlinkSync(lockPath); // stale 탈취는 pid 사망 확인 후에만
-      } catch {
-        /* 경합에서 누가 먼저 지웠어도 다음 시도가 판정한다 */
-      }
+    }
+
+    let holder: LockFileBody | null = null;
+    try {
+      holder = JSON.parse(fs.readFileSync(lockPath, 'utf8')) as LockFileBody;
+    } catch {
+      holder = null; // 사라졌거나(경쟁자 탈취) 외부산 파손 — 아래 rename이 판정한다
+    }
+    const heldTooLong =
+      holder?.started_at !== undefined &&
+      Number.isFinite(Date.parse(holder.started_at)) &&
+      Date.now() - Date.parse(holder.started_at) > LOCK_HELD_TOO_LONG_MS;
+    if (holder && holder.pid > 0 && pidAlive(holder.pid) && !heldTooLong) {
+      throw new LedgerBusyError(holder); // 명시 거절 — fail-open 금지
+    }
+
+    // 원자 탈취: rename은 정확히 한 경쟁자만 성공한다. 실패(ENOENT)는 남이
+    // 이미 처리했다는 뜻 — 루프가 재시도로 판정한다.
+    const grave = `${lockPath}.stale.${randomUUID()}`;
+    try {
+      fs.renameSync(lockPath, grave);
+      fs.unlinkSync(grave);
+    } catch {
+      /* 경쟁자가 먼저 — 다음 시도 */
     }
   }
   throw new LedgerBusyError({ pid: -1, started_at: 'contended' });

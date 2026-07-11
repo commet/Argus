@@ -23,8 +23,9 @@ export interface InitReport {
   workspace_id: string;
   /** true = 이 호출이 새로 등록했다. false = 이미 등록돼 있었다(멱등 재실행). */
   newly_registered: boolean;
-  /** 후보 경로별 v1 이전 결과 — copied / already_migrated / source_missing. */
-  v1_migration: Array<{ source: string } & MigrationResult>;
+  /** 후보 경로별 v1 이전 결과 — copied / already_migrated / source_missing,
+   *  또는 후보별 error (한 후보의 실패가 바인딩·다른 후보를 죽이지 않는다 — F6). */
+  v1_migration: Array<{ source: string } & (MigrationResult | { action: 'error'; error: string })>;
 }
 
 export function initV2(args: {
@@ -42,8 +43,13 @@ export function initV2(args: {
   const projectRoot = args.projectRoot ?? path.dirname(args.workspaceArgusDir);
   const v1_migration: InitReport['v1_migration'] = [];
   for (const source of v1CandidatePaths(projectRoot, args.home)) {
-    // MIGRATION_CONFLICT는 삼키지 않는다 — 사람이 봐야 하는 상황이므로 그대로 던진다.
-    v1_migration.push({ source, ...migrateV1Ledger(args.home, repositoryId, source) });
+    // 후보별 격리(F6): 둘째 후보의 MIGRATION_CONFLICT가 이미 성공한 바인딩과
+    // 첫째 이전 보고를 삼키면 안 된다 — 오류는 그 후보의 행으로 정직하게 남긴다.
+    try {
+      v1_migration.push({ source, ...migrateV1Ledger(args.home, repositoryId, source) });
+    } catch (e) {
+      v1_migration.push({ source, action: 'error', error: e instanceof Error ? e.message : String(e) });
+    }
   }
 
   return {

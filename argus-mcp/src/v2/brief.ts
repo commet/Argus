@@ -88,7 +88,10 @@ export function deriveBrief(state: LoadedState, today: string): BriefState {
   let sealedAlive = 0;
 
   for (const d of state.decisions.values()) {
-    if (d.state !== 'sealed' || !d.check_by?.value) continue;
+    if (d.state !== 'sealed') continue;
+    // check_by 없는 봉인(파손 v1 이전 등)은 due 계산에서만 빠진다 — 살아있는
+    // 봉인 수에서 증발하면 조용한 소실이다 (F10a).
+    if (!d.check_by?.value) { sealedAlive++; continue; }
     const snoozeHolds = d.snoozed_until !== undefined && d.snoozed_until > today;
     if (d.check_by.value <= today && !snoozeHolds) {
       due.push({

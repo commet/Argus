@@ -226,6 +226,48 @@ export function premiseAddV2(ctx: V2Context, a: {
   });
 }
 
+export function premiseAmendV2(ctx: V2Context, a: {
+  premiseId: string; text?: Provenanced; recheckCadenceDays?: number; idempotencyKey?: string;
+}): IdempotentAppendResult {
+  return append(ctx, {
+    ...envelope(ctx, 'premise_amend', a.idempotencyKey), event: 'premise_amend', premise_id: a.premiseId,
+    ...(a.text ? { text: a.text } : {}),
+    ...(a.recheckCadenceDays !== undefined ? { recheck_cadence_days: a.recheckCadenceDays } : {}),
+  });
+}
+
+export function premiseRecheckV2(ctx: V2Context, a: {
+  premiseId: string; result: 'holds' | 'drifted' | 'broken' | 'unknown'; note?: string; idempotencyKey?: string;
+}): IdempotentAppendResult {
+  return append(ctx, {
+    ...envelope(ctx, 'premise_recheck', a.idempotencyKey), event: 'premise_recheck', premise_id: a.premiseId,
+    result: a.result, ...(a.note ? { note: a.note.slice(0, 400) } : {}),
+  });
+}
+
+export function premiseResolveV2(ctx: V2Context, a: {
+  premiseId: string; resolution: Provenanced; idempotencyKey?: string;
+}): IdempotentAppendResult {
+  return append(ctx, {
+    ...envelope(ctx, 'premise_resolve', a.idempotencyKey), event: 'premise_resolve', premise_id: a.premiseId,
+    resolution: a.resolution,
+  });
+}
+
+export function candidateCreatedV2(ctx: V2Context, a: {
+  candidateId: string; kind: 'claim' | 'premise' | 'question' | 'decision'; quote: string;
+  quoteSpeaker: 'user' | 'assistant' | 'unknown';
+  source: 'harvest_sweep' | 'debrief' | 'user'; idempotencyKey?: string;
+}): IdempotentAppendResult {
+  // 미러/수동 경로는 byte 검증이 불가능하므로 host_reported 등급 고정 —
+  // byte_verified는 증거 포인터가 있는 수확 경로(P3)만 쓸 수 있다.
+  return append(ctx, {
+    ...envelope(ctx, 'candidate_created', a.idempotencyKey), event: 'candidate_created',
+    candidate_id: a.candidateId, kind: a.kind, quote: a.quote.slice(0, 2000),
+    quote_speaker: a.quoteSpeaker, verification: 'host_reported', source: a.source,
+  });
+}
+
 export function gateResultV2(ctx: V2Context, a: {
   gate: string; fired: boolean; reason?: string;
 }): IdempotentAppendResult {

@@ -3,6 +3,7 @@ import fsP from 'fs/promises';
 import { ledgerPath, ledgerDir } from './layout.js';
 import { SCHEMA_VERSION } from './spine.js';
 import type { LedgerEventType } from './state-machine.js';
+import { mirrorV1Events, type MirrorHints, type MirrorOutcome } from '../v2/mirror.js';
 
 /**
  * The one internal writer for the append-only ledger. Tools call this; it is
@@ -126,7 +127,12 @@ function needsLeadingNewline(lPath: string): boolean {
   }
 }
 
-export async function appendLedger(argusDir: string, events: LedgerEventInput[], now: string): Promise<{ written: number }> {
+export async function appendLedger(
+  argusDir: string,
+  events: LedgerEventInput[],
+  now: string,
+  hints?: MirrorHints,
+): Promise<{ written: number; v2_mirror: MirrorOutcome }> {
   const dir = ledgerDir(argusDir);
   await fsP.mkdir(dir, { recursive: true });
   const lPath = ledgerPath(argusDir);
@@ -168,5 +174,18 @@ export async function appendLedger(argusDir: string, events: LedgerEventInput[],
     finally { if (dfd !== undefined) { try { fs.closeSync(dfd); } catch { /* already closed */ } } }
   }
 
-  return { written: events.length };
+  // ── v2 미러 (단일 관문) — v1 쓰기가 성공한 뒤에만, 그리고 반드시 여기서.
+  // 툴별 dual-write 호출을 없애 배선 누락을 구조적으로 불가능하게 만든 지점이다
+  // (src/v2/mirror.ts 헤더 참조). mirrorV1Events는 절대 던지지 않지만, 만에
+  // 하나를 위해 한 번 더 감싼다 — 미러가 v1 쓰기 성공을 오염하면 안 된다.
+  let v2_mirror: MirrorOutcome;
+  try {
+    v2_mirror = mirrorV1Events(argusDir, events, now, hints);
+  } catch (e) {
+    v2_mirror = {
+      bound: false, mirrored: 0, skipped_unmapped: [],
+      errors: [], reason: `mirror crashed: ${e instanceof Error ? e.message : String(e)}`,
+    };
+  }
+  return { written: events.length, v2_mirror };
 }

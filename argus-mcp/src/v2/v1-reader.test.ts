@@ -128,11 +128,20 @@ describe('migrateV1Ledger — 복사, 원본 보존, 재실행 멱등 (II-F)', (
     expect(fs.readFileSync(source, 'utf8')).toBe(before); // 원본 그대로 — 이동·삭제 금지
   });
 
-  it('re-run is a no-op; a DIFFERENT durable copy refuses loudly', () => {
+  it('re-run stays a no-op FOREVER, even after the source grows (경계 고정 — 성장분은 미러가 커버)', () => {
     migrateV1Ledger(home, repoId, source);
     expect(migrateV1Ledger(home, repoId, source).action).toBe('already_migrated');
-    fs.appendFileSync(v1LedgerPath(home, repoId), '{"v":1,"id":"d2","event":"harvest","decision":"y"}\n');
-    expect(() => migrateV1Ledger(home, repoId, source)).toThrow(/MIGRATION_CONFLICT/);
+    // dual-write 시대: v1 원본은 계속 자란다 — 재이전하면 이중 표현이므로 no-op이어야 한다.
+    fs.appendFileSync(source, '{"v":1,"id":"d2","event":"harvest","decision":"y"}\n');
+    expect(migrateV1Ledger(home, repoId, source).action).toBe('already_migrated');
+    expect(fs.readFileSync(v1LedgerPath(home, repoId), 'utf8')).not.toContain('"d2"'); // 스냅샷 동결
+  });
+
+  it('a SECOND, different v1 history refuses loudly (두 역사의 병합은 사람의 결정)', () => {
+    migrateV1Ledger(home, repoId, source);
+    const other = path.join(repoDir, 'other-ledger.jsonl');
+    fs.writeFileSync(other, '{"v":1,"id":"z","event":"harvest","decision":"다른 역사"}\n');
+    expect(() => migrateV1Ledger(home, repoId, other)).toThrow(/MIGRATION_CONFLICT/);
   });
 
   it('missing source is a named state, not an error', () => {

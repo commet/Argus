@@ -11,7 +11,7 @@ import { seal } from '../tools/seal.js';
 import { settle } from '../tools/settle.js';
 import { amend, dismiss } from '../tools/amend-dismiss.js';
 import { loadState } from './reducer.js';
-import { mapSealProvenance } from './dual-write.js';
+import { mapSealProvenance } from './mirror.js';
 
 let home: string;
 let repoDir: string;
@@ -99,6 +99,101 @@ describe('argus_seal/settle → v2 dual-write (v1 정본 유지)', () => {
     expect(dismissed.v2_write).toMatchObject({ written: true });
     const s = loadState(home, repoId);
     expect(s.decisions.get('dw-4')?.state).toBe('dismissed');
+    expect(s.anomalies).toEqual([]);
+  });
+
+  it('still_pending defer(재무장)도 v2에 amend로 미러된다 — 재검토 발견 결함의 회귀 방지', async () => {
+    await call(init, { argus_dir: argusDir });
+    const sealed = await call(seal, {
+      argus_dir: argusDir, id: 'dw-5',
+      predicate: 'data lands by friday', check_by: '2026-07-11',
+      predicate_owner: 'user', today_override: '2026-07-10', // 봉인은 전날 — check_by는 미래여야
+    });
+    const repoId = sealed.v2_write!.repository_id!;
+    const deferred = await call(settle, {
+      argus_dir: argusDir, id: 'dw-5', outcome: 'still_pending',
+      what_happened: '데이터가 아직 안 옴', defer_to: '2026-07-25', today_override: '2026-07-11', // due 당일 재무장
+    });
+    expect(deferred['status']).toBe('sealed'); // v1: 재무장, 정산 아님
+    expect(deferred.v2_write).toMatchObject({ written: true });
+    const d = loadState(home, repoId).decisions.get('dw-5')!;
+    expect(d.state).toBe('sealed'); // v2도 살아있고
+    expect(d.check_by?.value).toBe('2026-07-25'); // 새 확인일로 발산 없이 동행
+  });
+
+  it('cross-session retry with the same caller key dedupes instead of conflicting (payloadHash = 도메인만)', async () => {
+    await call(init, { argus_dir: argusDir });
+    const sealed6 = await call(seal, {
+      argus_dir: argusDir, id: 'dw-6', predicate: 'same payload twice ok', check_by: '2099-01-01', predicate_owner: 'user',
+    });
+    expect(sealed6.v2_write, JSON.stringify(sealed6.v2_write)).toMatchObject({ written: true });
+    // 같은 도메인 내용의 재시도 — v1 가드(ALREADY_SEALED)에 막히기 전에 v2를 직접 재현:
+    // dual-write와 같은 키·같은 도메인 payload지만 세션/날짜가 다른 이벤트.
+    const { appendEventGuarded } = await import('./reducer.js');
+    const initData = await call(init, { argus_dir: argusDir });
+    const repoId = (initData['v2'] as { repository_id: string }).repository_id;
+    const prior = loadState(home, repoId);
+    const original = [...prior.idempotency.values()].find((v) => v.event.event === 'seal' && (v.event as { decision_id?: string }).decision_id === 'dw-6')!.event;
+    const retry = appendEventGuarded(home, repoId, {
+      ...original,
+      event_id: '01JZXK5N8Q2W4E6R8T0Y2Z4G6H', // 다른 id
+      occurred_at: '2026-08-01T00:00:00Z',    // 다른 시각
+      session_id: 'another-session',            // 다른 세션
+      logical_date: '2026-08-01',               // 다른 날
+    });
+    expect(retry.appended).toBe(false); // duplicate — CONFLICT가 아니다
+  });
+
+  it('A→B→A amend가 v2에서 조용히 증발하지 않는다 (적대 리뷰 F1 회귀 방지)', async () => {
+    await call(init, { argus_dir: argusDir });
+    const sealed = await call(seal, {
+      argus_dir: argusDir, id: 'dw-7', predicate: 'goes back and forth ok', check_by: '2099-01-01', predicate_owner: 'user',
+    });
+    const repoId = sealed.v2_write!.repository_id!;
+    for (const to of ['2099-08-01', '2099-09-01', '2099-08-01']) { // 마지막이 첫 값으로 회귀
+      const r = await call(amend, { argus_dir: argusDir, id: 'dw-7', check_by: to });
+      expect(r.v2_write, JSON.stringify(r.v2_write)).toMatchObject({ written: true });
+    }
+    const s = loadState(home, repoId);
+    expect(s.decisions.get('dw-7')?.check_by?.value).toBe('2099-08-01'); // v1과 동행 — 발산 없음
+    expect(s.anomalies).toEqual([]);
+  });
+
+  it('pre-binding 결정의 정산 후 재init해도 anomaly가 생기지 않는다 (F2 회귀 방지)', async () => {
+    // 바인딩 전의 v1 역사: old-1이 이미 봉인돼 있었다.
+    const v1src = path.join(argusDir, 'ledger', 'ledger.jsonl');
+    fs.mkdirSync(path.dirname(v1src), { recursive: true });
+    fs.writeFileSync(v1src, [
+      JSON.stringify({ v: 1, ts: '2026-06-01T00:00:00Z', id: 'old-1', event: 'harvest', decision: '옛 결정' }),
+      JSON.stringify({ v: 1, ts: '2026-06-01T00:01:00Z', id: 'old-1', event: 'seal', predicate: '옛 예측 12345678', check_by: '2026-07-01' }),
+    ].join('\n') + '\n');
+    const initData = await call(init, { argus_dir: argusDir }); // 바인딩 + 스냅샷 이전(경계 고정)
+    const repoId = (initData['v2'] as { repository_id: string }).repository_id;
+
+    const settled = await call(settle, { argus_dir: argusDir, id: 'old-1', outcome: 'held', what_happened: '그렇게 됨' });
+    expect(settled.v2_write).toMatchObject({ written: true }); // v1이 공급한 봉인 위에 v2 정산
+
+    await call(init, { argus_dir: argusDir }); // 재init — marker가 재이전을 막는다
+    const s = loadState(home, repoId);
+    expect(s.decisions.get('old-1')?.state).toBe('settled');
+    expect(s.anomalies).toEqual([]); // 이중 fold 없음 — 정직성 채널 오염 없음
+    // 재init 보고도 정직해야: 스냅샷은 already_migrated (재복사 아님)
+    const again = await call(init, { argus_dir: argusDir });
+    const mig = (again['v2'] as { v1_migration: Array<{ source: string; action: string }> }).v1_migration;
+    expect(mig.find((m) => m.source === v1src)?.action).toBe('already_migrated');
+  });
+
+  it('premises·watch도 관문이 자동 미러한다 (툴별 배선 불요 — 근본 수리 2의 증명)', async () => {
+    await call(init, { argus_dir: argusDir });
+    const sealed = await call(seal, {
+      argus_dir: argusDir, id: 'dw-8', predicate: 'premises ride along', check_by: '2099-01-01', predicate_owner: 'user',
+      unverified_assumption: '이 전제는 자동으로 미러된다',
+    });
+    const repoId = sealed.v2_write!.repository_id!;
+    const s = loadState(home, repoId);
+    // seal이 승격한 전제(premise_add)가 아무 배선 없이 v2에 도착했다.
+    expect(s.premises.size).toBe(1);
+    expect([...s.premises.values()][0].text.value).toBe('이 전제는 자동으로 미러된다');
     expect(s.anomalies).toEqual([]);
   });
 

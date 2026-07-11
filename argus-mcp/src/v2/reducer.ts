@@ -23,13 +23,27 @@
  *    것이 규약이다 (이 파일은 key 문자열 전체로만 판정한다).
  *  - 동일 key + 동일 payload hash → 중복 재시도: append 없이 기존 이벤트 반환.
  *  - 동일 key + 다른 payload hash → IDEMPOTENCY_CONFLICT 명시 거절.
- *  - payload hash는 event_id·occurred_at을 제외하고 계산한다 — 재시도는 그 둘을
- *    새로 만들 수밖에 없기 때문이다.
+ *  - payload hash는 envelope 필드 전체를 제외한 도메인 내용만으로 계산한다 —
+ *    재시도는 다른 세션·다른 날에서도 정당하게 오기 때문이다 (payloadHash 참조).
  */
 import { createHash } from 'node:crypto';
 import type { ArgusEvent } from './events.js';
 import { appendEvent, readLedger, type LedgerReadResult } from './ledger.js';
-import { foldV1, readV1File, v1LedgerPath, type V1Extras } from './v1-reader.js';
+import { foldV1, readV1File, v1LedgerPath, type V1Extras, type V1FoldExclusions } from './v1-reader.js';
+
+/** v1 fill 제외 집합: v2가 생성(harvest·seal·premise_add)을 직접 가진 id들.
+ *  dual-write 시대에 마이그레이션된 v1 스냅샷과 v2 원장이 같은 결정을 이중
+ *  표현하는 것을 fold 층에서 해소한다 (재검토에서 발견된 이중 fold 결함의 수리).
+ *  v2에 settle/amend만 있는 결정은 제외하지 않는다 — 그 봉인은 v1이 공급한다. */
+function v2CreationIds(events: ArgusEvent[]): V1FoldExclusions {
+  const decisions = new Set<string>();
+  const premises = new Set<string>();
+  for (const e of events) {
+    if (e.event === 'harvest' || e.event === 'seal') decisions.add(e.decision_id);
+    else if (e.event === 'premise_add') premises.add(e.premise_id);
+  }
+  return { decisions, premises };
+}
 
 // ── 상태 모형 ─────────────────────────────────────────────
 
@@ -103,9 +117,18 @@ export function emptyState(): LedgerState {
 
 // ── 멱등: payload hash ────────────────────────────────────
 
-/** event_id·occurred_at 제외, 키 정렬 canonical JSON의 sha256. */
+/** 도메인 payload만의 sha256 (키 정렬 canonical JSON). envelope 필드는 전부
+ *  제외한다 — 재시도는 다른 세션·다른 날·다른 worktree에서도 올 수 있고,
+ *  그때 event_id/occurred_at만이 아니라 session_id/logical_date/tz/
+ *  workspace_id도 정당하게 달라진다. 이걸 해시에 넣으면 합법 재시도가
+ *  duplicate 대신 IDEMPOTENCY_CONFLICT로 오판된다 (II-E의 "동일 payload"는
+ *  도메인 내용을 뜻한다). repository_id는 append가 별도 강제하므로 역시 제외. */
 export function payloadHash(event: ArgusEvent): string {
-  const { event_id: _id, occurred_at: _at, ...rest } = event as Record<string, unknown>;
+  const {
+    event_id: _id, occurred_at: _at, session_id: _s, logical_date: _d,
+    tz: _tz, workspace_id: _w, producer_version: _p, repository_id: _r,
+    ...rest
+  } = event as Record<string, unknown>;
   const canonical = (v: unknown): unknown => {
     if (Array.isArray(v)) return v.map(canonical);
     if (v && typeof v === 'object') {
@@ -156,7 +179,15 @@ export function judgeTransition(state: LedgerState, e: ArgusEvent): 'fresh' | 'd
       if (d.state === 'dismissed') throw new TransitionError('ALREADY_DISMISSED', `decision "${d.id}" was dismissed`);
       return 'fresh';
     }
-    case 'amend':
+    case 'amend': {
+      // v1은 열려만 있는(harvested) 결정의 amend를 허용한다 — v2도 따른다
+      // (F7: 합법 연산에 NOT_SEALED 오류를 내보내던 발산 제거). settled/
+      // dismissed만 거절.
+      const d = need(state.decisions, e.decision_id, 'decision');
+      if (d.state === 'settled') throw new TransitionError('ALREADY_SETTLED', `decision "${d.id}" is settled`);
+      if (d.state === 'dismissed') throw new TransitionError('ALREADY_DISMISSED', `decision "${d.id}" was dismissed`);
+      return 'fresh';
+    }
     case 'snooze': {
       const d = need(state.decisions, e.decision_id, 'decision');
       if (d.state === 'settled') throw new TransitionError('ALREADY_SETTLED', `decision "${d.id}" is settled`);
@@ -165,6 +196,12 @@ export function judgeTransition(state: LedgerState, e: ArgusEvent): 'fresh' | 'd
       return 'fresh';
     }
     case 'settle': {
+      // still_pending은 정산이 아니다 — v1 제품 의미론(재무장)과 동일하게, v2에서
+      // 터미널로 기록되는 함정을 가드에서 봉인한다 (F10c). 재무장은 amend/snooze로.
+      if (e.outcome.value === 'still_pending') {
+        throw new TransitionError('STILL_PENDING_IS_NOT_TERMINAL',
+          'still_pending does not settle a decision — re-arm it with amend(check_by) or snooze instead');
+      }
       const d = need(state.decisions, e.decision_id, 'decision');
       if (d.state === 'settled') throw new TransitionError('ALREADY_SETTLED', `decision "${d.id}" is already settled`);
       if (d.state === 'dismissed') throw new TransitionError('ALREADY_DISMISSED', `decision "${d.id}" was dismissed`);
@@ -422,7 +459,7 @@ export function appendEventGuarded(home: string, repositoryId: string, event: un
       // v1에서 봉인된 결정을 v2에서 정산할 수 있어야 한다 — 가드가 v1 상태를
       // 못 보면 UNKNOWN_DECISION으로 이전 사용자의 연속성이 끊긴다.
       const state = emptyState();
-      foldV1(state, readV1File(v1LedgerPath(home, repositoryId)).events);
+      foldV1(state, readV1File(v1LedgerPath(home, repositoryId)).events, v2CreationIds(prior.events));
       reduceInto(state, prior.events);
       const verdict = judgeTransition(state, next);
       if (verdict === 'duplicate') {
@@ -448,9 +485,9 @@ export function loadState(home: string, repositoryId: string): LedgerState & {
   last_event_id: string | null;
 } {
   const v1 = readV1File(v1LedgerPath(home, repositoryId));
-  const state = emptyState();
-  const v1_extras = foldV1(state, v1.events);
   const read = readLedger(home, repositoryId);
+  const state = emptyState();
+  const v1_extras = foldV1(state, v1.events, v2CreationIds(read.events));
   reduceInto(state, read.events);
   return {
     ...state, v1_extras,

@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
-import { dualWriteAmend, dualWriteDismiss } from '../v2/dual-write.js';
+import { asV2WriteField } from '../v2/mirror.js';
 
 export const amend: ToolModule = {
   name: 'argus_amend',
@@ -46,20 +46,15 @@ export const amend: ToolModule = {
       }
 
       const now = new Date().toISOString();
-      await withLedgerLock(dir, async () => {
+      const mirrorAmend = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'amend'); // re-guard: the check-by may have arrived meanwhile
-        await appendLedger(dir, [{ id, event: 'amend', predicate: a['predicate'] as string | undefined, check_by: a['check_by'] as string | undefined }], now);
+        return (await appendLedger(dir, [{ id, event: 'amend', predicate: a['predicate'] as string | undefined, check_by: a['check_by'] as string | undefined }], now)).v2_mirror;
       });
       if (predicate && checkBy) {
         await atomicWriteJson(bearingPath(dir, id), { v: SCHEMA_VERSION, id, contract_seed: { predicate, check_by: checkBy } });
       }
-      // v2 dual-write (P1 수술 — dual-write.ts 헤더의 원칙 그대로).
-      const v2Write = dualWriteAmend({
-        argusDir: dir, today, decisionId: id,
-        predicate: a['predicate'] as string | undefined,
-        checkBy: a['check_by'] as string | undefined,
-      });
+      const v2Write = asV2WriteField(mirrorAmend);
 
       // Response voice follows the (new or existing) predicate (M4).
       const locale = resolveResponseLocale(dir, predicate);
@@ -110,16 +105,12 @@ export const dismiss: ToolModule = {
       guardTransition(current.state, 'dismiss');
 
       const now = new Date().toISOString();
-      await withLedgerLock(dir, async () => {
+      const mirrorDismiss = await withLedgerLock(dir, async () => {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'dismiss');
-        await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: a['dismiss_reason'] as string, decision: a['note'] as string | undefined }], now);
+        return (await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: a['dismiss_reason'] as string, decision: a['note'] as string | undefined }], now)).v2_mirror;
       });
-      // v2 dual-write (P1 수술 — dismiss_reason과 note를 한 사유로 합쳐 기록).
-      const v2Write = dualWriteDismiss({
-        argusDir: dir, today, decisionId: id,
-        reason: `${a['dismiss_reason'] as string}${a['note'] ? `: ${a['note'] as string}` : ''}`,
-      });
+      const v2Write = asV2WriteField(mirrorDismiss);
 
       // Response voice follows the note when present (M4); else config/env.
       const locale = resolveResponseLocale(dir, a['note'] as string | undefined);
