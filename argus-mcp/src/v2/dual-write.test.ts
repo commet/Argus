@@ -9,6 +9,7 @@ import path from 'node:path';
 import { init } from '../tools/init-config.js';
 import { seal } from '../tools/seal.js';
 import { settle } from '../tools/settle.js';
+import { amend, dismiss } from '../tools/amend-dismiss.js';
 import { loadState } from './reducer.js';
 import { mapSealProvenance } from './dual-write.js';
 
@@ -74,6 +75,31 @@ describe('argus_seal/settle → v2 dual-write (v1 정본 유지)', () => {
     expect(sealed['status']).toBe('sealed'); // v1 무영향
     expect(sealed.v2_write?.written).toBe(false);
     expect(sealed.v2_write?.reason).toMatch(/argus_init/); // 침묵이 아니라 안내
+  });
+
+  it('amend/dismiss도 양쪽 원장에 착지한다 (같은 dual-write 패턴)', async () => {
+    await call(init, { argus_dir: argusDir });
+    const sealed = await call(seal, {
+      argus_dir: argusDir, id: 'dw-3',
+      predicate: 'first predicate here', check_by: '2099-01-01', predicate_owner: 'user',
+    });
+    const repoId = sealed.v2_write!.repository_id!;
+
+    const amended = await call(amend, { argus_dir: argusDir, id: 'dw-3', check_by: '2099-06-01' });
+    expect(amended.v2_write).toMatchObject({ written: true });
+    expect(loadState(home, repoId).decisions.get('dw-3')?.check_by?.value).toBe('2099-06-01');
+
+    await call(seal, {
+      argus_dir: argusDir, id: 'dw-4',
+      predicate: 'second predicate here', check_by: '2099-01-01', predicate_owner: 'ai_surfaced',
+    });
+    const dismissed = await call(dismiss, {
+      argus_dir: argusDir, id: 'dw-4', dismiss_reason: 'decided_elsewhere', note: '웹에서 결정함',
+    });
+    expect(dismissed.v2_write).toMatchObject({ written: true });
+    const s = loadState(home, repoId);
+    expect(s.decisions.get('dw-4')?.state).toBe('dismissed');
+    expect(s.anomalies).toEqual([]);
   });
 
   it('mapSealProvenance: elicit Keep만 elicited_user, 나머지는 위로 위조 금지', () => {

@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
+import { dualWriteAmend, dualWriteDismiss } from '../v2/dual-write.js';
 
 export const amend: ToolModule = {
   name: 'argus_amend',
@@ -53,6 +54,13 @@ export const amend: ToolModule = {
       if (predicate && checkBy) {
         await atomicWriteJson(bearingPath(dir, id), { v: SCHEMA_VERSION, id, contract_seed: { predicate, check_by: checkBy } });
       }
+      // v2 dual-write (P1 수술 — dual-write.ts 헤더의 원칙 그대로).
+      const v2Write = dualWriteAmend({
+        argusDir: dir, today, decisionId: id,
+        predicate: a['predicate'] as string | undefined,
+        checkBy: a['check_by'] as string | undefined,
+      });
+
       // Response voice follows the (new or existing) predicate (M4).
       const locale = resolveResponseLocale(dir, predicate);
       const T = SURFACES[locale].tools.amend;
@@ -71,7 +79,7 @@ export const amend: ToolModule = {
         ok: true, tool: 'argus_amend',
         surface: T.amended(predicate, checkBy) + syncLine,
         next_actions: ['argus_check_in', 'stop'],
-        data: { id, predicate, check_by: checkBy, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
+        data: { id, predicate, check_by: checkBy, v2_write: v2Write, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
       });
     } catch (e) {
       return handleToolException('argus_amend', e);
@@ -107,6 +115,12 @@ export const dismiss: ToolModule = {
         guardTransition(fresh.state, 'dismiss');
         await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: a['dismiss_reason'] as string, decision: a['note'] as string | undefined }], now);
       });
+      // v2 dual-write (P1 수술 — dismiss_reason과 note를 한 사유로 합쳐 기록).
+      const v2Write = dualWriteDismiss({
+        argusDir: dir, today, decisionId: id,
+        reason: `${a['dismiss_reason'] as string}${a['note'] ? `: ${a['note'] as string}` : ''}`,
+      });
+
       // Response voice follows the note when present (M4); else config/env.
       const locale = resolveResponseLocale(dir, a['note'] as string | undefined);
       const T = SURFACES[locale].tools.dismiss;
@@ -122,7 +136,7 @@ export const dismiss: ToolModule = {
         ok: true, tool: 'argus_dismiss',
         surface: T.dismissed + syncLine,
         next_actions: ['stop'],
-        data: { id, dismiss_reason: a['dismiss_reason'], account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
+        data: { id, dismiss_reason: a['dismiss_reason'], v2_write: v2Write, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
       });
     } catch (e) {
       return handleToolException('argus_dismiss', e);
