@@ -35,6 +35,9 @@ import {
   sealV2, settleV2, ulid, type Provenanced, type V2Context,
 } from './bridge.js';
 import { packageMeta } from '../lib/package-meta.js';
+import { loadState } from './reducer.js';
+import { deriveBrief } from './brief.js';
+import { writeLogbook } from './logbook.js';
 import type { LedgerEventInput } from '../lib/ledger-append.js';
 import type { Provenance } from './events.js';
 
@@ -64,6 +67,8 @@ export interface MirrorOutcome {
   skipped_unmapped: string[];
   /** 이벤트별 미러 실패 — v1 쓰기는 이미 성공했으므로 오류는 노출용이다. */
   errors: string[];
+  /** LOGBOOK projection 갱신 여부 (규칙 10 — 실패해도 원장은 무사, 정직 노출). */
+  logbook_refreshed?: boolean;
 }
 
 /** 툴 data.v2_write 필드용 축약 (기존 노출 shape 유지). */
@@ -128,6 +133,13 @@ export function mirrorV1Events(
           out.errors.push(`${ev.event}: ${msg}`);
         }
       }
+    }
+
+    // ── LOGBOOK projection 갱신 (P2-1) — v2 락 밖(규칙 11), 미러 성공분이
+    // 있을 때만. projection 실패는 원장 쓰기를 오염하지 않고 플래그로 노출.
+    if (out.mirrored > 0) {
+      const brief = deriveBrief(loadState(home, ctx.repository_id), ctx.today);
+      out.logbook_refreshed = writeLogbook(argusDir, brief, ctx.repository_id);
     }
     return out;
   } catch (e) {
