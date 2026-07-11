@@ -15,7 +15,9 @@
   and whether it succeeded, plus the package version, coarse OS platform, and
   Node major. It **never** sends decision content, titles, predicates, file
   paths, `argus_dir`, or the account token. `DO_NOT_TRACK=1` disables it even if
-  the flag is set, and the sink stores no `user_id` (nothing to identify). The
+  the flag is set, and the sink stores no `user_id` (nothing to identify).
+  Telemetry rows are **deleted automatically after 90 days** (a daily database
+  job — retention is enforced by the database itself, not by policy prose). The
   runtime dependency surface is intentionally small and visible in
   `package.json`: MCP SDK, schema/config helpers, and document parsers for
   `argus_review`. `npm audit --omit=dev` should stay clean before publishing.
