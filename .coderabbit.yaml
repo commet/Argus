@@ -1,0 +1,8 @@
+# CodeRabbit 설정 — PR 노이즈 제거 (2026-07-11)
+#
+# 배경: draft PR마다 CodeRabbit이 "Review skipped / status" 코멘트를 달고,
+# 그 코멘트가 PR을 지켜보는 에이전트 세션을 매번 깨웠다 (웨이크업 노이즈).
+# 실제 리뷰 기능은 유지하고, 상태 안내 코멘트만 끈다 — 봇 스스로 코멘트에
+# 안내한 공식 방법(reviews.review_status: false)을 그대로 적용.
+reviews:
+  review_status: false

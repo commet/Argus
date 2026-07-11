@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "argus-driver",
+  "displayName": "Argus Driver",
+  "version": "0.1.0",
+  "description": "Thin Claude Code driver for the Argus decision-accountability MCP server. Installing this plugin wires argus-decision-mcp (stdio) automatically via the bundled .mcp.json — seal a falsifiable prediction, settle it against reality; the model never grades you. Ships the Argus statusline (durable v2 ledger aware) for optional one-line setup.",
+  "author": {
+    "name": "Argus",
+    "email": "yclee913@gmail.com",
+    "url": "https://github.com/commet"
+  },
+  "homepage": "https://github.com/commet/Argus",
+  "license": "MIT",
+  "repository": "https://github.com/commet/Argus",
+  "keywords": [
+    "decision-making",
+    "decision-contract",
+    "mcp",
+    "argus",
+    "statusline",
+    "accountability"
+  ]
+}

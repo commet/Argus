@@ -19,6 +19,15 @@
       "license": "MIT",
       "category": "productivity",
       "keywords": ["decision-making", "judgment-harness", "verification", "current-bearing", "decision-contract"]
+    },
+    {
+      "name": "argus-driver",
+      "source": "./argus-driver",
+      "description": "Thin driver for the argus-decision-mcp server: installing wires the MCP (stdio) automatically and ships the durable-ledger-aware statusline. Seal a falsifiable prediction, settle it against reality — the model never grades you.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "productivity",
+      "keywords": ["decision-making", "decision-contract", "mcp", "statusline", "accountability"]
     }
   ]
 }
