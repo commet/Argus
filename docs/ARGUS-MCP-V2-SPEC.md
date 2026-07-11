@@ -1,3 +1,166 @@
+# Argus MCP v2.0 — 통합 정본 스펙 (Definitive Spec)
+
+> **문서 규약**: 이 문서의 Part I·II가 유일한 정본이다. Part III(설계 계보)는 비정본
+> 참고자료이며, 어떤 충돌에서도 Part I·II가 이긴다. 구현자는 개정 로그를 해석해
+> 규칙을 재구성할 필요가 없다 — 모든 개정(R1~R5, S2)의 결과가 여기 이미 반영돼 있다.
+> **출시 방침(창업자 확정)**: v2.0 단일 출시 — A~F 전 기능 포함, 버전 분할 없음.
+> 단 내부 시공은 의존성 순서로, 최종 검증은 단일 Release Gate로.
+
+## I-0 · 명제와 포지셔닝
+
+- 카테고리: **decision harness**. 포지셔닝: **거울이 아니라 원장 (a ledger, not a mirror)**
+  — Reflect류는 사용 습관의 사후 해석, Argus는 봉인 시점의 반증가능 약속과 정산.
+  단, "그들은 구조적으로 영원히 못 한다"는 표현은 쓰지 않는다 — 현재의 차별점이지
+  영구 해자가 아니다. 실제 방어력: 이식 가능한 원장 · 누적 정산 이력 · 커밋 귀환점 ·
+  provenance 규율 · 공개 스키마.
+- 정확한 핵심 문장: **"You settle decisions against reality. The AI never scores
+  them."** (Argus는 현실을 직접 관측하지 않는다 — 사용자가 현실과 대조해 정산하고,
+  Argus는 그 기록을 지킨다. 자율 관측을 암시하는 카피 금지. 영수증의 `AI VERDICT:
+  NONE` 아티팩트 보이스는 유지.)
+- Claude Code에서 완전한 루프, 그 외 MCP 호스트는 정직한 "기록·정산 컴패니언" 티어.
+
+## I-1 · 아키텍처 — 4층과 실패 격리
+
+```
+CORE        ledger → reducer → seal → brief → settle   (이게 죽으면 제품이 죽은 것)
+COMPANION   candidates · debrief · bearing · return · patterns
+DRIVER      Claude Code 훅 4종 · 슬래시 커맨드 7종 · statusline · 수확 큐
+PROJECTION  LOGBOOK.md · MCP Resources · check_in · export · calendar(.ics)
+```
+
+**격리 규칙 (정본)**: COMPANION의 어떤 실패도 CORE 루프를 막지 못한다. 역으로 CORE가
+실패한 상태에서 COMPANION이 성공처럼 보이게 하는 것도 금지 — Release Gate는 CORE
+행이 전부 green일 때만 나머지 행을 판정한다. PROJECTION은 전부 원장에서 재생성
+가능해야 하며(정본은 원장 하나), 각 projection은 마지막 반영 `event_id` 커서를
+기록하고 SessionStart·resource read·check_in 시 커서가 원장과 다르면 자동 재생성한다.
+
+## I-2 · 정본 규칙 (개정 충돌의 최종 해소 — 이 표가 이긴다)
+
+| # | 규칙 (확정) |
+|---|---|
+| 1 | 커밋 신호는 **verified commit signal**: 문자열 매칭은 발화 조건일 뿐, HEAD before/after 변화 + 저장소 identity + anchored decision 확인 후에만 착지 제안. "결정론적 착지" 표현 금지 |
+| 2 | patterns 사용자-facing 문구: **카테고리별 n<5 완전 침묵 · n=5~9 표본 주의 부착 빈도 사실만 · n≥10 동일 사실 문구** — 조언·평가·방향 해석은 영원히 금지. `decision_category`+`taxonomy_version`+`classified_by` 기록. 픽스처 원장으로 전 임계 테스트 |
+| 3 | 플러그인 상태 저장: 플러그인 지정 데이터 디렉토리 (legacy `~/.claude/argus-state` 금지; 정확한 변수는 P0에서 공식 문서로 확정) |
+| 4 | 수확 실행: **큐 영속화 → 다음 SessionStart 처리**가 유일 경로 (detached 프로세스 생존에 의존 금지) |
+| 5 | .ics는 "달력 파일 제공"으로 표현 (zero-setup 리마인더 아님 — import는 사용자 행동) |
+| 6 | renderer 수용 기준: **동일 BriefState 소비 + renderer별 골든 픽스처** (byte-identical 출력 아님) |
+| 7 | P5 표현: 5명 중 3명 = **프로토타입 신호** (median-user 증명 주장 금지) |
+| 8 | 슬래시 커맨드 7종: settle · candidates · debrief · return · bearing · mute · doctor |
+| 9 | overdue 항목은 매일 재노출이 사양 (snooze/dismiss 탈출구 상시 부착); "동일 브리프 이틀 연속 금지" 인바리언트는 비-overdue 내용에만 적용 |
+| 10 | LOGBOOK은 재생성 가능한 projection (write-through 정본 아님) — I-1 커서 규칙 적용 |
+| 11 | 쓰기 락 범위: `lock → replay → transition guard → append/fsync → unlock` **만**. LOGBOOK·receipt·.ics·account sync는 락 밖 |
+| 12 | account sync는 **최소 outbox 상태머신**: `sync_pending → sync_attempted → sync_succeeded | sync_abandoned`, 각 상태에 event_id·attempts·next_retry_at·last_error. 원격 API는 event_id를 idempotency key로 수용 (범용 큐 프레임워크 금지) |
+| 13 | **링크는 1급 표면**: 중요 링크는 surface에 제목+원본 HTTPS URL 평문 병기, `structuredContent.data.links[{rel,title,url}]`에 구조화 사본. 클릭을 관측하지 못하므로 telemetry에서 link_clicked 주장 금지 |
+| 14 | provenance는 **필드 단위** (Part II-B) — 이벤트당 actor_source 하나로 갈음 금지 |
+| 15 | 측정 분리: `brief_injected`(기계 관측) ≠ `brief_relayed`(수동 20-cold-start 표본) — 후자를 자동 지표로 사칭 금지 |
+| 16 | R4-B(에세이·파이썬 리더·template·표준화 작업)는 **출시 차단 조건이 아니다** — 제품 runtime의 Release Gate와 분리, 출시 후 웨이브 |
+| 17 | 구현은 main에서 새 클린 브랜치로 시작, 명확한 stacked commits, 최종 통합 Release Gate 1회 통과 |
+
+## I-3 · Release Readiness Matrix (단일 출시 관문 — 전 행 통과 시에만 v2.0)
+
+| 행 | 판정 기준 |
+|---|---|
+| Core loop | seal → due brief → settle 완주 (elicitation OFF 텍스트 경로 포함) |
+| Capture | 게이트 호출률 측정 존재 · flat 20발화 replay에서 질문 0 (CI red) · unsealed 다음날 그물 1회 후 후보 보관 |
+| Debrief | 증거 포인터로 byte-검증된 후보만 생성, QUOTE_NOT_FOUND 루드 |
+| Bearing | remaining[] 사용자 소유 필드의 provenance 보존 (기계 수정 = 코드 에러) |
+| Return | 유효 SHA로 `git switch -c` 새 브랜치 생성 가능 (수동 실행 검증) |
+| Patterns | 임계 이전 완전 침묵 · 이후 사실 문장만 (픽스처로 전 구간) |
+| Degraded hosts | Codex/Cursor에서 LOGBOOK·Resources로 기록·정산 가능 |
+| Recovery | 락 충돌 명시 거절 · torn write drop 계상 · stale projection 자동 재생성 · sync outbox 재시도/포기 |
+| Privacy | transcript(수확 opt-in) · telemetry(opt-in, 공시) · account sync(토큰 opt-in) 각각 명시적 동의 경계 준수 |
+
+## I-4 · 시공 순서 (내부 순서일 뿐, 출시는 v2.0 하나)
+
+P-1(계약 확정, Part II — 코드 전 완결) ∥ P0(스파이크 3일) → P1 원장·reducer·툴 통합
+(+R4-A: provenance.ts, property 2종, MCP-NOTES, 스펙-버전 규율) → P2 드라이버·Day0 →
+P3 캡처 → P4 정산 경화·outbox → P5 실사용 5명 관찰(21일, 프로토타입 신호) ∥
+COMPANION(B~F) 시공 → P6 opt-in 수확 → **Release Gate(I-3) 1회 통과 → v2.0 출시**.
+정직한 총 기간: **8~9주** (재시도 시 9~12주). 표준화 웨이브(R4-B)는 출시 후 별도 2주.
+
+## I-5 · 창업자 결정 잔여 (P0 전 필요 3건)
+
+① P5 실패 프로토콜 사전 약정(재시도 vs 킬 기준) ② 이메일 다이제스트 존치(추천: 존치,
+신규 공사 0) ③ 수확 비용 기본값(haiku·1일 1회·주 2건 캡) + telemetry 보존(90일 제안).
+
+---
+
+# Part II · P-1 계약표 (정본 — 코드 작성 전 이 표가 완결 상태여야 한다)
+
+## II-A · 이벤트 공통 envelope + 상태 전이
+
+**envelope (모든 이벤트 공통)**: `event_id`(ULID) · `v`(schema_version) ·
+`producer_version` · `project_id` · `session_id` · `occurred_at`(ISO) ·
+`logical_date`(YYYY-MM-DD, resolveToday) · `tz` · `idempotency_key`(멱등 재시도용).
+correlation/causation id는 채택하지 않는다(결정 id가 상관 축; 필요 시 백로그).
+
+**상태 전이 (정본)**
+- candidate: `surfaced → promoted | dropped | snoozed(→surfaced) | expired(파생, 14일 — 이벤트 아님, 읽기 시 logical_date로 파생)`
+- bearing: `set → updated* → arrived | abandoned` (terminal 후 재-set은 새 bearing)
+- snooze(정산 항목): `due → snoozed(until) → due` · 2회 snooze 후 dismiss 제안
+- sync(outbox): `sync_pending → sync_attempted(n회) → sync_succeeded | sync_abandoned(수동 재개 가능)`
+- contract(기존 유지): `absent → harvested → sealed → settled | dismissed`
+
+## II-B · 필드 단위 provenance
+
+**어휘**: `elicited_user`(elicitation 응답 — 서버가 직접 수신) ·
+`direct_user_command`(서버가 인자를 직접 받은 CLI/커맨드 — **모델 프롬프트로 확장되는
+슬래시 커맨드는 해당 없음**, 그것은 host_reported) · `host_reported`(모델이 전한
+사용자 말) · `ai_surfaced`(모델 생성).
+
+**적용 필드**: `predicate.provenance` · `check_by.provenance` · `outcome.provenance` ·
+`direction_tag.provenance` · `remaining[].provenance` · `human_judgment.provenance` ·
+후보 quote의 `quote_speaker`+검증 등급.
+
+**승격 규칙 (유일)**: user-소유 표시는 `elicited_user` 또는 `direct_user_command`로만.
+`host_reported`는 절대 자동 승격되지 않으며 카피는 "모델이 전한 당신의 말"로 렌더.
+Reword는 정의상 사용자 텍스트(단 그 전달 경로의 provenance를 따른다 — 픽커 Reword는
+elicited_user, 채팅 Reword는 host_reported).
+
+## II-C · Transcript 증거 포인터 (byte-검증 계약)
+
+필드: `host_schema_version` · `source_ref`(transcript 경로/ID) ·
+`source_prefix_length`(검증 시점까지의 바이트 길이) · `source_prefix_sha256`
+(**prefix 지문** — 계속 자라는 파일 전체 해시 금지) · `turn_id` · `role` ·
+`quote_byte_start`/`quote_byte_end`(**UTF-8 byte offset** 명시) · `raw_quote` ·
+`raw_quote_sha256` · `normalization_version`.
+
+**신뢰 등급**: `byte_verified`(위 계약으로 대조 성공) > `pasted`(사용자가 붙여넣음 —
+대조 불가, 등급 표기) > `host_reported`(모델 전언 — 등급 표기). byte_verified가
+아닌 것을 "검증된 인용"으로 렌더하는 것 금지. 대조 실패 = QUOTE_NOT_FOUND 루드 거절.
+(현 ingest의 trim()/speaker 미파싱은 P1에서 이 계약에 맞게 재작성)
+
+## II-D · project / worktree / resource identity
+
+- `project_id`: argus_dir 실경로의 안정 해시 + `.argus/.install` 8hex 병기.
+- git 저장소 identity: `git rev-parse --show-toplevel` 실경로 기준 (worktree는 각자
+  독립 project — common-dir로 묶지 않는다, 단 waypoint에 common-dir 기록).
+- Resources: `argus://projects/{project_id}/ledger | /due`. 무접두 `argus://ledger`는
+  bound 프로젝트가 정확히 1개일 때만 허용, 그 외 명시적 목록 반환(자동 선택 금지).
+- 기존 4 Resources·4 Prompts 호환 정책: 1 마이너 버전 동안 병존 후 deprecated 표기,
+  제거는 메이저에서만.
+
+## II-E · 락·멱등·projection 수리·마이그레이션·telemetry 보존
+
+- 쓰기 락: 획득 실패 시 `LEDGER_BUSY` 명시 오류(재시도 안내), lock 파일에
+  `{nonce, pid, started_at}`, stale 판정은 pid 생존 확인 후에만 탈취.
+- 멱등: 동일 `idempotency_key` 재수신 시 no-op + 원 결과 반환.
+- projection 수리: 각 projection에 `last_event_id` 커서 → 불일치 시 자동 재생성
+  (doctor 없이도), 재생성 실패는 honest-gap 라인.
+- 마이그레이션: 과거 이벤트는 영원히 읽는다(버전별 리더 유지), 히스토리 재작성 금지,
+  미지 이벤트는 drop 계상하며 skip.
+- telemetry: opt-in(기공시), 익명, 보존 **90일 자동 삭제**(제안 — 창업자 확정 시
+  마이그레이션 1건), 삭제 방법 문서화. 저장 위치·payload는 SECURITY.md 공시 유지.
+
+---
+
+# Part III · 설계 계보 (비정본 — 참고자료)
+
+> 아래는 본 정본이 만들어진 과정의 기록이다: 13-agent 합성 원본과 개정 R1~R5,
+> 외부 감사 판정들. **규칙이 Part I·II와 다르게 읽히는 곳은 전부 Part I·II가 이긴다.**
+> 여정 대본·수확 파이프라인 상세·도구별 세부는 여기 원문을 참조하되, 위 정본 규칙
+> 17개와 계약 5장을 항상 우선 적용할 것.
+
 # Argus MCP v2 — 확정 스펙 (재건축 정본 후보)
 
 > **상태**: 창업자 검토 대기 (승인 시 BLUEPRINT §9 M-트랙의 정본으로 앵커 — 앵커 커밋은 창업자 결정)
