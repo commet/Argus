@@ -10,6 +10,7 @@ import { init } from '../tools/init-config.js';
 import { seal } from '../tools/seal.js';
 import { settle } from '../tools/settle.js';
 import { amend, dismiss } from '../tools/amend-dismiss.js';
+import { checkIn } from '../tools/check-in.js';
 import { loadState } from './reducer.js';
 import { mapSealProvenance } from './mirror.js';
 
@@ -195,6 +196,28 @@ describe('argus_seal/settle → v2 dual-write (v1 정본 유지)', () => {
     expect(s.premises.size).toBe(1);
     expect([...s.premises.values()][0].text.value).toBe('이 전제는 자동으로 미러된다');
     expect(s.anomalies).toEqual([]);
+  });
+
+  it('check_in이 v2 BriefState를 병기한다 — surface 무접촉 관찰 채널 (P2-3)', async () => {
+    await call(init, { argus_dir: argusDir });
+    await call(seal, {
+      argus_dir: argusDir, id: 'dw-9', predicate: 'v2 brief rides along', check_by: '2026-07-11',
+      predicate_owner: 'user', today_override: '2026-07-10',
+    });
+    const data = await call(checkIn, { argus_dir: argusDir, today_override: '2026-07-11' });
+    const v2 = data['v2_brief'] as { available: boolean; brief?: { due: Array<{ decision_id: string }>; logical_date: string } };
+    expect(v2.available).toBe(true);
+    expect(v2.brief!.logical_date).toBe('2026-07-11');
+    expect(v2.brief!.due.map((d) => d.decision_id)).toEqual(['dw-9']); // v1 due와 같은 답
+
+    // 미바인딩 리포: 정직한 사유, check_in은 그대로 성공.
+    const bare = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-dw-bare-'));
+    try {
+      const bareData = await call(checkIn, { argus_dir: path.join(bare, '.argus') });
+      expect((bareData['v2_brief'] as { available: boolean }).available).toBe(false);
+    } finally {
+      fs.rmSync(bare, { recursive: true, force: true });
+    }
   });
 
   it('mapSealProvenance: elicit Keep만 elicited_user, 나머지는 위로 위조 금지', () => {

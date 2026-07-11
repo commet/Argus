@@ -94,6 +94,23 @@ const SETTLE_OUTCOMES = new Set(['held', 'avoided', 'partial', 'still_pending', 
 const PREMISE_KINDS = new Set(['premise', 'fact', 'question']);
 const CANDIDATE_KINDS = new Set(['claim', 'premise', 'question', 'decision']);
 
+/** 읽기 표면용: 바인딩이 있으면 v2 BriefState, 없으면 정직한 사유.
+ *  check_in 등이 data에 병기한다 (v1 surface는 무접촉 — v1이 여전히 정본). */
+export function readV2Brief(argusDir: string, today: string):
+  | { available: true; brief: ReturnType<typeof deriveBrief> }
+  | { available: false; reason: string } {
+  try {
+    const commonDir = gitCommonDirOf(argusDir);
+    if (!commonDir) return { available: false, reason: 'not a git repository' };
+    const home = argusHome();
+    const repositoryId = lookupRepository(home, commonDir);
+    if (!repositoryId) return { available: false, reason: 'not bound — run argus_init' };
+    return { available: true, brief: deriveBrief(loadState(home, repositoryId), today) };
+  } catch (e) {
+    return { available: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** appendLedger가 v1 쓰기 성공 직후 호출하는 유일한 진입점. 절대 던지지 않는다. */
 export function mirrorV1Events(
   argusDir: string,
