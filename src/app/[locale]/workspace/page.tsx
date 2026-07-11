@@ -42,12 +42,17 @@ import { RetroSeal } from '@/components/workspace/RetroSeal';
 import { getDemoScenarios } from '@/lib/demo-data';
 import type { DemoScenario } from '@/lib/demo-data';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { WorkerPersona, DecisionContract } from '@/stores/types';
+import type { WorkerPersona, DecisionContract, VoyageBranch } from '@/stores/types';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { parsePartialAnalysis } from '@/lib/partial-analysis';
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { ArgusMascot } from '@/components/brand/ArgusMascot';
 import { MascotMoment } from '@/components/brand/MascotMoment';
+
+/** Stable empty-array fallback for the sessionBranches selector — a fresh `[]`
+ *  literal on every render makes zustand see a new snapshot each time → React's
+ *  "getSnapshot should be cached" warning. One module-level reference fixes it. */
+const EMPTY_BRANCHES: VoyageBranch[] = [];
 
 /* ─── Step-level error fallback ─── */
 function StepErrorFallback({ onRetry }: { onRetry?: () => void }) {
@@ -122,7 +127,7 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   // (rail hidden), and stays reachable while scrolled. Both call switchBranch.
   const sessionBranches = useProgressiveStore(s => {
     const sess = s.sessions.find(x => x.id === s.currentSessionId);
-    return sess?.branches || [];
+    return sess?.branches ?? EMPTY_BRANCHES;
   });
   const activeBranchId = useProgressiveStore(s => {
     const sess = s.sessions.find(x => x.id === s.currentSessionId);
@@ -696,6 +701,8 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                       onChange={(e) => { setProblemInput(e.target.value); if (justFromDemo) setJustFromDemo(false); }}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
                       placeholder={L('예: 다음 주까지 보고서를 써야 하는데 어디서 시작해야 할지 모르겠어', "e.g., I need to write a report by next week but don't know where to start")}
+                      aria-label={L('상황이나 결정을 적어주세요', 'Describe your situation or decision')}
+                      name="decision-problem"
                       rows={3} maxLength={5000}
                       className="w-full px-3 py-2.5 bg-transparent text-base md:text-[16px] text-[var(--text-primary)] leading-[1.65] resize-none focus:outline-none placeholder:text-[var(--text-tertiary)]" />
                     <div className="flex items-center justify-between gap-3 mt-2 px-1">
