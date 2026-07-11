@@ -51,6 +51,9 @@ export interface PremiseRecord {
   text: { value: string; provenance: string };
   load_bearing: boolean;
   recheck_cadence_days?: number;
+  /** 등록된 logical_date — 한 번도 recheck 안 된 전제의 다음 재확인일 기준
+   *  (added_on + cadence; 웹 premises-core의 never-checked 분기와 같은 사상). */
+  added_on?: string;
   last_recheck?: { on: string; result: string };
   resolved: boolean;
 }
@@ -292,7 +295,8 @@ function apply(state: LedgerState, e: ArgusEvent): void {
     case 'premise_add':
       state.premises.set(e.premise_id, {
         id: e.premise_id, decision_id: e.decision_id, kind: e.kind, text: e.text,
-        load_bearing: e.load_bearing ?? false, recheck_cadence_days: e.recheck_cadence_days, resolved: false,
+        load_bearing: e.load_bearing ?? false, recheck_cadence_days: e.recheck_cadence_days,
+        added_on: e.logical_date, resolved: false,
       });
       break;
     case 'premise_amend': {
@@ -440,6 +444,8 @@ export function appendEventGuarded(home: string, repositoryId: string, event: un
  *  영원히 읽힌다 (II-E). 카운터는 두 파일 합산. */
 export function loadState(home: string, repositoryId: string): LedgerState & {
   v1_extras: V1Extras; skipped_unknown: number; dropped_corrupt: number;
+  /** projection 커서(I-1): 마지막 v2 이벤트 id. v1-only 원장은 null. */
+  last_event_id: string | null;
 } {
   const v1 = readV1File(v1LedgerPath(home, repositoryId));
   const state = emptyState();
@@ -450,5 +456,6 @@ export function loadState(home: string, repositoryId: string): LedgerState & {
     ...state, v1_extras,
     skipped_unknown: read.skipped_unknown + v1.skipped_unknown,
     dropped_corrupt: read.dropped_corrupt + v1.dropped_corrupt,
+    last_event_id: read.events.length ? read.events[read.events.length - 1].event_id : null,
   };
 }
