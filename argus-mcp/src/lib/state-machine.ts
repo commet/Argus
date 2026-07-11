@@ -11,6 +11,12 @@ export type DecisionState = 'absent' | 'opened' | 'sealed' | 'due' | 'settled' |
 
 export type LedgerEventType =
   | 'harvest' | 'seal' | 'amend' | 'dismiss' | 'settle'
+  // defer: at the check-by, reality had not answered yet (the user said
+  // still_pending). NOT a settlement — the contract re-arms with a new check_by
+  // and stays alive. Reachable ONLY from `due` via a still_pending answer, so it
+  // cannot be used to move a goalpost on a knowable outcome (the outcome is, by
+  // definition, still unknown).
+  | 'defer'
   // living premises (plan v5): the facts/open questions a decision rests on
   // premise_reconsider (M3) = the user chose `still_open`: defer, not resolve.
   | 'premise_add' | 'premise_amend' | 'premise_recheck' | 'premise_resolve' | 'premise_reconsider';
@@ -40,7 +46,11 @@ const ALLOWED: Record<DecisionState, Set<LedgerEventType>> = {
   // premise_amend (retiring the premise that's about to be proven wrong is the
   // goalpost guard one level down) — recheck/resolve/reconsider stay open
   // (deferring or closing an open_question is never a goalpost move; plan v5 §6.2).
-  due: new Set<LedgerEventType>(['dismiss', 'settle', 'premise_recheck', 'premise_resolve', 'premise_reconsider']), // no amend once due — goalpost guard (m4)
+  // defer lives here (not in `sealed`): still_pending before the check-by is
+  // PREMATURE, so a deferral can only originate once due. It re-arms check_by
+  // forward — legitimate because the outcome is genuinely unknown, which is the
+  // one thing the goalpost guard on `amend` is NOT protecting against.
+  due: new Set<LedgerEventType>(['dismiss', 'settle', 'defer', 'premise_recheck', 'premise_resolve', 'premise_reconsider']), // no amend once due — goalpost guard (m4)
   settled: new Set<LedgerEventType>([]), // terminal — no reopen (mirror clause)
   dismissed: new Set<LedgerEventType>([]), // terminal
 };
@@ -58,6 +68,52 @@ export class GuardError extends Error {
 
 function eventArticle(event: LedgerEventType): string {
   return /^[aeiou]/i.test(event) ? 'an' : 'a';
+}
+
+/**
+ * A refusal must name a move that ACTUALLY works from this state, or the caller
+ * loops on the same advice (the dead-end class: the old premise-on-absent hint
+ * said "open it first", but re-opening a restrained decision just returns
+ * restraint again). Every branch below is derived from ALLOWED + the guards
+ * above, so the state each one addresses is the only state that can reach it.
+ */
+function illegalRecovery(current: DecisionState, event: LedgerEventType): string | undefined {
+  switch (true) {
+    // seal is legal from absent|opened, and settled|dismissed threw DECISION_CLOSED
+    // above — so we are necessarily ALREADY sealed (sealed|due). "Open it first"
+    // sent the caller to argus_open_decision, which cannot un-seal an append-only
+    // ledger: it returns the same state, and the same error, forever.
+    case event === 'seal':
+      return current === 'due'
+        ? 'This decision is already sealed and its check-by has arrived. Record what reality did with argus_settle (if reality has not answered, that is still_pending and it defers). A sealed prediction is never re-sealed.'
+        : 'This decision is already sealed. Change the predicate or the check-by with argus_amend, or record the outcome with argus_settle once the check-by arrives. Re-sealing is refused so a sealed prediction cannot be quietly rewritten.';
+
+    // premise_* can only reach here from `absent` (opened/sealed allow them all;
+    // due sends add/amend to PREMISE_LOCKED). Adding is recoverable — seal
+    // self-creates the contract — so nothing the user meant to track is lost.
+    case event === 'premise_add':
+      return "This decision isn't open for tracking yet. If it's a consequential fork, open it with argus_open_decision; otherwise seal it first (argus_seal creates the contract), then add the premise — premises attach from the sealed state, so nothing you meant to track is lost to order.";
+
+    // recheck/resolve/reconsider/amend act on a premise that must ALREADY exist,
+    // so the seal-first advice above is off-target for them.
+    case event.startsWith('premise_'):
+      return 'No decision with this id is being tracked, so it has no premises to act on. Check the id — argus_recall view=contracts lists them.';
+
+    // defer only exists to re-arm a bet whose check-by has arrived.
+    case event === 'defer':
+      // On `absent` there is no decision at all, so "argus_amend moves it" is a
+      // dead end (amend is refused on absent too). Point at the id instead.
+      if (current === 'absent') {
+        return 'No decision with this id exists yet. Check the id — argus_recall view=contracts lists them; a decision starts with argus_open_decision or argus_seal.';
+      }
+      return 'A decision can only be deferred once its check-by has arrived. Before then the check-by simply stands (argus_amend moves it).';
+
+    case event === 'amend' || event === 'dismiss':
+      return 'No decision with this id exists yet. Check the id — argus_recall view=contracts lists them; a decision starts with argus_open_decision or argus_seal.';
+
+    default:
+      return undefined;
+  }
 }
 
 /**
@@ -111,21 +167,10 @@ export function guardTransition(
   }
 
   if (!ALLOWED[current].has(event)) {
-    // A premise on an `absent` decision (the restraint gate returned no fork, so
-    // there is no harvest to attach to) must NOT dead-end the host: re-opening
-    // just returns restraint again. Point at the path that actually succeeds —
-    // seal self-creates the contract, and premises attach from `sealed` — so a
-    // fact the user meant to track is never lost to call order (plan v5 §6.2).
-    const recovery =
-      event === 'seal'
-        ? 'Open the decision first with argus_open_decision.'
-        : event.startsWith('premise_')
-          ? "This decision isn't open for tracking yet. If it's a consequential fork, open it with argus_open_decision; otherwise seal it first (argus_seal creates the contract), then add the premise — premises attach from the sealed state, so nothing you meant to track is lost to order."
-          : undefined;
     throw new GuardError(
       'ILLEGAL_TRANSITION',
       `A '${event}' is not allowed from state '${current}'.`,
-      recovery,
+      illegalRecovery(current, event),
     );
   }
 }

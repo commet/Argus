@@ -31,8 +31,11 @@ describe('MCP simulation — argus_review across shapes', () => {
 
   it('empty + unreadable binary degrade honestly instead of faking', async () => {
     expect(body(await review.handler({ text: '' })).error_code).toBe('EMPTY');
-    // Binaries are parsed now; an unreadable path fails honestly (never a fake review).
-    expect(body(await review.handler({ file_path: '/x/deck.pptx' })).error_code).toBe('READ_FAILED');
+    // Binaries are parsed now; an unreadable path INSIDE the readable root fails
+    // honestly (never a fake review). A path outside every opted-in project is
+    // refused earlier by the read boundary — a different, also-honest refusal.
+    expect(body(await review.handler({ file_path: `${process.cwd()}/deck.pptx` })).error_code).toBe('READ_FAILED');
+    expect(body(await review.handler({ file_path: '/x/deck.pptx' })).error_code).toBe('PATH_NOT_ALLOWED');
   });
 });
 

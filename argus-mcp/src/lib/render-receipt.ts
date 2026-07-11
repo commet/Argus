@@ -29,6 +29,11 @@ export function renderReceipt(r: Receipt, premises?: ReceiptPremisesInfo, locale
 
   L.push(top);
   L.push(`  ${R.sealed_label} ${sealed}      ${R.settled_label} ${settled}`);
+  // Deferral fact (still_pending re-arms): "originally due X · deferred N×".
+  // A fact about the record's timeline, not a grade of the user.
+  if (r.deferred_times && r.deferred_times > 0) {
+    L.push(`  ${R.deferred_fact(r.deferred_times, r.originally_due ?? sealed)}`);
+  }
   const skipped = new Set(r.skipped ?? []);
   const show = (v: string, field: string): string => (skipped.has(field) ? R.skipped : wrap(v));
 

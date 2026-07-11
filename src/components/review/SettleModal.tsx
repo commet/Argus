@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/hooks/useLocale';
-import { type FalsifiableFollowup, type FollowupOutcome } from '@/lib/review';
+import { type FalsifiableFollowup, type FollowupOutcome, type SettledOutcome } from '@/lib/review';
 
 export function SettleModal({
   followup,
@@ -19,8 +19,8 @@ export function SettleModal({
   onClose,
 }: {
   followup: FalsifiableFollowup;
-  onSettle: (outcome: FollowupOutcome, whatHappened: string, learned: string) => void;
-  onRevise?: (newCheckBy: string) => void;
+  onSettle: (outcome: SettledOutcome, whatHappened: string, learned: string) => void;
+  onRevise?: (newCheckBy: string, reason: string) => void;
   onClose: () => void;
 }) {
   const locale = useLocale();
@@ -28,15 +28,21 @@ export function SettleModal({
   const [outcome, setOutcome] = useState<FollowupOutcome | null>(null);
   const [what, setWhat] = useState('');
   const [learned, setLearned] = useState('');
-  const [revising, setRevising] = useState(false);
   const [newDate, setNewDate] = useState('');
   const today = new Date().toISOString().slice(0, 10);
+
+  // "아직 불분명" is not an outcome — reality has not answered, so the honest move
+  // is to pick a new date, not to file a settlement. Choosing it opens the date
+  // picker and disables Settle. Previously this chip stamped settled_at and the
+  // decision vanished from the dashboard, the due badge, and the Brief email —
+  // while a separate ghost button did the right thing. One concept, one control.
+  const deferring = outcome === 'unclear';
 
   const OUTCOMES: { id: FollowupOutcome; label: string }[] = [
     { id: 'happened', label: L('그렇게 됐다', 'It happened') },
     { id: 'avoided', label: L('피했다 / 안 그랬다', 'Avoided / did not happen') },
     { id: 'partial', label: L('부분적으로', 'Partially') },
-    { id: 'unclear', label: L('아직 불분명', 'Still unclear') },
+    { id: 'unclear', label: L('아직 불분명 (날짜 미루기)', 'Still unclear (push the date)') },
   ];
 
   return (
@@ -77,16 +83,26 @@ export function SettleModal({
             ))}
           </div>
 
-          <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">{L('무슨 일이 있었나요? (선택)', 'What happened? (optional)')}</label>
+          {/* Deferring? Then nothing happened yet — asking "what happened" would be
+              a question about a thing that has not occurred. Ask why instead. */}
+          <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
+            {deferring
+              ? L('아직 답이 안 나온 이유 (선택)', 'Why it has not answered yet (optional)')
+              : L('무슨 일이 있었나요? (선택)', 'What happened? (optional)')}
+          </label>
           <textarea
             value={what}
             onChange={(e) => setWhat(e.target.value)}
             maxLength={500}
-            placeholder={L('현실에서 실제로 어떻게 되었는지 한두 줄로', 'A line or two on how it actually went')}
+            placeholder={deferring
+              ? L('예: 데이터가 다음 달에나 나온다', 'e.g. the trial data does not land until next month')
+              : L('현실에서 실제로 어떻게 되었는지 한두 줄로', 'A line or two on how it actually went')}
             className="w-full h-20 resize-y px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
           />
 
-          {/* 배운 점 — Settlement View §937 "아래: 배운 점" */}
+          {/* 배운 점 — Settlement View §937 "아래: 배운 점". Nothing to learn from a
+              non-answer, so it is hidden while deferring. */}
+          {!deferring && (<>
           <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1 mt-3">{L('배운 점 (선택)', 'What you learned (optional)')}</label>
           <textarea
             value={learned}
@@ -95,32 +111,38 @@ export function SettleModal({
             placeholder={L('다음 판단에 가져갈 한 줄 — 없어도 됩니다', "One line to carry into your next judgment — it's fine to leave empty")}
             className="w-full h-16 resize-y px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none"
           />
+          </>)}
 
-          {/* revise = push the date instead of settling now (§933 choice) */}
-          {revising && (
-            <div className="mt-3 flex items-center gap-2">
-              <input type="date" value={newDate} min={today} onChange={(e) => setNewDate(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none" />
-              <Button variant="secondary" size="sm" disabled={!(newDate > today)} style={newDate > today ? undefined : { opacity: 0.5 }}
-                onClick={() => onRevise?.(newDate)}>
-                {L('날짜 미루기', 'Push the date')}
-              </Button>
+          {/* unclear = reality is silent → pick when to look again. Nothing is settled. */}
+          {deferring && (
+            <div className="mt-4 rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+              <p className="text-[12px] text-[var(--text-secondary)] mb-2">
+                {L(
+                  '정산하지 않습니다. 현실이 아직 답하지 않았으니, 언제 다시 볼지만 정하세요.',
+                  'Nothing gets settled. Reality has not answered — just choose when to look again.',
+                )}
+              </p>
+              <div className="flex items-center gap-2">
+                <input type="date" value={newDate} min={today} onChange={(e) => setNewDate(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-transparent text-[13px] outline-none" />
+                <Button variant="accent" size="sm" disabled={!(newDate > today)} style={newDate > today ? undefined : { opacity: 0.5 }}
+                  onClick={() => onRevise?.(newDate, what)}>
+                  {L('이 날짜에 다시', 'Look again then')}
+                </Button>
+              </div>
             </div>
           )}
 
           <div className="flex flex-wrap gap-2 mt-5">
-            <Button
-              variant="accent"
-              size="md"
-              onClick={() => outcome && onSettle(outcome, what, learned)}
-              disabled={!outcome}
-              style={outcome ? undefined : { opacity: 0.5 }}
-            >
-              {L('정산하기', 'Settle')}
-            </Button>
-            {onRevise && (
-              <Button variant="ghost" size="md" onClick={() => setRevising((v) => !v)}>
-                {revising ? L('미루기 취소', 'Cancel postponing') : L('아직 이르다 (날짜 미루기)', 'Too early (push the date)')}
+            {!deferring && (
+              <Button
+                variant="accent"
+                size="md"
+                onClick={() => outcome && onSettle(outcome, what, learned)}
+                disabled={!outcome}
+                style={outcome ? undefined : { opacity: 0.5 }}
+              >
+                {L('정산하기', 'Settle')}
               </Button>
             )}
             <Button variant="ghost" size="md" onClick={onClose}>

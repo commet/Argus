@@ -40,6 +40,14 @@ export interface ContractEntry {
   /** YYYY-MM-DD of the settle event's ts — the wake render's settled column
    *  (P1-E7). Optional: pre-existing literals stay valid. */
   settled_on?: string;
+  /** How many times this contract was deferred (still_pending at its check-by →
+   *  re-armed, not settled). Surfaced as a neutral FACT on the eventual receipt
+   *  ("originally due X · deferred N×"), never a grade. */
+  defer_count?: number;
+  /** Each deferral: the date it was due (from), the new check-by (to), and the
+   *  user's note on why reality had not answered yet. defer_history[0].from is
+   *  the ORIGINAL check-by — what the receipt reports as "originally due". */
+  defer_history?: Array<{ from?: string; to?: string; note?: string; ts?: string }>;
 }
 
 /** 당직 루프 (BLUEPRINT §9) — the daily watch fold. Anchors and captures live
@@ -205,6 +213,25 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         break;
       }
 
+      case 'defer': {
+        // still_pending at the check-by → re-arm, do NOT settle. The contract
+        // moves its check_by forward and stays `sealed` (alive, will come due
+        // again). The original due date and the deferral reason are preserved so
+        // the eventual receipt can state the fact honestly.
+        if (!cur) { cur = freshEntry(id); map.set(id, cur); } // defensive; the write-time guard requires `due`
+        const to = typeof ev['check_by'] === 'string' ? ev['check_by'] : undefined;
+        const from = typeof ev['from'] === 'string' ? ev['from'] : cur.check_by;
+        if (to) cur.check_by = to;
+        cur.status = 'sealed';
+        cur.defer_count = (cur.defer_count ?? 0) + 1;
+        (cur.defer_history ??= []).push({
+          from, to,
+          ...(typeof ev['note'] === 'string' ? { note: ev['note'] } : {}),
+          ...(typeof ev['ts'] === 'string' ? { ts: ev['ts'] } : {}),
+        });
+        break;
+      }
+
       // ── living premises (plan v5 §6.1). The fold is not a validator — the
       //    write-time guard is; replay stays defensive and never throws. ──
       case 'premise_add': {
@@ -289,7 +316,11 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
           baseline_only: ev['baseline_only'] === true,
           source: ev['source'],
           ...(typeof ev['source_detail'] === 'string' ? { source_detail: ev['source_detail'] } : {}),
-          ts: ev['ts'] as string | undefined,
+          // Prefer the logical anchor_date over the wall-clock ts — the same
+          // deterministic clock premise_add (added_ts) and premise_reconsider use.
+          // The cadence math reads dateOnly(last_recheck.ts), so a UTC ts made the
+          // next nudge fire a day early for a UTC+9 user and broke sim timelines.
+          ts: (typeof ev['anchor_date'] === 'string' ? ev['anchor_date'] : ev['ts']) as string | undefined,
         };
         p.recheck_count++;
         break;
@@ -320,6 +351,13 @@ export function replayLedger(argusDir: string, today: string): LedgerState {
         const date = typeof ev['anchor_date'] === 'string' ? ev['anchor_date']
           : typeof ev['ts'] === 'string' ? ev['ts'].slice(0, 10) : undefined;
         if (!date || typeof ev['text'] !== 'string') { dropped++; break; }
+        // capture_id is sha256(date|text), and argus_watch documents re-capturing
+        // the same sentence on the same day as idempotent — but the fold used to
+        // push blindly, so a double note left TWO identical captures. The user
+        // could then never promote it: argus_premises from_capture matched both
+        // and hard-errored AMBIGUOUS_REF. Dedup here, like premise_add does.
+        const capId = typeof ev['capture_id'] === 'string' ? ev['capture_id'] : undefined;
+        if (capId && watch.captures.some((c) => c.id === capId)) break;
         watch.captures.push({
           ...(typeof ev['capture_id'] === 'string' ? { id: ev['capture_id'] } : {}),
           date,

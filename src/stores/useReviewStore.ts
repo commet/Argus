@@ -16,7 +16,7 @@ import {
   type JudgmentReceipt,
   type ReceiptState,
   type FalsifiableFollowup,
-  type FollowupOutcome,
+  type SettledOutcome,
 } from '@/lib/review';
 import {
   type PremiseState,
@@ -83,10 +83,13 @@ interface ReviewState {
   setReceiptState: (receiptId: string, state: ReceiptState) => void;
   /** Seal a falsifiable follow-up: the user owns the predicate; receipt→sealed. */
   sealFollowup: (receiptId: string, followupId: string, patch: SealPatch) => void;
-  /** Settle a sealed follow-up against reality; receipt→settled. Argus records, never grades. */
-  settleFollowup: (receiptId: string, followupId: string, outcome: FollowupOutcome, whatHappened: string, learned?: string) => void;
-  /** Revise: push the check date instead of settling (Settlement View §933 choice). */
-  reviseFollowup: (receiptId: string, followupId: string, newCheckBy: string) => void;
+  /** Settle a sealed follow-up against reality; receipt→settled. Argus records, never grades.
+   *  Takes SettledOutcome, not FollowupOutcome: `unclear` means reality has not
+   *  answered, which is a deferral (reviseFollowup), never a settlement. */
+  settleFollowup: (receiptId: string, followupId: string, outcome: SettledOutcome, whatHappened: string, learned?: string) => void;
+  /** Revise: push the check date instead of settling (Settlement View §933 choice).
+   *  This is what "아직 불분명 / Still unclear" does — the record stays alive and due. */
+  reviseFollowup: (receiptId: string, followupId: string, newCheckBy: string, reason?: string) => void;
   /** Promote an extracted assumption/claim into a tracked premise (living premises).
    *  Respects the caps (5 active / 2 load-bearing) so tracking can never nag. */
   promotePremise: (receiptId: string, input: PromotePremiseInput) => void;
@@ -213,13 +216,21 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     pushUpdated(next, receiptId);
   },
 
-  reviseFollowup: (receiptId, followupId, newCheckBy) => {
+  reviseFollowup: (receiptId, followupId, newCheckBy, reason) => {
     const now = new Date().toISOString();
     const next = get().receipts.map((r) => {
       if (r.receipt_id !== receiptId) return r;
       const followups: FalsifiableFollowup[] = r.falsifiable_followups.map((f) =>
         f.followup_id === followupId
-          ? { ...f, check_by: newCheckBy, revise_count: (f.revise_count ?? 0) + 1 }
+          ? {
+              ...f,
+              check_by: newCheckBy,
+              revise_count: (f.revise_count ?? 0) + 1,
+              // remember the ORIGINAL date once, so the eventual receipt can state
+              // the timeline as a fact rather than pretend this was always the date
+              first_check_by: f.first_check_by ?? f.check_by,
+              ...(reason?.trim() ? { defer_reason: reason.trim() } : {}),
+            }
           : f,
       );
       // Pushing the date keeps it sealed/active — it does not settle.

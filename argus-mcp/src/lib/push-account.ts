@@ -40,6 +40,34 @@ export interface SettlePush {
   settled_at?: string;
 }
 
+/**
+ * Reality has not answered at the check-by, so the bet is re-armed with a new
+ * date and stays alive. NOT a `seal` re-push: that upserts a freshly built
+ * receipt over the account row's `data`, wiping premises or edits the user made
+ * on the web. NOT a `settle`: the account would close a bet nobody resolved and
+ * stop emailing it. The account keeps nudging — at the right date.
+ */
+export interface DeferPush {
+  action: 'defer';
+  id: string;
+  /** the new check-by (YYYY-MM-DD) */
+  check_by: string;
+  /** the user's own words for why reality is still silent */
+  what_happened?: string;
+}
+
+/**
+ * The user set the decision aside. The account must stop nudging it, or the
+ * Companion Brief keeps emailing a decision they explicitly killed. Archived,
+ * never "settled" — nothing reality said was recorded.
+ */
+export interface DismissPush {
+  action: 'dismiss';
+  id: string;
+}
+
+export type AccountPush = SealPush | SettlePush | DeferPush | DismissPush;
+
 export interface PushResult {
   synced: boolean;
   reason?: string;
@@ -109,7 +137,7 @@ export async function fetchAccountReceipts(): Promise<PullResult> {
   }
 }
 
-export async function pushToAccount(payload: SealPush | SettlePush): Promise<PushResult> {
+export async function pushToAccount(payload: AccountPush): Promise<PushResult> {
   const token = (process.env.ARGUS_TOKEN || '').trim();
   if (!token) return { synced: false, reason: 'no_token' }; // local-only (default)
   if (!token.startsWith('argus_pat_')) return { synced: false, reason: 'bad_token_format' };

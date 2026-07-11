@@ -22,6 +22,13 @@ describe('return calendar export', () => {
     expect(ics).toContain('DTEND;VALUE=DATE:20260802');
     expect(ics).toContain('SUMMARY:Argus return: conversion stays above 4%\\, no exceptions');
     expect(ics).toContain('BEGIN:VALARM');
+    // The alarm must ring on the MORNING OF the check-by, not the afternoon
+    // before it. DTSTART is local midnight of an all-day event, so the offset has
+    // to be positive; `-PT9H` rang at 15:00 the previous day while the alarm text
+    // said "due today". With no account token this .ics is the ONLY thing that
+    // brings a sealed bet back, so the day it fires is the whole feature.
+    expect(ics).toContain('TRIGGER;RELATED=START:PT9H');
+    expect(ics).not.toContain('TRIGGER:-PT9H');
   });
 
   it('writes under .argus/calendar with a safe decision id', async () => {

@@ -5,8 +5,10 @@ import { resolveToday } from '../lib/resolve-today.js';
 import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
-import { appendLedger } from '../lib/ledger-append.js';
-import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
+import { appendLedger, withLedgerLock } from '../lib/ledger-append.js';
+import { pushToAccount } from '../lib/push-account.js';
+import { accountPushId } from '../lib/install-id.js';
+import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -25,7 +27,8 @@ export const amend: ToolModule = {
     today_override: zDate.optional(),
   }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { title: 'Amend a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  // openWorldHint: true — with ARGUS_TOKEN set, amending also moves the date in the account.
+  annotations: { title: 'Amend a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   handler: async (a) => {
     try {
       const dir = resolveToolArgusDir(a['argus_dir']);
@@ -42,17 +45,33 @@ export const amend: ToolModule = {
       }
 
       const now = new Date().toISOString();
-      await appendLedger(dir, [{ id, event: 'amend', predicate: a['predicate'] as string | undefined, check_by: a['check_by'] as string | undefined }], now);
+      await withLedgerLock(dir, async () => {
+        const fresh = resolveContract(dir, id, today);
+        guardTransition(fresh.state, 'amend'); // re-guard: the check-by may have arrived meanwhile
+        await appendLedger(dir, [{ id, event: 'amend', predicate: a['predicate'] as string | undefined, check_by: a['check_by'] as string | undefined }], now);
+      });
       if (predicate && checkBy) {
         await atomicWriteJson(bearingPath(dir, id), { v: SCHEMA_VERSION, id, contract_seed: { predicate, check_by: checkBy } });
       }
       // Response voice follows the (new or existing) predicate (M4).
-      const T = SURFACES[resolveResponseLocale(dir, predicate)].tools.amend;
+      const locale = resolveResponseLocale(dir, predicate);
+      const T = SURFACES[locale].tools.amend;
+
+      // Tell the ACCOUNT the date moved. Without this, argus_amend was silent to
+      // the account forever: the Companion Brief kept emailing on the ORIGINAL
+      // check-by, a date the user had already changed. `defer` is the right
+      // action — on the web, "revise" IS pushing the check date. No token ⇒
+      // silent no-op; a failure never undoes the local amend, but it does speak.
+      const sync = a['check_by'] != null && checkBy
+        ? await pushToAccount({ action: 'defer', id: accountPushId(dir, id), check_by: checkBy })
+        : { synced: true as const, reason: undefined };
+      const syncLine = sync.synced || sync.reason === 'no_token' ? '' : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
+
       return envelope({
         ok: true, tool: 'argus_amend',
-        surface: T.amended(predicate, checkBy),
+        surface: T.amended(predicate, checkBy) + syncLine,
         next_actions: ['argus_check_in', 'stop'],
-        data: { id, predicate, check_by: checkBy },
+        data: { id, predicate, check_by: checkBy, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
       });
     } catch (e) {
       return handleToolException('argus_amend', e);
@@ -72,7 +91,8 @@ export const dismiss: ToolModule = {
   }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   // idempotentHint:false (11 S7) — a repeat dismiss hard-errors DECISION_CLOSED.
-  annotations: { title: 'Dismiss a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  // openWorldHint: true — with ARGUS_TOKEN set, dismissing also archives it in the account.
+  annotations: { title: 'Dismiss a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   handler: async (a) => {
     try {
       const dir = resolveToolArgusDir(a['argus_dir']);
@@ -82,14 +102,27 @@ export const dismiss: ToolModule = {
       guardTransition(current.state, 'dismiss');
 
       const now = new Date().toISOString();
-      await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: a['dismiss_reason'] as string, decision: a['note'] as string | undefined }], now);
+      await withLedgerLock(dir, async () => {
+        const fresh = resolveContract(dir, id, today);
+        guardTransition(fresh.state, 'dismiss');
+        await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: a['dismiss_reason'] as string, decision: a['note'] as string | undefined }], now);
+      });
       // Response voice follows the note when present (M4); else config/env.
-      const T = SURFACES[resolveResponseLocale(dir, a['note'] as string | undefined)].tools.dismiss;
+      const locale = resolveResponseLocale(dir, a['note'] as string | undefined);
+      const T = SURFACES[locale].tools.dismiss;
+
+      // Tell the ACCOUNT it is closed. argus_dismiss used to say nothing, so the
+      // Companion Brief kept emailing a decision the user had explicitly killed —
+      // the single most infuriating way for this product to be wrong. The account
+      // marks it `archived`, never `settled`: nothing reality said was recorded.
+      const sync = await pushToAccount({ action: 'dismiss', id: accountPushId(dir, id) });
+      const syncLine = sync.synced || sync.reason === 'no_token' ? '' : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
+
       return envelope({
         ok: true, tool: 'argus_dismiss',
-        surface: T.dismissed,
+        surface: T.dismissed + syncLine,
         next_actions: ['stop'],
-        data: { id, dismiss_reason: a['dismiss_reason'] },
+        data: { id, dismiss_reason: a['dismiss_reason'], account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
       });
     } catch (e) {
       return handleToolException('argus_dismiss', e);

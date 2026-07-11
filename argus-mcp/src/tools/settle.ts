@@ -7,7 +7,7 @@ import { writeSettleReceipt } from '../lib/receipt.js';
 import { pushToAccount } from '../lib/push-account.js';
 import { elicit, canElicit } from '../lib/elicit.js';
 import { renderReceipt } from '../lib/render-receipt.js';
-import { resolveResponseLocale, SURFACES, humanizeSyncReason } from '../lib/surfaces.js';
+import { resolveResponseLocale, SURFACES, humanizeSyncReason, type SurfaceLocale } from '../lib/surfaces.js';
 import { accountPushId } from '../lib/install-id.js';
 import { resolvePremiseRef, receiptPremisesInfo } from '../lib/premises.js';
 import { z } from 'zod';
@@ -18,10 +18,11 @@ import { handleToolException } from './errors.js';
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   id: zId,
-  outcome: z.enum(['held', 'avoided', 'partial', 'still_pending', 'missed']).describe("What reality did to the prediction. Record the user's words — never infer. 'missed' = the sealed read was wrong (a judgment miss, distinct from 'avoided'). If omitted, Argus asks the user directly (elicitation) on hosts that support it.").optional(),
+  outcome: z.enum(['held', 'avoided', 'partial', 'still_pending', 'missed']).describe("What reality did to the prediction. Record the user's words — never infer. 'missed' = the sealed read was wrong (a judgment miss, distinct from 'avoided'). 'still_pending' = at the check-by, reality genuinely has NOT answered yet — this does NOT settle the decision; it re-arms with a new check-by (pass defer_to) so it comes back, so never force a fake held/missed. If omitted, Argus asks the user directly (elicitation) on hosts that support it.").optional(),
   outcome_source: z.literal('user_stated').describe('Single value "user_stated". An AI-inferred outcome cannot be expressed.'),
-  what_happened: z.string().min(1).max(600),
+  what_happened: z.string().min(1).max(600).optional().describe("What reality did — the settled outcome, in the user's words. Required for a real settlement (held/avoided/partial/missed). Omit for still_pending: reality hasn't answered yet, so there is nothing to record — just pass defer_to."),
   broken_premise_ref: z.string().max(64).optional().describe('Optional, USER-attributed: which tracked premise (ordinal like "P1"), if any, broke and drove the outcome. Never inferred by the model — ask, or omit.'),
+  defer_to: zDate.optional().describe("Only with outcome='still_pending': the new check-by (YYYY-MM-DD, a real future date) — when to look again, taken from the horizon the user names (\"the data lands next Friday\"). The decision stays alive and comes due again then. Omit only if the user has not said when; on elicitation hosts Argus will ask."),
   today_override: zDate.optional(),
 });
 
@@ -73,11 +74,39 @@ export const settle: ToolModule = {
         });
       }
       const checkBy = asDate(current.check_by);
-      if (outcome === 'still_pending' && checkBy && checkBy > today) {
+
+      // Response voice follows what-happened (M4): config > text > env.
+      const locale = resolveResponseLocale(dir, a['what_happened'] as string | undefined);
+      const T = SURFACES[locale].tools.settle;
+
+      // Settle at the LOGICAL day under a today_override (sims/tests), else real
+      // wall-clock — the receipt's settled date should match the user's timeline,
+      // not the simulator's clock (experience loop, settler). Real use has no
+      // override, so settled_at stays the true write time.
+      const now = a['today_override'] ? `${today}T12:00:00.000Z` : new Date().toISOString();
+
+      // still_pending = reality has NOT answered yet. This is NOT a settlement —
+      // filing it as `settled` (terminal) silently closed the loop and dropped
+      // the decision off check_in forever, while the surface lied "what actually
+      // happened". Instead: DEFER — re-arm with a new check-by so it comes back.
+      if (outcome === 'still_pending') {
+        if (checkBy && checkBy > today) {
+          return toolError({
+            ok: false, tool: 'argus_settle', error_code: 'PREMATURE_SETTLE',
+            message: `Not due yet (check-by ${checkBy}, today ${today}).`,
+            recovery: 'Wait for the check-by date, or amend the date if the timeline changed.',
+          });
+        }
+        return await deferStillPending({ dir, id, today, now, locale, T, current, whatHappened: a['what_happened'] as string | undefined, deferTo: a['defer_to'] as string | undefined });
+      }
+
+      // A real settlement records what reality did — required for a terminal
+      // outcome (still_pending returned above, where it is genuinely optional).
+      if (!(typeof a['what_happened'] === 'string' && a['what_happened'].trim())) {
         return toolError({
-          ok: false, tool: 'argus_settle', error_code: 'PREMATURE_SETTLE',
-          message: `Not due yet (check-by ${checkBy}, today ${today}).`,
-          recovery: 'Wait for the check-by date, or amend the date if the timeline changed.',
+          ok: false, tool: 'argus_settle', error_code: 'WHAT_HAPPENED_REQUIRED',
+          message: 'Record what reality did to the prediction.',
+          recovery: 'Ask the user what actually happened and pass it as `what_happened` — never infer it.',
         });
       }
 
@@ -93,15 +122,10 @@ export const settle: ToolModule = {
         brokenPremiseRef = `P${p.ordinal}`;
       }
 
-      // Response voice follows what-happened (M4): config > text > env.
-      const locale = resolveResponseLocale(dir, a['what_happened'] as string | undefined);
-      const T = SURFACES[locale].tools.settle;
-
-      // Settle at the LOGICAL day under a today_override (sims/tests), else real
-      // wall-clock — the receipt's settled date should match the user's timeline,
-      // not the simulator's clock (experience loop, settler). Real use has no
-      // override, so settled_at stays the true write time.
-      const now = a['today_override'] ? `${today}T12:00:00.000Z` : new Date().toISOString();
+      // Deferral history → a neutral fact on the receipt ("originally due X ·
+      // deferred N×"). defer_history[0].from is the ORIGINAL check-by.
+      const deferCount = current.entry?.defer_count ?? 0;
+      const originallyDue = current.entry?.defer_history?.[0]?.from;
       // §9.4 두 기기 안전: the settle write is a read-check-append sequence —
       // re-guard UNDER the ledger lock so two concurrent sessions can't both
       // pass the check above and double-count the record (the loser sees
@@ -110,7 +134,10 @@ export const settle: ToolModule = {
         const fresh = resolveContract(dir, id, today);
         guardTransition(fresh.state, 'settle');
         await appendLedger(dir, [{ id, event: 'settle', outcome, decision: a['what_happened'] as string, ...(brokenPremiseId ? { broken_premise_id: brokenPremiseId } : {}) }], now);
-        return writeSettleReceipt(dir, id, { what_happened: String(a['what_happened']), outcome, settled_at: now }, { predicate: current.predicate, check_by: current.check_by });
+        return writeSettleReceipt(dir, id, {
+          what_happened: String(a['what_happened']), outcome, settled_at: now,
+          ...(deferCount > 0 ? { deferred_times: deferCount, ...(originallyDue ? { originally_due: originallyDue } : {}) } : {}),
+        }, { predicate: current.predicate, check_by: current.check_by });
       });
 
       // Mirror the outcome to the account (opt-in) so a synced prediction stops
@@ -149,3 +176,114 @@ export const settle: ToolModule = {
     }
   },
 };
+
+type SettleSurface = (typeof SURFACES)['en']['tools']['settle'];
+
+/**
+ * still_pending → DEFER (re-arm), never a terminal settle. Reality has not
+ * answered at the check-by, so filing a receipt would be a lie and would drop
+ * the decision off check_in forever. Instead we move the check_by forward and
+ * keep the contract `sealed` (alive), so it comes due again.
+ *
+ * The new date comes from what the user said (deferTo, captured by the model);
+ * failing that we ASK — coarse buckets plus a dismiss escape for a prediction
+ * that no longer matters — and failing that (no picker) we return an honest
+ * error telling the model to ask, rather than guess a date or terminal-settle.
+ *
+ * Spine-safe: this is scheduling, not a verdict. The outcome stays genuinely
+ * unknown; the deferral is recorded so the eventual receipt states it as a fact.
+ */
+async function deferStillPending(args: {
+  dir: string; id: string; today: string; now: string; locale: SurfaceLocale;
+  T: SettleSurface;
+  current: { check_by?: string; predicate?: string };
+  whatHappened?: string;
+  deferTo?: string;
+}) {
+  const { dir, id, today, now, locale, T, current, whatHappened, deferTo } = args;
+  const oldCheckBy = current.check_by ?? today;
+
+  // 1) the date from the conversation (model captured the horizon) wins.
+  let newDate: string | undefined;
+  const provided = asDate(deferTo);
+  if (provided && provided > today) newDate = provided;
+
+  // 2) else ASK — coarse buckets + a dismiss escape (a prediction that no longer
+  //    matters should not be forced into a fake future date).
+  let dismissChosen = false;
+  if (!newDate && canElicit()) {
+    const picked = await elicit(
+      locale === 'ko' ? '아직 답이 안 나왔군요. 언제 다시 볼까요?' : "Not answered yet. When should I look again?",
+      { type: 'object', required: ['when'], properties: { when: {
+        type: 'string', enum: ['week', 'month', 'quarter', 'dismiss'],
+        enumNames: locale === 'ko'
+          ? ['약 1주 뒤', '약 1달 뒤', '약 3달 뒤', '이제 상관없어 (접기)']
+          : ['In about a week', 'In about a month', 'In about 3 months', 'It no longer matters (set aside)'],
+        description: locale === 'ko' ? '언제 다시 확인할지 고르세요.' : 'When to check this again.',
+      } } },
+    );
+    const when = picked?.['when'];
+    if (when === 'dismiss') dismissChosen = true;
+    else if (when === 'week') newDate = addDays(today, 7);
+    else if (when === 'month') newDate = addDays(today, 30);
+    else if (when === 'quarter') newDate = addDays(today, 90);
+    // a declined/cancelled picker → newDate stays undefined → honest error below.
+  }
+
+  // The prediction no longer needs an answer — set aside, don't force a date.
+  if (dismissChosen) {
+    await withLedgerLock(dir, async () => {
+      const fresh = resolveContract(dir, id, today);
+      guardTransition(fresh.state, 'dismiss');
+      await appendLedger(dir, [{ id, event: 'dismiss', dismiss_reason: 'no longer relevant (still_pending at check-by)' }], now);
+    });
+    // Tell the account too — a dismissal via this picker is a real dismissal.
+    // Without it a synced item stays sealed with its old check-by and the
+    // Companion Brief keeps emailing a decision the user set aside (same gap
+    // argus_dismiss had). archived, never settled: reality said nothing.
+    const sync = await pushToAccount({ action: 'dismiss', id: accountPushId(dir, id) });
+    const syncLine = sync.synced || sync.reason === 'no_token' ? '' : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
+    return envelope({ ok: true, tool: 'argus_settle', surface: T.defer_dismissed + syncLine, next_actions: ['argus_recall', 'stop'], data: { id, status: 'dismissed', account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) } });
+  }
+
+  // No date and no picker → do NOT guess, and NEVER terminal-settle. Ask.
+  if (!newDate) {
+    return toolError({
+      ok: false, tool: 'argus_settle', error_code: 'DEFER_DATE_REQUIRED',
+      message: "Reality hasn't answered yet — this needs a new check-by, not a settlement.",
+      recovery: 'Ask the user when to look again and pass it as `defer_to` (YYYY-MM-DD). If the prediction no longer matters, dismiss it with argus_dismiss instead.',
+    });
+  }
+
+  // Re-arm: a `defer` event moves check_by forward; the contract stays sealed.
+  // Re-guard under the ledger lock (§9.4 두 기기 안전) exactly like settle.
+  await withLedgerLock(dir, async () => {
+    const fresh = resolveContract(dir, id, today);
+    guardTransition(fresh.state, 'defer'); // due → defer OK; terminal states refuse
+    await appendLedger(dir, [{ id, event: 'defer', from: oldCheckBy, check_by: newDate, ...(whatHappened && whatHappened.trim() ? { note: whatHappened } : {}) }], now);
+  });
+
+  // Mirror the NEW check-by to the account (opt-in) so the Companion Brief nudges
+  // at the right time, not the stale one. A dedicated `defer` action, NOT a seal
+  // re-push: the seal endpoint upserts a freshly built receipt over the row's
+  // data, which would wipe premises or edits the user made on the web.
+  // No token ⇒ silent no-op; a failure never undoes the local defer.
+  const sync = await pushToAccount({
+    action: 'defer', id: accountPushId(dir, id), check_by: newDate,
+    ...(whatHappened && whatHappened.trim() ? { what_happened: whatHappened } : {}),
+  });
+  const syncLine = sync.synced || sync.reason === 'no_token' ? '' : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
+
+  return envelope({
+    ok: true, tool: 'argus_settle',
+    surface: T.deferred(newDate) + syncLine,
+    next_actions: ['argus_check_in', 'stop'],
+    data: { id, status: 'sealed', deferred_to: newDate, from_check_by: oldCheckBy, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) },
+  });
+}
+
+function addDays(day: string, days: number): string {
+  const t = Date.parse(day + 'T00:00:00Z');
+  if (Number.isNaN(t)) return day;
+  return new Date(t + days * 86400000).toISOString().slice(0, 10);
+}

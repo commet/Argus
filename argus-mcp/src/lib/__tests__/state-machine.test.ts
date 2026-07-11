@@ -1,9 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { guardTransition, deriveState, GuardError } from '../state-machine.js';
+import type { DecisionState, LedgerEventType } from '../state-machine.js';
 import type { ContractEntry } from '../ledger-replay.js';
 
 function entry(p: Partial<ContractEntry>): ContractEntry {
   return { id: 'x', status: 'candidate', text: '', amend_history: [], ...p };
+}
+
+/** Assert the transition throws a GuardError with `code` — never a silent pass. */
+function expectGuard(state: DecisionState, event: LedgerEventType, code: string): void {
+  let caught: unknown;
+  try { guardTransition(state, event); } catch (e) { caught = e; }
+  expect(caught, `${event} from ${state} should throw ${code}`).toBeInstanceOf(GuardError);
+  expect((caught as GuardError).code).toBe(code);
 }
 
 describe('deriveState', () => {
@@ -69,5 +78,30 @@ describe('guardTransition', () => {
 
   it('refuses seal from sealed (re-seal must be amend)', () => {
     try { guardTransition('sealed', 'seal'); } catch (e) { expect((e as GuardError).code).toBe('ILLEGAL_TRANSITION'); }
+  });
+
+  it('allows defer once due (still_pending re-arm) but not before, and never on a terminal', () => {
+    // due → defer OK: the outcome is genuinely unknown, so this is NOT a goalpost move.
+    expect(() => guardTransition('due', 'defer')).not.toThrow();
+    // The negatives ASSERT the throw first — a bare try/catch passes silently
+    // when nothing is thrown (the catch never runs), so it would not catch a
+    // regression that made the guard permissive.
+    // sealed (not yet due) → defer refused: still_pending before the check-by is PREMATURE upstream.
+    expectGuard('sealed', 'defer', 'ILLEGAL_TRANSITION');
+    // terminal states never re-open.
+    expectGuard('settled', 'defer', 'DECISION_CLOSED');
+    expectGuard('dismissed', 'defer', 'DECISION_CLOSED');
+  });
+
+  it('defer on an unknown id names the id — it does NOT point at argus_amend, which also fails there', () => {
+    let caught: unknown;
+    try { guardTransition('absent', 'defer'); } catch (e) { caught = e; }
+    expect(caught).toBeInstanceOf(GuardError);
+    expect((caught as GuardError).recovery).not.toMatch(/argus_amend/);
+    expect((caught as GuardError).recovery).toMatch(/argus_open_decision|argus_seal/);
+    // but from `sealed` (a real decision), "amend moves it" is the right advice.
+    let s: unknown;
+    try { guardTransition('sealed', 'defer'); } catch (e) { s = e; }
+    expect((s as GuardError).recovery).toMatch(/argus_amend/);
   });
 });

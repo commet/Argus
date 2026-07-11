@@ -400,9 +400,17 @@ export function ReceiptView({
                       {L(`확인일 ${f.check_by}`, `Check by ${f.check_by}`)} · {L('맞음', 'Pass')}: {f.pass_condition || '—'} · {L('틀림', 'Fail')}: {f.fail_condition || '—'}
                       {f.predicate_owner === 'user' && ` · ${L('내가 봉인함', 'Sealed by me')}`}
                       {f.revise_count ? ` · ${L(`${f.revise_count}회 미룸`, `Postponed ${f.revise_count} time${f.revise_count === 1 ? '' : 's'}`)}` : ''}
+                      {f.first_check_by ? ` · ${L(`원래 ${f.first_check_by}`, `originally ${f.first_check_by}`)}` : ''}
                     </p>
                     {f.lean && <p className="mt-0.5 text-[11px] text-[#8b6914]">{L('내 예상', 'My lean')}: {f.lean}</p>}
                     {f.key_assumption && <p className="text-[11px] text-[var(--text-tertiary)]">{L('핵심 가정', 'Key assumption')}: {f.key_assumption}</p>}
+                    {/* why reality was still silent — returned so the next check-by
+                        reminds the user WHY they pushed it, not just that time passed */}
+                    {!f.settled_at && f.defer_reason && (
+                      <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                        {L('미룬 이유', 'Why postponed')}: {f.defer_reason}
+                      </p>
+                    )}
                     {f.settled_at ? (
                       <p className="mt-1 text-[12px] text-green-700">
                         {L('정산됨', 'Settled')}: {settlementLabel(L, f.outcome)}{f.what_happened ? ` — ${f.what_happened}` : ''}

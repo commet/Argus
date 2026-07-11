@@ -23,7 +23,12 @@ const inputSchema = z.strictObject({
   reversibility: z.enum(['one_way_door', 'costly_to_reverse', 'easily_reversible']),
   status_quo: z.string().min(1).max(300).describe('What happens if nothing is done — so "leave_as_is" is always a real option.'),
   already_decided: z.boolean().default(false),
-  user_question: z.string().max(600).optional(),
+  // NOTE: there was a `user_question` field here. Nothing ever read it — it was
+  // accepted, then evaporated (the include_upcoming_days class: "an accepted-
+  // then-discarded argument is a silent lie in the schema"), and on the most
+  // load-bearing input of all, the user's own question. Removed rather than
+  // faked: the live home for the user's question is argus_seal's `real_question`,
+  // which reaches the Judgment Receipt.
   crux_question: z.string().max(400).describe('The ONE neutral load-bearing question, phrased as a question. Never a fork, never a lean.').optional(),
   load_bearing_assumption: z.string().max(400).describe('The single assumption the decision rests on (neutral).').optional(),
   related_to: z.array(zId).max(20).describe('Ids of past decisions the user considers similar — surfaces a frequency-only track record, never a verdict.').optional(),

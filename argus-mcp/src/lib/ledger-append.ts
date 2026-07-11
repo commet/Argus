@@ -100,19 +100,58 @@ export async function withLedgerLock<T>(argusDir: string, fn: () => Promise<T>):
   }
 }
 
+/**
+ * Does the ledger currently end in a newline? A crash or ENOSPC mid-write leaves
+ * a final line with no terminator; the next O_APPEND then writes its bytes
+ * directly onto those, fusing the torn remnant with the new first event into one
+ * invalid JSON line. Replay counts that as ONE dropped line — so the torn record
+ * silently EATS the next event too. If that event is a `settle`, the receipt file
+ * is written but the ledger settle is gone: the decision stays due forever and the
+ * outcome vanishes from the calibration record, with nothing turning red.
+ * Cheap to detect (read the last byte), so we heal instead of corrupting.
+ */
+function needsLeadingNewline(lPath: string): boolean {
+  let fd: number | undefined;
+  try {
+    const size = fs.statSync(lPath).size;
+    if (size === 0) return false;
+    fd = fs.openSync(lPath, fs.constants.O_RDONLY);
+    const buf = Buffer.alloc(1);
+    fs.readSync(fd, buf, 0, 1, size - 1);
+    return buf[0] !== 0x0a; // '\n'
+  } catch {
+    return false; // no file yet (or unreadable) — the append creates it
+  } finally {
+    if (fd !== undefined) { try { fs.closeSync(fd); } catch { /* already closed */ } }
+  }
+}
+
 export async function appendLedger(argusDir: string, events: LedgerEventInput[], now: string): Promise<{ written: number }> {
-  await fsP.mkdir(ledgerDir(argusDir), { recursive: true });
+  const dir = ledgerDir(argusDir);
+  await fsP.mkdir(dir, { recursive: true });
   const lPath = ledgerPath(argusDir);
 
-  const lines = events
+  const body = events
     .map((ev) => JSON.stringify({ v: SCHEMA_VERSION, ts: ev.ts || now, ...ev }))
     .join('\n') + '\n';
+  // Heal a torn tail so it can only ever cost the ONE line it tore, never the
+  // next event. The torn remnant still counts as dropped_lines (disclosed), but
+  // the events we are writing now survive.
+  const lines = (needsLeadingNewline(lPath) ? '\n' : '') + body;
+  // fsync of the file makes its CONTENTS durable, but the very first append also
+  // creates the directory ENTRY — and that entry can be lost on a crash unless
+  // the parent directory is itself synced. Only matters on first create.
+  const isFirstCreate = !fs.existsSync(lPath);
 
   await new Promise<void>((resolve, reject) => {
     let fd: number | undefined;
     try {
       fd = fs.openSync(lPath, fs.constants.O_APPEND | fs.constants.O_CREAT | fs.constants.O_WRONLY);
       fs.writeSync(fd, lines, null, 'utf8');
+      // The ledger is the product's only durable asset. A rename-based atomic
+      // write can't be used on an append, so fsync is the one thing standing
+      // between a power loss and a lost settlement.
+      try { fs.fsyncSync(fd); } catch { /* fsync unsupported on this fs — the write still landed */ }
       resolve();
     } catch (e) {
       reject(e);
@@ -120,6 +159,14 @@ export async function appendLedger(argusDir: string, events: LedgerEventInput[],
       if (fd !== undefined) fs.closeSync(fd);
     }
   });
+
+  if (isFirstCreate) {
+    // Persist the new file's directory entry, consistent with the file fsync above.
+    let dfd: number | undefined;
+    try { dfd = fs.openSync(dir, fs.constants.O_RDONLY); fs.fsyncSync(dfd); }
+    catch { /* directory fsync unsupported (e.g. Windows) — best effort */ }
+    finally { if (dfd !== undefined) { try { fs.closeSync(dfd); } catch { /* already closed */ } } }
+  }
 
   return { written: events.length };
 }

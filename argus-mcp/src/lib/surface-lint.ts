@@ -1,3 +1,5 @@
+import { hasUnsafeChars } from './untrusted.js';
+
 /**
  * Surface lint (self-drive loop, blueprint §5 tooling). A DETERMINISTIC,
  * no-model check over the human-facing text an Argus tool actually returns — the
@@ -52,6 +54,7 @@ export interface SurfaceFinding {
     | 'missing-error-code'
     | 'missing-recovery'
     | 'verdict-leak'
+    | 'unsafe-chars'
     | 'surface-too-long';
   message: string;
   excerpt?: string;
@@ -79,6 +82,11 @@ export function lintEnvelope(env: unknown): SurfaceFinding[] {
       const leak = detectVerdictLeak(surface);
       if (leak) {
         out.push({ severity: 'red', rule: 'verdict-leak', message: `surface states a verdict ("${leak}")`, excerpt: surface.slice(0, 140) });
+      }
+      // envelope() strips these, so seeing one here means the surface was built
+      // and inspected on a path that bypassed the chokepoint. Fail loud.
+      if (hasUnsafeChars(surface)) {
+        out.push({ severity: 'red', rule: 'unsafe-chars', message: 'surface carries control/bidi/zero-width characters (terminal-escape or homograph injection vector)' });
       }
       if (surface.length > SURFACE_MAX) {
         out.push({ severity: 'yellow', rule: 'surface-too-long', message: `surface is ${surface.length} chars (>${SURFACE_MAX}) — a line, not a paragraph`, excerpt: surface.slice(0, 140) });
