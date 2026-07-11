@@ -4,6 +4,7 @@
 
 import { callLLMJson, callLLMStreamThenParse, LLMError } from '@/lib/llm';
 import { salvageMixDoc } from '@/lib/partial-analysis';
+import { buildHonestyScanPrompt, coerceHonestyFlags, type HonestyFlag } from '@/lib/honesty-scan';
 import {
   buildInitialAnalysisPrompt,
   buildInitialRefinementPrompt,
@@ -542,6 +543,36 @@ function buildCrisisSnapshot(
     engine_phase: 'reframe',
   };
   return { snapshot, question };
+}
+
+/**
+ * Post-generation honesty scan (loop-17) — NON-BLOCKING. Run AFTER the analysis
+ * has rendered; returns spans the model asserted as settled world-fact or
+ * fabricated specifics the user never gave (the loop-16 failure mode). The caller
+ * fires this fire-and-forget and patches snapshot.honesty_flags when it resolves,
+ * so the analysis appears instantly and unverified claims get a "확인 필요" shade a
+ * beat later. Precision-tuned (see honesty-scan.ts) — a false shade is worse than
+ * a miss. Never throws to the caller: any failure resolves to [] (honest-empty).
+ */
+export async function scanHonesty(
+  problemText: string,
+  analysis: { real_question?: string; hidden_assumptions?: string[]; skeleton?: string[]; insight?: string },
+  signal?: AbortSignal,
+): Promise<HonestyFlag[]> {
+  try {
+    const locale = getCurrentLanguage();
+    // Nothing to scan on a terminal one-liner with no claims-bearing body.
+    const hasBody = !!(analysis.insight || (analysis.hidden_assumptions || []).length || (analysis.skeleton || []).length);
+    if (!hasBody) return [];
+    const { system, user } = buildHonestyScanPrompt(problemText, analysis, locale);
+    const raw = await callLLMJson<{ flags?: unknown }>(
+      [{ role: 'user', content: user }],
+      { system, maxTokens: 1200, signal, shape: { flags: 'array' }, parseRetries: 0 },
+    );
+    return coerceHonestyFlags(raw);
+  } catch {
+    return []; // honest-empty on any failure — never block or corrupt the render
+  }
 }
 
 export async function runInitialAnalysis(

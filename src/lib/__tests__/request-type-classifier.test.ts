@@ -27,6 +27,27 @@ describe('classifyRequestType (step-0 gate)', () => {
   it('a decision that merely mentions feelings is still open_decision (vent needs no action/question)', () => {
     expect(classifyRequestType('이 일이 좀 힘든데 그만둘지 말지 정해야 해')).toBe('open_decision');
   });
+
+  // ── 적대 probe(loop 14)가 노출한 구멍: info/validation 신호가 특정 표현형을 놓쳐
+  //    비-결정 입력이 open_decision으로 새고, 엔진이 사실질문에 크럭스를 날조하거나
+  //    닫힌 결정을 재오픈한다(CLAUDE.md honest-gap + mirror-clause 위반). ──
+  it('info: where/quantity factual questions (were leaking to open_decision)', () => {
+    expect(classifyRequestType('대한민국 수도가 어디야?')).toBe('info');
+    expect(classifyRequestType('물은 몇 도에서 끓어?')).toBe('info');
+    expect(classifyRequestType('Where is the capital of Korea?')).toBe('info');
+    expect(classifyRequestType('How much does it cost?')).toBe('info');
+  });
+
+  it('validation: concrete completed actions, not just abstract "decided" verbs', () => {
+    expect(classifyRequestType('어제 계약서에 이미 사인했어. 끝난 얘기야.')).toBe('validation');
+    expect(classifyRequestType('이미 샀어')).toBe('validation');
+    expect(classifyRequestType('I already signed the contract, it’s done')).toBe('validation');
+  });
+
+  it('conservative guard preserved: a factual-looking phrase WITH decision framing stays open', () => {
+    // 어디서 '시작'할지 = 실제 결정. info 신호가 있어도 action 가드가 지켜야 한다.
+    expect(classifyRequestType('어디서 시작할지 정해야 하는데 어디가 나을까?')).toBe('open_decision');
+  });
 });
 
 describe('classifyReadiness (open_decision axis 2)', () => {

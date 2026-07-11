@@ -36,7 +36,7 @@ import { Anchor, CalendarPlus, Check, ChevronDown, Target, AlertTriangle, GitBra
 import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { useProjectStore } from '@/stores/useProjectStore';
-import type { Project, Predicate, PredicateSource, CheckInInterval } from '@/stores/types';
+import type { Project, Predicate, PredicateSource, CheckInInterval, OpenCheck } from '@/stores/types';
 import { contractFromPredicates, withCheckIn, augmentContract, shouldSealContract, buildEarlyContract, CHECK_IN_MS, DEFAULT_CHECK_IN_INTERVAL, intervalFromExistingContract } from '@/lib/decision-contract';
 import { derivePrimaryCheckpoint } from '@/lib/checkpoint-core';
 import { buildAutoTrackedPremiseItems } from '@/lib/auto-track-premises';
@@ -100,10 +100,15 @@ export function SealMoment({
   predicates,
   gate,
   closing = false,
+  openChecks = [],
 }: {
   project: Project;
   /** Falsifiable predictions derived from this voyage (live path). */
   predicates: Predicate[];
+  /** loop-17 B — unverified facts (world_fact + source) to carry into the contract
+   *  so settle can ask "did you check it?". Auto-carried; the user can drop any before
+   *  sealing (founder setting). Empty when the scan found nothing carriable. */
+  openChecks?: OpenCheck[];
   /** §0 sealing restraint inputs (from the analysis snapshot). When routine +
    *  reversible + confident, the seal records a single light check instead of the
    *  full multi-predicate contract (CLAUDE.md mirror clause — don't over-fire
@@ -189,6 +194,14 @@ export function SealMoment({
     () => (Array.isArray(predicates) ? predicates : []).filter((p) => !dropped.has(p.id)),
     [predicates, dropped],
   );
+  // loop-17 B — open checks the user hasn't dropped. Auto-carried by default; a ×
+  // removes one before sealing (founder setting: auto + one-tap drop). Preserve any
+  // already on an existing contract (re-seal) so a prior carry isn't silently lost.
+  const [droppedChecks, setDroppedChecks] = useState<Set<string>>(new Set());
+  const keptChecks = useMemo(
+    () => (Array.isArray(openChecks) ? openChecks : []).filter((c) => !droppedChecks.has(c.id)),
+    [openChecks, droppedChecks],
+  );
 
   function fmtDate(ms: number): string {
     const d = new Date(ms);
@@ -252,7 +265,9 @@ export function SealMoment({
     // preserve a carried one, else auto-construct from the top predicate + the
     // date handle. jsonb-nested (no migration); the return loop focuses here.
     const primary_checkpoint = next.primary_checkpoint ?? derivePrimaryCheckpoint(next, undefined, new Date(now).toISOString().slice(0, 10)) ?? undefined;
-    updateProject(project.id, { decision_contract: { ...next, judgment_receipt, closed_at, primary_checkpoint } });
+    // loop-17 B — carry the kept open checks (preserve any already sealed on a re-seal).
+    const open_checks = next.open_checks ?? (keptChecks.length ? keptChecks : undefined);
+    updateProject(project.id, { decision_contract: { ...next, judgment_receipt, closed_at, primary_checkpoint, open_checks } });
     autoTrackPremises(now);
     // Cross-surface return loop: if this logged-in user connected Telegram, mirror
     // the sealed contract into the one push channel that actually fires on the date
@@ -310,7 +325,8 @@ export function SealMoment({
     const judgment_receipt = { real_question: summary, unverified_assumption: '', human_only: '', human_judgment: humanJudgment.trim(), check_by };
     const closed_at = closing ? new Date(now).toISOString() : c.closed_at;
     const primary_checkpoint = c.primary_checkpoint ?? derivePrimaryCheckpoint(c, undefined, new Date(now).toISOString().slice(0, 10)) ?? undefined;
-    updateProject(project.id, { decision_contract: { ...c, judgment_receipt, closed_at, primary_checkpoint } });
+    const open_checks = c.open_checks ?? (keptChecks.length ? keptChecks : undefined);
+    updateProject(project.id, { decision_contract: { ...c, judgment_receipt, closed_at, primary_checkpoint, open_checks } });
     autoTrackPremises(now);
     const sharp = c.predicates[0]?.text;
     if (user && session?.access_token && c.check_in_at && sharp) {
@@ -697,14 +713,14 @@ export function SealMoment({
             without knowing HOW the asking happens ("이메일? 스팸?").
             Promise parity (P1-B4): the guide FAQ ("'물어봐 준다'는 게 어떻게 오나요?",
             guide/page.tsx) mirrors this sentence — if channels change, update both. */}
-        <p className="mt-2 text-[11.5px] text-[var(--text-tertiary)] max-w-md mx-auto">
+        <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)] max-w-md mx-auto">
           {L('그날 프로젝트 페이지에 오시면 제가 먼저 물어요. 텔레그램을 연결해 두셨다면, 그날 메시지로도 가볍게 알려드려요 — 광고성 메일은 보내지 않아요.', "On that day, I'll ask first when you open the projects page. If you've connected Telegram, I'll send a gentle nudge there too on the day — never marketing email.")}
         </p>
         {/* P2-6 honesty: an anonymous seal lives in localStorage only. Don't let the
             "comes back to you" promise read as a lie when it can vanish on this device.
             Not a gate — they can still seal locally; just told the truth + the way out. */}
         {!user && (
-          <p className="mt-1.5 text-[11.5px] text-[var(--accent)]/90 max-w-md mx-auto">
+          <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--accent)]/90 max-w-md mx-auto">
             {L('지금은 로그인 전이라 이 결정은 이 기기에만 저장돼요 — 캐시를 지우거나 다른 기기에선 사라질 수 있어요. 봉인한 다음 로그인하면 계정으로 옮겨가 어디서나 돌아올 수 있어요.',
                'Not logged in yet, so this is saved on this device only — it can be lost if you clear your cache or switch devices. Seal it, then sign in and it moves to your account, reachable anywhere.')}
           </p>
@@ -730,6 +746,39 @@ export function SealMoment({
             </div>
           ) : null;
         })()}
+
+        {/* loop-17 B — the unverified facts, carried into the seal. Auto-listed;
+            a × drops one. Background-tint block (no left-accent bar — banned). On
+            the check-in date the settle screen asks "did you check these?". */}
+        {keptChecks.length > 0 && (
+          <div className="mt-6 text-left rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
+            <p className="text-[12px] font-semibold text-[var(--text-secondary)] mb-2">
+              {L('봉인 전에 — 확인하고 가면 좋은 것', 'Before you seal — worth checking')}
+            </p>
+            <ul className="space-y-1.5">
+              {keptChecks.map((c) => (
+                <li key={c.id} className="flex items-start gap-2 text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
+                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[var(--accent)]/60" />
+                  <span className="flex-1">
+                    {c.text}
+                    {c.where && <span className="text-[var(--text-tertiary)]">{L(` · ${c.where}에서 확인`, ` · check in ${c.where}`)}</span>}
+                  </span>
+                  <button
+                    onClick={() => setDroppedChecks((s) => new Set(s).add(c.id))}
+                    className="shrink-0 -mt-0.5 text-[14px] leading-none text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] px-1 cursor-pointer"
+                    title={L('빼기', 'remove')}
+                    aria-label={L('이 항목 빼기', 'remove this item')}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
+              {L('정산일에 “확인해보셨어요?”로 다시 여쭤볼게요.', 'On the check-in date I’ll ask "did you check these?"')}
+            </p>
+          </div>
+        )}
 
         <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
           <button

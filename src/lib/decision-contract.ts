@@ -31,7 +31,9 @@ import type {
   DMFeedbackResult,
   DMConcern,
   Falsification,
+  OpenCheck,
 } from '@/stores/types';
+import type { HonestyFlag } from './honesty-scan';
 import { generateId } from './uuid';
 import { calibrationDisclosure, type CalibrationDisclosure } from './calibration-disclosure';
 
@@ -96,6 +98,42 @@ export function stablePredicateId(source: PredicateSource, text: string): string
   let h = 5381;
   for (let i = 0; i < key.length; i++) h = ((h << 5) + h + key.charCodeAt(i)) >>> 0;
   return `pred_${h.toString(36)}`;
+}
+
+/** Stable id for an open check (djb2 of its text) — the settle-verdict join key. */
+export function stableCheckId(text: string): string {
+  const key = text.trim().toLowerCase().replace(/\s+/g, ' ');
+  let h = 5381;
+  for (let i = 0; i < key.length; i++) h = ((h << 5) + h + key.charCodeAt(i)) >>> 0;
+  return `chk_${h.toString(36)}`;
+}
+
+/** Max open checks carried into a contract (founder setting 2026-07-10 — keep the
+ *  settle screen's "확인할 것" list short so it doesn't swamp the grading). */
+export const MAX_OPEN_CHECKS = 2;
+
+/**
+ * Derive the carriable open checks from a snapshot's honesty flags (loop-17 B).
+ * Founder-set criteria: ONLY world_fact WITH a source (`where`) — an actionable
+ * "check it here" — never `fabricated` (nothing to look up) and never a sourceless
+ * fact (can't say where to verify). Capped at MAX_OPEN_CHECKS. Deduped by id.
+ * Pure — the seal path calls this and stores the result on the contract.
+ */
+export function deriveOpenChecks(flags: HonestyFlag[] | undefined): OpenCheck[] {
+  if (!Array.isArray(flags)) return [];
+  const out: OpenCheck[] = [];
+  const seen = new Set<string>();
+  for (const f of flags) {
+    if (f.kind !== 'world_fact') continue;
+    const where = typeof f.where === 'string' ? f.where.trim() : '';
+    if (!where || !f.text?.trim()) continue;
+    const id = stableCheckId(f.text);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ id, text: f.text.trim(), where });
+    if (out.length >= MAX_OPEN_CHECKS) break;
+  }
+  return out;
 }
 
 export interface PredicateSources {

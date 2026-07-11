@@ -19,6 +19,7 @@ import {
   runNavigatorRevision,
   runDebate,
   runLeadSynthesis,
+  scanHonesty,
   type NavigatorReview,
   type DebateResult,
 } from '@/lib/progressive-engine';
@@ -71,12 +72,14 @@ import { forksToQuestions, forkQuestionId } from '@/lib/fork-to-question';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { Falsification } from './Falsification';
 import { Button } from '@/components/ui/Button';
-import { extractPredicatesFromSession, contractStatus } from '@/lib/decision-contract';
+import { extractPredicatesFromSession, contractStatus, deriveOpenChecks } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { EASE, SPRING } from './shared/constants';
 import { diffItems } from './shared/diffItems';
 import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/lib/partial-analysis';
 import { AnalysisCard } from './shared/AnalysisCard';
+import { HonestyShaded } from './shared/HonestyShaded';
+import { locateFlag } from '@/lib/honesty-scan';
 import { UpdateSummaryChip } from './shared/UpdateSummaryChip';
 import { QuestionCard } from './shared/QuestionCard';
 
@@ -753,8 +756,20 @@ function VoyagePrepSummary({
                   : L('분석이 좁힌 질문', 'The question analysis narrowed to')}
               </div>
               <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-relaxed font-medium">
-                {snapshot.insight || snapshot.real_question}
+                {snapshot.insight
+                  ? <HonestyShaded text={snapshot.insight} flags={snapshot.honesty_flags} locale={locale} />
+                  : snapshot.real_question}
               </p>
+              {/* Honesty-scan legend (loop-17) — one quiet line, ONLY when a flag
+                  actually matched the insight. Explains the dotted underline once so
+                  each span stays clean. Reads as an invitation to verify, never a
+                  verdict on the content. */}
+              {!!snapshot.insight && (snapshot.honesty_flags || []).some((f) => locateFlag(snapshot.insight!, f.text) >= 0) && (
+                <p className="mt-2 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
+                  {L('점선 그은 곳은 아직 확인 안 된 부분이에요 — 짚어보면 어디서 확인할지 알려드려요.',
+                     'Dotted spans are things we couldn’t verify — hover to see where to check.')}
+                </p>
+              )}
               {topAssumption && (
                 <div className="mt-3 pt-2.5 border-t border-dashed border-[var(--border-subtle)]">
                   <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
@@ -1078,6 +1093,50 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     }),
     [session?.mix, session?.final_mix, session?.dm_feedback, session?.debate_result, session?.falsification, session?.snapshots],
   );
+  // loop-17 B — the unverified facts (world_fact + source) carried into the seal so
+  // the settle screen can ask "did you check it?". Derived from the latest snapshot's
+  // honesty_flags; empty until the async scan resolves, which is fine (seal reads the
+  // live value at tap time).
+  const openChecks = useMemo(
+    () => deriveOpenChecks((session?.snapshots ?? []).slice(-1)[0]?.honesty_flags),
+    [session?.snapshots],
+  );
+  // Post-generation honesty scan (loop-17) — NON-BLOCKING. When a snapshot settles
+  // with a claims-bearing body and hasn't been scanned yet, fire scanHonesty and
+  // patch snapshot.honesty_flags when it resolves, so unverified world-facts /
+  // fabricated specifics get a "확인 필요" shade a beat after the analysis renders.
+  // Guards: honesty_flags===undefined means unscanned (patching [] stops re-fire);
+  // a ref prevents duplicate in-flight fires per snapshot; the resolve re-checks the
+  // latest version before patching. Race-safe by construction — HonestyShaded uses
+  // verbatim locateFlag, so a stale flag set simply matches nothing (no false shade).
+  const honestyScanFiredRef = useRef<string>('');
+  useEffect(() => {
+    const snaps = session?.snapshots ?? [];
+    const latest = snaps[snaps.length - 1];
+    if (!latest || !session?.problem_text) return;
+    if (latest.honesty_flags !== undefined) return; // already scanned (incl. empty)
+    const key = `${session.id}:${latest.version}`;
+    if (honestyScanFiredRef.current === key) return; // in-flight for this snapshot
+    honestyScanFiredRef.current = key;
+    let cancelled = false;
+    // Pass a real AbortSignal so a rapid snapshot change / session switch / unmount
+    // actually CANCELS the in-flight LLM call (not just discards its result → wasted
+    // tokens). cancelled still guards the late-resolve race.
+    const controller = new AbortController();
+    scanHonesty(session.problem_text, {
+      real_question: latest.real_question,
+      hidden_assumptions: latest.hidden_assumptions,
+      skeleton: latest.skeleton,
+      insight: latest.insight,
+    }, controller.signal).then((flags) => {
+      if (cancelled) return;
+      const cur = (store.currentSession()?.snapshots ?? []).slice(-1)[0];
+      if (cur && cur.version === latest.version && cur.honesty_flags === undefined) {
+        store.updateLatestSnapshot({ honesty_flags: flags });
+      }
+    });
+    return () => { cancelled = true; controller.abort(); };
+  }, [session?.id, session?.problem_text, session?.snapshots, store]);
   // §0 sealing restraint inputs from the latest analysis snapshot — lets SealMoment
   // give a routine + reversible + confident decision one light check instead of the
   // full ceremony (CLAUDE.md mirror clause). Absent fields → full ceremony (safe).
@@ -3474,7 +3533,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 SealMoment) leads the scene instead of hiding below the fold. */}
             {contractDue && contractProject && (
               <div className="mb-4">
-                <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} />
+                <SealMoment project={contractProject} predicates={contractPredicates} openChecks={openChecks} gate={sealGate} />
               </div>
             )}
             {/* ① 산출물 ("가져가실 것") — the document is what the user takes
@@ -3522,13 +3581,13 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 before ever seeing it — the closing scene must come before the
                 exits, never compete with them. */}
             {contractProject && !contractDue && (
-              <SealMoment project={contractProject} predicates={contractPredicates} gate={sealGate} closing />
+              <SealMoment project={contractProject} predicates={contractPredicates} openChecks={openChecks} gate={sealGate} closing />
             )}
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-10 pb-16">
               {/* (The old "복사해서 바로 사용하세요" label pointed at a copy button
                   that lives in FinalCard's header, not here — removed.) */}
-              <p className="text-[11px] text-[var(--text-tertiary)]/80 text-center mb-6">{L('새 프로젝트를 시작해도 이 결과는 저장돼요 — 언제든 다시 열 수 있어요.', 'Starting a new project keeps this one saved — you can reopen it anytime.')}</p>
+              <p className="text-[12px] text-[var(--text-secondary)] text-center mb-6">{L('새 프로젝트를 시작해도 이 결과는 저장돼요 — 언제든 다시 열 수 있어요.', 'Starting a new project keeps this one saved — you can reopen it anytime.')}</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
                 <button onClick={() => {
                   useProgressiveStore.setState({ currentSessionId: null });

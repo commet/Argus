@@ -32,7 +32,7 @@ import { useProjectStore } from '@/stores/useProjectStore';
 import { useReviewStore } from '@/stores/useReviewStore';
 import { summarizeReviewRecord, shouldShowThirdLoop } from '@/lib/record-summary';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
-import type { Project, Predicate, PredicateSource, PredicateVerdict, PredicateBasis, CheckInInterval, AmbiguityRecord, ReturnHandle } from '@/stores/types';
+import type { Project, Predicate, PredicateSource, PredicateVerdict, PredicateBasis, CheckInInterval, AmbiguityRecord, ReturnHandle, OpenCheck } from '@/stores/types';
 import {
   gradePredicate,
   setPredicateBasis,
@@ -120,6 +120,22 @@ export function SettlementModal({
     : null;
   const showCheckpoint = !!(primaryCheckpoint && primaryPred);
   const listPredicates = showCheckpoint ? predicates.filter((p) => p.id !== primaryPred!.id) : predicates;
+  // loop-17 B — the unverified facts carried from seal. At settle we ASK whether they
+  // held (mirror, not verdict): held / broke / not-yet. A 'broke' leaves a light
+  // learning note — a false premise the decision rested on is the highest-value recall.
+  const openChecks: OpenCheck[] = Array.isArray(contract?.open_checks) ? contract!.open_checks! : [];
+  const setCheckStatus = (checkId: string, status: NonNullable<OpenCheck['status']>) => {
+    if (!contract) return;
+    const now = new Date().toISOString();
+    const next = openChecks.map((c) =>
+      c.id !== checkId
+        ? c
+        : c.status === status
+          ? { ...c, status: undefined, settled_at: undefined } // tap again = un-set
+          : { ...c, status, settled_at: now },
+    );
+    updateProject(project.id, { decision_contract: { ...contract, open_checks: next } });
+  };
   // How many times the user already said "아직" — the history is the receipt.
   const deferrals = Array.isArray(contract?.history) ? contract!.history.length : 0;
 
@@ -486,6 +502,49 @@ export function SettlementModal({
             );
           })}
         </div>
+        )}
+
+        {/* loop-17 B — "확인할 것": the unverified facts carried from seal. A neutral
+            question ("확인해보셨어요?"), never a verdict on the user. A 'broke' leaves
+            a quiet learning note. */}
+        {openChecks.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[12px] font-semibold text-[var(--text-secondary)]">
+              {L('봉인할 때 확인이 필요했던 것 — 확인해보셨어요?', 'Things worth verifying at seal — did you check them?')}
+            </p>
+            {openChecks.map((c) => (
+              <div key={c.id} className="rounded-xl border border-[var(--border)] p-3 bg-[var(--surface)]">
+                <p className="text-[12.5px] text-[var(--text-primary)] leading-[1.5]">
+                  {c.text}
+                  {c.where && <span className="text-[var(--text-tertiary)]">{` · ${c.where}`}</span>}
+                </p>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {([['held', '맞았어요', 'Held up'], ['broke', '틀렸어요', 'Turned out wrong'], ['skipped', '아직', 'Not yet']] as const).map(([val, koL, enL]) => {
+                    const on = c.status === val;
+                    return (
+                      <button
+                        key={val}
+                        onClick={() => setCheckStatus(c.id, val)}
+                        aria-pressed={on}
+                        className={`px-2.5 py-1 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
+                          on
+                            ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                            : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
+                        }`}
+                      >
+                        {L(koL, enL)}
+                      </button>
+                    );
+                  })}
+                </div>
+                {c.status === 'broke' && (
+                  <p className="mt-2 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
+                    {L('그때 이 전제가 틀렸었네요 — 기록해둘게요. 다음 결정 때 참고돼요.', 'This premise didn’t hold — noting it. It’ll inform the next call.')}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
         )}
 
         <div className="pt-3 border-t border-[var(--border)]">
