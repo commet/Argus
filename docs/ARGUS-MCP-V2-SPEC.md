@@ -514,3 +514,104 @@ patterns의 의미 유사 결정 병합(Osaurus consolidation 차용) · Smither
   "MCP-NOTES가 외부 이슈/글에 인용된다 — 확인일 6개월" · "evals 구조 차용 리포 등장 —
   확인일 12개월"을 argus_seal로 기록하고 현실이 정산한다. 허영 지표를 DoD에 넣는
   대신, 우리가 파는 바로 그 규율로 우리 야망을 기록한다.
+
+
+---
+
+# 개정 R5 — Reflect 대응 + 외부 심층 감사(Codex 5.6-Sol) 수용 (2026-07-11)
+
+## R5-0 · Reflect with Claude (2026-07-09 출시) 반영
+
+Anthropic의 Reflect는 **사용 습관의 거울**(대화 이력 → 토픽·패턴·성찰 질문, 모델의 해석,
+결과값 없음)이고 Argus는 **판단의 원장**(봉인 시점의 반증가능 약속 → 정산일의 현실)이다.
+Reflect는 카테고리 수요를 검증했고(메타인지 = 제품), 대화록의 수동 분석 수용성도 증명했다
+(P6 opt-in 수확의 정당화 근거). 구조적으로 Reflect가 가질 수 없는 것 세 가지가 곧 해자:
+**정산 루프**(사후 분석으로 제조 불가) · **호스트 중립**(결정은 Claude 밖에서도 일어남) ·
+**사용자 소유 원장**. 반영: R3-1 README 카피 방향에 포지셔닝 한 줄 추가 —
+**"거울이 아니라 원장 (a ledger, not a mirror)"**. patterns는 과정 관찰이 아니라
+정산된 결과의 빈도만 말한다는 척추 규칙이 이제 경쟁 차별화이기도 하다.
+
+**정직한 현재 상태 (레이어 감사, 2026-07-11 코드 기준):** 척추(구조적 zero-judgment)·
+정산·전제/재확인·출처 태깅 = **구현됨**. 무노력 캡처·결정론 복귀·MCP측 패턴·개방 계약/탈세션
+= **문서에만 존재**. 8개 레이어 중 4개 미시공 — 이 간극이 P0~P5의 존재 이유다.
+
+## R5-1 · 외부 심층 감사 수용 (Codex 5.6-Sol) — 전 항목 판정
+
+총평 수용: *"제품 전략은 확정, 구현 명세엔 닫히지 않은 계약이 있다."* 아래 채택 항목들은
+새 트랙이 아니라 **P-1 Spec Closure(신설, 2~3일, P0과 병행)**에서 확정한다.
+
+**전면 채택 (검증됨):**
+1. **Provenance 4계층.** MCP 툴 인자는 모델이 채운다 — `predicate_owner:'user'`는 증명이
+   아니라 전언이다. 분리: `elicited_user`(픽커 응답) / `direct_user_command`(슬래시 명령
+   직접 입력) / `host_reported`(모델이 전한 사용자 말) / `ai_surfaced`. **host_reported는
+   user로 자동 승격 금지** — 승격은 elicited_user·direct_user_command만. elicitation 없는
+   호스트의 텍스트 확인은 host_reported로 남고 카피도 그렇게 말한다("모델이 전한 당신의
+   말"). 기존 R4-A provenance.ts의 전환 규칙을 이 4계층 위에 재정의.
+2. **Debrief 증거 포인터 계약.** "byte-validate"가 대조할 원문이 스키마에 없었다. 필수:
+   `source_ref + source_fingerprint(sha256) + raw_span(start,end) + raw_quote +
+   normalization_version`. `pasted`/`host_reported`는 별도 신뢰 등급이지 byte-verified가
+   아니다. (현 ingest가 trim() 저장·speaker 미파싱인 점 P-1에서 재확인)
+3. **쓰기 락 엄격화 + 멱등성.** 현 원장은 fail-open("Lock or no lock, the work
+   proceeds", 5초 락 탈취) — 두 세션 동시 settle 시 중복 정산 가능(코드 확인됨).
+   v2 **의도적 설계 반전**: 책임 원장의 정합성 > 가용성. mutation은 락 실패 시 명시적
+   재시도 오류(fail loud = 척추 정합), lock owner nonce+PID, 전 write tool 동일 규칙,
+   이벤트에 `event_id`+`idempotency_key`, append 성공 후 LOGBOOK 실패의 dirty/rebuild
+   규칙(doctor가 재생성).
+4. **이벤트 공통 envelope (축소 채택).** 추가: `event_id, producer_version, project_id,
+   session_id, occurred_at, logical_date+timezone(기존 resolveToday 형식화),
+   actor_source, schema_version(기존 v)`. candidate/bearing/snooze **상태 전이표**를
+   P-1 산출물로 명문화. 14일 만료는 **읽기 시 파생 상태**로 확정(새 이벤트 없음 —
+   due-ness 파생과 일관, append-only 단순성 유지).
+5. **Resource의 프로젝트 스코핑.** 글로벌 .bound 첫 항목 자동 선택은 타 프로젝트의
+   사적 원장 노출 위험 — 채택: `argus://projects/{id}/ledger|due`, 무접두
+   `argus://ledger`는 bound가 정확히 1개일 때만. (R2 수정안을 이 설계로 대체)
+6. **"verified commit signal"로 개명 + 검증 강화.** 현 훅은 `\bgit\s+commit\b` 문자열
+   매칭(코드 확인됨) — 결정론적 발화이되 분류는 휴리스틱. HEAD before/after 대조 +
+   저장소 identity + anchored decision id 확인을 추가하고, IDE 커밋/-C/worktree는
+   알려진 공백으로 문서화. "결정론적 착지" 표현 전량 교체.
+7. **`decision_category` 신설.** 패턴의 "카테고리별 n"에 카테고리 필드가 없었다.
+   seal 시 소분류(일정/채용/제품/기술/가격/기타), 분류 주체와 taxonomy_version 기록.
+   사용자-facing 경향 문구는 **n≥5부터**(그 전엔 건수만), n<10 표본 주의 유지.
+8. **Return capsule 계약 봉합.** 출력 스펙이 입력 스펙보다 컸다 — "가지 않은 길+포기
+   이유 인용"은 seal의 선택 입력(`alternative_quote`, `reason_quote`, 증거 포인터 포함)
+   으로 받고, 미입력 시 해당 줄은 **생략**(정직한 공백, 날조 금지).
+
+**구조 결함 수정 (채택):**
+- 케이던스 모순 해소: overdue 항목은 **매일 재노출이 사양**(단 snooze/dismiss 탈출구
+  상시 부착), "동일 브리프 이틀 연속 금지" 인바리언트는 비-overdue 내용(후보·bearing·
+  그물 줄)에만 적용.
+- LOGBOOK은 "write-through 정본"이 아니라 **재생성 가능한 projection** — append와
+  원자성 불가, dirty 마크 + doctor rebuild.
+- .ics 표현 정정: "달력 파일 제공"이지 zero-setup 리마인더가 아니다(import는 사용자 행동).
+- silent push의 발산 복구: 경량부터 — 실패 시 ledger에 `sync_pending` 표기 + 다음 툴
+  호출에서 재시도 + 발산 상태 surface. 완전한 durable outbox는 백로그.
+- 측정 분리: `brief_injected`(기계 관측)와 `brief_relayed`(P2의 20-cold-start 수동
+  프로토콜로 표본 측정) — "전달률"을 자동 지표로 사칭하지 않는다.
+- 수확 실행 모델 전환: detached 프로세스 생존에 의존하지 않고 **큐 영속화 → 다음
+  SessionStart가 처리**를 기본 경로로(Windows/터미널 종료 내성).
+- 플러그인 상태 저장 위치: legacy `~/.claude/argus-state` 대신 플러그인 지정 데이터
+  디렉토리 사용 — 정확한 변수명은 P0 스파이크에서 공식 문서로 확정.
+- renderer 수용 기준 정정: "byte-identical 출력"(폭이 다른데 불가)이 아니라 **동일
+  BriefState 소비 + renderer별 골든 픽스처**.
+- 슬래시 커맨드 수 정정(7: settle/candidates/debrief/return/bearing/mute/doctor) ·
+  기존 4 Resources/4 Prompts의 호환·폐기 정책 1단락 추가.
+- P5 문구 정직화: 5명 중 3명은 "median user 루프 닫힘"의 증명이 아니라 **프로토타입
+  신호** — go/no-go 관문 문구를 그렇게 고쳐 쓴다.
+- **일정 산수 정정: 총 8~9주(P5 관찰창 21일 포함), 실패-재시도 시 9~12주.** 표준화
+  웨이브 별도 2주.
+
+**정정·축소·기각 (비판적 검토 결과):**
+- Sol의 telemetry 인용은 **구버전**(현 SECURITY.md:10은 "No telemetry by default" —
+  #108에서 payload·opt-in·DO_NOT_TRACK·비식별 저장까지 이미 공시). 잔여 채택분:
+  보존 기간(90일 정책)은 기존 open decision 그대로.
+- `correlation_id/causation_id` 전체 채택 기각 — 로컬 단일 사용자 원장에 과잉.
+  결정 id가 상관 축, 인과는 불요(필요 시 백로그).
+- durable outbox 전체 기계 기각(위 경량안으로) · n≥10 하한 기각(5로 확정, 10 미만 주의 유지).
+
+## R5-2 · P-1 Spec Closure (신설 단계, 2~3일, P0과 병행)
+
+P1 착공 전 닫아야 하는 계약 5건: ① 이벤트 공통 envelope + candidate/bearing/snooze
+상태 전이표 ② provenance 4계층 경계(승격 규칙 포함) ③ transcript 증거 포인터/byte-검증
+계약 ④ project/worktree/resource identity 모델 ⑤ 락·멱등성·projection repair·
+마이그레이션·telemetry 보존 규칙. 산출물: 본 문서의 부록 표 5장(코드 없이 계약만).
+**P0(스파이크)은 즉시 착수 가능** — P-1과 병행.
