@@ -22,6 +22,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { BriefState } from './brief.js';
+import { sanitizeLine } from './sanitize.js';
 
 const CURSOR_RE = /<!-- argus:last_event_id=([0-9A-HJKMNP-TV-Z]{26}|none) -->/;
 
@@ -29,11 +30,9 @@ export function logbookPath(workspaceArgusDir: string): string {
   return path.join(workspaceArgusDir, 'LOGBOOK.md');
 }
 
-/** 한 줄 안전화: 개행 제거 + 길이 캡 (LOGBOOK 표는 한 줄 셀이 계약). */
-const line = (s: string, max = 120): string => {
-  const flat = s.replace(/[\r\n|]/g, ' ').trim();
-  return flat.length > max ? flat.slice(0, max - 1) + '…' : flat;
-};
+/** 한 줄 안전화 — 규칙 19 공용 게이트(sanitize.ts)에 위임: 제어문자/ANSI/OSC
+ *  제거 + 개행·파이프 공백화 + 길이 캡 (LOGBOOK 표는 한 줄 셀이 계약). */
+const line = sanitizeLine;
 
 /** BriefState → LOGBOOK 마크다운. 순수 함수 — 골든 픽스처의 대상. */
 export function renderLogbook(brief: BriefState, repositoryId: string): string {
