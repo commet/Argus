@@ -28,21 +28,78 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
+/**
+ * 수확 큐 인입·확인 (P3-4, 정본 규칙 4) — 훅의 몫은 여기까지다:
+ *  - opt-in(~/.argus/config.json → harvest.opt_in === true)이 아니면 **완전
+ *    침묵**. 큐 파일도 만들지 않는다 (opt-in 전에는 어떤 흔적도 없어야 한다).
+ *  - opt-in이면 현재 세션의 transcript **경로**를 멱등 인입(item_id =
+ *    세션 id). 추출은 절대 여기서 안 한다 — lease 클레임조차 안 한다
+ *    (클레임은 처리 단계 직전의 몫; 훅이 잡은 lease는 처리 없는 잠금이다).
+ *  - 큐 파일 형식은 argus-mcp src/v2/queue.ts와의 **파일 계약**이다 —
+ *    driver-hook.test.ts가 교차 구현(훅이 쓴 큐를 queue.ts가 클레임)으로
+ *    드리프트를 막는다. 필드를 바꾸려면 양쪽+테스트를 함께.
+ *  - 저장처는 ${CLAUDE_PLUGIN_DATA} (임시 상태, 규칙 3) — env가 없으면 침묵.
+ */
+function harvestQueueStep(payload, home) {
+  const dataDir = process.env.CLAUDE_PLUGIN_DATA;
+  if (!dataDir) return null;
+  let optIn = false;
+  try {
+    const cfg = JSON.parse(fs.readFileSync(path.join(home, 'config.json'), 'utf8'));
+    optIn = cfg && cfg.harvest && cfg.harvest.opt_in === true;
+  } catch { /* 설정 없음 = opt-out */ }
+  if (!optIn) return null;
+
+  const qPath = path.join(dataDir, 'harvest-queue.json');
+  let items = [];
+  try {
+    const parsed = JSON.parse(fs.readFileSync(qPath, 'utf8'));
+    if (Array.isArray(parsed.items)) items = parsed.items;
+  } catch { /* 부재·파손 = 빈 큐 (queue.ts readQueue와 동일 자세) */ }
+
+  const sessionId = typeof payload.session_id === 'string' ? payload.session_id : null;
+  const transcriptPath = typeof payload.transcript_path === 'string' ? payload.transcript_path : null;
+  if (sessionId && transcriptPath && !items.some((i) => i.item_id === `harvest-${sessionId}`)) {
+    items.push({
+      item_id: `harvest-${sessionId}`, kind: 'harvest', transcript_path: transcriptPath,
+      session_id: sessionId, enqueued_at: new Date().toISOString(), attempts: 0,
+    });
+    fs.mkdirSync(dataDir, { recursive: true });
+    const tmp = `${qPath}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify({ items }, null, 1), 'utf8');
+    fs.renameSync(tmp, qPath);
+  }
+
+  // 확인만: 클레임 가능 항목 수 (자기 세션 제외 — 방금 넣은 건 아직 처리감이 아니다).
+  const nowIso = new Date().toISOString();
+  const claimable = items.filter((i) =>
+    i.item_id !== `harvest-${sessionId}` && !i.exhausted && i.attempts < 3 &&
+    !(i.lease && i.lease.expires_at > nowIso)).length;
+  if (claimable > 0) {
+    return `Argus: 수확 큐에 ${claimable}건 대기 중 — 추출은 debrief 처리 단계에서 (훅은 확인만 합니다).`;
+  }
+  return null;
+}
+
 function main(input) {
   let payload = {};
   try { payload = JSON.parse(input || '{}'); } catch { /* 형식 불명 — 조용히 */ }
   const cwd = typeof payload.cwd === 'string' && payload.cwd ? payload.cwd : process.cwd();
+  const home = process.env.ARGUS_HOME || path.join(os.homedir(), '.argus');
+  const lines = [];
 
-  // 1) v2 바인딩 — 없으면 이 워크스페이스는 v2 미사용, 침묵.
+  const harvestLine = harvestQueueStep(payload, home);
+  if (harvestLine) lines.push(harvestLine);
+
+  // 1) v2 바인딩 — 없으면 이 워크스페이스는 v2 미사용, LOGBOOK 단계는 침묵.
   let repositoryId = null;
   try {
     const binding = JSON.parse(fs.readFileSync(path.join(cwd, '.argus', 'project.json'), 'utf8'));
     if (typeof binding.repository_id === 'string') repositoryId = binding.repository_id;
-  } catch { return null; }
-  if (!repositoryId) return null;
+  } catch { return lines.length ? lines.join('\n') : null; }
+  if (!repositoryId) return lines.length ? lines.join('\n') : null;
 
   // 2) 내구 원장의 마지막 event_id (JSONL append 순서가 정본 순서 — II-E).
-  const home = process.env.ARGUS_HOME || path.join(os.homedir(), '.argus');
   let lastEventId = null; // null = 이벤트 0건 (LOGBOOK 커서 표기로는 'none')
   try {
     const raw = fs.readFileSync(path.join(home, 'projects', repositoryId, 'ledger.jsonl'), 'utf8');
@@ -69,16 +126,16 @@ function main(input) {
   const fresh = cursor !== null && cursor[1] === (lastEventId ?? 'none');
 
   if (!fresh) {
-    return 'Argus: 이 워크스페이스의 LOGBOOK projection이 원장보다 뒤처져 있거나 없습니다. ' +
-      '`argus_check_in`을 호출하면 자동 재생성됩니다 (원장이 정본, LOGBOOK은 언제든 다시 태어납니다).';
+    lines.push('Argus: 이 워크스페이스의 LOGBOOK projection이 원장보다 뒤처져 있거나 없습니다. ' +
+      '`argus_check_in`을 호출하면 자동 재생성됩니다 (원장이 정본, LOGBOOK은 언제든 다시 태어납니다).');
+  } else {
+    // 4) fresh — due 건수만 한 줄 (본문 인용 없음). 0건이면 침묵.
+    const due = /## 정산할 것 \((\d+)\)/.exec(logbook);
+    if (due && Number(due[1]) > 0) {
+      lines.push(`Argus: 정산할 결정 ${due[1]}건이 확인일에 도달했습니다 — ${logbookAbs} 참조, 정산은 \`argus_settle\`.`);
+    }
   }
-
-  // 4) fresh — due 건수만 한 줄 (본문 인용 없음). 0건이면 침묵.
-  const due = /## 정산할 것 \((\d+)\)/.exec(logbook);
-  if (due && Number(due[1]) > 0) {
-    return `Argus: 정산할 결정 ${due[1]}건이 확인일에 도달했습니다 — ${logbookAbs} 참조, 정산은 \`argus_settle\`.`;
-  }
-  return null;
+  return lines.length ? lines.join('\n') : null;
 }
 
 let stdin = '';

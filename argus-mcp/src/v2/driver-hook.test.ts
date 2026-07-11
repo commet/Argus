@@ -115,6 +115,61 @@ describe('argus-driver SessionStart 훅 (P2-5)', () => {
     expect(run()).toBe('');
   });
 
+  it('⑥ 수확 opt-in 없음 — 큐 파일조차 만들지 않는다 (opt-in 전 흔적 0)', () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-hook-data-'));
+    try {
+      const out = execFileSync('node', [HOOK], {
+        input: JSON.stringify({ cwd: repoDir, session_id: 'sess-1', transcript_path: '/t/s.jsonl' }),
+        env: { ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir },
+        encoding: 'utf8',
+      });
+      expect(out).toBe('');
+      expect(fs.existsSync(path.join(dataDir, 'harvest-queue.json'))).toBe(false);
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it('⑦ opt-in 인입은 멱등이고, 훅이 쓴 큐를 src queue.ts가 그대로 클레임한다 (파일 계약)', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-hook-data-'));
+    try {
+      fs.mkdirSync(home, { recursive: true });
+      fs.writeFileSync(path.join(home, 'config.json'), JSON.stringify({ harvest: { opt_in: true } }));
+      const runHook = (sessionId: string) => execFileSync('node', [HOOK], {
+        input: JSON.stringify({ cwd: repoDir, session_id: sessionId, transcript_path: `/t/${sessionId}.jsonl` }),
+        env: { ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir },
+        encoding: 'utf8',
+      });
+
+      expect(runHook('sess-1')).toBe(''); // 자기 세션만 있는 큐 — 대기 안내 없음 (자기 제외)
+      runHook('sess-1'); // 멱등 — 중복 인입 없음
+      const { readQueue, claim } = await import('./queue.js');
+      expect(readQueue(dataDir).items).toHaveLength(1);
+
+      // 다음 세션이 뜨면: 이전 세션 항목이 "대기 중"으로 보이고, 처리 단계가 클레임 가능
+      const out2 = runHook('sess-2');
+      expect(out2).toContain('수확 큐에 1건 대기');
+      expect(out2).not.toContain('lease'); // 훅은 확인만 — 클레임 안 함
+      const claimed = claim(dataDir, new Date().toISOString(), 600_000, 'proc-1');
+      expect(claimed?.item_id).toBe('harvest-sess-1'); // 교차 구현: 훅이 쓴 항목을 queue.ts가 잠근다
+      expect(claimed?.transcript_path).toBe('/t/sess-1.jsonl');
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it('⑧ opt-in이어도 CLAUDE_PLUGIN_DATA 없으면 침묵 (저장처 없는 인입 금지)', () => {
+    fs.mkdirSync(home, { recursive: true });
+    fs.writeFileSync(path.join(home, 'config.json'), JSON.stringify({ harvest: { opt_in: true } }));
+    const env = { ...process.env, ARGUS_HOME: home };
+    delete (env as Record<string, unknown>)['CLAUDE_PLUGIN_DATA'];
+    const out = execFileSync('node', [HOOK], {
+      input: JSON.stringify({ cwd: repoDir, session_id: 's', transcript_path: '/t/s.jsonl' }),
+      env, encoding: 'utf8',
+    });
+    expect(out).toBe('');
+  });
+
   it('⑤-b 파손 입력(빈 stdin·깨진 원장 줄)에도 exit 0', () => {
     bind();
     fs.mkdirSync(path.join(home, 'projects', REPO_ID), { recursive: true });
