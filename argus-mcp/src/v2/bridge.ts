@@ -274,3 +274,43 @@ export function gateResultV2(ctx: V2Context, a: {
   // 게이트 계측은 caller key가 의미 없다 — 매 판정이 별개 사건.
   return append(ctx, { ...envelope(ctx, 'gate_result', undefined), event: 'gate_result', gate: a.gate, fired: a.fired, ...(a.reason ? { reason: a.reason } : {}) });
 }
+
+// ── sync outbox 동사 4종 (정본 규칙 12) — key는 원본 이벤트의 event_id ──
+
+export function syncPendingV2(ctx: V2Context, a: {
+  sourceEventId: string;
+  /** abandoned 후 수동 재개는 **별개 사건**이므로 새 키를 넘겨야 한다
+   *  (기본 키 그대로면 첫 pending과 같은 사건으로 접혀 duplicate가 된다 —
+   *  outbox.test의 수동 재개 케이스가 이 함정을 고정). */
+  idempotencyKey?: string;
+}): IdempotentAppendResult {
+  return append(ctx, {
+    ...envelope(ctx, 'sync_pending', a.idempotencyKey ?? `sync-pending-${a.sourceEventId}`),
+    event: 'sync_pending', source_event_id: a.sourceEventId,
+  });
+}
+
+export function syncAttemptedV2(ctx: V2Context, a: {
+  sourceEventId: string; attempt: number; nextRetryAt?: string; lastError?: string;
+}): IdempotentAppendResult {
+  return append(ctx, {
+    ...envelope(ctx, 'sync_attempted', `sync-attempt-${a.sourceEventId}-${a.attempt}`),
+    event: 'sync_attempted', source_event_id: a.sourceEventId, attempt: a.attempt,
+    ...(a.nextRetryAt ? { next_retry_at: a.nextRetryAt } : {}),
+    ...(a.lastError ? { last_error: a.lastError.slice(0, 400) } : {}),
+  });
+}
+
+export function syncSucceededV2(ctx: V2Context, a: { sourceEventId: string }): IdempotentAppendResult {
+  return append(ctx, {
+    ...envelope(ctx, 'sync_succeeded', `sync-done-${a.sourceEventId}`),
+    event: 'sync_succeeded', source_event_id: a.sourceEventId,
+  });
+}
+
+export function syncAbandonedV2(ctx: V2Context, a: { sourceEventId: string; reason: string }): IdempotentAppendResult {
+  return append(ctx, {
+    ...envelope(ctx, 'sync_abandoned', `sync-abandon-${a.sourceEventId}`),
+    event: 'sync_abandoned', source_event_id: a.sourceEventId, reason: a.reason.slice(0, 400),
+  });
+}
