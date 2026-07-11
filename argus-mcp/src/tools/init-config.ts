@@ -10,9 +10,13 @@ import { replayLedger } from '../lib/ledger-replay.js';
 import { resolveDefaultTimeZone, resolveToday } from '../lib/resolve-today.js';
 import { SCHEMA_VERSION } from '../lib/spine.js';
 import { z } from 'zod';
+import path from 'path';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
+import { gitCommonDirOf } from '../v2/git-discovery.js';
+import { initV2 } from '../v2/init.js';
+import { argusHome, ledgerPath } from '../v2/ledger.js';
 
 interface ArgusConfig {
   schema_version: number;
@@ -57,6 +61,35 @@ export const init: ToolModule = {
         await atomicWriteText(configPath(dir), yaml.dump(cfg));
       }
 
+      // ── v2 바인딩 (P1 수술 1단계 — 파괴 없는 추가) ──
+      // 정본 II-D: git repo면 registry에 repository_id를 등록하고 내구 원장
+      // (~/.argus/projects/{id}/)을 연다. v1 위치의 원장이 발견되면 복사 이전.
+      // git repo가 아니면 v2 바인딩 없이 v1 그대로 — 사유를 정직하게 병기한다.
+      // 바인딩 실패(MIGRATION_CONFLICT 등)는 init 전체를 죽이지 않되 삼키지도
+      // 않는다: data.v2.error로 노출 (사람이 봐야 하는 상황을 조용히 해소 금지).
+      let v2: Record<string, unknown>;
+      try {
+        const commonDir = gitCommonDirOf(dir);
+        if (commonDir) {
+          const report = initV2({
+            home: argusHome(), gitCommonDir: commonDir,
+            workspaceArgusDir: dir, projectRoot: path.dirname(dir),
+          });
+          v2 = {
+            bound: true,
+            repository_id: report.repository_id,
+            workspace_id: report.workspace_id,
+            newly_registered: report.newly_registered,
+            durable_ledger: ledgerPath(argusHome(), report.repository_id),
+            v1_migration: report.v1_migration.filter((m) => m.action !== 'source_missing'),
+          };
+        } else {
+          v2 = { bound: false, reason: 'not inside a git repository — the durable ledger home (II-D) is keyed by git repo; v1 behavior continues unchanged' };
+        }
+      } catch (e) {
+        v2 = { bound: false, error: e instanceof Error ? e.message : String(e) };
+      }
+
       const today = resolveToday({});
       const empty = replayLedger(dir, today).ids.size === 0;
       // TZ visibility (12 §3.3): expose today + tz so an install in KST notices
@@ -70,7 +103,7 @@ export const init: ToolModule = {
           : 'Argus is ready.',
         next_actions: empty ? ['argus_open_decision'] : ['argus_check_in'],
         data: {
-          initialized: true, argus_dir: dir, today, tz,
+          initialized: true, argus_dir: dir, today, tz, v2,
           // §9.3 — one quiet pointer, data-only, never a push: the daily-watch
           // host snippets (CLAUDE.md block + SessionStart hook) ship in the
           // package for users who want the watch rhythm carried by their host.
