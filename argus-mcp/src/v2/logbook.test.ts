@@ -45,7 +45,7 @@ const REPO_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 
 function briefWith(over: Partial<BriefState>): BriefState {
   return {
-    logical_date: '2026-07-11', due: [], premise_rechecks_due: [], open_questions: [],
+    logical_date: '2026-07-11', due: [], unsealed_net: [], premise_rechecks_due: [], open_questions: [],
     candidates_active: [], candidates_expired: 0, sealed_alive: 0,
     anomalies: 0, skipped_unknown: 0, dropped_corrupt: 0,
     last_event_id: '01JZXK5N8Q2W4E6R8T0Y2Z4A6B', ...over,
@@ -56,6 +56,7 @@ describe('renderLogbook — 순수 렌더 (골든 단면)', () => {
   it('due·전제·질문·정직성 카운터·커서가 전부 제 자리에 있다', () => {
     const md = renderLogbook(briefWith({
       due: [{ decision_id: 'q3-cutover', predicate: 'downtime < 5 min', check_by: '2026-07-01', overdue_days: 10, suggest_dismiss: true }],
+      unsealed_net: [{ decision_id: 'u1', text: '캐시 레이어는 redis로', harvested_on: '2026-07-09' }],
       premise_rechecks_due: [{ premise_id: 'p1', text: 'TTL은 UTC 기준', due_since: '2026-07-08' }],
       open_questions: [{ premise_id: 'q1', text: '캐시를 언제 켤 것인가' }],
       sealed_alive: 3, anomalies: 1, dropped_corrupt: 2, skipped_unknown: 4,
@@ -64,6 +65,8 @@ describe('renderLogbook — 순수 렌더 (골든 단면)', () => {
     expect(md).toContain('정산할 것 (1)');
     expect(md).toContain('| q3-cutover | downtime < 5 min | 2026-07-01 | +10일 (2회 미룸 — dismiss 후보) |');
     expect(md).toContain('살아있는 봉인: 3건');
+    expect(md).toContain('봉인 대기 수확 (1)');
+    expect(md).toContain('캐시 레이어는 redis로 — 2026-07-09 수확 (봉인하려면 `argus_seal`)');
     expect(md).toContain('TTL은 UTC 기준 — 2026-07-08부터');
     expect(md).toContain('캐시를 언제 켤 것인가');
     expect(md).toContain('전이 이상 1건');

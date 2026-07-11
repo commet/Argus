@@ -58,9 +58,19 @@ export interface PremiseRecheckDue {
   due_since: string; // 도래일 (기준일 + cadence)
 }
 
+export interface UnsealedNetItem {
+  decision_id: string;
+  text: string;
+  harvested_on: string;
+}
+
 export interface BriefState {
   logical_date: string;
   due: DueItem[]; // check_by 오름차순 전체 — 공정 큐 선별은 pickDueFairly
+  /** 그물 (Matrix Capture 행): harvest 후 미봉인 결정, harvested_on이
+   *  어제 이전인 것 전부. "다음날 1회"의 1회 보장은 pickNetOnce +
+   *  드라이버의 표시 이력이 담당한다 — 파생은 후보 전체를 정직하게 센다. */
+  unsealed_net: UnsealedNetItem[];
   premise_rechecks_due: PremiseRecheckDue[];
   open_questions: { premise_id: string; text: string }[];
   candidates_active: { candidate_id: string; kind: string; state: string }[];
@@ -87,7 +97,19 @@ export function deriveBrief(state: LoadedState, today: string): BriefState {
   const due: DueItem[] = [];
   let sealedAlive = 0;
 
+  const unsealedNet: UnsealedNetItem[] = [];
+
   for (const d of state.decisions.values()) {
+    // 그물: harvest만 되고 봉인 안 된 결정 — 다음날(harvested_on < today)부터
+    // 후보로 뜬다. 당일은 제외: 방금 잡은 결정을 같은 세션에서 다시 미는 건
+    // 재촉이지 그물이 아니다.
+    if (d.state === 'harvested' && d.harvested_on !== undefined && d.harvested_on < today) {
+      unsealedNet.push({
+        decision_id: d.id,
+        text: d.text?.value ?? '',
+        harvested_on: d.harvested_on,
+      });
+    }
     if (d.state !== 'sealed') continue;
     // check_by 없는 봉인(파손 v1 이전 등)은 due 계산에서만 빠진다 — 살아있는
     // 봉인 수에서 증발하면 조용한 소실이다 (F10a).
@@ -130,9 +152,14 @@ export function deriveBrief(state: LoadedState, today: string): BriefState {
     candidatesActive.push({ candidate_id: c.id, kind: c.kind, state: c.state });
   }
 
+  unsealedNet.sort((a, b) =>
+    a.harvested_on < b.harvested_on ? -1 : a.harvested_on > b.harvested_on ? 1
+      : a.decision_id < b.decision_id ? -1 : 1);
+
   return {
     logical_date: today,
     due,
+    unsealed_net: unsealedNet,
     premise_rechecks_due: premiseRechecksDue,
     open_questions: openQuestions,
     candidates_active: candidatesActive,
@@ -154,6 +181,15 @@ export interface FairPick {
   pick: DueItem | null;
   /** "외 N건" — 항상 병기, 전체 목록은 /argus:settle. */
   others: number;
+}
+
+/** 그물 1회 보장 (Matrix Capture 행: "unsealed 다음날 그물 1회 후 후보 보관").
+ *  표시 이력에 있는 항목은 **영원히** 다시 뽑히지 않는다 — 그물은 재촉이
+ *  아니라 단 한 번의 되물음이고, 그 후 결정은 원장에 harvested로 조용히
+ *  보관된다 (능동 표면은 침묵, /argus:settle·debrief 류 pull 표면에서만
+ *  보임). 표시 이력은 due 공정 큐와 같은 사상으로 드라이버가 영속한다. */
+export function pickNetOnce(net: UnsealedNetItem[], shownNet: ShownLog): UnsealedNetItem[] {
+  return net.filter((n) => !shownNet.has(n.decision_id));
 }
 
 export function pickDueFairly(due: DueItem[], shown: ShownLog): FairPick {

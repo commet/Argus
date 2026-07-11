@@ -50,6 +50,9 @@ function v2CreationIds(events: ArgusEvent[]): V1FoldExclusions {
 export interface DecisionRecord {
   id: string;
   state: 'harvested' | 'sealed' | 'settled' | 'dismissed';
+  /** harvest가 찍힌 logical_date — unsealed 그물("다음날 1회")의 기준.
+   *  seal 자가생성(harvest 없이 봉인)에는 없다 — 봉인됐으니 그물 무관. */
+  harvested_on?: string;
   text?: { value: string; provenance: string };
   predicate?: { value: string; provenance: string };
   check_by?: { value: string; provenance: string };
@@ -299,7 +302,9 @@ export function judgeTransition(state: LedgerState, e: ArgusEvent): 'fresh' | 'd
 function apply(state: LedgerState, e: ArgusEvent): void {
   switch (e.event) {
     case 'harvest':
-      state.decisions.set(e.decision_id, { id: e.decision_id, state: 'harvested', text: e.text, snooze_count: 0 });
+      state.decisions.set(e.decision_id, {
+        id: e.decision_id, state: 'harvested', harvested_on: e.logical_date, text: e.text, snooze_count: 0,
+      });
       break;
     case 'seal': {
       const d = state.decisions.get(e.decision_id)
