@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "id": "v2-rebuild-schedule",
+  "created_at": "2026-07-11T10:02:24.511Z",
+  "real_question": "이 재설계는 실제로 지어질 수 있는 규모인가, 아니면 또 하나의 계획 문서인가",
+  "unverified_assumption": "P0 스파이크가 대형 미지수를 제거했고 남은 것은 시공 노동이라는 가정 — P5 실사용 관찰(21일)이 최대 변수",
+  "human_only": "일정이 밀릴 때 기능을 줄여 날짜를 지킬지, 날짜를 늘려 기능을 지킬지",
+  "human_judgment": "v2.0 출시 9~12주 — 이 일정 자체를 착공일에 봉인한다",
+  "human_judgment_owner": "user",
+  "skipped": [],
+  "predicate": "Argus MCP v2.0(A~F 전 기능)이 Release Gate 15행을 통과해 2026-10-03(착공+12주)까지 출시된다 — 목표 9주(2026-09-12), 상한 12주",
+  "check_by": "2026-10-03",
+  "basis": "judgment",
+  "ai_verdict": null
+}

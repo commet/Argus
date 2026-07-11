@@ -1,0 +1,24 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Argus//Return Calendar//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:v2-rebuild-schedule@argus.local
+DTSTAMP:20260711T100224Z
+DTSTART;VALUE=DATE:20261003
+DTEND;VALUE=DATE:20261004
+SUMMARY:Argus return: Argus MCP v2.0(A~F 전 기능)이 Release Gate 15행을 통과해 2026
+ -10-03(착공+12주)까지 출시된다 — 목표 9
+DESCRIPTION:Your sealed Argus decision is due today.\nPredicate: Argus MCP
+  v2.0(A~F 전 기능)이 Release Gate 15행을 통과해 2026-10-03(착공+12주)까지 출시된다 — 목표 9주(2
+ 026-09-12)\, 상한 12주\nOpen your terminal and run argus_check_in\, then argu
+ s_settle if reality is clear.
+BEGIN:VALARM
+TRIGGER;RELATED=START:PT9H
+ACTION:DISPLAY
+DESCRIPTION:Argus return: Argus MCP v2.0(A~F 전 기능)이 Release Gate 15행을 통과해 
+ 2026-10-03(착공+12주)까지 출시된다 — 목표 9
+END:VALARM
+END:VEVENT
+END:VCALENDAR

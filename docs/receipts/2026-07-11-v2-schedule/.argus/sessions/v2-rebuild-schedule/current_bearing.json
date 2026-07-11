@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "id": "v2-rebuild-schedule",
+  "contract_seed": {
+    "predicate": "Argus MCP v2.0(A~F 전 기능)이 Release Gate 15행을 통과해 2026-10-03(착공+12주)까지 출시된다 — 목표 9주(2026-09-12), 상한 12주",
+    "check_by": "2026-10-03"
+  },
+  "predicate_owner": "user"
+}
