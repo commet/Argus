@@ -124,6 +124,10 @@ export function foldV1(state: LedgerState, events: V1Event[], exclude: V1FoldExc
         if (!id || state.decisions.has(id)) break;
         state.decisions.set(id, {
           id, state: 'harvested', snooze_count: 0,
+          // harvested_on이 없으면 미봉인 v1 결정이 그물·LOGBOOK '봉인 대기
+          // 수확'에서 영영 안 보인다 (조용한 소실). v1 ts의 날짜로 스탬프 —
+          // 과거 날짜라 그물엔 즉시 적격이 되고, 1회 보장은 pickNetOnce 몫.
+          harvested_on: (str(ev.ts) ?? '').slice(0, 10) || undefined,
           text: { value: str(ev['decision']) ?? str(ev['quote']) ?? '', provenance: HOST },
         });
         break;
