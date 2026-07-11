@@ -6,6 +6,7 @@ import { resolveContract } from '../lib/resolve-contract.js';
 import { guardTransition } from '../lib/state-machine.js';
 import { validateSeal } from '../lib/validate-seal.js';
 import { appendLedger, withLedgerLock, type LedgerEventInput } from '../lib/ledger-append.js';
+import { dualWriteSeal, mapSealProvenance } from '../v2/dual-write.js';
 import { writeSealReceipt } from '../lib/receipt.js';
 import { premiseId, MAX_ACTIVE_PREMISES, MAX_LOAD_BEARING } from '../lib/premises.js';
 import { pushToAccount } from '../lib/push-account.js';
@@ -89,6 +90,7 @@ export const seal: ToolModule = {
       // no elicitation, this is skipped and the seal proceeds (the model
       // confirmed in text). This is spine-safe: the draft is shown and the user
       // says yes — never a silent auto-seal of an inferred prediction.
+      let elicitedKeep = false; // v2 provenance용: elicit Keep만 elicited_user다 (II-B)
       if (a['confirm_draft'] === true && canElicit()) {
         const picked = await elicit(
           locale === 'ko' ? `이 예측으로 기록할까요?\n"${predicate}" (확인일 ${checkBy})` : `Record this prediction?\n"${predicate}" (check-by ${checkBy})`,
@@ -108,6 +110,7 @@ export const seal: ToolModule = {
         }
         // keep → the user affirmed the draft, so it is theirs now.
         a = { ...a, predicate_owner: 'user' };
+        elicitedKeep = true;
       }
 
       await ensurePrivacyGitignore(dir);
@@ -175,6 +178,19 @@ export const seal: ToolModule = {
         return { receipt: receiptW, calendarPath: calendarPathW };
       });
 
+      // ── v2 dual-write (P1 수술 2단계) — v1 원장이 정본인 채로, 성공한 봉인을
+      // 내구 원장(II-D)에도 기록한다. 실패는 봉인을 죽이지 않되 data.v2_write로
+      // 정직하게 노출된다 (dual-write.ts 헤더 참조).
+      const v2Write = dualWriteSeal({
+        argusDir: dir, today, decisionId: id, predicate, checkBy,
+        provenance: mapSealProvenance(a['predicate_owner'], elicitedKeep),
+        basis: a['basis'] as 'judgment' | 'luck' | 'mixed' | 'unsure' | undefined,
+        realQuestion: a['real_question'] as string | undefined,
+        unverifiedAssumption: a['unverified_assumption'] as string | undefined,
+        humanOnly: a['human_only'] as string | undefined,
+        humanJudgment: a['human_judgment'] as string | undefined,
+      });
+
       const namedAssumption = !receipt.skipped.includes('unverified_assumption');
       // Fire the nudge only on the FIRST assumption-less seal this session (per
       // ledger); a batch of them should not repeat the identical line.
@@ -240,6 +256,7 @@ export const seal: ToolModule = {
           calendar_path: calendarPath,
           seal_text,
           status: 'sealed', ledger_events_written: events.map((e) => e.event),
+          v2_write: v2Write,
           skipped: receipt.skipped,
           account_synced: sync.synced,
           ...(sync.synced ? {} : { account_sync_reason: sync.reason }),
