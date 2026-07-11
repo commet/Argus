@@ -97,7 +97,11 @@ export const settle: ToolModule = {
       const locale = resolveResponseLocale(dir, a['what_happened'] as string | undefined);
       const T = SURFACES[locale].tools.settle;
 
-      const now = new Date().toISOString();
+      // Settle at the LOGICAL day under a today_override (sims/tests), else real
+      // wall-clock — the receipt's settled date should match the user's timeline,
+      // not the simulator's clock (experience loop, settler). Real use has no
+      // override, so settled_at stays the true write time.
+      const now = a['today_override'] ? `${today}T12:00:00.000Z` : new Date().toISOString();
       // §9.4 두 기기 안전: the settle write is a read-check-append sequence —
       // re-guard UNDER the ledger lock so two concurrent sessions can't both
       // pass the check above and double-count the record (the loser sees

@@ -1,7 +1,7 @@
 # 히어로 영상 원본 대장 (originals manifest)
 
 여기 있는 파일은 **사용자가 준 깨끗한 원본**이다. 지우지 않는다(정본).
-처리 방법은 [`docs/HERO-VIDEO-PIPELINE.md`](../../docs/HERO-VIDEO-PIPELINE.md) 참고.
+처리 방법은 내부 설계 노트 참고.
 
 명명규칙: `NN_주제_장면.mp4` — `NN` = 최종 영상 등장 순서.
 

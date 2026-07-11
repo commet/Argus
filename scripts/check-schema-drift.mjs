@@ -8,7 +8,7 @@
  *
  * 사용법:
  *   1) Claude/Supabase MCP 로 list_tables(verbose, schema=public) 결과를
- *      JSON 파일로 저장한다. (Argus DB = overture-db / sckixrzwqntynsisgcdx)
+ *      JSON 파일로 저장한다. (Argus의 Supabase public 스키마 대상)
  *   2) node scripts/check-schema-drift.mjs <그 JSON 경로>
  *
  * 출력:

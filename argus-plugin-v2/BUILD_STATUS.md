@@ -376,7 +376,7 @@ checked against reality.
 
 Plugin changes from this pass:
 
-- Added `docs/ARGUS-FINAL-DIRECTION.md` as the product direction anchor.
+- Added `internal design notes` as the product direction anchor.
 - Replaced the default medium/high output contract with Current Heading.
 - Replaced `data/schemas/surface-card.json` with
   `data/schemas/current-bearing.json`.

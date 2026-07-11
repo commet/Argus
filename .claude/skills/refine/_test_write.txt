@@ -1,6 +1,0 @@
----
-name: refine
-description: "Iterate on a plan using stakeholder feedback until critical issues are resolved. Revises, re-tests with personas, checks convergence. Use after /rehearse when issues need fixing."
-argument-hint: "[plan with rehearsal feedback to refine]"
-allowed-tools: Read, Write, Agent, AskUserQuestion
----

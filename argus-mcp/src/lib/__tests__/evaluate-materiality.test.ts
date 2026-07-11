@@ -8,7 +8,7 @@ import {
 } from '../numeric-drift.js';
 
 /**
- * M2 drift-materiality test matrix (M2-RULE-TABLE §8), verbatim as a fixture.
+ * M2 drift-materiality test matrix (internal design notes §8), verbatim as a fixture.
  * Expected: M=material, U=uncertain (silent + notice, no auto-handle), N=unchanged.
  *
  * A few cases in §8 admit "M/U" or "U/N" depending on whether the premise opts

@@ -69,7 +69,7 @@ const zPremiseInput = z.strictObject({
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
-  id: zId.describe('The decision id from argus_open_decision.'),
+  id: zId.describe('The decision id — the same id you passed to argus_open_decision or argus_seal.'),
   op: z.enum(['add', 'amend', 'resolve', 'still_open']).describe('add = record premises; amend = correct one (user edit = signal); resolve = close an open question in the user\'s words; still_open = the user chose to leave an open question unresolved for now (defers the reconsider nudge, no verdict).'),
   premises: z.array(zPremiseInput).min(1).max(MAX_ACTIVE_PREMISES).optional().describe('op=add only.'),
   ref: z.string().max(64).optional().describe('op=amend/resolve: which premise — an ordinal ("P1"), the premise_id, or an unambiguous id prefix. Ordinals are permanent (a retired P2 stays P2).'),
@@ -260,8 +260,13 @@ async function opAdd(
     ...(p.materiality_rule ? { materiality_rule: p.materiality_rule } : {}),
     ...(typeof p.recheck_cadence_days === 'number' ? { recheck_cadence_days: p.recheck_cadence_days } : {}),
     ...(typeof p.reponder_cadence_days === 'number' && p.kind === 'open_question' ? { reponder_cadence_days: p.reponder_cadence_days } : {}),
-    // M3 — anchor the reconsider clock at the logical `today` (deterministic).
-    ...(p.kind === 'open_question' ? { anchor_date: today } : {}),
+    // Anchor the ADD date at the logical `today` (deterministic) for every
+    // premise, not just open_questions: added_ts is now what the first-recheck
+    // cadence runs from (founder decision 2026-07-10), and the open_question
+    // reconsider clock too. Without it, added_ts fell back to the real write
+    // time, which diverged from today_override in sims and would misdate a
+    // premise added under a today_override in real use.
+    anchor_date: today,
   }));
   if (events.length > 0) await appendLedger(dir, events, now);
 
@@ -283,7 +288,11 @@ async function opAdd(
   const refRange = events.length > 0 ? `${echo[0].ref}${echo.length > 1 ? `–${echo[echo.length - 1].ref}` : ''}` : '';
   const monitoredNote = monitoredCount === 0 ? '' : ko
     ? (sealedNow ? ` 그중 ${monitoredCount}건은 나중에 실제와 다시 대조해 확인합니다 (이미 봉인됨).` : ` 그중 ${monitoredCount}건은 봉인한 뒤 실제와 다시 대조해 확인합니다.`)
-    : (sealedNow ? ` ${monitoredCount} of them get re-checked against what actually happens (this decision is sealed).` : ` ${monitoredCount} of them get re-checked against what actually happens once you seal the decision.`);
+    : (sealedNow ? ` ${monitoredCount} will be re-checked against what actually happens (this decision is sealed).` : ` ${monitoredCount} will be re-checked against what actually happens once you seal the decision.`);
+  const oneLine = (s: string): string => {
+    const t = s.replace(/\s+/g, ' ').trim();
+    return t.length > 70 ? t.slice(0, 69) + '…' : t;
+  };
   const surface =
     events.length === 0
       ? (dupRetired.length > 0
@@ -293,9 +302,16 @@ async function opAdd(
           : (ko
               ? '그 전제들은 이미 기록되어 활성 상태입니다 (새로 적은 것 없음).'
               : 'All of those premises are already recorded and active (nothing new written).'))
-      : (ko
-          ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 op=amend로 고치세요. 고친 내용도 기록에 남습니다.${monitoredNote}`
-          : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with op=amend; your correction stays on the record too.${monitoredNote}`);
+      // A single premise echoes its own words back — "전제 1건 (P1)" read as a
+      // cold filing label to a non-dev (experience loop, sujin). Several keep the
+      // count + ref range (echoing five sentences would bury the confirmation).
+      : (events.length === 1
+          ? (ko
+              ? `방금 적어뒀어요: '${oneLine(echo[0]?.text ?? '')}'. 고칠 게 있으면 op=amend로 바꿀 수 있어요.${monitoredNote}`
+              : `Noted: "${oneLine(echo[0]?.text ?? '')}". Fix anything wrong with op=amend.${monitoredNote}`)
+          : (ko
+              ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 op=amend로 고치세요. 고친 내용도 기록에 남습니다.${monitoredNote}`
+              : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with op=amend; your correction stays on the record too.${monitoredNote}`));
 
   return envelope({
     ok: true, tool: 'argus_premises',

@@ -218,6 +218,177 @@ export const PERSONAS = [
   },
 
   {
+    id: 'pivot',
+    lang: 'en',
+    host: 'Claude Code',
+    profile:
+      'Elena, 45, CEO. Makes a big, hard-to-reverse call and moves straight to execution — it never occurs to her to ' +
+      '"record" it. The test of the proactive one-tap seal: on a genuinely consequential, irreversible decision she ' +
+      'never asked to log, does Argus offer ONCE (and does she keep it)? A month later the record should have something.',
+    seed: null,
+    turns: [
+      { day: '2026-07-02', says: "We're killing the enterprise product line entirely and going all-in on self-serve SMB. It's decided — the board signed off this morning. Now help me write the all-hands announcement." },
+      { day: '2026-07-02', says: "Good draft. Now give me a rough 30-day checklist for sunsetting the enterprise contracts cleanly." },
+      { day: '2026-10-05', says: "Three months in — how's the SMB bet tracking? Did I flag anything back when we made the call?" },
+    ],
+    probes: ['unprompted_adoption', 'earned_return', 'restraint'],
+  },
+
+  {
+    id: 'still_pending',
+    lang: 'en',
+    host: 'Claude Code',
+    profile:
+      'Tom, 42, founder. The check-by arrived but reality genuinely has not answered yet — the experiment is still ' +
+      'running. He wants to record "not decided yet" honestly, without being forced into a false held/missed, and ' +
+      'without the tool pretending the question is closed.',
+    seed: async (call) => {
+      await call('argus_seal', {
+        id: 'paywall-test', predicate: 'the hard paywall lifts trial-to-paid conversion above 6%',
+        check_by: '2026-07-05', predicate_owner: 'user', today_override: '2026-06-05',
+      });
+    },
+    turns: [
+      { day: '2026-07-06', says: "The paywall check-by hit, but honestly it's too early to call — we've only had 9 days of data and it's noisy. I don't want to fake a verdict. How do I record that it's genuinely still open?" },
+      { day: '2026-07-06', says: "Right, settle it as still-pending then. And when should I actually come back to call it for real?" },
+    ],
+    probes: ['dignity', 'restraint', 'value_articulation'],
+  },
+
+  {
+    id: 'scale_juggler',
+    lang: 'en',
+    host: 'Claude Code',
+    profile:
+      'Lena, 37, COO running many bets at once. She has a pile of open predictions and just wants a fast, calm read ' +
+      'of where things stand — not a wall of text. If the check-in dumps everything at once she tunes it out.',
+    // Eight live decisions, a few already past check-by, most still waiting.
+    seed: async (call) => {
+      const bets = [
+        { id: 's1', p: 'the EU launch ships by end of July', by: '2026-07-31', d: '2026-06-01' },
+        { id: 's2', p: 'churn drops below 4% after the onboarding rework', by: '2026-07-01', d: '2026-06-01' },
+        { id: 's3', p: 'we close the Acme enterprise deal', by: '2026-06-28', d: '2026-05-20' },
+        { id: 's4', p: 'the mobile rewrite passes QA with no P0 bugs', by: '2026-08-15', d: '2026-06-10' },
+        { id: 's5', p: 'support response time stays under 2 hours', by: '2026-09-01', d: '2026-06-15' },
+        { id: 's6', p: 'the pricing test lifts ARPU by 10%', by: '2026-06-25', d: '2026-05-25' },
+        { id: 's7', p: 'we hire two senior engineers by Q3', by: '2026-09-30', d: '2026-06-20' },
+        { id: 's8', p: 'the data migration finishes without rollback', by: '2026-07-20', d: '2026-06-18' },
+      ];
+      for (const b of bets) await call('argus_seal', { id: b.id, predicate: b.p, check_by: b.by, predicate_owner: 'user', today_override: b.d });
+    },
+    turns: [
+      { day: '2026-07-08', says: "Quick — where do all my open bets stand right now? Keep it tight, I've got a board call in five." },
+      { day: '2026-07-08', says: "Which ones actually need me to do something today?" },
+    ],
+    probes: ['ride_along', 'restraint', 'clarity'],
+  },
+
+  {
+    id: 'amender',
+    lang: 'en',
+    host: 'Claude Code',
+    profile:
+      'Nadia, 33, PM. Seals fast, then reality shifts and she wants to correct the record cleanly — fix a predicate ' +
+      'that was worded wrong, push a check-by that slipped, or drop a call that got overtaken by events. She expects ' +
+      'edits to be honest (the original stays visible), not silent overwrites.',
+    seed: null,
+    turns: [
+      { day: '2026-07-02', says: "Seal this: we hit 1,000 paying teams by end of Q3. Check-by September 30." },
+      { day: '2026-07-08', says: "Actually that predicate is sloppy — 'paying teams' should be 'teams on an annual plan', that's the number that matters. Fix it, keep the date." },
+      { day: '2026-07-15', says: "The board pushed our launch, so the Q3 target is now Q4. Move the check-by to December 31." },
+      { day: '2026-07-20', says: "You know what, we pivoted away from the teams motion entirely. That prediction is moot now — drop it, but I want the history kept, not erased." },
+    ],
+    probes: ['dignity', 'value_articulation', 'ride_along'],
+  },
+
+  {
+    id: 'accumulator',
+    lang: 'ko',
+    host: 'Claude Desktop',
+    profile:
+      '준영, 44세, 3년차 창업자. Argus를 반 년 넘게 써서 정산한 결정이 여러 건 쌓였다. 가끔 "내가 그동안 ' +
+      '어떤 판단들을 했더라"를 돌아보고 싶어한다. 등급이나 점수를 원하는 게 아니라, 사실로서의 자기 기록을 본다.',
+    // Half a year of use: 5 settled decisions with mixed outcomes, 1 still open.
+    seed: async (call) => {
+      const done = [
+        { id: 'pricing', predicate: '요금 인상 후 3개월 내 이탈률이 5% 미만으로 유지된다', check_by: '2026-04-01', day: '2026-01-01', outcome: 'held', what: '이탈 3.8%로 유지됨' },
+        { id: 'seoul-office', predicate: '강남 오피스 이전이 1분기 안에 끝난다', check_by: '2026-03-15', day: '2026-01-10', outcome: 'avoided', what: '이전 자체를 접고 원격 유지' },
+        { id: 'series-a', predicate: '시리즈A를 상반기 안에 클로징한다', check_by: '2026-06-30', day: '2026-02-01', outcome: 'missed', what: '리드가 막판에 빠져 무산, 브릿지로 전환', broken: 'P1' },
+        { id: 'hire-cto', predicate: 'CTO 채용을 2분기 안에 마친다', check_by: '2026-06-30', day: '2026-03-01', outcome: 'partial', what: '오퍼는 냈으나 입사는 3분기로 밀림' },
+        { id: 'app-launch', predicate: '모바일 앱을 5월 안에 출시한다', check_by: '2026-05-31', day: '2026-03-20', outcome: 'held', what: '5월 28일 출시' },
+      ];
+      for (const s of done) {
+        await call('argus_seal', { id: s.id, predicate: s.predicate, check_by: s.check_by, predicate_owner: 'user', unverified_assumption: s.id === 'series-a' ? '리드 투자자가 텀시트를 지킨다' : undefined, today_override: s.day });
+        await call('argus_settle', { id: s.id, outcome: s.outcome, outcome_source: 'user_stated', what_happened: s.what, ...(s.broken ? { broken_premise_ref: s.broken } : {}), today_override: s.check_by });
+      }
+    },
+    turns: [
+      { day: '2026-07-05', says: '반 년 정도 써봤는데, 내가 그동안 어떤 판단들을 했는지 한번 돌아보고 싶어. 보여줄 수 있어?' },
+      { day: '2026-07-05', says: '흠, 이걸 보니까 어떤 생각이 들어야 하는 걸까? 내가 판단을 잘하는 사람인가?' },
+    ],
+    probes: ['dignity', 'value_articulation', 'restraint'],
+  },
+
+  {
+    id: 'just_tell_me',
+    lang: 'ko',
+    host: 'Claude Desktop',
+    profile:
+      '민경, 40세, 창업자. 공동창업자와 갈라설지 말지로 몇 주째 잠을 못 잔다. 지쳐서 "그냥 네가 뭐가 맞는지 ' +
+      '말해줘"라고 계속 밀어붙인다. 답(평결)을 강하게 원하지만, 사실 필요한 건 자기 판단을 세울 자리다.',
+    seed: null,
+    turns: [
+      { day: '2026-07-02', says: '공동창업자랑 갈라서야 할지 몇 주째 고민이야. 지분은 5:5고, 이 사람 없으면 제품은 못 만드는데 사사건건 부딪혀. 그냥 네가 봤을 때 어떻게 하는 게 맞아? 딱 답을 줘.' },
+      { day: '2026-07-02', says: '아니 그런 원론 말고. 헤어져 말아? A야 B야? 나 지금 너무 지쳐서 그냥 누가 정해줬으면 좋겠어.' },
+      { day: '2026-07-02', says: '…그래. 알았어. 그럼 내가 뭘 기준으로 정해야 하는 건지, 그거 하나만 잡아줘.' },
+    ],
+    probes: ['restraint', 'dignity', 'value_articulation'],
+  },
+
+  {
+    id: 'watch_user',
+    lang: 'ko',
+    host: 'Claude Desktop',
+    profile:
+      '태호, 36세, 1인 개발자. 매일 아침 "오늘 뭐 할지" 한 줄 적고 저녁에 돌아보는 습관을 들이려 한다. ' +
+      '결정을 봉인할 만큼 큰 건 아니고, 그냥 오늘의 가설·다짐을 가볍게 남겨두고 싶다. 평가받는 느낌은 질색.',
+    seed: null,
+    turns: [
+      { day: '2026-07-02', says: '오늘 목표 하나만 적어둘래: 결제 붙는 거 오늘 안에 끝낸다. 나중에 어땠는지 물어봐줘.' },
+      { day: '2026-07-02', says: '작업하다 걸리는 게 하나 있는데 — "신규 결제사 승인이 2주 안에 난다"는 걸 그냥 가정하고 가는 중이야. 이거 어디 적어두고 싶어, 아직 결정은 아니고.' },
+      { day: '2026-07-03', says: '좋은 아침. 어제 뭐 적었더라?' },
+    ],
+    probes: ['restraint', 'ride_along', 'dignity'],
+  },
+
+  {
+    id: 'settler',
+    lang: 'en',
+    host: 'Claude Code',
+    profile:
+      'Priya, 39, engineering lead. Sealed a call weeks ago; now a fact it rested on has shifted and the check-by has ' +
+      'arrived. She wants to record what actually happened plainly — no grade, no "I told you so", just the truth on record.',
+    // A call sealed a month ago with a monitored premise, now due.
+    seed: async (call) => {
+      await call('argus_seal', {
+        id: 'db-migrate', predicate: 'the Postgres 16 migration finishes with under 10 minutes of write downtime',
+        check_by: '2026-07-05', predicate_owner: 'user',
+        unverified_assumption: 'the logical replication keeps up during the cutover', today_override: '2026-06-05',
+      });
+      await call('argus_premises', {
+        id: 'db-migrate', op: 'add', today_override: '2026-06-05',
+        premises: [{ text: 'peak write load stays under 3000 tps during the migration window', kind: 'premise', external: true, load_bearing: true, source: 'user' }],
+      });
+    },
+    turns: [
+      { day: '2026-07-03', says: "Reality check on the db-migrate premise: peak write load actually spiked to 5200 tps during the window, well over the 3000 I assumed. Record that." },
+      { day: '2026-07-06', says: "It's past the check-by. What happened: the migration took 27 minutes of write downtime, way over the 10 I predicted. Settle it — the read was wrong, no sugar-coating." },
+      { day: '2026-07-06', says: "Show me the receipt." },
+    ],
+    probes: ['dignity', 'value_articulation', 'earned_return'],
+  },
+
+  {
     id: 'dev_skeptic',
     lang: 'en',
     host: 'Claude Code',

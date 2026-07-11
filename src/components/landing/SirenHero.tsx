@@ -4,15 +4,14 @@
  * SirenHero — the single first screen (W1.3 세이렌 1화면).
  *
  * The money screen, and therefore the strongest expression of the logbook
- * identity — not the most templated. Hero grammar, top to bottom (2026-07-03,
- * 06 S8 — comment kept current with the built structure):
- *   kicker → headline (the lonely question, verbatim) → the product film as a
- *   resting still (VoyageFilm — tap to open a dimmed lightbox where it plays
- *   large) → a bridge line handing off from the film to the act → the unified
- *   entry: ONE chart-field with TWO doors (WRITE a decision / open what's ON
- *   FILE), the divider gliding toward whichever door the visitor leans into →
- *   the expectation-setting quiet line (free · ~30s to a first read · content
- *   used for analysis only) → scroll cue. Marginalia frame it like a plate.
+ * identity — not the most templated. Hero grammar, top to bottom (2026-07-09 —
+ * restructured so the INPUT is the first-screen focal point, not the film):
+ *   headline (the lonely question, verbatim) → a one-line product promise →
+ *   the unified entry: ONE chart-field with TWO doors (WRITE a decision / open
+ *   what's ON FILE), the divider gliding toward whichever door the visitor leans
+ *   into, then the quiet expectation line (free · ~30s · analysis only) → the
+ *   Odyssey film DEMOTED below as an optional "why we go this far" watch
+ *   (VoyageFilm — tap to open a dimmed lightbox) → scroll cue.
  *
  * Gold is spent exactly once on this screen — on the WRITE submit, a user
  * action — because the value moment is recognition, not the click. The ON
@@ -91,8 +90,8 @@ export function SirenHero() {
       aria-labelledby="siren-heading"
       style={{
         background: 'var(--bp-paper)',
-        // Natural height: the hero now carries the product film as its living
-        // anchor, so it flows from the top instead of being centred in 100svh.
+        // Natural height: flows from the top (the input is the focal point),
+        // not centred in 100svh.
         paddingTop: 'clamp(48px, 7vh, 92px)',
         paddingBottom: 'clamp(24px, 3.5vh, 44px)',
       }}
@@ -112,41 +111,8 @@ export function SirenHero() {
       >
         § 0 · {L('세이렌', 'The Siren')}
       </span>
-      <span
-        aria-hidden="true"
-        className="bp-mono hidden md:block"
-        style={{
-          position: 'absolute', right: 28, bottom: 22,
-          color: 'var(--bp-ink-soft)', opacity: 0.42,
-          fontSize: 9.5, letterSpacing: '0.22em',
-        }}
-      >
-        37°34′N · 126°58′E
-      </span>
 
       <div className="relative w-full max-w-3xl mx-auto px-6 md:px-10 text-center">
-        {/* Kicker — the plain product class, mono, in connecting hairlines, so
-            the serif headline below stays the single emotional focal point. */}
-        <div className="bp-fade-up flex items-center justify-center gap-3" style={{ marginBottom: 16 }}>
-          <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
-          <span
-            className="bp-mono"
-            style={{
-              color: 'var(--bp-ink-soft)',
-              fontSize: 11,
-              // Latin small-caps want wide tracking; Hangul does NOT (wide
-              // tracking on 한글 reads amateurish). Locale-aware, shared by every
-              // micro-label in the hero (eyebrow / LOG ENTRY / scroll cue).
-              letterSpacing: locale === 'ko' ? '0.1em' : '0.22em',
-              textTransform: 'uppercase',
-              fontWeight: 500,
-            }}
-          >
-            {L('유창한 답이 결정을 끝내게 하지 마세요', "Don't let a fluent answer end the decision")}
-          </span>
-          <span aria-hidden="true" className="hidden sm:block" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
-        </div>
-
         {/* Headline — candidate 1, verbatim (FRAMEWORK §7). The focal point. */}
         <h1
           id="siren-heading"
@@ -185,49 +151,13 @@ export function SirenHero() {
           )}
         </p>
 
-        {/* The living anchor — Odysseus's voyage past the Sirens (출항 → 묶기 →
-            듣기 → 닿기 → 알아봄), the myth that names the product. At rest this is
-            a small framed still with a play control + a static intro caption; the
-            page no longer autoplays a large plate on load. Pressing play lifts the
-            film into a dimmed lightbox (portalled to <body>) where it plays large
-            with its live chaptered captions, and collapses on close/end. Centered
-            via a flex parent (NOT transform, which bp-fade-up animates). */}
-        <div
-          className="bp-fade-up flex justify-center"
-          style={{ position: 'relative', marginTop: 24, marginBottom: 16, animationDelay: '200ms' }}
-        >
-          <div className="w-full" style={{ maxWidth: 600 }}>
-            <VoyageFilm />
-          </div>
-        </div>
-
-        {/* Bridge line — hands off from the film (which showed the mechanic) to
-            the field below, inviting the reader to write. Not a closing statement
-            but an invitation that points down into the log entry. */}
-        <p
-          className={`bp-fade-up mx-auto mt-8 max-w-xl ${locale === 'ko' ? 'break-keep' : ''}`}
-          style={{
-            color: 'var(--bp-ink)',
-            fontSize: 'clamp(14px, 1.55vw, 16px)',
-            fontWeight: 500,
-            lineHeight: 1.65,
-            animationDelay: '260ms',
-          }}
-        >
-          {locale === 'ko' ? (
-            <>이제 당신 차례예요.<br />칭찬도 반박도 없이, 당신의 판단을 그대로 항로로 남길게요.</>
-          ) : (
-            <>Now it’s your turn.<br />No flattery, no argument — we keep your judgment as a course, just as you set it.</>
-          )}
-        </p>
-
         {/* ── Unified entry: one chart-field, two doors ──────────────────
             WRITE (left) and ON FILE (right) live in ONE split box. The divider
             glides toward whichever door the visitor leans into (focus/hover) —
             an A/B-style reveal — so the two ways to use Argus read as a single
             choice on one log page. Stacks on mobile. Gold is still spent only
             on the WRITE submit (a user action); the ON FILE door stays ink. */}
-        <div className="bp-fade-up mt-7 mx-auto" style={{ animationDelay: '320ms', maxWidth: 680 }}>
+        <div className="bp-fade-up mt-8 mx-auto" style={{ animationDelay: '180ms', maxWidth: 680 }}>
           <div
             className="relative flex flex-col sm:flex-row sm:items-stretch"
             style={{
@@ -279,7 +209,7 @@ export function SirenHero() {
                 <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
                 <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
                   {/* KO leads with Korean (06 P2-6) — mono register stays, first glance lands on 한국어. */}
-                  {L('기록 · 결정을 적는다', 'LOG ENTRY · write it')}
+                  {L('결정을 적는다', 'WRITE · a decision')}
                 </span>
               </div>
 
@@ -333,7 +263,7 @@ export function SirenHero() {
                 <span style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.005em', lineHeight: 1.4 }}>
                   {text.trim()
                     ? L('⏎ 로 보내기 · Shift+⏎ 줄바꿈', '⏎ to send · Shift+⏎ for newline')
-                    : L('⏎ 한 줄이면 충분해요', '⏎ one line is enough')}
+                    : L('⏎ 한 줄이면 돼요', '⏎ one line is enough')}
                 </span>
                 <button
                   onClick={sail}
@@ -354,7 +284,7 @@ export function SirenHero() {
                     borderRadius: 0,
                   }}
                 >
-                  {L('읽어봐 주세요', 'Have it read')}
+                  {L('읽어볼게요', 'Read it')}
                 </button>
               </div>
               {/* Expectation-setting marginalia (06 S2): free/no-login/time/privacy in
@@ -365,8 +295,8 @@ export function SirenHero() {
                 style={{ margin: '7px 0 0', color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.5, letterSpacing: '0.005em' }}
               >
                 {L(
-                  '로그인 없이 무료 · 30초 안팎이면 첫 읽기가 와요 · 내용은 분석에만 쓰여요',
-                  'Free, no login · first read in ~30s · your text is used for the analysis only',
+                  '로그인 없이 무료 · 30초면 첫 분석 · 내용은 분석에만',
+                  'Free, no login · first read in ~30s · analysis only',
                 )}
               </p>
             </div>
@@ -408,16 +338,16 @@ export function SirenHero() {
               <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
                 <span aria-hidden="true" style={{ width: 16, height: 1, background: 'var(--bp-ink-soft)', opacity: 0.55 }} />
                 <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
-                  {L('서류 · 문서를 올린다', 'ON FILE · upload it')}
+                  {L('문서를 올린다', 'ON FILE · a document')}
                 </span>
               </div>
               <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink)', fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>
-                {L('이미 문서로 써두셨나요?', 'Already written it down?')}
+                {L('이미 써둔 문서가 있나요?', 'Already written it down?')}
               </div>
               <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
                 {L(
-                  '전략안·기획안·PDF·PPT를 올리면, 사람이 책임질 판단과 근거 약한 주장을 원문 위치까지 짚어드려요.',
-                  'Drop a strategy memo, plan, PDF or deck — Argus surfaces the judgment calls and weak evidence, anchored to the source.',
+                  '전략안·PDF·기획안을 올리면, 근거 약한 주장과 사람이 판단할 대목을 원문 위치에서 짚어줘요.',
+                  'Drop a memo, plan or PDF — weak evidence and the human’s-call points, flagged right on the source.',
                 )}
               </div>
               <span
@@ -437,14 +367,23 @@ export function SirenHero() {
           </div>
         </div>
 
-        {/* The film above already SHOWS the mechanic (separate reads → the fork
-            → the return), so the old "how it works" paragraph and the secondary
-            demo link were cut — show, don't tell. The input footer keeps the
-            ease + privacy microcopy. */}
+        {/* Demoted story beat — the input is the first-screen focal point now, so
+            the Odyssey film sits BELOW it: an optional "why we go this far" watch,
+            a resting poster that opens the lightbox on tap (it never autoplays). */}
+        <div className="bp-fade-up mt-14 flex flex-col items-center" style={{ animationDelay: '360ms' }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
+            <span aria-hidden="true" style={{ width: 22, height: 1, background: 'var(--bp-ink-faint)' }} />
+            <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.1em' : '0.2em', textTransform: 'uppercase', fontWeight: 500 }}>
+              {L('왜 이렇게까지? · 3천 년 된 이야기', 'Why go this far · a 3,000-year story')}
+            </span>
+            <span aria-hidden="true" style={{ width: 22, height: 1, background: 'var(--bp-ink-faint)' }} />
+          </div>
+          <div className="w-full" style={{ maxWidth: 480 }}>
+            <VoyageFilm />
+          </div>
+        </div>
 
-        {/* Scroll cue — a clickable "sounding line" down to the Trail, where the
-            product actually navigates one decision. (The film above already
-            shows the three legs, so the old 묶기·듣기·닿기 hint was cut.) */}
+        {/* Scroll cue — a clickable "sounding line" down to the Trail. */}
         <div className="bp-fade-up mt-10 flex justify-center" style={{ animationDelay: '420ms' }}>
           <a
             href="#navigate"

@@ -3,7 +3,7 @@
  * Argus PreToolUse hook — non-blocking warning before an IRREVERSIBLE operation
  * (helm's keel scan as a pre-flight: the moment helm's plan-time scan can't see).
  *
- * Design: docs/DESIGN-decision-capture-anchor-as-switch-2026-06-29.md (§12.5 structure
+ * Design: internal design notes (§12.5 structure
  * signals; helm SKILL.md keel scan). Token-zero: deterministic detection of
  * irreversibility (no LLM); the judgment ("is the load-bearing reason supported?") is
  * delegated to the main agent via additionalContext.

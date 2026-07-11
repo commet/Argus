@@ -99,10 +99,7 @@ function structured(res) {
 }
 
 async function main() {
-  if (!fs.existsSync(DIST)) {
-    process.stdout.write('dist not found — building…\n');
-    execSync('npm run build', { cwd: ROOT, stdio: 'inherit' });
-  }
+  execSync('npm run build', { cwd: ROOT, stdio: 'ignore' }); // always rebuild — a stale dist silently tests old surfaces
 
   // One base dir for the server env, but each journey gets its OWN ledger dir —
   // a shared dir let J1's English decisions pollute J3's Korean-journey locale

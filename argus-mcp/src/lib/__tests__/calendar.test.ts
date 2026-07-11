@@ -53,6 +53,9 @@ describe('return calendar export', () => {
 
     expect(data.calendar_path).toBe(calendarPath(dir, 'd1'));
     expect(fs.existsSync(data.calendar_path!)).toBe(true);
-    expect(String(b.surface)).toContain(data.calendar_path);
+    // The absolute path lives in data, not the one-line surface (copy find).
+    // The surface only mentions that a calendar file exists.
+    expect(String(b.surface)).not.toContain(data.calendar_path!);
+    expect(String(b.surface)).toContain('.ics');
   });
 });

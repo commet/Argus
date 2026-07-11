@@ -15,11 +15,14 @@ const TODAY = '2026-07-02';
 const LATER = '2026-08-16';
 
 /** Seal a decision with one monitored (external + load_bearing) premise so it
- *  becomes due for a reality re-check. */
+ *  becomes due for a reality re-check. Sealed a month before TODAY so the
+ *  first recheck cadence (14d) has elapsed by TODAY — the first nudge now waits
+ *  one cadence from the add date (founder decision 2026-07-10). */
+const ADDED = '2026-06-01';
 async function sealedWithMonitored(dir: string, id = 'd1', checkBy = '2026-08-01'): Promise<void> {
-  await seal.handler({ argus_dir: dir, id, predicate: 'we ship under five minutes downtime', check_by: checkBy, predicate_owner: 'user', today_override: TODAY });
+  await seal.handler({ argus_dir: dir, id, predicate: 'we ship under five minutes downtime', check_by: checkBy, predicate_owner: 'user', today_override: ADDED });
   await premises.handler({
-    argus_dir: dir, id, op: 'add', today_override: TODAY,
+    argus_dir: dir, id, op: 'add', today_override: ADDED,
     premises: [{ text: 'base rate stays at 3.5 percent', kind: 'premise', external: true, load_bearing: true, source: 'ai', ai_original: 'base rate stays at 3.5 percent' }],
   });
 }

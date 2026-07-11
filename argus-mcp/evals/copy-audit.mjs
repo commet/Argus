@@ -25,7 +25,7 @@ import { execSync } from 'node:child_process';
 import { SURFACES } from '../dist/lib/surfaces.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-if (!fs.existsSync(path.join(ROOT, 'dist', 'lib', 'surfaces.js'))) execSync('npm run build', { cwd: ROOT, stdio: 'inherit' });
+execSync('npm run build', { cwd: ROOT, stdio: 'ignore' }); // always rebuild — a stale dist audits old surfaces
 
 const EMDASH = /—/g;
 // casual declarative -요 endings; the house register is formal 합쇼체. Formal

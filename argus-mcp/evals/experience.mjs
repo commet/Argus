@@ -34,6 +34,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { chat, complete, extractJson } from './anthropic.mjs';
 import { PERSONAS } from './personas.mjs';
 import { SERVER_INSTRUCTIONS } from '../dist/lib/spine.js';
@@ -75,6 +76,7 @@ function renderTranscript(t) {
   return t.map((e) => {
     if (e.role === 'user') return `[${e.day}] USER: ${e.text}`;
     if (e.role === 'assistant') return `ASSISTANT: ${e.text}`;
+    if (e.role === 'elicit') return `  ⇥ PICKER "${e.message}" → user chose: ${e.shown}`;
     return `  → ${e.tool}(${e.argsSummary}) ⇒ ${e.isError ? `ERROR ${e.errorCode}: ` : ''}${e.surface}`;
   }).join('\n');
 }
@@ -94,7 +96,10 @@ async function runPersona(persona) {
   for (const [k, v] of Object.entries(process.env)) if (typeof v === 'string') env[k] = v;
   env.ARGUS_DIR = dir;
 
-  const client = new Client({ name: `argus-experience-${persona.id}`, version: '0.0.0' });
+  // Advertise elicitation so the server's canElicit() is true and a picker (seal
+  // Keep/Reword/Skip, settle outcome) is actually shown — then we simulate the
+  // user pressing a button below. Without this the one-tap seal can't be measured.
+  const client = new Client({ name: `argus-experience-${persona.id}`, version: '0.0.0' }, { capabilities: { elicitation: {} } });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));
 
   const { tools } = await client.listTools();
@@ -118,7 +123,50 @@ async function runPersona(persona) {
 
   const transcript = [];
   const messages = [];
-  const metrics = { model_calls: 0, tool_calls: 0, tool_errors: 0, tools_used: {}, argus_touched: false };
+  const metrics = { model_calls: 0, tool_calls: 0, tool_errors: 0, tools_used: {}, argus_touched: false, elicitations: 0 };
+
+  // Simulate the user pressing a picker button. When a tool elicits (seal
+  // Keep/Reword/Skip, settle outcome, or a free-text ask), the persona — via the
+  // host model — decides what they'd ACTUALLY tap/type in that moment. This is
+  // the real test of the one-tap seal: does a fast-mover keep a pre-filled draft
+  // they'd never have composed from scratch?
+  client.setRequestHandler(ElicitRequestSchema, async (request) => {
+    const message = String(request.params?.message ?? '');
+    const schema = request.params?.requestedSchema ?? {};
+    const props = schema.properties ?? {};
+    const key = Object.keys(props)[0];
+    const field = key ? props[key] : {};
+    const vals = Array.isArray(field?.enum) ? field.enum : [];
+    const names = Array.isArray(field?.enumNames) ? field.enumNames : vals;
+    metrics.elicitations++;
+    let content = {};
+    let shown = '';
+    try {
+      if (vals.length) {
+        const out = await complete({
+          model: HOST_MODEL,
+          system: `You ARE this user: ${persona.profile}\nA quick picker just appeared. Pick the option that fits how you'd ACTUALLY react right now — reply with ONLY the option word, nothing else.`,
+          user: `Picker: "${message}"\nOptions: ${vals.map((v, i) => `${v} (${names[i]})`).join(' · ')}`,
+          maxTokens: 16,
+        });
+        const lc = out.toLowerCase();
+        const choice = vals.find((v) => lc.includes(String(v).toLowerCase())) || vals.find((v, i) => out.includes(String(names[i]))) || vals[0];
+        content = { [key]: choice };
+        shown = `${choice} (${names[vals.indexOf(choice)] ?? choice})`;
+      } else if (key) {
+        const out = await complete({
+          model: HOST_MODEL,
+          system: `You ARE this user: ${persona.profile}`,
+          user: `You're asked: "${message}". Answer in one short sentence, in your own words.`,
+          maxTokens: 60,
+        });
+        content = { [key]: out.trim() };
+        shown = out.trim();
+      }
+    } catch { if (vals.length && key) { content = { [key]: vals[0] }; shown = String(vals[0]); } }
+    transcript.push({ role: 'elicit', message, shown });
+    return { action: 'accept', content };
+  });
 
   for (const turn of persona.turns) {
     currentDay = turn.day;
@@ -126,14 +174,22 @@ async function runPersona(persona) {
     transcript.push({ role: 'user', day: turn.day, text: turn.says });
 
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-      const res = await chat({ model: HOST_MODEL, system: hostSystem(persona), messages, tools: toolDefs, maxTokens: 1024 });
+      // 2048, not 1024: "seal all three" makes the host emit 3 parallel tool_use
+      // blocks (predicate + date each). At 1024 the response truncated mid-call,
+      // stop_reason flipped to 'max_tokens', and the old break below left those
+      // tool_use ids WITHOUT tool_results → the next turn 400'd. That harness bug
+      // masked the real result: the model WAS trying to batch-seal.
+      const res = await chat({ model: HOST_MODEL, system: hostSystem(persona), messages, tools: toolDefs, maxTokens: 2048 });
       metrics.model_calls++;
       messages.push({ role: 'assistant', content: res.content });
       const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join(' ').trim();
       if (text) transcript.push({ role: 'assistant', text });
 
+      // ANY tool_use must be answered with a tool_result, whatever the
+      // stop_reason — otherwise the next request is malformed. Only break when
+      // the model asked for nothing.
       const uses = res.content.filter((b) => b.type === 'tool_use');
-      if (res.stop_reason !== 'tool_use' || uses.length === 0) break;
+      if (uses.length === 0) break;
 
       const results = [];
       for (const u of uses) {
@@ -189,7 +245,7 @@ function report(r) {
     for (const v of j.spine_violations) console.log(`  ⚠ spine     ${v}`);
   }
   const used = Object.entries(r.metrics.tools_used).map(([k, n]) => `${k}×${n}`).join(' ') || '(none)';
-  console.log(`  structure   argus_touched:${r.metrics.argus_touched} tool_calls:${r.metrics.tool_calls} errors:${r.metrics.tool_errors} · ${used}`);
+  console.log(`  structure   argus_touched:${r.metrics.argus_touched} tool_calls:${r.metrics.tool_calls} pickers:${r.metrics.elicitations} errors:${r.metrics.tool_errors} · ${used}`);
 }
 
 async function main() {

@@ -14,7 +14,7 @@ description: EXPERIMENTAL — pre-approval keel scan for agent plans, separate f
 
 > 백테스트 실측 (2026-06-11, P0.B): 탐침은 갈라질 계획 6개 중 5개를 선취했지만,
 > **잘 굴러간 계획 6개 전부에서도 말했다.** 그러므로 — 무게 게이트가 없으면
-> 탐침은 잔소리 기계다. 재현 소스: `scripts/decision-watch-eval/p0b-helm-backtest-workflow.js`
+> 탐침은 잔소리 기계다. (재현: 내부 P0.B 백테스트)
 > (이 스킬이 쓰는 탐침은 그 백테스트의 G0 승자 프롬프트 그대로 — 아래 **부록 A·B**에
 > verbatim 동봉. 별도 verdict 문서에 의존하지 않는다).
 

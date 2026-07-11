@@ -8,7 +8,7 @@ Supabase가 보내는 **회원가입 확인 메일**을 브랜드 있게 바꾸�
 
 이 메일은 **앱 코드가 아니라 Supabase 설정**에서 보내므로, 대시보드에서 한 번 붙여넣으면 됩니다.
 
-1. **Supabase 대시보드** 접속 → 프로젝트 **overture-db** 선택.
+1. **Supabase 대시보드** 접속 → 본인 프로젝트 선택.
 2. 왼쪽 메뉴 **Authentication** → **Emails**(또는 **Email Templates**).
 3. **Confirm signup** 탭 선택.
 4. **Subject(제목)** 를 이렇게 바꾸기:

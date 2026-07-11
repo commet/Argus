@@ -1,8 +1,8 @@
 /**
  * Probe engine — measurement levers C (분기 탐침) and D (하중 탐침) (W2.1).
  *
- * Prompts are ported VERBATIM from the G0-passing backtest
- * (scripts/decision-watch-eval/lever-backtest-workflow.js) — 재발명 금지.
+ * Prompts are ported VERBATIM from the G0-passing internal lever backtest
+ * — 재발명 금지.
  * G0 verdict (.argus/eval/G0-verdict.md) sets the weights:
  *
  *   D runAblationProbe   — PRIMARY measurement lever (hit 78.6%, specific 88.9%).

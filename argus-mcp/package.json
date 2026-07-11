@@ -34,7 +34,8 @@
     "eval:review": "node evals/run-review.mjs",
     "prepack": "npm run build",
     "prepublishOnly": "npm run typecheck && npm test && npm audit --omit=dev",
-    "eval:premises": "node evals/run-premises.mjs"
+    "eval:premises": "node evals/run-premises.mjs",
+    "arch": "npm run build && node evals/architecture-review.mjs"
   },
   "keywords": [
     "mcp",

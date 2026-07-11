@@ -125,12 +125,18 @@ describe('explicit skip trace (spine: escape kept, omission honest)', () => {
     const s = body(await seal.handler({ argus_dir: dir, id: 'bare', predicate: 'Signups exceed 100 in a month', check_by: FUTURE, predicate_owner: 'user' }));
     expect(s['ok']).toBe(true);
     expect((s['data'] as Record<string, unknown>)['skipped']).toContain('unverified_assumption');
-    expect(String(s['surface'])).toContain('skipped');
+    // the seal offers to name the assumption as an INVITATION, not a "you
+    // skipped it" deficiency report (experience loop, amender)
+    expect(String(s['surface'])).toContain('assumption');
+    expect(String(s['surface'])).not.toContain('without naming');
 
     const settled = body(await settle.handler({ argus_dir: dir, id: 'bare', outcome: 'held', outcome_source: 'user_stated', what_happened: 'got 140' }));
     const receipt = (settled['data'] as Record<string, unknown>)['receipt'] as Record<string, unknown>;
     expect(receipt['unverified_assumption']).toBe('(skipped)');
-    expect(String((settled['data'] as Record<string, unknown>)['receipt_text'])).toContain('you skipped naming this');
+    // skipped fields render neutrally now (no "you skipped" completeness nag)
+    const rt = String((settled['data'] as Record<string, unknown>)['receipt_text']);
+    expect(rt).toContain('(none)');
+    expect(rt).not.toContain('you skipped');
   });
 });
 

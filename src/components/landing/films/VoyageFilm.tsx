@@ -9,7 +9,7 @@
  *
  * Captions are HTML overlays synced to the video time (i18n, restyleable, not
  * burned in). Each chapter pairs the MYTH (what the scene means) with what
- * ARGUS actually does — grounded in docs/MYTH-SIRENS-design-grounding:
+ * ARGUS actually does — grounded in internal design notes:
  *   묶기  seal/decision_contract — write your own call before you open the AI
  *   듣기  recast/persona/refinement — hear it, but the premises you waved past get noted beside you
  *   닿기  watch — reality is the judge; if a premise shifts, Argus tells you
@@ -55,7 +55,7 @@ function Clause({ text, ink, nib, halo, dur, delay }: { text: string; ink: strin
         }}
         initial={{ maskPosition: '112% 0%' }}
         animate={{ maskPosition: '0% 0%' }}
-        transition={{ duration: dur, delay, ease: [0.33, 0, 0.3, 1] }}
+        transition={{ duration: dur, delay, ease: [0.22, 0.61, 0.36, 1] }}
       >
         {text}
       </motion.span>
@@ -64,7 +64,7 @@ function Clause({ text, ink, nib, halo, dur, delay }: { text: string; ink: strin
         style={{ position: 'absolute', top: '8%', bottom: '8%', width: 1.5, borderRadius: 1, background: nib, boxShadow: `0 0 5px 0.5px color-mix(in srgb, ${nib} 55%, transparent)` }}
         initial={{ left: '-1%', opacity: 0 }}
         animate={{ left: '101%', opacity: [0, 1, 1, 0] }}
-        transition={{ duration: dur, delay, ease: [0.33, 0, 0.3, 1], opacity: { times: [0, 0.08, 0.92, 1] } }}
+        transition={{ duration: dur, delay, ease: [0.22, 0.61, 0.36, 1], opacity: { times: [0, 0.08, 0.92, 1] } }}
       />
     </span>
   );
@@ -378,7 +378,7 @@ function VoyageFilmStage({ onEnded }: { onEnded?: () => void }) {
             {introMode ? (
               <motion.div key="intro" style={{ textAlign: 'left' }} initial={rm ? { opacity: 1 } : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }}>
                 <span className="bp-mono" style={{ display: 'block', marginBottom: 9, fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)' }}>{L(INTRO.eyebrowKo, INTRO.eyebrowEn)}</span>
-                <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 4vw, 17px)', lineHeight: 1.5, letterSpacing: '-0.006em', textWrap: 'pretty' }}>
+                <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(15.5px, 4.4vw, 19px)', lineHeight: 1.5, letterSpacing: '-0.006em', textWrap: 'pretty' }}>
                   <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
                 </p>
               </motion.div>
@@ -487,7 +487,7 @@ function VoyageFilmStage({ onEnded }: { onEnded?: () => void }) {
               <span className="bp-mono" style={{ marginBottom: 11, fontSize: 'clamp(10px, 1.05vw, 11.5px)', letterSpacing: locale === 'ko' ? '0.13em' : '0.26em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--bp-ink)', textShadow: '0 0 2px var(--bp-paper), 0 0 6px var(--bp-paper), 0 0 11px var(--bp-paper)' }}>
                 {L(INTRO.eyebrowKo, INTRO.eyebrowEn)}
               </span>
-              <p className={`${locale === 'ko' ? 'break-keep' : ''}`} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(14.5px, 1.75vw, 19px)', lineHeight: 1.5, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}>
+              <p className={`${locale === 'ko' ? 'break-keep' : ''}`} style={{ margin: 0, fontWeight: 600, color: 'var(--bp-ink)', fontSize: 'clamp(16px, 2.15vw, 23px)', lineHeight: 1.5, letterSpacing: '-0.006em', maxWidth: 600, textWrap: 'pretty', textShadow: '0 0 1px var(--bp-paper), 0 0 4px var(--bp-paper), 0 0 10px var(--bp-paper), 0 0 17px var(--bp-paper)' }}>
                 <Lines text={L(INTRO.lineKo, INTRO.lineEn)} />
               </p>
             </motion.div>

@@ -170,7 +170,8 @@ describe('wake_text spine (renderWake)', () => {
     expect(ko).toContain('← argus_settle');
     expect(ko).toContain('… (+1)'); // 6 overdue, 5 shown
     expect(ko).toContain('결과를 기다리는 중 (2)');
-    expect(ko).toContain('11일 경과'); // 07-10 → 07-21
+    // overdue shows the check-by date, no running day-count (no shame counter)
+    expect(ko).not.toContain('경과');
     expect(ko).toContain('답 08-01');
     expect(ko).toContain('결정 12 · 봉인 중 8 · 정산 3');
     expect(ko).toContain('기록 시작 2026-07-03 부터');

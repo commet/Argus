@@ -1,6 +1,6 @@
 /**
  * Current Bearing — the compressed, one-screen orientation that
- * ARGUS-FINAL-DIRECTION names as the product's visible center (§"The Surface
+ * the product direction names as the product's visible center (§"The Surface
  * Principle"). The user should see a Current Bearing — current course, why,
  * fog/reef, road not taken, next helm, contract seed — NOT a long report they
  * have to summarize again.
@@ -228,7 +228,7 @@ export function deriveCurrentBearing(s: BearingInput): CurrentBearing | null {
 
 /**
  * The bearing as a paste-anywhere text block — the thing the user KEEPS.
- * ARGUS-FINAL-DIRECTION sells one compressed screen; without a copyable form
+ * The product direction sells one compressed screen; without a copyable form
  * the card was view-only while the long document had a whole ShareBar.
  * Plain markdown, same field order as the card, omits empty rows (P3).
  */

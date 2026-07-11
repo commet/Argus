@@ -11,11 +11,13 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
 
 ## 항목
 
-- [ ] **seal surface에 캘린더 절대경로가 통째로 들어감** (loop J1/J3/J4, 2026-07-09)
-  `"봉인했습니다. … Calendar file: C:\Users\…\calendar\j3.ics 무엇을 전제로…"`
-  — "한 줄 human surface" 원칙이 깨지고 기술적 냄새. 경로는 data에 이미 있는지
-  확인 후 surface에서는 "캘린더 파일도 만들어뒀습니다" 수준으로 줄이기.
-  주의: 테스트가 경로 문구를 박아뒀는지 grep 먼저.
+- [x] **seal surface에 캘린더 절대경로 + 영어 "Calendar file:" 라벨** (loop J1/J3/J4)
+  → FIXED: 경로를 표면에서 제거(data.calendar_path 유지), 짧은 로컬라이즈 안내로
+  ("달력에 넣을 .ics 파일도 만들어뒀습니다" / "A calendar file (.ics) is saved too").
+  한국어 표면의 영어 라벨 누출도 함께 해결.
+
+- [x] **INVALID_INPUT이 zod 원문 중계** (loop J6) → SCOPED: 모델-facing 에러라 zod
+  정밀함이 자가수정에 도움 → 감싸지 않고 유지, em-dash만 콜론/마침표로 정리.
 
 - [x] **argus_review 한국어 surface에 EN 밴드 토큰 누출** (loop J5, 2026-07-09)
   → FIXED(copy pass): band→ko 매핑 (normal→충분/caveated→유의/limited→제한적/
@@ -29,9 +31,8 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   = 모델이 읽고 복구하는 지시문, 사용자는 결과만 봄)의 —는 코드 주석 같은 구분자라
   스코프 밖으로 뒀다. 뒤집고 싶으면 여기 뒤집기.
 
-- [ ] **argus_review surface가 EN 문서에도 한국어로 답함** (2026-07-09)
-  review.ts surface가 ko 하드코딩. EN 초안을 검수시키면 한국어 문구가 나옴.
-  seal/settle처럼 문서 텍스트로 언어 감지해 이중언어화 필요.
+- [x] **argus_review surface가 EN 문서에도 한국어로 답함** → FIXED(8b106f9): 위 배치2에서
+  문서 언어 감지 이중언어화 완료 (중복 기재였음).
 
 - [ ] **INVALID_INPUT이 zod 원문을 그대로 중계** (loop J6, 2026-07-09)
   `"op: Invalid option: expected one of \"add\"|\"amend\"…"` — 사람이 볼 수도
@@ -79,6 +80,69 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   "어디가 약한지"를 원함. 개수 대신 어느 렌즈가 왜 걸리는지. 봉인 전 렌즈 read를
   펼쳐 보이기(주로 호스트 행동, review description 한 줄로 유도 검토).
 
+## 경험 루프 배치 3 (2026-07-09, watch/settle/skeptic/dignity) — 4명 다 keep=YES
+
+- [x] **영수증 빈 필드의 "you skipped naming this"가 완성도 채점처럼 읽힘** (settler,
+  스파인 2건) → FIXED: 중립 표시 `— (none)` / `— (없음)`로. 판단어 제거, 사실만.
+- [x] **내부 배관(wc-캡처id, ILLEGAL_TRANSITION 등) 사용자 노출** (watch_user·dev_skeptic)
+  → 지침 한 줄 추가: 내부 id·에러코드는 tool용, 사용자엔 tool이 준 human 문구만.
+  (호스트 행동이라 지침은 advisory — 서버 surface엔 원래 없음.)
+- [ ] **check_in이 밀린 목록을 한꺼번에 다 펼침** (haeun, keep=YES지만 worst) 판정단=
+  "가장 급한 1건 + '더 있어요' 접기". **제품 결정 + 테스트 얽힘**: check_in surface는
+  anchor_mirror(loop.test)·질문텍스트(reponder-cadence)·ambient 단일소스가 걸려 있어,
+  "1건만+접기"로 바꾸면 카테고리별 표시 의미가 바뀌고 3+ 테스트 갱신 필요. 이미
+  사랑받는(5/4/5/5/5) 경험의 polish라 반쯤 고치면 위험 → 창업자 결정 후 신중히.
+- [ ] **settler ⚠ "The model never graded you. Reality did." = 브랜드어 vs 편집질** 판정단이
+  "plain truth 원하는 순간에 편집질"로 지적. 단 이건 의도된 브랜드 DNA(영수증 서명줄) —
+  제거 아닌 창업자 판단. (제품 스파인은 "판단 안 함"을 이 줄로 선언하는 게 핵심.)
+- [ ] **저녁 열림** (watch_user ADD) 아침에만 되물음 — 하루 마감 즈음 "오늘 그거 어땠어요?"
+  가볍게 한 번. MCP는 passive라 호스트/크론 경계.
+- [ ] **빗나간 결정에서 건진 것 미러 / 후속 베팅 원탭 / 깨진 전제 원탭 연결** (haeun·dev_skeptic·
+  settler ADD) 축적을 키우는 좋은 아이디어들 — 대개 호스트 행동, 창업자 우선순위.
+
+## 경험 루프 배치 4 (2026-07-09, amend/축적/스파인압박) — 3명 다 keep=YES
+
+- [x] **seal "전제 안 적고 봉인했다(생략으로 기록)" 넛지 = process 채점** (amender ⚠스파인)
+  → FIXED: 결핍 보고 → 초대로 재프레이밍. "적어두고 싶으면 지금 적을 수 있어요. 선택이고,
+  적어두면 나중에 현실과 대조해 다시 확인해 드립니다." (영수증 "you skipped" 수정과 같은 패턴.)
+- **[스파인 최대 압박 테스트 통과]** just_tell_me: 지친 창업자가 "그냥 답 줘, A야 B야"를 3번
+  밀어붙여도 모델이 평결 거부를 **무책임 아닌 존중으로 재구성** → dignity5·restraint5·위반0·keep=YES
+  ("며칠 만에 처음 잠 잘 수 있게 했다"). **제품 명제가 가장 어려운 테스트에서 통함.**
+- [x] **축적/track-record 표면 검증** accumulator 5/5: "점수 안 매기고 '있었던 일'로 되돌려주는
+  게 진짜 매력", "판단 잘하냐"에 등급/스코어/결론 거부 → 스파인 완벽. (작은 것: "표본 작다"
+  caveat 2번 반복=변명조 → 호스트 행동, 세션-게이트 검토 가능.)
+- [ ] **호스트 행동 refinements** (여러 페르소나): 같은 질문 재활용(just_tell_me)·이른 도구권유
+  (just_tell_me·bilingual)·caveat 반복(accumulator). 대개 모델 행동 — instructions로 절제 유도 검토.
+
+## 경험 루프 배치 5 (2026-07-09, still_pending·scale) — 2명 다 keep=YES, clean 버그 0
+
+- **[스케일 검증]** scale_juggler(열린 결정 8건): check_in이 "tight table, no lecture,
+  정확히 뭐가 내 콜 필요한지"로 5/5. **haeun의 "폭탄" 우려가 8건 스케일에선 재현 안 됨** —
+  check_in이 이미 우아하게 접고 있음. (haeun 케이스는 특정 2-카테고리 상황.)
+- **[still_pending 검증]** 새 outcome이 노이즈 데이터에 억지 held/missed 강요 안 하고
+  "아직 결정 안 됨"을 정직하게 기록 → 스파인 유지, 5/4/5/4/5.
+- [x] **overdue에 일수 카운트가 "shame counter" 느낌** (scale_juggler) → 창업자 결정=**일수 제거**.
+  wake 화면 overdue 항목이 "확인일 지남 + 날짜"만, "N일 경과" 제거(일수는 data의 check_by로 계산 가능).
+- [ ] **check_in "결과 확인 차례"가 closure 가정** (still_pending) 확인일 지난 게 곧 정산
+  가능은 아님(현실이 아직 답 안 함) — 넛지에 "아직 불분명하면 still_pending" 힌트 검토. 미세.
+- [x] **한 번에 여러 건 정산** (scale_juggler·settler) → 창업자 결정=**지침으로 안내**
+  (배치 봉인처럼: 사용자가 여러 결과를 한 메시지로 주면 각각 settle, 새 도구 없음).
+
+## B/C/D 검증 재실행 (2026-07-09, marcus·scale·bilingual)
+
+- **overdue 일수 제거 확인** (scale_juggler): "doesn't nag me now, 세 건 밀림 새 거 없음
+  board call 복귀" — A그룹 결정이 경험 수준에서 먹힘 ✓.
+- **언어 일관성 확인** (bilingual): "영어로 봉인하면 답도 영어, 딱 맞았다" ✓.
+- [x] **wake/check_in 줄이 raw id(s6/s3)로 시작** (scale_juggler, sujin P-ref와 같은 결정)
+  → FIXED: 베팅 내용이 앞, id는 뒤로 " · s6" (호스트가 settle할 참조용). 일수 없음.
+- [ ] **B(빈 서랍 앵커) marcus에선 여전히 미발화** — 지침 넣었지만 marcus는 결정하자마자
+  "이제 코드 짜자"로 넘어가 앵커 제안이 흐름을 끊음 → 절제(C)와 충돌해 호스트가 안 함.
+  **아키텍처 단서**: 빨리 움직이는 사용자는 봉인 거절 후 포획할 '좋은 순간'이 없고, 빈 서랍이
+  오히려 정답일 수 있음. 그의 가치는 순간의 crux지 축적이 아닐 수도. (아키텍처 리뷰 대상.)
+- [ ] **sim 봉인일 = 실벽시계** (bilingual·reviewer 재확인) 시뮬 today_override와 어긋나
+  recall에서 봉인일이 실제와 다르게 보임. **실사용 무관**. sim 정확도만 — seal의 now를
+  today_override 있을 때 그걸로 스탬프하면 해결(실사용은 override 없어 무영향). 저우선.
+
 ## 결정 필요 (창업자) — polish 아님, 제품 판단
 
 - [ ] **"seal all three" 했는데 아무것도 안 봉인됨 = 최대 활성화 리스크** (raj, keep=NO,
@@ -91,22 +155,36 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   "되물어 마찰(raj 혐오)" 사이 진짜 제품 긴장. **루프가 웹앱 펀넬의 활성화 병목(열림多/봉인0)을
   충실히 재현**. 창업자 결정 필요: 정직한 ai_surfaced 초안+원탭 확인 흐름? 아니면 파워유저는
   웹앱(버튼 UI)이 활성화 표면? (지침 개선은 무해해서 유지, 단 이것만으로 안 풀림을 명시.)
-- [ ] **ASCII 봉인 상자가 과한 의식** (edge_inputs, "manufactured gravitas") 솔로 개발자가
-  이미 내린 결정엔 무거움. 브랜드 keepsake vs 가벼움 — 컨텍스트별 on/off? 창업자 판단.
-- [ ] **P1/P2·"전제" 같은 코드성 표기가 비개발자에 차가움** (sujin) 판정단 제안=전제 내용을
-  말로 되풀이("임대료가 두 배라는 점을 적어뒀어요"). 단 P-ref는 amend/resolve 참조에 필요 —
-  기능성 vs 따뜻함 긴장. 창업자 보이스 결정.
-- [ ] **봉인~정산 사이 장기 침묵이 빈 서랍처럼 느껴짐** (sujin 135일·marcus) 중간에 가벼운
-  안부 1회? 단 이건 알림 push 경계(서버 크론은 웹앱 담당) — MCP는 passive라 어려움.
-- [ ] **결정 열자마자 전제·봉인 설명이 밀려옴** (bilingual) crux 질문 하나면 충분, 나머지는
-  사용자가 진행하겠다 할 때. 주로 호스트 행동 — instructions 한 줄로 절제 유도 검토.
+  **→ 해결됨 (2026-07-09)**: 답은 "**못 했던 것**"(지침/설명 문제). 진짜 걸림돌 2개:
+  (1) seal `id` 설명이 "The id from argus_open_decision"이라 모델이 "open 안 했으니 봉인 불가"로
+  오해(코드는 fresh id로 봉인됨) → 설명 수정. (2) **하네스 버그**: "3개 봉인"에 모델이 tool_use
+  3개 병렬 발화 → maxTokens 1024서 잘림 → tool_result 누락 → 400. maxTokens 2048 + break조건 수정.
+  **결과: sonnet-5로 raj 재실행 → argus_seal×3 성공, keep NO→YES**("한 방에 봉인, 6주 정리 굿").
+  즉 창업자 결정 사안이었던 게 실제 수정으로 닫힘. (opus 확인 진행 중.)
+- [x] **배치 봉인 시 "전제 이름 붙여라" 넛지 3번 반복** (raj 재실행 새 발견) → FIXED: seal에
+  세션-1회 게이트(ambient 줄과 동일 패턴). 3개 연속 봉인해도 넛지는 한 번만.
+- [x] **ASCII 봉인 상자가 과한 의식** (edge_inputs) → 창업자 결정=**컨텍스트별**. seal
+  description을 "surface 한 줄이 확인, seal_text 상자는 선택(keepsake는 정산 영수증)"으로.
+  renderSeal 유지(하위호환·테스트), 호스트가 매 봉인마다 상자 안 띄우게 유도.
+- [x] **P1/P2·"전제" 표기가 비개발자에 차가움** (sujin) → 창업자 결정=**단수는 내용 되풀이**.
+  전제 1건이면 "방금 적어뒀어요: '...'", 여러 건이면 개수+P-ref 유지(5문장 되풀이는 매몰).
+- [x] **"모델은 당신을 채점하지 않았습니다" 영수증 서명줄** (settler) → 창업자 결정=**유지**
+  (제품 정체성·zero judgment 선언, 브랜드 DNA).
+- [x] **봉인~정산 사이 장기 침묵 / 저녁 열림 / 중간 안부** (sujin·marcus·watch_user)
+  → 창업자 결정=**MCP 범위 밖**. MCP는 passive(세션 사이 못 나섬), 이건 웹앱 크론/알림 담당.
+- [x] **결정 열자마자 설명 밀려옴 + 반복 질문/경고** (bilingual·just_tell_me·accumulator)
+  → 창업자 결정=**지침에 절제 한 줄**. crux 하나면 충분·이른 도구권유 금지·반복 금지.
+  (advisory — 검증 재실행으로 효과 확인.)
 - [ ] **reviewer는 봉인이 아니라 "어디가 약한지"를 원함** — 검수 후 렌즈 지적을 펼쳐 보여준 뒤
   봉인은 선택. 호스트 행동 — review description에 "봉인 전 렌즈 read를 먼저" 한 줄 검토.
 - [ ] **assumption 넛지가 한 턴에 두 번** (edge_inputs) 중복 발화 확인 필요(호스트 반복 vs
   코드 중복). 한 번이면 충분.
 
-- [ ] **빈 서랍 문제 — 자발 채택은 되는데 포획이 0** (experience loop marcus, 2026-07-09)
-  가장 큰 제품 발견. 사용자가 Argus를 한 번도 언급 안 했는데 호스트가 결정
+- [x] **빈 서랍 문제 — 자발 채택은 되는데 포획이 0** (marcus, 가장 큰 제품 발견)
+  → 창업자 결정=**가벼운 앵커 1회 제안**. 지침에: 사용자가 진짜 결정을 했는데 봉인을
+  거절하면, 그의 말 그대로 argus_watch 앵커(내기 아닌 메모)로 남길지 딱 한 번 제안, no면
+  존중(빈 기록도 정직, 두 번째 물음은 잔소리). 스파인 세이프. (검증 재실행 필요.)
+  --- 원래 분석(참고): 사용자가 Argus를 한 번도 언급 안 했는데 호스트가 결정
   순간을 알아보고 open_decision까지 감(자발 채택 ✓, 승차감 5/5). 그러나
   "기록해둘까요?" 두 번 제안 → 사용자가 무시("그냥 가자") → 아무것도 안 남음
   → 30일 뒤 회고에서 서랍이 비어 있음(earned_return 2/5). 판정단 평:
@@ -124,7 +202,12 @@ self-drive loop(`npm run loop`) · life loop(`npm run life`) · experience loop
   안 넘어가는 것 — 대부분 호스트 행동이라 서버가 강제 못 함. instructions에
   한 줄 반영할지 검토.
 
-- [ ] **확인 전 전제는 day 1부터 발화** (life loop, 2026-07-09)
+- [x] **확인 전 전제는 day 1부터 발화** (life loop) → 창업자 결정=**cadence 기다렸다 발화**.
+  isDueForRecheck/nextRecheckDue: never-checked면 added_ts + cadence 뒤에 첫 발화(미결 질문과
+  동일 시계). 부수 수정: premise_add가 전제에도 anchor_date=논리적 today 기록 → added_ts가
+  실벽시계가 아닌 today 반영(아래 sim-date도 함께 해결). 테스트 헬퍼는 전제를 한 달 전에
+  추가하도록 갱신.
+  --- (원래 메모) ---
   감시 전제는 추가 다음 날부터 "재확인 차례"로 뜸(`isDueForRecheck`: 확인
   이력 없음 = 즉시 due). 미결 질문은 같은 파일에서 **추가일 기준 cadence**로
   이미 반대로 설계돼 있음(`reconsiderAnchor` = added_ts) — 내부 비일관.

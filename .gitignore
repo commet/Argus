@@ -52,8 +52,6 @@ next-env.d.ts
 
 # argus-watch + local working data: personal — never commit (repo is public)
 /.argus/
-/scripts/decision-watch-eval/fixtures/
-/scripts/decision-watch-eval/results/
 /scripts/validation-output/
 .ds-sync/
 ds-bundle/
@@ -79,3 +77,14 @@ argus-plugin-v2/evals/sweep-report.json
 
 # Design-sync experimentation scaffold (tool working dir)
 /.design-sync/
+
+# AI-dev exhaust & local Claude Code state — never commit (repo is public)
+/.claude/projects/
+/.claude/worktrees/
+/.claude/skills/*/_*        # one-off scratch fragments (e.g. _writer.js, _test_write.txt)
+
+# Borrowed/vendored non-Argus skill packs — not redistributed in this repo
+/.agents/
+
+# Internal design/strategy history — kept private, not in the public repo
+/docs/archive/

@@ -7,7 +7,7 @@
  *   2. concert-hall (app tokens): the working surfaces, whose posture is
  *      RESTRAINT (CLAUDE.md zero-judgment mirror clause).
  *
- * Agreed rule (UNIFIED-REMODEL-PLAN C2): the calm MATERIAL half of the
+ * Agreed rule (internal design notes C2): the calm MATERIAL half of the
  * blueprint language (paper / ink) may be shared into the app; the CEREMONY
  * half (gold leaf, seal-stamp) must never leak — a working surface that
  * borrows the landing's celebratory gold or the wax-seal gesture imports a

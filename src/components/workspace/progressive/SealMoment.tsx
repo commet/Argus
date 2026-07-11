@@ -9,7 +9,7 @@
  *
  *   "이 결정, {날짜}에 어떻게 됐는지 물어봐 드릴까요?"
  *
- * Constitution (EXECUTION-PLAN-v4.1 §0):
+ * Constitution (internal design notes §0):
  *  - "물어봐 줄까요?" 화법 only. The surface NEVER says 내기 / predicate / 반증.
  *    The internal schema (predicate / falsified_if / check_by) is untouched —
  *    only the words the user sees change.

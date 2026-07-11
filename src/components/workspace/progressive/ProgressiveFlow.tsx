@@ -1161,7 +1161,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     return d.toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' });
   })();
   // The Current Bearing — the compressed one-screen orientation that sits ABOVE
-  // the final document (ARGUS-FINAL-DIRECTION §"The Surface Principle"). Derived
+  // the final document (the product direction, §"The Surface Principle"). Derived
   // from the same session artifacts as the contract; null until there's a draft.
   const currentBearing = useMemo(
     () => deriveCurrentBearing({

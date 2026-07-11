@@ -1,122 +1,118 @@
 'use client';
 
 /**
- * UseCases — the "what people actually bring to Argus" band, placed right under
- * the hero. It mirrors the hero's TWO DOORS (WRITE a decision / UPLOAD a doc):
- * left column = a decision you type, right column = a document you upload.
+ * UseCases — "what people bring to Argus," built around the ONE loop the product
+ * runs: seal the premises a decision rests on → surface the ones you (or the AI)
+ * slid past → and when a sealed premise is shaken by reality, it comes BACK to
+ * you, at that moment, to re-decide. Two doors (write a decision / upload a
+ * document) run the exact same loop.
  *
- * Each door is NOT a generic "step 1 / step 2" list — it walks Argus's REAL
- * stages (the same names the product uses live: 진짜 질문 · AI가 채운 전제 ·
- * 갈리는 지점 · 봉인·정산 for a decision; 주장 지도 · 근거 약한 주장 · 책임질 판단
- * for a document) and, at each stage, shows the CONCRETE output that this
- * specific question produces. So a first-timer sees the product actually
- * running on one real case, not a marketing checklist. Both doors converge on
- * the same last stage — 봉인·정산 — which is the whole product thesis.
+ * The walkthrough is deliberately LOOP-shaped, not a linear checklist:
+ *   ① 봉인    — the tentative call + 2 concrete, checkable premises it stands on
+ *   ② 드러내기 — a premise the AI slipped in (or the weak-evidence flag), pulled out
+ *   … 넉 달 뒤 … — a time gap
+ *   ③ 돌아보기 — an ALERT: a premise broke in the real world; it loops back to the
+ *              exact premise (which flashes), so the return is something you SEE.
  *
- * Interaction echoes the hero split-field: the cursor leans the plate (hovered
- * door widens, the other softens), and the stages reveal one at a time on
- * scroll-in, so the run reads as a sequence.
+ * Motion is restrained (founder note: "not overdone"): the tracked-premise dots
+ * breathe while in view; on the alert the return-arc draws itself in once and the
+ * referenced premise flashes gold once. All of it is gated on scroll-in and off
+ * under prefers-reduced-motion.
  *
- * On-spine: no invented metrics, no logos, no verdict language. The decision
- * door hands the call back; the document door anchors flags to the source
- * without ruling. The one product-level honesty — no engine is perfectly
- * neutral — is disclosed once, quietly, at the foot.
+ * On-spine: premises are concrete/checkable (a hiring manager reassigned, a market
+ * index turning) — never a verdict about the user. The one product-level honesty
+ * (no engine is perfectly neutral) is disclosed once, quietly, at the foot.
  */
 
 import { useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useLocale } from '@/hooks/useLocale';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
 
-// A real Argus stage + the concrete thing it produces for THIS example.
-type Stage = { labelKo: string; labelEn: string; outKo: string; outEn: string; seal?: boolean };
+type Premise = { ko: string; en: string; tagKo: string; tagEn: string };
 type Door = {
   key: 'write' | 'file';
   doorKo: string; doorEn: string;
   seedKo: string; seedEn: string;
-  stages: Stage[];
+  sealLeadKo: string; sealLeadEn: string;
+  premises: Premise[];
+  surfaceKo: string; surfaceEn: string;
+  surfaceTagKo: string; surfaceTagEn: string;
+  laterKo: string; laterEn: string;
+  alertKo: string; alertEn: string;
 };
 
-// One universal held decision, walked through the real decision flow. The stage
-// labels are the product's own (StreamSnippet "진짜 질문", MirrorBeat "AI가 채운
-// 전제", LeadSynthesis "이 결정이 갈리는 지점", the seal→settle spine).
+// A decision you type. Two premises the call rests on — both concrete enough that
+// reality can later contradict them (the hiring manager, the project's funding),
+// which is what makes the return alert real rather than decorative.
 const WRITE_DOOR: Door = {
   key: 'write',
-  doorKo: '쓰기 · 결정을 적는다',
-  doorEn: 'WRITE · a decision',
-  seedKo: '받은 이직 제안, 받아들여도 될까?',
-  seedEn: 'Take the job offer I just got?',
-  stages: [
+  doorKo: '쓰기 · 결정을 적는다', doorEn: 'WRITE · a decision',
+  seedKo: '받은 이직 제안, 받아들일까?', seedEn: 'Take the job offer I just got?',
+  sealLeadKo: '“옮기는 쪽으로 기울어요.” 이 판단이 선 전제부터 잠가요.',
+  sealLeadEn: '“Leaning toward taking it.” First, seal the premises it stands on.',
+  premises: [
     {
-      labelKo: '진짜 질문',
-      labelEn: 'The real question',
-      outKo: '“이직할까?”가 아니라 — “지금 자리에서 3년 뒤 나는 어디에 있나?”가 진짜 질문이에요.',
-      outEn: 'Not “should I switch?” but “where am I in three years if I stay?” — that’s the real one.',
+      ko: '옮길 회사에서, 나를 뽑아준 그 팀장 밑에서 일한다',
+      en: 'At the new company, I’ll work under the manager who hired me',
+      tagKo: '오퍼의 진짜 이유 · 아직 미확인', tagEn: 'the real draw of the offer · unverified',
     },
     {
-      labelKo: 'AI가 채운 전제',
-      labelEn: 'A premise the AI filled in',
-      outKo: '“지금은 성장이 멈췄다”는 전제를 깔았네요. 당신은 말한 적 없어요 — 맞나요?',
-      outEn: 'It assumed “growth has stalled here.” You never said that — is it true?',
-    },
-    {
-      labelKo: '갈리는 지점',
-      labelEn: 'Where it turns',
-      outKo: '결국 “안정된 성장 vs 빠른 도약” 한 축에서 갈려요.',
-      outEn: 'In the end it turns on one axis: steady growth vs. a faster leap.',
-    },
-    {
-      labelKo: '봉인 · 정산',
-      labelEn: 'Seal, then settle',
-      outKo: '당신의 선택과 이유를 봉인해요. 3개월 뒤 — “그래서, 어떻게 됐어요?”',
-      outEn: 'Seal your call and your reasons. Three months on — “so, how did it go?”',
-      seal: true,
+      ko: '그 팀이 맡은 신규 프로젝트가 내년에도 이어진다',
+      en: 'That team’s new project keeps its funding into next year',
+      tagKo: '내가 가려는 이유 · 아직 미확인', tagEn: 'why I’d go · unverified',
     },
   ],
+  surfaceKo: '“지금 아니면 이런 기회는 다시 없다” — AI가 슬쩍 깔아둔 전제예요. 당신은 말한 적 없죠.',
+  surfaceEn: '“It’s now or never” — a premise the AI slipped in. You never said that.',
+  surfaceTagKo: 'AI가 깐 전제', surfaceTagEn: 'surfaced from the AI',
+  laterKo: '넉 달 뒤', laterEn: 'four months later',
+  alertKo: '옮긴 회사에서 당신을 뽑아준 그 팀장이, 조직 개편으로 다른 본부로 갔어요. 그 사람 밑에서 일한다는 전제 위에 내린 결정이었죠 — 다시 볼까요?',
+  alertEn: 'At your new company, the manager who hired you was just moved to another division. Your call rested on working under them — want to revisit it?',
 };
 
-// A written artifact, walked through the real review pipeline. Labels match the
-// product: claims + dependency map, weak-evidence flags anchored to the source
-// line, the judgment calls a human must own — converging on the same seal→settle.
+// A document you upload. Same loop: pull the premises the proposal stands on, seal
+// them to a watch-list, and ping you when one is contradicted by a real indicator.
 const FILE_DOOR: Door = {
   key: 'file',
-  doorKo: '올리기 · 문서를 올린다',
-  doorEn: 'UPLOAD · a document',
-  seedKo: '3분기 전략안.pdf',
-  seedEn: 'Q3-strategy-memo.pdf',
-  stages: [
+  doorKo: '올리기 · 문서를 올린다', doorEn: 'UPLOAD · a document',
+  seedKo: 'AI랑 정리한 신사업 제안서.pdf', seedEn: 'New-business proposal (drafted with AI).pdf',
+  sealLeadKo: '제안서가 선 전제부터 뽑아, 추적 목록에 잠가요.',
+  sealLeadEn: 'Pull the premises the proposal stands on, and seal them to a watch-list.',
+  premises: [
     {
-      labelKo: '주장 지도',
-      labelEn: 'Claim map',
-      outKo: '핵심 주장을 뽑아, 무엇이 무엇에 기대고 있는지 지도로 그려요.',
-      outEn: 'Pulls the core claims and maps what rests on what.',
+      ko: '이 시장은 앞으로도 매년 커진다',
+      en: 'This market keeps growing every year',
+      tagKo: '제안서의 대전제 · 근거 칸은 비어 있음', tagEn: 'the keystone claim · evidence box empty',
     },
     {
-      labelKo: '근거 약한 주장',
-      labelEn: 'Weak evidence',
-      outKo: '“시장은 계속 성장한다”(p.3) — 뒷받침이 비어 있어요.',
-      outEn: '“The market keeps growing” (p.3) — nothing behind it.',
-    },
-    {
-      labelKo: '책임질 판단',
-      labelEn: 'A human’s call',
-      outKo: '이 예산 배분은 AI가 아니라 사람이 정할 판단이에요. (p.7)',
-      outEn: 'This budget split is a human’s call, not the AI’s. (p.7)',
-    },
-    {
-      labelKo: '봉인 · 정산',
-      labelEn: 'Seal, then settle',
-      outKo: '고친 문서를 봉인하고, 정한 날 결과와 대조해요.',
-      outEn: 'Seal the fixed doc, and check it against reality on your date.',
-      seal: true,
+      ko: '핵심 고객사가 내년 예산을 늘린다',
+      en: 'The anchor client raises its budget next year',
+      tagKo: '매출 계획이 기댄 가정 · 아직 미확인', tagEn: 'the revenue plan leans on it · unverified',
     },
   ],
+  surfaceKo: '예산을 어디에 몰지는 AI가 아니라 당신이 책임질 판단이에요 — 원문 7쪽에 표시해 둬요.',
+  surfaceEn: 'Where to concentrate the budget is your call to own, not the AI’s — flagged on p.7.',
+  surfaceTagKo: '사람이 판단할 대목', surfaceTagEn: 'a human’s call',
+  laterKo: '두 달 뒤', laterEn: 'two months later',
+  alertKo: '그 시장의 올해 성장률이 처음으로 꺾였다는 업계 지표가 나왔어요. 이 숫자 위에 세운 계획이었죠 — 다시 볼까요?',
+  alertEn: 'An industry index just showed that market’s growth turning down for the first time. The plan was built on that number — want to revisit it?',
 };
+
+// Reveal timing (seconds) — one beat after another, with the alert's return
+// gestures (arc draw + premise flash) landing just after the alert card arrives.
+const T_SEAL = 0.14;
+const T_SURFACE = 0.52;
+const T_GAP = 0.68;
+const T_ALERT = 0.84;
+const T_RETURN = 1.08;
 
 export function UseCases() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const bk = locale === 'ko' ? 'break-keep' : '';
+  const rm = !!useReducedMotion();
 
   // Which door the cursor is leaning into. Drives the A/B widen (same grammar as
   // the hero split-field): the hovered door grows and stays crisp, the other
@@ -125,8 +121,124 @@ export function UseCases() {
   const writeGrow = hoverSide === 'file' ? 0.74 : hoverSide === 'write' ? 1.3 : 1;
   const fileGrow = hoverSide === 'file' ? 1.3 : hoverSide === 'write' ? 0.74 : 1;
 
-  // Reveal the stages one at a time once the band scrolls into view.
+  // Reveal once the band scrolls into view; drives every entrance + the loop motion.
   const { ref, isVisible } = useScrollReveal<HTMLDivElement>({ threshold: 0.18 });
+  const on = isVisible && !rm; // motion allowed
+
+  // A beat that rises into place on scroll-in.
+  const Beat = ({ delay, children }: { delay: number; children: React.ReactNode }) => (
+    <motion.div
+      className={bk}
+      style={{ position: 'relative', paddingBottom: 16 }}
+      initial={rm ? false : { opacity: 0, y: 7 }}
+      animate={rm ? { opacity: 1, y: 0 } : isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 7 }}
+      transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+
+  // Rail node — the beat marker. Alert node is the one gold moment (loop payoff).
+  const Node = ({ kind }: { kind: 'plain' | 'alert' }) => (
+    <span
+      aria-hidden="true"
+      style={{
+        position: 'absolute', left: -27, top: 2, width: 10, height: 10, borderRadius: '50%',
+        background: kind === 'alert' ? 'var(--bp-gold)' : 'var(--bp-paper)',
+        border: kind === 'alert' ? '1.5px solid var(--bp-gold)' : '1.5px solid var(--bp-ink-soft)',
+        boxShadow: kind === 'alert' ? '0 0 0 4px color-mix(in srgb, var(--bp-gold) 16%, transparent)' : 'none',
+      }}
+    />
+  );
+
+  const BeatLabel = ({ ko, en, accent }: { ko: string; en: string; accent?: boolean }) => (
+    <div
+      className="bp-mono"
+      style={{
+        color: accent ? 'var(--bp-gold-deep)' : 'var(--bp-ink-soft)',
+        fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.06em' : '0.14em',
+        textTransform: 'uppercase', fontWeight: 700, marginBottom: 6,
+      }}
+    >
+      {L(ko, en)}
+    </div>
+  );
+
+  // The tracked-premise row: a hollow "watch dot" that breathes while in view, the
+  // premise text, and a quiet provenance tag. The first premise is the one the
+  // later alert loops back to, so it can flash.
+  const PremiseRow = ({ p, index, flash }: { p: Premise; index: number; flash: boolean }) => (
+    <div style={{ position: 'relative', marginTop: index === 0 ? 12 : 9 }}>
+      {flash && !rm && (
+        <motion.span
+          aria-hidden="true"
+          style={{ position: 'absolute', inset: '-5px -9px', borderRadius: 7, background: 'color-mix(in srgb, var(--bp-gold) 20%, transparent)', zIndex: 0, pointerEvents: 'none' }}
+          initial={{ opacity: 0 }}
+          animate={isVisible ? { opacity: [0, 1, 0] } : { opacity: 0 }}
+          transition={{ delay: T_RETURN + 0.1, duration: 1.5, times: [0, 0.22, 1], ease: 'easeInOut' }}
+        />
+      )}
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+        <motion.span
+          aria-hidden="true"
+          style={{ flex: 'none', marginTop: 4, width: 7, height: 7, borderRadius: '50%', border: '1.5px solid var(--bp-ink-soft)' }}
+          animate={on ? { opacity: [0.4, 1, 0.4], scale: [1, 1.18, 1] } : { opacity: 0.7, scale: 1 }}
+          transition={{ repeat: Infinity, duration: 2.6, ease: 'easeInOut', delay: index * 0.35 }}
+        />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ color: 'var(--bp-ink)', fontSize: 13.5, lineHeight: 1.5, fontWeight: 500 }}>
+            {L(p.ko, p.en)}
+          </div>
+          <div style={{ color: 'var(--bp-ink-soft)', fontSize: 11, lineHeight: 1.4, marginTop: 2, fontStyle: 'italic', opacity: 0.9 }}>
+            {L(p.tagKo, p.tagEn)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // A small provenance chip (SURFACE / a human's call).
+  const Tag = ({ ko, en }: { ko: string; en: string }) => (
+    <span
+      className="bp-mono"
+      style={{
+        display: 'inline-block', marginLeft: 7, padding: '1px 6px', borderRadius: 3,
+        border: '1px solid var(--bp-ink-faint)', color: 'var(--bp-ink-soft)',
+        fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600,
+        verticalAlign: 'middle', whiteSpace: 'nowrap',
+      }}
+    >
+      {L(ko, en)}
+    </span>
+  );
+
+  // The return-arc: a short arrow that draws itself up the gutter on the alert
+  // beat — the "loops back" gesture, paired with the premise flash above.
+  const ReturnArc = () => (
+    <svg width="30" height="52" viewBox="0 0 30 52" fill="none" aria-hidden="true" style={{ position: 'absolute', left: -46, top: -30, overflow: 'visible' }}>
+      <motion.path
+        d="M25 48 C 6 46, 6 14, 23 8"
+        stroke="var(--bp-gold-deep)" strokeWidth="1.5" strokeLinecap="round"
+        initial={rm ? false : { pathLength: 0, opacity: 0 }}
+        animate={rm ? { pathLength: 1, opacity: 0.85 } : isVisible ? { pathLength: 1, opacity: 0.85 } : { pathLength: 0, opacity: 0 }}
+        transition={{ delay: T_RETURN, duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
+      />
+      <motion.path
+        d="M23 8 l 5 2.5 M23 8 l -1.5 5.5"
+        stroke="var(--bp-gold-deep)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+        initial={rm ? false : { opacity: 0 }}
+        animate={rm ? { opacity: 0.85 } : isVisible ? { opacity: 0.85 } : { opacity: 0 }}
+        transition={{ delay: T_RETURN + 0.5, duration: 0.25 }}
+      />
+    </svg>
+  );
+
+  const BellIcon = () => (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flex: 'none' }}>
+      <path d="M8 2.2c-2 0-3.3 1.5-3.3 3.5 0 3-1.2 3.8-1.2 3.8h9s-1.2-.8-1.2-3.8c0-2-1.3-3.5-3.3-3.5Z" stroke="var(--bp-gold-deep)" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M6.7 12.2a1.4 1.4 0 0 0 2.6 0" stroke="var(--bp-gold-deep)" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
 
   const renderDoor = (d: Door, grow: number, dimmed: boolean) => (
     <div
@@ -148,8 +260,7 @@ export function UseCases() {
         </span>
       </div>
 
-      {/* the seed — what the user brings. A typed line reads like the hero input
-          (caret + italic + baseline rule); a document reads as a file chip. */}
+      {/* the seed — a typed line (caret + italic) or an uploaded file chip */}
       {d.key === 'write' ? (
         <div>
           <div className={`flex items-start gap-2 ${bk}`} style={{ color: 'var(--bp-ink)', fontSize: 16, fontWeight: 600, fontStyle: 'italic', lineHeight: 1.5 }}>
@@ -173,50 +284,52 @@ export function UseCases() {
         </div>
       )}
 
-      {/* down the rail: each REAL Argus stage, and the concrete line it produces
-          for this exact question — the product actually running, one beat at a
-          time (not an abstract numbered checklist). */}
-      <div style={{ marginTop: 18, borderLeft: '1px solid var(--bp-ink-faint)', marginLeft: 7, paddingLeft: 20 }}>
-        {d.stages.map((s, i) => (
-          <div
-            key={i}
-            className={bk}
-            style={{
-              position: 'relative',
-              paddingBottom: i === d.stages.length - 1 ? 0 : 17,
-              opacity: isVisible ? 1 : 0,
-              transform: isVisible ? 'translateY(0)' : 'translateY(6px)',
-              transition: 'opacity 460ms ease, transform 460ms cubic-bezier(.22,.61,.36,1)',
-              transitionDelay: `${140 + i * 150}ms`,
-            }}
-          >
-            {/* node on the rail — the seal beat gets the gold node, since that is
-                where both doors converge (and where the product spends gold). */}
-            <span
-              aria-hidden="true"
-              style={{
-                position: 'absolute', left: -25, top: 3, width: 9, height: 9, borderRadius: '50%',
-                background: s.seal ? 'var(--bp-gold)' : 'var(--bp-paper)',
-                border: s.seal ? '1.5px solid var(--bp-gold)' : '1.5px solid var(--bp-ink-soft)',
-              }}
-            />
-            {/* the real stage name — leads the beat (no bare numerals) */}
-            <div
-              className="bp-mono"
-              style={{
-                color: s.seal ? 'var(--bp-gold-deep)' : 'var(--bp-ink-soft)',
-                fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.06em' : '0.14em',
-                textTransform: 'uppercase', fontWeight: 700, marginBottom: 4,
-              }}
-            >
-              {L(s.labelKo, s.labelEn)}
-            </div>
-            {/* the concrete output this specific question produces at that stage */}
-            <div style={{ color: 'var(--bp-ink)', fontSize: 13.5, lineHeight: 1.55 }}>
-              {L(s.outKo, s.outEn)}
-            </div>
+      {/* the loop, down the rail: seal the premises → surface the slipped one →
+          time passes → an alert loops back to the premise that broke. */}
+      <div style={{ marginTop: 20, position: 'relative', borderLeft: '1px solid var(--bp-ink-faint)', marginLeft: 7, paddingLeft: 24 }}>
+        {/* ① SEAL */}
+        <Beat delay={T_SEAL}>
+          <Node kind="plain" />
+          <BeatLabel ko="봉인 · 전제를 잠근다" en="SEAL · lock the premises" />
+          <div style={{ color: 'var(--bp-ink)', fontSize: 13.5, lineHeight: 1.55 }}>{L(d.sealLeadKo, d.sealLeadEn)}</div>
+          {d.premises.map((p, i) => (
+            <PremiseRow key={i} p={p} index={i} flash={i === 0} />
+          ))}
+        </Beat>
+
+        {/* ② SURFACE */}
+        <Beat delay={T_SURFACE}>
+          <Node kind="plain" />
+          <BeatLabel ko="드러내기 · 놓친 전제를 꺼낸다" en="SURFACE · pull the one you slid past" />
+          <div style={{ color: 'var(--bp-ink)', fontSize: 13.5, lineHeight: 1.55 }}>
+            {L(d.surfaceKo, d.surfaceEn)}
+            <Tag ko={d.surfaceTagKo} en={d.surfaceTagEn} />
           </div>
-        ))}
+        </Beat>
+
+        {/* … time gap … */}
+        <Beat delay={T_GAP}>
+          <span aria-hidden="true" style={{ position: 'absolute', left: -24.5, top: 0, bottom: 4, borderLeft: '1.5px dashed var(--bp-ink-faint)' }} />
+          <span className="bp-mono" style={{ display: 'inline-block', color: 'var(--bp-ink-soft)', opacity: 0.75, fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600 }}>
+            {L(`… ${d.laterKo} …`, `… ${d.laterEn} …`)}
+          </span>
+        </Beat>
+
+        {/* ③ RETURN — the alert loops back to the premise that broke */}
+        <Beat delay={T_ALERT}>
+          <Node kind="alert" />
+          <ReturnArc />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <BellIcon />
+            <span className="bp-mono" style={{ color: 'var(--bp-gold-deep)', fontSize: 10.5, letterSpacing: locale === 'ko' ? '0.06em' : '0.14em', textTransform: 'uppercase', fontWeight: 700 }}>
+              {L('돌아보기 · 알림', 'RETURN · the alert')}
+            </span>
+          </div>
+          <div style={{ color: 'var(--bp-ink)', fontSize: 13.5, lineHeight: 1.55 }}>{L(d.alertKo, d.alertEn)}</div>
+          <div className="bp-mono" style={{ marginTop: 7, color: 'var(--bp-gold-deep)', fontSize: 10, letterSpacing: '0.04em', fontWeight: 700 }}>
+            {L('↖ 봉인해둔 전제 ①로 되돌아왔어요', '↖ back to the sealed premise ①')}
+          </div>
+        </Beat>
       </div>
     </div>
   );
@@ -225,23 +338,24 @@ export function UseCases() {
     <section className="bp-root relative overflow-hidden" style={{ background: 'var(--bp-paper-deep)' }}>
       <PaperGrain opacity={0.04} />
       <div className="relative w-full max-w-5xl mx-auto px-6 md:px-10" style={{ paddingTop: 'clamp(44px, 6vh, 84px)', paddingBottom: 'clamp(44px, 6vh, 84px)' }}>
-        {/* Eyebrow + heading */}
+        {/* Eyebrow + heading — now selling the loop, not a checklist */}
         <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
           <span aria-hidden="true" style={{ width: 26, height: 1, background: 'var(--bp-ink-faint)' }} />
           <span className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 11, letterSpacing: locale === 'ko' ? '0.1em' : '0.22em', textTransform: 'uppercase', fontWeight: 500 }}>
-            {L('USE CASES · 이런 결정에 씁니다', 'USE CASES · what people bring')}
+            {L('USE CASES · 이렇게 한 바퀴 돕니다', 'USE CASES · the loop it runs')}
           </span>
         </div>
         <h2
           className={bk}
-          style={{ fontFamily: 'var(--font-display)', color: 'var(--bp-ink)', fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-0.01em', maxWidth: 640 }}
+          style={{ fontFamily: 'var(--font-display)', color: 'var(--bp-ink)', fontSize: 'clamp(22px, 3.2vw, 32px)', fontWeight: 700, lineHeight: 1.28, letterSpacing: '-0.01em', maxWidth: 680 }}
         >
-          {L('복잡한 결정일수록, 갈리는 자리부터.', 'The harder the call, the more it turns on one thing.')}
+          {L('믿고 정한 전제가 흔들리면, 그때 다시 불러드려요.', 'When a premise you bet on shifts, we bring the call back.')}
         </h2>
-        <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 640, marginTop: 12 }}>
-          {L(
-            '적어서 물어도, 이미 쓴 문서를 올려도 — 거치는 단계는 같아요. 커서를 올려 한쪽씩, 한 사례가 실제로 어떻게 흘러가는지 따라가 보세요.',
-            'Type a decision or upload one you’ve written — the stages are the same. Hover a side and watch one real case actually move through them.',
+        <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 680, marginTop: 12 }}>
+          {locale === 'ko' ? (
+            <>적어서 묻든, 써 둔 문서를 올리든 — 결정을 받친 전제를 봉인해 두면, 그게 현실에서 흔들리는 순간 당신에게 돌아와요. 한쪽을 따라 <span style={{ whiteSpace: 'nowrap' }}>한 바퀴</span> 돌아보세요.</>
+          ) : (
+            'Type a decision or upload one you’ve written — seal the premises under it, and when one is shaken in the real world, it comes back to you. Follow one side through the full loop.'
           )}
         </p>
 
@@ -269,11 +383,11 @@ export function UseCases() {
           {renderDoor(FILE_DOOR, fileGrow, hoverSide === 'write')}
         </div>
 
-        {/* Convergence + the one quiet product-level honesty (the disclosed limit) */}
+        {/* The loop, in one line + the one quiet product-level honesty */}
         <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.6, marginTop: 22, opacity: 0.9 }}>
           {L(
-            '두 길 모두 마지막엔 봉인하고 정산하는 같은 항로로 모여요. 어느 쪽도 당신의 결정을 대신 내리지 않아요 — 다만 희미한 기울기까지 지우진 못해요, 저희가 아는 한계예요.',
-            'Both paths end at the same place — seal, then settle. Neither decides for you; no engine is perfectly neutral, though — a limit we own.',
+            '두 길 모두 같은 고리로 굴러가요 — 전제를 봉인하고, 그게 흔들리는 순간 당신에게 돌아오기. 결정은 늘 당신이 내려요. (저희가 던지는 질문에도 옅은 치우침은 남아요 — 아는 한계고요.)',
+            'Both paths run the same loop — seal the premises, and when one is shaken, it comes back to you. You always make the call. (Even our questions carry a faint lean — a limit we own.)',
           )}
         </p>
       </div>

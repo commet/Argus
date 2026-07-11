@@ -9,13 +9,13 @@ All notable changes to the Argus plugin. Versioning follows
 Quality, measurement, and trust infrastructure — turning "we wrote the rules" into
 "we measure that the rules actually fire", plus the cross-surface single-source the
 two-bodies architecture needed. (Benchmarked against the substantial Claude Code
-plugins/skills/MCP; gaps closed across 10 dimensions — `docs/DIMENSIONS-10-scorecard-2026-06-23`.)
+plugins/skills/MCP; gaps closed across 10 dimensions — `internal design notes-2026-06-23`.)
 
 - **Behavioral eval harness** (`evals/`): generates bearings from the real clarify+sail
   skills and scores them — static gate (deterministic, in CI) + LLM judge + a per-tier
   sweep. Live finding: over-fire is tier-dependent — **haiku breaches the spine floor
   (~0.41); sonnet/opus hold (~0.22)** → route bearing-generation to sonnet+. Prompt
-  caching keeps re-runs cheap. (`docs/EVAL-RESULTS-2026-06-23`.)
+  caching keeps re-runs cheap. (`internal design notes-2026-06-23`.)
 - **Enforcement gates** (`scripts/validate-gates.mjs` + a `Stop` hook): the verify /
   route-contract / flat / output-integrity gates are checked mechanically against
   session artifacts (warn-mode hook + CI hard-block) — prose rules are a floor, not
@@ -39,7 +39,7 @@ Under-fire default: the dial that decides *whether to intervene* is now pinned t
 restraint across the whole pipeline. This is the plugin's answer to the validated
 spine-level finding that the engine over-fires by architecture.
 
-Context: the 4-round engine stress test (`docs/STRESS-SYNTHESIS-rounds1-4`,
+Context: the 4-round engine stress test (`internal design notes`,
 ~98 cases / ~400 agents) reached verdict **(b)** — a find-the-leverage engine
 *manufactures divergence when none exists*: over-fire on **60%** of flat
 negative-controls, and `asymmetric_steer` (an engine-weighted pole) was the
@@ -125,7 +125,7 @@ changeset that called string-presence "verified" would repeat the Round-3 mistak
 Step-0 gate: Argus now decides *whether* to run the engine before deciding
 *what* to analyze. Closes the two-thirds of the C5 finding the harness lacked.
 
-Context: the stress tests (`docs/STRESS-round1-findings-2026-06-16.md`) found
+Context: the stress tests (`internal design notes`) found
 the engine's most damaging failures came from running the full reframe→fork
 machine on inputs that were not open decisions — re-opening a decision the user
 had already closed, forking an emotional vent into options nobody asked for, and

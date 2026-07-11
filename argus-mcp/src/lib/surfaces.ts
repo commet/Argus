@@ -363,7 +363,11 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       made_by: 'Me. (not the model)',
       called_as: '…called as',
       basis_label: (v) => ({ judgment: 'judgment', luck: 'luck', mixed: 'a mix of both', unsure: 'not sure' })[v] ?? v,
-      skipped: '— (you skipped naming this)',
+      // A blank field, stated neutrally — "you skipped naming this" read as a
+      // nag about the user's completeness on a receipt they wanted plain
+      // (experience loop, settler: a zero-judgment surface must not grade even
+      // the act of leaving a field empty).
+      skipped: '— (none)',
       premises_note: (tracked, changed) =>
         `(+${tracked} premise(s) tracked · ${changed} changed at re-check · argus_recall view=premises)`,
       you_predicted: 'YOU PREDICTED',
@@ -392,7 +396,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       seal: {
         sealed: (predicate, checkBy) => `Sealed. "${predicate}" Check-by is ${checkBy}. Come back then with argus_settle to record how it turned out.`,
-        nudge_assumption: ' You sealed without naming the assumption it rests on. That\'s recorded as skipped, not hidden, and you can still name it.',
+        nudge_assumption: ' If you want, you can name the key assumption this rests on. It\'s optional; naming it lets Argus re-check it against reality later.',
         synced: ' Synced to your account. You\'ll get an email when it comes due.',
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your seal is safe locally, but the email reminder won't fire until it syncs. Try argus_sync later.)`,
       },
@@ -492,7 +496,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       made_by: '나. (모델이 아니라)',
       called_as: '…콜한 내용',
       basis_label: (v) => ({ judgment: '판단', luck: '운', mixed: '반반', unsure: '모르겠음' })[v] ?? v,
-      skipped: '— (이름 붙이지 않고 넘어갔습니다)',
+      // 빈 칸을 사실 그대로. "이름 붙이지 않고 넘어갔습니다"는 사용자의 완성도를
+      // 지적하는 잔소리로 읽혔다 (experience loop, settler).
+      skipped: '— (없음)',
       premises_note: (tracked, changed) =>
         `(추적한 전제 ${tracked}건 · 재확인에서 바뀐 것 ${changed}건 · argus_recall view=premises)`,
       you_predicted: '당신의 예측',
@@ -522,7 +528,7 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       },
       seal: {
         sealed: (predicate, checkBy) => `봉인했습니다. "${predicate}" 확인일은 ${checkBy}입니다. 그날 argus_settle로 돌아와 실제로 어땠는지 적으세요.`,
-        nudge_assumption: ' 무엇을 전제로 두는지는 적지 않고 봉인했습니다. 숨긴 것이 아니라 "생략"으로 기록됐고, 지금이라도 적을 수 있습니다.',
+        nudge_assumption: ' 이 결정이 기댄 핵심 전제를 적어두고 싶으면 지금 적을 수 있어요. 선택이고, 적어두면 나중에 현실과 대조해 다시 확인해 드립니다.',
         synced: ' 계정에 동기화했습니다. 확인일이 오면 이메일로 알려드립니다.',
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 봉인은 로컬에 안전합니다. 동기화되기 전까지는 이메일 알림이 오지 않습니다. 나중에 argus_sync를 시도하세요.)`,
       },

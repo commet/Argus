@@ -4,7 +4,7 @@
 // returns structured violations of the spine's HARD, machine-checkable rules.
 // This is the cheap, deterministic, always-on layer (no API key needed) — it
 // runs in CI on every PR. It is a regression FLOOR, not a safety proof: the
-// stress test (docs/STRESS-SYNTHESIS-rounds5-8) showed tilt can live *below*
+// stress test (internal design notes) showed tilt can live *below*
 // structural checks, which is why layer 3 (LLM judge) exists. This layer catches
 // the GROSS shapes the spine forbids outright.
 //

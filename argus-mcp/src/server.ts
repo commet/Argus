@@ -17,6 +17,7 @@ import { setElicitor } from './lib/elicit.js';
 import { appendDueNote } from './lib/due-note.js';
 import { logError } from './lib/log.js';
 import { packageMeta } from './lib/package-meta.js';
+import { recordServerStart, recordToolCall } from './lib/telemetry.js';
 
 /**
  * Argus MCP server (blueprint §4). v1 surface = Tools only — the universal
@@ -64,6 +65,10 @@ export async function createServer(): Promise<Server> {
   // Prompts — user-triggered discipline rituals (blueprint §4.2).
   server.setRequestHandler(ListPromptsRequestSchema, async () => listPrompts());
   server.setRequestHandler(GetPromptRequestSchema, async (req) => getPrompt(req.params.name, req.params.arguments));
+
+  // Anonymous, opt-in activation signal (no-op unless ARGUS_TELEMETRY=1). Fire-
+  // and-forget: never blocks server startup, never throws. See lib/telemetry.ts.
+  recordServerStart();
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOLS.map((t) => ({
@@ -114,7 +119,7 @@ export async function createServer(): Promise<Server> {
         ok: false,
         tool: name,
         error_code: 'INVALID_INPUT',
-        message: `Invalid arguments — ${issues}`,
+        message: `Invalid arguments. ${issues}`,
         recovery: 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.',
       };
       return {
@@ -125,8 +130,12 @@ export async function createServer(): Promise<Server> {
     }
     try {
       const result = await serialize(() => tool.handler(parsed.data as Record<string, unknown>));
+      // Opt-in usage signal: which tool ran + that it didn't crash. Carries no
+      // arguments — never the decision content. Fire-and-forget (see telemetry.ts).
+      recordToolCall(name, true);
       return appendDueNote(name, parsed.data as Record<string, unknown>, result);
     } catch (e) {
+      recordToolCall(name, false);
       // Last-resort guard — individual handlers already map their own errors.
       logError(`[${name}] escaped handler`, e);
       return {

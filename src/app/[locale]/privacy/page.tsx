@@ -16,7 +16,7 @@ export default function PrivacyPage() {
       </LocaleLink>
 
       <h1 className="text-[24px] font-bold text-[var(--text-primary)] mb-2">{L('개인정보처리방침', 'Privacy Policy')}</h1>
-      <p className="text-[13px] text-[var(--text-secondary)] mb-8">{L('최종 수정일: 2026년 3월 23일', 'Last updated: March 23, 2026')}</p>
+      <p className="text-[13px] text-[var(--text-secondary)] mb-8">{L('최종 수정일: 2026년 7월 10일', 'Last updated: July 10, 2026')}</p>
 
       <div className="prose prose-sm max-w-none space-y-6 text-[14px] text-[var(--text-primary)] leading-relaxed">
         <section>
@@ -124,7 +124,26 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[16px] font-bold mb-2">{L('7. 이용자의 권리', '7. Your Rights')}</h2>
+          <h2 className="text-[16px] font-bold mb-2">{L('7. MCP 도구의 익명 통계 (선택 사항)', '7. Anonymous Telemetry from the MCP Tool (Optional)')}</h2>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>{L(
+              '오픈소스 MCP 서버(argus-decision-mcp)는 기본적으로 어떤 통계도 전송하지 않습니다.',
+              'The open-source MCP server (argus-decision-mcp) sends no telemetry by default.',
+            )}</li>
+            <li>{L(
+              '이용자가 명시적으로 ARGUS_TELEMETRY=1을 설정한 경우에만, 계정·신원과 무관한 익명 통계를 전송합니다: 무작위 설치 식별자, 실행된 도구 이름과 성공 여부, 버전·OS 종류.',
+              'Only when you explicitly set ARGUS_TELEMETRY=1 does it send anonymous, account-independent telemetry: a random install identifier, which tool ran and whether it succeeded, and the version and OS type.',
+            )}</li>
+            <li>{L(
+              '결정 내용, 제목, 파일 경로, 계정 토큰 등 개인을 식별할 수 있는 정보는 전송하지 않으며, 이 데이터는 user_id 없이 익명으로만 저장됩니다.',
+              'It never sends decision content, titles, file paths, or the account token — nothing that identifies you — and the data is stored anonymously, with no user_id.',
+            )}</li>
+            <li>{L('DO_NOT_TRACK=1을 설정하면 비활성화됩니다.', 'It is disabled when DO_NOT_TRACK=1 is set.')}</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-[16px] font-bold mb-2">{L('8. 이용자의 권리', '8. Your Rights')}</h2>
           <ul className="list-disc pl-5 space-y-1">
             <li>{L('개인정보 열람, 정정, 삭제를 요청할 수 있습니다.', 'You may request access, correction, or deletion of your personal information.')}</li>
             <li>{L('설정 페이지에서 직접 데이터를 내보내거나 삭제할 수 있습니다.', 'You can export or delete data yourself from the Settings page.')}</li>
@@ -133,7 +152,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[16px] font-bold mb-2">{L('8. 개인정보의 안전성 확보 조치', '8. Security Measures')}</h2>
+          <h2 className="text-[16px] font-bold mb-2">{L('9. 개인정보의 안전성 확보 조치', '9. Security Measures')}</h2>
           <ul className="list-disc pl-5 space-y-1">
             <li>{L('비밀번호 암호화 저장 (Supabase Auth bcrypt)', 'Passwords stored encrypted (Supabase Auth bcrypt)')}</li>
             <li>{L('HTTPS 통신 암호화', 'HTTPS communication encryption')}</li>
@@ -143,7 +162,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-[16px] font-bold mb-2">{L('9. 개인정보 보호책임자', '9. Data Protection Officer')}</h2>
+          <h2 className="text-[16px] font-bold mb-2">{L('10. 개인정보 보호책임자', '10. Data Protection Officer')}</h2>
           <p>{L('개인정보 관련 문의는 아래 연락처로 접수해주세요.', 'For privacy-related inquiries, please use the contact below.')}</p>
           <p className="mt-2 text-[var(--text-secondary)]">{L('회사명: Argus', 'Company: Argus')}</p>
           <p className="text-[var(--text-secondary)]">{L('이메일: sayu.curator@gmail.com', 'Email: sayu.curator@gmail.com')}</p>

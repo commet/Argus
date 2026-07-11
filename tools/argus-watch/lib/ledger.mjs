@@ -9,7 +9,7 @@
  *   settle  — outcome recorded at/after check_by
  *
  * State is materialized by replay. Nothing is ever deleted or rewritten —
- * 변침(變針)도 기록이다 (EXECUTION-PLAN P3.5 amend principle).
+ * 변침(變針)도 기록이다 (internal design notes P3.5 amend principle).
  *
  * Privacy: this file holds personal decisions — lives in .argus/ledger/, gitignored.
  */
