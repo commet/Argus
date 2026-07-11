@@ -145,6 +145,37 @@ say('[7] 레거시 v1 원장 (참고):');
 for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(home, 'ledger', 'ledger.jsonl')]) {
   say(`    ${fs.existsSync(p) ? '있음' : '없음'} — ${p}`);
 }
+
+// 8. 수확 큐 (opt-in·임시 상태 — 규칙 3·4)
+{
+  let optIn = false;
+  try {
+    const cfg = JSON.parse(fs.readFileSync(path.join(home, 'config.json'), 'utf8'));
+    optIn = cfg && cfg.harvest && cfg.harvest.opt_in === true;
+  } catch { /* 설정 없음 = opt-out */ }
+  const dataDir = process.env.CLAUDE_PLUGIN_DATA;
+  say(`[8] 수확: opt-in ${optIn ? 'ON' : 'OFF'} (${path.join(home, 'config.json')} harvest.opt_in)`);
+  if (!dataDir) {
+    say('    CLAUDE_PLUGIN_DATA 없음 — 플러그인 데이터 영역 밖에서 실행됨. 큐 검사 생략.');
+  } else {
+    const qPath = path.join(dataDir, 'harvest-queue.json');
+    if (!fs.existsSync(qPath)) {
+      say(`    큐 없음 — ${optIn ? '아직 인입 전 (정상)' : 'opt-in 전 흔적 0 (정상)'} (${qPath})`);
+    } else {
+      try {
+        const items = (JSON.parse(fs.readFileSync(qPath, 'utf8')).items) || [];
+        const exhausted = items.filter((i) => i.exhausted).length;
+        say(`    큐 ${items.length}건 대기${exhausted > 0 ? ` — ⚠ 그중 ${exhausted}건은 3회 실패로 자동 재시도 제외 (수동 재개 대상)` : ''} (${qPath})`);
+      } catch {
+        say(`    ⚠ 큐 파일 파손 — 임시 상태라 다음 인입 때 새로 시작된다 (${qPath})`);
+      }
+    }
+    try {
+      const marker = JSON.parse(fs.readFileSync(path.join(dataDir, 'harvest-last-run.json'), 'utf8'));
+      say(`    마지막 수확 실행일: ${marker.date} (1일 1회 marker)`);
+    } catch { say('    마지막 수확 실행일: 기록 없음'); }
+  }
+}
 say('');
 say('진단 끝. 이 스크립트는 아무것도 고치지 않았다 — 수리 손잡이는 각 줄에 적힌 도구다.');
 
