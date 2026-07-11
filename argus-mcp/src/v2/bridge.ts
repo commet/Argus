@@ -314,3 +314,19 @@ export function syncAbandonedV2(ctx: V2Context, a: { sourceEventId: string; reas
     event: 'sync_abandoned', source_event_id: a.sourceEventId, reason: a.reason.slice(0, 400),
   });
 }
+
+/** 수확 경로 전용 후보 생성 — byte_verified + 증거 포인터 강제 (II-C).
+ *  evidence는 evidence.ts에서만 발행되므로 등급 사칭이 구조적으로 불가능하다.
+ *  (미러/수동 경로는 candidateCreatedV2 — host_reported 고정.) */
+export function harvestCandidateV2(ctx: V2Context, a: {
+  candidateId: string; kind: 'claim' | 'premise' | 'question' | 'decision';
+  quote: string; quoteSpeaker: 'user' | 'assistant';
+  evidence: Record<string, unknown>; idempotencyKey?: string;
+}): IdempotentAppendResult {
+  return append(ctx, {
+    ...envelope(ctx, 'candidate_created', a.idempotencyKey), event: 'candidate_created',
+    candidate_id: a.candidateId, kind: a.kind, quote: a.quote.slice(0, 2000),
+    quote_speaker: a.quoteSpeaker, verification: 'byte_verified',
+    evidence: a.evidence, source: 'harvest_sweep',
+  });
+}
