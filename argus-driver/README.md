@@ -32,6 +32,7 @@
 - `statusline/index.js`는 `argus-plugin-v2/statusline/index.js`의 **바이트 동일
   사본**이다 — 정본은 argus-plugin-v2 쪽이고, 드리프트는 CI가 막는다
   (`argus-mcp/src/v2/driver-plugin.test.ts`). 수정은 정본에서 하고 여기로 복사.
-- `argus-decision-mcp`는 npm 배포 전이면 npx 배선이 404가 난다 — 배포는
-  `argus-mcp/` 디렉토리에서 `npm publish` (창업자 몫, 별도 트랙).
+- `argus-decision-mcp`는 npm에 출시되어 있어(2026-07-03 v1.0.0~) npx 배선이
+  바로 작동한다. 단 리포의 최신 시공분(v2 내구 원장 포함)은 npm 재출시 전까지
+  설치본에 반영되지 않는다 — 재출시는 `argus-mcp/`에서 `npm publish`.
 - 마켓플레이스 항목은 리포 루트 `.claude-plugin/marketplace.json`에 있다.
