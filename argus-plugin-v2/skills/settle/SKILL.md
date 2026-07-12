@@ -146,7 +146,7 @@ ledger (verbatim predicates and outcomes) stays local by default.
 
 ✓ "{{predicate clipped 70}}" → {{outcome}}
 {{if contract came from a bearing seed AND that bearing has fog_or_reef}}
-  당시 짚었던 안개: "{{fog_or_reef.issue clipped 60}}" — 현실의 답: {{outcome}}
+  당시 짚었던 위험: "{{fog_or_reef.issue clipped 60}}" — 현실의 답: {{outcome}}
 {{endif}}
 {{...per settled contract}}
 {{if pending}}→ "{{predicate}}" pushed to {{new check_by}}{{endif}}
@@ -174,7 +174,7 @@ link back to the source bearing. If the bearing is gone, skip the line —
 never reconstruct the fog from memory.
 
 The track-record line is computed mechanically from the full ledger replay.
-No praise, no scolding — counts only. The "당시 짚었던 안개" line is the one
+No praise, no scolding — counts only. The "당시 짚었던 위험" line is the one
 deliberate exception to counts-only: a user's first settle must show that the
 harness saw a real risk at decision time, or there is no reason to come back
 for settle #2 — it quotes, it never editorializes.

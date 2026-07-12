@@ -422,8 +422,16 @@ function argusLine(root, budget) {
   const days = bearing._ageMs / DAY;
   if (days > 14) return null;
 
-  const status = (bearing.current_course && bearing.current_course.status) || "?";
-  const sc = courseColor(status, bearing.blocked);
+  const rawStatus = (bearing.current_course && bearing.current_course.status) || "?";
+  // 상태줄은 해설을 붙일 공간이 없는 반복 표면 — 은유 enum을 평어로 번역해서
+  // 표시한다 (anchor="여기서 끝"을 처음 본 사람은 해독할 수 없다). 색·내부
+  // 로직은 원래 enum 그대로.
+  const STATUS_PLAIN = {
+    proceed: "proceed", hold: "hold", fork: "decide", anchor: "done",
+    revise: "revise", collect_evidence: "need evidence",
+  };
+  const status = STATUS_PLAIN[rawStatus] || rawStatus;
+  const sc = courseColor(rawStatus, bearing.blocked);
 
   if (days > 2) {
     return `${DIM}⚓ ${status} · ${Math.round(days)}d ago${R}`;
@@ -439,7 +447,7 @@ function argusLine(root, budget) {
   const fogMax = fog ? Math.max(24, Math.floor((budget - fixed) * 0.45)) : 0;
   const sumMax = Math.max(16, budget - fixed - fogMax);
   if (summary) segs.push(clip(summary, sumMax));
-  if (fog) segs.push(`🌫 ${C.y}${clip(fog, fogMax)}${R}`);
+  if (fog) segs.push(`${C.y}risk: ${clip(fog, fogMax)}${R}`);
   if (bearing._ageMs > DAY) segs.push(`${C.d}${Math.round(bearing._ageMs / 3600000)}h${R}`);
   return segs.join(SEP);
 }

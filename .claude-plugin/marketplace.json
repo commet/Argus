@@ -14,11 +14,17 @@
     {
       "name": "argus",
       "source": "./argus-plugin-v2",
-      "description": "Decision-voyage harness. Keeps important decisions alive as courses: clarifies the real question, puts an agent crew to work on real code/PRs/files, verifies their claims, and returns a one-screen Current Bearing — plus a falsifiable decision contract you later settle against reality (/argus:settle, /argus:log).",
+      "description": "Pressure-tests an important decision and returns a one-screen summary: recommendation, why, biggest open risk, alternative passed on, next concrete action — plus one falsifiable prediction you settle against reality later.",
       "version": "2.7.0",
       "license": "MIT",
       "category": "productivity",
-      "keywords": ["decision-making", "judgment-harness", "verification", "current-bearing", "decision-contract"]
+      "keywords": [
+        "decision-making",
+        "judgment-harness",
+        "verification",
+        "current-bearing",
+        "decision-contract"
+      ]
     },
     {
       "name": "argus-driver",
@@ -27,7 +33,13 @@
       "version": "0.1.0",
       "license": "MIT",
       "category": "productivity",
-      "keywords": ["decision-making", "decision-contract", "mcp", "statusline", "accountability"]
+      "keywords": [
+        "decision-making",
+        "decision-contract",
+        "mcp",
+        "statusline",
+        "accountability"
+      ]
     }
   ]
 }

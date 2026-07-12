@@ -159,7 +159,7 @@ describe('wake_text spine (renderWake)', () => {
 
   it('settled group is a count list of user-stated outcomes, never a rate', () => {
     const ko = renderWake(fixture, stats, TODAY, 'ko', '2026-07-03');
-    expect(ko).toContain('정산됨 (3): held 1 · avoided 1 · partial 1');
+    expect(ko).toContain('정산됨 (3): 그렇게 됨 1 · 피함 1 · 부분 1');
     const en = renderWake(fixture, stats, TODAY, 'en', '2026-07-03');
     expect(en).toContain('settled (3): held 1 · avoided 1 · partial 1');
   });
@@ -173,7 +173,7 @@ describe('wake_text spine (renderWake)', () => {
     // overdue shows the check-by date, no running day-count (no shame counter)
     expect(ko).not.toContain('경과');
     expect(ko).toContain('답 08-01');
-    expect(ko).toContain('결정 12 · 봉인 중 8 · 정산 3');
+    expect(ko).toContain('결정 12 · 봉인됨 8 · 정산 3');
     expect(ko).toContain('기록 시작 2026-07-03 부터');
   });
 

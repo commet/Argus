@@ -3,7 +3,7 @@
   "name": "argus",
   "displayName": "Argus",
   "version": "2.7.0",
-  "description": "Decision-voyage harness for Claude Code. Argus keeps important decisions alive as courses: it reads the user's repo, files, PRs, or decision context, checks evidence and weak claims, then returns a compressed Current Heading with course, why, fog or reef, road not taken, next helm, and an optional reality-check seed.",
+  "description": "Pressure-tests an important decision and returns a one-screen summary: the recommendation, why, the biggest open risk, the alternative you passed on, and the next concrete action — plus one falsifiable prediction you settle against reality later (/argus:settle). Runs an agent crew on your real code, PRs, and files to verify claims before you commit.",
   "author": {
     "name": "Argus",
     "email": "yclee913@gmail.com",

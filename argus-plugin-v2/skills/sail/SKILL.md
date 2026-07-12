@@ -543,21 +543,21 @@ information order:
 ```text
 ## Argus - Current Heading - {{label}}
 
-Current course: {{current_course.summary}}
+Recommendation: {{current_course.summary}}
 
 Why this course:
 - {{why_this_course[0].point}}{{if source}} ({{source}}){{endif}}
 {{if why_this_course[1]}}- ...{{endif}}
 {{if why_this_course[2]}}- ...{{endif}}
 
-{{if fog_or_reef}}Fog / reef: {{fog_or_reef.issue}}
+{{if fog_or_reef}}Biggest open risk: {{fog_or_reef.issue}}
 Why it matters: {{fog_or_reef.why_it_matters}}
 {{if fog_or_reef.required_check}}Required check: {{fog_or_reef.required_check}}{{endif}}{{endif}}
 
-{{if road_not_taken[0]}}Road not taken: {{road_not_taken[0].option}} - {{road_not_taken[0].why_not_now}}{{endif}}
-{{if road_not_taken[1]}}Road not taken: {{road_not_taken[1].option}} - {{road_not_taken[1].why_not_now}}{{endif}}
+{{if road_not_taken[0]}}Not chosen: {{road_not_taken[0].option}} - {{road_not_taken[0].why_not_now}}{{endif}}
+{{if road_not_taken[1]}}Not chosen: {{road_not_taken[1].option}} - {{road_not_taken[1].why_not_now}}{{endif}}
 
-Next helm: {{next_helm}}
+Next action: {{next_helm}}
 
 {{if contract_seed}}Contract seed: {{contract_seed.predicate}}
 Check by: {{contract_seed.check_by}}{{endif}}
