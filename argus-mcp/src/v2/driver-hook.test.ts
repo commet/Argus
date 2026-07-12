@@ -96,10 +96,11 @@ describe('argus-driver SessionStart 훅 (P2-5)', () => {
       ],
     });
     const out = run();
-    expect(out).toContain('2건');
-    expect(out).toContain('argus_settle');
-    expect(out).toContain(path.join(repoDir, '.argus', 'LOGBOOK.md')); // 규칙 18: 경로 1급 표면
-    expect(out).not.toContain('SECRET-PREDICATE'); // 규칙 19: 본문 미주입
+    const context = JSON.parse(out).hookSpecificOutput.additionalContext as string;
+    expect(context).toContain('2건');
+    expect(context).toContain('argus_settle');
+    expect(context).toContain(path.join(repoDir, '.argus', 'LOGBOOK.md')); // 규칙 18: 경로 1급 표면
+    expect(context).not.toContain('SECRET-PREDICATE'); // 규칙 19: 본문 미주입
   });
 
   it('④ fresh + due 0건 — 침묵 (빈 잔소리 없음)', () => {
