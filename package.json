@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "preflight:deploy": "node scripts/check-deploy-env.mjs",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint src --max-warnings=145",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -59,5 +60,9 @@
     "tsx": "^4.21.0",
     "typescript": "5.9.3",
     "vitest": "^4.1.0"
+  },
+  "overrides": {
+    "esbuild": "0.28.1",
+    "postcss": "8.5.16"
   }
 }

@@ -136,3 +136,23 @@ export function coerceLeanFlags(obj: unknown): LeanFlag[] {
     .filter((f, i, arr) => arr.findIndex((g) => g.text === f.text) === i)
     .slice(0, 6);
 }
+
+/** Replace only verbatim spans the high-precision scan found. Longest spans go
+ * first so a shorter overlapping quote cannot leave a directional fragment. */
+export function neutralizeLeanText(text: string, flags: LeanFlag[] | undefined): string {
+  if (!text || !flags?.length) return text;
+  let out = text;
+  for (const flag of [...flags].sort((a, b) => b.text.length - a.text.length)) {
+    const exact = out.indexOf(flag.text);
+    if (exact >= 0) {
+      out = `${out.slice(0, exact)}${flag.neutral}${out.slice(exact + flag.text.length)}`;
+      continue;
+    }
+    const trimmed = flag.text.replace(/[.。!?！？…]+\s*$/u, '').trim();
+    const fallback = trimmed ? out.indexOf(trimmed) : -1;
+    if (fallback >= 0) {
+      out = `${out.slice(0, fallback)}${flag.neutral}${out.slice(fallback + trimmed.length)}`;
+    }
+  }
+  return out;
+}

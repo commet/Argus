@@ -16,6 +16,7 @@ async function callJson(system: string, user: string): Promise<any> {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': KEY!, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, system, messages: [{ role: 'user', content: user }] }),
+    signal: AbortSignal.timeout(60000),
   });
   const j: any = await r.json(); if (j.error) throw new Error(j.error.message);
   let raw = j.content.map((c: any) => c.text || '').join('').trim();
@@ -28,6 +29,7 @@ async function callTool(system: string, user: string): Promise<any> {
     method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': KEY!, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, system, messages: [{ role: 'user', content: user }],
       tools: [{ name: HONESTY_SCAN_TOOL_NAME, input_schema: HONESTY_SCAN_SCHEMA }], tool_choice: { type: 'tool', name: HONESTY_SCAN_TOOL_NAME } }),
+    signal: AbortSignal.timeout(60000),
   });
   const j: any = await r.json(); if (j.error) throw new Error(j.error.message);
   return j.content.find((c: any) => c.type === 'tool_use')?.input;
@@ -40,6 +42,7 @@ const CASES = [
 ];
 
 (async () => {
+  let failed = false;
   console.log('██████ honesty-scan 고정밀 검증 ██████\n');
   for (const problem of CASES) {
     console.log('════ ', problem);
@@ -61,6 +64,7 @@ const CASES = [
         console.log(`        → 툴팁: "${(f.stake || '아직 확인 안 된 바깥 사실이에요')}${f.where ? ` — 확인: ${f.where}` : ' — 직접 확인해 보세요'}"`);
       }
       console.log(`  verbatim 매칭: ${located}/${flags.length}${missing ? ` (❓ ${missing}개 산출에 없음 — 정밀도 위험)` : ' (전부 위치 확인)'}\n`);
-    } catch (e: any) { console.log(`  ERROR ${e.message}\n`); }
+    } catch (e: any) { failed = true; console.log(`  ERROR ${e.message}\n`); }
   }
+  if (failed) process.exit(1);
 })();

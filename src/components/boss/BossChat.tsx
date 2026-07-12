@@ -16,13 +16,14 @@ import { applyBossCalibration, applyExplicitCalibration } from '@/lib/observatio
 import { track } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { AnimatedPlaceholder } from '@/components/ui/AnimatedPlaceholder';
-import { getPersonalityType as getType } from '@/lib/boss/personality-types';
+import { getLocalizedPersonalityType, getPersonalityType as getType } from '@/lib/boss/personality-types';
 import { getYearElement } from '@/lib/boss/saju-interpreter';
 import { DailyMoodIndicator } from './DailyMoodIndicator';
 import { PastVerdictRecap } from './PastVerdictRecap';
 import { getCurrentLanguage } from '@/lib/i18n';
 import { useT } from '@/contexts/LocaleProvider';
 import { useLocale } from '@/hooks/useLocale';
+import { withLocale } from '@/lib/locale-path';
 
 // ─── 대화 온도 추적 ───
 
@@ -228,7 +229,7 @@ export function BossChat() {
     axes, gender, birthYear, sajuProfile, yearMonthProfile, zodiacProfile,
     messages, isStreaming, streamingText,
     setStreaming, updateStreamingText, commitAssistantMessage,
-    addUserMessage, getPersonalityType, reset,
+    addUserMessage, reset,
     loadedAgentId, saveAsAgent,
   } = useBossStore();
 
@@ -258,8 +259,8 @@ export function BossChat() {
   // question.
   const forceVerdictRef = useRef(false);
 
-  const typeData = getPersonalityType();
   const typeCode = `${axes.ei}${axes.sn}${axes.tf}${axes.jp}`;
+  const typeData = getLocalizedPersonalityType(typeCode, locale);
   const elementInfo = getYearElement(birthYear);
   const ymp = yearMonthProfile;
   // 저장된 팀장이면 관찰 개수 (구체성 지표)
@@ -435,7 +436,7 @@ export function BossChat() {
         },
       },
     );
-  }, [typeData, sajuProfile, gender, setStreaming, updateStreamingText, commitAssistantMessage, locale]);
+  }, [typeData, sajuProfile, yearMonthProfile, gender, bossMood, loadedAgentId, setStreaming, updateStreamingText, commitAssistantMessage, locale]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();
@@ -756,7 +757,7 @@ export function BossChat() {
                   if (id) {
                     // 저장 후 URL에 ID 반영
                     e.preventDefault();
-                    window.location.href = `/workspace?reviewer=${id}`;
+                    window.location.href = withLocale(locale, `/workspace?reviewer=${id}`);
                   }
                 }
               }}
@@ -912,6 +913,7 @@ export function BossChat() {
             rows={1}
             maxLength={500}
             disabled={isStreaming}
+            aria-label={L('팀장에게 보낼 답변', 'Reply to manager')}
           />
           <AnimatedPlaceholder
             texts={getFollowUps(bossMood)}
@@ -924,6 +926,7 @@ export function BossChat() {
             onClick={handleSend}
             disabled={!input.trim() || isStreaming}
             className="bc-send"
+            aria-label={L('답변 보내기', 'Send reply')}
           >
             <Send size={15} />
           </button>

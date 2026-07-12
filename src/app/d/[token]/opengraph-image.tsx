@@ -7,12 +7,17 @@ export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 async function fetchLink(token: string) {
-  const { data } = await adminClient()
-    .from('shared_links')
-    .select('title, content, context')
-    .eq('token', token)
-    .single();
-  return data as { title: string | null; content: string; context: string | null } | null;
+  try {
+    const { data, error } = await adminClient()
+      .from('shared_links')
+      .select('title, content, context')
+      .eq('token', token)
+      .maybeSingle();
+    if (error) return null;
+    return data as { title: string | null; content: string; context: string | null } | null;
+  } catch {
+    return null;
+  }
 }
 
 function clipped(text: string, n: number): string {

@@ -9,21 +9,18 @@ import {
   setModuleLocale,
   getCurrentLanguage,
 } from '@/lib/i18n';
-import { getStorage, STORAGE_KEYS } from '@/lib/storage';
 import { stripLocale } from '@/lib/locale-path';
-import type { Settings } from '@/stores/types';
 
 /**
- * The user's EXPLICIT locale choice, read on the client: a `?lang` override
- * first, then the language they saved in Settings. Returns null when the user
- * has made no explicit choice (so the server's Accept-Language seed stands).
+ * A query-string override is the only client signal allowed to supersede the
+ * route. A saved preference must not rewrite an explicitly opened /en or /ko
+ * URL; locale-less requests already use the preference cookie in proxy.ts.
  */
 function explicitClientLocale(): Locale | null {
   if (typeof window === 'undefined') return null;
   const url = new URLSearchParams(window.location.search).get('lang');
   if (url === 'ko' || url === 'en') return url;
-  const stored = getStorage<Partial<Settings>>(STORAGE_KEYS.SETTINGS, {}).language;
-  return stored === 'ko' || stored === 'en' ? stored : null;
+  return null;
 }
 
 /**
@@ -63,14 +60,16 @@ export function LocaleProvider({
   const router = useRouter();
   const pathname = usePathname();
 
-  // The user's EXPLICIT choice (?lang, then saved Settings language) must win
-  // over the browser's Accept-Language the proxy fell back to — otherwise someone
-  // who chose Korean on an English browser is forced to English. But the URL is
-  // authoritative here, so we don't flip the locale in place (that would render
-  // Korean under an /en URL); we persist the choice to the argus-locale cookie
-  // and NAVIGATE to the matching locale route, keeping URL and content in sync.
-  // Self-limiting: after the redirect the route IS the explicit locale, so the
-  // cookie matches and no further navigation fires (no loop).
+  // The root layout does not remount on client-side locale navigation. Keep
+  // the document language aligned so screen readers and browser translation do
+  // not keep treating an /en page as Korean (or vice versa).
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
+
+  // The route is authoritative. Persist it so future locale-less requests use
+  // the same language. `?lang=` remains an explicit one-shot override and is
+  // normalized by navigating to the matching locale-prefixed route.
   useEffect(() => {
     const explicit = explicitClientLocale();
     const active = explicit ?? seed;
@@ -83,8 +82,8 @@ export function LocaleProvider({
       const hash = typeof window !== 'undefined' ? window.location.hash : '';
       router.replace(`/${explicit}${rest === '/' ? '' : rest}${search}${hash}`);
     }
-    // Mount-only: the stored choice is stable for the session; useLocaleSwitch
-    // handles in-session changes by navigating + updating the cookie itself.
+    // Mount-only: useLocaleSwitch handles in-session changes by navigating and
+    // updating the cookie itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

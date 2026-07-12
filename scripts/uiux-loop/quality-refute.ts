@@ -20,6 +20,7 @@ async function call(system: string, user: string, json: boolean): Promise<any> {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': KEY!, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, system, messages: [{ role: 'user', content: user }] }),
+    signal: AbortSignal.timeout(60000),
   });
   const j: any = await r.json();
   if (j.error) throw new Error(j.error.message);
@@ -48,6 +49,7 @@ const OPEN_CASES = [
 ];
 
 (async () => {
+  let failed = false;
   console.log('██████ OPEN 산출 품질 — 독립 적대 심판 REFUTE ██████\n');
   for (const problem of OPEN_CASES) {
     console.log('════════════════════════════════════════');
@@ -71,6 +73,7 @@ const OPEN_CASES = [
       show('world_fact(단정)', v.world_fact_asserted);
       show('smuggled_lean(판정 누출)', v.smuggled_lean);
       console.log(`  판정: ${v.verdict}\n`);
-    } catch (e: any) { console.log(`  ERROR ${e.message}\n`); }
+    } catch (e: any) { failed = true; console.log(`  ERROR ${e.message}\n`); }
   }
+  if (failed) process.exit(1);
 })();

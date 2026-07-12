@@ -25,7 +25,7 @@ async function call<T = Record<string, unknown>>(system: string, user: string): 
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-api-key': KEY!, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, system, messages: [{ role: 'user', content: user }] }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(60000),
       });
       const j = (await r.json()) as AnthropicResp;
       if (j.error) throw new Error(j.error.message);
@@ -92,6 +92,10 @@ async function pool<T, R>(items: T[], n: number, fn: (t: T) => Promise<R>): Prom
   console.log('██████ 대중 질문 품질 루프 — 12 일상 질문 × 독립 심판 ██████\n');
   const scores = (await pool(SCENARIOS, 4, scoreOne)).filter(Boolean) as Score[];
   if (!scores.length) { console.error('모든 시나리오 실패 — 채점 불가'); process.exit(1); }
+  if (scores.length !== SCENARIOS.length) {
+    console.error(`일부 시나리오 실패 — ${scores.length}/${SCENARIOS.length}만 채점됨`);
+    process.exit(1);
+  }
   const axes = ['level', 'coherence', 'soundness', 'neutrality'] as const;
   console.log('질문'.padEnd(20), 'type'.padEnd(12), 'lvl coh snd ntr | 최악');
   for (const s of scores.sort((a, b) => (a.level + a.coherence + a.soundness + a.neutrality) - (b.level + b.coherence + b.soundness + b.neutrality))) {

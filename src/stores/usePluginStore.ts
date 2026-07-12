@@ -15,6 +15,7 @@ interface PluginState {
   bearings: PluginBearing[];
   loading: boolean;
   loaded: boolean;
+  loadError: boolean;
   loadData: () => Promise<void>;
   settleDecision: (id: string, outcome: 'happened' | 'avoided' | 'partial') => Promise<void>;
   deferDecision: (id: string, checkBy: string) => Promise<void>;
@@ -25,16 +26,17 @@ export const usePluginStore = create<PluginState>((set, get) => ({
   bearings: [],
   loading: false,
   loaded: false,
+  loadError: false,
   loadData: async () => {
-    set({ loading: true });
+    set({ loading: true, loadError: false });
     try {
       const [decisions, bearings] = await Promise.all([
         fetchFromSupabase<PluginDecision>('plugin_decisions'),
         fetchFromSupabase<PluginBearing>('plugin_bearings'),
       ]);
-      set({ decisions, bearings, loading: false, loaded: true });
+      set({ decisions, bearings, loading: false, loaded: true, loadError: false });
     } catch {
-      set({ loading: false, loaded: true });
+      set({ loading: false, loaded: true, loadError: true });
     }
   },
   settleDecision: async (id, outcome) => {

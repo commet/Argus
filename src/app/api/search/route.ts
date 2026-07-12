@@ -42,6 +42,24 @@ export async function POST(req: NextRequest) {
   const originError = validateOrigin(req);
   if (originError) return originError;
 
+  // Only a payload that can reach Brave should consume search quota.
+  let query: string;
+  let locale: unknown;
+  try {
+    const body = await req.json();
+    if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+      return NextResponse.json({ error: 'A valid search query is required.' }, { status: 400 });
+    }
+    const candidate = body as { query?: unknown; locale?: unknown };
+    if (typeof candidate.query !== 'string' || candidate.query.trim().length === 0 || candidate.query.length > 300) {
+      return NextResponse.json({ error: 'A valid search query is required.' }, { status: 400 });
+    }
+    query = candidate.query;
+    locale = candidate.locale;
+  } catch {
+    return NextResponse.json({ error: 'A valid search query is required.' }, { status: 400 });
+  }
+
   if (!BRAVE_API_KEY) {
     if (!warnedMissingKey) {
       console.warn('[api/search] BRAVE_SEARCH_API_KEY is not set — web search is disabled.');
@@ -65,10 +83,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { query, locale } = await req.json();
-    if (!query || typeof query !== 'string' || query.length > 300) {
-      return NextResponse.json({ error: 'A valid search query is required.' }, { status: 400 });
-    }
     // en-first product, but default 'ko' to preserve behavior when the caller omits it.
     const searchLang = locale === 'en' ? 'en' : 'ko';
 
@@ -86,7 +100,8 @@ export async function POST(req: NextRequest) {
     });
 
     if (!res.ok) {
-      return NextResponse.json({ results: [] });
+      console.error('[api/search] Brave request failed:', res.status);
+      return NextResponse.json({ error: 'Search provider unavailable.', results: [] }, { status: 502 });
     }
 
     const data = await res.json();
@@ -100,7 +115,8 @@ export async function POST(req: NextRequest) {
     }));
 
     return NextResponse.json({ results });
-  } catch {
-    return NextResponse.json({ results: [] });
+  } catch (error) {
+    console.error('[api/search] Brave request error:', error);
+    return NextResponse.json({ error: 'Search provider unavailable.', results: [] }, { status: 502 });
   }
 }

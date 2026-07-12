@@ -95,6 +95,7 @@ describe('runInitialAnalysis pins request_type on the snapshot (R31+R32 together
   it('an open classification keeps its plan and is pinned open', async () => {
     mockJson.mockResolvedValue({
       real_question: '핵심 질문은?',
+      insight: '지금 이직하는 쪽이 정답이다.',
       framing_confidence: 82,
       hidden_assumptions: ['가정 1'],
       skeleton: ['단계 1', '단계 2'],
@@ -104,5 +105,6 @@ describe('runInitialAnalysis pins request_type on the snapshot (R31+R32 together
     const { snapshot } = await runInitialAnalysis('이직할지 남을지 큰 결정이야');
     expect(snapshot.request_type).toBe('open');
     expect(snapshot.skeleton.length).toBeGreaterThan(0);
+    expect(snapshot.insight).toBe('핵심 질문은?');
   });
 });

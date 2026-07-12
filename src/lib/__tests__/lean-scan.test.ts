@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { coerceLeanFlags, buildLeanScanPrompt, locateFlag } from '../lean-scan';
+import { coerceLeanFlags, buildLeanScanPrompt, locateFlag, neutralizeLeanText } from '../lean-scan';
 
 describe('coerceLeanFlags', () => {
   it('keeps only flags with both text and neutral, trims', () => {
@@ -34,5 +34,17 @@ describe('buildLeanScanPrompt', () => {
   it('re-exports locateFlag (verbatim locate)', () => {
     expect(locateFlag('그래서 지금은 안 사도 돼요.', '지금은 안 사도 돼요')).toBeGreaterThanOrEqual(0);
     expect(locateFlag('무관한 문장', '없는 것')).toBe(-1);
+  });
+});
+
+describe('neutralizeLeanText', () => {
+  it('replaces only a located verdict and preserves surrounding prose', () => {
+    expect(neutralizeLeanText('결론: 지금은 안 사도 돼요. 다음 질문입니다.', [
+      { text: '지금은 안 사도 돼요.', neutral: '불편이 새 값만큼인지에 달렸어요.' },
+    ])).toBe('결론: 불편이 새 값만큼인지에 달렸어요. 다음 질문입니다.');
+  });
+
+  it('leaves text unchanged when the quoted verdict is not present', () => {
+    expect(neutralizeLeanText('중립 문장', [{ text: '없는 판정', neutral: '대체' }])).toBe('중립 문장');
   });
 });

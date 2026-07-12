@@ -95,6 +95,24 @@ export async function POST(req: NextRequest) {
   const reqError = validateRequest(req);
   if (reqError) return reqError;
 
+  // Invalid JSON or payloads are not model attempts and must not consume quota.
+  let body: Record<string, unknown>;
+  try {
+    const parsed = await req.json();
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+    }
+    body = parsed as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+  }
+
+  const { messages, system } = body;
+  if (!validateSystemPrompt(system) || !validateMessages(messages)) {
+    return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+  }
+  const maxTokens = normalizeMaxTokens(body.maxTokens);
+
   // 1. Authenticate (optional — anonymous trial allowed)
   const auth = await verifyAuth(req);
 
@@ -154,20 +172,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 4. Validate input
+  // 4. Call the provider
   try {
-    const body = await req.json();
-    const { messages, system } = body;
-    const maxTokens = normalizeMaxTokens(body.maxTokens);
-
-    if (!validateSystemPrompt(system)) {
-      return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
-    }
-
-    if (!validateMessages(messages)) {
-      return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
-    }
-
     const client = new Anthropic({ apiKey });
     const stream = body.stream === true;
 

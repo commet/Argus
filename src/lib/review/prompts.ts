@@ -98,6 +98,74 @@ ${concerns}
 }
 
 // ---------------------------------------------------------------------------
+// Quick Review: one bounded call for short documents
+// ---------------------------------------------------------------------------
+
+export function buildQuickReviewPrompt(
+  units: ArtifactUnit[],
+  ctx: UserReviewContext,
+  unitLimit: number,
+  today: string,
+): { system: string; user: string } {
+  const context = [
+    ctx.audience_hint && `Audience hint: ${ctx.audience_hint}`,
+    ctx.decision_wanted && `Decision wanted: ${ctx.decision_wanted}`,
+    ctx.biggest_worry && `Biggest worry: ${ctx.biggest_worry}`,
+    ctx.concerns?.length && `Requested concerns: ${ctx.concerns.join(', ')}`,
+  ].filter(Boolean).join('\n');
+
+  const system = `${SPINE}
+
+This is the bounded quick-review path for a short document. Produce the
+judgment map and receipt fields in one pass. Apply the complete five-part
+judgment spine: core_question, claim_evidence, hidden_assumption,
+human_judgment, falsifiable_followup.
+
+Keep the result selective and concise:
+- Write every user-facing value in Korean, even though these instructions and
+  JSON keys are in English.
+- When the document contains unsupported causal claims, untested assumptions,
+  or a human-only decision, return 2 to 5 material findings. Return zero only
+  when there is genuinely no material issue. Do not manufacture one per lens.
+- Every finding and obligation must cite at least one supplied unit_id.
+- Copy one exact snake_case lens_id from the five values listed above into every
+  finding. Never translate, combine, or omit lens_id.
+- Separate claims, evidence, and assumptions. Do not treat repetition as proof.
+- current_heading describes the document's present direction without deciding
+  for the user.
+- Return at most 3 judgment obligations and 3 falsifiable followups.
+- followup check_by must be a real date after ${today}.
+- Complete every JSON field below; use empty arrays instead of filler.`;
+
+  const user = `Document units:
+${renderUnits(units, unitLimit)}
+
+${context}
+
+Return this JSON shape:
+{
+  "profile": { "document_type": "...", "intent": "...", "audience": "...", "stakes": "low|medium|high", "artifact_maturity": "...", "source_confidence": 0.0 },
+  "core_question": "the actual decision question",
+  "explicit_recommendation": "stated recommendation or empty",
+  "implicit_recommendation": "implied recommendation or empty",
+  "main_claims": [ { "text": "...", "status": "supported|weak|unsupported|human_check|contradicted", "unit_ids": ["..."], "rationale": "...", "evidence_needed": "...", "fix_suggestion": "...", "depends_on_claim_ids": ["C1"] } ],
+  "evidence_items": [ { "text": "...", "unit_ids": ["..."], "kind": "internal|external_cited|asserted", "supports_claim_ids": ["C1"] } ],
+  "assumptions": [ { "text": "...", "unit_ids": ["..."], "if_false": "..." } ],
+  "tradeoffs": [ { "text": "...", "unit_ids": ["..."] } ],
+  "stakeholders": [ { "role": "...", "likely_objection": "...", "unit_ids": ["..."] } ],
+  "open_questions": [ { "text": "...", "unit_ids": ["..."] } ],
+  "decision_points": [ { "text": "...", "human_only": true, "unit_ids": ["..."] } ],
+  "missing_sections": [ { "label": "...", "why_it_matters": "..." } ],
+  "findings": [ { "lens_id": "core_question|claim_evidence|hidden_assumption|human_judgment|falsifiable_followup", "title": "...", "detail": "...", "severity": "minor|caution|critical", "confidence": "low|medium|high", "suggested_action": "a concrete check", "unit_ids": ["..."] } ],
+  "current_heading": "neutral summary of the document's current direction",
+  "judgment_obligations": [ { "statement": "...", "owner": "...", "why_human": "...", "decision_needed_by": "...", "evidence_needed": "...", "unit_ids": ["..."] } ],
+  "followups": [ { "predicate": "...", "pass_condition": "...", "fail_condition": "...", "check_by": "YYYY-MM-DD" } ]
+}`;
+
+  return { system, user };
+}
+
+// ---------------------------------------------------------------------------
 // 2. Lens Review: one lens → findings only
 // ---------------------------------------------------------------------------
 

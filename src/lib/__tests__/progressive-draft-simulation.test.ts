@@ -144,6 +144,18 @@ describe('ProgressiveStore Draft Tree', () => {
     useProgressiveStore.setState({ sessions: [], currentSessionId: null });
   });
 
+  describe('closing follow-up preference', () => {
+    it('persists an explicit decline and lets the user reopen the question', () => {
+      const sid = createProgressiveSession();
+
+      api().setSealPromptDismissed(true);
+      expect(currentSession(sid).seal_prompt_dismissed_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+      api().setSealPromptDismissed(false);
+      expect(currentSession(sid).seal_prompt_dismissed_at).toBeNull();
+    });
+  });
+
   // ────────────────────────────────────────────
   // Initial draft auto-creation
   // ────────────────────────────────────────────

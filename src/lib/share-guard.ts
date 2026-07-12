@@ -30,28 +30,27 @@ export async function recordAndCheckShare(
   opts: { target?: string; context?: string } = {},
 ): Promise<ShareGuardResult> {
   const admin = adminClient();
-  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: allowed, error } = await admin.rpc('record_share_if_allowed', {
+    p_user_id: userId,
+    p_channel: channel,
+    p_target: opts.target ?? null,
+    p_context: opts.context ?? null,
+    p_limit: DAILY_SHARE_LIMIT,
+    p_scope_channel: null,
+  });
 
-  const { count } = await admin
-    .from('share_log')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .gte('created_at', since24h);
+  if (error) {
+    console.error('[share-guard] atomic rate-limit RPC failed:', error.message);
+    return { ok: false, status: 503, error: 'Sharing is temporarily unavailable. Please try again shortly.' };
+  }
 
-  if ((count ?? 0) >= DAILY_SHARE_LIMIT) {
+  if (allowed !== true) {
     return {
       ok: false,
       status: 429,
       error: `Daily share limit (${DAILY_SHARE_LIMIT}) reached. Try again tomorrow.`,
     };
   }
-
-  await admin.from('share_log').insert({
-    user_id: userId,
-    channel,
-    target: opts.target ?? null,
-    context: opts.context ?? null,
-  });
 
   return { ok: true };
 }

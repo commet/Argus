@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Plus, Users, Mail, Check, X, Crown, Shield, User, Trash2, Copy, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Plus, Users, Mail, Check, X, Crown, Shield, User, Trash2, ArrowLeft } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { LocaleLink } from '@/components/ui/LocaleLink';
 
@@ -15,7 +15,7 @@ export default function TeamsPage() {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const {
-    teams, members, invites, currentTeamId,
+    teams, members, invites, currentTeamId, loadError,
     loadTeams, createTeam, setCurrentTeam,
     loadMembers, inviteMember, removeMember,
     loadInvites, loadMyInvites, acceptInvite, declineInvite,
@@ -30,6 +30,7 @@ export default function TeamsPage() {
   const [inviteError, setInviteError] = useState('');
   const [myInvites, setMyInvites] = useState<TeamInvite[]>([]);
   const [creating, setCreating] = useState(false);
+  const [teamError, setTeamError] = useState('');
 
   useEffect(() => {
     loadTeams();
@@ -49,10 +50,18 @@ export default function TeamsPage() {
   const handleCreateTeam = async () => {
     if (!newTeamName.trim()) return;
     setCreating(true);
-    await createTeam(newTeamName.trim());
-    setNewTeamName('');
-    setShowCreate(false);
-    setCreating(false);
+    try {
+      const team = await createTeam(newTeamName.trim());
+      if (!team) {
+        setTeamError(L('팀을 만들지 못했습니다. 서버 상태를 확인한 뒤 다시 시도해 주세요.', 'Could not create the team. Please try again after checking the connection.'));
+        return;
+      }
+      setTeamError('');
+      setNewTeamName('');
+      setShowCreate(false);
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleInvite = async () => {
@@ -107,6 +116,8 @@ export default function TeamsPage() {
           {L('팀원들과 함께 전략적 판단을 내릴 수 있습니다.', 'Make strategic decisions together with your teammates.')}
         </p>
       </div>
+      {teamError && <p className="text-[12px] text-[var(--danger)]" role="alert">{teamError}</p>}
+      {loadError && <p className="text-[12px] text-[var(--danger)]" role="alert">{L('팀 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'Could not load team data. Please try again shortly.')}</p>}
 
       {/* ── Incoming invites ── */}
       {myInvites.length > 0 && (
@@ -245,7 +256,11 @@ export default function TeamsPage() {
                   </div>
                   {member.role !== 'owner' && (
                     <button
-                      onClick={() => removeMember(member.id)}
+                      onClick={async () => {
+                        const ok = await removeMember(member.id);
+                        if (!ok) setTeamError(L('멤버를 삭제하지 못했습니다. 멤버는 그대로 유지됩니다.', 'Could not remove the member. They remain on the team.'));
+                        else setTeamError('');
+                      }}
                       className="-m-1.5 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
                     >
                       <Trash2 size={13} />

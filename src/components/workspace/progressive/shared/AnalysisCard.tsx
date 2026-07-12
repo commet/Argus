@@ -69,17 +69,29 @@ export function AnalysisCard({
   // they bailed mid-paragraph every time. A summary you can absorb in one
   // glance fixes that; depth is one tap away for anyone who wants it.
   const [detailOpen, setDetailOpen] = useState(false);
+  const integrityPending = snapshot.version === 0 && (
+    snapshot.lean_flags === undefined || snapshot.honesty_flags === undefined
+  );
+  const initialOpenInsight = snapshot.version === 0
+    && !(snapshot.request_type && snapshot.request_type !== 'open')
+    ? snapshot.real_question
+    : snapshot.insight;
+  const safeInsight = integrityPending
+    ? undefined
+    : initialOpenInsight;
+  const visibleSkeleton = snapshot.version === 0 ? [] : snapshot.skeleton;
+  const visibleAssumptions = snapshot.version === 0 ? [] : snapshot.hidden_assumptions;
 
   // Compact peek — used during Q&A loop so the card doesn't dominate
   // while the user is still answering. Tap to expand.
   if (collapsed) {
-    const stepCount = snapshot.skeleton?.length ?? 0;
-    const assumeCount = snapshot.hidden_assumptions?.length ?? 0;
+    const stepCount = visibleSkeleton.length;
+    const assumeCount = visibleAssumptions.length;
     // Show the DOCUMENT, not the question. real_question == the question the user
     // is answering right below it, so echoing it here read as "질문이 두 개".
     // Lead with the insight (a statement, not a question) + what's accrued so far,
     // so the collapsed course = a peek at the deliverable, distinct from the Q.
-    const summaryLine = snapshot.insight || snapshot.skeleton?.[0] || snapshot.real_question;
+    const summaryLine = safeInsight || snapshot.real_question;
     return (
       <motion.button
         type="button"
@@ -124,11 +136,11 @@ export function AnalysisCard({
   }
 
   const skeletonDiff = hasChanges
-    ? diffItems(prevSnapshot.skeleton, snapshot.skeleton)
-    : snapshot.skeleton.map(s => ({ text: s, status: 'same' as const }));
+    ? diffItems(prevSnapshot.skeleton, visibleSkeleton)
+    : visibleSkeleton.map(s => ({ text: s, status: 'same' as const }));
   const assumptionDiff = hasChanges
-    ? diffItems(prevSnapshot.hidden_assumptions, snapshot.hidden_assumptions)
-    : snapshot.hidden_assumptions.map(a => ({ text: a, status: 'same' as const }));
+    ? diffItems(prevSnapshot.hidden_assumptions, visibleAssumptions)
+    : visibleAssumptions.map(a => ({ text: a, status: 'same' as const }));
 
   const activeAssumptions = assumptionDiff.filter(d => d.status !== 'removed');
   const removedAssumptions = assumptionDiff.filter(d => d.status === 'removed');
@@ -189,7 +201,7 @@ export function AnalysisCard({
             {/* Insight — pull-quote style. Left rail alone carries the visual
                 cue; no sparkle icon needed. */}
             <AnimatePresence>
-              {snapshot.insight && (
+              {safeInsight && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden mb-6">
                   <div className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3">
@@ -197,7 +209,7 @@ export function AnalysisCard({
                       {L('핵심', 'Key Insight')}
                     </div>
                     <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-[1.6] font-medium">
-                      {renderText(snapshot.insight)}
+                      {renderText(safeInsight)}
                     </p>
                   </div>
                 </motion.div>

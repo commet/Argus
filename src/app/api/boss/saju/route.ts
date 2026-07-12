@@ -32,6 +32,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Request too large.' }, { status: 413 });
   }
 
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+  }
+
+  const year = Number(body.year);
+  const month = Number(body.month);
+  const day = Number(body.day);
+  const hour = body.hour === undefined ? undefined : Number(body.hour);
+  const minute = body.minute === undefined ? undefined : Number(body.minute);
+  const gender = body.gender;
+  const valid = Number.isInteger(year) && year >= 1900 && year <= 2100
+    && Number.isInteger(month) && month >= 1 && month <= 12
+    && Number.isInteger(day) && day >= 1 && day <= 31
+    && (hour === undefined || (Number.isInteger(hour) && hour >= 0 && hour <= 23))
+    && (minute === undefined || (Number.isInteger(minute) && minute >= 0 && minute <= 59))
+    && (gender === '남' || gender === '여');
+  if (!valid) {
+    return NextResponse.json({ error: 'Invalid birth data.' }, { status: 400 });
+  }
+
   const ip = req.headers.get('x-real-ip')
     || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || 'unknown';
@@ -40,18 +63,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { year, month, day, hour, minute, gender } = await req.json();
-
-    if (!year || !month || !gender) {
-      return NextResponse.json({ error: 'year, month, and gender are required.' }, { status: 400 });
-    }
-
     const profile = await interpretSaju({
-      year: Number(year),
-      month: Number(month),
-      day: day ? Number(day) : undefined,
-      hour: hour ? Number(hour) : undefined,
-      minute: minute ? Number(minute) : undefined,
+      year,
+      month,
+      day,
+      hour,
+      minute,
       gender,
     });
 

@@ -154,6 +154,17 @@ describe('normalizeMaxTokens', () => {
     expect(normalizeMaxTokens('3000')).toBe(3000);
     expect(normalizeMaxTokens('999999')).toBe(8192);
   });
+
+  it('defaults invalid, non-positive, and non-finite values', () => {
+    expect(normalizeMaxTokens(-1)).toBe(2000);
+    expect(normalizeMaxTokens('-50')).toBe(2000);
+    expect(normalizeMaxTokens(Number.NaN)).toBe(2000);
+    expect(normalizeMaxTokens(Number.POSITIVE_INFINITY)).toBe(2000);
+  });
+
+  it('returns an integer token count', () => {
+    expect(normalizeMaxTokens(1234.9)).toBe(1234);
+  });
 });
 
 // ─── API Key Validation ───

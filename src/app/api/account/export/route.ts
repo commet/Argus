@@ -9,6 +9,12 @@ import { USER_DATA_TABLES } from '@/lib/user-data-tables';
  * owns it. Data ownership/portability is a trust dimension: you can take it with you.
  */
 export async function GET(req: NextRequest) {
+  // Reject anonymous callers before exposing deployment configuration state.
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -16,10 +22,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Service unavailable.' }, { status: 503 });
   }
 
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-  }
   const token = authHeader.slice(7);
   const authClient = createClient(url, anonKey);
   const { data: { user }, error: authErr } = await authClient.auth.getUser(token);

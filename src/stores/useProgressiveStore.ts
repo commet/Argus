@@ -248,6 +248,7 @@ interface ProgressiveState {
    *  dm_feedback or the phase (the handler owns phase: 'testing' on entry,
    *  onFinalize on commit). The Decision Contract reads this. */
   setFalsification: (falsification: Falsification) => void;
+  setSealPromptDismissed: (dismissed: boolean) => void;
 
   // Final
   setFinalDeliverable: (text: string, finalMix?: MixResult | null) => void;
@@ -664,6 +665,7 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       worker_deploy_phase: 'none' as WorkerDeployPhase,
       mix: null,
       dm_feedback: null,
+      seal_prompt_dismissed_at: null,
       bearing_entries: [],
       final_deliverable: null,
       final_mix: null,
@@ -844,6 +846,18 @@ export const useProgressiveStore = create<ProgressiveState>((set, get) => ({
       falsification,
     }));
     persist(sessions);
+    set({ sessions });
+  },
+
+  setSealPromptDismissed: (dismissed) => {
+    const { currentSessionId } = get();
+    if (!currentSessionId) return;
+    const sessions = updateSession(get().sessions, currentSessionId, () => ({
+      seal_prompt_dismissed_at: dismissed ? new Date().toISOString() : null,
+    }));
+    // A closing choice is terminal user intent. Sync immediately so navigating
+    // away right after declining cannot resurrect the prompt on another device.
+    persist(sessions, { immediate: currentSessionId });
     set({ sessions });
   },
 

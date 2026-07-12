@@ -124,7 +124,10 @@ async function loadAndMergeUncached<T extends Timestamped>(
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
-    if (error || !data) return local;
+    if (error || !data) {
+      reportSyncFailure(`pull:${table}`, { message: error?.message || 'No data returned' });
+      return local;
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = (data || []) as any[];
@@ -157,6 +160,7 @@ async function loadAndMergeUncached<T extends Timestamped>(
     return merged;
   } catch (err) {
     handleError(err, `db.loadAndMerge:${table}`);
+    reportSyncFailure(`pull:${table}`, { message: err instanceof Error ? err.message : 'unknown' });
     return local; // Network error — fall back to local
   }
 }
@@ -212,11 +216,11 @@ export async function fetchFromSupabase<T extends Record<string, unknown> | obje
       .eq('user_id', userId)
       .order(orderBy, { ascending: true });
 
-    if (error) return [];
+    if (error) throw error;
     return (data || []) as T[];
   } catch (err) {
     handleError(err, `db.fetch:${table}`);
-    return [];
+    throw err;
   }
 }
 

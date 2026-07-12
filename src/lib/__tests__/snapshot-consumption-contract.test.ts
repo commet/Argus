@@ -33,6 +33,7 @@ const CONSUMPTION_CONTRACT: Record<string, Site> = {
   execution_plan: 'workers',             // initWorkers → the crew
   insight: 'mix-context',
   honesty_flags: 'ui',                   // loop-17: HonestyShaded "확인 필요" 음영
+  lean_flags: 'ui',                      // first-frame verdict audit + neutral rewrite gate
   framing_confidence: 'routing',
   framing_locked: 'ui',
   framing_override_reason: 'ui',

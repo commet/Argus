@@ -6,8 +6,8 @@ import { getPersonalityType, getLocalizedPersonalityType } from '@/lib/boss/pers
 import type { ZodiacProfile } from '@/lib/boss/zodiac';
 import { buildZodiacProfile } from '@/lib/boss/zodiac';
 import { useAgentStore } from '@/stores/useAgentStore';
-import { summarizeBossChatTopic, extractBossChatObservation, applyBossCalibration } from '@/lib/observation-engine';
-import type { Agent, BossChatTurn } from '@/stores/agent-types';
+import { summarizeBossChatTopic, extractBossChatObservation } from '@/lib/observation-engine';
+import type { BossChatTurn } from '@/stores/agent-types';
 import { getCurrentLanguage } from '@/lib/i18n';
 
 // ━━━ Types ━━━
@@ -150,28 +150,34 @@ export const useBossStore = create<BossState>((set, get) => ({
   },
 
   loadSaju: async () => {
-    const { birthYear, birthMonth, gender } = get();
-    // 연월주 프로필은 이미 클라이언트에서 계산됨
-    // full 사주는 day가 있을 때만 의미 (현재는 미사용)
-    if (!birthYear || birthYear < 1940) return;
+    const { birthYear, birthMonth, birthDay, gender } = get();
+    // The server profile includes a day master, so it is meaningful only with
+    // a complete date. Partial dates already have the client-side year/month
+    // profile. English uses the Western zodiac profile and needs no Saju call.
+    if (
+      getCurrentLanguage() !== 'ko'
+      || birthYear < 1940
+      || birthYear > 2006
+      || birthMonth < 1
+      || birthMonth > 12
+      || birthDay < 1
+      || birthDay > 31
+    ) return;
     set({ sajuLoading: true });
     // Hard 5s ceiling so BossConfirmation never stalls if /api/boss/saju is slow.
     // Saju is optional — chat works without it.
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     try {
-      if (birthMonth >= 1 && birthMonth <= 12) {
-        // 연+월 있으면 API에 month pillar도 요청
-        const res = await fetch('/api/boss/saju', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ year: birthYear, month: birthMonth, gender }),
-          signal: controller.signal,
-        });
-        if (res.ok) {
-          const profile = await res.json();
-          set({ sajuProfile: profile });
-        }
+      const res = await fetch('/api/boss/saju', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year: birthYear, month: birthMonth, day: birthDay, gender }),
+        signal: controller.signal,
+      });
+      if (res.ok) {
+        const profile = await res.json();
+        set({ sajuProfile: profile });
       }
     } catch {
       // Saju is optional — chat works without it (timeout / network / abort all land here)

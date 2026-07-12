@@ -625,7 +625,10 @@ export interface ReviewJob {
 }
 
 export const DEFAULT_BUDGET: Record<AnalysisBudget['depth'], AnalysisBudget> = {
-  quick: { max_units: 60, max_tokens: 8000, max_lens_calls: 4, depth: 'quick' },
+  // Five is the complete judgment spine (question, evidence, assumptions,
+  // human judgment, falsifiable follow-up). Four silently dropped the return
+  // hook, while seven made even a short pasted memo wait on nine model calls.
+  quick: { max_units: 60, max_tokens: 8000, max_lens_calls: 5, depth: 'quick' },
   standard: { max_units: 160, max_tokens: 16000, max_lens_calls: 7, depth: 'standard' },
   deep: { max_units: 400, max_tokens: 32000, max_lens_calls: 9, depth: 'deep' },
 };

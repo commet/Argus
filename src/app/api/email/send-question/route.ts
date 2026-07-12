@@ -44,7 +44,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+  }
   const { to, subject, question, context, senderName, sessionId, workerId } = body;
   // en-first product, but default 'ko' to preserve behavior when the caller omits it.
   const lang: 'ko' | 'en' = body.locale === 'en' ? 'en' : 'ko';
@@ -55,8 +60,12 @@ export async function POST(req: NextRequest) {
   if (!question || typeof question !== 'string') {
     return NextResponse.json({ error: 'Question is required' }, { status: 400 });
   }
-  if (!sessionId || !workerId) {
+  if (typeof sessionId !== 'string' || !sessionId || typeof workerId !== 'string' || !workerId) {
     return NextResponse.json({ error: 'sessionId and workerId required for tracking' }, { status: 400 });
+  }
+
+  if (!process.env.RESEND_API_KEY) {
+    return NextResponse.json({ error: 'Email is not configured on this deployment.' }, { status: 503 });
   }
 
   // Rate limit: cap outbound emails per user per day. Without this an
@@ -67,13 +76,19 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
   const DAILY_EMAIL_LIMIT = 30;
-  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { count: sentToday } = await admin
-    .from('human_agent_messages')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .gte('created_at', since24h);
-  if ((sentToday ?? 0) >= DAILY_EMAIL_LIMIT) {
+  const { data: emailAllowed, error: rateError } = await admin.rpc('record_share_if_allowed', {
+    p_user_id: user.id,
+    p_channel: 'human_agent_email',
+    p_target: null,
+    p_context: 'worker_question',
+    p_limit: DAILY_EMAIL_LIMIT,
+    p_scope_channel: 'human_agent_email',
+  });
+  if (rateError) {
+    console.error('[email/send-question] rate-limit RPC failed:', rateError.message);
+    return NextResponse.json({ error: 'Email service temporarily unavailable.' }, { status: 503 });
+  }
+  if (emailAllowed !== true) {
     return NextResponse.json(
       { error: `Daily email limit (${DAILY_EMAIL_LIMIT}) reached. Try again tomorrow.` },
       { status: 429 },
@@ -82,10 +97,10 @@ export async function POST(req: NextRequest) {
 
   const replyToken = generateId();
   const safeQuestion = question.slice(0, 2000);
-  const safeContext = (context || '').slice(0, 5000);
-  const safeName = (senderName || 'Argus User').slice(0, 100);
+  const safeContext = typeof context === 'string' ? context.slice(0, 5000) : '';
+  const safeName = typeof senderName === 'string' && senderName ? senderName.slice(0, 100) : 'Argus User';
   const defaultSubject = lang === 'en' ? `Question from ${safeName}` : `${safeName}님의 질문`;
-  const safeSubject = (subject || defaultSubject).slice(0, 200);
+  const safeSubject = typeof subject === 'string' && subject ? subject.slice(0, 200) : defaultSubject;
 
   // Build email HTML — all user inputs HTML-escaped to prevent XSS
   const eName = escapeHtml(safeName);
@@ -98,10 +113,10 @@ export async function POST(req: NextRequest) {
   const replyNotice = lang === 'en'
     ? (inboundConfigured
       ? `Replying to this email will automatically feed into ${eName}'s decision process.`
-      : "Replies aren't automatically wired up yet — please reflect your input directly in the workspace.")
+      : 'Replies go to the Argus team, but are not automatically added to the workspace yet.')
     : (inboundConfigured
       ? `이 이메일에 답장하시면 ${eName}님의 의사결정 과정에 자동으로 반영됩니다.`
-      : '답장은 아직 자동으로 연결되지 않아요 — 내용은 워크스페이스에서 직접 반영해 주세요.');
+      : '답장은 Argus 팀에 전달되지만, 아직 워크스페이스에 자동 반영되지는 않아요.');
 
   const headerLabel = lang === 'en' ? 'Question request' : '질문 요청';
   const askLine = lang === 'en'
@@ -145,13 +160,18 @@ export async function POST(req: NextRequest) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const fromDomain = process.env.EMAIL_FROM_DOMAIN || 'argus.voyage';
     const fromAddress = `reply+${replyToken}@${fromDomain}`;
+    // Only use the token address when Resend inbound is configured to deliver it
+    // back to our webhook. Otherwise a real operator inbox must receive replies.
+    const replyTo = inboundConfigured
+      ? fromAddress
+      : (process.env.EMAIL_REPLY_TO || `hello@${fromDomain}`);
 
     await resend.emails.send({
       from: `${safeName} via Argus <${fromAddress}>`,
       to,
       subject: safeSubject,
       html,
-      replyTo: fromAddress,
+      replyTo,
     });
 
     // Track for reply matching (reuse the admin client from the rate-limit check).

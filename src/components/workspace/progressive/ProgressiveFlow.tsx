@@ -3,7 +3,6 @@
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { hasKnownUser } from '@/lib/auth';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import {
@@ -20,6 +19,7 @@ import {
   runDebate,
   runLeadSynthesis,
   scanHonesty,
+  scanLean,
   type NavigatorReview,
   type DebateResult,
 } from '@/lib/progressive-engine';
@@ -72,6 +72,8 @@ import { forksToQuestions, forkQuestionId } from '@/lib/fork-to-question';
 import { QuestionDiff } from '@/components/workspace/QuestionDiff';
 import { Falsification } from './Falsification';
 import { Button } from '@/components/ui/Button';
+import { LocaleLink } from '@/components/ui/LocaleLink';
+import { withLocale } from '@/lib/locale-path';
 import { extractPredicatesFromSession, contractStatus, deriveOpenChecks } from '@/lib/decision-contract';
 import { deriveCurrentBearing } from '@/lib/current-bearing';
 import { EASE, SPRING } from './shared/constants';
@@ -80,6 +82,7 @@ import { parsePartialAnalysis, parsePartialDoc, parsePartialFeedback } from '@/l
 import { AnalysisCard } from './shared/AnalysisCard';
 import { HonestyShaded } from './shared/HonestyShaded';
 import { locateFlag } from '@/lib/honesty-scan';
+import { neutralizeLeanText } from '@/lib/lean-scan';
 import { UpdateSummaryChip } from './shared/UpdateSummaryChip';
 import { QuestionCard } from './shared/QuestionCard';
 
@@ -700,7 +703,19 @@ function VoyagePrepSummary({
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  const topAssumption = (snapshot.hidden_assumptions || [])[0];
+  const integrityPending = snapshot.version === 0 && (
+    snapshot.lean_flags === undefined || snapshot.honesty_flags === undefined
+  );
+  const topAssumption = snapshot.version === 0 || integrityPending
+    ? undefined
+    : (snapshot.hidden_assumptions || [])[0];
+  const initialOpenInsight = snapshot.version === 0
+    && !(snapshot.request_type && snapshot.request_type !== 'open')
+    ? snapshot.real_question
+    : snapshot.insight;
+  const safeInsight = integrityPending
+    ? undefined
+    : initialOpenInsight;
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -751,20 +766,20 @@ function VoyagePrepSummary({
             <div className="mb-5">
               <div className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-[0.15em] mb-1.5 flex items-center gap-1.5">
                 <Compass size={11} className="shrink-0" />
-                {snapshot.insight
+                {safeInsight
                   ? L('분석이 잡은 방향', 'The direction analysis landed on')
                   : L('분석이 좁힌 질문', 'The question analysis narrowed to')}
               </div>
               <p className="text-[15px] md:text-[16px] text-[var(--text-primary)] leading-relaxed font-medium">
-                {snapshot.insight
-                  ? <HonestyShaded text={snapshot.insight} flags={snapshot.honesty_flags} locale={locale} />
+                {safeInsight
+                  ? <HonestyShaded text={safeInsight} flags={snapshot.honesty_flags} locale={locale} />
                   : snapshot.real_question}
               </p>
               {/* Honesty-scan legend (loop-17) — one quiet line, ONLY when a flag
                   actually matched the insight. Explains the dotted underline once so
                   each span stays clean. Reads as an invitation to verify, never a
                   verdict on the content. */}
-              {!!snapshot.insight && (snapshot.honesty_flags || []).some((f) => locateFlag(snapshot.insight!, f.text) >= 0) && (
+              {!!safeInsight && (snapshot.honesty_flags || []).some((f) => locateFlag(safeInsight, f.text) >= 0) && (
                 <p className="mt-2 text-[12px] text-[var(--text-tertiary)] leading-relaxed">
                   {L('점선 그은 곳은 아직 확인 안 된 부분이에요 — 짚어보면 어디서 확인할지 알려드려요.',
                      'Dotted spans are things we couldn’t verify — hover to see where to check.')}
@@ -1101,42 +1116,53 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
     () => deriveOpenChecks((session?.snapshots ?? []).slice(-1)[0]?.honesty_flags),
     [session?.snapshots],
   );
-  // Post-generation honesty scan (loop-17) — NON-BLOCKING. When a snapshot settles
-  // with a claims-bearing body and hasn't been scanned yet, fire scanHonesty and
-  // patch snapshot.honesty_flags when it resolves, so unverified world-facts /
-  // fabricated specifics get a "확인 필요" shade a beat after the analysis renders.
-  // Guards: honesty_flags===undefined means unscanned (patching [] stops re-fire);
-  // a ref prevents duplicate in-flight fires per snapshot; the resolve re-checks the
-  // latest version before patching. Race-safe by construction — HonestyShaded uses
-  // verbatim locateFlag, so a stale flag set simply matches nothing (no false shade).
-  const honestyScanFiredRef = useRef<string>('');
+  const latestSnapshotVersion = (session?.snapshots ?? []).slice(-1)[0]?.version;
+  // Post-generation integrity scans are non-blocking. Honesty runs on each
+  // snapshot; neutrality runs only on the first frame. They share one effect and
+  // one patch so one scan resolving cannot abort the other via a snapshot update.
+  const integrityScanFiredRef = useRef<string>('');
   useEffect(() => {
-    const snaps = session?.snapshots ?? [];
+    const snaps = store.currentSession()?.snapshots ?? [];
     const latest = snaps[snaps.length - 1];
     if (!latest || !session?.problem_text) return;
-    if (latest.honesty_flags !== undefined) return; // already scanned (incl. empty)
-    const key = `${session.id}:${latest.version}`;
-    if (honestyScanFiredRef.current === key) return; // in-flight for this snapshot
-    honestyScanFiredRef.current = key;
+    const needsHonesty = latest.honesty_flags === undefined;
+    const needsLean = latest.version === 0 && latest.lean_flags === undefined;
+    if (!needsHonesty && !needsLean) return;
+    const key = `${session.id}:${latest.version}:${needsHonesty ? 'h' : ''}${needsLean ? 'l' : ''}`;
+    if (integrityScanFiredRef.current === key) return;
+    integrityScanFiredRef.current = key;
     let cancelled = false;
-    // Pass a real AbortSignal so a rapid snapshot change / session switch / unmount
-    // actually CANCELS the in-flight LLM call (not just discards its result → wasted
-    // tokens). cancelled still guards the late-resolve race.
     const controller = new AbortController();
-    scanHonesty(session.problem_text, {
+    const analysis = {
       real_question: latest.real_question,
       hidden_assumptions: latest.hidden_assumptions,
       skeleton: latest.skeleton,
       insight: latest.insight,
-    }, controller.signal).then((flags) => {
-      if (cancelled) return;
-      const cur = (store.currentSession()?.snapshots ?? []).slice(-1)[0];
-      if (cur && cur.version === latest.version && cur.honesty_flags === undefined) {
-        store.updateLatestSnapshot({ honesty_flags: flags });
-      }
-    });
+    };
+    if (needsLean) {
+      scanLean(session.problem_text, analysis, controller.signal).then((leanFlags) => {
+        if (cancelled) return;
+        const cur = (store.currentSession()?.snapshots ?? []).slice(-1)[0];
+        if (!cur || cur.version !== latest.version || cur.lean_flags !== undefined) return;
+        store.updateLatestSnapshot({
+          lean_flags: leanFlags,
+          insight: cur.insight ? neutralizeLeanText(cur.insight, leanFlags) : cur.insight,
+          hidden_assumptions: cur.hidden_assumptions.map((text) => neutralizeLeanText(text, leanFlags)),
+          skeleton: cur.skeleton.map((text) => neutralizeLeanText(text, leanFlags)),
+        });
+      });
+    }
+    if (needsHonesty) {
+      scanHonesty(session.problem_text, analysis, controller.signal).then((honestyFlags) => {
+        if (cancelled) return;
+        const cur = (store.currentSession()?.snapshots ?? []).slice(-1)[0];
+        if (cur && cur.version === latest.version && cur.honesty_flags === undefined) {
+          store.updateLatestSnapshot({ honesty_flags: honestyFlags });
+        }
+      });
+    }
     return () => { cancelled = true; controller.abort(); };
-  }, [session?.id, session?.problem_text, session?.snapshots, store]);
+  }, [session?.id, session?.problem_text, latestSnapshotVersion, store]);
   // §0 sealing restraint inputs from the latest analysis snapshot — lets SealMoment
   // give a routine + reversible + confident decision one light check instead of the
   // full ceremony (CLAUDE.md mirror clause). Absent fields → full ceremony (safe).
@@ -1742,7 +1768,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               .then(r => r.json())
               .then(r => {
                 if (r.ok) {
-                  store.updateWorker(hw.id, { status: 'sent', sent_at: new Date().toISOString() });
+                  store.updateWorker(hw.id, {
+                    status: 'sent',
+                    sent_at: new Date().toISOString(),
+                    error: r.tracked === false ? t('progressive.replyTrackingUnavailable') : undefined,
+                  });
                 } else {
                   store.updateWorker(hw.id, { status: 'error', error: t('progressive.sendFailed', { reason: r.error || t('progressive.unknownError') }) });
                 }
@@ -2750,7 +2780,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   {/* Mid-voyage wall: a project already exists, so loadProjects()
                       auto-restores it on return — we only need to send the user back
                       to the workspace (not a blank default) after auth. */}
-                  <Link href="/login?redirect=/workspace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{hasKnownUser() ? L('다시 로그인하고 이어가기', 'Sign in and continue') : L('로그인', 'Sign In')} <ChevronRight size={13} /></Link>
+                  <LocaleLink href="/login?redirect=/workspace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{hasKnownUser() ? L('다시 로그인하고 이어가기', 'Sign in and continue') : L('로그인', 'Sign In')} <ChevronRight size={13} /></LocaleLink>
                 </div>
               ) : (() => {
                 const isQuota = error.includes('한도') || error.includes('rate') || error.includes('limit') || error.includes('429');
@@ -2764,9 +2794,9 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                           : error}
                       </p>
                       {isQuota && (
-                        <Link href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
+                        <LocaleLink href="/settings" className="inline-block mt-1 text-[12px] text-[var(--accent)] font-medium hover:underline">
                           {L('설정에서 API 키 등록하기 →', 'Register API key in Settings →')}
-                        </Link>
+                        </LocaleLink>
                       )}
                       {/* P1-C3: an explicit retry handle — the failed action is
                           kept in retryRef by each safe-to-re-enter handler.
@@ -2922,6 +2952,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             {focusMode && phase === 'conversing' && !mix && !final_ && !busy
               && !!curQ && !curQ.id?.startsWith('probe-fork-')
               && !crisisBlocking && !suppressQuestion
+              && latest?.version !== 0 && latest?.honesty_flags !== undefined
               && !mirrorSeen && !!latest?.hidden_assumptions?.[0] && (
               <MirrorBeat
                 key="mirror-beat"
@@ -3404,13 +3435,15 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               // Stable key per review — rebuilds the baseline snapshot only
               // when a new review arrives, not when toggleFix rebuilds the
               // fb object. first_reaction is effectively unique per review.
-              // "Finalize" routes through the required overreach/flinch step
-              // (onTest), which finalizes after the user commits their bet.
+              // The draft card already offers the stress test as an explicit
+              // optional path. After a stakeholder review, "Apply and Finalize"
+              // must do exactly that — routing back through onTest made the
+              // optional step mandatory and added another generation + form.
               <DMFeedback
                 key={`${dmFb.persona_name}::${dmFb.first_reaction}`}
                 fb={dmFb}
                 onToggle={(i) => store.toggleFix(i)}
-                onFinalize={onTest}
+                onFinalize={onFinalize}
                 onDeepen={onDeepen}
                 busy={busy}
               />
@@ -3447,7 +3480,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             )
           )}
 
-          {final_ && <div ref={finalRef}>
+          {final_ && <div ref={finalRef} className="scroll-mt-20">
             {/* Version chip + history toggle — subtle header */}
             {activeDraft && (
               <div className="flex items-center justify-end gap-2 pb-2">
@@ -3595,7 +3628,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   // loadProjects restores it after the reload and reopens the
                   // very session the user just tried to leave (review P0 #2).
                   useProjectStore.getState().setCurrentProjectId(null);
-                  window.location.assign('/workspace');
+                  window.location.assign(withLocale(locale, '/workspace'));
                 }}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white text-[13px] font-semibold cursor-pointer"
                   style={{ background: 'var(--gradient-gold)' }}>{L('새 프로젝트 시작', 'Start New Project')} <ArrowRight size={12} /></button>

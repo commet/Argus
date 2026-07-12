@@ -8,12 +8,21 @@ import { renderMd } from '@/components/workspace/progressive/shared/renderMd';
 export const dynamic = 'force-dynamic';
 
 async function fetchLink(token: string) {
-  const { data } = await adminClient()
-    .from('shared_links')
-    .select('title, content, context, view_count, created_at')
-    .eq('token', token)
-    .single();
-  return data as { title: string | null; content: string; context: string | null; view_count: number; created_at: string } | null;
+  try {
+    const { data, error } = await adminClient()
+      .from('shared_links')
+      .select('title, content, context, view_count, created_at')
+      .eq('token', token)
+      .maybeSingle();
+    if (error) {
+      console.error('[d/token] lookup failed:', error.message);
+      return null;
+    }
+    return data as { title: string | null; content: string; context: string | null; view_count: number; created_at: string } | null;
+  } catch (error) {
+    console.error('[d/token] lookup unavailable:', error instanceof Error ? error.message : String(error));
+    return null;
+  }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {

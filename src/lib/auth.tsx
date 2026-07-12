@@ -7,6 +7,7 @@ import { setAnalyticsUser, track } from './analytics';
 import { getCurrentLanguage } from './i18n';
 import { migrateLocalToAccount } from './account-migration';
 import type { User, Session } from '@supabase/supabase-js';
+import { localeFromPath, withLocale, type AppLocale } from './locale-path';
 
 interface AuthContextType {
   user: User | null;
@@ -20,6 +21,11 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+function browserLocale(): AppLocale {
+  if (typeof window === 'undefined') return 'en';
+  return localeFromPath(window.location.pathname) || (getCurrentLanguage() === 'ko' ? 'ko' : 'en');
+}
 
 // Each entry: Supabase error substring → { ko, en } localized message.
 // EN users were previously getting Korean messages from this map; the table
@@ -140,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}${withLocale(browserLocale(), '/auth/callback')}`,
       },
     });
   };
@@ -164,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}${withLocale(browserLocale(), '/auth/callback')}`,
         captchaToken,
         ...(Object.keys(data).length ? { data } : {}),
       },
@@ -176,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: `${window.location.origin}${withLocale(browserLocale(), '/auth/callback')}`,
     });
     return { error: error ? translateError(error.message) : null };
   };
@@ -188,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       // 로그아웃 실패 시에도 로컬 상태는 이미 정리됨
       // 페이지 새로고침으로 세션 강제 종료
-      window.location.href = '/login';
+      window.location.href = withLocale(browserLocale(), '/login');
     }
   };
 

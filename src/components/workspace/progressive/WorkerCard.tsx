@@ -241,10 +241,13 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
         className="flex items-center gap-3 pl-1">
         <div className="w-px h-8" style={{ backgroundColor: '#6B7280' }} />
         <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[12px] shrink-0">👤</div>
+        <div className="min-w-0 flex-1">
         <span className="text-[12px] text-[var(--text-secondary)]">
           {worker.contact?.name || L('외부', 'External')}
           <span className="text-[var(--text-tertiary)]"> · {statusLabel}</span>
         </span>
+        {worker.error && <p className="text-[11px] text-[var(--danger)] mt-0.5">{worker.error}</p>}
+        </div>
         <span className="text-[10px] text-amber-500">⏳</span>
       </motion.div>
     );

@@ -18,7 +18,7 @@ async function post(system: string, user: string, tool: boolean): Promise<Record
   if (tool) { body.tools = [{ name: LEAN_SCAN_TOOL_NAME, input_schema: LEAN_SCAN_SCHEMA }]; body.tool_choice = { type: 'tool', name: LEAN_SCAN_TOOL_NAME }; }
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': KEY!, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify(body), signal: AbortSignal.timeout(30000),
+    body: JSON.stringify(body), signal: AbortSignal.timeout(60000),
   });
   const j = (await r.json()) as { error?: { message: string }; content: { type: string; text?: string; input?: Record<string, unknown> }[] };
   if (j.error) throw new Error(j.error.message);
@@ -39,7 +39,7 @@ const CASES = [
 
 (async () => {
   console.log('██████ lean-scan 고정밀 검증 ██████\n');
-  let totalFlags = 0, located = 0;
+  let totalFlags = 0, located = 0, failed = false;
   for (const problem of CASES) {
     console.log('════', problem);
     try {
@@ -57,7 +57,8 @@ const CASES = [
         console.log(`        → 중립: "${f.neutral.slice(0, 90)}"`);
       }
       console.log('');
-    } catch (e) { console.log(`  ERROR ${(e as Error).message}\n`); }
+    } catch (e) { failed = true; console.log(`  ERROR ${(e as Error).message}\n`); }
   }
   console.log(`── verbatim 매칭: ${located}/${totalFlags} ${located === totalFlags ? '(전부 위치 확인)' : '(⚠ 일부 산출에 없음)'}`);
+  if (failed) process.exit(1);
 })();

@@ -101,7 +101,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--accent)]/10 mb-5">
             <Lock size={22} className="text-[var(--accent)]" />
           </div>
-          <h2 className="text-[20px] font-bold text-[var(--text-primary)] mb-2">{title}</h2>
+          <h1 className="text-[20px] font-bold text-[var(--text-primary)] mb-2">{title}</h1>
           <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-6">{description}</p>
           <div className="flex flex-col gap-2 items-center">
             <LocaleLink

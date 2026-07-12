@@ -47,8 +47,8 @@ export default function RootError({
         </h1>
         <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mt-2">
           {L(
-            '잠깐 스친 문제일 가능성이 커요. 작업 내용은 이 브라우저에 그대로 남아 있습니다.',
-            'Most likely a passing problem — your work is still safe in this browser.',
+            '잠깐 스친 문제일 가능성이 커요. 이미 저장된 내용은 이 브라우저에 남아 있습니다.',
+            'Most likely a passing problem. Anything already saved remains in this browser.',
           )}
         </p>
         {error.digest && (

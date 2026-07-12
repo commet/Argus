@@ -32,7 +32,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Telegram is not configured on this deployment.' }, { status: 503 });
   }
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+  }
   const { chatId, title, content, context } = body;
 
   if (!content || typeof content !== 'string') {

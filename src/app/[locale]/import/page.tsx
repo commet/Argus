@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { AlertTriangle, Anchor, CheckCircle2, Compass, FileText, Upload } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useLocale } from '@/hooks/useLocale';
@@ -11,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { McpInstallGuide } from '@/components/import/McpInstallGuide';
 import type { PluginDecision } from '@/stores/types';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 
 const STATUS_TONE: Record<string, string> = {
   candidate: 'var(--text-tertiary)',
@@ -48,7 +48,7 @@ export default function ImportPage() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const { user, loading: authLoading } = useAuth();
-  const { decisions, bearings, loadData, loaded, settleDecision, deferDecision } = usePluginStore();
+  const { decisions, bearings, loadData, loaded, loadError, settleDecision, deferDecision } = usePluginStore();
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -123,9 +123,9 @@ export default function ImportPage() {
             <li>{L('3. 여기서 실제 결과만 기록합니다.', '3. Come back here and record only what reality did.')}</li>
           </ol>
           <McpInstallGuide locale={locale} />
-          <Link href="/login?redirect=/import">
+          <LocaleLink href="/login?redirect=/import">
             <Button variant="accent">{L('로그인', 'Log in')}</Button>
-          </Link>
+          </LocaleLink>
         </Card>
       </div>
     );
@@ -152,9 +152,9 @@ export default function ImportPage() {
           {L('를 실행하세요. 파일을 직접 올리지 않아도 웹앱과 로컬 ledger가 왕복 동기화됩니다.', ' to sync both ways without manual upload.')}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]">
-          <Link href="/settings" className="text-[var(--accent)] hover:underline">
+          <LocaleLink href="/settings" className="text-[var(--accent)] hover:underline">
             {L('토큰 발급하러 가기', 'Issue a token')}
-          </Link>
+          </LocaleLink>
           <span className="text-[var(--text-tertiary)]">{L('정산 후에는 로컬에서 ', 'After settling here, run ')}</span>
           <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:sync</code>
           <span className="text-[var(--text-tertiary)]">{L('를 실행하면 됩니다.', ' locally.')}</span>
@@ -232,7 +232,12 @@ export default function ImportPage() {
             {actionError}
           </p>
         )}
-        {loaded && decisions.length === 0 ? (
+        {loadError && (
+          <p className="mb-3 text-[12px] text-[var(--danger)]">
+            {L('서버 기록을 불러오지 못했습니다. 로컬 파일은 그대로이며 잠시 후 다시 시도할 수 있습니다.', 'Could not load server records. Your local files are unchanged; please try again shortly.')}
+          </p>
+        )}
+        {loaded && !loadError && decisions.length === 0 ? (
           <p className="text-[13px] text-[var(--text-tertiary)]">{L('아직 가져온 결정이 없어요. 플러그인·텔레그램에서 봉인한 결정이 이 계정으로 모여요.', 'No decisions imported yet. Decisions sealed in the plugin or Telegram gather into this account here.')}</p>
         ) : (
           <div className="space-y-2.5">
@@ -300,7 +305,7 @@ export default function ImportPage() {
         <h2 className="text-[13px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] mb-3 flex items-center gap-2">
           <Compass size={14} />{L('항해 기록', 'Bearings')} <span className="text-[var(--text-tertiary)]/70">({bearings.length})</span>
         </h2>
-        {loaded && bearings.length === 0 ? (
+        {loaded && !loadError && bearings.length === 0 ? (
           <p className="text-[13px] text-[var(--text-tertiary)]">{L('아직 가져온 항해 기록이 없습니다.', 'No bearings imported yet.')}</p>
         ) : (
           <div className="space-y-2.5">

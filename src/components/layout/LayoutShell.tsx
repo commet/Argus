@@ -50,8 +50,11 @@ function LayoutShellInner({ children }: { children: React.ReactNode }) {
   // nowrap/truncate line, a long option) then pushes the whole page past the
   // viewport, which iOS Safari resolves by zooming out. min-w-0 lets it shrink
   // to the viewport so descendants wrap/clip instead of overflowing.
+  if (isWorkspace) {
+    return <main className="flex-1 min-w-0">{content}</main>;
+  }
   const isBoss = pathname.startsWith('/boss');
-  if (isWorkspace || isBoss) {
+  if (isBoss) {
     return <div className="flex-1 min-w-0">{content}</div>;
   }
 

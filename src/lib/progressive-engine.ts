@@ -5,6 +5,7 @@
 import { callLLMJson, callLLMStreamThenParse, LLMError } from '@/lib/llm';
 import { salvageMixDoc } from '@/lib/partial-analysis';
 import { buildHonestyScanPrompt, coerceHonestyFlags, type HonestyFlag } from '@/lib/honesty-scan';
+import { buildLeanScanPrompt, coerceLeanFlags, type LeanFlag } from '@/lib/lean-scan';
 import {
   buildInitialAnalysisPrompt,
   buildInitialRefinementPrompt,
@@ -168,7 +169,7 @@ interface MixResponse {
   executive_summary: string;
   sections: {
     heading: string;
-    content: string;
+    content?: string;
     contributors?: string[]; // worker names that backed this section (section-level fallback)
     sentences?: Array<{      // sentence-level attribution (preferred when workers present)
       text: string;
@@ -575,6 +576,29 @@ export async function scanHonesty(
   }
 }
 
+/** First-analysis neutrality backstop. This is non-blocking like scanHonesty,
+ * but returns neutral rewrites because labeling a verdict would still leave the
+ * verdict in the user's head. The UI applies only exact matched spans. */
+export async function scanLean(
+  problemText: string,
+  analysis: { real_question?: string; hidden_assumptions?: string[]; skeleton?: string[]; insight?: string },
+  signal?: AbortSignal,
+): Promise<LeanFlag[]> {
+  try {
+    const locale = getCurrentLanguage();
+    const hasBody = !!(analysis.insight || (analysis.hidden_assumptions || []).length || (analysis.skeleton || []).length);
+    if (!hasBody) return [];
+    const { system, user } = buildLeanScanPrompt(problemText, analysis, locale);
+    const raw = await callLLMJson<{ flags?: unknown }>(
+      [{ role: 'user', content: user }],
+      { system, maxTokens: 1000, signal, shape: { flags: 'array' }, parseRetries: 0 },
+    );
+    return coerceLeanFlags(raw);
+  } catch {
+    return [];
+  }
+}
+
 export async function runInitialAnalysis(
   problemText: string,
   onToken?: (text: string) => void,
@@ -639,10 +663,12 @@ export async function runInitialAnalysis(
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
     skeleton: result.skeleton || [],
-    // Carry the one-line answer through. For a non-open route this is the only
-    // deliverable (empty skeleton by design); dropping it left the terminal card
-    // blank and tripped the "empty result" failure guard downstream.
-    insight: result.insight,
+    // OPEN analyses may generate a memorable sentence that quietly resolves the
+    // choice despite the prompt. Structurally use the neutral real question as
+    // the first-frame insight. Non-open routes keep their direct one-line answer.
+    insight: result.request_type && result.request_type !== 'open'
+      ? result.insight
+      : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
     framing_confidence: framingConfidence,
     framing_locked: false,
     // R32 — wire the model's STEP-0 classification onto the snapshot so the flow
@@ -774,7 +800,9 @@ export async function refineInitialFraming(
     real_question: result.real_question || (locale === 'ko' ? '분석 중...' : 'Analyzing...'),
     hidden_assumptions: result.hidden_assumptions || [],
     skeleton: result.skeleton || [],
-    insight: result.insight,
+    insight: result.request_type && result.request_type !== 'open'
+      ? result.insight
+      : (result.real_question || (locale === 'ko' ? '무엇이 이 결정을 가르는지부터 확인해볼게요.' : 'Let’s first identify what this decision turns on.')),
     framing_confidence: framingConfidence,
     framing_locked: false,
     framing_override_reason: rejectionReason,
@@ -1113,21 +1141,21 @@ export async function runMix(
     : userPrompt;
 
   const shape = { title: 'string' as const, executive_summary: 'string' as const, sections: 'array' as const, key_assumptions: 'array' as const, next_steps: 'array' as const };
-  // maxTokens 8000 (server cap is now 8192): a full multi-section draft routinely
-  // needs more than 4000 output tokens — at 4000 the document JSON truncated and
-  // failed to parse after minutes of streaming.
+  // The prompt omits duplicate flat `content` when sentence attribution exists
+  // and caps the brief at 3-5 concise sections. 5.5k leaves parse headroom while
+  // avoiding the 8k streams that took over a minute in the first-user journey.
   let result: MixResponse;
   let lastStreamText = '';
   try {
     result = onToken
       ? await callLLMStreamThenParse<MixResponse>(
           [{ role: 'user', content: user }],
-          { system, maxTokens: 8000, signal, shape },
+          { system, maxTokens: 5500, signal, shape },
           (text) => { lastStreamText = text; onToken(text); },
         )
       : await callLLMJson<MixResponse>(
           [{ role: 'user', content: user }],
-          { system, maxTokens: 8000, signal, shape },
+          { system, maxTokens: 5500, signal, shape },
         );
   } catch (e) {
     // A — salvage net: if the document still failed to parse (extreme length),
@@ -1467,20 +1495,20 @@ export async function runFinalDeliverable(
   const { system, user } = buildFinalDeliverablePrompt(mix, appliedFixes, locale);
 
   const shape = { title: 'string' as const, executive_summary: 'string' as const, sections: 'array' as const };
-  // maxTokens 8000 + salvage net — same rationale as runMix: the finalized
-  // document is full-length and must not be lost to a truncated parse.
+  // The finalizer preserves the concise section contract from runMix. 5.5k is
+  // enough for a complete rewrite without reopening the original 8k wait.
   let result: FinalResponse;
   let lastStreamText = '';
   try {
     result = onToken
       ? await callLLMStreamThenParse<FinalResponse>(
           [{ role: 'user', content: user }],
-          { system, maxTokens: 8000, signal, shape },
+          { system, maxTokens: 5500, signal, shape },
           (text) => { lastStreamText = text; onToken(text); },
         )
       : await callLLMJson<FinalResponse>(
           [{ role: 'user', content: user }],
-          { system, maxTokens: 8000, signal, shape },
+          { system, maxTokens: 5500, signal, shape },
         );
   } catch (e) {
     if (signal?.aborted) throw e;

@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import {
   Mail, MessageSquare, Send, Hash, Lock, Search, Check, Loader2, Download, Copy as CopyIcon, ExternalLink, Link2,
 } from 'lucide-react';
@@ -15,6 +14,7 @@ import { useSlackStore } from '@/stores/useSlackStore';
 import { useTelegramStore } from '@/stores/useTelegramStore';
 import { copyToClipboard, composeMailtoLink } from '@/lib/export';
 import { track } from '@/lib/analytics';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 
 interface ShareComposerProps {
   open: boolean;
@@ -45,8 +45,11 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
 
   const slackConnected = useSlackStore((s) => s.isConnected());
   const slackLoaded = useSlackStore((s) => s.loaded);
+  const slackLoadError = useSlackStore((s) => s.loadError);
+  const slackChannelsError = useSlackStore((s) => s.channelsError);
   const tgConnected = useTelegramStore((s) => s.isConnected());
   const tgLoaded = useTelegramStore((s) => s.loaded);
+  const tgLoadError = useTelegramStore((s) => s.loadError);
   const loadTg = useTelegramStore((s) => s.loadConnections);
   const loadSlackConns = useSlackStore((s) => s.loadConnections);
 
@@ -171,6 +174,8 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
           <SlackPanel
             connected={slackConnected}
             loaded={slackLoaded}
+            loadError={slackLoadError}
+            channelsError={slackChannelsError}
             user={!!user}
             title={title}
             text={text}
@@ -181,6 +186,7 @@ export function ShareComposer({ open, onClose, getText, getTitle, shareContext =
           <TelegramPanel
             connected={tgConnected}
             loaded={tgLoaded}
+            loadError={tgLoadError}
             user={!!user}
             title={title}
             text={text}
@@ -212,9 +218,9 @@ function LinkPanel({ user, title, text, context, onCreated }: { user: boolean; t
           {L('로그인하면 계정 없이도 누구나 열 수 있는 공개 링크를 만들 수 있어요.',
              'Log in to mint a public link anyone can open — no account needed.')}
         </p>
-        <Link href="/login" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
+        <LocaleLink href="/login" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
           {L('로그인', 'Log in')} <ExternalLink size={12} />
-        </Link>
+        </LocaleLink>
       </div>
     );
   }
@@ -343,7 +349,7 @@ function EmailPanel({ user, title, text, context, onSent }: { user: boolean; tit
 }
 
 /* ── Slack ── */
-function SlackPanel({ connected, loaded, user, title, text, onSent }: { connected: boolean; loaded: boolean; user: boolean; title: string; text: string; onSent: () => void }) {
+function SlackPanel({ connected, loaded, loadError, channelsError, user, title, text, onSent }: { connected: boolean; loaded: boolean; loadError: boolean; channelsError: boolean; user: boolean; title: string; text: string; onSent: () => void }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const { channels, channelsLoading, sending, loadChannels, sendToSlack } = useSlackStore();
@@ -360,9 +366,9 @@ function SlackPanel({ connected, loaded, user, title, text, onSent }: { connecte
         <p className="text-[12px] text-[var(--text-secondary)] mb-2">
           {L('로그인하면 연결해 둔 Slack으로 바로 보낼 수 있어요.', 'Log in to send to your connected Slack.')}
         </p>
-        <Link href="/login" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
+        <LocaleLink href="/login" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
           {L('로그인', 'Log in')} <ExternalLink size={12} />
-        </Link>
+        </LocaleLink>
       </div>
     );
   }
@@ -373,6 +379,9 @@ function SlackPanel({ connected, loaded, user, title, text, onSent }: { connecte
         <span className="text-[12px] text-[var(--text-tertiary)]">{L('연결 확인 중…', 'Checking connection…')}</span>
       </div>
     );
+  }
+  if (loadError) {
+    return <ConnectionLoadError L={L} />;
   }
   if (!connected) return <ConnectHint L={L} />;
 
@@ -396,6 +405,7 @@ function SlackPanel({ connected, loaded, user, title, text, onSent }: { connecte
         />
       </div>
       {error && <p className="text-[12px] text-red-600">{error}</p>}
+      {channelsError && <p className="text-[12px] text-[var(--danger)]">{L('Slack 채널을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.', 'Could not load Slack channels. Please reopen this shortly.')}</p>}
       <div className="max-h-[180px] overflow-y-auto">
         {channelsLoading ? (
           <div className="flex justify-center py-5"><Loader2 size={18} className="animate-spin text-[var(--text-tertiary)]" /></div>
@@ -421,7 +431,7 @@ function SlackPanel({ connected, loaded, user, title, text, onSent }: { connecte
 }
 
 /* ── Telegram ── */
-function TelegramPanel({ connected, loaded, user, title, text, context, onSent }: { connected: boolean; loaded: boolean; user: boolean; title: string; text: string; context: string; onSent: () => void }) {
+function TelegramPanel({ connected, loaded, loadError, user, title, text, context, onSent }: { connected: boolean; loaded: boolean; loadError: boolean; user: boolean; title: string; text: string; context: string; onSent: () => void }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const { connections, sending, sendToTelegram } = useTelegramStore();
@@ -437,9 +447,9 @@ function TelegramPanel({ connected, loaded, user, title, text, context, onSent }
           {L('로그인하면 연결해 둔 Telegram으로 바로 보낼 수 있어요.',
              'Log in to send to your connected Telegram.')}
         </p>
-        <Link href="/login" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
+        <LocaleLink href="/login" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
           {L('로그인', 'Log in')} <ExternalLink size={12} />
-        </Link>
+        </LocaleLink>
       </div>
     );
   }
@@ -450,6 +460,9 @@ function TelegramPanel({ connected, loaded, user, title, text, context, onSent }
         <span className="text-[12px] text-[var(--text-tertiary)]">{L('연결 확인 중…', 'Checking connection…')}</span>
       </div>
     );
+  }
+  if (loadError) {
+    return <ConnectionLoadError L={L} />;
   }
   if (!connected) return <ConnectHint L={L} />;
 
@@ -485,9 +498,19 @@ function ConnectHint({ L }: { L: (ko: string, en: string) => string }) {
         {L('아직 연결되지 않았어요. 설정에서 연결하면 여기서 바로 보낼 수 있어요.',
            'Not connected yet. Connect in settings to send from here.')}
       </p>
-      <Link href="/settings" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
+      <LocaleLink href="/settings" className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline">
         {L('설정에서 연결하기', 'Connect in settings')} <ExternalLink size={12} />
-      </Link>
+      </LocaleLink>
+    </div>
+  );
+}
+
+function ConnectionLoadError({ L }: { L: (ko: string, en: string) => string }) {
+  return (
+    <div className="rounded-xl border border-[var(--danger)]/25 bg-[var(--danger)]/5 p-3.5 animate-fade-in">
+      <p className="text-[12px] text-[var(--danger)]">
+        {L('연결 상태를 불러오지 못했습니다. 잠시 후 다시 열어 주세요.', 'Could not load the connection status. Please reopen this shortly.')}
+      </p>
     </div>
   );
 }

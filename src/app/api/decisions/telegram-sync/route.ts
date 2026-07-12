@@ -31,6 +31,12 @@ function kstDate(iso: string): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  // Reject anonymous callers before exposing deployment configuration state.
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -39,10 +45,6 @@ export async function POST(req: NextRequest) {
   }
 
   // Verify the caller owns the account they're syncing for (bearer token).
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-  }
   const token = authHeader.slice(7);
   const authClient = createClient(url, anonKey);
   const { data: { user }, error: authErr } = await authClient.auth.getUser(token);

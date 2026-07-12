@@ -11,7 +11,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { extractPredicatesFromSession } from '../decision-contract';
-import { buildMixPrompt } from '../progressive-prompts';
+import { buildFinalDeliverablePrompt, buildMixPrompt } from '../progressive-prompts';
 import type { AnalysisSnapshot } from '@/stores/types';
 
 describe('F1(2) — decision_line seals as the user’s own', () => {
@@ -60,5 +60,29 @@ describe('F1(1) — the mix renders the user’s calls as an authoritative, non-
     expect(user).toContain('MISSING HUMAN INPUTS');
     expect(user).toContain('customer interviews');
     expect(user).toMatch(/provisional/i);
+  });
+
+  it('keeps the generated brief concise and does not request duplicate flat content', () => {
+    const { system, user } = buildMixPrompt('problem', [snap], [], null, [
+      { task: 'market sizing', result: 'TAM is $2B', authored: 'ai', name: '규민', workerId: 'w1' },
+    ], 'en');
+
+    expect(system).toContain('3-5 sections total');
+    expect(system).toContain('Each section: 2-3 sentences');
+    expect(system).toContain('exactly 3');
+    expect(system).toContain('OMIT "content"');
+    expect(user).not.toContain('Flat section content');
+  });
+
+  it('keeps the final rewrite bounded instead of expanding an already-complete draft', () => {
+    const { system } = buildFinalDeliverablePrompt({
+      title: 'Plan', executive_summary: 'Summary',
+      sections: [{ heading: 'One', content: 'Body' }],
+      key_assumptions: ['A'], next_steps: ['Do it'],
+    }, [{ concern: 'Missing fact', fix: 'Mark it unverified' }], 'en');
+
+    expect(system).toContain('each section to 2-3 sentences');
+    expect(system).toContain('at most 4 assumptions');
+    expect(system).toContain('exactly 3 highest-leverage next steps');
   });
 });

@@ -253,6 +253,7 @@ export const en: Record<TranslationKey, string> = {
   'progressive.sendFailed': "The send didn't land: {reason}",
   'progressive.unknownError': 'Unknown error',
   'progressive.networkError': 'Could not send due to a network error',
+  'progressive.replyTrackingUnavailable': 'Email sent, but replies cannot be tracked right now.',
   'progressive.humanQTitle': 'Question: {task}',
   'progressive.humanQContext': 'Reference:\n{ai}',
   'progressive.oneMore': 'One more check',

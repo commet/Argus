@@ -72,6 +72,19 @@ describe('POST /api/share/link — auth + share guard', () => {
     expect(insertSpy).not.toHaveBeenCalled();
   });
 
+  it('400s malformed JSON instead of throwing a route-level 500', async () => {
+    const res = await POST(new Request('https://argus.voyage/api/share/link', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json', authorization: 'Bearer good',
+        origin: 'https://argus.voyage', host: 'argus.voyage',
+      },
+      body: '{',
+    }) as never);
+    expect(res.status).toBe(400);
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+
   it('429s (and does NOT insert) when the share guard blocks', async () => {
     guardResult = { ok: false, error: 'rate limited', status: 429 };
     const res = await POST(req({ content: 'hello world' }, { token: 'good' }));

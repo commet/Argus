@@ -37,7 +37,7 @@ import { scoreReviewability } from './reviewability';
 import { packUnitsForPrompt, computeCoverage } from './coverage';
 import { routeLenses } from './routing';
 import { LENSES, LENS_VERSION } from './lenses';
-import { buildExtractionPrompt, buildLensPrompt, buildSynthesisPrompt } from './prompts';
+import { buildExtractionPrompt, buildLensPrompt, buildQuickReviewPrompt, buildSynthesisPrompt } from './prompts';
 import { defaultReviewLLM, type ReviewLLM } from './llm-adapter';
 import { djb2, stableId } from './ids';
 
@@ -103,12 +103,86 @@ export async function runDocumentReview(
     const packed = packUnitsForPrompt(artifact.units, budget.max_units);
     const unitsReviewed = packed.units.length;
     const coverage = computeCoverage(artifact, unitsReviewed);
+
+    // A short document should not pay for three sequential model stages plus
+    // five parallel lens calls. Quick mode keeps the complete judgment spine,
+    // but asks for its map, findings, obligations, and follow-ups in one bounded
+    // structured response. Standard/deep reviews retain the multi-stage path.
+    if (budget.depth === 'quick') {
+      emit('reviewing', '핵심 판단 5가지를 한 번에 검수하는 중');
+      const quickPrompt = buildQuickReviewPrompt(packed.units, ctx, packed.units.length, today);
+      promptParts.push(quickPrompt.system);
+      const raw = await llm.json<Record<string, unknown>>({
+        system: quickPrompt.system,
+        user: quickPrompt.user,
+        maxTokens: Math.min(budget.max_tokens, 2800),
+        model: 'default',
+        signal: options.signal,
+        shape: {
+          core_question: { type: 'string', default: '' },
+          main_claims: { type: 'array', default: [] },
+          assumptions: { type: 'array', default: [] },
+          decision_points: { type: 'array', default: [] },
+          findings: { type: 'array', default: [] },
+          current_heading: { type: 'string', default: '' },
+          judgment_obligations: { type: 'array', default: [] },
+          followups: { type: 'array', default: [] },
+        },
+      });
+
+      const profile = normalizeProfile(raw['profile'], ctx);
+      const map = normalizeMap(raw, resolveAnchors);
+      emit('mapping', '판단 지도와 근거 위치를 정리하는 중');
+      const reviewability = scoreReviewability(artifact, map);
+      const routing = routeLenses(profile, artifact, {
+        concerns: ctx.concerns,
+        maxLensCalls: budget.max_lens_calls,
+      });
+      emit('routing', '검수 범위를 확인하는 중');
+
+      if (reviewabilityBand(reviewability.score) === 'insufficient') {
+        const receipt = assembleReceipt({
+          artifact, profile, reviewability, routing, map,
+          findings: [], obligations: [], followups: [],
+          currentHeading: neutralHeading(map), coverage,
+          rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
+        });
+        receipt.state = 'draft';
+        return { job: emit('needs_context', '검수 가능성 낮음 — 부족한 맥락 표시'), receipt };
+      }
+
+      const allowedLenses = new Set<LensId>(routing.selected);
+      const rawFindings = Array.isArray(raw['findings']) ? raw['findings'] : [];
+      const normalizedFindings = rawFindings.flatMap((finding) => {
+        if (!finding || typeof finding !== 'object') return [];
+        const lensId = String((finding as Record<string, unknown>)['lens_id']) as LensId;
+        if (!allowedLenses.has(lensId)) return [];
+        return normalizeFindings([finding], lensId, resolveAnchors);
+      }).slice(0, 5);
+      const findings = supplementQuickFindings(normalizedFindings, map);
+
+      emit('synthesizing', 'Judgment Receipt를 정리하는 중');
+      const obligations = normalizeObligations(raw['judgment_obligations'], resolveAnchors).slice(0, 3);
+      const followups = normalizeFollowups(raw['followups'], today);
+      const currentHeading = String(raw['current_heading'] || '').trim() || neutralHeading(map);
+      const coreQuestion = String(raw['core_question'] || map.core_question || '').trim();
+      const receipt = assembleReceipt({
+        artifact, profile, reviewability, routing,
+        map: { ...map, core_question: coreQuestion },
+        findings, obligations, followups, currentHeading, coverage,
+        rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
+      });
+      return { job: emit('ready', '검수 완료'), receipt };
+    }
+
     const exPrompt = buildExtractionPrompt(packed.units, ctx, packed.units.length);
     promptParts.push(exPrompt.system);
     const raw = await llm.json<Record<string, unknown>>({
       system: exPrompt.system,
       user: exPrompt.user,
-      maxTokens: Math.min(budget.max_tokens, 6000),
+      // The extraction shape is a compact map, not a document. A 6k allowance
+      // encouraged minute-long profiles before lens review even began.
+      maxTokens: Math.min(budget.max_tokens, 2500),
       model: 'default',
       signal: options.signal,
       shape: {
@@ -162,7 +236,7 @@ export async function runDocumentReview(
           const out = await llm.json<{ findings?: unknown[] }>({
             system: lp.system,
             user: lp.user,
-            maxTokens: 2000,
+            maxTokens: 1600,
             model: 'default',
             signal: options.signal,
             shape: { findings: { type: 'array', default: [] } },
@@ -197,7 +271,7 @@ export async function runDocumentReview(
     const syn = await llm.json<Record<string, unknown>>({
       system: synPrompt.system,
       user: synPrompt.user,
-      maxTokens: 3000,
+      maxTokens: 2000,
       model: 'default',
       signal: options.signal,
       shape: {
@@ -355,6 +429,59 @@ function normalizeFindings(raw: unknown, lensId: LensId, resolve: (ids: unknown)
       };
     })
     .filter((f) => f.title);
+}
+
+/**
+ * Quick mode receives the judgment map and lens findings in one response. Some
+ * models produce a rich map but only one top-level finding. Promote already
+ * extracted, anchored weak claims/assumptions so the receipt does not hide
+ * material issues. No new fact or inference is introduced here.
+ */
+function supplementQuickFindings(findings: Finding[], map: DocumentJudgmentMap): Finding[] {
+  const out = [...findings];
+  const alreadyCovered = (text: string) => {
+    const needle = text.trim().slice(0, 24);
+    return needle.length > 0 && out.some((f) => `${f.title} ${f.detail}`.includes(needle));
+  };
+
+  for (const claim of map.main_claims) {
+    if (out.length >= 2) break;
+    if (claim.status === 'supported' || claim.anchors.length === 0 || alreadyCovered(claim.text)) continue;
+    const contradicted = claim.status === 'contradicted';
+    out.push({
+      finding_id: stableId('find', 'claim_evidence', claim.claim_id),
+      lens_id: 'claim_evidence',
+      title: contradicted
+        ? `“${claim.text}” 주장이 문서 근거와 충돌함`
+        : `“${claim.text}” 주장의 근거가 충분하지 않음`,
+      detail: claim.rationale || '문서 안에서 이 주장을 뒷받침하는 근거가 확인되지 않습니다.',
+      severity: contradicted || claim.status === 'unsupported' ? 'critical' : 'caution',
+      confidence: 'medium',
+      suggested_action: claim.evidence_needed || claim.fix_suggestion,
+      anchors: claim.anchors,
+      provenance: 'ai_surfaced',
+    });
+  }
+
+  for (const assumption of map.assumptions) {
+    if (out.length >= 2) break;
+    if (assumption.anchors.length === 0 || alreadyCovered(assumption.text)) continue;
+    out.push({
+      finding_id: stableId('find', 'hidden_assumption', assumption.assumption_id),
+      lens_id: 'hidden_assumption',
+      title: `검증되지 않은 가정: ${assumption.text}`,
+      detail: assumption.if_false
+        ? `이 가정이 틀리면 ${assumption.if_false}`
+        : '이 가정이 틀릴 때 결정이 어떻게 달라지는지 문서에 명시되지 않았습니다.',
+      severity: 'caution',
+      confidence: 'medium',
+      suggested_action: '이 가정을 확인할 근거와 통과·실패 조건을 명시하세요.',
+      anchors: assumption.anchors,
+      provenance: 'ai_surfaced',
+    });
+  }
+
+  return out.slice(0, 5);
 }
 
 function normalizeObligations(raw: unknown, resolve: (ids: unknown) => SourceAnchor[]): JudgmentObligation[] {

@@ -8,6 +8,7 @@ interface TeamState {
   members: TeamMember[];
   invites: TeamInvite[];
   reviewInputs: TeamReviewInput[];
+  loadError: boolean;
 
   // Team management
   loadTeams: () => Promise<void>;
@@ -17,7 +18,7 @@ interface TeamState {
   // Members
   loadMembers: (teamId: string) => Promise<void>;
   inviteMember: (teamId: string, email: string, role?: 'admin' | 'member') => Promise<boolean>;
-  removeMember: (memberId: string) => Promise<void>;
+  removeMember: (memberId: string) => Promise<boolean>;
 
   // Invites
   loadInvites: (teamId: string) => Promise<void>;
@@ -42,31 +43,34 @@ export const useTeamStore = create<TeamState>((set, get) => ({
   members: [],
   invites: [],
   reviewInputs: [],
+  loadError: false,
 
   loadTeams: async () => {
     const userId = await getCurrentUserId();
     if (!userId) {
       // 로그아웃/무인증 상태 → 이전 사용자 데이터 정리
-      set({ teams: [], currentTeamId: null, members: [], invites: [], reviewInputs: [] });
+      set({ teams: [], currentTeamId: null, members: [], invites: [], reviewInputs: [], loadError: false });
       return;
     }
 
     // Load only teams where user is a member (defense-in-depth; RLS also enforces)
-    const { data: memberRows } = await supabase
+    const { data: memberRows, error: membershipError } = await supabase
       .from('team_members')
       .select('team_id')
       .eq('user_id', userId);
+    if (membershipError) { set({ loadError: true }); return; }
 
     const teamIds = (memberRows || []).map(r => r.team_id);
-    if (teamIds.length === 0) { set({ teams: [] }); return; }
+    if (teamIds.length === 0) { set({ teams: [], loadError: false }); return; }
 
-    const { data } = await supabase
+    const { data, error: teamsError } = await supabase
       .from('teams')
       .select('*')
       .in('id', teamIds)
       .order('created_at', { ascending: false });
 
-    if (data) set({ teams: data });
+    if (teamsError) { set({ loadError: true }); return; }
+    if (data) set({ teams: data, loadError: false });
   },
 
   createTeam: async (name: string) => {
@@ -85,11 +89,16 @@ export const useTeamStore = create<TeamState>((set, get) => ({
     if (error || !team) return null;
 
     // Add creator as owner member
-    await supabase
+    const { error: memberError } = await supabase
       .from('team_members')
       .insert({ team_id: team.id, user_id: userId, role: 'owner' });
 
-    set({ teams: [team, ...get().teams], currentTeamId: team.id });
+    if (memberError) {
+      await supabase.from('teams').delete().eq('id', team.id).eq('owner_id', userId);
+      return null;
+    }
+
+    set({ teams: [team, ...get().teams], currentTeamId: team.id, loadError: false });
     return team;
   },
 
@@ -144,14 +153,16 @@ export const useTeamStore = create<TeamState>((set, get) => ({
 
   removeMember: async (memberId: string) => {
     // Client-side permission guard (RLS is the real enforcer)
-    if (!await get()._isAdminOrOwner()) return;
+    if (!await get()._isAdminOrOwner()) return false;
 
     const { currentTeamId } = get();
-    if (!currentTeamId) return;
+    if (!currentTeamId) return false;
 
     // Scope deletion to current team to prevent IDOR across teams
-    await supabase.from('team_members').delete().eq('id', memberId).eq('team_id', currentTeamId);
+    const { error } = await supabase.from('team_members').delete().eq('id', memberId).eq('team_id', currentTeamId);
+    if (error) return false;
     set({ members: get().members.filter(m => m.id !== memberId) });
+    return true;
   },
 
   loadInvites: async (teamId: string) => {
@@ -194,10 +205,19 @@ export const useTeamStore = create<TeamState>((set, get) => ({
     if (memberError) return false;
 
     // Update invite status
-    await supabase
+    const { error: inviteUpdateError } = await supabase
       .from('team_invites')
       .update({ status: 'accepted' })
       .eq('id', inviteId);
+
+    if (inviteUpdateError) {
+      await supabase
+        .from('team_members')
+        .delete()
+        .eq('team_id', invite.team_id)
+        .eq('user_id', userId);
+      return false;
+    }
 
     // Reload teams
     await get().loadTeams();

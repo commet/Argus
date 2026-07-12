@@ -9,12 +9,17 @@
  */
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { VoyageShip, Graticule } from '@/components/ui/VoyageElements';
-import { useLocale } from '@/hooks/useLocale';
+import { withLocale } from '@/lib/locale-path';
 
 export default function NotFound() {
-  const locale = useLocale();
+  const [locale, setLocale] = useState<'ko' | 'en'>('ko');
+  useEffect(() => {
+    const documentLocale = document.documentElement.lang;
+    if (documentLocale === 'ko' || documentLocale === 'en') setLocale(documentLocale);
+  }, []);
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
 
   return (
@@ -52,14 +57,14 @@ export default function NotFound() {
 
         <div className="flex items-center justify-center gap-3 mt-7">
           <Link
-            href="/workspace"
+            href={withLocale(locale, '/workspace')}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
             style={{ background: 'var(--gradient-gold)' }}
           >
             {L('워크스페이스로', 'Back to workspace')} <ArrowRight size={14} />
           </Link>
           <Link
-            href="/"
+            href={`/${locale}`}
             className="text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors px-2 py-2"
           >
             {L('처음으로', 'Home')}

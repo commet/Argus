@@ -857,7 +857,8 @@ button, a, input, textarea {
 }
 
 .bs-mode-toggle button {
-  padding: 4px 10px;
+  min-height: 44px;
+  padding: 4px 12px;
   border-radius: 999px;
   border: none;
   background: transparent;

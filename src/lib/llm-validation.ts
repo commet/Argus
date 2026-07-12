@@ -43,7 +43,9 @@ export function validateMessages(messages: unknown): messages is Array<{ role: s
 
 /** Normalize maxTokens with cap. */
 export function normalizeMaxTokens(raw?: unknown): number {
-  return Math.min(Number(raw) || 2000, MAX_TOKENS_CAP);
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) return 2000;
+  return Math.min(Math.floor(value), MAX_TOKENS_CAP);
 }
 
 /** Validate system prompt string (undefined is allowed — SDKs treat it as optional). */

@@ -13,7 +13,7 @@
  * (own sync path) are deliberately excluded — their own stores migrate them.
  */
 import { getCurrentUserId, supabase } from './supabase';
-import { getSyncFailureCount } from './sync-health';
+import { getSyncFailureCount, reportSyncFailure } from './sync-health';
 import { getStorage, STORAGE_KEYS } from './storage';
 import { loadAndMerge } from './db';
 import type { ProgressiveSession } from '@/stores/types';
@@ -88,12 +88,13 @@ export async function migrateLocalToAccount(): Promise<MigrateResult> {
     );
     if (real.length > 0) {
       localCount += real.length;
-      const { data: remote } = await supabase
+      const { data: remote, error: remoteError } = await supabase
         .from('progressive_sessions').select('id').eq('user_id', userId);
+      if (remoteError) throw remoteError;
       const remoteIds = new Set((remote ?? []).map((r: { id: string }) => r.id));
       const toPush = real.filter((s) => !remoteIds.has(s.id));
       if (toPush.length > 0) {
-        await supabase.from('progressive_sessions').upsert(
+        const { error: pushError } = await supabase.from('progressive_sessions').upsert(
           toPush.map((s) => ({
             id: s.id,
             user_id: userId,
@@ -107,13 +108,16 @@ export async function migrateLocalToAccount(): Promise<MigrateResult> {
           })),
           { onConflict: 'id' },
         );
+        if (pushError) throw pushError;
       }
     }
-  } catch {
+  } catch (error) {
+    reportSyncFailure('migrate:progressive_sessions', {
+      message: error instanceof Error ? error.message : 'unknown',
+    });
     /* best effort — local remains the source of truth */
   }
 
-  _ranForUser = userId; // mark done only after a full pass (allows retry on earlier throw)
   void localCount; // (kept for potential future telemetry; the toast reports projects)
 
   // loadAndMerge's local-only push is fire-and-forget, so give the async writes a
@@ -121,5 +125,6 @@ export async function migrateLocalToAccount(): Promise<MigrateResult> {
   // failure still surfaces through the SyncStatus badge the toast points at).
   await new Promise((r) => setTimeout(r, 1_000));
   const partial = getSyncFailureCount() > failuresBefore;
+  if (!partial) _ranForUser = userId;
   return { projects: projectCount, partial };
 }

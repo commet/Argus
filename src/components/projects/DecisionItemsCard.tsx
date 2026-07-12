@@ -210,12 +210,12 @@ export function DecisionItemsCard({
                               <div className="flex items-center gap-0.5 shrink-0">
                                 {item.type === 'premise' && (
                                   <button
+                                    type="button"
                                     onClick={() => toggleMonitoring(item.id)}
-                                    // Honest promise (04 S3): no recheck cron exists yet, so the bell
-                                    // must not promise an "alert" — it marks the premise as watched.
-                                    title={alertOn ? L('주시 표시 켜짐 — 자동 알림은 아직 준비 중이에요', 'Watch mark on — automatic alerts are still on the way') : L('주시 꺼짐', 'Watch off')}
+                                    title={alertOn ? L('재확인 표시 켜짐', 'Recheck reminder on') : L('재확인 표시 꺼짐', 'Recheck reminder off')}
+                                    aria-label={alertOn ? L('재확인 표시 끄기', 'Turn off recheck reminder') : L('재확인 표시 켜기', 'Turn on recheck reminder')}
                                     aria-pressed={alertOn}
-                                    className={`p-1.5 rounded-md cursor-pointer transition-colors ${
+                                    className={`min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md cursor-pointer transition-colors ${
                                       alertOn ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                                     }`}
                                   >
@@ -223,16 +223,20 @@ export function DecisionItemsCard({
                                   </button>
                                 )}
                                 <button
+                                  type="button"
                                   onClick={() => startEdit(item.id, item.text)}
                                   title={L('수정', 'Edit')}
-                                  className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer"
+                                  aria-label={L('항목 수정', 'Edit item')}
+                                  className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer"
                                 >
                                   <Pencil size={14} />
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => editItem(item.id, 'reject', '')}
                                   title={L('삭제', 'Remove')}
-                                  className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer"
+                                  aria-label={L('항목 삭제', 'Remove item')}
+                                  className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer"
                                 >
                                   <Trash2 size={14} />
                                 </button>
@@ -252,13 +256,13 @@ export function DecisionItemsCard({
                               <span className="flex items-center gap-1 shrink-0">
                                 <button
                                   onClick={() => startEdit(item.id, item.text)}
-                                  className="px-2 py-1 rounded-md text-[11.5px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
+                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
                                 >
                                   {L('네, 정리할게요', 'Settle it')}
                                 </button>
                                 <button
                                   onClick={() => dismissAlert(item.id)}
-                                  className="px-2 py-1 rounded-md text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
+                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
                                 >
                                   {L('아직 열어둘래요', 'Keep it open')}
                                 </button>
@@ -278,13 +282,13 @@ export function DecisionItemsCard({
                               <span className="flex items-center gap-1 shrink-0">
                                 <button
                                   onClick={() => markRechecked(item.id)}
-                                  className="px-2 py-1 rounded-md text-[11.5px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
+                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
                                 >
                                   {L('그대로예요', 'Still true')}
                                 </button>
                                 <button
                                   onClick={() => startEdit(item.id, item.text)}
-                                  className="px-2 py-1 rounded-md text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
+                                  className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
                                 >
                                   {L('바뀌었어요', 'It changed')}
                                 </button>
@@ -318,8 +322,8 @@ export function DecisionItemsCard({
               </div>
               <p className="text-[11px] text-[var(--text-tertiary)] leading-[1.5]">
                 {L(
-                  '전제 옆 종을 켜면, 그 사실이 바뀔 때만 알려드려요.',
-                  'Turn on the bell next to a premise to be told only when that fact changes.',
+                  '전제 옆 종을 켜면, 다시 확인할 때가 됐을 때 이 프로젝트에서 위로 올려드려요.',
+                  "Turn on the bell and we'll surface the premise here when it is time to recheck it.",
                 )}
               </p>
             </div>

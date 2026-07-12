@@ -268,6 +268,7 @@ export const ko = {
   'progressive.sendFailed': '발송이 닿지 못했어요: {reason}',
   'progressive.unknownError': '알 수 없는 오류',
   'progressive.networkError': '네트워크 오류로 발송하지 못했습니다',
+  'progressive.replyTrackingUnavailable': '이메일은 발송됐지만 지금은 답장을 추적할 수 없습니다.',
   'progressive.humanQTitle': '질문: {task}',
   'progressive.humanQContext': '참고:\n{ai}',
   'progressive.oneMore': '한 가지 더 확인',

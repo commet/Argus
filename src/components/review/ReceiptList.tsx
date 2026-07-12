@@ -136,7 +136,7 @@ export function ReceiptList({
                   <span>{(r.updated_at || r.created_at || '').slice(0, 10)}</span>
                   {onRemove && (
                     <button
-                      className="ml-auto text-[var(--text-tertiary)] hover:text-red-600"
+                      className="ml-auto min-w-[44px] min-h-[44px] px-2 -my-3 inline-flex items-center justify-center text-[var(--text-tertiary)] hover:text-red-600"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (confirm(L('이 검수 기록을 지울까요?', 'Delete this review record?'))) onRemove(r.receipt_id);

@@ -7,7 +7,7 @@
 export interface SajuInput {
   year: number;
   month: number;
-  day?: number;       // optional — 없으면 연주+월주만 계산
+  day: number;
   hour?: number;
   minute?: number;
   gender: '남' | '여';
@@ -52,7 +52,7 @@ export async function interpretSaju(input: SajuInput): Promise<SajuProfile> {
   const result = calculateSaju({
     year: input.year,
     month: input.month,
-    day: input.day || 15, // day 없으면 중간값 사용 (월주 계산에 영향 없음)
+    day: input.day,
     hour: input.hour,
     minute: input.minute,
     gender: input.gender,
@@ -211,7 +211,6 @@ const MONTH_STEM_START: Record<string, number> = {
 
 const TEN_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 const TWELVE_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-const BRANCH_NAMES = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'];
 
 export interface YearMonthProfile {
   // 연주
@@ -240,7 +239,6 @@ export function buildYearMonthProfile(year: number, month?: number): YearMonthPr
 
   const yearStem = STEMS_BY_YEAR[year % 10];
   const yearBranch = TWELVE_BRANCHES[year % 12];
-  const yearBranchName = BRANCH_NAMES[year % 12];
 
   const traits: string[] = [
     yearElement.trait,

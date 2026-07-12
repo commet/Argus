@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { Card } from '@/components/ui/Card';
 import { CopyButton } from '@/components/ui/CopyButton';
 import { Link2, Copy, Trash2, Check } from 'lucide-react';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 
 type Preset = {
   id: string;
@@ -147,7 +147,7 @@ export default function UtmBuilderPage() {
       <div className="min-h-screen flex items-center justify-center">
         <Card className="p-8 max-w-sm">
           <p className="text-[14px] text-[var(--text-secondary)]">로그인이 필요합니다.</p>
-          <Link href="/login" className="mt-4 inline-block text-[13px] text-[var(--accent)] underline">로그인 하러 가기</Link>
+          <LocaleLink href="/login" className="mt-4 inline-block text-[13px] text-[var(--accent)] underline">로그인 하러 가기</LocaleLink>
         </Card>
       </div>
     );

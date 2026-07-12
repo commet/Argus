@@ -44,6 +44,7 @@ import { useDecisionItemsStore } from '@/stores/useDecisionItemsStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { recordSignal } from '@/lib/signal-recorder';
 import { syncSealToTelegram } from '@/lib/telegram-sync';
+import { withLocale } from '@/lib/locale-path';
 import { track } from '@/lib/analytics';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
@@ -127,6 +128,15 @@ export function SealMoment({
   const updateProject = useProjectStore((s) => s.updateProject);
   const addDecisionItems = useDecisionItemsStore((s) => s.addItems);
   const currentVoyage = useProgressiveStore((s) => s.currentSession);
+  const setSealPromptDismissed = useProgressiveStore((s) => s.setSealPromptDismissed);
+  const persistedDismissedAt = useProgressiveStore((s) => {
+    const active = s.sessions.find((item) => item.id === s.currentSessionId && item.project_id === project.id);
+    if (active) return active.seal_prompt_dismissed_at ?? null;
+    for (let i = s.sessions.length - 1; i >= 0; i -= 1) {
+      if (s.sessions[i].project_id === project.id) return s.sessions[i].seal_prompt_dismissed_at ?? null;
+    }
+    return null;
+  });
   const { user, session, signInWithGoogle } = useAuth();
 
   /** §3.4 — the decision's premises become tracked items at seal (auto, not a
@@ -154,7 +164,8 @@ export function SealMoment({
   //   'sealed'  — the certificate plate + actions.
   const [scene, setScene] = useState<'ask' | 'sealing' | 'sealed'>('ask');
   const reducedMotion = useReducedMotion();
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissedLocally, setDismissedLocally] = useState(false);
+  const dismissed = dismissedLocally || !!persistedDismissedAt;
   const [humanJudgment, setHumanJudgment] = useState('');
 
   // Ceremony clock — the press lands ~380ms, the ink line finishes ~1650ms,
@@ -248,6 +259,8 @@ export function SealMoment({
       ? augmentContract(existing, toSeal, now, iv)
       : (() => { const f = contractFromPredicates(project.id, toSeal, now); return f ? withCheckIn(f, iv, now) : null; })();
     if (!next) return;
+    setDismissedLocally(false);
+    setSealPromptDismissed(false);
     const receiptFields = deriveReceiptFields(toSeal, typeof project.name === 'string' ? project.name : '');
     const check_by = next.check_in_at ? new Date(next.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
     // ALWAYS attach the receipt. The machine-derived fields (그때의 진짜 질문 /
@@ -319,6 +332,8 @@ export function SealMoment({
       ? augmentContract(existing, [], now, iv)
       : buildEarlyContract(project.id, { lean: summary, interval: iv }, now);
     if (!c) return;
+    setDismissedLocally(false);
+    setSealPromptDismissed(false);
     const check_by = c.check_in_at ? new Date(c.check_in_at).toLocaleDateString(ko ? 'ko-KR' : 'en-US', { month: 'long', day: 'numeric' }) : '';
     // ALWAYS attach the receipt (match the main seal path) so this recovery seal
     // also keeps a then↔now anchor at settlement; human_judgment stays optional.
@@ -363,7 +378,7 @@ export function SealMoment({
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${ymd}`,
       `SUMMARY:${icsEscape(summary)}`,
-      `DESCRIPTION:${icsEscape(`${window.location.origin}/project`)}`,
+      `DESCRIPTION:${icsEscape(`${window.location.origin}${withLocale(locale, '/project')}`)}`,
       'END:VEVENT',
       'END:VCALENDAR',
     ];
@@ -429,7 +444,8 @@ export function SealMoment({
             </button>
             <button
               onClick={() => {
-                setDismissed(true);
+                setDismissedLocally(true);
+                setSealPromptDismissed(true);
                 recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_declined', signal_data: { predicates: 0, mode: 'manual_recovery' } });
                 track('decision_seal_declined', { predicates: 0, mode: 'manual_recovery' });
               }}
@@ -449,7 +465,7 @@ export function SealMoment({
       <div className="mt-10 text-center">
         <p className="text-[12.5px] text-[var(--text-tertiary)]">
           {L('마음 바뀌면 언제든 약속을 걸 수 있어요.', 'You can set the reminder anytime you change your mind.')}{' '}
-          <button onClick={() => setDismissed(false)} className="font-medium text-[var(--accent)] hover:underline cursor-pointer">
+          <button onClick={() => { setDismissedLocally(false); setSealPromptDismissed(false); }} className="font-medium text-[var(--accent)] hover:underline cursor-pointer">
             {L('질문 다시 보기', 'Show the question again')}
           </button>
         </p>
@@ -792,7 +808,8 @@ export function SealMoment({
           </button>
           <button
             onClick={() => {
-              setDismissed(true);
+              setDismissedLocally(true);
+              setSealPromptDismissed(true);
               // A decline is as informative as an accept — the product learns
               // which decisions users don't want followed up.
               recordSignal({ project_id: project.id, tool: 'voyage', signal_type: 'seal_declined', signal_data: { predicates: kept.length } });

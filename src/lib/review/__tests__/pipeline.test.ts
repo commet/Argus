@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ingest } from '../ingest';
 import { runDocumentReview } from '../pipeline';
 import { type ReviewLLM, type ReviewLLMArgs } from '../llm-adapter';
-import { type CanonicalArtifact } from '../schema';
+import { DEFAULT_BUDGET, type CanonicalArtifact } from '../schema';
 
 const DOC = `# 온보딩 리빌드 전략\n\n온보딩을 3주 안에 리빌드한다.\n\n## 근거\n\n- 현재 retention이 낮다\n- 경쟁사가 더 빠르다\n\n## 리스크\n\n- 예산은 이번 분기 안에만 있다`;
 
@@ -225,6 +225,49 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(seen).toContain('reviewing');
     expect(seen).toContain('synthesizing');
     expect(seen[seen.length - 1]).toBe('ready');
+  });
+
+  it('runs the complete quick-review spine in one model call', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const uid = artifact.units[0].unit_id;
+    let calls = 0;
+    const seen: string[] = [];
+    const llm: ReviewLLM = {
+      model_name: 'mock', model_provider: 'local',
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        calls++;
+        expect(args.system).toContain('bounded quick-review path');
+        expect(args.model).toBe('default');
+        return {
+          profile: { document_type: 'strategy_memo', intent: 'decide', audience: 'team', stakes: 'high', artifact_maturity: 'working_draft', source_confidence: 0.7 },
+          core_question: '가격을 지금 올릴 것인가?',
+          main_claims: [{ text: '가격 인상으로 매출이 오른다', status: 'weak', unit_ids: [uid], rationale: '가격 수용 근거가 없다' }],
+          evidence_items: [],
+          assumptions: [{ text: '고객이 인상 가격을 수용한다', if_false: '매출이 줄 수 있다', unit_ids: [uid] }],
+          decision_points: [{ text: '전면 인상 여부', human_only: true, unit_ids: [uid] }],
+          findings: [{ lens_id: 'claim_evidence', title: '가격 수용 근거가 없다', detail: '문의 증가는 인상 가격 수용 증거가 아니다', severity: 'critical', confidence: 'high', suggested_action: '고객 반응을 확인한다', unit_ids: [uid] }],
+          current_heading: '가격 인상을 제안하지만 고객 수용 근거는 비어 있습니다.',
+          judgment_obligations: [{ statement: '전면 인상 여부를 결정한다', owner: 'CEO', why_human: '고객 이탈 위험을 감수할 책임이 필요하다', unit_ids: [uid] }],
+          followups: [{ predicate: '인상 가격을 제시한 고객 반응을 기록한다', pass_condition: '과반이 수용한다', fail_condition: '과반이 거절한다', check_by: '2026-07-15' }],
+          tradeoffs: [], stakeholders: [], open_questions: [], missing_sections: [],
+        } as T;
+      },
+    };
+
+    const { job, receipt } = await runDocumentReview(artifact, {
+      llm, budget: DEFAULT_BUDGET.quick, today: '2026-07-01',
+      onProgress: (j) => seen.push(j.status),
+    });
+
+    expect(calls).toBe(1);
+    expect(job.status).toBe('ready');
+    expect(receipt?.routing.selected).toHaveLength(5);
+    expect(receipt?.findings[0].lens_id).toBe('claim_evidence');
+    expect(receipt?.findings.length).toBeGreaterThanOrEqual(2);
+    expect(receipt?.findings.every((finding) => finding.anchors.length > 0)).toBe(true);
+    expect(receipt?.judgment_obligations).toHaveLength(1);
+    expect(receipt?.falsifiable_followups).toHaveLength(1);
+    expect(seen).toEqual(expect.arrayContaining(['profiling', 'reviewing', 'mapping', 'routing', 'synthesizing', 'ready']));
   });
 
   it('attaches full coverage to a small document that fits entirely', async () => {

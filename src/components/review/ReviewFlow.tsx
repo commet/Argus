@@ -25,6 +25,7 @@ import { track } from '@/lib/analytics';
 import {
   ingest,
   runDocumentReview,
+  DEFAULT_BUDGET,
   diffReceipts,
   type ReviewJob,
   type SourceKind,
@@ -207,8 +208,13 @@ export function ReviewFlow() {
     const deadline = setTimeout(() => {
       if (abortRef.current) { abortReasonRef.current = 'deadline'; abortRef.current.abort(); }
     }, REVIEW_DEADLINE_MS);
+    const sourceLength = (preExtracted?.text || text).length;
+    const budget = sourceLength <= 6_000 && artifact.units.length <= 20
+      ? DEFAULT_BUDGET.quick
+      : DEFAULT_BUDGET.standard;
     const { job: finalJob, receipt: r } = await runDocumentReview(artifact, {
       context: ctx,
+      budget,
       onProgress: setJob,
       signal: controller.signal,
     });
@@ -432,6 +438,9 @@ export function ReviewFlow() {
 
   if (phase === 'running') {
     const longWait = elapsed >= 25;
+    const longSource = (preExtracted?.text || text).length > 12_000
+      || (preExtracted?.pages_read ?? 0) > 20
+      || (preExtracted?.slides_read ?? 0) > 30;
     const mm = Math.floor(elapsed / 60);
     const ss = String(elapsed % 60).padStart(2, '0');
     return (
@@ -459,8 +468,12 @@ export function ReviewFlow() {
           {longWait && (
             <p className="mt-3 text-[12px] text-[var(--text-secondary)] leading-[1.6]">
               {L(
-                '긴 문서라 평소보다 오래 걸리고 있어요 — 계속 읽는 중입니다. 너무 길면 취소하고 더 짧게 나눠서 검수해 보세요.',
-                "This is a long document, so it's taking longer than usual — still reading. If it feels too long, cancel and review it in smaller pieces.",
+                longSource
+                  ? '긴 문서라 평소보다 오래 걸리고 있어요 — 계속 읽는 중입니다. 기다리기 어렵다면 취소하고 더 짧게 나눠도 돼요.'
+                  : '예상보다 오래 걸리고 있지만 계속 검수 중이에요. 기다리기 어렵다면 취소해도 입력 내용은 그대로 남아 있어요.',
+                longSource
+                  ? "This is a long document, so it's taking longer than usual. You can cancel and review it in smaller pieces."
+                  : "This is taking longer than expected, but the review is still running. You can cancel without losing your input.",
               )}
             </p>
           )}

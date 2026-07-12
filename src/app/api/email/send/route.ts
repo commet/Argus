@@ -47,7 +47,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email is not configured on this deployment.' }, { status: 503 });
   }
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+  }
   const { to, title, content, context } = body;
 
   if (!to || typeof to !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
@@ -71,9 +76,11 @@ export async function POST(req: NextRequest) {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const fromDomain = process.env.EMAIL_FROM_DOMAIN || 'argus.voyage';
+    const replyTo = process.env.EMAIL_REPLY_TO || `hello@${fromDomain}`;
     await resend.emails.send({
       from: `Argus <share@${fromDomain}>`,
       to,
+      replyTo,
       subject: safeTitle,
       html,
     });

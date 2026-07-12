@@ -44,7 +44,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Parse body
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+  }
   const { channelId, userId: slackUserId, title, content, threadTs, sessionId, workerId } = body;
   // en-first product, but default 'ko' to preserve behavior when the caller omits it.
   const lang: 'ko' | 'en' = body.locale === 'en' ? 'en' : 'ko';
@@ -55,10 +60,10 @@ export async function POST(req: NextRequest) {
   if (!targetChannel || typeof targetChannel !== 'string') {
     return NextResponse.json({ error: 'channelId or userId is required' }, { status: 400 });
   }
-  if (channelId && !/^[CDGU][A-Z0-9]{5,}$/i.test(channelId)) {
+  if (channelId !== undefined && (typeof channelId !== 'string' || !/^[CDGU][A-Z0-9]{5,}$/i.test(channelId))) {
     return NextResponse.json({ error: 'Invalid channelId format' }, { status: 400 });
   }
-  if (slackUserId && !/^[UW][A-Z0-9]{5,}$/i.test(slackUserId)) {
+  if (slackUserId !== undefined && (typeof slackUserId !== 'string' || !/^[UW][A-Z0-9]{5,}$/i.test(slackUserId))) {
     return NextResponse.json({ error: 'Invalid Slack userId format' }, { status: 400 });
   }
   if (!title || typeof title !== 'string') {

@@ -68,6 +68,12 @@ describe('POST /api/account/delete — auth + erasure receipt', () => {
     expect(deletedTables).toHaveLength(0);
   });
 
+  it('401s without auth even when the service role is unconfigured', async () => {
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
+    const res = await POST(req());
+    expect(res.status).toBe(401);
+  });
+
   it('401s when the bearer token does not resolve to a user', async () => {
     tokenUser = null;
     const res = await POST(req('bogus'));

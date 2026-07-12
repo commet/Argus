@@ -98,6 +98,7 @@ export default function ProjectPage() {
   const { feedbackHistory, loadData: loadPersona } = usePersonaStore();
   const { judgments, loadJudgments, getUserPatterns } = useJudgmentStore();
   const { sessions: progressiveSessions, loadSessions: loadProgressive } = useProgressiveStore();
+  const [storesLoaded, setStoresLoaded] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   // ?from=checkin — arrived via a check-in reminder email. On a logged-out /
@@ -128,6 +129,11 @@ export default function ProjectPage() {
     loadPersona();
     loadJudgments();
     loadProgressive();
+    // Every loader hydrates localStorage synchronously before its optional
+    // cloud merge. Until this effect has run, [] means "not read yet", not
+    // "this user has no projects" — rendering the empty state here caused a
+    // frightening false data-loss flash on every return.
+    setStoresLoaded(true);
   }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadJudgments, loadProgressive]);
 
   const currentProject = currentProjectId ? projects.find((p) => p.id === currentProjectId) : null;
@@ -506,7 +512,14 @@ export default function ProjectPage() {
       {/* Project selector */}
       {!currentProject && (
         <div className="space-y-5">
-          {projects.length === 0 && fromCheckin ? (
+          {!storesLoaded ? (
+            <Card className="text-center py-12" role="status" aria-live="polite">
+              <ArgusMascot variant="head" size="lg" animate className="mx-auto mb-4" />
+              <p className="text-[13px] text-[var(--text-secondary)] font-medium">
+                {L('항해 기록을 불러오는 중이에요', 'Loading your voyages')}
+              </p>
+            </Card>
+          ) : projects.length === 0 && fromCheckin ? (
             <Card className="text-center py-12">
               <ArgusMascot variant="head" size="lg" animate className="mx-auto mb-4" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">
@@ -717,6 +730,22 @@ export default function ProjectPage() {
                       outcomeVerdict: m.contractAllGraded ? 'mixed' : project.outcome?.verdict,
                     }, Date.now());
                     const vMeta = VOYAGE_STATE_META[voyageState];
+                    // A completed document is not "still sailing" just because
+                    // the optional Coda/check-in loop is still open. Keep the
+                    // ship-state machine intact while naming the user's actual
+                    // artifact state consistently with the detail view.
+                    const cardStatusLabel = m.contractAllGraded
+                      ? L('검증된 항해', 'Verified')
+                      : isDue
+                        ? L('확인할 때', 'Check-in due')
+                        : m.contractSealed
+                          ? L('확인 대기', 'Awaiting check-in')
+                          : m.voyageComplete
+                            ? L('문서 완료', 'Document ready')
+                            : L(vMeta.ko, vMeta.en);
+                    const cardStatusClass = (m.voyageComplete || m.contractSealed) && !m.contractAllGraded && !isDue
+                      ? 'bg-[var(--collab)] text-[var(--success)]'
+                      : VOYAGE_TONE_CLS[vMeta.tone];
 
                     return (
                       <button
@@ -738,7 +767,7 @@ export default function ProjectPage() {
                           <VoyageShip
                             state={voyageState}
                             size={84}
-                            title={L(vMeta.ko, vMeta.en)}
+                            title={cardStatusLabel}
                             className="relative z-[1] mb-0.5 transition-transform duration-300 group-hover:scale-[1.04]"
                           />
                         </div>
@@ -746,12 +775,12 @@ export default function ProjectPage() {
                         {/* Header: status pill + last-activity time */}
                         <div className="flex items-center justify-between gap-2 text-[10.5px] uppercase tracking-wide font-bold">
                           <span
-                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${VOYAGE_TONE_CLS[vMeta.tone]}`}
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${cardStatusClass}`}
                             style={vMeta.tone === 'gold' ? { background: 'var(--gradient-gold-subtle)' } : undefined}
                           >
-                            {voyageState === 'sailing' && <span className="w-1 h-1 rounded-full bg-[var(--accent)] animate-pulse" />}
-                            {voyageState === 'verified' && <Check size={9} strokeWidth={3} />}
-                            {L(vMeta.ko, vMeta.en)}
+                            {voyageState === 'sailing' && !m.doneEff && <span className="w-1 h-1 rounded-full bg-[var(--accent)] animate-pulse" />}
+                            {(m.voyageComplete || m.contractAllGraded) && <Check size={9} strokeWidth={3} />}
+                            {cardStatusLabel}
                           </span>
                           <span className="text-[var(--text-tertiary)] normal-case tracking-normal font-normal tabular-nums">
                             {relativeDate(m.lastActivityAt || project.updated_at, locale)}

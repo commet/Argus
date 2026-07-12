@@ -89,6 +89,11 @@ function LoginContent() {
         setMessage(L('비밀번호 재설정 링크를 보냈어요. 이메일을 확인해 주세요.', 'Password reset link sent. Please check your email.'));
       }
     } else if (isSignUp) {
+      if (password.length < 8) {
+        setError(L('비밀번호는 8자 이상이어야 해요.', 'Password must be at least 8 characters.'));
+        setSubmitting(false);
+        return;
+      }
       const { error } = await signUpWithEmail(email, password, captchaToken || undefined, { name, role });
       if (error) {
         setError(error);
@@ -173,7 +178,7 @@ function LoginContent() {
             <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shadow-[var(--shadow-sm)]" style={{ background: 'var(--gradient-gold)' }}>
               <span className="text-white font-black text-[15px]">A</span>
             </div>
-            <span className="text-[22px] font-extrabold text-[var(--text-primary)] tracking-tight">Argus</span>
+            <h1 className="text-[22px] font-extrabold text-[var(--text-primary)] tracking-tight">Argus</h1>
           </div>
           <p className="text-[14px] text-[var(--text-secondary)]">
             {L('결정의 궤적을 이어가려면 — 로그인해 주세요', "Pick up your decision's trail — sign in.")}
@@ -231,9 +236,9 @@ function LoginContent() {
           </button>
           <p className="text-[11px] text-[var(--text-tertiary)] text-center leading-relaxed">
             {locale === 'ko' ? (
-              <>시작하면 <a href="/terms" target="_blank" className="text-[var(--accent)] hover:underline">이용약관</a> 및 <a href="/privacy" target="_blank" className="text-[var(--accent)] hover:underline">개인정보처리방침</a>에 동의합니다</>
+              <>시작하면 <LocaleLink href="/terms" target="_blank" className="text-[var(--accent)] hover:underline">이용약관</LocaleLink> 및 <LocaleLink href="/privacy" target="_blank" className="text-[var(--accent)] hover:underline">개인정보처리방침</LocaleLink>에 동의합니다</>
             ) : (
-              <>By continuing you agree to our <a href="/terms" target="_blank" className="text-[var(--accent)] hover:underline">Terms</a> and <a href="/privacy" target="_blank" className="text-[var(--accent)] hover:underline">Privacy Policy</a></>
+              <>By continuing you agree to our <LocaleLink href="/terms" target="_blank" className="text-[var(--accent)] hover:underline">Terms</LocaleLink> and <LocaleLink href="/privacy" target="_blank" className="text-[var(--accent)] hover:underline">Privacy Policy</LocaleLink></>
             )}
           </p>
 
@@ -335,9 +340,9 @@ function LoginContent() {
                   <span className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
                     <span className="text-[var(--danger)]">{L('[필수]', '[Required]')}</span>{' '}
                     {locale === 'ko' ? (
-                      <><a href="/terms" target="_blank" className="text-[var(--accent)] underline">서비스 이용약관</a>에 동의합니다</>
+                      <><LocaleLink href="/terms" target="_blank" className="text-[var(--accent)] underline">서비스 이용약관</LocaleLink>에 동의합니다</>
                     ) : (
-                      <>I agree to the <a href="/terms" target="_blank" className="text-[var(--accent)] underline">Terms of Service</a></>
+                      <>I agree to the <LocaleLink href="/terms" target="_blank" className="text-[var(--accent)] underline">Terms of Service</LocaleLink></>
                     )}
                   </span>
                 </label>
@@ -351,9 +356,9 @@ function LoginContent() {
                   <span className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
                     <span className="text-[var(--danger)]">{L('[필수]', '[Required]')}</span>{' '}
                     {locale === 'ko' ? (
-                      <><a href="/privacy" target="_blank" className="text-[var(--accent)] underline">개인정보처리방침</a>에 동의합니다</>
+                      <><LocaleLink href="/privacy" target="_blank" className="text-[var(--accent)] underline">개인정보처리방침</LocaleLink>에 동의합니다</>
                     ) : (
-                      <>I agree to the <a href="/privacy" target="_blank" className="text-[var(--accent)] underline">Privacy Policy</a></>
+                      <>I agree to the <LocaleLink href="/privacy" target="_blank" className="text-[var(--accent)] underline">Privacy Policy</LocaleLink></>
                     )}
                   </span>
                 </label>

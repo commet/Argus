@@ -51,6 +51,12 @@ describe('GET /api/account/export — auth gate', () => {
     expect(selectedFor).toHaveLength(0);
   });
 
+  it('401s without auth even when the service role is unconfigured', async () => {
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
+    const res = await GET(req());
+    expect(res.status).toBe(401);
+  });
+
   it('401s when the token does not resolve to a user', async () => {
     tokenUser = null;
     const res = await GET(req('bogus'));

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +20,7 @@ import { supabase } from '@/lib/supabase';
 import { timeoutSignal } from '@/lib/timeout-signal';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
+import { withLocale } from '@/lib/locale-path';
 
 function buildLlmProviders(L: (ko: string, en: string) => string) {
   return [
@@ -73,8 +74,10 @@ export default function SettingsPage() {
   // Slack
   const slackConnections = useSlackStore(s => s.connections);
   const loadSlack = useSlackStore(s => s.loadConnections);
+  const slackLoadError = useSlackStore(s => s.loadError);
   const disconnectSlack = useSlackStore(s => s.disconnect);
   const [slackStatus, setSlackStatus] = useState<string | null>(null);
+  const [slackConnecting, setSlackConnecting] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -85,13 +88,13 @@ export default function SettingsPage() {
     if (slack === 'connected') {
       setSlackStatus('connected');
       loadSlack();
-      window.history.replaceState({}, '', '/settings');
+      window.history.replaceState({}, '', window.location.pathname);
     } else if (slack === 'error') {
       setSlackStatus('error');
-      window.history.replaceState({}, '', '/settings');
+      window.history.replaceState({}, '', window.location.pathname);
     } else if (slack === 'unconfigured') {
       setSlackStatus('unconfigured');
-      window.history.replaceState({}, '', '/settings');
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, [loadSettings, loadSlack]);
 
@@ -177,7 +180,7 @@ export default function SettingsPage() {
         clearAllStorage();
         await supabase.auth.signOut();
         setResetModal(false);
-        window.location.href = '/';
+        window.location.href = withLocale(locale, '/');
       } else {
         // Anonymous — only this browser's local data exists.
         clearAllStorage();
@@ -424,6 +427,11 @@ export default function SettingsPage() {
             <p className="text-[13px] text-[var(--text-secondary)]">{L('Slack 연동이 아직 설정되지 않은 배포예요 — 운영자가 SLACK_* 환경변수를 등록하면 켜져요.', 'Slack integration isn\'t configured on this deployment yet — it turns on once the operator sets the SLACK_* environment variables.')}</p>
           </div>
         )}
+        {slackLoadError && (
+          <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/25">
+            <p className="text-[13px] text-[var(--danger)] font-medium">{L('Slack 연결 상태를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'Could not load Slack connection status. Please try again shortly.')}</p>
+          </div>
+        )}
         {slackConnections.length > 0 ? (
           <div className="space-y-2">
             {slackConnections.map((conn: { id: string; team_name: string }) => (
@@ -434,7 +442,10 @@ export default function SettingsPage() {
                   </p>
                   <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 Slack 채널로 바로 보낼 수 있습니다', 'You can send results directly to Slack channels')}</p>
                 </div>
-                <Button variant="danger" size="sm" onClick={() => disconnectSlack(conn.id)}>
+                <Button variant="danger" size="sm" onClick={async () => {
+                  const result = await disconnectSlack(conn.id);
+                  if (!result.ok) setSlackStatus('error');
+                }}>
                   <Unlink size={14} /> {L('연결 해제', 'Disconnect')}
                 </Button>
               </div>
@@ -446,16 +457,38 @@ export default function SettingsPage() {
               <p className="text-[14px] font-medium">{L('Slack에 연결하기', 'Connect to Slack')}</p>
               <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 팀 Slack 채널로 직접 공유', 'Share results directly to your team Slack channel')}</p>
             </div>
-            <Button variant="secondary" size="sm" onClick={async () => {
-              const { data } = await (await import('@/lib/supabase')).supabase.auth.getSession();
-              const token = data.session?.access_token;
-              if (token) {
-                window.location.href = `/api/slack/oauth?token=${token}`;
-              } else {
-                window.location.href = '/login?redirect=/settings';
+            <Button variant="secondary" size="sm" disabled={slackConnecting} onClick={async () => {
+              setSlackConnecting(true);
+              try {
+                const { data } = await (await import('@/lib/supabase')).supabase.auth.getSession();
+                const token = data.session?.access_token;
+                if (!token) {
+                  window.location.href = withLocale(locale, '/login?redirect=/settings');
+                  return;
+                }
+                const res = await fetch('/api/slack/oauth', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ locale }),
+                  signal: timeoutSignal(),
+                });
+                const json = await res.json().catch(() => ({}));
+                if (res.status === 503) { setSlackStatus('unconfigured'); return; }
+                if (res.status === 401) {
+                  window.location.href = withLocale(locale, '/login?redirect=/settings');
+                  return;
+                }
+                if (!res.ok || typeof json.url !== 'string') { setSlackStatus('error'); return; }
+                const target = new URL(json.url);
+                if (target.origin !== 'https://slack.com') { setSlackStatus('error'); return; }
+                window.location.assign(target.toString());
+              } catch {
+                setSlackStatus('error');
+              } finally {
+                setSlackConnecting(false);
               }
             }}>
-              <MessageSquare size={14} /> {L('연결하기', 'Connect')}
+              {slackConnecting ? <Loader2 size={14} className="animate-spin" /> : <MessageSquare size={14} />} {L('연결하기', 'Connect')}
             </Button>
           </div>
         )}
@@ -466,13 +499,17 @@ export default function SettingsPage() {
         <div className="border-t border-[var(--border-subtle)] my-4" />
         <TelegramBlock locale={locale} />
 
-        {/* Plugin push token */}
-        <div className="border-t border-[var(--border-subtle)] my-4" />
-        <PluginTokenBlock locale={locale} />
+        {user && (
+          <>
+            {/* Plugin push token */}
+            <div className="border-t border-[var(--border-subtle)] my-4" />
+            <PluginTokenBlock locale={locale} />
 
-        {/* Public share links */}
-        <div className="border-t border-[var(--border-subtle)] my-4" />
-        <SharedLinksBlock locale={locale} />
+            {/* Public share links */}
+            <div className="border-t border-[var(--border-subtle)] my-4" />
+            <SharedLinksBlock locale={locale} />
+          </>
+        )}
 
         {/* Data & account */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
@@ -662,6 +699,7 @@ export default function SettingsPage() {
           <button
             role="switch"
             aria-checked={settings.audio_enabled}
+            aria-label={L('전환음', 'Transition Sound')}
             onClick={() => {
               const next = !settings.audio_enabled;
               updateSettings({ audio_enabled: next });
@@ -766,6 +804,7 @@ export default function SettingsPage() {
                 <button
                   role="switch"
                   aria-checked={on}
+                  aria-label={lab.label}
                   onClick={() => updateSettings({ [lab.key]: !on })}
                   className={`relative w-11 h-6 box-content py-2.5 -my-2.5 bg-clip-content rounded-full transition-colors cursor-pointer shrink-0 ${
                     on ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
@@ -898,6 +937,7 @@ function TelegramBlock({ locale }: { locale: string }) {
   const loadConnections = useTelegramStore((s) => s.loadConnections);
   const startConnect = useTelegramStore((s) => s.startConnect);
   const disconnect = useTelegramStore((s) => s.disconnect);
+  const loadError = useTelegramStore((s) => s.loadError);
   const [pending, setPending] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
@@ -930,6 +970,7 @@ function TelegramBlock({ locale }: { locale: string }) {
 
   return (
     <div>
+      {loadError && <p className="text-[12px] text-[var(--danger)] mb-2">{L('Telegram 연결 상태를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'Could not load Telegram connection status. Please try again shortly.')}</p>}
       {connections.length > 0 ? (
         <div className="space-y-2">
           {connections.map((c) => (
@@ -940,7 +981,10 @@ function TelegramBlock({ locale }: { locale: string }) {
                 </p>
                 <p className="text-[12px] text-[var(--text-secondary)]">{L('결과를 이 채팅으로 보내고, 봇에게 고민을 DM하면 바로 리프레임해 줘요', 'Send results here — and DM the bot a decision to get an instant reframe')}</p>
               </div>
-              <Button variant="danger" size="sm" onClick={() => disconnect(c.id)}>
+              <Button variant="danger" size="sm" onClick={async () => {
+                const result = await disconnect(c.id);
+                if (!result.ok) setNote(L('연결을 해제하지 못했습니다. 연결은 그대로 유지됩니다.', 'Could not disconnect. The connection is still active.'));
+              }}>
                 <Unlink size={14} /> {L('연결 해제', 'Disconnect')}
               </Button>
             </div>
@@ -959,7 +1003,7 @@ function TelegramBlock({ locale }: { locale: string }) {
       )}
       {note && <p className="text-[12px] text-[var(--text-secondary)] mt-2">{note}</p>}
       {connections.length === 0 && (
-        <button onClick={() => loadConnections()} className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] mt-1.5 cursor-pointer transition-colors">
+        <button type="button" onClick={() => loadConnections()} className="min-h-[44px] text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] mt-1.5 cursor-pointer transition-colors">
           {L('연결했는데 안 보이면 새로고침', 'Connected but not showing? Refresh')}
         </button>
       )}
@@ -979,14 +1023,15 @@ function PluginTokenBlock({ locale }: { locale: string }) {
   const [copiedEnv, setCopiedEnv] = useState(false);
   const [error, setError] = useState('');
 
-  const load = async () => {
-    const { data } = await supabase
+  const load = useCallback(async () => {
+    const { data, error: loadError } = await supabase
       .from('plugin_tokens')
       .select('id, label, last_used_at, created_at')
       .order('created_at', { ascending: false });
+    if (loadError) { setError(locale === 'ko' ? '토큰 목록을 불러오지 못했습니다.' : 'Could not load tokens.'); return; }
     setTokens(data || []);
-  };
-  useEffect(() => { load(); }, []);
+  }, [locale]);
+  useEffect(() => { void load(); }, [load]);
 
   const issue = async () => {
     setError(''); setBusy(true); setIssued(null);
@@ -1007,7 +1052,8 @@ function PluginTokenBlock({ locale }: { locale: string }) {
   };
 
   const revoke = async (id: string) => {
-    await supabase.from('plugin_tokens').delete().eq('id', id);
+    const { error: revokeError } = await supabase.from('plugin_tokens').delete().eq('id', id);
+    if (revokeError) { setError(L('토큰을 해제하지 못했습니다. 토큰은 계속 유효합니다.', 'Could not revoke the token. It remains active.')); return; }
     await load();
   };
 
@@ -1100,24 +1146,29 @@ function SharedLinksBlock({ locale }: { locale: string }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const [links, setLinks] = useState<SharedLink[]>([]);
   const [origin, setOrigin] = useState('');
+  const [error, setError] = useState('');
 
-  const load = async () => {
-    const { data } = await supabase
+  const load = useCallback(async () => {
+    const { data, error: loadError } = await supabase
       .from('shared_links')
       .select('id, token, title, view_count, created_at')
       .order('created_at', { ascending: false });
+    if (loadError) { setError(locale === 'ko' ? '공개 링크를 불러오지 못했습니다.' : 'Could not load public links.'); return; }
+    setError('');
     setLinks(data || []);
-  };
-  useEffect(() => { setOrigin(window.location.origin); load(); }, []);
+  }, [locale]);
+  useEffect(() => { setOrigin(window.location.origin); void load(); }, [load]);
 
   const revoke = async (id: string) => {
-    await supabase.from('shared_links').delete().eq('id', id);
+    const { error: revokeError } = await supabase.from('shared_links').delete().eq('id', id);
+    if (revokeError) { setError(L('링크를 취소하지 못했습니다. 링크는 계속 열릴 수 있습니다.', 'Could not revoke the link. It may still be accessible.')); return; }
     await load();
   };
 
   return (
     <div>
       <p className="text-[14px] font-medium flex items-center gap-1.5"><Link2 size={14} className="text-[var(--accent)]" /> {L('공개 링크', 'Public links')}</p>
+      {error && <p className="text-[12px] text-[var(--danger)] mb-2">{error}</p>}
       <p className="text-[12px] text-[var(--text-secondary)] mb-2">{L('결과 화면의 “보내기 → 링크”로 만든 공개 페이지. 취소하면 즉시 열람 불가.', 'Public pages minted via “Send → Link”. Revoking makes them unreachable at once.')}</p>
       {links.length === 0 ? (
         <p className="text-[12px] text-[var(--text-tertiary)]">{L('아직 만든 공개 링크가 없어요.', 'No public links yet.')}</p>

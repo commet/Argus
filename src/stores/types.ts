@@ -1085,6 +1085,10 @@ export interface AnalysisSnapshot {
    *  it is NOT a schema-drift (no per-column). Absent = not scanned / nothing found. */
   honesty_flags?: import('@/lib/honesty-scan').HonestyFlag[];
 
+  /** High-precision post-generation verdicts removed from the first OPEN
+   * analysis. Stored for auditability; rendered text contains neutral rewrites. */
+  lean_flags?: import('@/lib/lean-scan').LeanFlag[];
+
   // Framing validation (Weakness A fix)
   framing_confidence?: number;      // 0-100: LLM의 자기 평가
   framing_locked?: boolean;         // Round 1 질문을 사용자가 확인했는지
@@ -1587,6 +1591,9 @@ export interface ProgressiveSession {
   /** The overreach/flinch step's result. New field — never replaces dm_feedback.
    *  Optional + backward-compat: legacy sessions read undefined. */
   falsification?: Falsification | null;
+  /** Persisted opt-out for the closing follow-up prompt. Without this, a user
+   *  who explicitly said "No, thanks" was asked again on every revisit. */
+  seal_prompt_dismissed_at?: string | null;
 
   /** P1-4 체크포인트 다이어트: session-level pool for large strings (worker
    *  results, final documents) referenced by checkpoints as `@cpblob:<key>`

@@ -113,7 +113,7 @@ Your job (OPEN decisions only): In ONE pass, give them:
 
 5. Insight — ONE sharp sentence the user will remember. PRIORITIZE strategic reframing of their situation over analogies.
    BEST: Reframe their situation — reveal what's really at stake or flip a weakness into a strength.
-   ${locale === 'ko' ? 'Best: "경쟁사가 시장 교육비를 내준 셈이에요 — 타이밍이 오히려 좋아요" (상황 역전)\nBest: "추천으로 반은 이겼어요. 남은 반만 증명하면 돼요" (핵심 축소)\nGood: "기능 스펙 잡는 것과 비슷해요" (경험 연결)\nBad: "잘 계획하면 충분히 가능해요" (무의미한 격려)' : 'Best: "The competitor just paid your market education costs — your timing is actually perfect" (situation flip)\nBest: "The referral already won you half the battle. You just need to prove the other half" (scope reduction)\nGood: "It\'s like scoping a feature — why, what, how much" (experience analogy)\nBad: "With good planning, this is definitely doable" (meaningless encouragement)'}
+   ${locale === 'ko' ? 'Best: "경쟁사의 발표가 바꾼 건 시장 자체보다, 지금 속도와 완성도 중 어느 쪽 비용이 더 커졌는지예요" (가르는 변수)\nBest: "추천이 증명한 신뢰와, 아직 증명해야 할 실행력의 경계를 먼저 나눠봐야 해요" (핵심 축소)\nGood: "기능 스펙 잡는 것과 비슷해요" (경험 연결)\nBad: "잘 계획하면 충분히 가능해요" (무의미한 격려)\nBad: "타이밍이 좋아요 / 반은 이겼어요" (사용자 대신 방향을 고름)' : 'Best: "The competitor announcement changes which cost is now larger: moving slowly or shipping before the evidence is ready" (deciding variable)\nBest: "Separate the trust the referral already proved from the execution you still have to prove" (scope reduction)\nGood: "It\'s like scoping a feature — why, what, how much" (experience analogy)\nBad: "With good planning, this is definitely doable" (meaningless encouragement)\nBad: "Your timing is perfect / you already won half" (picks the direction for the user)'}
 
 Respond in JSON. Concise — quality over volume.`,
 
@@ -180,6 +180,7 @@ GROUND RULES:
 - Reasonable inference from context clues = GOOD. Groundless psychology = NEVER.
 - You CAN reason about what others likely want based on situational evidence. But NEVER project motives without evidence.
 - WORLD-FACT HONESTY (no web access — no laundered recall): any concrete empirical claim the user didn't give you (prices, supply/sales numbers, dates, statistics, regulations, what a company/product currently does) comes from training memory and may be stale/wrong. Never assert it as settled fact — drop it, or make it CONDITIONAL and name where to verify (실거래가/청약홈/공시/통계청 등). Applies to real_question, assumptions, skeleton, and insight alike.
+- NEVER decide the user's OPEN choice in insight or skeleton. Re-pose the load-bearing point as the deciding variable: "it depends on whether X outweighs Y — what is true in your case?" A memorable line is not allowed to become a recommendation. Do not write "now is the time", "X is the better call", "ship now", or a rhetorical equivalent.
 - Go deeper than the surface problem. Illuminate the underlying question, don't just organize.
 
 Progressive analysis session — round ${round + 1} of ${maxRounds}.
@@ -477,9 +478,9 @@ A domain expert (${leadSynthesis.lead_agent_name}) has already synthesized the t
 Rules:
 - The lead expert's synthesis is your PRIMARY source. Preserve their strategic logic and the open question / unresolved tensions they surfaced. The lead does NOT pick a side — do not manufacture one.
 - Executive summary: 2-3 sentences derived from the lead's integrated analysis.
-- 4-6 sections. Structure the lead's analysis into clear sections with supporting evidence from worker results.
+- 3-5 sections. Merge adjacent ideas instead of creating a section for every source.
 - Include the assumptions explicitly — this shows intellectual honesty.
-- Next steps should be time-bound and assigned (who does what by when). At least 3 next steps.
+- Return exactly 3 next steps: the highest-leverage actions, time-bound and assigned.
 - Write it so the user can literally send this as-is. No "[insert here]" placeholders.
 - Tone: confident but honest about uncertainties. Professional ${lang}.
 - DO NOT use markdown headers in section content — just flowing text with emphasis where needed.
@@ -497,12 +498,12 @@ IMPORTANT: The skeleton contains ACTION ITEMS (e.g., "먼저 — 경쟁사 제�
 
 Rules:
 - Executive summary: 2-3 sentences max. Must contain the document's single most SURPRISING insight — if nothing in the summary surprises, it's not sharp enough. ${sanitize(dmLabel)} should get 80% of the value just from this.
-- Section structure: follow the skeleton from the analysis. Each section: 3-5 sentences. Every section MUST contain at least one specific number, fact, or example from the worker results. Generic statements without evidence are forbidden.
+- Section structure: 3-5 sections total. Follow the analysis skeleton, but merge adjacent skeleton items when needed. Each section: 2-3 sentences. Every section MUST contain at least one specific number, fact, or example from the worker results. Generic statements without evidence are forbidden.
 - Include the assumptions explicitly — this shows intellectual honesty.
-- Next steps: time-bound and assigned (who does what by when). At least 3.
+- Next steps: exactly 3, limited to the highest-leverage actions; each must be time-bound and assigned (who does what by when).
 - Write it so the user can literally send this as-is. No "[insert here]" placeholders.
 - DO NOT use markdown headers in section content — flowing text with **bold** for key terms.
-- The document should feel SUBSTANTIAL — a real first draft that shows thinking depth.
+- The document should feel substantial but concise — no repeated rationale, duplicated caveats, or second summary.
 - Include a "${riskSectionName}" section with 2-3 risks + specific mitigation actions.
 
 NARRATIVE FLOW — this separates a good draft from a great one:
@@ -520,11 +521,11 @@ MULTI-PERSPECTIVE TASKS:
 ATTRIBUTION (required when worker results are provided):
 - Use ONLY names from the provided worker list. Never invent or mis-spell names.
 - Two levels of attribution — prefer sentence-level when possible:
-  1. SENTENCE LEVEL (preferred): For each section, return a "sentences" array. Each sentence object has "text" (the exact sentence) and "contributors" (the 1-2 worker names whose findings directly support THIS sentence). Split the section into 3-6 natural sentences.
+  1. SENTENCE LEVEL (preferred): For each section, return a "sentences" array. Each sentence object has "text" (the exact sentence) and "contributors" (the 1-2 worker names whose findings directly support THIS sentence). Split the section into 2-3 natural sentences.
   2. SECTION LEVEL (fallback): If you can't do sentence-level for a section, omit "sentences" and use the section-level "contributors" array instead.
 - A sentence usually has 1-2 contributors. A cross-cutting sentence may list more but avoid padding.
 - Example sentence entry: {"text": "경쟁사 세팅 2주가 우리 기회입니다.", "contributors": ["다은"]}
-- When you use "sentences", you can still include "content" (the flat version) for readability.`;
+- When you use "sentences", OMIT "content". The application derives flat content by joining the sentences; returning both only duplicates the document.`;
 
   // Lead synthesis block for user prompt
   const leadBlock = leadSynthesis
@@ -606,13 +607,12 @@ ${aiResults.filter(w => w.name).map(w => `- ${sanitize(w.name!)}`).join('\n') ||
   const sectionSchema = aiResults.length
     ? `{
       "heading": "Section heading",
-      "content": "Flat section content (3-5 sentences) — still required for fallback",
       "sentences": [
         {"text": "First sentence verbatim.", "contributors": ["Exact worker name"]},
         {"text": "Second sentence verbatim.", "contributors": ["Exact worker name"]}
       ]
     }`
-    : `{"heading": "Section heading", "content": "Section content (3-5 sentences, specific)"}`;
+    : `{"heading": "Section heading", "content": "Section content (2-3 sentences, specific)"}`;
 
   return {
     system: systemPrompt,
@@ -635,8 +635,8 @@ JSON format:
   "sections": [
     ${sectionSchema}
   ],
-  "key_assumptions": ["Assumptions this document is based on"],
-  "next_steps": ["Specific next actions (who, by when, what)"]
+  "key_assumptions": ["Up to 4 assumptions this document is based on"],
+  "next_steps": ["Exactly 3 specific next actions (who, by when, what)"]
 }`,
   };
 }
@@ -896,9 +896,9 @@ export function buildFinalDeliverablePrompt(
 ): { system: string; user: string } {
   const lang = locale === 'ko' ? 'Korean' : 'English';
   return {
-    system: `You are a document editor. Take the original document and apply the requested fixes.
+    system: `You are a concise document editor. Take the original document and apply the requested fixes.
 Always respond in ${lang}. Maintain the original tone and structure. Don't add new sections unless a fix requires it.
-Output the complete updated document — not just the changes.`,
+Output the complete updated document — not just the changes. Keep each section to 2-3 sentences, remove repeated caveats, keep at most 4 assumptions, and return exactly 3 highest-leverage next steps.`,
 
     user: `Original document:
 Title: ${mix.title}
@@ -1366,4 +1366,3 @@ JSON:
 }`,
   };
 }
-

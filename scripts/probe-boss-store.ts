@@ -99,11 +99,10 @@ for (const code of typeCodes) {
   check(`${code} names differ by locale`, ko?.name !== en?.name);
   check(`${code} en speechPatterns has 5`, en?.speechPatterns.length === 5, `${en?.speechPatterns.length}`);
   // English version should NOT have Korean characters in critical fields
-  const combinedText = [en?.name, en?.communicationStyle, en?.feedbackStyle, en?.bossVibe, ...(en?.speechPatterns || [])].join(' ');
+  const combinedText = [en?.name, en?.communicationStyle, en?.feedbackStyle, en?.bossVibe, ...(en?.speechPatterns || []), en?.exampleDialogues, en?.innerMonologueExample].join(' ');
   const hasKorean = /[가-힣]/.test(combinedText);
   check(`${code} en fields have no Korean chars`, !hasKorean);
-  // English version should NOT have exampleDialogues (intentionally omitted)
-  check(`${code} en exampleDialogues undefined`, en?.exampleDialogues === undefined);
+  check(`${code} en exampleDialogues present`, !!en?.exampleDialogues?.trim());
 }
 
 // All 16 types covered

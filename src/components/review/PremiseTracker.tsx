@@ -14,9 +14,9 @@
  */
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { LocaleLink } from '@/components/ui/LocaleLink';
 import { useLocale } from '@/hooks/useLocale';
 import { useAuth } from '@/lib/auth';
 import { type JudgmentReceipt } from '@/lib/review';
@@ -217,7 +217,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                     {p.auto_watch && !user && (
                       <span className="text-amber-700">
                         {L('알림은 이메일이 있어야 가요 — ', 'Alerts need an email — ')}
-                        <Link href="/login" className="underline hover:text-[var(--accent)]">{L('이메일 등록', 'register')}</Link>
+                        <LocaleLink href="/login" className="underline hover:text-[var(--accent)]">{L('이메일 등록', 'register')}</LocaleLink>
                       </span>
                     )}
                   </div>

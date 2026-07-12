@@ -348,7 +348,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
     // Consume the param IMMEDIATELY: leaving ?q= in the URL meant every
     // refresh (and "새 프로젝트", which remounts HeroFlow) re-ran the same
     // analysis — duplicate projects, quota burned twice (audit P0 #1).
-    window.history.replaceState(null, '', '/workspace');
+    window.history.replaceState(null, '', window.location.pathname);
     // Defuse the persisted-project restore: loadProjects() restores the last
     // open project synchronously, which would unmount HeroFlow mid-analysis —
     // aborting this run and hijacking the screen to an old project while the
@@ -1223,7 +1223,7 @@ function WorkspaceContent() {
   const handleNavigate = (step: string) => {
     const stepId = step.replace('/tools/', '') as StepId;
     setActiveStep(stepId);
-    window.history.pushState(null, '', `/workspace?step=${stepId}`);
+    window.history.pushState(null, '', `${window.location.pathname}?step=${stepId}`);
     if (settings.audio_enabled) {
       resumeAudioContext();
       playTransitionTone(settings.audio_volume);

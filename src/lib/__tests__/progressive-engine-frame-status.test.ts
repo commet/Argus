@@ -83,4 +83,25 @@ describe('runInitialAnalysis populates frame_status (R60)', () => {
     expect(snapshot.decision_density).toBe('low');
     expect(snapshot.skeleton).toEqual([]);
   });
+
+  it('neutralizes a directional insight after an open framing rejection', async () => {
+    mockJson.mockResolvedValue({
+      request_type: 'open',
+      real_question: '출시 속도와 검증 범위 중 무엇이 이번 결정의 기준인가?',
+      insight: '한 주 미루는 것은 의미가 없으니 지금 출시해야 한다.',
+      framing_confidence: 78,
+      hidden_assumptions: ['현재 테스트가 실제 사용 조건을 대표한다'],
+      skeleton: ['출시 기준 확인', '되돌림 조건 정의'],
+      next_question: { text: '가장 큰 실패 비용은?', type: 'text' },
+    } as never);
+
+    const { snapshot } = await refineInitialFraming(
+      '지금 출시할지 다음 주에 출시할지 결정해야 한다.',
+      '어느 쪽이 더 좋은가?',
+      '좋고 나쁨보다 결정 기준을 먼저 보고 싶다.',
+    );
+
+    expect(snapshot.request_type).toBe('open');
+    expect(snapshot.insight).toBe('출시 속도와 검증 범위 중 무엇이 이번 결정의 기준인가?');
+  });
 });
