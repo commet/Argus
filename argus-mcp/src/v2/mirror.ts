@@ -303,3 +303,41 @@ function mirrorOne(ctx: V2Context, ev: LedgerEventInput, now: string, hints?: Mi
       return false;
   }
 }
+
+/** v1↔v2 브리프 발산 감지 (읽기 전환 준비 — M-잔여-1).
+ *
+ *  읽기 전환의 조건은 "관찰 기간 동안 발산 0"이다. 이 함수는 check_in이
+ *  매 호출마다 v1 due 전체(id 집합)와 v2 파생 due를 대조해 그 증거를
+ *  data.v2_divergence로 병기하게 한다 — 사람이 지켜보지 않아도 실사용
+ *  로그가 발산을 드러낸다 (조용한 다른-답 방지, LLM-glue invariant).
+ *
+ *  판정은 id 집합의 대칭차만 본다: 문구·순서·표시 상한은 renderer 몫이라
+ *  발산이 아니다. 목록은 각 10건 캡 (조용한 truncation 아님 — 카운트가
+ *  전수를 말한다). */
+export function briefDivergence(
+  v1DueIds: string[],
+  v2: ReturnType<typeof readV2Brief>,
+): {
+  comparable: boolean;
+  reason?: string;
+  v1_due?: number;
+  v2_due?: number;
+  only_v1?: string[];
+  only_v2?: string[];
+  diverged?: boolean;
+} {
+  if (!v2.available) return { comparable: false, reason: v2.reason };
+  const v1Set = new Set(v1DueIds);
+  const v2Ids = v2.brief.due.map((d) => d.decision_id);
+  const v2Set = new Set(v2Ids);
+  const onlyV1 = v1DueIds.filter((id) => !v2Set.has(id));
+  const onlyV2 = v2Ids.filter((id) => !v1Set.has(id));
+  return {
+    comparable: true,
+    v1_due: v1Set.size,
+    v2_due: v2Set.size,
+    only_v1: onlyV1.slice(0, 10),
+    only_v2: onlyV2.slice(0, 10),
+    diverged: onlyV1.length > 0 || onlyV2.length > 0,
+  };
+}
