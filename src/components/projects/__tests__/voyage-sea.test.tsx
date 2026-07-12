@@ -207,6 +207,16 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(mark?.style.width).toBe('24px'); // base size, not the 42px beacon scale
   });
 
+  it('scales — every ship renders at high count (no slot cap / overflow drop)', () => {
+    // 07-12 regression guard: the old fixed-slot layout silently dropped ships
+    // past a cap; the coordinate system must place ALL of them.
+    const many = Array.from({ length: 30 }, (_, i) =>
+      sealedProject(`m${i}`, `2026-0${(i % 9) + 1}-0${(i % 9) + 1}T00:00:00.000Z`),
+    );
+    render(many);
+    expect(container.querySelectorAll('[role="listitem"]').length).toBe(30);
+  });
+
   it('leaks no score / % / grade / streak / comparison string', () => {
     render([
       sealedProject('a', '2026-01-05T00:00:00.000Z'),

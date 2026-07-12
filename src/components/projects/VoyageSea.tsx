@@ -484,6 +484,13 @@ export function VoyageSea({
   // Below two ships there is no sea to chart — the page's list carries it.
   if (ships.length < 2) return null;
 
+  // ── DENSITY (07-12: validated at 43 real projects, not 11 fixtures) ──
+  // Project names are whole user sentences; you cannot label 40 of them on any
+  // chart. Above a threshold the map switches to the standard dense-scatter
+  // mode: ships become small marks, names move to hover, and only the due
+  // decision keeps a persistent label. Small fleets stay richly labeled.
+  const dense = ships.length > 14;
+
   // ── zone assignment. The beacon = the FIRST due ship (most overdue). Other
   //    due ships keep their zone but fly gold canvas. ──
   const dueShips = ships.filter((s) => s.due);
@@ -542,8 +549,10 @@ export function VoyageSea({
   // own %-units (x ≈ plate width, y ≈ plate height). The nudges are small
   // enough that the gross reading — neglect top-left, harbor bottom — survives;
   // this is dodge/beeswarm, not re-ranking. The beacon is the immovable anchor.
-  const SEPX = 10;
-  const SEPY = 9.5;
+  // Dense mode packs by MARK size (no labels competing) → the true
+  // distribution shows; sparse mode reserves label footprint.
+  const SEPX = dense ? 4.6 : 10;
+  const SEPY = dense ? 7 : 9.5;
   for (let pass = 0; pass < 26; pass++) {
     for (let i = 0; i < placed.length; i++) {
       for (let j = i + 1; j < placed.length; j++) {
@@ -835,7 +844,11 @@ export function VoyageSea({
           {placed.map((s, i) => {
             const meta = VOYAGE_STATE_META[s.state];
             const stateLabel = s.beacon ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
-            const size = s.beacon ? 42 : 24;
+            const size = s.beacon ? 42 : dense ? 15 : 24;
+            // Persistent labels only when the sheet can hold them — the beacon
+            // always, everyone else only in a small fleet. In a dense fleet the
+            // name is a hover tooltip (below), so 40 sentences don't collide.
+            const showLabel = s.beacon || !dense;
             return (
               <button
                 key={s.id}
@@ -844,9 +857,9 @@ export function VoyageSea({
                 onClick={() =>
                   s.kind === 'receipt' ? onSelectReceipt?.(s.id) : s.due ? onReview(s.id) : onSelect(s.id)
                 }
-                title={`${s.name} — ${stateLabel}`}
+                title={`${s.name} — ${stateLabel} · ${s.sub}`}
                 aria-label={`${s.name} — ${stateLabel} · ${s.sub}`}
-                className="vsea-in absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-2.5 rounded-lg cursor-pointer group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-transform duration-300 hover:-translate-y-[calc(50%+3px)]"
+                className="vsea-in absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-lg cursor-pointer group hover:z-40 focus-visible:z-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-transform duration-300 hover:-translate-y-[calc(50%+3px)]"
                 style={{ left: `${s.x}%`, top: `${s.y}%`, animationDelay: `${Math.min(i, 8) * 70}ms` }}
               >
                 {s.beacon && (
@@ -862,22 +875,42 @@ export function VoyageSea({
                     due={s.due}
                     size={size}
                     kind={s.kind}
+                    plain={dense && !s.beacon}
                     // deterministic per-ship heading (±3°) — a fleet, not a stamp
                     heading={s.state === 'sailing' ? (([...s.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) - 3) : 0}
                   />
                 </span>
-                <span
-                  className={`${s.beacon ? '' : 'hidden sm:block'} max-w-[96px] text-center text-[10.5px] leading-[1.3] break-keep line-clamp-2 font-medium`}
-                  style={{ color: s.beacon ? N.paper : `${N.paper}b8`, fontFamily: 'var(--font-display)' }}
-                >
-                  {s.name}
-                </span>
-                <span
-                  className={`${s.beacon ? '' : 'hidden sm:block opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity'} text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap`}
-                  style={{ color: s.beacon ? N.gold : `${N.paper}66` }}
-                >
-                  {stateLabel} · {s.sub}
-                </span>
+                {showLabel ? (
+                  <>
+                    <span
+                      className={`${s.beacon ? '' : 'hidden sm:block'} max-w-[96px] text-center text-[10.5px] leading-[1.3] break-keep line-clamp-2 font-medium`}
+                      style={{ color: s.beacon ? N.paper : `${N.paper}b8`, fontFamily: 'var(--font-display)' }}
+                    >
+                      {s.name}
+                    </span>
+                    <span
+                      className={`${s.beacon ? '' : 'hidden sm:block opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity'} text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap`}
+                      style={{ color: s.beacon ? N.gold : `${N.paper}66` }}
+                    >
+                      {stateLabel} · {s.sub}
+                    </span>
+                  </>
+                ) : (
+                  /* dense: name + state as a hover/focus tooltip, raised above
+                     neighbours — only ever one is shown at a time, so it can't
+                     collide. */
+                  <span
+                    className="hidden sm:flex flex-col items-center gap-0.5 absolute top-[calc(100%+2px)] left-1/2 -translate-x-1/2 w-max max-w-[190px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none z-40"
+                    style={{ background: `${N.seaDeep}f2`, border: `1px solid ${N.paper}24` }}
+                  >
+                    <span className="text-center text-[10.5px] leading-[1.25] break-keep line-clamp-2 font-medium" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+                      {s.name}
+                    </span>
+                    <span className="text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap" style={{ color: s.due ? N.gold : `${N.paper}80` }}>
+                      {stateLabel} · {s.sub}
+                    </span>
+                  </span>
+                )}
               </button>
             );
           })}
