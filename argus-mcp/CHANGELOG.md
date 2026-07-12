@@ -6,6 +6,36 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.2.0 — Durable ledger (v2 groundwork), candidates tool, clearer language
+
+Your decision records now also live in a durable home, and the words got plainer.
+
+- **Durable ledger (dual-write).** Every write still lands in the project's
+  `.argus/ledger/` (unchanged, still the source of truth), and is now also
+  recorded in `~/.argus/projects/{repository_id}/ledger.jsonl` — a home that
+  survives worktree deletion and follows the repository across checkouts.
+  Nothing about existing behavior changes; this release lays the rails.
+  `argus_check_in` reports `data.v2_brief` (what the durable ledger would say)
+  and `data.v2_divergence` (whether the two ledgers agree) so the eventual
+  read-switch happens on evidence, not hope.
+- **`argus_candidates` (new tool, 15th).** Captured decision candidates —
+  from opt-in harvest or manual capture — can be listed, linked to a sealed
+  decision, dropped, or snoozed. Listing never recommends an action; left
+  alone, a candidate expires after 14 days. Quotes render through a
+  control-character sanitizer and are marked as data, never instructions.
+- **Opt-in harvest pipeline (off by default).** With `harvest.opt_in: true`
+  in `~/.argus/config.json`, session transcripts queue for a once-a-day sweep
+  (max 2 candidates per week) that only records quotes byte-verified against
+  the transcript. Without opt-in, no harvest file is ever created.
+- **Plainer words everywhere.** One name for a sealed thing: *prediction*
+  (was: contract / judgment / bet, depending on the screen). Korean screens
+  no longer show untranslated tokens (`held 1` → `그렇게 됨 1`). Labels that
+  needed decoding are now plain (`ARGUS · WAKE` → `ARGUS · YOUR DECISIONS`).
+- **Data lifecycle + hardening.** Export/import (dry-run aware, refuses to
+  overwrite a ledger that grew), purge (requires the repository id verbatim),
+  pre-migration backup, control/ANSI/OSC sanitization at every render,
+  10k/100k-event performance measurements in CI.
+
 ## 1.1.0 — Reconsider loop, drift materiality, localization, document parsing
 
 Everything since the 1.0.0 first release.
