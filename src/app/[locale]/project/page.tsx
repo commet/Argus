@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/useProjectStore';
+import { useReviewStore } from '@/stores/useReviewStore';
 import { useReframeStore } from '@/stores/useReframeStore';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { useSynthesizeStore } from '@/stores/useSynthesizeStore';
@@ -26,8 +28,9 @@ import { SettlementModal } from '@/components/projects/SettlementModal';
 import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
 import { isCheckpointDue } from '@/lib/checkpoint-core';
 import { RecordStrip } from '@/components/ui/RecordStrip';
+import { SharedGroundCard } from '@/components/review/SharedGroundCard';
 import { RetroOnlyNotice } from '@/components/ui/RetroOnlyNotice';
-import { FleetChart } from '@/components/projects/FleetChart';
+import { VoyageSea } from '@/components/projects/VoyageSea';
 import { Logbook } from '@/components/projects/Logbook';
 import { useDueCount } from '@/hooks/useDueCount';
 import { VoyageEta } from '@/components/workspace/VoyageEta';
@@ -85,8 +88,10 @@ interface StepStatus {
 
 export default function ProjectPage() {
   const locale = useLocale();
+  const router = useRouter();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const { projects, currentProjectId, loadProjects, setCurrentProjectId, updateProject } = useProjectStore();
+  const reviewReceipts = useReviewStore((s) => s.receipts);
   const { items: reframeItems, loadItems: loadReframe } = useReframeStore();
   const { items: recastItems, loadItems: loadRecast } = useRecastStore();
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
@@ -538,34 +543,49 @@ export default function ProjectPage() {
             </Card>
           ) : (
             <>
-              {/* 자차표 — the user's accumulating record of closed loops.
-                  Until now this only flashed once inside the settlement modal
-                  and vanished; this is where it LIVES. Facts, never a score.
-                  P1-A2 (08 S2): extracted to the shared <RecordStrip/> (one
-                  display brain — /tools/review renders the SAME component, and
-                  review-receipt settles now join the count). */}
-              <RecordStrip />
+              {/* ── 항구의 위계 (구조 선언, 창업자 재확정 2026-07-11:
+                  "지도가 압도적이어야") ─────────────────────────────────
+                  ① 지도   — 밤바다 해도가 첫 화면 전체. 지도가 모든 사건을
+                            직접 말한다: 확인일 도래 = 등대 카드, 전제
+                            드리프트 = 앰버 해류 + 해류 통지(같은
+                            groundSpotlight 브레인 — 사건과 통지가 어긋날
+                            수 없다). 위에는 아무것도 쌓지 않는다.
+                  ② 행동   — 돌아올 결정 due-strip (여러 건·영수증의 행동
+                            목록이자, 지도 미렌더(2척 미만) 시 유일한 귀환
+                            표면 — 삭제하면 그 경우 사건이 무표면이 된다)
+                  ③ 원장   — SharedGroundCard: 지도 해류 통지의 상세 기록
+                            (플랫한 날 침묵)
+                  ④ 명부·항적 — 필터+그리드, 자차표·항해일지 (아카이브)
+                  순서가 우선순위다 — 블록 추가는 이 위계에 자리를 정하고 넣는다. */}
 
-              {/* [C4·항목7] 회고만 한 사용자용 빈 자차표 안내 — RecordStrip이 null인
-                  (실 record 0) 상태에서 정산한 회고가 있을 때만. 빈 자차표가
-                  배신처럼 안 보이게 하고, 실 봉인으로 한 번 가리킨다. */}
-              <RetroOnlyNotice />
-
-              {/* 함대 해도 (S4 최소형 · B1) — 봉인한 항해들이 한 폭의 해도 위에
-                  봉인일 순으로 늘어선다. 2척 미만이면 스스로 미렌더. 상태별 그룹핑·
-                  강조·카운트 배지 없이 시간축 하나만이 정렬키 (거울 조항 게이트). */}
-              <FleetChart
+              {/* ① 항해 지도 — 주인공. 봉인(프로젝트 + 검수/MCP 영수증)이
+                  배가 되고, 같은 전제 위의 배들은 수중 해류로 이어진다.
+                  due 소스는 아래 strip과 동일한 useDueCount (숫자 표류 불가). */}
+              <VoyageSea
                 projects={projects}
                 reframeItems={reframeItems}
                 recastItems={recastItems}
                 synthesizeItems={synthesizeItems}
                 feedbackHistory={feedbackHistory}
                 progressiveSessions={progressiveSessions}
+                dueProjectIds={dueProjects.map((p) => p.id)}
                 locale={locale}
                 onSelect={setCurrentProjectId}
+                onReview={(id) => {
+                  // Same re-arm as the strip chips: the settle question returns
+                  // even if dismissed earlier this visit.
+                  setSettleDismissed((prev) => {
+                    const next = new Set(prev);
+                    next.delete(id);
+                    return next;
+                  });
+                  setCurrentProjectId(id);
+                }}
+                receipts={reviewReceipts}
+                onSelectReceipt={() => router.push(`/${locale}/tools/review`)}
               />
 
-              {/* 돌아올 결정 — the return strip. The loop's last leg: 귀환.
+              {/* ② 돌아올 결정 — the return strip. The loop's last leg: 귀환.
                   Review receipts past check-by join the SAME strip (P0-6 ① —
                   one harbor): same amber tone, a FileText mark to tell them
                   apart, routing to /tools/review (ReceiptList sorts urgent
@@ -612,6 +632,11 @@ export default function ProjectPage() {
                   </div>
                 </div>
               )}
+
+              {/* ③ 사건의 원장 — the drifted shared ground's full record (the
+                  map's drift notice is its echo-summary; this is the detail).
+                  Self-nulls on every flat day. */}
+              <SharedGroundCard />
 
               {/* Filter chips + search — Hick (05 S7): below FILTER_TOOLS_MIN the
                   whole fleet fits one screen, so the tools would only add choices. */}
@@ -662,7 +687,7 @@ export default function ProjectPage() {
                   {L("그 이름의 항해는 안 보여요 — 철자를 바꾸거나 필터를 '전체'로 돌려보세요.", 'No voyage by that name — try a different spelling, or set the filter back to All.')}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div id="fleet-roster" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 scroll-mt-6">
                   {filteredProjects.map((project) => {
                     const m = projectMetricsMap.get(project.id);
                     if (!m) return null;
@@ -842,6 +867,21 @@ export default function ProjectPage() {
                   })}
                 </div>
               )}
+
+              {/* ④ 쌓인 항적 — 자차표·항해일지. 기록은 아카이브이지 인사말이
+                  아니다: 행동(②)과 함대(③) 아래 (구조 선언 참조). 각 블록은
+                  스스로 미렌더하므로(0건·2건 미만) 빈 섹션 라벨을 달지 않는다. */}
+
+              {/* 자차표 — the user's accumulating record of closed loops.
+                  Facts, never a score. P1-A2 (08 S2): shared <RecordStrip/>
+                  (one display brain — /tools/review renders the SAME component,
+                  and review-receipt settles join the count). */}
+              <RecordStrip />
+
+              {/* [C4·항목7] 회고만 한 사용자용 빈 자차표 안내 — RecordStrip이 null인
+                  (실 record 0) 상태에서 정산한 회고가 있을 때만. 빈 자차표가
+                  배신처럼 안 보이게 하고, 실 봉인으로 한 번 가리킨다. */}
+              <RetroOnlyNotice />
 
               {/* 항해일지 (S6 · B4/B5) — 봉인·변침·정산을 시간순 세로 원장으로.
                   '문장만 보기' 토글이 인용벽(제안2 형태1)을 흡수한다. 이벤트 2개
