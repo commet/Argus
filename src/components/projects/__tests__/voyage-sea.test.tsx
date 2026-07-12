@@ -350,14 +350,15 @@ describe('one sea — receipt vessels and undersea currents', () => {
       sealedReceipt('r2', '가격', '2026-02-15T00:00:00.000Z', [rPremise(GROUND)]),
     ]);
     const text = container.textContent || '';
-    expect(text).toContain('전제가 움직였어요');
-    expect(text).toContain(GROUND); // the user's own sentence, verbatim
-    expect(text).toContain('살아있는 판단');
-    const cta = Array.from(container.querySelectorAll('button')).find((b) =>
-      (b.textContent || '').includes('전체 살펴보기'),
+    expect(text).toContain('전제 이동');
+    // the user's own sentence, verbatim (chip truncates the display but the
+    // full ground is in the accessible label)
+    const chip = Array.from(container.querySelectorAll('button')).find((b) =>
+      (b.getAttribute('aria-label') || '').includes('전제 이동'),
     )!;
-    expect(cta).toBeTruthy();
-    act(() => cta.click());
+    expect(chip).toBeTruthy();
+    expect(chip.getAttribute('aria-label')).toContain(GROUND);
+    act(() => chip.click());
     expect(onSelectReceipt).toHaveBeenCalledWith('r1');
   });
 
@@ -366,7 +367,7 @@ describe('one sea — receipt vessels and undersea currents', () => {
       sealedReceipt('r1', '조달', '2026-02-01T00:00:00.000Z', [rPremise(GROUND)]),
       sealedReceipt('r2', '가격', '2026-02-15T00:00:00.000Z', [rPremise(GROUND)]),
     ]);
-    expect(container.textContent).not.toContain('전제가 움직였어요');
+    expect(container.textContent).not.toContain('전제 이동');
     const currents = Array.from(container.querySelectorAll('[data-testid="fleet-current"]'));
     expect(currents.length).toBe(1);
     expect(currents[0].getAttribute('data-drifted')).toBe('0');
