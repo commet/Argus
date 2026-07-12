@@ -118,6 +118,7 @@ describe('argus-driver SessionStart 훅 (P2-5)', () => {
 
   it('⑥ 수확 opt-in 없음 — 큐 파일조차 만들지 않는다 (opt-in 전 흔적 0)', () => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-hook-data-'));
+    fs.writeFileSync(path.join(dataDir, 'welcome-shown'), 'shown\n'); // 온보딩 격리 — 이 테스트는 수확만
     try {
       const out = execFileSync('node', [HOOK], {
         input: JSON.stringify({ cwd: repoDir, session_id: 'sess-1', transcript_path: '/t/s.jsonl' }),
@@ -133,6 +134,7 @@ describe('argus-driver SessionStart 훅 (P2-5)', () => {
 
   it('⑦ opt-in 인입은 멱등이고, 훅이 쓴 큐를 src queue.ts가 그대로 클레임한다 (파일 계약)', async () => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-hook-data-'));
+    fs.writeFileSync(path.join(dataDir, 'welcome-shown'), 'shown\n'); // 온보딩 격리
     try {
       fs.mkdirSync(home, { recursive: true });
       fs.writeFileSync(path.join(home, 'config.json'), JSON.stringify({ harvest: { opt_in: true } }));
@@ -180,5 +182,41 @@ describe('argus-driver SessionStart 훅 (P2-5)', () => {
     });
     // 깨진 마지막 줄 = event_id 미상 → 커서 대조는 보수적으로 stale 쪽 — 죽지만 않으면 된다
     expect(typeof out).toBe('string');
+  });
+});
+
+describe('첫 실행 안내 (온보딩)', () => {
+  it('설치 첫 세션엔 안내가 뜨고, 마커가 생겨 다음부터는 침묵', () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-hook-welcome-'));
+    try {
+      const run1 = execFileSync('node', [HOOK], {
+        input: JSON.stringify({ cwd: repoDir }),
+        env: { ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir },
+        encoding: 'utf8',
+      });
+      expect(run1).toContain('Argus가 연결되었습니다');
+      expect(run1).toContain('argus_seal');
+      expect(run1).toContain('이번 한 번만'); // 1회 약속
+      expect(fs.existsSync(path.join(dataDir, 'welcome-shown'))).toBe(true);
+
+      // 두 번째 세션 — 마커 존재 → 완전 침묵 (잔소리 금지)
+      const run2 = execFileSync('node', [HOOK], {
+        input: JSON.stringify({ cwd: repoDir }),
+        env: { ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir },
+        encoding: 'utf8',
+      });
+      expect(run2).toBe('');
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it('CLAUDE_PLUGIN_DATA 없으면 안내를 내지 않는다 (매 세션 반복 방지)', () => {
+    const env = { ...process.env, ARGUS_HOME: home };
+    delete (env as Record<string, unknown>)['CLAUDE_PLUGIN_DATA'];
+    const out = execFileSync('node', [HOOK], {
+      input: JSON.stringify({ cwd: repoDir }), env, encoding: 'utf8',
+    });
+    expect(out).toBe('');
   });
 });

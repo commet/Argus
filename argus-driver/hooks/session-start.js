@@ -81,12 +81,51 @@ function harvestQueueStep(payload, home) {
   return null;
 }
 
+/**
+ * 첫 실행 안내 (온보딩) — 설치 직후 "그래서 이제 뭘 하지?"의 다리.
+ *
+ * 설계:
+ *  - **딱 한 번만.** 마커(${CLAUDE_PLUGIN_DATA}/welcome-shown)로 평생 1회.
+ *    설치는 조용한 게 정상이지만, 첫 세션에 길을 잃게 두는 건 다른 문제다.
+ *  - **판단 없음, 안내만.** "이걸 하세요"가 아니라 "여기 있습니다 / 원하면".
+ *    스파인: 최대 생성, 제로 판단 — 온보딩도 예외가 아니다.
+ *  - **사용자 언어로.** additionalContext는 Claude에게 가는 컨텍스트이므로,
+ *    문구를 박지 않고 "이렇게 인사하라"고 지시한다 — Claude가 사용자
+ *    언어로 자연스럽게 전달한다 (한/영 분기 코드 불필요).
+ *  - 마커를 둘 곳(플러그인 데이터 영역)이 없으면 침묵 — 매 세션 반복되는
+ *    잔소리가 흔적 0 원칙보다 나쁘다.
+ */
+function firstRunWelcome() {
+  const dataDir = process.env.CLAUDE_PLUGIN_DATA;
+  if (!dataDir) return null;
+  const marker = path.join(dataDir, 'welcome-shown');
+  try { fs.accessSync(marker); return null; } catch { /* 아직 안 봄 */ }
+  try {
+    fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(marker, 'shown\n');
+  } catch { /* 마커 기록 실패해도 안내는 한 번 낸다 (최악=한 번 더 뜸) */ }
+
+  return [
+    '[Argus 첫 실행 — 아래 내용을 사용자에게 그의 언어로, 짧고 담백하게 전하라. 과장·이모지·평가 금지.]',
+    'Argus가 연결되었습니다. Argus는 중요한 결정을 "반증 가능한 예측"으로 봉인해 두고,',
+    '확인일이 오면 그 예측을 현실과 대조(정산)하도록 돕는 도구입니다 — 모델은 당신을 채점하지 않습니다.',
+    '지금 할 수 있는 것:',
+    '· 고민 중인 결정을 그냥 말로 설명하면, 봉인(argus_seal)까지 함께 진행할 수 있습니다.',
+    '· 무엇이 있는지 보려면 /argus:help.',
+    '· 이 저장소에서 처음이라면 argus_init을 한 번 부르면 기록 위치가 준비됩니다.',
+    '이 안내는 이번 한 번만 나타납니다.',
+  ].join('\n');
+}
+
 function main(input) {
   let payload = {};
   try { payload = JSON.parse(input || '{}'); } catch { /* 형식 불명 — 조용히 */ }
   const cwd = typeof payload.cwd === 'string' && payload.cwd ? payload.cwd : process.cwd();
   const home = process.env.ARGUS_HOME || path.join(os.homedir(), '.argus');
   const lines = [];
+
+  const welcome = firstRunWelcome();
+  if (welcome) lines.push(welcome);
 
   const harvestLine = harvestQueueStep(payload, home);
   if (harvestLine) lines.push(harvestLine);

@@ -243,7 +243,7 @@ export const seal: ToolModule = {
       // dumping the absolute path — and the English label "Calendar file:" — into
       // a one-line surface was noise, and broke the Korean voice (copy-audit /
       // loop find). Mention it briefly, localized; keep the path in data.
-      const calNote = locale === 'ko' ? ' 달력에 넣을 .ics 파일도 만들어뒀습니다.' : ' A calendar file (.ics) is saved too.';
+      const calNote = locale === 'ko' ? ' 달력 리마인더(.ics)도 저장했어요.' : ' Saved a calendar reminder (.ics).';
       return envelope({
         ok: true, tool: 'argus_seal',
         surface: `${T.sealed(predicate, checkBy)}${calNote}${nudge}${syncLine}`,
