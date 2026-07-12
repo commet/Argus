@@ -1,9 +1,9 @@
 ---
 name: helm
-description: EXPERIMENTAL — pre-approval keel scan for agent plans, separate from the sail pipeline. Before the user approves a plan (ExitPlanMode, a plan doc, a migration/deploy/delete proposal), helm runs a silent load-bearing scan and speaks ONLY when an unsupported claim touches an irreversible operation. Default output is silence. Full divergence probe is opt-in. Seals accepted bets into .argus/ledger/ (same schema as argus-watch). Invoked as `/argus:helm`.
+description: EXPERIMENTAL — pre-approval evidence check for agent plans (the "keel scan"), separate from the sail pipeline. Before the user approves a plan (ExitPlanMode, a plan doc, a migration/deploy/delete proposal), helm runs a silent load-bearing scan and speaks ONLY when an unsupported claim touches an irreversible operation. Default output is silence. Full divergence probe is opt-in. Seals accepted bets into .argus/ledger/ (same schema as argus-watch). Invoked as `/argus:helm`.
 ---
 
-# /argus:helm — 계획 승인 전 용골 스캔
+# /argus:helm — 계획 승인 전 근거 점검 (용골 스캔)
 
 > Status: **experimental.** helm은 sail 파이프라인의 단계가 아니라 독립
 > 보조 스킬이다. 사용자에게 보이는 모든 출력(스캔 결과 한 줄, 발화문,
@@ -18,7 +18,7 @@ description: EXPERIMENTAL — pre-approval keel scan for agent plans, separate f
 > (이 스킬이 쓰는 탐침은 그 백테스트의 G0 승자 프롬프트 그대로 — 아래 **부록 A·B**에
 > verbatim 동봉. 별도 verdict 문서에 의존하지 않는다).
 
-1. **기본 출력은 침묵이다.** 침묵 = "용골 스캔: 잡히는 하중 없음" 한 줄, 그 이상 금지.
+1. **기본 출력은 침묵이다.** 침묵 = "근거 점검: 근거 없이 비가역 작업을 떠받치는 문장 없음" 한 줄, 그 이상 금지.
 2. **무게 게이트가 전부다.** 자동 발화 조건: D 하중 발견(근거 없는 결론-받침 문장)이
    **비가역 연산에 직접 닿을 때만** (닿음의 정의는 §게이트 정의의 one-hop 규칙).
    **비가역 = 같은 세션/PR 안에서 외부 조율·데이터 손실 없이 값싸게 되돌릴 수 없는
@@ -87,7 +87,7 @@ description: EXPERIMENTAL — pre-approval keel scan for agent plans, separate f
 
 ### 출력
 
-- 발화 조건 미달 (대부분의 경우): `용골 스캔 — 잡히는 하중 없음. 그대로 진행하세요.`
+- 발화 조건 미달 (대부분의 경우): `근거 점검 — 근거 없이 비가역 작업을 떠받치는 문장 없음. 그대로 진행하세요.`
 - 발화 조건 충족 (비가역 + 무근거 하중):
 
 ```
