@@ -80,6 +80,10 @@ export interface CandidateRecord {
   state: 'created' | 'surfaced' | 'promoted' | 'dropped' | 'snoozed';
   kind: string;
   created_on: string; // logical_date — expired(14일) 파생의 기준
+  /** 원문 quote (untrusted — 렌더 시 sanitize 필수, 규칙 19). fold가 이 필드를
+   *  떨어뜨리면 목록 표면이 보여줄 것이 없다 (소비 계약). */
+  quote?: string;
+  verification?: string;
   snooze_until?: string;
   promoted_to?: { kind: 'decision' | 'premise'; id: string };
 }
@@ -361,6 +365,7 @@ function apply(state: LedgerState, e: ArgusEvent): void {
     case 'candidate_created':
       state.candidates.set(e.candidate_id, {
         id: e.candidate_id, state: 'created', kind: e.kind, created_on: e.logical_date,
+        quote: e.quote, verification: e.verification,
       });
       break;
     case 'candidate_surfaced': {

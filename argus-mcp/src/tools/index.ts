@@ -11,8 +11,9 @@ import { sync } from './sync.js';
 import { premises } from './premises.js';
 import { recheck } from './recheck.js';
 import { watch } from './watch.js';
+import { candidates } from './candidates.js';
 
 /** The full registered tool set. There is deliberately no verdict/grade/score tool. */
-export const TOOLS: ToolModule[] = [openDecision, review, premises, seal, recheck, settle, checkIn, recall, sync, amend, dismiss, watch, init, config];
+export const TOOLS: ToolModule[] = [openDecision, review, premises, seal, recheck, settle, checkIn, recall, sync, amend, dismiss, candidates, watch, init, config];
 
 export const TOOL_MAP: Map<string, ToolModule> = new Map(TOOLS.map((t) => [t.name, t]));

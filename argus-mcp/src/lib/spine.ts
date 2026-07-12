@@ -23,6 +23,7 @@ export const NEXT_ACTIONS = [
   'argus_recall',
   'argus_premises',
   'argus_watch',
+  'argus_candidates',
   'argus_config',
   'skip',
   'leave_as_is',
