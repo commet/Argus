@@ -326,9 +326,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       nothing_due: 'Nothing is due right now.',
       account_hint: ' This screen reads the local ledger only. Judgments sealed in your account show up with argus_sync.',
       upcoming: (n, days) => ` ${n} coming due within ${days} day(s). Informational, nothing to settle yet.`,
-      due_contracts: (n) => `${n} decision contract(s) past check-by. Time to check how they turned out (argus_settle).`,
+      due_contracts: (n) => `${n} sealed prediction(s) past check-by. Time to check how they turned out (argus_settle).`,
       anchor_mirror: (days, n, words) =>
-        `${days} day(s) since you sealed, and ${n} contract(s) are past check-by. Back then you wrote: '${words}' All that's left is to record what actually happened (argus_settle).`,
+        `${days} day(s) since you sealed, and ${n} prediction(s) are past check-by. Back then you wrote: '${words}' All that's left is to record what actually happened (argus_settle).`,
       due_premises: (n, staleDays, sinceAdd) =>
         `${n} premise fact(s) due for a re-check${n === 1 && staleDays != null ? ` (last checked ${staleDays}d ago)` : n === 1 && staleDays === null && sinceAdd != null ? ` (added ${sinceAdd}d ago, first check still open)` : ''} (argus_recheck).`,
       reconsider_one: (days, q) =>
@@ -343,9 +343,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     sync: {
       live_with_due: (total, due) =>
-        `${total} live judgment(s) in your account, ${due} past check-by. ` +
+        `${total} live prediction(s) in your account, ${due} past check-by. ` +
         'Terminal-sealed ones settle here via argus_settle with local_id; web-sealed ones settle in the web dashboard.',
-      live_no_due: (total) => `${total} live judgment(s) in your account. Nothing past its check-by.`,
+      live_no_due: (total) => `${total} live prediction(s) in your account. Nothing past its check-by.`,
       settled_on_web: (n) => ` ${n} already settled on the web. Run argus_sync with import_settlements:true to mirror your web record into this ledger, or record it yourself with argus_settle.`,
       unclear_on_web: (n) => ` ${n} marked unclear in your account — reality hasn't answered, so those are not settlements and nothing was imported. They stay due here until you settle them.`,
       pushed_up: (n) => ` Sent ${n} change(s) your account had missed — settled, closed, or rescheduled here. It will stop nudging what you already handled.`,
@@ -468,9 +468,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       nothing_due: '지금 확인할 차례가 된 것은 없습니다.',
       account_hint: ' 이 화면은 로컬 원장만 읽습니다. 계정에 봉인한 판단은 argus_sync로 볼 수 있습니다.',
       upcoming: (n, days) => ` ${days}일 안에 확인일이 오는 것이 ${n}건 있습니다. 참고용이고 아직 정산할 것은 아닙니다.`,
-      due_contracts: (n) => `계약 ${n}건이 확인일을 지났습니다. 결과를 확인할 차례입니다 (argus_settle).`,
+      due_contracts: (n) => `봉인한 예측 ${n}건이 확인일을 지났습니다. 결과를 확인할 차례입니다 (argus_settle).`,
       anchor_mirror: (days, n, words) =>
-        `봉인한 지 ${days}일이 지났고, 계약 ${n}건이 확인일을 넘겼습니다. 그때 당신은 이렇게 적었습니다: '${words}' 실제로 어떻게 됐는지만 적으면 됩니다 (argus_settle).`,
+        `봉인한 지 ${days}일이 지났고, 예측 ${n}건이 확인일을 넘겼습니다. 그때 당신은 이렇게 적었습니다: '${words}' 실제로 어떻게 됐는지만 적으면 됩니다 (argus_settle).`,
       due_premises: (n, staleDays, sinceAdd) =>
         `전제 사실 ${n}건을 다시 확인할 차례입니다${n === 1 && staleDays != null ? ` (마지막 확인 후 ${staleDays}일)` : n === 1 && staleDays === null && sinceAdd != null ? ` (적어둔 지 ${sinceAdd}일, 아직 첫 확인 전)` : ''} (argus_recheck).`,
       reconsider_one: (days, q) =>
@@ -485,9 +485,9 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
     },
     sync: {
       live_with_due: (total, due) =>
-        `계정에 살아 있는 판단 ${total}개 중 ${due}개가 확인할 차례입니다. ` +
+        `계정에 살아 있는 예측 ${total}개 중 ${due}개가 확인할 차례입니다. ` +
         '이 터미널에서 봉인한 것은 local_id로 argus_settle, 웹에서 봉인한 것은 웹 대시보드에서 정산하세요.',
-      live_no_due: (total) => `계정에 살아 있는 판단 ${total}개. 확인할 차례가 된 것은 없습니다.`,
+      live_no_due: (total) => `계정에 살아 있는 예측 ${total}개. 확인할 차례가 된 것은 없습니다.`,
       settled_on_web: (n) => ` 웹에서 이미 정산한 것이 ${n}건 있습니다. argus_sync에 import_settlements:true를 주면 웹에 남긴 기록을 이 원장으로 그대로 옮겨옵니다 (직접 argus_settle로 적어도 됩니다).`,
       unclear_on_web: (n) => ` 계정에서 ${n}건이 "불분명"으로 표시돼 있습니다 — 현실이 아직 답하지 않았으니 정산이 아니고, 가져오지도 않았습니다. 정산하기 전까지 여기서는 계속 확인 대상입니다.`,
       pushed_up: (n) => ` 계정이 못 받은 변경 ${n}건을 올려보냈습니다 — 여기서 정산했거나, 접었거나, 날짜를 옮긴 것들입니다. 이미 처리한 건에 대해 더는 알림이 오지 않습니다.`,

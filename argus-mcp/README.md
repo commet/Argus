@@ -53,7 +53,7 @@ promised in prose:
 - **There is no verdict tool.** The model cannot grade your decision because no
   `argus_verdict` / `argus_score` tool exists to call. `grep dist/` and see.
 - **You can't settle what you never sealed.** `argus_settle` hard-errors without
-  a prior `argus_seal` — "no judgment without a falsifiable bet" is a
+  a prior `argus_seal` — "no judgment without a falsifiable prediction" is a
   precondition, not a suggestion.
 - **State is the ledger, not a flag.** A decision's status is the fold of an
   append-only event log, so it can't be faked by calling tools out of order.
@@ -139,7 +139,7 @@ this:
 > signups go up at least 10% by the end of the month."
 
 Argus records your predicate and a check-by date. Nothing is scored — it's a
-bet with reality, not a grade from the model.
+prediction against reality, not a grade from the model.
 
 **2 · Re-check a premise** *(optional, any time before the date)* — if a fact
 your decision leaned on might have moved:
@@ -172,7 +172,7 @@ reality has answered):
   usually evaporate: a claim you accepted without checking, a premise you
   haven't verified, a question you're deferring. Tomorrow's `check_in` mirrors
   yesterday's line back — *"so, how did it go?"* — as a question, never a grade.
-  An anchor is a **note, not a bet**: nothing about it is scored, counted, or
+  An anchor is a **note, not a prediction**: nothing about it is scored, counted, or
   streaked, ever.
 - **The decision loop** (everything below) — plays out over days to months.
   When a capture turns out to be load-bearing, *you* promote it: open the
@@ -183,7 +183,7 @@ The watch builds the habit; the decision loop builds the record.
 
 ## The loop
 
-**The spine is three tools:** **`argus_seal`** (write the falsifiable bet) →
+**The spine is three tools:** **`argus_seal`** (write the falsifiable prediction) →
 optional **`argus_recheck`** (has a load-bearing premise moved?) →
 **`argus_settle`** (reality answers, on the date). If you only ever learn
 these three, Argus works. Everything else in the table supports that spine —
