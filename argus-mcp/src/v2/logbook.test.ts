@@ -63,11 +63,11 @@ describe('renderLogbook — 순수 렌더 (골든 단면)', () => {
     }), REPO_ID);
     expect(md).toContain('# ARGUS LOGBOOK');
     expect(md).toContain('정산할 것 (1)');
-    expect(md).toContain('| q3-cutover | downtime < 5 min | 2026-07-01 | +10일 (2회 미룸 — dismiss 후보) |');
+    expect(md).toContain('| q3-cutover | downtime < 5 min | 2026-07-01 | +10일 (2회 미룸, dismiss 후보) |');
     expect(md).toContain('살아있는 봉인: 3건');
     expect(md).toContain('봉인 대기 수확 (1)');
-    expect(md).toContain('캐시 레이어는 redis로 — 2026-07-09 수확 (봉인하려면 `argus_seal`)');
-    expect(md).toContain('TTL은 UTC 기준 — 2026-07-08부터');
+    expect(md).toContain('캐시 레이어는 redis로 · 2026-07-09 수확 (봉인하려면 `argus_seal`)');
+    expect(md).toContain('TTL은 UTC 기준 · 2026-07-08부터');
     expect(md).toContain('캐시를 언제 켤 것인가');
     expect(md).toContain('전이 이상 1건');
     expect(md).toContain('파손 줄 2건');
@@ -75,6 +75,11 @@ describe('renderLogbook — 순수 렌더 (골든 단면)', () => {
     expect(md).toContain('<!-- argus:last_event_id=01JZXK5N8Q2W4E6R8T0Y2Z4A6B -->');
     // 스파인: 평결·조언 어휘 부재 (사실 + 손잡이만)
     expect(md).not.toMatch(/추천|권장|잘했|못했|점수/);
+    // 하우스 스타일(창업자 확정): em-dash cadence 금지 (도그푸딩 F13).
+    // 픽스처 텍스트가 전부 em-dash-free이므로, 렌더 결과의 em-dash는 곧
+    // 템플릿 자신의 것 — 0이어야 한다. LOGBOOK은 copy-audit이 안 걷는
+    // 사용자 대면 파일이라 이 렌더 단면이 그 사각을 메운다.
+    expect(md, 'LOGBOOK projection에 em-dash cadence가 남음').not.toContain('—');
   });
 
   it('빈 상태는 빈 잔소리 없이 조용하다', () => {

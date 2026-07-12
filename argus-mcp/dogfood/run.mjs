@@ -512,6 +512,18 @@ const SCENARIOS = {
     // 긴급·압박 어휘 금지 (사실+손잡이만) — inspectSurface가 평결어를 잡고, 여기선 재촉 어휘
     if (/지금 당장|서둘러|늦기 전에|놓치면|hurry|right now|don't miss/i.test(blob)) note('A', S, 'ambient 꼬리가 재촉/압박 어휘 사용', blob.slice(0, 200));
   },
+  async 'S59 LOGBOOK.md 실파일 읽기 — 사용자가 여는 projection'() {
+    const S = 'S59 logbook-file', d = ws(); await init(d, S);
+    await seal(d, { id: 'lb1', predicate: '이 결정은 확인일에 판가름 난다 충분히 길게 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    await call('argus_check_in', { argus_dir: d, today_override: '2026-07-16' }, { scenario: S });
+    // 미러 관문이 워크스페이스 .argus/LOGBOOK.md를 썼는지 + 그 산문을 읽는다
+    const lbPath = path.join(d, 'LOGBOOK.md');
+    let md = '';
+    try { md = fs.readFileSync(lbPath, 'utf8'); } catch { note('B', S, 'check_in 후에도 LOGBOOK.md가 안 써짐', lbPath); return; }
+    // 사용자가 여는 파일이므로 surface와 동일 기준으로 검사
+    inspectSurface(S, 'LOGBOOK.md', md);
+    if (md.includes('—')) note('B', S, 'LOGBOOK.md에 em-dash cadence 잔존', md.split('\n').filter((l) => l.includes('—')).join(' | ').slice(0, 200));
+  },
 };
 
 const names = Object.keys(SCENARIOS);

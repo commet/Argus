@@ -39,7 +39,7 @@ export function renderLogbook(brief: BriefState, repositoryId: string): string {
   const out: string[] = [];
   out.push('# ARGUS LOGBOOK');
   out.push('');
-  out.push(`> projection — 원장(\`~/.argus/projects/${repositoryId}/\`)에서 언제든 재생성됩니다. 직접 수정해도 다음 갱신에서 사라집니다.`);
+  out.push(`> 재생성되는 projection입니다. 원장(\`~/.argus/projects/${repositoryId}/\`)이 정본이고, 직접 수정해도 다음 갱신에서 사라집니다.`);
   out.push(`> 기준일: ${brief.logical_date}`);
   out.push('');
 
@@ -50,7 +50,7 @@ export function renderLogbook(brief: BriefState, repositoryId: string): string {
     out.push('|---|---|---|---|');
     for (const d of brief.due) {
       const days = d.overdue_days === 0 ? '오늘' : `+${d.overdue_days}일`;
-      const tail = d.suggest_dismiss ? ' (2회 미룸 — dismiss 후보)' : '';
+      const tail = d.suggest_dismiss ? ' (2회 미룸, dismiss 후보)' : '';
       out.push(`| ${line(d.decision_id, 40)} | ${line(d.predicate)} | ${d.check_by} | ${days}${tail} |`);
     }
     out.push('');
@@ -72,7 +72,7 @@ export function renderLogbook(brief: BriefState, repositoryId: string): string {
     out.push(`## 봉인 대기 수확 (${brief.unsealed_net.length})`);
     out.push('');
     for (const n of brief.unsealed_net) {
-      out.push(`- ${line(n.text)} — ${n.harvested_on} 수확 (봉인하려면 \`argus_seal\`)`);
+      out.push(`- ${line(n.text)} · ${n.harvested_on} 수확 (봉인하려면 \`argus_seal\`)`);
     }
     out.push('');
   }
@@ -81,7 +81,7 @@ export function renderLogbook(brief: BriefState, repositoryId: string): string {
     out.push(`## 재확인 도래 전제 (${brief.premise_rechecks_due.length})`);
     out.push('');
     for (const p of brief.premise_rechecks_due) {
-      out.push(`- ${line(p.text)} — ${p.due_since}부터 (\`argus_recheck\`)`);
+      out.push(`- ${line(p.text)} · ${p.due_since}부터 (\`argus_recheck\`)`);
     }
     out.push('');
   }
@@ -103,7 +103,7 @@ export function renderLogbook(brief: BriefState, repositoryId: string): string {
   const honesty: string[] = [];
   if (brief.anomalies > 0) honesty.push(`전이 이상 ${brief.anomalies}건 (조사 신호)`);
   if (brief.dropped_corrupt > 0) honesty.push(`파손 줄 ${brief.dropped_corrupt}건`);
-  if (brief.skipped_unknown > 0) honesty.push(`미지 이벤트 ${brief.skipped_unknown}건 (신버전 기록 — 데이터는 안전)`);
+  if (brief.skipped_unknown > 0) honesty.push(`미지 이벤트 ${brief.skipped_unknown}건 (신버전 기록, 데이터는 안전)`);
   if (honesty.length > 0) {
     out.push('## 원장 상태');
     out.push('');
