@@ -50,7 +50,9 @@ function structured(res: unknown): Record<string, unknown> {
 
 describe('MCP protocol round-trip (built server, stdio)', () => {
   it('advertises the npm package name and version', () => {
-    expect(client.getServerVersion()).toEqual({ name: 'argus-decision-mcp', version: '1.1.0' });
+    // 하드코딩 금지 — 버전 범프 때마다 이 테스트가 갈라졌다. 정본은 package.json 하나.
+    const pkg = JSON.parse(fs.readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')) as { name: string; version: string };
+    expect(client.getServerVersion()).toEqual({ name: pkg.name, version: pkg.version });
   });
 
   it('advertises the premises tools with generated JSON schemas', async () => {
