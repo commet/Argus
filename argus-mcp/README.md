@@ -161,9 +161,9 @@ That's the whole spine. Everything below is detail on top of these three steps.
 
 ## Two loops
 
-Argus runs two loops side by side — the same three-routine workout its author
+Argus runs two loops side by side — the same three habits its author
 uses daily: **봉인하기** (seal it before you ask the AI) · **드러내기**
-(surface what you swallowed while working) · **돌아보기** (return when
+(surface claims you accepted without checking) · **돌아보기** (return when
 reality has answered):
 
 - **The daily watch** (`argus_watch`) — turns over once a *day*. In the morning
@@ -174,12 +174,12 @@ reality has answered):
   yesterday's line back — *"so, how did it go?"* — as a question, never a grade.
   An anchor is a **note, not a bet**: nothing about it is scored, counted, or
   streaked, ever.
-- **The decision voyage** (everything below) — turns over in days-to-months.
+- **The decision loop** (everything below) — plays out over days to months.
   When a capture turns out to be load-bearing, *you* promote it: open the
   decision, seal a falsifiable prediction, track its premises, and let reality
   settle it into a Judgment Receipt.
 
-The watch builds the habit; the voyage builds the record.
+The watch builds the habit; the decision loop builds the record.
 
 ## The loop
 
@@ -191,7 +191,7 @@ reach for it when you need it, not before.
 
 | Tool | What it does |
 |------|--------------|
-| `argus_watch` | The daily watch. `anchor` keeps today's one-line aim (your words, verbatim); `capture` notes a swallowed claim / unverified premise / deferred question mid-work without opening a decision; `list` reads the recent log. Anchors are mirrored back by the next `check_in` as a question — never evaluated, never counted in any record. |
+| `argus_watch` | The daily watch. `anchor` keeps today's one-line aim (your words, verbatim); `capture` notes an unchecked claim / unverified premise / deferred question mid-work without opening a decision; `list` reads the recent log. Anchors are mirrored back by the next `check_in` as a question — never evaluated, never counted in any record. |
 | `argus_open_decision` | Opens a consequential decision. Runs a restraint gate first — on a flat / low-stakes / reversible / already-closed call it tells you to leave it as is. If it fires, it surfaces **one** neutral question, never a fork or a lean. |
 | `argus_review` | Reviews an existing document (strategy memo / PRD / deck text / AI answer) for judgment risk: reviewability score, routed lenses, source units with anchors, and the extraction prompt — then hands the analysis to you. Degrades honestly on unextractable input; never a verdict. End by sealing one follow-up. |
 | `argus_seal` | Seals a falsifiable prediction (`predicate` + `check_by`) and captures the receipt's real-question / unverified-assumption / human-only / your-call fields. Refuses an empty predicate or a non-future date. If you seal without naming the assumption, it's recorded as an explicit **skip** — never a forced gate (which would just eject the tiredest user), never a silent blank. With `ARGUS_TOKEN` set, the prediction also syncs to your account so the Companion Brief can email you at its check-by date. |
