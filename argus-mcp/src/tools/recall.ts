@@ -201,14 +201,18 @@ export const recall: ToolModule = {
       const freq = n === 0
         ? (trackLocale === 'ko' ? '아직 정산된 결정이 없습니다 — 요약할 것이 없습니다.' : 'No settled decisions yet — nothing to summarize.')
         : (trackLocale === 'ko'
-            ? `정산 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial}.`
-            : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial.`);
+            ? `정산 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial} · 빗나감 ${s.missed}.`
+            : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial, ${s.missed} missed.`);
 
       // Premise-level attribution (plan v5 P2) — where accumulation compounds:
       // COUNTS of settles where the user themselves named a broken premise.
       // A frequency statement, never a diagnosis of the person.
       const settled = [...ledger.contracts.values()].filter((c) => c.status === 'settled');
-      const missedOrPartial = settled.filter((c) => c.outcome === 'avoided' || c.outcome === 'partial');
+      // "did not hold" = every settled outcome except a clean held: avoided,
+      // partial, AND missed. Excluding 'missed' (the clearest not-held case)
+      // dropped exactly the settle a broken premise most often explains
+      // (dogfood F8: a missed+broken-premise settle vanished from attribution).
+      const missedOrPartial = settled.filter((c) => c.outcome === 'avoided' || c.outcome === 'partial' || c.outcome === 'missed');
       const withBroken = missedOrPartial.filter((c) => c.broken_premise_id);
       const premiseAttribution = withBroken.length > 0
         ? (trackLocale === 'ko'

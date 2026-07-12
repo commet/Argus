@@ -143,6 +143,28 @@ describe('settle premise attribution (P2 — where accumulation compounds)', () 
     expect(td['judgment_tier']).toBeNull(); // still no tier, no score
   });
 
+  it("a 'missed' settle is counted in the frequency line AND in the did-not-hold attribution (dogfood F8)", async () => {
+    const dir = tmpArgusDir();
+    await sealedWithMonitored(dir, 'd1');
+    const r = await settle.handler({
+      argus_dir: dir, id: 'd1', outcome: 'missed', outcome_source: 'user_stated',
+      what_happened: 'the sealed read was simply wrong; the rate held and the plan stalled',
+      broken_premise_ref: 'P1', today_override: '2026-09-02',
+    });
+    expect(isError(r)).toBe(false);
+
+    const tr = await recall.handler({ argus_dir: dir, view: 'track_record', today_override: '2026-09-03' });
+    const td = body(tr)['data'] as Record<string, unknown>;
+    // The frequency line must account for the missed settle — "Of 1 settled: … 1 missed",
+    // never "0 held, 0 avoided, 0 partial" (a settle vanishing from its own count).
+    expect(String(td['frequency_statement'])).toMatch(/1 missed|빗나감 1/);
+    // "did not hold" now includes missed — the case a broken premise most explains.
+    const counts = td['premise_attribution_counts'] as Record<string, unknown>;
+    expect(counts['not_held']).toBe(1);
+    expect(counts['with_named_broken_premise']).toBe(1);
+    expect(td['judgment_tier']).toBeNull();
+  });
+
   it('an invalid broken_premise_ref fails loudly instead of mis-attributing', async () => {
     const dir = tmpArgusDir();
     await sealedWithMonitored(dir, 'd1');

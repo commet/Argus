@@ -1,5 +1,5 @@
 /**
- * 도그푸딩 하네스 — Argus를 실제로 "써본다" (26 시나리오).
+ * 도그푸딩 하네스 — Argus를 실제로 "써본다" (42 시나리오).
  *
  * 창업자 지시(2026-07-12 밤): "다양한 사용 예시 진짜로 만들어서 해보고
  * 피드백 만들고... 기록 싹 다 저장. 20번 이상 시뮬레이션. 미친놈처럼
@@ -306,6 +306,72 @@ const SCENARIOS = {
     // 봉인은 되되, 되돌아오는 surface에 제어문자가 살아있으면 안 됨 (inspectSurface가 잡음)
     // check_in에서 이 predicate가 닻거울로 나올 때도 무해해야
     await call('argus_check_in', { argus_dir: d, today_override: '2026-08-02' }, { scenario: S });
+  },
+  async 'S35 amend으로 확인일 연장 — 무엇이 바뀌었는지 정직'() {
+    const S = 'S35 amend-date', d = ws(); await init(d, S);
+    await seal(d, { id: 'am', predicate: '이 기능은 다음 스프린트 안에 출시된다 충분히 길게', check_by: '2026-07-20', today_override: '2026-07-13' }, S);
+    const r = await call('argus_amend', { argus_dir: d, id: 'am', check_by: '2026-07-27', today_override: '2026-07-13' }, { scenario: S });
+    const blob = String(r?.surface) + JSON.stringify(r?.data ?? {});
+    if (r?.ok && !/2026-07-27/.test(blob)) note('B', S, 'amend surface가 새 확인일을 명시하지 않음', String(r?.surface).slice(0, 160));
+  },
+  async 'S36 빗나감+깨진 전제 귀속 → track_record 누적 표면'() {
+    const S = 'S36 broken-premise-attrib', d = ws(); await init(d, S);
+    await seal(d, { id: 'bp', predicate: '금리가 동결되면 이 대출 결정이 유효하다 충분히 길게', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    await call('argus_premises', { argus_dir: d, id: 'bp', op: 'add', premises: [{ text: '기준금리는 2026-07-14까지 3.5%로 동결된다', kind: 'premise', external: true, load_bearing: true, source: 'user_stated' }], today_override: '2026-07-12' }, { scenario: S });
+    await settle(d, { id: 'bp', outcome: 'missed', what_happened: '금리가 올라 전제가 깨졌다', broken_premise_ref: 'P1', today_override: '2026-07-14' }, S);
+    const r = await call('argus_recall', { argus_dir: d, view: 'track_record', today_override: '2026-07-15' }, { scenario: S });
+    const blob = String(r?.surface) + JSON.stringify(r?.data ?? {});
+    if (!/전제|premise/i.test(blob)) note('B', S, 'track_record가 사용자 지목 깨진 전제 귀속을 표면화하지 않음', blob.slice(0, 200));
+    if (/당신은 .{0,8}(형|타입|사람)|경향이 있습니다/.test(String(r?.surface))) note('A', S, 'track_record surface가 사람에 대한 진단으로 읽힘', String(r?.surface).slice(0, 160));
+  },
+  async 'S37 recheck 드리프트(전제 깨짐) — 비평결 유지'() {
+    const S = 'S37 recheck-drift', d = ws(); await init(d, S);
+    await seal(d, { id: 'rk', predicate: '공급이 유지되면 이 가격 결정이 옳다 충분히 길게 확실히', check_by: '2026-09-01', today_override: '2026-07-12' }, S);
+    await call('argus_premises', { argus_dir: d, id: 'rk', op: 'add', premises: [{ text: '핵심 부품 단가는 개당 3.0달러다', kind: 'premise', external: true, load_bearing: true, source: 'user_stated' }], today_override: '2026-07-12' }, { scenario: S });
+    await call('argus_recheck', { argus_dir: d, id: 'rk', ref: 'P1', finding: '핵심 부품 단가가 개당 4.2달러로 올랐다', numeric_value: 4.2, source: 'user_stated', today_override: '2026-07-20' }, { scenario: S });
+  },
+  async 'S38 정산 10건 — 표본 주의문 사라지고 대규모 빈도 표면'() {
+    const S = 'S38 sample-10', d = ws(); await init(d, S);
+    const outs = ['held', 'avoided', 'partial', 'held', 'avoided', 'held', 'partial', 'avoided', 'held', 'held'];
+    for (let i = 0; i < 10; i++) {
+      const id = `s${i}`;
+      await seal(d, { id, predicate: `${i}번째 결정은 예정대로 처리된다 충분히 길게 확실히`, check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+      await settle(d, { id, outcome: outs[i], what_happened: '기록된 결과대로', today_override: '2026-07-14' }, S);
+    }
+    const r = await call('argus_recall', { argus_dir: d, view: 'track_record', today_override: '2026-07-15' }, { scenario: S });
+    if (r?.data?.sample_size_caveat) note('B', S, '표본 10건인데 sample_size_caveat가 아직 붙음(작은 표본 문구)', String(r.data.sample_size_caveat).slice(0, 160));
+  },
+  async 'S39 config locale 왕복(ko→en) — 바뀐 키 명시 (F4 회귀)'() {
+    const S = 'S39 config-roundtrip', d = ws(); await init(d, S);
+    const a1 = await call('argus_config', { argus_dir: d, locale: 'ko' }, { scenario: S });
+    if (a1?.ok && !/locale/.test(String(a1?.surface))) note('B', S, 'config surface가 바뀐 키(locale)를 명시하지 않음', String(a1?.surface).slice(0, 160));
+    const a2 = await call('argus_config', { argus_dir: d, locale: 'en' }, { scenario: S });
+    if (a2?.ok && !/locale/.test(String(a2?.surface))) note('B', S, 'config surface가 바뀐 키(locale)를 명시하지 않음(2차)', String(a2?.surface).slice(0, 160));
+  },
+  async 'S40 dismiss 후 그 결정 settle 시도 — 정직한 거절'() {
+    const S = 'S40 dismiss-then-settle', d = ws(); await init(d, S);
+    await seal(d, { id: 'dm', predicate: '이 실험은 다음 주에 결론이 난다 충분히 길게 확실히', check_by: '2026-07-20', today_override: '2026-07-12' }, S);
+    await call('argus_dismiss', { argus_dir: d, id: 'dm', dismiss_reason: 'changed_mind', today_override: '2026-07-13' }, { scenario: S });
+    await settle(d, { id: 'dm', outcome: 'held', what_happened: '되돌아와 정산 시도', today_override: '2026-07-21' }, S, { expectOk: false });
+  },
+  async 'S41 open만 하고 seal 전 recall bearing — 첫인상'() {
+    const S = 'S41 open-no-seal', d = ws(); await init(d, S);
+    await call('argus_open_decision', { argus_dir: d, id: 'op', decision: '새 채용을 이번 분기에 할지 말지', stakes: 'moderate', reversibility: 'costly_to_reverse', status_quo: '아무도 뽑지 않고 현 인원으로 간다', today_override: '2026-07-12' }, { scenario: S });
+    const r = await call('argus_recall', { argus_dir: d, view: 'bearing', today_override: '2026-07-12' }, { scenario: S });
+    const s = String(r?.surface);
+    if (/^0 open bearing|봉인 중인 판단 0건/.test(s)) note('info', S, 'open만 한 뒤 bearing이 "0건"으로 보임 — 봉인 손잡이 안내 여부 읽기', s.slice(0, 160));
+  },
+  async 'S42 premises 여러 건 add 후 recall premises — staleness 정직'() {
+    const S = 'S42 premises-staleness', d = ws(); await init(d, S);
+    await seal(d, { id: 'pm', predicate: '이 로드맵은 3분기에 완료된다 충분히 길게 확실히', check_by: '2026-10-01', today_override: '2026-07-12' }, S);
+    await call('argus_premises', { argus_dir: d, id: 'pm', op: 'add', premises: [
+      { text: '핵심 엔지니어 2명이 계속 근무한다', kind: 'premise', external: true, load_bearing: true, source: 'user_stated' },
+      { text: '외부 API가 3분기까지 안정적이다', kind: 'premise', external: true, load_bearing: false, source: 'user_stated' },
+      { text: '경쟁사가 먼저 출시할까', kind: 'open_question', external: false, load_bearing: false, source: 'user_stated' },
+    ], today_override: '2026-07-12' }, { scenario: S });
+    const r = await call('argus_recall', { argus_dir: d, view: 'premises', id: 'pm', today_override: '2026-07-20' }, { scenario: S });
+    const blob = JSON.stringify(r?.data ?? {});
+    if (r?.ok && !/never re-checked|staleness/.test(blob)) note('B', S, 'recall premises가 재확인 이력 없음을 정직히 표기하지 않음', blob.slice(0, 200));
   },
 };
 
