@@ -159,7 +159,7 @@ export const settle: ToolModule = {
 
       return envelope({
         ok: true, tool: 'argus_settle',
-        surface: T.settled + syncLine,
+        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed') + syncLine,
         next_actions: ['argus_recall', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',

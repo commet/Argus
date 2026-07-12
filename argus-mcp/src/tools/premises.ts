@@ -308,10 +308,10 @@ async function opAdd(
       : (events.length === 1
           ? (ko
               ? `방금 적어뒀어요: '${oneLine(echo[0]?.text ?? '')}'. 고칠 게 있으면 op=amend로 바꿀 수 있어요.${monitoredNote}`
-              : `Noted: "${oneLine(echo[0]?.text ?? '')}". Fix anything wrong with op=amend.${monitoredNote}`)
+              : `Noted: "${oneLine(echo[0]?.text ?? '')}". Fix anything wrong with argus_premises.${monitoredNote}`)
           : (ko
               ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 op=amend로 고치세요. 고친 내용도 기록에 남습니다.${monitoredNote}`
-              : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with op=amend; your correction stays on the record too.${monitoredNote}`));
+              : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with argus_premises; your correction stays on the record too.${monitoredNote}`));
 
   return envelope({
     ok: true, tool: 'argus_premises',

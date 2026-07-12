@@ -99,7 +99,7 @@ export const init: ToolModule = {
       return envelope({
         ok: true, tool: 'argus_init',
         surface: empty
-          ? 'Argus is ready. It does not give answers — it records a prediction + a check-by date and meets reality on that date. Open your first decision with argus_open_decision.'
+          ? 'Argus is ready. Describe a decision you are weighing and Argus records a prediction with a check-by date, then meets reality on that date. No grades, just your own track record over time. Or open one explicitly with argus_open_decision.'
           : 'Argus is ready.',
         next_actions: empty ? ['argus_open_decision'] : ['argus_check_in'],
         data: {
@@ -156,7 +156,7 @@ export const config: ToolModule = {
         ...(('premise_sync' in a) ? { premise_sync: a['premise_sync'] as boolean } : {}),
       };
       await atomicWriteText(configPath(dir), yaml.dump(merged));
-      return envelope({ ok: true, tool: 'argus_config', surface: 'Config updated.', next_actions: ['stop'], data: { config: merged } });
+      return envelope({ ok: true, tool: 'argus_config', surface: `Config updated: ${writeKeys.join(', ')}.`, next_actions: ['stop'], data: { config: merged } });
     } catch (e) {
       return handleToolException('argus_config', e);
     }
