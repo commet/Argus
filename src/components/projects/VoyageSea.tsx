@@ -844,11 +844,15 @@ export function VoyageSea({
           {placed.map((s, i) => {
             const meta = VOYAGE_STATE_META[s.state];
             const stateLabel = s.beacon ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
-            const size = s.beacon ? 42 : dense ? 15 : 24;
-            // Persistent labels only when the sheet can hold them — the beacon
-            // always, everyone else only in a small fleet. In a dense fleet the
-            // name is a hover tooltip (below), so 40 sentences don't collide.
-            const showLabel = s.beacon || !dense;
+            const attention = s.state === 'adrift' || s.state === 'wrecked';
+            const size = s.beacon ? 42 : dense ? (attention ? 17 : 15) : 24;
+            // Persistent labels only where the sheet can hold them. Sentence-
+            // length names can't stack — even 6 in the neglect corner collide —
+            // so a dense fleet labels ONLY the due beacon. The untended ships
+            // instead carry a soft amber under-glow (below) so the top-left
+            // reads as "needs you" at a glance; names come from hover and from
+            // the due-strip beneath the map (which already lists them).
+            const showLabel = !dense || s.beacon;
             return (
               <button
                 key={s.id}
@@ -867,6 +871,16 @@ export function VoyageSea({
                     aria-hidden
                     className="vsea-halo absolute left-1/2 top-[34%] -z-[1] rounded-full"
                     style={{ width: 130, height: 130, background: `radial-gradient(circle, ${N.gold}3d 0%, transparent 62%)`, transform: 'translate(-50%,-50%)' }}
+                  />
+                )}
+                {/* dense fleet: untended ships glow faint amber so the neglect
+                    corner reads at a glance without labels (fact color, not a
+                    verdict — 거울 조항). */}
+                {dense && attention && !s.beacon && (
+                  <span
+                    aria-hidden
+                    className="absolute left-1/2 top-[42%] -z-[1] rounded-full"
+                    style={{ width: 44, height: 44, background: 'radial-gradient(circle, color-mix(in srgb, var(--warning) 40%, transparent) 0%, transparent 66%)', transform: 'translate(-50%,-50%)' }}
                   />
                 )}
                 <span className={s.state === 'wrecked' || s.state === 'docked' ? '' : 'vsea-bob'} style={{ animationDelay: `${(i % 5) * 1.1}s` }}>
