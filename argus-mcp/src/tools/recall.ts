@@ -175,7 +175,7 @@ export const recall: ToolModule = {
           ? (locale === 'ko'
               ? 'Argus는 답을 주지 않습니다. 예측 하나와 확인일을 기록하고, 그날 현실과 만납니다. argus_open_decision으로 첫 결정을 여세요.'
               : 'Argus does not answer. It records a prediction + a check-by date, and meets reality on that date. Open your first decision with argus_open_decision.')
-          : (locale === 'ko' ? `봉인 중인 판단 ${open.length}건.` : `${open.length} open bearing(s).`);
+          : (locale === 'ko' ? `봉인한 예측 ${open.length}건.` : `${open.length} open prediction(s).`);
         const wake = wakeText(ledger, today, dir);
         return envelope({ ok: true, tool: 'argus_recall', surface, next_actions: open.length ? ['argus_check_in'] : ['argus_open_decision'], data: { open, today, ...(wake ? { wake_text: wake } : {}) } });
       }
