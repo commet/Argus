@@ -357,8 +357,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         'Terminal-sealed ones settle here via argus_settle with local_id; web-sealed ones settle in the web dashboard.',
       live_no_due: (total) => `${total} live prediction(s) in your account. Nothing past its check-by.`,
       settled_on_web: (n) => ` ${n} already settled on the web. Run argus_sync with import_settlements:true to mirror your web record into this ledger, or record it yourself with argus_settle.`,
-      unclear_on_web: (n) => ` ${n} marked unclear in your account — reality hasn't answered, so those are not settlements and nothing was imported. They stay due here until you settle them.`,
-      pushed_up: (n) => ` Sent ${n} change(s) your account had missed — settled, closed, or rescheduled here. It will stop nudging what you already handled.`,
+      unclear_on_web: (n) => ` ${n} marked unclear in your account. Reality hasn't answered, so those are not settlements and nothing was imported. They stay due here until you settle them.`,
+      pushed_up: (n) => ` Sent ${n} change(s) your account had missed: settled, closed, or rescheduled here. It will stop nudging what you already handled.`,
       push_up_failed: (n) => ` ${n} local change(s) still haven't reached your account, so it may keep emailing them. Your record here stands; run argus_sync again when you're online.`,
       imported: (n) => ` Mirrored ${n} web settlement(s) into this ledger, in your own recorded words.`,
       truncation: (shown, matched) => `Showing ${shown} of ${matched}. Raise limit or narrow with due_only.`,
@@ -442,8 +442,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settle: {
         settled: (outcome) => `Settled. Recorded outcome: ${outcome}. The receipt keeps your prediction beside what actually happened. No grade. (argus_recall view=receipt)`,
         sync_failed: (reason) => ` (Account sync didn't go through. ${reason}. Your settlement is safe locally, but the account may keep listing this as due until it syncs. Try argus_sync later.)`,
-        deferred: (newDate) => `Not settled — reality hasn't answered yet, so nothing was graded. I'll bring this back on ${newDate}.`,
-        defer_dismissed: 'Set aside — this one no longer needs an answer. Nothing was graded.',
+        deferred: (newDate) => `Not settled. Reality hasn't answered yet, so nothing was graded. I'll bring this back on ${newDate}.`,
+        defer_dismissed: 'Set aside. This one no longer needs an answer. Nothing was graded.',
       },
       recheck: {
         baseline: (ref, finding, source, cadenceDays) => `Baseline recorded for P${ref}: "${finding}" (${source}). Worth another check in about ${cadenceDays} days.`,
@@ -508,8 +508,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
         '이 터미널에서 봉인한 것은 local_id로 argus_settle, 웹에서 봉인한 것은 웹 대시보드에서 정산하세요.',
       live_no_due: (total) => `계정에 살아 있는 예측 ${total}개. 확인할 차례가 된 것은 없습니다.`,
       settled_on_web: (n) => ` 웹에서 이미 정산한 것이 ${n}건 있습니다. argus_sync에 import_settlements:true를 주면 웹에 남긴 기록을 이 원장으로 그대로 옮겨옵니다 (직접 argus_settle로 적어도 됩니다).`,
-      unclear_on_web: (n) => ` 계정에서 ${n}건이 "불분명"으로 표시돼 있습니다 — 현실이 아직 답하지 않았으니 정산이 아니고, 가져오지도 않았습니다. 정산하기 전까지 여기서는 계속 확인 대상입니다.`,
-      pushed_up: (n) => ` 계정이 못 받은 변경 ${n}건을 올려보냈습니다 — 여기서 정산했거나, 접었거나, 날짜를 옮긴 것들입니다. 이미 처리한 건에 대해 더는 알림이 오지 않습니다.`,
+      unclear_on_web: (n) => ` 계정에서 ${n}건이 "불분명"으로 표시돼 있습니다. 현실이 아직 답하지 않았으니 정산이 아니고, 가져오지도 않았습니다. 정산하기 전까지 여기서는 계속 확인 대상입니다.`,
+      pushed_up: (n) => ` 계정이 못 받은 변경 ${n}건을 올려보냈습니다. 여기서 정산했거나, 접었거나, 날짜를 옮긴 것들입니다. 이미 처리한 건에 대해 더는 알림이 오지 않습니다.`,
       push_up_failed: (n) => ` 로컬 변경 ${n}건이 아직 계정에 닿지 않았습니다. 그 건들에 대해 메일이 계속 올 수 있습니다. 여기 기록은 그대로 유효하니, 온라인일 때 argus_sync를 다시 실행하세요.`,
       imported: (n) => ` 웹 정산 ${n}건을 이 원장으로 옮겨왔습니다. 당신이 웹에 적은 그대로입니다.`,
       truncation: (shown, matched) => `${matched}개 중 ${shown}개만 표시합니다. limit을 올리거나 due_only로 좁히세요.`,
@@ -592,8 +592,8 @@ export const SURFACES: Record<SurfaceLocale, SurfaceStrings> = {
       settle: {
         settled: (outcome) => `정산했습니다. 기록된 결과: ${({ held: '그렇게 됨', avoided: '피함', partial: '부분', missed: '빗나감' })[outcome]}. 영수증에 예측과 실제가 나란히 남습니다. 평가는 없습니다. (argus_recall view=receipt)`,
         sync_failed: (reason) => ` (계정 동기화가 안 됐습니다. ${reason}. 정산은 로컬에 안전합니다. 동기화되기 전까지 계정은 이걸 계속 "확인 필요"로 표시할 수 있습니다. 나중에 argus_sync를 시도하세요.)`,
-        deferred: (newDate) => `아직 정산하지 않았습니다 — 현실이 아직 답하지 않았으니 평가한 것도 없습니다. ${newDate}에 다시 가져오겠습니다.`,
-        defer_dismissed: '접어뒀습니다 — 이건 이제 답이 필요 없어요. 평가한 것은 없습니다.',
+        deferred: (newDate) => `아직 정산하지 않았습니다. 현실이 아직 답하지 않았으니 평가한 것도 없습니다. ${newDate}에 다시 가져오겠습니다.`,
+        defer_dismissed: '접어뒀습니다. 이건 이제 답이 필요 없어요. 평가한 것은 없습니다.',
       },
       recheck: {
         baseline: (ref, finding, source, cadenceDays) => `P${ref} 기준값을 기록했습니다: "${finding}" (${source}). ${cadenceDays}일 뒤에 다시 확인하길 권합니다.`,

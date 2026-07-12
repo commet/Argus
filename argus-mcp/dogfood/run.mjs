@@ -373,6 +373,79 @@ const SCENARIOS = {
     const blob = JSON.stringify(r?.data ?? {});
     if (r?.ok && !/never re-checked|staleness/.test(blob)) note('B', S, 'recall premises가 재확인 이력 없음을 정직히 표기하지 않음', blob.slice(0, 200));
   },
+  async 'S43 review — 짧은 LLM 답변 검수 (평결/은유 없이)'() {
+    const S = 'S43 review', d = ws(); await init(d, S);
+    const doc = '우리 팀은 신규 시장에 즉시 진출해야 합니다. 경쟁사는 아직 준비가 안 됐고, 우리 제품이 확실히 우위입니다. 3개월이면 점유율 1위가 됩니다.';
+    await call('argus_review', { argus_dir: d, text: doc, source_kind: 'llm_answer', title: '시장 진출 제안', concerns: ['evidence', 'strategic_fit'], stakes: 'high' }, { scenario: S });
+  },
+  async 'S44 watch capture → 전제로 승격(from_capture)'() {
+    const S = 'S44 watch-promote', d = ws(); await init(d, S);
+    await seal(d, { id: 'wp', predicate: '이 파트너십은 6개월 안에 수익을 낸다 충분히 길게 확실히', check_by: '2026-12-01', today_override: '2026-07-12' }, S);
+    const cap = await call('argus_watch', { argus_dir: d, op: 'capture', text: '파트너사가 API를 연말까지 무료로 연다고 구두로 약속했다', kind: 'premise', source: 'user_stated', today_override: '2026-07-12' }, { scenario: S });
+    const cid = cap?.data?.capture_id;
+    if (!cid) { note('B', S, 'watch capture가 capture_id를 안 돌려줌', JSON.stringify(cap?.data ?? {}).slice(0, 160)); return; }
+    const r = await call('argus_premises', { argus_dir: d, id: 'wp', op: 'add', premises: [{ from_capture: cid, external: true, load_bearing: true }], today_override: '2026-07-12' }, { scenario: S });
+    // 승격은 참조여야 — 캡처의 원문/출처가 그대로 넘어오는지
+    const blob = JSON.stringify(r?.data ?? {});
+    if (r?.ok && !/파트너사가 API/.test(blob)) note('B', S, 'from_capture 승격이 캡처 원문을 전제로 옮기지 않음', blob.slice(0, 200));
+  },
+  async 'S45 still_pending(defer) 후 실제 정산까지 — 유예 수명주기'() {
+    const S = 'S45 pending-lifecycle', d = ws(); await init(d, S);
+    await seal(d, { id: 'pl', predicate: '이번 협상은 다음 분기에 타결된다 충분히 길게 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    // 확인일에 현실이 아직 답 안 함 → still_pending, 새 확인일로 재무장
+    await settle(d, { id: 'pl', outcome: 'still_pending', defer_to: '2026-08-14', today_override: '2026-07-14' }, S);
+    // 새 확인일에 다시 떠야 함
+    const ci = await call('argus_check_in', { argus_dir: d, today_override: '2026-08-15' }, { scenario: S });
+    const due = (ci?.data?.due ?? []).length;
+    if (due < 1) note('A', S, 'still_pending 재무장 후 새 확인일에 check_in에 다시 안 뜸', JSON.stringify(ci?.data?.due ?? []).slice(0, 200));
+    // 이번엔 실제로 타결 → held
+    const st = await settle(d, { id: 'pl', outcome: 'held', what_happened: '협상이 타결됐다', today_override: '2026-08-15' }, S);
+    if (st?.ok && !/그렇게 됨|held/.test(String(st?.surface))) note('B', S, '유예 후 최종 정산 표면이 outcome을 명명하지 않음', String(st?.surface).slice(0, 160));
+  },
+  async 'S46 premises resolve — 열린 질문을 사용자 말로 닫음'() {
+    const S = 'S46 resolve-question', d = ws(); await init(d, S);
+    await seal(d, { id: 'rq', predicate: '이 아키텍처 선택은 확장에 유리하다 충분히 길게 확실히', check_by: '2026-11-01', today_override: '2026-07-12' }, S);
+    await call('argus_premises', { argus_dir: d, id: 'rq', op: 'add', premises: [{ text: '트래픽이 3배로 늘어날까', kind: 'open_question', external: false, load_bearing: false, source: 'user_stated' }], today_override: '2026-07-12' }, { scenario: S });
+    const r = await call('argus_premises', { argus_dir: d, id: 'rq', op: 'resolve', ref: 'P1', decision: '실측해보니 2배 수준에서 안정됐다, 3배는 아니었다', today_override: '2026-07-30' }, { scenario: S });
+    // 닫는 말은 사용자 것이어야 — Argus가 대신 결론 내면 스파인 위반
+    if (r?.ok && !/2배 수준에서 안정/.test(JSON.stringify(r?.data ?? {}))) note('B', S, 'resolve가 사용자의 닫는 말을 그대로 담지 않음', JSON.stringify(r?.data ?? {}).slice(0, 200));
+  },
+  async 'S47 premises still_open — 열린 채로 둠(재고 넛지 유예)'() {
+    const S = 'S47 still-open', d = ws(); await init(d, S);
+    await seal(d, { id: 'so', predicate: '이 채용 계획은 예산 안에 맞는다 충분히 길게 확실히', check_by: '2026-10-01', today_override: '2026-07-12' }, S);
+    await call('argus_premises', { argus_dir: d, id: 'so', op: 'add', premises: [{ text: '내년 예산이 삭감될까', kind: 'open_question', external: false, load_bearing: false, source: 'user_stated' }], today_override: '2026-07-12' }, { scenario: S });
+    const r = await call('argus_premises', { argus_dir: d, id: 'so', op: 'still_open', ref: 'P1', today_override: '2026-07-30' }, { scenario: S });
+    // "열어둔 채로 두는 것도 유효한 답" — 평결/압박 어휘 없어야 (inspectSurface도 검사)
+  },
+  async 'S48 amend으로 예측 문구 다듬기 (확인일 전) — 변경 반영'() {
+    const S = 'S48 amend-predicate', d = ws(); await init(d, S);
+    await seal(d, { id: 'ap', predicate: '신규 기능이 사용자 만족도를 올린다 충분히 길게', check_by: '2026-09-01', today_override: '2026-07-12' }, S);
+    const r = await call('argus_amend', { argus_dir: d, id: 'ap', predicate: '신규 기능이 주간 재방문율을 10퍼센트 이상 올린다', today_override: '2026-07-13' }, { scenario: S });
+    if (r?.ok && !/재방문율/.test(JSON.stringify(r?.data ?? {}))) note('B', S, 'amend가 새 예측 문구를 반영하지 않음', JSON.stringify(r?.data ?? {}).slice(0, 200));
+  },
+  async 'S49 settle partial — 부분 결과 표면'() {
+    const S = 'S49 partial', d = ws(); await init(d, S);
+    await seal(d, { id: 'pt', predicate: '캠페인이 목표 가입자를 달성한다 충분히 길게 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    const r = await settle(d, { id: 'pt', outcome: 'partial', what_happened: '목표의 60퍼센트만 달성했다', today_override: '2026-07-14' }, S);
+    if (r?.ok && !/부분|partial/.test(String(r?.surface))) note('B', S, 'partial 정산 표면이 outcome을 명명하지 않음', String(r?.surface).slice(0, 160));
+  },
+  async 'S50 혼합 정산 track_record — 버킷 합=정산수, pending 제외'() {
+    const S = 'S50 mixed-integrity', d = ws(); await init(d, S);
+    const plan = [['m0', 'held'], ['m1', 'avoided'], ['m2', 'partial'], ['m3', 'missed']];
+    for (const [id, oc] of plan) {
+      await seal(d, { id, predicate: `${id} 결정은 확인일에 판가름 난다 충분히 길게 확실히`, check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+      await settle(d, { id, outcome: oc, what_happened: '기록된 결과대로', today_override: '2026-07-14' }, S);
+    }
+    // 1건은 still_pending — 정산 카운트에 들면 안 됨
+    await seal(d, { id: 'm4', predicate: 'm4 결정은 아직 현실이 답하지 않았다 충분히 길게 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    await settle(d, { id: 'm4', outcome: 'still_pending', defer_to: '2026-09-14', today_override: '2026-07-14' }, S);
+    const r = await call('argus_recall', { argus_dir: d, view: 'track_record', today_override: '2026-07-15' }, { scenario: S });
+    const st = r?.data?.stats ?? {};
+    const n = r?.data?.sample_size;
+    const bucketSum = (st.held ?? 0) + (st.avoided ?? 0) + (st.partial ?? 0) + (st.missed ?? 0);
+    if (n !== 4) note('A', S, `정산 표본이 4가 아님(still_pending이 새는 듯): n=${n}`, JSON.stringify(st).slice(0, 200));
+    if (bucketSum !== n) note('A', S, `버킷 합(${bucketSum})≠정산수(${n}) — 어떤 outcome이 카운트에서 샘/이중`, JSON.stringify(st).slice(0, 200));
+  },
 };
 
 const names = Object.keys(SCENARIOS);
