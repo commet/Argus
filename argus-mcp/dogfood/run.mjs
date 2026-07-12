@@ -524,6 +524,13 @@ const SCENARIOS = {
     inspectSurface(S, 'LOGBOOK.md', md);
     if (md.includes('—')) note('B', S, 'LOGBOOK.md에 em-dash cadence 잔존', md.split('\n').filter((l) => l.includes('—')).join(' | ').slice(0, 200));
   },
+  async 'S60 sync 미연결 — 흔한 설치 직후 상태의 어조'() {
+    const S = 'S60 sync-not-connected', d = ws(); await init(d, S);
+    // 토큰 없는 흔한 상태: NOT_CONNECTED가 적대적이지 않고 지역 데이터 안전을
+    // 암시하는지(패닉 유발 금지). errors 덤프로 어조를 읽는다.
+    delete process.env.ARGUS_TOKEN;
+    await call('argus_sync', { argus_dir: d }, { scenario: S, expectOk: false, expectCode: 'NOT_CONNECTED' });
+  },
 };
 
 const names = Object.keys(SCENARIOS);
