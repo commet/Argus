@@ -39,7 +39,10 @@ async function call(toolName, args, { scenario, expectOk = true, expectCode = nu
   try { res = await tool.handler(parsed.data); }
   catch (e) { note('A', scenario, `${toolName} 핸들러 예외(잡히지 않음)`, e?.message ?? e); return null; }
   const sc = res?.structuredContent;
-  transcript.push({ scenario, tool: toolName, ok: sc?.ok, surface: sc?.surface, code: sc?.error_code });
+  transcript.push({ scenario, tool: toolName, ok: sc?.ok, surface: sc?.surface, code: sc?.error_code, message: sc?.message, recovery: sc?.recovery });
+  // 오류에는 surface가 없다(설계: 오류는 모델에게 message+recovery로 말한다).
+  // 그 텍스트도 결국 사용자에게 전해지므로 스파인 위반·적대적 어조를 검사한다.
+  if (sc?.ok === false && (sc?.message || sc?.recovery)) inspectSurface(scenario, `${toolName}[err]`, `${sc?.message ?? ''} ${sc?.recovery ?? ''}`);
   if (expectOk && sc?.ok !== true) note('A', scenario, `${toolName} ok=false (성공 기대)`, `${sc?.error_code}: ${sc?.message}`);
   if (!expectOk && sc?.ok === true) note('A', scenario, `${toolName} ok=true (거절 기대)`, String(sc?.surface).slice(0, 160));
   if (expectCode && sc?.error_code !== expectCode) note('B', scenario, `${toolName} 오류코드 불일치`, `기대 ${expectCode} vs 실제 ${sc?.error_code}`);
@@ -446,6 +449,69 @@ const SCENARIOS = {
     if (n !== 4) note('A', S, `정산 표본이 4가 아님(still_pending이 새는 듯): n=${n}`, JSON.stringify(st).slice(0, 200));
     if (bucketSum !== n) note('A', S, `버킷 합(${bucketSum})≠정산수(${n}) — 어떤 outcome이 카운트에서 샘/이중`, JSON.stringify(st).slice(0, 200));
   },
+  // ── 회차 4: 오류·복구 표면 읽기 (제품이 적대적으로 느껴지는 곳) ──
+  async 'S51 GOALPOST_MOVED — 확인일 지난 뒤 날짜 옮기기 거절'() {
+    const S = 'S51 goalpost', d = ws(); await init(d, S);
+    await seal(d, { id: 'gp', predicate: '이 결정은 확인일에 판가름 난다 충분히 길게 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    // 확인일이 지난 뒤 확인일을 미루려 함 — 골대 옮기기, 거절돼야
+    await call('argus_amend', { argus_dir: d, id: 'gp', check_by: '2026-08-01', today_override: '2026-07-20' }, { scenario: S, expectOk: false, expectCode: 'GOALPOST_MOVED' });
+  },
+  async 'S52 NO_SUCH_PREMISE — 없는 전제를 깨졌다고 지목'() {
+    const S = 'S52 no-premise', d = ws(); await init(d, S);
+    await seal(d, { id: 'np', predicate: '이 예측은 확인일에 결과가 나온다 충분히 길게 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    await settle(d, { id: 'np', outcome: 'missed', what_happened: '빗나갔다', broken_premise_ref: 'P9', today_override: '2026-07-14' }, S, { expectOk: false, expectCode: 'NO_SUCH_PREMISE' });
+  },
+  async 'S53 init 없이 봉인 — v1 정본 성공, v2 미기록은 정직히 표기'() {
+    const S = 'S53 seal-no-init', d = ws();
+    // init 생략: v1(워크스페이스 원장)이 아직 정본이라 봉인은 성공한다.
+    // 관건은 v2 내구 원장 미기록이 조용히 넘어가지 않고 이유가 남는가다
+    // (F11: 내구성은 init에서 옴 — 성공 표면은 그 사실을 숨기지 않아야).
+    const r = await call('argus_seal', { argus_dir: d, predicate_owner: 'user', id: 'ni', predicate: '초기화 없이 봉인해본다 충분히 길게 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, { scenario: S });
+    const v2 = r?.data?.v2_write;
+    if (r?.ok && v2 && v2.written === false && !/(bound|init|durable|repository_id)/i.test(String(v2.reason))) {
+      note('B', S, 'v2 내구 원장 미기록인데 이유가 정직히 남지 않음(조용한 소실 위험)', JSON.stringify(v2).slice(0, 200));
+    }
+  },
+  async 'S54 중복 봉인 — 같은 id 두 번(정직한 거절)'() {
+    const S = 'S54 dup-seal', d = ws(); await init(d, S);
+    await seal(d, { id: 'dup', predicate: '한 번만 봉인돼야 하는 예측이다 충분히 길게 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    // 두 번째 봉인은 ILLEGAL_TRANSITION으로 거절돼야 (봉인된 예측을 조용히
+    // 덮어쓸 수 없음) — 오류 어조를 errors 덤프로 읽는다.
+    await call('argus_seal', { argus_dir: d, predicate_owner: 'user', id: 'dup', predicate: '같은 id로 다시 봉인 시도 충분히 길게 확실히', check_by: '2026-07-20', today_override: '2026-07-12' }, { scenario: S, expectOk: false, expectCode: 'ILLEGAL_TRANSITION' });
+  },
+  async 'S55 recall receipt — dismiss된 결정의 영수증'() {
+    const S = 'S55 dismissed-receipt', d = ws(); await init(d, S);
+    await seal(d, { id: 'dr', predicate: '접기 전에 봉인된 예측이다 충분히 길게 확실히', check_by: '2026-09-01', today_override: '2026-07-12' }, S);
+    await call('argus_dismiss', { argus_dir: d, id: 'dr', dismiss_reason: 'became_irrelevant', today_override: '2026-07-13' }, { scenario: S });
+    const r = await call('argus_recall', { argus_dir: d, view: 'receipt', id: 'dr', today_override: '2026-07-14' }, { scenario: S });
+    // dismiss된 결정의 영수증이 정직하게 "접힘"을 말하는지 (조용한 소실 금지)
+    const blob = String(r?.surface) + JSON.stringify(r?.data ?? {});
+    if (r?.ok && !/접|dismiss|irrelevant|무관|필요 없/i.test(blob)) note('B', S, 'dismiss된 결정 영수증이 접힘 사실을 표면화하지 않음', blob.slice(0, 200));
+  },
+  async 'S56 watch anchor + list — 관찰 표면 읽기'() {
+    const S = 'S56 watch-list', d = ws(); await init(d, S);
+    await call('argus_watch', { argus_dir: d, op: 'anchor', text: '이번 주 핵심 관찰: 신규 가입 추세', today_override: '2026-07-12' }, { scenario: S });
+    await call('argus_watch', { argus_dir: d, op: 'capture', text: '경쟁사가 가격을 20퍼센트 내렸다', kind: 'claim', source: 'user_stated', today_override: '2026-07-12' }, { scenario: S });
+    await call('argus_watch', { argus_dir: d, op: 'list', days: 3, today_override: '2026-07-12' }, { scenario: S });
+  },
+  async 'S57 premises amend retire — 전제 은퇴 표면(em-dash 금지 확인)'() {
+    const S = 'S57 premise-retire', d = ws(); await init(d, S);
+    await seal(d, { id: 'pr', predicate: '이 계획은 세 전제 위에 선다 충분히 길게 확실히', check_by: '2026-10-01', today_override: '2026-07-12' }, S);
+    await call('argus_premises', { argus_dir: d, id: 'pr', op: 'add', premises: [{ text: '핵심 인력이 유지된다', kind: 'premise', external: true, load_bearing: false, source: 'user_stated' }], today_override: '2026-07-12' }, { scenario: S });
+    const r = await call('argus_premises', { argus_dir: d, id: 'pr', op: 'amend', ref: 'P1', action: 'retire', note: '더 이상 유효하지 않음', today_override: '2026-07-20' }, { scenario: S });
+    // 은퇴 표면은 "기록엔 남는다"를 정직히, em-dash cadence 없이 (inspectSurface + 아래)
+    if (r?.ok && !/기록|record|남/.test(String(r?.surface))) note('B', S, 'retire 표면이 "기록엔 남는다"를 말하지 않음', String(r?.surface).slice(0, 160));
+  },
+  async 'S58 ambient due-line — 세션 중 "그런데 N건" 꼬리 어조'() {
+    const S = 'S58 ambient', d = ws(); await init(d, S);
+    await seal(d, { id: 'a1', predicate: '첫 예측은 확인일에 결과가 나온다 충분히 길게 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    await seal(d, { id: 'a2', predicate: '둘째 예측도 확인일에 결과가 나온다 충분히 길게 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    // 확인일 이후 아무 읽기나 하면 ambient 꼬리("그런데 정산할 N건")가 붙을 수 있음
+    const r = await call('argus_recall', { argus_dir: d, view: 'bearing', today_override: '2026-07-16' }, { scenario: S });
+    const blob = String(r?.surface) + JSON.stringify(r?.data ?? {});
+    // 긴급·압박 어휘 금지 (사실+손잡이만) — inspectSurface가 평결어를 잡고, 여기선 재촉 어휘
+    if (/지금 당장|서둘러|늦기 전에|놓치면|hurry|right now|don't miss/i.test(blob)) note('A', S, 'ambient 꼬리가 재촉/압박 어휘 사용', blob.slice(0, 200));
+  },
 };
 
 const names = Object.keys(SCENARIOS);
@@ -464,5 +530,7 @@ const out = {
   findings,
   // 사람이 실제로 읽을 수 있게 모든 surface를 덤프 — 진짜 마찰은 여기 있다.
   surfaces: transcript.filter((t) => t.surface != null).map((t) => ({ scenario: t.scenario, tool: t.tool, ok: t.ok, surface: t.surface })),
+  // 오류 텍스트(message+recovery)도 따로 덤프 — 제품이 적대적으로 느껴지는 곳.
+  errors: transcript.filter((t) => t.ok === false && (t.message || t.recovery)).map((t) => ({ scenario: t.scenario, tool: t.tool, code: t.code, message: t.message, recovery: t.recovery })),
 };
 process.stdout.write(JSON.stringify(out, null, 2) + '\n');

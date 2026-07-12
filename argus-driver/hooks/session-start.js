@@ -76,7 +76,7 @@ function harvestQueueStep(payload, home) {
     i.item_id !== `harvest-${sessionId}` && !i.exhausted && i.attempts < 3 &&
     !(i.lease && i.lease.expires_at > nowIso)).length;
   if (claimable > 0) {
-    return `Argus: 수확 큐에 ${claimable}건 대기 중 — 추출은 debrief 처리 단계에서 (훅은 확인만 합니다).`;
+    return `Argus: 수확 큐에 ${claimable}건 대기 중. 추출은 debrief 처리 단계에서 합니다 (훅은 확인만 합니다).`;
   }
   return null;
 }
@@ -106,9 +106,9 @@ function firstRunWelcome() {
   } catch { /* 마커 기록 실패해도 안내는 한 번 낸다 (최악=한 번 더 뜸) */ }
 
   return [
-    '[Argus 첫 실행 — 아래 내용을 사용자에게 그의 언어로, 짧고 담백하게 전하라. 과장·이모지·평가 금지.]',
+    '[Argus 첫 실행: 아래 내용을 사용자에게 그의 언어로, 짧고 담백하게 전하라. 과장·이모지·평가 금지.]',
     'Argus가 연결되었습니다. Argus는 중요한 결정을 "반증 가능한 예측"으로 봉인해 두고,',
-    '확인일이 오면 그 예측을 현실과 대조(정산)하도록 돕는 도구입니다 — 모델은 당신을 채점하지 않습니다.',
+    '확인일이 오면 그 예측을 현실과 대조(정산)하도록 돕는 도구입니다. 모델은 당신을 채점하지 않습니다.',
     '지금 할 수 있는 것:',
     '· 고민 중인 결정을 그냥 말로 설명하면, 봉인(argus_seal)까지 함께 진행할 수 있습니다.',
     '· 무엇이 있는지 보려면 /argus:help.',
@@ -171,7 +171,7 @@ function main(input) {
     // 4) fresh — due 건수만 한 줄 (본문 인용 없음). 0건이면 침묵.
     const due = /## 정산할 것 \((\d+)\)/.exec(logbook);
     if (due && Number(due[1]) > 0) {
-      lines.push(`Argus: 정산할 결정 ${due[1]}건이 확인일에 도달했습니다 — ${logbookAbs} 참조, 정산은 \`argus_settle\`.`);
+      lines.push(`Argus: 정산할 결정 ${due[1]}건이 확인일에 도달했습니다. ${logbookAbs} 참조, 정산은 \`argus_settle\`.`);
     }
   }
   return lines.length ? lines.join('\n') : null;
