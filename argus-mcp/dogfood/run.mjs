@@ -226,6 +226,80 @@ const SCENARIOS = {
     // 스키마 관문(SDK)이 400자 초과를 거절해야 한다 (실서버 재현).
     await call('argus_seal', { argus_dir: d, id: 'long', predicate: '가'.repeat(500), check_by: '2026-08-01', predicate_owner: 'user', today_override: '2026-07-12' }, { scenario: S, expectOk: false });
   },
+  async 'S27 한 세션 5연속 봉인 → 공정 큐 순서'() {
+    const S = 'S27 multi-seal', d = ws(); await init(d, S);
+    for (let i = 1; i <= 5; i++) {
+      await seal(d, { id: `m${i}`, predicate: `연속 결정 ${i}번은 확실히 충분히 긴 예측 문장이다`, check_by: '2026-07-15', today_override: `2026-07-0${i}` }, S);
+    }
+    const ci = await call('argus_check_in', { argus_dir: d, today_override: '2026-07-20' }, { scenario: S });
+    const due = ci?.data?.due_count ?? ci?.data?.due?.length ?? 0;
+    if (due < 5) note('A', S, '5건 봉인인데 check_in due가 5 미만', JSON.stringify(ci?.data?.due ?? []).slice(0, 200));
+  },
+  async 'S28 전제 재확인 drifted'() {
+    const S = 'S28 recheck-drift', d = ws(); await init(d, S);
+    await seal(d, { id: 'rate', predicate: '기준금리가 연내 동결되면 대출 수요가 유지된다', check_by: '2026-12-31', today_override: '2026-07-12' }, S);
+    await call('argus_premises', { argus_dir: d, id: 'rate', op: 'add', premises: [{ text: '기준금리 3.5% 동결', kind: 'premise', source: 'user_stated' }], today_override: '2026-07-12' }, { scenario: S });
+    // 첫 recheck = 기준선(무알림)
+    await call('argus_recheck', { argus_dir: d, id: 'rate', ref: 'P1', finding: '기준금리 3.5% 유지', source: 'user_stated', today_override: '2026-07-20' }, { scenario: S });
+    // 두 번째 = drifted
+    const r = await call('argus_recheck', { argus_dir: d, id: 'rate', ref: 'P1', finding: '기준금리 3.75%로 인상', changed: true, source: 'user_stated', today_override: '2026-08-20' }, { scenario: S });
+    if (/(권장|해야|틀렸|재검토하세요|revisit now|you should)/i.test(String(r?.surface))) note('A', S, 'recheck drifted가 지시/평결 톤 (손잡이만이어야)', String(r?.surface).slice(0, 200));
+  },
+  async 'S29 매우 긴 what_happened (600자 경계)'() {
+    const S = 'S29 long-what', d = ws(); await init(d, S);
+    await seal(d, { id: 'lw', predicate: '이 결정은 정산할 때 긴 서술을 받을 것이다 확실히', check_by: '2026-07-20', today_override: '2026-07-12' }, S);
+    await call('argus_settle', { argus_dir: d, id: 'lw', outcome: 'held', outcome_source: 'user_stated', what_happened: '가'.repeat(601), today_override: '2026-07-20' }, { scenario: S, expectOk: false });
+  },
+  async 'S30 한글·영어 혼용 predicate'() {
+    const S = 'S30 mixed-lang', d = ws(); await init(d, S);
+    await seal(d, { id: 'mix', predicate: 'queue를 SQLite로 옮기면 throughput이 10% 오른다 by Q3', check_by: '2026-09-30', today_override: '2026-07-12' }, S);
+  },
+  async 'S31 snooze 2회 → dismiss 제안 플래그'() {
+    const S = 'S31 snooze-flag', d = ws(); await init(d, S);
+    // v2 브리지로 seal + snooze 2회 후 brief 파생 확인
+    const { contextFor, sealV2, snoozeV2 } = await import(new URL('../dist/v2/bridge.js', import.meta.url));
+    const { gitCommonDirOf } = await import(new URL('../dist/v2/git-discovery.js', import.meta.url));
+    const { loadState } = await import(new URL('../dist/v2/reducer.js', import.meta.url));
+    const { deriveBrief } = await import(new URL('../dist/v2/brief.js', import.meta.url));
+    try {
+      const ctx = contextFor({ home: HOME, gitCommonDir: gitCommonDirOf(d), workspaceArgusDir: d, sessionId: 's', producerVersion: 't', today: '2026-07-12' });
+      sealV2(ctx, { decisionId: 'sn', predicate: { value: '두 번 미룰 결정이다 확실히', provenance: 'elicited_user' }, checkBy: { value: '2026-07-15', provenance: 'elicited_user' } });
+      snoozeV2(ctx, { decisionId: 'sn', until: '2026-07-18' });
+      snoozeV2(ctx, { decisionId: 'sn', until: '2026-07-25' });
+      const b = deriveBrief(loadState(HOME, ctx.repository_id), '2026-07-26');
+      const item = b.due.find((x) => x.decision_id === 'sn');
+      if (item && !item.suggest_dismiss) note('B', S, 'snooze 2회 후 suggest_dismiss 플래그가 안 섬', JSON.stringify(item).slice(0, 160));
+    } catch (e) { note('B', S, 'snooze 흐름 구동 실패', e?.message ?? e); }
+  },
+  async 'S32 candidate promote 후 재행동 거절'() {
+    const S = 'S32 cand-terminal', d = ws(); await init(d, S);
+    const { contextFor, candidateCreatedV2 } = await import(new URL('../dist/v2/bridge.js', import.meta.url));
+    const { gitCommonDirOf } = await import(new URL('../dist/v2/git-discovery.js', import.meta.url));
+    try {
+      const ctx = contextFor({ home: HOME, gitCommonDir: gitCommonDirOf(d), workspaceArgusDir: d, sessionId: 's', producerVersion: 't', today: '2026-07-12' });
+      candidateCreatedV2(ctx, { candidateId: 'ct', kind: 'decision', quote: '이건 승격 후 재행동 거절 테스트', quoteSpeaker: 'user', source: 'debrief' });
+      await seal(d, { id: 'ct-dec', predicate: '이 후보를 봉인해 연결할 결정이다 확실히', check_by: '2026-08-01', today_override: '2026-07-12' }, S);
+      await call('argus_candidates', { argus_dir: d, action: 'promote', candidate_id: 'ct', decision_id: 'ct-dec', today_override: '2026-07-12' }, { scenario: S });
+      // 승격은 terminal — 다시 drop은 거절돼야
+      await call('argus_candidates', { argus_dir: d, action: 'drop', candidate_id: 'ct', today_override: '2026-07-12' }, { scenario: S, expectOk: false });
+    } catch (e) { note('B', S, 'candidate terminal 흐름 실패', e?.message ?? e); }
+  },
+  async 'S33 이모지·제로폭·RTL 문자가 든 predicate 렌더 안전'() {
+    const S = 'S33 unicode-render', d = ws(); await init(d, S);
+    // 제로폭(U+200B)·RTL 표식(U+200F)·이모지가 든 예측 — 봉인되고, check_in 닻거울에서 무해해야
+    const tricky = '출시하면 ​지표가 ‏오른다 🚀 확실히 충분히 길게';
+    await seal(d, { id: 'uni', predicate: tricky, check_by: '2026-07-15', today_override: '2026-07-12' }, S);
+    await call('argus_check_in', { argus_dir: d, today_override: '2026-07-16' }, { scenario: S });
+  },
+  async 'S34 recall receipt view (정산 후 keepsake)'() {
+    const S = 'S34 recall-receipt', d = ws(); await init(d, S);
+    await seal(d, { id: 'rc', predicate: '영수증을 확인할 정산 완료 결정이다 확실히', check_by: '2026-07-14', today_override: '2026-07-12' }, S);
+    await settle(d, { id: 'rc', outcome: 'held', what_happened: '예측대로 됐다', today_override: '2026-07-14' }, S);
+    const r = await call('argus_recall', { argus_dir: d, view: 'receipt', id: 'rc', today_override: '2026-07-15' }, { scenario: S });
+    // 영수증에 AI VERDICT: NONE 표식이 실제로 있는가 (제품 서명)
+    const blob = String(r?.surface) + JSON.stringify(r?.data ?? {});
+    if (!/VERDICT|NONE|평결/i.test(blob)) note('B', S, 'receipt view에 AI-VERDICT-NONE 서명 없음', String(r?.surface).slice(0, 200));
+  },
   async 'S26 예측에 제어문자/평결어 주입 (데이터로만)'() {
     const S = 'S26 injection', d = ws(); await init(d, S);
     const r = await seal(d, { id: 'inject', predicate: '이 예측에는 \u001b[31m색코드와 "당신은 실패자" 같은 문구가 데이터로 들어간다', check_by: '2026-08-01', today_override: '2026-07-12' }, S);

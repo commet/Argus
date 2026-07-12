@@ -54,7 +54,7 @@ export function renderLogbook(brief: BriefState, repositoryId: string): string {
       out.push(`| ${line(d.decision_id, 40)} | ${line(d.predicate)} | ${d.check_by} | ${days}${tail} |`);
     }
     out.push('');
-    out.push('→ `argus_settle`로 현실을 기록하세요. 미루려면 `argus_snooze`.');
+    out.push('→ `argus_settle`로 현실을 기록하세요. 아직 결과가 없으면 still_pending으로 미룰 수 있습니다.');
     out.push('');
   } else {
     out.push('## 정산할 것');
