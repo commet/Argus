@@ -1,26 +1,31 @@
 'use client';
 
-/* ═══ CheckpointRail — 실제 선택 단계가 보이고 클릭되는 정거장 상태바 ═══
+/* ═══ CheckpointRail — 3그룹 밴드 + 활성 그룹만 펼치는 정거장 상태바 ═══
  *
- * VoyagePhaseRail(묶기/듣기/닿기 3분할)의 교체품. 창업자 3차 지적의 결론:
- * "은유 3개로 뭉뚱그린 바는 예쁜 것에 불과하다 — 사용자가 실제로 끊어짐을
- * 느끼는(선택하는) 단계들이 상태바에 그대로 보여야 하고, 지나온 단계는
- * 클릭해서 돌아가 볼 수 있어야 한다."
+ * 이력의 두 지적을 화해시킨 형태다. ①VoyagePhaseRail(묶기/듣기/닿기 3은유
+ * 분할)은 "예쁘기만 하고 무의미 — 실단계를 보여라"(창업자 3차)라 실단계를
+ * 전부 편 평면 레일로 바뀌었고, ②그 평면 레일은 다시 "단계가 너무 많아
+ * 무의미 — 묶어라"(창업자 4차)가 됐다. 합의점은 순수 3은유도, 평면 N노드도
+ * 아닌 — 그룹으로 묶되 지금 있는 그룹의 실단계는 다 보이는 중간이다.
  *
- * 그래서 이 레일의 노드는 은유가 아니라 실제 체크포인트다:
- *   상황 → 밧줄 → 질문1..N → 초안 → 검토 → 확인 → 봉인
+ * 그래서 레일은 3개 밴드(묶기/듣기/닿기)로 묶고, "지금 정박한" 밴드만 실단계
+ * 노드를 펼친다:
+ *   - 활성 밴드   = 실단계 노드가 전부 펼쳐지고 배가 현재 노드 위에 있음
+ *   - 지나온 밴드 = 손잡이 하나로 접힘 (클릭 → 그 그룹 산출물로 회항)
+ *   - 미래 밴드   = 흐린 칩으로 접힘 (가짜 어포던스 없음 — 클릭 불가)
  *
- * - 지나온 노드 = 손잡이 (클릭 → 그 산출물로 스크롤 회항. 상태 되감기 아님)
- * - 현재 노드 = 배가 정박해 있는 곳 (금빛, 큰 점)
- * - 미래 노드 = 흐린 점 (가짜 어포던스 없음 — 클릭 불가)
- * - 캡션: "지금: 질문 2 · 다음: 초안" — 어디로 가는 여정인지 한 줄로.
+ * 중요(창업자 5차): 질문1·2·3…은 카운터로 뭉치지 않는다 — 활성 밴드 안에서
+ * 각 질문이 개별 손잡이로 남아 그 답으로 정확히 회항할 수 있어야 한다. 그룹
+ * 접힘은 "너무 많다"를, 개별 질문 노드는 "다 넘어갈 수 있어야 한다"를 각각
+ * 만족시킨다.
  *
- * 묶기/듣기/닿기 은유는 eyebrow의 그룹 표기로만 남는다 (정체성 유지,
- * 뼈대는 실단계). SPINE: 상태 서술만, 판정·점수 없음.
+ * SPINE(CLAUDE.md zero-judgment): 상태 서술만 — 판정·점수·가중 없음. 클릭은
+ * '보기(스크롤 회항)'가 기본이고, 실제 되감기("이 답부터 다시")는 착지 지점의
+ * 답 카드(AnsweredPills)가 제공한다 — 레일은 그 답으로 데려다줄 뿐이다.
  */
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, ChevronRight } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { EASE } from './shared/constants';
 
@@ -31,36 +36,72 @@ export interface RailCheckpoint {
   /** 짧은 실단계 이름 — '질문2', '초안', '봉인' */
   label: string;
   state: CheckpointState;
-  /** 묶기/듣기/닿기 그룹 (eyebrow 표기용) */
+  /** 묶기/듣기/닿기 그룹 (밴드 묶음 + eyebrow 표기) */
   group: '묶기' | '듣기' | '닿기';
   groupEn: 'Bind' | 'Listen' | 'Land';
-  /** hover 설명 — done이면 그때의 내용 미리보기, 미래면 그 단계가 뭘 하는지.
-   *  "이런 단계로 진행되는구나"를 라벨 두 글자 너머로 말해주는 층. */
+  /** hover 설명 — done이면 그때의 내용 미리보기, 미래면 그 단계가 뭘 하는지. */
   title?: string;
 }
 
+type Band = {
+  group: string;
+  groupEn: string;
+  nodes: RailCheckpoint[];
+  bandState: 'done' | 'current' | 'future';
+};
+
 export function CheckpointRail({ checkpoints, onJump }: {
   checkpoints: RailCheckpoint[];
-  /** 지나온 노드 클릭 → 그 산출물로 회항 (보는 것만, 상태 불변) */
+  /** 지나온 노드/밴드 클릭 → 그 산출물로 회항 (스크롤; 상태 불변) */
   onJump?: (key: string) => void;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const reduce = useReducedMotion();
 
-  const n = checkpoints.length;
-  if (n === 0) return null;
-  // 명시적 current가 없는 과도기(질문 소진 직후 등)엔 마지막 done 정거장에 정박.
-  let curIdx = checkpoints.findIndex(c => c.state === 'current');
-  if (curIdx === -1) {
-    for (let i = n - 1; i >= 0; i--) { if (checkpoints[i].state === 'done') { curIdx = i; break; } }
-    if (curIdx === -1) curIdx = 0;
+  if (checkpoints.length === 0) return null;
+
+  // 1) 그룹을 첫 등장 순서로 묶는다 (묶기 → 듣기 → 닿기).
+  const order: string[] = [];
+  const byGroup = new Map<string, RailCheckpoint[]>();
+  for (const c of checkpoints) {
+    if (!byGroup.has(c.group)) { byGroup.set(c.group, []); order.push(c.group); }
+    byGroup.get(c.group)!.push(c);
   }
+
+  // 2) 밴드 모델 — 실단계 노드는 접지 않는다(질문 개별 유지).
+  const bands: Band[] = order.map(g => {
+    const nodes = byGroup.get(g)!;
+    const hasCurrent = nodes.some(c => c.state === 'current');
+    const allDone = nodes.every(c => c.state === 'done' || c.state === 'skipped');
+    const bandState: Band['bandState'] = hasCurrent ? 'current' : allDone ? 'done' : 'future';
+    return { group: g, groupEn: nodes[0].groupEn, nodes, bandState };
+  });
+
+  // 활성 밴드: current를 가진 밴드 → (없으면) 진행(done 노드)이 있는 가장 뒤
+  // 밴드 → 첫 밴드. (부분만 done인 밴드도 미래 칩으로 접히지 않게: 초안만
+  // 끝나고 검토는 아직인 듣기 밴드가 흐린 칩으로 죽지 않도록.)
+  let activeIdx = bands.findIndex(b => b.bandState === 'current');
+  if (activeIdx === -1) {
+    for (let k = bands.length - 1; k >= 0; k--) { if (bands[k].nodes.some(c => c.state === 'done')) { activeIdx = k; break; } }
+  }
+  if (activeIdx === -1) activeIdx = 0;
+  const activeBand = bands[activeIdx];
+  // 배가 정박한 노드 — 현재 노드, 없으면 활성 밴드의 마지막 done 노드.
+  const shipKey =
+    activeBand.nodes.find(c => c.state === 'current')?.key
+    ?? [...activeBand.nodes].reverse().find(c => c.state === 'done')?.key
+    ?? null;
+
+  // 3) eyebrow 진행 표기 — 전체 노드 중 현재 위치.
+  const curIdx = (() => {
+    const i = checkpoints.findIndex(c => c.state === 'current');
+    if (i !== -1) return i;
+    for (let k = checkpoints.length - 1; k >= 0; k--) { if (checkpoints[k].state === 'done') return k; }
+    return 0;
+  })();
   const cur = checkpoints[curIdx];
-  const next = checkpoints[curIdx + 1];
-  // 노드 위치: 양끝 여백 4% 안에서 균등 분배. 배는 현재 노드 위.
-  const posOf = (i: number) => n === 1 ? 50 : 4 + (92 * i) / (n - 1);
-  const shipLeft = `${posOf(curIdx).toFixed(1)}%`;
+  const next = checkpoints[curIdx + 1] ?? null;
 
   return (
     <motion.div
@@ -70,109 +111,162 @@ export function CheckpointRail({ checkpoints, onJump }: {
       className="mb-6 px-1 mt-1"
       role="group"
       aria-label={L(
-        `여정 ${curIdx + 1}/${n} 정거장: ${cur?.label ?? ''}`,
-        `Voyage stop ${curIdx + 1}/${n}: ${cur?.label ?? ''}`,
+        `여정 ${curIdx + 1}/${checkpoints.length} 정거장: ${locale === 'ko' ? activeBand.group : activeBand.groupEn} · ${cur?.label ?? ''}`,
+        `Voyage stop ${curIdx + 1}/${checkpoints.length}: ${activeBand.groupEn} · ${cur?.label ?? ''}`,
       )}
     >
-      {/* Eyebrow — 그룹(은유) · 현재 실단계 · 전체 중 몇 번째 */}
-      <div className="flex items-baseline justify-between mb-2 px-0.5">
-        <span className="text-[11px] font-bold tracking-[0.14em] text-[var(--accent)] tabular-nums uppercase">
-          {locale === 'ko' ? cur?.group : cur?.groupEn}
+      {/* Eyebrow — 그룹 · 현재 실단계 · 전체 중 몇 번째, 그리고 다음 정거장 */}
+      <div className="flex items-baseline justify-between mb-2.5 px-0.5 gap-2">
+        <span className="text-[11px] font-bold tracking-[0.14em] text-[var(--accent)] tabular-nums uppercase truncate">
+          {locale === 'ko' ? activeBand.group : activeBand.groupEn}
           <span className="ml-1.5 text-[var(--text-primary)] normal-case tracking-normal">{cur?.label}</span>
           <span className="ml-1.5 normal-case tracking-normal font-normal text-[var(--text-tertiary)]">
-            · {curIdx + 1}/{n}
+            · {curIdx + 1}/{checkpoints.length}
           </span>
         </span>
-        {/* 다음 정거장 예고 — "이런 단계로 진행되는구나"의 한 줄 */}
         {next && (
-          <span className="text-[11px] text-[var(--text-tertiary)]">
+          <span className="text-[11px] text-[var(--text-tertiary)] shrink-0 whitespace-nowrap">
             {L(`다음: ${next.label}`, `Next: ${next.label}`)}
           </span>
         )}
       </div>
 
-      {/* 바닷길 + 정거장 노드들. 장식 모션은 aria-hidden — eyebrow가 상태를 말한다. */}
-      <div className="relative h-[46px]" aria-hidden>
-        {/* waterline */}
-        <div className="absolute inset-x-0 top-[22px] h-[3px] rounded-full" style={{ background: 'var(--border-subtle)' }} />
-        {/* 지나온 물길 */}
-        <motion.div
-          className="absolute left-0 top-[22px] h-[3px] rounded-full"
-          style={{ background: 'var(--gradient-gold)', width: shipLeft }}
-          initial={false}
-          animate={{ width: shipLeft }}
-          transition={{ duration: reduce ? 0 : 1.2, ease: EASE }}
-        />
-        {/* 배 — 현재 정거장 위에서 잔잔하게 */}
-        <motion.div
-          className="absolute top-[1px]"
-          style={{ translateX: '-50%', left: shipLeft }}
-          initial={false}
-          animate={{ left: shipLeft }}
-          transition={{ duration: reduce ? 0 : 1.2, ease: EASE }}
-        >
-          <motion.div
-            animate={reduce ? undefined : { y: [0, -1.5, 0, -1, 0], rotate: [-2, 1.5, -2] }}
-            transition={reduce ? undefined : {
-              y: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
-              rotate: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
-            }}
-            className="text-[var(--accent)]"
-          >
-            <svg width="18" height="15" viewBox="0 0 20 17" fill="none">
-              <path d="M10 1 L10 10 L3 10 Z" fill="currentColor" opacity="0.9" />
-              <path d="M10.8 3.5 L10.8 10 L16 10 Z" fill="currentColor" opacity="0.5" />
-              <path d="M2 11 L18 11 L15.5 15 L4.5 15 Z" fill="currentColor" />
-            </svg>
-          </motion.div>
-        </motion.div>
-        {/* 정거장들 */}
-        {checkpoints.map((c, i) => {
-          const done = c.state === 'done';
-          const currentNode = c.state === 'current';
-          const skipped = c.state === 'skipped';
-          const clickable = done && !!onJump;
-          const left = `${posOf(i).toFixed(1)}%`;
-          const hoverTitle = c.title
-            || (clickable ? (locale === 'ko' ? `${c.label}(으)로 돌아가 보기` : `Look back at ${c.label}`) : undefined);
-          const Dot = (
-            <span
-              className={`block rounded-full border-2 transition-colors duration-300 ${
-                currentNode ? 'w-[11px] h-[11px]' : 'w-[8px] h-[8px]'
-              } ${skipped ? 'opacity-50' : ''}`}
-              style={{
-                borderColor: done || currentNode ? 'var(--accent)' : 'var(--border-subtle)',
-                background: currentNode ? 'var(--accent)' : 'var(--surface)',
-              }}
-            />
-          );
-          return (
-            <div key={c.key} className="absolute top-[15px] flex flex-col items-center" style={{ left, transform: 'translateX(-50%)', width: 52 }}>
-              {clickable ? (
+      {/* 3밴드 행 — 활성 밴드만 펼쳐지고(flex-1), 지나온/미래는 칩으로 접힘. */}
+      <div className="flex items-stretch gap-1.5">
+        {bands.map((band, bi) => {
+          const isActive = bi === activeIdx;
+          const chevron = bi < bands.length - 1 ? (
+            <ChevronRight size={12} className="self-center shrink-0 text-[var(--text-tertiary)]/50" aria-hidden />
+          ) : null;
+
+          /* ── 활성 밴드: 실단계 노드를 전부 펼치고 배를 현재 노드 위에 ── */
+          if (isActive) {
+            return (
+              <div key={band.group} className="contents">
+                <div className="flex-1 min-w-0 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/[0.04] pt-4 pb-2 px-3">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--accent)] mb-1.5">
+                    {locale === 'ko' ? band.group : band.groupEn}
+                  </div>
+                  {/* 노드가 밴드 너비를 넘으면(질문 여러 개 + 좁은 화면) 페이지를
+                      가로로 밀지 않고 밴드 안에서만 스크롤 — 노드가 잘리지 않게. */}
+                  <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {band.nodes.map((node, ni) => {
+                      const isCur = node.state === 'current';
+                      const showShip = node.key === shipKey;
+                      const done = node.state === 'done';
+                      const skipped = node.state === 'skipped';
+                      const clickable = !!onJump && done; // 지나온 노드만 손잡이
+                      const title = node.title
+                        || (clickable ? L(`${node.label}(으)로 돌아가 보기`, `Look back at ${node.label}`) : undefined);
+                      const dot = (
+                        <span
+                          className={`block rounded-full border-2 ${isCur ? 'w-[11px] h-[11px]' : 'w-[8px] h-[8px]'} ${skipped ? 'opacity-50' : ''}`}
+                          style={{
+                            borderColor: done || isCur ? 'var(--accent)' : 'var(--border-subtle)',
+                            background: done || isCur ? 'var(--accent)' : 'var(--surface)',
+                          }}
+                        />
+                      );
+                      const inner = (
+                        <span className="relative flex flex-col items-center gap-1">
+                          {showShip && (
+                            <motion.span
+                              className="absolute -top-[15px] text-[var(--accent)]"
+                              animate={reduce ? undefined : { y: [0, -1.5, 0], rotate: [-2, 1.5, -2] }}
+                              transition={reduce ? undefined : {
+                                y: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+                                rotate: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+                              }}
+                              aria-hidden
+                            >
+                              <svg width="16" height="13" viewBox="0 0 20 17" fill="none">
+                                <path d="M10 1 L10 10 L3 10 Z" fill="currentColor" opacity="0.9" />
+                                <path d="M10.8 3.5 L10.8 10 L16 10 Z" fill="currentColor" opacity="0.5" />
+                                <path d="M2 11 L18 11 L15.5 15 L4.5 15 Z" fill="currentColor" />
+                              </svg>
+                            </motion.span>
+                          )}
+                          {dot}
+                          <span
+                            className={`text-[10px] leading-none whitespace-nowrap flex items-center gap-0.5 ${
+                              isCur ? 'text-[var(--text-primary)] font-bold'
+                                : done ? 'text-[var(--accent)]/85 font-medium'
+                                : skipped ? 'text-[var(--text-tertiary)] line-through opacity-70'
+                                : 'text-[var(--text-tertiary)]'
+                            }`}
+                          >
+                            {node.label}
+                            {done && !isCur && <Check size={8} strokeWidth={3.5} className="opacity-70" />}
+                          </span>
+                        </span>
+                      );
+                      return (
+                        <div key={node.key} className="flex items-center gap-1 flex-1 min-w-0 justify-center">
+                          {clickable ? (
+                            <button
+                              type="button"
+                              onClick={() => onJump!(node.key)}
+                              title={title}
+                              className="flex flex-col items-center rounded-md px-1 pt-[2px] -mt-[2px] hover:bg-[var(--accent)]/[0.08] transition-colors cursor-pointer"
+                            >
+                              {inner}
+                            </button>
+                          ) : (
+                            <div className="flex flex-col items-center px-1" title={title}>{inner}</div>
+                          )}
+                          {ni < band.nodes.length - 1 && (
+                            <span
+                              className="flex-1 min-w-[8px] h-[2px] rounded-full"
+                              style={{ background: node.state === 'done' ? 'var(--accent)' : 'var(--border-subtle)' }}
+                              aria-hidden
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                {chevron}
+              </div>
+            );
+          }
+
+          /* ── 지나온 밴드: 손잡이 칩 (클릭 → 그 그룹 마지막 산출물로 회항) ── */
+          if (band.bandState === 'done') {
+            const rep = band.nodes[band.nodes.length - 1];
+            return (
+              <div key={band.group} className="contents">
                 <button
                   type="button"
-                  onClick={() => onJump!(c.key)}
-                  title={hoverTitle}
-                  className="flex flex-col items-center gap-1 cursor-pointer group/cp -mt-[2px] pt-[2px] px-1 rounded-md hover:bg-[var(--accent)]/[0.07] transition-colors"
+                  onClick={onJump ? () => onJump(rep.key) : undefined}
+                  disabled={!onJump}
+                  title={L(`${band.group} 단계로 돌아가 보기`, `Look back at ${band.groupEn}`)}
+                  className="flex-none self-center inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--accent)]/90 hover:bg-[var(--accent)]/[0.1] transition-colors cursor-pointer"
                 >
-                  <span className={currentNode ? 'mt-0' : 'mt-[1.5px]'}>{Dot}</span>
-                  <span className="text-[10px] leading-none text-[var(--accent)]/85 group-hover/cp:text-[var(--accent)] font-medium whitespace-nowrap flex items-center gap-0.5">
-                    {c.label}
-                    <Check size={8} strokeWidth={3.5} className="opacity-70" />
-                  </span>
+                  {locale === 'ko' ? band.group : band.groupEn}
+                  <Check size={9} strokeWidth={3.5} className="opacity-80" />
                 </button>
-              ) : (
-                <div className="flex flex-col items-center gap-1 px-1 pt-[2px] -mt-[2px]" title={hoverTitle}>
-                  <span className={currentNode ? 'mt-0' : 'mt-[1.5px]'}>{Dot}</span>
-                  <span className={`text-[10px] leading-none whitespace-nowrap ${
-                    currentNode ? 'text-[var(--text-primary)] font-bold'
-                      : skipped ? 'text-[var(--text-tertiary)] line-through opacity-70'
-                      : 'text-[var(--text-tertiary)]'
-                  }`}>
-                    {c.label}
-                  </span>
-                </div>
-              )}
+                {chevron}
+              </div>
+            );
+          }
+
+          /* ── 미래 밴드: 흐린 칩 (그룹명 + 실단계 미리보기, 클릭 불가) ── */
+          const subLabels = band.nodes.map(c => c.label).join(' · ');
+          return (
+            <div key={band.group} className="contents">
+              <div
+                className="flex-none self-center inline-flex flex-col items-start justify-center rounded-full border border-[var(--border-subtle)] px-2.5 py-1.5"
+                title={band.nodes.map(c => c.title).filter(Boolean).join('\n') || undefined}
+              >
+                <span className="text-[10px] font-semibold text-[var(--text-tertiary)] leading-none">
+                  {locale === 'ko' ? band.group : band.groupEn}
+                </span>
+                <span className="text-[9px] text-[var(--text-tertiary)]/70 leading-none mt-0.5 whitespace-nowrap">
+                  {subLabels}
+                </span>
+              </div>
+              {chevron}
             </div>
           );
         })}

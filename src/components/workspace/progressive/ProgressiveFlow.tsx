@@ -155,15 +155,25 @@ function PhaseAmbient({ phase }: { phase: string }) {
 /** P1-2 과거 답 수정 진입로 (B-7): a pill taps open to the full Q/A; when a
  *  pre-answer checkpoint exists, "이 답부터 다시" forks a NEW branch there —
  *  the current course is preserved (변침도 기록), the question re-presents. */
-function AnsweredPills({ qaPairs, canRevisit, onRevisit }: {
+function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focusNonce }: {
   qaPairs: Array<{ question: FlowQuestion; answer: FlowAnswer | null }>;
   /** Per-ANSWER-index: is there a checkpoint to fork from? */
   canRevisit?: (answerIndex: number) => boolean;
   onRevisit?: (answerIndex: number) => void;
+  /** 정거장 레일의 질문 노드 클릭 → 그 답을 정확히 펼치라는 신호.
+   *  focusNonce가 바뀔 때마다 focusIndex번째 답을 연다(같은 질문 반복 클릭도 재발화). */
+  focusIndex?: number | null;
+  focusNonce?: number;
 }) {
   const locale = useLocale();
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const answered = qaPairs.filter(qa => qa.answer);
+  useEffect(() => {
+    if (focusNonce == null || focusIndex == null) return;
+    setOpenIdx(focusIndex >= 0 && focusIndex < answered.length ? focusIndex : null);
+    // focusNonce가 유일한 트리거 — answered/focusIndex는 그 시점 값으로 충분.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusNonce]);
   if (!answered.length) return null;
   const open = openIdx !== null ? answered[openIdx] : null;
   return (
@@ -1214,6 +1224,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const classicSession = useSettingsStore((s) => s.settings.classic_session ?? false);
   const focusMode = !classicSession;
   const [recordOpen, setRecordOpen] = useState(false);
+  /** 정거장 레일의 질문 노드 클릭 → 그 답을 AnsweredPills에서 정확히 펼치라는 신호. */
+  const [railQFocus, setRailQFocus] = useState<{ index: number; nonce: number } | null>(null);
   /** A retreated block renders when: classic layout, OR the user opened 기록. */
   const showRecord = !focusMode || recordOpen;
   /** W1.6 ③: the crew-report review stepper retreats behind "열어보기" in
@@ -1774,7 +1786,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                     error: r.tracked === false ? t('progressive.replyTrackingUnavailable') : undefined,
                   });
                 } else {
-                  store.updateWorker(hw.id, { status: 'error', error: t('progressive.sendFailed', { reason: r.error || t('progressive.unknownError') }) });
+                  store.updateWorker(hw.id, { status: 'error', error: t('progressive.sendFailed', { reason: t('progressive.unknownError') }) });
                 }
               })
               .catch(() => {
@@ -2713,7 +2725,15 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               onJump={(key) => {
                 // 회항은 보는 것부터: 그 단계의 산출물로 스크롤 (상태 되감기 아님).
                 if (key === 'situation') window.scrollTo({ top: 0, behavior: 'smooth' });
-                else if (key === 'rope' || key.startsWith('q')) { setRecordOpen(true); requestAnimationFrame(() => scrollToRef(analysisCardRef.current ? analysisCardRef : questionRef, 'top')); }
+                // 질문 노드 → 그 질문의 답을 AnsweredPills에서 정확히 펼치고 스크롤.
+                // 거기에 "이 답부터 다시"(실제 분기 회항)가 있어 되감기 손잡이로 이어진다.
+                else if (key.startsWith('q')) {
+                  const qi = parseInt(key.slice(1), 10);
+                  setRecordOpen(true);
+                  if (!Number.isNaN(qi)) setRailQFocus(prev => ({ index: qi, nonce: (prev?.nonce ?? 0) + 1 }));
+                  requestAnimationFrame(() => scrollToRef(answeredPillsRef.current ? answeredPillsRef : (analysisCardRef.current ? analysisCardRef : questionRef), 'top'));
+                }
+                else if (key === 'rope') { setRecordOpen(true); requestAnimationFrame(() => scrollToRef(analysisCardRef.current ? analysisCardRef : questionRef, 'top')); }
                 else if (key === 'draft') scrollToRef(mixPreviewRef.current ? mixPreviewRef : (workerSectionRef.current ? workerSectionRef : questionRef), 'top');
                 else if (key === 'review') scrollToRef(dmFeedbackRef.current ? dmFeedbackRef : mixPreviewRef, 'top');
                 else scrollToRef(finalRef.current ? finalRef : mixPreviewRef, 'top');
@@ -3405,6 +3425,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 qaPairs={qaPairs}
                 canRevisit={(i) => !busy && !store.isBranchingLocked() && !!checkpointBeforeAnswer(i)}
                 onRevisit={onRevisitAnswer}
+                focusIndex={railQFocus?.index ?? null}
+                focusNonce={railQFocus?.nonce}
               />
             </div>
           )}
