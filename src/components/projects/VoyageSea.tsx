@@ -722,7 +722,7 @@ export function VoyageSea({
             ships). "① 지금 할 것 → ② 지도" hierarchy; zero overlap. Horizontal:
             kicker + name + sealed bet on the left, the CTA on the right. ── */}
       {beacon && (
-        <div className="mb-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-xl px-4 py-3" style={{ background: N.card, border: `1px solid ${N.paper}1a`, borderLeft: `3px solid ${N.gold}` }}>
+        <div className="mb-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-xl px-4 py-3" style={{ background: `linear-gradient(105deg, ${N.gold}14 0%, ${N.card} 34%)`, border: `1px solid ${N.gold}30`, boxShadow: `0 1px 2px ${N.paper}0d` }}>
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.gold }}>
               <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />
@@ -779,6 +779,24 @@ export function VoyageSea({
             maskImage: 'linear-gradient(180deg, transparent 8%, black 30%, black 84%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(180deg, transparent 8%, black 30%, black 84%, transparent 100%)',
           }}
+        />
+
+        {/* horizon atmosphere — a soft pale wash pooling at the top so the far
+            water reads as DISTANCE, not just lighter paint. Distant (unresolved,
+            high-Y) ships sit in haze; the harbour foreground stays crisp. This
+            is the single biggest depth cue on a flat chart. */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-[42%] pointer-events-none"
+          style={{ background: `linear-gradient(180deg, ${N.card}70 0%, ${N.card}20 46%, transparent 100%)` }}
+        />
+        {/* a low, wide glint of afternoon light on the open water — off-centre
+            (right of the neglect corner) so it never washes out the top-left
+            "untended" reading. Gives the sea life without busying it. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: `radial-gradient(52% 34% at 66% 26%, ${N.card}52, transparent 72%)` }}
         />
 
         {/* the shoal — hatched shallows in the far corner where wrecks lie */}
@@ -961,11 +979,14 @@ export function VoyageSea({
                     card carries the name. */}
                 {showKeyword && !s.beacon && (
                   <span
-                    className="hidden sm:block mt-0.5 max-w-[104px] text-center text-[9.5px] leading-[1.2] break-keep line-clamp-1 font-semibold rounded px-1 py-px"
+                    className="hidden sm:block mt-1 max-w-[108px] text-center text-[9.5px] leading-[1.2] tracking-[0.01em] break-keep line-clamp-1 font-semibold rounded-full px-1.5 py-px"
                     style={{
-                      color: s.due ? N.gold : attention ? 'color-mix(in srgb, var(--warning) 80%, var(--text-primary))' : `${N.paper}c0`,
+                      color: s.due ? N.gold : attention ? 'color-mix(in srgb, var(--warning) 80%, var(--text-primary))' : `${N.paper}bf`,
                       fontFamily: 'var(--font-display)',
-                      background: `${N.card}b3`,
+                      background: `${N.card}cc`,
+                      boxShadow: s.due
+                        ? `inset 0 0 0 1px ${N.gold}4d`
+                        : `inset 0 0 0 1px ${N.paper}12`,
                     }}
                   >
                     {kw}
