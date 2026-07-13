@@ -288,6 +288,36 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     act(() => openBtn.click());
     expect(onSelect).toHaveBeenCalledWith('b');
   });
+
+  // ── shared-ground leverage: two decisions on the SAME sealed premise are
+  //    linked (a fact, exact-match); a third with a different premise is not.
+  it('leverage links decisions on the same sealed premise, and only those', () => {
+    const withPremise = (id: string, text: string): Partial<Project> => ({
+      decision_contract: {
+        id: `c-${id}`,
+        project_id: id,
+        created_at: '2026-01-01T00:00:00.000Z',
+        check_in_at: '2099-01-01T00:00:00.000Z',
+        predicates: [{ id: `p-${id}`, text, source: 'governing_idea', authored: 'user' }],
+      },
+    });
+    render([
+      sealedProject('a', '2026-01-01T00:00:00.000Z', withPremise('a', '금리가 3.5% 근처에 머문다')),
+      sealedProject('b', '2026-01-02T00:00:00.000Z', withPremise('b', '금리가 3.5% 근처에 머문다')),
+      sealedProject('c', '2026-01-03T00:00:00.000Z', withPremise('c', '전혀 다른 전제')),
+    ]);
+    const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLButtonElement[];
+    const shipA = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-a'))!;
+    act(() => shipA.click());
+    const card = container.querySelector('[role="menu"]')!;
+    expect(card.textContent).toContain('같은 전제 위 2척'); // a + b stand together
+    expect(card.textContent).toContain('voyage-b'); // the sibling is named
+    expect(card.textContent).not.toContain('voyage-c'); // different premise → no invented link
+
+    // A decision whose premise nobody shares shows NO leverage callout (restraint).
+    act(() => (items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-c'))!).click());
+    expect(container.querySelector('[role="menu"]')!.textContent).not.toContain('같은 전제 위');
+  });
 });
 
 /** ── One sea: receipt vessels + undersea currents (judgment graph) ────────

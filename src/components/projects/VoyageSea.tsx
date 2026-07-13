@@ -13,6 +13,7 @@ import {
 } from '@/lib/voyage-state';
 import { contractStatus } from '@/lib/decision-contract';
 import { sharedGrounds, groundSpotlight } from '@/lib/judgment-graph';
+import { normalizePremiseText } from '@/lib/premises-core';
 import type { JudgmentReceipt } from '@/lib/review';
 import type {
   Project,
@@ -658,6 +659,27 @@ export function VoyageSea({
     p.y = Math.max(TOP - 3, Math.min(89, p.y));
   }
 
+  // ── SHARED-GROUND LEVERAGE (판단 그래프, fleet-wide). Group EVERY charted
+  //    vessel — project or receipt — by the normalized text of its sealed
+  //    premise. Two decisions on the same key literally stand on the same
+  //    assumption: if it moves, they move together. Exact-match only (§4-1:
+  //    a broken wire yields NO link, never an invented one). Tapping a ship
+  //    lights its ground-siblings so "하나 흔들리면 같이" is a fact you can see,
+  //    not a verdict. This is the board's own intelligence, not a menu.
+  const siblingsOf = new Map<string, Placed[]>();
+  {
+    const byKey = new Map<string, Placed[]>();
+    for (const p of placed) {
+      const key = p.premise ? normalizePremiseText(p.premise) : '';
+      if (!key) continue;
+      (byKey.get(key) ?? byKey.set(key, []).get(key)!).push(p);
+    }
+    for (const group of byKey.values()) {
+      if (group.length < 2) continue; // no ground shared → no link (restraint)
+      for (const p of group) siblingsOf.set(p.id, group.filter((g) => g.id !== p.id));
+    }
+  }
+
   const counts = {
     adrift: ships.filter((s) => s.state === 'adrift').length,
     wrecked: ships.filter((s) => s.state === 'wrecked').length,
@@ -721,6 +743,18 @@ export function VoyageSea({
       currents.push({ key: g.key, text: g.text, drifted: !!g.drift, segs });
     }
   }
+
+  // The focused ship's ground-siblings (leverage), and the lines to them.
+  const leverageFocus = actionShip && siblingsOf.has(actionShip)
+    ? placed.find((p) => p.id === actionShip) ?? null
+    : null;
+  const leverageSibs = leverageFocus ? siblingsOf.get(leverageFocus.id)! : [];
+  const leverageSet = leverageFocus
+    ? new Set<string>([leverageFocus.id, ...leverageSibs.map((s) => s.id)])
+    : null;
+  const leverageLinks = leverageFocus
+    ? leverageSibs.map((sib) => ({ x1: leverageFocus.x, y1: leverageFocus.y, x2: sib.x, y2: sib.y }))
+    : [];
 
   // Honest caption — plain facts in the calm register, no manufactured urgency.
   const caption = beacon
@@ -1042,6 +1076,26 @@ export function VoyageSea({
           </div>
         )}
 
+        {/* ── shared-ground links: when a ship with premise-siblings is focused,
+              draw a line to each sibling (the leverage made visible). Above the
+              water, below the ships. Only real, exact-match ground — never
+              invented. ── */}
+        {leverageSet && (
+          <svg aria-hidden className="absolute inset-0 z-[1] pointer-events-none w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+            {leverageLinks.map((ln, i) => (
+              <line
+                key={i}
+                x1={ln.x1} y1={ln.y1} x2={ln.x2} y2={ln.y2}
+                stroke={N.gold}
+                strokeWidth={0.35}
+                strokeDasharray="1.4 1.2"
+                strokeOpacity={0.85}
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+          </svg>
+        )}
+
         {/* ── the ships ── */}
         <div role="list" className="absolute inset-0 z-[2]">
           {placed.map((s, i) => {
@@ -1058,7 +1112,11 @@ export function VoyageSea({
             // always one hover away and listed below the map.
             const kw = keyword(s.name);
             const matches = matchOf(s);
-            const dimmed = !!activeFilter && !matches;
+            const hasGround = siblingsOf.has(s.id); // stands on shared premise
+            // Filter dims non-matches; a leverage focus dims everything off the
+            // shared-ground group so the standing-together reads instantly.
+            const dimmed = (!!activeFilter && !matches) || (!!leverageSet && !leverageSet.has(s.id));
+            const isLeverage = !!leverageSet && leverageSet.has(s.id);
             // A filter turns the map into a work slice: matches light up AND
             // reveal their keyword (few remain, so they fit); the rest recede.
             const showKeyword = (activeFilter ? matches : !dense || s.due);
@@ -1098,6 +1156,11 @@ export function VoyageSea({
                     />
                   </>
                 )}
+                {/* leverage highlight — a gold ring on the focused ground-group
+                    so the standing-together reads at a glance. */}
+                {isLeverage && (
+                  <span aria-hidden className="absolute left-1/2 top-[38%] -z-[1] rounded-full" style={{ width: size + 16, height: size + 16, transform: 'translate(-50%,-50%)', boxShadow: `0 0 0 1.5px ${N.gold}, 0 0 12px 2px ${N.gold}55` }} />
+                )}
                 <span className={s.state === 'wrecked' || s.state === 'docked' ? '' : 'vsea-bob'} style={{ animationDelay: `${(i % 5) * 1.1}s` }}>
                   <ShipMark
                     state={s.state}
@@ -1109,6 +1172,11 @@ export function VoyageSea({
                     heading={s.state === 'sailing' ? (([...s.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) - 3) : 0}
                   />
                 </span>
+                {/* passive leverage tell — a faint gold tie-dot marks a decision
+                    that shares its sealed premise with another. Tap to see who. */}
+                {hasGround && !s.beacon && !isLeverage && (
+                  <span aria-hidden className="absolute left-1/2 -translate-x-1/2 rounded-full" style={{ top: '-2px', width: 4, height: 4, background: N.gold, opacity: 0.7, boxShadow: `0 0 0 1.5px ${N.card}` }} />
+                )}
                 {/* persistent KEYWORD chip (short) for sparse fleets + the
                     ships that matter in a dense one. Not for the beacon — its
                     card carries the name. */}
@@ -1186,6 +1254,40 @@ export function VoyageSea({
                 <span className="inline-flex items-end" style={{ width: 15, height: 15 }}><ShipMark state={s.state} due={s.due} size={13} plain /></span>
                 {stateLabel} · {s.sub}
               </p>
+              {/* the sealed bet this decision rests on — its own words. */}
+              {s.premise && (
+                <p className="mt-2 text-[11px] leading-relaxed break-keep" style={{ color: `${N.paper}b0` }}>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.1em]" style={{ color: `${N.paper}70` }}>{L('봉인한 전제', 'sealed premise')}</span><br />
+                  <em style={{ color: `${N.paper}d8` }}>「{s.premise.length > 60 ? `${s.premise.slice(0, 60)}…` : s.premise}」</em>
+                </p>
+              )}
+              {/* LEVERAGE — the decisions standing on the very same premise. A
+                  fact (exact-match ground), not a verdict: if it moves, they move
+                  together. This is the board's intelligence, not a menu. */}
+              {leverageSibs.length > 0 && (
+                <div className="mt-2 rounded-lg px-2.5 py-2" style={{ background: `${N.gold}14` }}>
+                  <p className="text-[10.5px] font-semibold flex items-center gap-1.5" style={{ color: N.gold }}>
+                    <span aria-hidden>⚭</span>
+                    {L(`같은 전제 위 ${leverageSibs.length + 1}척 — 하나 흔들리면 같이`, `${leverageSibs.length + 1} on this same premise — one moves, all move`)}
+                  </p>
+                  <div className="mt-1 flex flex-col gap-0.5">
+                    {leverageSibs.slice(0, 4).map((sib) => (
+                      <button
+                        key={sib.id}
+                        type="button"
+                        onClick={() => setActionShip(sib.id)}
+                        className="text-left text-[11px] leading-snug break-keep line-clamp-1 hover:underline cursor-pointer"
+                        style={{ color: `${N.paper}c0`, fontFamily: 'var(--font-display)' }}
+                      >
+                        · {sib.name}
+                      </button>
+                    ))}
+                    {leverageSibs.length > 4 && (
+                      <span className="text-[10px]" style={{ color: `${N.paper}80` }}>{L(`외 ${leverageSibs.length - 4}척`, `+${leverageSibs.length - 4} more`)}</span>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="mt-2.5 flex gap-1.5">
                 {s.due && s.kind !== 'receipt' && (
                   <button
