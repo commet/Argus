@@ -12,7 +12,6 @@ import {
   type VoyageState,
 } from '@/lib/voyage-state';
 import { contractStatus } from '@/lib/decision-contract';
-import { firstVoyageInscription } from '@/lib/record-summary';
 import { sharedGrounds, groundSpotlight } from '@/lib/judgment-graph';
 import type { JudgmentReceipt } from '@/lib/review';
 import type {
@@ -660,6 +659,8 @@ export function VoyageSea({
     wrecked: ships.filter((s) => s.state === 'wrecked').length,
   };
   const untended = counts.adrift + counts.wrecked;
+  // Zone tallies for the board's diagnostic quadrants (below).
+  const sailingN = ships.filter((s) => s.state === 'sailing' && !s.due).length;
 
   // ── the operable filters (B) — each isolates a real slice of the fleet.
   //    Clicking one dims everything else and reveals the matches' keywords, so
@@ -716,11 +717,6 @@ export function VoyageSea({
       currents.push({ key: g.key, text: g.text, drifted: !!g.drift, segs });
     }
   }
-
-  // Engraved plate inscription — the pure elapsed fact (shared wording brain
-  // with the Logbook via record-summary, so it can never drift) + fleet size.
-  const firstDate = ships[0]?.createdAt ? String(ships[0].createdAt).slice(0, 10) : undefined;
-  const inscription = firstVoyageInscription(firstDate, Date.now(), locale);
 
   // Honest caption — plain facts in the calm register, no manufactured urgency.
   const caption = beacon
@@ -872,19 +868,19 @@ export function VoyageSea({
               Y = resolution (먼바다 위 → 항구 아래), X = activity recency
               (오래 방치 왼쪽 → 최근 오른쪽). A faint graticule + edge captions
               turn the sea into a scatter you can actually read. */}
-        {/* neutral "untended waters" wash — top-left is unresolved + long-idle.
-            A fact of attention, never a mark of failure (거울 조항). Only when
+        {/* ── the HOME LINE — the board's primary divider: above it a decision
+              is still out (미해소), below it it's home (항구·완료). Placed at the
+              resolution boundary between sailing and docked. */}
+        <div aria-hidden className="absolute left-0 right-0 pointer-events-none" style={{ top: '62%', height: 1, background: `linear-gradient(90deg, transparent, ${N.paper}22 8%, ${N.paper}22 92%, transparent)` }} />
+        <span aria-hidden className="absolute right-[2%] text-[7.5px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ top: 'calc(62% + 3px)', color: `${N.paper}44` }}>
+          {L('↑ 아직 밖 · 아래 항구', '↑ still out · home below')}
+        </span>
+        {/* danger-zone tint — the upper-LEFT quadrant (unresolved + slipping).
+            A fact of attention, never a verdict (거울 조항); shown only when
             ships actually sit there. */}
         {untended > 0 && (
-          <>
-            <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(44% 50% at 5% 3%, color-mix(in srgb, var(--warning) 13%, transparent), transparent 64%)' }} />
-            <span className="absolute top-[15%] left-[3%] text-[8px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ color: 'color-mix(in srgb, var(--warning) 78%, var(--text-primary))' }}>
-              {L(`오래 손 놓음 ${untended}`, `${untended} untended`)}
-            </span>
-          </>
+          <div aria-hidden className="absolute pointer-events-none" style={{ left: 0, top: 0, width: '48%', height: '62%', background: 'radial-gradient(85% 92% at 0% 0%, color-mix(in srgb, var(--warning) 11%, transparent), transparent 72%)' }} />
         )}
-        {/* graticule: horizon (resolution mid) */}
-        <div aria-hidden className="absolute left-0 right-0 pointer-events-none" style={{ top: '50%', height: 1, background: `linear-gradient(90deg, transparent, ${N.paper}12 12%, ${N.paper}12 88%, transparent)` }} />
         {/* honest recency thresholds — the real 14d / 30d lines, labeled. Only
             meaningful in the unresolved (upper) band, so they fade before the
             harbour. Real structure on the X axis (critique #4). */}
@@ -895,25 +891,49 @@ export function VoyageSea({
           </div>
         ))}
 
-        {/* axis captions — quiet furniture. The "읽는 법" key carries the real
-            teaching; here we only whisper the four edges so the plate stays calm. */}
-        <span className="absolute top-[5%] left-1/2 -translate-x-1/2 text-[8.5px] font-mono uppercase tracking-[0.24em] pointer-events-none" style={{ color: `${N.paper}4d` }}>
-          {L('먼바다 · 항해 중', 'OPEN SEA')}
-        </span>
-        <span className="absolute bottom-[3%] left-1/2 -translate-x-1/2 text-[8.5px] font-mono uppercase tracking-[0.24em] pointer-events-none" style={{ color: `${N.paper}59` }}>
-          {L('항구 · 도착', 'HARBOR')}
-        </span>
-        <span className="absolute top-1/2 -translate-y-1/2 left-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
+        {/* X-axis captions — the horizontal meaning (the home line + zone tags
+            carry the vertical). Kept quiet; the "읽는 법" key does the teaching. */}
+        <span className="absolute top-[30%] -translate-y-1/2 left-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
           ← {L('오래 방치', 'LONG UNTENDED')}
         </span>
-        <span className="absolute top-1/2 -translate-y-1/2 right-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] text-right pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
+        <span className="absolute top-[30%] -translate-y-1/2 right-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] text-right pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
           {L('최근 활동', 'RECENT')} →
         </span>
-        {/* plate inscription — the elapsed fact (shared brain with the Logbook) */}
-        <span className="absolute top-[4%] right-[3%] text-[9px] font-mono tracking-[0.12em] tabular-nums pointer-events-none hidden md:block" style={{ color: `${N.paper}40` }}>
-          {inscription ? `${inscription} · ` : ''}
-          {L(`${ships.length}척`, `${ships.length} ships`)}
-        </span>
+
+        {/* ── ZONE TAGS — the board's control surface. Each names a diagnostic
+              quadrant of the still-out band, shows its live count, and CLICKS to
+              work that slice (same filter engine as the chips below). This is
+              what makes the map a 판 you operate, not scenery you read. The
+              danger zone (놓치는 중) leads in amber — a fact, not a verdict. ── */}
+        {untended > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter(filter === 'idle' ? null : 'idle')}
+            aria-pressed={filter === 'idle'}
+            className="absolute top-[5.5%] left-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-2 pr-2.5 py-1 cursor-pointer transition-colors hidden sm:inline-flex"
+            style={filter === 'idle'
+              ? { background: N.amber, color: N.card }
+              : { background: `${N.card}e0`, color: N.amber, boxShadow: `inset 0 0 0 1px ${N.amber}59` }}
+          >
+            <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: filter === 'idle' ? N.card : N.amber }} />
+            <span className="text-[10.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('놓치는 중', 'slipping')}</span>
+            <span className="text-[10.5px] font-mono tabular-nums font-bold">{untended}</span>
+          </button>
+        )}
+        {sailingN > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter(filter === 'sailing' ? null : 'sailing')}
+            aria-pressed={filter === 'sailing'}
+            className="absolute top-[5.5%] right-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-2.5 pr-2.5 py-1 cursor-pointer transition-colors hidden sm:inline-flex"
+            style={filter === 'sailing'
+              ? { background: N.paper, color: N.card }
+              : { background: `${N.card}e0`, color: `${N.paper}b0`, boxShadow: `inset 0 0 0 1px ${N.paper}2e` }}
+          >
+            <span className="text-[10.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('진행 중', 'in progress')}</span>
+            <span className="text-[10.5px] font-mono tabular-nums font-bold">{sailingN}</span>
+          </button>
+        )}
 
         {/* ── "읽는 법" — the on-demand key. The whole map encodes position and
               colour as data; without this, a first-timer reads scenery, not a
@@ -1131,7 +1151,7 @@ export function VoyageSea({
           <button
             type="button"
             onClick={() => onSelectReceipt?.(spotlight.members[0].receipt_id)}
-            className="static sm:absolute sm:left-[2.5%] sm:top-[7%] z-[3] mt-3 sm:mt-0 flex items-center gap-2 rounded-full border py-1.5 pl-2.5 pr-3 cursor-pointer transition-[gap] hover:gap-2.5"
+            className="static sm:absolute sm:left-[2.5%] sm:top-[15%] z-[3] mt-3 sm:mt-0 flex items-center gap-2 rounded-full border py-1.5 pl-2.5 pr-3 cursor-pointer transition-[gap] hover:gap-2.5"
             style={{
               background: N.card,
               border: '1px solid color-mix(in srgb, var(--warning) 40%, transparent)',
