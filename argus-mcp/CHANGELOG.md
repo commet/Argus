@@ -6,6 +6,34 @@
 > The `1.3.0` / `1.2.1` entries at the bottom are pre-rename `argus-mcp` history,
 > kept for reference — all of that work shipped inside the new-name 1.0.0.
 
+## 1.3.0 — One purpose-led surface: capture · predict · resolve
+
+The tools are now named for the job you do, not the internal state machine. Six
+tools replace the old sprawl, so you (and the model) never pick among
+lookalike internal parts.
+
+- **Six tools, named for their job.** `argus_capture` (capture a decision's
+  premises and open questions in your own words), `argus_predict` (save a
+  falsifiable prediction and its check-by date), `argus_resolve` (record what
+  reality did, no score), `argus_check_in` (only what needs attention now),
+  `argus_patterns` (read past decisions and how often your predictions held),
+  `argus_settings`. The old public names (`argus_clarify_decision`,
+  `argus_save_prediction`, `argus_record_result`, `argus_history`,
+  `argus_review_document`) are gone from the surface. Your durable ledger is
+  untouched — event names on disk are unchanged, so existing records keep
+  working.
+- **Capture captures; it does not interrogate.** `argus_capture` no longer
+  poses a crux question. It records the one load-bearing assumption a decision
+  rests on as an honest, one-tap draft for you to keep, reword, or skip — it
+  never manufactures a fork or a lean. Restraint is the default.
+- **A broken premise surfaces across every decision it touches.** When you
+  record a result, Argus now names the other open decisions that rest on the
+  same premise or the same external fact, mechanically (exact shared text /
+  URL / date), never inferred. One re-check, not three.
+- **One-tap drafts reach hosts that support them.** The Keep / Reword / Skip
+  card (MCP elicitation) is now feature-probed, so on a host without
+  elicitation the draft is shown inline instead of being silently dropped.
+
 ## 1.2.0 — Durable ledger (v2 groundwork), candidates tool, clearer language
 
 Your decision records now also live in a durable home, and the words got plainer.
