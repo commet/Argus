@@ -430,6 +430,12 @@ KEYSTONE §10의 봉인 그대로: **공개 후 30일 안에 외부인 1명이 �
 
 ## §8. 대기 목록 — 여기 적고, 짓지 않는다
 
+- 판단 기록 시스템 통합 전환 — Project 중심 표면을 WorkItem→DecisionRecord→
+  Return Promise→Settlement 생애주기로 재편하고, `판단하기 · 돌아보기(지금/기록/
+  지도) · 설정` IA로 통합하는 차기 설계. **현재 공정 준공·창업자 채택 전 코드 0줄.**
+  선행 지식 Kernel 연구·K0~K6:
+  `docs/DESIGN-decision-knowledge-kernel-v0-2026-07-14.md`. 제품 projection 및 Phase
+  0~7: `docs/DESIGN-judgment-record-system-2026-07-14.md`.
 - Streamable HTTP + OAuth 원격 전송 (창업자 결정 대기)
 - 에이전트 아키텍처 F1~F4 재설계 트랙 (설계 완료 상태로 대기 — 웹 생성 흐름의
   프레임·내기·콜 이관과 함께 준공 후 1순위 후보)
