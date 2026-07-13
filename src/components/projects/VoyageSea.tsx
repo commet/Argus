@@ -130,6 +130,43 @@ const RESOLUTION: Record<VoyageState, number> = {
   wrecked: 0.15, // far out, long lost
 };
 
+/**
+ * A short KEYWORD for a project — sentence-length names can't label a chart, so
+ * the map shows a 1–2 word hint and the full name comes on hover / in the list
+ * below (창업자 07-13: "이름 그대로 말고 키워드 중심"). Deterministic, no LLM:
+ * drop filler/verb words + trailing Korean particles, keep the first two
+ * content words. Imperfect on abstract sentences — but it's a glance hint with
+ * the full name one hover away, never the source of truth.
+ */
+const KW_STOP = new Set([
+  '위한', '위해', '어떻게', '방법', '방안', '고민', '고민이', '고민이에요', '고민이야',
+  '고민중이야', '고민이돼', '고민이돼.', '할까', '할지', '될까', '맞을까', '좋을까', '하는', '하고',
+  '있어', '있는', '싶은데', '그리고', '너무', '정말', '지금', '현재', '앞으로', '대해서', '대해',
+  '대한', '관한', '통해', '통한', '이런', '저런', '우리', '내가', '나는', '제가', '별로', '것',
+  '등', '및', '전면', '계속', '다시', '해야', '하지', '되는', '살아남기', '생존하고', '성장하는',
+  '성공하는', '만들지', '어떻게해야', 'AI', '시대에',
+]);
+const KW_PARTICLES = ['인데', '라고', '라는', '이라', '한테', '으로', '로', '에서', '에게', '에', '의', '을', '를', '은', '는', '이', '가', '도', '만', '과', '와', '까지', '부터', '처럼', '보다'];
+
+function keyword(name: string): string {
+  const clean = (name || '').replace(/[?.!,"'“”「」·]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  const words = clean.split(' ').filter(Boolean);
+  const picked: string[] = [];
+  for (const w of words) {
+    if (picked.length >= 2) break;
+    let word = w;
+    for (const p of KW_PARTICLES) {
+      if (word.length > p.length + 1 && word.endsWith(p)) { word = word.slice(0, -p.length); break; }
+    }
+    if (KW_STOP.has(w) || KW_STOP.has(word) || word.length < 1) continue;
+    picked.push(word);
+  }
+  let out = picked.join(' ');
+  if (!out) out = words.slice(0, 2).join(' '); // fallback: first two words
+  return out.length > 12 ? `${out.slice(0, 11)}…` : out;
+}
+
 /** Deterministic sub-pixel jitter from an id, so ships sharing a cell don't
  *  stack. Small (±) — never enough to cross an axis band. */
 function hashJitter(id: string): { jx: number; jy: number } {
@@ -689,12 +726,28 @@ export function VoyageSea({
           }}
         />
 
-        {/* the home quay — the harbour band along the bottom */}
-        <div aria-hidden className="absolute inset-x-0 bottom-0 h-[11%]" style={{ background: N.land, borderTop: `1px solid ${N.paper}22` }} />
-        {/* harbour light — a small static beacon marking home (no sweeping beam,
-            창업자 07-13). A short post + a warm gold lamp. */}
-        <div aria-hidden className="absolute" style={{ left: '50%', bottom: '11%', width: 1.5, height: 13, background: `${N.paper}88`, transform: 'translateX(-50%)' }} />
-        <div aria-hidden className="absolute rounded-full" style={{ left: '50%', bottom: 'calc(11% + 12px)', width: 5, height: 5, background: N.goldGlow, transform: 'translateX(-50%)', boxShadow: `0 0 7px 1.5px ${N.goldGlow}88` }} />
+        {/* ── the home quay — a timber wharf, not a flat bar (창업자 07-13).
+              A planked band + a lip highlight + a run of mooring bollards, and
+              a short stone jetty carrying the harbour light. ── */}
+        <div aria-hidden className="absolute inset-x-0 bottom-0 h-[12%]" style={{ background: N.land, borderTop: `1.5px solid ${N.paper}33` }}>
+          {/* deck planking */}
+          <div className="absolute inset-0" style={{ background: `repeating-linear-gradient(90deg, transparent 0 17px, ${N.paper}12 17px 18px)` }} />
+          {/* a second, deeper plank line + waterline lip highlight */}
+          <div className="absolute inset-x-0 top-0 h-px" style={{ background: N.card, opacity: 0.55 }} />
+          <div className="absolute inset-x-0" style={{ top: '46%', height: 1, background: `${N.paper}1c` }} />
+        </div>
+        {/* mooring bollards — short capped posts standing along the quay edge */}
+        <div aria-hidden className="absolute inset-x-0 flex justify-around px-[7%] pointer-events-none" style={{ bottom: 'calc(12% - 3px)' }}>
+          {Array.from({ length: 11 }).map((_, i) => (
+            <span key={i} className="rounded-t-sm" style={{ width: 3, height: 7, background: `${N.paper}${i % 2 ? '9a' : 'b0'}` }} />
+          ))}
+        </div>
+        {/* the jetty — a short stone mole reaching out of the quay, its lamp the
+            calm harbour light (no sweeping beam). Offset from centre so it
+            doesn't sit under the fleet. */}
+        <div aria-hidden className="absolute" style={{ left: '43%', bottom: '12%', width: 7, height: '10%', transform: 'translateX(-50%)', background: `repeating-linear-gradient(180deg, ${N.paper}3a 0 4px, ${N.paper}22 4px 8px)`, borderRadius: '2px 2px 0 0', boxShadow: `inset 0 0 0 1px ${N.paper}2a` }} />
+        <div aria-hidden className="absolute" style={{ left: '43%', bottom: 'calc(22% + 1px)', width: 2, height: 9, background: `${N.paper}88`, transform: 'translateX(-50%)' }} />
+        <div aria-hidden className="absolute rounded-full" style={{ left: '43%', bottom: 'calc(22% + 9px)', width: 5.5, height: 5.5, background: N.goldGlow, transform: 'translateX(-50%)', boxShadow: `0 0 8px 2px ${N.goldGlow}88` }} />
 
         {/* ── the axes, drawn as chart furniture so position reads as data ──
               Y = resolution (먼바다 위 → 항구 아래), X = activity recency
@@ -777,11 +830,15 @@ export function VoyageSea({
             const stateLabel = s.beacon ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
             const attention = s.state === 'adrift' || s.state === 'wrecked';
             const size = s.beacon ? 40 : dense ? (attention ? 17 : 15) : 24;
-            // Inline labels only for a SPARSE fleet's non-beacon ships (they
-            // fit). The beacon never labels inline — the notice card carries
-            // its name (no duplicate, no overlap). A dense fleet's names come
-            // from hover + the due-strip below the map.
-            const showLabel = !dense && !s.beacon;
+            // Persistent labels are KEYWORDS (short), never full sentences.
+            // Sparse fleet → keyword on everyone. Dense fleet → keyword only on
+            // the DUE decisions ("중요 과제 중심"; they scatter, so few collide).
+            // The untended are carried by the amber corner + its "오래 손 놓음 N"
+            // summary (창업자 praised that grouping) with names on hover — so
+            // the neglect corner doesn't re-crowd with labels. Full name is
+            // always one hover away and listed below the map.
+            const kw = keyword(s.name);
+            const showKeyword = !dense || s.due;
             return (
               <button
                 key={s.id}
@@ -821,30 +878,30 @@ export function VoyageSea({
                     heading={s.state === 'sailing' ? (([...s.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) - 3) : 0}
                   />
                 </span>
-                {showLabel ? (
-                  <>
-                    <span
-                      className="hidden sm:block max-w-[96px] text-center text-[10.5px] leading-[1.3] break-keep line-clamp-2 font-medium"
-                      style={{ color: `${N.paper}d0`, fontFamily: 'var(--font-display)' }}
-                    >
-                      {s.name}
-                    </span>
-                    <span
-                      className="hidden sm:block opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap"
-                      style={{ color: `${N.paper}70` }}
-                    >
-                      {stateLabel} · {s.sub}
-                    </span>
-                  </>
-                ) : s.beacon ? null : (
-                  /* dense non-beacon: name + state as a hover/focus tooltip,
-                     raised above neighbours — only ever one shows at a time, so
-                     it can't collide. (The beacon is named by its card.) */
+                {/* persistent KEYWORD chip (short) for sparse fleets + the
+                    ships that matter in a dense one. Not for the beacon — its
+                    card carries the name. */}
+                {showKeyword && !s.beacon && (
                   <span
-                    className="hidden sm:flex flex-col items-center gap-0.5 absolute top-[calc(100%+2px)] left-1/2 -translate-x-1/2 w-max max-w-[190px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none z-40 shadow-[var(--shadow-md)]"
+                    className="hidden sm:block mt-0.5 max-w-[104px] text-center text-[9.5px] leading-[1.2] break-keep line-clamp-1 font-semibold rounded px-1 py-px"
+                    style={{
+                      color: s.due ? N.gold : attention ? 'color-mix(in srgb, var(--warning) 80%, var(--text-primary))' : `${N.paper}c0`,
+                      fontFamily: 'var(--font-display)',
+                      background: `${N.card}b3`,
+                    }}
+                  >
+                    {kw}
+                  </span>
+                )}
+                {/* full name + state on hover/focus — the source of truth,
+                    raised above neighbours (only one shows at a time). Not for
+                    the beacon (card already shows it). */}
+                {!s.beacon && (
+                  <span
+                    className="hidden sm:flex flex-col items-center gap-0.5 absolute top-[calc(100%+3px)] left-1/2 -translate-x-1/2 w-max max-w-[200px] px-2.5 py-1.5 rounded-md opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none z-40 shadow-[var(--shadow-md)]"
                     style={{ background: 'var(--surface)', border: '1px solid var(--border-subtle)' }}
                   >
-                    <span className="text-center text-[10.5px] leading-[1.25] break-keep line-clamp-2 font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+                    <span className="text-center text-[11px] leading-[1.3] break-keep line-clamp-3 font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
                       {s.name}
                     </span>
                     <span className="text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap" style={{ color: s.due ? N.gold : 'var(--text-tertiary)' }}>
