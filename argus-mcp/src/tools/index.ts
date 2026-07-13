@@ -12,7 +12,7 @@ import { premises } from './premises.js';
 import { recheck } from './recheck.js';
 import { watch } from './watch.js';
 import { candidates } from './candidates.js';
-import { decide, history, settings, publicReview, publicSeal, publicCheckIn, publicSettle, publicCopy } from './public-tools.js';
+import { decide, history, settings, publicSeal, publicCheckIn, publicSettle, publicCopy } from './public-tools.js';
 import { toolJsonSchema } from './tool-types.js';
 import { bilingualToolPresentation } from '../lib/tool-presentation.js';
 
@@ -22,7 +22,7 @@ export const TOOLS: ToolModule[] = [openDecision, review, premises, seal, rechec
 /** The small, purpose-led surface returned by tools/list. Legacy tools stay in
  * TOOL_MAP for cached clients and one-version compatibility, but new users and
  * models no longer have to choose among internal state-machine parts. */
-export const PUBLIC_TOOLS: ToolModule[] = [decide, publicReview, publicSeal, publicCheckIn, publicSettle, history, settings];
+export const PUBLIC_TOOLS: ToolModule[] = [decide, publicSeal, publicCheckIn, publicSettle, history, settings];
 
 export const TOOL_MAP: Map<string, ToolModule> = new Map([...TOOLS, ...PUBLIC_TOOLS].map((t) => [t.name, t]));
 

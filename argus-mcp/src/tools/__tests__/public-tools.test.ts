@@ -7,10 +7,10 @@ import { configPath } from '../../lib/layout.js';
 import { toolJsonSchema } from '../tool-types.js';
 
 describe('purpose-led public MCP surface', () => {
-  it('exposes seven user purposes while legacy tools remain callable aliases', () => {
+  it('exposes six user purposes while legacy tools remain callable aliases', () => {
     expect(PUBLIC_TOOLS.map((tool) => tool.name)).toEqual([
-      'argus_clarify_decision', 'argus_review_document', 'argus_save_prediction', 'argus_check_in',
-      'argus_record_result', 'argus_history', 'argus_settings',
+      'argus_capture', 'argus_predict', 'argus_check_in',
+      'argus_resolve', 'argus_patterns', 'argus_settings',
     ]);
     expect(TOOL_MAP.has('argus_premises')).toBe(true);
     expect(TOOL_MAP.has('argus_recheck')).toBe(true);
@@ -38,12 +38,12 @@ describe('purpose-led public MCP surface', () => {
     });
     expect(isError(result)).toBe(false);
     expect(fs.readFileSync(configPath(dir), 'utf8')).toContain('locale: ko');
-    expect(body(result)['tool']).toBe('argus_clarify_decision');
+    expect(body(result)['tool']).toBe('argus_capture');
     expect(String(body(result)['surface'])).toMatch(/[가-힣]/);
 
     const recalled = await history.handler({ argus_dir: dir, view: 'decision_context', id: 'career', today_override: '2026-07-13' });
     expect(isError(recalled)).toBe(false);
-    expect(body(recalled)['tool']).toBe('argus_history');
+    expect(body(recalled)['tool']).toBe('argus_patterns');
     const rows = ((body(recalled)['data'] as Record<string, unknown>)['premises'] as unknown[]);
     expect(rows).toHaveLength(1);
   });
@@ -59,7 +59,7 @@ describe('purpose-led public MCP surface', () => {
 
   it('does not leak hidden tool names through public result copy', async () => {
     const dir = tmpArgusDir();
-    const saved = await TOOL_MAP.get('argus_save_prediction')!.handler({
+    const saved = await TOOL_MAP.get('argus_predict')!.handler({
       argus_dir: dir,
       id: 'launch',
       predicate: '다음 달까지 베타를 공개한다',
@@ -69,7 +69,7 @@ describe('purpose-led public MCP surface', () => {
     });
     const serialized = JSON.stringify(body(saved));
     expect(serialized).not.toMatch(/argus_(seal|settle|recall|premises|recheck|open_decision)/);
-    expect(body(saved)['tool']).toBe('argus_save_prediction');
+    expect(body(saved)['tool']).toBe('argus_predict');
   });
 
   it('gives every public field a Korean explanation', () => {

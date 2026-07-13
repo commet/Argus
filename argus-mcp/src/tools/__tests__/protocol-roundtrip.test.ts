@@ -59,13 +59,13 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name);
     expect(names).toEqual([
-      'argus_clarify_decision', 'argus_review_document', 'argus_save_prediction', 'argus_check_in',
-      'argus_record_result', 'argus_history', 'argus_settings',
+      'argus_capture', 'argus_predict', 'argus_check_in',
+      'argus_resolve', 'argus_patterns', 'argus_settings',
     ]);
     expect(names).not.toContain('argus_premises');
     expect(names).not.toContain('argus_recheck');
     expect(names).not.toContain('argus_watch');
-    const decide = tools.find((t) => t.name === 'argus_clarify_decision')!;
+    const decide = tools.find((t) => t.name === 'argus_capture')!;
     expect(String(decide.title)).toMatch(/[가-힣]/);
     const schema = JSON.stringify(decide.inputSchema);
     expect(schema).toContain('answer_question');
@@ -206,7 +206,7 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     const ci = structured(await client.callTool({ name: 'argus_check_in', arguments: { argus_dir: dir, today_override: '2026-07-26' } }));
     expect((ci['data'] as Record<string, unknown>)['due_open_question_count']).toBe(1);
     expect(String(ci['surface'])).toContain('지분 미정 상태');
-    expect(String(ci['surface'])).toContain('argus_clarify_decision');
+    expect(String(ci['surface'])).toContain('argus_capture');
 
     // still_open defers: silent the next day, re-emerges after the cadence.
     const so = structured(await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'm3', op: 'still_open', ref: 'P1', today_override: '2026-07-26' } }));

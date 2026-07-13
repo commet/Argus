@@ -177,15 +177,18 @@ const settingsPublicSchema = z.strictObject({
 });
 
 const PUBLIC_NAME_MAP: Record<string, string> = {
-  argus_open_decision: 'argus_clarify_decision',
-  argus_premises: 'argus_clarify_decision',
-  argus_recheck: 'argus_clarify_decision',
-  argus_amend: 'argus_clarify_decision',
-  argus_dismiss: 'argus_clarify_decision',
-  argus_review: 'argus_review_document',
-  argus_seal: 'argus_save_prediction',
-  argus_settle: 'argus_record_result',
-  argus_recall: 'argus_history',
+  argus_open_decision: 'argus_capture',
+  argus_premises: 'argus_capture',
+  argus_recheck: 'argus_capture',
+  argus_amend: 'argus_capture',
+  argus_dismiss: 'argus_capture',
+  argus_clarify_decision: 'argus_capture',
+  argus_seal: 'argus_predict',
+  argus_save_prediction: 'argus_predict',
+  argus_settle: 'argus_resolve',
+  argus_record_result: 'argus_resolve',
+  argus_recall: 'argus_patterns',
+  argus_history: 'argus_patterns',
   argus_init: 'argus_settings',
   argus_config: 'argus_settings',
   argus_sync: 'argus_settings',
@@ -255,15 +258,15 @@ async function runPublic(
 }
 
 export const decide: ToolModule = {
-  name: 'argus_clarify_decision',
-  description: 'Clarify and maintain one decision without deciding for the user. Use action=open for a new decision; add_context, answer_question, keep_question_open, update_fact, change_prediction, or close for a decision already on record.',
+  name: 'argus_capture',
+  description: 'Capture the reasoning behind a decision in the user\'s own words — the premises it rests on and the questions still open — without deciding for the user. Use action=open for a new decision; add_context, answer_question, keep_question_open, update_fact, change_prediction, or close for a decision already on record.',
   inputSchema: decidePublicSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: '결정 다루기 · Work with a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   handler: async (a) => {
     const action = String(a['action']);
     if (action === 'open') {
-      const result = await runPublic('argus_clarify_decision', a, openDecision.handler);
+      const result = await runPublic('argus_capture', a, openDecision.handler);
       if (result.isError || !Array.isArray(a['premises'])) return result;
       const sc = result.structuredContent;
       if (sc?.['over_fire_gate'] && (sc['over_fire_gate'] as Record<string, unknown>)['fired'] !== true) return result;
@@ -274,11 +277,11 @@ export const decide: ToolModule = {
         premises: a['premises'],
         today_override: a['today_override'],
       });
-      if (premiseResult.isError) return rewriteResult(premiseResult, 'argus_clarify_decision');
+      if (premiseResult.isError) return rewriteResult(premiseResult, 'argus_capture');
       const premiseData = premiseResult.structuredContent?.['data'];
       const merged = {
         ...sc,
-        tool: 'argus_clarify_decision',
+        tool: 'argus_capture',
         surface: `${String(sc?.['surface'] ?? '')} ${String(premiseResult.structuredContent?.['surface'] ?? '')}`.trim(),
         data: { ...((sc?.['data'] as Record<string, unknown>) ?? {}), premises: premiseData },
       };
@@ -286,19 +289,19 @@ export const decide: ToolModule = {
       result.content = [{ type: 'text', text: JSON.stringify(merged, null, 2) }];
       return result;
     }
-    if (action === 'add_context') return runPublic('argus_clarify_decision', { ...a, op: 'add' }, premises.handler);
-    if (action === 'answer_question') return runPublic('argus_clarify_decision', { ...a, op: 'resolve' }, premises.handler);
+    if (action === 'add_context') return runPublic('argus_capture', { ...a, op: 'add' }, premises.handler);
+    if (action === 'answer_question') return runPublic('argus_capture', { ...a, op: 'resolve' }, premises.handler);
     if (action === 'keep_question_open') {
-      return runPublic('argus_clarify_decision', { ...a, op: 'still_open', reponder_cadence_days: a['reconsider_cadence_days'] }, premises.handler);
+      return runPublic('argus_capture', { ...a, op: 'still_open', reponder_cadence_days: a['reconsider_cadence_days'] }, premises.handler);
     }
-    if (action === 'update_fact') return runPublic('argus_clarify_decision', a, recheck.handler);
-    if (action === 'change_prediction') return runPublic('argus_clarify_decision', a, amend.handler);
-    return runPublic('argus_clarify_decision', a, dismiss.handler);
+    if (action === 'update_fact') return runPublic('argus_capture', a, recheck.handler);
+    if (action === 'change_prediction') return runPublic('argus_capture', a, amend.handler);
+    return runPublic('argus_capture', a, dismiss.handler);
   },
 };
 
 export const history: ToolModule = {
-  name: 'argus_history',
+  name: 'argus_patterns',
   description: 'Read decisions already on record: what is open, all contracts, one Judgment Receipt, one decision’s premises, or the accumulated timeline. Read-only.',
   inputSchema: historySchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
@@ -310,7 +313,7 @@ export const history: ToolModule = {
       decision_context: 'premises',
       timeline: 'track_record',
     };
-    return runPublic('argus_history', { ...a, view: viewMap[String(a['view'])] ?? a['view'] }, recall.handler);
+    return runPublic('argus_patterns', { ...a, view: viewMap[String(a['view'])] ?? a['view'] }, recall.handler);
   },
 };
 
@@ -348,7 +351,6 @@ function publicWrapper(tool: ToolModule, name: string, description: string): Too
   };
 }
 
-export const publicReview = publicWrapper(review, 'argus_review_document', 'Review a document for claims, evidence, hidden assumptions, and places that still require human judgment. It does not give a verdict.');
-export const publicSeal = publicWrapper(seal, 'argus_save_prediction', 'Save a falsifiable prediction and the date when reality can answer it. Use the user\'s own wording whenever possible.');
+export const publicSeal = publicWrapper(seal, 'argus_predict', 'Make a falsifiable prediction and the date when reality can answer it. Use the user\'s own wording whenever possible.');
 export const publicCheckIn = publicWrapper(checkIn, 'argus_check_in', 'Show only decisions, facts, and open questions that need attention now. Read-only.');
-export const publicSettle = publicWrapper(settle, 'argus_record_result', 'Record what actually happened after a saved prediction reaches its check date. Reality supplies the result; Argus does not grade it.');
+export const publicSettle = publicWrapper(settle, 'argus_resolve', 'Record what actually happened after a prediction reaches its check date. Reality supplies the result; Argus does not grade it.');
