@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useWorkspaceStore, type StepId } from '@/stores/useWorkspaceStore';
 import { useProjectStore } from '@/stores/useProjectStore';
@@ -136,6 +136,39 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
   const switchBranch = useProgressiveStore(s => s.switchBranch);
   const branchingLocked = useProgressiveStore(s => s.isBranchingLocked());
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+  const branchTriggerRef = useRef<HTMLButtonElement>(null);
+  const branchOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  useEffect(() => {
+    if (!branchMenuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        setBranchMenuOpen(false);
+        branchTriggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    const activeIndex = Math.max(0, sessionBranches.findIndex((branch) => branch.id === activeBranchId));
+    const raf = requestAnimationFrame(() => branchOptionRefs.current[activeIndex]?.focus());
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      cancelAnimationFrame(raf);
+    };
+  }, [activeBranchId, branchMenuOpen, sessionBranches]);
+
+  const handleBranchListKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const enabled = branchOptionRefs.current.filter((button): button is HTMLButtonElement => !!button && !button.disabled);
+    if (enabled.length === 0) return;
+    const current = Math.max(0, enabled.indexOf(document.activeElement as HTMLButtonElement));
+    const next = event.key === 'Home' ? 0
+      : event.key === 'End' ? enabled.length - 1
+      : event.key === 'ArrowDown' ? (current + 1) % enabled.length
+      : (current - 1 + enabled.length) % enabled.length;
+    enabled[next]?.focus();
+  };
 
   return (
     <div className="relative min-h-[calc(100vh-64px)] overflow-hidden">
@@ -170,9 +203,12 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
               <span className="relative min-w-0 pl-2 ml-0.5 border-l border-[var(--border-subtle)]">
                 {/* '현재 방위'(결과 카드)와의 동음이의 해소 — 이 칩은 세션 갈래 전환기다 (06 S1) */}
                 <button
+                  ref={branchTriggerRef}
+                  type="button"
                   onClick={() => setBranchMenuOpen((o) => !o)}
                   aria-expanded={branchMenuOpen}
                   aria-haspopup="listbox"
+                  aria-controls="workspace-branch-listbox"
                   title={L(`지금 가는 갈래 · 총 ${branchInfo.count}개 — 눌러서 갈아타기`, `Current branch · ${branchInfo.count} total — tap to switch`)}
                   className="flex items-center gap-1 text-[12px] text-[var(--text-secondary)] min-w-0 hover:text-[var(--text-primary)] cursor-pointer min-h-[44px]"
                 >
@@ -183,13 +219,15 @@ function ProgressiveLayout({ projectId, projectName, onReset }: { projectId: str
                 {branchMenuOpen && (
                   <>
                     {/* click-away backdrop */}
-                    <div className="fixed inset-0 z-40" onClick={() => setBranchMenuOpen(false)} />
-                    <div role="listbox" className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] p-1.5 space-y-0.5">
-                      {sessionBranches.map((b) => {
+                    <div className="fixed inset-0 z-40" onClick={() => setBranchMenuOpen(false)} aria-hidden="true" />
+                    <div id="workspace-branch-listbox" role="listbox" aria-label={L('항로 선택', 'Choose a branch')} onKeyDown={handleBranchListKeyDown} className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] p-1.5 space-y-0.5">
+                      {sessionBranches.map((b, index) => {
                         const isActive = b.id === activeBranchId;
                         const disabled = branchingLocked && !isActive;
                         return (
                           <button
+                            ref={(node) => { branchOptionRefs.current[index] = node; }}
+                            type="button"
                             key={b.id}
                             role="option"
                             aria-selected={isActive}
@@ -668,10 +706,10 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   immediately actionable. Marketing copy lives below or
                   is reserved for first-time users (no projects yet). */}
               <div className="mb-3">
-                <label className="block text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">
+                <label htmlFor="workspace-decision-input" className="block text-[15px] md:text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">
                   {L('어떤 상황인가요?', "What's the situation?")}
                 </label>
-                <p className="text-[13px] text-[var(--text-secondary)] mb-3 leading-relaxed">
+                <p id="workspace-decision-help" className="text-[13px] text-[var(--text-secondary)] mb-3 leading-relaxed">
                   {L('분야·형식 상관없어요. 떠오르는 대로 편하게 적어주세요 — 나머지는 팀이 정리해요.', 'Any field or format — just describe it however it comes to mind. The team handles the rest.')}
                 </p>
                 {projects.length === 0 && (
@@ -697,11 +735,11 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                   <div className="p-4 md:p-5">
                     {/* text-base (16px) on mobile prevents iOS Safari auto-zoom on focus.
                         text-[15px] on md+ keeps the desktop refined size. */}
-                    <textarea ref={inputRef} value={problemInput}
+                    <textarea ref={inputRef} id="workspace-decision-input" value={problemInput}
                       onChange={(e) => { setProblemInput(e.target.value); if (justFromDemo) setJustFromDemo(false); }}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
                       placeholder={L('예: 다음 주까지 보고서를 써야 하는데 어디서 시작해야 할지 모르겠어', "e.g., I need to write a report by next week but don't know where to start")}
-                      aria-label={L('상황이나 결정을 적어주세요', 'Describe your situation or decision')}
+                      aria-describedby="workspace-decision-help"
                       name="decision-problem"
                       rows={3} maxLength={5000}
                       className="w-full px-3 py-2.5 bg-transparent text-base md:text-[16px] text-[var(--text-primary)] leading-[1.65] resize-none focus:outline-none placeholder:text-[var(--text-tertiary)]" />

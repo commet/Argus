@@ -3,7 +3,7 @@
  *
  * doctor의 계약: 읽기 전용(아무것도 만들거나 고치지 않음), 어떤 파손에도
  * exit 0으로 사실 보고, 절대 경로 평문(규칙 18), predicate 본문 미출력
- * (규칙 19), 수리 손잡이는 담당 두뇌(argus_settings/check_in)로만 안내.
+ * (규칙 19), 수리 손잡이는 공개 목적형 도구로만 안내.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
@@ -64,6 +64,7 @@ describe('argus-driver doctor (P2-6)', () => {
     const out = run();
     expect(out).toContain('바인딩 없음');
     expect(out).toContain('argus_settings');
+    expect(out).not.toContain('argus_init');
     expect(out).toContain(repoDir); // 절대 경로 평문 (규칙 18)
   });
 
@@ -108,7 +109,7 @@ describe('argus-driver doctor (P2-6)', () => {
     expect(out).toContain('자동 탈취');
   });
 
-  it('[8] 수확 큐 — opt-in OFF면 흔적 0이 정상으로, exhausted는 ⚠로 보고된다', () => {
+  it('[8] 자동 포착 큐 — opt-in OFF면 흔적 0이 정상으로, exhausted는 ⚠로 보고된다', () => {
     bind();
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-doc-data-'));
     try {
@@ -131,7 +132,7 @@ describe('argus-driver doctor (P2-6)', () => {
       expect(out).toContain('opt-in ON');
       expect(out).toContain('큐 1건 대기');
       expect(out).toContain('1건은 3회 실패로 자동 재시도 제외');
-      expect(out).toContain('마지막 수확 실행일: 2026-07-10');
+      expect(out).toContain('마지막 자동 포착 실행일: 2026-07-10');
     } finally {
       fs.rmSync(dataDir, { recursive: true, force: true });
     }

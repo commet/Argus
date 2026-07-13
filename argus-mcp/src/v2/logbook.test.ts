@@ -62,11 +62,11 @@ describe('renderLogbook — 순수 렌더 (골든 단면)', () => {
       sealed_alive: 3, anomalies: 1, dropped_corrupt: 2, skipped_unknown: 4,
     }), REPO_ID);
     expect(md).toContain('# ARGUS LOGBOOK');
-    expect(md).toContain('정산할 것 (1)');
-    expect(md).toContain('| q3-cutover | downtime < 5 min | 2026-07-01 | +10일 (2회 미룸, dismiss 후보) |');
-    expect(md).toContain('살아있는 봉인: 3건');
-    expect(md).toContain('봉인 대기 수확 (1)');
-    expect(md).toContain('캐시 레이어는 redis로 · 2026-07-09 수확 (봉인하려면 `argus_seal`)');
+    expect(md).toContain('결과를 확인할 예측 (1)');
+    expect(md).toContain('| q3-cutover | downtime < 5 min | 2026-07-01 | +10일 (2회 미룸, 계속 볼지 확인 가능) |');
+    expect(md).toContain('진행 중인 예측: 3건');
+    expect(md).toContain('예측으로 남길지 확인할 판단 (1)');
+    expect(md).toContain('캐시 레이어는 redis로 · 2026-07-09 포착 (남기려면 `argus_predict`)');
     expect(md).toContain('TTL은 UTC 기준 · 2026-07-08부터');
     expect(md).toContain('캐시를 언제 켤 것인가');
     expect(md).toContain('전이 이상 1건');
@@ -128,7 +128,7 @@ describe('관문 배선 — 툴 호출만으로 LOGBOOK이 산다', () => {
       predicate_owner: 'user', today_override: '2026-07-10',
     });
     const afterSeal = fs.readFileSync(logbookPath(argusDir), 'utf8');
-    expect(afterSeal).toContain('살아있는 봉인: 1건'); // 확인일 전 — due 아님, 살아있음
+    expect(afterSeal).toContain('진행 중인 예측: 1건'); // 확인일 전 — due 아님, 살아있음
 
     await call(settle, {
       argus_dir: argusDir, id: 'lb-2', outcome: 'held', what_happened: '됐다', today_override: '2026-07-11',

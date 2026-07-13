@@ -10,7 +10,6 @@
  * "AI는 이렇게 가정했다 → 이 가정이 틀리면 → 당신이 판단해야 했던 것"
  */
 
-import { useState } from 'react';
 import type { JudgmentReceipt as JudgmentReceiptType } from '@/stores/types';
 
 export function deriveReceiptFields(predicates: { source: string; text: string; authored?: string }[], projectName: string) {
@@ -99,6 +98,7 @@ export function JudgmentReceipt(props: Props) {
           </p>
           <input
             type="text"
+            aria-label={L('지금의 판단', 'Your judgment now')}
             value={humanJudgment}
             onChange={(e) => onJudgmentChange(e.target.value)}
             placeholder={L(
@@ -163,15 +163,21 @@ export function JudgmentReceipt(props: Props) {
         <div className="flex gap-2">
           <input
             type="text"
+            aria-label={L('실제로 일어난 일', 'What actually happened')}
             value={visibleWhatHappened}
             onChange={(e) => onWhatHappenedChange(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && visibleWhatHappened.trim() && onSave) onSave(visibleWhatHappened.trim()); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing && visibleWhatHappened.trim() && onSave) {
+                onSave(visibleWhatHappened.trim());
+              }
+            }}
             placeholder={L('한 줄로 적어주세요', 'One line summary')}
             maxLength={280}
             className="flex-1 text-[13px] px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
           />
           {onSave && visibleWhatHappened.trim() && visibleWhatHappened.trim() !== (receipt.what_happened || '').trim() && (
             <button
+              type="button"
               onClick={() => onSave(visibleWhatHappened.trim())}
               className="px-3 py-2 rounded-lg text-[12px] font-medium border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors shrink-0"
             >

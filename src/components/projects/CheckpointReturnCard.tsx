@@ -96,6 +96,7 @@ export function CheckpointReturnCard({
           const selected = t.value === 'unclear' ? showReasons || selectedTap === 'unclear' : selectedTap === t.value;
           return (
             <button
+              type="button"
               key={t.value}
               onClick={() => handleTap(t.value)}
               aria-pressed={selected}
@@ -129,6 +130,7 @@ export function CheckpointReturnCard({
                   const on = ambiguityReason === r.value;
                   return (
                     <button
+                      type="button"
                       key={r.value}
                       onClick={() => onUnclear(r.value)}
                       aria-pressed={on}

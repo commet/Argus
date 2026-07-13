@@ -76,7 +76,7 @@ export function resolveReviewFile(filePath: string, argusDir?: string): string {
   if (!ALLOWED_EXT.has(ext)) {
     throw new ReviewPathError(
       'UNSUPPORTED_FILE_TYPE',
-      `argus_review reads documents (${[...ALLOWED_EXT].join(', ')}), not ".${ext}" files.`,
+      `Document review accepts ${[...ALLOWED_EXT].join(', ')}, not ".${ext}" files.`,
       'Paste the content into `text` instead. Argus refuses non-document paths so a document can never talk it into reading a key or a credentials file.',
     );
   }
@@ -105,7 +105,7 @@ export function resolveReviewFile(filePath: string, argusDir?: string): string {
     throw new ReviewPathError(
       'PATH_NOT_ALLOWED',
       'That file is outside every project Argus is allowed to read.',
-      'Review a document inside this project, run argus_init in the project that holds it, or set ARGUS_REVIEW_ROOTS. You can always paste the text into `text`.',
+      'Review a document inside this project, run argus_settings with action="status" there to repair its binding, or set ARGUS_REVIEW_ROOTS. You can always paste the text into `text`.',
     );
   }
 

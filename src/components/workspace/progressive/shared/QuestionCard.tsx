@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { EASE } from './constants';
@@ -38,16 +38,22 @@ export function QuestionCard({
   onDraftChange,
 }: QuestionCardProps) {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const questionId = useId();
+  const inputId = `${questionId}-answer`;
   const [input, setInput] = useState(initialValue ?? '');
   const [submitted, setSubmitted] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+  }, []);
   const updateInput = (v: string) => { setInput(v); onDraftChange?.(v); };
 
   const go = (v: string) => {
     if (disabled || submitted) return;
     setSelected(v);
     setSubmitted(true);
-    setTimeout(() => onAnswer(v), 300);
+    submitTimerRef.current = setTimeout(() => onAnswer(v), 300);
   };
   const goText = () => {
     if (!input.trim() || disabled || submitted) return;
@@ -61,7 +67,8 @@ export function QuestionCard({
   const useGrid = options.length > 0 && options.every(o => o.length < 20);
 
   return (
-    <motion.div
+    <motion.section
+      aria-labelledby={questionId}
       initial={{ opacity: 0, y: 12, scale: 0.99 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.5, ease: EASE }}
@@ -78,7 +85,7 @@ export function QuestionCard({
           {meta && (
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]/70 mb-1">{meta}</p>
           )}
-          <p className="text-[17px] md:text-[19px] font-semibold text-[var(--text-primary)] leading-[1.4] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+          <p id={questionId} className="text-[17px] md:text-[19px] font-semibold text-[var(--text-primary)] leading-[1.4] tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
             {question.text}
           </p>
           {question.subtext && (
@@ -89,15 +96,16 @@ export function QuestionCard({
 
       {/* Options */}
       {options.length > 0 ? (
-        <div className="pl-8.5">
-          <div className={useGrid ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'space-y-1.5'}>
+        <div className="sm:pl-8.5">
+          <div role="group" aria-labelledby={questionId} className={useGrid ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'space-y-1.5'}>
             {options.map((opt, i) => (
               <motion.button
                 key={i}
+                type="button"
                 onClick={() => go(opt)}
                 disabled={disabled || submitted}
                 whileTap={{ scale: 0.97 }}
-                className={`w-full text-left px-4 py-3 min-h-[44px] md:min-h-0 rounded-xl text-[13px] leading-snug border cursor-pointer ${
+                className={`w-full text-left px-3.5 py-3 min-h-[48px] rounded-xl text-[13px] leading-snug border cursor-pointer flex items-center gap-3 ${
                   selected === opt
                     ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)] font-semibold shadow-sm'
                     : submitted
@@ -109,50 +117,75 @@ export function QuestionCard({
                   transitionDuration: '350ms',
                   transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)',
                 }}>
-                {opt}
+                <span
+                  aria-hidden="true"
+                  className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border text-[10px] font-bold tabular-nums ${
+                    selected === opt
+                      ? 'border-[var(--accent)]/40 bg-[var(--surface)] text-[var(--accent)]'
+                      : 'border-[var(--border-subtle)] bg-[var(--bg)] text-[var(--text-tertiary)]'
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <span className="min-w-0">{opt}</span>
               </motion.button>
             ))}
           </div>
 
           {/* Free text input below options — workspace only */}
           {allowFreeText && (
-            <div className="flex gap-2 mt-2">
+            <div className="mt-3">
+              <div className="mb-2 flex items-center gap-2" aria-hidden="true">
+                <span className="h-px flex-1 bg-[var(--border-subtle)]" />
+                <span className="text-[10px] font-medium text-[var(--text-tertiary)]">{L('또는 직접 입력', 'Or type your own')}</span>
+                <span className="h-px flex-1 bg-[var(--border-subtle)]" />
+              </div>
+              <div className="flex gap-2">
+              <label htmlFor={inputId} className="sr-only">{L('직접 답변 입력', 'Type your own answer')}</label>
               <input
+                id={inputId}
+                name="question-answer"
                 value={input}
                 onChange={e => updateInput(e.target.value)}
                 placeholder={L('또는 직접 입력...', 'Or type your own...')}
                 disabled={disabled || submitted}
                 maxLength={1000}
-                className="flex-1 px-3.5 py-2.5 md:py-2 min-h-[44px] md:min-h-0 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-base md:text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30 disabled:opacity-30"
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); goText(); } }}
+                className="flex-1 px-3.5 py-2.5 min-h-[44px] rounded-xl bg-[var(--bg)]/55 border border-[var(--border-subtle)] text-base md:text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/30 focus:bg-[var(--surface)] disabled:opacity-30 transition-colors"
+                onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); goText(); } }}
               />
               {input.trim() && (
                 <motion.button
+                  type="button"
                   onClick={goText}
                   disabled={disabled || submitted}
                   whileTap={{ scale: 0.95 }}
-                  className="shrink-0 px-4 py-2.5 md:py-2 min-h-[44px] md:min-h-0 text-white rounded-xl text-[12px] font-semibold cursor-pointer disabled:opacity-30"
+                  className="shrink-0 px-4 py-2.5 min-h-[44px] text-white rounded-xl text-[12px] font-semibold cursor-pointer disabled:opacity-30"
                   style={{ background: 'var(--gradient-gold)' }}>
                   {L('확인', 'OK')}
                 </motion.button>
               )}
+              </div>
             </div>
           )}
         </div>
       ) : (
         /* No options — free text only */
-        <div className="flex gap-2 pl-8.5">
+        <div className="flex gap-2 sm:pl-8.5">
+          <label htmlFor={inputId} className="sr-only">{L('답변 입력', 'Type your answer')}</label>
           <input
+            id={inputId}
+            name="question-answer"
             value={input}
             onChange={e => updateInput(e.target.value)}
             placeholder={L('입력...', 'Type here...')}
             autoFocus
             disabled={disabled || submitted}
             maxLength={1000}
-            className="flex-1 px-3.5 py-2.5 min-h-[44px] md:min-h-0 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-base md:text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent)]/30 disabled:opacity-30"
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); goText(); } }}
+            className="flex-1 px-3.5 py-2.5 min-h-[44px] md:min-h-0 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] text-base md:text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)]/30 disabled:opacity-30"
+            onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); goText(); } }}
           />
           <motion.button
+            type="button"
             onClick={goText}
             disabled={disabled || !input.trim() || submitted}
             whileTap={{ scale: 0.95 }}
@@ -176,6 +209,7 @@ export function QuestionCard({
               every option disabled and the escape chip gone. The card unmounts
               on a real transition anyway; `disabled` covers the busy window. */}
           <button
+            type="button"
             onClick={() => { if (!disabled) onSkip(); }}
             disabled={disabled}
             className="inline-flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 min-h-[44px] md:min-h-0 rounded-lg border border-[var(--border)] text-[12px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] cursor-pointer transition-colors disabled:opacity-40">
@@ -183,6 +217,6 @@ export function QuestionCard({
           </button>
         </div>
       )}
-    </motion.div>
+    </motion.section>
   );
 }

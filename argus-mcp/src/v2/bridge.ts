@@ -90,8 +90,8 @@ export class InitRequiredError extends Error {
   readonly code = 'INIT_REQUIRED';
   constructor(gitCommonDir: string) {
     super(
-      `INIT_REQUIRED: ${gitCommonDir} is not bound to a repository_id yet — run argus_init once in this ` +
-      `repository to create the durable ledger home (~/.argus/projects/…). Nothing was written.`,
+      `INIT_REQUIRED: ${gitCommonDir} is not bound to a repository_id yet — run argus_settings with ` +
+      `action="status" once to repair the project binding. Nothing was written.`,
     );
   }
 }

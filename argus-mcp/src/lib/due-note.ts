@@ -76,9 +76,9 @@ export function appendDueNote(
 
     // ── channel 1: machine counts (host-choice; unchanged) ──
     const parts: string[] = [];
-    if (due.premiseFactsDue > 0) parts.push(`${due.premiseFactsDue} premise fact(s) to re-check (argus_recheck)`);
-    if (due.openQuestionsDue > 0) parts.push(`${due.openQuestionsDue} open question(s) to reconsider (argus_premises)`);
-    if (due.contractsDue > 0) parts.push(`${due.contractsDue} contract(s) to settle (argus_settle)`);
+    if (due.premiseFactsDue > 0) parts.push(`${due.premiseFactsDue} premise fact(s) to re-check (argus_capture action=update_fact)`);
+    if (due.openQuestionsDue > 0) parts.push(`${due.openQuestionsDue} open question(s) to reconsider (argus_capture)`);
+    if (due.contractsDue > 0) parts.push(`${due.contractsDue} prediction result(s) to record (argus_resolve)`);
     const data = (sc['data'] ??= {}) as Record<string, unknown>;
     if (!('due_note' in data)) data['due_note'] = parts.join(' · ');
 

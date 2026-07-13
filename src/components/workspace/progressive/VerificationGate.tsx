@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { UserCheck, X as XIcon, ChevronRight, RotateCw } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -32,26 +32,57 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const remaining = workers.length;
   const allClear = remaining === 0 && !anyRunning;
   // ESC closes (matches PersonaPoolModal). Body-scroll lock keeps the page
   // from scrolling behind the sheet.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (focusable.length === 0) { e.preventDefault(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && (document.activeElement === first || !panelRef.current.contains(document.activeElement))) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    };
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
-  }, [onClose]);
+    const raf = requestAnimationFrame(() => panelRef.current?.focus());
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      cancelAnimationFrame(raf);
+      document.body.style.overflow = prev;
+      previousFocus?.focus?.();
+    };
+  }, []);
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      role="dialog" aria-modal="true" aria-label={L('초안 작성 전 점검', 'Pre-draft check')}
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
       <motion.div
+        ref={panelRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         initial={{ opacity: 0, y: 20, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }}
         transition={{ duration: 0.3, ease: EASE }}
-        className="relative w-full sm:max-w-lg max-h-[85dvh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col">
+        className="relative w-full sm:max-w-lg max-h-[85dvh] rounded-t-2xl sm:rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col focus:outline-none">
         {/* Header */}
         <div className="px-5 py-4 border-b border-[var(--border-subtle)] shrink-0">
           <div className="flex items-start gap-3">
@@ -59,7 +90,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
               <UserCheck size={18} className="text-amber-600 dark:text-amber-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-semibold text-[var(--text-primary)]">
+              <p id={titleId} className="text-[15px] font-semibold text-[var(--text-primary)]">
                 {allClear ? L('모두 확인했어요', 'All reviewed') : L('확인하지 않은 분석이 있어요', 'Some analyses are unreviewed')}
               </p>
               <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">
@@ -68,7 +99,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
                   : L(`팀원 ${remaining}명의 결과를 아직 안 봤어요. 반영할지 빼고 갈지 한 번씩만 정해주세요 — 그대로 다 반영하고 가도 돼요.`, `You haven't looked at ${remaining} result${remaining > 1 ? 's' : ''} yet. Mark each as keep or skip — or just include them all and go.`)}
               </p>
             </div>
-            <button onClick={onClose} className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg hover:bg-[var(--bg)] cursor-pointer" aria-label={L('닫기', 'Close')}>
+            <button type="button" onClick={onClose} className="shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg hover:bg-[var(--bg)] cursor-pointer" aria-label={L('닫기', 'Close')}>
               <XIcon size={16} className="text-[var(--text-tertiary)]" />
             </button>
           </div>
@@ -93,16 +124,16 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
                     below). Apply carries slightly more weight only via text
                     primary + medium, never a color verdict. */}
                 <div className="flex items-center gap-2 mt-2.5">
-                  <button onClick={() => onApprove(w.id)}
+                  <button type="button" onClick={() => onApprove(w.id)}
                     className="inline-flex items-center justify-center min-h-[44px] px-3 py-2.5 text-[12px] font-medium text-[var(--text-primary)] rounded-lg border border-[var(--border)] hover:bg-[var(--bg-hover)] cursor-pointer transition-colors">
                     {L('반영', 'Apply')}
                   </button>
-                  <button onClick={() => onReject(w.id)}
+                  <button type="button" onClick={() => onReject(w.id)}
                     className="inline-flex items-center justify-center min-h-[44px] px-3 py-2.5 text-[12px] text-[var(--text-secondary)] rounded-lg border border-[var(--border)] hover:bg-[var(--bg-hover)] cursor-pointer transition-colors">
                     {L('제외', 'Exclude')}
                   </button>
                   {onRetry && (
-                    <button onClick={() => onRetry(w.id)}
+                    <button type="button" onClick={() => onRetry(w.id)}
                       className="ml-auto inline-flex items-center justify-center gap-1 min-h-[44px] px-2.5 py-2.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] rounded-lg cursor-pointer transition-colors"
                       title={L('이 분석을 다시 실행', 'Re-run this analysis')}>
                       <RotateCw size={11} /> {L('다시', 'Redo')}
@@ -116,7 +147,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-[var(--border-subtle)] shrink-0 flex flex-col gap-2">
-          <button onClick={onSail} disabled={!allClear}
+          <button type="button" onClick={onSail} disabled={!allClear}
             className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: 'var(--gradient-gold)' }}>
             {allClear
@@ -128,7 +159,7 @@ export function VerificationGate({ workers, anyRunning, onApprove, onReject, onR
           {/* Override only when there's genuinely unreviewed work to accept —
               not while a re-run is still in flight (nothing to override yet). */}
           {remaining > 0 && (
-            <button onClick={onOverride}
+            <button type="button" onClick={onOverride}
               className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer transition-colors">
               {L('확인 없이 모두 반영하고 초안 만들기', 'Accept all unchecked & create draft')}
             </button>

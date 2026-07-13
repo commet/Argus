@@ -318,7 +318,7 @@ export const sync: ToolModule = {
       return envelope({
         ok: true, tool: 'argus_sync',
         surface: baseSurface + importedLine + crossCheckLine + unclearLine + pushedUpLine + pushFailedLine,
-        next_actions: localSettleableDueCount > 0 ? ['argus_settle', 'stop'] : ['stop'],
+        next_actions: localSettleableDueCount > 0 ? ['argus_resolve', 'stop'] : ['stop'],
         data: {
           total: pull.receipts.length,
           due: dueCount,
@@ -340,7 +340,7 @@ export const sync: ToolModule = {
             return {
               id: r.id,
               local_id: localId,
-              settle_path: localId ? 'argus_settle (use local_id)' : otherLedger ? 'another terminal ledger (or webapp)' : 'webapp',
+              settle_path: localId ? 'argus_resolve (use local_id)' : otherLedger ? 'another terminal ledger (or webapp)' : 'webapp',
               title: r.source_title,
               state: r.state,
               next_check_by: r.next_check_by,

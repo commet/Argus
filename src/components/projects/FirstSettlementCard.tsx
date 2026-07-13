@@ -50,6 +50,7 @@ export function FirstSettlementCard({
           <p className="text-[12px] text-[var(--text-primary)] leading-[1.5] mt-1 pl-[19px]">“{leanAfter.note}”</p>
         )}
         <button
+          type="button"
           onClick={() => setOpen(true)}
           className="mt-1.5 ml-[19px] text-[11px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
         >
@@ -75,18 +76,21 @@ export function FirstSettlementCard({
       </p>
       <div className="flex flex-wrap gap-1.5">
         <button
+          type="button"
           onClick={() => onRecord('same', note.trim() || undefined)}
           className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50 cursor-pointer transition-colors"
         >
           {L('그때 그대로 본다', 'Still see it the same')}
         </button>
         <button
+          type="button"
           onClick={() => onRecord('shifted', note.trim() || undefined)}
           className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50 cursor-pointer transition-colors"
         >
           {L('시야가 좀 바뀌었다', 'My view has shifted')}
         </button>
         <button
+          type="button"
           onClick={() => onRecord('unknown', note.trim() || undefined)}
           className="px-2.5 py-1.5 rounded-lg text-[12px] font-semibold border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50 cursor-pointer transition-colors"
         >
@@ -94,6 +98,8 @@ export function FirstSettlementCard({
         </button>
       </div>
       <input
+        type="text"
+        aria-label={L('돌아보기 메모', 'Reflection note')}
         value={note}
         onChange={(e) => setNote(e.target.value)}
         maxLength={200}

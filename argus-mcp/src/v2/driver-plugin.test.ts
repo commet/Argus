@@ -89,12 +89,9 @@ describe('argus-driver 플러그인 골격 (P2-4)', () => {
     }
   });
 
-  it('settle.md — 서버 두뇌 호출 + 전체 목록 + outcome은 사용자 말에서만 (규칙 9·스파인)', () => {
-    const settle = fs.readFileSync(path.join(DRIVER, 'commands', 'settle.md'), 'utf8');
-    expect(settle).toContain('argus_check_in'); // 재생성 두뇌는 서버
-    expect(settle).toContain('argus_resolve'); // 이름통일 후 공개 이름 (구 argus_settle)
-    expect(settle).toContain('전체'); // 규칙 9: 전체 목록은 settle 커맨드의 자리
-    expect(settle).toContain('제안·암시·예상하지 말'); // 스파인: 모델이 outcome을 제안하지 않는다
+  it('일상 ritual 커맨드는 없고 읽기 전용 doctor 비상구만 남는다', () => {
+    const files = fs.readdirSync(path.join(DRIVER, 'commands')).filter((f) => f.endsWith('.md'));
+    expect(files).toEqual(['doctor.md']);
   });
 
   it('README — 설치 2줄과 "플러그인 제거가 원장을 지우지 않는다" 고지 (정본 규칙 3·21)', () => {

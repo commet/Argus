@@ -198,9 +198,9 @@ describe('check_in and today override', () => {
     expect(due[0]['your_words_then']).toBe('I hire now; waiting kills the H2 roadmap');
     // The surface mirrors the words — date arithmetic, no welcome greeting.
     const surface = String(r['surface']);
-    expect(surface).toContain(`${expectedDays} day(s) since you sealed`);
+    expect(surface).toContain(`${expectedDays} day(s) since you saved this`);
     expect(surface).toContain('I hire now; waiting kills the H2 roadmap');
-    expect(surface).toContain('argus_settle');
+    expect(surface).toContain('argus_resolve');
     expect(surface).not.toMatch(/welcome back|great to see/i);
   });
 
@@ -228,7 +228,7 @@ describe('check_in and today override', () => {
     fs.writeFileSync(path.join(dir, 'config.yaml'), 'schema_version: 1\nlocale: ko\n');
     const r = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-08-16' }));
     const surface = String(r['surface']);
-    expect(surface).toMatch(/봉인한 지 \d+일/);
+    expect(surface).toMatch(/예측을 저장한 지 \d+일/);
     expect(surface).toContain('그때 당신은 이렇게 적었습니다');
     expect(surface).toContain('지금 뽑는다');
   });
@@ -240,7 +240,7 @@ describe('check_in and today override', () => {
       process.env.ARGUS_TOKEN = 'argus_pat_test';
       const fetchSpy = vi.spyOn(globalThis, 'fetch');
       const r = body(await checkIn.handler({ argus_dir: dir, today_override: '2026-07-01' }));
-      expect(String(r['surface'])).toContain('show up with argus_sync');
+      expect(String(r['surface'])).toContain('argus_settings action=sync');
       expect(fetchSpy).not.toHaveBeenCalled(); // check_in stays local and deterministic
 
       delete process.env.ARGUS_TOKEN;

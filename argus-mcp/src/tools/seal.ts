@@ -35,11 +35,11 @@ export function resetSealSession(): void {
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
-  id: zId.describe('A short slug you pick for this decision (e.g. "q3-cutover"). No prior argus_open_decision is needed — a fresh id starts the record on its own.'),
+  id: zId.describe('A short slug you pick for this decision (e.g. "q3-cutover"). A fresh id starts the record on its own.'),
   predicate: z.string().min(8).max(400).describe('A prediction reality can mark true/false. Good: "cutover downtime < 5 min". Bad: "it will go well".'),
-  check_by: zDate.describe('YYYY-MM-DD, a real future date — when you will come back to settle.'),
+  check_by: zDate.describe('YYYY-MM-DD, a real future date when the result can be checked.'),
   predicate_owner: z.enum(['user', 'ai_surfaced']).describe('Provenance. Never forge. "user" = the user wrote or affirmed it. "ai_surfaced" = Argus drafted, unconfirmed.'),
-  confirm_draft: z.boolean().optional().describe('Set true when YOU drafted this predicate for the user (turning their decision into a falsifiable one-liner) and want a one-tap confirm before it is recorded. On a host that supports it, the user is shown the draft with Keep / Reword / Skip; Keep records it as THEIRS (affirmed), Reword returns without sealing so you can use their words, Skip records nothing. On a host without the picker, the seal proceeds (so confirm in your own message first).'),
+  confirm_draft: z.boolean().optional().describe('Set true when YOU drafted this predicate for the user and want a one-tap confirmation before saving it. On a supporting host, Keep affirms and saves it as theirs, Reword returns without saving, and Skip records nothing. Without the picker, saving proceeds, so confirm in your own message first.'),
   basis: z.enum(['judgment', 'luck', 'mixed', 'unsure']).optional(),
   real_question: z.string().max(400).describe('The real question behind the answer (receipt).').optional(),
   unverified_assumption: z.string().max(400).describe('The core assumption not yet verified (receipt).').optional(),
@@ -102,11 +102,11 @@ export const seal: ToolModule = {
         );
         const choice = picked?.['choice'];
         if (choice === 'reword') {
-          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '그럼 원하는 문장으로 알려주세요. 그 말 그대로 봉인할게요.' : "Then tell me the prediction in your own words and I'll seal exactly that.", next_actions: ['argus_seal'], data: { sealed: false, choice: 'reword' } });
+          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '그럼 원하는 예측 문장을 알려주세요. 그 말 그대로 저장할게요.' : "Then tell me the prediction in your own words and I'll save exactly that.", next_actions: ['argus_predict'], data: { sealed: false, choice: 'reword' } });
         }
         if (choice !== 'keep') {
           // skip, or a declined/cancelled picker — record nothing.
-          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '기록하지 않았어요. 남기고 싶으면 argus_watch로 한 줄만 적어둘 수도 있어요.' : 'Not recorded. If you want, jot a one-line note with argus_watch instead.', next_actions: ['argus_watch', 'stop'], data: { sealed: false, choice: choice ?? 'declined' } });
+          return envelope({ ok: true, tool: 'argus_seal', surface: locale === 'ko' ? '기록하지 않았어요.' : 'Not recorded.', next_actions: ['stop'], data: { sealed: false, choice: choice ?? 'declined' } });
         }
         // keep → the user affirmed the draft, so it is theirs now.
         a = { ...a, predicate_owner: 'user' };

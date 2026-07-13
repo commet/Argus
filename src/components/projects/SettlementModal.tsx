@@ -317,6 +317,7 @@ export function SettlementModal({
             {L('봉인한 결정의 확인일이 왔어요. 어땠는지 간단히 기록하고 고리를 닫아주세요.', 'This sealed decision is due. Capture what happened and close the loop.')}
           </p>
           <textarea
+            aria-label={L('실제로 일어난 일', 'What actually happened')}
             value={whatHappened}
             onChange={(e) => setWhatHappened(e.target.value)}
             rows={4}
@@ -442,6 +443,7 @@ export function SettlementModal({
                       const isDraft = !isResolved(p) && draftVerdicts?.[p.id] === v.value;
                       return (
                         <button
+                          type="button"
                           key={v.value}
                           onClick={() => grade(p.id, selected ? 'pending' : v.value)}
                           aria-pressed={selected}
@@ -480,6 +482,7 @@ export function SettlementModal({
                             const on = p.basis === b.value;
                             return (
                               <button
+                                type="button"
                                 key={b.value}
                                 onClick={() => setBasis(p.id, b.value, on)}
                                 aria-pressed={on}
@@ -523,6 +526,7 @@ export function SettlementModal({
                     const on = c.status === val;
                     return (
                       <button
+                        type="button"
                         key={val}
                         onClick={() => setCheckStatus(c.id, val)}
                         aria-pressed={on}
@@ -635,6 +639,7 @@ export function SettlementModal({
                         {L('AI가 비춘 한 줄', 'AI-surfaced')}
                       </span>
                       <button
+                        type="button"
                         onClick={() => updateProject(project.id, { decision_contract: { ...contract, growth_note: undefined } })}
                         className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--danger)] cursor-pointer transition-colors"
                       >
@@ -653,6 +658,7 @@ export function SettlementModal({
                       류로 새(눈먼) 결정을 연다. 재봉인 온램프(아래)를 대체한다. */}
                   {isRetro && onRealSeal ? (
                     <button
+                      type="button"
                       onClick={onRealSeal}
                       className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline underline-offset-2 cursor-pointer transition-colors text-left"
                     >
@@ -660,6 +666,7 @@ export function SettlementModal({
                     </button>
                   ) : typeof remainingDue === 'number' && remainingDue > 0 ? (
                     <button
+                      type="button"
                       onClick={onClose}
                       className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:underline underline-offset-2 cursor-pointer transition-colors"
                     >
@@ -674,6 +681,7 @@ export function SettlementModal({
                     </LocaleLink>
                   )}
                   <button
+                    type="button"
                     onClick={onClose}
                     className="px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white cursor-pointer"
                     style={{ background: 'var(--gradient-gold)' }}
@@ -697,6 +705,7 @@ export function SettlementModal({
                 <div className="flex flex-wrap items-center gap-2">
                   {EXTEND_OPTIONS.map((opt) => (
                     <button
+                      type="button"
                       key={opt.value}
                       onClick={() => extend(opt.value)}
                       className="px-3 py-1.5 rounded-lg text-[12px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors cursor-pointer"
@@ -712,6 +721,7 @@ export function SettlementModal({
                 </div>
                 {deferrals >= 2 && (
                   <button
+                    type="button"
                     onClick={closeAsUnknown}
                     className="mt-2.5 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 cursor-pointer transition-colors"
                   >

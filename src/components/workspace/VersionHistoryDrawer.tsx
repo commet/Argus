@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { GitBranch, Check, Crown, X, Eye } from 'lucide-react';
 import { isPreRelease } from '@/lib/version-numbering';
@@ -67,9 +67,48 @@ export function VersionHistoryDrawer({
 }: VersionHistoryDrawerProps) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const titleId = useId();
+  const drawerRef = useRef<HTMLElement>(null);
+  const previewNodeIdRef = useRef(previewNodeId);
+  previewNodeIdRef.current = previewNodeId;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const resolvedRootLabel = rootLabel ?? L('v0 (초안)', 'v0 (draft)');
   const resolvedRootSummary = rootSummary ?? L('원본', 'Original');
   const tree = useMemo(() => buildTree(nodes), [nodes]);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const onKeyDown = (event: KeyboardEvent) => {
+      // A version preview opens above this drawer. Let that topmost dialog
+      // consume Escape first so one key never closes two layers at once.
+      if (event.key === 'Escape' && !previewNodeIdRef.current) {
+        event.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !drawerRef.current || previewNodeIdRef.current) return;
+      const focusable = Array.from(drawerRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (focusable.length === 0) { event.preventDefault(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !drawerRef.current.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const raf = requestAnimationFrame(() => drawerRef.current?.focus());
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      cancelAnimationFrame(raf);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus?.();
+    };
+  }, []);
 
   const renderNode = (node: TreeHierarchyNode<VersionTreeItem>, depth: number) => {
     const item = node.data;
@@ -116,15 +155,17 @@ export function VersionHistoryDrawer({
               {item.created_at ? relativeTime(item.created_at, locale) : ''}
             </span>
           </div>
-          <p
-            className="text-[12px] text-[var(--text-secondary)] leading-snug line-clamp-2 mb-2 cursor-pointer hover:text-[var(--text-primary)]"
+          <button
+            type="button"
+            className="block w-full text-left text-[12px] text-[var(--text-secondary)] leading-snug mb-2 cursor-pointer hover:text-[var(--text-primary)]"
             onClick={() => onPreview(nodeId)}
             title={L('클릭하면 이 버전의 본문을 미리 봅니다', 'Click to preview this version')}
           >
-            {summary}
-          </p>
+            <span className="line-clamp-2">{summary}</span>
+          </button>
           <div className="flex items-center gap-1.5">
             <button
+              type="button"
               className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
               onClick={() => onPreview(nodeId)}
             >
@@ -132,6 +173,7 @@ export function VersionHistoryDrawer({
             </button>
             {!isActiveLeaf && (
               <button
+                type="button"
                 className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
                 onClick={() => onBranch(nodeId)}
               >
@@ -140,6 +182,7 @@ export function VersionHistoryDrawer({
             )}
             {canPromote && (
               <button
+                type="button"
                 className="inline-flex items-center gap-1 text-[11px] text-amber-700 hover:text-amber-900 transition-colors ml-auto"
                 onClick={() => onPromote(nodeId)}
                 title={L('이 버전을 v1.0으로 승격합니다', 'Promote this version to v1.0')}
@@ -163,13 +206,22 @@ export function VersionHistoryDrawer({
       <div
         className="absolute inset-0 bg-black/10 pointer-events-auto"
         onClick={onClose}
+        aria-hidden="true"
       />
-      <aside className="absolute right-0 top-0 h-full w-[min(360px,calc(100vw-44px))] bg-[var(--bg)] border-l border-[var(--border)] shadow-[var(--shadow-lg)] pointer-events-auto flex flex-col">
+      <aside
+        ref={drawerRef}
+        id="version-history-drawer"
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="absolute right-0 top-0 h-full w-[min(380px,calc(100vw-24px))] bg-[var(--bg)] border-l border-[var(--border)] shadow-[var(--shadow-lg)] pointer-events-auto flex flex-col focus:outline-none"
+      >
         <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
           <div>
-            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{L('버전 히스토리', 'Version History')}</h3>
+            <h3 id={titleId} className="text-[14px] font-semibold text-[var(--text-primary)]">{L('버전 히스토리', 'Version History')}</h3>
             <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-              {L('클릭으로 돌아가거나 새 수정본을 시작하세요', 'Click to revisit or start a new revision')}
+              {L(`${nodes.length}개 저장됨 · 읽어본 뒤 원하는 지점에서 수정할 수 있어요`, `${nodes.length} saved · preview one, then revise from that point`)}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} aria-label={L('닫기', 'Close')}>
@@ -177,6 +229,12 @@ export function VersionHistoryDrawer({
           </Button>
         </header>
         <div className="flex-1 overflow-y-auto px-4 py-3 pb-[env(safe-area-inset-bottom)]">
+          <div className="mb-3 rounded-lg bg-[var(--surface)] px-3 py-2 text-[10.5px] leading-relaxed text-[var(--text-tertiary)]">
+            <span className="font-semibold text-[var(--accent)]">{L('현재', 'Current')}</span>
+            {L('는 지금 편집 기준 · ', ' is your working version · ')}
+            <span className="font-semibold text-amber-700">{L('정식 버전', 'Released')}</span>
+            {L('은 복사·공유 기준이에요.', ' is the copy/share version.')}
+          </div>
           {tree.length === 0 ? (
             <div className="text-[12px] text-[var(--text-tertiary)] text-center py-8">
               {L('아직 저장된 버전이 없습니다.', 'No saved versions yet.')}

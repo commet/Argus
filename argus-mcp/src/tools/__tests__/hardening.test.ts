@@ -134,7 +134,7 @@ describe('state machine · a refusal must name a move that works', () => {
         expect(g.code).toBe('ILLEGAL_TRANSITION');
         // the old advice looped forever: opening cannot un-seal an append-only ledger
         expect(g.recovery).not.toMatch(/argus_open_decision/);
-        expect(g.recovery).toMatch(state === 'due' ? /argus_settle/ : /argus_amend/);
+        expect(g.recovery).toMatch(state === 'due' ? /argus_resolve/ : /argus_capture/);
       }
     }
   });

@@ -60,6 +60,9 @@ describe('argus_init ↔ v2 바인딩 배선 (파괴 없는 추가)', () => {
   it('outside any git repo: v1 init unchanged, v2 declines with an honest reason', async () => {
     const bare = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-wire-bare-'));
     try {
+      // Stop discovery at this fixture even when an ancestor of os.tmpdir()
+      // happens to be a developer-owned Git repository.
+      fs.writeFileSync(path.join(bare, '.git'), `gitdir: ${path.join(bare, 'missing-gitdir')}\n`);
       const data = await runInit(path.join(bare, '.argus'));
       expect(data.initialized).toBe(true); // v1은 git 없이도 동작 — 그대로
       expect(data.v2.bound).toBe(false);

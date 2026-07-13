@@ -10,5 +10,10 @@ export default defineConfig({
     // Points the account API at a closed local port, so a test that sets
     // ARGUS_TOKEN and forgets to mock fetch cannot reach the real server.
     setupFiles: ['src/test-setup.ts'],
+    // The protocol suite intentionally rebuilds dist and several durability
+    // properties perform real filesystem I/O. Windows CI and busy developer
+    // machines can exceed Vitest's 5s/30s defaults without being hung.
+    testTimeout: 20_000,
+    hookTimeout: 120_000,
   },
 });

@@ -3,7 +3,7 @@
  *
  * 도그푸딩에서 발견: 사용자 대면 문구 3곳이 `argus_snooze`를 가리켰는데
  * 그런 MCP 도구는 등록돼 있지 않았다 — 사용자/모델이 부르면 없는 도구라
- * 실패하는 깨진 배선. 실제 "미루기"는 argus_settle의 still_pending이다.
+ * 실패하는 깨진 배선. 현재 공개 표면은 목적형 도구 7개만 안내한다.
  *
  * 이 테스트가 그 부류를 영구 차단한다: 사용자 대면 surface(surfaces.ts)와
  * v2 projection이 언급하는 모든 `argus_<tool>` 이름이 실제 등록된 도구여야
@@ -14,12 +14,14 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TOOLS } from '../index.js';
+import { TOOL_MAP } from '../index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.resolve(here, '..', '..');
 
-const REGISTERED = new Set(TOOLS.map((t) => t.name));
+// TOOL_MAP is the actual callable registry. It includes the seven public tools
+// plus one-version compatibility aliases that remain callable but undisclosed.
+const REGISTERED = new Set(TOOL_MAP.keys());
 // 데이터 모델·문서에만 존재하고 사용자에게 도구로 노출되지 않는 이름
 // (예: v2 이벤트명, config 키)은 도구 참조가 아니므로 대조 대상이 아니다.
 // 아래 목록은 "도구처럼 생겼지만 도구가 아닌, 알려진 비-도구 토큰".
@@ -48,7 +50,7 @@ describe('도구 참조 무결성 — 없는 도구를 가리키는 surface 금�
     expect(bad, `등록되지 않은 도구 참조: ${bad.join(', ')}`).toEqual([]);
   });
 
-  it('argus_snooze는 등록된 도구가 아니다 (F6의 근원 — 미루기는 settle still_pending)', () => {
+  it('argus_snooze는 등록된 도구가 아니다 (F6의 근원)', () => {
     expect(REGISTERED.has('argus_snooze')).toBe(false);
     // 이 사실을 아는 상태로, 위 두 대조가 argus_snooze를 절대 통과시키지 않는다.
   });

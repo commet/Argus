@@ -62,7 +62,7 @@ const EXT_KIND: Record<string, SourceKind> = {
 
 const inputSchema = z.strictObject({
   text: z.string().max(MAX_DOC_BYTES).describe('The document body to review (paste). Provide this OR file_path.').optional(),
-  file_path: z.string().max(1024).describe('Absolute path to a DOCUMENT (.md/.txt/.pdf/.docx/.pptx) inside a project Argus is allowed to read: this one, the working directory, or a project registered with argus_init. Other paths and non-document types are refused — a document cannot talk Argus into reading a key or a credentials file. PDF/DOCX/PPTX are text-extracted with page/slide anchors; scanned or image-only files degrade honestly.').optional(),
+  file_path: z.string().max(1024).describe('Absolute path to a DOCUMENT (.md/.txt/.pdf/.docx/.pptx) inside this project, the working directory, or another project already known to Argus. Other paths and non-document types are refused. PDF/DOCX/PPTX are text-extracted with page/slide anchors; scanned or image-only files degrade honestly.').optional(),
   argus_dir: zArgusDir.describe('Optional: scope the readable root to this project.').optional(),
   source_kind: z.enum(['paste', 'markdown', 'txt', 'pdf', 'docx', 'pptx', 'transcript', 'llm_answer', 'pr_diff']).describe('Override the inferred source kind.').optional(),
   title: z.string().max(300).optional(),
@@ -273,9 +273,9 @@ export const review: ToolModule = {
       return envelope({
         ok: true, tool: 'argus_review',
         surface: ko
-          ? `${caveat}검수 준비를 마쳤습니다. "${artifact.source_title}" · 렌즈 ${lenses.length}개. 아래 단위를 근거로 렌즈별로 검토한 뒤, 사람이 판단할 부분과 반증 가능한 예측 하나를 뽑아 argus_seal로 봉인하세요.`
-          : `${caveat}Review scaffold ready. "${artifact.source_title}" · ${lenses.length} lens(es). Using the units below, review lens by lens, then pull out what a human must judge and one falsifiable prediction to seal with argus_seal.`,
-        next_actions: ['argus_seal', 'skip'],
+          ? `${caveat}검수 준비를 마쳤습니다. "${artifact.source_title}" · 렌즈 ${lenses.length}개. 아래 단위를 근거로 렌즈별로 검토하고, 사람이 직접 판단할 부분과 확인 가능한 후속 예측 하나를 찾으세요. 저장 여부는 사용자가 정합니다.`
+          : `${caveat}Review scaffold ready. "${artifact.source_title}" · ${lenses.length} lens(es). Review the units lens by lens, identify what a human must judge, and find one falsifiable follow-up prediction. The user decides whether to save it.`,
+        next_actions: ['argus_predict', 'skip'],
         data: {
           schema_version: REVIEW_SCHEMA_VERSION,
           lens_version: LENS_VERSION,
@@ -299,13 +299,20 @@ export const review: ToolModule = {
           units_shown: Math.min(artifact.units.length, effLimit),
           units_total: artifact.units.length,
           ...(artifact.units.length > effLimit
-            ? { units_truncated_note: `문서 단위 ${artifact.units.length}개 중 앞 ${effLimit}개만 실었습니다(응답 크기 제한). 더 검수하려면 뒷부분을 따로 넣으세요.` }
+            ? { units_truncated_note: ko
+                ? `문서 단위 ${artifact.units.length}개 중 앞 ${effLimit}개만 실었습니다(응답 크기 제한). 더 검수하려면 뒷부분을 따로 넣으세요.`
+                : `Included the first ${effLimit} of ${artifact.units.length} source units because of the response-size limit. Submit the remaining section separately to review it.` }
             : {}),
-          protocol: [
+          protocol: ko ? [
             '1) extraction_prompt(그 안의 units + 출력 스키마)를 적용해 문서 판단 지도(profile + claims/assumptions/decision_points)를 만든다.',
-            '2) lenses의 각 렌즈로 그 units를 근거로 검토한다 — 모든 finding은 unit을 근거로 하고, 산문에는 unit_id를 노출하지 않는다.',
+            '2) lenses의 각 렌즈로 그 units를 근거로 검토한다. 모든 finding은 unit을 근거로 하고, 사용자에게 보여주는 산문에는 unit_id를 노출하지 않는다.',
             '3) 사람이 직접 판단해야 할 항목(judgment obligations)을 분리한다. 평결하지 않는다.',
-            '4) 현실이 pass/fail로 답할 반증 가능한 예측 1개를 뽑아 argus_seal로 봉인한다 — 예측·pass/fail 조건·check_by는 사용자의 것이다.',
+            '4) 현실이 pass/fail로 답할 반증 가능한 예측 1개를 찾고, 사용자가 원하면 argus_predict로 저장한다. 예측·pass/fail 조건·check_by는 사용자의 것이다.',
+          ] : [
+            '1) Apply extraction_prompt, including its units and output schema, to build the document judgment map: profile, claims, assumptions, and decision points.',
+            '2) Review those units through each selected lens. Every finding needs unit evidence; do not expose internal unit_id values in user-facing prose.',
+            '3) Separate the points that require human judgment. Do not deliver a verdict.',
+            '4) Find one falsifiable prediction that reality can answer pass/fail. Save it with argus_predict only if the user wants; the prediction, conditions, and check_by belong to the user.',
           ],
         },
       });

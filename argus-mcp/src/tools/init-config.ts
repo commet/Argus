@@ -102,11 +102,11 @@ export const init: ToolModule = {
         ok: true, tool: 'argus_init',
         surface: empty
           ? localizedMessage(dir, undefined, {
-              en: 'Argus is ready. Describe a decision you are weighing and Argus records a prediction with a check-by date, then meets reality on that date. No grades, just your own track record over time. Or open one explicitly with argus_open_decision.',
-              ko: 'Argus가 준비됐습니다. 고민 중인 결정을 말하면 확인일이 있는 예측으로 기록하고, 그날 현실과 다시 대조합니다. 점수나 평결 없이 당신의 판단 기록만 남습니다. argus_open_decision으로 직접 열어도 됩니다.',
+              en: 'Argus is ready. Describe a decision you are weighing. It can clarify the decision, save a prediction with a check date, and later record what actually happened. No grades, just your own track record over time.',
+              ko: 'Argus가 준비됐습니다. 고민 중인 결정을 말해 주세요. 결정을 명료하게 정리하고 확인일이 있는 예측을 저장한 뒤, 그날 실제로 일어난 일을 기록할 수 있습니다. 점수나 평결 없이 당신의 판단 기록만 남습니다.',
             })
           : localizedMessage(dir, undefined, { en: 'Argus is ready.', ko: 'Argus가 준비됐습니다.' }),
-        next_actions: empty ? ['argus_open_decision'] : ['argus_check_in'],
+        next_actions: empty ? ['argus_capture'] : ['argus_check_in'],
         data: {
           initialized: true, argus_dir: dir, today, tz, locale, v2,
         },

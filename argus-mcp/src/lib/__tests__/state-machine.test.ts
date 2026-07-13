@@ -36,8 +36,8 @@ describe('premise-on-absent does not dead-end (orphaned-premise trap fix)', () =
       const g = e as GuardError;
       expect(g.code).toBe('ILLEGAL_TRANSITION');
       // Must NOT dead-end at "open first" (re-opening a restraint decision just
-      // returns restraint again); it must name argus_seal, which self-creates.
-      expect(g.recovery).toMatch(/argus_seal/);
+      // returns restraint again); it must name the public save path, which self-creates.
+      expect(g.recovery).toMatch(/argus_predict/);
     }
   });
 
@@ -98,10 +98,10 @@ describe('guardTransition', () => {
     try { guardTransition('absent', 'defer'); } catch (e) { caught = e; }
     expect(caught).toBeInstanceOf(GuardError);
     expect((caught as GuardError).recovery).not.toMatch(/argus_amend/);
-    expect((caught as GuardError).recovery).toMatch(/argus_open_decision|argus_seal/);
+    expect((caught as GuardError).recovery).toMatch(/argus_capture|argus_predict/);
     // but from `sealed` (a real decision), "amend moves it" is the right advice.
     let s: unknown;
     try { guardTransition('sealed', 'defer'); } catch (e) { s = e; }
-    expect((s as GuardError).recovery).toMatch(/argus_amend/);
+    expect((s as GuardError).recovery).toMatch(/argus_capture/);
   });
 });

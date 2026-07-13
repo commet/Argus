@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { motion, AnimatePresence, useAnimationControls } from 'framer-motion';
 import { Users, ChevronUp, X, Settings, Plus, Trash2, Loader2 } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -23,6 +23,16 @@ import { useAgentStore } from '@/stores/useAgentStore';
 import { useLocale } from '@/hooks/useLocale';
 import { EASE } from './shared/constants';
 const EMPTY: WorkerTask[] = [];
+
+function isWorkerSettled(worker: WorkerTask): boolean {
+  return worker.status === 'done' || worker.status === 'error' || worker.status === 'validation_failed' ||
+    worker.status === 'waiting_input' || worker.status === 'blocked' ||
+    (worker.agent_type === 'human' && (worker.status === 'sent' || worker.status === 'waiting_response'));
+}
+
+function workerNeedsAttention(worker: WorkerTask): boolean {
+  return isWorkerSettled(worker) && worker.status !== 'done';
+}
 
 // ─── Shared hooks for worker data ───
 
@@ -212,15 +222,17 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
 
 // ─── Team header with active personas ───
 
-function TeamHeader({ workers, onOpenSettings }: { workers: WorkerTask[]; onOpenSettings: () => void }) {
+function TeamHeader({ workers, onOpenSettings, settingsOpen }: { workers: WorkerTask[]; onOpenSettings: () => void; settingsOpen: boolean }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const doneCount = workers.filter(w => w.status === 'done').length;
-  const runningCount = workers.filter(w => w.status === 'running').length;
-  const waitingCount = workers.filter(w => w.status === 'waiting_input').length;
+  const settledCount = workers.filter(isWorkerSettled).length;
+  const runningCount = workers.filter(w => w.status === 'running' || w.status === 'ai_preparing').length;
+  const attentionCount = workers.filter(workerNeedsAttention).length;
+  const pendingCount = Math.max(0, workers.length - settledCount - runningCount);
 
   const activeEmojis = workers
-    .filter(w => w.status === 'running' && w.persona)
+    .filter(w => (w.status === 'running' || w.status === 'ai_preparing') && w.persona)
     .map(w => w.persona!.emoji);
 
   return (
@@ -230,35 +242,43 @@ function TeamHeader({ workers, onOpenSettings }: { workers: WorkerTask[]; onOpen
           <Users size={14} className="text-[var(--accent)]" />
           <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('팀', 'Team')}</span>
           <span className="text-[11px] text-[var(--text-secondary)] bg-[var(--bg)] px-2 py-0.5 rounded-full">
-            {doneCount}/{workers.length}
+            {settledCount}/{workers.length}
           </span>
           {activeEmojis.length > 0 && (
             <span className="text-[12px]">{activeEmojis.join('')}</span>
           )}
         </div>
-        <button onClick={onOpenSettings} className="p-2 text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:bg-[var(--bg)] rounded-lg cursor-pointer transition-colors" title={L('팀원 설정', 'Team settings')} aria-label={L('팀원 설정', 'Team settings')}>
+        <button type="button" onClick={onOpenSettings} aria-expanded={settingsOpen} aria-controls="worker-team-settings" className="p-2 text-[var(--text-tertiary)] hover:text-[var(--accent)] hover:bg-[var(--bg)] rounded-lg cursor-pointer transition-colors" title={L('팀원 설정', 'Team settings')} aria-label={L('팀원 설정', 'Team settings')}>
           <Settings size={14} />
         </button>
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 rounded-full bg-[var(--border-subtle)] overflow-hidden">
+      <div
+        role="progressbar"
+        aria-label={L('팀 작업 처리 상태', 'Team task status')}
+        aria-valuemin={0}
+        aria-valuemax={workers.length}
+        aria-valuenow={settledCount}
+        aria-valuetext={L(`${workers.length}건 중 ${settledCount}건 처리 · 결과 ${doneCount}건 완료`, `${settledCount} of ${workers.length} settled · ${doneCount} completed`)}
+        className="h-1 rounded-full bg-[var(--border-subtle)] overflow-hidden"
+      >
         <motion.div
           className="h-full rounded-full"
           style={{ background: 'var(--gradient-gold)' }}
           initial={{ width: 0 }}
-          animate={{ width: `${(doneCount / workers.length) * 100}%` }}
+          animate={{ width: `${(settledCount / workers.length) * 100}%` }}
           transition={{ duration: 0.6, ease: EASE }}
         />
       </div>
 
       {/* Status summary */}
-      <p className="text-[10px] text-[var(--text-secondary)]">
-        {runningCount > 0 && L(`${runningCount}명 작업 중`, `${runningCount} working`)}
-        {runningCount > 0 && waitingCount > 0 && ' · '}
-        {waitingCount > 0 && L(`입력 대기 ${waitingCount}개`, `${waitingCount} awaiting input`)}
-        {runningCount === 0 && waitingCount === 0 && doneCount === workers.length && L('모든 작업 완료', 'All tasks complete')}
-        {runningCount === 0 && waitingCount === 0 && doneCount < workers.length && L(`대기 중 ${workers.length - doneCount}명`, `${workers.length - doneCount} pending`)}
+      <p className="text-[10px] text-[var(--text-secondary)]" aria-live="polite">
+        {[
+          runningCount > 0 ? L(`${runningCount}명 작업 중`, `${runningCount} working`) : '',
+          attentionCount > 0 ? L(`${attentionCount}건 확인 필요`, `${attentionCount} need attention`) : '',
+          pendingCount > 0 ? L(`${pendingCount}명 대기 중`, `${pendingCount} pending`) : '',
+        ].filter(Boolean).join(' · ') || L('모든 작업 완료', 'All tasks complete')}
       </p>
     </>
   );
@@ -267,22 +287,26 @@ function TeamHeader({ workers, onOpenSettings }: { workers: WorkerTask[]; onOpen
 // ─── Status dot for compact view ───
 
 function StatusIndicator({ worker }: { worker: WorkerTask }) {
-  if (worker.status === 'running') return <Loader2 size={10} className="animate-spin text-blue-500" />;
+  if (worker.status === 'running' || worker.status === 'ai_preparing') return <Loader2 size={10} className="animate-spin text-blue-500" />;
   if (worker.status === 'done' && worker.approved === true) return <span className="w-2 h-2 rounded-full bg-emerald-500 block" />;
   if (worker.status === 'done' && worker.approved === false) return <span className="w-2 h-2 rounded-full bg-red-400 block" />;
   if (worker.status === 'done') return <span className="w-2 h-2 rounded-full bg-amber-400 block" />;
-  if (worker.status === 'error') return <span className="w-2 h-2 rounded-full bg-red-500 block" />;
-  if (worker.status === 'waiting_input') return <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse block" />;
+  if (worker.status === 'error' || worker.status === 'validation_failed') return <span className="w-2 h-2 rounded-full bg-red-500 block" />;
+  if (worker.status === 'waiting_input' || worker.status === 'blocked') return <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse block" />;
+  if (worker.status === 'sent' || worker.status === 'waiting_response') return <span className="w-2 h-2 rounded-full bg-blue-400 block" />;
   return <span className="w-2 h-2 rounded-full bg-[var(--text-tertiary)] block" />;
 }
 
 function statusText(worker: WorkerTask, locale: string = 'ko'): string {
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
-  if (worker.status === 'running') return L('작업 중', 'Working');
+  if (worker.status === 'running' || worker.status === 'ai_preparing') return L('작업 중', 'Working');
   if (worker.status === 'done' && worker.approved === true) return L('반영', 'Applied');
   if (worker.status === 'done' && worker.approved === false) return L('제외', 'Excluded');
   if (worker.status === 'done') return L('완료', 'Done');
   if (worker.status === 'error') return L('오류', 'Error');
+  if (worker.status === 'validation_failed') return L('결과 확인 필요', 'Check result');
+  if (worker.status === 'blocked') return L('입력 대기', 'Waiting on input');
+  if (worker.status === 'sent' || worker.status === 'waiting_response') return L('답변 대기', 'Awaiting reply');
   if (worker.status === 'waiting_input') return L('입력 필요', 'Input needed');
   return L('대기', 'Pending');
 }
@@ -300,13 +324,13 @@ export function WorkerPanel({ className }: { className?: string }) {
 
   return (
     <div className={`p-4 space-y-3 ${className ?? ''}`}>
-      <TeamHeader workers={workers} onOpenSettings={() => setShowSettings(!showSettings)} />
+      <TeamHeader workers={workers} settingsOpen={showSettings} onOpenSettings={() => setShowSettings(!showSettings)} />
 
       <AnimatePresence>
         {showSettings && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: EASE }} className="overflow-hidden">
-            <div className="pb-3 border-b border-[var(--border-subtle)]">
+            <div id="worker-team-settings" className="pb-3 border-b border-[var(--border-subtle)]">
               <PersonaSettings onClose={() => setShowSettings(false)} />
             </div>
           </motion.div>
@@ -352,11 +376,16 @@ export function WorkerDrawer({ className }: { className?: string }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const [open, setOpen] = useState(false);
+  const drawerId = useId();
+  const drawerTitleId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const workers = useWorkers();
 
-  const doneCount = workers.filter(w => w.status === 'done').length;
+  const settledCount = workers.filter(isWorkerSettled).length;
+  const attentionCount = workers.filter(workerNeedsAttention).length;
   const waitingCount = workers.filter(w => w.status === 'waiting_input').length;
-  const runningCount = workers.filter(w => w.status === 'running').length;
+  const runningCount = workers.filter(w => w.status === 'running' || w.status === 'ai_preparing').length;
 
   // Imperative peek animation — mobile users don't see the workers_done toast
   // unless they're looking up. This adds a bottom-bar bounce + brief ring so
@@ -392,17 +421,53 @@ export function WorkerDrawer({ className }: { className?: string }) {
     prevWaitingRef.current = waitingCount;
   }, [waitingCount, peekControls]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        setOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab' || !panelRef.current) return;
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (focusable.length === 0) { event.preventDefault(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !panelRef.current.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const raf = requestAnimationFrame(() => panelRef.current?.focus());
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      cancelAnimationFrame(raf);
+      document.body.style.overflow = previousOverflow;
+      triggerRef.current?.focus();
+    };
+  }, [open]);
+
   if (workers.length === 0) return null;
 
   return (
     <div className={className}>
       {/* Sticky bottom bar — height: ~56px (py-3.5 × 2 + content) */}
       <motion.button
+        ref={triggerRef}
+        type="button"
         onClick={() => setOpen(true)}
+        aria-expanded={open}
+        aria-controls={drawerId}
+        aria-haspopup="dialog"
         className={`fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))] bg-[var(--surface)] border-t cursor-pointer min-h-[56px] transition-colors duration-500 ${
           celebrate
             ? 'border-t-[var(--accent)]/70 shadow-[0_-8px_24px_-6px_rgba(180,160,100,0.35)]'
-            : waitingCount > 0
+            : attentionCount > 0
               ? 'border-t-[var(--accent)]/40 border-[var(--border-subtle)]'
               : 'border-[var(--border-subtle)]'
         }`}
@@ -411,14 +476,14 @@ export function WorkerDrawer({ className }: { className?: string }) {
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <AvatarRow personas={workers.map(w => w.persona)} maxShow={3} />
           <span className="text-[12px] font-semibold text-[var(--text-primary)] shrink-0">
-            {L('팀', 'Team')} {doneCount}/{workers.length}
+            {L('팀', 'Team')} {settledCount}/{workers.length}
           </span>
-          {waitingCount > 0 && (
+          {attentionCount > 0 && (
             <span className="text-[10px] font-medium text-[var(--accent)] bg-[var(--accent)]/10 px-2 py-0.5 rounded-full shrink-0">
-              {L('입력', 'Input')} {waitingCount}
+              {L('확인', 'Check')} {attentionCount}
             </span>
           )}
-          {runningCount > 0 && waitingCount === 0 && (
+          {runningCount > 0 && attentionCount === 0 && (
             <span className="inline-flex items-center gap-1.5 text-[10px] text-[var(--accent)] bg-[var(--accent)]/8 px-2 py-0.5 rounded-full shrink-0">
               {L('진행', 'Active')} {runningCount}
               <TypingDots />
@@ -433,8 +498,14 @@ export function WorkerDrawer({ className }: { className?: string }) {
         {open && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/30" onClick={() => setOpen(false)} />
+              className="fixed inset-0 z-50 bg-black/30" onClick={() => setOpen(false)} aria-hidden="true" />
             <motion.div
+              ref={panelRef}
+              id={drawerId}
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={drawerTitleId}
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="fixed bottom-0 inset-x-0 z-50 max-h-[75dvh] rounded-t-2xl bg-[var(--surface)] shadow-[var(--shadow-xl)] overflow-hidden flex flex-col"
@@ -442,12 +513,12 @@ export function WorkerDrawer({ className }: { className?: string }) {
               <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--border-subtle)] shrink-0">
                 <div className="flex items-center gap-2">
                   <Users size={14} className="text-[var(--accent)]" />
-                  <span className="text-[13px] font-semibold text-[var(--text-primary)]">{L('팀', 'Team')}</span>
+                  <span id={drawerTitleId} className="text-[13px] font-semibold text-[var(--text-primary)]">{L('팀', 'Team')}</span>
                   <span className="text-[11px] text-[var(--text-secondary)] bg-[var(--bg)] px-2 py-0.5 rounded-full">
-                    {doneCount}/{workers.length}
+                    {settledCount}/{workers.length}
                   </span>
                 </div>
-                <button onClick={() => setOpen(false)} className="p-2.5 cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label={L('닫기', 'Close')}>
+                <button type="button" onClick={() => setOpen(false)} className="p-2.5 cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label={L('닫기', 'Close')}>
                   <X size={18} className="text-[var(--text-tertiary)]" />
                 </button>
               </div>

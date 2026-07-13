@@ -29,7 +29,7 @@
     {
       "name": "argus-driver",
       "source": "./argus-driver",
-      "description": "Thin driver for the argus-decision-mcp server: installing wires the MCP (stdio) automatically and ships the durable-ledger-aware statusline. Seal a falsifiable prediction, settle it against reality — the model never grades you.",
+      "description": "Thin driver for argus-decision-mcp. Installing it wires the MCP automatically so users can clarify a decision, save a testable prediction, and later record what actually happened. The model never grades the user.",
       "version": "0.1.0",
       "license": "MIT",
       "category": "productivity",

@@ -6,7 +6,7 @@
  *  - **검사는 전부 이 스크립트가 결정론적으로 수행**하고, Claude는 출력을
  *    전달만 한다 (LLM을 진단 루프의 라우터로 쓰지 않는다 — 정직한 구조 원칙).
  *  - 읽기 전용: 어떤 파일도 만들거나 고치지 않는다. 수리는 각 담당 두뇌
- *    (argus_settings 재실행, argus_check_in 재생성)가 한다 — doctor는 사실과
+ *    (argus_settings 복구, argus_check_in 재생성)가 한다 — doctor는 사실과
  *    다음 손잡이만 말한다 (스파인: 평결 없음, 개입 판단 대행 없음).
  *  - 모든 대상은 **절대 경로 평문** (정본 규칙 18 — 경로도 1급 표면).
  *  - 사용자 predicate 본문 등 untrusted 텍스트는 출력하지 않는다 (규칙 19).
@@ -45,7 +45,7 @@ say(`[1] 내구 홈: ${home}${process.env.ARGUS_HOME ? ' (ARGUS_HOME 지정)' : 
 const registryFile = path.join(home, 'registry.json');
 let registry = null;
 if (!fs.existsSync(registryFile)) {
-  say(`    registry 없음 (${registryFile}) — 아직 어떤 리포도 등록 전. argus_settings이 만든다.`);
+  say(`    registry 없음 (${registryFile}) — 아직 어떤 리포도 등록 전. argus_settings의 status가 필요할 때 만든다.`);
 } else {
   try {
     registry = JSON.parse(fs.readFileSync(registryFile, 'utf8'));
@@ -60,19 +60,19 @@ const bindingFile = path.join(cwd, '.argus', 'project.json');
 let repositoryId = null;
 say(`[2] 워크스페이스 바인딩: ${bindingFile}`);
 if (!fs.existsSync(bindingFile)) {
-  say('    바인딩 없음 — 이 워크스페이스는 v2 미사용. `argus_settings`이 바인딩을 만든다.');
+  say('    바인딩 없음 — 이 워크스페이스는 v2 미사용. `argus_settings` status가 바인딩을 복구한다.');
 } else {
   try {
     const binding = JSON.parse(fs.readFileSync(bindingFile, 'utf8'));
     repositoryId = typeof binding.repository_id === 'string' ? binding.repository_id : null;
-    if (!repositoryId) say('    ⚠ 바인딩 파일에 repository_id가 없다 — 파손. argus_settings 재실행으로 재생성.');
+    if (!repositoryId) say('    ⚠ 바인딩 파일에 repository_id가 없다 — 파손. argus_settings status로 재생성.');
     else {
       const registered = registry && registry.repositories &&
         Object.values(registry.repositories).some((id) => id === repositoryId);
       say(`    바인딩 OK — repository_id ${repositoryId}${registered ? ' (registry에 등록됨)' : registry ? ' — ⚠ registry에 없음 (홈이 바뀌었나? ARGUS_HOME 확인)' : ''}`);
     }
   } catch {
-    say('    ⚠ 바인딩 파일 JSON 파손 — argus_settings 재실행으로 재생성.');
+    say('    ⚠ 바인딩 파일 JSON 파손 — argus_settings status로 재생성.');
   }
 }
 
@@ -136,7 +136,7 @@ if (repositoryId) {
   if (fs.existsSync(marker)) {
     say(`    marker 있음 — v1 역사는 이전 완료(재이전 불필요, 성장분은 미러가 커버). 스냅샷: ${fs.existsSync(snapshot) ? snapshot : '없음(v1 원장이 없던 리포)'}`);
   } else {
-    say('    marker 없음 — 아직 v1 이전 전 (다음 argus_settings 바인딩 때 1회 수행).');
+    say('    marker 없음 — 아직 v1 이전 전 (다음 argus_settings status 때 1회 확인).');
   }
 }
 
@@ -146,7 +146,7 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
   say(`    ${fs.existsSync(p) ? '있음' : '없음'} — ${p}`);
 }
 
-// 8. 수확 큐 (opt-in·임시 상태 — 규칙 3·4)
+// 8. 자동 포착 큐 (내부 설정명은 harvest, opt-in·임시 상태 — 규칙 3·4)
 {
   let optIn = false;
   try {
@@ -154,7 +154,7 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
     optIn = cfg && cfg.harvest && cfg.harvest.opt_in === true;
   } catch { /* 설정 없음 = opt-out */ }
   const dataDir = process.env.CLAUDE_PLUGIN_DATA;
-  say(`[8] 수확: opt-in ${optIn ? 'ON' : 'OFF'} (${path.join(home, 'config.json')} harvest.opt_in)`);
+  say(`[8] 자동 포착: opt-in ${optIn ? 'ON' : 'OFF'} (${path.join(home, 'config.json')} harvest.opt_in)`);
   if (!dataDir) {
     say('    CLAUDE_PLUGIN_DATA 없음 — 플러그인 데이터 영역 밖에서 실행됨. 큐 검사 생략.');
   } else {
@@ -172,8 +172,8 @@ for (const p of [path.join(cwd, '.argus', 'ledger', 'ledger.jsonl'), path.join(h
     }
     try {
       const marker = JSON.parse(fs.readFileSync(path.join(dataDir, 'harvest-last-run.json'), 'utf8'));
-      say(`    마지막 수확 실행일: ${marker.date} (1일 1회 marker)`);
-    } catch { say('    마지막 수확 실행일: 기록 없음'); }
+      say(`    마지막 자동 포착 실행일: ${marker.date} (1일 1회 marker)`);
+    } catch { say('    마지막 자동 포착 실행일: 기록 없음'); }
   }
 }
 say('');

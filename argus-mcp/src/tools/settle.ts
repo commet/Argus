@@ -25,9 +25,9 @@ import { handleToolException } from './errors.js';
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
   id: zId,
-  outcome: z.enum(['held', 'avoided', 'partial', 'still_pending', 'missed']).describe("What reality did to the prediction. Record the user's words — never infer. 'missed' = the sealed read was wrong (a judgment miss, distinct from 'avoided'). 'still_pending' = at the check-by, reality genuinely has NOT answered yet — this does NOT settle the decision; it re-arms with a new check-by (pass defer_to) so it comes back, so never force a fake held/missed. If omitted, Argus asks the user directly (elicitation) on hosts that support it.").optional(),
+  outcome: z.enum(['held', 'avoided', 'partial', 'still_pending', 'missed']).describe("What reality did to the prediction. Record the user's words — never infer. 'missed' means the saved prediction was wrong; 'still_pending' means reality has not answered yet and requires a future defer_to. If omitted, Argus asks the user directly on hosts that support elicitation.").optional(),
   outcome_source: z.literal('user_stated').describe('Single value "user_stated". An AI-inferred outcome cannot be expressed.'),
-  what_happened: z.string().min(1).max(600).optional().describe("What reality did — the settled outcome, in the user's words. Required for a real settlement (held/avoided/partial/missed). Omit for still_pending: reality hasn't answered yet, so there is nothing to record — just pass defer_to."),
+  what_happened: z.string().min(1).max(600).optional().describe("What reality did, in the user's words. Required when recording held/avoided/partial/missed. Omit for still_pending and pass defer_to instead."),
   broken_premise_ref: z.string().max(64).optional().describe('Optional, USER-attributed: which tracked premise (ordinal like "P1"), if any, broke and drove the outcome. Never inferred by the model — ask, or omit.'),
   defer_to: zDate.optional().describe("Only with outcome='still_pending': the new check-by (YYYY-MM-DD, a real future date) — when to look again, taken from the horizon the user names (\"the data lands next Friday\"). The decision stays alive and comes due again then. Omit only if the user has not said when; on elicitation hosts Argus will ask."),
   today_override: zDate.optional(),
@@ -186,7 +186,7 @@ export const settle: ToolModule = {
       return envelope({
         ok: true, tool: 'argus_settle',
         surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed') + syncLine + connectionLine,
-        next_actions: ['argus_recall', 'stop'],
+        next_actions: ['argus_patterns', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',
           v2_write: v2Write,
@@ -297,7 +297,7 @@ async function deferStillPending(args: {
     // argus_dismiss had). archived, never settled: reality said nothing.
     const sync = await pushToAccount({ action: 'dismiss', id: accountPushId(dir, id) });
     const syncLine = sync.synced || sync.reason === 'no_token' ? '' : T.sync_failed(humanizeSyncReason(String(sync.reason), locale));
-    return envelope({ ok: true, tool: 'argus_settle', surface: T.defer_dismissed + syncLine, next_actions: ['argus_recall', 'stop'], data: { id, status: 'dismissed', v2_write: v2Write, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) } });
+    return envelope({ ok: true, tool: 'argus_settle', surface: T.defer_dismissed + syncLine, next_actions: ['argus_patterns', 'stop'], data: { id, status: 'dismissed', v2_write: v2Write, account_synced: sync.synced, ...(sync.synced ? {} : { account_sync_reason: sync.reason }) } });
   }
 
   // No date and no picker → do NOT guess, and NEVER terminal-settle. Ask.
@@ -305,7 +305,7 @@ async function deferStillPending(args: {
     return toolError({
       ok: false, tool: 'argus_settle', error_code: 'DEFER_DATE_REQUIRED',
       message: "Reality hasn't answered yet — this needs a new check-by, not a settlement.",
-      recovery: 'Ask the user when to look again and pass it as `defer_to` (YYYY-MM-DD). If the prediction no longer matters, dismiss it with argus_dismiss instead.',
+      recovery: 'Ask the user when to look again and pass it as `defer_to` (YYYY-MM-DD). If the prediction no longer matters, close it with argus_capture action="close".',
     });
   }
 

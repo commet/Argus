@@ -104,7 +104,7 @@ export function readV2Brief(argusDir: string, today: string):
     if (!commonDir) return { available: false, reason: 'not a git repository' };
     const home = argusHome();
     const repositoryId = lookupRepository(home, commonDir);
-    if (!repositoryId) return { available: false, reason: 'not bound — run argus_init' };
+    if (!repositoryId) return { available: false, reason: 'not bound — run argus_settings with action="status"' };
     return { available: true, brief: deriveBrief(loadState(home, repositoryId), today) };
   } catch (e) {
     return { available: false, reason: e instanceof Error ? e.message : String(e) };
@@ -124,7 +124,7 @@ export function mirrorV1Events(
     if (!commonDir) { out.reason = 'not a git repository — v2 durable ledger not in play'; return out; }
     const home = argusHome();
     if (!lookupRepository(home, commonDir)) {
-      out.reason = 'not bound to a repository_id — run argus_init once to open the durable ledger';
+      out.reason = 'not bound to a repository_id — run argus_settings with action="status" once to repair the binding';
       return out;
     }
     const ctx = contextFor({

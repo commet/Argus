@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useId, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, RotateCw, Loader2, ExternalLink, X, Repeat } from 'lucide-react';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
@@ -45,17 +45,17 @@ function HitReactionBar({ workerId, agentId, taskType }: { workerId: string; age
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+    <div className="flex flex-wrap items-center gap-1.5 mt-2.5" role="group" aria-label={L('분석 평가', 'Rate this analysis')}>
       <span className="text-[10px] text-[var(--text-tertiary)] mr-1">{L('이 분석이', 'This analysis was')}</span>
-      <button onClick={() => react('hit')}
+      <button type="button" onClick={() => react('hit')}
         className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[10px] rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer transition-colors">
         {L('새로웠다', 'New insight')}
       </button>
-      <button onClick={() => react('miss')}
+      <button type="button" onClick={() => react('miss')}
         className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[10px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
         {L('이미 알았다', 'Already knew')}
       </button>
-      <button onClick={() => react('irrelevant')}
+      <button type="button" onClick={() => react('irrelevant')}
         className="inline-flex items-center justify-center min-h-[40px] px-2.5 py-2 text-[10px] rounded-lg border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:bg-[var(--bg)] cursor-pointer transition-colors">
         {L('중요하지 않다', 'Not important')}
       </button>
@@ -75,32 +75,55 @@ function ResultModal({ worker, content, onClose, onApprove, onReject }: {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
   const body = content ?? worker.result ?? '';
+  const titleId = useId();
   // a11y: this was a bare overlay (no dialog role, no Escape, focus leaked behind
   // it and was lost on close). Give it the same baseline the shared Modal has —
   // Escape to close, focus the panel on open, restore focus to the opener on close.
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     const prevFocus = typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (focusable.length === 0) { e.preventDefault(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && (document.activeElement === first || !panelRef.current.contains(document.activeElement))) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    };
     document.addEventListener('keydown', onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const raf = requestAnimationFrame(() => panelRef.current?.focus());
     return () => {
       document.removeEventListener('keydown', onKey);
       cancelAnimationFrame(raf);
+      document.body.style.overflow = previousOverflow;
       prevFocus?.focus?.();
     };
-  }, [onClose]);
+  }, []);
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4"
     >
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
       <motion.div
         ref={panelRef}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={titleId}
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10 }}
@@ -111,14 +134,14 @@ function ResultModal({ worker, content, onClose, onApprove, onReject }: {
         <div className="flex items-center gap-3 px-4 sm:px-6 py-4 border-b border-[var(--border-subtle)] shrink-0">
           <WorkerAvatar persona={worker.persona} size="lg" />
           <div className="flex-1 min-w-0">
-            <p className="text-[15px] font-semibold text-[var(--text-primary)] truncate">
+            <p id={titleId} className="text-[15px] font-semibold text-[var(--text-primary)] truncate">
               {worker.persona ? localizePersona(worker.persona, locale).name : 'AI'}
             </p>
             <p className="text-[13px] text-[var(--text-secondary)] truncate">
               {worker.persona ? localizePersona(worker.persona, locale).role : ''} · {worker.task}
             </p>
           </div>
-          <button onClick={onClose} className="p-2.5 hover:bg-[var(--bg)] rounded-lg cursor-pointer transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label={L('닫기', 'Close')}>
+          <button type="button" onClick={onClose} className="p-2.5 hover:bg-[var(--bg)] rounded-lg cursor-pointer transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label={L('닫기', 'Close')}>
             <X size={18} className="text-[var(--text-tertiary)]" />
           </button>
         </div>
@@ -143,13 +166,13 @@ function ResultModal({ worker, content, onClose, onApprove, onReject }: {
             </span>
             <div className="flex gap-2.5">
               {onReject && worker.approved !== false && (
-                <button onClick={() => onReject(worker.id)}
+                <button type="button" onClick={() => onReject(worker.id)}
                   className="flex-1 sm:flex-none px-5 py-3 sm:py-2.5 text-[13px] text-red-600 dark:text-red-400 hover:bg-[var(--bg)] rounded-xl border border-[var(--border-subtle)] cursor-pointer transition-colors min-h-[44px]">
                   {L('제외', 'Exclude')}
                 </button>
               )}
               {onApprove && worker.approved !== true && (
-                <button onClick={() => onApprove(worker.id)}
+                <button type="button" onClick={() => onApprove(worker.id)}
                   className="flex-1 sm:flex-none px-5 py-3 sm:py-2.5 text-[13px] text-white font-semibold rounded-xl cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow min-h-[44px]"
                   style={{ background: 'var(--gradient-gold)' }}>
                   {L('반영', 'Apply')}

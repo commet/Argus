@@ -25,6 +25,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
     0,
   );
   const hasChanges = changedCount > 0;
+  const appliedCount = fb.concerns.filter(c => c.applied).length;
   return (
     <div className="space-y-5">
     {/* 공정 5-10 위계 수술: 정체성은 카드 안에서 한 번만 (divider 행 제거),
@@ -71,6 +72,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                 {fb.concerns.length > 1 && (
                   <div className="flex items-center gap-2.5 shrink-0">
                     <button
+                      type="button"
                       onClick={() => { if (!busy) fb.concerns.forEach((c, i) => { if (!c.applied) onToggle(i); }); }}
                       disabled={busy || fb.concerns.every(c => c.applied)}
                       className="text-[11px] font-medium text-[var(--accent)] hover:underline cursor-pointer disabled:opacity-30 disabled:cursor-default disabled:no-underline">
@@ -78,6 +80,7 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                     </button>
                     <span className="text-[var(--border)]">·</span>
                     <button
+                      type="button"
                       onClick={() => { if (!busy) fb.concerns.forEach((c, i) => { if (c.applied) onToggle(i); }); }}
                       disabled={busy || fb.concerns.every(c => !c.applied)}
                       className="text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-30 disabled:cursor-default">
@@ -121,7 +124,14 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                     )}
                     <div className="flex items-center justify-end gap-2">
                       <span className="text-[10px] text-[var(--text-tertiary)]">{c.applied ? L('반영', 'Applied') : L('제외', 'Skipped')}</span>
-                      <button onClick={() => onToggle(i)} className={`relative w-11 h-6 rounded-full cursor-pointer ${c.applied ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={c.applied}
+                        aria-label={L(`${i + 1}번째 수정 제안 최종본에 반영`, `Apply revision ${i + 1} to final document`)}
+                        onClick={() => onToggle(i)}
+                        disabled={busy}
+                        className={`relative w-11 h-6 rounded-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${c.applied ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`}
                         style={{ transitionProperty: 'background', transitionDuration: '400ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>
                         <motion.div className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm" animate={{ left: c.applied ? 24 : 4 }} transition={SPRING} />
                       </button>
@@ -148,6 +158,19 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
 
             {/* Actions — primary + secondary path */}
             <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-xl bg-[var(--bg)]/70 px-3.5 py-3" aria-live="polite">
+                <div>
+                  <p className="text-[12px] font-semibold text-[var(--text-primary)]">{L('최종본 반영 예정', 'Ready for final document')}</p>
+                  <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                    {fb.concerns.length > 0
+                      ? L(`수정 제안 ${fb.concerns.length}건 중 ${appliedCount}건 선택`, `${appliedCount} of ${fb.concerns.length} revisions selected`)
+                      : L('추가로 반영할 수정 제안이 없어요', 'No additional revisions to apply')}
+                  </p>
+                </div>
+                <span className="rounded-full bg-[var(--surface)] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[var(--accent)]">
+                  {fb.concerns.length > 0 ? `${appliedCount}/${fb.concerns.length}` : L('확인 완료', 'Checked')}
+                </span>
+              </div>
               {hasChanges && !busy && (
                 <motion.p
                   initial={{ opacity: 0, y: 4 }}
@@ -161,20 +184,24 @@ export function DMFeedback({ fb, onToggle, onFinalize, onDeepen, busy }: { fb: D
                 </motion.p>
               )}
               <motion.button
+                type="button"
                 onClick={onFinalize}
                 disabled={busy}
+                aria-busy={busy}
                 whileTap={{ scale: 0.98 }}
                 animate={hasChanges && !busy ? { boxShadow: ['0 0 0px rgba(180,160,100,0)', '0 0 18px rgba(180,160,100,0.45)', '0 0 0px rgba(180,160,100,0)'] } : { boxShadow: '0 0 0px rgba(180,160,100,0)' }}
                 transition={hasChanges && !busy ? { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.4 }}
                 className="w-full flex items-center justify-center gap-2 px-6 py-4 text-white rounded-2xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                 style={{ background: 'var(--gradient-gold)' }}
               >
-                {busy ? <><Loader2 size={16} className="animate-spin" /> {L('최종본 작성 중...', 'Finalizing...')}</> : <>{L('반영하고 완성', 'Apply and Finalize')} <ChevronRight size={14} /></>}
+                {busy
+                  ? <><Loader2 size={16} className="animate-spin" /> {L('최종본 작성 중...', 'Finalizing...')}</>
+                  : <>{appliedCount > 0 ? L(`선택한 ${appliedCount}건 반영하고 완성`, `Apply ${appliedCount} and finalize`) : L('수정 없이 완성', 'Finalize without revisions')} <ChevronRight size={14} /></>}
               </motion.button>
               {fb.would_ask.length === 0 && onDeepen && (
                 <p className="text-center text-[12px] text-[var(--text-tertiary)]">
                   {L('다른 관점이 필요하면 ', 'Need another perspective? ')}
-                  <button onClick={onDeepen} disabled={busy}
+                  <button type="button" onClick={onDeepen} disabled={busy}
                     className="text-[var(--accent)] hover:underline cursor-pointer font-medium disabled:opacity-50"
                     style={{ transitionProperty: 'color', transitionDuration: '200ms' }}>
                     {busy ? L('검토 중...', 'Reviewing...') : L('더 깊이 검토 →', 'Go deeper →')}

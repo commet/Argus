@@ -101,12 +101,12 @@ const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   what_happened: '실제로 일어난 일을 사용자의 말로 기록합니다.',
   broken_premise_ref: '결과에 영향을 줬다고 사용자가 지목한 전제입니다.',
   defer_to: '현실이 아직 답하지 않았을 때 다시 확인할 미래 날짜입니다.',
-  include_upcoming_days: '며칠 안에 확인일이 오는 계약까지 함께 표시합니다.',
+  include_upcoming_days: '며칠 안에 확인일이 오는 예측까지 함께 표시합니다.',
   fleet: '이 컴퓨터의 다른 Argus 프로젝트에 있는 확인 건수도 함께 봅니다.',
   view: '불러올 기록의 종류입니다.',
   due_only: '확인일이 된 기록만 표시합니다.',
   limit: '표시할 최대 기록 수입니다.',
-  import_settlements: '웹에서 정산한 결과를 로컬 원장으로 가져옵니다.',
+  import_settlements: '웹에서 기록한 실제 결과를 로컬 원장으로 가져옵니다.',
   push_local: '계정에 닿지 못한 로컬 변경을 다시 보냅니다.',
   dismiss_reason: '결정을 더는 추적하지 않는 이유입니다.',
   candidate_id: '포착된 결정 후보 id입니다.',
@@ -123,6 +123,70 @@ const KO_FIELD_DESCRIPTIONS: Record<string, string> = {
   premise_sync: '명시적으로 켜면 추적 전제를 계정과 동기화합니다.',
 };
 
+/** English half of the public schema copy. tools/list has no request locale,
+ * so every field a user or model can see must carry both languages. Keep this
+ * map independent of whichever language the underlying compatibility schema
+ * happened to use. */
+const EN_FIELD_DESCRIPTIONS: Record<string, string> = {
+  argus_dir: 'Absolute path to the project .argus directory. Omit it to use ARGUS_DIR from the MCP configuration.',
+  id: 'Stable identifier for the decision.',
+  decision: 'The choice the user is facing, or the user’s own answer to an open question.',
+  stakes: 'Cost of being wrong.',
+  reversibility: 'How difficult the decision is to reverse.',
+  status_quo: 'What happens if nothing changes.',
+  already_decided: 'Whether the user has already made the decision.',
+  crux_question: 'One neutral question that separates the decision paths.',
+  load_bearing_assumption: 'The single assumption the decision depends on most.',
+  related_to: 'Past decision ids the user considers related.',
+  action: 'The operation to perform.',
+  premises: 'Premises or open questions to add.',
+  text: 'The original sentence. Do not rewrite or summarize it.',
+  kind: 'Whether this item is a premise or an open question.',
+  external: 'Whether this is a fact that can be checked against external reality.',
+  load_bearing: 'Whether the decision would change if this premise were false.',
+  source: 'Where the fact or sentence came from.',
+  ai_original: 'The AI’s original wording when the source is ai_surfaced.',
+  recheck_cadence_days: 'Number of days between checks of a premise fact.',
+  reconsider_cadence_days: 'Number of days before revisiting an open question.',
+  ref: 'Reference number or id of the target premise or open question.',
+  finding: 'The currently verified fact in a sentence that can be compared later.',
+  numeric_value: 'Current numeric value of a measurable fact.',
+  changed: 'Whether a sentence-based fact materially changed from its baseline.',
+  source_detail: 'Source URL or short citation detail.',
+  apply_to_matching: 'Apply this re-check to other decisions tracking the same fact.',
+  predicate: 'A falsifiable prediction that reality can answer.',
+  check_by: 'Future date, in YYYY-MM-DD, when the prediction can be checked.',
+  dismiss_reason: 'Why this decision no longer needs tracking.',
+  note: 'Optional note.',
+  file_path: 'Absolute path to the document to review.',
+  source_kind: 'Override the automatically detected document type.',
+  title: 'Title of the document or record.',
+  concerns: 'Areas to emphasize in the review.',
+  audience_hint: 'Hint about the document’s intended audience.',
+  biggest_worry: 'The user’s main concern about the document.',
+  predicate_owner: 'Who authored the prediction. Never forge provenance.',
+  confirm_draft: 'Ask for one-tap confirmation when the AI drafted the prediction.',
+  basis: 'How the user characterizes the role of judgment and luck when looking back.',
+  real_question: 'The real question behind the recorded answer.',
+  unverified_assumption: 'The core assumption that has not yet been verified.',
+  human_only: 'The part only a human can judge.',
+  human_judgment: 'The user’s own one-line judgment.',
+  include_upcoming_days: 'Also show predictions whose check date falls within this many days.',
+  fleet: 'Also report due counts from other Argus projects on this computer.',
+  outcome: 'What actually happened to the prediction. The model must not infer it.',
+  outcome_source: 'Who stated the result. Only user_stated is accepted.',
+  what_happened: 'What actually happened, in the user’s own words.',
+  broken_premise_ref: 'Premise the user says affected the outcome.',
+  defer_to: 'Future date to check again when reality has not answered yet.',
+  view: 'Which part of the decision record to read.',
+  locale: 'User-facing language: ko or en.',
+  ambient_mute: 'Hide due reminder lines during the session.',
+  premise_sync: 'When explicitly enabled, sync tracked premises with the account.',
+  due_only: 'Sync only records whose check date has arrived.',
+  import_settlements: 'Import results recorded on the web into the local ledger.',
+  push_local: 'Retry local changes that have not reached the account.',
+};
+
 /** JSON Schema for tools/list, generated from the Zod source (drop $schema noise). */
 export function toolJsonSchema(schema: ToolInputSchema): Record<string, unknown> {
   const json = z.toJSONSchema(schema) as Record<string, unknown>;
@@ -137,7 +201,8 @@ export function toolJsonSchema(schema: ToolInputSchema): Record<string, unknown>
         const field = raw as Record<string, unknown>;
         const ko = KO_FIELD_DESCRIPTIONS[key];
         if (ko) {
-          const en = typeof field['description'] === 'string' ? field['description'].trim() : '';
+          const existing = typeof field['description'] === 'string' ? field['description'].trim() : '';
+          const en = EN_FIELD_DESCRIPTIONS[key] ?? existing;
           field['description'] = en ? `${ko}\n\n${en}` : ko;
         }
         visit(field);

@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { init } from '../init-config.js';
+import { config, init } from '../init-config.js';
 import { seal } from '../seal.js';
 import { settle } from '../settle.js';
 
@@ -43,6 +43,7 @@ const ASSUMPTION = 'write volume stays under 200 per second';
 describe('settle 연결 읽기 — 같은 전제에 선 다른 열린 결정', () => {
   it('전제가 깨진 정산이 같은 전제를 봉인한 다른 열린 결정을 표면에 올린다', async () => {
     await call(init, { argus_dir: argusDir });
+    await call(config, { argus_dir: argusDir, locale: 'en' });
     await call(seal, {
       argus_dir: argusDir, id: 'events-db', predicate: 'events query p95 stays under 100ms',
       check_by: '2026-09-01', predicate_owner: 'user', unverified_assumption: ASSUMPTION,

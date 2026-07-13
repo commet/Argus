@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useReviewStore } from '@/stores/useReviewStore';
@@ -8,7 +8,6 @@ import { useReframeStore } from '@/stores/useReframeStore';
 import { useRecastStore } from '@/stores/useRecastStore';
 import { useSynthesizeStore } from '@/stores/useSynthesizeStore';
 import { usePersonaStore } from '@/stores/usePersonaStore';
-import { useJudgmentStore } from '@/stores/useJudgmentStore';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -25,7 +24,7 @@ import { getVoyageState, VOYAGE_STATE_META, type VoyageLeg } from '@/lib/voyage-
 import { DecisionContractCard } from '@/components/projects/DecisionContractCard';
 import { DecisionItemsCard } from '@/components/projects/DecisionItemsCard';
 import { SettlementModal } from '@/components/projects/SettlementModal';
-import { contractStatus, summarizeRecord } from '@/lib/decision-contract';
+import { contractStatus } from '@/lib/decision-contract';
 import { isCheckpointDue } from '@/lib/checkpoint-core';
 import { RecordStrip } from '@/components/ui/RecordStrip';
 import { SharedGroundCard } from '@/components/review/SharedGroundCard';
@@ -96,11 +95,13 @@ export default function ProjectPage() {
   const { items: recastItems, loadItems: loadRecast } = useRecastStore();
   const { items: synthesizeItems, loadItems: loadSynthesize } = useSynthesizeStore();
   const { feedbackHistory, loadData: loadPersona } = usePersonaStore();
-  const { judgments, loadJudgments, getUserPatterns } = useJudgmentStore();
   const { sessions: progressiveSessions, loadSessions: loadProgressive } = useProgressiveStore();
   const [storesLoaded, setStoresLoaded] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const lastOpenedProjectIdRef = useRef<string | null>(null);
+  const returnFocusProjectIdRef = useRef<string | null>(null);
+  const listHeadingRef = useRef<HTMLHeadingElement>(null);
   // ?from=checkin — arrived via a check-in reminder email. On a logged-out /
   // fresh device the generic new-user empty state would read as "your sealed
   // decision is gone"; greet the returner honestly instead (03 S5 / P1-B2).
@@ -127,14 +128,13 @@ export default function ProjectPage() {
     loadRecast();
     loadSynthesize();
     loadPersona();
-    loadJudgments();
     loadProgressive();
     // Every loader hydrates localStorage synchronously before its optional
     // cloud merge. Until this effect has run, [] means "not read yet", not
     // "this user has no projects" — rendering the empty state here caused a
     // frightening false data-loss flash on every return.
     setStoresLoaded(true);
-  }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadJudgments, loadProgressive]);
+  }, [loadProjects, loadReframe, loadRecast, loadSynthesize, loadPersona, loadProgressive]);
 
   const currentProject = currentProjectId ? projects.find((p) => p.id === currentProjectId) : null;
 
@@ -385,6 +385,29 @@ export default function ProjectPage() {
     return list;
   }, [sortedProjects, query, statusFilter, projectMetricsMap]);
 
+  const openProject = useCallback((projectId: string) => {
+    lastOpenedProjectIdRef.current = projectId;
+    setCurrentProjectId(projectId);
+  }, [setCurrentProjectId]);
+
+  const returnToProjectList = () => {
+    returnFocusProjectIdRef.current = lastOpenedProjectIdRef.current ?? currentProjectId;
+    setCurrentProjectId(null);
+  };
+
+  useEffect(() => {
+    if (currentProjectId || !returnFocusProjectIdRef.current) return;
+
+    const projectId = returnFocusProjectIdRef.current;
+    returnFocusProjectIdRef.current = null;
+    const frame = window.requestAnimationFrame(() => {
+      const card = document.getElementById(`project-card-${projectId}`);
+      (card ?? listHeadingRef.current)?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentProjectId]);
+
   // Get items for current project
   const projectReframes = reframeItems.filter((d) => d.project_id === currentProjectId);
   const projectRecasts = recastItems.filter((o) => o.project_id === currentProjectId);
@@ -466,23 +489,28 @@ export default function ProjectPage() {
   const currentVoyageDone = currentContractAllGraded || (currentVoyageSession
     ? currentVoyageSession.phase === 'complete'
     : !!currentProject?.decision_contract);
+  const currentProjectIsDue = !!currentProject && dueIds.has(currentProject.id);
   const currentVoyageStatusLabel = currentContractAllGraded
     ? L('검증된 항해', 'Verified voyage')
-    : currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way');
+    : currentProjectIsDue
+      ? L('결과 확인할 때', 'Check-in due')
+      : currentVoyageDone ? L('항해 완료', 'Voyage complete') : L('항해 진행 중', 'Voyage under way');
+  const currentVoyageStatusClass = currentContractAllGraded
+    ? 'bg-[var(--collab)] text-[var(--success)]'
+    : currentProjectIsDue
+      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+      : 'bg-[var(--accent)]/10 text-[var(--accent)]';
   // The decision's CONTENT — until now this page showed only process chrome
   // (progress %, steps, formats) and never WHAT was decided. The bearing is
   // the one-screen answer; it replaces the bare "항해 완료" status card.
   const currentBearing = currentVoyageSession ? deriveCurrentBearing(currentVoyageSession) : null;
-  // 자차표 — the user's accumulating record across all projects. Quiet, factual.
-  const crossRecord = summarizeRecord(projects, Date.now());
-
   return (
     <div className="space-y-6">
       {/* Page header — title row with primary action */}
       {!currentProject && (
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight">{L('프로젝트', 'Projects')}</h1>
+            <h1 ref={listHeadingRef} tabIndex={-1} className="text-[22px] font-bold text-[var(--text-primary)] tracking-tight outline-none">{L('프로젝트', 'Projects')}</h1>
             <p className="text-[13px] text-[var(--text-secondary)] mt-1">
               {L('떠난 결정과 돌아올 결정을 한눈에.', 'Decisions that set out, and decisions coming back — at a glance.')}
             </p>
@@ -497,15 +525,6 @@ export default function ProjectPage() {
               <Plus size={13} /> {L('새 프로젝트', 'New project')}
             </LocaleLink>
           )}
-        </div>
-      )}
-
-      {currentProject && (
-        <div>
-          <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('프로젝트 오버뷰', 'Project Overview')}</h1>
-          <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-            {L('떠난 결정과 돌아올 결정을 한눈에.', 'Decisions that set out, and decisions coming back — at a glance.')}
-          </p>
         </div>
       )}
 
@@ -529,10 +548,11 @@ export default function ProjectPage() {
                 {L('봉인할 때 쓴 계정으로 로그인하면 바로 보여요.', 'Sign in with the account you sealed it with and it’s right here.')}
               </p>
               <div className="mt-4 flex items-center justify-center">
-                <LocaleLink href="/login?redirect=/project">
-                  <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all cursor-pointer">
-                    {L('로그인', 'Sign in')} <ArrowRight size={14} />
-                  </button>
+                <LocaleLink
+                  href="/login?redirect=/project"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all cursor-pointer"
+                >
+                  {L('로그인', 'Sign in')} <ArrowRight size={14} />
                 </LocaleLink>
               </div>
             </Card>
@@ -544,10 +564,11 @@ export default function ProjectPage() {
                 {L('워크스페이스에서 첫 결정을 적으면, 여기가 그 결정이 돌아올 모항이 돼요. 확인일이 오면 이 페이지가 먼저 물어요 — 그래서, 어떻게 됐어요?', "Write your first decision in the workspace and this becomes its home port. When the check-in day comes, this page asks first — so, how did it go?")}
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-                <LocaleLink href="/workspace">
-                  <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all cursor-pointer">
-                    {L('워크스페이스에서 시작하기', 'Start in workspace')} <ArrowRight size={14} />
-                  </button>
+                <LocaleLink
+                  href="/workspace"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold hover:shadow-[var(--shadow-sm)] hover:-translate-y-[1px] active:translate-y-0 transition-all cursor-pointer"
+                >
+                  {L('워크스페이스에서 시작하기', 'Start in workspace')} <ArrowRight size={14} />
                 </LocaleLink>
                 <LocaleLink href="/workspace?demo=planning" className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors">
                   {L('또는 30초 데모 먼저 보기 →', 'Or see a 30-second demo first →')}
@@ -583,7 +604,7 @@ export default function ProjectPage() {
                 progressiveSessions={progressiveSessions}
                 dueProjectIds={dueProjects.map((p) => p.id)}
                 locale={locale}
-                onSelect={setCurrentProjectId}
+                onSelect={openProject}
                 onReview={(id) => {
                   // Same re-arm as the strip chips: the settle question returns
                   // even if dismissed earlier this visit.
@@ -592,7 +613,7 @@ export default function ProjectPage() {
                     next.delete(id);
                     return next;
                   });
-                  setCurrentProjectId(id);
+                  openProject(id);
                 }}
                 receipts={reviewReceipts}
                 onSelectReceipt={() => router.push(`/${locale}/tools/review`)}
@@ -605,19 +626,21 @@ export default function ProjectPage() {
                   first, so the destination doesn't lose them). No new
                   settlement UI — the two existing surfaces stay (§5-11). */}
               {dueProjects.length + dueReceipts.length > 0 && (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                  <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] shrink-0">
+                <section aria-labelledby="due-decisions-heading" className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <h2 id="due-decisions-heading" className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)] shrink-0">
                     <ArgusMascot variant="head" size="xs" animate className="ring-amber-500/25" />
                     <span>
                       {locale === 'ko'
                         ? `그래서, 어떻게 됐어요? — 돌아올 결정 ${dueProjects.length + dueReceipts.length}건`
                         : `So, how did it go? — ${dueProjects.length + dueReceipts.length} decision${dueProjects.length + dueReceipts.length === 1 ? '' : 's'} to return to`}
                     </span>
-                  </p>
+                  </h2>
                   <div className="flex flex-wrap gap-1.5">
                     {dueProjects.map((p) => (
                       <button
+                        type="button"
                         key={p.id}
+                        aria-label={L(`${p.name} 결과 확인`, `Check in on ${p.name}`)}
                         onClick={() => {
                           // Re-arm the settle question even if dismissed earlier this visit.
                           setSettleDismissed((prev) => {
@@ -625,7 +648,7 @@ export default function ProjectPage() {
                             next.delete(p.id);
                             return next;
                           });
-                          setCurrentProjectId(p.id);
+                          openProject(p.id);
                         }}
                         className="max-w-full truncate px-2.5 py-1 rounded-lg text-[12px] font-medium border border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 transition-colors cursor-pointer"
                       >
@@ -643,7 +666,7 @@ export default function ProjectPage() {
                       </LocaleLink>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
               {/* ③ 사건의 원장 — the drifted shared ground's full record (the
@@ -651,11 +674,22 @@ export default function ProjectPage() {
                   Self-nulls on every flat day. */}
               <SharedGroundCard />
 
+              <section id="fleet-roster" aria-labelledby="fleet-roster-heading" className="space-y-3 scroll-mt-6">
+                <div className="px-1">
+                  <h2 id="fleet-roster-heading" className="text-[15px] font-bold text-[var(--text-primary)]">
+                    {L('항해 명부', 'Voyage roster')}
+                  </h2>
+                  <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+                    {L('확인이 필요한 결정부터 최근 순으로 정리했어요.', 'Decisions needing attention come first, followed by recent activity.')}
+                  </p>
+                </div>
+
               {/* Filter chips + search — Hick (05 S7): below FILTER_TOOLS_MIN the
                   whole fleet fits one screen, so the tools would only add choices. */}
               {stats.total >= FILTER_TOOLS_MIN && (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex flex-col gap-2 px-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div role="group" aria-label={L('프로젝트 상태 필터', 'Project status filter')} className="flex items-center gap-1.5 flex-wrap">
                   {([
                     { key: 'all', label: L('전체', 'All'), count: stats.total },
                     { key: 'active', label: L('진행 중', 'Active'), count: stats.inProgress },
@@ -665,7 +699,9 @@ export default function ProjectPage() {
                     const active = statusFilter === f.key;
                     return (
                       <button
+                        type="button"
                         key={f.key}
+                        aria-pressed={active}
                         onClick={() => setStatusFilter(f.key)}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-medium transition-all cursor-pointer ${
                           active
@@ -680,27 +716,50 @@ export default function ProjectPage() {
                       </button>
                     );
                   })}
+                    </div>
+                    <div className="relative">
+                      <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none" />
+                      <input
+                        type="search"
+                        aria-label={L('프로젝트 이름 검색', 'Search projects by name')}
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={L('프로젝트 검색', 'Search projects')}
+                        className="pl-7 pr-3 py-1.5 text-[12px] rounded-lg bg-[var(--bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/20 w-full sm:w-52 placeholder:text-[var(--text-tertiary)] transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex min-h-6 items-center justify-between gap-3 text-[11.5px] text-[var(--text-tertiary)]">
+                    <p role="status" aria-live="polite" aria-atomic="true">
+                      {L(`${filteredProjects.length}개 프로젝트`, `${filteredProjects.length} project${filteredProjects.length === 1 ? '' : 's'}`)}
+                    </p>
+                    {(query || statusFilter !== 'all') && (
+                      <button
+                        type="button"
+                        onClick={() => { setQuery(''); setStatusFilter('all'); }}
+                        className="font-semibold text-[var(--accent)] hover:underline cursor-pointer"
+                      >
+                        {L('검색·필터 초기화', 'Clear search and filters')}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="relative">
-                  <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none" />
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder={L('프로젝트 검색', 'Search projects')}
-                    className="pl-7 pr-3 py-1.5 text-[12px] rounded-lg bg-[var(--bg)] border border-[var(--border)] focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/20 w-full sm:w-52 placeholder:text-[var(--text-tertiary)] transition-all"
-                  />
-                </div>
-              </div>
               )}
 
               {/* Project grid — rich cards */}
               {filteredProjects.length === 0 ? (
                 <div className="text-center py-10 text-[13px] text-[var(--text-tertiary)]">
-                  {L("그 이름의 항해는 안 보여요 — 철자를 바꾸거나 필터를 '전체'로 돌려보세요.", 'No voyage by that name — try a different spelling, or set the filter back to All.')}
+                  <p>{L('조건에 맞는 항해가 없어요.', 'No voyages match these filters.')}</p>
+                  <button
+                    type="button"
+                    onClick={() => { setQuery(''); setStatusFilter('all'); }}
+                    className="mt-3 inline-flex items-center px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[12px] font-semibold text-[var(--accent)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
+                  >
+                    {L('전체 프로젝트 보기', 'Show all projects')}
+                  </button>
                 </div>
               ) : (
-                <div id="fleet-roster" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 scroll-mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredProjects.map((project) => {
                     const m = projectMetricsMap.get(project.id);
                     if (!m) return null;
@@ -743,14 +802,19 @@ export default function ProjectPage() {
                           : m.voyageComplete
                             ? L('문서 완료', 'Document ready')
                             : L(vMeta.ko, vMeta.en);
-                    const cardStatusClass = (m.voyageComplete || m.contractSealed) && !m.contractAllGraded && !isDue
-                      ? 'bg-[var(--collab)] text-[var(--success)]'
-                      : VOYAGE_TONE_CLS[vMeta.tone];
+                    const cardStatusClass = isDue
+                      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                      : (m.voyageComplete || m.contractSealed) && !m.contractAllGraded
+                        ? 'bg-[var(--collab)] text-[var(--success)]'
+                        : VOYAGE_TONE_CLS[vMeta.tone];
 
                     return (
                       <button
+                        type="button"
                         key={project.id}
-                        onClick={() => setCurrentProjectId(project.id)}
+                        id={`project-card-${project.id}`}
+                        aria-label={L(`${project.name} 열기 · ${cardStatusLabel}`, `Open ${project.name} · ${cardStatusLabel}`)}
+                        onClick={() => openProject(project.id)}
                         className={`group text-left bg-[var(--surface)] border rounded-xl p-4 hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col gap-3 ${
                           isDue
                             ? 'border-amber-500/50 hover:border-amber-500/80 hover:shadow-[var(--shadow-md)]'
@@ -776,10 +840,11 @@ export default function ProjectPage() {
                         <div className="flex items-center justify-between gap-2 text-[10.5px] uppercase tracking-wide font-bold">
                           <span
                             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${cardStatusClass}`}
-                            style={vMeta.tone === 'gold' ? { background: 'var(--gradient-gold-subtle)' } : undefined}
+                            style={vMeta.tone === 'gold' && !isDue ? { background: 'var(--gradient-gold-subtle)' } : undefined}
                           >
-                            {voyageState === 'sailing' && !m.doneEff && <span className="w-1 h-1 rounded-full bg-[var(--accent)] animate-pulse" />}
-                            {(m.voyageComplete || m.contractAllGraded) && <Check size={9} strokeWidth={3} />}
+                            {isDue && <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />}
+                            {!isDue && voyageState === 'sailing' && !m.doneEff && <span className="w-1 h-1 rounded-full bg-[var(--accent)] animate-pulse" />}
+                            {!isDue && (m.voyageComplete || m.contractAllGraded) && <Check size={9} strokeWidth={3} />}
                             {cardStatusLabel}
                           </span>
                           <span className="text-[var(--text-tertiary)] normal-case tracking-normal font-normal tabular-nums">
@@ -896,6 +961,7 @@ export default function ProjectPage() {
                   })}
                 </div>
               )}
+              </section>
 
               {/* ④ 쌓인 항적 — 자차표·항해일지. 기록은 아카이브이지 인사말이
                   아니다: 행동(②)과 함대(③) 아래 (구조 선언 참조). 각 블록은
@@ -924,41 +990,55 @@ export default function ProjectPage() {
       {/* Project detail */}
       {currentProject && (
         <div className="space-y-6 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <button onClick={() => setCurrentProjectId(null)} className="text-[12px] text-[var(--accent)] hover:underline cursor-pointer">
+          <header className="space-y-3 border-b border-[var(--border-subtle)] pb-5">
+            <button type="button" onClick={returnToProjectList} className="inline-flex items-center min-h-8 text-[12px] font-semibold text-[var(--accent)] hover:underline cursor-pointer">
               {L('← 프로젝트 목록', '← Project list')}
             </button>
-            <div className="flex gap-2">
-              <CopyButton getText={() => generateProjectBrief(currentProject)} label={L('브리프 복사', 'Copy brief')} />
-              <Button variant="secondary" size="sm" onClick={() => {
-                const brief = generateProjectBrief(currentProject);
-                const blob = new Blob([brief], { type: 'text/markdown' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${currentProject.name}-brief.md`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}>
-                <Download size={14} /> {L('다운로드', 'Download')}
-              </Button>
-            </div>
-          </div>
-
-          {/* Project header — the legacy 4-step progress bar is a FALSE
-              coordinate for voyage projects (they write nothing to those
-              stores), so it only renders for legacy-tool projects. */}
-          <Card>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-[18px] font-bold text-[var(--text-primary)] break-words min-w-0">{currentProject.name}</h2>
-              {currentHasVoyage && (
-                <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
-                  {currentVoyageStatusLabel}
-                </span>
-              )}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-[24px] sm:text-[27px] leading-tight font-bold text-[var(--text-primary)] tracking-tight break-words min-w-0">
+                    {currentProject.name}
+                  </h1>
+                  {currentHasVoyage && (
+                    <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full ${currentVoyageStatusClass}`}>
+                      {currentVoyageStatusLabel}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[12.5px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+                  {currentProjectIsDue
+                    ? L('확인일이 왔어요. 그때의 예측과 실제 결과를 나란히 확인해 보세요.', 'The check-in day is here. Compare what you predicted with what actually happened.')
+                    : currentContractAllGraded
+                      ? L('예측과 실제 결과를 모두 확인한 결정입니다.', 'This decision has been checked against its actual outcome.')
+                      : currentHasVoyage
+                        ? L('이 결정의 현재 방향과 근거, 다음 확인 약속을 모아 봅니다.', 'Review this decision’s current bearing, evidence, and next check-in.')
+                        : L('진행 내용과 결과물을 한곳에서 이어서 관리합니다.', 'Continue the work and manage its outputs in one place.')}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-start">
+                <CopyButton getText={() => generateProjectBrief(currentProject)} label={L('브리프 복사', 'Copy brief')} />
+                <Button variant="secondary" size="sm" onClick={() => {
+                  const brief = generateProjectBrief(currentProject);
+                  const blob = new Blob([brief], { type: 'text/markdown' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  const safeName = currentProject.name
+                    .trim()
+                    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '-')
+                    .replace(/[. ]+$/g, '')
+                    .slice(0, 96) || 'argus-project';
+                  a.href = url;
+                  a.download = `${safeName}-brief.md`;
+                  a.click();
+                  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+                }}>
+                  <Download size={14} /> {L('다운로드', 'Download')}
+                </Button>
+              </div>
             </div>
             {!currentHasVoyage && (
-              <div className="flex items-center gap-3 mt-2">
+              <div className="flex items-center gap-3 max-w-xl" aria-label={L(`진행률 ${completedSteps}/${steps.length}`, `Progress ${completedSteps} of ${steps.length}`)}>
                 <span className="text-[12px] text-[var(--text-secondary)]">{L('진행률', 'Progress')}</span>
                 <div className="flex-1 h-2 bg-[var(--border)] rounded-full overflow-hidden">
                   <div
@@ -969,7 +1049,7 @@ export default function ProjectPage() {
                 <span className="text-[12px] font-semibold text-[var(--accent)]">{completedSteps}/{steps.length}</span>
               </div>
             )}
-          </Card>
+          </header>
 
           {/* The decision itself — the Current Bearing IS the content of a
               voyage project (the long document stays in the workspace).
@@ -1012,7 +1092,10 @@ export default function ProjectPage() {
 
           {/* Decision Contract — falsifiable closed loop (§0 KICK).
               Seal only offered once the voyage is finished (all legs done). */}
-          <DecisionContractCard project={currentProject} sealable={completedSteps === steps.length} />
+          <DecisionContractCard
+            project={currentProject}
+            sealable={currentHasVoyage ? currentVoyageDone : completedSteps === steps.length}
+          />
 
           {/* Decision items — editable premises/phenomena + per-item change alerts
               (living-premises layer, internal design notes). */}
@@ -1088,85 +1171,6 @@ export default function ProjectPage() {
             ))}
           </div>}
 
-          {/* Metacognition: 나의 판단 패턴 — North-Star D.
-              Was derived from judgmentStore, which ONLY the legacy 4-tool flow
-              writes — so the DEFAULT progressive voyage (which seals into
-              decision_contract) showed the user no track record at all. Now the
-              primary source is the sealed contracts (counts-only, via
-              summarizeRecord); legacy tool judgments are kept as a secondary line
-              when present. A "forming" state at the first seal stops the moat from
-              looking empty the moment it starts accruing. */}
-          {(() => {
-            const sealedProjects = projects.filter(p => p.decision_contract);
-            const sealedCount = sealedProjects.length;
-            const patterns = judgments.length > 0 ? getUserPatterns() : null;
-            const projectJudgments = judgments.filter(j => j.project_id === currentProjectId);
-            // Nothing to show: neither a sealed decision nor a legacy judgment.
-            if (sealedCount === 0 && (!patterns || patterns.totalJudgments === 0)) return null;
-            const settled = crossRecord.loops;
-            const forming = sealedCount > 0 && settled === 0; // sealed, no outcome graded yet
-            return (
-              <Card className="!bg-[var(--bg)]">
-                {/* "패턴(patterns)" over-claimed — the body is seal/settle COUNTS,
-                    and getUserPatterns().commonThemes is hardcoded []. No recurring-
-                    theme detection or calibration trend exists yet, so name it for
-                    what it honestly is: a record. (Real cross-decision aggregation is
-                    tracked as deeper work in the audit.) */}
-                <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">{L('나의 기록', 'My record')}</h3>
-                <div className="space-y-2 text-[12px] text-[var(--text-secondary)]">
-                  {sealedCount > 0 && (forming ? (
-                    <p>
-                      {locale === 'ko' ? (
-                        <><span className="font-bold text-[var(--accent)]">패턴이 만들어지는 중</span> — 지금까지 <span className="font-bold text-[var(--text-primary)]">{sealedCount}개</span> 결정을 봉인했어요. 확인일이 오면 결과가 여기 쌓여요.</>
-                      ) : (
-                        <><span className="font-bold text-[var(--accent)]">Your pattern is forming</span> — <span className="font-bold text-[var(--text-primary)]">{sealedCount}</span> decision{sealedCount === 1 ? '' : 's'} sealed. When the check-in day comes, the outcome lands here.</>
-                      )}
-                    </p>
-                  ) : (
-                    <p>
-                      {locale === 'ko' ? (
-                        <>지금까지 <span className="font-bold text-[var(--text-primary)]">{sealedCount}개</span> 결정을 봉인했고, 그중 <span className="font-bold text-[var(--text-primary)]">{settled}개</span>는 결과까지 확인했어요.</>
-                      ) : (
-                        <>You&apos;ve sealed <span className="font-bold text-[var(--text-primary)]">{sealedCount}</span> decision{sealedCount === 1 ? '' : 's'}, and closed the loop on <span className="font-bold text-[var(--text-primary)]">{settled}</span>.</>
-                      )}
-                    </p>
-                  ))}
-                  {/* The accrued record — counts of what happened, never a score. */}
-                  {settled > 0 && (crossRecord.betsHeld > 0 || crossRecord.risksAvoided > 0 || crossRecord.betsBroke > 0) && (
-                    <p>
-                      {locale === 'ko'
-                        ? [
-                            crossRecord.betsHeld > 0 ? `적중한 가설 ${crossRecord.betsHeld}개` : '',
-                            crossRecord.risksAvoided > 0 ? `비켜 간 위험 ${crossRecord.risksAvoided}개` : '',
-                            crossRecord.betsBroke > 0 ? `빗나간 가설 ${crossRecord.betsBroke}개` : '',
-                            crossRecord.goodOutcomesOnLuck > 0 ? `그중 운으로 본 게 ${crossRecord.goodOutcomesOnLuck}개` : '',
-                          ].filter(Boolean).join(' · ')
-                        : [
-                            crossRecord.betsHeld > 0 ? `${crossRecord.betsHeld} bet${crossRecord.betsHeld === 1 ? '' : 's'} held` : '',
-                            crossRecord.risksAvoided > 0 ? `${crossRecord.risksAvoided} risk${crossRecord.risksAvoided === 1 ? '' : 's'} steered past` : '',
-                            crossRecord.betsBroke > 0 ? `${crossRecord.betsBroke} bet${crossRecord.betsBroke === 1 ? '' : 's'} missed` : '',
-                            crossRecord.goodOutcomesOnLuck > 0 ? `${crossRecord.goodOutcomesOnLuck} marked as luck` : '',
-                          ].filter(Boolean).join(' · ')}
-                    </p>
-                  )}
-                  {/* Legacy 4-tool judgments — kept as a secondary line when present. */}
-                  {patterns && projectJudgments.length > 0 && (
-                    <p>
-                      {locale === 'ko' ? (
-                        <>이 프로젝트에서 <span className="font-bold text-[var(--text-primary)]">{projectJudgments.length}건</span>의 판단을 내렸습니다.</>
-                      ) : (
-                        <>You&apos;ve made <span className="font-bold text-[var(--text-primary)]">{projectJudgments.length}</span> judgment{projectJudgments.length === 1 ? '' : 's'} in this project.</>
-                      )}
-                    </p>
-                  )}
-                </div>
-              </Card>
-            );
-          })()}
-
-          {/* (The "이전 프로젝트 N건과 비교할 수 있습니다" hint was a dead
-              sentence — no action attached — and was removed.) */}
-
           {/* Execution readiness + output formats read the LEGACY tool stores;
               a voyage project would get empty/hollow documents from them. */}
           {!currentHasVoyage && <ExecutionReadiness projectId={currentProject.id} />}
@@ -1188,27 +1192,17 @@ export default function ProjectPage() {
                     {nextStep.tool === 'rehearse' && L('판단자의 예상 반응을 시뮬레이션합니다.', 'Simulate how decision-makers will react.')}
                     {nextStep.tool === 'synthesize' && L('피드백을 반영하여 최종본을 완성합니다.', 'Apply feedback and finalize the draft.')}
                   </p>
-                  <LocaleLink href={nextStep.href}>
-                    <Button size="sm" className="mt-2">
-                      {L(`${nextStep.label} 시작`, `Start ${nextStep.label}`)} <ArrowRight size={12} />
-                    </Button>
+                  <LocaleLink
+                    href={nextStep.href}
+                    className="mt-2 inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg bg-[var(--primary)] text-[var(--bg)] text-[13px] font-semibold shadow-sm hover:-translate-y-px hover:shadow-md active:translate-y-0 transition-all"
+                  >
+                    {L(`${nextStep.label} 시작`, `Start ${nextStep.label}`)} <ArrowRight size={12} />
                   </LocaleLink>
                 </div>
               </div>
             </Card>
           )}
 
-          {/* All done */}
-          {completedSteps === steps.length && (
-            <Card className="!bg-[var(--collab)] !border-[var(--success)]/30 text-center py-6">
-              <Check size={24} className="mx-auto text-[var(--success)] mb-2" />
-              <p className="text-[15px] font-bold text-[var(--success)]">{L('모든 단계를 완료했습니다', 'All steps complete')}</p>
-              <p className="text-[12px] text-[var(--success)] mt-1">{L('프로젝트 브리프를 복사하거나 다운로드하세요.', 'Copy or download the project brief.')}</p>
-              <div className="flex justify-center gap-2 mt-3">
-                <CopyButton getText={() => generateProjectBrief(currentProject)} label={L('브리프 복사', 'Copy brief')} />
-              </div>
-            </Card>
-          )}
         </div>
       )}
     </div>

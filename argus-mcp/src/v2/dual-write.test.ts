@@ -75,7 +75,7 @@ describe('argus_seal/settle → v2 dual-write (v1 정본 유지)', () => {
     });
     expect(sealed['status']).toBe('sealed'); // v1 무영향
     expect(sealed.v2_write?.written).toBe(false);
-    expect(sealed.v2_write?.reason).toMatch(/argus_init/); // 침묵이 아니라 안내
+    expect(sealed.v2_write?.reason).toMatch(/argus_settings/); // 침묵이 아니라 공개 수리 손잡이
   });
 
   it('amend/dismiss도 양쪽 원장에 착지한다 (같은 dual-write 패턴)', async () => {

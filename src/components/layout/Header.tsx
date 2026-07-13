@@ -2,7 +2,7 @@
 
 import { LocaleLink } from '@/components/ui/LocaleLink';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3, UserCheck } from 'lucide-react';
+import { Menu, X, LogOut, Sun, Moon, Lock, MoreHorizontal, Download, Users, BookOpen, BarChart3, UserCheck, Search, Compass, FolderKanban, Settings2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useDueCount } from '@/hooks/useDueCount';
@@ -12,6 +12,7 @@ import { StorageErrorToast } from '@/components/ui/StorageErrorToast';
 import { SessionExpiredToast } from '@/components/ui/SessionExpiredToast';
 import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { stripLocale } from '@/lib/locale-path';
+import { CommandPalette, type CommandPaletteItem } from '@/components/ui/CommandPalette';
 
 export function Header() {
   const { locale, switchTo: handleLocaleChange } = useLocaleSwitch();
@@ -53,6 +54,47 @@ export function Header() {
     ...(isOperator ? [{ href: '/admin', label: L('계기판', 'Dashboard'), icon: BarChart3 }] : []),
   ];
 
+  const commandItems: CommandPaletteItem[] = [
+    {
+      href: '/workspace',
+      label: L('워크스페이스', 'Workspace'),
+      description: L('새 결정을 시작하거나 진행 중인 항해로 돌아갑니다.', 'Start a decision or return to an active voyage.'),
+      group: L('핵심', 'Core'),
+      keywords: ['decision', 'voyage', '결정', '항해'],
+      icon: Compass,
+    },
+    {
+      href: '/project',
+      label: L('프로젝트', 'Projects'),
+      description: L('결정 기록, 체크인, 결과를 한곳에서 봅니다.', 'Review decision records, check-ins, and outcomes.'),
+      group: L('핵심', 'Core'),
+      keywords: ['history', 'logbook', '기록', '체크인'],
+      icon: FolderKanban,
+    },
+    {
+      href: '/settings',
+      label: L('설정', 'Settings'),
+      description: L('모델, 언어, 연결과 데이터 환경을 조정합니다.', 'Adjust models, language, connections, and data.'),
+      group: L('환경', 'System'),
+      keywords: ['preferences', 'model', '환경', '모델'],
+      icon: Settings2,
+    },
+    ...utilityItems.map((item) => ({
+      ...item,
+      description: item.href === '/import'
+        ? L('기존 자료와 MCP 연결을 Argus로 가져옵니다.', 'Bring existing material and MCP connections into Argus.')
+        : item.href === '/teams'
+        ? L('분석에 참여할 관점과 팀 구성을 관리합니다.', 'Manage the perspectives and teams used for analysis.')
+        : item.href === '/boss'
+        ? L('내 결정을 검토할 상대의 관점을 설정합니다.', 'Set the perspective that will review your decisions.')
+        : item.href === '/guide'
+        ? L('Argus의 흐름과 주요 기능을 빠르게 익힙니다.', 'Learn the Argus flow and its main features.')
+        : L('운영 지표와 제품 상태를 확인합니다.', 'Review product status and operating metrics.'),
+      group: L('도구', 'Tools'),
+      keywords: [],
+    })),
+  ];
+
   // Return badge — projects whose contract check-in is due + review receipts
   // past check-by, one number via the shared hook (P0-6 ④ — Header, /project
   // and the workspace lantern all read useDueCount so they can never drift).
@@ -72,9 +114,26 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleGlobalKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setCommandPaletteOpen((open) => !open);
+      }
+      if (event.key === 'Escape') {
+        setMoreMenuOpen(false);
+        setUserMenuOpen(false);
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleGlobalKey);
+    return () => document.removeEventListener('keydown', handleGlobalKey);
+  }, []);
 
   // Close the overflow menu on outside click (same pattern as the user menu).
   useEffect(() => {
@@ -146,7 +205,7 @@ export function Header() {
   if (isLanding || pathname.startsWith('/design')) return null;
 
   return (
-    <header className="sticky top-0 z-40 bg-[var(--bg)] border-b border-[var(--border-subtle)]">
+    <header className="sticky top-0 z-40 border-b border-[var(--border-subtle)] bg-[var(--bg)]/92 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="h-16 flex items-center justify-between">
           <LocaleLink href="/" className="flex items-center gap-2.5 group">
@@ -173,7 +232,7 @@ export function Header() {
                     href={item.href}
                     className={`relative px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-all duration-200 flex items-center gap-1.5 ${
                       isActive
-                        ? 'bg-[var(--surface)] text-[var(--primary)] shadow-sm'
+                        ? 'bg-[var(--surface)] text-[var(--primary)] shadow-sm ring-1 ring-[var(--accent)]/15'
                         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                     title={showLock ? L('로그인이 필요해요', 'Requires sign-in') : undefined}
@@ -205,13 +264,14 @@ export function Header() {
                   <MoreHorizontal size={16} />
                 </button>
                 {moreMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-[var(--shadow-lg)] overflow-hidden animate-fade-in py-1">
+                  <div role="menu" className="absolute right-0 top-full mt-2 w-44 bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-[var(--shadow-lg)] overflow-hidden animate-fade-in py-1">
                     {utilityItems.map((item) => {
                       const Icon = item.icon;
                       return (
                         <LocaleLink
                           key={item.href}
                           href={item.href}
+                          role="menuitem"
                           onClick={() => setMoreMenuOpen(false)}
                           className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--text-primary)] transition-colors"
                         >
@@ -224,6 +284,18 @@ export function Header() {
                 )}
               </div>
             </nav>
+
+            <button
+              type="button"
+              onClick={() => setCommandPaletteOpen(true)}
+              className="group flex h-9 items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)]/70 px-3 text-[12px] text-[var(--text-secondary)] shadow-[var(--shadow-xs)] transition-colors hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)]"
+              aria-label={L('빠른 이동 열기', 'Open quick navigation')}
+              aria-haspopup="dialog"
+            >
+              <Search size={14} aria-hidden="true" />
+              <span className="hidden lg:inline">{L('빠른 이동', 'Quick find')}</span>
+              <kbd className="hidden xl:inline rounded border border-[var(--border-subtle)] bg-[var(--bg)] px-1.5 py-0.5 font-mono text-[9px] text-[var(--text-tertiary)]">Ctrl/⌘ K</kbd>
+            </button>
 
             {/* Locale toggle + Theme toggle + Status badges */}
             <div className="flex items-center gap-2">
@@ -300,13 +372,14 @@ export function Header() {
                   </button>
 
                   {userMenuOpen && (
-                    <div className="absolute right-0 top-full mt-1.5 w-56 bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-[var(--shadow-lg)] overflow-hidden animate-fade-in">
+                    <div role="menu" className="absolute right-0 top-full mt-1.5 w-56 bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-[var(--shadow-lg)] overflow-hidden animate-fade-in">
                       <div className="h-[2px] w-full" style={{ background: 'var(--gradient-gold)' }} />
                       <div className="px-3 py-2 border-b border-[var(--border-subtle)] mt-0">
                         <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{displayName}</p>
                         <p className="text-[11px] text-[var(--text-tertiary)] truncate">{user.email}</p>
                       </div>
                       <button
+                        role="menuitem"
                         onClick={handleSignOut}
                         className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg)] hover:text-[var(--danger)] transition-colors cursor-pointer"
                       >
@@ -343,6 +416,15 @@ export function Header() {
       {mobileMenuOpen && (
         <nav className="md:hidden border-t border-[var(--border-subtle)] bg-[var(--surface)] animate-slide-down">
           <div className="px-4 py-2 space-y-0.5">
+            <button
+              onClick={() => { setMobileMenuOpen(false); setCommandPaletteOpen(true); }}
+              className="mb-2 flex min-h-[44px] w-full items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg)] px-4 text-left text-[13px] text-[var(--text-secondary)]"
+              aria-haspopup="dialog"
+            >
+              <Search size={15} aria-hidden="true" />
+              <span className="flex-1">{L('페이지와 기능 찾기', 'Find pages and features')}</span>
+              <kbd className="rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 font-mono text-[9px]">Ctrl/⌘ K</kbd>
+            </button>
             {navItems.map((item) => {
               const showReturnBadge = item.href === '/project' && dueCount > 0;
               // Same as desktop: the return badge must not share a node with a lock.
@@ -441,6 +523,12 @@ export function Header() {
           </div>
         </nav>
       )}
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        locale={locale}
+        items={commandItems}
+      />
     </header>
   );
 }

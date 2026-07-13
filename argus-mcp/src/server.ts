@@ -5,12 +5,9 @@ import {
   ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { PUBLIC_TOOLS, TOOL_MAP, servedPublicTools } from './tools/index.js';
 import { listResources, listResourceTemplates, readResource } from './resources.js';
-import { listPublicPrompts, getPrompt } from './prompts.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
 import { setElicitor } from './lib/elicit.js';
 import { appendDueNote } from './lib/due-note.js';
@@ -23,9 +20,9 @@ import { recordServerStart, recordToolCall } from './lib/telemetry.js';
  * Argus MCP server (blueprint §4). v1 surface = Tools only — the universal
  * floor that works on every host. The spine bias is carried once by the
  * `instructions` field (the one spec-sanctioned home for the killed
- * paste-prompt), rendered from the single spine source. Resources and Prompts
- * are Phase 2; their capabilities are NOT declared until their handlers exist,
- * so a host never probes a no-op.
+ * paste-prompt), rendered from the single spine source. Resources provide one
+ * passive attention view. Separate MCP prompts were removed: they duplicated
+ * the tool surface and made users learn a second invocation system.
  */
 export async function createServer(): Promise<Server> {
   const meta = packageMeta();
@@ -36,7 +33,7 @@ export async function createServer(): Promise<Server> {
       // a host never probes a no-op (addendum J). `elicitation` is a client
       // capability we USE, not a server one we serve — advertised so the SDK
       // permits elicitInput; tools degrade to text when the host lacks it.
-      capabilities: { tools: {}, resources: {}, prompts: {} },
+      capabilities: { tools: {}, resources: {} },
       instructions: SERVER_INSTRUCTIONS,
     },
   );
@@ -68,13 +65,6 @@ export async function createServer(): Promise<Server> {
   server.setRequestHandler(ListResourcesRequestSchema, async () => listResources());
   server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => listResourceTemplates());
   server.setRequestHandler(ReadResourceRequestSchema, async (req) => readResource(req.params.uri));
-
-  // Legacy prompt compatibility: new clients discover no separate rituals,
-  // because the same discipline now lives in server instructions + purpose-led
-  // tools. prompts/get remains for one version so cached slash commands do not
-  // break abruptly.
-  server.setRequestHandler(ListPromptsRequestSchema, async () => listPublicPrompts());
-  server.setRequestHandler(GetPromptRequestSchema, async (req) => getPrompt(req.params.name, req.params.arguments));
 
   // Anonymous, opt-in activation signal (no-op unless ARGUS_TELEMETRY=1). Fire-
   // and-forget: never blocks server startup, never throws. See lib/telemetry.ts.

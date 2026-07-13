@@ -57,7 +57,7 @@ describe('premise state-machine matrix', () => {
   it('refuses premise events on an absent decision (no self-create)', () => {
     expect(() => guardTransition('absent', 'premise_add')).toThrowError(/not allowed/);
     try { guardTransition('absent', 'premise_add'); } catch (e) {
-      expect((e as GuardError).recovery).toContain('argus_open_decision');
+      expect((e as GuardError).recovery).toContain('argus_capture');
     }
   });
   it('allows add/amend/recheck/resolve on opened and sealed', () => {

@@ -61,7 +61,7 @@ export const openDecision: ToolModule = {
         return toolError({
           ok: false, tool: 'argus_open_decision', error_code: 'ALREADY_CLOSED',
           message: 'This decision is already underway or closed.',
-          recovery: 'To check reality, call argus_settle. Closed decisions are not reopened.',
+          recovery: 'To record what reality did, call argus_resolve. Closed decisions are not reopened.',
         });
       }
 
@@ -80,7 +80,7 @@ export const openDecision: ToolModule = {
         return envelope({
           ok: true, tool: 'argus_open_decision',
           surface: T.reconfirm,
-          next_actions: ['argus_open_decision', 'leave_as_is'],
+          next_actions: ['leave_as_is'],
           over_fire_gate: { fired: false, reason: gate.reason },
           data: { id, crux_question: null, restraint_option: a['status_quo'], fork_emitted: false, harvest_written: false },
         });
@@ -95,7 +95,7 @@ export const openDecision: ToolModule = {
           // §9.4 절벽 제거: the restraint verdict stands, but a user who still
           // wants the thought KEPT gets an exit — a watch note, not a decision.
           surface: `${T.reason[gate.reason as keyof typeof T.reason] ?? T.reason_fallback} ${T.leave_coda}${T.watch_exit}`,
-          next_actions: ['leave_as_is', 'argus_watch', 'skip'],
+          next_actions: ['leave_as_is', 'skip'],
           over_fire_gate: { fired: false, reason: gate.reason },
           data: { id, crux_question: null, restraint_option: a['status_quo'], fork_emitted: false, harvest_written: false },
         });
@@ -121,7 +121,7 @@ export const openDecision: ToolModule = {
       return envelope({
         ok: true, tool: 'argus_open_decision',
         surface: crux ? T.opened_with_crux(crux) : T.opened_bare,
-        next_actions: ['argus_seal', 'leave_as_is', 'skip'],
+        next_actions: ['argus_predict', 'leave_as_is', 'skip'],
         over_fire_gate: { fired: true, reason: gate.reason },
         data: {
           id,

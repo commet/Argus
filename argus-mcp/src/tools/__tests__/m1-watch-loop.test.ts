@@ -90,16 +90,16 @@ describe('M1 · an anchor is a note, not a bet (§9.2-3 비산입)', () => {
   });
 });
 
-describe('M1 · the restraint cliff has a watch exit (§9.4)', () => {
-  it('a restrained open_decision offers argus_watch as a note, not a decision', async () => {
+describe('M1 · a restrained decision stays quiet on the public surface', () => {
+  it('does not teach a separate watch ritual', async () => {
     const dir = tmpArgusDir();
     const res = body(await openDecision.handler({
       argus_dir: dir, id: 'flat-1', decision: 'tabs or spaces for this new file',
       stakes: 'trivial', reversibility: 'easily_reversible', status_quo: 'keep current style',
     }));
     expect((res['over_fire_gate'] as Record<string, unknown>)['fired']).toBe(false);
-    expect(String(res['surface'])).toContain('argus_watch');
-    expect(res['next_actions']).toContain('argus_watch');
+    expect(String(res['surface'])).not.toContain('argus_watch');
+    expect(res['next_actions']).not.toContain('argus_watch');
     expect(res['next_actions']).toContain('leave_as_is');
   });
 });

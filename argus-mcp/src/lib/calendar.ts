@@ -43,9 +43,9 @@ export function renderReturnCalendarEvent(args: {
   const stamp = args.created_at.replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
   const summary = `Argus return: ${args.predicate.slice(0, 80)}`;
   const description = [
-    'Your sealed Argus decision is due today.',
+    'An Argus prediction has reached its check date.',
     `Predicate: ${args.predicate}`,
-    'Open your terminal and run argus_check_in, then argus_settle if reality is clear.',
+    'Open your terminal and run argus_check_in, then argus_resolve if reality is clear.',
   ].join('\n');
   const lines = [
     'BEGIN:VCALENDAR',

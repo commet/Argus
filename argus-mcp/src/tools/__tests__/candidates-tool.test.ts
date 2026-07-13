@@ -76,7 +76,7 @@ describe('argus_candidates', () => {
       today_override: '2026-07-11',
     });
     expect(r.surface).toContain('sealed-dec');
-    expect(r.surface).toContain('argus_seal'); // 결정을 만드는 동사는 seal — 안내만
+    expect(r.surface).toContain('argus_predict'); // 공개 저장 경로만 안내
 
     const dead = await call({
       argus_dir: argusDir, action: 'drop', candidate_id: 'c-2', today_override: '2026-07-11',

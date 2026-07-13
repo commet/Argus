@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Sparkles, ChevronDown } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -42,6 +42,8 @@ export function FinalCard({
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const bodyId = useId();
+  const cardTitleId = useId();
   const logSession = useProgressiveStore(s => (sessionId ? s.sessions.find(ss => ss.id === sessionId) : null) ?? null);
   const baseTarget = releasedContent && releasedContent.length > 0 ? releasedContent : content;
   // The decision trail ("the process is the deliverable") is available, but
@@ -59,23 +61,31 @@ export function FinalCard({
   // secondary action that copies what's actually on screen.
   const viewingBranchDraft = !!(releasedContent && releasedContent !== content && releasedLabel);
   const [copiedDraft, setCopiedDraft] = useState(false);
+  const [copyDraftFailed, setCopyDraftFailed] = useState(false);
   const copyVisibleDraft = async () => {
     try {
       await copyToClipboard(content);
+      setCopyDraftFailed(false);
       setCopiedDraft(true);
       setTimeout(() => setCopiedDraft(false), 2000);
     } catch (err) {
       console.error('Copy failed:', err);
+      setCopyDraftFailed(true);
+      setTimeout(() => setCopyDraftFailed(false), 2500);
     }
   };
 
+  // Older restored sessions can predate these arrays. Keep the completed
+  // document readable instead of crashing at the exact moment the user returns.
+  const structuredSections = mix?.sections || [];
+  const structuredNextSteps = mix?.next_steps || [];
   // When we have the structured mix, render it with attribution; fall back to flat markdown otherwise.
-  const hasStructured = !!mix && mix.sections.length > 0;
+  const hasStructured = structuredSections.length > 0;
   const [bodyOpen, setBodyOpen] = useState(!defaultCollapsed);
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
-      <div className="rounded-2xl md:rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-lg)] overflow-hidden">
+      <article aria-labelledby={cardTitleId} className="rounded-2xl md:rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--surface)] shadow-[var(--shadow-lg)] overflow-hidden">
         <div className="overflow-hidden">
           {/* The document is the deliverable, so it stays distinguished — but the
               victory affect (gold gradient border + gold check medallion +
@@ -90,7 +100,7 @@ export function FinalCard({
               {/* 역할 부제 (F-1-1): '완성된 문서'와 '현재 방위'가 무슨 차이인지
                   안 보인다는 3회 지적 — 이 카드는 "가져가는 결과물"임을 명시. */}
               <div>
-                <span className="text-[14px] font-semibold text-[var(--text-primary)]">{L('완성된 문서', 'Final Document')}</span>
+                <span id={cardTitleId} className="text-[14px] font-semibold text-[var(--text-primary)]">{L('완성된 문서', 'Final Document')}</span>
                 <span className="block text-[11.5px] text-[var(--text-tertiary)] mt-0.5 leading-snug">{L('복사해서 바로 쓰는 결과물', 'The artifact you copy and use')}</span>
               </div>
             </div>
@@ -106,10 +116,11 @@ export function FinalCard({
                 {L(`복사하면 ${releasedLabel} 출시본이 나가요`, `Copy gives you the released ${releasedLabel}`)}
               </span>
               <button
+                type="button"
                 onClick={copyVisibleDraft}
                 className="text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] underline underline-offset-2 transition-colors cursor-pointer"
               >
-                {copiedDraft ? L('복사했어요', 'Copied') : L('지금 보는 버전 복사', 'Copy the version on screen')}
+                {copiedDraft ? L('복사했어요', 'Copied') : copyDraftFailed ? L('복사 실패 — 다시 시도', 'Copy failed — retry') : L('지금 보는 버전 복사', 'Copy the version on screen')}
               </button>
             </div>
           )}
@@ -139,32 +150,35 @@ export function FinalCard({
                 <>
                   <h2 className="text-[18px] md:text-[20px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
                   <p className="mt-1.5 text-[12px] text-[var(--text-tertiary)] tabular-nums">
-                    {L(`${mix!.sections.length}개 섹션${mix!.next_steps.length ? ` · 다음 단계 ${mix!.next_steps.length}` : ''}`, `${mix!.sections.length} sections${mix!.next_steps.length ? ` · ${mix!.next_steps.length} next steps` : ''}`)}
+                    {L(`${structuredSections.length}개 섹션${structuredNextSteps.length ? ` · 다음 단계 ${structuredNextSteps.length}` : ''}`, `${structuredSections.length} sections${structuredNextSteps.length ? ` · ${structuredNextSteps.length} next steps` : ''}`)}
                   </p>
                 </>
               )}
               <button
+                type="button"
                 onClick={() => setBodyOpen(true)}
+                aria-expanded="false"
+                aria-controls={bodyId}
                 className="mt-2.5 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--accent)] hover:opacity-70 cursor-pointer transition-opacity"
               >
                 {L('여기서 전체 읽기', 'Read it in full here')} <ChevronDown size={13} />
               </button>
             </div>
           ) : hasStructured ? (
-            <div className="p-5 md:p-8 space-y-5">
+            <div id={bodyId} role="document" aria-label={L('완성된 문서 본문', 'Final document body')} className="p-5 md:p-8 space-y-5">
               <h2 className="text-[22px] md:text-[26px] font-bold text-[var(--text-primary)] leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>{mix!.title}</h2>
               <blockquote className="rounded-lg bg-[var(--accent)]/[0.04] px-4 py-3 text-[14px] text-[var(--text-secondary)] italic leading-relaxed">
                 {renderInline(mix!.executive_summary)}
               </blockquote>
               <div className="space-y-5">
-                {mix!.sections.map((s, i) => (
+                {structuredSections.map((s, i) => (
                   <AttributedSection key={i} section={s} index={i} />
                 ))}
               </div>
-              {mix!.next_steps.length > 0 && (
+              {structuredNextSteps.length > 0 && (
                 <div className="pt-5 border-t border-[var(--border-subtle)]">
                   <p className="text-[9px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.2em] mb-3">{L('다음 단계', 'Next Steps')}</p>
-                  {mix!.next_steps.map((step, i) => (
+                  {structuredNextSteps.map((step, i) => (
                     <div key={i} className="flex items-start gap-2.5 text-[13px] text-[var(--text-primary)] mb-2 leading-relaxed">
                       <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] mt-2 shrink-0" />
                       <span>{step}</span>
@@ -174,7 +188,10 @@ export function FinalCard({
               )}
               {defaultCollapsed && (
                 <button
+                  type="button"
                   onClick={() => setBodyOpen(false)}
+                  aria-expanded="true"
+                  aria-controls={bodyId}
                   className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
                 >
                   {L('문서 접기 ▴', 'Collapse the document ▴')}
@@ -182,11 +199,14 @@ export function FinalCard({
               )}
             </div>
           ) : (
-            <div className="p-5 md:p-8 space-y-1">
+            <div id={bodyId} role="document" aria-label={L('완성된 문서 본문', 'Final document body')} className="p-5 md:p-8 space-y-1">
               {renderMd(content)}
               {defaultCollapsed && (
                 <button
+                  type="button"
                   onClick={() => setBodyOpen(false)}
+                  aria-expanded="true"
+                  aria-controls={bodyId}
                   className="mt-3 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
                 >
                   {L('문서 접기 ▴', 'Collapse the document ▴')}
@@ -201,7 +221,7 @@ export function FinalCard({
               never competes with the final document. */}
           {sessionId && <AgentGrowthFooter sessionId={sessionId} locale={locale} />}
         </div>
-      </div>
+      </article>
     </motion.div>
   );
 }
@@ -210,6 +230,7 @@ export function FinalCard({
    Gating the gamification keeps the final document the hero of the screen. */
 function AgentGrowthFooter({ sessionId, locale }: { sessionId: string; locale: string }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const detailId = useId();
   const [open, setOpen] = useState(false);
   const deltas = getSessionDeltas(sessionId);
   if (deltas.length === 0) return null;
@@ -225,7 +246,7 @@ function AgentGrowthFooter({ sessionId, locale }: { sessionId: string; locale: s
         type="button"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
-        aria-controls="agent-growth-detail"
+        aria-controls={detailId}
         className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
       >
         <Sparkles size={10} className="opacity-60 text-[var(--accent)]" />
@@ -239,7 +260,7 @@ function AgentGrowthFooter({ sessionId, locale }: { sessionId: string; locale: s
       <AnimatePresence>
         {open && (
           <motion.div
-            id="agent-growth-detail"
+            id={detailId}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}

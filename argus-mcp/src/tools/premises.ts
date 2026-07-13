@@ -135,10 +135,10 @@ export const premises: ToolModule = {
           if (!ref) { resolved.push(p); continue; }
           const hits = captures.filter((c) => c.id === ref || (c.id && c.id.startsWith(ref)) || c.text === ref);
           if (hits.length === 0) {
-            return toolError({ ok: false, tool: 'argus_premises', error_code: 'CAPTURE_NOT_FOUND', message: `No watch capture matches "${ref}".`, recovery: 'List captures with argus_watch op=list and pass the wc- id.' });
+            return toolError({ ok: false, tool: 'argus_premises', error_code: 'CAPTURE_NOT_FOUND', message: `No internal capture matches "${ref}".`, recovery: 'Pass the premise sentence directly in `text`.' });
           }
           if (hits.length > 1) {
-            return toolError({ ok: false, tool: 'argus_premises', error_code: 'AMBIGUOUS_REF', message: `"${ref}" matches ${hits.length} captures.`, recovery: 'Pass the full wc- id from argus_watch op=list.' });
+            return toolError({ ok: false, tool: 'argus_premises', error_code: 'AMBIGUOUS_REF', message: `"${ref}" matches ${hits.length} internal captures.`, recovery: 'Pass the premise sentence directly in `text`.' });
           }
           const c = hits[0];
           resolved.push({
@@ -163,7 +163,7 @@ export const premises: ToolModule = {
       if (op === 'add' && Array.isArray(a['premises'])) {
         for (const p of a['premises'] as Array<Record<string, unknown>>) {
           if (!(typeof p['text'] === 'string' && p['text'].trim().length > 0)) {
-            return toolError({ ok: false, tool: 'argus_premises', error_code: 'INVALID_INPUT', message: 'Each premise needs `text` (or a resolvable `from_capture`).', recovery: 'Pass the premise sentence, or a wc- capture id from argus_watch op=list.' });
+            return toolError({ ok: false, tool: 'argus_premises', error_code: 'INVALID_INPUT', message: 'Each premise needs `text` (or a resolvable internal capture).', recovery: 'Pass the premise sentence directly in `text`.' });
           }
           if (typeof p['source'] !== 'string') {
             return toolError({ ok: false, tool: 'argus_premises', error_code: 'PROVENANCE_REQUIRED', message: `Each premise needs \`source\` (user_stated | ai_surfaced): "${String(p['text']).slice(0, 60)}"`, recovery: 'Say who said it — never forge provenance. (from_capture carries the capture\'s provenance automatically.)' });
@@ -287,8 +287,8 @@ async function opAdd(
   const sealedNow = state === 'sealed';
   const refRange = events.length > 0 ? `${echo[0].ref}${echo.length > 1 ? `–${echo[echo.length - 1].ref}` : ''}` : '';
   const monitoredNote = monitoredCount === 0 ? '' : ko
-    ? (sealedNow ? ` 그중 ${monitoredCount}건은 나중에 실제와 다시 대조해 확인합니다 (이미 봉인됨).` : ` 그중 ${monitoredCount}건은 봉인한 뒤 실제와 다시 대조해 확인합니다.`)
-    : (sealedNow ? ` ${monitoredCount} will be re-checked against what actually happens (this decision is sealed).` : ` ${monitoredCount} will be re-checked against what actually happens once you seal the decision.`);
+    ? (sealedNow ? ` 그중 ${monitoredCount}건은 나중에 실제와 다시 대조해 확인합니다 (예측 저장됨).` : ` 예측을 저장하면 그중 ${monitoredCount}건을 나중에 실제와 다시 대조해 확인합니다.`)
+    : (sealedNow ? ` ${monitoredCount} will be re-checked against what actually happens (prediction saved).` : ` After saving a prediction, ${monitoredCount} will be re-checked against what actually happens.`);
   const oneLine = (s: string): string => {
     const t = s.replace(/\s+/g, ' ').trim();
     return t.length > 70 ? t.slice(0, 69) + '…' : t;
@@ -308,15 +308,15 @@ async function opAdd(
       : (events.length === 1
           ? (ko
               ? `방금 적어뒀어요: '${oneLine(echo[0]?.text ?? '')}'. 고칠 게 있으면 op=amend로 바꿀 수 있어요.${monitoredNote}`
-              : `Noted: "${oneLine(echo[0]?.text ?? '')}". Fix anything wrong with argus_premises.${monitoredNote}`)
+              : `Noted: "${oneLine(echo[0]?.text ?? '')}". Fix anything wrong with argus_capture.${monitoredNote}`)
           : (ko
               ? `전제 ${events.length}건을 기록했습니다 (${refRange}). 틀린 것이 있으면 op=amend로 고치세요. 고친 내용도 기록에 남습니다.${monitoredNote}`
-              : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with argus_premises; your correction stays on the record too.${monitoredNote}`));
+              : `${events.length} premise(s) recorded (${refRange}). Fix anything wrong with argus_capture; your correction stays on the record too.${monitoredNote}`));
 
   return envelope({
     ok: true, tool: 'argus_premises',
     surface,
-    next_actions: ['argus_seal', 'argus_recall', 'leave_as_is'],
+    next_actions: ['argus_predict', 'argus_patterns', 'leave_as_is'],
     data: { id, premises: echo, skipped_duplicates: skippedDup, ...(dupRetired.length ? { skipped_retired: dupRetired } : {}), ledger_events_written: events.map(() => 'premise_add') },
   });
 }
@@ -333,7 +333,7 @@ async function opAmend(
   const ref = a['ref'];
   const action = a['action'] as 'accept' | 'refine' | 'replace' | 'retire' | undefined;
   if (typeof ref !== 'string' || !action) {
-    return toolError({ ok: false, tool: 'argus_premises', error_code: 'AMEND_NEEDS_REF', message: 'op=amend needs `ref` (e.g. "P1") and `action`.', recovery: 'List premises via argus_recall view="premises", then amend by ordinal.' });
+    return toolError({ ok: false, tool: 'argus_premises', error_code: 'AMEND_NEEDS_REF', message: 'op=amend needs `ref` (e.g. "P1") and `action`.', recovery: 'List premises via argus_patterns view="decision_context", then amend by ordinal.' });
   }
   const premise = resolvePremiseRef(existing, ref);
   if (premise.status !== 'active' && action !== 'accept') {
@@ -382,7 +382,7 @@ async function opAmend(
   return envelope({
     ok: true, tool: 'argus_premises',
     surface,
-    next_actions: ['argus_recall', 'leave_as_is'],
+    next_actions: ['argus_patterns', 'leave_as_is'],
     data: {
       id, ref: `P${premise.ordinal}`, premise_id: premise.premise_id, action,
       ...(text ? { text } : {}), monitored_after: armed,
@@ -401,14 +401,14 @@ async function opResolve(
 
   const ref = a['ref'];
   if (typeof ref !== 'string') {
-    return toolError({ ok: false, tool: 'argus_premises', error_code: 'RESOLVE_NEEDS_REF', message: 'op=resolve needs `ref`.', recovery: 'List open questions via argus_recall view="premises", then resolve by ordinal.' });
+    return toolError({ ok: false, tool: 'argus_premises', error_code: 'RESOLVE_NEEDS_REF', message: 'op=resolve needs `ref`.', recovery: 'List open questions via argus_patterns view="decision_context", then resolve by ordinal.' });
   }
   const premise = resolvePremiseRef(existing, ref);
   if (premise.kind !== 'open_question') {
-    return toolError({ ok: false, tool: 'argus_premises', error_code: 'NOT_AN_OPEN_QUESTION', message: `P${premise.ordinal} is a premise, not an open question.`, recovery: 'Premises are re-checked against reality (argus_recheck), not resolved. Only an open_question takes the user\'s closing call.' });
+    return toolError({ ok: false, tool: 'argus_premises', error_code: 'NOT_AN_OPEN_QUESTION', message: `P${premise.ordinal} is a premise, not an open question.`, recovery: 'Re-check premises with argus_capture action="update_fact". Only an open question takes the user\'s closing call.' });
   }
   if (premise.status !== 'active') {
-    return toolError({ ok: false, tool: 'argus_premises', error_code: 'PREMISE_RETIRED', message: `P${premise.ordinal} is already ${premise.status}.`, recovery: 'Read it via argus_recall view="premises".' });
+    return toolError({ ok: false, tool: 'argus_premises', error_code: 'PREMISE_RETIRED', message: `P${premise.ordinal} is already ${premise.status}.`, recovery: 'Read it via argus_patterns view="decision_context".' });
   }
 
   let decision = typeof a['decision'] === 'string' ? (a['decision'] as string).trim() : '';
@@ -434,7 +434,7 @@ async function opResolve(
     surface: ko
       ? `미결 질문을 당신의 말로 닫았습니다 (P${premise.ordinal}): "${decision}".`
       : `Open question P${premise.ordinal} closed in your words: "${decision}".`,
-    next_actions: ['argus_recall', 'leave_as_is'],
+    next_actions: ['argus_patterns', 'leave_as_is'],
     data: { id, ref: `P${premise.ordinal}`, premise_id: premise.premise_id, decision, decision_owner: 'user' },
   });
 }
@@ -454,14 +454,14 @@ async function opStillOpen(
 
   const ref = a['ref'];
   if (typeof ref !== 'string') {
-    return toolError({ ok: false, tool: 'argus_premises', error_code: 'STILL_OPEN_NEEDS_REF', message: 'op=still_open needs `ref`.', recovery: 'List open questions via argus_recall view="premises", then defer by ordinal.' });
+    return toolError({ ok: false, tool: 'argus_premises', error_code: 'STILL_OPEN_NEEDS_REF', message: 'op=still_open needs `ref`.', recovery: 'List open questions via argus_patterns view="decision_context", then defer by ordinal.' });
   }
   const premise = resolvePremiseRef(existing, ref);
   if (premise.kind !== 'open_question') {
-    return toolError({ ok: false, tool: 'argus_premises', error_code: 'NOT_AN_OPEN_QUESTION', message: `P${premise.ordinal} is a premise, not an open question.`, recovery: 'Only an open_question can be left open. A premise is re-checked against reality (argus_recheck).' });
+    return toolError({ ok: false, tool: 'argus_premises', error_code: 'NOT_AN_OPEN_QUESTION', message: `P${premise.ordinal} is a premise, not an open question.`, recovery: 'Only an open question can be left open. Re-check a premise with argus_capture action="update_fact".' });
   }
   if (premise.status !== 'active') {
-    return toolError({ ok: false, tool: 'argus_premises', error_code: 'PREMISE_RETIRED', message: `P${premise.ordinal} is already ${premise.status}.`, recovery: 'Read it via argus_recall view="premises".' });
+    return toolError({ ok: false, tool: 'argus_premises', error_code: 'PREMISE_RETIRED', message: `P${premise.ordinal} is already ${premise.status}.`, recovery: 'Read it via argus_patterns view="decision_context".' });
   }
 
   await appendLedger(dir, [{
@@ -475,7 +475,7 @@ async function opStillOpen(
     surface: ko
       ? `P${premise.ordinal}, 열린 채로 둡니다. 평결도 압박도 없습니다. 한참 뒤에 다시 보여드리고, 그 전에는 조용히 있겠습니다. 질문을 열어두는 것도 진짜 선택입니다.`
       : `P${premise.ordinal} stays open. No verdict, no pressure. Argus brings it back after a while, not before you're ready. Leaving a question open is a real choice.`,
-    next_actions: ['argus_recall', 'leave_as_is'],
+    next_actions: ['argus_patterns', 'leave_as_is'],
     data: { id, ref: `P${premise.ordinal}`, premise_id: premise.premise_id, deferred: true },
   });
 }

@@ -60,7 +60,7 @@ describe('argus_check_in with due premises', () => {
     expect(d['due_premise_count']).toBe(1); // ONE fact group across two decisions (P1 accumulation lens)
     const groups = d['due_premises'] as Array<Record<string, unknown>>;
     expect((groups[0]['decisions'] as unknown[]).length).toBe(2);
-    expect(String(body(r)['surface'])).toContain('argus_recheck');
+    expect(String(body(r)['surface'])).toContain('argus_capture');
   });
 
   it('stays fully silent when nothing at all is due', async () => {

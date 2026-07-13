@@ -30,7 +30,7 @@ describe('argus_review', () => {
     const ids = d.lenses.map((l: { id: string }) => l.id);
     expect(ids).toContain('claim_evidence');
     expect(ids).toContain('human_judgment');
-    expect(res.structuredContent?.next_actions).toContain('argus_seal');
+    expect(res.structuredContent?.next_actions).toContain('argus_predict');
   });
 
   it('does not dump the source units twice (they ride in extraction_prompt only)', async () => {

@@ -104,7 +104,7 @@ describe('seal_text spine (renderSeal)', () => {
 });
 
 describe('settlement receipt copy', () => {
-  it('does not label an unsettled receipt as "Settled (open)"', () => {
+  it('does not label a receipt without a result as completed', () => {
     const text = renderReceipt({
       id: 'd1',
       predicate: 'cutover downtime stays under five minutes',
@@ -117,7 +117,7 @@ describe('settlement receipt copy', () => {
       skipped: [],
     });
 
-    expect(text).toContain('Not yet settled');
+    expect(text).toContain('Result not recorded yet');
     expect(text).not.toContain('Settled (open)');
   });
 });
@@ -159,21 +159,21 @@ describe('wake_text spine (renderWake)', () => {
 
   it('settled group is a count list of user-stated outcomes, never a rate', () => {
     const ko = renderWake(fixture, stats, TODAY, 'ko', '2026-07-03');
-    expect(ko).toContain('정산됨 (3): 그렇게 됨 1 · 피함 1 · 부분 1');
+    expect(ko).toContain('결과 기록됨 (3): 그렇게 됨 1 · 피함 1 · 부분 1');
     const en = renderWake(fixture, stats, TODAY, 'en', '2026-07-03');
-    expect(en).toContain('settled (3): held 1 · avoided 1 · partial 1');
+    expect(en).toContain('results recorded (3): held 1 · avoided 1 · partial 1');
   });
 
   it('three groups on a time axis, folded at 5 lines, with the settle handle returned', () => {
     const ko = renderWake(fixture, stats, TODAY, 'ko', '2026-07-03');
     expect(ko).toContain('확인일 지남 (6)');
-    expect(ko).toContain('← argus_settle');
+    expect(ko).toContain('← argus_resolve');
     expect(ko).toContain('… (+1)'); // 6 overdue, 5 shown
     expect(ko).toContain('결과를 기다리는 중 (2)');
     // overdue shows the check-by date, no running day-count (no shame counter)
     expect(ko).not.toContain('경과');
     expect(ko).toContain('답 08-01');
-    expect(ko).toContain('결정 12 · 봉인됨 8 · 정산 3');
+    expect(ko).toContain('결정 12 · 예측 저장 8 · 결과 기록 3');
     expect(ko).toContain('기록 시작 2026-07-03 부터');
   });
 

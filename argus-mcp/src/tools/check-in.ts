@@ -269,10 +269,10 @@ export const checkIn: ToolModule = {
       // Route to the tool that acts on whatever is due: settle a contract first,
       // else reconsider/recall. argus_premises closes or defers an open question.
       const next: NextAction[] = due.length > 0
-        ? ['argus_settle']
+        ? ['argus_resolve']
         : openQs.length > 0
-          ? ['argus_premises', 'argus_recall']
-          : ['argus_recall'];
+          ? ['argus_capture', 'argus_patterns']
+          : ['argus_patterns'];
 
       return envelope({
         ok: true, tool: 'argus_check_in',

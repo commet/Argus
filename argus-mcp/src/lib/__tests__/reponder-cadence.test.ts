@@ -106,7 +106,7 @@ describe('open_question reconsider — end to end (M3)', () => {
     const surface = String(ci['surface']);
     // the user's OWN words + a "still open is fine" coda + the handle, no directive
     expect(surface).toContain('how do we split equity');
-    expect(surface).toContain('argus_premises');
+    expect(surface).toContain('argus_capture');
     expect(surface).not.toMatch(/you should|you must|decide now/i);
     expect(String(ci['surface'])).toMatch(/leave it open|either is fine|still open/i);
   });

@@ -1,17 +1,19 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   getVoyageState,
   daysUntilWreck,
   wreckPin,
   VOYAGE_STATE_META,
+  DRIFT_DAYS,
+  WRECK_DAYS,
   type VoyageLeg,
   type VoyageState,
 } from '@/lib/voyage-state';
 import { contractStatus } from '@/lib/decision-contract';
-import { firstVoyageInscription } from '@/lib/record-summary';
 import { sharedGrounds, groundSpotlight } from '@/lib/judgment-graph';
+import { normalizePremiseText } from '@/lib/premises-core';
 import type { JudgmentReceipt } from '@/lib/review';
 import type {
   Project,
@@ -52,21 +54,29 @@ import type {
  *  - Quiet sea = quiet sheet: with nothing due there is no beacon, no notice,
  *    and the caption says "부를 배가 없어요" — restraint, not manufactured urgency.
  *
- * CRAFT constraints (07-11 session): no hand-authored SVG art — the scene is
- * pure CSS geometry (clip-path sails, gradient water, conic beam). The plate is
- * a committed-dark nocturne in the engraved-logbook family; its internal palette
- * is theme-stable ON PURPOSE (a framed night painting on the parchment page),
- * while everything under the plate uses page tokens and pairs with both themes.
+ * CRAFT constraints: no hand-authored SVG art — the scene is pure CSS geometry
+ * (clip-path sails, gradient water). 2026-07-13 (창업자: "밝게 가자, 답답하다"):
+ * the plate is now a LIGHT day-chart — a parchment sea with dark-ink vessels,
+ * an airy scatter you can read at a glance. The night-lighthouse-beam gimmick
+ * is gone; the due decision is marked by a calm gold ship + soft ring, not a
+ * sweeping searchlight. Palette is committed (theme-stable) so the chart reads
+ * the same on either page theme — a lit chart-table, dark ink on light water.
  */
 
-// ── nocturne plate palette (internal, theme-stable — see header comment) ──
+// ── day-chart plate palette (internal, committed light) ──
+// `paper` is the INK/line color (dark on light water) — kept the name so the
+// many `${N.paper}<alpha>` faint-line usages still read as "the etched line".
 const N = {
-  seaHi: '#201c16',
-  sea: '#15110b',
-  seaDeep: '#0e0b07',
-  land: '#0b0906',
-  paper: '#e8dcc3', // etched light — matches the dark-mode ink token for family kinship
-  gold: '#d4b968', // plate-internal gold (deliberately NOT the landing ceremony token)
+  seaHi: '#eae2d1', // haze near the horizon (lightest water, top)
+  sea: '#ded1b4', // open water
+  seaDeep: '#cebf9e', // deep water toward the harbour (bottom)
+  land: '#bdae87', // the harbour shore
+  paper: '#2b2620', // ink — vessels, hairlines, text
+  gold: '#8a6a1e', // deep gold, readable on light (fills / text) — the DONE hue
+  goldGlow: '#c39a34', // brighter gold for the due ship's soft ring
+  amber: '#bd6a1c', // burnt amber — the DRIFT hue (a fact of attention, never a
+  //                    verdict; distinct from the olive `gold` of completion)
+  card: '#f8f2e4', // near-white parchment — floating notices, pops off the sea
 };
 
 const DAY_MS = 86_400_000;
@@ -89,24 +99,87 @@ interface SeaShip {
   premise: string | null;
   /** One quiet fact line under the name (state · elapsed), locale-resolved. */
   sub: string;
+  /** Y-axis value 0..1 (1 = home/resolved). Derived from state via RESOLUTION. */
+  resolution: number;
+  /** Days since last activity — the X-axis (recency) input. */
   idleDays: number;
   createdAt: string;
 }
 
-/** Art-directed slots per zone (% of plate). Deterministic, collision-free,
- *  composed — a hash-scatter reads as noise; a hand-set constellation reads
- *  as a chart. Order = assignment order (oldest first within a zone). */
-const SLOTS: Record<'sailing' | 'adrift' | 'wrecked' | 'harbor' | 'docked', Array<{ x: number; y: number }>> = {
-  sailing: [
-    { x: 21, y: 28 }, { x: 40, y: 16 }, { x: 60, y: 26 }, { x: 28, y: 52 },
-    { x: 57, y: 56 }, { x: 68, y: 62 }, { x: 13, y: 15 },
-  ],
-  adrift: [ { x: 8, y: 28 }, { x: 11, y: 48 }, { x: 6, y: 63 } ],
-  wrecked: [ { x: 14, y: 77 }, { x: 23, y: 81 }, { x: 7, y: 82 } ],
-  harbor: [ { x: 42, y: 86 }, { x: 50, y: 86 }, { x: 58, y: 86 }, { x: 66, y: 86 }, { x: 34, y: 86 } ],
-  docked: [ { x: 86, y: 86 }, { x: 92, y: 86 }, { x: 80, y: 86 } ],
+/**
+ * ── THE CHART'S TWO AXES (2026-07-12: 슬롯 스캐터 → 좌표계) ─────────────────
+ * The sea is a scatter plot wearing a nautical skin. Every ship's position is
+ * COMPUTED from its own data on two orthogonal axes, so the layout is a system
+ * (scales from 3 ships to 60, position carries meaning) rather than hand-placed
+ * scenery:
+ *
+ *   Y = RESOLUTION — how close the voyage is to closing its loop.
+ *       bottom = 항구 (arrived / verified / at the pier), top = 먼바다 (out,
+ *       unresolved). Monotonic in the derived state.
+ *   X = ACTIVITY RECENCY — right = 최근에 손댐, left = 오래 손 놓음
+ *       (log-scaled idle days, normalized across the fleet).
+ *
+ * The payoff the founder asked for — "직관적으로 놓친 프로젝트" — falls out of the
+ * geometry: unresolved (high) + long-untended (left) ⇒ the TOP-LEFT waters.
+ * A finished voyage moored at the bottom is safe no matter how old (X is just
+ * moorage order there). Nothing is grouped or ranked by success; the danger
+ * corner is "untended", never "failed" (거울 조항).
+ */
+const RESOLUTION: Record<VoyageState, number> = {
+  verified: 0.98, // reckoned — fully home
+  arrived: 0.88, // landed, awaiting reckoning
+  docked: 0.80, // still at the pier — never sailed (home, low urgency)
+  sailing: 0.46, // out on the voyage
+  adrift: 0.30, // drifted off the lane
+  wrecked: 0.15, // far out, long lost
 };
-const BEACON_SLOT = { x: 44, y: 36 };
+
+/**
+ * A short KEYWORD for a project — sentence-length names can't label a chart, so
+ * the map shows a 1–2 word hint and the full name comes on hover / in the list
+ * below (창업자 07-13: "이름 그대로 말고 키워드 중심"). Deterministic, no LLM:
+ * drop filler/verb words + trailing Korean particles, keep the first two
+ * content words. Imperfect on abstract sentences — but it's a glance hint with
+ * the full name one hover away, never the source of truth.
+ */
+const KW_STOP = new Set([
+  '위한', '위해', '어떻게', '방법', '방안', '고민', '고민이', '고민이에요', '고민이야',
+  '고민중이야', '고민이돼', '고민이돼.', '할까', '할지', '될까', '맞을까', '좋을까', '하는', '하고',
+  '있어', '있는', '싶은데', '그리고', '너무', '정말', '지금', '현재', '앞으로', '대해서', '대해',
+  '대한', '관한', '통해', '통한', '이런', '저런', '우리', '내가', '나는', '제가', '별로', '것',
+  '등', '및', '전면', '계속', '다시', '해야', '하지', '되는', '살아남기', '생존하고', '성장하는',
+  '성공하는', '만들지', '어떻게해야', 'AI', '시대에',
+]);
+const KW_PARTICLES = ['인데', '라고', '라는', '이라', '한테', '으로', '로', '에서', '에게', '에', '의', '을', '를', '은', '는', '이', '가', '도', '만', '과', '와', '까지', '부터', '처럼', '보다'];
+
+function keyword(name: string): string {
+  const clean = (name || '').replace(/[?.!,"'“”「」·]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  const words = clean.split(' ').filter(Boolean);
+  const picked: string[] = [];
+  for (const w of words) {
+    if (picked.length >= 2) break;
+    let word = w;
+    for (const p of KW_PARTICLES) {
+      if (word.length > p.length + 1 && word.endsWith(p)) { word = word.slice(0, -p.length); break; }
+    }
+    if (KW_STOP.has(w) || KW_STOP.has(word) || word.length < 1) continue;
+    picked.push(word);
+  }
+  let out = picked.join(' ');
+  if (!out) out = words.slice(0, 2).join(' '); // fallback: first two words
+  return out.length > 12 ? `${out.slice(0, 11)}…` : out;
+}
+
+/** Deterministic sub-pixel jitter from an id, so ships sharing a cell don't
+ *  stack. Small (±) — never enough to cross an axis band. */
+function hashJitter(id: string): { jx: number; jy: number } {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) h = (h ^ id.charCodeAt(i)) * 16777619;
+  const a = ((h >>> 0) % 1000) / 1000;
+  const b = ((h >>> 11) % 1000) / 1000;
+  return { jx: (a - 0.5) * 8.5, jy: (b - 0.5) * 5.5 };
+}
 
 /** The plate's fixed aspect on sm+ (aspect-[16/7.2]) — lets current chords be
  *  computed as pure math (angle/length from % coords), no layout measurement.
@@ -163,17 +236,28 @@ function ShipMark({
 }) {
   const w = size;
   const h = Math.round(size * 1.12);
-  const sail = due ? N.gold : N.paper;
+  // ── the at-a-glance STATE SYSTEM (창업자 07-13: "상태별 구분 직관적으로") ──
+  // Three orthogonal cues, each readable even at 15px dense size:
+  //   1) COLOR family — gold = 결착(verified/done), amber = 표류(drift, a fact),
+  //      ink = 진행/귀항. The due ship is gold (the beacon).
+  //   2) POSTURE — sailing upright-full-sail, adrift heeled-slack, wrecked
+  //      sunk-bare, moored ships upright-furled.
+  //   3) GLYPH — separates the three furled look-alikes: docked flies nothing
+  //      (⚓ anchored, never sailed), arrived flies a pennant (came home),
+  //      verified flies a gold pennant + gold canvas (reckoned).
+  const drift = state === 'adrift' || state === 'wrecked';
+  const ink = due ? N.gold : state === 'verified' ? N.gold : drift ? N.amber : N.paper;
+  const sail = ink;
   const heel = state === 'adrift' ? -11 : heading;
 
   if (state === 'wrecked') {
-    // Aground on the shoal: heeled bare hull + stump of mast, sinking into the
-    // hatch. Dimmed — never enlarged, never colored as failure. No reflection:
-    // she is out of the water.
+    // Long untended, aground on the shoal: heeled bare hull + stump of mast,
+    // half-sunk. Amber (a fact of neglect), dimmed — never enlarged, never
+    // colored as failure (거울 조항). No reflection: she is out of the water.
     return (
-      <span aria-hidden className="relative block" style={{ width: w, height: h, opacity: 0.5 }}>
-        <span className="absolute block" style={{ left: '8%', right: '8%', bottom: '18%', height: '17%', background: N.paper, borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%', transform: 'rotate(21deg)' }} />
-        <span className="absolute block" style={{ left: '52%', bottom: '30%', width: 1.5, height: '34%', background: N.paper, transform: 'rotate(28deg)' }} />
+      <span aria-hidden className="relative block" style={{ width: w, height: h, opacity: 0.62 }}>
+        <span className="absolute block" style={{ left: '8%', right: '8%', bottom: '18%', height: '17%', background: ink, borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%', transform: 'rotate(21deg)' }} />
+        <span className="absolute block" style={{ left: '52%', bottom: '30%', width: 1.5, height: '34%', background: ink, transform: 'rotate(28deg)' }} />
       </span>
     );
   }
@@ -181,10 +265,20 @@ function ShipMark({
   const furled = state === 'docked' || state === 'arrived' || state === 'verified';
   const silhouette = (
     <>
-      {/* hull */}
-      <span className="absolute block" style={{ left: '6%', right: '6%', bottom: 0, height: '16%', background: N.paper, borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%' }} />
+      {/* hull — filled for a home vessel (arrived/verified), open for one still
+          out (sailing/docked-at-pier), so "closed the loop" reads as a solid
+          hull vs an outline even before you clock the sails. */}
+      <span
+        className="absolute block"
+        style={{
+          left: '6%', right: '6%', bottom: 0, height: '16%',
+          background: state === 'arrived' || state === 'verified' ? ink : 'transparent',
+          boxShadow: `inset 0 0 0 1.4px ${ink}`,
+          borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%',
+        }}
+      />
       {/* mast */}
-      <span className="absolute block" style={{ left: '50%', bottom: '14%', width: 1.5, height: '74%', background: N.paper, transform: 'translateX(-50%)' }} />
+      <span className="absolute block" style={{ left: '50%', bottom: '14%', width: 1.5, height: '74%', background: ink, transform: 'translateX(-50%)' }} />
       {furled ? (
         // canvas struck and lashed along the boom — a ship at her moorings.
         <>
@@ -193,16 +287,20 @@ function ShipMark({
         </>
       ) : (
         <>
-          {/* mainsail — vertical luff on the mast, clew trailing aft */}
+          {/* mainsail — vertical luff on the mast, clew trailing aft. Adrift =
+              luffing (slack + amber), so a drifted ship reads as "sail lost the
+              wind", not "under way". */}
           <span
             className="absolute block"
             style={{
               left: '52%', bottom: '22%', width: '42%', height: '64%',
-              background: sail, opacity: state === 'adrift' ? 0.3 : 0.95,
-              clipPath: 'polygon(0% 0%, 0% 100%, 100% 96%)',
+              background: sail, opacity: state === 'adrift' ? 0.45 : 0.95,
+              clipPath: state === 'adrift'
+                ? 'polygon(0% 0%, 0% 100%, 78% 90%)' // collapsed, spilling wind
+                : 'polygon(0% 0%, 0% 100%, 100% 96%)',
             }}
           />
-          {/* jib — struck when the wind is lost */}
+          {/* jib — set only when she has the wind (struck when adrift) */}
           {state !== 'adrift' && (
             <span
               className="absolute block"
@@ -215,12 +313,23 @@ function ShipMark({
           )}
         </>
       )}
-      {/* ensign — pennant for a project voyage, rectangular flag for a receipt */}
+      {/* masthead ensign. Receipt door → rectangular flag (honest fact of which
+          door she sailed from). Home vessels fly a pennant — gold for a reckoned
+          (verified) decision, ink for one arrived-and-awaiting-you. A docked
+          ship that never sailed flies nothing but drops an anchor (below). */}
       {kind === 'receipt' ? (
         <span className="absolute block" style={{ left: '52%', top: '2%', width: '26%', height: '9%', background: sail, opacity: 0.85, borderRadius: 0.5 }} />
-      ) : state === 'verified' ? (
-        <span className="absolute block" style={{ left: '50%', top: 0, width: 4, height: 4, background: N.gold, borderRadius: 1 }} />
+      ) : state === 'verified' || state === 'arrived' ? (
+        <span className="absolute block" style={{ left: '51%', top: '1%', width: '30%', height: '7%', background: ink, clipPath: 'polygon(0 0, 100% 0, 78% 50%, 100% 100%, 0 100%)' }} />
       ) : null}
+      {/* anchor — only the docked vessel (moored, never sailed) drops one. A
+          small stock-and-shank hanging at the bow: reads "parked at the pier". */}
+      {state === 'docked' && (
+        <>
+          <span className="absolute block" style={{ left: '50%', bottom: '2%', width: 1.2, height: '16%', background: ink, transform: 'translateX(-50%)', opacity: 0.85 }} />
+          <span className="absolute block" style={{ left: '50%', bottom: '2%', width: '26%', height: 1.2, background: ink, transform: 'translateX(-50%)', opacity: 0.85, borderRadius: 2 }} />
+        </>
+      )}
     </>
   );
 
@@ -234,26 +343,6 @@ function ShipMark({
         </>
       )}
       {silhouette}
-      {/* reflection — the whole silhouette mirrored below the waterline,
-          fading with depth. Calmer water at the moorings → a slightly
-          clearer image. (Mask is authored in local space so the flip lands
-          the strong edge at the waterline.) */}
-      {!plain && (
-      <span
-        className="absolute left-0 block w-full pointer-events-none"
-        style={{
-          top: '100%',
-          height: '100%',
-          transform: 'scaleY(-1)',
-          opacity: furled ? 0.17 : 0.11,
-          maskImage: 'linear-gradient(0deg, black 0%, transparent 60%)',
-          WebkitMaskImage: 'linear-gradient(0deg, black 0%, transparent 60%)',
-          filter: 'blur(0.5px)',
-        }}
-      >
-        {silhouette}
-      </span>
-      )}
     </span>
   );
 }
@@ -290,6 +379,48 @@ export function VoyageSea({
   onSelectReceipt?: (receiptId: string) => void;
 }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  // B (07-13): the chart is an operable control surface — a state filter that
+  // isolates a slice of the fleet (null = whole fleet).
+  const [filter, setFilter] = useState<string | null>(null);
+  // The map reads position AND colour as data, but that system is invisible to a
+  // first-timer (창업자 07-13: 직관적 사용). An on-demand key — progressive
+  // disclosure, so the chart stays quiet until you ask "how do I read this?".
+  const [showKey, setShowKey] = useState(false);
+  // Act-in-place (창업자 07-13: "판 위에서 바로 처리"): tapping a ship opens a
+  // small action card AT the ship — open / (due) 정산·다시 보기 — so the board
+  // is worked, not just read (and mobile stops tapping blind into a nav jump).
+  const [actionShip, setActionShip] = useState<string | null>(null);
+  const actionCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!actionShip) return;
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      actionCardRef.current?.querySelector<HTMLElement>('[data-autofocus="true"]')?.focus();
+    });
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      const shipId = actionShip;
+      setActionShip(null);
+      window.requestAnimationFrame(() => document.getElementById(`voyage-ship-${shipId}`)?.focus());
+    };
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [actionShip]);
+
+  useEffect(() => {
+    if (!showKey) return;
+    const closeLegendOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowKey(false);
+    };
+    document.addEventListener('keydown', closeLegendOnEscape);
+    return () => document.removeEventListener('keydown', closeLegendOnEscape);
+  }, [showKey]);
 
   // Same signal brain as projectMetricsMap / the old FleetChart — the ONE
   // derived-state source (getVoyageState). Two deliberate departures from
@@ -401,6 +532,7 @@ export function VoyageSea({
         dueDays: cs?.daysUntilCheckIn ?? null,
         premise,
         sub,
+        resolution: RESOLUTION[state],
         idleDays: idle,
         createdAt: p.created_at || lastActivityAt || '',
       });
@@ -439,7 +571,11 @@ export function VoyageSea({
           state === 'verified'
             ? L('검수 · 정산 완료', 'review · reckoned')
             : `${L('검수 봉인', 'review seal')} · ${relativeDays(r.updated_at || createdAt, now, locale)}`,
-        idleDays: 0,
+        resolution: RESOLUTION[state],
+        idleDays: (() => {
+          const t = new Date(r.updated_at || createdAt).getTime();
+          return Number.isNaN(t) ? 0 : Math.max(0, Math.floor((now - t) / DAY_MS));
+        })(),
         createdAt,
       });
     }
@@ -452,6 +588,13 @@ export function VoyageSea({
 
   // Below two ships there is no sea to chart — the page's list carries it.
   if (ships.length < 2) return null;
+
+  // ── DENSITY (07-12: validated at 43 real projects, not 11 fixtures) ──
+  // Project names are whole user sentences; you cannot label 40 of them on any
+  // chart. Above a threshold the map switches to the standard dense-scatter
+  // mode: ships become small marks, names move to hover, and only the due
+  // decision keeps a persistent label. Small fleets stay richly labeled.
+  const dense = ships.length > 14;
 
   // ── zone assignment. The beacon = the FIRST due ship (most overdue). Other
   //    due ships keep their zone but fly gold canvas. ──
@@ -476,48 +619,130 @@ export function VoyageSea({
     return { from: null, to: trim(d.finding) ?? null } as { from: string | null; to: string | null };
   })();
 
-  // On drift days the notice occupies the top-left water — the sea lanes and
-  // the drift margin shift out from under it (deterministic alternates, same
-  // composed feel). Ships behind glass are a composition bug, not a mood.
-  const sailingSlots = spotlight
-    ? [
-        { x: 37, y: 22 }, { x: 52, y: 13 }, { x: 64, y: 30 }, { x: 32, y: 54 },
-        { x: 57, y: 58 }, { x: 68, y: 64 }, { x: 46, y: 9 },
-      ]
-    : SLOTS.sailing;
-  const adriftSlots = spotlight
-    ? [ { x: 8, y: 58 }, { x: 14, y: 70 }, { x: 6, y: 46 } ]
-    : SLOTS.adrift;
+  // ── PLACEMENT = the two axes, computed (no hand-placed slots). Y from
+  //    resolution (home at the bottom), X from activity recency (recent at the
+  //    right), log-scaled and normalized across the fleet so one ancient
+  //    voyage doesn't crush the rest against the edge. Deterministic jitter
+  //    de-stacks cell-mates. This is why the map scales and why the top-left
+  //    (unresolved + long-untended) reads as "needs you" at a glance.
+  const TOP = 16;
+  const BOT = 85;
+  const maxIdle = Math.max(1, ...ships.map((s) => s.idleDays));
+  const logMax = Math.log1p(maxIdle);
 
   type Placed = SeaShip & { x: number; y: number; beacon: boolean };
-  const placed: Placed[] = [];
-  const overflow: Record<string, number> = {};
-  const used: Record<keyof typeof SLOTS, number> = { sailing: 0, adrift: 0, wrecked: 0, harbor: 0, docked: 0 };
-  for (const s of ships) {
-    if (beacon && s.id === beacon.id) {
-      placed.push({ ...s, ...BEACON_SLOT, beacon: true });
-      continue;
+  const placed: Placed[] = ships.map((s) => {
+    const isBeacon = !!beacon && s.id === beacon.id;
+    const t = logMax > 0 ? Math.log1p(s.idleDays) / logMax : 0; // 0 recent .. 1 idle
+    const { jx, jy } = hashJitter(s.id);
+    let x = 88 - t * 76 + jx; // recent → right (88), long-idle → left (12)
+    let y = TOP + s.resolution * (BOT - TOP) + jy; // home → bottom
+    // keep ships from hiding under the one remaining floating notice — the
+    // drift chip (top-left sky band). The beacon notice is no longer over the
+    // water (it's a banner above the plate), so the top-right is free again.
+    // The beacon ship is exempt; it sits at its true coordinate.
+    if (!isBeacon) {
+      if (spotlight && x < 26 && y < 21) y = 23 + (26 - x) * 0.2;
     }
-    const zone: keyof typeof SLOTS =
-      s.state === 'adrift' ? 'adrift'
-      : s.state === 'wrecked' ? 'wrecked'
-      : s.state === 'arrived' || s.state === 'verified' ? 'harbor'
-      : s.state === 'docked' ? 'docked'
-      : 'sailing';
-    const zoneSlots = zone === 'sailing' ? sailingSlots : zone === 'adrift' ? adriftSlots : SLOTS[zone];
-    const slot = zoneSlots[used[zone]];
-    if (!slot) {
-      overflow[zone] = (overflow[zone] || 0) + 1;
-      continue;
+    x = Math.max(4, Math.min(94, x));
+    y = Math.max(TOP - 3, Math.min(88, y));
+    return { ...s, x, y, beacon: isBeacon };
+  });
+
+  // De-overlap: a few DETERMINISTIC relaxation passes so name labels don't
+  // collide (the classic scatter problem). Separations are sized in each axis'
+  // own %-units (x ≈ plate width, y ≈ plate height). The nudges are small
+  // enough that the gross reading — neglect top-left, harbor bottom — survives;
+  // this is dodge/beeswarm, not re-ranking. The beacon is the immovable anchor.
+  // Dense mode packs by MARK size (no labels competing) → the true
+  // distribution shows; sparse mode reserves label footprint.
+  const SEPX = dense ? 4.6 : 10;
+  const SEPY = dense ? 7 : 9.5;
+  for (let pass = 0; pass < 26; pass++) {
+    for (let i = 0; i < placed.length; i++) {
+      for (let j = i + 1; j < placed.length; j++) {
+        const a = placed[i];
+        const b = placed[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const adx = Math.abs(dx);
+        const ady = Math.abs(dy);
+        if (adx >= SEPX || ady >= SEPY) continue;
+        const px = (SEPX - adx) / 2;
+        const py = (SEPY - ady) / 2;
+        // push apart along the axis of shallower penetration (less distortion)
+        if (px / SEPX < py / SEPY) {
+          const s = dx === 0 ? ((i + j) % 2 ? 1 : -1) : Math.sign(dx);
+          if (a.beacon) b.x += s * px * 2;
+          else if (b.beacon) a.x -= s * px * 2;
+          else { a.x -= s * px; b.x += s * px; }
+        } else {
+          const s = dy === 0 ? ((i + j) % 2 ? 1 : -1) : Math.sign(dy);
+          if (a.beacon) b.y += s * py * 2;
+          else if (b.beacon) a.y -= s * py * 2;
+          else { a.y -= s * py; b.y += s * py; }
+        }
+      }
     }
-    used[zone]++;
-    placed.push({ ...s, ...slot, beacon: false });
+  }
+  for (const p of placed) {
+    p.x = Math.max(4, Math.min(94, p.x));
+    p.y = Math.max(TOP - 3, Math.min(89, p.y));
+  }
+
+  // ── SHARED-GROUND LEVERAGE (판단 그래프, fleet-wide). Group EVERY charted
+  //    vessel — project or receipt — by the normalized text of its sealed
+  //    premise. Two decisions on the same key literally stand on the same
+  //    assumption: if it moves, they move together. Exact-match only (§4-1:
+  //    a broken wire yields NO link, never an invented one). Tapping a ship
+  //    lights its ground-siblings so "하나 흔들리면 같이" is a fact you can see,
+  //    not a verdict. This is the board's own intelligence, not a menu.
+  const siblingsOf = new Map<string, Placed[]>();
+  {
+    const byKey = new Map<string, Placed[]>();
+    for (const p of placed) {
+      const key = p.premise ? normalizePremiseText(p.premise) : '';
+      if (!key) continue;
+      (byKey.get(key) ?? byKey.set(key, []).get(key)!).push(p);
+    }
+    for (const group of byKey.values()) {
+      if (group.length < 2) continue; // no ground shared → no link (restraint)
+      for (const p of group) siblingsOf.set(p.id, group.filter((g) => g.id !== p.id));
+    }
   }
 
   const counts = {
     adrift: ships.filter((s) => s.state === 'adrift').length,
     wrecked: ships.filter((s) => s.state === 'wrecked').length,
   };
+  const untended = counts.adrift + counts.wrecked;
+  // Zone tallies for the board's diagnostic quadrants (below).
+  const sailingN = ships.filter((s) => s.state === 'sailing' && !s.due).length;
+
+  // ── the operable filters (B) — each isolates a real slice of the fleet.
+  //    Clicking one dims everything else and reveals the matches' keywords, so
+  //    the axes/states become something you ACT on, not just read. ──
+  const FILTERS: Array<{ key: string; ko: string; en: string; test: (s: SeaShip) => boolean; gold?: boolean; amber?: boolean }> = [
+    { key: 'due', ko: '다시 볼 것', en: 'due', test: (s) => s.due, gold: true },
+    { key: 'idle', ko: '오래 방치', en: 'untended', test: (s) => s.state === 'adrift' || s.state === 'wrecked', amber: true },
+    { key: 'sailing', ko: '항해 중', en: 'sailing', test: (s) => s.state === 'sailing' && !s.due },
+    { key: 'home', ko: '항구·완료', en: 'in harbor', test: (s) => s.state === 'arrived' || s.state === 'verified' },
+    { key: 'docked', ko: '출항 전', en: 'docked', test: (s) => s.state === 'docked' && !s.due },
+  ];
+  const filterList = FILTERS.map((f) => ({ ...f, n: ships.filter(f.test).length })).filter((f) => f.n > 0);
+  const activeFilter = FILTERS.find((f) => f.key === filter) || null;
+  const matchOf = (s: SeaShip) => !activeFilter || activeFilter.test(s);
+
+  // ── honest thresholds on the recency axis: the REAL 14d-adrift / 30d-wreck
+  //    lines from voyage-state, placed by the same log scale. Turns "vaguely
+  //    left = old" into "left of this labeled line = adrift/wrecked water" —
+  //    real structure, not fake precision (kills critique #4). ──
+  const thresholds = [
+    { d: DRIFT_DAYS, label: L(`${DRIFT_DAYS}일 · 표류`, `${DRIFT_DAYS}d · adrift`) },
+    { d: WRECK_DAYS, label: L(`${WRECK_DAYS}일 · 난파`, `${WRECK_DAYS}d · wrecked`) },
+  ]
+    .map((t) => ({ ...t, x: logMax > 0 ? 88 - (Math.log1p(t.d) / logMax) * 76 : -1 }))
+    .filter((t) => t.x > 9 && t.x < 85);
 
   // ── undersea currents — shared ground between charted vessels (the judgment
   //    graph made spatial). Relationship = normalizePremiseText EXACT equality
@@ -527,9 +752,14 @@ export function VoyageSea({
   //    adjacent members sorted by x, computed as pure math from the plate's
   //    fixed aspect — no layout measurement, no SVG.
   const currents: SeaCurrent[] = [];
+  // Premise keys whose ground has DRIFTED (last re-check moved). A decision
+  // standing on a moved premise is exposed — this is what turns leverage from a
+  // fact ("N stand together") into a warning ("N stand on ground that shifted").
+  const driftedKeys = new Set<string>();
   if (receipts?.length) {
     const pos = new Map(placed.map((s) => [s.id, s]));
     for (const g of sharedGrounds(receipts)) {
+      if (g.drift) driftedKeys.add(g.key);
       const members = [...new Set(g.members.map((m) => m.receipt_id))]
         .map((id) => pos.get(id))
         .filter((s): s is Placed => !!s)
@@ -550,10 +780,27 @@ export function VoyageSea({
     }
   }
 
-  // Engraved plate inscription — the pure elapsed fact (shared wording brain
-  // with the Logbook via record-summary, so it can never drift) + fleet size.
-  const firstDate = ships[0]?.createdAt ? String(ships[0].createdAt).slice(0, 10) : undefined;
-  const inscription = firstVoyageInscription(firstDate, Date.now(), locale);
+  // The focused ship's ground-siblings (leverage), and the lines to them.
+  const leverageFocus = actionShip && siblingsOf.has(actionShip)
+    ? placed.find((p) => p.id === actionShip) ?? null
+    : null;
+  const leverageSibs = leverageFocus ? siblingsOf.get(leverageFocus.id)! : [];
+  const leverageSet = leverageFocus
+    ? new Set<string>([leverageFocus.id, ...leverageSibs.map((s) => s.id)])
+    : null;
+  const leverageLinks = leverageFocus
+    ? leverageSibs.map((sib) => ({ x1: leverageFocus.x, y1: leverageFocus.y, x2: sib.x, y2: sib.y }))
+    : [];
+  // Is the focused group standing on ground that DRIFTED? Then leverage is a
+  // warning (amber), not a neutral fact (gold).
+  const leverageShaky = !!leverageFocus?.premise && driftedKeys.has(normalizePremiseText(leverageFocus.premise));
+  const leverageHue = leverageShaky ? N.amber : N.gold;
+  // Blast radius of the spotlit drift: how many charted decisions stand on the
+  // premise that just moved (the drift chip's "그 위 N척").
+  const driftKey = spotlight ? normalizePremiseText(spotlight.text) : '';
+  const driftExposed = driftKey
+    ? placed.filter((p) => p.premise && normalizePremiseText(p.premise) === driftKey).length
+    : 0;
 
   // Honest caption — plain facts in the calm register, no manufactured urgency.
   const caption = beacon
@@ -561,17 +808,16 @@ export function VoyageSea({
         `지금 다시 볼 결정 ${dueShips.length}건 — 등대가 비추고 있어요.`,
         `${dueShips.length} decision${dueShips.length === 1 ? '' : 's'} to revisit — the light is on ${dueShips.length === 1 ? 'it' : 'them'}.`,
       )
-    : counts.adrift + counts.wrecked > 0
+    : untended > 0
       ? L(
-          `표류 ${counts.adrift} · 난파 ${counts.wrecked} — 열면 다시 뜹니다.`,
-          `${counts.adrift} adrift · ${counts.wrecked} wrecked — open one and it refloats.`,
+          `왼쪽 위 ${untended}척이 오래 손을 놓았어요 — 열면 다시 뜹니다.`,
+          `${untended} ship${untended === 1 ? '' : 's'} sit long-untended, top-left — open one and it refloats.`,
         )
       : L(
           `부를 배가 없어요. ${ships.length}척 모두 제 항로에 있어요.`,
           `Nothing calls you back. All ${ships.length} ships are on course.`,
         );
 
-  const overflowNote = Object.values(overflow).reduce((a, b) => a + b, 0);
 
   return (
     <section aria-label={L('항해 지도 — 결정들의 현재 위치', 'Voyage chart — where each decision is now')}>
@@ -579,137 +825,267 @@ export function VoyageSea({
       <style>{`
         @keyframes vsea-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
         @keyframes vsea-in { from { opacity: 0; transform: translateY(7px) } to { opacity: 1; transform: translateY(0) } }
-        @keyframes vsea-beam { 0%,100% { transform: translateX(-50%) rotate(-44deg) } 50% { transform: translateX(-50%) rotate(34deg) } }
-        @keyframes vsea-halo { 0%,100% { opacity: .35; transform: translate(-50%,-50%) scale(.88) } 50% { opacity: .8; transform: translate(-50%,-50%) scale(1.1) } }
+        @keyframes vsea-halo { 0%,100% { opacity: .4; transform: translate(-50%,-50%) scale(.9) } 50% { opacity: .85; transform: translate(-50%,-50%) scale(1.08) } }
         @keyframes vsea-pulse { 0%,100% { opacity: .45 } 50% { opacity: 1 } }
         @keyframes vsea-flow { to { background-position: 13px 0 } }
         .vsea-flow { animation: vsea-flow 1.6s linear infinite }
         .vsea-in { opacity: 0; animation: vsea-in .7s cubic-bezier(.32,.72,0,1) forwards }
         .vsea-bob { animation: vsea-bob 6s ease-in-out infinite }
-        .vsea-beam { animation: vsea-beam 26s ease-in-out infinite }
         .vsea-halo { animation: vsea-halo 3.2s ease-in-out infinite }
         .vsea-pulse { animation: vsea-pulse 2.6s ease-in-out infinite }
         @media (prefers-reduced-motion: reduce) {
           .vsea-in { animation: none; opacity: 1 }
-          .vsea-bob, .vsea-beam, .vsea-halo, .vsea-pulse, .vsea-flow { animation: none }
+          .vsea-bob, .vsea-halo, .vsea-pulse, .vsea-flow { animation: none }
         }
       `}</style>
 
-      {/* ── the night sea plate (committed dark — a framed nocturne). The
-            beacon notice is a SIBLING of the plate: absolute over the water on
-            desktop, a normal block right below it on mobile — never mixed into
-            the ships layer (07-11 mobile-overlap fix). ── */}
+      {/* ── beacon banner — the due decision's prompt, ABOVE the map as a
+            banner (07-13: floating it over the water always collided with
+            ships). "① 지금 할 것 → ② 지도" hierarchy; zero overlap. Horizontal:
+            kicker + name + sealed bet on the left, the CTA on the right. ── */}
+      {beacon && (
+        <div className="mb-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-xl px-4 py-3" style={{ background: `linear-gradient(105deg, ${N.gold}14 0%, ${N.card} 34%)`, border: `1px solid ${N.gold}30`, boxShadow: `0 1px 2px ${N.paper}0d` }}>
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.gold }}>
+              <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />
+              {L('그래서, 어떻게 됐어요?', 'So, how did it go?')}
+              {dueShips.length > 1 && (
+                <span className="font-normal opacity-70">· {L(`${dueShips.length}건`, `${dueShips.length} due`)}</span>
+              )}
+            </p>
+            <p className="mt-1 text-[15px] font-bold leading-snug break-keep" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+              {beacon.name}
+            </p>
+            {beacon.premise ? (
+              <p className="mt-0.5 text-[12px] leading-relaxed break-keep" style={{ color: `${N.paper}a8` }}>
+                {L('봉인한 내기 — ', 'Sealed bet — ')}
+                <em style={{ color: `${N.paper}d0` }}>「{beacon.premise.length > 52 ? `${beacon.premise.slice(0, 52)}…` : beacon.premise}」</em>
+              </p>
+            ) : (
+              <p className="mt-0.5 text-[12px] leading-relaxed break-keep" style={{ color: `${N.paper}a1` }}>
+                {L('약속한 확인일이 왔어요. 봉인할 때의 눈으로 지금을 재볼 시간.', 'The check-in you promised has arrived — reread it with the eyes you sealed it with.')}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => onReview(beacon.id)}
+            className="shrink-0 self-start sm:self-center inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-mono font-semibold cursor-pointer transition-[gap] duration-300 hover:gap-2.5"
+            style={{ background: N.gold, color: N.card }}
+          >
+            {L('다시 보기', 'Revisit')} <span aria-hidden>→</span>
+          </button>
+        </div>
+      )}
+
+      {/* ── the day-sea plate (committed light — a parchment sea-chart) ── */}
       <div className="relative">
       <div
-        className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] shadow-[var(--shadow-md)] min-h-[400px] sm:min-h-0 sm:aspect-[16/7.2]"
+        className="relative overflow-hidden rounded-2xl min-h-[380px] sm:min-h-0 sm:aspect-[16/7.2]"
         style={{
-          background: `linear-gradient(176deg, ${N.seaHi} 0%, ${N.sea} 52%, ${N.seaDeep} 100%)`,
-          // engraved plate: a whisper of an inner rule inside the outer border
-          boxShadow: `inset 0 0 0 1px ${N.paper}0f, inset 0 1px 0 ${N.paper}14`,
+          // Deeper tonal RANGE = the water has presence instead of reading as a
+          // flat pale rectangle (07-13: 흐리멍덩 저대비 지적). A firmer frame +
+          // shadow makes the map the dominant panel, not one more beige box.
+          background: `linear-gradient(180deg, ${N.seaHi} 0%, ${N.sea} 44%, ${N.seaDeep} 82%, ${N.land} 100%)`,
+          boxShadow: `inset 0 0 0 1px ${N.paper}22, 0 6px 20px -8px ${N.paper}33`,
         }}
       >
         {/* corner registration ticks — the plate signature */}
         {(['top-2 left-2 border-t border-l', 'top-2 right-2 border-t border-r', 'bottom-2 left-2 border-b border-l', 'bottom-2 right-2 border-b border-r'] as const).map((pos) => (
-          <span key={pos} aria-hidden className={`absolute w-2.5 h-2.5 z-[2] pointer-events-none ${pos}`} style={{ borderColor: `${N.paper}38` }} />
+          <span key={pos} aria-hidden className={`absolute w-2.5 h-2.5 z-[2] pointer-events-none ${pos}`} style={{ borderColor: `${N.paper}30` }} />
         ))}
-        {/* swell — engraved hairlines in PERSPECTIVE: tight near the horizon,
-            widening toward the foreground. Two masked layers, still paper. */}
+        {/* swell — engraved hairlines in perspective (tight near the horizon,
+            wider in the foreground). A touch firmer now so the water has real
+            texture instead of reading as blank paper. */}
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
-            background: `repeating-linear-gradient(180deg, transparent 0 21px, ${N.paper}0a 21px 22px)`,
-            maskImage: 'linear-gradient(180deg, transparent 6%, black 24%, black 46%, transparent 60%)',
-            WebkitMaskImage: 'linear-gradient(180deg, transparent 6%, black 24%, black 46%, transparent 60%)',
+            background: `repeating-linear-gradient(180deg, transparent 0 30px, ${N.paper}0f 30px 31px)`,
+            maskImage: 'linear-gradient(180deg, transparent 8%, black 30%, black 84%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(180deg, transparent 8%, black 30%, black 84%, transparent 100%)',
           }}
         />
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background: `repeating-linear-gradient(180deg, transparent 0 42px, ${N.paper}10 42px 43.5px)`,
-            maskImage: 'linear-gradient(180deg, transparent 40%, black 58%, black 86%, transparent 98%)',
-            WebkitMaskImage: 'linear-gradient(180deg, transparent 40%, black 58%, black 86%, transparent 98%)',
-          }}
-        />
-        {/* night air — starlight, a breath of moon, and the moonglade: a
-            faint column of light lying on the water. All static. */}
-        <div aria-hidden className="absolute inset-0" style={{ background: `radial-gradient(42% 30% at 33% 0%, ${N.paper}10, transparent 70%)` }} />
-        <div
-          aria-hidden
-          className="absolute pointer-events-none"
-          style={{
-            left: '29%', top: '4%', width: '9%', height: '78%',
-            background: `linear-gradient(180deg, ${N.paper}0c, ${N.paper}05 45%, transparent 90%)`,
-            maskImage: 'linear-gradient(90deg, transparent, black 35%, black 65%, transparent)',
-            WebkitMaskImage: 'linear-gradient(90deg, transparent, black 35%, black 65%, transparent)',
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute top-[7%] left-[12%] w-px h-px rounded-full"
-          style={{ background: `${N.paper}55`, boxShadow: `14vw 2vh 0 0 ${N.paper}33, 34vw -1vh 0 0 ${N.paper}44, 52vw 3vh 0 0 ${N.paper}2e, 63vw -2vh 0 0 ${N.paper}40, 26vw 6vh 0 0 ${N.paper}26, 44vw 1vh 0 0 ${N.paper}2a` }}
-        />
-        {/* depth vignette — the plate darkens toward its edges */}
-        <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(115% 95% at 50% 34%, transparent 58%, rgba(0,0,0,.30) 100%)' }} />
+        {/* a crisp horizon line — structure, not fog. Sits high, gives the open
+            sea an edge so the top isn't a featureless pale field. */}
+        <div aria-hidden className="absolute inset-x-0 pointer-events-none" style={{ top: '13%', height: 1, background: `linear-gradient(90deg, transparent, ${N.paper}20 14%, ${N.paper}20 86%, transparent)` }} />
+        {/* depth toward the deep water — a soft DARK gather at the lower band
+            (opposite of the pale fog that washed it out): the sea gains weight
+            as it nears the harbour. */}
+        <div aria-hidden className="absolute inset-x-0 bottom-[12%] h-[34%] pointer-events-none" style={{ background: `linear-gradient(180deg, transparent 0%, ${N.paper}0e 100%)` }} />
 
-        {/* the shoal — hatched shallows where wrecks lie aground */}
+        {/* the shoal — hatched shallows in the far corner where wrecks lie */}
         <div
           aria-hidden
-          className="absolute left-0 bottom-[10%] w-[27%] h-[15%]"
+          className="absolute left-0 bottom-[11%] w-[24%] h-[14%]"
           style={{
-            background: `repeating-linear-gradient(45deg, transparent 0 5px, ${N.paper}0c 5px 6px)`,
+            background: `repeating-linear-gradient(45deg, transparent 0 5px, ${N.paper}0a 5px 6px)`,
             borderRadius: '0 60% 45% 0 / 0 80% 60% 0',
-            borderTop: `1px solid ${N.paper}17`,
+            borderTop: `1px solid ${N.paper}14`,
           }}
         />
 
-        {/* the home quay — arrived ships moor here; the pier holds the not-yet-sailed */}
-        <div aria-hidden className="absolute inset-x-0 bottom-0 h-[11%]" style={{ background: N.land, borderTop: `1px solid ${N.paper}1f` }} />
+        {/* ── the home quay — a timber wharf, not a flat bar (창업자 07-13).
+              A planked band + a lip highlight + a run of mooring bollards, and
+              a short stone jetty carrying the harbour light. ── */}
+        <div aria-hidden className="absolute inset-x-0 bottom-0 h-[12%]" style={{ background: N.land, borderTop: `1.5px solid ${N.paper}33` }}>
+          {/* deck planking */}
+          <div className="absolute inset-0" style={{ background: `repeating-linear-gradient(90deg, transparent 0 17px, ${N.paper}12 17px 18px)` }} />
+          {/* a second, deeper plank line + waterline lip highlight */}
+          <div className="absolute inset-x-0 top-0 h-px" style={{ background: N.card, opacity: 0.55 }} />
+          <div className="absolute inset-x-0" style={{ top: '46%', height: 1, background: `${N.paper}1c` }} />
+        </div>
+        {/* mooring bollards — short capped posts standing along the quay edge */}
+        <div aria-hidden className="absolute inset-x-0 flex justify-around px-[7%] pointer-events-none" style={{ bottom: 'calc(12% - 3px)' }}>
+          {Array.from({ length: 11 }).map((_, i) => (
+            <span key={i} className="rounded-t-sm" style={{ width: 3, height: 7, background: `${N.paper}${i % 2 ? '9a' : 'b0'}` }} />
+          ))}
+        </div>
+        {/* the jetty — a short stone mole reaching out of the quay, its lamp the
+            calm harbour light (no sweeping beam). Offset from centre so it
+            doesn't sit under the fleet. */}
+        <div aria-hidden className="absolute" style={{ left: '43%', bottom: '12%', width: 7, height: '10%', transform: 'translateX(-50%)', background: `repeating-linear-gradient(180deg, ${N.paper}3a 0 4px, ${N.paper}22 4px 8px)`, borderRadius: '2px 2px 0 0', boxShadow: `inset 0 0 0 1px ${N.paper}2a` }} />
+        <div aria-hidden className="absolute" style={{ left: '43%', bottom: 'calc(22% + 1px)', width: 2, height: 9, background: `${N.paper}88`, transform: 'translateX(-50%)' }} />
+        <div aria-hidden className="absolute rounded-full" style={{ left: '43%', bottom: 'calc(22% + 9px)', width: 5.5, height: 5.5, background: N.goldGlow, transform: 'translateX(-50%)', boxShadow: `0 0 8px 2px ${N.goldGlow}88` }} />
 
-        {/* the lighthouse — Argus, keeping watch. A real silhouette now:
-            rock mole → tapered banded tower → gallery → lamp room. Its beam
-            is the sheet's one bold move; reduced-motion holds it still. */}
-        <div aria-hidden className="absolute" style={{ left: '75%', bottom: '10.2%', width: 34, height: 9, background: N.land, borderRadius: '50% 50% 0 0 / 100% 100% 0 0', transform: 'translateX(-50%)', boxShadow: `inset 0 1px 0 ${N.paper}1c` }} />
-        <div
-          aria-hidden
-          className="absolute"
-          style={{
-            left: '75%', bottom: 'calc(10.2% + 8px)', width: 9, height: 30,
-            transform: 'translateX(-50%)',
-            clipPath: 'polygon(24% 0%, 76% 0%, 100% 100%, 0% 100%)',
-            background: `repeating-linear-gradient(180deg, ${N.paper}70 0 5px, ${N.paper}3d 5px 10px)`,
-          }}
-        />
-        <div aria-hidden className="absolute" style={{ left: '75%', bottom: 'calc(10.2% + 37px)', width: 13, height: 1.5, background: `${N.paper}80`, transform: 'translateX(-50%)' }} />
-        <div aria-hidden className="absolute" style={{ left: '75%', bottom: 'calc(10.2% + 38.5px)', width: 6, height: 5, background: `${N.paper}30`, transform: 'translateX(-50%)', borderRadius: 1 }} />
-        <div aria-hidden className="absolute rounded-full" style={{ left: '75%', bottom: 'calc(10.2% + 39.5px)', width: 4, height: 4, background: N.gold, transform: 'translateX(-50%)', boxShadow: `0 0 12px 3px ${N.gold}59` }} />
-        <div aria-hidden className="absolute" style={{ left: '75%', bottom: 'calc(10.2% + 43.5px)', width: 8, height: 4, background: `${N.paper}66`, transform: 'translateX(-50%)', clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
-        <div
-          aria-hidden
-          className="vsea-beam absolute"
-          style={{
-            left: '75%',
-            bottom: 'calc(10.2% + 41px)',
-            width: 'min(58vw, 620px)',
-            aspectRatio: '1',
-            transformOrigin: '50% 100%',
-            transform: 'translateX(-50%) rotate(-8deg)',
-            background: `conic-gradient(from -10deg at 50% 100%, transparent 0deg, ${N.gold}12 7deg, ${N.gold}1f 10deg, ${N.gold}12 13deg, transparent 20deg)`,
-          }}
-        />
+        {/* ── the axes, drawn as chart furniture so position reads as data ──
+              Y = resolution (먼바다 위 → 항구 아래), X = activity recency
+              (오래 방치 왼쪽 → 최근 오른쪽). A faint graticule + edge captions
+              turn the sea into a scatter you can actually read. */}
+        {/* ── the HOME LINE — the board's primary divider: above it a decision
+              is still out (미해소), below it it's home (항구·완료). Placed at the
+              resolution boundary between sailing and docked. */}
+        <div aria-hidden className="absolute left-0 right-0 pointer-events-none" style={{ top: '62%', height: 1, background: `linear-gradient(90deg, transparent, ${N.paper}22 8%, ${N.paper}22 92%, transparent)` }} />
+        <span aria-hidden className="absolute right-[2%] text-[7.5px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ top: 'calc(62% + 3px)', color: `${N.paper}44` }}>
+          {L('↑ 아직 밖 · 아래 항구', '↑ still out · home below')}
+        </span>
+        {/* danger-zone tint — the upper-LEFT quadrant (unresolved + slipping).
+            A fact of attention, never a verdict (거울 조항); shown only when
+            ships actually sit there. */}
+        {untended > 0 && (
+          <div aria-hidden className="absolute pointer-events-none" style={{ left: 0, top: 0, width: '48%', height: '62%', background: 'radial-gradient(85% 92% at 0% 0%, color-mix(in srgb, var(--warning) 11%, transparent), transparent 72%)' }} />
+        )}
+        {/* honest recency thresholds — the real 14d / 30d lines, labeled. Only
+            meaningful in the unresolved (upper) band, so they fade before the
+            harbour. Real structure on the X axis (critique #4). */}
+        {thresholds.map((t) => (
+          <div key={t.d} aria-hidden className="absolute top-[12%] pointer-events-none" style={{ left: `${t.x}%`, bottom: '30%' }}>
+            <div className="absolute inset-y-0" style={{ width: 1, background: `repeating-linear-gradient(180deg, ${N.paper}2e 0 4px, transparent 4px 8px)` }} />
+            <span className="absolute -top-0.5 left-1 whitespace-nowrap text-[7.5px] font-mono uppercase tracking-[0.1em]" style={{ color: `${N.paper}66` }}>{t.label}</span>
+          </div>
+        ))}
 
-        {/* zone inscriptions — the chart register, kept to a whisper */}
-        <span className="absolute top-[6%] left-[3%] text-[9px] font-mono uppercase tracking-[0.22em] pointer-events-none" style={{ color: `${N.paper}59` }}>
-          {L('먼바다', 'OPEN SEA')}
+        {/* X-axis captions — the horizontal meaning (the home line + zone tags
+            carry the vertical). Kept quiet; the "읽는 법" key does the teaching. */}
+        <span className="absolute top-[30%] -translate-y-1/2 left-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
+          ← {L('오래 방치', 'LONG UNTENDED')}
         </span>
-        <span className="absolute bottom-[3%] left-[3%] text-[9px] font-mono uppercase tracking-[0.22em] pointer-events-none" style={{ color: `${N.paper}59` }}>
-          {L('항구', 'HARBOR')}
+        <span className="absolute top-[30%] -translate-y-1/2 right-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] text-right pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
+          {L('최근 활동', 'RECENT')} →
         </span>
-        <span className="absolute top-[3.5%] right-[3%] text-[9px] font-mono tracking-[0.12em] tabular-nums pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
-          {inscription ? `${inscription} · ` : ''}
-          {L(`${ships.length}척`, `${ships.length} ships`)}
-        </span>
+
+        {/* ── ZONE TAGS — the board's control surface. Each names a diagnostic
+              quadrant of the still-out band, shows its live count, and CLICKS to
+              work that slice (same filter engine as the chips below). This is
+              what makes the map a 판 you operate, not scenery you read. The
+              danger zone (놓치는 중) leads in amber — a fact, not a verdict. ── */}
+        {untended > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter(filter === 'idle' ? null : 'idle')}
+            aria-pressed={filter === 'idle'}
+            className="absolute top-[5.5%] left-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-2 pr-2.5 py-1 cursor-pointer transition-colors hidden sm:inline-flex"
+            style={filter === 'idle'
+              ? { background: N.amber, color: N.card }
+              : { background: `${N.card}e0`, color: N.amber, boxShadow: `inset 0 0 0 1px ${N.amber}59` }}
+          >
+            <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: filter === 'idle' ? N.card : N.amber }} />
+            <span className="text-[10.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('놓치는 중', 'slipping')}</span>
+            <span className="text-[10.5px] font-mono tabular-nums font-bold">{untended}</span>
+          </button>
+        )}
+        {sailingN > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilter(filter === 'sailing' ? null : 'sailing')}
+            aria-pressed={filter === 'sailing'}
+            className="absolute top-[5.5%] right-[2.5%] z-[4] items-center gap-1.5 rounded-full pl-2.5 pr-2.5 py-1 cursor-pointer transition-colors hidden sm:inline-flex"
+            style={filter === 'sailing'
+              ? { background: N.paper, color: N.card }
+              : { background: `${N.card}e0`, color: `${N.paper}b0`, boxShadow: `inset 0 0 0 1px ${N.paper}2e` }}
+          >
+            <span className="text-[10.5px] font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{L('진행 중', 'in progress')}</span>
+            <span className="text-[10.5px] font-mono tabular-nums font-bold">{sailingN}</span>
+          </button>
+        )}
+
+        {/* ── "읽는 법" — the on-demand key. The whole map encodes position and
+              colour as data; without this, a first-timer reads scenery, not a
+              chart. Progressive disclosure keeps the plate quiet until asked. ── */}
+        <button
+          type="button"
+          onClick={() => setShowKey((v) => !v)}
+          aria-expanded={showKey}
+          className="absolute bottom-2 right-2 z-[6] inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.1em] cursor-pointer transition-colors"
+          style={{ background: `${N.card}e6`, color: `${N.paper}b0`, boxShadow: `inset 0 0 0 1px ${N.paper}22` }}
+        >
+          <span aria-hidden className="inline-flex items-center justify-center rounded-full text-[9px] font-bold" style={{ width: 13, height: 13, background: `${N.paper}1a` }}>?</span>
+          {showKey ? L('닫기', 'Close') : L('읽는 법', 'Legend')}
+        </button>
+        {showKey && (
+          <>
+            <div aria-hidden className="absolute inset-0 z-[6]" style={{ background: `${N.paper}0a` }} onClick={() => setShowKey(false)} />
+            <div
+              role="group"
+              aria-label={L('지도 읽는 법', 'How to read the chart')}
+              className="absolute bottom-10 right-2 z-[7] w-[248px] rounded-xl p-3.5 text-left"
+              style={{ background: N.card, boxShadow: `0 8px 28px ${N.paper}2e, inset 0 0 0 1px ${N.paper}1f` }}
+            >
+              {/* Lead with the payoff — what to LOOK for — then the mechanism.
+                  Plain decision-language, not the nautical metaphor. */}
+              <p className="text-[11.5px] font-semibold leading-snug mb-1" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+                {L('배 하나 = 결정 하나.', 'Each ship is one decision.')}
+              </p>
+              <p className="text-[10.5px] leading-relaxed mb-2.5" style={{ color: `${N.paper}b0` }}>
+                {L('왼쪽 위로 갈수록 오래 방치됐고 아직 안 끝난 — 놓치기 쉬운 결정이에요.', 'The higher-left a ship sits, the more it is both long-untended and unfinished — the easy-to-miss ones.')}
+              </p>
+              {/* the two axes — named by what each MEASURES, then its two ends */}
+              <div className="space-y-1.5 mb-2.5">
+                <p className="text-[10.5px] leading-tight" style={{ color: `${N.paper}c8` }}>
+                  <span className="font-semibold">{L('세로 ', 'Up/down ')}</span>
+                  <span style={{ color: `${N.paper}90` }}>{L('얼마나 끝났나', 'how finished')}</span>
+                  {L(' — 위 진행 중 · 아래 끝나서 항구', ' — top: in progress · bottom: arrived')}
+                </p>
+                <p className="text-[10.5px] leading-tight" style={{ color: `${N.paper}c8` }}>
+                  <span className="font-semibold">{L('가로 ', 'Left/right ')}</span>
+                  <span style={{ color: `${N.paper}90` }}>{L('언제 마지막에 봤나', 'last touched')}</span>
+                  {L(' — 왼쪽 오래 전 · 오른쪽 최근', ' — left: long ago · right: recent')}
+                </p>
+              </div>
+              {/* state marks — the very same ShipMarks drawn on the water, named
+                  in plain terms (색으로도 구분: 금 끝남 · 주황 방치) */}
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-2.5 pt-2.5" style={{ borderTop: `1px solid ${N.paper}12` }}>
+                {([
+                  { st: 'sailing', ko: '진행 중', en: 'in progress' },
+                  { st: 'adrift', ko: '표류 — 방치됨', en: 'adrift' },
+                  { st: 'verified', ko: '확인까지 끝', en: 'reckoned' },
+                  { st: 'docked', ko: '아직 시작 전', en: 'not started' },
+                ] as const).map((r) => (
+                  <span key={r.st} className="flex items-center gap-1.5 text-[10px]" style={{ color: `${N.paper}c8` }}>
+                    <span className="inline-flex items-end justify-center shrink-0" style={{ width: 20, height: 20 }}>
+                      <ShipMark state={r.st} due={false} size={17} plain />
+                    </span>
+                    {L(r.ko, r.en)}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[10px] pt-2 flex items-center gap-1.5" style={{ color: `${N.paper}9a`, borderTop: `1px solid ${N.paper}12` }}>
+                <span aria-hidden style={{ color: N.gold }}>◆</span>
+                {L('배를 누르면 바로 처리해요 — 열기·정산.', 'Tap a ship to act — open or settle, right here.')}
+              </p>
+            </div>
+          </>
+        )}
 
         {/* ── undersea currents — beneath the ships, above the water. A line
               exists only where two charted vessels literally stand on the same
@@ -746,31 +1122,98 @@ export function VoyageSea({
           </div>
         )}
 
+        {/* ── shared-ground links: when a ship with premise-siblings is focused,
+              draw a line to each sibling (the leverage made visible). Above the
+              water, below the ships. Only real, exact-match ground — never
+              invented. ── */}
+        {leverageSet && (
+          <svg aria-hidden className="absolute inset-0 z-[1] pointer-events-none w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+            {leverageLinks.map((ln, i) => (
+              <line
+                key={i}
+                x1={ln.x1} y1={ln.y1} x2={ln.x2} y2={ln.y2}
+                stroke={leverageHue}
+                strokeWidth={0.35}
+                strokeDasharray="1.4 1.2"
+                strokeOpacity={0.85}
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+          </svg>
+        )}
+
         {/* ── the ships ── */}
-        <div role="list" className="absolute inset-0 z-[2]">
+        <ul className="absolute inset-0 z-[2] list-none m-0 p-0">
           {placed.map((s, i) => {
             const meta = VOYAGE_STATE_META[s.state];
             const stateLabel = s.beacon ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
-            const size = s.beacon ? 42 : 24;
+            const attention = s.state === 'adrift' || s.state === 'wrecked';
+            const size = s.beacon ? 40 : dense ? (attention ? 17 : 15) : 24;
+            // Persistent labels are KEYWORDS (short), never full sentences.
+            // Sparse fleet → keyword on everyone. Dense fleet → keyword only on
+            // the DUE decisions ("중요 과제 중심"; they scatter, so few collide).
+            // The untended are carried by the amber corner + its "오래 손 놓음 N"
+            // summary (창업자 praised that grouping) with names on hover — so
+            // the neglect corner doesn't re-crowd with labels. Full name is
+            // always one hover away and listed below the map.
+            const kw = keyword(s.name);
+            const matches = matchOf(s);
+            const hasGround = siblingsOf.has(s.id); // stands on shared premise
+            const shaky = hasGround && !!s.premise && driftedKeys.has(normalizePremiseText(s.premise));
+            // Filter dims non-matches; a leverage focus dims everything off the
+            // shared-ground group so the standing-together reads instantly.
+            const dimmed = (!!activeFilter && !matches) || (!!leverageSet && !leverageSet.has(s.id));
+            const isLeverage = !!leverageSet && leverageSet.has(s.id);
+            const groundHue = shaky ? N.amber : N.gold;
+            // A filter turns the map into a work slice: matches light up AND
+            // reveal their keyword (few remain, so they fit); the rest recede.
+            const showKeyword = (activeFilter ? matches : !dense || s.due);
+            // Mobile has no hover and (in dense mode) no labels — anonymous dots
+            // you tap blind. So on mobile, still name the ships that are CALLING
+            // (due + drifted): the few that need action get a keyword, the rest
+            // stay gestalt + the list below. (창업자 07-13: 직관적 사용)
+            const showKeywordMobile = activeFilter ? matches : s.due || attention;
             return (
-              <button
+              <li
                 key={s.id}
-                type="button"
-                role="listitem"
-                onClick={() =>
-                  s.kind === 'receipt' ? onSelectReceipt?.(s.id) : s.due ? onReview(s.id) : onSelect(s.id)
-                }
-                title={`${s.name} — ${stateLabel}`}
-                aria-label={`${s.name} — ${stateLabel} · ${s.sub}`}
-                className="vsea-in absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-2.5 rounded-lg cursor-pointer group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-transform duration-300 hover:-translate-y-[calc(50%+3px)]"
-                style={{ left: `${s.x}%`, top: `${s.y}%`, animationDelay: `${Math.min(i, 8) * 70}ms` }}
+                className="absolute"
+                style={{ left: `${s.x}%`, top: `${s.y}%` }}
               >
+                <button
+                  type="button"
+                  id={`voyage-ship-${s.id}`}
+                  aria-haspopup="dialog"
+                  aria-expanded={actionShip === s.id}
+                  aria-controls={actionShip === s.id ? `voyage-action-${s.id}` : undefined}
+                  disabled={dimmed}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActionShip((prev) => (prev === s.id ? null : s.id));
+                  }}
+                  title={`${s.name} — ${stateLabel} · ${s.sub}`}
+                  aria-label={`${s.name} — ${stateLabel} · ${s.sub}`}
+                  className={`vsea-in relative -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-lg cursor-pointer group focus-visible:z-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-[transform,opacity] duration-300 ${dimmed ? 'pointer-events-none' : 'hover:z-40 hover:-translate-y-[calc(50%+3px)]'}`}
+                  style={{ animationDelay: `${Math.min(i, 8) * 70}ms`, opacity: dimmed ? 0.1 : 1 }}
+                >
                 {s.beacon && (
-                  <span
-                    aria-hidden
-                    className="vsea-halo absolute left-1/2 top-[34%] -z-[1] rounded-full"
-                    style={{ width: 130, height: 130, background: `radial-gradient(circle, ${N.gold}3d 0%, transparent 62%)`, transform: 'translate(-50%,-50%)' }}
-                  />
+                  <>
+                    <span
+                      aria-hidden
+                      className="vsea-halo absolute left-1/2 top-[36%] -z-[1] rounded-full"
+                      style={{ width: 110, height: 110, background: `radial-gradient(circle, color-mix(in srgb, ${N.goldGlow} 46%, transparent) 0%, transparent 64%)`, transform: 'translate(-50%,-50%)' }}
+                    />
+                    {/* a crisp gold ring — the due ship's calm marker (no beam) */}
+                    <span
+                      aria-hidden
+                      className="absolute left-1/2 top-[36%] -z-[1] rounded-full"
+                      style={{ width: 34, height: 34, border: `1.5px solid ${N.goldGlow}`, transform: 'translate(-50%,-50%)', opacity: 0.7 }}
+                    />
+                  </>
+                )}
+                {/* leverage highlight — a gold ring on the focused ground-group
+                    so the standing-together reads at a glance. */}
+                {isLeverage && (
+                  <span aria-hidden className="absolute left-1/2 top-[38%] -z-[1] rounded-full" style={{ width: size + 16, height: size + 16, transform: 'translate(-50%,-50%)', boxShadow: `0 0 0 1.5px ${groundHue}, 0 0 12px 2px ${groundHue}55` }} />
                 )}
                 <span className={s.state === 'wrecked' || s.state === 'docked' ? '' : 'vsea-bob'} style={{ animationDelay: `${(i % 5) * 1.1}s` }}>
                   <ShipMark
@@ -778,140 +1221,266 @@ export function VoyageSea({
                     due={s.due}
                     size={size}
                     kind={s.kind}
+                    plain={dense && !s.beacon}
                     // deterministic per-ship heading (±3°) — a fleet, not a stamp
                     heading={s.state === 'sailing' ? (([...s.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) - 3) : 0}
                   />
                 </span>
-                <span
-                  className={`${s.beacon ? '' : 'hidden sm:block'} max-w-[96px] text-center text-[10.5px] leading-[1.3] break-keep line-clamp-2 font-medium`}
-                  style={{ color: s.beacon ? N.paper : `${N.paper}b8`, fontFamily: 'var(--font-display)' }}
+                {/* passive leverage tell — a faint gold tie-dot marks a decision
+                    that shares its sealed premise with another. Tap to see who. */}
+                {hasGround && !s.beacon && !isLeverage && (
+                  <span aria-hidden className="absolute left-1/2 -translate-x-1/2 rounded-full" style={{ top: '-2px', width: 4, height: 4, background: groundHue, opacity: shaky ? 0.9 : 0.7, boxShadow: `0 0 0 1.5px ${N.card}` }} />
+                )}
+                {/* persistent KEYWORD chip (short) for sparse fleets + the
+                    ships that matter in a dense one. Not for the beacon — its
+                    card carries the name. */}
+                {(showKeyword || showKeywordMobile) && !s.beacon && (
+                  <span
+                    className={`${showKeywordMobile ? 'block' : 'hidden'} ${showKeyword ? 'sm:block' : 'sm:hidden'} mt-1 max-w-[108px] text-center text-[9.5px] leading-[1.2] tracking-[0.01em] break-keep line-clamp-1 font-semibold rounded-full px-1.5 py-px`}
+                    style={{
+                      color: s.due ? N.gold : attention ? N.amber : `${N.paper}bf`,
+                      fontFamily: 'var(--font-display)',
+                      background: `${N.card}cc`,
+                      boxShadow: s.due
+                        ? `inset 0 0 0 1px ${N.gold}4d`
+                        : `inset 0 0 0 1px ${N.paper}12`,
+                    }}
+                  >
+                    {kw}
+                  </span>
+                )}
+                {/* full name + state on hover/focus — the source of truth,
+                    raised above neighbours (only one shows at a time). Not for
+                    the beacon (card already shows it). */}
+                {!s.beacon && actionShip !== s.id && (
+                  <span
+                    className="hidden sm:flex flex-col items-center gap-0.5 absolute top-[calc(100%+3px)] left-1/2 -translate-x-1/2 w-max max-w-[200px] px-2.5 py-1.5 rounded-md opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none z-40 shadow-[var(--shadow-md)]"
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border-subtle)' }}
+                  >
+                    <span className="text-center text-[11px] leading-[1.3] break-keep line-clamp-3 font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+                      {s.name}
+                    </span>
+                    <span className="text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap" style={{ color: s.due ? N.gold : 'var(--text-tertiary)' }}>
+                      {stateLabel} · {s.sub}
+                    </span>
+                  </span>
+                )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
+      </div>
+
+      {/* ── act-in-place: the ship's action card. Rendered OUTSIDE the clipped
+            plate (child of the wrapper) so it can overhang the edge, anchored at
+            the tapped ship. The board's payload — you work the decision here. ── */}
+      {actionShip && (() => {
+        const s = placed.find((p) => p.id === actionShip);
+        if (!s) return null;
+        const meta = VOYAGE_STATE_META[s.state];
+        const stateLabel = s.due ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
+        const open = () => { if (s.kind === 'receipt') onSelectReceipt?.(s.id); else onSelect(s.id); setActionShip(null); };
+        const review = () => { onReview(s.id); setActionShip(null); };
+        // clamp horizontally so the 220px card never leaves the plate; flip above
+        // the ship when it sits low so the card doesn't fall off the bottom.
+        const leftPct = Math.max(15, Math.min(85, s.x));
+        const below = s.y < 52;
+        return (
+          <>
+            <div className="absolute inset-0 z-[44]" onClick={() => setActionShip(null)} aria-hidden />
+            <div
+              ref={actionCardRef}
+              id={`voyage-action-${s.id}`}
+              role="dialog"
+              aria-label={s.name}
+              className="absolute z-[45] w-[220px] rounded-xl p-3"
+              style={{
+                left: `${leftPct}%`,
+                [below ? 'top' : 'bottom']: below ? `calc(${s.y}% + 22px)` : `calc(${100 - s.y}% + 22px)`,
+                transform: 'translateX(-50%)',
+                background: N.card,
+                boxShadow: `0 10px 30px ${N.paper}33, inset 0 0 0 1px ${N.paper}1f`,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setActionShip(null);
+                  window.requestAnimationFrame(() => document.getElementById(`voyage-ship-${s.id}`)?.focus());
+                }}
+                aria-label={L('행동 카드 닫기', 'Close action card')}
+                className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md text-[16px] cursor-pointer transition-colors hover:bg-white/10"
+                style={{ color: `${N.paper}9a` }}
+              >
+                <span aria-hidden>×</span>
+              </button>
+              <p className="pr-7 text-[13px] font-semibold leading-snug break-keep line-clamp-2" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+                {s.name}
+              </p>
+              <p className="mt-0.5 text-[10.5px] font-mono uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: s.due ? N.gold : (s.state === 'adrift' || s.state === 'wrecked') ? N.amber : `${N.paper}88` }}>
+                <span className="inline-flex items-end" style={{ width: 15, height: 15 }}><ShipMark state={s.state} due={s.due} size={13} plain /></span>
+                {stateLabel} · {s.sub}
+              </p>
+              {/* the sealed bet this decision rests on — its own words. */}
+              {s.premise && (
+                <p className="mt-2 text-[11px] leading-relaxed break-keep" style={{ color: `${N.paper}b0` }}>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.1em]" style={{ color: `${N.paper}70` }}>{L('봉인한 전제', 'sealed premise')}</span><br />
+                  <em style={{ color: `${N.paper}d8` }}>「{s.premise.length > 60 ? `${s.premise.slice(0, 60)}…` : s.premise}」</em>
+                </p>
+              )}
+              {/* LEVERAGE — the decisions standing on the very same premise. A
+                  fact (exact-match ground), not a verdict: if it moves, they move
+                  together. This is the board's intelligence, not a menu. */}
+              {leverageSibs.length > 0 && (
+                <div className="mt-2 rounded-lg px-2.5 py-2" style={{ background: `${leverageHue}14` }}>
+                  <p className="text-[10.5px] font-semibold flex items-center gap-1.5" style={{ color: leverageHue }}>
+                    <span aria-hidden>⚭</span>
+                    {L(`같은 전제 위 ${leverageSibs.length + 1}척 — 하나 흔들리면 같이`, `${leverageSibs.length + 1} on this same premise — one moves, all move`)}
+                  </p>
+                  {leverageShaky && (
+                    <p className="mt-1 text-[10.5px] leading-snug flex items-start gap-1.5" style={{ color: N.amber }}>
+                      <span aria-hidden>⚠</span>
+                      {L('이 전제가 최근 흔들렸어요 — 위 결정들 다시 봐야.', 'This premise just moved — the decisions on it need a fresh look.')}
+                    </p>
+                  )}
+                  <div className="mt-1 flex flex-col gap-0.5">
+                    {leverageSibs.slice(0, 4).map((sib) => (
+                      <button
+                        key={sib.id}
+                        type="button"
+                        onClick={() => setActionShip(sib.id)}
+                        className="text-left text-[11px] leading-snug break-keep line-clamp-1 hover:underline cursor-pointer"
+                        style={{ color: `${N.paper}c0`, fontFamily: 'var(--font-display)' }}
+                      >
+                        · {sib.name}
+                      </button>
+                    ))}
+                    {leverageSibs.length > 4 && (
+                      <span className="text-[10px]" style={{ color: `${N.paper}80` }}>{L(`외 ${leverageSibs.length - 4}척`, `+${leverageSibs.length - 4} more`)}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div className="mt-2.5 flex gap-1.5">
+                {s.due && s.kind !== 'receipt' && (
+                  <button
+                    type="button"
+                    data-testid="ship-action-review"
+                    data-autofocus="true"
+                    onClick={review}
+                    className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-semibold cursor-pointer transition-opacity hover:opacity-90"
+                    style={{ background: N.gold, color: N.card }}
+                  >
+                    {L('정산·다시 보기', 'Settle')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  data-testid="ship-action-open"
+                  data-autofocus={s.due && s.kind !== 'receipt' ? undefined : 'true'}
+                  onClick={open}
+                  className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-semibold cursor-pointer transition-colors"
+                  style={{ background: `${N.paper}0d`, color: N.paper, boxShadow: `inset 0 0 0 1px ${N.paper}22` }}
                 >
-                  {s.name}
-                </span>
-                <span className={`${s.beacon ? '' : 'hidden sm:block'} text-[8px] font-mono uppercase tracking-[0.08em]`} style={{ color: s.beacon ? N.gold : `${N.paper}66` }}>
-                  {stateLabel} · {s.sub}
-                </span>
+                  {L('열기', 'Open')}
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
+      {/* ── drift chip — the amber current's voice, kept to the sky band so it
+            never occludes ships. Fires ONLY on the groundSpotlight event;
+            silent on flat days. The full ledger lives below (SharedGroundCard).
+            Amber is a fact color, never a verdict (거울 조항). ── */}
+      {spotlight && (
+          <button
+            type="button"
+            onClick={() => onSelectReceipt?.(spotlight.members[0].receipt_id)}
+            className="static sm:absolute sm:left-[2.5%] sm:top-[15%] z-[3] mt-3 sm:mt-0 flex items-center gap-2 rounded-full border py-1.5 pl-2.5 pr-3 cursor-pointer transition-[gap] hover:gap-2.5"
+            style={{
+              background: N.card,
+              border: '1px solid color-mix(in srgb, var(--warning) 40%, transparent)',
+              boxShadow: 'var(--shadow-sm)',
+              maxWidth: 'min(94%, 340px)',
+            }}
+            aria-label={L(`전제 이동 — ${spotlight.text}. 전체 살펴보기`, `Premise moved — ${spotlight.text}. See the full ground`)}
+          >
+            <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'var(--warning)' }} />
+            <span className="text-[9.5px] font-mono uppercase tracking-[0.12em] font-semibold shrink-0" style={{ color: 'var(--warning)' }}>
+              {L('전제 이동', 'GROUND MOVED')}
+            </span>
+            <span className="text-[11px] truncate" style={{ color: `${N.paper}d0`, fontFamily: 'var(--font-display)' }}>
+              「{spotlight.text.length > 22 ? `${spotlight.text.slice(0, 22)}…` : spotlight.text}」
+            </span>
+            {spotGauge && (
+              <span className="text-[10px] font-mono tabular-nums shrink-0" style={{ color: 'var(--warning)' }}>
+                {spotGauge.from != null ? `${spotGauge.from}→${spotGauge.to}` : spotGauge.to}
+              </span>
+            )}
+            {/* blast radius — how many charted decisions stand on this moved
+                premise. Turns a drift notice into "N of your calls are exposed." */}
+            {driftExposed >= 2 && (
+              <span className="text-[10px] font-semibold shrink-0" style={{ color: N.amber }}>
+                · {L(`그 위 ${driftExposed}척`, `${driftExposed} on it`)}
+              </span>
+            )}
+            <span aria-hidden className="text-[11px] shrink-0" style={{ color: `${N.paper}80` }}>→</span>
+          </button>
+      )}
+      </div>
+
+      {/* ── under the plate: the OPERABLE filter bar (the control surface) +
+            a live caption. Clicking a chip isolates that slice of the fleet. ── */}
+      <div className="mt-3 px-1 flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={L('함대 필터', 'Fleet filter')}>
+          <button
+            type="button"
+            onClick={() => setFilter(null)}
+            aria-pressed={!activeFilter}
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border cursor-pointer transition-colors ${!activeFilter ? 'bg-[var(--text-primary)] text-[var(--bg)] border-transparent' : 'text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/40'}`}
+          >
+            {L('전체', 'All')}
+            <span className="tabular-nums text-[10px] opacity-70">{ships.length}</span>
+          </button>
+          {filterList.map((f) => {
+            const on = activeFilter?.key === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(on ? null : f.key)}
+                aria-pressed={on}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border cursor-pointer transition-colors ${on ? 'border-transparent' : 'border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/40'}`}
+                style={
+                  on
+                    ? f.gold
+                      ? { background: N.gold, color: N.card }
+                      : f.amber
+                        ? { background: N.amber, color: N.card }
+                        : { background: 'var(--text-primary)', color: 'var(--bg)' }
+                    : { color: f.gold ? N.gold : f.amber ? N.amber : 'var(--text-secondary)' }
+                }
+              >
+                {f.gold && !on && <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />}
+                {f.amber && !on && <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: N.amber }} />}
+                {L(f.ko, f.en)}
+                <span className="tabular-nums text-[10px] opacity-70">{f.n}</span>
               </button>
             );
           })}
-          {overflowNote > 0 && (
-            <button
-              type="button"
-              onClick={() => document.getElementById('fleet-roster')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              className="absolute right-[3%] top-[14%] text-[9.5px] font-mono tabular-nums cursor-pointer rounded px-1.5 py-0.5 transition-colors"
-              style={{ color: `${N.paper}80`, border: `1px solid ${N.paper}24` }}
-              aria-label={L(`지도에 못 실은 ${overflowNote}척 — 아래 명부로`, `${overflowNote} more ships — jump to the roster`)}
-            >
-              {L(`+${overflowNote}척 · 명부로 ↓`, `+${overflowNote} · roster ↓`)}
-            </button>
-          )}
         </div>
-
-      </div>
-
-      {/* ── beacon notice — the sheet's single voice, only when a promised
-            check-in has actually arrived. Sibling of the plate: floats over
-            the water on sm+, flows below it on mobile. ── */}
-      {beacon && (
-          <div className="static sm:absolute sm:right-[2.5%] sm:top-[7%] z-[3] mt-3 sm:mt-0 sm:max-w-[300px] rounded-xl border p-4" style={{ background: `${N.seaDeep}d9`, borderColor: `${N.paper}24`, backdropFilter: 'blur(3px)' }}>
-            <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.gold }}>
-              <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />
-              {L('그래서, 어떻게 됐어요?', 'So, how did it go?')}
-            </p>
-            <p className="mt-2 text-[15px] font-bold leading-snug break-keep" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
-              {beacon.name}
-            </p>
-            {beacon.premise ? (
-              <p className="mt-2 rounded-lg px-3 py-2 text-[12px] leading-relaxed break-keep" style={{ background: `${N.paper}0d`, color: `${N.paper}b8` }}>
-                {L('봉인한 내기 — ', 'Your sealed bet — ')}
-                <em style={{ color: N.paper }}>「{beacon.premise.length > 64 ? `${beacon.premise.slice(0, 64)}…` : beacon.premise}」</em>
-              </p>
-            ) : (
-              <p className="mt-2 text-[12px] leading-relaxed break-keep" style={{ color: `${N.paper}a1` }}>
-                {L('약속한 확인일이 왔어요. 봉인할 때의 눈으로 지금을 재볼 시간.', 'The check-in you promised has arrived. Time to reread now with the eyes you sealed it with.')}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={() => onReview(beacon.id)}
-              className="mt-3 inline-flex items-center gap-1.5 text-[11.5px] font-mono font-semibold cursor-pointer transition-[gap] duration-300 hover:gap-2.5"
-              style={{ color: N.gold }}
-            >
-              {L('다시 보기', 'Revisit')} <span aria-hidden>→</span>
-            </button>
-            {dueShips.length > 1 && (
-              <p className="mt-2 text-[10px] font-mono" style={{ color: `${N.paper}73` }}>
-                {L(`그 외 ${dueShips.length - 1}건이 더 기다려요`, `${dueShips.length - 1} more waiting below`)}
-              </p>
-            )}
-          </div>
-      )}
-
-      {/* ── drift notice — the amber current's voice, mirrored on the left.
-            Fires ONLY on the groundSpotlight event (drift + live bets);
-            silent on flat days. Amber is a fact color, never a verdict. ── */}
-      {spotlight && (
-          <div
-            className="static sm:absolute sm:left-[2.5%] sm:top-[11%] z-[3] mt-3 sm:mt-0 sm:max-w-[272px] rounded-xl border p-3.5"
-            style={{
-              background: `${N.seaDeep}d9`,
-              borderColor: 'color-mix(in srgb, var(--warning) 34%, transparent)',
-              backdropFilter: 'blur(3px)',
-            }}
-          >
-            <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.14em] font-semibold" style={{ color: 'var(--warning)' }}>
-              <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--warning)' }} />
-              {L('전제가 움직였어요', 'The ground moved')}
-            </p>
-            <p className="mt-2 text-[13px] font-bold leading-snug break-keep" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
-              “{spotlight.text.length > 44 ? `${spotlight.text.slice(0, 44)}…` : spotlight.text}”
-            </p>
-            {spotGauge && (
-              <p className="mt-1.5 text-[11px] font-mono tabular-nums" style={{ color: `${N.paper}a1` }}>
-                {spotGauge.from != null && (
-                  <>
-                    {L('봉인 당시', 'sealed at')} {spotGauge.from}
-                    <span aria-hidden className="mx-1.5 opacity-60">→</span>
-                  </>
-                )}
-                <b style={{ color: 'var(--warning)' }}>{L('오늘', 'today')} {spotGauge.to}</b>
-              </p>
-            )}
-            <p className="mt-1.5 text-[10px] font-mono" style={{ color: `${N.paper}73` }}>
-              {L(`살아있는 판단 ${spotlight.live_bets.length}개가 그 위에`, `${spotlight.live_bets.length} live bet${spotlight.live_bets.length === 1 ? '' : 's'} stand on it`)}
-              {spotlight.drift?.source_detail ? ` · ${spotlight.drift.source_detail}` : ''}
-            </p>
-            <button
-              type="button"
-              onClick={() => onSelectReceipt?.(spotlight.members[0].receipt_id)}
-              className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] font-mono font-semibold cursor-pointer transition-[gap] duration-300 hover:gap-2.5"
-              style={{ color: 'var(--warning)' }}
-            >
-              {L('전체 살펴보기', 'See the full ground')} <span aria-hidden>→</span>
-            </button>
-          </div>
-      )}
-      </div>
-
-      {/* ── under the plate: the honest caption + a quiet chart key ── */}
-      <div className="mt-2.5 px-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
-        <p className="text-[12px] text-[var(--text-secondary)]">{caption}</p>
-        <div aria-hidden className="hidden md:flex items-center gap-4 text-[9px] font-mono uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
-          {(
-            [
-              ['sailing', 'project', L('항해 중', 'sailing')],
-              ['adrift', 'project', L('표류', 'adrift')],
-              ['wrecked', 'project', L('난파', 'wrecked')],
-              ['verified', 'project', L('검증됨', 'verified')],
-              ['sailing', 'receipt', L('검수 봉인', 'review seal')],
-            ] as Array<[VoyageState, 'project' | 'receipt', string]>
-          ).map(([st, kind, label]) => (
-            <span key={`${st}-${kind}`} className="inline-flex items-center gap-1.5 rounded px-1 py-0.5" style={{ background: N.sea }}>
-              <ShipMark state={st} due={false} size={12} kind={kind} plain />
-              <span style={{ color: `${N.paper}8c` }}>{label}</span>
-            </span>
-          ))}
-        </div>
+        <p className="text-[12px] text-[var(--text-secondary)]" role="status" aria-live="polite" aria-atomic="true">
+          {activeFilter
+            ? L(
+                `${L(activeFilter.ko, activeFilter.en)} ${filterList.find((f) => f.key === activeFilter.key)?.n ?? 0}건만 보는 중 — 나머지는 잠시 물러났어요.`,
+                `Showing ${filterList.find((f) => f.key === activeFilter.key)?.n ?? 0} · ${activeFilter.en} — the rest stepped back.`,
+              )
+            : caption}
+        </p>
       </div>
     </section>
   );
