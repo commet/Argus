@@ -382,6 +382,10 @@ export function VoyageSea({
   // B (07-13): the chart is an operable control surface — a state filter that
   // isolates a slice of the fleet (null = whole fleet).
   const [filter, setFilter] = useState<string | null>(null);
+  // The map reads position AND colour as data, but that system is invisible to a
+  // first-timer (창업자 07-13: 직관적 사용). An on-demand key — progressive
+  // disclosure, so the chart stays quiet until you ask "how do I read this?".
+  const [showKey, setShowKey] = useState(false);
 
   // Same signal brain as projectMetricsMap / the old FleetChart — the ONE
   // derived-state source (getVoyageState). Two deliberate departures from
@@ -898,18 +902,20 @@ export function VoyageSea({
           </div>
         ))}
 
-        {/* Y-axis captions */}
-        <span className="absolute top-[5.5%] left-1/2 -translate-x-1/2 text-[8.5px] font-mono uppercase tracking-[0.24em] pointer-events-none" style={{ color: `${N.paper}4d` }}>
-          {L('먼바다 · 항해 중', 'OPEN SEA')}
+        {/* Y-axis captions — the vertical meaning (unresolved↑ / arrived↓). A
+            touch more present than pure furniture so a first-timer clocks that
+            HEIGHT carries data, with a directional arrow to make the axis read. */}
+        <span className="absolute top-[5%] left-1/2 -translate-x-1/2 text-[9px] font-mono uppercase tracking-[0.2em] pointer-events-none flex items-center gap-1" style={{ color: `${N.paper}66` }}>
+          <span aria-hidden style={{ opacity: 0.7 }}>↑</span> {L('먼바다 · 항해 중', 'OPEN SEA')}
         </span>
-        <span className="absolute bottom-[3%] left-1/2 -translate-x-1/2 text-[8.5px] font-mono uppercase tracking-[0.24em] pointer-events-none" style={{ color: `${N.paper}59` }}>
-          {L('항구 · 도착', 'HARBOR')}
+        <span className="absolute bottom-[2.5%] left-1/2 -translate-x-1/2 text-[9px] font-mono uppercase tracking-[0.2em] pointer-events-none flex items-center gap-1" style={{ color: `${N.paper}70` }}>
+          {L('항구 · 도착', 'HARBOR')} <span aria-hidden style={{ opacity: 0.7 }}>↓</span>
         </span>
         {/* X-axis captions */}
-        <span className="absolute top-1/2 -translate-y-1/2 left-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
+        <span className="absolute top-1/2 -translate-y-1/2 left-[2%] text-[9px] font-mono uppercase tracking-[0.12em] pointer-events-none hidden sm:block" style={{ color: `${N.paper}5c` }}>
           ← {L('오래 방치', 'LONG UNTENDED')}
         </span>
-        <span className="absolute top-1/2 -translate-y-1/2 right-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] text-right pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
+        <span className="absolute top-1/2 -translate-y-1/2 right-[2%] text-[9px] font-mono uppercase tracking-[0.12em] text-right pointer-events-none hidden sm:block" style={{ color: `${N.paper}5c` }}>
           {L('최근 활동', 'RECENT')} →
         </span>
         {/* plate inscription — the elapsed fact (shared brain with the Logbook) */}
@@ -917,6 +923,74 @@ export function VoyageSea({
           {inscription ? `${inscription} · ` : ''}
           {L(`${ships.length}척`, `${ships.length} ships`)}
         </span>
+
+        {/* ── "읽는 법" — the on-demand key. The whole map encodes position and
+              colour as data; without this, a first-timer reads scenery, not a
+              chart. Progressive disclosure keeps the plate quiet until asked. ── */}
+        <button
+          type="button"
+          onClick={() => setShowKey((v) => !v)}
+          aria-expanded={showKey}
+          className="absolute bottom-2 right-2 z-[6] inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.1em] cursor-pointer transition-colors"
+          style={{ background: `${N.card}e6`, color: `${N.paper}b0`, boxShadow: `inset 0 0 0 1px ${N.paper}22` }}
+        >
+          <span aria-hidden className="inline-flex items-center justify-center rounded-full text-[9px] font-bold" style={{ width: 13, height: 13, background: `${N.paper}1a` }}>?</span>
+          {showKey ? L('닫기', 'Close') : L('읽는 법', 'Legend')}
+        </button>
+        {showKey && (
+          <>
+            <div aria-hidden className="absolute inset-0 z-[6]" style={{ background: `${N.paper}0a` }} onClick={() => setShowKey(false)} />
+            <div
+              role="group"
+              aria-label={L('지도 읽는 법', 'How to read the chart')}
+              className="absolute bottom-10 right-2 z-[7] w-[248px] rounded-xl p-3.5 text-left"
+              style={{ background: N.card, boxShadow: `0 8px 28px ${N.paper}2e, inset 0 0 0 1px ${N.paper}1f` }}
+            >
+              {/* Lead with the payoff — what to LOOK for — then the mechanism.
+                  Plain decision-language, not the nautical metaphor. */}
+              <p className="text-[11.5px] font-semibold leading-snug mb-1" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+                {L('배 하나 = 결정 하나.', 'Each ship is one decision.')}
+              </p>
+              <p className="text-[10.5px] leading-relaxed mb-2.5" style={{ color: `${N.paper}b0` }}>
+                {L('왼쪽 위로 갈수록 오래 방치됐고 아직 안 끝난 — 놓치기 쉬운 결정이에요.', 'The higher-left a ship sits, the more it is both long-untended and unfinished — the easy-to-miss ones.')}
+              </p>
+              {/* the two axes — named by what each MEASURES, then its two ends */}
+              <div className="space-y-1.5 mb-2.5">
+                <p className="text-[10.5px] leading-tight" style={{ color: `${N.paper}c8` }}>
+                  <span className="font-semibold">{L('세로 ', 'Up/down ')}</span>
+                  <span style={{ color: `${N.paper}90` }}>{L('얼마나 끝났나', 'how finished')}</span>
+                  {L(' — 위 진행 중 · 아래 끝나서 항구', ' — top: in progress · bottom: arrived')}
+                </p>
+                <p className="text-[10.5px] leading-tight" style={{ color: `${N.paper}c8` }}>
+                  <span className="font-semibold">{L('가로 ', 'Left/right ')}</span>
+                  <span style={{ color: `${N.paper}90` }}>{L('언제 마지막에 봤나', 'last touched')}</span>
+                  {L(' — 왼쪽 오래 전 · 오른쪽 최근', ' — left: long ago · right: recent')}
+                </p>
+              </div>
+              {/* state marks — the very same ShipMarks drawn on the water, named
+                  in plain terms (색으로도 구분: 금 끝남 · 주황 방치) */}
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mb-2.5 pt-2.5" style={{ borderTop: `1px solid ${N.paper}12` }}>
+                {([
+                  { st: 'sailing', ko: '진행 중', en: 'in progress' },
+                  { st: 'adrift', ko: '표류 — 방치됨', en: 'adrift' },
+                  { st: 'verified', ko: '확인까지 끝', en: 'reckoned' },
+                  { st: 'docked', ko: '아직 시작 전', en: 'not started' },
+                ] as const).map((r) => (
+                  <span key={r.st} className="flex items-center gap-1.5 text-[10px]" style={{ color: `${N.paper}c8` }}>
+                    <span className="inline-flex items-end justify-center shrink-0" style={{ width: 20, height: 20 }}>
+                      <ShipMark state={r.st} due={false} size={17} plain />
+                    </span>
+                    {L(r.ko, r.en)}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[10px] pt-2 flex items-center gap-1.5" style={{ color: `${N.paper}9a`, borderTop: `1px solid ${N.paper}12` }}>
+                <span aria-hidden style={{ color: N.gold }}>◆</span>
+                {L('배를 누르면 그 결정이 열려요.', 'Tap a ship to open that decision.')}
+              </p>
+            </div>
+          </>
+        )}
 
         {/* ── undersea currents — beneath the ships, above the water. A line
               exists only where two charted vessels literally stand on the same
@@ -973,6 +1047,11 @@ export function VoyageSea({
             // A filter turns the map into a work slice: matches light up AND
             // reveal their keyword (few remain, so they fit); the rest recede.
             const showKeyword = (activeFilter ? matches : !dense || s.due);
+            // Mobile has no hover and (in dense mode) no labels — anonymous dots
+            // you tap blind. So on mobile, still name the ships that are CALLING
+            // (due + drifted): the few that need action get a keyword, the rest
+            // stay gestalt + the list below. (창업자 07-13: 직관적 사용)
+            const showKeywordMobile = activeFilter ? matches : s.due || attention;
             return (
               <button
                 key={s.id}
@@ -1015,9 +1094,9 @@ export function VoyageSea({
                 {/* persistent KEYWORD chip (short) for sparse fleets + the
                     ships that matter in a dense one. Not for the beacon — its
                     card carries the name. */}
-                {showKeyword && !s.beacon && (
+                {(showKeyword || showKeywordMobile) && !s.beacon && (
                   <span
-                    className="hidden sm:block mt-1 max-w-[108px] text-center text-[9.5px] leading-[1.2] tracking-[0.01em] break-keep line-clamp-1 font-semibold rounded-full px-1.5 py-px"
+                    className={`${showKeywordMobile ? 'block' : 'hidden'} ${showKeyword ? 'sm:block' : 'sm:hidden'} mt-1 max-w-[108px] text-center text-[9.5px] leading-[1.2] tracking-[0.01em] break-keep line-clamp-1 font-semibold rounded-full px-1.5 py-px`}
                     style={{
                       color: s.due ? N.gold : attention ? N.amber : `${N.paper}bf`,
                       fontFamily: 'var(--font-display)',
