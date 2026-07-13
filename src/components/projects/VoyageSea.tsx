@@ -385,6 +385,10 @@ export function VoyageSea({
   // first-timer (창업자 07-13: 직관적 사용). An on-demand key — progressive
   // disclosure, so the chart stays quiet until you ask "how do I read this?".
   const [showKey, setShowKey] = useState(false);
+  // Act-in-place (창업자 07-13: "판 위에서 바로 처리"): tapping a ship opens a
+  // small action card AT the ship — open / (due) 정산·다시 보기 — so the board
+  // is worked, not just read (and mobile stops tapping blind into a nav jump).
+  const [actionShip, setActionShip] = useState<string | null>(null);
 
   // Same signal brain as projectMetricsMap / the old FleetChart — the ONE
   // derived-state source (getVoyageState). Two deliberate departures from
@@ -997,7 +1001,7 @@ export function VoyageSea({
               </div>
               <p className="text-[10px] pt-2 flex items-center gap-1.5" style={{ color: `${N.paper}9a`, borderTop: `1px solid ${N.paper}12` }}>
                 <span aria-hidden style={{ color: N.gold }}>◆</span>
-                {L('배를 누르면 그 결정이 열려요.', 'Tap a ship to open that decision.')}
+                {L('배를 누르면 바로 처리해요 — 열기·정산.', 'Tap a ship to act — open or settle, right here.')}
               </p>
             </div>
           </>
@@ -1068,9 +1072,12 @@ export function VoyageSea({
                 key={s.id}
                 type="button"
                 role="listitem"
-                onClick={() =>
-                  s.kind === 'receipt' ? onSelectReceipt?.(s.id) : s.due ? onReview(s.id) : onSelect(s.id)
-                }
+                aria-haspopup="menu"
+                aria-expanded={actionShip === s.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActionShip((prev) => (prev === s.id ? null : s.id));
+                }}
                 title={`${s.name} — ${stateLabel} · ${s.sub}`}
                 aria-label={`${s.name} — ${stateLabel} · ${s.sub}`}
                 className={`vsea-in absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-lg cursor-pointer group focus-visible:z-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-[transform,opacity] duration-300 ${dimmed ? 'pointer-events-none' : 'hover:z-40 hover:-translate-y-[calc(50%+3px)]'}`}
@@ -1123,7 +1130,7 @@ export function VoyageSea({
                 {/* full name + state on hover/focus — the source of truth,
                     raised above neighbours (only one shows at a time). Not for
                     the beacon (card already shows it). */}
-                {!s.beacon && (
+                {!s.beacon && actionShip !== s.id && (
                   <span
                     className="hidden sm:flex flex-col items-center gap-0.5 absolute top-[calc(100%+3px)] left-1/2 -translate-x-1/2 w-max max-w-[200px] px-2.5 py-1.5 rounded-md opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none z-40 shadow-[var(--shadow-md)]"
                     style={{ background: 'var(--surface)', border: '1px solid var(--border-subtle)' }}
@@ -1142,6 +1149,69 @@ export function VoyageSea({
         </div>
 
       </div>
+
+      {/* ── act-in-place: the ship's action card. Rendered OUTSIDE the clipped
+            plate (child of the wrapper) so it can overhang the edge, anchored at
+            the tapped ship. The board's payload — you work the decision here. ── */}
+      {actionShip && (() => {
+        const s = placed.find((p) => p.id === actionShip);
+        if (!s) return null;
+        const meta = VOYAGE_STATE_META[s.state];
+        const stateLabel = s.due ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
+        const open = () => { if (s.kind === 'receipt') onSelectReceipt?.(s.id); else onSelect(s.id); setActionShip(null); };
+        const review = () => { onReview(s.id); setActionShip(null); };
+        // clamp horizontally so the 220px card never leaves the plate; flip above
+        // the ship when it sits low so the card doesn't fall off the bottom.
+        const leftPct = Math.max(15, Math.min(85, s.x));
+        const below = s.y < 52;
+        return (
+          <>
+            <div className="absolute inset-0 z-[44]" onClick={() => setActionShip(null)} aria-hidden />
+            <div
+              role="menu"
+              aria-label={s.name}
+              className="absolute z-[45] w-[220px] rounded-xl p-3"
+              style={{
+                left: `${leftPct}%`,
+                [below ? 'top' : 'bottom']: below ? `calc(${s.y}% + 22px)` : `calc(${100 - s.y}% + 22px)`,
+                transform: 'translateX(-50%)',
+                background: N.card,
+                boxShadow: `0 10px 30px ${N.paper}33, inset 0 0 0 1px ${N.paper}1f`,
+              }}
+            >
+              <p className="text-[13px] font-semibold leading-snug break-keep line-clamp-2" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+                {s.name}
+              </p>
+              <p className="mt-0.5 text-[10.5px] font-mono uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: s.due ? N.gold : (s.state === 'adrift' || s.state === 'wrecked') ? N.amber : `${N.paper}88` }}>
+                <span className="inline-flex items-end" style={{ width: 15, height: 15 }}><ShipMark state={s.state} due={s.due} size={13} plain /></span>
+                {stateLabel} · {s.sub}
+              </p>
+              <div className="mt-2.5 flex gap-1.5">
+                {s.due && s.kind !== 'receipt' && (
+                  <button
+                    type="button"
+                    data-testid="ship-action-review"
+                    onClick={review}
+                    className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-semibold cursor-pointer transition-opacity hover:opacity-90"
+                    style={{ background: N.gold, color: N.card }}
+                  >
+                    {L('정산·다시 보기', 'Settle')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  data-testid="ship-action-open"
+                  onClick={open}
+                  className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-semibold cursor-pointer transition-colors"
+                  style={{ background: `${N.paper}0d`, color: N.paper, boxShadow: `inset 0 0 0 1px ${N.paper}22` }}
+                >
+                  {L('열기', 'Open')}
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* ── drift chip — the amber current's voice, kept to the sky band so it
             never occludes ships. Fires ONLY on the groundSpotlight event;

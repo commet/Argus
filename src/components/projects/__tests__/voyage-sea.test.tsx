@@ -17,7 +17,8 @@
  *  - The beacon quotes the user's own sealed predicate VERBATIM (honest
  *    provenance) and says so plainly when none exists (honest gap).
  *  - Retro (practice) voyages never sail here; < 2 ships → no sea at all.
- *  - Ships are click-to-open only (onSelect / onReview for due ships).
+ *  - Tapping a ship opens an in-place action card (열기 → onSelect/onSelectReceipt;
+ *    due → 정산 → onReview) — the board is worked, not just read.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -258,7 +259,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(text).not.toMatch(/better|worse|더 나|보다/i);
   });
 
-  it('opens a project on ship click; due ships route to revisit instead', () => {
+  it('taps a ship to an action card; open vs settle route correctly', () => {
     const due = sealedProject('due1', '2026-01-10T00:00:00.000Z', {
       decision_contract: {
         id: 'c-due1',
@@ -275,9 +276,16 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLButtonElement[];
     const dueBtn = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-due1'))!;
     const plainBtn = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-b'))!;
+    // Tapping a ship no longer navigates — it opens an action card in place.
     act(() => dueBtn.click());
+    const reviewBtn = container.querySelector('[data-testid="ship-action-review"]') as HTMLButtonElement;
+    expect(reviewBtn).toBeTruthy(); // a due ship offers 정산·다시 보기
+    act(() => reviewBtn.click());
     expect(onReview).toHaveBeenCalledWith('due1');
+
     act(() => plainBtn.click());
+    const openBtn = container.querySelector('[data-testid="ship-action-open"]') as HTMLButtonElement;
+    act(() => openBtn.click());
     expect(onSelect).toHaveBeenCalledWith('b');
   });
 });
@@ -346,6 +354,8 @@ describe('one sea — receipt vessels and undersea currents', () => {
     const receiptShip = items.find((b) => (b.getAttribute('aria-label') || '').includes('검수 결정'))!;
     expect(receiptShip).toBeTruthy();
     act(() => receiptShip.click());
+    const openBtn = container.querySelector('[data-testid="ship-action-open"]') as HTMLButtonElement;
+    act(() => openBtn.click());
     expect(onSelectReceipt).toHaveBeenCalledWith('r1');
   });
 
