@@ -721,9 +721,14 @@ export function VoyageSea({
   //    adjacent members sorted by x, computed as pure math from the plate's
   //    fixed aspect — no layout measurement, no SVG.
   const currents: SeaCurrent[] = [];
+  // Premise keys whose ground has DRIFTED (last re-check moved). A decision
+  // standing on a moved premise is exposed — this is what turns leverage from a
+  // fact ("N stand together") into a warning ("N stand on ground that shifted").
+  const driftedKeys = new Set<string>();
   if (receipts?.length) {
     const pos = new Map(placed.map((s) => [s.id, s]));
     for (const g of sharedGrounds(receipts)) {
+      if (g.drift) driftedKeys.add(g.key);
       const members = [...new Set(g.members.map((m) => m.receipt_id))]
         .map((id) => pos.get(id))
         .filter((s): s is Placed => !!s)
@@ -755,6 +760,16 @@ export function VoyageSea({
   const leverageLinks = leverageFocus
     ? leverageSibs.map((sib) => ({ x1: leverageFocus.x, y1: leverageFocus.y, x2: sib.x, y2: sib.y }))
     : [];
+  // Is the focused group standing on ground that DRIFTED? Then leverage is a
+  // warning (amber), not a neutral fact (gold).
+  const leverageShaky = !!leverageFocus?.premise && driftedKeys.has(normalizePremiseText(leverageFocus.premise));
+  const leverageHue = leverageShaky ? N.amber : N.gold;
+  // Blast radius of the spotlit drift: how many charted decisions stand on the
+  // premise that just moved (the drift chip's "그 위 N척").
+  const driftKey = spotlight ? normalizePremiseText(spotlight.text) : '';
+  const driftExposed = driftKey
+    ? placed.filter((p) => p.premise && normalizePremiseText(p.premise) === driftKey).length
+    : 0;
 
   // Honest caption — plain facts in the calm register, no manufactured urgency.
   const caption = beacon
@@ -1086,7 +1101,7 @@ export function VoyageSea({
               <line
                 key={i}
                 x1={ln.x1} y1={ln.y1} x2={ln.x2} y2={ln.y2}
-                stroke={N.gold}
+                stroke={leverageHue}
                 strokeWidth={0.35}
                 strokeDasharray="1.4 1.2"
                 strokeOpacity={0.85}
@@ -1113,10 +1128,12 @@ export function VoyageSea({
             const kw = keyword(s.name);
             const matches = matchOf(s);
             const hasGround = siblingsOf.has(s.id); // stands on shared premise
+            const shaky = hasGround && !!s.premise && driftedKeys.has(normalizePremiseText(s.premise));
             // Filter dims non-matches; a leverage focus dims everything off the
             // shared-ground group so the standing-together reads instantly.
             const dimmed = (!!activeFilter && !matches) || (!!leverageSet && !leverageSet.has(s.id));
             const isLeverage = !!leverageSet && leverageSet.has(s.id);
+            const groundHue = shaky ? N.amber : N.gold;
             // A filter turns the map into a work slice: matches light up AND
             // reveal their keyword (few remain, so they fit); the rest recede.
             const showKeyword = (activeFilter ? matches : !dense || s.due);
@@ -1159,7 +1176,7 @@ export function VoyageSea({
                 {/* leverage highlight — a gold ring on the focused ground-group
                     so the standing-together reads at a glance. */}
                 {isLeverage && (
-                  <span aria-hidden className="absolute left-1/2 top-[38%] -z-[1] rounded-full" style={{ width: size + 16, height: size + 16, transform: 'translate(-50%,-50%)', boxShadow: `0 0 0 1.5px ${N.gold}, 0 0 12px 2px ${N.gold}55` }} />
+                  <span aria-hidden className="absolute left-1/2 top-[38%] -z-[1] rounded-full" style={{ width: size + 16, height: size + 16, transform: 'translate(-50%,-50%)', boxShadow: `0 0 0 1.5px ${groundHue}, 0 0 12px 2px ${groundHue}55` }} />
                 )}
                 <span className={s.state === 'wrecked' || s.state === 'docked' ? '' : 'vsea-bob'} style={{ animationDelay: `${(i % 5) * 1.1}s` }}>
                   <ShipMark
@@ -1175,7 +1192,7 @@ export function VoyageSea({
                 {/* passive leverage tell — a faint gold tie-dot marks a decision
                     that shares its sealed premise with another. Tap to see who. */}
                 {hasGround && !s.beacon && !isLeverage && (
-                  <span aria-hidden className="absolute left-1/2 -translate-x-1/2 rounded-full" style={{ top: '-2px', width: 4, height: 4, background: N.gold, opacity: 0.7, boxShadow: `0 0 0 1.5px ${N.card}` }} />
+                  <span aria-hidden className="absolute left-1/2 -translate-x-1/2 rounded-full" style={{ top: '-2px', width: 4, height: 4, background: groundHue, opacity: shaky ? 0.9 : 0.7, boxShadow: `0 0 0 1.5px ${N.card}` }} />
                 )}
                 {/* persistent KEYWORD chip (short) for sparse fleets + the
                     ships that matter in a dense one. Not for the beacon — its
@@ -1265,11 +1282,17 @@ export function VoyageSea({
                   fact (exact-match ground), not a verdict: if it moves, they move
                   together. This is the board's intelligence, not a menu. */}
               {leverageSibs.length > 0 && (
-                <div className="mt-2 rounded-lg px-2.5 py-2" style={{ background: `${N.gold}14` }}>
-                  <p className="text-[10.5px] font-semibold flex items-center gap-1.5" style={{ color: N.gold }}>
+                <div className="mt-2 rounded-lg px-2.5 py-2" style={{ background: `${leverageHue}14` }}>
+                  <p className="text-[10.5px] font-semibold flex items-center gap-1.5" style={{ color: leverageHue }}>
                     <span aria-hidden>⚭</span>
                     {L(`같은 전제 위 ${leverageSibs.length + 1}척 — 하나 흔들리면 같이`, `${leverageSibs.length + 1} on this same premise — one moves, all move`)}
                   </p>
+                  {leverageShaky && (
+                    <p className="mt-1 text-[10.5px] leading-snug flex items-start gap-1.5" style={{ color: N.amber }}>
+                      <span aria-hidden>⚠</span>
+                      {L('이 전제가 최근 흔들렸어요 — 위 결정들 다시 봐야.', 'This premise just moved — the decisions on it need a fresh look.')}
+                    </p>
+                  )}
                   <div className="mt-1 flex flex-col gap-0.5">
                     {leverageSibs.slice(0, 4).map((sib) => (
                       <button
@@ -1342,6 +1365,13 @@ export function VoyageSea({
             {spotGauge && (
               <span className="text-[10px] font-mono tabular-nums shrink-0" style={{ color: 'var(--warning)' }}>
                 {spotGauge.from != null ? `${spotGauge.from}→${spotGauge.to}` : spotGauge.to}
+              </span>
+            )}
+            {/* blast radius — how many charted decisions stand on this moved
+                premise. Turns a drift notice into "N of your calls are exposed." */}
+            {driftExposed >= 2 && (
+              <span className="text-[10px] font-semibold shrink-0" style={{ color: N.amber }}>
+                · {L(`그 위 ${driftExposed}척`, `${driftExposed} on it`)}
               </span>
             )}
             <span aria-hidden className="text-[11px] shrink-0" style={{ color: `${N.paper}80` }}>→</span>

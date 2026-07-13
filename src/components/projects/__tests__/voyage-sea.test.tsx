@@ -405,6 +405,51 @@ describe('one sea — receipt vessels and undersea currents', () => {
     expect(currents[0].getAttribute('data-drifted')).toBe('1');
   });
 
+  it('drift × leverage: decisions on a MOVED premise warn amber and the chip counts them', () => {
+    const onGround = (id: string, createdAt: string): Partial<Project> => ({
+      decision_contract: {
+        id: `c-${id}`, project_id: id, created_at: createdAt, check_in_at: '2099-01-01T00:00:00.000Z',
+        predicates: [{ id: `p-${id}`, text: GROUND, source: 'governing_idea', authored: 'user' }],
+      },
+    });
+    const drifted = rPremise(GROUND, {
+      last_recheck: {
+        finding: '4.0%', numeric_value: 4, baseline_finding: '3.5%', baseline_numeric_value: 3.5,
+        drifted: true, baseline_only: false, source: 'url', ts: '2026-02-20T00:00:00Z',
+      },
+    });
+    act(() => {
+      root.render(
+        createElement(VoyageSea, {
+          projects: [
+            sealedProject('pg1', '2026-01-05T00:00:00.000Z', onGround('pg1', '2026-01-05T00:00:00.000Z')),
+            sealedProject('pg2', '2026-01-06T00:00:00.000Z', onGround('pg2', '2026-01-06T00:00:00.000Z')),
+          ],
+          ...emptyLedgers,
+          dueProjectIds: [],
+          locale: 'ko' as const,
+          onSelect: vi.fn(),
+          onReview: vi.fn(),
+          receipts: [
+            sealedReceipt('r1', '조달', '2026-02-01T00:00:00.000Z', [drifted]),
+            sealedReceipt('r2', '가격', '2026-02-15T00:00:00.000Z', [rPremise(GROUND)]),
+          ],
+          onSelectReceipt: vi.fn(),
+        }),
+      );
+    });
+    // the drift chip quantifies the blast radius — 2 charted decisions on GROUND
+    expect(container.textContent).toContain('그 위 2척');
+    // tapping one exposes the group AND flags the moved ground (a fact, amber)
+    const shipG = Array.from(container.querySelectorAll('[role="listitem"]')).find((el) =>
+      (el.getAttribute('aria-label') || '').includes('voyage-pg1'),
+    ) as HTMLButtonElement;
+    act(() => shipG.click());
+    const card = container.querySelector('[role="menu"]')!;
+    expect(card.textContent).toContain('같은 전제 위 2척');
+    expect(card.textContent).toContain('이 전제가 최근 흔들렸어요'); // drift → warning
+  });
+
   it('no shared ground → no current elements at all (nothing invented)', () => {
     renderWithReceipts([
       sealedReceipt('r1', '조달', '2026-02-01T00:00:00.000Z', [rPremise('전제 A')]),
