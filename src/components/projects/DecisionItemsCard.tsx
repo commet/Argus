@@ -175,6 +175,7 @@ export function DecisionItemsCard({
                           {editing ? (
                             <div className="space-y-2">
                               <textarea
+                                aria-label={L('결정 항목 수정', 'Edit decision item')}
                                 value={draft}
                                 onChange={(e) => setDraft(e.target.value)}
                                 rows={2}
@@ -184,12 +185,14 @@ export function DecisionItemsCard({
                               />
                               <div className="flex gap-1.5">
                                 <button
+                                  type="button"
                                   onClick={() => saveEdit(item.id)}
                                   className="px-2.5 py-1.5 rounded-md text-[12.5px] font-semibold border border-[var(--accent)] bg-[var(--accent)] text-white inline-flex items-center gap-1 cursor-pointer"
                                 >
                                   <Check size={13} /> {L('저장', 'Save')}
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => { setEditingId(null); setDraft(''); }}
                                   className="px-2.5 py-1.5 rounded-md text-[12.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] inline-flex items-center gap-1 cursor-pointer"
                                 >
@@ -255,12 +258,14 @@ export function DecisionItemsCard({
                               </span>
                               <span className="flex items-center gap-1 shrink-0">
                                 <button
+                                  type="button"
                                   onClick={() => startEdit(item.id, item.text)}
                                   className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
                                 >
                                   {L('네, 정리할게요', 'Settle it')}
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => dismissAlert(item.id)}
                                   className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
                                 >
@@ -281,12 +286,14 @@ export function DecisionItemsCard({
                               </span>
                               <span className="flex items-center gap-1 shrink-0">
                                 <button
+                                  type="button"
                                   onClick={() => markRechecked(item.id)}
                                   className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-semibold border border-[var(--accent)]/50 text-[var(--accent)] cursor-pointer"
                                 >
                                   {L('그대로예요', 'Still true')}
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => startEdit(item.id, item.text)}
                                   className="min-h-[44px] px-2.5 py-1 rounded-md text-[11.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] cursor-pointer"
                                 >
@@ -303,16 +310,19 @@ export function DecisionItemsCard({
               ))}
               <div className="flex items-center gap-1.5 pt-0.5">
                 <input
+                  type="text"
+                  aria-label={L('미결 항목 추가', 'Add an open question')}
                   value={newQ}
                   onChange={(e) => setNewQ(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') addOpenQuestion();
+                    if (e.key === 'Enter' && !e.nativeEvent.isComposing) addOpenQuestion();
                   }}
                   maxLength={200}
                   placeholder={L('아직 안 정한 것 추가…', "Add something you haven't decided…")}
                   className="flex-1 min-w-0 text-[12.5px] text-[var(--text-primary)] bg-[var(--surface)] border border-[var(--border)] rounded-md px-2.5 py-1.5 focus:outline-none focus:border-[var(--accent)]/50 placeholder:text-[var(--text-tertiary)]"
                 />
                 <button
+                  type="button"
                   onClick={addOpenQuestion}
                   disabled={!newQ.trim()}
                   className="px-2.5 py-1.5 rounded-md text-[12.5px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40 cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-default"

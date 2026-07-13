@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   getVoyageState,
   daysUntilWreck,
@@ -390,6 +390,37 @@ export function VoyageSea({
   // small action card AT the ship — open / (due) 정산·다시 보기 — so the board
   // is worked, not just read (and mobile stops tapping blind into a nav jump).
   const [actionShip, setActionShip] = useState<string | null>(null);
+  const actionCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!actionShip) return;
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      actionCardRef.current?.querySelector<HTMLElement>('[data-autofocus="true"]')?.focus();
+    });
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      const shipId = actionShip;
+      setActionShip(null);
+      window.requestAnimationFrame(() => document.getElementById(`voyage-ship-${shipId}`)?.focus());
+    };
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [actionShip]);
+
+  useEffect(() => {
+    if (!showKey) return;
+    const closeLegendOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowKey(false);
+    };
+    document.addEventListener('keydown', closeLegendOnEscape);
+    return () => document.removeEventListener('keydown', closeLegendOnEscape);
+  }, [showKey]);
 
   // Same signal brain as projectMetricsMap / the old FleetChart — the ONE
   // derived-state source (getVoyageState). Two deliberate departures from
@@ -1150,8 +1181,11 @@ export function VoyageSea({
               >
                 <button
                   type="button"
-                  aria-haspopup="menu"
+                  id={`voyage-ship-${s.id}`}
+                  aria-haspopup="dialog"
                   aria-expanded={actionShip === s.id}
+                  aria-controls={actionShip === s.id ? `voyage-action-${s.id}` : undefined}
+                  disabled={dimmed}
                   onClick={(e) => {
                     e.stopPropagation();
                     setActionShip((prev) => (prev === s.id ? null : s.id));
@@ -1257,7 +1291,9 @@ export function VoyageSea({
           <>
             <div className="absolute inset-0 z-[44]" onClick={() => setActionShip(null)} aria-hidden />
             <div
-              role="menu"
+              ref={actionCardRef}
+              id={`voyage-action-${s.id}`}
+              role="dialog"
               aria-label={s.name}
               className="absolute z-[45] w-[220px] rounded-xl p-3"
               style={{
@@ -1268,7 +1304,19 @@ export function VoyageSea({
                 boxShadow: `0 10px 30px ${N.paper}33, inset 0 0 0 1px ${N.paper}1f`,
               }}
             >
-              <p className="text-[13px] font-semibold leading-snug break-keep line-clamp-2" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setActionShip(null);
+                  window.requestAnimationFrame(() => document.getElementById(`voyage-ship-${s.id}`)?.focus());
+                }}
+                aria-label={L('행동 카드 닫기', 'Close action card')}
+                className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md text-[16px] cursor-pointer transition-colors hover:bg-white/10"
+                style={{ color: `${N.paper}9a` }}
+              >
+                <span aria-hidden>×</span>
+              </button>
+              <p className="pr-7 text-[13px] font-semibold leading-snug break-keep line-clamp-2" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
                 {s.name}
               </p>
               <p className="mt-0.5 text-[10.5px] font-mono uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: s.due ? N.gold : (s.state === 'adrift' || s.state === 'wrecked') ? N.amber : `${N.paper}88` }}>
@@ -1320,6 +1368,7 @@ export function VoyageSea({
                   <button
                     type="button"
                     data-testid="ship-action-review"
+                    data-autofocus="true"
                     onClick={review}
                     className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-semibold cursor-pointer transition-opacity hover:opacity-90"
                     style={{ background: N.gold, color: N.card }}
@@ -1330,6 +1379,7 @@ export function VoyageSea({
                 <button
                   type="button"
                   data-testid="ship-action-open"
+                  data-autofocus={s.due && s.kind !== 'receipt' ? undefined : 'true'}
                   onClick={open}
                   className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-semibold cursor-pointer transition-colors"
                   style={{ background: `${N.paper}0d`, color: N.paper, boxShadow: `inset 0 0 0 1px ${N.paper}22` }}
@@ -1423,7 +1473,7 @@ export function VoyageSea({
             );
           })}
         </div>
-        <p className="text-[12px] text-[var(--text-secondary)]">
+        <p className="text-[12px] text-[var(--text-secondary)]" role="status" aria-live="polite" aria-atomic="true">
           {activeFilter
             ? L(
                 `${L(activeFilter.ko, activeFilter.en)} ${filterList.find((f) => f.key === activeFilter.key)?.n ?? 0}건만 보는 중 — 나머지는 잠시 물러났어요.`,

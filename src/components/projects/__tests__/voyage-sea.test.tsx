@@ -289,6 +289,23 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(onSelect).toHaveBeenCalledWith('b');
   });
 
+  it('exposes the ship card as a dialog and closes it with Escape', () => {
+    render([
+      sealedProject('a', '2026-01-05T00:00:00.000Z'),
+      sealedProject('b', '2026-02-01T00:00:00.000Z'),
+    ]);
+    const ship = container.querySelector('li > button') as HTMLButtonElement;
+
+    act(() => ship.click());
+    expect(ship.getAttribute('aria-haspopup')).toBe('dialog');
+    expect(ship.getAttribute('aria-expanded')).toBe('true');
+    expect(container.querySelector('[role="dialog"]')).toBeTruthy();
+
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(ship.getAttribute('aria-expanded')).toBe('false');
+  });
+
   // ── shared-ground leverage: two decisions on the SAME sealed premise are
   //    linked (a fact, exact-match); a third with a different premise is not.
   it('leverage links decisions on the same sealed premise, and only those', () => {
@@ -309,14 +326,15 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     const items = Array.from(container.querySelectorAll('li > button')) as HTMLButtonElement[];
     const shipA = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-a'))!;
     act(() => shipA.click());
-    const card = container.querySelector('[role="menu"]')!;
+    const card = container.querySelector('[role="dialog"]')!;
     expect(card.textContent).toContain('같은 전제 위 2척'); // a + b stand together
     expect(card.textContent).toContain('voyage-b'); // the sibling is named
     expect(card.textContent).not.toContain('voyage-c'); // different premise → no invented link
 
     // A decision whose premise nobody shares shows NO leverage callout (restraint).
+    act(() => (container.querySelector('[aria-label="행동 카드 닫기"]') as HTMLButtonElement).click());
     act(() => (items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-c'))!).click());
-    expect(container.querySelector('[role="menu"]')!.textContent).not.toContain('같은 전제 위');
+    expect(container.querySelector('[role="dialog"]')!.textContent).not.toContain('같은 전제 위');
   });
 });
 
@@ -445,7 +463,7 @@ describe('one sea — receipt vessels and undersea currents', () => {
       (el.getAttribute('aria-label') || '').includes('voyage-pg1'),
     ) as HTMLButtonElement;
     act(() => shipG.click());
-    const card = container.querySelector('[role="menu"]')!;
+    const card = container.querySelector('[role="dialog"]')!;
     expect(card.textContent).toContain('같은 전제 위 2척');
     expect(card.textContent).toContain('이 전제가 최근 흔들렸어요'); // drift → warning
   });
