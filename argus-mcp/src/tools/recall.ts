@@ -17,6 +17,17 @@ import { handleToolException } from './errors.js';
 const byCheckBy = (a: { check_by?: string }, b: { check_by?: string }) =>
   (a.check_by || '9999-99-99') < (b.check_by || '9999-99-99') ? -1 : 1;
 
+/** The ONE canonical meaning-statement (spine rule 2): sample-size-scaled
+ *  frequency, never a tier/score/verdict about the user. Shared by track_record
+ *  and reflection so the two reads can never drift into two different claims. */
+function frequencyStatement(s: LedgerState['stats'], locale: SurfaceLocale): string {
+  const n = s.total_settled;
+  if (n === 0) return locale === 'ko' ? '아직 정산된 결정이 없습니다 — 요약할 것이 없습니다.' : 'No settled decisions yet — nothing to summarize.';
+  return locale === 'ko'
+    ? `정산 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial} · 빗나감 ${s.missed}.`
+    : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial, ${s.missed} missed.`;
+}
+
 /** Voice for a read view: the view's own text, else any ledger user-text, else
  *  config-or-EN — NEVER env/Intl. (Experience-loop find: an English user on a
  *  Korean-locale machine got a Korean "no premises" line because the textless
@@ -36,7 +47,7 @@ function wakeText(ledger: LedgerState, today: string, dir: string): string | und
 
 const inputSchema = z.strictObject({
   argus_dir: zArgusDir,
-  view: z.enum(['bearing', 'contracts', 'receipt', 'track_record', 'premises']),
+  view: z.enum(['bearing', 'contracts', 'receipt', 'track_record', 'premises', 'reflection']),
   id: zId.describe('Required when view = "receipt" or "premises".').optional(),
   today_override: zDate.optional(),
 });
@@ -194,15 +205,59 @@ export const recall: ToolModule = {
         });
       }
 
+      if (view === 'reflection') {
+        // "내 맥락 다시 채우기" (§8-B): a surface for re-reading YOUR OWN past
+        // reasoning — the predictions and premises you wrote, and what reality
+        // did — to rebuild calibration. It leads with your own sentences; the
+        // only meaning-language is the shared frequency statement. No tier, no
+        // score, no characterization of who you are (spine rule 2).
+        const rl = readVoice(dir, ledger);
+        const withReasoning = [...ledger.contracts.values()]
+          .filter((c) => c.status === 'settled' || c.status === 'sealed')
+          // settled first (that is where calibration lives), then by check_by.
+          .sort((a, b) => (a.status === 'settled') !== (b.status === 'settled')
+            ? (a.status === 'settled' ? -1 : 1)
+            : byCheckBy(a, b));
+        const reflections = withReasoning.slice(0, 30).map((c) => ({
+          id: c.id, status: c.status, predicate: c.predicate ?? c.text, check_by: c.check_by,
+          ...(c.status === 'settled' ? { outcome: c.outcome, ...(c.settled_on ? { settled_on: c.settled_on } : {}) } : {}),
+          premises: (c.premises ?? []).map((p) => ({
+            ref: `P${p.ordinal}`, text: p.text, kind: p.kind, load_bearing: p.load_bearing, status: p.status,
+            // provenance is the line between your reasoning and the model's draft.
+            source: p.source,
+            ...(p.ai_original && p.ai_original !== p.text ? { ai_original: p.ai_original, edited_by_user: true } : {}),
+            ...(c.broken_premise_id && p.premise_id === c.broken_premise_id ? { you_named_broken: true } : {}),
+          })),
+        }));
+        const rfreq = frequencyStatement(ledger.stats, rl);
+        const rn = ledger.stats.total_settled;
+        const framing = reflections.length === 0
+          ? (rl === 'ko'
+              ? '되읽을 결정이 아직 없습니다. 예측과 전제를 기록하면, 여기서 당신의 판단을 다시 만납니다.'
+              : 'Nothing to re-read yet. Once you record predictions and premises, this is where you meet your own judgment again.')
+          : (rl === 'ko'
+              ? `되읽을 결정 ${reflections.length}건. 당신이 쓴 예측과 전제, 그리고 현실이 한 일입니다.`
+              : `${reflections.length} decision(s) to re-read: your own predictions and premises, and what reality did.`);
+        return envelope({
+          ok: true, tool: 'argus_recall',
+          surface: rn > 0 ? `${framing} ${rfreq}` : framing,
+          next_actions: ['stop'],
+          data: {
+            judgment_tier: null, judgment_score: null, // spine rule 2 — never a verdict about who you are
+            reflections, reflection_count: reflections.length,
+            frequency_statement: rfreq,
+            sample_size: rn,
+            sample_size_caveat: rn > 0 && rn < 10 ? (rl === 'ko' ? '표본이 작습니다 — 당신에 대한 패턴이 아니라 기록으로 읽으세요.' : 'Sample is small — read this as history, not a pattern about you.') : undefined,
+            today,
+          },
+        });
+      }
+
       // track_record — frequency only, sample-size caveated. No tier, no score (spine rule 2).
       const s = ledger.stats;
       const n = s.total_settled;
       const trackLocale = readVoice(dir, ledger);
-      const freq = n === 0
-        ? (trackLocale === 'ko' ? '아직 정산된 결정이 없습니다 — 요약할 것이 없습니다.' : 'No settled decisions yet — nothing to summarize.')
-        : (trackLocale === 'ko'
-            ? `정산 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial} · 빗나감 ${s.missed}.`
-            : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial, ${s.missed} missed.`);
+      const freq = frequencyStatement(s, trackLocale);
 
       // Premise-level attribution (plan v5 P2) — where accumulation compounds:
       // COUNTS of settles where the user themselves named a broken premise.
