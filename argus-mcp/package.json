@@ -34,6 +34,7 @@
     "prepack": "npm run build",
     "prepublishOnly": "npm run typecheck && npm test && npm audit --omit=dev",
     "eval:premises": "node evals/run-premises.mjs",
+    "eval:p5": "tsx evals/p5-gate.ts",
     "arch": "npm run build && node evals/architecture-review.mjs"
   },
   "keywords": [
