@@ -72,8 +72,10 @@ const N = {
   seaDeep: '#cebf9e', // deep water toward the harbour (bottom)
   land: '#bdae87', // the harbour shore
   paper: '#2b2620', // ink — vessels, hairlines, text
-  gold: '#8a6a1e', // deep gold, readable on light (fills / text)
+  gold: '#8a6a1e', // deep gold, readable on light (fills / text) — the DONE hue
   goldGlow: '#c39a34', // brighter gold for the due ship's soft ring
+  amber: '#bd6a1c', // burnt amber — the DRIFT hue (a fact of attention, never a
+  //                    verdict; distinct from the olive `gold` of completion)
   card: '#f8f2e4', // near-white parchment — floating notices, pops off the sea
 };
 
@@ -234,17 +236,28 @@ function ShipMark({
 }) {
   const w = size;
   const h = Math.round(size * 1.12);
-  const sail = due ? N.gold : N.paper;
+  // ── the at-a-glance STATE SYSTEM (창업자 07-13: "상태별 구분 직관적으로") ──
+  // Three orthogonal cues, each readable even at 15px dense size:
+  //   1) COLOR family — gold = 결착(verified/done), amber = 표류(drift, a fact),
+  //      ink = 진행/귀항. The due ship is gold (the beacon).
+  //   2) POSTURE — sailing upright-full-sail, adrift heeled-slack, wrecked
+  //      sunk-bare, moored ships upright-furled.
+  //   3) GLYPH — separates the three furled look-alikes: docked flies nothing
+  //      (⚓ anchored, never sailed), arrived flies a pennant (came home),
+  //      verified flies a gold pennant + gold canvas (reckoned).
+  const drift = state === 'adrift' || state === 'wrecked';
+  const ink = due ? N.gold : state === 'verified' ? N.gold : drift ? N.amber : N.paper;
+  const sail = ink;
   const heel = state === 'adrift' ? -11 : heading;
 
   if (state === 'wrecked') {
-    // Aground on the shoal: heeled bare hull + stump of mast, sinking into the
-    // hatch. Dimmed — never enlarged, never colored as failure. No reflection:
-    // she is out of the water.
+    // Long untended, aground on the shoal: heeled bare hull + stump of mast,
+    // half-sunk. Amber (a fact of neglect), dimmed — never enlarged, never
+    // colored as failure (거울 조항). No reflection: she is out of the water.
     return (
-      <span aria-hidden className="relative block" style={{ width: w, height: h, opacity: 0.5 }}>
-        <span className="absolute block" style={{ left: '8%', right: '8%', bottom: '18%', height: '17%', background: N.paper, borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%', transform: 'rotate(21deg)' }} />
-        <span className="absolute block" style={{ left: '52%', bottom: '30%', width: 1.5, height: '34%', background: N.paper, transform: 'rotate(28deg)' }} />
+      <span aria-hidden className="relative block" style={{ width: w, height: h, opacity: 0.62 }}>
+        <span className="absolute block" style={{ left: '8%', right: '8%', bottom: '18%', height: '17%', background: ink, borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%', transform: 'rotate(21deg)' }} />
+        <span className="absolute block" style={{ left: '52%', bottom: '30%', width: 1.5, height: '34%', background: ink, transform: 'rotate(28deg)' }} />
       </span>
     );
   }
@@ -252,10 +265,20 @@ function ShipMark({
   const furled = state === 'docked' || state === 'arrived' || state === 'verified';
   const silhouette = (
     <>
-      {/* hull */}
-      <span className="absolute block" style={{ left: '6%', right: '6%', bottom: 0, height: '16%', background: N.paper, borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%' }} />
+      {/* hull — filled for a home vessel (arrived/verified), open for one still
+          out (sailing/docked-at-pier), so "closed the loop" reads as a solid
+          hull vs an outline even before you clock the sails. */}
+      <span
+        className="absolute block"
+        style={{
+          left: '6%', right: '6%', bottom: 0, height: '16%',
+          background: state === 'arrived' || state === 'verified' ? ink : 'transparent',
+          boxShadow: `inset 0 0 0 1.4px ${ink}`,
+          borderRadius: '2px 2px 12px 12px / 2px 2px 100% 100%',
+        }}
+      />
       {/* mast */}
-      <span className="absolute block" style={{ left: '50%', bottom: '14%', width: 1.5, height: '74%', background: N.paper, transform: 'translateX(-50%)' }} />
+      <span className="absolute block" style={{ left: '50%', bottom: '14%', width: 1.5, height: '74%', background: ink, transform: 'translateX(-50%)' }} />
       {furled ? (
         // canvas struck and lashed along the boom — a ship at her moorings.
         <>
@@ -264,16 +287,20 @@ function ShipMark({
         </>
       ) : (
         <>
-          {/* mainsail — vertical luff on the mast, clew trailing aft */}
+          {/* mainsail — vertical luff on the mast, clew trailing aft. Adrift =
+              luffing (slack + amber), so a drifted ship reads as "sail lost the
+              wind", not "under way". */}
           <span
             className="absolute block"
             style={{
               left: '52%', bottom: '22%', width: '42%', height: '64%',
-              background: sail, opacity: state === 'adrift' ? 0.3 : 0.95,
-              clipPath: 'polygon(0% 0%, 0% 100%, 100% 96%)',
+              background: sail, opacity: state === 'adrift' ? 0.45 : 0.95,
+              clipPath: state === 'adrift'
+                ? 'polygon(0% 0%, 0% 100%, 78% 90%)' // collapsed, spilling wind
+                : 'polygon(0% 0%, 0% 100%, 100% 96%)',
             }}
           />
-          {/* jib — struck when the wind is lost */}
+          {/* jib — set only when she has the wind (struck when adrift) */}
           {state !== 'adrift' && (
             <span
               className="absolute block"
@@ -286,12 +313,23 @@ function ShipMark({
           )}
         </>
       )}
-      {/* ensign — pennant for a project voyage, rectangular flag for a receipt */}
+      {/* masthead ensign. Receipt door → rectangular flag (honest fact of which
+          door she sailed from). Home vessels fly a pennant — gold for a reckoned
+          (verified) decision, ink for one arrived-and-awaiting-you. A docked
+          ship that never sailed flies nothing but drops an anchor (below). */}
       {kind === 'receipt' ? (
         <span className="absolute block" style={{ left: '52%', top: '2%', width: '26%', height: '9%', background: sail, opacity: 0.85, borderRadius: 0.5 }} />
-      ) : state === 'verified' ? (
-        <span className="absolute block" style={{ left: '50%', top: 0, width: 4, height: 4, background: N.gold, borderRadius: 1 }} />
+      ) : state === 'verified' || state === 'arrived' ? (
+        <span className="absolute block" style={{ left: '51%', top: '1%', width: '30%', height: '7%', background: ink, clipPath: 'polygon(0 0, 100% 0, 78% 50%, 100% 100%, 0 100%)' }} />
       ) : null}
+      {/* anchor — only the docked vessel (moored, never sailed) drops one. A
+          small stock-and-shank hanging at the bow: reads "parked at the pier". */}
+      {state === 'docked' && (
+        <>
+          <span className="absolute block" style={{ left: '50%', bottom: '2%', width: 1.2, height: '16%', background: ink, transform: 'translateX(-50%)', opacity: 0.85 }} />
+          <span className="absolute block" style={{ left: '50%', bottom: '2%', width: '26%', height: 1.2, background: ink, transform: 'translateX(-50%)', opacity: 0.85, borderRadius: 2 }} />
+        </>
+      )}
     </>
   );
 
@@ -622,9 +660,9 @@ export function VoyageSea({
   // ── the operable filters (B) — each isolates a real slice of the fleet.
   //    Clicking one dims everything else and reveals the matches' keywords, so
   //    the axes/states become something you ACT on, not just read. ──
-  const FILTERS: Array<{ key: string; ko: string; en: string; test: (s: SeaShip) => boolean; gold?: boolean }> = [
+  const FILTERS: Array<{ key: string; ko: string; en: string; test: (s: SeaShip) => boolean; gold?: boolean; amber?: boolean }> = [
     { key: 'due', ko: '다시 볼 것', en: 'due', test: (s) => s.due, gold: true },
-    { key: 'idle', ko: '오래 방치', en: 'untended', test: (s) => s.state === 'adrift' || s.state === 'wrecked' },
+    { key: 'idle', ko: '오래 방치', en: 'untended', test: (s) => s.state === 'adrift' || s.state === 'wrecked', amber: true },
     { key: 'sailing', ko: '항해 중', en: 'sailing', test: (s) => s.state === 'sailing' && !s.due },
     { key: 'home', ko: '항구·완료', en: 'in harbor', test: (s) => s.state === 'arrived' || s.state === 'verified' },
     { key: 'docked', ko: '출항 전', en: 'docked', test: (s) => s.state === 'docked' && !s.due },
@@ -981,7 +1019,7 @@ export function VoyageSea({
                   <span
                     className="hidden sm:block mt-1 max-w-[108px] text-center text-[9.5px] leading-[1.2] tracking-[0.01em] break-keep line-clamp-1 font-semibold rounded-full px-1.5 py-px"
                     style={{
-                      color: s.due ? N.gold : attention ? 'color-mix(in srgb, var(--warning) 80%, var(--text-primary))' : `${N.paper}bf`,
+                      color: s.due ? N.gold : attention ? N.amber : `${N.paper}bf`,
                       fontFamily: 'var(--font-display)',
                       background: `${N.card}cc`,
                       boxShadow: s.due
@@ -1075,11 +1113,14 @@ export function VoyageSea({
                   on
                     ? f.gold
                       ? { background: N.gold, color: N.card }
-                      : { background: 'var(--text-primary)', color: 'var(--bg)' }
-                    : { color: f.gold ? N.gold : 'var(--text-secondary)' }
+                      : f.amber
+                        ? { background: N.amber, color: N.card }
+                        : { background: 'var(--text-primary)', color: 'var(--bg)' }
+                    : { color: f.gold ? N.gold : f.amber ? N.amber : 'var(--text-secondary)' }
                 }
               >
                 {f.gold && !on && <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />}
+                {f.amber && !on && <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: N.amber }} />}
                 {L(f.ko, f.en)}
                 <span className="tabular-nums text-[10px] opacity-70">{f.n}</span>
               </button>
