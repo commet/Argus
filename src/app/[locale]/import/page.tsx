@@ -113,12 +113,12 @@ export default function ImportPage() {
           </h1>
           <p className="text-[14px] text-[var(--text-secondary)] mb-5">
             {L(
-              '터미널에서 봉인한 판단을 계정에 연결하면, 정한 날 이메일이 먼저 오고 여기서 30초 만에 실제 결과를 기록할 수 있습니다.',
-              'Connect terminal-sealed judgments to your account, get the email first on the date you chose, then record what happened here in about 30 seconds.',
+              'AI 대화에서 저장한 예측을 계정에 연결하면, 정한 날 이메일을 받고 여기서 실제 결과를 기록할 수 있습니다.',
+              'Connect a prediction saved in an AI chat to your account, get an email on the date you chose, then record what happened here.',
             )}
           </p>
           <ol className="mb-5 space-y-2 text-[13px] text-[var(--text-secondary)]">
-            <li>{L('1. 터미널에서 argus_seal로 봉인합니다.', '1. Seal in the terminal with argus_seal.')}</li>
+            <li>{L('1. AI 대화에서 argus_save_prediction으로 예측을 저장합니다.', '1. Save a prediction in an AI chat with argus_save_prediction.')}</li>
             <li>{L('2. 정한 날 계정 이메일이 먼저 옵니다.', '2. On the date you chose, your account email arrives first.')}</li>
             <li>{L('3. 여기서 실제 결과만 기록합니다.', '3. Come back here and record only what reality did.')}</li>
           </ol>

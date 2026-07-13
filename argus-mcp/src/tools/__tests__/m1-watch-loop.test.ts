@@ -143,9 +143,9 @@ describe('M1 · surface vocabulary guard (해석 어휘 — 공정 3 상환 + wa
     }
   });
 
-  it('the server instructions forbid volunteered captures (over-fire guard, deterministic half)', () => {
-    expect(SERVER_INSTRUCTIONS).toContain('Do NOT volunteer captures');
-    expect(SERVER_INSTRUCTIONS).toContain('never evaluated, never graded');
-    expect(SERVER_INSTRUCTIONS).toContain("Promotion is the user's verb");
+  it('does not teach new clients the hidden daily-capture ritual', () => {
+    expect(SERVER_INSTRUCTIONS).not.toContain('argus_watch');
+    expect(SERVER_INSTRUCTIONS).not.toContain('volunteer captures');
+    expect(SERVER_INSTRUCTIONS).toContain('argus_check_in');
   });
 });

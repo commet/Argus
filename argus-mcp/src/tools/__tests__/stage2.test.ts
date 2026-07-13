@@ -80,6 +80,17 @@ describe('prompts', () => {
     expect(r.messages[0].content.text.toLowerCase()).toContain('not the judge');
   });
 
+  it('renders prompt discipline in the input language', () => {
+    const ko = getPrompt('argus-bind', { decision: '회사를 옮길지 말지' });
+    expect(ko.description).toContain('결정 묶기');
+    expect(ko.messages[0].content.text).toContain('0단계');
+    expect(ko.messages[0].content.text).not.toContain('STEP 0');
+
+    const en = getPrompt('argus-bind', { decision: 'whether to change jobs' });
+    expect(en.description).toContain('bind ritual');
+    expect(en.messages[0].content.text).toContain('STEP 0');
+  });
+
   it('bakes due contracts into the settle prompt', async () => {
     const dir = tmpArgusDir();
     process.env['ARGUS_DIR'] = dir;

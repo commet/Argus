@@ -71,7 +71,8 @@ function Clause({ text, ink, nib, halo, dur, delay }: { text: string; ink: strin
 }
 
 // Orchestrates the quote's clauses (split on the authored "\n") so each inks in
-// after the previous, with a small pen-lift gap. Reduced-motion = plain text.
+// immediately after the previous. There is deliberately no inter-clause pause:
+// a pause made every authored line break look like a playback hitch.
 function InkedQuote({ text, ink, nib, halo, rm, narrow }: { text: string; ink: string; nib: string; halo: string; rm: boolean; narrow: boolean }) {
   const clauses = text.split('\n');
   if (rm) return <>{clauses.map((c, i) => <span key={i} style={{ display: 'block', color: ink, textShadow: halo }}>{c}</span>)}</>;
@@ -80,7 +81,7 @@ function InkedQuote({ text, ink, nib, halo, rm, narrow }: { text: string; ink: s
   return (
     <>
       {clauses.map((c, i) => {
-        const delay = 0.3 + durs.slice(0, i).reduce((a, d) => a + d + 0.18, 0);
+        const delay = 0.3 + durs.slice(0, i).reduce((a, d) => a + d, 0);
         return <Clause key={i} text={c} ink={ink} nib={nib} halo={halo} dur={durs[i]} delay={delay} />;
       })}
     </>
@@ -120,7 +121,7 @@ type Chapter = {
 const INTRO = {
   from: 1.0, to: 5.3,
   eyebrowKo: '호메로스 · 오디세이아', eyebrowEn: 'HOMER · THE ODYSSEY',
-  lineKo: '“다 알려주겠다”며 뱃사람을 홀리던 세이렌의 노래.\n지금 우리가 AI 앞에서 넋 놓는 모습과 닮았죠.',
+  lineKo: '세이렌은 모든 것을 알려주겠다고 노래했고, 항해자들은 그 확신에 이끌렸습니다.\n오늘 우리가 AI의 유창한 답을 대하는 모습과 닮았습니다.',
   // Break BEFORE the quote so it stays whole on its own line instead of wrapping
   // mid-phrase ("we will tell" | "you all").
   lineEn: '“We’ll tell you all,” sang the Sirens — and sailors were lost to it.\nMuch like the AI we sit before today.',
@@ -138,38 +139,38 @@ const CHAPTERS: Chapter[] = [
     num: 'I', ko: '묶기', en: 'Bind', from: 6, to: 12.6,
     mythKo: '“나를 돛대에 묶어라.\n풀어달라 빌어도, 더 단단히.”',
     mythEn: '“Bind me to the mast —\nthough I plead, bind me tighter.”',
-    attrKo: '세이렌을 앞둔 오디세우스. AI를 열기 직전의 당신이죠.',
+    attrKo: '세이렌을 앞둔 오디세우스. AI에 묻기 전 판단을 고정하는 장면입니다.',
     attrEn: 'Odysseus, before the Sirens. You, about to open the AI.',
-    lineKo: '묻기 전에 지금 판단을 적어둬요.\n나중에 흔들려도, 돌아올 자리가 생겨요.',
+    lineKo: 'AI에 묻기 전에 현재의 판단을 기록합니다.\n답을 들은 뒤에도 출발점을 확인할 수 있습니다.',
     lineEn: 'write down your own call first —\nso a fluent answer can’t move you off it.',
   },
   {
     num: 'II', ko: '듣기', en: 'Listen', from: 14.2, to: 21, lure: true,
     mythKo: '“우리 노래를 들은 자는,\n모든 것을 알고 떠나리라.”',
     mythEn: '“Whoever hears our song\ndeparts knowing all.”',
-    attrKo: '“다 알려주겠다”던 세이렌의 약속. 지금 AI가 그래요.',
+    attrKo: '모든 것을 안다고 약속하는 세이렌. AI의 확신에 찬 답과 닮았습니다.',
     attrEn: 'The Sirens’ promise to tell you all. The AI makes it now.',
-    lineKo: '듣되, 삼키진 마요.\n그냥 넘어간 전제를 옆에 적어둬요.',
+    lineKo: '답을 듣되, 그대로 받아들이지는 않습니다.\n확인하지 않은 전제는 따로 기록합니다.',
     lineEn: 'listen, but don’t swallow it —\nwhat you waved past, it notes beside you.',
   },
   {
     num: 'III', ko: '닿기', en: 'Land', from: 23, to: 30,
     mythKo: '“노래가 잦아들고,\n마침내 단단한 땅에 발을 디딘다.”',
     mythEn: '“The song fades; at last\nhe steps onto solid ground.”',
-    attrKo: '세이렌의 바다를 건넌 오디세우스. 이제 당신의 땅이죠.',
+    attrKo: '세이렌의 바다를 건넌 오디세우스. 판단은 이제 현실에서 검증됩니다.',
     attrEn: 'Odysseus, across the Sirens’ sea. The ground is yours now.',
-    lineKo: '결정은 결국 현실에서 판가름나요.\n전제가 바뀌면 Argus가 알려주고요.',
+    lineKo: '결정의 결과는 현실에서 확인됩니다.\n핵심 전제가 달라지면 Argus가 알려드립니다.',
     lineEn: 'in the end, reality is the judge.\nif a premise shifts, Argus tells you.',
   },
   {
     num: 'IV', ko: '알아봄', en: 'Recognition', from: 32, to: 39.4, gold: true,
     mythKo: '“스러져 가던 늙은 개만이,\n옛 주인을 알아보았다.”',
     mythEn: '“Only old Argos, failing,\nknew his master still.”',
-    attrKo: '이 도구의 이름은 그 개, 아르고스에서 왔어요.',
+    attrKo: 'Argus라는 이름은 오디세우스를 알아본 개 아르고스에서 왔습니다.',
     attrEn: 'This tool takes its name from that dog — Argos.',
     // Explicit break BEFORE the quote so the whole question drops to its own
     // line instead of wrapping mid-phrase (“그래서,” | “어떻게 됐어요?”).
-    lineKo: '정한 날 다시 찾아와 물어요.\n“그래서, 어떻게 됐어요?”',
+    lineKo: '정한 확인일에 다시 묻습니다.\n“실제로 어떻게 되었나요?”',
     lineEn: 'on your day, I come back to ask,\n“so, how did it go?”',
   },
 ];
@@ -178,7 +179,7 @@ const CHAPTERS: Chapter[] = [
 function quoteEnd(text: string, narrow: boolean) {
   const mult = narrow ? 0.9 : 1;
   const durs = text.split('\n').map((c) => Math.min(0.85, Math.max(0.46, c.length * 0.045)) * mult);
-  const lastDelay = 0.3 + durs.slice(0, -1).reduce((a, d) => a + d + 0.18, 0);
+  const lastDelay = 0.3 + durs.slice(0, -1).reduce((a, d) => a + d, 0);
   return lastDelay + (durs[durs.length - 1] ?? 0.46);
 }
 

@@ -19,27 +19,38 @@ import { duePremises, groupDuePremises, isMonitored, isDueForRecheck } from './l
 const JSON_MIME = 'application/json';
 
 export const STATIC_RESOURCES = [
-  { uri: 'argus://ledger', name: 'Argus ledger', description: 'Full replayed state of all decisions (stats, contracts, integrity).', mimeType: JSON_MIME },
-  { uri: 'argus://contracts/due', name: 'Due contracts', description: 'Decision contracts past their check-by date — the return-loop context.', mimeType: JSON_MIME },
-  { uri: 'argus://bearing/current', name: 'Current bearing', description: 'Open (sealed, not yet settled) decisions.', mimeType: JSON_MIME },
-  { uri: 'argus://premises/due', name: 'Premises due for a re-check', description: 'Monitored premises of sealed decisions whose facts should be re-checked against reality (grouped: the same fact under several decisions is one re-check) — the living-premises return-loop context.', mimeType: JSON_MIME },
+  { uri: 'argus://ledger', name: 'Argus 원장 · Ledger', description: '모든 결정의 재생된 전체 상태 · Full replayed state of all decisions (stats, contracts, integrity).', mimeType: JSON_MIME },
+  { uri: 'argus://contracts/due', name: '확인할 계약 · Due contracts', description: '확인일이 지난 결정 계약 · Decision contracts past their check-by date.', mimeType: JSON_MIME },
+  { uri: 'argus://bearing/current', name: '현재 방위 · Current bearing', description: '봉인됐지만 아직 정산되지 않은 결정 · Open sealed decisions not yet settled.', mimeType: JSON_MIME },
+  { uri: 'argus://premises/due', name: '재확인할 전제 · Premises due', description: '현실과 다시 확인할 때가 된 추적 전제 · Monitored premises due for a reality re-check.', mimeType: JSON_MIME },
+] as const;
+
+/** One purpose-led resource for new clients. The legacy URIs below remain
+ * readable for cached hosts, but are no longer advertised as separate parts. */
+export const PUBLIC_RESOURCES = [
+  {
+    uri: 'argus://attention',
+    name: '지금 확인할 것 · Attention now',
+    description: '확인일이 지났거나 전제가 달라졌는지 확인할 기록 · Decisions and facts that need attention now.',
+    mimeType: JSON_MIME,
+  },
 ] as const;
 
 export const RESOURCE_TEMPLATES = [
-  { uriTemplate: 'argus://receipts/{id}', name: 'Judgment Receipt', description: 'The receipt for one decision id.', mimeType: JSON_MIME },
-  { uriTemplate: 'argus://premises/{id}', name: 'Decision premises', description: 'The tracked premises (facts + open questions) of one decision id, with provenance and staleness.', mimeType: JSON_MIME },
+  { uriTemplate: 'argus://receipts/{id}', name: '판단 영수증 · Judgment Receipt', description: '결정 하나의 판단 영수증 · The receipt for one decision id.', mimeType: JSON_MIME },
+  { uriTemplate: 'argus://premises/{id}', name: '결정 전제 · Decision premises', description: '결정 하나의 추적 전제와 미결 질문 · Tracked facts and open questions with provenance and staleness.', mimeType: JSON_MIME },
 ] as const;
 
 function unbound(uri: string) {
-  return { uri, mimeType: JSON_MIME, text: JSON.stringify({ unbound: true, hint: 'Set the ARGUS_DIR env var (or call argus_init with an absolute argus_dir) so resources can resolve a project.' }) };
+  return { uri, mimeType: JSON_MIME, text: JSON.stringify({ unbound: true, hint: 'Set ARGUS_DIR to the project ledger directory. Normal tool use initializes Argus automatically.' }) };
 }
 
 export function listResources() {
-  return { resources: STATIC_RESOURCES.map((r) => ({ ...r })) };
+  return { resources: PUBLIC_RESOURCES.map((r) => ({ ...r })) };
 }
 
 export function listResourceTemplates() {
-  return { resourceTemplates: RESOURCE_TEMPLATES.map((r) => ({ ...r })) };
+  return { resourceTemplates: [] };
 }
 
 export function readResource(uri: string): { contents: Array<{ uri: string; mimeType: string; text: string }> } {
@@ -54,6 +65,31 @@ export function readResource(uri: string): { contents: Array<{ uri: string; mime
 }
 
 function computePayload(uri: string, dir: string, today: string): unknown {
+  if (uri === 'argus://attention') {
+    const l = replayLedger(dir, today);
+    const seeds = bearingContracts(dir, today, l);
+    const decisions = [
+      ...l.overdue.map((c) => ({ id: c.id, prediction: c.text, check_by: c.date })),
+      ...seeds.filter((s) => !l.contracts.has(s.id)).map((s) => ({ id: s.id, prediction: s.predicate, check_by: s.check_by })),
+    ];
+    const groups = groupDuePremises(duePremises(l));
+    const facts = groups.slice(0, 5).map((g) => ({
+      fact: g.text,
+      decisions: g.premises.map((p) => ({ decision_id: p.decision_id, ref: `P${p.ordinal}` })),
+    }));
+    return {
+      today,
+      decisions: decisions.slice(0, 20),
+      decision_count: decisions.length,
+      facts,
+      fact_count: groups.length,
+      next_actions: [
+        ...(decisions.length ? ['argus_record_result'] : []),
+        ...(groups.length ? ['argus_clarify_decision'] : []),
+      ],
+    };
+  }
+
   if (uri === 'argus://ledger') {
     const l = replayLedger(dir, today);
     return {
@@ -71,7 +107,7 @@ function computePayload(uri: string, dir: string, today: string): unknown {
       ...l.overdue.map((c) => ({ id: c.id, predicate: c.text, check_by: c.date, source: 'ledger' })),
       ...seeds.filter((s) => !l.contracts.has(s.id)).map((s) => ({ id: s.id, predicate: s.predicate, check_by: s.check_by, source: 'bearing' })),
     ];
-    return { today, due, due_count: due.length, next_action: due.length ? 'argus_settle' : null };
+    return { today, due, due_count: due.length, next_action: due.length ? 'argus_record_result' : null };
   }
 
   if (uri === 'argus://bearing/current') {
@@ -92,7 +128,7 @@ function computePayload(uri: string, dir: string, today: string): unknown {
       })),
       group_count: groups.length,
       has_more: groups.length > TOP,
-      next_action: groups.length ? 'argus_recheck' : null,
+      next_action: groups.length ? 'argus_clarify_decision' : null,
     };
   }
 

@@ -25,9 +25,10 @@ describe('document review latency contract', () => {
     expect(pipeline).toContain('maxTokens: 2000');
   });
 
-  it('keeps fast-path output in Korean and requires material anchored findings', () => {
+  it('keeps fast-path output in the document language and requires material anchored findings', () => {
     const prompts = fs.readFileSync(path.resolve('src/lib/review/prompts.ts'), 'utf8');
-    expect(prompts).toContain('Write every user-facing value in Korean');
+    expect(prompts).toContain("Write every user-facing value in the document's primary language");
+    expect(prompts).toContain('Do not mix them');
     expect(prompts).toContain('return 2 to 5 material findings');
     expect(prompts).toContain('Copy one exact snake_case lens_id');
   });

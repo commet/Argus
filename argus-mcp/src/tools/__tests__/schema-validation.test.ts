@@ -31,6 +31,31 @@ describe('Zod source → JSON Schema (tools/list)', () => {
       }
     }
   });
+
+  it('gives every advertised input field a Korean description', () => {
+    const missing: string[] = [];
+    const visit = (toolName: string, node: unknown, path = ''): void => {
+      if (!node || typeof node !== 'object') return;
+      const record = node as Record<string, unknown>;
+      const properties = record.properties;
+      if (properties && typeof properties === 'object') {
+        for (const [key, raw] of Object.entries(properties as Record<string, unknown>)) {
+          const field = raw as Record<string, unknown>;
+          const description = String(field.description ?? '');
+          if (!/[가-힣]/.test(description)) missing.push(`${toolName}:${path}${key}`);
+          visit(toolName, field, `${path}${key}.`);
+        }
+      }
+      if (record.items) visit(toolName, record.items, path);
+      for (const branch of ['anyOf', 'oneOf', 'allOf']) {
+        if (Array.isArray(record[branch])) {
+          for (const child of record[branch] as unknown[]) visit(toolName, child, path);
+        }
+      }
+    };
+    for (const tool of TOOLS) visit(tool.name, toolJsonSchema(tool.inputSchema));
+    expect(missing).toEqual([]);
+  });
 });
 
 describe('tool annotations are complete (mcp-builder §Annotations)', () => {

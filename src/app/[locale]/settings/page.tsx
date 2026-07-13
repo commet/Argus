@@ -961,7 +961,7 @@ function TelegramBlock({ locale }: { locale: string }) {
         setNote(L('연결을 시작하지 못했어요 — 인터넷 연결을 확인하고 다시 눌러 주세요.',
                   'Could not start the connection — check your internet and tap again.'));
       } else {
-        setNote(r.error || L('연결을 시작할 수 없어요.', 'Could not start connect.'));
+        setNote(L('연결을 시작할 수 없어요.', 'Could not start connect.'));
       }
     } finally {
       setPending(false);
@@ -1047,7 +1047,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
       });
       const json = await res.json();
       if (json.token) { setIssued(json.token); await load(); }
-      else setError(json.error || L('발급 실패', 'Could not issue'));
+      else setError(L('토큰을 발급하지 못했습니다.', 'Could not issue the token.'));
     } finally { setBusy(false); }
   };
 

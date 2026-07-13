@@ -155,6 +155,10 @@ export const review: ToolModule = {
       const concerns: ReviewConcern[] = Array.isArray(a['concerns'])
         ? (a['concerns'] as ReviewConcern[])
         : ['full_judgment_review'];
+      const reviewKo = resolveResponseLocale(
+        typeof a['argus_dir'] === 'string' ? a['argus_dir'] : null,
+        text || title || filePath,
+      ) === 'ko';
 
       // Honest degrade for a binary that yielded too little (scanned PDF, image
       // deck) — surface the parser's own note, never a confident fake review.
@@ -164,7 +168,9 @@ export const review: ToolModule = {
         if (bx.quality === 'unsupported' || bx.quality === 'low' || empty) {
           return envelope({
             ok: true, tool: 'argus_review',
-            surface: bx.note || '이 문서는 지금 상태로는 전체 검수가 어렵습니다. 핵심 본문을 붙여넣으면 더 정확합니다.',
+            surface: bx.note || (reviewKo
+              ? '이 문서는 지금 상태로는 전체 검수가 어렵습니다. 핵심 본문을 붙여넣으면 더 정확합니다.'
+              : 'This document cannot be reviewed reliably in its current form. Paste the decision-bearing text for a more accurate review.'),
             next_actions: ['skip'],
             data: { needs_context: true, extraction_quality: bx.quality, notes: bx.note ? [bx.note] : [] },
           });
@@ -195,7 +201,9 @@ export const review: ToolModule = {
       if (artifact.extraction_quality === 'unsupported' || artifact.units.length === 0) {
         return envelope({
           ok: true, tool: 'argus_review',
-          surface: '이 문서는 지금 상태로는 전체 검수가 어렵습니다. 무엇이 빠졌는지부터 확인하세요.',
+          surface: reviewKo
+            ? '이 문서는 지금 상태로는 전체 검수가 어렵습니다. 무엇이 빠졌는지부터 확인하세요.'
+            : 'This document cannot be reviewed reliably in its current form. Check what content could not be extracted first.',
           next_actions: ['skip'],
           data: {
             needs_context: true,
@@ -250,7 +258,10 @@ export const review: ToolModule = {
       // Korean scaffold line (experience-loop / backlog find). Detect from the
       // doc body, fall back to the title.
       const docSample = (typeof a['text'] === 'string' && a['text']) || artifact.source_title || '';
-      const ko = resolveResponseLocale(null, docSample) === 'ko';
+      const ko = resolveResponseLocale(
+        typeof a['argus_dir'] === 'string' ? a['argus_dir'] : null,
+        docSample,
+      ) === 'ko';
       // The reviewability SCORE stays in data for lens routing only — surfacing
       // "74/100" to the user read as a grade on their document (experience-loop
       // spine find: the reviewer came to see weak spots, not be scored; the
@@ -272,7 +283,13 @@ export const review: ToolModule = {
           source_title: artifact.source_title,
           reviewability: { score: reviewability.score, band, reasons: reviewability.reasons },
           structure: artifact.detected_structure,
-          routing: { selected: routing.selected, disclosure: routing.disclosure, note: '라우팅은 기본 프로파일 기준의 제안입니다 — 추출 단계에서 문서 프로파일을 확정하면 렌즈를 조정하세요.' },
+          routing: {
+            selected: routing.selected,
+            disclosure: routing.disclosure,
+            note: ko
+              ? '라우팅은 기본 프로파일 기준의 제안입니다 — 추출 단계에서 문서 프로파일을 확정하면 렌즈를 조정하세요.'
+              : 'Routing is a suggestion based on the default profile — adjust the lenses after confirming the document profile during extraction.',
+          },
           lenses,
           // The SSOT extraction prompt already embeds the anchored units + the
           // output schema — the agent works off THIS single block for every

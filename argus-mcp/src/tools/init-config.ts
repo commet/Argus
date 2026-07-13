@@ -14,6 +14,7 @@ import path from 'path';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, type ToolModule } from './tool-types.js';
 import { handleToolException } from './errors.js';
+import { localizedMessage } from '../lib/localized-message.js';
 import { gitCommonDirOf } from '../v2/git-discovery.js';
 import { initV2 } from '../v2/init.js';
 import { argusHome, ledgerPath } from '../v2/ledger.js';
@@ -96,18 +97,18 @@ export const init: ToolModule = {
       // "today is yesterday" immediately instead of at the first missed check-in.
       // Default is system-local; ARGUS_TZ is the explicit override.
       const tz = process.env['ARGUS_TZ'] || `${resolveDefaultTimeZone()} (system local; set ARGUS_TZ to override)`;
+      const locale = readConfig(dir)?.locale ?? detectLocale(dir);
       return envelope({
         ok: true, tool: 'argus_init',
         surface: empty
-          ? 'Argus is ready. Describe a decision you are weighing and Argus records a prediction with a check-by date, then meets reality on that date. No grades, just your own track record over time. Or open one explicitly with argus_open_decision.'
-          : 'Argus is ready.',
+          ? localizedMessage(dir, undefined, {
+              en: 'Argus is ready. Describe a decision you are weighing and Argus records a prediction with a check-by date, then meets reality on that date. No grades, just your own track record over time. Or open one explicitly with argus_open_decision.',
+              ko: 'Argus가 준비됐습니다. 고민 중인 결정을 말하면 확인일이 있는 예측으로 기록하고, 그날 현실과 다시 대조합니다. 점수나 평결 없이 당신의 판단 기록만 남습니다. argus_open_decision으로 직접 열어도 됩니다.',
+            })
+          : localizedMessage(dir, undefined, { en: 'Argus is ready.', ko: 'Argus가 준비됐습니다.' }),
         next_actions: empty ? ['argus_open_decision'] : ['argus_check_in'],
         data: {
-          initialized: true, argus_dir: dir, today, tz, v2,
-          // §9.3 — one quiet pointer, data-only, never a push: the daily-watch
-          // host snippets (CLAUDE.md block + SessionStart hook) ship in the
-          // package for users who want the watch rhythm carried by their host.
-          watch_snippets: 'optional — see snippets/claude-code-watch.md in the argus-decision-mcp package',
+          initialized: true, argus_dir: dir, today, tz, locale, v2,
         },
       });
     } catch (e) {
@@ -138,7 +139,13 @@ export const config: ToolModule = {
       const existing = readConfig(dir) ?? { schema_version: SCHEMA_VERSION, locale: detectLocale(dir), boss: null, team: null, archive: null };
 
       if (writeKeys.length === 0) {
-        return envelope({ ok: true, tool: 'argus_config', surface: 'Config read.', next_actions: ['stop'], data: { config: existing, existed: !!readConfig(dir) } });
+        return envelope({
+          ok: true,
+          tool: 'argus_config',
+          surface: localizedMessage(dir, undefined, { en: 'Config read.', ko: '설정을 읽었습니다.' }),
+          next_actions: ['stop'],
+          data: { config: existing, existed: !!readConfig(dir) },
+        });
       }
 
       if ('locale' in a && a['locale'] !== 'ko' && a['locale'] !== 'en') {
@@ -156,7 +163,16 @@ export const config: ToolModule = {
         ...(('premise_sync' in a) ? { premise_sync: a['premise_sync'] as boolean } : {}),
       };
       await atomicWriteText(configPath(dir), yaml.dump(merged));
-      return envelope({ ok: true, tool: 'argus_config', surface: `Config updated: ${writeKeys.join(', ')}.`, next_actions: ['stop'], data: { config: merged } });
+      return envelope({
+        ok: true,
+        tool: 'argus_config',
+        surface: localizedMessage(dir, undefined, {
+          en: `Config updated: ${writeKeys.join(', ')}.`,
+          ko: `설정을 수정했습니다: ${writeKeys.join(', ')}.`,
+        }),
+        next_actions: ['stop'],
+        data: { config: merged },
+      });
     } catch (e) {
       return handleToolException('argus_config', e);
     }

@@ -25,10 +25,38 @@ async function fetchLink(token: string) {
   }
 }
 
+type ShareLocale = 'ko' | 'en';
+const HANGUL = /[가-힣ᄀ-ᇿ㄰-㆏]/;
+
+function shareLocale(row: { title: string | null; content: string }): ShareLocale {
+  return HANGUL.test(`${row.title ?? ''}\n${row.content}`) ? 'ko' : 'en';
+}
+
+const SHARE_COPY = {
+  ko: {
+    record: '공유된 판단 기록',
+    defaultReceipt: '판단 영수증',
+    madeWith: 'Argus로 만든 판단 기록',
+    try: 'Argus 사용해 보기 →',
+    og: '공유된 Argus 판단 기록',
+    receipt: '판단 영수증',
+  },
+  en: {
+    record: 'shared decision record',
+    defaultReceipt: 'Judgment Receipt',
+    madeWith: 'Made with Argus — the decision harness for AI',
+    try: 'Try Argus →',
+    og: 'Shared Argus decision record',
+    receipt: 'Judgment Receipt',
+  },
+} as const;
+
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const { token } = await params;
   const row = await fetchLink(token);
   const title = row?.title ? `${row.title} — Argus` : 'Argus';
+  const locale = row ? shareLocale(row) : 'en';
+  const copy = SHARE_COPY[locale];
   // A share link is private-by-URL; keep it out of search indexes.
   return {
     title,
@@ -37,7 +65,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
       title,
       description: row?.context === 'review_receipt'
         ? 'AI VERDICT -- NONE'
-        : 'Shared Argus decision record',
+        : copy.og,
       images: [{ url: `/d/${token}/opengraph-image`, width: 1200, height: 630 }],
     },
     twitter: {
@@ -45,7 +73,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
       title,
       description: row?.context === 'review_receipt'
         ? 'AI VERDICT -- NONE'
-        : 'Shared Argus decision record',
+        : copy.og,
       images: [`/d/${token}/opengraph-image`],
     },
   };
@@ -55,6 +83,9 @@ export default async function SharedDeliverablePage({ params }: { params: Promis
   const { token } = await params;
   const row = await fetchLink(token);
   if (!row) notFound();
+  const locale = shareLocale(row);
+  const copy = SHARE_COPY[locale];
+  const home = `https://argus.voyage/${locale}`;
 
   // Best-effort view counter (non-blocking, RLS-bypassing service role).
   adminClient()
@@ -68,16 +99,16 @@ export default async function SharedDeliverablePage({ params }: { params: Promis
       <div className="max-w-2xl mx-auto px-5 sm:px-8 py-10 sm:py-16">
         {/* Wordmark */}
         <header className="flex items-center justify-between mb-8 pb-5 border-b border-[var(--border-subtle)]">
-          <Link href="https://argus.voyage" className="flex items-center gap-2 group">
+          <Link href={home} className="flex items-center gap-2 group">
             <span className="text-[15px] font-bold tracking-tight text-[var(--accent)]">Argus</span>
             <span className="text-[11px] text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] transition-colors">
-              shared decision record
+              {copy.record}
             </span>
           </Link>
         </header>
 
         {row.context === 'review_receipt' ? (
-          <SharedReceipt title={row.title || 'Judgment Receipt'} content={row.content} />
+          <SharedReceipt title={row.title || copy.defaultReceipt} content={row.content} locale={locale} />
         ) : (
           <article className="space-y-1">
             {row.title && (
@@ -95,13 +126,17 @@ export default async function SharedDeliverablePage({ params }: { params: Promis
         {/* Footer CTA */}
         <footer className="mt-14 pt-6 border-t border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-3">
           <p className="text-[12px] text-[var(--text-tertiary)]">
-            Made with <Link href="https://argus.voyage" className="text-[var(--accent)] hover:underline font-medium">Argus</Link> — the decision harness for AI
+            {locale === 'ko' ? (
+              <><Link href={home} className="text-[var(--accent)] hover:underline font-medium">Argus</Link>로 만든 판단 기록</>
+            ) : (
+              <>Made with <Link href={home} className="text-[var(--accent)] hover:underline font-medium">Argus</Link> — the decision harness for AI</>
+            )}
           </p>
           <Link
-            href="https://argus.voyage"
+            href={home}
             className="text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors border border-[var(--border)] rounded-lg px-3 py-1.5"
           >
-            Try Argus →
+            {copy.try}
           </Link>
         </footer>
       </div>
@@ -109,12 +144,12 @@ export default async function SharedDeliverablePage({ params }: { params: Promis
   );
 }
 
-function SharedReceipt({ title, content }: { title: string; content: string }) {
+function SharedReceipt({ title, content, locale }: { title: string; content: string; locale: ShareLocale }) {
   return (
     <article className="rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-[0_1px_2px_rgba(0,0,0,0.05),0_12px_32px_rgba(0,0,0,0.08)] overflow-hidden">
       <div className="border-b border-[var(--border-subtle)] px-5 sm:px-7 py-5">
         <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-tertiary)]">
-          Judgment Receipt
+          {SHARE_COPY[locale].receipt}
         </div>
         <h1 className="mt-1 text-[24px] sm:text-[30px] font-bold leading-tight text-[var(--text-primary)]">
           {title}

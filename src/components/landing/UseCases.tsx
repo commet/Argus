@@ -50,7 +50,7 @@ const WRITE_DOOR: Door = {
   key: 'write',
   doorKo: '쓰기 · 결정을 적는다', doorEn: 'WRITE · a decision',
   seedKo: '받은 이직 제안, 받아들일까?', seedEn: 'Take the job offer I just got?',
-  sealLeadKo: '“옮기는 쪽으로 기울어요.” 이 판단이 선 전제부터 잠가요.',
+  sealLeadKo: '“옮기는 쪽으로 기울었습니다.” 이 판단이 기대는 전제부터 기록합니다.',
   sealLeadEn: '“Leaning toward taking it.” First, seal the premises it stands on.',
   premises: [
     {
@@ -64,11 +64,11 @@ const WRITE_DOOR: Door = {
       tagKo: '내가 가려는 이유 · 아직 미확인', tagEn: 'why I’d go · unverified',
     },
   ],
-  surfaceKo: '“지금 아니면 이런 기회는 다시 없다” — AI가 슬쩍 깔아둔 전제예요. 당신은 말한 적 없죠.',
+  surfaceKo: '“지금이 아니면 이런 기회는 다시 없다” — 사용자가 말하지 않았지만 AI가 추가한 전제입니다.',
   surfaceEn: '“It’s now or never” — a premise the AI slipped in. You never said that.',
   surfaceTagKo: 'AI가 깐 전제', surfaceTagEn: 'surfaced from the AI',
   laterKo: '넉 달 뒤', laterEn: 'four months later',
-  alertKo: '옮긴 회사에서 당신을 뽑아준 그 팀장이, 조직 개편으로 다른 본부로 갔어요. 그 사람 밑에서 일한다는 전제 위에 내린 결정이었죠 — 다시 볼까요?',
+  alertKo: '이직한 회사에서 채용을 결정한 팀장이 조직 개편으로 다른 본부로 이동했습니다. 그 사람과 일한다는 전제가 달라졌습니다. 결정을 다시 확인하시겠습니까?',
   alertEn: 'At your new company, the manager who hired you was just moved to another division. Your call rested on working under them — want to revisit it?',
 };
 
@@ -78,7 +78,7 @@ const FILE_DOOR: Door = {
   key: 'file',
   doorKo: '올리기 · 문서를 올린다', doorEn: 'UPLOAD · a document',
   seedKo: 'AI랑 정리한 신사업 제안서.pdf', seedEn: 'New-business proposal (drafted with AI).pdf',
-  sealLeadKo: '제안서가 선 전제부터 뽑아, 추적 목록에 잠가요.',
+  sealLeadKo: '제안서가 기대는 전제를 찾아 추적 목록에 기록합니다.',
   sealLeadEn: 'Pull the premises the proposal stands on, and seal them to a watch-list.',
   premises: [
     {
@@ -92,11 +92,11 @@ const FILE_DOOR: Door = {
       tagKo: '매출 계획이 기댄 가정 · 아직 미확인', tagEn: 'the revenue plan leans on it · unverified',
     },
   ],
-  surfaceKo: '예산을 어디에 몰지는 AI가 아니라 당신이 책임질 판단이에요 — 원문 7쪽에 표시해 둬요.',
+  surfaceKo: '예산을 어디에 집중할지는 AI가 아니라 사람이 판단해야 합니다. 원문 7쪽에 표시합니다.',
   surfaceEn: 'Where to concentrate the budget is your call to own, not the AI’s — flagged on p.7.',
   surfaceTagKo: '사람이 판단할 대목', surfaceTagEn: 'a human’s call',
   laterKo: '두 달 뒤', laterEn: 'two months later',
-  alertKo: '그 시장의 올해 성장률이 처음으로 꺾였다는 업계 지표가 나왔어요. 이 숫자 위에 세운 계획이었죠 — 다시 볼까요?',
+  alertKo: '해당 시장의 올해 성장률이 처음으로 하락했다는 업계 지표가 발표됐습니다. 이 수치에 기대어 세운 계획을 다시 확인하시겠습니까?',
   alertEn: 'An industry index just showed that market’s growth turning down for the first time. The plan was built on that number — want to revisit it?',
 };
 

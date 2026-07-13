@@ -49,6 +49,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
       // Class component — can't use hooks. Read locale from storage directly.
       const ko = getCurrentLanguage() === 'ko';
+      const workspaceHref = ko ? '/ko/workspace' : '/en/workspace';
 
       return (
         <div className="min-h-[50vh] flex items-center justify-center p-8" role="alert">
@@ -73,9 +74,8 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                   subtree, a full nav to /workspace remounts the app cleanly. A
                   client-side <Link> would keep the broken React tree, so a raw
                   <a> (full reload) is intentional here. */}
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a
-                href="/workspace"
+                href={workspaceHref}
                 className="text-xs text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors"
               >
                 {ko ? '워크스페이스로 돌아가기' : 'Back to workspace'}

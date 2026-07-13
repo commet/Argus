@@ -145,9 +145,9 @@ export function SirenHero() {
           }}
         >
           {locale === 'ko' ? (
-            <>지나간 결정도, 그 근거까지 남으면 자산이 돼요.<br />Argus가 당신의 판단을 항로로 남겨, 다음 결정을 도와요.</>
+            <>결정 전의 판단과 전제를 기록하세요.<br />Argus가 여러 관점으로 검토하고, 전제가 바뀌면 다시 알려드립니다.</>
           ) : (
-            <>A decision compounds only when its reasoning is kept too.<br />Argus keeps your judgment as a course, to steer what comes next.</>
+            <>Record your judgment and premises before you decide.<br />Argus reviews them from multiple angles and alerts you when a premise changes.</>
           )}
         </p>
 
@@ -263,7 +263,7 @@ export function SirenHero() {
                 <span style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, letterSpacing: '0.005em', lineHeight: 1.4 }}>
                   {text.trim()
                     ? L('⏎ 로 보내기 · Shift+⏎ 줄바꿈', '⏎ to send · Shift+⏎ for newline')
-                    : L('⏎ 한 줄이면 돼요', '⏎ one line is enough')}
+                    : L('⏎ 한 줄이면 충분합니다', '⏎ one line is enough')}
                 </span>
                 <button
                   onClick={sail}
@@ -284,7 +284,7 @@ export function SirenHero() {
                     borderRadius: 0,
                   }}
                 >
-                  {L('읽어볼게요', 'Read it')}
+                  {L('내 결정 검토하기', 'Review my decision')}
                 </button>
               </div>
               {/* Expectation-setting marginalia (06 S2): free/no-login/time/privacy in
@@ -346,7 +346,7 @@ export function SirenHero() {
               </div>
               <div className={locale === 'ko' ? 'break-keep' : ''} style={{ color: 'var(--bp-ink-soft)', fontSize: 12.5, marginTop: 4, lineHeight: 1.55 }}>
                 {L(
-                  '전략안·PDF·기획안을 올리면, 근거 약한 주장과 사람이 판단할 대목을 원문 위치에서 짚어줘요.',
+                  '전략안·PDF·기획안을 올리면 근거가 약한 주장과 사람이 판단할 지점을 원문에서 표시합니다.',
                   'Drop a memo, plan or PDF — weak evidence and the human’s-call points, flagged right on the source.',
                 )}
               </div>
@@ -360,7 +360,7 @@ export function SirenHero() {
                   whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6,
                 }}
               >
-                {L('검수받기', 'Review')}
+                {L('문서에서 판단 지점 찾기', 'Find judgment calls')}
                 <span aria-hidden="true" className="transition-transform group-hover:translate-x-1" style={{ transition: 'transform 220ms ease' }}>→</span>
               </span>
             </LocaleLink>

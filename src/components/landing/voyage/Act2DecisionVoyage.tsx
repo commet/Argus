@@ -168,7 +168,7 @@ export function Act2DecisionVoyage() {
                 {L('AI 판정 —— 없음', 'AI VERDICT —— NONE')}
               </div>
               <p className={locale === 'ko' ? 'break-keep' : ''} style={{ margin: '12px auto 0', maxWidth: 480, textAlign: 'center', color: 'var(--bp-ink-soft)', fontSize: 12.5, lineHeight: 1.55 }}>
-                {L('판정은 AI가 하지 않아요. 당신이 봉인한 판단과 나중의 현실만 이 한 장에 남죠.', 'The AI renders no verdict — only your sealed call and later reality stay on this page.')}
+                {L('AI는 판정하지 않습니다. 사용자가 기록한 판단과 이후의 현실만 이 한 장에 남습니다.', 'The AI renders no verdict — only your sealed call and later reality stay on this page.')}
               </p>
             </div>
           </div>

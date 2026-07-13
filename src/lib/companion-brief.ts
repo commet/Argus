@@ -240,7 +240,7 @@ export function buildCompanionBrief(items: DueReceiptBrief[], baseUrl = 'https:/
   // ever routes to the web.
   if (items.some((it) => it.origin === 'mcp')) {
     blocks.push('');
-    blocks.push('터미널에서 봉인한 판단이에요 — 터미널에서 정산하면 로컬 기록도 함께 닫혀요: Claude에서 `/argus-settle` (또는 `argus_sync` 후 `argus_settle`).');
+    blocks.push('AI 대화에서 저장한 예측이에요. 실제로 일어난 일을 대화에서 알려주면 `argus_record_result`로 로컬 기록까지 함께 마무리할 수 있어요. 계정 기록을 먼저 가져와야 한다면 `argus_settings`의 동기화를 사용하세요.');
   }
   // Opt-out notice (04 S5): the seal modal promised "one email for the
   // settlement, nothing else" — the email itself carries the exit too.

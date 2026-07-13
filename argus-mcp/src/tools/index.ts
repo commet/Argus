@@ -12,8 +12,14 @@ import { premises } from './premises.js';
 import { recheck } from './recheck.js';
 import { watch } from './watch.js';
 import { candidates } from './candidates.js';
+import { decide, history, settings, publicReview, publicSeal, publicCheckIn, publicSettle } from './public-tools.js';
 
 /** The full registered tool set. There is deliberately no verdict/grade/score tool. */
 export const TOOLS: ToolModule[] = [openDecision, review, premises, seal, recheck, settle, checkIn, recall, sync, amend, dismiss, candidates, watch, init, config];
 
-export const TOOL_MAP: Map<string, ToolModule> = new Map(TOOLS.map((t) => [t.name, t]));
+/** The small, purpose-led surface returned by tools/list. Legacy tools stay in
+ * TOOL_MAP for cached clients and one-version compatibility, but new users and
+ * models no longer have to choose among internal state-machine parts. */
+export const PUBLIC_TOOLS: ToolModule[] = [decide, publicReview, publicSeal, publicCheckIn, publicSettle, history, settings];
+
+export const TOOL_MAP: Map<string, ToolModule> = new Map([...TOOLS, ...PUBLIC_TOOLS].map((t) => [t.name, t]));

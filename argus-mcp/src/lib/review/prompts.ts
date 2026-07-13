@@ -10,7 +10,7 @@
  *   - cite the source by unit_id (anchors) — an unanchored finding is worthless.
  *   - no generic advice ("리스크를 고려하세요") — must reference a specific claim.
  *   - never decide for the user; never invent facts not in the units.
- *   - Korean output, pure JSON.
+ *   - output in the document's language, pure JSON.
  */
 
 import { type ArtifactUnit, type JudgmentLens, type UserReviewContext } from './schema.js';
@@ -23,7 +23,8 @@ const SPINE = `너는 Argus의 판단 검수기다. 사용자의 결정을 대�
   식별자(u_...)를 문장에 절대 노출하지 않는다. unit_id는 오직 unit_ids 배열에만 넣는다.
 - "리스크를 고려하세요", "더 조사하세요" 같은 일반론은 금지한다. 무엇을 확인할지 구체적으로 쓴다.
 - 원문에 없는 사실을 지어내지 않는다.
-- 출력은 순수 JSON. 마크다운/설명 없이 { 로 시작해 } 로 끝난다. 한국어로 쓴다.`;
+- 출력은 순수 JSON. 마크다운/설명 없이 { 로 시작해 } 로 끝난다.
+- 모든 사용자 노출 값은 원문과 사용자 맥락의 주된 언어로 쓴다. 한국어 문서는 한국어로, 영어 문서는 영어로 쓴다. 서로 섞지 않는다.`;
 
 export function renderUnits(units: ArtifactUnit[], limit: number): string {
   return units
@@ -122,8 +123,8 @@ judgment spine: core_question, claim_evidence, hidden_assumption,
 human_judgment, falsifiable_followup.
 
 Keep the result selective and concise:
-- Write every user-facing value in Korean, even though these instructions and
-  JSON keys are in English.
+- Write every user-facing value in the document's primary language. Use Korean
+  for a Korean document and English for an English document. Do not mix them.
 - When the document contains unsupported causal claims, untested assumptions,
   or a human-only decision, return 2 to 5 material findings. Return zero only
   when there is genuinely no material issue. Do not manufacture one per lens.

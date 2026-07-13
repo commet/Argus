@@ -55,18 +55,30 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     expect(client.getServerVersion()).toEqual({ name: pkg.name, version: pkg.version });
   });
 
-  it('advertises the premises tools with generated JSON schemas', async () => {
+  it('advertises only the purpose-led public tools with bilingual schemas', async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name);
-    expect(names).toContain('argus_premises');
-    expect(names).toContain('argus_recheck');
-    expect(names).toContain('argus_watch'); // M1 당직 루프
-    expect(names).toContain('argus_candidates'); // P6 후보 정리
-    expect(tools).toHaveLength(15);
-    const prem = tools.find((t) => t.name === 'argus_premises')!;
-    const schema = JSON.stringify(prem.inputSchema);
-    expect(schema).toContain('"add"'); // op enum made it through z.toJSONSchema
+    expect(names).toEqual([
+      'argus_clarify_decision', 'argus_review_document', 'argus_save_prediction', 'argus_check_in',
+      'argus_record_result', 'argus_history', 'argus_settings',
+    ]);
+    expect(names).not.toContain('argus_premises');
+    expect(names).not.toContain('argus_recheck');
+    expect(names).not.toContain('argus_watch');
+    const decide = tools.find((t) => t.name === 'argus_clarify_decision')!;
+    expect(String(decide.title)).toMatch(/[가-힣]/);
+    const schema = JSON.stringify(decide.inputSchema);
+    expect(schema).toContain('answer_question');
     expect(schema).toContain('ai_original');
+    expect(schema).not.toContain('today_override');
+    expect(schema).not.toContain('from_capture');
+  });
+
+  it('does not advertise separate rituals, but keeps cached prompt calls compatible', async () => {
+    const listed = await client.listPrompts();
+    expect(listed.prompts).toEqual([]);
+    const cached = await client.getPrompt({ name: 'argus-settle', arguments: {} });
+    expect(cached.messages.length).toBeGreaterThan(0);
   });
 
   it('walks the journey: seal(+promotion) → add → due_note piggyback → recheck baseline → recall', async () => {
@@ -112,15 +124,22 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     expect(rows.map((r) => r['ref'])).toEqual(['P1', 'P2']);
   });
 
-  it('serves argus://premises/due as an auto-injectable resource', async () => {
-    const res = await client.readResource({ uri: 'argus://premises/due' });
+  it('advertises one attention resource while legacy resource URIs remain readable', async () => {
+    const listed = await client.listResources();
+    expect(listed.resources.map((resource) => resource.uri)).toEqual(['argus://attention']);
+    const templates = await client.listResourceTemplates();
+    expect(templates.resourceTemplates).toEqual([]);
+    const res = await client.readResource({ uri: 'argus://attention' });
     const payload = JSON.parse((res.contents[0] as { text: string }).text) as Record<string, unknown>;
     // P1 (promoted, external=false) is not monitored; P2 was baselined today → not due yet.
-    expect(payload['group_count']).toBe(0);
-    expect(payload).toHaveProperty('groups');
+    expect(payload['fact_count']).toBe(0);
+    expect(payload).toHaveProperty('decisions');
+    // Cached clients may still request the old URI during the compatibility window.
+    const legacy = await client.readResource({ uri: 'argus://premises/due' });
+    expect(legacy.contents).toHaveLength(1);
   });
 
-  it('the settle ritual prompt carries the recheck choreography when premises are due', async () => {
+  it('the legacy settle prompt still carries recheck choreography for cached clients', async () => {
     // a second decision with a never-checked monitored premise → due
     await client.callTool({ name: 'argus_seal', arguments: { argus_dir: dir, id: 'rt2', predicate: 'second bet holds through the quarter', check_by: '2026-10-01', predicate_owner: 'user', today_override: ADDED } });
     await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'rt2', op: 'add', today_override: ADDED, premises: [{ text: 'supply stays constrained', kind: 'premise', external: true, load_bearing: true, source: 'user' }] } });
@@ -187,7 +206,7 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     const ci = structured(await client.callTool({ name: 'argus_check_in', arguments: { argus_dir: dir, today_override: '2026-07-26' } }));
     expect((ci['data'] as Record<string, unknown>)['due_open_question_count']).toBe(1);
     expect(String(ci['surface'])).toContain('지분 미정 상태');
-    expect(String(ci['surface'])).toContain('argus_premises');
+    expect(String(ci['surface'])).toContain('argus_clarify_decision');
 
     // still_open defers: silent the next day, re-emerges after the cadence.
     const so = structured(await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'm3', op: 'still_open', ref: 'P1', today_override: '2026-07-26' } }));

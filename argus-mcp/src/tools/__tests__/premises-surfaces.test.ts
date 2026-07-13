@@ -108,7 +108,7 @@ describe('resources: argus://premises/*', () => {
       expect(due['group_count']).toBe(1);
       const groups = due['groups'] as Array<Record<string, unknown>>;
       expect((groups[0]['decisions'] as unknown[]).length).toBe(2);
-      expect(due['next_action']).toBe('argus_recheck');
+      expect(due['next_action']).toBe('argus_clarify_decision');
 
       const one = JSON.parse(readResource('argus://premises/d1').contents[0].text) as Record<string, unknown>;
       const list = one['premises'] as Array<Record<string, unknown>>;

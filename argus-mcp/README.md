@@ -19,7 +19,7 @@ connectors that require an HTTP transport aren't supported yet — see the roadm
 
 ```
 ┌─ ARGUS · JUDGMENT RECEIPT ────────────────────────────────┐
-  Sealed 2026-04-02      Settled 2026-06-30
+  Prediction saved 2026-04-02      Result recorded 2026-06-30
 
   THE REAL QUESTION
     Can we cut over without a maintenance window users notice?
@@ -33,7 +33,7 @@ connectors that require an HTTP transport aren't supported yet — see the roadm
   ─────────────────────────────────────────────────────────
   AI VERDICT ON THIS DECISION ······················  NONE
   The model never graded you. Reality did.
-└──────────────────────────────────  argus · seal → settle ─┘
+└──────────────────────────  argus · prediction → reality ─┘
 ```
 
 ## Why it's different
@@ -52,8 +52,8 @@ promised in prose:
 
 - **There is no verdict tool.** The model cannot grade your decision because no
   `argus_verdict` / `argus_score` tool exists to call. `grep dist/` and see.
-- **You can't settle what you never sealed.** `argus_settle` hard-errors without
-  a prior `argus_seal` — "no judgment without a falsifiable prediction" is a
+- **You can't record a result without a saved prediction.** `argus_record_result`
+  hard-errors without a prior `argus_save_prediction` — "no judgment without a falsifiable prediction" is a
   precondition, not a suggestion.
 - **State is the ledger, not a flag.** A decision's status is the fold of an
   append-only event log, so it can't be faked by calling tools out of order.
@@ -130,96 +130,78 @@ fails to start, use:
 
 You never call these tools by name. Once the server is connected, you just
 talk to your AI in plain language and it calls the right tool for you. One
-full loop — from sealing a prediction to letting reality grade it — looks like
+full loop — from saving a prediction to recording what reality did — looks like
 this:
 
-**1 · Seal a prediction** — before you commit to a decision, tell your AI:
+**1 · Save a prediction** — before you commit to a decision, tell your AI:
 
-> **You:** "I'm shipping the new onboarding flow next week. Seal a prediction:
+> **You:** "I'm shipping the new onboarding flow next week. Save this prediction:
 > signups go up at least 10% by the end of the month."
 
 Argus records your predicate and a check-by date. Nothing is scored — it's a
 prediction against reality, not a grade from the model.
 
-**2 · Re-check a premise** *(optional, any time before the date)* — if a fact
+**2 · Update a fact** *(optional, any time before the date)* — if a fact
 your decision leaned on might have moved:
 
-> **You:** "Re-check my onboarding decision — did the weekly signup number
-> change since I sealed it?"
+> **You:** "Update the signup number behind my onboarding decision. Has it
+> changed since I saved the prediction?"
 
 Argus compares the new number to the baseline and tells you if it drifted. It
 returns the handle — whether to revisit the decision stays your call.
 
-**3 · Settle on the check-by date** — when the date arrives:
+**3 · Record the result on the check-by date** — when the date arrives:
 
-> **You:** "Settle my onboarding prediction. Signups went up 14%."
+> **You:** "Record the result of my onboarding prediction. Signups went up 14%."
 
 Argus prints the **Judgment Receipt** at the top of this page — with
-`AI VERDICT … NONE`. You made the call; reality graded it, not the model.
+`AI VERDICT … NONE`. You made the call; the record contains what reality did,
+not a model's grade.
 
 That's the whole spine. Everything below is detail on top of these three steps.
 
-## Two loops
+## The everyday loop
 
-Argus runs two loops side by side — the same three habits its author
-uses daily: **봉인하기** (seal it before you ask the AI) · **드러내기**
-(surface claims you accepted without checking) · **돌아보기** (return when
-reality has answered):
+Argus now exposes seven tools named for the job they do. You do not initialize
+it first, choose a ritual, or learn its internal state machine. The first useful
+call creates the local record automatically.
 
-- **The daily watch** (`argus_watch`) — turns over once a *day*. In the morning
-  (or whenever a session starts) you anchor one line: today's aim, your working
-  hypothesis, where you lean. While you work, you capture the things that
-  usually evaporate: a claim you accepted without checking, a premise you
-  haven't verified, a question you're deferring. Tomorrow's `check_in` mirrors
-  yesterday's line back — *"so, how did it go?"* — as a question, never a grade.
-  An anchor is a **note, not a prediction**: nothing about it is scored, counted, or
-  streaked, ever.
-- **The decision loop** (everything below) — plays out over days to months.
-  When a capture turns out to be load-bearing, *you* promote it: open the
-  decision, seal a falsifiable prediction, track its premises, and let reality
-  settle it into a Judgment Receipt.
+For most decisions the loop is simply:
 
-The watch builds the habit; the decision loop builds the record.
+1. **`argus_clarify_decision`** — clarify a consequential decision and its assumptions.
+2. **`argus_save_prediction`** — save what you expect and when reality can answer.
+3. **`argus_check_in`** — see only what needs attention now.
+4. **`argus_record_result`** — record what actually happened, without a score or verdict.
 
-## The loop
-
-**The spine is three tools:** **`argus_seal`** (write the falsifiable prediction) →
-optional **`argus_recheck`** (has a load-bearing premise moved?) →
-**`argus_settle`** (reality answers, on the date). If you only ever learn
-these three, Argus works. Everything else in the table supports that spine —
-reach for it when you need it, not before.
+`argus_review_document` is the entry point for a memo, PRD, deck, or AI answer.
+`argus_history` reads what is already on record. `argus_settings` handles the
+few preferences and account-sync controls a user may need.
 
 | Tool | What it does |
 |------|--------------|
-| `argus_watch` | The daily watch. `anchor` keeps today's one-line aim (your words, verbatim); `capture` notes an unchecked claim / unverified premise / deferred question mid-work without opening a decision; `list` reads the recent log. Anchors are mirrored back by the next `check_in` as a question — never evaluated, never counted in any record. |
-| `argus_open_decision` | Opens a consequential decision. Runs a restraint gate first — on a flat / low-stakes / reversible / already-closed call it tells you to leave it as is. If it fires, it surfaces **one** neutral question, never a fork or a lean. |
-| `argus_review` | Reviews an existing document (strategy memo / PRD / deck text / AI answer) for judgment risk: reviewability score, routed lenses, source units with anchors, and the extraction prompt — then hands the analysis to you. Degrades honestly on unextractable input; never a verdict. End by sealing one follow-up. |
-| `argus_seal` | Seals a falsifiable prediction (`predicate` + `check_by`) and captures the receipt's real-question / unverified-assumption / human-only / your-call fields. Refuses an empty predicate or a non-future date. If you seal without naming the assumption, it's recorded as an explicit **skip** — never a forced gate (which would just eject the tiredest user), never a silent blank. With `ARGUS_TOKEN` set, the prediction also syncs to your account so the Companion Brief can email you at its check-by date. |
-| `argus_premises` | Tracks the **premises** a decision rests on — the facts and open questions behind it. `add` records them (echoed back in full); `amend` takes your correction verbatim (the AI's original stays on the record — the edit is the signal); `resolve` closes an open question **in your own words** (it cannot offer options or leans — that shape doesn't exist here). Premises lock once the check-by arrives: no retroactive premise-planting, no retiring the one about to be proven wrong. |
-| `argus_recheck` | Re-checks one premise against reality between seal and settle. The host researches the current fact; the tool compares **explicit numbers** mechanically (never regex-parses prose) or records the host's provenance-tagged `changed` assertion for text facts. First check is a baseline and never alerts. When the fact drifted: it says so and returns the handle — whether to revisit the decision stays your call. `apply_to_matching` re-checks the same fact under your other decisions at once. |
-| `argus_settle` | On the check-by date, records what reality did and issues the Judgment Receipt. Hard-errors without a prior seal. Optionally records **which premise broke** (your attribution, never inferred) — over time your track record can say "3 of your 4 missed bets traced to a broken external premise": a frequency, never a diagnosis. |
-| `argus_amend` | Changes the predicate or check-by date **before** reality answers — a course change, not an erasure (the original stays on the append-only ledger). Hard-errors once the decision is settled. |
-| `argus_dismiss` | Closes a decision **without settling** — it became irrelevant, was decided elsewhere, or you changed your mind. No verdict is recorded; terminal, not reopened. |
-| `argus_check_in` | Returns contracts past their check-by date **and premise facts due for a re-check** (the same fact under several decisions is one re-check), and mirrors yesterday's watch anchor back as a question. If nothing is due, it says so and stops — it doesn't manufacture engagement. |
-| `argus_sync` | Pulls your account receipts into the terminal (live judgments + what's due) so you can settle here. Seals push automatically; this is the read side. Requires `ARGUS_TOKEN`. |
-| `argus_recall` | Reads your own history: a receipt, the open contracts, or a sample-size-caveated track record (never a tier or score). |
-| `argus_init` / `argus_config` | Initialize the `.argus` directory; read/write non-spine settings. |
+| `argus_clarify_decision` | Opens or maintains one decision without deciding for you. Its actions add assumptions and open questions, record your answer, update an external fact, change an untested prediction, or close a decision that no longer needs an outcome. |
+| `argus_review_document` | Reviews a memo, PRD, deck, or AI answer for claims, evidence, hidden assumptions, and places that still require human judgment. Never returns a verdict. |
+| `argus_save_prediction` | Saves a falsifiable prediction (`predicate` + `check_by`) in the user's words. An Argus-drafted line is marked honestly and shown as a one-tap draft to keep, reword, or skip. |
+| `argus_check_in` | Shows only predictions past their check date, external facts due for an update, and open questions due for reconsideration. If nothing needs attention, it stops. |
+| `argus_record_result` | Records what actually happened and issues the Judgment Receipt. Reality supplies the outcome; Argus does not grade it. |
+| `argus_history` | Reads active decisions, all records, one Judgment Receipt, one decision's context, or the time-ordered history. Read-only. |
+| `argus_settings` | Reads or updates language, quiet reminders, opt-in premise sync, and explicit account sync. Initialization is automatic. |
 
 ## Living premises
 
 The receipt's sharpest line — `THE UNVERIFIED ASSUMPTION` — used to be written
-once at seal and then go dead. Now it's a **tracked object**: name the premises
+once when a prediction was saved and then go dead. Now it's a **tracked object**: name the premises
 a decision rests on, correct the ones the model got wrong (your edit is part of
 the record), and re-check the load-bearing external facts against reality while
 the bet is still open. When a rate hike breaks the premise under three of your
 decisions, that's **one** re-check, not three.
 
 Honest limits, stated up front: an MCP server is passive — nothing wakes it
-between seal and settle. The return loop rides four levers: every tool response
-carries a quiet `due_note`; `argus_check_in` reports due premises;
-the `argus://premises/due` resource lets hosts auto-inject them; and the
-`/argus-settle` ritual includes the re-check choreography. Anything more
-periodic (cron, reminders) belongs to your host or habits, not this server.
+between saving a prediction and recording its result. Every tool response can
+carry a quiet `due_note`, `argus_check_in` reports due items, and the single
+`argus://attention` resource lets capable hosts auto-inject what needs attention. No
+separate prompt ritual is advertised. Anything more periodic (cron, reminders)
+belongs to your host or habits, not this server.
 A premise that never gets re-checked shows up honestly as `never re-checked` —
 Argus does not pretend liveness.
 
@@ -229,14 +211,15 @@ Everything is local, under `.argus/` in your project (gitignored by default) —
 an append-only `ledger.jsonl` **you own**: plain JSON lines, no lock-in,
 receipts render to shareable text. **No telemetry by default.** The only network
 call Argus makes out of the box is the opt-in account sync: if — and only if —
-you set `ARGUS_TOKEN`, a sealed/settled prediction is POSTed to your own Argus
+you set `ARGUS_TOKEN`, a saved prediction or recorded result is POSTed to your own Argus
 account so it can email you at its check-by date. Separately, you can opt in to
 **anonymous** usage telemetry with `ARGUS_TELEMETRY=1` (a random install id +
 which tool ran + version/platform, never your decisions or token; honors
 `DO_NOT_TRACK`) — see SECURITY.md. **Premise data stays on your machine
 by default** — it is not part of the sync payload. There is exactly one switch
-that changes this: `argus_config premise_sync:true` (off unless you set it)
-sends a sealed decision's *monitored* premises along, so your account's
+that changes this: `argus_settings` with `action:"update"` and
+`premise_sync:true` (off unless you set it)
+sends a saved decision's *monitored* premises along, so your account's
 autonomous premise-watch can re-check them against reality and email you when
 one materially moves. Unset the token and Argus never touches the network.
 See [SECURITY.md](SECURITY.md).

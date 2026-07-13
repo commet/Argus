@@ -41,7 +41,7 @@ export function SlackChannelPicker({ open, onClose, title, content }: SlackChann
       setSent(true);
       setTimeout(() => onClose(), 1500);
     } else {
-      setError(result.error || t('slack.sendFailed'));
+      setError(t('slack.sendFailed'));
     }
   };
 

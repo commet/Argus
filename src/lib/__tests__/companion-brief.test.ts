@@ -62,11 +62,11 @@ describe('buildCompanionBrief', () => {
   it('names the terminal way home when a due judgment was sealed in the terminal (§9.4 귀환 봉합)', () => {
     const mcpItem: DueReceiptBrief = { ...item, origin: 'mcp' };
     const md = buildCompanionBrief([mcpItem]).markdown;
-    expect(md).toContain('/argus-settle');
-    expect(md).toContain('argus_sync');
+    expect(md).toContain('argus_record_result');
+    expect(md).toContain('argus_settings');
     // web-only briefs stay untouched — no terminal jargon for web users
-    expect(buildCompanionBrief([{ ...item, origin: 'web' }]).markdown).not.toContain('/argus-settle');
-    expect(buildCompanionBrief([item]).markdown).not.toContain('/argus-settle');
+    expect(buildCompanionBrief([{ ...item, origin: 'web' }]).markdown).not.toContain('argus_record_result');
+    expect(buildCompanionBrief([item]).markdown).not.toContain('argus_record_result');
   });
 
   it('renders a proactive change alert with fact + source + date + a neutral question (E)', () => {

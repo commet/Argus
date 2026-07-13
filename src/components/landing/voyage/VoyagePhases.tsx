@@ -49,7 +49,7 @@ const LEGS: Leg[] = [
       en: 'Before the song, you tie your own rope.',
     },
     detail: {
-      ko: '지금의 판단과 확인할 날짜를 정해 봉인해요. 손은 묶되, 귀는 열어둡니다.',
+      ko: '현재의 판단과 확인할 날짜를 기록합니다. 판단은 고정하되, 다른 의견은 계속 듣습니다.',
       en: 'Seal your current lean and a date to check it. Hands bound — ears open.',
     },
     img: 'bind',
@@ -59,11 +59,11 @@ const LEGS: Leg[] = [
     leg: { ko: '제2구간', en: 'Leg II' },
     name: { ko: '듣기', en: 'Listen' },
     essence: {
-      ko: '크루가 노를 젓습니다 — 많이 만들지만, 키는 못 잡아요.',
+      ko: '크루가 노를 젓습니다. 많은 답을 만들 수 있지만 방향을 결정하지는 않습니다.',
       en: 'The crew rows — they generate plenty, but never take the helm.',
     },
     detail: {
-      ko: 'AI가 대신 정할 수 없어요. 당신이 확인합니다.',
+      ko: 'AI가 대신 결정하지 않습니다. 최종 판단은 사용자가 확인합니다.',
       en: 'AI can’t decide for you. You confirm.',
     },
     invariant: true,
@@ -78,7 +78,7 @@ const LEGS: Leg[] = [
       en: 'On your date, you check the sealed call against reality.',
     },
     detail: {
-      ko: '진짜 돌이킬 수 없는 결정은 여기서 일어나요 — AI 단계가 아니라.',
+      ko: '되돌리기 어려운 결정은 AI의 답이 아니라 현실의 행동에서 완성됩니다.',
       en: 'The truly irreversible choice happens here — not in the AI step.',
     },
     gold: true,

@@ -242,7 +242,7 @@ function LinkPanel({ user, title, text, context, onCreated }: { user: boolean; t
       if (json.ok && json.path) {
         setUrl(`${window.location.origin}${json.path}`);
         onCreated();
-      } else setError(json.error || L('링크를 만들다 막혔어요 — 내용은 그대로 있어요. 다시 시도해 주세요.', 'Hit a snag creating the link — your content is safe. Please try again.'));
+      } else setError(L('링크를 만들다 막혔어요 — 내용은 그대로 있어요. 다시 시도해 주세요.', 'Hit a snag creating the link — your content is safe. Please try again.'));
     } catch {
       setError(L('링크를 만들다 막혔어요 — 내용은 그대로 있어요. 다시 시도해 주세요.', 'Hit a snag creating the link — your content is safe. Please try again.'));
     } finally {
@@ -321,7 +321,7 @@ function EmailPanel({ user, title, text, context, onSent }: { user: boolean; tit
       });
       const json = await res.json();
       if (json.ok) onSent();
-      else setError(json.error || L('전송이 닿지 못했어요 — 다시 시도해 주세요.', "The send didn't land — please try again."));
+      else setError(L('전송이 닿지 못했어요 — 다시 시도해 주세요.', "The send didn't land — please try again."));
     } catch {
       setError(L('전송이 닿지 못했어요 — 다시 시도해 주세요.', "The send didn't land — please try again."));
     } finally {
@@ -389,7 +389,7 @@ function SlackPanel({ connected, loaded, loadError, channelsError, user, title, 
   const send = async (channelId: string) => {
     setError('');
     const r = await sendToSlack(channelId, title, text);
-    if (r.ok) onSent(); else setError(r.error || L('전송이 닿지 못했어요 — 다시 시도해 주세요.', "The send didn't land — please try again."));
+    if (r.ok) onSent(); else setError(L('전송이 닿지 못했어요 — 다시 시도해 주세요.', "The send didn't land — please try again."));
   };
 
   return (
@@ -469,7 +469,7 @@ function TelegramPanel({ connected, loaded, loadError, user, title, text, contex
   const send = async (chatId: string) => {
     setError('');
     const r = await sendToTelegram(title, text, { chatId, context });
-    if (r.ok) onSent(); else setError(r.error || L('전송이 닿지 못했어요 — 다시 시도해 주세요.', "The send didn't land — please try again."));
+    if (r.ok) onSent(); else setError(L('전송이 닿지 못했어요 — 다시 시도해 주세요.', "The send didn't land — please try again."));
   };
 
   return (

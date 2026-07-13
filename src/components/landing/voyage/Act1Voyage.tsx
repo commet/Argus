@@ -64,7 +64,7 @@ export function Act1Voyage() {
             }}
           >
             {L(
-              'AI 결정 검토 — 답이 아니라, 당신이 비워둔 판단을 비춰줘요',
+              'AI 결정 검토 — 답을 대신하지 않고, 아직 확인하지 않은 판단 지점을 보여줍니다',
               'AI decision review — not an answer, but a mirror for the call you left blank',
             )}
           </p>
@@ -111,7 +111,7 @@ export function Act1Voyage() {
             }}
           >
             {L(
-              'Argus는 중요한 결정을 항해처럼 기록해요. 지금 어디쯤인지, 무엇을 봤고 무엇을 더 봐야 하는지, 왜 방향을 틀었는지 — 그 “왜”가 사라지지 않도록.',
+              'Argus는 중요한 결정을 항해처럼 기록합니다. 현재 위치, 확인한 사실, 더 확인할 내용, 방향을 바꾼 이유가 사라지지 않도록 남깁니다.',
               'Argus records a hard decision like a voyage — where you are, what you’ve seen and what’s still ahead, why you changed course. So the “why” is never lost.',
             )}
           </p>
