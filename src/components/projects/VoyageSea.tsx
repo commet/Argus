@@ -560,11 +560,11 @@ export function VoyageSea({
     const { jx, jy } = hashJitter(s.id);
     let x = 88 - t * 76 + jx; // recent → right (88), long-idle → left (12)
     let y = TOP + s.resolution * (BOT - TOP) + jy; // home → bottom
-    // keep ships from hiding under the floating notices — the beacon card
-    // (top-right) and the drift chip (top-left sky band). The beacon ship is
-    // exempt; it sits at its true coordinate wherever that is.
+    // keep ships from hiding under the one remaining floating notice — the
+    // drift chip (top-left sky band). The beacon notice is no longer over the
+    // water (it's a banner above the plate), so the top-right is free again.
+    // The beacon ship is exempt; it sits at its true coordinate.
     if (!isBeacon) {
-      if (beacon && x > 62 && y < 44) x = 60 - (44 - y) * 0.18;
       if (spotlight && x < 26 && y < 21) y = 23 + (26 - x) * 0.2;
     }
     x = Math.max(4, Math.min(94, x));
@@ -717,10 +717,46 @@ export function VoyageSea({
         }
       `}</style>
 
-      {/* ── the day-sea plate (committed light — a parchment sea-chart). The
-            beacon notice is a SIBLING of the plate: absolute over the water on
-            desktop, a normal block right below it on mobile — never mixed into
-            the ships layer. ── */}
+      {/* ── beacon banner — the due decision's prompt, ABOVE the map as a
+            banner (07-13: floating it over the water always collided with
+            ships). "① 지금 할 것 → ② 지도" hierarchy; zero overlap. Horizontal:
+            kicker + name + sealed bet on the left, the CTA on the right. ── */}
+      {beacon && (
+        <div className="mb-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-xl px-4 py-3" style={{ background: N.card, border: `1px solid ${N.paper}1a`, borderLeft: `3px solid ${N.gold}` }}>
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.gold }}>
+              <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />
+              {L('그래서, 어떻게 됐어요?', 'So, how did it go?')}
+              {dueShips.length > 1 && (
+                <span className="font-normal opacity-70">· {L(`${dueShips.length}건`, `${dueShips.length} due`)}</span>
+              )}
+            </p>
+            <p className="mt-1 text-[15px] font-bold leading-snug break-keep" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+              {beacon.name}
+            </p>
+            {beacon.premise ? (
+              <p className="mt-0.5 text-[12px] leading-relaxed break-keep" style={{ color: `${N.paper}a8` }}>
+                {L('봉인한 내기 — ', 'Sealed bet — ')}
+                <em style={{ color: `${N.paper}d0` }}>「{beacon.premise.length > 52 ? `${beacon.premise.slice(0, 52)}…` : beacon.premise}」</em>
+              </p>
+            ) : (
+              <p className="mt-0.5 text-[12px] leading-relaxed break-keep" style={{ color: `${N.paper}a1` }}>
+                {L('약속한 확인일이 왔어요. 봉인할 때의 눈으로 지금을 재볼 시간.', 'The check-in you promised has arrived — reread it with the eyes you sealed it with.')}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => onReview(beacon.id)}
+            className="shrink-0 self-start sm:self-center inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-mono font-semibold cursor-pointer transition-[gap] duration-300 hover:gap-2.5"
+            style={{ background: N.gold, color: N.card }}
+          >
+            {L('다시 보기', 'Revisit')} <span aria-hidden>→</span>
+          </button>
+        </div>
+      )}
+
+      {/* ── the day-sea plate (committed light — a parchment sea-chart) ── */}
       <div className="relative">
       <div
         className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] shadow-[var(--shadow-sm)] min-h-[380px] sm:min-h-0 sm:aspect-[16/7.2]"
@@ -957,44 +993,6 @@ export function VoyageSea({
         </div>
 
       </div>
-
-      {/* ── beacon notice — the sheet's single voice, only when a promised
-            check-in has actually arrived. Sibling of the plate: floats over
-            the water on sm+, flows below it on mobile. ── */}
-      {beacon && (
-          <div className="static sm:absolute sm:right-[2.5%] sm:top-[7%] z-[3] mt-3 sm:mt-0 sm:max-w-[300px] rounded-xl p-4 shadow-[var(--shadow-md)]" style={{ background: N.card, border: `1px solid ${N.paper}1a`, borderTop: `2px solid ${N.gold}` }}>
-            <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.gold }}>
-              <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />
-              {L('그래서, 어떻게 됐어요?', 'So, how did it go?')}
-            </p>
-            <p className="mt-2 text-[15px] font-bold leading-snug break-keep" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
-              {beacon.name}
-            </p>
-            {beacon.premise ? (
-              <p className="mt-2 rounded-lg px-3 py-2 text-[12px] leading-relaxed break-keep" style={{ background: `${N.paper}0d`, color: `${N.paper}b8` }}>
-                {L('봉인한 내기 — ', 'Your sealed bet — ')}
-                <em style={{ color: N.paper }}>「{beacon.premise.length > 64 ? `${beacon.premise.slice(0, 64)}…` : beacon.premise}」</em>
-              </p>
-            ) : (
-              <p className="mt-2 text-[12px] leading-relaxed break-keep" style={{ color: `${N.paper}a1` }}>
-                {L('약속한 확인일이 왔어요. 봉인할 때의 눈으로 지금을 재볼 시간.', 'The check-in you promised has arrived. Time to reread now with the eyes you sealed it with.')}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={() => onReview(beacon.id)}
-              className="mt-3 inline-flex items-center gap-1.5 text-[11.5px] font-mono font-semibold cursor-pointer transition-[gap] duration-300 hover:gap-2.5"
-              style={{ color: N.gold }}
-            >
-              {L('다시 보기', 'Revisit')} <span aria-hidden>→</span>
-            </button>
-            {dueShips.length > 1 && (
-              <p className="mt-2 text-[10px] font-mono" style={{ color: `${N.paper}73` }}>
-                {L(`그 외 ${dueShips.length - 1}건이 더 기다려요`, `${dueShips.length - 1} more waiting below`)}
-              </p>
-            )}
-          </div>
-      )}
 
       {/* ── drift chip — the amber current's voice, kept to the sky band so it
             never occludes ships. Fires ONLY on the groundSpotlight event;
