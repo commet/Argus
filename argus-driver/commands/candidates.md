@@ -11,7 +11,7 @@ description: 캡처된 결정 후보를 살펴보고 봉인·연결·정리한�
    언제 잡았는지(kind·quote 요지·검증 등급)만 사실로 전하라.
 3. 각 후보에 대해 사용자가 고르게 하라 (**어느 쪽도 권하지 마라** — 그냥
    두면 14일에 소멸한다는 사실도 유효한 선택지로 함께 알려라):
-   - **봉인한다** → `argus_seal`로 예측·확인일을 받아 봉인하고(predicate는
+   - **봉인한다** → `argus_predict`로 예측·확인일을 받아 봉인하고(predicate는
      사용자의 말에서만), 그 다음 `argus_candidates` (action: promote,
      decision_id: 방금 봉인한 id)로 후보를 결정에 연결하라 — 출처가 기록된다.
    - **버린다** → `argus_candidates` (action: drop). 기록에는 남고 삭제는 없다.

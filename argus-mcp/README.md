@@ -52,8 +52,8 @@ promised in prose:
 
 - **There is no verdict tool.** The model cannot grade your decision because no
   `argus_verdict` / `argus_score` tool exists to call. `grep dist/` and see.
-- **You can't record a result without a saved prediction.** `argus_record_result`
-  hard-errors without a prior `argus_save_prediction` — "no judgment without a falsifiable prediction" is a
+- **You can't record a result without a saved prediction.** `argus_resolve`
+  hard-errors without a prior `argus_predict` — "no judgment without a falsifiable prediction" is a
   precondition, not a suggestion.
 - **State is the ledger, not a flag.** A decision's status is the fold of an
   append-only event log, so it can't be faked by calling tools out of order.
@@ -162,29 +162,28 @@ That's the whole spine. Everything below is detail on top of these three steps.
 
 ## The everyday loop
 
-Argus now exposes seven tools named for the job they do. You do not initialize
+Argus now exposes six tools named for the job they do. You do not initialize
 it first, choose a ritual, or learn its internal state machine. The first useful
 call creates the local record automatically.
 
 For most decisions the loop is simply:
 
-1. **`argus_clarify_decision`** — clarify a consequential decision and its assumptions.
-2. **`argus_save_prediction`** — save what you expect and when reality can answer.
+1. **`argus_capture`** — capture a decision's premises and open questions, in your own words.
+2. **`argus_predict`** — make a falsifiable prediction and the date reality can answer it.
 3. **`argus_check_in`** — see only what needs attention now.
-4. **`argus_record_result`** — record what actually happened, without a score or verdict.
+4. **`argus_resolve`** — record what actually happened, without a score or verdict.
 
-`argus_review_document` is the entry point for a memo, PRD, deck, or AI answer.
-`argus_history` reads what is already on record. `argus_settings` handles the
-few preferences and account-sync controls a user may need.
+`argus_patterns` reads what is already on record — past decisions and how often
+your predictions held. `argus_settings` handles the few preferences and
+account-sync controls a user may need.
 
 | Tool | What it does |
 |------|--------------|
-| `argus_clarify_decision` | Opens or maintains one decision without deciding for you. Its actions add assumptions and open questions, record your answer, update an external fact, change an untested prediction, or close a decision that no longer needs an outcome. |
-| `argus_review_document` | Reviews a memo, PRD, deck, or AI answer for claims, evidence, hidden assumptions, and places that still require human judgment. Never returns a verdict. |
-| `argus_save_prediction` | Saves a falsifiable prediction (`predicate` + `check_by`) in the user's words. An Argus-drafted line is marked honestly and shown as a one-tap draft to keep, reword, or skip. |
+| `argus_capture` | Captures one decision's premises and open questions in the user's own words, without deciding for you. Its actions add assumptions and open questions, record your answer, update an external fact, change an untested prediction, or close a decision that no longer needs an outcome. |
+| `argus_predict` | Makes a falsifiable prediction (`predicate` + `check_by`) in the user's words. An Argus-drafted line is marked honestly and shown as a one-tap draft to keep, reword, or skip. |
 | `argus_check_in` | Shows only predictions past their check date, external facts due for an update, and open questions due for reconsideration. If nothing needs attention, it stops. |
-| `argus_record_result` | Records what actually happened and issues the Judgment Receipt. Reality supplies the outcome; Argus does not grade it. |
-| `argus_history` | Reads active decisions, all records, one Judgment Receipt, one decision's context, or the time-ordered history. Read-only. |
+| `argus_resolve` | Records what actually happened and issues the Judgment Receipt. Reality supplies the outcome; Argus does not grade it. |
+| `argus_patterns` | Reads active decisions, all records, one Judgment Receipt, one decision's context, or the accumulated frequency of outcomes. Read-only. |
 | `argus_settings` | Reads or updates language, quiet reminders, opt-in premise sync, and explicit account sync. Initialization is automatic. |
 
 ## Living premises

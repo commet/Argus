@@ -11,7 +11,7 @@
 
 1. **MCP 자동 배선** — 번들된 [`.mcp.json`](./.mcp.json)이 `argus-decision-mcp`
    stdio 서버를 등록한다 (`npx -y argus-decision-mcp`). 별도 설정 없음.
-   `argus_harvest` / `argus_seal` / `argus_settle` / `argus_check_in` 등이
+   `argus_capture` / `argus_predict` / `argus_resolve` / `argus_check_in` 등이
    바로 쓸 수 있게 된다.
 2. **statusline 동봉 (선택)** — [`statusline/index.js`](./statusline/index.js)는
    내구 v2 원장(`~/.argus/projects/{repository_id}/`)과 레거시 워크트리 원장을
