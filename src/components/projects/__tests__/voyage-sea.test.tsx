@@ -217,6 +217,31 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(container.querySelectorAll('[role="listitem"]').length).toBe(30);
   });
 
+  it('the state filter isolates a slice — matches stay lit, the rest recede', () => {
+    const due = sealedProject('due1', '2026-01-10T00:00:00.000Z', {
+      decision_contract: {
+        id: 'c-due1', project_id: 'due1', created_at: '2026-01-10T00:00:00.000Z',
+        check_in_at: '2026-02-28T00:00:00.000Z',
+        predicates: [{ id: 'p1', text: '내기', source: 'user_lean', authored: 'user' }],
+      },
+    });
+    render([due, sealedProject('b', '2026-02-01T00:00:00.000Z'), sealedProject('c', '2026-02-15T00:00:00.000Z')], {
+      dueProjectIds: ['due1'],
+    });
+    const chip = Array.from(container.querySelectorAll('button')).find((b) =>
+      (b.textContent || '').includes('다시 볼 것'),
+    )!;
+    expect(chip).toBeTruthy();
+    act(() => chip.click());
+    const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLElement[];
+    const dueItem = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-due1'))!;
+    const other = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-b'))!;
+    expect(dueItem.style.opacity).toBe('1'); // the match stays
+    expect(other.style.opacity).toBe('0.1'); // the rest recede
+    // and the chip reports its true count
+    expect(chip.textContent).toContain('1');
+  });
+
   it('leaks no score / % / grade / streak / comparison string', () => {
     render([
       sealedProject('a', '2026-01-05T00:00:00.000Z'),

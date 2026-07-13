@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   getVoyageState,
   daysUntilWreck,
   wreckPin,
   VOYAGE_STATE_META,
+  DRIFT_DAYS,
+  WRECK_DAYS,
   type VoyageLeg,
   type VoyageState,
 } from '@/lib/voyage-state';
@@ -339,6 +341,9 @@ export function VoyageSea({
   onSelectReceipt?: (receiptId: string) => void;
 }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  // B (07-13): the chart is an operable control surface — a state filter that
+  // isolates a slice of the fleet (null = whole fleet).
+  const [filter, setFilter] = useState<string | null>(null);
 
   // Same signal brain as projectMetricsMap / the old FleetChart — the ONE
   // derived-state source (getVoyageState). Two deliberate departures from
@@ -614,6 +619,31 @@ export function VoyageSea({
   };
   const untended = counts.adrift + counts.wrecked;
 
+  // ── the operable filters (B) — each isolates a real slice of the fleet.
+  //    Clicking one dims everything else and reveals the matches' keywords, so
+  //    the axes/states become something you ACT on, not just read. ──
+  const FILTERS: Array<{ key: string; ko: string; en: string; test: (s: SeaShip) => boolean; gold?: boolean }> = [
+    { key: 'due', ko: '다시 볼 것', en: 'due', test: (s) => s.due, gold: true },
+    { key: 'idle', ko: '오래 방치', en: 'untended', test: (s) => s.state === 'adrift' || s.state === 'wrecked' },
+    { key: 'sailing', ko: '항해 중', en: 'sailing', test: (s) => s.state === 'sailing' && !s.due },
+    { key: 'home', ko: '항구·완료', en: 'in harbor', test: (s) => s.state === 'arrived' || s.state === 'verified' },
+    { key: 'docked', ko: '출항 전', en: 'docked', test: (s) => s.state === 'docked' && !s.due },
+  ];
+  const filterList = FILTERS.map((f) => ({ ...f, n: ships.filter(f.test).length })).filter((f) => f.n > 0);
+  const activeFilter = FILTERS.find((f) => f.key === filter) || null;
+  const matchOf = (s: SeaShip) => !activeFilter || activeFilter.test(s);
+
+  // ── honest thresholds on the recency axis: the REAL 14d-adrift / 30d-wreck
+  //    lines from voyage-state, placed by the same log scale. Turns "vaguely
+  //    left = old" into "left of this labeled line = adrift/wrecked water" —
+  //    real structure, not fake precision (kills critique #4). ──
+  const thresholds = [
+    { d: DRIFT_DAYS, label: L(`${DRIFT_DAYS}일 · 표류`, `${DRIFT_DAYS}d · adrift`) },
+    { d: WRECK_DAYS, label: L(`${WRECK_DAYS}일 · 난파`, `${WRECK_DAYS}d · wrecked`) },
+  ]
+    .map((t) => ({ ...t, x: logMax > 0 ? 88 - (Math.log1p(t.d) / logMax) * 76 : -1 }))
+    .filter((t) => t.x > 9 && t.x < 85);
+
   // ── undersea currents — shared ground between charted vessels (the judgment
   //    graph made spatial). Relationship = normalizePremiseText EXACT equality
   //    only (§4-1: a broken wire yields a missing chord, never an invented
@@ -764,9 +794,17 @@ export function VoyageSea({
             </span>
           </>
         )}
-        {/* graticule: horizon (resolution mid) + a recency mid-meridian */}
+        {/* graticule: horizon (resolution mid) */}
         <div aria-hidden className="absolute left-0 right-0 pointer-events-none" style={{ top: '50%', height: 1, background: `linear-gradient(90deg, transparent, ${N.paper}12 12%, ${N.paper}12 88%, transparent)` }} />
-        <div aria-hidden className="absolute top-[13%] bottom-[14%] pointer-events-none" style={{ left: '50%', width: 1, background: `linear-gradient(180deg, transparent, ${N.paper}0e 20%, ${N.paper}0e 80%, transparent)` }} />
+        {/* honest recency thresholds — the real 14d / 30d lines, labeled. Only
+            meaningful in the unresolved (upper) band, so they fade before the
+            harbour. Real structure on the X axis (critique #4). */}
+        {thresholds.map((t) => (
+          <div key={t.d} aria-hidden className="absolute top-[12%] pointer-events-none" style={{ left: `${t.x}%`, bottom: '30%' }}>
+            <div className="absolute inset-y-0" style={{ width: 1, background: `repeating-linear-gradient(180deg, ${N.paper}2e 0 4px, transparent 4px 8px)` }} />
+            <span className="absolute -top-0.5 left-1 whitespace-nowrap text-[7.5px] font-mono uppercase tracking-[0.1em]" style={{ color: `${N.paper}66` }}>{t.label}</span>
+          </div>
+        ))}
 
         {/* Y-axis captions */}
         <span className="absolute top-[5.5%] left-1/2 -translate-x-1/2 text-[8.5px] font-mono uppercase tracking-[0.24em] pointer-events-none" style={{ color: `${N.paper}4d` }}>
@@ -838,7 +876,11 @@ export function VoyageSea({
             // the neglect corner doesn't re-crowd with labels. Full name is
             // always one hover away and listed below the map.
             const kw = keyword(s.name);
-            const showKeyword = !dense || s.due;
+            const matches = matchOf(s);
+            const dimmed = !!activeFilter && !matches;
+            // A filter turns the map into a work slice: matches light up AND
+            // reveal their keyword (few remain, so they fit); the rest recede.
+            const showKeyword = (activeFilter ? matches : !dense || s.due);
             return (
               <button
                 key={s.id}
@@ -849,8 +891,8 @@ export function VoyageSea({
                 }
                 title={`${s.name} — ${stateLabel} · ${s.sub}`}
                 aria-label={`${s.name} — ${stateLabel} · ${s.sub}`}
-                className="vsea-in absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-lg cursor-pointer group hover:z-40 focus-visible:z-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-transform duration-300 hover:-translate-y-[calc(50%+3px)]"
-                style={{ left: `${s.x}%`, top: `${s.y}%`, animationDelay: `${Math.min(i, 8) * 70}ms` }}
+                className={`vsea-in absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-lg cursor-pointer group focus-visible:z-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-[transform,opacity] duration-300 ${dimmed ? 'pointer-events-none' : 'hover:z-40 hover:-translate-y-[calc(50%+3px)]'}`}
+                style={{ left: `${s.x}%`, top: `${s.y}%`, animationDelay: `${Math.min(i, 8) * 70}ms`, opacity: dimmed ? 0.1 : 1 }}
               >
                 {s.beacon && (
                   <>
@@ -988,25 +1030,51 @@ export function VoyageSea({
       )}
       </div>
 
-      {/* ── under the plate: the honest caption + a quiet chart key ── */}
-      <div className="mt-2.5 px-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
-        <p className="text-[12px] text-[var(--text-secondary)]">{caption}</p>
-        <div aria-hidden className="hidden md:flex items-center gap-4 text-[9px] font-mono uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
-          {(
-            [
-              ['sailing', 'project', L('항해 중', 'sailing')],
-              ['adrift', 'project', L('표류', 'adrift')],
-              ['wrecked', 'project', L('난파', 'wrecked')],
-              ['verified', 'project', L('검증됨', 'verified')],
-              ['sailing', 'receipt', L('검수 봉인', 'review seal')],
-            ] as Array<[VoyageState, 'project' | 'receipt', string]>
-          ).map(([st, kind, label]) => (
-            <span key={`${st}-${kind}`} className="inline-flex items-center gap-1.5 rounded px-1 py-0.5" style={{ background: N.sea }}>
-              <ShipMark state={st} due={false} size={12} kind={kind} plain />
-              <span style={{ color: `${N.paper}8c` }}>{label}</span>
-            </span>
-          ))}
+      {/* ── under the plate: the OPERABLE filter bar (the control surface) +
+            a live caption. Clicking a chip isolates that slice of the fleet. ── */}
+      <div className="mt-3 px-1 flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={L('함대 필터', 'Fleet filter')}>
+          <button
+            type="button"
+            onClick={() => setFilter(null)}
+            aria-pressed={!activeFilter}
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border cursor-pointer transition-colors ${!activeFilter ? 'bg-[var(--text-primary)] text-[var(--bg)] border-transparent' : 'text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/40'}`}
+          >
+            {L('전체', 'All')}
+            <span className="tabular-nums text-[10px] opacity-70">{ships.length}</span>
+          </button>
+          {filterList.map((f) => {
+            const on = activeFilter?.key === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(on ? null : f.key)}
+                aria-pressed={on}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border cursor-pointer transition-colors ${on ? 'border-transparent' : 'border-[var(--border-subtle)] hover:border-[var(--text-secondary)]/40'}`}
+                style={
+                  on
+                    ? f.gold
+                      ? { background: N.gold, color: N.card }
+                      : { background: 'var(--text-primary)', color: 'var(--bg)' }
+                    : { color: f.gold ? N.gold : 'var(--text-secondary)' }
+                }
+              >
+                {f.gold && !on && <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />}
+                {L(f.ko, f.en)}
+                <span className="tabular-nums text-[10px] opacity-70">{f.n}</span>
+              </button>
+            );
+          })}
         </div>
+        <p className="text-[12px] text-[var(--text-secondary)]">
+          {activeFilter
+            ? L(
+                `${L(activeFilter.ko, activeFilter.en)} ${filterList.find((f) => f.key === activeFilter.key)?.n ?? 0}건만 보는 중 — 나머지는 잠시 물러났어요.`,
+                `Showing ${filterList.find((f) => f.key === activeFilter.key)?.n ?? 0} · ${activeFilter.en} — the rest stepped back.`,
+              )
+            : caption}
+        </p>
       </div>
     </section>
   );
