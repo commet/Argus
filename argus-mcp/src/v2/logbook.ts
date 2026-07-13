@@ -39,49 +39,49 @@ export function renderLogbook(brief: BriefState, repositoryId: string): string {
   const out: string[] = [];
   out.push('# ARGUS LOGBOOK');
   out.push('');
-  out.push(`> 재생성되는 projection입니다. 원장(\`~/.argus/projects/${repositoryId}/\`)이 정본이고, 직접 수정해도 다음 갱신에서 사라집니다.`);
+  out.push(`> Argus가 자동으로 갱신하는 보기입니다. 기록 원본은 \`~/.argus/projects/${repositoryId}/\`에 있으며, 이 파일은 직접 수정하지 마세요.`);
   out.push(`> 기준일: ${brief.logical_date}`);
   out.push('');
 
   if (brief.due.length > 0) {
-    out.push(`## 정산할 것 (${brief.due.length})`);
+    out.push(`## 결과를 확인할 예측 (${brief.due.length})`);
     out.push('');
-    out.push('| 결정 | 예측 | 확인일 | 경과 |');
+    out.push('| 결정 | 예측 | 확인일 | 상태 |');
     out.push('|---|---|---|---|');
     for (const d of brief.due) {
       const days = d.overdue_days === 0 ? '오늘' : `+${d.overdue_days}일`;
-      const tail = d.suggest_dismiss ? ' (2회 미룸, dismiss 후보)' : '';
+      const tail = d.suggest_dismiss ? ' (2회 미룸, 계속 볼지 확인 가능)' : '';
       out.push(`| ${line(d.decision_id, 40)} | ${line(d.predicate)} | ${d.check_by} | ${days}${tail} |`);
     }
     out.push('');
-    out.push('→ `argus_settle`로 현실을 기록하세요. 아직 결과가 없으면 still_pending으로 미룰 수 있습니다.');
+    out.push('→ `argus_record_result`로 실제 결과를 기록하세요. 아직 결과가 없으면 다음 확인일로 미룰 수 있습니다.');
     out.push('');
   } else {
-    out.push('## 정산할 것');
+    out.push('## 결과를 확인할 예측');
     out.push('');
     out.push('오늘은 없습니다.');
     out.push('');
   }
 
-  out.push(`## 살아있는 봉인: ${brief.sealed_alive}건`);
+  out.push(`## 진행 중인 예측: ${brief.sealed_alive}건`);
   out.push('');
 
   // 그물의 수동(pull) 표면 — 능동 1회 노출(pickNetOnce)과 별개로, 파일을
   // 열어본 사람에게는 봉인 안 된 수확이 숨지 않는다 (조용한 소실 금지).
   if (brief.unsealed_net.length > 0) {
-    out.push(`## 봉인 대기 수확 (${brief.unsealed_net.length})`);
+    out.push(`## 예측으로 남길지 확인할 판단 (${brief.unsealed_net.length})`);
     out.push('');
     for (const n of brief.unsealed_net) {
-      out.push(`- ${line(n.text)} · ${n.harvested_on} 수확 (봉인하려면 \`argus_seal\`)`);
+      out.push(`- ${line(n.text)} · ${n.harvested_on} 포착 (남기려면 \`argus_save_prediction\`)`);
     }
     out.push('');
   }
 
   if (brief.premise_rechecks_due.length > 0) {
-    out.push(`## 재확인 도래 전제 (${brief.premise_rechecks_due.length})`);
+    out.push(`## 다시 확인할 전제 (${brief.premise_rechecks_due.length})`);
     out.push('');
     for (const p of brief.premise_rechecks_due) {
-      out.push(`- ${line(p.text)} · ${p.due_since}부터 (\`argus_recheck\`)`);
+      out.push(`- ${line(p.text)} · ${p.due_since}부터 (\`argus_clarify_decision\`으로 사실 갱신)`);
     }
     out.push('');
   }
@@ -94,8 +94,8 @@ export function renderLogbook(brief: BriefState, repositoryId: string): string {
   }
 
   if (brief.candidates_active.length > 0 || brief.candidates_expired > 0) {
-    out.push(`## 캡처 후보: ${brief.candidates_active.length}건 활성` +
-      (brief.candidates_expired > 0 ? ` · ${brief.candidates_expired}건 14일 경과 소멸` : ''));
+    out.push(`## 참고 메모: ${brief.candidates_active.length}건 검토 대기` +
+      (brief.candidates_expired > 0 ? ` · ${brief.candidates_expired}건 14일 뒤 자동 정리` : ''));
     out.push('');
   }
 

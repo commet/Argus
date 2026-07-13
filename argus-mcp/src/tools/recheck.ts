@@ -63,10 +63,10 @@ export const recheck: ToolModule = {
 
       const premise = resolvePremiseRef(entry?.premises ?? [], String(a['ref']));
       if (premise.kind !== 'premise') {
-        return toolError({ ok: false, tool: 'argus_recheck', error_code: 'NOT_RECHECKABLE', message: `P${premise.ordinal} is an open question — it is resolved by you, not re-checked against reality.`, recovery: 'Use argus_premises op="resolve" with your own call.' });
+        return toolError({ ok: false, tool: 'argus_recheck', error_code: 'NOT_RECHECKABLE', message: `P${premise.ordinal} is an open question — it is resolved by you, not re-checked against reality.`, recovery: 'Use argus_clarify_decision action="answer_question" with your own call.' });
       }
       if (premise.status !== 'active') {
-        return toolError({ ok: false, tool: 'argus_recheck', error_code: 'PREMISE_RETIRED', message: `P${premise.ordinal} is ${premise.status}.`, recovery: 'Only active premises are re-checked. See argus_recall view="premises".' });
+        return toolError({ ok: false, tool: 'argus_recheck', error_code: 'PREMISE_RETIRED', message: `P${premise.ordinal} is ${premise.status}.`, recovery: 'Only active premises are re-checked. See argus_history view="decision_context".' });
       }
 
       const finding = String(a['finding']);
@@ -168,7 +168,7 @@ export const recheck: ToolModule = {
       //    auto-attaches argus_recall — that would manufacture a fork on a flat
       //    or reversible decision. The user calls the handle; the tool doesn't.
       const next_actions: NextAction[] = status === 'material'
-        ? ['argus_recall', 'leave_as_is']
+        ? ['argus_history', 'leave_as_is']
         : ['leave_as_is', 'stop'];
 
       return envelope({

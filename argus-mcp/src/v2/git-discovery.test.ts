@@ -14,6 +14,10 @@ import { registerRepository, lookupRepository } from './ledger.js';
 let base: string;
 beforeEach(() => {
   base = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-gitd-'));
+  // A developer may have made the OS temp directory (or an ancestor such as
+  // their home directory) a Git repository. This invalid pointer is a test
+  // boundary: paths without their own .git must still model "outside a repo".
+  fs.writeFileSync(path.join(base, '.git'), `gitdir: ${path.join(base, 'missing-gitdir')}\n`);
 });
 afterEach(() => {
   fs.rmSync(base, { recursive: true, force: true });

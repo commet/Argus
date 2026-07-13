@@ -11,8 +11,8 @@ import { tmpArgusDir } from '../../test-helpers.js';
  * REAL MCP protocol round-trip (plan v5 §8 release smoke, automated): spawns the
  * BUILT server over stdio exactly as a host would (`node dist/index.js`), speaks
  * the actual protocol via the SDK client, and walks the living-premises journey
- * end to end — initialize → tools/list → tools/call → resources/read →
- * prompts/get. This is what the MCP Inspector would verify by hand, pinned in CI.
+ * end to end — initialize → tools/list → tools/call → resources/read. This is
+ * what the MCP Inspector would verify by hand, pinned in CI.
  */
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -74,11 +74,8 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     expect(schema).not.toContain('from_capture');
   });
 
-  it('does not advertise separate rituals, but keeps cached prompt calls compatible', async () => {
-    const listed = await client.listPrompts();
-    expect(listed.prompts).toEqual([]);
-    const cached = await client.getPrompt({ name: 'argus-settle', arguments: {} });
-    expect(cached.messages.length).toBeGreaterThan(0);
+  it('does not advertise a second prompt/ritual surface', () => {
+    expect(client.getServerCapabilities()?.prompts).toBeUndefined();
   });
 
   it('walks the journey: seal(+promotion) → add → due_note piggyback → recheck baseline → recall', async () => {
@@ -137,17 +134,6 @@ describe('MCP protocol round-trip (built server, stdio)', () => {
     // Cached clients may still request the old URI during the compatibility window.
     const legacy = await client.readResource({ uri: 'argus://premises/due' });
     expect(legacy.contents).toHaveLength(1);
-  });
-
-  it('the legacy settle prompt still carries recheck choreography for cached clients', async () => {
-    // a second decision with a never-checked monitored premise → due
-    await client.callTool({ name: 'argus_seal', arguments: { argus_dir: dir, id: 'rt2', predicate: 'second bet holds through the quarter', check_by: '2026-10-01', predicate_owner: 'user', today_override: ADDED } });
-    await client.callTool({ name: 'argus_premises', arguments: { argus_dir: dir, id: 'rt2', op: 'add', today_override: ADDED, premises: [{ text: 'supply stays constrained', kind: 'premise', external: true, load_bearing: true, source: 'user' }] } });
-
-    const prompt = await client.getPrompt({ name: 'argus-settle', arguments: {} });
-    const text = (prompt.messages[0].content as { text: string }).text;
-    expect(text).toContain('argus_recheck');
-    expect(text).toContain('supply stays constrained');
   });
 
   it('schema violations come back as clean tool errors over the wire', async () => {

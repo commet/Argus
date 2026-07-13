@@ -76,7 +76,7 @@ function harvestQueueStep(payload, home) {
     i.item_id !== `harvest-${sessionId}` && !i.exhausted && i.attempts < 3 &&
     !(i.lease && i.lease.expires_at > nowIso)).length;
   if (claimable > 0) {
-    return `Argus: 수확 큐에 ${claimable}건 대기 중. 추출은 debrief 처리 단계에서 합니다 (훅은 확인만 합니다).`;
+    return `Argus: 이전 세션에서 자동 포착할 기록 ${claimable}건이 대기 중입니다. 처리는 작업을 방해하지 않게 뒤에서 진행합니다.`;
   }
   return null;
 }
@@ -107,12 +107,13 @@ function firstRunWelcome() {
 
   return [
     '[Argus 첫 실행: 아래 내용을 사용자에게 그의 언어로, 짧고 담백하게 전하라. 과장·이모지·평가 금지.]',
-    'Argus가 연결되었습니다. Argus는 중요한 결정을 "반증 가능한 예측"으로 봉인해 두고,',
-    '확인일이 오면 그 예측을 현실과 대조(정산)하도록 돕는 도구입니다. 모델은 당신을 채점하지 않습니다.',
+    'Argus가 연결되었습니다. 중요한 결정을 말하면 확인할 수 있는 예측과 그 판단이 기대는 전제를 남기고,',
+    '확인일이 오면 실제로 무엇이 일어났는지 다시 봅니다. 모델은 당신을 채점하지 않습니다.',
     '지금 할 수 있는 것:',
-    '· 고민 중인 결정을 그냥 말로 설명하면, 봉인(argus_seal)까지 함께 진행할 수 있습니다.',
-    '· 무엇이 있는지 보려면 /argus:help.',
-    '· 이 저장소에서 처음이라면 argus_init을 한 번 부르면 기록 위치가 준비됩니다.',
+    '· 고민 중인 결정을 평소처럼 설명하면 됩니다.',
+    '· "지금 확인할 것이 있어?"라고 물으면 필요한 항목만 보여줍니다.',
+    '· 확인일이 오면 실제 결과를 말해 기록을 마무리할 수 있습니다.',
+    '· 별도 초기화 명령은 필요하지 않습니다.',
     '이 안내는 이번 한 번만 나타납니다.',
   ].join('\n');
 }
@@ -169,9 +170,9 @@ function main(input) {
       '`argus_check_in`을 호출하면 자동 재생성됩니다 (원장이 정본, LOGBOOK은 언제든 다시 태어납니다).');
   } else {
     // 4) fresh — due 건수만 한 줄 (본문 인용 없음). 0건이면 침묵.
-    const due = /## 정산할 것 \((\d+)\)/.exec(logbook);
+    const due = /## 결과를 확인할 예측 \((\d+)\)/.exec(logbook);
     if (due && Number(due[1]) > 0) {
-      lines.push(`Argus: 정산할 결정 ${due[1]}건이 확인일에 도달했습니다. ${logbookAbs} 참조, 정산은 \`argus_settle\`.`);
+      lines.push(`Argus: 결과를 확인할 예측 ${due[1]}건이 확인일에 도달했습니다. ${logbookAbs} 참조, 기록은 \`argus_record_result\`.`);
     }
   }
   return lines.length ? lines.join('\n') : null;

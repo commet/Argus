@@ -67,7 +67,7 @@ describe('registry — 발견 메커니즘 (II-D)', () => {
     const id = registerRepository(home, gitCommonDir());
     const link = path.join(os.tmpdir(), `argus-v2-link-${process.pid}`);
     try {
-      fs.symlinkSync(gitCommonDir(), link);
+      fs.symlinkSync(gitCommonDir(), link, process.platform === 'win32' ? 'junction' : 'dir');
       expect(lookupRepository(home, link)).toBe(id); // 실경로 기준 — symlink 무관
     } finally {
       fs.rmSync(link, { force: true });

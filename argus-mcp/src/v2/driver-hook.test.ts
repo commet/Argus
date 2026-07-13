@@ -98,7 +98,7 @@ describe('argus-driver SessionStart 훅 (P2-5)', () => {
     const out = run();
     const context = JSON.parse(out).hookSpecificOutput.additionalContext as string;
     expect(context).toContain('2건');
-    expect(context).toContain('argus_settle');
+    expect(context).toContain('argus_record_result');
     expect(context).toContain(path.join(repoDir, '.argus', 'LOGBOOK.md')); // 규칙 18: 경로 1급 표면
     expect(context).not.toContain('SECRET-PREDICATE'); // 규칙 19: 본문 미주입
   });
@@ -151,7 +151,7 @@ describe('argus-driver SessionStart 훅 (P2-5)', () => {
 
       // 다음 세션이 뜨면: 이전 세션 항목이 "대기 중"으로 보이고, 처리 단계가 클레임 가능
       const out2 = runHook('sess-2');
-      expect(out2).toContain('수확 큐에 1건 대기');
+      expect(out2).toContain('자동 포착할 기록 1건이 대기 중');
       expect(out2).not.toContain('lease'); // 훅은 확인만 — 클레임 안 함
       const claimed = claim(dataDir, new Date().toISOString(), 600_000, 'proc-1');
       expect(claimed?.item_id).toBe('harvest-sess-1'); // 교차 구현: 훅이 쓴 항목을 queue.ts가 잠근다
@@ -195,7 +195,9 @@ describe('첫 실행 안내 (온보딩)', () => {
         encoding: 'utf8',
       });
       expect(run1).toContain('Argus가 연결되었습니다');
-      expect(run1).toContain('argus_seal');
+      expect(run1).toContain('별도 초기화 명령은 필요하지 않습니다');
+      expect(run1).not.toContain('argus_seal');
+      expect(run1).not.toContain('argus_init');
       expect(run1).toContain('이번 한 번만'); // 1회 약속
       expect(fs.existsSync(path.join(dataDir, 'welcome-shown'))).toBe(true);
 

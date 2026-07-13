@@ -20,8 +20,8 @@ const JSON_MIME = 'application/json';
 
 export const STATIC_RESOURCES = [
   { uri: 'argus://ledger', name: 'Argus 원장 · Ledger', description: '모든 결정의 재생된 전체 상태 · Full replayed state of all decisions (stats, contracts, integrity).', mimeType: JSON_MIME },
-  { uri: 'argus://contracts/due', name: '확인할 계약 · Due contracts', description: '확인일이 지난 결정 계약 · Decision contracts past their check-by date.', mimeType: JSON_MIME },
-  { uri: 'argus://bearing/current', name: '현재 방위 · Current bearing', description: '봉인됐지만 아직 정산되지 않은 결정 · Open sealed decisions not yet settled.', mimeType: JSON_MIME },
+  { uri: 'argus://contracts/due', name: '결과를 확인할 예측 · Predictions due', description: '확인일이 지난 예측 · Saved predictions past their check date.', mimeType: JSON_MIME },
+  { uri: 'argus://bearing/current', name: '결과를 기다리는 예측 · Predictions awaiting results', description: '저장됐고 아직 실제 결과가 기록되지 않은 예측 · Saved predictions with no recorded result yet.', mimeType: JSON_MIME },
   { uri: 'argus://premises/due', name: '재확인할 전제 · Premises due', description: '현실과 다시 확인할 때가 된 추적 전제 · Monitored premises due for a reality re-check.', mimeType: JSON_MIME },
 ] as const;
 

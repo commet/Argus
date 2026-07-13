@@ -85,31 +85,31 @@ function illegalRecovery(current: DecisionState, event: LedgerEventType): string
     // ledger: it returns the same state, and the same error, forever.
     case event === 'seal':
       return current === 'due'
-        ? 'This decision is already sealed and its check-by has arrived. Record what reality did with argus_settle (if reality has not answered, that is still_pending and it defers). A sealed prediction is never re-sealed.'
-        : 'This decision is already sealed. Change the predicate or the check-by with argus_amend, or record the outcome with argus_settle once the check-by arrives. Re-sealing is refused so a sealed prediction cannot be quietly rewritten.';
+        ? 'This prediction is already saved and its check-by has arrived. Record what reality did with argus_record_result (if reality has not answered, use still_pending and defer it). A saved prediction is never saved twice.'
+        : 'This prediction is already saved. Change it with argus_clarify_decision action="change_prediction", or record the outcome with argus_record_result once the check-by arrives. A saved prediction cannot be quietly rewritten.';
 
     // premise_* can only reach here from `absent` (opened/sealed allow them all;
     // due sends add/amend to PREMISE_LOCKED). Adding is recoverable — seal
     // self-creates the contract — so nothing the user meant to track is lost.
     case event === 'premise_add':
-      return "This decision isn't open for tracking yet. If it's a consequential fork, open it with argus_open_decision; otherwise seal it first (argus_seal creates the contract), then add the premise — premises attach from the sealed state, so nothing you meant to track is lost to order.";
+      return "This decision isn't open for tracking yet. Open it with argus_clarify_decision action=\"open\", or save its prediction with argus_save_prediction, then add the premise.";
 
     // recheck/resolve/reconsider/amend act on a premise that must ALREADY exist,
     // so the seal-first advice above is off-target for them.
     case event.startsWith('premise_'):
-      return 'No decision with this id is being tracked, so it has no premises to act on. Check the id — argus_recall view=contracts lists them.';
+      return 'No decision with this id is being tracked, so it has no premises to act on. Check the id with argus_history view="all".';
 
     // defer only exists to re-arm a bet whose check-by has arrived.
     case event === 'defer':
       // On `absent` there is no decision at all, so "argus_amend moves it" is a
       // dead end (amend is refused on absent too). Point at the id instead.
       if (current === 'absent') {
-        return 'No decision with this id exists yet. Check the id — argus_recall view=contracts lists them; a decision starts with argus_open_decision or argus_seal.';
+        return 'No decision with this id exists yet. Check the id with argus_history view="all"; start one with argus_clarify_decision or argus_save_prediction.';
       }
-      return 'A decision can only be deferred once its check-by has arrived. Before then the check-by simply stands (argus_amend moves it).';
+      return 'A decision can only be deferred once its check-by has arrived. Before then, change the date with argus_clarify_decision action="change_prediction".';
 
     case event === 'amend' || event === 'dismiss':
-      return 'No decision with this id exists yet. Check the id — argus_recall view=contracts lists them; a decision starts with argus_open_decision or argus_seal.';
+      return 'No decision with this id exists yet. Check the id with argus_history view="all"; start one with argus_clarify_decision or argus_save_prediction.';
 
     default:
       return undefined;
@@ -133,13 +133,13 @@ export function guardTransition(
     if (current === 'opened' || current === 'absent') {
       throw new GuardError(
         'NO_PRIOR_SEAL',
-        'Cannot settle a decision that was never sealed.',
-        'Call argus_seal with a falsifiable predicate and a check-by date first. ' +
-          "(If this id came from argus_sync and starts with 'mcp_', use the id without that prefix — see the receipt's local_id; a web-sealed prediction settles in the web app, not here.)",
+        'Cannot record a result for a prediction that was never saved.',
+        'Call argus_save_prediction with a falsifiable predicate and a check-by date first. ' +
+          "(If this id came from argus_settings action=sync and starts with 'mcp_', use the id without that prefix. Record a web-saved prediction in the web app.)",
       );
     }
     if (current === 'settled') {
-      throw new GuardError('ALREADY_SETTLED', 'This decision is already settled (append-only — no re-judging).', 'Use argus_recall to read the receipt.');
+      throw new GuardError('ALREADY_SETTLED', 'This decision already has a recorded result (append-only — no re-judging).', 'Use argus_history view="receipt" to read it.');
     }
     if (current === 'dismissed') {
       throw new GuardError('DECISION_CLOSED', 'This decision was dismissed.', 'Open a new decision if reality changed.');
@@ -148,7 +148,7 @@ export function guardTransition(
   }
 
   if (event === 'amend' && current === 'due') {
-    throw new GuardError('GOALPOST_MOVED', 'Cannot move the check-by date once it has arrived.', 'Settle the decision against reality instead.');
+    throw new GuardError('GOALPOST_MOVED', 'Cannot move the check-by date once it has arrived.', 'Record the actual result instead.');
   }
 
   // Premise writes lock once the check-by has arrived: adding a premise after
@@ -158,7 +158,7 @@ export function guardTransition(
     throw new GuardError(
       'PREMISE_LOCKED',
       'Premises are locked once the check-by date has arrived.',
-      'Settle the decision against reality first (argus_settle); the premise record stays as it was when you committed.',
+      'Record the actual result first with argus_record_result; the premise record stays as it was when you committed.',
     );
   }
 

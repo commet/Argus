@@ -238,7 +238,7 @@ describe('argus_recheck — M2 materiality (§4 3-value wiring, mirror clause)',
     const b = body(r);
     expect((b['data'] as Record<string, unknown>)['materiality']).toBe('material');
     expect((b['data'] as Record<string, unknown>)['drifted']).toBe(true);
-    expect(b['next_actions']).toContain('argus_recall');
+    expect(b['next_actions']).toContain('argus_history');
   });
 
   it('MIRROR CLAUSE: uncertain NEVER auto-attaches argus_recall (no manufactured fork)', async () => {

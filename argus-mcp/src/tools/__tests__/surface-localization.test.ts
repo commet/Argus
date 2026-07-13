@@ -53,25 +53,25 @@ describe('M4 surface localization — the 6 dogfood tools', () => {
   it('seal — ko vs en, and seal_text follows the same locale', async () => {
     const dirEn = tmpArgusDir(); pin(dirEn, 'en');
     const rEn = await seal.handler({ argus_dir: dirEn, id: 's1', predicate: 'cutover downtime under 5 min', check_by: '2027-01-01', predicate_owner: 'user', today_override: TODAY });
-    expect(surface(rEn)).toContain('Sealed.');
-    expect(String((body(rEn)['data'] as Record<string, unknown>)['seal_text'])).toContain('SEALED');
+    expect(surface(rEn)).toContain('Prediction saved.');
+    expect(String((body(rEn)['data'] as Record<string, unknown>)['seal_text'])).toContain('PREDICTION SAVED');
 
     const dirKo = tmpArgusDir(); pin(dirKo, 'ko');
     const rKo = await seal.handler({ argus_dir: dirKo, id: 's1', predicate: '컷오버 다운타임 5분 미만', check_by: '2027-01-01', predicate_owner: 'user', today_override: TODAY });
-    expect(surface(rKo)).toContain('봉인했습니다');
-    expect(String((body(rKo)['data'] as Record<string, unknown>)['seal_text'])).toContain('봉인');
+    expect(surface(rKo)).toContain('예측을 저장했습니다');
+    expect(String((body(rKo)['data'] as Record<string, unknown>)['seal_text'])).toContain('예측 저장');
   });
 
   it('settle — ko vs en', async () => {
     const dirEn = tmpArgusDir(); pin(dirEn, 'en');
     await seal.handler({ argus_dir: dirEn, id: 'x', predicate: 'cutover downtime under 5 min', check_by: '2026-08-01', predicate_owner: 'user', today_override: TODAY });
     const rEn = await settle.handler({ argus_dir: dirEn, id: 'x', outcome: 'held', outcome_source: 'user_stated', what_happened: 'downtime was 4 minutes', today_override: '2026-08-02' });
-    expect(surface(rEn)).toContain('Settled.');
+    expect(surface(rEn)).toContain('Result recorded:');
 
     const dirKo = tmpArgusDir(); pin(dirKo, 'ko');
     await seal.handler({ argus_dir: dirKo, id: 'x', predicate: '컷오버 다운타임 5분 미만', check_by: '2026-08-01', predicate_owner: 'user', today_override: TODAY });
     const rKo = await settle.handler({ argus_dir: dirKo, id: 'x', outcome: 'held', outcome_source: 'user_stated', what_happened: '다운타임은 4분이었다', today_override: '2026-08-02' });
-    expect(surface(rKo)).toContain('정산했습니다');
+    expect(surface(rKo)).toContain('실제 결과를 기록했습니다');
   });
 
   it('recheck (baseline + material) — ko vs en', async () => {
@@ -121,6 +121,6 @@ describe('M4 surface localization — the 6 dogfood tools', () => {
   it('config-less: input text drives locale (no pin)', async () => {
     const dir = tmpArgusDir(); // no config.yaml
     const rKo = await seal.handler({ argus_dir: dir, id: 'nc', predicate: '컷오버 다운타임 5분 미만', check_by: '2027-01-01', predicate_owner: 'user', today_override: TODAY });
-    expect(surface(rKo)).toContain('봉인했습니다'); // Korean predicate ⇒ Korean surface
+    expect(surface(rKo)).toContain('예측을 저장했습니다'); // Korean predicate ⇒ Korean surface
   });
 });

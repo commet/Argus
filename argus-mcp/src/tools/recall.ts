@@ -73,16 +73,16 @@ export const recall: ToolModule = {
               ok: true, tool: 'argus_recall',
               surface: locale === 'ko'
                 ? (sealed
-                    ? `이 결정은 봉인됐고 아직 정산 전입니다 (확인일 ${contract.check_by}). 그날 argus_settle로 결과를 적으면 영수증이 완성됩니다.`
-                    : '이 결정은 아직 봉인 전입니다. argus_seal로 예측을 봉인하면 판단 영수증이 생깁니다.')
+                    ? `이 예측은 저장됐고 아직 결과 기록 전입니다 (확인일 ${contract.check_by}). 그날 argus_record_result로 실제 결과를 적으면 영수증이 완성됩니다.`
+                    : '이 결정에는 아직 저장한 예측이 없습니다. argus_save_prediction으로 예측을 저장하면 판단 영수증이 생깁니다.')
                 : (sealed
-                    ? `This decision is sealed and waiting on its check-by (${contract.check_by}). Record what happened with argus_settle then, and the receipt completes.`
-                    : 'This decision is opened but not sealed yet. Seal a prediction with argus_seal and a Judgment Receipt begins.'),
-              next_actions: sealed ? ['argus_settle', 'argus_recall'] : ['argus_seal', 'argus_recall'],
+                    ? `This prediction is saved and waiting on its check-by (${contract.check_by}). Record what happened with argus_record_result then, and the receipt completes.`
+                    : 'This decision has no saved prediction yet. Save one with argus_save_prediction and a Judgment Receipt begins.'),
+              next_actions: sealed ? ['argus_record_result', 'argus_history'] : ['argus_save_prediction', 'argus_history'],
               data: { id, status: contract.status, ...(contract.check_by ? { check_by: contract.check_by } : {}) },
             });
           }
-          return toolError({ ok: false, tool: 'argus_recall', error_code: 'RECEIPT_NOT_FOUND', message: `No decision found for "${id}".`, recovery: 'Check the id (argus_recall view="contracts" lists them), or open and seal it first.' });
+          return toolError({ ok: false, tool: 'argus_recall', error_code: 'RECEIPT_NOT_FOUND', message: `No decision found for "${id}".`, recovery: 'Check the id with argus_history view="all", or save a prediction first.' });
         }
         // The premise set is canonical — the receipt renders its summary from the fold (plan v5 §3.3).
         const pInfo = receiptPremisesInfo(replayLedger(dir, today).contracts.get(id));
@@ -116,8 +116,8 @@ export const recall: ToolModule = {
           return envelope({
             ok: true, tool: 'argus_recall',
             surface: locale === 'ko'
-              ? '이 결정에 기록된 전제가 없습니다. 결정이 딛고 선 사실을 argus_premises(op=add)로 적어두세요.'
-              : 'No premises tracked on this decision. Record the facts it rests on with argus_premises (op=add).',
+              ? '이 결정에 기록된 전제가 없습니다. 필요하면 argus_clarify_decision action="add_context"로 추가할 수 있습니다.'
+              : 'No premises tracked on this decision. Add them with argus_clarify_decision action="add_context" if needed.',
             next_actions: ['leave_as_is'],
             data: { id, premises: [], today },
           });
@@ -153,8 +153,8 @@ export const recall: ToolModule = {
         const monitored = rows.filter((r) => r.monitored).length;
         const due = rows.filter((r) => r.due_for_recheck).length;
         const surface = locale === 'ko'
-          ? `이 결정에 전제 ${rows.length}건이 있습니다. ${monitored}건 감시 중, ${due}건 재확인 차례${due > 0 ? ' (argus_recheck)' : ''}.`
-          : `${rows.length} premise(s) on this decision. ${monitored} monitored, ${due} due for a re-check${due > 0 ? ' (argus_recheck)' : ''}.`;
+          ? `이 결정에 전제 ${rows.length}건이 있습니다. ${monitored}건 추적 중, ${due}건 재확인 차례${due > 0 ? ' (argus_clarify_decision action="update_fact")' : ''}.`
+          : `${rows.length} premise(s) on this decision. ${monitored} monitored, ${due} due for a re-check${due > 0 ? ' (argus_clarify_decision action="update_fact")' : ''}.`;
         return envelope({
           ok: true, tool: 'argus_recall',
           surface,
@@ -173,11 +173,11 @@ export const recall: ToolModule = {
         const locale = readVoice(dir, ledger, open[0]?.predicate);
         const surface = ledger.ids.size === 0
           ? (locale === 'ko'
-              ? 'Argus는 답을 주지 않습니다. 예측 하나와 확인일을 기록하고, 그날 현실과 만납니다. argus_open_decision으로 첫 결정을 여세요.'
-              : 'Argus does not answer. It records a prediction + a check-by date, and meets reality on that date. Open your first decision with argus_open_decision.')
-          : (locale === 'ko' ? `봉인한 예측 ${open.length}건.` : `${open.length} open prediction(s).`);
+              ? 'Argus는 답을 대신 내리지 않습니다. 결정을 명료하게 정리하고, 예측과 확인일을 저장한 뒤, 그날 실제 결과를 기록합니다.'
+              : 'Argus does not decide for you. It clarifies a decision, saves a prediction and check date, then records what actually happened.')
+          : (locale === 'ko' ? `결과를 기다리는 예측 ${open.length}건.` : `${open.length} prediction(s) awaiting results.`);
         const wake = wakeText(ledger, today, dir);
-        return envelope({ ok: true, tool: 'argus_recall', surface, next_actions: open.length ? ['argus_check_in'] : ['argus_open_decision'], data: { open, today, ...(wake ? { wake_text: wake } : {}) } });
+        return envelope({ ok: true, tool: 'argus_recall', surface, next_actions: open.length ? ['argus_check_in'] : ['argus_clarify_decision'], data: { open, today, ...(wake ? { wake_text: wake } : {}) } });
       }
 
       if (view === 'contracts') {
@@ -199,10 +199,10 @@ export const recall: ToolModule = {
       const n = s.total_settled;
       const trackLocale = readVoice(dir, ledger);
       const freq = n === 0
-        ? (trackLocale === 'ko' ? '아직 정산된 결정이 없습니다 — 요약할 것이 없습니다.' : 'No settled decisions yet — nothing to summarize.')
+        ? (trackLocale === 'ko' ? '아직 실제 결과가 기록된 결정이 없어 요약할 것이 없습니다.' : 'No decisions have recorded results yet, so there is nothing to summarize.')
         : (trackLocale === 'ko'
-            ? `정산 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial} · 빗나감 ${s.missed}.`
-            : `Of ${n} settled: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial, ${s.missed} missed.`);
+            ? `결과를 기록한 ${n}건 중: 그렇게 됨 ${s.held} · 피함 ${s.avoided} · 부분 ${s.partial} · 빗나감 ${s.missed}.`
+            : `Across ${n} recorded results: ${s.held} held, ${s.avoided} avoided, ${s.partial} partial, ${s.missed} missed.`);
 
       // Premise-level attribution (plan v5 P2) — where accumulation compounds:
       // COUNTS of settles where the user themselves named a broken premise.
@@ -216,8 +216,8 @@ export const recall: ToolModule = {
       const withBroken = missedOrPartial.filter((c) => c.broken_premise_id);
       const premiseAttribution = withBroken.length > 0
         ? (trackLocale === 'ko'
-            ? `그대로 되지 않은 정산 ${missedOrPartial.length}건 중, ${withBroken.length}건을 당신이 지목한 깨진 전제 탓으로 돌렸습니다.`
-            : `Of ${missedOrPartial.length} settle(s) that did not hold, you attributed ${withBroken.length} to a named broken premise.`)
+            ? `예측대로 되지 않은 결과 ${missedOrPartial.length}건 중, ${withBroken.length}건에서 당신이 깨진 전제를 직접 지목했습니다.`
+            : `Of ${missedOrPartial.length} results that did not hold, you attributed ${withBroken.length} to a named broken premise.`)
         : undefined;
 
       return envelope({

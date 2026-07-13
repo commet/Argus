@@ -53,7 +53,7 @@ export const candidates: ToolModule = {
     .refine((a) => a.action === 'list' || a.candidate_id !== undefined,
       { message: 'candidate_id is required for promote/drop/snooze' })
     .refine((a) => a.action !== 'promote' || a.decision_id !== undefined,
-      { message: 'promote links a candidate to an existing sealed decision — pass decision_id (seal first with argus_seal)' })
+      { message: 'promote links a candidate to an existing saved prediction — pass decision_id (save it first with argus_save_prediction)' })
     .refine((a) => a.action !== 'snooze' || a.snooze_until !== undefined,
       { message: 'snooze requires snooze_until (YYYY-MM-DD)' }),
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
@@ -81,7 +81,7 @@ export const candidates: ToolModule = {
           : [T.header(brief.candidates_active.length, brief.candidates_expired), ...rows, T.quote_note].join('\n');
         return envelope({
           ok: true, tool: 'argus_candidates', surface,
-          next_actions: rows.length === 0 ? ['stop'] : ['argus_seal', 'argus_candidates'],
+          next_actions: rows.length === 0 ? ['stop'] : ['argus_save_prediction', 'stop'],
           data: {
             candidates: brief.candidates_active.map((c) => {
               const rec = state.candidates.get(c.candidate_id);
@@ -107,7 +107,7 @@ export const candidates: ToolModule = {
         return envelope({
           ok: true, tool: 'argus_candidates',
           surface: T.promoted(candidateId, String(a['decision_id'])),
-          next_actions: ['argus_seal'],
+          next_actions: ['argus_save_prediction'],
           data: { candidate_id: candidateId, action, decision_id: a['decision_id'], today },
         });
       }

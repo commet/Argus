@@ -106,7 +106,7 @@ export const watch: ToolModule = {
         }], now);
         return envelope({
           ok: true, tool: 'argus_watch', surface: W.captured(kind),
-          next_actions: ['argus_premises', 'stop'],
+          next_actions: ['argus_clarify_decision', 'stop'],
           data: { op: 'capture', capture_id: cid, date: today, kind, text, source },
         });
       }

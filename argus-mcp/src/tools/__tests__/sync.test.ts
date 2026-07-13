@@ -29,7 +29,7 @@ describe('argus_sync', () => {
     const d = res.structuredContent?.data as any;
     expect(d.total).toBe(2);
     expect(d.due).toBe(1);
-    expect(res.structuredContent?.next_actions).toContain('argus_settle');
+    expect(res.structuredContent?.next_actions).toContain('argus_record_result');
   });
 
   it('P0-8: hands back local_id (mcp_ prefix stripped) and the settle path per receipt', async () => {
@@ -45,7 +45,7 @@ describe('argus_sync', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const d = res.structuredContent?.data as any;
     expect(d.receipts[0].local_id).toBe('migrate-db');
-    expect(d.receipts[0].settle_path).toBe('argus_settle (use local_id)');
+    expect(d.receipts[0].settle_path).toBe('argus_record_result (use local_id)');
     expect(d.receipts[1].local_id).toBeNull();
     expect(d.receipts[1].settle_path).toBe('webapp');
     // the surface routes both kinds instead of a blanket "settle with argus_settle" (which broke 100% of settles)
@@ -121,8 +121,8 @@ describe('argus_sync', () => {
     expect(d.receipts[1].settled_in_account).toBeUndefined();
     // Surface tells the user; the local ledger is NOT auto-settled (user runs argus_settle).
     // (tmp dir has no config → base 'en' voice)
-    expect(String(res.structuredContent?.surface)).toContain('1 already settled on the web');
-    expect(String(res.structuredContent?.surface)).toContain('argus_settle');
+    expect(String(res.structuredContent?.surface)).toContain('1 result(s) already recorded on the web');
+    expect(String(res.structuredContent?.surface)).toContain('argus_record_result');
   });
 
   it('P0-8④: cross-check degrades silently when no local dir is bound', async () => {

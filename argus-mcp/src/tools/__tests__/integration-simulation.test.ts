@@ -19,7 +19,7 @@ describe('MCP simulation — argus_review across shapes', () => {
     const lenses = (d.lenses as { id: string }[]).map((l) => l.id);
     expect(lenses).toContain('claim_evidence');
     expect(lenses).toContain('human_judgment');
-    expect((body(res).next_actions as string[])).toContain('argus_seal');
+    expect((body(res).next_actions as string[])).toContain('argus_save_prediction');
     expect(String(body(res).surface)).not.toMatch(/진행하세요|틀렸|추천/);
   });
 

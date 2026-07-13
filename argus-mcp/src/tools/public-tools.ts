@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { z } from 'zod';
 import { resolveToolArgusDir } from '../lib/argus-dir.js';
 import { configPath } from '../lib/layout.js';
@@ -16,6 +17,7 @@ import { seal } from './seal.js';
 import { checkIn } from './check-in.js';
 import { settle } from './settle.js';
 import { detectLocaleFromText } from '../lib/locale.js';
+import { gitCommonDirOf } from '../v2/git-discovery.js';
 
 const premiseInput = z.strictObject({
   text: z.string().min(3).max(400).describe('결정이 기대는 사실 또는 아직 답하지 못한 질문입니다. 사용자의 표현을 그대로 씁니다.').optional(),
@@ -154,7 +156,7 @@ const settingsSchema = z.discriminatedUnion('action', [
     argus_dir: zArgusDir,
     action: z.literal('sync').describe('로컬 기록과 Argus 계정 기록을 지금 동기화합니다.'),
     due_only: z.boolean().default(false).describe('확인일이 된 기록만 가져옵니다.'),
-    import_settlements: z.boolean().default(true).describe('웹에서 정산한 결과를 로컬 원장에 반영합니다.'),
+    import_settlements: z.boolean().default(true).describe('웹에서 기록한 실제 결과를 로컬 원장에 반영합니다.'),
     push_local: z.boolean().default(true).describe('계정에 닿지 못한 로컬 변경을 다시 보냅니다.'),
   }),
 ]);
@@ -166,7 +168,7 @@ const settingsPublicSchema = z.strictObject({
   ambient_mute: z.boolean().describe('세션 중 확인일 알림 문장을 숨길지 정합니다.').optional(),
   premise_sync: z.boolean().describe('추적 전제를 계정과 동기화할지 명시적으로 선택합니다.').optional(),
   due_only: z.boolean().describe('동기화할 때 확인일이 된 기록만 가져옵니다.').optional(),
-  import_settlements: z.boolean().describe('웹에서 정산한 결과를 로컬 원장에 반영합니다.').optional(),
+  import_settlements: z.boolean().describe('웹에서 기록한 실제 결과를 로컬 원장에 반영합니다.').optional(),
   push_local: z.boolean().describe('계정에 닿지 못한 로컬 변경을 다시 보냅니다.').optional(),
 }).superRefine((value, ctx) => {
   const parsed = settingsSchema.safeParse(value);
@@ -191,20 +193,22 @@ const PUBLIC_NAME_MAP: Record<string, string> = {
   argus_sync: 'argus_settings',
 };
 
+/** Rewrite only machine-owned routing fields. Free-form strings can contain
+ * verbatim user evidence, so a recursive text replacement would corrupt
+ * provenance whenever a user happened to mention an old tool name. */
 function publicCopy(value: unknown): unknown {
-  if (typeof value === 'string') {
-    if (value === '기록하지 않았어요. 남기고 싶으면 argus_watch로 한 줄만 적어둘 수도 있어요.') return '기록하지 않았어요.';
-    if (value === 'Not recorded. If you want, jot a one-line note with argus_watch instead.') return 'Not recorded.';
-    return Object.entries(PUBLIC_NAME_MAP).reduce(
-      (copy, [legacy, current]) => copy.replaceAll(legacy, current),
-      value,
-    );
-  }
   if (Array.isArray(value)) return value.map(publicCopy);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, child]) => [key, publicCopy(child)]));
-  }
-  return value;
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, child]) => {
+    if (key === 'settle_path') return ['result_path', publicCopy(child)];
+    if ((key === 'tool' || key === 'next_action') && typeof child === 'string') {
+      return [key, PUBLIC_NAME_MAP[child] ?? child];
+    }
+    if (key === 'next_actions' && Array.isArray(child)) {
+      return [key, child.map((item) => typeof item === 'string' ? (PUBLIC_NAME_MAP[item] ?? item) : item)];
+    }
+    return [key, publicCopy(child)];
+  }));
 }
 
 function rewriteResult(result: McpToolResult, publicName: string): McpToolResult {
@@ -229,7 +233,16 @@ function rewriteResult(result: McpToolResult, publicName: string): McpToolResult
 
 async function ensureInitialized(args: Record<string, unknown>): Promise<McpToolResult | null> {
   const dir = resolveToolArgusDir(args['argus_dir']);
-  if (fs.existsSync(configPath(dir))) return null;
+  const hasConfig = fs.existsSync(configPath(dir));
+  const insideGit = gitCommonDirOf(dir) !== null;
+  let hasValidBinding = false;
+  if (insideGit) {
+    try {
+      const binding = JSON.parse(fs.readFileSync(path.join(dir, 'project.json'), 'utf8')) as Record<string, unknown>;
+      hasValidBinding = typeof binding['repository_id'] === 'string' && typeof binding['workspace_id'] === 'string';
+    } catch { /* missing or damaged projection: safe init repairs it */ }
+  }
+  if (hasConfig && (!insideGit || hasValidBinding)) return null;
   const result = await init.handler({ argus_dir: dir });
   if (result.isError) return result;
   const sample = ['decision', 'predicate', 'what_happened', 'finding', 'text', 'title']
@@ -322,7 +335,14 @@ export const settings: ToolModule = {
   annotations: { title: 'Argus 설정 · Argus settings', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   handler: async (a) => {
     const action = String(a['action']);
-    if (action === 'status') return runPublic('argus_settings', { argus_dir: a['argus_dir'] }, config.handler);
+    if (action === 'status') {
+      // Status is also the single public repair handle. init is idempotent and
+      // recreates a missing/corrupt v2 binding plus any pending v1 migration
+      // marker, without teaching users a separate initialization tool.
+      const repaired = await init.handler({ argus_dir: a['argus_dir'] });
+      if (repaired.isError) return rewriteResult(repaired, 'argus_settings');
+      return runPublic('argus_settings', { argus_dir: a['argus_dir'] }, config.handler);
+    }
     if (action === 'update') {
       const args = Object.fromEntries(Object.entries(a).filter(([key]) => !['action'].includes(key)));
       return runPublic('argus_settings', args, config.handler);

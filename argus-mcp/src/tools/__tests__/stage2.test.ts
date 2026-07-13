@@ -5,7 +5,6 @@ import { settle } from '../settle.js';
 import { openDecision } from '../open-decision.js';
 import { amend, dismiss } from '../amend-dismiss.js';
 import { readResource } from '../../resources.js';
-import { getPrompt, listPrompts } from '../../prompts.js';
 
 const FUTURE = '2027-01-01';
 
@@ -59,45 +58,5 @@ describe('resources', () => {
     process.env['ARGUS_DIR'] = tmpArgusDir();
     const r = JSON.parse(readResource('argus://receipts/%2e%2e').contents[0].text);
     expect(r.error).toBe('invalid_id');
-  });
-});
-
-describe('prompts', () => {
-  it('lists the rituals and renders bind from the single discipline source', () => {
-    const names = listPrompts().prompts.map((p) => p.name);
-    expect(names).toEqual(['argus-bind', 'argus-settle', 'argus-reframe', 'argus-review']);
-    const bind = getPrompt('argus-bind', { decision: 'migrate the db' });
-    expect(bind.messages[0].content.text).toContain('fire or not');
-    expect(bind.messages[0].content.text).toContain('migrate the db');
-    // the bind ritual never tells the model to give a verdict
-    expect(bind.messages[0].content.text.toLowerCase()).toContain('not the judge');
-  });
-
-  it('renders the review ritual pointed at argus_review, no verdict', () => {
-    const r = getPrompt('argus-review', { file_path: 'docs/strategy.md' });
-    expect(r.messages[0].content.text).toContain('argus_review');
-    expect(r.messages[0].content.text).toContain('docs/strategy.md');
-    expect(r.messages[0].content.text.toLowerCase()).toContain('not the judge');
-  });
-
-  it('renders prompt discipline in the input language', () => {
-    const ko = getPrompt('argus-bind', { decision: '회사를 옮길지 말지' });
-    expect(ko.description).toContain('결정 묶기');
-    expect(ko.messages[0].content.text).toContain('0단계');
-    expect(ko.messages[0].content.text).not.toContain('STEP 0');
-
-    const en = getPrompt('argus-bind', { decision: 'whether to change jobs' });
-    expect(en.description).toContain('bind ritual');
-    expect(en.messages[0].content.text).toContain('STEP 0');
-  });
-
-  it('bakes due contracts into the settle prompt', async () => {
-    const dir = tmpArgusDir();
-    process.env['ARGUS_DIR'] = dir;
-    // Seal "in the past" so the check_by is already overdue relative to the real today
-    // (the settle prompt has no today-override channel — it uses the real clock).
-    await seal.handler({ argus_dir: dir, id: 'p1', predicate: 'Launch lands on time', check_by: '2020-06-01', predicate_owner: 'user', today_override: '2020-01-01' });
-    const settlePrompt = getPrompt('argus-settle', undefined);
-    expect(settlePrompt.messages[0].content.text).toContain('p1');
   });
 });

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
+import os from 'node:os';
+import path from 'node:path';
 import { PUBLIC_TOOLS, TOOL_MAP } from '../index.js';
 import { decide, history, settings } from '../public-tools.js';
 import { body, isError, tmpArgusDir } from '../../test-helpers.js';
@@ -57,6 +59,25 @@ describe('purpose-led public MCP surface', () => {
     expect(fs.readFileSync(configPath(dir), 'utf8')).toContain('ambient_mute: true');
   });
 
+  it('uses settings status as the one public repair handle for a missing v2 binding', async () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'argus-public-repair-'));
+    const dir = path.join(repo, '.argus');
+    fs.mkdirSync(path.join(repo, '.git'), { recursive: true });
+    try {
+      const first = await settings.handler({ argus_dir: dir, action: 'status' });
+      expect(isError(first)).toBe(false);
+      const binding = path.join(dir, 'project.json');
+      expect(fs.existsSync(binding)).toBe(true);
+
+      fs.rmSync(binding);
+      const repaired = await settings.handler({ argus_dir: dir, action: 'status' });
+      expect(isError(repaired)).toBe(false);
+      expect(fs.existsSync(binding)).toBe(true);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
   it('does not leak hidden tool names through public result copy', async () => {
     const dir = tmpArgusDir();
     const saved = await TOOL_MAP.get('argus_save_prediction')!.handler({
@@ -72,7 +93,24 @@ describe('purpose-led public MCP surface', () => {
     expect(body(saved)['tool']).toBe('argus_save_prediction');
   });
 
-  it('gives every public field a Korean explanation', () => {
+  it('never rewrites a user sentence that happens to contain an old tool name', async () => {
+    const dir = tmpArgusDir();
+    const predicate = 'argus_init 문서를 2026년 8월까지 새 안내로 교체한다';
+    const saved = await TOOL_MAP.get('argus_save_prediction')!.handler({
+      argus_dir: dir,
+      id: 'rename-docs',
+      predicate,
+      check_by: '2026-08-20',
+      predicate_owner: 'user',
+      today_override: '2026-07-13',
+    });
+    expect(isError(saved)).toBe(false);
+    const serialized = JSON.stringify(body(saved));
+    expect(serialized).toContain(predicate);
+    expect(serialized).not.toContain('argus_settings 문서를');
+  });
+
+  it('gives every public field one Korean and one English explanation', () => {
     const missing: string[] = [];
     const visit = (toolName: string, node: unknown, path = ''): void => {
       if (!node || typeof node !== 'object') return;
@@ -81,7 +119,9 @@ describe('purpose-led public MCP surface', () => {
       if (properties && typeof properties === 'object') {
         for (const [key, raw] of Object.entries(properties as Record<string, unknown>)) {
           const field = raw as Record<string, unknown>;
-          if (!/[가-힣]/.test(String(field.description ?? ''))) missing.push(`${toolName}:${path}${key}`);
+          const description = String(field.description ?? '');
+          const [ko = '', en = ''] = description.split('\n\n');
+          if (!/[가-힣]/.test(ko) || !/[A-Za-z]{3}/.test(en)) missing.push(`${toolName}:${path}${key}`);
           visit(toolName, field, `${path}${key}.`);
         }
       }

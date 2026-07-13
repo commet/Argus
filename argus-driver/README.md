@@ -11,8 +11,9 @@
 
 1. **MCP 자동 배선** — 번들된 [`.mcp.json`](./.mcp.json)이 `argus-decision-mcp`
    stdio 서버를 등록한다 (`npx -y argus-decision-mcp`). 별도 설정 없음.
-   `argus_harvest` / `argus_seal` / `argus_settle` / `argus_check_in` 등이
-   바로 쓸 수 있게 된다.
+   결정을 다듬고, 예측을 저장하고, 확인할 것을 보고, 실제 결과를 기록하는
+   7개의 목적형 도구가 바로 쓸 수 있게 된다. 별도 초기화 명령이나 의식을
+   배울 필요는 없다.
 2. **statusline 동봉 (선택)** — [`statusline/index.js`](./statusline/index.js)는
    내구 v2 원장(`~/.argus/projects/{repository_id}/`)과 레거시 워크트리 원장을
    모두 읽는 zero-dependency 스크립트다. 켜려면 `~/.claude/settings.json`에 1줄:
@@ -25,7 +26,7 @@
 
 - 원장을 만들거나 지우지 않는다. 결정 기록의 정본은 `~/.argus`(사용자 자산)이며,
   **플러그인 제거가 절대 삭제하지 않는다** (정본 규칙 3 — 저장 3분할).
-- 판정하지 않는다. 봉인한 예측은 정산일의 현실만이 채점한다 (`AI VERDICT: NONE`).
+- 판정하지 않는다. 저장한 예측에는 확인일이 오면 실제 결과만 기록한다 (`AI VERDICT: NONE`).
 
 ## 각주 (사람이 나중에 고칠 때)
 
