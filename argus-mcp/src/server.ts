@@ -54,9 +54,16 @@ export async function createServer(): Promise<Server> {
       action: 'accept' | 'decline' | 'cancel';
       content?: Record<string, unknown>;
     }>;
+    getClientCapabilities(): { elicitation?: unknown } | undefined;
   };
-  setElicitor((message, requestedSchema) =>
-    (server as unknown as ElicitCapableServer).elicitInput({ message, requestedSchema }),
+  const ec = server as unknown as ElicitCapableServer;
+  // The capability probe reads the client's DECLARED elicitation support (set at
+  // initialize). Gating canElicit() on it means a host that never declared the
+  // capability takes the text path instead of calling elicitInput (which the SDK
+  // throws on) and silently dropping a confirm_draft seal.
+  setElicitor(
+    (message, requestedSchema) => ec.elicitInput({ message, requestedSchema }),
+    () => Boolean(ec.getClientCapabilities?.()?.elicitation),
   );
 
   // Resources — read-only context (blueprint §4.3).
