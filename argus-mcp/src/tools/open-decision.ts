@@ -6,6 +6,7 @@ import { resolveContract } from '../lib/resolve-contract.js';
 import { overfireGate, type Stakes, type Reversibility } from '../lib/overfire-gate.js';
 import { validateCrux } from '../lib/validate-crux.js';
 import { computeContinuity } from '../lib/continuity.js';
+import { relatedOpenForPremises } from '../v2/connection-io.js';
 import { resolveResponseLocale, SURFACES } from '../lib/surfaces.js';
 import { appendLedger } from '../lib/ledger-append.js';
 import { ensurePrivacyGitignore } from '../lib/privacy.js';
@@ -54,7 +55,8 @@ export const openDecision: ToolModule = {
       const id = String(a['id'] ?? '');
       const today = resolveToday({ override: a['today_override'] as string | undefined });
       // Response voice follows the decision sentence (M4): config > text > env.
-      const T = SURFACES[resolveResponseLocale(dir, a['decision'] as string | undefined)].tools.open_decision;
+      const locale = resolveResponseLocale(dir, a['decision'] as string | undefined);
+      const T = SURFACES[locale].tools.open_decision;
 
       const current = resolveContract(dir, id, today);
       if (a['already_decided'] === true && (current.state === 'sealed' || current.state === 'due' || current.state === 'settled')) {
@@ -127,9 +129,29 @@ export const openDecision: ToolModule = {
       // FIRE: the ceremony — surface the one neutral crux (if supplied) and the
       // seal path. Persistence already happened above.
       const crux = (a['crux_question'] as string | undefined) ?? null;
+
+      // Capture-time connection (정본 §8-§11, §8-C): the same mechanical read the
+      // settle surface uses, moved to the front door. If the premise this
+      // decision rests on is one the user already tracks under another OPEN
+      // decision, name that fact + the handle — never a verdict, never "revisit
+      // it". best-effort: a non-git/uninit/failed v2 read just yields no line.
+      const premiseTexts = [
+        typeof a['load_bearing_assumption'] === 'string' ? (a['load_bearing_assumption'] as string) : '',
+        ...(Array.isArray(a['premises']) ? (a['premises'] as Array<{ text?: string }>).map((p) => p?.text ?? '') : []),
+      ];
+      const connections = relatedOpenForPremises(dir, today, premiseTexts, id);
+      let connectionLine = '';
+      if (connections.length > 0) {
+        const shown = connections.slice(0, 3).map((c) => c.decision_id);
+        const extra = connections.length - shown.length;
+        connectionLine = locale === 'ko'
+          ? `\n이 결정이 기댄 전제와 같은 가정이나 근거에 선 다른 열린 결정: ${shown.join(', ')}${extra > 0 ? ` 외 ${extra}개` : ''}. argus_check_in으로 함께 볼 수 있어요.`
+          : `\nOther open decisions rest on the same assumption or fact this one leans on: ${shown.join(', ')}${extra > 0 ? ` (+${extra} more)` : ''}. Review them together with argus_check_in.`;
+      }
+
       return envelope({
         ok: true, tool: 'argus_open_decision',
-        surface: crux ? T.opened_with_crux(crux) : T.opened_bare,
+        surface: (crux ? T.opened_with_crux(crux) : T.opened_bare) + connectionLine,
         next_actions: ['argus_seal', 'leave_as_is', 'skip'],
         over_fire_gate: { fired: true, reason: gate.reason },
         data: {
@@ -141,6 +163,10 @@ export const openDecision: ToolModule = {
           fork_emitted: false,
           harvest_written: true,
           continuity,
+          ...(connections.length > 0 ? {
+            connections: connections.map((c) => c.decision_id),
+            connection_reasons: connections.map((c) => ({ id: c.decision_id, reason: c.reason, ...(c.via ? { via: c.via } : {}) })),
+          } : {}),
           lean_disclosure: 'Naming the load-bearing question points faintly at the flip; that residual lean is a known limit, not a verdict.',
         },
       });

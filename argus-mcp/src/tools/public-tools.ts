@@ -277,12 +277,16 @@ export const decide: ToolModule = {
       });
       if (premiseResult.isError) return rewriteResult(premiseResult, 'argus_capture');
       const premiseData = premiseResult.structuredContent?.['data'];
-      const merged = {
+      // The premise-add result is spliced in RAW here, so — unlike the runPublic
+      // path — it never passed through the public-name translation. Its surface
+      // says "argus_premises"; publicCopy the whole merged object so that internal
+      // name (and any other) is rewritten to the public one before it reaches a host.
+      const merged = publicCopy({
         ...sc,
         tool: 'argus_capture',
         surface: `${String(sc?.['surface'] ?? '')} ${String(premiseResult.structuredContent?.['surface'] ?? '')}`.trim(),
         data: { ...((sc?.['data'] as Record<string, unknown>) ?? {}), premises: premiseData },
-      };
+      }) as Record<string, unknown>;
       result.structuredContent = merged;
       result.content = [{ type: 'text', text: JSON.stringify(merged, null, 2) }];
       return result;

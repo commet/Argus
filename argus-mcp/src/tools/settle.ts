@@ -11,11 +11,8 @@ import { renderReceipt } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason, type SurfaceLocale } from '../lib/surfaces.js';
 import { accountPushId } from '../lib/install-id.js';
 import { resolvePremiseRef, receiptPremisesInfo } from '../lib/premises.js';
-import { argusHome } from '../v2/ledger.js';
-import { loadState } from '../v2/reducer.js';
-import { contextFor } from '../v2/bridge.js';
-import { gitCommonDirOf } from '../v2/git-discovery.js';
-import { relatedOpenDecisions, type RelatedDecision } from '../v2/connection.js';
+import { relatedOpenForPremise } from '../v2/connection-io.js';
+import type { RelatedDecision } from '../v2/connection.js';
 import { sanitizeLine } from '../v2/sanitize.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -157,7 +154,7 @@ export const settle: ToolModule = {
       let connectionLine = '';
       let connections: RelatedDecision[] = [];
       if (brokenPremiseId && brokenPremiseText && brokenPremiseText.trim()) {
-        connections = relatedOpenBrokenPremise(dir, today, brokenPremiseText, id);
+        connections = relatedOpenForPremise(dir, today, brokenPremiseText, id);
         if (connections.length > 0) {
           const shown = connections.slice(0, 3).map((c) => c.decision_id);
           const extra = connections.length - shown.length;
@@ -209,26 +206,6 @@ export const settle: ToolModule = {
     }
   },
 };
-
-/**
- * 연결 읽기의 IO 껍데기 (정본 §8-§11) — v2 원장을 읽어 같은 전제에 선 열린 결정을
- * 찾는다. best-effort: git repo가 아니거나(commonDir 없음) v2 미init·읽기 실패면 빈
- * 배열. 정산은 이 결과와 무관하게 성공한다 (연결은 덤, 결코 정산을 깨지 않는다).
- * 순수 매칭은 connection.ts(decisionsSharingPremise)에 있고 여기서는 상태 로딩만.
- */
-function relatedOpenBrokenPremise(dir: string, today: string, brokenText: string, decisionId: string): RelatedDecision[] {
-  try {
-    const commonDir = gitCommonDirOf(dir);
-    if (!commonDir) return [];
-    const ctx = contextFor({
-      home: argusHome(), gitCommonDir: commonDir, workspaceArgusDir: dir,
-      sessionId: `mcp-${process.pid}`, producerVersion: '2.0.0', today,
-    });
-    return relatedOpenDecisions(loadState(ctx.home, ctx.repository_id), brokenText, decisionId);
-  } catch {
-    return [];
-  }
-}
 
 type SettleSurface = (typeof SURFACES)['en']['tools']['settle'];
 

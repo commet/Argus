@@ -11,6 +11,7 @@ import path from 'node:path';
 import { init } from '../init-config.js';
 import { seal } from '../seal.js';
 import { settle } from '../settle.js';
+import { openDecision } from '../open-decision.js';
 
 let home: string;
 let repoDir: string;
@@ -133,5 +134,52 @@ describe('settle 연결 읽기 — 같은 전제에 선 다른 열린 결정', (
     });
     expect(settled.data['connections']).toBeUndefined();
     expect(settled.surface).not.toContain('같은 전제');
+  });
+});
+
+describe('capture 연결 읽기 — 이미 추적 중인 전제 위에 선 결정 (§8-C, 앞문)', () => {
+  it('포착하는 새 결정이 기댄 전제를 이미 봉인한 다른 열린 결정을 그 자리에서 표면에 올린다', async () => {
+    await call(init, { argus_dir: argusDir });
+    // 이미 열린 결정이 그 전제를 봉인해 v2 원장에 남아 있다.
+    await call(seal, {
+      argus_dir: argusDir, id: 'events-db', predicate: 'events query p95 stays under 100ms',
+      check_by: '2026-09-01', predicate_owner: 'user', unverified_assumption: ASSUMPTION,
+      today_override: '2026-07-13',
+    });
+    // 같은 전제 위에 선 새 결정을 포착 (consequential → 게이트 fire).
+    const opened = await call(openDecision, {
+      argus_dir: argusDir, id: 'cache-layer',
+      decision: 'add a write-through cache in front of the events table',
+      stakes: 'high', reversibility: 'one_way_door', status_quo: 'keep direct writes',
+      load_bearing_assumption: ASSUMPTION, today_override: '2026-07-13',
+    });
+    // 이미 추적 중인 전제 위에 섰다는 사실 + 손잡이. 새 전제를 settle의 그것과
+    // 똑같은 기계식 읽기(connection-io 단일 소스)로 매칭한다.
+    expect(opened.data['connections']).toEqual(['events-db']);
+    const reasons = opened.data['connection_reasons'] as Array<{ id: string; reason: string }>;
+    expect(reasons[0]).toMatchObject({ id: 'events-db', reason: 'same_premise' });
+    expect(opened.surface).toContain('events-db');
+    expect(opened.surface).toContain('same assumption');
+    expect(opened.surface).toContain('argus_check_in');
+    // 스파인: 사실 + 손잡이뿐 — "다시 보라"·평결 어휘 없음.
+    expect(opened.surface).not.toMatch(/recommend|verdict|revisit|reconsider|you should|mistake/i);
+  });
+
+  it('공유 전제가 없으면 포착에 연결 줄이 없다', async () => {
+    await call(init, { argus_dir: argusDir });
+    await call(seal, {
+      argus_dir: argusDir, id: 'events-db', predicate: 'events query p95 stays under 100ms',
+      check_by: '2026-09-01', predicate_owner: 'user', unverified_assumption: ASSUMPTION,
+      today_override: '2026-07-13',
+    });
+    const opened = await call(openDecision, {
+      argus_dir: argusDir, id: 'unrelated',
+      decision: 'add a dark mode toggle to settings',
+      stakes: 'high', reversibility: 'one_way_door', status_quo: 'light only',
+      load_bearing_assumption: 'most users browse at night', today_override: '2026-07-13',
+    });
+    expect(opened.data['connections']).toBeUndefined();
+    expect(opened.surface).not.toContain('events-db');
+    expect(opened.surface).not.toContain('same assumption');
   });
 });
