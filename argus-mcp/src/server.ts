@@ -8,8 +8,7 @@ import {
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { PUBLIC_TOOLS, TOOL_MAP } from './tools/index.js';
-import { toolJsonSchema } from './tools/tool-types.js';
+import { PUBLIC_TOOLS, TOOL_MAP, servedPublicTools } from './tools/index.js';
 import { listResources, listResourceTemplates, readResource } from './resources.js';
 import { listPublicPrompts, getPrompt } from './prompts.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
@@ -18,7 +17,6 @@ import { appendDueNote } from './lib/due-note.js';
 import { logError } from './lib/log.js';
 import { packageMeta } from './lib/package-meta.js';
 import { localizeToolResult } from './lib/localize-result.js';
-import { bilingualToolPresentation } from './lib/tool-presentation.js';
 import { recordServerStart, recordToolCall } from './lib/telemetry.js';
 
 /**
@@ -82,22 +80,9 @@ export async function createServer(): Promise<Server> {
   // and-forget: never blocks server startup, never throws. See lib/telemetry.ts.
   recordServerStart();
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: PUBLIC_TOOLS.map((t) => {
-      const presentation = bilingualToolPresentation(t.name, t.annotations?.title, t.description);
-      return {
-      name: t.name,
-      // Top-level human-readable title (2025-06-18 spec; display priority
-      // title > annotations.title > name). Reuse the annotation we already set.
-      title: presentation.title,
-      description: presentation.description,
-      // JSON Schema generated from the Zod source of truth (no hand-kept copy).
-      inputSchema: toolJsonSchema(t.inputSchema),
-      ...(t.outputSchema ? { outputSchema: t.outputSchema } : {}),
-      ...(t.annotations ? { annotations: t.annotations } : {}),
-    };
-    }),
-  }));
+  // Single source (tools/index.ts): builds the descriptors AND runs schemas
+  // through publicCopy so a legacy tool name in a field description can't leak.
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: servedPublicTools() }));
 
   // Serialize tool calls so concurrent invocations can't interleave a
   // read-replay-then-append against the same ledger (real hosts already wait

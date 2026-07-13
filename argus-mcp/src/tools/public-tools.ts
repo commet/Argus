@@ -191,7 +191,7 @@ const PUBLIC_NAME_MAP: Record<string, string> = {
   argus_sync: 'argus_settings',
 };
 
-function publicCopy(value: unknown): unknown {
+export function publicCopy(value: unknown): unknown {
   if (typeof value === 'string') {
     if (value === '기록하지 않았어요. 남기고 싶으면 argus_watch로 한 줄만 적어둘 수도 있어요.') return '기록하지 않았어요.';
     if (value === 'Not recorded. If you want, jot a one-line note with argus_watch instead.') return 'Not recorded.';
