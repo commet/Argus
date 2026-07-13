@@ -1,6 +1,11 @@
 /**
- * CheckpointRail — 실단계 정거장 상태바 (창업자 3차 지적의 시공, 공정 5).
- * 은유 3분할 대신 실제 선택 단계 노드 + 지나온 노드 클릭 회항을 고정한다.
+ * CheckpointRail — 3그룹 밴드 + 활성 그룹만 펼치는 정거장 상태바.
+ * 순수 3은유(무의미)도, 평면 N노드(너무 많음)도 아닌 중간을 고정한다:
+ * 그룹으로 묶되 지금 있는 그룹의 실단계 + 질문 카운터는 보이고, 지나온
+ * 밴드만 손잡이(회항 버튼)로 접힌다.
+ *
+ * 주: 정적 렌더는 기본 EN 로케일 — 그룹명은 Bind/Listen/Land, 질문은 Q&A로
+ * 나온다. 노드 라벨(상황·밧줄·초안·봉인)은 cps가 준 문자열이라 로케일 불변.
  */
 
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -9,6 +14,7 @@ import { CheckpointRail, type RailCheckpoint } from '../CheckpointRail';
 
 const HULL_PATH = 'M2 11 L18 11 L15.5 15 L4.5 15 Z';
 
+// 상황·밧줄·질문1·질문2(현재)·초안·봉인 — 질문 2개는 카운터 하나로 접힌다.
 const cps: RailCheckpoint[] = [
   { key: 'situation', label: '상황', state: 'done', group: '묶기', groupEn: 'Bind' },
   { key: 'rope', label: '밧줄', state: 'done', group: '묶기', groupEn: 'Bind' },
@@ -18,25 +24,46 @@ const cps: RailCheckpoint[] = [
   { key: 'seal', label: '봉인', state: 'future', group: '닿기', groupEn: 'Land' },
 ];
 
-describe('CheckpointRail — 정거장 상태바', () => {
+describe('CheckpointRail — 3밴드 정거장 상태바', () => {
   const html = renderToStaticMarkup(<CheckpointRail checkpoints={cps} onJump={() => {}} />);
 
-  it('실단계 노드들이 전부 보인다 (은유 뭉뚱그림 아님)', () => {
-    for (const label of ['상황', '밧줄', '질문1', '질문2', '초안', '봉인']) {
-      expect(html).toContain(label);
+  it('세 그룹(Bind/Listen/Land)이 밴드로 보인다', () => {
+    for (const group of ['Bind', 'Listen', 'Land']) {
+      expect(html).toContain(group);
     }
-    expect(html).toContain(HULL_PATH); // 배는 현재 정거장 위
   });
 
-  it('지나온 정거장만 버튼(회항 손잡이)이다 — 미래는 가짜 어포던스 없음', () => {
-    // done 3개(상황·밧줄·질문1) = button, 미래(초안·봉인)는 button 아님
-    const jumpButtons = html.match(/돌아가 보기|Look back at/g) || [];
-    expect(jumpButtons.length).toBe(3);
-  });
-
-  it('eyebrow가 현재 위치와 다음 정거장을 말한다', () => {
+  it('활성 그룹의 실단계 + 질문이 개별 노드로 전부 펼쳐진다 (카운터 뭉치기 아님)', () => {
+    // 활성 밴드의 실단계 노드는 노출.
+    expect(html).toContain('상황');
+    expect(html).toContain('밧줄');
+    // 중요: 질문1·질문2가 각각 개별 노드로 남아야 다 넘어갈 수 있다.
+    expect(html).toContain('질문1');
     expect(html).toContain('질문2');
-    expect(html).toContain('4/6');
+    expect(html).toContain(HULL_PATH); // 배는 현재 노드(질문2) 위
+  });
+
+  it('지나온 질문(질문1)은 개별 회항 손잡이(버튼)다', () => {
+    // done 질문 노드는 "질문1(으)로 돌아가 보기" 버튼으로 렌더.
+    expect(html).toMatch(/질문1\(으\)로 돌아가 보기|Look back at 질문1/);
+  });
+
+  it('미래 밴드(Listen/Land)는 실단계를 미리보기로 접어 보여준다', () => {
+    // 초안/봉인은 미래 밴드의 서브라벨로만 남는다(개별 클릭 노드 아님).
+    expect(html).toContain('초안');
+    expect(html).toContain('봉인');
+  });
+
+  it('지나온 손잡이만 회항 버튼이다 — 미래는 가짜 어포던스 없음', () => {
+    // 회항 버튼: 활성 밴드의 done 노드(상황·밧줄) + 진행 중 질문(답한 게 있음).
+    const jumpTitles = html.match(/돌아가 보기|Look back at/g) || [];
+    expect(jumpTitles.length).toBeGreaterThanOrEqual(2);
+    // 미래 밴드 칩은 회항 어포던스로 렌더되지 않는다.
+    expect(html).not.toMatch(/Look back at Listen|Look back at Land/);
+  });
+
+  it('eyebrow가 현재 그룹·다음 정거장을 말한다', () => {
+    expect(html).toContain('Bind');
     expect(html).toMatch(/다음: 초안|Next: 초안/);
   });
 });
