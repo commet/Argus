@@ -1,0 +1,93 @@
+/**
+ * 연결 읽기 테스트 (정본 §8-§11) — 기계식 공유-전제 연결의 수용 기준.
+ *  - 같은 말(정규화 일치) + 상대가 열린 결정일 때만 연결.
+ *  - 자기 자신·닫힌 결정·resolved 전제·fact/question은 제외 (오연결 0).
+ *  - 임베딩 없음 — 순수 텍스트 매칭. 평결 아님: 사실 + 손잡이만.
+ */
+import { describe, expect, it } from 'vitest';
+import type { DecisionRecord, LedgerState, PremiseRecord } from './reducer.js';
+import { emptyState } from './reducer.js';
+import { decisionsSharingPremise, normalizePremiseText } from './connection.js';
+
+function decision(id: string, state: DecisionRecord['state']): DecisionRecord {
+  return { id, state, snooze_count: 0 };
+}
+function premise(id: string, decision_id: string, text: string, over: Partial<PremiseRecord> = {}): PremiseRecord {
+  return { id, decision_id, kind: 'premise', text: { value: text, provenance: 'user_stated' }, load_bearing: true, resolved: false, ...over };
+}
+function stateOf(decisions: DecisionRecord[], premises: PremiseRecord[]): LedgerState {
+  const s = emptyState();
+  for (const d of decisions) s.decisions.set(d.id, d);
+  for (const p of premises) s.premises.set(p.id, p);
+  return s;
+}
+
+describe('normalizePremiseText — 같은 말 판정', () => {
+  it('공백·대소문자·양끝 구두점을 접어 같은 문장으로 본다', () => {
+    expect(normalizePremiseText('  TTL is UTC-based.  ')).toBe('ttl is utc-based');
+    expect(normalizePremiseText('"TTL   is UTC-based"')).toBe('ttl is utc-based');
+    expect(normalizePremiseText('TTL is UTC-based')).toBe(normalizePremiseText('  ttl is utc-based!  '));
+  });
+  it('빈 문자열/공백만은 빈 키', () => {
+    expect(normalizePremiseText('   ')).toBe('');
+    expect(normalizePremiseText('')).toBe('');
+  });
+});
+
+describe('decisionsSharingPremise — 깨진 전제와 같은 전제에 선 열린 결정', () => {
+  const broken = 'write volume stays under 200/sec';
+
+  it('같은 전제를 봉인한 다른 열린 결정을 찾는다 (자기 자신 제외)', () => {
+    const s = stateOf(
+      [decision('events-db', 'settled'), decision('cache-ttl', 'sealed'), decision('rate-limit', 'sealed')],
+      [
+        premise('p-self', 'events-db', broken),
+        premise('p-a', 'cache-ttl', 'Write Volume stays under 200/sec.'), // 같은 말, 표기만 다름
+        premise('p-b', 'rate-limit', broken),
+      ],
+    );
+    const links = decisionsSharingPremise(s, broken, 'events-db');
+    expect(links.map((l) => l.decision_id)).toEqual(['cache-ttl', 'rate-limit']); // id 오름차순, 자기 제외
+    expect(links[0]!.premise_text).toBe('Write Volume stays under 200/sec.'); // 상대 원문 보존
+  });
+
+  it('닫힌 결정(settled/dismissed/harvested)은 되살리지 않는다', () => {
+    const s = stateOf(
+      [decision('a', 'settled'), decision('b', 'dismissed'), decision('c', 'harvested'), decision('d', 'sealed')],
+      [
+        premise('pa', 'a', broken), premise('pb', 'b', broken),
+        premise('pc', 'c', broken), premise('pd', 'd', broken),
+      ],
+    );
+    expect(decisionsSharingPremise(s, broken, 'z').map((l) => l.decision_id)).toEqual(['d']);
+  });
+
+  it('resolved 전제와 fact/question kind는 제외 (살아있는 가정만)', () => {
+    const s = stateOf(
+      [decision('a', 'sealed'), decision('b', 'sealed'), decision('c', 'sealed')],
+      [
+        premise('pa', 'a', broken, { resolved: true }),
+        premise('pb', 'b', broken, { kind: 'fact' }),
+        premise('pc', 'c', broken),
+      ],
+    );
+    expect(decisionsSharingPremise(s, broken, 'z').map((l) => l.decision_id)).toEqual(['c']);
+  });
+
+  it('다른 말은 연결하지 않는다 (의미 유사도 금지 — 표면적 같은 말만)', () => {
+    const s = stateOf(
+      [decision('a', 'sealed')],
+      [premise('pa', 'a', 'traffic grows past 200/sec')], // 뜻은 비슷해도 다른 문장
+    );
+    expect(decisionsSharingPremise(s, broken, 'z')).toEqual([]);
+  });
+
+  it('한 결정에 같은 전제가 둘이어도 한 줄, 빈 깨진-전제 텍스트는 빈 결과', () => {
+    const s = stateOf(
+      [decision('a', 'sealed')],
+      [premise('pa1', 'a', broken), premise('pa2', 'a', '  write volume stays under 200/sec  ')],
+    );
+    expect(decisionsSharingPremise(s, broken, 'z')).toHaveLength(1);
+    expect(decisionsSharingPremise(s, '   ', 'z')).toEqual([]);
+  });
+});

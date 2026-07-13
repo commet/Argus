@@ -11,6 +11,12 @@ import { renderReceipt } from '../lib/render-receipt.js';
 import { resolveResponseLocale, SURFACES, humanizeSyncReason, type SurfaceLocale } from '../lib/surfaces.js';
 import { accountPushId } from '../lib/install-id.js';
 import { resolvePremiseRef, receiptPremisesInfo } from '../lib/premises.js';
+import { argusHome } from '../v2/ledger.js';
+import { loadState } from '../v2/reducer.js';
+import { contextFor } from '../v2/bridge.js';
+import { gitCommonDirOf } from '../v2/git-discovery.js';
+import { decisionsSharingPremise, type SharedPremiseLink } from '../v2/connection.js';
+import { sanitizeLine } from '../v2/sanitize.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
 import { ENVELOPE_OUTPUT_SCHEMA, zArgusDir, zId, zDate, type ToolModule } from './tool-types.js';
@@ -116,11 +122,13 @@ export const settle: ToolModule = {
       // grade. An invalid ref fails loudly rather than mis-attributing.
       let brokenPremiseId: string | undefined;
       let brokenPremiseRef: string | undefined;
+      let brokenPremiseText: string | undefined;
       const bpr = a['broken_premise_ref'];
       if (typeof bpr === 'string' && bpr.trim()) {
         const p = resolvePremiseRef(current.entry?.premises ?? [], bpr); // throws NO_SUCH_PREMISE/AMBIGUOUS_REF
         brokenPremiseId = p.premise_id;
         brokenPremiseRef = `P${p.ordinal}`;
+        brokenPremiseText = p.text;
       }
 
       // Deferral history → a neutral fact on the receipt ("originally due X ·
@@ -142,6 +150,24 @@ export const settle: ToolModule = {
       });
       const v2Write = asV2WriteField(v2Mirror);
 
+      // 연결 읽기 (정본 §8-§11): 사용자가 어느 전제가 깨졌다고 짚으면, 같은 전제
+      // 위에 선 다른 열린 결정을 중립 사실 + 손잡이로 노출한다. best-effort — v2
+      // 원장이 없거나 읽기가 실패해도 정산은 그대로 성공한다. 평결 없음: 어느
+      // 결정이 같은 가정에 기대는지(사실)와 argus_check_in(손잡이)뿐.
+      let connectionLine = '';
+      let connections: SharedPremiseLink[] = [];
+      if (brokenPremiseId && brokenPremiseText && brokenPremiseText.trim()) {
+        connections = decisionsSharingBrokenPremise(dir, today, brokenPremiseText, id);
+        if (connections.length > 0) {
+          const shown = connections.slice(0, 3).map((c) => c.decision_id);
+          const extra = connections.length - shown.length;
+          const q = sanitizeLine(brokenPremiseText, 80);
+          connectionLine = locale === 'ko'
+            ? `\n같은 전제("${q}")에 기댄 다른 열린 결정: ${shown.join(', ')}${extra > 0 ? ` 외 ${extra}개` : ''}. argus_check_in으로 함께 볼 수 있어요.`
+            : `\nThe same assumption ("${q}") underlies other open decisions: ${shown.join(', ')}${extra > 0 ? ` (+${extra} more)` : ''}. Review them together with argus_check_in.`;
+        }
+      }
+
       // Mirror the outcome to the account (opt-in) so a synced prediction stops
       // being "due" — otherwise the Companion Brief would keep re-nudging it.
       // No-op when there's no token or the id was never synced.
@@ -159,13 +185,14 @@ export const settle: ToolModule = {
 
       return envelope({
         ok: true, tool: 'argus_settle',
-        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed') + syncLine,
+        surface: T.settled(outcome as 'held' | 'avoided' | 'partial' | 'missed') + syncLine + connectionLine,
         next_actions: ['argus_recall', 'stop'],
         data: {
           id, outcome, outcome_source: 'user_stated',
           v2_write: v2Write,
           assumption_held: receipt.assumption_held,
           ...(brokenPremiseRef ? { broken_premise: brokenPremiseRef, broken_premise_source: 'user_stated' } : {}),
+          ...(connections.length > 0 ? { connections: connections.map((c) => c.decision_id) } : {}),
           ai_verdict: null,
           account_synced: sync.synced,
           ...(sync.synced ? {} : { account_sync_reason: sync.reason }),
@@ -179,6 +206,26 @@ export const settle: ToolModule = {
     }
   },
 };
+
+/**
+ * 연결 읽기의 IO 껍데기 (정본 §8-§11) — v2 원장을 읽어 같은 전제에 선 열린 결정을
+ * 찾는다. best-effort: git repo가 아니거나(commonDir 없음) v2 미init·읽기 실패면 빈
+ * 배열. 정산은 이 결과와 무관하게 성공한다 (연결은 덤, 결코 정산을 깨지 않는다).
+ * 순수 매칭은 connection.ts(decisionsSharingPremise)에 있고 여기서는 상태 로딩만.
+ */
+function decisionsSharingBrokenPremise(dir: string, today: string, brokenText: string, decisionId: string): SharedPremiseLink[] {
+  try {
+    const commonDir = gitCommonDirOf(dir);
+    if (!commonDir) return [];
+    const ctx = contextFor({
+      home: argusHome(), gitCommonDir: commonDir, workspaceArgusDir: dir,
+      sessionId: `mcp-${process.pid}`, producerVersion: '2.0.0', today,
+    });
+    return decisionsSharingPremise(loadState(ctx.home, ctx.repository_id), brokenText, decisionId);
+  } catch {
+    return [];
+  }
+}
 
 type SettleSurface = (typeof SURFACES)['en']['tools']['settle'];
 
