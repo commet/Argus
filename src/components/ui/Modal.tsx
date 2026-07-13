@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, type RefObject, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
@@ -11,6 +11,9 @@ interface ModalProps {
   children: ReactNode;
   /** Tailwind max-width class for the dialog. Defaults to `max-w-lg`. */
   widthClass?: string;
+  /** Preferred first focus target for task-oriented dialogs such as search. */
+  initialFocusRef?: RefObject<HTMLElement | null>;
+  closeLabel?: string;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -19,15 +22,20 @@ const FOCUSABLE_SELECTOR =
 // Ref-counted body scroll-lock so stacked modals don't clobber each other:
 // the page only unlocks once the LAST open modal closes.
 let scrollLockCount = 0;
+let previousBodyOverflow = '';
 function lockScroll() {
-  if (scrollLockCount++ === 0) document.body.style.overflow = 'hidden';
+  if (scrollLockCount++ === 0) {
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
 }
 function unlockScroll() {
   scrollLockCount = Math.max(0, scrollLockCount - 1);
-  if (scrollLockCount === 0) document.body.style.overflow = '';
+  if (scrollLockCount === 0) document.body.style.overflow = previousBodyOverflow;
 }
 
-export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg' }: ModalProps) {
+export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg', initialFocusRef, closeLabel = 'Close' }: ModalProps) {
+  const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -57,7 +65,7 @@ export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg' 
       const root = dialogRef.current;
       if (!root) return;
       const first = root.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-      (first ?? closeBtnRef.current)?.focus();
+      (initialFocusRef?.current ?? first ?? closeBtnRef.current)?.focus();
     });
 
     const handleKey = (e: KeyboardEvent) => {
@@ -107,30 +115,31 @@ export function Modal({ open, onClose, title, children, widthClass = 'max-w-lg' 
   // not a transformed ancestor (framer-motion parents create a containing
   // block that would otherwise mis-place the modal and clip the backdrop).
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 backdrop-blur-[2px]"
         style={{ background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0.58) 100%)' }}
         onClick={onClose}
         aria-hidden="true"
       />
       <div
         ref={dialogRef}
-        className={`relative bg-[var(--surface)] rounded-2xl shadow-[var(--shadow-xl)] border border-[var(--border-subtle)] w-full ${widthClass} mx-4 max-h-[85vh] overflow-hidden animate-fade-in`}
+        className={`relative bg-[var(--surface)] rounded-t-2xl sm:rounded-2xl shadow-[var(--shadow-xl)] border border-[var(--border-subtle)] w-full ${widthClass} mx-0 sm:mx-4 max-h-[92dvh] sm:max-h-[85vh] overflow-hidden animate-fade-in`}
       >
         <div className="h-[2px] w-full" style={{ background: 'var(--gradient-gold)' }} />
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)]">
-          <h2 id="modal-title" className="text-[16px] font-bold text-[var(--text-primary)]">{title}</h2>
+          <h2 id={titleId} className="text-[16px] font-bold text-[var(--text-primary)]">{title}</h2>
           <button
             ref={closeBtnRef}
+            type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={closeLabel}
             className="p-1.5 hover:bg-[var(--bg)] rounded-lg transition-colors cursor-pointer"
           >
             <X size={16} strokeWidth={1.5} />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto max-h-[calc(85vh-60px)]">{children}</div>
+        <div className="p-6 overflow-y-auto max-h-[calc(92dvh-60px)] sm:max-h-[calc(85vh-60px)]">{children}</div>
       </div>
     </div>,
     document.body,

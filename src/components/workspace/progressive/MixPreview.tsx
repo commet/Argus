@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, UserCheck, ChevronDown } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -39,16 +39,26 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => locale === 'ko' ? ko : en;
+  const bodyId = useId();
   // P1-1 본문 아코디언: the draft body collapses by default so the forward CTA
   // is reachable WITHOUT scrolling a full document (E-23). Title + executive
   // summary stay — they ARE the preview; sections/next-steps live behind 전문.
   const [bodyOpen, setBodyOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   // Export is available HERE, at the draft — the user shouldn't have to pass the
   // (now optional) review/falsification step just to take the document they like.
   const draftMd = () => mixToMarkdown(mix, locale === 'ko');
   const copyDraft = async () => {
-    try { await navigator.clipboard.writeText(draftMd()); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* clipboard blocked — ignore */ }
+    try {
+      await navigator.clipboard.writeText(draftMd());
+      setCopyFailed(false);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyFailed(true);
+      setTimeout(() => setCopyFailed(false), 2500);
+    }
   };
   const downloadDraft = () => {
     const blob = new Blob([draftMd()], { type: 'text/markdown' });
@@ -91,8 +101,10 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             {/* Collapsed by default — the CTA must not hide below a full document. */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <button
+                type="button"
                 onClick={() => setBodyOpen((o) => !o)}
                 aria-expanded={bodyOpen}
+                aria-controls={bodyId}
                 className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
               >
                 {bodyOpen
@@ -102,11 +114,12 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
               </button>
               {/* Take the draft NOW — before the optional review/falsification step. */}
               <div className="flex items-center gap-1">
-                <button onClick={copyDraft}
-                  className="inline-flex items-center gap-1 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer">
-                  {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />} {copied ? L('복사됨', 'Copied') : L('초안 복사', 'Copy draft')}
+                <button type="button" onClick={copyDraft}
+                  aria-live="polite"
+                  className={`inline-flex items-center gap-1 text-[11.5px] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer ${copyFailed ? 'text-[var(--danger)]' : 'text-[var(--text-tertiary)]'}`}>
+                  {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />} {copied ? L('복사됨', 'Copied') : copyFailed ? L('복사 실패 — 다시 시도', 'Copy failed — retry') : L('초안 복사', 'Copy draft')}
                 </button>
-                <button onClick={downloadDraft}
+                <button type="button" onClick={downloadDraft}
                   className="inline-flex items-center gap-1 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] px-2 py-1 rounded-md transition-colors cursor-pointer">
                   <Download size={12} /> .md
                 </button>
@@ -114,7 +127,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             </div>
 
             {bodyOpen && (
-              <>
+              <div id={bodyId} role="region" aria-label={L('초안 전문', 'Full draft')} className="space-y-6">
                 <div className="space-y-5">
                   {sections.map((s, i) => (
                     <AttributedSection key={i} section={s} index={i} />
@@ -127,7 +140,7 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                     {nextSteps.map((s, i) => <div key={i} className="flex items-start gap-2.5 text-[13px] text-[var(--text-primary)] mb-2 leading-relaxed"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] mt-2 shrink-0" /><span>{s}</span></div>)}
                   </div>
                 )}
-              </>
+              </div>
             )}
 
             {cmReview && (
@@ -189,6 +202,19 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
             )}
 
             <div className="pt-6 border-t border-[var(--border-subtle)] space-y-3">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">{L('다음 선택', 'Next choice')}</p>
+                  <p className="mt-1 text-[12px] text-[var(--text-tertiary)]">
+                    {primary === 'wrap'
+                      ? L('독자의 눈으로 확인하거나, 계획의 핵심 가정을 한 번 더 시험할 수 있어요.', 'Get a reader check, or test the plan’s core bet once more.')
+                      : L('검토를 거치면 수정할 항목을 고른 뒤 최종본으로 만들 수 있어요.', 'A review lets you choose fixes before creating the final document.')}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-[var(--bg)] px-2.5 py-1 text-[10px] text-[var(--text-tertiary)]">
+                  {L('초안 완료', 'Draft ready')}
+                </span>
+              </div>
               {primary === 'wrap' ? (
                 <>
                   {/* Persona/stakeholder review is the prominent pre-finish step
@@ -196,12 +222,12 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                       OPTIONAL extra, demoted to the quiet link below — per the
                       founder's call that getting a virtual reader's review matters
                       more here, and the ladder is effectively opt-in. */}
-                  <motion.button onClick={onDM} disabled={busy} whileTap={{ scale: 0.98 }}
+                  <motion.button type="button" onClick={onDM} disabled={busy} aria-busy={busy} whileTap={{ scale: 0.98 }}
                     className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                     style={{ background: 'var(--gradient-gold)' }}>
                     {busy ? <Loader2 size={16} className="animate-spin" /> : <><UserCheck size={16} /> {L(`마무리 전에 — ${dm || '이해관계자'} 시점에서 검토 받아보기 →`, `Before wrapping up — get a review as ${dm || 'a stakeholder'} →`)}</>}
                   </motion.button>
-                  <button onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
+                  <button type="button" onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
                     style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>
                     {L('한 번 더 — 이 계획이 기대고 있는 한 가지 짚어보기 (선택)', 'Optional: name the one bet this rests on')}
                   </button>
@@ -219,13 +245,13 @@ export function MixPreview({ mix, dm, onDM, onSkip, busy, cmReview, debateResult
                         <p className="text-[11px] text-[var(--text-tertiary)]">{L('올리기 전에 한번 검토 받아보세요', 'Get a review before you submit')}</p>
                       </div>
                     </div>
-                    <motion.button onClick={onDM} disabled={busy} whileTap={{ scale: 0.98 }}
+                    <motion.button type="button" onClick={onDM} disabled={busy} aria-busy={busy} whileTap={{ scale: 0.98 }}
                       className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-xl text-[14px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
                       style={{ background: 'var(--gradient-gold)' }}>
                       {busy ? <><Loader2 size={16} className="animate-spin" /> {L(`${dm || '리뷰어'}이(가) 읽고 있어요...`, `${dm || 'Reviewer'} is reading...`)}</> : <><UserCheck size={16} /> {L('검토 받기', 'Get Review')}</>}
                     </motion.button>
                   </div>
-                  <button onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
+                  <button type="button" onClick={onSkip} disabled={busy} className="w-full text-center text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] py-1 cursor-pointer"
                     style={{ transitionProperty: 'color', transitionDuration: '300ms', transitionTimingFunction: 'cubic-bezier(0.32,0.72,0,1)' }}>{L('검토 건너뛰고 이대로 완성', 'Skip the review & finalize')}</button>
                 </>
               )}

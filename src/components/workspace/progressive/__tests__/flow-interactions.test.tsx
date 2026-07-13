@@ -30,7 +30,10 @@ vi.mock('@/stores/useProgressiveStore', () => ({ useProgressiveStore: (sel: (s: 
 
 import { QuestionCard } from '@/components/workspace/progressive/shared/QuestionCard';
 import { VerificationGate, TeamDeployBanner, DMFeedback, FinalCard, TerminalRouteCard } from '@/components/workspace/progressive/ProgressiveFlow';
-import type { WorkerTask, WorkerPersona, DMFeedbackResult } from '@/stores/types';
+import { CrewAtWork } from '@/components/workspace/progressive/CrewAtWork';
+import { MixPreview } from '@/components/workspace/progressive/MixPreview';
+import { VersionHistoryDrawer } from '@/components/workspace/VersionHistoryDrawer';
+import type { WorkerTask, WorkerPersona, DMFeedbackResult, MixResult } from '@/stores/types';
 
 // ── jsdom harness ──
 let container: HTMLDivElement;
@@ -41,6 +44,9 @@ afterEach(() => { act(() => root.unmount()); container.remove(); });
 const render = (el: React.ReactElement) => act(() => { root.render(el); });
 const click = (el: Element) => act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 const press = (key: string) => act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })); });
+const pressOn = (el: Element, key: string, isComposing = false) => act(() => {
+  el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, isComposing }));
+});
 // Find the most specific interactive element for `text`: prefer a visible-text
 // match (shortest = deepest/most specific, never the dialog container), then
 // fall back to aria-label/title for icon-only buttons.
@@ -65,8 +71,28 @@ const worker = (o: Partial<WorkerTask>): WorkerTask => ({
   result: null, human_input: null, error: null, approved: null, completion_note: null, started_at: null,
   completed_at: null, agent_type: 'ai', ...o,
 } as WorkerTask);
+const mix: MixResult = {
+  title: '시장 진입 초안',
+  executive_summary: '작게 검증하고 확장합니다.',
+  sections: [{ heading: '방향', content: '첫 시장에서 신호를 확인합니다.' }],
+  key_assumptions: ['초기 고객 수요'],
+  next_steps: ['고객 5명 인터뷰'],
+};
 
 describe('QuestionCard — meta + skip', () => {
+  it('connects the visible question and free-text field to accessible names', () => {
+    render(createElement(QuestionCard, {
+      question: { id: 'q', text: 'Which constraint matters most?', options: ['Time', 'Quality'] },
+      onAnswer: vi.fn(), locale: 'en',
+    }));
+    const section = container.querySelector('section[aria-labelledby]');
+    const input = container.querySelector('input[name="question-answer"]');
+    const label = input ? container.querySelector(`label[for="${input.id}"]`) : null;
+    expect(section).toBeTruthy();
+    expect(input).toBeTruthy();
+    expect(label?.textContent).toContain('Type your own answer');
+  });
+
   it('renders the meta label and fires onSkip when skip is provided', () => {
     const onSkip = vi.fn();
     render(createElement(QuestionCard, {
@@ -82,6 +108,56 @@ describe('QuestionCard — meta + skip', () => {
     render(createElement(QuestionCard, { question: { id: 'q', text: 'x' }, onAnswer: vi.fn(), locale: 'ko' }));
     expect(container.textContent).not.toContain('건너뛰기');
     expect(container.textContent).not.toContain('건너뛰고');
+  });
+
+  it('does not submit Korean text while the IME is still composing', () => {
+    const onAnswer = vi.fn();
+    render(createElement(QuestionCard, { question: { id: 'q', text: '답은?' }, onAnswer, locale: 'ko', initialValue: '한글' }));
+    const input = container.querySelector('input[name="question-answer"]')!;
+    pressOn(input, 'Enter', true);
+    expect(onAnswer).not.toHaveBeenCalled();
+    pressOn(input, 'Enter', false);
+    expect(onAnswer).toHaveBeenCalledWith('한글');
+  });
+});
+
+describe('CrewAtWork — progress + report disclosure', () => {
+  it('announces completion and connects both disclosure controls to their content', () => {
+    const longResult = `핵심 발견 ${'상세 내용 '.repeat(35)}`;
+    render(createElement(CrewAtWork, {
+      workers: [
+        worker({ id: 'done', step_index: 0, status: 'done', result: longResult, persona: persona('p1', '소피') }),
+        worker({ id: 'running', step_index: 1, status: 'running', persona: persona('p2', '민준') }),
+      ],
+    }));
+
+    const progress = container.querySelector('[role="progressbar"]');
+    expect(progress?.getAttribute('aria-valuenow')).toBe('1');
+    expect(progress?.getAttribute('aria-valuemax')).toBe('2');
+
+    const crewToggle = container.querySelector('button[aria-expanded="false"][aria-controls]') as HTMLButtonElement;
+    expect(crewToggle).toBeTruthy();
+    const panelId = crewToggle.getAttribute('aria-controls')!;
+    click(crewToggle);
+    expect(document.getElementById(panelId)).toBeTruthy();
+
+    const reportToggle = byText('열어보기');
+    const reportId = reportToggle.getAttribute('aria-controls')!;
+    click(reportToggle);
+    expect(document.getElementById(reportId)?.textContent).toContain('상세 내용');
+  });
+
+  it('treats failed checks as settled but never claims they entered the draft', () => {
+    render(createElement(CrewAtWork, {
+      workers: [
+        worker({ id: 'done', step_index: 0, status: 'done', result: '완료 결과', persona: persona('p1', '소피') }),
+        worker({ id: 'failed', step_index: 1, status: 'validation_failed', persona: persona('p2', '민준') }),
+      ],
+    }));
+    const progress = container.querySelector('[role="progressbar"]');
+    expect(progress?.getAttribute('aria-valuenow')).toBe('2');
+    expect(container.textContent).toContain('확인 필요 1');
+    expect(container.textContent).not.toContain('전부 초안에 들어갑니다');
   });
 });
 
@@ -171,6 +247,30 @@ describe('DMFeedback — batch apply / skip', () => {
     click(byText('모두 해제'));
     expect(onToggle.mock.calls.map(c => c[0]).sort()).toEqual([0, 2]);
   });
+
+  it('exposes each revision as a switch and names the final action with the selected count', () => {
+    render(createElement(DMFeedback, { fb: fb([true, false, true]), onToggle: vi.fn(), onFinalize: vi.fn(), busy: false }));
+    const switches = Array.from(container.querySelectorAll('[role="switch"]'));
+    expect(switches).toHaveLength(3);
+    expect(switches[0].getAttribute('aria-checked')).toBe('true');
+    expect(container.textContent).toContain('수정 제안 3건 중 2건 선택');
+    expect(byText('선택한 2건 반영하고 완성')).toBeTruthy();
+  });
+});
+
+describe('MixPreview — draft disclosure + next action', () => {
+  it('connects the full draft disclosure and keeps review/finalize choices explicit', () => {
+    const onDM = vi.fn(), onSkip = vi.fn();
+    render(createElement(MixPreview, { mix, dm: '김CFO', onDM, onSkip, busy: false }));
+    const toggle = byText('전문 보기');
+    const bodyId = toggle.getAttribute('aria-controls')!;
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    click(toggle);
+    expect(document.getElementById(bodyId)?.getAttribute('role')).toBe('region');
+    expect(container.textContent).toContain('다음 선택');
+    click(byText('검토 받기')); expect(onDM).toHaveBeenCalledTimes(1);
+    click(byText('검토 건너뛰고')); expect(onSkip).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('FinalCard — copy defaults clean, log is opt-in', () => {
@@ -186,5 +286,60 @@ describe('FinalCard — copy defaults clean, log is opt-in', () => {
     expect(checkbox).toBeTruthy();
     click(checkbox);
     expect(copyText()).toContain('LOGSTUB');
+  });
+  it('connects the collapsed preview to the final document body', () => {
+    render(createElement(FinalCard, { content: '문서본문', mix, sessionId: null, defaultCollapsed: true }));
+    const toggle = byText('여기서 전체 읽기');
+    const bodyId = toggle.getAttribute('aria-controls')!;
+    click(toggle);
+    expect(document.getElementById(bodyId)?.getAttribute('role')).toBe('document');
+    expect(container.querySelector('article[aria-labelledby]')).toBeTruthy();
+  });
+  it('keeps older restored documents readable when next-step arrays are absent', () => {
+    const legacyMix = { ...mix, next_steps: undefined, key_assumptions: undefined } as unknown as MixResult;
+    render(createElement(FinalCard, { content: '문서본문', mix: legacyMix, sessionId: null, defaultCollapsed: true }));
+    expect(container.textContent).toContain('1개 섹션');
+    expect(byText('여기서 전체 읽기')).toBeTruthy();
+  });
+});
+
+describe('VersionHistoryDrawer — layered navigation', () => {
+  const nodes = [
+    { id: 'v1', parent_id: null, label: 'v0.1', summary: '첫 번째 초안', created_at: new Date().toISOString() },
+    { id: 'v2', parent_id: 'v1', label: 'v0.2', summary: '근거를 보강한 수정본', created_at: new Date().toISOString(), is_released: false },
+  ];
+
+  it('acts as a dialog, previews from a real button, branches, and closes with Escape', () => {
+    const onClose = vi.fn(), onPreview = vi.fn(), onBranch = vi.fn();
+    render(createElement(VersionHistoryDrawer, {
+      nodes,
+      activeLeafId: 'v2',
+      activePathIds: new Set(['v1', 'v2']),
+      previewNodeId: null,
+      onClose,
+      onPreview,
+      onBranch,
+      onPromote: vi.fn(),
+    }));
+    expect(container.querySelector('#version-history-drawer[role="dialog"]')).toBeTruthy();
+    click(byText('첫 번째 초안')); expect(onPreview).toHaveBeenCalledWith('v1');
+    click(byText('이 버전에서 수정')); expect(onBranch).toHaveBeenCalledWith('v1');
+    press('Escape'); expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves Escape to the version preview when it is layered above the drawer', () => {
+    const onClose = vi.fn();
+    render(createElement(VersionHistoryDrawer, {
+      nodes,
+      activeLeafId: 'v2',
+      activePathIds: new Set(['v1', 'v2']),
+      previewNodeId: 'v1',
+      onClose,
+      onPreview: vi.fn(),
+      onBranch: vi.fn(),
+      onPromote: vi.fn(),
+    }));
+    press('Escape');
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

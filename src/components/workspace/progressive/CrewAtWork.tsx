@@ -4,7 +4,7 @@
  * CrewAtWork — 팀 작업 극장 (W1.6 ⑥, founder: "진행 막대 수준").
  *
  * While the auto-deployed crew works, the user should SEE work happening —
- * not a progress bar. Each card shows who's on what, and the live tail of
+ * not only a progress bar. Each card shows who's on what, and the live tail of
  * their actual stream while running (real typing, the honest theater), then
  * their completion line when done. Read-only: approval is automatic in focus
  * mode; the full report stepper stays one tap away ("열어보기").
@@ -12,7 +12,7 @@
  * All text renders through JSX → auto-escaped.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, AlertTriangle, RefreshCw, ChevronDown } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
@@ -49,6 +49,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
+  const panelId = useId();
   // Collapsed by default (④ 보조): the crew works in the background while the
   // user answers the question above. The header keeps the live "team working"
   // signal (avatars + count); the full theater opens on tap.
@@ -65,7 +66,6 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
 
   const ordered = [...workers].sort((a, b) => a.step_index - b.step_index);
   const doneCount = ordered.filter((w) => w.status === 'done').length;
-  const errorCount = ordered.filter((w) => w.status === 'error').length;
   // Terminal set MUST match `crewSettled` in ProgressiveFlow — otherwise a crew
   // with no AI work (all 'waiting_input') or a user-actionable failure keeps this
   // header saying "일하고 있어요" forever while the flow has already moved on.
@@ -76,6 +76,8 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
     w.status === 'blocked' ||
     (w.agent_type === 'human' && (w.status === 'sent' || w.status === 'waiting_response'));
   const allDone = ordered.every(isTerminal);
+  const settledCount = ordered.filter(isTerminal).length;
+  const attentionCount = ordered.filter((w) => isTerminal(w) && w.status !== 'done').length;
 
   // Honest headline: a failed crew member's share does NOT flow into the
   // draft — "전부 초안에 들어갑니다" over a failure would be failure≠silence
@@ -85,14 +87,13 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
     ? interrupted
       ? L('선원 작업이 잠시 멈춰 있어요', 'The crew has paused')
       : L('선원들이 일하고 있어요', 'The crew is at work')
-    : doneCount === 0
-      ? L('이 건은 사람이 판단할 항목이에요 — AI가 대신 정하지 않아요', "This one is yours to judge — AI doesn't decide it for you")
-      : errorCount === 0
-        ? L(`선원 ${doneCount}명의 작업이 끝났어요 — 전부 초안에 들어갑니다`, `${doneCount} crew finished — everything flows into the draft`)
-        : L(
-            `선원 ${ordered.length}명 중 ${doneCount}명 완료 · ${errorCount}명은 닿지 않았어요 — 실패한 몫은 빼고 갑니다`,
-            `${doneCount} of ${ordered.length} finished · ${errorCount} didn't land — the draft goes on without that share`,
-          );
+    : attentionCount > 0
+      ? doneCount === 0
+        ? L(`초안에 들어갈 AI 결과는 아직 없어요 · ${attentionCount}건 확인이 필요해요`, `No AI result is ready for the draft · ${attentionCount} item${attentionCount === 1 ? '' : 's'} need attention`)
+        : L(`${doneCount}명 완료 · ${attentionCount}건은 별도 확인이 필요해요 — 완료된 결과만 초안에 들어갑니다`, `${doneCount} finished · ${attentionCount} need attention — only completed results enter the draft`)
+      : doneCount === 0
+        ? L('이 건은 사람이 판단할 항목이에요 — AI가 대신 정하지 않아요', "This one is yours to judge — AI doesn't decide it for you")
+        : L(`선원 ${doneCount}명의 작업이 끝났어요 — 전부 초안에 들어갑니다`, `${doneCount} crew finished — everything flows into the draft`);
 
   return (
     <motion.div
@@ -111,6 +112,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-controls={panelId}
         className="w-full flex items-center justify-between gap-3 text-left cursor-pointer"
       >
         <div className="flex items-center gap-2.5 min-w-0">
@@ -130,7 +132,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
         </div>
         <span className="shrink-0 flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
           {!allDone && !interrupted && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" aria-hidden />}
-          <span className="tabular-nums">{doneCount}/{ordered.length}</span>
+          <span className="tabular-nums" aria-label={L(`${ordered.length}건 중 ${settledCount}건 처리`, `${settledCount} of ${ordered.length} settled`)}>{settledCount}/{ordered.length}</span>
           {/* Learn-more cue so the row reads as "tap to understand", not passive status. */}
           {!open && <span className="text-[var(--accent)]">{L('이게 뭐예요?', 'What is this?')}</span>}
           <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -145,12 +147,38 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
         {L('AI 팀원들이 이 결정을 각자 다른 눈으로 대신 살펴봐요 · 판단은 당신 몫이에요.', 'A team of AI reviewers is looking at this from different angles — the call stays yours.')}
       </p>
 
+      <div className="mt-2 flex items-center gap-2" aria-live="polite">
+        <div
+          role="progressbar"
+          aria-label={L('팀 작업 처리 상태', 'Crew task status')}
+          aria-valuemin={0}
+          aria-valuemax={ordered.length}
+          aria-valuenow={settledCount}
+          aria-valuetext={L(`${ordered.length}건 중 ${settledCount}건 처리 · 결과 ${doneCount}건 완료`, `${settledCount} of ${ordered.length} settled · ${doneCount} completed`)}
+          className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--border-subtle)]"
+        >
+          <motion.div
+            className="h-full rounded-full bg-[var(--accent)]"
+            initial={false}
+            animate={{ width: `${ordered.length > 0 ? (settledCount / ordered.length) * 100 : 0}%` }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+          />
+        </div>
+        <span className="shrink-0 text-[10.5px] tabular-nums text-[var(--text-tertiary)]">
+          {attentionCount > 0
+            ? L(`완료 ${doneCount} · 확인 필요 ${attentionCount}`, `${doneCount} done · ${attentionCount} needs attention`)
+            : L(`${doneCount}명 완료`, `${doneCount} done`)}
+        </span>
+      </div>
+
       {!open ? null : (
-      <div className="mt-3 space-y-2.5">
+      <div id={panelId} className="mt-3 space-y-2.5">
       {/* Report stepper toggle (when finished) */}
-      {onToggleReports && allDone && (doneCount > 0 || errorCount > 0) && (
+      {onToggleReports && allDone && (doneCount > 0 || attentionCount > 0) && (
         <button
+          type="button"
           onClick={onToggleReports}
+          aria-expanded={reportsOpen}
           className="text-[11.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
         >
           {reportsOpen ? L('보고 접기 ▴', 'Hide reports ▴') : L('선원 보고 열어보기 ▾', 'Open crew reports ▾')}
@@ -227,6 +255,7 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                 ) : w.status === 'done' && firstLine(w) ? (() => {
                   const full = (w.result || w.completion_note || '').trim();
                   const isOpen = expandedId === w.id;
+                  const reportId = `${panelId}-report-${i}`;
                   // Offer expansion only when the full report is substantially longer
                   // than the ~2-line peek. A fixed threshold (not a cross-source length
                   // subtraction) avoids misfiring when the peek and full come from
@@ -239,10 +268,12 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                     <div className="mt-1">
                       {isOpen ? (
                         <>
-                          <p className="text-[11.5px] text-[var(--text-secondary)] leading-[1.6] whitespace-pre-wrap max-h-[240px] overflow-y-auto pr-1">{full}</p>
+                          <p id={reportId} role="region" aria-label={L(`${name} 보고서`, `${name} report`)} className="text-[11.5px] text-[var(--text-secondary)] leading-[1.6] whitespace-pre-wrap max-h-[240px] overflow-y-auto pr-1">{full}</p>
                           <button
                             type="button"
                             onClick={() => setExpandedId(null)}
+                            aria-expanded="true"
+                            aria-controls={reportId}
                             className="mt-1 inline-flex items-center gap-0.5 text-[10.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors cursor-pointer"
                           >
                             {L('접기', 'Collapse')} <ChevronDown size={11} className="rotate-180" />
@@ -252,6 +283,8 @@ export function CrewAtWork({ workers, onRetry, reportsOpen, onToggleReports, her
                         <button
                           type="button"
                           onClick={hasMore ? () => setExpandedId(w.id) : undefined}
+                          aria-expanded={hasMore ? false : undefined}
+                          aria-controls={hasMore ? reportId : undefined}
                           className={`w-full text-left group/rep ${hasMore ? 'cursor-pointer' : 'cursor-default'}`}
                         >
                           <p className="text-[11.5px] text-[var(--text-secondary)] leading-[1.5] line-clamp-2">{firstLine(w)}</p>

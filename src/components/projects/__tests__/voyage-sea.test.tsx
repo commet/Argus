@@ -200,7 +200,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(text).toContain('난파');
     expect(text).not.toMatch(/실패|망했|망함/);
     // The wrecked ship's button is not the enlarged one (only a due beacon is).
-    const wreckedBtn = Array.from(container.querySelectorAll('[role="listitem"]')).find((el) =>
+    const wreckedBtn = Array.from(container.querySelectorAll('li > button')).find((el) =>
       (el.getAttribute('aria-label') || '').includes('wreck-voyage'),
     );
     expect(wreckedBtn).toBeTruthy();
@@ -215,7 +215,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
       sealedProject(`m${i}`, `2026-0${(i % 9) + 1}-0${(i % 9) + 1}T00:00:00.000Z`),
     );
     render(many);
-    expect(container.querySelectorAll('[role="listitem"]').length).toBe(30);
+    expect(container.querySelectorAll('li > button').length).toBe(30);
   });
 
   it('the state filter isolates a slice — matches stay lit, the rest recede', () => {
@@ -234,7 +234,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     )!;
     expect(chip).toBeTruthy();
     act(() => chip.click());
-    const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLElement[];
+    const items = Array.from(container.querySelectorAll('li > button')) as HTMLElement[];
     const dueItem = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-due1'))!;
     const other = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-b'))!;
     expect(dueItem.style.opacity).toBe('1'); // the match stays
@@ -273,7 +273,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
       [due, sealedProject('b', '2026-02-01T00:00:00.000Z')],
       { dueProjectIds: ['due1'] },
     );
-    const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLButtonElement[];
+    const items = Array.from(container.querySelectorAll('li > button')) as HTMLButtonElement[];
     const dueBtn = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-due1'))!;
     const plainBtn = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-b'))!;
     // Tapping a ship no longer navigates — it opens an action card in place.
@@ -306,7 +306,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
       sealedProject('b', '2026-01-02T00:00:00.000Z', withPremise('b', '금리가 3.5% 근처에 머문다')),
       sealedProject('c', '2026-01-03T00:00:00.000Z', withPremise('c', '전혀 다른 전제')),
     ]);
-    const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLButtonElement[];
+    const items = Array.from(container.querySelectorAll('li > button')) as HTMLButtonElement[];
     const shipA = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-a'))!;
     act(() => shipA.click());
     const card = container.querySelector('[role="menu"]')!;
@@ -379,7 +379,7 @@ describe('one sea — receipt vessels and undersea currents', () => {
     const onSelectReceipt = renderWithReceipts([
       sealedReceipt('r1', '검수 결정', '2026-02-10T00:00:00.000Z', []),
     ]);
-    const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLButtonElement[];
+    const items = Array.from(container.querySelectorAll('li > button')) as HTMLButtonElement[];
     expect(items.length).toBe(2); // 1 project + 1 receipt = a sea worth charting
     const receiptShip = items.find((b) => (b.getAttribute('aria-label') || '').includes('검수 결정'))!;
     expect(receiptShip).toBeTruthy();
@@ -441,7 +441,7 @@ describe('one sea — receipt vessels and undersea currents', () => {
     // the drift chip quantifies the blast radius — 2 charted decisions on GROUND
     expect(container.textContent).toContain('그 위 2척');
     // tapping one exposes the group AND flags the moved ground (a fact, amber)
-    const shipG = Array.from(container.querySelectorAll('[role="listitem"]')).find((el) =>
+    const shipG = Array.from(container.querySelectorAll('li > button')).find((el) =>
       (el.getAttribute('aria-label') || '').includes('voyage-pg1'),
     ) as HTMLButtonElement;
     act(() => shipG.click());

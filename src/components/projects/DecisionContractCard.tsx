@@ -253,6 +253,7 @@ export function DecisionContractCard({
 
             {!sealOpen ? (
               <button
+                type="button"
                 onClick={() => setSealOpen(true)}
                 className="mt-3 text-[12.5px] font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
@@ -268,8 +269,10 @@ export function DecisionContractCard({
                   <div className="flex flex-wrap gap-2">
                     {INTERVALS.map((iv) => (
                       <button
+                        type="button"
                         key={iv.value}
                         onClick={() => setCheckIn(iv.value)}
+                        aria-pressed={checkIn === iv.value}
                         className={`px-3 py-1.5 rounded-lg text-[12.5px] font-medium border transition-colors cursor-pointer ${
                           checkIn === iv.value
                             ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
@@ -341,6 +344,7 @@ export function DecisionContractCard({
               <PredicateList predicates={predicates} ko={ko} showVerdict />
             </div>
             <button
+              type="button"
               onClick={() => setGradeOpen(true)}
               className="mt-2 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
             >
@@ -413,6 +417,7 @@ export function DecisionContractCard({
             <div className="mt-2">
               {!rescheduleOpen ? (
                 <button
+                  type="button"
                   onClick={() => setRescheduleOpen(true)}
                   className="text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
                 >
@@ -422,6 +427,7 @@ export function DecisionContractCard({
                 <div className="flex flex-wrap items-center gap-1.5">
                   {INTERVALS.map((iv) => (
                     <button
+                      type="button"
                       key={iv.value}
                       onClick={() => {
                         updateProject(project.id, { decision_contract: amendCheckIn(contract!, iv.value, Date.now()) });
@@ -432,7 +438,7 @@ export function DecisionContractCard({
                       {L(iv.ko, iv.en)}
                     </button>
                   ))}
-                  <button onClick={() => setRescheduleOpen(false)} className="text-[11.5px] text-[var(--text-tertiary)] hover:underline cursor-pointer">
+                  <button type="button" onClick={() => setRescheduleOpen(false)} className="text-[11.5px] text-[var(--text-tertiary)] hover:underline cursor-pointer">
                     {L('취소', 'Cancel')}
                   </button>
                 </div>
@@ -443,6 +449,7 @@ export function DecisionContractCard({
           {!showGrades && (
             <div className="mt-3 flex items-center gap-3 flex-wrap">
               <button
+                type="button"
                 onClick={() => setGradeOpen(true)}
                 className="text-[12.5px] font-semibold text-[var(--accent)] hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
@@ -452,6 +459,7 @@ export function DecisionContractCard({
                   (distinct from delete, which removes the decision entirely). The card
                   falls back to its SEAL state if predicates are still derivable. */}
               <button
+                type="button"
                 onClick={() => {
                   if (window.confirm(L('봉인을 취소할까요? 예측·확인일이 지워지고 다시 봉인할 수 있어요.', 'Unseal this? Its predictions & check-in date clear, and you can seal again.'))) {
                     updateProject(project.id, { decision_contract: undefined });
@@ -481,8 +489,10 @@ export function DecisionContractCard({
                         const selected = p.verdict === v.value;
                         return (
                           <button
+                            type="button"
                             key={v.value}
                             onClick={() => grade(p.id, selected ? 'pending' : v.value)}
+                            aria-pressed={selected}
                             className={`px-3 py-2.5 min-h-[44px] rounded-md text-[13px] font-semibold border transition-colors cursor-pointer ${
                               selected
                                 ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
@@ -506,6 +516,7 @@ export function DecisionContractCard({
                             const on = p.basis === b.value;
                             return (
                               <button
+                                type="button"
                                 key={b.value}
                                 onClick={() => setBasis(p.id, b.value, on)}
                                 aria-pressed={on}
@@ -532,6 +543,7 @@ export function DecisionContractCard({
               )}
               {gradeOpen && !due && (
                 <button
+                  type="button"
                   onClick={() => setGradeOpen(false)}
                   className="text-[11.5px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
                 >

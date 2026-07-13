@@ -27,6 +27,11 @@ const cps: RailCheckpoint[] = [
 describe('CheckpointRail — 3밴드 정거장 상태바', () => {
   const html = renderToStaticMarkup(<CheckpointRail checkpoints={cps} onJump={() => {}} />);
 
+  it('exposes the rail as navigation and marks the current stop', () => {
+    expect(html).toContain('role="navigation"');
+    expect(html).toContain('aria-current="step"');
+  });
+
   it('세 그룹(Bind/Listen/Land)이 밴드로 보인다', () => {
     for (const group of ['Bind', 'Listen', 'Land']) {
       expect(html).toContain(group);

@@ -2,7 +2,7 @@
 
 import { DAILY_LIMIT } from '@/lib/quota-config';
 import { hasKnownUser } from '@/lib/auth';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useId, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProgressiveStore } from '@/stores/useProgressiveStore';
 import {
@@ -166,6 +166,7 @@ function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focusNonce 
   focusNonce?: number;
 }) {
   const locale = useLocale();
+  const disclosureBaseId = useId();
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const answered = qaPairs.filter(qa => qa.answer);
   useEffect(() => {
@@ -181,8 +182,11 @@ function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focusNonce 
       <div className="flex flex-wrap items-center gap-2">
         {answered.map((qa, i) => (
           <motion.button key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05, ...SPRING }}
+            type="button"
             onClick={() => setOpenIdx(openIdx === i ? null : i)}
             aria-expanded={openIdx === i}
+            aria-controls={`${disclosureBaseId}-${i}`}
+            aria-label={`${qa.question.text}: ${qa.answer!.value}`}
             className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[var(--surface)] border text-[12px] cursor-pointer transition-colors ${
               openIdx === i ? 'border-[var(--accent)]/50' : 'border-[var(--border-subtle)] hover:border-[var(--accent)]/30'
             }`}>
@@ -200,6 +204,9 @@ function AnsweredPills({ qaPairs, canRevisit, onRevisit, focusIndex, focusNonce 
 
       {open && (
         <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+          id={`${disclosureBaseId}-${openIdx}`}
+          role="region"
+          aria-label={locale === 'ko' ? `${(openIdx ?? 0) + 1}번째 답변 상세` : `Answer ${(openIdx ?? 0) + 1} details`}
           className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] p-3.5 space-y-2">
           <p className="text-[12px] text-[var(--text-secondary)] leading-[1.55]">{open.question.text}</p>
           <p className="text-[13px] text-[var(--text-primary)] font-medium leading-[1.5]">→ {open.answer!.value}</p>
@@ -305,6 +312,9 @@ function PhaseStatusBar({
   const shipTone = showLongWait ? 'text-amber-500' : 'text-[var(--accent)]';
   return (
     <motion.div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       // No box — the bar blends into the page and lets a small ship carry the
@@ -1291,6 +1301,8 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   // ── Post-complete draft tree UI state ──
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [previewDraftId, setPreviewDraftId] = useState<string | null>(null);
+  const previewDialogRef = useRef<HTMLDivElement>(null);
+  const previewDialogTitleId = useId();
   // The "나" problem pill expands on tap (long briefs truncate to one line).
   const [problemExpanded, setProblemExpanded] = useState(false);
   // Crisis backstop: the concern + resource shows by default and the decision
@@ -1302,6 +1314,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const [iterationOpen, setIterationOpen] = useState(false);
   const [iterationDirective, setIterationDirective] = useState('');
   const [isIterating, setIsIterating] = useState(false);
+  const iterationDialogRef = useRef<HTMLDivElement>(null);
+  const iterationDialogTitleId = useId();
+  const isIteratingRef = useRef(isIterating);
+  isIteratingRef.current = isIterating;
   const [justReactivatedFromBranch, setJustReactivatedFromBranch] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
@@ -1324,6 +1340,74 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
   const teamDeployRef = useRef<HTMLDivElement>(null);
   // Report step is a one-at-a-time stepper (not a long scroll of all drafts).
   const [reviewCursor, setReviewCursor] = useState(0);
+
+  useEffect(() => {
+    if (!previewDraftId) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        setPreviewDraftId(null);
+        return;
+      }
+      if (event.key !== 'Tab' || !previewDialogRef.current) return;
+      const focusable = Array.from(previewDialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
+      if (focusable.length === 0) { event.preventDefault(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !previewDialogRef.current.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const raf = requestAnimationFrame(() => previewDialogRef.current?.focus());
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      cancelAnimationFrame(raf);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus?.();
+    };
+  }, [previewDraftId]);
+
+  useEffect(() => {
+    if (!iterationOpen) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const closeIteration = () => {
+      setIterationOpen(false);
+      setIterationDirective('');
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isIteratingRef.current) {
+        event.stopPropagation();
+        closeIteration();
+        return;
+      }
+      if (event.key !== 'Tab' || !iterationDialogRef.current) return;
+      const focusable = Array.from(iterationDialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
+      if (focusable.length === 0) { event.preventDefault(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !iterationDialogRef.current.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const raf = requestAnimationFrame(() => iterationDialogRef.current?.querySelector<HTMLElement>('textarea')?.focus());
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      cancelAnimationFrame(raf);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus?.();
+    };
+  }, [iterationOpen]);
 
   // Double rAF: frame 1 lets React commit pending state, frame 2 ensures the
   // new element is laid out before we scroll to it. Previous 200/250ms timers
@@ -3161,11 +3245,15 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                       <span className="font-normal text-[var(--text-tertiary)] ml-1.5">· {L(`${remainingToReview}명 남음`, `${remainingToReview} left`)}</span>
                     )}
                   </span>
-                  <div className="flex items-center gap-2.5">
+                  <nav className="flex items-center gap-2.5" aria-label={L('에이전트 보고서 이동', 'Navigate agent reports')}>
                     <div className="flex items-center gap-1.5">
                       {ordered.map((w, i) => (
-                        <button key={w.id} onClick={() => setReviewCursor(i)}
-                          aria-label={`${i + 1}/${total}`} aria-current={i === cursor}
+                        <button type="button" key={w.id} onClick={() => setReviewCursor(i)}
+                          aria-label={L(
+                            `${i + 1}/${total} · ${w.persona?.name || 'AI'} · ${handled(w) ? '검토 완료' : '검토 전'}`,
+                            `${i + 1}/${total} · ${w.persona?.nameEn || w.persona?.name || 'AI'} · ${handled(w) ? 'reviewed' : 'not reviewed'}`,
+                          )}
+                          aria-current={i === cursor ? 'step' : undefined}
                           className={`rounded-full transition-all cursor-pointer ${
                             i === cursor ? 'w-5 h-2 bg-[var(--accent)]'
                               : handled(w) ? 'w-2 h-2 bg-[var(--accent)]/45'
@@ -3174,7 +3262,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                       ))}
                     </div>
                     <span className="text-[11px] tabular-nums text-[var(--text-tertiary)]">{cursor + 1}/{total}</span>
-                  </div>
+                  </nav>
                 </div>
                 {/* Current worker card — slides on step change */}
                 <AnimatePresence mode="wait">
@@ -3507,7 +3595,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             {activeDraft && (
               <div className="flex items-center justify-end gap-2 pb-2">
                 <button
+                  type="button"
                   onClick={() => setDrawerOpen(true)}
+                  aria-expanded={drawerOpen}
+                  aria-controls="version-history-drawer"
+                  aria-haspopup="dialog"
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[11px] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
                   title={L('버전 히스토리 열기', 'Open version history')}
                 >
@@ -3642,9 +3734,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="pt-10 pb-16">
               {/* (The old "복사해서 바로 사용하세요" label pointed at a copy button
                   that lives in FinalCard's header, not here — removed.) */}
-              <p className="text-[12px] text-[var(--text-secondary)] text-center mb-6">{L('새 프로젝트를 시작해도 이 결과는 저장돼요 — 언제든 다시 열 수 있어요.', 'Starting a new project keeps this one saved — you can reopen it anytime.')}</p>
+              <div className="text-center mb-6">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">{L('다음에 할 일', 'What next')}</p>
+                <p className="mt-1.5 text-[12px] text-[var(--text-secondary)]">{L('새 프로젝트를 시작해도 이 결과는 저장돼요 — 언제든 다시 열 수 있어요.', 'Starting a new project keeps this one saved — you can reopen it anytime.')}</p>
+              </div>
               <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
-                <button onClick={() => {
+                <button type="button" onClick={() => {
                   useProgressiveStore.setState({ currentSessionId: null });
                   // Also clear the PERSISTED current project — without this,
                   // loadProjects restores it after the reload and reopens the
@@ -3652,16 +3747,25 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   useProjectStore.getState().setCurrentProjectId(null);
                   window.location.assign(withLocale(locale, '/workspace'));
                 }}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white text-[13px] font-semibold cursor-pointer"
+                  className="inline-flex min-h-[60px] items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white text-[13px] font-semibold cursor-pointer"
                   style={{ background: 'var(--gradient-gold)' }}>{L('새 프로젝트 시작', 'Start New Project')} <ArrowRight size={12} /></button>
-                <button onClick={() => { setIterationOpen(true); setIterationDirective(''); }}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] border border-[var(--accent)]/30 bg-[var(--gold-muted)]/30 hover:bg-[var(--gold-muted)]/50 cursor-pointer transition-colors">
-                  <Wand2 size={13} className="text-[var(--accent)]" /> {L('항해장에게 수정 요청', 'Ask Navigator to revise')}
+                <button type="button" onClick={() => { setIterationOpen(true); setIterationDirective(''); }}
+                  className="inline-flex min-h-[60px] items-center justify-center gap-3 px-6 py-3 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] border border-[var(--accent)]/30 bg-[var(--gold-muted)]/30 hover:bg-[var(--gold-muted)]/50 cursor-pointer transition-colors">
+                  <Wand2 size={13} className="text-[var(--accent)]" />
+                  <span className="text-left">
+                    <span className="block">{L('이 문서 더 다듬기', 'Keep refining this document')}</span>
+                    <span className="block mt-0.5 text-[10.5px] font-normal text-[var(--text-tertiary)]">{L('현재 버전은 남겨두고 수정본 만들기', 'Keep this version and create a revision')}</span>
+                  </span>
                 </button>
+              </div>
+              <div className="mt-4 text-center">
+                <a href={withLocale(locale, '/project')} className="text-[11.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] underline underline-offset-2 transition-colors">
+                  {L('저장된 프로젝트 보기', 'View saved projects')}
+                </a>
               </div>
               {/* Destructive + rare → demoted to a quiet tertiary line below
                   the real exits (compression audit B-10). Two-step stays. */}
-              <div className="mt-4 text-center">
+              <div className="mt-3 text-center">
                 {rerunArmed ? (
                   <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11.5px] text-[var(--text-tertiary)]">
                     {L('지금 문서와 검토를 비우고 초안부터 다시 만들어요 — 이전 결과는 버전 히스토리에 남아요.', 'Clears the current document & review, regenerates from draft — previous results stay in version history.')}
@@ -3721,19 +3825,22 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           onClick={() => setPreviewDraftId(null)}
         >
           <div
-            role="dialog" aria-modal="true" aria-label={L('버전 미리보기', 'Version preview')}
-            className="relative w-full max-w-2xl max-h-[85dvh] bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
+            ref={previewDialogRef}
+            tabIndex={-1}
+            role="dialog" aria-modal="true" aria-labelledby={previewDialogTitleId}
+            className="relative w-full max-w-2xl max-h-[85dvh] bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col focus:outline-none"
             onClick={(e) => e.stopPropagation()}
           >
             <header className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
               <div>
                 <p className="text-[11px] text-[var(--text-tertiary)]">{L('미리보기 · 읽기 전용', 'Preview · read-only')}</p>
-                <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{previewDraft.version_label}</h3>
+                <h3 id={previewDialogTitleId} className="text-[14px] font-semibold text-[var(--text-primary)]">{previewDraft.version_label}</h3>
                 {previewDraft.change_summary && (
                   <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{previewDraft.change_summary}</p>
                 )}
               </div>
               <button
+                type="button"
                 className="p-1.5 rounded-lg hover:bg-[var(--surface)]"
                 onClick={() => setPreviewDraftId(null)}
                 aria-label={L('닫기', 'Close')}
@@ -3748,6 +3855,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </div>
             <footer className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[var(--border)]">
               <button
+                type="button"
                 className="px-4 py-2 rounded-lg text-[12px] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface)] transition-colors"
                 onClick={() => setPreviewDraftId(null)}
               >
@@ -3755,6 +3863,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               </button>
               {previewDraft.id !== activeDraftId && (
                 <button
+                  type="button"
                   className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-[var(--accent)] hover:opacity-90 transition-opacity"
                   onClick={() => handleBranchToDraft(previewDraft.id)}
                 >
@@ -3773,15 +3882,17 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
           onClick={() => { if (!isIterating) { setIterationOpen(false); setIterationDirective(''); } }}
         >
           <div
-            role="dialog" aria-modal="true" aria-label={L('수정 요청', 'Revise request')}
-            className="relative w-full max-w-xl bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col"
+            ref={iterationDialogRef}
+            tabIndex={-1}
+            role="dialog" aria-modal="true" aria-labelledby={iterationDialogTitleId}
+            className="relative w-full max-w-xl bg-[var(--bg)] rounded-xl shadow-[var(--shadow-lg)] border border-[var(--border)] flex flex-col focus:outline-none"
             onClick={(e) => e.stopPropagation()}
           >
             <header className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-2">
                 <Wand2 className="w-4 h-4 text-[var(--accent)]" />
                 <div>
-                  <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
+                  <h3 id={iterationDialogTitleId} className="text-[14px] font-semibold text-[var(--text-primary)]">
                     {L('항해장에게 수정 요청', 'Ask Navigator to revise')}
                   </h3>
                   <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
@@ -3791,6 +3902,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               </div>
               {!isIterating && (
                 <button
+                  type="button"
                   className="p-1.5 rounded-lg hover:bg-[var(--surface)]"
                   onClick={() => { setIterationOpen(false); setIterationDirective(''); }}
                   aria-label={L('닫기', 'Close')}
@@ -3800,10 +3912,11 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               )}
             </header>
             <div className="flex-1 px-5 py-4">
-              <p className="text-[12px] text-[var(--text-secondary)] mb-2">
+              <label htmlFor={`${iterationDialogTitleId}-directive`} className="block text-[12px] text-[var(--text-secondary)] mb-2">
                 {L('어떻게 고치면 좋을까? 구체적인 지시일수록 좋아요.', 'How should it change? More specific is better.')}
-              </p>
+              </label>
               <textarea
+                id={`${iterationDialogTitleId}-directive`}
                 value={iterationDirective}
                 onChange={(e) => setIterationDirective(e.target.value)}
                 placeholder={L('예: 재무 섹션의 가정을 더 보수적으로. 낙관/기본/비관 3가지 시나리오 추가.', 'e.g. Make financial assumptions more conservative. Add 3 scenarios.')}
@@ -3811,13 +3924,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 rows={5}
                 maxLength={500}
                 disabled={isIterating}
-                autoFocus
               />
               <div className="text-[10px] text-[var(--text-tertiary)] mt-1 text-right">
                 {iterationDirective.length} / 500
               </div>
               {isIterating && (
-                <div className="mt-3 flex items-center gap-2 text-[12px] text-[var(--accent)]">
+                <div role="status" aria-live="polite" className="mt-3 flex items-center gap-2 text-[12px] text-[var(--accent)]">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>{L('항해장이 편집 중입니다...', 'Navigator is editing...')}</span>
                 </div>
@@ -3827,6 +3939,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   <AlertTriangle size={13} className="shrink-0 mt-0.5" />
                   <span className="flex-1">{error}</span>
                   <button
+                    type="button"
                     className="text-[11px] text-red-600 hover:underline shrink-0"
                     onClick={() => setError(null)}
                     aria-label={L('에러 닫기', 'Dismiss error')}
@@ -3838,6 +3951,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
             </div>
             <footer className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[var(--border)]">
               <button
+                type="button"
                 className="px-4 py-2 rounded-lg text-[12px] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface)] transition-colors disabled:opacity-50"
                 onClick={() => { setIterationOpen(false); setIterationDirective(''); }}
                 disabled={isIterating}
@@ -3845,6 +3959,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 {L('취소', 'Cancel')}
               </button>
               <button
+                type="button"
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-[var(--accent)] hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 onClick={onRequestRevision}
                 disabled={isIterating || iterationDirective.trim().length === 0}

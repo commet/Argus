@@ -1112,7 +1112,7 @@ export function VoyageSea({
         )}
 
         {/* ── the ships ── */}
-        <div role="list" className="absolute inset-0 z-[2]">
+        <ul className="absolute inset-0 z-[2] list-none m-0 p-0">
           {placed.map((s, i) => {
             const meta = VOYAGE_STATE_META[s.state];
             const stateLabel = s.beacon ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
@@ -1143,21 +1143,24 @@ export function VoyageSea({
             // stay gestalt + the list below. (창업자 07-13: 직관적 사용)
             const showKeywordMobile = activeFilter ? matches : s.due || attention;
             return (
-              <button
+              <li
                 key={s.id}
-                type="button"
-                role="listitem"
-                aria-haspopup="menu"
-                aria-expanded={actionShip === s.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActionShip((prev) => (prev === s.id ? null : s.id));
-                }}
-                title={`${s.name} — ${stateLabel} · ${s.sub}`}
-                aria-label={`${s.name} — ${stateLabel} · ${s.sub}`}
-                className={`vsea-in absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-lg cursor-pointer group focus-visible:z-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-[transform,opacity] duration-300 ${dimmed ? 'pointer-events-none' : 'hover:z-40 hover:-translate-y-[calc(50%+3px)]'}`}
-                style={{ left: `${s.x}%`, top: `${s.y}%`, animationDelay: `${Math.min(i, 8) * 70}ms`, opacity: dimmed ? 0.1 : 1 }}
+                className="absolute"
+                style={{ left: `${s.x}%`, top: `${s.y}%` }}
               >
+                <button
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={actionShip === s.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActionShip((prev) => (prev === s.id ? null : s.id));
+                  }}
+                  title={`${s.name} — ${stateLabel} · ${s.sub}`}
+                  aria-label={`${s.name} — ${stateLabel} · ${s.sub}`}
+                  className={`vsea-in relative -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 p-1.5 sm:p-2 rounded-lg cursor-pointer group focus-visible:z-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] transition-[transform,opacity] duration-300 ${dimmed ? 'pointer-events-none' : 'hover:z-40 hover:-translate-y-[calc(50%+3px)]'}`}
+                  style={{ animationDelay: `${Math.min(i, 8) * 70}ms`, opacity: dimmed ? 0.1 : 1 }}
+                >
                 {s.beacon && (
                   <>
                     <span
@@ -1228,10 +1231,11 @@ export function VoyageSea({
                     </span>
                   </span>
                 )}
-              </button>
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ul>
 
       </div>
 

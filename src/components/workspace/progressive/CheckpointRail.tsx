@@ -109,7 +109,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: EASE }}
       className="mb-6 px-1 mt-1"
-      role="group"
+      role="navigation"
       aria-label={L(
         `여정 ${curIdx + 1}/${checkpoints.length} 정거장: ${locale === 'ko' ? activeBand.group : activeBand.groupEn} · ${cur?.label ?? ''}`,
         `Voyage stop ${curIdx + 1}/${checkpoints.length}: ${activeBand.groupEn} · ${cur?.label ?? ''}`,
@@ -168,7 +168,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
                         />
                       );
                       const inner = (
-                        <span className="relative flex flex-col items-center gap-1">
+                        <span className="relative flex flex-col items-center gap-1" aria-current={isCur ? 'step' : undefined}>
                           {showShip && (
                             <motion.span
                               className="absolute -top-[15px] text-[var(--accent)]"
@@ -207,6 +207,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
                               type="button"
                               onClick={() => onJump!(node.key)}
                               title={title}
+                              aria-label={title}
                               className="flex flex-col items-center rounded-md px-1 pt-[2px] -mt-[2px] hover:bg-[var(--accent)]/[0.08] transition-colors cursor-pointer"
                             >
                               {inner}
@@ -241,6 +242,7 @@ export function CheckpointRail({ checkpoints, onJump }: {
                   onClick={onJump ? () => onJump(rep.key) : undefined}
                   disabled={!onJump}
                   title={L(`${band.group} 단계로 돌아가 보기`, `Look back at ${band.groupEn}`)}
+                  aria-label={L(`${band.group} 단계로 돌아가 보기`, `Look back at the ${band.groupEn} stage`)}
                   className="flex-none self-center inline-flex items-center gap-1 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--accent)]/90 hover:bg-[var(--accent)]/[0.1] transition-colors cursor-pointer"
                 >
                   {locale === 'ko' ? band.group : band.groupEn}
