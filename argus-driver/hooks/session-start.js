@@ -110,9 +110,9 @@ function firstRunWelcome() {
     'Argus가 연결되었습니다. Argus는 중요한 결정을 "반증 가능한 예측"으로 봉인해 두고,',
     '확인일이 오면 그 예측을 현실과 대조(정산)하도록 돕는 도구입니다. 모델은 당신을 채점하지 않습니다.',
     '지금 할 수 있는 것:',
-    '· 고민 중인 결정을 그냥 말로 설명하면, 봉인(argus_seal)까지 함께 진행할 수 있습니다.',
+    '· 고민 중인 결정을 그냥 말로 설명하면, 봉인(argus_predict)까지 함께 진행할 수 있습니다.',
     '· 무엇이 있는지 보려면 /argus:help.',
-    '· 이 저장소에서 처음이라면 argus_init을 한 번 부르면 기록 위치가 준비됩니다.',
+    '· 기록 위치는 처음 사용할 때 자동으로 준비됩니다. 따로 초기화할 필요가 없습니다.',
     '이 안내는 이번 한 번만 나타납니다.',
   ].join('\n');
 }
@@ -171,7 +171,7 @@ function main(input) {
     // 4) fresh — due 건수만 한 줄 (본문 인용 없음). 0건이면 침묵.
     const due = /## 정산할 것 \((\d+)\)/.exec(logbook);
     if (due && Number(due[1]) > 0) {
-      lines.push(`Argus: 정산할 결정 ${due[1]}건이 확인일에 도달했습니다. ${logbookAbs} 참조, 정산은 \`argus_settle\`.`);
+      lines.push(`Argus: 정산할 결정 ${due[1]}건이 확인일에 도달했습니다. ${logbookAbs} 참조, 정산은 \`argus_resolve\`.`);
     }
   }
   return lines.length ? lines.join('\n') : null;

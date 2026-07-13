@@ -17,7 +17,6 @@
  */
 export const NEXT_ACTIONS = [
   'argus_capture',
-  'argus_review_document',
   'argus_predict',
   'argus_resolve',
   'argus_patterns',

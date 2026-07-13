@@ -84,8 +84,8 @@ function computePayload(uri: string, dir: string, today: string): unknown {
       facts,
       fact_count: groups.length,
       next_actions: [
-        ...(decisions.length ? ['argus_record_result'] : []),
-        ...(groups.length ? ['argus_clarify_decision'] : []),
+        ...(decisions.length ? ['argus_resolve'] : []),
+        ...(groups.length ? ['argus_capture'] : []),
       ],
     };
   }
@@ -107,7 +107,7 @@ function computePayload(uri: string, dir: string, today: string): unknown {
       ...l.overdue.map((c) => ({ id: c.id, predicate: c.text, check_by: c.date, source: 'ledger' })),
       ...seeds.filter((s) => !l.contracts.has(s.id)).map((s) => ({ id: s.id, predicate: s.predicate, check_by: s.check_by, source: 'bearing' })),
     ];
-    return { today, due, due_count: due.length, next_action: due.length ? 'argus_record_result' : null };
+    return { today, due, due_count: due.length, next_action: due.length ? 'argus_resolve' : null };
   }
 
   if (uri === 'argus://bearing/current') {
@@ -128,7 +128,7 @@ function computePayload(uri: string, dir: string, today: string): unknown {
       })),
       group_count: groups.length,
       has_more: groups.length > TOP,
-      next_action: groups.length ? 'argus_clarify_decision' : null,
+      next_action: groups.length ? 'argus_capture' : null,
     };
   }
 

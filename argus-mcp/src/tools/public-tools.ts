@@ -260,7 +260,7 @@ export const decide: ToolModule = {
   description: 'Capture the reasoning behind a decision in the user\'s own words — the premises it rests on and the questions still open — without deciding for the user. Use action=open for a new decision; add_context, answer_question, keep_question_open, update_fact, change_prediction, or close for a decision already on record.',
   inputSchema: decidePublicSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { title: '결정 다루기 · Work with a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  annotations: { title: 'Work with a decision', readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   handler: async (a) => {
     const action = String(a['action']);
     if (action === 'open') {
@@ -303,7 +303,7 @@ export const history: ToolModule = {
   description: 'Read decisions already on record: what is open, all contracts, one Judgment Receipt, one decision’s premises, or the accumulated timeline. Read-only.',
   inputSchema: historySchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { title: '판단 기록 보기 · View judgment history', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  annotations: { title: 'View judgment history', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   handler: (a) => {
     const viewMap: Record<string, string> = {
       active: 'bearing',
@@ -320,7 +320,7 @@ export const settings: ToolModule = {
   description: 'Read or update the few settings a user may need: response language, quiet due reminders, opt-in premise sync, and an explicit account sync. Argus initializes itself on first use.',
   inputSchema: settingsPublicSchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
-  annotations: { title: 'Argus 설정 · Argus settings', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  annotations: { title: 'Argus settings', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   handler: async (a) => {
     const action = String(a['action']);
     if (action === 'status') return runPublic('argus_settings', { argus_dir: a['argus_dir'] }, config.handler);

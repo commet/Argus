@@ -10,6 +10,6 @@ allowed-tools: Bash(node:*)
 node "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.js"
 ```
 
-출력 후, ⚠ 줄이 있으면 그 줄에 적힌 도구(예: `argus_init` 재실행,
+출력 후, ⚠ 줄이 있으면 그 줄에 적힌 도구(예: `argus_settings` 재실행,
 `argus_check_in`)를 실행할지 사용자에게 물어라 — 대신 실행하지 말 것.
 ⚠가 없으면 "정상"이라고 덧붙이지 말고 출력만 전달하라 (스크립트가 이미 말했다).

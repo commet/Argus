@@ -118,7 +118,7 @@ export default function ImportPage() {
             )}
           </p>
           <ol className="mb-5 space-y-2 text-[13px] text-[var(--text-secondary)]">
-            <li>{L('1. AI 대화에서 argus_save_prediction으로 예측을 저장합니다.', '1. Save a prediction in an AI chat with argus_save_prediction.')}</li>
+            <li>{L('1. AI 대화에서 argus_predict로 예측을 저장합니다.', '1. Save a prediction in an AI chat with argus_predict.')}</li>
             <li>{L('2. 정한 날 계정 이메일이 먼저 옵니다.', '2. On the date you chose, your account email arrives first.')}</li>
             <li>{L('3. 여기서 실제 결과만 기록합니다.', '3. Come back here and record only what reality did.')}</li>
           </ol>

@@ -108,7 +108,7 @@ describe('resources: argus://premises/*', () => {
       expect(due['group_count']).toBe(1);
       const groups = due['groups'] as Array<Record<string, unknown>>;
       expect((groups[0]['decisions'] as unknown[]).length).toBe(2);
-      expect(due['next_action']).toBe('argus_clarify_decision');
+      expect(due['next_action']).toBe('argus_capture'); // 공개 이름 (구 argus_clarify_decision)
 
       const one = JSON.parse(readResource('argus://premises/d1').contents[0].text) as Record<string, unknown>;
       const list = one['premises'] as Array<Record<string, unknown>>;
@@ -205,5 +205,38 @@ describe('seal promotion (§5.4 — the assumption field is an alias into the pr
     const dir = tmpArgusDir();
     const r = await seal.handler({ argus_dir: dir, id: 'noass', predicate: 'predicate without assumption named', check_by: '2026-09-01', predicate_owner: 'user', today_override: TODAY });
     expect('premise_promoted' in (body(r)['data'] as Record<string, unknown>)).toBe(false);
+  });
+});
+
+// 호스트-대면 리소스는 tool-call이 아니라 rewriteResult/publicCopy 층을 안 거친다.
+// 그래서 next_action(s)에 박힌 이름은 번역되지 않고 그대로 새어나간다 — 실제로
+// argus://attention·contracts/due·premises/due가 통일 전 옛 공개 이름을 방출하던
+// 버그가 있었고, premises/due 테스트가 그 옛 이름을 기대해 통과시켜 가려졌다.
+// 이 가드가 그 사각을 실행 경로로 직접 막는다 (정적 검사로는 계산된 값을 못 본다).
+describe('resources 표면 이름 누수 가드 (실행 경로)', () => {
+  const LEAK_NAMES = [
+    'argus_record_result', 'argus_clarify_decision', 'argus_save_prediction',
+    'argus_history', 'argus_review_document',
+    'argus_seal', 'argus_settle', 'argus_recall', 'argus_open_decision', 'argus_init',
+  ];
+  it('argus://attention · contracts/due · premises/due 어디에도 내부/옛 이름이 없고, 공개 이름을 방출한다', async () => {
+    const dir = tmpArgusDir();
+    await sealedWithMonitored(dir, 'd1'); // due 전제 → argus_capture 경로
+    await seal.handler({ argus_dir: dir, id: 'od', predicate: 'the report ships on the first', check_by: '2026-07-01', predicate_owner: 'user', today_override: ADDED }); // 확인일 지난 계약 → argus_resolve 경로
+    process.env['ARGUS_DIR'] = dir;
+    try {
+      for (const uri of ['argus://attention', 'argus://contracts/due', 'argus://premises/due']) {
+        const text = readResource(uri).contents[0].text;
+        for (const name of LEAK_NAMES) {
+          expect(text.includes(name), `${uri}가 "${name}"을 노출함`).toBe(false);
+        }
+      }
+      // 빈 방출을 가드가 눈감지 않도록 — 공개 이름이 실제로 나오는지 확인.
+      const attention = readResource('argus://attention').contents[0].text;
+      expect(attention).toContain('argus_resolve');
+      expect(attention).toContain('argus_capture');
+    } finally {
+      delete process.env['ARGUS_DIR'];
+    }
   });
 });

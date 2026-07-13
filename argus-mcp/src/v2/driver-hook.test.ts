@@ -98,7 +98,7 @@ describe('argus-driver SessionStart 훅 (P2-5)', () => {
     const out = run();
     const context = JSON.parse(out).hookSpecificOutput.additionalContext as string;
     expect(context).toContain('2건');
-    expect(context).toContain('argus_settle');
+    expect(context).toContain('argus_resolve'); // 공개 이름 (구 argus_settle)
     expect(context).toContain(path.join(repoDir, '.argus', 'LOGBOOK.md')); // 규칙 18: 경로 1급 표면
     expect(context).not.toContain('SECRET-PREDICATE'); // 규칙 19: 본문 미주입
   });
@@ -195,7 +195,7 @@ describe('첫 실행 안내 (온보딩)', () => {
         encoding: 'utf8',
       });
       expect(run1).toContain('Argus가 연결되었습니다');
-      expect(run1).toContain('argus_seal');
+      expect(run1).toContain('argus_predict'); // 공개 이름 (구 argus_seal)
       expect(run1).toContain('이번 한 번만'); // 1회 약속
       expect(fs.existsSync(path.join(dataDir, 'welcome-shown'))).toBe(true);
 

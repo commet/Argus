@@ -6,10 +6,11 @@ interface ToolPresentation {
 /** Bilingual tools/list copy. MCP tool discovery has no request-locale field,
  * so metadata must be understandable in either language without guessing. */
 const KO_TOOL_PRESENTATION: Record<string, ToolPresentation> = {
-  argus_clarify_decision: { titleKo: '결정 명료화', descriptionKo: '결정을 대신 내리지 않고, 새 결정을 정리하거나 기록된 결정의 전제·미결 질문·현재 사실·예측 문장·상태를 관리합니다.' },
-  argus_review_document: { titleKo: '문서 검토', descriptionKo: '문서의 주장·근거·숨은 전제와 사람이 판단해야 할 지점을 찾아 연결합니다.' },
-  argus_save_prediction: { titleKo: '예측 저장', descriptionKo: '현실이 확인할 수 있는 예측과 확인일을 저장하고 작성 주체를 정직하게 기록합니다.' },
-  argus_record_result: { titleKo: '실제 결과 기록', descriptionKo: '확인일이 된 예측에 실제로 일어난 일을 기록합니다. Argus는 결과를 평가하지 않습니다.' },
+  // 공개 표면 6종 (호스트가 tools/list에서 보는 이름). 내부 핸들러 이름 항목은 아래에 유지한다.
+  argus_capture: { titleKo: '결정 다루기', descriptionKo: '결정을 대신 내리지 않고, 결정이 기대는 전제와 아직 열린 질문을 사용자의 말 그대로 포착합니다. 기록된 결정의 전제·현재 사실·예측 문장·상태도 관리합니다.' },
+  argus_predict: { titleKo: '예측 저장', descriptionKo: '현실이 확인할 수 있는 예측과 확인일을 저장하고 작성 주체를 정직하게 기록합니다.' },
+  argus_resolve: { titleKo: '실제 결과 기록', descriptionKo: '확인일이 된 예측에 실제로 일어난 일을 기록합니다. Argus는 결과를 평가하지 않습니다.' },
+  argus_patterns: { titleKo: '판단 기록 보기', descriptionKo: '진행 중인 결정, 전체 계약, 판단 영수증, 전제, 누적 기록을 읽습니다.' },
   argus_open_decision: { titleKo: '결정 열기', descriptionKo: '중요하고 되돌리기 어려운 진짜 갈림길인지 확인하고, 맞다면 중립적인 핵심 질문 하나로 결정을 엽니다.' },
   argus_review: { titleKo: '문서 판단 검수', descriptionKo: '기존 문서의 주장·근거·숨은 전제·사람이 판단할 지점을 원문 위치에 연결해 검수합니다.' },
   argus_premises: { titleKo: '결정 전제 추적', descriptionKo: '결정이 기대는 사실과 미결 질문을 출처와 함께 추가·수정·정리합니다.' },
@@ -25,7 +26,6 @@ const KO_TOOL_PRESENTATION: Record<string, ToolPresentation> = {
   argus_watch: { titleKo: '오늘의 기록 남기기', descriptionKo: '오늘의 목표나 작업 중 포착한 문장을 평가 없이 그대로 기록합니다.' },
   argus_init: { titleKo: 'Argus 초기화', descriptionKo: '프로젝트의 .argus 기록 공간과 개인정보 보호 설정을 초기화합니다. 반복 호출해도 안전합니다.' },
   argus_config: { titleKo: 'Argus 설정', descriptionKo: '언어, 담당자, 팀, 보관 및 알림 관련 설정을 읽거나 수정합니다.' },
-  argus_history: { titleKo: '판단 기록 보기', descriptionKo: '진행 중인 결정, 전체 계약, 판단 영수증, 전제, 누적 기록을 읽습니다.' },
   argus_settings: { titleKo: 'Argus 설정', descriptionKo: '언어와 알림, 전제 동기화 설정을 관리하고 필요할 때 계정 기록을 동기화합니다.' },
 };
 

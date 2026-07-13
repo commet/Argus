@@ -3,7 +3,7 @@
  *
  * doctor의 계약: 읽기 전용(아무것도 만들거나 고치지 않음), 어떤 파손에도
  * exit 0으로 사실 보고, 절대 경로 평문(규칙 18), predicate 본문 미출력
- * (규칙 19), 수리 손잡이는 담당 두뇌(argus_init/check_in)로만 안내.
+ * (규칙 19), 수리 손잡이는 담당 두뇌(argus_settings/check_in)로만 안내.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
@@ -59,11 +59,11 @@ function bind(): void {
 }
 
 describe('argus-driver doctor (P2-6)', () => {
-  it('미바인딩 워크스페이스 — 사실 보고 + argus_init 손잡이, exit 0', () => {
+  it('미바인딩 워크스페이스 — 사실 보고 + argus_settings 손잡이, exit 0', () => {
     fs.mkdirSync(home, { recursive: true });
     const out = run();
     expect(out).toContain('바인딩 없음');
-    expect(out).toContain('argus_init');
+    expect(out).toContain('argus_settings');
     expect(out).toContain(repoDir); // 절대 경로 평문 (규칙 18)
   });
 
