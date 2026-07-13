@@ -801,45 +801,38 @@ export function VoyageSea({
       {/* ── the day-sea plate (committed light — a parchment sea-chart) ── */}
       <div className="relative">
       <div
-        className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] shadow-[var(--shadow-sm)] min-h-[380px] sm:min-h-0 sm:aspect-[16/7.2]"
+        className="relative overflow-hidden rounded-2xl min-h-[380px] sm:min-h-0 sm:aspect-[16/7.2]"
         style={{
-          background: `linear-gradient(180deg, ${N.seaHi} 0%, ${N.sea} 55%, ${N.seaDeep} 100%)`,
-          boxShadow: `inset 0 0 0 1px ${N.paper}12`,
+          // Deeper tonal RANGE = the water has presence instead of reading as a
+          // flat pale rectangle (07-13: 흐리멍덩 저대비 지적). A firmer frame +
+          // shadow makes the map the dominant panel, not one more beige box.
+          background: `linear-gradient(180deg, ${N.seaHi} 0%, ${N.sea} 44%, ${N.seaDeep} 82%, ${N.land} 100%)`,
+          boxShadow: `inset 0 0 0 1px ${N.paper}22, 0 6px 20px -8px ${N.paper}33`,
         }}
       >
         {/* corner registration ticks — the plate signature */}
         {(['top-2 left-2 border-t border-l', 'top-2 right-2 border-t border-r', 'bottom-2 left-2 border-b border-l', 'bottom-2 right-2 border-b border-r'] as const).map((pos) => (
           <span key={pos} aria-hidden className={`absolute w-2.5 h-2.5 z-[2] pointer-events-none ${pos}`} style={{ borderColor: `${N.paper}30` }} />
         ))}
-        {/* swell — faint engraved hairlines in perspective (tight near the
-            horizon, wider in the foreground). Light, calm — not busy. */}
+        {/* swell — engraved hairlines in perspective (tight near the horizon,
+            wider in the foreground). A touch firmer now so the water has real
+            texture instead of reading as blank paper. */}
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
-            background: `repeating-linear-gradient(180deg, transparent 0 30px, ${N.paper}08 30px 31px)`,
+            background: `repeating-linear-gradient(180deg, transparent 0 30px, ${N.paper}0f 30px 31px)`,
             maskImage: 'linear-gradient(180deg, transparent 8%, black 30%, black 84%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(180deg, transparent 8%, black 30%, black 84%, transparent 100%)',
           }}
         />
-
-        {/* horizon atmosphere — a soft pale wash pooling at the top so the far
-            water reads as DISTANCE, not just lighter paint. Distant (unresolved,
-            high-Y) ships sit in haze; the harbour foreground stays crisp. This
-            is the single biggest depth cue on a flat chart. */}
-        <div
-          aria-hidden
-          className="absolute inset-x-0 top-0 h-[42%] pointer-events-none"
-          style={{ background: `linear-gradient(180deg, ${N.card}70 0%, ${N.card}20 46%, transparent 100%)` }}
-        />
-        {/* a low, wide glint of afternoon light on the open water — off-centre
-            (right of the neglect corner) so it never washes out the top-left
-            "untended" reading. Gives the sea life without busying it. */}
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: `radial-gradient(52% 34% at 66% 26%, ${N.card}52, transparent 72%)` }}
-        />
+        {/* a crisp horizon line — structure, not fog. Sits high, gives the open
+            sea an edge so the top isn't a featureless pale field. */}
+        <div aria-hidden className="absolute inset-x-0 pointer-events-none" style={{ top: '13%', height: 1, background: `linear-gradient(90deg, transparent, ${N.paper}20 14%, ${N.paper}20 86%, transparent)` }} />
+        {/* depth toward the deep water — a soft DARK gather at the lower band
+            (opposite of the pale fog that washed it out): the sea gains weight
+            as it nears the harbour. */}
+        <div aria-hidden className="absolute inset-x-0 bottom-[12%] h-[34%] pointer-events-none" style={{ background: `linear-gradient(180deg, transparent 0%, ${N.paper}0e 100%)` }} />
 
         {/* the shoal — hatched shallows in the far corner where wrecks lie */}
         <div
@@ -902,20 +895,18 @@ export function VoyageSea({
           </div>
         ))}
 
-        {/* Y-axis captions — the vertical meaning (unresolved↑ / arrived↓). A
-            touch more present than pure furniture so a first-timer clocks that
-            HEIGHT carries data, with a directional arrow to make the axis read. */}
-        <span className="absolute top-[5%] left-1/2 -translate-x-1/2 text-[9px] font-mono uppercase tracking-[0.2em] pointer-events-none flex items-center gap-1" style={{ color: `${N.paper}66` }}>
-          <span aria-hidden style={{ opacity: 0.7 }}>↑</span> {L('먼바다 · 항해 중', 'OPEN SEA')}
+        {/* axis captions — quiet furniture. The "읽는 법" key carries the real
+            teaching; here we only whisper the four edges so the plate stays calm. */}
+        <span className="absolute top-[5%] left-1/2 -translate-x-1/2 text-[8.5px] font-mono uppercase tracking-[0.24em] pointer-events-none" style={{ color: `${N.paper}4d` }}>
+          {L('먼바다 · 항해 중', 'OPEN SEA')}
         </span>
-        <span className="absolute bottom-[2.5%] left-1/2 -translate-x-1/2 text-[9px] font-mono uppercase tracking-[0.2em] pointer-events-none flex items-center gap-1" style={{ color: `${N.paper}70` }}>
-          {L('항구 · 도착', 'HARBOR')} <span aria-hidden style={{ opacity: 0.7 }}>↓</span>
+        <span className="absolute bottom-[3%] left-1/2 -translate-x-1/2 text-[8.5px] font-mono uppercase tracking-[0.24em] pointer-events-none" style={{ color: `${N.paper}59` }}>
+          {L('항구 · 도착', 'HARBOR')}
         </span>
-        {/* X-axis captions */}
-        <span className="absolute top-1/2 -translate-y-1/2 left-[2%] text-[9px] font-mono uppercase tracking-[0.12em] pointer-events-none hidden sm:block" style={{ color: `${N.paper}5c` }}>
+        <span className="absolute top-1/2 -translate-y-1/2 left-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
           ← {L('오래 방치', 'LONG UNTENDED')}
         </span>
-        <span className="absolute top-1/2 -translate-y-1/2 right-[2%] text-[9px] font-mono uppercase tracking-[0.12em] text-right pointer-events-none hidden sm:block" style={{ color: `${N.paper}5c` }}>
+        <span className="absolute top-1/2 -translate-y-1/2 right-[2%] text-[8.5px] font-mono uppercase tracking-[0.14em] text-right pointer-events-none hidden sm:block" style={{ color: `${N.paper}4d` }}>
           {L('최근 활동', 'RECENT')} →
         </span>
         {/* plate inscription — the elapsed fact (shared brain with the Logbook) */}
