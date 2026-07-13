@@ -3,6 +3,8 @@ import type { DecisionContract } from '@/stores/types';
 import {
   applyTelegramSettlement,
   parseSettlementIntent,
+  parseSemanticCloseCallback,
+  semanticCloseReplyMarkup,
   settlementReminderText,
   settlementReplyMarkup,
   settlementToken,
@@ -156,6 +158,13 @@ describe('telegram settlement intent parsing', () => {
       outcome: 'happened',
       source: 'callback',
     });
+  });
+
+  it('keeps canonical close as a distinct callback from the answer buttons', () => {
+    const button = semanticCloseReplyMarkup(uuidProjectId, uuidContractId).inline_keyboard[0][0];
+    expect(button.callback_data).toMatch(/^stlc1\|/);
+    expect(button.callback_data.length).toBeLessThanOrEqual(64);
+    expect(parseSemanticCloseCallback(button.callback_data)).toEqual({ projectId: uuidProjectId, contractId: uuidContractId });
   });
 });
 

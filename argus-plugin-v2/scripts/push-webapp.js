@@ -61,6 +61,10 @@ function ledgerFile() {
   return path.join(ledgerDir(), "ledger.jsonl");
 }
 
+function semanticLedgerFile() {
+  return path.join(ledgerDir(), "semantic-v3.jsonl");
+}
+
 function pullStateFile() {
   return path.join(ledgerDir(), "pull-state.json");
 }
@@ -174,6 +178,27 @@ function readLedgerEventIds() {
   return ids;
 }
 
+function readSemanticEventIds() {
+  const ids = new Set();
+  let text = "";
+  try {
+    text = fs.readFileSync(semanticLedgerFile(), "utf8").replace(/^\uFEFF/, "");
+  } catch {
+    return ids;
+  }
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const event = JSON.parse(line);
+      if (event.event_id) ids.add(String(event.event_id));
+    } catch {
+      // The v3 reader preserves invalid lines as diagnostics; the bridge never
+      // rewrites or erases them.
+    }
+  }
+  return ids;
+}
+
 function appendWebEvent(event) {
   if (!event || typeof event !== "object") throw new Error("web event payload is not an object");
   if (!event.event || !event.id) throw new Error("web event payload must include event and id");
@@ -185,6 +210,20 @@ function appendWebEvent(event) {
     pulled_at: new Date().toISOString(),
   };
   fs.appendFileSync(ledgerFile(), `${JSON.stringify(line)}\n`);
+}
+
+/** Append an already-shaped v3 event byte-for-byte in meaning. Unlike the v2
+ * bridge payload, this is an event ledger, not a mutable projection. */
+function appendSemanticEvents(events) {
+  if (!Array.isArray(events) || events.length === 0) throw new Error("semantic event batch is empty");
+  for (const event of events) {
+    if (!event || typeof event !== "object" || !event.event || !event.event_id || event.v !== 3) {
+      throw new Error("semantic event batch contains an invalid v3 envelope");
+    }
+  }
+  ensureLedgerIgnored();
+  fs.mkdirSync(ledgerDir(), { recursive: true });
+  fs.appendFileSync(semanticLedgerFile(), `${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
 }
 
 function postJson(url, body, headers) {
@@ -316,6 +355,7 @@ async function pull() {
   const state = loadPullState();
   const applied = new Set(state.appliedEventIds);
   for (const id of readLedgerEventIds()) applied.add(id);
+  for (const id of readSemanticEventIds()) applied.add(id);
 
   const limit = Number(flags.limit || 200);
   const endpoint = new URL(`${url}/api/plugin/events`);
@@ -347,6 +387,26 @@ async function pull() {
     const payload = item.payload && typeof item.payload === "object" ? item.payload : null;
     if (!payload) {
       skipped += 1;
+      continue;
+    }
+    if (item.event === "semantic_v3") {
+      const semanticEvents = Array.isArray(payload.semantic_events) ? payload.semantic_events : null;
+      if (!semanticEvents || semanticEvents.length === 0) {
+        skipped += 1;
+        continue;
+      }
+      try {
+        appendSemanticEvents(semanticEvents);
+      } catch (error) {
+        console.error(`Skipped invalid semantic batch ${eventId}: ${error.message}`);
+        skipped += 1;
+        continue;
+      }
+      applied.add(eventId);
+      for (const semanticEvent of semanticEvents) {
+        if (semanticEvent && semanticEvent.event_id) applied.add(String(semanticEvent.event_id));
+      }
+      written += semanticEvents.length;
       continue;
     }
     appendWebEvent({ ...payload, event_id: eventId });

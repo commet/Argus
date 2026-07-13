@@ -28,6 +28,7 @@ export const USER_DATA_TABLES = [
   'plugin_bearings',
   'plugin_decisions',
   'plugin_events',
+  'project_semantic_events',
   'plugin_tokens',
   'progressive_sessions',
   'projects',

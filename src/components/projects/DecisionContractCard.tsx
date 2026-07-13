@@ -35,6 +35,7 @@ import { usePersonaStore } from '@/stores/usePersonaStore';
 import { getStorage, STORAGE_KEYS } from '@/lib/storage';
 import { JudgmentFrame } from './JudgmentFrame';
 import { FirstSettlementCard } from './FirstSettlementCard';
+import { SemanticDecisionCard } from './SemanticDecisionCard';
 import type {
   Project,
   RecastItem,
@@ -160,6 +161,7 @@ export function DecisionContractCard({
   const [sealOpen, setSealOpen] = useState(false);
   const [gradeOpen, setGradeOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false); // change the check-in date before it's due
+  const [semanticSetupOpen, setSemanticSetupOpen] = useState(false);
 
   const contract = project.decision_contract ?? null;
 
@@ -197,6 +199,12 @@ export function DecisionContractCard({
   // NOT memoised on time — `checkInDue` depends on the wall clock; recompute each
   // render so the nudge appears as soon as the date passes (no stale gate).
   const status = contract ? contractStatus(contract, Date.now()) : null;
+
+  // v6 records are a separate canonical event stream. Legacy contracts remain
+  // readable projections; a user must deliberately open this path.
+  if (contract?.semantic_judgment_id || semanticSetupOpen) {
+    return <SemanticDecisionCard project={project} onCancel={semanticSetupOpen ? () => setSemanticSetupOpen(false) : undefined} />;
+  }
 
   function seal() {
     const now = Date.now();
@@ -345,6 +353,13 @@ export function DecisionContractCard({
             </div>
             <button
               type="button"
+              onClick={() => setSemanticSetupOpen(true)}
+              className="mt-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+            >
+              {L('정본 판단 기록으로 전환', 'Start canonical decision record')}
+            </button>
+            <button
+              type="button"
               onClick={() => setGradeOpen(true)}
               className="mt-2 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
             >
@@ -413,6 +428,14 @@ export function DecisionContractCard({
           {/* Change the check-in date BEFORE it's due (was only possible as an
               "아직"-extend AFTER the date arrived). amendCheckIn keeps the old date in
               history (변침도 기록이다). */}
+          <button
+            type="button"
+            onClick={() => setSemanticSetupOpen(true)}
+            className="mt-3 text-[11.5px] text-[var(--text-tertiary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+          >
+            {L('정본 판단 기록으로 전환', 'Start canonical decision record')}
+          </button>
+
           {!due && !showGrades && (
             <div className="mt-2">
               {!rescheduleOpen ? (

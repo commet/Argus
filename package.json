@@ -4,11 +4,15 @@
   "private": true,
   "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
+    "kernel:build": "npm --prefix argus-mcp run build",
+    "predev": "npm run kernel:build",
     "dev": "next dev",
+    "prebuild": "npm run kernel:build",
     "build": "next build",
     "preflight:deploy": "node scripts/check-deploy-env.mjs",
     "start": "next start",
     "lint": "eslint src --max-warnings=145",
+    "pretest": "npm run kernel:build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -41,6 +45,7 @@
     "resend": "^6.9.4",
     "ssaju": "^0.1.1",
     "three": "^0.183.2",
+    "zod": "^4.4.3",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

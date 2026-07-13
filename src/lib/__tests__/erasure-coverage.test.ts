@@ -24,7 +24,7 @@ const LIVE_USER_SCOPED_TABLES = [
   'accuracy_ratings', 'agent_activities', 'agent_chains', 'agents',
   'decision_items', 'decision_quality_scores', 'feedback_records', 'human_agent_messages',
   'judgment_records', 'outcome_records', 'personas', 'plugin_bearings',
-  'plugin_decisions', 'plugin_events', 'plugin_tokens', 'progressive_sessions', 'projects',
+  'plugin_decisions', 'plugin_events', 'plugin_tokens', 'progressive_sessions', 'project_semantic_events', 'projects',
   'quality_signals', 'rate_limits', 'recast_items', 'reframe_items',
   'retrospective_answers', 'review_receipts', 'share_log', 'shared_links', 'slack_connections',
   'synthesize_items', 'team_members', 'team_review_inputs',

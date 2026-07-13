@@ -779,6 +779,14 @@ export interface DecisionContract {
    *  Lives inside the single `decision_contract` jsonb column — no migration,
    *  schema-drift unaffected. */
   origin?: 'retro';
+
+  /**
+   * A legacy display contract may carry the v3 judgment id, but its events do
+   * not live in this mutable jsonb projection. `project_semantic_events` is the
+   * account/project canonical ledger; this field only lets old UI routes find
+   * the new record without rewriting historical contracts.
+   */
+  semantic_judgment_id?: string;
 }
 
 /** Run provenance for a sealed contract (dim8) — auditable reproducibility, not
@@ -869,7 +877,7 @@ export interface PluginEvent {
   plugin_decision_id?: string | null;
   ledger_id: string;
   event_id: string;
-  event: 'amend' | 'settle' | 'dismiss';
+  event: 'amend' | 'settle' | 'dismiss' | 'semantic_v3';
   payload: Record<string, unknown>;
   source: 'webapp';
   applied_at?: string | null;

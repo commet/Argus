@@ -40,6 +40,7 @@ export function settlementToken(projectId: string, contractId?: string): string 
 }
 
 const CALLBACK_PREFIX = 'stl1';
+const SEMANTIC_CLOSE_CALLBACK_PREFIX = 'stlc1';
 const CALLBACK_OUTCOME_CODE: Record<TelegramSettlementOutcome, string> = {
   happened: 'h',
   avoided: 'a',
@@ -85,6 +86,26 @@ export function settlementReplyMarkup(projectId: string, contractId?: string, lo
       [{ text: ko ? '🌙 그만 물어봐 주세요' : '🌙 Stop asking me', callback_data: callbackData('mute') }],
     ],
   };
+}
+
+/** A close is a second authorial act, never an implied side effect of an answer. */
+export function semanticCloseReplyMarkup(projectId: string, contractId?: string, locale: 'ko' | 'en' = 'ko') {
+  const packed = contractId ? encodeCallbackTarget(projectId, contractId) : null;
+  const callbackData = packed ? `${SEMANTIC_CLOSE_CALLBACK_PREFIX}|${packed}` : `stlc|${projectId}`;
+  return {
+    inline_keyboard: [[{
+      text: locale === 'ko' ? '🔒 이 답변으로 기록 종결' : '🔒 Close with this answer',
+      callback_data: callbackData,
+    }]],
+  };
+}
+
+export function parseSemanticCloseCallback(data?: string): Pick<TelegramSettlementIntent, 'projectId' | 'contractId'> | null {
+  if (!data) return null;
+  const parts = data.split('|');
+  if (parts.length === 2 && parts[0] === SEMANTIC_CLOSE_CALLBACK_PREFIX) return decodeCallbackTarget(parts[1]);
+  if (parts.length === 2 && parts[0] === 'stlc' && parts[1]) return { projectId: parts[1] };
+  return null;
 }
 
 /** The check-in question for a WEB-sealed contract. Same voice as seal-core's

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { McpInstallGuide } from '@/components/import/McpInstallGuide';
 import type { PluginDecision } from '@/stores/types';
 import { LocaleLink } from '@/components/ui/LocaleLink';
+import { fold } from '@/lib/decision-kernel';
 
 const STATUS_TONE: Record<string, string> = {
   candidate: 'var(--text-tertiary)',
@@ -48,7 +49,7 @@ export default function ImportPage() {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const { user, loading: authLoading } = useAuth();
-  const { decisions, bearings, loadData, loaded, loadError, settleDecision, deferDecision } = usePluginStore();
+  const { decisions, bearings, semantic, loadData, loaded, loadError, reforgeDecision, recordDecisionAnswer, deferDecision, closeDecisionRecord } = usePluginStore();
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -82,7 +83,7 @@ export default function ImportPage() {
     setActionError('');
     setActingId(id);
     try {
-      await settleDecision(id, outcome);
+      await recordDecisionAnswer(id, outcome);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : L('정산을 저장하지 못했습니다.', 'Could not save the settlement.'));
     } finally {
@@ -97,6 +98,30 @@ export default function ImportPage() {
       await deferDecision(id, addDaysISO(14));
     } catch (error) {
       setActionError(error instanceof Error ? error.message : L('확인일을 바꾸지 못했습니다.', 'Could not defer the check date.'));
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const reforge = async (id: string) => {
+    setActionError('');
+    setActingId(id);
+    try {
+      await reforgeDecision(id);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : L('정본 기록을 만들지 못했습니다.', 'Could not create the canonical record.'));
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const closeSemantic = async (id: string) => {
+    setActionError('');
+    setActingId(id);
+    try {
+      await closeDecisionRecord(id);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : L('기록을 종결하지 못했습니다.', 'Could not close the record.'));
     } finally {
       setActingId(null);
     }
@@ -269,32 +294,38 @@ export default function ImportPage() {
                   {d.project && <span>{d.project}</span>}
                   {d.stakes && <span>{d.stakes}</span>}
                 </div>
-                {d.status === 'sealed' && (
-                  <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
-                    <p className="text-[11.5px] text-[var(--text-tertiary)] mb-2">
-                      {isOverdue(d)
-                        ? L('그래서, 어떻게 됐어요? 지금 기록해도, 나중에 해도 돼요.', 'So, how did it go? You can record it now, or later.')
-                        : L('아직 확인일 전입니다. 필요하면 지금 정산하거나 2주 뒤로 미룰 수 있습니다.', 'Not due yet. You can settle now or push it two weeks.')}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Button variant="secondary" size="sm" onClick={() => settle(d.id, 'happened')} disabled={actingId === d.id}>
-                        {L('예측대로', 'Happened')}
-                      </Button>
-                      <Button variant="secondary" size="sm" onClick={() => settle(d.id, 'avoided')} disabled={actingId === d.id}>
-                        {L('빗나감', 'Did not')}
-                      </Button>
-                      <Button variant="secondary" size="sm" onClick={() => settle(d.id, 'partial')} disabled={actingId === d.id}>
-                        {L('부분', 'Partial')}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => later(d.id)} disabled={actingId === d.id}>
-                        {L('2주 뒤', 'Later')}
-                      </Button>
+                {d.status === 'sealed' && (() => {
+                  const record = semantic[d.id];
+                  const judgment = record ? fold(record.events).judgments.get(record.judgment_id) : undefined;
+                  const closed = !!judgment?.closed;
+                  const answered = !!judgment?.resolution;
+                  return (
+                    <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                      {!record ? <>
+                        <p className="text-[11.5px] text-[var(--text-tertiary)] mb-2">
+                          {L('기존 플러그인 기록입니다. 과거 내용을 자동으로 승격하지 않습니다. 아래 확인은 오늘 이 내용을 정본 판단으로 다시 채택하는 명시적 행위입니다.', 'This is a legacy plugin record. It is never silently upgraded; the action below explicitly re-adopts it today as a canonical judgment.')}
+                        </p>
+                        <Button variant="accent" size="sm" onClick={() => reforge(d.id)} disabled={actingId === d.id}>{L('정본 판단으로 다시 기록', 'Reforge as canonical judgment')}</Button>
+                      </> : closed ? <>
+                        <p className="text-[11.5px] text-[var(--text-tertiary)]">{L('답변과 별도 종결 확인이 모두 기록되었습니다.', 'The answer and the separate close confirmation are both recorded.')}</p>
+                      </> : answered ? <>
+                        <p className="text-[11.5px] text-[var(--text-tertiary)] mb-2">{L('답변은 기록됐지만 아직 종결되지 않았습니다.', 'The answer is recorded but the judgment is not closed.')}</p>
+                        <Button variant="accent" size="sm" onClick={() => closeSemantic(d.id)} disabled={actingId === d.id}>{L('이 답변으로 기록 종결', 'Close with this answer')}</Button>
+                      </> : <>
+                        <p className="text-[11.5px] text-[var(--text-tertiary)] mb-2">{L('관찰과 답변은 남기되, 종결은 다음 단계에서 별도로 확인합니다.', 'Record an observation and answer now; closing is a separate later confirmation.')}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <Button variant="secondary" size="sm" onClick={() => settle(d.id, 'happened')} disabled={actingId === d.id}>{L('발생했다고 답변', 'Record “happened”')}</Button>
+                          <Button variant="secondary" size="sm" onClick={() => settle(d.id, 'avoided')} disabled={actingId === d.id}>{L('발생하지 않았다고 답변', 'Record “did not”')}</Button>
+                          <Button variant="secondary" size="sm" onClick={() => settle(d.id, 'partial')} disabled={actingId === d.id}>{L('부분적 답변', 'Record “partial”')}</Button>
+                          <Button variant="ghost" size="sm" onClick={() => later(d.id)} disabled={actingId === d.id}>{L('2주 뒤 다시 보기', 'Defer 2 weeks')}</Button>
+                        </div>
+                      </>}
+                      <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
+                        {L('새 정본 이벤트는 다음 /argus:pull 또는 /argus:sync에서 로컬 semantic-v3 원장에 추가됩니다.', 'New canonical events append to the local semantic-v3 ledger on the next /argus:pull or /argus:sync.')}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
-                      {L('웹앱에서 한 정산은 다음 /argus:pull 또는 /argus:sync 때 로컬 ledger에 붙습니다.', 'Web settlements are appended to the local ledger on the next /argus:pull or /argus:sync.')}
-                    </p>
-                  </div>
-                )}
+                  );
+                })()}
               </Card>
             ))}
           </div>

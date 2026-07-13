@@ -4,9 +4,13 @@ import { reframeSystemPrompt, deeperSuffix, coerceReframe, reframeToMarkdown, RE
 import { sealSystemPrompt, coerceSealDraft, sealPreviewMarkdown, formatCheckBy, parseCheckBy, SEAL_TOOL_NAME, SEAL_TOOL_SCHEMA } from '@/lib/seal-core';
 import { rehearseSystemPrompt, buildRehearseUser, coerceRehearse, rehearseToMarkdown, REHEARSE_PRESETS, REHEARSE_TOOL_NAME, REHEARSE_TOOL_SCHEMA } from '@/lib/rehearse-core';
 import { recordSummaryMarkdown } from '@/lib/record-core';
-import { parseSettlementIntent, applyTelegramSettlement, detectSettlementLocale, type TelegramSettlementIntent } from '@/lib/telegram-settlement';
+import { parseSettlementIntent, parseSemanticCloseCallback, semanticCloseReplyMarkup, applyTelegramSettlement, detectSettlementLocale, type TelegramSettlementIntent } from '@/lib/telegram-settlement';
 import { amendCheckIn } from '@/lib/decision-contract';
 import type { DecisionContract } from '@/stores/types';
+import { buildSemanticWebCommand } from '@/lib/semantic-web';
+import { appendProjectSemanticEvents, readProjectSemanticEvents } from '@/lib/semantic-ledger-gateway';
+import { fold, type SemanticState } from '@/lib/decision-kernel';
+import { generateId } from '@/lib/uuid';
 import { recastSystemPrompt, coerceRecast, recastToMarkdown, RECAST_TOOL_NAME, RECAST_TOOL_SCHEMA } from '@/lib/recast-core';
 import { callAnthropicJson } from '@/lib/llm-server';
 import { markdownToTelegramHtml, markdownToTelegramLight as lightHtml } from '@/lib/telegram-format';
@@ -513,10 +517,172 @@ async function handleSealConfirm(chatId: number | string, userId: string, action
 //    voyage (projects.decision_contract). Until now nothing consumed them — the
 //    product's one outbound promise ("정한 날 물어봐 드려요") asked and could
 //    not hear the answer. The parser was already complete; this is the wiring. ──
+function telegramSemanticOrigin(receiptRef: string) {
+  return {
+    recorder_id: 'telegram:argus',
+    authorization_mode: 'direct_command' as const,
+    authorization_kind: 'user_utterance' as const,
+    authorization_ref: receiptRef,
+  };
+}
+
+function semanticAnswerText(intent: TelegramSettlementIntent): string {
+  const selected = intent.outcome === 'happened' ? 'happened'
+    : intent.outcome === 'avoided' ? 'did not happen'
+      : 'partly happened';
+  // This is an attribution of the Telegram action, not a fabricated world fact.
+  return intent.note?.trim()
+    ? `Telegram user response (${selected}): ${intent.note.trim()}`
+    : `Telegram user selected “${selected}”.`;
+}
+
+async function handleSemanticContractSettlement(
+  chatId: number | string,
+  userId: string,
+  row: { id: string; name?: string; decision_contract?: unknown },
+  contract: DecisionContract,
+  intent: TelegramSettlementIntent,
+  receiptRef: string,
+): Promise<boolean> {
+  const judgmentId = contract.semantic_judgment_id;
+  if (!judgmentId) return false;
+  const admin = adminClient();
+  const locale = detectSettlementLocale(row.name, ...(Array.isArray(contract.predicates) ? contract.predicates : []).map((p) => p?.text));
+  const existing = await readProjectSemanticEvents(admin, userId, row.id);
+  if (!existing) {
+    await sendMessage(chatId, locale === 'ko' ? '정본 기록을 읽지 못했어요. 아무것도 바꾸지 않았습니다.' : 'I could not read the canonical record. Nothing changed.');
+    return true;
+  }
+  const state = fold(existing) as SemanticState;
+  const judgment = state.judgments.get(judgmentId);
+  const returnContractId = judgment?.active_return_contract_id;
+  if (!judgment || !returnContractId) {
+    await sendMessage(chatId, locale === 'ko' ? '이 판단의 활성 확인 약속을 찾지 못했어요.' : 'I could not find this judgment’s active return contract.');
+    return true;
+  }
+
+  if (intent.outcome === 'mute') {
+    const { error } = await admin.from('projects')
+      .update({ decision_contract: { ...contract, reminder_count: 3 } })
+      .eq('id', row.id).eq('user_id', userId);
+    if (error) {
+      await sendMessage(chatId, locale === 'ko' ? '알림을 멈추지 못했어요. 기록은 바뀌지 않았습니다.' : 'I could not stop reminders. The record was not changed.');
+    } else {
+      await sendMessage(chatId, locale === 'ko' ? '알겠어요. 알림만 멈추고 판단 기록은 열어 둘게요.' : 'Understood. I stopped reminders only; the judgment record stays open.');
+    }
+    return true;
+  }
+
+  const now = new Date().toISOString();
+  if (intent.outcome === 'pending') {
+    const reviewAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const built = buildSemanticWebCommand({
+      project_id: row.id,
+      command: { kind: 'defer', command_id: `telegram-${generateId()}`, return_contract_id: returnContractId, review_at: reviewAt, ...(intent.note ? { reason: intent.note } : {}) },
+      recorded_at: now,
+      origin: telegramSemanticOrigin(receiptRef),
+    });
+    if (!built.ok) {
+      await sendMessage(chatId, locale === 'ko' ? '미루기 명령이 유효하지 않았어요. 기록은 바뀌지 않았습니다.' : 'The defer command was invalid. The record was not changed.');
+      return true;
+    }
+    const appended = await appendProjectSemanticEvents(admin, userId, row.id, built.events);
+    if (!appended.ok) {
+      await sendMessage(chatId, locale === 'ko' ? `기록을 미루지 못했어요 (${appended.code}).` : `I could not defer the record (${appended.code}).`);
+      return true;
+    }
+    // The legacy jsonb remains a notification projection only. Its date must
+    // follow the event so the existing reminder cron does not send stale mail.
+    await admin.from('projects').update({ decision_contract: amendCheckIn(contract, '1w', Date.now()) }).eq('id', row.id).eq('user_id', userId);
+    await admin.from('telegram_decisions').update({ check_by: kstDateOf(reviewAt), reminded_at: null }).eq('id', row.id).eq('user_id', userId).eq('status', 'sealed');
+    await sendMessage(chatId, locale === 'ko' ? '종결하지 않고 다음 확인 시점으로 미뤘어요.' : 'Deferred without closing the record.');
+    return true;
+  }
+
+  if (judgment.resolution) {
+    await sendMessage(chatId, locale === 'ko' ? '답변은 이미 기록되어 있어요. 종결은 별도 확인이 필요합니다.' : 'An answer is already recorded. Closing needs a separate confirmation.', semanticCloseReplyMarkup(row.id, contract.id, locale));
+    return true;
+  }
+  const outcome = intent.outcome;
+  const built = buildSemanticWebCommand({
+    project_id: row.id,
+    command: {
+      kind: 'observe_and_resolve', command_id: `telegram-${generateId()}`,
+      observation_id: `telegram-observation:${generateId()}`,
+      observation_text: semanticAnswerText(intent), observation_source_ref: receiptRef,
+      resolution_id: `telegram-resolution:${generateId()}`, judgment_id: judgmentId, return_contract_id: returnContractId,
+      resolution: {
+        kind: 'answered', answer_summary: semanticAnswerText(intent),
+        ...(outcome === 'partial' ? { criterion_result: 'partial' as const } : {}),
+        evidence_refs: [], // Filled below with the generated observation id.
+      },
+    },
+    recorded_at: now,
+    origin: telegramSemanticOrigin(receiptRef),
+  });
+  if (!built.ok) {
+    await sendMessage(chatId, locale === 'ko' ? '답변 명령이 유효하지 않았어요. 기록은 바뀌지 않았습니다.' : 'The answer command was invalid. The record was not changed.');
+    return true;
+  }
+  // The schema correctly requires evidence for an answered resolution. The
+  // observation and answer are one atomic callback command, so bind the
+  // answer to that exact observation before the shared gateway preflights it.
+  const observationId = (built.events[0] as { observation_id: string }).observation_id;
+  const resolutionEvent = built.events[1] as { resolution: { evidence_refs: string[] } };
+  resolutionEvent.resolution.evidence_refs = [observationId];
+  const appended = await appendProjectSemanticEvents(admin, userId, row.id, built.events);
+  if (!appended.ok) {
+    await sendMessage(chatId, locale === 'ko' ? `답변을 기록하지 못했어요 (${appended.code}).` : `I could not record the answer (${appended.code}).`);
+    return true;
+  }
+  await sendMessage(chatId, locale === 'ko'
+    ? '답변과 그 근거를 기록했어요. 아직 종결하지는 않았습니다. 아래에서 별도로 확인해 주세요.'
+    : 'I recorded the answer and its evidence. It is not closed yet; confirm separately below.', semanticCloseReplyMarkup(row.id, contract.id, locale));
+  return true;
+}
+
+async function handleSemanticContractClose(
+  chatId: number | string,
+  userId: string,
+  projectId: string,
+  contractId: string | undefined,
+  receiptRef: string,
+): Promise<void> {
+  const admin = adminClient();
+  const { data: row } = await admin.from('projects').select('id, user_id, name, decision_contract').eq('id', projectId).single();
+  const contract = (row?.decision_contract ?? null) as DecisionContract | null;
+  if (!row || row.user_id !== userId || !contract || (contractId && contract.id && contract.id !== contractId) || !contract.semantic_judgment_id) {
+    await sendMessage(chatId, 'That canonical record could not be found.');
+    return;
+  }
+  const events = await readProjectSemanticEvents(admin, userId, row.id);
+  const state = events ? fold(events) as SemanticState : undefined;
+  const judgment = state?.judgments.get(contract.semantic_judgment_id);
+  if (!judgment?.resolution) {
+    await sendMessage(chatId, 'An answer must be recorded before this record can close.');
+    return;
+  }
+  if (judgment.closed) {
+    await sendMessage(chatId, 'This record is already closed.');
+    return;
+  }
+  const built = buildSemanticWebCommand({
+    project_id: row.id,
+    command: { kind: 'close', command_id: `telegram-${generateId()}`, judgment_id: contract.semantic_judgment_id, resolution_id: judgment.resolution.id },
+    recorded_at: new Date().toISOString(), origin: telegramSemanticOrigin(receiptRef),
+  });
+  if (!built.ok) { await sendMessage(chatId, 'The close command was invalid. The record was not changed.'); return; }
+  const appended = await appendProjectSemanticEvents(admin, userId, row.id, built.events);
+  if (!appended.ok) { await sendMessage(chatId, `I could not close the record (${appended.code}).`); return; }
+  await admin.from('telegram_decisions').update({ status: 'settled', settled_at: new Date().toISOString() }).eq('id', row.id).eq('user_id', userId).eq('status', 'sealed');
+  await sendMessage(chatId, 'Closed with your separately confirmed answer.');
+}
+
 async function handleContractSettlement(
   chatId: number | string,
   userId: string,
   intent: TelegramSettlementIntent,
+  receiptRef: string,
 ): Promise<void> {
   const admin = adminClient();
   const { data: row } = await admin
@@ -530,6 +696,7 @@ async function handleContractSettlement(
     await sendMessage(chatId, '그 결정을 찾을 수 없어요.');
     return;
   }
+  if (await handleSemanticContractSettlement(chatId, userId, row, contract, intent, receiptRef)) return;
   const locale = detectSettlementLocale(row.name, ...(Array.isArray(contract.predicates) ? contract.predicates : []).map((p) => p?.text));
   const now = Date.now();
 
@@ -613,6 +780,10 @@ async function bridgeWebContract(
       .single();
     const contract = (row?.decision_contract ?? null) as DecisionContract | null;
     if (!row || row.user_id !== userId || !contract) return;
+    // V6 records must pass through handleSemanticContractSettlement, where the
+    // Telegram update receipt is retained and answer/close stay separate. This
+    // legacy bridge has no such evidence and must not mutate their projection.
+    if (contract.semantic_judgment_id) return;
     const preds = Array.isArray(contract.predicates) ? contract.predicates : [];
     if (contract.graded_at && (preds.length === 0 || !contract.check_in_at)) return; // already closed
     // "later" on this path extends the Telegram row by 2 weeks — keep the web
@@ -761,6 +932,7 @@ export async function POST(req: NextRequest) {
   if (cb?.message?.chat) {
     const chatId = cb.message.chat.id;
     const data = cb.data || '';
+    const receiptRef = `telegram:update:${String(update.update_id ?? 'unknown')}:callback:${cb.id}`;
     // Synchronous — after() does NOT run for callback_query updates on this
     // deployment (it does for messages). With the fast model the whole thing is
     // a few seconds, well inside Telegram's webhook timeout.
@@ -770,9 +942,15 @@ export async function POST(req: NextRequest) {
       if (!userId) { await sendMessage(chatId, '먼저 웹앱 설정에서 Telegram을 연결해 주세요.'); return NextResponse.json({ ok: true }); }
 
       // Web-contract settle buttons (stl1|/stl|) — first, before the reframe chain.
+      const semanticClose = parseSemanticCloseCallback(data);
+      if (semanticClose) {
+        await handleSemanticContractClose(chatId, userId, semanticClose.projectId, semanticClose.contractId, receiptRef);
+        return NextResponse.json({ ok: true });
+      }
+
       const contractIntent = parseSettlementIntent({ callbackData: data });
       if (contractIntent) {
-        await handleContractSettlement(chatId, userId, contractIntent);
+        await handleContractSettlement(chatId, userId, contractIntent, receiptRef);
         return NextResponse.json({ ok: true });
       }
 
@@ -827,7 +1005,7 @@ export async function POST(req: NextRequest) {
 
   // ── Messages ──
   const message = (update.message ?? update.edited_message) as
-    | { text?: string; chat?: { id: number; title?: string; first_name?: string; type?: string }; reply_to_message?: { text?: string } }
+    | { message_id?: number; text?: string; chat?: { id: number; title?: string; first_name?: string; type?: string }; reply_to_message?: { text?: string } }
     | undefined;
   const text = message?.text?.trim() ?? '';
   const chat = message?.chat;
@@ -869,7 +1047,12 @@ export async function POST(req: NextRequest) {
       if (!userId) {
         await sendMessage(chat.id, '먼저 웹앱 설정에서 Telegram을 연결해 주세요.');
       } else {
-        await handleContractSettlement(chat.id, userId, settlementIntent);
+        await handleContractSettlement(
+          chat.id,
+          userId,
+          settlementIntent,
+          `telegram:update:${String(update.update_id ?? 'unknown')}:message:${String(message?.message_id ?? 'unknown')}`,
+        );
       }
     } catch (err) {
       console.error('[telegram/webhook] settlement reply failed:', err);
