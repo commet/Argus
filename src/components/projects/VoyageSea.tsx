@@ -52,21 +52,27 @@ import type {
  *  - Quiet sea = quiet sheet: with nothing due there is no beacon, no notice,
  *    and the caption says "부를 배가 없어요" — restraint, not manufactured urgency.
  *
- * CRAFT constraints (07-11 session): no hand-authored SVG art — the scene is
- * pure CSS geometry (clip-path sails, gradient water, conic beam). The plate is
- * a committed-dark nocturne in the engraved-logbook family; its internal palette
- * is theme-stable ON PURPOSE (a framed night painting on the parchment page),
- * while everything under the plate uses page tokens and pairs with both themes.
+ * CRAFT constraints: no hand-authored SVG art — the scene is pure CSS geometry
+ * (clip-path sails, gradient water). 2026-07-13 (창업자: "밝게 가자, 답답하다"):
+ * the plate is now a LIGHT day-chart — a parchment sea with dark-ink vessels,
+ * an airy scatter you can read at a glance. The night-lighthouse-beam gimmick
+ * is gone; the due decision is marked by a calm gold ship + soft ring, not a
+ * sweeping searchlight. Palette is committed (theme-stable) so the chart reads
+ * the same on either page theme — a lit chart-table, dark ink on light water.
  */
 
-// ── nocturne plate palette (internal, theme-stable — see header comment) ──
+// ── day-chart plate palette (internal, committed light) ──
+// `paper` is the INK/line color (dark on light water) — kept the name so the
+// many `${N.paper}<alpha>` faint-line usages still read as "the etched line".
 const N = {
-  seaHi: '#201c16',
-  sea: '#15110b',
-  seaDeep: '#0e0b07',
-  land: '#0b0906',
-  paper: '#e8dcc3', // etched light — matches the dark-mode ink token for family kinship
-  gold: '#d4b968', // plate-internal gold (deliberately NOT the landing ceremony token)
+  seaHi: '#eae2d1', // haze near the horizon (lightest water, top)
+  sea: '#ded1b4', // open water
+  seaDeep: '#cebf9e', // deep water toward the harbour (bottom)
+  land: '#bdae87', // the harbour shore
+  paper: '#2b2620', // ink — vessels, hairlines, text
+  gold: '#8a6a1e', // deep gold, readable on light (fills / text)
+  goldGlow: '#c39a34', // brighter gold for the due ship's soft ring
+  card: '#f8f2e4', // near-white parchment — floating notices, pops off the sea
 };
 
 const DAY_MS = 86_400_000;
@@ -260,26 +266,6 @@ function ShipMark({
         </>
       )}
       {silhouette}
-      {/* reflection — the whole silhouette mirrored below the waterline,
-          fading with depth. Calmer water at the moorings → a slightly
-          clearer image. (Mask is authored in local space so the flip lands
-          the strong edge at the waterline.) */}
-      {!plain && (
-      <span
-        className="absolute left-0 block w-full pointer-events-none"
-        style={{
-          top: '100%',
-          height: '100%',
-          transform: 'scaleY(-1)',
-          opacity: furled ? 0.17 : 0.11,
-          maskImage: 'linear-gradient(0deg, black 0%, transparent 60%)',
-          WebkitMaskImage: 'linear-gradient(0deg, black 0%, transparent 60%)',
-          filter: 'blur(0.5px)',
-        }}
-      >
-        {silhouette}
-      </span>
-      )}
     </span>
   );
 }
@@ -650,125 +636,65 @@ export function VoyageSea({
       <style>{`
         @keyframes vsea-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
         @keyframes vsea-in { from { opacity: 0; transform: translateY(7px) } to { opacity: 1; transform: translateY(0) } }
-        @keyframes vsea-beam { 0%,100% { transform: translateX(-50%) rotate(-44deg) } 50% { transform: translateX(-50%) rotate(34deg) } }
-        @keyframes vsea-halo { 0%,100% { opacity: .35; transform: translate(-50%,-50%) scale(.88) } 50% { opacity: .8; transform: translate(-50%,-50%) scale(1.1) } }
+        @keyframes vsea-halo { 0%,100% { opacity: .4; transform: translate(-50%,-50%) scale(.9) } 50% { opacity: .85; transform: translate(-50%,-50%) scale(1.08) } }
         @keyframes vsea-pulse { 0%,100% { opacity: .45 } 50% { opacity: 1 } }
         @keyframes vsea-flow { to { background-position: 13px 0 } }
         .vsea-flow { animation: vsea-flow 1.6s linear infinite }
         .vsea-in { opacity: 0; animation: vsea-in .7s cubic-bezier(.32,.72,0,1) forwards }
         .vsea-bob { animation: vsea-bob 6s ease-in-out infinite }
-        .vsea-beam { animation: vsea-beam 26s ease-in-out infinite }
         .vsea-halo { animation: vsea-halo 3.2s ease-in-out infinite }
         .vsea-pulse { animation: vsea-pulse 2.6s ease-in-out infinite }
         @media (prefers-reduced-motion: reduce) {
           .vsea-in { animation: none; opacity: 1 }
-          .vsea-bob, .vsea-beam, .vsea-halo, .vsea-pulse, .vsea-flow { animation: none }
+          .vsea-bob, .vsea-halo, .vsea-pulse, .vsea-flow { animation: none }
         }
       `}</style>
 
-      {/* ── the night sea plate (committed dark — a framed nocturne). The
+      {/* ── the day-sea plate (committed light — a parchment sea-chart). The
             beacon notice is a SIBLING of the plate: absolute over the water on
             desktop, a normal block right below it on mobile — never mixed into
-            the ships layer (07-11 mobile-overlap fix). ── */}
+            the ships layer. ── */}
       <div className="relative">
       <div
-        className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] shadow-[var(--shadow-md)] min-h-[400px] sm:min-h-0 sm:aspect-[16/7.2]"
+        className="relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] shadow-[var(--shadow-sm)] min-h-[380px] sm:min-h-0 sm:aspect-[16/7.2]"
         style={{
-          background: `linear-gradient(176deg, ${N.seaHi} 0%, ${N.sea} 52%, ${N.seaDeep} 100%)`,
-          // engraved plate: a whisper of an inner rule inside the outer border
-          boxShadow: `inset 0 0 0 1px ${N.paper}0f, inset 0 1px 0 ${N.paper}14`,
+          background: `linear-gradient(180deg, ${N.seaHi} 0%, ${N.sea} 55%, ${N.seaDeep} 100%)`,
+          boxShadow: `inset 0 0 0 1px ${N.paper}12`,
         }}
       >
         {/* corner registration ticks — the plate signature */}
         {(['top-2 left-2 border-t border-l', 'top-2 right-2 border-t border-r', 'bottom-2 left-2 border-b border-l', 'bottom-2 right-2 border-b border-r'] as const).map((pos) => (
-          <span key={pos} aria-hidden className={`absolute w-2.5 h-2.5 z-[2] pointer-events-none ${pos}`} style={{ borderColor: `${N.paper}38` }} />
+          <span key={pos} aria-hidden className={`absolute w-2.5 h-2.5 z-[2] pointer-events-none ${pos}`} style={{ borderColor: `${N.paper}30` }} />
         ))}
-        {/* swell — engraved hairlines in PERSPECTIVE: tight near the horizon,
-            widening toward the foreground. Two masked layers, still paper. */}
+        {/* swell — faint engraved hairlines in perspective (tight near the
+            horizon, wider in the foreground). Light, calm — not busy. */}
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
-            background: `repeating-linear-gradient(180deg, transparent 0 21px, ${N.paper}0a 21px 22px)`,
-            maskImage: 'linear-gradient(180deg, transparent 6%, black 24%, black 46%, transparent 60%)',
-            WebkitMaskImage: 'linear-gradient(180deg, transparent 6%, black 24%, black 46%, transparent 60%)',
+            background: `repeating-linear-gradient(180deg, transparent 0 30px, ${N.paper}08 30px 31px)`,
+            maskImage: 'linear-gradient(180deg, transparent 8%, black 30%, black 84%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(180deg, transparent 8%, black 30%, black 84%, transparent 100%)',
           }}
         />
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background: `repeating-linear-gradient(180deg, transparent 0 42px, ${N.paper}10 42px 43.5px)`,
-            maskImage: 'linear-gradient(180deg, transparent 40%, black 58%, black 86%, transparent 98%)',
-            WebkitMaskImage: 'linear-gradient(180deg, transparent 40%, black 58%, black 86%, transparent 98%)',
-          }}
-        />
-        {/* night air — starlight, a breath of moon, and the moonglade: a
-            faint column of light lying on the water. All static. */}
-        <div aria-hidden className="absolute inset-0" style={{ background: `radial-gradient(42% 30% at 33% 0%, ${N.paper}10, transparent 70%)` }} />
-        <div
-          aria-hidden
-          className="absolute pointer-events-none"
-          style={{
-            left: '29%', top: '4%', width: '9%', height: '78%',
-            background: `linear-gradient(180deg, ${N.paper}0c, ${N.paper}05 45%, transparent 90%)`,
-            maskImage: 'linear-gradient(90deg, transparent, black 35%, black 65%, transparent)',
-            WebkitMaskImage: 'linear-gradient(90deg, transparent, black 35%, black 65%, transparent)',
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute top-[7%] left-[12%] w-px h-px rounded-full"
-          style={{ background: `${N.paper}55`, boxShadow: `14vw 2vh 0 0 ${N.paper}33, 34vw -1vh 0 0 ${N.paper}44, 52vw 3vh 0 0 ${N.paper}2e, 63vw -2vh 0 0 ${N.paper}40, 26vw 6vh 0 0 ${N.paper}26, 44vw 1vh 0 0 ${N.paper}2a` }}
-        />
-        {/* depth vignette — the plate darkens toward its edges */}
-        <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(115% 95% at 50% 34%, transparent 58%, rgba(0,0,0,.30) 100%)' }} />
 
-        {/* the shoal — hatched shallows where wrecks lie aground */}
+        {/* the shoal — hatched shallows in the far corner where wrecks lie */}
         <div
           aria-hidden
-          className="absolute left-0 bottom-[10%] w-[27%] h-[15%]"
+          className="absolute left-0 bottom-[11%] w-[24%] h-[14%]"
           style={{
-            background: `repeating-linear-gradient(45deg, transparent 0 5px, ${N.paper}0c 5px 6px)`,
+            background: `repeating-linear-gradient(45deg, transparent 0 5px, ${N.paper}0a 5px 6px)`,
             borderRadius: '0 60% 45% 0 / 0 80% 60% 0',
-            borderTop: `1px solid ${N.paper}17`,
+            borderTop: `1px solid ${N.paper}14`,
           }}
         />
 
-        {/* the home quay — arrived ships moor here; the pier holds the not-yet-sailed */}
-        <div aria-hidden className="absolute inset-x-0 bottom-0 h-[11%]" style={{ background: N.land, borderTop: `1px solid ${N.paper}1f` }} />
-
-        {/* the lighthouse — Argus, keeping watch. A real silhouette now:
-            rock mole → tapered banded tower → gallery → lamp room. Its beam
-            is the sheet's one bold move; reduced-motion holds it still. */}
-        <div aria-hidden className="absolute" style={{ left: '75%', bottom: '10.2%', width: 34, height: 9, background: N.land, borderRadius: '50% 50% 0 0 / 100% 100% 0 0', transform: 'translateX(-50%)', boxShadow: `inset 0 1px 0 ${N.paper}1c` }} />
-        <div
-          aria-hidden
-          className="absolute"
-          style={{
-            left: '75%', bottom: 'calc(10.2% + 8px)', width: 9, height: 30,
-            transform: 'translateX(-50%)',
-            clipPath: 'polygon(24% 0%, 76% 0%, 100% 100%, 0% 100%)',
-            background: `repeating-linear-gradient(180deg, ${N.paper}70 0 5px, ${N.paper}3d 5px 10px)`,
-          }}
-        />
-        <div aria-hidden className="absolute" style={{ left: '75%', bottom: 'calc(10.2% + 37px)', width: 13, height: 1.5, background: `${N.paper}80`, transform: 'translateX(-50%)' }} />
-        <div aria-hidden className="absolute" style={{ left: '75%', bottom: 'calc(10.2% + 38.5px)', width: 6, height: 5, background: `${N.paper}30`, transform: 'translateX(-50%)', borderRadius: 1 }} />
-        <div aria-hidden className="absolute rounded-full" style={{ left: '75%', bottom: 'calc(10.2% + 39.5px)', width: 4, height: 4, background: N.gold, transform: 'translateX(-50%)', boxShadow: `0 0 12px 3px ${N.gold}59` }} />
-        <div aria-hidden className="absolute" style={{ left: '75%', bottom: 'calc(10.2% + 43.5px)', width: 8, height: 4, background: `${N.paper}66`, transform: 'translateX(-50%)', clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
-        <div
-          aria-hidden
-          className="vsea-beam absolute"
-          style={{
-            left: '75%',
-            bottom: 'calc(10.2% + 41px)',
-            width: 'min(58vw, 620px)',
-            aspectRatio: '1',
-            transformOrigin: '50% 100%',
-            transform: 'translateX(-50%) rotate(-8deg)',
-            background: `conic-gradient(from -10deg at 50% 100%, transparent 0deg, ${N.gold}12 7deg, ${N.gold}1f 10deg, ${N.gold}12 13deg, transparent 20deg)`,
-          }}
-        />
+        {/* the home quay — the harbour band along the bottom */}
+        <div aria-hidden className="absolute inset-x-0 bottom-0 h-[11%]" style={{ background: N.land, borderTop: `1px solid ${N.paper}22` }} />
+        {/* harbour light — a small static beacon marking home (no sweeping beam,
+            창업자 07-13). A short post + a warm gold lamp. */}
+        <div aria-hidden className="absolute" style={{ left: '50%', bottom: '11%', width: 1.5, height: 13, background: `${N.paper}88`, transform: 'translateX(-50%)' }} />
+        <div aria-hidden className="absolute rounded-full" style={{ left: '50%', bottom: 'calc(11% + 12px)', width: 5, height: 5, background: N.goldGlow, transform: 'translateX(-50%)', boxShadow: `0 0 7px 1.5px ${N.goldGlow}88` }} />
 
         {/* ── the axes, drawn as chart furniture so position reads as data ──
               Y = resolution (먼바다 위 → 항구 아래), X = activity recency
@@ -778,7 +704,12 @@ export function VoyageSea({
             A fact of attention, never a mark of failure (거울 조항). Only when
             ships actually sit there. */}
         {untended > 0 && (
-          <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(46% 52% at 6% 4%, color-mix(in srgb, var(--warning) 8%, transparent), transparent 62%)' }} />
+          <>
+            <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(44% 50% at 5% 3%, color-mix(in srgb, var(--warning) 13%, transparent), transparent 64%)' }} />
+            <span className="absolute top-[15%] left-[3%] text-[8px] font-mono uppercase tracking-[0.14em] pointer-events-none hidden sm:block" style={{ color: 'color-mix(in srgb, var(--warning) 78%, var(--text-primary))' }}>
+              {L(`오래 손 놓음 ${untended}`, `${untended} untended`)}
+            </span>
+          </>
         )}
         {/* graticule: horizon (resolution mid) + a recency mid-meridian */}
         <div aria-hidden className="absolute left-0 right-0 pointer-events-none" style={{ top: '50%', height: 1, background: `linear-gradient(90deg, transparent, ${N.paper}12 12%, ${N.paper}12 88%, transparent)` }} />
@@ -845,14 +776,12 @@ export function VoyageSea({
             const meta = VOYAGE_STATE_META[s.state];
             const stateLabel = s.beacon ? L('다시 볼 때', 'due back') : L(meta.ko, meta.en);
             const attention = s.state === 'adrift' || s.state === 'wrecked';
-            const size = s.beacon ? 42 : dense ? (attention ? 17 : 15) : 24;
-            // Persistent labels only where the sheet can hold them. Sentence-
-            // length names can't stack — even 6 in the neglect corner collide —
-            // so a dense fleet labels ONLY the due beacon. The untended ships
-            // instead carry a soft amber under-glow (below) so the top-left
-            // reads as "needs you" at a glance; names come from hover and from
-            // the due-strip beneath the map (which already lists them).
-            const showLabel = !dense || s.beacon;
+            const size = s.beacon ? 40 : dense ? (attention ? 17 : 15) : 24;
+            // Inline labels only for a SPARSE fleet's non-beacon ships (they
+            // fit). The beacon never labels inline — the notice card carries
+            // its name (no duplicate, no overlap). A dense fleet's names come
+            // from hover + the due-strip below the map.
+            const showLabel = !dense && !s.beacon;
             return (
               <button
                 key={s.id}
@@ -867,21 +796,19 @@ export function VoyageSea({
                 style={{ left: `${s.x}%`, top: `${s.y}%`, animationDelay: `${Math.min(i, 8) * 70}ms` }}
               >
                 {s.beacon && (
-                  <span
-                    aria-hidden
-                    className="vsea-halo absolute left-1/2 top-[34%] -z-[1] rounded-full"
-                    style={{ width: 130, height: 130, background: `radial-gradient(circle, ${N.gold}3d 0%, transparent 62%)`, transform: 'translate(-50%,-50%)' }}
-                  />
-                )}
-                {/* dense fleet: untended ships glow faint amber so the neglect
-                    corner reads at a glance without labels (fact color, not a
-                    verdict — 거울 조항). */}
-                {dense && attention && !s.beacon && (
-                  <span
-                    aria-hidden
-                    className="absolute left-1/2 top-[42%] -z-[1] rounded-full"
-                    style={{ width: 44, height: 44, background: 'radial-gradient(circle, color-mix(in srgb, var(--warning) 40%, transparent) 0%, transparent 66%)', transform: 'translate(-50%,-50%)' }}
-                  />
+                  <>
+                    <span
+                      aria-hidden
+                      className="vsea-halo absolute left-1/2 top-[36%] -z-[1] rounded-full"
+                      style={{ width: 110, height: 110, background: `radial-gradient(circle, color-mix(in srgb, ${N.goldGlow} 46%, transparent) 0%, transparent 64%)`, transform: 'translate(-50%,-50%)' }}
+                    />
+                    {/* a crisp gold ring — the due ship's calm marker (no beam) */}
+                    <span
+                      aria-hidden
+                      className="absolute left-1/2 top-[36%] -z-[1] rounded-full"
+                      style={{ width: 34, height: 34, border: `1.5px solid ${N.goldGlow}`, transform: 'translate(-50%,-50%)', opacity: 0.7 }}
+                    />
+                  </>
                 )}
                 <span className={s.state === 'wrecked' || s.state === 'docked' ? '' : 'vsea-bob'} style={{ animationDelay: `${(i % 5) * 1.1}s` }}>
                   <ShipMark
@@ -897,30 +824,30 @@ export function VoyageSea({
                 {showLabel ? (
                   <>
                     <span
-                      className={`${s.beacon ? '' : 'hidden sm:block'} max-w-[96px] text-center text-[10.5px] leading-[1.3] break-keep line-clamp-2 font-medium`}
-                      style={{ color: s.beacon ? N.paper : `${N.paper}b8`, fontFamily: 'var(--font-display)' }}
+                      className="hidden sm:block max-w-[96px] text-center text-[10.5px] leading-[1.3] break-keep line-clamp-2 font-medium"
+                      style={{ color: `${N.paper}d0`, fontFamily: 'var(--font-display)' }}
                     >
                       {s.name}
                     </span>
                     <span
-                      className={`${s.beacon ? '' : 'hidden sm:block opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity'} text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap`}
-                      style={{ color: s.beacon ? N.gold : `${N.paper}66` }}
+                      className="hidden sm:block opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap"
+                      style={{ color: `${N.paper}70` }}
                     >
                       {stateLabel} · {s.sub}
                     </span>
                   </>
-                ) : (
-                  /* dense: name + state as a hover/focus tooltip, raised above
-                     neighbours — only ever one is shown at a time, so it can't
-                     collide. */
+                ) : s.beacon ? null : (
+                  /* dense non-beacon: name + state as a hover/focus tooltip,
+                     raised above neighbours — only ever one shows at a time, so
+                     it can't collide. (The beacon is named by its card.) */
                   <span
-                    className="hidden sm:flex flex-col items-center gap-0.5 absolute top-[calc(100%+2px)] left-1/2 -translate-x-1/2 w-max max-w-[190px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none z-40"
-                    style={{ background: `${N.seaDeep}f2`, border: `1px solid ${N.paper}24` }}
+                    className="hidden sm:flex flex-col items-center gap-0.5 absolute top-[calc(100%+2px)] left-1/2 -translate-x-1/2 w-max max-w-[190px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity pointer-events-none z-40 shadow-[var(--shadow-md)]"
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border-subtle)' }}
                   >
-                    <span className="text-center text-[10.5px] leading-[1.25] break-keep line-clamp-2 font-medium" style={{ color: N.paper, fontFamily: 'var(--font-display)' }}>
+                    <span className="text-center text-[10.5px] leading-[1.25] break-keep line-clamp-2 font-medium" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
                       {s.name}
                     </span>
-                    <span className="text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap" style={{ color: s.due ? N.gold : `${N.paper}80` }}>
+                    <span className="text-[8px] font-mono uppercase tracking-[0.08em] whitespace-nowrap" style={{ color: s.due ? N.gold : 'var(--text-tertiary)' }}>
                       {stateLabel} · {s.sub}
                     </span>
                   </span>
@@ -936,7 +863,7 @@ export function VoyageSea({
             check-in has actually arrived. Sibling of the plate: floats over
             the water on sm+, flows below it on mobile. ── */}
       {beacon && (
-          <div className="static sm:absolute sm:right-[2.5%] sm:top-[7%] z-[3] mt-3 sm:mt-0 sm:max-w-[300px] rounded-xl border p-4" style={{ background: `${N.seaDeep}d9`, borderColor: `${N.paper}24`, backdropFilter: 'blur(3px)' }}>
+          <div className="static sm:absolute sm:right-[2.5%] sm:top-[7%] z-[3] mt-3 sm:mt-0 sm:max-w-[300px] rounded-xl p-4 shadow-[var(--shadow-md)]" style={{ background: N.card, border: `1px solid ${N.paper}1a`, borderTop: `2px solid ${N.gold}` }}>
             <p className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.16em] font-semibold" style={{ color: N.gold }}>
               <span aria-hidden className="vsea-pulse inline-block w-1.5 h-1.5 rounded-full" style={{ background: N.gold }} />
               {L('그래서, 어떻게 됐어요?', 'So, how did it go?')}
@@ -980,9 +907,9 @@ export function VoyageSea({
             onClick={() => onSelectReceipt?.(spotlight.members[0].receipt_id)}
             className="static sm:absolute sm:left-[2.5%] sm:top-[7%] z-[3] mt-3 sm:mt-0 flex items-center gap-2 rounded-full border py-1.5 pl-2.5 pr-3 cursor-pointer transition-[gap] hover:gap-2.5"
             style={{
-              background: `${N.seaDeep}e0`,
-              borderColor: 'color-mix(in srgb, var(--warning) 34%, transparent)',
-              backdropFilter: 'blur(3px)',
+              background: N.card,
+              border: '1px solid color-mix(in srgb, var(--warning) 40%, transparent)',
+              boxShadow: 'var(--shadow-sm)',
               maxWidth: 'min(94%, 340px)',
             }}
             aria-label={L(`전제 이동 — ${spotlight.text}. 전체 살펴보기`, `Premise moved — ${spotlight.text}. See the full ground`)}
