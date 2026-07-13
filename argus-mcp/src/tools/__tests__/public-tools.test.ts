@@ -42,6 +42,10 @@ describe('purpose-led public MCP surface', () => {
     expect(fs.readFileSync(configPath(dir), 'utf8')).toContain('locale: ko');
     expect(body(result)['tool']).toBe('argus_capture');
     expect(String(body(result)['surface'])).toMatch(/[가-힣]/);
+    // The premise-add result is spliced into this surface RAW (outside runPublic),
+    // so it must be publicCopy'd or it leaks the internal name "argus_premises".
+    // Guard the whole merged result, not just the surface.
+    expect(JSON.stringify(body(result))).not.toMatch(/argus_(premises|seal|settle|open_decision|recall|watch|init)\b/);
 
     const recalled = await history.handler({ argus_dir: dir, view: 'decision_context', id: 'career', today_override: '2026-07-13' });
     expect(isError(recalled)).toBe(false);

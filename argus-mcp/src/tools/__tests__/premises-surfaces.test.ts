@@ -240,3 +240,39 @@ describe('resources 표면 이름 누수 가드 (실행 경로)', () => {
     }
   });
 });
+
+describe('argus_recall view=reflection (내 맥락 다시 채우기 §8-B)', () => {
+  it('replays the user\'s own predicate + premises + outcome, with no tier/score', async () => {
+    const dir = tmpArgusDir();
+    await seal.handler({ argus_dir: dir, id: 'mig', predicate: 'the cutover finishes under 5 minutes', check_by: '2026-08-01', predicate_owner: 'user', today_override: '2026-07-01' });
+    await premises.handler({ argus_dir: dir, id: 'mig', op: 'add', today_override: '2026-07-01', premises: [{ text: 'the index rebuild fits in the lag budget', kind: 'premise', external: true, load_bearing: true, source: 'user_stated' }] });
+    await settle.handler({ argus_dir: dir, id: 'mig', outcome: 'missed', outcome_source: 'user_stated', what_happened: 'rebuild blew past the budget', broken_premise_ref: 'P1', today_override: '2026-08-02' });
+
+    const d = body(await recall.handler({ argus_dir: dir, view: 'reflection', today_override: '2026-08-03' }))['data'] as Record<string, unknown>;
+    // No verdict about the person — spine rule 2.
+    expect(d['judgment_tier']).toBeNull();
+    expect(d['judgment_score']).toBeNull();
+    // Your own reasoning is replayed: predicate, premise text, provenance, outcome.
+    const rows = d['reflections'] as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]['predicate']).toBe('the cutover finishes under 5 minutes');
+    expect(rows[0]['outcome']).toBe('missed');
+    const prem = (rows[0]['premises'] as Array<Record<string, unknown>>)[0];
+    expect(prem['text']).toBe('the index rebuild fits in the lag budget');
+    expect(prem['source']).toBe('user_stated');    // your words, not the model's
+    expect(prem['you_named_broken']).toBe(true);
+    // The only meaning-language is the shared frequency statement.
+    expect(String(d['frequency_statement'])).toMatch(/1 missed|빗나감 1/);
+  });
+
+  it('settled decisions sort before still-open ones (calibration first)', async () => {
+    const dir = tmpArgusDir();
+    await seal.handler({ argus_dir: dir, id: 'open1', predicate: 'the ship lands before the date here', check_by: '2026-12-01', predicate_owner: 'user', today_override: '2026-07-01' });
+    await seal.handler({ argus_dir: dir, id: 'done1', predicate: 'the rollout holds with no outage', check_by: '2026-08-01', predicate_owner: 'user', today_override: '2026-07-01' });
+    await settle.handler({ argus_dir: dir, id: 'done1', outcome: 'held', outcome_source: 'user_stated', what_happened: 'clean rollout, nothing broke', today_override: '2026-08-02' });
+    const rows = (body(await recall.handler({ argus_dir: dir, view: 'reflection', today_override: '2026-08-03' }))['data'] as Record<string, unknown>)['reflections'] as Array<Record<string, unknown>>;
+    expect(rows[0]['id']).toBe('done1'); // settled first — that is where calibration lives
+    expect(rows[0]['status']).toBe('settled');
+    expect(rows[1]['id']).toBe('open1');
+  });
+});

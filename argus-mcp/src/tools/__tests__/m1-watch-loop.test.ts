@@ -5,7 +5,8 @@
  *  1. the watch journey: anchor → capture → next session's check_in mirrors
  *     the anchor back as a question;
  *  2. an anchor is a NOTE, not a bet — it never enters ids/stats/track_record;
- *  3. the restraint cliff has an exit: leave_as_is now offers argus_watch;
+ *  3. the restraint cliff is resolved by recording quietly (기록과 의식 분리):
+ *     a restrained decision is still kept, so no separate watch-note exit is offered;
  *  4. capture provenance is never forged (ai_surfaced requires ai_original);
  *  5. surface vocabulary: no directive/praise language on watch & recheck
  *     surfaces, and the recheck handle-return matches the web T2 vocabulary.
@@ -90,8 +91,8 @@ describe('M1 · an anchor is a note, not a bet (§9.2-3 비산입)', () => {
   });
 });
 
-describe('M1 · a restrained decision stays quiet on the public surface', () => {
-  it('does not teach a separate watch ritual', async () => {
+describe('M1 · the restraint cliff is resolved by recording, not a watch note (§9.4 재설계)', () => {
+  it('a restrained open_decision records the decision quietly — no ceremony, no watch-note exit', async () => {
     const dir = tmpArgusDir();
     const res = body(await openDecision.handler({
       argus_dir: dir, id: 'flat-1', decision: 'tabs or spaces for this new file',
@@ -99,7 +100,11 @@ describe('M1 · a restrained decision stays quiet on the public surface', () => 
     }));
     expect((res['over_fire_gate'] as Record<string, unknown>)['fired']).toBe(false);
     expect(String(res['surface'])).not.toContain('argus_watch');
+    // 기록과 의식 분리: the cliff is gone because the decision is KEPT regardless
+    // of stakes — no separate watch-note exit is needed (the record already exists).
+    expect((res['data'] as Record<string, unknown>)['harvest_written']).toBe(true);
     expect(res['next_actions']).not.toContain('argus_watch');
+    expect(res['next_actions']).not.toContain('argus_predict');
     expect(res['next_actions']).toContain('leave_as_is');
   });
 });

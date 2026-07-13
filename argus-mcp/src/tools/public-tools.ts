@@ -134,7 +134,7 @@ const decidePublicSchema = z.strictObject({
 
 const historySchema = z.strictObject({
   argus_dir: zArgusDir,
-  view: z.enum(['active', 'all', 'receipt', 'decision_context', 'timeline']).default('active').describe('active는 진행 중인 결정, all은 전체 기록, receipt는 판단 영수증, decision_context는 결정의 전제와 미결 질문, timeline은 시간순 기록입니다.'),
+  view: z.enum(['active', 'all', 'receipt', 'decision_context', 'timeline', 'reflection']).default('active').describe('active는 진행 중인 결정, all은 전체 기록, receipt는 판단 영수증, decision_context는 결정의 전제와 미결 질문, timeline은 시간순 기록, reflection은 당신이 쓴 예측·전제와 그 결과를 되읽는 기록입니다.'),
   id: zId.describe('receipt 또는 decision_context를 볼 때 필요한 결정 id입니다.').optional(),
 });
 
@@ -295,12 +295,16 @@ export const decide: ToolModule = {
       });
       if (premiseResult.isError) return rewriteResult(premiseResult, 'argus_capture');
       const premiseData = premiseResult.structuredContent?.['data'];
-      const merged = {
+      // The premise-add result is spliced in RAW here, so — unlike the runPublic
+      // path — it never passed through the public-name translation. Its surface
+      // says "argus_premises"; publicCopy the whole merged object so that internal
+      // name (and any other) is rewritten to the public one before it reaches a host.
+      const merged = publicCopy({
         ...sc,
         tool: 'argus_capture',
         surface: `${String(sc?.['surface'] ?? '')} ${String(premiseResult.structuredContent?.['surface'] ?? '')}`.trim(),
         data: { ...((sc?.['data'] as Record<string, unknown>) ?? {}), premises: premiseData },
-      };
+      }) as Record<string, unknown>;
       result.structuredContent = merged;
       result.content = [{ type: 'text', text: JSON.stringify(merged, null, 2) }];
       return result;
@@ -318,7 +322,7 @@ export const decide: ToolModule = {
 
 export const history: ToolModule = {
   name: 'argus_patterns',
-  description: 'Read decisions already on record: what is open, all contracts, one Judgment Receipt, one decision’s premises, or the accumulated timeline. Read-only.',
+  description: 'Read decisions already on record: what is open, all contracts, one Judgment Receipt, one decision’s premises, the accumulated timeline, or a reflection that replays your own past predictions and premises next to what reality did. Read-only.',
   inputSchema: historySchema,
   outputSchema: ENVELOPE_OUTPUT_SCHEMA,
   annotations: { title: 'View judgment history', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },

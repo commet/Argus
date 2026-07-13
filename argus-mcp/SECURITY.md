@@ -19,9 +19,9 @@
   Telemetry rows are **deleted automatically after 90 days** (a daily database
   job — retention is enforced by the database itself, not by policy prose). The
   runtime dependency surface is intentionally small and visible in
-  `package.json`: MCP SDK, schema/config helpers, and document parsers for
-  `argus_review`. `npm audit --omit=dev` should stay clean before publishing.
-- **Private by default.** `argus_init` adds `sessions/`, `ledger/`,
+  `package.json`: MCP SDK, schema/config helpers, and document parsers.
+  `npm audit --omit=dev` should stay clean before publishing.
+- **Private by default.** On first use Argus adds `sessions/`, `ledger/`,
   `config.yaml`, and `.bound` to `.argus/.gitignore` so your decisions and
   local settings are never committed accidentally.
 
