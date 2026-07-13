@@ -17,7 +17,8 @@
  *  - The beacon quotes the user's own sealed predicate VERBATIM (honest
  *    provenance) and says so plainly when none exists (honest gap).
  *  - Retro (practice) voyages never sail here; < 2 ships → no sea at all.
- *  - Ships are click-to-open only (onSelect / onReview for due ships).
+ *  - Tapping a ship opens an in-place action card (열기 → onSelect/onSelectReceipt;
+ *    due → 정산 → onReview) — the board is worked, not just read.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -207,6 +208,41 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(mark?.style.width).toBe('24px'); // base size, not the 42px beacon scale
   });
 
+  it('scales — every ship renders at high count (no slot cap / overflow drop)', () => {
+    // 07-12 regression guard: the old fixed-slot layout silently dropped ships
+    // past a cap; the coordinate system must place ALL of them.
+    const many = Array.from({ length: 30 }, (_, i) =>
+      sealedProject(`m${i}`, `2026-0${(i % 9) + 1}-0${(i % 9) + 1}T00:00:00.000Z`),
+    );
+    render(many);
+    expect(container.querySelectorAll('[role="listitem"]').length).toBe(30);
+  });
+
+  it('the state filter isolates a slice — matches stay lit, the rest recede', () => {
+    const due = sealedProject('due1', '2026-01-10T00:00:00.000Z', {
+      decision_contract: {
+        id: 'c-due1', project_id: 'due1', created_at: '2026-01-10T00:00:00.000Z',
+        check_in_at: '2026-02-28T00:00:00.000Z',
+        predicates: [{ id: 'p1', text: '내기', source: 'user_lean', authored: 'user' }],
+      },
+    });
+    render([due, sealedProject('b', '2026-02-01T00:00:00.000Z'), sealedProject('c', '2026-02-15T00:00:00.000Z')], {
+      dueProjectIds: ['due1'],
+    });
+    const chip = Array.from(container.querySelectorAll('button')).find((b) =>
+      (b.textContent || '').includes('다시 볼 것'),
+    )!;
+    expect(chip).toBeTruthy();
+    act(() => chip.click());
+    const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLElement[];
+    const dueItem = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-due1'))!;
+    const other = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-b'))!;
+    expect(dueItem.style.opacity).toBe('1'); // the match stays
+    expect(other.style.opacity).toBe('0.1'); // the rest recede
+    // and the chip reports its true count
+    expect(chip.textContent).toContain('1');
+  });
+
   it('leaks no score / % / grade / streak / comparison string', () => {
     render([
       sealedProject('a', '2026-01-05T00:00:00.000Z'),
@@ -223,7 +259,7 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     expect(text).not.toMatch(/better|worse|더 나|보다/i);
   });
 
-  it('opens a project on ship click; due ships route to revisit instead', () => {
+  it('taps a ship to an action card; open vs settle route correctly', () => {
     const due = sealedProject('due1', '2026-01-10T00:00:00.000Z', {
       decision_contract: {
         id: 'c-due1',
@@ -240,10 +276,47 @@ describe('VoyageSea — spine gate (거울 조항, 항해 지도판)', () => {
     const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLButtonElement[];
     const dueBtn = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-due1'))!;
     const plainBtn = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-b'))!;
+    // Tapping a ship no longer navigates — it opens an action card in place.
     act(() => dueBtn.click());
+    const reviewBtn = container.querySelector('[data-testid="ship-action-review"]') as HTMLButtonElement;
+    expect(reviewBtn).toBeTruthy(); // a due ship offers 정산·다시 보기
+    act(() => reviewBtn.click());
     expect(onReview).toHaveBeenCalledWith('due1');
+
     act(() => plainBtn.click());
+    const openBtn = container.querySelector('[data-testid="ship-action-open"]') as HTMLButtonElement;
+    act(() => openBtn.click());
     expect(onSelect).toHaveBeenCalledWith('b');
+  });
+
+  // ── shared-ground leverage: two decisions on the SAME sealed premise are
+  //    linked (a fact, exact-match); a third with a different premise is not.
+  it('leverage links decisions on the same sealed premise, and only those', () => {
+    const withPremise = (id: string, text: string): Partial<Project> => ({
+      decision_contract: {
+        id: `c-${id}`,
+        project_id: id,
+        created_at: '2026-01-01T00:00:00.000Z',
+        check_in_at: '2099-01-01T00:00:00.000Z',
+        predicates: [{ id: `p-${id}`, text, source: 'governing_idea', authored: 'user' }],
+      },
+    });
+    render([
+      sealedProject('a', '2026-01-01T00:00:00.000Z', withPremise('a', '금리가 3.5% 근처에 머문다')),
+      sealedProject('b', '2026-01-02T00:00:00.000Z', withPremise('b', '금리가 3.5% 근처에 머문다')),
+      sealedProject('c', '2026-01-03T00:00:00.000Z', withPremise('c', '전혀 다른 전제')),
+    ]);
+    const items = Array.from(container.querySelectorAll('[role="listitem"]')) as HTMLButtonElement[];
+    const shipA = items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-a'))!;
+    act(() => shipA.click());
+    const card = container.querySelector('[role="menu"]')!;
+    expect(card.textContent).toContain('같은 전제 위 2척'); // a + b stand together
+    expect(card.textContent).toContain('voyage-b'); // the sibling is named
+    expect(card.textContent).not.toContain('voyage-c'); // different premise → no invented link
+
+    // A decision whose premise nobody shares shows NO leverage callout (restraint).
+    act(() => (items.find((el) => (el.getAttribute('aria-label') || '').includes('voyage-c'))!).click());
+    expect(container.querySelector('[role="menu"]')!.textContent).not.toContain('같은 전제 위');
   });
 });
 
@@ -311,6 +384,8 @@ describe('one sea — receipt vessels and undersea currents', () => {
     const receiptShip = items.find((b) => (b.getAttribute('aria-label') || '').includes('검수 결정'))!;
     expect(receiptShip).toBeTruthy();
     act(() => receiptShip.click());
+    const openBtn = container.querySelector('[data-testid="ship-action-open"]') as HTMLButtonElement;
+    act(() => openBtn.click());
     expect(onSelectReceipt).toHaveBeenCalledWith('r1');
   });
 
@@ -328,6 +403,51 @@ describe('one sea — receipt vessels and undersea currents', () => {
     const currents = Array.from(container.querySelectorAll('[data-testid="fleet-current"]'));
     expect(currents.length).toBe(1);
     expect(currents[0].getAttribute('data-drifted')).toBe('1');
+  });
+
+  it('drift × leverage: decisions on a MOVED premise warn amber and the chip counts them', () => {
+    const onGround = (id: string, createdAt: string): Partial<Project> => ({
+      decision_contract: {
+        id: `c-${id}`, project_id: id, created_at: createdAt, check_in_at: '2099-01-01T00:00:00.000Z',
+        predicates: [{ id: `p-${id}`, text: GROUND, source: 'governing_idea', authored: 'user' }],
+      },
+    });
+    const drifted = rPremise(GROUND, {
+      last_recheck: {
+        finding: '4.0%', numeric_value: 4, baseline_finding: '3.5%', baseline_numeric_value: 3.5,
+        drifted: true, baseline_only: false, source: 'url', ts: '2026-02-20T00:00:00Z',
+      },
+    });
+    act(() => {
+      root.render(
+        createElement(VoyageSea, {
+          projects: [
+            sealedProject('pg1', '2026-01-05T00:00:00.000Z', onGround('pg1', '2026-01-05T00:00:00.000Z')),
+            sealedProject('pg2', '2026-01-06T00:00:00.000Z', onGround('pg2', '2026-01-06T00:00:00.000Z')),
+          ],
+          ...emptyLedgers,
+          dueProjectIds: [],
+          locale: 'ko' as const,
+          onSelect: vi.fn(),
+          onReview: vi.fn(),
+          receipts: [
+            sealedReceipt('r1', '조달', '2026-02-01T00:00:00.000Z', [drifted]),
+            sealedReceipt('r2', '가격', '2026-02-15T00:00:00.000Z', [rPremise(GROUND)]),
+          ],
+          onSelectReceipt: vi.fn(),
+        }),
+      );
+    });
+    // the drift chip quantifies the blast radius — 2 charted decisions on GROUND
+    expect(container.textContent).toContain('그 위 2척');
+    // tapping one exposes the group AND flags the moved ground (a fact, amber)
+    const shipG = Array.from(container.querySelectorAll('[role="listitem"]')).find((el) =>
+      (el.getAttribute('aria-label') || '').includes('voyage-pg1'),
+    ) as HTMLButtonElement;
+    act(() => shipG.click());
+    const card = container.querySelector('[role="menu"]')!;
+    expect(card.textContent).toContain('같은 전제 위 2척');
+    expect(card.textContent).toContain('이 전제가 최근 흔들렸어요'); // drift → warning
   });
 
   it('no shared ground → no current elements at all (nothing invented)', () => {
@@ -350,14 +470,15 @@ describe('one sea — receipt vessels and undersea currents', () => {
       sealedReceipt('r2', '가격', '2026-02-15T00:00:00.000Z', [rPremise(GROUND)]),
     ]);
     const text = container.textContent || '';
-    expect(text).toContain('전제가 움직였어요');
-    expect(text).toContain(GROUND); // the user's own sentence, verbatim
-    expect(text).toContain('살아있는 판단');
-    const cta = Array.from(container.querySelectorAll('button')).find((b) =>
-      (b.textContent || '').includes('전체 살펴보기'),
+    expect(text).toContain('전제 이동');
+    // the user's own sentence, verbatim (chip truncates the display but the
+    // full ground is in the accessible label)
+    const chip = Array.from(container.querySelectorAll('button')).find((b) =>
+      (b.getAttribute('aria-label') || '').includes('전제 이동'),
     )!;
-    expect(cta).toBeTruthy();
-    act(() => cta.click());
+    expect(chip).toBeTruthy();
+    expect(chip.getAttribute('aria-label')).toContain(GROUND);
+    act(() => chip.click());
     expect(onSelectReceipt).toHaveBeenCalledWith('r1');
   });
 
@@ -366,7 +487,7 @@ describe('one sea — receipt vessels and undersea currents', () => {
       sealedReceipt('r1', '조달', '2026-02-01T00:00:00.000Z', [rPremise(GROUND)]),
       sealedReceipt('r2', '가격', '2026-02-15T00:00:00.000Z', [rPremise(GROUND)]),
     ]);
-    expect(container.textContent).not.toContain('전제가 움직였어요');
+    expect(container.textContent).not.toContain('전제 이동');
     const currents = Array.from(container.querySelectorAll('[data-testid="fleet-current"]'));
     expect(currents.length).toBe(1);
     expect(currents[0].getAttribute('data-drifted')).toBe('0');
