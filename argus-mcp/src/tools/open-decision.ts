@@ -72,9 +72,32 @@ export const openDecision: ToolModule = {
       };
       const gate = overfireGate(signals);
 
+      // Validate any model-supplied crux BEFORE any side-effect — invalid input
+      // must error without persisting. (The public capture surface no longer
+      // sends a crux; this guards internal callers that still can.)
+      const cruxErr = validateCrux(a['crux_question']);
+      if (cruxErr) {
+        return toolError({ ok: false, tool: 'argus_open_decision', error_code: cruxErr.code, message: cruxErr.message, recovery: cruxErr.recovery });
+      }
+
       const now = new Date().toISOString();
       // Always log the gate inputs for post-hoc accuracy measurement (M2).
       await appendLedger(dir, [{ id, event: 'gate_input', gate: { ...signals, verdict: gate.reason } }], now);
+
+      // 기록과 의식을 분리한다: the user's own decision and premise are recorded
+      // REGARDLESS of the gate — deciding it "isn't worth keeping" would itself
+      // be a judgment about the user's decision (zero-judgment violation). The
+      // over-fire gate now governs only the surface CEREMONY (whether a crux is
+      // offered and a seal is nudged), never whether the record is written.
+      await ensurePrivacyGitignore(dir);
+      await atomicWriteJson(sessionFilePath(dir, id), {
+        v: SCHEMA_VERSION, id, problem_text: a['decision'], status_quo: a['status_quo'],
+        load_bearing_assumption: a['load_bearing_assumption'] ?? null, created_at: now,
+      });
+      await appendLedger(dir, [{ id, event: 'harvest', decision: a['decision'] as string }], now);
+
+      const relatedIds = Array.isArray(a['related_to']) ? (a['related_to'] as string[]) : [];
+      const continuity = relatedIds.length ? computeContinuity(dir, relatedIds) : undefined;
 
       if (gate.response === 'reconfirm') {
         return envelope({
@@ -82,7 +105,7 @@ export const openDecision: ToolModule = {
           surface: T.reconfirm,
           next_actions: ['argus_open_decision', 'leave_as_is'],
           over_fire_gate: { fired: false, reason: gate.reason },
-          data: { id, crux_question: null, restraint_option: a['status_quo'], fork_emitted: false, harvest_written: false },
+          data: { id, crux_question: null, restraint_option: a['status_quo'], fork_emitted: false, harvest_written: true, continuity },
         });
       }
 
@@ -91,33 +114,19 @@ export const openDecision: ToolModule = {
           ok: true, tool: 'argus_open_decision',
           // Human sentence, not a snake_case enum (11 P2-1). Contract (§4): the
           // line ENDS by naming the option and returning the handle — never a
-          // directive ("leave it") issued in the user's stead.
-          // §9.4 절벽 제거: the restraint verdict stands, but a user who still
-          // wants the thought KEPT gets an exit — a watch note, not a decision.
-          surface: `${T.reason[gate.reason as keyof typeof T.reason] ?? T.reason_fallback} ${T.leave_coda}${T.watch_exit}`,
-          next_actions: ['leave_as_is', 'argus_watch', 'skip'],
+          // directive ("leave it") issued in the user's stead. The decision is
+          // now recorded quietly, so the old "jot a note if you want it kept"
+          // exit is gone (it IS kept); the gate only withholds the ceremony.
+          surface: `${T.reason[gate.reason as keyof typeof T.reason] ?? T.reason_fallback} ${T.leave_coda}`,
+          next_actions: ['leave_as_is', 'skip'],
           over_fire_gate: { fired: false, reason: gate.reason },
-          data: { id, crux_question: null, restraint_option: a['status_quo'], fork_emitted: false, harvest_written: false },
+          data: { id, crux_question: null, restraint_option: a['status_quo'], fork_emitted: false, harvest_written: true, continuity },
         });
       }
 
-      // FIRE: validate any model-supplied crux, persist the harvest.
-      const cruxErr = validateCrux(a['crux_question']);
-      if (cruxErr) {
-        return toolError({ ok: false, tool: 'argus_open_decision', error_code: cruxErr.code, message: cruxErr.message, recovery: cruxErr.recovery });
-      }
-
-      await ensurePrivacyGitignore(dir);
-      await atomicWriteJson(sessionFilePath(dir, id), {
-        v: SCHEMA_VERSION, id, problem_text: a['decision'], status_quo: a['status_quo'],
-        load_bearing_assumption: a['load_bearing_assumption'] ?? null, created_at: now,
-      });
-      await appendLedger(dir, [{ id, event: 'harvest', decision: a['decision'] as string }], now);
-
+      // FIRE: the ceremony — surface the one neutral crux (if supplied) and the
+      // seal path. Persistence already happened above.
       const crux = (a['crux_question'] as string | undefined) ?? null;
-      const relatedIds = Array.isArray(a['related_to']) ? (a['related_to'] as string[]) : [];
-      const continuity = relatedIds.length ? computeContinuity(dir, relatedIds) : undefined;
-
       return envelope({
         ok: true, tool: 'argus_open_decision',
         surface: crux ? T.opened_with_crux(crux) : T.opened_bare,

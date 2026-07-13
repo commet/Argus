@@ -140,13 +140,25 @@ describe('explicit skip trace (spine: escape kept, omission honest)', () => {
   });
 });
 
-describe('over-fire restraint writes no harvest', () => {
-  it('low-stakes decision returns leave_as_is and never opens', async () => {
+describe('over-fire restraint withholds ceremony but still records (기록과 의식 분리)', () => {
+  it('low-stakes decision is recorded quietly — no crux, no fork, no seal push', async () => {
     const dir = tmpArgusDir();
     const r = body(await openDecision.handler({ argus_dir: dir, id: 'flat', decision: 'which font', stakes: 'low', reversibility: 'easily_reversible', status_quo: 'keep current' }));
-    expect((r['data'] as Record<string, unknown>)['harvest_written']).toBe(false);
-    expect((r['data'] as Record<string, unknown>)['fork_emitted']).toBe(false);
+    const data = r['data'] as Record<string, unknown>;
+    // Recorded: the user's own decision is kept regardless of stakes — deciding
+    // it "isn't worth keeping" would itself be a judgment (zero-judgment).
+    expect(data['harvest_written']).toBe(true);
+    // But the ceremony is withheld: no fork, no manufactured crux, gate not fired.
+    expect(data['fork_emitted']).toBe(false);
+    expect(data['crux_question']).toBeNull();
+    expect((r['over_fire_gate'] as Record<string, unknown>)['fired']).toBe(false);
+    // Restraint: the handle is returned, but no seal is nudged on a low-stakes call.
     expect(r['next_actions']).toContain('leave_as_is');
+    expect(r['next_actions']).not.toContain('argus_seal');
+    // Prove the record is real, not just a flag: it is readable afterward. If
+    // persistence ever re-couples to the gate, this turns red.
+    const seen = body(await recall.handler({ argus_dir: dir, view: 'contracts' }))['data'] as Record<string, unknown>;
+    expect((seen['contracts'] as unknown[]).length).toBe(1);
   });
 });
 
