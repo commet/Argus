@@ -27,6 +27,7 @@ const KO_TOOL_PRESENTATION: Record<string, ToolPresentation> = {
   argus_init: { titleKo: 'Argus 초기화', descriptionKo: '프로젝트의 .argus 기록 공간과 개인정보 보호 설정을 초기화합니다. 반복 호출해도 안전합니다.' },
   argus_config: { titleKo: 'Argus 설정', descriptionKo: '언어, 담당자, 팀, 보관 및 알림 관련 설정을 읽거나 수정합니다.' },
   argus_settings: { titleKo: 'Argus 설정', descriptionKo: '언어와 알림, 전제 동기화 설정을 관리하고 필요할 때 계정 기록을 동기화합니다.' },
+  argus_record: { titleKo: '판단 기록 파일럿', descriptionKo: '명시적 승인, 관찰, 확인 답변, 종결을 분리해 기록하는 v6 파일럿입니다.' },
 };
 
 export function bilingualToolPresentation(
