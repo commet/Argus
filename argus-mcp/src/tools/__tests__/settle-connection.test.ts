@@ -65,10 +65,36 @@ describe('settle 연결 읽기 — 같은 전제에 선 다른 열린 결정', (
     // (predicate가 영어 → locale=en, 언어 일치 규칙대로 표면도 영어.)
     expect(settled.data['connections']).toEqual(['rate-limiter']);
     expect(settled.surface).toContain('rate-limiter');
-    expect(settled.surface).toContain('The same assumption');
+    expect(settled.surface).toContain('same assumption');
     // 스파인: 평결 어휘 없음 — 사실 + 손잡이(check_in)뿐.
     expect(settled.surface).not.toMatch(/recommend|verdict|you were wrong|mistake/i);
     expect(settled.surface).toContain('argus_check_in');
+  });
+
+  it('shared_fact: 문장은 달라도 같은 URL을 가리키면 연결한다 (§9 1층)', async () => {
+    await call(init, { argus_dir: argusDir });
+    await call(seal, {
+      argus_dir: argusDir, id: 'launch', predicate: 'ship the paid tier at launch window',
+      check_by: '2026-09-01', predicate_owner: 'user',
+      unverified_assumption: 'the free deal at https://partner.com/pricing holds through launch',
+      today_override: '2026-07-13',
+    });
+    await call(seal, {
+      argus_dir: argusDir, id: 'cost-plan', predicate: 'gross margin stays above 60 percent',
+      check_by: '2026-10-01', predicate_owner: 'user',
+      unverified_assumption: 'our margin math assumes https://partner.com/pricing stays free',
+      today_override: '2026-07-13',
+    });
+    const settled = await call(settle, {
+      argus_dir: argusDir, id: 'launch', outcome: 'missed', outcome_source: 'user_stated',
+      what_happened: 'partner started charging for the API', broken_premise_ref: 'P1',
+      today_override: '2026-09-01',
+    });
+    // 두 전제 문장은 다르지만 같은 URL을 가리키므로 shared_fact로 이어져야 한다.
+    expect(settled.data['connections']).toEqual(['cost-plan']);
+    const reasons = settled.data['connection_reasons'] as Array<{ id: string; reason: string; via?: string }>;
+    expect(reasons[0]).toMatchObject({ id: 'cost-plan', reason: 'shared_fact', via: 'url:https://partner.com/pricing' });
+    expect(settled.surface).toContain('cost-plan');
   });
 
   it('한국어 전제 텍스트도 파이프라인을 통과해 매칭된다', async () => {

@@ -15,7 +15,7 @@ import { argusHome } from '../v2/ledger.js';
 import { loadState } from '../v2/reducer.js';
 import { contextFor } from '../v2/bridge.js';
 import { gitCommonDirOf } from '../v2/git-discovery.js';
-import { decisionsSharingPremise, type SharedPremiseLink } from '../v2/connection.js';
+import { relatedOpenDecisions, type RelatedDecision } from '../v2/connection.js';
 import { sanitizeLine } from '../v2/sanitize.js';
 import { z } from 'zod';
 import { envelope, toolError } from '../lib/envelope.js';
@@ -155,16 +155,16 @@ export const settle: ToolModule = {
       // 원장이 없거나 읽기가 실패해도 정산은 그대로 성공한다. 평결 없음: 어느
       // 결정이 같은 가정에 기대는지(사실)와 argus_check_in(손잡이)뿐.
       let connectionLine = '';
-      let connections: SharedPremiseLink[] = [];
+      let connections: RelatedDecision[] = [];
       if (brokenPremiseId && brokenPremiseText && brokenPremiseText.trim()) {
-        connections = decisionsSharingBrokenPremise(dir, today, brokenPremiseText, id);
+        connections = relatedOpenBrokenPremise(dir, today, brokenPremiseText, id);
         if (connections.length > 0) {
           const shown = connections.slice(0, 3).map((c) => c.decision_id);
           const extra = connections.length - shown.length;
           const q = sanitizeLine(brokenPremiseText, 80);
           connectionLine = locale === 'ko'
-            ? `\n같은 전제("${q}")에 기댄 다른 열린 결정: ${shown.join(', ')}${extra > 0 ? ` 외 ${extra}개` : ''}. argus_check_in으로 함께 볼 수 있어요.`
-            : `\nThe same assumption ("${q}") underlies other open decisions: ${shown.join(', ')}${extra > 0 ? ` (+${extra} more)` : ''}. Review them together with argus_check_in.`;
+            ? `\n방금 깨진 전제("${q}")와 같은 가정이나 근거에 선 다른 열린 결정: ${shown.join(', ')}${extra > 0 ? ` 외 ${extra}개` : ''}. argus_check_in으로 함께 볼 수 있어요.`
+            : `\nOther open decisions rest on the same assumption or fact as the one that just broke ("${q}"): ${shown.join(', ')}${extra > 0 ? ` (+${extra} more)` : ''}. Review them together with argus_check_in.`;
         }
       }
 
@@ -192,7 +192,10 @@ export const settle: ToolModule = {
           v2_write: v2Write,
           assumption_held: receipt.assumption_held,
           ...(brokenPremiseRef ? { broken_premise: brokenPremiseRef, broken_premise_source: 'user_stated' } : {}),
-          ...(connections.length > 0 ? { connections: connections.map((c) => c.decision_id) } : {}),
+          ...(connections.length > 0 ? {
+            connections: connections.map((c) => c.decision_id),
+            connection_reasons: connections.map((c) => ({ id: c.decision_id, reason: c.reason, ...(c.via ? { via: c.via } : {}) })),
+          } : {}),
           ai_verdict: null,
           account_synced: sync.synced,
           ...(sync.synced ? {} : { account_sync_reason: sync.reason }),
@@ -213,7 +216,7 @@ export const settle: ToolModule = {
  * 배열. 정산은 이 결과와 무관하게 성공한다 (연결은 덤, 결코 정산을 깨지 않는다).
  * 순수 매칭은 connection.ts(decisionsSharingPremise)에 있고 여기서는 상태 로딩만.
  */
-function decisionsSharingBrokenPremise(dir: string, today: string, brokenText: string, decisionId: string): SharedPremiseLink[] {
+function relatedOpenBrokenPremise(dir: string, today: string, brokenText: string, decisionId: string): RelatedDecision[] {
   try {
     const commonDir = gitCommonDirOf(dir);
     if (!commonDir) return [];
@@ -221,7 +224,7 @@ function decisionsSharingBrokenPremise(dir: string, today: string, brokenText: s
       home: argusHome(), gitCommonDir: commonDir, workspaceArgusDir: dir,
       sessionId: `mcp-${process.pid}`, producerVersion: '2.0.0', today,
     });
-    return decisionsSharingPremise(loadState(ctx.home, ctx.repository_id), brokenText, decisionId);
+    return relatedOpenDecisions(loadState(ctx.home, ctx.repository_id), brokenText, decisionId);
   } catch {
     return [];
   }

@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DecisionRecord, LedgerState, PremiseRecord } from './reducer.js';
 import { emptyState } from './reducer.js';
-import { decisionsSharingPremise, normalizePremiseText } from './connection.js';
+import { decisionsSharingPremise, extractTargets, normalizePremiseText, relatedOpenDecisions } from './connection.js';
 
 function decision(id: string, state: DecisionRecord['state']): DecisionRecord {
   return { id, state, snooze_count: 0 };
@@ -89,5 +89,50 @@ describe('decisionsSharingPremise — 깨진 전제와 같은 전제에 선 열�
     );
     expect(decisionsSharingPremise(s, broken, 'z')).toHaveLength(1);
     expect(decisionsSharingPremise(s, '   ', 'z')).toEqual([]);
+  });
+});
+
+describe('extractTargets — 위조 불가능한 근거만 (§9 1층·§10)', () => {
+  it('URL을 정규화해 뽑는다 (호스트 소문자·fragment·끝슬래시 제거)', () => {
+    expect(extractTargets('see https://Partner.com/pricing/#plans for the deal.')).toEqual(['url:https://partner.com/pricing']);
+    expect(extractTargets('http://x.io/a and http://x.io/a/')).toEqual(['url:http://x.io/a']);
+  });
+  it('ISO 날짜를 뽑는다', () => {
+    expect(extractTargets('free until 2026-12-31 per contract')).toEqual(['date:2026-12-31']);
+  });
+  it('맨숫자·금액·상대월은 뽑지 않는다 (오연결 함정 — P3로 유보)', () => {
+    expect(extractTargets('write volume under 200/sec, budget $5000, ship by 12월')).toEqual([]);
+  });
+});
+
+describe('relatedOpenDecisions — 같은 근거(shared_fact)로도 잇는다', () => {
+  const dealUrl = 'the deal at https://partner.com/pricing runs out';
+  it('표면 문장이 달라도 같은 URL을 가리키면 shared_fact로 잇는다', () => {
+    const s = stateOf(
+      [decision('launch', 'settled'), decision('cost-plan', 'sealed')],
+      [
+        premise('p1', 'launch', dealUrl),
+        premise('p2', 'cost-plan', 'our margin depends on https://partner.com/pricing staying free'),
+      ],
+    );
+    const r = relatedOpenDecisions(s, dealUrl, 'launch');
+    expect(r).toHaveLength(1);
+    expect(r[0]!.decision_id).toBe('cost-plan');
+    expect(r[0]!.reason).toBe('shared_fact');
+    expect(r[0]!.via).toBe('url:https://partner.com/pricing');
+  });
+  it('같은 전제(문장)면 same_premise가 shared_fact보다 우선', () => {
+    const s = stateOf(
+      [decision('a', 'sealed')],
+      [premise('p1', 'a', dealUrl)], // 깨진 것과 같은 문장 + 같은 URL 둘 다 성립
+    );
+    expect(relatedOpenDecisions(s, dealUrl, 'z')[0]!.reason).toBe('same_premise');
+  });
+  it('깨진 전제에 근거 토큰이 없으면 shared_fact는 발동하지 않는다 (same_premise만)', () => {
+    const s = stateOf(
+      [decision('a', 'sealed')],
+      [premise('p1', 'a', 'depends on https://partner.com/pricing')],
+    );
+    expect(relatedOpenDecisions(s, 'write volume under 200/sec', 'z')).toEqual([]);
   });
 });
