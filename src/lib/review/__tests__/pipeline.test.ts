@@ -279,6 +279,24 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(receipt!.coverage!.notes).toEqual([]);
   });
 
+  it('de-dups an issue surfaced by multiple lenses in the single-pass path', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const uid = artifact.units[0].unit_id;
+    const base = mockLLM(artifact);
+    // Every lens returns the SAME anchored finding — they must collapse to one.
+    const llm: ReviewLLM = {
+      model_name: base.model_name, model_provider: base.model_provider,
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (args.system.includes('렌즈다')) {
+          return { findings: [{ title: '핵심 주장에 근거가 없음', detail: 'd', severity: 'critical', confidence: 'medium', suggested_action: 'a', unit_ids: [uid] }] } as T;
+        }
+        return base.json<T>(args);
+      },
+    };
+    const { receipt } = await runDocumentReview(artifact, { llm, today: '2026-07-01' });
+    expect(receipt!.findings.filter((f) => f.title.includes('핵심 주장에 근거가 없음')).length).toBe(1);
+  });
+
   it('reviews a long document end-to-end via chunking (full coverage, not just the front)', async () => {
     // 400 paragraphs → far past one prompt. The map-reduce path must cover the
     // WHOLE document (the old front-slice reviewed only the first ~160/13%).

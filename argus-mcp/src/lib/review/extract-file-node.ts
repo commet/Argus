@@ -50,14 +50,41 @@ export async function extractFileFromPath(filePath: string, kind: SourceKind): P
 
 async function extractDocx(buf: Buffer): Promise<ExtractedText> {
   const mammoth = await import('mammoth');
-  const { value, messages } = await mammoth.extractRawText({ buffer: buf });
-  const text = (value || '').trim();
-  const lost = messages.some((m: { type: string }) => m.type === 'warning');
+  // Markdown (not raw text) so Word headings/lists/tables survive into the same
+  // markdown-aware ingest path (parity with the browser extractor). convertToMarkdown
+  // exists at runtime (mammoth 1.x) but is missing from the shipped types.
+  const toMarkdown = (mammoth as unknown as {
+    convertToMarkdown?: (i: { buffer: Buffer }) => Promise<{ value: string; messages: { type: string }[] }>;
+  }).convertToMarkdown;
+  let messages: { type: string }[] = [];
+  let text = '';
+  if (toMarkdown) {
+    const r = await toMarkdown({ buffer: buf });
+    messages = r.messages;
+    text = stripDocxMarkdownNoise(r.value || '');
+  }
+  if (text.length < 40) {
+    const raw = await mammoth.extractRawText({ buffer: buf });
+    text = (raw.value || '').trim();
+    messages = raw.messages;
+  }
+  const lost = messages.some((m) => m.type === 'warning');
   return {
     text,
     quality: text.length > 40 ? 'medium' : 'low',
     note: lost ? '일부 표/이미지 서식은 텍스트로 변환되지 않았습니다.' : undefined,
   };
+}
+
+/** Clean mammoth markdown: drop embedded image data-URIs, unescape the
+ *  backslash escapes mammoth adds to punctuation (else a heading reads
+ *  "1\. 개요"), and collapse blank runs. */
+function stripDocxMarkdownNoise(md: string): string {
+  return md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\\([\\`*_{}[\]()#+\-.!>~|])/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // --------------------------------------------------------------------------

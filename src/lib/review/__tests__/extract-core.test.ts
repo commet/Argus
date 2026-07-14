@@ -102,6 +102,15 @@ describe('emitPdfUnits', () => {
     expect(section).toBe('2. 현황 분석'); // running section carries to the next page
   });
 
+  it('emits a tabular row (cells joined by " | ") as its own table unit', () => {
+    const units: ArtifactUnit[] = [];
+    emitPdfUnits(['1. 예산', '항목 | 금액 | 비고', '개발 | 3억 | 확정'], 5, units, null, () => {});
+    const tables = units.filter((u) => u.kind === 'table');
+    expect(tables.length).toBe(2);
+    expect(tables[0].source_anchor.section_path).toEqual(['1. 예산']);
+    expect(tables[0].source_anchor.page).toBe(5);
+  });
+
   it('breaks a long section body by size even with no heading', () => {
     const units: ArtifactUnit[] = [];
     emitPdfUnits([bigLine, bigLine, bigLine], 1, units, null, () => {});

@@ -60,14 +60,43 @@ export async function extractFile(file: File, kind: SourceKind): Promise<Extract
 
 async function extractDocx(buf: ArrayBuffer): Promise<ExtractedText> {
   const mammoth = await import('mammoth');
-  const { value, messages } = await mammoth.extractRawText({ arrayBuffer: buf });
-  const text = (value || '').trim();
-  const lost = messages.some((m: { type: string }) => m.type === 'warning');
+  // Markdown (not raw text) so Word headings/lists/tables survive into the same
+  // markdown-aware ingest path. extractRawText flattened every docx into
+  // structureless prose — headings lost, findings anchorable only to a line.
+  // convertToMarkdown exists at runtime (mammoth 1.x) but is missing from the
+  // shipped types, so reach it through a typed cast and fall back to raw text.
+  const toMarkdown = (mammoth as unknown as {
+    convertToMarkdown?: (i: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string; messages: { type: string }[] }>;
+  }).convertToMarkdown;
+  let messages: { type: string }[] = [];
+  let text = '';
+  if (toMarkdown) {
+    const r = await toMarkdown({ arrayBuffer: buf });
+    messages = r.messages;
+    text = stripDocxMarkdownNoise(r.value || '');
+  }
+  if (text.length < 40) {
+    const raw = await mammoth.extractRawText({ arrayBuffer: buf });
+    text = (raw.value || '').trim();
+    messages = raw.messages;
+  }
+  const lost = messages.some((m) => m.type === 'warning');
   return {
     text,
     quality: text.length > 40 ? 'medium' : 'low',
     note: lost ? '일부 표/이미지 서식은 텍스트로 변환되지 않았습니다.' : undefined,
   };
+}
+
+/** Clean mammoth markdown: drop embedded image data-URIs, unescape the
+ *  backslash escapes mammoth adds to punctuation (else a heading reads
+ *  "1\. 개요"), and collapse blank runs. */
+function stripDocxMarkdownNoise(md: string): string {
+  return md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\\([\\`*_{}[\]()#+\-.!>~|])/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // --------------------------------------------------------------------------

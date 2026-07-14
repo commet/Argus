@@ -221,12 +221,14 @@ export function ReviewFlow() {
     setElapsed(0);
     setPhase('running');
     // Wall-clock budget: the pipeline is internally bounded (120s × retries per
-    // call) but that compounds across serial stages into many minutes. A single
-    // review-level deadline caps the worst case to ~REVIEW_DEADLINE_MS.
+    // call) but that compounds across serial stages. A long document runs more
+    // chunk passes, so scale the deadline with its size (capped) instead of
+    // timing out a genuine 40-page review at the short base budget.
+    const sourceLength = (preExtracted?.text || text).length;
+    const deadlineMs = Math.min(300_000, Math.max(REVIEW_DEADLINE_MS, 90_000 + Math.ceil(sourceLength / 1000) * 2000));
     const deadline = setTimeout(() => {
       if (abortRef.current) { abortReasonRef.current = 'deadline'; abortRef.current.abort(); }
-    }, REVIEW_DEADLINE_MS);
-    const sourceLength = (preExtracted?.text || text).length;
+    }, deadlineMs);
     const budget = sourceLength <= 6_000 && artifact.units.length <= 20
       ? DEFAULT_BUDGET.quick
       : DEFAULT_BUDGET.standard;
@@ -612,14 +614,23 @@ export function ReviewFlow() {
               : text.length > 0 ? L(`${text.length.toLocaleString()}자`, `${text.length.toLocaleString()} characters`) : ''}
           </span>
         </div>
-        {preExtracted && (
-          <p className="mt-2 text-[12px] text-green-700">
-            {L(
-              `${sourceKind.toUpperCase()}에서 텍스트를 추출했습니다${extractNote ? ` — ${extractNote}` : ''}. 그대로 검수를 시작할 수 있습니다.`,
-              `Extracted text from the ${sourceKind.toUpperCase()}${extractNote ? ` — ${extractNote}` : ''}. You can start the review as is.`,
-            )}
-          </p>
-        )}
+        {preExtracted && (() => {
+          // Show the real scope pulled from the file so the user knows how much
+          // will be reviewed (a whole 40-page report vs. a title slide).
+          const parts: string[] = [];
+          if (preExtracted.pages_read) parts.push(L(`${preExtracted.pages_read}쪽`, `${preExtracted.pages_read} pages`));
+          if (preExtracted.slides_read) parts.push(L(`${preExtracted.slides_read}장`, `${preExtracted.slides_read} slides`));
+          if (preExtracted.units?.length) parts.push(L(`${preExtracted.units.length}개 항목`, `${preExtracted.units.length} items`));
+          const scope = parts.length ? ` (${parts.join(' · ')})` : '';
+          return (
+            <p className="mt-2 text-[12px] text-green-700">
+              {L(
+                `${sourceKind.toUpperCase()}에서 텍스트를 추출했습니다${scope}${extractNote ? ` — ${extractNote}` : ''}. 문서 전체를 검수합니다.`,
+                `Extracted text from the ${sourceKind.toUpperCase()}${scope}${extractNote ? ` — ${extractNote}` : ''}. The whole document will be reviewed.`,
+              )}
+            </p>
+          );
+        })()}
         {pendingBinary && (
           <p className="mt-2 text-[12px] text-amber-700">
             {extractNote ? `${extractNote} ` : ''}

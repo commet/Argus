@@ -65,7 +65,11 @@ function settlementLabel(L: LFn, outcome?: string): string {
 function anchorLabel(L: LFn, a?: SourceAnchor): string {
   if (!a) return '';
   if (a.slide !== undefined) return L(`슬라이드 ${a.slide}`, `Slide ${a.slide}`);
-  if (a.section_path?.length) return a.section_path.join(' › ');
+  const sec = a.section_path?.length ? a.section_path.join(' › ') : '';
+  // A PDF anchor carries a page; show it (with the section when we have one) so a
+  // finding always points somewhere — a page-only anchor used to render blank.
+  if (a.page !== undefined) return sec ? L(`${a.page}쪽 · ${sec}`, `p.${a.page} · ${sec}`) : L(`${a.page}쪽`, `p.${a.page}`);
+  if (sec) return sec;
   if (a.line_start !== undefined) return `L${a.line_start}`;
   return '';
 }
@@ -177,6 +181,27 @@ export function ReceiptView({
             )}
           </p>
         </Card>
+      )}
+
+      {/* full-coverage confirmation — the flip side of the partial banner. After
+          the "부분 검수" trauma, say plainly when the WHOLE document was read, but
+          only for a document with real scope (skip tiny pastes). */}
+      {receipt.coverage && receipt.coverage.band === 'full'
+        && (receipt.coverage.pages_read || receipt.coverage.slides_read || receipt.coverage.units_total > 12) && (
+        <div className="flex items-center gap-1.5 text-[11px] text-green-700">
+          <span aria-hidden>✓</span>
+          <span>
+            {(() => {
+              const c = receipt.coverage!;
+              const scope = c.pages_read
+                ? L(`${c.pages_read}쪽`, `${c.pages_read} pages`)
+                : c.slides_read
+                  ? L(`${c.slides_read}장`, `${c.slides_read} slides`)
+                  : L(`${c.units_total}개 항목`, `${c.units_total} items`);
+              return L(`문서 전체를 검수했습니다 (${scope}).`, `Reviewed the entire document (${scope}).`);
+            })()}
+          </span>
+        </div>
       )}
 
       {/* reviewability */}

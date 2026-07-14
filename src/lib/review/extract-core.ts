@@ -303,6 +303,21 @@ export function emitPdfUnits(
       });
       continue;
     }
+    // A tabular row (reconstructPage joins detected cells with ' | ') becomes its
+    // own unit — so a finding can cite a specific table row, and detected_structure
+    // counts the table instead of burying it inside a paragraph.
+    if (/\S \| \S/.test(lt)) {
+      if (!flush()) return currentSection;
+      if (units.length >= maxUnits) { onCap(); return currentSection; }
+      units.push({
+        unit_id: stableId('u', 'pdf', page, lt.slice(0, 40)),
+        kind: 'table',
+        text: lt,
+        source_anchor: currentSection ? { page, section_path: [currentSection] } : { page },
+        confidence: 0.75,
+      });
+      continue;
+    }
     para.push(lt);
     if (para.join(' ').length >= paraCharTarget) { if (!flush()) return currentSection; }
   }

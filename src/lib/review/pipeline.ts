@@ -41,6 +41,31 @@ import { buildExtractionPrompt, buildLensPrompt, buildMapPrompt, buildQuickRevie
 import { defaultReviewLLM, type ReviewLLM } from './llm-adapter';
 import { djb2, stableId } from './ids';
 
+/** Max chunk map calls in flight at once (see the map-reduce path). */
+const MAP_CONCURRENCY = 5;
+
+/** Run `fn` over items with bounded concurrency, never rejecting — mirrors
+ *  Promise.allSettled's result shape so a failed chunk is disclosed, not fatal. */
+async function mapPool<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results = new Array<PromiseSettledResult<R>>(items.length);
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    for (let i = next++; i < items.length; i = next++) {
+      try {
+        results[i] = { status: 'fulfilled', value: await fn(items[i], i) };
+      } catch (reason) {
+        results[i] = { status: 'rejected', reason };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
 export interface RunReviewOptions {
   llm?: ReviewLLM;
   budget?: AnalysisBudget;
@@ -188,8 +213,10 @@ export async function runDocumentReview(
       const chunks = chunked.chunks;
       emit('profiling', `문서를 ${chunks.length}개 구간으로 나눠 전체를 검수하는 중`);
       let mapDone = 0;
-      const mapResults = await Promise.allSettled(
-        chunks.map(async (chunk, i) => {
+      // Bounded concurrency: firing all chunks at once bursts past the browser's
+      // ~6 sockets and risks a rate-limit spike. A small pool keeps the request
+      // stream smooth while still overlapping the slow model calls.
+      const mapResults = await mapPool(chunks, MAP_CONCURRENCY, async (chunk, i) => {
           const mp = buildMapPrompt(chunk, ctx, i, chunks.length, today);
           promptParts.push(mp.system);
           try {
@@ -218,8 +245,7 @@ export async function runDocumentReview(
             mapDone++;
             emit('reviewing', `근거 확인 중 (구간 ${mapDone}/${chunks.length})`);
           }
-        }),
-      );
+      });
 
       const partials = mapResults
         .filter((r): r is PromiseFulfilledResult<Record<string, unknown>> => r.status === 'fulfilled')
@@ -396,9 +422,15 @@ export async function runDocumentReview(
         }
       }),
     );
-    const findings: Finding[] = lensResults
-      .filter((r): r is PromiseFulfilledResult<Finding[]> => r.status === 'fulfilled')
-      .flatMap((r) => r.value);
+    // De-dup across lenses: the same anchored issue can surface from more than
+    // one lens (claim_evidence + stakeholder_objection both flag one weak claim).
+    // Collapse them so the receipt shows the issue once (same fix the map-reduce
+    // reduce step applies), keeping the strongest severity and unioning anchors.
+    const findings: Finding[] = dedupeFindings(
+      lensResults
+        .filter((r): r is PromiseFulfilledResult<Finding[]> => r.status === 'fulfilled')
+        .flatMap((r) => r.value),
+    );
 
     // Honesty: a lens that errored/timed out must NOT be silently counted as
     // applied. Move it out of `selected` into `skipped` so the disclosure and
