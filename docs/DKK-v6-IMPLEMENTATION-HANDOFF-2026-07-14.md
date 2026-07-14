@@ -1,5 +1,10 @@
 # Decision Knowledge Kernel v6: implementation handoff
 
+> Current continuation and production status:
+> `docs/DKK-v6-CONTINUATION-HANDOFF-2026-07-14.md`. This original handoff
+> preserves the implementation-time record; its deployment-pending statements
+> have since been superseded by the continuation handoff.
+
 Date: 2026-07-14
 Status: Implemented in `main`; production rollout and value validation remain pending
 Normative authority: `docs/DESIGN-decision-knowledge-kernel-v6-final-2026-07-14.md`
