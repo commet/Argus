@@ -16,8 +16,9 @@ export default function HomePage() {
           carries the whole spine (출항 → 묶기 → 듣기 → 닿기 → 알아봄) with its
           chaptered captions, plus the headline + the one input. */}
       <SirenHero />
-      {/* Concrete use-cases + the honest three-step loop — for a first-timer
-          who isn't sure "is this for my decision?" before scrolling to the proof. */}
+      {/* Recognition band — three concrete, first-person decisions so a first-timer
+          who isn't sure "is this for my decision?" sees their own here before
+          scrolling to the proof. Mechanism is taught by the Trail below, not here. */}
       <UseCases />
       {/* Real voices early — a first-timer senses the payoff (what they walk away
           with) before the deeper product demo, so they reach the Trail already
