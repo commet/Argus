@@ -21,7 +21,10 @@ import { argusHome, ledgerPath } from '../v2/ledger.js';
 
 interface ArgusConfig {
   schema_version: number;
-  locale: 'ko' | 'en';
+  /** Absent = no explicit locale; runtime content-detection decides the voice.
+   *  Only ever written on a positive Korean env signal at init, or an explicit
+   *  user choice. See the auto-init note below. */
+  locale?: 'ko' | 'en';
   boss: string | null;
   team: string | null;
   archive: boolean | null;
@@ -58,7 +61,19 @@ export const init: ToolModule = {
       writeBoundMarker(dir);
 
       if (!fsSync.existsSync(configPath(dir))) {
-        const cfg: ArgusConfig = { schema_version: SCHEMA_VERSION, locale: detectLocale(dir), boss: null, team: null, archive: null };
+        // Seed a locale ONLY on a positive Korean env signal (KST machine → ko
+        // once, so the very first contentless surface is Korean). On the default
+        // English/Intl fallback, OMIT locale so runtime content-detection stays
+        // live — otherwise a Korean user on an English-locale OS gets locale:en
+        // pinned on first use, and config-wins means their Korean text can NEVER
+        // reclaim a Korean surface. (Found via the check_in localization yellow,
+        // 2026-07-14: an all-Korean session came back in English forever.)
+        const seededLocale = detectLocale(dir);
+        const cfg: ArgusConfig = {
+          schema_version: SCHEMA_VERSION,
+          ...(seededLocale === 'ko' ? { locale: 'ko' as const } : {}),
+          boss: null, team: null, archive: null,
+        };
         await atomicWriteText(configPath(dir), yaml.dump(cfg));
       }
 

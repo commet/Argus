@@ -106,13 +106,23 @@ export const checkIn: ToolModule = {
       // a due question came back framed in English around the user's own words.
       const premiseGroups = groupDuePremises(duePremises(ledger));
       const openQs = dueOpenQuestions(ledger);
-      // Last resort: ANY contract predicate (replay order = deterministic) —
-      // without it a quiet day on an all-Korean ledger greeted in English
-      // ("Nothing is due.") because nothing due meant nothing to sniff
-      // (75-day life loop find). Still ledger text only, never env/Intl.
-      const anyLedgerText = [...ledger.contracts.values()].find((c) => typeof c.predicate === 'string' && c.predicate)?.predicate;
-      const ledgerVoiceSample = lastAnchor?.text || ledger.overdue[0]?.text || due[0]?.predicate
-        || premiseGroups[0]?.premises[0]?.decision_text || openQs[0]?.text || anyLedgerText;
+      // Sniff the user's LOCALE from the ledger's own words (never env/Intl for
+      // Korean users on an English OS). The old priority-OR chain silently fell
+      // through to `undefined` — English — whenever every earlier slot was empty
+      // AND the last resort read a field that doesn't exist on ContractEntry
+      // (`.predicate`; the entry stores `.text`). A Korean session whose only due
+      // item was an open question came back framed in English around its own
+      // Korean quote. Fix: pool ALL available ledger user-text defensively so any
+      // single Korean line is enough to detect. (Found via the check_in
+      // localization yellow, 2026-07-14.)
+      const ledgerVoiceSample = [
+        lastAnchor?.text,
+        ...ledger.overdue.map((o) => o.text),
+        ...due.map((d) => d.predicate),
+        ...premiseGroups.flatMap((g) => g.premises.map((p) => p.decision_text)),
+        ...openQs.map((q) => q.text),
+        ...[...ledger.contracts.values()].map((c) => c.text),
+      ].filter((t): t is string => typeof t === 'string' && t.trim().length > 0).join(' ') || undefined;
       const S = ledgerVoiceSample
         ? SURFACES[resolveResponseLocale(dir, ledgerVoiceSample)].checkin
         : SURFACES[surfaceLocale(dir)].checkin;
