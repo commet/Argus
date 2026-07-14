@@ -16,6 +16,9 @@
 
 # dogfood runner evidence (commit curated copies deliberately, never raw runs)
 /scripts/dogfood/evidence/
+# experience walkthrough outputs (screenshots may contain account content)
+/scripts/dogfood/experience/shots/
+/scripts/dogfood/experience/terminal-runs/
 
 # next.js
 /.next/
