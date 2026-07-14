@@ -10,7 +10,7 @@ import { downloadJson } from '@/lib/export';
 import { exportAccountData, deleteAccount } from '@/lib/api-account';
 import { useAuth } from '@/lib/auth';
 import type { LLMMode, LLMProvider } from '@/stores/types';
-import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, Link2 } from 'lucide-react';
+import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, ChevronRight } from 'lucide-react';
 import { getObservationsSummary } from '@/lib/user-context';
 import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL } from '@/lib/llm-models';
 import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAmbientPlaying } from '@/lib/audio';
@@ -23,10 +23,17 @@ import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { withLocale } from '@/lib/locale-path';
 
 function buildLlmProviders(L: (ko: string, en: string) => string) {
+  // 버튼 라벨은 모두 '제공자 브랜드' 한 층위로 통일한다 (Claude / GPT / Gemini).
+  // 구체 모델명은 아래 detail 줄에서 말한다 — 예전엔 'GPT-4o'만 특정 모델명이라
+  // Claude·Gemini(브랜드)와 층위가 어긋났고, 'Claude Sonnet 4' 문구는 실제 라우팅
+  // (기본 Sonnet 4.6 · 어려운 판단 Opus 4.8)보다 낡아 있었다.
+  // model 칩은 모델이 고정된 Claude에만 붙인다. GPT·Gemini는 바로 아래
+  // 드롭다운에서 사용자가 직접 고르므로, 특정 모델명을 여기 박으면 선택값과
+  // 어긋난다 — 대신 '아래에서 선택'으로 안내한다.
   return [
-    { value: 'anthropic' as LLMProvider, label: 'Claude', description: L('Claude Sonnet 4 — 프록시 또는 직접 API 키', 'Claude Sonnet 4 — proxy or direct API key') },
-    { value: 'openai' as LLMProvider, label: 'GPT-4o', description: L('본인의 OpenAI API 키 사용', 'Use your own OpenAI API key') },
-    { value: 'gemini' as LLMProvider, label: 'Gemini', description: L('본인의 Google AI API 키 사용', 'Use your own Google AI API key') },
+    { value: 'anthropic' as LLMProvider, label: 'Claude', model: 'Claude Sonnet 4.6', detail: L('복잡한 판단은 Opus 4.8로 올려서 처리해요', 'Hard calls escalate to Opus 4.8') },
+    { value: 'openai' as LLMProvider, label: 'GPT', model: null as string | null, detail: L('본인의 OpenAI API 키로 연결 · 모델은 아래에서 선택', 'Your own OpenAI API key · pick the model below') },
+    { value: 'gemini' as LLMProvider, label: 'Gemini', model: null as string | null, detail: L('본인의 Google AI API 키로 연결 · 모델은 아래에서 선택', 'Your own Google AI API key · pick the model below') },
   ];
 }
 
@@ -222,7 +229,7 @@ export default function SettingsPage() {
     <div>
       <div>
         <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('설정', 'Settings')}</h1>
-        <p className="text-[13px] text-[var(--text-secondary)] mt-1">{L('프로필, AI 엔진, 환경 설정', 'Profile, AI engine, preferences')}</p>
+        <p className="text-[13px] text-[var(--text-secondary)] mt-1">{L('AI 엔진 · 연동 · 프로필 · 환경 설정', 'AI engine · integrations · profile · preferences')}</p>
       </div>
 
       {/* A1 IA: left sticky section-nav (desktop) / sticky horizontal chip row
@@ -231,23 +238,30 @@ export default function SettingsPage() {
           integrations card into its own isolated danger zone at the bottom. */}
       <div className="mt-5 lg:grid lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-10 lg:items-start">
         <SettingsNav items={NAV_ITEMS} ariaLabel={L('설정 섹션', 'Settings sections')} />
-        <div className="space-y-6 min-w-0 mt-4 lg:mt-0">
+        {/* break-keep: word-break는 상속되므로 여기 한 번이면 모든 카드의 한국어
+            설명이 어절 단위로 끊긴다 (단어 중간 줄바꿈 방지). */}
+        <div className="space-y-6 min-w-0 mt-4 lg:mt-0 break-keep">
 
       <section id="engine" className="scroll-mt-28">
       {/* ── 1. AI Engine (provider + mode + key merged) ── */}
       <Card>
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-1">
           <Server size={16} className="text-[var(--accent)]" />
           <h3 className="text-[15px] font-bold">{L('AI 엔진', 'AI Engine')}</h3>
         </div>
+        <p className="text-[12px] text-[var(--text-secondary)] mb-4">
+          {L('어떤 AI로 판단을 생성할지 정해요.', 'Choose which AI generates your judgments.')}
+        </p>
 
-        {/* Provider — compact segmented control */}
+        {/* Provider — 한 층위(브랜드) 세그먼트. 'GPT-4o' 같은 특정 모델명을 버튼에
+            섞지 않는다 — 구체 모델은 아래 detail 줄이 말한다. */}
+        <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('제공자', 'Provider')}</label>
         <div className="flex gap-1.5">
           {llmProviders.map((provider) => (
             <button
               key={provider.value}
               onClick={() => handleProviderChange(provider.value)}
-              className={`flex-1 min-h-[44px] py-3 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
+              className={`flex-1 min-h-[44px] py-3 rounded-lg text-[13px] font-semibold border text-center transition-colors cursor-pointer ${
                 (settings.llm_provider || 'anthropic') === provider.value
                   ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)]'
@@ -257,9 +271,15 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
-          {llmProviders.find(p => p.value === (settings.llm_provider || 'anthropic'))?.description}
-        </p>
+        {(() => {
+          const p = llmProviders.find((x) => x.value === (settings.llm_provider || 'anthropic'));
+          return (
+            <p className="text-[11px] mt-2 leading-relaxed">
+              {p?.model && <span className="font-semibold text-[var(--text-primary)]">{p.model} · </span>}
+              <span className="text-[var(--text-tertiary)]">{p?.detail}</span>
+            </p>
+          );
+        })()}
 
         {/* Anthropic connection mode — compact segmented control */}
         {(settings.llm_provider || 'anthropic') === 'anthropic' && (
@@ -404,14 +424,12 @@ export default function SettingsPage() {
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <MessageSquare size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('연동 & 데이터', 'Integrations & Data')}</h3>
+          <h3 className="text-[15px] font-bold">{L('연동 · 데이터', 'Integrations & Data')}</h3>
         </div>
 
         {/* Slack — folded by default (05 S8); held open when returning from the
             OAuth callback or when a workspace is already connected. */}
-        <details open={slackStatus !== null || slackConnections.length > 0}>
-          <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-primary)]">Slack</summary>
-          <div className="mt-3">
+        <IntegrationSection title="Slack" defaultOpen={slackStatus !== null || slackConnections.length > 0}>
         {slackStatus === 'connected' && (
           <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--collab)] border border-[var(--success)]/20">
             <p className="text-[13px] text-[var(--success)] font-medium flex items-center gap-1.5"><Check size={14} /> {L('Slack에 연결되었습니다!', 'Connected to Slack!')}</p>
@@ -492,8 +510,7 @@ export default function SettingsPage() {
             </Button>
           </div>
         )}
-          </div>
-        </details>
+        </IntegrationSection>
 
         {/* Telegram */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
@@ -688,8 +705,11 @@ export default function SettingsPage() {
 
         {/* Sound — folded by default (05 S8: order/fold only, no feature change) */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
-        <details>
-          <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-primary)]">{L('소리', 'Sound')}</summary>
+        <details className="group">
+          <summary className="flex items-center gap-1.5 cursor-pointer select-none list-none text-[13px] font-medium text-[var(--text-primary)] [&::-webkit-details-marker]:hidden">
+            <ChevronRight size={14} className="text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-90" />
+            {L('소리', 'Sound')}
+          </summary>
           <div className="mt-3">
         <div className="flex items-center justify-between">
           <div>
@@ -770,10 +790,11 @@ export default function SettingsPage() {
       <Card>
         <div className="flex items-center gap-2 mb-1">
           <FlaskConical size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('실험실 (Labs)', 'Labs')}</h3>
+          <h3 className="text-[15px] font-bold">{L('실험실', 'Labs')}</h3>
         </div>
-        <details>
-          <summary className="cursor-pointer text-[12px] text-[var(--text-secondary)]">
+        <details className="group">
+          <summary className="flex items-center gap-1.5 cursor-pointer select-none list-none text-[12px] text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
+            <ChevronRight size={14} className="shrink-0 text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-90" />
             {L('아직 다듬는 중인 기능이에요. 언제든 켜고 끌 수 있어요.', 'Features still being polished. Toggle anytime.')}
           </summary>
           <div className="space-y-3 mt-4">
@@ -931,6 +952,25 @@ function SettingsNav({ items, ariaLabel }: {
   );
 }
 
+/* 연동 카드의 모든 항목이 쓰는 단일 접이식 래퍼 — Slack만 접히고 Telegram은
+   라벨도 없이 고정이던 불일치를 없앤다. 여기 한 곳이 전부의 모양·동작을 정의하므로
+   다시 어긋날 수 없다(단일 정본). connected면 defaultOpen으로 펼쳐 둔다. */
+function IntegrationSection({ title, defaultOpen, children }: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details open={defaultOpen} className="group">
+      <summary className="flex items-center gap-1.5 cursor-pointer select-none list-none min-h-[36px] text-[13px] font-medium text-[var(--text-primary)] [&::-webkit-details-marker]:hidden">
+        <ChevronRight size={14} className="text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-90" />
+        {title}
+      </summary>
+      <div className="mt-3">{children}</div>
+    </details>
+  );
+}
+
 function TelegramBlock({ locale }: { locale: string }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const connections = useTelegramStore((s) => s.connections);
@@ -969,7 +1009,7 @@ function TelegramBlock({ locale }: { locale: string }) {
   };
 
   return (
-    <div>
+    <IntegrationSection title="Telegram" defaultOpen={connections.length > 0}>
       {loadError && <p className="text-[12px] text-[var(--danger)] mb-2">{L('Telegram 연결 상태를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'Could not load Telegram connection status. Please try again shortly.')}</p>}
       {connections.length > 0 ? (
         <div className="space-y-2">
@@ -1007,7 +1047,7 @@ function TelegramBlock({ locale }: { locale: string }) {
           {L('연결했는데 안 보이면 새로고침', 'Connected but not showing? Refresh')}
         </button>
       )}
-    </div>
+    </IntegrationSection>
   );
 }
 
@@ -1058,10 +1098,9 @@ function PluginTokenBlock({ locale }: { locale: string }) {
   };
 
   return (
-    <div>
+    <IntegrationSection title={L('동기화 토큰 (플러그인 · MCP)', 'Sync token (plugin · MCP)')} defaultOpen={tokens.length > 0}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[14px] font-medium flex items-center gap-1.5"><KeyRound size={14} className="text-[var(--accent)]" /> {L('터미널 동기화 토큰 (플러그인 · MCP)', 'Terminal sync token (plugin · MCP)')}</p>
           <p className="text-[12px] text-[var(--text-secondary)]">{L('플러그인: /argus:connect 후 /argus:sync. MCP: 아래 ARGUS_TOKEN을 설정에 넣으면 봉인한 예측이 이메일과 대시보드로 돌아옵니다.', 'Plugin: /argus:connect then /argus:sync. MCP: put ARGUS_TOKEN below in your config so sealed predictions return by email + dashboard.')}</p>
         </div>
         <Button variant="secondary" size="sm" onClick={issue} disabled={busy}>
@@ -1136,7 +1175,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
           ))}
         </div>
       )}
-    </div>
+    </IntegrationSection>
   );
 }
 
@@ -1166,8 +1205,7 @@ function SharedLinksBlock({ locale }: { locale: string }) {
   };
 
   return (
-    <div>
-      <p className="text-[14px] font-medium flex items-center gap-1.5"><Link2 size={14} className="text-[var(--accent)]" /> {L('공개 링크', 'Public links')}</p>
+    <IntegrationSection title={L('공개 링크', 'Public links')} defaultOpen={links.length > 0}>
       {error && <p className="text-[12px] text-[var(--danger)] mb-2">{error}</p>}
       <p className="text-[12px] text-[var(--text-secondary)] mb-2">{L('결과 화면의 “보내기 → 링크”로 만든 공개 페이지. 취소하면 즉시 열람 불가.', 'Public pages minted via “Send → Link”. Revoking makes them unreachable at once.')}</p>
       {links.length === 0 ? (
@@ -1186,7 +1224,7 @@ function SharedLinksBlock({ locale }: { locale: string }) {
           ))}
         </div>
       )}
-    </div>
+    </IntegrationSection>
   );
 }
 

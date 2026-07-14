@@ -59,7 +59,7 @@ export function ArgusMascot({
         fill
         loading={size === 'lg' ? 'eager' : 'lazy'}
         sizes={size === 'lg' ? '144px' : size === 'md' ? '112px' : size === 'sm' ? '96px' : '80px'}
-        className="object-cover"
+        className={variant === 'sitting' ? 'object-contain' : 'object-cover'}
         draggable={false}
       />
     </span>

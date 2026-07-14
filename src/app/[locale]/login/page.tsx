@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
-import { Zap, FolderOpen, Users, MessageSquare, MailCheck } from 'lucide-react';
+import { Zap, FolderOpen, Users, MessageSquare, MailCheck, Mail, Lock, User, Check } from 'lucide-react';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -253,15 +253,18 @@ function LoginContent() {
           <form onSubmit={handleEmailAuth} className="space-y-3">
             {isSignUp && (
               <div>
-                <input
-                  type="text"
-                  maxLength={40}
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={L('어떻게 불러드릴까요? (선택)', 'What should we call you? (optional)')}
-                  className="w-full px-4 py-2.5 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
-                />
+                <div className="relative group">
+                  <User size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent)]" />
+                  <input
+                    type="text"
+                    maxLength={40}
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={L('어떻게 불러드릴까요? (선택)', 'What should we call you? (optional)')}
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                  />
+                </div>
                 <p className="mt-1 px-1 text-[11px] text-[var(--text-tertiary)] leading-snug">
                   {L('판단을 다시 볼 때 이 이름으로 인사하고, 결정 기록에 함께 남겨요.', 'We greet you by this name and keep it with your decision log.')}
                 </p>
@@ -272,7 +275,7 @@ function LoginContent() {
                 <p className="mb-1.5 px-1 text-[12px] text-[var(--text-secondary)]">
                   {L('무슨 일을 하세요? (선택 — 건너뛰어도 돼요)', 'What do you do? (optional — feel free to skip)')}
                 </p>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5">
                   {SIGNUP_ROLES.map((r) => {
                     const active = role === r.id;
                     return (
@@ -281,7 +284,7 @@ function LoginContent() {
                         key={r.id}
                         onClick={() => setRole(active ? '' : r.id)}
                         aria-pressed={active}
-                        className={`px-3 py-1.5 rounded-full text-[12.5px] border transition-all cursor-pointer ${
+                        className={`w-full px-2 py-2 rounded-lg text-[12.5px] text-center border transition-all cursor-pointer ${
                           active
                             ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] font-medium'
                             : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
@@ -294,7 +297,8 @@ function LoginContent() {
                 </div>
               </div>
             )}
-            <div>
+            <div className="relative group">
+              <Mail size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent)]" />
               <input
                 type="email"
                 required
@@ -302,11 +306,12 @@ function LoginContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={L('이메일', 'Email')}
-                className="w-full px-4 py-2.5 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                className="w-full pl-11 pr-4 py-3 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
               />
             </div>
             {!isReset && (
-              <div>
+              <div className="relative group">
+                <Lock size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent)]" />
                 <input
                   type="password"
                   required
@@ -315,7 +320,7 @@ function LoginContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={L('비밀번호 (8자 이상)', 'Password (8+ characters)')}
-                  className="w-full px-4 py-2.5 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border-[1.5px] border-[var(--border)] bg-[var(--bg)] text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--gold-muted),var(--glow-accent)] transition-all"
                 />
               </div>
             )}
@@ -335,8 +340,13 @@ function LoginContent() {
                     type="checkbox"
                     checked={agreedTerms}
                     onChange={(e) => setAgreedTerms(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded border-[var(--border)] accent-[var(--accent)] cursor-pointer"
+                    className="peer sr-only"
                   />
+                  <span className={`mt-0.5 grid place-items-center w-[18px] h-[18px] shrink-0 rounded-[6px] border-[1.5px] transition-all peer-focus-visible:shadow-[0_0_0_3px_var(--gold-muted)] ${
+                    agreedTerms ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--border)] bg-[var(--bg)]'
+                  }`}>
+                    {agreedTerms && <Check size={12} strokeWidth={3} className="text-white" />}
+                  </span>
                   <span className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
                     <span className="text-[var(--danger)]">{L('[필수]', '[Required]')}</span>{' '}
                     {locale === 'ko' ? (
@@ -351,8 +361,13 @@ function LoginContent() {
                     type="checkbox"
                     checked={agreedPrivacy}
                     onChange={(e) => setAgreedPrivacy(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded border-[var(--border)] accent-[var(--accent)] cursor-pointer"
+                    className="peer sr-only"
                   />
+                  <span className={`mt-0.5 grid place-items-center w-[18px] h-[18px] shrink-0 rounded-[6px] border-[1.5px] transition-all peer-focus-visible:shadow-[0_0_0_3px_var(--gold-muted)] ${
+                    agreedPrivacy ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--border)] bg-[var(--bg)]'
+                  }`}>
+                    {agreedPrivacy && <Check size={12} strokeWidth={3} className="text-white" />}
+                  </span>
                   <span className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
                     <span className="text-[var(--danger)]">{L('[필수]', '[Required]')}</span>{' '}
                     {locale === 'ko' ? (
@@ -380,7 +395,7 @@ function LoginContent() {
             <button
               type="submit"
               disabled={submitting || (isSignUp && (!agreedTerms || !agreedPrivacy || (!!TURNSTILE_SITE_KEY && !captchaToken)))}
-              className="w-full px-4 py-2.5 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[14px] font-semibold hover:bg-[var(--primary-light)] disabled:opacity-50 transition-colors cursor-pointer"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--primary)] text-[var(--bg)] text-[14px] font-semibold hover:bg-[var(--primary-light)] hover:shadow-[var(--shadow-sm)] disabled:opacity-50 disabled:hover:shadow-none transition-all cursor-pointer"
             >
               {submitting
                 ? L('처리 중...', 'Working...')
