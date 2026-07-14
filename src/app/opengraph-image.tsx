@@ -142,6 +142,18 @@ export default async function Image() {
           >
             중요한 결정을 항해처럼 — 정한 날에 돌아와 묻습니다.
           </div>
+
+          <div
+            style={{
+              fontSize: '15px',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              color: 'rgba(250, 250, 249, 0.58)',
+              textTransform: 'uppercase' as const,
+            }}
+          >
+            Keeping Judgment Human
+          </div>
         </div>
 
         {/* Bottom accent line */}

@@ -9,6 +9,9 @@ export function Footer() {
   const year = new Date().getFullYear();
   return (
     <footer className="border-t border-[var(--border-subtle)] py-10 px-4 text-center">
+      <p className="text-[13px] font-medium text-[var(--text-secondary)] tracking-[0.08em]">
+        Keeping Judgment Human
+      </p>
       <p className="text-[12px] text-[var(--text-tertiary)] tracking-wide">
         Argus — {L('내기 전에, 판단부터', 'Think before you commit')}
       </p>

@@ -2,6 +2,8 @@
 
 *English → [README.md](./README.md) · 한국어(현재 문서)*
 
+**Keeping Judgment Human.**
+
 **중요한 결정은 답으로 끝나면 안 됩니다.**
 
 Argus는 그것을 **살아 있는 항로**로 남깁니다.

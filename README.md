@@ -2,6 +2,8 @@
 
 *[한국어 → README.ko.md](./README.ko.md) · English (this document)*
 
+**Keeping Judgment Human.**
+
 **An important decision shouldn't end at an answer.**
 
 Argus keeps it alive as a **living course**.
