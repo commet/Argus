@@ -51,7 +51,12 @@ const JOURNEYS = [
     lang: 'ko',
     steps: (dir) => [
       { tool: 'argus_open_decision', args: { argus_dir: dir, id: 'j2', decision: '오늘 점심 뭐 먹을지', stakes: 'low', reversibility: 'easily_reversible', status_quo: '어제 먹은 김밥', today_override: TODAY },
-        expect: (env) => (env.data && env.data.harvest_written === false) ? null : 'expected restraint (harvest_written=false) on a flat, reversible decision' },
+        // Restraint = the gate did NOT fire and NO fork was manufactured. The
+        // decision is still recorded quietly (harvest_written=true by design —
+        // open-decision.ts withholds the ceremony, not the record; recording is
+        // "maximum generation", the withheld fork is "zero judgment"). Asserting
+        // harvest_written===false was the removed "jot-a-note-to-keep-it" design.
+        expect: (env) => (env.over_fire_gate?.fired === false && env.data?.fork_emitted === false) ? null : 'expected restraint (gate not fired, no fork) on a flat, reversible decision' },
     ],
   },
   {
@@ -59,7 +64,10 @@ const JOURNEYS = [
     lang: 'ko',
     steps: (dir) => [
       { tool: 'argus_open_decision', args: { argus_dir: dir, id: 'j3', decision: '공동창업자 지분을 어떻게 나눌지', stakes: 'high', reversibility: 'one_way_door', status_quo: '현행 지분 유지', today_override: TODAY },
-        expect: (env) => (env.data && env.data.harvest_written === true) ? null : 'high one-way-door decision should fire (harvest_written=true)' },
+        // High + one-way-door → the gate FIRES (surfaces the one neutral crux).
+        // harvest_written is true in every branch, so it can't distinguish fire
+        // from restraint; over_fire_gate.fired is the real signal.
+        expect: (env) => (env.over_fire_gate?.fired === true) ? null : 'high one-way-door decision should fire (over_fire_gate.fired=true)' },
       { tool: 'argus_premises', args: { argus_dir: dir, id: 'j3', op: 'add', today_override: TODAY, premises: [{ text: '지분 배분 기준 미정', kind: 'open_question', source: 'user' }] } },
       { tool: 'argus_seal', args: { argus_dir: dir, id: 'j3', predicate: '3개월 내 지분 합의를 문서로 확정', check_by: '2026-10-02', predicate_owner: 'user', today_override: TODAY } },
       { tool: 'argus_check_in', args: { argus_dir: dir, today_override: '2026-07-26' } },
@@ -109,6 +117,13 @@ async function main() {
   const env = {};
   for (const [k, v] of Object.entries(process.env)) if (typeof v === 'string') env[k] = v;
   env.ARGUS_DIR = baseDir;
+  // The journeys use today_override — the documented test clock, which the
+  // server only honors for the public tool surface under NODE_ENV=test (the
+  // strip-and-reinject in server.ts). Without this, public-named tools whose
+  // schema drops today_override (e.g. argus_check_in) reject it as an unknown
+  // key and the return-loop journeys go RED for a harness reason, not a
+  // product one. A self-drive TEST is exactly where the test clock belongs.
+  env.NODE_ENV = 'test';
 
   const client = new Client({ name: 'argus-self-drive-loop', version: '0.0.0' });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));

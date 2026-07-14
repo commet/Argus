@@ -119,11 +119,30 @@ export async function createServer(): Promise<Server> {
     const parsed = tool.inputSchema.safeParse(validationArgs);
     if (!parsed.success) {
       const issues = parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
+      // Carry the offending field(s) + machine-readable reason STRUCTURALLY, so
+      // the Korean localizer can name what to fix (not collapse every failure to
+      // a generic "invalid input"). Without this, a Korean user is told to "fix
+      // the flagged argument" but nothing is flagged — an unactionable dead end.
+      const invalidFields = parsed.error.issues.map((i) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const raw = i as any;
+        return {
+          field: i.path.join('.') || '(root)',
+          code: i.code,
+          message: i.message,
+          ...(typeof raw.minimum === 'number' ? { minimum: raw.minimum } : {}),
+          ...(typeof raw.maximum === 'number' ? { maximum: raw.maximum } : {}),
+          ...(raw.expected !== undefined ? { expected: String(raw.expected) } : {}),
+          // Zod v4 tags size issues with `origin` ('string' | 'number' | 'array'…).
+          ...(raw.origin !== undefined ? { origin: String(raw.origin) } : raw.type !== undefined ? { origin: String(raw.type) } : {}),
+        };
+      });
       const error = {
         ok: false,
         tool: name,
         error_code: 'INVALID_INPUT',
         message: `Invalid arguments. ${issues}`,
+        invalid_fields: invalidFields,
         recovery: 'Fix the named argument(s) and call the same tool again. Do not infer missing user-owned fields.',
       };
       return localizeToolResult((args ?? {}) as Record<string, unknown>, {

@@ -42,6 +42,55 @@ const KO_ERRORS: Record<string, ErrorCopy> = {
 
 export const LOCALIZED_ERROR_CODES = new Set(Object.keys(KO_ERRORS));
 
+interface InvalidField {
+  field: string;
+  code?: string;
+  message?: string;
+  minimum?: number;
+  maximum?: number;
+  expected?: string;
+  origin?: string;
+}
+
+/** Translate one Zod issue into a Korean, actionable reason. Keeps the English
+ *  argument NAME (models and users see arg names in English), but says in Korean
+ *  WHY it failed — the piece the generic message threw away. */
+function koReason(issue: InvalidField): string {
+  const unit = issue.origin === 'string' ? '자' : issue.origin === 'array' ? '개' : '';
+  switch (issue.code) {
+    case 'too_small':
+      if (issue.origin === 'string') return `너무 짧습니다 (최소 ${issue.minimum}자)`;
+      if (issue.origin === 'array') return `항목이 부족합니다 (최소 ${issue.minimum}개)`;
+      return `너무 작습니다 (최소 ${issue.minimum}${unit})`;
+    case 'too_big':
+      if (issue.origin === 'string') return `너무 깁니다 (최대 ${issue.maximum}자)`;
+      if (issue.origin === 'array') return `항목이 너무 많습니다 (최대 ${issue.maximum}개)`;
+      return `너무 큽니다 (최대 ${issue.maximum}${unit})`;
+    case 'invalid_type':
+      return issue.expected === undefined ? '형식이 올바르지 않습니다' : `필수이거나 형식이 올바르지 않습니다 (${issue.expected} 필요)`;
+    case 'invalid_value':
+    case 'invalid_enum_value':
+      return '허용되지 않는 값입니다';
+    case 'unrecognized_keys':
+      return '알 수 없는 항목입니다';
+    case 'invalid_format':
+    case 'invalid_string':
+      return '형식이 올바르지 않습니다 (예: 날짜는 YYYY-MM-DD)';
+    default:
+      return '값을 확인해 주세요';
+  }
+}
+
+/** Korean INVALID_INPUT that NAMES each offending argument and why. */
+function localizeInvalidInput(fields: InvalidField[]): ErrorCopy {
+  if (!fields.length) return KO_ERRORS.INVALID_INPUT!;
+  const parts = fields.slice(0, 4).map((f) => `${f.field === '(root)' ? '요청' : f.field}: ${koReason(f)}`);
+  return {
+    message: `입력값이 올바르지 않습니다 — ${parts.join(', ')}.`,
+    recovery: '위에 표시된 인자를 고친 뒤 같은 도구를 다시 호출하세요. 사용자가 정해야 할 값은 추측하지 마세요.',
+  };
+}
+
 const REPRESENTATIVE_FIELDS = [
   'decision', 'predicate', 'what_happened', 'finding', 'text', 'question',
   'human_judgment', 'note', 'title', 'biggest_worry',
@@ -69,10 +118,12 @@ export function localizeToolResult(
   const sc = result.structuredContent;
   if (!sc || sc['ok'] !== false) return result;
   const code = String(sc['error_code'] ?? 'INTERNAL_ERROR');
-  const copy = KO_ERRORS[code] ?? {
-    message: '요청을 처리하지 못했습니다.',
-    recovery: '입력값과 현재 결정 상태를 확인한 뒤 다시 시도하세요.',
-  };
+  const copy = code === 'INVALID_INPUT' && Array.isArray(sc['invalid_fields'])
+    ? localizeInvalidInput(sc['invalid_fields'] as InvalidField[])
+    : KO_ERRORS[code] ?? {
+      message: '요청을 처리하지 못했습니다.',
+      recovery: '입력값과 현재 결정 상태를 확인한 뒤 다시 시도하세요.',
+    };
   const localized = {
     ...sc,
     message: copy.message,

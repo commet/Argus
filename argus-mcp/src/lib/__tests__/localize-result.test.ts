@@ -35,6 +35,29 @@ describe('dispatch-level MCP error localization', () => {
     expect(body(result)['message']).toContain('출처');
   });
 
+  it('names the offending field and reason in Korean for INVALID_INPUT (not a generic collapse)', () => {
+    const result = localizeToolResult(
+      { predicate: '전환율 유지' },
+      toolError({
+        ok: false, tool: 'argus_predict', error_code: 'INVALID_INPUT',
+        message: 'Invalid arguments. predicate: too small',
+        invalid_fields: [{ field: 'predicate', code: 'too_small', minimum: 8, origin: 'string' }],
+        recovery: 'English recovery detail.',
+      } as never),
+    );
+    const message = String(body(result)['message']);
+    // The Korean user must learn WHICH field and WHY — the piece the old
+    // generic "입력값이 올바르지 않습니다" threw away.
+    expect(message).toContain('predicate');
+    expect(message).toContain('최소 8자');
+    expect(result.content[0]?.text).not.toContain('English recovery detail');
+  });
+
+  it('falls back to the generic Korean INVALID_INPUT when no invalid_fields are present', () => {
+    const result = localizeToolResult({ decision: '이 결정' }, errorResult('INVALID_INPUT'));
+    expect(body(result)['message']).toBe('입력값이 올바르지 않습니다.');
+  });
+
   it('preserves the precise English diagnostic for English calls', () => {
     const result = localizeToolResult(
       { predicate: 'conversion exceeds ten percent' },
