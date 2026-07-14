@@ -27,10 +27,13 @@ function buildLlmProviders(L: (ko: string, en: string) => string) {
   // 구체 모델명은 아래 detail 줄에서 말한다 — 예전엔 'GPT-4o'만 특정 모델명이라
   // Claude·Gemini(브랜드)와 층위가 어긋났고, 'Claude Sonnet 4' 문구는 실제 라우팅
   // (기본 Sonnet 4.6 · 어려운 판단 Opus 4.8)보다 낡아 있었다.
+  // model 칩은 모델이 고정된 Claude에만 붙인다. GPT·Gemini는 바로 아래
+  // 드롭다운에서 사용자가 직접 고르므로, 특정 모델명을 여기 박으면 선택값과
+  // 어긋난다 — 대신 '아래에서 선택'으로 안내한다.
   return [
-    { value: 'anthropic' as LLMProvider, label: 'Claude', model: 'Claude Sonnet 4.6', detail: L('복잡한 판단은 Opus 4.8로 올려서 처리', 'Hard calls escalate to Opus 4.8') },
-    { value: 'openai' as LLMProvider, label: 'GPT', model: 'GPT-4o', detail: L('본인의 OpenAI API 키로 연결', 'Connect with your own OpenAI API key') },
-    { value: 'gemini' as LLMProvider, label: 'Gemini', model: 'Gemini 2.5 Flash', detail: L('본인의 Google AI API 키로 연결', 'Connect with your own Google AI API key') },
+    { value: 'anthropic' as LLMProvider, label: 'Claude', model: 'Claude Sonnet 4.6', detail: L('복잡한 판단은 Opus 4.8로 올려서 처리해요', 'Hard calls escalate to Opus 4.8') },
+    { value: 'openai' as LLMProvider, label: 'GPT', model: null as string | null, detail: L('본인의 OpenAI API 키로 연결 · 모델은 아래에서 선택', 'Your own OpenAI API key · pick the model below') },
+    { value: 'gemini' as LLMProvider, label: 'Gemini', model: null as string | null, detail: L('본인의 Google AI API 키로 연결 · 모델은 아래에서 선택', 'Your own Google AI API key · pick the model below') },
   ];
 }
 
@@ -226,7 +229,7 @@ export default function SettingsPage() {
     <div>
       <div>
         <h1 className="text-[22px] font-bold text-[var(--text-primary)]">{L('설정', 'Settings')}</h1>
-        <p className="text-[13px] text-[var(--text-secondary)] mt-1">{L('프로필, AI 엔진, 환경 설정', 'Profile, AI engine, preferences')}</p>
+        <p className="text-[13px] text-[var(--text-secondary)] mt-1">{L('AI 엔진 · 연동 · 프로필 · 환경 설정', 'AI engine · integrations · profile · preferences')}</p>
       </div>
 
       {/* A1 IA: left sticky section-nav (desktop) / sticky horizontal chip row
@@ -235,15 +238,20 @@ export default function SettingsPage() {
           integrations card into its own isolated danger zone at the bottom. */}
       <div className="mt-5 lg:grid lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-10 lg:items-start">
         <SettingsNav items={NAV_ITEMS} ariaLabel={L('설정 섹션', 'Settings sections')} />
-        <div className="space-y-6 min-w-0 mt-4 lg:mt-0">
+        {/* break-keep: word-break는 상속되므로 여기 한 번이면 모든 카드의 한국어
+            설명이 어절 단위로 끊긴다 (단어 중간 줄바꿈 방지). */}
+        <div className="space-y-6 min-w-0 mt-4 lg:mt-0 break-keep">
 
       <section id="engine" className="scroll-mt-28">
       {/* ── 1. AI Engine (provider + mode + key merged) ── */}
       <Card>
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-1">
           <Server size={16} className="text-[var(--accent)]" />
           <h3 className="text-[15px] font-bold">{L('AI 엔진', 'AI Engine')}</h3>
         </div>
+        <p className="text-[12px] text-[var(--text-secondary)] mb-4">
+          {L('어떤 AI로 판단을 생성할지 정해요.', 'Choose which AI generates your judgments.')}
+        </p>
 
         {/* Provider — 한 층위(브랜드) 세그먼트. 'GPT-4o' 같은 특정 모델명을 버튼에
             섞지 않는다 — 구체 모델은 아래 detail 줄이 말한다. */}
@@ -267,8 +275,8 @@ export default function SettingsPage() {
           const p = llmProviders.find((x) => x.value === (settings.llm_provider || 'anthropic'));
           return (
             <p className="text-[11px] mt-2 leading-relaxed">
-              <span className="font-semibold text-[var(--text-primary)]">{p?.model}</span>
-              <span className="text-[var(--text-tertiary)]"> · {p?.detail}</span>
+              {p?.model && <span className="font-semibold text-[var(--text-primary)]">{p.model} · </span>}
+              <span className="text-[var(--text-tertiary)]">{p?.detail}</span>
             </p>
           );
         })()}
@@ -416,7 +424,7 @@ export default function SettingsPage() {
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <MessageSquare size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('연동 & 데이터', 'Integrations & Data')}</h3>
+          <h3 className="text-[15px] font-bold">{L('연동 · 데이터', 'Integrations & Data')}</h3>
         </div>
 
         {/* Slack — folded by default (05 S8); held open when returning from the
@@ -782,7 +790,7 @@ export default function SettingsPage() {
       <Card>
         <div className="flex items-center gap-2 mb-1">
           <FlaskConical size={16} className="text-[var(--accent)]" />
-          <h3 className="text-[15px] font-bold">{L('실험실 (Labs)', 'Labs')}</h3>
+          <h3 className="text-[15px] font-bold">{L('실험실', 'Labs')}</h3>
         </div>
         <details>
           <summary className="cursor-pointer text-[12px] text-[var(--text-secondary)]">
