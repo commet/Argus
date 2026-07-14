@@ -58,7 +58,8 @@ export async function appendProjectSemanticEvents(
       ok: false,
       code: message.includes('IDEMPOTENCY_CONFLICT') ? 'IDEMPOTENCY_CONFLICT'
         : message.includes('EVENT_ID_CONFLICT') ? 'EVENT_ID_CONFLICT'
-          : message.includes('PROJECT_NOT_FOUND_OR_FORBIDDEN') ? 'FORBIDDEN'
+            : message.includes('PROJECT_NOT_FOUND_OR_FORBIDDEN') ? 'FORBIDDEN'
+              : message.includes('SEMANTIC_JUDGMENT_CONFLICT') ? 'SEMANTIC_JUDGMENT_CONFLICT'
             : message.includes('SPACE_MISMATCH') ? 'SPACE_MISMATCH'
               : 'APPEND_FAILED',
     };

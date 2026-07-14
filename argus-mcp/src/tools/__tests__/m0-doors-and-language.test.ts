@@ -98,7 +98,7 @@ describe('M0 · check_in stays bounded after a long gap (§9.4 경계 수리)', 
     expect(String(data['due_truncated'])).toContain('25');
     // The surface tells the truth about the full count, not the visible slice.
     expect(String(res['surface'])).toContain('25');
-  });
+  }, 15000);
 });
 
 describe('M0 · reconsider_cadence_days alias (the reponder trap)', () => {

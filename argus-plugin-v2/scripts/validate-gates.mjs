@@ -45,22 +45,34 @@ function firstExisting(dir, names) {
   return null;
 }
 
-// Collect { session, label, dir, mtime } for every version dir.
+// Collect the active/latest version for each session. Superseded drafts are
+// immutable history: re-gating every old version makes a repaired session fail
+// forever and contradicts the "per session's latest version" contract above.
 function collectVersions() {
   const out = [];
   const sessions = path.join(argusDir, 'sessions');
   let ids = [];
   try { ids = fs.readdirSync(sessions); } catch { return out; }
   for (const id of ids) {
+    const sessionDir = path.join(sessions, id);
     const versions = path.join(sessions, id, 'versions');
     let labels = [];
     try { labels = fs.readdirSync(versions); } catch { continue; }
+    const entries = [];
     for (const label of labels) {
       const dir = path.join(versions, label);
       let mtime = 0;
       try { mtime = fs.statSync(dir).mtimeMs; } catch { /* skip */ }
-      out.push({ session: id, label, dir, mtime });
+      entries.push({ session: id, label, dir, mtime });
     }
+    if (!entries.length) continue;
+
+    const session = readJson(path.join(sessionDir, 'session.json'));
+    const active = Array.isArray(session?.drafts)
+      ? session.drafts.find((draft) => draft.id === session.active_draft_id)?.version_label
+      : null;
+    out.push(entries.find((entry) => entry.label === active)
+      ?? entries.sort((a, b) => b.mtime - a.mtime)[0]);
   }
   return out;
 }

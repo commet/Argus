@@ -5,11 +5,13 @@
   "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
     "kernel:build": "npm --prefix argus-mcp run build",
+    "postinstall": "npm --prefix argus-mcp ci --include=dev",
     "predev": "npm run kernel:build",
     "dev": "next dev",
     "prebuild": "npm run kernel:build",
     "build": "next build",
     "preflight:deploy": "node scripts/check-deploy-env.mjs",
+    "preflight:dogfood": "npm run build && npm test && npm run lint && npm run gates && npm run gates:test && npm run signals:test && npm run eval:static && node argus-plugin-v2/scripts/validate-plugin.js && node --check argus-plugin-v2/scripts/push-webapp.js && git diff --check",
     "start": "next start",
     "lint": "eslint src --max-warnings=145",
     "pretest": "npm run kernel:build",

@@ -135,9 +135,9 @@ The following completed successfully against the delivered source:
 | Check | Result |
 |---|---|
 | `npm run build` | Passed; compiled the MCP kernel first and built the Next application including the semantic API route |
-| Root Vitest suite | 325 files passed, 3,888 tests passed, 10 skipped as expected |
+| Root Vitest suite | 327 files passed, 3,898 tests passed, 10 skipped as expected |
 | MCP package suite | 86 files passed, 844 tests passed |
-| Focused semantic web/plugin/Telegram/erasure tests | 4 files, 21 tests passed after the P7 changes |
+| Focused semantic gateway/web/migration/plugin/Telegram tests | Passed after the pre-dogfood hardening changes |
 | `npm run lint` | Passed with 0 errors; 139 existing warnings remained below the repository threshold of 145 |
 | `git diff --check` | Passed before commit |
 | Plugin pull smoke test | Passed; a `semantic_v3` payload was copied unchanged to the local JSONL ledger |
@@ -145,6 +145,40 @@ The following completed successfully against the delivered source:
 The implementation tests prove code-level and command-level conformance. They
 do not prove a production database deployment, a real Telegram delivery, or
 user value.
+
+### Pre-dogfood hardening follow-up
+
+The local pre-dogfood review added the following safeguards after the initial
+handoff commit:
+
+- Browser semantic requests are strict named-command objects. They cannot set
+  `recorded_at`, recorder identity, authorization mode, or authorization
+  evidence; the server assigns recording time.
+- Unknown, empty, overlong, or malformed command fields are rejected before
+  the append gateway rather than falling through to a server error.
+- A first `judgment_sealed` append and the project's
+  `semantic_judgment_id` projection pointer now share the same database
+  transaction. A failed local-first project sync cannot leave a valid ledger
+  undiscoverable, and an existing different pointer is never overwritten.
+- Telegram observation plus resolution commands carry their evidence
+  reference before schema validation and append; no post-build event mutation
+  is required.
+- Gateway and migration contract tests cover reducer preflight, atomic append,
+  service-role-only writes, pointer conflicts, idempotency, and event-id
+  collision guards.
+- Plugin enforcement gates now inspect each session's active/latest draft as
+  documented, rather than failing forever on immutable superseded drafts.
+- I/O-heavy protocol and long-gap tests have explicit realistic time budgets,
+  so the default full-suite command is stable under concurrent execution.
+
+Run the repeatable local gate with:
+
+```text
+npm run preflight:dogfood
+```
+
+This command does not apply a migration, deploy, contact Telegram, or perform a
+real plugin pull. Those remain explicit environment-backed rollout actions.
 
 ## Deliberately incomplete or not yet authorized
 

@@ -88,3 +88,6 @@ argus-plugin-v2/evals/sweep-report.json
 
 # Internal design/strategy history — kept private, not in the public repo
 /docs/archive/
+
+# Supabase CLI link/runtime metadata
+/supabase/.temp/

@@ -38,7 +38,10 @@ beforeAll(async () => {
 
   client = new Client({ name: 'roundtrip-test', version: '0.0.0' });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [DIST], env }));
-}, 30000);
+// A clean TypeScript rebuild takes roughly 35-40s on the Windows CI/developer
+// path before the protocol handshake starts. Keep enough headroom for the full
+// suite running concurrently while still failing a genuinely stuck build.
+}, 90000);
 
 afterAll(async () => {
   await client?.close();

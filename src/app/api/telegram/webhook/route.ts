@@ -604,17 +604,18 @@ async function handleSemanticContractSettlement(
     return true;
   }
   const outcome = intent.outcome;
+  const observationId = `telegram-observation:${generateId()}`;
   const built = buildSemanticWebCommand({
     project_id: row.id,
     command: {
       kind: 'observe_and_resolve', command_id: `telegram-${generateId()}`,
-      observation_id: `telegram-observation:${generateId()}`,
+      observation_id: observationId,
       observation_text: semanticAnswerText(intent), observation_source_ref: receiptRef,
       resolution_id: `telegram-resolution:${generateId()}`, judgment_id: judgmentId, return_contract_id: returnContractId,
       resolution: {
         kind: 'answered', answer_summary: semanticAnswerText(intent),
         ...(outcome === 'partial' ? { criterion_result: 'partial' as const } : {}),
-        evidence_refs: [], // Filled below with the generated observation id.
+        evidence_refs: [observationId],
       },
     },
     recorded_at: now,
@@ -624,12 +625,6 @@ async function handleSemanticContractSettlement(
     await sendMessage(chatId, locale === 'ko' ? '답변 명령이 유효하지 않았어요. 기록은 바뀌지 않았습니다.' : 'The answer command was invalid. The record was not changed.');
     return true;
   }
-  // The schema correctly requires evidence for an answered resolution. The
-  // observation and answer are one atomic callback command, so bind the
-  // answer to that exact observation before the shared gateway preflights it.
-  const observationId = (built.events[0] as { observation_id: string }).observation_id;
-  const resolutionEvent = built.events[1] as { resolution: { evidence_refs: string[] } };
-  resolutionEvent.resolution.evidence_refs = [observationId];
   const appended = await appendProjectSemanticEvents(admin, userId, row.id, built.events);
   if (!appended.ok) {
     await sendMessage(chatId, locale === 'ko' ? `답변을 기록하지 못했어요 (${appended.code}).` : `I could not record the answer (${appended.code}).`);

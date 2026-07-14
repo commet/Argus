@@ -14,6 +14,7 @@ export {
 } from '../../argus-mcp/dist/v3/reducer.js';
 
 export {
+  ResolutionSchema,
   SemanticEventSchema,
 } from '../../argus-mcp/dist/v3/types.js';
 

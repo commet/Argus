@@ -1,10 +1,11 @@
+import { z } from 'zod';
 import {
   fold,
   foldAsOf,
   guardAppendBatch,
   projectJudgment,
+  ResolutionSchema,
   type JudgmentProjection,
-  type Resolution,
   type SemanticEvent,
 } from '@/lib/decision-kernel';
 
@@ -13,59 +14,46 @@ export function semanticSpaceId(projectId: string): string {
   return `account-project:${projectId}`;
 }
 
-export type SemanticWebCommand =
-  | {
-      kind: 'seal';
-      command_id: string;
-      judgment_id: string;
-      statement: string;
-      return_contract_id: string;
-      review_at: string;
-      review_question: string;
-      resolution_criterion?: string;
-    }
-  | {
-      kind: 'observe';
-      command_id: string;
-      observation_id: string;
-      text: string;
-      occurred_at?: string;
-      source_ref?: string;
-    }
-  | {
-      kind: 'defer';
-      command_id: string;
-      return_contract_id: string;
-      review_at: string;
-      reason?: string;
-    }
-  | {
-      kind: 'resolve';
-      command_id: string;
-      resolution_id: string;
-      judgment_id: string;
-      return_contract_id: string;
-      resolution: Resolution;
-    }
-  | {
-      /** One direct user action can record what they observed and its answer,
-       * but it still never closes the judgment. */
-      kind: 'observe_and_resolve';
-      command_id: string;
-      observation_id: string;
-      observation_text: string;
-      observation_source_ref?: string;
-      resolution_id: string;
-      judgment_id: string;
-      return_contract_id: string;
-      resolution: Resolution;
-    }
-  | {
-      kind: 'close';
-      command_id: string;
-      judgment_id: string;
-      resolution_id: string;
-    };
+const zId = z.string().min(1).max(128);
+const zCommandId = z.string().min(1).max(96);
+const zIsoDateTime = z.string().datetime({ offset: true });
+
+export const SemanticWebCommandSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('seal'), command_id: zCommandId, judgment_id: zId,
+    statement: z.string().min(1).max(4000), return_contract_id: zId,
+    review_at: zIsoDateTime, review_question: z.string().min(1).max(4000),
+    resolution_criterion: z.string().min(1).max(2000).optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('observe'), command_id: zCommandId, observation_id: zId,
+    text: z.string().min(1).max(4000), occurred_at: zIsoDateTime.optional(),
+    source_ref: z.string().min(1).max(1024).optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('defer'), command_id: zCommandId, return_contract_id: zId,
+    review_at: zIsoDateTime, reason: z.string().min(1).max(2000).optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('resolve'), command_id: zCommandId, resolution_id: zId,
+    judgment_id: zId, return_contract_id: zId, resolution: ResolutionSchema,
+  }),
+  z.strictObject({
+    /** One direct user action can record what they observed and its answer,
+     * but it still never closes the judgment. */
+    kind: z.literal('observe_and_resolve'), command_id: zCommandId,
+    observation_id: zId, observation_text: z.string().min(1).max(4000),
+    observation_source_ref: z.string().min(1).max(1024).optional(),
+    resolution_id: zId, judgment_id: zId, return_contract_id: zId,
+    resolution: ResolutionSchema,
+  }),
+  z.strictObject({
+    kind: z.literal('close'), command_id: zCommandId, judgment_id: zId,
+    resolution_id: zId,
+  }),
+]);
+
+export type SemanticWebCommand = z.infer<typeof SemanticWebCommandSchema>;
 
 export interface SemanticWebCommandInput {
   project_id: string;
@@ -79,6 +67,18 @@ export interface SemanticWebCommandInput {
     authorization_kind: 'user_utterance' | 'command_digest';
     authorization_ref: string;
   };
+}
+
+const BrowserSemanticCommandRequestSchema = z.strictObject({
+  command: SemanticWebCommandSchema,
+});
+
+/** Browser requests may name only a command. Recording and authorization time
+ * are assigned by the server; trusted capture adapters call the builder
+ * directly with their receipt-backed origin. */
+export function semanticWebCommandFromRequest(projectId: string, body: unknown): SemanticWebCommandInput | null {
+  const parsed = BrowserSemanticCommandRequestSchema.safeParse(body);
+  return parsed.success ? { project_id: projectId, command: parsed.data.command } : null;
 }
 
 export type SemanticCommandResult =
@@ -134,8 +134,14 @@ function commandEventBase(projectId: string, command: SemanticWebCommand, record
  * canonical ledger, and clients can render an exact pending receipt.
  */
 export function buildSemanticWebCommand(input: SemanticWebCommandInput): SemanticCommandResult {
+  const parsedCommand = SemanticWebCommandSchema.safeParse(input.command);
+  if (!parsedCommand.success || !zId.safeParse(input.project_id).success) {
+    return { ok: false, code: 'INVALID_COMMAND' };
+  }
   const recordedAt = input.recorded_at ?? new Date().toISOString();
-  const { project_id: projectId, command, origin } = input;
+  if (!zIsoDateTime.safeParse(recordedAt).success) return { ok: false, code: 'INVALID_RECORDED_AT' };
+  const { project_id: projectId, origin } = input;
+  const command = parsedCommand.data;
 
   switch (command.kind) {
     case 'seal':

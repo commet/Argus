@@ -29,11 +29,11 @@ export async function loadProjectSemanticEvents(projectId: string): Promise<unkn
   return (await bodyOrThrow(response)).events ?? [];
 }
 
-export async function submitProjectSemanticCommand(projectId: string, command: SemanticWebCommand, recordedAt = new Date().toISOString()): Promise<unknown[]> {
+export async function submitProjectSemanticCommand(projectId: string, command: SemanticWebCommand): Promise<unknown[]> {
   const response = await fetch(`/api/semantic/projects/${encodeURIComponent(projectId)}/events`, {
     method: 'POST',
     headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ command, recorded_at: recordedAt }),
+    body: JSON.stringify({ command }),
   });
   return (await bodyOrThrow(response)).events ?? [];
 }

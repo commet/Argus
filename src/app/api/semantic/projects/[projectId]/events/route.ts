@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import {
   buildSemanticWebCommand,
-  type SemanticWebCommand,
+  semanticWebCommandFromRequest,
 } from '@/lib/semantic-web';
 import { appendProjectSemanticEvents, readProjectSemanticEvents } from '@/lib/semantic-ledger-gateway';
 
@@ -29,11 +29,6 @@ async function authenticate(req: NextRequest) {
   return error || !user ? null : { user, admin: createClient(config.url, config.serviceKey) };
 }
 
-function hasCommandShape(value: unknown): value is SemanticWebCommand {
-  return !!value && typeof value === 'object' && typeof (value as { kind?: unknown }).kind === 'string'
-    && typeof (value as { command_id?: unknown }).command_id === 'string';
-}
-
 export async function GET(req: NextRequest, { params }: Params) {
   const auth = await authenticate(req);
   if (!auth) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
@@ -56,19 +51,12 @@ export async function POST(req: NextRequest, { params }: Params) {
   const { projectId } = await params;
   if (!UUID_RE.test(projectId)) return NextResponse.json({ error: 'Bad project id.' }, { status: 400 });
 
-  let body: { command?: unknown; recorded_at?: unknown };
+  let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Bad request.' }, { status: 400 }); }
-  if (!hasCommandShape(body?.command) || (body.recorded_at !== undefined && typeof body.recorded_at !== 'string')) {
-    return NextResponse.json({ error: 'Bad semantic command.' }, { status: 400 });
-  }
-
-  const input = {
-    project_id: projectId,
-    command: body.command,
-    ...(typeof body.recorded_at === 'string' ? { recorded_at: body.recorded_at } : {}),
-  };
+  const input = semanticWebCommandFromRequest(projectId, body);
+  if (!input) return NextResponse.json({ error: 'Bad semantic command.' }, { status: 400 });
   const built = buildSemanticWebCommand(input);
-  if (!built.ok) return NextResponse.json({ error: built.code }, { status: 422 });
+  if (!built.ok) return NextResponse.json({ error: built.code }, { status: 400 });
 
   const appended = await appendProjectSemanticEvents(auth.admin, auth.user.id, projectId, built.events);
   if (!appended.ok) {

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildSemanticWebCommand,
   preflightSemanticWebCommand,
+  semanticWebCommandFromRequest,
   semanticProjection,
   semanticProjectionAsOf,
 } from '@/lib/semantic-web';
@@ -16,6 +18,23 @@ function append(existing: unknown[], command: Parameters<typeof preflightSemanti
 }
 
 describe('web semantic command adapter', () => {
+  it('rejects unknown or malformed browser commands and never accepts client recording authority', () => {
+    expect(semanticWebCommandFromRequest(projectId, {
+      command: { kind: 'unknown', command_id: 'bad-1' },
+    })).toBeNull();
+    expect(semanticWebCommandFromRequest(projectId, {
+      command: { kind: 'observe', command_id: 'observe-1', observation_id: 'o1', text: 'Observed.' },
+      recorded_at: '2020-01-01T00:00:00.000Z',
+    })).toBeNull();
+    expect(semanticWebCommandFromRequest(projectId, {
+      command: { kind: 'observe', command_id: '', observation_id: 'o1', text: 'Observed.' },
+    })).toBeNull();
+    expect(buildSemanticWebCommand({
+      project_id: projectId,
+      command: { kind: 'unknown', command_id: 'bad-1' } as never,
+    })).toEqual({ ok: false, code: 'INVALID_COMMAND' });
+  });
+
   it('separates observation, resolution, and close while preserving an as-of view', () => {
     const judgmentId = 'judgment-1';
     const returnId = 'return-1';

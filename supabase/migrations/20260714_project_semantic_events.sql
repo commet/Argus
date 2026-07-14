@@ -50,6 +50,8 @@ DECLARE
   v_existing jsonb;
   v_existing_count integer;
   v_batch_count integer;
+  v_seal_count integer;
+  v_judgment_id text;
 BEGIN
   IF jsonb_typeof(p_events) <> 'array' OR jsonb_array_length(p_events) = 0 THEN
     RAISE EXCEPTION 'INVALID_BATCH' USING ERRCODE = '22023';
@@ -91,6 +93,39 @@ BEGIN
 
   IF v_space_id <> 'account-project:' || p_project_id::text THEN
     RAISE EXCEPTION 'SPACE_MISMATCH' USING ERRCODE = '22023';
+  END IF;
+
+  -- A successful first seal must also make the canonical stream discoverable
+  -- from the existing project projection. Keep the pointer and append in this
+  -- same transaction so a failed local-first project sync cannot orphan a
+  -- valid ledger. An exact retry may repair an absent pointer, but may never
+  -- replace a pointer to a different judgment.
+  SELECT count(*), max(value->>'judgment_id')
+    INTO v_seal_count, v_judgment_id
+  FROM jsonb_array_elements(p_events)
+  WHERE value->>'event' = 'judgment_sealed';
+
+  IF v_seal_count > 1 OR (v_seal_count = 1 AND coalesce(v_judgment_id, '') = '') THEN
+    RAISE EXCEPTION 'INVALID_SEAL_BATCH' USING ERRCODE = '22023';
+  END IF;
+
+  IF v_judgment_id IS NOT NULL THEN
+    UPDATE public.projects
+    SET decision_contract = jsonb_set(
+      coalesce(decision_contract, '{}'::jsonb),
+      '{semantic_judgment_id}',
+      to_jsonb(v_judgment_id),
+      true
+    )
+    WHERE id = p_project_id
+      AND user_id = p_user_id
+      AND (
+        decision_contract->>'semantic_judgment_id' IS NULL
+        OR decision_contract->>'semantic_judgment_id' = v_judgment_id
+      );
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'SEMANTIC_JUDGMENT_CONFLICT' USING ERRCODE = 'P0001';
+    END IF;
   END IF;
 
   -- An all-exact retry gets a duplicate receipt. A partial retry, altered
@@ -164,4 +199,5 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.append_project_semantic_events(uuid, uuid, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.append_project_semantic_events(uuid, uuid, jsonb) FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.append_project_semantic_events(uuid, uuid, jsonb) TO service_role;
