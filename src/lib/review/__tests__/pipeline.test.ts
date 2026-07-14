@@ -279,16 +279,80 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(receipt!.coverage!.notes).toEqual([]);
   });
 
-  it('attaches partial/low coverage + a disclosure note when the doc exceeds the unit budget', async () => {
-    // A long markdown doc → far more than max_units (160) paragraphs.
+  it('de-dups an issue surfaced by multiple lenses in the single-pass path', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const uid = artifact.units[0].unit_id;
+    const base = mockLLM(artifact);
+    // Every lens returns the SAME anchored finding — they must collapse to one.
+    const llm: ReviewLLM = {
+      model_name: base.model_name, model_provider: base.model_provider,
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (args.system.includes('렌즈다')) {
+          return { findings: [{ title: '핵심 주장에 근거가 없음', detail: 'd', severity: 'critical', confidence: 'medium', suggested_action: 'a', unit_ids: [uid] }] } as T;
+        }
+        return base.json<T>(args);
+      },
+    };
+    const { receipt } = await runDocumentReview(artifact, { llm, today: '2026-07-01' });
+    expect(receipt!.findings.filter((f) => f.title.includes('핵심 주장에 근거가 없음')).length).toBe(1);
+  });
+
+  it('reviews a long document end-to-end via chunking (full coverage, not just the front)', async () => {
+    // 400 paragraphs → far past one prompt. The map-reduce path must cover the
+    // WHOLE document (the old front-slice reviewed only the first ~160/13%).
     const bigText = Array.from({ length: 400 }, (_, i) => `문단 ${i}: 이건 검수 대상 문장입니다.`).join('\n\n');
     const artifact = ingest({ source_kind: 'markdown', text: bigText });
+    const { job, receipt } = await runDocumentReview(artifact, { llm: mockLLM(artifact), today: '2026-07-01' });
+    expect(job.status).toBe('ready');
+    const cov = receipt!.coverage!;
+    expect(cov.units_total).toBe(400);
+    expect(cov.units_reviewed).toBe(400); // every unit reviewed, not just 160
+    expect(cov.band).toBe('full');
+  });
+
+  it('still discloses partial coverage when a document exceeds total chunk capacity', async () => {
+    // 1400 units > maxChunks(10) × UNITS_PER_CHUNK(100) = 1000 reviewable.
+    const hugeText = Array.from({ length: 1400 }, (_, i) => `문단 ${i}: 검수 대상 문장.`).join('\n\n');
+    const artifact = ingest({ source_kind: 'markdown', text: hugeText });
     const { receipt } = await runDocumentReview(artifact, { llm: mockLLM(artifact), today: '2026-07-01' });
     const cov = receipt!.coverage!;
-    expect(cov.units_total).toBeGreaterThan(160);
-    expect(cov.units_reviewed).toBeLessThanOrEqual(160);
+    expect(cov.units_total).toBeGreaterThan(1000);
+    expect(cov.units_reviewed).toBe(1000);
     expect(cov.band).not.toBe('full');
-    expect(cov.notes.some((n) => n.includes('앞') && n.includes('개만 검수'))).toBe(true);
+    expect(cov.notes.some((n) => n.includes('개만 검수'))).toBe(true);
+  });
+
+  it('map-reduce de-dups an issue repeated across chunks into one finding', async () => {
+    const bigText = Array.from({ length: 250 }, (_, i) => `문단 ${i}: 근거 없이 매출이 오른다고 단정한다.`).join('\n\n');
+    const artifact = ingest({ source_kind: 'markdown', text: bigText });
+    let mapCalls = 0;
+    const llm: ReviewLLM = {
+      model_name: 'mock', model_provider: 'local',
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        // synthesis (reduce) stage
+        if (args.system.includes('"종합"')) {
+          return { core_question: '가격을 올릴 것인가', current_heading: '근거가 비어 있습니다', judgment_obligations: [], followups: [] } as T;
+        }
+        // map stage: every chunk reports the SAME issue with its own unit_id.
+        mapCalls++;
+        const uid = (args.user.match(/\[([a-z0-9_]+)\]/i) ?? [])[1] ?? 'x';
+        return {
+          profile: { document_type: 'strategy_memo', intent: 'decide', audience: 'team', stakes: 'high', artifact_maturity: 'working_draft', source_confidence: 0.6 },
+          core_question: '가격을 올릴 것인가',
+          main_claims: [{ text: '매출이 오른다', status: 'weak', unit_ids: [uid], rationale: '근거 없음' }],
+          evidence_items: [], assumptions: [], decision_points: [], tradeoffs: [], stakeholders: [], open_questions: [], missing_sections: [],
+          findings: [{ lens_id: 'claim_evidence', title: '근거 없이 매출 상승을 단정함', detail: '지표가 없다', severity: 'critical', confidence: 'medium', suggested_action: '수치 확인', unit_ids: [uid] }],
+          current_heading: 'h',
+        } as T;
+      },
+    };
+    const { job, receipt } = await runDocumentReview(artifact, { llm, today: '2026-07-01' });
+    expect(job.status).toBe('ready');
+    expect(mapCalls).toBeGreaterThan(1); // genuinely chunked
+    // Same title across chunks collapses to a single finding + a single claim.
+    expect(receipt!.findings.length).toBe(1);
+    expect(receipt!.findings[0].anchors.length).toBeGreaterThan(0);
+    expect(receipt!.claim_ledger.length).toBe(1);
   });
 
   it('forwards the abort signal to the model and turns a cancel into a failed job (never throws)', async () => {

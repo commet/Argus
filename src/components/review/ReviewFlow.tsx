@@ -21,6 +21,8 @@ import { SealStamp } from '@/components/workspace/progressive/SealStamp';
 import { SealModal } from './SealModal';
 import { SettleModal } from './SettleModal';
 import { extractFile, type ExtractedText } from '@/lib/review/extract-file';
+import { useSettingsStore, hasOwnApiKey } from '@/stores/useSettingsStore';
+import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { track } from '@/lib/analytics';
 import {
   ingest,
@@ -68,6 +70,13 @@ export function ReviewFlow() {
   const [sealing, setSealing] = useState(false);
   const [settlingId, setSettlingId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  // BYOK gate: a full-document review burns tokens, so a user NOT on their own
+  // API key gets one lifetime free review. `freeUsed` is the local soppy flag;
+  // the server-side daily rate limit is the real cost backstop.
+  const settings = useSettingsStore((s) => s.settings);
+  const ownKey = hasOwnApiKey(settings);
+  const [freeUsed, setFreeUsed] = useState(false);
+  const gateBlocked = !ownKey && freeUsed;
   const fileRef = useRef<HTMLInputElement>(null);
   // Lets the user cancel an in-flight review. Without it a long extraction on a
   // large document reads as a frozen "분석 중" screen with no way out.
@@ -89,6 +98,8 @@ export function ReviewFlow() {
   // Load persisted receipts once; open on the list when any exist, else import.
   useEffect(() => {
     useReviewStore.getState().load();
+    useSettingsStore.getState().loadSettings();
+    setFreeUsed(getStorage<boolean>(STORAGE_KEYS.REVIEW_FREE_USED, false));
     const receipts = useReviewStore.getState().receipts;
     const params = new URLSearchParams(window.location.search);
     const requestedReceipt = params.get('receipt');
@@ -171,6 +182,13 @@ export function ReviewFlow() {
   };
 
   const run = async () => {
+    // Defense in depth (the button is also disabled): never start a review once
+    // the one free use is spent and no personal key is connected.
+    if (!hasOwnApiKey(useSettingsStore.getState().settings)
+        && getStorage<boolean>(STORAGE_KEYS.REVIEW_FREE_USED, false)) {
+      setFreeUsed(true);
+      return;
+    }
     const ctx: UserReviewContext = {
       audience_hint: audienceHint.trim() || undefined,
       biggest_worry: worry.trim() || undefined,
@@ -203,12 +221,14 @@ export function ReviewFlow() {
     setElapsed(0);
     setPhase('running');
     // Wall-clock budget: the pipeline is internally bounded (120s × retries per
-    // call) but that compounds across serial stages into many minutes. A single
-    // review-level deadline caps the worst case to ~REVIEW_DEADLINE_MS.
+    // call) but that compounds across serial stages. A long document runs more
+    // chunk passes, so scale the deadline with its size (capped) instead of
+    // timing out a genuine 40-page review at the short base budget.
+    const sourceLength = (preExtracted?.text || text).length;
+    const deadlineMs = Math.min(300_000, Math.max(REVIEW_DEADLINE_MS, 90_000 + Math.ceil(sourceLength / 1000) * 2000));
     const deadline = setTimeout(() => {
       if (abortRef.current) { abortReasonRef.current = 'deadline'; abortRef.current.abort(); }
-    }, REVIEW_DEADLINE_MS);
-    const sourceLength = (preExtracted?.text || text).length;
+    }, deadlineMs);
     const budget = sourceLength <= 6_000 && artifact.units.length <= 20
       ? DEFAULT_BUDGET.quick
       : DEFAULT_BUDGET.standard;
@@ -264,6 +284,12 @@ export function ReviewFlow() {
       }
 
       store.saveReceipt(r);
+      // Consume the one free document review (only on a completed review, only
+      // for users without their own key) — a full review's token cost is why.
+      if (!hasOwnApiKey(useSettingsStore.getState().settings)) {
+        setStorage(STORAGE_KEYS.REVIEW_FREE_USED, true);
+        setFreeUsed(true);
+      }
       setSessionSource({ id: r.receipt_id, text: effectiveText });
       setActiveId(r.receipt_id);
       setShowOriginal(false);
@@ -588,14 +614,23 @@ export function ReviewFlow() {
               : text.length > 0 ? L(`${text.length.toLocaleString()}자`, `${text.length.toLocaleString()} characters`) : ''}
           </span>
         </div>
-        {preExtracted && (
-          <p className="mt-2 text-[12px] text-green-700">
-            {L(
-              `${sourceKind.toUpperCase()}에서 텍스트를 추출했습니다${extractNote ? ` — ${extractNote}` : ''}. 그대로 검수를 시작할 수 있습니다.`,
-              `Extracted text from the ${sourceKind.toUpperCase()}${extractNote ? ` — ${extractNote}` : ''}. You can start the review as is.`,
-            )}
-          </p>
-        )}
+        {preExtracted && (() => {
+          // Show the real scope pulled from the file so the user knows how much
+          // will be reviewed (a whole 40-page report vs. a title slide).
+          const parts: string[] = [];
+          if (preExtracted.pages_read) parts.push(L(`${preExtracted.pages_read}쪽`, `${preExtracted.pages_read} pages`));
+          if (preExtracted.slides_read) parts.push(L(`${preExtracted.slides_read}장`, `${preExtracted.slides_read} slides`));
+          if (preExtracted.units?.length) parts.push(L(`${preExtracted.units.length}개 항목`, `${preExtracted.units.length} items`));
+          const scope = parts.length ? ` (${parts.join(' · ')})` : '';
+          return (
+            <p className="mt-2 text-[12px] text-green-700">
+              {L(
+                `${sourceKind.toUpperCase()}에서 텍스트를 추출했습니다${scope}${extractNote ? ` — ${extractNote}` : ''}. 문서 전체를 검수합니다.`,
+                `Extracted text from the ${sourceKind.toUpperCase()}${scope}${extractNote ? ` — ${extractNote}` : ''}. The whole document will be reviewed.`,
+              )}
+            </p>
+          );
+        })()}
         {pendingBinary && (
           <p className="mt-2 text-[12px] text-amber-700">
             {extractNote ? `${extractNote} ` : ''}
@@ -669,8 +704,28 @@ export function ReviewFlow() {
         </span>
       </label>
 
+      {gateBlocked && (
+        <Card variant="muted" className="border border-[var(--border-subtle)]">
+          <div className="text-[13px] font-medium text-[var(--text-primary)] mb-1">
+            {L('무료 문서 검수 1회를 모두 사용했어요', 'You’ve used your one free document review')}
+          </div>
+          <p className="text-[12px] leading-[1.6] text-[var(--text-secondary)] mb-3">
+            {L(
+              '문서 전체 검수는 토큰을 많이 써서, 자기 API 키를 연결하지 않으면 평생 1회로 제한돼요. 설정에서 API 키를 연결하면 횟수 제한 없이 계속 검수할 수 있어요(요금은 본인 키로 청구됩니다).',
+              'A full-document review uses a lot of tokens, so without your own API key it’s limited to one lifetime review. Connect an API key in Settings to keep reviewing with no limit (billed to your own key).',
+            )}
+          </p>
+          <a
+            href={`/${locale}/settings`}
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline"
+          >
+            {L('설정에서 API 키 연결하기 →', 'Connect an API key in Settings →')}
+          </a>
+        </Card>
+      )}
+
       <div>
-        <Button variant="accent" size="md" onClick={run} disabled={!canRun}>
+        <Button variant="accent" size="md" onClick={run} disabled={!canRun || gateBlocked}>
           {L('검수 시작', 'Start review')}
         </Button>
       </div>

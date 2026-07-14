@@ -34,11 +34,15 @@ export function renderUnits(units: ArtifactUnit[], limit: number): string {
       const loc =
         a.slide !== undefined
           ? `slide ${a.slide}`
-          : a.section_path?.length
-            ? a.section_path.join(' › ')
-            : a.line_start !== undefined
-              ? `L${a.line_start}`
-              : '';
+          : a.page !== undefined
+            ? a.section_path?.length
+              ? `${a.page}쪽 · ${a.section_path.join(' › ')}`
+              : `${a.page}쪽`
+            : a.section_path?.length
+              ? a.section_path.join(' › ')
+              : a.line_start !== undefined
+                ? `L${a.line_start}`
+                : '';
       return `[${u.unit_id}] (${u.kind}${loc ? ' · ' + loc : ''}) ${u.text}`;
     })
     .join('\n');
@@ -163,6 +167,67 @@ Return this JSON shape:
   "followups": [ { "predicate": "...", "pass_condition": "...", "fail_condition": "...", "check_by": "YYYY-MM-DD" } ]
 }`;
 
+  return { system, user };
+}
+
+// ---------------------------------------------------------------------------
+// Map step: one chunk of a long document → partial judgment map + findings.
+// The reduce step (synthesis) merges chunks and de-dups, so a chunk extracts
+// ONLY what its own text supports and never restates the whole document.
+// ---------------------------------------------------------------------------
+
+export function buildMapPrompt(
+  units: ArtifactUnit[],
+  ctx: UserReviewContext,
+  chunkIndex: number,
+  chunkCount: number,
+  today: string,
+): { system: string; user: string } {
+  const context = [
+    ctx.audience_hint && `Audience hint: ${ctx.audience_hint}`,
+    ctx.decision_wanted && `Decision wanted: ${ctx.decision_wanted}`,
+    ctx.biggest_worry && `Biggest worry: ${ctx.biggest_worry}`,
+    ctx.concerns?.length && `Requested concerns: ${ctx.concerns.join(', ')}`,
+  ].filter(Boolean).join('\n');
+
+  const system = `${SPINE}
+
+이 문서는 길어서 여러 구간으로 나눠 검수한다. 지금은 ${chunkCount}개 구간 중
+${chunkIndex + 1}번째 구간이다. **이 구간의 원문 단위(units)에 실제로 담긴 것만**
+지도로 뽑는다 — 다른 구간의 내용이나 문서 전체 요약을 지어내지 않는다.
+
+- 이 구간이 뒷받침하는 main_claims / assumptions / decision_points / findings만 낸다.
+- 판단 스파인 5개(core_question, claim_evidence, hidden_assumption, human_judgment,
+  falsifiable_followup)를 이 구간에 적용한다. finding의 lens_id에 이 다섯 중 하나를
+  snake_case 그대로 넣는다(번역·결합·생략 금지).
+- 이 구간에 실질 이슈가 있을 때만 finding 0~4개. 없으면 빈 배열. 렌즈마다 억지로 만들지 않는다.
+- 모든 claim·assumption·finding은 이 구간의 unit_id를 하나 이상 인용한다.
+- core_question은 이 구간에서 읽히는 결정 질문의 최선 추정이다(뒤 구간에서 갱신될 수 있다).
+- obligations·followups는 여기서 내지 않는다(전체를 합친 뒤 한 번에 만든다).
+- 모든 사용자 노출 값은 원문의 주 언어로 쓴다.`;
+
+  const user = `구간 ${chunkIndex + 1}/${chunkCount}의 원문 단위:
+${renderUnits(units, units.length)}
+
+${context}
+
+다음 JSON을 출력하라(이 구간에 없는 항목은 빈 배열):
+{
+  "profile": { "document_type": "...", "intent": "...", "audience": "...", "stakes": "low|medium|high", "artifact_maturity": "...", "source_confidence": 0.0 },
+  "core_question": "이 구간에서 읽히는 결정 질문(최선 추정)",
+  "main_claims": [ { "text": "...", "status": "supported|weak|unsupported|human_check|contradicted", "unit_ids": ["..."], "rationale": "...", "evidence_needed": "...", "fix_suggestion": "...", "depends_on_claim_ids": ["C1"] } ],
+  "evidence_items": [ { "text": "...", "unit_ids": ["..."], "kind": "internal|external_cited|asserted", "supports_claim_ids": ["C1"] } ],
+  "assumptions": [ { "text": "...", "unit_ids": ["..."], "if_false": "..." } ],
+  "tradeoffs": [ { "text": "...", "unit_ids": ["..."] } ],
+  "stakeholders": [ { "role": "...", "likely_objection": "...", "unit_ids": ["..."] } ],
+  "open_questions": [ { "text": "...", "unit_ids": ["..."] } ],
+  "decision_points": [ { "text": "...", "human_only": true, "unit_ids": ["..."] } ],
+  "missing_sections": [ { "label": "...", "why_it_matters": "..." } ],
+  "findings": [ { "lens_id": "core_question|claim_evidence|hidden_assumption|human_judgment|falsifiable_followup", "title": "...", "detail": "...", "severity": "minor|caution|critical", "confidence": "low|medium|high", "suggested_action": "구체적 확인", "unit_ids": ["..."] } ],
+  "current_heading": "이 구간의 중립적 방향 한 줄"
+}`;
+
+  void today;
   return { system, user };
 }
 

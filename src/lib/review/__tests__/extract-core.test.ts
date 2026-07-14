@@ -5,8 +5,11 @@ import {
   paragraphsFromSlideXml,
   decodeXml,
   slideNum,
+  pdfHeadingTitle,
+  emitPdfUnits,
   type PdfItem,
 } from '../extract-core';
+import { type ArtifactUnit } from '../schema';
 
 /** Build a pdf.js-shaped text item at (x,y) with an explicit advance width. */
 function item(str: string, x: number, y: number, width = str.length * 5): PdfItem {
@@ -64,6 +67,63 @@ describe('reconstructPage — table row', () => {
 describe('groupBlocks', () => {
   it('joins consecutive lines and breaks on blanks', () => {
     expect(groupBlocks(['a', 'b', '', 'c'])).toEqual(['a b', 'c']);
+  });
+});
+
+describe('pdfHeadingTitle', () => {
+  it('detects numbered/keyword headers incl. spaced Korean, not prose', () => {
+    for (const h of ['1. 개요', '2.1 현황 분석', '제 3 장 결론', 'Executive Summary', 'Ⅱ. 시장 규모', '3) 실행 계획', '부록 A', '요약'])
+      expect(pdfHeadingTitle(h), h).toBe(h);
+    for (const body of ['우리는 매출이 크게 늘었다고 본다.', '개요를 정리하면 다음과 같다', '요약하자면 우리는 성장했다', ''])
+      expect(pdfHeadingTitle(body), body).toBeNull();
+  });
+});
+
+describe('emitPdfUnits', () => {
+  const bigLine = '이 문단은 본문 서술이다. '.repeat(120); // > PDF_PARA_CHARS
+
+  it('splits a page with NO blank lines into granular units (not one blob) and detects headings', () => {
+    // Mimics reconstructPage output: headings are their own short lines, body is
+    // long unbroken lines — exactly the shape that collapsed a whole page into
+    // one unit before line-level segmentation.
+    const lines = ['1. 개요', bigLine, bigLine, '2. 현황 분석', bigLine];
+    const units: ArtifactUnit[] = [];
+    const section = emitPdfUnits(lines, 3, units, null, () => {});
+
+    expect(units.length).toBeGreaterThan(3); // NOT a single page-sized blob
+    const headings = units.filter((u) => u.kind === 'heading');
+    expect(headings.map((h) => h.text)).toEqual(['1. 개요', '2. 현황 분석']);
+    // every unit anchors to the page; paragraphs carry the running section.
+    for (const u of units) expect(u.source_anchor.page).toBe(3);
+    const firstPara = units.find((u) => u.kind === 'paragraph')!;
+    expect(firstPara.source_anchor.section_path).toEqual(['1. 개요']);
+    const lastPara = units[units.length - 1];
+    expect(lastPara.source_anchor.section_path).toEqual(['2. 현황 분석']);
+    expect(section).toBe('2. 현황 분석'); // running section carries to the next page
+  });
+
+  it('emits a tabular row (cells joined by " | ") as its own table unit', () => {
+    const units: ArtifactUnit[] = [];
+    emitPdfUnits(['1. 예산', '항목 | 금액 | 비고', '개발 | 3억 | 확정'], 5, units, null, () => {});
+    const tables = units.filter((u) => u.kind === 'table');
+    expect(tables.length).toBe(2);
+    expect(tables[0].source_anchor.section_path).toEqual(['1. 예산']);
+    expect(tables[0].source_anchor.page).toBe(5);
+  });
+
+  it('breaks a long section body by size even with no heading', () => {
+    const units: ArtifactUnit[] = [];
+    emitPdfUnits([bigLine, bigLine, bigLine], 1, units, null, () => {});
+    expect(units.length).toBeGreaterThan(1);
+    expect(units.every((u) => u.kind === 'paragraph')).toBe(true);
+  });
+
+  it('honors the unit ceiling and reports it via onCap', () => {
+    let capped = false;
+    const units: ArtifactUnit[] = [];
+    emitPdfUnits([bigLine, bigLine, bigLine, bigLine], 1, units, null, () => { capped = true; }, 2);
+    expect(capped).toBe(true);
+    expect(units.length).toBeLessThanOrEqual(2);
   });
 });
 

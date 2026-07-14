@@ -24,7 +24,7 @@ import {
   PAGE_CAP,
   type PdfItem,
   reconstructPage,
-  groupBlocks,
+  emitPdfUnits,
   paragraphsFromSlideXml,
   slideNum,
 } from './extract-core';
@@ -60,14 +60,43 @@ export async function extractFile(file: File, kind: SourceKind): Promise<Extract
 
 async function extractDocx(buf: ArrayBuffer): Promise<ExtractedText> {
   const mammoth = await import('mammoth');
-  const { value, messages } = await mammoth.extractRawText({ arrayBuffer: buf });
-  const text = (value || '').trim();
-  const lost = messages.some((m: { type: string }) => m.type === 'warning');
+  // Markdown (not raw text) so Word headings/lists/tables survive into the same
+  // markdown-aware ingest path. extractRawText flattened every docx into
+  // structureless prose — headings lost, findings anchorable only to a line.
+  // convertToMarkdown exists at runtime (mammoth 1.x) but is missing from the
+  // shipped types, so reach it through a typed cast and fall back to raw text.
+  const toMarkdown = (mammoth as unknown as {
+    convertToMarkdown?: (i: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string; messages: { type: string }[] }>;
+  }).convertToMarkdown;
+  let messages: { type: string }[] = [];
+  let text = '';
+  if (toMarkdown) {
+    const r = await toMarkdown({ arrayBuffer: buf });
+    messages = r.messages;
+    text = stripDocxMarkdownNoise(r.value || '');
+  }
+  if (text.length < 40) {
+    const raw = await mammoth.extractRawText({ arrayBuffer: buf });
+    text = (raw.value || '').trim();
+    messages = raw.messages;
+  }
+  const lost = messages.some((m) => m.type === 'warning');
   return {
     text,
     quality: text.length > 40 ? 'medium' : 'low',
     note: lost ? '일부 표/이미지 서식은 텍스트로 변환되지 않았습니다.' : undefined,
   };
+}
+
+/** Clean mammoth markdown: drop embedded image data-URIs, unescape the
+ *  backslash escapes mammoth adds to punctuation (else a heading reads
+ *  "1\. 개요"), and collapse blank runs. */
+function stripDocxMarkdownNoise(md: string): string {
+  return md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\\([\\`*_{}[\]()#+\-.!>~|])/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // --------------------------------------------------------------------------
@@ -157,6 +186,7 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
   let capped = false;
   let multiColumn = false;
   let hasTable = false;
+  let currentSection: string | null = null;
 
   for (let p = 1; p <= pageCount; p++) {
     if (units.length >= MAX_UNITS) { capped = true; break; }
@@ -166,20 +196,13 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
     const layout = reconstructPage(content.items as PdfItem[]);
     if (layout.multiColumn) multiColumn = true;
     if (layout.hasTable) hasTable = true;
-    // group lines into paragraph-ish blocks separated by blank/short gaps
-    const blocks = groupBlocks(layout.lines);
-    for (const block of blocks) {
-      if (units.length >= MAX_UNITS) { capped = true; break; }
-      const t = block.trim();
-      if (t.length < 2) continue;
-      units.push({
-        unit_id: stableId('u', 'pdf', p, t.slice(0, 40)),
-        kind: 'paragraph',
-        text: t,
-        source_anchor: { page: p },
-        confidence: 0.8,
-      });
-    }
+    // Segment the page at the LINE level, not with groupBlocks. pdf.js emits no
+    // blank lines between paragraphs, so groupBlocks collapsed a whole page into
+    // ONE giant unit — burying every heading and leaving findings only a bare
+    // page number. Splitting per line lets us (a) detect a heading line and give
+    // it its own unit + section_path, and (b) keep paragraph units granular.
+    currentSection = emitPdfUnits(layout.lines, p, units, currentSection, () => { capped = true; });
+    if (capped) break;
   }
 
   // `units_capped` folds the >120-page limit in too: a longer PDF was truncated

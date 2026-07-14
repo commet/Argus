@@ -54,6 +54,7 @@ const CONTRACT: Record<keyof typeof STORAGE_KEYS, Decl> = {
   EXECUTION_TRANSCRIPTS: { localOnly: '대용량 실행 로그 — 로컬 전용 (용량)' },
   BOSS_COLLECTION: { localOnly: '코스메틱 수집 상태 — 유실 무해' },
   REVIEW_RECEIPTS: { table: 'review_receipts' },
+  REVIEW_FREE_USED: { localOnly: '문서 검수 무료 1회 소진 플래그(부울 1개, 개인정보 없음) — 기기별 상태, 유실 시 무료 1회가 복원될 뿐 무해(실비용 상한은 서버측 일일 레이트리밋이 지킴)' },
   LANTERN_SNOOZE: { localOnly: '워크스페이스 등불 당일 스누즈 날짜 — 기기별 UI 상태, 유실 무해(다음날 재렌더)' },
   KNEW_YOU: { localOnly: '세션 만료 인식용 부울 1개(개인정보 없음) — 기기별 상태, 유실 무해(다음 로그인 때 재설정)' },
   THIRD_LOOP_SEEN: { localOnly: '3고리 의식 평생 1회 플래그(부울 1개) — 기기별 UI 상태, 유실 시 의식이 한 번 더 보일 뿐 무해' },

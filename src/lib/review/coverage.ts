@@ -36,6 +36,68 @@ export interface PackedUnits {
 }
 
 /**
+ * Safety rail on units-per-chunk. The char budget is the PRIMARY limiter (a real
+ * report's ~1k-char paragraphs bind at ~30-40 units before this ever trips); this
+ * only guards a pathological doc of thousands of tiny units from packing one
+ * unreadably-dense prompt. A doc that fits one chunk keeps the richer single-pass
+ * (multi-lens) path — chunking (and the map-reduce path) engages only past it.
+ */
+export const UNITS_PER_CHUNK = 100;
+
+export interface ReviewChunks {
+  /** ordered chunks; each fits the char budget + unit cap, per-unit text capped. */
+  chunks: ArtifactUnit[][];
+  /** total units across all chunks actually kept (the honest numerator). */
+  unitsReviewed: number;
+  /** artifact.units.length before chunking (the honest denominator). */
+  total: number;
+  /** units past the maxChunks capacity that were never placed in a chunk. */
+  dropped: number;
+}
+
+/**
+ * Split the WHOLE document into ordered chunks so a long report is reviewed end
+ * to end, not just on the front units that fit one prompt (a 300-item report used
+ * to be judged on its first ~13%). Chunk boundaries fall on the char budget first,
+ * the unit cap second; a single oversized unit is truncated (never dropped).
+ * `maxChunks` bounds cost — any units past it are reported as `dropped` so
+ * coverage stays honest (never a silent cap, CLAUDE.md spine).
+ */
+export function chunkUnitsForReview(
+  units: ArtifactUnit[],
+  maxChunks: number,
+  unitsPerChunk = UNITS_PER_CHUNK,
+  charBudget = PROMPT_CHAR_BUDGET,
+  perUnitCap = PER_UNIT_CHAR_CAP,
+): ReviewChunks {
+  const chunks: ArtifactUnit[][] = [];
+  let cur: ArtifactUnit[] = [];
+  let used = 0;
+  const flush = () => {
+    if (cur.length) {
+      chunks.push(cur);
+      cur = [];
+      used = 0;
+    }
+  };
+  for (const u of units) {
+    const text = u.text.length > perUnitCap ? u.text.slice(0, perUnitCap) : u.text;
+    const capped = text === u.text ? u : { ...u, text };
+    // Start a new chunk before this unit would overflow — but never emit an empty
+    // one (a lone oversized unit is truncated above and kept).
+    if (cur.length > 0 && (used + text.length > charBudget || cur.length >= unitsPerChunk)) {
+      flush();
+      if (chunks.length >= maxChunks) break;
+    }
+    cur.push(capped);
+    used += text.length;
+  }
+  if (chunks.length < maxChunks) flush();
+  const unitsReviewed = chunks.reduce((n, c) => n + c.length, 0);
+  return { chunks, unitsReviewed, total: units.length, dropped: units.length - unitsReviewed };
+}
+
+/**
  * Pick the leading units that fit BOTH `maxUnits` and the cumulative char
  * budget, truncating any single unit longer than `perUnitCap`. Always keeps at
  * least one unit (a lone oversized unit is truncated, not dropped, so the review

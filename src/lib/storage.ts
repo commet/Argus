@@ -24,6 +24,12 @@ export const STORAGE_KEYS = {
   BOSS_COLLECTION: 'sot_boss_collection',
   DECISION_ITEMS: 'sot_decision_items',
   REVIEW_RECEIPTS: 'sot_review_receipts',
+  // 문서 업로드 검수 무료 1회 소진 플래그 (BYOK 유도). 자기 API 키를 연결하지
+  // 않은 사용자는 문서 검수가 토큰을 많이 써서 평생 1회로 제한한다. 이 키가
+  // '1'이면 무료 1회를 이미 썼다는 뜻 — 키 연결 전까지 재검수 차단. 기기별
+  // 부울 1개, 개인정보 없음. 유실(스토리지 초기화)되면 무료 1회가 복원될 뿐이며,
+  // 실제 비용 상한은 서버측 일일 레이트리밋(quota-config)이 별도로 지킨다.
+  REVIEW_FREE_USED: 'sot_review_free_used',
   // Workspace landing lantern (P0-6 ②) — the local date (YYYY-MM-DD) the user
   // tapped "나중에 할게요". Same-day snooze ONLY: it re-renders the next day.
   // Never a permanent dismiss (a lantern that goes out forever kills the
