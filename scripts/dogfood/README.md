@@ -41,15 +41,24 @@ held. Anything else = findings; run the analyzer.
 ```bash
 ARGUS_BASE_URL=https://argus.voyage \
 NEXT_PUBLIC_SUPABASE_URL=... NEXT_PUBLIC_SUPABASE_ANON_KEY=... \
-DOGFOOD_EMAIL=... DOGFOOD_PASSWORD=... DOGFOOD_PROJECT_ID=<uuid> \
+DOGFOOD_EMAIL=... DOGFOOD_PASSWORD=... \
 npm run dogfood:prod
 ```
 
-Drives the handoff's ten P6 web-lifecycle steps over real HTTPS with a
-**disposable** signed-in account and an **empty** project (it refuses a
-project that already has events). Records event ids, receipts, HTTP codes,
-invariant results, and content **hashes only**. This run — inspected — is
-what checks the P6 box.
+You need only a **disposable signed-in account** — the two
+`NEXT_PUBLIC_SUPABASE_*` values are in your `.env.local`, and the email/
+password are the test account's. **You do NOT need to make a project
+yourself.** The Argus UI has no "name a project" field (a project is
+auto-created from whatever decision text you type in the workspace), so the
+runner provisions its own disposable empty project via the authenticated
+client and prints its id. Pass `DOGFOOD_PROJECT_ID=<uuid>` only if you want to
+target a specific existing empty project instead.
+
+It then drives the handoff's ten P6 web-lifecycle steps over real HTTPS,
+recording event ids, receipts, HTTP codes, invariant results, and content
+**hashes only**. This run — inspected — is what checks the P6 box. Delete the
+disposable project (or the whole test account) when done; the runner prints
+its id at the end.
 
 Telegram (P7) and plugin (P7) production runs need a human tapping a real
 bot / running a real `/argus:pull`; follow the handoff's step lists and use

@@ -31,10 +31,16 @@ export async function runProductionP6(outDir: string): Promise<number> {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const email = process.env.DOGFOOD_EMAIL;
   const password = process.env.DOGFOOD_PASSWORD;
-  const projectId = process.env.DOGFOOD_PROJECT_ID;
-  if (!supabaseUrl || !anonKey || !email || !password || !projectId) {
-    console.error('Missing env. Required: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, DOGFOOD_EMAIL, DOGFOOD_PASSWORD, DOGFOOD_PROJECT_ID (and optionally ARGUS_BASE_URL).');
-    console.error('This mode records REAL production evidence; use a disposable test account and an empty project.');
+  // DOGFOOD_PROJECT_ID is now OPTIONAL. The Argus UI has no "name a project"
+  // field — a project is auto-created from whatever decision text you type in
+  // the workspace — so hand-making an empty project is awkward. Instead, when
+  // no id is given, this runner provisions its own disposable project via the
+  // authenticated client (projects RLS: WITH CHECK auth.uid() = user_id) and
+  // reports the id. Pass DOGFOOD_PROJECT_ID only to target a specific project.
+  let projectId = process.env.DOGFOOD_PROJECT_ID;
+  if (!supabaseUrl || !anonKey || !email || !password) {
+    console.error('Missing env. Required: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, DOGFOOD_EMAIL, DOGFOOD_PASSWORD (DOGFOOD_PROJECT_ID and ARGUS_BASE_URL are optional).');
+    console.error('This mode records REAL production evidence; use a DISPOSABLE test account.');
     return 2;
   }
 
@@ -45,6 +51,29 @@ export async function runProductionP6(outDir: string): Promise<number> {
     return 2;
   }
   const token = signIn.session.access_token;
+  const userId = signIn.user!.id;
+
+  let provisioned = false;
+  if (!projectId) {
+    // Create a throwaway project as the signed-in user. It stays empty of v6
+    // events (decision_contract is null), so the P6 lifecycle can seal into it.
+    const newId = crypto.randomUUID();
+    const nowIso = new Date().toISOString();
+    const { error: insertError } = await auth.from('projects').insert({
+      id: newId, user_id: userId, name: `dogfood-P6-${nowIso.slice(0, 10)}`,
+      description: 'Disposable DKK v6 dogfood project. Safe to delete.',
+      refs: [], created_at: nowIso, updated_at: nowIso,
+    });
+    if (insertError) {
+      console.error(`Could not create a disposable project: ${insertError.message}`);
+      console.error('Fix: ensure the account can insert projects, or pass DOGFOOD_PROJECT_ID for an existing empty project.');
+      return 2;
+    }
+    projectId = newId;
+    provisioned = true;
+    console.log(`Provisioned disposable project ${newId} for the test account.`);
+  }
+
   const runId = `production-${new Date().toISOString().replace(/[:.]/g, '-')}`;
   const evidence = new EvidenceRecorder(runId, 'production', outDir);
   const endpoint = `${baseUrl}/api/semantic/projects/${projectId}/events`;
@@ -163,9 +192,12 @@ export async function runProductionP6(outDir: string): Promise<number> {
   console.log(`[ok ] 9-race statuses=${race.map((r) => r.status).join(',')} (each must be an explicit 200 or 409, never silent)`);
   await step('10-final-read', { status: 200 });
 
-  evidence.writeMeta({ endpoint: endpoint.replace(projectId, '<project>'), failures, finished_at: stamp() });
+  evidence.writeMeta({ endpoint: endpoint.replace(projectId, '<project>'), failures, provisioned_project: provisioned, finished_at: stamp() });
   await evidence.close();
   console.log(`\nEvidence → ${evidence.dir}`);
+  if (provisioned) {
+    console.log(`Disposable project ${projectId} now holds this lifecycle. Inspect it in Supabase, then delete it (or the whole test account) when done.`);
+  }
   console.log(failures === 0
     ? 'P6 web lifecycle completed with matching outcomes. Inspect steps.jsonl and commit the non-sensitive evidence per handoff item 7.'
     : `${failures} step(s) diverged — inspect steps.jsonl before claiming anything.`);
