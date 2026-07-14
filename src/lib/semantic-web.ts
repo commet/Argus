@@ -145,17 +145,22 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
 
   switch (command.kind) {
     case 'seal':
+      // Multi-event batches carry an ordinal in the event id. The ledger table
+      // stores one created_at per transaction, and every reader breaks the tie
+      // with ORDER BY event_id — without the ordinal, ':return' sorts before
+      // ':sealed' and the fold drops the return contract as an unknown
+      // reference (found by scripts/dogfood, scenario W1 root cause).
       return {
         ok: true,
         events: [
           {
-            ...commandEventBase(projectId, command, recordedAt, 'sealed', origin),
+            ...commandEventBase(projectId, command, recordedAt, '1-sealed', origin),
             event: 'judgment_sealed',
             judgment_id: command.judgment_id,
             statement: command.statement,
           },
           {
-            ...commandEventBase(projectId, command, recordedAt, 'return', origin),
+            ...commandEventBase(projectId, command, recordedAt, '2-return', origin),
             event: 'return_promised',
             return_contract_id: command.return_contract_id,
             judgment_id: command.judgment_id,
@@ -214,11 +219,13 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
         }],
       };
     case 'observe_and_resolve':
+      // Same ordinal rule as 'seal': the observation must fold before the
+      // resolution that cites it, in every read order the table can produce.
       return {
         ok: true,
         events: [
           {
-            ...commandEventBase(projectId, command, recordedAt, 'observation', origin),
+            ...commandEventBase(projectId, command, recordedAt, '1-observation', origin),
             event: 'observation_recorded',
             observation_id: command.observation_id,
             text: command.observation_text,
@@ -234,7 +241,7 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
             },
           },
           {
-            ...commandEventBase(projectId, command, recordedAt, 'resolution', origin),
+            ...commandEventBase(projectId, command, recordedAt, '2-resolution', origin),
             event: 'resolution_asserted',
             resolution_id: command.resolution_id,
             judgment_id: command.judgment_id,
