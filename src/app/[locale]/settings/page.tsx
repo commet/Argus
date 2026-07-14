@@ -10,7 +10,7 @@ import { downloadJson } from '@/lib/export';
 import { exportAccountData, deleteAccount } from '@/lib/api-account';
 import { useAuth } from '@/lib/auth';
 import type { LLMMode, LLMProvider } from '@/stores/types';
-import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, Link2 } from 'lucide-react';
+import { Download, Upload, Trash2, Eye, EyeOff, Server, Globe, Check, MessageSquare, Unlink, User, BarChart3, FlaskConical, Send, Copy, KeyRound, Loader2, ChevronRight } from 'lucide-react';
 import { getObservationsSummary } from '@/lib/user-context';
 import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL } from '@/lib/llm-models';
 import { playTransitionTone, resumeAudioContext, startAmbient, stopAmbient, isAmbientPlaying } from '@/lib/audio';
@@ -429,9 +429,7 @@ export default function SettingsPage() {
 
         {/* Slack — folded by default (05 S8); held open when returning from the
             OAuth callback or when a workspace is already connected. */}
-        <details open={slackStatus !== null || slackConnections.length > 0}>
-          <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-primary)]">Slack</summary>
-          <div className="mt-3">
+        <IntegrationSection title="Slack" defaultOpen={slackStatus !== null || slackConnections.length > 0}>
         {slackStatus === 'connected' && (
           <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--collab)] border border-[var(--success)]/20">
             <p className="text-[13px] text-[var(--success)] font-medium flex items-center gap-1.5"><Check size={14} /> {L('Slack에 연결되었습니다!', 'Connected to Slack!')}</p>
@@ -512,8 +510,7 @@ export default function SettingsPage() {
             </Button>
           </div>
         )}
-          </div>
-        </details>
+        </IntegrationSection>
 
         {/* Telegram */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
@@ -708,8 +705,11 @@ export default function SettingsPage() {
 
         {/* Sound — folded by default (05 S8: order/fold only, no feature change) */}
         <div className="border-t border-[var(--border-subtle)] my-4" />
-        <details>
-          <summary className="cursor-pointer text-[13px] font-medium text-[var(--text-primary)]">{L('소리', 'Sound')}</summary>
+        <details className="group">
+          <summary className="flex items-center gap-1.5 cursor-pointer select-none list-none text-[13px] font-medium text-[var(--text-primary)] [&::-webkit-details-marker]:hidden">
+            <ChevronRight size={14} className="text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-90" />
+            {L('소리', 'Sound')}
+          </summary>
           <div className="mt-3">
         <div className="flex items-center justify-between">
           <div>
@@ -792,8 +792,9 @@ export default function SettingsPage() {
           <FlaskConical size={16} className="text-[var(--accent)]" />
           <h3 className="text-[15px] font-bold">{L('실험실', 'Labs')}</h3>
         </div>
-        <details>
-          <summary className="cursor-pointer text-[12px] text-[var(--text-secondary)]">
+        <details className="group">
+          <summary className="flex items-center gap-1.5 cursor-pointer select-none list-none text-[12px] text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
+            <ChevronRight size={14} className="shrink-0 text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-90" />
             {L('아직 다듬는 중인 기능이에요. 언제든 켜고 끌 수 있어요.', 'Features still being polished. Toggle anytime.')}
           </summary>
           <div className="space-y-3 mt-4">
@@ -951,6 +952,25 @@ function SettingsNav({ items, ariaLabel }: {
   );
 }
 
+/* 연동 카드의 모든 항목이 쓰는 단일 접이식 래퍼 — Slack만 접히고 Telegram은
+   라벨도 없이 고정이던 불일치를 없앤다. 여기 한 곳이 전부의 모양·동작을 정의하므로
+   다시 어긋날 수 없다(단일 정본). connected면 defaultOpen으로 펼쳐 둔다. */
+function IntegrationSection({ title, defaultOpen, children }: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details open={defaultOpen} className="group">
+      <summary className="flex items-center gap-1.5 cursor-pointer select-none list-none min-h-[36px] text-[13px] font-medium text-[var(--text-primary)] [&::-webkit-details-marker]:hidden">
+        <ChevronRight size={14} className="text-[var(--text-tertiary)] transition-transform duration-200 group-open:rotate-90" />
+        {title}
+      </summary>
+      <div className="mt-3">{children}</div>
+    </details>
+  );
+}
+
 function TelegramBlock({ locale }: { locale: string }) {
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
   const connections = useTelegramStore((s) => s.connections);
@@ -989,7 +1009,7 @@ function TelegramBlock({ locale }: { locale: string }) {
   };
 
   return (
-    <div>
+    <IntegrationSection title="Telegram" defaultOpen={connections.length > 0}>
       {loadError && <p className="text-[12px] text-[var(--danger)] mb-2">{L('Telegram 연결 상태를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'Could not load Telegram connection status. Please try again shortly.')}</p>}
       {connections.length > 0 ? (
         <div className="space-y-2">
@@ -1027,7 +1047,7 @@ function TelegramBlock({ locale }: { locale: string }) {
           {L('연결했는데 안 보이면 새로고침', 'Connected but not showing? Refresh')}
         </button>
       )}
-    </div>
+    </IntegrationSection>
   );
 }
 
@@ -1078,10 +1098,9 @@ function PluginTokenBlock({ locale }: { locale: string }) {
   };
 
   return (
-    <div>
+    <IntegrationSection title={L('동기화 토큰 (플러그인 · MCP)', 'Sync token (plugin · MCP)')} defaultOpen={tokens.length > 0}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[14px] font-medium flex items-center gap-1.5"><KeyRound size={14} className="text-[var(--accent)]" /> {L('터미널 동기화 토큰 (플러그인 · MCP)', 'Terminal sync token (plugin · MCP)')}</p>
           <p className="text-[12px] text-[var(--text-secondary)]">{L('플러그인: /argus:connect 후 /argus:sync. MCP: 아래 ARGUS_TOKEN을 설정에 넣으면 봉인한 예측이 이메일과 대시보드로 돌아옵니다.', 'Plugin: /argus:connect then /argus:sync. MCP: put ARGUS_TOKEN below in your config so sealed predictions return by email + dashboard.')}</p>
         </div>
         <Button variant="secondary" size="sm" onClick={issue} disabled={busy}>
@@ -1156,7 +1175,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
           ))}
         </div>
       )}
-    </div>
+    </IntegrationSection>
   );
 }
 
@@ -1186,8 +1205,7 @@ function SharedLinksBlock({ locale }: { locale: string }) {
   };
 
   return (
-    <div>
-      <p className="text-[14px] font-medium flex items-center gap-1.5"><Link2 size={14} className="text-[var(--accent)]" /> {L('공개 링크', 'Public links')}</p>
+    <IntegrationSection title={L('공개 링크', 'Public links')} defaultOpen={links.length > 0}>
       {error && <p className="text-[12px] text-[var(--danger)] mb-2">{error}</p>}
       <p className="text-[12px] text-[var(--text-secondary)] mb-2">{L('결과 화면의 “보내기 → 링크”로 만든 공개 페이지. 취소하면 즉시 열람 불가.', 'Public pages minted via “Send → Link”. Revoking makes them unreachable at once.')}</p>
       {links.length === 0 ? (
@@ -1206,7 +1224,7 @@ function SharedLinksBlock({ locale }: { locale: string }) {
           ))}
         </div>
       )}
-    </div>
+    </IntegrationSection>
   );
 }
 
