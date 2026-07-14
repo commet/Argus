@@ -37,8 +37,8 @@ If verification is blocked and the user explicitly invoked boss, ask one compact
 
 Default is to stop.
 
-When no boss is configured there is no `/argus:configure` skill in this plugin —
-inline-offer a generic stakeholder review (no personality), or tell the user to set a
+When no boss is configured, inline-offer a generic stakeholder review (no
+personality), or point the user to `/argus:configure` to set one — or let them set a
 boss by editing `.argus/config.yaml` (`boss.mbti_code`/`name`/`role`) or passing
 `--mbti <CODE>` for this run. See Error Modes.
 

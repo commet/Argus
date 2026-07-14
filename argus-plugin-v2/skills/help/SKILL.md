@@ -33,7 +33,8 @@ The crew, individually (sail chains these for you):
   /argus:clarify   sharpen the real question before any work
   /argus:team      crew agents work the artifact in parallel
   /argus:verify    split claims: supported / challenged / human-required
-  /argus:boss      stakeholder pressure-check (MBTI persona from .argus/config.yaml)
+  /argus:boss      stakeholder pressure-check (persona from .argus/config.yaml)
+  /argus:configure set up language, boss/stakeholder, and preferences
   /argus:revise    apply the feedback into a new child draft, re-verify
   /argus:chart     see one voyage's version tree, promote, branch, resume
   /argus:log       voyage log across ALL sessions + your prediction record
