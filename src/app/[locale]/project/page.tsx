@@ -560,8 +560,11 @@ export default function ProjectPage() {
             <Card className="text-center py-12">
               <ArgusMascot variant="sitting" size="lg" animate className="mx-auto mb-4" />
               <p className="text-[14px] text-[var(--text-secondary)] font-medium">{L('아직 항해 전이에요', 'Before the first voyage')}</p>
-              <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-xs mx-auto">
-                {L('워크스페이스에서 첫 결정을 적으면, 여기가 그 결정이 돌아올 모항이 돼요. 확인일이 오면 이 페이지가 먼저 물어요 — 그래서, 어떻게 됐어요?', "Write your first decision in the workspace and this becomes its home port. When the check-in day comes, this page asks first — so, how did it go?")}
+              <p className="text-[12px] text-[var(--text-secondary)] mt-1 max-w-sm mx-auto break-keep">
+                {L('워크스페이스에서 첫 결정을 적으면, 여기가 그 결정이 돌아올 ', 'Write your first decision in the workspace and this becomes its ')}
+                <span className="whitespace-nowrap">{L('모항이 돼요.', 'home port.')}</span>{' '}
+                {L('확인일이 오면 이 페이지가 먼저 물어요 — ', 'When the check-in day comes, this page asks first — ')}
+                <span className="whitespace-nowrap">{L('그래서, 어떻게 됐어요?', 'so, how did it go?')}</span>
               </p>
               <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
                 <LocaleLink
