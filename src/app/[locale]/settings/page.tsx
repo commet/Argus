@@ -23,10 +23,14 @@ import { useLocaleSwitch } from '@/hooks/useLocaleSwitch';
 import { withLocale } from '@/lib/locale-path';
 
 function buildLlmProviders(L: (ko: string, en: string) => string) {
+  // 버튼 라벨은 모두 '제공자 브랜드' 한 층위로 통일한다 (Claude / GPT / Gemini).
+  // 구체 모델명은 아래 detail 줄에서 말한다 — 예전엔 'GPT-4o'만 특정 모델명이라
+  // Claude·Gemini(브랜드)와 층위가 어긋났고, 'Claude Sonnet 4' 문구는 실제 라우팅
+  // (기본 Sonnet 4.6 · 어려운 판단 Opus 4.8)보다 낡아 있었다.
   return [
-    { value: 'anthropic' as LLMProvider, label: 'Claude', description: L('Claude Sonnet 4 — 프록시 또는 직접 API 키', 'Claude Sonnet 4 — proxy or direct API key') },
-    { value: 'openai' as LLMProvider, label: 'GPT-4o', description: L('본인의 OpenAI API 키 사용', 'Use your own OpenAI API key') },
-    { value: 'gemini' as LLMProvider, label: 'Gemini', description: L('본인의 Google AI API 키 사용', 'Use your own Google AI API key') },
+    { value: 'anthropic' as LLMProvider, label: 'Claude', model: 'Claude Sonnet 4.6', detail: L('복잡한 판단은 Opus 4.8로 올려서 처리', 'Hard calls escalate to Opus 4.8') },
+    { value: 'openai' as LLMProvider, label: 'GPT', model: 'GPT-4o', detail: L('본인의 OpenAI API 키로 연결', 'Connect with your own OpenAI API key') },
+    { value: 'gemini' as LLMProvider, label: 'Gemini', model: 'Gemini 2.5 Flash', detail: L('본인의 Google AI API 키로 연결', 'Connect with your own Google AI API key') },
   ];
 }
 
@@ -241,13 +245,15 @@ export default function SettingsPage() {
           <h3 className="text-[15px] font-bold">{L('AI 엔진', 'AI Engine')}</h3>
         </div>
 
-        {/* Provider — compact segmented control */}
+        {/* Provider — 한 층위(브랜드) 세그먼트. 'GPT-4o' 같은 특정 모델명을 버튼에
+            섞지 않는다 — 구체 모델은 아래 detail 줄이 말한다. */}
+        <label className="text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 block">{L('제공자', 'Provider')}</label>
         <div className="flex gap-1.5">
           {llmProviders.map((provider) => (
             <button
               key={provider.value}
               onClick={() => handleProviderChange(provider.value)}
-              className={`flex-1 min-h-[44px] py-3 rounded-lg text-[12px] font-medium border text-center transition-colors cursor-pointer ${
+              className={`flex-1 min-h-[44px] py-3 rounded-lg text-[13px] font-semibold border text-center transition-colors cursor-pointer ${
                 (settings.llm_provider || 'anthropic') === provider.value
                   ? 'border-[var(--accent)] bg-[var(--ai)] text-[var(--accent)]'
                   : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border)]'
@@ -257,9 +263,15 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
-          {llmProviders.find(p => p.value === (settings.llm_provider || 'anthropic'))?.description}
-        </p>
+        {(() => {
+          const p = llmProviders.find((x) => x.value === (settings.llm_provider || 'anthropic'));
+          return (
+            <p className="text-[11px] mt-2 leading-relaxed">
+              <span className="font-semibold text-[var(--text-primary)]">{p?.model}</span>
+              <span className="text-[var(--text-tertiary)]"> · {p?.detail}</span>
+            </p>
+          );
+        })()}
 
         {/* Anthropic connection mode — compact segmented control */}
         {(settings.llm_provider || 'anthropic') === 'anthropic' && (
