@@ -17,7 +17,7 @@ import {
   PAGE_CAP,
   type PdfItem,
   reconstructPage,
-  groupBlocks,
+  emitPdfUnits,
   paragraphsFromSlideXml,
   slideNum,
 } from './extract-core.js';
@@ -138,6 +138,7 @@ async function extractPdf(buf: Buffer): Promise<ExtractedText> {
   let capped = false;
   let multiColumn = false;
   let hasTable = false;
+  let currentSection: string | null = null;
 
   for (let p = 1; p <= pageCount; p++) {
     if (units.length >= MAX_UNITS) { capped = true; break; }
@@ -147,19 +148,11 @@ async function extractPdf(buf: Buffer): Promise<ExtractedText> {
     const layout = reconstructPage(content.items as PdfItem[]);
     if (layout.multiColumn) multiColumn = true;
     if (layout.hasTable) hasTable = true;
-    const blocks = groupBlocks(layout.lines);
-    for (const block of blocks) {
-      if (units.length >= MAX_UNITS) { capped = true; break; }
-      const t = block.trim();
-      if (t.length < 2) continue;
-      units.push({
-        unit_id: stableId('u', 'pdf', p, t.slice(0, 40)),
-        kind: 'paragraph',
-        text: t,
-        source_anchor: { page: p },
-        confidence: 0.8,
-      });
-    }
+    // Line-level segmentation (see extract-core.emitPdfUnits): pdf.js emits no
+    // blank lines, so a whole page used to collapse into one unit with every
+    // heading buried. This splits per line — headings become their own units.
+    currentSection = emitPdfUnits(layout.lines, p, units, currentSection, () => { capped = true; });
+    if (capped) break;
   }
 
   const caps = {

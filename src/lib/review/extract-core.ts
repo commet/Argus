@@ -10,9 +10,15 @@
  * runs identically in both runtimes.
  */
 
+import { stableId } from './ids';
+import { type ArtifactUnit } from './schema';
+
 /** Hard caps shared by both extractors. */
 export const MAX_UNITS = 400;
 export const PAGE_CAP = 120;
+/** Target size for a PDF paragraph unit — keeps anchors granular instead of one
+ *  page-sized blob (pdf.js emits no blank lines, so we split by size + headings). */
+export const PDF_PARA_CHARS = 1200;
 
 // ==========================================================================
 // PDF layout — reconstruct visual lines, detect columns + tables.
@@ -214,6 +220,94 @@ export function groupBlocks(lines: string[]): string[] {
   }
   if (cur.length) blocks.push(cur.join(' '));
   return blocks;
+}
+
+// ==========================================================================
+// PDF unit segmentation — shared by both extractors (browser + Node).
+// ==========================================================================
+
+/**
+ * Recognize a numbered/keyword section header in one reconstructed PDF line.
+ * Conservative on purpose — requires a structural marker (section number, roman
+ * numeral, or a known heading word) AND a short length, so running prose is never
+ * mislabeled a heading. Returns the header text, or null for body.
+ *
+ * NOTE: a plain \b after a Korean keyword never fires (Korean chars aren't \w),
+ * so an explicit boundary lookahead is used instead — else "제 3 장", "부록 A"
+ * would be missed.
+ */
+export function pdfHeadingTitle(text: string): string | null {
+  const t = text.trim();
+  if (t.length < 2 || t.length > 50) return null;
+  if (t.split(/\s+/).length > 10) return null;
+  if (/[.。!?…]$/.test(t) && !/^\d+(\.\d+)*\.?$/.test(t.split(/\s+/)[0])) return null;
+  const marked =
+    /^(제\s*\d+\s*(장|절|부)|chapter\s+\d+|section\s+\d+|appendix|부록|요약|개요|executive\s+summary)(?=\s|$|[:·.)])/i.test(t) ||
+    /^\d+(\.\d+){0,3}[.)]?\s+\S/.test(t) ||
+    /^[Ⅰ-Ⅹ]+\.\s+\S/.test(t) ||
+    /^[IVX]+\.\s+\S/.test(t);
+  return marked ? t : null;
+}
+
+/**
+ * Turn one page's reconstructed lines into units. pdf.js emits no blank lines
+ * between paragraphs, so a naive groupBlocks collapsed the ENTIRE page into one
+ * unit — burying every heading and leaving findings only a bare page number.
+ * Segmenting per line lets a heading line become its own unit (with a
+ * section_path anchor) and keeps paragraph units granular (~PDF_PARA_CHARS).
+ * Pushes onto `units`, returns the running section title, and calls `onCap` when
+ * the shared MAX_UNITS ceiling is hit.
+ */
+export function emitPdfUnits(
+  lines: string[],
+  page: number,
+  units: ArtifactUnit[],
+  sectionIn: string | null,
+  onCap: () => void,
+  maxUnits = MAX_UNITS,
+  paraCharTarget = PDF_PARA_CHARS,
+): string | null {
+  let currentSection = sectionIn;
+  let para: string[] = [];
+  // Flush the accumulated paragraph. Returns false only when the unit ceiling is
+  // hit (caller stops); true means "kept going" (pushed, or nothing to push).
+  const flush = (): boolean => {
+    const text = para.join(' ').replace(/\s+/g, ' ').trim();
+    para = [];
+    if (text.length < 2) return true;
+    if (units.length >= maxUnits) { onCap(); return false; }
+    units.push({
+      unit_id: stableId('u', 'pdf', page, text.slice(0, 40)),
+      kind: 'paragraph',
+      text,
+      source_anchor: currentSection ? { page, section_path: [currentSection] } : { page },
+      confidence: 0.8,
+    });
+    return true;
+  };
+
+  for (const line of lines) {
+    const lt = line.trim();
+    if (!lt) { if (!flush()) return currentSection; continue; }
+    const heading = pdfHeadingTitle(lt);
+    if (heading) {
+      if (!flush()) return currentSection;
+      if (units.length >= maxUnits) { onCap(); return currentSection; }
+      currentSection = heading;
+      units.push({
+        unit_id: stableId('u', 'pdf', page, heading.slice(0, 40)),
+        kind: 'heading',
+        text: heading,
+        source_anchor: { page, section_path: [heading] },
+        confidence: 0.7,
+      });
+      continue;
+    }
+    para.push(lt);
+    if (para.join(' ').length >= paraCharTarget) { if (!flush()) return currentSection; }
+  }
+  flush();
+  return currentSection;
 }
 
 // ==========================================================================

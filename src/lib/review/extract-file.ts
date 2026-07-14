@@ -24,7 +24,7 @@ import {
   PAGE_CAP,
   type PdfItem,
   reconstructPage,
-  groupBlocks,
+  emitPdfUnits,
   paragraphsFromSlideXml,
   slideNum,
 } from './extract-core';
@@ -142,27 +142,6 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
 // PDF — pdf.js text content, reconstructed into column-aware lines per page.
 // --------------------------------------------------------------------------
 
-/**
- * Recognize a numbered/keyword section header in a reconstructed PDF block.
- * Conservative on purpose — it requires a structural marker (a section number,
- * roman numeral, or a known heading word) and a short length, so running prose
- * is never mislabeled a heading. Returns the header text, or null for body.
- */
-export function pdfHeadingTitle(text: string): string | null {
-  const t = text.trim();
-  if (t.length < 2 || t.length > 50) return null;
-  if (t.split(/\s+/).length > 10) return null;
-  if (/[.。!?…]$/.test(t) && !/^\d+(\.\d+)*\.?$/.test(t.split(/\s+/)[0])) return null;
-  // NOTE: a plain \b after a Korean keyword never fires (Korean chars aren't \w),
-  // so use an explicit boundary lookahead — else "제 3 장", "부록 A" are missed.
-  const marked =
-    /^(제\s*\d+\s*(장|절|부)|chapter\s+\d+|section\s+\d+|appendix|부록|요약|개요|executive\s+summary)(?=\s|$|[:·.)])/i.test(t) ||
-    /^\d+(\.\d+){0,3}[.)]?\s+\S/.test(t) ||
-    /^[Ⅰ-Ⅹ]+\.\s+\S/.test(t) ||
-    /^[IVX]+\.\s+\S/.test(t);
-  return marked ? t : null;
-}
-
 async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
   const pdfjs = await import('pdfjs-dist');
   // Worker asset resolved by the bundler; new URL keeps webpack/Turbopack happy.
@@ -188,36 +167,13 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
     const layout = reconstructPage(content.items as PdfItem[]);
     if (layout.multiColumn) multiColumn = true;
     if (layout.hasTable) hasTable = true;
-    // group lines into paragraph-ish blocks separated by blank/short gaps
-    const blocks = groupBlocks(layout.lines);
-    for (const block of blocks) {
-      if (units.length >= MAX_UNITS) { capped = true; break; }
-      const t = block.trim();
-      if (t.length < 2) continue;
-      // Detect numbered/keyword section headers so the PDF carries structure
-      // (headings + section_path anchors) instead of a flat wall of paragraphs.
-      // Without it every PDF scored a "구조 없음" reviewability penalty and its
-      // findings could only cite a bare page number.
-      const headingTitle = pdfHeadingTitle(t);
-      if (headingTitle) {
-        currentSection = headingTitle;
-        units.push({
-          unit_id: stableId('u', 'pdf', p, t.slice(0, 40)),
-          kind: 'heading',
-          text: t,
-          source_anchor: { page: p, section_path: [headingTitle] },
-          confidence: 0.7,
-        });
-        continue;
-      }
-      units.push({
-        unit_id: stableId('u', 'pdf', p, t.slice(0, 40)),
-        kind: 'paragraph',
-        text: t,
-        source_anchor: currentSection ? { page: p, section_path: [currentSection] } : { page: p },
-        confidence: 0.8,
-      });
-    }
+    // Segment the page at the LINE level, not with groupBlocks. pdf.js emits no
+    // blank lines between paragraphs, so groupBlocks collapsed a whole page into
+    // ONE giant unit — burying every heading and leaving findings only a bare
+    // page number. Splitting per line lets us (a) detect a heading line and give
+    // it its own unit + section_path, and (b) keep paragraph units granular.
+    currentSection = emitPdfUnits(layout.lines, p, units, currentSection, () => { capped = true; });
+    if (capped) break;
   }
 
   // `units_capped` folds the >120-page limit in too: a longer PDF was truncated

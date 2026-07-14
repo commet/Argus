@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ingest } from '../ingest';
 import { runDocumentReview } from '../pipeline';
-import { pdfHeadingTitle } from '../extract-file';
+import { pdfHeadingTitle } from '../extract-core';
 import { type ReviewLLM, type ReviewLLMArgs } from '../llm-adapter';
 
 /**
