@@ -4,6 +4,41 @@ import { configPath } from './layout.js';
 
 export type Locale = 'ko' | 'en';
 
+/** The user-authored text fields worth sniffing for the session's language.
+ *  Incidental fields (ids, notes on machine actions) are excluded so a stray
+ *  token can't flip a session. */
+const CONTENT_FIELDS = [
+  'decision', 'predicate', 'what_happened', 'finding', 'text', 'question',
+  'human_judgment', 'observation_text', 'statement', 'review_question',
+] as const;
+
+/**
+ * Persist a Korean locale the FIRST time the user's own words are Korean, so the
+ * whole session stays Korean — including later surfaces with no text to sniff
+ * (validation errors, recall, check_in). This is content-driven, never env:
+ *   - only a POSITIVE Korean content signal ever writes (English never pins);
+ *   - never overrides an explicit locale already in config.
+ * Fixes mid-session English leaks on a Korean session (2026-07-14 locale sweep).
+ */
+export function learnLocaleFromContent(argusDir: string | null | undefined, args: Record<string, unknown>): void {
+  if (!argusDir) return;
+  const sample = CONTENT_FIELDS
+    .map((k) => args[k])
+    .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+    .join('\n');
+  if (!sample || detectLocaleFromText(sample) !== 'ko') return;
+  try {
+    const p = configPath(argusDir);
+    let cfg = '';
+    try { cfg = fs.readFileSync(p, 'utf8'); } catch { /* no config yet → auto-init writes one before the handler returns */ }
+    if (/^locale:\s*(ko|en)\b/m.test(cfg)) return; // explicit locale already set — never override
+    const next = cfg
+      ? `${cfg.endsWith('\n') ? cfg : `${cfg}\n`}locale: ko\n`
+      : 'schema_version: 5\nlocale: ko\n';
+    fs.writeFileSync(p, next);
+  } catch { /* best-effort: a failed persist just means the next Korean surface re-sniffs from content */ }
+}
+
 /**
  * detectLocale — CONFIG/ENV detection seeded at argus_init write time.
  *

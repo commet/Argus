@@ -12,7 +12,8 @@ problems, then fix them. This is the record.
 | `npm run loop` | Real built server over stdio, 6 scripted decision journeys, lints every returned surface for spine/contract breaks | **0 RED, 0 yellow** (was 2 RED, 2 yellow) |
 | `npm run fuzz` | Real server over stdio, seeded generic + adversarial tool calls (empty/huge/unicode/injection strings, wrong types, bad enums, boundary numbers, malformed dates, extra keys, single-field mutation of valid args), stateful lifecycles | **24,000 calls across 8 seeds: 0 crashes, 0 INTERNAL_ERRORs, 0 malformed envelopes, server alive after every run** |
 | `npm run elicit` | Real elicitation-capable MCP client + a plain client; drives the question-asking UI (seal confirm, settle outcome, defer) | **12/12 contracts hold** |
-| `npm test` | Unit + integration suite | **848 pass** |
+| `npm run locale` | Full Korean session + full English session on an ENGLISH-OS env; asserts every surface stays one language start to finish | **no leaks** (found + fixed 1) |
+| `npm test` | Unit + integration suite | **852 pass** |
 
 ## Findings and fixes
 
@@ -75,6 +76,21 @@ Verified: an all-Korean session now surfaces in Korean; an English session
 stays English. Guard test: `src/tools/__tests__/init-locale-seed.test.ts`.
 This cleared both loop yellows (loop is now 0 RED / 0 yellow).
 
+### 3b. FIXED — a Korean session stays Korean start to finish (no mid-session flip)
+
+The full-session sweep (`npm run locale`) found the residual leak that fix 3
+alone left: a tool called mid-session with NO Korean text in its args (e.g. a
+validation error on `argus_recall`, or `check_in` before any content) resolved
+its locale from the ARGS only, found nothing Korean, and surfaced in English —
+in the middle of an otherwise-Korean session.
+
+Fix: `learnLocaleFromContent` (server dispatch) persists `locale: ko` the FIRST
+time the user's own words are Korean — content-driven, never env, never
+overriding an explicit choice, never pinned from English. From then on every
+surface (including contentless ones) stays Korean. Verified: a 9-call Korean
+session on an English-OS env is now 100% Korean; an English session stays
+English. Guard tests in `locale-detection.test.ts`.
+
 ### 4. VERIFIED — the question-asking UI (elicitation) is sound
 
 - Fires at exactly the right moment: seal only asks when `confirm_draft=true`;
@@ -108,5 +124,5 @@ npm run loop      # journeys + surface lint  → 0 RED
 npm run fuzz      # 800 hostile calls        → all clean
 npm run fuzz -- --n 4000 --seed 7
 npm run elicit    # question UI              → 12/12
-npm test          # 848
+npm test          # 852
 ```

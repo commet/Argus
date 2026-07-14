@@ -14,6 +14,8 @@ import { appendDueNote } from './lib/due-note.js';
 import { logError } from './lib/log.js';
 import { packageMeta } from './lib/package-meta.js';
 import { localizeToolResult } from './lib/localize-result.js';
+import { learnLocaleFromContent } from './lib/locale.js';
+import { resolveToolArgusDir } from './lib/argus-dir.js';
 import { recordServerStart, recordToolCall } from './lib/telemetry.js';
 
 /**
@@ -155,10 +157,14 @@ export async function createServer(): Promise<Server> {
       const callArgs = hiddenTestClock
         ? { ...(parsed.data as Record<string, unknown>), today_override: rawArgs['today_override'] }
         : parsed.data as Record<string, unknown>;
-      const result = localizeToolResult(
-        callArgs,
-        await serialize(() => tool.handler(callArgs)),
-      );
+      const raw = await serialize(() => tool.handler(callArgs));
+      // Learn the session's language from the user's OWN words (never env), so
+      // every later surface — including contentless ones (errors, recall) — stays
+      // in that language start to finish. Runs after the handler (auto-init has
+      // created config by now) and before localize, so even this call's result
+      // is localized to the just-learned locale.
+      learnLocaleFromContent(resolveToolArgusDir(callArgs['argus_dir']), callArgs);
+      const result = localizeToolResult(callArgs, raw);
       // Opt-in usage signal: which tool ran + that it didn't crash. Carries no
       // arguments — never the decision content. Fire-and-forget (see telemetry.ts).
       recordToolCall(name, true);

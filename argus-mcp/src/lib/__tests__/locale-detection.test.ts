@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import { tmpArgusDir } from '../../test-helpers.js';
 import { configPath } from '../layout.js';
-import { detectLocaleFromText } from '../locale.js';
+import { detectLocaleFromText, learnLocaleFromContent } from '../locale.js';
 import { resolveResponseLocale } from '../surfaces.js';
 
 function writeLocale(dir: string, locale: 'ko' | 'en'): void {
@@ -54,5 +54,35 @@ describe('resolveResponseLocale (M4 chain: config > text > env > en)', () => {
     // With no ko env in CI, the base voice is en.
     const r = resolveResponseLocale(dir, undefined);
     expect(r === 'en' || r === 'ko').toBe(true); // env-dependent, never throws
+  });
+});
+
+describe('learnLocaleFromContent — session stays in the user\'s language', () => {
+  it('persists ko from Korean content so later contentless surfaces stay Korean', () => {
+    const dir = tmpArgusDir();
+    // Before: a contentless call would resolve en (no config, no text).
+    expect(resolveResponseLocale(dir, undefined)).toBe('en');
+    learnLocaleFromContent(dir, { predicate: '전환율이 3.2% 위로 유지된다' });
+    // After: the session is pinned ko, so a later error/recall surface is Korean.
+    expect(resolveResponseLocale(dir, undefined)).toBe('ko');
+  });
+
+  it('never pins from English content (English session must stay English)', () => {
+    const dir = tmpArgusDir();
+    learnLocaleFromContent(dir, { predicate: 'conversion stays above 3.2 percent' });
+    expect(resolveResponseLocale(dir, undefined)).toBe('en');
+  });
+
+  it('never overrides an explicit locale already set', () => {
+    const dir = tmpArgusDir();
+    writeLocale(dir, 'en'); // user pinned English
+    learnLocaleFromContent(dir, { decision: '회사를 옮길지 말지' });
+    expect(resolveResponseLocale(dir, '회사를 옮길지')).toBe('en'); // explicit choice wins
+  });
+
+  it('ignores incidental fields (only real content fields count)', () => {
+    const dir = tmpArgusDir();
+    learnLocaleFromContent(dir, { id: '한글아이디', note: '메모' }); // not content fields
+    expect(resolveResponseLocale(dir, undefined)).toBe('en');
   });
 });
