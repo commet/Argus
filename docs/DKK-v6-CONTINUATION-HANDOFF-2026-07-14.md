@@ -362,6 +362,38 @@ after time, model changes, and surface changes, the user can reconstruct what
 they did and did not authorize, what was known then versus later, and how they
 separately interpreted and closed the judgment without machine invention.
 
+## Addendum 2026-07-14 (later session): dogfood runner + one pre-production defect fixed
+
+Status of the Definition of done is UNCHANGED — every unchecked box above is
+still unchecked. What changed:
+
+1. **A dogfood runner now exists** (`scripts/dogfood/`, see its README).
+   `npm run dogfood` drives the real kernel/gateway/telegram-brain/plugin
+   builders through 43 scripted scenarios plus a seeded model-based fuzzer,
+   against a line-by-line TS port of the production RPC, recording
+   non-sensitive JSONL evidence; `npm run dogfood:analyze <dir>` produces a
+   triage report and the SYNTHETIC arm of the P5 input (baseline/dkk_v6
+   blocks intentionally absent). `npm run dogfood:prod` automates the ten P6
+   web-lifecycle steps over real HTTPS from a machine with production access
+   and a disposable account — that run, inspected, is what may check the P6
+   box. Local greens check no boxes.
+2. **Real defect found and fixed before any production row existed:** seal
+   batches read back from `project_semantic_events` in
+   `(created_at, event_id)` order folded `return_promised` before
+   `judgment_sealed` (same-transaction `created_at`, lexicographic tiebreak
+   `…:return` < `…:sealed`), so after any reload the return contract was
+   dropped as an unknown reference and resolve/defer/Telegram answers failed.
+   Fix: ordinal event-id suffixes for multi-event batches in
+   `src/lib/semantic-web.ts` (`1-sealed`/`2-return`,
+   `1-observation`/`2-resolution`); regression test in
+   `src/lib/__tests__/semantic-web.test.ts`. No schema change; the table had
+   0 rows, so no legacy ids exist. Note for the production run: any event
+   sealed BEFORE this deploy (there are none) would have carried the old ids.
+3. **Telegram semantic brain extracted** verbatim from the webhook route into
+   `src/lib/telegram-semantic.ts` (deps-injected admin/send/now/id). The
+   webhook delegates to it; the runner drives the same functions. Logic is
+   single-sourced — do not fork it back into the route.
+
 ## Suggested opening message for the next context-free session
 
 Copy only this prompt into the new session:
