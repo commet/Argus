@@ -36,26 +36,33 @@ import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { PaperGrain } from './voyage/atmosphere/PaperGrain';
 
 type Origin = 'write' | 'file';
+type Tone = 'risk' | 'green'; // did the world break the bet, or open the window?
 type Case = {
   origin: Origin;
+  tone: Tone;
   originKo: string; originEn: string;
   seedKo: string; seedEn: string;
+  betLabelKo: string; betLabelEn: string;
   betKo: string; betEn: string;
   laterKo: string; laterEn: string;
   shiftKo: string; shiftEn: string;
   tapKo: string; tapEn: string;
 };
 
-// Three recognizable decisions, spanning a career move, a business plan, and a
-// personal leap — so more readers see themselves. Each "bet" is one concrete
-// thing reality can later contradict, which is what makes the tap-back real
-// rather than decorative. Two are typed, one is an uploaded document, so both
-// doors appear without the page organizing itself around them.
+// Three recognizable decisions spanning the real audience: a career move (typed),
+// an operator's go-signal call (typed), and a business plan (uploaded doc) — so
+// more readers see themselves, and both doors appear without the page organizing
+// itself around them. Each "bet" is one concrete thing reality can later touch.
+// The middle case is deliberately a GREEN outcome: the return isn't only a doom
+// alert — Argus also watches the condition you set and tells you when it's GO, so
+// the band doesn't read as three collapses in a row (fear), which the product
+// isn't. tap-backs are each phrased differently, and are always a bare question.
 const CASES: Case[] = [
   {
-    origin: 'write',
+    origin: 'write', tone: 'risk',
     originKo: '적어 둔 결정', originEn: 'a decision you typed',
     seedKo: '받은 이직 제안, 받아들일까?', seedEn: 'Take the job offer I just got?',
+    betLabelKo: '믿고 간 것', betLabelEn: 'what it counted on',
     betKo: '나를 뽑아준 그 팀장 밑에서 일하려고 가는 거였다.',
     betEn: 'The whole draw was working under the manager who hired me.',
     laterKo: '넉 달 뒤', laterEn: 'four months later',
@@ -65,28 +72,30 @@ const CASES: Case[] = [
     tapEn: 'The reason you went just changed — want to look again?',
   },
   {
-    origin: 'file',
+    origin: 'write', tone: 'green',
+    originKo: '적어 둔 결정', originEn: 'a decision you typed',
+    seedKo: '이 사업, 지금 확장할까 더 지켜볼까?', seedEn: 'Scale this up now, or keep watching?',
+    betLabelKo: '지켜보기로 한 것', betLabelEn: 'what you set to watch',
+    betKo: '첫 파일럿 고객이 재계약하면, 그때 확장하기로 했다.',
+    betEn: 'I’d scale the moment the first pilot customer renews — not before.',
+    laterKo: '석 달 뒤', laterEn: 'three months later',
+    shiftKo: '그 고객이 방금 재계약했습니다.',
+    shiftEn: 'That customer just renewed.',
+    tapKo: '기다리던 신호가 왔어요. 이제 확장할까요?',
+    tapEn: 'The signal you were waiting for just landed — time to scale?',
+  },
+  {
+    origin: 'file', tone: 'risk',
     originKo: '올린 문서', originEn: 'a document you uploaded',
     seedKo: '신사업 제안서.pdf', seedEn: 'New-business proposal.pdf',
+    betLabelKo: '믿고 간 것', betLabelEn: 'what it counted on',
     betKo: '계획 전체가 “이 시장은 앞으로도 매년 커진다”에 기대고 있었다.',
     betEn: 'The whole plan leaned on “this market keeps growing every year.”',
     laterKo: '두 달 뒤', laterEn: 'two months later',
     shiftKo: '그 시장의 성장률이 처음으로 꺾였다는 지표가 나왔습니다.',
     shiftEn: 'An index showed that market’s growth turning down for the first time.',
-    tapKo: '계획이 기댄 그 숫자가 흔들려요. 다시 볼까요?',
-    tapEn: 'The number your plan rested on just moved — want to look again?',
-  },
-  {
-    origin: 'write',
-    originKo: '적어 둔 결정', originEn: 'a decision you typed',
-    seedKo: '회사를 그만두고, 이 자리에 가게를 열까?', seedEn: 'Quit my job and open a shop on this street?',
-    betKo: '권리금까지 준 건 이 골목에 사람이 계속 몰릴 거라서였다.',
-    betEn: 'I paid the premium betting the foot traffic here would hold.',
-    laterKo: '다섯 달 뒤', laterEn: 'five months later',
-    shiftKo: '바로 앞 대형 오피스가 이전을 발표했습니다.',
-    shiftEn: 'The big office right across the street announced it’s relocating.',
-    tapKo: '가게를 연 이유였던 그 목이 흔들려요. 다시 볼까요?',
-    tapEn: 'The very reason you signed the lease just shifted — want to look again?',
+    tapKo: '계획이 기댄 그 숫자가 흔들려요. 다시 짚어볼까요?',
+    tapEn: 'The number your plan rested on just moved — want to re-check it?',
   },
 ];
 
@@ -94,6 +103,15 @@ const BellIcon = () => (
   <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flex: 'none' }}>
     <path d="M8 2.2c-2 0-3.3 1.5-3.3 3.5 0 3-1.2 3.8-1.2 3.8h9s-1.2-.8-1.2-3.8c0-2-1.3-3.5-3.3-3.5Z" stroke="var(--bp-gold-deep)" strokeWidth="1.3" strokeLinejoin="round" />
     <path d="M6.7 12.2a1.4 1.4 0 0 0 2.6 0" stroke="var(--bp-gold-deep)" strokeWidth="1.3" strokeLinecap="round" />
+  </svg>
+);
+
+// The green outcome: a rising-signal glyph rather than a bell, so the "it's GO"
+// case reads at a glance as an opening window, not another risk alert.
+const SignalIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flex: 'none' }}>
+    <path d="M2.5 13.5 L6.5 8.5 L9.5 11 L14 4.5" stroke="var(--bp-gold-deep)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M14 4.5 h-3.4 M14 4.5 v3.4" stroke="var(--bp-gold-deep)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -153,7 +171,7 @@ export function UseCases() {
       {/* what it was really counting on — the "premise" idea, without the word */}
       <div style={{ marginTop: 18 }}>
         <div className="bp-mono" style={{ color: 'var(--bp-ink-soft)', fontSize: 10, letterSpacing: locale === 'ko' ? '0.06em' : '0.13em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 6 }}>
-          {L('믿고 간 것', 'what it counted on')}
+          {L(c.betLabelKo, c.betLabelEn)}
         </div>
         <div style={{ color: 'var(--bp-ink)', fontSize: 14, lineHeight: 1.55, fontWeight: 500 }}>
           {L(c.betKo, c.betEn)}
@@ -183,10 +201,12 @@ export function UseCases() {
             borderRadius: 8, padding: '12px 14px',
           }}
         >
-          <span style={{ marginTop: 1 }}><BellIcon /></span>
+          <span style={{ marginTop: 1 }}>{c.tone === 'green' ? <SignalIcon /> : <BellIcon />}</span>
           <div style={{ minWidth: 0 }}>
             <div className="bp-mono" style={{ color: 'var(--bp-gold-deep)', fontSize: 9.5, letterSpacing: locale === 'ko' ? '0.06em' : '0.13em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>
-              {L('Argus가 먼저 돌아옵니다', 'Argus comes back first')}
+              {c.tone === 'green'
+                ? L('Argus가 때를 알려줍니다', 'Argus tells you when')
+                : L('Argus가 먼저 돌아옵니다', 'Argus comes back first')}
             </div>
             <div style={{ color: 'var(--bp-ink)', fontSize: 14, lineHeight: 1.5, fontWeight: 500 }}>
               {L(c.tapKo, c.tapEn)}
@@ -218,8 +238,8 @@ export function UseCases() {
         </h2>
         <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 'clamp(13.5px, 1.5vw, 15px)', lineHeight: 1.65, maxWidth: 620, marginTop: 12 }}>
           {L(
-            '결정을 받치던 “믿고 간 것” 하나가 흔들리는 순간 — 대개는 아무도 알려주지 않죠. 그때 Argus가 먼저 당신에게 돌아옵니다. 실제로 이런 순간들이에요.',
-            'The one thing your decision was counting on shifts — and usually, no one tells you. That’s the moment Argus comes back to you. Real ones:',
+            '결정을 받치던 것이 흔들리거나, 기다리던 때가 오는 순간 — 대개는 아무도 알려주지 않죠. 그때 Argus가 먼저 당신에게 돌아옵니다. 실제로 이런 순간들이에요.',
+            'What your decision rested on shifts — or the moment you were waiting for finally lands. Usually no one tells you. That’s when Argus comes back to you. Real ones:',
           )}
         </p>
 
@@ -231,8 +251,8 @@ export function UseCases() {
         {/* the loop in one line + the one quiet product-level honesty */}
         <p className={bk} style={{ color: 'var(--bp-ink-soft)', fontSize: 12, lineHeight: 1.6, marginTop: 24, opacity: 0.9, maxWidth: 720 }}>
           {L(
-            '무엇을 정하든 같아요 — 결정을 받친 것을 기억해 뒀다가, 그게 흔들리면 당신에게 돌려드립니다. 결정은 늘 당신이 내려요. (저희가 던지는 질문에도 옅은 치우침은 남아요 — 아는 한계고요.)',
-            'Whatever you decide, it’s the same — we remember what it stood on, and when that shifts, we hand it back to you. You always make the call. (Even our questions carry a faint lean — a limit we own.)',
+            '무엇을 정하든 같아요 — 결정을 받친 것을 기억해 뒀다가, 그게 흔들리거나 때가 오면 당신에게 돌려드립니다. 결정은 늘 당신이 내려요. (저희가 던지는 질문에도 옅은 치우침은 남아요 — 아는 한계고요.)',
+            'Whatever you decide, it’s the same — we remember what it stood on, and when that shifts (or the moment arrives), we hand it back to you. You always make the call. (Even our questions carry a faint lean — a limit we own.)',
           )}
         </p>
       </div>
