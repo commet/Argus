@@ -148,13 +148,15 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
  * roman numeral, or a known heading word) and a short length, so running prose
  * is never mislabeled a heading. Returns the header text, or null for body.
  */
-function pdfHeadingTitle(text: string): string | null {
+export function pdfHeadingTitle(text: string): string | null {
   const t = text.trim();
   if (t.length < 2 || t.length > 50) return null;
   if (t.split(/\s+/).length > 10) return null;
   if (/[.。!?…]$/.test(t) && !/^\d+(\.\d+)*\.?$/.test(t.split(/\s+/)[0])) return null;
+  // NOTE: a plain \b after a Korean keyword never fires (Korean chars aren't \w),
+  // so use an explicit boundary lookahead — else "제 3 장", "부록 A" are missed.
   const marked =
-    /^(제\s*\d+\s*(장|절|부)|chapter\s+\d+|section\s+\d+|appendix|부록|요약|개요|executive\s+summary)\b/i.test(t) ||
+    /^(제\s*\d+\s*(장|절|부)|chapter\s+\d+|section\s+\d+|appendix|부록|요약|개요|executive\s+summary)(?=\s|$|[:·.)])/i.test(t) ||
     /^\d+(\.\d+){0,3}[.)]?\s+\S/.test(t) ||
     /^[Ⅰ-Ⅹ]+\.\s+\S/.test(t) ||
     /^[IVX]+\.\s+\S/.test(t);
