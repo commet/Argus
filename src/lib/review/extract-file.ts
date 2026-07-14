@@ -142,6 +142,25 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
 // PDF — pdf.js text content, reconstructed into column-aware lines per page.
 // --------------------------------------------------------------------------
 
+/**
+ * Recognize a numbered/keyword section header in a reconstructed PDF block.
+ * Conservative on purpose — it requires a structural marker (a section number,
+ * roman numeral, or a known heading word) and a short length, so running prose
+ * is never mislabeled a heading. Returns the header text, or null for body.
+ */
+function pdfHeadingTitle(text: string): string | null {
+  const t = text.trim();
+  if (t.length < 2 || t.length > 50) return null;
+  if (t.split(/\s+/).length > 10) return null;
+  if (/[.。!?…]$/.test(t) && !/^\d+(\.\d+)*\.?$/.test(t.split(/\s+/)[0])) return null;
+  const marked =
+    /^(제\s*\d+\s*(장|절|부)|chapter\s+\d+|section\s+\d+|appendix|부록|요약|개요|executive\s+summary)\b/i.test(t) ||
+    /^\d+(\.\d+){0,3}[.)]?\s+\S/.test(t) ||
+    /^[Ⅰ-Ⅹ]+\.\s+\S/.test(t) ||
+    /^[IVX]+\.\s+\S/.test(t);
+  return marked ? t : null;
+}
+
 async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
   const pdfjs = await import('pdfjs-dist');
   // Worker asset resolved by the bundler; new URL keeps webpack/Turbopack happy.
@@ -157,6 +176,7 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
   let capped = false;
   let multiColumn = false;
   let hasTable = false;
+  let currentSection: string | null = null;
 
   for (let p = 1; p <= pageCount; p++) {
     if (units.length >= MAX_UNITS) { capped = true; break; }
@@ -172,11 +192,27 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
       if (units.length >= MAX_UNITS) { capped = true; break; }
       const t = block.trim();
       if (t.length < 2) continue;
+      // Detect numbered/keyword section headers so the PDF carries structure
+      // (headings + section_path anchors) instead of a flat wall of paragraphs.
+      // Without it every PDF scored a "구조 없음" reviewability penalty and its
+      // findings could only cite a bare page number.
+      const headingTitle = pdfHeadingTitle(t);
+      if (headingTitle) {
+        currentSection = headingTitle;
+        units.push({
+          unit_id: stableId('u', 'pdf', p, t.slice(0, 40)),
+          kind: 'heading',
+          text: t,
+          source_anchor: { page: p, section_path: [headingTitle] },
+          confidence: 0.7,
+        });
+        continue;
+      }
       units.push({
         unit_id: stableId('u', 'pdf', p, t.slice(0, 40)),
         kind: 'paragraph',
         text: t,
-        source_anchor: { page: p },
+        source_anchor: currentSection ? { page: p, section_path: [currentSection] } : { page: p },
         confidence: 0.8,
       });
     }

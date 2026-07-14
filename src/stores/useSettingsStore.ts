@@ -23,6 +23,19 @@ const DEFAULT_SETTINGS: Settings = {
   voyage_map_collapsed: false,
 };
 
+/**
+ * True when the user runs on THEIR OWN API key (they pay their own bill), which
+ * mirrors the routing in lib/llm.ts: OpenAI/Gemini providers are always direct
+ * with their key; Anthropic is direct only in 'direct' mode with a key present.
+ * The document-review free-use gate keys off this — own key ⇒ unlimited.
+ */
+export function hasOwnApiKey(settings: Settings): boolean {
+  const provider = settings.llm_provider || 'anthropic';
+  if (provider === 'openai') return !!settings.openai_api_key;
+  if (provider === 'gemini') return !!settings.gemini_api_key;
+  return settings.llm_mode === 'direct' && !!settings.anthropic_api_key;
+}
+
 interface SettingsState {
   settings: Settings;
   loadSettings: () => void;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { packUnitsForPrompt, computeCoverage, PROMPT_CHAR_BUDGET, PER_UNIT_CHAR_CAP } from '../coverage';
+import { packUnitsForPrompt, chunkUnitsForReview, computeCoverage, PROMPT_CHAR_BUDGET, PER_UNIT_CHAR_CAP, UNITS_PER_CHUNK } from '../coverage';
 import { type ArtifactUnit, type CanonicalArtifact } from '../schema';
 
 const unit = (id: string, text: string): ArtifactUnit => ({
@@ -43,6 +43,52 @@ describe('packUnitsForPrompt', () => {
     const packed = packUnitsForPrompt(units, 160);
     expect(packed.units).toEqual(units);
     expect(packed.total).toBe(2);
+  });
+});
+
+describe('chunkUnitsForReview', () => {
+  it('keeps a short document as a single chunk (single-pass path)', () => {
+    const units = [unit('a', 'hello'), unit('b', 'world')];
+    const r = chunkUnitsForReview(units, 10);
+    expect(r.chunks.length).toBe(1);
+    expect(r.unitsReviewed).toBe(2);
+    expect(r.dropped).toBe(0);
+  });
+
+  it('splits a long document by the char budget so the WHOLE thing is covered', () => {
+    // 300 units × ~1000 chars → far past one 40k prompt; must become many chunks
+    // that together cover every unit (the old front-slice reviewed ~13%).
+    const units = Array.from({ length: 300 }, (_, i) => unit(`u${i}`, 'y'.repeat(1000)));
+    const r = chunkUnitsForReview(units, 20);
+    expect(r.chunks.length).toBeGreaterThan(1);
+    for (const c of r.chunks) {
+      const chars = c.reduce((n, u) => n + u.text.length, 0);
+      expect(chars).toBeLessThanOrEqual(PROMPT_CHAR_BUDGET);
+    }
+    expect(r.unitsReviewed).toBe(300);
+    expect(r.dropped).toBe(0);
+  });
+
+  it('caps at maxChunks and reports the remainder as dropped (honest, never silent)', () => {
+    const units = Array.from({ length: 500 }, (_, i) => unit(`u${i}`, 'z'.repeat(1000)));
+    const r = chunkUnitsForReview(units, 3);
+    expect(r.chunks.length).toBe(3);
+    expect(r.unitsReviewed).toBeLessThan(500);
+    expect(r.unitsReviewed + r.dropped).toBe(500);
+    expect(r.dropped).toBeGreaterThan(0);
+  });
+
+  it('bounds units per chunk even when chars are tiny', () => {
+    const units = Array.from({ length: UNITS_PER_CHUNK * 3 }, (_, i) => unit(`u${i}`, 'x'));
+    const r = chunkUnitsForReview(units, 10);
+    for (const c of r.chunks) expect(c.length).toBeLessThanOrEqual(UNITS_PER_CHUNK);
+    expect(r.unitsReviewed).toBe(UNITS_PER_CHUNK * 3);
+  });
+
+  it('truncates a lone oversized unit instead of dropping it', () => {
+    const r = chunkUnitsForReview([unit('big', 'q'.repeat(200_000))], 10);
+    expect(r.chunks.length).toBe(1);
+    expect(r.chunks[0][0].text.length).toBe(PER_UNIT_CHAR_CAP);
   });
 });
 

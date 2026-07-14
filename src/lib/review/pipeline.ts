@@ -34,10 +34,10 @@ import {
   reviewabilityBand,
 } from './schema';
 import { scoreReviewability } from './reviewability';
-import { packUnitsForPrompt, computeCoverage } from './coverage';
+import { packUnitsForPrompt, chunkUnitsForReview, computeCoverage } from './coverage';
 import { routeLenses } from './routing';
 import { LENSES, LENS_VERSION } from './lenses';
-import { buildExtractionPrompt, buildLensPrompt, buildQuickReviewPrompt, buildSynthesisPrompt } from './prompts';
+import { buildExtractionPrompt, buildLensPrompt, buildMapPrompt, buildQuickReviewPrompt, buildSynthesisPrompt } from './prompts';
 import { defaultReviewLLM, type ReviewLLM } from './llm-adapter';
 import { djb2, stableId } from './ids';
 
@@ -166,6 +166,154 @@ export async function runDocumentReview(
       const followups = normalizeFollowups(raw['followups'], today);
       const currentHeading = String(raw['current_heading'] || '').trim() || neutralHeading(map);
       const coreQuestion = String(raw['core_question'] || map.core_question || '').trim();
+      const receipt = assembleReceipt({
+        artifact, profile, reviewability, routing,
+        map: { ...map, core_question: coreQuestion },
+        findings, obligations, followups, currentHeading, coverage,
+        rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
+      });
+      return { job: emit('ready', '검수 완료'), receipt };
+    }
+
+    // --- Map-Reduce for long documents ------------------------------------
+    // A report that doesn't fit one prompt used to be reviewed on only its front
+    // ~13% (packUnitsForPrompt takes the leading units up to the char budget).
+    // Chunk the WHOLE document, map each chunk to a partial judgment map +
+    // findings in one bounded call (parallel), then reduce: merge maps, de-dup
+    // findings, and synthesize the receipt once. Docs that fit one prompt fall
+    // through to the richer single-pass multi-lens path below (unchanged).
+    const maxChunks = budget.depth === 'deep' ? 16 : 10;
+    const chunked = chunkUnitsForReview(artifact.units, maxChunks);
+    if (chunked.chunks.length > 1) {
+      const chunks = chunked.chunks;
+      emit('profiling', `문서를 ${chunks.length}개 구간으로 나눠 전체를 검수하는 중`);
+      let mapDone = 0;
+      const mapResults = await Promise.allSettled(
+        chunks.map(async (chunk, i) => {
+          const mp = buildMapPrompt(chunk, ctx, i, chunks.length, today);
+          promptParts.push(mp.system);
+          try {
+            return await llm.json<Record<string, unknown>>({
+              system: mp.system,
+              user: mp.user,
+              maxTokens: Math.min(budget.max_tokens, 2200),
+              model: 'default',
+              signal: options.signal,
+              shape: {
+                profile: { type: 'object', default: {} },
+                core_question: { type: 'string', default: '' },
+                main_claims: { type: 'array', default: [] },
+                evidence_items: { type: 'array', default: [] },
+                assumptions: { type: 'array', default: [] },
+                decision_points: { type: 'array', default: [] },
+                tradeoffs: { type: 'array', default: [] },
+                stakeholders: { type: 'array', default: [] },
+                open_questions: { type: 'array', default: [] },
+                missing_sections: { type: 'array', default: [] },
+                findings: { type: 'array', default: [] },
+                current_heading: { type: 'string', default: '' },
+              },
+            });
+          } finally {
+            mapDone++;
+            emit('reviewing', `근거 확인 중 (구간 ${mapDone}/${chunks.length})`);
+          }
+        }),
+      );
+
+      const partials = mapResults
+        .filter((r): r is PromiseFulfilledResult<Record<string, unknown>> => r.status === 'fulfilled')
+        .map((r) => r.value);
+      // Honest coverage: a chunk that errored was NOT reviewed. Count only the
+      // units in chunks whose map call actually returned.
+      const unitsReviewed = chunks.reduce(
+        (n, c, i) => (mapResults[i].status === 'fulfilled' ? n + c.length : n),
+        0,
+      );
+      const coverage = computeCoverage(artifact, unitsReviewed);
+      const failedChunks = chunks.length - partials.length;
+      if (failedChunks > 0) {
+        coverage.notes.push(`${chunks.length}개 구간 중 ${failedChunks}개 구간은 검수 중 오류로 빠졌습니다.`);
+      }
+
+      // If every chunk failed, this is a model error, not a thin review.
+      if (partials.length === 0) {
+        const error: ReviewFailure = {
+          kind: 'model_error',
+          message: '문서 구간 검수가 모두 실패했습니다.',
+          recovery: '잠시 후 다시 시도하거나, 더 짧은 문서로 나눠서 검수해 보세요.',
+        };
+        return { job: emit('failed', '검수 실패', { error }) };
+      }
+
+      const maps = partials.map((raw) => normalizeMap(raw, resolveAnchors));
+      const map = mergeMaps(maps);
+      const profile = normalizeProfile(
+        partials.find((p) => p['profile'] && typeof p['profile'] === 'object')?.['profile'],
+        ctx,
+      );
+
+      const reviewability = scoreReviewability(artifact, map);
+      const routing = routeLenses(profile, artifact, {
+        concerns: ctx.concerns,
+        maxLensCalls: budget.max_lens_calls,
+      });
+
+      if (reviewabilityBand(reviewability.score) === 'insufficient') {
+        const receipt = assembleReceipt({
+          artifact, profile, reviewability, routing, map,
+          findings: [], obligations: [], followups: [],
+          currentHeading: neutralHeading(map), coverage,
+          rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
+        });
+        receipt.state = 'draft';
+        return { job: emit('needs_context', '검수 가능성 낮음 — 부족한 맥락 표시'), receipt };
+      }
+
+      const allowedLenses = new Set<LensId>(routing.selected);
+      const mappedFindings = partials
+        .flatMap((p) => (Array.isArray(p['findings']) ? p['findings'] : []))
+        .flatMap((finding) => {
+          if (!finding || typeof finding !== 'object') return [];
+          const lensId = String((finding as Record<string, unknown>)['lens_id']) as LensId;
+          if (!allowedLenses.has(lensId)) return [];
+          return normalizeFindings([finding], lensId, resolveAnchors);
+        });
+      let findings = dedupeFindings(mappedFindings);
+      if (findings.length === 0) findings = supplementQuickFindings([], map);
+      // A whole-document review surfaces more than a single prompt — keep the top
+      // ranked handful so the receipt stays readable, deduped first so the cut
+      // never drops a unique issue in favor of a near-duplicate.
+      findings = rankFindings(findings).slice(0, 10);
+
+      emit('synthesizing', 'Judgment Receipt를 만드는 중');
+      const mapSummary = summarizeMap(map);
+      const synPrompt = buildSynthesisPrompt(mapSummary, summarizeFindings(findings), ctx, today);
+      promptParts.push(synPrompt.system);
+      let syn: Record<string, unknown> = {};
+      try {
+        syn = await llm.json<Record<string, unknown>>({
+          system: synPrompt.system,
+          user: synPrompt.user,
+          maxTokens: 2000,
+          model: 'default',
+          signal: options.signal,
+          shape: {
+            core_question: { type: 'string', default: map.core_question },
+            current_heading: { type: 'string', default: '' },
+            judgment_obligations: { type: 'array', default: [] },
+            followups: { type: 'array', default: [] },
+          },
+        });
+      } catch {
+        syn = {};
+      }
+
+      const obligations = normalizeObligations(syn['judgment_obligations'], resolveAnchors);
+      const followups = normalizeFollowups(syn['followups'], today);
+      const currentHeading = String(syn['current_heading'] || '').trim() || neutralHeading(map);
+      const coreQuestion = String(syn['core_question'] || map.core_question || '').trim();
+
       const receipt = assembleReceipt({
         artifact, profile, reviewability, routing,
         map: { ...map, core_question: coreQuestion },
@@ -602,6 +750,103 @@ function rankFindings(findings: Finding[]): Finding[] {
       CONF_RANK[a.confidence] - CONF_RANK[b.confidence] ||
       b.anchors.length - a.anchors.length,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Reduce helpers (map-reduce path): merge chunk maps + de-dup findings.
+// ---------------------------------------------------------------------------
+
+/** Normalize a user-facing string for near-duplicate comparison (case/space/
+ *  punctuation-insensitive, leading 40 chars). */
+function dedupKey(s: string): string {
+  return s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '').slice(0, 40);
+}
+
+/** A stable key for "the same place in the source". */
+function anchorKey(a: SourceAnchor): string {
+  if (a.slide !== undefined) return `s${a.slide}`;
+  if (a.page !== undefined) return `p${a.page}`;
+  if (a.section_path?.length) return `sec:${a.section_path.join('/')}`;
+  if (a.line_start !== undefined) return `l${a.line_start}`;
+  return '';
+}
+
+function unionAnchors(a: SourceAnchor[], b: SourceAnchor[]): SourceAnchor[] {
+  const seen = new Set(a.map(anchorKey).filter(Boolean));
+  const out = [...a];
+  for (const x of b) {
+    const k = anchorKey(x);
+    if (k && !seen.has(k)) { seen.add(k); out.push(x); }
+  }
+  return out;
+}
+
+/** Collapse items that repeat the same text across chunks, keeping the first and
+ *  merging (e.g. unioning anchors) each later duplicate into it. */
+function dedupeByText<T>(items: T[], key: (t: T) => string, merge: (kept: T, dup: T) => T): T[] {
+  const byKey = new Map<string, number>();
+  const out: T[] = [];
+  for (const it of items) {
+    const k = dedupKey(key(it));
+    if (!k) { out.push(it); continue; }
+    const idx = byKey.get(k);
+    if (idx === undefined) { byKey.set(k, out.length); out.push(it); }
+    else out[idx] = merge(out[idx], it);
+  }
+  return out;
+}
+
+/** Merge many chunk maps into one document map, de-duplicating repeated
+ *  claims/assumptions/etc. A claim restated in intro + conclusion collapses to
+ *  one row (union of anchors); claim_ids are stable text hashes, so any C#
+ *  dependency links survive concatenation. */
+function mergeMaps(maps: DocumentJudgmentMap[]): DocumentJudgmentMap {
+  const withAnchors = <T extends { anchors: SourceAnchor[] }>(a: T, b: T): T => ({ ...a, anchors: unionAnchors(a.anchors, b.anchors) });
+  let core = '';
+  let explicit: string | undefined;
+  let implicit: string | undefined;
+  for (const m of maps) {
+    if (m.core_question && m.core_question.length > core.length) core = m.core_question;
+    explicit = explicit || m.explicit_recommendation;
+    implicit = implicit || m.implicit_recommendation;
+  }
+  return {
+    core_question: core,
+    explicit_recommendation: explicit,
+    implicit_recommendation: implicit,
+    main_claims: dedupeByText(maps.flatMap((m) => m.main_claims), (c) => c.text, withAnchors),
+    evidence_items: dedupeByText(maps.flatMap((m) => m.evidence_items), (e) => e.text, withAnchors),
+    assumptions: dedupeByText(maps.flatMap((m) => m.assumptions), (a) => a.text, withAnchors),
+    tradeoffs: dedupeByText(maps.flatMap((m) => m.tradeoffs), (t) => t.text, withAnchors),
+    stakeholders: dedupeByText(maps.flatMap((m) => m.stakeholders), (s) => `${s.role} ${s.likely_objection}`, withAnchors),
+    open_questions: dedupeByText(maps.flatMap((m) => m.open_questions), (o) => o.text, withAnchors),
+    decision_points: dedupeByText(maps.flatMap((m) => m.decision_points), (d) => d.text, withAnchors),
+    missing_sections: dedupeByText(maps.flatMap((m) => m.missing_sections), (x) => x.label, (a) => a),
+  };
+}
+
+/** Collapse near-duplicate findings that repeat one issue across chunks — same
+ *  normalized title, or an overlapping anchor plus a shared title stem. Keeps the
+ *  strongest severity/confidence and unions anchors, so the receipt shows the
+ *  issue once (the redundant "치명 3개, 같은 말" case) without losing anchors. */
+function dedupeFindings(findings: Finding[]): Finding[] {
+  const out: Finding[] = [];
+  for (const f of findings) {
+    const key = dedupKey(f.title);
+    const fAnchors = new Set(f.anchors.map(anchorKey).filter(Boolean));
+    const hit = out.find((g) => {
+      const gk = dedupKey(g.title);
+      if (key && gk === key) return true;
+      const shareAnchor = g.anchors.some((a) => fAnchors.has(anchorKey(a)));
+      return shareAnchor && key.length >= 8 && (gk.startsWith(key.slice(0, 8)) || key.startsWith(gk.slice(0, 8)));
+    });
+    if (!hit) { out.push(f); continue; }
+    if (SEVERITY_RANK[f.severity] < SEVERITY_RANK[hit.severity]) hit.severity = f.severity;
+    if (CONF_RANK[f.confidence] < CONF_RANK[hit.confidence]) hit.confidence = f.confidence;
+    hit.anchors = unionAnchors(hit.anchors, f.anchors);
+    if (!hit.suggested_action && f.suggested_action) hit.suggested_action = f.suggested_action;
+  }
+  return out;
 }
 
 function summarizeMap(map: DocumentJudgmentMap): string {

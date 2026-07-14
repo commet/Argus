@@ -21,6 +21,8 @@ import { SealStamp } from '@/components/workspace/progressive/SealStamp';
 import { SealModal } from './SealModal';
 import { SettleModal } from './SettleModal';
 import { extractFile, type ExtractedText } from '@/lib/review/extract-file';
+import { useSettingsStore, hasOwnApiKey } from '@/stores/useSettingsStore';
+import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { track } from '@/lib/analytics';
 import {
   ingest,
@@ -68,6 +70,13 @@ export function ReviewFlow() {
   const [sealing, setSealing] = useState(false);
   const [settlingId, setSettlingId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  // BYOK gate: a full-document review burns tokens, so a user NOT on their own
+  // API key gets one lifetime free review. `freeUsed` is the local soppy flag;
+  // the server-side daily rate limit is the real cost backstop.
+  const settings = useSettingsStore((s) => s.settings);
+  const ownKey = hasOwnApiKey(settings);
+  const [freeUsed, setFreeUsed] = useState(false);
+  const gateBlocked = !ownKey && freeUsed;
   const fileRef = useRef<HTMLInputElement>(null);
   // Lets the user cancel an in-flight review. Without it a long extraction on a
   // large document reads as a frozen "분석 중" screen with no way out.
@@ -89,6 +98,8 @@ export function ReviewFlow() {
   // Load persisted receipts once; open on the list when any exist, else import.
   useEffect(() => {
     useReviewStore.getState().load();
+    useSettingsStore.getState().loadSettings();
+    setFreeUsed(getStorage<boolean>(STORAGE_KEYS.REVIEW_FREE_USED, false));
     const receipts = useReviewStore.getState().receipts;
     const params = new URLSearchParams(window.location.search);
     const requestedReceipt = params.get('receipt');
@@ -171,6 +182,13 @@ export function ReviewFlow() {
   };
 
   const run = async () => {
+    // Defense in depth (the button is also disabled): never start a review once
+    // the one free use is spent and no personal key is connected.
+    if (!hasOwnApiKey(useSettingsStore.getState().settings)
+        && getStorage<boolean>(STORAGE_KEYS.REVIEW_FREE_USED, false)) {
+      setFreeUsed(true);
+      return;
+    }
     const ctx: UserReviewContext = {
       audience_hint: audienceHint.trim() || undefined,
       biggest_worry: worry.trim() || undefined,
@@ -264,6 +282,12 @@ export function ReviewFlow() {
       }
 
       store.saveReceipt(r);
+      // Consume the one free document review (only on a completed review, only
+      // for users without their own key) — a full review's token cost is why.
+      if (!hasOwnApiKey(useSettingsStore.getState().settings)) {
+        setStorage(STORAGE_KEYS.REVIEW_FREE_USED, true);
+        setFreeUsed(true);
+      }
       setSessionSource({ id: r.receipt_id, text: effectiveText });
       setActiveId(r.receipt_id);
       setShowOriginal(false);
@@ -669,8 +693,28 @@ export function ReviewFlow() {
         </span>
       </label>
 
+      {gateBlocked && (
+        <Card variant="muted" className="border border-[var(--border-subtle)]">
+          <div className="text-[13px] font-medium text-[var(--text-primary)] mb-1">
+            {L('무료 문서 검수 1회를 모두 사용했어요', 'You’ve used your one free document review')}
+          </div>
+          <p className="text-[12px] leading-[1.6] text-[var(--text-secondary)] mb-3">
+            {L(
+              '문서 전체 검수는 토큰을 많이 써서, 자기 API 키를 연결하지 않으면 평생 1회로 제한돼요. 설정에서 API 키를 연결하면 횟수 제한 없이 계속 검수할 수 있어요(요금은 본인 키로 청구됩니다).',
+              'A full-document review uses a lot of tokens, so without your own API key it’s limited to one lifetime review. Connect an API key in Settings to keep reviewing with no limit (billed to your own key).',
+            )}
+          </p>
+          <a
+            href={`/${locale}/settings`}
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--accent)] hover:underline"
+          >
+            {L('설정에서 API 키 연결하기 →', 'Connect an API key in Settings →')}
+          </a>
+        </Card>
+      )}
+
       <div>
-        <Button variant="accent" size="md" onClick={run} disabled={!canRun}>
+        <Button variant="accent" size="md" onClick={run} disabled={!canRun || gateBlocked}>
           {L('검수 시작', 'Start review')}
         </Button>
       </div>
