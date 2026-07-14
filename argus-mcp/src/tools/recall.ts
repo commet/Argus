@@ -100,8 +100,25 @@ export const recall: ToolModule = {
         // Receipt voice follows the user's own predicate (FC-2): the keepsake
         // artifact must speak the language it was sealed in.
         const receiptLocale = resolveResponseLocale(dir, r.predicate);
+        // The receipt IS the product's payoff — when the user explicitly asks to
+        // see it, the surface must carry the prediction-vs-reality line, not a
+        // bare "Receipt recalled." that hides the value in data on hosts that
+        // don't render it. The full formatted card stays in data.receipt_text as
+        // the keepsake. (User-value review, 2026-07-14.)
+        const clip = (s: unknown, n: number): string => { const t = String(s ?? '').trim(); return t.length > n ? `${t.slice(0, n)}…` : t; };
+        const label = receiptLocale === 'ko'
+          ? { held: '그렇게 됨', avoided: '피함', partial: '부분적', missed: '빗나감', still_pending: '아직' }
+          : { held: 'held', avoided: 'avoided', partial: 'partial', missed: 'missed', still_pending: 'still pending' };
+        const outcomeKey = (r.outcome ?? 'still_pending') as keyof typeof label;
+        const receiptSurface = receiptLocale === 'ko'
+          ? (r.what_happened
+              ? `예측: "${clip(r.predicate, 160)}". 현실: "${clip(r.what_happened, 160)}" (${label[outcomeKey]}). 채점은 없습니다. 예측은 당신이, 답은 현실이 했습니다.`
+              : `예측: "${clip(r.predicate, 200)}". 확인일 ${r.check_by}에 현실이 답하면 영수증이 완성됩니다.`)
+          : (r.what_happened
+              ? `You predicted: "${clip(r.predicate, 160)}". Reality: "${clip(r.what_happened, 160)}" (${label[outcomeKey]}). No grade: you predicted, reality answered.`
+              : `You predicted: "${clip(r.predicate, 200)}". The receipt completes when reality answers on ${r.check_by}.`);
         return envelope({
-          ok: true, tool: 'argus_recall', surface: receiptLocale === 'ko' ? '영수증을 불러왔습니다.' : 'Receipt recalled.',
+          ok: true, tool: 'argus_recall', surface: receiptSurface,
           next_actions: ['stop'], data: { receipt: r, receipt_text: renderReceipt(r, pInfo, receiptLocale) },
         });
       }
