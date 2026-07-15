@@ -8,6 +8,7 @@ import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useLocale } from '@/hooks/useLocale';
 import { useLocaleRouter } from '@/hooks/useLocaleRouter';
 import { Zap, FolderOpen, Users, MessageSquare, MailCheck, Mail, Lock, User, Check } from 'lucide-react';
+import { Logo } from '@/components/brand/Logo';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -170,16 +171,9 @@ function LoginContent() {
       />
 
       <div className="relative w-full max-w-[400px]">
-        {/* Logo */}
+        {/* Logo — 단일 정본 컴포넌트 (Header와 동일 락업) */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2.5 mb-3">
-            {/* Overture-era 'O' logo retired (W1.3) — voyage-vocabulary text
-                wordmark, matching the app header's badge. */}
-            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center shadow-[var(--shadow-sm)]" style={{ background: 'var(--gradient-gold)' }}>
-              <span className="text-white font-black text-[15px]">A</span>
-            </div>
-            <h1 className="text-[22px] font-extrabold text-[var(--text-primary)] tracking-tight">Argus</h1>
-          </div>
+          <div className="mb-3"><Logo size="lg" /></div>
           <p className="text-[14px] text-[var(--text-secondary)]">
             {L('결정의 궤적을 이어가려면 — 로그인해 주세요', "Pick up your decision's trail — sign in.")}
           </p>
