@@ -205,7 +205,7 @@ export function QuickChatBar({ activeStep, onNavigate }: QuickChatBarProps) {
       {/* Feedback toast */}
       {feedback && (
         <div className={`px-4 py-2 text-[12px] font-medium animate-fade-in ${
-          feedback.type === 'success' ? 'bg-[var(--collab)] text-[var(--success)]' : 'bg-[var(--ai)] text-[#2d4a7c]'
+          feedback.type === 'success' ? 'bg-[var(--collab)] text-[var(--success)]' : 'bg-[var(--ai)] text-[var(--ai-fg)]'
         }`}>
           <div className="flex items-center gap-2">
             {feedback.type === 'success' ? <Check size={12} /> : <MessageSquare size={12} />}

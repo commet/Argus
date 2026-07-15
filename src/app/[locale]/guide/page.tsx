@@ -204,7 +204,7 @@ export default function GuidePage() {
         </div>
         <LocaleLink
           href="/workspace"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[var(--accent-fg)] text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all"
           style={{ background: 'var(--gradient-gold)' }}
         >
           {L('워크스페이스로 가기', 'Go to workspace')} <ArrowRight size={14} />
@@ -432,11 +432,11 @@ export default function GuidePage() {
 function ChainRow({ tone, label, agents }: { tone: 'ai' | 'strategy' | 'execution' | 'validation'; label: string; agents: string }) {
   const dotColor =
     tone === 'ai'
-      ? 'bg-[#2d4a7c]'
+      ? 'bg-[var(--ai-fg)]'
       : tone === 'strategy'
-      ? 'bg-[#8b6914]'
+      ? 'bg-[var(--human-fg)]'
       : tone === 'execution'
-      ? 'bg-[#2d6b2d]'
+      ? 'bg-[var(--both-fg)]'
       : 'bg-[#9b5de5]';
   return (
     <div className="flex items-start gap-2.5 text-[12.5px] text-[var(--text-primary)] leading-[1.55]">

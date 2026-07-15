@@ -27,8 +27,8 @@ import {
 type LFn = (ko: string, en: string) => string;
 
 const SEVERITY_CLS: Record<Finding['severity'], string> = {
-  critical: 'text-red-700 bg-red-50 border-red-200',
-  caution: 'text-amber-700 bg-amber-50 border-amber-200',
+  critical: 'text-[var(--danger)] bg-[var(--danger)]/10 border-[var(--danger)]/25',
+  caution: 'text-[var(--warning)] bg-[var(--warning)]/10 border-[var(--warning)]/30',
   minor: 'text-[var(--text-tertiary)] bg-[var(--bg)] border-[var(--border-subtle)]',
 };
 
@@ -166,7 +166,7 @@ export function ReceiptView({
           covers part of the source, so it must not read as a full review. */}
       {receipt.coverage && receipt.coverage.band !== 'full' && receipt.coverage.notes.length > 0 && (
         <Card variant={receipt.coverage.band === 'low' ? 'danger' : 'muted'}>
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700 mb-1">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--warning)] mb-1">
             {receipt.coverage.band === 'low' ? L('일부만 검수됨', 'Only partly reviewed') : L('부분 검수', 'Partial review')}
           </div>
           <ul className="space-y-0.5">
@@ -188,7 +188,7 @@ export function ReceiptView({
           only for a document with real scope (skip tiny pastes). */}
       {receipt.coverage && receipt.coverage.band === 'full'
         && (receipt.coverage.pages_read || receipt.coverage.slides_read || receipt.coverage.units_total > 12) && (
-        <div className="flex items-center gap-1.5 text-[11px] text-green-700">
+        <div className="flex items-center gap-1.5 text-[11px] text-[var(--success)]">
           <span aria-hidden>✓</span>
           <span>
             {(() => {
@@ -241,12 +241,12 @@ export function ReceiptView({
       {/* judgment obligations */}
       {topObligations.length > 0 && (
         <Card variant="human">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8b6914] mb-2">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--human-fg)] mb-2">
             {L('사람이 직접 판단해야 할 것', 'What a human must judge')}
           </div>
           <div className="space-y-3">
             {topObligations.map((o) => (
-              <div key={o.obligation_id} className="border-b border-[#8b6914]/10 last:border-0 pb-3 last:pb-0">
+              <div key={o.obligation_id} className="border-b border-[var(--human-fg)]/10 last:border-0 pb-3 last:pb-0">
                 <p className="text-[14px] font-medium text-[var(--text-primary)]">{o.statement}</p>
                 {o.why_human && <p className="mt-1 text-[12px] text-[var(--text-secondary)]">{L('왜 사람인가', 'Why a human')}: {o.why_human}</p>}
                 {o.evidence_needed && (
@@ -427,7 +427,7 @@ export function ReceiptView({
                       {f.revise_count ? ` · ${L(`${f.revise_count}회 미룸`, `Postponed ${f.revise_count} time${f.revise_count === 1 ? '' : 's'}`)}` : ''}
                       {f.first_check_by ? ` · ${L(`원래 ${f.first_check_by}`, `originally ${f.first_check_by}`)}` : ''}
                     </p>
-                    {f.lean && <p className="mt-0.5 text-[11px] text-[#8b6914]">{L('내 예상', 'My lean')}: {f.lean}</p>}
+                    {f.lean && <p className="mt-0.5 text-[11px] text-[var(--human-fg)]">{L('내 예상', 'My lean')}: {f.lean}</p>}
                     {f.key_assumption && <p className="text-[11px] text-[var(--text-tertiary)]">{L('핵심 가정', 'Key assumption')}: {f.key_assumption}</p>}
                     {/* why reality was still silent — returned so the next check-by
                         reminds the user WHY they pushed it, not just that time passed */}
@@ -437,7 +437,7 @@ export function ReceiptView({
                       </p>
                     )}
                     {f.settled_at ? (
-                      <p className="mt-1 text-[12px] text-green-700">
+                      <p className="mt-1 text-[12px] text-[var(--success)]">
                         {L('정산됨', 'Settled')}: {settlementLabel(L, f.outcome)}{f.what_happened ? ` — ${f.what_happened}` : ''}
                         {f.learned ? <span className="block text-[var(--text-secondary)]">{L('배운 점', 'What I learned')}: {f.learned}</span> : null}
                       </p>

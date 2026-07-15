@@ -193,7 +193,7 @@ export function StepEntry({
                 return (
                   <span
                     key={step.key}
-                    className="px-2 py-0.5 rounded-full bg-[var(--ai)] text-[#2d4a7c] text-[10px] font-semibold"
+                    className="px-2 py-0.5 rounded-full bg-[var(--ai)] text-[var(--ai-fg)] text-[10px] font-semibold"
                   >
                     {opt?.emoji} {opt?.label}
                   </span>
@@ -225,7 +225,7 @@ export function StepEntry({
                 const opt = step.options.find((o) => o.value === val);
                 if (!opt) return null;
                 return (
-                  <span key={step.key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--ai)] text-[11px] text-[#2d4a7c] font-medium">
+                  <span key={step.key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--ai)] text-[11px] text-[var(--ai-fg)] font-medium">
                     {opt.emoji} {opt.label}
                   </span>
                 );

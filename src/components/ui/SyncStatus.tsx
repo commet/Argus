@@ -83,7 +83,7 @@ export function SyncStatus() {
       // Signed-out returning user: work IS saving locally, cloud backup is not.
       return (
         <div
-          className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border text-amber-600 bg-amber-50 border-amber-200"
+          className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border text-[var(--warning)] bg-[var(--warning)]/10 border-[var(--warning)]/30"
           title={L('로그인하면 클라우드 백업이 이어져요', 'Sign in to resume cloud backup')}
         >
           <CloudOff size={12} />
@@ -99,37 +99,37 @@ export function SyncStatus() {
   const config = {
     synced: {
       icon: <Cloud size={12} />,
-      color: 'text-green-600',
-      bg: 'bg-green-50',
-      border: 'border-green-200',
+      color: 'text-[var(--success)]',
+      bg: 'bg-[var(--success)]/10',
+      border: 'border-[var(--success)]/25',
       label: L('동기화됨', 'Synced'),
     },
     syncing: {
       icon: <Loader2 size={12} className="animate-spin" />,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
+      color: 'text-[var(--ai-fg)]',
+      bg: 'bg-[var(--ai)]',
+      border: 'border-[var(--ai-fg)]/20',
       label: L('동기화 중...', 'Syncing...'),
     },
     offline: {
       icon: <CloudOff size={12} />,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
-      border: 'border-amber-200',
+      color: 'text-[var(--warning)]',
+      bg: 'bg-[var(--warning)]/10',
+      border: 'border-[var(--warning)]/30',
       label: L('오프라인', 'Offline'),
     },
     error: {
       icon: <CloudOff size={12} />,
-      color: 'text-red-600',
-      bg: 'bg-red-50',
-      border: 'border-red-200',
+      color: 'text-[var(--danger)]',
+      bg: 'bg-[var(--danger)]/10',
+      border: 'border-[var(--danger)]/25',
       label: L('동기화 실패', 'Sync failed'),
     },
     backup_pending: {
       icon: <CloudOff size={12} />,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
-      border: 'border-amber-200',
+      color: 'text-[var(--warning)]',
+      bg: 'bg-[var(--warning)]/10',
+      border: 'border-[var(--warning)]/30',
       label: L('이 기기에 저장됨 · 백업 보류', 'Saved locally · backup pending'),
     },
   }[state as Exclude<SyncState, 'idle'>]; // 'idle' returned null above

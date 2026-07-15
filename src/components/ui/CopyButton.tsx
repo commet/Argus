@@ -38,7 +38,7 @@ export function CopyButton({ getText, label, onCopied }: CopyButtonProps) {
     <Button
       variant={copied ? 'secondary' : 'primary'}
       onClick={handleCopy}
-      className={copied ? '!border-[var(--success)] !text-[var(--success)]' : failed ? '!border-red-400 !text-red-600' : ''}
+      className={copied ? '!border-[var(--success)] !text-[var(--success)]' : failed ? '!border-red-400 !text-[var(--danger)]' : ''}
     >
       {copied ? <Check size={16} /> : <Copy size={16} />}
       {copied ? L('복사 완료!', 'Copied!') : failed ? L('복사 실패 — 다시 시도', 'Copy failed — retry') : resolvedLabel}

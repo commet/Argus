@@ -159,7 +159,7 @@ export function QuestionCard({
                   onClick={goText}
                   disabled={disabled || submitted}
                   whileTap={{ scale: 0.95 }}
-                  className="shrink-0 px-4 py-2.5 min-h-[44px] text-white rounded-xl text-[12px] font-semibold cursor-pointer disabled:opacity-30"
+                  className="shrink-0 px-4 py-2.5 min-h-[44px] text-[var(--accent-fg)] rounded-xl text-[12px] font-semibold cursor-pointer disabled:opacity-30"
                   style={{ background: 'var(--gradient-gold)' }}>
                   {L('확인', 'OK')}
                 </motion.button>
@@ -189,7 +189,7 @@ export function QuestionCard({
             onClick={goText}
             disabled={disabled || !input.trim() || submitted}
             whileTap={{ scale: 0.95 }}
-            className="shrink-0 px-5 py-2.5 min-h-[44px] md:min-h-0 text-white rounded-xl text-[13px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-30"
+            className="shrink-0 px-5 py-2.5 min-h-[44px] md:min-h-0 text-[var(--accent-fg)] rounded-xl text-[13px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-30"
             style={{ background: 'var(--gradient-gold)' }}>
             {L('확인', 'OK')}
           </motion.button>
