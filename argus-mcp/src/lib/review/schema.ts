@@ -499,8 +499,10 @@ export interface ReviewProvenance {
   prompt_hash: string;
   created_at: string;
   /** Present when the review ran as a multimodal pass over the attached
-   *  document/deck (the model saw the pages/images, not just extracted text). */
-  vision?: { mode: 'pdf' | 'images'; page_count?: number };
+   *  document/deck (the model saw the pages/images, not just extracted text).
+   *  `pages_seen < page_count` means only a prefix was sent (page/byte budget) —
+   *  the receipt discloses the partial visual coverage. */
+  vision?: { mode: 'pdf' | 'images'; page_count?: number; pages_seen?: number };
 }
 
 /**

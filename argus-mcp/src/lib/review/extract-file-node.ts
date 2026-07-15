@@ -22,11 +22,17 @@ import {
   slideNum,
 } from './extract-core.js';
 
+/** Why extraction could not proceed — mirrors the browser extractor so review.ts
+ *  can give an honest, specific reason (and NOT offer a "read it visually"
+ *  scaffold for a file the host can't open either, e.g. an encrypted PDF). */
+export type ExtractErrorKind = 'empty' | 'encrypted' | 'corrupt' | 'unknown';
+
 export interface ExtractedText {
   text: string;
   units?: ArtifactUnit[];
   quality: ExtractionQuality;
   note?: string;
+  error_kind?: ExtractErrorKind;
   pages_total?: number;
   pages_read?: number;
   slides_total?: number;
@@ -34,14 +40,46 @@ export interface ExtractedText {
   units_capped?: boolean;
 }
 
+function classifyExtractError(e: unknown, kind: SourceKind): { note: string; error_kind: ExtractErrorKind } {
+  const name = (e as { name?: string })?.name ?? '';
+  const m = String((e as { message?: string })?.message ?? e ?? '').toLowerCase();
+  if (name === 'PasswordException' || m.includes('password')) {
+    return { note: '이 PDF는 암호로 보호되어 있어 열 수 없습니다. 암호를 해제해 다시 저장한 뒤 검수하세요.', error_kind: 'encrypted' };
+  }
+  if (name === 'InvalidPDFException' || m.includes('invalid pdf') || m.includes('missing pdf')) {
+    return { note: 'PDF 파일이 손상된 것 같습니다. 원본을 다시 받아 검수하거나 본문을 붙여넣으세요.', error_kind: 'corrupt' };
+  }
+  if (m.includes('end of central directory') || m.includes("can't find") || m.includes('corrupted zip') || m.includes('not a zip')) {
+    return { note: '파일이 손상됐거나 형식이 올바르지 않습니다 (열 수 없는 문서 구조).', error_kind: 'corrupt' };
+  }
+  const label = kind === 'pdf' ? 'PDF' : kind === 'docx' ? 'Word 문서' : kind === 'pptx' ? '슬라이드' : '문서';
+  return { note: `이 ${label}에서 내용을 읽지 못했습니다. 파일이 손상됐거나 형식이 확장자와 다를 수 있습니다.`, error_kind: 'unknown' };
+}
+
 /** Extract a binary document at `filePath`. Only pdf/docx/pptx are handled here;
- *  text formats are read directly by the caller (review.ts). */
+ *  text formats are read directly by the caller (review.ts). Never throws — a
+ *  corrupt/encrypted/empty file returns an honest quality:'unsupported' + reason. */
 export async function extractFileFromPath(filePath: string, kind: SourceKind): Promise<ExtractedText> {
-  const buf = fs.readFileSync(filePath);
-  if (kind === 'docx') return extractDocx(buf);
-  if (kind === 'pptx') return extractPptx(buf);
-  if (kind === 'pdf') return extractPdf(buf);
-  return { text: '', quality: 'unsupported' };
+  if (kind !== 'docx' && kind !== 'pptx' && kind !== 'pdf') {
+    return { text: '', quality: 'unsupported' };
+  }
+  let buf: Buffer;
+  try {
+    buf = fs.readFileSync(filePath);
+  } catch {
+    return { text: '', quality: 'unsupported', note: '파일을 읽지 못했습니다.', error_kind: 'unknown' };
+  }
+  if (buf.length === 0) {
+    return { text: '', quality: 'unsupported', note: '빈 파일입니다 (0바이트).', error_kind: 'empty' };
+  }
+  try {
+    if (kind === 'docx') return await extractDocx(buf);
+    if (kind === 'pptx') return await extractPptx(buf);
+    return await extractPdf(buf);
+  } catch (e) {
+    const { note, error_kind } = classifyExtractError(e, kind);
+    return { text: '', quality: 'unsupported', note, error_kind };
+  }
 }
 
 // --------------------------------------------------------------------------

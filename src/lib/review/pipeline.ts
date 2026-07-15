@@ -76,6 +76,8 @@ export interface ReviewVisionSource {
   pdf_base64?: string;
   images?: Array<{ media_type: string; data: string }>;
   page_count?: number;
+  /** pages actually sent (images path may stop at the budget) — see VisionSource. */
+  pages_seen?: number;
 }
 
 export interface RunReviewOptions {
@@ -235,6 +237,18 @@ export async function runDocumentReview(
         const followupsV = normalizeFollowups(raw['followups'], today);
         const coreQ = String(raw['core_question'] || mapV.core_question || '').trim();
         const headingV = String(raw['current_heading'] || '').trim() || neutralHeading(mapV, lang);
+        // Honest partial-coverage disclosure: when the render budget stopped us
+        // before the last page, say so on the receipt's coverage notes — never let
+        // a reviewed prefix read as the whole document.
+        const seen = options.vision.pages_seen;
+        const total = options.vision.page_count;
+        if (typeof seen === 'number' && typeof total === 'number' && seen < total) {
+          coverageV.notes = [
+            ...coverageV.notes,
+            t(`이 문서는 ${total}쪽 중 앞 ${seen}쪽만 이미지로 검수했어요. 나머지는 페이지를 나눠 올려주세요.`,
+              `Only the first ${seen} of ${total} pages were reviewed visually (render budget). Upload the rest in a separate batch.`),
+          ];
+        }
         const receiptV = assembleReceipt({
           artifact, profile: profileV, reviewability: reviewabilityV, routing: routingV,
           map: { ...mapV, core_question: coreQ },
@@ -242,7 +256,7 @@ export async function runDocumentReview(
           currentHeading: headingV, coverage: coverageV,
           rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
         });
-        receiptV.provenance.vision = { mode: options.vision.kind, page_count: options.vision.page_count };
+        receiptV.provenance.vision = { mode: options.vision.kind, page_count: total, pages_seen: seen };
         return { job: emit('ready', t('검수 완료 (이미지 포함)', 'Review complete (images included)')), receipt: receiptV };
       }
       // empty attachments → fall through to the text path below.

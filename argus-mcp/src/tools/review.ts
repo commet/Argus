@@ -208,6 +208,17 @@ export const review: ToolModule = {
         const empty = !bx.units?.length && !bx.text.trim();
         if (bx.quality === 'unsupported' || bx.quality === 'low' || empty) {
           const isDeck = inferredKind === 'pptx';
+          // A HARD failure (encrypted / corrupt / empty) is NOT a vision case —
+          // the host can't open the file by eye either. Report it honestly and stop.
+          const hardFail = bx.error_kind === 'encrypted' || bx.error_kind === 'corrupt' || bx.error_kind === 'empty';
+          if (hardFail) {
+            return envelope({
+              ok: true, tool: 'argus_review',
+              surface: bx.note || (ko ? '이 문서는 지금 상태로는 검수할 수 없습니다.' : 'This document cannot be reviewed in its current form.'),
+              next_actions: ['skip'],
+              data: { needs_context: true, extraction_quality: bx.quality, error_kind: bx.error_kind, notes: bx.note ? [bx.note] : [] },
+            });
+          }
           if ((inferredKind === 'pdf' || inferredKind === 'pptx') && filePathSafe) {
             const vlenses = buildLensList(visionLensIds(isDeck));
             const anchorWord = isDeck ? 'slide' : '쪽';

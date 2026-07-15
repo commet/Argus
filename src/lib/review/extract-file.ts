@@ -40,7 +40,13 @@ export interface VisionSource {
   pdf_base64?: string;
   /** kind 'images' — deck-embedded images, base64. */
   images?: Array<{ media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'; data: string }>;
+  /** total pages/slides in the source. */
   page_count?: number;
+  /** how many pages were actually sent to the model (the 'images' path may stop
+   *  at the page/byte budget). When < page_count, the review saw only a prefix —
+   *  disclosed honestly on the receipt. Undefined for the native 'pdf' path,
+   *  where the model renders every page itself. */
+  pages_seen?: number;
 }
 
 // Vision caps. The binding constraint is the server body ceiling (~4.4MB), so a
@@ -74,6 +80,9 @@ export interface ExtractedText {
   quality: ExtractionQuality;
   /** honest one-liner shown to the user. */
   note?: string;
+  /** why extraction could not proceed (empty / too_large / encrypted / corrupt /
+   *  wrong_format) — set only on failure, for specific UX + programmatic checks. */
+  error_kind?: ExtractErrorKind;
   /** opt-in multimodal payload (PDF document / deck images) — see VisionSource. */
   vision?: VisionSource;
   /** extractor-side caps → feeds ReviewCoverage so a page/unit-capped file can't
@@ -85,12 +94,69 @@ export interface ExtractedText {
   units_capped?: boolean;
 }
 
+/** Hard ceiling for in-browser parsing. Beyond this a PDF/deck can hang or OOM
+ *  the tab before the server ever sees it; refuse honestly instead. */
+const MAX_EXTRACT_BYTES = 60_000_000; // 60 MB
+
+/** Why an extraction could not proceed — surfaced so the user gets a specific,
+ *  actionable reason instead of one generic "couldn't read this file". */
+export type ExtractErrorKind = 'empty' | 'too_large' | 'encrypted' | 'corrupt' | 'wrong_format' | 'unknown';
+
+/** Classify a thrown parser error into an honest, actionable note. pdf.js and
+ *  jszip throw named/patterned errors we can map; everything else degrades to a
+ *  generic-but-honest message. Never surfaces a raw stack to the user. */
+export function classifyExtractError(e: unknown, kind: SourceKind): { note: string; error_kind: ExtractErrorKind } {
+  const name = (e as { name?: string })?.name ?? '';
+  const msg = String((e as { message?: string })?.message ?? e ?? '');
+  const m = msg.toLowerCase();
+  // pdf.js: password-protected (PasswordException / NEED_PASSWORD | INCORRECT_PASSWORD).
+  if (name === 'PasswordException' || m.includes('password')) {
+    return { note: '이 PDF는 암호로 보호되어 있어 열 수 없어요. 암호를 해제해 다시 저장한 뒤 올려주세요.', error_kind: 'encrypted' };
+  }
+  // pdf.js: structurally broken PDF.
+  if (name === 'InvalidPDFException' || m.includes('invalid pdf') || m.includes('missing pdf')) {
+    return { note: 'PDF 파일이 손상된 것 같아요. 원본을 다시 내려받아 올리거나, 핵심 본문을 붙여넣어 주세요.', error_kind: 'corrupt' };
+  }
+  // jszip: not a real zip / truncated (docx & pptx are zips).
+  if (m.includes('end of central directory') || m.includes("can't find") || m.includes('corrupted zip') || m.includes('not a zip')) {
+    return { note: '파일이 손상됐거나 형식이 올바르지 않아요 (열 수 없는 문서 구조). 다시 저장해 올리거나 본문을 붙여넣어 주세요.', error_kind: 'corrupt' };
+  }
+  // A file whose extension lies about its real format usually fails the parser here.
+  const label = kind === 'pdf' ? 'PDF' : kind === 'docx' ? 'Word 문서' : kind === 'pptx' ? '슬라이드' : '문서';
+  return { note: `이 ${label}에서 내용을 읽지 못했어요. 파일이 손상됐거나 형식이 확장자와 다를 수 있어요 — 다시 저장하거나 본문을 붙여넣어 주세요.`, error_kind: 'unknown' };
+}
+
 export async function extractFile(file: File, kind: SourceKind): Promise<ExtractedText> {
-  const buf = await file.arrayBuffer();
-  if (kind === 'docx') return extractDocx(buf);
-  if (kind === 'pptx') return extractPptx(buf);
-  if (kind === 'pdf') return extractPdf(buf);
-  return { text: '', quality: 'unsupported' };
+  if (kind !== 'docx' && kind !== 'pptx' && kind !== 'pdf') {
+    return { text: '', quality: 'unsupported' };
+  }
+  // Guard size + emptiness BEFORE reading bytes into memory or invoking a parser,
+  // so a 0-byte or 200MB drop can't hang the tab — an honest note, not a spinner.
+  if (file.size === 0) {
+    return { text: '', quality: 'unsupported', note: '빈 파일이에요 (0바이트). 내용이 있는 파일을 올려주세요.', error_kind: 'empty' };
+  }
+  if (file.size > MAX_EXTRACT_BYTES) {
+    return {
+      text: '', quality: 'unsupported', error_kind: 'too_large',
+      note: `파일이 너무 커요 (${Math.round(file.size / 1_000_000)}MB, 한도 ${MAX_EXTRACT_BYTES / 1_000_000}MB). 핵심 부분만 잘라 올리거나 본문을 붙여넣어 주세요.`,
+    };
+  }
+  let buf: ArrayBuffer;
+  try {
+    buf = await file.arrayBuffer();
+  } catch {
+    return { text: '', quality: 'unsupported', note: '파일을 읽는 중 문제가 생겼어요. 다시 시도하거나 본문을 붙여넣어 주세요.', error_kind: 'unknown' };
+  }
+  // Each parser is wrapped so a corrupt/encrypted/mislabeled file returns an
+  // honest, specific reason — never an unhandled throw that reads as a crash.
+  try {
+    if (kind === 'docx') return await extractDocx(buf);
+    if (kind === 'pptx') return await extractPptx(buf);
+    return await extractPdf(buf);
+  } catch (e) {
+    const { note, error_kind } = classifyExtractError(e, kind);
+    return { text: '', quality: 'unsupported', note, error_kind };
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -234,7 +300,7 @@ async function extractPptxImages(
     if (bytes.length === 0 || bytes.length > VISION_IMG_MAX_BYTES) continue;
     images.push({ media_type, data: toBase64(bytes) });
   }
-  return images.length ? { kind: 'images', images } : undefined;
+  return images.length ? { kind: 'images', images, pages_seen: images.length } : undefined;
 }
 
 // --------------------------------------------------------------------------
@@ -328,7 +394,9 @@ async function buildPdfVision(doc: PdfDocLike, buf: ArrayBuffer): Promise<Vision
   }
   try {
     const images = await renderPdfPages(doc);
-    return images.length ? { kind: 'images', images, page_count: doc.numPages } : undefined;
+    return images.length
+      ? { kind: 'images', images, page_count: doc.numPages, pages_seen: images.length }
+      : undefined;
   } catch {
     return undefined; // rendering unavailable (no canvas) → text-only, honest
   }

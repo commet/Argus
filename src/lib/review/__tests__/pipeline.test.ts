@@ -289,6 +289,30 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(receipt!.findings.some((f) => f.anchors.some((a) => a.page === 3))).toBe(true);
   });
 
+  it('discloses partial visual coverage when the render budget saw only a prefix', async () => {
+    const artifact = ingest({ source_kind: 'pdf', title: 'long-scan.pdf' });
+    const llm: ReviewLLM = {
+      model_name: 'mock', model_provider: 'anthropic',
+      async json<T>(): Promise<T> {
+        return {
+          profile: { document_type: 'report', intent: 'inform', audience: 'team', stakes: 'medium', artifact_maturity: 'final', source_confidence: 0.5 },
+          core_question: 'q', findings: [], judgment_obligations: [], followups: [], current_heading: 'h',
+          main_claims: [], assumptions: [], decision_points: [],
+        } as T;
+      },
+    };
+    const { receipt } = await runDocumentReview(artifact, {
+      today: '2026-07-01',
+      // 40 of 90 pages rendered (budget) — the receipt must SAY so, never let the
+      // reviewed prefix read as the whole document.
+      vision: { kind: 'images', images: [{ media_type: 'image/jpeg', data: 'x'.repeat(40) }], page_count: 90, pages_seen: 40 },
+      llm,
+    });
+    expect(receipt!.provenance.vision).toEqual({ mode: 'images', page_count: 90, pages_seen: 40 });
+    const notes = receipt!.coverage?.notes ?? [];
+    expect(notes.some((n) => /90/.test(n) && /40/.test(n))).toBe(true);
+  });
+
   it('diversifies the visible top so one dense slide cannot crowd out the rest', async () => {
     const artifact = ingest({ source_kind: 'markdown', text: DOC });
     const uid = artifact.units[0].unit_id;
