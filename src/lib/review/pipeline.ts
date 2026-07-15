@@ -36,8 +36,9 @@ import { scoreReviewability } from './reviewability';
 import { packUnitsForPrompt, chunkUnitsForReview, computeCoverage } from './coverage';
 import { routeLenses } from './routing';
 import { LENSES } from './lenses';
-import { buildDocumentOutline, buildExtractionPrompt, buildLensPrompt, buildMapPrompt, buildQuickReviewPrompt, buildSynthesisPrompt } from './prompts';
+import { buildDocumentOutline, buildExtractionPrompt, buildLensPrompt, buildMapPrompt, buildQuickReviewPrompt, buildSynthesisPrompt, buildVisionReviewPrompt } from './prompts';
 import { defaultReviewLLM, type ReviewLLM } from './llm-adapter';
+import type { LLMContentBlock, LLMImageBlock } from '../llm';
 import { djb2, stableId } from './ids';
 
 /** Max chunk map calls in flight at once (see the map-reduce path). */
@@ -65,6 +66,15 @@ async function mapPool<T, R>(
   return results;
 }
 
+/** Opt-in multimodal payload threaded from extraction (never persisted). A PDF
+ *  rides as one native document block; a deck rides as its embedded images. */
+export interface ReviewVisionSource {
+  kind: 'pdf' | 'images';
+  pdf_base64?: string;
+  images?: Array<{ media_type: string; data: string }>;
+  page_count?: number;
+}
+
 export interface RunReviewOptions {
   llm?: ReviewLLM;
   budget?: AnalysisBudget;
@@ -73,6 +83,26 @@ export interface RunReviewOptions {
   today?: string; // YYYY-MM-DD
   onProgress?: (job: ReviewJob) => void;
   signal?: AbortSignal;
+  /** When present (user opted into vision), the review runs as a single
+   *  multimodal pass over the attached document/deck instead of the text path. */
+  vision?: ReviewVisionSource;
+}
+
+const IMG_MEDIA = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+
+/** Turn a vision source into Anthropic content blocks (document/image). Returns
+ *  [] when the payload is empty or malformed — the caller then stays text-only. */
+function buildVisionAttachments(v: ReviewVisionSource): LLMContentBlock[] {
+  if (v.kind === 'pdf' && v.pdf_base64) {
+    return [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: v.pdf_base64 } }];
+  }
+  if (v.kind === 'images' && v.images?.length) {
+    return v.images
+      .filter((im) => IMG_MEDIA.has(im.media_type) && im.data)
+      .slice(0, 40)
+      .map((im) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: im.media_type as LLMImageBlock['source']['media_type'], data: im.data } }));
+  }
+  return [];
 }
 
 export interface ReviewResult {
@@ -119,6 +149,92 @@ export async function runDocumentReview(
   };
 
   try {
+    // --- Vision pass: a single multimodal review over the attached document ---
+    // When the user opts in, the model SEES the PDF pages / deck images and reads
+    // the visuals text extraction drops. One call → the full receipt, anchored by
+    // page/slide. Falls through to the text path if the payload is empty.
+    if (options.vision) {
+      const attachments = buildVisionAttachments(options.vision);
+      if (attachments.length) {
+        emit('reviewing', '문서를 이미지까지 함께 정밀 검수하는 중');
+        const isDeck = artifact.detected_structure?.is_deck === true || artifact.source_kind === 'pptx';
+        const resolvePageAnchors = (ids: unknown): SourceAnchor[] => {
+          if (!Array.isArray(ids)) return [];
+          const out: SourceAnchor[] = [];
+          const seen = new Set<number>();
+          for (const id of ids) {
+            const m = /(\d+)/.exec(String(id));
+            if (!m) continue;
+            const n = parseInt(m[1], 10);
+            if (!Number.isFinite(n) || n <= 0 || seen.has(n)) continue;
+            seen.add(n);
+            out.push(isDeck ? { slide: n } : { page: n });
+          }
+          return out;
+        };
+        const mapPagesToIds = (arr: unknown): void => {
+          if (!Array.isArray(arr)) return;
+          for (const it of arr) {
+            if (it && typeof it === 'object' && 'pages' in it && !('unit_ids' in it)) {
+              (it as Record<string, unknown>).unit_ids = (it as Record<string, unknown>).pages;
+            }
+          }
+        };
+        const packedV = packUnitsForPrompt(artifact.units, budget.max_units);
+        const coverageV = computeCoverage(artifact, artifact.units.length);
+        const vp = buildVisionReviewPrompt(packedV.units, ctx, packedV.units.length, today, isDeck);
+        promptParts.push(vp.system);
+        const raw = await llm.json<Record<string, unknown>>({
+          system: vp.system,
+          user: vp.user,
+          maxTokens: Math.min(budget.max_tokens || 8000, 6500),
+          model: 'default',
+          signal: options.signal,
+          attachments,
+          shape: {
+            core_question: { type: 'string', default: '' },
+            findings: { type: 'array', default: [] },
+            judgment_obligations: { type: 'array', default: [] },
+            followups: { type: 'array', default: [] },
+            current_heading: { type: 'string', default: '' },
+            main_claims: { type: 'array', default: [] },
+            assumptions: { type: 'array', default: [] },
+            decision_points: { type: 'array', default: [] },
+          },
+        });
+        for (const k of ['findings', 'judgment_obligations', 'main_claims', 'assumptions', 'decision_points']) {
+          mapPagesToIds(raw[k]);
+        }
+        const profileV = normalizeProfile(raw['profile'], ctx);
+        const mapV = normalizeMap(raw, resolvePageAnchors);
+        const reviewabilityV = scoreReviewability(artifact, mapV);
+        const routingV = routeLenses(profileV, artifact, { concerns: ctx.concerns, maxLensCalls: budget.max_lens_calls });
+        const allowedV = new Set<LensId>(routingV.selected);
+        const rawFindingsV = Array.isArray(raw['findings']) ? raw['findings'] : [];
+        const normV = rawFindingsV.flatMap((finding) => {
+          if (!finding || typeof finding !== 'object') return [];
+          const lensId = String((finding as Record<string, unknown>)['lens_id']) as LensId;
+          if (!allowedV.has(lensId)) return [];
+          return normalizeFindings([finding], lensId, resolvePageAnchors);
+        }).slice(0, 6);
+        const findingsV = dedupeFindings(supplementQuickFindings(normV, mapV));
+        const obligationsV = normalizeObligations(raw['judgment_obligations'], resolvePageAnchors).slice(0, 3);
+        const followupsV = normalizeFollowups(raw['followups'], today);
+        const coreQ = String(raw['core_question'] || mapV.core_question || '').trim();
+        const headingV = String(raw['current_heading'] || '').trim() || neutralHeading(mapV);
+        const receiptV = assembleReceipt({
+          artifact, profile: profileV, reviewability: reviewabilityV, routing: routingV,
+          map: { ...mapV, core_question: coreQ },
+          findings: findingsV, obligations: obligationsV, followups: followupsV,
+          currentHeading: headingV, coverage: coverageV,
+          rootMode: options.rootMode ?? 'review', today, llm, promptHash: djb2(promptParts.join('')),
+        });
+        receiptV.provenance.vision = { mode: options.vision.kind, page_count: options.vision.page_count };
+        return { job: emit('ready', '검수 완료 (이미지 포함)'), receipt: receiptV };
+      }
+      // empty attachments → fall through to the text path below.
+    }
+
     // --- Stage 1: extraction → profile + judgment map ---------------------
     // Pack units ONCE under both the count cap and the prompt char budget, so a
     // large document degrades to "fewer units + a coverage note" instead of

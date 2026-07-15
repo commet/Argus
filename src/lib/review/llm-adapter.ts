@@ -6,7 +6,7 @@
  * lens/receipt pipeline, not which model runs it.
  */
 
-import { callLLMJson, type FieldSchema } from '../llm';
+import { callLLMJson, visionCapable, type FieldSchema, type LLMContentBlock } from '../llm';
 
 // Mirrors the (non-exported) SchemaFieldType in ../llm.
 type SchemaFieldType = 'string' | 'number' | 'boolean' | 'array' | 'object';
@@ -18,6 +18,11 @@ export interface ReviewLLMArgs {
   maxTokens?: number;
   model?: 'fast' | 'default' | 'strong';
   signal?: AbortSignal;
+  /** Vision/document blocks (rendered PDF pages / a whole PDF / deck images).
+   *  Placed BEFORE the text per Anthropic's image-first best practice. Ignored
+   *  on providers that can't take them (OpenAI/Gemini) — the text still carries
+   *  the extracted content, so the call degrades to text-only rather than fails. */
+  attachments?: LLMContentBlock[];
 }
 
 export interface ReviewLLM {
@@ -32,7 +37,11 @@ export const defaultReviewLLM: ReviewLLM = {
   model_name: 'claude-sonnet-4-6',
   model_provider: 'anthropic',
   json<T = Record<string, unknown>>(args: ReviewLLMArgs): Promise<T> {
-    return callLLMJson<T>([{ role: 'user', content: args.user }], {
+    const useAttachments = !!args.attachments?.length && visionCapable();
+    const content = useAttachments
+      ? [...args.attachments!, { type: 'text' as const, text: args.user }]
+      : args.user;
+    return callLLMJson<T>([{ role: 'user', content }], {
       system: args.system,
       shape: args.shape,
       maxTokens: args.maxTokens ?? 4000,

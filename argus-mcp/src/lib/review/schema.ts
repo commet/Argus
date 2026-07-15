@@ -498,6 +498,9 @@ export interface ReviewProvenance {
   model_name: string;
   prompt_hash: string;
   created_at: string;
+  /** Present when the review ran as a multimodal pass over the attached
+   *  document/deck (the model saw the pages/images, not just extracted text). */
+  vision?: { mode: 'pdf' | 'images'; page_count?: number };
 }
 
 /**

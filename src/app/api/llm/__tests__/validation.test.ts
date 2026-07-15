@@ -100,6 +100,58 @@ describe('validateMessages', () => {
   });
 });
 
+// ─── Vision / document content blocks ───
+
+describe('validateMessages — content blocks (vision path)', () => {
+  // a tiny valid base64 payload (not a real image, but shape-valid + small)
+  const b64 = 'aGVsbG8gd29ybGQ='; // "hello world"
+  const img = (media = 'image/png') => ({ type: 'image', source: { type: 'base64', media_type: media, data: b64 } });
+  const doc = () => ({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } });
+  const text = (t = 'review this') => ({ type: 'text', text: t });
+
+  it('accepts a document block followed by text (the PDF vision message)', () => {
+    expect(validateMessages([{ role: 'user', content: [doc(), text()] }])).toBe(true);
+  });
+
+  it('accepts image blocks with allowed media types', () => {
+    for (const m of ['image/png', 'image/jpeg', 'image/webp', 'image/gif']) {
+      expect(validateMessages([{ role: 'user', content: [img(m), text()] }])).toBe(true);
+    }
+  });
+
+  it('rejects a disallowed image media type', () => {
+    expect(validateMessages([{ role: 'user', content: [img('image/svg+xml')] }])).toBe(false);
+    expect(validateMessages([{ role: 'user', content: [img('application/octet-stream')] }])).toBe(false);
+  });
+
+  it('rejects a document block that is not a PDF', () => {
+    expect(validateMessages([{ role: 'user', content: [{ type: 'document', source: { type: 'base64', media_type: 'application/msword', data: b64 } }] }])).toBe(false);
+  });
+
+  it('rejects an unknown block type', () => {
+    expect(validateMessages([{ role: 'user', content: [{ type: 'tool_use', foo: 1 }] }])).toBe(false);
+  });
+
+  it('rejects a malformed source (missing data / wrong source type)', () => {
+    expect(validateMessages([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/png' } }] }])).toBe(false);
+    expect(validateMessages([{ role: 'user', content: [{ type: 'image', source: { type: 'url', media_type: 'image/png', data: 'x' } }] }])).toBe(false);
+  });
+
+  it('rejects an oversized binary block', () => {
+    const huge = 'A'.repeat(9_000_000); // ~6.75MB decoded > per-block cap
+    expect(validateMessages([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: huge } }] }])).toBe(false);
+  });
+
+  it('rejects too many image blocks in one request', () => {
+    const many = Array.from({ length: 41 }, () => img());
+    expect(validateMessages([{ role: 'user', content: many }])).toBe(false);
+  });
+
+  it('rejects an empty block array', () => {
+    expect(validateMessages([{ role: 'user', content: [] }])).toBe(false);
+  });
+});
+
 // ─── System Prompt Validation ───
 
 describe('validateSystemPrompt', () => {

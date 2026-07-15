@@ -23,6 +23,7 @@ import { SettleModal } from './SettleModal';
 import { extractFile, type ExtractedText } from '@/lib/review/extract-file';
 import { sealReviewObligation } from '@/lib/review-seal';
 import { useSettingsStore, hasOwnApiKey } from '@/stores/useSettingsStore';
+import { visionCapable } from '@/lib/llm';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { track } from '@/lib/analytics';
 import {
@@ -65,6 +66,7 @@ export function ReviewFlow() {
   const [audienceHint, setAudienceHint] = useState('');
   const [worry, setWorry] = useState('');
   const [storeSource, setStoreSource] = useState(false);
+  const [useVision, setUseVision] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [sessionSource, setSessionSource] = useState<{ id: string; text: string } | null>(null);
   const [job, setJob] = useState<ReviewJob | null>(null);
@@ -144,6 +146,7 @@ export function ReviewFlow() {
     setTitle(file.name);
     setExtractNote(null);
     setPreExtracted(null);
+    setUseVision(false);
     if (TEXT_EXT.includes(ext)) {
       const content = await file.text();
       setText(content);
@@ -242,6 +245,9 @@ export function ReviewFlow() {
       budget,
       onProgress: setJob,
       signal: controller.signal,
+      // Opt-in multimodal pass: send the PDF/deck visuals so the model reads the
+      // charts/tables/layout text extraction drops. Transient — never persisted.
+      vision: useVision ? preExtracted?.vision : undefined,
     });
     clearTimeout(deadline);
     abortRef.current = null;
@@ -787,6 +793,25 @@ export function ReviewFlow() {
           </span>
         </span>
       </label>
+
+      {/* Opt-in vision review — only when the extractor produced a visual payload
+          (a PDF, or a deck with embedded images) AND the provider can take it. */}
+      {!!preExtracted?.vision && visionCapable() && (
+        <label className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)] cursor-pointer">
+          <input type="checkbox" checked={useVision} onChange={(e) => setUseVision(e.target.checked)} className="mt-0.5" />
+          <span>
+            {preExtracted.vision.kind === 'pdf'
+              ? L('이미지·차트·표까지 눈으로 정밀 검수 (비전)', 'Read images, charts and tables visually (vision)')
+              : L('덱에 담긴 이미지·차트까지 함께 검수 (비전)', 'Also review the deck’s embedded images/charts (vision)')}
+            <span className="block text-[11px] text-[var(--text-tertiary)]">
+              {L(
+                '문서를 이미지로도 모델에 보여줘, 텍스트만으로는 놓치는 그래프·표·레이아웃을 잡아냅니다. 토큰을 더 쓰니 무료 1회를 소모해요.',
+                'The model also sees the document as images, catching graphs/tables/layout that text alone misses. Uses more tokens — spends your free review.',
+              )}
+            </span>
+          </span>
+        </label>
+      )}
 
       {gateBlocked && (
         <Card variant="muted" className="border border-[var(--border-subtle)]">

@@ -213,6 +213,53 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(runwayHits[0].severity).toBe('critical');
   });
 
+  it('runs a single multimodal vision pass — attaches the PDF and anchors findings by page', async () => {
+    // A PDF artifact with page-anchored units.
+    const artifact = ingest({
+      source_kind: 'pdf',
+      title: 'deck.pdf',
+      pre_extracted_units: [
+        { unit_id: 'u1', kind: 'paragraph', text: '시장 규모 12조 원을 전제로 한다', source_anchor: { page: 2 }, confidence: 0.8 },
+        { unit_id: 'u2', kind: 'paragraph', text: '결론: 즉시 착수를 권고한다', source_anchor: { page: 9 }, confidence: 0.8 },
+      ],
+    });
+    let sawAttachment = false;
+    const llm: ReviewLLM = {
+      model_name: 'mock', model_provider: 'anthropic',
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (args.attachments?.some((a) => a.type === 'document')) sawAttachment = true;
+        // The vision prompt asks for page-anchored findings.
+        if (args.system.includes('You can SEE the document')) {
+          return {
+            profile: { document_type: 'deck', intent: 'decide', audience: 'exec', stakes: 'high', artifact_maturity: 'draft', source_confidence: 0.6 },
+            core_question: '지금 착수할 것인가?',
+            findings: [
+              { lens_id: 'claim_evidence', title: 'slide 4 매출 차트가 본문 주장과 반대로 꺾인다', detail: '차트는 하락 추세인데 본문은 성장으로 서술', severity: 'critical', confidence: 'high', suggested_action: '차트와 본문 정합', seen_in_visual: true, pages: [4] },
+            ],
+            judgment_obligations: [{ statement: '시장 규모 전제를 검증할지', owner: 'CEO', why_human: '전제 채택은 사람 판단', pages: [2] }],
+            followups: [{ predicate: '차트 데이터 출처를 확인한다', pass_condition: '출처 명시', fail_condition: '없음', check_by: '2026-09-01' }],
+            current_heading: 'h', main_claims: [], assumptions: [], decision_points: [{ text: '착수 여부', human_only: true, pages: [9] }],
+          } as T;
+        }
+        return {} as T;
+      },
+    };
+    const { job, receipt } = await runDocumentReview(artifact, {
+      today: '2026-07-01',
+      vision: { kind: 'pdf', pdf_base64: 'JVBERi0xLjQK', page_count: 9 },
+      llm,
+    });
+    expect(job.status).toBe('ready');
+    expect(sawAttachment, 'the PDF document block must reach the model').toBe(true);
+    // Findings are anchored by PAGE (the model saw pages, not our unit ids).
+    const f = receipt!.findings.find((x) => x.title.includes('차트'));
+    expect(f).toBeTruthy();
+    expect(f!.anchors.some((a) => a.page === 4)).toBe(true);
+    // Provenance records the multimodal pass.
+    expect(receipt!.provenance.vision?.mode).toBe('pdf');
+    expect(receipt!.provenance.vision?.page_count).toBe(9);
+  });
+
   it('diversifies the visible top so one dense slide cannot crowd out the rest', async () => {
     const artifact = ingest({ source_kind: 'markdown', text: DOC });
     const uid = artifact.units[0].unit_id;

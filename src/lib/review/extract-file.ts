@@ -29,6 +29,37 @@ import {
   slideNum,
 } from './extract-core';
 
+/** Optional vision payload for the multimodal review path (opt-in). PDFs ride
+ *  as a single native document block (Claude renders pages + reads text itself);
+ *  decks ride as their embedded images (charts/diagrams the text extractor can't
+ *  see). Kept OFF the persisted artifact — threaded transiently to the pipeline
+ *  only when the user opts in, never written to localStorage/Supabase. */
+export interface VisionSource {
+  kind: 'pdf' | 'images';
+  /** kind 'pdf' — the whole PDF, base64. */
+  pdf_base64?: string;
+  /** kind 'images' — deck-embedded images, base64. */
+  images?: Array<{ media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'; data: string }>;
+  page_count?: number;
+}
+
+// Vision caps — tighter than the server's validation ceiling, for cost/latency.
+const VISION_PDF_MAX_BYTES = 18_000_000;   // ~18 MB PDF
+const VISION_PDF_MAX_PAGES = 30;
+const VISION_MAX_IMAGES = 40;
+const VISION_IMG_MAX_BYTES = 5_000_000;    // ~5 MB per embedded image
+
+/** ArrayBuffer/Uint8Array → base64, chunked so a large buffer doesn't blow the
+ *  call stack (String.fromCharCode(...bigArray) throws on ~100k+ elements). */
+function toBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
 export interface ExtractedText {
   /** flattened text (docx path) — fed to ingest's markdown-aware extractor. */
   text: string;
@@ -37,6 +68,8 @@ export interface ExtractedText {
   quality: ExtractionQuality;
   /** honest one-liner shown to the user. */
   note?: string;
+  /** opt-in multimodal payload (PDF document / deck images) — see VisionSource. */
+  vision?: VisionSource;
   /** extractor-side caps → feeds ReviewCoverage so a page/unit-capped file can't
    *  masquerade as fully reviewed (see lib/review/coverage.ts). */
   pages_total?: number;
@@ -162,9 +195,40 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
   // slides actually turned into units (capped runs stop mid-deck).
   const slidesRead = new Set(units.map((u) => u.source_anchor.slide)).size;
   const caps = { slides_total: slidePaths.length, slides_read: slidesRead, units_capped: capped };
+
+  // Opt-in vision payload: a deck has no browser renderer, but its embedded media
+  // (ppt/media/*) ARE the charts/diagrams the text extractor can't read. Send
+  // those images so the model sees them — imperfect (no slide layout) but real.
+  const vision = await extractPptxImages(zip);
+
   const total = units.reduce((n, u) => n + u.text.length, 0);
-  if (total < 40) return { text: '', units: [], quality: 'low', note: '슬라이드에서 텍스트를 거의 찾지 못했습니다 (이미지 위주의 deck일 수 있습니다).', ...caps };
-  return { text: units.map((u) => u.text).join('\n'), units, quality: 'medium', ...caps };
+  if (total < 40) return { text: '', units: [], quality: 'low', note: '슬라이드에서 텍스트를 거의 찾지 못했습니다 (이미지 위주의 deck일 수 있습니다).', vision, ...caps };
+  return { text: units.map((u) => u.text).join('\n'), units, quality: 'medium', vision, ...caps };
+}
+
+/** Pull a deck's embedded raster images (ppt/media/*.png|jpg|jpeg|gif) as base64
+ *  vision blocks — capped in count and per-image size. Returns undefined when a
+ *  deck has no usable embedded images. */
+async function extractPptxImages(
+  zip: { files: Record<string, { async(t: 'uint8array'): Promise<Uint8Array> }> },
+): Promise<VisionSource | undefined> {
+  const MEDIA: Record<string, 'image/png' | 'image/jpeg' | 'image/gif'> = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+  };
+  const paths = Object.keys(zip.files)
+    .filter((p) => /^ppt\/media\/[^/]+\.(png|jpe?g|gif)$/i.test(p))
+    .sort();
+  const images: NonNullable<VisionSource['images']> = [];
+  for (const p of paths) {
+    if (images.length >= VISION_MAX_IMAGES) break;
+    const ext = (p.split('.').pop() || '').toLowerCase();
+    const media_type = MEDIA[ext === 'jpg' ? 'jpg' : ext];
+    if (!media_type) continue;
+    const bytes = await zip.files[p].async('uint8array');
+    if (bytes.length === 0 || bytes.length > VISION_IMG_MAX_BYTES) continue;
+    images.push({ media_type, data: toBase64(bytes) });
+  }
+  return images.length ? { kind: 'images', images } : undefined;
 }
 
 // --------------------------------------------------------------------------
@@ -219,11 +283,19 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
   const layoutNote = multiColumn || hasTable
     ? '다단·표가 있어 일부 순서가 어긋날 수 있어요 — 핵심 본문은 붙여넣기가 더 정확합니다.'
     : undefined;
+  // Opt-in vision payload: the whole PDF as one native document block, so the
+  // model reads charts/tables/layout the text extractor drops. Only when it fits
+  // the page/byte caps — otherwise the review stays text-only (honest).
+  const vision: VisionSource | undefined =
+    buf.byteLength <= VISION_PDF_MAX_BYTES && doc.numPages <= VISION_PDF_MAX_PAGES
+      ? { kind: 'pdf', pdf_base64: toBase64(new Uint8Array(buf)), page_count: doc.numPages }
+      : undefined;
   return {
     text: units.map((u) => u.text).join('\n'),
     units,
     quality: 'medium',
     note: total < 400 ? '추출된 텍스트가 적습니다. 핵심 본문은 붙여넣으면 더 정확합니다.' : layoutNote,
+    vision,
     ...caps,
   };
 }

@@ -214,6 +214,65 @@ them brief so they never crowd out the product fields.
 }
 
 // ---------------------------------------------------------------------------
+// Vision review: a single multimodal pass. The model SEES the document (a PDF
+// rendered to pages, or a deck's embedded images) alongside the extracted text,
+// so it can catch what the text extractor drops — a chart that contradicts the
+// prose, a number living inside an image, a layout that changes the meaning.
+// Anchors are PAGE/SLIDE numbers (the model sees pages, not our unit ids).
+// ---------------------------------------------------------------------------
+
+export function buildVisionReviewPrompt(
+  units: ArtifactUnit[],
+  ctx: UserReviewContext,
+  unitLimit: number,
+  today: string,
+  isDeck: boolean,
+): { system: string; user: string } {
+  const context = [
+    ctx.audience_hint && `Audience hint: ${ctx.audience_hint}`,
+    ctx.decision_wanted && `Decision wanted: ${ctx.decision_wanted}`,
+    ctx.biggest_worry && `Biggest worry: ${ctx.biggest_worry}`,
+    ctx.concerns?.length && `Requested concerns: ${ctx.concerns.join(', ')}`,
+  ].filter(Boolean).join('\n');
+  const anchorWord = isDeck ? 'slide' : 'page';
+
+  const system = `${SPINE}
+
+You can SEE the document itself — ${isDeck ? "the deck's images (charts/diagrams) are attached" : 'the PDF pages are attached and rendered'} — in ADDITION to the extracted text below. Use both: read the visuals (charts, tables, figures, numbers inside images, layout) that plain text extraction misses, and cross-check them against the prose. Apply the complete five-part judgment spine: core_question, claim_evidence, hidden_assumption, human_judgment, falsifiable_followup.
+
+Keep the result selective and concise:
+- Write every user-facing value in the document's primary language.
+- Return 2 to 5 material findings; zero only when genuinely nothing is material. Do not manufacture one per lens.
+- Vary the finding TYPE — a contradiction between a chart and the text, a figure that doesn't add up, an unmet precondition, an untested assumption, a reversed dependency, a stakeholder objection. Do not label everything "evidence insufficient".
+- Prefer findings that only the VISUAL reveals (a chart trend that contradicts a claim, a number shown only in an image) — that is the point of this pass.
+- 짧고 날카롭게. title은 한 줄(대략 40자 이내), detail은 2문장 이내.
+- A judgment obligation is a DECISION the human must make, NOT a restatement of a finding. Keep obligations distinct from each other and from the findings.
+- Reference locations in prose the human way ("slide 4의 시장규모 차트", "3쪽 표"). In the JSON, cite ${anchorWord} numbers in the "pages" array (e.g. [4] or [4,7]).
+- followup check_by must be a real date after ${today}. Return at most 3 obligations and 3 followups.`;
+
+  const user = `Extracted text (for cross-reference — the attached ${isDeck ? 'images' : 'pages'} are the source of truth for anything visual):
+${renderUnits(units, unitLimit)}
+
+${context}
+
+Return this JSON shape (findings/obligations/followups first — they are the product; cite ${anchorWord} numbers in "pages"):
+{
+  "profile": { "document_type": "...", "intent": "...", "audience": "...", "stakes": "low|medium|high", "artifact_maturity": "...", "source_confidence": 0.0 },
+  "core_question": "the actual decision question",
+  "explicit_recommendation": "stated recommendation or empty",
+  "findings": [ { "lens_id": "core_question|claim_evidence|hidden_assumption|human_judgment|falsifiable_followup", "title": "...", "detail": "...", "severity": "minor|caution|critical", "confidence": "low|medium|high", "suggested_action": "a concrete check", "seen_in_visual": true, "pages": [1] } ],
+  "judgment_obligations": [ { "statement": "...", "owner": "...", "why_human": "...", "decision_needed_by": "...", "evidence_needed": "...", "pages": [1] } ],
+  "followups": [ { "predicate": "...", "pass_condition": "...", "fail_condition": "...", "check_by": "YYYY-MM-DD" } ],
+  "current_heading": "neutral summary of the document's current direction",
+  "main_claims": [ { "text": "...", "status": "supported|weak|unsupported|human_check|contradicted", "pages": [1], "rationale": "..." } ],
+  "assumptions": [ { "text": "...", "pages": [1], "if_false": "..." } ],
+  "decision_points": [ { "text": "...", "human_only": true, "pages": [1] } ]
+}`;
+
+  return { system, user };
+}
+
+// ---------------------------------------------------------------------------
 // Map step: one chunk of a long document → partial judgment map + findings.
 // The reduce step (synthesis) merges chunks and de-dups, so a chunk extracts
 // ONLY what its own text supports and never restates the whole document.
