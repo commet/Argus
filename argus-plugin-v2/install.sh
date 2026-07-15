@@ -38,7 +38,7 @@ if [ ! -d "$CLAUDE_DIR" ]; then
 fi
 
 echo ""
-echo -e "${BOLD}  Argus v2.4${NC} - decision-voyage harness for Claude Code."
+echo -e "${BOLD}  Argus v2.4${NC} - decision harness for Claude Code."
 echo ""
 
 TEMP_DIR=""
@@ -219,7 +219,7 @@ if [ ! -f "$CLAUDE_DIR/argus-data/schemas/current-bearing.json" ]; then
 fi
 
 # L3.2 — agents.yaml post-install validation: present, readable, and shaped
-# (crew assembly depends on it; a silent miss surfaces as a confusing /team run)
+# (reviewer assembly depends on it; a silent miss surfaces as a confusing /team run)
 if [ ! -r "$CLAUDE_DIR/argus-data/agents.yaml" ]; then
   fail "Missing or unreadable: agents.yaml"
   ERRORS=$((ERRORS + 1))

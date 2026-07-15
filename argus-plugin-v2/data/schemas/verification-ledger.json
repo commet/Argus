@@ -75,12 +75,12 @@
     },
     "root_crack": {
       "type": ["object", "null"],
-      "description": "The GATING reality reef: the load-bearing AND external AND unconfirmed claim on a HIGH-STAKES, HARD-TO-REVERSE decision — the one that, if false, burns the user, and that no internal cross-agent agreement can validate. It blocks final_signoff/execution and seeds a decision-contract predicate (seal -> reality -> settle). NULL when no such claim exists: a reversible or low-stakes external claim is NOT a root_crack (it still ships as a non-gating armed note in human_required_checks — blocking the reversible is over-fire/mirror-clause), and an internal claim is never a reef. Being external is never a reason to withhold help — the entry must be armed (best_read + cheapest_check), never a bare 'go verify' referral.",
+      "description": "The GATING reality risk: the load-bearing AND external AND unconfirmed claim on a HIGH-STAKES, HARD-TO-REVERSE decision — the one that, if false, burns the user, and that no internal cross-agent agreement can validate. It blocks final_signoff/execution and seeds a decision-contract predicate (seal -> reality -> settle). NULL when no such claim exists: a reversible or low-stakes external claim is NOT a root_crack (it still ships as a non-gating armed note in human_required_checks — blocking the reversible is over-fire/mirror-clause), and an internal claim is never a risk. Being external is never a reason to withhold help — the entry must be armed (best_read + cheapest_check), never a bare 'go verify' referral.",
       "required": ["claim", "grounding", "depended_on_by", "why", "best_read", "cheapest_check"],
       "properties": {
         "claim_id": { "type": "string", "description": "Step 2 claim id (e.g. c-2)." },
         "claim": { "type": "string" },
-        "grounding": { "const": "external", "description": "Always 'external' — an internal claim is never a reality reef; the agents can just check it." },
+        "grounding": { "const": "external", "description": "Always 'external' — an internal claim is never a reality risk; the agents can just check it." },
         "depended_on_by": {
           "type": "array",
           "items": { "type": "string" },

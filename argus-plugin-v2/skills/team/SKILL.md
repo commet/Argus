@@ -1,6 +1,6 @@
 ---
 name: team
-description: Deploy a team of specialized agents as WORKERS on a clarified problem (the reviewers sets out from port). Each agent does their domain work — research, numbers, UX, legal, risk, etc. — in their own voice on the actual artifact (code, PR, file, design doc). Agents are not a panel of generic critics; they're producers whose claims will be verified by `/argus:verify`. Output is a MixResult plus a candidate FinalScaffold with attribution preserved. Invoke after `/argus:clarify` has produced an AnalysisSnapshot with an `execution_plan`. Invoked as `/argus:team`.
+description: Deploy a team of specialized agents as WORKERS on a clarified problem (reviewers work the artifact in parallel). Each agent does their domain work — research, numbers, UX, legal, risk, etc. — in their own voice on the actual artifact (code, PR, file, design doc). Agents are not a panel of generic critics; they're producers whose claims will be verified by `/argus:verify`. Output is a MixResult plus a candidate FinalScaffold with attribution preserved. Invoke after `/argus:clarify` has produced an AnalysisSnapshot with an `execution_plan`. Invoked as `/argus:team`.
 ---
 
 # /argus:team

@@ -690,7 +690,7 @@ Written to `.argus/sessions/{id}/`:
 - `versions/v0.1/questions_and_answers.json` — the Q&A history
 - `versions/v0.1/meta.json` — `{triggering_skill: "clarify", timestamp, framing_locked, user_accepted_framing, target_context?, density_was?}`. `target_context` is present whenever a target reference was expanded (see Inputs) and is what `/argus:team` reads to work on the real artifact.
 - `versions/v0.1/minimal_scaffold.json` — **only when `decision_density == "low"`** (Step 5a). MinimalScaffold (schema: `${CLAUDE_PLUGIN_ROOT}/data/schemas/minimal-scaffold.json`). When this file exists, downstream `/argus:sail` MUST set phase=complete and skip team/verify/boss.
-- `versions/v0.1/probe.json` — **only when Step 3.5 ran** (density medium/high, not --quick). `{ samples[], forks[], findings[], silent }` — the trial-sail measurement; Step 4 reads it for 측정-정박 질문.
+- `versions/v0.1/probe.json` — **only when Step 3.5 ran** (density medium/high, not --quick). `{ samples[], forks[], findings[], silent }` — the trial-run measurement; Step 4 reads it for 측정-정박 질문.
 
 ---
 
