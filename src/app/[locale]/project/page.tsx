@@ -873,7 +873,7 @@ export default function ProjectPage() {
                             redundant "항해 진행 중" body line was contradicting it, so
                             we only show CONTENT here, or the not-started nudge. */}
                         {m.questionExcerpt ? (
-                          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] line-clamp-2 border-l-2 border-[var(--accent)]/30 pl-2.5">
+                          <p className="text-[12.5px] text-[var(--text-secondary)] leading-[1.55] line-clamp-2 rounded-lg bg-[var(--accent)]/[0.04] px-3 py-2">
                             {m.questionExcerpt}
                           </p>
                         ) : !m.startedEff ? (
