@@ -36,7 +36,7 @@ import { scoreReviewability } from './reviewability';
 import { packUnitsForPrompt, chunkUnitsForReview, computeCoverage } from './coverage';
 import { routeLenses } from './routing';
 import { LENSES } from './lenses';
-import { buildExtractionPrompt, buildLensPrompt, buildMapPrompt, buildQuickReviewPrompt, buildSynthesisPrompt } from './prompts';
+import { buildDocumentOutline, buildExtractionPrompt, buildLensPrompt, buildMapPrompt, buildQuickReviewPrompt, buildSynthesisPrompt } from './prompts';
 import { defaultReviewLLM, type ReviewLLM } from './llm-adapter';
 import { djb2, stableId } from './ids';
 
@@ -216,11 +216,14 @@ export async function runDocumentReview(
       const chunks = chunked.chunks;
       emit('profiling', `문서를 ${chunks.length}개 구간으로 나눠 전체를 검수하는 중`);
       let mapDone = 0;
+      // Whole-document outline computed ONCE from every unit — the contextual
+      // header each isolated chunk needs to catch cross-section conflicts.
+      const outline = buildDocumentOutline(artifact.units);
       // Bounded concurrency: firing all chunks at once bursts past the browser's
       // ~6 sockets and risks a rate-limit spike. A small pool keeps the request
       // stream smooth while still overlapping the slow model calls.
       const mapResults = await mapPool(chunks, MAP_CONCURRENCY, async (chunk, i) => {
-          const mp = buildMapPrompt(chunk, ctx, i, chunks.length, today);
+          const mp = buildMapPrompt(chunk, ctx, i, chunks.length, today, outline);
           promptParts.push(mp.system);
           try {
             return await llm.json<Record<string, unknown>>({

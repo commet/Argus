@@ -90,6 +90,29 @@ describe('runDocumentReview — whole-document (map-reduce) coverage', () => {
     expect(dup.length).toBe(1);
     expect(dup[0].anchors.length).toBeGreaterThanOrEqual(2);
   });
+
+  it('injects the whole-document outline into every chunk map prompt (contextual header)', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: buildLongReport() });
+    const mapSystems: string[] = [];
+    const base = readingMock();
+    const llm: ReviewLLM = {
+      model_name: base.model_name, model_provider: base.model_provider,
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (!args.system.includes('"종합"')) mapSystems.push(args.system);
+        return base.json<T>(args);
+      },
+    };
+
+    await runDocumentReview(artifact, { llm, today: '2026-07-01' });
+
+    expect(mapSystems.length).toBeGreaterThan(1);
+    // Every chunk carries the whole-document outline as a contextual header...
+    expect(mapSystems.every((s) => s.includes('전체 문서 개요'))).toBe(true);
+    // ...so even the FIRST chunk can see that a LATE section (12장) exists — the
+    // cross-section context that lets a chunked review flag a conflict with a
+    // section it does not itself contain.
+    expect(mapSystems[0]).toContain('12장 제목 섹션');
+  });
 });
 
 describe('pdfHeadingTitle — numbered/keyword headings, not prose', () => {

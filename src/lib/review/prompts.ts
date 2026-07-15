@@ -53,6 +53,34 @@ export function renderUnits(units: ArtifactUnit[], limit: number): string {
     .join('\n');
 }
 
+/**
+ * A compact, ordered outline of the WHOLE document — its headings and slide
+ * titles with their location — so a single map-reduce chunk can see where it
+ * sits and flag a genuine conflict with a section it does not itself contain
+ * (the "the section-2 claim contradicts the section-8 conclusion" case a chunked
+ * review otherwise misses, because each chunk is judged in isolation). This is
+ * context only: a chunk may still cite ONLY its own units. Returns '' when the
+ * document has no headings/slide titles to outline (flat prose).
+ */
+export function buildDocumentOutline(units: ArtifactUnit[], maxChars = 1500): string {
+  const lines: string[] = [];
+  for (const u of units) {
+    if (u.kind !== 'heading' && u.kind !== 'slide_title') continue;
+    const a = u.source_anchor;
+    const loc =
+      a.slide !== undefined ? `slide ${a.slide}`
+      : a.page !== undefined ? `${a.page}쪽`
+      : a.section_path?.length ? a.section_path.join(' › ')
+      : a.line_start !== undefined ? `L${a.line_start}`
+      : '';
+    const text = u.text.replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (!text) continue;
+    lines.push(`- ${loc ? `[${loc}] ` : ''}${text}`);
+    if (lines.join('\n').length > maxChars) { lines.push('- …'); break; }
+  }
+  return lines.join('\n');
+}
+
 // ---------------------------------------------------------------------------
 // 1. Extraction: Canonical Artifact → profile + Document Judgment Map
 // ---------------------------------------------------------------------------
@@ -197,6 +225,7 @@ export function buildMapPrompt(
   chunkIndex: number,
   chunkCount: number,
   today: string,
+  outline = '',
 ): { system: string; user: string } {
   const context = [
     ctx.audience_hint && `Audience hint: ${ctx.audience_hint}`,
@@ -205,11 +234,26 @@ export function buildMapPrompt(
     ctx.concerns?.length && `Requested concerns: ${ctx.concerns.join(', ')}`,
   ].filter(Boolean).join('\n');
 
+  // Contextual header (Anthropic "Contextual Retrieval" pattern, adapted): a
+  // chunk judged in isolation cannot see a section it does not contain, so it
+  // misses cross-section conflicts. Give it the whole-document outline as
+  // CONTEXT — never as new material to review — so it can flag when its own
+  // content genuinely contradicts another section, but still cites only its own units.
+  const outlineBlock = outline
+    ? `
+
+전체 문서 개요(맥락용 참고 — 이 구간 밖 항목은 그 자체로 지적하지 말 것):
+${outline}
+
+이 구간의 내용이 위 개요의 다른 항목과 **명백히 모순**될 때에만 그 관계를 finding으로
+낸다(그때도 unit_ids에는 이 구간의 unit_id만 넣는다). 개요 항목 자체를 지적 대상으로 삼지 않는다.`
+    : '';
+
   const system = `${SPINE}
 
 이 문서는 길어서 여러 구간으로 나눠 검수한다. 지금은 ${chunkCount}개 구간 중
 ${chunkIndex + 1}번째 구간이다. **이 구간의 원문 단위(units)에 실제로 담긴 것만**
-지도로 뽑는다 — 다른 구간의 내용이나 문서 전체 요약을 지어내지 않는다.
+지도로 뽑는다 — 다른 구간의 내용이나 문서 전체 요약을 지어내지 않는다.${outlineBlock}
 
 - 이 구간이 뒷받침하는 main_claims / assumptions / decision_points / findings만 낸다.
 - 판단 스파인 5개(core_question, claim_evidence, hidden_assumption, human_judgment,
