@@ -772,7 +772,37 @@ function cmdStatus() {
   console.log(`Ledger: ${rel(ledgerFile())}`);
 }
 
-const commands = { scan: cmdScan, seal: cmdSeal, list: () => cmdList(), status: cmdStatus };
+// Single-source writer for the settle event (was hand-written JSON in the resolve
+// skill — the drift source). The CLI owns the canonical v1 shape; appendEvent
+// stamps `at`. Reality answers; Argus never grades — so no score is recorded.
+function cmdSettle() {
+  const id = flags._[0];
+  const outcome = String(flags.outcome || "");
+  const OUTCOMES = ["happened", "avoided", "partial"];
+  const BASES = ["reasoned", "luck", "external", "mixed"];
+  if (!id) {
+    console.error('Usage: decision-ledger.js settle <id> --outcome happened|avoided|partial [--basis reasoned|luck|external|mixed] [--note "<one sentence>"]');
+    process.exit(1);
+  }
+  if (!OUTCOMES.includes(outcome)) {
+    console.error(`--outcome must be one of ${OUTCOMES.join("|")}`);
+    process.exit(1);
+  }
+  const event = { event: "settle", id, outcome };
+  if (flags.basis) {
+    const basis = String(flags.basis);
+    if (!BASES.includes(basis)) {
+      console.error(`--basis must be one of ${BASES.join("|")}`);
+      process.exit(1);
+    }
+    event.basis = basis;
+  }
+  if (flags.note) event.note = String(flags.note);
+  appendEvent(event);
+  console.log(`Settled ${id}: ${outcome}${event.basis ? ` (${event.basis})` : ""}`);
+}
+
+const commands = { scan: cmdScan, seal: cmdSeal, settle: cmdSettle, list: () => cmdList(), status: cmdStatus };
 if (!cmd || !commands[cmd]) {
   console.log("Usage:");
   console.log("  /argus:scan [--since days] [--all-projects] [--model sonnet] [--list]");

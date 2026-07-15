@@ -117,9 +117,16 @@ Omit `note` from the settle event when the user offered no sentence.
   lets the track record separate judgment from luck. Offer it as a light second
   tap, never a quiz; omit `basis` if the user doesn't answer.
 
-```json
-{"event":"settle","id":"<id>","outcome":"happened|avoided|partial","basis":"reasoned|luck|external|mixed — user's own read, optional","note":"<one user sentence if offered>","at":"<now ISO>"}
+Write it through the single-source ledger writer — do NOT hand-write the JSON
+(the CLI owns the canonical shape, stamps `at`, and appends in `O_APPEND` mode,
+so the settle event can never drift from what the readers expect):
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/decision-ledger.js" settle <id> --outcome happened|avoided|partial [--basis reasoned|luck|external|mixed] [--note "<one user sentence>"]
 ```
+
+Omit `--basis` / `--note` entirely when the user offered neither. The command
+writes exactly `{"event":"settle","id","outcome","basis?","note?","at"}`.
 
 **Authorship (mirror of the webapp `authored` field, R57/R58).** A seal carrying
 `author:"user"` is the user's OWN prediction (the Phase-1 BIND lean from clarify Step
