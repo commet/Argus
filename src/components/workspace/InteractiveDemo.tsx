@@ -1376,7 +1376,7 @@ function DemoSealCard({ scenario, decisionLine, onSealed, locale = 'ko' }: {
           </div>
 
           <div className="rounded-xl bg-[var(--accent)]/[0.05] border border-[var(--accent)]/15 p-4">
-            <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider mb-1.5">{L(`확인일까지 판가름 날 예측`, `Prediction that settles in ${scenario.checkInDays} days`)}</p>
+            <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider mb-1.5">{L('가장 약한 고리를 시험할 예측 · 확인일에 판가름', 'Tests the weakest link this rests on · settles on the check-in day')}</p>
             <p className="text-[14px] md:text-[15px] text-[var(--text-primary)] leading-[1.55]">{scenario.seal.prediction}</p>
             <div className="mt-3 flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)]">
               <span>📅</span>
@@ -1419,7 +1419,7 @@ function DemoSealCard({ scenario, decisionLine, onSealed, locale = 'ko' }: {
 
 const SETTLE_VERDICT = {
   held:    { ko: '맞았어요', en: 'Held up', cls: 'text-emerald-600 dark:text-emerald-400', box: 'bg-emerald-50/40 dark:bg-emerald-950/15 border-emerald-300/40 dark:border-emerald-700/30' },
-  partial: { ko: '부분', en: 'Partly', cls: 'text-amber-600 dark:text-amber-400', box: 'bg-amber-50/40 dark:bg-amber-950/15 border-amber-300/40 dark:border-amber-700/30' },
+  partial: { ko: '반은 맞았어요', en: 'Partly held', cls: 'text-amber-600 dark:text-amber-400', box: 'bg-amber-50/40 dark:bg-amber-950/15 border-amber-300/40 dark:border-amber-700/30' },
   broke:   { ko: '빗나갔어요', en: 'Missed', cls: 'text-rose-600 dark:text-rose-400', box: 'bg-rose-50/40 dark:bg-rose-950/15 border-rose-300/40 dark:border-rose-700/30' },
 } as const;
 

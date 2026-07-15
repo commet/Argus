@@ -574,7 +574,7 @@ export default function ProjectPage() {
                   {L('워크스페이스에서 시작하기', 'Start in workspace')} <ArrowRight size={14} />
                 </LocaleLink>
                 <LocaleLink href="/workspace?demo=planning" className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--accent)] transition-colors">
-                  {L('또는 30초 데모 먼저 보기 →', 'Or see a 30-second demo first →')}
+                  {L('또는 데모 먼저 보기 →', 'Or see the demo first →')}
                 </LocaleLink>
               </div>
             </Card>
