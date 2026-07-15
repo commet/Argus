@@ -330,7 +330,7 @@ export default function UtmBuilderPage() {
                   <button
                     type="button"
                     onClick={() => handleDeleteHistory(h.url)}
-                    className="flex-shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md hover:bg-red-50 transition-colors"
+                    className="flex-shrink-0 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-md hover:bg-[var(--danger)]/10 transition-colors"
                     title="삭제"
                   >
                     <Trash2 size={14} className="text-[var(--text-tertiary)] hover:text-red-500" />

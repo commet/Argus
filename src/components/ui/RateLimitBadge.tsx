@@ -33,9 +33,9 @@ export function RateLimitBadge() {
   return (
     <div className={`inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full border ${
       isEmpty
-        ? 'bg-red-50 border-red-200 text-red-700'
+        ? 'bg-[var(--danger)]/10 border-[var(--danger)]/25 text-[var(--danger)]'
         : isLow
-          ? 'bg-amber-50 border-amber-200 text-amber-700'
+          ? 'bg-[var(--warning)]/10 border-[var(--warning)]/30 text-[var(--warning)]'
           : 'bg-[var(--surface)] border-[var(--border-subtle)] text-[var(--text-secondary)]'
     }`}>
       <Zap size={12} />

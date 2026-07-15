@@ -227,9 +227,9 @@ export default function ImportPage() {
         {summary && (
           <div className="mt-4 pt-4 border-t border-[var(--border-subtle)] text-[13px]">
             {summary.error === 'too_large' ? (
-              <p className="text-red-600 flex items-center gap-1.5"><AlertTriangle size={14} />{L('파일이 너무 큽니다. 15MB 이하로 올려주세요.', 'Files too large. Keep the upload under 15MB.')}</p>
+              <p className="text-[var(--danger)] flex items-center gap-1.5"><AlertTriangle size={14} />{L('파일이 너무 큽니다. 15MB 이하로 올려주세요.', 'Files too large. Keep the upload under 15MB.')}</p>
             ) : summary.error && summary.error !== 'not_logged_in' ? (
-              <p className="text-red-600 flex items-center gap-1.5"><AlertTriangle size={14} />{L('저장 오류: ', 'Save error: ')}{summary.error}</p>
+              <p className="text-[var(--danger)] flex items-center gap-1.5"><AlertTriangle size={14} />{L('저장 오류: ', 'Save error: ')}{summary.error}</p>
             ) : (
               <p className="text-[var(--text-primary)] flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-[var(--primary)]" />
@@ -253,7 +253,7 @@ export default function ImportPage() {
           <Anchor size={14} />{L('결정', 'Decisions')} <span className="text-[var(--text-tertiary)]/70">({decisions.length})</span>
         </h2>
         {actionError && (
-          <p className="mb-3 text-[12px] text-red-600" role="alert">
+          <p className="mb-3 text-[12px] text-[var(--danger)]" role="alert">
             {actionError}
           </p>
         )}

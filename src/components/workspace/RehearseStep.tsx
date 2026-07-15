@@ -659,11 +659,11 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
 
           {/* ─── Error ─── */}
           {feedbackError && (
-            <div className="flex items-center justify-between gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2">
+            <div className="flex items-center justify-between gap-2 text-[var(--danger)] text-[13px] bg-[var(--danger)]/10 rounded-lg px-3 py-2">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} /> <span>{feedbackError}</span>
               </div>
-              <button onClick={() => { if (feedbackLoading) return; setFeedbackError(''); if (lastFeedbackData) handleFeedbackSubmit(lastFeedbackData); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer transition-colors">
+              <button onClick={() => { if (feedbackLoading) return; setFeedbackError(''); if (lastFeedbackData) handleFeedbackSubmit(lastFeedbackData); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                 {L('다시 시도', 'Retry')}
               </button>
             </div>
@@ -710,7 +710,7 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                 details: reframe.analysis.hidden_assumptions.map((a: HiddenAssumption | string) =>
                   typeof a === 'string' ? a : a.assumption + (a.risk_if_false ? ` → ${a.risk_if_false}` : '')
                 ),
-                color: 'text-amber-700',
+                color: 'text-[var(--warning)]',
               });
             }
             if (recast?.analysis?.key_assumptions && recast.analysis.key_assumptions.length > 0) {
@@ -744,11 +744,11 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
                 <p className="text-[12px] font-bold text-[var(--text-primary)] mb-3">{L(`${personaCount}명의 이해관계자가 검토했습니다`, `${personaCount} stakeholder${personaCount === 1 ? '' : 's'} reviewed`)}</p>
 
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {praiseCount > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-600 font-medium">{L(`긍정 평가 ${praiseCount}건`, `${praiseCount} positive${praiseCount === 1 ? '' : 's'}`)}</span>}
-                  {critical > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-red-50 border border-red-200 text-red-600 font-semibold">{L(`핵심 리스크 ${critical}건`, `${critical} critical risk${critical === 1 ? '' : 's'}`)}</span>}
-                  {manageable > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-600 font-medium">{L(`관리 가능 ${manageable}건`, `${manageable} manageable`)}</span>}
-                  {unspoken > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-600 font-semibold">{L(`침묵의 리스크 ${unspoken}건`, `${unspoken} unspoken risk${unspoken === 1 ? '' : 's'}`)}</span>}
-                  {approvalCount > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-600 font-medium">{L(`승인 조건 ${approvalCount}건`, `${approvalCount} approval condition${approvalCount === 1 ? '' : 's'}`)}</span>}
+                  {praiseCount > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--success)]/10 border border-[var(--success)]/25 text-[var(--success)] font-medium">{L(`긍정 평가 ${praiseCount}건`, `${praiseCount} positive${praiseCount === 1 ? '' : 's'}`)}</span>}
+                  {critical > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--danger)]/10 border border-[var(--danger)]/25 text-[var(--danger)] font-semibold">{L(`핵심 리스크 ${critical}건`, `${critical} critical risk${critical === 1 ? '' : 's'}`)}</span>}
+                  {manageable > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--warning)]/10 border border-[var(--warning)]/30 text-[var(--warning)] font-medium">{L(`관리 가능 ${manageable}건`, `${manageable} manageable`)}</span>}
+                  {unspoken > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--risk-unspoken)]/12 border border-[var(--risk-unspoken)]/30 text-[var(--risk-unspoken)] font-semibold">{L(`침묵의 리스크 ${unspoken}건`, `${unspoken} unspoken risk${unspoken === 1 ? '' : 's'}`)}</span>}
+                  {approvalCount > 0 && <span className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--ai)] border border-[var(--ai-fg)]/20 text-[var(--ai-fg)] font-medium">{L(`승인 조건 ${approvalCount}건`, `${approvalCount} approval condition${approvalCount === 1 ? '' : 's'}`)}</span>}
                 </div>
                 {(critical > 0 || unspoken > 0) && (
                   <p className="text-[11px] text-[var(--text-secondary)] mt-1">
@@ -770,9 +770,9 @@ ${L('리스크', 'Risks')}: ${(r.classified_risks || []).map(cr => `[${cr.catego
           />
 
           {discussionError && (
-            <div role="alert" className="flex items-center justify-between gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2">
+            <div role="alert" className="flex items-center justify-between gap-2 text-[var(--danger)] text-[13px] bg-[var(--danger)]/10 rounded-lg px-3 py-2">
               <span className="min-w-0">{discussionError}</span>
-              <button onClick={() => { setDiscussionError(''); handleStartDiscussion(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer transition-colors">
+              <button onClick={() => { setDiscussionError(''); handleStartDiscussion(); }} className="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-[var(--danger)]/25 text-[var(--danger)] hover:bg-[var(--danger)]/15 cursor-pointer transition-colors">
                 {L('다시 시도', 'Retry')}
               </button>
             </div>

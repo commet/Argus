@@ -147,7 +147,7 @@ export function VersionHistoryDrawer({
               </span>
             )}
             {isReleased && (
-              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[var(--warning)]/15 text-[var(--warning)]">
                 <Crown className="w-2.5 h-2.5" /> {L('정식 버전', 'released')}
               </span>
             )}
@@ -183,7 +183,7 @@ export function VersionHistoryDrawer({
             {canPromote && (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 text-[11px] text-amber-700 hover:text-amber-900 transition-colors ml-auto"
+                className="inline-flex items-center gap-1 text-[11px] text-[var(--warning)] hover:text-amber-900 transition-colors ml-auto"
                 onClick={() => onPromote(nodeId)}
                 title={L('이 버전을 v1.0으로 승격합니다', 'Promote this version to v1.0')}
               >
@@ -232,7 +232,7 @@ export function VersionHistoryDrawer({
           <div className="mb-3 rounded-lg bg-[var(--surface)] px-3 py-2 text-[10.5px] leading-relaxed text-[var(--text-tertiary)]">
             <span className="font-semibold text-[var(--accent)]">{L('현재', 'Current')}</span>
             {L('는 지금 편집 기준 · ', ' is your working version · ')}
-            <span className="font-semibold text-amber-700">{L('정식 버전', 'Released')}</span>
+            <span className="font-semibold text-[var(--warning)]">{L('정식 버전', 'Released')}</span>
             {L('은 복사·공유 기준이에요.', ' is the copy/share version.')}
           </div>
           {tree.length === 0 ? (

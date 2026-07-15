@@ -149,7 +149,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                     {p.load_bearing && <span className="ml-1.5 text-[10px] text-[var(--accent)]">{L('핵심', 'load-bearing')}</span>}
                     {isOpenQ && <span className="ml-1.5 text-[10px] text-[var(--text-tertiary)]">{L('미결', 'open')}</span>}
                     {due && (
-                      <span className="ml-1.5 text-[10px] px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">{L('확인할 때', 'due')}</span>
+                      <span className="ml-1.5 text-[10px] px-1 py-0.5 rounded bg-[var(--warning)]/10 text-[var(--warning)] border border-[var(--warning)]/30">{L('확인할 때', 'due')}</span>
                     )}
                     {shared > 0 && (
                       /* Quiet cross-link (judgment graph): a count, never a nudge —
@@ -162,7 +162,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                       <div className="mt-1 space-y-1 text-[11px] text-[var(--text-tertiary)]">
                         <p>
                           {L('지난 확인', 'Last check')}: {last.finding}
-                          {last.drifted && <span className="text-amber-700"> · {L('바뀜', 'changed')}</span>}
+                          {last.drifted && <span className="text-[var(--warning)]"> · {L('바뀜', 'changed')}</span>}
                         </p>
                         <div className="grid gap-1 sm:grid-cols-2">
                           <p>
@@ -215,7 +215,7 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                       </span>
                     )}
                     {p.auto_watch && !user && (
-                      <span className="text-amber-700">
+                      <span className="text-[var(--warning)]">
                         {L('알림은 이메일이 있어야 가요 — ', 'Alerts need an email — ')}
                         <LocaleLink href="/login" className="underline hover:text-[var(--accent)]">{L('이메일 등록', 'register')}</LocaleLink>
                       </span>
@@ -247,14 +247,14 @@ export function PremiseTracker({ receipt }: { receipt: JudgmentReceipt }) {
                       ) : (
                         <>
                           <span className="text-[var(--text-tertiary)]">{L('기준 대비:', 'vs baseline:')}</span>
-                          <button onClick={() => setChanged(true)} className={`px-2 py-0.5 rounded-full border ${changed === true ? 'border-amber-500 text-amber-700' : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'}`}>{L('바뀜', 'Changed')}</button>
+                          <button onClick={() => setChanged(true)} className={`px-2 py-0.5 rounded-full border ${changed === true ? 'border-amber-500 text-[var(--warning)]' : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'}`}>{L('바뀜', 'Changed')}</button>
                           <button onClick={() => setChanged(false)} className={`px-2 py-0.5 rounded-full border ${changed === false ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border-subtle)] text-[var(--text-tertiary)]'}`}>{L('그대로', 'Same')}</button>
                         </>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="sm" onClick={() => submitRecheck(p)} disabled={!finding.trim()}>{L('기록', 'Record')}</Button>
-                      <button onClick={() => store.retirePremise(receipt.receipt_id, p.premise_id)} className="text-[11px] text-[var(--text-tertiary)] hover:text-red-600">{L('추적 그만', 'Stop tracking')}</button>
+                      <button onClick={() => store.retirePremise(receipt.receipt_id, p.premise_id)} className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--danger)]">{L('추적 그만', 'Stop tracking')}</button>
                     </div>
                   </div>
                 )}

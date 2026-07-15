@@ -96,7 +96,7 @@ function RoleDashboard({ steps, checkpoints, totalTime }: { steps: StepType[]; c
         {checkpoints !== undefined && checkpoints > 0 && (
           <>
             <span className="text-[var(--text-tertiary)]">|</span>
-            <span className="text-amber-700 font-semibold"><Flag size={10} className="inline mr-0.5" />{L(`체크포인트 ${checkpoints}`, `${checkpoints} checkpoint${checkpoints === 1 ? '' : 's'}`)} <span className="font-normal text-[var(--text-secondary)]">{L('(사람 확인 필수)', '(human review required)')}</span></span>
+            <span className="text-[var(--warning)] font-semibold"><Flag size={10} className="inline mr-0.5" />{L(`체크포인트 ${checkpoints}`, `${checkpoints} checkpoint${checkpoints === 1 ? '' : 's'}`)} <span className="font-normal text-[var(--text-secondary)]">{L('(사람 확인 필수)', '(human review required)')}</span></span>
           </>
         )}
         {totalTime && (
@@ -243,7 +243,7 @@ export function WorkflowGraph({
                           {String(i + 1).padStart(2, '0')}
                         </span>
                         {step.checkpoint && (
-                          <span title={L('이 단계는 반드시 사람이 확인해야 합니다', 'This step requires human review')}><Flag size={10} className="text-amber-600" /></span>
+                          <span title={L('이 단계는 반드시 사람이 확인해야 합니다', 'This step requires human review')}><Flag size={10} className="text-[var(--warning)]" /></span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -259,7 +259,7 @@ export function WorkflowGraph({
                             </span>
                           )}
                           {isCritical && (
-                            <span className="text-[10px] text-red-600 font-bold flex items-center gap-0.5">
+                            <span className="text-[10px] text-[var(--danger)] font-bold flex items-center gap-0.5">
                               <Zap size={10} /> {L('크리티컬', 'Critical')}
                             </span>
                           )}
@@ -538,9 +538,9 @@ export function WorkflowGraph({
                         {/* Actor reasoning — readable */}
                         {/* Checkpoint reason — inline warning */}
                         {step.checkpoint && step.checkpoint_reason && (
-                          <div className="flex items-start gap-2 text-[11px] bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                            <Flag size={11} className="text-amber-600 shrink-0 mt-0.5" />
-                            <p className="text-amber-700"><span className="font-bold">{L('넘어가기 전 확인:', 'Verify before moving on:')}</span> {step.checkpoint_reason}</p>
+                          <div className="flex items-start gap-2 text-[11px] bg-[var(--warning)]/10 border border-[var(--warning)]/30 rounded-lg px-3 py-2">
+                            <Flag size={11} className="text-[var(--warning)] shrink-0 mt-0.5" />
+                            <p className="text-[var(--warning)]"><span className="font-bold">{L('넘어가기 전 확인:', 'Verify before moving on:')}</span> {step.checkpoint_reason}</p>
                           </div>
                         )}
                       </div>
@@ -554,15 +554,15 @@ export function WorkflowGraph({
                         onClick={(e) => { e.stopPropagation(); onToggleCheckpoint?.(i); }}
                         className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-pointer transition-colors ${
                           step.checkpoint
-                            ? 'border-amber-400 bg-amber-50 text-amber-800'
-                            : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-amber-300'
+                            ? 'border-amber-400 bg-[var(--warning)]/10 text-[var(--warning)]'
+                            : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--warning)]/30'
                         }`}
                       >
                         <Flag size={10} className="inline mr-1" /> {step.checkpoint ? L('확인 필수 해제', 'Remove required check') : L('확인 필수로 설정', 'Mark as required check')}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onRemoveStep?.(i); }}
-                        className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-50 cursor-pointer transition-colors"
+                        className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-red-500 hover:bg-[var(--danger)]/10 cursor-pointer transition-colors"
                       >
                         <Trash2 size={13} />
                       </button>

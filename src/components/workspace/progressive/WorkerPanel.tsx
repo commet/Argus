@@ -148,7 +148,7 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
               <span className="text-[13px] w-6 text-center">{p.emoji}</span>
               <span className="flex-1 text-[11px] text-[var(--text-primary)]">{p.name}</span>
               <span className="text-[9px] text-[var(--text-tertiary)]">{p.role}</span>
-              <button onClick={() => handleRemoveCustom(p.id)} className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg cursor-pointer transition-colors" aria-label={L('삭제', 'Delete')}>
+              <button onClick={() => handleRemoveCustom(p.id)} className="p-1.5 text-red-500 hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-lg cursor-pointer transition-colors" aria-label={L('삭제', 'Delete')}>
                 <Trash2 size={13} />
               </button>
             </div>

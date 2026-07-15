@@ -166,7 +166,7 @@ export function ReceiptView({
           covers part of the source, so it must not read as a full review. */}
       {receipt.coverage && receipt.coverage.band !== 'full' && receipt.coverage.notes.length > 0 && (
         <Card variant={receipt.coverage.band === 'low' ? 'danger' : 'muted'}>
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700 mb-1">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--warning)] mb-1">
             {receipt.coverage.band === 'low' ? L('일부만 검수됨', 'Only partly reviewed') : L('부분 검수', 'Partial review')}
           </div>
           <ul className="space-y-0.5">
@@ -188,7 +188,7 @@ export function ReceiptView({
           only for a document with real scope (skip tiny pastes). */}
       {receipt.coverage && receipt.coverage.band === 'full'
         && (receipt.coverage.pages_read || receipt.coverage.slides_read || receipt.coverage.units_total > 12) && (
-        <div className="flex items-center gap-1.5 text-[11px] text-green-700">
+        <div className="flex items-center gap-1.5 text-[11px] text-[var(--success)]">
           <span aria-hidden>✓</span>
           <span>
             {(() => {
@@ -437,7 +437,7 @@ export function ReceiptView({
                       </p>
                     )}
                     {f.settled_at ? (
-                      <p className="mt-1 text-[12px] text-green-700">
+                      <p className="mt-1 text-[12px] text-[var(--success)]">
                         {L('정산됨', 'Settled')}: {settlementLabel(L, f.outcome)}{f.what_happened ? ` — ${f.what_happened}` : ''}
                         {f.learned ? <span className="block text-[var(--text-secondary)]">{L('배운 점', 'What I learned')}: {f.learned}</span> : null}
                       </p>

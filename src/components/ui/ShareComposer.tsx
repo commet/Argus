@@ -258,7 +258,7 @@ function LinkPanel({ user, title, text, context, onCreated }: { user: boolean; t
 
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] p-3.5 space-y-2.5 animate-fade-in">
-      {error && <p className="text-[12px] text-red-600">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--danger)]">{error}</p>}
       {url ? (
         <>
           <p className="text-[11.5px] text-[var(--text-secondary)]">{L('누구나 이 링크로 결과를 열어볼 수 있어요.', 'Anyone with this link can open the result.')}</p>
@@ -339,7 +339,7 @@ function EmailPanel({ user, title, text, context, onSent }: { user: boolean; tit
         maxLength={200}
         className="w-full bg-[var(--bg)] border-[1.5px] border-[var(--border)] rounded-[10px] px-3 py-2 text-[14px] focus:outline-none focus:border-[var(--accent)]"
       />
-      {error && <p className="text-[12px] text-red-600">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--danger)]">{error}</p>}
       <Button size="sm" onClick={send} disabled={busy}>
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
         {L('이 내용으로 보내기', 'Send this')}
@@ -404,7 +404,7 @@ function SlackPanel({ connected, loaded, loadError, channelsError, user, title, 
           className="w-full pl-8 pr-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg)] text-[13px] focus:outline-none focus:border-[var(--accent)]"
         />
       </div>
-      {error && <p className="text-[12px] text-red-600">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--danger)]">{error}</p>}
       {channelsError && <p className="text-[12px] text-[var(--danger)]">{L('Slack 채널을 불러오지 못했습니다. 잠시 후 다시 열어 주세요.', 'Could not load Slack channels. Please reopen this shortly.')}</p>}
       <div className="max-h-[180px] overflow-y-auto">
         {channelsLoading ? (
@@ -474,7 +474,7 @@ function TelegramPanel({ connected, loaded, loadError, user, title, text, contex
 
   return (
     <div className="rounded-xl border border-[var(--border-subtle)] p-3 space-y-2 animate-fade-in">
-      {error && <p className="text-[12px] text-red-600">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--danger)]">{error}</p>}
       {connections.map((c) => (
         <button
           key={c.id}

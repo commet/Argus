@@ -261,7 +261,7 @@ export default function TeamsPage() {
                         if (!ok) setTeamError(L('멤버를 삭제하지 못했습니다. 멤버는 그대로 유지됩니다.', 'Could not remove the member. They remain on the team.'));
                         else setTeamError('');
                       }}
-                      className="-m-1.5 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                      className="-m-1.5 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--danger)]/10 transition-colors cursor-pointer"
                     >
                       <Trash2 size={13} />
                     </button>

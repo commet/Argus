@@ -1107,7 +1107,7 @@ function PluginTokenBlock({ locale }: { locale: string }) {
           {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} {L('새 토큰 발급', 'Issue token')}
         </Button>
       </div>
-      {error && <p className="text-[12px] text-red-600 mt-2">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--danger)] mt-2">{error}</p>}
 
       {issued && (
         <div className="mt-3 p-3 rounded-lg bg-[var(--checkpoint)] border border-amber-500/30">

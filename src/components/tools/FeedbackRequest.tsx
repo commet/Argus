@@ -171,7 +171,7 @@ export function FeedbackRequest({ personas, onSubmit, loading, initialContent, i
                   {relatedRecast.analysis.steps?.filter(s => s.checkpoint).length || 0} {L('체크포인트', 'checkpoints')}
                 </span>
                 {relatedRecast.analysis.key_assumptions?.length > 0 && (
-                  <span className="text-amber-700">
+                  <span className="text-[var(--warning)]">
                     <AlertTriangle size={10} className="inline mr-1" />
                     {L(`핵심 가정 ${relatedRecast.analysis.key_assumptions.length}건`, `${relatedRecast.analysis.key_assumptions.length} key assumption${relatedRecast.analysis.key_assumptions.length === 1 ? '' : 's'}`)}
                   </span>

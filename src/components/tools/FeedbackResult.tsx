@@ -358,7 +358,7 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
                     {/* 실패 시나리오 */}
                     {selectedResult.failure_scenario && (
                       <div>
-                        <p className="text-[11px] font-bold text-amber-600 mb-1">{L('실패 시나리오', 'Failure scenario')}</p>
+                        <p className="text-[11px] font-bold text-[var(--warning)] mb-1">{L('실패 시나리오', 'Failure scenario')}</p>
                         <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{selectedResult.failure_scenario}</p>
                       </div>
                     )}
@@ -366,7 +366,7 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
                     {/* 검증 안 된 가정 */}
                     {(selectedResult.untested_assumptions?.length ?? 0) > 0 && (
                       <div>
-                        <p className="text-[11px] font-bold text-amber-600 mb-1">{L('검증되지 않은 가정', 'Untested assumptions')}</p>
+                        <p className="text-[11px] font-bold text-[var(--warning)] mb-1">{L('검증되지 않은 가정', 'Untested assumptions')}</p>
                         <ul className="space-y-1">
                           {selectedResult.untested_assumptions!.map((a, i) => (
                             <li key={i} className="text-[13px] text-[var(--text-primary)] flex items-start gap-1.5">
@@ -383,7 +383,7 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
                         <p className="text-[11px] font-bold text-[var(--text-secondary)]">{L('리스크 분류', 'Risk categorization')}</p>
                         {selectedResult.classified_risks!.map((risk, i) => (
                           <div key={i} className="flex items-start gap-2.5 text-[13px]">
-                            <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${risk.category === 'critical' ? 'bg-red-100 text-red-700' : risk.category === 'manageable' ? 'bg-amber-100 text-amber-700' : 'bg-purple-100 text-purple-700'}`}>
+                            <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${risk.category === 'critical' ? 'bg-[var(--danger)]/15 text-[var(--danger)]' : risk.category === 'manageable' ? 'bg-[var(--warning)]/15 text-[var(--warning)]' : 'bg-[var(--risk-unspoken)]/15 text-purple-700'}`}>
                               {risk.category === 'critical' ? L('위협', 'Threat') : risk.category === 'manageable' ? L('관리', 'Manage') : L('침묵', 'Unspoken')}
                             </span>
                             <span className="text-[var(--text-primary)] leading-relaxed">{risk.text}</span>
@@ -508,7 +508,7 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
               {/* Key conflicts */}
               {record.structured_synthesis.key_conflicts.length > 0 && (
                 <Card className="!border-l-4 !border-l-amber-400">
-                  <p className="text-[13px] font-bold text-amber-700 mb-3">&#x26A1; {L('핵심 갈등', 'Key conflicts')}</p>
+                  <p className="text-[13px] font-bold text-[var(--warning)] mb-3">&#x26A1; {L('핵심 갈등', 'Key conflicts')}</p>
                   <div className="space-y-3">
                     {record.structured_synthesis.key_conflicts.map((conflict, i) => (
                       <div key={i} className="rounded-lg bg-[var(--bg)] p-3">
@@ -576,9 +576,9 @@ export function FeedbackResult({ record, personas, onStartDiscussion, discussion
           {/* Issue summary */}
           <div className="flex items-center gap-2 flex-wrap px-4 py-2.5 rounded-xl bg-[var(--bg)] text-[12px]">
             <span className="text-[var(--text-secondary)] font-medium">{L('추출된 이슈', 'Extracted issues')}</span>
-            {riskCounts.critical > 0 && <span className="px-2 py-0.5 rounded-lg bg-red-50 text-red-700 font-bold border border-red-200">{L('차단', 'Blockers')} {riskCounts.critical}</span>}
-            {(() => { const c = record.results.reduce((s, r) => s + (r.concerns || []).length, 0); return c > 0 ? <span className="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 font-bold border border-amber-200">{L('우려', 'Concerns')} {c}</span> : null; })()}
-            {(() => { const w = record.results.reduce((s, r) => s + (r.wants_more || []).length, 0); return w > 0 ? <span className="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-600 font-bold border border-blue-200">{L('추가 요청', 'Requests')} {w}</span> : null; })()}
+            {riskCounts.critical > 0 && <span className="px-2 py-0.5 rounded-lg bg-[var(--danger)]/10 text-[var(--danger)] font-bold border border-[var(--danger)]/25">{L('차단', 'Blockers')} {riskCounts.critical}</span>}
+            {(() => { const c = record.results.reduce((s, r) => s + (r.concerns || []).length, 0); return c > 0 ? <span className="px-2 py-0.5 rounded-lg bg-[var(--warning)]/10 text-[var(--warning)] font-bold border border-[var(--warning)]/30">{L('우려', 'Concerns')} {c}</span> : null; })()}
+            {(() => { const w = record.results.reduce((s, r) => s + (r.wants_more || []).length, 0); return w > 0 ? <span className="px-2 py-0.5 rounded-lg bg-[var(--ai)] text-[var(--ai-fg)] font-bold border border-[var(--ai-fg)]/20">{L('추가 요청', 'Requests')} {w}</span> : null; })()}
           </div>
 
           {onStartDebate && (

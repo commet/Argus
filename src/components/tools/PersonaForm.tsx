@@ -552,8 +552,8 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
 
           <button onClick={() => setStep('preset')}
             className="w-full flex items-center gap-3 p-4 rounded-xl border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--ai)]/30 transition-all text-left cursor-pointer group">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-              <UserCircle size={20} className="text-purple-600" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--risk-unspoken)]/12 flex items-center justify-center shrink-0">
+              <UserCircle size={20} className="text-[var(--risk-unspoken)]" />
             </div>
             <div className="flex-1">
               <p className="text-[14px] font-semibold text-[var(--text-primary)]">{L('유형에서 시작', 'Start from a role')}</p>
@@ -711,7 +711,7 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
               maxLength={2000}
             />
           </div>
-          {error && <p className="text-[13px] text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-[13px] text-[var(--danger)] bg-[var(--danger)]/10 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex justify-end">
             <Button onClick={handleFreeTextStructure} disabled={!freeText.trim() || loading}>
               {loading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
@@ -825,7 +825,7 @@ export function PersonaForm({ persona, onSave, onCancel }: PersonaFormProps) {
             <Field label={L('OK 조건', 'Approval criteria')} placeholder={L('이 사람이 승인하려면 보여줘야 할 것 (예: ROI 데이터)', 'What you need to show for their approval (e.g. ROI data)')} maxLength={300}
               value={form.success_metric} onChange={(e) => handleFieldChange('success_metric', e.target.value)} />
           </div>
-          {error && <p className="text-[13px] text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-[13px] text-[var(--danger)] bg-[var(--danger)]/10 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={onCancel}>{L('취소', 'Cancel')}</Button>
             <Button onClick={() => onSave(form)} disabled={!form.name || !form.role || !form.priorities}>

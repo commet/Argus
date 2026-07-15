@@ -579,7 +579,7 @@ function LeadSynthesisCard({ synthesis }: { synthesis: LeadSynthesisResult }) {
               {/* ③ 미해결 쟁점. */}
               {synthesis.unresolved_tensions.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-[0.15em] mb-2">{L('미해결 쟁점', 'Unresolved Tensions')}</p>
+                  <p className="text-[10px] font-bold text-[var(--warning)] uppercase tracking-[0.15em] mb-2">{L('미해결 쟁점', 'Unresolved Tensions')}</p>
                   <ul className="space-y-1.5">
                     {synthesis.unresolved_tensions.map((t, i) => (
                       <li key={i} className="flex gap-2 text-[13px] text-amber-700 dark:text-amber-400">
@@ -1022,10 +1022,10 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}
-      className={`rounded-xl border p-4 md:p-5 ${isLowConfidence ? 'bg-amber-50/50 border-amber-200' : 'bg-[var(--accent)]/[0.02] border-[var(--accent)]/10'}`}>
+      className={`rounded-xl border p-4 md:p-5 ${isLowConfidence ? 'bg-amber-50/50 border-[var(--warning)]/30' : 'bg-[var(--accent)]/[0.02] border-[var(--accent)]/10'}`}>
       <div className="flex items-start gap-3 mb-3">
-        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isLowConfidence ? 'bg-amber-100' : 'bg-[var(--accent)]/10'}`}>
-          {isLowConfidence ? <AlertTriangle size={11} className="text-amber-600" /> : <Check size={11} className="text-[var(--accent)]" />}
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isLowConfidence ? 'bg-[var(--warning)]/15' : 'bg-[var(--accent)]/10'}`}>
+          {isLowConfidence ? <AlertTriangle size={11} className="text-[var(--warning)]" /> : <Check size={11} className="text-[var(--accent)]" />}
         </div>
         <div>
           <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">{L('이 방향이 맞나요?', 'Is this the right direction?')}</p>
@@ -3935,12 +3935,12 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 </div>
               )}
               {!isIterating && error && (
-                <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-[12px] text-red-700">
+                <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-lg bg-[var(--danger)]/10 border border-[var(--danger)]/25 text-[12px] text-[var(--danger)]">
                   <AlertTriangle size={13} className="shrink-0 mt-0.5" />
                   <span className="flex-1">{error}</span>
                   <button
                     type="button"
-                    className="text-[11px] text-red-600 hover:underline shrink-0"
+                    className="text-[11px] text-[var(--danger)] hover:underline shrink-0"
                     onClick={() => setError(null)}
                     aria-label={L('에러 닫기', 'Dismiss error')}
                   >

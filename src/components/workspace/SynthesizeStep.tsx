@@ -437,7 +437,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                 </>
               )}
               {error && (
-                <div className="flex items-center gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 text-[var(--danger)] text-[13px] bg-[var(--danger)]/10 rounded-lg px-3 py-2">
                   <AlertTriangle size={14} /> {error}
                 </div>
               )}
@@ -456,7 +456,7 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                 }}
               />
               {error && (
-                <div className="flex items-center gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2 mt-3">
+                <div className="flex items-center gap-2 text-[var(--danger)] text-[13px] bg-[var(--danger)]/10 rounded-lg px-3 py-2 mt-3">
                   <AlertTriangle size={14} /> {error}
                 </div>
               )}
@@ -518,9 +518,9 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                 {L('쟁점마다 당신의 판단을 적어주세요. AI가 아니라 당신 상황에서 결정하는 거예요.', 'Make your call on each point — you decide from your situation, not the AI’s.')}
               </p>
               {current.analysis.conflicts.map((conflict) => (
-                <Card key={conflict.id} className={`space-y-3 ${conflict.user_judgment ? '!border-[var(--success)]' : '!border-amber-300'}`}>
+                <Card key={conflict.id} className={`space-y-3 ${conflict.user_judgment ? '!border-[var(--success)]' : '!border-[var(--warning)]/30'}`}>
                   <div className="flex items-center gap-2">
-                    <Scale size={14} className="text-amber-600" />
+                    <Scale size={14} className="text-[var(--warning)]" />
                     <h4 className="text-[14px] font-bold text-[var(--text-primary)]">{conflict.topic}</h4>
                     {conflict.user_judgment && <Check size={14} className="text-[var(--success)]" />}
                   </div>
@@ -542,13 +542,13 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
                   <p className="text-[12px] text-[var(--text-secondary)]">{conflict.analysis}</p>
                   {/* User judgment */}
                   <div className="border-t border-[var(--border)] pt-3 space-y-2">
-                    <label className="text-[12px] font-bold text-amber-700">{L('나의 판단', 'My judgment')}</label>
+                    <label className="text-[12px] font-bold text-[var(--warning)]">{L('나의 판단', 'My judgment')}</label>
                     <textarea
                       value={conflict.user_judgment || ''}
                       maxLength={2000}
                       onChange={(e) => handleJudgment(conflict.id, e.target.value)}
                       placeholder={L("이 쟁점에 대한 당신의 판단을 입력하세요...", "Enter your judgment on this conflict...")}
-                      className="w-full bg-[var(--checkpoint)] border border-amber-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:border-amber-400 resize-none"
+                      className="w-full bg-[var(--checkpoint)] border border-[var(--warning)]/30 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:border-amber-400 resize-none"
                       rows={2}
                     />
                     <input
@@ -567,17 +567,17 @@ export function SynthesizeStep({ onNavigate }: SynthesizeStepProps) {
           {/* Questions for user */}
           {current.analysis.questions_for_user.length > 0 && (
             <Card className="!bg-[var(--checkpoint)]">
-              <h4 className="text-[13px] font-bold text-amber-700 mb-2">{L('당신이 결정해야 할 질문', 'Questions for you to decide')}</h4>
+              <h4 className="text-[13px] font-bold text-[var(--warning)] mb-2">{L('당신이 결정해야 할 질문', 'Questions for you to decide')}</h4>
               <ul className="space-y-1">
                 {current.analysis.questions_for_user.map((q, i) => (
-                  <li key={i} className="text-[13px] text-amber-800">• {q}</li>
+                  <li key={i} className="text-[13px] text-[var(--warning)]">• {q}</li>
                 ))}
               </ul>
             </Card>
           )}
 
           {error && (
-            <div className="flex items-center gap-2 text-red-600 text-[13px] bg-red-50 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-[var(--danger)] text-[13px] bg-[var(--danger)]/10 rounded-lg px-3 py-2">
               <AlertTriangle size={14} /> {error}
             </div>
           )}
