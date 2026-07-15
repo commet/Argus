@@ -215,3 +215,140 @@ describe('out-of-band ambient elicit — 발사 게이트', () => {
     expect(seen).toEqual([]);
   });
 });
+
+/**
+ * 적대 케이스 — "쉽게 무너져내리면 이 시스템은 끝장" (창업자 2026-07-15).
+ * ambient는 얹혀 가는 손님이다: 어떤 호스트 이상·파일 파손·경합·쓰레기 응답도
+ * 본 세션을 죽이거나, 원장을 오염시키거나, 무한 재질문으로 새면 안 된다.
+ */
+describe('out-of-band ambient elicit — 적대 케이스 (안정성)', () => {
+  it('⑫ 영원히 답 없는 호스트(렌더 미지원) = 타임아웃 → 무기록·무충돌·예산 소진', async () => {
+    await sealedDue();
+    process.env['ARGUS_AMBIENT_ASK_TIMEOUT_MS'] = '30';
+    try {
+      let asked = 0;
+      setElicitor(() => { asked += 1; return new Promise(() => { /* 영원히 pending */ }); }, () => true);
+      wire();
+      arm();
+      await settleFlush(120);
+      expect(asked).toBe(1);
+      expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('sealed'); // 무기록
+      arm(); // 예산 소진 — 같은 프로세스 재질문 없음
+      await settleFlush();
+      expect(asked).toBe(1);
+    } finally {
+      delete process.env['ARGUS_AMBIENT_ASK_TIMEOUT_MS'];
+    }
+  });
+
+  it('⑬ elicitor가 던져도(호스트 SDK 오류) = decline 취급, 무충돌', async () => {
+    await sealedDue();
+    let asked = 0;
+    setElicitor(async () => { asked += 1; throw new Error('host exploded'); }, () => true);
+    wire();
+    arm();
+    await settleFlush();
+    expect(asked).toBe(1);
+    expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('sealed');
+  });
+
+  it('⑭ 스키마 밖 쓰레기 outcome("yes") = 기록하지 않는다', async () => {
+    await sealedDue();
+    const { seen } = scriptElicitor([{ action: 'accept', content: { outcome: 'yes' } }]);
+    wire();
+    arm();
+    await settleFlush();
+    expect(seen.length).toBe(1); // what_happened까지 가지 않는다
+    expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('sealed');
+  });
+
+  it('⑮ 경합: 물음이 떠 있는 동안 본 대화에서 먼저 정산됨 → ALREADY_SETTLED 흡수, 원장 일관', async () => {
+    await sealedDue();
+    const { seen } = scriptElicitor([
+      // 물음 1이 뜬 사이, 사용자가 본 대화에서 같은 결정을 먼저 정산한다.
+      async () => {
+        await settle.handler({
+          argus_dir: dir, id: 'amb-1', outcome: 'held', outcome_source: 'user_stated',
+          what_happened: '본 대화에서 먼저 정산함', today_override: TODAY_DUE,
+        });
+        return { action: 'accept' as const, content: { outcome: 'missed' } };
+      },
+      { action: 'accept', content: { what_happened: '늦게 도착한 ambient 답' } },
+    ]);
+    wire();
+    arm();
+    await settleFlush(120);
+    expect(seen.length).toBe(2);
+    const entry = replayLedger(dir, TODAY_DUE).contracts.get('amb-1');
+    expect(entry?.status).toBe('settled');
+    // 먼저 도착한 본 대화의 정산이 이긴다 — ambient의 늦은 답은 가드에 막혀 버려진다.
+    expect(entry?.outcome).toBe('held');
+  });
+
+  it('⑯ arm과 발사 사이 디렉토리 소멸 = 무충돌·무질문', async () => {
+    await sealedDue();
+    const { seen } = scriptElicitor([{ action: 'accept', content: { outcome: 'held' } }]);
+    wire();
+    arm();
+    fs.rmSync(dir, { recursive: true, force: true }); // 발사 전에 세계가 사라짐
+    await settleFlush();
+    expect(seen).toEqual([]); // due를 다시 셀 수 없으면 침묵
+  });
+
+  it('⑰ 상태 기록 불능(경로가 디렉토리) = 발사하지 않는다 (상한 없는 질문 금지)', async () => {
+    await sealedDue();
+    fs.mkdirSync(path.join(dir, 'ambient-elicit-state.json')); // rename이 실패하게
+    const { seen } = scriptElicitor([{ action: 'accept', content: { outcome: 'held' } }]);
+    wire();
+    arm();
+    await settleFlush();
+    expect(seen).toEqual([]);
+  });
+
+  it('⑱ due 여러 건 = 가장 오래된 것 하나만 묻는다 (질문은 한 번에 하나)', async () => {
+    await seal.handler({ argus_dir: dir, id: 'late', predicate: '8월 셋째 주까지 신규 가입이 500명을 넘는다', check_by: '2026-08-20', predicate_owner: 'user', today_override: '2026-07-01' });
+    await sealedDue('mid'); // check_by 2026-09-01
+    await seal.handler({ argus_dir: dir, id: 'early', predicate: '8월 첫 주까지 파트너 계약서에 서명이 완료된다', check_by: '2026-08-01', predicate_owner: 'user', today_override: '2026-07-01' });
+    const { seen } = scriptElicitor([
+      { action: 'accept', content: { outcome: 'held' } },
+      { action: 'accept', content: { what_happened: '지켜짐' } },
+    ]);
+    wire();
+    arm();
+    await settleFlush(120);
+    expect(seen.length).toBe(2); // outcome + what_happened — 결정 하나 분량뿐
+    expect(seen[0]).toContain('파트너 계약서'); // 가장 오래된 due가 뽑힌다
+    const state = replayLedger(dir, TODAY_DUE);
+    expect(state.contracts.get('early')?.status).toBe('settled');
+    expect(state.contracts.get('mid')?.status).toBe('sealed'); // 나머지는 건드리지 않음
+    expect(state.contracts.get('late')?.status).toBe('sealed');
+  });
+
+  it('⑲ what_happened가 공백뿐 = 기록하지 않는다 (날조 금지)', async () => {
+    await sealedDue();
+    const { seen } = scriptElicitor([
+      { action: 'accept', content: { outcome: 'held' } },
+      { action: 'accept', content: { what_happened: '   ' } },
+    ]);
+    wire();
+    arm();
+    await settleFlush(80);
+    expect(seen.length).toBe(2);
+    expect(replayLedger(dir, TODAY_DUE).contracts.get('amb-1')?.status).toBe('sealed');
+  });
+
+  it('⑳ still_pending 뒤 defer 물음 거절 = 아무것도 안 바뀌고 무충돌', async () => {
+    await sealedDue();
+    const { seen } = scriptElicitor([
+      { action: 'accept', content: { outcome: 'still_pending' } },
+      { action: 'decline' },
+    ]);
+    wire();
+    arm();
+    await settleFlush(80);
+    expect(seen.length).toBe(2);
+    const entry = replayLedger(dir, TODAY_DUE).contracts.get('amb-1');
+    expect(entry?.status).toBe('sealed');
+    expect(entry?.check_by).toBe('2026-09-01'); // 확인일 그대로 — 다음에 다시 due
+  });
+});

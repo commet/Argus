@@ -110,6 +110,12 @@ describe('ambient-nudge 훅 (UserPromptSubmit)', () => {
     expect(ctx).toContain('argus_check_in'); // 내용은 서버에서 — 두뇌 하나
     expect(ctx).toContain('자유 텍스트'); // 전제 질문의 fork 금지 형태 규칙
     expect(ctx).toContain('한 번에 하나');
+    // MCP 미연결 열화 규칙 (e2e run C 실측: 도구 없는 지침은 주입 의심을 유발)
+    expect(ctx).toContain('조용히 무시');
+    expect(ctx).toContain('플러그인 훅'); // 출처 자기 명시
+    // argus_dir 절대경로 주입 (e2e run E' 실측: 경로를 추측에 맡기면 빈
+    // 기본 원장을 읽고 due 0건 — 규칙 18: 경로는 1급 표면)
+    expect(ctx).toContain(path.join(repoDir, '.argus'));
     expect(ctx).not.toContain(PREDICATE_BODY); // untrusted 본문은 절대 미주입
     expect(ctx).not.toContain(PREMISE_BODY);
   });
@@ -159,5 +165,60 @@ describe('ambient-nudge 훅 (UserPromptSubmit)', () => {
     expect(run()).not.toBe('');
     // 발사 후 상태는 복구되어 있다 (다음 게이트가 정상 작동)
     expect(() => JSON.parse(fs.readFileSync(path.join(dataDir, 'ambient-state.json'), 'utf8'))).not.toThrow();
+  });
+
+  // ── 적대 케이스 — 어떤 파손도 사용자의 턴을 막거나 nudge 폭주로 새지 않는다 ──
+
+  it('⑪ LOGBOOK이 쓰레기 바이트 = 침묵, exit 0', () => {
+    bind(); writeLedgerLine(ULID);
+    fs.writeFileSync(path.join(repoDir, '.argus', 'LOGBOOK.md'), '\x00\x01garbage no cursor here');
+    expect(run()).toBe('');
+  });
+
+  it('⑫ project.json 파손 = 침묵, exit 0', () => {
+    fs.mkdirSync(path.join(repoDir, '.argus'), { recursive: true });
+    fs.writeFileSync(path.join(repoDir, '.argus', 'project.json'), '{not json');
+    writeLedgerLine(ULID);
+    expect(run()).toBe('');
+  });
+
+  it('⑬ stdin 빈 입력 = 침묵, exit 0', () => {
+    bind(); writeLedgerLine(ULID); freshLogbook(DUE_FIXTURE);
+    const out = execFileSync('node', [HOOK], {
+      input: '', env: { ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir } as NodeJS.ProcessEnv, encoding: 'utf8',
+      // cwd가 페이로드에 없으면 process.cwd()로 폴백 — 바인딩 없는 곳이므로 침묵
+      cwd: home,
+    });
+    expect(out).toBe('');
+  });
+
+  it('⑭ stdin이 JSON이 아님 = 페이로드 무시하고도 안전 (침묵 또는 정상 발사, 절대 비정상 종료 없음)', () => {
+    bind(); writeLedgerLine(ULID); freshLogbook(DUE_FIXTURE);
+    const out = execFileSync('node', [HOOK], {
+      input: 'garbage{{{not json',
+      env: { ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir } as NodeJS.ProcessEnv,
+      encoding: 'utf8', cwd: repoDir, // cwd 폴백이 바인딩된 repo → due가 보이면 발사도 정상
+    });
+    // 계약은 "exit 0 + 유효한 출력(무 또는 JSON)"이다.
+    if (out !== '') expect(() => JSON.parse(out)).not.toThrow();
+  });
+
+  it('⑮ session_id 부재 = 발사는 되고, 시간 쿨다운이 세션 가드를 대신한다', () => {
+    bind(); writeLedgerLine(ULID); freshLogbook(DUE_FIXTURE);
+    const runNoSession = () => execFileSync('node', [HOOK], {
+      input: JSON.stringify({ cwd: repoDir }), // session_id 없음
+      env: { ...process.env, ARGUS_HOME: home, CLAUDE_PLUGIN_DATA: dataDir } as NodeJS.ProcessEnv,
+      encoding: 'utf8',
+    });
+    expect(runNoSession()).not.toBe('');
+    expect(runNoSession()).toBe(''); // 4시간 시간 쿨다운이 잡는다
+  });
+
+  it('⑯ 원장 마지막 줄 파손 = 보수적으로 침묵 (뒤처졌을 가능성이 있는 숫자로 nudge하지 않는다)', () => {
+    bind();
+    fs.mkdirSync(path.join(home, 'projects', REPO_ID), { recursive: true });
+    fs.writeFileSync(path.join(home, 'projects', REPO_ID, 'ledger.jsonl'), '{corrupt last line\n');
+    freshLogbook(DUE_FIXTURE); // 커서 ULID ↔ 원장 판독 불능(null) → 불일치 → 침묵
+    expect(run()).toBe('');
   });
 });

@@ -55,8 +55,13 @@ import type { McpToolResult } from './envelope.js';
  */
 
 const COOLDOWN_MS = 4 * 60 * 60 * 1000; // 세션(연결)을 넘는 재발사 간격
-const ASK_TIMEOUT_MS = 120_000; // 렌더 안 하는 호스트에서 조용히 접는 시한
+const DEFAULT_ASK_TIMEOUT_MS = 120_000; // 렌더 안 하는 호스트에서 조용히 접는 시한
 const DEFAULT_QUIET_MS = 45_000; // 마지막 툴 호출 뒤 이만큼 조용하면 발사
+
+function askTimeoutMs(): number {
+  const raw = Number(process.env['ARGUS_AMBIENT_ASK_TIMEOUT_MS']);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_ASK_TIMEOUT_MS;
+}
 
 type SettleHandler = (args: Record<string, unknown>) => Promise<McpToolResult>;
 type Serialize = <T>(fn: () => Promise<T>) => Promise<T>;
@@ -179,7 +184,7 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
           },
         },
       ),
-      ASK_TIMEOUT_MS,
+      askTimeoutMs(),
     );
     const outcome = picked?.['outcome'];
     if (outcome !== 'held' && outcome !== 'avoided' && outcome !== 'partial' && outcome !== 'still_pending' && outcome !== 'missed') {
@@ -207,7 +212,7 @@ async function fire(dir: string, todayOverride?: string): Promise<void> {
             },
           },
         ),
-        ASK_TIMEOUT_MS,
+        askTimeoutMs(),
       );
       whatHappened = typeof wh?.['what_happened'] === 'string' ? (wh['what_happened'] as string).trim() : '';
       if (!whatHappened) return; // 현실 서술 없이는 종결 정산을 쓰지 않는다

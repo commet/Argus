@@ -46,9 +46,14 @@ SDK(`Server.elicitInput`)도 연결이 살아있는 한 아무 때나 보낼 수
 
 | 호스트 | autofire (S1꼴) | arm 후 지연 (S2꼴) | 확인일 |
 |---|---|---|---|
-| Claude Code (CLI) | 미확인 | 미확인 | — |
+| Claude Code 2.1.210 (headless `-p`) | ✅ capability 선언 + OOB 요청 수신, **auto-cancel** (UI 없음 — 17ms 내 `action:"cancel"`, 무해) | 동일 | 2026-07-15 (샌드박스 실측) |
+| Claude Code (인터랙티브 TUI) | 미확인 — 샌드박스에서 온보딩/로그인 게이트로 미도달, 로컬 확인 필요 | 미확인 | — |
 | Claude Desktop / claude.ai | 미확인 | 미확인 | — |
 | Cursor | 미확인 | 미확인 | — |
+
+headless 실측의 함의: 렌더 없는 호스트도 **조용히 cancel로 답한다** — 서버 쪽
+발사 게이트(ambient-elicit.ts)는 cancel을 decline과 같게 취급하므로 최악의
+경우에도 "4시간에 한 번 아무 일도 안 일어남"이 전부다 (무해 확인).
 
 ## 제품에 얹을 때의 설계 제약 (스파이크가 확정한 것)
 
