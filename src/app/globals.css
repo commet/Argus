@@ -272,8 +272,21 @@ body {
 .argus-mascot-enter {
   animation: argus-mascot-enter 420ms var(--ease-wave) both;
 }
+/* Playful wag — mostly still, then a quick happy shake every ~4.6s. Pivots from
+   the base like a tail-wag. For warm "moment" surfaces (seal / settle). */
+@keyframes argus-mascot-wiggle {
+  0%, 70%, 100% { transform: translateY(0) rotate(0deg); }
+  76% { transform: translateY(-2px) rotate(-6deg); }
+  82% { transform: translateY(0) rotate(5deg); }
+  88% { transform: translateY(-1px) rotate(-3deg); }
+  94% { transform: translateY(0) rotate(1.5deg); }
+}
+.argus-mascot-wiggle {
+  animation: argus-mascot-wiggle 4.6s ease-in-out infinite;
+  transform-origin: 50% 80%;
+}
 @media (prefers-reduced-motion: reduce) {
-  .voyage-anim, .voyage-fog, .argus-mascot-breathe, .argus-mascot-enter { animation: none; }
+  .voyage-anim, .voyage-fog, .argus-mascot-breathe, .argus-mascot-enter, .argus-mascot-wiggle { animation: none; }
 }
 
 /* ── 봉인 의식 (앱 레지스터, P1-A3 / 07 S1) — 작업 화면이 허용하는 유일한 의식.
