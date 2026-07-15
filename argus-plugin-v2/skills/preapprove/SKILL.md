@@ -1,9 +1,9 @@
 ---
-name: helm
-description: EXPERIMENTAL — pre-approval evidence check for agent plans (the "keel scan"), separate from the sail pipeline. Before the user approves a plan (ExitPlanMode, a plan doc, a migration/deploy/delete proposal), helm runs a silent load-bearing scan and speaks ONLY when an unsupported claim touches an irreversible operation. Default output is silence. Full divergence probe is opt-in. Seals accepted bets into .argus/ledger/ (same schema as argus-watch). Invoked as `/argus:helm`.
+name: preapprove
+description: EXPERIMENTAL — pre-approval evidence check for agent plans (the "keel scan"), separate from the sail pipeline. Before the user approves a plan (ExitPlanMode, a plan doc, a migration/deploy/delete proposal), helm runs a silent load-bearing scan and speaks ONLY when an unsupported claim touches an irreversible operation. Default output is silence. Full divergence probe is opt-in. Seals accepted bets into .argus/ledger/ (same schema as argus-watch). Invoked as `/argus:preapprove`.
 ---
 
-# /argus:helm — 계획 승인 전 근거 점검 (용골 스캔)
+# /argus:preapprove — 계획 승인 전 근거 점검 (용골 스캔)
 
 > Status: **experimental.** helm은 sail 파이프라인의 단계가 아니라 독립
 > 보조 스킬이다. 사용자에게 보이는 모든 출력(스캔 결과 한 줄, 발화문,
@@ -34,10 +34,10 @@ description: EXPERIMENTAL — pre-approval evidence check for agent plans (the "
 
 ## When To Run
 
-- `/argus:helm` — 직전 대화에서 승인 대기 중인 계획(ExitPlanMode 직전 계획,
+- `/argus:preapprove` — 직전 대화에서 승인 대기 중인 계획(ExitPlanMode 직전 계획,
   마지막으로 제시된 plan 텍스트)을 자동으로 집는다.
-- `/argus:helm @<plan-file>` — 계획 문서를 직접 지정.
-- `/argus:helm --full` — C 분기 탐침까지 (3 독립 샘플 → 갈림, opt-in 전용).
+- `/argus:preapprove @<plan-file>` — 계획 문서를 직접 지정.
+- `/argus:preapprove --full` — C 분기 탐침까지 (3 독립 샘플 → 갈림, opt-in 전용).
 
 훅 연동(선택, 별도 설정): 계획 승인 직전 1회 제안. 같은 세션에서 두 번 제안 금지.
 
@@ -121,7 +121,7 @@ description: EXPERIMENTAL — pre-approval evidence check for agent plans (the "
 ## Step 3 — 반자동 정산 (실행 완료 후)
 
 계획이 실행된 흔적(해당 커밋/배포)이 보이고 check_by가 지났으면, 다음 helm 호출
-시작에 한 줄: `지난번 그 계획 — 그래서, 어떻게 됐어요?` → `/argus:settle` 안내
+시작에 한 줄: `지난번 그 계획 — 그래서, 어떻게 됐어요?` → `/argus:resolve` 안내
 (플러그인의 정산 스킬 — 같은 ledger를 읽고 쓴다). pending = check_by 연장
 (amend, 이력 보존). `argus-watch` CLI가 설치된 환경에서는 `argus-watch settle
 <id>`도 같은 결과를 낸다 — 어느 쪽이든 원장은 하나다.

@@ -4,11 +4,11 @@ description: "Analyze your decision-making patterns from the Argus journal. Show
 allowed-tools: Read
 ---
 
-> **⚠ Deprecated — superseded by `/argus:log`.** This skill reads only
+> **⚠ Deprecated — superseded by `/argus:journal`.** This skill reads only
 > `.argus/journal.md` (self-graded *analysis* scores), so it cannot see whether
-> your predictions actually came true. `/argus:log` reads the real settled
+> your predictions actually came true. `/argus:journal` reads the real settled
 > outcomes in `.argus/ledger/` and scales every claim to how many have settled —
-> it is the honest successor. **If `/argus:log` is available, recommend it and
+> it is the honest successor. **If `/argus:journal` is available, recommend it and
 > use it instead of this skill.** Run patterns only as a fallback when the v2
 > `/argus:*` pipeline is not installed.
 

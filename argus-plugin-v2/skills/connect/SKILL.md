@@ -54,7 +54,7 @@ prediction ledger are personal by default.
 
 `argus-watch` was the older ambient decision harvester and webapp bridge. Its
 normal product path has been absorbed into the plugin: `/argus:scan`,
-`/argus:seal`, `/argus:connect`, `/argus:push`, `/argus:pull`, and
+`/argus:predict`, `/argus:connect`, `/argus:push`, `/argus:pull`, and
 `/argus:sync`. The separate `argus-watch` CLI is legacy/advanced; normal users
 should not need it.
 

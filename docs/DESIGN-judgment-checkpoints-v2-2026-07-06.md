@@ -515,7 +515,7 @@ CODEX §11의 티어를 채택한다. 단, **집계 티어(2건+)는 이 시스�
 | # | 질문 | 결정 |
 |---|---|---|
 | 1 | standard/drift를 사용자 노출 타입으로? | **내부 전용.** 사용자는 check prompt 문장만 본다. 타입 이름 노출은 분류 학습을 강요한다 — §4 |
-| 2 | growth note 즉시 vs /argus:log? | 즉시 = 이번 기록의 대조 1건만(1문장). 집계는 patterns/log 소관 — §11 |
+| 2 | growth note 즉시 vs /argus:journal? | 즉시 = 이번 기록의 대조 1건만(1문장). 집계는 patterns/log 소관 — §11 |
 | 3 | 반복 unclear 시 void 제안 시점? | 같은 체크포인트에서 같은 reason으로 **2회 연속** unclear면 3번째 nudge에 void 옵션을 나란히 제시. 자동 void 금지(사용자의 결정) — §9.2의 soft-nudge 3버튼이 그 자리 |
 | 4 | 저장 후 수정 가능? 원 기준 보존은? | 수정 가능. **append-only amend** — premises-core의 amend 상태기계(accept/refine/replace/retire)를 그대로 재사용. 원문은 항상 보존되고 standard check는 원 기준을 보여준다 — §4.4 |
 | 5 | 최소 스키마 변경? | 컬럼 추가 0. 전부 `projects.decision_contract` jsonb 내부 (`primary_checkpoint`, `ambiguity`, `growth_note`) + `PredicateVerdict`에 `'missed'` 리터럴 추가 — §3.1, §7.2. schema-drift 테스트는 컬럼 불변이므로 무변경. 단 plugin import 파서(`plugin-parse.ts`)가 새 필드를 관용적으로 통과시키는지 확인 |

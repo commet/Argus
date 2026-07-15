@@ -51,7 +51,7 @@ if (manifest) {
   check(typeof manifest.version === "string" && manifest.version.length > 0, "manifest must declare a version");
 }
 
-const SKILLS = ["sail", "scan", "seal", "clarify", "team", "verify", "boss", "revise", "chart", "helm", "help", "settle", "log", "connect", "push", "pull", "sync"];
+const SKILLS = ["sail", "scan", "predict", "clarify", "team", "verify", "boss", "revise", "versions", "preapprove", "help", "resolve", "journal", "connect", "push", "pull", "sync"];
 for (const skill of SKILLS) {
   const skillPath = path.join(root, "skills", skill, "SKILL.md");
   check(fs.existsSync(skillPath), `missing skills/${skill}/SKILL.md (auto-discovered as /argus:${skill})`);
@@ -268,7 +268,7 @@ if (fs.existsSync(verifySkillPath)) {
 
 // Settlement is reality-only (v2.6.0): settle must NOT auto-offer /argus:sail on
 // a missed/partial outcome (reopen-on-settle was over-fire).
-const settleSkillPath = path.join(root, "skills", "settle", "SKILL.md");
+const settleSkillPath = path.join(root, "skills", "resolve", "SKILL.md");
 if (fs.existsSync(settleSkillPath)) {
   const settle = fs.readFileSync(settleSkillPath, "utf8");
   check(!/열린 질문이 하나 남았네요 — 잡아보려면: \/argus:sail/.test(settle), "settle must not auto-offer /argus:sail on a missed/partial outcome (reopen-on-settle over-fire, v2.6.0)");
@@ -321,7 +321,7 @@ if (fs.existsSync(pushScript)) {
 }
 
 const decisionLedgerScript = path.join(root, "scripts", "decision-ledger.js");
-check(fs.existsSync(decisionLedgerScript), "missing scripts/decision-ledger.js (used by /argus:scan and /argus:seal)");
+check(fs.existsSync(decisionLedgerScript), "missing scripts/decision-ledger.js (used by /argus:scan and /argus:predict)");
 if (fs.existsSync(decisionLedgerScript)) {
   const result = spawnSync(process.execPath, ["--check", decisionLedgerScript], { encoding: "utf8" });
   check(result.status === 0, `decision-ledger syntax check failed: ${result.stderr || result.stdout}`);

@@ -62,7 +62,7 @@ improvise a crew without it.
 4. Compute next version label using rules from `${CLAUDE_PLUGIN_ROOT}/lib/session/version-numbering.md`:
    - v0.1 directory exists already (created by `/argus:clarify`).
    - **Marker-file detection for re-run**: a version is considered "team-completed" when `versions/{label}/workers.json` exists. If the latest version's `workers.json` exists, this invocation is a re-run → compute the next label via `nextChildLabel(parent_label, existing_siblings_under_same_parent)` from version-numbering.md.
-   - **Branch from the checked-out draft, not the newest.** `parent_label` is the `version_label` of `session.active_draft_id` (set by `/argus:chart --checkout` or the last run), NOT simply the newest label on disk. On a `--revise` or post-checkout run this is what makes the new draft a proper child/branch (e.g. revising `v0.1` while `v0.2` exists yields `v0.1.1`, not a `v0.3` main-line). Only when `active_draft_id` is unset/points to the latest does this reduce to "main-line continuation" (`v0.2`).
+   - **Branch from the checked-out draft, not the newest.** `parent_label` is the `version_label` of `session.active_draft_id` (set by `/argus:versions --checkout` or the last run), NOT simply the newest label on disk. On a `--revise` or post-checkout run this is what makes the new draft a proper child/branch (e.g. revising `v0.1` while `v0.2` exists yields `v0.1.1`, not a `v0.3` main-line). Only when `active_draft_id` is unset/points to the latest does this reduce to "main-line continuation" (`v0.2`).
    - If `workers.json` does NOT exist in the latest version dir, this is the first team run for that version → use the existing label (do NOT create a new version dir). The team populates the same dir clarify already opened.
 5. Create `versions/{label}/` directory only if a new version was computed; otherwise reuse existing.
 6. Read locale from `.argus/config.yaml` (default `ko`). All user-facing text in this skill (AskUserQuestion options, report strings, worker instructions) uses this locale.
@@ -237,7 +237,7 @@ Produce `versions/{label}/team_plan.json`:
 
 **Role of team_plan.json — internal orchestration + forensic.**
 - **Step 4–6 read it** to know which agent runs in which stage with which framework. It IS the working plan.
-- **Kept post-execution** so `/argus:chart` (or any future debugger) can answer "why did *this* team get deployed for this decision?" If a deployment looked weird, the assignment scoring + reconciliation results that produced it are inspectable here.
+- **Kept post-execution** so `/argus:versions` (or any future debugger) can answer "why did *this* team get deployed for this decision?" If a deployment looked weird, the assignment scoring + reconciliation results that produced it are inspectable here.
 - **Not consumed by sail Step 7** — the final decision card draws from `scaffold.json` + `boss_feedback.json`. team_plan is intentionally *upstream* of the user-facing artifact: it's how the team was planned, not what the team produced.
 
 Stage rules:

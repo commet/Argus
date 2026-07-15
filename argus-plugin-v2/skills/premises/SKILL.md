@@ -1,9 +1,9 @@
 ---
-name: track
-description: View and correct the tracked items of a decision — its premises, phenomena, conclusions, and open questions — and turn per-item change alerts on or off. AI extracts these items; you fix the ones that are wrong (over-interpreted, wrong starting point), and every correction is recorded as signal. Use when the user says "전제 고칠래", "이 전제 알림 꺼줘", "결정 항목 보여줘", "the AI got this premise wrong", or after a decision is sealed and its items should be reviewed. Invoked as `/argus:track`.
+name: premises
+description: View and correct the tracked items of a decision — its premises, phenomena, conclusions, and open questions — and turn per-item change alerts on or off. AI extracts these items; you fix the ones that are wrong (over-interpreted, wrong starting point), and every correction is recorded as signal. Use when the user says "전제 고칠래", "이 전제 알림 꺼줘", "결정 항목 보여줘", "the AI got this premise wrong", or after a decision is sealed and its items should be reviewed. Invoked as `/argus:premises`.
 ---
 
-# /argus:track
+# /argus:premises
 
 **What this skill does:** Shows a decision broken into tracked items and lets the
 user **correct** any item and **toggle its change-alert**. Editing is the expected
@@ -80,8 +80,8 @@ Phenomena
 Open questions
   [Q1] {{text}}
 
-Edit: /argus:track edit P1 · Alert: /argus:track alert P1 off · Re-check: /argus:track check
-Open question: /argus:track open "…" · Reconsider: /argus:track reconsider Q1
+Edit: /argus:premises edit P1 · Alert: /argus:premises alert P1 off · Re-check: /argus:premises check
+Open question: /argus:premises open "…" · Reconsider: /argus:premises reconsider Q1
 ```
 Show at most ~12 items; note if more.
 
@@ -117,7 +117,7 @@ For `alert <ref> <mode>`, append `{event:"alert", id, mode, at}`. Confirm in one
 `{{ref}} 알림: {{mode}}.` For an external premise, `on_change` means "re-check the
 fact periodically and tell you only if it actually changed."
 
-### Step 5 — Re-check monitored premises (`/argus:track check`)
+### Step 5 — Re-check monitored premises (`/argus:premises check`)
 The living-premises alert: re-check whether a premise's fact still holds, and pull
 the user back in ONLY when it actually changed. This is on-demand (no infra) — the
 firing threshold is high, so silence is the common result.
@@ -149,9 +149,9 @@ Open questions are things the user EXPLICITLY left undecided. Argus NEVER invent
 one from a sealed decision — re-opening a closed call is a mirror-clause violation.
 The only source is the user:
 
-- `/argus:track open "<text>"` → append `{"event":"add","id":"item_{decision}_q{n}",
+- `/argus:premises open "<text>"` → append `{"event":"add","id":"item_{decision}_q{n}",
   "decision_id":"{decision}","type":"open_question","text":"<text>","source":"user","at":"{ISO}"}`.
-- `/argus:track reconsider <ref>` for an `open_question` item:
+- `/argus:premises reconsider <ref>` for an `open_question` item:
   1. Present the question verbatim.
   2. Offer **2 short, balanced example leans (A / B)** — concrete starting points to
      think against, each naming a real cost. These are OPTIONS, never a recommendation.

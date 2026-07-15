@@ -352,7 +352,7 @@ infer resistance from tone or guess it from a first-time question.
   계속 틀을 잡아볼까요?" / en: "This has been open a while with no new
   information — so more analysis may not be the missing piece. Want to set the
   smallest real-world test instead, or keep framing?" Route the test through the
-  settle loop (`/argus:settle`) rather than the crew.
+  settle loop (`/argus:resolve`) rather than the crew.
 
 When any non-open branch fires, this is one of the few places clarify answers
 inline instead of building a scaffold — deliberate, and symmetric with the
@@ -422,7 +422,7 @@ Write result to `versions/v0.1/analysis.json`.
 
 **Step 3.5 — Emit decision items (living-premises layer).** After writing
 analysis.json, project the assumptions you ALREADY computed into trackable items
-so `/argus:track` and the premise-alert layer have data (design:
+so `/argus:premises` and the premise-alert layer have data (design:
 `internal design notes`). Reuse
 `hidden_assumptions` — do NOT run a second extraction (that would drift from the
 webapp's `item-extract-core`). Append one line per item to `.argus/items.jsonl`
@@ -439,7 +439,7 @@ Rules (keep it restrained):
   watch by default (on_change) — so mark sparingly.
 - **Append-only, emit once:** if `.argus/items.jsonl` already has an `extract` line
   for this `decision_id`, do NOT re-emit (a later deepening round leaves the items
-  alone — the user's edits via `/argus:track` are the authority, never overwritten).
+  alone — the user's edits via `/argus:premises` are the authority, never overwritten).
 - Do not print anything about this to the user — it is a silent side-write.
 
 ### Step 3 — Framing validation (conditional)

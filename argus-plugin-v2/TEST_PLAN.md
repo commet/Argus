@@ -269,13 +269,13 @@ The simulation fails when a Current Heading:
 
 ---
 
-## TC-HELM — /argus:helm 용골 스캔 (W2.4, P0.B 침묵 제약의 라이브 검증)
+## TC-HELM — /argus:preapprove 용골 스캔 (W2.4, P0.B 침묵 제약의 라이브 검증)
 
 > 사전 등록 합격선 (사후 채점 편향 차단): 아래 3케이스를 **순서대로, 격리 세션에서**.
 > "잔소리"의 정의: 가역적 계획에 대한 모든 비침묵 발화.
 
 ### TC-HELM-1 — 가역적 계획 → 침묵
-`/argus:helm` 대상: 순수 리팩토링/문서 계획 (예: 컴포넌트 이름 정리 계획).
+`/argus:preapprove` 대상: 순수 리팩토링/문서 계획 (예: 컴포넌트 이름 정리 계획).
 **PASS** = 출력이 정확히 한 줄 ("용골 스캔 — 잡히는 하중 없음") 이하.
 **FAIL** = 하중/갈림/제안 중 무엇이든 발화.
 
@@ -325,7 +325,7 @@ helm을 훅에 연결하지 마라.
 ### TC-ST-1 — 정산 기본 흐름
 사전 조건: `.argus/ledger/ledger.jsonl`에 check_by가 지난 sealed 계약 1건
 (harvest+seal 수동 작성 또는 이전 helm/watch 봉인).
-`/argus:settle` 실행.
+`/argus:resolve` 실행.
 **PASS** = ① AskUserQuestion 1회, 선택지에 held/missed/partial/push/skip 전부
 ② 선택 후 ledger에 `settle`(또는 push 시 `amend`) 이벤트가 **append**됨 —
 기존 줄 수정/삭제 0 ③ Track record 줄이 카운트만 보여줌 (칭찬/질책 어휘 0)
@@ -335,23 +335,23 @@ helm을 훅에 연결하지 마라.
 ### TC-ST-2 — 베어링 시드 임포트 정산
 사전 조건: ledger 없음, `sessions/<id>/versions/<label>/current_bearing.json`에
 check_by 지난 `contract_seed`만 존재.
-`/argus:settle` 실행 → 정산.
+`/argus:resolve` 실행 → 정산.
 **PASS** = ① ledger에 `bearing:<session-id>:<label>` id로 harvest+seal 임포트
-후 settle ② 베어링 파일은 바이트 단위로 미변경 ③ 직후 `/argus:settle` 재실행
+후 settle ② 베어링 파일은 바이트 단위로 미변경 ③ 직후 `/argus:resolve` 재실행
 시 "No contracts due" ④ (플러그인 설치 환경) 다음 세션 시작 훅 침묵 +
 스테이터스라인 OVERDUE 없음 — 2.3.0의 영구 OVERDUE 루프 회귀 체크.
 
 ### TC-ST-3 — 정산할 것 없음 → 한 줄
-due 계약 0 상태에서 `/argus:settle`.
+due 계약 0 상태에서 `/argus:resolve`.
 **PASS** = "No contracts due. Next check-by: ..." 정확히 한 줄. 파일 쓰기 0.
 
 ### TC-LOG-1 — 항해일지 기본
-세션 2개 이상 + sealed 계약 1개 이상인 프로젝트에서 `/argus:log`.
+세션 2개 이상 + sealed 계약 1개 이상인 프로젝트에서 `/argus:journal`.
 **PASS** = 한 화면 이내, Voyages/Recent/Contracts/Record 섹션, 기계 장치
 어휘(worker/schema/phase) 0, 쓰기 0.
 
 ### TC-LOG-2 — `--insights` 게이트
-정산 2건 이하 상태에서 `/argus:log --insights`.
+정산 2건 이하 상태에서 `/argus:journal --insights`.
 **PASS** = 인사이트 거부 + "N건 더 필요" 안내. 정산 3건 이상이면 최대 3줄,
 각 줄이 구체 엔트리를 인용 (일반론 = FAIL).
 

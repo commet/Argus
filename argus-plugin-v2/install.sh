@@ -194,14 +194,14 @@ fi
 # resolves its script via ${CLAUDE_PLUGIN_ROOT}, which only exists under a plugin
 # install — a copy install cannot run it, so we don't copy it and say so instead.
 warn "The overdue-contract session reminder ships with the PLUGIN install only."
-info "Copy installs still get /settle and /log; only the automatic reminder is missing."
+info "Copy installs still get /resolve and /journal; only the automatic reminder is missing."
 
 if [ "$LINK_MODE" = false ] && [ -n "$TEMP_DIR" ]; then
   rm -rf "$TEMP_DIR"
 fi
 
 ERRORS=0
-for required in sail scan seal clarify team verify boss revise chart helm help settle log connect push pull sync; do
+for required in sail scan predict clarify team verify boss revise versions preapprove help resolve journal connect push pull sync; do
   if [ ! -f "$CLAUDE_DIR/skills/$required/SKILL.md" ]; then
     fail "Missing: $required"
     ERRORS=$((ERRORS + 1))

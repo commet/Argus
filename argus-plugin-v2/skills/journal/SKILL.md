@@ -1,16 +1,16 @@
 ---
-name: log
-description: The voyage log — a one-screen view across ALL Argus sessions in this project; recent decisions and their courses, sealed contracts, settled outcomes, and your calibration record. Read-only and mechanical by default; `--insights` adds one LLM-written pattern note once enough contracts are settled. Use when the user asks "what have I decided here", "show my track record", "how good are my predictions", or wants the decision history. Invoked as `/argus:log`.
+name: journal
+description: The voyage log — a one-screen view across ALL Argus sessions in this project; recent decisions and their courses, sealed contracts, settled outcomes, and your calibration record. Read-only and mechanical by default; `--insights` adds one LLM-written pattern note once enough contracts are settled. Use when the user asks "what have I decided here", "show my track record", "how good are my predictions", or wants the decision history. Invoked as `/argus:journal`.
 ---
 
-# /argus:log
+# /argus:journal
 
 **What this skill does:** Aggregates the project's decision history —
 `.argus/sessions/` + `.argus/ledger/ledger.jsonl` — into one screen. This is
 the view that makes the accumulated history visible: what was decided, what
 was predicted, and how those predictions fared.
 
-`/argus:chart` is depth (one session's version tree); `/argus:log` is breadth
+`/argus:versions` is depth (one session's version tree); `/argus:journal` is breadth
 (every voyage in the project).
 
 **Default behavior:** read-only, no LLM, no mutation. Locale from
@@ -73,10 +73,10 @@ Recent:
 
 Contracts: {{sealed}} sealed · {{open}} open{{if overdue}} · {{overdue}} OVERDUE{{endif}}
 Record:    held {{h}} · missed {{a}} · partial {{p}}{{if T==0}} (nothing settled yet){{endif}}
-{{if overdue}}Next: /argus:settle — {{overdue}} contract(s) past check-by{{endif}}
+{{if overdue}}Next: /argus:resolve — {{overdue}} contract(s) past check-by{{endif}}
 {{if !overdue && open}}Next check-by: {{nearest date}} — "{{predicate clipped 60}}"{{endif}}
 
-Reopen a voyage: /argus:chart --session <id> · /argus:sail --resume <id>
+Reopen a voyage: /argus:versions --session <id> · /argus:sail --resume <id>
 ```
 
 Keep it under one terminal screen. No worker counts, no schema names, no

@@ -150,7 +150,7 @@ Show what changed and whether it held (locale-aware):
 {{if still challenged AND converging}}⚠ Still challenged: {{claim}} — one more agent pass may resolve it ({{revise_cycles}}/{{max_revise_cycles}}){{endif}}
 {{if still challenged AND NOT converging (repeat or cap reached)}}⛔ Not converging: {{claim}} — escalated to a human check ({{reason}}); another auto-pass won't help{{endif}}
 
-**Next:** `/argus:boss` to re-review · `/argus:chart` to see the tree{{if converging AND under cap}} · `/argus:revise` again if needed{{endif}}
+**Next:** `/argus:boss` to re-review · `/argus:versions` to see the tree{{if converging AND under cap}} · `/argus:revise` again if needed{{endif}}
 ```
 
 ---

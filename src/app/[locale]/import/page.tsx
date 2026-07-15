@@ -190,7 +190,7 @@ export default function ImportPage() {
           {L(', 과거 Claude Code 결정 회수는 ', '; past Claude Code decisions start with ')}
           <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:scan</code>
           {L(' 후 ', ', then ')}
-          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:seal</code>
+          <code className="text-[11px] font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded">/argus:predict</code>
           {L('입니다.', '.')}
         </p>
       </div>

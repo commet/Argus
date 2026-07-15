@@ -1,9 +1,9 @@
 ---
-name: settle
-description: Settle decision contracts whose check-by date has arrived — compare each sealed prediction against what actually happened and record the outcome in the ledger. This is the back half of the decision-contract loop (seal → reality → settle) and what builds the user's calibration history over time. Use when the session-start reminder fires, when /argus:chart or /argus:log shows overdue contracts, or when the user says "정산" / "settle". Invoked as `/argus:settle`.
+name: resolve
+description: Settle decision contracts whose check-by date has arrived — compare each sealed prediction against what actually happened and record the outcome in the ledger. This is the back half of the decision-contract loop (seal → reality → settle) and what builds the user's calibration history over time. Use when the session-start reminder fires, when /argus:versions or /argus:journal shows overdue contracts, or when the user says "정산" / "settle". Invoked as `/argus:resolve`.
 ---
 
-# /argus:settle
+# /argus:resolve
 
 **What this skill does:** Finds decision contracts past (or at) their check-by
 date, asks the user what reality did, and appends the outcome to
@@ -19,7 +19,7 @@ record — the thing that compounds and that no fresh tool can replicate.
 ## When to run
 
 - The SessionStart reminder printed an overdue-contract line.
-- `/argus:chart` / `/argus:log` shows contracts past check-by.
+- `/argus:versions` / `/argus:journal` shows contracts past check-by.
 - The user says "정산하자" / "settle the contracts" / "how did that bet go?".
 
 Locale: read `config.locale` from `.argus/config.yaml`; all user-facing text
@@ -152,8 +152,8 @@ ledger (verbatim predicates and outcomes) stays local by default.
 {{if pending}}→ "{{predicate}}" pushed to {{new check_by}}{{endif}}
 
 Track record: {{S}} sealed · {{T}} settled — held {{h}} · missed {{a}} · partial {{p}}{{if T < 3}} (인사이트까지 {{3-T}}건){{endif}}
-{{if remaining due}}{{N}} more due — run /argus:settle again.{{endif}}
-{{if T >= 3}}Patterns across your voyages: /argus:log{{endif}}
+{{if remaining due}}{{N}} more due — run /argus:resolve again.{{endif}}
+{{if T >= 3}}Patterns across your voyages: /argus:journal{{endif}}
 ```
 
 **Settlement is reality-only — do NOT auto-offer `/argus:sail` on a missed or
@@ -205,4 +205,4 @@ for settle #2 — it quotes, it never editorializes.
   records reality; re-deciding is the user's explicit move.
 - Settling without an explicit user answer.
 - Rewriting `check_by` on a contract the user didn't choose to push.
-- Producing a long retrospective — that is `/argus:log --insights` territory.
+- Producing a long retrospective — that is `/argus:journal --insights` territory.

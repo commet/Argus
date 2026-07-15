@@ -58,8 +58,8 @@ The core loop is small:
 ```text
 Decide      /argus:sail
 Recover     /argus:scan
-Save check  /argus:seal
-Return      /argus:settle
+Save check  /argus:predict
+Return      /argus:resolve
 ```
 
 Plain language:
@@ -71,7 +71,7 @@ Plain language:
 
 There is more under the surface. `/argus:sail` usually calls the working commands
 for you: `/argus:clarify`, `/argus:team`, `/argus:verify`, `/argus:boss`, and
-`/argus:revise`. Use `/argus:log` and `/argus:chart` for history and voyage
+`/argus:revise`. Use `/argus:journal` and `/argus:versions` for history and voyage
 state; use `/argus:connect` and `/argus:sync` when you want the webapp paired.
 
 Argus may show a short local reminder when something is ready to check. It does
@@ -108,16 +108,16 @@ Nothing is sent to the webapp unless you run `/argus:sync` or `/argus:push`.
 |---|---|
 | `/argus:sail` | You have a decision to make. Start here. |
 | `/argus:scan` | You want to recover decision candidates from past Claude Code chats. |
-| `/argus:seal` | You want to save a check for later. |
-| `/argus:settle` | Argus asks what actually happened, or a check is due. |
-| `/argus:log` | You want to see your decision history and prediction record. |
-| `/argus:chart` | You want to inspect a voyage/version tree. |
+| `/argus:predict` | You want to save a check for later. |
+| `/argus:resolve` | Argus asks what actually happened, or a check is due. |
+| `/argus:journal` | You want to see your decision history and prediction record. |
+| `/argus:versions` | You want to inspect a voyage/version tree. |
 | `/argus:connect` | You want to pair this project with the webapp once. |
 | `/argus:sync` | You want the local plugin and webapp to agree. |
 | `/argus:help` | You want the shortest command map. |
 
 Advanced commands used by `/argus:sail`: `/argus:clarify`, `/argus:team`,
-`/argus:verify`, `/argus:boss`, `/argus:revise`, `/argus:helm`.
+`/argus:verify`, `/argus:boss`, `/argus:revise`, `/argus:preapprove`.
 
 ---
 

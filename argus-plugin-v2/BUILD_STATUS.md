@@ -49,7 +49,7 @@ argus-plugin-v2/
 | **M5** Analysis primacy | ✓ | /argus:clarify is mandatory first step; orchestrator refuses to run :team without it; clarify has self-check that surface != real_question. |
 | **M6** Stakes-driven agent selection | ✓ | classification.yaml has stakes → agent_count_max (2/3/4); team SKILL.md includes capability scoring formula + critic mandate for critical stakes. |
 | **M7** Commodity bot test | ✓ | Output is decision scaffold (not review doc); preserves contradictions (Cursor/Copilot average away); named MBTI boss (generic tools don't have); workers ON real artifacts. |
-| **M8** Archive growth | ✓ | .argus/sessions/ structure; /argus:chart renders tree; git-committable for team sharing. |
+| **M8** Archive growth | ✓ | .argus/sessions/ structure; /argus:versions renders tree; git-committable for team sharing. |
 | **M9** Worker not critic | ✓ | Every agent .md has explicit "You are a worker, NOT a critic"; team SKILL.md forbids workers critiquing each other; donghyuk.md has special clarification about risk analysis being WORK. |
 | **M10** Versioning-ready | ✓ | Every artifact written under versions/{label}/; Draft schema has parent_draft_id + version_label; version-numbering algorithm ported to lib/session/. |
 
@@ -233,7 +233,7 @@ When you return, please check:
 
 4. **team SKILL.md orchestration steps** — read `skills/team/SKILL.md`. The 11-step execution is dense. Is any step mis-specified? Particular attention: Step 4 (parallel spawn) and Step 9 (FinalScaffold construction).
 
-5. **version numbering behavior** — read `lib/session/version-numbering.md` + the /argus:chart tree rendering. Does the "해도" navigation feel right?
+5. **version numbering behavior** — read `lib/session/version-numbering.md` + the /argus:versions tree rendering. Does the "해도" navigation feel right?
 
 ## Confidence assessment
 
@@ -354,7 +354,7 @@ gate.
 - Added `data/schemas/verification-ledger.json`.
 - Updated `session.json`, `worker-result.json`, `final-scaffold.json`, and
   `minimal-scaffold.json` for verification state.
-- Updated `/argus:sail`, `/argus:team`, `/argus:boss`, and `/argus:chart` so
+- Updated `/argus:sail`, `/argus:team`, `/argus:boss`, and `/argus:versions` so
   medium/high routes run `clarify -> team -> verify -> boss`.
 - Updated statusline to show verification status, challenged claim count, and
   human check count.
@@ -447,11 +447,11 @@ bodies are cached at session start.
 
 ## v2.3.0 (shipped earlier today)
 
-Added the back half of the decision-contract loop: `/argus:settle` (outcome
-recording into the append-only ledger, bearing-seed import), `/argus:log`
+Added the back half of the decision-contract loop: `/argus:resolve` (outcome
+recording into the append-only ledger, bearing-seed import), `/argus:journal`
 (cross-session voyage log + `--insights`), clarify track-record injection,
 first-voyage hint, and routed the reminder hook / statusline / chart at
-`/argus:settle`. See CHANGELOG 2.3.0.
+`/argus:resolve`. See CHANGELOG 2.3.0.
 
 ## v2.3.1 (same-day hardening pass)
 
@@ -463,7 +463,7 @@ up. Four real bugs fixed:
    dismissed contracts kept firing the session-start reminder. Now replays the
    full `ledger.mjs` event set; reads both bearing spellings.
 2. Settled bearing seeds: hook + statusline counted `contract_seed`
-   unconditionally, so after `/argus:settle` imported and settled a seed, both
+   unconditionally, so after `/argus:resolve` imported and settled a seed, both
    surfaces flashed OVERDUE forever while settle said "no contracts due."
    Both now dedup against ledger ids (`bearing:<session>:<label>`) and, for
    root-level bearings, verbatim sealed predicates.
@@ -619,7 +619,7 @@ PM voyage ("보고서.pptx 임원회의 가져가도 되나?", no slash):
   undefined on documents, extraction temp dir, phase never completing, boss
   first_reaction demands, time-preview honesty).
 
-Settlement loop (/argus:settle on an overdue seed):
+Settlement loop (/argus:resolve on an overdue seed):
 - SURVIVED end-to-end: reminder → settle (seed import, append-only writes,
   write-verification gate passed) → hook/statusline/log all went silent via
   the same dedup — and the v2.4.1 안개 payoff line landed as designed ("당시

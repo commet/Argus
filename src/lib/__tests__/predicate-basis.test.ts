@@ -133,7 +133,7 @@ describe('summarizeRecord — luck count aggregates across projects', () => {
 describe('cross-surface parity — webapp basis set === plugin settle basis', () => {
   it('PREDICATE_BASES matches the plugin settle event basis values', () => {
     const settle = readFileSync(
-      join(process.cwd(), 'argus-plugin-v2/skills/settle/SKILL.md'),
+      join(process.cwd(), 'argus-plugin-v2/skills/resolve/SKILL.md'),
       'utf8',
     );
     const m = settle.match(/"basis"\s*:\s*"([^"]+)"/);

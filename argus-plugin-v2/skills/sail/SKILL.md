@@ -23,7 +23,7 @@ The default user-facing output is either:
 
 Do not expose worker counts, ledger counts, schemas, model names, or phase names
 in the default bearing. Those details live in `.argus/sessions/` and
-`/argus:chart`.
+`/argus:versions`.
 
 ---
 
@@ -189,7 +189,7 @@ extended to a readable-but-stale phase, which is the more common crash shape.
 | `verifying` or team complete with no `verification.json` | `/argus:verify` |
 | `dm_feedback` pending | `/argus:boss` |
 | `refining` | `/argus:revise` (apply boss concerns / verify challenges → child draft + re-verify) |
-| `complete` | show Current Heading/chart via `/argus:chart`; `/argus:revise` to iterate or `--promote` to finalize |
+| `complete` | show Current Heading/chart via `/argus:versions`; `/argus:revise` to iterate or `--promote` to finalize |
 
 ---
 
@@ -570,8 +570,8 @@ Target length: 10-16 lines. Never exceed one terminal screen.
 
 **First-voyage hint:** if this is the project's FIRST session (exactly one
 directory under `.argus/sessions/`), append one line after the bearing —
-ko: `첫 항해가 기록됐어요. /argus:chart 로 언제든 돌아올 수 있고, /argus:help 가 지도예요.`
-en: `Your first voyage is logged. /argus:chart returns here anytime; /argus:help shows the map.`
+ko: `첫 항해가 기록됐어요. /argus:versions 로 언제든 돌아올 수 있고, /argus:help 가 지도예요.`
+en: `Your first voyage is logged. /argus:versions returns here anytime; /argus:help shows the map.`
 Never print it again after the first session.
 
 ### Step 7.5 - Wake (1차 정산: 닻이 어디로 움직였나)
@@ -580,7 +580,7 @@ The webapp mirrors the pre-AI BIND lean back the moment the bearing is revealed 
 asks "still holds?" (`WakeReturn` / `lean_after`). This is the SAME pass on the plugin
 surface — the bind from clarify Step 3.4 finally pays off **in-session**, making the
 crew's pull on the user's own read visible immediately, not weeks later at settle.
-It is the on-ramp that sells the later reality settlement (`/argus:settle`).
+It is the on-ramp that sells the later reality settlement (`/argus:resolve`).
 
 **Run ONLY when a real rope exists, and only in an interactive run.** Read
 `.argus/ledger/ledger.jsonl`; find the `seal` with id `lean:<session-id>` and
@@ -730,7 +730,7 @@ render Current Heading. Do not mention that boss was skipped in the bearing.
 | Medium/high | Current Heading |
 
 No JSON dumps. No path-only summaries. No internal pipeline report unless the
-user explicitly asks for `/argus:chart` or opens session files.
+user explicitly asks for `/argus:versions` or opens session files.
 
 ---
 

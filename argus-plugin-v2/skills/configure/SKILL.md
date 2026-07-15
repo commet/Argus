@@ -26,7 +26,7 @@ were a stale design and are gone):
 - **`boss`** *(optional block)* — the stakeholder `/argus:boss` pressure-checks
   against: `mbti_code` (one of the 16 in `data/boss-types.yaml`), `name`, `gender`
   (`남`/`여` or `male`/`female`), `role` (free text, default `팀장` / `Team Lead`).
-- **`archive.commit_sessions`** — `true`/`false`. Whether `/argus:chart` offers to
+- **`archive.commit_sessions`** — `true`/`false`. Whether `/argus:versions` offers to
   git-commit `.argus/sessions/` when a voyage completes. Default `false`.
 - **`team`** *(optional, advanced)* — `max_agents_override` (1–6), `preferred_agents`
   (ids). Only touch if the user explicitly asks; otherwise leave it out.
@@ -57,7 +57,7 @@ decisions against in `/argus:boss`? You can skip — a generic reviewer is used.
     `data/boss-types.yaml` (ISTJ … ENTJ).
 - **Skip** → omit the entire `boss:` block (don't write an empty one).
 
-**Ask 3 · Commit session files?** — "When a voyage ends, should `/argus:chart` offer
+**Ask 3 · Commit session files?** — "When a voyage ends, should `/argus:versions` offer
 to git-commit `.argus/sessions/`? Default no — they're git-ignored." →
 `archive.commit_sessions`.
 

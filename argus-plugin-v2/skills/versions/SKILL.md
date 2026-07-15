@@ -1,9 +1,9 @@
 ---
-name: chart
-description: Display the chart of the current Argus decision voyage — version tree, active draft, Current Heading summary, verification state, open concerns, and next route. Use when the user asks where they are in a decision, wants to see or switch between drafts/branches, or needs the next useful command — "지금 어디까지 왔지", "버전 트리 보여줘", "show the branches", "where am I". Read-only by default; checkout/promote/delete/json flags can mutate or export. NOT for generating new analysis — no LLM runs. Invoked as `/argus:chart`.
+name: versions
+description: Display the chart of the current Argus decision voyage — version tree, active draft, Current Heading summary, verification state, open concerns, and next route. Use when the user asks where they are in a decision, wants to see or switch between drafts/branches, or needs the next useful command — "지금 어디까지 왔지", "버전 트리 보여줘", "show the branches", "where am I". Read-only by default; checkout/promote/delete/json flags can mutate or export. NOT for generating new analysis — no LLM runs. Invoked as `/argus:versions`.
 ---
 
-# /argus:chart
+# /argus:versions
 
 **What this skill does:** Shows the map of an Argus session. It is the user's
 way to see branches, active draft, released draft, current bearing, blockers,
@@ -15,13 +15,13 @@ and the next useful command.
 
 ## When To Run
 
-- `/argus:chart`
-- `/argus:chart --session <id>`
-- `/argus:chart --tree`
-- `/argus:chart --checkout <version-label>`
-- `/argus:chart --promote <version-label>`
-- `/argus:chart --delete <session-id>`
-- `/argus:chart --json`
+- `/argus:versions`
+- `/argus:versions --session <id>`
+- `/argus:versions --tree`
+- `/argus:versions --checkout <version-label>`
+- `/argus:versions --promote <version-label>`
+- `/argus:versions --delete <session-id>`
+- `/argus:versions --json`
 
 ---
 
@@ -73,17 +73,17 @@ v0.1 (initial bearing)
 
 Open Checks:
 - Verification: {{overall_status or "not run"}}
-{{if root_crack}}- Reality check: "{{root_crack.claim clipped 50}}" (course rests on it; only reality confirms) -> /argus:settle when known{{endif}}
+{{if root_crack}}- Reality check: "{{root_crack.claim clipped 50}}" (course rests on it; only reality confirms) -> /argus:resolve when known{{endif}}
 - Human checks: {{first human check or "none"}}
 - Boss condition: {{approval_condition or "none"}}
-{{if contract past check-by}}- Contract: "{{predicate clipped 50}}" was due {{check_by}} -> /argus:settle{{endif}}
+{{if contract past check-by}}- Contract: "{{predicate clipped 50}}" was due {{check_by}} -> /argus:resolve{{endif}}
 
 Next:
 - If verification is missing: run `/argus:verify`
 - If verification is blocked: complete human checks, then `/argus:sail --resume {{session.id}}`
 - Apply boss concerns / verify challenges: `/argus:revise` (forks a child draft with the fixes + re-verifies)
-- Promote this draft to v1.0: `/argus:chart --promote {{active_label}}`
-- Branch from an older draft: `/argus:chart --checkout <label>` then `/argus:revise --from <label>`
+- Promote this draft to v1.0: `/argus:versions --promote {{active_label}}`
+- Branch from an older draft: `/argus:versions --checkout <label>` then `/argus:revise --from <label>`
 ```
 
 Do not render worker counts by default. If the user wants internals, they can
@@ -135,7 +135,7 @@ boolean flags or `overall_status` for routing — `routing_decision` is the sing
 source of truth, and reading anything else is what reintroduces gate collisions.
 
 - A sealed contract (ledger or this session's bearing seed) is past its
-  check-by date -> `/argus:settle` (outranks everything below — an unsettled
+  check-by date -> `/argus:resolve` (outranks everything below — an unsettled
   past prediction is the most perishable item on the chart)
 - Missing `verification.json` on a medium/high draft -> `/argus:verify --session <id>`
 - Verification `revise_team` -> `/argus:revise --session <id>` (revise auto-detects the challenged claims to repair)
@@ -144,8 +144,8 @@ source of truth, and reading anything else is what reintroduces gate collisions.
 - Verification `ask_user` (unresolved critical challenge) -> `/argus:sail --resume <id>` to make the call
 - Boss critical applied concerns exist -> `/argus:revise --session <id>` (revise auto-applies the accepted concerns)
 - No `current_bearing.json` -> `/argus:sail --resume <id>`
-- Bearing status is `anchor` -> `/argus:chart --promote <active_label>`
-- Otherwise -> `/argus:revise "<directive>"` or `/argus:chart --promote <active_label>`
+- Bearing status is `anchor` -> `/argus:versions --promote <active_label>`
+- Otherwise -> `/argus:revise "<directive>"` or `/argus:versions --promote <active_label>`
 
 ---
 
@@ -262,7 +262,7 @@ ROOT_LABEL = `v0`. First child = `v0.1`.
 ## Meta-Check Gates
 
 - **No LLM:** chart never invokes an LLM.
-- **Idempotent default:** `/argus:chart` does not mutate state.
+- **Idempotent default:** `/argus:versions` does not mutate state.
 - **Bearing-centered:** default view starts from current course and next helm.
 - **Branch clarity:** active and released drafts are visibly distinct.
 - **Safe mutation:** checkout/promote/delete read and verify before writing.

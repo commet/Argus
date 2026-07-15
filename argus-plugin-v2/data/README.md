@@ -34,7 +34,7 @@ The plugin holds **data copies**, not live references. Webapp can change indepen
 4. **Stakes classification at runtime** — plugin skills classify via LLM using `classification.yaml` as vocabulary reference, NOT via deterministic regex. Webapp uses regex + LLM hybrid.
 5. **FinalScaffold** — plugin emits decision scaffold, NOT the markdown `final_deliverable` webapp produces. `data/schemas/final-scaffold.json` is plugin-only.
 6. **VerificationLedger** — plugin has a first-class `/argus:verify` artifact that splits team output into supported claims, challenged claims, unresolved tensions, and human-required checks before boss review. This is intentionally plugin-native because terminal users benefit from a compact pre-signoff quality gate more than a rich web UI.
-7. **CurrentBearing** — plugin hides the multi-agent machinery in the default `/argus:sail` output. `current_bearing.json` is the one-screen bearing users actually consume; deeper artifacts remain available through `/argus:chart`.
+7. **CurrentBearing** — plugin hides the multi-agent machinery in the default `/argus:sail` output. `current_bearing.json` is the one-screen bearing users actually consume; deeper artifacts remain available through `/argus:versions`.
 
 ## What's EXACTLY mirrored from webapp
 

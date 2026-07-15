@@ -46,7 +46,7 @@ negative-controls, and `asymmetric_steer` (an engine-weighted pole) was the
 **modal** harm. The spine's mirror clause ("zero judgment" also means don't judge
 *whether to intervene* in the user's stead) is not rule-patchable — it's a dial,
 and the founder's fixed choice is **under-fire default + cheap user-pulled depth**
-(CLAUDE.md rule 4, added this cycle). `/argus:helm` already embodied this (P0.B
+(CLAUDE.md rule 4, added this cycle). `/argus:preapprove` already embodied this (P0.B
 silence-default weight-gate); 2.6.0 generalizes that discipline to the surfaces
 that lacked it.
 
@@ -309,7 +309,7 @@ statusline) now follow the same ledger contract as the skills.
 - **Settled bearing seeds flashed OVERDUE forever** — settle imports a seed
   into the ledger (id `bearing:<session>:<label>`) and never mutates the
   bearing file, but the hook and the statusline both counted `contract_seed`
-  unconditionally. After settling, both surfaces pointed at `/argus:settle`
+  unconditionally. After settling, both surfaces pointed at `/argus:resolve`
   while settle itself correctly said "no contracts due." Both now skip seeds
   whose id — or verbatim predicate, for root-level bearings — already appears
   in the ledger.
@@ -330,7 +330,7 @@ statusline) now follow the same ledger contract as the skills.
   `ledger/` gitignore line in sail Step 0.
 
 ### Changed
-- README ko/en document `/argus:log --insights` and `--all`; marketplace
+- README ko/en document `/argus:journal --insights` and `--all`; marketplace
   listing text updated from the pre-Current-Bearing "decision scaffold"
   wording to the voyage/settlement loop.
 - install.sh warns that the legacy copy install does not ship the
@@ -342,13 +342,13 @@ The settlement loop is now complete, and the accumulated history is finally
 visible and useful.
 
 ### Added
-- **`/argus:settle`** — settle contracts past their check-by date: one neutral
+- **`/argus:resolve`** — settle contracts past their check-by date: one neutral
   question per contract (held / missed / partial / push the date), outcome
   appended to the append-only ledger. Bearing seeds are imported into the
   ledger on first settle so it stays the single replayable source. This was
   the missing back half of the loop — the 2.2.0 reminder hook pointed at a
   command that couldn't act.
-- **`/argus:log`** — the voyage log: one screen across ALL sessions (recent
+- **`/argus:journal`** — the voyage log: one screen across ALL sessions (recent
   decisions and their courses, sealed/open/overdue contracts, the running
   held/missed/partial record). `--insights` adds at most 3 pattern lines once
   ≥3 contracts are settled, each grounded in a concrete entry.
@@ -357,11 +357,11 @@ visible and useful.
   prediction) into the initial analysis. Scoped, never directive, never
   fewer-than-2 anecdotes.
 - **First-voyage hint** — after the project's first-ever bearing, one line
-  pointing to `/argus:chart` and `/argus:help`. Never repeats.
+  pointing to `/argus:versions` and `/argus:help`. Never repeats.
 
 ### Changed
 - Reminder hook, statusline overdue line, and chart's next-command logic all
-  route to `/argus:settle` (previously dead-ended at `/argus:chart` or the
+  route to `/argus:resolve` (previously dead-ended at `/argus:versions` or the
   dogfood-only `/watch`).
 - chart Open Checks shows a contract past check-by as a first-class row.
 
@@ -398,7 +398,7 @@ Plugin-spec alignment + first-run friction removal.
   `scripts/check-contracts.js`): on session start, prints exactly one line if
   a sealed decision contract is past its check-by date — silent otherwise.
   The settlement loop is the point of a decision contract; this closes it.
-- `/argus:helm` (experimental) documented in both READMEs.
+- `/argus:preapprove` (experimental) documented in both READMEs.
 - `CHANGELOG.md` (this file).
 - `validate-plugin.js` rewritten for the auto-discovery structure: forbids
   regressed manifest fields, checks 9 skills + frontmatter, 17 agents, schema
@@ -409,7 +409,7 @@ Plugin-spec alignment + first-run friction removal.
 - Verification-first pass: `/argus:verify` positive/negative validation with
   routing (`proceed_to_boss` / `revise_team` / `stop_for_human_check` /
   `ask_user`); `/argus:revise` iteration loop with child drafts;
-  `/argus:chart` version tree with checkout/promote.
+  `/argus:versions` version tree with checkout/promote.
 - Current Heading as the default surface (machinery hidden by default).
 - Trial-sail probe (clarify Step 3.5) with mechanical post-filters.
 

@@ -74,7 +74,7 @@ returned by `/argus:pull`.
 
 `argus-watch push` was the prototype bridge. `/argus:push` is now the normal
 product path. Past-chat harvesting also lives in the plugin now via
-`/argus:scan` and `/argus:seal`; do not require `argus-watch` for webapp sync.
+`/argus:scan` and `/argus:predict`; do not require `argus-watch` for webapp sync.
 
 ---
 

@@ -186,7 +186,7 @@ Claude Code 재시작 후, 아무 repo에서:
 /argus:sail "결정해야 할 질문"
 ```
 
-명령: `/argus:sail` (30초 판단) · `/argus:team` (에이전트 팀 배치) · `/argus:boss` (보스 시뮬레이션) · `/argus:clarify` · `/argus:chart`
+명령: `/argus:sail` (30초 판단) · `/argus:team` (에이전트 팀 배치) · `/argus:boss` (보스 시뮬레이션) · `/argus:clarify` · `/argus:versions`
 자세히 → [argus-plugin-v2/README.md](./argus-plugin-v2/README.md)
 
 ### MCP 서버

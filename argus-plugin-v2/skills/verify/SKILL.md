@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Heading. Use after /argus:team writes its scaffold, when /argus:sail chains a medium/high decision, or when the user asks whether the crew output can be trusted — "믿어도 되나", "근거 확인해줘", "can we trust this output". NOT for grading future outcomes (that is /argus:settle), and not needed for a low-density minimal scaffold. Invoked as `/argus:verify`.
+description: Verify Argus crew output before it is promoted. Splits claims into supported, challenged, unresolved, and human-required checks, then routes to boss, revise, human check, or Current Heading. Use after /argus:team writes its scaffold, when /argus:sail chains a medium/high decision, or when the user asks whether the crew output can be trusted — "믿어도 되나", "근거 확인해줘", "can we trust this output". NOT for grading future outcomes (that is /argus:resolve), and not needed for a low-density minimal scaffold. Invoked as `/argus:verify`.
 ---
 
 # /argus:verify
