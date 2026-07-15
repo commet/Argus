@@ -163,8 +163,15 @@ export function ReviewFlow() {
           setPreExtracted(extracted);
           setPendingBinary(null);
           setExtractNote(extracted.note ?? null);
+        } else if (extracted.vision && visionCapable()) {
+          // No text (scanned PDF) BUT we can see it — route to vision instead of
+          // a dead-end. Auto-enable the vision toggle: it's the only way to read it.
+          setPreExtracted(extracted);
+          setPendingBinary(null);
+          setUseVision(true);
+          setExtractNote(extracted.note ?? L('텍스트가 없어 비전 검수로 읽습니다.', 'No text — reading it with vision.'));
         } else {
-          // Parser ran but got nothing usable (scanned PDF, image-only deck).
+          // Parser ran but got nothing usable and vision isn't available.
           setPendingBinary(BINARY_EXT[ext]);
           setExtractNote(extracted.note ?? L('텍스트를 거의 추출하지 못했습니다.', 'Almost no text could be extracted.'));
         }
@@ -233,7 +240,13 @@ export function ReviewFlow() {
     // chunk passes, so scale the deadline with its size (capped) instead of
     // timing out a genuine 40-page review at the short base budget.
     const sourceLength = (preExtracted?.text || text).length;
-    const deadlineMs = Math.min(300_000, Math.max(REVIEW_DEADLINE_MS, 90_000 + Math.ceil(sourceLength / 1000) * 2000));
+    // A vision pass sends many page images and the model reads them all — give it
+    // real headroom (a scanned PDF has ~0 text length, so the size-scaled budget
+    // below would otherwise time it out at the short base deadline).
+    const visionOn = useVision && !!preExtracted?.vision;
+    const deadlineMs = visionOn
+      ? 300_000
+      : Math.min(300_000, Math.max(REVIEW_DEADLINE_MS, 90_000 + Math.ceil(sourceLength / 1000) * 2000));
     const deadline = setTimeout(() => {
       if (abortRef.current) { abortReasonRef.current = 'deadline'; abortRef.current.abort(); }
     }, deadlineMs);

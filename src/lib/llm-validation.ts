@@ -29,10 +29,10 @@ const VALID_ROLES = new Set(['user', 'assistant']);
 // bound the binary payload so a malformed or hostile request can't exhaust the
 // serverless function's memory/timeout — the base64 image/PDF budget is separate
 // from and stricter than the text body budget.
-export const MAX_BLOCKS_PER_MESSAGE = 64;      // e.g. a ~30-slide deck's images + text
-export const MAX_IMAGE_BLOCKS = 40;            // per whole request
+export const MAX_BLOCKS_PER_MESSAGE = 110;     // a long scanned PDF rendered to page images + text
+export const MAX_IMAGE_BLOCKS = 100;           // per whole request (Anthropic's own page ceiling)
 export const MAX_BINARY_BYTES_PER_BLOCK = 6_000_000;   // ~6 MB decoded per image/PDF
-export const MAX_BINARY_BYTES_TOTAL = 24_000_000;      // ~24 MB decoded across the request
+export const MAX_BINARY_BYTES_TOTAL = 24_000_000;      // ~24 MB decoded (the ~4.4MB body cap binds first)
 const IMAGE_MEDIA = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
 /** Decoded byte size of a base64 string (≈ len * 3/4, minus padding). */
@@ -132,10 +132,15 @@ export function validateApiKey(
   return { valid: true };
 }
 
+/** Body ceiling for the LLM routes — larger than the shared 500KB default so the
+ *  opt-in vision path can carry a base64 PDF / rendered deck pages, but under the
+ *  serverless platform's own ~4.5MB request limit. */
+export const MAX_LLM_BODY_BYTES = 4_400_000;
+
 /**
- * Run common request validation (content-type, size, origin).
- * Returns error response if any check fails, null if all pass.
+ * Run common request validation (content-type, size, origin). `maxBytes`
+ * overrides the size ceiling (the LLM routes pass MAX_LLM_BODY_BYTES for vision).
  */
-export function validateRequest(req: NextRequest): NextResponse | null {
-  return validateContentType(req) || validateContentLength(req) || validateOrigin(req) || null;
+export function validateRequest(req: NextRequest, maxBytes?: number): NextResponse | null {
+  return validateContentType(req) || validateContentLength(req, maxBytes) || validateOrigin(req) || null;
 }

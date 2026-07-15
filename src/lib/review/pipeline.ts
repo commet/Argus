@@ -128,7 +128,9 @@ export async function runDocumentReview(
   };
 
   // --- Gate 0: unsupported / empty extraction -----------------------------
-  if (artifact.extraction_quality === 'unsupported' || artifact.units.length === 0) {
+  // A scanned PDF has zero text units — but that is exactly the vision case, so
+  // when a vision payload is present we skip this gate and review from the images.
+  if ((artifact.extraction_quality === 'unsupported' || artifact.units.length === 0) && !options.vision) {
     const error: ReviewFailure = {
       kind: artifact.extraction_quality === 'unsupported' ? 'unsupported_format' : 'extraction_low',
       message: artifact.extraction_notes[0] ?? '이 문서는 자동 검수를 지원하지 않습니다.',

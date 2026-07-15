@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { validateMessages, validateSystemPrompt, validateApiKey, validateRequest, normalizeMaxTokens } from '@/lib/llm-validation';
+import { validateMessages, validateSystemPrompt, validateApiKey, validateRequest, normalizeMaxTokens, MAX_LLM_BODY_BYTES } from '@/lib/llm-validation';
 
 /**
  * Direct mode endpoint — uses the user's own API key (sent from client).
@@ -9,7 +9,7 @@ import { validateMessages, validateSystemPrompt, validateApiKey, validateRequest
  * The key is only used server-side and never stored.
  */
 export async function POST(req: NextRequest) {
-  const reqError = validateRequest(req);
+  const reqError = validateRequest(req, MAX_LLM_BODY_BYTES);
   if (reqError) return reqError;
 
   try {

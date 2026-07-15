@@ -260,6 +260,35 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(receipt!.provenance.vision?.page_count).toBe(9);
   });
 
+  it('reviews a scanned PDF (zero text units) from rendered page images — Gate 0 is bypassed', async () => {
+    // A scanned PDF extracts NO text, so ingest yields an artifact with no units.
+    const artifact = ingest({ source_kind: 'pdf', title: 'scan.pdf' });
+    expect(artifact.units.length).toBe(0); // nothing for the text path to chew on
+    let sawImages = 0;
+    const llm: ReviewLLM = {
+      model_name: 'mock', model_provider: 'anthropic',
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        sawImages = args.attachments?.filter((a) => a.type === 'image').length ?? 0;
+        return {
+          profile: { document_type: 'report', intent: 'inform', audience: 'team', stakes: 'medium', artifact_maturity: 'final', source_confidence: 0.5 },
+          core_question: '이 보고서의 결론을 수용할 것인가?',
+          findings: [{ lens_id: 'claim_evidence', title: '표지의 수치와 3쪽 표가 불일치', detail: '스캔 이미지에서만 보이는 표 값이 요약과 다르다', severity: 'critical', confidence: 'medium', suggested_action: '표 대조', seen_in_visual: true, pages: [3] }],
+          judgment_obligations: [], followups: [], current_heading: 'h',
+          main_claims: [], assumptions: [], decision_points: [],
+        } as T;
+      },
+    };
+    const { job, receipt } = await runDocumentReview(artifact, {
+      today: '2026-07-01',
+      vision: { kind: 'images', images: [{ media_type: 'image/jpeg', data: 'x'.repeat(40) }, { media_type: 'image/jpeg', data: 'y'.repeat(40) }], page_count: 45 },
+      llm,
+    });
+    expect(job.status).toBe('ready'); // NOT needs_context — vision bypassed Gate 0
+    expect(sawImages).toBe(2);        // the rendered page images reached the model
+    expect(receipt!.provenance.vision?.mode).toBe('images');
+    expect(receipt!.findings.some((f) => f.anchors.some((a) => a.page === 3))).toBe(true);
+  });
+
   it('diversifies the visible top so one dense slide cannot crowd out the rest', async () => {
     const artifact = ingest({ source_kind: 'markdown', text: DOC });
     const uid = artifact.units[0].unit_id;

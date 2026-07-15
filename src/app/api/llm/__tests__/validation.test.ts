@@ -142,8 +142,12 @@ describe('validateMessages — content blocks (vision path)', () => {
     expect(validateMessages([{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: huge } }] }])).toBe(false);
   });
 
-  it('rejects too many image blocks in one request', () => {
-    const many = Array.from({ length: 41 }, () => img());
+  it('accepts a long scanned-PDF render (many page images), rejects beyond the cap', () => {
+    // A scanned PDF rendered to ~45 page images must pass (cap raised to 100).
+    const ok = Array.from({ length: 45 }, () => img('image/jpeg'));
+    expect(validateMessages([{ role: 'user', content: [...ok, text()] }])).toBe(true);
+    // Beyond the 100-image ceiling is rejected.
+    const many = Array.from({ length: 101 }, () => img());
     expect(validateMessages([{ role: 'user', content: many }])).toBe(false);
   });
 
