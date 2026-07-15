@@ -12,7 +12,7 @@
 export * from './schema.js';
 export { ingest, type IngestInput } from './ingest.js';
 export { scoreReviewability } from './reviewability.js';
-export { LENSES, getLens, ALL_LENS_IDS, LENS_VERSION } from './lenses.js';
+export { LENSES, getLens, ALL_LENS_IDS, LENS_VERSION, lensLabel } from './lenses.js';
 export { routeLenses, applies } from './routing.js';
 export { buildExtractionPrompt, buildLensPrompt, buildSynthesisPrompt, renderUnits } from './prompts.js';
 export { receiptToMarkdown } from './render.js';

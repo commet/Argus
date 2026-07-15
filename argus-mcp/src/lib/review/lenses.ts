@@ -7,9 +7,29 @@
  * So keep this list small and let routing.ts choose.
  */
 
-import { type JudgmentLens, type LensId } from './schema.js';
+import { type JudgmentLens, type LensId, type ReviewLocale } from './schema.js';
 
 export const LENS_VERSION = '1' as const;
+
+/** User-facing lens names in English. The Korean names live on each lens's
+ *  `label` (also used inside the Korean lens prompt); this map is the display
+ *  name for an English-locale reader. Keep the two in sync when adding a lens. */
+export const LENS_LABEL_EN: Record<LensId, string> = {
+  core_question: 'Core question',
+  claim_evidence: 'Claim vs evidence',
+  hidden_assumption: 'Hidden assumptions',
+  human_judgment: 'Human judgment',
+  stakeholder_objection: 'Stakeholder objections',
+  execution_risk: 'Execution risk',
+  reversibility: 'Reversibility',
+  falsifiable_followup: 'Falsifiable follow-up',
+  deck_narrative: 'Deck narrative',
+};
+
+/** Localized, user-facing label for a lens. */
+export function lensLabel(id: LensId, lang: ReviewLocale): string {
+  return lang === 'en' ? LENS_LABEL_EN[id] : LENSES[id].label;
+}
 
 export const LENSES: Record<LensId, JudgmentLens> = {
   core_question: {
