@@ -3893,10 +3893,10 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                 <Wand2 className="w-4 h-4 text-[var(--accent)]" />
                 <div>
                   <h3 id={iterationDialogTitleId} className="text-[14px] font-semibold text-[var(--text-primary)]">
-                    {L('항해장에게 수정 요청', 'Ask Navigator to revise')}
+                    {L('종합자에게 수정 요청', 'Ask Synthesizer to revise')}
                   </h3>
                   <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-                    {L('항해장은 팀 결과를 통합한 에이전트예요', 'The navigator integrates the whole team’s work')} · {L('현재 버전', 'Current version')} <span className="font-semibold">{activeDraft.version_label}</span>
+                    {L('종합자는 팀 결과를 통합한 에이전트예요', 'The synthesizer integrates the whole team’s work')} · {L('현재 버전', 'Current version')} <span className="font-semibold">{activeDraft.version_label}</span>
                   </p>
                 </div>
               </div>
@@ -3931,7 +3931,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               {isIterating && (
                 <div role="status" aria-live="polite" className="mt-3 flex items-center gap-2 text-[12px] text-[var(--accent)]">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>{L('항해장이 편집 중입니다...', 'Navigator is editing...')}</span>
+                  <span>{L('종합자가 편집 중입니다...', 'Synthesizer is editing...')}</span>
                 </div>
               )}
               {!isIterating && error && (

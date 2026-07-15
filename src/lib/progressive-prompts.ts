@@ -1021,7 +1021,7 @@ DEEP CHECK:
   }).join('\n\n');
 
   return {
-    system: `You are the Navigator. Like a ship's navigator, you read every crew member's report and chart one course.
+    system: `You are the Synthesizer. You read every reviewer's report and combine them into one course.
 
 Role: Survey individual agents' outputs holistically and identify what the team is missing.
 Tone: Observational. Not criticism \u2014 observation. Short and sharp.

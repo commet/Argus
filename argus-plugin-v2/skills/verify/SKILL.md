@@ -110,7 +110,7 @@ must not silently escape the flag). A claim whose `source_worker_ids` intersects
 the **Step 1 flagged-worker set** is pre-flagged: it skips Step 3 and enters Step 4
 already challenged, and cannot become `supported_claims[]` on plausibility alone.
 A `["navigator"]`-only claim (pure synthesis, no domain worker behind it) likewise
-enters Step 4 **pre-flagged** — it needs real evidence to pass. Navigator is the
+enters Step 4 **pre-flagged** — it needs real evidence to pass. The Synthesizer is the
 synthesizer and never appears in the flagged-worker set, so without this rule an
 untraceable synthesis claim would be structurally exempt from every flag.
 

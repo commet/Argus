@@ -40,7 +40,7 @@ function getFlowSteps(locale: Locale): FlowStep[] {
       { icon: Search, label: '분석', desc: '숨은 가정과 진짜 질문을 찾아냅니다.', tone: 'ai' },
       { icon: MessageCircle, label: '대화', desc: '질문 2~3개에 답하면 맥락이 정교해지고 선원이 배정됩니다.', tone: 'you' },
       { icon: Users, label: '선원 작업', desc: '배정된 선원들이 병렬로 분석·조사·작성을 진행합니다.', tone: 'ai' },
-      { icon: Layers, label: '종합', desc: '리드 선원과 항해장이 결과를 하나의 초안으로 통합합니다.', tone: 'ai' },
+      { icon: Layers, label: '종합', desc: '리드 선원과 종합자가 결과를 하나의 초안으로 통합합니다.', tone: 'ai' },
       { icon: Eye, label: '검증', desc: '의사결정자(상사·고객 등) 관점에서 약점을 시뮬레이션합니다.', tone: 'ai' },
       { icon: Edit3, label: '수정', desc: '피드백을 반영해 초안을 다듬습니다. 직접 손봐도 되고 자동 반영도 가능합니다.', tone: 'you' },
       { icon: Check, label: '도착', desc: '결론·근거·확인할 것이 현재 방위 한 화면에 모입니다. 봉인하면 정한 날짜에 돌아와 물어요.', tone: 'done' },
@@ -50,7 +50,7 @@ function getFlowSteps(locale: Locale): FlowStep[] {
     { icon: Search, label: 'Analyze', desc: 'Surface hidden assumptions and the real question behind your problem.', tone: 'ai' },
     { icon: MessageCircle, label: 'Converse', desc: 'Answer 2–3 questions — context sharpens and your crew assembles.', tone: 'you' },
     { icon: Users, label: 'Crew work', desc: 'Your crew analyzes, researches, and writes in parallel.', tone: 'ai' },
-    { icon: Layers, label: 'Mix', desc: 'The lead crew member and the Navigator merge results into a single draft.', tone: 'ai' },
+    { icon: Layers, label: 'Mix', desc: 'The lead crew member and the Synthesizer merge results into a single draft.', tone: 'ai' },
     { icon: Eye, label: 'Review', desc: "Simulate how a decision-maker (boss, customer, etc.) would react and surface weak spots.", tone: 'ai' },
     { icon: Edit3, label: 'Refine', desc: 'Apply feedback — manually or automatically — to tighten the draft.', tone: 'you' },
     { icon: Check, label: 'Arrival', desc: 'Conclusion, reasoning, and what to check — one Current Heading. Seal it, and Argus returns on your chosen date to ask.', tone: 'done' },
@@ -339,7 +339,7 @@ export default function GuidePage() {
                 <span className="text-[var(--text-secondary)]">— {L(`체인 작업 ${CHAIN_UNLOCK_THRESHOLDS.master}회`, `${CHAIN_UNLOCK_THRESHOLDS.master} chain tasks`)}</span>
               </li>
               <li>
-                <strong>{L('항해장', 'Navigator')}</strong>{' '}
+                <strong>{L('종합자', 'Synthesizer')}</strong>{' '}
                 <span className="text-[var(--text-secondary)]">— {L(
                   `전체 작업 ${NAVIGATOR_UNLOCK_THRESHOLD}회 또는 세션 ${NAVIGATOR_SESSION_THRESHOLD}회 완료`,
                   `${NAVIGATOR_UNLOCK_THRESHOLD} total tasks or ${NAVIGATOR_SESSION_THRESHOLD} sessions`,

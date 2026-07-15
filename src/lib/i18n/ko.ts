@@ -55,8 +55,8 @@ export const ko = {
   'error.unexpected': '예기치 않은 오류가 발생했습니다',
 
   // Navigator
-  'navigator.title': '항해장',
-  'navigator.open': '항해장 열기',
+  'navigator.title': '종합자',
+  'navigator.open': '종합자 열기',
   'navigator.close': '닫기',
   'navigator.noInsights': '새로운 인사이트가 없습니다.',
   'navigator.firstSession': '첫 분석을 시작하면 인사이트가 쌓입니다.',

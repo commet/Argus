@@ -235,7 +235,7 @@ export const BUILTIN_AGENTS: Omit<Agent, 'xp' | 'level' | 'observations' | 'last
 
   // ── 특수: 항해장 ──
   {
-    id: 'navigator', name: '항해장', nameEn: 'Navigator', role: '종합 검토자', roleEn: 'Chief Reviewer', emoji: '🧭', color: '#D97706',
+    id: 'navigator', name: '종합자', nameEn: 'Synthesizer', role: '종합 검토자', roleEn: 'Chief Reviewer', emoji: '🧭', color: '#D97706',
     origin: 'builtin', capabilities: ['review'],
     group: 'special', chain_id: null,
     unlock_condition: { type: 'always', required: 0 }, unlocked: true,

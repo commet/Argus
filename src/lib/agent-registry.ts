@@ -45,7 +45,7 @@ export const AGENT_REGISTRY = [
   { agentId: 'jieun',              personaId: 'ux',                  frameworkKey: 'ux',                  name: '지은',  nameEn: 'Maya' },
   { agentId: 'taejun',             personaId: 'legal',               frameworkKey: 'legal',               name: '윤석',  nameEn: 'Arthur' },
   // Special
-  { agentId: 'navigator',      personaId: 'navigator',       frameworkKey: 'navigator',       name: '항해장',  nameEn: 'Navigator' },
+  { agentId: 'navigator',      personaId: 'navigator',       frameworkKey: 'navigator',       name: '종합자',  nameEn: 'Synthesizer' },
 ] as const satisfies readonly AgentIdentity[];
 
 /**
