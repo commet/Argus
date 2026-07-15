@@ -11,37 +11,33 @@ Argus는 그것을 **살아 있는 항로**로 남깁니다.
 질문을 다시 세우고, 갈림길을 남기고, 주장을 검증하고, 현재 방위를 보여주며,
 현실이 답할 때 다시 돌아오는 판단 시스템입니다.
 
-## ⚡ MCP 서버 설치 (30초)
+## ⚡ Argus 설치 (30초)
 
-Argus는 **MCP 서버**로 제공됩니다 — Claude Code, Claude Desktop, Cursor 등
-MCP 호스트에 넣으면 AI가 *결정 책임(decision-accountability)* 루프를 갖게
-됩니다. Claude Code에서는 한 줄이면 끝:
+제품은 하나, 기록도 하나(`~/.argus`)입니다. **지금 쓰고 있는 도구**에 맞는
+줄을 찾으세요 — 안에 뭐가 들었는지는 몰라도 됩니다.
+설정 불필요: API 키도, 계정도 없이. 데이터는 내 컴퓨터에만 남습니다.
 
-```bash
-claude mcp add argus -- npx -y argus-decision-mcp
-```
+| 무엇으로 작업하세요? | 이렇게 하세요 |
+|---|---|
+| **Claude Code** — 터미널, 데스크톱 앱, IDE 확장 | `/plugin marketplace add commet/Argus` 후 `/plugin install argus-driver@argus` — MCP 서버가 자동으로 함께 설치됩니다 ([자세히](./argus-driver/README.md)) |
+| **MCP를 지원하는 다른 AI 도구** — Claude Desktop(채팅 앱), Cursor, Codex, Windsurf 등 | 그 도구의 MCP 설정에 `npx -y argus-decision-mcp` 등록 → [도구별 설정](./argus-mcp/README.md) |
 
-**설정 불필요** — API 키도, 계정도 없이. 데이터는 `~/.argus`에 로컬로 남습니다.
 그다음 AI에게 *"<날짜>까지 …할 거라는 예측을 봉인해줘"* 라고 말하면 됩니다.
 
+터미널을 안 쓰거나, 안 쓰는 팀원에게 보여주고 싶다면 — 같은 루프가 설치 없이
+웹에서 돌아갑니다: **[argus.voyage](https://argus.voyage)**.
+
+<details>
+<summary>선택 사항, Claude Code 전용: 심층 검증 하네스</summary>
+
+`/plugin install argus@argus`를 추가하면 `/argus:sail`이 생깁니다 — 질문을
+다시 세우고, 이해관계자를 시뮬레이션하고, 결정을 확정하기 전에 압박 검증합니다.
+문서: [argus-plugin-v2/README.ko.md](./argus-plugin-v2/README.ko.md)
+
+</details>
+
 - 📦 npm: [`argus-decision-mcp`](https://www.npmjs.com/package/argus-decision-mcp)
-- 🛠️ 전체 설정(Claude Desktop, Windows, 프로젝트별 원장) + 툴 목록 → **[argus-mcp/README.md](./argus-mcp/README.md)**
-
----
-
-### Argus를 쓰는 세 가지 방법
-
-자신에게 맞는 문을 고르세요 — 각 문마다 별도 설치 가이드로 연결됩니다.
-
-| | 이런 사람에게 | 시작하기 |
-|---|---|---|
-| 🌐 **웹앱** | 누구나. 설치 불필요. | **[argus.voyage](https://argus.voyage)** 열기 |
-| 🧩 **MCP 서버** | MCP를 지원하는 모든 AI 어시스턴트 — Claude Desktop, Claude Code, Cursor 등. | `claude mcp add argus -- npx -y argus-decision-mcp` → [MCP 문서](./argus-mcp/README.md) |
-| 🔌 **Claude Code 플러그인** | 코드베이스 *안에서* 결정할 때 (PR·파일 위에서). | `/plugin marketplace add commet/Argus` → [플러그인 문서](./argus-plugin-v2/README.ko.md) |
-
-처음이라 잘 모르겠다면 **[웹앱](https://argus.voyage)부터 시작하세요** — 설치가
-필요 없습니다. AI 어시스턴트 안에서 살고, 모든 대화에서 Argus를 쓰고 싶다면
-**[MCP 서버](./argus-mcp/README.md)** 가 바로 그것입니다.
+- 🛠️ 전체 설정(Windows 경로, 프로젝트별 원장) + 툴 목록 → **[argus-mcp/README.md](./argus-mcp/README.md)**
 
 > *Argus*는 오디세우스가 10년 만에 변장하고 돌아왔을 때, 누더기 아래 진짜 주인을 알아본 개의 이름입니다.
 > 매끄러운 표면이 아니라 그 아래의 진짜를 보는 눈 — Argus가 하는 일이 그것입니다.
