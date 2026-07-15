@@ -519,7 +519,7 @@ export default function ProjectPage() {
             <LocaleLink
               href="/workspace"
               onClick={() => setCurrentProjectId(null)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[var(--bg)] text-[12.5px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer self-start sm:self-auto"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[var(--accent-fg)] text-[12.5px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer self-start sm:self-auto"
               style={{ background: 'var(--gradient-gold)' }}
             >
               <Plus size={13} /> {L('새 프로젝트', 'New project')}
@@ -751,12 +751,12 @@ export default function ProjectPage() {
 
               {/* Project grid — rich cards */}
               {filteredProjects.length === 0 ? (
-                <div className="text-center py-10 text-[13px] text-[var(--text-tertiary)]">
-                  <p>{L('조건에 맞는 항해가 없어요.', 'No voyages match these filters.')}</p>
+                <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)]/40 px-6 py-12 text-center">
+                  <p className="text-[13px] text-[var(--text-secondary)]">{L('조건에 맞는 항해가 없어요.', 'No voyages match these filters.')}</p>
                   <button
                     type="button"
                     onClick={() => { setQuery(''); setStatusFilter('all'); }}
-                    className="mt-3 inline-flex items-center px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[12px] font-semibold text-[var(--accent)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
+                    className="inline-flex items-center px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[12px] font-semibold text-[var(--accent)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
                   >
                     {L('전체 프로젝트 보기', 'Show all projects')}
                   </button>

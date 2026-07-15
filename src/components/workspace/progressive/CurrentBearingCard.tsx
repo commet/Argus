@@ -153,7 +153,7 @@ export function CurrentBearingCard({
               <button
                 type="button"
                 onClick={onSeal}
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold text-white transition-[scale,filter] duration-150 hover:brightness-[1.02] active:scale-[0.96]"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3 text-[12px] font-semibold text-[var(--accent-fg)] transition-[scale,filter] duration-150 hover:brightness-[1.02] active:scale-[0.96]"
                 style={{ background: 'var(--gradient-gold)' }}
               >
                 <Anchor size={13} />

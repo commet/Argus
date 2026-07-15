@@ -211,7 +211,7 @@ function PersonaSettings({ onClose }: { onClose: () => void }) {
           <div className="flex justify-end gap-2">
             <button onClick={() => setAddMode(false)} className="px-3 py-1.5 text-[10px] text-[var(--text-tertiary)] cursor-pointer">{L('취소', 'Cancel')}</button>
             <button onClick={handleAddPersona} disabled={!newPersona.name.trim() || !newPersona.role.trim()}
-              className="px-3 py-1.5 text-[10px] text-white font-semibold rounded-lg disabled:opacity-30 cursor-pointer"
+              className="px-3 py-1.5 text-[10px] text-[var(--accent-fg)] font-semibold rounded-lg disabled:opacity-30 cursor-pointer"
               style={{ background: 'var(--gradient-gold)' }}>{L('추가', 'Add')}</button>
           </div>
         </div>

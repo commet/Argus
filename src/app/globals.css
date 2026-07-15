@@ -60,6 +60,11 @@
   /* contrast pass 2026-06-18: deepened so white-text CTAs (Start/시작/Sign in) read
      and the primary affordance has weight — old mid #d4b968 made white text fail + look disabled */
   --gradient-gold: linear-gradient(135deg, #a8842f 0%, #b8963e 48%, #826722 100%);
+  /* Text/icon colour that reads ON the gold gradient. Light-mode gold is deep
+     (tuned above for white); dark-mode gold is light yellow so it flips to dark
+     ink (see the [data-theme="dark"] override). Single source of truth for any
+     gold CTA foreground — never hardcode text-white on gold. */
+  --accent-fg: #ffffff;
   --gradient-gold-subtle: linear-gradient(135deg, rgba(184, 150, 62, 0.12) 0%, rgba(212, 185, 104, 0.06) 100%);
   --gradient-gold-text: linear-gradient(135deg, #d4b968 0%, #96782e 100%);
   --gradient-concert-hall: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(184, 150, 62, 0.08) 0%, transparent 70%);
@@ -154,6 +159,7 @@
   --chart-line: rgba(212, 185, 104, 0.10);
 
   --gradient-gold: linear-gradient(135deg, #d4b968 0%, #e8d48b 50%, #b8963e 100%);
+  --accent-fg: #3a2a10; /* dark-mode gold is light yellow → dark ink reads, white fails */
   --gradient-gold-subtle: linear-gradient(135deg, rgba(212, 185, 104, 0.10) 0%, rgba(232, 212, 139, 0.04) 100%);
   --gradient-gold-text: linear-gradient(135deg, #e8d48b 0%, #d4b968 100%);
   --gradient-concert-hall: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212, 185, 104, 0.06) 0%, transparent 70%);

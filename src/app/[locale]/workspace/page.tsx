@@ -67,13 +67,13 @@ function StepErrorFallback({ onRetry }: { onRetry?: () => void }) {
         {/* In-place retry first (cheap re-render, no state loss); reload is the
             fallback only if retry keeps throwing. */}
         {onRetry && (
-          <button onClick={onRetry} className="px-4 py-2 text-[13px] font-medium rounded-lg bg-[var(--accent)] text-white hover:shadow-sm transition-all cursor-pointer">
+          <button onClick={onRetry} className="px-4 py-2 text-[13px] font-medium rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] hover:shadow-sm transition-all cursor-pointer">
             {L('다시 시도', 'Try again')}
           </button>
         )}
         <button onClick={() => window.location.reload()} className={onRetry
           ? 'text-[12px] text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-secondary)] transition-colors cursor-pointer'
-          : 'px-4 py-2 text-[13px] font-medium rounded-lg bg-[var(--accent)] text-white hover:shadow-sm transition-all cursor-pointer'}>
+          : 'px-4 py-2 text-[13px] font-medium rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] hover:shadow-sm transition-all cursor-pointer'}>
           {L('새로고침', 'Refresh')}
         </button>
       </div>
@@ -809,7 +809,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     <div className="mt-3 p-4 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/20">
                       <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('로그인이 잠시 풀렸어요', 'Your sign-in lapsed')}</p>
                       <p className="text-[12px] text-[var(--text-secondary)] mb-3 leading-relaxed">{L('적어주신 내용은 그대로 있어요. 다시 로그인하면 하던 자리에서 이어져요.', 'What you wrote is still here. Sign in again and pick up right where you were.')}</p>
-                      <LocaleLink href="/login?redirect=/workspace" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-[12px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>
+                      <LocaleLink href="/login?redirect=/workspace" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[var(--accent-fg)] text-[12px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>
                         {L('다시 로그인하고 이어가기', 'Sign in and continue')} <ChevronRight size={12} />
                       </LocaleLink>
                     </div>
@@ -817,7 +817,7 @@ function HeroFlow({ onReady, projects, user, reviewerAgentId, initialProblem }: 
                     <div className="mt-3 p-4 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/20">
                       <p className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{L('무료 체험을 모두 사용했어요', 'Free trial limit reached')}</p>
                       <p className="text-[12px] text-[var(--text-secondary)] mb-3 leading-relaxed">{L(`로그인하면 하루 ${DAILY_LIMIT}회까지 무료로 사용할 수 있습니다.`, `Sign in to get up to ${DAILY_LIMIT} free uses per day.`)}</p>
-                      <LocaleLink href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-[12px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>
+                      <LocaleLink href="/login" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[var(--accent-fg)] text-[12px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>
                         {L('로그인', 'Sign In')} <ChevronRight size={12} />
                       </LocaleLink>
                     </div>

@@ -450,7 +450,7 @@ export function SettlementModal({
                           title={isDraft ? L('AI가 미리 짚은 초안 — 눌러서 확정하세요', 'AI-drafted — tap to confirm') : undefined}
                           className={`px-2.5 py-1 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
                             selected
-                              ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                              ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]'
                               : isDraft
                                 ? 'border-dashed border-[var(--accent)]/60 text-[var(--accent)] bg-[var(--accent)]/[0.06]'
                                 : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
@@ -532,7 +532,7 @@ export function SettlementModal({
                         aria-pressed={on}
                         className={`px-2.5 py-1 rounded-lg text-[12px] font-semibold border transition-colors cursor-pointer ${
                           on
-                            ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                            ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)]'
                             : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]/40'
                         }`}
                       >
@@ -683,7 +683,7 @@ export function SettlementModal({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 rounded-xl text-[12.5px] font-semibold text-white cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-[12.5px] font-semibold text-[var(--accent-fg)] cursor-pointer"
                     style={{ background: 'var(--gradient-gold)' }}
                   >
                     {L('확인', 'Done')}

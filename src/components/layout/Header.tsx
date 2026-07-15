@@ -366,7 +366,7 @@ export function Header() {
                       />
                     ) : null}
                     <div className={`w-7 h-7 rounded-full bg-[var(--accent)] flex items-center justify-center ${avatarUrl ? 'hidden' : ''}`}>
-                      <span className="text-white text-[11px] font-bold">{displayName.charAt(0).toUpperCase()}</span>
+                      <span className="text-[var(--accent-fg)] text-[11px] font-bold">{displayName.charAt(0).toUpperCase()}</span>
                     </div>
                   </button>
 

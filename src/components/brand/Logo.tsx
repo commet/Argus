@@ -28,7 +28,7 @@ export function Logo({
         className={`${s.badge} flex items-center justify-center shadow-[var(--shadow-sm)] group-hover:shadow-[var(--glow-gold)] transition-all duration-300`}
         style={{ background: 'var(--gradient-gold)' }}
       >
-        <span className={`text-white font-black ${s.a} tracking-tight`}>A</span>
+        <span className={`text-[var(--accent-fg)] font-black ${s.a} tracking-tight`}>A</span>
       </span>
       <span className={`text-[var(--text-primary)] font-extrabold ${s.word} tracking-tight`}>Argus</span>
     </span>

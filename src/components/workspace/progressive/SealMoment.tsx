@@ -437,7 +437,7 @@ export function SealMoment({
           <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => manualSeal()}
-              className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-white text-[14px] font-semibold cursor-pointer transition-transform duration-150 active:scale-[0.96]"
+              className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-[var(--accent-fg)] text-[14px] font-semibold cursor-pointer transition-transform duration-150 active:scale-[0.96]"
               style={{ background: 'var(--gradient-gold)' }}
             >
               <Check size={15} />
@@ -598,7 +598,7 @@ export function SealMoment({
                 track('seal_signin_cta', { placement: 'sealed' });
                 signInWithGoogle('/workspace');
               }}
-              className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-white cursor-pointer transition-transform hover:scale-[1.02]"
+              className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold text-[var(--accent-fg)] cursor-pointer transition-transform hover:scale-[1.02]"
               style={{ background: 'var(--gradient-gold)' }}
             >
               <Anchor size={14} />
@@ -686,7 +686,7 @@ export function SealMoment({
                   <button
                     onClick={() => seal()}
                     disabled={kept.length === 0}
-                    className="mt-4 w-full py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-50 cursor-pointer"
+                    className="mt-4 w-full py-2.5 rounded-xl text-[13px] font-semibold text-[var(--accent-fg)] disabled:opacity-50 cursor-pointer"
                     style={{ background: 'var(--gradient-gold)' }}
                   >
                     {L('이대로 다시 약속', 'Save the new promise')}
@@ -805,7 +805,7 @@ export function SealMoment({
           <button
             onClick={() => seal()}
             disabled={kept.length === 0}
-            className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-white text-[14px] font-semibold disabled:opacity-50 cursor-pointer transition-transform duration-150 active:scale-[0.96]"
+            className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-[var(--accent-fg)] text-[14px] font-semibold disabled:opacity-50 cursor-pointer transition-transform duration-150 active:scale-[0.96]"
             style={{ background: 'var(--gradient-gold)' }}
           >
             <Check size={15} />

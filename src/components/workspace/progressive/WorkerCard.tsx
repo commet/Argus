@@ -173,7 +173,7 @@ function ResultModal({ worker, content, onClose, onApprove, onReject }: {
               )}
               {onApprove && worker.approved !== true && (
                 <button type="button" onClick={() => onApprove(worker.id)}
-                  className="flex-1 sm:flex-none px-5 py-3 sm:py-2.5 text-[13px] text-white font-semibold rounded-xl cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow min-h-[44px]"
+                  className="flex-1 sm:flex-none px-5 py-3 sm:py-2.5 text-[13px] text-[var(--accent-fg)] font-semibold rounded-xl cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow min-h-[44px]"
                   style={{ background: 'var(--gradient-gold)' }}>
                   {L('반영', 'Apply')}
                 </button>
@@ -482,7 +482,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                 )}
                 <button onClick={() => { if (inputVal.trim()) { onSubmitInput(worker.id, inputVal.trim()); onAdvance?.(); } }}
                   disabled={!inputVal.trim()}
-                  className="px-3.5 py-2 text-[12px] text-white font-semibold rounded-xl disabled:opacity-30 cursor-pointer"
+                  className="px-3.5 py-2 text-[12px] text-[var(--accent-fg)] font-semibold rounded-xl disabled:opacity-30 cursor-pointer"
                   style={{ background: 'var(--gradient-gold)' }}>
                   {onAdvance ? L('확인 → 다음', 'Confirm → Next') : L('확인', 'Confirm')}
                 </button>
@@ -643,7 +643,7 @@ export const WorkerReportBlock = memo(function WorkerReportBlock({
                   )}
                   {onApprove && !isApproved && (
                     <button onClick={() => { onApprove(worker.id); onAdvance?.(); }}
-                      className="flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 text-[12px] font-semibold text-white rounded-xl cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow"
+                      className="flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2.5 text-[12px] font-semibold text-[var(--accent-fg)] rounded-xl cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow"
                       style={{ background: 'var(--gradient-gold)' }}>
                       <Check size={12} /> {onAdvance ? L('반영 → 다음', 'Apply → Next') : L('반영', 'Apply')}
                     </button>

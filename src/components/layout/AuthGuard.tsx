@@ -106,7 +106,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           <div className="flex flex-col gap-2 items-center">
             <LocaleLink
               href={`/login?redirect=${redirectTo}`}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-white text-[14px] font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-[var(--accent-fg)] text-[14px] font-semibold transition-all hover:shadow-[var(--shadow-sm)]"
               style={{ background: 'var(--gradient-gold)' }}
             >
               {L('로그인하고 계속하기', 'Sign in to continue')} <ChevronRight size={14} />

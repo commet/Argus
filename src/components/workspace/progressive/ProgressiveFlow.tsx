@@ -825,7 +825,7 @@ function VoyagePrepSummary({
             {/* Primary CTA — gradient gold, "set sail" with Navigation
                 arrow tilted like a sail. */}
             <motion.button onClick={onMix} disabled={busy} whileTap={{ scale: 0.98 }}
-              className="group/sail w-full flex items-center justify-center gap-2.5 px-6 py-4 text-white rounded-xl text-[15px] font-semibold shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all cursor-pointer disabled:opacity-50"
+              className="group/sail w-full flex items-center justify-center gap-2.5 px-6 py-4 text-[var(--accent-fg)] rounded-xl text-[15px] font-semibold shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all cursor-pointer disabled:opacity-50"
               style={{ background: 'var(--gradient-gold)' }}>
               {busy
                 ? <><Loader2 size={16} className="animate-spin" /> {L('초안 만드는 중...', 'Drafting...')}</>
@@ -984,7 +984,7 @@ export function TerminalRouteCard({
           onClick={onDraft}
           disabled={busy}
           whileTap={{ scale: 0.98 }}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] text-white rounded-xl text-[13.5px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] text-[var(--accent-fg)] rounded-xl text-[13.5px] font-semibold shadow-[var(--shadow-sm)] cursor-pointer disabled:opacity-50"
           style={{ background: 'var(--gradient-gold)' }}
         >
           {busy
@@ -1042,7 +1042,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
       {!rejectMode ? (
         <div className="flex gap-2 pl-9">
           <motion.button onClick={onConfirm} disabled={busy} whileTap={{ scale: 0.98 }}
-            className="px-4 py-2 rounded-xl text-[12px] font-semibold text-white cursor-pointer disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-[12px] font-semibold text-[var(--accent-fg)] cursor-pointer disabled:opacity-50"
             style={{ background: 'var(--gradient-gold)' }}>{L('맞아요', 'Correct')}</motion.button>
           <motion.button onClick={() => setRejectMode(true)} disabled={busy} whileTap={{ scale: 0.98 }}
             className="px-4 py-2 rounded-xl text-[12px] font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 cursor-pointer">
@@ -1055,7 +1055,7 @@ function FramingConfirmation({ snapshot, onConfirm, onReject, busy }: {
             onKeyDown={e => { if (e.key === 'Enter' && reason.trim()) { e.preventDefault(); onReject(reason.trim()); } }} autoFocus />
           <div className="flex gap-2">
             <motion.button onClick={() => reason.trim() && onReject(reason.trim())} disabled={busy || !reason.trim()} whileTap={{ scale: 0.98 }}
-              className="px-4 py-2 rounded-xl text-[12px] font-semibold text-white cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 rounded-xl text-[12px] font-semibold text-[var(--accent-fg)] cursor-pointer disabled:opacity-50"
               style={{ background: 'var(--gradient-gold)' }}>{L('재분석', 'Re-analyze')}</motion.button>
             <button onClick={() => setRejectMode(false)} className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] cursor-pointer">{L('취소', 'Cancel')}</button>
           </div>
@@ -2884,7 +2884,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   {/* Mid-voyage wall: a project already exists, so loadProjects()
                       auto-restores it on return — we only need to send the user back
                       to the workspace (not a blank default) after auth. */}
-                  <LocaleLink href="/login?redirect=/workspace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{hasKnownUser() ? L('다시 로그인하고 이어가기', 'Sign in and continue') : L('로그인', 'Sign In')} <ChevronRight size={13} /></LocaleLink>
+                  <LocaleLink href="/login?redirect=/workspace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[var(--accent-fg)] text-[13px] font-semibold" style={{ background: 'var(--gradient-gold)' }}>{hasKnownUser() ? L('다시 로그인하고 이어가기', 'Sign in and continue') : L('로그인', 'Sign In')} <ChevronRight size={13} /></LocaleLink>
                 </div>
               ) : (() => {
                 const isQuota = error.includes('한도') || error.includes('rate') || error.includes('limit') || error.includes('429');
@@ -3747,7 +3747,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
                   useProjectStore.getState().setCurrentProjectId(null);
                   window.location.assign(withLocale(locale, '/workspace'));
                 }}
-                  className="inline-flex min-h-[60px] items-center justify-center gap-2 px-6 py-3 rounded-2xl text-white text-[13px] font-semibold cursor-pointer"
+                  className="inline-flex min-h-[60px] items-center justify-center gap-2 px-6 py-3 rounded-2xl text-[var(--accent-fg)] text-[13px] font-semibold cursor-pointer"
                   style={{ background: 'var(--gradient-gold)' }}>{L('새 프로젝트 시작', 'Start New Project')} <ArrowRight size={12} /></button>
                 <button type="button" onClick={() => { setIterationOpen(true); setIterationDirective(''); }}
                   className="inline-flex min-h-[60px] items-center justify-center gap-3 px-6 py-3 rounded-2xl text-[13px] font-semibold text-[var(--text-primary)] border border-[var(--accent)]/30 bg-[var(--gold-muted)]/30 hover:bg-[var(--gold-muted)]/50 cursor-pointer transition-colors">
@@ -3864,7 +3864,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               {previewDraft.id !== activeDraftId && (
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-[var(--accent)] hover:opacity-90 transition-opacity"
+                  className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-[12px] font-semibold text-[var(--accent-fg)] bg-[var(--accent)] hover:opacity-90 transition-opacity"
                   onClick={() => handleBranchToDraft(previewDraft.id)}
                 >
                   <GitBranch className="w-3 h-3" /> {L('이 버전에서 수정', 'Revise from here')}
@@ -3960,7 +3960,7 @@ export function ProgressiveFlow({ projectId }: { projectId: string }) {
               </button>
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-[var(--accent)] hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-semibold text-[var(--accent-fg)] bg-[var(--accent)] hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 onClick={onRequestRevision}
                 disabled={isIterating || iterationDirective.trim().length === 0}
               >

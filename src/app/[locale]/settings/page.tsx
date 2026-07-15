@@ -325,7 +325,7 @@ export default function SettingsPage() {
               />
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] cursor-pointer"
+                className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
                 aria-label={showKey ? L('키 숨기기', 'Hide key') : L('키 보기', 'Show key')}
                 aria-pressed={showKey}
               >
@@ -353,7 +353,7 @@ export default function SettingsPage() {
               />
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] cursor-pointer"
+                className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
                 aria-label={showKey ? L('키 숨기기', 'Hide key') : L('키 보기', 'Show key')}
                 aria-pressed={showKey}
               >
@@ -396,7 +396,7 @@ export default function SettingsPage() {
               />
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] cursor-pointer"
+                className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
                 aria-label={showKey ? L('키 숨기기', 'Hide key') : L('키 보기', 'Show key')}
                 aria-pressed={showKey}
               >

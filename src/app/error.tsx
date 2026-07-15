@@ -60,7 +60,7 @@ export default function RootError({
         <div className="flex items-center justify-center gap-3 mt-7">
           <button
             onClick={reset}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[var(--accent-fg)] text-[13px] font-semibold hover:shadow-[var(--shadow-md)] transition-all cursor-pointer"
             style={{ background: 'var(--gradient-gold)' }}
           >
             <RotateCcw size={14} /> {L('다시 시도', 'Try again')}

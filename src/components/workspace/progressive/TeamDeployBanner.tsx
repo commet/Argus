@@ -458,7 +458,7 @@ export function TeamDeployBanner({
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 + groups.length * staggerDelay, duration: 0.4, ease: EASE }}
-        className="mt-5 w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white rounded-xl text-[14px] font-semibold cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] transition-shadow"
+        className="mt-5 w-full flex items-center justify-center gap-2 px-5 py-3.5 text-[var(--accent-fg)] rounded-xl text-[14px] font-semibold cursor-pointer shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-lg)] transition-shadow"
         style={{ background: 'var(--gradient-gold)' }}>
         {L('팀 투입', 'Start')} <ChevronRight size={14} />
       </motion.button>

@@ -42,7 +42,7 @@ export function PersonaCard({ persona, onClick, selected, selectable, onSelect }
         <div
           className={`
             w-11 h-11 rounded-xl flex items-center justify-center text-[18px] font-bold shrink-0 transition-all duration-200
-            ${selected ? 'text-white shadow-[var(--glow-gold)]' : `${inf.bg} ${inf.text}`}
+            ${selected ? 'text-[var(--accent-fg)] shadow-[var(--glow-gold)]' : `${inf.bg} ${inf.text}`}
           `}
           style={selected ? { background: 'var(--gradient-gold)' } : undefined}
         >
