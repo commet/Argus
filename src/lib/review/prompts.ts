@@ -23,6 +23,11 @@ const SPINE = `너는 Argus의 판단 검수기다. 사용자의 결정을 대�
   식별자(u_...)를 문장에 절대 노출하지 않는다. unit_id는 오직 unit_ids 배열에만 넣는다.
 - "리스크를 고려하세요", "더 조사하세요" 같은 일반론은 금지한다. 무엇을 확인할지 구체적으로 쓴다.
 - 원문에 없는 사실을 지어내지 않는다.
+- 지적의 "유형"을 다양하게 본다. "근거가 부족하다"만 반복하지 말고, 해당되면 더 날카로운 유형을 짚는다:
+  · 섹션 간 모순(A절은 X라는데 B절은 반대로 기술)  · 미충족 선결조건(전제가 아직 안 됐는데 그 위에서 결론)
+  · 비현실적/검증 안 된 가정  · 의존관계 역전(선행 과제가 후행보다 늦게 배치)  · 숫자·근거 불일치
+  · 이해관계자 반론(승인·예산을 쥔 사람이 먼저 걸 지점). 같은 문서의 findings 제목이 서로 붙여넣기처럼 보이면 실패다.
+- 짧고 날카롭게. title은 한 줄(대략 40자 이내), detail은 2문장 이내. 장황한 서술 금지.
 - 출력은 순수 JSON. 마크다운/설명 없이 { 로 시작해 } 로 끝난다.`;
 
 /**
@@ -58,6 +63,34 @@ export function renderUnits(units: ArtifactUnit[], limit: number): string {
       return `[${u.unit_id}] (${u.kind}${loc ? ' · ' + loc : ''}) ${u.text}`;
     })
     .join('\n');
+}
+
+/**
+ * A compact, ordered outline of the WHOLE document — its headings and slide
+ * titles with their location — so a single map-reduce chunk can see where it
+ * sits and flag a genuine conflict with a section it does not itself contain
+ * (the "the section-2 claim contradicts the section-8 conclusion" case a chunked
+ * review otherwise misses, because each chunk is judged in isolation). This is
+ * context only: a chunk may still cite ONLY its own units. Returns '' when the
+ * document has no headings/slide titles to outline (flat prose).
+ */
+export function buildDocumentOutline(units: ArtifactUnit[], maxChars = 1500): string {
+  const lines: string[] = [];
+  for (const u of units) {
+    if (u.kind !== 'heading' && u.kind !== 'slide_title') continue;
+    const a = u.source_anchor;
+    const loc =
+      a.slide !== undefined ? `slide ${a.slide}`
+      : a.page !== undefined ? `${a.page}쪽`
+      : a.section_path?.length ? a.section_path.join(' › ')
+      : a.line_start !== undefined ? `L${a.line_start}`
+      : '';
+    const text = u.text.replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (!text) continue;
+    lines.push(`- ${loc ? `[${loc}] ` : ''}${text}`);
+    if (lines.join('\n').length > maxChars) { lines.push('- …'); break; }
+  }
+  return lines.join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -152,6 +185,9 @@ Keep the result selective and concise:
 - Separate claims, evidence, and assumptions. Do not treat repetition as proof.
 - current_heading describes the document's present direction without deciding
   for the user.
+- A judgment obligation is a DECISION the human must make, NOT a restatement of
+  a finding. Never repeat a finding as an obligation. Keep obligations distinct
+  from each other and from the findings.
 - Return at most 3 judgment obligations and 3 falsifiable followups.
 - followup check_by must be a real date after ${today}.
 - Complete every JSON field below; use empty arrays instead of filler.
@@ -163,24 +199,87 @@ ${renderUnits(units, unitLimit)}
 
 ${context}
 
-Return this JSON shape:
+Return this JSON shape. The FIRST product fields — findings, judgment_obligations,
+followups — are what the user reads: fill them completely and specifically before
+the map fields below them. The trailing map fields (evidence_items, tradeoffs,
+stakeholders, open_questions, missing_sections) are secondary scaffolding — keep
+them brief so they never crowd out the product fields.
 {
   "profile": { "document_type": "...", "intent": "...", "audience": "...", "stakes": "low|medium|high", "artifact_maturity": "...", "source_confidence": 0.0 },
   "core_question": "the actual decision question",
   "explicit_recommendation": "stated recommendation or empty",
   "implicit_recommendation": "implied recommendation or empty",
+  "findings": [ { "lens_id": "core_question|claim_evidence|hidden_assumption|human_judgment|falsifiable_followup", "title": "...", "detail": "...", "severity": "minor|caution|critical", "confidence": "low|medium|high", "suggested_action": "a concrete check", "unit_ids": ["..."] } ],
+  "judgment_obligations": [ { "statement": "...", "owner": "...", "why_human": "...", "decision_needed_by": "...", "evidence_needed": "...", "unit_ids": ["..."] } ],
+  "followups": [ { "predicate": "...", "pass_condition": "...", "fail_condition": "...", "check_by": "YYYY-MM-DD" } ],
+  "current_heading": "neutral summary of the document's current direction",
   "main_claims": [ { "text": "...", "status": "supported|weak|unsupported|human_check|contradicted", "unit_ids": ["..."], "rationale": "...", "evidence_needed": "...", "fix_suggestion": "...", "depends_on_claim_ids": ["C1"] } ],
-  "evidence_items": [ { "text": "...", "unit_ids": ["..."], "kind": "internal|external_cited|asserted", "supports_claim_ids": ["C1"] } ],
   "assumptions": [ { "text": "...", "unit_ids": ["..."], "if_false": "..." } ],
+  "decision_points": [ { "text": "...", "human_only": true, "unit_ids": ["..."] } ],
+  "evidence_items": [ { "text": "...", "unit_ids": ["..."], "kind": "internal|external_cited|asserted", "supports_claim_ids": ["C1"] } ],
   "tradeoffs": [ { "text": "...", "unit_ids": ["..."] } ],
   "stakeholders": [ { "role": "...", "likely_objection": "...", "unit_ids": ["..."] } ],
   "open_questions": [ { "text": "...", "unit_ids": ["..."] } ],
-  "decision_points": [ { "text": "...", "human_only": true, "unit_ids": ["..."] } ],
-  "missing_sections": [ { "label": "...", "why_it_matters": "..." } ],
-  "findings": [ { "lens_id": "core_question|claim_evidence|hidden_assumption|human_judgment|falsifiable_followup", "title": "...", "detail": "...", "severity": "minor|caution|critical", "confidence": "low|medium|high", "suggested_action": "a concrete check", "unit_ids": ["..."] } ],
+  "missing_sections": [ { "label": "...", "why_it_matters": "..." } ]
+}`;
+
+  return { system, user };
+}
+
+// ---------------------------------------------------------------------------
+// Vision review: a single multimodal pass. The model SEES the document (a PDF
+// rendered to pages, or a deck's embedded images) alongside the extracted text,
+// so it can catch what the text extractor drops — a chart that contradicts the
+// prose, a number living inside an image, a layout that changes the meaning.
+// Anchors are PAGE/SLIDE numbers (the model sees pages, not our unit ids).
+// ---------------------------------------------------------------------------
+
+export function buildVisionReviewPrompt(
+  units: ArtifactUnit[],
+  ctx: UserReviewContext,
+  unitLimit: number,
+  today: string,
+  lang: ReviewLocale,
+  isDeck: boolean,
+): { system: string; user: string } {
+  const context = [
+    ctx.audience_hint && `Audience hint: ${ctx.audience_hint}`,
+    ctx.decision_wanted && `Decision wanted: ${ctx.decision_wanted}`,
+    ctx.biggest_worry && `Biggest worry: ${ctx.biggest_worry}`,
+    ctx.concerns?.length && `Requested concerns: ${ctx.concerns.join(', ')}`,
+  ].filter(Boolean).join('\n');
+  const anchorWord = isDeck ? 'slide' : 'page';
+
+  const system = `${SPINE}
+
+You can SEE the document itself — ${isDeck ? "the deck's images (charts/diagrams) are attached" : 'the PDF pages are attached and rendered'} — in ADDITION to the extracted text below. Use both: read the visuals (charts, tables, figures, numbers inside images, layout) that plain text extraction misses, and cross-check them against the prose. Apply the complete five-part judgment spine: core_question, claim_evidence, hidden_assumption, human_judgment, falsifiable_followup.
+
+Keep the result selective and concise:
+- Return 2 to 5 material findings; zero only when genuinely nothing is material. Do not manufacture one per lens.
+- Prefer findings that only the VISUAL reveals (a chart trend that contradicts a claim, a number shown only in an image) — that is the point of this pass.
+- A judgment obligation is a DECISION the human must make, NOT a restatement of a finding. Keep obligations distinct from each other and from the findings.
+- Reference locations in prose the human way ("slide 4의 시장규모 차트", "3쪽 표"). In the JSON, cite ${anchorWord} numbers in the "pages" array (e.g. [4] or [4,7]).
+- followup check_by must be a real date after ${today}. Return at most 3 obligations and 3 followups.
+
+${langDirective(lang)}`;
+
+  const user = `Extracted text (for cross-reference — the attached ${isDeck ? 'images' : 'pages'} are the source of truth for anything visual):
+${renderUnits(units, unitLimit)}
+
+${context}
+
+Return this JSON shape (findings/obligations/followups first — they are the product; cite ${anchorWord} numbers in "pages"):
+{
+  "profile": { "document_type": "...", "intent": "...", "audience": "...", "stakes": "low|medium|high", "artifact_maturity": "...", "source_confidence": 0.0 },
+  "core_question": "the actual decision question",
+  "explicit_recommendation": "stated recommendation or empty",
+  "findings": [ { "lens_id": "core_question|claim_evidence|hidden_assumption|human_judgment|falsifiable_followup", "title": "...", "detail": "...", "severity": "minor|caution|critical", "confidence": "low|medium|high", "suggested_action": "a concrete check", "seen_in_visual": true, "pages": [1] } ],
+  "judgment_obligations": [ { "statement": "...", "owner": "...", "why_human": "...", "decision_needed_by": "...", "evidence_needed": "...", "pages": [1] } ],
+  "followups": [ { "predicate": "...", "pass_condition": "...", "fail_condition": "...", "check_by": "YYYY-MM-DD" } ],
   "current_heading": "neutral summary of the document's current direction",
-  "judgment_obligations": [ { "statement": "...", "owner": "...", "why_human": "...", "decision_needed_by": "...", "evidence_needed": "...", "unit_ids": ["..."] } ],
-  "followups": [ { "predicate": "...", "pass_condition": "...", "fail_condition": "...", "check_by": "YYYY-MM-DD" } ]
+  "main_claims": [ { "text": "...", "status": "supported|weak|unsupported|human_check|contradicted", "pages": [1], "rationale": "..." } ],
+  "assumptions": [ { "text": "...", "pages": [1], "if_false": "..." } ],
+  "decision_points": [ { "text": "...", "human_only": true, "pages": [1] } ]
 }`;
 
   return { system, user };
@@ -199,6 +298,7 @@ export function buildMapPrompt(
   chunkCount: number,
   today: string,
   lang: ReviewLocale,
+  outline = '',
 ): { system: string; user: string } {
   const context = [
     ctx.audience_hint && `Audience hint: ${ctx.audience_hint}`,
@@ -207,11 +307,26 @@ export function buildMapPrompt(
     ctx.concerns?.length && `Requested concerns: ${ctx.concerns.join(', ')}`,
   ].filter(Boolean).join('\n');
 
+  // Contextual header (Anthropic "Contextual Retrieval" pattern, adapted): a
+  // chunk judged in isolation cannot see a section it does not contain, so it
+  // misses cross-section conflicts. Give it the whole-document outline as
+  // CONTEXT — never as new material to review — so it can flag when its own
+  // content genuinely contradicts another section, but still cites only its own units.
+  const outlineBlock = outline
+    ? `
+
+전체 문서 개요(맥락용 참고 — 이 구간 밖 항목은 그 자체로 지적하지 말 것):
+${outline}
+
+이 구간의 내용이 위 개요의 다른 항목과 **명백히 모순**될 때에만 그 관계를 finding으로
+낸다(그때도 unit_ids에는 이 구간의 unit_id만 넣는다). 개요 항목 자체를 지적 대상으로 삼지 않는다.`
+    : '';
+
   const system = `${SPINE}
 
 이 문서는 길어서 여러 구간으로 나눠 검수한다. 지금은 ${chunkCount}개 구간 중
 ${chunkIndex + 1}번째 구간이다. **이 구간의 원문 단위(units)에 실제로 담긴 것만**
-지도로 뽑는다 — 다른 구간의 내용이나 문서 전체 요약을 지어내지 않는다.
+지도로 뽑는다 — 다른 구간의 내용이나 문서 전체 요약을 지어내지 않는다.${outlineBlock}
 
 - 이 구간이 뒷받침하는 main_claims / assumptions / decision_points / findings만 낸다.
 - 판단 스파인 5개(core_question, claim_evidence, hidden_assumption, human_judgment,

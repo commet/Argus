@@ -24,19 +24,75 @@ export const MAX_MESSAGES = 20;
 export const MAX_TOTAL_BODY = 500_000;
 const VALID_ROLES = new Set(['user', 'assistant']);
 
-/** Validate messages array structure and size limits. */
-export function validateMessages(messages: unknown): messages is Array<{ role: string; content: string }> {
+// Vision/document path (review pipeline). A message's content may be an array of
+// Anthropic-shaped blocks (text/image/document) instead of a string. These caps
+// bound the binary payload so a malformed or hostile request can't exhaust the
+// serverless function's memory/timeout — the base64 image/PDF budget is separate
+// from and stricter than the text body budget.
+export const MAX_BLOCKS_PER_MESSAGE = 110;     // a long scanned PDF rendered to page images + text
+export const MAX_IMAGE_BLOCKS = 100;           // per whole request (Anthropic's own page ceiling)
+export const MAX_BINARY_BYTES_PER_BLOCK = 6_000_000;   // ~6 MB decoded per image/PDF
+export const MAX_BINARY_BYTES_TOTAL = 24_000_000;      // ~24 MB decoded (the ~4.4MB body cap binds first)
+const IMAGE_MEDIA = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+
+/** Decoded byte size of a base64 string (≈ len * 3/4, minus padding). */
+function base64Bytes(data: string): number {
+  const len = data.length;
+  const pad = data.endsWith('==') ? 2 : data.endsWith('=') ? 1 : 0;
+  return Math.floor((len * 3) / 4) - pad;
+}
+
+/** Accumulator so caps span the whole request, not just one message. */
+interface SizeAcc { text: number; binary: number; images: number }
+
+/** Validate one message's block-array content. Mutates `acc` with running totals. */
+function validateContentBlocks(content: unknown[], acc: SizeAcc): boolean {
+  if (content.length === 0 || content.length > MAX_BLOCKS_PER_MESSAGE) return false;
+  for (const block of content) {
+    if (typeof block !== 'object' || block === null) return false;
+    const type = (block as { type?: unknown }).type;
+    if (type === 'text') {
+      const t = (block as { text?: unknown }).text;
+      if (typeof t !== 'string') return false;
+      acc.text += t.length;
+    } else if (type === 'image' || type === 'document') {
+      const src = (block as { source?: unknown }).source as { type?: unknown; media_type?: unknown; data?: unknown } | undefined;
+      if (!src || src.type !== 'base64' || typeof src.data !== 'string' || typeof src.media_type !== 'string') return false;
+      if (type === 'image') {
+        if (!IMAGE_MEDIA.has(src.media_type)) return false;
+        acc.images += 1;
+      } else if (src.media_type !== 'application/pdf') {
+        return false;
+      }
+      const bytes = base64Bytes(src.data);
+      if (bytes <= 0 || bytes > MAX_BINARY_BYTES_PER_BLOCK) return false;
+      acc.binary += bytes;
+    } else {
+      return false; // unknown block type — reject rather than forward
+    }
+    if (acc.text > MAX_TOTAL_BODY || acc.binary > MAX_BINARY_BYTES_TOTAL || acc.images > MAX_IMAGE_BLOCKS) return false;
+  }
+  return true;
+}
+
+/** Validate messages array structure and size limits. Content may be a plain
+ *  string (the common case) or an array of text/image/document blocks (vision). */
+export function validateMessages(messages: unknown): messages is Array<{ role: string; content: unknown }> {
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) return false;
-  let totalSize = 0;
+  const acc: SizeAcc = { text: 0, binary: 0, images: 0 };
   return messages.every(
     (m: unknown) => {
       if (typeof m !== 'object' || m === null) return false;
       if (!('role' in m) || !VALID_ROLES.has((m as { role: unknown }).role as string)) return false;
-      if (!('content' in m) || typeof (m as { content: unknown }).content !== 'string') return false;
-      const content = (m as { content: string }).content;
-      if (content.length > MAX_MESSAGE_LENGTH) return false;
-      totalSize += content.length;
-      return totalSize <= MAX_TOTAL_BODY;
+      if (!('content' in m)) return false;
+      const content = (m as { content: unknown }).content;
+      if (typeof content === 'string') {
+        if (content.length > MAX_MESSAGE_LENGTH) return false;
+        acc.text += content.length;
+        return acc.text <= MAX_TOTAL_BODY;
+      }
+      if (Array.isArray(content)) return validateContentBlocks(content, acc);
+      return false;
     }
   );
 }
@@ -76,10 +132,15 @@ export function validateApiKey(
   return { valid: true };
 }
 
+/** Body ceiling for the LLM routes — larger than the shared 500KB default so the
+ *  opt-in vision path can carry a base64 PDF / rendered deck pages, but under the
+ *  serverless platform's own ~4.5MB request limit. */
+export const MAX_LLM_BODY_BYTES = 4_400_000;
+
 /**
- * Run common request validation (content-type, size, origin).
- * Returns error response if any check fails, null if all pass.
+ * Run common request validation (content-type, size, origin). `maxBytes`
+ * overrides the size ceiling (the LLM routes pass MAX_LLM_BODY_BYTES for vision).
  */
-export function validateRequest(req: NextRequest): NextResponse | null {
-  return validateContentType(req) || validateContentLength(req) || validateOrigin(req) || null;
+export function validateRequest(req: NextRequest, maxBytes?: number): NextResponse | null {
+  return validateContentType(req) || validateContentLength(req, maxBytes) || validateOrigin(req) || null;
 }

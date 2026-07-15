@@ -22,6 +22,12 @@ export async function POST(req: NextRequest) {
     if (!keyCheck.valid) return NextResponse.json({ error: keyCheck.error }, { status: 400 });
     if (!validateSystemPrompt(system)) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
     if (!validateMessages(messages)) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+    // OpenAI here is the text-only path — attachment blocks (vision/document) are
+    // Anthropic-only and must never reach it. Reject non-string content.
+    const textMessages = messages as Array<{ role: string; content: unknown }>;
+    if (textMessages.some((m) => typeof m.content !== 'string')) {
+      return NextResponse.json({ error: 'Attachments are not supported on this provider.' }, { status: 400 });
+    }
 
     const client = new OpenAI({ apiKey });
     const stream = body.stream === true;
@@ -30,9 +36,9 @@ export async function POST(req: NextRequest) {
     // Convert to OpenAI message format: system prompt as first message (skip if absent)
     const openaiMessages: OpenAI.ChatCompletionMessageParam[] = [
       ...(system ? [{ role: 'system' as const, content: system }] : []),
-      ...messages.map((m: { role: string; content: string }) => ({
+      ...textMessages.map((m) => ({
         role: m.role as 'user' | 'assistant',
-        content: m.content,
+        content: m.content as string,
       })),
     ];
 

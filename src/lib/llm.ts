@@ -5,9 +5,25 @@ import { track } from '@/lib/analytics';
 
 // ━━━ Types ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+/** Anthropic-shaped content blocks — the vision/document path (review pipeline).
+ *  A message's content is either a plain string (the overwhelming common case)
+ *  or an ordered array of blocks. Images/documents come BEFORE text per
+ *  Anthropic's best practice. Only forwarded to the Anthropic provider; the
+ *  proxy passes them straight to the SDK, which renders PDF pages + reads text. */
+export type LLMImageBlock = {
+  type: 'image';
+  source: { type: 'base64'; media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'; data: string };
+};
+export type LLMDocumentBlock = {
+  type: 'document';
+  source: { type: 'base64'; media_type: 'application/pdf'; data: string };
+};
+export type LLMTextBlock = { type: 'text'; text: string };
+export type LLMContentBlock = LLMTextBlock | LLMImageBlock | LLMDocumentBlock;
+
 export interface LLMMessage {
   role: 'user' | 'assistant';
-  content: string;
+  content: string | LLMContentBlock[];
 }
 
 export type ModelTier = 'fast' | 'default' | 'strong';
@@ -471,6 +487,14 @@ export function validateShape<T extends Record<string, unknown>>(
 }
 
 // ━━━ Settings ━━━
+
+/** The vision/document review path only works on the Anthropic provider (the
+ *  proxy or the user's direct Anthropic key) — OpenAI/Gemini use different image
+ *  encodings, so a review there falls back to text-only. */
+export function visionCapable(): boolean {
+  const p = getSettings().llm_provider;
+  return p !== 'openai' && p !== 'gemini';
+}
 
 function getSettings(): Settings {
   return getStorage<Settings>(STORAGE_KEYS.SETTINGS, {

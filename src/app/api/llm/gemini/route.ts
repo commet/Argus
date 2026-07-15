@@ -22,14 +22,20 @@ export async function POST(req: NextRequest) {
     if (!keyCheck.valid) return NextResponse.json({ error: keyCheck.error }, { status: 400 });
     if (!validateSystemPrompt(system)) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
     if (!validateMessages(messages)) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+    // Gemini here is the text-only path — attachment blocks (vision/document) are
+    // Anthropic-only and must never reach it. Reject non-string content.
+    const textMessages = messages as Array<{ role: string; content: unknown }>;
+    if (textMessages.some((m) => typeof m.content !== 'string')) {
+      return NextResponse.json({ error: 'Attachments are not supported on this provider.' }, { status: 400 });
+    }
 
     const ai = new GoogleGenAI({ apiKey });
     const modelId = ALLOWED_MODELS.has(body.model) ? body.model : DEFAULT_MODEL;
 
     // Convert to Gemini content format
-    const geminiContents = messages.map((m: { role: string; content: string }) => ({
+    const geminiContents = textMessages.map((m) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
+      parts: [{ text: m.content as string }],
     }));
 
     const stream = body.stream === true;

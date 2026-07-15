@@ -24,10 +24,20 @@ export function SealModal({
   followups,
   onSeal,
   onClose,
+  obligation,
+  busy,
+  error,
 }: {
   followups: FalsifiableFollowup[];
   onSeal: (followupId: string, patch: SealPatch) => void;
   onClose: () => void;
+  /** When set, this seals a judgment OBLIGATION into the DKK ledger — the
+   *  followups become optional prediction suggestions for the return contract. */
+  obligation?: { statement: string };
+  /** submit in flight (network seal) — disables the button, shows progress. */
+  busy?: boolean;
+  /** a user-facing error from the seal attempt (e.g. sign-in required). */
+  error?: string | null;
 }) {
   const locale = useLocale();
   const L = (ko: string, en: string) => (locale === 'ko' ? ko : en);
@@ -65,10 +75,10 @@ export function SealModal({
     ? `${Number(checkBy.slice(5, 7))}.${Number(checkBy.slice(8, 10))}`
     : '';
 
-  if (!selected) return null;
+  if (!selected && !obligation) return null;
 
   const commitSeal = () =>
-    onSeal(selected.followup_id, { predicate, lean, key_assumption: assumption, pass_condition: pass, fail_condition: fail, check_by: checkBy });
+    onSeal(selected?.followup_id ?? '', { predicate, lean, key_assumption: assumption, pass_condition: pass, fail_condition: fail, check_by: checkBy });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={stamping ? undefined : onClose}>
@@ -80,14 +90,25 @@ export function SealModal({
         )}
         <Card variant="elevated">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('이 판단을 봉인하기', 'Seal this judgment')}</h3>
+            <h3 className="text-[16px] font-bold text-[var(--text-primary)]">{L('이 판단을 내가 소유하기', 'Own this judgment')}</h3>
             <button onClick={onClose} className="text-[var(--text-tertiary)] text-[18px] leading-none">×</button>
           </div>
+          {obligation && (
+            <div className="mb-3 rounded-lg bg-[var(--accent)]/[0.05] px-3 py-2">
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent)] mb-0.5">{L('내가 소유하는 판단', 'The judgment I own')}</div>
+              <p className="text-[13px] leading-snug text-[var(--text-primary)]">{obligation.statement}</p>
+            </div>
+          )}
           <p className="text-[12px] text-[var(--text-secondary)] mb-1.5">
-            {L(
-              '나중에 현실이 맞다/틀리다로 답할 예측을 하나 봉인합니다. Argus가 판단하지 않습니다 — 확인일에 당신이 정산합니다.',
-              "Seal one prediction that reality will later answer as right or wrong. Argus does not judge — you settle it on the check-in date.",
-            )}
+            {obligation
+              ? L(
+                  '이 판단을 내 것으로 봉인하고, 나중에 현실이 맞다/틀리다로 답할 확인 예측을 하나 겁니다. Argus가 판단하지 않습니다 — 확인일에 당신이 정산합니다.',
+                  "Own this judgment, and commit to one prediction reality will later answer. Argus does not judge — you settle it on the check-in date.",
+                )
+              : L(
+                  '나중에 현실이 맞다/틀리다로 답할 예측을 하나 봉인합니다. Argus가 판단하지 않습니다 — 확인일에 당신이 정산합니다.',
+                  "Seal one prediction that reality will later answer as right or wrong. Argus does not judge — you settle it on the check-in date.",
+                )}
           </p>
           {/* Email disclosure (04 S5): the Companion Brief mails this prediction on
               its check-in date — say so BEFORE the seal, not after the send. */}
@@ -117,7 +138,7 @@ export function SealModal({
           )}
 
           <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-            {L('내가 책임질 예측', 'The prediction I own')} {selected.predicate_owner === 'ai_surfaced' && <span className="text-[var(--text-tertiary)] font-normal">{L('(Argus 초안 — 당신 말로 고쳐 쓰세요)', "(Argus draft — rewrite it in your own words)")}</span>}
+            {L('내가 책임질 예측', 'The prediction I own')} {selected?.predicate_owner === 'ai_surfaced' && <span className="text-[var(--text-tertiary)] font-normal">{L('(Argus 초안 — 당신 말로 고쳐 쓰세요)', "(Argus draft — rewrite it in your own words)")}</span>}
           </label>
           <textarea
             value={predicate}
@@ -165,23 +186,27 @@ export function SealModal({
             </div>
           </div>
 
+          {error && <p className="mt-3 text-[12px] text-red-600">{error}</p>}
           <div className="flex gap-2 mt-5">
             <Button
               variant="accent"
               size="md"
               className="transition-transform duration-150 active:scale-[0.96]"
               onClick={() => {
-                if (stamping) return;
-                if (reducedMotion) { commitSeal(); return; }
+                if (stamping || busy) return;
+                // Obligation seal is a network commit — go straight to it (the
+                // busy state shows progress). The ink-stamp ceremony is only for
+                // the instant local followup seal.
+                if (obligation || reducedMotion) { commitSeal(); return; }
                 setStamping(true);
                 timerRef.current = setTimeout(commitSeal, 480);
               }}
-              disabled={!canSeal || stamping}
+              disabled={!canSeal || stamping || busy}
               style={canSeal ? undefined : { opacity: 0.5 }}
             >
-              {L('봉인하기', 'Seal')}
+              {busy ? L('봉인 중…', 'Sealing…') : obligation ? L('봉인하기', 'Own & seal') : L('봉인하기', 'Seal')}
             </Button>
-            <Button variant="ghost" size="md" onClick={onClose} disabled={stamping}>
+            <Button variant="ghost" size="md" onClick={onClose} disabled={stamping || busy}>
               {L('취소', 'Cancel')}
             </Button>
           </div>

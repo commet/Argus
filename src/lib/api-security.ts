@@ -16,11 +16,14 @@ export function validateContentType(req: NextRequest): NextResponse | null {
 
 /**
  * Reject oversized request bodies before JSON parsing.
- * Prevents memory/CPU exhaustion from large payloads.
+ * Prevents memory/CPU exhaustion from large payloads. `maxBytes` overrides the
+ * default 500KB for routes that legitimately carry larger payloads (the LLM
+ * vision path sends a base64 PDF/deck images — bounded by the platform's own
+ * ~4.5MB limit, so callers pass a route-local ceiling under that).
  */
-export function validateContentLength(req: NextRequest): NextResponse | null {
+export function validateContentLength(req: NextRequest, maxBytes: number = MAX_BODY_BYTES): NextResponse | null {
   const cl = req.headers.get('content-length');
-  if (cl && parseInt(cl, 10) > MAX_BODY_BYTES) {
+  if (cl && parseInt(cl, 10) > maxBytes) {
     return NextResponse.json({ error: '요청이 너무 큽니다.' }, { status: 413 });
   }
   return null;

@@ -21,7 +21,9 @@ import { SealStamp } from '@/components/workspace/progressive/SealStamp';
 import { SealModal } from './SealModal';
 import { SettleModal } from './SettleModal';
 import { extractFile, type ExtractedText } from '@/lib/review/extract-file';
+import { sealReviewObligation } from '@/lib/review-seal';
 import { useSettingsStore, hasOwnApiKey } from '@/stores/useSettingsStore';
+import { visionCapable } from '@/lib/llm';
 import { getStorage, setStorage, STORAGE_KEYS } from '@/lib/storage';
 import { track } from '@/lib/analytics';
 import {
@@ -33,6 +35,7 @@ import {
   type SourceKind,
   type ReviewConcern,
   type UserReviewContext,
+  type JudgmentObligation,
 } from '@/lib/review';
 
 type Phase = 'list' | 'import' | 'running' | 'receipt' | 'failed';
@@ -63,11 +66,15 @@ export function ReviewFlow() {
   const [audienceHint, setAudienceHint] = useState('');
   const [worry, setWorry] = useState('');
   const [storeSource, setStoreSource] = useState(false);
+  const [useVision, setUseVision] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [sessionSource, setSessionSource] = useState<{ id: string; text: string } | null>(null);
   const [job, setJob] = useState<ReviewJob | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [sealing, setSealing] = useState(false);
+  // Own & seal an obligation into the DKK ledger (unified action). null = closed.
+  const [sealingObligation, setSealingObligation] = useState<JudgmentObligation | null>(null);
+  const [sealBusy, setSealBusy] = useState(false);
+  const [sealError, setSealError] = useState<string | null>(null);
   const [settlingId, setSettlingId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   // BYOK gate: a full-document review burns tokens, so a user NOT on their own
@@ -139,6 +146,7 @@ export function ReviewFlow() {
     setTitle(file.name);
     setExtractNote(null);
     setPreExtracted(null);
+    setUseVision(false);
     if (TEXT_EXT.includes(ext)) {
       const content = await file.text();
       setText(content);
@@ -155,8 +163,15 @@ export function ReviewFlow() {
           setPreExtracted(extracted);
           setPendingBinary(null);
           setExtractNote(extracted.note ?? null);
+        } else if (extracted.vision && visionCapable()) {
+          // No text (scanned PDF) BUT we can see it — route to vision instead of
+          // a dead-end. Auto-enable the vision toggle: it's the only way to read it.
+          setPreExtracted(extracted);
+          setPendingBinary(null);
+          setUseVision(true);
+          setExtractNote(extracted.note ?? L('텍스트가 없어 비전 검수로 읽습니다.', 'No text — reading it with vision.'));
         } else {
-          // Parser ran but got nothing usable (scanned PDF, image-only deck).
+          // Parser ran but got nothing usable and vision isn't available.
           setPendingBinary(BINARY_EXT[ext]);
           setExtractNote(extracted.note ?? L('텍스트를 거의 추출하지 못했습니다.', 'Almost no text could be extracted.'));
         }
@@ -226,7 +241,13 @@ export function ReviewFlow() {
     // chunk passes, so scale the deadline with its size (capped) instead of
     // timing out a genuine 40-page review at the short base budget.
     const sourceLength = (preExtracted?.text || text).length;
-    const deadlineMs = Math.min(300_000, Math.max(REVIEW_DEADLINE_MS, 90_000 + Math.ceil(sourceLength / 1000) * 2000));
+    // A vision pass sends many page images and the model reads them all — give it
+    // real headroom (a scanned PDF has ~0 text length, so the size-scaled budget
+    // below would otherwise time it out at the short base deadline).
+    const visionOn = useVision && !!preExtracted?.vision;
+    const deadlineMs = visionOn
+      ? 300_000
+      : Math.min(300_000, Math.max(REVIEW_DEADLINE_MS, 90_000 + Math.ceil(sourceLength / 1000) * 2000));
     const deadline = setTimeout(() => {
       if (abortRef.current) { abortReasonRef.current = 'deadline'; abortRef.current.abort(); }
     }, deadlineMs);
@@ -239,6 +260,9 @@ export function ReviewFlow() {
       locale,
       onProgress: setJob,
       signal: controller.signal,
+      // Opt-in multimodal pass: send the PDF/deck visuals so the model reads the
+      // charts/tables/layout text extraction drops. Transient — never persisted.
+      vision: useVision ? preExtracted?.vision : undefined,
     });
     clearTimeout(deadline);
     abortRef.current = null;
@@ -373,11 +397,7 @@ export function ReviewFlow() {
         })()}
         <ReceiptView
           receipt={receipt}
-          onOwn={(o, owned) => {
-            store.setObligationOwned(receipt.receipt_id, o.obligation_id, owned);
-            if (owned) track('judgment_obligation_selected', { receipt_id: receipt.receipt_id });
-          }}
-          onSeal={() => setSealing(true)}
+          onSealObligation={(o) => { setSealError(null); setSealingObligation(o); }}
           onSettle={(followupId) => setSettlingId(followupId)}
           onReReview={reReview}
         />
@@ -430,14 +450,32 @@ export function ReviewFlow() {
           </Button>
         </div>
 
-        {sealing && receipt.falsifiable_followups.length > 0 && (
+        {sealingObligation && (
           <SealModal
+            obligation={{ statement: sealingObligation.statement }}
             followups={receipt.falsifiable_followups}
-            onClose={() => setSealing(false)}
-            onSeal={(followupId, patch) => {
-              store.sealFollowup(receipt.receipt_id, followupId, patch);
-              track('receipt_sealed', { receipt_id: receipt.receipt_id });
-              setSealing(false);
+            busy={sealBusy}
+            error={sealError}
+            onClose={() => { if (!sealBusy) { setSealingObligation(null); setSealError(null); } }}
+            onSeal={async (_followupId, patch) => {
+              setSealBusy(true);
+              setSealError(null);
+              const res = await sealReviewObligation(receipt, sealingObligation, {
+                predicate: patch.predicate,
+                check_by: patch.check_by,
+                pass_condition: patch.pass_condition,
+                fail_condition: patch.fail_condition,
+              });
+              setSealBusy(false);
+              if (res.ok) {
+                store.markObligationSealed(receipt.receipt_id, sealingObligation.obligation_id, res.judgment_id, res.project_id);
+                track('receipt_sealed', { receipt_id: receipt.receipt_id });
+                setSealingObligation(null);
+              } else if (res.code === 'NOT_SIGNED_IN') {
+                setSealError(L('봉인은 로그인이 필요해요. 로그인하면 이 판단이 내 결정 원장에 기록돼 확인일에 정산됩니다.', 'Sealing needs sign-in. Once signed in, this judgment is recorded in your decision ledger and settled on the check-in date.'));
+              } else {
+                setSealError(L('봉인에 실패했어요. 잠시 후 다시 시도해 주세요.', 'Sealing failed. Please try again in a moment.'));
+              }
             }}
           />
         )}
@@ -771,6 +809,37 @@ export function ReviewFlow() {
           </span>
         </span>
       </label>
+
+      {/* Opt-in vision review — only when the extractor produced a visual payload
+          (a PDF, or a deck with embedded images) AND the provider can take it. */}
+      {!!preExtracted?.vision && visionCapable() && (
+        <label className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)] cursor-pointer">
+          <input type="checkbox" checked={useVision} onChange={(e) => setUseVision(e.target.checked)} className="mt-0.5" />
+          <span>
+            {preExtracted.vision.kind === 'pdf'
+              ? L('이미지·차트·표까지 눈으로 정밀 검수 (비전)', 'Read images, charts and tables visually (vision)')
+              : L('덱에 담긴 이미지·차트까지 함께 검수 (비전)', 'Also review the deck’s embedded images/charts (vision)')}
+            <span className="block text-[11px] text-[var(--text-tertiary)]">
+              {L(
+                '문서를 이미지로도 모델에 보여줘, 텍스트만으로는 놓치는 그래프·표·레이아웃을 잡아냅니다. 토큰을 더 쓰니 무료 1회를 소모해요.',
+                'The model also sees the document as images, catching graphs/tables/layout that text alone misses. Uses more tokens — spends your free review.',
+              )}
+            </span>
+          </span>
+        </label>
+      )}
+
+      {/* A deck only carries its embedded images to vision (no in-browser slide
+          renderer). Nudge toward PDF export, which gets full-fidelity native
+          vision — every slide, layout and all — for free. */}
+      {sourceKind === 'pptx' && !!preExtracted && (
+        <p className="text-[11px] leading-[1.6] text-[var(--text-tertiary)]">
+          {L(
+            '💡 덱을 PDF로 내보내 올리면 모든 슬라이드를 이미지로 더 정밀하게 검수해요 (지금은 덱에 박힌 이미지만 봅니다).',
+            '💡 Export your deck to PDF and upload that for a full visual review of every slide — right now only the deck’s embedded images are seen.',
+          )}
+        </p>
+      )}
 
       {gateBlocked && (
         <Card variant="muted" className="border border-[var(--border-subtle)]">

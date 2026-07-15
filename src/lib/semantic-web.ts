@@ -24,6 +24,13 @@ export const SemanticWebCommandSchema = z.discriminatedUnion('kind', [
     statement: z.string().min(1).max(4000), return_contract_id: zId,
     review_at: zIsoDateTime, review_question: z.string().min(1).max(4000),
     resolution_criterion: z.string().min(1).max(2000).optional(),
+    // Onramp provenance (e.g. document review): when the sealed judgment was
+    // adopted from an AI proposal, the seal batch also records that proposal
+    // (proposal_created, ai-authored) so the ledger shows "AI proposed → human
+    // sealed" with the source document. Omitted for a direct human seal.
+    proposal_id: zId.optional(),
+    proposal_text: z.string().min(1).max(4000).optional(),
+    source_ref: z.string().min(1).max(1024).optional(),
   }),
   z.strictObject({
     kind: z.literal('observe'), command_id: zCommandId, observation_id: zId,
@@ -144,32 +151,55 @@ export function buildSemanticWebCommand(input: SemanticWebCommandInput): Semanti
   const command = parsedCommand.data;
 
   switch (command.kind) {
-    case 'seal':
+    case 'seal': {
       // Multi-event batches carry an ordinal in the event id. The ledger table
       // stores one created_at per transaction, and every reader breaks the tie
       // with ORDER BY event_id — without the ordinal, ':return' sorts before
       // ':sealed' and the fold drops the return contract as an unknown
       // reference (found by scripts/dogfood, scenario W1 root cause).
-      return {
-        ok: true,
-        events: [
-          {
-            ...commandEventBase(projectId, command, recordedAt, '1-sealed', origin),
-            event: 'judgment_sealed',
-            judgment_id: command.judgment_id,
-            statement: command.statement,
+      // The onramp proposal (when present) MUST sort first ('0-proposal') so the
+      // fold folds it before the seal and marks it adopted via source_proposal_id.
+      const events: SemanticEvent[] = [];
+      if (command.proposal_id && command.proposal_text) {
+        events.push({
+          ...commandEventBase(projectId, command, recordedAt, '0-proposal', origin),
+          event: 'proposal_created',
+          proposal_id: command.proposal_id,
+          proposal_kind: 'judgment',
+          text: command.proposal_text,
+          // AI-authored proposal: originated by ai, recorded by the web system,
+          // and NOT human-authorized — only the seal below carries human authority.
+          authority: {
+            originated_by: { kind: 'ai', id: 'web:argus' },
+            recorded_by: { kind: 'system', id: origin?.recorder_id ?? WEB_RECORDER.id },
           },
-          {
-            ...commandEventBase(projectId, command, recordedAt, '2-return', origin),
-            event: 'return_promised',
-            return_contract_id: command.return_contract_id,
-            judgment_id: command.judgment_id,
-            review_at: command.review_at,
-            review_question: command.review_question,
-            ...(command.resolution_criterion ? { resolution_criterion: command.resolution_criterion } : {}),
+          provenance: {
+            source_kind: 'ai_generation',
+            ...(command.source_ref ? { source_ref: command.source_ref } : {}),
+            verification: 'unknown',
           },
-        ],
-      };
+        });
+      }
+      events.push(
+        {
+          ...commandEventBase(projectId, command, recordedAt, '1-sealed', origin),
+          event: 'judgment_sealed',
+          judgment_id: command.judgment_id,
+          statement: command.statement,
+          ...(command.proposal_id ? { source_proposal_id: command.proposal_id } : {}),
+        },
+        {
+          ...commandEventBase(projectId, command, recordedAt, '2-return', origin),
+          event: 'return_promised',
+          return_contract_id: command.return_contract_id,
+          judgment_id: command.judgment_id,
+          review_at: command.review_at,
+          review_question: command.review_question,
+          ...(command.resolution_criterion ? { resolution_criterion: command.resolution_criterion } : {}),
+        },
+      );
+      return { ok: true, events };
+    }
     case 'observe':
       return {
         ok: true,

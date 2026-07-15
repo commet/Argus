@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
-import { validateMessages, validateSystemPrompt, validateRequest, normalizeMaxTokens } from '@/lib/llm-validation';
+import { validateMessages, validateSystemPrompt, validateRequest, normalizeMaxTokens, MAX_LLM_BODY_BYTES } from '@/lib/llm-validation';
 import { DAILY_LIMIT, ANON_LIMIT } from '@/lib/quota-config';
 import { logServerEvent } from '@/lib/server-events';
 import { verifyTurnstile, TURNSTILE_HEADER } from '@/lib/turnstile';
@@ -92,7 +92,7 @@ async function checkAnonRateLimit(ip: string): Promise<boolean> {
 
 export async function POST(req: NextRequest) {
   // 0. Request validation
-  const reqError = validateRequest(req);
+  const reqError = validateRequest(req, MAX_LLM_BODY_BYTES);
   if (reqError) return reqError;
 
   // Invalid JSON or payloads are not model attempts and must not consume quota.

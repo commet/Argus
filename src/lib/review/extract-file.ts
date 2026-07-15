@@ -29,6 +29,43 @@ import {
   slideNum,
 } from './extract-core';
 
+/** Optional vision payload for the multimodal review path (opt-in). PDFs ride
+ *  as a single native document block (Claude renders pages + reads text itself);
+ *  decks ride as their embedded images (charts/diagrams the text extractor can't
+ *  see). Kept OFF the persisted artifact — threaded transiently to the pipeline
+ *  only when the user opts in, never written to localStorage/Supabase. */
+export interface VisionSource {
+  kind: 'pdf' | 'images';
+  /** kind 'pdf' — the whole PDF, base64. */
+  pdf_base64?: string;
+  /** kind 'images' — deck-embedded images, base64. */
+  images?: Array<{ media_type: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'; data: string }>;
+  page_count?: number;
+}
+
+// Vision caps. The binding constraint is the server body ceiling (~4.4MB), so a
+// PDF only rides as a native document block when the RAW file is small enough
+// that its base64 fits; a bigger or scanned PDF is rendered to downscaled page
+// images instead (a fraction of the raw size), which is also the only way to
+// review a scanned PDF that carries no text layer at all.
+const VISION_DOC_BLOCK_MAX_BYTES = 3_200_000;   // raw PDF → base64 ~4.3MB, under the body cap
+const VISION_RENDER_MAX_PAGES = 40;             // bound cost/latency of a rendered review
+const VISION_RENDER_MAX_B64 = 3_600_000;        // total base64 budget for rendered pages (< body cap)
+const VISION_RENDER_TARGET_WIDTH = 1100;        // px — legible to the model, small on the wire
+const VISION_MAX_IMAGES = 40;
+const VISION_IMG_MAX_BYTES = 5_000_000;    // ~5 MB per embedded deck image
+
+/** ArrayBuffer/Uint8Array → base64, chunked so a large buffer doesn't blow the
+ *  call stack (String.fromCharCode(...bigArray) throws on ~100k+ elements). */
+function toBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
 export interface ExtractedText {
   /** flattened text (docx path) — fed to ingest's markdown-aware extractor. */
   text: string;
@@ -37,6 +74,8 @@ export interface ExtractedText {
   quality: ExtractionQuality;
   /** honest one-liner shown to the user. */
   note?: string;
+  /** opt-in multimodal payload (PDF document / deck images) — see VisionSource. */
+  vision?: VisionSource;
   /** extractor-side caps → feeds ReviewCoverage so a page/unit-capped file can't
    *  masquerade as fully reviewed (see lib/review/coverage.ts). */
   pages_total?: number;
@@ -162,9 +201,40 @@ async function extractPptx(buf: ArrayBuffer): Promise<ExtractedText> {
   // slides actually turned into units (capped runs stop mid-deck).
   const slidesRead = new Set(units.map((u) => u.source_anchor.slide)).size;
   const caps = { slides_total: slidePaths.length, slides_read: slidesRead, units_capped: capped };
+
+  // Opt-in vision payload: a deck has no browser renderer, but its embedded media
+  // (ppt/media/*) ARE the charts/diagrams the text extractor can't read. Send
+  // those images so the model sees them — imperfect (no slide layout) but real.
+  const vision = await extractPptxImages(zip);
+
   const total = units.reduce((n, u) => n + u.text.length, 0);
-  if (total < 40) return { text: '', units: [], quality: 'low', note: '슬라이드에서 텍스트를 거의 찾지 못했습니다 (이미지 위주의 deck일 수 있습니다).', ...caps };
-  return { text: units.map((u) => u.text).join('\n'), units, quality: 'medium', ...caps };
+  if (total < 40) return { text: '', units: [], quality: 'low', note: '슬라이드에서 텍스트를 거의 찾지 못했습니다 (이미지 위주의 deck일 수 있습니다).', vision, ...caps };
+  return { text: units.map((u) => u.text).join('\n'), units, quality: 'medium', vision, ...caps };
+}
+
+/** Pull a deck's embedded raster images (ppt/media/*.png|jpg|jpeg|gif) as base64
+ *  vision blocks — capped in count and per-image size. Returns undefined when a
+ *  deck has no usable embedded images. */
+async function extractPptxImages(
+  zip: { files: Record<string, { async(t: 'uint8array'): Promise<Uint8Array> }> },
+): Promise<VisionSource | undefined> {
+  const MEDIA: Record<string, 'image/png' | 'image/jpeg' | 'image/gif'> = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+  };
+  const paths = Object.keys(zip.files)
+    .filter((p) => /^ppt\/media\/[^/]+\.(png|jpe?g|gif)$/i.test(p))
+    .sort();
+  const images: NonNullable<VisionSource['images']> = [];
+  for (const p of paths) {
+    if (images.length >= VISION_MAX_IMAGES) break;
+    const ext = (p.split('.').pop() || '').toLowerCase();
+    const media_type = MEDIA[ext === 'jpg' ? 'jpg' : ext];
+    if (!media_type) continue;
+    const bytes = await zip.files[p].async('uint8array');
+    if (bytes.length === 0 || bytes.length > VISION_IMG_MAX_BYTES) continue;
+    images.push({ media_type, data: toBase64(bytes) });
+  }
+  return images.length ? { kind: 'images', images } : undefined;
 }
 
 // --------------------------------------------------------------------------
@@ -212,9 +282,19 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
     pages_read: pagesRead,
     units_capped: capped || doc.numPages > PAGE_CAP,
   };
+  // Opt-in vision payload — computed the same way whether or not the PDF has a
+  // text layer. A SCANNED PDF (no text) is exactly what vision is for, so it is
+  // attached here too; the pipeline can review purely from the page images.
+  const vision = await buildPdfVision(doc as unknown as PdfDocLike, buf);
+
   const total = units.reduce((n, u) => n + u.text.length, 0);
   if (total < 40) {
-    return { text: '', units: [], quality: 'low', note: '이 PDF에서 텍스트를 거의 추출하지 못했습니다 (스캔 이미지 PDF일 수 있습니다).', ...caps };
+    // No text layer. If vision is available the flow can still review it (from
+    // the rendered pages); the note tells the user that's the only path.
+    const note = vision
+      ? '이 PDF는 텍스트가 없어(스캔 이미지) 비전 검수로만 읽을 수 있어요. "이미지까지 정밀 검수"를 켜고 실행하세요.'
+      : '이 PDF에서 텍스트를 거의 추출하지 못했습니다 (스캔 이미지 PDF일 수 있습니다).';
+    return { text: '', units: [], quality: 'low', note, vision, ...caps };
   }
   const layoutNote = multiColumn || hasTable
     ? '다단·표가 있어 일부 순서가 어긋날 수 있어요 — 핵심 본문은 붙여넣기가 더 정확합니다.'
@@ -224,6 +304,71 @@ async function extractPdf(buf: ArrayBuffer): Promise<ExtractedText> {
     units,
     quality: 'medium',
     note: total < 400 ? '추출된 텍스트가 적습니다. 핵심 본문은 붙여넣으면 더 정확합니다.' : layoutNote,
+    vision,
     ...caps,
   };
+}
+
+/** Build the opt-in vision payload for a PDF. Small PDFs ride as one native
+ *  document block (best fidelity — Claude reads text + renders pages itself);
+ *  a PDF too large for the request body is rendered client-side to downscaled
+ *  page images instead (the only way to fit — and the only way to review a
+ *  scanned, text-less PDF at all). Returns undefined if neither path fits. */
+interface PdfDocLike { numPages: number; getPage(n: number): Promise<PdfPageLike> }
+interface PdfPageLike {
+  getViewport(o: { scale: number }): { width: number; height: number };
+  // pdf.js RenderParameters vary by version (some require `canvas`, some
+  // `canvasContext`); pass both and keep this loose so we don't pin a version.
+  render(o: Record<string, unknown>): { promise: Promise<void> };
+}
+
+async function buildPdfVision(doc: PdfDocLike, buf: ArrayBuffer): Promise<VisionSource | undefined> {
+  if (buf.byteLength <= VISION_DOC_BLOCK_MAX_BYTES) {
+    return { kind: 'pdf', pdf_base64: toBase64(new Uint8Array(buf)), page_count: doc.numPages };
+  }
+  try {
+    const images = await renderPdfPages(doc);
+    return images.length ? { kind: 'images', images, page_count: doc.numPages } : undefined;
+  } catch {
+    return undefined; // rendering unavailable (no canvas) → text-only, honest
+  }
+}
+
+/** Render up to VISION_RENDER_MAX_PAGES pages to downscaled JPEGs via canvas,
+ *  stopping at the base64 budget. Browser-only (needs a canvas). */
+async function renderPdfPages(doc: PdfDocLike): Promise<NonNullable<VisionSource['images']>> {
+  const images: NonNullable<VisionSource['images']> = [];
+  let b64Total = 0;
+  const n = Math.min(doc.numPages, VISION_RENDER_MAX_PAGES);
+  for (let p = 1; p <= n; p++) {
+    const page = await doc.getPage(p);
+    const base = page.getViewport({ scale: 1 });
+    const scale = Math.min(2, VISION_RENDER_TARGET_WIDTH / Math.max(1, base.width));
+    const viewport = page.getViewport({ scale });
+    const w = Math.max(1, Math.round(viewport.width));
+    const h = Math.max(1, Math.round(viewport.height));
+    let blob: Blob;
+    if (typeof OffscreenCanvas !== 'undefined') {
+      const canvas = new OffscreenCanvas(w, h);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) break;
+      await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+      blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.62 });
+    } else if (typeof document !== 'undefined') {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) break;
+      await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+      blob = await new Promise<Blob>((res, rej) =>
+        canvas.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/jpeg', 0.62));
+    } else {
+      throw new Error('no canvas');
+    }
+    const data = toBase64(new Uint8Array(await blob.arrayBuffer()));
+    if (b64Total + data.length > VISION_RENDER_MAX_B64) break; // budget spent — stop, disclose via page_count
+    b64Total += data.length;
+    images.push({ media_type: 'image/jpeg', data });
+  }
+  return images;
 }

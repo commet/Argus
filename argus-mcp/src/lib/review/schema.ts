@@ -409,6 +409,10 @@ export interface JudgmentObligation {
   anchors: SourceAnchor[];
   /** set true when the user clicks "이 판단을 내가 소유하기". */
   owned_by_user: boolean;
+  /** the DKK canonical judgment this obligation was sealed into (via the review
+   *  onramp). Once set, the obligation's lifecycle lives in the DKK ledger
+   *  (observe/resolve/close), not the local receipt. */
+  sealed_judgment_id?: string;
 }
 
 export type FollowupOutcome = 'happened' | 'avoided' | 'partial' | 'unclear' | 'missed';
@@ -494,6 +498,9 @@ export interface ReviewProvenance {
   model_name: string;
   prompt_hash: string;
   created_at: string;
+  /** Present when the review ran as a multimodal pass over the attached
+   *  document/deck (the model saw the pages/images, not just extracted text). */
+  vision?: { mode: 'pdf' | 'images'; page_count?: number };
 }
 
 /**
@@ -536,6 +543,9 @@ export interface JudgmentReceipt {
   source_kind: SourceKind;
   source_title: string;
   source_fingerprint: string;
+  /** the DKK project space this receipt's sealed judgments live in (set the first
+   *  time the user seals an obligation via the onramp). `account-project:<id>`. */
+  project_id?: string;
   /** original text — ONLY kept when privacy_mode is store_source (§252). Enables
    *  the side-by-side Review Workspace on return; omitted under receipt_only. */
   source_text?: string;
