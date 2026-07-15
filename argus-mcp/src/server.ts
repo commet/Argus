@@ -10,6 +10,8 @@ import { PUBLIC_TOOLS, TOOL_MAP, servedPublicTools } from './tools/index.js';
 import { listResources, listResourceTemplates, readResource } from './resources.js';
 import { SERVER_INSTRUCTIONS } from './lib/spine.js';
 import { setElicitor } from './lib/elicit.js';
+import { initAmbientElicit, armAmbientElicit } from './lib/ambient-elicit.js';
+import { settle } from './tools/settle.js';
 import { appendDueNote } from './lib/due-note.js';
 import { logError } from './lib/log.js';
 import { packageMeta } from './lib/package-meta.js';
@@ -85,6 +87,13 @@ export async function createServer(): Promise<Server> {
     chain = run.then(() => undefined, () => undefined);
     return run;
   };
+
+  // Out-of-band ambient ask (lib/ambient-elicit.ts) — after a tool call ends
+  // and the session goes quiet, the server may ask the ONE due settlement
+  // question directly (spike-proven server→client elicitation). Recording rides
+  // the real settle handler through the SAME serialize chain, so an ambient
+  // write can never interleave with an in-band tool call.
+  initAmbientElicit({ settleHandler: (a) => settle.handler(a), serialize });
 
   // The low-level SDK handler's expected return is a broad ServerResult union
   // (incl. a task-augmented variant) our envelope type isn't nominally part of —
@@ -168,6 +177,10 @@ export async function createServer(): Promise<Server> {
       // Opt-in usage signal: which tool ran + that it didn't crash. Carries no
       // arguments — never the decision content. Fire-and-forget (see telemetry.ts).
       recordToolCall(name, true);
+      // Debounced out-of-band ask arms on every call and fires only after the
+      // session goes quiet; a check_in call spends the budget instead (the user
+      // just saw their dues). Never throws, never taxes this call.
+      armAmbientElicit(name, callArgs);
       return appendDueNote(name, callArgs, result);
     } catch (e) {
       recordToolCall(name, false);
