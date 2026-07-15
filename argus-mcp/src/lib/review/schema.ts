@@ -615,12 +615,24 @@ export interface AnalysisBudget {
   depth: 'quick' | 'standard' | 'deep';
 }
 
+/** Output language for everything the review surfaces to the user — LLM-generated
+ *  content (findings, assumptions, headings, obligations) AND progress labels.
+ *  Threaded from the UI locale into the pipeline and every prompt builder so the
+ *  review no longer answers in Korean regardless of the reader's locale. */
+export type ReviewLocale = 'ko' | 'en';
+
 export interface ReviewJob {
   job_id: string;
   artifact_id: string;
   status: ReviewJobStatus;
   progress_label: string;
   partial_receipt?: Partial<JudgmentReceipt>;
+  /** During the long lens stage, a few of the document's OWN premises currently
+   *  under examination, as extracted by the pipeline — so the wait shows real,
+   *  specific work on the user's material. These are the source's stated
+   *  assumptions/claims (in the pipeline's output language, currently Korean),
+   *  NEVER a verdict about them (no status, no rationale). Target, not judgment. */
+  examining?: string[];
   error?: ReviewFailure;
 }
 

@@ -25,10 +25,15 @@ describe('document review latency contract', () => {
     expect(pipeline).toContain('maxTokens: 2000');
   });
 
-  it('keeps fast-path output in the document language and requires material anchored findings', () => {
+  it('locks fast-path output to one language and requires material anchored findings', () => {
     const prompts = fs.readFileSync(path.resolve('src/lib/review/prompts.ts'), 'utf8');
-    expect(prompts).toContain("Write every user-facing value in the document's primary language");
-    expect(prompts).toContain('Do not mix them');
+    // Output language is pinned by the shared langDirective (reader's locale),
+    // appended last so it overrides the Korean scaffold above it — and it
+    // forbids mixing the two languages in the JSON values.
+    expect(prompts).toContain('function langDirective(lang: ReviewLocale)');
+    expect(prompts).toContain('${langDirective(lang)}');
+    expect(prompts).toContain('must never mix the two');
+    expect(prompts).toContain('두 언어를 섞지 않는다');
     expect(prompts).toContain('return 2 to 5 material findings');
     expect(prompts).toContain('Copy one exact snake_case lens_id');
   });

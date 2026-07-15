@@ -12,6 +12,7 @@ import {
   buildExtractionPrompt,
   reviewabilityBand,
   LENSES,
+  lensLabel,
   LENS_VERSION,
   REVIEW_SCHEMA_VERSION,
   type SourceKind,
@@ -20,6 +21,7 @@ import {
   type UserReviewContext,
   type CanonicalArtifact,
   type SourceCaps,
+  type ReviewLocale,
 } from '../lib/review/index.js';
 import { extractFileFromPath, type ExtractedText } from '../lib/review/extract-file-node.js';
 
@@ -70,6 +72,7 @@ const inputSchema = z.strictObject({
   audience_hint: z.string().max(200).optional(),
   biggest_worry: z.string().max(300).optional(),
   stakes: z.enum(['low', 'medium', 'high']).describe('Optional stakes hint for lens routing (default medium).').optional(),
+  response_locale: z.enum(['ko', 'en']).describe("검수의 모든 사용자 노출 문자열(렌즈 라벨·라우팅 설명·추출 프롬프트의 출력 언어 지시)에 쓸 독자 로케일. MCP 호스트는 UI 로케일을 넘기지 않으므로 출력 언어를 고정하려면 지정하고, 생략하면 문서 본문에서 언어를 감지한다. The reader's locale for every user-facing string in the review; omitted, it is detected from the document body.").optional(),
 });
 
 export const review: ToolModule = {
@@ -155,10 +158,25 @@ export const review: ToolModule = {
       const concerns: ReviewConcern[] = Array.isArray(a['concerns'])
         ? (a['concerns'] as ReviewConcern[])
         : ['full_judgment_review'];
-      const reviewKo = resolveResponseLocale(
-        typeof a['argus_dir'] === 'string' ? a['argus_dir'] : null,
-        text || title || filePath,
-      ) === 'ko';
+      // Reader's locale for the WHOLE review (M4) — one value threaded through
+      // ingest, reviewability, routing, and the extraction prompt's output
+      // directive, so the review answers in one language instead of a Korean
+      // scaffold wrapping an English doc. Prefer the explicit tool arg
+      // (`response_locale`); the MCP host has no UI locale to fall back on, so
+      // otherwise we detect it from the document body/title.
+      const argLocale: ReviewLocale | undefined =
+        a['response_locale'] === 'ko' || a['response_locale'] === 'en'
+          ? (a['response_locale'] as ReviewLocale)
+          : undefined;
+      const lang: ReviewLocale =
+        argLocale ??
+        (resolveResponseLocale(
+          typeof a['argus_dir'] === 'string' ? a['argus_dir'] : null,
+          text || title || filePath,
+        ) === 'ko'
+          ? 'ko'
+          : 'en');
+      const ko = lang === 'ko';
 
       // Honest degrade for a binary that yielded too little (scanned PDF, image
       // deck) — surface the parser's own note, never a confident fake review.
@@ -168,7 +186,7 @@ export const review: ToolModule = {
         if (bx.quality === 'unsupported' || bx.quality === 'low' || empty) {
           return envelope({
             ok: true, tool: 'argus_review',
-            surface: bx.note || (reviewKo
+            surface: bx.note || (ko
               ? '이 문서는 지금 상태로는 전체 검수가 어렵습니다. 핵심 본문을 붙여넣으면 더 정확합니다.'
               : 'This document cannot be reviewed reliably in its current form. Paste the decision-bearing text for a more accurate review.'),
             next_actions: ['skip'],
@@ -194,14 +212,15 @@ export const review: ToolModule = {
             extraction_notes: binaryExtract.note ? [binaryExtract.note] : undefined,
             source_caps: capsFrom(binaryExtract),
             privacy_mode: 'receipt_only',
+            locale: lang,
           })
-        : ingest({ source_kind: inferredKind ?? 'paste', title, text, privacy_mode: 'receipt_only' });
+        : ingest({ source_kind: inferredKind ?? 'paste', title, text, privacy_mode: 'receipt_only', locale: lang });
 
       // Honest degrade — never a confident review over unextractable input.
       if (artifact.extraction_quality === 'unsupported' || artifact.units.length === 0) {
         return envelope({
           ok: true, tool: 'argus_review',
-          surface: reviewKo
+          surface: ko
             ? '이 문서는 지금 상태로는 전체 검수가 어렵습니다. 무엇이 빠졌는지부터 확인하세요.'
             : 'This document cannot be reviewed reliably in its current form. Check what content could not be extracted first.',
           next_actions: ['skip'],
@@ -213,7 +232,7 @@ export const review: ToolModule = {
         });
       }
 
-      const reviewability = scoreReviewability(artifact);
+      const reviewability = scoreReviewability(artifact, undefined, lang);
       const band = reviewabilityBand(reviewability.score);
 
       // Routing needs a profile; without an LLM pass we use a neutral default
@@ -227,7 +246,7 @@ export const review: ToolModule = {
         source_confidence: 0.3,
         inferred: { document_type: true, intent: true, audience: true, stakes: true },
       };
-      const routing = routeLenses(profile, artifact, { concerns, maxLensCalls: 7 });
+      const routing = routeLenses(profile, artifact, { concerns, maxLensCalls: 7, lang });
 
       const ctx: UserReviewContext = {
         audience_hint: typeof a['audience_hint'] === 'string' ? (a['audience_hint'] as string) : undefined,
@@ -243,25 +262,16 @@ export const review: ToolModule = {
         if (charAcc > CHAR_BUDGET && effLimit > 0) break;
         effLimit++;
       }
-      const extraction = buildExtractionPrompt(artifact.units, ctx, effLimit);
+      const extraction = buildExtractionPrompt(artifact.units, ctx, effLimit, lang);
 
       const lenses = routing.selected.map((id) => ({
         id,
-        label: LENSES[id].label,
+        label: lensLabel(id, lang),
         purpose: LENSES[id].purpose,
         review_questions: LENSES[id].review_questions,
         avoid: LENSES[id].failure_modes,
       }));
 
-      // Voice follows the document's own language (M4), the same way seal/settle
-      // follow the predicate. Review was ko-hardcoded, so an English draft got a
-      // Korean scaffold line (experience-loop / backlog find). Detect from the
-      // doc body, fall back to the title.
-      const docSample = (typeof a['text'] === 'string' && a['text']) || artifact.source_title || '';
-      const ko = resolveResponseLocale(
-        typeof a['argus_dir'] === 'string' ? a['argus_dir'] : null,
-        docSample,
-      ) === 'ko';
       // The reviewability SCORE stays in data for lens routing only — surfacing
       // "74/100" to the user read as a grade on their document (experience-loop
       // spine find: the reviewer came to see weak spots, not be scored; the
