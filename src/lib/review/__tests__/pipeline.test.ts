@@ -180,6 +180,76 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(r.provenance.lens_versions[errored[0].id]).toBeUndefined();
   });
 
+  it('collapses the same issue reworded across lenses, but keeps a distinct issue on the same anchor', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const uid = artifact.units[0].unit_id;
+    const base = mockLLM(artifact);
+    // Every lens re-surfaces the SAME runway-gap issue under a different Korean
+    // wording (the exact failure mode the real Series-A deck produced: one issue
+    // reported 5× across core_question/claim_evidence/hidden_assumption/…), plus
+    // one genuinely distinct issue that shares the same anchor.
+    const runway = [
+      { title: '18개월 런웨이와 24개월 BEP 사이 6개월 공백에 대한 재원 계획이 원문에 없다', detail: '40억으로 18개월 런웨이, 24개월 BEP를 병기하지만 그 사이 6개월 자금 출처가 없다', severity: 'critical', confidence: 'high', suggested_action: '6개월 자금 계획', unit_ids: [uid] },
+      { title: '18개월 런웨이 종료와 24개월 BEP 사이 6개월 자금 공백 미언급', detail: '런웨이 소진 후 BEP까지 6개월간 어떤 현금으로 운영하는지 자금 조달 방법이 없다', severity: 'critical', confidence: 'medium', suggested_action: '자금 공백 해소', unit_ids: [uid] },
+      { title: '런웨이 18개월인데 BEP는 24개월: 6개월 자금 공백 판단은 투자자 몫', detail: '18개월 런웨이와 24개월 BEP 사이 6개월을 트랜치로 구조화할지는 사람의 판단이다', severity: 'critical', confidence: 'medium', suggested_action: '트랜치 조건', unit_ids: [uid] },
+    ];
+    const distinct = { title: '92% 정확도의 측정 기준과 검증 방식이 원문에 없다', detail: 'precision·recall·F1 중 무엇인지, 평가 데이터셋 구성이 명시되지 않았다', severity: 'caution', confidence: 'medium', suggested_action: '측정 기준 명시', unit_ids: [uid] };
+    const llm: ReviewLLM = {
+      model_name: base.model_name, model_provider: base.model_provider,
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (args.system.includes('렌즈다')) return { findings: [...runway, distinct] } as T;
+        return base.json<T>(args);
+      },
+    };
+    const { receipt } = await runDocumentReview(artifact, { llm, today: '2026-07-01' });
+    const fs = receipt!.findings;
+    const runwayHits = fs.filter((f) => /런웨이/.test(`${f.title} ${f.detail}`));
+    const distinctHits = fs.filter((f) => /정확도/.test(f.title));
+    // The three runway framings collapse to one row; the distinct issue on the
+    // same anchor survives (shared anchor is a safety net, not a merge trigger).
+    expect(runwayHits.length).toBe(1);
+    expect(distinctHits.length).toBe(1);
+    // the surviving runway row keeps the strongest severity and unions anchors.
+    expect(runwayHits[0].severity).toBe('critical');
+  });
+
+  it('diversifies the visible top so one dense slide cannot crowd out the rest', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const uid = artifact.units[0].unit_id;
+    const base = mockLLM(artifact);
+    // Five DISTINCT critical issues all anchored to the same unit (a dense
+    // section), plus two issues on other anchors. Dedup must keep all five (they
+    // are not restatements — low mutual overlap), but the receipt's top-3 must
+    // NOT be five copies of the same anchor.
+    const dense = [
+      { title: '예산 40억 산술이 맞지 않는다', detail: '엔지니어 25명 인건비가 런웨이와 충돌', severity: 'critical', confidence: 'high', suggested_action: 'a', unit_ids: [uid] },
+      { title: '경쟁사 없음 주장의 범위가 불명확', detail: '글로벌 플레이어 비교 부재', severity: 'critical', confidence: 'high', suggested_action: 'b', unit_ids: [uid] },
+      { title: '92% 정확도 측정 기준 없음', detail: 'precision recall 정의 부재', severity: 'critical', confidence: 'high', suggested_action: 'c', unit_ids: [uid] },
+      { title: 'NRR 140% 코호트 미정의', detail: '기간과 표본이 없다', severity: 'critical', confidence: 'high', suggested_action: 'd', unit_ids: [uid] },
+      { title: '금융권 규제 선결조건 누락', detail: '망분리 미언급', severity: 'critical', confidence: 'high', suggested_action: 'e', unit_ids: [uid] },
+    ];
+    // two findings on a DIFFERENT anchor (last unit)
+    const otherUid = artifact.units[artifact.units.length - 1].unit_id;
+    const other = [
+      { title: '리스크를 실행 속도로 단일화', detail: '다른 리스크 은폐', severity: 'critical', confidence: 'high', suggested_action: 'f', unit_ids: [otherUid] },
+      { title: '시장 규모 출처 없음', detail: '12조 근거 미제시', severity: 'caution', confidence: 'medium', suggested_action: 'g', unit_ids: [otherUid] },
+    ];
+    const llm: ReviewLLM = {
+      model_name: base.model_name, model_provider: base.model_provider,
+      async json<T>(args: ReviewLLMArgs): Promise<T> {
+        if (args.system.includes('렌즈다')) return { findings: [...dense, ...other] } as T;
+        return base.json<T>(args);
+      },
+    };
+    const { receipt } = await runDocumentReview(artifact, { llm, today: '2026-07-01' });
+    const top3 = receipt!.findings.slice(0, 3);
+    const anchorsInTop3 = new Set(top3.map((f) => JSON.stringify(f.anchors[0])));
+    // top-3 must span at least two different anchors, never three of one slide.
+    expect(anchorsInTop3.size).toBeGreaterThanOrEqual(2);
+    // all seven distinct issues still survive somewhere in the receipt.
+    expect(receipt!.findings.length).toBeGreaterThanOrEqual(7);
+  });
+
   it('scrubs internal unit ids the model leaks into user-facing prose', async () => {
     const artifact = ingest({ source_kind: 'markdown', text: DOC });
     const uid = artifact.units[0].unit_id;
@@ -268,6 +338,39 @@ describe('runDocumentReview — end to end with a mock model', () => {
     expect(receipt?.judgment_obligations).toHaveLength(1);
     expect(receipt?.falsifiable_followups).toHaveLength(1);
     expect(seen).toEqual(expect.arrayContaining(['profiling', 'reviewing', 'mapping', 'routing', 'synthesizing', 'ready']));
+  });
+
+  it('supplement surfaces only the model\'s hard verdicts — never a "근거 부족" stand-in for a weak claim', async () => {
+    const artifact = ingest({ source_kind: 'markdown', text: DOC });
+    const uid = artifact.units[0].unit_id;
+    const llm: ReviewLLM = {
+      model_name: 'mock', model_provider: 'local',
+      async json<T>(): Promise<T> {
+        // The model returned ZERO explicit findings (the truncation scenario),
+        // but a map with one `weak`, one `contradicted`, and one `unsupported` claim.
+        return {
+          profile: { document_type: 'memo', intent: 'decide', audience: 'team', stakes: 'high', artifact_maturity: 'draft', source_confidence: 0.6 },
+          core_question: '지금 올릴 것인가?',
+          main_claims: [
+            { text: '가격 인상으로 매출이 오른다', status: 'weak', unit_ids: [uid], rationale: '지표 없음' },
+            { text: 'A안이 B안보다 낫다', status: 'contradicted', unit_ids: [uid], rationale: '3장과 5장이 어긋난다' },
+            { text: '경쟁사보다 빠르다', status: 'unsupported', unit_ids: [uid], rationale: '비교 근거 없음' },
+          ],
+          assumptions: [],
+          decision_points: [{ text: '착수 여부', human_only: true, unit_ids: [uid] }],
+          findings: [], current_heading: '', judgment_obligations: [], followups: [],
+          evidence_items: [], tradeoffs: [], stakeholders: [], open_questions: [], missing_sections: [],
+        } as T;
+      },
+    };
+    const { receipt } = await runDocumentReview(artifact, { llm, budget: DEFAULT_BUDGET.quick, today: '2026-07-01' });
+    const fs = receipt!.findings;
+    // The old code manufactured "…근거가 충분하지 않음" from the WEAK claim. That
+    // fabrication is gone (CLAUDE.md — honest gap over fabrication).
+    expect(fs.some((f) => f.title.includes('근거가 충분하지 않음'))).toBe(false);
+    expect(fs.some((f) => f.title.includes('가격 인상으로 매출이 오른다'))).toBe(false);
+    // The model's own hard verdicts (contradicted / unsupported) DO surface.
+    expect(fs.some((f) => f.title.includes('충돌'))).toBe(true);
   });
 
   it('attaches full coverage to a small document that fits entirely', async () => {

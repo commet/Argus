@@ -16,13 +16,19 @@ describe('document review latency contract', () => {
     expect(flow).toContain('? DEFAULT_BUDGET.quick');
   });
 
-  it('bounds compact pipeline stages to compact output sizes', () => {
+  it('bounds pipeline stages — high enough for specific findings, low enough to stay fast', () => {
+    // The caps were RAISED from (quick 2800 / extraction 2500 / lens 1600 /
+    // synthesis 2000): at those sizes the model truncated the product fields
+    // (findings/obligations/followups come last in the JSON) and the receipt
+    // fell back to generic "근거 부족" stand-ins. These values give the product
+    // fields room to be specific while still bounding each call.
     expect(pipeline).toContain("budget.depth === 'quick'");
     expect(pipeline).toContain('buildQuickReviewPrompt');
-    expect(pipeline).toContain('Math.min(budget.max_tokens, 2800)');
-    expect(pipeline).toContain('Math.min(budget.max_tokens, 2500)');
-    expect(pipeline).toContain('maxTokens: 1600');
-    expect(pipeline).toContain('maxTokens: 2000');
+    expect(pipeline).toContain('Math.min(budget.max_tokens, 6500)'); // quick, full spine
+    expect(pipeline).toContain('Math.min(budget.max_tokens, 3200)'); // extraction + chunk map
+    expect(pipeline).toContain('maxTokens: 2800'); // lens + synthesis
+    // still bounded — no stage may request an unbounded/minute-long output.
+    expect(pipeline).not.toContain('maxTokens: 8000');
   });
 
   it('keeps fast-path output in the document language and requires material anchored findings', () => {

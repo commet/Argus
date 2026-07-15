@@ -24,7 +24,6 @@ import {
   type JudgmentObligation,
   type FalsifiableFollowup,
   type Claim,
-  type Assumption,
   type SourceAnchor,
   type ArtifactUnit,
   type LensId,
@@ -36,7 +35,7 @@ import {
 import { scoreReviewability } from './reviewability';
 import { packUnitsForPrompt, chunkUnitsForReview, computeCoverage } from './coverage';
 import { routeLenses } from './routing';
-import { LENSES, LENS_VERSION } from './lenses';
+import { LENSES } from './lenses';
 import { buildExtractionPrompt, buildLensPrompt, buildMapPrompt, buildQuickReviewPrompt, buildSynthesisPrompt } from './prompts';
 import { defaultReviewLLM, type ReviewLLM } from './llm-adapter';
 import { djb2, stableId } from './ids';
@@ -140,7 +139,11 @@ export async function runDocumentReview(
       const raw = await llm.json<Record<string, unknown>>({
         system: quickPrompt.system,
         user: quickPrompt.user,
-        maxTokens: Math.min(budget.max_tokens, 2800),
+        // The quick JSON carries the full spine (map + findings + obligations +
+        // followups). At 2800 it truncated the LAST fields — findings/obligations/
+        // followups — so the receipt fell back to supplementQuickFindings' generic
+        // "근거 부족" stand-ins. Give the product fields room to be specific.
+        maxTokens: Math.min(budget.max_tokens, 6500),
         model: 'default',
         signal: options.signal,
         shape: {
@@ -223,7 +226,7 @@ export async function runDocumentReview(
             return await llm.json<Record<string, unknown>>({
               system: mp.system,
               user: mp.user,
-              maxTokens: Math.min(budget.max_tokens, 2200),
+              maxTokens: Math.min(budget.max_tokens, 3200),
               model: 'default',
               signal: options.signal,
               shape: {
@@ -309,8 +312,9 @@ export async function runDocumentReview(
       if (findings.length === 0) findings = supplementQuickFindings([], map);
       // A whole-document review surfaces more than a single prompt — keep the top
       // ranked handful so the receipt stays readable, deduped first so the cut
-      // never drops a unique issue in favor of a near-duplicate.
-      findings = rankFindings(findings).slice(0, 10);
+      // never drops a unique issue in favor of a near-duplicate, and diversified
+      // by anchor so one dense section can't crowd every other slide out of the 10.
+      findings = diversifyByAnchor(rankFindings(findings)).slice(0, 10);
 
       emit('synthesizing', 'Judgment Receipt를 만드는 중');
       const mapSummary = summarizeMap(map);
@@ -321,7 +325,7 @@ export async function runDocumentReview(
         syn = await llm.json<Record<string, unknown>>({
           system: synPrompt.system,
           user: synPrompt.user,
-          maxTokens: 2000,
+          maxTokens: 2800,
           model: 'default',
           signal: options.signal,
           shape: {
@@ -355,8 +359,9 @@ export async function runDocumentReview(
       system: exPrompt.system,
       user: exPrompt.user,
       // The extraction shape is a compact map, not a document. A 6k allowance
-      // encouraged minute-long profiles before lens review even began.
-      maxTokens: Math.min(budget.max_tokens, 2500),
+      // encouraged minute-long profiles before lens review even began; 2500 in
+      // turn truncated the map on a dense deck, starving the lenses downstream.
+      maxTokens: Math.min(budget.max_tokens, 3200),
       model: 'default',
       signal: options.signal,
       shape: {
@@ -414,7 +419,10 @@ export async function runDocumentReview(
           const out = await llm.json<{ findings?: unknown[] }>({
             system: lp.system,
             user: lp.user,
-            maxTokens: 1600,
+            // 1600 forced each lens to compress its findings into one-line
+            // generic titles; a specific finding (exact claim + why + anchor)
+            // needs room. Dedup downstream collapses any cross-lens repeats.
+            maxTokens: 2800,
             model: 'default',
             signal: options.signal,
             shape: { findings: { type: 'array', default: [] } },
@@ -449,22 +457,32 @@ export async function runDocumentReview(
     }
 
     // --- Stage 4: synthesis → receipt fields ------------------------------
+    // Wrapped like the map-reduce reduce step: a synthesis that errors or
+    // truncates must degrade to "findings without obligations", NEVER fail the
+    // whole review. The findings above are the load-bearing output; obligations
+    // and follow-ups are additive. A bare await here turned one truncated JSON
+    // into a total model_error with zero findings shown.
     emit('synthesizing', 'Judgment Receipt를 만드는 중');
     const synPrompt = buildSynthesisPrompt(mapSummary, summarizeFindings(findings), ctx, today);
     promptParts.push(synPrompt.system);
-    const syn = await llm.json<Record<string, unknown>>({
-      system: synPrompt.system,
-      user: synPrompt.user,
-      maxTokens: 2000,
-      model: 'default',
-      signal: options.signal,
-      shape: {
-        core_question: { type: 'string', default: map.core_question },
-        current_heading: { type: 'string', default: '' },
-        judgment_obligations: { type: 'array', default: [] },
-        followups: { type: 'array', default: [] },
-      },
-    });
+    let syn: Record<string, unknown> = {};
+    try {
+      syn = await llm.json<Record<string, unknown>>({
+        system: synPrompt.system,
+        user: synPrompt.user,
+        maxTokens: 2800,
+        model: 'default',
+        signal: options.signal,
+        shape: {
+          core_question: { type: 'string', default: map.core_question },
+          current_heading: { type: 'string', default: '' },
+          judgment_obligations: { type: 'array', default: [] },
+          followups: { type: 'array', default: [] },
+        },
+      });
+    } catch {
+      syn = {};
+    }
 
     const obligations = normalizeObligations(syn['judgment_obligations'], resolveAnchors);
     const followups = normalizeFollowups(syn['followups'], today);
@@ -637,6 +655,16 @@ function normalizeFindings(raw: unknown, lensId: LensId, resolve: (ids: unknown)
  * extracted, anchored weak claims/assumptions so the receipt does not hide
  * material issues. No new fact or inference is introduced here.
  */
+/**
+ * Last-resort backfill for when the model returned zero explicit findings but
+ * its judgment map already carries HARD defect verdicts. We surface only the
+ * map's own strong signals — a claim the model itself marked `contradicted` or
+ * `unsupported`, or an assumption whose stated `if_false` names a real
+ * consequence. We never manufacture a generic "근거가 충분하지 않음" finding for a
+ * merely `weak` claim: that is fabrication (CLAUDE.md — honest gap over
+ * fabrication), and it was the exact source of the repeated "…근거 부족" the
+ * receipt showed when the real findings had been truncated away by the token cap.
+ */
 function supplementQuickFindings(findings: Finding[], map: DocumentJudgmentMap): Finding[] {
   const out = [...findings];
   const alreadyCovered = (text: string) => {
@@ -646,16 +674,21 @@ function supplementQuickFindings(findings: Finding[], map: DocumentJudgmentMap):
 
   for (const claim of map.main_claims) {
     if (out.length >= 2) break;
-    if (claim.status === 'supported' || claim.anchors.length === 0 || alreadyCovered(claim.text)) continue;
+    // Only the model's own hard verdicts — a `weak` or `human_check` claim is
+    // not a defect we may assert on the user's behalf.
+    if (claim.status !== 'contradicted' && claim.status !== 'unsupported') continue;
+    if (claim.anchors.length === 0 || alreadyCovered(claim.text)) continue;
     const contradicted = claim.status === 'contradicted';
     out.push({
       finding_id: stableId('find', 'claim_evidence', claim.claim_id),
       lens_id: 'claim_evidence',
       title: contradicted
-        ? `“${claim.text}” 주장이 문서 근거와 충돌함`
-        : `“${claim.text}” 주장의 근거가 충분하지 않음`,
-      detail: claim.rationale || '문서 안에서 이 주장을 뒷받침하는 근거가 확인되지 않습니다.',
-      severity: contradicted || claim.status === 'unsupported' ? 'critical' : 'caution',
+        ? `“${claim.text}” 주장이 문서의 다른 서술과 충돌`
+        : `“${claim.text}” 주장을 뒷받침하는 근거가 문서에 없음`,
+      detail: claim.rationale || (contradicted
+        ? '문서 안의 다른 서술과 이 주장이 어긋납니다.'
+        : '이 주장을 뒷받침하는 근거가 문서 안에서 확인되지 않습니다.'),
+      severity: 'critical',
       confidence: 'medium',
       suggested_action: claim.evidence_needed || claim.fix_suggestion,
       anchors: claim.anchors,
@@ -665,14 +698,14 @@ function supplementQuickFindings(findings: Finding[], map: DocumentJudgmentMap):
 
   for (const assumption of map.assumptions) {
     if (out.length >= 2) break;
-    if (assumption.anchors.length === 0 || alreadyCovered(assumption.text)) continue;
+    // Surface an assumption only when the model named a concrete consequence of
+    // its being false; a bare "unverified assumption" is noise, not a finding.
+    if (!assumption.if_false || assumption.anchors.length === 0 || alreadyCovered(assumption.text)) continue;
     out.push({
       finding_id: stableId('find', 'hidden_assumption', assumption.assumption_id),
       lens_id: 'hidden_assumption',
       title: `검증되지 않은 가정: ${assumption.text}`,
-      detail: assumption.if_false
-        ? `이 가정이 틀리면 ${assumption.if_false}`
-        : '이 가정이 틀릴 때 결정이 어떻게 달라지는지 문서에 명시되지 않았습니다.',
+      detail: `이 가정이 틀리면 ${assumption.if_false}`,
       severity: 'caution',
       confidence: 'medium',
       suggested_action: '이 가정을 확인할 근거와 통과·실패 조건을 명시하세요.',
@@ -782,7 +815,7 @@ function assembleReceipt(args: {
     claim_ledger: map.main_claims,
     hidden_assumptions: map.assumptions,
     forks: [], // MVP: only real alternatives; surfaced later, never manufactured
-    findings: rankFindings(findings),
+    findings: diversifyByAnchor(rankFindings(findings)),
     current_heading: args.currentHeading,
     falsifiable_followups: args.followups,
     companion_thread: [],
@@ -802,6 +835,28 @@ function rankFindings(findings: Finding[]): Finding[] {
       CONF_RANK[a.confidence] - CONF_RANK[b.confidence] ||
       b.anchors.length - a.anchors.length,
   );
+}
+
+/**
+ * Reorder ranked findings so the VISIBLE top spans the document instead of one
+ * dense section flooding it. A rich deck can genuinely carry five distinct but
+ * related issues on one slide (the Series-A deck's financials); dedup keeps them
+ * (they aren't restatements) but the receipt should still lead with breadth.
+ * Keeps at most `perAnchor` findings per primary anchor in the head, appends the
+ * overflow in rank order — every finding survives, only the order changes, so
+ * the scannable top-3 reads across the document, not one slide five times.
+ */
+function diversifyByAnchor(ranked: Finding[], perAnchor = 2): Finding[] {
+  const count = new Map<string, number>();
+  const head: Finding[] = [];
+  const tail: Finding[] = [];
+  for (const f of ranked) {
+    const k = f.anchors[0] ? anchorKey(f.anchors[0]) : '';
+    const n = count.get(k) ?? 0;
+    if (!k || n < perAnchor) { head.push(f); count.set(k, n + 1); }
+    else tail.push(f);
+  }
+  return [...head, ...tail];
 }
 
 // ---------------------------------------------------------------------------
@@ -840,11 +895,37 @@ function contentTokens(s: string): Set<string> {
   );
 }
 
-function tokenOverlap(a: Set<string>, b: Set<string>): number {
+/** Character bigrams over the letters/digits of a string — a similarity signal
+ *  that survives Korean agglutination. Whitespace word tokens treat "런웨이와",
+ *  "런웨이를", "런웨이" as three different words, so two findings about the SAME
+ *  issue score low on word overlap; their bigrams (런웨/웨이/…) still match. */
+function charBigrams(s: string): Set<string> {
+  const c = s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  const out = new Set<string>();
+  for (let i = 0; i < c.length - 1; i++) out.add(c.slice(i, i + 2));
+  return out;
+}
+
+function overlap(a: Set<string>, b: Set<string>): number {
   if (!a.size || !b.size) return 0;
   let inter = 0;
   for (const w of a) if (b.has(w)) inter++;
   return inter / Math.min(a.size, b.size);
+}
+
+/** Back-compat alias — word-token overlap (used by the obligation dedup). */
+function tokenOverlap(a: Set<string>, b: Set<string>): number {
+  return overlap(a, b);
+}
+
+/** How much two findings say the same thing — the max of word-token overlap and
+ *  character-bigram overlap, so it catches both English restatements and Korean
+ *  morphological variants of one issue. */
+function findingTextSim(a: string, b: string): number {
+  return Math.max(
+    overlap(contentTokens(a), contentTokens(b)),
+    overlap(charBigrams(a), charBigrams(b)),
+  );
 }
 
 /**
@@ -916,23 +997,43 @@ function mergeMaps(maps: DocumentJudgmentMap[]): DocumentJudgmentMap {
   };
 }
 
-/** Collapse near-duplicate findings that repeat one issue across chunks — same
- *  normalized title, or an overlapping anchor plus a shared title stem. Keeps the
- *  strongest severity/confidence and unions anchors, so the receipt shows the
- *  issue once (the redundant "치명 3개, 같은 말" case) without losing anchors. */
+/** Collapse near-duplicate findings that repeat one issue — same normalized
+ *  title, an overlapping anchor plus a shared title stem, OR (the parallel-lens
+ *  case) an overlapping anchor plus heavy content-word overlap on title+detail.
+ *  The last branch is what collapses the SAME issue surfaced from five different
+ *  lenses under five different titles ("런웨이 18 vs BEP 24" from claim_evidence,
+ *  core_question, hidden_assumption, human_judgment, falsifiable_followup) into
+ *  one row — the reduce step's title-stem check alone could not, because each
+ *  lens rewords the headline. Keeps the strongest severity/confidence, lets the
+ *  sharpest (most severe) framing's text win, and unions anchors. */
 function dedupeFindings(findings: Finding[]): Finding[] {
   const out: Finding[] = [];
+  const outText: string[] = [];
   for (const f of findings) {
     const key = dedupKey(f.title);
     const fAnchors = new Set(f.anchors.map(anchorKey).filter(Boolean));
-    const hit = out.find((g) => {
+    const fText = `${f.title} ${f.detail}`;
+    const idx = out.findIndex((g, i) => {
       const gk = dedupKey(g.title);
       if (key && gk === key) return true;
       const shareAnchor = g.anchors.some((a) => fAnchors.has(anchorKey(a)));
-      return shareAnchor && key.length >= 8 && (gk.startsWith(key.slice(0, 8)) || key.startsWith(gk.slice(0, 8)));
+      if (!shareAnchor) return false;
+      const stemHit = key.length >= 8 && (gk.startsWith(key.slice(0, 8)) || key.startsWith(gk.slice(0, 8)));
+      // Shared anchor is the safety net (distinct issues on the same slide have
+      // low text overlap); 0.42 catches the same issue reworded across lenses.
+      return stemHit || findingTextSim(fText, outText[i]) >= 0.42;
     });
-    if (!hit) { out.push(f); continue; }
-    if (SEVERITY_RANK[f.severity] < SEVERITY_RANK[hit.severity]) hit.severity = f.severity;
+    if (idx === -1) { out.push(f); outText.push(fText); continue; }
+    const hit = out[idx];
+    // The more severe framing wins the visible text (anchors merge regardless),
+    // so the surviving row reads as the sharpest statement of the shared issue.
+    if (SEVERITY_RANK[f.severity] < SEVERITY_RANK[hit.severity]) {
+      hit.title = f.title;
+      hit.detail = f.detail;
+      hit.lens_id = f.lens_id;
+      hit.severity = f.severity;
+      outText[idx] = `${hit.title} ${hit.detail}`;
+    }
     if (CONF_RANK[f.confidence] < CONF_RANK[hit.confidence]) hit.confidence = f.confidence;
     hit.anchors = unionAnchors(hit.anchors, f.anchors);
     if (!hit.suggested_action && f.suggested_action) hit.suggested_action = f.suggested_action;

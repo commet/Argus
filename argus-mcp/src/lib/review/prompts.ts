@@ -158,24 +158,28 @@ ${renderUnits(units, unitLimit)}
 
 ${context}
 
-Return this JSON shape:
+Return this JSON shape. The FIRST product fields — findings, judgment_obligations,
+followups — are what the user reads: fill them completely and specifically before
+the map fields below them. The trailing map fields (evidence_items, tradeoffs,
+stakeholders, open_questions, missing_sections) are secondary scaffolding — keep
+them brief so they never crowd out the product fields.
 {
   "profile": { "document_type": "...", "intent": "...", "audience": "...", "stakes": "low|medium|high", "artifact_maturity": "...", "source_confidence": 0.0 },
   "core_question": "the actual decision question",
   "explicit_recommendation": "stated recommendation or empty",
   "implicit_recommendation": "implied recommendation or empty",
+  "findings": [ { "lens_id": "core_question|claim_evidence|hidden_assumption|human_judgment|falsifiable_followup", "title": "...", "detail": "...", "severity": "minor|caution|critical", "confidence": "low|medium|high", "suggested_action": "a concrete check", "unit_ids": ["..."] } ],
+  "judgment_obligations": [ { "statement": "...", "owner": "...", "why_human": "...", "decision_needed_by": "...", "evidence_needed": "...", "unit_ids": ["..."] } ],
+  "followups": [ { "predicate": "...", "pass_condition": "...", "fail_condition": "...", "check_by": "YYYY-MM-DD" } ],
+  "current_heading": "neutral summary of the document's current direction",
   "main_claims": [ { "text": "...", "status": "supported|weak|unsupported|human_check|contradicted", "unit_ids": ["..."], "rationale": "...", "evidence_needed": "...", "fix_suggestion": "...", "depends_on_claim_ids": ["C1"] } ],
-  "evidence_items": [ { "text": "...", "unit_ids": ["..."], "kind": "internal|external_cited|asserted", "supports_claim_ids": ["C1"] } ],
   "assumptions": [ { "text": "...", "unit_ids": ["..."], "if_false": "..." } ],
+  "decision_points": [ { "text": "...", "human_only": true, "unit_ids": ["..."] } ],
+  "evidence_items": [ { "text": "...", "unit_ids": ["..."], "kind": "internal|external_cited|asserted", "supports_claim_ids": ["C1"] } ],
   "tradeoffs": [ { "text": "...", "unit_ids": ["..."] } ],
   "stakeholders": [ { "role": "...", "likely_objection": "...", "unit_ids": ["..."] } ],
   "open_questions": [ { "text": "...", "unit_ids": ["..."] } ],
-  "decision_points": [ { "text": "...", "human_only": true, "unit_ids": ["..."] } ],
-  "missing_sections": [ { "label": "...", "why_it_matters": "..." } ],
-  "findings": [ { "lens_id": "core_question|claim_evidence|hidden_assumption|human_judgment|falsifiable_followup", "title": "...", "detail": "...", "severity": "minor|caution|critical", "confidence": "low|medium|high", "suggested_action": "a concrete check", "unit_ids": ["..."] } ],
-  "current_heading": "neutral summary of the document's current direction",
-  "judgment_obligations": [ { "statement": "...", "owner": "...", "why_human": "...", "decision_needed_by": "...", "evidence_needed": "...", "unit_ids": ["..."] } ],
-  "followups": [ { "predicate": "...", "pass_condition": "...", "fail_condition": "...", "check_by": "YYYY-MM-DD" } ]
+  "missing_sections": [ { "label": "...", "why_it_matters": "..." } ]
 }`;
 
   return { system, user };
